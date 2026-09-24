@@ -61,10 +61,13 @@
   if (typeof L === 'undefined') { document.getElementById('apt-map').innerHTML = '<div class="p-3 text-muted">The map could not load (no internet?).</div>'; return; }
   var airports = {{ airports|tojson }};
   var lines = {{ lines|tojson }};
-  var map = L.map('apt-map', { zoomControl: true, minZoom: 6 }).setView({{ center|tojson }}, 8);
+  var map = L.map('apt-map', { zoomControl: true, minZoom: 6 }).setView({{ center|tojson }}, 9);
   // FAA's own VFR Sectional chart tiles (free, public). Street map as a fallback layer.
+  // maxZoom matches maxNativeZoom - past zoom 12 the tile server has nothing
+  // sharper, and letting Leaflet zoom further than that just upscales (and
+  // blurs) the zoom-12 tiles instead of showing more detail.
   var sectional = L.tileLayer('https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}', {
-    minNativeZoom: 8, maxNativeZoom: 12, maxZoom: 14, attribution: 'FAA VFR Sectional'
+    minNativeZoom: 8, maxNativeZoom: 12, maxZoom: 12, attribution: 'FAA VFR Sectional'
   });
   var streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 16, attribution: '&copy; OpenStreetMap'
@@ -89,8 +92,8 @@
       (a.students.length ? '<br>' + esc(a.students.join(', ')) : ''));
     markers.push(m); bounds.push([a.lat, a.lon]);
   });
-  if (bounds.length > 1) { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 }); if (map.getZoom() < 7) { map.setZoom(7); }; }
-  else if (bounds.length === 1) { map.setView(bounds[0], 9); }
+  if (bounds.length > 1) { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 }); if (map.getZoom() < 7) { map.setZoom(7); }; }
+  else if (bounds.length === 1) { map.setView(bounds[0], 11); }
   document.querySelectorAll('[data-apt]').forEach(function (el) {
     el.addEventListener('click', function () {
       var m = markers[+el.dataset.apt]; if (!m) return;
