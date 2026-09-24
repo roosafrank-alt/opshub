@@ -497,16 +497,38 @@ def dashboard():
 # the shop side acknowledges it.
 # ---------------------------------------------------------------------------
 
+# Squawks come from two places: flagged during Flight School's "log a
+# flight" flow (flights.squawk), or reported directly against a plane
+# without logging a flight (plane_squawks - see asset_squawk_new()). Every
+# place squawks are listed merges the two with a UNION ALL so they show up
+# together, tagged with a 'kind' column ('flight' or 'quick') that the
+# acknowledge/repair routes use to know which table to update.
+_FLIGHT_SQUAWK_COLS = """'flight' as kind, f.id as squawk_id, a.id as asset_id, a.tag as asset_tag,
+               a.name as asset_name, f.flight_date as event_date, s.name as student_name,
+               c.name as cfi_name, NULL as reported_by, f.notes as notes,
+               f.squawk_acknowledged_at as acknowledged_at, f.squawk_acknowledged_by as acknowledged_by,
+               f.squawk_repaired_at as repaired_at, f.squawk_repaired_by as repaired_by"""
+_QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.tag as asset_tag,
+               a.name as asset_name, q.reported_at as event_date, NULL as student_name,
+               NULL as cfi_name, q.reported_by as reported_by, q.notes as notes,
+               q.acknowledged_at as acknowledged_at, q.acknowledged_by as acknowledged_by,
+               q.repaired_at as repaired_at, q.repaired_by as repaired_by"""
+
+
 def get_open_squawks(conn):
-    return conn.execute("""
-        SELECT f.*, a.id as asset_id, a.tag as asset_tag, a.name as asset_name,
-               s.name as student_name, c.name as cfi_name
+    return conn.execute(f"""
+        SELECT {_FLIGHT_SQUAWK_COLS}
         FROM flights f
         JOIN assets a ON a.id = f.asset_id
         JOIN students s ON s.id = f.student_id
         LEFT JOIN cfis c ON c.id = f.cfi_id
         WHERE f.squawk = 1 AND f.squawk_acknowledged_at IS NULL
-        ORDER BY f.flight_date DESC, f.id DESC
+        UNION ALL
+        SELECT {_QUICK_SQUAWK_COLS}
+        FROM plane_squawks q
+        JOIN assets a ON a.id = q.asset_id
+        WHERE q.acknowledged_at IS NULL
+        ORDER BY event_date DESC, squawk_id DESC
     """).fetchall()
 
 
@@ -515,63 +537,90 @@ def get_open_squawks(conn):
 def squawks_list():
     conn = get_db()
     open_squawks = get_open_squawks(conn)
-    acknowledged = conn.execute("""
-        SELECT f.*, a.tag as asset_tag, a.name as asset_name, s.name as student_name, c.name as cfi_name
+    acknowledged = conn.execute(f"""
+        SELECT {_FLIGHT_SQUAWK_COLS}
         FROM flights f
         JOIN assets a ON a.id = f.asset_id
         JOIN students s ON s.id = f.student_id
         LEFT JOIN cfis c ON c.id = f.cfi_id
         WHERE f.squawk = 1 AND f.squawk_acknowledged_at IS NOT NULL AND f.squawk_repaired_at IS NULL
-        ORDER BY f.squawk_acknowledged_at DESC LIMIT 50
+        UNION ALL
+        SELECT {_QUICK_SQUAWK_COLS}
+        FROM plane_squawks q
+        JOIN assets a ON a.id = q.asset_id
+        WHERE q.acknowledged_at IS NOT NULL AND q.repaired_at IS NULL
+        ORDER BY acknowledged_at DESC LIMIT 50
     """).fetchall()
-    repaired = conn.execute("""
-        SELECT f.*, a.tag as asset_tag, a.name as asset_name, s.name as student_name, c.name as cfi_name
+    repaired = conn.execute(f"""
+        SELECT {_FLIGHT_SQUAWK_COLS}
         FROM flights f
         JOIN assets a ON a.id = f.asset_id
         JOIN students s ON s.id = f.student_id
         LEFT JOIN cfis c ON c.id = f.cfi_id
         WHERE f.squawk = 1 AND f.squawk_repaired_at IS NOT NULL
-        ORDER BY f.squawk_repaired_at DESC LIMIT 50
+        UNION ALL
+        SELECT {_QUICK_SQUAWK_COLS}
+        FROM plane_squawks q
+        JOIN assets a ON a.id = q.asset_id
+        WHERE q.repaired_at IS NOT NULL
+        ORDER BY repaired_at DESC LIMIT 50
     """).fetchall()
     conn.close()
     return render_template("squawks.html", open_squawks=open_squawks, acknowledged=acknowledged, repaired=repaired)
 
 
-@app.route("/squawks/<int:flight_id>/acknowledge", methods=["POST"])
+@app.route("/squawks/<kind>/<int:squawk_id>/acknowledge", methods=["POST"])
 @shop_role_required('admin', 'tech')
-def squawk_acknowledge(flight_id):
+def squawk_acknowledge(kind, squawk_id):
     conn = get_db()
-    f = conn.execute("SELECT id FROM flights WHERE id = ? AND squawk = 1", (flight_id,)).fetchone()
-    if not f:
+    if kind == "flight":
+        row = conn.execute("SELECT id FROM flights WHERE id = ? AND squawk = 1", (squawk_id,)).fetchone()
+        set_sql = "UPDATE flights SET squawk_acknowledged_at = ?, squawk_acknowledged_by = ? WHERE id = ?"
+    elif kind == "quick":
+        row = conn.execute("SELECT id FROM plane_squawks WHERE id = ?", (squawk_id,)).fetchone()
+        set_sql = "UPDATE plane_squawks SET acknowledged_at = ?, acknowledged_by = ? WHERE id = ?"
+    else:
+        conn.close()
+        abort(404)
+    if not row:
         conn.close()
         flash("Squawk not found.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
-    conn.execute("UPDATE flights SET squawk_acknowledged_at = ?, squawk_acknowledged_by = ? WHERE id = ?",
-                 (now_iso(), session.get("user_name"), flight_id))
+    conn.execute(set_sql, (now_iso(), session.get("user_name"), squawk_id))
     conn.commit()
     conn.close()
     flash("Squawk acknowledged.", "success")
     return redirect(request.referrer or url_for("squawks_list"))
 
 
-@app.route("/squawks/<int:flight_id>/repair", methods=["POST"])
+@app.route("/squawks/<kind>/<int:squawk_id>/repair", methods=["POST"])
 @shop_role_required('admin', 'tech')
-def squawk_repair(flight_id):
+def squawk_repair(kind, squawk_id):
     """Marks a squawk as actually fixed/addressed - a separate step from
     acknowledging it, since seeing an issue and fixing it aren't the same
     thing. Also acknowledges it if that hadn't happened yet, so a tech can
     jump straight to "repaired" without an extra click."""
     conn = get_db()
-    f = conn.execute("SELECT id, squawk_acknowledged_at FROM flights WHERE id = ? AND squawk = 1", (flight_id,)).fetchone()
-    if not f:
+    if kind == "flight":
+        row = conn.execute("SELECT id, squawk_acknowledged_at as acked FROM flights WHERE id = ? AND squawk = 1",
+                            (squawk_id,)).fetchone()
+        ack_sql = "UPDATE flights SET squawk_acknowledged_at = ?, squawk_acknowledged_by = ? WHERE id = ?"
+        repair_sql = "UPDATE flights SET squawk_repaired_at = ?, squawk_repaired_by = ? WHERE id = ?"
+    elif kind == "quick":
+        row = conn.execute("SELECT id, acknowledged_at as acked FROM plane_squawks WHERE id = ?",
+                            (squawk_id,)).fetchone()
+        ack_sql = "UPDATE plane_squawks SET acknowledged_at = ?, acknowledged_by = ? WHERE id = ?"
+        repair_sql = "UPDATE plane_squawks SET repaired_at = ?, repaired_by = ? WHERE id = ?"
+    else:
+        conn.close()
+        abort(404)
+    if not row:
         conn.close()
         flash("Squawk not found.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
-    if not f["squawk_acknowledged_at"]:
-        conn.execute("UPDATE flights SET squawk_acknowledged_at = ?, squawk_acknowledged_by = ? WHERE id = ?",
-                     (now_iso(), session.get("user_name"), flight_id))
-    conn.execute("UPDATE flights SET squawk_repaired_at = ?, squawk_repaired_by = ? WHERE id = ?",
-                 (now_iso(), session.get("user_name"), flight_id))
+    if not row["acked"]:
+        conn.execute(ack_sql, (now_iso(), session.get("user_name"), squawk_id))
+    conn.execute(repair_sql, (now_iso(), session.get("user_name"), squawk_id))
     conn.commit()
     conn.close()
     flash("Squawk marked repaired.", "success")
@@ -2036,12 +2085,11 @@ def asset_detail(asset_id):
     maintenance_items = [{"item": m, "status": maintenance_status(m, asset_meter(asset, m["hour_type"]))}
                           for m in maint_rows]
 
-    # Flight School: this plane's oil-added history and any squawks logged
-    # against it, both otherwise invisible from the Maintenance side.
+    # Flight School: this plane's oil-added history, otherwise invisible
+    # from the Maintenance side.
     asset_flights = []
     oil_log = []
     total_oil_added = 0.0
-    open_squawks = []
     if asset["is_flight_asset"]:
         asset_flights = conn.execute("""
             SELECT f.*, s.name as student_name, c.name as cfi_name
@@ -2053,7 +2101,24 @@ def asset_detail(asset_id):
         """, (asset_id,)).fetchall()
         oil_log = [f for f in asset_flights if f["oil_added_qt"]]
         total_oil_added = sum(f["oil_added_qt"] or 0 for f in asset_flights)
-        open_squawks = [f for f in asset_flights if f["squawk"] and not f["squawk_acknowledged_at"]]
+
+    # Open squawks against this plane - flagged during a logged flight, or
+    # reported directly (see asset_squawk_new()). A quick squawk can exist
+    # for any asset, not just a Flight School plane.
+    open_squawks = conn.execute(f"""
+        SELECT {_FLIGHT_SQUAWK_COLS}
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        WHERE f.squawk = 1 AND f.squawk_acknowledged_at IS NULL AND a.id = ?
+        UNION ALL
+        SELECT {_QUICK_SQUAWK_COLS}
+        FROM plane_squawks q
+        JOIN assets a ON a.id = q.asset_id
+        WHERE q.acknowledged_at IS NULL AND a.id = ?
+        ORDER BY event_date DESC, squawk_id DESC
+    """, (asset_id, asset_id)).fetchall()
 
     # Cylinder compression checks - logged from the Maintenance side (any
     # asset, not just Flight School planes), so it belongs here regardless
@@ -2075,6 +2140,28 @@ def asset_detail(asset_id):
                            maintenance_items=maintenance_items, oil_log=oil_log, total_oil_added=total_oil_added,
                            open_squawks=open_squawks, photos=photos, todos=todos, project_cover=project_cover,
                            latest_compression=latest_compression, compression_count=compression_count)
+
+
+@app.route("/assets/<int:asset_id>/squawk", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def asset_squawk_new(asset_id):
+    """Reports an issue straight against a plane, without going through
+    Flight School's "log a flight" flow - see plane_squawks in schema.sql."""
+    notes = request.form.get("notes", "").strip()
+    if not notes:
+        flash("Enter what's wrong before reporting.", "danger")
+        return redirect(url_for("asset_detail", asset_id=asset_id))
+    conn = get_db()
+    asset = conn.execute("SELECT id FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+    conn.execute("INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at) VALUES (?, ?, ?, ?)",
+                 (asset_id, notes, session.get("user_name"), now_iso()))
+    conn.commit()
+    conn.close()
+    flash("Issue reported - it'll show up on the Squawks page until it's addressed.", "success")
+    return redirect(url_for("asset_detail", asset_id=asset_id))
 
 
 @app.route("/assets/<int:asset_id>/todo/new", methods=["POST"])
@@ -3901,7 +3988,8 @@ def _reset_counts():
         "projects": conn.execute("SELECT COUNT(*) c FROM projects").fetchone()["c"],
         "flights": conn.execute("SELECT COUNT(*) c FROM flights").fetchone()["c"],
         "planes": conn.execute("SELECT COUNT(*) c FROM assets WHERE is_flight_asset = 1").fetchone()["c"],
-        "squawks": conn.execute("SELECT COUNT(*) c FROM flights WHERE squawk = 1").fetchone()["c"],
+        "squawks": (conn.execute("SELECT COUNT(*) c FROM flights WHERE squawk = 1").fetchone()["c"]
+                    + conn.execute("SELECT COUNT(*) c FROM plane_squawks").fetchone()["c"]),
         "schedule": conn.execute("SELECT COUNT(*) c FROM scheduled_flights").fetchone()["c"],
         "students": conn.execute("SELECT COUNT(*) c FROM students WHERE is_station = 0").fetchone()["c"],
         "ledger": conn.execute("SELECT COUNT(*) c FROM student_ledger").fetchone()["c"],
@@ -4038,10 +4126,13 @@ def admin_reset_orders():
 @app.route("/admin/reset/squawks", methods=["POST"])
 @master_admin_required
 def admin_reset_squawks():
-    """Clears squawk flags only - keeps the flight log entries themselves."""
+    """Clears squawk flags only - keeps the flight log entries themselves.
+    Quick squawks (not tied to a flight) have no entry to keep, so those
+    rows are deleted outright."""
     conn = get_db()
     conn.execute("""UPDATE flights SET squawk = 0, squawk_acknowledged_at = NULL, squawk_acknowledged_by = NULL,
                      squawk_repaired_at = NULL, squawk_repaired_by = NULL WHERE squawk = 1""")
+    conn.execute("DELETE FROM plane_squawks")
     conn.commit()
     conn.close()
     flash("Squawks cleared.", "success")

@@ -331,6 +331,24 @@ CREATE TABLE IF NOT EXISTS plane_todos (
 );
 CREATE INDEX IF NOT EXISTS idx_plane_todos_asset ON plane_todos(asset_id);
 
+-- Quick squawks: an issue reported straight against a plane, without going
+-- through Flight School's "log a flight" flow (which is where a squawk
+-- normally comes from - see flights.squawk). Same acknowledge/repair
+-- workflow as a flight squawk; the two are merged together wherever
+-- squawks are listed (see get_open_squawks() in app.py).
+CREATE TABLE IF NOT EXISTS plane_squawks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    asset_id INTEGER NOT NULL REFERENCES assets(id),
+    notes TEXT NOT NULL,
+    reported_by TEXT,
+    reported_at TEXT NOT NULL DEFAULT (datetime('now')),
+    acknowledged_at TEXT,
+    acknowledged_by TEXT,
+    repaired_at TEXT,
+    repaired_by TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_plane_squawks_asset ON plane_squawks(asset_id);
+
 -- Short-lived generic cache for outside-API lookups keyed by cache_key:
 -- the dashboard weather widget (ZIP forecast, civil twilight, N89 METAR -
 -- see weather.py, ~20min TTL) and live ADS-B aircraft positions (see

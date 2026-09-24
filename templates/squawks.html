@@ -2,7 +2,7 @@
 {% block title %}Squawks - OpsHub{% endblock %}
 {% block content %}
 <h4 class="mb-3"><i class="bi bi-exclamation-triangle-fill text-danger"></i> Squawks</h4>
-<p class="text-muted small">Flagged by a CFI when logging a flight in Flight School. Acknowledging just means someone's seen it - it stays here until it's actually marked repaired.</p>
+<p class="text-muted small">Flagged by a CFI when logging a flight in Flight School, or reported directly from a plane's page. Acknowledging just means someone's seen it - it stays here until it's actually marked repaired.</p>
 
 <h6 class="mt-4">Open ({{ open_squawks|length }})</h6>
 {% if open_squawks %}
@@ -10,14 +10,16 @@
   {% for sq in open_squawks %}
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
     <div>
-      <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.flight_date|usdate }} &middot; flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}</div>
+      <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.event_date|usdate }} &middot;
+        {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
+        {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
       <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
     </div>
     <div class="d-flex gap-2">
-      <form method="post" action="{{ url_for('squawk_acknowledge', flight_id=sq.id) }}" data-confirm="Acknowledge this squawk?" data-confirm-title="Acknowledge Squawk">
+      <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Acknowledge this squawk?" data-confirm-title="Acknowledge Squawk">
         <button class="btn btn-outline-danger btn-sm fw-bold"><i class="bi bi-check-lg"></i> Acknowledge</button>
       </form>
-      <form method="post" action="{{ url_for('squawk_repair', flight_id=sq.id) }}" data-confirm="Mark this squawk as repaired/addressed?">
+      <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Mark this squawk as repaired/addressed?">
         <button class="btn btn-success btn-sm fw-bold"><i class="bi bi-tools"></i> Mark Repaired</button>
       </form>
     </div>
@@ -34,11 +36,13 @@
   {% for sq in acknowledged %}
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
     <div>
-      <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.flight_date|usdate }} &middot; flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}</div>
+      <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.event_date|usdate }} &middot;
+        {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
+        {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
       <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-      <small class="text-muted">Acknowledged by {{ sq.squawk_acknowledged_by or '-' }}, {{ sq.squawk_acknowledged_at|usdate(true) if sq.squawk_acknowledged_at else '' }}</small>
+      <small class="text-muted">Acknowledged by {{ sq.acknowledged_by or '-' }}, {{ sq.acknowledged_at|usdate(true) if sq.acknowledged_at else '' }}</small>
     </div>
-    <form method="post" action="{{ url_for('squawk_repair', flight_id=sq.id) }}" data-confirm="Mark this squawk as repaired/addressed?">
+    <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Mark this squawk as repaired/addressed?">
       <button class="btn btn-success btn-sm fw-bold"><i class="bi bi-tools"></i> Mark Repaired</button>
     </form>
   </div>
@@ -53,15 +57,15 @@
 <div class="card">
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0">
-      <thead class="table-light"><tr><th>Plane</th><th>Date</th><th>Student</th><th>Notes</th><th>Repaired</th></tr></thead>
+      <thead class="table-light"><tr><th>Plane</th><th>Date</th><th>Reported by</th><th>Notes</th><th>Repaired</th></tr></thead>
       <tbody>
         {% for sq in repaired %}
         <tr>
           <td><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></td>
-          <td><small>{{ sq.flight_date|usdate }}</small></td>
-          <td>{{ sq.student_name }}</td>
+          <td><small>{{ sq.event_date|usdate }}</small></td>
+          <td>{{ sq.reported_by if sq.kind == 'quick' else sq.student_name }}</td>
           <td><small>{{ sq.notes or '-' }}</small></td>
-          <td><small>{{ sq.squawk_repaired_by or '-' }}<br>{{ sq.squawk_repaired_at|usdate(true) if sq.squawk_repaired_at else '' }}</small></td>
+          <td><small>{{ sq.repaired_by or '-' }}<br>{{ sq.repaired_at|usdate(true) if sq.repaired_at else '' }}</small></td>
         </tr>
         {% endfor %}
       </tbody>
