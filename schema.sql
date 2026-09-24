@@ -107,6 +107,30 @@ CREATE TABLE IF NOT EXISTS assets (
 -- _migrate() gets a chance to ALTER TABLE it in. _migrate() creates this
 -- index itself, unconditionally, after making sure the column exists.
 
+-- Customer portal: aircraft owners get their own login (separate from the
+-- staff `users` table - a customer has no shop_role/flight_role and can't
+-- reach anything but their own linked aircraft), scoped to only the
+-- aircraft customer_assets links them to. An owner can be linked to more
+-- than one plane (or a plane to more than one owner, e.g. a partnership),
+-- hence the join table rather than an owner_id on assets.
+CREATE TABLE IF NOT EXISTS customers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    password_plain TEXT, -- kept alongside the hash so an admin can look up a forgotten password, same as users.password_plain
+    phone TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS customer_assets (
+    customer_id INTEGER NOT NULL REFERENCES customers(id),
+    asset_id INTEGER NOT NULL REFERENCES assets(id),
+    PRIMARY KEY (customer_id, asset_id)
+);
+CREATE INDEX IF NOT EXISTS idx_customer_assets_asset ON customer_assets(asset_id);
+
 CREATE TABLE IF NOT EXISTS projects (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     code TEXT UNIQUE, -- auto-numbered, e.g. 26-001 (YY-sequence)
@@ -126,7 +150,10 @@ CREATE TABLE IF NOT EXISTS projects (
     intake_status TEXT, -- new-project intake form: NULL (older project, never asked) | pending | done | skipped
     intake_json TEXT, -- the filled-in intake form (checks, squawks, damage) as JSON
     intake_at TEXT,
-    intake_by TEXT
+    intake_by TEXT,
+    customer_confirmed_at TEXT, -- customer portal: set when the aircraft owner confirms this appointment (scheduled_date)
+    customer_reschedule_requested_at TEXT, -- customer portal: set when they ask to reschedule instead - clears customer_confirmed_at
+    customer_reschedule_note TEXT -- what the customer said they need (shown to admin on the Maintenance dashboard until dismissed)
 );
 CREATE INDEX IF NOT EXISTS idx_projects_asset_tag ON projects(asset_tag);
 CREATE INDEX IF NOT EXISTS idx_projects_asset_id ON projects(asset_id);

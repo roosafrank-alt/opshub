@@ -177,3 +177,56 @@ def owner_locked(user_id, conn=None):
     isn't the owner - i.e. they may look but not change it."""
     return bool(user_id) and user_id == owner_user_id(conn) and not is_owner(conn)
 
+
+# ---------------------------------------------------------------------------
+# Customer portal login - a completely separate account system from the
+# staff `users` table above (own table, own session keys: session['customer_id']
+# / ['customer_name'], never user_id). A customer has no shop_role/flight_role
+# and no staff routes recognize their session, so there's no way this login
+# reaches anything but the customer portal blueprint's own routes, which in
+# turn only ever show the aircraft customer_assets links to that customer_id
+# - see customer.py.
+# ---------------------------------------------------------------------------
+
+def authenticate_customer(email, password):
+    """Returns the customers row for a valid email/password, or None."""
+    email = (email or "").strip().lower()
+    if not email or not password:
+        return None
+    conn = get_db()
+    row = conn.execute("SELECT * FROM customers WHERE lower(email) = ?", (email,)).fetchone()
+    conn.close()
+    if not row or not row["active"]:
+        return None
+    if not check_password_hash(row["password_hash"], password):
+        return None
+    return row
+
+
+def log_in_customer(customer_row):
+    session.clear()
+    session.permanent = True
+    session["customer_id"] = customer_row["id"]
+    session["customer_name"] = customer_row["name"]
+
+
+def log_out_customer():
+    session.clear()
+
+
+def current_customer(conn):
+    cid = session.get("customer_id")
+    if not cid:
+        return None
+    return conn.execute("SELECT * FROM customers WHERE id = ?", (cid,)).fetchone()
+
+
+def customer_login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not session.get("customer_id"):
+            flash("Log in to see your aircraft.", "danger")
+            return redirect(url_for("customer.customer_login"))
+        return f(*args, **kwargs)
+    return wrapper
+

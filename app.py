@@ -20,6 +20,7 @@ from db import (get_db, init_db, gen_internal_barcode, gen_project_code, gen_lab
 from flight import flight_bp, _flight_hours, check_session_alerts, PLANE_COLORS
 from logbook import logbook_bp
 from pilotlog import pilotlog_bp
+from customer import customer_bp
 import academy
 from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
                    master_admin_required, shop_role_required, can_see_shop_costs,
@@ -63,6 +64,7 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=180)  # keeps a login 
 app.register_blueprint(flight_bp)
 app.register_blueprint(logbook_bp)
 app.register_blueprint(pilotlog_bp)
+app.register_blueprint(customer_bp)
 
 
 # ---------------------------------------------------------------------------
@@ -444,6 +446,15 @@ def dashboard():
     """, (today_str,)).fetchone()["c"]
     open_squawks = get_open_squawks(conn)
 
+    # Customer portal: appointments the customer asked to reschedule -
+    # stays here until an admin dismisses it (see project_reschedule_dismiss).
+    reschedule_requests = conn.execute("""
+        SELECT projects.*, a.tag as asset_display_tag
+        FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
+        WHERE projects.deleted_at IS NULL AND projects.customer_reschedule_requested_at IS NOT NULL
+        ORDER BY projects.customer_reschedule_requested_at DESC
+    """).fetchall()
+
     open_sessions = conn.execute("""
         SELECT ls.*, l.name as laborer_name, p.code as project_code, p.name as project_name
         FROM labor_sessions ls
@@ -488,6 +499,7 @@ def dashboard():
                            pending_orders_count=pending_orders_count, upcoming_count=upcoming_count,
                            low_stock=low_stock, recent_activity=recent_activity,
                            reminders=reminders, upcoming_projects=upcoming_projects,
+                           reschedule_requests=reschedule_requests,
                            open_squawks=open_squawks, open_sessions=open_sessions)
 
 
@@ -3848,6 +3860,144 @@ def push_service_worker():
     resp.headers["Service-Worker-Allowed"] = "/"
     resp.headers["Cache-Control"] = "no-cache"
     return resp
+
+
+# ---------------------------------------------------------------------------
+# Customer portal accounts (aircraft owners) - who can log in, and which
+# aircraft they're linked to. See customer.py for the portal itself.
+# ---------------------------------------------------------------------------
+
+@app.route("/customers")
+@shop_role_required('admin')
+def customers_list():
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM customers ORDER BY active DESC, name").fetchall()
+    customers = []
+    for c in rows:
+        planes = conn.execute("""
+            SELECT a.tag FROM customer_assets ca JOIN assets a ON a.id = ca.asset_id
+            WHERE ca.customer_id = ? ORDER BY a.tag
+        """, (c["id"],)).fetchall()
+        customers.append({"row": c, "planes": [p["tag"] for p in planes]})
+    conn.close()
+    return render_template("customers.html", customers=customers)
+
+
+@app.route("/customers/new", methods=["GET", "POST"])
+@shop_role_required('admin')
+def customer_new():
+    conn = get_db()
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL ORDER BY tag").fetchall()
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
+        password = request.form.get("password", "")
+        asset_ids = [int(x) for x in request.form.getlist("asset_ids") if x.isdigit()]
+        if not name or not email or not password:
+            flash("Name, email, and a starting password are all required.", "danger")
+            conn.close()
+            return render_template("customer_form.html", customer=None, assets=assets, linked_ids=set(),
+                                    name=name, email=email, phone=phone)
+        existing = conn.execute("SELECT id FROM customers WHERE lower(email) = ?", (email.lower(),)).fetchone()
+        if existing:
+            conn.close()
+            flash(f"'{email}' already has a customer account.", "danger")
+            return render_template("customer_form.html", customer=None, assets=assets, linked_ids=set(),
+                                    name=name, email=email, phone=phone)
+        cur = conn.execute(
+            "INSERT INTO customers (name, email, password_hash, password_plain, phone, active, created_at) "
+            "VALUES (?, ?, ?, ?, ?, 1, ?)",
+            (name, email, generate_password_hash(password, method="pbkdf2:sha256"), password, phone, now_iso()))
+        customer_id = cur.lastrowid
+        for aid in asset_ids:
+            conn.execute("INSERT OR IGNORE INTO customer_assets (customer_id, asset_id) VALUES (?, ?)",
+                         (customer_id, aid))
+        conn.commit()
+        conn.close()
+        flash(f"Customer account created for {name}.", "success")
+        return redirect(url_for("customers_list"))
+    conn.close()
+    return render_template("customer_form.html", customer=None, assets=assets, linked_ids=set(),
+                            name="", email="", phone="")
+
+
+@app.route("/customers/<int:customer_id>/edit", methods=["GET", "POST"])
+@shop_role_required('admin')
+def customer_edit(customer_id):
+    conn = get_db()
+    customer = conn.execute("SELECT * FROM customers WHERE id = ?", (customer_id,)).fetchone()
+    if not customer:
+        conn.close()
+        abort(404)
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL ORDER BY tag").fetchall()
+    linked_ids = {r["asset_id"] for r in conn.execute(
+        "SELECT asset_id FROM customer_assets WHERE customer_id = ?", (customer_id,)).fetchall()}
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
+        new_password = request.form.get("password", "").strip()
+        active = 1 if request.form.get("active") else 0
+        asset_ids = {int(x) for x in request.form.getlist("asset_ids") if x.isdigit()}
+        if not name or not email:
+            flash("Name and email are required.", "danger")
+            conn.close()
+            return render_template("customer_form.html", customer=customer, assets=assets, linked_ids=linked_ids,
+                                    name=name, email=email, phone=phone)
+        dupe = conn.execute("SELECT id FROM customers WHERE lower(email) = ? AND id != ?",
+                             (email.lower(), customer_id)).fetchone()
+        if dupe:
+            flash(f"'{email}' already belongs to another customer account.", "danger")
+            conn.close()
+            return render_template("customer_form.html", customer=customer, assets=assets, linked_ids=linked_ids,
+                                    name=name, email=email, phone=phone)
+        if new_password:
+            conn.execute("UPDATE customers SET name=?, email=?, phone=?, active=?, password_hash=?, password_plain=? WHERE id=?",
+                         (name, email, phone, active, generate_password_hash(new_password, method="pbkdf2:sha256"),
+                          new_password, customer_id))
+        else:
+            conn.execute("UPDATE customers SET name=?, email=?, phone=?, active=? WHERE id=?",
+                         (name, email, phone, active, customer_id))
+        conn.execute("DELETE FROM customer_assets WHERE customer_id = ?", (customer_id,))
+        for aid in asset_ids:
+            conn.execute("INSERT OR IGNORE INTO customer_assets (customer_id, asset_id) VALUES (?, ?)",
+                         (customer_id, aid))
+        conn.commit()
+        conn.close()
+        flash("Customer account updated.", "success")
+        return redirect(url_for("customers_list"))
+    conn.close()
+    return render_template("customer_form.html", customer=customer, assets=assets, linked_ids=linked_ids,
+                            name=customer["name"], email=customer["email"], phone=customer["phone"] or "")
+
+
+@app.route("/customers/<int:customer_id>/delete", methods=["POST"])
+@shop_role_required('admin')
+def customer_delete(customer_id):
+    conn = get_db()
+    conn.execute("DELETE FROM customer_assets WHERE customer_id = ?", (customer_id,))
+    conn.execute("DELETE FROM customers WHERE id = ?", (customer_id,))
+    conn.commit()
+    conn.close()
+    flash("Customer account removed.", "success")
+    return redirect(url_for("customers_list"))
+
+
+@app.route("/projects/<int:project_id>/reschedule/dismiss", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_reschedule_dismiss(project_id):
+    """Admin has seen and handled a customer's reschedule request (e.g.
+    already called them, or already changed scheduled_date) - clears the
+    flag so it drops off the dashboard. Doesn't touch scheduled_date itself;
+    use the normal Edit Project form for that."""
+    conn = get_db()
+    conn.execute("UPDATE projects SET customer_reschedule_requested_at = NULL, customer_reschedule_note = NULL WHERE id = ?",
+                 (project_id,))
+    conn.commit()
+    conn.close()
+    flash("Dismissed.", "success")
+    return redirect(request.referrer or url_for("dashboard"))
 
 
 @app.route("/admin/notifications", methods=["GET", "POST"])

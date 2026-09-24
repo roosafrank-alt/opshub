@@ -1033,6 +1033,34 @@ def _migrate(conn):
     _migrate_flight_accounts_to_users(conn)
     _carry_over_project_photos_to_assets(conn)
 
+    # Customer portal: aircraft owners' own login, scoped to their linked
+    # aircraft only. See schema.sql's comment above the customers table.
+    conn.execute("""CREATE TABLE IF NOT EXISTS customers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        password_plain TEXT,
+        phone TEXT,
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )""")
+    conn.commit()
+    conn.execute("""CREATE TABLE IF NOT EXISTS customer_assets (
+        customer_id INTEGER NOT NULL REFERENCES customers(id),
+        asset_id INTEGER NOT NULL REFERENCES assets(id),
+        PRIMARY KEY (customer_id, asset_id)
+    )""")
+    conn.commit()
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_customer_assets_asset ON customer_assets(asset_id)")
+    conn.commit()
+
+    proj_cols_cust = [r["name"] for r in conn.execute("PRAGMA table_info(projects)").fetchall()]
+    for col in ("customer_confirmed_at", "customer_reschedule_requested_at", "customer_reschedule_note"):
+        if col not in proj_cols_cust:
+            conn.execute(f"ALTER TABLE projects ADD COLUMN {col} TEXT")
+            conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of
