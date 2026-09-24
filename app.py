@@ -20,7 +20,7 @@ from db import (get_db, init_db, gen_internal_barcode, gen_project_code, gen_lab
 from flight import flight_bp, _flight_hours, check_session_alerts, PLANE_COLORS
 from logbook import logbook_bp
 from pilotlog import pilotlog_bp
-from customer import customer_bp
+from customer import customer_bp, _owned_asset_ids, _project_bill
 import academy
 from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
                    master_admin_required, shop_role_required, can_see_shop_costs,
@@ -3931,6 +3931,51 @@ def customer_new():
     conn.close()
     return render_template("customer_form.html", customer=None, assets=assets, linked_ids=set(),
                             name="", email="", phone="")
+
+
+@app.route("/customers/<int:customer_id>")
+@shop_role_required('admin')
+def customer_detail(customer_id):
+    """Read-only admin view of one customer's account: their linked
+    aircraft, each one's maintenance reminders, appointments (with the
+    same confirm/reschedule status the customer sees), and job costs -
+    the same information the customer's own /portal shows, from the admin
+    side. This is deliberately scoped to just that - not a way into the
+    full parts/inventory/projects side of Winds Aloft; use the normal
+    asset/project pages (linked below) to actually change something."""
+    conn = get_db()
+    customer = conn.execute("SELECT * FROM customers WHERE id = ?", (customer_id,)).fetchone()
+    if not customer:
+        conn.close()
+        abort(404)
+    asset_ids = _owned_asset_ids(conn, customer_id)
+    planes = []
+    if asset_ids:
+        ph = ",".join("?" * len(asset_ids))
+        assets = conn.execute(
+            f"SELECT * FROM assets WHERE id IN ({ph}) AND deleted_at IS NULL ORDER BY tag", asset_ids).fetchall()
+        for a in assets:
+            items = conn.execute(
+                "SELECT * FROM maintenance_items WHERE asset_id = ? AND active = 1 ORDER BY name", (a["id"],)).fetchall()
+            reminders = [{"item": m, "status": maintenance_status(m, asset_meter(a, m["hour_type"]))} for m in items]
+            reminders.sort(key=lambda r: {"overdue": 0, "due_soon": 1, "ok": 2, "unknown": 3}.get(r["status"]["urgency"], 4))
+            appointments = conn.execute("""
+                SELECT * FROM projects WHERE asset_id = ? AND deleted_at IS NULL AND scheduled_date IS NOT NULL
+                      AND status NOT IN ('completed', 'archived')
+                ORDER BY scheduled_date
+            """, (a["id"],)).fetchall()
+            jobs = conn.execute("""
+                SELECT * FROM projects WHERE asset_id = ? AND deleted_at IS NULL
+                ORDER BY (status = 'active') DESC, created_at DESC LIMIT 10
+            """, (a["id"],)).fetchall()
+            bills = []
+            for j in jobs:
+                grouped, labor, total = _project_bill(conn, j["id"])
+                if total > 0 or grouped or labor:
+                    bills.append({"project": j, "total": total})
+            planes.append({"asset": a, "reminders": reminders, "appointments": appointments, "bills": bills})
+    conn.close()
+    return render_template("customer_detail.html", customer=customer, planes=planes)
 
 
 @app.route("/customers/<int:customer_id>/edit", methods=["GET", "POST"])

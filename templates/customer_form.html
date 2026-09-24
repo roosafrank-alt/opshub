@@ -1,5 +1,5 @@
-{% extends "base.html" %}
-{% block title %}{{ 'Edit' if customer else 'New' }} Customer - OpsHub{% endblock %}
+{% extends "customer_admin_base.html" %}
+{% block title %}{{ 'Edit' if customer else 'New' }} Customer{% endblock %}
 {% block content %}
 <div class="d-flex align-items-center gap-2 mb-3">
   <a href="{{ url_for('customers_list') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i></a>
@@ -48,7 +48,7 @@
     </div>
   </div>
   <div class="mt-3">
-    <button class="btn btn-warning fw-bold">{{ 'Save' if customer else 'Create Account' }}</button>
+    <button class="btn btn-adm fw-bold">{{ 'Save' if customer else 'Create Account' }}</button>
     <a href="{{ url_for('customers_list') }}" class="btn btn-outline-secondary">Cancel</a>
   </div>
 </form>
