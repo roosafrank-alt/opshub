@@ -52,15 +52,17 @@ CATEGORY_LABELS = {
 }
 CATEGORY_RANK = {cat: i for i, cat in enumerate(CATEGORY_ORDER)}
 
-# Which categories are red ("alert") vs orange ("warn") wherever a NOTAM's
-# severity is shown - the dashboard strip's airport chips and, per-NOTAM,
-# the expanded detail rows. Red is reserved for what actually keeps a
-# plane on the ground: a TFR or an airport/runway closure. Everything else
-# active (taxiway, approach, other) is orange so it doesn't read as the
-# same emergency.
-RED_CATEGORIES = {"tfr", "closure", "runway"}
-
+# Which NOTAMs are red ("alert") vs orange ("warn") wherever severity is
+# shown - the dashboard strip's airport chips and, per-NOTAM, the expanded
+# detail rows. Red is reserved for what actually keeps a plane on the
+# ground: a TFR or an actual closure (of the airport or a runway).
+# Everything else active - including a runway NOTAM that isn't a closure,
+# like lights out or an obstruction near it, which still needs eyes but
+# doesn't ground the field - is orange so it doesn't read as the same
+# emergency. See _is_critical below; a plain category membership check
+# isn't enough since "runway" covers both cases.
 _CLOSURE_RE = re.compile(r"\b(ARPT|AD|AIRPORT)\b[^.]{0,20}\bCLSD\b")
+_RUNWAY_CLSD_RE = re.compile(r"\bRWY\b[^.]{0,20}\bCLSD\b")
 _RUNWAY_RE = re.compile(r"\bRWY\b")
 _TAXIWAY_RE = re.compile(r"\bTWY\b")
 _APPROACH_RE = re.compile(r"\b(IAP|APCH|APPROACH)\b")
@@ -84,6 +86,19 @@ def _classify_notam(core):
     if _TAXIWAY_RE.search(text):
         return "taxiway"
     return "other"
+
+
+def _is_critical(category, text):
+    """True ('alert'/red) only for what actually keeps a plane on the
+    ground: a TFR, an airport closure, or - within the broader "runway"
+    category, which also catches lights, markings, obstructions and NAVAID
+    issues just for mentioning RWY - specifically a runway CLOSURE. Every
+    other active NOTAM is 'warn'/orange (see the module comment above)."""
+    if category in ("tfr", "closure"):
+        return True
+    if category == "runway":
+        return bool(_RUNWAY_CLSD_RE.search((text or "").upper()))
+    return False
 
 
 # Plain-English one-liner for the dashboard row: "what" (subject) and "what
@@ -347,7 +362,7 @@ def _fetch_notams():
             "status": _notam_status(core.get("effectiveStart")),
             "category": category,
             "category_label": CATEGORY_LABELS[category],
-            "severity": "alert" if category in RED_CATEGORIES else "warn",
+            "severity": "alert" if _is_critical(category, core.get("text")) else "warn",
             "subject": subject,
             "descriptor": descriptor,
             # Full, unedited NOTAM text for the click-to-expand popup - the
@@ -373,7 +388,12 @@ def _group_by_airport(notams):
         g["notams"].append(n)
     airport_groups = list(groups.values())
     for g in airport_groups:
-        g["notams"].sort(key=lambda n: CATEGORY_RANK.get(n["category"], 99))
+        # Within the same category (mainly "runway", which mixes closures
+        # with lights/obstructions/etc. - see _is_critical), an alert
+        # NOTAM sorts first so the group's top/worst entry is always the
+        # one that actually grounds the field, not whichever happened to
+        # come first from the API.
+        g["notams"].sort(key=lambda n: (CATEGORY_RANK.get(n["category"], 99), 0 if n["severity"] == "alert" else 1))
         g["top_category"] = g["notams"][0]["category"]
         g["top_category_label"] = g["notams"][0]["category_label"]
     airport_groups.sort(key=lambda g: (
