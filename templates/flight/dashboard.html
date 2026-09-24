@@ -177,16 +177,27 @@
     .wx-tile, .wx-tile::after { animation: none !important; }
   }
 </style>
-<h4 class="mb-3">
-  {% if cfi %}Welcome, {{ cfi.name }}{% elif student and student.is_station %}{{ student.name }}{% else %}Welcome, {{ student.name }}{% endif %}
-</h4>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <h4 class="mb-0">
+    {% if cfi %}Welcome, {{ cfi.name }}{% elif student and student.is_station %}{{ student.name }}{% else %}Welcome, {{ student.name }}{% endif %}
+  </h4>
+  {#- Local clock, Zulu clock and today's sunrise/sunset - the same info
+     Active Flight's header shows, plus the sun times (see sun.py) that the
+     weather strip below points back up to instead of repeating. #}
+  <div class="text-muted small font-monospace text-end" style="font-variant-numeric: tabular-nums;">
+    <div><span id="dash-zulu-clock">--:--:--Z</span> <span class="text-muted">/</span> <span id="dash-local-clock">--:--:--</span></div>
+    {% if sun_times %}
+    <div><i class="bi bi-sunrise"></i> {{ sun_times.sunrise or '-' }} ({{ sun_times.sunrise_z or '-' }}) <span class="mx-1">&middot;</span> <i class="bi bi-sunset"></i> {{ sun_times.sunset or '-' }} ({{ sun_times.sunset_z or '-' }})</div>
+    {% endif %}
+  </div>
+</div>
 {% if student and student.is_station %}
 <p class="text-muted small mt-n2 mb-3"><i class="bi bi-info-circle"></i> Station account - use Schedule below to book time on a plane.</p>
 {% endif %}
 
 {% if cfi %}
-<div class="row g-3 mb-3">
-  <div class="col-6 col-md-3">
+<div class="row row-cols-2 row-cols-md-5 g-3 mb-3">
+  <div class="col">
     <a href="{{ url_for('flight.log_new') }}" class="text-decoration-none">
       <div class="card p-3 text-center">
         <i class="bi bi-journal-plus fs-2 text-warning"></i>
@@ -194,7 +205,15 @@
       </div>
     </a>
   </div>
-  <div class="col-6 col-md-3">
+  <div class="col">
+    <a href="{{ url_for('flight.schedule_new') }}" class="text-decoration-none">
+      <div class="card p-3 text-center">
+        <i class="bi bi-calendar-plus fs-2 text-success"></i>
+        <div class="fw-bold mt-1">Schedule Flight</div>
+      </div>
+    </a>
+  </div>
+  <div class="col">
     <a href="{{ url_for('flight.schedule_calendar') }}" class="text-decoration-none">
       <div class="card p-3 text-center">
         <i class="bi bi-calendar3 fs-2 text-info"></i>
@@ -202,7 +221,7 @@
       </div>
     </a>
   </div>
-  <div class="col-6 col-md-3">
+  <div class="col">
     <a href="{{ url_for('flight.students_list') }}" class="text-decoration-none">
       <div class="card p-3 text-center">
         <i class="bi bi-people fs-2 text-primary"></i>
@@ -210,7 +229,7 @@
       </div>
     </a>
   </div>
-  <div class="col-6 col-md-3">
+  <div class="col">
     <a href="{{ url_for('flight.planes_list') }}" class="text-decoration-none">
       <div class="card p-3 text-center">
         <i class="bi bi-airplane fs-2 text-secondary"></i>
@@ -251,6 +270,23 @@
 
 {% block scripts %}
 <script>
+// Header local/Zulu clock, same pattern as Active Flight's header.
+(function () {
+  var zuluEl = document.getElementById('dash-zulu-clock');
+  var localEl = document.getElementById('dash-local-clock');
+  if (!zuluEl || !localEl) return;
+  var localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function tickClock() {
+    var now = new Date();
+    zuluEl.textContent = pad(now.getUTCHours()) + ':' + pad(now.getUTCMinutes()) + ':' + pad(now.getUTCSeconds()) + 'Z';
+    localEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
+      (localTz ? ' ' + now.toLocaleTimeString([], { timeZoneName: 'short' }).split(' ').pop() : '');
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+})();
+
 // Next Lesson countdown: ticks every second. Lives here (not in the live
 // partial) so it keeps running after each live refresh swaps that HTML in.
 (function () {
