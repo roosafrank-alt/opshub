@@ -138,6 +138,27 @@
   .wx-strip-temp { font-size: 1.05rem; font-weight: 700; }
   .wx-strip-banner .wx-metar { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 
+  /* Next-few-hours forecast row under the current-conditions strip - plain
+     (not per-condition themed like wx-tile) so it stays readable in both
+     light and dark mode. */
+  .wx-forecast-strip {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .75rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: .3rem .1rem;
+  }
+  .wx-forecast-hour {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .1rem;
+    flex-shrink: 0;
+    font-size: .8rem;
+    min-width: 3.5rem;
+  }
+
   @keyframes wx-sun-glow {
     0%, 100% { filter: brightness(1); }
     50% { filter: brightness(1.06); }

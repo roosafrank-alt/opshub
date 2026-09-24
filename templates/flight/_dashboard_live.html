@@ -203,11 +203,25 @@
     {% if dashboard_wx.metar and dashboard_wx.metar.raw_text %}
     <div class="wx-strip-item wx-metar font-monospace wx-subtle" title="{{ dashboard_wx.metar.raw_text }}">{{ dashboard_wx.metar.raw_text }}</div>
     {% endif %}
+    {% if dashboard_wx.taf and dashboard_wx.taf.raw_text %}
+    <div class="wx-strip-item wx-metar font-monospace wx-subtle" title="{{ dashboard_wx.taf.raw_text }}">{{ dashboard_wx.taf.raw_text }}</div>
+    {% endif %}
   {% else %}
     <span class="small wx-subtle"><i class="bi bi-cloud-sun"></i> {{ dashboard_wx.error or 'Weather unavailable right now.' }}</span>
   {% endif %}
   </div>
 </div>
+{% if dashboard_wx.forecast %}
+<div class="wx-forecast-strip mb-2">
+  {% for h in dashboard_wx.forecast %}
+  <div class="wx-forecast-hour" title="{{ h.weather_label }}">
+    <span class="text-muted">{{ h.hour_label }}</span>
+    <span class="fw-bold">{{ '%.0f'|format(h.temp_f) + '°' if h.temp_f is not none else '-' }}</span>
+    <span class="text-muted">{{ '%.0f'|format(h.wind_mph) if h.wind_mph is not none else '-' }} mph{% if h.wind_gusts_mph %} G{{ '%.0f'|format(h.wind_gusts_mph) }}{% endif %}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 {% endif %}
 
 {% if next_lesson or session.get('is_master_admin') %}

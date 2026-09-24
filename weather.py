@@ -1,9 +1,9 @@
-"""Daily weather for the Flight School dashboard: current conditions for
-ZIP 12458 (Open-Meteo, free/no-key), civil sunrise/sunset/twilight
-(sunrise-sunset.org, free/no-key), and a best-effort aviation METAR for
-airport N89 (aviationweather.gov) - small non-towered fields often don't
-report, so that one is allowed to come back empty without failing anything
-else.
+"""Daily weather for the Flight School dashboard: current conditions and a
+next-few-hours forecast for ZIP 12458 (Open-Meteo, free/no-key), civil
+sunrise/sunset/twilight (sunrise-sunset.org, free/no-key), and a best-effort
+aviation METAR + TAF for airport N89 (aviationweather.gov) - small
+non-towered fields often don't report, so those two are allowed to come
+back empty without failing anything else.
 
 Only the standard library is used (urllib, json) so nothing extra needs to
 be vendored onto the Pi - same reasoning as notify.py.
@@ -178,6 +178,65 @@ def _fetch_metar(station):
         return None
 
 
+def _fetch_taf(station):
+    """Best-effort TAF (terminal forecast) for a station, same aviationweather.gov
+    API and same "may come back empty" deal as _fetch_metar - most small
+    non-towered fields don't have one."""
+    try:
+        params = {"ids": station, "format": "json"}
+        url = "https://aviationweather.gov/api/data/taf?" + urllib.parse.urlencode(params)
+        data = _get_json(url)
+        if not data:
+            return None
+        row = data[0]
+        return {
+            "station": row.get("icaoId", station),
+            "raw_text": row.get("rawTAF") or row.get("rawText"),
+            "issued_at": row.get("issueTime"),
+        }
+    except Exception:
+        return None
+
+
+def _hour_12h_label(hour):
+    """0-23 -> '1 PM' etc., for the dashboard's next-few-hours forecast strip."""
+    hour12 = hour % 12 or 12
+    return f"{hour12} {'AM' if hour < 12 else 'PM'}"
+
+
+def _fetch_dashboard_forecast(lat, lon):
+    """Next several hours' outlook (temp/wind/sky) for the dashboard strip -
+    separate from get_forecast_for()'s single-hour lookup for one scheduled
+    lesson, this always covers "the next few hours from now"."""
+    now_local = datetime.now(ZoneInfo(LOCAL_TZ))
+    hourly = _fetch_hourly_forecast(lat, lon, now_local.strftime("%Y-%m-%d"))
+    times = hourly.get("time", [])
+    temps = hourly.get("temperature_2m") or [None] * len(times)
+    winds = hourly.get("wind_speed_10m") or [None] * len(times)
+    gusts = hourly.get("wind_gusts_10m") or [None] * len(times)
+    codes = hourly.get("weather_code") or [None] * len(times)
+    out = []
+    for i, t in enumerate(times):
+        try:
+            hour = int(t[11:13])
+        except (ValueError, IndexError):
+            continue
+        if hour <= now_local.hour:
+            continue
+        out.append({
+            "hour_label": _hour_12h_label(hour),
+            "temp_f": temps[i],
+            "wind_mph": winds[i],
+            "wind_gusts_mph": gusts[i],
+            "weather_code": codes[i],
+            "weather_label": WMO_WEATHER_LABELS.get(codes[i], "-"),
+            "wx_category": _wx_category(codes[i], None),
+        })
+        if len(out) >= 6:
+            break
+    return out
+
+
 def _fetch_hourly_forecast(lat, lon, date_str):
     """Open-Meteo hourly forecast for one calendar date (YYYY-MM-DD) - used
     to show the forecast for a specific scheduled lesson's day/time. Only
@@ -297,6 +356,11 @@ def get_dashboard_weather(conn, force=False):
     except Exception:
         payload["twilight"] = None
     payload["metar"] = _fetch_metar(N89_STATION)  # None is a normal/expected outcome here
+    payload["taf"] = _fetch_taf(N89_STATION)  # same deal - often empty for a small field
+    try:
+        payload["forecast"] = _fetch_dashboard_forecast(lat, lon)
+    except Exception:
+        payload["forecast"] = []
 
     try:
         conn.execute(
