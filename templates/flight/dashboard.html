@@ -373,10 +373,11 @@ document.addEventListener('click', function (evt) {
 // Click an airport row in the NOTAMs tile to expand its notams in place,
 // grouped by the triage hierarchy (TFRs first, then closures, runways,
 // taxiways, approaches, everything else - see CATEGORY_ORDER in
-// notams.py). Independent per-airport (not an accordion - a busy day can
-// have more than one airport worth checking at once), and delegated for
-// the same live-refresh-replaces-innerHTML reason as the other handlers
-// here.
+// notams.py). Accordion-style like the flight chips above: opening one
+// airport's notams closes any other airport already open, so the strip
+// doesn't fill the page with several expanded lists at once. Clicking the
+// open airport again just collapses it. Delegated for the same
+// live-refresh-replaces-innerHTML reason as the other handlers here.
 document.addEventListener('click', function (evt) {
   var region = document.getElementById('dashboard-live-region');
   if (!region || !region.contains(evt.target)) return;
@@ -385,8 +386,15 @@ document.addEventListener('click', function (evt) {
   var detail = region.querySelector('[data-notam-detail="' + toggle.dataset.notamAirport + '"]');
   if (!detail) return;
   var opening = detail.hidden;
-  detail.hidden = !opening;
-  toggle.classList.toggle('open', opening);
+  region.querySelectorAll('.notam-strip-detail:not([hidden])').forEach(function (d) {
+    d.hidden = true;
+    var t = region.querySelector('.notam-airport-toggle[data-notam-airport="' + d.dataset.notamDetail + '"]');
+    if (t) t.classList.remove('open');
+  });
+  if (opening) {
+    detail.hidden = false;
+    toggle.classList.add('open');
+  }
 });
 
 // Click a section header (Today's Schedule / Upcoming / Recent Flights) to
