@@ -1973,8 +1973,9 @@ def asset_new():
         cur = conn.execute("""INSERT INTO assets (tag, name, make, model, serial_number, year, owner,
                                hobbs_hours, hobbs_updated_at, tach_hours, tach_updated_at,
                                engine_make, engine_model, engine_serial, prop_make, prop_model, prop_serial,
-                               rental_rate, is_flight_asset, icao24_hex, show_on_map, color, notes, created_at, updated_at)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                               rental_rate, is_flight_asset, icao24_hex, show_on_map, color, notes, maint_prefs,
+                               created_at, updated_at)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (tag, request.form.get("name", "").strip() or tag,
                              request.form.get("make", "").strip(), request.form.get("model", "").strip(),
                              request.form.get("serial_number", "").strip(), request.form.get("year", "").strip(),
@@ -1986,7 +1987,8 @@ def asset_new():
                              request.form.get("prop_model", "").strip(), request.form.get("prop_serial", "").strip(),
                              _parse_float(request.form.get("rental_rate")), is_flight_asset,
                              request.form.get("icao24_hex", "").strip().upper() or None, show_on_map, color,
-                             request.form.get("notes", "").strip(), now_iso(), now_iso()))
+                             request.form.get("notes", "").strip(), request.form.get("maint_prefs", "").strip(),
+                             now_iso(), now_iso()))
         new_id = cur.lastrowid
         conn.commit()
         conn.close()
@@ -2272,7 +2274,8 @@ def asset_edit(asset_id):
         # an admin instead), so this update deliberately leaves it alone.
         conn.execute("""UPDATE assets SET tag=?, name=?, make=?, model=?, serial_number=?, year=?, owner=?,
                          engine_make=?, engine_model=?, engine_serial=?, prop_make=?, prop_model=?, prop_serial=?,
-                         is_flight_asset=?, icao24_hex=?, show_on_map=?, notes=?, color=?, updated_at=? WHERE id=?""",
+                         is_flight_asset=?, icao24_hex=?, show_on_map=?, notes=?, maint_prefs=?, color=?,
+                         updated_at=? WHERE id=?""",
                      (tag, request.form.get("name", "").strip() or tag, request.form.get("make", "").strip(),
                       request.form.get("model", "").strip(), request.form.get("serial_number", "").strip(),
                       request.form.get("year", "").strip(), request.form.get("owner", "").strip(),
@@ -2280,7 +2283,8 @@ def asset_edit(asset_id):
                       request.form.get("engine_serial", "").strip(), request.form.get("prop_make", "").strip(),
                       request.form.get("prop_model", "").strip(), request.form.get("prop_serial", "").strip(),
                       is_flight_asset, request.form.get("icao24_hex", "").strip().upper() or None, show_on_map,
-                      request.form.get("notes", "").strip(), color, now_iso(), asset_id))
+                      request.form.get("notes", "").strip(), request.form.get("maint_prefs", "").strip(), color,
+                      now_iso(), asset_id))
         conn.commit()
         conn.close()
         flash("Aircraft updated.", "success")

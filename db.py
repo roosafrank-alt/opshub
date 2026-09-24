@@ -1022,6 +1022,14 @@ def _migrate(conn):
         conn.execute("ALTER TABLE assets ADD COLUMN show_on_map INTEGER NOT NULL DEFAULT 1")
         conn.commit()
 
+    # Free-text maintenance preferences for a plane (oil type, tire pressure,
+    # etc.) - kept separate from the general Notes field so it's quick to
+    # find on the Aircraft page. See asset_form.html and asset_detail.html.
+    asset_cols8 = [r["name"] for r in conn.execute("PRAGMA table_info(assets)").fetchall()]
+    if "maint_prefs" not in asset_cols8:
+        conn.execute("ALTER TABLE assets ADD COLUMN maint_prefs TEXT")
+        conn.commit()
+
     _migrate_flight_accounts_to_users(conn)
     _carry_over_project_photos_to_assets(conn)
 
