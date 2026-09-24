@@ -102,6 +102,42 @@
   .wx-tile.wx-unknown { background: linear-gradient(165deg, #6c757d, #adb5bd); }
   .wx-wind-arrow { font-size: 1rem; transition: transform .3s ease; }
 
+  /* Condensed single-line weather banner (replaces the old tall wx-tile
+     card) - same per-condition animated background as before, just a slim
+     strip: small icon instead of the big translucent background one,
+     items laid out in a row that scrolls laterally instead of wrapping or
+     stacking, matching the NOTAM strip right above it. */
+  .wx-strip-banner {
+    display: flex;
+    align-items: center;
+    border-radius: .25rem;
+    padding: .3rem .6rem;
+    font-size: .875rem;
+  }
+  .wx-strip-banner .wx-bg-icon { font-size: 2.25rem; opacity: .3; top: -.2rem; right: .35rem; }
+  .wx-strip-scroll {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 1rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .wx-strip-main, .wx-strip-item {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: .35rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .wx-strip-temp { font-size: 1.05rem; font-weight: 700; }
+  .wx-strip-banner .wx-metar { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+
   @keyframes wx-sun-glow {
     0%, 100% { filter: brightness(1); }
     50% { filter: brightness(1.06); }
@@ -210,6 +246,7 @@
 {% include "flight/_dashboard_live.html" %}
 </div>
 {% include "flight/_schedule_detail_modal.html" %}
+{% include "flight/_notam_detail_modal.html" %}
 {% endblock %}
 
 {% block scripts %}
