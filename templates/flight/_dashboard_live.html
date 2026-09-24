@@ -100,9 +100,12 @@
   booked. NOTAMs are a single-line banner: one row of airport identifiers,
   N89 first then the rest by increasing distance (dashboard_notams.strip_
   airports is already sorted that way), quiet unless an airport actually
-  has something active - then it's a red, clickable chip that expands its
+  has something active - then it's a clickable chip that expands its
   NOTAMs (triaged by CATEGORY_ORDER: TFRs, closures, runways, taxiways,
-  approaches, everything else) right below the strip. Scrolls laterally if
+  approaches, everything else) right below the strip, colored by how
+  urgent the worst thing at that airport is: red for a TFR or an
+  airport/runway closure (get_dashboard_notams' severity field), orange
+  for anything else active (taxiway, approach, other). Scrolls laterally if
   it overflows rather than wrapping, so it stays one line. The thin alert
   banner above it is JS-driven (see dashboard.html) - it lights up when
   today's NOTAM numbers include one that wasn't there the last time this
@@ -117,7 +120,7 @@
     <i class="bi bi-exclamation-diamond text-muted flex-shrink-0" title="NOTAMs - N89 + 25nm"></i>
     {% for a in dashboard_notams.strip_airports %}
       {% if a.has_notams %}
-      <button type="button" class="notam-airport-toggle notam-chip notam-chip-alert flex-shrink-0" data-notam-airport="{{ a.icao }}">{{ a.icao }}</button>
+      <button type="button" class="notam-airport-toggle notam-chip {{ 'notam-chip-alert' if a.severity == 'alert' else 'notam-chip-warn' }} flex-shrink-0" data-notam-airport="{{ a.icao }}">{{ a.icao }}</button>
       {% else %}
       <span class="notam-chip notam-chip-quiet flex-shrink-0">{{ a.icao }}</span>
       {% endif %}

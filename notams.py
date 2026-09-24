@@ -405,9 +405,16 @@ def get_dashboard_notams(conn, force=False):
     # N89 is distance 0.0) - not the severity order airport_groups uses,
     # just "is this airport worth a glance" in geographic order.
     groups_by_icao = {g["icao"]: g for g in payload.get("airport_groups", [])}
+    # Chip severity for the strip: red ("alert") only for what actually
+    # keeps a plane on the ground - a TFR or an airport/runway closure -
+    # everything else active (taxiway, approach, other) is orange ("warn")
+    # so a quiet-but-not-urgent NOTAM doesn't read as the same emergency.
+    RED_CATEGORIES = {"tfr", "closure", "runway"}
     payload["strip_airports"] = [{
         "icao": a["icao"], "label": a["label"], "distance_nm": a["distance_nm"],
         "has_notams": a["icao"] in groups_by_icao,
+        "severity": ("alert" if groups_by_icao[a["icao"]]["top_category"] in RED_CATEGORIES else "warn")
+                    if a["icao"] in groups_by_icao else None,
         "notams": groups_by_icao[a["icao"]]["notams"] if a["icao"] in groups_by_icao else [],
     } for a in payload["airports"]]
 
