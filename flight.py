@@ -3517,15 +3517,16 @@ def schedule_start(scheduled_id):
         flash(f"Booking moved from {_slot_label(sched['scheduled_date'], sched['scheduled_time'])} "
               f"to now ({_format_time_12h(new_time)}).", "info")
     plane = conn.execute("SELECT * FROM assets WHERE id = ?", (sched["asset_id"],)).fetchone()
-    # Starting Hobbs has to be confirmed first: every Start button posts
-    # here without it, so send them to the confirm page (pre-filled from the
-    # plane's last Hobbs) and come back with it.
+    # Starting Hobbs and Tach have to be confirmed first: every Start button
+    # posts here without them, so send them to the confirm page (pre-filled
+    # from the plane's last readings) and come back with both.
     hobbs_start = _parse_float(request.form.get("hobbs_start"))
-    if hobbs_start is None:
+    tach_start = _parse_float(request.form.get("tach_start"))
+    if hobbs_start is None or tach_start is None:
         conn.rollback()
         conn.close()
-        if request.form.get("hobbs_start") not in (None, ""):
-            flash("Starting Hobbs has to be a number.", "danger")
+        if request.form.get("hobbs_start") not in (None, "") and request.form.get("tach_start") not in (None, ""):
+            flash("Starting Hobbs and Tach have to be numbers.", "danger")
         return redirect(url_for("flight.schedule_start_confirm", scheduled_id=scheduled_id,
                                 move_to_now=request.form.get("move_to_now") or None))
     last_hobbs = plane["hobbs_hours"] if plane else None
@@ -3535,7 +3536,7 @@ def schedule_start(scheduled_id):
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                        (sched["cfi_id"], sched["student_id"], sched["asset_id"],
                         date.today().strftime("%Y-%m-%d"), hobbs_start,
-                        plane["tach_hours"] if plane else None, solo, scheduled_id, now_iso(), now_iso()))
+                        tach_start, solo, scheduled_id, now_iso(), now_iso()))
     flight_id = cur.lastrowid
     if plane and last_hobbs is not None and abs(hobbs_start - last_hobbs) >= 0.05:
         flash(f"Starting Hobbs {hobbs_start:.1f} doesn't match the last one on file for {plane['tag']} "
@@ -4240,13 +4241,17 @@ def log_end(flight_id):
     hobbs_end = _parse_float(request.form.get("hobbs_end"))
     tach_end = _parse_float(request.form.get("tach_end"))
     back = url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}"
-    if hobbs_end is None:
+    if hobbs_end is None or tach_end is None:
         conn.close()
-        flash("Enter the ending Hobbs to log the flight.", "danger")
+        flash("Enter the ending Hobbs and Tach to log the flight.", "danger")
         return redirect(back)
     if hobbs_end is not None and f["hobbs_start"] is not None and hobbs_end < f["hobbs_start"]:
         conn.close()
         flash("Ending Hobbs can't be less than starting Hobbs.", "danger")
+        return redirect(back)
+    if tach_end is not None and f["tach_start"] is not None and tach_end < f["tach_start"]:
+        conn.close()
+        flash("Ending Tach can't be less than starting Tach.", "danger")
         return redirect(back)
     paid_choice = request.form.get("paid")
     if paid_choice not in ("0", "1"):
