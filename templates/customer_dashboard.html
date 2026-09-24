@@ -1,0 +1,31 @@
+{% extends "customer_base.html" %}
+{% block title %}My Aircraft{% endblock %}
+{% block content %}
+<h4 class="mb-3">Your Aircraft</h4>
+{% if summaries %}
+<div class="row g-3">
+  {% for s in summaries %}
+  <div class="col-md-6 col-lg-4">
+    <a href="{{ url_for('customer.customer_asset', asset_id=s.asset.id) }}" class="text-decoration-none text-reset">
+      <div class="card p-3 h-100">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="fw-bold fs-5">{{ s.asset.tag }}</div>
+            <div class="text-muted small">{{ s.asset.make }} {{ s.asset.model }}</div>
+          </div>
+          <i class="bi bi-chevron-right text-muted"></i>
+        </div>
+        <div class="mt-2 d-flex gap-2 flex-wrap">
+          {% if s.due_count %}<span class="badge bg-warning text-dark">{{ s.due_count }} reminder{{ 's' if s.due_count != 1 }} due</span>{% endif %}
+          {% if s.needs_response_count %}<span class="badge bg-primary">{{ s.needs_response_count }} appointment{{ 's' if s.needs_response_count != 1 }} to review</span>{% endif %}
+          {% if not s.due_count and not s.needs_response_count %}<span class="badge bg-success">All caught up</span>{% endif %}
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-muted">No aircraft are linked to your account yet. Contact the shop if this seems wrong.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "customer_admin_base.html" %}
+{% block title %}{{ customer.name }}{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-3">
+  <a href="{{ url_for('customers_list') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i></a>
+  <div>
+    <h4 class="mb-0">{{ customer.name }}</h4>
+    <div class="text-muted small">{{ customer.email }}{% if customer.phone %} &middot; {{ customer.phone }}{% endif %}
+      {% if not customer.active %}<span class="badge bg-secondary ms-1">Inactive</span>{% endif %}
+    </div>
+  </div>
+  <a href="{{ url_for('customer_edit', customer_id=customer.id) }}" class="btn btn-outline-adm btn-sm ms-auto"><i class="bi bi-pencil"></i> Edit Account</a>
+</div>
+
+{% if planes %}
+{% for p in planes %}
+<div class="card adm-card-accent p-3 mb-3">
+  <h5 class="mb-3"><i class="bi bi-airplane"></i> {{ p.asset.tag }} <span class="text-muted small fw-normal">{{ p.asset.make }} {{ p.asset.model }}</span></h5>
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="fw-bold small text-uppercase text-muted mb-2">Reminders</div>
+      {% if p.reminders %}
+      {% for r in p.reminders %}
+      <div class="d-flex justify-content-between small py-1 {{ 'border-top' if not loop.first }}">
+        <span>{{ r.item.name }}</span>
+        <span class="urgency-{{ r.status.urgency }}">{{ r.status.label }}</span>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="text-muted small mb-0">None tracked.</p>
+      {% endif %}
+    </div>
+    <div class="col-lg-4">
+      <div class="fw-bold small text-uppercase text-muted mb-2">Appointments</div>
+      {% if p.appointments %}
+      {% for a in p.appointments %}
+      <div class="small py-1 {{ 'border-top' if not loop.first }}">
+        <div class="d-flex justify-content-between">
+          <span>{{ a.name }} &middot; {{ a.scheduled_date|usdate }}</span>
+          {% if a.customer_confirmed_at %}<span class="badge bg-success">Confirmed</span>
+          {% elif a.customer_reschedule_requested_at %}<span class="badge bg-warning text-dark">Reschedule</span>
+          {% else %}<span class="badge bg-secondary">Pending</span>{% endif %}
+        </div>
+        {% if a.customer_reschedule_requested_at %}
+        <div class="text-muted mt-1">"{{ a.customer_reschedule_note }}"
+          <a href="{{ url_for('project_edit', project_id=a.id) }}">reschedule</a> &middot;
+          <form method="post" action="{{ url_for('project_reschedule_dismiss', project_id=a.id) }}" class="d-inline">
+            <button type="submit" class="btn btn-link btn-sm p-0 align-baseline">dismiss</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="text-muted small mb-0">None scheduled.</p>
+      {% endif %}
+    </div>
+    <div class="col-lg-4">
+      <div class="fw-bold small text-uppercase text-muted mb-2">Job Costs</div>
+      {% if p.bills %}
+      {% for b in p.bills %}
+      <div class="d-flex justify-content-between small py-1 {{ 'border-top' if not loop.first }}">
+        <a href="{{ url_for('project_detail', project_id=b.project.id) }}">{{ b.project.name }}</a>
+        <span class="fw-bold">${{ '%.2f'|format(b.total) }}</span>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="text-muted small mb-0">No costs on record.</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="mt-2">
+    <a href="{{ url_for('asset_detail', asset_id=p.asset.id) }}" class="small">Open {{ p.asset.tag }} in Winds Aloft &rarr;</a>
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<p class="text-muted">No aircraft linked to this account yet. <a href="{{ url_for('customer_edit', customer_id=customer.id) }}">Link one</a>.</p>
+{% endif %}
+{% endblock %}

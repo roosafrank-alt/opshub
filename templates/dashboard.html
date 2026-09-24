@@ -24,6 +24,29 @@
 </div>
 {% endif %}
 
+{% if reschedule_requests %}
+<div class="alert alert-warning border-warning border-2 mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="alert-heading mb-0"><i class="bi bi-calendar-x-fill"></i> {{ reschedule_requests|length }} Customer Reschedule Request{{ 's' if reschedule_requests|length != 1 }}</h5>
+  </div>
+  {% for p in reschedule_requests %}
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
+    <div>
+      <div><strong><a href="{{ url_for('project_detail', project_id=p.id) }}" class="alert-link">{{ p.asset_display_tag }}</a></strong> &middot; {{ p.name }}
+        {% if p.scheduled_date %} &middot; was scheduled {{ p.scheduled_date|usdate }}{% endif %}</div>
+      <div style="white-space:pre-wrap;">{{ p.customer_reschedule_note }}</div>
+    </div>
+    <div class="d-flex gap-2 flex-shrink-0">
+      <a href="{{ url_for('project_edit', project_id=p.id) }}" class="btn btn-outline-warning btn-sm fw-bold">Reschedule</a>
+      <form method="post" action="{{ url_for('project_reschedule_dismiss', project_id=p.id) }}">
+        <button class="btn btn-warning btn-sm fw-bold"><i class="bi bi-check-lg"></i> Dismiss</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-3">
     <div class="card stat-card p-3">

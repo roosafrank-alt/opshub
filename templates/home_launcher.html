@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>{% if not user %}Fly with Kate!{% else %}OpsHub{% endif %}</title>
+<title>{% if not user and not customer %}Fly with Kate!{% else %}OpsHub{% endif %}</title>
 <link rel="manifest" href="{{ url_for('static', filename='manifest-flywithkate.json') }}">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/flywithkate/apple-touch-icon.png') }}">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -67,7 +67,7 @@
   .btn-fwk:hover { background: #2333b0; border-color: #2333b0; color: #fff; }
 </style>
 </head>
-<body class="d-flex align-items-center{{ ' login-bg' if not user else ' picker-bg' }}">
+<body class="d-flex align-items-center{{ ' login-bg' if not user and not customer else ' picker-bg' }}">
 <div class="container">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -82,19 +82,30 @@
     {% endif %}
   {% endwith %}
 
-  {% if user %}
+  {% if user or customer %}
+  {% set is_admin_like = user and (user.is_master_admin or user.shop_role == 'admin') %}
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <div class="opshub-picker-corner mb-1"><i class="bi bi-grid-3x3-gap"></i> OpsHub</div>
       <div class="picker-title fs-4 fw-bold">Choose a program</div>
     </div>
     <div class="text-end">
-      <div class="picker-signedin small">Signed in as <strong>{{ user.name }}</strong></div>
-      <a href="{{ url_for('account_page') }}" class="picker-logout small me-2"><i class="bi bi-person-gear"></i> My Account</a>
+      <div class="picker-signedin small">Signed in as <strong>{{ user.name if user else customer.name }}</strong></div>
+      {% if user %}<a href="{{ url_for('account_page') }}" class="picker-logout small me-2"><i class="bi bi-person-gear"></i> My Account</a>{% endif %}
       <a href="{{ url_for('logout') }}" class="picker-logout small"><i class="bi bi-box-arrow-right"></i> Log Out</a>
     </div>
   </div>
   <div class="row g-4 justify-content-center">
+    {% if is_admin_like or customer %}
+    <div class="col-md-5">
+      <a href="{{ url_for('customers_list') if is_admin_like else url_for('customer.customer_dashboard') }}" class="launcher-tile tile-shop">
+        <i class="bi bi-airplane-engines" style="color: #7c86e6; font-size: 3.5rem;"></i>
+        <div class="fs-3 fw-bold">My Aircraft</div>
+        <div class="tile-accent small text-uppercase" style="letter-spacing:.12em;">Winds Aloft</div>
+        <div class="opacity-75 mt-2">{{ 'Manage customer accounts & aircraft' if is_admin_like else 'Reminders, appointments & bills' }}</div>
+      </a>
+    </div>
+    {% endif %}
     {% if user.is_master_admin or user.shop_role %}
     <div class="col-md-5">
       <a href="{{ url_for('dashboard') }}" class="launcher-tile tile-shop">
@@ -125,7 +136,7 @@
       </a>
     </div>
     {% endif %}
-    {% if not (user.is_master_admin or user.shop_role) and not (user.is_master_admin or user.flight_role) and not (user.is_master_admin or user.academy_access) %}
+    {% if not (is_admin_like or customer) and not (user.is_master_admin or user.shop_role) and not (user.is_master_admin or user.flight_role) and not (user.is_master_admin or user.academy_access) %}
     <div class="col-md-6 text-center picker-empty">
       Your account doesn't have access to any programs yet. Ask an admin to set that up.
     </div>
@@ -157,7 +168,7 @@
       <div class="fwk-card p-4">
         <form method="post">
           <div class="mb-3">
-            <label class="form-label">Username</label>
+            <label class="form-label">Username or Email</label>
             <input type="text" name="username" class="form-control" value="{{ username or '' }}" autocomplete="username" required autofocus>
           </div>
           <div class="mb-3">
