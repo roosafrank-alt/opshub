@@ -1,0 +1,420 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Dashboard - OpsHub{% endblock %}
+{% block content %}
+<style>
+  .today-row-clickable:hover { background-color: rgba(255, 193, 7, 0.12); }
+  .wx-tile { color: #fff; transition: background .3s ease; position: relative; overflow: hidden; }
+  .wx-content { position: relative; z-index: 1; }
+  .wx-bg-icon { position: absolute; top: -0.5rem; right: -0.5rem; font-size: 7rem; opacity: .22; z-index: 0; pointer-events: none; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,.15)); }
+  .wx-tile.wx-cloudy .wx-bg-icon,
+  .wx-tile.wx-fog .wx-bg-icon,
+  .wx-tile.wx-snow .wx-bg-icon { opacity: .28; color: #1e2530; }
+  @media (max-width: 767px) { .wx-bg-icon { font-size: 5rem; } }
+  .wx-tile .wx-subtle { color: rgba(255,255,255,.8); }
+  .wx-tile .wx-hr { border-color: rgba(255,255,255,.3); }
+  /* Compact conditions strip (see "Conditions quick view" in _dashboard_live.html) */
+  .wx-compact .wx-bg-icon { font-size: 4rem; top: -0.6rem; right: -0.2rem; }
+  .wx-strip { display: flex; flex-wrap: wrap; align-items: center; column-gap: 1.1rem; row-gap: .2rem; font-size: .88rem; }
+  .wx-strip-main { display: flex; align-items: center; gap: .4rem; }
+  .wx-strip-main > .bi { font-size: 1.4rem; }
+  .wx-strip-temp { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+  .wx-strip-item { white-space: nowrap; }
+  .wx-metar { font-size: .74rem; margin-top: .2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 575.98px) { .wx-strip { column-gap: .8rem; font-size: .82rem; } .wx-metar { white-space: normal; } }
+
+  /* Clear - warm sun glow low in one corner over an open-sky gradient. */
+  .wx-tile.wx-clear {
+    background:
+      radial-gradient(circle at 82% 18%, rgba(255,250,214,.95) 0%, rgba(255,229,143,.35) 18%, rgba(255,229,143,0) 42%),
+      linear-gradient(165deg, #4fa6f5 0%, #6fc0ff 40%, #b7e2ff 100%);
+    animation: wx-sun-glow 6s ease-in-out infinite;
+  }
+  /* Clear night - deep sky with a scattering of small stars and a soft moon glow. */
+  .wx-tile.wx-clear.wx-night {
+    background:
+      radial-gradient(circle at 80% 18%, rgba(226,238,255,.65) 0%, rgba(226,238,255,.12) 30%, rgba(226,238,255,0) 55%),
+      radial-gradient(1.5px 1.5px at 18% 25%, #fff 100%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 62% 12%, #fff 100%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 40% 55%, #fff 100%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 85% 62%, #fff 100%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 12% 75%, #fff 100%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 52% 38%, #fff 100%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 30% 90%, #fff 100%, transparent 100%),
+      linear-gradient(165deg, #0c1c30 0%, #16324f 55%, #234a6e 100%);
+    animation: wx-twinkle 4s ease-in-out infinite;
+  }
+  /* Cloudy - soft overlapping cloud puffs drifting slowly across an open sky. */
+  .wx-tile.wx-cloudy {
+    background:
+      radial-gradient(ellipse 95px 34px at 18% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,0) 72%),
+      radial-gradient(ellipse 130px 42px at 52% 18%, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 72%),
+      radial-gradient(ellipse 110px 38px at 82% 42%, rgba(255,255,255,.75) 0%, rgba(255,255,255,0) 72%),
+      radial-gradient(ellipse 80px 30px at 35% 68%, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 72%),
+      linear-gradient(165deg, #93a8bc 0%, #b9c8d6 55%, #dbe4ea 100%);
+    color: #1e2530;
+    animation: wx-drift 55s linear infinite;
+  }
+  .wx-tile.wx-cloudy .wx-subtle { color: rgba(30,37,48,.7); }
+  .wx-tile.wx-cloudy .wx-hr { border-color: rgba(30,37,48,.25); }
+  .wx-tile.wx-cloudy.wx-night {
+    background:
+      radial-gradient(ellipse 95px 34px at 18% 28%, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 72%),
+      radial-gradient(ellipse 130px 42px at 52% 18%, rgba(255,255,255,.3) 0%, rgba(255,255,255,0) 72%),
+      radial-gradient(ellipse 110px 38px at 82% 42%, rgba(255,255,255,.25) 0%, rgba(255,255,255,0) 72%),
+      linear-gradient(165deg, #3c485a 0%, #576a80 55%, #74889c 100%);
+    color: #fff;
+    animation: wx-drift-night 55s linear infinite;
+  }
+  .wx-tile.wx-cloudy.wx-night .wx-subtle { color: rgba(255,255,255,.8); }
+  /* Fog - hazy horizontal bands drifting past, low visibility feel. */
+  .wx-tile.wx-fog {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.6) 0%, rgba(255,255,255,.1) 28%, rgba(255,255,255,.55) 52%, rgba(255,255,255,.1) 76%, rgba(255,255,255,.45) 100%),
+      linear-gradient(165deg, #a9bccf 0%, #cbd8e2 55%, #e7edf2 100%);
+    background-size: 220% 100%, 100% 100%;
+    color: #1e2530;
+    animation: wx-fog-drift 30s linear infinite;
+  }
+  .wx-tile.wx-fog .wx-subtle { color: rgba(30,37,48,.7); }
+  /* Rain - dark overcast sky with diagonal falling streaks. */
+  .wx-tile.wx-rain {
+    background:
+      repeating-linear-gradient(112deg, rgba(255,255,255,.4) 0px, rgba(255,255,255,.4) 1.5px, rgba(255,255,255,0) 1.5px, rgba(255,255,255,0) 13px),
+      linear-gradient(165deg, #3b526b 0%, #4d6883 55%, #5f7c99 100%);
+    background-size: 160px 160px, 100% 100%;
+    animation: wx-rain-fall 0.9s linear infinite;
+  }
+  /* Snow - drifting flakes over a soft blue-white sky. */
+  .wx-tile.wx-snow {
+    background:
+      radial-gradient(2.5px 2.5px at 10% 15%, #fff 100%, transparent 100%),
+      radial-gradient(2px 2px at 32% 55%, #fff 100%, transparent 100%),
+      radial-gradient(2.5px 2.5px at 55% 25%, #fff 100%, transparent 100%),
+      radial-gradient(2px 2px at 74% 65%, #fff 100%, transparent 100%),
+      radial-gradient(2.5px 2.5px at 90% 35%, #fff 100%, transparent 100%),
+      radial-gradient(2px 2px at 22% 85%, #fff 100%, transparent 100%),
+      radial-gradient(2.5px 2.5px at 65% 90%, #fff 100%, transparent 100%),
+      linear-gradient(165deg, #90b2ce 0%, #c6dcea 55%, #eef5fa 100%);
+    color: #1e2530;
+    animation: wx-snow-fall 5s linear infinite;
+  }
+  .wx-tile.wx-snow .wx-subtle { color: rgba(30,37,48,.7); }
+  /* Storm - stormy dark sky with a slow, occasional lightning flicker. */
+  .wx-tile.wx-storm { background: linear-gradient(165deg, #1b1d24 0%, #2b2e38 55%, #3b3f4d 100%); }
+  .wx-tile.wx-storm::after {
+    content: "";
+    position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(circle at 28% 22%, rgba(255,255,255,.95) 0%, rgba(255,255,255,0) 38%);
+    opacity: 0;
+    animation: wx-lightning 7s ease-in-out infinite;
+  }
+  .wx-tile.wx-unknown { background: linear-gradient(165deg, #6c757d, #adb5bd); }
+  .wx-wind-arrow { font-size: 1rem; transition: transform .3s ease; }
+
+  @keyframes wx-sun-glow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.06); }
+  }
+  @keyframes wx-twinkle {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.15); }
+  }
+  @keyframes wx-drift {
+    0% { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
+    100% { background-position: 60px 0, -45px 0, 35px 0, -25px 0, 0 0; }
+  }
+  @keyframes wx-drift-night {
+    0% { background-position: 0 0, 0 0, 0 0, 0 0; }
+    100% { background-position: 60px 0, -45px 0, 35px 0, 0 0; }
+  }
+  @keyframes wx-fog-drift {
+    0% { background-position: 0% 0, 0 0; }
+    100% { background-position: -220% 0, 0 0; }
+  }
+  @keyframes wx-rain-fall {
+    0% { background-position: 0 0, 0 0; }
+    100% { background-position: -34px 50px, 0 0; }
+  }
+  @keyframes wx-snow-fall {
+    0% { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+    100% { background-position: -6px 70px, 8px 70px, -4px 70px, 6px 70px, -8px 70px, 4px 70px, -6px 70px, 0 0; }
+  }
+  @keyframes wx-lightning {
+    0%, 91%, 100% { opacity: 0; }
+    92% { opacity: .85; }
+    93% { opacity: .05; }
+    94.5% { opacity: .55; }
+    96% { opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wx-tile, .wx-tile::after { animation: none !important; }
+  }
+</style>
+{#
+  Header row: welcome on the left; on the right a compact time box -
+  day/date, live local + Zulu clocks (ticked in the browser, see the
+  dash-clock script below) and today's sunrise/sunset + civil twilight at
+  N89 (sun.py, worked out locally so it shows for every login). Wraps
+  under the welcome on a phone.
+#}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <h4 class="mb-0">
+    {% if cfi %}Welcome, {{ cfi.name }}{% elif student and student.is_station %}{{ student.name }}{% else %}Welcome, {{ student.name }}{% endif %}
+  </h4>
+  <div class="dash-timebox" id="dash-timebox">
+    <div class="dash-timebox-row">
+      <span class="fw-bold" id="dash-clock-date">{{ sun_times.date if sun_times else '' }}</span>
+      <span><span class="dash-timebox-label">Local</span> <span class="fw-bold font-monospace" id="dash-clock-local">--:--</span></span>
+      <span><span class="dash-timebox-label">Zulu</span> <span class="fw-bold font-monospace" id="dash-clock-zulu">--:--Z</span></span>
+    </div>
+    {% if sun_times %}
+    <div class="dash-timebox-row dash-timebox-sun">
+      <span title="Civil twilight begins {{ sun_times.civil_begin_z }}"><i class="bi bi-brightness-alt-high"></i> Civil {{ sun_times.civil_begin or '-' }}</span>
+      <span title="Sunrise {{ sun_times.sunrise_z }}"><i class="bi bi-sunrise"></i> {{ sun_times.sunrise or '-' }}</span>
+      <span title="Sunset {{ sun_times.sunset_z }}"><i class="bi bi-sunset"></i> {{ sun_times.sunset or '-' }}</span>
+      <span title="Civil twilight ends {{ sun_times.civil_end_z }}"><i class="bi bi-moon-stars"></i> Civil {{ sun_times.civil_end or '-' }}</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+<style>
+  .dash-timebox { background: var(--bs-body-bg, #fff); border: 1px solid rgba(0,0,0,.125); border-radius: .5rem;
+                  padding: .35rem .7rem; font-size: .82rem; line-height: 1.5; }
+  .dash-timebox-row { display: flex; flex-wrap: wrap; column-gap: .9rem; row-gap: .1rem; }
+  .dash-timebox-label { color: #6c757d; font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; }
+  .dash-timebox-sun { color: #495057; }
+  .dash-timebox-sun .bi { color: #dc9b00; }
+  @media (max-width: 575.98px) { .dash-timebox { width: 100%; font-size: .78rem; } }
+</style>
+<script>
+  // Live day/date + local and Zulu clocks for the header time box. Local
+  // is shown in the school's time zone (America/New_York, same as the
+  // weather card) whatever the viewing device is set to.
+  (function () {
+    var tz = "America/New_York";
+    var d = document.getElementById("dash-clock-date");
+    var l = document.getElementById("dash-clock-local");
+    var z = document.getElementById("dash-clock-zulu");
+    if (!l || !z) return;
+    function pad(n) { return (n < 10 ? "0" : "") + n; }
+    function tick() {
+      var now = new Date();
+      try {
+        d.textContent = now.toLocaleDateString("en-US", { timeZone: tz, weekday: "long", month: "short", day: "numeric", year: "numeric" });
+        l.textContent = now.toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" });
+      } catch (e) {
+        d.textContent = now.toDateString();
+        l.textContent = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      }
+      z.textContent = pad(now.getUTCHours()) + pad(now.getUTCMinutes()) + "Z";
+    }
+    tick();
+    setInterval(tick, 15000);
+  })();
+</script>
+{% if student and student.is_station %}
+<p class="text-muted small mt-n2 mb-3"><i class="bi bi-info-circle"></i> Station account - use Schedule below to book time on a plane.</p>
+{% endif %}
+
+{% if cfi %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('flight.schedule_new') }}" class="text-decoration-none">
+      <div class="card p-3 text-center">
+        <i class="bi bi-calendar-plus fs-2 text-warning"></i>
+        <div class="fw-bold mt-1">Schedule Flight</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('flight.schedule_calendar') }}" class="text-decoration-none">
+      <div class="card p-3 text-center">
+        <i class="bi bi-calendar3 fs-2 text-info"></i>
+        <div class="fw-bold mt-1">Schedule</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('flight.students_list') }}" class="text-decoration-none">
+      <div class="card p-3 text-center">
+        <i class="bi bi-people fs-2 text-primary"></i>
+        <div class="fw-bold mt-1">Students</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('flight.planes_list') }}" class="text-decoration-none">
+      <div class="card p-3 text-center">
+        <i class="bi bi-airplane fs-2 text-secondary"></i>
+        <div class="fw-bold mt-1">Planes</div>
+      </div>
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{% if student %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-4">
+    <a href="{{ url_for('flight.schedule_new') }}" class="text-decoration-none">
+      <div class="card p-3 text-center">
+        <i class="bi bi-calendar-plus fs-2 text-warning"></i>
+        <div class="fw-bold mt-1">Request a Flight</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-4">
+    <a href="{{ url_for('flight.schedule_calendar') }}" class="text-decoration-none">
+      <div class="card p-3 text-center">
+        <i class="bi bi-calendar3 fs-2 text-info"></i>
+        <div class="fw-bold mt-1">Schedule</div>
+      </div>
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<div id="dashboard-live-region" data-live-url="{{ url_for('flight.dashboard_live') }}">
+{% include "flight/_dashboard_live.html" %}
+</div>
+{% include "flight/_schedule_detail_modal.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region) return;
+  var url = region.getAttribute('data-live-url');
+  var POLL_MS = 15000;
+  var inFlight = false;
+
+  // A collapsed section or an expanded chip should stay exactly as the
+  // person left it - it should only open or close because THEY clicked it,
+  // never because a poll happened to land a few seconds later. Since the
+  // poll replaces the region's whole innerHTML (so it always reflects the
+  // current data), the open/closed state has to be captured before the
+  // swap and reapplied after, matched up by the stable keys each element
+  // carries (data-collapse / data-collapse-body for a section, data-chip-id
+  // - the scheduled_flight's own id - for a chip).
+  function captureOpenState() {
+    return {
+      sections: Array.prototype.map.call(
+        region.querySelectorAll('.dash-collapse-toggle.open'),
+        function (t) { return t.dataset.collapse; }),
+      chips: Array.prototype.map.call(
+        region.querySelectorAll('.flight-chip.flight-chip-open'),
+        function (c) { return c.dataset.chipId; })
+    };
+  }
+
+  function restoreOpenState(state) {
+    state.sections.forEach(function (key) {
+      var toggle = region.querySelector('.dash-collapse-toggle[data-collapse="' + key + '"]');
+      var body = region.querySelector('[data-collapse-body="' + key + '"]');
+      if (toggle && body) { toggle.classList.add('open'); body.hidden = false; }
+    });
+    state.chips.forEach(function (id) {
+      var chip = region.querySelector('.flight-chip[data-chip-id="' + id + '"]');
+      var detail = chip && chip.querySelector('.flight-chip-detail');
+      if (chip && detail) { chip.classList.add('flight-chip-open'); detail.hidden = false; }
+    });
+  }
+
+  function refresh() {
+    if (inFlight || document.hidden) return;
+    inFlight = true;
+    var openState = captureOpenState();
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+      .then(function (resp) { return resp.ok ? resp.text() : null; })
+      .then(function (html) {
+        if (html === null) return;
+        region.innerHTML = html;
+        restoreOpenState(openState);
+      })
+      .catch(function () { /* network hiccup - just try again next tick */ })
+      .finally(function () { inFlight = false; });
+  }
+
+  setInterval(refresh, POLL_MS);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) refresh();
+  });
+})();
+
+// Click a flight chip to expand it in place (instructor + Start/Log or a
+// link to the active flight) instead of navigating away. Delegated on
+// document (not the chips themselves) so this keeps working after the
+// live-refresh polling above replaces #dashboard-live-region's content
+// wholesale - a plain per-chip addEventListener would go dead on the
+// first poll (the poll also reopens whichever chip was open - see
+// restoreOpenState above - so this only ever fires from an actual click).
+// Accordion-style: opening one chip closes any other that was already
+// open, so the page doesn't fill up with expanded boxes.
+document.addEventListener('click', function (evt) {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region || !region.contains(evt.target)) return;
+  // Let the Start/Log form and link inside an expanded chip actually work,
+  // rather than being swallowed by the toggle below.
+  if (evt.target.closest('.flight-chip-detail a, .flight-chip-detail button, .flight-chip-detail form')) return;
+  var chip = evt.target.closest('.flight-chip');
+  if (!chip) return;
+  var detail = chip.querySelector('.flight-chip-detail');
+  if (!detail) return;
+  var opening = detail.hidden;
+  region.querySelectorAll('.flight-chip-detail:not([hidden])').forEach(function (d) {
+    d.hidden = true;
+    d.closest('.flight-chip').classList.remove('flight-chip-open');
+  });
+  if (opening) {
+    detail.hidden = false;
+    chip.classList.add('flight-chip-open');
+  }
+});
+
+// Click a section header (Today's Schedule / Upcoming / Recent Flights) to
+// reveal its list - each starts closed (see the "hidden" .dash-collapse-body
+// in _dashboard_live.html) so the dashboard loads compact. Delegated for the
+// same reason as the chip handler above: the live-refresh poll replaces
+// #dashboard-live-region's whole innerHTML, so a plain per-button listener
+// would go dead after the first poll (the poll reopens whichever sections
+// were open - see restoreOpenState above - so a section only closes when
+// this handler actually fires from a click).
+document.addEventListener('click', function (evt) {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region || !region.contains(evt.target)) return;
+  var toggle = evt.target.closest('.dash-collapse-toggle');
+  if (!toggle) return;
+  var body = region.querySelector('[data-collapse-body="' + toggle.dataset.collapse + '"]');
+  if (!body) return;
+  var opening = body.hidden;
+  body.hidden = !opening;
+  toggle.classList.toggle('open', opening);
+  dashSaveOpen(toggle.dataset.collapse, opening);
+});
+
+// Remember which sections are open on this device, so a reload or the next
+// visit shows the dashboard the way it was left (localStorage when the
+// browser allows it; otherwise it just resets to all-closed as before).
+var DASH_OPEN_STORE = 'opshub-dash-sections-v3';
+function dashLoadOpen() {
+  try { return JSON.parse(localStorage.getItem(DASH_OPEN_STORE) || '{}') || {}; } catch (e) { return {}; }
+}
+function dashSaveOpen(key, open) {
+  var saved = dashLoadOpen();
+  saved[key] = !!open;
+  try { localStorage.setItem(DASH_OPEN_STORE, JSON.stringify(saved)); } catch (e) {}
+}
+(function () {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region) return;
+  var saved = dashLoadOpen();
+  Object.keys(saved).forEach(function (key) {
+    if (!saved[key]) return;
+    var toggle = region.querySelector('.dash-collapse-toggle[data-collapse="' + key + '"]');
+    var body = region.querySelector('[data-collapse-body="' + key + '"]');
+    if (toggle && body) { toggle.classList.add('open'); body.hidden = false; }
+  });
+})();
+</script>
+{% endblock %}

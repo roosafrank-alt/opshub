@@ -1,0 +1,617 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}{{ 'Edit Scheduled Flight' if sched else 'Schedule a Flight' }} - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<div class="card p-4">
+  <h4>{{ 'Edit Scheduled Flight' if sched else ('Request a Flight' if self_service else 'Schedule a Flight') }}</h4>
+  {% if self_service %}
+  <p class="text-muted small">Your instructor will need to approve this before it's confirmed on the calendar.</p>
+  {% endif %}
+  {% if sched and sched.needs_review %}
+  <div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle-fill"></i> <strong>Flagged for review:</strong> {{ sched.review_reason }}
+    Assign an instructor below to resolve this.
+  </div>
+  {% endif %}
+  {% if conflicts %}
+  <div class="alert alert-danger">
+    <div class="fw-bold mb-2"><i class="bi bi-exclamation-octagon-fill"></i> Scheduling conflict{{ 's' if conflicts|length > 1 }} - here's what's in the way:</div>
+    {% for c in conflicts %}
+    <div class="p-2 mb-1 rounded bg-white" style="border:2px solid #dc3545;">{{ c.message }}</div>
+    {% endfor %}
+    {% if conflict_url %}
+    <a href="{{ conflict_url }}" class="btn btn-outline-danger btn-sm mt-1" target="_blank" rel="noopener">
+      <i class="bi bi-calendar3"></i> View on Schedule
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+  <form method="post">
+    {% set allow_complete = not sched and not self_service %}
+    {% set is_complete = allow_complete and ((form and form.get('already_complete')) or (not form and start_complete)) %}
+    {% if allow_complete %}
+    {#
+      "Flight Already Complete?" replaces the old stand-alone Log a Flight
+      page: for a flight that already happened but was never put on the
+      schedule. Checked, the booking-only fields (time, duration, repeats,
+      booking notes) hide and the same fields the log form has (Hobbs/Tach,
+      oil, ground time, landings, squawks, paid) show instead, and saving
+      logs it straight into Flight History (schedule_new -> _save_logged_flight).
+    #}
+    <div class="form-check form-switch mb-3 p-2 ps-5 border rounded bg-light">
+      <input type="checkbox" class="form-check-input" role="switch" name="already_complete" id="complete-check" value="1" {% if is_complete %}checked{% endif %}>
+      <label class="form-check-label fw-bold" for="complete-check">Flight Already Complete?</label>
+      <div class="form-text mt-0">Check this to log a flight that already happened (and wasn't on the schedule) with its Hobbs/Tach, landings and squawks.</div>
+    </div>
+    {% endif %}
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Plane *</label>
+        <select name="asset_id" id="plane-select" class="form-select" required>
+          <option value="" disabled {% if not (form or sched) %}selected{% endif %}>-- Select a plane --</option>
+          {% for p in planes %}
+          <option value="{{ p.id }}" data-hobbs="{{ p.hobbs_hours if p.hobbs_hours is not none else '' }}" data-tach="{{ p.tach_hours if p.tach_hours is not none else '' }}" {% if (form and form.get('asset_id')|string == p.id|string) or (not form and sched and sched.asset_id == p.id) %}selected{% endif %}>{{ p.tag }}{% if p.name and p.name != p.tag %} - {{ p.name }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Student *</label>
+        {% if self_service %}
+        <input type="text" class="form-control" value="{{ self_student.name }}" disabled>
+        {% else %}
+        {% set gid = guest_student_id() %}
+        {#- Type to narrow the list below (each character filters it); one
+           match is picked automatically, Enter picks the first. #}
+        <div class="input-group input-group-sm mb-1">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="search" id="student-search" class="form-control" placeholder="Type to find a student..." autocomplete="off" aria-label="Find a student">
+        </div>
+        <select name="student_id" id="student-select" class="form-select" required data-guest-id="{{ gid or '' }}">
+          <option value="" disabled {% if not (form or sched) %}selected{% endif %}>-- Select a student --</option>
+          {% if gid %}
+          <option value="{{ gid }}" {% if (form and form.get('student_id')|string == gid|string) or (not form and sched and sched.student_id == gid) %}selected{% endif %}>&#9733; Guest / Intro - no profile (one-time flyer)</option>
+          {% endif %}
+          {% for s in students if s.id != gid %}
+          <option value="{{ s.id }}" {% if (form and form.get('student_id')|string == s.id|string) or (not form and sched and sched.student_id == s.id) %}selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+        <div id="guest-fields" class="row g-2 mt-1 d-none">
+          <div class="col-7"><input type="text" name="guest_name" maxlength="80" class="form-control form-control-sm" placeholder="Guest's name (optional)" value="{{ form.get('guest_name', '') if form else (sched.guest_name if sched and sched.guest_name else '') }}"></div>
+          <div class="col-5"><input type="tel" name="guest_phone" maxlength="30" class="form-control form-control-sm" placeholder="Phone (optional)" value="{{ form.get('guest_phone', '') if form else (sched.guest_phone if sched and sched.guest_phone else '') }}"></div>
+          <div class="col-12 form-text mt-0">No student profile needed - the name shows on the calendar instead.</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Instructor{% if self_service %} <span class="text-muted small">(preferred - or leave as Any)</span>{% endif %}</label>
+        <select name="cfi_id" id="cfi-select" class="form-select">
+          {% if self_service %}
+          <option value="">-- Any instructor --</option>
+          {% else %}
+          <option value="" {% if (form and not form.get('cfi_id') and not form.get('solo')) or (not form and sched and not sched.cfi_id and not sched.solo) %}selected{% endif %}>-- Unassigned (assign later) --</option>
+          {% endif %}
+          {% for c in cfis %}
+          <option value="{{ c.id }}" {% if (form and form.get('cfi_id')|string == c.id|string) or (not form and sched and sched.cfi_id == c.id) or (not form and not sched and not self_service and c.id == current_cfi_id) %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6 mb-3">
+        <div class="form-check mt-4">
+          <input type="checkbox" class="form-check-input" name="solo" id="solo-check" {% if (form and form.get('solo')) or (not form and sched and sched.solo) %}checked{% endif %}>
+          <label class="form-check-label" for="solo-check">Solo <span class="text-muted small">(no instructor)</span></label>
+        </div>
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="part_solo" id="part-solo-check" {% if (form and form.get('part_solo')) or (not form and sched and sched.part_solo) %}checked{% endif %}>
+          <label class="form-check-label" for="part-solo-check">Part dual, part solo <span class="text-muted small">(e.g. instructor gets out for pattern solos - enter the solo part when logging it)</span></label>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label" id="date-label">{{ 'Flight Date *' if is_complete else 'Date *' }}</label>
+        <input type="date" name="scheduled_date" class="form-control" value="{{ form.get('scheduled_date') if form else (sched.scheduled_date if sched else today) }}" required{% if sched %} data-edit="1"{% endif %}>
+      </div>
+      <div class="col-md-4 mb-3 sched-only">
+        <label class="form-label">Time</label>
+        <input type="hidden" id="time-input" name="scheduled_time" value="{{ form.get('scheduled_time') if form else (sched.scheduled_time if sched and sched.scheduled_time else '') }}">
+        <div id="time-picker" class="d-flex align-items-stretch gap-2">
+          <div class="text-center">
+            <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="hour-up"><i class="bi bi-caret-up-fill"></i></button>
+            <input type="text" inputmode="numeric" autocomplete="off" maxlength="6" class="form-control text-center fw-bold fs-5 py-1 px-0 time-type" id="hour-display" style="width:3.2rem;" aria-label="Hour (type, e.g. 2 or 2:45p)" title="Type the hour - or a whole time like 2:45p">
+            <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="hour-down"><i class="bi bi-caret-down-fill"></i></button>
+          </div>
+          <div class="fs-5 fw-bold align-self-center">:</div>
+          <div class="text-center">
+            <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="min-up"><i class="bi bi-caret-up-fill"></i></button>
+            <input type="text" inputmode="numeric" autocomplete="off" maxlength="2" class="form-control text-center fw-bold fs-5 py-1 px-0 time-type" id="min-display" style="width:3.2rem;" aria-label="Minutes">
+            <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="min-down"><i class="bi bi-caret-down-fill"></i></button>
+          </div>
+          <div class="text-center">
+            <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="ampm-up"><i class="bi bi-caret-up-fill"></i></button>
+            <input type="text" autocomplete="off" maxlength="2" class="form-control text-center fw-bold fs-5 py-1 px-0 time-type" id="ampm-display" style="width:3.6rem;" aria-label="AM or PM (type a or p)">
+            <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="ampm-down"><i class="bi bi-caret-down-fill"></i></button>
+          </div>
+        </div>
+        <div class="form-check mt-1">
+          <input type="checkbox" class="form-check-input" id="no-time-check">
+          <label class="form-check-label small" for="no-time-check">No specific time</label>
+        </div>
+        <div class="mt-2" id="quick-time-buttons">
+          <div class="form-text mb-1">Quick pick <span class="text-muted" id="quick-pick-label">(1.5-hr blocks)</span></div>
+          {#- Intro flights are 1-hr blocks, so their quick picks are on the hour
+             (shown instead of the 1.5-hr grid while the Intro Flight preset is on). #}
+          <div class="d-flex flex-wrap gap-1 d-none" id="quick-times-intro">
+            {% for h in range(8, 20) %}
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1" data-hour24="{{ h }}" data-minute="0">{{ (h - 1) % 12 + 1 }}:00{{ 'a' if h < 12 else 'p' }}</button>
+            {% endfor %}
+          </div>
+          <div class="d-flex flex-wrap gap-1" id="quick-times-lesson">
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="8" data-minute="0">8:00a</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="9" data-minute="30">9:30a</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="11" data-minute="0">11:00a</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="12" data-minute="30">12:30p</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="14" data-minute="0">2:00p</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="15" data-minute="30">3:30p</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="17" data-minute="0">5:00p</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="18" data-minute="30">6:30p</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="20" data-minute="0">8:00p</button>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 mb-3 sched-only">
+        <label class="form-label">Duration (hrs)</label>
+        <input type="number" step="any" name="duration_hours" class="form-control" placeholder="e.g. 1.5" value="{% if form %}{{ form.get('duration_hours') }}{% elif sched and sched.duration_hours is not none %}{{ sched.duration_hours }}{% elif not sched %}1.5{% endif %}">
+        {#- Presets: a normal 1.5-hr lesson, or an Intro Flight (1-hr block,
+           notes start with "Intro flight" so it's easy to spot on the
+           calendar's details). #}
+        <div class="mt-2">
+          <div class="form-text mb-1">Preset</div>
+          <div class="btn-group btn-group-sm" role="group" id="flight-presets">
+            <button type="button" class="btn btn-outline-secondary preset-btn" data-preset="lesson" data-duration="1.5"><i class="bi bi-airplane"></i> Lesson <span class="opacity-75">1.5 hr</span></button>
+            <button type="button" class="btn btn-outline-secondary preset-btn" data-preset="intro" data-duration="1"><i class="bi bi-stars"></i> Intro Flight <span class="opacity-75">1 hr</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% if allow_complete %}
+    <div id="complete-fields" class="complete-only">
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Hobbs Start</label>
+        <input type="number" step="any" id="hobbs-start" name="hobbs_start" class="form-control" value="{{ form.get('hobbs_start', '') if form else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Hobbs End</label>
+        <input type="number" step="any" name="hobbs_end" class="form-control" value="{{ form.get('hobbs_end', '') if form else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Tach Start</label>
+        <input type="number" step="any" id="tach-start" name="tach_start" class="form-control" value="{{ form.get('tach_start', '') if form else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Tach End</label>
+        <input type="number" step="any" name="tach_end" class="form-control" value="{{ form.get('tach_end', '') if form else '' }}">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Oil Added (qt) <span class="text-muted small">(if any)</span></label>
+        <input type="number" step="any" name="oil_added_qt" class="form-control" placeholder="e.g. 1" value="{{ form.get('oil_added_qt', '') if form else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Ground Time (hrs) <span class="text-muted small">(billed at the instructor rate, no plane charge)</span></label>
+        <input type="number" step="any" name="ground_time_hours" class="form-control" placeholder="e.g. 0.5" value="{{ form.get('ground_time_hours', '') if form else '' }}">
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Solo Portion (hrs) <span class="text-muted small">(dual lesson where the student also flew part alone - that part isn't billed for the instructor and logs as solo/PIC)</span></label>
+      <input type="number" step="0.1" min="0" name="solo_hours" class="form-control" style="max-width:180px;" placeholder="e.g. 0.8" value="{{ form.get('solo_hours', '') if form else '' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Landings <span class="text-muted small">(for currency tracking - day/night, full-stop counts for night currency)</span></label>
+      <div class="row g-2">
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">Day Full-Stop</label>
+          <input type="number" min="0" step="1" name="day_landings_fs" class="form-control form-control-sm" value="{{ form.get('day_landings_fs', '') if form else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">Day Touch &amp; Go</label>
+          <input type="number" min="0" step="1" name="day_landings_tg" class="form-control form-control-sm" value="{{ form.get('day_landings_tg', '') if form else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">Night Full-Stop</label>
+          <input type="number" min="0" step="1" name="night_landings_fs" class="form-control form-control-sm" value="{{ form.get('night_landings_fs', '') if form else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">Night Touch &amp; Go</label>
+          <input type="number" min="0" step="1" name="night_landings_tg" class="form-control form-control-sm" value="{{ form.get('night_landings_tg', '') if form else '' }}">
+        </div>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Squawks / Notes <span class="text-muted small">(issues found, anything the shop should know)</span></label>
+      <textarea name="log_notes" class="form-control" rows="3" placeholder="Leave blank if nothing to report">{{ form.get('log_notes', '') if form else '' }}</textarea>
+      <div class="form-text">Anything typed here counts as a squawk - it'll show up on the Maintenance side until someone acknowledges it.</div>
+    </div>
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" name="paid" id="paid-check" {% if form and form.get('paid') %}checked{% endif %}>
+      <label class="form-check-label" for="paid-check">Already paid <span class="text-muted small">(check if this one's been collected already)</span></label>
+    </div>
+    </div>
+    {% endif %}
+    <div class="mb-3 sched-only">
+      <label class="form-label">Notes</label>
+      <textarea name="notes" class="form-control" rows="2" placeholder="optional">{{ form.get('notes') if form else (sched.notes if sched and sched.notes else '') }}</textarea>
+    </div>
+    {% if not self_service %}
+    <div class="mb-3 sched-only">
+      <label class="form-label"><i class="bi bi-eye-slash"></i> Private Notes <span class="text-muted small fw-normal">(admin &amp; CFI only - never shown to the student)</span></label>
+      <textarea name="private_notes" class="form-control" rows="2" placeholder="optional - stays off the student's view entirely">{{ form.get('private_notes') if form else (sched.private_notes if sched and sched.private_notes else '') }}</textarea>
+    </div>
+    {% endif %}
+    {% if not sched and not self_service %}
+    <div class="mb-3 border rounded p-2 bg-light sched-only">
+      <label class="form-label mb-1"><i class="bi bi-arrow-repeat"></i> Repeats</label>
+      <div class="row g-2 align-items-end">
+        <div class="col-auto">
+          <select name="repeat" id="repeat-select" class="form-select form-select-sm">
+            <option value="none" {% if not form or form.get('repeat', 'none') == 'none' %}selected{% endif %}>Does not repeat</option>
+            <option value="daily" {% if form and form.get('repeat') == 'daily' %}selected{% endif %}>Every day</option>
+            <option value="weekly" {% if form and form.get('repeat') == 'weekly' %}selected{% endif %}>Every week</option>
+            <option value="biweekly" {% if form and form.get('repeat') == 'biweekly' %}selected{% endif %}>Every 2 weeks</option>
+            <option value="monthly" {% if form and form.get('repeat') == 'monthly' %}selected{% endif %}>Every month</option>
+          </select>
+        </div>
+        <div class="col-auto" id="repeat-until-wrap" style="display:none;">
+          <label class="form-label small mb-0">Until</label>
+          <input type="date" name="repeat_until" id="repeat-until" class="form-control form-control-sm" value="{{ form.get('repeat_until') if form else '' }}">
+        </div>
+      </div>
+      <div class="form-text mb-0">Same plane, student, instructor and time on each date - any that conflict are skipped and you'll see which ones.</div>
+    </div>
+    {% endif %}
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar') }}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Log Flight' if is_complete else 'Schedule Flight')) }}</button>
+    </div>
+  </form>
+</div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('solo-check').addEventListener('change', function () {
+  document.getElementById('cfi-select').disabled = this.checked;
+});
+if (document.getElementById('solo-check').checked) {
+  document.getElementById('cfi-select').disabled = true;
+}
+
+(function () {
+  var hidden = document.getElementById('time-input');
+  var picker = document.getElementById('time-picker');
+  var noTimeCheck = document.getElementById('no-time-check');
+  var hourDisplay = document.getElementById('hour-display');
+  var minDisplay = document.getElementById('min-display');
+  var ampmDisplay = document.getElementById('ampm-display');
+
+  // Internal state in 24-hour form; hour12/min/ampm are derived for display.
+  var hour24 = 9, minute = 0;
+
+  function parseInitial() {
+    var v = hidden.value;
+    if (v && /^\d{1,2}:\d{2}$/.test(v)) {
+      var parts = v.split(':');
+      hour24 = parseInt(parts[0], 10);
+      minute = parseInt(parts[1], 10);
+      // Kept exactly (a typed time like 10:10 isn't rounded) - the arrows
+      // step to the next/previous quarter hour from wherever it is.
+      return true;
+    }
+    return false;
+  }
+
+  function render(skip) {
+    var hour12 = hour24 % 12 || 12;
+    var ampm = hour24 < 12 ? 'AM' : 'PM';
+    // Don't rewrite the box someone is typing in (skip) - it's normalized
+    // when they leave it.
+    if (skip !== hourDisplay) hourDisplay.value = hour12;
+    if (skip !== minDisplay) minDisplay.value = (minute < 10 ? '0' : '') + minute;
+    if (skip !== ampmDisplay) ampmDisplay.value = ampm;
+    hidden.value = (hour24 < 10 ? '0' : '') + hour24 + ':' + (minute < 10 ? '0' : '') + minute;
+    // quickBtns is set further down; skip until then (first render on load).
+    if (quickBtns) markActiveQuickBtn();
+  }
+
+  // Typing: each box takes its own part (hour 1-12, minutes 0-59, a/p);
+  // the hour box also takes a whole time - "2:45p", "245p", "14:30", "1430".
+  function setFromParts(h12OrH24, m, ap) {
+    var h = h12OrH24;
+    if (ap) {
+      h = h % 12 + (ap === 'p' ? 12 : 0);
+    } else if (h <= 12) {
+      // no a/p given: keep the current AM/PM half of the day
+      h = h % 12 + (hour24 >= 12 ? 12 : 0);
+    }
+    if (h >= 0 && h < 24) hour24 = h;
+    if (m !== null && m >= 0 && m < 60) minute = m;
+  }
+  hourDisplay.addEventListener('input', function () {
+    var v = hourDisplay.value.trim().toLowerCase();
+    var full = v.match(/^(\d{1,2}):?(\d{2})\s*([ap])?m?$/) || v.match(/^(\d{1,2})\s*([ap])m?$/);
+    if (full && full.length === 4) { setFromParts(parseInt(full[1], 10), parseInt(full[2], 10), full[3] || null); }
+    else if (full) { setFromParts(parseInt(full[1], 10), null, full[2]); }
+    else if (/^\d{1,2}$/.test(v)) {
+      var n = parseInt(v, 10);
+      if (n >= 13 && n <= 23) { hour24 = n; }            // typed 24-hour, e.g. 14
+      else if (n >= 1 && n <= 12) { setFromParts(n, null, null); }
+    }
+    render(hourDisplay);
+  });
+  minDisplay.addEventListener('input', function () {
+    var v = minDisplay.value.trim();
+    if (/^\d{1,2}$/.test(v) && parseInt(v, 10) < 60) { minute = parseInt(v, 10); render(minDisplay); }
+  });
+  ampmDisplay.addEventListener('input', function () {
+    var v = ampmDisplay.value.trim().toLowerCase();
+    if (v[0] === 'a' && hour24 >= 12) { hour24 -= 12; }
+    else if (v[0] === 'p' && hour24 < 12) { hour24 += 12; }
+    render(ampmDisplay);
+  });
+  [hourDisplay, minDisplay, ampmDisplay].forEach(function (box) {
+    box.addEventListener('focus', function () { box.select(); });
+    box.addEventListener('blur', function () { render(); });
+    // Enter just finishes the time instead of submitting the whole form.
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); box.blur(); }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        var btn = document.getElementById(box.id.replace('-display', e.key === 'ArrowUp' ? '-up' : '-down'));
+        if (btn) btn.click();
+      }
+    });
+  });
+
+  function setNoTime(on) {
+    noTimeCheck.checked = on;
+    picker.style.opacity = on ? '0.4' : '1';
+    picker.style.pointerEvents = on ? 'none' : 'auto';
+    hidden.value = on ? '' : ((hour24 < 10 ? '0' : '') + hour24 + ':' + (minute < 10 ? '0' : '') + minute);
+  }
+
+  // A blank hidden value on first load means either a brand-new form (no
+  // time chosen yet - default the picker to 9:00 AM, still "set") or an
+  // edit of a booking that was explicitly saved with no time ("No specific
+  // time" should start checked). The two cases are told apart by whether
+  // this is an edit (sched present) with a genuinely empty scheduled_time.
+  var hadInitial = parseInitial();
+  render();
+  var startsWithNoTime = !hadInitial && {{ 'true' if (sched and not sched.scheduled_time and not form) or (form and not form.get('scheduled_time')) else 'false' }};
+  setNoTime(startsWithNoTime);
+
+  document.getElementById('hour-up').addEventListener('click', function () { hour24 = (hour24 + 1) % 24; render(); });
+  document.getElementById('hour-down').addEventListener('click', function () { hour24 = (hour24 + 23) % 24; render(); });
+  document.getElementById('min-up').addEventListener('click', function () {
+    minute = (Math.floor(minute / 15) + 1) * 15;   // next quarter hour
+    if (minute >= 60) { minute = 0; hour24 = (hour24 + 1) % 24; }
+    render();
+  });
+  document.getElementById('min-down').addEventListener('click', function () {
+    minute = (Math.ceil(minute / 15) - 1) * 15;    // previous quarter hour
+    if (minute < 0) { minute = 45; hour24 = (hour24 + 23) % 24; }
+    render();
+  });
+  document.getElementById('ampm-up').addEventListener('click', function () { hour24 = (hour24 + 12) % 24; render(); });
+  document.getElementById('ampm-down').addEventListener('click', function () { hour24 = (hour24 + 12) % 24; render(); });
+
+  noTimeCheck.addEventListener('change', function () { setNoTime(this.checked); });
+
+  // Quick-pick buttons: jump straight to a 1.5-hr block start time (8:00
+  // through 8:00pm) without touching the manual stepper below, which stays
+  // available for anything off that grid.
+  var durationInput = document.querySelector('input[name="duration_hours"]');
+  var quickBtns = document.querySelectorAll('.quick-time-btn');
+  function markActiveQuickBtn() {
+    quickBtns.forEach(function (b) {
+      var match = !noTimeCheck.checked && parseInt(b.dataset.hour24, 10) === hour24 && parseInt(b.dataset.minute, 10) === minute;
+      b.classList.toggle('btn-primary', match);
+      b.classList.toggle('btn-outline-primary', !match);
+    });
+  }
+  quickBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      hour24 = parseInt(btn.dataset.hour24, 10);
+      minute = parseInt(btn.dataset.minute, 10);
+      setNoTime(false);
+      render();
+      if (durationInput) { durationInput.value = btn.dataset.duration || '1.5'; }
+      markActiveQuickBtn();
+    });
+  });
+  markActiveQuickBtn();
+  noTimeCheck.addEventListener('change', markActiveQuickBtn);
+})();
+
+(function () {
+  // Student search: filters the Student list as you type. Rebuilds the
+  // <select>'s options (hiding <option>s doesn't work on iPhone/iPad
+  // Safari). The placeholder, Guest / Intro and the currently picked
+  // student always stay; a single match is picked for you; Enter picks
+  // the first match.
+  var box = document.getElementById('student-search');
+  var sel = document.getElementById('student-select');
+  if (!box || !sel) { return; }
+  var all = Array.prototype.map.call(sel.options, function (o) {
+    return { value: o.value, text: o.text, disabled: o.disabled, keep: !o.value || o.value === sel.dataset.guestId };
+  });
+  function norm(t) { return (t || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+  function apply(pickFirst) {
+    var q = norm(box.value);
+    var current = sel.value;
+    var matches = [];
+    sel.innerHTML = '';
+    all.forEach(function (o) {
+      var hit = !q || norm(o.text).indexOf(q) !== -1 || norm(o.text).split(' ').some(function (w) { return w.indexOf(q) === 0; });
+      if (!(o.keep || hit || o.value === current)) { return; }
+      var opt = new Option(o.text, o.value);
+      opt.disabled = o.disabled;
+      sel.add(opt);
+      if (!o.keep && hit && q) { matches.push(o.value); }
+    });
+    if (q && (matches.length === 1 || (pickFirst && matches.length))) { sel.value = matches[0]; }
+    else { sel.value = current; if (sel.value !== current) { sel.value = ''; } }
+    sel.dispatchEvent(new Event('change'));
+    box.classList.toggle('is-invalid', !!q && !matches.length);
+  }
+  box.addEventListener('input', function () { apply(false); });
+  box.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); apply(true); }
+  });
+})();
+
+(function () {
+  // Guest / Intro student: show the name/phone boxes only when it's picked.
+  var ss = document.getElementById('student-select');
+  var gf = document.getElementById('guest-fields');
+  if (!ss || !gf) { return; }
+  function sync() { gf.classList.toggle('d-none', !ss.dataset.guestId || ss.value !== ss.dataset.guestId); }
+  ss.addEventListener('change', sync);
+  sync();
+})();
+
+(function () {
+  // Presets (Lesson 1.5 hr / Intro Flight 1 hr): set the duration, swap
+  // the quick-pick grid (on the hour for intro flights), and start the
+  // notes with "Intro flight" for an intro (taken back off if you switch
+  // back to Lesson and hadn't changed it). The preset that matches the
+  // form's current duration/notes is highlighted on load (e.g. editing an
+  // intro flight).
+  var presets = document.querySelectorAll('.preset-btn');
+  if (!presets.length) { return; }
+  var duration = document.querySelector('input[name="duration_hours"]');
+  var notes = document.querySelector('textarea[name="notes"]');
+  var introTimes = document.getElementById('quick-times-intro');
+  var lessonTimes = document.getElementById('quick-times-lesson');
+  var label = document.getElementById('quick-pick-label');
+  var INTRO = 'Intro flight';
+  function show(preset) {
+    presets.forEach(function (b) {
+      var on = b.dataset.preset === preset;
+      b.classList.toggle('btn-secondary', on);
+      b.classList.toggle('btn-outline-secondary', !on);
+    });
+    if (introTimes && lessonTimes) {
+      introTimes.classList.toggle('d-none', preset !== 'intro');
+      lessonTimes.classList.toggle('d-none', preset === 'intro');
+    }
+    if (label) { label.textContent = preset === 'intro' ? '(1-hr intro blocks)' : '(1.5-hr blocks)'; }
+  }
+  function isIntroNotes() { return notes && notes.value.trim().toLowerCase().indexOf(INTRO.toLowerCase()) === 0; }
+  presets.forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (duration) { duration.value = b.dataset.duration; }
+      // Intro flights are usually someone with no profile yet: default the
+      // student to Guest / Intro (only if no student has been picked).
+      var ss = document.getElementById('student-select');
+      if (b.dataset.preset === 'intro' && ss && ss.dataset.guestId && !ss.value) {
+        ss.value = ss.dataset.guestId;
+        ss.dispatchEvent(new Event('change'));
+      }
+      if (notes) {
+        if (b.dataset.preset === 'intro' && !isIntroNotes()) {
+          notes.value = notes.value.trim() ? INTRO + ' - ' + notes.value.trim() : INTRO;
+        } else if (b.dataset.preset === 'lesson' && isIntroNotes()) {
+          notes.value = notes.value.trim().slice(INTRO.length).replace(/^\s*-\s*/, '');
+        }
+      }
+      show(b.dataset.preset);
+    });
+  });
+  var d = duration ? parseFloat(duration.value) : NaN;
+  if (isIntroNotes() || d === 1) { show(isIntroNotes() ? 'intro' : ''); }
+  else if (d === 1.5 || !duration || !duration.value) { show('lesson'); }
+  else { show(''); }
+})();
+
+(function () {
+  // "Flight Already Complete?" - swap the booking-only fields for the
+  // log fields. Hidden inputs are disabled so they aren't validated or
+  // sent (e.g. Repeats' required Until date).
+  var completeCheck = document.getElementById('complete-check');
+  if (!completeCheck) { return; }
+  var submitBtn = document.getElementById('submit-btn');
+  var dateLabel = document.getElementById('date-label');
+  var title = document.querySelector('.card h4');
+  function setGroup(selector, on) {
+    document.querySelectorAll(selector).forEach(function (el) {
+      el.style.display = on ? '' : 'none';
+      el.querySelectorAll('input, select, textarea').forEach(function (i) { i.disabled = !on; });
+    });
+  }
+  // No booking in the past: the date picker starts at today, unless it's a
+  // completed flight being logged (or an existing booking being edited -
+  // the server only blocks moving it into the past).
+  var dateBox = document.querySelector('input[name="scheduled_date"]');
+  var d0 = new Date();
+  var todayStr = d0.getFullYear() + '-' + String(d0.getMonth() + 1).padStart(2, '0') + '-' + String(d0.getDate()).padStart(2, '0');
+  function sync() {
+    var done = completeCheck.checked;
+    if (dateBox && !dateBox.dataset.edit) {
+      if (done) { dateBox.removeAttribute('min'); } else { dateBox.min = todayStr; }
+    }
+    setGroup('.sched-only', !done);
+    setGroup('.complete-only', done);
+    submitBtn.textContent = done ? 'Log Flight' : 'Schedule Flight';
+    dateLabel.textContent = done ? 'Flight Date *' : 'Date *';
+    if (title) { title.textContent = done ? 'Log a Completed Flight' : 'Schedule a Flight'; }
+    // Solo still disables the instructor picker in either mode.
+    var solo = document.getElementById('solo-check');
+    document.getElementById('cfi-select').disabled = solo.checked;
+    if (!done) {
+      // Re-run the repeat toggle so its Until field is required again only
+      // when a repeat is actually picked.
+      var rs = document.getElementById('repeat-select');
+      if (rs) { rs.dispatchEvent(new Event('change')); }
+    }
+  }
+  completeCheck.addEventListener('change', sync);
+  sync();
+  // Picking a plane fills in its current Hobbs/Tach as the start readings.
+  document.getElementById('plane-select').addEventListener('change', function () {
+    var opt = this.options[this.selectedIndex];
+    var hobbs = opt.getAttribute('data-hobbs');
+    var tach = opt.getAttribute('data-tach');
+    var hobbsStart = document.getElementById('hobbs-start');
+    var tachStart = document.getElementById('tach-start');
+    if (hobbs && !hobbsStart.value) hobbsStart.value = hobbs;
+    if (tach && !tachStart.value) tachStart.value = tach;
+  });
+})();
+
+(function () {
+  var repeatSelect = document.getElementById('repeat-select');
+  if (!repeatSelect) { return; }
+  var untilWrap = document.getElementById('repeat-until-wrap');
+  var untilInput = document.getElementById('repeat-until');
+  var dateInput = document.querySelector('input[name="scheduled_date"]');
+  function sync() {
+    var on = repeatSelect.value !== 'none';
+    untilWrap.style.display = on ? '' : 'none';
+    untilInput.required = on;
+    if (on && !untilInput.value && dateInput.value) {
+      var d = new Date(dateInput.value + 'T00:00:00');
+      d.setDate(d.getDate() + 84); // default to ~12 weeks out
+      untilInput.value = d.toISOString().slice(0, 10);
+    }
+  }
+  repeatSelect.addEventListener('change', sync);
+  sync();
+})();
+</script>
+{% endblock %}

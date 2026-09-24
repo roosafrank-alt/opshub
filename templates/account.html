@@ -1,0 +1,309 @@
+{% extends "account_base.html" %}
+{% block title %}My Account - OpsHub{% endblock %}
+{% block content %}
+{% set has_shop = user.is_master_admin or user.shop_role %}
+{% set has_flight = user.is_master_admin or user.flight_role %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+
+{% if came_from %}
+<a href="{{ came_from.url }}" class="btn btn-outline-secondary btn-sm mb-3"><i class="bi bi-arrow-left"></i> Back to {{ came_from.label }}</a>
+{% endif %}
+
+<div class="card p-4 mb-3">
+  <h5 class="mb-1"><i class="bi bi-grid-3x3-gap"></i> Your Programs</h5>
+  <p class="text-muted small mb-3">One login and one account for everything in OpsHub. These are the programs you can use and your role in each. To change access, ask an admin.</p>
+  {% if programs %}
+  <div class="list-group">
+    {% for p in programs %}
+    <a href="{{ p.url }}" class="list-group-item list-group-item-action d-flex align-items-center gap-2 {{ 'list-group-item-primary' if came_from and came_from.key == p.key }}">
+      <i class="bi {{ p.icon }} fs-5"></i>
+      <span class="flex-grow-1">{{ p.name }}</span>
+      <span class="badge bg-secondary">{{ p.role }}</span>
+      <i class="bi bi-chevron-right text-muted"></i>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="small mb-0">You don't have access to any programs yet. Ask an admin to set it up.</p>
+  {% endif %}
+</div>
+
+{% if has_shop or has_flight %}
+<div class="card p-4 mb-3">
+  <h5 class="mb-2"><i class="bi bi-signpost-2"></i> Need a refresher?</h5>
+  <p class="text-muted small mb-3">Replay the pop-up walkthrough that points out where everything is.</p>
+  <div class="d-flex flex-wrap gap-2">
+    {% if has_shop %}
+    <a href="{{ url_for('dashboard', tour=1) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-tools"></i> Shop Inventory Tour</a>
+    {% endif %}
+    {% if has_flight %}
+    <a href="{{ url_for('flight.dashboard', tour=1) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-airplane-engines"></i> Flight School Tour</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card p-4">
+  <h4><i class="bi bi-person-gear"></i> My Account</h4>
+  <div class="form-text mb-3">Your contact info, password, and reminder settings. They apply everywhere you use OpsHub. For role or access changes, ask an admin.</div>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Full Name *</label>
+      <input type="text" name="name" class="form-control" value="{{ user.name }}" required autofocus>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Username</label>
+      <div><code>{{ user.username }}</code></div>
+      <div class="form-text">Usernames can't be changed - ask an admin if this needs to change.</div>
+    </div>
+
+    <hr class="my-3">
+    <h6 class="mb-2"><i class="bi bi-key"></i> Change Password <span class="text-muted small fw-normal">(leave blank to keep your current password)</span></h6>
+    <div class="row">
+      <div class="col-6 mb-3">
+        <label class="form-label">New Password</label>
+        <input type="text" name="password" class="form-control">
+      </div>
+      <div class="col-6 mb-3">
+        <label class="form-label">Confirm New Password</label>
+        <input type="text" name="password_confirm" class="form-control">
+      </div>
+    </div>
+
+    <hr class="my-3">
+    <h6 class="mb-2"><i class="bi bi-bell"></i> Reminders</h6>
+    <div class="row">
+      <div class="col-6 mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-control" value="{{ user.email or '' }}" placeholder="name@example.com">
+      </div>
+      <div class="col-6 mb-3">
+        <label class="form-label">Mobile Phone <span class="text-muted small">(for texts)</span></label>
+        <input type="tel" name="phone" class="form-control" value="{{ user.phone or '' }}" placeholder="+15551234567">
+      </div>
+    </div>
+    <div class="row mb-2">
+      <div class="col-6">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="notify_email" id="notify-email-check" {% if user.notify_email %}checked{% endif %}>
+          <label class="form-check-label" for="notify-email-check">Send email reminders</label>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="notify_sms" id="notify-sms-check" {% if user.notify_sms %}checked{% endif %}>
+          <label class="form-check-label" for="notify-sms-check">Send text reminders</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-text mb-2">Which of the above, sent for whichever categories are checked below:</div>
+    {% if has_shop %}
+    <div class="small fw-bold mt-2 mb-1"><i class="bi bi-tools"></i> Maintenance</div>
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" name="notify_low_stock" id="notify-low-stock-check" {% if user.notify_low_stock %}checked{% endif %}>
+      <label class="form-check-label" for="notify-low-stock-check">Low parts stock</label>
+    </div>
+    <div class="form-check {{ '' if has_flight else 'mb-3' }}">
+      <input type="checkbox" class="form-check-input" name="notify_maintenance" id="notify-maintenance-check" {% if user.notify_maintenance %}checked{% endif %}>
+      <label class="form-check-label" for="notify-maintenance-check">Maintenance/inspection due</label>
+    </div>
+    {% endif %}
+    {% if has_flight %}
+    <div class="small fw-bold mt-3 mb-1"><i class="bi bi-airplane-engines"></i> Flight School</div>
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" name="notify_flight_reminders" id="notify-flight-check" {% if user.notify_flight_reminders %}checked{% endif %}>
+      <label class="form-check-label" for="notify-flight-check">Upcoming scheduled flights (your own bookings), including a heads-up if a late flight may delay yours</label>
+    </div>
+    <div class="border rounded p-2 mt-2 mb-3 bg-light">
+      <div class="small fw-bold mb-1"><i class="bi bi-phone-vibrate"></i> Flying session phone alerts - tick the ones you want:</div>
+      <div class="form-check form-check-lg py-1">
+        <input type="checkbox" class="form-check-input" name="notify_push_30min" id="notify-push-30min-check" {% if user.notify_push_30min %}checked{% endif %}>
+        <label class="form-check-label" for="notify-push-30min-check">30 minutes left in the scheduled block</label>
+      </div>
+      <div class="form-check form-check-lg py-1">
+        <input type="checkbox" class="form-check-input" name="notify_push_timeup" id="notify-push-timeup-check" {% if user.notify_push_timeup %}checked{% endif %}>
+        <label class="form-check-label" for="notify-push-timeup-check">Time's up (the scheduled block has ended)</label>
+      </div>
+      <div class="form-check form-check-lg py-1">
+        <input type="checkbox" class="form-check-input" name="notify_push_late" id="notify-push-late-check" {% if user.notify_push_late %}checked{% endif %}>
+        <label class="form-check-label" for="notify-push-late-check">Running late (15+ min past the block, repeats every 15 min until closed or acknowledged)</label>
+      </div>
+      <div class="form-text">Press <strong>Save Changes</strong> below after ticking, then turn alerts on for this phone in the next section.</div>
+    </div>
+    {% endif %}
+
+    {% if user.is_master_admin or user.flight_role %}
+    <hr class="my-3">
+    <h6 class="mb-2"><i class="bi bi-phone"></i> Phone Alerts (this device)</h6>
+    <p class="form-text mb-2">
+      The checkbox above is <em>what</em> you want alerts for; this button turns them <em>on for this phone/browser</em> - do it on each device you want pinged. Email/text delivery for these same alerts is planned for later; phone push is the first channel.
+    </p>
+    <div id="push-status" class="small text-muted mb-2">Checking this device's status&hellip;</div>
+    <button type="button" id="push-enable-btn" class="btn btn-outline-primary btn-sm d-none"><i class="bi bi-bell"></i> Enable on this device</button>
+    <button type="button" id="push-disable-btn" class="btn btn-outline-secondary btn-sm d-none"><i class="bi bi-bell-slash"></i> Turn off on this device</button>
+    <button type="submit" form="push-test-form" class="btn btn-outline-success btn-sm"><i class="bi bi-send"></i> Send me a test alert</button>
+    {% endif %}
+
+    <div class="d-flex justify-content-between mt-3">
+      <a href="{{ came_from.url if came_from else url_for('home_launcher') }}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary fw-bold">Save Changes</button>
+    </div>
+  </form>
+</div>
+</div>
+</div>
+{% if user.is_master_admin or user.flight_role %}
+<form id="push-test-form" method="post" action="{{ url_for('account_push_test') }}" class="d-none"></form>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if user.is_master_admin or user.flight_role %}
+<script>
+(function () {
+  var statusEl = document.getElementById('push-status');
+  var enableBtn = document.getElementById('push-enable-btn');
+  var disableBtn = document.getElementById('push-disable-btn');
+  if (!window.isSecureContext) {
+    statusEl.textContent = "Phone alerts need the secure (https://) address of OpsHub - open this page using https and try again.";
+    return;
+  }
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    statusEl.textContent = isIOS
+      ? "On iPhone, phone alerts only work from the home-screen app: tap Share > Add to Home Screen, open OpsHub from that icon, then come back to My Account."
+      : "This browser doesn't support phone push notifications.";
+    return;
+  }
+  // If the device never reports back (service worker slow or stuck), still
+  // show the Enable button instead of leaving just the "Checking..." text.
+  var statusTimer = setTimeout(function () {
+    statusEl.textContent = "Couldn't check this device's status - tap Enable to turn phone alerts on.";
+    enableBtn.classList.remove('d-none');
+  }, 5000);
+
+  function urlBase64ToUint8Array(base64String) {
+    var padding = '='.repeat((4 - base64String.length % 4) % 4);
+    var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    var raw = atob(base64);
+    var arr = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+    return arr;
+  }
+
+  // The registration we get back from register() is used directly for
+  // everything below. (navigator.serviceWorker.ready only resolves for a
+  // worker whose scope covers this page - with the old /static/ worker it
+  // never did, which is why Enable used to hang and never show ON.)
+  var swReg = null;
+
+  function showOn() {
+    statusEl.innerHTML = '<span class="badge bg-success"><i class="bi bi-bell-fill"></i> ON</span> Phone alerts are on for this device.';
+    enableBtn.classList.add('d-none');
+    disableBtn.classList.remove('d-none');
+  }
+  function showOff(msg) {
+    statusEl.innerHTML = '<span class="badge bg-secondary"><i class="bi bi-bell-slash"></i> OFF</span> ' + (msg || 'Phone alerts are off for this device.');
+    enableBtn.classList.remove('d-none');
+    disableBtn.classList.add('d-none');
+  }
+
+  function refreshStatus() {
+    if (!swReg) return;
+    swReg.pushManager.getSubscription().then(function (sub) {
+      clearTimeout(statusTimer);
+      if (sub) {
+        showOn();
+        // Re-send it so the server's copy is current (harmless if it
+        // already has it - subscribe upserts by endpoint).
+        fetch('{{ url_for("flight.push_subscribe") }}', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub)
+        }).catch(function () {});
+      } else if (window.Notification && Notification.permission === 'denied') {
+        showOff('Notifications are blocked for OpsHub in this phone/browser\'s settings - allow them there, then tap Enable.');
+      } else {
+        showOff();
+      }
+    }).catch(function () {
+      clearTimeout(statusTimer);
+      showOff("Couldn't read this device's status - tap Enable to turn phone alerts on.");
+    });
+  }
+
+  // Clear out the old worker registered under /static/ (it could never
+  // finish subscribing), then register the site-wide one.
+  navigator.serviceWorker.getRegistrations().then(function (regs) {
+    regs.forEach(function (r) { if (/\/static\/$/.test(r.scope)) r.unregister(); });
+  }).catch(function () {}).then(function () {
+    return navigator.serviceWorker.register('{{ url_for("push_service_worker") }}', { scope: '/' });
+  }).then(function (reg) {
+    swReg = reg;
+    refreshStatus();
+  }).catch(function () {
+    clearTimeout(statusTimer);
+    statusEl.textContent = "Couldn't set up push notifications on this device.";
+  });
+
+  // A worker that's still installing can't subscribe yet - wait for it.
+  function activeReg() {
+    if (swReg && swReg.active) return Promise.resolve(swReg);
+    return new Promise(function (resolve, reject) {
+      var w = swReg && (swReg.installing || swReg.waiting);
+      if (!w) { reject(new Error('no worker')); return; }
+      w.addEventListener('statechange', function () {
+        if (w.state === 'activated') resolve(swReg);
+        if (w.state === 'redundant') reject(new Error('worker failed'));
+      });
+    });
+  }
+
+  enableBtn.addEventListener('click', function () {
+    enableBtn.disabled = true;
+    statusEl.textContent = 'Turning on phone alerts\u2026';
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== 'granted') {
+        showOff('Notifications were blocked for this site - enable them in your browser/phone settings to use phone alerts.');
+        enableBtn.disabled = false;
+        return;
+      }
+      return fetch('{{ url_for("flight.push_vapid_public_key") }}').then(function (r) { return r.json(); }).then(function (data) {
+        return activeReg().then(function (reg) {
+          return reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(data.key)
+          });
+        });
+      }).then(function (sub) {
+        return fetch('{{ url_for("flight.push_subscribe") }}', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub)
+        }).then(function (r) { if (!r.ok) throw new Error('save failed'); });
+      }).then(function () {
+        enableBtn.disabled = false;
+        refreshStatus();
+      }).catch(function () {
+        showOff("Couldn't enable phone alerts on this device - try again, or reload the page first.");
+        enableBtn.disabled = false;
+      });
+    });
+  });
+
+  disableBtn.addEventListener('click', function () {
+    disableBtn.disabled = true;
+    (swReg ? swReg.pushManager.getSubscription() : Promise.resolve(null)).then(function (sub) {
+      if (!sub) return;
+      var endpoint = sub.endpoint;
+      return sub.unsubscribe().then(function () {
+        return fetch('{{ url_for("flight.push_unsubscribe") }}', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: endpoint })
+        });
+      });
+    }).catch(function () {}).then(function () {
+      disableBtn.disabled = false;
+      refreshStatus();
+    });
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

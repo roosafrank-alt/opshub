@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Order' if order else 'New Order' }} - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<div class="card p-4">
+  <h4>{{ 'Edit Order' if order else 'Order Parts' }}</h4>
+  <form method="post">
+    {% if form and form.get('wishlist_id') %}
+    <input type="hidden" name="wishlist_id" value="{{ form.get('wishlist_id') }}">
+    <div class="alert alert-info py-2 px-3 small mb-3"><i class="bi bi-arrow-return-right"></i> Starting this order will also mark the matching "to order" entry as ordered.</div>
+    {% endif %}
+    <div class="mb-3">
+      <label class="form-label">Existing part (optional)</label>
+      <select name="part_id" class="form-select">
+        <option value="">-- Not in inventory yet / order something new --</option>
+        {% for p in parts %}
+        <option value="{{ p.id }}" {% if (order and order.part_id == p.id) or (form and form.get('part_id')|string == p.id|string) %}selected{% endif %}>{{ p.name }} ({{ '%g'|format(p.qty_on_hand) }} {{ p.unit }} on hand)</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Description</label>
+      <input type="text" name="description" class="form-control" placeholder="What are you ordering? (auto-filled if you picked a part above)" value="{{ form.get('description', order.description if order else '') if form else (order.description if order else '') }}">
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Quantity</label>
+        <input type="number" step="any" name="qty_ordered" class="form-control" value="{{ form.get('qty_ordered', order.qty_ordered if order else 1) if form else (order.qty_ordered if order else 1) }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Unit Cost ($)</label>
+        <input type="number" step="any" name="unit_cost" class="form-control" value="{{ form.get('unit_cost', order.unit_cost if order else 0) if form else (order.unit_cost if order else 0) }}">
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Supplier</label>
+      <input type="text" name="supplier" class="form-control" value="{{ form.get('supplier', order.supplier if order else '') if form else (order.supplier if order else '') }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">For project (optional)</label>
+      <select name="project_id" class="form-select">
+        <option value="">-- General stock, not tied to a job --</option>
+        {% for pr in projects %}
+        <option value="{{ pr.id }}" {% if order and order.project_id == pr.id %}selected{% endif %}>{{ pr.code }} - {{ pr.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Expected arrival date</label>
+      <input type="date" name="expected_date" class="form-control" value="{{ order.expected_date if order and order.expected_date else '' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Note</label>
+      <input type="text" name="note" class="form-control" placeholder="Order #, tracking info, etc." value="{{ form.get('note', order.note if order else '') if form else (order.note if order and order.note else '') }}">
+    </div>
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('orders_list') }}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-warning fw-bold">{{ 'Save Changes' if order else 'Add Order' }}</button>
+    </div>
+  </form>
+</div>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Logbook - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-journal-text"></i> Logbook <span class="text-muted fs-6">- {{ entries|length }} entr{{ 'y' if entries|length == 1 else 'ies' }}{{ ' found' if filtered }}</span></h4>
+  {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
+  <a href="{{ url_for('logbook.logbook_templates') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-text"></i> Templates</a>
+  {% endif %}
+</div>
+
+<form method="get" class="card p-3 mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1">N number</label>
+      <select name="asset_id" class="form-select form-select-sm">
+        <option value="">All aircraft</option>
+        {% for p in planes %}<option value="{{ p.id }}" {{ 'selected' if filters.asset_id == p.id }}>{{ p.tag }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1">Log</label>
+      <select name="log_type" class="form-select form-select-sm">
+        <option value="">All logs</option>
+        {% for code, label in log_types %}<option value="{{ code }}" {{ 'selected' if filters.log_type == code }}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1">From</label>
+      <input type="date" name="from" value="{{ filters['from'] }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1">To</label>
+      <input type="date" name="to" value="{{ filters.to }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1">Project</label>
+      <input type="text" name="project" value="{{ filters.project }}" placeholder="26-014 or name" class="form-control form-control-sm">
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1">Text</label>
+      <input type="text" name="q" value="{{ filters.q }}" placeholder="gasket, P/N..." class="form-control form-control-sm">
+    </div>
+  </div>
+  <div class="d-flex gap-2 mt-2">
+    <button class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Search</button>
+    {% if filtered %}<a href="{{ url_for('logbook.logbook_list') }}" class="btn btn-outline-secondary btn-sm">Clear</a>{% endif %}
+  </div>
+</form>
+
+{% if entries %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead class="table-light"><tr><th>Date</th><th>Aircraft</th><th>Log</th><th>Project</th><th>Entry</th><th></th></tr></thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td data-label="Date" class="text-nowrap">{{ e.entry_date|usdate }}</td>
+          <td data-label="Aircraft">{% if e.asset_id %}<a href="{{ url_for('logbook.asset_logbook', asset_id=e.asset_id, log=e.log_type) }}">{{ e.asset_tag }}</a>{% else %}-{% endif %}</td>
+          <td data-label="Log">{{ log_type_labels.get(e.log_type, e.log_type) }}</td>
+          <td data-label="Project">{% if e.project_id %}<a href="{{ url_for('logbook.project_logbook', project_id=e.project_id) }}"><code>{{ e.project_code }}</code></a> <small class="text-muted">{{ e.section or 'Combined' }}</small>{% else %}-{% endif %}</td>
+          <td class="stack-full small" data-label="Entry"><a class="text-reset" href="{{ url_for('logbook.entry_detail', entry_id=e.id) }}">{{ (e.body.split('\n')[1] if e.body.count('\n') else e.body)|truncate(110) }}</a></td>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('logbook.entry_detail', entry_id=e.id) }}" title="Open"><i class="bi bi-eye"></i></a>
+            <a class="btn btn-outline-primary btn-sm" target="_blank" href="{{ url_for('logbook.entry_print', entry_id=e.id) }}" title="Print sticker"><i class="bi bi-printer"></i></a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<p class="text-muted">{{ 'No entries match.' if filtered else 'No logbook entries yet. Open a project and press Logbook Starter to write the first one.' }}</p>
+{% endif %}
+{% endblock %}

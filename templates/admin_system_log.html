@@ -1,0 +1,98 @@
+{% extends "admin_base.html" %}
+{% block title %}Error Log - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-10">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-file-text"></i> Error Log</h4>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('admin_system') }}" class="btn btn-outline-secondary btn-sm">&laquo; System</a>
+    <button type="button" class="btn btn-outline-primary btn-sm" onclick="location.reload()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    <form method="post" action="{{ url_for('admin_system_log_clear') }}" data-confirm="Clear the error log? This cannot be undone." data-confirm-style="danger" class="d-inline">
+      <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Clear</button>
+    </form>
+  </div>
+</div>
+
+<p class="text-muted small">
+  Every unhandled error the app hits, newest first - click a row to open it and copy the traceback for Claude,
+  along with what you were doing at the time.
+</p>
+
+{% if error %}
+<div class="alert alert-danger">Couldn't read the error log: {{ error }}</div>
+{% elif not entries %}
+<div class="card p-4 text-center">
+  <i class="bi bi-check-circle fs-1 text-success"></i>
+  <p class="text-muted mt-2 mb-0">No errors logged - clean.</p>
+</div>
+{% else %}
+{% if truncated %}
+<div class="alert alert-warning small py-2">Showing the most recent {{ entries|length }} of {{ total_count }} error files - older ones have scrolled off (and are pruned automatically past 200 files).</div>
+{% endif %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 table-stack" id="error-log-table">
+      <thead class="table-light"><tr><th style="width:3.5rem;">#</th><th>Date</th><th>Time</th><th>Affected</th><th></th></tr></thead>
+      <tbody>
+        {% for e in entries %}
+        <tr class="error-log-row" role="button" data-target="error-log-detail-{{ loop.index }}">
+          <td data-label="#">{{ loop.index }}</td>
+          <td data-label="Date">{{ e.date or '-' }}</td>
+          <td data-label="Time">{{ e.time or '-' }}</td>
+          <td class="stack-full" data-label="Affected"><code>{{ e.affected }}</code></td>
+          <td data-label=""><i class="bi bi-chevron-right error-log-chevron"></i></td>
+        </tr>
+        <tr class="error-log-detail-row" id="error-log-detail-row-{{ loop.index }}" hidden>
+          <td colspan="5" class="p-0 stack-full">
+            <div class="d-flex justify-content-between align-items-center gap-2 px-3 pt-2">
+              <span class="small text-muted">{{ e.message }}</span>
+              <button type="button" class="btn btn-outline-secondary btn-sm copy-entry-btn" data-target="error-log-detail-{{ loop.index }}"><i class="bi bi-clipboard"></i> Copy</button>
+            </div>
+            <pre id="error-log-detail-{{ loop.index }}" class="bg-dark text-light p-3 m-3 mt-2 rounded small" style="max-height:50vh; overflow-y:auto; white-space:pre-wrap; word-break:break-word;">{{ e.text }}</pre>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Click a row to open/close its traceback - accordion-style (opening one
+// closes any other that was already open) so the table stays scannable.
+document.addEventListener('click', function (evt) {
+  var btn = evt.target.closest('.copy-entry-btn');
+  if (btn) {
+    var pre = document.getElementById(btn.dataset.target);
+    if (!pre) return;
+    navigator.clipboard.writeText(pre.textContent).then(function () {
+      var orig = btn.innerHTML;
+      btn.innerHTML = '<i class="bi bi-check-lg"></i> Copied';
+      setTimeout(function () { btn.innerHTML = orig; }, 1200);
+    }).catch(function () {});
+    return;
+  }
+  var row = evt.target.closest('.error-log-row');
+  if (!row) return;
+  var detailRow = document.getElementById('error-log-detail-row-' + row.dataset.target.split('-').pop());
+  if (!detailRow) return;
+  var opening = detailRow.hidden;
+  document.querySelectorAll('.error-log-detail-row:not([hidden])').forEach(function (d) {
+    d.hidden = true;
+    var otherRow = d.previousElementSibling;
+    if (otherRow) otherRow.classList.remove('error-log-row-open');
+  });
+  if (opening) {
+    detailRow.hidden = false;
+    row.classList.add('error-log-row-open');
+  }
+});
+</script>
+{% endblock %}

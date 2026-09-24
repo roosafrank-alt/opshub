@@ -1,0 +1,51 @@
+{#
+  Back button shown at the left of every OpsHub navbar (shop, Fly with Kate!,
+  Admin, Academy). Include with `back_fallback` set to that module's home
+  URL. Tapping it goes to the previous page in this browser tab; if there
+  isn't one inside OpsHub (e.g. the page was opened from the home-screen app
+  icon or a notification), it goes to the module's home instead. On the
+  module's own home page with nowhere to go back to, it hides itself.
+  The launcher (home_launcher.html) doesn't use a base template, so it never
+  shows this.
+#}
+<a href="{{ back_fallback }}" class="opshub-back-btn" id="opshub-back-btn" title="Back" aria-label="Back"
+   data-fallback="{{ back_fallback }}"><i class="bi bi-chevron-left"></i><span class="d-none d-sm-inline">Back</span></a>
+<style>
+  .opshub-back-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .15rem;
+    min-width: 40px; height: 40px; padding: 0 .55rem 0 .35rem; margin-right: .35rem;
+    border: 1px solid rgba(255,255,255,.35); border-radius: 8px;
+    background: rgba(255,255,255,.08); color: #fff !important;
+    font-weight: 600; font-size: .95rem; text-decoration: none; line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .opshub-back-btn .bi { font-size: 1.15rem; }
+  .opshub-back-btn:hover, .opshub-back-btn:active { background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.6); }
+  @media print { .opshub-back-btn { display: none !important; } }
+  /* Keep Back / programs / brand packed on the left and the menu button on
+     the right, instead of spread out across a phone-width navbar. */
+  .navbar > .container-fluid { justify-content: flex-start; }
+  .navbar > .container-fluid > .navbar-toggler,
+  .navbar > .container-fluid > :last-child { margin-left: auto; }
+</style>
+<script>
+(function () {
+  var btn = document.getElementById('opshub-back-btn');
+  if (!btn) return;
+  var fallback = btn.getAttribute('data-fallback');
+  var ref = document.referrer || '';
+  var cameFromApp = false;
+  try { cameFromApp = !!ref && new URL(ref).origin === window.location.origin && ref !== window.location.href; } catch (e) {}
+  var onModuleHome = window.location.pathname.replace(/\/+$/, '') === (new URL(fallback, window.location.href).pathname.replace(/\/+$/, ''));
+  if (onModuleHome && !cameFromApp) { btn.style.display = 'none'; return; }
+  btn.addEventListener('click', function (e) {
+    if (!cameFromApp || window.history.length < 2) return; // plain link to the module home
+    e.preventDefault();
+    var left = false;
+    window.addEventListener('pagehide', function () { left = true; }, { once: true });
+    window.history.back();
+    // If the browser had nothing to go back to, fall back to the module home.
+    setTimeout(function () { if (!left) window.location.href = fallback; }, 500);
+  });
+})();
+</script>

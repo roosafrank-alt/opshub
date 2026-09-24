@@ -1,0 +1,51 @@
+{% extends "admin_base.html" %}
+{% block title %}Manage Accounts - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-shield-lock"></i> Manage Accounts ({{ users|length }})</h4>
+  <div class="d-flex align-items-center gap-2">
+    <input type="text" id="users-search" class="form-control form-control-sm" placeholder="Search by name or username..." style="min-width:220px;">
+    <a href="{{ url_for('admin_user_new') }}" class="btn btn-primary fw-bold"><i class="bi bi-plus-lg"></i> New Account</a>
+  </div>
+</div>
+<p class="text-muted small">One login works for both Maintenance and Flight School - together, OpsHub. What each person sees depends on the roles set here. The <strong>Owner</strong> account can only be changed by the owner; the owner can change everyone else's, including other master admins.</p>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" id="users-table">
+      <thead class="table-light"><tr><th>Name</th><th>Username</th><th>Password</th><th>Shop Role</th><th>Flight Role</th><th>Admin</th><th>Billing</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for u in users %}
+        <tr data-search="{{ (u.name ~ ' ' ~ u.username)|lower }}">
+          <td>{{ u.name }}</td>
+          <td><code>{{ u.username }}</code></td>
+          <td>{% if u.id == owner_id and not viewer_is_owner %}<span class="text-muted small"><i class="bi bi-lock"></i> hidden</span>{% else %}<code>{{ u.password_plain or '-' }}</code>{% endif %}</td>
+          <td>{% if u.shop_role %}<span class="badge bg-secondary">{{ u.shop_role|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+          <td>{% if u.flight_role %}<span class="badge bg-primary">{{ u.flight_role|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+          <td>{% if u.id == owner_id %}<span class="badge bg-dark" title="Only this person can change this account"><i class="bi bi-lock-fill"></i> Owner</span> {% endif %}{% if u.is_master_admin %}<span class="badge bg-warning text-dark">Master Admin</span>{% endif %}</td>
+          <td>{% if u.is_master_admin or u.can_bill %}<span class="badge bg-info text-dark">Billing</span>{% endif %}</td>
+          <td>{% if u.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
+          <td>{% if u.id == owner_id and not viewer_is_owner %}<span class="btn btn-outline-secondary btn-sm disabled" title="Only the owner can change this account"><i class="bi bi-lock"></i> Locked</span>{% else %}<a href="{{ url_for('admin_user_edit', user_id=u.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Edit</a>{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-muted text-center py-3">No accounts yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var input = document.getElementById('users-search');
+  var rows = document.querySelectorAll('#users-table tbody tr[data-search]');
+  input.addEventListener('input', function () {
+    var q = input.value.trim().toLowerCase();
+    rows.forEach(function (row) {
+      row.style.display = row.getAttribute('data-search').indexOf(q) !== -1 ? '' : 'none';
+    });
+  });
+})();
+</script>
+{% endblock %}

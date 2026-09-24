@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Labor Pay' if admin_view else 'My Pay' }} - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-cash-stack"></i> {{ 'Labor Pay' if admin_view else 'My Pay' }} <span class="text-muted fs-6">- {{ period_label }}</span></h4>
+  <div class="text-end">
+    <span class="text-muted small d-block">{{ '%.1f'|format(total_hours) }} hrs clocked</span>
+    <strong class="fs-4">${{ '%.2f'|format(total_pay) }}</strong>
+  </div>
+</div>
+{% set period_endpoint = 'shop_pay' %}{% include "_shop_period.html" %}
+
+{% if laborers_pay %}
+{% for g in laborers_pay %}
+<div class="card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h5 class="mb-0">{{ g.name }} <span class="text-muted fs-6">(${{ '%.2f'|format(g.rate or 0) }}/hr now)</span>
+      {% if g.running %}<span class="badge bg-warning text-dark ms-1"><i class="bi bi-stopwatch"></i> {{ g.running }} clocked in</span>{% endif %}</h5>
+    <div class="text-end"><span class="text-muted small">{{ '%.2f'|format(g.hours) }} hrs</span> &nbsp;<strong class="fs-5">${{ '%.2f'|format(g.pay) }}</strong></div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead class="table-light"><tr><th>Date</th><th>Project</th><th>Task</th><th>Hours</th><th>Rate</th><th>Pay</th></tr></thead>
+      <tbody>
+        {% for s in g.sessions %}
+        <tr>
+          <td data-label="Date"><small>{{ s.started_at|usdate(true) }}</small></td>
+          <td class="stack-full" data-label="Project"><a href="{{ url_for('project_detail', project_id=s.project_id) }}">{{ s.project_code }}</a> <small class="text-muted">{{ s.project_name }}</small></td>
+          <td data-label="Task">{{ s.section or 'General' }}</td>
+          {% if s.ended_at %}
+          <td data-label="Hours">{{ '%.2f'|format(s.hours or 0) }}</td>
+          <td data-label="Rate">${{ '%.2f'|format(s.rate or 0) }}</td>
+          <td data-label="Pay"><strong>${{ '%.2f'|format(s.cost or 0) }}</strong></td>
+          {% else %}
+          <td data-label="Hours" colspan="3"><span class="badge bg-warning text-dark">Still clocked in</span></td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<p class="text-muted">{% if admin_view %}No labor clocked in this period.{% else %}No labor clocked under your name ({{ logged_in_user_name }}) in this period. Pay shows the laborer whose name matches your login.{% endif %}</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}{% if edit_flight_id %}Edit Flight{% else %}Log a Flight{% endif %} - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card p-4">
+  <h4>{% if edit_flight_id %}Edit Logged Flight{% else %}Log a Flight{% endif %}</h4>
+  {% if prefill and prefill.scheduled_flight_id %}
+  <p class="text-muted small">Pre-filled from your scheduled booking.</p>
+  {% endif %}
+  <form method="post" action="{% if edit_flight_id %}{{ url_for('flight.log_edit', flight_id=edit_flight_id) }}{% endif %}">
+    <input type="hidden" name="scheduled_flight_id" value="{{ form.get('scheduled_flight_id') if form else (prefill.scheduled_flight_id if prefill else '') }}">
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Plane *</label>
+        <select name="asset_id" id="plane-select" class="form-select" required>
+          <option value="" disabled {% if not (form and form.get('asset_id')) and not (prefill and prefill.asset_id) %}selected{% endif %}>-- Select a plane --</option>
+          {% for p in planes %}
+          <option value="{{ p.id }}" data-hobbs="{{ p.hobbs_hours if p.hobbs_hours is not none else '' }}" data-tach="{{ p.tach_hours if p.tach_hours is not none else '' }}"
+                  {% if (form and form.get('asset_id')|string == p.id|string) or (not form and prefill and prefill.asset_id|string == p.id|string) %}selected{% endif %}>
+            {{ p.tag }}{% if p.name and p.name != p.tag %} - {{ p.name }}{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Student *</label>
+        {% set gid = guest_student_id() %}
+        <select name="student_id" class="form-select" required onchange="var g=document.getElementById('guest-name-row'); if(g) g.classList.toggle('d-none', this.value !== '{{ gid }}');">
+          <option value="" disabled {% if not (form and form.get('student_id')) and not (prefill and prefill.student_id) %}selected{% endif %}>-- Select a student --</option>
+          {% if gid %}
+          <option value="{{ gid }}" {% if (form and form.get('student_id')|string == gid|string) or (not form and prefill and prefill.student_id|string == gid|string) %}selected{% endif %}>&#9733; Guest / Intro - no profile (one-time flyer)</option>
+          {% endif %}
+          {% for s in students if s.id != gid %}
+          <option value="{{ s.id }}" {% if (form and form.get('student_id')|string == s.id|string) or (not form and prefill and prefill.student_id|string == s.id|string) %}selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+        {% set _is_guest = gid and ((form and form.get('student_id')|string == gid|string) or (not form and prefill and prefill.student_id|string == gid|string)) %}
+        <div id="guest-name-row" class="mt-1 {{ '' if _is_guest else 'd-none' }}">
+          <input type="text" name="guest_name" maxlength="80" class="form-control form-control-sm" placeholder="Guest's name (optional - taken from the booking if blank)" value="{{ form.get('guest_name') or '' if form else '' }}">
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Instructor</label>
+        <select name="cfi_id" id="cfi-select" class="form-select">
+          {% for c in cfis %}
+          <option value="{{ c.id }}"
+                  {% if (form and form.get('cfi_id')|string == c.id|string) or (not form and prefill and prefill.cfi_id and prefill.cfi_id|string == c.id|string) or (not form and not (prefill and prefill.cfi_id) and not (prefill and prefill.solo) and c.id == current_cfi_id) %}selected{% endif %}>
+            {{ c.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6 mb-3">
+        <div class="form-check mt-4">
+          <input type="checkbox" class="form-check-input" name="solo" id="solo-check" {% if (form and form.get('solo')) or (not form and prefill and prefill.solo) %}checked{% endif %}>
+          <label class="form-check-label" for="solo-check">Solo <span class="text-muted small">(student flew without an instructor - no instructor charge)</span></label>
+        </div>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Flight Date</label>
+      <input type="date" name="flight_date" class="form-control" value="{{ form.get('flight_date') if form else (prefill.flight_date if prefill and prefill.flight_date else today) }}">
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Hobbs Start</label>
+        <input type="number" step="any" id="hobbs-start" name="hobbs_start" class="form-control" value="{{ form.get('hobbs_start') if form else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Hobbs End</label>
+        <input type="number" step="any" name="hobbs_end" class="form-control" value="{{ form.get('hobbs_end') if form else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Tach Start</label>
+        <input type="number" step="any" id="tach-start" name="tach_start" class="form-control" value="{{ form.get('tach_start') if form else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Tach End</label>
+        <input type="number" step="any" name="tach_end" class="form-control" value="{{ form.get('tach_end') if form else '' }}">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Oil Added (qt) <span class="text-muted small">(if any)</span></label>
+        <input type="number" step="any" name="oil_added_qt" class="form-control" placeholder="e.g. 1" value="{{ form.get('oil_added_qt') if form else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Ground Time (hrs) <span class="text-muted small">(billed separately at the instructor rate, no plane charge)</span></label>
+        <input type="number" step="any" name="ground_time_hours" class="form-control" placeholder="e.g. 0.5" value="{{ form.get('ground_time_hours') if form else '' }}">
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Solo Portion (hrs) <span class="text-muted small">(dual lesson where the student also flew part alone - that part isn't billed for the instructor and logs as solo/PIC)</span></label>
+      <input type="number" step="0.1" min="0" name="solo_hours" class="form-control" style="max-width:180px;" placeholder="e.g. 0.8" value="{{ form.get('solo_hours') if form and form.get('solo_hours') is not none else '' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Landings <span class="text-muted small">(for currency tracking - day/night, full-stop counts for night currency)</span></label>
+      <div class="row g-2">
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">Day Full-Stop</label>
+          <input type="number" min="0" step="1" name="day_landings_fs" class="form-control form-control-sm" value="{{ form.get('day_landings_fs') if form and form.get('day_landings_fs') is not none else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">Day Touch &amp; Go</label>
+          <input type="number" min="0" step="1" name="day_landings_tg" class="form-control form-control-sm" value="{{ form.get('day_landings_tg') if form and form.get('day_landings_tg') is not none else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">Night Full-Stop</label>
+          <input type="number" min="0" step="1" name="night_landings_fs" class="form-control form-control-sm" value="{{ form.get('night_landings_fs') if form and form.get('night_landings_fs') is not none else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">Night Touch &amp; Go</label>
+          <input type="number" min="0" step="1" name="night_landings_tg" class="form-control form-control-sm" value="{{ form.get('night_landings_tg') if form and form.get('night_landings_tg') is not none else '' }}">
+        </div>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Squawks / Notes <span class="text-muted small">(issues found, anything the shop should know)</span></label>
+      <textarea name="notes" class="form-control" rows="3" placeholder="Leave blank if nothing to report">{{ form.get('notes') if form else '' }}</textarea>
+      <div class="form-text">Anything typed here counts as a squawk - it'll show up prominently on the Maintenance side until someone acknowledges it. Leave it blank for a routine flight with nothing to flag.</div>
+    </div>
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" name="paid" id="paid-check" {% if form and form.get('paid') %}checked{% endif %}>
+      <label class="form-check-label" for="paid-check">Already paid <span class="text-muted small">(check if this one's been collected already)</span></label>
+    </div>
+    <div class="d-flex justify-content-between">
+      <a href="{% if edit_flight_id %}{{ url_for('flight.log_detail', flight_id=edit_flight_id) }}{% else %}{{ url_for('flight.dashboard') }}{% endif %}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary fw-bold">{% if edit_flight_id %}Save Changes{% else %}Log Flight{% endif %}</button>
+    </div>
+  </form>
+</div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('plane-select').addEventListener('change', function () {
+  var opt = this.options[this.selectedIndex];
+  var hobbs = opt.getAttribute('data-hobbs');
+  var tach = opt.getAttribute('data-tach');
+  var hobbsStart = document.getElementById('hobbs-start');
+  var tachStart = document.getElementById('tach-start');
+  if (hobbs && !hobbsStart.value) hobbsStart.value = hobbs;
+  if (tach && !tachStart.value) tachStart.value = tach;
+});
+document.getElementById('solo-check').addEventListener('change', function () {
+  document.getElementById('cfi-select').disabled = this.checked;
+});
+if (document.getElementById('solo-check').checked) {
+  document.getElementById('cfi-select').disabled = true;
+}
+</script>
+{% endblock %}

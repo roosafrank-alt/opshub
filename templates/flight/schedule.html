@@ -1,0 +1,406 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Schedule - OpsHub{% endblock %}
+{% block content %}
+<style>
+  @keyframes schedule-block-pulse {
+    0%, 100% { box-shadow: 0 0 4px rgba(255,193,7,0.6); }
+    50% { box-shadow: 0 0 10px rgba(255,193,7,1); }
+  }
+  @keyframes schedule-conflict-pulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(220,53,69,0.7); }
+    50% { box-shadow: 0 0 18px rgba(220,53,69,1); }
+  }
+  .schedule-block-active { animation: schedule-block-pulse 1.8s ease-in-out infinite; }
+  .schedule-block-highlight, tr.schedule-block-highlight {
+    outline: 3px solid #dc3545 !important;
+    outline-offset: -2px;
+    animation: schedule-conflict-pulse 1.6s ease-in-out infinite;
+    position: relative;
+    z-index: 5;
+  }
+  tr.schedule-block-highlight { background: #fff0f1 !important; }
+  /* Just booked (?new=ids): a green glow so you can see what you added.
+     Cleared on the first click or when you leave the page (script below). */
+  @keyframes schedule-new-pulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(25,135,84,0.6); }
+    50% { box-shadow: 0 0 16px rgba(25,135,84,1); }
+  }
+  .schedule-block-new, tr.schedule-block-new {
+    outline: 3px solid #198754 !important;
+    outline-offset: -2px;
+    animation: schedule-new-pulse 1.6s ease-in-out infinite;
+    position: relative;
+    z-index: 5;
+  }
+  tr.schedule-block-new { background: #ebfbee !important; }
+  /* The spotlight: everything grayed out except the new booking(s) - see
+     the script at the bottom. */
+  .schedule-new-spotlight {
+    position: fixed; inset: 0; z-index: 2000; background: rgba(15, 23, 42, .62);
+    opacity: 0; transition: opacity .25s ease; cursor: pointer;
+  }
+  .schedule-new-spotlight-label {
+    position: fixed; left: 50%; bottom: 1.25rem; transform: translateX(-50%); z-index: 2001;
+    background: #198754; color: #fff; font-weight: 700; border-radius: 999px; padding: .5rem 1rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,.35); white-space: nowrap; font-size: .9rem;
+    opacity: 0; transition: opacity .25s ease; pointer-events: none;
+  }
+  .schedule-block-dimmed, tr.schedule-block-dimmed {
+    opacity: 0.25 !important;
+    filter: grayscale(70%);
+  }
+  /* Clicking a day cell (CFIs/admins only) jumps straight to "Schedule
+     Flight" with that date pre-filled, instead of the generic toolbar
+     button with no date picked yet. Avoids :has() for broader browser
+     support (this renders on a kiosk Pi browser too). */
+  /* List / custom-range tables: a heavy divider where a new day starts,
+     and past days greyed out so upcoming flights stand out. */
+  tr.schedule-day-break:not(:first-child) > td { border-top: 3px solid #6c757d !important; }
+  tr.schedule-row-past > td { background-color: #f1f3f5 !important; color: #8a9199 !important; }
+  tr.schedule-row-past { opacity: 0.7; }
+  tr.schedule-row-past .badge { filter: grayscale(60%); }
+  tr.schedule-row-today > td { background-color: #fffbea; }
+  @media (max-width: 575.98px) {
+    /* Stacked-card layout on phones: a gap + bar above each new day. */
+    .table-stack tbody tr.schedule-day-break:not(:first-child) { margin-top: 1.1rem; border-top: 4px solid #6c757d; }
+    .table-stack tbody tr.schedule-row-past { background: #f1f3f5; }
+  }
+  /* Toolbar (title, view buttons, prev/next, Schedule Flight, filters)
+     pinned just under the sticky navbar. --flight-nav-h is measured in the
+     script below since the navbar's height changes when it wraps or the
+     phone menu opens. */
+  .schedule-toolbar {
+    position: sticky;
+    top: var(--flight-nav-h, 56px);
+    z-index: 1010; /* under the navbar (1020) and modals, over the calendar */
+    background: #f4f5f7;
+    margin: 0 -.75rem 1rem;
+    padding: .75rem .75rem .6rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .schedule-toolbar.is-stuck { box-shadow: 0 4px 8px -4px rgba(0,0,0,.18); }
+  @media (max-width: 575.98px) {
+    /* Keep it compact on phones so the calendar still gets most of the screen. */
+    .schedule-toolbar { padding: .4rem .75rem .4rem; margin-bottom: .6rem; }
+    .schedule-toolbar h4 { font-size: 1rem; }
+    .schedule-toolbar .btn-group { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
+    .schedule-toolbar .form-label { font-size: .7rem; }
+  }
+  /* Month / quarter / year grid: the day number sits in its own header
+     strip, and blocks start below it so they never cover the date. Blocks
+     are one tidy line (time + plane) plus the people line. */
+  .calendar-day-cell { padding: .25rem !important; }
+  .calendar-day-head { border-bottom: 1px solid #e9ecef; margin-bottom: .3rem; padding-bottom: .15rem; }
+  .calendar-day-cell .schedule-block { line-height: 1.25; padding-top: 2px; padding-bottom: 2px; font-size: .75rem; }
+  .calendar-day-cell .schedule-block .sb-time { font-weight: 700; }
+  /* Solo = neon plane color: a soft inner glow so it pops. */
+  .schedule-block-solo { box-shadow: inset 0 0 6px rgba(255,255,255,.75); }
+  .calendar-day-cell .schedule-block .sb-line2 { opacity: .9; font-size: .7rem; }
+  .calendar-day-cell .schedule-block-active { animation: schedule-block-pulse-inset 1.8s ease-in-out infinite; }
+  @keyframes schedule-block-pulse-inset {
+    0%, 100% { box-shadow: inset 0 0 0 1px rgba(255,193,7,0.5); }
+    50% { box-shadow: inset 0 0 0 3px rgba(255,193,7,1); }
+  }
+  .calendar-more-link { display: block; font-size: .7rem; font-weight: 600; text-decoration: none; padding: 0 .25rem; }
+  .calendar-more-link:hover { text-decoration: underline; }
+  @media (max-width: 575.98px) {
+    .calendar-day-cell .schedule-block .sb-line2 { display: none; }
+    .calendar-day-cell .schedule-block .sb-line3 { display: none; }
+    .calendar-day-cell .schedule-block { font-size: .62rem; padding-left: 2px !important; padding-right: 2px !important; }
+  }
+  .calendar-day-add { border-radius: 3px; padding: 1px 3px; margin: -1px -3px; transition: background-color .15s ease; }
+  .calendar-day-add:hover { background-color: rgba(13,110,253,.12); }
+  .calendar-day-add-icon { font-size: .7rem; color: #adb5bd; margin-left: auto; }
+  .calendar-day-add:hover .calendar-day-add-icon { color: #0d6efd; }
+
+  /* So the List view's auto-scroll-to-anchor (see the scripts block below)
+     doesn't land the target row half-hidden under the sticky top nav. */
+  tr.schedule-block { scroll-margin-top: 80px; }
+  /* Clicking anywhere in a day cell's open space (CFIs/admins only) jumps
+     straight to "Schedule Flight" with that date pre-filled - see the
+     delegated click handler below, which checks data-add-url on the cell
+     itself so the whole cell is clickable, not just the day number. */
+  .calendar-day-cell-add { cursor: pointer; transition: background-color .15s ease; }
+  .calendar-day-cell-add:hover { background-color: rgba(13,110,253,.08); }
+  /* The day-cell mini timeline: a fixed-height strip scaled to a 6am-8pm
+     reference window, with faint hour lines so a 9am flight and a 5pm
+     flight land visibly far apart instead of just sitting in a stacked
+     list a few pixels apart. */
+  .calendar-timeline { overflow: hidden; }
+  .calendar-time-line {
+    position: absolute; left: 0; right: 0; height: 0;
+    border-top: 1px dashed rgba(0,0,0,.14);
+    pointer-events: none;
+  }
+  .calendar-time-label {
+    position: absolute; left: 1px; top: -7px;
+    font-size: .55rem; line-height: 1; color: #adb5bd;
+  }
+  .schedule-block-timeline {
+    font-size: .62rem;
+    padding: 0 3px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  /* Month view's fixed-lane blocks (see month_lane_block()): white boxes,
+     touching side by side, thin enough that text needs to stay compact and
+     truncate rather than wrap - the plane-color/instructor-color edges
+     (border-left/border-right, set inline per block) are the main visual
+     cue when a lane gets narrow. */
+  .month-lane-block {
+    font-size: .56rem;
+    padding-top: 1px; padding-bottom: 1px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .month-lane-block .sb-line1, .month-lane-block .sb-line2, .month-lane-block .sb-line3 { line-height: 1.15; }
+  .month-lane-block .sb-line3 { opacity: .75; }
+  /* Week view: 7 narrow columns - smaller text so more of each booking fits. */
+  .week-timeline-days .day-timeline-block-line1 { font-size: .62rem; }
+  .week-timeline-days .day-timeline-block-line2 { font-size: .58rem; }
+
+  /* Day view: a dedicated hour-by-hour timeline (see day_timeline_block()
+     and the "day" view branch in _schedule_live.html) - a full-size sibling
+     of the small month-cell mini timeline above, modeled after a reference
+     scheduling app screenshot (hours down the left, flight blocks
+     positioned/sized by real start time and duration, colored by
+     plane/instructor same as every other view). Deliberately its own class
+     namespace (day-timeline-*) so it never collides with the month-cell
+     mini timeline's calendar-time-* classes, which serve a different,
+     glance-only purpose at a much smaller scale. */
+  .day-timeline-wrap { display: flex; align-items: stretch; }
+  .day-timeline-hours {
+    position: relative; flex: 0 0 48px; width: 48px;
+    height: 900px;
+  }
+  .day-timeline-hour-line { position: absolute; left: 0; right: 0; height: 0; }
+  .day-timeline-hour-label {
+    position: absolute; right: 6px; top: -7px;
+    font-size: .68rem; line-height: 1; color: #6c757d; white-space: nowrap;
+  }
+  .day-timeline-track {
+    position: relative; flex: 1 1 auto;
+    height: 900px;
+    border: 1px solid rgba(0,0,0,.1); border-radius: 4px;
+    background: #fff;
+  }
+  .day-timeline-grid-line {
+    position: absolute; left: 0; right: 0; height: 0;
+    border-top: 1px dashed rgba(0,0,0,.1);
+    pointer-events: none;
+  }
+  .day-timeline-block {
+    position: absolute; overflow: hidden;
+    padding-top: 2px; padding-bottom: 2px; padding-left: 6px !important;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,.2);
+  }
+  .day-timeline-block-line1 { font-weight: 600; font-size: .72rem; }
+  .day-timeline-block-line2 { font-size: .68rem; opacity: .9; }
+  @media (max-width: 575.98px) {
+    .day-timeline-hours, .day-timeline-track { height: 650px; }
+  }
+
+  /* Week view: 7 day-timeline-track columns (same hour axis, same
+     day-timeline-block/day-timeline-* styling above) side by side instead
+     of Day view's single column. Each column gets its own header (day
+     name + date) and its own small untimed-flight list below the track. */
+  .week-timeline-wrap { display: flex; align-items: stretch; overflow-x: auto; }
+  .week-timeline-days { display: flex; flex: 1 1 auto; min-width: 980px; gap: 4px; }
+  .week-timeline-day-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+  .week-timeline-day-head {
+    display: block; text-align: center; font-size: .72rem; font-weight: 700;
+    padding: 2px 0 4px; color: #495057; border-bottom: 2px solid #e9ecef; margin-bottom: 2px;
+  }
+  .week-timeline-day-head-today { color: #b8860b; border-bottom-color: #ffc107; }
+  .week-timeline-untimed { margin-top: 4px; }
+  .week-timeline-untimed .schedule-block { font-size: .65rem; padding: 1px 3px; }
+  @media (max-width: 575.98px) {
+    .week-timeline-days { min-width: 1400px; }
+  }
+</style>
+
+<div id="schedule-live-region" data-live-url="{{ url_for('flight.schedule_live') }}">
+{% include "flight/_schedule_live.html" %}
+</div>
+
+{% include "flight/_schedule_detail_modal.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Keeps the sticky schedule toolbar tucked right under the navbar (whose
+// height varies - wrapped items, open phone menu), and adds a shadow once
+// the toolbar is actually floating over scrolled content.
+(function () {
+  var nav = document.querySelector('nav.navbar.sticky-top');
+  function setNavH() {
+    if (nav) document.documentElement.style.setProperty('--flight-nav-h', nav.offsetHeight + 'px');
+  }
+  setNavH();
+  window.addEventListener('resize', setNavH);
+  if (nav && window.ResizeObserver) new ResizeObserver(setNavH).observe(nav);
+  function markStuck() {
+    var tb = document.querySelector('.schedule-toolbar');
+    if (!tb) return;
+    var navH = nav ? nav.offsetHeight : 0;
+    tb.classList.toggle('is-stuck', window.scrollY > 0 && tb.getBoundingClientRect().top <= navH + 1);
+  }
+  window.addEventListener('scroll', markStuck, { passive: true });
+  document.addEventListener('DOMContentLoaded', markStuck);
+})();
+var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(30) }};
+// Scroll a highlighted (conflicting) booking front and center as soon as
+// the page settles, so the person lands looking right at it instead of
+// having to hunt across the grid/table for the red outline. Only on the
+// initial load - not re-run on every live-refresh poll below.
+(function () {
+  var hl = document.querySelector('.schedule-block-highlight');
+  if (hl) {
+    setTimeout(function () { hl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50);
+  }
+})();
+
+// Just-booked flight(s) (?new=ids from Schedule Flight): a spotlight -
+// the whole screen is grayed out except the new booking(s), so they're
+// the one thing you see. The first click, scroll, swipe or key press
+// clears it. The `new` param is then taken out of the address (so the
+// live refresh, a reload, or coming Back doesn't bring it back).
+(function () {
+  if (!/[?&]new=/.test(window.location.search)) return;
+  var overlay = null, label = null, done = false;
+  function stripParam() {
+    try {
+      var u = new URL(window.location.href);
+      if (!u.searchParams.has('new')) return;
+      u.searchParams.delete('new');
+      window.history.replaceState(window.history.state, '', u.pathname + (u.search ? u.search : '') + u.hash);
+    } catch (e) { /* old browser - the spotlight still clears below */ }
+  }
+  function clearNew() {
+    if (done) return;
+    done = true;
+    document.querySelectorAll('.schedule-block-new').forEach(function (el) { el.classList.remove('schedule-block-new'); });
+    [overlay, label].forEach(function (el) {
+      if (!el) return;
+      el.style.opacity = '0';
+      setTimeout(function () { el.remove(); }, 250);
+    });
+    ['click', 'wheel', 'touchmove', 'keydown'].forEach(function (t) { document.removeEventListener(t, clearNew, true); });
+    window.removeEventListener('scroll', clearNew, true);
+    window.removeEventListener('resize', cutHoles);
+    stripParam();
+  }
+  // Gray everything with one fixed layer, cutting a rounded-ish hole
+  // (even-odd path) around each new block so it shows through untouched.
+  function cutHoles() {
+    if (!overlay) return;
+    var w = window.innerWidth, h = window.innerHeight, pad = 6;
+    var d = 'M0 0 H' + w + ' V' + h + ' H0 Z';
+    document.querySelectorAll('.schedule-block-new').forEach(function (el) {
+      var r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      var x = Math.max(0, r.left - pad), y = Math.max(0, r.top - pad);
+      d += ' M' + x + ' ' + y + ' H' + (r.right + pad) + ' V' + (r.bottom + pad) + ' H' + x + ' Z';
+    });
+    overlay.style.clipPath = "path(evenodd, '" + d + "')";
+    overlay.style.webkitClipPath = overlay.style.clipPath;
+  }
+  function spotlight() {
+    var blocks = document.querySelectorAll('.schedule-block-new');
+    if (!blocks.length) { stripParam(); return; }
+    blocks[0].scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
+    overlay = document.createElement('div');
+    overlay.className = 'schedule-new-spotlight';
+    label = document.createElement('div');
+    label.className = 'schedule-new-spotlight-label';
+    label.innerHTML = '<i class="bi bi-stars"></i> ' + (blocks.length > 1 ? 'Your new bookings' : 'Your new booking') +
+                      ' <span class="opacity-75">&middot; tap anywhere to continue</span>';
+    document.body.appendChild(overlay);
+    document.body.appendChild(label);
+    cutHoles();
+    requestAnimationFrame(function () { overlay.style.opacity = '1'; label.style.opacity = '1'; });
+    window.addEventListener('resize', cutHoles);
+    // Listen only after the page has settled on the booking, so the
+    // automatic scroll above doesn't count as "you scrolled".
+    setTimeout(function () {
+      ['click', 'wheel', 'touchmove', 'keydown'].forEach(function (t) { document.addEventListener(t, clearNew, true); });
+      window.addEventListener('scroll', clearNew, true);
+    }, 400);
+  }
+  window.addEventListener('pagehide', stripParam);
+  window.addEventListener('pageshow', function (e) { if (e.persisted) clearNew(); });
+  if (document.readyState === 'complete') { setTimeout(spotlight, 60); }
+  else { window.addEventListener('load', function () { setTimeout(spotlight, 60); }); }
+})();
+
+// List view opens scrolled to the most recently completed flight (see
+// list_scroll_anchor_id / _build_schedule_year_list() in flight.py)
+// instead of at January 1st - upcoming flights land just below the fold
+// (the direction someone opening the schedule actually cares about),
+// older history is one scroll up. Only on the initial load, same as the
+// conflict-highlight scroll above, and it defers to that one (a
+// highlighted conflict is the more specific thing to land on).
+{% if view == 'list' and list_scroll_anchor_id %}
+(function () {
+  if (document.querySelector('.schedule-block-highlight')) return;
+  var anchor = document.querySelector('.schedule-block[data-id="{{ list_scroll_anchor_id }}"]');
+  if (anchor) {
+    setTimeout(function () { anchor.scrollIntoView({ behavior: 'instant', block: 'start' }); }, 50);
+  }
+})();
+{% endif %}
+
+// The "flight details" popup itself (the .schedule-block delegated click
+// handler that populates and opens #scheduleDetailModal, plus the
+// reschedule quick-time buttons) now lives in _schedule_detail_modal.html,
+// included above, so it's shared with the dashboard's "Details" button
+// instead of duplicated here.
+
+// Click anywhere in a day cell's open space (not on a flight block, and not
+// on a real link like the day-number "+" or the "+N more" overflow link -
+// those already go to their own destination and must not get hijacked) to
+// jump straight to "Schedule Flight" with that date pre-filled. Checked
+// last, after the .schedule-block delegated handler above already returned
+// early on its own clicks, so a click on a block never also triggers this.
+document.addEventListener('click', function (evt) {
+  if (evt.target.closest('.schedule-block')) return;
+  if (evt.target.closest('a')) return;
+  var cell = evt.target.closest('.calendar-day-cell-add');
+  if (!cell) return;
+  var url = cell.getAttribute('data-add-url');
+  if (url) window.location.href = url;
+});
+
+// Live refresh: re-polls the same view/filters the page is currently on
+// (view, year/month or date/start/end, plane_id, cfi_id, highlight - all
+// carried over via window.location.search) and swaps in the fresh HTML,
+// so a shop-TV/kiosk browser left open here reflects a booking, start, or
+// end made from another device without a manual reload.
+(function () {
+  var region = document.getElementById('schedule-live-region');
+  if (!region) return;
+  var url = region.getAttribute('data-live-url');
+  var POLL_MS = 15000;
+  var inFlight = false;
+
+  function refresh() {
+    if (inFlight || document.hidden) return;
+    // Don't yank the calendar out from under someone mid-interaction with
+    // the detail/reschedule modal.
+    if (document.querySelector('.modal.show')) return;
+    inFlight = true;
+    fetch(url + window.location.search, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+      .then(function (resp) { return resp.ok ? resp.text() : null; })
+      .then(function (html) { if (html !== null) region.innerHTML = html; })
+      .catch(function () { /* network hiccup - just try again next tick */ })
+      .finally(function () { inFlight = false; });
+  }
+
+  setInterval(refresh, POLL_MS);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) refresh();
+  });
+})();
+</script>
+{% endblock %}

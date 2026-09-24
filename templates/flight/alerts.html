@@ -1,0 +1,82 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Alerts - OpsHub{% endblock %}
+{% block content %}
+{#
+  Flight School Alerts - every booking flagged for review (no instructor,
+  expired solo sign-off, over solo currency), laid out like Squawks on the
+  Maintenance side. Acknowledging only records who saw it and when; the
+  alert (and the caution triangle on the Schedule) stays until the issue
+  itself is fixed, then it moves to Resolved. See _sync_flight_alerts() in
+  flight.py.
+#}
+{% macro alert_row(al, show_ack, first) %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not first }}">
+  <div class="flex-grow-1" style="min-width:220px;">
+    <div><strong>{{ al.plane_tag or '-' }}</strong> &middot; {{ al.scheduled_date|usdate }}{% if al.time_label %} &middot; {{ al.time_label }}{% endif %} &middot; {{ al.student_name or '(student removed)' }}{% if al.cfi_name %} with {{ al.cfi_name }}{% elif al.solo %} (solo){% endif %}</div>
+    <div class="small">{{ al.reason or 'Needs review' }}</div>
+    <small class="text-muted">Flagged {{ al.created_at|usdate(true) }}{% if al.acknowledged_at %} &middot; <i class="bi bi-check2-circle"></i> Acknowledged by {{ al.acknowledged_by or '-' }}, {{ al.acknowledged_at|usdate(true) }}{% endif %}</small>
+  </div>
+  <div class="d-flex gap-1 flex-wrap">
+    {% for l in al.fix_links %}
+    <a href="{{ l.url }}" class="btn {{ 'btn-primary' if loop.first else 'btn-outline-primary' }} btn-sm fw-bold" title="{{ l.hint }}"><i class="bi {{ l.icon }}"></i> {% if loop.first %}Resolve: {% endif %}{{ l.label }}</a>
+    {% endfor %}
+    {% if show_ack %}
+    <form method="post" action="{{ url_for('flight.schedule_review_acknowledge', scheduled_id=al.scheduled_flight_id) }}" data-confirm="Acknowledge this alert? It stays open here until the issue is fixed." data-confirm-title="Acknowledge Alert">
+      <button class="btn btn-outline-danger btn-sm fw-bold"><i class="bi bi-check-lg"></i> Acknowledge</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+<h4 class="mb-3"><i class="bi bi-exclamation-triangle-fill text-danger"></i> Alerts</h4>
+<p class="text-muted small">Flights flagged for review. Acknowledging just means someone's seen it - the alert stays here, and the caution flag stays on the Schedule, until the problem is actually fixed (use the Resolve button). Then it moves to Resolved on its own.</p>
+
+<h6 class="mt-4">Open ({{ unacked|length }})</h6>
+{% if unacked %}
+<div class="card p-3 mb-4 border-danger">
+  {% for al in unacked %}{{ alert_row(al, true, loop.first) }}{% endfor %}
+</div>
+{% else %}
+<p class="text-muted mb-4">Nothing new right now. 👍</p>
+{% endif %}
+
+<h6>Acknowledged, Not Yet Resolved ({{ acked|length }})</h6>
+{% if acked %}
+<div class="card p-3 mb-4 border-warning">
+  {% for al in acked %}{{ alert_row(al, false, loop.first) }}{% endfor %}
+</div>
+{% else %}
+<p class="text-muted mb-4">None right now.</p>
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+  <h6 class="mb-0">Resolved Alerts Archive ({{ resolved_count }})</h6>
+  {% if resolved_count > resolved|length %}
+  <a href="{{ url_for('flight.alerts_list', all=1) }}" class="btn btn-outline-secondary btn-sm">Show all {{ resolved_count }}</a>
+  {% elif show_all and resolved_count > 50 %}
+  <a href="{{ url_for('flight.alerts_list') }}" class="btn btn-outline-secondary btn-sm">Show latest 50</a>
+  {% endif %}
+</div>
+{% if resolved %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead class="table-light"><tr><th>Flight</th><th>Reason</th><th>Acknowledged</th><th>Resolved</th></tr></thead>
+      <tbody>
+        {% for al in resolved %}
+        <tr>
+          <td class="stack-full" data-label="Flight"><strong>{{ al.plane_tag or '-' }}</strong> &middot; {{ al.scheduled_date|usdate if al.scheduled_date else '(booking deleted)' }}<div class="small text-muted">{{ al.student_name or '-' }}</div></td>
+          <td class="stack-full" data-label="Reason"><small>{{ al.reason or '-' }}</small></td>
+          <td data-label="Acknowledged"><small>{% if al.acknowledged_at %}{{ al.acknowledged_by or '-' }}<br>{{ al.acknowledged_at|usdate(true) }}{% else %}<span class="text-muted">-</span>{% endif %}</small></td>
+          <td data-label="Resolved"><small><strong>{{ al.resolution or 'Resolved' }}</strong><br>{{ al.resolved_by or 'Automatic' }}, {{ al.resolved_at|usdate(true) }}</small></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<p class="text-muted">None yet.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,425 @@
+{% extends "base.html" %}
+{% block title %}{{ asset.tag }} - OpsHub{% endblock %}
+{% block content %}
+{% if photos %}
+<img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;">
+{% elif project_cover %}
+{# No aircraft photo yet - borrow the newest project's photo until one is added here. #}
+<img src="{{ url_for('static', filename='uploads/' + project_cover.filename) }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;" title="Photo from project {{ project_cover.project_name }}">
+{% endif %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h4 class="mb-0"><i class="bi bi-airplane"></i> {{ asset.tag }}{% if asset.name and asset.name != asset.tag %} &middot; {{ asset.name }}{% endif %}</h4>
+    <p class="text-muted mb-0">{{ [asset.make, asset.model, asset.year]|select|join(' ') or 'No make/model on file' }}{% if asset.owner %} &middot; Owner: {{ asset.owner }}{% endif %}</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('project_new', asset_id=asset.id) }}" class="btn btn-warning fw-bold btn-sm"><i class="bi bi-plus-lg"></i> New Project for This Aircraft</a>
+    <a href="{{ url_for('asset_edit', asset_id=asset.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit Profile</a>
+    <button class="btn btn-danger btn-sm" type="button" data-confirm="Delete this asset? It will move to Recently Deleted, where it can be restored or permanently removed. Linked projects are kept." data-confirm-style="danger" onclick="document.getElementById('asset-trash-form').submit();"><i class="bi bi-trash3"></i> Delete</button>
+    <form id="asset-trash-form" method="post" action="{{ url_for('asset_trash', asset_id=asset.id) }}" style="display:none;"></form>
+  </div>
+</div>
+
+{% if open_squawks %}
+<div class="alert alert-danger border-danger border-2 mb-3">
+  <h5 class="alert-heading mb-2"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} Open Squawk{{ 's' if open_squawks|length != 1 }} - Needs Acknowledgement</h5>
+  {% for sq in open_squawks %}
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
+    <div>
+      <div><strong>{{ sq.flight_date|usdate }}</strong> &middot; flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}</div>
+      <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+    </div>
+    <form method="post" action="{{ url_for('squawk_acknowledge', flight_id=sq.id) }}" data-confirm="Acknowledge this squawk?" data-confirm-title="Acknowledge Squawk">
+      <button class="btn btn-danger btn-sm fw-bold"><i class="bi bi-check-lg"></i> Acknowledge</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card p-3">
+      <h6>Hours</h6>
+      <div class="d-flex justify-content-between">
+        <span class="text-muted">Hobbs</span>
+        <strong>{{ '%g'|format(asset.hobbs_hours) + ' hrs' if asset.hobbs_hours is not none else '-' }}</strong>
+      </div>
+      <div class="text-muted small mb-2">Updated {{ asset.hobbs_updated_at or '-' }}</div>
+      <div class="d-flex justify-content-between">
+        <span class="text-muted">Tach</span>
+        <strong>{{ '%g'|format(asset.tach_hours) + ' hrs' if asset.tach_hours is not none else '-' }}</strong>
+      </div>
+      <div class="text-muted small">Updated {{ asset.tach_updated_at or '-' }}</div>
+      <form method="post" action="{{ url_for('asset_update_hours', asset_id=asset.id) }}" class="mt-2">
+        <label class="form-label small mb-0">Log new reading</label>
+        <div class="row g-1">
+          <div class="col-6">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text">Hobbs</span>
+              <input type="number" step="any" name="hobbs_hours" class="form-control" placeholder="e.g. 4530.1">
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text">Tach</span>
+              <input type="number" step="any" name="tach_hours" class="form-control" placeholder="e.g. 4498.6">
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm w-100 mt-1">Save</button>
+      </form>
+    </div>
+
+    <div class="card p-3 mt-3">
+      <h6>Photos</h6>
+      {% if photos %}
+      <div class="row g-2 mb-2">
+        {% for photo in photos %}
+        <div class="col-4">
+          <div class="position-relative">
+            <a href="{{ url_for('static', filename='uploads/' + photo.filename) }}" target="_blank">
+              <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="img-fluid rounded" style="aspect-ratio:1; object-fit:cover; width:100%;">
+            </a>
+            {% if photo.is_cover %}
+            <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-1"><i class="bi bi-star-fill"></i> Cover</span>
+            {% else %}
+            <form method="post" action="{{ url_for('photo_set_cover', photo_id=photo.id) }}">
+              <button class="btn btn-sm btn-light position-absolute top-0 start-0 m-1 py-0 px-1" title="Set as cover photo"><i class="bi bi-star"></i></button>
+            </form>
+            {% endif %}
+            <form method="post" action="{{ url_for('photo_delete', photo_id=photo.id) }}" data-confirm="Delete this photo?" data-confirm-style="danger">
+              <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 py-0 px-1"><i class="bi bi-x"></i></button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% elif project_cover %}
+      <p class="text-muted small mb-2"><i class="bi bi-info-circle"></i> No aircraft photo yet - showing the photo from project
+        <a href="{{ url_for('project_detail', project_id=project_cover.project_id) }}">{{ project_cover.project_name }}</a>.
+        Add one below to give this aircraft its own (the project's photo won't change).</p>
+      {% else %}
+      <p class="text-muted small">No photos yet.</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('asset_add_photos', asset_id=asset.id) }}" enctype="multipart/form-data">
+        <input type="file" name="photos" accept="image/*" capture="environment" multiple class="form-control form-control-sm mb-2">
+        <button class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-camera"></i> Add Photo(s)</button>
+      </form>
+    </div>
+
+    {% if asset.notes %}
+    <div class="card p-3 mt-3">
+      <h6>Notes</h6>
+      <p class="mb-0" style="white-space:pre-wrap;">{{ asset.notes }}</p>
+    </div>
+    {% endif %}
+
+    {% if asset.serial_number %}
+    <div class="card p-3 mt-3">
+      <div class="d-flex justify-content-between">
+        <span class="text-muted">Serial Number</span><span>{{ asset.serial_number }}</span>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if asset.is_flight_asset %}
+    <div class="card p-3 mt-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="text-muted"><i class="bi bi-airplane-engines"></i> Flight School</span>
+        <span class="badge bg-primary">Linked - appears in the plane list</span>
+      </div>
+      <div class="form-text mt-1">Schedule color is set from the Flight School tile's Planes page. What students pay for the plane is set per student there.</div>
+      <hr class="my-2">
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="text-muted">Oil Added (all-time)</span>
+        <strong>{{ '%g'|format(total_oil_added) }} qt</strong>
+      </div>
+      {% if oil_log %}
+      <div class="small mt-1" style="max-height:160px; overflow-y:auto;">
+        {% for f in oil_log %}
+        <div class="d-flex justify-content-between border-top pt-1 mt-1">
+          <span class="text-muted">{{ f.flight_date|usdate }}</span>
+          <span>{{ '%g'|format(f.oil_added_qt) }} qt</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-muted small mt-1">No oil additions logged yet - these come from the Oil Added field when a CFI logs a flight.</div>
+      {% endif %}
+      <a href="{{ url_for('asset_oil', asset_id=asset.id) }}" class="btn btn-outline-primary btn-sm w-100 mt-2"><i class="bi bi-droplet-half"></i> Full Oil Report</a>
+    </div>
+    {% endif %}
+
+    {% set lbc = logbook_counts(asset.id) %}
+    <div class="card p-3 mt-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="text-muted"><i class="bi bi-journal-text"></i> Logbooks</span>
+        {% if lbc.last %}<span class="badge bg-primary">Last: {{ lbc.last|usdate }}</span>{% endif %}
+      </div>
+      <div class="d-flex gap-1 mt-2">
+        <a href="{{ url_for('logbook.asset_logbook', asset_id=asset.id, log='airframe') }}" class="btn btn-outline-primary btn-sm flex-fill">Airframe <span class="badge bg-secondary">{{ lbc.airframe }}</span></a>
+        <a href="{{ url_for('logbook.asset_logbook', asset_id=asset.id, log='engine') }}" class="btn btn-outline-primary btn-sm flex-fill">Engine <span class="badge bg-secondary">{{ lbc.engine }}</span></a>
+        <a href="{{ url_for('logbook.asset_logbook', asset_id=asset.id, log='propeller') }}" class="btn btn-outline-primary btn-sm flex-fill">Prop <span class="badge bg-secondary">{{ lbc.propeller }}</span></a>
+      </div>
+    </div>
+
+    <div class="card p-3 mt-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="text-muted"><i class="bi bi-speedometer"></i> Cylinder Compression</span>
+        {% if latest_compression %}<span class="badge bg-primary">Last: {{ latest_compression.checked_date|usdate }}</span>{% endif %}
+      </div>
+      {% if compression_count %}
+      <div class="text-muted small mt-1">{{ compression_count }} check{{ 's' if compression_count != 1 }} logged.</div>
+      {% else %}
+      <div class="text-muted small mt-1">No compression checks logged yet.</div>
+      {% endif %}
+      <a href="{{ url_for('asset_compression', asset_id=asset.id) }}" class="btn btn-outline-primary btn-sm w-100 mt-2"><i class="bi bi-speedometer"></i> {{ 'View / Log Checks' if compression_count else 'Log a Check' }}</a>
+    </div>
+
+    {% if asset.engine_make or asset.engine_model or asset.engine_serial %}
+    <div class="card p-3 mt-3">
+      <h6><i class="bi bi-gear"></i> Engine</h6>
+      {% if asset.engine_make or asset.engine_model %}
+      <div class="d-flex justify-content-between"><span class="text-muted">Make / Model</span><span>{{ [asset.engine_make, asset.engine_model]|select|join(' ') }}</span></div>
+      {% endif %}
+      {% if asset.engine_serial %}
+      <div class="d-flex justify-content-between"><span class="text-muted">Serial</span><span>{{ asset.engine_serial }}</span></div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if asset.prop_make or asset.prop_model or asset.prop_serial %}
+    <div class="card p-3 mt-3">
+      <h6><i class="bi bi-airplane-engines"></i> Propeller</h6>
+      {% if asset.prop_make or asset.prop_model %}
+      <div class="d-flex justify-content-between"><span class="text-muted">Make / Model</span><span>{{ [asset.prop_make, asset.prop_model]|select|join(' ') }}</span></div>
+      {% endif %}
+      {% if asset.prop_serial %}
+      <div class="d-flex justify-content-between"><span class="text-muted">Serial</span><span>{{ asset.prop_serial }}</span></div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="card p-3 mt-3">
+      <h6 class="mb-2"><i class="bi bi-list-check"></i> To-Do</h6>
+      {% if todos %}
+      <ul class="list-group list-group-flush mb-2">
+        {% for t in todos %}
+        <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
+          <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1">
+            <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="{{ 'Mark not done' if t.done else 'Mark done' }}">
+              <i class="bi {{ 'bi-check-square-fill text-success' if t.done else 'bi-square' }} fs-5"></i>
+            </button>
+            <span class="{{ 'text-decoration-line-through text-muted' if t.done else '' }}">{{ t.description }}</span>
+          </form>
+          <form method="post" action="{{ url_for('plane_todo_delete', asset_id=asset.id, todo_id=t.id) }}" data-confirm="Remove this to-do?" data-confirm-style="danger">
+            <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-muted small">Nothing on the list yet.</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('plane_todo_new', asset_id=asset.id) }}" class="d-flex gap-2">
+        <input type="text" name="description" class="form-control form-control-sm" placeholder="Add a to-do..." required>
+        <button class="btn btn-outline-primary btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Add</button>
+      </form>
+    </div>
+
+    <div class="card p-3 mt-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0"><i class="bi bi-calendar-check"></i> Maintenance</h6>
+        <a href="{{ url_for('maintenance_new', asset_id=asset.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-lg"></i> Add</a>
+      </div>
+      {% if maintenance_items %}
+      {% for mi in maintenance_items %}
+      <div class="card mb-2 {{ 'border-danger' if mi.status.urgency == 'overdue' else ('border-warning' if mi.status.urgency == 'due_soon' else '') }}">
+        <div class="card-body p-2">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-1">
+            <div>
+              <strong>{{ mi.item.name }}</strong>
+              {% if mi.item.type == 'calendar' %}
+              <span class="badge ms-1" style="background:{{ maint_category_colors.get(mi.item.category, maint_category_colors['scheduled_maint']) }};">{{ maint_category_labels.get(mi.item.category, 'Scheduled Maintenance') }}</span>
+              {% endif %}
+              <span class="badge {{ 'bg-danger' if mi.status.urgency == 'overdue' else ('bg-warning text-dark' if mi.status.urgency == 'due_soon' else ('bg-success' if mi.status.urgency == 'ok' else 'bg-secondary')) }} ms-1">{{ mi.status.label }}</span>
+              <div class="text-muted small">
+                {% if mi.item.type == 'hours' and mi.item.interval_hours %}Every {{ '%g'|format(mi.item.interval_hours) }} hrs ({{ 'Hobbs' if mi.item.hour_type == 'hobbs' else 'Tach' }})
+                {% elif mi.item.type == 'calendar' and mi.item.interval_days %}Every {{ mi.item.interval_days }} days
+                {% endif %}
+              </div>
+              {% if mi.item.reference_info %}<div class="text-muted small">{{ mi.item.reference_info }}</div>{% endif %}
+              {% if mi.item.checklist %}
+              <div class="small mt-1">
+                <strong>Prework checklist:</strong>
+                <ul class="mb-0 ps-3">
+                  {% for line in mi.item.checklist.split('\n') %}
+                  {% if line.strip() %}<li>{{ line.strip() }}</li>{% endif %}
+                  {% endfor %}
+                </ul>
+              </div>
+              {% endif %}
+            </div>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('maintenance_edit', item_id=mi.item.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+              <form method="post" action="{{ url_for('maintenance_delete', item_id=mi.item.id) }}" data-confirm="Remove this maintenance item?" data-confirm-style="danger">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+          </div>
+          <form method="post" action="{{ url_for('maintenance_complete', item_id=mi.item.id) }}" class="mt-2 maint-complete-form" data-confirm="Sign off {{ mi.item.name }} as completed? " data-confirm-title="Complete Maintenance" data-confirm-ok="Yes, mark complete" data-confirm-style="success">
+            <div class="row g-1 align-items-end">
+              {% if mi.item.type == 'hours' %}
+              {% set meter_val = asset.hobbs_hours if mi.item.hour_type == 'hobbs' else asset.tach_hours %}
+              <div class="col-4">
+                <label class="form-label small mb-0">{{ 'Hobbs' if mi.item.hour_type == 'hobbs' else 'Tach' }} now</label>
+                <input type="number" step="any" name="completed_hours" class="form-control form-control-sm" placeholder="{{ '%g'|format(meter_val) if meter_val is not none else 'hrs' }}">
+              </div>
+              {% endif %}
+              <div class="{{ 'col-4' if mi.item.type == 'hours' else 'col-6' }}">
+                <label class="form-label small mb-0">Completed by</label>
+                <select class="form-select form-select-sm maint-operator-select">
+                  <option value="" disabled selected>-- Select --</option>
+                  <option value="__new__">+ Add new name...</option>
+                </select>
+                <div class="input-group input-group-sm mt-1 maint-operator-new-row" style="display:none;">
+                  <input type="text" class="form-control maint-operator-new-input" placeholder="Name">
+                  <button type="button" class="btn btn-primary maint-operator-new-add">Add</button>
+                </div>
+                <input type="hidden" name="performed_by" class="maint-operator-hidden">
+              </div>
+              <div class="{{ 'col-4' if mi.item.type == 'hours' else 'col-6' }}">
+                <button class="btn btn-sm btn-success w-100"><i class="bi bi-check-lg"></i> Complete</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="text-muted small mb-0">No maintenance items yet. <a href="{{ url_for('maintenance_new', asset_id=asset.id) }}">Add one</a>.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0">Project History <span class="text-muted fs-6">({{ project_blocks|length }} project{{ 's' if project_blocks|length != 1 }})</span></h5>
+      <div class="text-end">
+        <span class="text-muted small d-block">Total parts cost across all years</span>
+        <strong class="fs-5">${{ "%.2f"|format(total_cost) }}</strong>
+      </div>
+    </div>
+
+    {% for block in project_blocks %}
+    <div class="card p-3 mb-3">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+        <div>
+          <h6 class="mb-0">
+            <a href="{{ url_for('project_detail', project_id=block.project.id) }}"><code class="text-primary">{{ block.project.code }}</code> {{ block.project.name }}</a>
+            {% if block.project.status == 'active' %}<span class="badge bg-success">Active</span>
+            {% elif block.project.status == 'on_hold' %}<span class="badge bg-warning text-dark">On Hold</span>
+            {% elif block.project.status == 'archived' %}<span class="badge bg-dark">Archived</span>
+            {% else %}<span class="badge bg-secondary">Completed</span>{% endif %}
+          </h6>
+          <p class="text-muted small mb-0">{{ block.project.description or 'No description' }} &middot; {{ block.project.created_at|usdate }}</p>
+        </div>
+        <strong>${{ "%.2f"|format(block.cost) }}</strong>
+      </div>
+      {% if block.usage %}
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Part</th><th>Qty Used</th><th>Cost</th></tr></thead>
+        <tbody>
+          {% for u in block.usage %}
+          <tr>
+            <td>{{ u.name }}</td>
+            <td>{{ '%g'|format(u.qty_used) }} {{ u.unit }}</td>
+            <td>${{ "%.2f"|format(u.qty_used * u.unit_cost) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-muted small mb-0">No parts assigned yet.</p>
+      {% endif %}
+    </div>
+    {% else %}
+    <p class="text-muted">No projects yet for this asset. <a href="{{ url_for('project_new', asset_id=asset.id) }}">Create one</a>.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+(function () {
+  function wireOperatorPicker(form) {
+    var select = form.querySelector('.maint-operator-select');
+    var hidden = form.querySelector('.maint-operator-hidden');
+    var newRow = form.querySelector('.maint-operator-new-row');
+    var newInput = form.querySelector('.maint-operator-new-input');
+    var newAdd = form.querySelector('.maint-operator-new-add');
+    if (!select) return;
+    var saved = '';
+    try { saved = localStorage.getItem('shopinv_operator') || ''; } catch (e) { /* ignore */ }
+
+    function addOption(name) {
+      var opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      select.insertBefore(opt, select.lastElementChild);
+    }
+
+    fetch('/api/operators').then(function (r) { return r.json(); }).then(function (names) {
+      names.forEach(addOption);
+      if (saved) {
+        if (names.indexOf(saved) === -1) addOption(saved);
+        select.value = saved;
+      }
+    }).catch(function () {
+      if (saved) { addOption(saved); select.value = saved; }
+    });
+
+    select.addEventListener('change', function () {
+      if (select.value === '__new__') {
+        newRow.style.display = 'flex';
+        newInput.value = '';
+        newInput.focus();
+        return;
+      }
+      newRow.style.display = 'none';
+      saved = select.value;
+      try { localStorage.setItem('shopinv_operator', saved); } catch (e) { /* ignore */ }
+    });
+
+    function addNewFromInput() {
+      var name = (newInput.value || '').trim();
+      if (!name) return;
+      addOption(name);
+      select.value = name;
+      newRow.style.display = 'none';
+      saved = name;
+      try { localStorage.setItem('shopinv_operator', saved); } catch (e) { /* ignore */ }
+    }
+    newAdd.addEventListener('click', addNewFromInput);
+    newInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); addNewFromInput(); }
+    });
+
+    form.addEventListener('submit', function (e) {
+      var v = select.value;
+      var name = (v && v !== '__new__') ? v.trim() : '';
+      hidden.value = name;
+      if (!name) {
+        e.preventDefault();
+        select.classList.add('is-invalid');
+        select.focus();
+        setTimeout(function () { select.classList.remove('is-invalid'); }, 2500);
+        alert("Select who completed this maintenance first.");
+      }
+    });
+  }
+
+  document.querySelectorAll('.maint-complete-form').forEach(wireOperatorPicker);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,254 @@
+{#
+  Shared "flight details" popup: a single modal (plus its Reschedule
+  sub-modal), populated from whichever element with a data-id/data-plane/...
+  set of data-* attributes was clicked, via the delegated handler below.
+  Originally only on the Schedule calendar (every `.schedule-block` there
+  carries this data-* set); the dashboard's flight-chip "Details" button
+  now carries the same class + attributes too, so clicking it opens this
+  exact same popup instead of a separate, thinner summary - one modal, one
+  place its markup/JS is defined, included wherever a flight needs to be
+  "clicked into" for the full picture (see dashboard.html and
+  schedule.html, both of which {% include %} this file).
+#}
+<div class="modal fade" id="scheduleDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-airplane-fill"></i> <span id="sd-plane"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="sd-start-locked" class="alert alert-secondary d-none py-2 px-3 mb-2 small">
+          <i class="bi bi-clock"></i> Not time yet - Start opens <strong id="sd-start-opens"></strong> ({{ start_early_buffer_min|default(30) }} min before the slot). Leaving now anyway? Press Start and you'll be asked to move the booking to now.
+        </div>
+        <div id="sd-review-alert" class="alert alert-warning d-none py-2 px-3 mb-2">
+          <i class="bi bi-exclamation-triangle-fill"></i> <strong>Needs review:</strong> <span id="sd-review-reason"></span>
+        </div>
+        <table class="table table-sm mb-0">
+          <tr><th style="width:35%;">Date</th><td id="sd-date"></td></tr>
+          <tr><th>Time</th><td id="sd-time"></td></tr>
+          <tr><th>Duration</th><td id="sd-duration"></td></tr>
+          <tr><th>Student</th><td id="sd-student"></td></tr>
+          <tr><th>Instructor</th><td id="sd-cfi"></td></tr>
+          <tr><th>Status</th><td id="sd-status"></td></tr>
+          <tr><th>Notes</th><td id="sd-notes"></td></tr>
+          <tr id="sd-private-notes-row" class="d-none"><th><i class="bi bi-eye-slash"></i> Private Notes</th><td id="sd-private-notes" class="text-danger-emphasis"></td></tr>
+          <tr><th>Scheduled by</th><td id="sd-created_by"></td></tr>
+        </table>
+        <hr class="my-2">
+        <h6 class="small text-uppercase text-muted mb-1"><i class="bi bi-cloud-sun"></i> Forecast for This Lesson</h6>
+        <div id="sd-forecast">
+          <span class="text-muted small">Loading forecast...</span>
+        </div>
+      </div>
+      <div class="modal-footer flex-wrap">
+        {% if session.get('cfi_id') %}
+        <form id="sd-start-form" method="post" action="#" class="d-inline">
+          <input type="hidden" name="move_to_now" value="0">
+          <button type="submit" id="sd-start-btn" class="btn btn-success btn-sm"><i class="bi bi-play-fill"></i> Start Flight</button>
+        </form>
+        <a id="sd-log-link" href="#" class="btn btn-outline-success btn-sm"><i class="bi bi-journal-plus"></i> Log Flight</a>
+        <button type="button" id="sd-reschedule-btn" class="btn btn-outline-warning btn-sm"><i class="bi bi-calendar2-week"></i> Reschedule</button>
+        <a id="sd-edit-link" href="#" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+        <form id="sd-cancel-form" method="post" action="#" data-confirm="Cancel this scheduled flight?" data-confirm-style="danger" class="d-inline">
+          <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg"></i> Cancel Flight</button>
+        </form>
+        {% endif %}
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reschedule modal: changes only the date/time, everything else about
+     the booking (plane, student, instructor, duration, notes) stays put. -->
+<div class="modal fade" id="rescheduleModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-calendar2-week"></i> Reschedule <span id="rs-plane-label" class="text-muted fs-6"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" id="rs-form">
+        <div class="modal-body">
+          <p class="text-muted small">Everything else about this booking (plane, student, instructor, duration, notes) stays the same - just pick a new date/time.</p>
+          <div class="mb-3">
+            <label class="form-label">New Date *</label>
+            <input type="date" name="scheduled_date" id="rs-date" class="form-control" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Quick pick <span class="text-muted small">(1.5-hr blocks)</span></label>
+            <div class="d-flex flex-wrap gap-1">
+              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="08:00">8:00a</button>
+              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="09:30">9:30a</button>
+              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="11:00">11:00a</button>
+              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="12:30">12:30p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="14:00">2:00p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="15:30">3:30p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="17:00">5:00p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="18:30">6:30p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="20:00">8:00p</button>
+            </div>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Or pick a specific time</label>
+            <input type="time" name="scheduled_time" id="rs-time" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary fw-bold btn-sm">Save New Time</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(30) }};
+// Delegated on document (not the individual blocks/chips) so this keeps
+// working after live-refresh polling elsewhere on the page replaces DOM
+// nodes wholesale - a plain per-element addEventListener would silently
+// stop firing on anything swapped in after page load. Any element with
+// class "schedule-block" and the expected data-* attributes opens this
+// popup, whichever page included this partial.
+document.addEventListener('click', function (evt) {
+  var el = evt.target.closest('.schedule-block');
+  if (!el) return;
+  document.getElementById('sd-plane').textContent = el.dataset.plane;
+  document.getElementById('sd-date').textContent = el.dataset.date;
+  var timeText = el.dataset.time ? el.dataset.time : 'Not set';
+  if (el.dataset.time && el.dataset.endtime) {
+    timeText = el.dataset.time + ' - ' + el.dataset.endtime;
+  }
+  document.getElementById('sd-time').textContent = timeText;
+  document.getElementById('sd-duration').textContent = el.dataset.duration ? (el.dataset.duration + ' hrs') : '(default)';
+  document.getElementById('sd-student').textContent = el.dataset.student;
+  document.getElementById('sd-cfi').textContent = el.dataset.cfi ? el.dataset.cfi : (el.dataset.solo ? 'Solo (no instructor)' : 'Not assigned yet');
+  document.getElementById('sd-notes').textContent = el.dataset.notes ? el.dataset.notes : '—';
+  var privRow = document.getElementById('sd-private-notes-row');
+  if (el.dataset.privateNotes) {
+    document.getElementById('sd-private-notes').textContent = el.dataset.privateNotes;
+    privRow.classList.remove('d-none');
+  } else {
+    privRow.classList.add('d-none');
+  }
+  var reviewAlert = document.getElementById('sd-review-alert');
+  if (el.dataset.needsReview) {
+    document.getElementById('sd-review-reason').textContent = el.dataset.reviewReason;
+    reviewAlert.classList.remove('d-none');
+  } else {
+    reviewAlert.classList.add('d-none');
+  }
+  document.getElementById('sd-created_by').textContent = el.dataset.created_by ? el.dataset.created_by : '—';
+  var statusLabels = { scheduled: 'Scheduled', in_progress: 'In progress', completed: 'Completed' };
+  document.getElementById('sd-status').textContent = statusLabels[el.dataset.status] || el.dataset.status;
+
+  // Once a flight has started or finished, the scheduling actions (start /
+  // edit / cancel / log-from-schedule) no longer apply - it's already been
+  // acted on, so the modal is just a record of what was booked. Only a
+  // still-scheduled flight gets the action buttons.
+  var isScheduled = el.dataset.status === 'scheduled';
+  var editLink = document.getElementById('sd-edit-link');
+  if (editLink) { editLink.href = el.dataset.editUrl; editLink.classList.toggle('d-none', !isScheduled); }
+  var cancelForm = document.getElementById('sd-cancel-form');
+  if (cancelForm) { cancelForm.action = el.dataset.cancelUrl; cancelForm.classList.toggle('d-none', !isScheduled); }
+  var startForm = document.getElementById('sd-start-form');
+  if (startForm) { startForm.action = el.dataset.startUrl; startForm.classList.toggle('d-none', !isScheduled); }
+  // Start is only allowed from 30 min before the slot. Earlier than that the
+  // button turns amber and pressing it asks whether to move the booking to
+  // now first (_early_start_modal.html); the server enforces it too.
+  var startBtn = document.getElementById('sd-start-btn');
+  var lockedNote = document.getElementById('sd-start-locked');
+  if (startBtn && lockedNote) {
+    var locked = false;
+    if (isScheduled && el.dataset.date) {
+      var p = el.dataset.date.split('-');
+      var opens;
+      if (el.dataset.time24) {
+        var t = el.dataset.time24.split(':');
+        opens = new Date(+p[0], +p[1] - 1, +p[2], +t[0], +t[1]);
+        opens = new Date(opens.getTime() - START_EARLY_BUFFER_MIN * 60000);
+      } else {
+        opens = new Date(+p[0], +p[1] - 1, +p[2], 0, 0);
+      }
+      if (!isNaN(opens) && Date.now() < opens.getTime()) {
+        locked = true;
+        var h = opens.getHours(), m = opens.getMinutes();
+        var timeLbl = (h % 12 || 12) + ':' + (m < 10 ? '0' : '') + m + ' ' + (h < 12 ? 'AM' : 'PM');
+        var today = new Date();
+        var dayLbl = function (d) {
+          return d.toDateString() === today.toDateString() ? 'today'
+            : d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
+        };
+        var opensLbl = dayLbl(opens) + ' at ' + timeLbl;
+        document.getElementById('sd-start-opens').textContent = opensLbl;
+        var slotDay = new Date(+p[0], +p[1] - 1, +p[2]);
+        startForm.dataset.slotLabel = dayLbl(slotDay) + (el.dataset.time ? ' at ' + el.dataset.time : '');
+        startForm.dataset.opensLabel = opensLbl;
+      }
+    }
+    startBtn.disabled = false;
+    startForm.classList.toggle('early-start-form', locked);
+    var moveInput = startForm.querySelector('input[name="move_to_now"]');
+    if (moveInput) moveInput.value = '0';
+    startBtn.classList.toggle('btn-success', !locked);
+    startBtn.classList.toggle('btn-warning', locked);
+    startBtn.innerHTML = locked ? '<i class="bi bi-clock"></i> Start Early...' : '<i class="bi bi-play-fill"></i> Start Flight';
+    lockedNote.classList.toggle('d-none', !locked);
+  }
+  var logLink = document.getElementById('sd-log-link');
+  if (logLink) { logLink.href = el.dataset.logUrl; logLink.classList.toggle('d-none', !isScheduled); }
+  var rescheduleBtn = document.getElementById('sd-reschedule-btn');
+  if (rescheduleBtn) {
+    rescheduleBtn.classList.toggle('d-none', !isScheduled);
+    rescheduleBtn.onclick = function () {
+      document.getElementById('rs-form').action = el.dataset.rescheduleUrl;
+      document.getElementById('rs-plane-label').textContent = el.dataset.plane + ' – ' + el.dataset.student;
+      document.getElementById('rs-date').value = el.dataset.date;
+      document.getElementById('rs-time').value = el.dataset.time24 || '';
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('scheduleDetailModal')).hide();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('rescheduleModal')).show();
+    };
+  }
+
+  var modalEl = document.getElementById('scheduleDetailModal');
+  var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  modal.show();
+
+  // Fetched on demand (only when this lesson is actually opened), not
+  // prefetched for every block on the calendar.
+  var forecastEl = document.getElementById('sd-forecast');
+  forecastEl.innerHTML = '<span class="text-muted small">Loading forecast...</span>';
+  var url = '{{ url_for("flight.api_forecast") }}?date=' + encodeURIComponent(el.dataset.date) +
+    (el.dataset.time24 ? '&time=' + encodeURIComponent(el.dataset.time24) : '');
+  fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+    if (!data.forecast) {
+      forecastEl.innerHTML = '<span class="text-muted small">' + (data.error || 'Forecast unavailable.') + '</span>';
+      return;
+    }
+    var f = data.forecast;
+    function fmt(v, unit, digits) {
+      return (v === null || v === undefined) ? '-' : v.toFixed(digits === undefined ? 0 : digits) + unit;
+    }
+    forecastEl.innerHTML =
+      '<div class="row g-2 text-center">' +
+        '<div class="col-4 col-sm-2"><div class="text-muted small">Temp</div><div class="fw-bold">' + fmt(f.temp_f, '°F') + '</div></div>' +
+        '<div class="col-4 col-sm-2"><div class="text-muted small">Wind</div><div class="fw-bold">' + fmt(f.wind_mph, ' mph') + '</div>' +
+          (f.wind_gusts_mph ? '<div class="text-muted small">gust ' + fmt(f.wind_gusts_mph, '') + '</div>' : '') + '</div>' +
+        '<div class="col-4 col-sm-2"><div class="text-muted small">Clouds</div><div class="fw-bold">' + fmt(f.cloud_cover_pct, '%') + '</div><div class="text-muted small">' + (f.weather_label || '-') + '</div></div>' +
+        '<div class="col-4 col-sm-2"><div class="text-muted small">Visibility</div><div class="fw-bold">' + fmt(f.visibility_miles, ' mi', 1) + '</div></div>' +
+        '<div class="col-4 col-sm-2"><div class="text-muted small">Precip Chance</div><div class="fw-bold">' + fmt(f.precip_probability_pct, '%') + '</div></div>' +
+      '</div>' +
+      '<div class="form-text mt-1">Hourly forecast (not a certified aviation TAF) - check an official source like ForeFlight or aviationweather.gov before flying.</div>';
+  }).catch(function () {
+    forecastEl.innerHTML = '<span class="text-muted small">Forecast unavailable right now.</span>';
+  });
+});
+
+document.addEventListener('click', function (evt) {
+  var btn = evt.target.closest('.rs-quick-time');
+  if (!btn) return;
+  document.getElementById('rs-time').value = btn.dataset.time;
+});
+</script>

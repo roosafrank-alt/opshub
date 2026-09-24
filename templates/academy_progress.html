@@ -1,0 +1,86 @@
+{% extends "academy_base.html" %}
+{% block title %}Progress{% endblock %}
+{% block content %}
+<style>
+  .pg-bar { position: relative; height: 1.1rem; border-radius: 999px; background: #e9ecef; overflow: hidden; }
+  .pg-fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #2b3fdb, #4dabf7); overflow: hidden; }
+  .pg-fill.done { background: linear-gradient(90deg, #2f9e44, #69db7c); }
+  .pg-fill::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); animation: pg-shimmer 2.2s infinite; }
+  @keyframes pg-shimmer { 100% { transform: translateX(100%); } }
+  @media (prefers-reduced-motion: reduce) { .pg-fill::after { animation: none; } }
+  .pg-big { height: 1.6rem; }
+  .pg-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 800; color: #14213d; }
+  .req { display: flex; gap: .6rem; align-items: flex-start; padding: .45rem 0; border-top: 1px solid #eef0f3; }
+  .req:first-child { border-top: 0; }
+  .req-check { font-size: 1.25rem; line-height: 1; }
+  .req-ref { font-size: .7rem; color: #6c757d; white-space: nowrap; }
+  .track-head { cursor: pointer; }
+</style>
+{% if not student %}
+<div class="card academy-card p-4">No student profile is linked to your account, so there's no progress to show.</div>
+{% else %}
+<div class="card academy-card p-3 mb-3">
+  <h4 class="mb-1"><i class="bi bi-bar-chart-steps"></i> {{ student.name }}'s progress</h4>
+  <div class="small text-muted">Aeronautical experience from 14 CFR Part 61, airplane single-engine land. Hours and landings are totalled from the logbook{% if pending_count %} (including {{ pending_count }} pending entr{{ 'y' if pending_count == 1 else 'ies' }}){% endif %}; the rest is checked off by an instructor. "Within 2 calendar months" items count flights since {{ window_start|usdate }}. Always confirm against the current regulations before a checkride.</div>
+</div>
+
+{% for t in tracks %}
+<div class="card academy-card mb-2" id="t-{{ t.code }}">
+  <div class="p-3 track-head" data-bs-toggle="collapse" data-bs-target="#body-{{ t.code }}">
+    <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+      <div><i class="bi {{ t.icon }}"></i> <strong>{{ t.name }}</strong> <span class="req-ref">{{ t.ref }}</span></div>
+      <div class="small text-muted">{{ t.done_count }} of {{ t['items']|length }} met</div>
+    </div>
+    <div class="pg-bar pg-big"><div class="pg-fill {{ 'done' if t.pct >= 100 }}" style="width: {{ t.pct }}%;"></div><div class="pg-label">{{ t.pct }}%</div></div>
+  </div>
+  <div class="collapse {{ 'show' if t.code == open_track }}" id="body-{{ t.code }}">
+    <div class="px-3 pb-3">
+      {% for it in t['items'] %}
+      <div class="req">
+        <div class="req-check">{% if it.done %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-circle text-secondary"></i>{% endif %}</div>
+        <div class="flex-grow-1">
+          <div class="d-flex justify-content-between gap-2">
+            <div class="{{ 'text-success fw-semibold' if it.done }}">{{ it.label }}</div>
+            <div class="req-ref">14 CFR {{ it.ref }}</div>
+          </div>
+          {% if it.kind in ('hours', 'count') %}
+          <div class="d-flex align-items-center gap-2 mt-1">
+            <div class="pg-bar flex-grow-1"><div class="pg-fill {{ 'done' if it.done }}" style="width: {{ it.pct }}%;"></div></div>
+            <div class="small text-nowrap"><strong>{{ ('%.1f'|format(it.have)) if it.kind == 'hours' else it.have }}</strong> / {{ it.need }}{{ ' hrs' if it.kind == 'hours' }} &middot; {{ it.pct }}%</div>
+          </div>
+          {% if it.flights %}
+          <details class="small mt-1"><summary class="text-muted">{{ it.flights|length }} flight{{ 's' if it.flights|length != 1 }} count toward this</summary>
+            <div class="d-flex flex-wrap gap-1 mt-1">
+              {% for fl in it.flights|reverse %}<a href="{{ url_for('pilotlog.entry', entry_id=fl.id) }}" class="badge {{ 'bg-warning text-dark' if fl.status == 'pending' else 'bg-light text-dark border' }} text-decoration-none">{{ fl.date|usdate }} {{ fl.tail }} &middot; {{ ('%.1f'|format(fl.amount)) if it.kind == 'hours' else fl.amount|int }}</a>{% endfor %}
+            </div>
+          </details>
+          {% endif %}
+          {% elif it.kind == 'manual' %}
+            {% if it.who %}<div class="small text-muted">Checked off {{ it.who.done_date|usdate }}{% if it.who.signed_by %} by {{ it.who.signed_by }}{% endif %}{% if it.who.note %} - {{ it.who.note }}{% endif %}</div>{% endif %}
+            {% if staff %}
+            <form method="post" action="{{ url_for('pilotlog.milestone') }}" class="d-flex gap-1 mt-1 flex-wrap">
+              <input type="hidden" name="student_id" value="{{ student.id }}"><input type="hidden" name="track" value="{{ t.code }}"><input type="hidden" name="item" value="{{ it.code }}">
+              {% if not it.done %}
+              <input type="date" name="done_date" class="form-control form-control-sm" style="max-width:150px;">
+              <input type="text" name="note" placeholder="note (optional)" class="form-control form-control-sm" style="max-width:220px;">
+              <button class="btn btn-outline-success btn-sm"><i class="bi bi-check2"></i> Check off</button>
+              {% else %}
+              <button class="btn btn-link btn-sm p-0 text-muted">Undo</button>
+              {% endif %}
+            </form>
+            {% elif not it.done %}<div class="small text-muted">Your instructor checks this off.</div>{% endif %}
+          {% elif it.kind == 'solo_signoff' %}
+            <div class="small text-muted">{% if it.have %}Signed off {{ it.have|usdate }}{% if student.solo_signoff_expires %}, good through {{ student.solo_signoff_expires|usdate }}{% endif %}{% else %}Set on the student's profile (Students &gt; Edit){% endif %}</div>
+          {% elif it.kind == 'cert' %}
+            <div class="small text-muted">From the certificate and ratings on the student's profile.</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

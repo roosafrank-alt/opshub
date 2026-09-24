@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Laborer' if laborer else 'New Laborer' }} - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<div class="card p-4">
+  <h4>{{ 'Edit Laborer' if laborer else 'New Laborer' }}</h4>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Name *</label>
+      <input type="text" name="name" class="form-control" value="{{ laborer.name if laborer else '' }}" required autofocus>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Hourly Rate ($)</label>
+      <input type="number" step="any" name="rate" class="form-control" value="{{ laborer.rate if laborer else '' }}" placeholder="e.g. 65">
+    </div>
+    {% if laborer %}
+    <div class="mb-3">
+      <label class="form-label">Code</label>
+      <div><code>{{ laborer.code }}</code> <a href="{{ url_for('laborer_label', laborer_id=laborer.id) }}" class="small ms-2">Print QR code</a></div>
+    </div>
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" name="active" id="active-check" {% if laborer.active %}checked{% endif %}>
+      <label class="form-check-label" for="active-check">Active (can clock in/out)</label>
+    </div>
+    {% endif %}
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('laborers_list') }}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-warning fw-bold">{{ 'Save Changes' if laborer else 'Add Laborer' }}</button>
+    </div>
+  </form>
+</div>
+</div>
+</div>
+{% endblock %}

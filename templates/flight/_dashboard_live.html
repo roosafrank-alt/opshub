@@ -1,0 +1,538 @@
+{#
+  Fast-changing dashboard sections. Rendered two ways with the exact same
+  context (see _dashboard_context() in flight.py):
+    1. Included directly inside dashboard.html for the normal first load.
+    2. Rendered standalone by the /flight/dashboard/live route, which
+       dashboard.html's polling JS fetches every few seconds and swaps in,
+       so a shop-TV/kiosk browser left open here stays current without a
+       manual reload when a flight is ended or a booking changes elsewhere.
+  Keep this partial self-contained - no markup outside it should depend on
+  something only defined in here, since on a live refresh only this
+  fragment's HTML is replaced.
+#}
+{#
+  Needs-review flights get the same front-and-center treatment as a Flight
+  School squawk on the Maintenance dashboard (see open_squawks in
+  templates/dashboard.html): a bold alert at the very top of the page,
+  ahead of everything else, that a CFI/admin has to actively acknowledge -
+  see schedule_review_acknowledge() in flight.py. Acknowledging doesn't fix
+  the underlying issue (still no instructor assigned, or a student still
+  over their solo currency); it just moves it off this banner and into the
+  Alerts tab (flight/alerts.html), where it stays - with who acknowledged
+  it and when - until it's actually resolved. The caution triangle stays on
+  the Schedule/dashboard chips until then too (needs_review_flag). If the
+  flight gets edited and still comes back flagged, the acknowledgment
+  resets and it reappears here.
+#}
+{% if needs_review_flights %}
+<div class="alert alert-danger border-danger border-2 mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="alert-heading mb-0"><i class="bi bi-exclamation-triangle-fill"></i> {{ needs_review_flights|length }} Flight{{ 's' if needs_review_flights|length != 1 }} Needs Review</h5>
+    <a href="{{ url_for('flight.alerts_list') }}" class="btn btn-outline-danger btn-sm fw-bold">All Alerts</a>
+  </div>
+  {% for n in needs_review_flights %}
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
+    <div>
+      <div><strong>{{ n.plane_tag }}</strong> &middot; {{ n.scheduled_date|usdate }}{% if n.time_label %} &middot; {{ n.time_label }}{% endif %} &middot; {{ n.student_name }}</div>
+      <div class="small">{{ n.review_reason }}</div>
+    </div>
+    <div class="d-flex gap-1 flex-wrap">
+      {% set fix = n.fix_links[0] %}
+      <a href="{{ fix.url }}" class="btn btn-outline-danger btn-sm fw-bold" title="{{ fix.hint }}"><i class="bi {{ fix.icon }}"></i> Resolve: {{ fix.label }}</a>
+      <form method="post" action="{{ url_for('flight.schedule_review_acknowledge', scheduled_id=n.id) }}" data-confirm="Acknowledge this flagged flight? It moves to the Alerts tab and stays flagged until it's resolved." data-confirm-title="Acknowledge Flagged Flight">
+        <button class="btn btn-danger btn-sm fw-bold"><i class="bi bi-check-lg"></i> Acknowledge</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{#- Medicals (students + CFIs) expired or running out within 30 days -
+   flight._medical_alerts. Expired CFIs can't be booked or start a flight;
+   expired students can fly dual but not solo. #}
+{% if medical_alerts %}
+<div class="alert {{ 'alert-danger border-danger' if medical_alerts|selectattr('med.ok', 'false')|list else 'alert-warning border-warning' }} border-2 mb-3">
+  <h6 class="alert-heading mb-1"><i class="bi bi-heart-pulse"></i> Medicals Needing Attention</h6>
+  {% for m in medical_alerts %}
+  <div class="small py-1 {{ 'border-top' if not loop.first }} d-flex justify-content-between align-items-center flex-wrap gap-1">
+    <span><strong>{{ m.name }}</strong> <span class="text-muted">({{ m.kind }}, {{ m.med.label }})</span> &middot;
+      {% if m.med.ok is false %}<span class="badge bg-danger">Expired {{ m.med.expires|usdate }}</span> {{ "can't fly" if m.kind == 'CFI' else 'dual only - no solo' }}
+      {% else %}<span class="badge bg-warning text-dark">Expires {{ m.med.expires|usdate }}</span> {{ m.med.days_left }} day{{ 's' if m.med.days_left != 1 }} left{% endif %}</span>
+    <a href="{{ m.url }}" class="btn btn-sm btn-outline-dark">Update</a>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{#- Later bookings a late flight's updated ETA runs into (same plane,
+   instructor or student) - see flight._eta_impacts / log_set_eta. Goes
+   away on its own once the late flight ends or the ETA is cleared. #}
+{% if eta_delayed_flights %}
+<div class="alert alert-warning border-warning border-2 mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-1">
+    <h6 class="alert-heading mb-0"><i class="bi bi-hourglass-split"></i> {{ eta_delayed_flights|length }} Booking{{ 's' if eta_delayed_flights|length != 1 }} May Start Late</h6>
+    <a href="{{ url_for('flight.log_active') }}" class="btn btn-outline-dark btn-sm">Active Flights</a>
+  </div>
+  {% for e in eta_delayed_flights %}
+  <div class="py-1 {{ 'border-top' if not loop.first }}">
+    <div><strong>{{ e.time_label }}</strong> &middot; {{ e.plane_tag }} &middot; {{ e.student_name }}{% if e.cfi_name %} with {{ e.cfi_name }}{% else %} (solo){% endif %}</div>
+    <div class="small">{{ e.eta_reason }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if active_flights %}
+<div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div>
+    <i class="bi bi-stopwatch fs-5"></i>
+    <strong>{{ active_flights|length }} flight{{ 's' if active_flights|length != 1 }} in progress</strong>
+    {% for af in active_flights %} - {{ af.plane_tag }} {% if af.solo %}({{ af.student_name }}, solo){% else %}with {{ af.student_name }}{% if af.cfi_name %} &amp; {{ af.cfi_name.split(' ')[0] }}{% endif %}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}
+  </div>
+  <a href="{{ url_for('flight.log_active') }}" class="btn btn-dark btn-sm fw-bold">View / End Flights</a>
+</div>
+{% endif %}
+
+{% if next_lesson %}
+<div class="card p-3 mb-3 border-primary">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <div class="text-uppercase small fw-bold text-primary"><i class="bi bi-calendar-event"></i> Next Lesson</div>
+      <div class="fs-2 fw-bold lh-1 mt-1">{{ next_lesson.countdown }}</div>
+      <div class="text-muted">
+        {{ next_lesson.scheduled_date|usdate }}{% if next_lesson.time_label %} &middot; {{ next_lesson.time_label }}{% endif %}
+        &middot; {{ next_lesson.plane_tag }}
+        {% if cfi %} &middot; {{ next_lesson.student_name }}{% endif %}
+        {% if next_lesson.cfi_name %} &middot; {{ next_lesson.cfi_name }}{% elif next_lesson.solo %}<span class="badge bg-secondary ms-1">Solo</span>{% else %}<span class="badge bg-danger ms-1">Needs Instructor</span>{% endif %}
+      </div>
+    </div>
+    <a href="{{ url_for('flight.schedule_calendar') }}" class="btn btn-outline-primary btn-sm">Full Calendar</a>
+  </div>
+</div>
+{% endif %}
+
+{#
+  Conditions quick view - weather and NOTAMs side by side near the top,
+  right under the Next Lesson banner (ahead of the collapsed-by-default
+  Today's Schedule/Upcoming card), so a CFI sees go/no-go info at a glance
+  without scrolling past or expanding anything else first. Weather is one
+  compact strip; NOTAMs show a count and open into the list on click (the
+  same remembered dash-collapse toggle the schedule sections use).
+  Sunrise/sunset/civil twilight now live in the header time box
+  (dashboard.html), so they're not repeated here.
+#}
+{% if cfi and (dashboard_wx or dashboard_notams) %}
+<div class="row g-2 mb-3 dash-conditions">
+  {% if dashboard_wx %}
+  {% set c = dashboard_wx.conditions %}
+  {% set wxcat = c.wx_category if c else 'unknown' %}
+  {% set is_day = c.is_day if c and c.is_day is not none else true %}
+  {% set wx_icons = {
+    'clear':   ('bi-sun-fill', 'bi-moon-stars-fill'),
+    'cloudy':  ('bi-cloud-sun-fill', 'bi-cloud-moon-fill'),
+    'fog':     ('bi-cloud-fog2-fill', 'bi-cloud-fog2-fill'),
+    'rain':    ('bi-cloud-rain-heavy-fill', 'bi-cloud-rain-heavy-fill'),
+    'snow':    ('bi-cloud-snow-fill', 'bi-cloud-snow-fill'),
+    'storm':   ('bi-cloud-lightning-rain-fill', 'bi-cloud-lightning-rain-fill'),
+    'unknown': ('bi-question-circle', 'bi-question-circle'),
+  } %}
+  {% set wxicon = (wx_icons[wxcat] if wxcat in wx_icons else wx_icons['unknown'])[0 if is_day else 1] %}
+  <div class="{{ 'col-lg-8' if dashboard_notams else 'col-12' }}">
+  <div class="card px-3 py-2 h-100 wx-tile wx-compact wx-{{ wxcat }} {{ 'wx-night' if not is_day }}">
+    <i class="bi {{ wxicon }} wx-bg-icon" aria-hidden="true"></i>
+    <div class="wx-content">
+    {% if c %}
+    <div class="wx-strip">
+      <div class="wx-strip-main" title="{{ c.weather_label }}">
+        <i class="bi {{ wxicon }}"></i>
+        <span class="wx-strip-temp">{{ '%.0f'|format(c.temp_f) + '°' if c.temp_f is not none else '-' }}</span>
+        <span class="small wx-subtle">{% if c.feels_like_f is not none %}feels {{ '%.0f'|format(c.feels_like_f) }}&deg; &middot; {% endif %}{{ c.weather_label }}</span>
+      </div>
+      <div class="wx-strip-item">
+        <span class="wx-subtle">Wind</span>
+        {% if c.wind_dir_deg is not none and c.wind_mph %}
+        <i class="bi bi-arrow-up wx-wind-arrow" style="transform: rotate({{ (c.wind_dir_deg|float + 180) % 360 }}deg); display:inline-block;" title="Wind from {{ c.wind_dir_deg|int }}°"></i>
+        {% endif %}
+        <strong>{{ '%.0f'|format(c.wind_mph) if c.wind_mph is not none else '-' }}</strong>{% if c.wind_mph is not none %} mph{% endif %}
+        {% if c.wind_dir_deg is not none %}<span class="wx-subtle">{{ c.wind_dir_deg|int }}&deg; {{ _wind_compass(c.wind_dir_deg) }}</span>{% endif %}
+        {% if c.wind_gusts_mph %}<span class="wx-subtle">G{{ '%.0f'|format(c.wind_gusts_mph) }}</span>{% endif %}
+      </div>
+      <div class="wx-strip-item"><span class="wx-subtle">Clouds</span> <strong>{{ c.cloud_cover_pct|int if c.cloud_cover_pct is not none else '-' }}%</strong></div>
+      <div class="wx-strip-item"><span class="wx-subtle">Vis</span> <strong>{{ '%.1f'|format(c.visibility_miles) if c.visibility_miles is not none else '-' }}</strong>{% if c.visibility_miles is not none %} mi{% endif %}</div>
+      <div class="wx-strip-item"><span class="wx-subtle">Precip</span> <strong>{{ '%.2f'|format(c.precipitation_in) if c.precipitation_in is not none else '-' }}</strong>{% if c.precipitation_in is not none %} in{% endif %}</div>
+    </div>
+    {% else %}
+    <p class="small mb-0 wx-subtle"><i class="bi bi-cloud-sun"></i> {{ dashboard_wx.error or 'Weather unavailable right now.' }}</p>
+    {% endif %}
+    {% if dashboard_wx.metar and dashboard_wx.metar.raw_text %}
+    <div class="wx-metar font-monospace wx-subtle" title="{{ dashboard_wx.metar.raw_text }}">{{ dashboard_wx.metar.raw_text }}</div>
+    {% endif %}
+    </div>
+  </div>
+  </div>
+  {% endif %}
+
+  {% if dashboard_notams %}
+  {% set notam_list = dashboard_notams.notams if dashboard_notams.configured and not dashboard_notams.error else [] %}
+  <div class="{{ 'col-lg-4' if dashboard_wx else 'col-12' }}">
+  <div class="card px-3 py-2 h-100">
+    <div class="d-flex justify-content-between align-items-center gap-2">
+      <button type="button" class="dash-collapse-toggle d-flex align-items-center gap-2 border-0 bg-transparent text-start p-0 flex-grow-1" data-collapse="notams">
+        <h6 class="mb-0"><i class="bi bi-exclamation-diamond"></i> NOTAMs</h6>
+        {% if not dashboard_notams.configured or dashboard_notams.error %}
+        <span class="badge bg-secondary">Not loaded</span>
+        {% elif notam_list %}
+        <span class="badge bg-warning text-dark">{{ notam_list|length }} active</span>
+        {% else %}
+        <span class="badge bg-success">None</span>
+        {% endif %}
+        <i class="bi bi-chevron-right dash-collapse-chevron ms-auto"></i>
+      </button>
+      <a href="{{ dashboard_notams.search_url }}" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm py-0" title="FAA NOTAM Search">FAA <i class="bi bi-box-arrow-up-right"></i></a>
+    </div>
+    <div class="small text-muted">N89 + 25nm</div>
+    <div class="dash-collapse-body mt-2" data-collapse-body="notams" hidden>
+    {% if not dashboard_notams.configured %}
+    <p class="text-muted small mb-0">
+      NOTAM pulling isn't set up yet - the FAA's NOTAM API needs a free client_id/client_secret
+      (register at <a href="https://api.faa.gov" target="_blank" rel="noopener">api.faa.gov</a> and fill them
+      into <code>notams.py</code>). Until then, use the FAA link to check N89 and nearby airports by hand.
+    </p>
+    {% elif dashboard_notams.error %}
+    <p class="text-muted small mb-0">{{ dashboard_notams.error }} Use the FAA link in the meantime.</p>
+    {% elif notam_list %}
+    <div class="table-responsive" style="max-height:260px; overflow-y:auto;">
+      <table class="table table-sm align-middle mb-0 table-stack">
+        <thead class="table-light"><tr><th>Airport</th><th>NOTAM #</th><th>Effective</th><th></th></tr></thead>
+        <tbody>
+          {% for n in notam_list %}
+          <tr>
+            <td class="stack-full" data-label="Airport">
+              <strong>{{ n.icao }}</strong>
+              {% if n.airport_label %}<div class="text-muted small">{{ n.airport_label }}{% if n.distance_nm is not none %} &middot; {{ n.distance_nm }}nm{% endif %}</div>{% endif %}
+            </td>
+            <td data-label="NOTAM #"><code>{{ n.number }}</code>{% if n.notam_type %} <span class="badge bg-secondary">{{ n.notam_type }}</span>{% endif %}</td>
+            <td class="stack-full" data-label="Effective"><small class="text-muted">{{ n.effective_start or '-' }}{% if n.effective_end %} &ndash; {{ n.effective_end }}{% endif %}</small></td>
+            <td data-label=""><a href="{{ dashboard_notams.search_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">Read <i class="bi bi-box-arrow-up-right"></i></a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted small mb-0">No active NOTAMs for N89 or the surrounding 25nm right now.</p>
+    {% endif %}
+    </div>
+  </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if student and not student.is_station %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-4">
+    <div class="card p-3 text-center h-100 justify-content-center">
+      <div class="text-uppercase small text-muted">Time Since Last Flight</div>
+      <div class="fs-3 fw-bold {{ 'text-danger' if solo_currency and not solo_currency.ok else 'text-success' }}">
+        {{ last_flight_ago or 'No flights yet' }}
+      </div>
+      {% if solo_currency and not solo_currency.ok %}
+      <div class="small text-danger"><i class="bi bi-exclamation-triangle-fill"></i> CFI checkout needed to solo</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{#
+  Merged schedule: today's board (status-aware, CFI/admin only) followed by
+  each future day that has a booking, as rows of small clickable "chips" -
+  one per flight - grouped by time slot so two+ bookings at the same time
+  share one line instead of stacking as if sequential. Replaces the old
+  pair of "Today's Schedule" + a separate flat "Upcoming" table further
+  down the page. Status is shown by the chip's whole-box color plus a
+  small corner icon (open circle = scheduled, wavy = in progress, filled
+  check = complete) instead of a text badge - see flight_chip() below.
+  Clicking a chip expands it in place for the instructor/other details
+  instead of navigating away. See upcoming_future_days in
+  _dashboard_context() for how "today" is excluded from the future-day
+  groups below (today_flights is the richer view of that same day, shown
+  first), and _group_by_time() for the time-slot grouping.
+#}
+{% macro flight_chip(f, cfi, plane_lane, plane_color) %}
+{% set status = f.status %}
+{% set icon = 'bi-circle' if status == 'scheduled' else ('bi-activity' if status == 'in_progress' else 'bi-check-circle-fill') %}
+{% set lane = plane_lane.get(f.plane_tag) %}
+<div class="flight-chip flight-chip-striped flight-chip-{{ status }}" data-chip-id="{{ f.id }}"
+     style="{% if lane is not none %}grid-column: {{ lane + 1 }};{% endif %}">
+  <span class="flight-chip-stripe flight-chip-stripe-instructor" style="background: {{ f.display_color }};" title="{{ 'Instructor: ' ~ f.cfi_name if f.cfi_name else 'No instructor' }}"></span>
+  <span class="flight-chip-stripe flight-chip-stripe-plane" style="background: {{ plane_color.get(f.plane_tag, '#868e96') }};" title="Plane: {{ f.plane_tag }}"></span>
+  <i class="bi {{ icon }} flight-chip-icon"></i>
+  <div class="flight-chip-main">
+    <div class="flight-chip-student">
+      {%- if f.needs_review_flag %}<i class="bi bi-exclamation-triangle-fill {{ 'text-danger' if f.needs_review_active else 'text-warning' }}" title="{{ 'Acknowledged - not resolved yet: ' if not f.needs_review_active }}{{ f.review_reason }}"></i> {% endif -%}
+      {{ f.student_name }}
+    </div>
+    <div class="flight-chip-plane">{{ f.plane_tag }}</div>
+    {% if f.end_time_label %}
+    {#- Shows the flight's end time right on the chip (not just inside the
+       click-to-expand detail), so a glance at the board tells you when a
+       plane frees up without opening anything. #}
+    <div class="flight-chip-endtime"><i class="bi bi-arrow-right"></i> {{ f.end_time_label }}</div>
+    {% endif %}
+  </div>
+  <div class="flight-chip-detail" hidden>
+    <div><strong>Instructor:</strong> {% if f.cfi_name %}{{ f.cfi_name.split(' ')[0] }}{% elif f.solo %}Solo{% else %}Needs CFI{% endif %}</div>
+    {% if status == 'in_progress' and f.get('flight_id') %}
+    <a href="{{ url_for('flight.log_active') }}#active-flight-{{ f.flight_id }}" class="btn btn-dark btn-sm mt-1">Open Active Flight</a>
+    {% elif status == 'scheduled' and cfi %}
+    <div class="mt-1 d-flex gap-1">
+      {% if f.can_start is not defined or f.can_start %}
+      <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}" class="d-inline">
+        <button class="btn btn-success btn-sm">Start</button>
+      </form>
+      {% else %}
+      {# Too early to start: pressing it asks first (see _early_start_modal.html) and only starts if the instructor moves the booking to now. #}
+      <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}" class="d-inline early-start-form"
+            data-slot-label="{{ f.slot_label }}" data-opens-label="{{ f.start_opens_label }}">
+        <input type="hidden" name="move_to_now" value="0">
+        <button class="btn btn-outline-warning btn-sm" title="Booked for {{ f.slot_label }} - starting now will ask to move it"><i class="bi bi-clock"></i> Start</button>
+      </form>
+      {% endif %}
+      <a href="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}" class="btn btn-outline-secondary btn-sm">Log</a>
+    </div>
+    {% endif %}
+    {#
+      "Details" reuses the exact same popup as the Schedule calendar
+      (schedule-block class + the same data-* set _schedule_live.html's
+      schedule_chip() carries - see _schedule_detail_modal.html, included
+      once by dashboard.html) instead of linking away to the calendar.
+    #}
+    <button type="button" class="schedule-block btn btn-outline-secondary btn-sm mt-1"
+        data-id="{{ f.id }}" data-status="{{ f.status }}" data-plane="{{ f.plane_tag }}" data-student="{{ f.student_name }}"
+        data-cfi="{{ f.cfi_name or '' }}" data-solo="{{ '1' if f.solo else '' }}" data-needs-review="{{ '1' if f.needs_review_flag else '' }}"
+        data-review-reason="{{ f.review_reason or '' }}" data-date="{{ f.scheduled_date }}" data-time="{{ f.time_label or '' }}"
+        data-time24="{{ f.scheduled_time or '' }}" data-endtime="{{ f.end_time_label or '' }}"
+        data-duration="{{ f.duration_hours if f.duration_hours is not none else '' }}" data-notes="{{ f.notes or '' }}"
+        {% if session.get('cfi_id') or session.get('is_master_admin') %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
+        data-created_by="{{ f.created_by or '' }}" data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
+        data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=f.id) }}"
+        data-cancel-url="{{ url_for('flight.schedule_cancel', scheduled_id=f.id) }}"
+        data-start-url="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}"
+        data-log-url="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}">
+      <i class="bi bi-info-circle"></i> Details
+    </button>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro time_group_row(group, cfi, plane_lane, plane_color, plane_lane_count) %}
+<div class="d-flex flex-wrap align-items-start gap-2 mb-2">
+  <span class="flight-chip-time">{{ group.time_label }}</span>
+  <div class="flight-chip-grid" style="grid-template-columns: repeat({{ plane_lane_count }}, minmax(6.5rem, 1fr));">
+    {% for f in group.flights %}
+    {{ flight_chip(f, cfi, plane_lane, plane_color) }}
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
+
+{#
+  Both sections below are collapsed by default (click the header to open) so
+  the dashboard loads compact instead of dumping every flight on the page.
+  Once opened, a section (or an expanded chip) stays open across the
+  live-refresh poll too - dashboard.html's poll captures which sections/
+  chips are open before it swaps this fragment's HTML back in, then
+  reopens the same ones by their stable data-collapse/data-chip-id keys, so
+  nothing closes on its own; it only changes when the person clicks it.
+#}
+<div class="card p-3 mb-3">
+  {% if cfi %}
+  {#- All / Mine: whole school (default) or just this instructor's flights -
+     applies to Today's Schedule, Upcoming and Recent Flights. #}
+  <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+    <span class="small text-muted">{{ 'Showing only your flights' if dash_scope == 'mine' else 'Showing the whole school' }}</span>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Whose flights">
+      <a href="{{ url_for('flight.dashboard', scope='all') }}" class="btn {{ 'btn-primary' if dash_scope != 'mine' else 'btn-outline-primary' }}"><i class="bi bi-people"></i> All</a>
+      <a href="{{ url_for('flight.dashboard', scope='mine') }}" class="btn {{ 'btn-primary' if dash_scope == 'mine' else 'btn-outline-primary' }}"><i class="bi bi-person"></i> Mine</a>
+    </div>
+  </div>
+  <button type="button" class="dash-collapse-toggle d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0 {{ 'mb-2' if today_time_groups or today_flights_total }}" data-collapse="today">
+    <h6 class="mb-0"><i class="bi bi-calendar-day"></i> Today's Schedule <span class="text-muted small fw-normal">({{ today_str|usdate }})</span></h6>
+    <span class="d-flex align-items-center gap-2">
+      {% if today_flights_total %}
+      <span class="badge {{ 'bg-success' if today_flights_completed == today_flights_total else 'bg-primary' }} fs-6">
+        {{ today_flights_completed }} of {{ today_flights_total }} flight{{ 's' if today_flights_total != 1 }} complete
+      </span>
+      {% else %}
+      <span class="badge bg-secondary fs-6">0 flights booked</span>
+      {% endif %}
+      <i class="bi bi-chevron-right dash-collapse-chevron"></i>
+    </span>
+  </button>
+  <div class="dash-collapse-body" data-collapse-body="today" hidden>
+    {% if today_time_groups %}
+    {% for group in today_time_groups %}
+    {{ time_group_row(group, cfi, plane_lane, plane_color, plane_lane_count) }}
+    {% endfor %}
+    {% elif today_flights_total %}
+    <p class="text-muted small mb-0">All of today's flights are complete.</p>
+    {% else %}
+    <p class="text-muted small mb-0">Nothing on the board for today.</p>
+    {% endif %}
+  </div>
+  <hr class="my-3">
+  {% endif %}
+
+  <button type="button" class="dash-collapse-toggle d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0 {{ 'mb-2' if upcoming_future_days else '' }}" data-collapse="upcoming">
+    <h6 class="mb-0"><i class="bi bi-calendar-week"></i> Upcoming</h6>
+    <span class="d-flex align-items-center gap-2">
+      <span class="badge bg-secondary fs-6">{{ upcoming_future_days|length }} day{{ 's' if upcoming_future_days|length != 1 }}</span>
+      <i class="bi bi-chevron-right dash-collapse-chevron"></i>
+    </span>
+  </button>
+  <div class="dash-collapse-body" data-collapse-body="upcoming" hidden>
+    {% for day in upcoming_future_days %}
+    {% if not loop.first %}<hr class="my-3">{% endif %}
+    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+      <h6 class="mb-0"><i class="bi bi-calendar-day"></i> {{ day.weekday }}'s Schedule <span class="text-muted small fw-normal">({{ day.date|usdate }})</span></h6>
+      <span class="badge bg-secondary fs-6">{{ day.flights|length }} flight{{ 's' if day.flights|length != 1 }} booked</span>
+    </div>
+    {% for group in day.time_groups %}
+    {{ time_group_row(group, cfi, plane_lane, plane_color, plane_lane_count) }}
+    {% endfor %}
+    {% else %}
+    <p class="text-muted small mb-0">Nothing else on the books yet.</p>
+    {% endfor %}
+  </div>
+
+  {% if not today_flights and not upcoming_future_days %}
+  <p class="text-muted small mb-0 mt-2">Nothing scheduled yet.{% if cfi %} <a href="{{ url_for('flight.schedule_new') }}">Schedule a flight</a>.{% endif %}</p>
+  {% endif %}
+  <div class="text-end mt-2">
+    <a href="{{ url_for('flight.schedule_calendar') }}" class="small">Full Calendar &raquo;</a>
+  </div>
+</div>
+
+{% if pending_requests %}
+<div class="card p-3 mb-3 border-warning">
+  <h6 class="mb-2"><i class="bi bi-hourglass-split"></i> Pending Approval <span class="badge bg-warning text-dark">{{ pending_requests|length }}</span></h6>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Student</th><th>Requested Instructor</th><th></th></tr></thead>
+      <tbody>
+        {% for p in pending_requests %}
+        <tr>
+          <td data-label="Date"><small>{{ p.scheduled_date|usdate }}</small></td>
+          <td data-label="Time"><small>{{ p.time_label or 'Not set' }}</small></td>
+          <td data-label="Plane">{{ p.plane_tag }}</td>
+          <td data-label="Student">{{ p.student_name }}</td>
+          <td data-label="Requested Instructor">{% if p.cfi_name %}{{ p.cfi_name }}{% elif p.solo %}<span class="badge bg-secondary">Solo</span>{% else %}<span class="badge bg-secondary">Any</span>{% endif %}</td>
+          <td data-label="" class="text-end text-nowrap">
+            <form method="post" action="{{ url_for('flight.schedule_approve', scheduled_id=p.id) }}" class="d-inline" data-confirm="Approve this flight request? It goes onto the calendar as a confirmed booking." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success">
+              <button class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Approve</button>
+            </form>
+            <form method="post" action="{{ url_for('flight.schedule_deny', scheduled_id=p.id) }}" class="d-inline" data-confirm="Deny this flight request?" data-confirm-style="danger">
+              <button class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg"></i> Deny</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if my_requests %}
+<div class="card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-hourglass-split"></i> Your Requests</h6>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for m in my_requests %}
+        <tr>
+          <td data-label="Date"><small>{{ m.scheduled_date|usdate }}</small></td>
+          <td data-label="Time"><small>{{ m.time_label or 'Not set' }}</small></td>
+          <td data-label="Plane">{{ m.plane_tag }}</td>
+          <td data-label="Status">
+            {% if m.status == 'pending_approval' %}
+            <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split"></i> Awaiting Approval</span>
+            {% else %}
+            <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Denied</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if plane_maint %}
+<div class="card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-droplet-half"></i> Oil Changes &amp; 100-Hour Inspections</h6>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead><tr><th>Plane</th><th>Item</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for pm in plane_maint %}
+        <tr class="{{ 'table-danger' if pm.status.urgency == 'overdue' else ('table-warning' if pm.status.urgency == 'due_soon' else '') }}">
+          <td data-label="Plane">{{ pm.plane_tag }}</td>
+          <td data-label="Item">{{ pm.name }}</td>
+          <td data-label="Status">
+            {% if pm.status.urgency == 'overdue' %}
+            <span class="badge bg-danger"><i class="bi bi-exclamation-triangle-fill"></i> {{ pm.status.label }}</span>
+            {% elif pm.status.urgency == 'due_soon' %}
+            <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle"></i> {{ pm.status.label }}</span>
+            {% elif pm.status.urgency == 'ok' %}
+            <span class="badge bg-success">{{ pm.status.label }}</span>
+            {% else %}
+            <span class="badge bg-secondary">{{ pm.status.label }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="text-muted small mb-0 mt-2">Tracked from each plane's maintenance items in Maintenance (category "Oil Change" or "100-Hour Inspection") - the same numbers either tile shows.</p>
+</div>
+{% endif %}
+
+<div class="card p-3">
+  <button type="button" class="dash-collapse-toggle d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0" data-collapse="recent">
+    <h6 class="mb-0">{% if cfi and dash_scope != 'mine' %}Recent Flights (Whole School){% else %}Your Recent Flights{% endif %}</h6>
+    <span class="d-flex align-items-center gap-2">
+      <span class="badge bg-secondary fs-6">{{ recent_flights|length }}</span>
+      <i class="bi bi-chevron-right dash-collapse-chevron"></i>
+    </span>
+  </button>
+  <div class="dash-collapse-body mt-2" data-collapse-body="recent" hidden>
+  {% if recent_flights %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead><tr><th>Date</th><th>Plane</th><th>Student</th>{% if cfi %}<th>Instructor</th>{% endif %}<th>Hobbs</th><th>Notes</th></tr></thead>
+      <tbody>
+        {% for f in recent_flights %}
+        <tr>
+          <td data-label="Date"><small>{{ f.flight_date|usdate }}</small></td>
+          <td data-label="Plane">{{ f.plane_tag }}</td>
+          <td data-label="Student">{{ f.student_name }}</td>
+          {% if cfi %}<td data-label="Instructor">{% if f.cfi_name %}{{ f.cfi_name.split(' ')[0] }}{% else %}<span class="badge bg-secondary">Solo</span>{% endif %}</td>{% endif %}
+          <td data-label="Hobbs">{% if f.hobbs_start is not none and f.hobbs_end is not none %}{{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }}{% elif f.started_at and not f.ended_at %}<span class="badge bg-warning text-dark">In progress</span>{% else %}-{% endif %}</td>
+          <td class="stack-full" data-label="Notes"><small>{{ f.notes or '-' }}</small></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted small mb-0">No flights logged yet.</p>
+  {% endif %}
+  </div>
+</div>

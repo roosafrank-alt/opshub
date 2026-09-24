@@ -1,0 +1,46 @@
+{% extends "flight/base_flight.html" %}
+{% from "flight/_signature_pad.html" import signature_pad %}
+{% block title %}My CFI Profile - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-person-vcard"></i> {{ cfi.name }}</h4>
+  <a href="{{ url_for('flight.cfi_pay', cfi_id=cfi.id) }}" class="btn btn-outline-success btn-sm"><i class="bi bi-cash-stack"></i> My Pay</a>
+</div>
+<div class="card p-3 mb-3">
+  <h6 class="mb-2">Profile <span class="text-muted small fw-normal">(set by an admin - ask one to change these)</span></h6>
+  <dl class="row mb-0 small">
+    <dt class="col-5">Username</dt><dd class="col-7"><code>{{ cfi.username }}</code></dd>
+    <dt class="col-5">Instruction rate</dt><dd class="col-7">${{ '%.2f'|format(cfi.rate_per_hour or 0) }}/hr</dd>
+    <dt class="col-5">Your pay rate</dt><dd class="col-7">{% if cfi.pay_rate_per_hour is not none %}${{ '%.2f'|format(cfi.pay_rate_per_hour) }}/hr{% else %}<span class="text-muted">Not set</span>{% endif %}</dd>
+    <dt class="col-5">Credentials</dt>
+    <dd class="col-7">{% set held = [] %}{% for code, label in credentials if cfi[code] %}{% set _ = held.append(label) %}{% endfor %}{{ held|join(', ') if held else '-' }}</dd>
+    <dt class="col-5">Medical</dt>
+    <dd class="col-7">{% if cfi.medical_class %}{{ medical_labels.get(cfi.medical_class, cfi.medical_class) }}{% if cfi.medical_expires %} &middot; expires {{ cfi.medical_expires|usdate }}{% endif %}{% else %}<span class="text-muted">Not tracked</span>{% endif %}</dd>
+    <dt class="col-5">Schedule color</dt>
+    <dd class="col-7">{% if cfi.color %}<span class="d-inline-block rounded" style="width:1rem;height:1rem;background:{{ cfi.color }};vertical-align:middle;"></span>{% else %}<span class="text-muted">Automatic</span>{% endif %}</dd>
+  </dl>
+</div>
+<form method="post" class="card p-3" id="certificate">
+  <h6 class="mb-2">Instructor certificate <span class="text-muted small fw-normal">(printed with your name on students' logbook entries)</span></h6>
+  <div class="row g-2">
+    <div class="col-md-6">
+      <label class="form-label small mb-0">Flight Instructor Certificate #</label>
+      <input type="text" name="cfi_cert_number" maxlength="40" class="form-control" value="{{ cfi.cfi_cert_number or '' }}">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label small mb-0">Expires</label>
+      <input type="date" name="cfi_cert_expires" class="form-control" value="{{ cfi.cfi_cert_expires or '' }}">
+    </div>
+  </div>
+  <div class="mt-3">
+    <label class="form-label small mb-0">Signature <span class="text-muted">(goes on students' logbook entries you instruct)</span></label>
+    {{ signature_pad(cfi.signature) }}
+    {% if cfi.signature_updated_at %}<div class="form-text">Saved {{ cfi.signature_updated_at|usdate(True) }}. A new one also goes on your students' pending entries; approved entries keep the one they were signed with.</div>{% endif %}
+  </div>
+  <div class="mt-3"><button class="btn btn-primary btn-sm"><i class="bi bi-check-lg"></i> Save</button></div>
+</form>
+</div>
+</div>
+{% endblock %}

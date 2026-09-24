@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Aircraft - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0">Aircraft ({{ assets|length }})</h4>
+  <div class="d-flex gap-2">
+    <form class="d-flex" method="get">
+      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search tag, name, make, model, owner...">
+      <button class="btn btn-outline-secondary ms-1"><i class="bi bi-search"></i></button>
+    </form>
+    <a href="{{ url_for('asset_new') }}" class="btn btn-warning fw-bold text-nowrap"><i class="bi bi-plus-lg"></i> New Aircraft</a>
+    <a href="{{ url_for('trash_page') }}" class="btn btn-outline-secondary btn-sm text-nowrap" title="Recently Deleted"><i class="bi bi-trash3"></i></a>
+  </div>
+</div>
+
+<div class="row g-3">
+  {% for a in assets %}
+  <div class="col-md-6 col-lg-4">
+    <a href="{{ url_for('asset_detail', asset_id=a.id) }}" class="text-decoration-none text-dark">
+      <div class="card p-3 h-100">
+        {% if asset_covers.get(a.id) %}
+        <img src="{{ url_for('static', filename='uploads/' + asset_covers.get(a.id)) }}" class="rounded mb-2" style="width:100%; height:140px; object-fit:cover;">
+        {% endif %}
+        <h5 class="mb-1"><i class="bi bi-airplane"></i> {{ a.tag }}</h5>
+        {% if a.name and a.name != a.tag %}<p class="mb-1">{{ a.name }}</p>{% endif %}
+        <p class="text-muted small mb-1">
+          {{ [a.make, a.model, a.year]|select|join(' ') or 'No make/model on file' }}
+        </p>
+        {% if a.tach_hours is not none or a.hobbs_hours is not none %}
+        <p class="small mb-1"><i class="bi bi-speedometer2"></i>
+          {% if a.tach_hours is not none %}Tach {{ '%g'|format(a.tach_hours) }}{% endif %}
+          {% if a.hobbs_hours is not none %}{% if a.tach_hours is not none %} &middot; {% endif %}Hobbs {{ '%g'|format(a.hobbs_hours) }}{% endif %}
+        </p>
+        {% endif %}
+        <div class="mt-auto">
+          <span class="badge bg-secondary">{{ project_counts.get(a.id, 0) }} project{{ 's' if project_counts.get(a.id, 0) != 1 }}</span>
+          {% if a.is_flight_asset %}<span class="badge bg-primary"><i class="bi bi-airplane-engines"></i> Flight School</span>{% endif %}
+        </div>
+      </div>
+    </a>
+  </div>
+  {% else %}
+  <p class="text-muted">No assets yet. <a href="{{ url_for('asset_new') }}">Add your first plane/asset</a>.</p>
+  {% endfor %}
+</div>
+{% endblock %}

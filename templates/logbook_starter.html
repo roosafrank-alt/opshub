@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Logbook Starter - {{ project.name }} - OpsHub{% endblock %}
+{% block content %}
+<style>
+  .lb-text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; }
+  .lb-log-airframe { border-left: 4px solid #0d6efd; }
+  .lb-log-engine { border-left: 4px solid #dc3545; }
+  .lb-log-propeller { border-left: 4px solid #198754; }
+</style>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h4 class="mb-0"><i class="bi bi-journal-text"></i> Logbook Starter</h4>
+    <p class="mb-0"><a href="{{ url_for('project_detail', project_id=project.id) }}"><code>{{ project.code }}</code> &middot; {{ project.name }}</a>
+      {% if asset %}&middot; <a href="{{ url_for('logbook.asset_logbook', asset_id=asset.id) }}"><i class="bi bi-airplane"></i> {{ asset.tag }} logbooks</a>{% endif %}</p>
+  </div>
+  <a href="{{ url_for('logbook.logbook_list') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-search"></i> Search Logbook</a>
+</div>
+
+{% if not asset %}
+<div class="alert alert-warning py-2">This project isn't linked to an aircraft, so the N number and serial numbers are left blank. <a href="{{ url_for('project_edit', project_id=project.id) }}">Link one</a> to fill them in.</div>
+{% endif %}
+
+<form method="get" class="card p-3 mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-md-4">
+      <label class="form-label small mb-1">Type of project (picks the template)</label>
+      <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+        {% for code, label in project_types %}<option value="{{ code }}" {{ 'selected' if code == project_type }}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label small mb-1">Entry date</label>
+      <input type="date" name="date" value="{{ entry_date }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-3 col-md-2">
+      <label class="form-label small mb-1">Tach</label>
+      <input type="number" step="0.1" name="tach" value="{{ '%.1f'|format(tach) if tach is not none else '' }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-3 col-md-2">
+      <label class="form-label small mb-1">Hobbs</label>
+      <input type="number" step="0.1" name="hobbs" value="{{ '%.1f'|format(hobbs) if hobbs is not none else '' }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-12 col-md-1"><button class="btn btn-primary btn-sm w-100">Update</button></div>
+  </div>
+  <div class="form-text">Everything below is a starting point built from this project's sub areas and the parts scanned into them. Edit the wording, then Save to logbook. Part numbers come from each part's Part Number (or its barcode).</div>
+</form>
+
+{% macro starter_card(body, log_type, section, title, subtitle) %}
+<form method="post" action="{{ url_for('logbook.project_logbook_save', project_id=project.id) }}" class="card p-3 mb-3 lb-log-{{ log_type }}">
+  <input type="hidden" name="section" value="{{ section or '' }}">
+  <input type="hidden" name="project_type" value="{{ project_type }}">
+  <input type="hidden" name="entry_date" value="{{ entry_date }}">
+  <input type="hidden" name="tach" value="{{ tach if tach is not none else '' }}">
+  <input type="hidden" name="hobbs" value="{{ hobbs if hobbs is not none else '' }}">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <div><strong>{{ title }}</strong> {% if subtitle %}<small class="text-muted">{{ subtitle }}</small>{% endif %}</div>
+    <select name="log_type" class="form-select form-select-sm" style="width:auto;">
+      {% for code, label in log_types %}<option value="{{ code }}" {{ 'selected' if code == log_type }}>{{ label }} log</option>{% endfor %}
+    </select>
+  </div>
+  <textarea name="body" class="form-control lb-text" rows="{{ [body.count('\n') + 2, 14]|min }}">{{ body }}</textarea>
+  <div class="d-flex gap-2 mt-2">
+    <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-journal-plus"></i> Save to logbook</button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="lbCopy(this)"><i class="bi bi-clipboard"></i> Copy</button>
+  </div>
+</form>
+{% endmacro %}
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <h5>Sub area entries <small class="text-muted fs-6">(one per sub area, with its endorsement)</small></h5>
+    {% for s in section_starters %}
+      {{ starter_card(s.body, s.log_type, s.section, s.section, s.part_count ~ ' part' ~ ('s' if s.part_count != 1 else '')) }}
+    {% else %}
+      <p class="text-muted">No sub areas or parts on this project yet. Add a sub area or scan parts in, and they'll show up here.</p>
+    {% endfor %}
+  </div>
+  <div class="col-lg-6">
+    <h5>Combined project entry <small class="text-muted fs-6">({{ dict(project_types)[project_type] }} template)</small></h5>
+    {% for c in combined %}
+      {{ starter_card(c.body, c.log_type, None, log_type_labels[c.log_type] ~ ' log', 'your template' if c.custom_template else 'built-in template') }}
+    {% endfor %}
+    {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
+    <p class="small text-muted"><a href="{{ url_for('logbook.logbook_templates') }}"><i class="bi bi-file-earmark-text"></i> Edit or upload the templates</a></p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card p-3 mt-2">
+  <h5 class="mb-2">Saved entries for this project</h5>
+  {% if saved %}
+  <div class="list-group list-group-flush">
+    {% for e in saved %}
+    <div class="list-group-item px-0 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+      <div class="small"><strong>{{ e.entry_date|usdate }}</strong> &middot; <span class="badge bg-light text-dark border">{{ log_type_labels[e.log_type] }}</span>
+        {{ e.section or 'Combined' }} <span class="text-muted">- {{ e.body.split('\n')[1] if e.body.count('\n') else e.body[:80] }}</span></div>
+      <div class="d-flex gap-1">
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('logbook.entry_detail', entry_id=e.id) }}"><i class="bi bi-pencil"></i></a>
+        <a class="btn btn-outline-primary btn-sm" target="_blank" href="{{ url_for('logbook.entry_print', entry_id=e.id) }}"><i class="bi bi-printer"></i> Sticker</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-muted small mb-0">Nothing saved yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function lbCopy(btn) {
+  var ta = btn.closest('form').querySelector('textarea');
+  var done = function () { var t = btn.innerHTML; btn.innerHTML = '<i class="bi bi-check2"></i> Copied'; setTimeout(function () { btn.innerHTML = t; }, 1500); };
+  if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(ta.value).then(done); }
+  else { ta.select(); document.execCommand('copy'); done(); }
+}
+</script>
+{% endblock %}

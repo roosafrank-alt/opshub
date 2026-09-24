@@ -1,0 +1,748 @@
+{% extends "base.html" %}
+{% block title %}Scan - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <p class="text-muted small mb-2">One scanner for everything. Just scan - a part, a project code, or someone's laborer badge, in any order. It figures out what the code is and asks anything it still needs afterward.</p>
+
+    <div class="card p-3 mb-3">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+          <label class="form-label mb-0 small text-muted">Scanning as</label>
+          <select id="operator-select" class="form-select form-select-sm" style="max-width:220px">
+            <option value="" disabled selected>-- Select --</option>
+            <option value="__new__">+ Add new name...</option>
+          </select>
+          <div id="operator-new-row" class="input-group input-group-sm mt-1" style="max-width:260px; display:none;">
+            <input type="text" id="operator-new-input" class="form-control" placeholder="e.g. Frank, Shop PC, Tablet 1">
+            <button type="button" id="operator-new-add" class="btn btn-primary">Add</button>
+          </div>
+        </div>
+        <div class="text-end">
+          <div class="small text-muted">Current Project</div>
+          <span id="project-status-badge" class="badge bg-light text-muted border">Not set</span>
+          <button type="button" class="btn btn-link btn-sm p-0 ms-1" id="project-change-link">change</button>
+        </div>
+      </div>
+      <div id="project-picker-row" style="display:none;" class="mt-3 pt-2 border-top">
+        <label class="form-label mb-0 small text-muted">Set the project manually <span class="text-muted">(or just scan its printed code / a sub-area task code instead)</span></label>
+        <select id="project-select" class="form-select form-select-sm">
+          <option value="" disabled selected>-- Select a project --</option>
+          {% for pr in projects %}
+          <option value="{{ pr.id }}" data-code="{{ pr.code }}">{{ pr.code }} - {{ pr.name }}</option>
+          {% endfor %}
+        </select>
+        <div class="form-text mb-2">No active projects? <a href="{{ url_for('project_new') }}">Create one</a>.</div>
+        <label class="form-label small mb-0">Area / Sub-System <span class="text-muted">(optional, e.g. Brakes, Engine)</span></label>
+        <select id="section-select" class="form-select form-select-sm">
+          <option value="">-- General (no specific area) --</option>
+          <option value="__new__">+ Add new area...</option>
+        </select>
+        <div id="section-new-row" class="input-group input-group-sm mt-1" style="display:none;">
+          <input type="text" id="section-new-input" class="form-control" placeholder="e.g. Brakes, Engine, Avionics">
+          <button type="button" id="section-new-add" class="btn btn-primary">Add</button>
+        </div>
+      </div>
+      <div class="mt-2" id="laborer-pending-row" style="display:none;">
+        <span class="badge bg-warning text-dark" id="laborer-pending-badge"></span>
+        <span class="text-muted small">waiting on a project to clock in - scan a project code, or use "change" above.</span>
+      </div>
+    </div>
+
+    <div class="card p-3 mb-3">
+      <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-usb" type="button">
+          <i class="bi bi-usb-symbol"></i> USB / Keyboard Scanner</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-camera" type="button" id="camera-tab-btn">
+          <i class="bi bi-camera"></i> Camera Scanner</button></li>
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="tab-usb">
+          <label class="form-label">Scan or type any code, then press Enter</label>
+          <input type="text" id="scan-input" class="form-control form-control-lg" placeholder="Ready to scan..." autofocus autocomplete="off">
+          <div class="form-text">Click into this box, then scan with your USB/Bluetooth barcode scanner (it types like a keyboard). Works great on a shop PC.</div>
+        </div>
+        <div class="tab-pane fade" id="tab-camera">
+          <div id="scanner-video-wrap">
+            <div id="reader"></div>
+          </div>
+          <div class="d-grid mt-2">
+            <button class="btn btn-outline-secondary" id="camera-start-btn"><i class="bi bi-camera-video"></i> Start Camera</button>
+          </div>
+          <div class="form-text">Best on phones/tablets. Point the camera at any code.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shown after ANY part barcode is scanned (camera or USB): it knows
+         it's a part, and asks whether this is stock in or stock out, the
+         quantity, and (for stock out) which project, before touching
+         inventory. Project/laborer/task codes never reach this - those act
+         immediately since there's nothing left to ask. -->
+    <div id="confirm-card" class="card p-3 mb-3 border-primary" style="display:none;">
+      <div id="confirm-body"></div>
+    </div>
+
+    <div id="result-card" class="card p-3 mb-3" style="display:none;">
+      <div id="result-body"></div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+let html5QrCode = null;
+let cameraRunning = false;
+let lastScanTime = 0;
+let pendingLaborer = null; // {code, name} - scanned before a project was set, waiting to fire
+
+function vibrate(pattern) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { /* not supported */ }
+}
+
+// --- "Scanning as" (operator) ---------------------------------------------
+const operatorSelect = document.getElementById('operator-select');
+const loggedInName = {{ logged_in_name | tojson }};
+let savedOperator = '';
+try { savedOperator = localStorage.getItem('shopinv_operator') || ''; } catch (e) { /* ignore */ }
+// Default to whoever's actually logged in - a shared/kiosk station can still
+// switch to someone else via the dropdown, but a normal single-user session
+// shouldn't have to pick its own name every time.
+const defaultOperator = loggedInName || savedOperator;
+
+function addOperatorOption(name, select) {
+  const opt = document.createElement('option');
+  opt.value = name;
+  opt.textContent = name;
+  select.insertBefore(opt, select.lastElementChild);
+}
+
+function applyDefaultOperator(names) {
+  if (!defaultOperator) return;
+  if (!names.includes(defaultOperator)) addOperatorOption(defaultOperator, operatorSelect);
+  operatorSelect.value = defaultOperator;
+  savedOperator = defaultOperator;
+  try { localStorage.setItem('shopinv_operator', savedOperator); } catch (e) { /* ignore */ }
+}
+
+fetch('/api/operators').then(r => r.json()).then(names => {
+  names.forEach(n => addOperatorOption(n, operatorSelect));
+  applyDefaultOperator(names);
+}).catch(() => {
+  applyDefaultOperator([]);
+});
+
+const operatorNewRow = document.getElementById('operator-new-row');
+const operatorNewInput = document.getElementById('operator-new-input');
+const operatorNewAdd = document.getElementById('operator-new-add');
+
+operatorSelect.addEventListener('change', function () {
+  if (operatorSelect.value === '__new__') {
+    operatorNewRow.style.display = 'flex';
+    operatorNewInput.value = '';
+    operatorNewInput.focus();
+    return;
+  }
+  operatorNewRow.style.display = 'none';
+  savedOperator = operatorSelect.value;
+  try { localStorage.setItem('shopinv_operator', savedOperator); } catch (e) { /* ignore */ }
+});
+
+function addNewOperatorFromInput() {
+  const name = (operatorNewInput.value || '').trim();
+  if (!name) return;
+  addOperatorOption(name, operatorSelect);
+  operatorSelect.value = name;
+  operatorNewRow.style.display = 'none';
+  savedOperator = name;
+  try { localStorage.setItem('shopinv_operator', savedOperator); } catch (e) { /* ignore */ }
+}
+operatorNewAdd.addEventListener('click', addNewOperatorFromInput);
+operatorNewInput.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); addNewOperatorFromInput(); }
+});
+
+function currentOperator() {
+  const v = operatorSelect.value;
+  return (v && v !== '__new__') ? v.trim() : '';
+}
+
+// --- Current project / section (shared context for parts AND labor) -------
+const projectSelect = document.getElementById('project-select');
+const sectionSelect = document.getElementById('section-select');
+const sectionNewRow = document.getElementById('section-new-row');
+const sectionNewInput = document.getElementById('section-new-input');
+const sectionNewAdd = document.getElementById('section-new-add');
+const projectStatusBadge = document.getElementById('project-status-badge');
+const projectPickerRow = document.getElementById('project-picker-row');
+const projectChangeLink = document.getElementById('project-change-link');
+const laborerPendingRow = document.getElementById('laborer-pending-row');
+const laborerPendingBadge = document.getElementById('laborer-pending-badge');
+
+projectChangeLink.addEventListener('click', function () {
+  projectPickerRow.style.display = projectPickerRow.style.display === 'none' ? 'block' : 'none';
+});
+
+function updateProjectStatus() {
+  if (projectSelect.value) {
+    const opt = projectSelect.options[projectSelect.selectedIndex];
+    projectStatusBadge.textContent = opt ? (opt.getAttribute('data-code') || 'Set') : 'Set';
+    projectStatusBadge.className = 'badge bg-success';
+  } else {
+    projectStatusBadge.textContent = 'Not set';
+    projectStatusBadge.className = 'badge bg-light text-muted border';
+  }
+}
+
+function updateLaborerPendingUI() {
+  if (pendingLaborer) {
+    laborerPendingRow.style.display = 'block';
+    laborerPendingBadge.textContent = pendingLaborer.name + ' scanned';
+  } else {
+    laborerPendingRow.style.display = 'none';
+  }
+}
+
+function addSectionOption(name) {
+  const opt = document.createElement('option');
+  opt.value = name;
+  opt.textContent = name;
+  sectionSelect.insertBefore(opt, sectionSelect.lastElementChild);
+}
+
+function refreshSectionsForProject(cb) {
+  while (sectionSelect.options.length > 2) sectionSelect.remove(0);
+  sectionSelect.value = '';
+  sectionNewRow.style.display = 'none';
+  updateProjectStatus();
+  const projectId = projectSelect.value;
+  if (!projectId) { if (cb) cb(); return; }
+  fetch('/api/sections/' + encodeURIComponent(projectId)).then(r => r.json()).then(names => {
+    names.forEach(addSectionOption);
+    if (cb) cb();
+  }).catch(() => { if (cb) cb(); });
+}
+
+projectSelect.addEventListener('change', function () {
+  refreshSectionsForProject(maybeFirePendingLaborer);
+});
+
+sectionSelect.addEventListener('change', function () {
+  if (sectionSelect.value === '__new__') {
+    sectionNewRow.style.display = 'flex';
+    sectionNewInput.value = '';
+    sectionNewInput.focus();
+  } else {
+    sectionNewRow.style.display = 'none';
+  }
+  maybeFirePendingLaborer();
+});
+
+function addNewSectionFromInput() {
+  const name = (sectionNewInput.value || '').trim();
+  if (!name) return;
+  addSectionOption(name);
+  sectionSelect.value = name;
+  sectionNewRow.style.display = 'none';
+}
+sectionNewAdd.addEventListener('click', addNewSectionFromInput);
+sectionNewInput.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); addNewSectionFromInput(); }
+});
+
+function currentSection() {
+  const v = sectionSelect.value;
+  return (v && v !== '__new__') ? v.trim() : '';
+}
+
+function maybeFirePendingLaborer() {
+  if (pendingLaborer && projectSelect.value) {
+    const code = pendingLaborer.code;
+    pendingLaborer = null;
+    updateLaborerPendingUI();
+    handleLaborScan(code);
+  }
+}
+
+// Codes are self-describing, so a scan is routed purely by its prefix/shape -
+// no separate "part mode" vs "labor mode" toggle needed:
+//   LABOR-xxxxxxxx  -> a person's badge (clock in/out) - acts immediately
+//   TASK-26-001::x  -> a project + sub-area printed together - acts immediately
+//   26-001          -> a plain project code - acts immediately
+//   anything else   -> a part barcode - the only case that needs to ask
+//                       anything, since a part could be going in or out
+const PROJECT_CODE_RE = /^\d{2}-\d{3,}$/;
+
+function selectProjectInUI(project) {
+  let opt = projectSelect.querySelector('option[value="' + project.id + '"]');
+  if (!opt) {
+    opt = document.createElement('option');
+    opt.value = project.id;
+    projectSelect.appendChild(opt);
+  }
+  opt.setAttribute('data-code', project.code);
+  opt.textContent = project.code + ' - ' + project.name;
+  projectSelect.value = String(project.id);
+  refreshSectionsForProject(maybeFirePendingLaborer);
+}
+
+function showResult(html, cls) {
+  const card = document.getElementById('result-card');
+  const body = document.getElementById('result-body');
+  card.style.display = 'block';
+  card.classList.remove('scan-flash-in', 'scan-flash-out', 'scan-flash-error');
+  card.classList.add(cls);
+  body.innerHTML = '<div class="alert ' + (cls === 'scan-flash-error' ? 'alert-danger' : cls === 'scan-flash-in' ? 'alert-success' : 'alert-primary') + ' mb-0">' + html + '</div>';
+}
+
+function handleProjectCodeScan(code, fromCamera) {
+  fetch('/api/project_lookup/' + encodeURIComponent(code))
+    .then(r => r.json())
+    .then(data => {
+      if (data.found) {
+        selectProjectInUI(data);
+        showResult('<i class="bi bi-clipboard-check"></i> Project selected: <strong>' + data.code + ' - ' + data.name +
+          '</strong><br><small>Now scan a part or a laborer badge.</small>', 'scan-flash-in');
+        vibrate([40, 60, 40]);
+      } else {
+        showResult('No project found with code <strong>' + code + '</strong>.', 'scan-flash-error');
+        vibrate([200]);
+      }
+    })
+    .catch(() => showResult('No project found with code <strong>' + code + '</strong>.', 'scan-flash-error'))
+    .finally(() => {
+      if (fromCamera && cameraRunning && html5QrCode) {
+        try { html5QrCode.resume(); } catch (e) { /* ignore */ }
+      } else if (!fromCamera) {
+        scanInput.focus();
+      }
+    });
+}
+
+function handleTaskCodeScan(code, fromCamera) {
+  fetch('/api/labor/task_lookup?code=' + encodeURIComponent(code)).then(r => r.json()).then(function (data) {
+    if (data.found) {
+      selectProjectInUI({ id: data.project_id, code: data.project_code, name: data.project_name });
+      if (data.section) {
+        setTimeout(function () {
+          let sopt = sectionSelect.querySelector('option[value="' + CSS.escape(data.section) + '"]');
+          if (!sopt) { sopt = document.createElement('option'); sopt.value = data.section; sopt.textContent = data.section; sectionSelect.appendChild(sopt); }
+          sectionSelect.value = data.section;
+          maybeFirePendingLaborer();
+        }, 150);
+      }
+      showResult('<i class="bi bi-clipboard-check"></i> Task selected: <strong>' + data.project_code +
+        (data.section ? ' &middot; ' + data.section : '') + '</strong>.' +
+        (pendingLaborer ? '' : ' Now scan a part or a laborer badge.'), 'scan-flash-in');
+      vibrate([40, 60, 40]);
+    } else {
+      showResult('No task found for that code.', 'scan-flash-error');
+      vibrate([200]);
+    }
+  }).catch(() => showResult('No task found for that code.', 'scan-flash-error'))
+    .finally(() => {
+      if (fromCamera && cameraRunning && html5QrCode) { try { html5QrCode.resume(); } catch (e) {} }
+      else if (!fromCamera) { scanInput.focus(); }
+    });
+}
+
+function operatorRequiredOk() {
+  return !!currentOperator();
+}
+
+function flagMissingOperator() {
+  operatorSelect.classList.add('is-invalid');
+  operatorSelect.focus();
+  setTimeout(() => operatorSelect.classList.remove('is-invalid'), 2500);
+  showResult('Select who\'s scanning ("Scanning as" above) before scanning a part.', 'scan-flash-error');
+  vibrate([200]);
+}
+
+// --- Laborer scans (clock in/out) -------------------------------------
+// Who's currently clocked in, and recent labor activity, both live on the
+// Dashboard now - a clock-in/clock-out here just confirms and moves on.
+
+function handleLaborScan(code) {
+  const task = { project_id: projectSelect.value || null, section: currentSection() };
+  fetch('/api/labor/scan', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: code, project_id: task.project_id, section: task.section })
+  }).then(r => r.json()).then(function (data) {
+    if (!data.ok) {
+      let msg = 'Scan failed.';
+      if (data.error === 'unknown_laborer') msg = 'No laborer found for that code.';
+      else if (data.error === 'inactive_laborer') msg = data.name + ' is marked inactive.';
+      else if (data.error === 'no_task_selected') {
+        pendingLaborer = { code: code, name: data.name || 'Laborer' };
+        updateLaborerPendingUI();
+        showResult('<i class="bi bi-hourglass-split"></i> <strong>' + pendingLaborer.name +
+          '</strong> scanned - now scan a project code (or use "change" above) to start their timer.', 'scan-flash-in');
+        vibrate([60]);
+        return;
+      }
+      else if (data.error === 'unknown_project') msg = "That task's project could not be found.";
+      showResult(msg, 'scan-flash-error');
+      vibrate([200]);
+      return;
+    }
+    if (data.action === 'clock_in') {
+      showResult('<i class="bi bi-play-circle"></i> <strong>' + data.laborer + '</strong> clocked in on ' +
+        data.project_code + (data.section && data.section !== 'General' ? ' &middot; ' + data.section : '') + '.', 'scan-flash-in');
+      vibrate([40, 60, 40]);
+      addRecent(code, data.laborer + ' clocked in', 'labor');
+    } else {
+      showResult('<i class="bi bi-stop-circle"></i> <strong>' + data.laborer + '</strong> clocked out of ' +
+        data.project_code + (data.section && data.section !== 'General' ? ' &middot; ' + data.section : '') +
+        ': ' + data.hours + ' hrs.', 'scan-flash-in');
+      vibrate([40, 60, 40, 60, 40]);
+      addRecent(code, data.laborer + ' clocked out (' + data.hours + ' hrs)', 'labor');
+    }
+  }).catch(function () {
+    showResult('Could not reach the server.', 'scan-flash-error');
+  });
+}
+
+// --- Routing a scanned/typed value to the right handler --------------------
+// LABOR/TASK/project codes act right away (true above); anything else is a
+// part barcode and falls through to the confirm flow (false), which is the
+// only place that ever has to ask a follow-up question.
+
+function routeScanValue(value, fromCamera) {
+  if (value.startsWith('LABOR-')) { handleLaborScan(value); return true; }
+  if (value.startsWith('TASK-')) { handleTaskCodeScan(value, fromCamera); return true; }
+  if (PROJECT_CODE_RE.test(value)) { handleProjectCodeScan(value, fromCamera); return true; }
+  return false;
+}
+
+const scanInput = document.getElementById('scan-input');
+scanInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = scanInput.value.trim();
+    scanInput.value = '';
+    if (!val) return;
+    if (routeScanValue(val, false)) return;
+    if (!operatorRequiredOk()) { flagMissingOperator(); return; }
+    lookupForConfirm(val, false);
+  }
+});
+document.addEventListener('click', function(e) {
+  if (document.getElementById('tab-usb').classList.contains('active') || document.getElementById('tab-usb').classList.contains('show')) {
+    if (!e.target.closest('select') && !e.target.closest('button') && !e.target.closest('input[type=number]')) {
+      scanInput.focus();
+    }
+  }
+});
+window.addEventListener('load', () => { scanInput.focus(); updateProjectStatus(); });
+
+// --- Camera flow -------------------------------------------------------
+
+function handleCameraDecode(decodedText) {
+  if (cameraRunning && html5QrCode) {
+    try { html5QrCode.pause(true); } catch (e) { /* ignore */ }
+  }
+  if (routeScanValue(decodedText, true)) return;
+  if (!operatorRequiredOk()) {
+    flagMissingOperator();
+    if (cameraRunning && html5QrCode) { try { html5QrCode.resume(); } catch (e) {} }
+    return;
+  }
+  lookupForConfirm(decodedText, true);
+}
+
+// --- Part confirm flow (both USB and camera land here) ----------------
+// A part barcode is the one case where the scan itself doesn't say enough:
+// it could be going in or coming out. So this asks - right after the scan,
+// not before - and only asks for a project if "Stock Out" is picked and
+// nothing's set yet.
+
+function lookupForConfirm(barcode, fromCamera) {
+  fetch('/api/lookup/' + encodeURIComponent(barcode))
+    .then(r => r.json())
+    .then(data => showPartConfirm(barcode, data, fromCamera))
+    .catch(() => showPartConfirm(barcode, { found: false }, fromCamera));
+}
+
+function showPartConfirm(barcode, data, fromCamera) {
+  const panel = document.getElementById('confirm-card');
+  const body = document.getElementById('confirm-body');
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  if (!data.found) {
+    vibrate([80, 60, 80, 60, 80]);
+    body.innerHTML = `
+      <div class="alert alert-warning mb-2"><strong>Unrecognized code:</strong> ${barcode}<br>Not a part, project, or laborer code we recognize.</div>
+      <div class="d-flex gap-2">
+        <a href="/parts/new?barcode=${encodeURIComponent(barcode)}" class="btn btn-primary flex-fill">Add as new part</a>
+        <button class="btn btn-outline-secondary flex-fill" onclick="cancelPartConfirm()">Dismiss</button>
+      </div>`;
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="d-flex justify-content-between align-items-start mb-2">
+      <div>
+        <strong class="fs-5">${data.name}</strong><br>
+        <small class="text-muted">${data.barcode}</small>
+      </div>
+      <div class="text-end">
+        <div class="text-muted small">Currently on hand</div>
+        <div class="fw-bold">${fmtNum(data.qty_on_hand)} ${data.unit}</div>
+      </div>
+    </div>
+    <div class="btn-group w-100 mb-2" role="group">
+      <button type="button" class="btn btn-success fw-bold" id="confirm-action-in"><i class="bi bi-box-arrow-in-down"></i> Stock IN</button>
+      <button type="button" class="btn btn-outline-primary fw-bold" id="confirm-action-out"><i class="bi bi-box-arrow-up"></i> Stock OUT</button>
+    </div>
+    <div id="confirm-out-project-row" class="mb-2" style="display:none;">
+      <label class="form-label small mb-0 text-danger">Which project is this for?</label>
+      <select id="confirm-project-select" class="form-select form-select-sm">
+        <option value="" disabled selected>-- Select a project --</option>
+        {% for pr in projects %}
+        <option value="{{ pr.id }}">{{ pr.code }} - {{ pr.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <label class="form-label small">Quantity</label>
+    <input type="number" id="confirm-qty" class="form-control form-control-lg mb-2" value="1" min="0.01" step="any">
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary flex-fill fw-bold" id="confirm-go-btn" disabled>Pick Stock IN or OUT above</button>
+      <button class="btn btn-outline-secondary" onclick="cancelPartConfirm()">Cancel</button>
+    </div>`;
+
+  // Stock IN is the default action (it's the one drawn as "selected" -
+  // solid button vs. outline), so it needs to actually be selected from the
+  // start, not just look that way until someone clicks it.
+  let chosenAction = 'in';
+  const inBtn = document.getElementById('confirm-action-in');
+  const outBtn = document.getElementById('confirm-action-out');
+  const outProjectRow = document.getElementById('confirm-out-project-row');
+  const confirmProjectSelect = document.getElementById('confirm-project-select');
+  const goBtn = document.getElementById('confirm-go-btn');
+
+  function refreshGoBtn() {
+    if (chosenAction === 'in') {
+      goBtn.disabled = false;
+      goBtn.textContent = 'Confirm Stock IN';
+      goBtn.className = 'btn btn-success flex-fill fw-bold';
+    } else if (chosenAction === 'out') {
+      const projectOk = projectSelect.value || confirmProjectSelect.value;
+      goBtn.disabled = !projectOk;
+      goBtn.textContent = projectOk ? 'Confirm Stock OUT' : 'Select a project first';
+      goBtn.className = 'btn btn-primary flex-fill fw-bold';
+    }
+  }
+
+  inBtn.addEventListener('click', function () {
+    chosenAction = 'in';
+    inBtn.classList.add('active');
+    outBtn.classList.remove('active');
+    outProjectRow.style.display = 'none';
+    refreshGoBtn();
+  });
+  outBtn.addEventListener('click', function () {
+    chosenAction = 'out';
+    outBtn.classList.add('active');
+    inBtn.classList.remove('active');
+    outProjectRow.style.display = projectSelect.value ? 'none' : 'block';
+    refreshGoBtn();
+  });
+  confirmProjectSelect.addEventListener('change', refreshGoBtn);
+
+  // Reflect the default (Stock IN) in the UI immediately, same as a click would.
+  inBtn.classList.add('active');
+  refreshGoBtn();
+
+  goBtn.addEventListener('click', function () {
+    if (!chosenAction) return;
+    const qty = document.getElementById('confirm-qty').value || 1;
+    const outProjectId = confirmProjectSelect.value || null;
+    confirmPartScan(barcode, chosenAction, qty, outProjectId, fromCamera);
+  });
+
+  setTimeout(() => {
+    const qtyInput = document.getElementById('confirm-qty');
+    if (qtyInput) qtyInput.select();
+  }, 50);
+}
+
+function cancelPartConfirm() {
+  document.getElementById('confirm-card').style.display = 'none';
+  if (cameraRunning && html5QrCode) {
+    try { html5QrCode.resume(); } catch (e) { /* ignore */ }
+  } else {
+    scanInput.focus();
+  }
+}
+
+function confirmPartScan(barcode, action, qty, outProjectId, fromCamera) {
+  if (!operatorRequiredOk()) { flagMissingOperator(); return; }
+  // Stock-out against a manually-chosen project (rather than the shared
+  // "Current Project") sets it as the current project too, so subsequent
+  // scans (parts or labor) follow along without asking again.
+  if (action === 'out' && outProjectId && !projectSelect.value) {
+    const opt = document.querySelector('#confirm-project-select option[value="' + outProjectId + '"]');
+    if (opt) selectProjectInUI({ id: outProjectId, code: opt.textContent.split(' - ')[0], name: opt.textContent.split(' - ').slice(1).join(' - ') });
+  }
+  submitScan(barcode, qty, action, fromCamera);
+}
+
+function submitScan(barcode, qty, action, fromCamera) {
+  const now = Date.now();
+  if (now - lastScanTime < 400) return;
+  lastScanTime = now;
+
+  fetch('/api/scan', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      barcode: barcode,
+      action: action,
+      qty: qty,
+      project_id: projectSelect.value || null,
+      performed_by: currentOperator() || null,
+      section: currentSection() || null,
+      source: fromCamera ? 'camera_scan' : 'usb_scanner'
+    })
+  }).then(r => r.json()).then(data => {
+    showScanResult(barcode, action, data);
+    document.getElementById('confirm-card').style.display = 'none';
+    if (fromCamera) {
+      showScanNextButton();
+    } else {
+      scanInput.focus();
+    }
+  }).catch(err => {
+    showScanResult(barcode, action, {ok: false, error: 'Network error: ' + err});
+    if (fromCamera) showScanNextButton();
+  });
+}
+
+function showScanNextButton() {
+  const body = document.getElementById('result-body');
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-outline-primary w-100 mt-2';
+  btn.innerHTML = '<i class="bi bi-upc-scan"></i> Scan Next Item';
+  btn.onclick = () => {
+    if (cameraRunning && html5QrCode) {
+      try { html5QrCode.resume(); } catch (e) { /* ignore */ }
+    }
+  };
+  body.appendChild(btn);
+}
+
+function showScanResult(barcode, action, data) {
+  const card = document.getElementById('result-card');
+  const body = document.getElementById('result-body');
+  card.style.display = 'block';
+  card.classList.remove('scan-flash-in', 'scan-flash-out', 'scan-flash-error');
+  // Make sure the confirmation is actually seen, not just present in the DOM -
+  // this scrolls it into view and gives it a beat of extra emphasis.
+  setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 30);
+
+  if (data.error === 'unknown_barcode') {
+    vibrate([80, 60, 80, 60, 80]);
+    card.classList.add('scan-flash-error');
+    body.innerHTML = `<div class="alert alert-warning mb-0">
+      <strong>Unrecognized barcode:</strong> ${barcode}<br>
+      This part isn't in inventory yet.
+      <a href="/parts/new?barcode=${encodeURIComponent(barcode)}" class="btn btn-sm btn-primary mt-2">Add as new part</a>
+    </div>`;
+    addRecent(barcode, 'Unknown', 'error');
+    return;
+  }
+  if (!data.ok) {
+    vibrate([200]);
+    card.classList.add('scan-flash-error');
+    body.innerHTML = `<div class="alert alert-danger mb-0"><strong>Error:</strong> ${data.error || 'Unknown error'}</div>`;
+    addRecent(barcode, data.name || barcode, 'error');
+    return;
+  }
+  vibrate([40]);
+  card.classList.add(action === 'in' ? 'scan-flash-in' : 'scan-flash-out');
+  const verb = action === 'in' ? 'Added to stock' : 'Removed from stock';
+  const badgeClass = action === 'in' ? 'success' : 'primary';
+  body.innerHTML = `<div class="alert alert-${badgeClass} mb-0 d-flex justify-content-between align-items-center py-3">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-check-circle-fill fs-2"></i>
+      <div>
+        <div class="fw-bold"><span class="badge bg-${badgeClass}">${action.toUpperCase()}</span> ${verb}</div>
+        <strong class="fs-5">${data.name}</strong><br>
+        <small class="text-muted">${data.barcode}</small>
+      </div>
+    </div>
+    <div class="text-end">
+      <div class="fs-3 fw-bold">${fmtNum(data.qty_on_hand)} ${data.unit}</div>
+      <div class="text-muted small">on hand</div>
+    </div>
+  </div>`;
+  addRecent(barcode, data.name, action);
+}
+
+function fmtNum(n) {
+  return Number(n).toFixed(2).replace(/\.?0+$/, '') || '0';
+}
+
+function addRecent(code, label, kind) {
+  const list = document.getElementById('recent-list');
+  if (!list) return;
+  const li = document.createElement('li');
+  li.className = 'list-group-item d-flex justify-content-between align-items-center';
+  let badge = kind === 'in' ? '<span class="badge bg-success">IN</span>' :
+              kind === 'out' ? '<span class="badge bg-primary">OUT</span>' :
+              kind === 'labor' ? '<span class="badge bg-info text-dark">LABOR</span>' :
+              '<span class="badge bg-danger">ERROR</span>';
+  const time = new Date().toLocaleTimeString();
+  li.innerHTML = `<span>${badge} ${label}</span><small class="text-muted">${time}</small>`;
+  list.prepend(li);
+  while (list.children.length > 10) list.removeChild(list.lastChild);
+}
+
+// Camera scanner (html5-qrcode) - supports many 1D/2D formats
+document.getElementById('camera-start-btn').addEventListener('click', function() {
+  if (cameraRunning) return;
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = 'Starting...';
+  html5QrCode = new Html5Qrcode("reader");
+  const config = {
+    fps: 10,
+    qrbox: { width: 280, height: 160 },
+    videoConstraints: {
+      facingMode: { ideal: "environment" },
+      width: { ideal: 1920, min: 1280 },
+      height: { ideal: 1080, min: 720 },
+      advanced: [{ focusMode: "continuous" }]
+    }
+  };
+  html5QrCode.start(
+    { facingMode: { ideal: "environment" } },
+    config,
+    (decodedText) => { handleCameraDecode(decodedText); },
+    (errorMessage) => { /* ignore per-frame decode errors */ }
+  ).then(() => {
+    cameraRunning = true;
+    btn.style.display = 'none';
+    try {
+      const caps = html5QrCode.getRunningTrackCapabilities();
+      if (caps && caps.focusMode && caps.focusMode.includes('continuous')) {
+        html5QrCode.applyVideoConstraints({ advanced: [{ focusMode: 'continuous' }] });
+      }
+    } catch (e) { /* not supported here, ignore */ }
+  }).catch(err => {
+    btn.disabled = false;
+    btn.textContent = 'Start Camera';
+    alert('Could not start camera: ' + err);
+  });
+});
+
+window.addEventListener('beforeunload', function () {
+  if (cameraRunning && html5QrCode) { try { html5QrCode.stop(); } catch (e) { /* ignore */ } }
+});
+</script>
+{% endblock %}

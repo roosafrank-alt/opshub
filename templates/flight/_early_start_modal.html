@@ -1,0 +1,72 @@
+{# "Start this flight early?" prompt. Any form with class early-start-form
+   (a Start button on a booking that isn't due yet - dashboard Upcoming or
+   the Schedule's flight modal) is stopped on submit and this asks first.
+   "Move to now & start" sets move_to_now=1 and sends the form, and
+   schedule_start() moves the booking to the current time before starting
+   it. Lives in base_flight.html so it's outside the live-refresh fragments. #}
+<div class="modal fade" id="earlyStartModal" tabindex="-1" aria-labelledby="earlyStartTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="earlyStartTitle"><i class="bi bi-clock-history text-warning"></i> This flight isn't due yet</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">It's booked for <strong id="es-slot"></strong>. A flight can only be started from 30 minutes before its slot (<span id="es-opens"></span>).</p>
+        <p class="mb-0">Is it actually leaving now? Starting it will <strong>move the booking to now (<span id="es-now"></span>)</strong> so the calendar and billing match when it really flew.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep booking</button>
+        <button type="button" class="btn btn-warning" id="es-confirm"><i class="bi bi-play-fill"></i> Move to now &amp; start</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var pendingForm = null;
+  function nowLabel() {
+    var d = new Date(), h = d.getHours(), m = d.getMinutes();
+    return (h % 12 || 12) + ':' + (m < 10 ? '0' : '') + m + ' ' + (h < 12 ? 'AM' : 'PM');
+  }
+  function showPrompt(form) {
+    var el = document.getElementById('earlyStartModal');
+    if (!el || !window.bootstrap) return false;
+    pendingForm = form;
+    document.getElementById('es-slot').textContent = form.dataset.slotLabel || 'later';
+    document.getElementById('es-opens').textContent = form.dataset.opensLabel ? 'opens ' + form.dataset.opensLabel : '';
+    document.getElementById('es-now').textContent = nowLabel();
+    var modal = bootstrap.Modal.getOrCreateInstance(el);
+    // If the Start button was inside another open modal (the Schedule's
+    // flight details), close that one first so the two don't stack.
+    var open = document.querySelector('.modal.show');
+    if (open && open !== el) {
+      open.addEventListener('hidden.bs.modal', function once() {
+        open.removeEventListener('hidden.bs.modal', once);
+        modal.show();
+      });
+      bootstrap.Modal.getOrCreateInstance(open).hide();
+    } else {
+      modal.show();
+    }
+    return true;
+  }
+  // Delegated on the document so it keeps working after the dashboard /
+  // schedule live refresh swaps the table HTML out.
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form.classList || !form.classList.contains('early-start-form')) return;
+    var move = form.querySelector('input[name="move_to_now"]');
+    if (move && move.value === '1') return;
+    if (showPrompt(form)) e.preventDefault();
+  }, true);
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest || !e.target.closest('#es-confirm') || !pendingForm) return;
+    var move = pendingForm.querySelector('input[name="move_to_now"]');
+    if (move) move.value = '1';
+    var btn = document.getElementById('es-confirm');
+    btn.disabled = true;
+    pendingForm.submit();
+  });
+})();
+</script>

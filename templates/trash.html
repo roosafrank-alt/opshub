@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Recently Deleted - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-trash3"></i> Recently Deleted</h4>
+  {% if deleted_projects or deleted_assets %}
+  <form method="post" action="{{ url_for('trash_empty') }}" data-confirm="Permanently delete everything in Recently Deleted? This cannot be undone." data-confirm-style="danger">
+    <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash3"></i> Empty Trash</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card p-3 mb-3">
+  <h6>Projects ({{ deleted_projects|length }})</h6>
+  {% if deleted_projects %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Code</th><th>Name</th><th>Deleted</th><th></th></tr></thead>
+      <tbody>
+        {% for p in deleted_projects %}
+        <tr>
+          <td><code class="text-primary">{{ p.code }}</code></td>
+          <td>{{ p.name }}</td>
+          <td><small class="text-muted">{{ p.deleted_at }}</small></td>
+          <td class="text-end text-nowrap">
+            <form method="post" action="{{ url_for('project_restore', project_id=p.id) }}" class="d-inline">
+              <button class="btn btn-sm btn-outline-success">Restore</button>
+            </form>
+            <form method="post" action="{{ url_for('project_purge', project_id=p.id) }}" class="d-inline" data-confirm="Permanently delete this project and all its history? This cannot be undone." data-confirm-style="danger">
+              <button class="btn btn-sm btn-outline-danger">Delete Forever</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted small mb-0">No deleted projects.</p>
+  {% endif %}
+</div>
+
+<div class="card p-3">
+  <h6>Aircraft ({{ deleted_assets|length }})</h6>
+  {% if deleted_assets %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Tag</th><th>Name</th><th>Deleted</th><th></th></tr></thead>
+      <tbody>
+        {% for a in deleted_assets %}
+        <tr>
+          <td>{{ a.tag }}</td>
+          <td>{{ a.name or '-' }}</td>
+          <td><small class="text-muted">{{ a.deleted_at }}</small></td>
+          <td class="text-end text-nowrap">
+            <form method="post" action="{{ url_for('asset_restore', asset_id=a.id) }}" class="d-inline">
+              <button class="btn btn-sm btn-outline-success">Restore</button>
+            </form>
+            <form method="post" action="{{ url_for('asset_purge', asset_id=a.id) }}" class="d-inline" data-confirm="Permanently delete this asset and its maintenance history? Linked projects are kept, just unlinked. This cannot be undone." data-confirm-style="danger">
+              <button class="btn btn-sm btn-outline-danger">Delete Forever</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted small mb-0">No deleted assets.</p>
+  {% endif %}
+</div>
+{% endblock %}

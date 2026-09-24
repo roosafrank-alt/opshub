@@ -1,0 +1,44 @@
+{#- Pilot badge (see pilot_badge_info() in flight.py): a pill in the
+   certificate's tier color and icon - Student < Sport < Recreational <
+   Private < Commercial < ATP - plus a gold star per add-on rating (each
+   rating also gets its own badge - rating_badges below). size: 'sm' for lists, 'lg' for the
+   profile. #}
+{% macro pilot_badge(row, size='sm') %}
+{%- set b = pilot_badge_info(row) -%}
+{%- if b -%}
+<span class="pilot-badge pilot-badge-{{ size }} pilot-tier-{{ b.tier }}" title="{{ b.title }}" style="--pb-color: {{ b.color }};">
+  <i class="bi {{ b.icon }}"></i> {{ b.label if size == 'lg' else b.short }}
+  {%- if b.stars %} <span class="pilot-badge-stars">{% for i in range(b.stars if b.stars < 8 else 8) %}&#9733;{% endfor %}</span>{% endif -%}
+</span>
+{%- endif -%}
+{% endmacro %}
+
+{#- One badge per rating/endorsement (Instrument, Complex, High Performance,
+   Tailwheel, Multi-Engine, CFI, CFII, MEI) - see RATING_BADGES in
+   flight.py. 'sm' shows short text for lists; 'lg' the full name. #}
+{% macro rating_badges(row, size='sm') %}
+{%- for r in rating_badge_items(row) -%}
+<span class="rating-badge rating-badge-{{ size }}" title="{{ r.label }}" style="--rb-color: {{ r.color }};"><i class="bi {{ r.icon }}"></i>{% if size == 'lg' %} {{ r.label }}{% else %} {{ r.short }}{% endif %}</span>
+{%- endfor -%}
+{% endmacro %}
+
+{% macro pilot_badge_css() %}
+<style>
+  .pilot-badge { display: inline-flex; align-items: center; gap: .25rem; border-radius: 999px; color: #fff;
+    background: var(--pb-color); font-weight: 700; white-space: nowrap; vertical-align: middle; line-height: 1.2;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
+  .pilot-badge-sm { font-size: .68rem; padding: .12rem .45rem; }
+  .pilot-badge-lg { font-size: .95rem; padding: .3rem .8rem; }
+  .pilot-badge-stars { color: #ffd43b; letter-spacing: -1px; text-shadow: 0 0 1px rgba(0,0,0,.5); }
+  .pilot-badge-cfi { background: rgba(255,255,255,.25); border-radius: 999px; padding: 0 .35rem; font-size: .85em; }
+  /* Higher tiers get a little more shine. */
+  .pilot-tier-4 { box-shadow: inset 0 0 0 1px rgba(255,255,255,.35), 0 0 0 1px var(--pb-color); }
+  .pilot-tier-5 { background: linear-gradient(135deg, var(--pb-color), #2d1b4e); box-shadow: 0 0 0 2px rgba(111,66,193,.3); }
+  .rating-badge { display: inline-flex; align-items: center; gap: .2rem; border-radius: 6px; color: var(--rb-color);
+    background: #fff; border: 1.5px solid var(--rb-color); font-weight: 700; white-space: nowrap; vertical-align: middle;
+    line-height: 1.2; margin-left: .15rem; }
+  .rating-badge-sm { font-size: .6rem; padding: .05rem .3rem; }
+  .rating-badge-lg { font-size: .8rem; padding: .2rem .5rem; margin-bottom: .2rem; }
+  .pilot-tier-6 { background: linear-gradient(135deg, #f5d76e, var(--pb-color) 45%, #7a5a00); box-shadow: 0 0 0 2px rgba(184,134,11,.35); }
+</style>
+{% endmacro %}

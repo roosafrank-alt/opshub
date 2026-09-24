@@ -1,0 +1,138 @@
+{% extends "admin_base.html" %}
+{% block title %}Notification Settings - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<h4 class="mb-3"><i class="bi bi-bell"></i> Notification Settings</h4>
+<p class="text-muted">
+  Once these are set up, the nightly reminder check (run on a schedule on the Pi) will email and/or text
+  anyone who's opted in on their account (set per-person on the <a href="{{ url_for('admin_users_list') }}">Accounts</a> page)
+  for low parts stock, maintenance/inspections coming due, and upcoming scheduled flights.
+</p>
+
+<form method="post" action="{{ url_for('admin_notifications') }}">
+  <div class="card p-4 mb-4">
+    <h5 class="mb-3">
+      Email (SMTP)
+      {% if email_configured %}<span class="badge bg-success">Configured</span>{% else %}<span class="badge bg-secondary">Not set up</span>{% endif %}
+    </h5>
+    <div class="row">
+      <div class="col-8 mb-3">
+        <label class="form-label">SMTP Host</label>
+        <input type="text" name="smtp_host" class="form-control" value="{{ settings.smtp_host }}" placeholder="smtp.gmail.com">
+      </div>
+      <div class="col-4 mb-3">
+        <label class="form-label">Port</label>
+        <input type="text" name="smtp_port" class="form-control" value="{{ settings.smtp_port or '587' }}">
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Username (your email address)</label>
+      <input type="text" name="smtp_username" class="form-control" value="{{ settings.smtp_username }}" placeholder="you@gmail.com">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">App Password <span class="text-muted small">(not your regular email password - see below)</span></label>
+      <input type="password" name="smtp_password" class="form-control" value="{{ settings.smtp_password }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">From Address <span class="text-muted small">(optional - defaults to the username above)</span></label>
+      <input type="text" name="smtp_from" class="form-control" value="{{ settings.smtp_from }}">
+    </div>
+    <div class="form-text">
+      For Gmail: turn on 2-Step Verification, then create an "App Password" at
+      myaccount.google.com/apppasswords and paste that here (not your normal Gmail password). Host is
+      smtp.gmail.com, port 587.
+    </div>
+  </div>
+
+  <div class="card p-4 mb-4">
+    <h5 class="mb-3">
+      Text Messages (Twilio)
+      {% if sms_configured %}<span class="badge bg-success">Configured</span>{% else %}<span class="badge bg-secondary">Not set up</span>{% endif %}
+    </h5>
+    <div class="mb-3">
+      <label class="form-label">Account SID</label>
+      <input type="text" name="twilio_account_sid" class="form-control" value="{{ settings.twilio_account_sid }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Auth Token</label>
+      <input type="password" name="twilio_auth_token" class="form-control" value="{{ settings.twilio_auth_token }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Twilio Phone Number <span class="text-muted small">(the number texts are sent from)</span></label>
+      <input type="text" name="twilio_from_number" class="form-control" value="{{ settings.twilio_from_number }}" placeholder="+15551234567">
+    </div>
+    <div class="form-text">
+      From twilio.com: sign up, buy a phone number (about $1/mo), then copy the Account SID and Auth Token
+      from your Twilio Console dashboard.
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary fw-bold mb-4">Save Notification Settings</button>
+</form>
+
+<div class="row">
+  <div class="col-md-6 mb-3">
+    <form method="post" action="{{ url_for('admin_notifications_test_email') }}" class="d-flex gap-2">
+      <input type="email" name="test_email" class="form-control" placeholder="Send a test email to...">
+      <button type="submit" class="btn btn-outline-secondary text-nowrap">Send Test</button>
+    </form>
+  </div>
+  <div class="col-md-6 mb-3">
+    <form method="post" action="{{ url_for('admin_notifications_test_sms') }}" class="d-flex gap-2">
+      <input type="tel" name="test_phone" class="form-control" placeholder="Send a test text to...">
+      <button type="submit" class="btn btn-outline-secondary text-nowrap">Send Test</button>
+    </form>
+  </div>
+</div>
+
+<div class="card p-4 mb-4" id="push-test">
+  <h5 class="mb-2"><i class="bi bi-phone-vibrate"></i> Test Phone Alerts</h5>
+  <p class="text-muted small mb-3">
+    Sends a test phone alert right now, so you can check that someone's phone is actually getting them.
+    A person only shows a device count once they've tapped <strong>Enable on this device</strong> in My Account on that phone.
+  </p>
+  <form method="post" action="{{ url_for('admin_notifications_test_push') }}">
+    <div class="mb-2">
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="send_to" id="push-to-some" value="some" checked>
+        <label class="form-check-label" for="push-to-some">Selected people</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="send_to" id="push-to-all" value="all">
+        <label class="form-check-label" for="push-to-all">Everyone with phone alerts turned on</label>
+      </div>
+    </div>
+    <div id="push-people" class="border rounded p-2 mb-3" style="max-height: 260px; overflow-y: auto;">
+      {% for p in push_people %}
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="user_ids" value="{{ p.id }}" id="push-user-{{ p.id }}">
+        <label class="form-check-label" for="push-user-{{ p.id }}">
+          {{ p.name }}
+          {% if p.device_count %}<span class="badge bg-success">{{ p.device_count }} device{{ 's' if p.device_count != 1 }}</span>
+          {% else %}<span class="badge bg-secondary">no devices</span>{% endif %}
+        </label>
+      </div>
+      {% else %}
+      <p class="text-muted small mb-0">No flight school accounts yet.</p>
+      {% endfor %}
+    </div>
+    <div class="mb-3">
+      <label class="form-label small">Message <span class="text-muted">(optional)</span></label>
+      <input type="text" name="test_message" class="form-control" maxlength="140" placeholder="Test alert - if you can see this, phone alerts are working on this device.">
+    </div>
+    <button type="submit" class="btn btn-outline-primary"><i class="bi bi-send"></i> Send Test Alert</button>
+  </form>
+</div>
+<script>
+(function () {
+  var all = document.getElementById('push-to-all'), some = document.getElementById('push-to-some');
+  var box = document.getElementById('push-people');
+  function sync() { box.style.opacity = all.checked ? .45 : 1; box.querySelectorAll('input').forEach(function (i) { i.disabled = all.checked; }); }
+  all.addEventListener('change', sync); some.addEventListener('change', sync);
+})();
+</script>
+
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Flight History - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0">Flight History (<span id="visible-count">{{ flights|length }}</span>)</h4>
+  <div class="d-flex align-items-center gap-2">
+    <input type="text" id="history-search" class="form-control form-control-sm" placeholder="Search plane, instructor, student..." style="min-width:240px;">
+    <button type="button" id="clear-filter" class="btn btn-outline-secondary btn-sm" style="display:none;">Clear filter</button>
+    {% if can_bill %}
+    <a href="{{ url_for('flight.billing') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-receipt"></i> Billing</a>
+    {% endif %}
+  </div>
+</div>
+
+<p class="text-muted small mb-2">Click any plane, student, or instructor below to filter the list to just them.</p>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 table-stack" id="history-table">
+      <thead class="table-light">
+        <tr>
+          <th>Date</th><th>Plane</th><th>Student</th><th>Instructor</th>
+          <th>Hobbs</th><th>Tach</th><th>Oil Added</th>
+          {% if can_bill %}<th>Cost</th><th>Paid</th>{% endif %}
+          <th>Notes</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in flights %}
+        <tr data-search="{{ (f.plane_tag ~ ' ' ~ (f.plane_name or '') ~ ' ' ~ (f.cfi_name or 'solo') ~ ' ' ~ f.student_name)|lower }}" class="history-row" style="cursor:pointer;" data-href="{{ url_for('flight.log_detail', flight_id=f.id) }}">
+          <td data-label="Date"><small>{{ f.flight_date|usdate }}</small></td>
+          <td data-label="Plane"><a href="#" class="filter-chip text-decoration-none" data-filter="{{ f.plane_tag|lower }}">{{ f.plane_tag }}</a></td>
+          <td data-label="Student"><a href="#" class="filter-chip text-decoration-none" data-filter="{{ f.student_name|lower }}">{{ f.student_name }}</a></td>
+          <td data-label="Instructor">{% if f.solo %}<span class="badge bg-secondary">Solo</span>{% else %}<a href="#" class="filter-chip text-decoration-none" data-filter="{{ (f.cfi_name or '')|lower }}">{{ f.cfi_name or '-' }}</a>{% endif %}</td>
+          <td data-label="Hobbs">{% if f.hobbs_start is not none and f.hobbs_end is not none %}{{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }} hrs{% else %}-{% endif %}</td>
+          <td data-label="Tach">{% if f.tach_start is not none and f.tach_end is not none %}{{ '%.1f'|format(f.tach_end - f.tach_start) }} hrs{% else %}-{% endif %}</td>
+          <td data-label="Oil Added">{% if f.oil_added_qt %}{{ '%g'|format(f.oil_added_qt) }} qt{% else %}-{% endif %}</td>
+          {% if can_bill %}
+          <td data-label="Cost"><small>${{ '%.2f'|format(f.total) }}{% if f.ground_hours %}<br>(incl. {{ '%g'|format(f.ground_hours) }} hr ground){% endif %}{% if f.instructor_clock_hours is not none %}<br><span class="badge bg-info text-dark">Clocked {{ '%.1f'|format(f.instructor_clock_hours) }} hr instructor time</span>{% endif %}</small></td>
+          <td data-label="Paid">
+            {% if f.paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}
+            <form method="post" action="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" class="d-inline" data-confirm="{{ 'Mark this flight as UNPAID? It will show as owed again.' if f.paid else 'Mark this flight as PAID?' }}" data-confirm-title="{{ 'Mark Unpaid' if f.paid else 'Mark Paid' }}" data-confirm-ok="{{ 'Yes, mark unpaid' if f.paid else 'Yes, mark paid' }}" data-confirm-style="{{ 'warning' if f.paid else 'success' }}">
+              <button class="btn btn-link btn-sm p-0 ms-1">{{ 'Mark unpaid' if f.paid else 'Mark paid' }}</button>
+            </form>
+          </td>
+          {% endif %}
+          <td class="stack-full" data-label="Notes">
+            <small>{{ f.notes or '-' }}</small>
+            {% if f.squawk %}{% if f.squawk_acknowledged_at %}<span class="badge bg-secondary ms-1">Squawk ack'd</span>{% else %}<span class="badge bg-danger ms-1">Open Squawk</span>{% endif %}{% endif %}
+          </td>
+          <td data-label="">
+            <a href="{{ url_for('flight.log_detail', flight_id=f.id) }}" class="btn btn-outline-secondary btn-sm" title="More details"><i class="bi bi-info-circle"></i></a>
+            {% if session.get('is_master_admin') or session.get('cfi_id') %}
+            <a href="{{ url_for('flight.log_edit', flight_id=f.id) }}" class="btn btn-outline-primary btn-sm" title="Edit this flight" onclick="event.stopPropagation();"><i class="bi bi-pencil"></i></a>
+            {% endif %}
+            {% if session.get('is_master_admin') %}
+            <form method="post" action="{{ url_for('flight.log_delete', flight_id=f.id) }}" class="d-inline" data-confirm="Permanently delete this flight ({{ f.flight_date|usdate }}, {{ f.plane_tag }}, {{ f.student_name }})? Its ${{ '%.2f'|format(f.total) }} charge comes off the student's account. This can't be undone." data-confirm-title="Delete Flight" data-confirm-ok="Yes, delete it" data-confirm-style="danger">
+              <button class="btn btn-outline-danger btn-sm" title="Delete this flight (admin)"><i class="bi bi-trash"></i></button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="11" class="text-muted text-center py-3">No flights logged yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<p class="text-muted small mt-2">Oil-consumption analytics (qt/hr, hours-to-oil-change) are coming in a later phase. Oil added and squawks are also visible from the plane's profile in Maintenance.</p>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var input = document.getElementById('history-search');
+  var clearBtn = document.getElementById('clear-filter');
+  var countEl = document.getElementById('visible-count');
+  var rows = document.querySelectorAll('#history-table tbody tr[data-search]');
+
+  function applyFilter(q) {
+    q = (q || '').trim().toLowerCase();
+    var visible = 0;
+    rows.forEach(function (row) {
+      var match = row.getAttribute('data-search').indexOf(q) !== -1;
+      row.style.display = match ? '' : 'none';
+      if (match) { visible++; }
+    });
+    countEl.textContent = visible;
+    clearBtn.style.display = q ? '' : 'none';
+  }
+
+  input.addEventListener('input', function () { applyFilter(input.value); });
+
+  clearBtn.addEventListener('click', function () {
+    input.value = '';
+    applyFilter('');
+  });
+
+  document.querySelectorAll('.filter-chip').forEach(function (chip) {
+    chip.addEventListener('click', function (e) {
+      e.preventDefault();
+      var val = chip.getAttribute('data-filter');
+      if (!val) { return; }
+      input.value = val;
+      applyFilter(val);
+      input.focus();
+    });
+  });
+
+  // Clicking a row opens its detail page - unless the click actually landed
+  // on one of the row's own interactive bits (filter chip, mark-paid
+  // button/form), which keep their own behavior.
+  document.querySelectorAll('.history-row').forEach(function (row) {
+    row.addEventListener('click', function (e) {
+      if (e.target.closest('a, button, form')) { return; }
+      window.location.href = row.getAttribute('data-href');
+    });
+  });
+})();
+</script>
+{% endblock %}

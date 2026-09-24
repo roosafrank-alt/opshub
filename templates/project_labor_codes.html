@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Labor Codes - {{ project.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+  <h4 class="mb-0">Labor Codes - {{ project.code }}</h4>
+  <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Print All</button>
+</div>
+<p class="text-muted no-print">Scan a task's code on the <a href="{{ url_for('labor_page') }}">Labor</a> page to select it, then scan a laborer's code to start their timer.</p>
+
+<div class="d-flex flex-wrap gap-3 justify-content-center">
+  <div class="label-card" style="width: 240px; padding: 16px;">
+    <div style="font-weight:700;">{{ project.name }}</div>
+    <div class="text-muted small mb-1">General (whole project)</div>
+    <div class="task-qr d-flex justify-content-center my-2" data-code="TASK-{{ project.code }}"></div>
+    <div style="font-size:0.85rem; font-weight:700;">{{ project.code }}</div>
+  </div>
+  {% for s in sections %}
+  <div class="label-card" style="width: 240px; padding: 16px;">
+    <div style="font-weight:700;">{{ project.name }}</div>
+    <div class="text-muted small mb-1">{{ s }}</div>
+    <div class="task-qr d-flex justify-content-center my-2" data-code="TASK-{{ project.code }}::{{ s }}"></div>
+    <div style="font-size:0.85rem; font-weight:700;">{{ project.code }} &middot; {{ s }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+document.querySelectorAll('.task-qr').forEach(function (el) {
+  new QRCode(el, { text: el.getAttribute('data-code'), width: 140, height: 140 });
+});
+</script>
+{% endblock %}

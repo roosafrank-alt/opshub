@@ -1,0 +1,173 @@
+body { background: #f4f5f7; }
+.card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.stat-card { border-radius: .75rem; }
+.stat-card .display-6 { font-weight: 700; }
+.low-stock-row { background: #fff3cd; }
+.table-hover tbody tr { cursor: pointer; }
+#scanner-video-wrap { max-width: 480px; margin: 0 auto; }
+#reader { width: 100%; }
+.scan-flash-in { animation: flashGreen .6s ease; }
+.scan-flash-out { animation: flashBlue .6s ease; }
+.scan-flash-error { animation: flashRed .6s ease; }
+@keyframes flashGreen { 0% { background:#d1e7dd;} 100% { background:transparent;} }
+@keyframes flashBlue { 0% { background:#cfe2ff;} 100% { background:transparent;} }
+@keyframes flashRed { 0% { background:#f8d7da;} 100% { background:transparent;} }
+.label-sheet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.label-card { border: 1px dashed #999; padding: 8px; text-align: center; page-break-inside: avoid; }
+@media print {
+  nav, .no-print { display: none !important; }
+  body { background: #fff; }
+  .label-card { border: 1px solid #333; }
+}
+.big-toggle .btn { font-size: 1.25rem; padding: .75rem 1.5rem; }
+#scan-input { font-size: 1.5rem; }
+
+/* Mobile-friendly tables: add class="table-stack" + data-label="..." on each
+   <td> and, below a phone-width breakpoint, each row renders as a stacked
+   card instead of a wide horizontally-scrolling table, so nothing gets
+   clipped between the screen's left/right margins. Each row is a 2-column
+   grid (label+value pairs side by side) rather than one field per full-width
+   line - that's what actually uses the screen's width instead of just
+   avoiding clipping, and it cuts each card's height roughly in half. A cell
+   with no data-label (typically an action button/link) or the "stack-full"
+   class (a field whose value runs long - notes, reasons, addresses) spans
+   the full row instead of sharing a column. */
+@media (max-width: 575.98px) {
+  .table-stack thead { display: none; }
+  .table-stack, .table-stack tbody { display: block; width: 100%; }
+  .table-stack { border: none; }
+  .table-stack tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .1rem .75rem;
+    border: 1px solid #dee2e6;
+    border-radius: .4rem;
+    margin-bottom: .4rem;
+    padding: .5rem .6rem;
+    background: #fff;
+  }
+  .table-stack tbody tr:last-child { margin-bottom: 0; }
+  .table-stack td {
+    display: block;
+    min-width: 0;
+    border: none !important;
+    padding: .15rem 0 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    text-align: left !important;
+  }
+  .table-stack td:empty { display: none; }
+  .table-stack td[data-label]:not([data-label=""])::before {
+    content: attr(data-label);
+    display: block;
+    font-size: .62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    color: #6c757d;
+    line-height: 1.2;
+  }
+  .table-stack td[data-label=""],
+  .table-stack td.stack-full { grid-column: 1 / -1; }
+  .table-stack .btn-sm { font-size: .78rem; padding: .3rem .55rem; }
+
+  /* Tighten overall spacing on phones so blocks/cards use the full width
+     between the screen's edges instead of leaving space wasted in gutters
+     and padding - complements table-stack above (which fixes clipping),
+     this pass is about not wasting the room that was freed up. */
+  .container-fluid { padding-left: .5rem; padding-right: .5rem; }
+  .container-fluid.py-3 { padding-top: .5rem; padding-bottom: .5rem; }
+  .row.g-3, .row.g-4 { --bs-gutter-x: .5rem; --bs-gutter-y: .5rem; }
+  .card.p-3 { padding: .65rem !important; }
+  .card.p-4 { padding: .85rem !important; }
+  .stat-card .display-6 { font-size: 1.6rem; }
+  .fs-2 { font-size: 1.5rem !important; }
+  .fs-3 { font-size: 1.3rem !important; }
+  h4.mb-3, h4 { font-size: 1.15rem; }
+}
+
+/* Flight chips: a compact, clickable box per flight used on the flight
+   dashboard's per-day schedule (_dashboard_live.html) and the Schedule
+   calendar's List view (_schedule_live.html). Status is carried by the
+   whole box's color plus a small corner icon - open circle (scheduled),
+   a wavy line (in progress), filled check (complete) - instead of a text
+   badge, so a glance at the color/shape tells you the status without
+   reading anything. Clicking a chip reveals more (see the flight-chip
+   variant's own JS: dashboard.html's delegated handler toggles
+   .flight-chip-detail; the Schedule calendar's chips instead reuse the
+   existing .schedule-block click handler/detail modal). */
+.flight-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: .4rem;
+  min-width: 5.5rem;
+  padding: .35rem 1.4rem .35rem .5rem;
+  border-radius: .5rem;
+  cursor: pointer;
+  transition: box-shadow .15s ease;
+}
+.flight-chip:hover { box-shadow: 0 0 0 2px rgba(0,0,0,.08); }
+.flight-chip.flight-chip-open { box-shadow: 0 0 0 2px rgba(0,0,0,.18); }
+.flight-chip-icon { position: absolute; top: .35rem; right: .4rem; font-size: .68rem; }
+.flight-chip-student { font-weight: 600; font-size: .82rem; line-height: 1.15; }
+.flight-chip-plane { font-size: .74rem; color: #495057; line-height: 1.15; }
+.flight-chip-endtime { font-size: .68rem; color: #868e96; line-height: 1.15; white-space: nowrap; }
+.flight-chip-day { font-weight: 700; font-size: .82rem; margin-right: .15rem; }
+.flight-chip-detail { margin-top: .35rem; padding-top: .35rem; border-top: 1px dashed rgba(0,0,0,.18); font-size: .74rem; min-width: 8rem; }
+.flight-chip-time { font-size: .78rem; font-weight: 700; color: #495057; padding-top: .45rem; min-width: 3.4rem; }
+/* Same-time flights render as a grid, one column per plane in the fleet
+   (see plane_lane/plane_color in _dashboard_context()) - each chip is
+   placed in its plane's own column via an inline grid-column style, so a
+   given plane always lands in the same visual slot instead of shifting
+   around based on whichever flight sorts first that moment. */
+.flight-chip-grid { display: grid; gap: .5rem; flex: 1 1 auto; min-width: 0; }
+/* The dashboard's chips (not the Schedule List view's, which have no
+   per-flight instructor/plane colors) get two flush-left accent stripes -
+   instructor color first and a little wider, then the assigned plane's own
+   color right after it - clipped to the chip's rounded corners. */
+.flight-chip-striped { padding-left: 1.75rem; overflow: hidden; }
+.flight-chip-stripe { position: absolute; top: 0; bottom: 0; left: 0; }
+.flight-chip-stripe-instructor { width: 12px; }
+.flight-chip-stripe-plane { width: 10px; left: 12px; }
+
+.flight-chip-scheduled { background: #e7f1ff; border: 1px solid #b6d4fe; }
+.flight-chip-scheduled .flight-chip-icon { color: #0d6efd; }
+.flight-chip-in_progress { background: #fff8e1; border: 1px solid #ffe69c; animation: flight-chip-pulse 1.8s ease-in-out infinite; }
+.flight-chip-in_progress .flight-chip-icon { color: #dc9b00; }
+.flight-chip-completed { background: #eaf7ee; border: 1px solid #b6e2c1; opacity: .85; }
+.flight-chip-completed .flight-chip-icon { color: #198754; }
+@keyframes flight-chip-pulse {
+  0%, 100% { box-shadow: 0 0 3px rgba(255,193,7,.5); }
+  50% { box-shadow: 0 0 8px rgba(255,193,7,.9); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flight-chip-in_progress { animation: none; }
+}
+@media (max-width: 575.98px) {
+  .flight-chip { min-width: 4.6rem; padding: .3rem 1.25rem .3rem .4rem; }
+  .flight-chip-striped { padding-left: 1.55rem; }
+  .flight-chip-student, .flight-chip-day { font-size: .76rem; }
+  .flight-chip-plane { font-size: .68rem; }
+  .flight-chip-endtime { font-size: .6rem; }
+}
+
+/* Dashboard section collapse - Today's Schedule / Upcoming / Recent Flights
+   each start closed (see the "hidden" .dash-collapse-body in
+   _dashboard_live.html) so the dashboard loads as a compact stack of
+   headers+badges, and clicking a header reveals its full list. The chevron
+   rotates to point down while open (see dashboard.html's click handler,
+   which toggles the "open" class alongside the body's hidden attribute). */
+.dash-collapse-toggle { cursor: pointer; }
+.dash-collapse-toggle:hover h6 { text-decoration: underline; }
+.dash-collapse-chevron { transition: transform .15s ease; color: #6c757d; }
+.dash-collapse-toggle.open .dash-collapse-chevron { transform: rotate(90deg); }
+
+/* Admin error log - each error is one clickable row (see
+   templates/admin_system_log.html); clicking reveals its full traceback in
+   the row directly below instead of always showing every traceback at
+   once. */
+.error-log-row { cursor: pointer; }
+.error-log-chevron { transition: transform .15s ease; color: #6c757d; }
+.error-log-row.error-log-row-open .error-log-chevron { transform: rotate(90deg); }
+.error-log-detail-row td { border-top: none; }

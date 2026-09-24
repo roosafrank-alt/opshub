@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Logbook Entry - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-8">
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h4 class="mb-0"><i class="bi bi-journal-text"></i> {{ log_type_labels.get(e.log_type, e.log_type) }} log entry</h4>
+    <p class="mb-0 small text-muted">
+      {% if e.asset_id %}<a href="{{ url_for('logbook.asset_logbook', asset_id=e.asset_id, log=e.log_type) }}">{{ e.asset_tag }}</a> &middot; {% endif %}
+      {% if e.project_id %}<a href="{{ url_for('logbook.project_logbook', project_id=e.project_id) }}"><code>{{ e.project_code }}</code> {{ e.project_name }}</a> &middot; {{ e.section or 'Combined' }}{% if e.project_type %} ({{ project_type_labels.get(e.project_type, e.project_type) }}){% endif %} &middot; {% endif %}
+      saved by {{ e.created_by or '?' }} {{ e.created_at|usdate(True) }}{% if e.updated_at != e.created_at %}, edited {{ e.updated_at|usdate(True) }}{% endif %}
+    </p>
+  </div>
+  <a class="btn btn-primary btn-sm" target="_blank" href="{{ url_for('logbook.entry_print', entry_id=e.id) }}"><i class="bi bi-printer"></i> Print Sticker</a>
+</div>
+
+<form method="post" class="card p-3">
+  <div class="row g-2">
+    <div class="col-6 col-md-3">
+      <label class="form-label small mb-1">Date</label>
+      <input type="date" name="entry_date" value="{{ e.entry_date }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label small mb-1">Log</label>
+      <select name="log_type" class="form-select form-select-sm">
+        {% for code, label in log_types %}<option value="{{ code }}" {{ 'selected' if code == e.log_type }}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label small mb-1">Tach</label>
+      <input type="number" step="0.1" name="tach" value="{{ e.tach_hours if e.tach_hours is not none else '' }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label small mb-1">Hobbs</label>
+      <input type="number" step="0.1" name="hobbs" value="{{ e.hobbs_hours if e.hobbs_hours is not none else '' }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-12">
+      <label class="form-label small mb-1">Entry</label>
+      <textarea name="body" rows="{{ [e.body.count('\n') + 2, 18]|min }}" class="form-control" style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.85rem;">{{ e.body }}</textarea>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label small mb-1">Signed by <span class="text-muted">(optional)</span></label>
+      <input type="text" name="signed_by" value="{{ e.signed_by or '' }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label small mb-1">Certificate # <span class="text-muted">(optional)</span></label>
+      <input type="text" name="cert_number" value="{{ e.cert_number or '' }}" class="form-control form-control-sm">
+    </div>
+  </div>
+  <div class="d-flex justify-content-between mt-3">
+    <button class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Save changes</button>
+  </div>
+</form>
+{% if is_admin %}
+<form method="post" action="{{ url_for('logbook.entry_delete', entry_id=e.id) }}" class="mt-2 text-end" data-confirm="Delete this logbook entry?" data-confirm-style="danger" data-confirm-ok="Yes, delete">
+  <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash3"></i> Delete entry</button>
+</form>
+{% endif %}
+</div>
+</div>
+{% endblock %}

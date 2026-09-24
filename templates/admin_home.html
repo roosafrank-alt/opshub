@@ -1,0 +1,89 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-9">
+<h4 class="mb-1"><i class="bi bi-shield-lock-fill"></i> Admin</h4>
+<p class="text-muted small mb-4">Everything account- and system-wide lives here, in one place - whichever navbar you came from.</p>
+
+<div class="row g-3">
+
+  <div class="col-md-6">
+    <a href="{{ url_for('admin_users_list') }}" class="text-decoration-none">
+      <div class="card p-3 h-100 admin-tile-card">
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-shield-lock fs-2 text-primary"></i>
+          <div>
+            <div class="fw-bold text-dark">Accounts</div>
+            <div class="text-muted small">{{ user_count }} active user{{ '' if user_count == 1 else 's' }} - roles, passwords, access</div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-md-6">
+    <a href="{{ url_for('admin_notifications') }}" class="text-decoration-none">
+      <div class="card p-3 h-100 admin-tile-card">
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-bell fs-2 text-primary"></i>
+          <div>
+            <div class="fw-bold text-dark">Notifications</div>
+            <div class="text-muted small">Email &amp; SMS reminders, low stock, maintenance alerts</div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-md-6">
+    <a href="{{ url_for('admin_system') }}" class="text-decoration-none">
+      <div class="card p-3 h-100 admin-tile-card">
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-hdd-rack fs-2 text-primary"></i>
+          <div>
+            <div class="fw-bold text-dark">System</div>
+            <div class="text-muted small">Restart the app, reboot the Pi, error log{% if error_log_count %} <span class="badge bg-warning text-dark">has entries</span>{% endif %}</div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-md-6">
+    <a href="{{ url_for('admin_reset') }}" class="text-decoration-none">
+      <div class="card p-3 h-100 admin-tile-card border-danger-subtle">
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-arrow-counterclockwise fs-2 text-danger"></i>
+          <div>
+            <div class="fw-bold text-dark">Reset Data</div>
+            <div class="text-muted small">Clear activity logs, orders, squawks &amp; more - use with care</div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card p-3">
+      <h6 class="mb-2"><i class="bi bi-signpost-split"></i> Jump into a program</h6>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-dark btn-sm"><i class="bi bi-tools"></i> Maintenance</a>
+        <a href="{{ url_for('flight.dashboard') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-airplane-engines"></i> Flight School</a>
+        <a href="{{ url_for('flight.billing') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-receipt"></i> Flight Billing</a>
+        <a href="{{ url_for('flight.students_list') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-people"></i> Students</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+<style>
+  .admin-tile-card { text-decoration: none; transition: transform .12s ease, box-shadow .12s ease; border: 1px solid #e6e2f2; }
+  .admin-tile-card:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(75,63,114,.15); }
+</style>
+{% endblock %}

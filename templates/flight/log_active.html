@@ -1,0 +1,670 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Active Flight - OpsHub{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  .flight-progress-bar {
+    position: relative;
+    overflow: hidden;
+    transition: width 1s linear, background-color .3s ease;
+  }
+  .flight-progress-bar::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.55) 50%, rgba(255,255,255,0) 100%);
+    background-size: 60px 100%;
+    animation: flight-progress-shimmer 1.4s linear infinite;
+  }
+  @keyframes flight-progress-shimmer {
+    0% { background-position: -120px 0; }
+    100% { background-position: 220px 0; }
+  }
+  .adsb-plane-icon.school { color: #fd7e14; }
+  .adsb-plane-icon.other { color: #6c757d; }
+  .adsb-result-row.school { border-left: 3px solid #fd7e14; }
+  .adsb-result-row[role="button"] { cursor: pointer; }
+  .adsb-result-row[role="button"]:hover { background: #f8f9fa; }
+  .adsb-result-selected { background: #fff3cd !important; }
+  .session-overdue-card { border: 2px solid #dc3545 !important; box-shadow: 0 0 0 3px rgba(220,53,69,.2); }
+  /* Glides a marker to each per-second dead-reckoned position (see
+     animateMarkers() below) instead of snapping there, so airborne traffic
+     reads as smooth continuous flight rather than jumping once per ~15s
+     poll. The very next real poll always overwrites the estimate with the
+     true OpenSky position via the same setLatLng() call, so this same
+     transition also (harmlessly) glides that correction into place. */
+  .leaflet-marker-icon { transition: transform 1s linear; }
+</style>
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-stopwatch"></i> Active Flight{{ 's' if flights|length != 1 }}</h4>
+  <div class="d-flex align-items-center gap-3">
+    <span class="text-muted small font-monospace">
+      <span id="zulu-clock">--:--:--Z</span>
+      <span class="text-muted">/</span>
+      <span id="local-clock">--:--:--</span>
+    </span>
+    <a href="{{ url_for('flight.dashboard') }}" class="btn btn-outline-secondary btn-sm">&laquo; Dashboard</a>
+  </div>
+</div>
+
+<style>
+  /* Flights on the left, map pinned on the right - both stay in view
+     together instead of stacking and forcing a scroll past one to see
+     the other. The flights column scrolls internally if there are more
+     than fit; the map column is sticky so it never leaves the viewport.
+     On a phone the columns stack with the active flight list first and
+     the map below it. */
+  @media (min-width: 992px) {
+    #active-flights-col { max-height: calc(100vh - 160px); overflow-y: auto; padding-right: .5rem; }
+    #active-map-col { position: sticky; top: 1rem; align-self: flex-start; }
+  }
+</style>
+<div class="row g-3">
+  <div class="col-lg-5" id="active-flights-col">
+    {% if flights %}
+    {% for f in flights %}
+    <div class="card p-3 mb-3" id="active-flight-{{ f.id }}">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+    <div>
+      <h5 class="mb-0">{{ f.plane_tag }} {% if f.solo %}<span class="badge bg-secondary">Solo</span>{% else %}with {{ f.student_name }}{% endif %} {% if f.paused_at %}<span class="badge bg-warning text-dark"><i class="bi bi-pause-fill"></i> Paused</span>{% endif %}</h5>
+      {% if not f.solo %}<div class="text-muted small">Student: {{ f.student_name }}</div>{% endif %}
+      <div class="text-muted small">Started {{ f.started_at }}</div>
+    </div>
+    <div class="text-end">
+      <div class="text-muted small">Elapsed{% if f.paused_at %} <span class="text-warning">(paused)</span>{% endif %}</div>
+      <div class="display-6 fw-bold elapsed-timer" data-started="{{ f.started_at }}" data-paused-seconds="{{ f.paused_seconds or 0 }}"
+           data-paused-at="{{ f.paused_at or '' }}"
+           data-duration-hours="{{ f.scheduled_duration_hours if f.scheduled_duration_hours is not none else '' }}"
+           data-ack-at="{{ f.overdue_acknowledged_at or '' }}"
+           data-eta-at="{{ f.eta_at or '' }}">00:00:00</div>
+    </div>
+  </div>
+
+  <div class="session-overdue-banner alert alert-danger d-flex justify-content-between align-items-center gap-2 py-2 mb-2 {{ '' if (f.session_status and f.session_status.overdue) else 'd-none' }}">
+    <span><i class="bi bi-exclamation-triangle-fill"></i> Running more than 15 min past its scheduled block.</span>
+    {% if f.can_ack %}
+    <form method="post" action="{{ url_for('flight.log_ack_overdue', flight_id=f.id) }}" class="d-inline mb-0">
+      <button type="submit" class="btn btn-sm btn-light text-danger fw-bold text-nowrap"><i class="bi bi-check-lg"></i> Acknowledge</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if acked_id == f.id %}
+  <div class="alert alert-success py-1 px-2 small mb-2"><i class="bi bi-check-circle-fill"></i> Acknowledged - the running-late alert is quiet for 15 min.</div>
+  {% endif %}
+  {#- Updated ETA for a late flight - shows once the scheduled block is up
+     (the JS below reveals it live), or whenever an ETA is already set.
+     Later bookings sharing the plane, instructor or student that start
+     before the ETA + turnaround get flagged (flight._eta_impacts). #}
+  {% if f.can_ack and f.scheduled_duration_hours %}
+  {% set eta_show = f.eta_label or (f.session_status and f.session_status.remaining_seconds <= 0) %}
+  <div class="session-eta-box border border-warning rounded p-2 mb-2 {{ '' if eta_show else 'd-none' }}" data-eta-set="{{ '1' if f.eta_label else '' }}">
+    {% if eta_saved_id == f.id and f.eta_label %}
+    <div class="alert alert-success py-1 px-2 small mb-2"><i class="bi bi-check-circle-fill"></i> ETA saved: {{ f.eta_label }}.{% if f.eta_affected %} {{ f.eta_affected|length }} later booking{{ 's' if f.eta_affected|length != 1 }} flagged.{% endif %}</div>
+    {% endif %}
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-1 mb-1">
+      <strong class="small"><i class="bi bi-hourglass-split text-warning"></i> {% if f.eta_label %}Updated ETA: {{ f.eta_label }}{% if f.eta_set_by %} <span class="text-muted fw-normal">({{ f.eta_set_by }})</span>{% endif %}{% else %}Running late? Put in an updated ETA{% endif %}</strong>
+      {% if f.eta_label %}
+      <form method="post" action="{{ url_for('flight.log_set_eta', flight_id=f.id) }}" class="mb-0">
+        <input type="hidden" name="clear" value="1">
+        <button type="submit" class="btn btn-link btn-sm p-0 text-muted">Clear</button>
+      </form>
+      {% endif %}
+    </div>
+    <form method="post" action="{{ url_for('flight.log_set_eta', flight_id=f.id) }}" class="d-flex flex-wrap align-items-center gap-1 mb-0">
+      <button type="submit" name="eta_minutes" value="15" class="btn btn-sm btn-warning fw-bold">+15 min</button>
+      <button type="submit" name="eta_minutes" value="30" class="btn btn-sm btn-warning fw-bold">+30 min</button>
+      <button type="submit" name="eta_minutes" value="45" class="btn btn-sm btn-warning fw-bold">+45 min</button>
+      <span class="small text-muted ms-1">or</span>
+      <input type="time" name="eta_time" class="form-control form-control-sm" style="width:auto;" aria-label="ETA time">
+      <button type="submit" class="btn btn-sm btn-dark">Set ETA</button>
+    </form>
+    {% if f.eta_affected %}
+    <div class="small mt-2">
+      <div class="fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill"></i> May delay {{ f.eta_affected|length }} later booking{{ 's' if f.eta_affected|length != 1 }}:</div>
+      {% for b in f.eta_affected %}
+      <div>{{ b.time_label }} &middot; {{ b.plane_tag }} &middot; {{ b.student_name }}{% if b.cfi_name %} with {{ b.cfi_name }}{% else %} (solo){% endif %} <span class="text-muted">- same {{ b.shared|join(', ') }}</span></div>
+      {% endfor %}
+    </div>
+    {% elif f.eta_label %}
+    <div class="small text-muted mt-1">No later bookings affected (checks the same plane, instructor and student, plus {{ eta_turnaround }} min turnaround).</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="mb-2">
+    <div class="d-flex justify-content-between small text-muted mb-1">
+      <span>Scheduled Progress</span>
+      <span class="flight-progress-pct" data-started="{{ f.started_at }}"
+            data-duration-hours="{{ f.scheduled_duration_hours if f.scheduled_duration_hours is not none else 1.5 }}">0%</span>
+    </div>
+    <div class="progress flight-progress-track" style="height:.9rem;">
+      <div class="progress-bar flight-progress-bar bg-warning" role="progressbar"
+           data-started="{{ f.started_at }}"
+           data-duration-hours="{{ f.scheduled_duration_hours if f.scheduled_duration_hours is not none else 1.5 }}"
+           style="width:0%;"></div>
+    </div>
+    {% if f.scheduled_duration_hours is none %}
+    <div class="form-text">No scheduled duration on file for this flight - showing progress against the default 1.5-hr block.</div>
+    {% endif %}
+  </div>
+
+  {% if f.can_end %}
+  <form method="post" action="{{ url_for('flight.log_end', flight_id=f.id) }}" data-confirm="End this flight now? The clock stops and the flight is logged and billed with the numbers entered." data-confirm-title="End Flight" data-confirm-ok="Yes, end flight" data-confirm-style="danger">
+    <div class="row g-2">
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0">Hobbs Start</label>
+        <input type="text" class="form-control form-control-sm" value="{{ '%.1f'|format(f.hobbs_start) if f.hobbs_start is not none else '-' }}" disabled>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0">Hobbs End</label>
+        <input type="number" step="any" name="hobbs_end" class="form-control form-control-sm" placeholder="e.g. 1234.5">
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0">Tach Start</label>
+        <input type="text" class="form-control form-control-sm" value="{{ '%.1f'|format(f.tach_start) if f.tach_start is not none else '-' }}" disabled>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0">Tach End</label>
+        <input type="number" step="any" name="tach_end" class="form-control form-control-sm" placeholder="optional">
+      </div>
+    </div>
+    <div class="row g-2 mt-1">
+      <div class="col-6 col-md-4">
+        <label class="form-label small mb-0">Oil Added (qt)</label>
+        <input type="number" step="any" name="oil_added_qt" class="form-control form-control-sm" placeholder="optional">
+      </div>
+      <div class="col-6 col-md-4">
+        <label class="form-label small mb-0">Extra Ground Time (hrs)</label>
+        <input type="number" step="any" name="ground_time_hours" class="form-control form-control-sm" placeholder="optional, billed separately">
+      </div>
+      {% if not f.solo %}
+      <div class="col-6 col-md-4">
+        <label class="form-label small mb-0">Solo Portion (hrs){% if f.scheduled_part_solo %} <span class="badge bg-info text-dark">booked dual + solo</span>{% endif %}</label>
+        <input type="number" step="0.1" min="0" name="solo_hours" class="form-control form-control-sm" placeholder="part flown solo, if any">
+      </div>
+      {% endif %}
+    </div>
+    <div class="mt-2">
+      <label class="form-label small mb-0">Notes</label>
+      <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="any note here is flagged as a squawk for the shop"></textarea>
+    </div>
+    <div class="form-text mt-1">Ending this stops the clock - the instructor's billed time is the full elapsed time shown above (from Start to End, minus any paused time), not just Hobbs hours.</div>
+    <button type="submit" class="btn btn-danger fw-bold mt-2"><i class="bi bi-stop-fill"></i> End Flight</button>
+  </form>
+  {% if f.paused_at %}
+  <form method="post" action="{{ url_for('flight.log_resume', flight_id=f.id) }}" class="d-inline mt-2">
+    <button type="submit" class="btn btn-success fw-bold"><i class="bi bi-play-fill"></i> Resume Flight</button>
+  </form>
+  {% else %}
+  <form method="post" action="{{ url_for('flight.log_pause', flight_id=f.id) }}" class="d-inline mt-2">
+    <button type="submit" class="btn btn-outline-warning fw-bold"><i class="bi bi-pause-fill"></i> Pause Flight</button>
+  </form>
+  {% endif %}
+  {% else %}
+  <div class="alert alert-secondary small mb-0 py-2">
+    <i class="bi bi-eye"></i> View only - only
+    {% if f.solo %}the student flying solo{% else %}the assigned instructor{% endif %}, or an admin, can end this flight.
+  </div>
+  {% endif %}
+</div>
+    {% endfor %}
+    {% else %}
+    <div class="card p-4 text-center">
+      <i class="bi bi-stopwatch fs-1 text-muted"></i>
+      <p class="text-muted mt-2 mb-0">No flight is currently running. Start one from the <a href="{{ url_for('flight.schedule_calendar') }}">Schedule</a>, or log one that's already done with <a href="{{ url_for('flight.schedule_new', complete=1) }}">Schedule Flight &rarr; Flight Already Complete?</a></p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-7" id="active-map-col">
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <h6 class="mb-0"><i class="bi bi-broadcast"></i> Live Aircraft Map <span class="text-muted small fw-normal">(25nm around N89)</span></h6>
+        <span class="text-muted small" id="live-map-status">Loading...</span>
+      </div>
+      <div class="row g-2 align-items-end mb-2">
+        <div class="col-auto">
+          <label class="form-label small mb-0">Traffic</label>
+          <select id="adsb-mode" class="form-select form-select-sm">
+            <option value="school">Flight School Planes Only</option>
+            <option value="all">All Traffic (25nm of N89)</option>
+          </select>
+        </div>
+        <div class="col">
+          <label class="form-label small mb-0">Search (tail # / callsign)</label>
+          <input type="text" id="adsb-search" class="form-control form-control-sm" placeholder="e.g. N123AB or callsign">
+        </div>
+      </div>
+      <div id="live-map" style="height:min(65vh, 560px); border-radius:8px;"></div>
+      <div class="form-text mt-1">
+        <span class="adsb-plane-icon school">&#9992;</span> Flight School plane &middot;
+        <span class="adsb-plane-icon other">&#9992;</span> Other traffic. A school plane needs an ICAO24/Mode S hex set on its Aircraft profile to appear here at all.
+      </div>
+      <div id="adsb-results" class="mt-2" style="max-height:200px; overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function () {
+  // Jump to + briefly highlight a specific flight card when linked to via #active-flight-<id>
+  if (window.location.hash.indexOf('active-flight-') !== -1) {
+    var target = document.querySelector(window.location.hash);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.style.transition = 'box-shadow .3s ease';
+      target.style.boxShadow = '0 0 0 3px #ffc107';
+      setTimeout(function () { target.style.boxShadow = ''; }, 2500);
+    }
+  }
+})();
+</script>
+<script>
+(function () {
+  var timers = document.querySelectorAll('.elapsed-timer');
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function tick() {
+    timers.forEach(function (el) {
+      var startStr = el.getAttribute('data-started').replace(' ', 'T');
+      var started = new Date(startStr);
+      var pausedSeconds = parseInt(el.getAttribute('data-paused-seconds'), 10) || 0;
+      var pausedAtStr = el.getAttribute('data-paused-at');
+      var now = pausedAtStr ? new Date(pausedAtStr.replace(' ', 'T')) : new Date();
+      var diff = Math.max(0, Math.floor((now - started) / 1000) - pausedSeconds);
+      var h = Math.floor(diff / 3600);
+      var m = Math.floor((diff % 3600) / 60);
+      var s = diff % 60;
+      el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+
+      // Red outline + banner once 15+ min past the scheduled block - a
+      // live mirror of the server-side overdue check (check_session_alerts
+      // in flight.py), so a card open in the background flips red without
+      // needing a page reload. Once acknowledged (server redirect re-renders
+      // data-overdue-initially=0), this recomputes from scratch same as the
+      // server does, so it'll flip red again after another 15 min if still running.
+      var durationHours = parseFloat(el.getAttribute('data-duration-hours'));
+      var card = el.closest('.card');
+      var banner = card ? card.querySelector('.session-overdue-banner') : null;
+      if (durationHours && card) {
+        var remaining = durationHours * 3600 - diff;
+        var ackAtStr = el.getAttribute('data-ack-at');
+        var snoozed = false;
+        if (ackAtStr) {
+          var ackAt = new Date(ackAtStr.replace(' ', 'T'));
+          snoozed = (new Date() - ackAt) / 1000 < 900;
+        }
+        var etaAtStr = el.getAttribute('data-eta-at');
+        if (etaAtStr && new Date() < new Date(etaAtStr.replace(' ', 'T'))) snoozed = true;
+        var overdue = remaining <= -900 && !snoozed;
+        card.classList.toggle('session-overdue-card', overdue);
+        if (banner) banner.classList.toggle('d-none', !overdue);
+        // Reveal the updated-ETA box once the scheduled block is up.
+        var etaBox = card.querySelector('.session-eta-box');
+        if (etaBox && remaining <= 0) etaBox.classList.remove('d-none');
+      }
+    });
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+
+// Tap feedback for Acknowledge / ETA: the tapped button shows "Saving..."
+// right away and the form's buttons lock so a second tap can't double-post.
+// The tapped button's name/value (eta_minutes) is copied into a hidden
+// field first, since disabled buttons aren't sent with the form.
+document.addEventListener('submit', function (e) {
+  var form = e.target;
+  if (!form.matches || !form.matches('.session-overdue-banner form, .session-eta-box form')) return;
+  var btn = e.submitter;
+  if (btn && btn.name) {
+    var h = document.createElement('input');
+    h.type = 'hidden'; h.name = btn.name; h.value = btn.value;
+    form.appendChild(h);
+  }
+  setTimeout(function () {
+    form.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+    if (btn) btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+  }, 0);
+});
+
+(function () {
+  var bars = document.querySelectorAll('.flight-progress-bar');
+  var pcts = document.querySelectorAll('.flight-progress-pct');
+  function tickProgress() {
+    bars.forEach(function (bar) {
+      var startStr = bar.getAttribute('data-started').replace(' ', 'T');
+      var started = new Date(startStr);
+      var durationHours = parseFloat(bar.getAttribute('data-duration-hours')) || 1.5;
+      var elapsedSec = Math.max(0, (new Date() - started) / 1000);
+      var pct = Math.min(100, (elapsedSec / (durationHours * 3600)) * 100);
+      bar.style.width = pct.toFixed(1) + '%';
+      bar.classList.toggle('bg-warning', pct < 85);
+      bar.classList.toggle('bg-danger', pct >= 85);
+    });
+    pcts.forEach(function (el) {
+      var startStr = el.getAttribute('data-started').replace(' ', 'T');
+      var started = new Date(startStr);
+      var durationHours = parseFloat(el.getAttribute('data-duration-hours')) || 1.5;
+      var elapsedSec = Math.max(0, (new Date() - started) / 1000);
+      var pct = Math.min(100, (elapsedSec / (durationHours * 3600)) * 100);
+      el.textContent = Math.round(pct) + '%';
+    });
+  }
+  tickProgress();
+  setInterval(tickProgress, 1000);
+})();
+
+(function () {
+  var zuluEl = document.getElementById('zulu-clock');
+  var localEl = document.getElementById('local-clock');
+  var localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function tickZulu() {
+    var now = new Date();
+    zuluEl.textContent = pad(now.getUTCHours()) + ':' + pad(now.getUTCMinutes()) + ':' + pad(now.getUTCSeconds()) + 'Z';
+    localEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
+      (localTz ? ' ' + now.toLocaleTimeString([], { timeZoneName: 'short' }).split(' ').pop() : '');
+  }
+  tickZulu();
+  setInterval(tickZulu, 1000);
+})();
+
+(function () {
+  var statusEl = document.getElementById('live-map-status');
+  var modeSelect = document.getElementById('adsb-mode');
+  var searchInput = document.getElementById('adsb-search');
+  var resultsEl = document.getElementById('adsb-results');
+
+  // N89 (Joseph Y. Resnick Airport, Ellenville NY) as the default view.
+  var N89_LAT = 41.72778, N89_LON = -74.37722;
+  var map = L.map('live-map').setView([N89_LAT, N89_LON], 10);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 18
+  }).addTo(map);
+  L.marker([N89_LAT, N89_LON], {
+    icon: L.divIcon({ className: '', html: '<div style="font-size:16px;">&#9873;</div>', iconSize: [20, 20], iconAnchor: [10, 10] })
+  }).addTo(map).bindPopup('N89 - Joseph Y. Resnick Airport');
+  L.circle([N89_LAT, N89_LON], { radius: 25 * 1852, color: '#0d6efd', weight: 1, fill: false, dashArray: '4,6' }).addTo(map);
+
+  var markers = {};  // icao24 -> Leaflet marker
+  // icao24 -> {lat, lon, speed_kt, track_deg, ts} - the last REAL OpenSky
+  // fix for each airborne plane with usable speed/heading, used by
+  // animateMarkers() below to dead-reckon its position forward every
+  // second between polls (which only happen every ~15s) so it reads as
+  // continuously flying instead of teleporting once per poll. Ground
+  // traffic and planes missing speed/track data are never given a fix
+  // here, so they're left wherever the last real poll put them.
+  var planeFixes = {};
+  var latestPlanes = [];
+  var selectedIcao24 = null;
+  var trackPoints = [];  // [[lat, lon], ...] for the selected plane
+  var trackLine = null;
+
+  function clearSelection() {
+    selectedIcao24 = null;
+    trackPoints = [];
+    if (trackLine) { map.removeLayer(trackLine); trackLine = null; }
+    Object.keys(markers).forEach(function (icao24) {
+      var p = latestPlanes.filter(function (x) { return x.icao24 === icao24; })[0];
+      if (p) markers[icao24].setIcon(planeIcon(p.track_deg, p.is_school_plane, planeShortName(p), false));
+    });
+  }
+
+  function redrawTrack() {
+    if (trackLine) { map.removeLayer(trackLine); }
+    if (trackPoints.length > 1) {
+      trackLine = L.polyline(trackPoints, { color: '#ffc107', weight: 3, opacity: .8, dashArray: '1,6', lineCap: 'round' }).addTo(map);
+    } else {
+      trackLine = null;
+    }
+  }
+
+  function selectPlane(icao24, panTo) {
+    if (!icao24) return;
+    selectedIcao24 = icao24;
+    trackPoints = [];
+    // Seed with the recorded breadcrumb trail (since the flight started, or
+    // up to the last ~400 points), then keep growing it client-side as new
+    // polls come in - see poll() below.
+    fetch('{{ url_for("flight.api_live_track") }}?icao24=' + encodeURIComponent(icao24) + '&_=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (pts) {
+        trackPoints = pts.map(function (pt) { return [pt.lat, pt.lon]; });
+        var current = latestPlanes.filter(function (x) { return x.icao24 === icao24; })[0];
+        if (current && current.lat != null) trackPoints.push([current.lat, current.lon]);
+        redrawTrack();
+      })
+      .catch(function () {});
+    Object.keys(markers).forEach(function (mIcao24) {
+      var p = latestPlanes.filter(function (x) { return x.icao24 === mIcao24; })[0];
+      if (p) markers[mIcao24].setIcon(planeIcon(p.track_deg, p.is_school_plane, planeShortName(p), mIcao24 === icao24));
+    });
+    if (panTo && markers[icao24]) {
+      map.setView(markers[icao24].getLatLng(), Math.max(map.getZoom(), 11), { animate: true });
+      markers[icao24].openPopup();
+    }
+  }
+
+  function planeShortName(p) {
+    return p.is_school_plane ? p.plane_tag : (p.callsign || p.icao24.toUpperCase());
+  }
+
+  // A small always-visible tag under each plane icon with its tail number/
+  // callsign, kept compact so a crowded map (a lot of nearby traffic) still
+  // reads cleanly - just the identifier, none of the speed/altitude detail
+  // that's in the popup and the results list below the map.
+  function planeIcon(track, isSchool, label, highlighted) {
+    var iconSize = highlighted ? 28 : 20;
+    var ring = highlighted ? 'box-shadow:0 0 0 3px #ffc107, 0 0 10px 3px rgba(255,193,7,.7); border-radius:50%; background:rgba(255,255,255,.5);' : '';
+    return L.divIcon({
+      className: '',
+      html: '<div style="display:flex; flex-direction:column; align-items:center; pointer-events:none;">' +
+              '<div class="adsb-plane-icon ' + (isSchool ? 'school' : 'other') + '" style="' + ring + ' transform: rotate(' + (track || 0) + 'deg); font-size: ' + iconSize + 'px; line-height:1;">&#9992;</div>' +
+              '<div style="font-size:9px; font-weight:700; line-height:1.2; padding:0 3px; margin-top:1px; border-radius:3px; white-space:nowrap; color:#212529; background:' + (highlighted ? '#ffc107' : 'rgba(255,255,255,.85)') + '; box-shadow:0 0 0 1px rgba(0,0,0,.15);">' + label + '</div>' +
+            '</div>',
+      iconSize: [70, 40], iconAnchor: [35, 14]
+    });
+  }
+
+  function ageLabel(lastContact) {
+    // last_contact is when OpenSky itself last heard from the plane, not
+    // when we last polled - in an area with thin ADS-B receiver coverage
+    // this can lag well behind our 15s poll, which is a source-data limit,
+    // not a stuck map. Surfacing it makes that difference visible instead
+    // of the plane just silently sitting still with no explanation.
+    if (lastContact == null) return null;
+    var age = Math.max(0, Math.floor(Date.now() / 1000 - lastContact));
+    if (age < 5) return 'live';
+    if (age < 60) return age + 's ago';
+    return Math.round(age / 60) + 'm ago';
+  }
+
+  function planeLabel(p) {
+    var bits = [planeShortName(p)];
+    if (p.altitude_ft != null) bits.push(Math.round(p.altitude_ft) + ' ft');
+    if (p.speed_kt != null) bits.push(Math.round(p.speed_kt) + ' kt');
+    if (p.distance_nm_from_n89 != null) bits.push(p.distance_nm_from_n89.toFixed(1) + ' nm from N89');
+    var age = ageLabel(p.last_contact);
+    if (age) bits.push('<span class="' + (age === 'live' ? 'text-success' : 'text-warning') + '">' + age + '</span>');
+    return bits.join(' &middot; ');
+  }
+
+  function renderResults(planes, query) {
+    var q = (query || '').trim().toUpperCase();
+    var filtered = planes.filter(function (p) {
+      if (!q) return true;
+      return (p.plane_tag && p.plane_tag.toUpperCase().indexOf(q) !== -1) ||
+             (p.callsign && p.callsign.toUpperCase().indexOf(q) !== -1) ||
+             (p.icao24 && p.icao24.toUpperCase().indexOf(q) !== -1);
+    });
+    if (!filtered.length) {
+      resultsEl.innerHTML = '<p class="text-muted small mb-0">' + (q ? 'No match for "' + q + '".' : 'No traffic to show.') + '</p>';
+      return;
+    }
+    // School planes with an active flight first, then other school planes, then general traffic.
+    filtered.sort(function (a, b) {
+      return (b.is_school_plane - a.is_school_plane) || (b.flight_active - a.flight_active);
+    });
+    var rows = filtered.map(function (p) {
+      var name = planeShortName(p);
+      var badge = p.is_school_plane
+        ? (p.flight_active ? '<span class="badge bg-warning text-dark">Flight School - Active</span>' : '<span class="badge bg-secondary">Flight School</span>')
+        : '<span class="badge bg-light text-dark border">Other Traffic</span>';
+      var details = [];
+      if (p.flight_active && p.started_at) {
+        details.push('<span title="Time in air">&#9201; <span class="live-time-in-air" data-started="' + p.started_at + '">--:--:--</span></span>');
+        details.push((p.solo ? 'Solo' : ('with ' + (p.cfi_name || 'instructor TBD'))) + (p.student_name ? ' &middot; ' + p.student_name : ''));
+      }
+      if (p.speed_kt != null) details.push(Math.round(p.speed_kt) + ' kt');
+      if (p.altitude_ft != null) details.push(Math.round(p.altitude_ft) + ' ft');
+      if (p.distance_nm_from_n89 != null) details.push(p.distance_nm_from_n89.toFixed(1) + ' nm from N89');
+      if (p.lat == null) {
+        details.push('no live position yet');
+      } else {
+        var age = ageLabel(p.last_contact);
+        if (age) details.push('<span class="' + (age === 'live' ? 'text-success' : 'text-warning') + '">' + age + '</span>');
+      }
+      var selCls = p.icao24 === selectedIcao24 ? ' adsb-result-selected' : '';
+      var clickable = p.lat != null ? ' role="button"' : '';
+      return '<div class="d-flex justify-content-between align-items-center py-1 px-2 adsb-result-row' + selCls + ' ' + (p.is_school_plane ? 'school' : '') + '" data-icao24="' + p.icao24 + '"' + clickable + '>' +
+        '<div><strong>' + name + '</strong> ' + badge + '</div>' +
+        '<div class="text-muted small text-end">' + details.join(' &middot; ') + '</div>' +
+        '</div>';
+    });
+    resultsEl.innerHTML = '<div class="border rounded">' + rows.join('') + '</div>';
+  }
+
+  function tickTimeInAir() {
+    document.querySelectorAll('.live-time-in-air').forEach(function (el) {
+      var started = new Date(el.getAttribute('data-started').replace(' ', 'T'));
+      var diff = Math.max(0, Math.floor((new Date() - started) / 1000));
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+      el.textContent = pad(Math.floor(diff / 3600)) + ':' + pad(Math.floor((diff % 3600) / 60)) + ':' + pad(diff % 60);
+    });
+  }
+  setInterval(tickTimeInAir, 1000);
+
+  // Projects a fix forward from its real timestamp using the plane's own
+  // reported ground speed/track, so between polls the marker keeps moving
+  // in the direction and at the rate it was actually last seen going.
+  // Elapsed time is capped so a missed poll (network hiccup, tab backgrounded
+  // then foregrounded) can't let the estimate run away from reality forever -
+  // the next real poll always snaps it back to truth regardless.
+  function projectPosition(fix, nowMs) {
+    var elapsedSec = Math.min(Math.max((nowMs - fix.ts) / 1000, 0), 20);
+    if (elapsedSec <= 0) return [fix.lat, fix.lon];
+    var distNm = (fix.speed_kt || 0) * elapsedSec / 3600;
+    var trackRad = (fix.track_deg || 0) * Math.PI / 180;
+    var latRad = fix.lat * Math.PI / 180;
+    var dLat = (distNm * Math.cos(trackRad)) / 60;
+    var dLon = (distNm * Math.sin(trackRad)) / (60 * Math.cos(latRad) || 1);
+    return [fix.lat + dLat, fix.lon + dLon];
+  }
+
+  var ANIMATE_MS = 1000;
+  function animateMarkers() {
+    if (document.hidden) return;  // paused while the tab/kiosk display isn't visible
+    var now = Date.now();
+    Object.keys(planeFixes).forEach(function (icao24) {
+      var marker = markers[icao24];
+      if (!marker) { delete planeFixes[icao24]; return; }
+      marker.setLatLng(projectPosition(planeFixes[icao24], now));
+    });
+  }
+  setInterval(animateMarkers, ANIMATE_MS);
+
+  function poll() {
+    var mode = modeSelect.value;
+    fetch('{{ url_for("flight.api_live_positions") }}?mode=' + encodeURIComponent(mode) + '&_=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (planes) {
+        latestPlanes = planes;
+        var seen = {};
+        var positioned = 0;
+        planes.forEach(function (p) {
+          if (p.lat == null || p.lon == null) return;
+          seen[p.icao24] = true;
+          positioned++;
+          var isSel = p.icao24 === selectedIcao24;
+          // Only airborne planes reporting both speed and heading get a fix
+          // to animate from - ground traffic and incomplete reports just sit
+          // at their last real position until the next poll.
+          if (!p.on_ground && p.speed_kt != null && p.track_deg != null) {
+            planeFixes[p.icao24] = { lat: p.lat, lon: p.lon, speed_kt: p.speed_kt, track_deg: p.track_deg, ts: Date.now() };
+          } else {
+            delete planeFixes[p.icao24];
+          }
+          if (markers[p.icao24]) {
+            markers[p.icao24].setLatLng([p.lat, p.lon]).setIcon(planeIcon(p.track_deg, p.is_school_plane, planeShortName(p), isSel));
+            markers[p.icao24].getPopup().setContent(planeLabel(p));
+          } else {
+            markers[p.icao24] = L.marker([p.lat, p.lon], { icon: planeIcon(p.track_deg, p.is_school_plane, planeShortName(p), isSel) })
+              .addTo(map).bindPopup(planeLabel(p));
+          }
+          if (isSel) {
+            var last = trackPoints[trackPoints.length - 1];
+            if (!last || last[0] !== p.lat || last[1] !== p.lon) {
+              trackPoints.push([p.lat, p.lon]);
+              redrawTrack();
+            }
+          }
+        });
+        Object.keys(markers).forEach(function (icao24) {
+          if (!seen[icao24]) { map.removeLayer(markers[icao24]); delete markers[icao24]; delete planeFixes[icao24]; }
+        });
+        if (selectedIcao24 && !seen[selectedIcao24]) {
+          // The selected plane dropped off this poll (landed, out of range,
+          // flight ended) - keep the trail on screen rather than yanking it.
+        }
+        if (!planes.length) {
+          statusEl.textContent = mode === 'all' ? 'No traffic reporting nearby right now.' : 'No tracked aircraft currently flying.';
+        } else {
+          statusEl.textContent = positioned + ' of ' + planes.length + ' shown live';
+        }
+        renderResults(latestPlanes, searchInput.value);
+        tickTimeInAir();
+      })
+      .catch(function () {
+        statusEl.textContent = 'Live tracking unavailable right now.';
+      });
+  }
+
+  modeSelect.addEventListener('change', function () {
+    Object.keys(markers).forEach(function (icao24) { map.removeLayer(markers[icao24]); });
+    markers = {};
+    planeFixes = {};
+    poll();
+  });
+  searchInput.addEventListener('input', function () {
+    var q = searchInput.value.trim();
+    renderResults(latestPlanes, q);
+    if (!q) { clearSelection(); return; }
+    var matches = latestPlanes.filter(function (p) {
+      return (p.plane_tag && p.plane_tag.toUpperCase().indexOf(q.toUpperCase()) !== -1) ||
+             (p.callsign && p.callsign.toUpperCase().indexOf(q.toUpperCase()) !== -1) ||
+             (p.icao24 && p.icao24.toUpperCase().indexOf(q.toUpperCase()) !== -1);
+    });
+    if (matches.length === 1 && matches[0].lat != null) {
+      selectPlane(matches[0].icao24, true);
+    } else if (!matches.length) {
+      clearSelection();
+    }
+  });
+  resultsEl.addEventListener('click', function (e) {
+    var row = e.target.closest('.adsb-result-row');
+    if (!row || !row.dataset.icao24) return;
+    if (row.dataset.icao24 === selectedIcao24) { clearSelection(); renderResults(latestPlanes, searchInput.value); return; }
+    selectPlane(row.dataset.icao24, true);
+    renderResults(latestPlanes, searchInput.value);
+  });
+
+  poll();
+  setInterval(poll, 15000);
+})();
+</script>
+{% endblock %}

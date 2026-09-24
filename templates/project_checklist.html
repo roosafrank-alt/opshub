@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Job Sheet - {{ project.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+  <h4 class="mb-0">Job Sheet</h4>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-secondary">&laquo; Back to Project</a>
+    <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+  </div>
+</div>
+
+<div class="job-sheet mx-auto" style="max-width:800px; background:#fff; border:1px solid #dee2e6; padding:2rem;">
+  <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+    <div>
+      <h3 class="mb-0">{{ project.name }}</h3>
+      <div class="text-muted"><code class="text-primary">{{ project.code }}</code>
+        {% if project.asset_tag %} &middot; {{ project.asset_tag }}{% if project.asset_name and project.asset_name != project.asset_tag %} ({{ project.asset_name }}){% endif %}{% endif %}
+      </div>
+      {% if project.description %}<div class="mt-1">{{ project.description }}</div>{% endif %}
+    </div>
+    <div class="text-end small text-muted">
+      <div>Date: ______________</div>
+      <div>Performed by: ______________</div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-6">
+      <h5 class="border-bottom pb-1">Prework Checklist</h5>
+      {% if prework_items %}
+      <ul class="list-unstyled">
+        {% for item in prework_items %}
+        <li class="mb-2 d-flex align-items-start gap-2">
+          <span style="display:inline-block; width:16px; height:16px; border:1.5px solid #333; flex-shrink:0; margin-top:2px;"></span>
+          <span>{{ item }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-muted small">No prework checklist set for this project. <a href="{{ url_for('project_edit', project_id=project.id) }}" class="no-print">Add one</a>.</p>
+      {% endif %}
+    </div>
+    <div class="col-md-6">
+      <h5 class="border-bottom pb-1">Standard Items Performed</h5>
+      {% if standard_items %}
+      <ul class="list-unstyled">
+        {% for item in standard_items %}
+        <li class="mb-2 d-flex align-items-start gap-2">
+          <span style="display:inline-block; width:16px; height:16px; border:1.5px solid #333; flex-shrink:0; margin-top:2px;"></span>
+          <span>{{ item }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-muted small">No standard items list set for this project. <a href="{{ url_for('project_edit', project_id=project.id) }}" class="no-print">Add one</a>.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="mt-4 pt-3 border-top">
+    <h6 class="text-muted">Notes</h6>
+    <div style="border-bottom:1px solid #ccc; height:28px;"></div>
+    <div style="border-bottom:1px solid #ccc; height:28px;"></div>
+    <div style="border-bottom:1px solid #ccc; height:28px;"></div>
+  </div>
+
+  <div class="d-flex justify-content-between mt-4 pt-3">
+    <div>Technician Signature: ________________________</div>
+    <div>Date: ______________</div>
+  </div>
+</div>
+{% endblock %}

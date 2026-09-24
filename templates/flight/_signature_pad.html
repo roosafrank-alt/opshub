@@ -1,0 +1,52 @@
+{#- Signature pad: draw with a finger, stylus or mouse. Posts
+   signature_data = a PNG data URL (only when something new was drawn),
+   "clear" when the Clear button removed the saved one, or "" (no change).
+   `existing` = the saved signature (data URL) or none. #}
+{% macro signature_pad(existing) %}
+<div class="sig-pad-wrap">
+  <canvas class="sig-pad border rounded bg-white w-100" height="160" style="touch-action:none; cursor:crosshair; max-width:520px;"></canvas>
+  <input type="hidden" name="signature_data" value="">
+  <div class="d-flex gap-2 align-items-center mt-1">
+    <button type="button" class="btn btn-outline-secondary btn-sm sig-clear"><i class="bi bi-eraser"></i> Clear</button>
+    <span class="small text-muted sig-status">{% if existing %}Your saved signature - draw over it to replace it.{% else %}Sign in the box above.{% endif %}</span>
+  </div>
+</div>
+<script>
+(function () {
+  var wrap = document.currentScript.previousElementSibling;
+  var canvas = wrap.querySelector('canvas'), out = wrap.querySelector('input[name="signature_data"]');
+  var status = wrap.querySelector('.sig-status'), ctx = canvas.getContext('2d');
+  var existing = {{ (existing or '')|tojson }}, drawing = false, dirty = false, last = null;
+  function size() {
+    var ratio = window.devicePixelRatio || 1, w = canvas.clientWidth || 520;
+    canvas.width = w * ratio; canvas.height = 160 * ratio; canvas.style.height = '160px';
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0b1f4d';
+    if (existing && !dirty) {
+      var img = new Image();
+      img.onload = function () { ctx.drawImage(img, 0, 0, w, 160); };
+      img.src = existing;
+    }
+  }
+  function pos(e) { var r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  canvas.addEventListener('pointerdown', function (e) {
+    if (!dirty) { ctx.clearRect(0, 0, canvas.width, canvas.height); }  // start fresh over the old one
+    drawing = true; dirty = true; last = pos(e); canvas.setPointerCapture(e.pointerId);
+    ctx.beginPath(); ctx.arc(last.x, last.y, 1.1, 0, Math.PI * 2); ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+    status.textContent = 'New signature - it saves when you press Save.';
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    if (!drawing) return;
+    var p = pos(e); ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke(); last = p;
+  });
+  function stop() { if (drawing) { drawing = false; out.value = canvas.toDataURL('image/png'); } }
+  canvas.addEventListener('pointerup', stop); canvas.addEventListener('pointercancel', stop);
+  wrap.querySelector('.sig-clear').addEventListener('click', function () {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); dirty = false; existing = '';
+    out.value = {{ ('clear' if existing else '')|tojson }};
+    status.textContent = {{ ('Signature will be removed when you press Save.' if existing else 'Sign in the box above.')|tojson }};
+  });
+  size();
+})();
+</script>
+{% endmacro %}

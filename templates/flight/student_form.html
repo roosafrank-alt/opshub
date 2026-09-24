@@ -1,0 +1,285 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}{{ 'Edit Student' if student else 'New Student' }} - OpsHub{% endblock %}
+{% block content %}
+{% from "flight/_pilot_badge.html" import pilot_badge, rating_badges, pilot_badge_css %}{{ pilot_badge_css() }}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+{% if student and not student.is_station %}
+<div class="card p-3 mb-3">
+  {% if pilot_badge_info(student) or rating_badge_items(student) %}<div class="mb-2 d-flex flex-wrap align-items-center gap-1">{{ pilot_badge(student, 'lg') }} {{ rating_badges(student, 'lg') }}</div>{% endif %}
+  <h5 class="mb-2"><i class="bi bi-airplane-engines"></i> Lessons &amp; Landings</h5>
+  <div class="row g-2 small mb-2">
+    <div class="col-6 col-md-3">
+      <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Last lesson</div>
+      {% if activity and activity.last_lesson %}{% set l = activity.last_lesson %}
+      <a href="{{ url_for('flight.log_detail', flight_id=l.id) }}" class="fw-bold text-decoration-none">{{ l.flight_date|usdate }}</a>
+      <div class="text-muted">{{ l.plane_tag }} &middot; {{ l.cfi_name or 'solo' }}</div>
+      {% else %}<div class="text-muted">None yet</div>{% endif %}
+    </div>
+    {% if student.first_solo_date %}
+    <div class="col-6 col-md-3">
+      <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Last landing</div>
+      {% if activity and activity.last_landing %}{% set l = activity.last_landing %}
+      <a href="{{ url_for('flight.log_detail', flight_id=l.id) }}" class="fw-bold text-decoration-none">{{ l.flight_date|usdate }}</a>
+      <div class="text-muted">{{ l.landings_total }} landing{{ 's' if l.landings_total != 1 }}{% if l.days_ago is not none %} &middot; {{ 'today' if l.days_ago == 0 else l.days_ago ~ 'd ago' }}{% endif %}</div>
+      {% else %}<div class="text-muted">None logged</div>{% endif %}
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Last 90 days</div>
+      <div class="fw-bold">{{ activity.landings_90 if activity else 0 }} landings</div>
+      <div class="text-muted">{{ activity.night_fs_90 if activity else 0 }} night full-stop</div>
+    </div>
+    {% else %}
+    <div class="col-12 col-md-6">
+      <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Landing currency</div>
+      <div class="text-muted">Shows once first solo is marked complete (below).</div>
+    </div>
+    {% endif %}
+    <div class="col-6 col-md-3">
+      <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Solo currency</div>
+      {% if solo_currency and solo_currency.ok %}<span class="badge bg-success">Current</span><div class="text-muted">{{ solo_currency.interval_days - solo_currency.days_since }}d left</div>
+      {% elif solo_currency and solo_currency.last_dual_date %}<span class="badge bg-danger">Checkout due</span><div class="text-muted">{{ solo_currency.days_since }}d since dual</div>
+      {% else %}<span class="badge bg-secondary">No dual yet</span>{% endif %}
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Medical</div>
+      {% if medical and medical.ok %}<span class="badge {{ 'bg-warning text-dark' if medical.days_left <= 30 else 'bg-success' }}">{{ medical.label }} to {{ medical.expires|usdate }}</span><div class="text-muted">{{ medical.days_left }}d left</div>
+      {% elif medical and medical.ok is false %}<span class="badge bg-danger">Expired {{ medical.expires|usdate }}</span><div class="text-muted">dual only - no solo</div>
+      {% else %}<span class="badge bg-secondary">None on file</span>{% endif %}
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Solo sign-off</div>
+      {% if solo_signoff and solo_signoff.ok %}<span class="badge {{ 'bg-warning text-dark' if solo_signoff.days_left <= 14 else 'bg-success' }}">Good to {{ solo_signoff.expires|usdate }}</span><div class="text-muted">{{ solo_signoff.days_left }}d left</div>
+      {% elif solo_signoff and solo_signoff.ok is false %}<span class="badge bg-danger">Expired {{ solo_signoff.expires|usdate }}</span><div class="text-muted">needs a new sign-off</div>
+      {% else %}<span class="badge bg-secondary">None on file</span>{% endif %}
+    </div>
+  </div>
+  {% if recent_flights %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack small">
+      <thead class="table-light"><tr><th>Date</th><th>Plane</th><th>With</th><th>Day ldg</th><th>Night ldg</th></tr></thead>
+      <tbody>
+        {% for f in recent_flights %}
+        <tr role="button" onclick="window.location='{{ url_for('flight.log_detail', flight_id=f.id) }}'">
+          <td data-label="Date">{{ f.flight_date|usdate }}</td>
+          <td data-label="Plane">{{ f.plane_tag }}</td>
+          <td data-label="With">{{ f.cfi_name or 'Solo' }}</td>
+          <td data-label="Day ldg">{% if f.day_landings_fs is not none or f.day_landings_tg is not none %}{{ f.day_landings_fs or 0 }} FS / {{ f.day_landings_tg or 0 }} TG{% else %}<span class="text-muted">-</span>{% endif %}</td>
+          <td data-label="Night ldg">{% if f.night_landings_fs is not none or f.night_landings_tg is not none %}{{ f.night_landings_fs or 0 }} FS / {{ f.night_landings_tg or 0 }} TG{% else %}<span class="text-muted">-</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="form-text">Last 10 flights. Tap one to open it. Landings come from what's entered when the flight is logged or ended.</div>
+  {% endif %}
+</div>
+{% endif %}
+<div class="card p-4">
+  <h4>{{ 'Edit Student' if student else 'New Student' }}</h4>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Full Name *</label>
+      <input type="text" name="name" class="form-control" value="{{ student.name if student else '' }}" required autofocus>
+    </div>
+    {% if not student %}
+    <div class="mb-3">
+      <label class="form-label">Username *</label>
+      <input type="text" name="username" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Starting Password *</label>
+      <input type="text" name="password" class="form-control" required>
+      <div class="form-text">Give this to the student - they can log in with it right away.</div>
+    </div>
+    {% else %}
+    <div class="mb-3">
+      <label class="form-label">Username</label>
+      <div><code>{{ student.username }}</code></div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Reset Password <span class="text-muted small">(leave blank to keep current)</span></label>
+      <input type="text" name="password" class="form-control">
+    </div>
+    {% endif %}
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" name="is_station" id="is-station-check" {% if student and student.is_station %}checked{% endif %} onchange="document.getElementById('trainee-fields').style.display = this.checked ? 'none' : '';">
+      <label class="form-check-label" for="is-station-check">Generic station account <span class="text-muted small">(e.g. "Shop") - for booking the schedule only, not a specific trainee. No instructor color, no solo-currency tracking.</span></label>
+    </div>
+    <div id="trainee-fields" style="{{ 'display:none;' if student and student.is_station }}">
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Instructor Rate ($/hr) <span class="text-muted small">(optional - overrides the CFI's rate)</span></label>
+        <input type="number" step="any" name="rate_override" class="form-control" value="{{ student.rate_override if student and student.rate_override is not none else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Plane Rate ($/hr) <span class="text-muted small">(billed on Hobbs time)</span></label>
+        <input type="number" step="any" name="plane_rate_override" class="form-control" value="{{ student.plane_rate_override if student and student.plane_rate_override is not none else '' }}">
+      </div>
+    </div>
+    <p class="text-muted small mt-n2 mb-3">The Plane Rate is what this student pays per hour for any plane (planes don't have their own rate) - leave it blank and the plane isn't charged. Leave the Instructor Rate blank to use the CFI's rate.</p>
+
+
+    {% set cur_ratings = (student.pilot_ratings or '').split(',') if student else [] %}
+    <div class="mb-3" id="pilot-certs" style="scroll-margin-top:80px;">
+      <label class="form-label">Pilot Certificate <span class="text-muted small">(sets the student's badge)</span></label>
+      <select name="pilot_certificate" class="form-select mb-2">
+        <option value="">- None yet -</option>
+        {% for code, label, short, color, icon in pilot_certificates %}
+        <option value="{{ code }}" {{ 'selected' if student and student.pilot_certificate == code }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <label class="form-label d-block mb-1">Ratings &amp; Endorsements <span class="text-muted small">(each adds a star)</span></label>
+      <div class="d-flex flex-wrap gap-3">
+        {% for code, label in pilot_ratings %}
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="rating_{{ code }}" id="rating-{{ code }}" {{ 'checked' if code in cur_ratings }}>
+          <label class="form-check-label" for="rating-{{ code }}">{{ label }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="row" id="medical" style="scroll-margin-top:80px;">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Medical Class</label>
+        <select name="medical_class" class="form-select">
+          <option value="">- Not tracked -</option>
+          {% for code, label in medical_classes %}
+          <option value="{{ code }}" {{ 'selected' if student and student.medical_class == code }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Medical Expires</label>
+        <input type="date" name="medical_expires" class="form-control" value="{{ student.medical_expires if student and student.medical_expires else '' }}">
+      </div>
+    </div>
+    <p class="text-muted small mt-n2 mb-3">With an expired medical a student can still fly dual, but a solo gets flagged for review (and shows on the Alerts tab) until an instructor is added or the medical is updated. Leave it blank if you don't track it.</p>
+
+    <div class="row align-items-end" id="first-solo" style="scroll-margin-top:80px;">
+      <div class="col-md-6 mb-3">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="first_solo_done" id="first-solo-check" {% if student and student.first_solo_date %}checked{% endif %}
+                 onchange="document.getElementById('first-solo-date').disabled = !this.checked;">
+          <label class="form-check-label" for="first-solo-check"><strong>Has completed first solo</strong></label>
+        </div>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">First Solo Date</label>
+        <input type="date" name="first_solo_date" id="first-solo-date" class="form-control" value="{{ student.first_solo_date if student and student.first_solo_date else '' }}" {% if not (student and student.first_solo_date) %}disabled{% endif %}>
+      </div>
+    </div>
+    <p class="text-muted small mt-n2 mb-3">Landing currency (last landing, landings in the last 90 days) only shows on this profile and the Students list once this is checked. Leave the date blank for today.</p>
+
+    <div class="row" id="solo-signoff" style="scroll-margin-top:80px;">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Solo Sign-off Date <span class="text-muted small">(CFI solo endorsement)</span></label>
+        <input type="date" name="solo_signoff_date" id="solo-signoff-date" class="form-control" value="{{ student.solo_signoff_date if student and student.solo_signoff_date else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Solo Sign-off Expires <span class="text-muted small">(90 days - fills in by itself)</span></label>
+        <input type="date" name="solo_signoff_expires" id="solo-signoff-expires" class="form-control" value="{{ student.solo_signoff_expires if student and student.solo_signoff_expires else '' }}">
+      </div>
+    </div>
+    <p class="text-muted small mt-n2 mb-3">Solo flights booked after the expiry date are flagged for review on the dashboard, the same as an over-currency solo. Leave the expiry blank and it's set to 90 days after the sign-off.</p>
+    <script>
+      (function () {
+        var s = document.getElementById('solo-signoff-date'), e = document.getElementById('solo-signoff-expires');
+        if (!s || !e) return;
+        var auto = !e.value;
+        e.addEventListener('input', function () { auto = !e.value; });
+        s.addEventListener('change', function () {
+          if (!s.value || !auto) return;
+          var d = new Date(s.value + 'T12:00:00');
+          d.setDate(d.getDate() + 90);
+          e.value = d.toISOString().slice(0, 10);
+        });
+      })();
+    </script>
+
+    {% if session.get('is_master_admin') %}
+    <div class="mb-3">
+      <label class="form-label">Solo Currency Interval (days) <span class="text-muted small">(optional - overrides the {{ default_solo_currency_days }}-day default)</span></label>
+      <input type="number" step="1" min="1" name="solo_currency_days" class="form-control" value="{{ student.solo_currency_days if student and student.solo_currency_days is not none else '' }}" placeholder="{{ default_solo_currency_days }}">
+      <div class="form-text">A newer/lower-time student needing more frequent refreshers can be set shorter (e.g. 14 days); a more experienced student can be set longer. Leave blank to use the {{ default_solo_currency_days }}-day shop default. This is how long they can go since their last dual (CFI) flight before a checkout is required to solo again. Admins only.</div>
+    </div>
+    {% elif student and student.solo_currency_days %}
+    <div class="mb-3">
+      <label class="form-label">Solo Currency Interval</label>
+      <div>{{ student.solo_currency_days }} days <span class="text-muted small">(set by an admin - ask one to change it)</span></div>
+    </div>
+    {% endif %}
+    </div>
+
+    {% if student %}
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" name="active" id="active-check" {% if student.active %}checked{% endif %}>
+      <label class="form-check-label" for="active-check">Active</label>
+    </div>
+    {% endif %}
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('flight.students_list') }}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary fw-bold">{{ 'Save Changes' if student else 'Add Student' }}</button>
+    </div>
+  </form>
+</div>
+
+{% if student and can_bill %}
+<div class="card p-4 mt-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Account</h5>
+    {% if student.balance > 0.005 %}
+    <span class="badge bg-success fs-6">${{ '%.2f'|format(student.balance) }} credit</span>
+    {% elif student.balance < -0.005 %}
+    <span class="badge bg-danger fs-6">${{ '%.2f'|format(-student.balance) }} owed</span>
+    {% else %}
+    <span class="badge bg-light text-dark border fs-6">$0.00 balance</span>
+    {% endif %}
+  </div>
+  <p class="text-muted small mb-3">Balance updates automatically when a flight is logged (its cost is deducted) - use this to record a payment or top-up.</p>
+  <form method="post" action="{{ url_for('flight.student_add_funds', student_id=student.id) }}" class="row g-2 align-items-end mb-3" data-confirm="Add $[[amount]] to {{ student.name }}'s balance?" data-confirm-title="Add Funds" data-confirm-ok="Yes, add funds" data-confirm-style="success">
+    <div class="col-auto">
+      <label class="form-label small mb-0">Add Funds ($)</label>
+      <input type="number" step="0.01" min="0.01" name="amount" class="form-control form-control-sm" placeholder="e.g. 500.00" required style="width:140px;">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-0">Note <span class="text-muted">(optional)</span></label>
+      <input type="text" name="note" class="form-control form-control-sm" placeholder="e.g. Check #1024" style="width:200px;">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-success btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Add Funds</button>
+    </div>
+  </form>
+  {% if ledger %}
+  <div class="table-responsive" style="max-height:260px; overflow-y:auto;">
+    <table class="table table-sm mb-0 table-stack">
+      <thead class="table-light"><tr><th>Date</th><th>Type</th><th>Amount</th><th>Note</th><th>By</th></tr></thead>
+      <tbody>
+        {% for entry in ledger %}
+        <tr>
+          <td class="small" data-label="Date">{{ entry.created_at[:16] }}</td>
+          <td class="small" data-label="Type">
+            {% if entry.entry_type == 'funds_added' %}<span class="badge bg-success">Funds Added</span>
+            {% elif entry.entry_type == 'flight_deduction' %}<span class="badge bg-secondary">Flight</span>
+            {% else %}<span class="badge bg-info text-dark">Adjustment</span>{% endif %}
+          </td>
+          <td class="small fw-bold {{ 'text-success' if entry.amount > 0 else ('text-danger' if entry.amount < 0 else '') }}" data-label="Amount">
+            {{ '+' if entry.amount > 0 }}${{ '%.2f'|format(entry.amount) }}
+          </td>
+          <td class="small text-muted stack-full" data-label="Note">{{ entry.note or '-' }}</td>
+          <td class="small text-muted" data-label="By">{{ entry.created_by or '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted small mb-0">No balance activity yet.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+</div>
+</div>
+{% endblock %}

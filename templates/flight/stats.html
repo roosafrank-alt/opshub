@@ -1,0 +1,221 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Statistics - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-bar-chart-line"></i> Flight School Statistics</h4>
+</div>
+
+<div class="card p-3 mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label small mb-0">Range</label>
+      <select name="range" id="range-select" class="form-select form-select-sm">
+        <option value="week" {% if range_key == 'week' %}selected{% endif %}>This Week</option>
+        <option value="month" {% if range_key == 'month' %}selected{% endif %}>This Month</option>
+        <option value="year" {% if range_key == 'year' %}selected{% endif %}>This Year</option>
+        <option value="custom" {% if range_key == 'custom' %}selected{% endif %}>Custom Range</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-0">Planes <span class="text-muted" style="font-weight:normal;">(ctrl/cmd-click to compare a few)</span></label>
+      <select name="plane_id" class="form-select form-select-sm" multiple size="3" style="min-width:140px;">
+        {% for p in planes %}
+        <option value="{{ p.id }}" {% if p.id|string in plane_ids %}selected{% endif %}>{{ p.tag }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-0">Instructors <span class="text-muted" style="font-weight:normal;">(ctrl/cmd-click to compare a few)</span></label>
+      <select name="cfi_id" class="form-select form-select-sm" multiple size="3" style="min-width:140px;">
+        {% for c in cfis %}
+        <option value="{{ c.id }}" {% if c.id|string in cfi_ids %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% if plane_ids or cfi_ids %}
+    <div class="col-auto">
+      <label class="form-label small mb-0 d-block">&nbsp;</label>
+      <a href="{{ url_for('flight.stats', range=range_key, start=start, end=end) }}" class="btn btn-outline-secondary btn-sm">Clear Selection</a>
+    </div>
+    {% endif %}
+    <div class="col-auto" id="custom-start-col" style="{{ '' if range_key == 'custom' else 'display:none;' }}">
+      <label class="form-label small mb-0">From</label>
+      <input type="date" name="start" class="form-control form-control-sm" value="{{ start }}">
+    </div>
+    <div class="col-auto" id="custom-end-col" style="{{ '' if range_key == 'custom' else 'display:none;' }}">
+      <label class="form-label small mb-0">To</label>
+      <input type="date" name="end" class="form-control form-control-sm" value="{{ end }}">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-primary btn-sm">Apply</button>
+    </div>
+    <div class="col-auto ms-auto text-muted small align-self-end">
+      {{ start|usdate }} &ndash; {{ end|usdate }} &middot; {{ flight_count }} flight{{ 's' if flight_count != 1 }}
+    </div>
+  </form>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3">
+      <div class="text-muted small">Hours Flown</div>
+      <div class="display-6">{{ '%.1f'|format(total_hours) }}</div>
+      <div class="text-muted small">all logged flights</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3">
+      <div class="text-muted small">Hours Billed</div>
+      <div class="display-6">{{ '%.1f'|format(billed_hours) }}</div>
+      <div class="text-muted small">from paid flights</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 border-success">
+      <div class="text-muted small">Revenue Collected</div>
+      <div class="display-6 text-success">${{ '%.0f'|format(revenue_collected) }}</div>
+      <div class="text-muted small">paid flights</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 {{ 'border-warning' if outstanding else '' }}">
+      <div class="text-muted small">Outstanding</div>
+      <div class="display-6 {{ 'text-warning' if outstanding else '' }}">${{ '%.0f'|format(outstanding) }}</div>
+      <div class="text-muted small">not yet paid</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-4">
+    <div class="card p-3 h-100">
+      <h6 class="text-muted">Hours Flown by Day</h6>
+      {% if chart_labels %}
+      <canvas id="stats-chart" height="110"></canvas>
+      {% else %}
+      <p class="text-muted small mb-0">No flights logged in this range.</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card p-3 h-100">
+      <h6 class="text-muted">How Planes Compare <span class="text-muted small fw-normal">(hours, this range)</span></h6>
+      {% if plane_chart_labels %}
+      <canvas id="plane-chart" height="110"></canvas>
+      {% else %}
+      <p class="text-muted small mb-0">No flights logged in this range.</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card p-3 h-100">
+      <h6 class="text-muted">Hours Flown by Instructor <span class="text-muted small fw-normal">(this range)</span></h6>
+      {% if instructor_chart_labels %}
+      <canvas id="instructor-chart" height="110"></canvas>
+      {% else %}
+      <p class="text-muted small mb-0">No flights logged in this range.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="text-muted mb-2">By Plane</h6>
+      {% if plane_rows %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead><tr><th>Plane</th><th>Hours</th><th>Revenue</th></tr></thead>
+          <tbody>
+            {% for r in plane_rows %}
+            <tr><td>{{ r.plane }}</td><td>{{ '%.1f'|format(r.hours) }}</td><td>${{ '%.0f'|format(r.revenue) }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted small mb-0">Nothing in this range.</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="text-muted mb-2">By Instructor</h6>
+      {% if instructor_rows %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead><tr><th>Instructor</th><th>Hours</th><th>Revenue</th></tr></thead>
+          <tbody>
+            {% for r in instructor_rows %}
+            <tr><td>{{ r.instructor }}</td><td>{{ '%.1f'|format(r.hours) }}</td><td>${{ '%.0f'|format(r.revenue) }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted small mb-0">Nothing in this range.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('range-select').addEventListener('change', function () {
+  var isCustom = this.value === 'custom';
+  document.getElementById('custom-start-col').style.display = isCustom ? '' : 'none';
+  document.getElementById('custom-end-col').style.display = isCustom ? '' : 'none';
+});
+</script>
+{% if chart_labels or plane_chart_labels or instructor_chart_labels %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+{% if chart_labels %}
+new Chart(document.getElementById('stats-chart'), {
+  type: 'bar',
+  data: {
+    labels: {{ chart_labels|tojson }}.map(function (d) {
+      var p = d.split('-'); return p.length === 3 ? (p[1] + '-' + p[2] + '-' + p[0]) : d;
+    }),
+    datasets: [{ label: 'Hours', data: {{ chart_hours|tojson }}, backgroundColor: '#0d6efd' }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, title: { display: true, text: 'Hours' } } }
+  }
+});
+{% endif %}
+{% if plane_chart_labels %}
+new Chart(document.getElementById('plane-chart'), {
+  type: 'bar',
+  data: {
+    labels: {{ plane_chart_labels|tojson }},
+    datasets: [{ label: 'Hours', data: {{ plane_chart_hours|tojson }}, backgroundColor: '#fd7e14' }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, title: { display: true, text: 'Hours' } } }
+  }
+});
+{% endif %}
+{% if instructor_chart_labels %}
+new Chart(document.getElementById('instructor-chart'), {
+  type: 'bar',
+  data: {
+    labels: {{ instructor_chart_labels|tojson }},
+    datasets: [{ label: 'Hours', data: {{ instructor_chart_hours|tojson }}, backgroundColor: '#6f42c1' }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, title: { display: true, text: 'Hours' } } }
+  }
+});
+{% endif %}
+</script>
+{% endif %}
+{% endblock %}

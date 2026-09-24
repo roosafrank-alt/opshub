@@ -1,0 +1,126 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Flight Finder - OpsHub{% endblock %}
+{% block content %}
+{#
+  Flight Finder: enter desired parameters (date window, weekday/weekend,
+  morning/afternoon/evening, plane flexible or specific, instructor
+  flexible/specific/female-only/male-only/none) and see every open (date, slot,
+  plane, instructor) combination that matches. Admin-only (see
+  admin_required on schedule_finder in flight.py). Search-and-list only -
+  it doesn't book anything; picking a result still goes through the
+  regular Schedule Flight form.
+#}
+<style>
+  .finder-toolbar {
+    position: sticky;
+    top: var(--flight-nav-h, 56px);
+    z-index: 1010;
+    background: #f4f5f7;
+    margin: 0 -.75rem 1rem;
+    padding: .75rem .75rem .6rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .finder-day-card { break-inside: avoid; }
+  .finder-slot-pill {
+    font-size: .72rem;
+    text-align: left;
+    line-height: 1.3;
+  }
+</style>
+
+<div class="finder-toolbar">
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-search"></i> Flight Finder</h4>
+  <a href="{{ url_for('flight.schedule_calendar') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar3"></i> Back to Schedule</a>
+</div>
+<form method="get" class="row g-2 align-items-end">
+  <div class="col-auto">
+    <label class="form-label small mb-0">Starting</label>
+    <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_str }}" min="{{ today.strftime('%Y-%m-%d') }}">
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-0">Search window</label>
+    <select name="days" class="form-select form-select-sm">
+      <option value="7" {{ 'selected' if num_days == 7 }}>1 week</option>
+      <option value="14" {{ 'selected' if num_days == 14 }}>2 weeks</option>
+      <option value="30" {{ 'selected' if num_days == 30 }}>1 month</option>
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-0 d-block">Days</label>
+    <div class="form-check form-check-inline">
+      <input type="checkbox" class="form-check-input" name="day_type" value="weekday" id="dt-weekday" {{ 'checked' if 'weekday' in day_types }}>
+      <label class="form-check-label small" for="dt-weekday">Weekdays</label>
+    </div>
+    <div class="form-check form-check-inline">
+      <input type="checkbox" class="form-check-input" name="day_type" value="weekend" id="dt-weekend" {{ 'checked' if 'weekend' in day_types }}>
+      <label class="form-check-label small" for="dt-weekend">Weekends</label>
+    </div>
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-0 d-block">Time of day</label>
+    {% for code, label, _s, _e in finder_buckets %}
+    <div class="form-check form-check-inline">
+      <input type="checkbox" class="form-check-input" name="bucket" value="{{ code }}" id="b-{{ code }}" {{ 'checked' if code in buckets }}>
+      <label class="form-check-label small" for="b-{{ code }}">{{ label }}</label>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-0">Plane</label>
+    <select name="plane_id" class="form-select form-select-sm">
+      <option value="">Any plane</option>
+      {% for p in all_planes %}
+      <option value="{{ p.id }}" {{ 'selected' if plane_id == p.id|string }}>{{ p.tag }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-0">Instructor</label>
+    <select name="cfi_mode" class="form-select form-select-sm">
+      <option value="any" {{ 'selected' if cfi_mode == 'any' }}>No preference</option>
+      <option value="female" {{ 'selected' if cfi_mode == 'female' }}>Female instructor only</option>
+      <option value="male" {{ 'selected' if cfi_mode == 'male' }}>Male instructor only</option>
+      <option value="solo" {{ 'selected' if cfi_mode == 'solo' }}>No instructor (solo)</option>
+      {% for c in all_cfis %}
+      <option value="{{ c.id }}" {{ 'selected' if cfi_mode == c.id|string }}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm fw-bold"><i class="bi bi-search"></i> Find</button>
+  </div>
+</form>
+</div>
+
+<p class="text-muted small">Shows every open combination matching what you picked - plane availability and (unless set to solo) instructor availability are both checked, along with the instructor's medical currency. This only searches and lists options; pick a day/time and use "Schedule Flight" to actually book it.</p>
+
+{% if not results %}
+<p class="text-muted">Nothing open matching those parameters in the next {{ num_days }} days.</p>
+{% else %}
+<div class="row row-cols-1 row-cols-lg-2 g-3">
+  {% for day in results %}
+  <div class="col">
+    <div class="card finder-day-card h-100">
+      <div class="card-header fw-bold">{{ day.date_label }}</div>
+      <div class="card-body py-2">
+        <div class="d-flex flex-column gap-2">
+          {% for slot in day.slots %}
+          <a class="btn btn-sm btn-outline-success finder-slot-pill" href="{{ url_for('flight.schedule_new', date=day.date) }}">
+            <strong>{{ slot.label }}</strong> &mdash;
+            {{ slot.planes|map(attribute='tag')|join(', ') }}
+            {% if slot.cfis is not none %}
+            {% if slot.cfis %} with {{ slot.cfis|map(attribute='name')|join(', ') }}{% endif %}
+            {% else %}
+            (solo)
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

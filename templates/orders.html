@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}Orders - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0">Orders ({{ order_count }})</h4>
+  <a href="{{ url_for('order_new') }}" class="btn btn-warning fw-bold"><i class="bi bi-plus-lg"></i> New Order</a>
+</div>
+
+{% macro urgency_badge(u) %}
+{% if u == 'rush' %}<span class="badge bg-danger">Rush</span>
+{% elif u == 'needed_now' %}<span class="badge bg-warning text-dark">Needed Now</span>
+{% else %}<span class="badge bg-secondary">No Rush</span>
+{% endif %}
+{% endmacro %}
+
+<div class="card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-card-checklist"></i> Things to Order <span class="badge bg-secondary">{{ wishlist_items|length }}</span></h6>
+  <p class="text-muted small mb-2">A running list of stuff that's needed before anyone's placed an actual order for it - jot it down here with how urgent it is, then turn it into a real order whenever you're ready.</p>
+
+  <form method="post" action="{{ url_for('order_wishlist_new') }}" class="row g-2 align-items-end mb-3">
+    <div class="col-md-4">
+      <label class="form-label small mb-1">What's needed</label>
+      <input type="text" name="description" class="form-control form-control-sm" placeholder="Description, or pick a part below">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small mb-1">Existing part (optional)</label>
+      <select name="part_id" class="form-select form-select-sm">
+        <option value="">-- Not in inventory yet --</option>
+        {% for p in parts_for_wishlist %}
+        <option value="{{ p.id }}">{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small mb-1">Urgency</label>
+      <select name="urgency" class="form-select form-select-sm">
+        <option value="no_rush">No Rush</option>
+        <option value="needed_now">Needed Now</option>
+        <option value="rush">Rush</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small mb-1">Notes</label>
+      <input type="text" name="notes" class="form-control form-control-sm" placeholder="optional">
+    </div>
+    <div class="col-md-1">
+      <button type="submit" class="btn btn-warning btn-sm fw-bold w-100"><i class="bi bi-plus-lg"></i></button>
+    </div>
+  </form>
+
+  {% if wishlist_items %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Urgency</th><th>Item</th><th>Notes</th><th>Requested by</th><th></th></tr></thead>
+      <tbody>
+        {% for w in wishlist_items %}
+        <tr>
+          <td>{{ urgency_badge(w.urgency) }}</td>
+          <td>{{ w.part_name or w.description }}</td>
+          <td><small class="text-muted">{{ w.notes or '' }}</small></td>
+          <td><small class="text-muted">{{ w.requested_by or '' }}</small></td>
+          <td class="text-end text-nowrap">
+            <a href="{{ url_for('order_new', wishlist_id=w.id) }}" class="btn btn-outline-success btn-sm"><i class="bi bi-cart-plus"></i> Start Order</a>
+            <form method="post" action="{{ url_for('order_wishlist_dismiss', wishlist_id=w.id) }}" class="d-inline" data-confirm="Remove this from the order list?" data-confirm-style="danger">
+              <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted small mb-0">Nothing on the list right now.</p>
+  {% endif %}
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <ul class="nav nav-pills mb-0">
+    <li class="nav-item"><a class="nav-link {{ 'active' if status_filter == 'pending' }}" href="{{ url_for('orders_list', status='pending', view=view) }}">Pending</a></li>
+    <li class="nav-item"><a class="nav-link {{ 'active' if status_filter == 'received' }}" href="{{ url_for('orders_list', status='received', view=view) }}">Received</a></li>
+    <li class="nav-item"><a class="nav-link {{ 'active' if status_filter == 'cancelled' }}" href="{{ url_for('orders_list', status='cancelled', view=view) }}">Cancelled</a></li>
+    <li class="nav-item"><a class="nav-link {{ 'active' if status_filter == 'all' }}" href="{{ url_for('orders_list', status='all', view=view) }}">All</a></li>
+  </ul>
+  <div class="d-flex gap-2 align-items-center">
+    <div class="btn-group btn-group-sm" role="group">
+      <a href="{{ url_for('orders_list', status=status_filter, view='vendor') }}" class="btn {{ 'btn-warning' if view == 'vendor' else 'btn-outline-secondary' }}">By Vendor</a>
+      <a href="{{ url_for('orders_list', status=status_filter, view='part') }}" class="btn {{ 'btn-warning' if view == 'part' else 'btn-outline-secondary' }}">By Part</a>
+    </div>
+    <input type="text" id="orders-search" class="form-control form-control-sm" placeholder="Search item, vendor, project..." style="min-width:220px;">
+    <a href="{{ url_for('orders_export', status=status_filter) }}" class="btn btn-outline-secondary btn-sm text-nowrap"><i class="bi bi-download"></i> Export All (CSV)</a>
+  </div>
+</div>
+
+{% macro order_actions(o) %}
+{% if o.status == 'pending' %}
+<a href="{{ url_for('order_edit', order_id=o.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i></a>
+<form method="post" action="{{ url_for('order_receive', order_id=o.id) }}" class="d-inline" data-confirm="Mark this order as received? The parts get added to inventory." data-confirm-title="Order Received" data-confirm-ok="Yes, received" data-confirm-style="success">
+  <button class="btn btn-success btn-sm"><i class="bi bi-box-seam"></i> Received</button>
+</form>
+<form method="post" action="{{ url_for('order_cancel', order_id=o.id) }}" class="d-inline" data-confirm="Cancel this order?" data-confirm-style="danger">
+  <button class="btn btn-outline-danger btn-sm">Cancel</button>
+</form>
+{% elif o.status == 'received' %}
+<span class="badge bg-success">Received {{ o.received_date|usdate if o.received_date else '' }}</span>
+{% else %}
+<span class="badge bg-secondary">Cancelled</span>
+{% endif %}
+{% endmacro %}
+
+{% macro item_cell(o) %}
+{% if o.part_id %}<a href="{{ url_for('part_detail', part_id=o.part_id) }}">{{ o.part_name }}</a>
+{% else %}{{ o.description }} <span class="badge bg-secondary">new item</span>{% endif %}
+{% if o.note %}<br><small class="text-muted">{{ o.note }}</small>{% endif %}
+{% endmacro %}
+
+{% if groups %}
+  {% if view == 'vendor' %}
+    {% for g in groups %}
+    <div class="card mb-3 order-group">
+      <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <strong><i class="bi bi-truck"></i> {{ g.label }}</strong>
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-muted small">{{ g.count }} item{{ 's' if g.count != 1 }} &middot; ${{ '%.2f'|format(g.total) }}</span>
+          {% if g.label != 'No Vendor Specified' %}
+          <a href="{{ url_for('orders_export', status=status_filter, vendor=g.label) }}" class="btn btn-outline-secondary btn-sm" title="Download CSV to send to {{ g.label }}"><i class="bi bi-download"></i> Export</a>
+          {% endif %}
+        </div>
+      </div>
+      {% for b in g.batches %}
+      <div class="order-batch">
+        <div class="px-3 pt-2 text-muted small">Ordered {{ b.date|usdate if b.date else 'Unknown date' }} &middot; ${{ '%.2f'|format(b.subtotal) }}</div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 align-middle">
+            <tbody>
+              {% for o in b.lines %}
+              <tr data-search="{{ o.search_blob }}">
+                <td style="width:40%">{{ item_cell(o) }}</td>
+                <td>{{ '%g'|format(o.qty_ordered) }}</td>
+                <td>{% if o.project_name %}<a href="{{ url_for('project_detail', project_id=o.project_id) }}">{{ o.project_code }}</a>{% else %}-{% endif %}</td>
+                <td><small>{{ o.expected_date|usdate if o.expected_date else '-' }}</small></td>
+                <td>${{ '%.2f'|format((o.unit_cost or 0) * o.qty_ordered) }}</td>
+                <td class="text-end">{{ order_actions(o) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  {% else %}
+    {% for g in groups %}
+    <div class="card mb-3 order-group">
+      <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <strong><i class="bi bi-box-seam"></i> {{ g.label }}</strong>
+        <span class="text-muted small">{{ g.count }} order{{ 's' if g.count != 1 }} &middot; ${{ '%.2f'|format(g.total) }}</span>
+      </div>
+      <div class="order-batch">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light"><tr><th>Vendor</th><th>Qty</th><th>Project</th><th>Ordered</th><th>Expected</th><th>Cost</th><th></th></tr></thead>
+            <tbody>
+              {% for o in g.lines %}
+              <tr data-search="{{ o.search_blob }}">
+                <td>{{ o.vendor_name }}{% if o.note %}<br><small class="text-muted">{{ o.note }}</small>{% endif %}</td>
+                <td>{{ '%g'|format(o.qty_ordered) }}</td>
+                <td>{% if o.project_name %}<a href="{{ url_for('project_detail', project_id=o.project_id) }}">{{ o.project_code }}</a>{% else %}-{% endif %}</td>
+                <td><small>{{ o.ordered_date|usdate }}</small></td>
+                <td><small>{{ o.expected_date|usdate if o.expected_date else '-' }}</small></td>
+                <td>${{ '%.2f'|format((o.unit_cost or 0) * o.qty_ordered) }}</td>
+                <td class="text-end">{{ order_actions(o) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  {% endif %}
+{% else %}
+<div class="card"><div class="card-body text-center text-muted py-4">No orders here. <a href="{{ url_for('order_new') }}">Add one</a>.</div></div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var search = document.getElementById('orders-search');
+  if (!search) return;
+  search.addEventListener('input', function () {
+    var q = search.value.trim().toLowerCase();
+    document.querySelectorAll('tr[data-search]').forEach(function (row) {
+      row.style.display = !q || row.getAttribute('data-search').indexOf(q) !== -1 ? '' : 'none';
+    });
+    document.querySelectorAll('.order-batch').forEach(function (batch) {
+      var anyVisible = Array.prototype.some.call(batch.querySelectorAll('tr[data-search]'), function (r) {
+        return r.style.display !== 'none';
+      });
+      batch.style.display = anyVisible ? '' : 'none';
+    });
+    document.querySelectorAll('.order-group').forEach(function (group) {
+      var anyVisible = Array.prototype.some.call(group.querySelectorAll('tr[data-search]'), function (r) {
+        return r.style.display !== 'none';
+      });
+      group.style.display = anyVisible ? '' : 'none';
+    });
+  });
+})();
+</script>
+{% endblock %}

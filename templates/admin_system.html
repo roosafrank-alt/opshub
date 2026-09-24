@@ -1,0 +1,57 @@
+{% extends "admin_base.html" %}
+{% block title %}System - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<h4 class="mb-3"><i class="bi bi-hdd-rack"></i> System</h4>
+<p class="text-muted small">
+  Master-admin only. Use these if the app or the Pi itself gets stuck and you're not physically there to
+  power-cycle it - they work as long as this page is reachable at all (over wifi or Tailscale), even if
+  SSH isn't.
+</p>
+
+<div class="card p-4 mb-3">
+  <h6><i class="bi bi-arrow-clockwise"></i> Restart the App</h6>
+  <p class="text-muted small">
+    Restarts just the OpsHub program itself (a few seconds of downtime). Try this first if something in
+    the app seems stuck or misbehaving - it's much faster and lighter than a full reboot below.
+  </p>
+  <form method="post" action="{{ url_for('admin_system_restart_app') }}" data-confirm="Restart the OpsHub app? It will be briefly unreachable (a few seconds) while it comes back up." data-confirm-style="danger">
+    <button class="btn btn-outline-primary fw-bold">Restart App</button>
+  </form>
+</div>
+
+<div class="card p-4 mb-3 border-danger">
+  <h6 class="text-danger"><i class="bi bi-power"></i> Reboot the Pi</h6>
+  <p class="text-muted small">
+    Restarts the whole Raspberry Pi - use this if the app restart above doesn't help, or if something
+    like SSH or the network itself seems hung. Everyone using OpsHub will be disconnected for roughly
+    30-60 seconds while it comes back up.
+  </p>
+  <form method="post" action="{{ url_for('admin_system_reboot') }}" data-confirm="Reboot the Pi? Everyone will be disconnected for about 30-60 seconds while it restarts. Continue?" data-confirm-style="danger">
+    <button class="btn btn-outline-danger fw-bold">Reboot Pi</button>
+  </form>
+</div>
+
+<div class="card p-4 mb-3">
+  <h6><i class="bi bi-file-text"></i> Error Log</h6>
+  <p class="text-muted small mb-2">
+    Every unhandled error the app hits gets logged here with its full traceback, so if something breaks
+    you can pull it up right from your phone (no SSH needed) and hand it to Claude to look at and fix.
+  </p>
+  <a href="{{ url_for('admin_system_log') }}" class="btn btn-outline-secondary fw-bold"><i class="bi bi-file-text"></i> View Error Log</a>
+</div>
+
+<div class="card p-4">
+  <h6 class="mb-2"><i class="bi bi-info-circle"></i> Heads up</h6>
+  <p class="text-muted small mb-0">
+    Both buttons need this page to load at all - if the Pi is fully offline (powered off, no network,
+    completely hung), nothing remote can reach it and someone will still need to be there in person.
+    These help with the "the app or SSH got stuck but the Pi itself is still up and reachable" case,
+    which is the much more common one.
+  </p>
+</div>
+
+</div>
+</div>
+{% endblock %}

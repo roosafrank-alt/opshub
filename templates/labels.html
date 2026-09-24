@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Print Labels - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print flex-wrap gap-2">
+  <h4 class="mb-0">Print Labels (<span id="label-count">{{ parts|length }}</span>)</h4>
+  <div class="d-flex gap-2">
+    <input type="text" id="labels-search" class="form-control" placeholder="Filter labels, as you type..." style="max-width:260px;">
+    <button class="btn btn-warning fw-bold text-nowrap" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+  </div>
+</div>
+
+<div class="label-sheet">
+  {% for p in parts %}
+  <div class="label-card" data-search="{{ (p.name ~ ' ' ~ (p.short_name or '') ~ ' ' ~ p.barcode)|lower }}">
+    <div style="font-weight:600; font-size:.85rem;">{{ p.short_name or p.name }}</div>
+    <div class="lbl-code d-flex justify-content-center" data-code="{{ p.barcode }}"></div>
+    {% if p.location %}<div style="font-size:.75rem; color:#555;">{{ p.location }}</div>{% endif %}
+  </div>
+  {% else %}
+  <p class="text-muted">No parts selected. Go to <a href="{{ url_for('parts_list') }}">Parts</a> and select some to print.</p>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+// Self-generated "SHOP-..." barcodes print as QR codes (easier for a phone
+// camera to scan reliably); anything else prints as a Code128 barcode.
+document.querySelectorAll('.lbl-code').forEach(el => {
+  const code = el.dataset.code;
+  if (code.startsWith('SHOP-')) {
+    new QRCode(el, { text: code, width: 100, height: 100 });
+  } else {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    el.appendChild(svg);
+    JsBarcode(svg, code, { format: "CODE128", width: 1.6, height: 45, fontSize: 12, margin: 4 });
+  }
+});
+
+(function () {
+  var search = document.getElementById('labels-search');
+  var countEl = document.getElementById('label-count');
+  if (!search) return;
+  search.addEventListener('input', function () {
+    var q = search.value.trim().toLowerCase();
+    var visible = 0;
+    document.querySelectorAll('.label-card[data-search]').forEach(function (card) {
+      var show = !q || card.getAttribute('data-search').indexOf(q) !== -1;
+      card.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    if (countEl) countEl.textContent = visible;
+  });
+})();
+</script>
+{% endblock %}

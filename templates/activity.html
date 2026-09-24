@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Activity Log - OpsHub{% endblock %}
+
+{% macro sort_th(label, col) %}
+{% set new_dir = 'asc' if sort == col and direction == 'desc' else 'desc' %}
+<th style="cursor:pointer; white-space:nowrap;">
+  <a href="{{ url_for('activity_log', sort=col, dir=new_dir, q=q) }}" class="text-decoration-none text-dark">
+    {{ label }}
+    {% if sort == col %}<i class="bi bi-caret-{{ 'up' if direction == 'asc' else 'down' }}-fill small"></i>{% endif %}
+  </a>
+</th>
+{% endmacro %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0">Activity Log (<span id="activity-count">{{ tx|length }}</span>)</h4>
+  <div class="input-group" style="max-width:340px;">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input type="text" id="activity-filter" value="{{ q }}" class="form-control" placeholder="Search part, project, name, note..." autocomplete="off">
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          {{ sort_th('When', 'date') }}
+          {{ sort_th('Part', 'part') }}
+          {{ sort_th('Type', 'type') }}
+          {{ sort_th('Qty', 'qty') }}
+          {{ sort_th('Cost', 'cost') }}
+          {{ sort_th('Project', 'project') }}
+          {{ sort_th('Area', 'section') }}
+          {{ sort_th('By', 'by') }}
+          <th>Added Via</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody id="activity-tbody">
+        {% for t in tx %}
+        <tr data-search="{{ (t.part_name ~ ' ' ~ (t.project_name or '') ~ ' ' ~ (t.performed_by or '') ~ ' ' ~ (t.note or '') ~ ' ' ~ (t.section or '') ~ ' ' ~ t.type)|lower }}">
+          <td><small>{{ t.created_at|usdate(true) }}</small></td>
+          <td><a href="{{ url_for('part_detail', part_id=t.part_id) }}" class="text-decoration-none">{{ t.part_name }}</a></td>
+          <td>
+            {% if t.type == 'in' %}<span class="badge bg-success">IN</span>
+            {% elif t.type == 'out' %}<span class="badge bg-primary">OUT</span>
+            {% else %}<span class="badge bg-secondary">ADJUST</span>{% endif %}
+          </td>
+          <td>{{ '%+g'|format(t.qty) if t.type=='adjust' else '%g'|format(t.qty) }}</td>
+          <td>${{ "%.2f"|format(t.cost or 0) }}</td>
+          <td>{% if t.project_name %}<a href="{{ url_for('project_detail', project_id=t.project_id) }}" class="text-decoration-none">{{ t.project_name }}</a>{% else %}-{% endif %}</td>
+          <td><small>{{ t.section or '-' }}</small></td>
+          <td><small>{{ t.performed_by or '-' }}</small></td>
+          <td>
+            {% if t.source == 'camera_scan' %}<small class="text-muted"><i class="bi bi-camera"></i> Camera</small>
+            {% elif t.source == 'usb_scanner' %}<small class="text-muted"><i class="bi bi-upc-scan"></i> USB Scanner</small>
+            {% elif t.source == 'assigned' %}<small class="text-muted"><i class="bi bi-pencil"></i> Assigned</small>
+            {% else %}<small class="text-muted">-</small>{% endif %}
+          </td>
+          <td>{{ t.note or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="text-muted text-center py-3">No activity yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p id="activity-no-match" class="text-muted text-center py-3 mb-0" style="display:none;">No activity matches "<span id="activity-no-match-term"></span>".</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var input = document.getElementById('activity-filter');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#activity-tbody tr[data-search]'));
+  var countEl = document.getElementById('activity-count');
+  var noMatch = document.getElementById('activity-no-match');
+  var noMatchTerm = document.getElementById('activity-no-match-term');
+
+  function applyFilter() {
+    var term = input.value.trim().toLowerCase();
+    var visible = 0;
+    rows.forEach(function (row) {
+      var match = !term || row.getAttribute('data-search').indexOf(term) !== -1;
+      row.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    countEl.textContent = visible;
+    noMatch.style.display = (term && visible === 0) ? '' : 'none';
+    noMatchTerm.textContent = input.value.trim();
+  }
+
+  input.addEventListener('input', applyFilter);
+  if (input.value) applyFilter();
+})();
+</script>
+{% endblock %}

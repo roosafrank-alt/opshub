@@ -1,0 +1,239 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Availability - OpsHub{% endblock %}
+{% block content %}
+{#
+  Plane Availability: which planes are open when. Reached from an
+  "Availability" button next to the Schedule page's own Day/Week/Month/...
+  view selector, not as one more entry in that selector (see the button in
+  _schedule_live.html) - this is its own page/route
+  (flight.schedule_availability in flight.py). Plane availability only: a
+  slot is open if the PLANE is free, regardless of whether an instructor
+  is also free then.
+
+  This page has its OWN Day/Week/Month view selector (separate from the
+  Schedule's):
+    - Day: the full plane x time-slot grid for one day, with Calendar
+      (grid) / List sub-views (_build_availability_day).
+    - Week/Month: one open-slot COUNT per day, not the full grid, so a
+      week/month fits on screen (_build_availability_counts) - click a day
+      to jump into the Day view for the real detail.
+#}
+<style>
+  .avail-toolbar {
+    position: sticky;
+    top: var(--flight-nav-h, 56px);
+    z-index: 1010;
+    background: #f4f5f7;
+    margin: 0 -.75rem 1rem;
+    padding: .75rem .75rem .6rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .avail-grid { border-collapse: separate; border-spacing: 0; }
+  .avail-grid th, .avail-grid td { vertical-align: middle; white-space: nowrap; }
+  .avail-grid thead th { position: sticky; top: calc(var(--flight-nav-h, 56px) + 92px); background: #fff; z-index: 5; }
+  .avail-plane-col { position: sticky; left: 0; background: #fff; z-index: 4; font-weight: 700; min-width: 90px; }
+  .avail-slot-open {
+    background: #d1f7dd;
+    color: #0a3d1f;
+    cursor: pointer;
+    text-align: center;
+    font-size: .72rem;
+    padding: .4rem .3rem;
+    border: 1px solid #a9e6bb;
+  }
+  .avail-slot-open:hover { background: #a9e6bb; }
+  .avail-slot-booked {
+    background: #e9ecef;
+    color: #868e96;
+    text-align: center;
+    font-size: .68rem;
+    padding: .4rem .3rem;
+    border: 1px solid #dee2e6;
+  }
+  .avail-slot-booked .avail-booked-who { display: block; font-size: .62rem; }
+  @media (max-width: 575.98px) {
+    .avail-grid th, .avail-grid td { font-size: .68rem; padding: .3rem .2rem; }
+  }
+  .avail-week-card, .avail-month-cell {
+    text-decoration: none;
+    display: block;
+    border-radius: 6px;
+    transition: background .1s;
+  }
+  .avail-week-card { padding: .75rem; border: 1px solid #dee2e6; background: #fff; }
+  .avail-week-card:hover, .avail-month-cell:hover { background: #f1f8f4; }
+  .avail-week-card.avail-today, .avail-month-cell.avail-today { border-color: #ffc107; border-width: 2px; }
+  .avail-count-num { font-size: 1.4rem; font-weight: 700; }
+  .avail-count-zero { color: #adb5bd; }
+  .avail-count-open { color: #0a3d1f; }
+  .avail-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .avail-month-cell { border: 1px solid #dee2e6; background: #fff; padding: .4rem; min-height: 64px; color: #212529; }
+  .avail-month-cell .avail-day-num { font-size: .72rem; color: #6c757d; }
+  .avail-month-cell-empty { min-height: 64px; }
+  .avail-month-dow { text-align: center; font-size: .7rem; font-weight: 700; color: #6c757d; padding-bottom: 2px; }
+</style>
+
+<div class="avail-toolbar">
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-calendar2-check"></i> Availability
+    {%- if view == 'day' %} - {{ day_str|usdate }}
+    {%- elif view == 'week' %} - {{ week_label }}
+    {%- else %} - {{ month_name }} {{ year }}{% endif %}</h4>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <div class="btn-group btn-group-sm" role="group">
+      <a href="{{ url_for('flight.schedule_availability', view='day', date=day_str, plane_id=plane_id, mode=mode) }}" class="btn {{ 'btn-warning' if view == 'day' else 'btn-outline-secondary' }}">Day</a>
+      <a href="{{ url_for('flight.schedule_availability', view='week', date=day_str, plane_id=plane_id) }}" class="btn {{ 'btn-warning' if view == 'week' else 'btn-outline-secondary' }}">Week</a>
+      <a href="{{ url_for('flight.schedule_availability', view='month', date=day_str, plane_id=plane_id) }}" class="btn {{ 'btn-warning' if view == 'month' else 'btn-outline-secondary' }}">Month</a>
+    </div>
+    {% if view == 'day' %}
+    <div class="btn-group btn-group-sm" role="group">
+      <a href="{{ url_for('flight.schedule_availability', view='day', date=day_str, plane_id=plane_id, mode='calendar') }}" class="btn {{ 'btn-warning' if mode == 'calendar' else 'btn-outline-secondary' }}">Calendar</a>
+      <a href="{{ url_for('flight.schedule_availability', view='day', date=day_str, plane_id=plane_id, mode='list') }}" class="btn {{ 'btn-warning' if mode == 'list' else 'btn-outline-secondary' }}">List</a>
+    </div>
+    <a href="{{ url_for('flight.schedule_availability', view='day', date=day_prev, plane_id=plane_id, mode=mode) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+    <a href="{{ url_for('flight.schedule_availability', view='day', plane_id=plane_id, mode=mode) }}" class="btn btn-outline-secondary btn-sm">Today</a>
+    <a href="{{ url_for('flight.schedule_availability', view='day', date=day_next, plane_id=plane_id, mode=mode) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
+    {% elif view == 'week' %}
+    <a href="{{ url_for('flight.schedule_availability', view='week', date=week_prev, plane_id=plane_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+    <a href="{{ url_for('flight.schedule_availability', view='week', plane_id=plane_id) }}" class="btn btn-outline-secondary btn-sm">This Week</a>
+    <a href="{{ url_for('flight.schedule_availability', view='week', date=week_next, plane_id=plane_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
+    {% else %}
+    <a href="{{ url_for('flight.schedule_availability', view='month', date=month_prev, plane_id=plane_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+    <a href="{{ url_for('flight.schedule_availability', view='month', plane_id=plane_id) }}" class="btn btn-outline-secondary btn-sm">This Month</a>
+    <a href="{{ url_for('flight.schedule_availability', view='month', date=month_next, plane_id=plane_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
+    {% endif %}
+    <a href="{{ url_for('flight.schedule_calendar', view='day', date=day_str, plane_id=plane_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar3"></i> Back to Schedule</a>
+  </div>
+</div>
+<form method="get" class="row g-2 align-items-end mb-0">
+  <input type="hidden" name="view" value="{{ view }}">
+  <input type="hidden" name="mode" value="{{ mode }}">
+  <input type="hidden" name="date" value="{{ day_str }}">
+  <div class="col-auto">
+    <label class="form-label small mb-0">Plane</label>
+    <select name="plane_id" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">All planes</option>
+      {% for p in all_planes %}
+      <option value="{{ p.id }}" {{ 'selected' if plane_id == p.id|string }}>{{ p.tag }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</form>
+</div>
+
+{% if view == 'day' %}
+<p class="text-muted small">Plane availability only - a slot shown here just means that plane is free then; it doesn't check whether an instructor is also available. Times are 8 AM - 8 PM in 1.5-hour slots (the same length as a normal booking).</p>
+{% else %}
+<p class="text-muted small">Each day shows how many open (plane, time-slot) pairs it has, 8 AM - 8 PM in 1.5-hour slots - click a day to see the full breakdown.</p>
+{% endif %}
+
+{% if view == 'week' %}
+<div class="row row-cols-2 row-cols-md-4 row-cols-lg-7 g-2">
+  {% for wd in week_days %}
+  <div class="col">
+    <a href="{{ url_for('flight.schedule_availability', view='day', date=wd.date, plane_id=plane_id, mode='calendar') }}"
+       class="avail-week-card{{ ' avail-today' if wd.is_today }}">
+      <div class="small text-muted">{{ wd.date_label }}</div>
+      <div class="avail-count-num {{ 'avail-count-zero' if wd.count == 0 else 'avail-count-open' }}">{{ wd.count }}</div>
+      <div class="small text-muted">open slot{{ 's' if wd.count != 1 }}</div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+{% elif view == 'month' %}
+<div class="avail-month-grid mb-1">
+  {% for dow in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}<div class="avail-month-dow">{{ dow }}</div>{% endfor %}
+</div>
+<div class="avail-month-grid">
+  {% for week in weeks %}
+    {% for cell in week %}
+      {% if cell is none %}
+      <div class="avail-month-cell-empty"></div>
+      {% else %}
+      <a href="{{ url_for('flight.schedule_availability', view='day', date=cell.date, plane_id=plane_id, mode='calendar') }}"
+         class="avail-month-cell{{ ' avail-today' if cell.is_today }}">
+        <div class="avail-day-num">{{ cell.day }}</div>
+        <div class="avail-count-num {{ 'avail-count-zero' if cell.count == 0 else 'avail-count-open' }}" style="font-size:1.05rem;">{{ cell.count }}</div>
+      </a>
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+</div>
+
+{% elif not planes %}
+<p class="text-muted">No active planes to show.</p>
+{% elif mode == 'calendar' %}
+<div class="table-responsive">
+  <table class="table table-bordered avail-grid mb-0">
+    <thead>
+      <tr>
+        <th class="avail-plane-col">Plane</th>
+        {% for slot in slots %}<th class="text-center">{{ slot.label }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in grid %}
+      <tr>
+        <td class="avail-plane-col">{{ row.plane.tag }}</td>
+        {% for cell in row.cells %}
+        {% if cell.booked %}
+        <td class="avail-slot-booked" title="{{ cell.flight.student_name }}{% if cell.flight.cfi_name %} / {{ cell.flight.cfi_name }}{% endif %}">
+          Booked
+          <span class="avail-booked-who">{{ cell.flight.student_name }}</span>
+        </td>
+        {% else %}
+        {#- schedule_new() only pre-fills the date (no plane/time query
+           params today), so this jumps to "Schedule Flight" with the date
+           set and the plane/time picked by hand - safer than reaching
+           into schedule_new()'s shared booking-form logic just for this. #}
+        <td class="avail-slot-open" role="button"
+            onclick="window.location.href='{{ url_for('flight.schedule_new', date=day_str) }}'"
+            title="{{ row.plane.tag }} open {{ cell.label }} - click to schedule a flight">
+          Open
+        </td>
+        {% endif %}
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+{#- List sub-view: every open (plane, slot) pair, grouped by plane so it
+   reads like a simple "here's what's free today" sheet rather than a wall
+   of individual rows. #}
+{% if not open_list %}
+<p class="text-muted">Nothing open today in the 8 AM - 8 PM window.</p>
+{% else %}
+{% set open_by_plane = {} %}
+{% for item in open_list %}
+{% if item.plane_tag not in open_by_plane %}{% set _ = open_by_plane.update({item.plane_tag: []}) %}{% endif %}
+{% set _ = open_by_plane[item.plane_tag].append(item) %}
+{% endfor %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+  {% for plane in planes %}
+  {% set items = open_by_plane.get(plane.tag, []) %}
+  <div class="col">
+    <div class="card h-100">
+      <div class="card-header fw-bold">{{ plane.tag }}</div>
+      <div class="card-body py-2">
+        {% if items %}
+        <div class="d-flex flex-wrap gap-1">
+          {% for item in items %}
+          <a class="btn btn-sm btn-outline-success"
+             href="{{ url_for('flight.schedule_new', date=day_str) }}"
+             title="{{ item.plane_tag }} open {{ item.label }} - click to schedule a flight">{{ item.label }}</a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <span class="text-muted small">Fully booked</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

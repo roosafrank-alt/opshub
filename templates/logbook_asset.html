@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ asset.tag }} Logbooks - OpsHub{% endblock %}
+{% block content %}
+<style>
+  .lb-row summary { list-style: none; cursor: pointer; }
+  .lb-row summary::-webkit-details-marker { display: none; }
+  .lb-row[open] .lb-chev { transform: rotate(90deg); }
+  .lb-chev { transition: transform .15s; }
+  .lb-body { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .8rem; background: #f8f9fa; border-radius: 6px; padding: .5rem .75rem; }
+  .lb-year { font-size: .75rem; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: .05em; margin: .75rem 0 .25rem; }
+</style>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h4 class="mb-0"><i class="bi bi-journal-text"></i> {{ asset.tag }} Logbooks</h4>
+    <p class="mb-0 text-muted small">{{ [asset.year, asset.make, asset.model]|select|join(' ') }} &middot; <a href="{{ url_for('asset_detail', asset_id=asset.id) }}">aircraft profile</a></p>
+  </div>
+  <a href="{{ url_for('logbook.logbook_list', asset_id=asset.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-search"></i> Search</a>
+</div>
+
+<ul class="nav nav-tabs mb-2">
+  {% for code, label in log_types %}
+  <li class="nav-item"><a class="nav-link {{ 'active' if tab == code }}" href="{{ url_for('logbook.asset_logbook', asset_id=asset.id, log=code) }}">{{ label }} <span class="badge bg-secondary">{{ by_log[code]|length }}</span></a></li>
+  {% endfor %}
+</ul>
+
+{% set rows = by_log[tab] %}
+{% if rows %}
+  {% set ns = namespace(year=None) %}
+  {% for e in rows %}
+    {% if e.entry_date[:4] != ns.year %}{% set ns.year = e.entry_date[:4] %}<div class="lb-year">{{ ns.year }}</div>{% endif %}
+    <details class="lb-row card mb-1">
+      <summary class="px-3 py-2 d-flex align-items-center gap-2">
+        <i class="bi bi-chevron-right lb-chev text-muted"></i>
+        <span class="text-nowrap fw-bold small">{{ e.entry_date|usdate }}</span>
+        {% if e.tach_hours is not none %}<span class="badge bg-light text-dark border">Tach {{ '%.1f'|format(e.tach_hours) }}</span>{% endif %}
+        <span class="small text-truncate flex-grow-1">{% if e.project_code %}<code>{{ e.project_code }}</code> {% endif %}{{ e.section or (project_type_labels.get(e.project_type) or 'Combined') }}</span>
+      </summary>
+      <div class="px-3 pb-2">
+        <div class="lb-body">{{ e.body }}</div>
+        <div class="d-flex gap-2 mt-2">
+          <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('logbook.entry_detail', entry_id=e.id) }}"><i class="bi bi-pencil"></i> Open</a>
+          <a class="btn btn-outline-primary btn-sm" target="_blank" href="{{ url_for('logbook.entry_print', entry_id=e.id) }}"><i class="bi bi-printer"></i> Sticker</a>
+          {% if e.project_id %}<a class="btn btn-outline-secondary btn-sm" href="{{ url_for('project_detail', project_id=e.project_id) }}"><i class="bi bi-clipboard-check"></i> Project</a>{% endif %}
+        </div>
+      </div>
+    </details>
+  {% endfor %}
+{% else %}
+<p class="text-muted mt-3">No {{ dict(log_types)[tab]|lower }} entries yet. They're added from a project's Logbook Starter.</p>
+{% endif %}
+{% endblock %}

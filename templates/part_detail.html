@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}{{ part.name }} - OpsHub{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card p-3 text-center">
+      {% if photos %}
+      <img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-2" style="max-height:220px; width:100%; object-fit:cover;">
+      {% endif %}
+      <h5>{{ part.name }}{% if part.short_name %} <span class="text-muted small fw-normal">(aka {{ part.short_name }})</span>{% endif %}</h5>
+      <div id="code-visual" class="d-flex justify-content-center my-2"></div>
+      <div><code>{{ part.barcode }}</code></div>
+      <a href="{{ url_for('labels', ids=part.id) }}" class="btn btn-outline-secondary btn-sm mt-2"><i class="bi bi-printer"></i> Print Label</a>
+    </div>
+
+    <div class="card p-3 mt-3">
+      <div class="d-flex justify-content-between">
+        <span class="text-muted">On Hand</span>
+        <strong class="{{ 'text-danger' if part.qty_on_hand <= part.reorder_point else '' }}">{{ '%g'|format(part.qty_on_hand) }} {{ part.unit }}</strong>
+      </div>
+      <div class="d-flex justify-content-between">
+        <span class="text-muted">Reorder Point</span><span>{{ '%g'|format(part.reorder_point) }} {{ part.unit }}</span>
+      </div>
+      <div class="d-flex justify-content-between">
+        <span class="text-muted">Unit Cost</span><span>${{ "%.2f"|format(part.unit_cost) }}</span>
+      </div>
+      <div class="d-flex justify-content-between">
+        <span class="text-muted">Sell Price</span><span>${{ "%.2f"|format(part.sell_price) }}</span>
+      </div>
+      <div class="d-flex justify-content-between">
+        <span class="text-muted">Total Value</span><span>${{ "%.2f"|format(part.qty_on_hand * part.unit_cost) }}</span>
+      </div>
+      <div class="d-flex justify-content-between">
+        <span class="text-muted">Category</span><span>{{ part.category or '-' }}</span>
+      </div>
+      <div class="d-flex justify-content-between">
+        <span class="text-muted">Location</span><span>{{ part.location or '-' }}</span>
+      </div>
+      <div class="d-flex justify-content-between">
+        <span class="text-muted">Supplier</span><span>{{ part.supplier or '-' }}</span>
+      </div>
+      {% if part.description %}<p class="mt-2 mb-0 small text-muted">{{ part.description }}</p>{% endif %}
+      <div class="d-flex gap-2 mt-3">
+        <a href="{{ url_for('part_edit', part_id=part.id) }}" class="btn btn-outline-primary btn-sm flex-fill"><i class="bi bi-pencil"></i> Edit</a>
+        <button class="btn btn-outline-danger btn-sm flex-fill" onclick="confirmDelete()"><i class="bi bi-trash"></i> Delete</button>
+      </div>
+      <form id="delete-form" method="post" action="{{ url_for('part_delete', part_id=part.id) }}" style="display:none;"></form>
+    </div>
+
+    <div class="card p-3 mt-3">
+      <h6>Adjust Stock Count</h6>
+      <form method="post" action="{{ url_for('part_adjust', part_id=part.id) }}" id="adjust-form">
+        <label class="form-label small">Set actual counted quantity</label>
+        <input type="number" step="any" name="new_qty" class="form-control mb-2" value="{{ part.qty_on_hand }}">
+        <input type="text" name="note" class="form-control mb-2" placeholder="Reason (optional)">
+        <label class="form-label small">Scanning as</label>
+        <select id="adjust-operator-select" class="form-select form-select-sm mb-2">
+          <option value="" disabled selected>-- Select --</option>
+          <option value="__new__">+ Add new name...</option>
+        </select>
+        <div id="adjust-operator-new-row" class="input-group input-group-sm mb-2" style="display:none;">
+          <input type="text" id="adjust-operator-new-input" class="form-control" placeholder="e.g. Frank, Shop PC, Tablet 1">
+          <button type="button" id="adjust-operator-new-add" class="btn btn-primary">Add</button>
+        </div>
+        <input type="hidden" name="performed_by" id="adjust-operator-hidden">
+        <button class="btn btn-secondary btn-sm w-100">Save Adjustment</button>
+      </form>
+      <script>
+        (function () {
+          var select = document.getElementById('adjust-operator-select');
+          var hidden = document.getElementById('adjust-operator-hidden');
+          var form = document.getElementById('adjust-form');
+          var newRow = document.getElementById('adjust-operator-new-row');
+          var newInput = document.getElementById('adjust-operator-new-input');
+          var newAdd = document.getElementById('adjust-operator-new-add');
+          var saved = '';
+          try { saved = localStorage.getItem('shopinv_operator') || ''; } catch (e) { /* ignore */ }
+
+          function addOption(name) {
+            var opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            select.insertBefore(opt, select.lastElementChild);
+          }
+
+          fetch('/api/operators').then(function (r) { return r.json(); }).then(function (names) {
+            names.forEach(addOption);
+            if (saved) {
+              if (names.indexOf(saved) === -1) addOption(saved);
+              select.value = saved;
+            }
+          }).catch(function () {
+            if (saved) { addOption(saved); select.value = saved; }
+          });
+
+          select.addEventListener('change', function () {
+            if (select.value === '__new__') {
+              newRow.style.display = 'flex';
+              newInput.value = '';
+              newInput.focus();
+              return;
+            }
+            newRow.style.display = 'none';
+            saved = select.value;
+            try { localStorage.setItem('shopinv_operator', saved); } catch (e) { /* ignore */ }
+          });
+
+          function addNewFromInput() {
+            var name = (newInput.value || '').trim();
+            if (!name) return;
+            addOption(name);
+            select.value = name;
+            newRow.style.display = 'none';
+            saved = name;
+            try { localStorage.setItem('shopinv_operator', saved); } catch (e) { /* ignore */ }
+          }
+          newAdd.addEventListener('click', addNewFromInput);
+          newInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); addNewFromInput(); }
+          });
+
+          form.addEventListener('submit', function (e) {
+            var v = select.value;
+            var name = (v && v !== '__new__') ? v.trim() : '';
+            hidden.value = name;
+            if (!name) {
+              e.preventDefault();
+              select.classList.add('is-invalid');
+              select.focus();
+              setTimeout(function () { select.classList.remove('is-invalid'); }, 2500);
+              alert("Select who's making this adjustment (\"Scanning as\") first.");
+            }
+          });
+        })();
+      </script>
+    </div>
+
+    <div class="card p-3 mt-3">
+      <h6>Photos</h6>
+      {% if photos %}
+      <div class="row g-2 mb-2">
+        {% for photo in photos %}
+        <div class="col-4">
+          <div class="position-relative">
+            <a href="{{ url_for('static', filename='uploads/' + photo.filename) }}" target="_blank">
+              <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="img-fluid rounded" style="aspect-ratio:1; object-fit:cover; width:100%;">
+            </a>
+            {% if photo.is_cover %}
+            <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-1"><i class="bi bi-star-fill"></i> Cover</span>
+            {% else %}
+            <form method="post" action="{{ url_for('photo_set_cover', photo_id=photo.id) }}">
+              <button class="btn btn-sm btn-light position-absolute top-0 start-0 m-1 py-0 px-1" title="Set as cover photo"><i class="bi bi-star"></i></button>
+            </form>
+            {% endif %}
+            <form method="post" action="{{ url_for('photo_delete', photo_id=photo.id) }}" data-confirm="Delete this photo?" data-confirm-style="danger">
+              <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 py-0 px-1"><i class="bi bi-x"></i></button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted small">No photos yet.</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('part_add_photos', part_id=part.id) }}" enctype="multipart/form-data">
+        <input type="file" name="photos" accept="image/*" capture="environment" multiple class="form-control form-control-sm mb-2">
+        <button class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-camera"></i> Add Photo(s)</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card p-3">
+      <h5>Transaction History</h5>
+      {% if tx %}
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead><tr><th>When</th><th>Type</th><th>Qty</th><th>Project</th><th>Area</th><th>By</th><th>Added Via</th><th>Note</th></tr></thead>
+          <tbody>
+            {% for t in tx %}
+            <tr>
+              <td><small>{{ t.created_at|usdate(true) }}</small></td>
+              <td>
+                {% if t.type == 'in' %}<span class="badge bg-success">IN</span>
+                {% elif t.type == 'out' %}<span class="badge bg-primary">OUT</span>
+                {% else %}<span class="badge bg-secondary">ADJUST</span>{% endif %}
+              </td>
+              <td>{{ '%+g'|format(t.qty) if t.type=='adjust' else '%g'|format(t.qty) }}</td>
+              <td>{% if t.project_name %}<a href="{{ url_for('project_detail', project_id=t.project_id) }}">{{ t.project_name }}</a>{% else %}-{% endif %}</td>
+              <td><small>{{ t.section or '-' }}</small></td>
+              <td><small>{{ t.performed_by or '-' }}</small></td>
+              <td>
+                {% if t.source == 'camera_scan' %}<small class="text-muted"><i class="bi bi-camera"></i> Camera</small>
+                {% elif t.source == 'usb_scanner' %}<small class="text-muted"><i class="bi bi-upc-scan"></i> USB Scanner</small>
+                {% elif t.source == 'assigned' %}<small class="text-muted"><i class="bi bi-pencil"></i> Assigned</small>
+                {% else %}<small class="text-muted">-</small>{% endif %}
+              </td>
+              <td>{{ t.note or '-' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted">No transactions yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+// Barcodes we generated ourselves (prefixed "SHOP-") are printed as QR
+// codes - much more forgiving to scan with a phone camera than a 1D
+// barcode. Anything else is assumed to be an existing manufacturer
+// barcode (UPC/EAN/Code128) and is drawn as a standard Code128 barcode.
+(function () {
+  const code = "{{ part.barcode }}";
+  const container = document.getElementById('code-visual');
+  if (code.startsWith('SHOP-')) {
+    new QRCode(container, { text: code, width: 160, height: 160 });
+  } else {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    container.appendChild(svg);
+    JsBarcode(svg, code, { format: "CODE128", width: 2, height: 60, fontSize: 14 });
+  }
+})();
+
+function confirmDelete() {
+  if (confirm("Delete this part and all its transaction history? This cannot be undone.")) {
+    document.getElementById('delete-form').submit();
+  }
+}
+</script>
+{% endblock %}

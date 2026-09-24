@@ -1,0 +1,107 @@
+{# Shared "are you sure?" step for important buttons, on every side of the
+   app (shop, admin, flight school). Put data-confirm="Question?" on a
+   <form> (checked when it's submitted) or on an <a>/<button> (checked when
+   it's clicked). Optional extras:
+     data-confirm-title  - heading (default "Please confirm")
+     data-confirm-ok     - label for the go-ahead button (default "Yes, continue")
+     data-confirm-style  - success / danger / warning / primary (default primary)
+   [[name]] in the question is swapped for that form field's current value,
+   e.g. "Add $[[amount]] to Sam's balance?". Falls back to the browser's
+   own confirm box if the page's Bootstrap script didn't load. #}
+<div class="modal fade" id="confirmActionModal" tabindex="-1" aria-labelledby="confirmActionTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title fw-bold" id="confirmActionTitle">Please confirm</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="confirmActionText" style="white-space: pre-line;"></div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary fw-bold" id="confirmActionOk">Yes, continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  if (window.OpsHubConfirm) return;
+  var pending = null;  // function to run once confirmed
+
+  function fillTokens(text, form) {
+    if (!form) return text;
+    return text.replace(/\[\[(\w+)\]\]/g, function (_m, name) {
+      var field = form.elements[name];
+      return field && field.value ? field.value : '';
+    });
+  }
+
+  function ask(el, form, proceed) {
+    var text = fillTokens(el.getAttribute('data-confirm') || 'Are you sure?', form);
+    var modalEl = document.getElementById('confirmActionModal');
+    if (!modalEl || !window.bootstrap) {
+      if (window.confirm(text)) proceed();
+      return;
+    }
+    document.getElementById('confirmActionTitle').textContent = el.getAttribute('data-confirm-title') || 'Please confirm';
+    document.getElementById('confirmActionText').textContent = text;
+    var ok = document.getElementById('confirmActionOk');
+    ok.textContent = el.getAttribute('data-confirm-ok') || 'Yes, continue';
+    ok.className = 'btn fw-bold btn-' + (el.getAttribute('data-confirm-style') || 'primary');
+    ok.disabled = false;
+    pending = proceed;
+    var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    // Don't stack on top of another open dialog (e.g. the Schedule's
+    // flight details) - close it first, then ask.
+    var open = document.querySelector('.modal.show');
+    if (open && open !== modalEl) {
+      open.addEventListener('hidden.bs.modal', function once() {
+        open.removeEventListener('hidden.bs.modal', once);
+        modal.show();
+      });
+      bootstrap.Modal.getOrCreateInstance(open).hide();
+    } else {
+      modal.show();
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('#confirmActionOk')) {
+      var go = pending;
+      pending = null;
+      document.getElementById('confirmActionOk').disabled = true;
+      var modalEl = document.getElementById('confirmActionModal');
+      if (window.bootstrap) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+      if (go) go();
+      return;
+    }
+    // Links and non-submit buttons marked data-confirm.
+    var el = e.target.closest && e.target.closest('a[data-confirm], button[data-confirm]:not([type="submit"])');
+    if (!el || el.form && el.type === 'submit') return;
+    if (el.dataset.confirmed === '1') { el.dataset.confirmed = ''; return; }
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    ask(el, el.form, function () {
+      el.dataset.confirmed = '1';
+      el.click();
+    });
+  }, true);
+
+  // Forms marked data-confirm (delegated, so it keeps working after the
+  // dashboard/schedule live refresh swaps the HTML).
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form.hasAttribute || !form.hasAttribute('data-confirm')) return;
+    if (form.dataset.confirmed === '1') { form.dataset.confirmed = ''; return; }
+    e.preventDefault();
+    var submitter = e.submitter || null;
+    ask(form, form, function () {
+      form.dataset.confirmed = '1';
+      if (form.requestSubmit) form.requestSubmit(submitter && submitter.form === form ? submitter : undefined);
+      else form.submit();
+    });
+  }, true);
+
+  window.OpsHubConfirm = ask;
+})();
+</script>

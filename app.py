@@ -1,0 +1,4142 @@
+import os
+import re
+import csv
+import io
+import calendar as calendar_mod
+import sqlite3
+import subprocess
+import threading
+import time
+import logging
+from datetime import date, datetime, timedelta
+from flask import (Flask, render_template, request, redirect, url_for, jsonify, flash, abort,
+                    Response, session, got_request_exception)
+
+from db import (get_db, init_db, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
+                 allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
+                 MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS)
+from flight import flight_bp, _flight_hours, check_session_alerts, PLANE_COLORS
+from logbook import logbook_bp
+from pilotlog import pilotlog_bp
+import academy
+from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
+                   master_admin_required, shop_role_required, can_see_shop_costs,
+                   owner_user_id, owner_locked)
+import notify
+from urllib.parse import urlparse
+import push
+
+app = Flask(__name__)
+app.secret_key = "shop-inventory-dev-key-change-me"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=180)  # keeps a login valid for months - mainly for the kiosk display, which should stay logged in across reboots rather than showing the login screen every time
+app.register_blueprint(flight_bp)
+app.register_blueprint(logbook_bp)
+app.register_blueprint(pilotlog_bp)
+
+
+# ---------------------------------------------------------------------------
+# Error log - instead of one big growing file, every unhandled exception is
+# saved as its OWN file in instance/error_logs/, named by the timestamp it
+# happened at (survives deploys since instance/ is excluded from the rsync
+# push, same as the database). Viewable from Admin -> System (admin_system_log
+# below) so an error can be diagnosed and sent to Claude without needing SSH
+# access to the Pi at all. `got_request_exception` fires regardless of debug
+# mode - unlike Flask's own log_exception, which is skipped when DEBUG is on
+# (PROPAGATE_EXCEPTIONS bypasses it) - so this still logs even though the
+# interactive debugger is also enabled below.
+# ---------------------------------------------------------------------------
+INSTANCE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance")
+os.makedirs(INSTANCE_DIR, exist_ok=True)
+ERROR_LOG_DIR = os.path.join(INSTANCE_DIR, "error_logs")
+os.makedirs(ERROR_LOG_DIR, exist_ok=True)
+_MAX_ERROR_LOG_FILES = 200  # oldest files beyond this are pruned, so a long Pi uptime doesn't fill the SD card
+
+
+class _PerFileErrorHandler(logging.Handler):
+    """Writes each log record to its own timestamped file in ERROR_LOG_DIR
+    instead of appending to one ever-growing file, so a single error can be
+    opened, copied, or deleted on its own rather than hunted for inside a
+    big block of scrollback. Prunes the oldest files past
+    _MAX_ERROR_LOG_FILES on every write."""
+
+    def emit(self, record):
+        try:
+            os.makedirs(ERROR_LOG_DIR, exist_ok=True)
+            stamp = datetime.fromtimestamp(record.created).strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]
+            path = os.path.join(ERROR_LOG_DIR, stamp + ".log")
+            suffix = 1
+            while os.path.exists(path):  # two errors in the same millisecond - make the name unique
+                path = os.path.join(ERROR_LOG_DIR, "%s-%d.log" % (stamp, suffix))
+                suffix += 1
+            with open(path, "w") as f:
+                f.write(self.format(record) + "\n")
+            self._prune()
+        except OSError:
+            pass
+
+    def _prune(self):
+        try:
+            names = sorted(n for n in os.listdir(ERROR_LOG_DIR) if n.endswith(".log"))
+        except OSError:
+            return
+        for name in names[:max(0, len(names) - _MAX_ERROR_LOG_FILES)]:
+            try:
+                os.remove(os.path.join(ERROR_LOG_DIR, name))
+            except OSError:
+                pass
+
+
+_log_handler = _PerFileErrorHandler()
+_log_handler.setLevel(logging.WARNING)
+_log_handler.setFormatter(logging.Formatter(
+    "%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+app.logger.addHandler(_log_handler)
+app.logger.setLevel(logging.WARNING)
+
+
+def _log_request_exception(sender, exception, **extra):
+    path = request.path if request else "(no request)"
+    sender.logger.error("Unhandled exception on %s %s: %s", request.method if request else "?",
+                        path, exception, exc_info=exception)
+
+
+got_request_exception.connect(_log_request_exception, app)
+
+_ERROR_LOG_HEAD_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) \[(\w+)\] (.*)$")
+_ERROR_LOG_AFFECTED_RE = re.compile(r"on (\S+ \S+):")
+
+
+def _parse_error_log_entry(name, text):
+    """Pulls a one-line summary (date, time, the request that hit it) out of
+    a saved error file for the Admin error log's compact list view - the
+    full traceback (the file's whole content) only gets shown once that row
+    is clicked open. Falls back gracefully if a file was hand-edited or the
+    log format ever changes, rather than erroring the whole page."""
+    first_line = text.split("\n", 1)[0]
+    m = _ERROR_LOG_HEAD_RE.match(first_line)
+    if m:
+        log_date, log_time, _level, message = m.groups()
+    else:
+        log_date, log_time, message = "", "", first_line
+    am = _ERROR_LOG_AFFECTED_RE.search(message)
+    affected = am.group(1) if am else "-"
+    return {"name": name, "date": log_date, "time": log_time, "affected": affected,
+            "message": message, "text": text}
+
+
+def usdate(value, show_time=False):
+    """Formats an ISO date/datetime string ('YYYY-MM-DD' or
+    'YYYY-MM-DD HH:MM:SS'/'YYYY-MM-DDTHH:MM:SS') as MM-DD-YYYY, the display
+    format used everywhere in this app (storage/sorting stays ISO under the
+    hood). Anything that doesn't look like an ISO date passes through
+    unchanged. With show_time, appends HH:MM after the date."""
+    if not value:
+        return value
+    s = str(value).strip()
+    if len(s) < 10:
+        return value
+    date_part = s[:10]
+    parts = date_part.split("-")
+    if len(parts) != 3 or len(parts[0]) != 4:
+        return value
+    y, m, d = parts
+    out = f"{m}-{d}-{y}"
+    if show_time:
+        rest = s[10:].replace("T", " ").strip()
+        if rest:
+            out += " " + rest[:5]
+    return out
+
+
+app.jinja_env.filters["usdate"] = usdate
+
+
+_WIND_COMPASS_POINTS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                        "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+
+
+def wind_compass_label(deg):
+    """Degrees -> a 16-point compass label (e.g. 270 -> 'W'), for the
+    Flight School dashboard weather tile's wind direction display."""
+    if deg is None:
+        return "-"
+    try:
+        deg = float(deg) % 360
+    except (TypeError, ValueError):
+        return "-"
+    idx = int((deg / 22.5) + 0.5) % 16
+    return _WIND_COMPASS_POINTS[idx]
+
+
+app.jinja_env.globals["_wind_compass"] = wind_compass_label
+
+
+@app.context_processor
+def inject_auth_context():
+    open_squawk_count = 0
+    if session.get("is_master_admin") or session.get("shop_role") in ("admin", "tech"):
+        conn = get_db()
+        open_squawk_count = conn.execute(
+            "SELECT COUNT(*) c FROM flights WHERE squawk = 1 AND squawk_acknowledged_at IS NULL"
+        ).fetchone()["c"]
+        conn.close()
+    return {
+        "can_see_shop_costs": can_see_shop_costs(),
+        "shop_role": session.get("shop_role"),
+        "is_master_admin": session.get("is_master_admin"),
+        "logged_in_user_name": session.get("user_name"),
+        "open_squawk_count": open_squawk_count,
+        "tour_seen_shop": session.get("tour_seen_shop"),
+        "tour_seen_flight": session.get("tour_seen_flight"),
+        "maint_category_colors": CATEGORY_COLORS,
+        "maint_category_labels": CATEGORY_LABELS,
+    }
+
+
+@app.route("/", methods=["GET", "POST"])
+def home_launcher():
+    """Master login + top-level launcher. Not signed in: shows the login
+    form. Signed in: shows only the program tiles (Shop Inventory - really
+    the shop + maintenance tile - and/or Flight School) this account has a
+    role in."""
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        # Checked by default (see home_launcher.html) - unchecking it is for
+        # a shared/public device, so that login clears out when the browser
+        # closes instead of staying signed in for the next person. A
+        # checkbox only appears in form data at all when it's checked.
+        remember = "remember" in request.form
+        user_row = authenticate(username, password)
+        if not user_row:
+            flash("Incorrect username or password.", "danger")
+            return render_template("home_launcher.html", user=None, username=username)
+        log_in_user(user_row, remember=remember)
+        flash(f"Welcome, {user_row['name']}!", "success")
+        return redirect(url_for("home_launcher"))
+
+    conn = get_db()
+    user = current_user(conn)
+    conn.close()
+    return render_template("home_launcher.html", user=user)
+
+
+@app.route("/tour/seen", methods=["POST"])
+@login_required
+def tour_seen():
+    """Fired once by the guided-tour JS when someone finishes or skips it,
+    so it doesn't pop up again on their next login. ?side=shop|flight."""
+    side = request.form.get("side", "").strip()
+    if side not in ("shop", "flight"):
+        return ("", 400)
+    conn = get_db()
+    col = "tour_seen_shop" if side == "shop" else "tour_seen_flight"
+    conn.execute(f"UPDATE users SET {col} = 1 WHERE id = ?", (session["user_id"],))
+    conn.commit()
+    conn.close()
+    session[col] = True
+    return ("", 204)
+
+
+@app.route("/logout")
+def logout():
+    log_out_user()
+    flash("Logged out.", "success")
+    return redirect(url_for("home_launcher"))
+
+
+@app.route("/academy")
+@login_required
+def academy_page():
+    """Flight Academy - phase 3 placeholder. Tracks student progress,
+    experience toward ratings, and (eventually) lesson plans/ground school.
+    Only visible/reachable for accounts an admin has specifically granted
+    academy_access to (master admins always have it) - the tile on the
+    program picker is hidden for everyone else, and this route double-checks
+    it server-side too."""
+    if not (session.get("is_master_admin") or session.get("academy_access")):
+        flash("You don't have access to Flight Academy yet. Ask an admin.", "danger")
+        return redirect(url_for("home_launcher"))
+    # Leaderboard (see academy.py): points, achievements and rankings for
+    # every student, for All Time / This Year / This Month.
+    period = request.args.get("period", "all")
+    if period not in ("all", "year", "month"):
+        period = "all"
+    conn = get_db()
+    stats = academy.student_stats(conn, academy.period_start(period))
+    boards = academy.leaderboards(stats)
+    my_id = session.get("student_id")
+    me = stats.get(my_id) if my_id else None
+    staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
+    entry_sql = """SELECT e.*, s.name as student_name FROM academy_entries e
+                     JOIN students s ON s.id = e.student_id"""
+    if staff:
+        entries = conn.execute(entry_sql + " ORDER BY e.entry_date DESC, e.id DESC LIMIT 25").fetchall()
+    elif my_id:
+        entries = conn.execute(entry_sql + " WHERE e.student_id = ? ORDER BY e.entry_date DESC, e.id DESC LIMIT 25",
+                               (my_id,)).fetchall()
+    else:
+        entries = []
+    conn.close()
+    return render_template("academy.html", stats=stats, boards=boards, me=me,
+                           my_rank=academy.rank_of(stats, my_id) if my_id else None,
+                           entries=entries, staff=staff, period=period,
+                           entry_kinds=academy.ENTRY_KINDS, entry_kind_map=academy.ENTRY_KIND_MAP,
+                           point_rules=academy.POINT_RULES, achievements=academy.ACHIEVEMENTS,
+                           leaderboard_defs=academy.LEADERBOARDS, cert_points=academy.CERT_POINTS,
+                           rating_points=academy.RATING_POINTS, today=date.today().isoformat())
+
+
+@app.route("/academy/entry", methods=["POST"])
+@login_required
+def academy_entry_add():
+    """A student logs flying for the leaderboard (distance, landings,
+    cross-countries, night/instrument time). Students log for themselves;
+    a CFI/admin can log for any student."""
+    if not (session.get("is_master_admin") or session.get("academy_access")):
+        return redirect(url_for("home_launcher"))
+    staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
+    student_id = request.form.get("student_id", type=int) if staff else session.get("student_id")
+    kind = request.form.get("kind")
+    try:
+        value = float(request.form.get("value") or 0)
+    except ValueError:
+        value = 0
+    entry_date = (request.form.get("entry_date") or date.today().isoformat()).strip()[:10]
+    if not student_id or kind not in academy.ENTRY_KIND_MAP or value <= 0 or value > 100000:
+        flash("Pick what you're logging and enter an amount above zero.", "danger")
+        return redirect(url_for("academy_page") + "#log")
+    conn = get_db()
+    conn.execute("""INSERT INTO academy_entries (student_id, entry_date, kind, value, note, created_by, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                 (student_id, entry_date, kind, value, (request.form.get("note") or "").strip()[:200] or None,
+                  session.get("user_name"), now_iso()))
+    conn.commit()
+    conn.close()
+    code, label, unit, per = academy.ENTRY_KIND_MAP[kind]
+    flash(f"Logged {value:g} {unit} - that's {value * per:g} points.", "success")
+    return redirect(url_for("academy_page") + "#log")
+
+
+@app.route("/academy/entry/<int:entry_id>/delete", methods=["POST"])
+@login_required
+def academy_entry_delete(entry_id):
+    """Remove a leaderboard entry - your own, or any if you're a CFI/admin."""
+    staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
+    conn = get_db()
+    e = conn.execute("SELECT * FROM academy_entries WHERE id = ?", (entry_id,)).fetchone()
+    if e and (staff or e["student_id"] == session.get("student_id")):
+        conn.execute("DELETE FROM academy_entries WHERE id = ?", (entry_id,))
+        conn.commit()
+        flash("Entry removed.", "success")
+    conn.close()
+    return redirect(url_for("academy_page") + "#log")
+
+CATEGORIES_DEFAULT = ["Fasteners", "Electrical", "Plumbing", "Bearings/Belts", "Lubricants",
+                       "Safety/PPE", "Tools", "HVAC", "Welding", "Hydraulics", "General"]
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def part_to_dict(row):
+    return dict(row) if row else None
+
+
+def get_part_by_barcode(conn, barcode):
+    return conn.execute("SELECT * FROM parts WHERE barcode = ?", (barcode.strip(),)).fetchone()
+
+
+def get_low_stock(conn):
+    return conn.execute(
+        "SELECT * FROM parts WHERE qty_on_hand <= reorder_point ORDER BY name"
+    ).fetchall()
+
+
+
+# ---------------------------------------------------------------------------
+# Dashboard
+# ---------------------------------------------------------------------------
+
+@app.route("/shop")
+@login_required
+def dashboard():
+    conn = get_db()
+    project_count = conn.execute(
+        "SELECT COUNT(*) c FROM projects WHERE status='active' AND deleted_at IS NULL"
+    ).fetchone()["c"]
+    pending_orders_count = conn.execute(
+        "SELECT COUNT(*) c FROM orders WHERE status='pending'"
+    ).fetchone()["c"]
+    low_stock = get_low_stock(conn)
+    recent_tx = conn.execute("""
+        SELECT t.*, p.name as part_name, p.barcode as part_barcode, pr.name as project_name
+        FROM transactions t
+        JOIN parts p ON p.id = t.part_id
+        LEFT JOIN projects pr ON pr.id = t.project_id
+        ORDER BY t.created_at DESC, t.id DESC
+        LIMIT 9
+    """).fetchall()
+
+    # Maintenance reminders, regardless of what project is currently open.
+    maint_rows = conn.execute("""
+        SELECT mi.*, a.tag as asset_tag, a.name as asset_name,
+               a.hobbs_hours as asset_hobbs_hours, a.tach_hours as asset_tach_hours
+        FROM maintenance_items mi
+        JOIN assets a ON a.id = mi.asset_id
+        WHERE mi.active = 1 AND a.deleted_at IS NULL
+    """).fetchall()
+    reminders = []
+    for m in maint_rows:
+        current = m["asset_tach_hours"] if m["hour_type"] != "hobbs" else m["asset_hobbs_hours"]
+        status = maintenance_status(m, current)
+        if status["urgency"] in ("overdue", "due_soon"):
+            reminders.append({"item": m, "status": status})
+    reminders.sort(key=lambda r: (0 if r["status"]["urgency"] == "overdue" else 1,
+                                   r["status"]["remaining"] if r["status"]["remaining"] is not None else 0))
+
+    # Upcoming scheduled projects, regardless of what project is currently open.
+    today_str = date.today().strftime("%Y-%m-%d")
+    upcoming_projects = conn.execute("""
+        SELECT projects.*, a.tag as asset_display_tag
+        FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
+        WHERE projects.deleted_at IS NULL AND projects.scheduled_date IS NOT NULL
+              AND projects.scheduled_date >= ? AND projects.status NOT IN ('completed', 'archived')
+        ORDER BY projects.scheduled_date
+        LIMIT 6
+    """, (today_str,)).fetchall()
+    upcoming_count = conn.execute("""
+        SELECT COUNT(*) c FROM projects
+        WHERE deleted_at IS NULL AND scheduled_date IS NOT NULL
+              AND scheduled_date >= ? AND status NOT IN ('completed', 'archived')
+    """, (today_str,)).fetchone()["c"]
+    open_squawks = get_open_squawks(conn)
+
+    open_sessions = conn.execute("""
+        SELECT ls.*, l.name as laborer_name, p.code as project_code, p.name as project_name
+        FROM labor_sessions ls
+        JOIN laborers l ON l.id = ls.laborer_id
+        JOIN projects p ON p.id = ls.project_id
+        WHERE ls.ended_at IS NULL
+        ORDER BY ls.started_at
+    """).fetchall()
+
+    # Today's completed labor entries, folded into Recent Activity alongside
+    # part transactions - resets naturally each day since it's filtered to today.
+    recent_labor = conn.execute("""
+        SELECT ls.*, l.name as laborer_name, p.code as project_code, p.name as project_name
+        FROM labor_sessions ls
+        JOIN laborers l ON l.id = ls.laborer_id
+        JOIN projects p ON p.id = ls.project_id
+        WHERE ls.ended_at IS NOT NULL AND date(ls.ended_at) = ?
+        ORDER BY ls.ended_at DESC
+        LIMIT 9
+    """, (today_str,)).fetchall()
+    conn.close()
+
+    # Merge part transactions and labor clock in/out entries into one
+    # chronological "Recent Activity" feed for the dashboard.
+    recent_activity = []
+    for t in recent_tx:
+        recent_activity.append({
+            "when": t["created_at"], "kind": "part",
+            "tx_type": t["type"], "part_id": t["part_id"], "part_name": t["part_name"],
+            "qty": t["qty"], "project_id": t["project_id"], "project_name": t["project_name"],
+        })
+    for s in recent_labor:
+        recent_activity.append({
+            "when": s["ended_at"], "kind": "labor",
+            "laborer_name": s["laborer_name"], "project_id": s["project_id"],
+            "project_code": s["project_code"], "section": s["section"], "hours": s["hours"],
+        })
+    recent_activity.sort(key=lambda a: a["when"] or "", reverse=True)
+    recent_activity = recent_activity[:9]
+
+    return render_template("dashboard.html", project_count=project_count,
+                           pending_orders_count=pending_orders_count, upcoming_count=upcoming_count,
+                           low_stock=low_stock, recent_activity=recent_activity,
+                           reminders=reminders, upcoming_projects=upcoming_projects,
+                           open_squawks=open_squawks, open_sessions=open_sessions)
+
+
+# ---------------------------------------------------------------------------
+# Flight School squawks, surfaced here on the Maintenance side - a CFI flags
+# one when logging a flight, and it stays front-and-center until someone on
+# the shop side acknowledges it.
+# ---------------------------------------------------------------------------
+
+def get_open_squawks(conn):
+    return conn.execute("""
+        SELECT f.*, a.id as asset_id, a.tag as asset_tag, a.name as asset_name,
+               s.name as student_name, c.name as cfi_name
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        WHERE f.squawk = 1 AND f.squawk_acknowledged_at IS NULL
+        ORDER BY f.flight_date DESC, f.id DESC
+    """).fetchall()
+
+
+@app.route("/squawks")
+@shop_role_required('admin', 'tech')
+def squawks_list():
+    conn = get_db()
+    open_squawks = get_open_squawks(conn)
+    acknowledged = conn.execute("""
+        SELECT f.*, a.tag as asset_tag, a.name as asset_name, s.name as student_name, c.name as cfi_name
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        WHERE f.squawk = 1 AND f.squawk_acknowledged_at IS NOT NULL AND f.squawk_repaired_at IS NULL
+        ORDER BY f.squawk_acknowledged_at DESC LIMIT 50
+    """).fetchall()
+    repaired = conn.execute("""
+        SELECT f.*, a.tag as asset_tag, a.name as asset_name, s.name as student_name, c.name as cfi_name
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NOT NULL
+        ORDER BY f.squawk_repaired_at DESC LIMIT 50
+    """).fetchall()
+    conn.close()
+    return render_template("squawks.html", open_squawks=open_squawks, acknowledged=acknowledged, repaired=repaired)
+
+
+@app.route("/squawks/<int:flight_id>/acknowledge", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def squawk_acknowledge(flight_id):
+    conn = get_db()
+    f = conn.execute("SELECT id FROM flights WHERE id = ? AND squawk = 1", (flight_id,)).fetchone()
+    if not f:
+        conn.close()
+        flash("Squawk not found.", "danger")
+        return redirect(request.referrer or url_for("dashboard"))
+    conn.execute("UPDATE flights SET squawk_acknowledged_at = ?, squawk_acknowledged_by = ? WHERE id = ?",
+                 (now_iso(), session.get("user_name"), flight_id))
+    conn.commit()
+    conn.close()
+    flash("Squawk acknowledged.", "success")
+    return redirect(request.referrer or url_for("squawks_list"))
+
+
+@app.route("/squawks/<int:flight_id>/repair", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def squawk_repair(flight_id):
+    """Marks a squawk as actually fixed/addressed - a separate step from
+    acknowledging it, since seeing an issue and fixing it aren't the same
+    thing. Also acknowledges it if that hadn't happened yet, so a tech can
+    jump straight to "repaired" without an extra click."""
+    conn = get_db()
+    f = conn.execute("SELECT id, squawk_acknowledged_at FROM flights WHERE id = ? AND squawk = 1", (flight_id,)).fetchone()
+    if not f:
+        conn.close()
+        flash("Squawk not found.", "danger")
+        return redirect(request.referrer or url_for("dashboard"))
+    if not f["squawk_acknowledged_at"]:
+        conn.execute("UPDATE flights SET squawk_acknowledged_at = ?, squawk_acknowledged_by = ? WHERE id = ?",
+                     (now_iso(), session.get("user_name"), flight_id))
+    conn.execute("UPDATE flights SET squawk_repaired_at = ?, squawk_repaired_by = ? WHERE id = ?",
+                 (now_iso(), session.get("user_name"), flight_id))
+    conn.commit()
+    conn.close()
+    flash("Squawk marked repaired.", "success")
+    return redirect(request.referrer or url_for("squawks_list"))
+
+
+# ---------------------------------------------------------------------------
+# Maintenance calendar - scheduling projects and browsing past months
+# ---------------------------------------------------------------------------
+
+DEFAULT_EVENT_COLORS = {
+    "project": "#0d6efd",
+    "overdue": "#dc3545",
+    "due_soon": "#fd7e14",
+}
+
+# Calendar color coding by maintenance category, plus the plain "scheduled
+# project" blue above - a maintenance item's own color always wins over the
+# old overdue/due_soon coloring (urgency is now shown as an icon instead, so
+# category and urgency can both be seen on the same chip).
+# Now defined in db.py so flight.py can share them too - aliased here under
+# their original names since the rest of this file already uses them.
+CATEGORY_COLORS = MAINT_CATEGORY_COLORS
+CATEGORY_LABELS = MAINT_CATEGORY_LABELS
+
+
+def _build_month_data(conn, year, month):
+    """Builds one month's calendar grid: weeks (lists of day-numbers or None)
+    and by_day (day -> {"projects": [...], "maint": [...]}), including
+    multi-day scheduled project blocks (scheduled_date..scheduled_end_date)
+    that merely overlap this month, and calendar-type maintenance items next
+    due in this month. Each project row gets a `.display_color` attribute
+    resolved from scheduled_color or a status-based default."""
+    first_weekday, days_in_month = calendar_mod.monthrange(year, month)  # Monday=0
+    month_start = f"{year:04d}-{month:02d}-01"
+    month_end = f"{year:04d}-{month:02d}-{days_in_month:02d}"
+
+    by_day = {d: {"projects": [], "maint": []} for d in range(1, days_in_month + 1)}
+
+    projects = conn.execute("""
+        SELECT projects.*, a.tag as asset_display_tag, a.is_flight_asset as asset_is_flight_asset
+        FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
+        WHERE projects.deleted_at IS NULL AND projects.scheduled_date IS NOT NULL
+          AND projects.scheduled_date <= ?
+          AND COALESCE(projects.scheduled_end_date, projects.scheduled_date) >= ?
+        ORDER BY projects.scheduled_date
+    """, (month_end, month_start)).fetchall()
+    for p in projects:
+        p = dict(p)
+        p["display_color"] = p.get("scheduled_color") or DEFAULT_EVENT_COLORS["project"]
+        start = p["scheduled_date"]
+        end = p["scheduled_end_date"] or p["scheduled_date"]
+        for d in range(1, days_in_month + 1):
+            day_str = f"{year:04d}-{month:02d}-{d:02d}"
+            if start <= day_str <= end:
+                by_day[d]["projects"].append(p)
+
+    maint_rows = conn.execute("""
+        SELECT mi.*, a.tag as asset_tag, a.name as asset_name
+        FROM maintenance_items mi JOIN assets a ON a.id = mi.asset_id
+        WHERE mi.active = 1 AND mi.type = 'calendar' AND a.deleted_at IS NULL
+    """).fetchall()
+    for m in maint_rows:
+        status = maintenance_status(m, None)
+        next_due = status["next_due"]
+        if next_due and next_due[:7] == f"{year:04d}-{month:02d}":
+            try:
+                day = int(next_due[8:10])
+                category = m["category"] if m["category"] in CATEGORY_COLORS else "scheduled_maint"
+                color = CATEGORY_COLORS[category]
+                by_day[day]["maint"].append({"item": m, "status": status, "display_color": color, "category": category})
+            except (ValueError, KeyError):
+                pass
+
+    weeks = []
+    week = [None] * first_weekday
+    for d in range(1, days_in_month + 1):
+        week.append(d)
+        if len(week) == 7:
+            weeks.append(week)
+            week = []
+    if week:
+        week += [None] * (7 - len(week))
+        weeks.append(week)
+
+    return {"year": year, "month": month, "month_name": calendar_mod.month_name[month],
+            "weeks": weeks, "by_day": by_day}
+
+
+def _build_year_list(conn, year):
+    """All scheduled projects in a given year, grouped by the month their
+    start date falls in, each with a human date-range label. Used by the
+    calendar's List view."""
+    year_start = f"{year:04d}-01-01"
+    year_end = f"{year:04d}-12-31"
+    projects = conn.execute("""
+        SELECT projects.*, a.tag as asset_display_tag, a.is_flight_asset as asset_is_flight_asset
+        FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
+        WHERE projects.deleted_at IS NULL AND projects.scheduled_date IS NOT NULL
+          AND projects.scheduled_date BETWEEN ? AND ?
+        ORDER BY projects.scheduled_date
+    """, (year_start, year_end)).fetchall()
+    by_month = {m: [] for m in range(1, 13)}
+    for p in projects:
+        p = dict(p)
+        p["display_color"] = p.get("scheduled_color") or DEFAULT_EVENT_COLORS["project"]
+        start = p["scheduled_date"]
+        end = p["scheduled_end_date"]
+        if end and end != start:
+            p["date_label"] = f"{usdate(start)} - {usdate(end)}"
+        else:
+            p["date_label"] = usdate(start)
+        month = int(start[5:7])
+        by_month.setdefault(month, []).append(p)
+    return [{"month": m, "month_name": calendar_mod.month_name[m], "projects": by_month.get(m, [])}
+            for m in range(1, 13)]
+
+
+@app.route("/calendar")
+@login_required
+def calendar_page():
+    conn = get_db()
+    today = date.today()
+    view = request.args.get("view", "month")
+    if view not in ("month", "quarter", "year", "list"):
+        view = "month"
+    try:
+        year = int(request.args.get("year", today.year))
+    except (TypeError, ValueError):
+        year = today.year
+    try:
+        month = int(request.args.get("month", today.month))
+    except (TypeError, ValueError):
+        month = today.month
+    if month < 1:
+        month, year = 12, year - 1
+    elif month > 12:
+        month, year = 1, year + 1
+
+    year_list = None
+    if view == "month":
+        months_data = [_build_month_data(conn, year, month)]
+        prev_month, prev_year = (12, year - 1) if month == 1 else (month - 1, year)
+        next_month, next_year = (1, year + 1) if month == 12 else (month + 1, year)
+    elif view == "quarter":
+        quarter_start = ((month - 1) // 3) * 3 + 1
+        months_data = []
+        for i in range(3):
+            m = quarter_start + i
+            months_data.append(_build_month_data(conn, year, m))
+        prev_month, prev_year = (quarter_start - 3, year) if quarter_start > 1 else (10, year - 1)
+        next_month, next_year = (quarter_start + 3, year) if quarter_start < 10 else (1, year + 1)
+    elif view == "list":
+        year_list = _build_year_list(conn, year)
+        months_data = []
+        prev_month, prev_year = month, year - 1
+        next_month, next_year = month, year + 1
+    else:  # year
+        months_data = [_build_month_data(conn, year, m) for m in range(1, 13)]
+        prev_month, prev_year = month, year - 1
+        next_month, next_year = month, year + 1
+    conn.close()
+
+    # Backward-compat single-month convenience vars, used by the month view template.
+    weeks = months_data[0]["weeks"] if months_data else []
+    by_day = months_data[0]["by_day"] if months_data else {}
+    month_name = months_data[0]["month_name"] if months_data else calendar_mod.month_name[month]
+
+    return render_template("calendar.html", year=year, month=month, view=view,
+                           month_name=month_name, weeks=weeks, by_day=by_day,
+                           months_data=months_data, year_list=year_list,
+                           today=today, prev_year=prev_year, prev_month=prev_month,
+                           next_year=next_year, next_month=next_month,
+                           category_colors=CATEGORY_COLORS, category_labels=CATEGORY_LABELS,
+                           project_color=DEFAULT_EVENT_COLORS["project"])
+
+
+# ---------------------------------------------------------------------------
+# Activity log (full, sortable)
+# ---------------------------------------------------------------------------
+
+ACTIVITY_SORT_COLUMNS = {
+    "date": "t.created_at",
+    "part": "p.name",
+    "type": "t.type",
+    "qty": "t.qty",
+    "cost": "cost",
+    "project": "pr.name",
+    "section": "t.section",
+    "by": "t.performed_by",
+}
+
+
+@app.route("/activity")
+@shop_role_required('admin', 'tech')
+def activity_log():
+    conn = get_db()
+    q = request.args.get("q", "").strip()
+    sort = request.args.get("sort", "date")
+    direction = request.args.get("dir", "desc")
+    sort_col = ACTIVITY_SORT_COLUMNS.get(sort, "t.created_at")
+    direction_sql = "ASC" if direction == "asc" else "DESC"
+
+    query = """
+        SELECT t.*, p.name as part_name, p.barcode as part_barcode, p.unit_cost,
+               pr.name as project_name, (t.qty * p.unit_cost) as cost
+        FROM transactions t
+        JOIN parts p ON p.id = t.part_id
+        LEFT JOIN projects pr ON pr.id = t.project_id
+        WHERE 1=1
+    """
+    params = []
+    if q:
+        query += " AND (p.name LIKE ? OR pr.name LIKE ? OR t.performed_by LIKE ? OR t.note LIKE ? OR t.section LIKE ?)"
+        like = f"%{q}%"
+        params += [like, like, like, like, like]
+    query += f" ORDER BY {sort_col} {direction_sql}, t.id {direction_sql}"
+    tx = conn.execute(query, params).fetchall()
+    conn.close()
+    return render_template("activity.html", tx=tx, sort=sort, direction=direction, q=q)
+
+
+# ---------------------------------------------------------------------------
+# Scan in/out
+# ---------------------------------------------------------------------------
+
+@app.route("/scan")
+@login_required
+def scan_page():
+    conn = get_db()
+    projects = conn.execute(
+        "SELECT * FROM projects WHERE status='active' AND deleted_at IS NULL ORDER BY name"
+    ).fetchall()
+    # Who's currently clocked in, and recent scan/labor activity, both now
+    # live on the Dashboard instead of here.
+    conn.close()
+    # "Scanning as" defaults to whoever's actually logged in, so a single-user
+    # session never has to pick their own name - it's only an actual choice
+    # on a shared/kiosk station where several people scan under one login.
+    return render_template("scan.html", projects=projects, logged_in_name=session.get("user_name") or "")
+
+
+@app.route("/labor")
+@login_required
+def labor_page():
+    # The Labor and Scan Parts pages were merged into one intuitive scanner
+    # that figures out from the code itself (part / project / laborer)
+    # what you're doing - old links/bookmarks land on the same page.
+    return redirect(url_for("scan_page"))
+
+
+@app.route("/api/lookup/<path:barcode>")
+@login_required
+def api_lookup(barcode):
+    conn = get_db()
+    part = get_part_by_barcode(conn, barcode)
+    conn.close()
+    if not part:
+        return jsonify({"found": False, "barcode": barcode})
+    d = part_to_dict(part)
+    d["found"] = True
+    return jsonify(d)
+
+
+@app.route("/api/project_lookup/<code>")
+@login_required
+def api_project_lookup(code):
+    """Look up a project by its scannable code (e.g. 26-001), used by the Scan
+    page so a project's own printed code can be scanned to select it."""
+    conn = get_db()
+    project = conn.execute(
+        "SELECT * FROM projects WHERE code = ? AND deleted_at IS NULL", (code.strip(),)
+    ).fetchone()
+    conn.close()
+    if not project:
+        return jsonify({"found": False, "code": code})
+    d = dict(project)
+    d["found"] = True
+    return jsonify(d)
+
+
+@app.route("/api/operators")
+@login_required
+def api_operators():
+    """Names/devices that have been used before in the 'Scanning as' field,
+    most-recently-used first, so the UI can offer a pick list instead of
+    requiring free typing every time."""
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT performed_by, MAX(created_at) as last_used
+        FROM transactions
+        WHERE performed_by IS NOT NULL AND TRIM(performed_by) != ''
+        GROUP BY performed_by
+        ORDER BY last_used DESC
+    """).fetchall()
+    conn.close()
+    return jsonify([r["performed_by"] for r in rows])
+
+
+@app.route("/api/sections/<int:project_id>")
+@login_required
+def api_sections(project_id):
+    """Sub-areas (e.g. 'Brakes', 'Engine') known for this specific project -
+    scoped per project since a 'Brakes' on one plane's job isn't necessarily
+    relevant to another. Includes both sections created ahead of time (via
+    Add Sub Area) and sections that have simply been used on a transaction
+    or labor session before, most-recently-used first."""
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT section as name, MAX(last_used) as last_used FROM (
+            SELECT name as section, created_at as last_used FROM project_sections WHERE project_id = ?
+            UNION ALL
+            SELECT section, created_at as last_used FROM transactions
+                WHERE project_id = ? AND section IS NOT NULL AND TRIM(section) != ''
+            UNION ALL
+            SELECT section, started_at as last_used FROM labor_sessions
+                WHERE project_id = ? AND section IS NOT NULL AND TRIM(section) != ''
+        )
+        GROUP BY section
+        ORDER BY last_used DESC
+    """, (project_id, project_id, project_id)).fetchall()
+    conn.close()
+    return jsonify([r["name"] for r in rows])
+
+
+@app.route("/projects/<int:project_id>/add_section", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_add_section(project_id):
+    """Create a project sub-area (section) ahead of time, without first
+    having to scan a part into it - e.g. so labor codes can be printed for
+    it before any parts work has happened."""
+    conn = get_db()
+    project = conn.execute("SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash("Enter a name for the sub area.", "danger")
+        conn.close()
+        return redirect(url_for("project_detail", project_id=project_id))
+    conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
+                 (project_id, name, now_iso()))
+    conn.commit()
+    conn.close()
+    flash(f"Sub area '{name}' added.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
+@app.route("/api/scan", methods=["POST"])
+@login_required
+def api_scan():
+    data = request.get_json(force=True)
+    barcode = (data.get("barcode") or "").strip()
+    action = data.get("action")  # 'in' | 'out'
+    qty = data.get("qty")
+    project_id = data.get("project_id") or None
+    note = (data.get("note") or "").strip()
+    performed_by = (data.get("performed_by") or "").strip() or None
+    section = (data.get("section") or "").strip() or None
+    source = data.get("source")
+    if source not in ("camera_scan", "usb_scanner"):
+        source = "usb_scanner"
+
+    if not barcode:
+        return jsonify({"ok": False, "error": "No barcode provided."}), 400
+    try:
+        qty = float(qty)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "Quantity must be a number."}), 400
+    if qty <= 0:
+        return jsonify({"ok": False, "error": "Quantity must be greater than zero."}), 400
+    if action not in ("in", "out"):
+        return jsonify({"ok": False, "error": "Invalid action."}), 400
+    if action == "out" and not project_id:
+        return jsonify({"ok": False, "error": "A project is required for stock out."}), 400
+    if not performed_by:
+        return jsonify({"ok": False, "error": "Select who's scanning (\"Scanning as\") first."}), 400
+
+    conn = get_db()
+    part = get_part_by_barcode(conn, barcode)
+    if not part:
+        conn.close()
+        return jsonify({"ok": False, "error": "unknown_barcode", "barcode": barcode}), 404
+
+    if action == "out" and project_id:
+        proj = conn.execute("SELECT id FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
+        if not proj:
+            conn.close()
+            return jsonify({"ok": False, "error": "unknown_project"}), 404
+
+    if action == "out" and part["qty_on_hand"] < qty:
+        conn.close()
+        return jsonify({"ok": False, "error": f"Only {part['qty_on_hand']:g} {part['unit']} in stock."}), 400
+
+    delta = qty if action == "in" else -qty
+    conn.execute("UPDATE parts SET qty_on_hand = qty_on_hand + ?, updated_at = ? WHERE id = ?",
+                 (delta, now_iso(), part["id"]))
+    conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, performed_by, section, source, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 (part["id"], project_id if action == "out" else None, action, qty, note, performed_by,
+                  section if action == "out" else None, source, now_iso()))
+    conn.commit()
+    updated = conn.execute("SELECT * FROM parts WHERE id = ?", (part["id"],)).fetchone()
+    conn.close()
+
+    d = part_to_dict(updated)
+    d["ok"] = True
+    return jsonify(d)
+
+
+# ---------------------------------------------------------------------------
+# Parts
+# ---------------------------------------------------------------------------
+
+@app.route("/parts")
+@shop_role_required('admin', 'tech')
+def parts_list():
+    q = request.args.get("q", "").strip()
+    conn = get_db()
+    part_count = conn.execute("SELECT COUNT(*) c FROM parts").fetchone()["c"]
+    total_value = conn.execute("SELECT COALESCE(SUM(qty_on_hand * unit_cost),0) v FROM parts").fetchone()["v"]
+    if q:
+        like = f"%{q}%"
+        parts = conn.execute("""SELECT * FROM parts
+                                 WHERE name LIKE ? OR barcode LIKE ? OR category LIKE ? OR location LIKE ?
+                                 ORDER BY name""", (like, like, like, like)).fetchall()
+        part_covers = _part_covers(conn, parts)
+        conn.close()
+        return render_template("parts.html", parts=parts, q=q, by_category=None,
+                               part_count=part_count, total_value=total_value, part_covers=part_covers)
+
+    parts = conn.execute("SELECT * FROM parts ORDER BY category, name").fetchall()
+    part_covers = _part_covers(conn, parts)
+    conn.close()
+    # Group into categories for the click-to-expand browse view.
+    by_category = {}
+    for p in parts:
+        cat = p["category"] or "Uncategorized"
+        by_category.setdefault(cat, []).append(p)
+    return render_template("parts.html", parts=parts, q=q, by_category=by_category,
+                           part_count=part_count, total_value=total_value, part_covers=part_covers)
+
+
+def _part_covers(conn, parts):
+    """The cover photo (or, absent one, the most recently added photo) for
+    each part, for the small thumbnail on the Parts list."""
+    covers = {}
+    for p in parts:
+        photo = conn.execute(
+            "SELECT filename FROM photos WHERE part_id = ? ORDER BY is_cover DESC, created_at DESC LIMIT 1",
+            (p["id"],)).fetchone()
+        if photo:
+            covers[p["id"]] = photo["filename"]
+    return covers
+
+
+@app.route("/parts/export.csv")
+@shop_role_required('admin')
+def parts_export_csv():
+    conn = get_db()
+    parts = conn.execute("SELECT * FROM parts ORDER BY category, name").fetchall()
+    conn.close()
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Name", "SKU", "Category", "Description", "Unit Cost", "Sell Price", "Qty On Hand",
+                      "Unit", "Reorder Point", "Location", "Supplier"])
+    for p in parts:
+        writer.writerow([p["name"], p["barcode"], p["category"], p["description"], p["unit_cost"], p["sell_price"],
+                          p["qty_on_hand"], p["unit"], p["reorder_point"], p["location"], p["supplier"]])
+    return Response(buf.getvalue(), mimetype="text/csv",
+                     headers={"Content-Disposition": "attachment; filename=parts_export.csv"})
+
+
+@app.route("/parts/new", methods=["GET", "POST"])
+@shop_role_required('admin')
+def part_new():
+    conn = get_db()
+    if request.method == "POST":
+        barcode = (request.form.get("barcode") or "").strip()
+        generate = request.form.get("generate_barcode") == "on"
+        if generate or not barcode:
+            barcode = gen_internal_barcode(conn)
+        name = request.form.get("name", "").strip()
+        if not name:
+            flash("Part name is required.", "danger")
+            conn.close()
+            return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
+                                   form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
+        existing = get_part_by_barcode(conn, barcode)
+        if existing:
+            flash(f"A part with barcode '{barcode}' already exists ({existing['name']}).", "danger")
+            conn.close()
+            return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
+                                   form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
+        try:
+            qty = float(request.form.get("qty_on_hand") or 0)
+            reorder = float(request.form.get("reorder_point") or 0)
+            cost = float(request.form.get("unit_cost") or 0)
+            sell_price = float(request.form.get("sell_price") or 0)
+        except ValueError:
+            flash("Quantity, reorder point, cost, and sell price must be numbers.", "danger")
+            conn.close()
+            return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
+                                   form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
+
+        notify_low_stock = 1 if request.form.get("notify_low_stock") else 0
+        cur = conn.execute("""INSERT INTO parts (barcode, name, short_name, part_number, description, category, location, unit,
+                               qty_on_hand, reorder_point, unit_cost, sell_price, supplier, notify_low_stock, created_at, updated_at)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            (barcode, name, request.form.get("short_name", "").strip() or None,
+                             request.form.get("part_number", "").strip() or None,
+                             request.form.get("description", "").strip(),
+                             request.form.get("category", "").strip(), request.form.get("location", "").strip(),
+                             request.form.get("unit", "ea").strip() or "ea", qty, reorder, cost, sell_price,
+                             request.form.get("supplier", "").strip(), notify_low_stock, now_iso(), now_iso()))
+        new_id = cur.lastrowid
+        if qty > 0:
+            conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, source, created_at)
+                             VALUES (?, NULL, 'in', ?, 'Initial stock', 'assigned', ?)""", (new_id, qty, now_iso()))
+        conn.commit()
+        conn.close()
+        flash(f"Part '{name}' added with barcode {barcode}.", "success")
+        return redirect(url_for("part_detail", part_id=new_id))
+
+    conn.close()
+    return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT, form={},
+                           notify_low_stock_checked=True)
+
+
+@app.route("/parts/<int:part_id>")
+@shop_role_required('admin', 'tech')
+def part_detail(part_id):
+    conn = get_db()
+    part = conn.execute("SELECT * FROM parts WHERE id = ?", (part_id,)).fetchone()
+    if not part:
+        conn.close()
+        abort(404)
+    tx = conn.execute("""SELECT t.*, pr.name as project_name FROM transactions t
+                          LEFT JOIN projects pr ON pr.id = t.project_id
+                          WHERE t.part_id = ? ORDER BY t.created_at DESC, t.id DESC LIMIT 50""",
+                       (part_id,)).fetchall()
+    photos = conn.execute("SELECT * FROM photos WHERE part_id = ? ORDER BY is_cover DESC, created_at DESC",
+                           (part_id,)).fetchall()
+    conn.close()
+    return render_template("part_detail.html", part=part, tx=tx, photos=photos)
+
+
+@app.route("/parts/<int:part_id>/edit", methods=["GET", "POST"])
+@shop_role_required('admin')
+def part_edit(part_id):
+    conn = get_db()
+    part = conn.execute("SELECT * FROM parts WHERE id = ?", (part_id,)).fetchone()
+    if not part:
+        conn.close()
+        abort(404)
+    if request.method == "POST":
+        try:
+            reorder = float(request.form.get("reorder_point") or 0)
+            cost = float(request.form.get("unit_cost") or 0)
+            sell_price = float(request.form.get("sell_price") or 0)
+        except ValueError:
+            flash("Reorder point, cost, and sell price must be numbers.", "danger")
+            conn.close()
+            return render_template("part_form.html", part=part, categories=CATEGORIES_DEFAULT, form=request.form,
+                                   notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
+        notify_low_stock = 1 if request.form.get("notify_low_stock") else 0
+        conn.execute("""UPDATE parts SET name=?, short_name=?, part_number=?, description=?, category=?, location=?, unit=?,
+                         reorder_point=?, unit_cost=?, sell_price=?, supplier=?, notify_low_stock=?, updated_at=? WHERE id=?""",
+                     (request.form.get("name", "").strip(), request.form.get("short_name", "").strip() or None,
+                      request.form.get("part_number", "").strip() or None,
+                      request.form.get("description", "").strip(),
+                      request.form.get("category", "").strip(), request.form.get("location", "").strip(),
+                      request.form.get("unit", "ea").strip() or "ea", reorder, cost, sell_price,
+                      request.form.get("supplier", "").strip(), notify_low_stock, now_iso(), part_id))
+        conn.commit()
+        conn.close()
+        flash("Part updated.", "success")
+        return redirect(url_for("part_detail", part_id=part_id))
+    conn.close()
+    return render_template("part_form.html", part=part, categories=CATEGORIES_DEFAULT, form=dict(part),
+                           notify_low_stock_checked=bool(part["notify_low_stock"]))
+
+
+@app.route("/parts/<int:part_id>/adjust", methods=["POST"])
+@shop_role_required('admin')
+def part_adjust(part_id):
+    conn = get_db()
+    part = conn.execute("SELECT * FROM parts WHERE id = ?", (part_id,)).fetchone()
+    if not part:
+        conn.close()
+        abort(404)
+    performed_by = request.form.get("performed_by", "").strip() or None
+    if not performed_by:
+        flash("Select who's making this adjustment (\"Scanning as\") first.", "danger")
+        conn.close()
+        return redirect(url_for("part_detail", part_id=part_id))
+    try:
+        new_qty = float(request.form.get("new_qty"))
+    except (TypeError, ValueError):
+        flash("New quantity must be a number.", "danger")
+        conn.close()
+        return redirect(url_for("part_detail", part_id=part_id))
+    delta = new_qty - part["qty_on_hand"]
+    conn.execute("UPDATE parts SET qty_on_hand = ?, updated_at = ? WHERE id = ?",
+                 (new_qty, now_iso(), part_id))
+    conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, performed_by, source, created_at)
+                     VALUES (?, NULL, 'adjust', ?, ?, ?, 'assigned', ?)""",
+                 (part_id, delta, request.form.get("note", "Manual count adjustment"), performed_by, now_iso()))
+    conn.commit()
+    conn.close()
+    flash("Stock count adjusted.", "success")
+    return redirect(url_for("part_detail", part_id=part_id))
+
+
+@app.route("/parts/<int:part_id>/delete", methods=["POST"])
+@shop_role_required('admin')
+def part_delete(part_id):
+    conn = get_db()
+    conn.execute("DELETE FROM transactions WHERE part_id = ?", (part_id,))
+    conn.execute("DELETE FROM parts WHERE id = ?", (part_id,))
+    conn.commit()
+    conn.close()
+    flash("Part deleted.", "success")
+    return redirect(url_for("parts_list"))
+
+
+# ---------------------------------------------------------------------------
+# Labels (printable barcode sheet)
+# ---------------------------------------------------------------------------
+
+@app.route("/labels")
+@shop_role_required('admin', 'tech')
+def labels():
+    conn = get_db()
+    ids = request.args.get("ids", "")
+    if ids:
+        id_list = [int(i) for i in ids.split(",") if i.strip().isdigit()]
+        q_marks = ",".join("?" * len(id_list))
+        parts = conn.execute(f"SELECT * FROM parts WHERE id IN ({q_marks}) ORDER BY name", id_list).fetchall() \
+            if id_list else []
+    else:
+        parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
+    conn.close()
+    return render_template("labels.html", parts=parts)
+
+
+# ---------------------------------------------------------------------------
+# Projects
+# ---------------------------------------------------------------------------
+
+@app.route("/projects")
+@login_required
+def projects_list():
+    conn = get_db()
+    status_filter = request.args.get("status", "")
+    q = request.args.get("q", "").strip()
+    query = """SELECT projects.*, a.id as asset_display_id, a.tag as asset_display_tag, a.name as asset_display_name
+               FROM projects LEFT JOIN assets a ON a.id = projects.asset_id WHERE projects.deleted_at IS NULL"""
+    params = []
+    if status_filter:
+        query += " AND status = ?"
+        params.append(status_filter)
+    else:
+        # Archived projects are hidden from the default/status-tab views;
+        # they're only shown via the explicit "Archived" pill.
+        query += " AND status != 'archived'"
+    if q:
+        query += " AND (projects.name LIKE ? OR projects.code LIKE ? OR projects.description LIKE ? OR a.tag LIKE ? OR a.name LIKE ?)"
+        like = f"%{q}%"
+        params += [like, like, like, like, like]
+    query += " ORDER BY projects.created_at DESC"
+    projects = conn.execute(query, params).fetchall()
+    proj_costs = {}
+    proj_cover = {}
+    for p in projects:
+        row = conn.execute("""SELECT COALESCE(SUM(t.qty * pt.unit_cost),0) as cost
+                               FROM transactions t JOIN parts pt ON pt.id = t.part_id
+                               WHERE t.project_id = ? AND t.type='out'""", (p["id"],)).fetchone()
+        proj_costs[p["id"]] = row["cost"]
+        photo = conn.execute(
+            "SELECT filename FROM photos WHERE project_id = ? ORDER BY is_cover DESC, created_at DESC LIMIT 1",
+            (p["id"],)).fetchone()
+        if photo:
+            proj_cover[p["id"]] = photo["filename"]
+
+    # Browse view: group into year folders (like the Parts category browse)
+    # whenever the user isn't actively searching.
+    by_year = None
+    if not q:
+        by_year = {}
+        for p in projects:
+            yy = (p["code"] or "").split("-")[0]
+            year_label = ("20" + yy) if yy.isdigit() and len(yy) == 2 else "Other"
+            by_year.setdefault(year_label, []).append(p)
+        by_year = dict(sorted(by_year.items(), key=lambda kv: kv[0], reverse=True))
+
+    conn.close()
+    return render_template("projects.html", projects=projects, by_year=by_year, proj_costs=proj_costs,
+                           proj_cover=proj_cover, q=q, status_filter=status_filter)
+
+
+@app.route("/projects/new", methods=["GET", "POST"])
+@shop_role_required('admin', 'tech')
+def project_new():
+    conn = get_db()
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        if not name:
+            flash("Project name is required.", "danger")
+            assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL ORDER BY tag").fetchall()
+            conn.close()
+            return render_template("project_form.html", project=None, assets=assets)
+        code = gen_project_code(conn)
+        asset_id = request.form.get("asset_id") or None
+        scheduled_date = request.form.get("scheduled_date", "").strip() or None
+        scheduled_end_date = request.form.get("scheduled_end_date", "").strip() or None
+        if scheduled_end_date and scheduled_date and scheduled_end_date < scheduled_date:
+            scheduled_end_date = scheduled_date
+        scheduled_color = request.form.get("scheduled_color", "").strip() or None
+        cur = conn.execute(
+            """INSERT INTO projects (code, name, description, status, asset_id, scheduled_date,
+                                      scheduled_end_date, scheduled_color, prework_checklist, standard_items, created_at)
+               VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?)""",
+            (code, name, request.form.get("description", "").strip(), asset_id, scheduled_date,
+             scheduled_end_date, scheduled_color, request.form.get("prework_checklist", "").strip() or None,
+             request.form.get("standard_items", "").strip() or None, now_iso()))
+        conn.commit()
+        new_id = cur.lastrowid
+        conn.close()
+        flash(f"Project '{name}' created as {code}.", "success")
+        return redirect(url_for("project_detail", project_id=new_id))
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL ORDER BY tag").fetchall()
+    preselect_asset_id = request.args.get("asset_id")
+    preselect_asset_tag = None
+    if preselect_asset_id:
+        a = conn.execute("SELECT tag FROM assets WHERE id = ?", (preselect_asset_id,)).fetchone()
+        preselect_asset_tag = a["tag"] if a else None
+    conn.close()
+    return render_template("project_form.html", project=None, assets=assets, preselect_asset_id=preselect_asset_id,
+                           preselect_asset_tag=preselect_asset_tag)
+
+
+@app.route("/projects/<int:project_id>/edit", methods=["GET", "POST"])
+@shop_role_required('admin', 'tech')
+def project_edit(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL ORDER BY tag").fetchall()
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        if not name:
+            flash("Project name is required.", "danger")
+            conn.close()
+            return render_template("project_form.html", project=project, assets=assets)
+        asset_id = request.form.get("asset_id") or None
+        scheduled_date = request.form.get("scheduled_date", "").strip() or None
+        scheduled_end_date = request.form.get("scheduled_end_date", "").strip() or None
+        if scheduled_end_date and scheduled_date and scheduled_end_date < scheduled_date:
+            scheduled_end_date = scheduled_date
+        scheduled_color = request.form.get("scheduled_color", "").strip() or None
+        conn.execute("""UPDATE projects SET name = ?, description = ?, asset_id = ?, scheduled_date = ?,
+                         scheduled_end_date = ?, scheduled_color = ?, prework_checklist = ?, standard_items = ? WHERE id = ?""",
+                     (name, request.form.get("description", "").strip(), asset_id, scheduled_date,
+                      scheduled_end_date, scheduled_color, request.form.get("prework_checklist", "").strip() or None,
+                      request.form.get("standard_items", "").strip() or None, project_id))
+        conn.commit()
+        conn.close()
+        flash("Project updated.", "success")
+        return redirect(url_for("project_detail", project_id=project_id))
+    conn.close()
+    return render_template("project_form.html", project=project, assets=assets)
+
+
+@app.route("/projects/<int:project_id>")
+@login_required
+def project_detail(project_id):
+    conn = get_db()
+    project = conn.execute("""SELECT projects.*, a.id as asset_display_id, a.tag as asset_display_tag,
+                               a.name as asset_display_name
+                               FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
+                               WHERE projects.id = ?""", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    usage_rows = conn.execute("""
+        SELECT p.id as part_id, p.name, p.barcode, p.unit, p.unit_cost,
+               t.section as section,
+               SUM(CASE WHEN t.type='out' THEN t.qty ELSE -t.qty END) as qty_used
+        FROM transactions t JOIN parts p ON p.id = t.part_id
+        WHERE t.project_id = ?
+        GROUP BY p.id, t.section
+        HAVING qty_used > 0
+        ORDER BY p.name
+    """, (project_id,)).fetchall()
+    total_cost = sum((row["qty_used"] or 0) * (row["unit_cost"] or 0) for row in usage_rows)
+
+    # Group parts usage into sub-area "folders" (e.g. Brakes, Engine) so a
+    # project covering multiple systems on the same plane/job can be browsed
+    # by area, not just as one flat parts list. Anything scanned without a
+    # section picked falls into "General".
+    usage_by_section = {}
+    for row in usage_rows:
+        label = row["section"] or "General"
+        usage_by_section.setdefault(label, {"rows": [], "cost": 0.0})
+        usage_by_section[label]["rows"].append(row)
+        usage_by_section[label]["cost"] += (row["qty_used"] or 0) * (row["unit_cost"] or 0)
+    # Sub areas created ahead of time (via "Add Sub Area") but with no parts
+    # scanned into them yet should still show up as an empty folder, so the
+    # area is visibly there and ready rather than looking like it vanished.
+    empty_sections = [r["name"] for r in conn.execute(
+        "SELECT name FROM project_sections WHERE project_id = ?", (project_id,)
+    ).fetchall()]
+    for name in empty_sections:
+        usage_by_section.setdefault(name, {"rows": [], "cost": 0.0})
+
+    # Named sections first (alphabetical), "General" last.
+    usage_by_section = dict(sorted(usage_by_section.items(), key=lambda kv: (kv[0] == "General", kv[0])))
+
+    tx = conn.execute("""SELECT t.*, p.name as part_name, p.barcode as part_barcode FROM transactions t
+                          JOIN parts p ON p.id = t.part_id
+                          WHERE t.project_id = ? ORDER BY t.created_at DESC, t.id DESC""",
+                       (project_id,)).fetchall()
+    all_parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
+    photos = conn.execute("SELECT * FROM photos WHERE project_id = ? ORDER BY is_cover DESC, created_at DESC",
+                           (project_id,)).fetchall()
+    open_orders = conn.execute("SELECT * FROM orders WHERE project_id = ? AND status = 'pending' ORDER BY ordered_date",
+                                (project_id,)).fetchall()
+
+    labor_sessions = conn.execute("""
+        SELECT ls.*, l.name as laborer_name
+        FROM labor_sessions ls JOIN laborers l ON l.id = ls.laborer_id
+        WHERE ls.project_id = ?
+        ORDER BY ls.started_at DESC
+    """, (project_id,)).fetchall()
+    labor_total_cost = sum((s["cost"] or 0) for s in labor_sessions if s["ended_at"])
+    labor_total_hours = sum((s["hours"] or 0) for s in labor_sessions if s["ended_at"])
+
+    known_sections = [r["section"] for r in conn.execute("""
+        SELECT section FROM (
+            SELECT name as section FROM project_sections WHERE project_id = ?
+            UNION
+            SELECT section FROM transactions
+                WHERE project_id = ? AND section IS NOT NULL AND TRIM(section) != ''
+        )
+        ORDER BY section
+    """, (project_id, project_id)).fetchall()]
+    conn.close()
+    return render_template("project_detail.html", project=project, usage_by_section=usage_by_section,
+                           total_cost=total_cost, tx=tx, all_parts=all_parts, photos=photos, open_orders=open_orders,
+                           labor_sessions=labor_sessions, labor_total_cost=labor_total_cost,
+                           labor_total_hours=labor_total_hours, known_sections=known_sections)
+
+
+def _group_usage_by_section(usage_rows):
+    """Groups already-fetched usage rows (each carrying a `section` key) into
+    an ordered dict of section label -> list of rows. Named sections come
+    first (alphabetical), "General" (untagged) comes last."""
+    grouped = {}
+    for row in usage_rows:
+        label = row["section"] or "General"
+        grouped.setdefault(label, []).append(row)
+    return dict(sorted(grouped.items(), key=lambda kv: (kv[0] == "General", kv[0])))
+
+
+@app.route("/projects/<int:project_id>/export.csv")
+@shop_role_required('admin')
+def project_export_csv(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    usage = conn.execute("""
+        SELECT p.name, p.barcode, p.unit, p.unit_cost, t.section as section,
+               SUM(CASE WHEN t.type='out' THEN t.qty ELSE -t.qty END) as qty_used
+        FROM transactions t JOIN parts p ON p.id = t.part_id
+        WHERE t.project_id = ?
+        GROUP BY p.id, t.section
+        HAVING qty_used > 0
+        ORDER BY p.name
+    """, (project_id,)).fetchall()
+    conn.close()
+    grouped = _group_usage_by_section(usage)
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    grand_total = 0.0
+    for section, rows in grouped.items():
+        writer.writerow([section])
+        writer.writerow(["Item", "SKU", "Quantity", "Unit", "Unit Cost", "Total"])
+        section_total = 0.0
+        for u in rows:
+            total = (u["qty_used"] or 0) * (u["unit_cost"] or 0)
+            section_total += total
+            writer.writerow([u["name"], u["barcode"], u["qty_used"], u["unit"], u["unit_cost"], round(total, 2)])
+        writer.writerow(["", "", "", "", "Subtotal", round(section_total, 2)])
+        writer.writerow([])
+        grand_total += section_total
+    writer.writerow(["", "", "", "", "Grand Total", round(grand_total, 2)])
+    fname = f"project_{project['code']}_materials.csv".replace("/", "-")
+    return Response(buf.getvalue(), mimetype="text/csv",
+                     headers={"Content-Disposition": f"attachment; filename={fname}"})
+
+
+@app.route("/projects/<int:project_id>/invoice.csv")
+@shop_role_required('admin')
+def project_invoice_csv(project_id):
+    """Customer-facing export: part name, quantity used, and sale price only.
+    Deliberately leaves out anything the customer shouldn't see - no barcode/
+    SKU, no supplier, no purchase (unit) cost. Grouped by area/sub-system
+    (e.g. Brakes, Engine) with its own header and subtotal, like a proper
+    invoice broken down by system worked on."""
+    conn = get_db()
+    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    usage = conn.execute("""
+        SELECT p.name, p.unit, p.sell_price, t.section as section,
+               SUM(CASE WHEN t.type='out' THEN t.qty ELSE -t.qty END) as qty_used
+        FROM transactions t JOIN parts p ON p.id = t.part_id
+        WHERE t.project_id = ?
+        GROUP BY p.id, t.section
+        HAVING qty_used > 0
+        ORDER BY p.name
+    """, (project_id,)).fetchall()
+    labor = conn.execute("""
+        SELECT ls.*, l.name as laborer_name
+        FROM labor_sessions ls JOIN laborers l ON l.id = ls.laborer_id
+        WHERE ls.project_id = ? AND ls.ended_at IS NOT NULL
+        ORDER BY ls.started_at
+    """, (project_id,)).fetchall()
+    conn.close()
+    grouped = _group_usage_by_section(usage)
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    grand_total = 0.0
+    for section, rows in grouped.items():
+        writer.writerow([section])
+        writer.writerow(["Item", "Quantity", "Unit", "Sale Price", "Total"])
+        section_total = 0.0
+        for u in rows:
+            total = (u["qty_used"] or 0) * (u["sell_price"] or 0)
+            section_total += total
+            writer.writerow([u["name"], u["qty_used"], u["unit"], u["sell_price"], round(total, 2)])
+        writer.writerow(["", "", "", "Subtotal", round(section_total, 2)])
+        writer.writerow([])
+        grand_total += section_total
+
+    if labor:
+        writer.writerow(["Labor"])
+        writer.writerow(["Laborer", "Task", "Hours", "Rate", "Total"])
+        labor_total = 0.0
+        for s in labor:
+            cost = s["cost"] or 0
+            labor_total += cost
+            writer.writerow([s["laborer_name"], s["section"] or "General", round(s["hours"] or 0, 2),
+                              s["rate"], round(cost, 2)])
+        writer.writerow(["", "", "", "Labor Subtotal", round(labor_total, 2)])
+        writer.writerow([])
+        grand_total += labor_total
+
+    writer.writerow(["", "", "", "Grand Total", round(grand_total, 2)])
+    fname = f"project_{project['code']}_invoice.csv".replace("/", "-")
+    return Response(buf.getvalue(), mimetype="text/csv",
+                     headers={"Content-Disposition": f"attachment; filename={fname}"})
+
+
+@app.route("/projects/<int:project_id>/add_part", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_add_part(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    part_id = request.form.get("part_id")
+    performed_by = request.form.get("performed_by", "").strip() or None
+    if not performed_by:
+        flash("Select who's assigning this part (\"Scanning as\") first.", "danger")
+        conn.close()
+        return redirect(url_for("project_detail", project_id=project_id))
+    try:
+        qty = float(request.form.get("qty"))
+    except (TypeError, ValueError):
+        flash("Quantity must be a number.", "danger")
+        conn.close()
+        return redirect(url_for("project_detail", project_id=project_id))
+    part = conn.execute("SELECT * FROM parts WHERE id = ?", (part_id,)).fetchone()
+    if not part:
+        flash("Part not found.", "danger")
+        conn.close()
+        return redirect(url_for("project_detail", project_id=project_id))
+    if qty <= 0:
+        flash("Quantity must be greater than zero.", "danger")
+        conn.close()
+        return redirect(url_for("project_detail", project_id=project_id))
+    if part["qty_on_hand"] < qty:
+        flash(f"Only {part['qty_on_hand']:g} {part['unit']} of {part['name']} in stock.", "danger")
+        conn.close()
+        return redirect(url_for("project_detail", project_id=project_id))
+
+    section = request.form.get("section", "").strip() or None
+    conn.execute("UPDATE parts SET qty_on_hand = qty_on_hand - ?, updated_at = ? WHERE id = ?",
+                 (qty, now_iso(), part_id))
+    conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, performed_by, section, source, created_at)
+                     VALUES (?, ?, 'out', ?, 'Assigned to project', ?, ?, 'assigned', ?)""",
+                 (part_id, project_id, qty, performed_by, section, now_iso()))
+    conn.commit()
+    conn.close()
+    flash(f"Assigned {qty:g} {part['unit']} of {part['name']} to project.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
+@app.route("/projects/<int:project_id>/status", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_status(project_id):
+    new_status = request.form.get("status")
+    if new_status not in ("active", "completed", "on_hold", "archived"):
+        abort(400)
+    conn = get_db()
+    completed_at = now_iso() if new_status == "completed" else None
+    conn.execute("UPDATE projects SET status = ?, completed_at = ? WHERE id = ?",
+                 (new_status, completed_at, project_id))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
+@app.route("/projects/<int:project_id>/delete", methods=["POST"])
+@shop_role_required('admin')
+def project_delete(project_id):
+    """Archives the project instead of deleting it - all of its transaction
+    history, parts usage, and photos stay intact and searchable; it's just
+    hidden from the default project views."""
+    conn = get_db()
+    project = conn.execute("SELECT name FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE projects SET status = 'archived' WHERE id = ?", (project_id,))
+    conn.commit()
+    conn.close()
+    flash(f"Project '{project['name']}' archived. Its history is kept - find it under the Archived filter.", "success")
+    return redirect(url_for("projects_list"))
+
+
+@app.route("/projects/<int:project_id>/trash", methods=["POST"])
+@shop_role_required('admin')
+def project_trash(project_id):
+    """Soft-deletes a project: hidden everywhere except Recently Deleted,
+    where it can be restored or permanently purged."""
+    conn = get_db()
+    project = conn.execute("SELECT name FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE projects SET deleted_at = ? WHERE id = ?", (now_iso(), project_id))
+    conn.commit()
+    conn.close()
+    flash(f"Project '{project['name']}' moved to Recently Deleted.", "success")
+    return redirect(url_for("projects_list"))
+
+
+@app.route("/projects/<int:project_id>/restore", methods=["POST"])
+@shop_role_required('admin')
+def project_restore(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT name FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE projects SET deleted_at = NULL WHERE id = ?", (project_id,))
+    conn.commit()
+    conn.close()
+    flash(f"Project '{project['name']}' restored.", "success")
+    return redirect(url_for("trash_page"))
+
+
+def _purge_project(conn, project_id):
+    conn.execute("DELETE FROM transactions WHERE project_id = ?", (project_id,))
+    conn.execute("DELETE FROM photos WHERE project_id = ?", (project_id,))
+    conn.execute("UPDATE orders SET project_id = NULL WHERE project_id = ?", (project_id,))
+    conn.execute("UPDATE maintenance_log SET project_id = NULL WHERE project_id = ?", (project_id,))
+    conn.execute("DELETE FROM project_sections WHERE project_id = ?", (project_id,))
+    conn.execute("DELETE FROM labor_sessions WHERE project_id = ?", (project_id,))
+    conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+
+
+@app.route("/projects/<int:project_id>/purge", methods=["POST"])
+@shop_role_required('admin')
+def project_purge(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT name FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    _purge_project(conn, project_id)
+    conn.commit()
+    conn.close()
+    flash(f"Project '{project['name']}' permanently deleted.", "success")
+    return redirect(url_for("trash_page"))
+
+
+@app.route("/projects/<int:project_id>/checklist")
+@login_required
+def project_checklist_print(project_id):
+    """Printable job sheet: the prework checklist and standard-items-performed
+    list, as checkboxes, in a professional format ready to print and clip to
+    the job or hand to the customer."""
+    conn = get_db()
+    project = conn.execute("""SELECT projects.*, a.tag as asset_tag, a.name as asset_name
+                               FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
+                               WHERE projects.id = ?""", (project_id,)).fetchone()
+    conn.close()
+    if not project:
+        abort(404)
+    prework_items = [ln.strip() for ln in (project["prework_checklist"] or "").splitlines() if ln.strip()]
+    standard_items = [ln.strip() for ln in (project["standard_items"] or "").splitlines() if ln.strip()]
+    return render_template("project_checklist.html", project=project,
+                           prework_items=prework_items, standard_items=standard_items)
+
+
+@app.route("/projects/<int:project_id>/label")
+@shop_role_required('admin', 'tech')
+def project_label(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    conn.close()
+    if not project:
+        abort(404)
+    return render_template("project_label.html", project=project)
+
+
+@app.route("/projects/<int:project_id>/labor_codes")
+@login_required
+def project_labor_codes(project_id):
+    """Printable QR codes for this project's labor tracking: one for the
+    project as a whole ("General") and one per area/sub-system that's been
+    used on it, so a laborer can scan the specific task they're working."""
+    conn = get_db()
+    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    sections = conn.execute("""
+        SELECT section FROM (
+            SELECT name as section FROM project_sections WHERE project_id = ?
+            UNION
+            SELECT section FROM transactions
+                WHERE project_id = ? AND section IS NOT NULL AND TRIM(section) != ''
+        )
+        ORDER BY section
+    """, (project_id, project_id)).fetchall()
+    conn.close()
+    section_names = [r["section"] for r in sections]
+    return render_template("project_labor_codes.html", project=project, sections=section_names)
+
+
+# ---------------------------------------------------------------------------
+# Assets (planes / recurring equipment) - profiles that outlive any one
+# project/year, so plane-specific data and history can live in one place.
+# ---------------------------------------------------------------------------
+
+@app.route("/assets")
+@shop_role_required('admin', 'tech')
+def assets_list():
+    conn = get_db()
+    q = request.args.get("q", "").strip()
+    query = "SELECT * FROM assets WHERE deleted_at IS NULL"
+    params = []
+    if q:
+        query += " AND (tag LIKE ? OR name LIKE ? OR make LIKE ? OR model LIKE ? OR owner LIKE ?)"
+        like = f"%{q}%"
+        params += [like, like, like, like, like]
+    query += " ORDER BY tag"
+    assets = conn.execute(query, params).fetchall()
+    project_counts = {}
+    asset_covers = {}
+    for a in assets:
+        row = conn.execute("SELECT COUNT(*) c FROM projects WHERE asset_id = ?", (a["id"],)).fetchone()
+        project_counts[a["id"]] = row["c"]
+        photo = conn.execute(
+            "SELECT filename FROM photos WHERE asset_id = ? ORDER BY is_cover DESC, created_at DESC LIMIT 1",
+            (a["id"],)).fetchone()
+        if photo:
+            asset_covers[a["id"]] = photo["filename"]
+        else:
+            fallback = _asset_project_cover(conn, a["id"])
+            if fallback:
+                asset_covers[a["id"]] = fallback["filename"]
+    conn.close()
+    return render_template("assets.html", assets=assets, project_counts=project_counts, q=q, asset_covers=asset_covers)
+
+
+def _asset_project_cover(conn, asset_id):
+    """Fallback picture for an aircraft/asset with no photo of its own: the
+    cover (or newest) photo from its newest project. Display-only - nothing
+    is copied, so the aircraft picks up its own photo as soon as one is
+    added and the project's photos stay the project's."""
+    row = conn.execute("""SELECT ph.filename, p.id AS project_id, p.name AS project_name
+                          FROM photos ph JOIN projects p ON p.id = ph.project_id
+                          WHERE p.asset_id = ? AND p.deleted_at IS NULL
+                          ORDER BY p.created_at DESC, ph.is_cover DESC, ph.created_at DESC
+                          LIMIT 1""", (asset_id,)).fetchone()
+    return dict(row) if row else None
+
+def _used_plane_colors(conn, exclude_asset_id=None):
+    """Colors already picked by another active flight-school plane, so the
+    form can gray those swatches out - two planes sharing a color defeats
+    the point of coloring the dashboard's chip stripes by plane."""
+    query = "SELECT color FROM assets WHERE color IS NOT NULL AND deleted_at IS NULL AND is_flight_asset = 1"
+    params = []
+    if exclude_asset_id:
+        query += " AND id != ?"
+        params.append(exclude_asset_id)
+    return {r["color"] for r in conn.execute(query, params).fetchall()}
+
+
+@app.route("/assets/new", methods=["GET", "POST"])
+@shop_role_required('admin')
+def asset_new():
+    if request.method == "POST":
+        tag = request.form.get("tag", "").strip()
+        color = request.form.get("color", "").strip() or None
+        if color and color not in PLANE_COLORS:
+            color = None
+        if not tag:
+            flash("Tail / serial number is required.", "danger")
+            conn = get_db()
+            used_colors = _used_plane_colors(conn)
+            conn.close()
+            return render_template("asset_form.html", asset=None, used_colors=used_colors, plane_colors=PLANE_COLORS)
+        conn = get_db()
+        existing = conn.execute("SELECT id FROM assets WHERE tag = ?", (tag,)).fetchone()
+        if existing:
+            flash(f"An asset with tag '{tag}' already exists.", "danger")
+            used_colors = _used_plane_colors(conn)
+            conn.close()
+            return render_template("asset_form.html", asset=None, used_colors=used_colors, plane_colors=PLANE_COLORS)
+        if color and color in _used_plane_colors(conn):
+            flash("That color is already taken by another plane - pick a different one.", "danger")
+            used_colors = _used_plane_colors(conn)
+            conn.close()
+            return render_template("asset_form.html", asset=None, used_colors=used_colors,
+                                    plane_colors=PLANE_COLORS)
+        hobbs_hours = _parse_float(request.form.get("hobbs_hours"))
+        tach_hours = _parse_float(request.form.get("tach_hours"))
+        is_flight_asset = 1 if request.form.get("is_flight_asset") else 0
+        cur = conn.execute("""INSERT INTO assets (tag, name, make, model, serial_number, year, owner,
+                               hobbs_hours, hobbs_updated_at, tach_hours, tach_updated_at,
+                               engine_make, engine_model, engine_serial, prop_make, prop_model, prop_serial,
+                               rental_rate, is_flight_asset, icao24_hex, color, notes, created_at, updated_at)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            (tag, request.form.get("name", "").strip() or tag,
+                             request.form.get("make", "").strip(), request.form.get("model", "").strip(),
+                             request.form.get("serial_number", "").strip(), request.form.get("year", "").strip(),
+                             request.form.get("owner", "").strip(), hobbs_hours,
+                             now_iso() if hobbs_hours is not None else None, tach_hours,
+                             now_iso() if tach_hours is not None else None,
+                             request.form.get("engine_make", "").strip(), request.form.get("engine_model", "").strip(),
+                             request.form.get("engine_serial", "").strip(), request.form.get("prop_make", "").strip(),
+                             request.form.get("prop_model", "").strip(), request.form.get("prop_serial", "").strip(),
+                             _parse_float(request.form.get("rental_rate")), is_flight_asset,
+                             request.form.get("icao24_hex", "").strip().upper() or None, color,
+                             request.form.get("notes", "").strip(), now_iso(), now_iso()))
+        new_id = cur.lastrowid
+        conn.commit()
+        conn.close()
+        flash(f"Aircraft '{tag}' created.", "success")
+        return redirect(url_for("asset_detail", asset_id=new_id))
+    conn = get_db()
+    used_colors = _used_plane_colors(conn)
+    conn.close()
+    return render_template("asset_form.html", asset=None, used_colors=used_colors, plane_colors=PLANE_COLORS)
+
+
+@app.route("/assets/<int:asset_id>")
+@shop_role_required('admin', 'tech')
+def asset_detail(asset_id):
+    """Profile page for one plane/asset: its saved data plus combined history
+    across every project ever tagged to it (each year gets its own project
+    number, but this page pulls them all together)."""
+    conn = get_db()
+    asset = conn.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+    projects = conn.execute(
+        "SELECT * FROM projects WHERE asset_id = ? ORDER BY created_at DESC", (asset_id,)
+    ).fetchall()
+    project_blocks = []
+    total_cost = 0.0
+    for p in projects:
+        usage = conn.execute("""
+            SELECT pt.name, pt.unit, pt.unit_cost,
+                   SUM(CASE WHEN t.type='out' THEN t.qty ELSE -t.qty END) as qty_used
+            FROM transactions t JOIN parts pt ON pt.id = t.part_id
+            WHERE t.project_id = ?
+            GROUP BY pt.id
+            HAVING qty_used > 0
+            ORDER BY pt.name
+        """, (p["id"],)).fetchall()
+        cost = sum((u["qty_used"] or 0) * (u["unit_cost"] or 0) for u in usage)
+        total_cost += cost
+        project_blocks.append({"project": p, "usage": usage, "cost": cost})
+
+    maint_rows = conn.execute(
+        "SELECT * FROM maintenance_items WHERE asset_id = ? AND active = 1 ORDER BY name", (asset_id,)
+    ).fetchall()
+    maintenance_items = [{"item": m, "status": maintenance_status(m, asset_meter(asset, m["hour_type"]))}
+                          for m in maint_rows]
+
+    # Flight School: this plane's oil-added history and any squawks logged
+    # against it, both otherwise invisible from the Maintenance side.
+    asset_flights = []
+    oil_log = []
+    total_oil_added = 0.0
+    open_squawks = []
+    if asset["is_flight_asset"]:
+        asset_flights = conn.execute("""
+            SELECT f.*, s.name as student_name, c.name as cfi_name
+            FROM flights f
+            JOIN students s ON s.id = f.student_id
+            LEFT JOIN cfis c ON c.id = f.cfi_id
+            WHERE f.asset_id = ?
+            ORDER BY f.flight_date DESC, f.id DESC
+        """, (asset_id,)).fetchall()
+        oil_log = [f for f in asset_flights if f["oil_added_qt"]]
+        total_oil_added = sum(f["oil_added_qt"] or 0 for f in asset_flights)
+        open_squawks = [f for f in asset_flights if f["squawk"] and not f["squawk_acknowledged_at"]]
+
+    # Cylinder compression checks - logged from the Maintenance side (any
+    # asset, not just Flight School planes), so it belongs here regardless
+    # of is_flight_asset.
+    latest_compression = conn.execute(
+        "SELECT * FROM compression_checks WHERE asset_id = ? ORDER BY checked_date DESC, id DESC LIMIT 1",
+        (asset_id,)).fetchone()
+    compression_count = conn.execute(
+        "SELECT COUNT(*) c FROM compression_checks WHERE asset_id = ?", (asset_id,)).fetchone()["c"]
+
+    photos = conn.execute("SELECT * FROM photos WHERE asset_id = ? ORDER BY is_cover DESC, created_at DESC",
+                           (asset_id,)).fetchall()
+    project_cover = None if photos else _asset_project_cover(conn, asset_id)
+    todos = conn.execute(
+        "SELECT * FROM plane_todos WHERE asset_id = ? ORDER BY done, created_at DESC", (asset_id,)
+    ).fetchall()
+    conn.close()
+    return render_template("asset_detail.html", asset=asset, project_blocks=project_blocks, total_cost=total_cost,
+                           maintenance_items=maintenance_items, oil_log=oil_log, total_oil_added=total_oil_added,
+                           open_squawks=open_squawks, photos=photos, todos=todos, project_cover=project_cover,
+                           latest_compression=latest_compression, compression_count=compression_count)
+
+
+@app.route("/assets/<int:asset_id>/todo/new", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def plane_todo_new(asset_id):
+    """Adds an item to this plane's to-do list - separate from squawks
+    (which come from a flown flight) and from Maintenance items (which are
+    recurring/interval-based); this is just a plain running list."""
+    description = request.form.get("description", "").strip()
+    if description:
+        conn = get_db()
+        asset = conn.execute("SELECT id FROM assets WHERE id = ?", (asset_id,)).fetchone()
+        if not asset:
+            conn.close()
+            abort(404)
+        conn.execute(
+            "INSERT INTO plane_todos (asset_id, description, created_by, created_at) VALUES (?, ?, ?, ?)",
+            (asset_id, description, session.get("user_name"), now_iso()))
+        conn.commit()
+        conn.close()
+        flash("To-do added.", "success")
+    return redirect(url_for("asset_detail", asset_id=asset_id))
+
+
+@app.route("/assets/<int:asset_id>/todo/<int:todo_id>/toggle", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def plane_todo_toggle(asset_id, todo_id):
+    conn = get_db()
+    todo = conn.execute("SELECT * FROM plane_todos WHERE id = ? AND asset_id = ?", (todo_id, asset_id)).fetchone()
+    if not todo:
+        conn.close()
+        abort(404)
+    new_done = 0 if todo["done"] else 1
+    conn.execute("UPDATE plane_todos SET done = ?, completed_at = ? WHERE id = ?",
+                 (new_done, now_iso() if new_done else None, todo_id))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("asset_detail", asset_id=asset_id))
+
+
+@app.route("/assets/<int:asset_id>/todo/<int:todo_id>/delete", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def plane_todo_delete(asset_id, todo_id):
+    conn = get_db()
+    conn.execute("DELETE FROM plane_todos WHERE id = ? AND asset_id = ?", (todo_id, asset_id))
+    conn.commit()
+    conn.close()
+    flash("To-do removed.", "success")
+    return redirect(url_for("asset_detail", asset_id=asset_id))
+
+
+@app.route("/assets/<int:asset_id>/oil")
+@shop_role_required('admin', 'tech')
+def asset_oil(asset_id):
+    """Oil consumption for one asset, tracked here in Maintenance (not just
+    Flight School) - a running chart of quarts added over time, plus hours
+    flown per quart burned and quarts added per top-off. Data comes from
+    the Oil Added field on logged flights, so it's only populated for
+    planes that have flight history."""
+    conn = get_db()
+    asset = conn.execute("SELECT * FROM assets WHERE id = ? AND deleted_at IS NULL", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+    flights = conn.execute(
+        "SELECT * FROM flights WHERE asset_id = ? ORDER BY flight_date, id", (asset_id,)
+    ).fetchall()
+    conn.close()
+
+    total_hours = sum(_flight_hours(f) for f in flights)
+    oil_events = [f for f in flights if f["oil_added_qt"]]
+    total_oil = sum(f["oil_added_qt"] or 0 for f in oil_events)
+    num_events = len(oil_events)
+    qts_per_change = (total_oil / num_events) if num_events else None
+    hours_per_qt = (total_hours / total_oil) if total_oil else None
+
+    chart_labels, chart_cumulative = [], []
+    events_detail = []
+    cumulative_qt = 0.0
+    hours_cursor = 0.0
+    last_event_hours = 0.0
+    for f in flights:
+        hours_cursor += _flight_hours(f)
+        if f["oil_added_qt"]:
+            cumulative_qt += f["oil_added_qt"]
+            events_detail.append({
+                "flight_date": f["flight_date"], "qty": f["oil_added_qt"],
+                "hours_since_last": hours_cursor - last_event_hours,
+                "cumulative_qt": cumulative_qt,
+            })
+            chart_labels.append(f["flight_date"])
+            chart_cumulative.append(round(cumulative_qt, 2))
+            last_event_hours = hours_cursor
+    events_detail.reverse()
+
+    return render_template("asset_oil.html", asset=asset, total_hours=total_hours,
+                           total_oil=total_oil, num_events=num_events, qts_per_change=qts_per_change,
+                           hours_per_qt=hours_per_qt, events_detail=events_detail,
+                           chart_labels=chart_labels, chart_cumulative=chart_cumulative)
+
+
+@app.route("/assets/<int:asset_id>/compression", methods=["GET", "POST"])
+@shop_role_required('admin', 'tech')
+def asset_compression(asset_id):
+    """Cylinder compression checks for one asset, logged here in
+    Maintenance - a running trend chart (one line per cylinder) plus a
+    table of past readings, with a form to log a new one. Not limited to
+    Flight School planes - any asset with an engine can have checks logged
+    against it."""
+    conn = get_db()
+    asset = conn.execute("SELECT * FROM assets WHERE id = ? AND deleted_at IS NULL", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+
+    if request.method == "POST":
+        checked_date = request.form.get("checked_date", "").strip() or date.today().strftime("%Y-%m-%d")
+        cyls = [_parse_float(request.form.get(f"cyl{i}")) for i in range(1, 7)]
+        conn.execute("""INSERT INTO compression_checks (asset_id, checked_date, hours, master_orifice,
+                         cyl1, cyl2, cyl3, cyl4, cyl5, cyl6, performed_by, notes, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                     (asset_id, checked_date, _parse_float(request.form.get("hours")),
+                      _parse_float(request.form.get("master_orifice")),
+                      cyls[0], cyls[1], cyls[2], cyls[3], cyls[4], cyls[5],
+                      request.form.get("performed_by", "").strip() or session.get("user_name"),
+                      request.form.get("notes", "").strip() or None, now_iso()))
+        conn.commit()
+        conn.close()
+        flash("Compression check logged.", "success")
+        return redirect(url_for("asset_compression", asset_id=asset_id))
+
+    checks = conn.execute(
+        "SELECT * FROM compression_checks WHERE asset_id = ? ORDER BY checked_date, id", (asset_id,)
+    ).fetchall()
+    conn.close()
+
+    chart_labels = [c["checked_date"] for c in checks]
+    cyl_series = {}
+    for i in range(1, 7):
+        key = f"cyl{i}"
+        values = [c[key] for c in checks]
+        if any(v is not None for v in values):
+            cyl_series[key] = values
+
+    latest = checks[-1] if checks else None
+    history = list(reversed(checks))
+
+    # Pre-select the cylinder count in the log-a-check form from however
+    # many the last check actually used (most engines don't change), so
+    # the form doesn't reset to a default every time.
+    default_num_cylinders = 4
+    if latest:
+        used = max((i for i in range(1, 7) if latest[f"cyl{i}"] is not None), default=None)
+        if used:
+            default_num_cylinders = used
+
+    return render_template("asset_compression.html", asset=asset, checks=history, latest=latest,
+                           chart_labels=chart_labels, cyl_series=cyl_series, default_num_cylinders=default_num_cylinders,
+                           today=date.today().strftime("%Y-%m-%d"))
+
+
+@app.route("/assets/<int:asset_id>/edit", methods=["GET", "POST"])
+@shop_role_required('admin')
+def asset_edit(asset_id):
+    conn = get_db()
+    asset = conn.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+    if request.method == "POST":
+        tag = request.form.get("tag", "").strip()
+        if not tag:
+            flash("Tail / serial number is required.", "danger")
+            plane_colors = PLANE_COLORS
+            used_colors = _used_plane_colors(conn, exclude_asset_id=asset_id)
+            conn.close()
+            return render_template("asset_form.html", asset=asset, plane_colors=plane_colors, used_colors=used_colors)
+        clash = conn.execute("SELECT id FROM assets WHERE tag = ? AND id != ?", (tag, asset_id)).fetchone()
+        if clash:
+            flash(f"Another asset already uses tag '{tag}'.", "danger")
+            plane_colors = PLANE_COLORS
+            used_colors = _used_plane_colors(conn, exclude_asset_id=asset_id)
+            conn.close()
+            return render_template("asset_form.html", asset=asset, plane_colors=plane_colors, used_colors=used_colors)
+        color = request.form.get("color", "").strip() or None
+        if color and color not in PLANE_COLORS:
+            color = None
+        if color and color in _used_plane_colors(conn, exclude_asset_id=asset_id):
+            flash("That color is already assigned to another aircraft - pick a different one.", "danger")
+            plane_colors = PLANE_COLORS
+            used_colors = _used_plane_colors(conn, exclude_asset_id=asset_id)
+            conn.close()
+            return render_template("asset_form.html", asset=asset, plane_colors=plane_colors, used_colors=used_colors)
+        is_flight_asset = 1 if request.form.get("is_flight_asset") else 0
+        # rental_rate isn't on this form anymore (set from Flight School by
+        # an admin instead), so this update deliberately leaves it alone.
+        conn.execute("""UPDATE assets SET tag=?, name=?, make=?, model=?, serial_number=?, year=?, owner=?,
+                         engine_make=?, engine_model=?, engine_serial=?, prop_make=?, prop_model=?, prop_serial=?,
+                         is_flight_asset=?, icao24_hex=?, notes=?, color=?, updated_at=? WHERE id=?""",
+                     (tag, request.form.get("name", "").strip() or tag, request.form.get("make", "").strip(),
+                      request.form.get("model", "").strip(), request.form.get("serial_number", "").strip(),
+                      request.form.get("year", "").strip(), request.form.get("owner", "").strip(),
+                      request.form.get("engine_make", "").strip(), request.form.get("engine_model", "").strip(),
+                      request.form.get("engine_serial", "").strip(), request.form.get("prop_make", "").strip(),
+                      request.form.get("prop_model", "").strip(), request.form.get("prop_serial", "").strip(),
+                      is_flight_asset, request.form.get("icao24_hex", "").strip().upper() or None,
+                      request.form.get("notes", "").strip(), color, now_iso(), asset_id))
+        conn.commit()
+        conn.close()
+        flash("Aircraft updated.", "success")
+        return redirect(url_for("asset_detail", asset_id=asset_id))
+    plane_colors = PLANE_COLORS
+    used_colors = _used_plane_colors(conn, exclude_asset_id=asset_id)
+    conn.close()
+    return render_template("asset_form.html", asset=asset, plane_colors=plane_colors, used_colors=used_colors)
+
+
+@app.route("/assets/<int:asset_id>/update_hours", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def asset_update_hours(asset_id):
+    conn = get_db()
+    asset = conn.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+    hobbs = _parse_float(request.form.get("hobbs_hours"))
+    tach = _parse_float(request.form.get("tach_hours"))
+    if hobbs is None and tach is None:
+        flash("Enter a Hobbs and/or Tach reading.", "danger")
+        conn.close()
+        return redirect(url_for("asset_detail", asset_id=asset_id))
+    updates = []
+    if hobbs is not None:
+        conn.execute("UPDATE assets SET hobbs_hours = ?, hobbs_updated_at = ?, updated_at = ? WHERE id = ?",
+                     (hobbs, now_iso(), now_iso(), asset_id))
+        updates.append(f"Hobbs {hobbs:g}")
+    if tach is not None:
+        conn.execute("UPDATE assets SET tach_hours = ?, tach_updated_at = ?, updated_at = ? WHERE id = ?",
+                     (tach, now_iso(), now_iso(), asset_id))
+        updates.append(f"Tach {tach:g}")
+    conn.commit()
+    conn.close()
+    flash(f"Reading updated: {', '.join(updates)}.", "success")
+    return redirect(url_for("asset_detail", asset_id=asset_id))
+
+
+@app.route("/assets/<int:asset_id>/trash", methods=["POST"])
+@shop_role_required('admin')
+def asset_trash(asset_id):
+    """Soft-deletes an asset: hidden everywhere except Recently Deleted."""
+    conn = get_db()
+    asset = conn.execute("SELECT tag FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE assets SET deleted_at = ? WHERE id = ?", (now_iso(), asset_id))
+    conn.commit()
+    conn.close()
+    flash(f"Aircraft '{asset['tag']}' moved to Recently Deleted.", "success")
+    return redirect(url_for("assets_list"))
+
+
+@app.route("/assets/<int:asset_id>/restore", methods=["POST"])
+@shop_role_required('admin')
+def asset_restore(asset_id):
+    conn = get_db()
+    asset = conn.execute("SELECT tag FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE assets SET deleted_at = NULL WHERE id = ?", (asset_id,))
+    conn.commit()
+    conn.close()
+    flash(f"Aircraft '{asset['tag']}' restored.", "success")
+    return redirect(url_for("trash_page"))
+
+
+def _purge_asset(conn, asset_id):
+    item_ids = [r["id"] for r in conn.execute(
+        "SELECT id FROM maintenance_items WHERE asset_id = ?", (asset_id,)).fetchall()]
+    for item_id in item_ids:
+        conn.execute("DELETE FROM maintenance_log WHERE item_id = ?", (item_id,))
+    conn.execute("DELETE FROM maintenance_items WHERE asset_id = ?", (asset_id,))
+    conn.execute("UPDATE projects SET asset_id = NULL WHERE asset_id = ?", (asset_id,))
+    conn.execute("DELETE FROM assets WHERE id = ?", (asset_id,))
+
+
+@app.route("/assets/<int:asset_id>/purge", methods=["POST"])
+@shop_role_required('admin')
+def asset_purge(asset_id):
+    conn = get_db()
+    asset = conn.execute("SELECT tag FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+    _purge_asset(conn, asset_id)
+    conn.commit()
+    conn.close()
+    flash(f"Aircraft '{asset['tag']}' permanently deleted. Any linked projects were kept, just unlinked.", "success")
+    return redirect(url_for("trash_page"))
+
+
+# ---------------------------------------------------------------------------
+# Recently Deleted (soft-deleted projects and assets)
+# ---------------------------------------------------------------------------
+
+@app.route("/trash")
+@shop_role_required('admin')
+def trash_page():
+    conn = get_db()
+    deleted_projects = conn.execute(
+        "SELECT * FROM projects WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
+    ).fetchall()
+    deleted_assets = conn.execute(
+        "SELECT * FROM assets WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
+    ).fetchall()
+    conn.close()
+    return render_template("trash.html", deleted_projects=deleted_projects, deleted_assets=deleted_assets)
+
+
+@app.route("/trash/empty", methods=["POST"])
+@shop_role_required('admin')
+def trash_empty():
+    conn = get_db()
+    project_ids = [r["id"] for r in conn.execute(
+        "SELECT id FROM projects WHERE deleted_at IS NOT NULL").fetchall()]
+    for pid in project_ids:
+        _purge_project(conn, pid)
+    asset_ids = [r["id"] for r in conn.execute(
+        "SELECT id FROM assets WHERE deleted_at IS NOT NULL").fetchall()]
+    for aid in asset_ids:
+        _purge_asset(conn, aid)
+    conn.commit()
+    conn.close()
+    flash("Recently Deleted emptied.", "success")
+    return redirect(url_for("trash_page"))
+
+
+# ---------------------------------------------------------------------------
+# Maintenance items (hours- or calendar-based, per asset)
+# ---------------------------------------------------------------------------
+
+def _parse_float(val):
+    val = (val or "").strip()
+    if not val:
+        return None
+    try:
+        return float(val)
+    except ValueError:
+        return None
+
+
+def _parse_int(val):
+    val = (val or "").strip()
+    if not val:
+        return None
+    try:
+        return int(float(val))
+    except ValueError:
+        return None
+
+
+@app.route("/assets/<int:asset_id>/maintenance/new", methods=["GET", "POST"])
+@shop_role_required('admin')
+def maintenance_new(asset_id):
+    conn = get_db()
+    asset = conn.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        mtype = request.form.get("type", "hours")
+        if mtype not in ("hours", "calendar"):
+            mtype = "hours"
+        category = request.form.get("category", "scheduled_maint")
+        if category not in ("annual", "100hour", "oil_change", "scheduled_maint"):
+            category = "scheduled_maint"
+        if not name:
+            flash("Item name is required.", "danger")
+            conn.close()
+            return render_template("maintenance_form.html", asset=asset, item=None)
+        hour_type = request.form.get("hour_type", "tach")
+        if hour_type not in ("tach", "hobbs"):
+            hour_type = "tach"
+        interval_hours = _parse_float(request.form.get("interval_hours"))
+        interval_days = _parse_int(request.form.get("interval_days"))
+        last_done_hours = _parse_float(request.form.get("last_done_hours"))
+        if mtype == "hours" and last_done_hours is None:
+            last_done_hours = asset_meter(asset, hour_type)
+        last_done_date = request.form.get("last_done_date", "").strip()
+        if mtype == "calendar" and not last_done_date:
+            last_done_date = now_iso()[:10]
+        if mtype == "hours":
+            remind_lead = _parse_float(request.form.get("remind_lead_hours"))
+        else:
+            remind_lead = _parse_float(request.form.get("remind_lead_days"))
+        conn.execute("""INSERT INTO maintenance_items (asset_id, name, type, category, hour_type, interval_hours,
+                         interval_days, last_done_hours, last_done_date, remind_lead, checklist, reference_info, notes,
+                         active, created_at, updated_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)""",
+                     (asset_id, name, mtype, category, hour_type, interval_hours, interval_days, last_done_hours,
+                      last_done_date or None, remind_lead, request.form.get("checklist", "").strip(),
+                      request.form.get("reference_info", "").strip(), request.form.get("notes", "").strip(),
+                      now_iso(), now_iso()))
+        conn.commit()
+        conn.close()
+        flash(f"Maintenance item '{name}' added.", "success")
+        return redirect(url_for("asset_detail", asset_id=asset_id))
+    conn.close()
+    return render_template("maintenance_form.html", asset=asset, item=None)
+
+
+@app.route("/maintenance/<int:item_id>/edit", methods=["GET", "POST"])
+@shop_role_required('admin')
+def maintenance_edit(item_id):
+    conn = get_db()
+    item = conn.execute("SELECT * FROM maintenance_items WHERE id = ?", (item_id,)).fetchone()
+    if not item:
+        conn.close()
+        abort(404)
+    asset = conn.execute("SELECT * FROM assets WHERE id = ?", (item["asset_id"],)).fetchone()
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        mtype = request.form.get("type", "hours")
+        if mtype not in ("hours", "calendar"):
+            mtype = "hours"
+        category = request.form.get("category", "scheduled_maint")
+        if category not in ("annual", "100hour", "oil_change", "scheduled_maint"):
+            category = "scheduled_maint"
+        if not name:
+            flash("Item name is required.", "danger")
+            conn.close()
+            return render_template("maintenance_form.html", asset=asset, item=item)
+        hour_type = request.form.get("hour_type", "tach")
+        if hour_type not in ("tach", "hobbs"):
+            hour_type = "tach"
+        interval_hours = _parse_float(request.form.get("interval_hours"))
+        interval_days = _parse_int(request.form.get("interval_days"))
+        if mtype == "hours":
+            remind_lead = _parse_float(request.form.get("remind_lead_hours"))
+        else:
+            remind_lead = _parse_float(request.form.get("remind_lead_days"))
+        conn.execute("""UPDATE maintenance_items SET name=?, type=?, category=?, hour_type=?, interval_hours=?,
+                         interval_days=?, remind_lead=?, checklist=?, reference_info=?, notes=?, updated_at=? WHERE id=?""",
+                     (name, mtype, category, hour_type, interval_hours, interval_days, remind_lead,
+                      request.form.get("checklist", "").strip(), request.form.get("reference_info", "").strip(),
+                      request.form.get("notes", "").strip(), now_iso(), item_id))
+        conn.commit()
+        conn.close()
+        flash("Maintenance item updated.", "success")
+        return redirect(url_for("asset_detail", asset_id=item["asset_id"]))
+    conn.close()
+    return render_template("maintenance_form.html", asset=asset, item=item)
+
+
+@app.route("/maintenance/<int:item_id>/complete", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def maintenance_complete(item_id):
+    conn = get_db()
+    item = conn.execute("SELECT * FROM maintenance_items WHERE id = ?", (item_id,)).fetchone()
+    if not item:
+        conn.close()
+        abort(404)
+    asset = conn.execute("SELECT * FROM assets WHERE id = ?", (item["asset_id"],)).fetchone()
+    performed_by = request.form.get("performed_by", "").strip()
+    if not performed_by:
+        flash("Select who completed this maintenance first.", "danger")
+        conn.close()
+        return redirect(url_for("asset_detail", asset_id=item["asset_id"]))
+    note = request.form.get("note", "").strip()
+    completed_hours = None
+    if item["type"] == "hours":
+        current_reading = asset_meter(asset, item["hour_type"])
+        completed_hours = _parse_float(request.form.get("completed_hours"))
+        if completed_hours is None:
+            completed_hours = current_reading
+        conn.execute("UPDATE maintenance_items SET last_done_hours=?, updated_at=? WHERE id=?",
+                     (completed_hours, now_iso(), item_id))
+        if completed_hours is not None and (current_reading is None or completed_hours > current_reading):
+            meter_col = "tach_hours" if item["hour_type"] != "hobbs" else "hobbs_hours"
+            updated_col = "tach_updated_at" if item["hour_type"] != "hobbs" else "hobbs_updated_at"
+            conn.execute(f"UPDATE assets SET {meter_col}=?, {updated_col}=?, updated_at=? WHERE id=?",
+                         (completed_hours, now_iso(), now_iso(), asset["id"]))
+    else:
+        conn.execute("UPDATE maintenance_items SET last_done_date=?, updated_at=? WHERE id=?",
+                     (now_iso()[:10], now_iso(), item_id))
+    conn.execute("""INSERT INTO maintenance_log (item_id, completed_at, completed_hours, performed_by, note)
+                     VALUES (?, ?, ?, ?, ?)""", (item_id, now_iso(), completed_hours, performed_by, note))
+    conn.commit()
+    conn.close()
+    flash(f"'{item['name']}' marked complete.", "success")
+    return redirect(url_for("asset_detail", asset_id=item["asset_id"]))
+
+
+@app.route("/maintenance/<int:item_id>/delete", methods=["POST"])
+@shop_role_required('admin')
+def maintenance_delete(item_id):
+    conn = get_db()
+    item = conn.execute("SELECT * FROM maintenance_items WHERE id = ?", (item_id,)).fetchone()
+    if not item:
+        conn.close()
+        abort(404)
+    asset_id = item["asset_id"]
+    conn.execute("UPDATE maintenance_items SET active=0, updated_at=? WHERE id=?", (now_iso(), item_id))
+    conn.commit()
+    conn.close()
+    flash(f"'{item['name']}' removed.", "success")
+    return redirect(url_for("asset_detail", asset_id=asset_id))
+
+
+# ---------------------------------------------------------------------------
+# Photos (parts, projects, and assets)
+# ---------------------------------------------------------------------------
+
+@app.route("/assets/<int:asset_id>/photos", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def asset_add_photos(asset_id):
+    conn = get_db()
+    asset = conn.execute("SELECT id FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+    files = request.files.getlist("photos")
+    saved = 0
+    for f in files:
+        if f and f.filename and allowed_image(f.filename):
+            stored_name = save_upload(f)
+            conn.execute("INSERT INTO photos (asset_id, filename, created_at) VALUES (?, ?, ?)",
+                         (asset_id, stored_name, now_iso()))
+            saved += 1
+    conn.commit()
+    conn.close()
+    if saved:
+        flash(f"Added {saved} photo(s).", "success")
+    else:
+        flash("No valid image files were selected.", "danger")
+    return redirect(url_for("asset_detail", asset_id=asset_id))
+
+
+@app.route("/parts/<int:part_id>/photos", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def part_add_photos(part_id):
+    conn = get_db()
+    part = conn.execute("SELECT id FROM parts WHERE id = ?", (part_id,)).fetchone()
+    if not part:
+        conn.close()
+        abort(404)
+    files = request.files.getlist("photos")
+    saved = 0
+    for f in files:
+        if f and f.filename and allowed_image(f.filename):
+            stored_name = save_upload(f)
+            conn.execute("INSERT INTO photos (part_id, filename, created_at) VALUES (?, ?, ?)",
+                         (part_id, stored_name, now_iso()))
+            saved += 1
+    conn.commit()
+    conn.close()
+    if saved:
+        flash(f"Added {saved} photo(s).", "success")
+    else:
+        flash("No valid image files were selected.", "danger")
+    return redirect(url_for("part_detail", part_id=part_id))
+
+
+@app.route("/projects/<int:project_id>/photos", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_add_photos(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    files = request.files.getlist("photos")
+    saved = 0
+    for f in files:
+        if f and f.filename and allowed_image(f.filename):
+            stored_name = save_upload(f)
+            conn.execute("INSERT INTO photos (project_id, filename, created_at) VALUES (?, ?, ?)",
+                         (project_id, stored_name, now_iso()))
+            saved += 1
+    conn.commit()
+    conn.close()
+    if saved:
+        flash(f"Added {saved} photo(s).", "success")
+    else:
+        flash("No valid image files were selected.", "danger")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
+def _photo_owner_redirect(photo):
+    """Where a photo's delete/set-cover action sends you back to - whichever
+    of part/project/asset it belongs to."""
+    if photo["part_id"]:
+        return redirect(url_for("part_detail", part_id=photo["part_id"]))
+    if photo["project_id"]:
+        return redirect(url_for("project_detail", project_id=photo["project_id"]))
+    return redirect(url_for("asset_detail", asset_id=photo["asset_id"]))
+
+
+@app.route("/photos/<int:photo_id>/delete", methods=["POST"])
+@shop_role_required('admin')
+def photo_delete(photo_id):
+    conn = get_db()
+    photo = conn.execute("SELECT * FROM photos WHERE id = ?", (photo_id,)).fetchone()
+    if not photo:
+        conn.close()
+        abort(404)
+    file_path = os.path.join(UPLOAD_DIR, photo["filename"])
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    conn.execute("DELETE FROM photos WHERE id = ?", (photo_id,))
+    conn.commit()
+    conn.close()
+    return _photo_owner_redirect(photo)
+
+
+@app.route("/photos/<int:photo_id>/set_cover", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def photo_set_cover(photo_id):
+    conn = get_db()
+    photo = conn.execute("SELECT * FROM photos WHERE id = ?", (photo_id,)).fetchone()
+    if not photo:
+        conn.close()
+        abort(404)
+    # Only one photo per part/project/asset can be the cover, so clear any
+    # sibling before marking this one.
+    if photo["part_id"]:
+        conn.execute("UPDATE photos SET is_cover = 0 WHERE part_id = ?", (photo["part_id"],))
+    elif photo["project_id"]:
+        conn.execute("UPDATE photos SET is_cover = 0 WHERE project_id = ?", (photo["project_id"],))
+    else:
+        conn.execute("UPDATE photos SET is_cover = 0 WHERE asset_id = ?", (photo["asset_id"],))
+    conn.execute("UPDATE photos SET is_cover = 1 WHERE id = ?", (photo_id,))
+    conn.commit()
+    conn.close()
+    flash("Cover photo updated.", "success")
+    return _photo_owner_redirect(photo)
+
+
+# ---------------------------------------------------------------------------
+# Pending orders
+# ---------------------------------------------------------------------------
+
+@app.route("/orders")
+@shop_role_required('admin')
+def orders_list():
+    """Orders view is groupable by vendor or by part, and searchable. A
+    vendor group is further broken into date-based batches, since one
+    vendor might have several separate orders placed on different days,
+    each with its own set of parts."""
+    conn = get_db()
+    status_filter = request.args.get("status", "pending")
+    view = request.args.get("view", "vendor")
+    if view not in ("vendor", "part"):
+        view = "vendor"
+    base_sql = """SELECT o.*, p.name as part_name, pr.name as project_name, pr.code as project_code
+                  FROM orders o
+                  LEFT JOIN parts p ON p.id = o.part_id
+                  LEFT JOIN projects pr ON pr.id = o.project_id"""
+    if status_filter and status_filter != "all":
+        rows = conn.execute(base_sql + " WHERE o.status = ? ORDER BY o.ordered_date DESC",
+                             (status_filter,)).fetchall()
+    else:
+        rows = conn.execute(base_sql + " ORDER BY o.ordered_date DESC").fetchall()
+    conn.close()
+
+    orders = []
+    for r in rows:
+        o = dict(r)
+        o["item_name"] = o["part_name"] or o["description"]
+        o["vendor_name"] = o["supplier"] or "No Vendor Specified"
+        o["search_blob"] = " ".join(str(v) for v in [
+            o["item_name"], o["vendor_name"], o["project_name"] or "", o["project_code"] or "", o["note"] or ""
+        ]).lower()
+        orders.append(o)
+
+    groups = []
+    if view == "vendor":
+        by_vendor = {}
+        vendor_order = []
+        for o in orders:
+            v = o["vendor_name"]
+            if v not in by_vendor:
+                by_vendor[v] = {}
+                vendor_order.append(v)
+            batch_date = (o["ordered_date"] or "")[:10]
+            by_vendor[v].setdefault(batch_date, []).append(o)
+        for v in sorted(vendor_order, key=lambda x: x.lower()):
+            batches = []
+            for d in sorted(by_vendor[v].keys(), reverse=True):
+                lines = by_vendor[v][d]
+                batches.append({"date": d, "lines": lines,
+                                 "subtotal": sum((i["unit_cost"] or 0) * (i["qty_ordered"] or 0) for i in lines)})
+            groups.append({"label": v, "batches": batches,
+                            "total": sum(b["subtotal"] for b in batches),
+                            "count": sum(len(b["lines"]) for b in batches)})
+    else:
+        by_part = {}
+        part_order = []
+        for o in orders:
+            k = o["item_name"]
+            if k not in by_part:
+                by_part[k] = []
+                part_order.append(k)
+            by_part[k].append(o)
+        for k in sorted(part_order, key=lambda x: x.lower()):
+            lines = by_part[k]
+            groups.append({"label": k, "lines": lines,
+                            "total": sum((i["unit_cost"] or 0) * (i["qty_ordered"] or 0) for i in lines),
+                            "count": len(lines)})
+
+    conn = get_db()
+    wishlist_items = conn.execute("""
+        SELECT w.*, p.name as part_name FROM order_wishlist w
+        LEFT JOIN parts p ON p.id = w.part_id
+        WHERE w.status = 'open'
+        ORDER BY CASE w.urgency WHEN 'rush' THEN 0 WHEN 'needed_now' THEN 1 ELSE 2 END, w.created_at
+    """).fetchall()
+    parts_for_wishlist = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
+    conn.close()
+
+    return render_template("orders.html", groups=groups, view=view, status_filter=status_filter,
+                           order_count=len(orders), wishlist_items=wishlist_items, parts_for_wishlist=parts_for_wishlist)
+
+
+@app.route("/orders/wishlist/new", methods=["POST"])
+@shop_role_required('admin')
+def order_wishlist_new():
+    description = request.form.get("description", "").strip()
+    part_id = request.form.get("part_id") or None
+    urgency = request.form.get("urgency") or "no_rush"
+    if urgency not in ("rush", "needed_now", "no_rush"):
+        urgency = "no_rush"
+    if not description and part_id:
+        conn = get_db()
+        p = conn.execute("SELECT name FROM parts WHERE id = ?", (part_id,)).fetchone()
+        description = p["name"] if p else ""
+        conn.close()
+    if not description:
+        flash("Enter what you need (or pick a part).", "danger")
+        return redirect(url_for("orders_list"))
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO order_wishlist (description, part_id, urgency, notes, requested_by, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (description, part_id, urgency, request.form.get("notes", "").strip() or None,
+         session.get("user_name"), now_iso()))
+    conn.commit()
+    conn.close()
+    flash(f"Added '{description}' to the order list.", "success")
+    return redirect(url_for("orders_list"))
+
+
+@app.route("/orders/wishlist/<int:wishlist_id>/dismiss", methods=["POST"])
+@shop_role_required('admin')
+def order_wishlist_dismiss(wishlist_id):
+    conn = get_db()
+    conn.execute("UPDATE order_wishlist SET status='dismissed', resolved_at=? WHERE id=? AND status='open'",
+                 (now_iso(), wishlist_id))
+    conn.commit()
+    conn.close()
+    flash("Removed from the order list.", "info")
+    return redirect(url_for("orders_list"))
+
+
+@app.route("/orders/new", methods=["GET", "POST"])
+@shop_role_required('admin')
+def order_new():
+    conn = get_db()
+    if request.method == "POST":
+        description = request.form.get("description", "").strip()
+        part_id = request.form.get("part_id") or None
+        wishlist_id = request.form.get("wishlist_id") or None
+        if not description:
+            # If a part was picked, use its name as the description.
+            if part_id:
+                p = conn.execute("SELECT name FROM parts WHERE id = ?", (part_id,)).fetchone()
+                description = p["name"] if p else ""
+        if not description:
+            flash("Enter what you're ordering (or pick a part).", "danger")
+            conn.close()
+            parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
+            projects = conn.execute("SELECT * FROM projects WHERE status='active' ORDER BY name").fetchall()
+            return render_template("order_form.html", parts=parts, projects=projects, form=request.form)
+        try:
+            qty = float(request.form.get("qty_ordered") or 1)
+            cost = float(request.form.get("unit_cost") or 0)
+        except ValueError:
+            flash("Quantity and cost must be numbers.", "danger")
+            conn.close()
+            parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
+            projects = conn.execute("SELECT * FROM projects WHERE status='active' ORDER BY name").fetchall()
+            return render_template("order_form.html", parts=parts, projects=projects, form=request.form)
+        conn.execute("""INSERT INTO orders (part_id, description, qty_ordered, supplier, unit_cost,
+                         project_id, status, ordered_date, expected_date, note, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)""",
+                     (part_id, description, qty, request.form.get("supplier", "").strip(), cost,
+                      request.form.get("project_id") or None, now_iso(),
+                      request.form.get("expected_date") or None, request.form.get("note", "").strip(), now_iso()))
+        if wishlist_id:
+            # This order started from a "things to order" entry - close that
+            # entry out now that it's an actual order, rather than leaving
+            # it sitting there alongside the real order.
+            conn.execute("UPDATE order_wishlist SET status='ordered', resolved_at=? WHERE id=? AND status='open'",
+                         (now_iso(), wishlist_id))
+        conn.commit()
+        conn.close()
+        flash(f"Order for '{description}' added.", "success")
+        return redirect(url_for("orders_list"))
+    parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
+    projects = conn.execute("SELECT * FROM projects WHERE status='active' ORDER BY name").fetchall()
+    prefill = {}
+    wishlist_id = request.args.get("wishlist_id")
+    if wishlist_id:
+        w = conn.execute("SELECT * FROM order_wishlist WHERE id = ? AND status = 'open'", (wishlist_id,)).fetchone()
+        if w:
+            prefill = {"description": w["description"], "part_id": str(w["part_id"]) if w["part_id"] else "",
+                       "note": w["notes"] or "", "wishlist_id": str(wishlist_id)}
+    conn.close()
+    return render_template("order_form.html", parts=parts, projects=projects, form=prefill)
+
+
+@app.route("/orders/<int:order_id>/edit", methods=["GET", "POST"])
+@shop_role_required('admin')
+def order_edit(order_id):
+    """Lets a pending order's quantity, cost, supplier, dates, etc. be
+    corrected/typed in before it's sent to the vendor or exported."""
+    conn = get_db()
+    order = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+    if not order:
+        conn.close()
+        flash("Order not found.", "danger")
+        return redirect(url_for("orders_list"))
+    parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
+    projects = conn.execute("SELECT * FROM projects WHERE status='active' ORDER BY name").fetchall()
+    if request.method == "POST":
+        description = request.form.get("description", "").strip()
+        part_id = request.form.get("part_id") or None
+        if not description and part_id:
+            p = conn.execute("SELECT name FROM parts WHERE id = ?", (part_id,)).fetchone()
+            description = p["name"] if p else ""
+        if not description:
+            flash("Enter what you're ordering (or pick a part).", "danger")
+            conn.close()
+            return render_template("order_form.html", parts=parts, projects=projects, form=request.form, order=order)
+        try:
+            qty = float(request.form.get("qty_ordered") or 1)
+            cost = float(request.form.get("unit_cost") or 0)
+        except ValueError:
+            flash("Quantity and cost must be numbers.", "danger")
+            conn.close()
+            return render_template("order_form.html", parts=parts, projects=projects, form=request.form, order=order)
+        conn.execute("""UPDATE orders SET part_id=?, description=?, qty_ordered=?, supplier=?, unit_cost=?,
+                         project_id=?, expected_date=?, note=? WHERE id=?""",
+                     (part_id, description, qty, request.form.get("supplier", "").strip(), cost,
+                      request.form.get("project_id") or None, request.form.get("expected_date") or None,
+                      request.form.get("note", "").strip(), order_id))
+        conn.commit()
+        conn.close()
+        flash(f"Order for '{description}' updated.", "success")
+        return redirect(url_for("orders_list"))
+    conn.close()
+    return render_template("order_form.html", parts=parts, projects=projects, form=None, order=order)
+
+
+@app.route("/orders/export")
+@shop_role_required('admin', 'tech')
+def orders_export():
+    """CSV download of orders - ready to type up quantities/notes on the
+    Orders page first (or via Edit), then export and send/email straight
+    to a vendor. Filterable to one vendor and/or a status, same as the
+    Orders page itself."""
+    status_filter = request.args.get("status", "pending")
+    vendor = request.args.get("vendor", "").strip()
+    conn = get_db()
+    base_sql = """SELECT o.*, p.name as part_name, pr.name as project_name, pr.code as project_code
+                  FROM orders o
+                  LEFT JOIN parts p ON p.id = o.part_id
+                  LEFT JOIN projects pr ON pr.id = o.project_id"""
+    if status_filter and status_filter != "all":
+        rows = conn.execute(base_sql + " WHERE o.status = ? ORDER BY o.ordered_date DESC", (status_filter,)).fetchall()
+    else:
+        rows = conn.execute(base_sql + " ORDER BY o.ordered_date DESC").fetchall()
+    conn.close()
+
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(["Item", "Qty", "Unit Cost", "Est. Total", "Vendor", "Project", "Expected Date", "Note"])
+    for o in rows:
+        vendor_name = o["supplier"] or "No Vendor Specified"
+        if vendor and vendor_name != vendor:
+            continue
+        item_name = o["part_name"] or o["description"]
+        qty = o["qty_ordered"] or 0
+        cost = o["unit_cost"] or 0
+        writer.writerow([item_name, f"{qty:g}", f"{cost:.2f}", f"{qty * cost:.2f}", vendor_name,
+                          o["project_code"] or "", o["expected_date"] or "", o["note"] or ""])
+    filename = f"orders_{(vendor or 'all').replace(' ', '_')}_{status_filter}.csv"
+    return Response(out.getvalue(), mimetype="text/csv",
+                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+
+@app.route("/orders/<int:order_id>/receive", methods=["POST"])
+@shop_role_required('admin')
+def order_receive(order_id):
+    conn = get_db()
+    order = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+    if not order:
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE orders SET status='received', received_date=? WHERE id=?", (now_iso(), order_id))
+
+    part_id = order["part_id"]
+    new_part_created = False
+    if not part_id:
+        # This order was for something not yet in inventory - create the
+        # part now, automatically, using what we know from the order.
+        barcode = gen_internal_barcode(conn)
+        cur = conn.execute("""INSERT INTO parts (barcode, name, description, category, location, unit,
+                               qty_on_hand, reorder_point, unit_cost, supplier, created_at, updated_at)
+                               VALUES (?, ?, '', '', '', 'ea', 0, 0, ?, ?, ?, ?)""",
+                            (barcode, order["description"], order["unit_cost"] or 0,
+                             order["supplier"] or "", now_iso(), now_iso()))
+        part_id = cur.lastrowid
+        conn.execute("UPDATE orders SET part_id = ? WHERE id = ?", (part_id, order_id))
+        new_part_created = True
+
+    conn.execute("UPDATE parts SET qty_on_hand = qty_on_hand + ?, updated_at = ? WHERE id = ?",
+                 (order["qty_ordered"], now_iso(), part_id))
+    conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, source, created_at)
+                     VALUES (?, NULL, 'in', ?, ?, 'assigned', ?)""",
+                 (part_id, order["qty_ordered"], f"Received order #{order_id}", now_iso()))
+    conn.commit()
+    conn.close()
+
+    if new_part_created:
+        flash(f"Received - added '{order['description']}' as a new part with {order['qty_ordered']:g} in stock. "
+              f"Set its category, location and reorder point when you get a chance.", "success")
+        return redirect(url_for("part_detail", part_id=part_id))
+
+    flash(f"Received and added {order['qty_ordered']:g} to stock.", "success")
+    return redirect(url_for("orders_list"))
+
+
+@app.route("/orders/<int:order_id>/cancel", methods=["POST"])
+@shop_role_required('admin')
+def order_cancel(order_id):
+    conn = get_db()
+    conn.execute("UPDATE orders SET status='cancelled' WHERE id=?", (order_id,))
+    conn.commit()
+    conn.close()
+    flash("Order cancelled.", "success")
+    return redirect(url_for("orders_list"))
+
+
+# ---------------------------------------------------------------------------
+# Labor tracking: laborers (with a scannable QR code + hourly rate) and
+# scan-to-start/scan-to-stop timed labor_sessions against a project/task.
+# ---------------------------------------------------------------------------
+
+@app.route("/laborers")
+@shop_role_required('admin')
+def laborers_list():
+    conn = get_db()
+    q = request.args.get("q", "").strip()
+    query = "SELECT * FROM laborers WHERE 1=1"
+    params = []
+    if q:
+        query += " AND name LIKE ?"
+        params.append(f"%{q}%")
+    query += " ORDER BY active DESC, name"
+    laborers = conn.execute(query, params).fetchall()
+    conn.close()
+    return render_template("laborers.html", laborers=laborers, q=q)
+
+
+@app.route("/laborers/new", methods=["GET", "POST"])
+@shop_role_required('admin')
+def laborer_new():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        if not name:
+            flash("Name is required.", "danger")
+            return render_template("laborer_form.html", laborer=None)
+        conn = get_db()
+        rate = _parse_float(request.form.get("rate")) or 0
+        code = gen_labor_code(conn)
+        cur = conn.execute(
+            "INSERT INTO laborers (name, code, rate, active, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)",
+            (name, code, rate, now_iso(), now_iso()))
+        new_id = cur.lastrowid
+        conn.commit()
+        conn.close()
+        flash(f"Laborer '{name}' added. Print their code so they can scan in/out.", "success")
+        return redirect(url_for("laborer_label", laborer_id=new_id))
+    return render_template("laborer_form.html", laborer=None)
+
+
+@app.route("/laborers/<int:laborer_id>/edit", methods=["GET", "POST"])
+@shop_role_required('admin')
+def laborer_edit(laborer_id):
+    conn = get_db()
+    laborer = conn.execute("SELECT * FROM laborers WHERE id = ?", (laborer_id,)).fetchone()
+    if not laborer:
+        conn.close()
+        abort(404)
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        if not name:
+            flash("Name is required.", "danger")
+            conn.close()
+            return render_template("laborer_form.html", laborer=laborer)
+        rate = _parse_float(request.form.get("rate")) or 0
+        active = 1 if request.form.get("active") == "on" else 0
+        conn.execute("UPDATE laborers SET name = ?, rate = ?, active = ?, updated_at = ? WHERE id = ?",
+                     (name, rate, active, now_iso(), laborer_id))
+        conn.commit()
+        conn.close()
+        flash("Laborer updated.", "success")
+        return redirect(url_for("laborers_list"))
+    conn.close()
+    return render_template("laborer_form.html", laborer=laborer)
+
+
+@app.route("/laborers/<int:laborer_id>/label")
+@shop_role_required('admin')
+def laborer_label(laborer_id):
+    conn = get_db()
+    laborer = conn.execute("SELECT * FROM laborers WHERE id = ?", (laborer_id,)).fetchone()
+    conn.close()
+    if not laborer:
+        abort(404)
+    return render_template("laborer_label.html", laborer=laborer)
+
+
+# ---------------------------------------------------------------------------
+# Winds Aloft > Manage: Labor Pay, Billing, Stats - the shop-side versions of
+# the Flight School's My Pay / Billing / Stats, built from labor_sessions
+# (clocked labor, rate snapshotted at clock-in) and project part usage
+# (transactions out minus returns). All three share one period picker.
+# ---------------------------------------------------------------------------
+
+SHOP_PERIODS = [("this_week", "This Week"), ("last_week", "Last Week"), ("this_month", "This Month"),
+                ("last_month", "Last Month"), ("this_year", "This Year"), ("all", "All Time")]
+
+
+def _shop_period(default="this_month"):
+    """(start, end, period, label) for ?period= (one of SHOP_PERIODS) or a
+    custom ?from=YYYY-MM-DD&to=YYYY-MM-DD. Dates inclusive, as YYYY-MM-DD
+    strings; "all" gives a wide-open range."""
+    today = date.today()
+    d_from = (request.args.get("from") or "").strip()
+    d_to = (request.args.get("to") or "").strip()
+    if d_from or d_to:
+        try:
+            start = datetime.strptime(d_from, "%Y-%m-%d").date() if d_from else date(2000, 1, 1)
+            end = datetime.strptime(d_to, "%Y-%m-%d").date() if d_to else today
+            if end < start:
+                start, end = end, start
+            return start.isoformat(), end.isoformat(), "custom", f"{start.strftime('%m-%d-%Y')} to {end.strftime('%m-%d-%Y')}"
+        except ValueError:
+            pass
+    period = request.args.get("period", default)
+    if period not in dict(SHOP_PERIODS):
+        period = default
+    if period == "this_week":
+        start = today - timedelta(days=today.weekday())
+        end = start + timedelta(days=6)
+    elif period == "last_week":
+        start = today - timedelta(days=today.weekday() + 7)
+        end = start + timedelta(days=6)
+    elif period == "this_month":
+        start = today.replace(day=1)
+        end = today
+    elif period == "last_month":
+        end = today.replace(day=1) - timedelta(days=1)
+        start = end.replace(day=1)
+    elif period == "this_year":
+        start = today.replace(month=1, day=1)
+        end = today
+    else:
+        start, end = date(2000, 1, 1), date(2100, 1, 1)
+    return start.isoformat(), end.isoformat(), period, dict(SHOP_PERIODS)[period]
+
+
+def _shop_parts_usage(conn, start, end, project_id=None):
+    """Parts used on projects in [start, end]: each out minus returns (in)
+    with a project, valued at the part's sell price (billed) and unit cost."""
+    sql = """SELECT t.project_id, p.id as part_id, p.name, p.unit,
+                    SUM(CASE WHEN t.type = 'out' THEN t.qty ELSE -t.qty END) as qty,
+                    COALESCE(p.sell_price, 0) as sell_price, COALESCE(p.unit_cost, 0) as unit_cost
+             FROM transactions t JOIN parts p ON p.id = t.part_id
+             WHERE t.project_id IS NOT NULL AND t.type IN ('out', 'in')
+               AND date(t.created_at) BETWEEN ? AND ?"""
+    params = [start, end]
+    if project_id:
+        sql += " AND t.project_id = ?"
+        params.append(project_id)
+    sql += " GROUP BY t.project_id, p.id HAVING qty > 0"
+    return conn.execute(sql, params).fetchall()
+
+
+@app.route("/shop/pay")
+@login_required
+def shop_pay():
+    """Labor Pay: each laborer's clocked hours and pay for a period, with
+    the individual sessions underneath. Shop admins see everyone; anyone
+    else sees only the laborer record with their own name (their pay)."""
+    start, end, period, label = _shop_period("this_week")
+    admin_view = bool(session.get("is_master_admin") or session.get("shop_role") == "admin")
+    conn = get_db()
+    sql = """SELECT ls.*, l.name as laborer_name, l.rate as laborer_rate, pr.code as project_code,
+                    pr.name as project_name, pr.id as project_id
+             FROM labor_sessions ls
+             JOIN laborers l ON l.id = ls.laborer_id
+             JOIN projects pr ON pr.id = ls.project_id
+             WHERE date(ls.started_at) BETWEEN ? AND ?"""
+    params = [start, end]
+    if not admin_view:
+        sql += " AND lower(trim(l.name)) = lower(trim(?))"
+        params.append(session.get("user_name") or "")
+    sql += " ORDER BY l.name, ls.started_at"
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+    groups, order = {}, []
+    for r in rows:
+        g = groups.get(r["laborer_id"])
+        if not g:
+            g = groups[r["laborer_id"]] = {"laborer_id": r["laborer_id"], "name": r["laborer_name"],
+                                            "rate": r["laborer_rate"], "hours": 0.0, "pay": 0.0,
+                                            "sessions": [], "running": 0}
+            order.append(r["laborer_id"])
+        g["sessions"].append(r)
+        if r["ended_at"]:
+            g["hours"] += r["hours"] or 0
+            g["pay"] += r["cost"] or 0
+        else:
+            g["running"] += 1
+    laborers_pay = [groups[i] for i in order]
+    return render_template("shop_pay.html", laborers_pay=laborers_pay, admin_view=admin_view,
+                           total_hours=sum(g["hours"] for g in laborers_pay),
+                           total_pay=sum(g["pay"] for g in laborers_pay),
+                           periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end)
+
+
+@app.route("/shop/billing")
+@shop_role_required('admin')
+def shop_billing():
+    """Billing: every project with labor or parts in the period - parts at
+    sell price plus clocked labor - with a link to its customer invoice
+    CSV. Totals across the top."""
+    start, end, period, label = _shop_period("this_month")
+    conn = get_db()
+    projects = {}
+
+    def proj(pid):
+        if pid not in projects:
+            p = conn.execute("""SELECT pr.id, pr.code, pr.name, pr.status, a.tag as asset_tag
+                                FROM projects pr LEFT JOIN assets a ON a.id = pr.asset_id WHERE pr.id = ?""",
+                             (pid,)).fetchone()
+            projects[pid] = {"id": pid, "code": p["code"] if p else "?", "name": p["name"] if p else "(deleted)",
+                             "status": p["status"] if p else "", "asset_tag": p["asset_tag"] if p else None,
+                             "labor_hours": 0.0, "labor": 0.0, "parts": 0.0, "parts_cost": 0.0, "parts_count": 0}
+        return projects[pid]
+
+    for r in conn.execute("""SELECT project_id, SUM(hours) h, SUM(cost) c FROM labor_sessions
+                             WHERE ended_at IS NOT NULL AND date(started_at) BETWEEN ? AND ?
+                             GROUP BY project_id""", (start, end)).fetchall():
+        p = proj(r["project_id"])
+        p["labor_hours"] = r["h"] or 0
+        p["labor"] = r["c"] or 0
+    for u in _shop_parts_usage(conn, start, end):
+        p = proj(u["project_id"])
+        p["parts"] += u["qty"] * u["sell_price"]
+        p["parts_cost"] += u["qty"] * u["unit_cost"]
+        p["parts_count"] += 1
+    conn.close()
+    rows = sorted(projects.values(), key=lambda p: p["code"] or "")
+    for p in rows:
+        p["total"] = p["labor"] + p["parts"]
+    totals = {k: sum(p[k] for p in rows) for k in ("labor_hours", "labor", "parts", "parts_cost", "total")}
+    return render_template("shop_billing.html", projects=rows, totals=totals,
+                           periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end)
+
+
+@app.route("/shop/stats")
+@shop_role_required('admin')
+def shop_stats():
+    """Stats: labor hours/cost, parts used (billed value, cost and margin),
+    projects worked, plus hours by laborer and aircraft and the most-used
+    parts, for the chosen period."""
+    start, end, period, label = _shop_period("this_month")
+    conn = get_db()
+    labor = conn.execute("""SELECT COUNT(*) n, COALESCE(SUM(hours), 0) h, COALESCE(SUM(cost), 0) c,
+                                   COUNT(DISTINCT project_id) projects, COUNT(DISTINCT laborer_id) people
+                            FROM labor_sessions WHERE ended_at IS NOT NULL AND date(started_at) BETWEEN ? AND ?""",
+                         (start, end)).fetchone()
+    usage = _shop_parts_usage(conn, start, end)
+    parts_sale = sum(u["qty"] * u["sell_price"] for u in usage)
+    parts_cost = sum(u["qty"] * u["unit_cost"] for u in usage)
+    top = {}
+    for u in usage:
+        t = top.setdefault(u["part_id"], {"name": u["name"], "unit": u["unit"], "qty": 0.0, "value": 0.0})
+        t["qty"] += u["qty"]
+        t["value"] += u["qty"] * u["sell_price"]
+    top_parts = sorted(top.values(), key=lambda t: -t["qty"])[:10]
+    by_laborer = conn.execute("""SELECT l.name, SUM(ls.hours) h, SUM(ls.cost) c FROM labor_sessions ls
+                                 JOIN laborers l ON l.id = ls.laborer_id
+                                 WHERE ls.ended_at IS NOT NULL AND date(ls.started_at) BETWEEN ? AND ?
+                                 GROUP BY l.id ORDER BY h DESC""", (start, end)).fetchall()
+    by_aircraft = conn.execute("""SELECT COALESCE(a.tag, 'No aircraft') tag, SUM(ls.hours) h, COUNT(DISTINCT pr.id) projects
+                                  FROM labor_sessions ls JOIN projects pr ON pr.id = ls.project_id
+                                  LEFT JOIN assets a ON a.id = pr.asset_id
+                                  WHERE ls.ended_at IS NOT NULL AND date(ls.started_at) BETWEEN ? AND ?
+                                  GROUP BY a.id ORDER BY h DESC""", (start, end)).fetchall()
+    projects_worked = len({u["project_id"] for u in usage} | {r["project_id"] for r in conn.execute(
+        "SELECT DISTINCT project_id FROM labor_sessions WHERE date(started_at) BETWEEN ? AND ?", (start, end)).fetchall()})
+    conn.close()
+    max_h = max([r["h"] or 0 for r in by_laborer] + [r["h"] or 0 for r in by_aircraft] + [0.0001])
+    return render_template("shop_stats.html", labor=labor, parts_sale=parts_sale, parts_cost=parts_cost,
+                           top_parts=top_parts, by_laborer=by_laborer, by_aircraft=by_aircraft,
+                           projects_worked=projects_worked, max_h=max_h,
+                           periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end)
+
+
+@app.route("/api/labor/task_lookup")
+@login_required
+def api_labor_task_lookup():
+    """Resolves a scanned TASK- QR code (see project_labor_codes.html) to the
+    project + section it identifies, without starting anything."""
+    code = request.args.get("code", "").strip()
+    if not code.startswith("TASK-"):
+        return jsonify({"found": False})
+    rest = code[len("TASK-"):]
+    if "::" in rest:
+        project_code, section = rest.split("::", 1)
+    else:
+        project_code, section = rest, ""
+    conn = get_db()
+    project = conn.execute("SELECT * FROM projects WHERE code = ? AND deleted_at IS NULL", (project_code,)).fetchone()
+    conn.close()
+    if not project:
+        return jsonify({"found": False})
+    return jsonify({"found": True, "project_id": project["id"], "project_code": project["code"],
+                     "project_name": project["name"], "section": section})
+
+
+@app.route("/api/labor/scan", methods=["POST"])
+@login_required
+def api_labor_scan():
+    """One scan does double duty: if this laborer has no open timer, this
+    starts one against the given task; if they already have one running
+    (on any task), this same scan ends it and records the hours/cost."""
+    data = request.get_json(force=True, silent=True) or {}
+    code = (data.get("code") or "").strip()
+    project_id = data.get("project_id")
+    section = (data.get("section") or "").strip() or None
+    if not code.startswith("LABOR-"):
+        return jsonify({"ok": False, "error": "not_a_laborer_code"}), 400
+
+    conn = get_db()
+    laborer = conn.execute("SELECT * FROM laborers WHERE code = ?", (code,)).fetchone()
+    if not laborer:
+        conn.close()
+        return jsonify({"ok": False, "error": "unknown_laborer", "code": code}), 404
+    if not laborer["active"]:
+        conn.close()
+        return jsonify({"ok": False, "error": "inactive_laborer", "name": laborer["name"]}), 400
+
+    open_session = conn.execute(
+        "SELECT * FROM labor_sessions WHERE laborer_id = ? AND ended_at IS NULL", (laborer["id"],)
+    ).fetchone()
+
+    if open_session:
+        started = datetime.strptime(open_session["started_at"], "%Y-%m-%d %H:%M:%S")
+        hours = max((datetime.now() - started).total_seconds() / 3600.0, 0)
+        cost = hours * (open_session["rate"] or 0)
+        conn.execute("UPDATE labor_sessions SET ended_at = ?, hours = ?, cost = ? WHERE id = ?",
+                     (now_iso(), hours, cost, open_session["id"]))
+        conn.commit()
+        project = conn.execute("SELECT code, name FROM projects WHERE id = ?",
+                                (open_session["project_id"],)).fetchone()
+        conn.close()
+        return jsonify({"ok": True, "action": "clock_out", "laborer": laborer["name"], "hours": round(hours, 2),
+                         "cost": round(cost, 2), "project_code": project["code"] if project else None,
+                         "section": open_session["section"] or "General"})
+
+    if not project_id:
+        conn.close()
+        return jsonify({"ok": False, "error": "no_task_selected", "code": code, "name": laborer["name"]}), 400
+    project = conn.execute("SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        return jsonify({"ok": False, "error": "unknown_project"}), 404
+    conn.execute("""INSERT INTO labor_sessions (laborer_id, project_id, section, started_at, rate, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?)""",
+                 (laborer["id"], project_id, section, now_iso(), laborer["rate"], now_iso()))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "action": "clock_in", "laborer": laborer["name"],
+                     "project_code": project["code"], "section": section or "General"})
+
+
+@app.route("/api/labor/stop/<int:session_id>", methods=["POST"])
+@login_required
+def api_labor_stop(session_id):
+    """Manual fallback next to the open-timers list, for when re-scanning
+    isn't handy."""
+    conn = get_db()
+    session_row = conn.execute(
+        "SELECT * FROM labor_sessions WHERE id = ? AND ended_at IS NULL", (session_id,)
+    ).fetchone()
+    if not session_row:
+        conn.close()
+        return jsonify({"ok": False, "error": "not_found_or_already_stopped"}), 404
+    started = datetime.strptime(session_row["started_at"], "%Y-%m-%d %H:%M:%S")
+    hours = max((datetime.now() - started).total_seconds() / 3600.0, 0)
+    cost = hours * (session_row["rate"] or 0)
+    conn.execute("UPDATE labor_sessions SET ended_at = ?, hours = ?, cost = ? WHERE id = ?",
+                 (now_iso(), hours, cost, session_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "hours": round(hours, 2), "cost": round(cost, 2)})
+
+
+# ---------------------------------------------------------------------------
+# Master account management (Shop Inventory + Flight School roles together)
+# ---------------------------------------------------------------------------
+
+from werkzeug.security import generate_password_hash
+from db import ensure_flight_profile
+
+
+@app.route("/admin")
+@master_admin_required
+def admin_home():
+    """A single, neutrally-themed admin landing page that every 'Admin' link
+    in both the Maintenance and Flight School navbars now points to, instead
+    of dropping straight into a shop-styled or flight-styled admin screen.
+    The dropdowns themselves are unchanged - this is just where they land."""
+    conn = get_db()
+    user_count = conn.execute("SELECT COUNT(*) c FROM users WHERE active = 1").fetchone()["c"]
+    error_log_count = 0
+    if os.path.isdir(ERROR_LOG_DIR):
+        error_log_count = len([n for n in os.listdir(ERROR_LOG_DIR) if n.endswith(".log")])
+    conn.close()
+    return render_template("admin_home.html", user_count=user_count, error_log_count=error_log_count)
+
+
+@app.route("/admin/users")
+@master_admin_required
+def admin_users_list():
+    conn = get_db()
+    users = conn.execute("SELECT * FROM users ORDER BY active DESC, name").fetchall()
+    owner_id = owner_user_id(conn)
+    conn.close()
+    return render_template("admin_users.html", users=users, owner_id=owner_id,
+                           viewer_is_owner=session.get("user_id") == owner_id)
+
+
+@app.route("/admin/users/new", methods=["GET", "POST"])
+@master_admin_required
+def admin_user_new():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        shop_role = request.form.get("shop_role") or None
+        flight_role = request.form.get("flight_role") or None
+        is_master_admin = 1 if request.form.get("is_master_admin") else 0
+        can_bill = 1 if request.form.get("can_bill") else 0
+        email = request.form.get("email", "").strip() or None
+        phone = request.form.get("phone", "").strip() or None
+        notify_email = 1 if request.form.get("notify_email") else 0
+        notify_sms = 1 if request.form.get("notify_sms") else 0
+        notify_low_stock = 1 if request.form.get("notify_low_stock") else 0
+        notify_maintenance = 1 if request.form.get("notify_maintenance") else 0
+        notify_flight_reminders = 1 if request.form.get("notify_flight_reminders") else 0
+        academy_access = 1 if request.form.get("academy_access") else 0
+        if not name or not username or not password:
+            flash("Name, username, and password are all required.", "danger")
+            return render_template("admin_user_form.html", user=None, name=name, username=username)
+        conn = get_db()
+        existing = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+        if existing:
+            conn.close()
+            flash(f"Username '{username}' is already taken.", "danger")
+            return render_template("admin_user_form.html", user=None, name=name, username="")
+        cur = conn.execute(
+            "INSERT INTO users (name, username, password_hash, password_plain, is_master_admin, shop_role, flight_role, can_bill, active, "
+            "email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (name, username, generate_password_hash(password, method="pbkdf2:sha256"), password, is_master_admin, shop_role, flight_role, can_bill,
+             email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, now_iso()))
+        conn.commit()
+        user_row = conn.execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone()
+        ensure_flight_profile(conn, user_row)
+        conn.close()
+        flash(f"Account created for {name}.", "success")
+        return redirect(url_for("admin_users_list"))
+    return render_template("admin_user_form.html", user=None)
+
+
+@app.route("/admin/users/<int:user_id>/edit", methods=["GET", "POST"])
+@master_admin_required
+def admin_user_edit(user_id):
+    conn = get_db()
+    user_row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not user_row:
+        conn.close()
+        flash("Account not found.", "danger")
+        return redirect(url_for("admin_users_list"))
+    if owner_locked(user_id, conn):
+        # The owner's account can only be changed by the owner - another
+        # master admin can't demote, deactivate, rename or re-password it.
+        conn.close()
+        flash(f"{user_row['name']}'s account is the owner account - only {user_row['name']} can change it.", "warning")
+        return redirect(url_for("admin_users_list"))
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        shop_role = request.form.get("shop_role") or None
+        flight_role = request.form.get("flight_role") or None
+        is_master_admin = 1 if request.form.get("is_master_admin") else 0
+        can_bill = 1 if request.form.get("can_bill") else 0
+        active = 1 if request.form.get("active") else 0
+        new_password = request.form.get("password", "")
+        email = request.form.get("email", "").strip() or None
+        phone = request.form.get("phone", "").strip() or None
+        notify_email = 1 if request.form.get("notify_email") else 0
+        notify_sms = 1 if request.form.get("notify_sms") else 0
+        notify_low_stock = 1 if request.form.get("notify_low_stock") else 0
+        notify_maintenance = 1 if request.form.get("notify_maintenance") else 0
+        notify_flight_reminders = 1 if request.form.get("notify_flight_reminders") else 0
+        academy_access = 1 if request.form.get("academy_access") else 0
+        if not name:
+            flash("Name is required.", "danger")
+            conn.close()
+            return render_template("admin_user_form.html", user=user_row)
+        if user_id == session.get("user_id") and not is_master_admin:
+            flash("You can't remove your own admin access.", "danger")
+            conn.close()
+            return render_template("admin_user_form.html", user=user_row)
+        if user_id == session.get("user_id") and not active:
+            flash("You can't deactivate your own account.", "danger")
+            conn.close()
+            return render_template("admin_user_form.html", user=user_row)
+        if new_password:
+            conn.execute(
+                "UPDATE users SET name=?, shop_role=?, flight_role=?, is_master_admin=?, can_bill=?, active=?, password_hash=?, password_plain=?, "
+                "email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, notify_maintenance=?, notify_flight_reminders=?, academy_access=? WHERE id=?",
+                (name, shop_role, flight_role, is_master_admin, can_bill, active,
+                 generate_password_hash(new_password, method="pbkdf2:sha256"), new_password,
+                 email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, user_id))
+        else:
+            conn.execute(
+                "UPDATE users SET name=?, shop_role=?, flight_role=?, is_master_admin=?, can_bill=?, active=?, "
+                "email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, notify_maintenance=?, notify_flight_reminders=?, academy_access=? WHERE id=?",
+                (name, shop_role, flight_role, is_master_admin, can_bill, active,
+                 email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, user_id))
+        conn.commit()
+        user_row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        ensure_flight_profile(conn, user_row)
+        # Keep the linked CFI/student profile's active flag and password in step,
+        # since a couple of Flight School views still read those directly.
+        if new_password:
+            conn.execute("UPDATE cfis SET password_hash=?, active=? WHERE user_id=?",
+                         (generate_password_hash(new_password, method="pbkdf2:sha256"), active, user_id))
+            conn.execute("UPDATE students SET password_hash=?, active=? WHERE user_id=?",
+                         (generate_password_hash(new_password, method="pbkdf2:sha256"), active, user_id))
+        else:
+            conn.execute("UPDATE cfis SET active=? WHERE user_id=?", (active, user_id))
+            conn.execute("UPDATE students SET active=? WHERE user_id=?", (active, user_id))
+        conn.commit()
+        conn.close()
+        flash("Account updated.", "success")
+        return redirect(url_for("admin_users_list"))
+    conn.close()
+    return render_template("admin_user_form.html", user=user_row)
+
+
+# Where "My Account" was opened from, so the centralized account page can
+# offer a way straight back to that program (instead of always landing on
+# the Maintenance side). Each program's navbar links with ?from=<key>.
+ACCOUNT_FROM_PROGRAMS = {
+    "shop": ("Maintenance", "bi-tools", "dashboard"),
+    "flight": ("Flight School", "bi-airplane-engines", "flight.dashboard"),
+    "academy": ("Flight Academy", "bi-mortarboard", "academy_page"),
+    "admin": ("Admin", "bi-shield-lock-fill", "admin_home"),
+}
+
+
+def _account_programs(user_row):
+    """Every program this account can open, with the role it has there -
+    shown on the centralized My Account page. Read-only: access is still
+    changed by an admin in Admin > Accounts."""
+    is_admin = bool(user_row["is_master_admin"])
+    shop_labels = {"admin": "Admin", "tech": "Tech", "student": "Student"}
+    flight_labels = {"cfi": "Instructor (CFI)", "student": "Student"}
+    progs = []
+    if is_admin or user_row["shop_role"]:
+        progs.append(dict(key="shop", name="Winds Aloft - Maintenance", icon="bi-tools",
+                          url=url_for("dashboard"),
+                          role="Master admin" if is_admin else shop_labels.get(user_row["shop_role"], (user_row["shop_role"] or "").title())))
+    if is_admin or user_row["flight_role"]:
+        progs.append(dict(key="flight", name="Fly with Kate! - Flight School", icon="bi-airplane-engines",
+                          url=url_for("flight.dashboard"),
+                          role="Master admin" if is_admin else flight_labels.get(user_row["flight_role"], (user_row["flight_role"] or "").title())))
+    if is_admin or user_row["academy_access"]:
+        progs.append(dict(key="academy", name="Flight Academy", icon="bi-mortarboard",
+                          url=url_for("academy_page"), role="Master admin" if is_admin else "Access granted"))
+    if is_admin:
+        progs.append(dict(key="admin", name="Admin", icon="bi-shield-lock-fill",
+                          url=url_for("admin_home"), role="Owner" if user_row["id"] == owner_user_id() else "Master admin"))
+    return progs
+
+
+def _account_came_from():
+    """Which program My Account was opened from: ?from= wins, else the page
+    the person was just on (a /flight page means Flight School, and so on),
+    else - when they're coming back to My Account from itself, e.g. after
+    Save - the program remembered last time. None = the program picker."""
+    key = request.args.get("from", "").strip()
+    if key not in ACCOUNT_FROM_PROGRAMS:
+        key = None
+        ref = urlparse(request.referrer or "")
+        if ref.netloc == request.host:
+            path = ref.path or "/"
+            if path.startswith("/account"):
+                key = session.get("account_from")
+            elif path.startswith("/flight"):
+                key = "flight"
+            elif path.startswith("/academy"):
+                key = "academy"
+            elif path.startswith("/admin"):
+                key = "admin"
+            elif path != "/":
+                key = "shop"
+    session["account_from"] = key
+    return key
+
+
+def _render_account(user_row, came_from):
+    back = None
+    if came_from and came_from in ACCOUNT_FROM_PROGRAMS:
+        label, icon, endpoint = ACCOUNT_FROM_PROGRAMS[came_from]
+        back = dict(key=came_from, label=label, icon=icon, url=url_for(endpoint))
+    return render_template("account.html", user=user_row, programs=_account_programs(user_row),
+                           came_from=back)
+
+
+@app.route("/account", methods=["GET", "POST"])
+@login_required
+def account_page():
+    """Self-service 'My Account' - one centralized page for the person's
+    account across every OpsHub program (Maintenance, Flight School,
+    Academy, Admin). Every logged-in user (not just admins) gets here from
+    the dropdown under their name, top right, in any program, and it opens
+    in its own neutral OpsHub layout (account_base.html) with a button back
+    to the program they came from. It shows which programs they can use and
+    their role in each, and lets them update their own contact info,
+    password, and notification preferences for each program they have.
+    Role/access fields (shop role, flight role, master admin, academy
+    access, active) aren't editable here - those stay admin-only, via
+    Admin > Accounts."""
+    conn = get_db()
+    user_row = conn.execute("SELECT * FROM users WHERE id = ?", (session["user_id"],)).fetchone()
+    if not user_row:
+        conn.close()
+        flash("Account not found.", "danger")
+        return redirect(url_for("home_launcher"))
+    came_from = _account_came_from() if request.method == "GET" else session.get("account_from")
+    if request.method == "POST":
+        has_shop = bool(user_row["is_master_admin"] or user_row["shop_role"])
+        has_flight = bool(user_row["is_master_admin"] or user_row["flight_role"])
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip() or None
+        phone = request.form.get("phone", "").strip() or None
+        notify_email = 1 if request.form.get("notify_email") else 0
+        notify_sms = 1 if request.form.get("notify_sms") else 0
+        # Each program's section only shows for people who can use that
+        # program - a hidden section keeps its saved settings instead of
+        # being switched off by the save.
+        if has_shop:
+            notify_low_stock = 1 if request.form.get("notify_low_stock") else 0
+            notify_maintenance = 1 if request.form.get("notify_maintenance") else 0
+        else:
+            notify_low_stock = user_row["notify_low_stock"] or 0
+            notify_maintenance = user_row["notify_maintenance"] or 0
+        if has_flight:
+            notify_flight_reminders = 1 if request.form.get("notify_flight_reminders") else 0
+            notify_push_30min = 1 if request.form.get("notify_push_30min") else 0
+            notify_push_timeup = 1 if request.form.get("notify_push_timeup") else 0
+            notify_push_late = 1 if request.form.get("notify_push_late") else 0
+        else:
+            notify_flight_reminders = user_row["notify_flight_reminders"] or 0
+            notify_push_30min = user_row["notify_push_30min"] or 0
+            notify_push_timeup = user_row["notify_push_timeup"] or 0
+            notify_push_late = user_row["notify_push_late"] or 0
+        notify_push_session_alerts = 1 if (notify_push_30min or notify_push_timeup or notify_push_late) else 0
+        new_password = request.form.get("password", "")
+        confirm_password = request.form.get("password_confirm", "")
+        if not name:
+            flash("Name is required.", "danger")
+            conn.close()
+            return _render_account(user_row, came_from)
+        if new_password and new_password != confirm_password:
+            flash("The two new password fields don't match.", "danger")
+            conn.close()
+            return _render_account(user_row, came_from)
+        if new_password:
+            pw_hash = generate_password_hash(new_password, method="pbkdf2:sha256")
+            conn.execute(
+                "UPDATE users SET name=?, email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, "
+                "notify_maintenance=?, notify_flight_reminders=?, notify_push_session_alerts=?, "
+                "notify_push_30min=?, notify_push_timeup=?, notify_push_late=?, "
+                "password_hash=?, password_plain=? WHERE id=?",
+                (name, email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance,
+                 notify_flight_reminders, notify_push_session_alerts,
+                 notify_push_30min, notify_push_timeup, notify_push_late, pw_hash, new_password, session["user_id"]))
+            conn.execute("UPDATE cfis SET password_hash=? WHERE user_id=?", (pw_hash, session["user_id"]))
+            conn.execute("UPDATE students SET password_hash=? WHERE user_id=?", (pw_hash, session["user_id"]))
+        else:
+            conn.execute(
+                "UPDATE users SET name=?, email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, "
+                "notify_maintenance=?, notify_flight_reminders=?, notify_push_session_alerts=?, "
+                "notify_push_30min=?, notify_push_timeup=?, notify_push_late=? WHERE id=?",
+                (name, email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance,
+                 notify_flight_reminders, notify_push_session_alerts,
+                 notify_push_30min, notify_push_timeup, notify_push_late, session["user_id"]))
+        conn.commit()
+        session["user_name"] = name
+        conn.close()
+        flash("Your account has been updated.", "success")
+        return redirect(url_for("account_page", **({"from": came_from} if came_from else {})))
+    conn.close()
+    return _render_account(user_row, came_from)
+
+
+# ---------------------------------------------------------------------------
+# Master admin: notification (email/text reminder) settings
+# ---------------------------------------------------------------------------
+
+@app.route("/account/push_test", methods=["POST"])
+@login_required
+def account_push_test():
+    """"Send me a test alert" on My Account - pushes to every device this
+    person has turned phone alerts on for, and says how many it reached."""
+    conn = get_db()
+    uid = session["user_id"]
+    results = push.queue_and_push(conn, uid, "Fly with Kate! test alert",
+                                  "If you can see this, phone alerts work on this device.",
+                                  tag=f"push-test-{uid}", url="/account")
+    if not any(ok for ok, _s, _e in results):
+        conn.execute("DELETE FROM push_pending WHERE user_id = ? AND tag = ?", (uid, f"push-test-{uid}"))
+        conn.commit()
+    conn.close()
+    if not results:
+        flash("No devices have phone alerts turned on for your account yet - tap Enable on this device first.", "warning")
+    else:
+        sent = sum(1 for ok, _s, _e in results if ok)
+        failed = [f"{status or ''} {err or ''}".strip() for ok, status, err in results if not ok]
+        msg = f"Test alert sent to {sent} device{'s' if sent != 1 else ''}."
+        if failed:
+            msg += f" {len(failed)} failed ({'; '.join(failed)[:120]})."
+        flash(msg, "success" if sent else "danger")
+    came_from = session.get("account_from")
+    return redirect(url_for("account_page", **({"from": came_from} if came_from else {})) + "#push-status")
+
+
+@app.route("/push-sw.js")
+def push_service_worker():
+    """The phone-alert service worker, served from the site root so its
+    scope is the whole app ("/"). Served from /static/ its scope was only
+    /static/, so navigator.serviceWorker.ready never resolved on real pages
+    like My Account - the Enable button would ask for permission and then
+    never finish, and the status never showed ON."""
+    path = os.path.join(app.static_folder, "push-sw.js")
+    with open(path, "rb") as fh:
+        resp = Response(fh.read(), mimetype="application/javascript")
+    resp.headers["Service-Worker-Allowed"] = "/"
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
+@app.route("/admin/notifications", methods=["GET", "POST"])
+@master_admin_required
+def admin_notifications():
+    conn = get_db()
+    if request.method == "POST":
+        notify.save_settings(conn, {
+            "smtp_host": request.form.get("smtp_host", ""),
+            "smtp_port": request.form.get("smtp_port", ""),
+            "smtp_username": request.form.get("smtp_username", ""),
+            "smtp_password": request.form.get("smtp_password", ""),
+            "smtp_from": request.form.get("smtp_from", ""),
+            "twilio_account_sid": request.form.get("twilio_account_sid", ""),
+            "twilio_auth_token": request.form.get("twilio_auth_token", ""),
+            "twilio_from_number": request.form.get("twilio_from_number", ""),
+        })
+        flash("Notification settings saved.", "success")
+        conn.close()
+        return redirect(url_for("admin_notifications"))
+    settings = notify.get_settings(conn)
+    # Everyone who could get flight phone alerts, with how many devices each
+    # has turned on - for the "Test phone alerts" picker.
+    push_people = conn.execute("""
+        SELECT u.id, u.name, COUNT(ps.id) AS device_count
+        FROM users u LEFT JOIN push_subscriptions ps ON ps.user_id = u.id
+        WHERE u.active = 1 AND (u.is_master_admin = 1 OR u.flight_role IS NOT NULL AND u.flight_role != '')
+        GROUP BY u.id ORDER BY device_count = 0, u.name
+    """).fetchall()
+    conn.close()
+    return render_template("admin_notifications.html", settings=settings,
+                           email_configured=notify.email_configured(settings),
+                           sms_configured=notify.sms_configured(settings),
+                           push_people=push_people)
+
+
+@app.route("/admin/notifications/test_push", methods=["POST"])
+@master_admin_required
+def admin_notifications_test_push():
+    """Sends a test phone alert to the picked people (or everyone with a
+    device turned on) and reports, per person, how many devices it reached."""
+    conn = get_db()
+    if request.form.get("send_to") == "all":
+        user_ids = [r["user_id"] for r in conn.execute("SELECT DISTINCT user_id FROM push_subscriptions").fetchall()]
+    else:
+        user_ids = [int(x) for x in request.form.getlist("user_ids") if x.isdigit()]
+    if not user_ids:
+        conn.close()
+        flash("Pick at least one person (or choose Everyone) to send the test to.", "danger")
+        return redirect(url_for("admin_notifications") + "#push-test")
+    message = request.form.get("test_message", "").strip() or "Test alert - if you can see this, phone alerts are working on this device."
+    sender = session.get("user_name") or "OpsHub"
+    lines = []
+    any_ok = False
+    for uid in user_ids:
+        user = conn.execute("SELECT id, name FROM users WHERE id = ?", (uid,)).fetchone()
+        if not user:
+            continue
+        results = push.queue_and_push(conn, uid, "Fly with Kate! test alert", f"{message} (sent by {sender})",
+                                      tag=f"push-test-{uid}", url="/account")
+        if not any(ok for ok, _s, _e in results):
+            # Nothing was delivered - drop the queued copy so it doesn't pop
+            # up later out of the blue once their phone starts working.
+            conn.execute("DELETE FROM push_pending WHERE user_id = ? AND tag = ?", (uid, f"push-test-{uid}"))
+            conn.commit()
+        if not results:
+            lines.append(f"{user['name']}: no devices turned on (they need to tap Enable in My Account on their phone)")
+            continue
+        sent = sum(1 for ok, _s, _e in results if ok)
+        failed = [f"{status or ''} {err or ''}".strip() for ok, status, err in results if not ok]
+        any_ok = any_ok or sent > 0
+        line = f"{user['name']}: sent to {sent} device{'s' if sent != 1 else ''}"
+        if failed:
+            line += f", {len(failed)} failed ({'; '.join(failed)[:120]})"
+        lines.append(line)
+    conn.close()
+    flash("Test phone alert - " + " | ".join(lines), "success" if any_ok else "warning")
+    return redirect(url_for("admin_notifications") + "#push-test")
+
+
+@app.route("/admin/notifications/test_email", methods=["POST"])
+@master_admin_required
+def admin_notifications_test_email():
+    to_addr = request.form.get("test_email", "").strip()
+    if not to_addr:
+        flash("Enter an email address to send the test to.", "danger")
+        return redirect(url_for("admin_notifications"))
+    conn = get_db()
+    settings = notify.get_settings(conn)
+    conn.close()
+    ok, err = notify.send_email(settings, to_addr, "Fly with Kate! test reminder",
+                                 "This is a test message from Fly with Kate! - if you got this, email reminders are working.")
+    if ok:
+        flash(f"Test email sent to {to_addr}.", "success")
+    else:
+        flash(f"Test email failed: {err}", "danger")
+    return redirect(url_for("admin_notifications"))
+
+
+@app.route("/admin/notifications/test_sms", methods=["POST"])
+@master_admin_required
+def admin_notifications_test_sms():
+    to_number = request.form.get("test_phone", "").strip()
+    if not to_number:
+        flash("Enter a phone number to send the test to.", "danger")
+        return redirect(url_for("admin_notifications"))
+    conn = get_db()
+    settings = notify.get_settings(conn)
+    conn.close()
+    ok, err = notify.send_sms(settings, to_number, "Fly with Kate! test reminder - if you got this, text reminders are working.")
+    if ok:
+        flash(f"Test text sent to {to_number}.", "success")
+    else:
+        flash(f"Test text failed: {err}", "danger")
+    return redirect(url_for("admin_notifications"))
+
+
+# ---------------------------------------------------------------------------
+# Master admin: reset/wipe tools
+# ---------------------------------------------------------------------------
+
+def _removable_cfi_ids(conn):
+    """Instructor profiles the Reset Instructors button may delete - every
+    CFI except one linked to a master admin login, so the owner's own
+    instructor profile (and their login) always survives a reset."""
+    return [r["id"] for r in conn.execute("""
+        SELECT c.id FROM cfis c LEFT JOIN users u ON u.id = c.user_id
+        WHERE COALESCE(u.is_master_admin, 0) = 0""").fetchall()]
+
+
+def _reset_counts():
+    """Row counts shown on the Reset Data page so a master admin can see
+    what each button is about to wipe before they click it."""
+    conn = get_db()
+    counts = {
+        "activity_log": conn.execute("SELECT COUNT(*) c FROM transactions").fetchone()["c"],
+        "orders": conn.execute("SELECT COUNT(*) c FROM orders").fetchone()["c"],
+        "projects": conn.execute("SELECT COUNT(*) c FROM projects").fetchone()["c"],
+        "flights": conn.execute("SELECT COUNT(*) c FROM flights").fetchone()["c"],
+        "planes": conn.execute("SELECT COUNT(*) c FROM assets WHERE is_flight_asset = 1").fetchone()["c"],
+        "squawks": conn.execute("SELECT COUNT(*) c FROM flights WHERE squawk = 1").fetchone()["c"],
+        "schedule": conn.execute("SELECT COUNT(*) c FROM scheduled_flights").fetchone()["c"],
+        "students": conn.execute("SELECT COUNT(*) c FROM students WHERE is_station = 0").fetchone()["c"],
+        "ledger": conn.execute("SELECT COUNT(*) c FROM student_ledger").fetchone()["c"],
+        "instructors": len(_removable_cfi_ids(conn)),
+    }
+    counts["flight_school_total"] = (counts["flights"] + counts["schedule"] + counts["students"]
+                                     + counts["ledger"] + counts["instructors"] + counts["planes"])
+    conn.close()
+    return counts
+
+
+@app.route("/admin/reset")
+@master_admin_required
+def admin_reset():
+    return render_template("admin_reset.html", counts=_reset_counts())
+
+
+# ---------------------------------------------------------------------------
+# Master admin: remote restart/reboot (a "backdoor" for when SSH is down but
+# this app itself is still reachable - see admin_system.html for the pitch).
+# Both run the actual command a couple seconds after responding, in a
+# background thread, so the browser gets its response/flash message before
+# the connection drops out from under it. Requires the Pi's OS user this app
+# runs as to have passwordless sudo for exactly these two commands (see the
+# README for the one-time `visudo` line) - nothing else is granted.
+# ---------------------------------------------------------------------------
+
+@app.route("/admin/system")
+@master_admin_required
+def admin_system():
+    return render_template("admin_system.html")
+
+
+def _run_delayed_command(args, delay=2.0):
+    def _go():
+        time.sleep(delay)
+        subprocess.run(args, check=False)
+    threading.Thread(target=_go, daemon=True).start()
+
+
+@app.route("/admin/system/restart_app", methods=["POST"])
+@master_admin_required
+def admin_system_restart_app():
+    flash("Restarting the app now - this page will be unreachable for a few seconds.", "success")
+    _run_delayed_command(["sudo", "systemctl", "restart", "opshub"])
+    return redirect(url_for("admin_system"))
+
+
+@app.route("/admin/system/reboot", methods=["POST"])
+@master_admin_required
+def admin_system_reboot():
+    flash("Rebooting the Pi now - everything will be unreachable for 30-60 seconds.", "success")
+    _run_delayed_command(["sudo", "reboot"])
+    return redirect(url_for("admin_system"))
+
+
+@app.route("/admin/system/log")
+@master_admin_required
+def admin_system_log():
+    """Lists the individual error files, newest first - every unhandled
+    exception, with its full traceback, is saved as its own timestamped
+    file in instance/error_logs/ regardless of debug mode (see the
+    got_request_exception hookup and _PerFileErrorHandler near the top of
+    this file). The point is to make an error visible and copyable from a
+    browser - on a phone, from off-site over Tailscale, wherever - without
+    needing to SSH into the Pi and go digging through journalctl just to
+    see what broke."""
+    entries = []
+    total_count = 0
+    error = None
+    try:
+        if os.path.isdir(ERROR_LOG_DIR):
+            names = sorted((n for n in os.listdir(ERROR_LOG_DIR) if n.endswith(".log")), reverse=True)
+            total_count = len(names)
+            for name in names[:100]:  # most recent 100 files is plenty without the page getting unwieldy
+                try:
+                    with open(os.path.join(ERROR_LOG_DIR, name), "r", errors="replace") as f:
+                        text = f.read()
+                except OSError:
+                    continue
+                entries.append(_parse_error_log_entry(name, text))
+    except OSError as e:
+        error = str(e)
+    return render_template("admin_system_log.html", entries=entries, error=error,
+                           truncated=total_count > len(entries), total_count=total_count)
+
+
+@app.route("/admin/system/log/clear", methods=["POST"])
+@master_admin_required
+def admin_system_log_clear():
+    try:
+        if os.path.isdir(ERROR_LOG_DIR):
+            for name in os.listdir(ERROR_LOG_DIR):
+                if name.endswith(".log"):
+                    os.remove(os.path.join(ERROR_LOG_DIR, name))
+        flash("Error log cleared.", "success")
+    except OSError as e:
+        flash(f"Couldn't clear the log: {e}", "danger")
+    return redirect(url_for("admin_system_log"))
+
+
+def _delete_photo_files(conn, where_clause, params):
+    """Removes the uploaded image files for a set of photo rows before the
+    rows themselves are deleted, so nothing orphaned is left in static/uploads."""
+    rows = conn.execute(f"SELECT filename FROM photos WHERE {where_clause}", params).fetchall()
+    for r in rows:
+        file_path = os.path.join(UPLOAD_DIR, r["filename"])
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+
+@app.route("/admin/reset/activity_log", methods=["POST"])
+@master_admin_required
+def admin_reset_activity_log():
+    conn = get_db()
+    conn.execute("DELETE FROM transactions")
+    conn.commit()
+    conn.close()
+    flash("Activity log cleared.", "success")
+    return redirect(url_for("admin_reset"))
+
+
+@app.route("/admin/reset/orders", methods=["POST"])
+@master_admin_required
+def admin_reset_orders():
+    conn = get_db()
+    conn.execute("DELETE FROM orders")
+    conn.commit()
+    conn.close()
+    flash("Orders cleared.", "success")
+    return redirect(url_for("admin_reset"))
+
+
+@app.route("/admin/reset/squawks", methods=["POST"])
+@master_admin_required
+def admin_reset_squawks():
+    """Clears squawk flags only - keeps the flight log entries themselves."""
+    conn = get_db()
+    conn.execute("""UPDATE flights SET squawk = 0, squawk_acknowledged_at = NULL, squawk_acknowledged_by = NULL,
+                     squawk_repaired_at = NULL, squawk_repaired_by = NULL WHERE squawk = 1""")
+    conn.commit()
+    conn.close()
+    flash("Squawks cleared.", "success")
+    return redirect(url_for("admin_reset"))
+
+
+@app.route("/admin/reset/flights", methods=["POST"])
+@master_admin_required
+def admin_reset_flights():
+    return _run_reset(_wipe_flight_log, "Flight log cleared.")
+
+
+@app.route("/admin/reset/projects", methods=["POST"])
+@master_admin_required
+def admin_reset_projects():
+    """Wipes every project and everything that hangs off one. Since new
+    project codes (e.g. 26-001) are generated from the highest existing
+    code, deleting all projects also resets the project numbering back
+    to 001 for the current year. Transactions and orders that were tied
+    to a project are kept (part/order history), just un-linked from the
+    project that no longer exists."""
+    conn = get_db()
+    _delete_photo_files(conn, "project_id IS NOT NULL", ())
+    conn.execute("DELETE FROM photos WHERE project_id IS NOT NULL")
+    conn.execute("DELETE FROM labor_sessions")
+    conn.execute("DELETE FROM project_sections")
+    conn.execute("UPDATE maintenance_log SET project_id = NULL WHERE project_id IS NOT NULL")
+    conn.execute("UPDATE transactions SET project_id = NULL WHERE project_id IS NOT NULL")
+    conn.execute("UPDATE orders SET project_id = NULL WHERE project_id IS NOT NULL")
+    conn.execute("DELETE FROM projects")
+    conn.commit()
+    conn.close()
+    flash("Projects cleared and project numbering reset.", "success")
+    return redirect(url_for("admin_reset"))
+
+
+@app.route("/admin/reset/planes", methods=["POST"])
+@master_admin_required
+def admin_reset_planes():
+    """Wipes every Flight School plane (assets with is_flight_asset=1) and
+    everything that hangs off one - see _wipe_planes()."""
+    return _run_reset(_wipe_planes, "Flight School planes cleared.")
+
+
+# ---- Flight School resets -------------------------------------------------
+# Each helper wipes one slice of the Fly with Kate! side and takes care of
+# the rows pointing at it first (foreign keys are ON), so the buttons can be
+# used one at a time or all together by "Reset All Flight School Data".
+
+def _ids_placeholders(ids):
+    return ",".join("?" for _ in ids)
+
+
+def _remove_flight_logins(conn, user_ids, role):
+    """After deleting student/CFI profiles, deal with their master logins:
+    a login that only existed for that flight role is deleted (with its
+    phone-alert devices), so the same username can be reused later. A login
+    that also has shop access, another flight profile, or is a master
+    admin is kept and just loses the flight role."""
+    for uid in {u for u in user_ids if u}:
+        user = conn.execute("SELECT id, is_master_admin, shop_role, flight_role FROM users WHERE id = ?",
+                            (uid,)).fetchone()
+        if not user:
+            continue
+        still_linked = conn.execute("""SELECT (SELECT COUNT(*) FROM cfis WHERE user_id = ?)
+                                             + (SELECT COUNT(*) FROM students WHERE user_id = ?) AS n""",
+                                    (uid, uid)).fetchone()["n"]
+        if not user["is_master_admin"] and not (user["shop_role"] or "").strip() and not still_linked:
+            conn.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (uid,))
+            conn.execute("DELETE FROM push_pending WHERE user_id = ?", (uid,))
+            conn.execute("UPDATE cfis SET user_id = NULL WHERE user_id = ?", (uid,))
+            conn.execute("UPDATE students SET user_id = NULL WHERE user_id = ?", (uid,))
+            conn.execute("DELETE FROM users WHERE id = ?", (uid,))
+        elif user["flight_role"] == role and not still_linked:
+            conn.execute("UPDATE users SET flight_role = NULL WHERE id = ?", (uid,))
+
+
+def _wipe_flight_log(conn, where="1=1", params=()):
+    """Deletes logged flights. Billing entries for them are kept (so
+    balances don't change) but un-linked from the deleted flight."""
+    ids = [r["id"] for r in conn.execute(f"SELECT id FROM flights WHERE {where}", params).fetchall()]
+    if ids:
+        ph = _ids_placeholders(ids)
+        conn.execute(f"UPDATE student_ledger SET flight_id = NULL WHERE flight_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM flights WHERE id IN ({ph})", ids)
+    return len(ids)
+
+
+def _wipe_schedule(conn, where="1=1", params=()):
+    """Deletes bookings (scheduled, pending approval, denied, cancelled).
+    Logged flights that were started from a booking are kept."""
+    ids = [r["id"] for r in conn.execute(f"SELECT id FROM scheduled_flights WHERE {where}", params).fetchall()]
+    if ids:
+        ph = _ids_placeholders(ids)
+        conn.execute(f"UPDATE flights SET scheduled_flight_id = NULL WHERE scheduled_flight_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM notification_log WHERE category = 'flight_reminder' AND ref_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM flight_alerts WHERE scheduled_flight_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM scheduled_flights WHERE id IN ({ph})", ids)
+    return len(ids)
+
+
+def _wipe_billing(conn):
+    """Clears every student's account history and sets all balances to $0."""
+    conn.execute("DELETE FROM student_ledger")
+    conn.execute("UPDATE students SET balance = 0")
+
+
+def _wipe_students(conn):
+    """Deletes every student (not station accounts like "Shop") with their
+    flights, bookings and account history, plus logins that were only for
+    being a student."""
+    rows = conn.execute("SELECT id, user_id FROM students WHERE is_station = 0").fetchall()
+    ids = [r["id"] for r in rows]
+    if ids:
+        ph = _ids_placeholders(ids)
+        conn.execute(f"DELETE FROM student_ledger WHERE student_id IN ({ph})", ids)
+        _wipe_flight_log(conn, f"student_id IN ({ph})", ids)
+        _wipe_schedule(conn, f"student_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM field_change_log WHERE entity_type = 'student' AND entity_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM students WHERE id IN ({ph})", ids)
+        _remove_flight_logins(conn, [r["user_id"] for r in rows], "student")
+    return len(ids)
+
+
+def _wipe_instructors(conn):
+    """Deletes every instructor profile except master admins' own. Their
+    logged flights are kept with no instructor listed; their upcoming
+    bookings are kept and flagged "needs review" so a new instructor can
+    be picked."""
+    ids = _removable_cfi_ids(conn)
+    if ids:
+        ph = _ids_placeholders(ids)
+        user_ids = [r["user_id"] for r in conn.execute(
+            f"SELECT user_id FROM cfis WHERE id IN ({ph})", ids).fetchall()]
+        conn.execute(f"UPDATE flights SET cfi_id = NULL WHERE cfi_id IN ({ph})", ids)
+        conn.execute(f"""UPDATE scheduled_flights SET needs_review = 1,
+                           review_reason = 'Instructor was removed by an admin reset - pick a new one'
+                         WHERE cfi_id IN ({ph}) AND solo = 0 AND status IN ('scheduled', 'pending_approval')""", ids)
+        conn.execute(f"UPDATE scheduled_flights SET cfi_id = NULL WHERE cfi_id IN ({ph})", ids)
+        conn.execute(f"UPDATE students SET created_by_cfi_id = NULL WHERE created_by_cfi_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM field_change_log WHERE entity_type = 'cfi' AND entity_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM cfis WHERE id IN ({ph})", ids)
+        _remove_flight_logins(conn, user_ids, "cfi")
+    return len(ids)
+
+
+def _wipe_planes(conn):
+    """Deletes every Flight School plane and everything hanging off it -
+    flights, bookings, maintenance items/log, to-dos, compression checks and
+    plane photos. Shop projects that referenced a plane are kept, un-linked."""
+    plane_ids = [r["id"] for r in conn.execute("SELECT id FROM assets WHERE is_flight_asset = 1").fetchall()]
+    if plane_ids:
+        ph = _ids_placeholders(plane_ids)
+        _wipe_flight_log(conn, f"asset_id IN ({ph})", plane_ids)
+        _wipe_schedule(conn, f"asset_id IN ({ph})", plane_ids)
+        item_ids = [r["id"] for r in conn.execute(
+            f"SELECT id FROM maintenance_items WHERE asset_id IN ({ph})", plane_ids).fetchall()]
+        if item_ids:
+            conn.execute(f"DELETE FROM maintenance_log WHERE item_id IN ({_ids_placeholders(item_ids)})", item_ids)
+        conn.execute(f"DELETE FROM maintenance_items WHERE asset_id IN ({ph})", plane_ids)
+        conn.execute(f"DELETE FROM plane_todos WHERE asset_id IN ({ph})", plane_ids)
+        conn.execute(f"DELETE FROM compression_checks WHERE asset_id IN ({ph})", plane_ids)
+        _delete_photo_files(conn, f"asset_id IN ({ph}) AND project_id IS NULL AND part_id IS NULL", plane_ids)
+        conn.execute(f"DELETE FROM photos WHERE asset_id IN ({ph}) AND project_id IS NULL AND part_id IS NULL", plane_ids)
+        conn.execute(f"UPDATE photos SET asset_id = NULL WHERE asset_id IN ({ph})", plane_ids)
+        conn.execute(f"DELETE FROM field_change_log WHERE entity_type = 'plane' AND entity_id IN ({ph})", plane_ids)
+        conn.execute(f"UPDATE projects SET asset_id = NULL WHERE asset_id IN ({ph})", plane_ids)
+        conn.execute(f"DELETE FROM assets WHERE id IN ({ph})", plane_ids)
+    return len(plane_ids)
+
+
+def _run_reset(fn, message):
+    """Runs one reset helper in a single transaction - all or nothing - and
+    reports back on the Reset Data page."""
+    conn = get_db()
+    try:
+        fn(conn)
+        conn.commit()
+        flash(message, "success")
+    except Exception as e:  # keep the page usable and say what went wrong
+        conn.rollback()
+        app.logger.exception("Reset failed")
+        flash(f"Reset didn't run - nothing was deleted. ({e})", "danger")
+    finally:
+        conn.close()
+    return redirect(url_for("admin_reset") + "#flight-school")
+
+
+@app.route("/admin/reset/schedule", methods=["POST"])
+@master_admin_required
+def admin_reset_schedule():
+    return _run_reset(_wipe_schedule, "Schedule cleared - all bookings and requests deleted.")
+
+
+@app.route("/admin/reset/billing", methods=["POST"])
+@master_admin_required
+def admin_reset_billing():
+    return _run_reset(_wipe_billing, "Student account history cleared and every balance set to $0.")
+
+
+@app.route("/admin/reset/students", methods=["POST"])
+@master_admin_required
+def admin_reset_students():
+    return _run_reset(_wipe_students, "Students cleared, with their flights, bookings and account history.")
+
+
+@app.route("/admin/reset/instructors", methods=["POST"])
+@master_admin_required
+def admin_reset_instructors():
+    return _run_reset(_wipe_instructors, "Instructors cleared (master admins' own instructor profiles were kept).")
+
+
+@app.route("/admin/reset/flight_school", methods=["POST"])
+@master_admin_required
+def admin_reset_flight_school():
+    """The big one: every Flight School slice above in one go. Needs RESET
+    typed into the box as well as the pop-up, since it can't be undone."""
+    if request.form.get("confirm_text", "").strip().upper() != "RESET":
+        flash('Type RESET in the box to confirm resetting all Flight School data.', "danger")
+        return redirect(url_for("admin_reset") + "#flight-school")
+
+    def _everything(conn):
+        _wipe_schedule(conn)
+        _wipe_flight_log(conn)
+        _wipe_billing(conn)
+        _wipe_students(conn)
+        _wipe_instructors(conn)
+        _wipe_planes(conn)
+        conn.execute("DELETE FROM push_pending")
+        conn.execute("DELETE FROM adsb_track_points")
+        conn.execute("DELETE FROM notification_log WHERE category = 'flight_reminder'")
+    return _run_reset(_everything, "All Flight School data reset. Shop data and master admin logins were not touched.")
+
+
+def _start_session_alert_loop():
+    """Runs flight.check_session_alerts() roughly once a minute for as long
+    as the app is up - the source of the "30 min left" / "time's up" /
+    "running late" phone push alerts (see flight.py / push.py).
+
+    Guarded against WERKZEUG_RUN_MAIN so Flask's debug auto-reloader
+    doesn't end up with two copies of the loop double-sending everything:
+    the reloader re-execs this whole script in a child process, so this
+    function runs once in the reloader's parent/monitor process and again
+    in the actual serving child. Both app.run() calls below always pass
+    debug=True, which defaults use_reloader to True as well, so the
+    reloader is always in play here - WERKZEUG_RUN_MAIN is only ever
+    "true" in the real serving process, unset in the parent/monitor one
+    (this runs before app.run() itself sets app.debug, so app.debug can't
+    be used to tell the two apart)."""
+    if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        return
+
+    def _loop():
+        while True:
+            try:
+                check_session_alerts()
+            except Exception:
+                app.logger.exception("Session alert check failed")
+            time.sleep(60)
+
+    threading.Thread(target=_loop, daemon=True).start()
+
+
+if __name__ == "__main__":
+    if not os.path.exists(os.path.join("instance", "shopinv.db")):
+        init_db()
+    else:
+        init_db()  # safe: uses IF NOT EXISTS
+
+    _start_session_alert_loop()
+
+    cert_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cert.pem")
+    key_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "key.pem")
+    if os.path.exists(cert_path) and os.path.exists(key_path):
+        print("Starting with HTTPS (self-signed cert) so phone cameras can scan.")
+        app.run(host="0.0.0.0", port=5050, debug=True, ssl_context=(cert_path, key_path))
+    else:
+        app.run(host="0.0.0.0", port=5050, debug=True)

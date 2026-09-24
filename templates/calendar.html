@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Calendar - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-calendar3"></i>
+    {% if view == 'month' %}{{ month_name }} {{ year }}
+    {% elif view == 'quarter' %}{{ months_data[0].month_name }} - {{ months_data[-1].month_name }} {{ year }}
+    {% else %}{{ year }}{% endif %}
+  </h4>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <div class="btn-group btn-group-sm" role="group">
+      <a href="{{ url_for('calendar_page', view='month', year=year, month=month) }}" class="btn {{ 'btn-warning' if view == 'month' else 'btn-outline-secondary' }}">Month</a>
+      <a href="{{ url_for('calendar_page', view='quarter', year=year, month=month) }}" class="btn {{ 'btn-warning' if view == 'quarter' else 'btn-outline-secondary' }}">Quarter</a>
+      <a href="{{ url_for('calendar_page', view='year', year=year, month=month) }}" class="btn {{ 'btn-warning' if view == 'year' else 'btn-outline-secondary' }}">Year</a>
+      <a href="{{ url_for('calendar_page', view='list', year=year, month=month) }}" class="btn {{ 'btn-warning' if view == 'list' else 'btn-outline-secondary' }}">List</a>
+    </div>
+    <a href="{{ url_for('calendar_page', view=view, year=prev_year, month=prev_month) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+    <a href="{{ url_for('calendar_page', view=view) }}" class="btn btn-outline-secondary btn-sm">Today</a>
+    <a href="{{ url_for('calendar_page', view=view, year=next_year, month=next_month) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
+    <a href="{{ url_for('project_new') }}" class="btn btn-warning fw-bold btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> New Project</a>
+    <a href="{{ url_for('projects_list', status='archived') }}" class="btn btn-outline-secondary btn-sm text-nowrap" title="Archived projects (past history)"><i class="bi bi-archive"></i> Archived</a>
+  </div>
+</div>
+
+{% macro month_grid(md, mini) %}
+<div class="table-responsive{% if mini %} mb-3{% endif %}">
+  {% if mini %}<div class="fw-bold small mb-1"><a href="{{ url_for('calendar_page', view='month', year=md.year, month=md.month) }}" class="text-decoration-none">{{ md.month_name }} {{ md.year }}</a></div>{% endif %}
+  <table class="table table-bordered calendar-table mb-0" style="table-layout: fixed;">
+    <thead>
+      <tr class="text-center">
+        {% if mini %}
+        <th class="small">M</th><th class="small">T</th><th class="small">W</th><th class="small">T</th><th class="small">F</th><th class="small">S</th><th class="small">S</th>
+        {% else %}
+        <th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for week in md.weeks %}
+      <tr>
+        {% for day in week %}
+        {% if day is none %}
+        <td class="bg-light" style="height:{{ '28px' if mini else '110px' }};"></td>
+        {% else %}
+        {% set is_today = (day == today.day and md.month == today.month and md.year == today.year) %}
+        <td style="height:{{ '28px' if mini else '110px' }}; vertical-align:top; {{ 'background:#fff8e1;' if is_today }}">
+          <div class="small fw-bold {{ 'text-primary' if is_today }}">{{ day }}</div>
+          {% set entry = md.by_day.get(day) %}
+          {% if entry and not mini %}
+            {% for p in entry.projects %}
+            <a href="{{ url_for('project_detail', project_id=p.id) }}" class="d-block small text-truncate text-decoration-none mb-1 px-1 rounded text-white" style="background:{{ p.display_color }};" title="{{ p.name }}{% if p.asset_is_flight_asset %} (Flight School plane){% endif %}">
+              {% if p.asset_is_flight_asset %}<i class="bi bi-airplane-engines-fill"></i>{% else %}<i class="bi bi-clipboard-check"></i>{% endif %} {{ p.name }}
+            </a>
+            {% endfor %}
+            {% for m in entry.maint %}
+            <a href="{{ url_for('asset_detail', asset_id=m.item.asset_id) }}" class="d-block small text-truncate text-decoration-none mb-1 px-1 rounded text-white" style="background:{{ m.display_color }};" title="{{ m.item.asset_tag }} - {{ m.item.name }} ({{ category_labels.get(m.category, 'Scheduled Maintenance') }}){% if m.status.urgency == 'overdue' %} - OVERDUE{% elif m.status.urgency == 'due_soon' %} - due soon{% endif %}">
+              {% if m.status.urgency == 'overdue' %}<i class="bi bi-exclamation-triangle-fill"></i>{% elif m.status.urgency == 'due_soon' %}<i class="bi bi-exclamation-circle-fill"></i>{% else %}<i class="bi bi-calendar-check"></i>{% endif %}
+              {{ m.item.asset_tag }}: {{ m.item.name }}
+            </a>
+            {% endfor %}
+          {% elif entry and mini and (entry.projects or entry.maint) %}
+            <div class="d-flex flex-wrap gap-1">
+              {% for p in entry.projects %}
+              <a href="{{ url_for('project_detail', project_id=p.id) }}" title="{{ p.name }}{% if p.asset_is_flight_asset %} (Flight School plane){% endif %}" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:{{ p.display_color }};{% if p.asset_is_flight_asset %}outline:1px solid #333;{% endif %}"></a>
+              {% endfor %}
+              {% for m in entry.maint %}
+              <a href="{{ url_for('asset_detail', asset_id=m.item.asset_id) }}" title="{{ m.item.asset_tag }}: {{ m.item.name }} ({{ category_labels.get(m.category, 'Scheduled Maintenance') }})" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:{{ m.display_color }};{% if m.status.urgency == 'overdue' %}outline:1px solid #dc3545;{% elif m.status.urgency == 'due_soon' %}outline:1px solid #fd7e14;{% endif %}"></a>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </td>
+        {% endif %}
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% if view == 'month' %}
+  {{ month_grid(months_data[0], false) }}
+{% elif view == 'quarter' %}
+  <div class="row">
+    {% for md in months_data %}
+    <div class="col-md-4">{{ month_grid(md, true) }}</div>
+    {% endfor %}
+  </div>
+{% elif view == 'list' %}
+  <div class="card">
+    {% for m in year_list %}
+    <div class="p-3 {{ 'border-top' if not loop.first }}">
+      <h6 class="mb-2">{{ m.month_name }} {{ year }}</h6>
+      {% if m.projects %}
+      <table class="table table-sm mb-0">
+        <tbody>
+          {% for p in m.projects %}
+          <tr>
+            <td style="width:8px; background:{{ p.display_color }};" class="p-0"></td>
+            <td>{% if p.asset_is_flight_asset %}<i class="bi bi-airplane-engines-fill text-muted" title="Flight School plane"></i> {% endif %}<a href="{{ url_for('project_detail', project_id=p.id) }}" class="text-decoration-none">{{ p.name }}</a>
+              {% if p.asset_display_tag %}<span class="text-muted small"> &middot; {{ p.asset_display_tag }}</span>{% endif %}</td>
+            <td class="text-muted small">{{ p.date_label }}</td>
+            <td><span class="badge {{ 'bg-success-subtle text-dark' if p.status == 'active' else 'bg-secondary-subtle text-dark' }}">{{ p.status }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-muted small mb-0">Nothing scheduled.</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="row">
+    {% for md in months_data %}
+    <div class="col-md-3 col-sm-6">{{ month_grid(md, true) }}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="card p-3 mt-2">
+  <h6 class="text-muted mb-2">Key</h6>
+  <div class="d-flex flex-wrap gap-3 align-items-center small">
+    <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:{{ project_color }};vertical-align:-1px;"></span> Scheduled Project <span class="text-muted">(or its custom color)</span></span>
+    {% for cat, color in category_colors.items() %}
+    <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:{{ color }};vertical-align:-1px;"></span> {{ category_labels.get(cat, cat) }}</span>
+    {% endfor %}
+    <span><i class="bi bi-airplane-engines-fill"></i> Flight School plane</span>
+    <span><i class="bi bi-exclamation-circle-fill text-warning"></i> Due soon</span>
+    <span><i class="bi bi-exclamation-triangle-fill text-danger"></i> Overdue</span>
+  </div>
+  <p class="text-muted small mb-0 mt-2">Browse back with the arrows to see past scheduled work, or check <a href="{{ url_for('projects_list', status='archived') }}">Archived</a> for finished jobs.</p>
+</div>
+{% endblock %}

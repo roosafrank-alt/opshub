@@ -1,0 +1,167 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}{{ 'Edit CFI' if cfi else 'New CFI' }} - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<div class="card p-4">
+  <h4>{{ 'Edit CFI' if cfi else 'New CFI' }}</h4>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Full Name *</label>
+      <input type="text" name="name" class="form-control" value="{{ cfi.name if cfi else '' }}" required autofocus>
+    </div>
+    {% if not cfi %}
+    <div class="mb-3">
+      <label class="form-label">Username *</label>
+      <input type="text" name="username" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Starting Password *</label>
+      <input type="text" name="password" class="form-control" required>
+      <div class="form-text">Give this to the instructor - they can log in with it right away.</div>
+    </div>
+    {% else %}
+    <div class="mb-3">
+      <label class="form-label">Username</label>
+      <div><code>{{ cfi.username }}</code></div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Reset Password <span class="text-muted small">(leave blank to keep current)</span></label>
+      <input type="text" name="password" class="form-control">
+    </div>
+    {% endif %}
+    <div class="mb-3">
+      <label class="form-label">Instructor Rate ($/hr) *</label>
+      <input type="number" step="any" name="rate_per_hour" class="form-control" value="{{ cfi.rate_per_hour if cfi else '' }}" required>
+      <div class="form-text">What this CFI bills students for instruction time - a student can still be given their own override rate from the Students page.</div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Pay Rate ($/hr) <span class="text-muted small">(admin + this CFI only - separate from the billed rate above)</span></label>
+      <input type="number" step="any" name="pay_rate_per_hour" class="form-control" value="{{ cfi.pay_rate_per_hour if cfi and cfi.pay_rate_per_hour is not none else '' }}">
+      <div class="form-text">What the school pays this CFI per hour - used to auto-tally what's owed them from their logged flights. Hidden from students and other instructors.</div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label d-block">Credentials <span class="text-muted small">(admin-set - hidden from students)</span></label>
+      <div class="d-flex flex-wrap gap-3">
+        {% for code, label in [('cred_cfi','CFI'), ('cred_cfii','CFII'), ('cred_mei','MEI'), ('cred_agi','AGI'), ('cred_bgi','BGI'), ('cred_igi','IGI')] %}
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="{{ code }}" id="{{ code }}-check" {% if cfi and cfi[code] %}checked{% endif %}>
+          <label class="form-check-label" for="{{ code }}-check">{{ label }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label d-block">Aircraft Endorsements <span class="text-muted small">(which planes in the fleet this CFI can fly/instruct in)</span></label>
+      <div class="d-flex flex-wrap gap-3">
+        {% for code, label in [('cred_high_performance','High Performance'), ('cred_complex','Complex'), ('cred_tailwheel','Tailwheel')] %}
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="{{ code }}" id="{{ code }}-check" {% if cfi and cfi[code] %}checked{% endif %}>
+          <label class="form-check-label" for="{{ code }}-check">{{ label }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Gender <span class="text-muted small">(admin-set, optional - only used to power the "woman only instructor" filter on the flight finder)</span></label>
+      <select name="gender" class="form-select" style="max-width:220px;">
+        <option value="" {{ 'selected' if not (cfi and cfi.gender) }}>- Not specified -</option>
+        <option value="F" {{ 'selected' if cfi and cfi.gender == 'F' }}>Female</option>
+        <option value="M" {{ 'selected' if cfi and cfi.gender == 'M' }}>Male</option>
+      </select>
+    </div>
+    <div class="row" id="medical" style="scroll-margin-top:80px;">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Medical Class</label>
+        <select name="medical_class" class="form-select">
+          <option value="">- Not tracked -</option>
+          {% for code, label in medical_classes %}
+          <option value="{{ code }}" {{ 'selected' if cfi and cfi.medical_class == code }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Medical Expires</label>
+        <input type="date" name="medical_expires" class="form-control" value="{{ cfi.medical_expires if cfi and cfi.medical_expires else '' }}">
+      </div>
+    </div>
+    <p class="text-muted small mt-n2 mb-3">A CFI can't be booked on, or start, a flight after their medical expires. Leave it blank if you don't track it.</p>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Flight Instructor Certificate #</label>
+        <input type="text" name="cfi_cert_number" maxlength="40" class="form-control" value="{{ cfi.cfi_cert_number if cfi and cfi.cfi_cert_number else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">CFI Certificate Expires</label>
+        <input type="date" name="cfi_cert_expires" class="form-control" value="{{ cfi.cfi_cert_expires if cfi and cfi.cfi_cert_expires else '' }}">
+      </div>
+    </div>
+    <p class="text-muted small mt-n2 mb-3">Printed with this instructor's name on students' logbook entries (Flight Academy &gt; Logbook).</p>
+    {% if cfi %}
+    <div class="mb-3">
+      <label class="form-label d-block">Signature <span class="text-muted small">(the CFI draws it themselves on My CFI Profile)</span></label>
+      {% if cfi.signature %}
+      <img src="{{ cfi.signature }}" alt="Signature" class="border rounded bg-white" style="max-width:260px; height:auto;">
+      <div class="form-check mt-1">
+        <input type="checkbox" class="form-check-input" name="clear_signature" id="clear-sig-check">
+        <label class="form-check-label small" for="clear-sig-check">Remove this signature</label>
+      </div>
+      {% else %}<div class="text-muted small">None on file yet.</div>{% endif %}
+    </div>
+    {% endif %}
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" name="can_bill" id="can-bill-check" {% if cfi_user and cfi_user.can_bill %}checked{% endif %}>
+      <label class="form-check-label" for="can-bill-check">Can manage billing <span class="text-muted small">($ totals, outstanding balances, marking paid - master admins always can regardless of this)</span></label>
+    </div>
+    <div class="mb-3">
+      <label class="form-label d-block">Schedule Color</label>
+      <input type="hidden" name="color" id="color-input" value="{{ cfi.color if cfi else '' }}">
+      <div class="d-flex flex-wrap gap-2" id="color-swatches">
+        {% for c in instructor_colors %}
+        {% set taken = c in (used_colors or []) %}
+        <div class="color-swatch{{ ' color-swatch-taken' if taken }}{{ ' color-swatch-selected' if cfi and cfi.color == c }}"
+             data-color="{{ c }}"
+             title="{{ 'Already in use' if taken else c }}"
+             style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if taken else 'pointer' }};opacity:{{ '0.25' if taken else '1' }};border:3px solid {{ '#212529' if (cfi and cfi.color == c) else 'transparent' }};"></div>
+        {% endfor %}
+        <div class="color-swatch{{ ' color-swatch-selected' if cfi and not cfi.color }}"
+             data-color=""
+             title="No color (use default)"
+             style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if (cfi and not cfi.color) else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
+      </div>
+      <div class="form-text">Grayed-out colors are already used by another active instructor or by a plane (planes and instructors each need their own color on the Schedule). Leave unset to fall back to an auto-assigned color.</div>
+    </div>
+    {% if cfi %}
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" name="active" id="active-check" {% if cfi.active %}checked{% endif %}>
+      <label class="form-check-label" for="active-check">Active</label>
+    </div>
+    {% endif %}
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('flight.cfis_list') }}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary fw-bold">{{ 'Save Changes' if cfi else 'Add CFI' }}</button>
+    </div>
+  </form>
+</div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var input = document.getElementById('color-input');
+  var swatches = document.querySelectorAll('#color-swatches .color-swatch');
+  swatches.forEach(function (sw) {
+    sw.addEventListener('click', function () {
+      if (sw.classList.contains('color-swatch-taken')) return;
+      input.value = sw.getAttribute('data-color');
+      swatches.forEach(function (s) { s.style.border = s.getAttribute('data-color') ? '3px solid transparent' : '3px dashed #adb5bd'; });
+      sw.style.border = sw.getAttribute('data-color') ? '3px solid #212529' : '3px dashed #212529';
+    });
+  });
+})();
+</script>
+{% endblock %}

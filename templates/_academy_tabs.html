@@ -1,0 +1,12 @@
+{#- Flight Academy tabs: Leaderboard / Logbook / Progress. Pages pass `tab`. #}
+{% set _tab = tab if tab is defined else 'leaderboard' %}
+{% set _pend = pending_logbook_count() %}
+<ul class="nav nav-pills academy-tabs mb-3 gap-1">
+  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'leaderboard' }}" href="{{ url_for('academy_page') }}"><i class="bi bi-trophy"></i> Leaderboard</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'logbook' }}" href="{{ url_for('pilotlog.logbook') }}"><i class="bi bi-journal-text"></i> Logbook{% if _pend %} <span class="badge bg-warning text-dark">{{ _pend }}</span>{% endif %}</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'progress' }}" href="{{ url_for('pilotlog.progress') }}"><i class="bi bi-bar-chart-steps"></i> Progress</a></li>
+</ul>
+<style>
+  .academy-tabs .nav-link { color: #cfd8ff; border: 1px solid rgba(255,255,255,.25); }
+  .academy-tabs .nav-link.active { background: #fff; color: #14213d; font-weight: 700; }
+</style>

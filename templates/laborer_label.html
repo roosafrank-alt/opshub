@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Print Code - {{ laborer.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+  <h4 class="mb-0">Laborer Code</h4>
+  <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+</div>
+
+<div class="d-flex justify-content-center">
+  <div class="label-card" style="width: 260px; padding: 20px;">
+    <div style="font-weight:700; font-size:1.1rem;">{{ laborer.name }}</div>
+    <div id="laborer-qr" class="d-flex justify-content-center my-2"></div>
+    <div style="font-size:1rem; font-weight:700; letter-spacing:1px;">{{ laborer.code }}</div>
+    <div class="no-print mt-2"><small class="text-muted">Scan this on the Labor page to clock in on a task, and scan it again to clock out.</small></div>
+  </div>
+</div>
+<div class="d-flex justify-content-center mt-3 no-print">
+  <a href="{{ url_for('laborers_list') }}" class="btn btn-outline-secondary">Back to Laborers</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+new QRCode(document.getElementById('laborer-qr'), { text: "{{ laborer.code }}", width: 160, height: 160 });
+</script>
+{% endblock %}

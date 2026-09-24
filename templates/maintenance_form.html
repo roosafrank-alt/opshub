@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Maintenance Item' if item else 'New Maintenance Item' }} - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card p-4">
+  <h4>{{ 'Edit Maintenance Item' if item else 'New Maintenance Item' }}</h4>
+  <p class="text-muted small mb-3"><i class="bi bi-airplane"></i> {{ asset.tag }}{% if asset.name and asset.name != asset.tag %} &middot; {{ asset.name }}{% endif %}</p>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Item Name *</label>
+      <input type="text" name="name" class="form-control" value="{{ item.name if item else '' }}" required autofocus placeholder="e.g. Oil Change, Annual Inspection">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Tracked By</label>
+      <select name="type" id="maint-type-select" class="form-select">
+        <option value="hours" {% if not item or item.type == 'hours' %}selected{% endif %}>Hours (engine / usage hours)</option>
+        <option value="calendar" {% if item and item.type == 'calendar' %}selected{% endif %}>Calendar (time-based)</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Category <span class="text-muted small">(drives the color this shows up as on the Calendar, when it's a calendar-tracked item)</span></label>
+      <select name="category" class="form-select">
+        <option value="annual" {% if item and item.category == 'annual' %}selected{% endif %}>Annual Inspection</option>
+        <option value="100hour" {% if item and item.category == '100hour' %}selected{% endif %}>100-Hour Inspection</option>
+        <option value="oil_change" {% if item and item.category == 'oil_change' %}selected{% endif %}>Oil Change</option>
+        <option value="scheduled_maint" {% if not item or item.category == 'scheduled_maint' or not item.category %}selected{% endif %}>Scheduled Maintenance (Other)</option>
+      </select>
+    </div>
+    <div class="row" id="maint-hours-row" style="{% if item and item.type == 'calendar' %}display:none;{% endif %}">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Meter</label>
+        <select name="hour_type" class="form-select">
+          <option value="tach" {% if not item or item.hour_type != 'hobbs' %}selected{% endif %}>Tach time</option>
+          <option value="hobbs" {% if item and item.hour_type == 'hobbs' %}selected{% endif %}>Hobbs time</option>
+        </select>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Interval (hours)</label>
+        <input type="number" step="any" name="interval_hours" class="form-control" value="{{ item.interval_hours if item and item.interval_hours is not none else '' }}" placeholder="e.g. 50">
+      </div>
+      {% if not item %}
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Last done at (hours) <span class="text-muted small">(optional, defaults to current reading on that meter)</span></label>
+        <input type="number" step="any" name="last_done_hours" class="form-control" placeholder="e.g. 4500">
+      </div>
+      {% endif %}
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Remind me when <span class="text-muted small">(hours before due; leave blank for default 10% of interval)</span></label>
+        <input type="number" step="any" name="remind_lead_hours" class="form-control" value="{{ item.remind_lead if item and item.type == 'hours' and item.remind_lead is not none else '' }}" placeholder="e.g. 10">
+      </div>
+    </div>
+    <div class="row" id="maint-calendar-row" style="{% if not item or item.type != 'calendar' %}display:none;{% endif %}">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Interval (days)</label>
+        <input type="number" name="interval_days" class="form-control" value="{{ item.interval_days if item and item.interval_days is not none else '' }}" placeholder="e.g. 365">
+      </div>
+      {% if not item %}
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Last done date <span class="text-muted small">(optional, defaults to today)</span></label>
+        <input type="date" name="last_done_date" class="form-control">
+      </div>
+      {% endif %}
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Remind me when <span class="text-muted small">(days before due; leave blank for default 10% of interval)</span></label>
+        <input type="number" step="any" name="remind_lead_days" class="form-control" value="{{ item.remind_lead if item and item.type == 'calendar' and item.remind_lead is not none else '' }}" placeholder="e.g. 14">
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Reference Info <span class="text-muted small">(basic info to have on hand for the job)</span></label>
+      <textarea name="reference_info" class="form-control" rows="2" placeholder="e.g. Use 15W-50, torque to 25 ft-lb, filter part #ABC123">{{ item.reference_info if item else '' }}</textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Prework Checklist <span class="text-muted small">(one item per line)</span></label>
+      <textarea name="checklist" class="form-control" rows="4" placeholder="Gather oil filter&#10;Drain pan ready&#10;Torque wrench on hand">{{ item.checklist if item else '' }}</textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Notes</label>
+      <textarea name="notes" class="form-control" rows="2">{{ item.notes if item else '' }}</textarea>
+    </div>
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('asset_detail', asset_id=asset.id) }}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-warning fw-bold">{{ 'Save Changes' if item else 'Add Item' }}</button>
+    </div>
+  </form>
+</div>
+</div>
+</div>
+<script>
+  (function () {
+    var typeSelect = document.getElementById('maint-type-select');
+    var hoursRow = document.getElementById('maint-hours-row');
+    var calRow = document.getElementById('maint-calendar-row');
+    typeSelect.addEventListener('change', function () {
+      if (typeSelect.value === 'hours') { hoursRow.style.display = ''; calRow.style.display = 'none'; }
+      else { hoursRow.style.display = 'none'; calRow.style.display = ''; }
+    });
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>{% if not user %}Fly with Kate!{% else %}OpsHub{% endif %}</title>
+<link rel="manifest" href="{{ url_for('static', filename='manifest-flywithkate.json') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/flywithkate/apple-touch-icon.png') }}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fly with Kate">
+<meta name="theme-color" content="#0d1b2a">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  :root {
+    --fwk-navy: #14213d;
+    --fwk-blue: #2b3fdb;
+    --fwk-muted: #5a6472;
+  }
+  html, body { height: 100%; }
+  body { background: #1e2530; min-height: 100vh; }
+  body.login-bg { background: #ffffff; }
+  .launcher-tile { display: block; text-decoration: none; color: #fff; border-radius: 16px; padding: 2.5rem 1.5rem;
+    text-align: center; transition: transform .15s ease, box-shadow .15s ease; height: 100%;
+    box-shadow: 0 8px 20px rgba(20,33,61,.12); }
+  .launcher-tile:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(20,33,61,.22); color: #fff; }
+  .launcher-tile i { font-size: 3.5rem; }
+  .tile-shop { background: linear-gradient(135deg, #14161a, #000000); border: 1px solid #2830a4; }
+  .tile-flight { background: linear-gradient(135deg, #ffffff, #eef0fb); border: 1px solid #2b3fdb; color: var(--fwk-navy); }
+  .tile-flight:hover { color: var(--fwk-navy); }
+  .tile-flight .opacity-75 { opacity: 1; color: var(--fwk-muted); }
+  .launcher-tile img.tile-icon { width: 56px; height: 56px; border-radius: 12px; background: #fff; padding: 6px; margin-bottom: .75rem; }
+  .tile-flight img.tile-icon { border: 1px solid #eef0f4; box-shadow: 0 2px 6px rgba(20,33,61,.1); }
+  .tile-shop .tile-accent { color: #7c86e6; }
+  .tile-flight .tile-accent { color: var(--fwk-blue); }
+  .picker-bg {
+    background: linear-gradient(rgba(244,246,250,.87), rgba(244,246,250,.91)),
+                url("{{ url_for('static', filename='img/runway-sunset.jpg') }}") center 32% / cover no-repeat;
+    min-height: 100vh;
+    box-sizing: border-box;
+    border: 10px solid #ffffff;
+    box-shadow: inset 0 0 0 1px rgba(20,33,61,.14);
+  }
+  .opshub-picker-corner { display: inline-block; opacity: .85; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--fwk-navy); background: #e3e7fb; border: 1px solid #d3d9f5; padding: .2rem .6rem; border-radius: 999px; }
+  .picker-title { color: var(--fwk-navy); }
+  .picker-signedin { color: var(--fwk-muted); }
+  .picker-signedin strong { color: var(--fwk-navy); }
+  .picker-logout { color: var(--fwk-muted) !important; }
+  .picker-empty { color: var(--fwk-muted); }
+  .launcher-tile { position: relative; overflow: hidden; }
+  .launcher-tile::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+  .tile-shop::before { background: linear-gradient(90deg, #2830a4, #6f7bd6); }
+  .tile-flight::before { background: linear-gradient(90deg, #2b3fdb, #6f83ff); }
+  .tile-shop:hover { box-shadow: 0 16px 34px rgba(40,48,164,.32); }
+  .tile-flight:hover { box-shadow: 0 16px 34px rgba(43,63,219,.32); }
+  .fwk-logo { width: 100px; height: 100px; border-radius: 50%; border: 2px solid #eef0f4; background: #fff; padding: 2px; }
+  .opshub-corner { position: absolute; top: 1rem; right: 1.25rem; opacity: .5; font-size: .78rem; letter-spacing: .04em; color: var(--fwk-muted) !important; }
+  .fwk-brand { color: var(--fwk-navy); font-weight: 700; letter-spacing: .01em; }
+  .fwk-tagline { color: var(--fwk-muted); text-transform: uppercase; letter-spacing: .18em; font-size: .78rem; }
+  .fwk-card { border: 1px solid #eef0f4; box-shadow: 0 10px 30px rgba(20,33,61,.08); border-radius: 12px; }
+  .fwk-card label { color: var(--fwk-navy); font-weight: 600; font-size: .85rem; text-transform: uppercase; letter-spacing: .03em; }
+  .fwk-card .form-control { border-radius: 8px; border-color: #dfe3ea; }
+  .fwk-card .form-control:focus { border-color: var(--fwk-blue); box-shadow: 0 0 0 .2rem rgba(43,63,219,.15); }
+  .btn-fwk { background: var(--fwk-blue); border-color: var(--fwk-blue); color: #fff; text-transform: uppercase; letter-spacing: .05em; font-size: .9rem; padding: .65rem 1rem; }
+  .btn-fwk:hover { background: #2333b0; border-color: #2333b0; color: #fff; }
+</style>
+</head>
+<body class="d-flex align-items-center{{ ' login-bg' if not user else ' picker-bg' }}">
+<div class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="row justify-content-center mb-3"><div class="col-md-5">
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    </div></div>
+    {% endif %}
+  {% endwith %}
+
+  {% if user %}
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <div class="opshub-picker-corner mb-1"><i class="bi bi-grid-3x3-gap"></i> OpsHub</div>
+      <div class="picker-title fs-4 fw-bold">Choose a program</div>
+    </div>
+    <div class="text-end">
+      <div class="picker-signedin small">Signed in as <strong>{{ user.name }}</strong></div>
+      <a href="{{ url_for('account_page') }}" class="picker-logout small me-2"><i class="bi bi-person-gear"></i> My Account</a>
+      <a href="{{ url_for('logout') }}" class="picker-logout small"><i class="bi bi-box-arrow-right"></i> Log Out</a>
+    </div>
+  </div>
+  <div class="row g-4 justify-content-center">
+    {% if user.is_master_admin or user.shop_role %}
+    <div class="col-md-5">
+      <a href="{{ url_for('dashboard') }}" class="launcher-tile tile-shop">
+        <img src="{{ url_for('static', filename='icons/windsaloft/icon-192.png') }}" class="tile-icon" alt="Winds Aloft">
+        <div class="fs-3 fw-bold">Winds Aloft</div>
+        <div class="tile-accent small text-uppercase" style="letter-spacing:.12em;">Aviation Services</div>
+        <div class="opacity-75 mt-2">Parts, projects, labor &amp; maintenance</div>
+      </a>
+    </div>
+    {% endif %}
+    {% if user.is_master_admin or user.flight_role %}
+    <div class="col-md-5">
+      <a href="{{ url_for('flight.index') }}" class="launcher-tile tile-flight">
+        <img src="{{ url_for('static', filename='icons/flywithkate/icon-192.png') }}" class="tile-icon rounded-circle" alt="Fly with Kate">
+        <div class="fs-3 fw-bold">Fly with Kate!</div>
+        <div class="tile-accent small text-uppercase" style="letter-spacing:.12em;">Aviation Services</div>
+        <div class="opacity-75 mt-2">Log flights, students &amp; instructors</div>
+      </a>
+    </div>
+    {% endif %}
+    {% if user.is_master_admin or user.academy_access %}
+    <div class="col-md-5">
+      <a href="{{ url_for('academy_page') }}" class="launcher-tile tile-flight">
+        <i class="bi bi-mortarboard-fill" style="color: var(--fwk-blue);"></i>
+        <div class="fs-3 fw-bold">Flight Academy</div>
+        <div class="tile-accent small text-uppercase" style="letter-spacing:.12em;">Fly with Kate!</div>
+        <div class="opacity-75 mt-2">Student progress, ratings &amp; lesson plans</div>
+      </a>
+    </div>
+    {% endif %}
+    {% if not (user.is_master_admin or user.shop_role) and not (user.is_master_admin or user.flight_role) and not (user.is_master_admin or user.academy_access) %}
+    <div class="col-md-6 text-center picker-empty">
+      Your account doesn't have access to any programs yet. Ask an admin to set that up.
+    </div>
+    {% endif %}
+  </div>
+  {% if user.is_master_admin %}
+  <div class="row g-4 justify-content-center mt-1">
+    <div class="col-md-10">
+      <a href="{{ url_for('admin_home') }}" class="launcher-tile d-flex align-items-center justify-content-center gap-3 py-3" style="background: linear-gradient(135deg, #4b3f72, #2f2848); border: 1px solid #6a5aa3;">
+        <i class="bi bi-shield-lock-fill" style="font-size: 2rem;"></i>
+        <div class="text-start">
+          <div class="fs-5 fw-bold mb-0">Admin</div>
+          <div class="opacity-75 small">Accounts, notifications, system &amp; reset - one place for everything</div>
+        </div>
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="opshub-corner">OpsHub</div>
+  <div class="row justify-content-center">
+    <div class="col-md-4">
+      <div class="text-center mb-3">
+        <img src="{{ url_for('static', filename='icons/flywithkate/icon-512.png') }}" class="fwk-logo" alt="Fly with Kate logo">
+      </div>
+      <h1 class="text-center fwk-brand mb-1 fs-2">Fly with Kate!</h1>
+      <div class="text-center fwk-tagline mb-4">Aviation Services</div>
+      <div class="fwk-card p-4">
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" name="username" class="form-control" value="{{ username or '' }}" autocomplete="username" required autofocus>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" name="password" class="form-control" autocomplete="current-password" required>
+          </div>
+          <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" name="remember" id="remember-check" checked>
+            <label class="form-check-label" for="remember-check">Remember me on this device</label>
+          </div>
+          <button type="submit" class="btn btn-fwk w-100 fw-bold">Log In</button>
+        </form>
+        <p class="text-center small text-muted mt-3 mb-0">Forgot your password? Ask an admin to reset it for you.</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Projects - OpsHub{% endblock %}
+
+{% macro project_tiles(plist) %}
+<div class="row g-3">
+  {% for p in plist %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card p-3 h-100">
+      <a href="{{ url_for('project_detail', project_id=p.id) }}" class="text-decoration-none text-dark">
+        <div class="d-flex justify-content-between gap-2">
+          <div class="flex-grow-1">
+            <h5><code class="text-primary small">{{ p.code }}</code> {{ p.name }}</h5>
+            {% if p.status == 'active' %}<span class="badge bg-success">Active</span>
+            {% elif p.status == 'on_hold' %}<span class="badge bg-warning text-dark">On Hold</span>
+            {% elif p.status == 'archived' %}<span class="badge bg-dark">Archived</span>
+            {% else %}<span class="badge bg-secondary">Completed</span>{% endif %}
+          </div>
+          {% if proj_cover.get(p.id) %}
+          <img src="{{ url_for('static', filename='uploads/' + proj_cover.get(p.id)) }}" class="rounded flex-shrink-0" style="width:56px; height:56px; object-fit:cover;">
+          {% endif %}
+        </div>
+        <p class="text-muted small mb-1">{{ p.description or 'No description' }}</p>
+        <div>
+          <span class="text-muted small">Parts cost so far:</span>
+          <strong>${{ "%.2f"|format(proj_costs.get(p.id, 0)) }}</strong>
+        </div>
+      </a>
+      {% if p.asset_display_id %}
+      <a href="{{ url_for('asset_detail', asset_id=p.asset_display_id) }}" class="small mt-1"><i class="bi bi-airplane"></i> {{ p.asset_display_tag }}</a>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <p class="text-muted">No projects here.</p>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0">Projects</h4>
+  <div class="d-flex gap-2">
+    <form class="d-flex" method="get">
+      {% if request.args.get('status') %}<input type="hidden" name="status" value="{{ request.args.get('status') }}">{% endif %}
+      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search name, code, description, asset...">
+      <button class="btn btn-outline-secondary ms-1"><i class="bi bi-search"></i></button>
+    </form>
+    <a href="{{ url_for('project_new') }}" class="btn btn-warning fw-bold text-nowrap"><i class="bi bi-plus-lg"></i> New Project</a>
+    <a href="{{ url_for('trash_page') }}" class="btn btn-outline-secondary btn-sm text-nowrap" title="Recently Deleted"><i class="bi bi-trash3"></i></a>
+  </div>
+</div>
+
+<ul class="nav nav-pills mb-3">
+  <li class="nav-item"><a class="nav-link {{ 'active' if not request.args.get('status') }}" href="{{ url_for('projects_list', q=q) }}">All</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='active' }}" href="{{ url_for('projects_list', status='active', q=q) }}">Active</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='on_hold' }}" href="{{ url_for('projects_list', status='on_hold', q=q) }}">On Hold</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='completed' }}" href="{{ url_for('projects_list', status='completed', q=q) }}">Completed</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='archived' }}" href="{{ url_for('projects_list', status='archived', q=q) }}">Archived</a></li>
+</ul>
+
+{% if by_year is none %}
+  <!-- Search results: flat grid -->
+  {{ project_tiles(projects) }}
+{% else %}
+  <!-- Browse view: click a year to expand it -->
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    {% for year, plist in by_year.items() %}
+    <button type="button" class="btn btn-outline-primary btn-sm" onclick="toggleYear('{{ loop.index }}')">
+      {{ year }} <span class="badge bg-primary ms-1">{{ plist|length }}</span>
+    </button>
+    {% endfor %}
+  </div>
+  {% for year, plist in by_year.items() %}
+  <div class="card mb-2">
+    <div class="card-header d-flex justify-content-between align-items-center" style="cursor:pointer" onclick="toggleYear('{{ loop.index }}')">
+      <strong>{{ year }}</strong>
+      <span class="text-muted small">{{ plist|length }} project{{ 's' if plist|length != 1 }} <i class="bi bi-chevron-down" id="chev-{{ loop.index }}"></i></span>
+    </div>
+    <div id="year-{{ loop.index }}" class="p-3" style="display:{{ 'block' if loop.first else 'none' }};">
+      {{ project_tiles(plist) }}
+    </div>
+  </div>
+  {% else %}
+  <p class="text-muted">No projects yet. <a href="{{ url_for('project_new') }}">Create one</a>.</p>
+  {% endfor %}
+{% endif %}
+
+<script>
+function toggleYear(idx) {
+  const panel = document.getElementById('year-' + idx);
+  const chev = document.getElementById('chev-' + idx);
+  const open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : 'block';
+  if (chev) chev.className = open ? 'bi bi-chevron-down' : 'bi bi-chevron-up';
+}
+</script>
+{% endblock %}

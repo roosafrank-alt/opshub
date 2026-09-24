@@ -1,0 +1,82 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Edit {{ plane.tag }} - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-5">
+<div class="card p-4">
+  <h4>Edit Plane: {{ plane.tag }}</h4>
+  {% if plane.name and plane.name != plane.tag %}<p class="text-muted">{{ plane.name }}</p>{% endif %}
+  <form method="post">
+    <p class="text-muted small">Planes don't have a rate here - each student's Plane Rate on the Students page is what they're charged for the plane.</p>
+    <div class="mb-3">
+      <label class="form-label d-block">Schedule Color</label>
+      <input type="hidden" name="color" id="color-input" value="{{ plane.schedule_color or '' }}">
+      <div class="d-flex flex-wrap gap-2" id="color-swatches">
+        {% for c in schedule_colors %}
+        {% set taken = c in (used_colors or []) %}
+        <div class="color-swatch{{ ' color-swatch-taken' if taken }}"
+             data-color="{{ c }}"
+             title="{{ 'Already used by an instructor or another plane' if taken else c }}"
+             style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if taken else 'pointer' }};opacity:{{ '0.25' if taken else '1' }};border:3px solid {{ '#212529' if plane.schedule_color == c else 'transparent' }};"></div>
+        {% endfor %}
+        <div class="color-swatch"
+             data-color=""
+             title="No color"
+             style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if not plane.schedule_color else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
+      </div>
+      <div class="d-flex align-items-center gap-2 mt-2 small">
+        <span class="text-muted">Preview:</span>
+        <span id="color-preview" class="px-2 rounded fw-bold" style="background:{{ plane.schedule_color or '#868e96' }};color:#fff;">{{ plane.tag }}</span>
+        <span id="color-preview-solo" class="px-2 rounded fw-bold">{{ plane.tag }} solo</span>
+      </div>
+      <div class="form-text">This is the block color for {{ plane.tag }} on the Schedule (the instructor shows as a stripe on the left). Solo bookings use a neon version of it. Grayed-out colors belong to an instructor or another plane.</div>
+    </div>
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('flight.planes_list') }}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary fw-bold">Save</button>
+    </div>
+  </form>
+</div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var input = document.getElementById('color-input');
+  var swatches = document.querySelectorAll('#color-swatches .color-swatch');
+  var preview = document.getElementById('color-preview');
+  var previewSolo = document.getElementById('color-preview-solo');
+  // Same "neon" rule as flight.py _neon_color: same hue, full saturation, 55% lightness.
+  function neon(hex) {
+    var h = (hex || '#868e96').replace('#', '');
+    var r = parseInt(h.substr(0, 2), 16) / 255, g = parseInt(h.substr(2, 2), 16) / 255, b = parseInt(h.substr(4, 2), 16) / 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min, hue = 0, l = (max + min) / 2;
+    var s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+    if (d !== 0) {
+      if (max === r) hue = ((g - b) / d) % 6; else if (max === g) hue = (b - r) / d + 2; else hue = (r - g) / d + 4;
+      hue *= 60; if (hue < 0) hue += 360;
+    }
+    if (s < 0.08) hue = 90;
+    return 'hsl(' + hue + ', 100%, 55%)';
+  }
+  function paint(hex) {
+    preview.style.background = hex || '#868e96';
+    previewSolo.style.background = neon(hex);
+    previewSolo.style.color = '#111';
+    previewSolo.style.boxShadow = 'inset 0 0 6px rgba(255,255,255,.75)';
+  }
+  paint(input.value);
+  swatches.forEach(function (sw) {
+    sw.addEventListener('click', function () {
+      if (sw.classList.contains('color-swatch-taken')) return;
+      input.value = sw.getAttribute('data-color');
+      swatches.forEach(function (s) { s.style.border = s.getAttribute('data-color') ? '3px solid transparent' : '3px dashed #adb5bd'; });
+      sw.style.border = sw.getAttribute('data-color') ? '3px solid #212529' : '3px dashed #212529';
+      paint(input.value);
+    });
+  });
+})();
+</script>
+{% endblock %}

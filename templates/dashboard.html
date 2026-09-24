@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - OpsHub{% endblock %}
+{% block content %}
+
+{% if open_squawks %}
+<div class="alert alert-danger border-danger border-2 mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="alert-heading mb-0"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} Open Squawk{{ 's' if open_squawks|length != 1 }} from Flight School - Needs Acknowledgement</h5>
+    <a href="{{ url_for('squawks_list') }}" class="btn btn-outline-danger btn-sm fw-bold">View All</a>
+  </div>
+  {% for sq in open_squawks[:5] %}
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
+    <div>
+      <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.flight_date|usdate }} &middot; flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}</div>
+      <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+    </div>
+    <form method="post" action="{{ url_for('squawk_acknowledge', flight_id=sq.id) }}" data-confirm="Acknowledge this squawk?" data-confirm-title="Acknowledge Squawk">
+      <button class="btn btn-danger btn-sm fw-bold"><i class="bi bi-check-lg"></i> Acknowledge</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3">
+      <div class="text-muted small">Active Projects</div>
+      <div class="display-6">{{ project_count }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('orders_list', status='pending') }}" class="text-decoration-none text-reset">
+    <div class="card stat-card p-3">
+      <div class="text-muted small">Pending Orders</div>
+      <div class="display-6">{{ pending_orders_count }}</div>
+    </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('calendar_page') }}" class="text-decoration-none text-reset">
+    <div class="card stat-card p-3">
+      <div class="text-muted small">Upcoming Projects</div>
+      <div class="display-6">{{ upcoming_count }}</div>
+    </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 {{ 'border border-danger' if low_stock else '' }}">
+      <div class="text-muted small">Low Stock Items</div>
+      <div class="display-6 {{ 'text-danger' if low_stock else '' }}">{{ low_stock|length }}</div>
+    </div>
+  </div>
+</div>
+
+{% if reminders %}
+<div class="card p-3 mb-3 border-warning">
+  <h5><i class="bi bi-calendar-check text-warning"></i> Maintenance Reminders <span class="badge bg-warning text-dark">{{ reminders|length }}</span></h5>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Aircraft</th><th>Item</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for r in reminders %}
+        <tr>
+          <td><a href="{{ url_for('asset_detail', asset_id=r.item.asset_id) }}">{{ r.item.asset_tag }}</a></td>
+          <td>{{ r.item.name }}</td>
+          <td><span class="badge {{ 'bg-danger' if r.status.urgency == 'overdue' else 'bg-warning text-dark' }}">{{ r.status.label }}</span></td>
+          <td><a href="{{ url_for('asset_detail', asset_id=r.item.asset_id) }}" class="btn btn-sm btn-outline-secondary">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-center">
+    <h5 class="mb-0"><i class="bi bi-calendar3 text-primary"></i> Upcoming Schedule</h5>
+    <a href="{{ url_for('calendar_page') }}" class="small">View full calendar &raquo;</a>
+  </div>
+  {% if upcoming_projects %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Date</th><th>Project</th><th>Aircraft</th><th></th></tr></thead>
+      <tbody>
+        {% for p in upcoming_projects %}
+        <tr>
+          <td><small>{{ p.scheduled_date|usdate }}</small></td>
+          <td><a href="{{ url_for('project_detail', project_id=p.id) }}">{{ p.name }}</a></td>
+          <td>{{ p.asset_display_tag or '-' }}</td>
+          <td>{% if p.status == 'active' %}<span class="badge bg-success">Active</span>{% elif p.status == 'on_hold' %}<span class="badge bg-warning text-dark">On Hold</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted mb-0">Nothing scheduled yet. <a href="{{ url_for('project_new') }}">Schedule a project</a>.</p>
+  {% endif %}
+</div>
+
+<div class="d-grid mb-3">
+  <a href="{{ url_for('scan_page') }}" class="btn btn-warning btn-lg fw-bold py-3">
+    <i class="bi bi-upc-scan"></i> Go to Scan In / Out
+  </a>
+</div>
+
+<div class="card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0"><i class="bi bi-stopwatch"></i> Currently Clocked In</h5>
+    {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
+    <a href="{{ url_for('laborers_list') }}" class="small">Manage Laborers</a>
+    {% endif %}
+  </div>
+  {% if open_sessions %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0" id="open-sessions-table">
+      <thead><tr><th>Laborer</th><th>Task</th><th>Elapsed</th><th></th></tr></thead>
+      <tbody>
+        {% for s in open_sessions %}
+        <tr data-session-id="{{ s.id }}" data-started="{{ s.started_at }}">
+          <td>{{ s.laborer_name }}</td>
+          <td>{{ s.project_code }} {% if s.section %}&middot; {{ s.section }}{% endif %}</td>
+          <td class="elapsed-cell">-</td>
+          <td><button class="btn btn-sm btn-outline-danger manual-stop-btn" data-id="{{ s.id }}">Stop</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted small mb-0" id="no-open-sessions">Nobody's clocked in right now.</p>
+  {% endif %}
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h5><i class="bi bi-exclamation-triangle text-danger"></i> Low Stock</h5>
+      {% if low_stock %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead><tr><th>Part</th><th>On Hand</th><th>Reorder Pt</th><th></th></tr></thead>
+          <tbody>
+            {% for p in low_stock %}
+            <tr class="low-stock-row">
+              <td><a href="{{ url_for('part_detail', part_id=p.id) }}">{{ p.name }}</a><br><small class="text-muted">{{ p.barcode }}</small></td>
+              <td>{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
+              <td>{{ '%g'|format(p.reorder_point) }} {{ p.unit }}</td>
+              <td><a href="{{ url_for('scan_page') }}" class="btn btn-sm btn-outline-primary">Scan In</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted mb-0">Nothing below its reorder point. 👍</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Activity</h5>
+        <a href="{{ url_for('activity_log') }}" class="small">View full log, sortable &raquo;</a>
+      </div>
+      {% if recent_activity %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead><tr><th>When</th><th>Activity</th><th>Type</th><th>Detail</th><th>Project</th></tr></thead>
+          <tbody>
+            {% for a in recent_activity %}
+            <tr>
+              <td><small>{{ a.when|usdate(true) }}</small></td>
+              {% if a.kind == 'part' %}
+              <td><a href="{{ url_for('part_detail', part_id=a.part_id) }}" class="text-decoration-none">{{ a.part_name }}</a></td>
+              <td>
+                {% if a.tx_type == 'in' %}<span class="badge bg-success">IN</span>
+                {% elif a.tx_type == 'out' %}<span class="badge bg-primary">OUT</span>
+                {% else %}<span class="badge bg-secondary">ADJUST</span>{% endif %}
+              </td>
+              <td>{{ '%g'|format(a.qty) }}</td>
+              <td>{% if a.project_name %}<a href="{{ url_for('project_detail', project_id=a.project_id) }}" class="text-decoration-none">{{ a.project_name }}</a>{% else %}-{% endif %}</td>
+              {% else %}
+              <td>{{ a.laborer_name }}</td>
+              <td><span class="badge bg-info text-dark">LABOR</span></td>
+              <td>{{ '%.2f'|format(a.hours or 0) }} hrs{% if a.section %} &middot; {{ a.section }}{% endif %}</td>
+              <td><a href="{{ url_for('project_detail', project_id=a.project_id) }}" class="text-decoration-none">{{ a.project_code }}</a></td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted mb-0">No activity yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  function removeOpenSessionRow(sessionId) {
+    var row = document.querySelector('tr[data-session-id="' + sessionId + '"]');
+    if (row) row.remove();
+    var table = document.getElementById('open-sessions-table');
+    if (table && !table.querySelector('tbody tr')) {
+      table.closest('.table-responsive').outerHTML = '<p class="text-muted small mb-0" id="no-open-sessions">Nobody\'s clocked in right now.</p>';
+    }
+  }
+
+  document.querySelectorAll('.manual-stop-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.getAttribute('data-id');
+      fetch('/api/labor/stop/' + id, { method: 'POST' }).then(function (r) { return r.json(); }).then(function (data) {
+        if (data.ok) removeOpenSessionRow(id);
+      });
+    });
+  });
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function tickElapsed() {
+    document.querySelectorAll('tr[data-session-id][data-started]').forEach(function (row) {
+      var started = row.getAttribute('data-started');
+      if (!started) return;
+      var startLocal = new Date(started.replace(' ', 'T'));
+      var diffSec = Math.max(0, Math.floor((Date.now() - startLocal.getTime()) / 1000));
+      var h = Math.floor(diffSec / 3600), m = Math.floor((diffSec % 3600) / 60), s = diffSec % 60;
+      var cell = row.querySelector('.elapsed-cell');
+      if (cell) cell.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+    });
+  }
+  setInterval(tickElapsed, 1000);
+  tickElapsed();
+})();
+</script>
+{% endblock %}

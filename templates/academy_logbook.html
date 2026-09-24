@@ -1,0 +1,66 @@
+{% extends "academy_base.html" %}
+{% block title %}Logbook{% endblock %}
+{% block content %}
+<style>
+  .plog th, .plog td { white-space: nowrap; font-size: .8rem; }
+  .plog .num { text-align: right; }
+  .plog tr.pending td { background: #fff8e1; }
+</style>
+{% if not student %}
+<div class="card academy-card p-4">No student profile is linked to your account, so there's no logbook to show.</div>
+{% else %}
+<div class="card academy-card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0"><i class="bi bi-journal-text"></i> {{ student.name }}'s Logbook</h4>
+      <div class="small text-muted">Each logged flight lands here pre-filled from the flight. Open a pending one, fill in the rest and approve it.</div>
+    </div>
+    <a href="{{ url_for('pilotlog.export_csv', student_id=student.id if staff else None) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> Export (CSV)</a>
+  </div>
+  <div class="row g-2 text-center mt-2">
+    {% for key, label in [('total','Total'),('dual','Dual rcvd'),('solo','Solo'),('pic','PIC'),('xc','XC'),('night','Night'),('actual_inst','Actual inst'),('sim_inst','Sim inst')] %}
+    <div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ '%.1f'|format(totals[key]) }}</div><div class="small text-muted">{{ label }}</div></div></div>
+    {% endfor %}
+    <div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ (totals.day_ldg + totals.night_ldg)|int }}</div><div class="small text-muted">Landings</div></div></div>
+  </div>
+  {% if dual_given %}<div class="small text-muted mt-2"><i class="bi bi-person-video3"></i> Dual given by you (all students): <strong>{{ '%.1f'|format(dual_given.hours) }} hrs</strong> on {{ dual_given.flights }} flight{{ 's' if dual_given.flights != 1 }}.</div>{% endif %}
+</div>
+
+{% if pending %}
+<div class="alert alert-warning py-2"><i class="bi bi-hourglass-split"></i> <strong>{{ pending|length }}</strong> entr{{ 'y is' if pending|length == 1 else 'ies are' }} waiting to be completed and approved.
+  <a href="{{ url_for('pilotlog.entry', entry_id=pending[-1].id) }}" class="alert-link">Start with the oldest</a>.</div>
+{% endif %}
+
+<div class="card academy-card">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover align-middle mb-0 plog">
+      <thead class="table-light"><tr>
+        <th>Date</th><th>Aircraft</th><th>Route</th><th class="num">Total</th><th class="num">Dual</th><th class="num">Solo</th><th class="num">PIC</th>
+        <th class="num">XC</th><th class="num">Night</th><th class="num">Inst</th><th class="num">Ldg D/N</th><th>Instructor</th><th>Status</th>
+      </tr></thead>
+      <tbody>
+      {% for e in entries %}
+        <tr class="{{ 'pending' if e.status == 'pending' }}" style="cursor:pointer" onclick="location.href='{{ url_for('pilotlog.entry', entry_id=e.id) }}'">
+          <td>{{ e.entry_date|usdate }}</td>
+          <td>{{ e.tail }} <small class="text-muted">{{ e.make_model or '' }}</small></td>
+          <td>{{ [e.route_from, e.route_to]|select|join(' - ') or '-' }}</td>
+          <td class="num fw-bold">{{ '%.1f'|format(e.total or 0) }}</td>
+          <td class="num">{{ '%.1f'|format(e.dual) if e.dual else '' }}</td>
+          <td class="num">{{ '%.1f'|format(e.solo) if e.solo else '' }}</td>
+          <td class="num">{{ '%.1f'|format(e.pic) if e.pic else '' }}</td>
+          <td class="num">{{ '%.1f'|format(e.xc) if e.xc else '' }}</td>
+          <td class="num">{{ '%.1f'|format(e.night) if e.night else '' }}</td>
+          <td class="num">{{ '%.1f'|format((e.actual_inst or 0) + (e.sim_inst or 0)) if (e.actual_inst or e.sim_inst) else '' }}</td>
+          <td class="num">{{ e.day_ldg or 0 }}/{{ e.night_ldg or 0 }}</td>
+          <td>{% if e.instructor_name %}{{ e.instructor_name }} <small class="text-muted">{{ e.instructor_cert or '' }}</small>{% endif %}</td>
+          <td>{% if e.status == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>{% else %}<span class="badge bg-success"><i class="bi bi-check2"></i> Done</span>{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="13" class="text-muted p-3">No flights yet - they show up here as soon as a flight is logged.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

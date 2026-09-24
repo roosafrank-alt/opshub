@@ -1,0 +1,123 @@
+{% extends "admin_base.html" %}
+{% block title %}{{ 'Edit Account' if user else 'New Account' }} - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<div class="card p-4">
+  <h4>{{ 'Edit Account: ' + user.name if user else 'New Account' }}</h4>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Full Name *</label>
+      <input type="text" name="name" class="form-control" value="{{ user.name if user else (name or '') }}" required autofocus>
+    </div>
+    {% if not user %}
+    <div class="mb-3">
+      <label class="form-label">Username *</label>
+      <input type="text" name="username" class="form-control" value="{{ username or '' }}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Starting Password *</label>
+      <input type="text" name="password" class="form-control" required>
+      <div class="form-text">Give this to them - they can log in with it right away, from the homepage.</div>
+    </div>
+    {% else %}
+    <div class="mb-3">
+      <label class="form-label">Username</label>
+      <div><code>{{ user.username }}</code></div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Current Password <span class="text-muted small">(visible to admins only)</span></label>
+      <div><code>{{ user.password_plain or 'Not available - set below to enable this' }}</code></div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Reset Password <span class="text-muted small">(leave blank to keep current)</span></label>
+      <input type="text" name="password" class="form-control">
+    </div>
+    {% endif %}
+    <div class="row">
+      <div class="col-6 mb-3">
+        <label class="form-label">Maintenance Role</label>
+        <select name="shop_role" class="form-select">
+          <option value="" {% if not (user and user.shop_role) %}selected{% endif %}>No access</option>
+          <option value="admin" {% if user and user.shop_role == 'admin' %}selected{% endif %}>Admin (full access)</option>
+          <option value="tech" {% if user and user.shop_role == 'tech' %}selected{% endif %}>Tech (scan, labor, no costs/settings)</option>
+          <option value="student" {% if user and user.shop_role == 'student' %}selected{% endif %}>Student (scan/labor only)</option>
+        </select>
+      </div>
+      <div class="col-6 mb-3">
+        <label class="form-label">Flight School Role</label>
+        <select name="flight_role" class="form-select">
+          <option value="" {% if not (user and user.flight_role) %}selected{% endif %}>No access</option>
+          <option value="cfi" {% if user and user.flight_role == 'cfi' %}selected{% endif %}>CFI / Instructor</option>
+          <option value="student" {% if user and user.flight_role == 'student' %}selected{% endif %}>Student</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-check mb-2">
+      <input type="checkbox" class="form-check-input" name="is_master_admin" id="master-admin-check" {% if user and user.is_master_admin %}checked{% endif %}>
+      <label class="form-check-label" for="master-admin-check">Master Admin <span class="text-muted small">(full access to everything in both programs, including this page)</span></label>
+    </div>
+    <div class="form-check mb-2">
+      <input type="checkbox" class="form-check-input" name="can_bill" id="can-bill-check" {% if user and user.can_bill %}checked{% endif %}>
+      <label class="form-check-label" for="can-bill-check">Can Manage Billing <span class="text-muted small">(Flight School: sees $ totals / outstanding balances and the Billing page - most instructors shouldn't)</span></label>
+    </div>
+    <div class="form-check mb-2">
+      <input type="checkbox" class="form-check-input" name="academy_access" id="academy-access-check" {% if user and user.academy_access %}checked{% endif %}>
+      <label class="form-check-label" for="academy-access-check">Flight Academy Access <span class="text-muted small">(the "Flight Academy" tile on the program picker - student progress, ratings &amp; lesson plans; master admins always have it)</span></label>
+    </div>
+    {% if user %}
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" name="active" id="active-check" {% if user.active %}checked{% endif %}>
+      <label class="form-check-label" for="active-check">Active</label>
+    </div>
+    {% endif %}
+
+    <hr class="my-3">
+    <h6 class="mb-2"><i class="bi bi-bell"></i> Reminders</h6>
+    <div class="row">
+      <div class="col-6 mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-control" value="{{ user.email if user else '' }}" placeholder="name@example.com">
+      </div>
+      <div class="col-6 mb-3">
+        <label class="form-label">Mobile Phone <span class="text-muted small">(for texts)</span></label>
+        <input type="tel" name="phone" class="form-control" value="{{ user.phone if user else '' }}" placeholder="+15551234567">
+      </div>
+    </div>
+    <div class="row mb-2">
+      <div class="col-6">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="notify_email" id="notify-email-check" {% if user and user.notify_email %}checked{% endif %}>
+          <label class="form-check-label" for="notify-email-check">Send email reminders</label>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="notify_sms" id="notify-sms-check" {% if user and user.notify_sms %}checked{% endif %}>
+          <label class="form-check-label" for="notify-sms-check">Send text reminders</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-text mb-2">Which of the above, sent for whichever categories are checked below:</div>
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" name="notify_low_stock" id="notify-low-stock-check" {% if user and user.notify_low_stock %}checked{% endif %}>
+      <label class="form-check-label" for="notify-low-stock-check">Low parts stock</label>
+    </div>
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" name="notify_maintenance" id="notify-maintenance-check" {% if user and user.notify_maintenance %}checked{% endif %}>
+      <label class="form-check-label" for="notify-maintenance-check">Maintenance/inspection due</label>
+    </div>
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" name="notify_flight_reminders" id="notify-flight-check" {% if user and user.notify_flight_reminders %}checked{% endif %}>
+      <label class="form-check-label" for="notify-flight-check">Upcoming scheduled flights (for this person's own bookings)</label>
+    </div>
+
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('admin_users_list') }}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary fw-bold">{{ 'Save Changes' if user else 'Create Account' }}</button>
+    </div>
+  </form>
+</div>
+</div>
+</div>
+{% endblock %}
