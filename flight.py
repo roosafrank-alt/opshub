@@ -1400,6 +1400,11 @@ def _dashboard_context(conn, cfi, student):
     # so repeating every finished flight as a chip too just added length to
     # a section that's supposed to be a quick compact glance at the board.
     today_time_groups = _group_by_time([t for t in today_flights if t["status"] != "completed"])
+    # Current time (HH:MM, 24h) for the "now" line/dimming on Today's
+    # Schedule - see time_group_row()/flight_chip() in _dashboard_live.html.
+    # Naive local time, same as everywhere else in this file (the Pi's
+    # clock is the shop's local time).
+    today_now_time = datetime.now().strftime("%H:%M")
 
     # Stable per-plane column ("lane") for the same-time chip rows
     # (time_group_row() in _dashboard_live.html) - based on the WHOLE
@@ -1426,7 +1431,7 @@ def _dashboard_context(conn, cfi, student):
                 solo_currency_days=solo_currency["interval_days"] if solo_currency else DEFAULT_SOLO_CURRENCY_DAYS,
                 today_flights=today_flights, today_flights_total=today_flights_total,
                 today_flights_completed=today_flights_completed, today_str=today_str,
-                today_time_groups=today_time_groups,
+                today_time_groups=today_time_groups, today_now_time=today_now_time,
                 upcoming_future_days=upcoming_future_days,
                 plane_lane=plane_lane, plane_color=plane_color, plane_lane_count=plane_lane_count,
                 dashboard_wx=dashboard_wx, dashboard_notams=dashboard_notams,

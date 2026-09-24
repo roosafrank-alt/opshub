@@ -290,11 +290,11 @@
   groups below (today_flights is the richer view of that same day, shown
   first), and _group_by_time() for the time-slot grouping.
 #}
-{% macro flight_chip(f, cfi, plane_lane, plane_color) %}
+{% macro flight_chip(f, cfi, plane_lane, plane_color, is_past=false) %}
 {% set status = f.status %}
 {% set icon = 'bi-circle' if status == 'scheduled' else ('bi-activity' if status == 'in_progress' else 'bi-check-circle-fill') %}
 {% set lane = plane_lane.get(f.plane_tag) %}
-<div class="flight-chip flight-chip-striped flight-chip-{{ status }}" data-chip-id="{{ f.id }}"
+<div class="flight-chip flight-chip-striped flight-chip-{{ status }}{{ ' flight-chip-past' if is_past and status == 'scheduled' }}" data-chip-id="{{ f.id }}"
      style="{% if lane is not none %}grid-column: {{ lane + 1 }};{% endif %}">
   <span class="flight-chip-stripe flight-chip-stripe-instructor" style="background: {{ f.display_color }};" title="{{ 'Instructor: ' ~ f.cfi_name if f.cfi_name else 'No instructor' }}"></span>
   <span class="flight-chip-stripe flight-chip-stripe-plane" style="background: {{ plane_color.get(f.plane_tag, '#868e96') }};" title="Plane: {{ f.plane_tag }}"></span>
@@ -357,12 +357,12 @@
 </div>
 {% endmacro %}
 
-{% macro time_group_row(group, cfi, plane_lane, plane_color, plane_lane_count) %}
+{% macro time_group_row(group, cfi, plane_lane, plane_color, plane_lane_count, is_past=false) %}
 <div class="d-flex flex-wrap align-items-start gap-2 mb-2">
   <span class="flight-chip-time">{{ group.time_label }}</span>
   <div class="flight-chip-grid" style="grid-template-columns: repeat({{ plane_lane_count }}, minmax(6.5rem, 1fr));">
     {% for f in group.flights %}
-    {{ flight_chip(f, cfi, plane_lane, plane_color) }}
+    {{ flight_chip(f, cfi, plane_lane, plane_color, is_past) }}
     {% endfor %}
   </div>
 </div>
@@ -403,9 +403,19 @@
   </button>
   <div class="dash-collapse-body" data-collapse-body="today" hidden>
     {% if today_time_groups %}
+    {% set ns = namespace(now_line_shown=false) %}
     {% for group in today_time_groups %}
-    {{ time_group_row(group, cfi, plane_lane, plane_color, plane_lane_count) }}
+    {% set grp_time = group.flights[0].scheduled_time %}
+    {% set is_past = grp_time is not none and grp_time < today_now_time %}
+    {% if not is_past and not ns.now_line_shown %}
+    <div class="dash-now-line" title="Current time - {{ today_now_time }}"><span>Now</span></div>
+    {% set ns.now_line_shown = true %}
+    {% endif %}
+    {{ time_group_row(group, cfi, plane_lane, plane_color, plane_lane_count, is_past) }}
     {% endfor %}
+    {% if not ns.now_line_shown %}
+    <div class="dash-now-line" title="Current time - {{ today_now_time }}"><span>Now</span></div>
+    {% endif %}
     {% elif today_flights_total %}
     <p class="text-muted small mb-0">All of today's flights are complete.</p>
     {% else %}

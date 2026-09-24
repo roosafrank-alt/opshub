@@ -159,6 +159,31 @@
     min-width: 3.5rem;
   }
 
+  /* Today's Schedule: a thin "you are here" line at the current time, and
+     scheduled-but-not-started chips whose slot already passed dimmed down
+     so the board reads at a glance as "done" vs "still coming up". An
+     in-progress flight is never dimmed even if its slot time has passed -
+     see flight_chip()'s is_past condition. */
+  .dash-now-line {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: .25rem 0 .5rem;
+    border-top: 2px solid var(--bs-danger, #dc3545);
+    color: var(--bs-danger, #dc3545);
+  }
+  .dash-now-line span {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    white-space: nowrap;
+    transform: translateY(-.85rem);
+    background: var(--bs-body-bg, #fff);
+    padding: 0 .4rem 0 0;
+  }
+  .flight-chip-past { opacity: .45; }
+
   @keyframes wx-sun-glow {
     0%, 100% { filter: brightness(1); }
     50% { filter: brightness(1.06); }
