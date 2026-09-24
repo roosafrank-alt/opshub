@@ -12,15 +12,6 @@
   @media (max-width: 767px) { .wx-bg-icon { font-size: 5rem; } }
   .wx-tile .wx-subtle { color: rgba(255,255,255,.8); }
   .wx-tile .wx-hr { border-color: rgba(255,255,255,.3); }
-  /* Compact conditions strip (see "Conditions quick view" in _dashboard_live.html) */
-  .wx-compact .wx-bg-icon { font-size: 4rem; top: -0.6rem; right: -0.2rem; }
-  .wx-strip { display: flex; flex-wrap: wrap; align-items: center; column-gap: 1.1rem; row-gap: .2rem; font-size: .88rem; }
-  .wx-strip-main { display: flex; align-items: center; gap: .4rem; }
-  .wx-strip-main > .bi { font-size: 1.4rem; }
-  .wx-strip-temp { font-size: 1.5rem; font-weight: 700; line-height: 1; }
-  .wx-strip-item { white-space: nowrap; }
-  .wx-metar { font-size: .74rem; margin-top: .2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  @media (max-width: 575.98px) { .wx-strip { column-gap: .8rem; font-size: .82rem; } .wx-metar { white-space: normal; } }
 
   /* Clear - warm sun glow low in one corner over an open-sky gradient. */
   .wx-tile.wx-clear {
@@ -150,68 +141,9 @@
     .wx-tile, .wx-tile::after { animation: none !important; }
   }
 </style>
-{#
-  Header row: welcome on the left; on the right a compact time box -
-  day/date, live local + Zulu clocks (ticked in the browser, see the
-  dash-clock script below) and today's sunrise/sunset + civil twilight at
-  N89 (sun.py, worked out locally so it shows for every login). Wraps
-  under the welcome on a phone.
-#}
-<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
-  <h4 class="mb-0">
-    {% if cfi %}Welcome, {{ cfi.name }}{% elif student and student.is_station %}{{ student.name }}{% else %}Welcome, {{ student.name }}{% endif %}
-  </h4>
-  <div class="dash-timebox" id="dash-timebox">
-    <div class="dash-timebox-row">
-      <span class="fw-bold" id="dash-clock-date">{{ sun_times.date if sun_times else '' }}</span>
-      <span><span class="dash-timebox-label">Local</span> <span class="fw-bold font-monospace" id="dash-clock-local">--:--</span></span>
-      <span><span class="dash-timebox-label">Zulu</span> <span class="fw-bold font-monospace" id="dash-clock-zulu">--:--Z</span></span>
-    </div>
-    {% if sun_times %}
-    <div class="dash-timebox-row dash-timebox-sun">
-      <span title="Civil twilight begins {{ sun_times.civil_begin_z }}"><i class="bi bi-brightness-alt-high"></i> Civil {{ sun_times.civil_begin or '-' }}</span>
-      <span title="Sunrise {{ sun_times.sunrise_z }}"><i class="bi bi-sunrise"></i> {{ sun_times.sunrise or '-' }}</span>
-      <span title="Sunset {{ sun_times.sunset_z }}"><i class="bi bi-sunset"></i> {{ sun_times.sunset or '-' }}</span>
-      <span title="Civil twilight ends {{ sun_times.civil_end_z }}"><i class="bi bi-moon-stars"></i> Civil {{ sun_times.civil_end or '-' }}</span>
-    </div>
-    {% endif %}
-  </div>
-</div>
-<style>
-  .dash-timebox { background: var(--bs-body-bg, #fff); border: 1px solid rgba(0,0,0,.125); border-radius: .5rem;
-                  padding: .35rem .7rem; font-size: .82rem; line-height: 1.5; }
-  .dash-timebox-row { display: flex; flex-wrap: wrap; column-gap: .9rem; row-gap: .1rem; }
-  .dash-timebox-label { color: #6c757d; font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; }
-  .dash-timebox-sun { color: #495057; }
-  .dash-timebox-sun .bi { color: #dc9b00; }
-  @media (max-width: 575.98px) { .dash-timebox { width: 100%; font-size: .78rem; } }
-</style>
-<script>
-  // Live day/date + local and Zulu clocks for the header time box. Local
-  // is shown in the school's time zone (America/New_York, same as the
-  // weather card) whatever the viewing device is set to.
-  (function () {
-    var tz = "America/New_York";
-    var d = document.getElementById("dash-clock-date");
-    var l = document.getElementById("dash-clock-local");
-    var z = document.getElementById("dash-clock-zulu");
-    if (!l || !z) return;
-    function pad(n) { return (n < 10 ? "0" : "") + n; }
-    function tick() {
-      var now = new Date();
-      try {
-        d.textContent = now.toLocaleDateString("en-US", { timeZone: tz, weekday: "long", month: "short", day: "numeric", year: "numeric" });
-        l.textContent = now.toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" });
-      } catch (e) {
-        d.textContent = now.toDateString();
-        l.textContent = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-      }
-      z.textContent = pad(now.getUTCHours()) + pad(now.getUTCMinutes()) + "Z";
-    }
-    tick();
-    setInterval(tick, 15000);
-  })();
-</script>
+<h4 class="mb-3">
+  {% if cfi %}Welcome, {{ cfi.name }}{% elif student and student.is_station %}{{ student.name }}{% else %}Welcome, {{ student.name }}{% endif %}
+</h4>
 {% if student and student.is_station %}
 <p class="text-muted small mt-n2 mb-3"><i class="bi bi-info-circle"></i> Station account - use Schedule below to book time on a plane.</p>
 {% endif %}
@@ -219,10 +151,10 @@
 {% if cfi %}
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-3">
-    <a href="{{ url_for('flight.schedule_new') }}" class="text-decoration-none">
+    <a href="{{ url_for('flight.log_new') }}" class="text-decoration-none">
       <div class="card p-3 text-center">
-        <i class="bi bi-calendar-plus fs-2 text-warning"></i>
-        <div class="fw-bold mt-1">Schedule Flight</div>
+        <i class="bi bi-journal-plus fs-2 text-warning"></i>
+        <div class="fw-bold mt-1">Log a Flight</div>
       </div>
     </a>
   </div>
@@ -304,7 +236,10 @@
         function (t) { return t.dataset.collapse; }),
       chips: Array.prototype.map.call(
         region.querySelectorAll('.flight-chip.flight-chip-open'),
-        function (c) { return c.dataset.chipId; })
+        function (c) { return c.dataset.chipId; }),
+      notamAirports: Array.prototype.map.call(
+        region.querySelectorAll('.notam-airport-toggle.open'),
+        function (t) { return t.dataset.notamAirport; })
     };
   }
 
@@ -319,6 +254,12 @@
       var detail = chip && chip.querySelector('.flight-chip-detail');
       if (chip && detail) { chip.classList.add('flight-chip-open'); detail.hidden = false; }
     });
+    (state.notamAirports || []).forEach(function (icao) {
+      var toggle = region.querySelector('.notam-airport-toggle[data-notam-airport="' + icao + '"]');
+      var detail = region.querySelector('[data-notam-detail="' + icao + '"]');
+      if (toggle && detail) { toggle.classList.add('open'); detail.hidden = false; }
+    });
+    dashCheckNewNotams(region);
   }
 
   function refresh() {
@@ -372,6 +313,25 @@ document.addEventListener('click', function (evt) {
   }
 });
 
+// Click an airport row in the NOTAMs tile to expand its notams in place,
+// grouped by the triage hierarchy (TFRs first, then closures, runways,
+// taxiways, approaches, everything else - see CATEGORY_ORDER in
+// notams.py). Independent per-airport (not an accordion - a busy day can
+// have more than one airport worth checking at once), and delegated for
+// the same live-refresh-replaces-innerHTML reason as the other handlers
+// here.
+document.addEventListener('click', function (evt) {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region || !region.contains(evt.target)) return;
+  var toggle = evt.target.closest('.notam-airport-toggle');
+  if (!toggle) return;
+  var detail = region.querySelector('[data-notam-detail="' + toggle.dataset.notamAirport + '"]');
+  if (!detail) return;
+  var opening = detail.hidden;
+  detail.hidden = !opening;
+  toggle.classList.toggle('open', opening);
+});
+
 // Click a section header (Today's Schedule / Upcoming / Recent Flights) to
 // reveal its list - each starts closed (see the "hidden" .dash-collapse-body
 // in _dashboard_live.html) so the dashboard loads compact. Delegated for the
@@ -415,6 +375,30 @@ function dashSaveOpen(key, open) {
     var body = region.querySelector('[data-collapse-body="' + key + '"]');
     if (toggle && body) { toggle.classList.add('open'); body.hidden = false; }
   });
+  dashCheckNewNotams(region);
 })();
+
+// Lights up the thin red banner above the NOTAM strip when today's active
+// NOTAM numbers include one this browser hasn't seen yet - "seen" resets
+// each calendar day, so a still-active NOTAM will flag again tomorrow but
+// won't nag again later today. Runs on initial load and after every
+// live-refresh poll (see restoreOpenState above), purely client-side since
+// "seen" is per-browser, not something the server tracks.
+var NOTAM_SEEN_STORE = 'opshub-dash-notams-seen-v1';
+function dashCheckNewNotams(region) {
+  var wrap = region.querySelector('.notam-strip-wrap[data-notam-numbers]');
+  var banner = region.querySelector('[data-notam-new-banner]');
+  if (!wrap || !banner) return;
+  var current = wrap.dataset.notamNumbers ? wrap.dataset.notamNumbers.split(',').filter(Boolean) : [];
+  var today = new Date().toISOString().slice(0, 10);
+  var seen;
+  try { seen = JSON.parse(localStorage.getItem(NOTAM_SEEN_STORE) || 'null'); } catch (e) { seen = null; }
+  if (!seen || seen.date !== today) seen = { date: today, numbers: [] };
+  var seenSet = {};
+  seen.numbers.forEach(function (n) { seenSet[n] = true; });
+  var hasNew = current.some(function (n) { return !seenSet[n]; });
+  banner.hidden = !hasNew;
+  try { localStorage.setItem(NOTAM_SEEN_STORE, JSON.stringify({ date: today, numbers: current })); } catch (e) {}
+}
 </script>
 {% endblock %}
