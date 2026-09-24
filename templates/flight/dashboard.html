@@ -543,9 +543,56 @@ function dashCheckNewNotams(region) {
   if (!seen || seen.date !== today) seen = { date: today, numbers: [] };
   var seenSet = {};
   seen.numbers.forEach(function (n) { seenSet[n] = true; });
-  var hasNew = current.some(function (n) { return !seenSet[n]; });
-  banner.hidden = !hasNew;
+  // Kept on the banner itself (not just used to decide hidden/shown) so the
+  // click handler below still knows which NOTAM(s) were "new" even after
+  // this same call marks everything currently on the strip as seen.
+  var newNumbers = current.filter(function (n) { return !seenSet[n]; });
+  banner.hidden = newNumbers.length === 0;
+  banner.dataset.newNumbers = newNumbers.join(',');
   try { localStorage.setItem(NOTAM_SEEN_STORE, JSON.stringify({ date: today, numbers: current })); } catch (e) {}
 }
+
+// Clicking (or Enter/Space-ing) the "New NOTAMs today" banner jumps
+// straight to one of the new NOTAMs instead of making someone hunt for
+// which airport chip changed: expands that NOTAM's airport in the strip
+// (same accordion behavior as clicking the chip by hand) and opens the
+// full-text popup for it, reusing _notam_detail_modal.html's own
+// row-click handler by dispatching a real click on the matching row.
+function dashOpenNewNotam(banner) {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region) return;
+  var newNumbers = (banner.dataset.newNumbers || '').split(',').filter(Boolean);
+  var row = null;
+  for (var i = 0; i < newNumbers.length && !row; i++) {
+    row = region.querySelector('.notam-detail-row[data-number="' + newNumbers[i] + '"]');
+  }
+  if (!row) row = region.querySelector('.notam-detail-row');
+  if (!row) return;
+  var icao = row.dataset.icao;
+  var toggle = region.querySelector('.notam-airport-toggle[data-notam-airport="' + icao + '"]');
+  var detail = region.querySelector('[data-notam-detail="' + icao + '"]');
+  if (toggle && detail) {
+    region.querySelectorAll('.notam-strip-detail:not([hidden])').forEach(function (d) {
+      d.hidden = true;
+      var t = region.querySelector('.notam-airport-toggle[data-notam-airport="' + d.dataset.notamDetail + '"]');
+      if (t) t.classList.remove('open');
+    });
+    detail.hidden = false;
+    toggle.classList.add('open');
+  }
+  row.click();
+}
+document.addEventListener('click', function (evt) {
+  var banner = evt.target.closest('[data-notam-new-banner]');
+  if (!banner || banner.hidden) return;
+  dashOpenNewNotam(banner);
+});
+document.addEventListener('keydown', function (evt) {
+  if (evt.key !== 'Enter' && evt.key !== ' ') return;
+  var banner = evt.target.closest && evt.target.closest('[data-notam-new-banner]');
+  if (!banner || banner.hidden) return;
+  evt.preventDefault();
+  dashOpenNewNotam(banner);
+});
 </script>
 {% endblock %}

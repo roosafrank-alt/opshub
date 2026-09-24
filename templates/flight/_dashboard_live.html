@@ -113,8 +113,8 @@
 #}
 {% if cfi and dashboard_notams and dashboard_notams.configured and not dashboard_notams.error %}
 <div class="notam-strip-wrap mb-2" data-notam-numbers="{{ dashboard_notams.notams|map(attribute='number')|join(',') }}">
-  <div class="notam-strip-new-banner" data-notam-new-banner hidden>
-    <i class="bi bi-exclamation-triangle-fill"></i> New NOTAMs today
+  <div class="notam-strip-new-banner" data-notam-new-banner role="button" tabindex="0" hidden>
+    <i class="bi bi-exclamation-triangle-fill"></i> New NOTAMs today <span class="notam-strip-new-banner-hint">- click to view</span>
   </div>
   <div class="notam-strip d-flex align-items-center gap-2 flex-nowrap">
     <i class="bi bi-exclamation-diamond text-muted flex-shrink-0" title="NOTAMs - N89 + 25nm"></i>
