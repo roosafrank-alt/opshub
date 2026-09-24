@@ -464,6 +464,7 @@ CREATE TABLE IF NOT EXISTS scheduled_flights (
     part_solo INTEGER NOT NULL DEFAULT 0, -- dual booking where the student also flies part of it solo
     guest_name TEXT, -- booked for the Guest / Intro placeholder student: the person's name (no profile)
     guest_phone TEXT,
+    guest_email TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_scheduled_flights_date ON scheduled_flights(scheduled_date);

@@ -233,8 +233,8 @@ def _windows_overlap(a, b):
 # Intro flights and one-time flyers have no student profile: they're booked
 # against one shared placeholder student ("Guest / Intro", created by the
 # db.py migration, a station-type account nobody logs in as), with the
-# person's name/phone kept on the booking itself (guest_name/guest_phone)
-# and shown wherever the student's name would be.
+# person's name/phone/email kept on the booking itself (guest_name/guest_phone/
+# guest_email) and shown wherever the student's name would be.
 GUEST_USERNAME = "__guest__"
 
 
@@ -254,13 +254,14 @@ def guest_student_id():
 
 
 def _guest_fields(conn, form, student_id):
-    """(guest_name, guest_phone) from the form when the booking is for the
-    Guest placeholder, else (None, None)."""
+    """(guest_name, guest_phone, guest_email) from the form when the booking is
+    for the Guest placeholder, else (None, None, None)."""
     gid = _guest_student_id(conn)
     if not gid or str(student_id or "") != str(gid):
-        return None, None
+        return None, None, None
     return ((form.get("guest_name") or "").strip()[:80] or None,
-            (form.get("guest_phone") or "").strip()[:30] or None)
+            (form.get("guest_phone") or "").strip()[:30] or None,
+            (form.get("guest_email") or "").strip()[:120] or None)
 
 
 PAST_BOOKING_GRACE_MIN = 5  # a booking for "right now" typed a few minutes late still goes through
@@ -2937,7 +2938,7 @@ def schedule_new():
             return redirect(url_for("flight.log_history"))
         asset_id = request.form.get("asset_id") or None
         student_id = str(self_student["id"]) if self_service else (request.form.get("student_id") or None)
-        guest_name, guest_phone = (None, None) if self_service else _guest_fields(conn, request.form, student_id)
+        guest_name, guest_phone, guest_email = (None, None, None) if self_service else _guest_fields(conn, request.form, student_id)
         solo = 1 if request.form.get("solo") else 0
         # A dual booking where the student also flies part of it solo.
         part_solo = 0 if solo else (1 if request.form.get("part_solo") else 0)
@@ -2996,11 +2997,11 @@ def schedule_new():
             status = "pending_approval" if self_service else "scheduled"
             new_booking = conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date,
                              scheduled_time, duration_hours, notes, private_notes, status, created_by, solo, needs_review,
-                             review_reason, part_solo, guest_name, guest_phone, created_at)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                             review_reason, part_solo, guest_name, guest_phone, guest_email, created_at)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                          (asset_id, cfi_id, student_id, scheduled_date, scheduled_time, duration_hours,
                           notes, private_notes, status, created_by, solo, needs_review, review_reason, part_solo,
-                          guest_name, guest_phone, now_iso()))
+                          guest_name, guest_phone, guest_email, now_iso()))
             conn.commit()
             conn.close()
             if self_service:
@@ -3032,11 +3033,11 @@ def schedule_new():
             needs_review, review_reason = _schedule_review_flag(conn, solo, cfi_id, student_id, occ_date)
             occ_cur = conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date,
                              scheduled_time, duration_hours, notes, private_notes, status, created_by, solo, needs_review,
-                             review_reason, part_solo, guest_name, guest_phone, created_at)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, ?, ?, ?, ?, ?, ?)""",
+                             review_reason, part_solo, guest_name, guest_phone, guest_email, created_at)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                          (asset_id, cfi_id, student_id, occ_date, scheduled_time, duration_hours,
                           notes, private_notes, created_by, solo, needs_review, review_reason, part_solo,
-                          guest_name, guest_phone, now_iso()))
+                          guest_name, guest_phone, guest_email, now_iso()))
             created_count += 1
             created_ids.append(occ_cur.lastrowid)
             if needs_review:
@@ -3149,7 +3150,7 @@ def schedule_edit(scheduled_id):
     if request.method == "POST":
         asset_id = request.form.get("asset_id") or None
         student_id = request.form.get("student_id") or None
-        guest_name, guest_phone = _guest_fields(conn, request.form, student_id)
+        guest_name, guest_phone, guest_email = _guest_fields(conn, request.form, student_id)
         solo = 1 if request.form.get("solo") else 0
         # A dual booking where the student also flies part of it solo.
         part_solo = 0 if solo else (1 if request.form.get("part_solo") else 0)
@@ -3188,12 +3189,12 @@ def schedule_edit(scheduled_id):
         # see the needs_review_acknowledged_at/by columns' migration comment
         # in db.py for why.
         conn.execute("""UPDATE scheduled_flights SET asset_id=?, cfi_id=?, student_id=?, scheduled_date=?,
-                         scheduled_time=?, duration_hours=?, notes=?, private_notes=?, solo=?, part_solo=?, guest_name=?, guest_phone=?, needs_review=?, review_reason=?,
+                         scheduled_time=?, duration_hours=?, notes=?, private_notes=?, solo=?, part_solo=?, guest_name=?, guest_phone=?, guest_email=?, needs_review=?, review_reason=?,
                          needs_review_acknowledged_at=NULL, needs_review_acknowledged_by=NULL WHERE id=?""",
                      (asset_id, cfi_id, student_id, scheduled_date, scheduled_time, duration_hours,
                       request.form.get("notes", "").strip() or None,
                       request.form.get("private_notes", "").strip() or None,
-                      solo, part_solo, guest_name, guest_phone, needs_review, review_reason, scheduled_id))
+                      solo, part_solo, guest_name, guest_phone, guest_email, needs_review, review_reason, scheduled_id))
         conn.commit()
         conn.close()
         if needs_review:
@@ -4243,7 +4244,7 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
     # clock (see log_end).
     conn.execute("UPDATE flights SET solo_hours = ? WHERE id = ?", (_solo_hours_from_form(form, solo), new_flight_id))
     # Guest (no profile): the name typed on the form, else the booking's.
-    guest_name, _guest_phone = _guest_fields(conn, form, student_id)
+    guest_name, _guest_phone, _guest_email = _guest_fields(conn, form, student_id)
     if not guest_name and scheduled_flight_id:
         b = conn.execute("SELECT guest_name FROM scheduled_flights WHERE id = ?", (scheduled_flight_id,)).fetchone()
         guest_name = b["guest_name"] if b else None

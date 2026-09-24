@@ -911,6 +911,7 @@ def _migrate(conn):
         # First solo completed (set by a CFI/admin on the student profile) -
         # landing currency only shows once this is set.
         ("students", "first_solo_date", "ALTER TABLE students ADD COLUMN first_solo_date TEXT"),
+        ("scheduled_flights", "guest_email", "ALTER TABLE scheduled_flights ADD COLUMN guest_email TEXT"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)
