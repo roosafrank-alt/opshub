@@ -55,6 +55,13 @@
         <label class="form-label">ICAO24 / Mode S Hex <span class="text-muted small">(optional - enables live ADS-B tracking)</span></label>
         <input type="text" name="icao24_hex" class="form-control text-uppercase" maxlength="6" placeholder="e.g. A12345" value="{{ asset.icao24_hex if asset else '' }}">
         <div class="form-text">Look this up on the FAA registry or an ADS-B site by tail number. Leave blank if you don't want this plane to show on the Active Flight live map.</div>
+        <div class="form-check mt-2">
+          <input type="checkbox" class="form-check-input" name="show_on_map" id="show-on-map-check"
+                 {% if not asset or asset.show_on_map %}checked{% endif %}>
+          <label class="form-check-label" for="show-on-map-check">
+            Turn this plane on in the live map view <span class="text-muted small">(needs the hex above too - uncheck to hide it from the map without clearing the hex)</span>
+          </label>
+        </div>
       </div>
     </div>
     <div class="row">

@@ -1969,11 +1969,12 @@ def asset_new():
         hobbs_hours = _parse_float(request.form.get("hobbs_hours"))
         tach_hours = _parse_float(request.form.get("tach_hours"))
         is_flight_asset = 1 if request.form.get("is_flight_asset") else 0
+        show_on_map = 1 if request.form.get("show_on_map") else 0
         cur = conn.execute("""INSERT INTO assets (tag, name, make, model, serial_number, year, owner,
                                hobbs_hours, hobbs_updated_at, tach_hours, tach_updated_at,
                                engine_make, engine_model, engine_serial, prop_make, prop_model, prop_serial,
-                               rental_rate, is_flight_asset, icao24_hex, color, notes, created_at, updated_at)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                               rental_rate, is_flight_asset, icao24_hex, show_on_map, color, notes, created_at, updated_at)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (tag, request.form.get("name", "").strip() or tag,
                              request.form.get("make", "").strip(), request.form.get("model", "").strip(),
                              request.form.get("serial_number", "").strip(), request.form.get("year", "").strip(),
@@ -1984,7 +1985,7 @@ def asset_new():
                              request.form.get("engine_serial", "").strip(), request.form.get("prop_make", "").strip(),
                              request.form.get("prop_model", "").strip(), request.form.get("prop_serial", "").strip(),
                              _parse_float(request.form.get("rental_rate")), is_flight_asset,
-                             request.form.get("icao24_hex", "").strip().upper() or None, color,
+                             request.form.get("icao24_hex", "").strip().upper() or None, show_on_map, color,
                              request.form.get("notes", "").strip(), now_iso(), now_iso()))
         new_id = cur.lastrowid
         conn.commit()
@@ -2266,18 +2267,19 @@ def asset_edit(asset_id):
             conn.close()
             return render_template("asset_form.html", asset=asset, plane_colors=plane_colors, used_colors=used_colors)
         is_flight_asset = 1 if request.form.get("is_flight_asset") else 0
+        show_on_map = 1 if request.form.get("show_on_map") else 0
         # rental_rate isn't on this form anymore (set from Flight School by
         # an admin instead), so this update deliberately leaves it alone.
         conn.execute("""UPDATE assets SET tag=?, name=?, make=?, model=?, serial_number=?, year=?, owner=?,
                          engine_make=?, engine_model=?, engine_serial=?, prop_make=?, prop_model=?, prop_serial=?,
-                         is_flight_asset=?, icao24_hex=?, notes=?, color=?, updated_at=? WHERE id=?""",
+                         is_flight_asset=?, icao24_hex=?, show_on_map=?, notes=?, color=?, updated_at=? WHERE id=?""",
                      (tag, request.form.get("name", "").strip() or tag, request.form.get("make", "").strip(),
                       request.form.get("model", "").strip(), request.form.get("serial_number", "").strip(),
                       request.form.get("year", "").strip(), request.form.get("owner", "").strip(),
                       request.form.get("engine_make", "").strip(), request.form.get("engine_model", "").strip(),
                       request.form.get("engine_serial", "").strip(), request.form.get("prop_make", "").strip(),
                       request.form.get("prop_model", "").strip(), request.form.get("prop_serial", "").strip(),
-                      is_flight_asset, request.form.get("icao24_hex", "").strip().upper() or None,
+                      is_flight_asset, request.form.get("icao24_hex", "").strip().upper() or None, show_on_map,
                       request.form.get("notes", "").strip(), color, now_iso(), asset_id))
         conn.commit()
         conn.close()

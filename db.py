@@ -1013,6 +1013,15 @@ def _migrate(conn):
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('pilot_logbook_backfilled', ?)", (now_iso(),))
         conn.commit()
 
+    # Lets an admin opt a plane out of the Active Flight live map without
+    # clearing its ICAO24 hex (e.g. a plane temporarily away for
+    # maintenance) - see asset_form.html and adsb.py:_school_plane_map.
+    # Defaults on so every plane that already has a hex keeps showing.
+    asset_cols7 = [r["name"] for r in conn.execute("PRAGMA table_info(assets)").fetchall()]
+    if "show_on_map" not in asset_cols7:
+        conn.execute("ALTER TABLE assets ADD COLUMN show_on_map INTEGER NOT NULL DEFAULT 1")
+        conn.commit()
+
     _migrate_flight_accounts_to_users(conn)
     _carry_over_project_photos_to_assets(conn)
 

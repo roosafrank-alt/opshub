@@ -150,7 +150,7 @@ def _school_plane_map(conn):
     that has one on file, regardless of whether it's currently flying."""
     rows = conn.execute(
         "SELECT id as asset_id, tag as plane_tag, icao24_hex FROM assets "
-        "WHERE icao24_hex IS NOT NULL AND icao24_hex != '' AND deleted_at IS NULL"
+        "WHERE icao24_hex IS NOT NULL AND icao24_hex != '' AND deleted_at IS NULL AND show_on_map = 1"
     ).fetchall()
     return {r["icao24_hex"].lower(): {"asset_id": r["asset_id"], "plane_tag": r["plane_tag"]} for r in rows}
 
