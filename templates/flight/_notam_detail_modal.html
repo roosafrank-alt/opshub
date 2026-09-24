@@ -1,0 +1,53 @@
+{#
+  Shared "NOTAM detail" popup - same pattern as _schedule_detail_modal.html
+  (one modal, populated via data-* attributes off whatever
+  .notam-detail-row was clicked, delegated on document so it keeps working
+  after the dashboard's live-refresh poll replaces #dashboard-live-region's
+  content). The dashboard row itself only ever shows a one-line, lossy
+  compression of the NOTAM (see notams.py's _summarize_notam/_compress_
+  notam_text) - this is where the full, unedited text lives for when a
+  glance isn't enough. Included once from dashboard.html, outside the
+  polled region, same as the schedule modal.
+#}
+<div class="modal fade" id="notamDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-exclamation-diamond"></i> <span id="nd-subject"></span> <span class="text-muted small" id="nd-icao"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="small text-muted mb-2">
+          NOTAM <span id="nd-number"></span> <span class="badge bg-secondary" id="nd-type-badge"></span>
+          &middot; <span id="nd-dates"></span>
+        </div>
+        <div class="font-monospace" id="nd-fulltext" style="white-space: pre-wrap; font-size: .9rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <a href="#" id="nd-read-link" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">FAA NOTAM Search <i class="bi bi-box-arrow-up-right"></i></a>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('click', function (evt) {
+  var el = evt.target.closest('.notam-detail-row');
+  if (!el) return;
+  // Don't hijack the Read link inside the row - let it navigate normally.
+  if (evt.target.closest('a, button')) return;
+  document.getElementById('nd-subject').textContent = el.dataset.subject || 'NOTAM';
+  document.getElementById('nd-icao').textContent = el.dataset.icao ? '(' + el.dataset.icao + ')' : '';
+  document.getElementById('nd-number').textContent = el.dataset.number || '';
+  var typeBadge = document.getElementById('nd-type-badge');
+  if (el.dataset.type) { typeBadge.textContent = el.dataset.type; typeBadge.classList.remove('d-none'); }
+  else { typeBadge.classList.add('d-none'); }
+  var dates = el.dataset.start || '-';
+  if (el.dataset.end) dates += ' – ' + el.dataset.end;
+  document.getElementById('nd-dates').textContent = dates;
+  document.getElementById('nd-fulltext').textContent = el.dataset.fulltext || '(no text provided)';
+  document.getElementById('nd-read-link').href = el.dataset.searchUrl || '#';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('notamDetailModal')).show();
+});
+</script>

@@ -205,6 +205,19 @@ body { background: #f4f5f7; }
   margin-bottom: .25rem;
 }
 .notam-strip-detail { font-size: .875rem; }
+/* Each expanded NOTAM row: plain-English subject/status/dates on the
+   left, truncating with an ellipsis rather than wrapping; NOTAM #/type/
+   Read stay fixed-width on the right. Together they never exceed one
+   line no matter the viewport width. */
+.notam-detail-row { flex-wrap: nowrap; cursor: pointer; border-radius: .35rem; }
+.notam-detail-row .flex-shrink-0 { white-space: nowrap; }
+/* Active (already in effect) rows shade green; upcoming (not yet in
+   effect) rows shade yellow - see notams.py's _notam_status(), computed
+   off the NOTAM's own effectiveStart vs. now. */
+.notam-row-active { background: rgba(25,135,84,.09); }
+.notam-row-active:hover { background: rgba(25,135,84,.17); }
+.notam-row-upcoming { background: rgba(255,193,7,.16); }
+.notam-row-upcoming:hover { background: rgba(255,193,7,.26); }
 
 .notam-airport-toggle { cursor: pointer; }
 .notam-airport-chevron { transition: transform .15s ease; color: #6c757d; }

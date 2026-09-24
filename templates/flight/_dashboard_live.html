@@ -94,35 +94,19 @@
 </div>
 {% endif %}
 
-{% if next_lesson %}
-<div class="card p-3 mb-3 border-primary">
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div>
-      <div class="text-uppercase small fw-bold text-primary"><i class="bi bi-calendar-event"></i> Next Lesson</div>
-      <div class="fs-2 fw-bold lh-1 mt-1">{{ next_lesson.countdown }}</div>
-      <div class="text-muted">
-        {{ next_lesson.scheduled_date|usdate }}{% if next_lesson.time_label %} &middot; {{ next_lesson.time_label }}{% endif %}
-        &middot; {{ next_lesson.plane_tag }}
-        {% if cfi %} &middot; {{ next_lesson.student_name }}{% endif %}
-        {% if next_lesson.cfi_name %} &middot; {{ next_lesson.cfi_name }}{% elif next_lesson.solo %}<span class="badge bg-secondary ms-1">Solo</span>{% else %}<span class="badge bg-danger ms-1">Needs Instructor</span>{% endif %}
-      </div>
-    </div>
-    <a href="{{ url_for('flight.schedule_calendar') }}" class="btn btn-outline-primary btn-sm">Full Calendar</a>
-  </div>
-</div>
-{% endif %}
-
 {#
-  NOTAMs live as a single-line banner above weather rather than a card of
-  their own: one row of airport identifiers, N89 first then the rest by
-  increasing distance (dashboard_notams.strip_airports is already sorted
-  that way), quiet unless an airport actually has something active - then
-  it's a red, clickable chip that expands its NOTAMs (still triaged by
-  CATEGORY_ORDER: TFRs, closures, runways, taxiways, approaches, everything
-  else) right below the strip. Scrolls laterally if it overflows rather
-  than wrapping, so it stays one line. The thin alert banner above it is
-  JS-driven (see dashboard.html) - it lights up when today's NOTAM numbers
-  include one that wasn't there the last time this browser checked.
+  NOTAMs and weather sit above Next Lesson / Today's Schedule on purpose -
+  go/no-go conditions are the first thing a CFI should see, ahead of what's
+  booked. NOTAMs are a single-line banner: one row of airport identifiers,
+  N89 first then the rest by increasing distance (dashboard_notams.strip_
+  airports is already sorted that way), quiet unless an airport actually
+  has something active - then it's a red, clickable chip that expands its
+  NOTAMs (triaged by CATEGORY_ORDER: TFRs, closures, runways, taxiways,
+  approaches, everything else) right below the strip. Scrolls laterally if
+  it overflows rather than wrapping, so it stays one line. The thin alert
+  banner above it is JS-driven (see dashboard.html) - it lights up when
+  today's NOTAM numbers include one that wasn't there the last time this
+  browser checked.
 #}
 {% if cfi and dashboard_notams and dashboard_notams.configured and not dashboard_notams.error %}
 <div class="notam-strip-wrap mb-2" data-notam-numbers="{{ dashboard_notams.notams|map(attribute='number')|join(',') }}">
@@ -148,11 +132,19 @@
     <div class="text-uppercase text-muted small fw-bold {{ 'mt-2' if not loop.first }}">{{ n.category_label }}</div>
     {% set ns.last_cat = n.category %}
     {% endif %}
-    <div class="d-flex align-items-center gap-2 py-1">
-      <code class="small">{{ n.number }}</code>
-      {% if n.notam_type %}<span class="badge bg-secondary">{{ n.notam_type }}</span>{% endif %}
-      <small class="text-muted">{{ n.effective_start or '-' }}{% if n.effective_end %} &ndash; {{ n.effective_end }}{% endif %}</small>
-      <a href="{{ dashboard_notams.search_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm ms-auto py-0">Read <i class="bi bi-box-arrow-up-right"></i></a>
+    <div class="d-flex align-items-center gap-2 py-1 px-1 notam-detail-row notam-row-{{ n.status }}"
+         data-subject="{{ n.subject }}" data-icao="{{ n.icao }}" data-number="{{ n.number }}"
+         data-type="{{ n.notam_type or '' }}" data-start="{{ n.effective_start or '' }}"
+         data-end="{{ n.effective_end or '' }}" data-fulltext="{{ n.full_text }}"
+         data-search-url="{{ dashboard_notams.search_url }}" title="Click for full NOTAM text">
+      <div class="flex-grow-1 text-truncate">
+        <strong>{{ n.subject }}</strong> &middot; {{ n.descriptor }}{% if n.effective_start or n.effective_end %} &middot; <span class="text-muted">{{ n.effective_start or '-' }}{% if n.effective_end %}&ndash;{{ n.effective_end }}{% endif %}</span>{% endif %}
+      </div>
+      <div class="flex-shrink-0 d-flex align-items-center gap-2">
+        <code class="small">{{ n.number }}</code>
+        {% if n.notam_type %}<span class="badge bg-secondary">{{ n.notam_type }}</span>{% endif %}
+        <a href="{{ dashboard_notams.search_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm py-0">Read <i class="bi bi-box-arrow-up-right"></i></a>
+      </div>
     </div>
     {% endfor %}
   </div>
@@ -161,62 +153,75 @@
 {% endif %}
 
 {#
-  Weather quick view - right under the Next Lesson banner (ahead of the
-  collapsed-by-default Today's Schedule/Upcoming card), so a CFI sees
-  go/no-go info at a glance without scrolling past or expanding anything
-  else first. Sunrise/sunset/civil twilight live in the header time box
+  Weather - condensed to the same single-line-banner treatment as the
+  NOTAM strip above it: one row, no card padding, no oversized background
+  icon eating vertical space. Still themed per condition (wx-{{wxcat}} on
+  .wx-tile drives the animated sky gradient/rain/snow/etc. from
+  dashboard.html's <style> block) so it still reads as "real weather," just
+  compact. Scrolls laterally like the NOTAM strip if it doesn't fit.
+  Sunrise/sunset/civil twilight live in the header time box
   (dashboard.html), so they're not repeated here.
 #}
 {% if cfi and dashboard_wx %}
-<div class="row g-2 mb-3 dash-conditions">
-  {% if dashboard_wx %}
-  {% set c = dashboard_wx.conditions %}
-  {% set wxcat = c.wx_category if c else 'unknown' %}
-  {% set is_day = c.is_day if c and c.is_day is not none else true %}
-  {% set wx_icons = {
-    'clear':   ('bi-sun-fill', 'bi-moon-stars-fill'),
-    'cloudy':  ('bi-cloud-sun-fill', 'bi-cloud-moon-fill'),
-    'fog':     ('bi-cloud-fog2-fill', 'bi-cloud-fog2-fill'),
-    'rain':    ('bi-cloud-rain-heavy-fill', 'bi-cloud-rain-heavy-fill'),
-    'snow':    ('bi-cloud-snow-fill', 'bi-cloud-snow-fill'),
-    'storm':   ('bi-cloud-lightning-rain-fill', 'bi-cloud-lightning-rain-fill'),
-    'unknown': ('bi-question-circle', 'bi-question-circle'),
-  } %}
-  {% set wxicon = (wx_icons[wxcat] if wxcat in wx_icons else wx_icons['unknown'])[0 if is_day else 1] %}
-  <div class="col-12">
-  <div class="card px-3 py-2 h-100 wx-tile wx-compact wx-{{ wxcat }} {{ 'wx-night' if not is_day }}">
-    <i class="bi {{ wxicon }} wx-bg-icon" aria-hidden="true"></i>
-    <div class="wx-content">
-    {% if c %}
-    <div class="wx-strip">
-      <div class="wx-strip-main" title="{{ c.weather_label }}">
-        <i class="bi {{ wxicon }}"></i>
-        <span class="wx-strip-temp">{{ '%.0f'|format(c.temp_f) + '°' if c.temp_f is not none else '-' }}</span>
-        <span class="small wx-subtle">{% if c.feels_like_f is not none %}feels {{ '%.0f'|format(c.feels_like_f) }}&deg; &middot; {% endif %}{{ c.weather_label }}</span>
-      </div>
-      <div class="wx-strip-item">
-        <span class="wx-subtle">Wind</span>
-        {% if c.wind_dir_deg is not none and c.wind_mph %}
-        <i class="bi bi-arrow-up wx-wind-arrow" style="transform: rotate({{ (c.wind_dir_deg|float + 180) % 360 }}deg); display:inline-block;" title="Wind from {{ c.wind_dir_deg|int }}°"></i>
-        {% endif %}
-        <strong>{{ '%.0f'|format(c.wind_mph) if c.wind_mph is not none else '-' }}</strong>{% if c.wind_mph is not none %} mph{% endif %}
-        {% if c.wind_dir_deg is not none %}<span class="wx-subtle">{{ c.wind_dir_deg|int }}&deg; {{ _wind_compass(c.wind_dir_deg) }}</span>{% endif %}
-        {% if c.wind_gusts_mph %}<span class="wx-subtle">G{{ '%.0f'|format(c.wind_gusts_mph) }}</span>{% endif %}
-      </div>
-      <div class="wx-strip-item"><span class="wx-subtle">Clouds</span> <strong>{{ c.cloud_cover_pct|int if c.cloud_cover_pct is not none else '-' }}%</strong></div>
-      <div class="wx-strip-item"><span class="wx-subtle">Vis</span> <strong>{{ '%.1f'|format(c.visibility_miles) if c.visibility_miles is not none else '-' }}</strong>{% if c.visibility_miles is not none %} mi{% endif %}</div>
-      <div class="wx-strip-item"><span class="wx-subtle">Precip</span> <strong>{{ '%.2f'|format(c.precipitation_in) if c.precipitation_in is not none else '-' }}</strong>{% if c.precipitation_in is not none %} in{% endif %}</div>
+{% set c = dashboard_wx.conditions %}
+{% set wxcat = c.wx_category if c else 'unknown' %}
+{% set is_day = c.is_day if c and c.is_day is not none else true %}
+{% set wx_icons = {
+  'clear':   ('bi-sun-fill', 'bi-moon-stars-fill'),
+  'cloudy':  ('bi-cloud-sun-fill', 'bi-cloud-moon-fill'),
+  'fog':     ('bi-cloud-fog2-fill', 'bi-cloud-fog2-fill'),
+  'rain':    ('bi-cloud-rain-heavy-fill', 'bi-cloud-rain-heavy-fill'),
+  'snow':    ('bi-cloud-snow-fill', 'bi-cloud-snow-fill'),
+  'storm':   ('bi-cloud-lightning-rain-fill', 'bi-cloud-lightning-rain-fill'),
+  'unknown': ('bi-question-circle', 'bi-question-circle'),
+} %}
+{% set wxicon = (wx_icons[wxcat] if wxcat in wx_icons else wx_icons['unknown'])[0 if is_day else 1] %}
+<div class="wx-strip-banner wx-tile wx-{{ wxcat }} {{ 'wx-night' if not is_day }} mb-2">
+  <i class="bi {{ wxicon }} wx-bg-icon" aria-hidden="true"></i>
+  <div class="wx-strip-scroll">
+  {% if c %}
+    <div class="wx-strip-main" title="{{ c.weather_label }}">
+      <i class="bi {{ wxicon }}"></i>
+      <span class="wx-strip-temp">{{ '%.0f'|format(c.temp_f) + '°' if c.temp_f is not none else '-' }}</span>
+      <span class="small wx-subtle">{% if c.feels_like_f is not none %}feels {{ '%.0f'|format(c.feels_like_f) }}&deg; &middot; {% endif %}{{ c.weather_label }}</span>
     </div>
-    {% else %}
-    <p class="small mb-0 wx-subtle"><i class="bi bi-cloud-sun"></i> {{ dashboard_wx.error or 'Weather unavailable right now.' }}</p>
-    {% endif %}
+    <div class="wx-strip-item">
+      <span class="wx-subtle">Wind</span>
+      {% if c.wind_dir_deg is not none and c.wind_mph %}
+      <i class="bi bi-arrow-up wx-wind-arrow" style="transform: rotate({{ (c.wind_dir_deg|float + 180) % 360 }}deg); display:inline-block;" title="Wind from {{ c.wind_dir_deg|int }}°"></i>
+      {% endif %}
+      <strong>{{ '%.0f'|format(c.wind_mph) if c.wind_mph is not none else '-' }}</strong>{% if c.wind_mph is not none %} mph{% endif %}
+      {% if c.wind_dir_deg is not none %}<span class="wx-subtle">{{ c.wind_dir_deg|int }}&deg; {{ _wind_compass(c.wind_dir_deg) }}</span>{% endif %}
+      {% if c.wind_gusts_mph %}<span class="wx-subtle">G{{ '%.0f'|format(c.wind_gusts_mph) }}</span>{% endif %}
+    </div>
+    <div class="wx-strip-item"><span class="wx-subtle">Clouds</span> <strong>{{ c.cloud_cover_pct|int if c.cloud_cover_pct is not none else '-' }}%</strong></div>
+    <div class="wx-strip-item"><span class="wx-subtle">Vis</span> <strong>{{ '%.1f'|format(c.visibility_miles) if c.visibility_miles is not none else '-' }}</strong>{% if c.visibility_miles is not none %} mi{% endif %}</div>
+    <div class="wx-strip-item"><span class="wx-subtle">Precip</span> <strong>{{ '%.2f'|format(c.precipitation_in) if c.precipitation_in is not none else '-' }}</strong>{% if c.precipitation_in is not none %} in{% endif %}</div>
     {% if dashboard_wx.metar and dashboard_wx.metar.raw_text %}
-    <div class="wx-metar font-monospace wx-subtle" title="{{ dashboard_wx.metar.raw_text }}">{{ dashboard_wx.metar.raw_text }}</div>
+    <div class="wx-strip-item wx-metar font-monospace wx-subtle" title="{{ dashboard_wx.metar.raw_text }}">{{ dashboard_wx.metar.raw_text }}</div>
     {% endif %}
-    </div>
-  </div>
-  </div>
+  {% else %}
+    <span class="small wx-subtle"><i class="bi bi-cloud-sun"></i> {{ dashboard_wx.error or 'Weather unavailable right now.' }}</span>
   {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if next_lesson %}
+<div class="card p-3 mb-3 border-primary">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <div class="text-uppercase small fw-bold text-primary"><i class="bi bi-calendar-event"></i> Next Lesson</div>
+      <div class="fs-2 fw-bold lh-1 mt-1">{{ next_lesson.countdown }}</div>
+      <div class="text-muted">
+        {{ next_lesson.scheduled_date|usdate }}{% if next_lesson.time_label %} &middot; {{ next_lesson.time_label }}{% endif %}
+        &middot; {{ next_lesson.plane_tag }}
+        {% if cfi %} &middot; {{ next_lesson.student_name }}{% endif %}
+        {% if next_lesson.cfi_name %} &middot; {{ next_lesson.cfi_name }}{% elif next_lesson.solo %}<span class="badge bg-secondary ms-1">Solo</span>{% else %}<span class="badge bg-danger ms-1">Needs Instructor</span>{% endif %}
+      </div>
+    </div>
+    <a href="{{ url_for('flight.schedule_calendar') }}" class="btn btn-outline-primary btn-sm">Full Calendar</a>
+  </div>
 </div>
 {% endif %}
 

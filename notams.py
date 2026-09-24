@@ -77,6 +77,115 @@ def _classify_notam(core):
         return "taxiway"
     return "other"
 
+
+# Plain-English one-liner for the dashboard row: "what" (subject) and "what
+# happened to it" (descriptor), pulled from the same NOTAM text/contractions
+# used for classification above - not a full NOTAM-contraction decoder,
+# just enough to read at a glance without opening the FAA link. The row
+# itself is clickable for the full, unedited text (see get_dashboard_notams
+# / the dashboard template's popup modal) - the descriptor's job is just to
+# fit on one line, not to be complete.
+_RWY_ID_RE = re.compile(r"\bRWY\s+([0-9A-Z/]+)")
+_TWY_ID_RE = re.compile(r"\bTWY\s+([0-9A-Z]+)")
+_DESCRIPTOR_MAX_LEN = 160
+
+# Compression for the one-line descriptor: strips internal reference
+# clutter (ASN case numbers, raw lat/long) that's never useful at a glance,
+# and - only for "where/how high" NOTAMs (obstructions, towers, etc., the
+# ones that carry a distance/bearing fix) - collapses the fix and height
+# into a single "(.6NM ENE N89/696FT)" tag and drops the trailing
+# short-code status (U/S, WIP), since knowing where/how high something is
+# matters more there than a redundant status code once it's already
+# flagged. A runway/taxiway/approach NOTAM has no fix to collapse, so its
+# status (CLSD, NA, UNUSABLE, ...) - the actual point of the NOTAM - is
+# left untouched.
+_ASN_RE = re.compile(r"\(ASN[^)]*\)\s*")
+_COORD_RE = re.compile(r"\b\d{6,7}[NS]\d{6,7}[EW]\b\s*")
+_DIST_BEARING_RE = re.compile(r"\(([\d.]+NM\s+[A-Z]{1,3}\s+[A-Z0-9]+)\)")
+_AGL_PAREN_RE = re.compile(r"\(\d+FT\s*AGL\)\s*")
+_BARE_HEIGHT_RE = re.compile(r"\b(\d+FT)\b")
+_TRAILING_SHORT_STATUS_RE = re.compile(r"\s*\b(U/S|WIP)\b\s*$")
+
+
+def _compress_notam_text(text):
+    if not text:
+        return text
+    t = _ASN_RE.sub("", text)
+    dist_m = _DIST_BEARING_RE.search(t)
+    dist_text = dist_m.group(1) if dist_m else None
+    if dist_m:
+        t = t[:dist_m.start()] + t[dist_m.end():]
+    t = _AGL_PAREN_RE.sub("", t)
+    t = _COORD_RE.sub("", t)
+    height = None
+    if dist_text:
+        h_m = _BARE_HEIGHT_RE.search(t)
+        if h_m:
+            height = h_m.group(1)
+            t = t[:h_m.start()] + t[h_m.end():]
+    t = re.sub(r"\s{2,}", " ", t).strip()
+    if dist_text:
+        t = _TRAILING_SHORT_STATUS_RE.sub("", t)
+        paren = "(" + dist_text + ("/" + height if height else "") + ")"
+        t = (t + " " + paren).strip()
+    return t
+
+
+def _notam_status(raw_start):
+    """'upcoming' if this NOTAM doesn't take effect until later, else
+    'active' (already in effect, or no start time to judge by - treat as
+    active rather than hide it). Drives the green/yellow row shading in
+    the dashboard detail view; takes the raw ISO timestamp (before
+    _format_notam_date compacts it for display)."""
+    if not raw_start:
+        return "active"
+    try:
+        from datetime import datetime, timezone
+        start = datetime.fromisoformat(raw_start.replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        return "upcoming" if start > now else "active"
+    except Exception:
+        return "active"
+
+
+def _format_notam_date(value):
+    """FAA gives these as full ISO timestamps with milliseconds
+    ('2026-08-13T15:58:00.000Z') - way too long for a one-line row.
+    Compact to 'MM/DD/YY HHMMZ'; falls back to the raw value if it doesn't
+    parse rather than dropping it."""
+    if not value:
+        return None
+    try:
+        from datetime import datetime
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return dt.strftime("%m/%d/%y %H%MZ")
+    except Exception:
+        return value
+
+
+def _summarize_notam(core, category):
+    text = (core.get("text") or "").upper()
+    if category == "tfr":
+        subject = "Flight Restriction"
+    elif category == "closure":
+        subject = "Airport"
+    elif category == "approach":
+        # Check approach first, same as classification does - approach
+        # text (e.g. "IAP RNAV RWY 3 NA") often names a runway as part of
+        # the procedure, which would otherwise get mislabeled "Runway 3".
+        subject = "Approach"
+    else:
+        m = _RWY_ID_RE.search(text)
+        if m:
+            subject = "Runway " + m.group(1)
+        else:
+            m = _TWY_ID_RE.search(text)
+            subject = "Taxiway " + m.group(1) if m else "NOTAM"
+    descriptor = _compress_notam_text(text)
+    if len(descriptor) > _DESCRIPTOR_MAX_LEN:
+        descriptor = descriptor[:_DESCRIPTOR_MAX_LEN].rstrip() + "…"
+    return subject, descriptor or "See NOTAM"
+
 # Read from the environment rather than hardcoded here, so the credentials
 # never end up committed to git (this file is fine to be public/private
 # repo either way). Set OPSHUB_FAA_CLIENT_ID / OPSHUB_FAA_CLIENT_SECRET in
@@ -99,7 +208,13 @@ NMS_NOTAMS_URL = NMS_API_BASE + "/nmsapi/v1/notams"
 FAA_NOTAM_SEARCH_URL = "https://notams.aim.faa.gov/notamSearch/nsapp.html"
 
 SEARCH_RADIUS_NM = 25
-CACHE_KEY = "dashboard_notams_n89_25nm"
+# Bump the trailing _vN whenever the cached payload's *shape* changes (a
+# field added/renamed/removed) - it changes the cache key, so the deploy
+# that ships the change is automatically treated as a cache miss instead
+# of serving an old payload that's missing the new field. Cheaper and more
+# reliable than remembering to manually clear the weather_cache row after
+# every deploy that touches this file.
+CACHE_KEY = "dashboard_notams_n89_25nm_v2"
 CACHE_TTL_SECONDS = 30 * 60  # NOTAMs can post any time, but a half hour is plenty fresh for a dashboard tile
 
 # Airports within 25nm of N89 (Joseph Y. Resnick, Ellenville NY), verified
@@ -212,16 +327,23 @@ def _fetch_notams():
         raw_loc = core.get("icaoLocation") or core.get("location") or ""
         short, label, distance = _airport_label(raw_loc)
         category = _classify_notam(core)
+        subject, descriptor = _summarize_notam(core, category)
         notams.append({
             "icao": short,
             "airport_label": label,
             "distance_nm": distance,
             "number": core.get("number") or "(no number)",
             "notam_type": core.get("type"),
-            "effective_start": core.get("effectiveStart"),
-            "effective_end": core.get("effectiveEnd"),
+            "effective_start": _format_notam_date(core.get("effectiveStart")),
+            "effective_end": _format_notam_date(core.get("effectiveEnd")),
+            "status": _notam_status(core.get("effectiveStart")),
             "category": category,
             "category_label": CATEGORY_LABELS[category],
+            "subject": subject,
+            "descriptor": descriptor,
+            # Full, unedited NOTAM text for the click-to-expand popup - the
+            # descriptor above is a lossy one-line compression of this.
+            "full_text": (core.get("text") or "").strip() or "(no text provided)",
         })
     notams.sort(key=lambda n: (n["distance_nm"] if n["distance_nm"] is not None else 999, n["icao"]))
     return {"error": None, "notams": notams, "airport_groups": _group_by_airport(notams)}
