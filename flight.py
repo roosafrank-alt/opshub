@@ -4135,7 +4135,7 @@ def log_pause(flight_id):
         return redirect(url_for("flight.log_active"))
     if not _can_end_flight(f):
         conn.close()
-        flash("Only the assigned instructor, the student (on a solo flight), or an admin can pause this flight.", "danger")
+        flash("Only the assigned instructor, the student (on a solo flight), or a master admin can pause this flight. (The Maintenance Admin role does not count - ask a master admin to check the 'Master Admin' box for that account.)", "danger")
         return redirect(url_for("flight.log_active"))
     if not f["paused_at"]:
         conn.execute("UPDATE flights SET paused_at = ? WHERE id = ?", (now_iso(), flight_id))
@@ -4158,7 +4158,7 @@ def log_resume(flight_id):
         return redirect(url_for("flight.log_active"))
     if not _can_end_flight(f):
         conn.close()
-        flash("Only the assigned instructor, the student (on a solo flight), or an admin can resume this flight.", "danger")
+        flash("Only the assigned instructor, the student (on a solo flight), or a master admin can resume this flight. (The Maintenance Admin role does not count - ask a master admin to check the 'Master Admin' box for that account.)", "danger")
         return redirect(url_for("flight.log_active"))
     if f["paused_at"]:
         paused_started = datetime.strptime(f["paused_at"], "%Y-%m-%d %H:%M:%S")
@@ -4186,7 +4186,7 @@ def log_stop(flight_id):
         return redirect(url_for("flight.log_active"))
     if not _can_end_flight(f):
         conn.close()
-        flash("Only the assigned instructor, the student (on a solo flight), or an admin can end this flight.", "danger")
+        flash("Only the assigned instructor, the student (on a solo flight), or a master admin can end this flight. (The Maintenance Admin role does not count - ask a master admin to check the 'Master Admin' box for that account.)", "danger")
         return redirect(url_for("flight.log_active"))
     if not f["stopped_at"]:
         stopped_at = now_iso()
@@ -4240,7 +4240,7 @@ def log_end(flight_id):
         return redirect(url_for("flight.log_active"))
     if not _can_end_flight(f):
         conn.close()
-        flash("Only the assigned instructor, the student (on a solo flight), or an admin can end this flight.", "danger")
+        flash("Only the assigned instructor, the student (on a solo flight), or a master admin can end this flight. (The Maintenance Admin role does not count - ask a master admin to check the 'Master Admin' box for that account.)", "danger")
         return redirect(url_for("flight.log_active"))
 
     hobbs_end = _parse_float(request.form.get("hobbs_end"))
