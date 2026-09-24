@@ -2308,14 +2308,30 @@ def _layout_month_cell_timeline(flights, plane_order,
     for tag in tags_today:
         items = sorted(by_lane[tag], key=lambda t: t[0])
         claimed_bottom = None
+        prev_style = None
         for top, f in items:
+            # Rounded corners (see .month-lane-block CSS) look fine on a
+            # block with real space above/below it, but on two bookings
+            # that butt up against each other with no actual time gap, the
+            # curve on each touching edge leaves a sliver of the cell
+            # background showing through - reading as a gap that isn't
+            # really there. touches_prev/touches_next (below) tell the
+            # template to square off just that shared edge so back-to-back
+            # bookings read as touching. A small tolerance absorbs the
+            # independent px rounding on top_px vs the previous claimed_bottom.
+            touches_prev = claimed_bottom is not None and top <= claimed_bottom + 0.5
             if claimed_bottom is not None and top < claimed_bottom:
                 top = claimed_bottom
             dur_hours = f["duration_hours"] if f["duration_hours"] else DEFAULT_SCHEDULE_BLOCK_HOURS
             height = max(MONTH_BLOCK_MIN_PX, round(dur_hours * 60 * MONTH_BLOCK_PX_PER_MIN, 1))
-            placements.append((f, {"top_px": round(top, 1), "height_px": height,
-                                    "left_pct": round(lane_index[tag] * width_pct, 2),
-                                    "width_pct": round(width_pct, 2)}))
+            style = {"top_px": round(top, 1), "height_px": height,
+                     "left_pct": round(lane_index[tag] * width_pct, 2),
+                     "width_pct": round(width_pct, 2),
+                     "touches_prev": touches_prev, "touches_next": False}
+            if touches_prev and prev_style is not None:
+                prev_style["touches_next"] = True
+            placements.append((f, style))
+            prev_style = style
             claimed_bottom = top + height
             max_bottom = max(max_bottom, top + height)
     container_h = round(max(max_bottom, base_height) + 4, 1)
