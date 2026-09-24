@@ -25,7 +25,8 @@ import academy
 from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
                    master_admin_required, shop_role_required, can_see_shop_costs,
                    owner_user_id, owner_locked, authenticate_customer, log_in_combined,
-                   current_customer)
+                   current_customer, start_view_as, exit_view_as, viewing_as_label,
+                   SHOP_VIEW_AS_LEVELS)
 import notify
 from urllib.parse import urlparse
 import push
@@ -224,6 +225,9 @@ def inject_auth_context():
         "tour_seen_flight": session.get("tour_seen_flight"),
         "maint_category_colors": CATEGORY_COLORS,
         "maint_category_labels": CATEGORY_LABELS,
+        "viewing_as": viewing_as_label(),
+        "is_real_master_admin": bool(session.get("_view_as_real")) or bool(session.get("is_master_admin")),
+        "shop_view_as_levels": SHOP_VIEW_AS_LEVELS,
     }
 
 
@@ -3543,6 +3547,25 @@ def admin_home():
         error_log_count = len([n for n in os.listdir(ERROR_LOG_DIR) if n.endswith(".log")])
     conn.close()
     return render_template("admin_home.html", user_count=user_count, error_log_count=error_log_count)
+
+
+@app.route("/view-as/<level>", methods=["POST"])
+def view_as_start(level):
+    """Lets a master admin see Shop Inventory as an Admin/Tech/Student
+    account would, from the "View as" control in the navbar on every
+    shop/admin page."""
+    if not start_view_as(level):
+        flash("Can't view as that.", "danger")
+        return redirect(request.referrer or url_for("dashboard"))
+    flash(f"Viewing as {SHOP_VIEW_AS_LEVELS[level]}. Nothing you do here affects real data any differently than it would for that role.", "info")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/view-as/exit", methods=["POST"])
+def view_as_exit():
+    if exit_view_as():
+        flash("Back to your own admin view.", "info")
+    return redirect(request.referrer or url_for("dashboard"))
 
 
 @app.route("/admin/users")

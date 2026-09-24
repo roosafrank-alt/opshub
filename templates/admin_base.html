@@ -59,6 +59,7 @@
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu-toggle">
             <li><a class="dropdown-item" href="{{ url_for('account_page', from='admin') }}"><i class="bi bi-person-gear"></i> My Account</a></li>
+            {% include "_view_as_menu.html" %}
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="{{ url_for('logout') }}" onclick="return confirm('Log out?')"><i class="bi bi-box-arrow-right"></i> Log Out</a></li>
           </ul>
@@ -67,6 +68,7 @@
     </div>
   </div>
 </nav>
+{% include "_view_as_banner.html" %}
 <div class="container-fluid py-3">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}

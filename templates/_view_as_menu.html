@@ -1,0 +1,24 @@
+{#- Shared "View as" dropdown section - lets a master admin browse Shop
+   Inventory as an Admin/Tech/Student account would see it. Included from
+   the user-menu dropdown in base.html, admin_base.html, and
+   flight/base_flight.html so it shows up on every page. #}
+{% if is_real_master_admin %}
+<li><hr class="dropdown-divider"></li>
+<li><h6 class="dropdown-header">View Shop Inventory as</h6></li>
+{% for level, label in shop_view_as_levels.items() %}
+{% if shop_role != level %}
+<li>
+  <form action="{{ url_for('view_as_start', level=level) }}" method="post">
+    <button type="submit" class="dropdown-item border-0 bg-transparent w-100 text-start"><i class="bi bi-eye"></i> {{ label }}</button>
+  </form>
+</li>
+{% endif %}
+{% endfor %}
+{% if viewing_as %}
+<li>
+  <form action="{{ url_for('view_as_exit') }}" method="post">
+    <button type="submit" class="dropdown-item border-0 bg-transparent w-100 text-start fw-bold"><i class="bi bi-eye-slash"></i> Back to my admin view</button>
+  </form>
+</li>
+{% endif %}
+{% endif %}

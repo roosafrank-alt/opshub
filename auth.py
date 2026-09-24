@@ -138,6 +138,53 @@ def can_manage_billing():
 
 
 # ---------------------------------------------------------------------------
+# "View as" - lets a master admin temporarily browse Shop Inventory as an
+# Admin/Tech/Student account sees it, without logging out of their own
+# account. It works by actually swapping the session's role fields (so every
+# existing shop_role_required/can_see_shop_costs check sees exactly what
+# that role sees) and stashing the real values under _view_as_real to
+# restore on exit. Flight School roles aren't included here since a faked
+# flight_role has no matching cfis/students row and would break pages that
+# expect one - this only covers the three Shop Inventory levels.
+# ---------------------------------------------------------------------------
+
+SHOP_VIEW_AS_LEVELS = {"admin": "Shop Admin", "tech": "Shop Tech", "student": "Shop Student"}
+
+
+def start_view_as(shop_role):
+    """True master admin only, and not already viewing as someone else."""
+    if shop_role not in SHOP_VIEW_AS_LEVELS:
+        return False
+    if not session.get("is_master_admin") or session.get("_view_as_real"):
+        return False
+    session["_view_as_real"] = {
+        "is_master_admin": session.get("is_master_admin"),
+        "shop_role": session.get("shop_role"),
+        "can_bill": session.get("can_bill"),
+    }
+    session["is_master_admin"] = False
+    session["shop_role"] = shop_role
+    session["can_bill"] = False
+    return True
+
+
+def exit_view_as():
+    real = session.pop("_view_as_real", None)
+    if not real:
+        return False
+    session["is_master_admin"] = real["is_master_admin"]
+    session["shop_role"] = real["shop_role"]
+    session["can_bill"] = real["can_bill"]
+    return True
+
+
+def viewing_as_label():
+    if not session.get("_view_as_real"):
+        return None
+    return SHOP_VIEW_AS_LEVELS.get(session.get("shop_role"))
+
+
+# ---------------------------------------------------------------------------
 # Owner account: the first master admin. Other master admins can't change
 # it (roles, admin flag, active, password, name) or see its password, but
 # the owner can always change theirs.
