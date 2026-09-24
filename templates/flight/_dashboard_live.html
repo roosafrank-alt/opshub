@@ -120,7 +120,7 @@
     <i class="bi bi-exclamation-diamond text-muted flex-shrink-0" title="NOTAMs - N89 + 25nm"></i>
     {% for a in dashboard_notams.strip_airports %}
       {% if a.has_notams %}
-      <button type="button" class="notam-airport-toggle notam-chip {{ 'notam-chip-alert' if a.severity == 'alert' else 'notam-chip-warn' }} flex-shrink-0" data-notam-airport="{{ a.icao }}">{{ a.icao }}</button>
+      <button type="button" class="notam-airport-toggle notam-chip {{ 'notam-chip-alert' if a.severity == 'alert' else 'notam-chip-warn' }} flex-shrink-0" data-notam-airport="{{ a.icao }}" data-notam-numbers="{{ a.notams|map(attribute='number')|join(',') }}">{{ a.icao }} <span class="notam-chip-new-badge" data-notam-new-count hidden>0</span></button>
       {% else %}
       <span class="notam-chip notam-chip-quiet flex-shrink-0">{{ a.icao }}</span>
       {% endif %}
@@ -141,6 +141,7 @@
          data-end="{{ n.effective_end or '' }}" data-fulltext="{{ n.full_text }}"
          data-search-url="{{ dashboard_notams.search_url }}" title="Click for full NOTAM text">
       <div class="flex-grow-1 text-truncate">
+        <i class="bi bi-exclamation-triangle-fill {{ 'text-danger' if n.severity == 'alert' else 'text-warning' }}" title="{{ 'Keeps a plane on the ground' if n.severity == 'alert' else 'Active NOTAM' }}"></i>
         <strong>{{ n.subject }}</strong> &middot; {{ n.descriptor }}{% if n.effective_start or n.effective_end %} &middot; <span class="text-muted">{{ n.effective_start or '-' }}{% if n.effective_end %}&ndash;{{ n.effective_end }}{% endif %}</span>{% endif %}
       </div>
       <div class="flex-shrink-0 d-flex align-items-center gap-2">

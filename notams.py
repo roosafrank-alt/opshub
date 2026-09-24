@@ -52,6 +52,14 @@ CATEGORY_LABELS = {
 }
 CATEGORY_RANK = {cat: i for i, cat in enumerate(CATEGORY_ORDER)}
 
+# Which categories are red ("alert") vs orange ("warn") wherever a NOTAM's
+# severity is shown - the dashboard strip's airport chips and, per-NOTAM,
+# the expanded detail rows. Red is reserved for what actually keeps a
+# plane on the ground: a TFR or an airport/runway closure. Everything else
+# active (taxiway, approach, other) is orange so it doesn't read as the
+# same emergency.
+RED_CATEGORIES = {"tfr", "closure", "runway"}
+
 _CLOSURE_RE = re.compile(r"\b(ARPT|AD|AIRPORT)\b[^.]{0,20}\bCLSD\b")
 _RUNWAY_RE = re.compile(r"\bRWY\b")
 _TAXIWAY_RE = re.compile(r"\bTWY\b")
@@ -339,6 +347,7 @@ def _fetch_notams():
             "status": _notam_status(core.get("effectiveStart")),
             "category": category,
             "category_label": CATEGORY_LABELS[category],
+            "severity": "alert" if category in RED_CATEGORIES else "warn",
             "subject": subject,
             "descriptor": descriptor,
             # Full, unedited NOTAM text for the click-to-expand popup - the
@@ -405,16 +414,14 @@ def get_dashboard_notams(conn, force=False):
     # N89 is distance 0.0) - not the severity order airport_groups uses,
     # just "is this airport worth a glance" in geographic order.
     groups_by_icao = {g["icao"]: g for g in payload.get("airport_groups", [])}
-    # Chip severity for the strip: red ("alert") only for what actually
-    # keeps a plane on the ground - a TFR or an airport/runway closure -
-    # everything else active (taxiway, approach, other) is orange ("warn")
-    # so a quiet-but-not-urgent NOTAM doesn't read as the same emergency.
-    RED_CATEGORIES = {"tfr", "closure", "runway"}
+    # Chip severity for the strip: the worst (first, since each group's
+    # notams are already sorted by CATEGORY_RANK) NOTAM's own severity -
+    # same red/orange split as each individual NOTAM row uses, so the chip
+    # never disagrees with what's inside it.
     payload["strip_airports"] = [{
         "icao": a["icao"], "label": a["label"], "distance_nm": a["distance_nm"],
         "has_notams": a["icao"] in groups_by_icao,
-        "severity": ("alert" if groups_by_icao[a["icao"]]["top_category"] in RED_CATEGORIES else "warn")
-                    if a["icao"] in groups_by_icao else None,
+        "severity": groups_by_icao[a["icao"]]["notams"][0]["severity"] if a["icao"] in groups_by_icao else None,
         "notams": groups_by_icao[a["icao"]]["notams"] if a["icao"] in groups_by_icao else [],
     } for a in payload["airports"]]
 

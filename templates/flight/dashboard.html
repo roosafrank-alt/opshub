@@ -476,6 +476,10 @@ document.addEventListener('click', function (evt) {
   if (opening) {
     detail.hidden = false;
     toggle.classList.add('open');
+    // Actually looking at this airport's notams is what "viewed by user"
+    // means - see dashMarkAirportSeen()'s comment for why this used to
+    // clear itself just from appearing on a poll instead.
+    dashMarkAirportSeen(toggle);
   }
 });
 
@@ -525,31 +529,61 @@ function dashSaveOpen(key, open) {
   dashCheckNewNotams(region);
 })();
 
-// Lights up the thin red banner above the NOTAM strip when today's active
-// NOTAM numbers include one this browser hasn't seen yet - "seen" resets
-// each calendar day, so a still-active NOTAM will flag again tomorrow but
-// won't nag again later today. Runs on initial load and after every
-// live-refresh poll (see restoreOpenState above), purely client-side since
-// "seen" is per-browser, not something the server tracks.
+// Lights up the thin red banner above the NOTAM strip, and a numbered
+// badge on each airport chip, when today's active NOTAM numbers include
+// ones this browser hasn't actually looked at yet - "seen" resets each
+// calendar day, so a still-active NOTAM flags again tomorrow but won't nag
+// again later today. Marking something seen happens ONLY when a person
+// opens that airport's notams (dashMarkAirportSeen, called from the
+// airport-chip click handler and from dashOpenNewNotam below) - this
+// function itself is read-only, just re-rendering the banner/badges off
+// whatever's in NOTAM_SEEN_STORE right now. Runs on initial load and after
+// every live-refresh poll (see restoreOpenState above), purely client-side
+// since "seen" is per-browser, not something the server tracks.
 var NOTAM_SEEN_STORE = 'opshub-dash-notams-seen-v1';
-function dashCheckNewNotams(region) {
-  var wrap = region.querySelector('.notam-strip-wrap[data-notam-numbers]');
-  var banner = region.querySelector('[data-notam-new-banner]');
-  if (!wrap || !banner) return;
-  var current = wrap.dataset.notamNumbers ? wrap.dataset.notamNumbers.split(',').filter(Boolean) : [];
+function dashSeenNumbers() {
   var today = new Date().toISOString().slice(0, 10);
   var seen;
   try { seen = JSON.parse(localStorage.getItem(NOTAM_SEEN_STORE) || 'null'); } catch (e) { seen = null; }
   if (!seen || seen.date !== today) seen = { date: today, numbers: [] };
+  return seen;
+}
+function dashCheckNewNotams(region) {
+  var banner = region.querySelector('[data-notam-new-banner]');
+  var seenSet = {};
+  dashSeenNumbers().numbers.forEach(function (n) { seenSet[n] = true; });
+  var allNew = [];
+  region.querySelectorAll('.notam-airport-toggle[data-notam-numbers]').forEach(function (toggle) {
+    var nums = (toggle.dataset.notamNumbers || '').split(',').filter(Boolean);
+    var newNums = nums.filter(function (n) { return !seenSet[n]; });
+    var badge = toggle.querySelector('[data-notam-new-count]');
+    if (badge) {
+      badge.hidden = newNums.length === 0;
+      badge.textContent = newNums.length;
+    }
+    allNew = allNew.concat(newNums);
+  });
+  if (banner) {
+    banner.hidden = allNew.length === 0;
+    banner.dataset.newNumbers = allNew.join(',');
+  }
+}
+// Marks one airport's currently-shown NOTAM numbers as seen (persisted for
+// the rest of today) and immediately re-renders the banner/badges to match -
+// called when a person actually opens that airport's notams, not just when
+// they happen to be on the strip during a page load or poll.
+function dashMarkAirportSeen(toggle) {
+  if (!toggle) return;
+  var nums = (toggle.dataset.notamNumbers || '').split(',').filter(Boolean);
+  if (!nums.length) return;
+  var seen = dashSeenNumbers();
   var seenSet = {};
   seen.numbers.forEach(function (n) { seenSet[n] = true; });
-  // Kept on the banner itself (not just used to decide hidden/shown) so the
-  // click handler below still knows which NOTAM(s) were "new" even after
-  // this same call marks everything currently on the strip as seen.
-  var newNumbers = current.filter(function (n) { return !seenSet[n]; });
-  banner.hidden = newNumbers.length === 0;
-  banner.dataset.newNumbers = newNumbers.join(',');
-  try { localStorage.setItem(NOTAM_SEEN_STORE, JSON.stringify({ date: today, numbers: current })); } catch (e) {}
+  nums.forEach(function (n) { seenSet[n] = true; });
+  seen.numbers = Object.keys(seenSet);
+  try { localStorage.setItem(NOTAM_SEEN_STORE, JSON.stringify(seen)); } catch (e) {}
+  var region = document.getElementById('dashboard-live-region');
+  if (region) dashCheckNewNotams(region);
 }
 
 // Clicking (or Enter/Space-ing) the "New NOTAMs today" banner jumps
@@ -579,6 +613,7 @@ function dashOpenNewNotam(banner) {
     });
     detail.hidden = false;
     toggle.classList.add('open');
+    dashMarkAirportSeen(toggle);
   }
   row.click();
 }
