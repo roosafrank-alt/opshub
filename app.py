@@ -24,7 +24,8 @@ from customer import customer_bp
 import academy
 from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
                    master_admin_required, shop_role_required, can_see_shop_costs,
-                   owner_user_id, owner_locked)
+                   owner_user_id, owner_locked, authenticate_customer, log_in_combined,
+                   current_customer)
 import notify
 from urllib.parse import urlparse
 import push
@@ -231,7 +232,13 @@ def home_launcher():
     """Master login + top-level launcher. Not signed in: shows the login
     form. Signed in: shows only the program tiles (Shop Inventory - really
     the shop + maintenance tile - and/or Flight School) this account has a
-    role in."""
+    role in, plus a "My Aircraft" tile for anyone with a customer account
+    (own aircraft for a plain customer, the admin customer-management page
+    for a shop admin). The form checks the entered username/password
+    against both the staff `users` table and the `customers` table, so a
+    flight student who's also an aircraft-owning customer (same
+    email/password in both) gets every tile at once - see
+    auth.log_in_combined."""
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
@@ -241,17 +248,21 @@ def home_launcher():
         # checkbox only appears in form data at all when it's checked.
         remember = "remember" in request.form
         user_row = authenticate(username, password)
-        if not user_row:
+        # Customers log in by email - the hub's "Username" field doubles as
+        # that when it doesn't match a staff username.
+        customer_row = authenticate_customer(username, password)
+        if not user_row and not customer_row:
             flash("Incorrect username or password.", "danger")
-            return render_template("home_launcher.html", user=None, username=username)
-        log_in_user(user_row, remember=remember)
-        flash(f"Welcome, {user_row['name']}!", "success")
+            return render_template("home_launcher.html", user=None, customer=None, username=username)
+        log_in_combined(user_row, customer_row, remember=remember)
+        flash(f"Welcome, {(user_row or customer_row)['name']}!", "success")
         return redirect(url_for("home_launcher"))
 
     conn = get_db()
     user = current_user(conn)
+    customer = current_customer(conn)
     conn.close()
-    return render_template("home_launcher.html", user=user)
+    return render_template("home_launcher.html", user=user, customer=customer)
 
 
 @app.route("/tour/seen", methods=["POST"])

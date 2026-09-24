@@ -22,7 +22,8 @@
     </a>
     <div class="d-flex align-items-center gap-3">
       <span class="text-light small d-none d-sm-inline">{{ customer.name }}</span>
-      <a href="{{ url_for('customer.customer_logout') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right"></i> Log Out</a>
+      {% if session.get('user_id') %}<a href="{{ url_for('home_launcher') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-grid-3x3-gap"></i> Hub</a>{% endif %}
+      <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right"></i> Log Out</a>
     </div>
   </div>
 </nav>

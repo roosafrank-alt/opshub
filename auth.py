@@ -214,6 +214,43 @@ def log_out_customer():
     session.clear()
 
 
+def log_in_combined(user_row, customer_row, remember=True):
+    """The hub's login form (home_launcher) checks the entered
+    username/password against BOTH the staff `users` table and the
+    `customers` table, and this logs in with whichever matched. The two
+    account systems stay separate (own tables, own session keys, own
+    decorators) - this just lets one person hold both a staff/student
+    login and a customer login under the same email+password and see
+    every tile they have access to at once, without merging the accounts.
+    Pass None for whichever didn't match; at least one must be given."""
+    session.clear()
+    session.permanent = bool(remember)
+    if user_row:
+        session["user_id"] = user_row["id"]
+        session["user_name"] = user_row["name"]
+        session["is_master_admin"] = bool(user_row["is_master_admin"])
+        session["shop_role"] = user_row["shop_role"]
+        session["flight_role"] = user_row["flight_role"]
+        session["can_bill"] = bool(user_row["can_bill"])
+        session["academy_access"] = bool(user_row["academy_access"])
+        session["tour_seen_shop"] = bool(user_row["tour_seen_shop"])
+        session["tour_seen_flight"] = bool(user_row["tour_seen_flight"])
+        conn = get_db()
+        ensure_flight_profile(conn, user_row)
+        if user_row["flight_role"] == "cfi":
+            cfi = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
+            if cfi:
+                session["cfi_id"] = cfi["id"]
+        elif user_row["flight_role"] == "student":
+            student = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_row["id"],)).fetchone()
+            if student:
+                session["student_id"] = student["id"]
+        conn.close()
+    if customer_row:
+        session["customer_id"] = customer_row["id"]
+        session["customer_name"] = customer_row["name"]
+
+
 def current_customer(conn):
     cid = session.get("customer_id")
     if not cid:
