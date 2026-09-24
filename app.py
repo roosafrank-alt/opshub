@@ -2680,6 +2680,28 @@ def maintenance_delete(item_id):
 # Photos (parts, projects, and assets)
 # ---------------------------------------------------------------------------
 
+def _add_photos(conn, files, column, owner_id):
+    """Saves uploaded image files as photos for a part/project/asset and
+    inserts one photos row per file. Returns (saved_count, error) - if
+    writing a file to disk fails (e.g. the Pi is out of storage), nothing
+    from this batch is committed and error is a message to flash instead
+    of letting the OSError crash the request with a raw error page."""
+    saved = 0
+    try:
+        for f in files:
+            if f and f.filename and allowed_image(f.filename):
+                stored_name = save_upload(f)
+                conn.execute(f"INSERT INTO photos ({column}, filename, created_at) VALUES (?, ?, ?)",
+                             (owner_id, stored_name, now_iso()))
+                saved += 1
+        conn.commit()
+    except OSError:
+        conn.rollback()
+        app.logger.exception("Photo upload failed for %s %s", column, owner_id)
+        return None, "Couldn't save that photo - the Pi may be low on storage. Check Admin -> System for details."
+    return saved, None
+
+
 @app.route("/assets/<int:asset_id>/photos", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def asset_add_photos(asset_id):
@@ -2689,16 +2711,11 @@ def asset_add_photos(asset_id):
         conn.close()
         abort(404)
     files = request.files.getlist("photos")
-    saved = 0
-    for f in files:
-        if f and f.filename and allowed_image(f.filename):
-            stored_name = save_upload(f)
-            conn.execute("INSERT INTO photos (asset_id, filename, created_at) VALUES (?, ?, ?)",
-                         (asset_id, stored_name, now_iso()))
-            saved += 1
-    conn.commit()
+    saved, error = _add_photos(conn, files, "asset_id", asset_id)
     conn.close()
-    if saved:
+    if error:
+        flash(error, "danger")
+    elif saved:
         flash(f"Added {saved} photo(s).", "success")
     else:
         flash("No valid image files were selected.", "danger")
@@ -2714,16 +2731,11 @@ def part_add_photos(part_id):
         conn.close()
         abort(404)
     files = request.files.getlist("photos")
-    saved = 0
-    for f in files:
-        if f and f.filename and allowed_image(f.filename):
-            stored_name = save_upload(f)
-            conn.execute("INSERT INTO photos (part_id, filename, created_at) VALUES (?, ?, ?)",
-                         (part_id, stored_name, now_iso()))
-            saved += 1
-    conn.commit()
+    saved, error = _add_photos(conn, files, "part_id", part_id)
     conn.close()
-    if saved:
+    if error:
+        flash(error, "danger")
+    elif saved:
         flash(f"Added {saved} photo(s).", "success")
     else:
         flash("No valid image files were selected.", "danger")
@@ -2739,16 +2751,11 @@ def project_add_photos(project_id):
         conn.close()
         abort(404)
     files = request.files.getlist("photos")
-    saved = 0
-    for f in files:
-        if f and f.filename and allowed_image(f.filename):
-            stored_name = save_upload(f)
-            conn.execute("INSERT INTO photos (project_id, filename, created_at) VALUES (?, ?, ?)",
-                         (project_id, stored_name, now_iso()))
-            saved += 1
-    conn.commit()
+    saved, error = _add_photos(conn, files, "project_id", project_id)
     conn.close()
-    if saved:
+    if error:
+        flash(error, "danger")
+    elif saved:
         flash(f"Added {saved} photo(s).", "success")
     else:
         flash("No valid image files were selected.", "danger")
