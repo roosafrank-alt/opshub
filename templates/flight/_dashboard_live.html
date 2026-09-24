@@ -113,16 +113,61 @@
 {% endif %}
 
 {#
-  Conditions quick view - weather and NOTAMs side by side near the top,
-  right under the Next Lesson banner (ahead of the collapsed-by-default
-  Today's Schedule/Upcoming card), so a CFI sees go/no-go info at a glance
-  without scrolling past or expanding anything else first. Weather is one
-  compact strip; NOTAMs show a count and open into the list on click (the
-  same remembered dash-collapse toggle the schedule sections use).
-  Sunrise/sunset/civil twilight now live in the header time box
+  NOTAMs live as a single-line banner above weather rather than a card of
+  their own: one row of airport identifiers, N89 first then the rest by
+  increasing distance (dashboard_notams.strip_airports is already sorted
+  that way), quiet unless an airport actually has something active - then
+  it's a red, clickable chip that expands its NOTAMs (still triaged by
+  CATEGORY_ORDER: TFRs, closures, runways, taxiways, approaches, everything
+  else) right below the strip. Scrolls laterally if it overflows rather
+  than wrapping, so it stays one line. The thin alert banner above it is
+  JS-driven (see dashboard.html) - it lights up when today's NOTAM numbers
+  include one that wasn't there the last time this browser checked.
+#}
+{% if cfi and dashboard_notams and dashboard_notams.configured and not dashboard_notams.error %}
+<div class="notam-strip-wrap mb-2" data-notam-numbers="{{ dashboard_notams.notams|map(attribute='number')|join(',') }}">
+  <div class="notam-strip-new-banner" data-notam-new-banner hidden>
+    <i class="bi bi-exclamation-triangle-fill"></i> New NOTAMs today
+  </div>
+  <div class="notam-strip d-flex align-items-center gap-2 flex-nowrap">
+    <i class="bi bi-exclamation-diamond text-muted flex-shrink-0" title="NOTAMs - N89 + 25nm"></i>
+    {% for a in dashboard_notams.strip_airports %}
+      {% if a.has_notams %}
+      <button type="button" class="notam-airport-toggle notam-chip notam-chip-alert flex-shrink-0" data-notam-airport="{{ a.icao }}">{{ a.icao }}</button>
+      {% else %}
+      <span class="notam-chip notam-chip-quiet flex-shrink-0">{{ a.icao }}</span>
+      {% endif %}
+    {% endfor %}
+    <a href="{{ dashboard_notams.search_url }}" target="_blank" rel="noopener" class="small text-muted flex-shrink-0 ms-1">FAA <i class="bi bi-box-arrow-up-right"></i></a>
+  </div>
+  {% for a in dashboard_notams.strip_airports if a.has_notams %}
+  <div class="notam-strip-detail mt-1 ps-1" data-notam-detail="{{ a.icao }}" hidden>
+    {% set ns = namespace(last_cat=none) %}
+    {% for n in a.notams %}
+    {% if n.category != ns.last_cat %}
+    <div class="text-uppercase text-muted small fw-bold {{ 'mt-2' if not loop.first }}">{{ n.category_label }}</div>
+    {% set ns.last_cat = n.category %}
+    {% endif %}
+    <div class="d-flex align-items-center gap-2 py-1">
+      <code class="small">{{ n.number }}</code>
+      {% if n.notam_type %}<span class="badge bg-secondary">{{ n.notam_type }}</span>{% endif %}
+      <small class="text-muted">{{ n.effective_start or '-' }}{% if n.effective_end %} &ndash; {{ n.effective_end }}{% endif %}</small>
+      <a href="{{ dashboard_notams.search_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm ms-auto py-0">Read <i class="bi bi-box-arrow-up-right"></i></a>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{#
+  Weather quick view - right under the Next Lesson banner (ahead of the
+  collapsed-by-default Today's Schedule/Upcoming card), so a CFI sees
+  go/no-go info at a glance without scrolling past or expanding anything
+  else first. Sunrise/sunset/civil twilight live in the header time box
   (dashboard.html), so they're not repeated here.
 #}
-{% if cfi and (dashboard_wx or dashboard_notams) %}
+{% if cfi and dashboard_wx %}
 <div class="row g-2 mb-3 dash-conditions">
   {% if dashboard_wx %}
   {% set c = dashboard_wx.conditions %}
@@ -138,7 +183,7 @@
     'unknown': ('bi-question-circle', 'bi-question-circle'),
   } %}
   {% set wxicon = (wx_icons[wxcat] if wxcat in wx_icons else wx_icons['unknown'])[0 if is_day else 1] %}
-  <div class="{{ 'col-lg-8' if dashboard_notams else 'col-12' }}">
+  <div class="col-12">
   <div class="card px-3 py-2 h-100 wx-tile wx-compact wx-{{ wxcat }} {{ 'wx-night' if not is_day }}">
     <i class="bi {{ wxicon }} wx-bg-icon" aria-hidden="true"></i>
     <div class="wx-content">
@@ -167,61 +212,6 @@
     {% endif %}
     {% if dashboard_wx.metar and dashboard_wx.metar.raw_text %}
     <div class="wx-metar font-monospace wx-subtle" title="{{ dashboard_wx.metar.raw_text }}">{{ dashboard_wx.metar.raw_text }}</div>
-    {% endif %}
-    </div>
-  </div>
-  </div>
-  {% endif %}
-
-  {% if dashboard_notams %}
-  {% set notam_list = dashboard_notams.notams if dashboard_notams.configured and not dashboard_notams.error else [] %}
-  <div class="{{ 'col-lg-4' if dashboard_wx else 'col-12' }}">
-  <div class="card px-3 py-2 h-100">
-    <div class="d-flex justify-content-between align-items-center gap-2">
-      <button type="button" class="dash-collapse-toggle d-flex align-items-center gap-2 border-0 bg-transparent text-start p-0 flex-grow-1" data-collapse="notams">
-        <h6 class="mb-0"><i class="bi bi-exclamation-diamond"></i> NOTAMs</h6>
-        {% if not dashboard_notams.configured or dashboard_notams.error %}
-        <span class="badge bg-secondary">Not loaded</span>
-        {% elif notam_list %}
-        <span class="badge bg-warning text-dark">{{ notam_list|length }} active</span>
-        {% else %}
-        <span class="badge bg-success">None</span>
-        {% endif %}
-        <i class="bi bi-chevron-right dash-collapse-chevron ms-auto"></i>
-      </button>
-      <a href="{{ dashboard_notams.search_url }}" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm py-0" title="FAA NOTAM Search">FAA <i class="bi bi-box-arrow-up-right"></i></a>
-    </div>
-    <div class="small text-muted">N89 + 25nm</div>
-    <div class="dash-collapse-body mt-2" data-collapse-body="notams" hidden>
-    {% if not dashboard_notams.configured %}
-    <p class="text-muted small mb-0">
-      NOTAM pulling isn't set up yet - the FAA's NOTAM API needs a free client_id/client_secret
-      (register at <a href="https://api.faa.gov" target="_blank" rel="noopener">api.faa.gov</a> and fill them
-      into <code>notams.py</code>). Until then, use the FAA link to check N89 and nearby airports by hand.
-    </p>
-    {% elif dashboard_notams.error %}
-    <p class="text-muted small mb-0">{{ dashboard_notams.error }} Use the FAA link in the meantime.</p>
-    {% elif notam_list %}
-    <div class="table-responsive" style="max-height:260px; overflow-y:auto;">
-      <table class="table table-sm align-middle mb-0 table-stack">
-        <thead class="table-light"><tr><th>Airport</th><th>NOTAM #</th><th>Effective</th><th></th></tr></thead>
-        <tbody>
-          {% for n in notam_list %}
-          <tr>
-            <td class="stack-full" data-label="Airport">
-              <strong>{{ n.icao }}</strong>
-              {% if n.airport_label %}<div class="text-muted small">{{ n.airport_label }}{% if n.distance_nm is not none %} &middot; {{ n.distance_nm }}nm{% endif %}</div>{% endif %}
-            </td>
-            <td data-label="NOTAM #"><code>{{ n.number }}</code>{% if n.notam_type %} <span class="badge bg-secondary">{{ n.notam_type }}</span>{% endif %}</td>
-            <td class="stack-full" data-label="Effective"><small class="text-muted">{{ n.effective_start or '-' }}{% if n.effective_end %} &ndash; {{ n.effective_end }}{% endif %}</small></td>
-            <td data-label=""><a href="{{ dashboard_notams.search_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">Read <i class="bi bi-box-arrow-up-right"></i></a></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p class="text-muted small mb-0">No active NOTAMs for N89 or the surrounding 25nm right now.</p>
     {% endif %}
     </div>
   </div>

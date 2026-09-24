@@ -3,6 +3,7 @@ import re
 import csv
 import io
 import calendar as calendar_mod
+import secrets
 import sqlite3
 import subprocess
 import threading
@@ -26,8 +27,37 @@ import notify
 from urllib.parse import urlparse
 import push
 
+def _load_or_create_secret_key():
+    """The key that signs session cookies - anyone who has it can forge a
+    valid login for any account, including a master admin, so it can't be a
+    fixed value checked into the code. Generated once (32 random bytes) and
+    kept in instance/secret_key - the same place as the database, which
+    means it's excluded from every deploy rsync (--exclude=instance/) and
+    never gets pushed out or overwritten. Reusing the same key across
+    restarts is what keeps existing logins valid instead of signing
+    everyone out every time the service restarts; a fresh Pi (or anyone
+    restoring from a backup without instance/) just gets a new key and a
+    fresh round of logins."""
+    instance_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance")
+    os.makedirs(instance_dir, exist_ok=True)
+    key_path = os.path.join(instance_dir, "secret_key")
+    if os.path.exists(key_path):
+        with open(key_path) as f:
+            key = f.read().strip()
+        if key:
+            return key
+    key = secrets.token_hex(32)
+    with open(key_path, "w") as f:
+        f.write(key)
+    try:
+        os.chmod(key_path, 0o600)  # readable/writable only by the account running the app
+    except OSError:
+        pass
+    return key
+
+
 app = Flask(__name__)
-app.secret_key = "shop-inventory-dev-key-change-me"
+app.secret_key = _load_or_create_secret_key()
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=180)  # keeps a login valid for months - mainly for the kiosk display, which should stay logged in across reboots rather than showing the login screen every time
 app.register_blueprint(flight_bp)
 app.register_blueprint(logbook_bp)
@@ -4096,22 +4126,25 @@ def admin_reset_flight_school():
     return _run_reset(_everything, "All Flight School data reset. Shop data and master admin logins were not touched.")
 
 
-def _start_session_alert_loop():
+def _start_session_alert_loop(debug_mode):
     """Runs flight.check_session_alerts() roughly once a minute for as long
     as the app is up - the source of the "30 min left" / "time's up" /
     "running late" phone push alerts (see flight.py / push.py).
 
-    Guarded against WERKZEUG_RUN_MAIN so Flask's debug auto-reloader
-    doesn't end up with two copies of the loop double-sending everything:
-    the reloader re-execs this whole script in a child process, so this
-    function runs once in the reloader's parent/monitor process and again
-    in the actual serving child. Both app.run() calls below always pass
-    debug=True, which defaults use_reloader to True as well, so the
-    reloader is always in play here - WERKZEUG_RUN_MAIN is only ever
-    "true" in the real serving process, unset in the parent/monitor one
-    (this runs before app.run() itself sets app.debug, so app.debug can't
-    be used to tell the two apart)."""
-    if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+    debug_mode must be the same value about to be passed to app.run(debug=...)
+    below - this runs before app.run() itself sets app.debug, so app.debug
+    isn't reliable yet and the caller has to hand it in explicitly.
+
+    Only matters when debug_mode is True: Flask's debug auto-reloader
+    re-execs this whole script in a child process, so without this guard
+    the loop would start once in the reloader's parent/monitor process and
+    again in the actual serving child, double-sending every alert.
+    WERKZEUG_RUN_MAIN is only ever "true" in the real serving process,
+    unset in the parent/monitor one. In production (debug_mode False,
+    reloader off) there's only ever one process, so the loop always
+    starts - checking WERKZEUG_RUN_MAIN alone, without also checking
+    debug_mode, would wrongly skip starting it there too."""
+    if debug_mode and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
         return
 
     def _loop():
@@ -4131,12 +4164,22 @@ if __name__ == "__main__":
     else:
         init_db()  # safe: uses IF NOT EXISTS
 
-    _start_session_alert_loop()
+    # Off by default - debug mode's interactive in-browser console lets
+    # anyone who triggers an unhandled error on the running app get a
+    # Python shell on the Pi, which is too dangerous to leave on for the
+    # always-on production service. Errors are still fully captured either
+    # way (see got_request_exception / instance/error_logs/ above, and
+    # Admin -> System), so nothing about diagnosing a problem depends on
+    # this being on. Set OPSHUB_DEBUG=1 in the environment for local
+    # development only, never on the Pi.
+    debug_mode = os.environ.get("OPSHUB_DEBUG") == "1"
+
+    _start_session_alert_loop(debug_mode)
 
     cert_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cert.pem")
     key_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "key.pem")
     if os.path.exists(cert_path) and os.path.exists(key_path):
         print("Starting with HTTPS (self-signed cert) so phone cameras can scan.")
-        app.run(host="0.0.0.0", port=5050, debug=True, ssl_context=(cert_path, key_path))
+        app.run(host="0.0.0.0", port=5050, debug=debug_mode, ssl_context=(cert_path, key_path))
     else:
-        app.run(host="0.0.0.0", port=5050, debug=True)
+        app.run(host="0.0.0.0", port=5050, debug=debug_mode)
