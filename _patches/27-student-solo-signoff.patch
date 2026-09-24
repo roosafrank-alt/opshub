@@ -1,0 +1,368 @@
+diff -ruN a/db.py b/db.py
+--- a/db.py	2026-09-24 01:27:20.870002298 +0000
++++ b/db.py	2026-09-24 01:27:20.871002298 +0000
+@@ -544,6 +544,15 @@
+         conn.execute("ALTER TABLE students ADD COLUMN solo_currency_days INTEGER")
+         conn.commit()
+ 
++    # Student pilot solo sign-off (CFI endorsement) date and its 90-day
++    # expiry. flight.py fills the expiry in as sign-off + 90 days when it's
++    # left blank, and a solo booked past the expiry is flagged for review
++    # the same way an over-currency solo is (_schedule_review_flag).
++    for col in ("solo_signoff_date", "solo_signoff_expires"):
++        if col not in student_cols3:
++            conn.execute(f"ALTER TABLE students ADD COLUMN {col} TEXT")
++            conn.commit()
++
+     # Flag a scheduled flight for admin/CFI review instead of refusing to
+     # save it outright: a solo flight booked despite the student being over
+     # their solo currency interval, or a dual flight booked with no
+diff -ruN a/flight.py b/flight.py
+--- a/flight.py	2026-09-24 01:27:20.867002298 +0000
++++ b/flight.py	2026-09-24 01:27:20.868002298 +0000
+@@ -399,23 +399,81 @@
+             "interval_days": interval_days}
+ 
+ 
+-def _schedule_review_flag(conn, solo, cfi_id, student_id):
++SOLO_SIGNOFF_VALID_DAYS = 90  # a student pilot's solo endorsement is good for 90 days from the
++                              # CFI's sign-off - the expiry defaults to sign-off + this many days
++                              # (students.solo_signoff_expires can still be typed in by hand)
++
++
++def _us_date(iso):
++    """YYYY-MM-DD -> MM-DD-YYYY (same display format as the usdate
++    template filter in app.py) for dates baked into flash/review text."""
++    try:
++        y, m, d = str(iso)[:10].split("-")
++        return f"{m}-{d}-{y}"
++    except ValueError:
++        return iso
++
++
++def _solo_signoff_expiry_default(signoff_date):
++    """Sign-off date (YYYY-MM-DD) + SOLO_SIGNOFF_VALID_DAYS, or None if the
++    date is blank/unreadable."""
++    try:
++        return (datetime.strptime(signoff_date, "%Y-%m-%d").date()
++                + timedelta(days=SOLO_SIGNOFF_VALID_DAYS)).isoformat()
++    except (TypeError, ValueError):
++        return None
++
++
++def _solo_signoff_status(conn, student_id, on_date=None):
++    """The student's 90-day solo sign-off as of on_date (YYYY-MM-DD,
++    default today). "ok" is None when no sign-off/expiry is on file yet
++    (nothing to check, so no flag), True when on_date is on or before the
++    expiry, False when it's past it. days_left counts from on_date."""
++    row = conn.execute("SELECT solo_signoff_date, solo_signoff_expires FROM students WHERE id = ?",
++                       (student_id,)).fetchone()
++    signoff = row["solo_signoff_date"] if row else None
++    expires = (row["solo_signoff_expires"] if row else None) or _solo_signoff_expiry_default(signoff)
++    out = {"ok": None, "signoff_date": signoff, "expires": expires, "days_left": None}
++    if not expires:
++        return out
++    try:
++        exp = datetime.strptime(expires, "%Y-%m-%d").date()
++        check = datetime.strptime(on_date, "%Y-%m-%d").date() if on_date else date.today()
++    except ValueError:
++        return out
++    out["days_left"] = (exp - check).days
++    out["ok"] = check <= exp
++    return out
++
++
++def _schedule_review_flag(conn, solo, cfi_id, student_id, flight_date=None):
+     """Whether a booking needs admin/CFI review, and why - instead of
+     refusing to save a flight that's over currency or missing an
+     instructor, it saves but gets flagged so someone can go back in, and
+-    (for both cases) the flag clears itself once a CFI is added. Returns
++    (for both cases) the flag clears itself once a CFI is added. A solo
++    booked on a date past the student's 90-day solo sign-off expiry gets
++    the same flag treatment (checked against flight_date, the booking's
++    own date, so a solo booked weeks out is judged on that day). Returns
+     (needs_review: 0|1, review_reason: str|None)."""
+     if cfi_id:
+         return 0, None
+     if solo:
++        reasons = []
++        signoff = _solo_signoff_status(conn, student_id, flight_date)
++        if signoff["ok"] is False:
++            reasons.append(f"Solo sign-off expired {_us_date(signoff['expires'])} - this flight is past the "
++                           f"student's 90-day solo endorsement. Needs a new CFI sign-off (or add an instructor).")
+         currency = _solo_currency_status(conn, student_id)
+-        if currency["ok"]:
+-            return 0, None
+-        if currency["last_dual_date"]:
+-            return 1, (f"Solo currency exceeded - last flew dual {currency['days_since']} days ago "
+-                        f"(over their {currency['interval_days']}-day limit). Needs CFI review "
+-                        f"(add an instructor) before this student flies solo.")
+-        return 1, "No dual (CFI) flights on record yet for this student. Needs CFI review before flying solo."
++        if not currency["ok"]:
++            if currency["last_dual_date"]:
++                reasons.append(f"Solo currency exceeded - last flew dual {currency['days_since']} days ago "
++                               f"(over their {currency['interval_days']}-day limit). Needs CFI review "
++                               f"(add an instructor) before this student flies solo.")
++            else:
++                reasons.append("No dual (CFI) flights on record yet for this student. Needs CFI review before flying solo.")
++        if reasons:
++            return 1, " ".join(reasons)
++        return 0, None
+     return 1, "No instructor assigned yet - go back in and assign one."
+ 
+ 
+@@ -1021,8 +1079,50 @@
+     students = conn.execute("SELECT * FROM students ORDER BY active DESC, name").fetchall()
+     activity = _student_activity(conn)
+     currency = {s["id"]: _solo_currency_status(conn, s["id"]) for s in students if not s["is_station"]}
++    signoff = {s["id"]: _solo_signoff_status(conn, s["id"]) for s in students if not s["is_station"]}
+     conn.close()
+-    return render_template("flight/students.html", students=students, activity=activity, currency=currency)
++    return render_template("flight/students.html", students=students, activity=activity, currency=currency,
++                           signoff=signoff)
++
++
++def _refresh_solo_review_flags(conn, student_id):
++    """Re-checks this student's upcoming solo bookings (no instructor on
++    them) after their solo sign-off dates change, so a solo already on the
++    calendar past the new expiry gets flagged the same way a new booking
++    would - and one that's now covered clears. Only rows whose flag or
++    reason actually changes are touched (a changed flag starts
++    unacknowledged again). Returns how many are now newly flagged."""
++    rows = conn.execute("""SELECT id, scheduled_date, needs_review, review_reason FROM scheduled_flights
++                           WHERE student_id = ? AND solo = 1 AND cfi_id IS NULL
++                             AND status = 'scheduled' AND scheduled_date >= ?""",
++                        (student_id, date.today().isoformat())).fetchall()
++    newly_flagged = 0
++    for r in rows:
++        needs_review, review_reason = _schedule_review_flag(conn, 1, None, student_id, r["scheduled_date"])
++        if (needs_review, review_reason) == (r["needs_review"], r["review_reason"]):
++            continue
++        if needs_review and not r["needs_review"]:
++            newly_flagged += 1
++        conn.execute("""UPDATE scheduled_flights SET needs_review = ?, review_reason = ?,
++                         needs_review_acknowledged_at = NULL, needs_review_acknowledged_by = NULL WHERE id = ?""",
++                     (needs_review, review_reason, r["id"]))
++    conn.commit()
++    return newly_flagged
++
++
++def _solo_signoff_from_form(form):
++    """(solo_signoff_date, solo_signoff_expires) from the student form. A
++    blank expiry fills itself in as sign-off + 90 days; a date that doesn't
++    parse is dropped rather than stored as junk."""
++    def _clean(v):
++        v = (v or "").strip()
++        try:
++            return datetime.strptime(v, "%Y-%m-%d").date().isoformat() if v else None
++        except ValueError:
++            return None
++    signoff = _clean(form.get("solo_signoff_date"))
++    expires = _clean(form.get("solo_signoff_expires")) or _solo_signoff_expiry_default(signoff)
++    return signoff, expires
+ 
+ 
+ @flight_bp.route("/students/new", methods=["GET", "POST"])
+@@ -1041,6 +1141,7 @@
+         # flashed as an error) for anyone else, same as the field just not
+         # being on the form for them.
+         solo_currency_days = _parse_int(request.form.get("solo_currency_days")) if session.get("is_master_admin") else None
++        solo_signoff_date, solo_signoff_expires = _solo_signoff_from_form(request.form)
+         if not name or not username or not password:
+             flash("Name, username, and a starting password are all required.", "danger")
+             return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS)
+@@ -1061,9 +1162,11 @@
+         conn.commit()
+         user_id = cur.lastrowid
+         conn.execute("""INSERT INTO students (name, username, password_hash, rate_override, plane_rate_override,
+-                         solo_currency_days, is_station, created_by_cfi_id, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
++                         solo_currency_days, solo_signoff_date, solo_signoff_expires, is_station, created_by_cfi_id,
++                         user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                      (name, username, generate_password_hash(password, method="pbkdf2:sha256"), rate_override,
+-                      plane_rate_override, solo_currency_days, is_station, session.get("cfi_id"), user_id, now_iso()))
++                      plane_rate_override, solo_currency_days, solo_signoff_date, solo_signoff_expires, is_station,
++                      session.get("cfi_id"), user_id, now_iso()))
+         conn.commit()
+         conn.close()
+         flash(f"Student '{name}' added. Give them their username and starting password to log in.", "success")
+@@ -1095,6 +1198,7 @@
+             solo_currency_days = _parse_int(request.form.get("solo_currency_days"))
+         else:
+             solo_currency_days = student["solo_currency_days"]
++        solo_signoff_date, solo_signoff_expires = _solo_signoff_from_form(request.form)
+         active = 1 if request.form.get("active") else 0
+         is_station = 1 if request.form.get("is_station") else 0
+         new_password = request.form.get("password", "")
+@@ -1103,16 +1207,24 @@
+             conn.close()
+             return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS)
+         if new_password:
+-            conn.execute("UPDATE students SET name=?, rate_override=?, plane_rate_override=?, solo_currency_days=?, is_station=?, active=?, password_hash=? WHERE id=?",
+-                         (name, rate_override, plane_rate_override, solo_currency_days, is_station, active,
+-                          generate_password_hash(new_password, method="pbkdf2:sha256"), student_id))
++            conn.execute("UPDATE students SET name=?, rate_override=?, plane_rate_override=?, solo_currency_days=?, solo_signoff_date=?, solo_signoff_expires=?, is_station=?, active=?, password_hash=? WHERE id=?",
++                         (name, rate_override, plane_rate_override, solo_currency_days, solo_signoff_date, solo_signoff_expires,
++                          is_station, active, generate_password_hash(new_password, method="pbkdf2:sha256"), student_id))
+         else:
+-            conn.execute("UPDATE students SET name=?, rate_override=?, plane_rate_override=?, solo_currency_days=?, is_station=?, active=? WHERE id=?",
+-                         (name, rate_override, plane_rate_override, solo_currency_days, is_station, active, student_id))
++            conn.execute("UPDATE students SET name=?, rate_override=?, plane_rate_override=?, solo_currency_days=?, solo_signoff_date=?, solo_signoff_expires=?, is_station=?, active=? WHERE id=?",
++                         (name, rate_override, plane_rate_override, solo_currency_days, solo_signoff_date, solo_signoff_expires,
++                          is_station, active, student_id))
+         who = session.get("user_name")
+         _log_field_change(conn, "student", student_id, "rate_override", student["rate_override"], rate_override, who)
+         _log_field_change(conn, "student", student_id, "plane_rate_override", student["plane_rate_override"], plane_rate_override, who)
++        _log_field_change(conn, "student", student_id, "solo_signoff_date", student["solo_signoff_date"], solo_signoff_date, who)
++        _log_field_change(conn, "student", student_id, "solo_signoff_expires", student["solo_signoff_expires"], solo_signoff_expires, who)
+         conn.commit()
++        if (solo_signoff_date, solo_signoff_expires) != (student["solo_signoff_date"], student["solo_signoff_expires"]):
++            reflagged = _refresh_solo_review_flags(conn, student_id)
++            if reflagged:
++                flash(f"{reflagged} upcoming solo flight{'s' if reflagged != 1 else ''} for this student "
++                      f"{'are' if reflagged != 1 else 'is'} now flagged for review - past the solo sign-off expiry.", "warning")
+         # Keep the master login account (the actual place passwords/active
+         # are checked at sign-in) in step with this edit.
+         if student["user_id"]:
+@@ -1133,10 +1245,11 @@
+                                       WHERE f.student_id = ? AND {_FINISHED_FLIGHT_SQL}
+                                       ORDER BY f.flight_date DESC, f.id DESC LIMIT 10""", (student_id,)).fetchall()
+     solo_currency = None if student["is_station"] else _solo_currency_status(conn, student_id)
++    solo_signoff = None if student["is_station"] else _solo_signoff_status(conn, student_id)
+     conn.close()
+     return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS,
+                            ledger=ledger, can_bill=can_manage_billing(), activity=activity,
+-                           recent_flights=recent_flights, solo_currency=solo_currency)
++                           recent_flights=recent_flights, solo_currency=solo_currency, solo_signoff=solo_signoff)
+ 
+ 
+ @flight_bp.route("/students/<int:student_id>/add_funds", methods=["POST"])
+@@ -1889,7 +2002,7 @@
+                     return render_template("flight/schedule_form.html", form=request.form, conflicts=conflicts,
+                                            conflict_url=_conflict_highlight_url(conflicts), **form_kwargs)
+             if solo or not self_service:
+-                needs_review, review_reason = _schedule_review_flag(conn, solo, cfi_id, student_id)
++                needs_review, review_reason = _schedule_review_flag(conn, solo, cfi_id, student_id, scheduled_date)
+             else:
+                 needs_review, review_reason = 0, None
+             status = "pending_approval" if self_service else "scheduled"
+@@ -1924,7 +2037,7 @@
+             if conflicts:
+                 skipped.append((occ_date, conflicts[0]))
+                 continue
+-            needs_review, review_reason = _schedule_review_flag(conn, solo, cfi_id, student_id)
++            needs_review, review_reason = _schedule_review_flag(conn, solo, cfi_id, student_id, occ_date)
+             conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date,
+                              scheduled_time, duration_hours, notes, private_notes, status, created_by, solo, needs_review,
+                              review_reason, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, ?, ?, ?)""",
+@@ -1989,7 +2102,7 @@
+         flash("Can't approve as-is - resolve the conflict above (edit or deny the request) and try again.", "danger")
+         conn.close()
+         return redirect(_conflict_highlight_url(conflicts))
+-    needs_review, review_reason = _schedule_review_flag(conn, solo, cfi_id, sched["student_id"])
++    needs_review, review_reason = _schedule_review_flag(conn, solo, cfi_id, sched["student_id"], sched["scheduled_date"])
+     # A freshly (re)computed review flag always starts unacknowledged - see
+     # the needs_review_acknowledged_at/by columns' migration comment in
+     # db.py for why.
+@@ -2057,7 +2170,7 @@
+         # Same flag-instead-of-block treatment as scheduling a new flight -
+         # this also doubles as how a flagged flight gets "reviewed": adding
+         # a CFI here (cfi_id becomes non-NULL) clears the flag automatically.
+-        needs_review, review_reason = _schedule_review_flag(conn, solo, cfi_id, student_id)
++        needs_review, review_reason = _schedule_review_flag(conn, solo, cfi_id, student_id, scheduled_date)
+         # A freshly (re)computed review flag always starts unacknowledged -
+         # see the needs_review_acknowledged_at/by columns' migration comment
+         # in db.py for why.
+diff -ruN a/schema.sql b/schema.sql
+--- a/schema.sql	2026-09-24 01:27:20.873002298 +0000
++++ b/schema.sql	2026-09-24 01:27:20.873002298 +0000
+@@ -172,6 +172,8 @@
+     password_hash TEXT NOT NULL,
+     rate_override REAL, -- optional custom instruction rate for this student; NULL = use the CFI's rate
+     plane_rate_override REAL, -- optional custom plane rate for this student; NULL = use the plane's rate (set by an admin on the Flight School side)
++    solo_signoff_date TEXT, -- YYYY-MM-DD the CFI signed this student off for solo; NULL = none on file
++    solo_signoff_expires TEXT, -- YYYY-MM-DD the solo sign-off runs out (defaults to sign-off + 90 days); a solo booked after this is flagged for review
+     solo_currency_days INTEGER, -- days since last dual flight before this student needs a CFI checkout before soloing again; NULL = use the default (DEFAULT_SOLO_CURRENCY_DAYS in flight.py) - a newer/lower-time student might need a shorter interval than a more experienced one
+     active INTEGER NOT NULL DEFAULT 1,
+     is_station INTEGER NOT NULL DEFAULT 0, -- generic "station" account (e.g. "Shop") - can log in and book the schedule but isn't a real trainee: no solo-currency tracking, no personal dashboard widgets, no instructor color
+diff -ruN a/templates/flight/student_form.html b/templates/flight/student_form.html
+--- a/templates/flight/student_form.html	2026-09-24 01:27:20.875002298 +0000
++++ b/templates/flight/student_form.html	2026-09-24 01:27:20.876002298 +0000
+@@ -32,6 +32,12 @@
+       {% elif solo_currency and solo_currency.last_dual_date %}<span class="badge bg-danger">Checkout due</span><div class="text-muted">{{ solo_currency.days_since }}d since dual</div>
+       {% else %}<span class="badge bg-secondary">No dual yet</span>{% endif %}
+     </div>
++    <div class="col-6 col-md-3">
++      <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Solo sign-off</div>
++      {% if solo_signoff and solo_signoff.ok %}<span class="badge {{ 'bg-warning text-dark' if solo_signoff.days_left <= 14 else 'bg-success' }}">Good to {{ solo_signoff.expires|usdate }}</span><div class="text-muted">{{ solo_signoff.days_left }}d left</div>
++      {% elif solo_signoff and solo_signoff.ok is false %}<span class="badge bg-danger">Expired {{ solo_signoff.expires|usdate }}</span><div class="text-muted">needs a new sign-off</div>
++      {% else %}<span class="badge bg-secondary">None on file</span>{% endif %}
++    </div>
+   </div>
+   {% if recent_flights %}
+   <div class="table-responsive">
+@@ -98,6 +104,32 @@
+     </div>
+     <p class="text-muted small mt-n2 mb-3">Leave either blank to charge this student the plane's default rate and/or the CFI's instructor rate. These vary per student, so set them here rather than a single shop-wide rate.</p>
+ 
++    <div class="row">
++      <div class="col-md-6 mb-3">
++        <label class="form-label">Solo Sign-off Date <span class="text-muted small">(CFI solo endorsement)</span></label>
++        <input type="date" name="solo_signoff_date" id="solo-signoff-date" class="form-control" value="{{ student.solo_signoff_date if student and student.solo_signoff_date else '' }}">
++      </div>
++      <div class="col-md-6 mb-3">
++        <label class="form-label">Solo Sign-off Expires <span class="text-muted small">(90 days - fills in by itself)</span></label>
++        <input type="date" name="solo_signoff_expires" id="solo-signoff-expires" class="form-control" value="{{ student.solo_signoff_expires if student and student.solo_signoff_expires else '' }}">
++      </div>
++    </div>
++    <p class="text-muted small mt-n2 mb-3">Solo flights booked after the expiry date are flagged for review on the dashboard, the same as an over-currency solo. Leave the expiry blank and it's set to 90 days after the sign-off.</p>
++    <script>
++      (function () {
++        var s = document.getElementById('solo-signoff-date'), e = document.getElementById('solo-signoff-expires');
++        if (!s || !e) return;
++        var auto = !e.value;
++        e.addEventListener('input', function () { auto = !e.value; });
++        s.addEventListener('change', function () {
++          if (!s.value || !auto) return;
++          var d = new Date(s.value + 'T12:00:00');
++          d.setDate(d.getDate() + 90);
++          e.value = d.toISOString().slice(0, 10);
++        });
++      })();
++    </script>
++
+     {% if session.get('is_master_admin') %}
+     <div class="mb-3">
+       <label class="form-label">Solo Currency Interval (days) <span class="text-muted small">(optional - overrides the {{ default_solo_currency_days }}-day default)</span></label>
+diff -ruN a/templates/flight/students.html b/templates/flight/students.html
+--- a/templates/flight/students.html	2026-09-24 01:27:20.878002298 +0000
++++ b/templates/flight/students.html	2026-09-24 01:27:20.878002298 +0000
+@@ -48,6 +48,7 @@
+       <span class="sm-meta" title="Solo currency">
+         {% if s.is_station or not cur %}{% elif cur.ok %}<span class="badge bg-success">{{ cur.interval_days - cur.days_since }}d</span>
+         {% elif cur.last_dual_date %}<span class="badge bg-danger">Due</span>{% else %}<span class="badge bg-secondary">No dual</span>{% endif %}
++        {% set so = signoff.get(s.id) %}{% if so and so.ok is false %}<span class="badge bg-danger" title="Solo sign-off expired {{ so.expires|usdate }}">S/O</span>{% endif %}
+       </span>
+       <span class="sm-meta fw-semibold {{ 'text-success' if s.balance > 0.005 else ('text-danger' if s.balance < -0.005 else '') }}" title="Account">
+         {% if s.balance < -0.005 %}-${{ '%.0f'|format(-s.balance) }}{% else %}${{ '%.0f'|format(s.balance) }}{% endif %}
+@@ -64,6 +65,11 @@
+         <dd>{% if cur.ok %}<span class="badge bg-success">Current</span> {{ cur.interval_days - cur.days_since }} days left (last dual {{ cur.last_dual_date|usdate }})
+           {% elif cur.last_dual_date %}<span class="badge bg-danger">Checkout due</span> {{ cur.days_since }} days since last dual ({{ cur.last_dual_date|usdate }})
+           {% else %}<span class="badge bg-secondary">No dual yet</span>{% endif %}</dd>
++        {% set so = signoff.get(s.id) %}
++        <dt>Solo sign-off</dt>
++        <dd>{% if so and so.ok %}Signed off {{ so.signoff_date|usdate if so.signoff_date else '-' }} &middot; good to {{ so.expires|usdate }} ({{ so.days_left }} days left)
++          {% elif so and so.ok is false %}<span class="badge bg-danger">Expired</span> {{ so.expires|usdate }} &middot; needs a new sign-off
++          {% else %}<span class="text-muted">None on file</span>{% endif %}</dd>
+         {% endif %}
+         <dt>Account</dt>
+         <dd><a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='account') }}">{% if s.balance > 0.005 %}${{ '%.2f'|format(s.balance) }} credit{% elif s.balance < -0.005 %}${{ '%.2f'|format(-s.balance) }} owed{% else %}$0.00{% endif %}</a></dd>
+@@ -107,6 +113,9 @@
+             {% elif cur.ok %}<span class="badge bg-success" title="Last dual {{ cur.last_dual_date|usdate }} - {{ cur.interval_days }}-day limit">Current</span><div class="small text-muted">{{ cur.interval_days - cur.days_since }}d left</div>
+             {% elif cur.last_dual_date %}<span class="badge bg-danger" title="Last dual {{ cur.last_dual_date|usdate }}">Checkout due</span><div class="small text-muted">{{ cur.days_since }}d since dual</div>
+             {% else %}<span class="badge bg-secondary">No dual yet</span>{% endif %}
++            {% set so = signoff.get(s.id) %}
++            {% if so and so.ok %}<div class="small text-muted" title="Solo sign-off {{ so.signoff_date|usdate if so.signoff_date else '' }}">Sign-off to {{ so.expires|usdate }}</div>
++            {% elif so and so.ok is false %}<div><span class="badge bg-danger" title="Solo sign-off expired {{ so.expires|usdate }}">Sign-off expired</span></div>{% endif %}
+           </td>
+           <td data-label="Username"><code>{{ s.username }}</code></td>
+           <td data-label="Instructor Rate"><a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='instructor_rate') }}" class="text-decoration-none" title="View / edit / history">{% if s.rate_override is not none %}${{ '%.2f'|format(s.rate_override) }}/hr{% else %}<span class="text-muted">CFI's rate</span>{% endif %}</a></td>

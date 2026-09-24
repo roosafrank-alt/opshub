@@ -1,0 +1,122 @@
+--- a/templates/flight/dashboard.html
++++ b/templates/flight/dashboard.html
+@@ -3,18 +3,20 @@
+ {% block content %}
+ <style>
+   .today-row-clickable:hover { background-color: rgba(255, 193, 7, 0.12); }
+-  /* Phones: Today's Schedule, Upcoming and Recent Flights start collapsed
+-     to just their header (with a count) - tap the header to open. Wider
+-     screens always show them open and the chevron/count stay hidden. */
+-  .dash-chevron, .dash-count { display: none; }
+-  @media (max-width: 575.98px) {
+-    .dash-chevron { display: inline-block; transition: transform .15s ease; }
+-    .dash-count { display: inline-block; }
+-    .dash-collapsible.is-open .dash-chevron { transform: rotate(90deg); }
+-    .dash-collapse-head { cursor: pointer; -webkit-user-select: none; user-select: none; min-height: 32px; }
+-    .dash-collapsible:not(.is-open) .dash-collapse-head { margin-bottom: 0 !important; }
+-    .dash-collapsible:not(.is-open) .dash-collapse-body { display: none; }
+-  }
++  /* Today's Schedule, Upcoming and Recent Flights fold down to just their
++     header (with a count) - tap the header or the > to open/close, on any
++     screen size. Phones start folded, wider screens start open; whatever
++     you choose is remembered on that device. The title is a real <button>
++     so taps always register (iPhone Safari ignores taps on plain divs). */
++  .dash-toggle-btn { background: none; border: 0; padding: 0; margin: 0; color: inherit; text-align: left;
++                     font: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
++  .dash-toggle-btn:focus-visible { outline: 2px solid rgba(13,110,253,.5); outline-offset: 2px; border-radius: 4px; }
++  .dash-chevron { display: inline-block; transition: transform .15s ease; }
++  .dash-count { display: inline-block; }
++  .dash-collapsible.is-open .dash-chevron { transform: rotate(90deg); }
++  .dash-collapse-head { cursor: pointer; -webkit-user-select: none; user-select: none; min-height: 32px; }
++  .dash-collapsible:not(.is-open) .dash-collapse-head { margin-bottom: 0 !important; }
++  .dash-collapsible:not(.is-open) .dash-collapse-body { display: none; }
+   .wx-tile { color: #fff; transition: background .3s ease; position: relative; overflow: hidden; }
+   .wx-content { position: relative; z-index: 1; }
+   .wx-bg-icon { position: absolute; top: -0.5rem; right: -0.5rem; font-size: 7rem; opacity: .22; z-index: 0; pointer-events: none; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,.15)); }
+@@ -225,24 +227,40 @@
+ 
+ {% block scripts %}
+ <script>
+-// Which collapsible dashboard sections are open on this phone. Kept in a
+-// variable (plus sessionStorage when allowed) and re-applied after every
+-// live refresh, since the refresh replaces the sections' HTML.
++// Which collapsible dashboard sections are open. A section you've never
++// touched starts open on a wide screen and folded on a phone; once you
++// open/close one it's remembered on this device (localStorage when
++// allowed, else just for this visit). Re-applied after every live refresh,
++// since the refresh replaces the sections' HTML.
++var DASH_STORE = 'opshub-dash-open-v2';
+ var dashOpen = {};
+-try { dashOpen = JSON.parse(sessionStorage.getItem('opshub-dash-open') || '{}') || {}; } catch (e) { dashOpen = {}; }
++try { dashOpen = JSON.parse(localStorage.getItem(DASH_STORE) || '{}') || {}; } catch (e) { dashOpen = {}; }
++function dashIsPhone() { return window.matchMedia('(max-width: 575.98px)').matches; }
++function dashSectionOpen(key) {
++  return (key in dashOpen) ? !!dashOpen[key] : !dashIsPhone();
++}
+ function applyDashCollapse() {
+   document.querySelectorAll('.dash-collapsible').forEach(function (card) {
+-    card.classList.toggle('is-open', !!dashOpen[card.getAttribute('data-dash-key')]);
++    var open = dashSectionOpen(card.getAttribute('data-dash-key'));
++    card.classList.toggle('is-open', open);
++    var btn = card.querySelector('.dash-toggle-btn');
++    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+   });
+ }
+ applyDashCollapse();
+ document.addEventListener('click', function (evt) {
+-  var head = evt.target.closest('[data-dash-toggle]');
+-  if (!head || evt.target.closest('a, button, form')) return; // let "Full Calendar" etc. work normally
+-  if (!window.matchMedia('(max-width: 575.98px)').matches) return;
+-  var key = head.getAttribute('data-dash-toggle');
+-  dashOpen[key] = !dashOpen[key];
+-  try { sessionStorage.setItem('opshub-dash-open', JSON.stringify(dashOpen)); } catch (e) {}
++  // The title button itself, or anywhere else on the header row except
++  // its own links/buttons (e.g. "Full Calendar" keeps working normally).
++  var btn = evt.target.closest('.dash-toggle-btn');
++  if (!btn) {
++    var head = evt.target.closest('.dash-collapse-head');
++    if (!head || evt.target.closest('a, button, form, input, select')) return;
++    btn = head.querySelector('.dash-toggle-btn');
++    if (!btn) return;
++  }
++  var key = btn.getAttribute('data-dash-toggle');
++  dashOpen[key] = !dashSectionOpen(key);
++  try { localStorage.setItem(DASH_STORE, JSON.stringify(dashOpen)); } catch (e) {}
+   applyDashCollapse();
+ });
+ (function () {
+--- a/templates/flight/_dashboard_live.html
++++ b/templates/flight/_dashboard_live.html
+@@ -57,8 +57,8 @@
+ 
+ {% if cfi %}
+ <div class="card p-3 mb-3 dash-collapsible" data-dash-key="today">
+-  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2 dash-collapse-head" data-dash-toggle="today">
+-    <h6 class="mb-0"><i class="bi bi-chevron-right dash-chevron"></i> <i class="bi bi-calendar-day"></i> Today's Schedule <span class="text-muted small fw-normal">({{ today_str|usdate }})</span></h6>
++  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2 dash-collapse-head">
++    <button type="button" class="dash-toggle-btn" data-dash-toggle="today" aria-expanded="true"><span class="h6 mb-0 d-inline-block"><i class="bi bi-chevron-right dash-chevron"></i> <i class="bi bi-calendar-day"></i> Today's Schedule <span class="text-muted small fw-normal">({{ today_str|usdate }})</span></span></button>
+     {% if today_flights_total %}
+     <span class="badge {{ 'bg-success' if today_flights_completed == today_flights_total else 'bg-primary' }} fs-6">
+       {{ today_flights_completed }} of {{ today_flights_total }} flight{{ 's' if today_flights_total != 1 }} complete
+@@ -304,8 +304,8 @@
+ {% endif %}
+ 
+ <div class="card p-3 mb-3 dash-collapsible" data-dash-key="upcoming">
+-  <div class="d-flex justify-content-between align-items-center mb-2 dash-collapse-head" data-dash-toggle="upcoming">
+-    <h6 class="mb-0"><i class="bi bi-chevron-right dash-chevron"></i> <i class="bi bi-calendar3"></i> Upcoming <span class="badge bg-secondary dash-count">{{ upcoming|length if upcoming else 0 }}</span></h6>
++  <div class="d-flex justify-content-between align-items-center mb-2 dash-collapse-head">
++    <button type="button" class="dash-toggle-btn" data-dash-toggle="upcoming" aria-expanded="true"><span class="h6 mb-0 d-inline-block"><i class="bi bi-chevron-right dash-chevron"></i> <i class="bi bi-calendar3"></i> Upcoming <span class="badge bg-secondary dash-count">{{ upcoming|length if upcoming else 0 }}</span></span></button>
+     <a href="{{ url_for('flight.schedule_calendar') }}" class="btn btn-outline-secondary btn-sm">Full Calendar</a>
+   </div>
+   <div class="dash-collapse-body">
+@@ -381,8 +381,8 @@
+ {% endif %}
+ 
+ <div class="card p-3 dash-collapsible" data-dash-key="recent">
+-  <div class="dash-collapse-head mb-2" data-dash-toggle="recent">
+-    <h6 class="mb-0"><i class="bi bi-chevron-right dash-chevron"></i> {% if cfi %}Recent Flights (Whole School){% else %}Your Recent Flights{% endif %} <span class="badge bg-secondary dash-count">{{ recent_flights|length if recent_flights else 0 }}</span></h6>
++  <div class="dash-collapse-head mb-2">
++    <button type="button" class="dash-toggle-btn" data-dash-toggle="recent" aria-expanded="true"><span class="h6 mb-0 d-inline-block"><i class="bi bi-chevron-right dash-chevron"></i> {% if cfi %}Recent Flights (Whole School){% else %}Your Recent Flights{% endif %} <span class="badge bg-secondary dash-count">{{ recent_flights|length if recent_flights else 0 }}</span></span></button>
+   </div>
+   <div class="dash-collapse-body">
+   {% if recent_flights %}

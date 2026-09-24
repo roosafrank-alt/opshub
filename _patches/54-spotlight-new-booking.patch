@@ -1,0 +1,109 @@
+--- _tmp/p54orig/templates/flight/schedule.html
++++ templates/flight/schedule.html
+@@ -33,6 +33,18 @@
+     z-index: 5;
+   }
+   tr.schedule-block-new { background: #ebfbee !important; }
++  /* The spotlight: everything grayed out except the new booking(s) - see
++     the script at the bottom. */
++  .schedule-new-spotlight {
++    position: fixed; inset: 0; z-index: 2000; background: rgba(15, 23, 42, .62);
++    opacity: 0; transition: opacity .25s ease; cursor: pointer;
++  }
++  .schedule-new-spotlight-label {
++    position: fixed; left: 50%; bottom: 1.25rem; transform: translateX(-50%); z-index: 2001;
++    background: #198754; color: #fff; font-weight: 700; border-radius: 999px; padding: .5rem 1rem;
++    box-shadow: 0 4px 16px rgba(0,0,0,.35); white-space: nowrap; font-size: .9rem;
++    opacity: 0; transition: opacity .25s ease; pointer-events: none;
++  }
+   .schedule-block-dimmed, tr.schedule-block-dimmed {
+     opacity: 0.25 !important;
+     filter: grayscale(70%);
+@@ -249,31 +261,77 @@
+   }
+ })();
+ 
+-// Just-booked flight(s) (?new=ids from Schedule Flight): bring the first
+-// one into view, then drop the green outline on the first click anywhere
+-// or when leaving the page. The `new` param is taken out of the address
+-// (so the live refresh, a reload, or coming Back doesn't bring it back).
++// Just-booked flight(s) (?new=ids from Schedule Flight): a spotlight -
++// the whole screen is grayed out except the new booking(s), so they're
++// the one thing you see. The first click, scroll, swipe or key press
++// clears it. The `new` param is then taken out of the address (so the
++// live refresh, a reload, or coming Back doesn't bring it back).
+ (function () {
+   if (!/[?&]new=/.test(window.location.search)) return;
+-  var first = document.querySelector('.schedule-block-new');
+-  if (first && !document.querySelector('.schedule-block-highlight')) {
+-    setTimeout(function () { first.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50);
+-  }
++  var overlay = null, label = null, done = false;
+   function stripParam() {
+     try {
+       var u = new URL(window.location.href);
+       if (!u.searchParams.has('new')) return;
+       u.searchParams.delete('new');
+       window.history.replaceState(window.history.state, '', u.pathname + (u.search ? u.search : '') + u.hash);
+-    } catch (e) { /* old browser - the outline still clears below */ }
++    } catch (e) { /* old browser - the spotlight still clears below */ }
+   }
+   function clearNew() {
++    if (done) return;
++    done = true;
+     document.querySelectorAll('.schedule-block-new').forEach(function (el) { el.classList.remove('schedule-block-new'); });
++    [overlay, label].forEach(function (el) {
++      if (!el) return;
++      el.style.opacity = '0';
++      setTimeout(function () { el.remove(); }, 250);
++    });
++    ['click', 'wheel', 'touchmove', 'keydown'].forEach(function (t) { document.removeEventListener(t, clearNew, true); });
++    window.removeEventListener('scroll', clearNew, true);
++    window.removeEventListener('resize', cutHoles);
+     stripParam();
+   }
+-  document.addEventListener('click', clearNew, { capture: true, once: true });
++  // Gray everything with one fixed layer, cutting a rounded-ish hole
++  // (even-odd path) around each new block so it shows through untouched.
++  function cutHoles() {
++    if (!overlay) return;
++    var w = window.innerWidth, h = window.innerHeight, pad = 6;
++    var d = 'M0 0 H' + w + ' V' + h + ' H0 Z';
++    document.querySelectorAll('.schedule-block-new').forEach(function (el) {
++      var r = el.getBoundingClientRect();
++      if (!r.width || !r.height) return;
++      var x = Math.max(0, r.left - pad), y = Math.max(0, r.top - pad);
++      d += ' M' + x + ' ' + y + ' H' + (r.right + pad) + ' V' + (r.bottom + pad) + ' H' + x + ' Z';
++    });
++    overlay.style.clipPath = "path(evenodd, '" + d + "')";
++    overlay.style.webkitClipPath = overlay.style.clipPath;
++  }
++  function spotlight() {
++    var blocks = document.querySelectorAll('.schedule-block-new');
++    if (!blocks.length) { stripParam(); return; }
++    blocks[0].scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
++    overlay = document.createElement('div');
++    overlay.className = 'schedule-new-spotlight';
++    label = document.createElement('div');
++    label.className = 'schedule-new-spotlight-label';
++    label.innerHTML = '<i class="bi bi-stars"></i> ' + (blocks.length > 1 ? 'Your new bookings' : 'Your new booking') +
++                      ' <span class="opacity-75">&middot; tap anywhere to continue</span>';
++    document.body.appendChild(overlay);
++    document.body.appendChild(label);
++    cutHoles();
++    requestAnimationFrame(function () { overlay.style.opacity = '1'; label.style.opacity = '1'; });
++    window.addEventListener('resize', cutHoles);
++    // Listen only after the page has settled on the booking, so the
++    // automatic scroll above doesn't count as "you scrolled".
++    setTimeout(function () {
++      ['click', 'wheel', 'touchmove', 'keydown'].forEach(function (t) { document.addEventListener(t, clearNew, true); });
++      window.addEventListener('scroll', clearNew, true);
++    }, 400);
++  }
+   window.addEventListener('pagehide', stripParam);
+   window.addEventListener('pageshow', function (e) { if (e.persisted) clearNew(); });
++  if (document.readyState === 'complete') { setTimeout(spotlight, 60); }
++  else { window.addEventListener('load', function () { setTimeout(spotlight, 60); }); }
+ })();
+ 
+ // List view opens scrolled to the most recently completed flight (see

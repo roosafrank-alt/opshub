@@ -1,0 +1,117 @@
+--- _tmp/p47/schedule_form.html	2026-09-24 03:27:58.385985024 +0000
++++ templates/flight/schedule_form.html	2026-09-24 03:27:58.399026739 +0000
+@@ -122,23 +122,40 @@
+           <label class="form-check-label small" for="no-time-check">No specific time</label>
+         </div>
+         <div class="mt-2" id="quick-time-buttons">
+-          <div class="form-text mb-1">Quick pick <span class="text-muted">(1.5-hr blocks)</span></div>
+-          <div class="d-flex flex-wrap gap-1">
+-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-hour24="8" data-minute="0">8:00a</button>
+-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-hour24="9" data-minute="30">9:30a</button>
+-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-hour24="11" data-minute="0">11:00a</button>
+-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-hour24="12" data-minute="30">12:30p</button>
+-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-hour24="14" data-minute="0">2:00p</button>
+-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-hour24="15" data-minute="30">3:30p</button>
+-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-hour24="17" data-minute="0">5:00p</button>
+-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-hour24="18" data-minute="30">6:30p</button>
+-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-hour24="20" data-minute="0">8:00p</button>
++          <div class="form-text mb-1">Quick pick <span class="text-muted" id="quick-pick-label">(1.5-hr blocks)</span></div>
++          {#- Intro flights are 1-hr blocks, so their quick picks are on the hour
++             (shown instead of the 1.5-hr grid while the Intro Flight preset is on). #}
++          <div class="d-flex flex-wrap gap-1 d-none" id="quick-times-intro">
++            {% for h in range(8, 20) %}
++            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1" data-hour24="{{ h }}" data-minute="0">{{ (h - 1) % 12 + 1 }}:00{{ 'a' if h < 12 else 'p' }}</button>
++            {% endfor %}
++          </div>
++          <div class="d-flex flex-wrap gap-1" id="quick-times-lesson">
++            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="8" data-minute="0">8:00a</button>
++            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="9" data-minute="30">9:30a</button>
++            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="11" data-minute="0">11:00a</button>
++            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="12" data-minute="30">12:30p</button>
++            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="14" data-minute="0">2:00p</button>
++            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="15" data-minute="30">3:30p</button>
++            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="17" data-minute="0">5:00p</button>
++            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="18" data-minute="30">6:30p</button>
++            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="20" data-minute="0">8:00p</button>
+           </div>
+         </div>
+       </div>
+       <div class="col-md-4 mb-3 sched-only">
+         <label class="form-label">Duration (hrs)</label>
+         <input type="number" step="any" name="duration_hours" class="form-control" placeholder="e.g. 1.5" value="{% if form %}{{ form.get('duration_hours') }}{% elif sched and sched.duration_hours is not none %}{{ sched.duration_hours }}{% elif not sched %}1.5{% endif %}">
++        {#- Presets: a normal 1.5-hr lesson, or an Intro Flight (1-hr block,
++           notes start with "Intro flight" so it's easy to spot on the
++           calendar's details). #}
++        <div class="mt-2">
++          <div class="form-text mb-1">Preset</div>
++          <div class="btn-group btn-group-sm" role="group" id="flight-presets">
++            <button type="button" class="btn btn-outline-secondary preset-btn" data-preset="lesson" data-duration="1.5"><i class="bi bi-airplane"></i> Lesson <span class="opacity-75">1.5 hr</span></button>
++            <button type="button" class="btn btn-outline-secondary preset-btn" data-preset="intro" data-duration="1"><i class="bi bi-stars"></i> Intro Flight <span class="opacity-75">1 hr</span></button>
++          </div>
++        </div>
+       </div>
+     </div>
+     {% if allow_complete %}
+@@ -391,7 +408,7 @@
+       minute = parseInt(btn.dataset.minute, 10);
+       setNoTime(false);
+       render();
+-      if (durationInput) { durationInput.value = '1.5'; }
++      if (durationInput) { durationInput.value = btn.dataset.duration || '1.5'; }
+       markActiveQuickBtn();
+     });
+   });
+@@ -400,6 +417,53 @@
+ })();
+ 
+ (function () {
++  // Presets (Lesson 1.5 hr / Intro Flight 1 hr): set the duration, swap
++  // the quick-pick grid (on the hour for intro flights), and start the
++  // notes with "Intro flight" for an intro (taken back off if you switch
++  // back to Lesson and hadn't changed it). The preset that matches the
++  // form's current duration/notes is highlighted on load (e.g. editing an
++  // intro flight).
++  var presets = document.querySelectorAll('.preset-btn');
++  if (!presets.length) { return; }
++  var duration = document.querySelector('input[name="duration_hours"]');
++  var notes = document.querySelector('textarea[name="notes"]');
++  var introTimes = document.getElementById('quick-times-intro');
++  var lessonTimes = document.getElementById('quick-times-lesson');
++  var label = document.getElementById('quick-pick-label');
++  var INTRO = 'Intro flight';
++  function show(preset) {
++    presets.forEach(function (b) {
++      var on = b.dataset.preset === preset;
++      b.classList.toggle('btn-secondary', on);
++      b.classList.toggle('btn-outline-secondary', !on);
++    });
++    if (introTimes && lessonTimes) {
++      introTimes.classList.toggle('d-none', preset !== 'intro');
++      lessonTimes.classList.toggle('d-none', preset === 'intro');
++    }
++    if (label) { label.textContent = preset === 'intro' ? '(1-hr intro blocks)' : '(1.5-hr blocks)'; }
++  }
++  function isIntroNotes() { return notes && notes.value.trim().toLowerCase().indexOf(INTRO.toLowerCase()) === 0; }
++  presets.forEach(function (b) {
++    b.addEventListener('click', function () {
++      if (duration) { duration.value = b.dataset.duration; }
++      if (notes) {
++        if (b.dataset.preset === 'intro' && !isIntroNotes()) {
++          notes.value = notes.value.trim() ? INTRO + ' - ' + notes.value.trim() : INTRO;
++        } else if (b.dataset.preset === 'lesson' && isIntroNotes()) {
++          notes.value = notes.value.trim().slice(INTRO.length).replace(/^\s*-\s*/, '');
++        }
++      }
++      show(b.dataset.preset);
++    });
++  });
++  var d = duration ? parseFloat(duration.value) : NaN;
++  if (isIntroNotes() || d === 1) { show(isIntroNotes() ? 'intro' : ''); }
++  else if (d === 1.5 || !duration || !duration.value) { show('lesson'); }
++  else { show(''); }
++})();
++
++(function () {
+   // "Flight Already Complete?" - swap the booking-only fields for the
+   // log fields. Hidden inputs are disabled so they aren't validated or
+   // sent (e.g. Repeats' required Until date).

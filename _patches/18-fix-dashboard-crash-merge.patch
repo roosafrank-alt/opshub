@@ -1,0 +1,1040 @@
+--- a/app.py
++++ b/app.py
+@@ -1,4 +1,5 @@
+ import os
++import re
+ import csv
+ import io
+ import calendar as calendar_mod
+@@ -7,7 +8,6 @@
+ import threading
+ import time
+ import logging
+-from logging.handlers import RotatingFileHandler
+ from datetime import date, datetime, timedelta
+ from flask import (Flask, render_template, request, redirect, url_for, jsonify, flash, abort,
+                     Response, session, got_request_exception)
+@@ -28,20 +28,58 @@
+ 
+ 
+ # ---------------------------------------------------------------------------
+-# Error log - a rotating file in instance/ (survives deploys since instance/
+-# is excluded from the rsync push, same as the database) that captures every
+-# unhandled exception with its full traceback. Viewable from Admin -> System
+-# (admin_system_log below) so an error can be diagnosed and sent to Claude
+-# without needing SSH access to the Pi at all. `got_request_exception` fires
+-# regardless of debug mode - unlike Flask's own log_exception, which is
+-# skipped when DEBUG is on (PROPAGATE_EXCEPTIONS bypasses it) - so this
+-# still logs even though the interactive debugger is also enabled below.
++# Error log - instead of one big growing file, every unhandled exception is
++# saved as its OWN file in instance/error_logs/, named by the timestamp it
++# happened at (survives deploys since instance/ is excluded from the rsync
++# push, same as the database). Viewable from Admin -> System (admin_system_log
++# below) so an error can be diagnosed and sent to Claude without needing SSH
++# access to the Pi at all. `got_request_exception` fires regardless of debug
++# mode - unlike Flask's own log_exception, which is skipped when DEBUG is on
++# (PROPAGATE_EXCEPTIONS bypasses it) - so this still logs even though the
++# interactive debugger is also enabled below.
+ # ---------------------------------------------------------------------------
+ INSTANCE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance")
+ os.makedirs(INSTANCE_DIR, exist_ok=True)
+-ERROR_LOG_PATH = os.path.join(INSTANCE_DIR, "error.log")
++ERROR_LOG_DIR = os.path.join(INSTANCE_DIR, "error_logs")
++os.makedirs(ERROR_LOG_DIR, exist_ok=True)
++_MAX_ERROR_LOG_FILES = 200  # oldest files beyond this are pruned, so a long Pi uptime doesn't fill the SD card
+ 
+-_log_handler = RotatingFileHandler(ERROR_LOG_PATH, maxBytes=2 * 1024 * 1024, backupCount=3)
++
++class _PerFileErrorHandler(logging.Handler):
++    """Writes each log record to its own timestamped file in ERROR_LOG_DIR
++    instead of appending to one ever-growing file, so a single error can be
++    opened, copied, or deleted on its own rather than hunted for inside a
++    big block of scrollback. Prunes the oldest files past
++    _MAX_ERROR_LOG_FILES on every write."""
++
++    def emit(self, record):
++        try:
++            os.makedirs(ERROR_LOG_DIR, exist_ok=True)
++            stamp = datetime.fromtimestamp(record.created).strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]
++            path = os.path.join(ERROR_LOG_DIR, stamp + ".log")
++            suffix = 1
++            while os.path.exists(path):  # two errors in the same millisecond - make the name unique
++                path = os.path.join(ERROR_LOG_DIR, "%s-%d.log" % (stamp, suffix))
++                suffix += 1
++            with open(path, "w") as f:
++                f.write(self.format(record) + "\n")
++            self._prune()
++        except OSError:
++            pass
++
++    def _prune(self):
++        try:
++            names = sorted(n for n in os.listdir(ERROR_LOG_DIR) if n.endswith(".log"))
++        except OSError:
++            return
++        for name in names[:max(0, len(names) - _MAX_ERROR_LOG_FILES)]:
++            try:
++                os.remove(os.path.join(ERROR_LOG_DIR, name))
++            except OSError:
++                pass
++
++
++_log_handler = _PerFileErrorHandler()
+ _log_handler.setLevel(logging.WARNING)
+ _log_handler.setFormatter(logging.Formatter(
+     "%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+@@ -57,6 +95,27 @@
+ 
+ got_request_exception.connect(_log_request_exception, app)
+ 
++_ERROR_LOG_HEAD_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) \[(\w+)\] (.*)$")
++_ERROR_LOG_AFFECTED_RE = re.compile(r"on (\S+ \S+):")
++
++
++def _parse_error_log_entry(name, text):
++    """Pulls a one-line summary (date, time, the request that hit it) out of
++    a saved error file for the Admin error log's compact list view - the
++    full traceback (the file's whole content) only gets shown once that row
++    is clicked open. Falls back gracefully if a file was hand-edited or the
++    log format ever changes, rather than erroring the whole page."""
++    first_line = text.split("\n", 1)[0]
++    m = _ERROR_LOG_HEAD_RE.match(first_line)
++    if m:
++        log_date, log_time, _level, message = m.groups()
++    else:
++        log_date, log_time, message = "", "", first_line
++    am = _ERROR_LOG_AFFECTED_RE.search(message)
++    affected = am.group(1) if am else "-"
++    return {"name": name, "date": log_date, "time": log_time, "affected": affected,
++            "message": message, "text": text}
++
+ 
+ def usdate(value, show_time=False):
+     """Formats an ISO date/datetime string ('YYYY-MM-DD' or
+@@ -2868,11 +2927,11 @@
+     The dropdowns themselves are unchanged - this is just where they land."""
+     conn = get_db()
+     user_count = conn.execute("SELECT COUNT(*) c FROM users WHERE active = 1").fetchone()["c"]
+-    error_log_size = 0
+-    if os.path.exists(ERROR_LOG_PATH):
+-        error_log_size = os.path.getsize(ERROR_LOG_PATH)
++    error_log_count = 0
++    if os.path.isdir(ERROR_LOG_DIR):
++        error_log_count = len([n for n in os.listdir(ERROR_LOG_DIR) if n.endswith(".log")])
+     conn.close()
+-    return render_template("admin_home.html", user_count=user_count, error_log_size=error_log_size)
++    return render_template("admin_home.html", user_count=user_count, error_log_count=error_log_count)
+ 
+ 
+ @app.route("/admin/users")
+@@ -3293,31 +3352,42 @@
+ @app.route("/admin/system/log")
+ @master_admin_required
+ def admin_system_log():
+-    """Shows the tail of instance/error.log - every unhandled exception,
+-    with its full traceback, logged regardless of debug mode (see the
+-    got_request_exception hookup near the top of this file). The point is
+-    to make an error visible and copyable from a browser - on a phone, from
+-    off-site over Tailscale, wherever - without needing to SSH into the Pi
+-    and go digging through journalctl just to see what broke."""
+-    lines = []
++    """Lists the individual error files, newest first - every unhandled
++    exception, with its full traceback, is saved as its own timestamped
++    file in instance/error_logs/ regardless of debug mode (see the
++    got_request_exception hookup and _PerFileErrorHandler near the top of
++    this file). The point is to make an error visible and copyable from a
++    browser - on a phone, from off-site over Tailscale, wherever - without
++    needing to SSH into the Pi and go digging through journalctl just to
++    see what broke."""
++    entries = []
++    total_count = 0
+     error = None
+-    if os.path.exists(ERROR_LOG_PATH):
+-        try:
+-            with open(ERROR_LOG_PATH, "r", errors="replace") as f:
+-                lines = f.readlines()
+-        except OSError as e:
+-            error = str(e)
+-    tail = lines[-500:]  # most recent 500 lines is plenty without the page getting unwieldy
+-    log_text = "".join(tail)
+-    return render_template("admin_system_log.html", log_text=log_text, error=error,
+-                           truncated=len(lines) > len(tail), total_lines=len(lines))
++    try:
++        if os.path.isdir(ERROR_LOG_DIR):
++            names = sorted((n for n in os.listdir(ERROR_LOG_DIR) if n.endswith(".log")), reverse=True)
++            total_count = len(names)
++            for name in names[:100]:  # most recent 100 files is plenty without the page getting unwieldy
++                try:
++                    with open(os.path.join(ERROR_LOG_DIR, name), "r", errors="replace") as f:
++                        text = f.read()
++                except OSError:
++                    continue
++                entries.append(_parse_error_log_entry(name, text))
++    except OSError as e:
++        error = str(e)
++    return render_template("admin_system_log.html", entries=entries, error=error,
++                           truncated=total_count > len(entries), total_count=total_count)
+ 
+ 
+ @app.route("/admin/system/log/clear", methods=["POST"])
+ @master_admin_required
+ def admin_system_log_clear():
+     try:
+-        open(ERROR_LOG_PATH, "w").close()
++        if os.path.isdir(ERROR_LOG_DIR):
++            for name in os.listdir(ERROR_LOG_DIR):
++                if name.endswith(".log"):
++                    os.remove(os.path.join(ERROR_LOG_DIR, name))
+         flash("Error log cleared.", "success")
+     except OSError as e:
+         flash(f"Couldn't clear the log: {e}", "danger")
+--- a/flight.py
++++ b/flight.py
+@@ -13,6 +13,7 @@
+ from functools import wraps
+ from datetime import date, datetime, timedelta
+ import calendar as calendar_mod
++import itertools
+ import math
+ import csv
+ import io
+@@ -27,6 +28,11 @@
+ import notams
+ import push
+ 
++# Fixed accent-color palette used to give each plane in the fleet a
++# consistent color on the dashboard's same-time chip rows (see
++# _dashboard_context() below) - cycles if there are more planes than colors.
++_PLANE_LANE_COLORS = ["#0d6efd", "#d63384", "#198754", "#fd7e14", "#6f42c1", "#20c997", "#dc3545", "#0dcaf0"]
++
+ # Distinct colors cycled through for each instructor on the schedule
+ # calendar, so flights are identifiable by instructor at a glance without
+ # hand-assigning a color to every CFI.
+@@ -647,6 +653,18 @@
+     return items
+ 
+ 
++def _group_by_time(rows):
++    """Groups a list of flight rows (already sorted by time - every caller
++    of this is) into one bucket per distinct time slot, so two or more
++    flights booked at the same time render as chips sharing one line
++    instead of stacking as if they were simply sequential, unrelated
++    bookings. Relies on groupby's "only groups contiguous runs" behavior,
++    which is fine here since the SQL that produced `rows` already orders
++    by time."""
++    return [{"time_label": time_label, "flights": list(group)}
++            for time_label, group in itertools.groupby(rows, key=lambda r: r["time_label"] or "Not set")]
++
++
+ def _dashboard_context(conn, cfi, student):
+     """Gathers every piece of data the dashboard template needs. Shared by
+     the full-page dashboard() route and the live-refresh fragment route
+@@ -733,6 +751,13 @@
+             ORDER BY sf.scheduled_time IS NULL, sf.scheduled_time
+         """, (date.today().strftime("%Y-%m-%d"),)).fetchall()
+         today_flights = [dict(t, time_label=_format_time_12h(t["scheduled_time"])) for t in today_flights]
++        # Same early-start check as `upcoming` above, so a chip's Start on
++        # today's board asks before starting a flight that isn't due yet.
++        for t in today_flights:
++            can_start, opens_at = _start_window(t["scheduled_date"], t["scheduled_time"])
++            t["can_start"] = can_start
++            t["start_opens_label"] = _opens_label(opens_at)
++            t["slot_label"] = _slot_label(t["scheduled_date"], t["scheduled_time"])
+         today_flights_total = len(today_flights)
+         today_flights_completed = sum(1 for t in today_flights if t["status"] == "completed")
+         # Weather widget - cached (see weather.py), and never allowed to
+@@ -802,6 +827,54 @@
+             last_flight_ago = _days_ago_label(recent_flights[0]["flight_date"])
+         solo_currency = _solo_currency_status(conn, student["id"])
+ 
++    # The merged "Today's Schedule" + "Upcoming" section groups `upcoming`
++    # by date so each future day gets its own compact one-row-per-flight
++    # table under a heading in the same style as today's. For a CFI, today
++    # itself is skipped here since the Today's Schedule block above
++    # (today_flights) is already the richer, status-aware view of that same
++    # day; a student has no such block, so their own today's bookings (if
++    # any) get a same-styled "Today's Schedule" group here instead, or
++    # they'd silently vanish from the page. groupby relies on `upcoming`
++    # already being sorted by scheduled_date (the query is), which is
++    # required for it to group correctly instead of splitting a day into
++    # multiple buckets.
++    today_str = date.today().strftime("%Y-%m-%d")
++    upcoming_future_days = []
++    for day, group in itertools.groupby(upcoming, key=lambda u: u["scheduled_date"]):
++        if day == today_str and cfi:
++            continue
++        day_flights = list(group)
++        if day == today_str:
++            weekday_label = "Today"
++        else:
++            try:
++                weekday_label = datetime.strptime(day, "%Y-%m-%d").strftime("%A")
++            except Exception:
++                weekday_label = ""
++        # Chips for this day are further grouped by time slot (see
++        # _group_by_time) so simultaneous bookings share one line.
++        upcoming_future_days.append(dict(date=day, weekday=weekday_label, flights=day_flights,
++                                          time_groups=_group_by_time(day_flights)))
++
++    # Today's Schedule chip list only shows what's still upcoming (scheduled
++    # or in progress) - a completed flight has nothing left to act on, and
++    # the "X of Y complete" badge above already reports the completed count,
++    # so repeating every finished flight as a chip too just added length to
++    # a section that's supposed to be a quick compact glance at the board.
++    today_time_groups = _group_by_time([t for t in today_flights if t["status"] != "completed"])
++
++    # Stable per-plane column ("lane") + accent color for the same-time chip
++    # rows (time_group_row() in _dashboard_live.html) - based on the WHOLE
++    # fleet's tag order (not just who happens to be flying today), so a
++    # given plane always renders in the same lane/color everywhere on the
++    # dashboard instead of shifting around depending on which flights
++    # happen to be booked or how they sorted that particular poll.
++    fleet_tags = [r["tag"] for r in conn.execute(
++        "SELECT tag FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()]
++    plane_lane = {tag: i for i, tag in enumerate(fleet_tags)}
++    plane_color = {tag: _PLANE_LANE_COLORS[i % len(_PLANE_LANE_COLORS)] for i, tag in enumerate(fleet_tags)}
++    plane_lane_count = len(fleet_tags) or 1
++
+     return dict(cfi=cfi, student=student, recent_flights=recent_flights,
+                 active_flights=active_flights, upcoming=upcoming, plane_maint=plane_maint,
+                 pending_requests=pending_requests, my_requests=my_requests,
+@@ -810,7 +883,10 @@
+                 solo_currency=solo_currency,
+                 solo_currency_days=solo_currency["interval_days"] if solo_currency else DEFAULT_SOLO_CURRENCY_DAYS,
+                 today_flights=today_flights, today_flights_total=today_flights_total,
+-                today_flights_completed=today_flights_completed, today_str=date.today().strftime("%Y-%m-%d"),
++                today_flights_completed=today_flights_completed, today_str=today_str,
++                today_time_groups=today_time_groups,
++                upcoming_future_days=upcoming_future_days,
++                plane_lane=plane_lane, plane_color=plane_color, plane_lane_count=plane_lane_count,
+                 dashboard_wx=dashboard_wx, dashboard_notams=dashboard_notams)
+ 
+ 
+@@ -1423,13 +1499,36 @@
+ 
+ def _build_schedule_year_list(conn, year, plane_id=None, cfi_id=None):
+     """Every flight in a year, grouped by month - the List view, same shape
+-    as the Maintenance calendar's List view."""
++    as the Maintenance calendar's List view. Also picks out which flight
++    the page should open scrolled to (see list_scroll_anchor_id below) so
++    a long year doesn't force scrolling from January just to reach what's
++    still coming up."""
+     rows = _schedule_rows(conn, f"{year:04d}-01-01", f"{year:04d}-12-31", plane_id, cfi_id)
+     by_month = {m: [] for m in range(1, 13)}
+     for r in rows:
+         by_month[int(r["scheduled_date"][5:7])].append(r)
+-    return [{"month": m, "month_name": calendar_mod.month_name[m], "flights": by_month[m]}
+-            for m in range(1, 13)]
++    months = [{"month": m, "month_name": calendar_mod.month_name[m], "flights": by_month[m]}
++              for m in range(1, 13)]
++
++    # Anchor the list at the most recently completed flight (rows are
++    # already in chronological order - see _schedule_rows) - upcoming
++    # flights are what someone opening the schedule cares about most, so
++    # they land just below the fold instead of needing a scroll past
++    # everything already flown; older history is one scroll up instead
++    # of the default. If nothing's been completed yet this year, anchor
++    # at the first still-upcoming booking instead, so the page doesn't
++    # just default back to the very top for no reason.
++    anchor_id = None
++    for r in rows:
++        if r["status"] == "completed":
++            anchor_id = r["id"]
++    if anchor_id is None:
++        today_str = date.today().strftime("%Y-%m-%d")
++        for r in rows:
++            if r["scheduled_date"] >= today_str:
++                anchor_id = r["id"]
++                break
++    return months, anchor_id
+ 
+ 
+ def _schedule_calendar_context():
+@@ -1473,6 +1572,7 @@
+     months_data = []
+     day_flights = []
+     year_list = None
++    list_scroll_anchor_id = None
+     range_flights = None
+     day_prev = day_next = None
+     if view == "day":
+@@ -1497,7 +1597,7 @@
+         prev_month, prev_year = month, year - 1
+         next_month, next_year = month, year + 1
+     elif view == "list":
+-        year_list = _build_schedule_year_list(conn, year, plane_id or None, cfi_id or None)
++        year_list, list_scroll_anchor_id = _build_schedule_year_list(conn, year, plane_id or None, cfi_id or None)
+         prev_month, prev_year = month, year - 1
+         next_month, next_year = month, year + 1
+     elif view == "custom":
+@@ -1530,7 +1630,7 @@
+ 
+     return dict(view=view, month_data=month_data, months_data=months_data,
+                 day_str=day_str, day_flights=day_flights, day_prev=day_prev, day_next=day_next,
+-                year_list=year_list,
++                year_list=year_list, list_scroll_anchor_id=list_scroll_anchor_id,
+                 custom_start=custom_start, custom_end=custom_end, range_flights=range_flights,
+                 today=today, year=year, month=month, prev_year=prev_year, prev_month=prev_month,
+                 next_year=next_year, next_month=next_month,
+--- a/templates/flight/_dashboard_live.html
++++ b/templates/flight/_dashboard_live.html
+@@ -55,51 +55,136 @@
+ </div>
+ {% endif %}
+ 
+-{% if cfi %}
+-<div class="card p-3 mb-3 dash-collapsible" data-dash-key="today">
+-  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2 dash-collapse-head">
+-    <button type="button" class="dash-toggle-btn" data-dash-toggle="today" aria-expanded="true"><span class="h6 mb-0 d-inline-block"><i class="bi bi-chevron-right dash-chevron"></i> <i class="bi bi-calendar-day"></i> Today's Schedule <span class="text-muted small fw-normal">({{ today_str|usdate }})</span></span></button>
+-    {% if today_flights_total %}
+-    <span class="badge {{ 'bg-success' if today_flights_completed == today_flights_total else 'bg-primary' }} fs-6">
+-      {{ today_flights_completed }} of {{ today_flights_total }} flight{{ 's' if today_flights_total != 1 }} complete
++{#
++  Merged schedule: today's board (status-aware, CFI/admin only) followed by
++  each future day that has a booking, as rows of small clickable "chips" -
++  one per flight - grouped by time slot so two+ bookings at the same time
++  share one line instead of stacking as if sequential. Replaces the old
++  pair of "Today's Schedule" + a separate flat "Upcoming" table further
++  down the page. Status is shown by the chip's whole-box color plus a
++  small corner icon (open circle = scheduled, wavy = in progress, filled
++  check = complete) instead of a text badge - see flight_chip() below.
++  Clicking a chip expands it in place for the instructor/other details
++  instead of navigating away. See upcoming_future_days in
++  _dashboard_context() for how "today" is excluded from the future-day
++  groups below (today_flights is the richer view of that same day, shown
++  first), and _group_by_time() for the time-slot grouping.
++#}
++{% macro flight_chip(f, cfi, plane_lane, plane_color) %}
++{% set status = f.status %}
++{% set icon = 'bi-circle' if status == 'scheduled' else ('bi-activity' if status == 'in_progress' else 'bi-check-circle-fill') %}
++{% set lane = plane_lane.get(f.plane_tag) %}
++<div class="flight-chip flight-chip-{{ status }}" data-chip-id="{{ f.id }}"
++     style="{% if lane is not none %}grid-column: {{ lane + 1 }};{% endif %} border-left: 4px solid {{ plane_color.get(f.plane_tag, '#adb5bd') }};">
++  <i class="bi {{ icon }} flight-chip-icon"></i>
++  <div class="flight-chip-main">
++    <div class="flight-chip-student">{{ f.student_name }}</div>
++    <div class="flight-chip-plane">{{ f.plane_tag }}</div>
++  </div>
++  <div class="flight-chip-detail" hidden>
++    <div><strong>Instructor:</strong> {% if f.cfi_name %}{{ f.cfi_name.split(' ')[0] }}{% elif f.solo %}Solo{% else %}Needs CFI{% endif %}</div>
++    {% if status == 'in_progress' and f.get('flight_id') %}
++    <a href="{{ url_for('flight.log_active') }}#active-flight-{{ f.flight_id }}" class="btn btn-dark btn-sm mt-1">Open Active Flight</a>
++    {% elif status == 'scheduled' and cfi %}
++    <div class="mt-1 d-flex gap-1">
++      {% if f.can_start is not defined or f.can_start %}
++      <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}" class="d-inline">
++        <button class="btn btn-success btn-sm">Start</button>
++      </form>
++      {% else %}
++      {# Too early to start: pressing it asks first (see _early_start_modal.html) and only starts if the instructor moves the booking to now. #}
++      <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}" class="d-inline early-start-form"
++            data-slot-label="{{ f.slot_label }}" data-opens-label="{{ f.start_opens_label }}">
++        <input type="hidden" name="move_to_now" value="0">
++        <button class="btn btn-outline-warning btn-sm" title="Booked for {{ f.slot_label }} - starting now will ask to move it"><i class="bi bi-clock"></i> Start</button>
++      </form>
++      {% endif %}
++      <a href="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}" class="btn btn-outline-secondary btn-sm">Log</a>
++    </div>
++    {% endif %}
++    <a href="{{ url_for('flight.schedule_calendar', view='day', date=f.scheduled_date, highlight=f.id) }}" class="btn btn-outline-secondary btn-sm mt-1"><i class="bi bi-calendar3"></i> View on Calendar</a>
++  </div>
++</div>
++{% endmacro %}
++
++{% macro time_group_row(group, cfi, plane_lane, plane_color, plane_lane_count) %}
++<div class="d-flex flex-wrap align-items-start gap-2 mb-2">
++  <span class="flight-chip-time">{{ group.time_label }}</span>
++  <div class="flight-chip-grid" style="grid-template-columns: repeat({{ plane_lane_count }}, minmax(6.5rem, 1fr));">
++    {% for f in group.flights %}
++    {{ flight_chip(f, cfi, plane_lane, plane_color) }}
++    {% endfor %}
++  </div>
++</div>
++{% endmacro %}
++
++{#
++  Both sections below are collapsed by default (click the header to open) so
++  the dashboard loads compact instead of dumping every flight on the page.
++  Once opened, a section (or an expanded chip) stays open across the
++  live-refresh poll too - dashboard.html's poll captures which sections/
++  chips are open before it swaps this fragment's HTML back in, then
++  reopens the same ones by their stable data-collapse/data-chip-id keys, so
++  nothing closes on its own; it only changes when the person clicks it.
++#}
++<div class="card p-3 mb-3">
++  {% if cfi %}
++  <button type="button" class="dash-collapse-toggle d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0 {{ 'mb-2' if today_time_groups or today_flights_total }}" data-collapse="today">
++    <h6 class="mb-0"><i class="bi bi-calendar-day"></i> Today's Schedule <span class="text-muted small fw-normal">({{ today_str|usdate }})</span></h6>
++    <span class="d-flex align-items-center gap-2">
++      {% if today_flights_total %}
++      <span class="badge {{ 'bg-success' if today_flights_completed == today_flights_total else 'bg-primary' }} fs-6">
++        {{ today_flights_completed }} of {{ today_flights_total }} flight{{ 's' if today_flights_total != 1 }} complete
++      </span>
++      {% else %}
++      <span class="badge bg-secondary fs-6">0 flights booked</span>
++      {% endif %}
++      <i class="bi bi-chevron-right dash-collapse-chevron"></i>
+     </span>
++  </button>
++  <div class="dash-collapse-body" data-collapse-body="today" hidden>
++    {% if today_time_groups %}
++    {% for group in today_time_groups %}
++    {{ time_group_row(group, cfi, plane_lane, plane_color, plane_lane_count) }}
++    {% endfor %}
++    {% elif today_flights_total %}
++    <p class="text-muted small mb-0">All of today's flights are complete.</p>
+     {% else %}
+-    <span class="badge bg-secondary fs-6">0 flights booked</span>
++    <p class="text-muted small mb-0">Nothing on the board for today.</p>
+     {% endif %}
+   </div>
+-  <div class="dash-collapse-body">
+-  {% if today_flights %}
+-  <div class="table-responsive">
+-    <table class="table table-sm align-middle mb-0 table-stack">
+-      <thead><tr><th>Time</th><th>Plane</th><th>Student</th><th>Instructor</th><th>Status</th></tr></thead>
+-      <tbody>
+-        {% for t in today_flights %}
+-        <tr{% if t.status == 'in_progress' and t.flight_id %} class="today-row-clickable" style="cursor:pointer;" onclick="window.location.href='{{ url_for('flight.log_active') }}#active-flight-{{ t.flight_id }}'"{% endif %}>
+-          <td data-label="Time"><small>{{ t.time_label or 'Not set' }}</small></td>
+-          <td data-label="Plane">{{ t.plane_tag }}</td>
+-          <td data-label="Student">{{ t.student_name }}</td>
+-          <td data-label="Instructor">{% if t.cfi_name %}{{ t.cfi_name }}{% elif t.solo %}<span class="badge bg-secondary">Solo</span>{% else %}<span class="badge bg-danger">Needs Instructor</span>{% endif %}</td>
+-          <td data-label="Status">
+-            {% if t.status == 'completed' %}
+-            <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Complete</span>
+-            {% elif t.status == 'in_progress' %}
+-            <span class="badge bg-warning text-dark"><i class="bi bi-stopwatch"></i> In Progress</span>
+-            {% if t.flight_id %}<i class="bi bi-box-arrow-up-right text-muted ms-1" title="Click row to open"></i>{% endif %}
+-            {% else %}
+-            <span class="badge bg-info text-dark"><i class="bi bi-hourglass-split"></i> Scheduled</span>
+-            {% endif %}
+-          </td>
+-        </tr>
+-        {% endfor %}
+-      </tbody>
+-    </table>
++  <hr class="my-3">
++  {% endif %}
++
++  <button type="button" class="dash-collapse-toggle d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0 {{ 'mb-2' if upcoming_future_days else '' }}" data-collapse="upcoming">
++    <h6 class="mb-0"><i class="bi bi-calendar-week"></i> Upcoming</h6>
++    <span class="d-flex align-items-center gap-2">
++      <span class="badge bg-secondary fs-6">{{ upcoming_future_days|length }} day{{ 's' if upcoming_future_days|length != 1 }}</span>
++      <i class="bi bi-chevron-right dash-collapse-chevron"></i>
++    </span>
++  </button>
++  <div class="dash-collapse-body" data-collapse-body="upcoming" hidden>
++    {% for day in upcoming_future_days %}
++    {% if not loop.first %}<hr class="my-3">{% endif %}
++    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
++      <h6 class="mb-0"><i class="bi bi-calendar-day"></i> {{ day.weekday }}'s Schedule <span class="text-muted small fw-normal">({{ day.date|usdate }})</span></h6>
++      <span class="badge bg-secondary fs-6">{{ day.flights|length }} flight{{ 's' if day.flights|length != 1 }} booked</span>
++    </div>
++    {% for group in day.time_groups %}
++    {{ time_group_row(group, cfi, plane_lane, plane_color, plane_lane_count) }}
++    {% endfor %}
++    {% else %}
++    <p class="text-muted small mb-0">Nothing else on the books yet.</p>
++    {% endfor %}
+   </div>
+-  {% else %}
+-  <p class="text-muted small mb-0">Nothing on the board for today.</p>
++
++  {% if not today_flights and not upcoming_future_days %}
++  <p class="text-muted small mb-0 mt-2">Nothing scheduled yet.{% if cfi %} <a href="{{ url_for('flight.schedule_new') }}">Schedule a flight</a>.{% endif %}</p>
+   {% endif %}
++  <div class="text-end mt-2">
++    <a href="{{ url_for('flight.schedule_calendar') }}" class="small">Full Calendar &raquo;</a>
+   </div>
+ </div>
+-{% endif %}
+ 
+ {% if cfi and (dashboard_wx or dashboard_notams) %}
+ <div class="row g-3 mb-3">
+@@ -303,52 +388,6 @@
+ </div>
+ {% endif %}
+ 
+-<div class="card p-3 mb-3 dash-collapsible" data-dash-key="upcoming">
+-  <div class="d-flex justify-content-between align-items-center mb-2 dash-collapse-head">
+-    <button type="button" class="dash-toggle-btn" data-dash-toggle="upcoming" aria-expanded="true"><span class="h6 mb-0 d-inline-block"><i class="bi bi-chevron-right dash-chevron"></i> <i class="bi bi-calendar3"></i> Upcoming <span class="badge bg-secondary dash-count">{{ upcoming|length if upcoming else 0 }}</span></span></button>
+-    <a href="{{ url_for('flight.schedule_calendar') }}" class="btn btn-outline-secondary btn-sm">Full Calendar</a>
+-  </div>
+-  <div class="dash-collapse-body">
+-  {% if upcoming %}
+-  <div class="table-responsive">
+-    <table class="table table-sm align-middle mb-0 table-stack">
+-      <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Student</th>{% if cfi %}<th>Instructor</th>{% endif %}{% if cfi %}<th></th>{% endif %}</tr></thead>
+-      <tbody>
+-        {% for u in upcoming %}
+-        <tr>
+-          <td data-label="Date"><small>{{ u.scheduled_date|usdate }}</small></td>
+-          <td data-label="Time"><small>{{ u.time_label or 'Not set' }}</small></td>
+-          <td data-label="Plane">{{ u.plane_tag }}</td>
+-          <td data-label="Student">{{ u.student_name }}</td>
+-          {% if cfi %}<td data-label="Instructor">{% if u.cfi_name %}{{ u.cfi_name }}{% elif u.solo %}<span class="badge bg-secondary">Solo</span>{% else %}<span class="badge bg-danger">Needs Instructor</span>{% endif %}</td>{% endif %}
+-          {% if cfi %}
+-          <td data-label="" class="text-end">
+-            {% if u.can_start is not defined or u.can_start %}
+-            <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=u.id) }}" class="d-inline">
+-              <button class="btn btn-success btn-sm"><i class="bi bi-play-fill"></i> Start</button>
+-            </form>
+-            {% else %}
+-            {# Too early to start: pressing it asks first (see _early_start_modal.html) and only starts if the instructor moves the booking to now. #}
+-            <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=u.id) }}" class="d-inline early-start-form"
+-                  data-slot-label="{{ u.slot_label }}" data-opens-label="{{ u.start_opens_label }}">
+-              <input type="hidden" name="move_to_now" value="0">
+-              <button class="btn btn-outline-warning btn-sm" title="Booked for {{ u.slot_label }} - starting now will ask to move it"><i class="bi bi-clock"></i> Start</button>
+-            </form>
+-            {% endif %}
+-            <a href="{{ url_for('flight.log_new', asset_id=u.asset_id, student_id=u.student_id, cfi_id=u.cfi_id or '', solo='on' if u.solo else '', flight_date=u.scheduled_date, scheduled_flight_id=u.id) }}" class="btn btn-outline-secondary btn-sm">Log</a>
+-          </td>
+-          {% endif %}
+-        </tr>
+-        {% endfor %}
+-      </tbody>
+-    </table>
+-  </div>
+-  {% else %}
+-  <p class="text-muted small mb-0">Nothing scheduled yet.{% if cfi %} <a href="{{ url_for('flight.schedule_new') }}">Schedule a flight</a>.{% endif %}</p>
+-  {% endif %}
+-  </div>
+-</div>
+-
+ {% if plane_maint %}
+ <div class="card p-3 mb-3">
+   <h6 class="mb-2"><i class="bi bi-droplet-half"></i> Oil Changes &amp; 100-Hour Inspections</h6>
+@@ -380,11 +419,15 @@
+ </div>
+ {% endif %}
+ 
+-<div class="card p-3 dash-collapsible" data-dash-key="recent">
+-  <div class="dash-collapse-head mb-2">
+-    <button type="button" class="dash-toggle-btn" data-dash-toggle="recent" aria-expanded="true"><span class="h6 mb-0 d-inline-block"><i class="bi bi-chevron-right dash-chevron"></i> {% if cfi %}Recent Flights (Whole School){% else %}Your Recent Flights{% endif %} <span class="badge bg-secondary dash-count">{{ recent_flights|length if recent_flights else 0 }}</span></span></button>
+-  </div>
+-  <div class="dash-collapse-body">
++<div class="card p-3">
++  <button type="button" class="dash-collapse-toggle d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0" data-collapse="recent">
++    <h6 class="mb-0">{% if cfi %}Recent Flights (Whole School){% else %}Your Recent Flights{% endif %}</h6>
++    <span class="d-flex align-items-center gap-2">
++      <span class="badge bg-secondary fs-6">{{ recent_flights|length }}</span>
++      <i class="bi bi-chevron-right dash-collapse-chevron"></i>
++    </span>
++  </button>
++  <div class="dash-collapse-body mt-2" data-collapse-body="recent" hidden>
+   {% if recent_flights %}
+   <div class="table-responsive">
+     <table class="table table-sm align-middle mb-0 table-stack">
+@@ -395,7 +438,7 @@
+           <td data-label="Date"><small>{{ f.flight_date|usdate }}</small></td>
+           <td data-label="Plane">{{ f.plane_tag }}</td>
+           <td data-label="Student">{{ f.student_name }}</td>
+-          {% if cfi %}<td data-label="Instructor">{% if f.cfi_name %}{{ f.cfi_name }}{% else %}<span class="badge bg-secondary">Solo</span>{% endif %}</td>{% endif %}
++          {% if cfi %}<td data-label="Instructor">{% if f.cfi_name %}{{ f.cfi_name.split(' ')[0] }}{% else %}<span class="badge bg-secondary">Solo</span>{% endif %}</td>{% endif %}
+           <td data-label="Hobbs">{% if f.hobbs_start is not none and f.hobbs_end is not none %}{{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }}{% elif f.started_at and not f.ended_at %}<span class="badge bg-warning text-dark">In progress</span>{% else %}-{% endif %}</td>
+           <td class="stack-full" data-label="Notes"><small>{{ f.notes or '-' }}</small></td>
+         </tr>
+--- a/templates/flight/dashboard.html
++++ b/templates/flight/dashboard.html
+@@ -3,20 +3,6 @@
+ {% block content %}
+ <style>
+   .today-row-clickable:hover { background-color: rgba(255, 193, 7, 0.12); }
+-  /* Today's Schedule, Upcoming and Recent Flights fold down to just their
+-     header (with a count) - tap the header or the > to open/close, on any
+-     screen size. Phones start folded, wider screens start open; whatever
+-     you choose is remembered on that device. The title is a real <button>
+-     so taps always register (iPhone Safari ignores taps on plain divs). */
+-  .dash-toggle-btn { background: none; border: 0; padding: 0; margin: 0; color: inherit; text-align: left;
+-                     font: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+-  .dash-toggle-btn:focus-visible { outline: 2px solid rgba(13,110,253,.5); outline-offset: 2px; border-radius: 4px; }
+-  .dash-chevron { display: inline-block; transition: transform .15s ease; }
+-  .dash-count { display: inline-block; }
+-  .dash-collapsible.is-open .dash-chevron { transform: rotate(90deg); }
+-  .dash-collapse-head { cursor: pointer; -webkit-user-select: none; user-select: none; min-height: 32px; }
+-  .dash-collapsible:not(.is-open) .dash-collapse-head { margin-bottom: 0 !important; }
+-  .dash-collapsible:not(.is-open) .dash-collapse-body { display: none; }
+   .wx-tile { color: #fff; transition: background .3s ease; position: relative; overflow: hidden; }
+   .wx-content { position: relative; z-index: 1; }
+   .wx-bg-icon { position: absolute; top: -0.5rem; right: -0.5rem; font-size: 7rem; opacity: .22; z-index: 0; pointer-events: none; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,.15)); }
+@@ -227,42 +213,6 @@
+ 
+ {% block scripts %}
+ <script>
+-// Which collapsible dashboard sections are open. A section you've never
+-// touched starts open on a wide screen and folded on a phone; once you
+-// open/close one it's remembered on this device (localStorage when
+-// allowed, else just for this visit). Re-applied after every live refresh,
+-// since the refresh replaces the sections' HTML.
+-var DASH_STORE = 'opshub-dash-open-v2';
+-var dashOpen = {};
+-try { dashOpen = JSON.parse(localStorage.getItem(DASH_STORE) || '{}') || {}; } catch (e) { dashOpen = {}; }
+-function dashIsPhone() { return window.matchMedia('(max-width: 575.98px)').matches; }
+-function dashSectionOpen(key) {
+-  return (key in dashOpen) ? !!dashOpen[key] : !dashIsPhone();
+-}
+-function applyDashCollapse() {
+-  document.querySelectorAll('.dash-collapsible').forEach(function (card) {
+-    var open = dashSectionOpen(card.getAttribute('data-dash-key'));
+-    card.classList.toggle('is-open', open);
+-    var btn = card.querySelector('.dash-toggle-btn');
+-    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+-  });
+-}
+-applyDashCollapse();
+-document.addEventListener('click', function (evt) {
+-  // The title button itself, or anywhere else on the header row except
+-  // its own links/buttons (e.g. "Full Calendar" keeps working normally).
+-  var btn = evt.target.closest('.dash-toggle-btn');
+-  if (!btn) {
+-    var head = evt.target.closest('.dash-collapse-head');
+-    if (!head || evt.target.closest('a, button, form, input, select')) return;
+-    btn = head.querySelector('.dash-toggle-btn');
+-    if (!btn) return;
+-  }
+-  var key = btn.getAttribute('data-dash-toggle');
+-  dashOpen[key] = !dashSectionOpen(key);
+-  try { localStorage.setItem(DASH_STORE, JSON.stringify(dashOpen)); } catch (e) {}
+-  applyDashCollapse();
+-});
+ (function () {
+   var region = document.getElementById('dashboard-live-region');
+   if (!region) return;
+@@ -270,12 +220,49 @@
+   var POLL_MS = 15000;
+   var inFlight = false;
+ 
++  // A collapsed section or an expanded chip should stay exactly as the
++  // person left it - it should only open or close because THEY clicked it,
++  // never because a poll happened to land a few seconds later. Since the
++  // poll replaces the region's whole innerHTML (so it always reflects the
++  // current data), the open/closed state has to be captured before the
++  // swap and reapplied after, matched up by the stable keys each element
++  // carries (data-collapse / data-collapse-body for a section, data-chip-id
++  // - the scheduled_flight's own id - for a chip).
++  function captureOpenState() {
++    return {
++      sections: Array.prototype.map.call(
++        region.querySelectorAll('.dash-collapse-toggle.open'),
++        function (t) { return t.dataset.collapse; }),
++      chips: Array.prototype.map.call(
++        region.querySelectorAll('.flight-chip.flight-chip-open'),
++        function (c) { return c.dataset.chipId; })
++    };
++  }
++
++  function restoreOpenState(state) {
++    state.sections.forEach(function (key) {
++      var toggle = region.querySelector('.dash-collapse-toggle[data-collapse="' + key + '"]');
++      var body = region.querySelector('[data-collapse-body="' + key + '"]');
++      if (toggle && body) { toggle.classList.add('open'); body.hidden = false; }
++    });
++    state.chips.forEach(function (id) {
++      var chip = region.querySelector('.flight-chip[data-chip-id="' + id + '"]');
++      var detail = chip && chip.querySelector('.flight-chip-detail');
++      if (chip && detail) { chip.classList.add('flight-chip-open'); detail.hidden = false; }
++    });
++  }
++
+   function refresh() {
+     if (inFlight || document.hidden) return;
+     inFlight = true;
++    var openState = captureOpenState();
+     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+       .then(function (resp) { return resp.ok ? resp.text() : null; })
+-      .then(function (html) { if (html !== null) { region.innerHTML = html; applyDashCollapse(); } })
++      .then(function (html) {
++        if (html === null) return;
++        region.innerHTML = html;
++        restoreOpenState(openState);
++      })
+       .catch(function () { /* network hiccup - just try again next tick */ })
+       .finally(function () { inFlight = false; });
+   }
+@@ -285,5 +272,80 @@
+     if (!document.hidden) refresh();
+   });
+ })();
++
++// Click a flight chip to expand it in place (instructor + Start/Log or a
++// link to the active flight) instead of navigating away. Delegated on
++// document (not the chips themselves) so this keeps working after the
++// live-refresh polling above replaces #dashboard-live-region's content
++// wholesale - a plain per-chip addEventListener would go dead on the
++// first poll (the poll also reopens whichever chip was open - see
++// restoreOpenState above - so this only ever fires from an actual click).
++// Accordion-style: opening one chip closes any other that was already
++// open, so the page doesn't fill up with expanded boxes.
++document.addEventListener('click', function (evt) {
++  var region = document.getElementById('dashboard-live-region');
++  if (!region || !region.contains(evt.target)) return;
++  // Let the Start/Log form and link inside an expanded chip actually work,
++  // rather than being swallowed by the toggle below.
++  if (evt.target.closest('.flight-chip-detail a, .flight-chip-detail button, .flight-chip-detail form')) return;
++  var chip = evt.target.closest('.flight-chip');
++  if (!chip) return;
++  var detail = chip.querySelector('.flight-chip-detail');
++  if (!detail) return;
++  var opening = detail.hidden;
++  region.querySelectorAll('.flight-chip-detail:not([hidden])').forEach(function (d) {
++    d.hidden = true;
++    d.closest('.flight-chip').classList.remove('flight-chip-open');
++  });
++  if (opening) {
++    detail.hidden = false;
++    chip.classList.add('flight-chip-open');
++  }
++});
++
++// Click a section header (Today's Schedule / Upcoming / Recent Flights) to
++// reveal its list - each starts closed (see the "hidden" .dash-collapse-body
++// in _dashboard_live.html) so the dashboard loads compact. Delegated for the
++// same reason as the chip handler above: the live-refresh poll replaces
++// #dashboard-live-region's whole innerHTML, so a plain per-button listener
++// would go dead after the first poll (the poll reopens whichever sections
++// were open - see restoreOpenState above - so a section only closes when
++// this handler actually fires from a click).
++document.addEventListener('click', function (evt) {
++  var region = document.getElementById('dashboard-live-region');
++  if (!region || !region.contains(evt.target)) return;
++  var toggle = evt.target.closest('.dash-collapse-toggle');
++  if (!toggle) return;
++  var body = region.querySelector('[data-collapse-body="' + toggle.dataset.collapse + '"]');
++  if (!body) return;
++  var opening = body.hidden;
++  body.hidden = !opening;
++  toggle.classList.toggle('open', opening);
++  dashSaveOpen(toggle.dataset.collapse, opening);
++});
++
++// Remember which sections are open on this device, so a reload or the next
++// visit shows the dashboard the way it was left (localStorage when the
++// browser allows it; otherwise it just resets to all-closed as before).
++var DASH_OPEN_STORE = 'opshub-dash-sections-v3';
++function dashLoadOpen() {
++  try { return JSON.parse(localStorage.getItem(DASH_OPEN_STORE) || '{}') || {}; } catch (e) { return {}; }
++}
++function dashSaveOpen(key, open) {
++  var saved = dashLoadOpen();
++  saved[key] = !!open;
++  try { localStorage.setItem(DASH_OPEN_STORE, JSON.stringify(saved)); } catch (e) {}
++}
++(function () {
++  var region = document.getElementById('dashboard-live-region');
++  if (!region) return;
++  var saved = dashLoadOpen();
++  Object.keys(saved).forEach(function (key) {
++    if (!saved[key]) return;
++    var toggle = region.querySelector('.dash-collapse-toggle[data-collapse="' + key + '"]');
++    var body = region.querySelector('[data-collapse-body="' + key + '"]');
++    if (toggle && body) { toggle.classList.add('open'); body.hidden = false; }
++  });
++})();
+ </script>
+ {% endblock %}
+--- a/templates/admin_system_log.html
++++ b/templates/admin_system_log.html
+@@ -8,7 +8,6 @@
+   <div class="d-flex gap-2">
+     <a href="{{ url_for('admin_system') }}" class="btn btn-outline-secondary btn-sm">&laquo; System</a>
+     <button type="button" class="btn btn-outline-primary btn-sm" onclick="location.reload()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+-    <button type="button" class="btn btn-outline-primary btn-sm" id="copy-log-btn"><i class="bi bi-clipboard"></i> Copy All</button>
+     <form method="post" action="{{ url_for('admin_system_log_clear') }}" data-confirm="Clear the error log? This cannot be undone." data-confirm-style="danger" class="d-inline">
+       <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Clear</button>
+     </form>
+@@ -16,22 +15,48 @@
+ </div>
+ 
+ <p class="text-muted small">
+-  Every unhandled error the app hits (full traceback, newest at the bottom) - if something breaks,
+-  copy the relevant part and hand it to Claude along with what you were doing at the time.
++  Every unhandled error the app hits, newest first - click a row to open it and copy the traceback for Claude,
++  along with what you were doing at the time.
+ </p>
+ 
+ {% if error %}
+-<div class="alert alert-danger">Couldn't read the log file: {{ error }}</div>
+-{% elif not log_text %}
++<div class="alert alert-danger">Couldn't read the error log: {{ error }}</div>
++{% elif not entries %}
+ <div class="card p-4 text-center">
+   <i class="bi bi-check-circle fs-1 text-success"></i>
+   <p class="text-muted mt-2 mb-0">No errors logged - clean.</p>
+ </div>
+ {% else %}
+ {% if truncated %}
+-<div class="alert alert-warning small py-2">Showing the most recent 500 lines out of {{ total_lines }} - older entries have scrolled off (the file also auto-rotates once it hits 2MB, keeping 3 backups).</div>
++<div class="alert alert-warning small py-2">Showing the most recent {{ entries|length }} of {{ total_count }} error files - older ones have scrolled off (and are pruned automatically past 200 files).</div>
+ {% endif %}
+-<pre id="log-text" class="bg-dark text-light p-3 rounded small" style="max-height:70vh; overflow-y:auto; white-space:pre-wrap; word-break:break-word;">{{ log_text }}</pre>
++<div class="card">
++  <div class="table-responsive">
++    <table class="table table-hover align-middle mb-0 table-stack" id="error-log-table">
++      <thead class="table-light"><tr><th style="width:3.5rem;">#</th><th>Date</th><th>Time</th><th>Affected</th><th></th></tr></thead>
++      <tbody>
++        {% for e in entries %}
++        <tr class="error-log-row" role="button" data-target="error-log-detail-{{ loop.index }}">
++          <td data-label="#">{{ loop.index }}</td>
++          <td data-label="Date">{{ e.date or '-' }}</td>
++          <td data-label="Time">{{ e.time or '-' }}</td>
++          <td class="stack-full" data-label="Affected"><code>{{ e.affected }}</code></td>
++          <td data-label=""><i class="bi bi-chevron-right error-log-chevron"></i></td>
++        </tr>
++        <tr class="error-log-detail-row" id="error-log-detail-row-{{ loop.index }}" hidden>
++          <td colspan="5" class="p-0 stack-full">
++            <div class="d-flex justify-content-between align-items-center gap-2 px-3 pt-2">
++              <span class="small text-muted">{{ e.message }}</span>
++              <button type="button" class="btn btn-outline-secondary btn-sm copy-entry-btn" data-target="error-log-detail-{{ loop.index }}"><i class="bi bi-clipboard"></i> Copy</button>
++            </div>
++            <pre id="error-log-detail-{{ loop.index }}" class="bg-dark text-light p-3 m-3 mt-2 rounded small" style="max-height:50vh; overflow-y:auto; white-space:pre-wrap; word-break:break-word;">{{ e.text }}</pre>
++          </td>
++        </tr>
++        {% endfor %}
++      </tbody>
++    </table>
++  </div>
++</div>
+ {% endif %}
+ 
+ </div>
+@@ -40,19 +65,34 @@
+ 
+ {% block scripts %}
+ <script>
+-var copyBtn = document.getElementById('copy-log-btn');
+-if (copyBtn) {
+-  copyBtn.addEventListener('click', function () {
+-    var text = document.getElementById('log-text') ? document.getElementById('log-text').textContent : '';
+-    if (!text) { return; }
+-    navigator.clipboard.writeText(text).then(function () {
+-      var orig = copyBtn.innerHTML;
+-      copyBtn.innerHTML = '<i class="bi bi-check-lg"></i> Copied';
+-      setTimeout(function () { copyBtn.innerHTML = orig; }, 1500);
+-    }).catch(function () {
+-      alert('Copy failed - your browser may not allow clipboard access here. Select the text manually instead.');
+-    });
++// Click a row to open/close its traceback - accordion-style (opening one
++// closes any other that was already open) so the table stays scannable.
++document.addEventListener('click', function (evt) {
++  var btn = evt.target.closest('.copy-entry-btn');
++  if (btn) {
++    var pre = document.getElementById(btn.dataset.target);
++    if (!pre) return;
++    navigator.clipboard.writeText(pre.textContent).then(function () {
++      var orig = btn.innerHTML;
++      btn.innerHTML = '<i class="bi bi-check-lg"></i> Copied';
++      setTimeout(function () { btn.innerHTML = orig; }, 1200);
++    }).catch(function () {});
++    return;
++  }
++  var row = evt.target.closest('.error-log-row');
++  if (!row) return;
++  var detailRow = document.getElementById('error-log-detail-row-' + row.dataset.target.split('-').pop());
++  if (!detailRow) return;
++  var opening = detailRow.hidden;
++  document.querySelectorAll('.error-log-detail-row:not([hidden])').forEach(function (d) {
++    d.hidden = true;
++    var otherRow = d.previousElementSibling;
++    if (otherRow) otherRow.classList.remove('error-log-row-open');
+   });
+-}
++  if (opening) {
++    detailRow.hidden = false;
++    row.classList.add('error-log-row-open');
++  }
++});
+ </script>
+ {% endblock %}
+--- a/templates/admin_home.html
++++ b/templates/admin_home.html
+@@ -43,7 +43,7 @@
+           <i class="bi bi-hdd-rack fs-2 text-primary"></i>
+           <div>
+             <div class="fw-bold text-dark">System</div>
+-            <div class="text-muted small">Restart the app, reboot the Pi, error log{% if error_log_size %} <span class="badge bg-warning text-dark">has entries</span>{% endif %}</div>
++            <div class="text-muted small">Restart the app, reboot the Pi, error log{% if error_log_count %} <span class="badge bg-warning text-dark">has entries</span>{% endif %}</div>
+           </div>
+         </div>
+       </div>
+--- a/static/css/style.css
++++ b/static/css/style.css
+@@ -85,3 +85,78 @@
+   .fs-3 { font-size: 1.3rem !important; }
+   h4.mb-3, h4 { font-size: 1.15rem; }
+ }
++
++/* Flight chips: a compact, clickable box per flight used on the flight
++   dashboard's per-day schedule (_dashboard_live.html) and the Schedule
++   calendar's List view (_schedule_live.html). Status is carried by the
++   whole box's color plus a small corner icon - open circle (scheduled),
++   a wavy line (in progress), filled check (complete) - instead of a text
++   badge, so a glance at the color/shape tells you the status without
++   reading anything. Clicking a chip reveals more (see the flight-chip
++   variant's own JS: dashboard.html's delegated handler toggles
++   .flight-chip-detail; the Schedule calendar's chips instead reuse the
++   existing .schedule-block click handler/detail modal). */
++.flight-chip {
++  position: relative;
++  display: inline-flex;
++  align-items: flex-start;
++  gap: .4rem;
++  min-width: 5.5rem;
++  padding: .35rem 1.4rem .35rem .5rem;
++  border-radius: .5rem;
++  cursor: pointer;
++  transition: box-shadow .15s ease;
++}
++.flight-chip:hover { box-shadow: 0 0 0 2px rgba(0,0,0,.08); }
++.flight-chip.flight-chip-open { box-shadow: 0 0 0 2px rgba(0,0,0,.18); }
++.flight-chip-icon { position: absolute; top: .35rem; right: .4rem; font-size: .68rem; }
++.flight-chip-student { font-weight: 600; font-size: .82rem; line-height: 1.15; }
++.flight-chip-plane { font-size: .74rem; color: #495057; line-height: 1.15; }
++.flight-chip-day { font-weight: 700; font-size: .82rem; margin-right: .15rem; }
++.flight-chip-detail { margin-top: .35rem; padding-top: .35rem; border-top: 1px dashed rgba(0,0,0,.18); font-size: .74rem; min-width: 8rem; }
++.flight-chip-time { font-size: .78rem; font-weight: 700; color: #495057; padding-top: .45rem; min-width: 3.4rem; }
++/* Same-time flights render as a grid, one column per plane in the fleet
++   (see plane_lane/plane_color in _dashboard_context()) - each chip is
++   placed in its plane's own column via an inline grid-column style, so a
++   given plane always lands in the same visual slot instead of shifting
++   around based on whichever flight sorts first that moment. */
++.flight-chip-grid { display: grid; gap: .5rem; flex: 1 1 auto; min-width: 0; }
++
++.flight-chip-scheduled { background: #e7f1ff; border: 1px solid #b6d4fe; }
++.flight-chip-scheduled .flight-chip-icon { color: #0d6efd; }
++.flight-chip-in_progress { background: #fff8e1; border: 1px solid #ffe69c; animation: flight-chip-pulse 1.8s ease-in-out infinite; }
++.flight-chip-in_progress .flight-chip-icon { color: #dc9b00; }
++.flight-chip-completed { background: #eaf7ee; border: 1px solid #b6e2c1; opacity: .85; }
++.flight-chip-completed .flight-chip-icon { color: #198754; }
++@keyframes flight-chip-pulse {
++  0%, 100% { box-shadow: 0 0 3px rgba(255,193,7,.5); }
++  50% { box-shadow: 0 0 8px rgba(255,193,7,.9); }
++}
++@media (prefers-reduced-motion: reduce) {
++  .flight-chip-in_progress { animation: none; }
++}
++@media (max-width: 575.98px) {
++  .flight-chip { min-width: 4.6rem; padding: .3rem 1.25rem .3rem .4rem; }
++  .flight-chip-student, .flight-chip-day { font-size: .76rem; }
++  .flight-chip-plane { font-size: .68rem; }
++}
++
++/* Dashboard section collapse - Today's Schedule / Upcoming / Recent Flights
++   each start closed (see the "hidden" .dash-collapse-body in
++   _dashboard_live.html) so the dashboard loads as a compact stack of
++   headers+badges, and clicking a header reveals its full list. The chevron
++   rotates to point down while open (see dashboard.html's click handler,
++   which toggles the "open" class alongside the body's hidden attribute). */
++.dash-collapse-toggle { cursor: pointer; }
++.dash-collapse-toggle:hover h6 { text-decoration: underline; }
++.dash-collapse-chevron { transition: transform .15s ease; color: #6c757d; }
++.dash-collapse-toggle.open .dash-collapse-chevron { transform: rotate(90deg); }
++
++/* Admin error log - each error is one clickable row (see
++   templates/admin_system_log.html); clicking reveals its full traceback in
++   the row directly below instead of always showing every traceback at
++   once. */
++.error-log-row { cursor: pointer; }
++.error-log-chevron { transition: transform .15s ease; color: #6c757d; }
++.error-log-row.error-log-row-open .error-log-chevron { transform: rotate(90deg); }
++.error-log-detail-row td { border-top: none; }

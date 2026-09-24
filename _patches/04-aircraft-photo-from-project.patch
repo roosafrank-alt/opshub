@@ -1,0 +1,120 @@
+--- a/db.py
++++ b/db.py
+@@ -731,6 +731,48 @@
+     conn.commit()
+ 
+     _migrate_flight_accounts_to_users(conn)
++    _carry_over_project_photos_to_assets(conn)
++
++
++def _carry_over_project_photos_to_assets(conn):
++    """One-time: an aircraft/asset with no photo of its own gets a COPY of
++    its newest project's cover photo (or newest project photo), so planes
++    that only had a picture on their maintenance project now show one on
++    the Aircraft page too. It's a separate file + photos row, so the
++    project's photo and the aircraft's photo can be changed or deleted
++    independently afterwards. Guarded by an app_settings flag so deleting
++    an aircraft photo later doesn't make it come back on the next restart."""
++    import shutil
++    flag = conn.execute("SELECT value FROM app_settings WHERE key = 'asset_photos_carried_over'").fetchone()
++    if flag:
++        return
++    assets = conn.execute("""SELECT a.id FROM assets a
++                             WHERE NOT EXISTS (SELECT 1 FROM photos ph WHERE ph.asset_id = a.id)""").fetchall()
++    copied = 0
++    for a in assets:
++        src = conn.execute("""SELECT ph.filename FROM photos ph
++                              JOIN projects p ON p.id = ph.project_id
++                              WHERE p.asset_id = ? AND p.deleted_at IS NULL
++                              ORDER BY p.created_at DESC, ph.is_cover DESC, ph.created_at DESC
++                              LIMIT 1""", (a["id"],)).fetchone()
++        if not src:
++            continue
++        src_path = os.path.join(UPLOAD_DIR, src["filename"])
++        if not os.path.exists(src_path):
++            continue
++        ext = src["filename"].rsplit(".", 1)[-1].lower() if "." in src["filename"] else "jpg"
++        unique = "".join(random.choices(string.ascii_lowercase + string.digits, k=12))
++        new_name = f"{unique}.{ext}"
++        try:
++            shutil.copyfile(src_path, os.path.join(UPLOAD_DIR, new_name))
++        except OSError:
++            continue
++        conn.execute("INSERT INTO photos (asset_id, filename, is_cover, created_at) VALUES (?, ?, 1, ?)",
++                     (a["id"], new_name, now_iso()))
++        copied += 1
++    conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('asset_photos_carried_over', ?)",
++                 (f"{now_iso()} ({copied} copied)",))
++    conn.commit()
+ 
+ 
+ def _migrate_flight_accounts_to_users(conn):
+--- a/app.py
++++ b/app.py
+@@ -1591,10 +1591,27 @@
+             (a["id"],)).fetchone()
+         if photo:
+             asset_covers[a["id"]] = photo["filename"]
++        else:
++            fallback = _asset_project_cover(conn, a["id"])
++            if fallback:
++                asset_covers[a["id"]] = fallback["filename"]
+     conn.close()
+     return render_template("assets.html", assets=assets, project_counts=project_counts, q=q, asset_covers=asset_covers)
+ 
+ 
++def _asset_project_cover(conn, asset_id):
++    """Fallback picture for an aircraft/asset with no photo of its own: the
++    cover (or newest) photo from its newest project. Display-only - nothing
++    is copied, so the aircraft picks up its own photo as soon as one is
++    added and the project's photos stay the project's."""
++    row = conn.execute("""SELECT ph.filename, p.id AS project_id, p.name AS project_name
++                          FROM photos ph JOIN projects p ON p.id = ph.project_id
++                          WHERE p.asset_id = ? AND p.deleted_at IS NULL
++                          ORDER BY p.created_at DESC, ph.is_cover DESC, ph.created_at DESC
++                          LIMIT 1""", (asset_id,)).fetchone()
++    return dict(row) if row else None
++
++
+ @app.route("/assets/new", methods=["GET", "POST"])
+ @shop_role_required('admin')
+ def asset_new():
+@@ -1703,13 +1720,14 @@
+ 
+     photos = conn.execute("SELECT * FROM photos WHERE asset_id = ? ORDER BY is_cover DESC, created_at DESC",
+                            (asset_id,)).fetchall()
++    project_cover = None if photos else _asset_project_cover(conn, asset_id)
+     todos = conn.execute(
+         "SELECT * FROM plane_todos WHERE asset_id = ? ORDER BY done, created_at DESC", (asset_id,)
+     ).fetchall()
+     conn.close()
+     return render_template("asset_detail.html", asset=asset, project_blocks=project_blocks, total_cost=total_cost,
+                            maintenance_items=maintenance_items, oil_log=oil_log, total_oil_added=total_oil_added,
+-                           open_squawks=open_squawks, photos=photos, todos=todos,
++                           open_squawks=open_squawks, photos=photos, todos=todos, project_cover=project_cover,
+                            latest_compression=latest_compression, compression_count=compression_count)
+ 
+ 
+--- a/templates/asset_detail.html
++++ b/templates/asset_detail.html
+@@ -3,6 +3,9 @@
+ {% block content %}
+ {% if photos %}
+ <img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;">
++{% elif project_cover %}
++{# No aircraft photo yet - borrow the newest project's photo until one is added here. #}
++<img src="{{ url_for('static', filename='uploads/' + project_cover.filename) }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;" title="Photo from project {{ project_cover.project_name }}">
+ {% endif %}
+ <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+   <div>
+@@ -92,6 +95,10 @@
+         </div>
+         {% endfor %}
+       </div>
++      {% elif project_cover %}
++      <p class="text-muted small mb-2"><i class="bi bi-info-circle"></i> No aircraft photo yet - showing the photo from project
++        <a href="{{ url_for('project_detail', project_id=project_cover.project_id) }}">{{ project_cover.project_name }}</a>.
++        Add one below to give this aircraft its own (the project's photo won't change).</p>
+       {% else %}
+       <p class="text-muted small">No photos yet.</p>
+       {% endif %}

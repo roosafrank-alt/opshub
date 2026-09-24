@@ -1,0 +1,181 @@
+--- a/flight.py
++++ b/flight.py
+@@ -26,6 +26,7 @@
+ import weather
+ import adsb
+ import notams
++import sun
+ import push
+ 
+ # Distinct colors cycled through for each instructor on the schedule
+@@ -935,7 +936,8 @@
+                 today_time_groups=today_time_groups,
+                 upcoming_future_days=upcoming_future_days,
+                 plane_lane=plane_lane, plane_color=plane_color, plane_lane_count=plane_lane_count,
+-                dashboard_wx=dashboard_wx, dashboard_notams=dashboard_notams)
++                dashboard_wx=dashboard_wx, dashboard_notams=dashboard_notams,
++                sun_times=sun.get_sun_times())
+ 
+ 
+ @flight_bp.route("/dashboard")
+--- a/sun.py
++++ b/sun.py
+@@ -0,0 +1,84 @@
++"""Sunrise/sunset and civil twilight for the flight dashboard header.
++
++Worked out locally (the standard NOAA / "Almanac for Computers" sunrise
++equation, good to about a minute), so it needs no internet, works for every
++login (not just the CFI weather card) and always gives the LOCAL calendar
++day's times - unlike the weather card's sunrise-sunset.org call, whose
++"today" is the UTC day and flips to tomorrow after 8 PM Eastern.
++"""
++import math
++from datetime import date, datetime, timedelta, timezone
++from zoneinfo import ZoneInfo
++
++# Joseph Y. Resnick Airport (N89), Ellenville NY - the school's home field.
++HOME_LAT = 41.7279
++HOME_LON = -74.3774
++LOCAL_TZ = "America/New_York"
++
++ZENITH_OFFICIAL = 90.833  # sunrise / sunset
++ZENITH_CIVIL = 96.0       # civil twilight begins / ends
++
++
++def _event_utc(day, lat, lon, zenith, rising):
++    """UTC datetime of one sun event on `day`, or None (polar day/night)."""
++    n = day.timetuple().tm_yday
++    lng_hour = lon / 15.0
++    t = n + ((6 if rising else 18) - lng_hour) / 24.0
++    m = 0.9856 * t - 3.289
++    l = (m + 1.916 * math.sin(math.radians(m)) + 0.020 * math.sin(math.radians(2 * m)) + 282.634) % 360
++    ra = math.degrees(math.atan(0.91764 * math.tan(math.radians(l)))) % 360
++    ra = (ra + (math.floor(l / 90) * 90 - math.floor(ra / 90) * 90)) / 15.0
++    sin_dec = 0.39782 * math.sin(math.radians(l))
++    cos_dec = math.cos(math.asin(sin_dec))
++    cos_h = ((math.cos(math.radians(zenith)) - sin_dec * math.sin(math.radians(lat)))
++             / (cos_dec * math.cos(math.radians(lat))))
++    if cos_h > 1 or cos_h < -1:
++        return None
++    h = (360 - math.degrees(math.acos(cos_h))) if rising else math.degrees(math.acos(cos_h))
++    local_mean = h / 15.0 + ra - 0.06571 * t - 6.622
++    ut = (local_mean - lng_hour) % 24
++    base = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
++    return base + timedelta(hours=ut)
++
++
++def _label(dt_utc, tz):
++    if dt_utc is None:
++        return None
++    local = dt_utc.astimezone(tz)
++    return f"{local.hour % 12 or 12}:{local.minute:02d} {'AM' if local.hour < 12 else 'PM'}"
++
++
++def _zulu(dt_utc):
++    return dt_utc.strftime("%H%MZ") if dt_utc else None
++
++
++def get_sun_times(day=None, lat=HOME_LAT, lon=HOME_LON, tz_name=LOCAL_TZ):
++    """Today's (local calendar day) sun times at the home field, as
++    '6:52 AM'-style local labels plus HHMMZ Zulu labels. Never raises."""
++    try:
++        tz = ZoneInfo(tz_name)
++        day = day or datetime.now(tz).date()
++        events = {
++            "civil_begin": _event_utc(day, lat, lon, ZENITH_CIVIL, True),
++            "sunrise": _event_utc(day, lat, lon, ZENITH_OFFICIAL, True),
++            "sunset": _event_utc(day, lat, lon, ZENITH_OFFICIAL, False),
++            "civil_end": _event_utc(day, lat, lon, ZENITH_CIVIL, False),
++        }
++        # The equation returns a UTC time-of-day; evening events in the
++        # Americas fall on the next UTC date, so pin each one to the local
++        # calendar day it belongs to.
++        for key, dt in events.items():
++            if dt is None:
++                continue
++            while dt.astimezone(tz).date() < day:
++                dt += timedelta(days=1)
++            while dt.astimezone(tz).date() > day:
++                dt -= timedelta(days=1)
++            events[key] = dt
++        out = {"date": day.isoformat()}
++        for key, dt in events.items():
++            out[key] = _label(dt, tz)
++            out[key + "_z"] = _zulu(dt)
++        return out
++    except Exception:
++        return None
+--- a/templates/flight/dashboard.html
++++ b/templates/flight/dashboard.html
+@@ -141,9 +141,68 @@
+     .wx-tile, .wx-tile::after { animation: none !important; }
+   }
+ </style>
+-<h4 class="mb-3">
+-  {% if cfi %}Welcome, {{ cfi.name }}{% elif student and student.is_station %}{{ student.name }}{% else %}Welcome, {{ student.name }}{% endif %}
+-</h4>
++{#
++  Header row: welcome on the left; on the right a compact time box -
++  day/date, live local + Zulu clocks (ticked in the browser, see the
++  dash-clock script below) and today's sunrise/sunset + civil twilight at
++  N89 (sun.py, worked out locally so it shows for every login). Wraps
++  under the welcome on a phone.
++#}
++<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
++  <h4 class="mb-0">
++    {% if cfi %}Welcome, {{ cfi.name }}{% elif student and student.is_station %}{{ student.name }}{% else %}Welcome, {{ student.name }}{% endif %}
++  </h4>
++  <div class="dash-timebox" id="dash-timebox">
++    <div class="dash-timebox-row">
++      <span class="fw-bold" id="dash-clock-date">{{ sun_times.date if sun_times else '' }}</span>
++      <span><span class="dash-timebox-label">Local</span> <span class="fw-bold font-monospace" id="dash-clock-local">--:--</span></span>
++      <span><span class="dash-timebox-label">Zulu</span> <span class="fw-bold font-monospace" id="dash-clock-zulu">--:--Z</span></span>
++    </div>
++    {% if sun_times %}
++    <div class="dash-timebox-row dash-timebox-sun">
++      <span title="Civil twilight begins {{ sun_times.civil_begin_z }}"><i class="bi bi-brightness-alt-high"></i> Civil {{ sun_times.civil_begin or '-' }}</span>
++      <span title="Sunrise {{ sun_times.sunrise_z }}"><i class="bi bi-sunrise"></i> {{ sun_times.sunrise or '-' }}</span>
++      <span title="Sunset {{ sun_times.sunset_z }}"><i class="bi bi-sunset"></i> {{ sun_times.sunset or '-' }}</span>
++      <span title="Civil twilight ends {{ sun_times.civil_end_z }}"><i class="bi bi-moon-stars"></i> Civil {{ sun_times.civil_end or '-' }}</span>
++    </div>
++    {% endif %}
++  </div>
++</div>
++<style>
++  .dash-timebox { background: var(--bs-body-bg, #fff); border: 1px solid rgba(0,0,0,.125); border-radius: .5rem;
++                  padding: .35rem .7rem; font-size: .82rem; line-height: 1.5; }
++  .dash-timebox-row { display: flex; flex-wrap: wrap; column-gap: .9rem; row-gap: .1rem; }
++  .dash-timebox-label { color: #6c757d; font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; }
++  .dash-timebox-sun { color: #495057; }
++  .dash-timebox-sun .bi { color: #dc9b00; }
++  @media (max-width: 575.98px) { .dash-timebox { width: 100%; font-size: .78rem; } }
++</style>
++<script>
++  // Live day/date + local and Zulu clocks for the header time box. Local
++  // is shown in the school's time zone (America/New_York, same as the
++  // weather card) whatever the viewing device is set to.
++  (function () {
++    var tz = "America/New_York";
++    var d = document.getElementById("dash-clock-date");
++    var l = document.getElementById("dash-clock-local");
++    var z = document.getElementById("dash-clock-zulu");
++    if (!l || !z) return;
++    function pad(n) { return (n < 10 ? "0" : "") + n; }
++    function tick() {
++      var now = new Date();
++      try {
++        d.textContent = now.toLocaleDateString("en-US", { timeZone: tz, weekday: "long", month: "short", day: "numeric", year: "numeric" });
++        l.textContent = now.toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" });
++      } catch (e) {
++        d.textContent = now.toDateString();
++        l.textContent = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
++      }
++      z.textContent = pad(now.getUTCHours()) + pad(now.getUTCMinutes()) + "Z";
++    }
++    tick();
++    setInterval(tick, 15000);
++  })();
++</script>
+ {% if student and student.is_station %}
+ <p class="text-muted small mt-n2 mb-3"><i class="bi bi-info-circle"></i> Station account - use Schedule below to book time on a plane.</p>
+ {% endif %}

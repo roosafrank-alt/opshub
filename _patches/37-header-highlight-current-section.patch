@@ -1,0 +1,188 @@
+--- _tmp/p37/base.html	2026-09-24 02:42:14.277754520 +0000
++++ templates/base.html	2026-09-24 02:42:14.290208307 +0000
+@@ -29,6 +29,15 @@
+     background: rgba(255,255,255,.2);
+     border-color: rgba(255,255,255,.55);
+   }
++  /* The section you're on - solid white box so it stands out from the
++     rest of the outlined buttons (set per link from request.path). */
++  .shop-nav-boxed .nav-link.active {
++    background: #fff;
++    border-color: #fff;
++    color: #212529 !important;
++    font-weight: 600;
++  }
++  .shop-nav-boxed .dropdown-item.active { background: #212529; color: #fff; }
+ </style>
+ </head>
+ <body>
+@@ -43,23 +52,36 @@
+     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+       <span class="navbar-toggler-icon"></span>
+     </button>
++    {#- Which section is open, from the URL - highlights that nav button
++       (.nav-link.active above). #}
++    {% set _p = request.path %}
++    {% set sec = 'scan' if (_p.startswith('/scan') or _p == '/labor')
++       else 'parts' if (_p.startswith('/parts') or _p.startswith('/labels'))
++       else 'projects' if _p.startswith('/projects')
++       else 'aircraft' if (_p.startswith('/assets') or _p.startswith('/maintenance'))
++       else 'calendar' if _p.startswith('/calendar')
++       else 'orders' if _p.startswith('/orders')
++       else 'squawks' if _p.startswith('/squawks')
++       else 'activity' if _p.startswith('/activity')
++       else 'manage' if (_p.startswith('/laborers') or _p.startswith('/shop/'))
++       else '' %}
+     <div class="collapse navbar-collapse" id="nav">
+       <ul class="navbar-nav me-auto mb-2 mb-lg-0 shop-nav-boxed">
+-        <li class="nav-item"><a class="nav-link fw-bold text-warning" id="tour-nav-scan" href="{{ url_for('scan_page') }}"><i class="bi bi-upc-scan"></i> Scan</a></li>
++        <li class="nav-item"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'scan' }}" id="tour-nav-scan" href="{{ url_for('scan_page') }}"><i class="bi bi-upc-scan"></i> Scan</a></li>
+         {% if is_master_admin or shop_role in ('admin', 'tech') %}
+-        <li class="nav-item"><a class="nav-link" id="tour-nav-parts" href="{{ url_for('parts_list') }}"><i class="bi bi-box-seam"></i> Parts</a></li>
++        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'parts' }}" id="tour-nav-parts" href="{{ url_for('parts_list') }}"><i class="bi bi-box-seam"></i> Parts</a></li>
+         {% endif %}
+-        <li class="nav-item"><a class="nav-link" id="tour-nav-projects" href="{{ url_for('projects_list') }}"><i class="bi bi-clipboard-check"></i> Projects</a></li>
++        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'projects' }}" id="tour-nav-projects" href="{{ url_for('projects_list') }}"><i class="bi bi-clipboard-check"></i> Projects</a></li>
+         {% if is_master_admin or shop_role in ('admin', 'tech') %}
+-        <li class="nav-item"><a class="nav-link" id="tour-nav-aircraft" href="{{ url_for('assets_list') }}"><i class="bi bi-airplane"></i> Aircraft</a></li>
++        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'aircraft' }}" id="tour-nav-aircraft" href="{{ url_for('assets_list') }}"><i class="bi bi-airplane"></i> Aircraft</a></li>
+         {% endif %}
+-        <li class="nav-item"><a class="nav-link" id="tour-nav-calendar" href="{{ url_for('calendar_page') }}"><i class="bi bi-calendar3"></i> Calendar</a></li>
++        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'calendar' }}" id="tour-nav-calendar" href="{{ url_for('calendar_page') }}"><i class="bi bi-calendar3"></i> Calendar</a></li>
+         {% if is_master_admin or shop_role == 'admin' %}
+-        <li class="nav-item"><a class="nav-link" href="{{ url_for('orders_list') }}"><i class="bi bi-truck"></i> Orders</a></li>
++        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'orders' }}" href="{{ url_for('orders_list') }}"><i class="bi bi-truck"></i> Orders</a></li>
+         {% endif %}
+         {% if is_master_admin or shop_role in ('admin', 'tech') %}
+-        <li class="nav-item"><a class="nav-link {{ 'fw-bold text-danger' if open_squawk_count }}" id="tour-nav-squawks" href="{{ url_for('squawks_list') }}"><i class="bi bi-exclamation-triangle{{ '-fill' if open_squawk_count }}"></i> Squawks{% if open_squawk_count %} <span class="badge bg-danger">{{ open_squawk_count }}</span>{% endif %}</a></li>
+-        <li class="nav-item"><a class="nav-link" href="{{ url_for('activity_log') }}"><i class="bi bi-clock-history"></i> Activity</a></li>
++        <li class="nav-item"><a class="nav-link {{ 'fw-bold text-danger' if open_squawk_count }} {{ 'active' if sec == 'squawks' }}" id="tour-nav-squawks" href="{{ url_for('squawks_list') }}"><i class="bi bi-exclamation-triangle{{ '-fill' if open_squawk_count }}"></i> Squawks{% if open_squawk_count %} <span class="badge bg-danger">{{ open_squawk_count }}</span>{% endif %}</a></li>
++        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'activity' }}" href="{{ url_for('activity_log') }}"><i class="bi bi-clock-history"></i> Activity</a></li>
+         {% endif %}
+       </ul>
+       <div class="d-flex align-items-center gap-3 shop-nav-boxed">
+@@ -70,18 +92,18 @@
+            Laborers, Labor Pay, Billing, Stats. Anyone logged in gets Labor
+            Pay (their own hours/pay); the rest is shop admins. #}
+         <div class="dropdown">
+-          <a class="nav-link dropdown-toggle text-light" href="#" id="shop-manage-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
++          <a class="nav-link dropdown-toggle text-light {{ 'active' if sec == 'manage' }}" href="#" id="shop-manage-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+             <i class="bi bi-gear"></i> Manage
+           </a>
+           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shop-manage-toggle">
+             {% if is_master_admin or shop_role == 'admin' %}
+-            <li><a class="dropdown-item" href="{{ url_for('laborers_list') }}"><i class="bi bi-person-badge"></i> Laborers</a></li>
+-            <li><a class="dropdown-item" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> Labor Pay</a></li>
++            <li><a class="dropdown-item {{ 'active' if _p.startswith('/laborers') }}" href="{{ url_for('laborers_list') }}"><i class="bi bi-person-badge"></i> Laborers</a></li>
++            <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> Labor Pay</a></li>
+             <li><hr class="dropdown-divider"></li>
+-            <li><a class="dropdown-item" href="{{ url_for('shop_billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
+-            <li><a class="dropdown-item" href="{{ url_for('shop_stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
++            <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/billing') }}" href="{{ url_for('shop_billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
++            <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/stats') }}" href="{{ url_for('shop_stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
+             {% else %}
+-            <li><a class="dropdown-item" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
++            <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
+             {% endif %}
+           </ul>
+         </div>
+--- _tmp/p37/base_flight.html	2026-09-24 02:42:14.279307147 +0000
++++ templates/flight/base_flight.html	2026-09-24 02:42:14.292962437 +0000
+@@ -27,6 +27,15 @@
+     background: rgba(255,255,255,.2);
+     border-color: rgba(255,255,255,.55);
+   }
++  /* The section you're on - solid white box so it stands out from the
++     rest of the outlined buttons (set per link from request.path). */
++  .flight-nav-boxed .nav-link.active {
++    background: #fff;
++    border-color: #fff;
++    color: #212529 !important;
++    font-weight: 600;
++  }
++  .flight-nav-boxed .dropdown-item.active { background: #212529; color: #fff; }
+ </style>
+ </head>
+ <body>
+@@ -43,36 +52,46 @@
+     </button>
+     <div class="collapse navbar-collapse" id="nav">
+       {% if session.get('user_id') %}
++      {#- Which section is open, from the URL - highlights that nav button
++         (.nav-link.active above). #}
++      {% set _p = request.path %}
++      {% set sec = 'schedule' if _p.startswith('/flight/schedule')
++         else 'active' if _p.startswith('/flight/log/active')
++         else 'history' if _p.startswith('/flight/log')
++         else 'students' if _p.startswith('/flight/students')
++         else 'alerts' if _p.startswith('/flight/alerts')
++         else 'manage' if (_p.startswith('/flight/planes') or _p.startswith('/flight/cfis') or _p.startswith('/flight/billing') or _p.startswith('/flight/stats'))
++         else '' %}
+       <ul class="navbar-nav me-auto mb-2 mb-lg-0 flight-nav-boxed">
+-        <li class="nav-item"><a class="nav-link fw-bold text-warning" id="tour-nav-flight-schedule" href="{{ url_for('flight.schedule_calendar') }}"><i class="bi bi-calendar3"></i> Schedule</a></li>
+-        <li class="nav-item"><a class="nav-link" id="tour-nav-flight-active" href="{{ url_for('flight.log_active') }}"><i class="bi bi-stopwatch"></i> Active Flight</a></li>
+-        <li class="nav-item"><a class="nav-link" id="tour-nav-flight-history" href="{{ url_for('flight.log_history') }}"><i class="bi bi-clock-history"></i> Flight History</a></li>
++        <li class="nav-item"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'schedule' }}" id="tour-nav-flight-schedule" href="{{ url_for('flight.schedule_calendar') }}"><i class="bi bi-calendar3"></i> Schedule</a></li>
++        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'active' }}" id="tour-nav-flight-active" href="{{ url_for('flight.log_active') }}"><i class="bi bi-stopwatch"></i> Active Flight</a></li>
++        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'history' }}" id="tour-nav-flight-history" href="{{ url_for('flight.log_history') }}"><i class="bi bi-clock-history"></i> Flight History</a></li>
+         {% if session.get('cfi_id') or session.get('is_master_admin') %}
+-        <li class="nav-item"><a class="nav-link" id="tour-nav-flight-students" href="{{ url_for('flight.students_list') }}"><i class="bi bi-people"></i> Students</a></li>
++        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'students' }}" id="tour-nav-flight-students" href="{{ url_for('flight.students_list') }}"><i class="bi bi-people"></i> Students</a></li>
+         {% endif %}
+         {% if session.get('cfi_id') %}
+         {% set fac = flight_alert_counts or {} %}
+-        <li class="nav-item"><a class="nav-link" id="tour-nav-flight-alerts" href="{{ url_for('flight.alerts_list') }}"><i class="bi bi-exclamation-triangle"></i> Alerts{% if fac.get('open') %} <span class="badge {{ 'bg-danger' if fac.get('unacked') else 'bg-warning text-dark' }}" title="{{ fac.get('unacked') }} new, {{ fac.get('open') }} open">{{ fac.get('open') }}</span>{% endif %}</a></li>
++        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.alerts_list') }}"><i class="bi bi-exclamation-triangle"></i> Alerts{% if fac.get('open') %} <span class="badge {{ 'bg-danger' if fac.get('unacked') else 'bg-warning text-dark' }}" title="{{ fac.get('unacked') }} new, {{ fac.get('open') }} open">{{ fac.get('open') }}</span>{% endif %}</a></li>
+         {% endif %}
+       </ul>
+       <ul class="navbar-nav flight-nav-boxed">
+         {% if session.get('cfi_id') or session.get('is_master_admin') %}
+         <li class="nav-item dropdown">
+-          <a class="nav-link dropdown-toggle" href="#" id="manage-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
++          <a class="nav-link dropdown-toggle {{ 'active' if sec == 'manage' }}" href="#" id="manage-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+             <i class="bi bi-gear"></i> Manage
+           </a>
+           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="manage-menu-toggle">
+-            <li><a class="dropdown-item" href="{{ url_for('flight.planes_list') }}"><i class="bi bi-airplane"></i> Planes</a></li>
++            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/planes') }}" href="{{ url_for('flight.planes_list') }}"><i class="bi bi-airplane"></i> Planes</a></li>
+             {% if session.get('is_master_admin') %}
+-            <li><a class="dropdown-item" href="{{ url_for('flight.cfis_list') }}"><i class="bi bi-person-badge"></i> CFIs</a></li>
++            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/cfis') and not _p.endswith('/pay') }}" href="{{ url_for('flight.cfis_list') }}"><i class="bi bi-person-badge"></i> CFIs</a></li>
+             {% endif %}
+             {% if session.get('cfi_id') %}
+-            <li><a class="dropdown-item" href="{{ url_for('flight.cfi_pay', cfi_id=session['cfi_id']) }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
++            <li><a class="dropdown-item {{ 'active' if _p.endswith('/pay') }}" href="{{ url_for('flight.cfi_pay', cfi_id=session['cfi_id']) }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
+             {% endif %}
+             {% if session.get('is_master_admin') or session.get('can_bill') %}
+             <li><hr class="dropdown-divider"></li>
+-            <li><a class="dropdown-item" href="{{ url_for('flight.billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
+-            <li><a class="dropdown-item" href="{{ url_for('flight.stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
++            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing') }}" href="{{ url_for('flight.billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
++            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/stats') }}" href="{{ url_for('flight.stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
+             {% endif %}
+           </ul>
+         </li>
+--- _tmp/p37/admin_base.html	2026-09-24 02:42:14.280475255 +0000
++++ templates/admin_base.html	2026-09-24 02:42:14.294038866 +0000
+@@ -18,11 +18,19 @@
+     background: rgba(255,255,255,.06);
+     transition: background .15s ease, border-color .15s ease;
+   }
+-  .admin-nav-boxed .nav-link:hover,
+-  .admin-nav-boxed .nav-link.active {
++  .admin-nav-boxed .nav-link:hover {
+     background: rgba(255,255,255,.2);
+     border-color: rgba(255,255,255,.5);
+   }
++  /* The section you're on - solid white box so it stands out from the
++     rest of the outlined buttons (set per link from request.path). */
++  .admin-nav-boxed .nav-link.active {
++    background: #fff;
++    border-color: #fff;
++    color: #212529 !important;
++    font-weight: 600;
++  }
++  .admin-nav-boxed .dropdown-item.active { background: #212529; color: #fff; }
+ </style>
+ </head>
+ <body>

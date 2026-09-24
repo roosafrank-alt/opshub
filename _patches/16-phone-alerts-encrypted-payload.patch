@@ -1,0 +1,395 @@
+--- a/push.py
++++ b/push.py
+@@ -5,12 +5,13 @@
+ VAPID (RFC 8292) from scratch: a small pure-Python P-256 ECDSA signer for
+ the VAPID JWT, and a plain urllib POST to the browser's push service.
+ 
+-To keep this dependency-free implementation small, pushes never carry an
+-encrypted payload (that would need AES-GCM/HKDF, i.e. a real crypto
+-library). Instead every push is "silent" - it just wakes the service
+-worker, which then fetches its pending alerts from /flight/push/pending
+-(an ordinary authenticated GET, using the browser's own session cookie)
+-and shows them. See static/push-sw.js for the client half.
++Each push now carries its alert (title/body/link) as an encrypted payload
++(RFC 8291 aes128gcm, with a small pure-Python AES-GCM below), so the phone
++can show it without logging in. Every alert is also still written to
++push_pending, and the service worker picks those up from
++/flight/push/pending when it can (an older subscription that came back
++without keys, or anything else queued). See static/push-sw.js for the
++client half.
+ 
+ Email/text delivery already exists (notify.py, SMTP + Twilio) for daily
+ digest-style reminders; this module is the phone-push channel for the
+@@ -139,7 +140,9 @@
+         return r.to_bytes(32, "big") + s.to_bytes(32, "big")
+ 
+ 
+-def build_vapid_jwt(audience, subject, priv_int, ttl_seconds=12 * 3600):
++def build_vapid_jwt(audience, subject, priv_int, ttl_seconds=3600):
++    # 1 hour: comfortably inside every push service's limit (Apple is the
++    # strictest about long-lived tokens).
+     header = _b64url(json.dumps({"typ": "JWT", "alg": "ES256"}, separators=(",", ":")).encode())
+     payload = _b64url(json.dumps({
+         "aud": audience,
+@@ -152,12 +155,143 @@
+ 
+ 
+ # ---------------------------------------------------------------------------
++# Encrypted payloads (RFC 8291, "aes128gcm") - so the alert's title/body
++# travel inside the push itself. Without this the service worker had to
++# fetch /flight/push/pending with the login cookie, and on an iPhone
++# home-screen app that cookie is usually gone by the time a push arrives
++# (unless "Remember me" was ticked), so the alert silently never showed.
++# Pure-Python AES-128 + GCM below keeps this module stdlib-only; payloads
++# are a few hundred bytes, so speed doesn't matter.
++# ---------------------------------------------------------------------------
++
++_SBOX = [0] * 256
++
++
++def _build_sbox():
++    # Standard AES S-box, generated from GF(2^8) inverses + the affine map.
++    p = q = 1
++    while True:
++        p = p ^ ((p << 1) & 0xFF) ^ (0x1B if p & 0x80 else 0)
++        q ^= q << 1
++        q ^= q << 2
++        q ^= q << 4
++        q &= 0xFF
++        if q & 0x80:
++            q ^= 0x09
++        x = q ^ ((q << 1 | q >> 7) & 0xFF) ^ ((q << 2 | q >> 6) & 0xFF) ^ ((q << 3 | q >> 5) & 0xFF) ^ ((q << 4 | q >> 4) & 0xFF)
++        _SBOX[p] = (x ^ 0x63) & 0xFF
++        if p == 1:
++            break
++    _SBOX[0] = 0x63
++
++
++_build_sbox()
++
++
++def _xtime(a):
++    return ((a << 1) ^ 0x1B) & 0xFF if a & 0x80 else a << 1
++
++
++def _aes128_expand_key(key):
++    words = [list(key[i:i + 4]) for i in range(0, 16, 4)]
++    rcon = 1
++    for i in range(4, 44):
++        t = list(words[i - 1])
++        if i % 4 == 0:
++            t = t[1:] + t[:1]
++            t = [_SBOX[b] for b in t]
++            t[0] ^= rcon
++            rcon = _xtime(rcon)
++        words.append([a ^ b for a, b in zip(words[i - 4], t)])
++    return [sum(words[r * 4:r * 4 + 4], []) for r in range(11)]
++
++
++def _aes128_encrypt_block(round_keys, block):
++    s = [b ^ k for b, k in zip(block, round_keys[0])]
++    for rnd in range(1, 11):
++        s = [_SBOX[b] for b in s]
++        # ShiftRows (state is column-major: index = col*4 + row)
++        s = [s[((c + r) % 4) * 4 + r] for c in range(4) for r in range(4)]
++        if rnd != 10:
++            out = []
++            for c in range(4):
++                a0, a1, a2, a3 = s[c * 4:c * 4 + 4]
++                t = a0 ^ a1 ^ a2 ^ a3
++                out += [a0 ^ t ^ _xtime(a0 ^ a1), a1 ^ t ^ _xtime(a1 ^ a2),
++                        a2 ^ t ^ _xtime(a2 ^ a3), a3 ^ t ^ _xtime(a3 ^ a0)]
++            s = out
++        s = [b ^ k for b, k in zip(s, round_keys[rnd])]
++    return bytes(s)
++
++
++def _gf128_mul(x, y):
++    r = 0xE1000000000000000000000000000000
++    z = 0
++    v = y
++    for i in range(127, -1, -1):
++        if (x >> i) & 1:
++            z ^= v
++        v = (v >> 1) ^ r if v & 1 else v >> 1
++    return z
++
++
++def aes128_gcm_encrypt(key, nonce, plaintext):
++    """AES-128-GCM with a 12-byte nonce and no associated data. Returns
++    ciphertext || 16-byte tag (the layout Web Push expects)."""
++    rk = _aes128_expand_key(key)
++    h = int.from_bytes(_aes128_encrypt_block(rk, bytes(16)), "big")
++    j0 = nonce + b"\x00\x00\x00\x01"
++    ct = bytearray()
++    counter = 2
++    for off in range(0, len(plaintext), 16):
++        ks = _aes128_encrypt_block(rk, nonce + counter.to_bytes(4, "big"))
++        chunk = plaintext[off:off + 16]
++        ct += bytes(a ^ b for a, b in zip(chunk, ks))
++        counter += 1
++    g = 0
++    padded = bytes(ct) + bytes(-len(ct) % 16)
++    for off in range(0, len(padded), 16):
++        g = _gf128_mul(g ^ int.from_bytes(padded[off:off + 16], "big"), h)
++    g = _gf128_mul(g ^ (len(ct) * 8), h)  # len(A)=0 in the high 64 bits
++    tag = (g ^ int.from_bytes(_aes128_encrypt_block(rk, j0), "big")).to_bytes(16, "big")
++    return bytes(ct) + tag
++
++
++def _hmac_sha256(key, data):
++    return hmac.new(key, data, hashlib.sha256).digest()
++
++
++def encrypt_payload(p256dh_b64, auth_b64, plaintext):
++    """Encrypts plaintext (bytes) for one browser subscription per RFC 8291
++    and returns the aes128gcm request body."""
++    ua_public = _b64url_decode(p256dh_b64)
++    auth_secret = _b64url_decode(auth_b64)
++    ua_point = (int.from_bytes(ua_public[1:33], "big"), int.from_bytes(ua_public[33:65], "big"))
++    as_private, as_point = generate_p256_keypair()
++    as_public = b"\x04" + as_point[0].to_bytes(32, "big") + as_point[1].to_bytes(32, "big")
++    shared = _scalar_mult(as_private, ua_point)
++    ecdh_secret = shared[0].to_bytes(32, "big")
++    prk_key = _hmac_sha256(auth_secret, ecdh_secret)
++    ikm = _hmac_sha256(prk_key, b"WebPush: info\x00" + ua_public + as_public + b"\x01")
++    salt = os.urandom(16)
++    prk = _hmac_sha256(salt, ikm)
++    cek = _hmac_sha256(prk, b"Content-Encoding: aes128gcm\x00\x01")[:16]
++    nonce = _hmac_sha256(prk, b"Content-Encoding: nonce\x00\x01")[:12]
++    ciphertext = aes128_gcm_encrypt(cek, nonce, plaintext + b"\x02")
++    record_size = 4096
++    return salt + record_size.to_bytes(4, "big") + bytes([len(as_public)]) + as_public + ciphertext
++
++
++# ---------------------------------------------------------------------------
+ # VAPID application keypair - generated once, stored in app_settings so it
+ # stays stable across restarts (a subscription is tied to the public key
+ # that was current when the browser subscribed).
+ # ---------------------------------------------------------------------------
+ 
+-VAPID_SUBJECT = "mailto:admin@flywithkate.local"
++# Apple's push service rejects a VAPID "sub" it doesn't consider a real
++# contact (the old "mailto:admin@flywithkate.local" was one) - use the
++# school's real site.
++VAPID_SUBJECT = "https://flywithkate.com"
+ 
+ 
+ def get_or_create_vapid_keys(conn):
+@@ -186,10 +320,19 @@
+ # Sending
+ # ---------------------------------------------------------------------------
+ 
+-def send_web_push(subscription, priv_b64, pub_b64, ttl=60):
+-    """Sends a payload-less push to one subscription (see module docstring
+-    for why there's no encrypted body). subscription is a dict/Row with
+-    'endpoint'. Returns (ok, status_or_none, error_or_none). A 404/410
++def _sub_field(subscription, name):
++    try:
++        return subscription[name]
++    except (KeyError, IndexError, TypeError):
++        return None
++
++
++def send_web_push(subscription, priv_b64, pub_b64, ttl=600, payload=None):
++    """Sends one push to one subscription. subscription is a dict/Row with
++    'endpoint' (plus 'p256dh'/'auth', needed to encrypt a payload - without
++    them the push goes out empty and the service worker falls back to
++    /flight/push/pending). payload is a dict (sent as JSON) or bytes.
++    Returns (ok, status_or_none, error_or_none). A 404/410
+     means the subscription is gone - the caller should delete that row so
+     it isn't retried forever."""
+     endpoint = subscription["endpoint"]
+@@ -197,10 +340,18 @@
+     audience = f"{parsed.scheme}://{parsed.netloc}"
+     priv_int = private_key_from_b64(priv_b64)
+     jwt = build_vapid_jwt(audience, VAPID_SUBJECT, priv_int)
+-    req = urllib.request.Request(endpoint, data=b"", method="POST")
++    body = b""
++    if payload is not None and _sub_field(subscription, "p256dh") and _sub_field(subscription, "auth"):
++        raw = payload if isinstance(payload, bytes) else json.dumps(payload).encode("utf-8")
++        body = encrypt_payload(_sub_field(subscription, "p256dh"), _sub_field(subscription, "auth"), raw)
++    req = urllib.request.Request(endpoint, data=body, method="POST")
+     req.add_header("TTL", str(ttl))
++    req.add_header("Urgency", "high")
+     req.add_header("Authorization", f"vapid t={jwt}, k={pub_b64}")
+-    req.add_header("Content-Length", "0")
++    req.add_header("Content-Length", str(len(body)))
++    if body:
++        req.add_header("Content-Encoding", "aes128gcm")
++        req.add_header("Content-Type", "application/octet-stream")
+     try:
+         with urllib.request.urlopen(req, timeout=15) as resp:
+             return True, resp.status, None
+@@ -231,8 +382,12 @@
+     if not subs:
+         return results
+     priv_b64, pub_b64 = get_or_create_vapid_keys(conn)
++    payload = {"title": title, "body": body or "", "tag": tag or "", "url": url or ""}
+     for sub in subs:
+-        ok, status, err = send_web_push(sub, priv_b64, pub_b64)
++        try:
++            ok, status, err = send_web_push(sub, priv_b64, pub_b64, payload=payload)
++        except Exception as e:  # a bad stored key shouldn't stop the other devices
++            ok, status, err = False, None, f"encrypt failed: {e}"
+         results.append((ok, status, err))
+         if not ok and status in (404, 410):
+             conn.execute("DELETE FROM push_subscriptions WHERE id = ?", (sub["id"],))
+--- a/flight.py
++++ b/flight.py
+@@ -2162,6 +2162,12 @@
+     """Polled by the service worker when a (payload-less) push wakes it -
+     returns and clears this user's queued alerts."""
+     conn = get_db()
++    # Only the last half hour - anything older is stale (a "30 minutes
++    # left" from yesterday is just noise) and is dropped instead. Alerts
++    # normally arrive inside the push itself now; this queue is the backup.
++    conn.execute("DELETE FROM push_pending WHERE user_id = ? AND created_at < datetime('now', '-30 minutes')",
++                 (session["user_id"],))
++    conn.commit()
+     rows = conn.execute("SELECT * FROM push_pending WHERE user_id = ? ORDER BY id", (session["user_id"],)).fetchall()
+     ids = [r["id"] for r in rows]
+     if ids:
+--- a/app.py
++++ b/app.py
+@@ -3069,6 +3069,32 @@
+ # Master admin: notification (email/text reminder) settings
+ # ---------------------------------------------------------------------------
+ 
++@app.route("/account/push_test", methods=["POST"])
++@login_required
++def account_push_test():
++    """"Send me a test alert" on My Account - pushes to every device this
++    person has turned phone alerts on for, and says how many it reached."""
++    conn = get_db()
++    uid = session["user_id"]
++    results = push.queue_and_push(conn, uid, "Fly with Kate! test alert",
++                                  "If you can see this, phone alerts work on this device.",
++                                  tag=f"push-test-{uid}", url="/account")
++    if not any(ok for ok, _s, _e in results):
++        conn.execute("DELETE FROM push_pending WHERE user_id = ? AND tag = ?", (uid, f"push-test-{uid}"))
++        conn.commit()
++    conn.close()
++    if not results:
++        flash("No devices have phone alerts turned on for your account yet - tap Enable on this device first.", "warning")
++    else:
++        sent = sum(1 for ok, _s, _e in results if ok)
++        failed = [f"{status or ''} {err or ''}".strip() for ok, status, err in results if not ok]
++        msg = f"Test alert sent to {sent} device{'s' if sent != 1 else ''}."
++        if failed:
++            msg += f" {len(failed)} failed ({'; '.join(failed)[:120]})."
++        flash(msg, "success" if sent else "danger")
++    return redirect(url_for("account_page") + "#push-status")
++
++
+ @app.route("/push-sw.js")
+ def push_service_worker():
+     """The phone-alert service worker, served from the site root so its
+--- a/static/push-sw.js
++++ b/static/push-sw.js
+@@ -1,8 +1,15 @@
+-// Service worker for phone push alerts (flying session time warnings).
+-// See push.py for why pushes carry no payload: a push here just wakes us
+-// up, and we fetch the actual alert(s) from /flight/push/pending using the
+-// browser's own session cookie (credentials: 'include') - no encryption
+-// needed since nothing sensitive travels in the push message itself.
++// Service worker for phone push alerts (flying session time warnings,
++// admin test alerts). Served from the site root as /push-sw.js (see
++// push_service_worker in app.py) so it covers the whole app.
++//
++// Each push normally carries its alert as an encrypted payload (push.py
++// encrypt_payload) - title, body, tag, url - so it can be shown straight
++// away without needing the login cookie (which an iPhone home-screen app
++// often doesn't have in the background). After showing it we also check
++// /flight/push/pending for anything else queued (and to clear the queue);
++// that part quietly does nothing if the phone isn't logged in.
++
++var ICON = '/static/icons/flywithkate/icon-192.png';
+ 
+ self.addEventListener('install', function (event) {
+   self.skipWaiting();
+@@ -12,26 +19,46 @@
+   event.waitUntil(self.clients.claim());
+ });
+ 
++function show(a) {
++  return self.registration.showNotification(a.title || 'Fly with Kate!', {
++    body: a.body || '',
++    icon: ICON,
++    badge: ICON,
++    tag: a.tag || undefined,
++    data: { url: a.url || '/flight/log/active' }
++  });
++}
++
++function fetchPending() {
++  return fetch('/flight/push/pending', { credentials: 'include', redirect: 'manual' })
++    .then(function (r) {
++      if (!r.ok) return [];
++      return r.json().then(function (d) { return d.alerts || []; }, function () { return []; });
++    })
++    .catch(function () { return []; });
++}
++
+ self.addEventListener('push', function (event) {
++  var payload = null;
++  try { payload = event.data ? event.data.json() : null; } catch (e) { payload = null; }
+   event.waitUntil(
+-    fetch('/flight/push/pending', { credentials: 'include' })
+-      .then(function (r) { return r.ok ? r.json() : { alerts: [] }; })
+-      .then(function (data) {
+-        var alerts = data.alerts || [];
+-        return Promise.all(alerts.map(function (a) {
+-          return self.registration.showNotification(a.title, {
+-            body: a.body || '',
+-            icon: '/static/icons/flywithkate/icon-192.png',
+-            badge: '/static/icons/flywithkate/icon-192.png',
+-            tag: a.tag || undefined,
+-            data: { url: a.url || '/flight/log/active' }
+-          });
+-        }));
+-      })
+-      .catch(function () {
+-        // Nothing to show if the fetch fails (e.g. session expired) -
+-        // fail silently rather than showing a confusing generic alert.
+-      })
++    (payload ? show(payload) : Promise.resolve()).then(function () {
++      return fetchPending();
++    }).then(function (alerts) {
++      // Same tag replaces the notification already shown, so the copy of
++      // the payload alert that's also in the queue doesn't double up.
++      if (payload) {
++        alerts = alerts.filter(function (a) {
++          return !(a.title === payload.title && (a.body || '') === (payload.body || ''));
++        });
++      }
++      if (alerts.length) return Promise.all(alerts.map(show));
++      if (!payload) {
++        // A push must always show something (iPhone turns alerts off for
++        // sites whose pushes show nothing) - point them at the app.
++        return show({ title: 'Fly with Kate!', body: 'You have a new alert - tap to open.', tag: 'opshub-alert' });
++      }
++    })
+   );
+ });
+ 
+--- a/templates/account.html
++++ b/templates/account.html
+@@ -113,6 +113,7 @@
+     <div id="push-status" class="small text-muted mb-2">Checking this device's status&hellip;</div>
+     <button type="button" id="push-enable-btn" class="btn btn-outline-primary btn-sm d-none"><i class="bi bi-bell"></i> Enable on this device</button>
+     <button type="button" id="push-disable-btn" class="btn btn-outline-secondary btn-sm d-none"><i class="bi bi-bell-slash"></i> Turn off on this device</button>
++    <button type="submit" form="push-test-form" class="btn btn-outline-success btn-sm"><i class="bi bi-send"></i> Send me a test alert</button>
+     {% endif %}
+ 
+     <div class="d-flex justify-content-between mt-3">
+@@ -123,6 +124,9 @@
+ </div>
+ </div>
+ </div>
++{% if user.is_master_admin or user.flight_role %}
++<form id="push-test-form" method="post" action="{{ url_for('account_push_test') }}" class="d-none"></form>
++{% endif %}
+ {% endblock %}
+ 
+ {% block scripts %}

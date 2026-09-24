@@ -1,0 +1,1184 @@
+--- _tmp/p47orig/app.py
++++ app.py
+@@ -16,6 +16,7 @@
+                  allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
+                  MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS)
+ from flight import flight_bp, _flight_hours, check_session_alerts, PLANE_COLORS
++from logbook import logbook_bp
+ import academy
+ from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
+                    master_admin_required, shop_role_required, can_see_shop_costs,
+@@ -28,6 +29,7 @@
+ app.secret_key = "shop-inventory-dev-key-change-me"
+ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=180)  # keeps a login valid for months - mainly for the kiosk display, which should stay logged in across reboots rather than showing the login screen every time
+ app.register_blueprint(flight_bp)
++app.register_blueprint(logbook_bp)
+ 
+ 
+ # ---------------------------------------------------------------------------
+@@ -1044,10 +1046,11 @@
+                                    form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
+ 
+         notify_low_stock = 1 if request.form.get("notify_low_stock") else 0
+-        cur = conn.execute("""INSERT INTO parts (barcode, name, short_name, description, category, location, unit,
++        cur = conn.execute("""INSERT INTO parts (barcode, name, short_name, part_number, description, category, location, unit,
+                                qty_on_hand, reorder_point, unit_cost, sell_price, supplier, notify_low_stock, created_at, updated_at)
+-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
++                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                             (barcode, name, request.form.get("short_name", "").strip() or None,
++                             request.form.get("part_number", "").strip() or None,
+                              request.form.get("description", "").strip(),
+                              request.form.get("category", "").strip(), request.form.get("location", "").strip(),
+                              request.form.get("unit", "ea").strip() or "ea", qty, reorder, cost, sell_price,
+@@ -1103,9 +1106,10 @@
+             return render_template("part_form.html", part=part, categories=CATEGORIES_DEFAULT, form=request.form,
+                                    notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
+         notify_low_stock = 1 if request.form.get("notify_low_stock") else 0
+-        conn.execute("""UPDATE parts SET name=?, short_name=?, description=?, category=?, location=?, unit=?,
++        conn.execute("""UPDATE parts SET name=?, short_name=?, part_number=?, description=?, category=?, location=?, unit=?,
+                          reorder_point=?, unit_cost=?, sell_price=?, supplier=?, notify_low_stock=?, updated_at=? WHERE id=?""",
+                      (request.form.get("name", "").strip(), request.form.get("short_name", "").strip() or None,
++                      request.form.get("part_number", "").strip() or None,
+                       request.form.get("description", "").strip(),
+                       request.form.get("category", "").strip(), request.form.get("location", "").strip(),
+                       request.form.get("unit", "ea").strip() or "ea", reorder, cost, sell_price,
+--- _tmp/p47orig/db.py
++++ db.py
+@@ -490,6 +490,11 @@
+     if "short_name" not in part_cols2:
+         conn.execute("ALTER TABLE parts ADD COLUMN short_name TEXT")
+         conn.commit()
++    # Logbook entries: the manufacturer part number (optional; the barcode
++    # stands in when it's blank - see logbook.part_number()).
++    if "part_number" not in part_cols2:
++        conn.execute("ALTER TABLE parts ADD COLUMN part_number TEXT")
++        conn.commit()
+ 
+     # Cover photo: which one photo (of possibly several) shows first/on top
+     # for a part or project.
+@@ -853,6 +858,39 @@
+     conn.execute("CREATE INDEX IF NOT EXISTS idx_academy_entries_student ON academy_entries(student_id, entry_date)")
+     conn.commit()
+ 
++    # Maintenance logbook entries + their per-project-type templates (see
++    # logbook.py). Brand-new tables, safe to create with their indexes.
++    conn.execute("""CREATE TABLE IF NOT EXISTS logbook_entries (
++        id INTEGER PRIMARY KEY AUTOINCREMENT,
++        asset_id INTEGER REFERENCES assets(id),
++        project_id INTEGER REFERENCES projects(id),
++        section TEXT,
++        log_type TEXT NOT NULL DEFAULT 'airframe',
++        project_type TEXT,
++        entry_date TEXT NOT NULL,
++        tach_hours REAL,
++        hobbs_hours REAL,
++        body TEXT NOT NULL,
++        signed_by TEXT,
++        cert_number TEXT,
++        created_by TEXT,
++        created_at TEXT NOT NULL DEFAULT (datetime('now')),
++        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
++        deleted_at TEXT
++    )""")
++    conn.execute("CREATE INDEX IF NOT EXISTS idx_logbook_entries_asset ON logbook_entries(asset_id, log_type, entry_date)")
++    conn.execute("CREATE INDEX IF NOT EXISTS idx_logbook_entries_project ON logbook_entries(project_id)")
++    conn.execute("""CREATE TABLE IF NOT EXISTS logbook_templates (
++        id INTEGER PRIMARY KEY AUTOINCREMENT,
++        project_type TEXT NOT NULL,
++        log_type TEXT NOT NULL,
++        body TEXT NOT NULL,
++        updated_by TEXT,
++        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
++        UNIQUE(project_type, log_type)
++    )""")
++    conn.commit()
++
+     _migrate_flight_accounts_to_users(conn)
+     _carry_over_project_photos_to_assets(conn)
+ 
+--- _tmp/p47orig/schema.sql
++++ schema.sql
+@@ -56,6 +56,7 @@
+     barcode TEXT UNIQUE NOT NULL,
+     name TEXT NOT NULL,
+     short_name TEXT, -- brief name for printed barcode labels, when the full name is too long to fit
++    part_number TEXT, -- manufacturer P/N, used in logbook entries (optional; the barcode is used when blank)
+     description TEXT,
+     category TEXT,
+     location TEXT,
+@@ -530,3 +531,39 @@
+     created_at TEXT NOT NULL DEFAULT (datetime('now'))
+ );
+ CREATE INDEX IF NOT EXISTS idx_academy_entries_student ON academy_entries(student_id, entry_date);
++
++-- Maintenance logbook entries (see logbook.py): drafted on a project's
++-- Logbook Starter from its sub areas and parts, edited, then printed as a
++-- sticker for the paper Airframe / Engine / Propeller logbook.
++CREATE TABLE IF NOT EXISTS logbook_entries (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    asset_id INTEGER REFERENCES assets(id),
++    project_id INTEGER REFERENCES projects(id),
++    section TEXT, -- the project sub area this entry covers; NULL = the combined entry for the whole project
++    log_type TEXT NOT NULL DEFAULT 'airframe', -- airframe | engine | propeller
++    project_type TEXT, -- annual | 100hour | oil_change | repair (which template it started from)
++    entry_date TEXT NOT NULL, -- YYYY-MM-DD
++    tach_hours REAL,
++    hobbs_hours REAL,
++    body TEXT NOT NULL,
++    signed_by TEXT,
++    cert_number TEXT,
++    created_by TEXT,
++    created_at TEXT NOT NULL DEFAULT (datetime('now')),
++    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
++    deleted_at TEXT
++);
++CREATE INDEX IF NOT EXISTS idx_logbook_entries_asset ON logbook_entries(asset_id, log_type, entry_date);
++CREATE INDEX IF NOT EXISTS idx_logbook_entries_project ON logbook_entries(project_id);
++
++-- The combined-entry wording per project type + logbook (Manage > Logbook >
++-- Templates). No row = the built-in wording in logbook.py.
++CREATE TABLE IF NOT EXISTS logbook_templates (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    project_type TEXT NOT NULL,
++    log_type TEXT NOT NULL,
++    body TEXT NOT NULL,
++    updated_by TEXT,
++    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
++    UNIQUE(project_type, log_type)
++);
+--- _tmp/p47orig/templates/base.html
++++ templates/base.html
+@@ -63,7 +63,7 @@
+        else 'orders' if _p.startswith('/orders')
+        else 'squawks' if _p.startswith('/squawks')
+        else 'activity' if _p.startswith('/activity')
+-       else 'manage' if (_p.startswith('/laborers') or _p.startswith('/shop/'))
++       else 'manage' if (_p.startswith('/laborers') or _p.startswith('/shop/') or _p.startswith('/logbook'))
+        else '' %}
+     <div class="collapse navbar-collapse" id="nav">
+       <ul class="navbar-nav me-auto mb-2 mb-lg-0 shop-nav-boxed">
+@@ -102,8 +102,13 @@
+             <li><hr class="dropdown-divider"></li>
+             <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/billing') }}" href="{{ url_for('shop_billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
+             <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/stats') }}" href="{{ url_for('shop_stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
++            <li><hr class="dropdown-divider"></li>
++            <li><a class="dropdown-item {{ 'active' if _p.startswith('/logbook') }}" href="{{ url_for('logbook.logbook_list') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
+             {% else %}
+             <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
++            {% if shop_role == 'tech' %}
++            <li><a class="dropdown-item {{ 'active' if _p.startswith('/logbook') }}" href="{{ url_for('logbook.logbook_list') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
++            {% endif %}
+             {% endif %}
+           </ul>
+         </div>
+--- _tmp/p47orig/templates/project_detail.html
++++ templates/project_detail.html
+@@ -22,6 +22,9 @@
+     <a href="{{ url_for('project_label', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer"></i> Print Code</a>
+     <a href="{{ url_for('project_labor_codes', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-qr-code"></i> Labor Codes</a>
+     <a href="{{ url_for('project_checklist_print', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-list-check"></i> Job Sheet</a>
++    {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
++    <a href="{{ url_for('logbook.project_logbook', project_id=project.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-journal-plus"></i> Logbook Starter</a>
++    {% endif %}
+     <a href="{{ url_for('project_export_csv', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Export Materials CSV</a>
+     <a href="{{ url_for('project_invoice_csv', project_id=project.id) }}" class="btn btn-outline-success btn-sm"><i class="bi bi-receipt"></i> Export Invoice</a>
+     {% if project.status != 'active' %}
+--- _tmp/p47orig/templates/asset_detail.html
++++ templates/asset_detail.html
+@@ -151,6 +151,19 @@
+     </div>
+     {% endif %}
+ 
++    {% set lbc = logbook_counts(asset.id) %}
++    <div class="card p-3 mt-3">
++      <div class="d-flex justify-content-between align-items-center">
++        <span class="text-muted"><i class="bi bi-journal-text"></i> Logbooks</span>
++        {% if lbc.last %}<span class="badge bg-primary">Last: {{ lbc.last|usdate }}</span>{% endif %}
++      </div>
++      <div class="d-flex gap-1 mt-2">
++        <a href="{{ url_for('logbook.asset_logbook', asset_id=asset.id, log='airframe') }}" class="btn btn-outline-primary btn-sm flex-fill">Airframe <span class="badge bg-secondary">{{ lbc.airframe }}</span></a>
++        <a href="{{ url_for('logbook.asset_logbook', asset_id=asset.id, log='engine') }}" class="btn btn-outline-primary btn-sm flex-fill">Engine <span class="badge bg-secondary">{{ lbc.engine }}</span></a>
++        <a href="{{ url_for('logbook.asset_logbook', asset_id=asset.id, log='propeller') }}" class="btn btn-outline-primary btn-sm flex-fill">Prop <span class="badge bg-secondary">{{ lbc.propeller }}</span></a>
++      </div>
++    </div>
++
+     <div class="card p-3 mt-3">
+       <div class="d-flex justify-content-between align-items-center">
+         <span class="text-muted"><i class="bi bi-speedometer"></i> Cylinder Compression</span>
+--- _tmp/p47orig/templates/part_form.html
++++ templates/part_form.html
+@@ -18,6 +18,12 @@
+       <div class="form-text">A brief, common name for this part - shown on printed barcode labels when the full name is too long, and searchable alongside the full name. It's fine for several different parts to share the same Also Known As (e.g. several different bolts all "aka Bolt") since the full name and barcode are what actually tell them apart.</div>
+     </div>
+ 
++    <div class="mb-3">
++      <label class="form-label">Part Number <span class="text-muted small">(optional)</span></label>
++      <input type="text" name="part_number" class="form-control" maxlength="60" placeholder="e.g. LW-13387" value="{{ form.get('part_number','') or '' if form else '' }}">
++      <div class="form-text">The manufacturer's P/N - used in logbook entries. Leave blank if the barcode already is the part number.</div>
++    </div>
++
+     {% if not part %}
+     <div class="mb-3">
+       <label class="form-label">Barcode</label>
+--- /dev/null
++++ logbook.py
+@@ -0,0 +1,570 @@
++"""Maintenance logbook entries: a "logbook sticker starter" built from a
++project's sub areas and the parts scanned into them, a combined entry for
++the whole project from a per-project-type template (Annual, 100-Hour, Oil
++Change, Repair), and a searchable Logbook (Manage > Logbook, plus each
++plane's own Airframe / Engine / Propeller logs).
++
++Nothing here is signed or final by itself - the app drafts the wording from
++what's already in the database, a mechanic edits it, saves it, and prints
++it as a sticker for the paper logbook.
++"""
++import re
++from datetime import date
++
++from flask import Blueprint, render_template, request, redirect, url_for, session, flash, abort
++
++from db import get_db, now_iso
++from auth import shop_role_required
++
++logbook_bp = Blueprint("logbook", __name__)
++
++LOG_TYPES = [("airframe", "Airframe"), ("engine", "Engine"), ("propeller", "Propeller")]
++LOG_TYPE_LABELS = dict(LOG_TYPES)
++
++PROJECT_TYPES = [("annual", "Annual Inspection"), ("100hour", "100-Hour Inspection"),
++                 ("oil_change", "Oil Change"), ("repair", "Repair / Maintenance")]
++PROJECT_TYPE_LABELS = dict(PROJECT_TYPES)
++
++# Which logbooks each kind of project normally writes a combined entry in.
++PROJECT_TYPE_LOGS = {
++    "annual": ["airframe", "engine", "propeller"],
++    "100hour": ["airframe", "engine", "propeller"],
++    "oil_change": ["engine"],
++    "repair": [],  # whichever logs the sub areas landed in
++}
++
++# A sub area's name decides which logbook its entry goes in by default
++# (the mechanic can change it on the page).
++_ENGINE_WORDS = ("engine", "oil", "cylinder", "valve", "magneto", "mag ", "mags", "spark", "plug", "exhaust",
++                 "carb", "induction", "intake", "fuel injection", "injector", "alternator", "starter",
++                 "compression", "baffle", "muffler", "turbo", "crank", "cam", "piston", "ignition", "harness")
++_PROP_WORDS = ("prop", "spinner", "governor", "hub", "blade")
++
++RETURN_TO_SERVICE = ("The work described above was performed in accordance with 14 CFR Part 43 and current "
++                     "manufacturer's data, and the {what} is approved for return to service with respect to "
++                     "the work performed.")
++SIGNATURE_LINE = "Signature: ______________________  Cert #: ______________"
++
++DEFAULT_TEMPLATES = {
++    ("annual", "airframe"): (
++        "{date}  Tach {tach}  Hobbs {hobbs}\n"
++        "{tail}  {make_model}  S/N {serial}\n"
++        "Performed an annual inspection in accordance with 14 CFR Part 43 Appendix D (project {project_code}).\n"
++        "{work}\n"
++        "Parts installed:\n{parts}\n"
++        "I certify that this aircraft has been inspected in accordance with an annual inspection and was "
++        "determined to be in airworthy condition.\n"
++        "Signature: ______________________  IA #: ______________"),
++    ("annual", "engine"): (
++        "{date}  Tach {tach}\n"
++        "Engine {engine}  S/N {engine_serial}  ({tail})\n"
++        "Performed the engine portion of an annual inspection in accordance with 14 CFR Part 43 Appendix D "
++        "(project {project_code}).\n"
++        "{work}\n"
++        "Parts installed:\n{parts}\n"
++        "I certify that this engine has been inspected in accordance with an annual inspection and was "
++        "determined to be in airworthy condition.\n"
++        "Signature: ______________________  IA #: ______________"),
++    ("annual", "propeller"): (
++        "{date}  Tach {tach}\n"
++        "Propeller {prop}  S/N {prop_serial}  ({tail})\n"
++        "Performed the propeller portion of an annual inspection in accordance with 14 CFR Part 43 Appendix D "
++        "(project {project_code}).\n"
++        "{work}\n"
++        "Parts installed:\n{parts}\n"
++        "I certify that this propeller has been inspected in accordance with an annual inspection and was "
++        "determined to be in airworthy condition.\n"
++        "Signature: ______________________  IA #: ______________"),
++    ("100hour", "airframe"): (
++        "{date}  Tach {tach}  Hobbs {hobbs}\n"
++        "{tail}  {make_model}  S/N {serial}\n"
++        "Performed a 100-hour inspection in accordance with 14 CFR Part 43 Appendix D (project {project_code}).\n"
++        "{work}\n"
++        "Parts installed:\n{parts}\n"
++        "I certify that this aircraft has been inspected in accordance with a 100-hour inspection and was "
++        "determined to be in airworthy condition.\n"
++        + SIGNATURE_LINE),
++    ("100hour", "engine"): (
++        "{date}  Tach {tach}\n"
++        "Engine {engine}  S/N {engine_serial}  ({tail})\n"
++        "Performed the engine portion of a 100-hour inspection in accordance with 14 CFR Part 43 Appendix D "
++        "(project {project_code}).\n"
++        "{work}\n"
++        "Parts installed:\n{parts}\n"
++        "I certify that this engine has been inspected in accordance with a 100-hour inspection and was "
++        "determined to be in airworthy condition.\n"
++        + SIGNATURE_LINE),
++    ("100hour", "propeller"): (
++        "{date}  Tach {tach}\n"
++        "Propeller {prop}  S/N {prop_serial}  ({tail})\n"
++        "Performed the propeller portion of a 100-hour inspection in accordance with 14 CFR Part 43 Appendix D "
++        "(project {project_code}).\n"
++        "{work}\n"
++        "Parts installed:\n{parts}\n"
++        "I certify that this propeller has been inspected in accordance with a 100-hour inspection and was "
++        "determined to be in airworthy condition.\n"
++        + SIGNATURE_LINE),
++    ("oil_change", "engine"): (
++        "{date}  Tach {tach}\n"
++        "Engine {engine}  S/N {engine_serial}  ({tail})\n"
++        "Drained engine oil and replaced oil and filter. Inspected filter element - no abnormal metal found. "
++        "Ran engine, no leaks (project {project_code}).\n"
++        "{work}\n"
++        "Parts installed:\n{parts}\n"
++        + RETURN_TO_SERVICE.format(what="engine") + "\n" + SIGNATURE_LINE),
++}
++# Anything without its own template (e.g. an oil change's airframe log, or
++# a general repair) uses this one.
++GENERIC_TEMPLATE = (
++    "{date}  Tach {tach}  Hobbs {hobbs}\n"
++    "{what_line}\n"
++    "{work}\n"
++    "Parts installed:\n{parts}\n"
++    "{return_to_service}\n"
++    + SIGNATURE_LINE)
++
++PLACEHOLDERS = [
++    ("{date}", "entry date"), ("{tail}", "N number"), ("{make_model}", "make / model / year"),
++    ("{serial}", "airframe S/N"), ("{engine}", "engine make/model"), ("{engine_serial}", "engine S/N"),
++    ("{prop}", "prop make/model"), ("{prop_serial}", "prop S/N"), ("{tach}", "tach time"),
++    ("{hobbs}", "Hobbs time"), ("{project_code}", "project number"), ("{project_name}", "project name"),
++    ("{work}", "one line per sub area's work"), ("{parts}", "parts list with P/N"),
++    ("{return_to_service}", "standard return-to-service sentence"),
++]
++
++
++def _can_edit():
++    return bool(session.get("is_master_admin") or session.get("shop_role") in ("admin", "tech"))
++
++
++def _is_admin():
++    return bool(session.get("is_master_admin") or session.get("shop_role") == "admin")
++
++
++def guess_log_type(section_name):
++    s = f" {(section_name or '').lower()} "
++    if any(w in s for w in _PROP_WORDS):
++        return "propeller"
++    if any(w in s for w in _ENGINE_WORDS):
++        return "engine"
++    return "airframe"
++
++
++def guess_project_type(conn, project):
++    """From maintenance items this project completed (their category), else
++    from words in the project's name/description; 'repair' otherwise."""
++    row = conn.execute("""SELECT mi.category FROM maintenance_log ml JOIN maintenance_items mi ON mi.id = ml.item_id
++                          WHERE ml.project_id = ? ORDER BY ml.completed_at DESC LIMIT 1""",
++                       (project["id"],)).fetchone()
++    if row and row["category"] in PROJECT_TYPE_LABELS:
++        return row["category"]
++    text = f"{project['name'] or ''} {project['description'] or ''}".lower()
++    if "annual" in text:
++        return "annual"
++    if "100" in text and ("hour" in text or "hr" in text):
++        return "100hour"
++    if "oil" in text:
++        return "oil_change"
++    return "repair"
++
++
++def part_number(row):
++    """A part's P/N for the logbook: its Part Number if one is saved, else
++    its barcode when that's a real (manufacturer) barcode, else blank for
++    the mechanic to fill in."""
++    pn = (row["part_number"] if "part_number" in row.keys() else None) or ""
++    if pn.strip():
++        return pn.strip()
++    bc = (row["barcode"] or "").strip()
++    if bc and not bc.upper().startswith("SHOP-"):
++        return bc
++    return "________"
++
++
++def _fmt_qty(q):
++    q = q or 0
++    return str(int(q)) if float(q).is_integer() else f"{q:g}"
++
++
++def _part_line(p):
++    return f"{p['name']}, P/N {part_number(p)}, qty {_fmt_qty(p['qty_used'])}{'' if (p['unit'] or 'ea') == 'ea' else ' ' + p['unit']}"
++
++
++def _fmt_hours(v):
++    return "______" if v is None else f"{v:.1f}"
++
++
++def _project_parts(conn, project_id):
++    return conn.execute("""
++        SELECT p.id as part_id, p.name, p.barcode, p.part_number, p.unit, t.section as section,
++               SUM(CASE WHEN t.type='out' THEN t.qty ELSE -t.qty END) as qty_used
++        FROM transactions t JOIN parts p ON p.id = t.part_id
++        WHERE t.project_id = ?
++        GROUP BY p.id, t.section
++        HAVING qty_used > 0
++        ORDER BY p.name""", (project_id,)).fetchall()
++
++
++def _load_template(conn, project_type, log_type):
++    row = conn.execute("SELECT body FROM logbook_templates WHERE project_type = ? AND log_type = ?",
++                       (project_type, log_type)).fetchone()
++    if row and (row["body"] or "").strip():
++        return row["body"], True
++    return DEFAULT_TEMPLATES.get((project_type, log_type), GENERIC_TEMPLATE), False
++
++
++def _fill(template, values):
++    # Only swap known {placeholders}; anything else in braces is left as-is
++    # so an uploaded template with stray braces can't break the page.
++    return re.sub(r"\{(\w+)\}", lambda m: str(values.get(m.group(1), m.group(0))), template)
++
++
++def build_starters(conn, project, asset, project_type, entry_date, tach, hobbs):
++    """Returns (section_starters, combined_starters).
++
++    section_starters: one per sub area (plus General for parts scanned with
++    no sub area) - the work line, parts with P/N, and the return-to-service
++    endorsement.
++    combined_starters: one per logbook the whole project writes in, from
++    that project type's template."""
++    parts = _project_parts(conn, project["id"])
++    sections = {}
++    for p in parts:
++        sections.setdefault(p["section"] or "General", []).append(p)
++    for r in conn.execute("SELECT name FROM project_sections WHERE project_id = ? ORDER BY name",
++                          (project["id"],)).fetchall():
++        sections.setdefault(r["name"], [])
++    ordered = sorted(sections.items(), key=lambda kv: (kv[0] == "General", kv[0].lower()))
++
++    date_txt = entry_date
++    head = f"{date_txt}  Tach {_fmt_hours(tach)}"
++    section_starters = []
++    for name, rows in ordered:
++        log_type = guess_log_type(name)
++        what = {"engine": "engine", "propeller": "propeller"}.get(log_type, "aircraft")
++        lines = [head]
++        area = project["name"] if name == "General" else name
++        if rows:
++            for p in rows:
++                lines.append(f"{area}: Replaced {p['name']} using P/N {part_number(p)} "
++                             f"(qty {_fmt_qty(p['qty_used'])}).")
++        else:
++            lines.append(f"{area}: ______________________________________________")
++        lines.append(RETURN_TO_SERVICE.format(what=what))
++        lines.append(SIGNATURE_LINE)
++        section_starters.append({"section": name, "log_type": log_type, "body": "\n".join(lines),
++                                 "part_count": len(rows)})
++
++    # Combined entries: one per log the project type calls for, plus any
++    # log a sub area landed in.
++    logs = list(PROJECT_TYPE_LOGS.get(project_type, []))
++    for s in section_starters:
++        if s["log_type"] not in logs:
++            logs.append(s["log_type"])
++    if not logs:
++        logs = ["airframe"]
++    logs = [lt for lt, _l in LOG_TYPES if lt in logs]
++
++    make_model = " ".join(x for x in [asset["year"], asset["make"], asset["model"]] if x) if asset else ""
++    combined = []
++    for lt in logs:
++        in_log = [s for s in section_starters if s["log_type"] == lt]
++        work = "\n".join(f"- {s['section'] if s['section'] != 'General' else 'General'}: "
++                         + (", ".join(f"replaced {p['name']}" for p in sections[s['section']]) or "see work order")
++                         for s in in_log) or "- ______________________________________________"
++        part_rows = [p for s in in_log for p in sections[s["section"]]]
++        parts_txt = "\n".join(f"- {_part_line(p)}" for p in part_rows) or "- None"
++        what = {"engine": "engine", "propeller": "propeller"}.get(lt, "aircraft")
++        what_line = {
++            "airframe": f"{asset['tag'] if asset else ''}  {make_model}  S/N {asset['serial_number'] or '______' if asset else '______'}",
++            "engine": f"Engine {' '.join(x for x in [asset['engine_make'], asset['engine_model']] if x) or '______' if asset else '______'}  S/N {asset['engine_serial'] or '______' if asset else '______'}",
++            "propeller": f"Propeller {' '.join(x for x in [asset['prop_make'], asset['prop_model']] if x) or '______' if asset else '______'}  S/N {asset['prop_serial'] or '______' if asset else '______'}",
++        }[lt] + f"  (project {project['code']} - {project['name']})"
++        values = {
++            "date": date_txt, "tach": _fmt_hours(tach), "hobbs": _fmt_hours(hobbs),
++            "tail": asset["tag"] if asset else "______", "make_model": make_model or "______",
++            "serial": (asset["serial_number"] if asset else None) or "______",
++            "engine": (" ".join(x for x in [asset["engine_make"], asset["engine_model"]] if x) if asset else "") or "______",
++            "engine_serial": (asset["engine_serial"] if asset else None) or "______",
++            "prop": (" ".join(x for x in [asset["prop_make"], asset["prop_model"]] if x) if asset else "") or "______",
++            "prop_serial": (asset["prop_serial"] if asset else None) or "______",
++            "project_code": project["code"] or "", "project_name": project["name"] or "",
++            "work": work, "parts": parts_txt, "what_line": what_line,
++            "return_to_service": RETURN_TO_SERVICE.format(what=what),
++        }
++        tpl, custom = _load_template(conn, project_type, lt)
++        combined.append({"log_type": lt, "body": _fill(tpl, values), "custom_template": custom})
++    return section_starters, combined
++
++
++def _parse_hours(v):
++    try:
++        return round(float(v), 1) if str(v or "").strip() else None
++    except ValueError:
++        return None
++
++
++def _parse_date(v):
++    v = (v or "").strip()
++    try:
++        return date.fromisoformat(v).isoformat()
++    except ValueError:
++        return None
++
++
++# ---------------------------------------------------------------- starter
++
++@logbook_bp.route("/projects/<int:project_id>/logbook")
++@shop_role_required('admin', 'tech')
++def project_logbook(project_id):
++    conn = get_db()
++    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
++    if not project:
++        conn.close()
++        abort(404)
++    asset = conn.execute("SELECT * FROM assets WHERE id = ?", (project["asset_id"],)).fetchone() \
++        if project["asset_id"] else None
++    project_type = request.args.get("type") or guess_project_type(conn, project)
++    if project_type not in PROJECT_TYPE_LABELS:
++        project_type = "repair"
++    entry_date = _parse_date(request.args.get("date")) or date.today().isoformat()
++    tach = _parse_hours(request.args.get("tach")) if request.args.get("tach") else (asset["tach_hours"] if asset else None)
++    hobbs = _parse_hours(request.args.get("hobbs")) if request.args.get("hobbs") else (asset["hobbs_hours"] if asset else None)
++    section_starters, combined = build_starters(conn, project, asset, project_type, entry_date, tach, hobbs)
++    saved = conn.execute("""SELECT * FROM logbook_entries WHERE project_id = ? AND deleted_at IS NULL
++                            ORDER BY entry_date DESC, id DESC""", (project_id,)).fetchall()
++    conn.close()
++    return render_template("logbook_starter.html", project=project, asset=asset, project_type=project_type,
++                           project_types=PROJECT_TYPES, log_types=LOG_TYPES, log_type_labels=LOG_TYPE_LABELS,
++                           entry_date=entry_date, tach=tach, hobbs=hobbs, section_starters=section_starters,
++                           combined=combined, saved=saved)
++
++
++@logbook_bp.route("/projects/<int:project_id>/logbook/save", methods=["POST"])
++@shop_role_required('admin', 'tech')
++def project_logbook_save(project_id):
++    conn = get_db()
++    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
++    if not project:
++        conn.close()
++        abort(404)
++    body = (request.form.get("body") or "").strip()
++    log_type = request.form.get("log_type")
++    if log_type not in LOG_TYPE_LABELS:
++        log_type = "airframe"
++    project_type = request.form.get("project_type")
++    if project_type not in PROJECT_TYPE_LABELS:
++        project_type = None
++    entry_date = _parse_date(request.form.get("entry_date")) or date.today().isoformat()
++    back = url_for("logbook.project_logbook", project_id=project_id, type=project_type or None,
++                   date=entry_date, tach=request.form.get("tach") or None, hobbs=request.form.get("hobbs") or None)
++    if not body:
++        conn.close()
++        flash("That entry is empty - nothing saved.", "danger")
++        return redirect(back)
++    section = (request.form.get("section") or "").strip() or None
++    conn.execute("""INSERT INTO logbook_entries (asset_id, project_id, section, log_type, project_type,
++                          entry_date, tach_hours, hobbs_hours, body, created_by, created_at, updated_at)
++                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
++                       (project["asset_id"], project_id, section, log_type, project_type, entry_date,
++                        _parse_hours(request.form.get("tach")), _parse_hours(request.form.get("hobbs")), body,
++                        session.get("user_name"), now_iso(), now_iso()))
++    conn.commit()
++    conn.close()
++    what = f"'{section}'" if section else "Combined project"
++    flash(f"{what} entry saved to the {LOG_TYPE_LABELS[log_type]} log - print its sticker from Saved Entries below.", "success")
++    return redirect(back)
++
++
++# ---------------------------------------------------------------- browse
++
++@logbook_bp.route("/logbook")
++@shop_role_required('admin', 'tech')
++def logbook_list():
++    conn = get_db()
++    q = (request.args.get("q") or "").strip()
++    asset_id = request.args.get("asset_id", type=int)
++    project_q = (request.args.get("project") or "").strip()
++    log_type = request.args.get("log_type") or ""
++    date_from = _parse_date(request.args.get("from"))
++    date_to = _parse_date(request.args.get("to"))
++    where, args = ["e.deleted_at IS NULL"], []
++    if asset_id:
++        where.append("e.asset_id = ?")
++        args.append(asset_id)
++    if log_type in LOG_TYPE_LABELS:
++        where.append("e.log_type = ?")
++        args.append(log_type)
++    if date_from:
++        where.append("e.entry_date >= ?")
++        args.append(date_from)
++    if date_to:
++        where.append("e.entry_date <= ?")
++        args.append(date_to)
++    if project_q:
++        where.append("(pr.code LIKE ? OR pr.name LIKE ?)")
++        args += [f"%{project_q}%", f"%{project_q}%"]
++    if q:
++        where.append("(e.body LIKE ? OR e.section LIKE ? OR a.tag LIKE ?)")
++        args += [f"%{q}%", f"%{q}%", f"%{q}%"]
++    entries = conn.execute(f"""SELECT e.*, a.tag as asset_tag, pr.code as project_code, pr.name as project_name
++                               FROM logbook_entries e
++                               LEFT JOIN assets a ON a.id = e.asset_id
++                               LEFT JOIN projects pr ON pr.id = e.project_id
++                               WHERE {' AND '.join(where)}
++                               ORDER BY e.entry_date DESC, e.id DESC LIMIT 500""", args).fetchall()
++    planes = conn.execute("SELECT id, tag, name FROM assets WHERE deleted_at IS NULL ORDER BY tag").fetchall()
++    conn.close()
++    filtered = bool(q or asset_id or project_q or log_type or date_from or date_to)
++    return render_template("logbook_list.html", entries=entries, planes=planes, log_types=LOG_TYPES,
++                           log_type_labels=LOG_TYPE_LABELS, project_type_labels=PROJECT_TYPE_LABELS,
++                           filters={"q": q, "asset_id": asset_id, "project": project_q, "log_type": log_type,
++                                    "from": date_from or "", "to": date_to or ""}, filtered=filtered)
++
++
++@logbook_bp.route("/assets/<int:asset_id>/logbook")
++@shop_role_required('admin', 'tech')
++def asset_logbook(asset_id):
++    conn = get_db()
++    asset = conn.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
++    if not asset:
++        conn.close()
++        abort(404)
++    rows = conn.execute("""SELECT e.*, pr.code as project_code, pr.name as project_name
++                           FROM logbook_entries e LEFT JOIN projects pr ON pr.id = e.project_id
++                           WHERE e.asset_id = ? AND e.deleted_at IS NULL
++                           ORDER BY e.entry_date DESC, e.id DESC""", (asset_id,)).fetchall()
++    conn.close()
++    by_log = {lt: [] for lt, _l in LOG_TYPES}
++    for r in rows:
++        by_log.setdefault(r["log_type"], []).append(r)
++    tab = request.args.get("log") if request.args.get("log") in by_log else \
++        next((lt for lt, _l in LOG_TYPES if by_log[lt]), "airframe")
++    return render_template("logbook_asset.html", asset=asset, by_log=by_log, log_types=LOG_TYPES, tab=tab,
++                           project_type_labels=PROJECT_TYPE_LABELS)
++
++
++@logbook_bp.app_template_global()
++def logbook_counts(asset_id):
++    """{log_type: count, 'last': newest entry_date} for the plane page card."""
++    conn = get_db()
++    out = {lt: 0 for lt, _l in LOG_TYPES}
++    try:
++        for r in conn.execute("""SELECT log_type, COUNT(*) c FROM logbook_entries
++                                 WHERE asset_id = ? AND deleted_at IS NULL GROUP BY log_type""", (asset_id,)):
++            out[r["log_type"]] = r["c"]
++        last = conn.execute("SELECT MAX(entry_date) d FROM logbook_entries WHERE asset_id = ? AND deleted_at IS NULL",
++                            (asset_id,)).fetchone()
++        out["last"] = last["d"] if last else None
++    finally:
++        conn.close()
++    return out
++
++
++# ---------------------------------------------------------------- one entry
++
++def _get_entry(conn, entry_id):
++    e = conn.execute("""SELECT e.*, a.tag as asset_tag, a.make as asset_make, a.model as asset_model,
++                               pr.code as project_code, pr.name as project_name
++                        FROM logbook_entries e
++                        LEFT JOIN assets a ON a.id = e.asset_id
++                        LEFT JOIN projects pr ON pr.id = e.project_id
++                        WHERE e.id = ? AND e.deleted_at IS NULL""", (entry_id,)).fetchone()
++    if not e:
++        conn.close()
++        abort(404)
++    return e
++
++
++@logbook_bp.route("/logbook/<int:entry_id>", methods=["GET", "POST"])
++@shop_role_required('admin', 'tech')
++def entry_detail(entry_id):
++    conn = get_db()
++    e = _get_entry(conn, entry_id)
++    if request.method == "POST":
++        body = (request.form.get("body") or "").strip()
++        if not body:
++            flash("The entry text can't be empty.", "danger")
++        else:
++            log_type = request.form.get("log_type") if request.form.get("log_type") in LOG_TYPE_LABELS else e["log_type"]
++            conn.execute("""UPDATE logbook_entries SET body=?, log_type=?, entry_date=?, tach_hours=?, hobbs_hours=?,
++                            signed_by=?, cert_number=?, updated_at=? WHERE id=?""",
++                         (body, log_type, _parse_date(request.form.get("entry_date")) or e["entry_date"],
++                          _parse_hours(request.form.get("tach")), _parse_hours(request.form.get("hobbs")),
++                          (request.form.get("signed_by") or "").strip() or None,
++                          (request.form.get("cert_number") or "").strip() or None, now_iso(), entry_id))
++            conn.commit()
++            flash("Logbook entry updated.", "success")
++        conn.close()
++        return redirect(url_for("logbook.entry_detail", entry_id=entry_id))
++    conn.close()
++    return render_template("logbook_entry.html", e=e, log_types=LOG_TYPES, log_type_labels=LOG_TYPE_LABELS,
++                           project_type_labels=PROJECT_TYPE_LABELS, is_admin=_is_admin())
++
++
++@logbook_bp.route("/logbook/<int:entry_id>/print")
++@shop_role_required('admin', 'tech')
++def entry_print(entry_id):
++    conn = get_db()
++    e = _get_entry(conn, entry_id)
++    conn.close()
++    return render_template("logbook_print.html", e=e, log_type_labels=LOG_TYPE_LABELS)
++
++
++@logbook_bp.route("/logbook/<int:entry_id>/delete", methods=["POST"])
++@shop_role_required('admin')
++def entry_delete(entry_id):
++    conn = get_db()
++    e = _get_entry(conn, entry_id)
++    conn.execute("UPDATE logbook_entries SET deleted_at = ? WHERE id = ?", (now_iso(), entry_id))
++    conn.commit()
++    conn.close()
++    flash("Logbook entry deleted.", "success")
++    if e["asset_id"]:
++        return redirect(url_for("logbook.asset_logbook", asset_id=e["asset_id"], log=e["log_type"]))
++    return redirect(url_for("logbook.logbook_list"))
++
++
++# ---------------------------------------------------------------- templates
++
++@logbook_bp.route("/logbook/templates", methods=["GET", "POST"])
++@shop_role_required('admin')
++def logbook_templates():
++    conn = get_db()
++    if request.method == "POST":
++        project_type = request.form.get("project_type")
++        log_type = request.form.get("log_type")
++        if project_type not in PROJECT_TYPE_LABELS or log_type not in LOG_TYPE_LABELS:
++            conn.close()
++            abort(400)
++        body = request.form.get("body") or ""
++        upload = request.files.get("file")
++        if upload and upload.filename:
++            raw = upload.read(200_000)
++            try:
++                body = raw.decode("utf-8")
++            except UnicodeDecodeError:
++                body = raw.decode("latin-1")
++        label = f"{PROJECT_TYPE_LABELS[project_type]} - {LOG_TYPE_LABELS[log_type]}"
++        if request.form.get("action") == "reset" or not body.strip():
++            conn.execute("DELETE FROM logbook_templates WHERE project_type = ? AND log_type = ?",
++                         (project_type, log_type))
++            flash(f"{label} template set back to the built-in wording.", "success")
++        else:
++            conn.execute("""INSERT INTO logbook_templates (project_type, log_type, body, updated_by, updated_at)
++                            VALUES (?, ?, ?, ?, ?)
++                            ON CONFLICT(project_type, log_type) DO UPDATE SET body=excluded.body,
++                            updated_by=excluded.updated_by, updated_at=excluded.updated_at""",
++                         (project_type, log_type, body.replace("\r\n", "\n").strip(), session.get("user_name"), now_iso()))
++            flash(f"{label} template saved.", "success")
++        conn.commit()
++        conn.close()
++        return redirect(url_for("logbook.logbook_templates", _anchor=f"t-{project_type}-{log_type}"))
++    templates = []
++    for pt, pl in PROJECT_TYPES:
++        for lt, ll in LOG_TYPES:
++            body, custom = _load_template(conn, pt, lt)
++            templates.append({"project_type": pt, "project_label": pl, "log_type": lt, "log_label": ll,
++                              "body": body, "custom": custom})
++    conn.close()
++    return render_template("logbook_templates.html", templates=templates, placeholders=PLACEHOLDERS)
+--- /dev/null
++++ templates/logbook_starter.html
+@@ -0,0 +1,118 @@
++{% extends "base.html" %}
++{% block title %}Logbook Starter - {{ project.name }} - OpsHub{% endblock %}
++{% block content %}
++<style>
++  .lb-text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; }
++  .lb-log-airframe { border-left: 4px solid #0d6efd; }
++  .lb-log-engine { border-left: 4px solid #dc3545; }
++  .lb-log-propeller { border-left: 4px solid #198754; }
++</style>
++<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
++  <div>
++    <h4 class="mb-0"><i class="bi bi-journal-text"></i> Logbook Starter</h4>
++    <p class="mb-0"><a href="{{ url_for('project_detail', project_id=project.id) }}"><code>{{ project.code }}</code> &middot; {{ project.name }}</a>
++      {% if asset %}&middot; <a href="{{ url_for('logbook.asset_logbook', asset_id=asset.id) }}"><i class="bi bi-airplane"></i> {{ asset.tag }} logbooks</a>{% endif %}</p>
++  </div>
++  <a href="{{ url_for('logbook.logbook_list') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-search"></i> Search Logbook</a>
++</div>
++
++{% if not asset %}
++<div class="alert alert-warning py-2">This project isn't linked to an aircraft, so the N number and serial numbers are left blank. <a href="{{ url_for('project_edit', project_id=project.id) }}">Link one</a> to fill them in.</div>
++{% endif %}
++
++<form method="get" class="card p-3 mb-3">
++  <div class="row g-2 align-items-end">
++    <div class="col-12 col-md-4">
++      <label class="form-label small mb-1">Type of project (picks the template)</label>
++      <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
++        {% for code, label in project_types %}<option value="{{ code }}" {{ 'selected' if code == project_type }}>{{ label }}</option>{% endfor %}
++      </select>
++    </div>
++    <div class="col-6 col-md-3">
++      <label class="form-label small mb-1">Entry date</label>
++      <input type="date" name="date" value="{{ entry_date }}" class="form-control form-control-sm">
++    </div>
++    <div class="col-3 col-md-2">
++      <label class="form-label small mb-1">Tach</label>
++      <input type="number" step="0.1" name="tach" value="{{ '%.1f'|format(tach) if tach is not none else '' }}" class="form-control form-control-sm">
++    </div>
++    <div class="col-3 col-md-2">
++      <label class="form-label small mb-1">Hobbs</label>
++      <input type="number" step="0.1" name="hobbs" value="{{ '%.1f'|format(hobbs) if hobbs is not none else '' }}" class="form-control form-control-sm">
++    </div>
++    <div class="col-12 col-md-1"><button class="btn btn-primary btn-sm w-100">Update</button></div>
++  </div>
++  <div class="form-text">Everything below is a starting point built from this project's sub areas and the parts scanned into them. Edit the wording, then Save to logbook. Part numbers come from each part's Part Number (or its barcode).</div>
++</form>
++
++{% macro starter_card(body, log_type, section, title, subtitle) %}
++<form method="post" action="{{ url_for('logbook.project_logbook_save', project_id=project.id) }}" class="card p-3 mb-3 lb-log-{{ log_type }}">
++  <input type="hidden" name="section" value="{{ section or '' }}">
++  <input type="hidden" name="project_type" value="{{ project_type }}">
++  <input type="hidden" name="entry_date" value="{{ entry_date }}">
++  <input type="hidden" name="tach" value="{{ tach if tach is not none else '' }}">
++  <input type="hidden" name="hobbs" value="{{ hobbs if hobbs is not none else '' }}">
++  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
++    <div><strong>{{ title }}</strong> {% if subtitle %}<small class="text-muted">{{ subtitle }}</small>{% endif %}</div>
++    <select name="log_type" class="form-select form-select-sm" style="width:auto;">
++      {% for code, label in log_types %}<option value="{{ code }}" {{ 'selected' if code == log_type }}>{{ label }} log</option>{% endfor %}
++    </select>
++  </div>
++  <textarea name="body" class="form-control lb-text" rows="{{ [body.count('\n') + 2, 14]|min }}">{{ body }}</textarea>
++  <div class="d-flex gap-2 mt-2">
++    <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-journal-plus"></i> Save to logbook</button>
++    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="lbCopy(this)"><i class="bi bi-clipboard"></i> Copy</button>
++  </div>
++</form>
++{% endmacro %}
++
++<div class="row g-3">
++  <div class="col-lg-6">
++    <h5>Sub area entries <small class="text-muted fs-6">(one per sub area, with its endorsement)</small></h5>
++    {% for s in section_starters %}
++      {{ starter_card(s.body, s.log_type, s.section, s.section, s.part_count ~ ' part' ~ ('s' if s.part_count != 1 else '')) }}
++    {% else %}
++      <p class="text-muted">No sub areas or parts on this project yet. Add a sub area or scan parts in, and they'll show up here.</p>
++    {% endfor %}
++  </div>
++  <div class="col-lg-6">
++    <h5>Combined project entry <small class="text-muted fs-6">({{ dict(project_types)[project_type] }} template)</small></h5>
++    {% for c in combined %}
++      {{ starter_card(c.body, c.log_type, None, log_type_labels[c.log_type] ~ ' log', 'your template' if c.custom_template else 'built-in template') }}
++    {% endfor %}
++    {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
++    <p class="small text-muted"><a href="{{ url_for('logbook.logbook_templates') }}"><i class="bi bi-file-earmark-text"></i> Edit or upload the templates</a></p>
++    {% endif %}
++  </div>
++</div>
++
++<div class="card p-3 mt-2">
++  <h5 class="mb-2">Saved entries for this project</h5>
++  {% if saved %}
++  <div class="list-group list-group-flush">
++    {% for e in saved %}
++    <div class="list-group-item px-0 d-flex justify-content-between align-items-center gap-2 flex-wrap">
++      <div class="small"><strong>{{ e.entry_date|usdate }}</strong> &middot; <span class="badge bg-light text-dark border">{{ log_type_labels[e.log_type] }}</span>
++        {{ e.section or 'Combined' }} <span class="text-muted">- {{ e.body.split('\n')[1] if e.body.count('\n') else e.body[:80] }}</span></div>
++      <div class="d-flex gap-1">
++        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('logbook.entry_detail', entry_id=e.id) }}"><i class="bi bi-pencil"></i></a>
++        <a class="btn btn-outline-primary btn-sm" target="_blank" href="{{ url_for('logbook.entry_print', entry_id=e.id) }}"><i class="bi bi-printer"></i> Sticker</a>
++      </div>
++    </div>
++    {% endfor %}
++  </div>
++  {% else %}
++  <p class="text-muted small mb-0">Nothing saved yet.</p>
++  {% endif %}
++</div>
++{% endblock %}
++{% block scripts %}
++<script>
++function lbCopy(btn) {
++  var ta = btn.closest('form').querySelector('textarea');
++  var done = function () { var t = btn.innerHTML; btn.innerHTML = '<i class="bi bi-check2"></i> Copied'; setTimeout(function () { btn.innerHTML = t; }, 1500); };
++  if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(ta.value).then(done); }
++  else { ta.select(); document.execCommand('copy'); done(); }
++}
++</script>
++{% endblock %}
+--- /dev/null
++++ templates/logbook_list.html
+@@ -0,0 +1,76 @@
++{% extends "base.html" %}
++{% block title %}Logbook - OpsHub{% endblock %}
++{% block content %}
++<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
++  <h4 class="mb-0"><i class="bi bi-journal-text"></i> Logbook <span class="text-muted fs-6">- {{ entries|length }} entr{{ 'y' if entries|length == 1 else 'ies' }}{{ ' found' if filtered }}</span></h4>
++  {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
++  <a href="{{ url_for('logbook.logbook_templates') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-text"></i> Templates</a>
++  {% endif %}
++</div>
++
++<form method="get" class="card p-3 mb-3">
++  <div class="row g-2 align-items-end">
++    <div class="col-6 col-md-2">
++      <label class="form-label small mb-1">N number</label>
++      <select name="asset_id" class="form-select form-select-sm">
++        <option value="">All aircraft</option>
++        {% for p in planes %}<option value="{{ p.id }}" {{ 'selected' if filters.asset_id == p.id }}>{{ p.tag }}</option>{% endfor %}
++      </select>
++    </div>
++    <div class="col-6 col-md-2">
++      <label class="form-label small mb-1">Log</label>
++      <select name="log_type" class="form-select form-select-sm">
++        <option value="">All logs</option>
++        {% for code, label in log_types %}<option value="{{ code }}" {{ 'selected' if filters.log_type == code }}>{{ label }}</option>{% endfor %}
++      </select>
++    </div>
++    <div class="col-6 col-md-2">
++      <label class="form-label small mb-1">From</label>
++      <input type="date" name="from" value="{{ filters['from'] }}" class="form-control form-control-sm">
++    </div>
++    <div class="col-6 col-md-2">
++      <label class="form-label small mb-1">To</label>
++      <input type="date" name="to" value="{{ filters.to }}" class="form-control form-control-sm">
++    </div>
++    <div class="col-6 col-md-2">
++      <label class="form-label small mb-1">Project</label>
++      <input type="text" name="project" value="{{ filters.project }}" placeholder="26-014 or name" class="form-control form-control-sm">
++    </div>
++    <div class="col-6 col-md-2">
++      <label class="form-label small mb-1">Text</label>
++      <input type="text" name="q" value="{{ filters.q }}" placeholder="gasket, P/N..." class="form-control form-control-sm">
++    </div>
++  </div>
++  <div class="d-flex gap-2 mt-2">
++    <button class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Search</button>
++    {% if filtered %}<a href="{{ url_for('logbook.logbook_list') }}" class="btn btn-outline-secondary btn-sm">Clear</a>{% endif %}
++  </div>
++</form>
++
++{% if entries %}
++<div class="card">
++  <div class="table-responsive">
++    <table class="table table-sm align-middle mb-0 table-stack">
++      <thead class="table-light"><tr><th>Date</th><th>Aircraft</th><th>Log</th><th>Project</th><th>Entry</th><th></th></tr></thead>
++      <tbody>
++        {% for e in entries %}
++        <tr>
++          <td data-label="Date" class="text-nowrap">{{ e.entry_date|usdate }}</td>
++          <td data-label="Aircraft">{% if e.asset_id %}<a href="{{ url_for('logbook.asset_logbook', asset_id=e.asset_id, log=e.log_type) }}">{{ e.asset_tag }}</a>{% else %}-{% endif %}</td>
++          <td data-label="Log">{{ log_type_labels.get(e.log_type, e.log_type) }}</td>
++          <td data-label="Project">{% if e.project_id %}<a href="{{ url_for('logbook.project_logbook', project_id=e.project_id) }}"><code>{{ e.project_code }}</code></a> <small class="text-muted">{{ e.section or 'Combined' }}</small>{% else %}-{% endif %}</td>
++          <td class="stack-full small" data-label="Entry"><a class="text-reset" href="{{ url_for('logbook.entry_detail', entry_id=e.id) }}">{{ (e.body.split('\n')[1] if e.body.count('\n') else e.body)|truncate(110) }}</a></td>
++          <td class="text-end text-nowrap">
++            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('logbook.entry_detail', entry_id=e.id) }}" title="Open"><i class="bi bi-eye"></i></a>
++            <a class="btn btn-outline-primary btn-sm" target="_blank" href="{{ url_for('logbook.entry_print', entry_id=e.id) }}" title="Print sticker"><i class="bi bi-printer"></i></a>
++          </td>
++        </tr>
++        {% endfor %}
++      </tbody>
++    </table>
++  </div>
++</div>
++{% else %}
++<p class="text-muted">{{ 'No entries match.' if filtered else 'No logbook entries yet. Open a project and press Logbook Starter to write the first one.' }}</p>
++{% endif %}
++{% endblock %}
+--- /dev/null
++++ templates/logbook_asset.html
+@@ -0,0 +1,51 @@
++{% extends "base.html" %}
++{% block title %}{{ asset.tag }} Logbooks - OpsHub{% endblock %}
++{% block content %}
++<style>
++  .lb-row summary { list-style: none; cursor: pointer; }
++  .lb-row summary::-webkit-details-marker { display: none; }
++  .lb-row[open] .lb-chev { transform: rotate(90deg); }
++  .lb-chev { transition: transform .15s; }
++  .lb-body { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .8rem; background: #f8f9fa; border-radius: 6px; padding: .5rem .75rem; }
++  .lb-year { font-size: .75rem; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: .05em; margin: .75rem 0 .25rem; }
++</style>
++<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
++  <div>
++    <h4 class="mb-0"><i class="bi bi-journal-text"></i> {{ asset.tag }} Logbooks</h4>
++    <p class="mb-0 text-muted small">{{ [asset.year, asset.make, asset.model]|select|join(' ') }} &middot; <a href="{{ url_for('asset_detail', asset_id=asset.id) }}">aircraft profile</a></p>
++  </div>
++  <a href="{{ url_for('logbook.logbook_list', asset_id=asset.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-search"></i> Search</a>
++</div>
++
++<ul class="nav nav-tabs mb-2">
++  {% for code, label in log_types %}
++  <li class="nav-item"><a class="nav-link {{ 'active' if tab == code }}" href="{{ url_for('logbook.asset_logbook', asset_id=asset.id, log=code) }}">{{ label }} <span class="badge bg-secondary">{{ by_log[code]|length }}</span></a></li>
++  {% endfor %}
++</ul>
++
++{% set rows = by_log[tab] %}
++{% if rows %}
++  {% set ns = namespace(year=None) %}
++  {% for e in rows %}
++    {% if e.entry_date[:4] != ns.year %}{% set ns.year = e.entry_date[:4] %}<div class="lb-year">{{ ns.year }}</div>{% endif %}
++    <details class="lb-row card mb-1">
++      <summary class="px-3 py-2 d-flex align-items-center gap-2">
++        <i class="bi bi-chevron-right lb-chev text-muted"></i>
++        <span class="text-nowrap fw-bold small">{{ e.entry_date|usdate }}</span>
++        {% if e.tach_hours is not none %}<span class="badge bg-light text-dark border">Tach {{ '%.1f'|format(e.tach_hours) }}</span>{% endif %}
++        <span class="small text-truncate flex-grow-1">{% if e.project_code %}<code>{{ e.project_code }}</code> {% endif %}{{ e.section or (project_type_labels.get(e.project_type) or 'Combined') }}</span>
++      </summary>
++      <div class="px-3 pb-2">
++        <div class="lb-body">{{ e.body }}</div>
++        <div class="d-flex gap-2 mt-2">
++          <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('logbook.entry_detail', entry_id=e.id) }}"><i class="bi bi-pencil"></i> Open</a>
++          <a class="btn btn-outline-primary btn-sm" target="_blank" href="{{ url_for('logbook.entry_print', entry_id=e.id) }}"><i class="bi bi-printer"></i> Sticker</a>
++          {% if e.project_id %}<a class="btn btn-outline-secondary btn-sm" href="{{ url_for('project_detail', project_id=e.project_id) }}"><i class="bi bi-clipboard-check"></i> Project</a>{% endif %}
++        </div>
++      </div>
++    </details>
++  {% endfor %}
++{% else %}
++<p class="text-muted mt-3">No {{ dict(log_types)[tab]|lower }} entries yet. They're added from a project's Logbook Starter.</p>
++{% endif %}
++{% endblock %}
+--- /dev/null
++++ templates/logbook_entry.html
+@@ -0,0 +1,62 @@
++{% extends "base.html" %}
++{% block title %}Logbook Entry - OpsHub{% endblock %}
++{% block content %}
++<div class="row justify-content-center">
++<div class="col-lg-8">
++<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
++  <div>
++    <h4 class="mb-0"><i class="bi bi-journal-text"></i> {{ log_type_labels.get(e.log_type, e.log_type) }} log entry</h4>
++    <p class="mb-0 small text-muted">
++      {% if e.asset_id %}<a href="{{ url_for('logbook.asset_logbook', asset_id=e.asset_id, log=e.log_type) }}">{{ e.asset_tag }}</a> &middot; {% endif %}
++      {% if e.project_id %}<a href="{{ url_for('logbook.project_logbook', project_id=e.project_id) }}"><code>{{ e.project_code }}</code> {{ e.project_name }}</a> &middot; {{ e.section or 'Combined' }}{% if e.project_type %} ({{ project_type_labels.get(e.project_type, e.project_type) }}){% endif %} &middot; {% endif %}
++      saved by {{ e.created_by or '?' }} {{ e.created_at|usdate(True) }}{% if e.updated_at != e.created_at %}, edited {{ e.updated_at|usdate(True) }}{% endif %}
++    </p>
++  </div>
++  <a class="btn btn-primary btn-sm" target="_blank" href="{{ url_for('logbook.entry_print', entry_id=e.id) }}"><i class="bi bi-printer"></i> Print Sticker</a>
++</div>
++
++<form method="post" class="card p-3">
++  <div class="row g-2">
++    <div class="col-6 col-md-3">
++      <label class="form-label small mb-1">Date</label>
++      <input type="date" name="entry_date" value="{{ e.entry_date }}" class="form-control form-control-sm">
++    </div>
++    <div class="col-6 col-md-3">
++      <label class="form-label small mb-1">Log</label>
++      <select name="log_type" class="form-select form-select-sm">
++        {% for code, label in log_types %}<option value="{{ code }}" {{ 'selected' if code == e.log_type }}>{{ label }}</option>{% endfor %}
++      </select>
++    </div>
++    <div class="col-6 col-md-3">
++      <label class="form-label small mb-1">Tach</label>
++      <input type="number" step="0.1" name="tach" value="{{ e.tach_hours if e.tach_hours is not none else '' }}" class="form-control form-control-sm">
++    </div>
++    <div class="col-6 col-md-3">
++      <label class="form-label small mb-1">Hobbs</label>
++      <input type="number" step="0.1" name="hobbs" value="{{ e.hobbs_hours if e.hobbs_hours is not none else '' }}" class="form-control form-control-sm">
++    </div>
++    <div class="col-12">
++      <label class="form-label small mb-1">Entry</label>
++      <textarea name="body" rows="{{ [e.body.count('\n') + 2, 18]|min }}" class="form-control" style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.85rem;">{{ e.body }}</textarea>
++    </div>
++    <div class="col-md-6">
++      <label class="form-label small mb-1">Signed by <span class="text-muted">(optional)</span></label>
++      <input type="text" name="signed_by" value="{{ e.signed_by or '' }}" class="form-control form-control-sm">
++    </div>
++    <div class="col-md-6">
++      <label class="form-label small mb-1">Certificate # <span class="text-muted">(optional)</span></label>
++      <input type="text" name="cert_number" value="{{ e.cert_number or '' }}" class="form-control form-control-sm">
++    </div>
++  </div>
++  <div class="d-flex justify-content-between mt-3">
++    <button class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Save changes</button>
++  </div>
++</form>
++{% if is_admin %}
++<form method="post" action="{{ url_for('logbook.entry_delete', entry_id=e.id) }}" class="mt-2 text-end" data-confirm="Delete this logbook entry?" data-confirm-style="danger" data-confirm-ok="Yes, delete">
++  <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash3"></i> Delete entry</button>
++</form>
++{% endif %}
++</div>
++</div>
++{% endblock %}
+--- /dev/null
++++ templates/logbook_print.html
+@@ -0,0 +1,30 @@
++{% extends "base.html" %}
++{% block title %}Logbook Sticker - {{ e.asset_tag or '' }}{% endblock %}
++{% block content %}
++<style>
++  .lb-sticker { width: 5.5in; max-width: 100%; margin: 0 auto; border: 1px dashed #adb5bd; padding: .2in .25in; background: #fff; }
++  .lb-sticker pre { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 9.5pt; line-height: 1.3; margin: 0; }
++  .lb-sticker .lb-head { font-size: 8pt; color: #555; border-bottom: 1px solid #ccc; margin-bottom: .08in; padding-bottom: .04in; display: flex; justify-content: space-between; }
++  @media print {
++    body { background: #fff !important; }
++    .container, .container-fluid, main { padding: 0 !important; margin: 0 !important; max-width: none !important; }
++    .alert { display: none !important; }
++    .lb-sticker { border: none; margin: 0; padding: 0; }
++    @page { margin: .3in; }
++  }
++</style>
++<div class="d-flex justify-content-between align-items-center mb-3 no-print">
++  <h4 class="mb-0">Logbook Sticker</h4>
++  <div class="d-flex gap-2">
++    <a href="{{ url_for('logbook.entry_detail', entry_id=e.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
++    <button class="btn btn-warning fw-bold btn-sm" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
++  </div>
++</div>
++<div class="lb-sticker">
++  <div class="lb-head"><span>{{ e.asset_tag or '' }} &middot; {{ log_type_labels.get(e.log_type, e.log_type) }} log</span><span>{% if e.project_code %}{{ e.project_code }}{% endif %}</span></div>
++  <pre>{{ e.body }}{% if e.signed_by or e.cert_number %}
++
++Signed: {{ e.signed_by or '' }}{% if e.cert_number %}  Cert # {{ e.cert_number }}{% endif %}{% endif %}</pre>
++</div>
++<p class="small text-muted text-center mt-2 no-print">Prints about 5.5 inches wide - sized for a half-sheet or full-page label you trim and stick in the {{ log_type_labels.get(e.log_type, e.log_type)|lower }} logbook.</p>
++{% endblock %}
+--- /dev/null
++++ templates/logbook_templates.html
+@@ -0,0 +1,34 @@
++{% extends "base.html" %}
++{% block title %}Logbook Templates - OpsHub{% endblock %}
++{% block content %}
++<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
++  <h4 class="mb-0"><i class="bi bi-file-earmark-text"></i> Logbook Templates</h4>
++  <a href="{{ url_for('logbook.logbook_list') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-journal-text"></i> Logbook</a>
++</div>
++<div class="card p-3 mb-3 small">
++  <p class="mb-1">These are the wording for the <strong>combined project entry</strong> on a project's Logbook Starter, one per type of project and logbook. Type or paste your own, or upload a .txt file. Blank = the built-in wording.</p>
++  <p class="mb-1">These fill in automatically:</p>
++  <div class="d-flex flex-wrap gap-1">
++    {% for ph, what in placeholders %}<span class="badge bg-light text-dark border"><code>{{ ph }}</code> {{ what }}</span>{% endfor %}
++  </div>
++</div>
++
++{% set ns = namespace(pt=None) %}
++{% for t in templates %}
++  {% if t.project_type != ns.pt %}{% set ns.pt = t.project_type %}<h5 class="mt-3">{{ t.project_label }}</h5>{% endif %}
++  <form method="post" enctype="multipart/form-data" class="card p-3 mb-2" id="t-{{ t.project_type }}-{{ t.log_type }}">
++    <input type="hidden" name="project_type" value="{{ t.project_type }}">
++    <input type="hidden" name="log_type" value="{{ t.log_type }}">
++    <div class="d-flex justify-content-between align-items-center mb-1">
++      <strong>{{ t.log_label }} log</strong>
++      <span class="badge {{ 'bg-success' if t.custom else 'bg-secondary' }}">{{ 'Your template' if t.custom else 'Built-in' }}</span>
++    </div>
++    <textarea name="body" rows="{{ [t.body.count('\n') + 2, 12]|min }}" class="form-control" style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.8rem;">{{ t.body }}</textarea>
++    <div class="d-flex gap-2 mt-2 flex-wrap align-items-center">
++      <button class="btn btn-success btn-sm" name="action" value="save"><i class="bi bi-check-lg"></i> Save</button>
++      <input type="file" name="file" accept=".txt,text/plain" class="form-control form-control-sm" style="max-width:260px;" onchange="if(this.files.length) this.form.submit()">
++      {% if t.custom %}<button class="btn btn-outline-secondary btn-sm" name="action" value="reset"><i class="bi bi-arrow-counterclockwise"></i> Use built-in</button>{% endif %}
++    </div>
++  </form>
++{% endfor %}
++{% endblock %}

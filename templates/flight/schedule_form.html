@@ -61,13 +61,28 @@
         <input type="text" class="form-control" value="{{ self_student.name }}" disabled>
         {% else %}
         {% set gid = guest_student_id() %}
-        {#- Type to narrow the list below (each character filters it); one
-           match is picked automatically, Enter picks the first. #}
-        <div class="input-group input-group-sm mb-1">
-          <span class="input-group-text"><i class="bi bi-search"></i></span>
-          <input type="search" id="student-search" class="form-control" placeholder="Type to find a student..." autocomplete="off" aria-label="Find a student">
+        {#- One box: type to filter, the list drops down right under it and
+           narrows with each character; tap a name (or arrow keys + Enter)
+           to pick. The real <select> below stays in the form (hidden) and
+           is what gets submitted - see the script at the bottom. #}
+        <div class="student-combo position-relative">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" id="student-combo-input" class="form-control" placeholder="Type or pick a student..." autocomplete="off"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="student-combo-list">
+            <button type="button" class="btn btn-outline-secondary" id="student-combo-toggle" tabindex="-1" aria-label="Show all students"><i class="bi bi-chevron-down"></i></button>
+          </div>
+          <div id="student-combo-list" class="list-group shadow student-combo-list" role="listbox"></div>
         </div>
-        <select name="student_id" id="student-select" class="form-select" required data-guest-id="{{ gid or '' }}">
+        <style>
+          .student-combo-list { position: absolute; left: 0; right: 0; top: 100%; z-index: 1060; max-height: 280px; overflow-y: auto; display: none; margin-top: 2px; }
+          .student-combo-list.open { display: block; }
+          .student-combo-list .list-group-item { padding: .45rem .75rem; cursor: pointer; }
+          .student-combo-list .list-group-item.active-opt { background: #e7f1ff; color: #084298; }
+          .student-combo-list .list-group-item.chosen { font-weight: 700; }
+          .student-combo-list mark { padding: 0; background: #ffe58f; }
+        </style>
+        <select name="student_id" id="student-select" class="form-select visually-hidden" required data-guest-id="{{ gid or '' }}" tabindex="-1" aria-hidden="true">
           <option value="" disabled {% if not (form or sched) %}selected{% endif %}>-- Select a student --</option>
           {% if gid %}
           <option value="{{ gid }}" {% if (form and form.get('student_id')|string == gid|string) or (not form and sched and sched.student_id == gid) %}selected{% endif %}>&#9733; Guest / Intro - no profile (one-time flyer)</option>
@@ -439,40 +454,104 @@ if (document.getElementById('solo-check').checked) {
 })();
 
 (function () {
-  // Student search: filters the Student list as you type. Rebuilds the
-  // <select>'s options (hiding <option>s doesn't work on iPhone/iPad
-  // Safari). The placeholder, Guest / Intro and the currently picked
-  // student always stay; a single match is picked for you; Enter picks
-  // the first match.
-  var box = document.getElementById('student-search');
+  // Student picker: one box that is both the search and the drop-down.
+  // Typing filters the list shown right under it (match anywhere in the
+  // name); tap a name, or use the arrow keys and Enter. The hidden
+  // <select id="student-select"> is kept in sync and is what's submitted,
+  // so everything else that watches it (Guest boxes, Intro preset) works
+  // unchanged.
   var sel = document.getElementById('student-select');
-  if (!box || !sel) { return; }
-  var all = Array.prototype.map.call(sel.options, function (o) {
-    return { value: o.value, text: o.text, disabled: o.disabled, keep: !o.value || o.value === sel.dataset.guestId };
-  });
-  function norm(t) { return (t || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
-  function apply(pickFirst) {
-    var q = norm(box.value);
-    var current = sel.value;
-    var matches = [];
-    sel.innerHTML = '';
-    all.forEach(function (o) {
-      var hit = !q || norm(o.text).indexOf(q) !== -1 || norm(o.text).split(' ').some(function (w) { return w.indexOf(q) === 0; });
-      if (!(o.keep || hit || o.value === current)) { return; }
-      var opt = new Option(o.text, o.value);
-      opt.disabled = o.disabled;
-      sel.add(opt);
-      if (!o.keep && hit && q) { matches.push(o.value); }
+  var input = document.getElementById('student-combo-input');
+  var list = document.getElementById('student-combo-list');
+  var toggle = document.getElementById('student-combo-toggle');
+  if (!sel || !input || !list) { return; }
+  sel.required = false;  // validated below instead (a hidden required field can't show the browser's message)
+  var opts = Array.prototype.filter.call(sel.options, function (o) { return o.value; })
+    .map(function (o) { return { value: o.value, text: o.text, guest: o.value === sel.dataset.guestId }; });
+  var shown = [], active = -1;
+  function norm(t) { return (t || '').toLowerCase(); }
+  function esc(t) { return t.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function selectedText() { var o = sel.options[sel.selectedIndex]; return o && o.value ? o.text : ''; }
+  function render(q) {
+    q = norm(q).trim();
+    shown = opts.filter(function (o) { return o.guest || !q || norm(o.text).indexOf(q) !== -1; });
+    var real = shown.filter(function (o) { return !o.guest; }).length;
+    list.innerHTML = '';
+    shown.forEach(function (o, i) {
+      var b = document.createElement('div');
+      b.className = 'list-group-item list-group-item-action' + (o.value === sel.value ? ' chosen' : '');
+      b.setAttribute('role', 'option');
+      var t = esc(o.text);
+      if (q && !o.guest) {
+        var at = norm(o.text).indexOf(q);
+        if (at !== -1) { t = esc(o.text.slice(0, at)) + '<mark>' + esc(o.text.slice(at, at + q.length)) + '</mark>' + esc(o.text.slice(at + q.length)); }
+      }
+      b.innerHTML = t;
+      b.addEventListener('mousedown', function (e) { e.preventDefault(); choose(o.value); });
+      list.appendChild(b);
     });
-    if (q && (matches.length === 1 || (pickFirst && matches.length))) { sel.value = matches[0]; }
-    else { sel.value = current; if (sel.value !== current) { sel.value = ''; } }
-    sel.dispatchEvent(new Event('change'));
-    box.classList.toggle('is-invalid', !!q && !matches.length);
+    if (q && !real) {
+      var none = document.createElement('div');
+      none.className = 'list-group-item text-muted small';
+      none.textContent = 'No student matches "' + input.value.trim() + '"';
+      list.appendChild(none);
+    }
+    // Start on the first real match while typing, else on the current pick.
+    active = q ? shown.findIndex(function (o) { return !o.guest; }) : shown.findIndex(function (o) { return o.value === sel.value; });
+    paintActive();
   }
-  box.addEventListener('input', function () { apply(false); });
-  box.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') { e.preventDefault(); apply(true); }
+  function paintActive() {
+    Array.prototype.forEach.call(list.querySelectorAll('[role="option"]'), function (el, i) {
+      el.classList.toggle('active-opt', i === active);
+      if (i === active) { el.scrollIntoView({ block: 'nearest' }); }
+    });
+  }
+  function open(q) { render(q); list.classList.add('open'); input.setAttribute('aria-expanded', 'true'); }
+  function close() { list.classList.remove('open'); input.setAttribute('aria-expanded', 'false'); }
+  function choose(value) {
+    sel.value = value;
+    sel.dispatchEvent(new Event('change'));
+    input.value = selectedText();
+    input.classList.remove('is-invalid');
+    close();
+  }
+  input.addEventListener('focus', function () { input.select(); open(''); });
+  input.addEventListener('click', function () { if (!list.classList.contains('open')) { input.select(); open(''); } });
+  input.addEventListener('input', function () { open(input.value); });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!list.classList.contains('open')) { open(input.value); return; }
+      if (!shown.length) return;
+      active = e.key === 'ArrowDown' ? Math.min(shown.length - 1, active + 1) : Math.max(0, active - 1);
+      paintActive();
+    } else if (e.key === 'Enter') {
+      if (list.classList.contains('open') && active >= 0 && shown[active]) { e.preventDefault(); choose(shown[active].value); }
+    } else if (e.key === 'Escape') {
+      input.value = selectedText(); close();
+    }
   });
+  input.addEventListener('blur', function () {
+    setTimeout(function () { close(); input.value = selectedText(); }, 120);
+  });
+  if (toggle) {
+    toggle.addEventListener('mousedown', function (e) { e.preventDefault(); });
+    toggle.addEventListener('click', function () {
+      if (list.classList.contains('open')) { close(); } else { input.focus(); }
+    });
+  }
+  // Something else changed the student (e.g. the Intro preset picking Guest).
+  sel.addEventListener('change', function () { if (document.activeElement !== input) { input.value = selectedText(); } });
+  var form = sel.form;
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      if (!sel.value && !sel.disabled) {
+        e.preventDefault(); e.stopImmediatePropagation();
+        input.classList.add('is-invalid'); input.focus();
+      }
+    }, true);
+  }
+  input.value = selectedText();
 })();
 
 (function () {

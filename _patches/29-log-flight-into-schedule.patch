@@ -1,0 +1,457 @@
+diff -ruN a/flight.py b/flight.py
+--- a/flight.py	2026-09-24 01:39:00.657002631 +0000
++++ b/flight.py	2026-09-24 01:39:00.658002631 +0000
+@@ -1964,8 +1964,24 @@
+         prefill_date = date.today().strftime("%Y-%m-%d")
+     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
+                        today=prefill_date, current_cfi_id=session.get("cfi_id"),
+-                       self_service=self_service, self_student=self_student)
++                       self_service=self_service, self_student=self_student,
++                       # ?complete=1 opens the form with "Flight Already
++                       # Complete?" already checked (old Log a Flight links).
++                       start_complete=(not self_service and request.args.get("complete") == "1"))
+     if request.method == "POST":
++        # "Flight Already Complete?" (CFI/admin only): the flight already
++        # happened and was never put on the schedule, so log it straight
++        # into Flight History instead of booking it - same saving, Hobbs/
++        # Tach, squawk and auto-deduct as logging a booking (log_new). This
++        # replaced the old stand-alone "Log a Flight" page.
++        if request.form.get("already_complete") and not self_service:
++            error = _save_logged_flight(conn, request.form, date_field="scheduled_date", notes_field="log_notes")
++            if error:
++                flash(error, "danger")
++                conn.close()
++                return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
++            conn.close()
++            return redirect(url_for("flight.log_history"))
+         asset_id = request.form.get("asset_id") or None
+         student_id = str(self_student["id"]) if self_service else (request.form.get("student_id") or None)
+         solo = 1 if request.form.get("solo") else 0
+@@ -2782,11 +2798,86 @@
+     return redirect(url_for("flight.log_history"))
+ 
+ 
++def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes"):
++    """Saves one already-flown flight from a submitted form: the flights
++    row, the plane's new Hobbs/Tach, marking its booking completed (when
++    there is one), the squawk, and the auto-deduct from the student's
++    balance. Shared by log_new (logging a scheduled booking after the fact)
++    and schedule_new's "Flight Already Complete?" mode (a flight that was
++    never put on the schedule) - date_field/notes_field say which form
++    fields hold the date and the squawk notes, since Schedule Flight's own
++    date/notes fields have different names. Commits and flashes the success
++    message; returns an error message instead (nothing saved) when the form
++    doesn't validate."""
++    asset_id = form.get("asset_id") or None
++    student_id = form.get("student_id") or None
++    solo = 1 if form.get("solo") else 0
++    cfi_id = None if solo else (form.get("cfi_id") or session["cfi_id"])
++    flight_date = form.get(date_field, "").strip() or date.today().strftime("%Y-%m-%d")
++    hobbs_start = _parse_float(form.get("hobbs_start"))
++    hobbs_end = _parse_float(form.get("hobbs_end"))
++    tach_start = _parse_float(form.get("tach_start"))
++    tach_end = _parse_float(form.get("tach_end"))
++    oil_added_qt = _parse_float(form.get("oil_added_qt"))
++    ground_time_hours = _parse_float(form.get("ground_time_hours"))
++    notes = form.get(notes_field, "").strip()
++    scheduled_flight_id = form.get("scheduled_flight_id") or None
++    day_landings_fs = _parse_int(form.get("day_landings_fs"))
++    day_landings_tg = _parse_int(form.get("day_landings_tg"))
++    night_landings_fs = _parse_int(form.get("night_landings_fs"))
++    night_landings_tg = _parse_int(form.get("night_landings_tg"))
++    # Any note is treated as a squawk needing shop attention - no
++    # separate checkbox to remember to tick.
++    squawk = 1 if notes else 0
++    paid = 1 if form.get("paid") else 0
++
++    if not asset_id or not student_id:
++        return "Select a plane and a student."
++    if hobbs_end is not None and hobbs_start is not None and hobbs_end < hobbs_start:
++        return "Ending Hobbs can't be less than starting Hobbs."
++
++    cur = conn.execute("""INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, hobbs_start, hobbs_end,
++                     tach_start, tach_end, oil_added_qt, notes, solo, squawk, ground_time_hours, paid,
++                     scheduled_flight_id, day_landings_fs, day_landings_tg, night_landings_fs, night_landings_tg,
++                     created_at)
++                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
++                 (cfi_id, student_id, asset_id, flight_date, hobbs_start, hobbs_end,
++                  tach_start, tach_end, oil_added_qt, notes, solo, squawk, ground_time_hours, paid,
++                  scheduled_flight_id, day_landings_fs, day_landings_tg, night_landings_fs, night_landings_tg,
++                  now_iso()))
++    new_flight_id = cur.lastrowid
++
++    # Advance the plane's Hobbs/Tach readings so the maintenance tile's
++    # due-soon/overdue tracking reflects the hours actually flown.
++    if hobbs_end is not None:
++        conn.execute("UPDATE assets SET hobbs_hours = ?, hobbs_updated_at = ? WHERE id = ?",
++                     (hobbs_end, now_iso(), asset_id))
++    if tach_end is not None:
++        conn.execute("UPDATE assets SET tach_hours = ?, tach_updated_at = ? WHERE id = ?",
++                     (tach_end, now_iso(), asset_id))
++    if scheduled_flight_id:
++        conn.execute("UPDATE scheduled_flights SET status = 'completed' WHERE id = ? AND status = 'scheduled'",
++                     (scheduled_flight_id,))
++    # Auto-deduct this flight's cost from the student's balance - logging
++    # a flight is what "completes" it for billing purposes, whether it
++    # was entered after the fact (here) or ended via the Active Flight
++    # clock (see log_end).
++    new_row = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (new_flight_id,)).fetchone()
++    if new_row:
++        _deduct_flight_cost(conn, _row_with_cost(new_row), created_by=session.get("user_name"))
++    conn.commit()
++    if squawk:
++        flash("Flight logged. The squawk you flagged will show up on the Maintenance side until it's acknowledged.", "success")
++    else:
++        flash("Flight logged.", "success")
++    return None
++
++
+ @flight_bp.route("/log/new", methods=["GET", "POST"])
+ @cfi_required
+ def log_new():
+-    """Log a flight after the fact. Can be reached blank, or pre-filled by
+-    clicking through from a scheduled booking (?asset_id=&student_id=&
++    """Log a scheduled booking after the fact, pre-filled by clicking
++    through from it (?asset_id=&student_id=&
+     cfi_id=&solo=&flight_date=&scheduled_flight_id=) - the scheduled_flight_id
+     travels through as a hidden field so, on save, that booking gets marked
+     completed instead of lingering as an upcoming/conflicting booking."""
+@@ -2797,76 +2888,22 @@
+     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
+                         today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session["cfi_id"])
+     if request.method == "POST":
+-        asset_id = request.form.get("asset_id") or None
+-        student_id = request.form.get("student_id") or None
+-        solo = 1 if request.form.get("solo") else 0
+-        cfi_id = None if solo else (request.form.get("cfi_id") or session["cfi_id"])
+-        flight_date = request.form.get("flight_date", "").strip() or date.today().strftime("%Y-%m-%d")
+-        hobbs_start = _parse_float(request.form.get("hobbs_start"))
+-        hobbs_end = _parse_float(request.form.get("hobbs_end"))
+-        tach_start = _parse_float(request.form.get("tach_start"))
+-        tach_end = _parse_float(request.form.get("tach_end"))
+-        oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
+-        ground_time_hours = _parse_float(request.form.get("ground_time_hours"))
+-        notes = request.form.get("notes", "").strip()
+-        scheduled_flight_id = request.form.get("scheduled_flight_id") or None
+-        day_landings_fs = _parse_int(request.form.get("day_landings_fs"))
+-        day_landings_tg = _parse_int(request.form.get("day_landings_tg"))
+-        night_landings_fs = _parse_int(request.form.get("night_landings_fs"))
+-        night_landings_tg = _parse_int(request.form.get("night_landings_tg"))
+-        # Any note is treated as a squawk needing shop attention - no
+-        # separate checkbox to remember to tick.
+-        squawk = 1 if notes else 0
+-        paid = 1 if request.form.get("paid") else 0
+-
+-        if not asset_id or not student_id:
+-            flash("Select a plane and a student.", "danger")
++        error = _save_logged_flight(conn, request.form)
++        if error:
++            flash(error, "danger")
+             conn.close()
+             return render_template("flight/log_new.html", form=request.form, **form_kwargs)
+-        if hobbs_end is not None and hobbs_start is not None and hobbs_end < hobbs_start:
+-            flash("Ending Hobbs can't be less than starting Hobbs.", "danger")
+-            conn.close()
+-            return render_template("flight/log_new.html", form=request.form, **form_kwargs)
+-
+-        cur = conn.execute("""INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, hobbs_start, hobbs_end,
+-                         tach_start, tach_end, oil_added_qt, notes, solo, squawk, ground_time_hours, paid,
+-                         scheduled_flight_id, day_landings_fs, day_landings_tg, night_landings_fs, night_landings_tg,
+-                         created_at)
+-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+-                     (cfi_id, student_id, asset_id, flight_date, hobbs_start, hobbs_end,
+-                      tach_start, tach_end, oil_added_qt, notes, solo, squawk, ground_time_hours, paid,
+-                      scheduled_flight_id, day_landings_fs, day_landings_tg, night_landings_fs, night_landings_tg,
+-                      now_iso()))
+-        new_flight_id = cur.lastrowid
+-
+-        # Advance the plane's Hobbs/Tach readings so the maintenance tile's
+-        # due-soon/overdue tracking reflects the hours actually flown.
+-        if hobbs_end is not None:
+-            conn.execute("UPDATE assets SET hobbs_hours = ?, hobbs_updated_at = ? WHERE id = ?",
+-                         (hobbs_end, now_iso(), asset_id))
+-        if tach_end is not None:
+-            conn.execute("UPDATE assets SET tach_hours = ?, tach_updated_at = ? WHERE id = ?",
+-                         (tach_end, now_iso(), asset_id))
+-        if scheduled_flight_id:
+-            conn.execute("UPDATE scheduled_flights SET status = 'completed' WHERE id = ? AND status = 'scheduled'",
+-                         (scheduled_flight_id,))
+-        # Auto-deduct this flight's cost from the student's balance - logging
+-        # a flight is what "completes" it for billing purposes, whether it
+-        # was entered after the fact (here) or ended via the Active Flight
+-        # clock (see log_end).
+-        new_row = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (new_flight_id,)).fetchone()
+-        if new_row:
+-            _deduct_flight_cost(conn, _row_with_cost(new_row), created_by=session.get("user_name"))
+-        conn.commit()
+         conn.close()
+-        if squawk:
+-            flash("Flight logged. The squawk you flagged will show up on the Maintenance side until it's acknowledged.", "success")
+-        else:
+-            flash("Flight logged.", "success")
+         return redirect(url_for("flight.log_history"))
+ 
+     # Pre-fill from a scheduled booking, if this was reached by clicking
+-    # "Log Flight" on one - a plain "Log a Flight" link has none of these.
++    # "Log Flight" on one. The old stand-alone "Log a Flight" page (no
++    # booking to pre-fill from) is gone - that's now Schedule Flight with
++    # "Flight Already Complete?" checked - so an old bookmark or link with
++    # no booking goes there instead.
++    if not request.args.get("scheduled_flight_id"):
++        conn.close()
++        return redirect(url_for("flight.schedule_new", complete=1))
+     prefill = {
+         "asset_id": request.args.get("asset_id", ""),
+         "student_id": request.args.get("student_id", ""),
+diff -ruN a/templates/flight/base_flight.html b/templates/flight/base_flight.html
+--- a/templates/flight/base_flight.html	2026-09-24 01:39:00.662002631 +0000
++++ b/templates/flight/base_flight.html	2026-09-24 01:39:00.662002631 +0000
+@@ -45,9 +45,6 @@
+       {% if session.get('user_id') %}
+       <ul class="navbar-nav me-auto mb-2 mb-lg-0 flight-nav-boxed">
+         <li class="nav-item"><a class="nav-link fw-bold text-warning" id="tour-nav-flight-schedule" href="{{ url_for('flight.schedule_calendar') }}"><i class="bi bi-calendar3"></i> Schedule</a></li>
+-        {% if session.get('cfi_id') %}
+-        <li class="nav-item"><a class="nav-link" id="tour-nav-flight-log" href="{{ url_for('flight.log_new') }}"><i class="bi bi-journal-plus"></i> Log a Flight</a></li>
+-        {% endif %}
+         <li class="nav-item"><a class="nav-link" id="tour-nav-flight-active" href="{{ url_for('flight.log_active') }}"><i class="bi bi-stopwatch"></i> Active Flight</a></li>
+         <li class="nav-item"><a class="nav-link" id="tour-nav-flight-history" href="{{ url_for('flight.log_history') }}"><i class="bi bi-clock-history"></i> Flight History</a></li>
+         {% if session.get('cfi_id') or session.get('is_master_admin') %}
+@@ -115,8 +112,7 @@
+ document.addEventListener('DOMContentLoaded', function () {
+   OpsHubTour.start([
+     { selector: '#tour-nav-flight-dashboard', title: 'Flight School', text: 'Your dashboard - next lesson, today\'s schedule, weather, and any in-progress flights.' },
+-    { selector: '#tour-nav-flight-schedule', title: 'Schedule', text: 'The flight calendar - book, reschedule, or see what\'s coming up.' },
+-    { selector: '#tour-nav-flight-log', title: 'Log a Flight', text: 'Instructors log Hobbs/Tach and flight details here once a flight is wrapped up.' },
++    { selector: '#tour-nav-flight-schedule', title: 'Schedule', text: 'The flight calendar - book, reschedule, or see what\'s coming up. To log a flight that already happened, use Schedule Flight and check "Flight Already Complete?".' },
+     { selector: '#tour-nav-flight-active', title: 'Active Flight', text: 'Flights in progress right now, with a live map and elapsed time.' },
+     { selector: '#tour-nav-flight-history', title: 'Flight History', text: 'Every logged flight, searchable.' },
+     { selector: '#tour-nav-flight-students', title: 'Students', text: 'Your student roster - rates, account balances, and profiles.' },
+diff -ruN a/templates/flight/dashboard.html b/templates/flight/dashboard.html
+--- a/templates/flight/dashboard.html	2026-09-24 01:39:00.664002631 +0000
++++ b/templates/flight/dashboard.html	2026-09-24 01:39:00.664002631 +0000
+@@ -219,10 +219,10 @@
+ {% if cfi %}
+ <div class="row g-3 mb-3">
+   <div class="col-6 col-md-3">
+-    <a href="{{ url_for('flight.log_new') }}" class="text-decoration-none">
++    <a href="{{ url_for('flight.schedule_new') }}" class="text-decoration-none">
+       <div class="card p-3 text-center">
+-        <i class="bi bi-journal-plus fs-2 text-warning"></i>
+-        <div class="fw-bold mt-1">Log a Flight</div>
++        <i class="bi bi-calendar-plus fs-2 text-warning"></i>
++        <div class="fw-bold mt-1">Schedule Flight</div>
+       </div>
+     </a>
+   </div>
+diff -ruN a/templates/flight/log_active.html b/templates/flight/log_active.html
+--- a/templates/flight/log_active.html	2026-09-24 01:39:00.666002631 +0000
++++ b/templates/flight/log_active.html	2026-09-24 01:39:00.666002631 +0000
+@@ -158,7 +158,7 @@
+     {% else %}
+     <div class="card p-4 text-center">
+       <i class="bi bi-stopwatch fs-1 text-muted"></i>
+-      <p class="text-muted mt-2 mb-0">No flight is currently running. Start one from the <a href="{{ url_for('flight.schedule_calendar') }}">Schedule</a>, or <a href="{{ url_for('flight.log_new') }}">log a flight</a> the regular way.</p>
++      <p class="text-muted mt-2 mb-0">No flight is currently running. Start one from the <a href="{{ url_for('flight.schedule_calendar') }}">Schedule</a>, or log one that's already done with <a href="{{ url_for('flight.schedule_new', complete=1) }}">Schedule Flight &rarr; Flight Already Complete?</a></p>
+     </div>
+     {% endif %}
+   </div>
+diff -ruN a/templates/flight/schedule_form.html b/templates/flight/schedule_form.html
+--- a/templates/flight/schedule_form.html	2026-09-24 01:39:00.660002631 +0000
++++ b/templates/flight/schedule_form.html	2026-09-24 01:39:00.660002631 +0000
+@@ -28,13 +28,30 @@
+   </div>
+   {% endif %}
+   <form method="post">
++    {% set allow_complete = not sched and not self_service %}
++    {% set is_complete = allow_complete and ((form and form.get('already_complete')) or (not form and start_complete)) %}
++    {% if allow_complete %}
++    {#
++      "Flight Already Complete?" replaces the old stand-alone Log a Flight
++      page: for a flight that already happened but was never put on the
++      schedule. Checked, the booking-only fields (time, duration, repeats,
++      booking notes) hide and the same fields the log form has (Hobbs/Tach,
++      oil, ground time, landings, squawks, paid) show instead, and saving
++      logs it straight into Flight History (schedule_new -> _save_logged_flight).
++    #}
++    <div class="form-check form-switch mb-3 p-2 ps-5 border rounded bg-light">
++      <input type="checkbox" class="form-check-input" role="switch" name="already_complete" id="complete-check" value="1" {% if is_complete %}checked{% endif %}>
++      <label class="form-check-label fw-bold" for="complete-check">Flight Already Complete?</label>
++      <div class="form-text mt-0">Check this to log a flight that already happened (and wasn't on the schedule) with its Hobbs/Tach, landings and squawks.</div>
++    </div>
++    {% endif %}
+     <div class="row">
+       <div class="col-md-6 mb-3">
+         <label class="form-label">Plane *</label>
+-        <select name="asset_id" class="form-select" required>
++        <select name="asset_id" id="plane-select" class="form-select" required>
+           <option value="" disabled {% if not (form or sched) %}selected{% endif %}>-- Select a plane --</option>
+           {% for p in planes %}
+-          <option value="{{ p.id }}" {% if (form and form.get('asset_id')|string == p.id|string) or (not form and sched and sched.asset_id == p.id) %}selected{% endif %}>{{ p.tag }}{% if p.name and p.name != p.tag %} - {{ p.name }}{% endif %}</option>
++          <option value="{{ p.id }}" data-hobbs="{{ p.hobbs_hours if p.hobbs_hours is not none else '' }}" data-tach="{{ p.tach_hours if p.tach_hours is not none else '' }}" {% if (form and form.get('asset_id')|string == p.id|string) or (not form and sched and sched.asset_id == p.id) %}selected{% endif %}>{{ p.tag }}{% if p.name and p.name != p.tag %} - {{ p.name }}{% endif %}</option>
+           {% endfor %}
+         </select>
+       </div>
+@@ -75,10 +92,10 @@
+     </div>
+     <div class="row">
+       <div class="col-md-4 mb-3">
+-        <label class="form-label">Date *</label>
++        <label class="form-label" id="date-label">{{ 'Flight Date *' if is_complete else 'Date *' }}</label>
+         <input type="date" name="scheduled_date" class="form-control" value="{{ form.get('scheduled_date') if form else (sched.scheduled_date if sched else today) }}" required>
+       </div>
+-      <div class="col-md-4 mb-3">
++      <div class="col-md-4 mb-3 sched-only">
+         <label class="form-label">Time</label>
+         <input type="hidden" id="time-input" name="scheduled_time" value="{{ form.get('scheduled_time') if form else (sched.scheduled_time if sched and sched.scheduled_time else '') }}">
+         <div id="time-picker" class="d-flex align-items-stretch gap-2">
+@@ -118,23 +135,85 @@
+           </div>
+         </div>
+       </div>
+-      <div class="col-md-4 mb-3">
++      <div class="col-md-4 mb-3 sched-only">
+         <label class="form-label">Duration (hrs)</label>
+         <input type="number" step="any" name="duration_hours" class="form-control" placeholder="e.g. 1.5" value="{% if form %}{{ form.get('duration_hours') }}{% elif sched and sched.duration_hours is not none %}{{ sched.duration_hours }}{% elif not sched %}1.5{% endif %}">
+       </div>
+     </div>
++    {% if allow_complete %}
++    <div id="complete-fields" class="complete-only">
++    <div class="row">
++      <div class="col-md-6 mb-3">
++        <label class="form-label">Hobbs Start</label>
++        <input type="number" step="any" id="hobbs-start" name="hobbs_start" class="form-control" value="{{ form.get('hobbs_start', '') if form else '' }}">
++      </div>
++      <div class="col-md-6 mb-3">
++        <label class="form-label">Hobbs End</label>
++        <input type="number" step="any" name="hobbs_end" class="form-control" value="{{ form.get('hobbs_end', '') if form else '' }}">
++      </div>
++      <div class="col-md-6 mb-3">
++        <label class="form-label">Tach Start</label>
++        <input type="number" step="any" id="tach-start" name="tach_start" class="form-control" value="{{ form.get('tach_start', '') if form else '' }}">
++      </div>
++      <div class="col-md-6 mb-3">
++        <label class="form-label">Tach End</label>
++        <input type="number" step="any" name="tach_end" class="form-control" value="{{ form.get('tach_end', '') if form else '' }}">
++      </div>
++    </div>
++    <div class="row">
++      <div class="col-md-6 mb-3">
++        <label class="form-label">Oil Added (qt) <span class="text-muted small">(if any)</span></label>
++        <input type="number" step="any" name="oil_added_qt" class="form-control" placeholder="e.g. 1" value="{{ form.get('oil_added_qt', '') if form else '' }}">
++      </div>
++      <div class="col-md-6 mb-3">
++        <label class="form-label">Ground Time (hrs) <span class="text-muted small">(billed at the instructor rate, no plane charge)</span></label>
++        <input type="number" step="any" name="ground_time_hours" class="form-control" placeholder="e.g. 0.5" value="{{ form.get('ground_time_hours', '') if form else '' }}">
++      </div>
++    </div>
+     <div class="mb-3">
++      <label class="form-label">Landings <span class="text-muted small">(for currency tracking - day/night, full-stop counts for night currency)</span></label>
++      <div class="row g-2">
++        <div class="col-6 col-md-3">
++          <label class="form-label small mb-0">Day Full-Stop</label>
++          <input type="number" min="0" step="1" name="day_landings_fs" class="form-control form-control-sm" value="{{ form.get('day_landings_fs', '') if form else '' }}">
++        </div>
++        <div class="col-6 col-md-3">
++          <label class="form-label small mb-0">Day Touch &amp; Go</label>
++          <input type="number" min="0" step="1" name="day_landings_tg" class="form-control form-control-sm" value="{{ form.get('day_landings_tg', '') if form else '' }}">
++        </div>
++        <div class="col-6 col-md-3">
++          <label class="form-label small mb-0">Night Full-Stop</label>
++          <input type="number" min="0" step="1" name="night_landings_fs" class="form-control form-control-sm" value="{{ form.get('night_landings_fs', '') if form else '' }}">
++        </div>
++        <div class="col-6 col-md-3">
++          <label class="form-label small mb-0">Night Touch &amp; Go</label>
++          <input type="number" min="0" step="1" name="night_landings_tg" class="form-control form-control-sm" value="{{ form.get('night_landings_tg', '') if form else '' }}">
++        </div>
++      </div>
++    </div>
++    <div class="mb-3">
++      <label class="form-label">Squawks / Notes <span class="text-muted small">(issues found, anything the shop should know)</span></label>
++      <textarea name="log_notes" class="form-control" rows="3" placeholder="Leave blank if nothing to report">{{ form.get('log_notes', '') if form else '' }}</textarea>
++      <div class="form-text">Anything typed here counts as a squawk - it'll show up on the Maintenance side until someone acknowledges it.</div>
++    </div>
++    <div class="form-check mb-3">
++      <input type="checkbox" class="form-check-input" name="paid" id="paid-check" {% if form and form.get('paid') %}checked{% endif %}>
++      <label class="form-check-label" for="paid-check">Already paid <span class="text-muted small">(check if this one's been collected already)</span></label>
++    </div>
++    </div>
++    {% endif %}
++    <div class="mb-3 sched-only">
+       <label class="form-label">Notes</label>
+       <textarea name="notes" class="form-control" rows="2" placeholder="optional">{{ form.get('notes') if form else (sched.notes if sched and sched.notes else '') }}</textarea>
+     </div>
+     {% if not self_service %}
+-    <div class="mb-3">
++    <div class="mb-3 sched-only">
+       <label class="form-label"><i class="bi bi-eye-slash"></i> Private Notes <span class="text-muted small fw-normal">(admin &amp; CFI only - never shown to the student)</span></label>
+       <textarea name="private_notes" class="form-control" rows="2" placeholder="optional - stays off the student's view entirely">{{ form.get('private_notes') if form else (sched.private_notes if sched and sched.private_notes else '') }}</textarea>
+     </div>
+     {% endif %}
+     {% if not sched and not self_service %}
+-    <div class="mb-3 border rounded p-2 bg-light">
++    <div class="mb-3 border rounded p-2 bg-light sched-only">
+       <label class="form-label mb-1"><i class="bi bi-arrow-repeat"></i> Repeats</label>
+       <div class="row g-2 align-items-end">
+         <div class="col-auto">
+@@ -156,7 +235,7 @@
+     {% endif %}
+     <div class="d-flex justify-content-between">
+       <a href="{{ url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar') }}" class="btn btn-outline-secondary">Cancel</a>
+-      <button type="submit" class="btn btn-primary fw-bold">{{ 'Save Changes' if sched else ('Request Flight' if self_service else 'Schedule Flight') }}</button>
++      <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Log Flight' if is_complete else 'Schedule Flight')) }}</button>
+     </div>
+   </form>
+ </div>
+@@ -268,6 +347,52 @@
+ })();
+ 
+ (function () {
++  // "Flight Already Complete?" - swap the booking-only fields for the
++  // log fields. Hidden inputs are disabled so they aren't validated or
++  // sent (e.g. Repeats' required Until date).
++  var completeCheck = document.getElementById('complete-check');
++  if (!completeCheck) { return; }
++  var submitBtn = document.getElementById('submit-btn');
++  var dateLabel = document.getElementById('date-label');
++  var title = document.querySelector('.card h4');
++  function setGroup(selector, on) {
++    document.querySelectorAll(selector).forEach(function (el) {
++      el.style.display = on ? '' : 'none';
++      el.querySelectorAll('input, select, textarea').forEach(function (i) { i.disabled = !on; });
++    });
++  }
++  function sync() {
++    var done = completeCheck.checked;
++    setGroup('.sched-only', !done);
++    setGroup('.complete-only', done);
++    submitBtn.textContent = done ? 'Log Flight' : 'Schedule Flight';
++    dateLabel.textContent = done ? 'Flight Date *' : 'Date *';
++    if (title) { title.textContent = done ? 'Log a Completed Flight' : 'Schedule a Flight'; }
++    // Solo still disables the instructor picker in either mode.
++    var solo = document.getElementById('solo-check');
++    document.getElementById('cfi-select').disabled = solo.checked;
++    if (!done) {
++      // Re-run the repeat toggle so its Until field is required again only
++      // when a repeat is actually picked.
++      var rs = document.getElementById('repeat-select');
++      if (rs) { rs.dispatchEvent(new Event('change')); }
++    }
++  }
++  completeCheck.addEventListener('change', sync);
++  sync();
++  // Picking a plane fills in its current Hobbs/Tach as the start readings.
++  document.getElementById('plane-select').addEventListener('change', function () {
++    var opt = this.options[this.selectedIndex];
++    var hobbs = opt.getAttribute('data-hobbs');
++    var tach = opt.getAttribute('data-tach');
++    var hobbsStart = document.getElementById('hobbs-start');
++    var tachStart = document.getElementById('tach-start');
++    if (hobbs && !hobbsStart.value) hobbsStart.value = hobbs;
++    if (tach && !tachStart.value) tachStart.value = tach;
++  });
++})();
++
++(function () {
+   var repeatSelect = document.getElementById('repeat-select');
+   if (!repeatSelect) { return; }
+   var untilWrap = document.getElementById('repeat-until-wrap');

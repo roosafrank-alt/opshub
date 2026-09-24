@@ -1936,10 +1936,14 @@ def cfi_edit(cfi_id):
                      (medical_class, medical_expires, cfi_id))
         conn.execute("UPDATE cfis SET cfi_cert_number = ?, cfi_cert_expires = ? WHERE id = ?",
                      (*_cfi_cert_from_form(request.form), cfi_id))
-        # An admin can remove a CFI's signature (only the CFI draws one).
-        if request.form.get("clear_signature") and cfi_row["signature"]:
-            _save_cfi_signature(conn, cfi_id, None)
-            _log_field_change(conn, "cfi", cfi_id, "signature", "on file", "", session.get("user_name"))
+        # Signature pad on Edit CFI (the CFI can also sign on My CFI Profile).
+        sig_changed, signature = _signature_from_form(request.form)
+        if request.form.get("clear_signature"):
+            sig_changed, signature = True, None
+        if sig_changed and (signature or cfi_row["signature"]):
+            _save_cfi_signature(conn, cfi_id, signature)
+            _log_field_change(conn, "cfi", cfi_id, "signature", "on file" if cfi_row["signature"] else "",
+                              "on file" if signature else "", session.get("user_name"))
         _log_field_change(conn, "cfi", cfi_id, "medical_expires", cfi_row["medical_expires"], medical_expires, session.get("user_name"))
         conn.commit()
         med_now = _medical_status(conn.execute("SELECT medical_class, medical_expires FROM cfis WHERE id = ?",

@@ -1,0 +1,153 @@
+--- _tmp/p60orig/flight.py
++++ flight.py
+@@ -1936,10 +1936,14 @@
+                      (medical_class, medical_expires, cfi_id))
+         conn.execute("UPDATE cfis SET cfi_cert_number = ?, cfi_cert_expires = ? WHERE id = ?",
+                      (*_cfi_cert_from_form(request.form), cfi_id))
+-        # An admin can remove a CFI's signature (only the CFI draws one).
+-        if request.form.get("clear_signature") and cfi_row["signature"]:
+-            _save_cfi_signature(conn, cfi_id, None)
+-            _log_field_change(conn, "cfi", cfi_id, "signature", "on file", "", session.get("user_name"))
++        # Signature pad on Edit CFI (the CFI can also sign on My CFI Profile).
++        sig_changed, signature = _signature_from_form(request.form)
++        if request.form.get("clear_signature"):
++            sig_changed, signature = True, None
++        if sig_changed and (signature or cfi_row["signature"]):
++            _save_cfi_signature(conn, cfi_id, signature)
++            _log_field_change(conn, "cfi", cfi_id, "signature", "on file" if cfi_row["signature"] else "",
++                              "on file" if signature else "", session.get("user_name"))
+         _log_field_change(conn, "cfi", cfi_id, "medical_expires", cfi_row["medical_expires"], medical_expires, session.get("user_name"))
+         conn.commit()
+         med_now = _medical_status(conn.execute("SELECT medical_class, medical_expires FROM cfis WHERE id = ?",
+--- _tmp/p60orig/templates/flight/_signature_pad.html
++++ templates/flight/_signature_pad.html
+@@ -1,14 +1,15 @@
+-{#- Signature pad: draw with a finger, stylus or mouse. Posts
+-   signature_data = a PNG data URL (only when something new was drawn),
+-   "clear" when the Clear button removed the saved one, or "" (no change).
+-   `existing` = the saved signature (data URL) or none. #}
++{#- Signature pad: a white "Sign here" box to draw in with a finger, stylus
++   or mouse. Posts signature_data = a PNG data URL (only when something new
++   was drawn), "clear" when Clear removed the saved one, or "" (no change).
++   `existing` = the saved signature (data URL) or none. Styles are inline so
++   the box always shows, whatever page it's on. #}
+ {% macro signature_pad(existing) %}
+-<div class="sig-pad-wrap">
+-  <canvas class="sig-pad border rounded bg-white w-100" height="160" style="touch-action:none; cursor:crosshair; max-width:520px;"></canvas>
++<div class="sig-pad-wrap" style="max-width:520px;">
++  <canvas class="sig-pad" style="display:block; width:100%; height:170px; border:2px dashed #6c757d; border-radius:10px; background:#fff; touch-action:none; cursor:crosshair;"></canvas>
+   <input type="hidden" name="signature_data" value="">
+-  <div class="d-flex gap-2 align-items-center mt-1">
++  <div class="d-flex gap-2 align-items-center mt-1 flex-wrap">
+     <button type="button" class="btn btn-outline-secondary btn-sm sig-clear"><i class="bi bi-eraser"></i> Clear</button>
+-    <span class="small text-muted sig-status">{% if existing %}Your saved signature - draw over it to replace it.{% else %}Sign in the box above.{% endif %}</span>
++    <span class="small text-muted sig-status">{% if existing %}Your saved signature is shown - sign over it to replace it.{% else %}Sign inside the dashed box with your finger, a stylus or the mouse.{% endif %}</span>
+   </div>
+ </div>
+ <script>
+@@ -16,36 +17,56 @@
+   var wrap = document.currentScript.previousElementSibling;
+   var canvas = wrap.querySelector('canvas'), out = wrap.querySelector('input[name="signature_data"]');
+   var status = wrap.querySelector('.sig-status'), ctx = canvas.getContext('2d');
+-  var existing = {{ (existing or '')|tojson }}, drawing = false, dirty = false, last = null;
++  var existing = {{ (existing or '')|tojson }}, drawing = false, dirty = false, last = null, W = 0, H = 170;
++  function placeholder() {
++    ctx.save();
++    ctx.fillStyle = '#adb5bd'; ctx.font = '600 18px system-ui, -apple-system, Segoe UI, sans-serif';
++    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
++    ctx.fillText('Sign here', W / 2, H / 2 - 10);
++    ctx.strokeStyle = '#ced4da'; ctx.lineWidth = 1;
++    ctx.beginPath(); ctx.moveTo(24, H - 34); ctx.lineTo(W - 24, H - 34); ctx.stroke();
++    ctx.restore();
++  }
++  function blank() { ctx.clearRect(0, 0, W, H); }
++  function paintSaved() {
++    blank();
++    if (existing) {
++      var img = new Image();
++      img.onload = function () { if (!dirty) { blank(); ctx.drawImage(img, 0, 0, W, H); } };
++      img.src = existing;
++    } else { placeholder(); }
++  }
+   function size() {
+-    var ratio = window.devicePixelRatio || 1, w = canvas.clientWidth || 520;
+-    canvas.width = w * ratio; canvas.height = 160 * ratio; canvas.style.height = '160px';
++    var ratio = window.devicePixelRatio || 1;
++    W = canvas.getBoundingClientRect().width || 480;
++    canvas.width = Math.round(W * ratio); canvas.height = Math.round(H * ratio);
+     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+     ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0b1f4d';
+-    if (existing && !dirty) {
+-      var img = new Image();
+-      img.onload = function () { ctx.drawImage(img, 0, 0, w, 160); };
+-      img.src = existing;
+-    }
++    if (!dirty) { paintSaved(); }
+   }
+   function pos(e) { var r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+   canvas.addEventListener('pointerdown', function (e) {
+-    if (!dirty) { ctx.clearRect(0, 0, canvas.width, canvas.height); }  // start fresh over the old one
+-    drawing = true; dirty = true; last = pos(e); canvas.setPointerCapture(e.pointerId);
+-    ctx.beginPath(); ctx.arc(last.x, last.y, 1.1, 0, Math.PI * 2); ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+-    status.textContent = 'New signature - it saves when you press Save.';
++    e.preventDefault();
++    if (!dirty) { blank(); }  // first stroke: start on a clean box
++    drawing = true; dirty = true; last = pos(e);
++    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
++    ctx.lineWidth = 2.4; ctx.strokeStyle = '#0b1f4d';
++    ctx.beginPath(); ctx.arc(last.x, last.y, 1.1, 0, Math.PI * 2); ctx.fillStyle = '#0b1f4d'; ctx.fill();
++    status.textContent = 'New signature - press Save to keep it.';
+   });
+   canvas.addEventListener('pointermove', function (e) {
+     if (!drawing) return;
++    e.preventDefault();
+     var p = pos(e); ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke(); last = p;
+   });
+   function stop() { if (drawing) { drawing = false; out.value = canvas.toDataURL('image/png'); } }
+-  canvas.addEventListener('pointerup', stop); canvas.addEventListener('pointercancel', stop);
++  canvas.addEventListener('pointerup', stop); canvas.addEventListener('pointercancel', stop); canvas.addEventListener('pointerleave', stop);
+   wrap.querySelector('.sig-clear').addEventListener('click', function () {
+-    ctx.clearRect(0, 0, canvas.width, canvas.height); dirty = false; existing = '';
+-    out.value = {{ ('clear' if existing else '')|tojson }};
+-    status.textContent = {{ ('Signature will be removed when you press Save.' if existing else 'Sign in the box above.')|tojson }};
++    dirty = false; out.value = existing ? 'clear' : ''; existing = '';
++    blank(); placeholder();
++    status.textContent = out.value === 'clear' ? 'Signature will be removed when you press Save.' : 'Sign inside the dashed box.';
+   });
++  window.addEventListener('resize', function () { if (!dirty) { size(); } });
+   size();
+ })();
+ </script>
+--- _tmp/p60orig/templates/flight/cfi_form.html
++++ templates/flight/cfi_form.html
+@@ -100,15 +100,10 @@
+     </div>
+     <p class="text-muted small mt-n2 mb-3">Printed with this instructor's name on students' logbook entries (Flight Academy &gt; Logbook).</p>
+     {% if cfi %}
+-    <div class="mb-3">
+-      <label class="form-label d-block">Signature <span class="text-muted small">(the CFI draws it themselves on My CFI Profile)</span></label>
+-      {% if cfi.signature %}
+-      <img src="{{ cfi.signature }}" alt="Signature" class="border rounded bg-white" style="max-width:260px; height:auto;">
+-      <div class="form-check mt-1">
+-        <input type="checkbox" class="form-check-input" name="clear_signature" id="clear-sig-check">
+-        <label class="form-check-label small" for="clear-sig-check">Remove this signature</label>
+-      </div>
+-      {% else %}<div class="text-muted small">None on file yet.</div>{% endif %}
++    {% from "flight/_signature_pad.html" import signature_pad %}
++    <div class="mb-3" id="signature" style="scroll-margin-top:80px;">
++      <label class="form-label d-block">Signature <span class="text-muted small">(goes on students' logbook entries this CFI instructs - the CFI can also sign on their own My CFI Profile)</span></label>
++      {{ signature_pad(cfi.signature) }}
+     </div>
+     {% endif %}
+     <div class="form-check mb-3">
+--- _tmp/p60orig/templates/flight/cfi_me.html
++++ templates/flight/cfi_me.html
+@@ -35,7 +35,7 @@
+     </div>
+   </div>
+   <div class="mt-3">
+-    <label class="form-label small mb-0">Signature <span class="text-muted">(goes on students' logbook entries you instruct)</span></label>
++    <label class="form-label fw-semibold mb-1"><i class="bi bi-pen"></i> Your signature <span class="text-muted small fw-normal">(goes on students' logbook entries you instruct)</span></label>
+     {{ signature_pad(cfi.signature) }}
+     {% if cfi.signature_updated_at %}<div class="form-text">Saved {{ cfi.signature_updated_at|usdate(True) }}. A new one also goes on your students' pending entries; approved entries keep the one they were signed with.</div>{% endif %}
+   </div>

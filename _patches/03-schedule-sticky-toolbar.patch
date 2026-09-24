@@ -1,0 +1,103 @@
+--- a/templates/flight/_schedule_live.html
++++ b/templates/flight/_schedule_live.html
+@@ -158,7 +158,11 @@
+ </tr>
+ {% endmacro %}
+ 
+-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
++{# Sticky toolbar: the date / range title, view buttons, prev/today/next,
++   Schedule Flight and the filters stay pinned under the navbar while the
++   calendar or list scrolls underneath (styles in schedule.html). #}
++<div class="schedule-toolbar">
++<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+   <h4 class="mb-0"><i class="bi bi-calendar3"></i>
+     {% if view == 'day' %}{{ day_str|usdate }}
+     {% elif view == 'month' %}{{ month_data.month_name }} {{ month_data.year }}
+@@ -192,14 +196,8 @@
+   </div>
+ </div>
+ 
+-{% if highlight_ids is defined and highlight_ids %}
+-<div class="alert alert-danger d-flex align-items-center gap-2">
+-  <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+-  <div>Showing what's in conflict - the flight{{ 's' if highlight_ids|length > 1 }} outlined in red below, everything else faded out.</div>
+-</div>
+-{% endif %}
+ 
+-<form method="get" class="row g-2 align-items-end mb-3">
++<form method="get" class="row g-2 align-items-end mb-0">
+   <input type="hidden" name="view" value="{{ view }}">
+   <input type="hidden" name="year" value="{{ year }}">
+   <input type="hidden" name="month" value="{{ month }}">
+@@ -236,6 +234,14 @@
+   <div class="col-auto"><button class="btn btn-primary btn-sm">Apply</button></div>
+   {% endif %}
+ </form>
++</div>
++
++{% if highlight_ids is defined and highlight_ids %}
++<div class="alert alert-danger d-flex align-items-center gap-2">
++  <i class="bi bi-exclamation-octagon-fill fs-5"></i>
++  <div>Showing what's in conflict - the flight{{ 's' if highlight_ids|length > 1 }} outlined in red below, everything else faded out.</div>
++</div>
++{% endif %}
+ 
+ {% if view == 'month' %}
+ {{ month_table(month_data, '130px', false) }}
+--- a/templates/flight/schedule.html
++++ b/templates/flight/schedule.html
+@@ -39,6 +39,27 @@
+     .table-stack tbody tr.schedule-day-break:not(:first-child) { margin-top: 1.1rem; border-top: 4px solid #6c757d; }
+     .table-stack tbody tr.schedule-row-past { background: #f1f3f5; }
+   }
++  /* Toolbar (title, view buttons, prev/next, Schedule Flight, filters)
++     pinned just under the sticky navbar. --flight-nav-h is measured in the
++     script below since the navbar's height changes when it wraps or the
++     phone menu opens. */
++  .schedule-toolbar {
++    position: sticky;
++    top: var(--flight-nav-h, 56px);
++    z-index: 1010; /* under the navbar (1020) and modals, over the calendar */
++    background: #f4f5f7;
++    margin: 0 -.75rem 1rem;
++    padding: .75rem .75rem .6rem;
++    border-bottom: 1px solid #dee2e6;
++  }
++  .schedule-toolbar.is-stuck { box-shadow: 0 4px 8px -4px rgba(0,0,0,.18); }
++  @media (max-width: 575.98px) {
++    /* Keep it compact on phones so the calendar still gets most of the screen. */
++    .schedule-toolbar { padding: .4rem .75rem .4rem; margin-bottom: .6rem; }
++    .schedule-toolbar h4 { font-size: 1rem; }
++    .schedule-toolbar .btn-group { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
++    .schedule-toolbar .form-label { font-size: .7rem; }
++  }
+   .calendar-day-add { border-radius: 3px; padding: 1px 3px; margin: -1px -3px; transition: background-color .15s ease; }
+   .calendar-day-add:hover { background-color: rgba(13,110,253,.12); }
+   .calendar-day-add-icon { font-size: .7rem; color: #adb5bd; margin-left: auto; }
+@@ -146,6 +167,26 @@
+ 
+ {% block scripts %}
+ <script>
++// Keeps the sticky schedule toolbar tucked right under the navbar (whose
++// height varies - wrapped items, open phone menu), and adds a shadow once
++// the toolbar is actually floating over scrolled content.
++(function () {
++  var nav = document.querySelector('nav.navbar.sticky-top');
++  function setNavH() {
++    if (nav) document.documentElement.style.setProperty('--flight-nav-h', nav.offsetHeight + 'px');
++  }
++  setNavH();
++  window.addEventListener('resize', setNavH);
++  if (nav && window.ResizeObserver) new ResizeObserver(setNavH).observe(nav);
++  function markStuck() {
++    var tb = document.querySelector('.schedule-toolbar');
++    if (!tb) return;
++    var navH = nav ? nav.offsetHeight : 0;
++    tb.classList.toggle('is-stuck', window.scrollY > 0 && tb.getBoundingClientRect().top <= navH + 1);
++  }
++  window.addEventListener('scroll', markStuck, { passive: true });
++  document.addEventListener('DOMContentLoaded', markStuck);
++})();
+ var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(30) }};
+ // Scroll a highlighted (conflicting) booking front and center as soon as
+ // the page settles, so the person lands looking right at it instead of

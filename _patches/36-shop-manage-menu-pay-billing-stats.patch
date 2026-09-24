@@ -1,0 +1,410 @@
+--- _tmp/p36/app.py	2026-09-24 02:39:48.314757748 +0000
++++ app.py	2026-09-24 02:39:48.328311758 +0000
+@@ -2854,6 +2854,196 @@
+     return render_template("laborer_label.html", laborer=laborer)
+ 
+ 
++# ---------------------------------------------------------------------------
++# Winds Aloft > Manage: Labor Pay, Billing, Stats - the shop-side versions of
++# the Flight School's My Pay / Billing / Stats, built from labor_sessions
++# (clocked labor, rate snapshotted at clock-in) and project part usage
++# (transactions out minus returns). All three share one period picker.
++# ---------------------------------------------------------------------------
++
++SHOP_PERIODS = [("this_week", "This Week"), ("last_week", "Last Week"), ("this_month", "This Month"),
++                ("last_month", "Last Month"), ("this_year", "This Year"), ("all", "All Time")]
++
++
++def _shop_period(default="this_month"):
++    """(start, end, period, label) for ?period= (one of SHOP_PERIODS) or a
++    custom ?from=YYYY-MM-DD&to=YYYY-MM-DD. Dates inclusive, as YYYY-MM-DD
++    strings; "all" gives a wide-open range."""
++    today = date.today()
++    d_from = (request.args.get("from") or "").strip()
++    d_to = (request.args.get("to") or "").strip()
++    if d_from or d_to:
++        try:
++            start = datetime.strptime(d_from, "%Y-%m-%d").date() if d_from else date(2000, 1, 1)
++            end = datetime.strptime(d_to, "%Y-%m-%d").date() if d_to else today
++            if end < start:
++                start, end = end, start
++            return start.isoformat(), end.isoformat(), "custom", f"{start.strftime('%m-%d-%Y')} to {end.strftime('%m-%d-%Y')}"
++        except ValueError:
++            pass
++    period = request.args.get("period", default)
++    if period not in dict(SHOP_PERIODS):
++        period = default
++    if period == "this_week":
++        start = today - timedelta(days=today.weekday())
++        end = start + timedelta(days=6)
++    elif period == "last_week":
++        start = today - timedelta(days=today.weekday() + 7)
++        end = start + timedelta(days=6)
++    elif period == "this_month":
++        start = today.replace(day=1)
++        end = today
++    elif period == "last_month":
++        end = today.replace(day=1) - timedelta(days=1)
++        start = end.replace(day=1)
++    elif period == "this_year":
++        start = today.replace(month=1, day=1)
++        end = today
++    else:
++        start, end = date(2000, 1, 1), date(2100, 1, 1)
++    return start.isoformat(), end.isoformat(), period, dict(SHOP_PERIODS)[period]
++
++
++def _shop_parts_usage(conn, start, end, project_id=None):
++    """Parts used on projects in [start, end]: each out minus returns (in)
++    with a project, valued at the part's sell price (billed) and unit cost."""
++    sql = """SELECT t.project_id, p.id as part_id, p.name, p.unit,
++                    SUM(CASE WHEN t.type = 'out' THEN t.qty ELSE -t.qty END) as qty,
++                    COALESCE(p.sell_price, 0) as sell_price, COALESCE(p.unit_cost, 0) as unit_cost
++             FROM transactions t JOIN parts p ON p.id = t.part_id
++             WHERE t.project_id IS NOT NULL AND t.type IN ('out', 'in')
++               AND date(t.created_at) BETWEEN ? AND ?"""
++    params = [start, end]
++    if project_id:
++        sql += " AND t.project_id = ?"
++        params.append(project_id)
++    sql += " GROUP BY t.project_id, p.id HAVING qty > 0"
++    return conn.execute(sql, params).fetchall()
++
++
++@app.route("/shop/pay")
++@login_required
++def shop_pay():
++    """Labor Pay: each laborer's clocked hours and pay for a period, with
++    the individual sessions underneath. Shop admins see everyone; anyone
++    else sees only the laborer record with their own name (their pay)."""
++    start, end, period, label = _shop_period("this_week")
++    admin_view = bool(session.get("is_master_admin") or session.get("shop_role") == "admin")
++    conn = get_db()
++    sql = """SELECT ls.*, l.name as laborer_name, l.rate as laborer_rate, pr.code as project_code,
++                    pr.name as project_name, pr.id as project_id
++             FROM labor_sessions ls
++             JOIN laborers l ON l.id = ls.laborer_id
++             JOIN projects pr ON pr.id = ls.project_id
++             WHERE date(ls.started_at) BETWEEN ? AND ?"""
++    params = [start, end]
++    if not admin_view:
++        sql += " AND lower(trim(l.name)) = lower(trim(?))"
++        params.append(session.get("user_name") or "")
++    sql += " ORDER BY l.name, ls.started_at"
++    rows = conn.execute(sql, params).fetchall()
++    conn.close()
++    groups, order = {}, []
++    for r in rows:
++        g = groups.get(r["laborer_id"])
++        if not g:
++            g = groups[r["laborer_id"]] = {"laborer_id": r["laborer_id"], "name": r["laborer_name"],
++                                            "rate": r["laborer_rate"], "hours": 0.0, "pay": 0.0,
++                                            "sessions": [], "running": 0}
++            order.append(r["laborer_id"])
++        g["sessions"].append(r)
++        if r["ended_at"]:
++            g["hours"] += r["hours"] or 0
++            g["pay"] += r["cost"] or 0
++        else:
++            g["running"] += 1
++    laborers_pay = [groups[i] for i in order]
++    return render_template("shop_pay.html", laborers_pay=laborers_pay, admin_view=admin_view,
++                           total_hours=sum(g["hours"] for g in laborers_pay),
++                           total_pay=sum(g["pay"] for g in laborers_pay),
++                           periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end)
++
++
++@app.route("/shop/billing")
++@shop_role_required('admin')
++def shop_billing():
++    """Billing: every project with labor or parts in the period - parts at
++    sell price plus clocked labor - with a link to its customer invoice
++    CSV. Totals across the top."""
++    start, end, period, label = _shop_period("this_month")
++    conn = get_db()
++    projects = {}
++
++    def proj(pid):
++        if pid not in projects:
++            p = conn.execute("""SELECT pr.id, pr.code, pr.name, pr.status, a.tag as asset_tag
++                                FROM projects pr LEFT JOIN assets a ON a.id = pr.asset_id WHERE pr.id = ?""",
++                             (pid,)).fetchone()
++            projects[pid] = {"id": pid, "code": p["code"] if p else "?", "name": p["name"] if p else "(deleted)",
++                             "status": p["status"] if p else "", "asset_tag": p["asset_tag"] if p else None,
++                             "labor_hours": 0.0, "labor": 0.0, "parts": 0.0, "parts_cost": 0.0, "parts_count": 0}
++        return projects[pid]
++
++    for r in conn.execute("""SELECT project_id, SUM(hours) h, SUM(cost) c FROM labor_sessions
++                             WHERE ended_at IS NOT NULL AND date(started_at) BETWEEN ? AND ?
++                             GROUP BY project_id""", (start, end)).fetchall():
++        p = proj(r["project_id"])
++        p["labor_hours"] = r["h"] or 0
++        p["labor"] = r["c"] or 0
++    for u in _shop_parts_usage(conn, start, end):
++        p = proj(u["project_id"])
++        p["parts"] += u["qty"] * u["sell_price"]
++        p["parts_cost"] += u["qty"] * u["unit_cost"]
++        p["parts_count"] += 1
++    conn.close()
++    rows = sorted(projects.values(), key=lambda p: p["code"] or "")
++    for p in rows:
++        p["total"] = p["labor"] + p["parts"]
++    totals = {k: sum(p[k] for p in rows) for k in ("labor_hours", "labor", "parts", "parts_cost", "total")}
++    return render_template("shop_billing.html", projects=rows, totals=totals,
++                           periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end)
++
++
++@app.route("/shop/stats")
++@shop_role_required('admin')
++def shop_stats():
++    """Stats: labor hours/cost, parts used (billed value, cost and margin),
++    projects worked, plus hours by laborer and aircraft and the most-used
++    parts, for the chosen period."""
++    start, end, period, label = _shop_period("this_month")
++    conn = get_db()
++    labor = conn.execute("""SELECT COUNT(*) n, COALESCE(SUM(hours), 0) h, COALESCE(SUM(cost), 0) c,
++                                   COUNT(DISTINCT project_id) projects, COUNT(DISTINCT laborer_id) people
++                            FROM labor_sessions WHERE ended_at IS NOT NULL AND date(started_at) BETWEEN ? AND ?""",
++                         (start, end)).fetchone()
++    usage = _shop_parts_usage(conn, start, end)
++    parts_sale = sum(u["qty"] * u["sell_price"] for u in usage)
++    parts_cost = sum(u["qty"] * u["unit_cost"] for u in usage)
++    top = {}
++    for u in usage:
++        t = top.setdefault(u["part_id"], {"name": u["name"], "unit": u["unit"], "qty": 0.0, "value": 0.0})
++        t["qty"] += u["qty"]
++        t["value"] += u["qty"] * u["sell_price"]
++    top_parts = sorted(top.values(), key=lambda t: -t["qty"])[:10]
++    by_laborer = conn.execute("""SELECT l.name, SUM(ls.hours) h, SUM(ls.cost) c FROM labor_sessions ls
++                                 JOIN laborers l ON l.id = ls.laborer_id
++                                 WHERE ls.ended_at IS NOT NULL AND date(ls.started_at) BETWEEN ? AND ?
++                                 GROUP BY l.id ORDER BY h DESC""", (start, end)).fetchall()
++    by_aircraft = conn.execute("""SELECT COALESCE(a.tag, 'No aircraft') tag, SUM(ls.hours) h, COUNT(DISTINCT pr.id) projects
++                                  FROM labor_sessions ls JOIN projects pr ON pr.id = ls.project_id
++                                  LEFT JOIN assets a ON a.id = pr.asset_id
++                                  WHERE ls.ended_at IS NOT NULL AND date(ls.started_at) BETWEEN ? AND ?
++                                  GROUP BY a.id ORDER BY h DESC""", (start, end)).fetchall()
++    projects_worked = len({u["project_id"] for u in usage} | {r["project_id"] for r in conn.execute(
++        "SELECT DISTINCT project_id FROM labor_sessions WHERE date(started_at) BETWEEN ? AND ?", (start, end)).fetchall()})
++    conn.close()
++    max_h = max([r["h"] or 0 for r in by_laborer] + [r["h"] or 0 for r in by_aircraft] + [0.0001])
++    return render_template("shop_stats.html", labor=labor, parts_sale=parts_sale, parts_cost=parts_cost,
++                           top_parts=top_parts, by_laborer=by_laborer, by_aircraft=by_aircraft,
++                           projects_worked=projects_worked, max_h=max_h,
++                           periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end)
++
++
+ @app.route("/api/labor/task_lookup")
+ @login_required
+ def api_labor_task_lookup():
+--- _tmp/p36/base.html	2026-09-24 02:39:48.316302041 +0000
++++ templates/base.html	2026-09-24 02:39:48.330200301 +0000
+@@ -56,7 +56,6 @@
+         <li class="nav-item"><a class="nav-link" id="tour-nav-calendar" href="{{ url_for('calendar_page') }}"><i class="bi bi-calendar3"></i> Calendar</a></li>
+         {% if is_master_admin or shop_role == 'admin' %}
+         <li class="nav-item"><a class="nav-link" href="{{ url_for('orders_list') }}"><i class="bi bi-truck"></i> Orders</a></li>
+-        <li class="nav-item"><a class="nav-link" href="{{ url_for('laborers_list') }}"><i class="bi bi-person-badge"></i> Laborers</a></li>
+         {% endif %}
+         {% if is_master_admin or shop_role in ('admin', 'tech') %}
+         <li class="nav-item"><a class="nav-link {{ 'fw-bold text-danger' if open_squawk_count }}" id="tour-nav-squawks" href="{{ url_for('squawks_list') }}"><i class="bi bi-exclamation-triangle{{ '-fill' if open_squawk_count }}"></i> Squawks{% if open_squawk_count %} <span class="badge bg-danger">{{ open_squawk_count }}</span>{% endif %}</a></li>
+@@ -67,6 +66,25 @@
+         {% if is_master_admin or shop_role == 'admin' %}
+         <a href="{{ url_for('part_new') }}" class="btn btn-warning btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Add Part</a>
+         {% endif %}
++        {#- Manage menu - same idea as the Fly with Kate! header's Manage:
++           Laborers, Labor Pay, Billing, Stats. Anyone logged in gets Labor
++           Pay (their own hours/pay); the rest is shop admins. #}
++        <div class="dropdown">
++          <a class="nav-link dropdown-toggle text-light" href="#" id="shop-manage-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
++            <i class="bi bi-gear"></i> Manage
++          </a>
++          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shop-manage-toggle">
++            {% if is_master_admin or shop_role == 'admin' %}
++            <li><a class="dropdown-item" href="{{ url_for('laborers_list') }}"><i class="bi bi-person-badge"></i> Laborers</a></li>
++            <li><a class="dropdown-item" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> Labor Pay</a></li>
++            <li><hr class="dropdown-divider"></li>
++            <li><a class="dropdown-item" href="{{ url_for('shop_billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
++            <li><a class="dropdown-item" href="{{ url_for('shop_stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
++            {% else %}
++            <li><a class="dropdown-item" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
++            {% endif %}
++          </ul>
++        </div>
+         <div class="dropdown">
+           <a class="nav-link dropdown-toggle text-light" href="#" id="user-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+             <i class="bi bi-person-circle"></i> {{ logged_in_user_name }}
+--- a/templates/_shop_period.html	2026-09-23 16:57:06.510000000 +0000
++++ templates/_shop_period.html	2026-09-24 02:40:23.800157773 +0000
+@@ -0,0 +1,16 @@
++{#- Period picker shared by Manage > Labor Pay / Billing / Stats (see
++   _shop_period() in app.py): quick buttons plus a custom from/to range.
++   The including page sets `period_endpoint`. #}
++<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
++  <div class="btn-group flex-wrap" role="group">
++    {% for key, name in periods %}
++    <a href="{{ url_for(period_endpoint, period=key) }}" class="btn btn-sm {{ 'btn-dark' if period == key else 'btn-outline-dark' }}">{{ name }}</a>
++    {% endfor %}
++  </div>
++  <form method="get" class="d-flex align-items-center gap-1 flex-wrap">
++    <input type="date" name="from" class="form-control form-control-sm" style="width:auto;" value="{{ start if period == 'custom' else '' }}" aria-label="From">
++    <span class="small text-muted">to</span>
++    <input type="date" name="to" class="form-control form-control-sm" style="width:auto;" value="{{ end if period == 'custom' else '' }}" aria-label="To">
++    <button class="btn btn-sm {{ 'btn-dark' if period == 'custom' else 'btn-outline-dark' }}">Go</button>
++  </form>
++</div>
+--- a/templates/shop_pay.html	2026-09-23 16:57:06.510000000 +0000
++++ templates/shop_pay.html	2026-09-24 02:40:23.801120857 +0000
+@@ -0,0 +1,47 @@
++{% extends "base.html" %}
++{% block title %}{{ 'Labor Pay' if admin_view else 'My Pay' }} - OpsHub{% endblock %}
++{% block content %}
++<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
++  <h4 class="mb-0"><i class="bi bi-cash-stack"></i> {{ 'Labor Pay' if admin_view else 'My Pay' }} <span class="text-muted fs-6">- {{ period_label }}</span></h4>
++  <div class="text-end">
++    <span class="text-muted small d-block">{{ '%.1f'|format(total_hours) }} hrs clocked</span>
++    <strong class="fs-4">${{ '%.2f'|format(total_pay) }}</strong>
++  </div>
++</div>
++{% set period_endpoint = 'shop_pay' %}{% include "_shop_period.html" %}
++
++{% if laborers_pay %}
++{% for g in laborers_pay %}
++<div class="card p-3 mb-3">
++  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
++    <h5 class="mb-0">{{ g.name }} <span class="text-muted fs-6">(${{ '%.2f'|format(g.rate or 0) }}/hr now)</span>
++      {% if g.running %}<span class="badge bg-warning text-dark ms-1"><i class="bi bi-stopwatch"></i> {{ g.running }} clocked in</span>{% endif %}</h5>
++    <div class="text-end"><span class="text-muted small">{{ '%.2f'|format(g.hours) }} hrs</span> &nbsp;<strong class="fs-5">${{ '%.2f'|format(g.pay) }}</strong></div>
++  </div>
++  <div class="table-responsive">
++    <table class="table table-sm align-middle mb-0 table-stack">
++      <thead class="table-light"><tr><th>Date</th><th>Project</th><th>Task</th><th>Hours</th><th>Rate</th><th>Pay</th></tr></thead>
++      <tbody>
++        {% for s in g.sessions %}
++        <tr>
++          <td data-label="Date"><small>{{ s.started_at|usdate(true) }}</small></td>
++          <td class="stack-full" data-label="Project"><a href="{{ url_for('project_detail', project_id=s.project_id) }}">{{ s.project_code }}</a> <small class="text-muted">{{ s.project_name }}</small></td>
++          <td data-label="Task">{{ s.section or 'General' }}</td>
++          {% if s.ended_at %}
++          <td data-label="Hours">{{ '%.2f'|format(s.hours or 0) }}</td>
++          <td data-label="Rate">${{ '%.2f'|format(s.rate or 0) }}</td>
++          <td data-label="Pay"><strong>${{ '%.2f'|format(s.cost or 0) }}</strong></td>
++          {% else %}
++          <td data-label="Hours" colspan="3"><span class="badge bg-warning text-dark">Still clocked in</span></td>
++          {% endif %}
++        </tr>
++        {% endfor %}
++      </tbody>
++    </table>
++  </div>
++</div>
++{% endfor %}
++{% else %}
++<p class="text-muted">{% if admin_view %}No labor clocked in this period.{% else %}No labor clocked under your name ({{ logged_in_user_name }}) in this period. Pay shows the laborer whose name matches your login.{% endif %}</p>
++{% endif %}
++{% endblock %}
+--- a/templates/shop_billing.html	2026-09-23 16:57:06.510000000 +0000
++++ templates/shop_billing.html	2026-09-24 02:40:23.802107482 +0000
+@@ -0,0 +1,39 @@
++{% extends "base.html" %}
++{% block title %}Billing - OpsHub{% endblock %}
++{% block content %}
++<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
++  <h4 class="mb-0"><i class="bi bi-receipt"></i> Billing <span class="text-muted fs-6">- {{ period_label }}, by project</span></h4>
++  <div class="text-end">
++    <span class="text-muted small d-block">Parts ${{ '%.2f'|format(totals.parts) }} + Labor ${{ '%.2f'|format(totals.labor) }}</span>
++    <strong class="fs-4">${{ '%.2f'|format(totals.total) }}</strong>
++  </div>
++</div>
++{% set period_endpoint = 'shop_billing' %}{% include "_shop_period.html" %}
++
++{% if projects %}
++<div class="card">
++  <div class="table-responsive">
++    <table class="table table-sm align-middle mb-0 table-stack">
++      <thead class="table-light"><tr><th>Project</th><th>Aircraft</th><th>Status</th><th>Parts (sale)</th><th>Labor</th><th>Total</th><th></th></tr></thead>
++      <tbody>
++        {% for p in projects %}
++        <tr>
++          <td class="stack-full" data-label="Project"><a href="{{ url_for('project_detail', project_id=p.id) }}"><strong>{{ p.code }}</strong></a> <small class="text-muted">{{ p.name }}</small></td>
++          <td data-label="Aircraft">{{ p.asset_tag or '-' }}</td>
++          <td data-label="Status"><span class="badge {{ 'bg-success' if p.status == 'completed' else ('bg-primary' if p.status == 'active' else 'bg-secondary') }}">{{ (p.status or '-')|replace('_', ' ')|title }}</span></td>
++          <td data-label="Parts (sale)">${{ '%.2f'|format(p.parts) }}{% if p.parts_count %} <small class="text-muted">({{ p.parts_count }} part{{ 's' if p.parts_count != 1 }})</small>{% endif %}</td>
++          <td data-label="Labor">${{ '%.2f'|format(p.labor) }} <small class="text-muted">({{ '%.1f'|format(p.labor_hours) }} hr)</small></td>
++          <td data-label="Total"><strong>${{ '%.2f'|format(p.total) }}</strong></td>
++          <td class="text-end"><a href="{{ url_for('project_invoice_csv', project_id=p.id) }}" class="btn btn-sm btn-outline-success text-nowrap" title="Customer invoice (whole project, all dates)"><i class="bi bi-download"></i> Invoice</a></td>
++        </tr>
++        {% endfor %}
++      </tbody>
++      <tfoot class="table-light fw-bold"><tr><td colspan="3">Total</td><td>${{ '%.2f'|format(totals.parts) }}</td><td>${{ '%.2f'|format(totals.labor) }} <small class="text-muted fw-normal">({{ '%.1f'|format(totals.labor_hours) }} hr)</small></td><td>${{ '%.2f'|format(totals.total) }}</td><td></td></tr></tfoot>
++    </table>
++  </div>
++</div>
++<p class="small text-muted mt-2 mb-0">Parts are billed at sell price (your cost for them in this period: ${{ '%.2f'|format(totals.parts_cost) }}). Labor is clocked time at each laborer's rate when they clocked in. The Invoice button downloads the full customer invoice for that project, covering all dates.</p>
++{% else %}
++<p class="text-muted">No parts used or labor clocked on any project in this period.</p>
++{% endif %}
++{% endblock %}
+--- a/templates/shop_stats.html	2026-09-23 16:57:06.510000000 +0000
++++ templates/shop_stats.html	2026-09-24 02:40:23.803027607 +0000
+@@ -0,0 +1,61 @@
++{% extends "base.html" %}
++{% block title %}Stats - OpsHub{% endblock %}
++{% block content %}
++<h4 class="mb-3"><i class="bi bi-bar-chart-line"></i> Shop Stats <span class="text-muted fs-6">- {{ period_label }}</span></h4>
++{% set period_endpoint = 'shop_stats' %}{% include "_shop_period.html" %}
++
++<div class="row g-2 mb-3">
++  {% set margin = parts_sale - parts_cost %}
++  {% for label, value, sub in [
++      ('Labor Hours', '%.1f'|format(labor.h), (labor.n ~ ' sessions, ' ~ labor.people ~ ' laborer' ~ ('s' if labor.people != 1 else ''))),
++      ('Labor $', '$' ~ '%.2f'|format(labor.c), 'at clock-in rates'),
++      ('Parts Billed', '$' ~ '%.2f'|format(parts_sale), 'cost $' ~ '%.2f'|format(parts_cost)),
++      ('Parts Margin', '$' ~ '%.2f'|format(margin), (('%.0f'|format(margin / parts_sale * 100)) ~ '% of sale') if parts_sale else '-'),
++      ('Projects Worked', projects_worked, 'labor or parts this period'),
++      ('Total Billed', '$' ~ '%.2f'|format(labor.c + parts_sale), 'parts + labor') ] %}
++  <div class="col-6 col-md-4 col-xl-2">
++    <div class="card p-3 h-100">
++      <div class="text-muted small">{{ label }}</div>
++      <div class="fs-4 fw-bold">{{ value }}</div>
++      <div class="small text-muted">{{ sub }}</div>
++    </div>
++  </div>
++  {% endfor %}
++</div>
++
++<div class="row g-3">
++  <div class="col-lg-4">
++    <div class="card p-3 h-100">
++      <h6>Hours by Laborer</h6>
++      {% for r in by_laborer %}
++      <div class="small d-flex justify-content-between"><span>{{ r.name }}</span><span>{{ '%.1f'|format(r.h or 0) }} hr &middot; ${{ '%.2f'|format(r.c or 0) }}</span></div>
++      <div class="progress mb-2" style="height:.5rem;"><div class="progress-bar bg-dark" style="width:{{ ((r.h or 0) / max_h * 100)|round(1) }}%;"></div></div>
++      {% else %}<p class="text-muted small mb-0">No labor clocked.</p>{% endfor %}
++    </div>
++  </div>
++  <div class="col-lg-4">
++    <div class="card p-3 h-100">
++      <h6>Hours by Aircraft</h6>
++      {% for r in by_aircraft %}
++      <div class="small d-flex justify-content-between"><span>{{ r.tag }}</span><span>{{ '%.1f'|format(r.h or 0) }} hr &middot; {{ r.projects }} project{{ 's' if r.projects != 1 }}</span></div>
++      <div class="progress mb-2" style="height:.5rem;"><div class="progress-bar bg-warning" style="width:{{ ((r.h or 0) / max_h * 100)|round(1) }}%;"></div></div>
++      {% else %}<p class="text-muted small mb-0">No labor clocked.</p>{% endfor %}
++    </div>
++  </div>
++  <div class="col-lg-4">
++    <div class="card p-3 h-100">
++      <h6>Most-Used Parts</h6>
++      {% if top_parts %}
++      <table class="table table-sm mb-0">
++        <thead><tr><th>Part</th><th class="text-end">Qty</th><th class="text-end">Billed</th></tr></thead>
++        <tbody>
++          {% for t in top_parts %}
++          <tr><td class="small">{{ t.name }}</td><td class="text-end small">{{ '%g'|format(t.qty) }} {{ t.unit or '' }}</td><td class="text-end small">${{ '%.2f'|format(t.value) }}</td></tr>
++          {% endfor %}
++        </tbody>
++      </table>
++      {% else %}<p class="text-muted small mb-0">No parts used on projects.</p>{% endif %}
++    </div>
++  </div>
++</div>
++{% endblock %}

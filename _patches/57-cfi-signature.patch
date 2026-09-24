@@ -1,0 +1,261 @@
+--- _tmp/p57orig/db.py
++++ db.py
+@@ -897,6 +897,10 @@
+     for table, col, ddl in (
+         ("cfis", "cfi_cert_number", "ALTER TABLE cfis ADD COLUMN cfi_cert_number TEXT"),
+         ("cfis", "cfi_cert_expires", "ALTER TABLE cfis ADD COLUMN cfi_cert_expires TEXT"),
++        # Drawn signature (PNG data URL) the CFI makes on My CFI Profile -
++        # copied onto each logbook entry they're the instructor on.
++        ("cfis", "signature", "ALTER TABLE cfis ADD COLUMN signature TEXT"),
++        ("cfis", "signature_updated_at", "ALTER TABLE cfis ADD COLUMN signature_updated_at TEXT"),
+         ("flights", "solo_hours", "ALTER TABLE flights ADD COLUMN solo_hours REAL"),
+         ("scheduled_flights", "part_solo", "ALTER TABLE scheduled_flights ADD COLUMN part_solo INTEGER NOT NULL DEFAULT 0"),
+         # Guest bookings (intro flights / one-time flyers with no profile) -
+@@ -945,6 +949,8 @@
+         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+     )""")
+     conn.execute("CREATE INDEX IF NOT EXISTS idx_pilot_logbook_student ON pilot_logbook(student_id, entry_date)")
++    if "instructor_signature" not in [r["name"] for r in conn.execute("PRAGMA table_info(pilot_logbook)").fetchall()]:
++        conn.execute("ALTER TABLE pilot_logbook ADD COLUMN instructor_signature TEXT")
+     conn.execute("""CREATE TABLE IF NOT EXISTS academy_milestones (
+         id INTEGER PRIMARY KEY AUTOINCREMENT,
+         student_id INTEGER NOT NULL REFERENCES students(id),
+--- _tmp/p57orig/schema.sql
++++ schema.sql
+@@ -171,7 +171,9 @@
+     medical_class TEXT, -- FAA medical: first | second | third | basicmed (blank = not tracked)
+     medical_expires TEXT, -- YYYY-MM-DD the medical runs out
+     cfi_cert_number TEXT, -- flight instructor certificate #, printed on students' logbook entries (pilotlog.py)
+-    cfi_cert_expires TEXT -- YYYY-MM-DD
++    cfi_cert_expires TEXT, -- YYYY-MM-DD
++    signature TEXT, -- drawn signature, PNG data URL (My CFI Profile) - copied onto logbook entries
++    signature_updated_at TEXT
+ );
+ 
+ CREATE TABLE IF NOT EXISTS students (
+@@ -606,6 +608,7 @@
+     instructor_name TEXT,
+     instructor_cert TEXT,
+     instructor_cert_exp TEXT,
++    instructor_signature TEXT, -- the CFI's drawn signature at the time (PNG data URL)
+     status TEXT NOT NULL DEFAULT 'pending', -- pending | complete (student approved)
+     approved_at TEXT,
+     approved_by TEXT,
+--- _tmp/p57orig/flight.py
++++ flight.py
+@@ -1936,6 +1936,10 @@
+                      (medical_class, medical_expires, cfi_id))
+         conn.execute("UPDATE cfis SET cfi_cert_number = ?, cfi_cert_expires = ? WHERE id = ?",
+                      (*_cfi_cert_from_form(request.form), cfi_id))
++        # An admin can remove a CFI's signature (only the CFI draws one).
++        if request.form.get("clear_signature") and cfi_row["signature"]:
++            _save_cfi_signature(conn, cfi_id, None)
++            _log_field_change(conn, "cfi", cfi_id, "signature", "on file", "", session.get("user_name"))
+         _log_field_change(conn, "cfi", cfi_id, "medical_expires", cfi_row["medical_expires"], medical_expires, session.get("user_name"))
+         conn.commit()
+         med_now = _medical_status(conn.execute("SELECT medical_class, medical_expires FROM cfis WHERE id = ?",
+@@ -1984,13 +1988,19 @@
+         number, expires = _cfi_cert_from_form(request.form)
+         conn.execute("UPDATE cfis SET cfi_cert_number = ?, cfi_cert_expires = ? WHERE id = ?",
+                      (number, expires, cfi_row["id"]))
++        sig_changed, signature = _signature_from_form(request.form)
++        if sig_changed:
++            _save_cfi_signature(conn, cfi_row["id"], signature)
++            _log_field_change(conn, "cfi", cfi_row["id"], "signature", "on file" if cfi_row["signature"] else "",
++                              "on file" if signature else "", session.get("user_name"))
+         _log_field_change(conn, "cfi", cfi_row["id"], "cfi_cert_number", cfi_row["cfi_cert_number"], number,
+                           session.get("user_name"))
+         _log_field_change(conn, "cfi", cfi_row["id"], "cfi_cert_expires", cfi_row["cfi_cert_expires"], expires,
+                           session.get("user_name"))
+         conn.commit()
+         conn.close()
+-        flash("Certificate details saved.", "success")
++        flash("Signature and certificate details saved." if sig_changed and signature else
++              ("Signature removed." if sig_changed else "Certificate details saved."), "success")
+         return redirect(url_for("flight.cfi_me"))
+     conn.close()
+     return render_template("flight/cfi_me.html", cfi=cfi_row, credentials=CFI_CREDENTIALS,
+@@ -4103,6 +4113,39 @@
+     return round(v, 1) if v and v > 0 else None
+ 
+ 
++SIGNATURE_PREFIX = "data:image/png;base64,"
++SIGNATURE_MAX_LEN = 300_000  # ~220 KB of PNG - a drawn signature is far smaller
++
++
++def _signature_from_form(form):
++    """(changed, value) from the signature pad's hidden field: "" = no
++    change, "clear" = remove it, else a PNG data URL (validated)."""
++    raw = (form.get("signature_data") or "").strip()
++    if not raw:
++        return False, None
++    if raw == "clear":
++        return True, None
++    if raw.startswith(SIGNATURE_PREFIX) and len(raw) <= SIGNATURE_MAX_LEN:
++        import base64
++        import binascii
++        try:
++            png = base64.b64decode(raw[len(SIGNATURE_PREFIX):], validate=True)
++        except (binascii.Error, ValueError):
++            return False, None
++        if png[:8] == b"\x89PNG\r\n\x1a\n":
++            return True, raw
++    return False, None
++
++
++def _save_cfi_signature(conn, cfi_id, signature):
++    """Store (or clear) a CFI's signature and put it on their logbook
++    entries that are still pending (approved ones keep what they had)."""
++    conn.execute("UPDATE cfis SET signature = ?, signature_updated_at = ? WHERE id = ?",
++                 (signature, now_iso() if signature else None, cfi_id))
++    conn.execute("""UPDATE pilot_logbook SET instructor_signature = ?
++                    WHERE cfi_id = ? AND status = 'pending' AND dual > 0""", (signature, cfi_id))
++
++
+ def _cfi_cert_from_form(form):
+     """(cfi_cert_number, cfi_cert_expires) - the instructor certificate
+     printed with their name on students' logbook entries."""
+--- _tmp/p57orig/pilotlog.py
++++ pilotlog.py
+@@ -205,7 +205,7 @@
+     finished flight. Called from flight.py wherever a flight is logged,
+     ended or edited. A completed (student-approved) entry is left alone."""
+     f = conn.execute("""SELECT f.*, a.tag, a.make, a.model, c.name as cfi_name,
+-                               c.cfi_cert_number, c.cfi_cert_expires
++                               c.cfi_cert_number, c.cfi_cert_expires, c.signature as cfi_signature
+                         FROM flights f JOIN assets a ON a.id = f.asset_id
+                         LEFT JOIN cfis c ON c.id = f.cfi_id WHERE f.id = ?""", (flight_id,)).fetchone()
+     if not f or (f["started_at"] and not f["ended_at"]):
+@@ -214,20 +214,21 @@
+     make_model = " ".join(x for x in [f["make"], f["model"]] if x) or None
+     day_ldg = (f["day_landings_fs"] or 0) + (f["day_landings_tg"] or 0)
+     night_ldg = (f["night_landings_fs"] or 0) + (f["night_landings_tg"] or 0)
+-    instructor = (f["cfi_name"], f["cfi_cert_number"], f["cfi_cert_expires"]) if (f["cfi_id"] and dual > 0) else (None, None, None)
++    instructor = ((f["cfi_name"], f["cfi_cert_number"], f["cfi_cert_expires"], f["cfi_signature"])
++                  if (f["cfi_id"] and dual > 0) else (None, None, None, None))
+     existing = conn.execute("SELECT * FROM pilot_logbook WHERE flight_id = ?", (flight_id,)).fetchone()
+     if existing is None:
+         conn.execute("""INSERT INTO pilot_logbook (flight_id, student_id, cfi_id, asset_id, entry_date, tail, make_model,
+                         total, dual, solo, pic, day_ldg, night_ldg, night_fs, instructor_name, instructor_cert,
+-                        instructor_cert_exp, status, created_at, updated_at)
+-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)""",
++                        instructor_cert_exp, instructor_signature, status, created_at, updated_at)
++                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)""",
+                      (flight_id, f["student_id"], f["cfi_id"], f["asset_id"], f["flight_date"], f["tag"], make_model,
+                       total, dual, solo, pic, day_ldg, night_ldg, f["night_landings_fs"] or 0, *instructor,
+                       now_iso(), now_iso()))
+     elif existing["status"] == "pending":
+         conn.execute("""UPDATE pilot_logbook SET student_id=?, cfi_id=?, asset_id=?, entry_date=?, tail=?, make_model=?,
+                         total=?, dual=?, solo=?, pic=?, day_ldg=?, night_ldg=?, night_fs=?, instructor_name=?,
+-                        instructor_cert=?, instructor_cert_exp=?, updated_at=? WHERE id=?""",
++                        instructor_cert=?, instructor_cert_exp=?, instructor_signature=?, updated_at=? WHERE id=?""",
+                      (f["student_id"], f["cfi_id"], f["asset_id"], f["flight_date"], f["tag"], make_model,
+                       total, dual, solo, pic, day_ldg, night_ldg, f["night_landings_fs"] or 0, *instructor,
+                       now_iso(), existing["id"]))
+--- _tmp/p57orig/templates/flight/cfi_me.html
++++ templates/flight/cfi_me.html
+@@ -1,4 +1,5 @@
+ {% extends "flight/base_flight.html" %}
++{% from "flight/_signature_pad.html" import signature_pad %}
+ {% block title %}My CFI Profile - OpsHub{% endblock %}
+ {% block content %}
+ <div class="row justify-content-center">
+@@ -33,6 +34,11 @@
+       <input type="date" name="cfi_cert_expires" class="form-control" value="{{ cfi.cfi_cert_expires or '' }}">
+     </div>
+   </div>
++  <div class="mt-3">
++    <label class="form-label small mb-0">Signature <span class="text-muted">(goes on students' logbook entries you instruct)</span></label>
++    {{ signature_pad(cfi.signature) }}
++    {% if cfi.signature_updated_at %}<div class="form-text">Saved {{ cfi.signature_updated_at|usdate(True) }}. A new one also goes on your students' pending entries; approved entries keep the one they were signed with.</div>{% endif %}
++  </div>
+   <div class="mt-3"><button class="btn btn-primary btn-sm"><i class="bi bi-check-lg"></i> Save</button></div>
+ </form>
+ </div>
+--- _tmp/p57orig/templates/flight/cfi_form.html
++++ templates/flight/cfi_form.html
+@@ -99,6 +99,18 @@
+       </div>
+     </div>
+     <p class="text-muted small mt-n2 mb-3">Printed with this instructor's name on students' logbook entries (Flight Academy &gt; Logbook).</p>
++    {% if cfi %}
++    <div class="mb-3">
++      <label class="form-label d-block">Signature <span class="text-muted small">(the CFI draws it themselves on My CFI Profile)</span></label>
++      {% if cfi.signature %}
++      <img src="{{ cfi.signature }}" alt="Signature" class="border rounded bg-white" style="max-width:260px; height:auto;">
++      <div class="form-check mt-1">
++        <input type="checkbox" class="form-check-input" name="clear_signature" id="clear-sig-check">
++        <label class="form-check-label small" for="clear-sig-check">Remove this signature</label>
++      </div>
++      {% else %}<div class="text-muted small">None on file yet.</div>{% endif %}
++    </div>
++    {% endif %}
+     <div class="form-check mb-3">
+       <input type="checkbox" class="form-check-input" name="can_bill" id="can-bill-check" {% if cfi_user and cfi_user.can_bill %}checked{% endif %}>
+       <label class="form-check-label" for="can-bill-check">Can manage billing <span class="text-muted small">($ totals, outstanding balances, marking paid - master admins always can regardless of this)</span></label>
+--- _tmp/p57orig/templates/academy_logbook_entry.html
++++ templates/academy_logbook_entry.html
+@@ -23,6 +23,8 @@
+       <div class="col-12 col-md-6">
+         <label class="form-label small mb-0">Instructor</label>
+         <div class="form-control form-control-sm bg-light">{% if e.instructor_name %}{{ e.instructor_name }}{% if e.instructor_cert %} &middot; CFI #{{ e.instructor_cert }}{% endif %}{% if e.instructor_cert_exp %} exp {{ e.instructor_cert_exp|usdate }}{% endif %}{% else %}- (solo){% endif %}</div>
++        {% if e.instructor_signature %}<img src="{{ e.instructor_signature }}" alt="Instructor signature" class="mt-1 border rounded bg-white" style="max-width:240px; height:auto;">
++        {% elif e.instructor_name %}<div class="small text-muted mt-1">No signature on file for this instructor yet.</div>{% endif %}
+       </div>
+     </div>
+     {% if not staff %}<div class="form-text mb-2">Times come from the plane's Tach and can only be corrected by an instructor.</div>{% endif %}
+--- /dev/null
++++ templates/flight/_signature_pad.html
+@@ -0,0 +1,52 @@
++{#- Signature pad: draw with a finger, stylus or mouse. Posts
++   signature_data = a PNG data URL (only when something new was drawn),
++   "clear" when the Clear button removed the saved one, or "" (no change).
++   `existing` = the saved signature (data URL) or none. #}
++{% macro signature_pad(existing) %}
++<div class="sig-pad-wrap">
++  <canvas class="sig-pad border rounded bg-white w-100" height="160" style="touch-action:none; cursor:crosshair; max-width:520px;"></canvas>
++  <input type="hidden" name="signature_data" value="">
++  <div class="d-flex gap-2 align-items-center mt-1">
++    <button type="button" class="btn btn-outline-secondary btn-sm sig-clear"><i class="bi bi-eraser"></i> Clear</button>
++    <span class="small text-muted sig-status">{% if existing %}Your saved signature - draw over it to replace it.{% else %}Sign in the box above.{% endif %}</span>
++  </div>
++</div>
++<script>
++(function () {
++  var wrap = document.currentScript.previousElementSibling;
++  var canvas = wrap.querySelector('canvas'), out = wrap.querySelector('input[name="signature_data"]');
++  var status = wrap.querySelector('.sig-status'), ctx = canvas.getContext('2d');
++  var existing = {{ (existing or '')|tojson }}, drawing = false, dirty = false, last = null;
++  function size() {
++    var ratio = window.devicePixelRatio || 1, w = canvas.clientWidth || 520;
++    canvas.width = w * ratio; canvas.height = 160 * ratio; canvas.style.height = '160px';
++    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
++    ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0b1f4d';
++    if (existing && !dirty) {
++      var img = new Image();
++      img.onload = function () { ctx.drawImage(img, 0, 0, w, 160); };
++      img.src = existing;
++    }
++  }
++  function pos(e) { var r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
++  canvas.addEventListener('pointerdown', function (e) {
++    if (!dirty) { ctx.clearRect(0, 0, canvas.width, canvas.height); }  // start fresh over the old one
++    drawing = true; dirty = true; last = pos(e); canvas.setPointerCapture(e.pointerId);
++    ctx.beginPath(); ctx.arc(last.x, last.y, 1.1, 0, Math.PI * 2); ctx.fillStyle = ctx.strokeStyle; ctx.fill();
++    status.textContent = 'New signature - it saves when you press Save.';
++  });
++  canvas.addEventListener('pointermove', function (e) {
++    if (!drawing) return;
++    var p = pos(e); ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke(); last = p;
++  });
++  function stop() { if (drawing) { drawing = false; out.value = canvas.toDataURL('image/png'); } }
++  canvas.addEventListener('pointerup', stop); canvas.addEventListener('pointercancel', stop);
++  wrap.querySelector('.sig-clear').addEventListener('click', function () {
++    ctx.clearRect(0, 0, canvas.width, canvas.height); dirty = false; existing = '';
++    out.value = {{ ('clear' if existing else '')|tojson }};
++    status.textContent = {{ ('Signature will be removed when you press Save.' if existing else 'Sign in the box above.')|tojson }};
++  });
++  size();
++})();
++</script>
++{% endmacro %}

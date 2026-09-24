@@ -1,0 +1,115 @@
+--- _tmp/p55orig/flight.py
++++ flight.py
+@@ -263,6 +263,32 @@
+             (form.get("guest_phone") or "").strip()[:30] or None)
+ 
+ 
++PAST_BOOKING_GRACE_MIN = 5  # a booking for "right now" typed a few minutes late still goes through
++
++
++def _past_booking_error(scheduled_date, scheduled_time):
++    """An error message when a booking's date (and time, if given) has
++    already passed, else None. Past flights aren't booked - they're logged
++    with Schedule Flight's "Flight Already Complete?" option instead."""
++    try:
++        d = datetime.strptime(scheduled_date, "%Y-%m-%d").date()
++    except (TypeError, ValueError):
++        return None
++    now = datetime.now()
++    past = d < now.date()
++    if not past and d == now.date() and scheduled_time:
++        try:
++            t = datetime.strptime(scheduled_time, "%H:%M").time()
++        except ValueError:
++            t = None
++        past = t is not None and datetime.combine(d, t) < now - timedelta(minutes=PAST_BOOKING_GRACE_MIN)
++    if not past:
++        return None
++    when = _us_date(scheduled_date) + (f" at {_format_time_12h(scheduled_time)}" if scheduled_time else "")
++    return (f"{when} is in the past - a flight can't be booked before now. If it already happened, "
++            f"tick \"Flight Already Complete?\" and log it with its date and time.")
++
++
+ def _scheduling_conflicts(conn, asset_id, cfi_id, student_id, scheduled_date, scheduled_time, duration_hours, exclude_id=None):
+     """Checks the same day's other scheduled (not cancelled) flights for a
+     double-booking: the same plane, the same instructor, or the same
+@@ -2889,6 +2915,11 @@
+             flash("Select a plane, a student, and a date.", "danger")
+             conn.close()
+             return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
++        past_error = _past_booking_error(scheduled_date, scheduled_time)
++        if past_error:
++            flash(past_error, "danger")
++            conn.close()
++            return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
+ 
+         # Recurrence is a "repeat the same booking on more dates" option
+         # only offered to a CFI/admin actually placing the booking - a
+@@ -3009,6 +3040,11 @@
+         conn.close()
+         flash("That request isn't awaiting approval.", "danger")
+         return redirect(url_for("flight.dashboard"))
++    past_error = _past_booking_error(sched["scheduled_date"], sched["scheduled_time"])
++    if past_error:
++        conn.close()
++        flash("Can't approve - the requested time has already passed. Edit it to a new time or deny it.", "danger")
++        return redirect(url_for("flight.dashboard"))
+     solo = sched["solo"]
+     # A solo request stays solo (no auto-assigned instructor) - only an
+     # "Any instructor" dual request (not solo, no cfi_id picked) defaults to
+@@ -3082,6 +3118,14 @@
+             flash("Select a plane, a student, and a date.", "danger")
+             conn.close()
+             return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
++        # Moving a booking into the past isn't allowed; editing other details
++        # of a booking whose time has already passed still is.
++        if (scheduled_date, scheduled_time) != (sched["scheduled_date"], sched["scheduled_time"]):
++            past_error = _past_booking_error(scheduled_date, scheduled_time)
++            if past_error:
++                flash(past_error, "danger")
++                conn.close()
++                return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
+         conflicts = _scheduling_conflicts(conn, asset_id, cfi_id, student_id, scheduled_date, scheduled_time,
+                                           duration_hours, exclude_id=scheduled_id)
+         if conflicts:
+@@ -3140,6 +3184,11 @@
+         flash("Pick a new date.", "danger")
+         conn.close()
+         return redirect(url_for("flight.schedule_calendar", year=sched["scheduled_date"][:4], month=int(sched["scheduled_date"][5:7])))
++    past_error = _past_booking_error(new_date, new_time)
++    if past_error:
++        flash("Not rescheduled - " + past_error, "danger")
++        conn.close()
++        return redirect(url_for("flight.schedule_calendar", year=sched["scheduled_date"][:4], month=int(sched["scheduled_date"][5:7])))
+     conflicts = _scheduling_conflicts(conn, sched["asset_id"], sched["cfi_id"], sched["student_id"],
+                                       new_date, new_time, sched["duration_hours"], exclude_id=scheduled_id)
+     if conflicts:
+--- _tmp/p55orig/templates/flight/schedule_form.html
++++ templates/flight/schedule_form.html
+@@ -112,7 +112,7 @@
+     <div class="row">
+       <div class="col-md-4 mb-3">
+         <label class="form-label" id="date-label">{{ 'Flight Date *' if is_complete else 'Date *' }}</label>
+-        <input type="date" name="scheduled_date" class="form-control" value="{{ form.get('scheduled_date') if form else (sched.scheduled_date if sched else today) }}" required>
++        <input type="date" name="scheduled_date" class="form-control" value="{{ form.get('scheduled_date') if form else (sched.scheduled_date if sched else today) }}" required{% if sched %} data-edit="1"{% endif %}>
+       </div>
+       <div class="col-md-4 mb-3 sched-only">
+         <label class="form-label">Time</label>
+@@ -554,8 +554,17 @@
+       el.querySelectorAll('input, select, textarea').forEach(function (i) { i.disabled = !on; });
+     });
+   }
++  // No booking in the past: the date picker starts at today, unless it's a
++  // completed flight being logged (or an existing booking being edited -
++  // the server only blocks moving it into the past).
++  var dateBox = document.querySelector('input[name="scheduled_date"]');
++  var d0 = new Date();
++  var todayStr = d0.getFullYear() + '-' + String(d0.getMonth() + 1).padStart(2, '0') + '-' + String(d0.getDate()).padStart(2, '0');
+   function sync() {
+     var done = completeCheck.checked;
++    if (dateBox && !dateBox.dataset.edit) {
++      if (done) { dateBox.removeAttribute('min'); } else { dateBox.min = todayStr; }
++    }
+     setGroup('.sched-only', !done);
+     setGroup('.complete-only', done);
+     submitBtn.textContent = done ? 'Log Flight' : 'Schedule Flight';

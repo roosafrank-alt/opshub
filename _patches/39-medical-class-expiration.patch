@@ -1,0 +1,525 @@
+--- _tmp/p39/flight.py	2026-09-24 02:48:46.338231321 +0000
++++ flight.py	2026-09-24 02:49:57.577479430 +0000
+@@ -252,6 +252,13 @@
+     rows = conn.execute(sql, params).fetchall()
+ 
+     conflicts = []
++    # A CFI with an expired medical can't be booked at all - reported like a
++    # conflict so every save/approve/edit/reschedule path stops on it (a
++    # repeating series skips just the dates past the expiry).
++    med_problem = _cfi_medical_problem(conn, cfi_id, scheduled_date)
++    if med_problem:
++        conflicts.append({"message": med_problem, "id": 0, "date": scheduled_date, "plane_tag": None,
++                          "student_name": None, "cfi_name": None, "time": None})
+     for r in rows:
+         other_window = _time_window(r["scheduled_time"], r["duration_hours"])
+         if not _windows_overlap(window, other_window):
+@@ -448,6 +455,84 @@
+     return out
+ 
+ 
++MEDICAL_CLASSES = [("first", "First Class"), ("second", "Second Class"), ("third", "Third Class"), ("basicmed", "BasicMed")]
++MEDICAL_WARN_DAYS = 30  # "expiring soon" window for the dashboard / list badges
++
++
++def _medical_status(row, on_date=None):
++    """A student's or CFI's medical as of on_date (YYYY-MM-DD, default
++    today): {"class", "label", "expires", "ok", "days_left"}. ok is None when
++    no expiry is on file (not tracked - nothing is checked), True through
++    the expiry date, False after it."""
++    cls = row["medical_class"] if row is not None and "medical_class" in row.keys() else None
++    expires = row["medical_expires"] if row is not None and "medical_expires" in row.keys() else None
++    out = {"class": cls, "label": dict(MEDICAL_CLASSES).get(cls, "Medical"), "expires": expires,
++           "ok": None, "days_left": None}
++    if not expires:
++        return out
++    try:
++        exp = datetime.strptime(expires, "%Y-%m-%d").date()
++        check = datetime.strptime(on_date, "%Y-%m-%d").date() if on_date else date.today()
++    except ValueError:
++        return out
++    out["days_left"] = (exp - check).days
++    out["ok"] = check <= exp
++    return out
++
++
++def _medical_from_form(form):
++    """(medical_class, medical_expires) from a student/CFI form - an unknown
++    class or unreadable date is dropped rather than stored."""
++    cls = (form.get("medical_class") or "").strip()
++    if cls not in dict(MEDICAL_CLASSES):
++        cls = None
++    exp = (form.get("medical_expires") or "").strip()
++    try:
++        exp = datetime.strptime(exp, "%Y-%m-%d").date().isoformat() if exp else None
++    except ValueError:
++        exp = None
++    return cls, exp
++
++
++def _medical_expired_phrase(med):
++    """'expired 09-21-2026' if it's already past, else 'runs out
++    10-05-2026, before this flight' (a booking further out than the expiry)."""
++    if med["days_left"] is not None and med["expires"] < date.today().isoformat():
++        return f"expired {_us_date(med['expires'])}"
++    return f"runs out {_us_date(med['expires'])}, before this flight"
++
++
++def _cfi_medical_problem(conn, cfi_id, on_date):
++    """A blocking message if this CFI's medical has expired as of on_date
++    (CFIs can't fly without a current one), else None."""
++    if not cfi_id:
++        return None
++    row = conn.execute("SELECT name, medical_class, medical_expires FROM cfis WHERE id = ?", (cfi_id,)).fetchone()
++    med = _medical_status(row, on_date)
++    if med["ok"] is False:
++        return (f"{row['name']}'s {med['label'].lower()} medical {_medical_expired_phrase(med)} - "
++                f"a CFI can't fly without a current medical. Update it on their CFI profile, or pick another instructor.")
++    return None
++
++
++def _medical_alerts(conn):
++    """Active students and CFIs whose medical is expired or runs out within
++    MEDICAL_WARN_DAYS - for the dashboard. Each: kind, id, name, status, url."""
++    out = []
++    for kind, table, endpoint, key in (("CFI", "cfis", "flight.cfi_edit", "cfi_id"),
++                                      ("Student", "students", "flight.student_edit", "student_id")):
++        extra = " AND is_station = 0" if table == "students" else ""
++        for r in conn.execute(f"SELECT id, name, medical_class, medical_expires FROM {table} "
++                              f"WHERE active = 1 AND medical_expires IS NOT NULL AND medical_expires != ''{extra}").fetchall():
++            med = _medical_status(r)
++            if med["ok"] is None or (med["ok"] and med["days_left"] > MEDICAL_WARN_DAYS):
++                continue
++            out.append({"kind": kind, "id": r["id"], "name": r["name"], "med": med,
++                        "url": url_for(endpoint, **{key: r["id"]}, _anchor="medical")})
++    out.sort(key=lambda a: a["med"]["days_left"])
++    return out
++
++
+ def _needs_review_flag(r):
+     """Whether a booking should show the caution triangle on the Schedule
+     and dashboard chips: flagged for review and still just booked. Unlike
+@@ -468,11 +553,15 @@
+     reason = reason or ""
+     links = []
+     edit_url = url_for("flight.schedule_edit", scheduled_id=scheduled_id)
++    if "medical" in reason and student_id:
++        links.append(dict(label="Update medical", icon="bi-heart-pulse",
++                          url=url_for("flight.student_edit", student_id=student_id, _anchor="medical"),
++                          hint="Enter the student's new medical expiration"))
+     if "sign-off" in reason and student_id:
+         links.append(dict(label="Renew solo sign-off", icon="bi-pen",
+                           url=url_for("flight.student_edit", student_id=student_id, _anchor="solo-signoff"),
+                           hint="Enter the new sign-off date on the student's profile"))
+-    if ("currency" in reason or "No dual" in reason):
++    if ("currency" in reason or "No dual" in reason or "medical" in reason):
+         links.append(dict(label="Add an instructor", icon="bi-person-plus", url=edit_url,
+                           hint="Make it a dual flight - or log a dual flight for this student to bring them current"))
+         if student_id:
+@@ -575,6 +664,12 @@
+         return 0, None
+     if solo:
+         reasons = []
++        med_row = conn.execute("SELECT medical_class, medical_expires FROM students WHERE id = ?",
++                               (student_id,)).fetchone()
++        med = _medical_status(med_row, flight_date)
++        if med["ok"] is False:
++            reasons.append(f"Student's {med['label'].lower()} medical {_medical_expired_phrase(med)} - can't fly "
++                           f"solo without a current medical. Add an instructor (dual is fine) or update the medical.")
+         signoff = _solo_signoff_status(conn, student_id, flight_date)
+         if signoff["ok"] is False:
+             reasons.append(f"Solo sign-off expired {_us_date(signoff['expires'])} - this flight is past the "
+@@ -964,6 +1059,8 @@
+         needs_review_flights = [dict(n, time_label=_format_time_12h(n["scheduled_time"]),
+                                      fix_links=_alert_fix_links(n["review_reason"], n["id"], n["student_id"]))
+                                 for n in needs_review_flights]
++        # Expired / soon-to-expire medicals (students + CFIs).
++        medical_alerts = _medical_alerts(conn)
+         # Bookings a late flight's updated ETA runs into (see _eta_impacts).
+         eta_impacts = _eta_impacts(conn)
+         eta_delayed_flights = []
+@@ -1013,6 +1110,7 @@
+     else:
+         needs_review_flights = []
+         eta_delayed_flights = []
++        medical_alerts = []
+         today_flights = []
+         today_flights_total = 0
+         today_flights_completed = 0
+@@ -1121,6 +1219,7 @@
+                 active_flights=active_flights, upcoming=upcoming, plane_maint=plane_maint,
+                 pending_requests=pending_requests, my_requests=my_requests,
+                 needs_review_flights=needs_review_flights, eta_delayed_flights=eta_delayed_flights,
++                medical_alerts=medical_alerts,
+                 next_lesson=next_lesson, last_flight_ago=last_flight_ago,
+                 solo_currency=solo_currency,
+                 solo_currency_days=solo_currency["interval_days"] if solo_currency else DEFAULT_SOLO_CURRENCY_DAYS,
+@@ -1215,9 +1314,10 @@
+     activity = _student_activity(conn)
+     currency = {s["id"]: _solo_currency_status(conn, s["id"]) for s in students if not s["is_station"]}
+     signoff = {s["id"]: _solo_signoff_status(conn, s["id"]) for s in students if not s["is_station"]}
++    medical = {s["id"]: _medical_status(s) for s in students if not s["is_station"]}
+     conn.close()
+     return render_template("flight/students.html", students=students, activity=activity, currency=currency,
+-                           signoff=signoff)
++                           signoff=signoff, medical=medical, medical_warn_days=MEDICAL_WARN_DAYS)
+ 
+ 
+ def _refresh_solo_review_flags(conn, student_id):
+@@ -1279,13 +1379,13 @@
+         solo_signoff_date, solo_signoff_expires = _solo_signoff_from_form(request.form)
+         if not name or not username or not password:
+             flash("Name, username, and a starting password are all required.", "danger")
+-            return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS)
++            return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES)
+         conn = get_db()
+         existing = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+         if existing:
+             conn.close()
+             flash(f"Username '{username}' is already taken.", "danger")
+-            return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS)
++            return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES)
+         # A master login account (flight_role='student') plus the linked
+         # student profile that holds their rate overrides - what THIS
+         # student pays for the plane and for instruction, since both can
+@@ -1302,11 +1402,14 @@
+                      (name, username, generate_password_hash(password, method="pbkdf2:sha256"), rate_override,
+                       plane_rate_override, solo_currency_days, solo_signoff_date, solo_signoff_expires, is_station,
+                       session.get("cfi_id"), user_id, now_iso()))
++        medical_class, medical_expires = _medical_from_form(request.form)
++        conn.execute("UPDATE students SET medical_class = ?, medical_expires = ? WHERE user_id = ?",
++                     (medical_class, medical_expires, user_id))
+         conn.commit()
+         conn.close()
+         flash(f"Student '{name}' added. Give them their username and starting password to log in.", "success")
+         return redirect(url_for("flight.students_list"))
+-    return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS)
++    return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES)
+ 
+ 
+ @flight_bp.route("/students/<int:student_id>/edit", methods=["GET", "POST"])
+@@ -1340,7 +1443,7 @@
+         if not name:
+             flash("Name is required.", "danger")
+             conn.close()
+-            return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS)
++            return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES)
+         if new_password:
+             conn.execute("UPDATE students SET name=?, rate_override=?, plane_rate_override=?, solo_currency_days=?, solo_signoff_date=?, solo_signoff_expires=?, is_station=?, active=?, password_hash=? WHERE id=?",
+                          (name, rate_override, plane_rate_override, solo_currency_days, solo_signoff_date, solo_signoff_expires,
+@@ -1354,12 +1457,18 @@
+         _log_field_change(conn, "student", student_id, "plane_rate_override", student["plane_rate_override"], plane_rate_override, who)
+         _log_field_change(conn, "student", student_id, "solo_signoff_date", student["solo_signoff_date"], solo_signoff_date, who)
+         _log_field_change(conn, "student", student_id, "solo_signoff_expires", student["solo_signoff_expires"], solo_signoff_expires, who)
++        medical_class, medical_expires = _medical_from_form(request.form)
++        conn.execute("UPDATE students SET medical_class = ?, medical_expires = ? WHERE id = ?",
++                     (medical_class, medical_expires, student_id))
++        _log_field_change(conn, "student", student_id, "medical_class", student["medical_class"], medical_class, who)
++        _log_field_change(conn, "student", student_id, "medical_expires", student["medical_expires"], medical_expires, who)
+         conn.commit()
+-        if (solo_signoff_date, solo_signoff_expires) != (student["solo_signoff_date"], student["solo_signoff_expires"]):
++        if ((solo_signoff_date, solo_signoff_expires) != (student["solo_signoff_date"], student["solo_signoff_expires"])
++                or (medical_class, medical_expires) != (student["medical_class"], student["medical_expires"])):
+             reflagged = _refresh_solo_review_flags(conn, student_id)
+             if reflagged:
+                 flash(f"{reflagged} upcoming solo flight{'s' if reflagged != 1 else ''} for this student "
+-                      f"{'are' if reflagged != 1 else 'is'} now flagged for review - past the solo sign-off expiry.", "warning")
++                      f"{'are' if reflagged != 1 else 'is'} now flagged for review - past the solo sign-off or medical expiry.", "warning")
+         # Keep the master login account (the actual place passwords/active
+         # are checked at sign-in) in step with this edit.
+         if student["user_id"]:
+@@ -1381,10 +1490,12 @@
+                                       ORDER BY f.flight_date DESC, f.id DESC LIMIT 10""", (student_id,)).fetchall()
+     solo_currency = None if student["is_station"] else _solo_currency_status(conn, student_id)
+     solo_signoff = None if student["is_station"] else _solo_signoff_status(conn, student_id)
++    medical = None if student["is_station"] else _medical_status(student)
+     conn.close()
+     return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS,
+                            ledger=ledger, can_bill=can_manage_billing(), activity=activity,
+-                           recent_flights=recent_flights, solo_currency=solo_currency, solo_signoff=solo_signoff)
++                           recent_flights=recent_flights, solo_currency=solo_currency, solo_signoff=solo_signoff,
++                           medical=medical, medical_classes=MEDICAL_CLASSES)
+ 
+ 
+ @flight_bp.route("/students/<int:student_id>/add_funds", methods=["POST"])
+@@ -1486,7 +1597,7 @@
+     query += " ORDER BY c.active DESC, c.name"
+     cfis = conn.execute(query, params).fetchall()
+     conn.close()
+-    return render_template("flight/cfis.html", cfis=cfis, q=q)
++    return render_template("flight/cfis.html", cfis=cfis, q=q, medical={c["id"]: _medical_status(c) for c in cfis}, medical_warn_days=MEDICAL_WARN_DAYS)
+ 
+ 
+ def _used_cfi_colors(conn, exclude_cfi_id=None):
+@@ -1535,17 +1646,17 @@
+             color = None
+         if color and color in _used_cfi_colors(conn):
+             flash("That color is already taken by another instructor or a plane - pick a different one.", "danger")
+-            return render_template("flight/cfi_form.html", cfi=None, used_colors=_used_cfi_colors(conn),
++            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=None, used_colors=_used_cfi_colors(conn),
+                                     instructor_colors=SCHEDULE_COLORS, name=name, username=username)
+         if not name or not username or not password:
+             flash("Name, username, and a starting password are all required.", "danger")
+-            return render_template("flight/cfi_form.html", cfi=None, used_colors=_used_cfi_colors(conn),
++            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=None, used_colors=_used_cfi_colors(conn),
+                                     instructor_colors=SCHEDULE_COLORS)
+         existing = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+         if existing:
+             conn.close()
+             flash(f"Username '{username}' is already taken.", "danger")
+-            return render_template("flight/cfi_form.html", cfi=None, instructor_colors=SCHEDULE_COLORS)
++            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=None, instructor_colors=SCHEDULE_COLORS)
+         cur = conn.execute(
+             "INSERT INTO users (name, username, password_hash, password_plain, flight_role, can_bill, active, created_at) "
+             "VALUES (?, ?, ?, ?, 'cfi', ?, 1, ?)",
+@@ -1556,6 +1667,9 @@
+             "INSERT INTO cfis (name, username, password_hash, rate_per_hour, color, active, user_id, created_at) "
+             "VALUES (?, ?, ?, ?, ?, 1, ?, ?)",
+             (name, username, generate_password_hash(password, method="pbkdf2:sha256"), rate_per_hour, color, user_id, now_iso()))
++        medical_class, medical_expires = _medical_from_form(request.form)
++        conn.execute("UPDATE cfis SET medical_class = ?, medical_expires = ? WHERE user_id = ?",
++                     (medical_class, medical_expires, user_id))
+         conn.commit()
+         conn.close()
+         flash(f"CFI '{name}' added. Give them their username and starting password to log in.", "success")
+@@ -1563,7 +1677,7 @@
+     conn = get_db()
+     used_colors = _used_cfi_colors(conn)
+     conn.close()
+-    return render_template("flight/cfi_form.html", cfi=None, used_colors=used_colors, instructor_colors=SCHEDULE_COLORS)
++    return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=None, used_colors=used_colors, instructor_colors=SCHEDULE_COLORS)
+ 
+ 
+ @flight_bp.route("/cfis/<int:cfi_id>/edit", methods=["GET", "POST"])
+@@ -1601,7 +1715,7 @@
+         if not name:
+             flash("Name is required.", "danger")
+             conn.close()
+-            return render_template("flight/cfi_form.html", cfi=cfi_row, used_colors=_used_cfi_colors(conn, cfi_id),
++            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=cfi_row, used_colors=_used_cfi_colors(conn, cfi_id),
+                                     instructor_colors=SCHEDULE_COLORS)
+         if color and color in _used_cfi_colors(conn, exclude_cfi_id=cfi_id):
+             flash("That color is already taken by another instructor or a plane - pick a different one.", "danger")
+@@ -1618,7 +1732,19 @@
+                          (name, rate_per_hour, pay_rate_per_hour, color, active,
+                           cred_cfi, cred_cfii, cred_mei, cred_agi, cred_bgi, cred_igi, cfi_id))
+         _log_field_change(conn, "cfi", cfi_id, "pay_rate_per_hour", cfi_row["pay_rate_per_hour"], pay_rate_per_hour, session.get("user_name"))
++        medical_class, medical_expires = _medical_from_form(request.form)
++        conn.execute("UPDATE cfis SET medical_class = ?, medical_expires = ? WHERE id = ?",
++                     (medical_class, medical_expires, cfi_id))
++        _log_field_change(conn, "cfi", cfi_id, "medical_expires", cfi_row["medical_expires"], medical_expires, session.get("user_name"))
+         conn.commit()
++        med_now = _medical_status(conn.execute("SELECT medical_class, medical_expires FROM cfis WHERE id = ?",
++                                               (cfi_id,)).fetchone())
++        if med_now["ok"] is False:
++            upcoming = conn.execute("""SELECT COUNT(*) c FROM scheduled_flights WHERE cfi_id = ? AND status = 'scheduled'
++                                       AND scheduled_date > ?""", (cfi_id, medical_expires)).fetchone()["c"]
++            if upcoming:
++                flash(f"Heads up: {name} has {upcoming} booking{'s' if upcoming != 1 else ''} after their medical "
++                      f"expired ({_us_date(medical_expires)}) - they can't be started until the medical is updated.", "warning")
+         # Keep the master login account (the actual place passwords/active/
+         # can_bill are checked) in step with this edit.
+         if cfi_row["user_id"]:
+@@ -1635,7 +1761,7 @@
+         return redirect(url_for("flight.cfis_list"))
+     used_colors = _used_cfi_colors(conn, exclude_cfi_id=cfi_id)
+     conn.close()
+-    return render_template("flight/cfi_form.html", cfi=cfi_row, cfi_user=user_row,
++    return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=cfi_row, cfi_user=user_row,
+                            used_colors=used_colors, instructor_colors=SCHEDULE_COLORS)
+ 
+ 
+@@ -2560,6 +2686,11 @@
+         conn.close()
+         flash("That booking is no longer available to start (already started, flown, or cancelled).", "danger")
+         return redirect(url_for("flight.schedule_calendar"))
++    med_problem = _cfi_medical_problem(conn, sched["cfi_id"], date.today().isoformat())
++    if med_problem:
++        conn.close()
++        flash("Not started - " + med_problem, "danger")
++        return redirect(request.referrer or url_for("flight.schedule_calendar"))
+     can_start, opens_at = _start_window(sched["scheduled_date"], sched["scheduled_time"])
+     if not can_start:
+         if request.form.get("move_to_now") != "1":
+--- _tmp/p39/db.py	2026-09-24 02:48:46.340615648 +0000
++++ db.py	2026-09-24 02:48:46.355660453 +0000
+@@ -553,6 +553,18 @@
+             conn.execute(f"ALTER TABLE students ADD COLUMN {col} TEXT")
+             conn.commit()
+ 
++    # FAA medical for students and CFIs: class ('first' | 'second' |
++    # 'third' | 'basicmed') and the date it runs out. flight.py blocks
++    # booking/starting a flight with a CFI whose medical has expired, and
++    # flags a solo whose student's medical has expired (dual is still OK).
++    # Blank = not tracked, nothing is checked.
++    for table in ("students", "cfis"):
++        cols = [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]
++        for col in ("medical_class", "medical_expires"):
++            if col not in cols:
++                conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
++                conn.commit()
++
+     # Flag a scheduled flight for admin/CFI review instead of refusing to
+     # save it outright: a solo flight booked despite the student being over
+     # their solo currency interval, or a dual flight booked with no
+--- _tmp/p39/schema.sql	2026-09-24 02:48:46.342402674 +0000
++++ schema.sql	2026-09-24 02:48:46.358334326 +0000
+@@ -162,7 +162,9 @@
+     cred_agi INTEGER NOT NULL DEFAULT 0,
+     cred_bgi INTEGER NOT NULL DEFAULT 0,
+     cred_igi INTEGER NOT NULL DEFAULT 0,
+-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
++    created_at TEXT NOT NULL DEFAULT (datetime('now')),
++    medical_class TEXT, -- FAA medical: first | second | third | basicmed (blank = not tracked)
++    medical_expires TEXT -- YYYY-MM-DD the medical runs out
+ );
+ 
+ CREATE TABLE IF NOT EXISTS students (
+@@ -180,7 +182,9 @@
+     created_by_cfi_id INTEGER REFERENCES cfis(id),
+     user_id INTEGER REFERENCES users(id), -- links this student profile to its master login
+     balance REAL NOT NULL DEFAULT 0, -- running credit(+)/owed(-) balance, denormalized from student_ledger
+-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
++    created_at TEXT NOT NULL DEFAULT (datetime('now')),
++    medical_class TEXT, -- FAA medical: first | second | third | basicmed (blank = not tracked)
++    medical_expires TEXT -- YYYY-MM-DD the medical runs out
+ );
+ 
+ -- Every billing balance change for a student - funds added, or a flight's
+--- _tmp/p39/t/student_form.html	2026-09-24 02:48:46.344282077 +0000
++++ templates/flight/student_form.html	2026-09-24 02:49:18.449443284 +0000
+@@ -33,6 +33,12 @@
+       {% else %}<span class="badge bg-secondary">No dual yet</span>{% endif %}
+     </div>
+     <div class="col-6 col-md-3">
++      <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Medical</div>
++      {% if medical and medical.ok %}<span class="badge {{ 'bg-warning text-dark' if medical.days_left <= 30 else 'bg-success' }}">{{ medical.label }} to {{ medical.expires|usdate }}</span><div class="text-muted">{{ medical.days_left }}d left</div>
++      {% elif medical and medical.ok is false %}<span class="badge bg-danger">Expired {{ medical.expires|usdate }}</span><div class="text-muted">dual only - no solo</div>
++      {% else %}<span class="badge bg-secondary">None on file</span>{% endif %}
++    </div>
++    <div class="col-6 col-md-3">
+       <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Solo sign-off</div>
+       {% if solo_signoff and solo_signoff.ok %}<span class="badge {{ 'bg-warning text-dark' if solo_signoff.days_left <= 14 else 'bg-success' }}">Good to {{ solo_signoff.expires|usdate }}</span><div class="text-muted">{{ solo_signoff.days_left }}d left</div>
+       {% elif solo_signoff and solo_signoff.ok is false %}<span class="badge bg-danger">Expired {{ solo_signoff.expires|usdate }}</span><div class="text-muted">needs a new sign-off</div>
+@@ -104,6 +110,24 @@
+     </div>
+     <p class="text-muted small mt-n2 mb-3">The Plane Rate is what this student pays per hour for any plane (planes don't have their own rate) - leave it blank and the plane isn't charged. Leave the Instructor Rate blank to use the CFI's rate.</p>
+ 
++
++    <div class="row" id="medical" style="scroll-margin-top:80px;">
++      <div class="col-md-6 mb-3">
++        <label class="form-label">Medical Class</label>
++        <select name="medical_class" class="form-select">
++          <option value="">- Not tracked -</option>
++          {% for code, label in medical_classes %}
++          <option value="{{ code }}" {{ 'selected' if student and student.medical_class == code }}>{{ label }}</option>
++          {% endfor %}
++        </select>
++      </div>
++      <div class="col-md-6 mb-3">
++        <label class="form-label">Medical Expires</label>
++        <input type="date" name="medical_expires" class="form-control" value="{{ student.medical_expires if student and student.medical_expires else '' }}">
++      </div>
++    </div>
++    <p class="text-muted small mt-n2 mb-3">With an expired medical a student can still fly dual, but a solo gets flagged for review (and shows on the Alerts tab) until an instructor is added or the medical is updated. Leave it blank if you don't track it.</p>
++
+     <div class="row" id="solo-signoff" style="scroll-margin-top:80px;">
+       <div class="col-md-6 mb-3">
+         <label class="form-label">Solo Sign-off Date <span class="text-muted small">(CFI solo endorsement)</span></label>
+--- _tmp/p39/t/students.html	2026-09-24 02:48:46.345265591 +0000
++++ templates/flight/students.html	2026-09-24 02:49:18.453909475 +0000
+@@ -49,6 +49,7 @@
+         {% if s.is_station or not cur %}{% elif cur.ok %}<span class="badge bg-success">{{ cur.interval_days - cur.days_since }}d</span>
+         {% elif cur.last_dual_date %}<span class="badge bg-danger">Due</span>{% else %}<span class="badge bg-secondary">No dual</span>{% endif %}
+         {% set so = signoff.get(s.id) %}{% if so and so.ok is false %}<span class="badge bg-danger" title="Solo sign-off expired {{ so.expires|usdate }}">S/O</span>{% endif %}
++        {% set md = medical.get(s.id) %}{% if md and md.ok is false %}<span class="badge bg-danger" title="Medical expired {{ md.expires|usdate }} - dual only">Med</span>{% elif md and md.ok and md.days_left <= medical_warn_days %}<span class="badge bg-warning text-dark" title="Medical expires {{ md.expires|usdate }}">Med</span>{% endif %}
+       </span>
+       <span class="sm-meta fw-semibold {{ 'text-success' if s.balance > 0.005 else ('text-danger' if s.balance < -0.005 else '') }}" title="Account">
+         {% if s.balance < -0.005 %}-${{ '%.0f'|format(-s.balance) }}{% else %}${{ '%.0f'|format(s.balance) }}{% endif %}
+@@ -70,6 +71,11 @@
+         <dd>{% if so and so.ok %}Signed off {{ so.signoff_date|usdate if so.signoff_date else '-' }} &middot; good to {{ so.expires|usdate }} ({{ so.days_left }} days left)
+           {% elif so and so.ok is false %}<span class="badge bg-danger">Expired</span> {{ so.expires|usdate }} &middot; needs a new sign-off
+           {% else %}<span class="text-muted">None on file</span>{% endif %}</dd>
++        {% set md = medical.get(s.id) %}
++        <dt>Medical</dt>
++        <dd>{% if md and md.ok %}{{ md.label }} &middot; good to {{ md.expires|usdate }} ({{ md.days_left }} days left)
++          {% elif md and md.ok is false %}<span class="badge bg-danger">Expired</span> {{ md.expires|usdate }} &middot; dual only, no solo
++          {% else %}<span class="text-muted">None on file</span>{% endif %}</dd>
+         {% endif %}
+         <dt>Account</dt>
+         <dd><a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='account') }}">{% if s.balance > 0.005 %}${{ '%.2f'|format(s.balance) }} credit{% elif s.balance < -0.005 %}${{ '%.2f'|format(-s.balance) }} owed{% else %}$0.00{% endif %}</a></dd>
+@@ -116,6 +122,9 @@
+             {% set so = signoff.get(s.id) %}
+             {% if so and so.ok %}<div class="small text-muted" title="Solo sign-off {{ so.signoff_date|usdate if so.signoff_date else '' }}">Sign-off to {{ so.expires|usdate }}</div>
+             {% elif so and so.ok is false %}<div><span class="badge bg-danger" title="Solo sign-off expired {{ so.expires|usdate }}">Sign-off expired</span></div>{% endif %}
++            {% set md = medical.get(s.id) %}
++            {% if md and md.ok is false %}<div><span class="badge bg-danger" title="{{ md.label }} medical expired {{ md.expires|usdate }} - dual only">Medical expired</span></div>
++            {% elif md and md.ok and md.days_left <= medical_warn_days %}<div><span class="badge bg-warning text-dark" title="{{ md.label }} medical expires {{ md.expires|usdate }}">Medical {{ md.days_left }}d</span></div>{% endif %}
+           </td>
+           <td data-label="Username"><code>{{ s.username }}</code></td>
+           <td data-label="Instructor Rate"><a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='instructor_rate') }}" class="text-decoration-none" title="View / edit / history">{% if s.rate_override is not none %}${{ '%.2f'|format(s.rate_override) }}/hr{% else %}<span class="text-muted">CFI's rate</span>{% endif %}</a></td>
+--- _tmp/p39/t/cfi_form.html	2026-09-24 02:48:46.346087354 +0000
++++ templates/flight/cfi_form.html	2026-09-24 02:49:18.450667511 +0000
+@@ -51,6 +51,23 @@
+         {% endfor %}
+       </div>
+     </div>
++
++    <div class="row" id="medical" style="scroll-margin-top:80px;">
++      <div class="col-md-6 mb-3">
++        <label class="form-label">Medical Class</label>
++        <select name="medical_class" class="form-select">
++          <option value="">- Not tracked -</option>
++          {% for code, label in medical_classes %}
++          <option value="{{ code }}" {{ 'selected' if cfi and cfi.medical_class == code }}>{{ label }}</option>
++          {% endfor %}
++        </select>
++      </div>
++      <div class="col-md-6 mb-3">
++        <label class="form-label">Medical Expires</label>
++        <input type="date" name="medical_expires" class="form-control" value="{{ cfi.medical_expires if cfi and cfi.medical_expires else '' }}">
++      </div>
++    </div>
++    <p class="text-muted small mt-n2 mb-3">A CFI can't be booked on, or start, a flight after their medical expires. Leave it blank if you don't track it.</p>
+     <div class="form-check mb-3">
+       <input type="checkbox" class="form-check-input" name="can_bill" id="can-bill-check" {% if cfi_user and cfi_user.can_bill %}checked{% endif %}>
+       <label class="form-check-label" for="can-bill-check">Can manage billing <span class="text-muted small">($ totals, outstanding balances, marking paid - master admins always can regardless of this)</span></label>
+--- _tmp/p39/t/cfis.html	2026-09-24 02:48:46.346807656 +0000
++++ templates/flight/cfis.html	2026-09-24 02:49:18.451521190 +0000
+@@ -22,6 +22,10 @@
+             {% for code, label in [('cred_cfi','CFI'), ('cred_cfii','CFII'), ('cred_mei','MEI'), ('cred_agi','AGI'), ('cred_bgi','BGI'), ('cred_igi','IGI')] %}
+             {% if c[code] %}<span class="badge bg-primary">{{ label }}</span>{% endif %}
+             {% endfor %}
++            {% set med = medical.get(c.id) %}
++            {% if med and med.ok is false %}<span class="badge bg-danger" title="{{ med.label }} medical expired {{ med.expires|usdate }} - can't fly"><i class="bi bi-heart-pulse"></i> Medical expired</span>
++            {% elif med and med.ok and med.days_left <= medical_warn_days %}<span class="badge bg-warning text-dark" title="{{ med.label }} medical expires {{ med.expires|usdate }}"><i class="bi bi-heart-pulse"></i> Medical {{ med.days_left }}d</span>
++            {% elif med and med.ok %}<span class="badge bg-light text-dark border" title="{{ med.label }} medical to {{ med.expires|usdate }}"><i class="bi bi-heart-pulse"></i> {{ med.label }}</span>{% endif %}
+           </td>
+           <td data-label="Rate">${{ '%.2f'|format(c.rate_per_hour) }}/hr</td>
+           <td data-label="Billing Access">{% if c.user_id and c.can_bill %}<span class="badge bg-info text-dark">Yes</span>{% else %}<span class="text-muted">No</span>{% endif %}</td>
+--- _tmp/p39/t/_dashboard_live.html	2026-09-24 02:48:46.347999215 +0000
++++ templates/flight/_dashboard_live.html	2026-09-24 02:49:18.454930157 +0000
+@@ -48,6 +48,23 @@
+ </div>
+ {% endif %}
+ 
++{#- Medicals (students + CFIs) expired or running out within 30 days -
++   flight._medical_alerts. Expired CFIs can't be booked or start a flight;
++   expired students can fly dual but not solo. #}
++{% if medical_alerts %}
++<div class="alert {{ 'alert-danger border-danger' if medical_alerts|selectattr('med.ok', 'false')|list else 'alert-warning border-warning' }} border-2 mb-3">
++  <h6 class="alert-heading mb-1"><i class="bi bi-heart-pulse"></i> Medicals Needing Attention</h6>
++  {% for m in medical_alerts %}
++  <div class="small py-1 {{ 'border-top' if not loop.first }} d-flex justify-content-between align-items-center flex-wrap gap-1">
++    <span><strong>{{ m.name }}</strong> <span class="text-muted">({{ m.kind }}, {{ m.med.label }})</span> &middot;
++      {% if m.med.ok is false %}<span class="badge bg-danger">Expired {{ m.med.expires|usdate }}</span> {{ "can't fly" if m.kind == 'CFI' else 'dual only - no solo' }}
++      {% else %}<span class="badge bg-warning text-dark">Expires {{ m.med.expires|usdate }}</span> {{ m.med.days_left }} day{{ 's' if m.med.days_left != 1 }} left{% endif %}</span>
++    <a href="{{ m.url }}" class="btn btn-sm btn-outline-dark">Update</a>
++  </div>
++  {% endfor %}
++</div>
++{% endif %}
++
+ {#- Later bookings a late flight's updated ETA runs into (same plane,
+    instructor or student) - see flight._eta_impacts / log_set_eta. Goes
+    away on its own once the late flight ends or the ETA is cleared. #}

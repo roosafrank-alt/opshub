@@ -1,0 +1,114 @@
+--- a/templates/flight/students.html
++++ b/templates/flight/students.html
+@@ -1,6 +1,28 @@
+ {% extends "flight/base_flight.html" %}
+ {% block title %}Students - OpsHub{% endblock %}
+ {% block content %}
++<style>
++  /* Phones get a compact one-line-per-student list (tap a line for the
++     rest); tablets and computers keep the full table. */
++  .students-mobile { display: none; }
++  @media (max-width: 575.98px) {
++    .students-desktop { display: none; }
++    .students-mobile { display: block; }
++  }
++  .sm-row { display: flex; align-items: center; gap: .4rem; padding: .55rem .6rem; border-bottom: 1px solid #e9ecef;
++            cursor: pointer; white-space: nowrap; overflow: hidden; background: none; border-left: 0; border-right: 0; border-top: 0;
++            width: 100%; text-align: left; font: inherit; color: inherit; touch-action: manipulation; }
++  .sm-row:active { background: #f1f3f5; }
++  .sm-chev { flex: 0 0 auto; color: #adb5bd; transition: transform .15s ease; font-size: .8rem; }
++  .sm-item.is-open .sm-chev { transform: rotate(90deg); }
++  .sm-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
++  .sm-meta { flex: 0 0 auto; font-size: .78rem; color: #6c757d; }
++  .sm-meta .badge { font-size: .7rem; }
++  .sm-detail { display: none; padding: .5rem .75rem .75rem 1.6rem; background: #f8f9fa; border-bottom: 1px solid #e9ecef; font-size: .9rem; }
++  .sm-item.is-open .sm-detail { display: block; }
++  .sm-detail dt { font-weight: 600; font-size: .75rem; color: #6c757d; text-transform: uppercase; letter-spacing: .02em; margin-top: .35rem; }
++  .sm-detail dd { margin-bottom: 0; }
++</style>
+ <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+   <h4 class="mb-0">Students ({{ students|length }})</h4>
+   <div class="d-flex align-items-center gap-2">
+@@ -8,7 +30,57 @@
+     <a href="{{ url_for('flight.student_new') }}" class="btn btn-primary fw-bold"><i class="bi bi-plus-lg"></i> Add Student</a>
+   </div>
+ </div>
+-<div class="card">
++<div class="card students-mobile">
++  <div class="px-2 py-1 small text-muted border-bottom" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
++    Name &middot; last lesson &middot; landings (90d) &middot; solo &middot; account
++  </div>
++  {% for s in students %}
++  {% set act = activity.get(s.id) %}
++  {% set cur = currency.get(s.id) %}
++  <div class="sm-item" data-search="{{ s.name|lower }}">
++    <button type="button" class="sm-row" aria-expanded="false">
++      <i class="bi bi-chevron-right sm-chev"></i>
++      <span class="sm-name">{{ s.name }}{% if not s.active %} <span class="badge bg-secondary">Inactive</span>{% endif %}{% if s.is_station %} <span class="badge bg-info text-dark">Station</span>{% endif %}</span>
++      <span class="sm-meta" title="Last lesson">
++        {% if act and act.last_lesson and act.last_lesson.days_ago is not none %}{{ 'today' if act.last_lesson.days_ago == 0 else act.last_lesson.days_ago ~ 'd' }}{% else %}-{% endif %}
++      </span>
++      <span class="sm-meta" title="Landings in the last 90 days"><i class="bi bi-airplane"></i>{{ act.landings_90 if act else 0 }}</span>
++      <span class="sm-meta" title="Solo currency">
++        {% if s.is_station or not cur %}{% elif cur.ok %}<span class="badge bg-success">{{ cur.interval_days - cur.days_since }}d</span>
++        {% elif cur.last_dual_date %}<span class="badge bg-danger">Due</span>{% else %}<span class="badge bg-secondary">No dual</span>{% endif %}
++      </span>
++      <span class="sm-meta fw-semibold {{ 'text-success' if s.balance > 0.005 else ('text-danger' if s.balance < -0.005 else '') }}" title="Account">
++        {% if s.balance < -0.005 %}-${{ '%.0f'|format(-s.balance) }}{% else %}${{ '%.0f'|format(s.balance) }}{% endif %}
++      </span>
++    </button>
++    <div class="sm-detail">
++      <dl class="mb-2">
++        <dt>Last lesson</dt>
++        <dd>{% if act and act.last_lesson %}{% set l = act.last_lesson %}<a href="{{ url_for('flight.log_detail', flight_id=l.id) }}">{{ l.flight_date|usdate }}</a> &middot; {{ l.plane_tag }} &middot; {% if l.cfi_name %}{{ l.cfi_name }}{% else %}solo{% endif %}{% if l.days_ago is not none %} &middot; {{ 'today' if l.days_ago == 0 else l.days_ago ~ ' days ago' }}{% endif %}{% else %}<span class="text-muted">None yet</span>{% endif %}</dd>
++        <dt>Last landing</dt>
++        <dd>{% if act and act.last_landing %}{% set l = act.last_landing %}<a href="{{ url_for('flight.log_detail', flight_id=l.id) }}">{{ l.flight_date|usdate }}</a> &middot; {{ l.landings_total }} landing{{ 's' if l.landings_total != 1 }}{% if (l.night_landings_fs or 0) + (l.night_landings_tg or 0) %} ({{ (l.night_landings_fs or 0) + (l.night_landings_tg or 0) }} night){% endif %} &middot; {{ act.landings_90 }} in 90 days{% else %}<span class="text-muted">None logged</span>{% endif %}</dd>
++        {% if not s.is_station and cur %}
++        <dt>Solo</dt>
++        <dd>{% if cur.ok %}<span class="badge bg-success">Current</span> {{ cur.interval_days - cur.days_since }} days left (last dual {{ cur.last_dual_date|usdate }})
++          {% elif cur.last_dual_date %}<span class="badge bg-danger">Checkout due</span> {{ cur.days_since }} days since last dual ({{ cur.last_dual_date|usdate }})
++          {% else %}<span class="badge bg-secondary">No dual yet</span>{% endif %}</dd>
++        {% endif %}
++        <dt>Account</dt>
++        <dd><a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='account') }}">{% if s.balance > 0.005 %}${{ '%.2f'|format(s.balance) }} credit{% elif s.balance < -0.005 %}${{ '%.2f'|format(-s.balance) }} owed{% else %}$0.00{% endif %}</a></dd>
++        <dt>Rates</dt>
++        <dd>Instructor: <a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='instructor_rate') }}">{% if s.rate_override is not none %}${{ '%.2f'|format(s.rate_override) }}/hr{% else %}CFI's rate{% endif %}</a>
++          &middot; Plane: <a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='plane_rate') }}">{% if s.plane_rate_override is not none %}${{ '%.2f'|format(s.plane_rate_override) }}/hr{% else %}plane's rate{% endif %}</a></dd>
++        <dt>Username</dt>
++        <dd><code>{{ s.username }}</code> &middot; {% if s.active %}Active{% else %}Inactive{% endif %}</dd>
++      </dl>
++      <a href="{{ url_for('flight.student_edit', student_id=s.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-person-lines-fill"></i> Open student</a>
++    </div>
++  </div>
++  {% else %}
++  <p class="text-muted text-center py-3 mb-0">No students yet.</p>
++  {% endfor %}
++</div>
++<div class="card students-desktop">
+   <div class="table-responsive">
+     <table class="table table-hover align-middle mb-0 table-stack" id="students-table">
+       <thead class="table-light"><tr><th>Name</th><th>Last Lesson</th><th>Last Landing</th><th>Solo</th><th>Username</th><th>Instructor Rate</th><th>Plane Rate</th><th>Account</th><th>Status</th><th></th></tr></thead>
+@@ -62,13 +134,22 @@
+ <script>
+ (function () {
+   var input = document.getElementById('students-search');
+-  var rows = document.querySelectorAll('#students-table tbody tr[data-search]');
++  var rows = document.querySelectorAll('#students-table tbody tr[data-search], .students-mobile .sm-item[data-search]');
+   input.addEventListener('input', function () {
+     var q = input.value.trim().toLowerCase();
+     rows.forEach(function (row) {
+       row.style.display = row.getAttribute('data-search').indexOf(q) !== -1 ? '' : 'none';
+     });
+   });
++  // Phone list: tap a student's line to show/hide the rest of their info.
++  document.querySelectorAll('.students-mobile .sm-row').forEach(function (btn) {
++    btn.addEventListener('click', function () {
++      var item = btn.closest('.sm-item');
++      var open = !item.classList.contains('is-open');
++      item.classList.toggle('is-open', open);
++      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
++    });
++  });
+ })();
+ </script>
+ {% endblock %}

@@ -1,0 +1,230 @@
+--- a/flight.py
++++ b/flight.py
+@@ -117,6 +117,17 @@
+     return datetime.now() >= opens_at, opens_at
+ 
+ 
++def _slot_label(scheduled_date, scheduled_time):
++    """'Thu 9/24 at 2:00 PM' (or 'today at 2:00 PM') for a booking's slot -
++    what the early-start prompt tells the instructor it's booked for."""
++    try:
++        d = datetime.strptime(scheduled_date, "%Y-%m-%d").date()
++    except (TypeError, ValueError):
++        return scheduled_date or ""
++    day = "today" if d == date.today() else f"{d.strftime('%a')} {d.month}/{d.day}"
++    return f"{day} at {_format_time_12h(scheduled_time)}" if scheduled_time else day
++
++
+ def _opens_label(opens_at):
+     """'Tue 9/29 at 9:00 AM' (or 'today at 9:00 AM') for the not-yet message."""
+     if not opens_at:
+@@ -680,6 +691,7 @@
+             can_start, opens_at = _start_window(u["scheduled_date"], u["scheduled_time"])
+             u["can_start"] = can_start
+             u["start_opens_label"] = _opens_label(opens_at)
++            u["slot_label"] = _slot_label(u["scheduled_date"], u["scheduled_time"])
+         # Every student-submitted request awaiting an instructor's OK -
+         # school-wide, same reasoning as recent_flights above, so whichever
+         # CFI is logged in can act on it (not just one the student asked for).
+@@ -1876,11 +1888,34 @@
+         return redirect(url_for("flight.schedule_calendar"))
+     can_start, opens_at = _start_window(sched["scheduled_date"], sched["scheduled_time"])
+     if not can_start:
+-        conn.close()
+-        flash(f"This flight can't be started yet - it opens {_opens_label(opens_at)} "
+-              f"({START_EARLY_BUFFER_MIN} min before its slot). If it's actually leaving now, "
+-              "reschedule it to the current time first, then start it.", "warning")
+-        return redirect(request.referrer or url_for("flight.schedule_calendar"))
++        if request.form.get("move_to_now") != "1":
++            # Normally the page's "move it to now?" prompt catches this first
++            # (see _early_start_modal.html); this is the backstop for anything
++            # that posts here without going through it.
++            conn.close()
++            flash(f"Not started - this flight is booked for {_slot_label(sched['scheduled_date'], sched['scheduled_time'])} "
++                  f"and can only be started from {START_EARLY_BUFFER_MIN} min before its slot. "
++                  "If it's actually leaving now, press Start again and choose \"Move to now & start\".", "warning")
++            return redirect(request.referrer or url_for("flight.schedule_calendar"))
++        # The instructor confirmed it's really leaving now: move the booking
++        # to the current time first (same conflict check as a reschedule) so
++        # the calendar, conflicts and billing reflect when it actually flew.
++        now = datetime.now()
++        new_date = now.strftime("%Y-%m-%d")
++        new_time = now.strftime("%H:%M")
++        conflicts = _scheduling_conflicts(conn, sched["asset_id"], sched["cfi_id"], sched["student_id"],
++                                          new_date, new_time, sched["duration_hours"], exclude_id=scheduled_id)
++        if conflicts:
++            for c in conflicts:
++                flash(c["message"], "danger")
++            flash("Not started - moving this flight to now would conflict with the booking above. "
++                  "Sort that out (or reschedule it by hand), then start it.", "danger")
++            conn.close()
++            return redirect(_conflict_highlight_url(conflicts))
++        conn.execute("UPDATE scheduled_flights SET scheduled_date = ?, scheduled_time = ? WHERE id = ?",
++                     (new_date, new_time, scheduled_id))
++        flash(f"Booking moved from {_slot_label(sched['scheduled_date'], sched['scheduled_time'])} "
++              f"to now ({_format_time_12h(new_time)}).", "info")
+     plane = conn.execute("SELECT * FROM assets WHERE id = ?", (sched["asset_id"],)).fetchone()
+     solo = 1 if not sched["cfi_id"] else 0
+     cur = conn.execute("""INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, hobbs_start, tach_start,
+--- a/templates/flight/_dashboard_live.html
++++ b/templates/flight/_dashboard_live.html
+@@ -328,7 +328,12 @@
+               <button class="btn btn-success btn-sm"><i class="bi bi-play-fill"></i> Start</button>
+             </form>
+             {% else %}
+-            <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="Opens {{ u.start_opens_label }} - reschedule to start earlier"><i class="bi bi-lock"></i> Start</button>
++            {# Too early to start: pressing it asks first (see _early_start_modal.html) and only starts if the instructor moves the booking to now. #}
++            <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=u.id) }}" class="d-inline early-start-form"
++                  data-slot-label="{{ u.slot_label }}" data-opens-label="{{ u.start_opens_label }}">
++              <input type="hidden" name="move_to_now" value="0">
++              <button class="btn btn-outline-warning btn-sm" title="Booked for {{ u.slot_label }} - starting now will ask to move it"><i class="bi bi-clock"></i> Start</button>
++            </form>
+             {% endif %}
+             <a href="{{ url_for('flight.log_new', asset_id=u.asset_id, student_id=u.student_id, cfi_id=u.cfi_id or '', solo='on' if u.solo else '', flight_date=u.scheduled_date, scheduled_flight_id=u.id) }}" class="btn btn-outline-secondary btn-sm">Log</a>
+           </td>
+--- a/templates/flight/schedule.html
++++ b/templates/flight/schedule.html
+@@ -101,7 +101,7 @@
+       </div>
+       <div class="modal-body">
+         <div id="sd-start-locked" class="alert alert-secondary d-none py-2 px-3 mb-2 small">
+-          <i class="bi bi-lock"></i> Start opens <strong id="sd-start-opens"></strong> ({{ start_early_buffer_min|default(30) }} min before the slot). Leaving earlier? Reschedule it to now first.
++          <i class="bi bi-clock"></i> Not time yet - Start opens <strong id="sd-start-opens"></strong> ({{ start_early_buffer_min|default(30) }} min before the slot). Leaving now anyway? Press Start and you'll be asked to move the booking to now.
+         </div>
+         <div id="sd-review-alert" class="alert alert-warning d-none py-2 px-3 mb-2">
+           <i class="bi bi-exclamation-triangle-fill"></i> <strong>Needs review:</strong> <span id="sd-review-reason"></span>
+@@ -126,6 +126,7 @@
+       <div class="modal-footer flex-wrap">
+         {% if session.get('cfi_id') %}
+         <form id="sd-start-form" method="post" action="#" class="d-inline">
++          <input type="hidden" name="move_to_now" value="0">
+           <button type="submit" id="sd-start-btn" class="btn btn-success btn-sm"><i class="bi bi-play-fill"></i> Start Flight</button>
+         </form>
+         <a id="sd-log-link" href="#" class="btn btn-outline-success btn-sm"><i class="bi bi-journal-plus"></i> Log Flight</a>
+@@ -267,8 +268,9 @@
+   if (cancelForm) { cancelForm.action = el.dataset.cancelUrl; cancelForm.classList.toggle('d-none', !isScheduled); }
+   var startForm = document.getElementById('sd-start-form');
+   if (startForm) { startForm.action = el.dataset.startUrl; startForm.classList.toggle('d-none', !isScheduled); }
+-  // Start is only allowed from 30 min before the slot (the server enforces
+-  // this too - this just greys the button out so nobody gets surprised).
++  // Start is only allowed from 30 min before the slot. Earlier than that the
++  // button turns amber and pressing it asks whether to move the booking to
++  // now first (_early_start_modal.html); the server enforces it too.
+   var startBtn = document.getElementById('sd-start-btn');
+   var lockedNote = document.getElementById('sd-start-locked');
+   if (startBtn && lockedNote) {
+@@ -288,14 +290,24 @@
+         var h = opens.getHours(), m = opens.getMinutes();
+         var timeLbl = (h % 12 || 12) + ':' + (m < 10 ? '0' : '') + m + ' ' + (h < 12 ? 'AM' : 'PM');
+         var today = new Date();
+-        var sameDay = opens.toDateString() === today.toDateString();
+-        document.getElementById('sd-start-opens').textContent =
+-          (sameDay ? 'today' : opens.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' })) + ' at ' + timeLbl;
++        var dayLbl = function (d) {
++          return d.toDateString() === today.toDateString() ? 'today'
++            : d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
++        };
++        var opensLbl = dayLbl(opens) + ' at ' + timeLbl;
++        document.getElementById('sd-start-opens').textContent = opensLbl;
++        var slotDay = new Date(+p[0], +p[1] - 1, +p[2]);
++        startForm.dataset.slotLabel = dayLbl(slotDay) + (el.dataset.time ? ' at ' + el.dataset.time : '');
++        startForm.dataset.opensLabel = opensLbl;
+       }
+     }
+-    startBtn.disabled = locked;
++    startBtn.disabled = false;
++    startForm.classList.toggle('early-start-form', locked);
++    var moveInput = startForm.querySelector('input[name="move_to_now"]');
++    if (moveInput) moveInput.value = '0';
+     startBtn.classList.toggle('btn-success', !locked);
+-    startBtn.classList.toggle('btn-outline-secondary', locked);
++    startBtn.classList.toggle('btn-warning', locked);
++    startBtn.innerHTML = locked ? '<i class="bi bi-clock"></i> Start Early...' : '<i class="bi bi-play-fill"></i> Start Flight';
+     lockedNote.classList.toggle('d-none', !locked);
+   }
+   var logLink = document.getElementById('sd-log-link');
+--- a/templates/flight/base_flight.html
++++ b/templates/flight/base_flight.html
+@@ -137,6 +137,7 @@
+ }
+ </script>
+ {% endif %}
++{% if session.get('cfi_id') %}{% include "flight/_early_start_modal.html" %}{% endif %}
+ {% block scripts %}{% endblock %}
+ </body>
+ </html>
+--- a/templates/flight/_early_start_modal.html
++++ b/templates/flight/_early_start_modal.html
+@@ -0,0 +1,72 @@
++{# "Start this flight early?" prompt. Any form with class early-start-form
++   (a Start button on a booking that isn't due yet - dashboard Upcoming or
++   the Schedule's flight modal) is stopped on submit and this asks first.
++   "Move to now & start" sets move_to_now=1 and sends the form, and
++   schedule_start() moves the booking to the current time before starting
++   it. Lives in base_flight.html so it's outside the live-refresh fragments. #}
++<div class="modal fade" id="earlyStartModal" tabindex="-1" aria-labelledby="earlyStartTitle" aria-hidden="true">
++  <div class="modal-dialog modal-dialog-centered">
++    <div class="modal-content">
++      <div class="modal-header">
++        <h5 class="modal-title" id="earlyStartTitle"><i class="bi bi-clock-history text-warning"></i> This flight isn't due yet</h5>
++        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
++      </div>
++      <div class="modal-body">
++        <p class="mb-2">It's booked for <strong id="es-slot"></strong>. A flight can only be started from 30 minutes before its slot (<span id="es-opens"></span>).</p>
++        <p class="mb-0">Is it actually leaving now? Starting it will <strong>move the booking to now (<span id="es-now"></span>)</strong> so the calendar and billing match when it really flew.</p>
++      </div>
++      <div class="modal-footer">
++        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep booking</button>
++        <button type="button" class="btn btn-warning" id="es-confirm"><i class="bi bi-play-fill"></i> Move to now &amp; start</button>
++      </div>
++    </div>
++  </div>
++</div>
++<script>
++(function () {
++  var pendingForm = null;
++  function nowLabel() {
++    var d = new Date(), h = d.getHours(), m = d.getMinutes();
++    return (h % 12 || 12) + ':' + (m < 10 ? '0' : '') + m + ' ' + (h < 12 ? 'AM' : 'PM');
++  }
++  function showPrompt(form) {
++    var el = document.getElementById('earlyStartModal');
++    if (!el || !window.bootstrap) return false;
++    pendingForm = form;
++    document.getElementById('es-slot').textContent = form.dataset.slotLabel || 'later';
++    document.getElementById('es-opens').textContent = form.dataset.opensLabel ? 'opens ' + form.dataset.opensLabel : '';
++    document.getElementById('es-now').textContent = nowLabel();
++    var modal = bootstrap.Modal.getOrCreateInstance(el);
++    // If the Start button was inside another open modal (the Schedule's
++    // flight details), close that one first so the two don't stack.
++    var open = document.querySelector('.modal.show');
++    if (open && open !== el) {
++      open.addEventListener('hidden.bs.modal', function once() {
++        open.removeEventListener('hidden.bs.modal', once);
++        modal.show();
++      });
++      bootstrap.Modal.getOrCreateInstance(open).hide();
++    } else {
++      modal.show();
++    }
++    return true;
++  }
++  // Delegated on the document so it keeps working after the dashboard /
++  // schedule live refresh swaps the table HTML out.
++  document.addEventListener('submit', function (e) {
++    var form = e.target;
++    if (!form.classList || !form.classList.contains('early-start-form')) return;
++    var move = form.querySelector('input[name="move_to_now"]');
++    if (move && move.value === '1') return;
++    if (showPrompt(form)) e.preventDefault();
++  }, true);
++  document.addEventListener('click', function (e) {
++    if (!e.target.closest || !e.target.closest('#es-confirm') || !pendingForm) return;
++    var move = pendingForm.querySelector('input[name="move_to_now"]');
++    if (move) move.value = '1';
++    var btn = document.getElementById('es-confirm');
++    btn.disabled = true;
++    pendingForm.submit();
++  });
++})();
++</script>

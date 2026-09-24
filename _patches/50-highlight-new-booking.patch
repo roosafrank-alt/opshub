@@ -1,0 +1,192 @@
+--- _tmp/p50orig/flight.py
++++ flight.py
+@@ -2528,6 +2528,15 @@
+         x = x.strip()
+         if x.isdigit():
+             highlight_ids.add(int(x))
++    # Just-booked flight(s): after Schedule Flight the page opens on the
++    # Month view with the new booking(s) outlined in green (?new=ids). The
++    # page's script drops the outline (and the param) on the first click or
++    # when you leave, so it only greets you once.
++    new_ids = set()
++    for x in request.args.get("new", "").split(","):
++        x = x.strip()
++        if x.isdigit():
++            new_ids.add(int(x))
+ 
+     planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+     cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 ORDER BY name").fetchall()
+@@ -2638,6 +2647,7 @@
+                 next_year=next_year, next_month=next_month,
+                 planes=planes, cfis=cfis, plane_id=plane_id, cfi_id=cfi_id,
+                 instructor_legend=instructor_legend, plane_legend=plane_legend, highlight_ids=highlight_ids,
++                new_ids=new_ids,
+                 month_timeline_start_min=MONTH_TIMELINE_WINDOW_START, month_timeline_end_min=MONTH_TIMELINE_WINDOW_END,
+                 month_timeline_px_per_min=MONTH_TIMELINE_PX_PER_MIN)
+ 
+@@ -2890,7 +2900,7 @@
+             else:
+                 needs_review, review_reason = 0, None
+             status = "pending_approval" if self_service else "scheduled"
+-            conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date,
++            new_booking = conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date,
+                              scheduled_time, duration_hours, notes, private_notes, status, created_by, solo, needs_review,
+                              review_reason, part_solo, guest_name, guest_phone, created_at)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+@@ -2909,13 +2919,15 @@
+                 flash(f"Flight scheduled, but flagged for review: {review_reason}", "warning")
+             else:
+                 flash("Flight scheduled.", "success")
+-            return redirect(url_for("flight.schedule_calendar", year=scheduled_date[:4], month=int(scheduled_date[5:7])))
++            return redirect(url_for("flight.schedule_calendar", view="month", year=scheduled_date[:4],
++                                    month=int(scheduled_date[5:7]), new=new_booking.lastrowid))
+ 
+         # Recurring booking - each occurrence is checked for conflicts on
+         # its own date; a conflicting occurrence is skipped (not fatal to
+         # the rest of the series) so one busy day doesn't block the whole
+         # run, and the CFI/admin sees exactly which dates were skipped.
+         created_count = 0
++        created_ids = []
+         skipped = []  # list of (date_str, conflict dict)
+         review_count = 0
+         for occ_date in occurrence_dates:
+@@ -2924,7 +2936,7 @@
+                 skipped.append((occ_date, conflicts[0]))
+                 continue
+             needs_review, review_reason = _schedule_review_flag(conn, solo, cfi_id, student_id, occ_date)
+-            conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date,
++            occ_cur = conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date,
+                              scheduled_time, duration_hours, notes, private_notes, status, created_by, solo, needs_review,
+                              review_reason, part_solo, guest_name, guest_phone, created_at)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, ?, ?, ?, ?, ?, ?)""",
+@@ -2932,6 +2944,7 @@
+                           notes, private_notes, created_by, solo, needs_review, review_reason, part_solo,
+                           guest_name, guest_phone, now_iso()))
+             created_count += 1
++            created_ids.append(occ_cur.lastrowid)
+             if needs_review:
+                 review_count += 1
+         conn.commit()
+@@ -2957,7 +2970,9 @@
+             skip_ids = ",".join(str(c["id"]) for _, c in skipped)
+             return redirect(url_for("flight.schedule_calendar", view="custom", start=skip_dates[0],
+                                     end=skip_dates[-1], highlight=skip_ids))
+-        return redirect(url_for("flight.schedule_calendar", year=scheduled_date[:4], month=int(scheduled_date[5:7])))
++        first = occurrence_dates[0]
++        return redirect(url_for("flight.schedule_calendar", view="month", year=first[:4], month=int(first[5:7]),
++                                new=",".join(str(i) for i in created_ids)))
+     conn.close()
+     return render_template("flight/schedule_form.html", form=None, **form_kwargs)
+ 
+--- _tmp/p50orig/templates/flight/_schedule_live.html
++++ templates/flight/_schedule_live.html
+@@ -18,7 +18,8 @@
+ {% macro schedule_block(f, compact=False, extra_style='', extra_class='') %}
+ {% set is_hl = highlight_ids is defined and highlight_ids and f.id in highlight_ids %}
+ {% set is_dim = highlight_ids is defined and highlight_ids and not is_hl %}
+-<div class="d-block small mb-1 px-1 rounded schedule-block {{ extra_class }} {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active }} {{ 'schedule-block-highlight' if is_hl }} {{ 'schedule-block-dimmed' if is_dim }}"
++{% set is_new = new_ids is defined and new_ids and f.id in new_ids %}
++<div class="d-block small mb-1 px-1 rounded schedule-block {{ 'schedule-block-new' if is_new }} {{ extra_class }} {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active }} {{ 'schedule-block-highlight' if is_hl }} {{ 'schedule-block-dimmed' if is_dim }}"
+      role="button"
+      style="background:{{ f.display_color }}; color:{{ f.display_text_color }}; {% if f.cfi_display_color %}border-left:6px solid {{ f.cfi_display_color }};{% endif %} cursor:pointer; {{ extra_style }} {{ 'opacity:0.55; filter:grayscale(55%);' if f.status == 'completed' }} {{ 'outline:2px solid #ffc107; outline-offset:-2px;' if f.status == 'in_progress' }} {{ 'outline:2px solid #dc3545; outline-offset:-2px;' if f.needs_review_active and f.status == 'scheduled' }} {{ 'outline:2px dashed #fd7e14; outline-offset:-2px;' if f.eta_delay and not f.needs_review_active }}"
+      data-id="{{ f.id }}"
+@@ -69,7 +70,7 @@
+   flight.py instead of normal document flow).
+ #}
+ {% macro day_timeline_block(f, style) %}
+-<div class="d-block small px-1 rounded schedule-block day-timeline-block {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active }}"
++<div class="d-block small px-1 rounded schedule-block day-timeline-block {{ 'schedule-block-new' if new_ids is defined and new_ids and f.id in new_ids }} {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active }}"
+      role="button"
+      style="top:{{ style.top_pct }}%; height:{{ style.height_pct }}%; left:{{ style.left_pct }}%; width:calc({{ style.width_pct }}% - 4px); background:{{ f.display_color }}; color:{{ f.display_text_color }}; {% if f.cfi_display_color %}border-left:12px solid {{ f.cfi_display_color }};{% endif %} {{ 'opacity:0.55; filter:grayscale(55%);' if f.status == 'completed' }} {{ 'outline:2px solid #ffc107; outline-offset:-2px;' if f.status == 'in_progress' }} {{ 'outline:2px solid #dc3545; outline-offset:-2px;' if f.needs_review_active and f.status == 'scheduled' }} {{ 'outline:2px dashed #fd7e14; outline-offset:-2px;' if f.eta_delay and not f.needs_review_active }}"
+      data-id="{{ f.id }}"
+@@ -113,7 +114,7 @@
+   on a background fill color the way the Day/Quarter/Year blocks do.
+ #}
+ {% macro month_lane_block(f, style) %}
+-<div class="d-block small px-1 rounded schedule-block month-lane-block {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active }}"
++<div class="d-block small px-1 rounded schedule-block month-lane-block {{ 'schedule-block-new' if new_ids is defined and new_ids and f.id in new_ids }} {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active }}"
+      role="button"
+      style="position:absolute; top:{{ style.top_px }}px; height:{{ style.height_px }}px; left:{{ style.left_pct }}%; width:calc({{ style.width_pct }}% - 1px); background:#fff; color:#212529; border:1px solid #000; border-left:6px solid {{ f.plane_display_color or '#adb5bd' }}; border-right:6px solid {{ f.cfi_display_color or '#adb5bd' }}; box-sizing:border-box; {{ 'opacity:0.55; filter:grayscale(55%);' if f.status == 'completed' }} {{ 'outline:2px solid #ffc107; outline-offset:-2px;' if f.status == 'in_progress' }} {{ 'outline:2px solid #dc3545; outline-offset:-2px;' if f.needs_review_active and f.status == 'scheduled' }} {{ 'outline:2px dashed #fd7e14; outline-offset:-2px;' if f.eta_delay and not f.needs_review_active }}"
+      data-id="{{ f.id }}"
+@@ -223,7 +224,7 @@
+           {#- Busy days show the first few blocks and a "+N more" link to that
+              day's Day view, so the grid stays readable. Not while showing a
+              conflict (every highlighted block has to stay visible). #}
+-          {% set cap = 99 if (highlight_ids is defined and highlight_ids) else max_blocks %}
++          {% set cap = 99 if (highlight_ids is defined and highlight_ids) or (new_ids is defined and new_ids) else max_blocks %}
+           {% set day_flights = all_day_flights[:cap] if all_day_flights|length > cap else all_day_flights %}
+           {% if compact %}
+           {#- Year view: cells are too small for a real to-scale timeline, so
+@@ -302,13 +303,14 @@
+ {% macro schedule_row(f, show_date, new_day=false) %}
+ {% set is_hl = highlight_ids is defined and highlight_ids and f.id in highlight_ids %}
+ {% set is_dim = highlight_ids is defined and highlight_ids and not is_hl %}
++{% set is_new = new_ids is defined and new_ids and f.id in new_ids %}
+ {# Past days render muted/grey so what's still coming stands out; in the
+    multi-day tables (list/custom) the first row of each new day gets a
+    heavier divider line and a bold date. #}
+ {% set today_str = today.strftime('%Y-%m-%d') if today is defined and today else '' %}
+ {% set is_past = today_str and f.scheduled_date < today_str %}
+ {% set is_today = today_str and f.scheduled_date == today_str %}
+-<tr class="schedule-block {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-highlight' if is_hl }} {{ 'schedule-block-dimmed' if is_dim }} {{ 'schedule-day-break' if new_day }} {{ 'schedule-row-past' if is_past and not is_hl }} {{ 'schedule-row-today' if is_today }}" role="button" style="cursor:pointer; {{ 'opacity:0.6;' if f.status == 'completed' and not is_hl }}"
++<tr class="schedule-block {{ 'schedule-block-new' if is_new }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-highlight' if is_hl }} {{ 'schedule-block-dimmed' if is_dim }} {{ 'schedule-day-break' if new_day }} {{ 'schedule-row-past' if is_past and not is_hl }} {{ 'schedule-row-today' if is_today }}" role="button" style="cursor:pointer; {{ 'opacity:0.6;' if f.status == 'completed' and not is_hl }}"
+      data-id="{{ f.id }}" data-status="{{ f.status }}" data-plane="{{ f.plane_tag }}" data-student="{{ f.student_name }}"
+      data-cfi="{{ f.cfi_name or '' }}" data-solo="{{ '1' if f.solo else '' }}" data-needs-review="{{ '1' if f.needs_review_flag else '' }}"
+      data-review-reason="{{ f.review_reason or '' }}" data-date="{{ f.scheduled_date }}" data-time="{{ f.time_label or '' }}"
+--- _tmp/p50orig/templates/flight/schedule.html
++++ templates/flight/schedule.html
+@@ -19,6 +19,20 @@
+     z-index: 5;
+   }
+   tr.schedule-block-highlight { background: #fff0f1 !important; }
++  /* Just booked (?new=ids): a green glow so you can see what you added.
++     Cleared on the first click or when you leave the page (script below). */
++  @keyframes schedule-new-pulse {
++    0%, 100% { box-shadow: 0 0 6px rgba(25,135,84,0.6); }
++    50% { box-shadow: 0 0 16px rgba(25,135,84,1); }
++  }
++  .schedule-block-new, tr.schedule-block-new {
++    outline: 3px solid #198754 !important;
++    outline-offset: -2px;
++    animation: schedule-new-pulse 1.6s ease-in-out infinite;
++    position: relative;
++    z-index: 5;
++  }
++  tr.schedule-block-new { background: #ebfbee !important; }
+   .schedule-block-dimmed, tr.schedule-block-dimmed {
+     opacity: 0.25 !important;
+     filter: grayscale(70%);
+@@ -235,6 +249,33 @@
+   }
+ })();
+ 
++// Just-booked flight(s) (?new=ids from Schedule Flight): bring the first
++// one into view, then drop the green outline on the first click anywhere
++// or when leaving the page. The `new` param is taken out of the address
++// (so the live refresh, a reload, or coming Back doesn't bring it back).
++(function () {
++  if (!/[?&]new=/.test(window.location.search)) return;
++  var first = document.querySelector('.schedule-block-new');
++  if (first && !document.querySelector('.schedule-block-highlight')) {
++    setTimeout(function () { first.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50);
++  }
++  function stripParam() {
++    try {
++      var u = new URL(window.location.href);
++      if (!u.searchParams.has('new')) return;
++      u.searchParams.delete('new');
++      window.history.replaceState(window.history.state, '', u.pathname + (u.search ? u.search : '') + u.hash);
++    } catch (e) { /* old browser - the outline still clears below */ }
++  }
++  function clearNew() {
++    document.querySelectorAll('.schedule-block-new').forEach(function (el) { el.classList.remove('schedule-block-new'); });
++    stripParam();
++  }
++  document.addEventListener('click', clearNew, { capture: true, once: true });
++  window.addEventListener('pagehide', stripParam);
++  window.addEventListener('pageshow', function (e) { if (e.persisted) clearNew(); });
++})();
++
+ // List view opens scrolled to the most recently completed flight (see
+ // list_scroll_anchor_id / _build_schedule_year_list() in flight.py)
+ // instead of at January 1st - upcoming flights land just below the fold

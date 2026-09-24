@@ -1,0 +1,66 @@
+--- _tmp/p44/flight.py	2026-09-24 03:23:01.384544773 +0000
++++ flight.py	2026-09-24 03:23:12.265622690 +0000
+@@ -2052,6 +2052,11 @@
+ MONTH_TIMELINE_WINDOW_END = 20 * 60
+ MONTH_TIMELINE_PX_PER_MIN = 0.25
+ MONTH_TIMELINE_BLOCK_PX = 30  # approx rendered height of one (2-line) block
++# Month blocks are sized by the booking's length: this many px per minute
++# (a standard 1.5-hr block = 36px, 1 hr = 24px, 2 hr = 48px), never
++# shorter than MONTH_BLOCK_MIN_PX so a short one still shows its time/plane.
++MONTH_BLOCK_PX_PER_MIN = 0.4
++MONTH_BLOCK_MIN_PX = 18
+ 
+ 
+ def _layout_month_cell_timeline(flights, plane_order,
+@@ -2070,16 +2075,17 @@
+     time collision: two bookings for the same two planes land in the same
+     left/right relationship even when their times don't overlap at all.
+ 
+-    Unlike the Day view, a month cell is too small to usefully show a
+-    booking's duration, so each one is placed as a single point in time
+-    (its start) within its plane's lane. A plane double-booked the same
+-    day (rare) stacks its own bookings vertically within its own lane by
+-    start time rather than overlapping.
++    Each booking is placed at its start time within its plane's lane, and
++    its height follows its length (MONTH_BLOCK_PX_PER_MIN; no booking
++    length = the standard 1.5-hr block), so a longer booking reads as a
++    bigger block. A plane double-booked the same day (rare) stacks its own
++    bookings vertically within its own lane by start time rather than
++    overlapping.
+ 
+     plane_order is a {plane_tag: rank} map (see _schedule_calendar_context).
+ 
+     Returns (placements, container_height_px) where placements is a list
+-    of (flight, {top_px, left_pct, width_pct})."""
++    of (flight, {top_px, height_px, left_pct, width_pct})."""
+     base_height = (window_end - window_start) * px_per_min
+     if not flights:
+         return [], round(base_height + 4, 1)
+@@ -2105,10 +2111,13 @@
+         for top, f in items:
+             if claimed_bottom is not None and top < claimed_bottom:
+                 top = claimed_bottom
+-            placements.append((f, {"top_px": round(top, 1), "left_pct": round(lane_index[tag] * width_pct, 2),
++            dur_hours = f["duration_hours"] if f["duration_hours"] else DEFAULT_SCHEDULE_BLOCK_HOURS
++            height = max(MONTH_BLOCK_MIN_PX, round(dur_hours * 60 * MONTH_BLOCK_PX_PER_MIN, 1))
++            placements.append((f, {"top_px": round(top, 1), "height_px": height,
++                                    "left_pct": round(lane_index[tag] * width_pct, 2),
+                                     "width_pct": round(width_pct, 2)}))
+-            claimed_bottom = top + block_px
+-            max_bottom = max(max_bottom, top + block_px)
++            claimed_bottom = top + height
++            max_bottom = max(max_bottom, top + height)
+     container_h = round(max(max_bottom, base_height) + 4, 1)
+     return placements, container_h
+ 
+--- _tmp/p44/_schedule_live.html	2026-09-24 03:23:01.387487761 +0000
++++ templates/flight/_schedule_live.html	2026-09-24 03:23:12.267243623 +0000
+@@ -115,7 +115,7 @@
+ {% macro month_lane_block(f, style) %}
+ <div class="d-block small px-1 rounded schedule-block month-lane-block {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active }}"
+      role="button"
+-     style="position:absolute; top:{{ style.top_px }}px; left:{{ style.left_pct }}%; width:calc({{ style.width_pct }}% - 1px); background:#fff; color:#212529; border:1px solid #000; border-left:6px solid {{ f.plane_display_color or '#adb5bd' }}; border-right:6px solid {{ f.cfi_display_color or '#adb5bd' }}; box-sizing:border-box; {{ 'opacity:0.55; filter:grayscale(55%);' if f.status == 'completed' }} {{ 'outline:2px solid #ffc107; outline-offset:-2px;' if f.status == 'in_progress' }} {{ 'outline:2px solid #dc3545; outline-offset:-2px;' if f.needs_review_active and f.status == 'scheduled' }} {{ 'outline:2px dashed #fd7e14; outline-offset:-2px;' if f.eta_delay and not f.needs_review_active }}"
++     style="position:absolute; top:{{ style.top_px }}px; height:{{ style.height_px }}px; left:{{ style.left_pct }}%; width:calc({{ style.width_pct }}% - 1px); background:#fff; color:#212529; border:1px solid #000; border-left:6px solid {{ f.plane_display_color or '#adb5bd' }}; border-right:6px solid {{ f.cfi_display_color or '#adb5bd' }}; box-sizing:border-box; {{ 'opacity:0.55; filter:grayscale(55%);' if f.status == 'completed' }} {{ 'outline:2px solid #ffc107; outline-offset:-2px;' if f.status == 'in_progress' }} {{ 'outline:2px solid #dc3545; outline-offset:-2px;' if f.needs_review_active and f.status == 'scheduled' }} {{ 'outline:2px dashed #fd7e14; outline-offset:-2px;' if f.eta_delay and not f.needs_review_active }}"
+      data-id="{{ f.id }}"
+      data-status="{{ f.status }}"
+      data-plane="{{ f.plane_tag }}"

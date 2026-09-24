@@ -1,0 +1,192 @@
+diff --git a/flight.py b/flight.py
+index 3eed087..651ab12 100644
+--- a/flight.py
++++ b/flight.py
+@@ -797,13 +797,60 @@ def dashboard_live():
+     return render_template("flight/_dashboard_live.html", **ctx)
+ 
+ 
++_FINISHED_FLIGHT_SQL = "(f.ended_at IS NOT NULL OR f.started_at IS NULL)"  # logged/ended, not still in the air
++
++
++def _landing_total(f):
++    return sum((f[k] or 0) for k in ("day_landings_fs", "day_landings_tg", "night_landings_fs", "night_landings_tg"))
++
++
++def _student_activity(conn, student_id=None):
++    """Last lesson, last landing, and 90-day landing counts per student, for
++    the Students list and the student's own page. A "lesson" is any finished
++    flight on record (dual or solo); a "landing" is the most recent finished
++    flight with any landings entered. Returns {student_id: {...}}."""
++    sql = f"""SELECT f.id, f.student_id, f.flight_date, f.solo, f.cfi_id, c.name as cfi_name, a.tag as plane_tag,
++                     f.day_landings_fs, f.day_landings_tg, f.night_landings_fs, f.night_landings_tg
++              FROM flights f JOIN assets a ON a.id = f.asset_id LEFT JOIN cfis c ON c.id = f.cfi_id
++              WHERE {_FINISHED_FLIGHT_SQL}"""
++    params = []
++    if student_id:
++        sql += " AND f.student_id = ?"
++        params.append(student_id)
++    sql += " ORDER BY f.flight_date DESC, f.id DESC"
++    cutoff = (date.today() - timedelta(days=90)).isoformat()
++    out = {}
++    for f in conn.execute(sql, params).fetchall():
++        a = out.setdefault(f["student_id"], {"last_lesson": None, "last_landing": None,
++                                             "landings_90": 0, "night_fs_90": 0})
++        if a["last_lesson"] is None:
++            a["last_lesson"] = dict(f)
++        total = _landing_total(f)
++        if total and a["last_landing"] is None:
++            a["last_landing"] = dict(f, landings_total=total)
++        if f["flight_date"] >= cutoff:
++            a["landings_90"] += (f["day_landings_fs"] or 0) + (f["day_landings_tg"] or 0) \
++                + (f["night_landings_fs"] or 0) + (f["night_landings_tg"] or 0)
++            a["night_fs_90"] += (f["night_landings_fs"] or 0)
++    for sid, a in out.items():
++        for key in ("last_lesson", "last_landing"):
++            if a[key]:
++                try:
++                    a[key]["days_ago"] = (date.today() - datetime.strptime(a[key]["flight_date"], "%Y-%m-%d").date()).days
++                except ValueError:
++                    a[key]["days_ago"] = None
++    return out
++
++
+ @flight_bp.route("/students")
+ @cfi_required
+ def students_list():
+     conn = get_db()
+     students = conn.execute("SELECT * FROM students ORDER BY active DESC, name").fetchall()
++    activity = _student_activity(conn)
++    currency = {s["id"]: _solo_currency_status(conn, s["id"]) for s in students if not s["is_station"]}
+     conn.close()
+-    return render_template("flight/students.html", students=students)
++    return render_template("flight/students.html", students=students, activity=activity, currency=currency)
+ 
+ 
+ @flight_bp.route("/students/new", methods=["GET", "POST"])
+@@ -904,9 +951,16 @@ def student_edit(student_id):
+         return redirect(url_for("flight.students_list"))
+     ledger = conn.execute("SELECT * FROM student_ledger WHERE student_id = ? ORDER BY created_at DESC, id DESC LIMIT 25",
+                           (student_id,)).fetchall()
++    activity = _student_activity(conn, student_id).get(student_id)
++    recent_flights = conn.execute(f"""SELECT f.*, c.name as cfi_name, a.tag as plane_tag FROM flights f
++                                      JOIN assets a ON a.id = f.asset_id LEFT JOIN cfis c ON c.id = f.cfi_id
++                                      WHERE f.student_id = ? AND {_FINISHED_FLIGHT_SQL}
++                                      ORDER BY f.flight_date DESC, f.id DESC LIMIT 10""", (student_id,)).fetchall()
++    solo_currency = None if student["is_station"] else _solo_currency_status(conn, student_id)
+     conn.close()
+     return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS,
+-                           ledger=ledger, can_bill=can_manage_billing())
++                           ledger=ledger, can_bill=can_manage_billing(), activity=activity,
++                           recent_flights=recent_flights, solo_currency=solo_currency)
+ 
+ 
+ @flight_bp.route("/students/<int:student_id>/add_funds", methods=["POST"])
+diff --git a/templates/flight/student_form.html b/templates/flight/student_form.html
+index e629e09..320b727 100644
+--- a/templates/flight/student_form.html
++++ b/templates/flight/student_form.html
+@@ -3,6 +3,57 @@
+ {% block content %}
+ <div class="row justify-content-center">
+ <div class="col-lg-6">
++{% if student and not student.is_station %}
++<div class="card p-3 mb-3">
++  <h5 class="mb-2"><i class="bi bi-airplane-engines"></i> Lessons &amp; Landings</h5>
++  <div class="row g-2 small mb-2">
++    <div class="col-6 col-md-3">
++      <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Last lesson</div>
++      {% if activity and activity.last_lesson %}{% set l = activity.last_lesson %}
++      <a href="{{ url_for('flight.log_detail', flight_id=l.id) }}" class="fw-bold text-decoration-none">{{ l.flight_date|usdate }}</a>
++      <div class="text-muted">{{ l.plane_tag }} &middot; {{ l.cfi_name or 'solo' }}</div>
++      {% else %}<div class="text-muted">None yet</div>{% endif %}
++    </div>
++    <div class="col-6 col-md-3">
++      <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Last landing</div>
++      {% if activity and activity.last_landing %}{% set l = activity.last_landing %}
++      <a href="{{ url_for('flight.log_detail', flight_id=l.id) }}" class="fw-bold text-decoration-none">{{ l.flight_date|usdate }}</a>
++      <div class="text-muted">{{ l.landings_total }} landing{{ 's' if l.landings_total != 1 }}{% if l.days_ago is not none %} &middot; {{ 'today' if l.days_ago == 0 else l.days_ago ~ 'd ago' }}{% endif %}</div>
++      {% else %}<div class="text-muted">None logged</div>{% endif %}
++    </div>
++    <div class="col-6 col-md-3">
++      <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Last 90 days</div>
++      <div class="fw-bold">{{ activity.landings_90 if activity else 0 }} landings</div>
++      <div class="text-muted">{{ activity.night_fs_90 if activity else 0 }} night full-stop</div>
++    </div>
++    <div class="col-6 col-md-3">
++      <div class="text-muted text-uppercase fw-bold" style="font-size:.65rem;">Solo currency</div>
++      {% if solo_currency and solo_currency.ok %}<span class="badge bg-success">Current</span><div class="text-muted">{{ solo_currency.interval_days - solo_currency.days_since }}d left</div>
++      {% elif solo_currency and solo_currency.last_dual_date %}<span class="badge bg-danger">Checkout due</span><div class="text-muted">{{ solo_currency.days_since }}d since dual</div>
++      {% else %}<span class="badge bg-secondary">No dual yet</span>{% endif %}
++    </div>
++  </div>
++  {% if recent_flights %}
++  <div class="table-responsive">
++    <table class="table table-sm align-middle mb-0 table-stack small">
++      <thead class="table-light"><tr><th>Date</th><th>Plane</th><th>With</th><th>Day ldg</th><th>Night ldg</th></tr></thead>
++      <tbody>
++        {% for f in recent_flights %}
++        <tr role="button" onclick="window.location='{{ url_for('flight.log_detail', flight_id=f.id) }}'">
++          <td data-label="Date">{{ f.flight_date|usdate }}</td>
++          <td data-label="Plane">{{ f.plane_tag }}</td>
++          <td data-label="With">{{ f.cfi_name or 'Solo' }}</td>
++          <td data-label="Day ldg">{% if f.day_landings_fs is not none or f.day_landings_tg is not none %}{{ f.day_landings_fs or 0 }} FS / {{ f.day_landings_tg or 0 }} TG{% else %}<span class="text-muted">-</span>{% endif %}</td>
++          <td data-label="Night ldg">{% if f.night_landings_fs is not none or f.night_landings_tg is not none %}{{ f.night_landings_fs or 0 }} FS / {{ f.night_landings_tg or 0 }} TG{% else %}<span class="text-muted">-</span>{% endif %}</td>
++        </tr>
++        {% endfor %}
++      </tbody>
++    </table>
++  </div>
++  <div class="form-text">Last 10 flights. Tap one to open it. Landings come from what's entered when the flight is logged or ended.</div>
++  {% endif %}
++</div>
++{% endif %}
+ <div class="card p-4">
+   <h4>{{ 'Edit Student' if student else 'New Student' }}</h4>
+   <form method="post">
+diff --git a/templates/flight/students.html b/templates/flight/students.html
+index 66115e5..73618fd 100644
+--- a/templates/flight/students.html
++++ b/templates/flight/students.html
+@@ -11,11 +11,31 @@
+ <div class="card">
+   <div class="table-responsive">
+     <table class="table table-hover align-middle mb-0 table-stack" id="students-table">
+-      <thead class="table-light"><tr><th>Name</th><th>Username</th><th>Instructor Rate</th><th>Plane Rate</th><th>Account</th><th>Status</th><th></th></tr></thead>
++      <thead class="table-light"><tr><th>Name</th><th>Last Lesson</th><th>Last Landing</th><th>Solo</th><th>Username</th><th>Instructor Rate</th><th>Plane Rate</th><th>Account</th><th>Status</th><th></th></tr></thead>
+       <tbody>
+         {% for s in students %}
+         <tr data-search="{{ s.name|lower }}">
+           <td data-label="Name">{{ s.name }}{% if s.is_station %} <span class="badge bg-info text-dark">Station</span>{% endif %}</td>
++          {% set act = activity.get(s.id) %}
++          <td data-label="Last Lesson">
++            {% if act and act.last_lesson %}{% set l = act.last_lesson %}
++            <a href="{{ url_for('flight.log_detail', flight_id=l.id) }}" class="text-decoration-none" title="Open this flight">{{ l.flight_date|usdate }}</a>
++            <div class="small text-muted">{{ l.plane_tag }} &middot; {% if l.cfi_name %}{{ l.cfi_name }}{% else %}solo{% endif %}{% if l.days_ago is not none %} &middot; {{ 'today' if l.days_ago == 0 else l.days_ago ~ 'd ago' }}{% endif %}</div>
++            {% else %}<span class="text-muted small">None yet</span>{% endif %}
++          </td>
++          <td data-label="Last Landing">
++            {% if act and act.last_landing %}{% set l = act.last_landing %}
++            <a href="{{ url_for('flight.log_detail', flight_id=l.id) }}" class="text-decoration-none" title="Open this flight">{{ l.flight_date|usdate }}</a>
++            <div class="small text-muted">{{ l.landings_total }} ldg{% if (l.night_landings_fs or 0) + (l.night_landings_tg or 0) %} ({{ (l.night_landings_fs or 0) + (l.night_landings_tg or 0) }} night){% endif %} &middot; {{ act.landings_90 }} in 90d</div>
++            {% else %}<span class="text-muted small">None logged</span>{% endif %}
++          </td>
++          <td data-label="Solo">
++            {% set cur = currency.get(s.id) %}
++            {% if s.is_station or not cur %}<span class="text-muted small">-</span>
++            {% elif cur.ok %}<span class="badge bg-success" title="Last dual {{ cur.last_dual_date|usdate }} - {{ cur.interval_days }}-day limit">Current</span><div class="small text-muted">{{ cur.interval_days - cur.days_since }}d left</div>
++            {% elif cur.last_dual_date %}<span class="badge bg-danger" title="Last dual {{ cur.last_dual_date|usdate }}">Checkout due</span><div class="small text-muted">{{ cur.days_since }}d since dual</div>
++            {% else %}<span class="badge bg-secondary">No dual yet</span>{% endif %}
++          </td>
+           <td data-label="Username"><code>{{ s.username }}</code></td>
+           <td data-label="Instructor Rate"><a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='instructor_rate') }}" class="text-decoration-none" title="View / edit / history">{% if s.rate_override is not none %}${{ '%.2f'|format(s.rate_override) }}/hr{% else %}<span class="text-muted">CFI's rate</span>{% endif %}</a></td>
+           <td data-label="Plane Rate"><a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='plane_rate') }}" class="text-decoration-none" title="View / edit / history">{% if s.plane_rate_override is not none %}${{ '%.2f'|format(s.plane_rate_override) }}/hr{% else %}<span class="text-muted">Plane's rate</span>{% endif %}</a></td>
+@@ -30,7 +50,7 @@
+           <td data-label=""><a href="{{ url_for('flight.student_edit', student_id=s.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Edit</a></td>
+         </tr>
+         {% else %}
+-        <tr><td colspan="7" class="text-muted text-center py-3">No students yet.</td></tr>
++        <tr><td colspan="10" class="text-muted text-center py-3">No students yet.</td></tr>
+         {% endfor %}
+       </tbody>
+     </table>

@@ -100,15 +100,10 @@
     </div>
     <p class="text-muted small mt-n2 mb-3">Printed with this instructor's name on students' logbook entries (Flight Academy &gt; Logbook).</p>
     {% if cfi %}
-    <div class="mb-3">
-      <label class="form-label d-block">Signature <span class="text-muted small">(the CFI draws it themselves on My CFI Profile)</span></label>
-      {% if cfi.signature %}
-      <img src="{{ cfi.signature }}" alt="Signature" class="border rounded bg-white" style="max-width:260px; height:auto;">
-      <div class="form-check mt-1">
-        <input type="checkbox" class="form-check-input" name="clear_signature" id="clear-sig-check">
-        <label class="form-check-label small" for="clear-sig-check">Remove this signature</label>
-      </div>
-      {% else %}<div class="text-muted small">None on file yet.</div>{% endif %}
+    {% from "flight/_signature_pad.html" import signature_pad %}
+    <div class="mb-3" id="signature" style="scroll-margin-top:80px;">
+      <label class="form-label d-block">Signature <span class="text-muted small">(goes on students' logbook entries this CFI instructs - the CFI can also sign on their own My CFI Profile)</span></label>
+      {{ signature_pad(cfi.signature) }}
     </div>
     {% endif %}
     <div class="form-check mb-3">

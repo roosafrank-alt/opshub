@@ -1,0 +1,512 @@
+--- _tmp/p41/app.py	2026-09-24 02:54:32.976511886 +0000
++++ app.py	2026-09-24 02:54:48.976218563 +0000
+@@ -16,6 +16,7 @@
+                  allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
+                  MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS)
+ from flight import flight_bp, _flight_hours, check_session_alerts, PLANE_COLORS
++import academy
+ from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
+                    master_admin_required, shop_role_required, can_see_shop_costs,
+                    owner_user_id, owner_locked)
+@@ -252,7 +253,80 @@
+     if not (session.get("is_master_admin") or session.get("academy_access")):
+         flash("You don't have access to Flight Academy yet. Ask an admin.", "danger")
+         return redirect(url_for("home_launcher"))
+-    return render_template("academy.html")
++    # Leaderboard (see academy.py): points, achievements and rankings for
++    # every student, for All Time / This Year / This Month.
++    period = request.args.get("period", "all")
++    if period not in ("all", "year", "month"):
++        period = "all"
++    conn = get_db()
++    stats = academy.student_stats(conn, academy.period_start(period))
++    boards = academy.leaderboards(stats)
++    my_id = session.get("student_id")
++    me = stats.get(my_id) if my_id else None
++    staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
++    entry_sql = """SELECT e.*, s.name as student_name FROM academy_entries e
++                     JOIN students s ON s.id = e.student_id"""
++    if staff:
++        entries = conn.execute(entry_sql + " ORDER BY e.entry_date DESC, e.id DESC LIMIT 25").fetchall()
++    elif my_id:
++        entries = conn.execute(entry_sql + " WHERE e.student_id = ? ORDER BY e.entry_date DESC, e.id DESC LIMIT 25",
++                               (my_id,)).fetchall()
++    else:
++        entries = []
++    conn.close()
++    return render_template("academy.html", stats=stats, boards=boards, me=me,
++                           my_rank=academy.rank_of(stats, my_id) if my_id else None,
++                           entries=entries, staff=staff, period=period,
++                           entry_kinds=academy.ENTRY_KINDS, entry_kind_map=academy.ENTRY_KIND_MAP,
++                           point_rules=academy.POINT_RULES, achievements=academy.ACHIEVEMENTS,
++                           leaderboard_defs=academy.LEADERBOARDS, cert_points=academy.CERT_POINTS,
++                           rating_points=academy.RATING_POINTS, today=date.today().isoformat())
++
++
++@app.route("/academy/entry", methods=["POST"])
++@login_required
++def academy_entry_add():
++    """A student logs flying for the leaderboard (distance, landings,
++    cross-countries, night/instrument time). Students log for themselves;
++    a CFI/admin can log for any student."""
++    if not (session.get("is_master_admin") or session.get("academy_access")):
++        return redirect(url_for("home_launcher"))
++    staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
++    student_id = request.form.get("student_id", type=int) if staff else session.get("student_id")
++    kind = request.form.get("kind")
++    try:
++        value = float(request.form.get("value") or 0)
++    except ValueError:
++        value = 0
++    entry_date = (request.form.get("entry_date") or date.today().isoformat()).strip()[:10]
++    if not student_id or kind not in academy.ENTRY_KIND_MAP or value <= 0 or value > 100000:
++        flash("Pick what you're logging and enter an amount above zero.", "danger")
++        return redirect(url_for("academy_page") + "#log")
++    conn = get_db()
++    conn.execute("""INSERT INTO academy_entries (student_id, entry_date, kind, value, note, created_by, created_at)
++                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
++                 (student_id, entry_date, kind, value, (request.form.get("note") or "").strip()[:200] or None,
++                  session.get("user_name"), now_iso()))
++    conn.commit()
++    conn.close()
++    code, label, unit, per = academy.ENTRY_KIND_MAP[kind]
++    flash(f"Logged {value:g} {unit} - that's {value * per:g} points.", "success")
++    return redirect(url_for("academy_page") + "#log")
++
++
++@app.route("/academy/entry/<int:entry_id>/delete", methods=["POST"])
++@login_required
++def academy_entry_delete(entry_id):
++    """Remove a leaderboard entry - your own, or any if you're a CFI/admin."""
++    staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
++    conn = get_db()
++    e = conn.execute("SELECT * FROM academy_entries WHERE id = ?", (entry_id,)).fetchone()
++    if e and (staff or e["student_id"] == session.get("student_id")):
++        conn.execute("DELETE FROM academy_entries WHERE id = ?", (entry_id,))
++        conn.commit()
++        flash("Entry removed.", "success")
++    conn.close()
++    return redirect(url_for("academy_page") + "#log")
+ 
+ CATEGORIES_DEFAULT = ["Fasteners", "Electrical", "Plumbing", "Bearings/Belts", "Lubricants",
+                        "Safety/PPE", "Tools", "HVAC", "Welding", "Hydraulics", "General"]
+--- _tmp/p41/db.py	2026-09-24 02:54:32.979054923 +0000
++++ db.py	2026-09-24 02:54:32.989408493 +0000
+@@ -828,6 +828,22 @@
+     conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_alerts_open ON flight_alerts(resolved_at, scheduled_flight_id)")
+     conn.commit()
+ 
++    # Flight Academy leaderboard: flying a student logs for themselves on
++    # top of what the school's logged flights already count (distance,
++    # extra landings, cross-countries, night/instrument time) - see academy.py.
++    conn.execute("""CREATE TABLE IF NOT EXISTS academy_entries (
++        id INTEGER PRIMARY KEY AUTOINCREMENT,
++        student_id INTEGER NOT NULL REFERENCES students(id),
++        entry_date TEXT NOT NULL,
++        kind TEXT NOT NULL,
++        value REAL NOT NULL,
++        note TEXT,
++        created_by TEXT,
++        created_at TEXT NOT NULL DEFAULT (datetime('now'))
++    )""")
++    conn.execute("CREATE INDEX IF NOT EXISTS idx_academy_entries_student ON academy_entries(student_id, entry_date)")
++    conn.commit()
++
+     _migrate_flight_accounts_to_users(conn)
+     _carry_over_project_photos_to_assets(conn)
+ 
+--- _tmp/p41/schema.sql	2026-09-24 02:54:32.980785949 +0000
++++ schema.sql	2026-09-24 02:54:32.990643094 +0000
+@@ -512,3 +512,17 @@
+     resolution TEXT
+ );
+ CREATE INDEX IF NOT EXISTS idx_flight_alerts_open ON flight_alerts(resolved_at, scheduled_flight_id);
++
++-- Flight Academy leaderboard: flying a student logs for themselves (distance,
++-- extra landings, cross-countries, night/instrument time) - see academy.py.
++CREATE TABLE IF NOT EXISTS academy_entries (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    student_id INTEGER NOT NULL REFERENCES students(id),
++    entry_date TEXT NOT NULL, -- YYYY-MM-DD flown
++    kind TEXT NOT NULL, -- distance_nm | landings | night_landings | xc_flights | night_hours | instrument_hours
++    value REAL NOT NULL,
++    note TEXT,
++    created_by TEXT,
++    created_at TEXT NOT NULL DEFAULT (datetime('now'))
++);
++CREATE INDEX IF NOT EXISTS idx_academy_entries_student ON academy_entries(student_id, entry_date);
+--- _tmp/p41/academy.html	2026-09-24 02:54:32.982041092 +0000
++++ templates/academy.html	2026-09-24 02:55:20.559704645 +0000
+@@ -41,38 +41,166 @@
+     </div>
+   </div>
+ </nav>
++{% from "flight/_pilot_badge.html" import pilot_badge, pilot_badge_css %}{{ pilot_badge_css() }}
++<style>
++  .lb-card { border-radius: 12px; }
++  .lb-row { display: flex; align-items: center; gap: .5rem; padding: .35rem 0; border-top: 1px solid #eef0f3; }
++  .lb-row:first-child { border-top: 0; }
++  .lb-rank { width: 2rem; text-align: center; font-weight: 800; color: #6c757d; }
++  .lb-rank-1 { color: #d4a017; } .lb-rank-2 { color: #8a9597; } .lb-rank-3 { color: #b0662f; }
++  .lb-me { background: #fff8e1; border-radius: 8px; }
++  .ach { border-radius: 10px; padding: .5rem; text-align: center; font-size: .75rem; }
++  .ach i { font-size: 1.5rem; display: block; }
++  .ach-on { background: linear-gradient(135deg, #fff3bf, #ffe066); color: #5c4400; }
++  .ach-off { background: #f1f3f5; color: #868e96; }
++  .academy-hero .stat { font-size: 1.8rem; font-weight: 800; line-height: 1; }
++</style>
+ <div class="container py-4">
+-  <div class="academy-hero p-4 mb-4">
+-    <div class="d-flex align-items-center gap-3">
+-      <i class="bi bi-mortarboard-fill fs-1"></i>
+-      <div>
+-        <h2 class="fw-bold mb-1">Flight Academy</h2>
+-        <div class="opacity-75">Tracking student progress, experience toward ratings, lesson plans &amp; ground school.</div>
++  {% with messages = get_flashed_messages(with_categories=true) %}
++  {% for cat, msg in messages %}<div class="alert alert-{{ cat }} py-2">{{ msg }}</div>{% endfor %}
++  {% endwith %}
++  <div class="academy-hero p-4 mb-3">
++    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
++      <div class="d-flex align-items-center gap-3">
++        <i class="bi bi-mortarboard-fill fs-1"></i>
++        <div>
++          <h2 class="fw-bold mb-1">Flight Academy</h2>
++          <div class="opacity-75">Points, achievements &amp; leaderboards across the whole fleet.</div>
++        </div>
+       </div>
++      {% if me %}
++      <div class="d-flex gap-4 text-center">
++        <div><div class="stat">{{ me.points }}</div><div class="small opacity-75">points</div></div>
++        <div><div class="stat">{{ '#' ~ my_rank if my_rank else '-' }}</div><div class="small opacity-75">rank</div></div>
++        <div><div class="stat">{{ '%.1f'|format(me.hours) }}</div><div class="small opacity-75">hours</div></div>
++        <div><div class="stat">{{ me.achievement_count }}</div><div class="small opacity-75">badges</div></div>
++      </div>
++      {% endif %}
++    </div>
++  </div>
++
++  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
++    <div class="btn-group">
++      {% for key, label in [('all', 'All Time'), ('year', 'This Year'), ('month', 'This Month')] %}
++      <a href="{{ url_for('academy_page', period=key) }}" class="btn btn-sm {{ 'btn-light' if period == key else 'btn-outline-light' }}">{{ label }}</a>
++      {% endfor %}
+     </div>
++    <a href="#how" class="btn btn-sm btn-outline-light"><i class="bi bi-info-circle"></i> How points work</a>
+   </div>
+ 
+-  <div class="card academy-card p-4 mb-3">
+-    <span class="badge bg-primary align-self-start mb-2">Phase 3 - Coming Soon</span>
+-    <h5>What's coming here</h5>
+-    <p class="text-muted">
+-      This is a placeholder for the next phase of Flight Academy. Once built out, it'll show each
+-      student's progress toward their rating, hours logged by category (dual, solo, cross-country, night,
+-      instrument), an interactive syllabus/lesson-plan tracker, and access to ground school materials.
+-    </p>
+-    <label class="form-label small text-muted mb-1">Sample rating progress (placeholder)</label>
+-    <div class="progress mb-1">
+-      <div class="progress-bar bg-primary" role="progressbar" style="width: 0%">0%</div>
++  {% if me %}
++  <div class="card lb-card p-3 mb-3">
++    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
++      <h5 class="mb-0">My Achievements</h5>{{ pilot_badge(me.student) }}
++    </div>
++    <div class="row g-2">
++      {% for a in me.achievements %}
++      <div class="col-4 col-md-2"><div class="ach ach-on" title="{{ a.desc }} (+{{ a.points }})"><i class="bi {{ a.icon }}"></i><strong>{{ a.name }}</strong></div></div>
++      {% endfor %}
++      {% for a in me.locked %}
++      <div class="col-4 col-md-2"><div class="ach ach-off" title="{{ a.desc }} (+{{ a.points }})"><i class="bi {{ a.icon }}"></i>{{ a.name }}
++        <div class="progress mt-1" style="height:.3rem;"><div class="progress-bar bg-secondary" style="width:{{ a.progress }}%"></div></div></div></div>
++      {% endfor %}
+     </div>
+-    <div class="form-text">Real progress tracking isn't built yet - this bar is just showing where it'll live.</div>
++    {% if me.breakdown %}
++    <div class="small text-muted mt-2">{% for label, pts in me.breakdown %}{{ label }} {{ '%g'|format(pts|round(0)) }}{{ ' · ' if not loop.last }}{% endfor %}</div>
++    {% endif %}
+   </div>
++  {% endif %}
+ 
+-  <div class="card academy-card p-4">
+-    <h6 class="mb-2"><i class="bi bi-shield-check"></i> Who can see this</h6>
+-    <p class="text-muted small mb-0">
+-      This tile and page are only visible to accounts an admin has specifically granted access to
+-      (Accounts &rarr; "Flight Academy Access"), plus master admins.
+-    </p>
++  <div class="row g-3 mb-3">
++    {% for key, label, unit in leaderboard_defs %}
++    <div class="col-md-6 col-xl-4">
++      <div class="card lb-card p-3 h-100">
++        <h6 class="mb-2"><i class="bi bi-trophy"></i> {{ label }}</h6>
++        {% for rank, st in boards[key] %}
++        <div class="lb-row {{ 'lb-me' if me and st.id == me.id }}">
++          <span class="lb-rank lb-rank-{{ rank }}">{% if rank <= 3 %}<i class="bi bi-trophy-fill"></i>{% else %}{{ rank }}{% endif %}</span>
++          <span class="flex-grow-1 text-truncate">{{ st.name }} {{ pilot_badge(st.student) }}</span>
++          <strong>{% if key == 'hours' %}{{ '%.1f'|format(st[key]) }}{% elif key == 'distance_nm' %}{{ '{:,.0f}'.format(st[key]) }}{% else %}{{ st[key] }}{% endif %}</strong>
++          <span class="small text-muted">{{ unit }}</span>
++        </div>
++        {% else %}
++        <p class="text-muted small mb-0">Nobody on this board yet.</p>
++        {% endfor %}
++      </div>
++    </div>
++    {% endfor %}
++  </div>
++
++  {% if me or staff %}
++  <div class="card lb-card p-3 mb-3" id="log">
++    <h5 class="mb-1">Log Your Flying</h5>
++    <p class="text-muted small">Things the flight log doesn't track. Hours, solo time and the landings on your logged flights are already counted automatically.</p>
++    <form method="post" action="{{ url_for('academy_entry_add') }}" class="row g-2 align-items-end">
++      {% if staff %}
++      <div class="col-md-3">
++        <label class="form-label small mb-0">Student</label>
++        <select name="student_id" class="form-select form-select-sm" required>
++          <option value="">- pick -</option>
++          {% for st in stats.values()|sort(attribute='name') %}<option value="{{ st.id }}">{{ st.name }}</option>{% endfor %}
++        </select>
++      </div>
++      {% endif %}
++      <div class="col-6 col-md-2">
++        <label class="form-label small mb-0">Date</label>
++        <input type="date" name="entry_date" value="{{ today }}" class="form-control form-control-sm">
++      </div>
++      <div class="col-6 col-md-3">
++        <label class="form-label small mb-0">What</label>
++        <select name="kind" class="form-select form-select-sm" required>
++          {% for code, label, unit, per in entry_kinds %}<option value="{{ code }}">{{ label }} ({{ unit }})</option>{% endfor %}
++        </select>
++      </div>
++      <div class="col-4 col-md-1">
++        <label class="form-label small mb-0">Amount</label>
++        <input type="number" name="value" step="any" min="0" class="form-control form-control-sm" required>
++      </div>
++      <div class="col-8 col-md-2">
++        <label class="form-label small mb-0">Note</label>
++        <input type="text" name="note" maxlength="200" class="form-control form-control-sm" placeholder="e.g. KMGJ-KPOU">
++      </div>
++      <div class="col-md-1"><button class="btn btn-primary btn-sm w-100 fw-bold">Log</button></div>
++    </form>
++    {% if entries %}
++    <div class="table-responsive mt-3">
++      <table class="table table-sm align-middle mb-0 small">
++        <thead class="table-light"><tr><th>Date</th>{% if staff %}<th>Student</th>{% endif %}<th>What</th><th>Amount</th><th>Note</th><th></th></tr></thead>
++        <tbody>
++          {% for e in entries %}
++          {% set k = entry_kind_map.get(e.kind) %}
++          <tr>
++            <td>{{ e.entry_date|usdate }}</td>{% if staff %}<td>{{ e.student_name }}</td>{% endif %}
++            <td>{{ k[1] if k else e.kind }}</td><td>{{ '%g'|format(e.value) }} {{ k[2] if k else '' }}</td><td>{{ e.note or '' }}</td>
++            <td class="text-end"><form method="post" action="{{ url_for('academy_entry_delete', entry_id=e.id) }}" class="mb-0" onsubmit="return confirm('Remove this entry?');"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-x-lg"></i></button></form></td>
++          </tr>
++          {% endfor %}
++        </tbody>
++      </table>
++    </div>
++    {% endif %}
++  </div>
++  {% endif %}
++
++  <div class="card lb-card p-3 mb-3" id="how">
++    <h6 class="mb-2"><i class="bi bi-info-circle"></i> How points work</h6>
++    <div class="row small">
++      <div class="col-md-4">
++        <strong>From the flight log</strong>
++        <ul class="mb-2">{% for key, label, per in point_rules %}<li>{{ label }}: {{ per }} each</li>{% endfor %}</ul>
++      </div>
++      <div class="col-md-4">
++        <strong>Logged by you</strong>
++        <ul class="mb-2">{% for code, label, unit, per in entry_kinds %}<li>{{ label }}: {{ '%g'|format(per) }} per {{ unit.rstrip('s') if unit != 'nm' else 'nm' }}</li>{% endfor %}</ul>
++      </div>
++      <div class="col-md-4">
++        <strong>Badges</strong>
++        <ul class="mb-2">
++          <li>Achievements: {% for a in achievements %}{{ a[1] }} +{{ a[6] }}{{ ', ' if not loop.last }}{% endfor %}</li>
++          <li>Certificate: Sport +{{ cert_points.sport }}, Rec +{{ cert_points.recreational }}, Private +{{ cert_points.private }}, Commercial +{{ cert_points.commercial }}, ATP +{{ cert_points.atp }}; each rating +{{ rating_points }}</li>
++        </ul>
++      </div>
++    </div>
+   </div>
+ </div>
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+--- /dev/null	2026-09-23 16:57:06.510000000 +0000
++++ academy.py	2026-09-24 02:54:32.992897795 +0000
+@@ -0,0 +1,179 @@
++"""Flight Academy leaderboard: points, achievements and rankings for every
++student, built from two sources:
++
++1. The school's own logged flights (flights table): hours (Hobbs, else
++   Tach), solo hours, day/night landings, number of flights.
++2. What students log for themselves on the Academy page (academy_entries):
++   distance flown, extra landings, cross-country flights, night and
++   instrument time - things the flight log doesn't capture.
++
++Points are a simple, visible formula (POINT_RULES) plus a bonus for each
++achievement unlocked (ACHIEVEMENTS) and for the student's certificate and
++ratings (the badge from flight.pilot_badge_info). Everything is computed on
++the fly - nothing is stored except the students' own entries.
++"""
++from datetime import date
++
++from flight import _flight_hours, _FINISHED_FLIGHT_SQL, PILOT_CERTIFICATES, _pilot_ratings_list
++
++# What students can log themselves: (code, label, unit, points per unit)
++ENTRY_KINDS = [
++    ("distance_nm", "Distance flown", "nm", 0.1),
++    ("landings", "Landings", "landings", 1),
++    ("night_landings", "Night landings", "landings", 3),
++    ("xc_flights", "Cross-country flights", "flights", 15),
++    ("night_hours", "Night hours", "hrs", 10),
++    ("instrument_hours", "Instrument hours (actual/sim)", "hrs", 10),
++]
++ENTRY_KIND_MAP = {k[0]: k for k in ENTRY_KINDS}
++
++# From the flight log: stat -> points each
++POINT_RULES = [
++    ("hours", "Flight hours", 10),
++    ("solo_hours", "Solo hours (bonus)", 5),
++    ("day_landings", "Day landings", 1),
++    ("night_landings_log", "Night landings", 3),
++]
++
++# Certificate / rating bonus (the badge from Students > Edit)
++CERT_POINTS = {"student": 0, "sport": 100, "recreational": 120, "private": 200, "commercial": 300, "atp": 500}
++RATING_POINTS = 50
++
++# (code, name, icon, description, stat, threshold, points)
++ACHIEVEMENTS = [
++    ("first_flight", "First Flight", "bi-airplane", "Log your first flight", "flights", 1, 10),
++    ("first_solo", "First Solo", "bi-person-fill-up", "Fly your first solo", "solo_flights", 1, 50),
++    ("hours_10", "10 Hours", "bi-clock", "10 hours in the logbook", "hours", 10, 25),
++    ("hours_50", "50 Hours", "bi-clock-fill", "50 hours in the logbook", "hours", 50, 75),
++    ("hours_100", "Century", "bi-trophy", "100 hours in the logbook", "hours", 100, 150),
++    ("landings_100", "Greaser", "bi-arrow-down-circle", "100 landings", "all_landings", 100, 50),
++    ("night_owl", "Night Owl", "bi-moon-stars", "10 night landings", "all_night_landings", 10, 40),
++    ("xc_1", "Cross-Country", "bi-signpost-split", "Your first cross-country", "xc_flights", 1, 40),
++    ("nm_1000", "Road Trip", "bi-geo-alt", "1,000 nm flown", "distance_nm", 1000, 60),
++    ("ifr_10", "In the Soup", "bi-cloud-fog2", "10 instrument hours", "instrument_hours", 10, 40),
++]
++
++LEADERBOARDS = [
++    ("points", "Points", "pts"),
++    ("hours", "Hours", "hrs"),
++    ("all_landings", "Landings", ""),
++    ("distance_nm", "Distance", "nm"),
++    ("achievement_count", "Achievements", ""),
++]
++
++
++def period_start(period):
++    """First day (YYYY-MM-DD) counted for 'month' / 'year', else None (all time)."""
++    today = date.today()
++    if period == "month":
++        return today.replace(day=1).isoformat()
++    if period == "year":
++        return today.replace(month=1, day=1).isoformat()
++    return None
++
++
++def student_stats(conn, since=None):
++    """{student_id: stats dict} for every active, non-station student."""
++    students = conn.execute("""SELECT * FROM students WHERE active = 1 AND COALESCE(is_station, 0) = 0
++                               ORDER BY name""").fetchall()
++    stats = {}
++    for s in students:
++        stats[s["id"]] = {"student": s, "id": s["id"], "name": s["name"], "flights": 0, "solo_flights": 0,
++                          "hours": 0.0, "solo_hours": 0.0, "day_landings": 0, "night_landings_log": 0,
++                          **{k[0]: 0.0 for k in ENTRY_KINDS}}
++    sql = f"SELECT f.* FROM flights f WHERE {_FINISHED_FLIGHT_SQL}"
++    params = []
++    if since:
++        sql += " AND f.flight_date >= ?"
++        params.append(since)
++    for f in conn.execute(sql, params).fetchall():
++        st = stats.get(f["student_id"])
++        if not st:
++            continue
++        h = _flight_hours(f)
++        st["flights"] += 1
++        st["hours"] += h
++        if f["solo"]:
++            st["solo_flights"] += 1
++            st["solo_hours"] += h
++        st["day_landings"] += (f["day_landings_fs"] or 0) + (f["day_landings_tg"] or 0)
++        st["night_landings_log"] += (f["night_landings_fs"] or 0) + (f["night_landings_tg"] or 0)
++    sql = "SELECT student_id, kind, SUM(value) v FROM academy_entries"
++    params = []
++    if since:
++        sql += " WHERE entry_date >= ?"
++        params.append(since)
++    sql += " GROUP BY student_id, kind"
++    for r in conn.execute(sql, params).fetchall():
++        st = stats.get(r["student_id"])
++        if st and r["kind"] in ENTRY_KIND_MAP:
++            st[r["kind"]] += r["v"] or 0
++    for st in stats.values():
++        st["all_landings"] = int(st["day_landings"] + st["night_landings_log"] + st["landings"] + st["night_landings"])
++        st["all_night_landings"] = int(st["night_landings_log"] + st["night_landings"])
++        _score(st)
++    return stats
++
++
++def _score(st):
++    """Fills in points (with a breakdown), achievements and cert bonus."""
++    breakdown = []
++    total = 0.0
++    for key, label, per in POINT_RULES:
++        pts = st[key] * per
++        if pts:
++            breakdown.append((label, pts))
++        total += pts
++    for code, label, unit, per in ENTRY_KINDS:
++        pts = st[code] * per
++        if pts:
++            breakdown.append((label + " (logged)", pts))
++        total += pts
++    unlocked, locked = [], []
++    for code, name, icon, desc, stat, threshold, pts in ACHIEVEMENTS:
++        have = st.get(stat, 0) or 0
++        a = {"code": code, "name": name, "icon": icon, "desc": desc, "points": pts,
++             "progress": min(100, round(have / threshold * 100)) if threshold else 100,
++             "have": have, "threshold": threshold}
++        if have >= threshold:
++            unlocked.append(a)
++            total += pts
++        else:
++            locked.append(a)
++    if unlocked:
++        breakdown.append(("Achievements", sum(a["points"] for a in unlocked)))
++    s = st["student"]
++    cert = s["pilot_certificate"] if "pilot_certificate" in s.keys() else None
++    cert_pts = CERT_POINTS.get(cert, 0) + RATING_POINTS * len(_pilot_ratings_list(s))
++    if cert_pts:
++        breakdown.append(("Certificate & ratings", cert_pts))
++        total += cert_pts
++    st["points"] = round(total)
++    st["breakdown"] = breakdown
++    st["achievements"] = unlocked
++    st["locked"] = locked
++    st["achievement_count"] = len(unlocked)
++
++
++def leaderboards(stats, top=10):
++    """{board_key: [(rank, stats), ...]} - ties share a rank; students with
++    nothing on that board are left off it."""
++    out = {}
++    for key, label, unit in LEADERBOARDS:
++        rows = sorted((st for st in stats.values() if st.get(key)), key=lambda st: -st[key])
++        ranked, last, rank = [], None, 0
++        for i, st in enumerate(rows):
++            if st[key] != last:
++                rank = i + 1
++                last = st[key]
++            ranked.append((rank, st))
++        out[key] = ranked[:top]
++    return out
++
++
++def rank_of(stats, student_id, key="points"):
++    """This student's rank on a board (1 = top), or None."""
++    me = stats.get(student_id)
++    if not me or not me.get(key):
++        return None
++    return 1 + sum(1 for st in stats.values() if (st.get(key) or 0) > me[key])

@@ -1,0 +1,1026 @@
+diff -ruN '--exclude=_patches' '--exclude=CHANGES.md' '--exclude=_BASE.txt' '--exclude=__pycache__' shopinv_queue/app.py M/app.py
+--- a/app.py	2026-09-23 21:49:56.000000000 +0000
++++ b/app.py	2026-09-23 22:11:07.305184207 +0000
+@@ -15,7 +15,7 @@
+ from db import (get_db, init_db, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
+                  allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
+                  MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS)
+-from flight import flight_bp, _flight_hours, check_session_alerts
++from flight import flight_bp, _flight_hours, check_session_alerts, PLANE_COLORS
+ from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
+                    master_admin_required, shop_role_required, can_see_shop_costs)
+ import notify
+@@ -1671,29 +1671,53 @@
+                           LIMIT 1""", (asset_id,)).fetchone()
+     return dict(row) if row else None
+ 
++def _used_plane_colors(conn, exclude_asset_id=None):
++    """Colors already picked by another active flight-school plane, so the
++    form can gray those swatches out - two planes sharing a color defeats
++    the point of coloring the dashboard's chip stripes by plane."""
++    query = "SELECT color FROM assets WHERE color IS NOT NULL AND deleted_at IS NULL AND is_flight_asset = 1"
++    params = []
++    if exclude_asset_id:
++        query += " AND id != ?"
++        params.append(exclude_asset_id)
++    return {r["color"] for r in conn.execute(query, params).fetchall()}
++
+ 
+ @app.route("/assets/new", methods=["GET", "POST"])
+ @shop_role_required('admin')
+ def asset_new():
+     if request.method == "POST":
+         tag = request.form.get("tag", "").strip()
++        color = request.form.get("color", "").strip() or None
++        if color and color not in PLANE_COLORS:
++            color = None
+         if not tag:
+             flash("Tail / serial number is required.", "danger")
+-            return render_template("asset_form.html", asset=None)
++            conn = get_db()
++            used_colors = _used_plane_colors(conn)
++            conn.close()
++            return render_template("asset_form.html", asset=None, used_colors=used_colors, plane_colors=PLANE_COLORS)
+         conn = get_db()
+         existing = conn.execute("SELECT id FROM assets WHERE tag = ?", (tag,)).fetchone()
+         if existing:
+             flash(f"An asset with tag '{tag}' already exists.", "danger")
++            used_colors = _used_plane_colors(conn)
++            conn.close()
++            return render_template("asset_form.html", asset=None, used_colors=used_colors, plane_colors=PLANE_COLORS)
++        if color and color in _used_plane_colors(conn):
++            flash("That color is already taken by another plane - pick a different one.", "danger")
++            used_colors = _used_plane_colors(conn)
+             conn.close()
+-            return render_template("asset_form.html", asset=None)
++            return render_template("asset_form.html", asset=None, used_colors=used_colors,
++                                    plane_colors=PLANE_COLORS)
+         hobbs_hours = _parse_float(request.form.get("hobbs_hours"))
+         tach_hours = _parse_float(request.form.get("tach_hours"))
+         is_flight_asset = 1 if request.form.get("is_flight_asset") else 0
+         cur = conn.execute("""INSERT INTO assets (tag, name, make, model, serial_number, year, owner,
+                                hobbs_hours, hobbs_updated_at, tach_hours, tach_updated_at,
+                                engine_make, engine_model, engine_serial, prop_make, prop_model, prop_serial,
+-                               rental_rate, is_flight_asset, icao24_hex, notes, created_at, updated_at)
+-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
++                               rental_rate, is_flight_asset, icao24_hex, color, notes, created_at, updated_at)
++                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                             (tag, request.form.get("name", "").strip() or tag,
+                              request.form.get("make", "").strip(), request.form.get("model", "").strip(),
+                              request.form.get("serial_number", "").strip(), request.form.get("year", "").strip(),
+@@ -1704,14 +1728,17 @@
+                              request.form.get("engine_serial", "").strip(), request.form.get("prop_make", "").strip(),
+                              request.form.get("prop_model", "").strip(), request.form.get("prop_serial", "").strip(),
+                              _parse_float(request.form.get("rental_rate")), is_flight_asset,
+-                             request.form.get("icao24_hex", "").strip().upper() or None,
++                             request.form.get("icao24_hex", "").strip().upper() or None, color,
+                              request.form.get("notes", "").strip(), now_iso(), now_iso()))
+         new_id = cur.lastrowid
+         conn.commit()
+         conn.close()
+         flash(f"Aircraft '{tag}' created.", "success")
+         return redirect(url_for("asset_detail", asset_id=new_id))
+-    return render_template("asset_form.html", asset=None)
++    conn = get_db()
++    used_colors = _used_plane_colors(conn)
++    conn.close()
++    return render_template("asset_form.html", asset=None, used_colors=used_colors, plane_colors=PLANE_COLORS)
+ 
+ 
+ @app.route("/assets/<int:asset_id>")
+@@ -1962,19 +1989,32 @@
+         tag = request.form.get("tag", "").strip()
+         if not tag:
+             flash("Tail / serial number is required.", "danger")
++            plane_colors = PLANE_COLORS
++            used_colors = _used_plane_colors(conn, exclude_asset_id=asset_id)
+             conn.close()
+-            return render_template("asset_form.html", asset=asset)
++            return render_template("asset_form.html", asset=asset, plane_colors=plane_colors, used_colors=used_colors)
+         clash = conn.execute("SELECT id FROM assets WHERE tag = ? AND id != ?", (tag, asset_id)).fetchone()
+         if clash:
+             flash(f"Another asset already uses tag '{tag}'.", "danger")
++            plane_colors = PLANE_COLORS
++            used_colors = _used_plane_colors(conn, exclude_asset_id=asset_id)
++            conn.close()
++            return render_template("asset_form.html", asset=asset, plane_colors=plane_colors, used_colors=used_colors)
++        color = request.form.get("color", "").strip() or None
++        if color and color not in PLANE_COLORS:
++            color = None
++        if color and color in _used_plane_colors(conn, exclude_asset_id=asset_id):
++            flash("That color is already assigned to another aircraft - pick a different one.", "danger")
++            plane_colors = PLANE_COLORS
++            used_colors = _used_plane_colors(conn, exclude_asset_id=asset_id)
+             conn.close()
+-            return render_template("asset_form.html", asset=asset)
++            return render_template("asset_form.html", asset=asset, plane_colors=plane_colors, used_colors=used_colors)
+         is_flight_asset = 1 if request.form.get("is_flight_asset") else 0
+         # rental_rate isn't on this form anymore (set from Flight School by
+         # an admin instead), so this update deliberately leaves it alone.
+         conn.execute("""UPDATE assets SET tag=?, name=?, make=?, model=?, serial_number=?, year=?, owner=?,
+                          engine_make=?, engine_model=?, engine_serial=?, prop_make=?, prop_model=?, prop_serial=?,
+-                         is_flight_asset=?, icao24_hex=?, notes=?, updated_at=? WHERE id=?""",
++                         is_flight_asset=?, icao24_hex=?, notes=?, color=?, updated_at=? WHERE id=?""",
+                      (tag, request.form.get("name", "").strip() or tag, request.form.get("make", "").strip(),
+                       request.form.get("model", "").strip(), request.form.get("serial_number", "").strip(),
+                       request.form.get("year", "").strip(), request.form.get("owner", "").strip(),
+@@ -1982,13 +2022,15 @@
+                       request.form.get("engine_serial", "").strip(), request.form.get("prop_make", "").strip(),
+                       request.form.get("prop_model", "").strip(), request.form.get("prop_serial", "").strip(),
+                       is_flight_asset, request.form.get("icao24_hex", "").strip().upper() or None,
+-                      request.form.get("notes", "").strip(), now_iso(), asset_id))
++                      request.form.get("notes", "").strip(), color, now_iso(), asset_id))
+         conn.commit()
+         conn.close()
+         flash("Aircraft updated.", "success")
+         return redirect(url_for("asset_detail", asset_id=asset_id))
++    plane_colors = PLANE_COLORS
++    used_colors = _used_plane_colors(conn, exclude_asset_id=asset_id)
+     conn.close()
+-    return render_template("asset_form.html", asset=asset)
++    return render_template("asset_form.html", asset=asset, plane_colors=plane_colors, used_colors=used_colors)
+ 
+ 
+ @app.route("/assets/<int:asset_id>/update_hours", methods=["POST"])
+diff -ruN '--exclude=_patches' '--exclude=CHANGES.md' '--exclude=_BASE.txt' '--exclude=__pycache__' shopinv_queue/db.py M/db.py
+--- a/db.py	2026-09-23 20:22:07.000000000 +0000
++++ b/db.py	2026-09-23 22:11:07.305553695 +0000
+@@ -581,6 +581,16 @@
+         conn.execute("ALTER TABLE cfis ADD COLUMN color TEXT")
+         conn.commit()
+ 
++    # Admin-pickable color per plane (set from the plane's own profile,
++    # asset_form.html) - same idea as a CFI's color above, used to give
++    # each plane a consistent accent on the flight dashboard's same-time
++    # chip rows instead of an arbitrarily assigned one. Nullable - falls
++    # back to a deterministic hash-based color if never set.
++    asset_cols6 = [r["name"] for r in conn.execute("PRAGMA table_info(assets)").fetchall()]
++    if "color" not in asset_cols6:
++        conn.execute("ALTER TABLE assets ADD COLUMN color TEXT")
++        conn.commit()
++
+     # "Station" accounts (e.g. a generic "Shop" login): flight-side access
+     # and can book the schedule like any student, but aren't a real trainee
+     # - no solo-currency tracking, no personal dashboard widgets, and never
+diff -ruN '--exclude=_patches' '--exclude=CHANGES.md' '--exclude=_BASE.txt' '--exclude=__pycache__' shopinv_queue/flight.py M/flight.py
+--- a/flight.py	2026-09-23 21:49:56.000000000 +0000
++++ b/flight.py	2026-09-23 22:11:07.305677938 +0000
+@@ -28,16 +28,16 @@
+ import notams
+ import push
+ 
+-# Fixed accent-color palette used to give each plane in the fleet a
+-# consistent color on the dashboard's same-time chip rows (see
+-# _dashboard_context() below) - cycles if there are more planes than colors.
+-_PLANE_LANE_COLORS = ["#0d6efd", "#d63384", "#198754", "#fd7e14", "#6f42c1", "#20c997", "#dc3545", "#0dcaf0"]
+-
+ # Distinct colors cycled through for each instructor on the schedule
+ # calendar, so flights are identifiable by instructor at a glance without
+ # hand-assigning a color to every CFI.
+ INSTRUCTOR_COLORS = ["#0d6efd", "#dc3545", "#198754", "#fd7e14", "#6f42c1", "#20c997", "#d63384", "#6c757d"]
+ 
++# Same idea, but for planes - picked from a plane's own profile
++# (asset_form.html, see PLANE_COLORS usage in app.py's asset_new/asset_edit)
++# and consumed here for the dashboard's per-plane chip accent stripe.
++PLANE_COLORS = ["#0d6efd", "#d63384", "#198754", "#fd7e14", "#6f42c1", "#20c997", "#dc3545", "#0dcaf0"]
++
+ 
+ def _instructor_color(name):
+     if not name:
+@@ -86,6 +86,20 @@
+     return cfi_color or _instructor_color(cfi_name or "Solo")
+ 
+ 
++def _plane_hash_color(tag):
++    if not tag:
++        return "#6c757d"
++    return PLANE_COLORS[sum(ord(ch) for ch in tag) % len(PLANE_COLORS)]
++
++
++def _plane_display_color(tag, plane_color=None):
++    """An admin-picked color (assets.color, set from the plane's own
++    profile) always wins; otherwise fall back to a deterministic
++    hash-based color so a plane that's never had one picked still shows up
++    consistently."""
++    return plane_color or _plane_hash_color(tag)
++
++
+ def _format_time_12h(hhmm):
+     """'14:30' -> '2:30 PM'. Returns None for a blank/unset time."""
+     if not hhmm:
+@@ -665,6 +679,23 @@
+             for time_label, group in itertools.groupby(rows, key=lambda r: r["time_label"] or "Not set")]
+ 
+ 
++def _with_dashboard_row_fields(rows):
++    """Attaches time_label/end_time_label/display_color to each dashboard
++    schedule row - the same computed fields _decorate_schedule_row() adds
++    for the Schedule calendar, so a flight-chip's "Details" popup (which
++    reuses that same modal - see _schedule_detail_modal.html) shows
++    identical info whichever page it was opened from."""
++    out = []
++    for r in rows:
++        time_label = _format_time_12h(r["scheduled_time"])
++        window = _time_window(r["scheduled_time"], r["duration_hours"])
++        end_time_label = (_format_time_12h(f"{window[1] // 60:02d}:{window[1] % 60:02d}")
++                           if window and r["scheduled_time"] else None)
++        out.append(dict(r, time_label=time_label, end_time_label=end_time_label,
++                         display_color=_cfi_display_color(r["cfi_name"], r["cfi_color"])))
++    return out
++
++
+ def _dashboard_context(conn, cfi, student):
+     """Gathers every piece of data the dashboard template needs. Shared by
+     the full-page dashboard() route and the live-refresh fragment route
+@@ -695,7 +726,7 @@
+             ORDER BY f.started_at
+         """, (cfi["id"],)).fetchall()
+         upcoming = conn.execute("""
+-            SELECT sf.*, a.tag as plane_tag, s.name as student_name, c.name as cfi_name
++            SELECT sf.*, a.tag as plane_tag, s.name as student_name, c.name as cfi_name, c.color as cfi_color
+             FROM scheduled_flights sf
+             JOIN assets a ON a.id = sf.asset_id
+             JOIN students s ON s.id = sf.student_id
+@@ -704,7 +735,7 @@
+             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
+             LIMIT 10
+         """, (date.today().strftime("%Y-%m-%d"),)).fetchall()
+-        upcoming = [dict(u, time_label=_format_time_12h(u["scheduled_time"])) for u in upcoming]
++        upcoming = _with_dashboard_row_fields(upcoming)
+         for u in upcoming:
+             can_start, opens_at = _start_window(u["scheduled_date"], u["scheduled_time"])
+             u["can_start"] = can_start
+@@ -740,7 +771,7 @@
+         # so any admin/CFI looking at the dashboard sees the whole day's board
+         # and watches the completed count climb as flights get logged/ended.
+         today_flights = conn.execute("""
+-            SELECT sf.*, a.tag as plane_tag, s.name as student_name, c.name as cfi_name,
++            SELECT sf.*, a.tag as plane_tag, s.name as student_name, c.name as cfi_name, c.color as cfi_color,
+                    fl.id as flight_id
+             FROM scheduled_flights sf
+             JOIN assets a ON a.id = sf.asset_id
+@@ -750,7 +781,7 @@
+             WHERE sf.scheduled_date = ? AND sf.status IN ('scheduled', 'in_progress', 'completed')
+             ORDER BY sf.scheduled_time IS NULL, sf.scheduled_time
+         """, (date.today().strftime("%Y-%m-%d"),)).fetchall()
+-        today_flights = [dict(t, time_label=_format_time_12h(t["scheduled_time"])) for t in today_flights]
++        today_flights = _with_dashboard_row_fields(today_flights)
+         # Same early-start check as `upcoming` above, so a chip's Start on
+         # today's board asks before starting a flight that isn't due yet.
+         for t in today_flights:
+@@ -788,7 +819,7 @@
+             ORDER BY f.created_at DESC LIMIT 10
+         """, (student["id"],)).fetchall()
+         upcoming = conn.execute("""
+-            SELECT sf.*, a.tag as plane_tag, s.name as student_name, c.name as cfi_name
++            SELECT sf.*, a.tag as plane_tag, s.name as student_name, c.name as cfi_name, c.color as cfi_color
+             FROM scheduled_flights sf
+             JOIN assets a ON a.id = sf.asset_id
+             JOIN students s ON s.id = sf.student_id
+@@ -797,7 +828,7 @@
+             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
+             LIMIT 10
+         """, (date.today().strftime("%Y-%m-%d"), student["id"])).fetchall()
+-        upcoming = [dict(u, time_label=_format_time_12h(u["scheduled_time"])) for u in upcoming]
++        upcoming = _with_dashboard_row_fields(upcoming)
+         # The student's own requests that are still pending or got denied,
+         # so they can see where things stand instead of them just vanishing
+         # from "Upcoming" once approval is required.
+@@ -863,17 +894,20 @@
+     # a section that's supposed to be a quick compact glance at the board.
+     today_time_groups = _group_by_time([t for t in today_flights if t["status"] != "completed"])
+ 
+-    # Stable per-plane column ("lane") + accent color for the same-time chip
+-    # rows (time_group_row() in _dashboard_live.html) - based on the WHOLE
++    # Stable per-plane column ("lane") for the same-time chip rows
++    # (time_group_row() in _dashboard_live.html) - based on the WHOLE
+     # fleet's tag order (not just who happens to be flying today), so a
+-    # given plane always renders in the same lane/color everywhere on the
++    # given plane always renders in the same lane everywhere on the
+     # dashboard instead of shifting around depending on which flights
+-    # happen to be booked or how they sorted that particular poll.
+-    fleet_tags = [r["tag"] for r in conn.execute(
+-        "SELECT tag FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()]
+-    plane_lane = {tag: i for i, tag in enumerate(fleet_tags)}
+-    plane_color = {tag: _PLANE_LANE_COLORS[i % len(_PLANE_LANE_COLORS)] for i, tag in enumerate(fleet_tags)}
+-    plane_lane_count = len(fleet_tags) or 1
++    # happen to be booked or how they sorted that particular poll. The
++    # accent color for each plane's stripe comes from its own profile
++    # (assets.color, set on asset_form.html) rather than this ordering -
++    # see _plane_display_color().
++    fleet = conn.execute(
++        "SELECT tag, color FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
++    plane_lane = {r["tag"]: i for i, r in enumerate(fleet)}
++    plane_color = {r["tag"]: _plane_display_color(r["tag"], r["color"]) for r in fleet}
++    plane_lane_count = len(fleet) or 1
+ 
+     return dict(cfi=cfi, student=student, recent_flights=recent_flights,
+                 active_flights=active_flights, upcoming=upcoming, plane_maint=plane_maint,
+diff -ruN '--exclude=_patches' '--exclude=CHANGES.md' '--exclude=_BASE.txt' '--exclude=__pycache__' shopinv_queue/static/css/style.css M/static/css/style.css
+--- a/static/css/style.css	2026-09-23 21:49:56.000000000 +0000
++++ b/static/css/style.css	2026-09-23 22:11:07.305918815 +0000
+@@ -121,6 +121,14 @@
+    given plane always lands in the same visual slot instead of shifting
+    around based on whichever flight sorts first that moment. */
+ .flight-chip-grid { display: grid; gap: .5rem; flex: 1 1 auto; min-width: 0; }
++/* The dashboard's chips (not the Schedule List view's, which have no
++   per-flight instructor/plane colors) get two flush-left accent stripes -
++   instructor color first and a little wider, then the assigned plane's own
++   color right after it - clipped to the chip's rounded corners. */
++.flight-chip-striped { padding-left: .95rem; overflow: hidden; }
++.flight-chip-stripe { position: absolute; top: 0; bottom: 0; left: 0; }
++.flight-chip-stripe-instructor { width: 7px; }
++.flight-chip-stripe-plane { width: 4px; left: 7px; }
+ 
+ .flight-chip-scheduled { background: #e7f1ff; border: 1px solid #b6d4fe; }
+ .flight-chip-scheduled .flight-chip-icon { color: #0d6efd; }
+@@ -137,6 +145,7 @@
+ }
+ @media (max-width: 575.98px) {
+   .flight-chip { min-width: 4.6rem; padding: .3rem 1.25rem .3rem .4rem; }
++  .flight-chip-striped { padding-left: .8rem; }
+   .flight-chip-student, .flight-chip-day { font-size: .76rem; }
+   .flight-chip-plane { font-size: .68rem; }
+ }
+diff -ruN '--exclude=_patches' '--exclude=CHANGES.md' '--exclude=_BASE.txt' '--exclude=__pycache__' shopinv_queue/templates/asset_form.html M/templates/asset_form.html
+--- a/templates/asset_form.html	2026-09-23 17:39:06.000000000 +0000
++++ b/templates/asset_form.html	2026-09-23 22:11:07.306047211 +0000
+@@ -101,6 +101,24 @@
+       <label class="form-label">Notes</label>
+       <textarea name="notes" class="form-control" rows="4" placeholder="Anything else worth keeping on file for this plane">{{ asset.notes if asset else '' }}</textarea>
+     </div>
++    <div class="mb-3">
++      <label class="form-label d-block">Dashboard Color <span class="text-muted small">(Flight School only)</span></label>
++      <input type="hidden" name="color" id="color-input" value="{{ asset.color if asset else '' }}">
++      <div class="d-flex flex-wrap gap-2" id="color-swatches">
++        {% for c in plane_colors or [] %}
++        {% set taken = c in (used_colors or []) %}
++        <div class="color-swatch{{ ' color-swatch-taken' if taken }}{{ ' color-swatch-selected' if asset and asset.color == c }}"
++             data-color="{{ c }}"
++             title="{{ 'Already in use' if taken else c }}"
++             style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if taken else 'pointer' }};opacity:{{ '0.25' if taken else '1' }};border:3px solid {{ '#212529' if (asset and asset.color == c) else 'transparent' }};"></div>
++        {% endfor %}
++        <div class="color-swatch{{ ' color-swatch-selected' if not (asset and asset.color) }}"
++             data-color=""
++             title="No color (use default)"
++             style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if not (asset and asset.color) else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
++      </div>
++      <div class="form-text">Grayed-out colors are already used by another plane. Shows as the plane's accent stripe on the flight dashboard's schedule chips. Leave unset to fall back to an auto-assigned color.</div>
++    </div>
+     <div class="d-flex justify-content-between">
+       <a href="{{ url_for('asset_detail', asset_id=asset.id) if asset else url_for('assets_list') }}" class="btn btn-outline-secondary">Cancel</a>
+       <button type="submit" class="btn btn-warning fw-bold">{{ 'Save Changes' if asset else 'Create Aircraft' }}</button>
+@@ -110,3 +128,20 @@
+ </div>
+ </div>
+ {% endblock %}
++
++{% block scripts %}
++<script>
++(function () {
++  var input = document.getElementById('color-input');
++  var swatches = document.querySelectorAll('#color-swatches .color-swatch');
++  swatches.forEach(function (sw) {
++    sw.addEventListener('click', function () {
++      if (sw.classList.contains('color-swatch-taken')) return;
++      input.value = sw.getAttribute('data-color');
++      swatches.forEach(function (s) { s.style.border = s.getAttribute('data-color') ? '3px solid transparent' : '3px dashed #adb5bd'; });
++      sw.style.border = sw.getAttribute('data-color') ? '3px solid #212529' : '3px dashed #212529';
++    });
++  });
++})();
++</script>
++{% endblock %}
+diff -ruN '--exclude=_patches' '--exclude=CHANGES.md' '--exclude=_BASE.txt' '--exclude=__pycache__' shopinv_queue/templates/flight/_dashboard_live.html M/templates/flight/_dashboard_live.html
+--- a/templates/flight/_dashboard_live.html	2026-09-23 21:49:56.000000000 +0000
++++ b/templates/flight/_dashboard_live.html	2026-09-23 22:11:07.306167995 +0000
+@@ -74,8 +74,10 @@
+ {% set status = f.status %}
+ {% set icon = 'bi-circle' if status == 'scheduled' else ('bi-activity' if status == 'in_progress' else 'bi-check-circle-fill') %}
+ {% set lane = plane_lane.get(f.plane_tag) %}
+-<div class="flight-chip flight-chip-{{ status }}" data-chip-id="{{ f.id }}"
+-     style="{% if lane is not none %}grid-column: {{ lane + 1 }};{% endif %} border-left: 4px solid {{ plane_color.get(f.plane_tag, '#adb5bd') }};">
++<div class="flight-chip flight-chip-striped flight-chip-{{ status }}" data-chip-id="{{ f.id }}"
++     style="{% if lane is not none %}grid-column: {{ lane + 1 }};{% endif %}">
++  <span class="flight-chip-stripe flight-chip-stripe-instructor" style="background: {{ f.display_color }};" title="Instructor color"></span>
++  <span class="flight-chip-stripe flight-chip-stripe-plane" style="background: {{ plane_color.get(f.plane_tag, '#adb5bd') }};" title="Plane color"></span>
+   <i class="bi {{ icon }} flight-chip-icon"></i>
+   <div class="flight-chip-main">
+     <div class="flight-chip-student">{{ f.student_name }}</div>
+@@ -102,7 +104,26 @@
+       <a href="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}" class="btn btn-outline-secondary btn-sm">Log</a>
+     </div>
+     {% endif %}
+-    <a href="{{ url_for('flight.schedule_calendar', view='day', date=f.scheduled_date, highlight=f.id) }}" class="btn btn-outline-secondary btn-sm mt-1"><i class="bi bi-calendar3"></i> View on Calendar</a>
++    {#
++      "Details" reuses the exact same popup as the Schedule calendar
++      (schedule-block class + the same data-* set _schedule_live.html's
++      schedule_chip() carries - see _schedule_detail_modal.html, included
++      once by dashboard.html) instead of linking away to the calendar.
++    #}
++    <button type="button" class="schedule-block btn btn-outline-secondary btn-sm mt-1"
++        data-id="{{ f.id }}" data-status="{{ f.status }}" data-plane="{{ f.plane_tag }}" data-student="{{ f.student_name }}"
++        data-cfi="{{ f.cfi_name or '' }}" data-solo="{{ '1' if f.solo else '' }}" data-needs-review="{{ '1' if f.needs_review else '' }}"
++        data-review-reason="{{ f.review_reason or '' }}" data-date="{{ f.scheduled_date }}" data-time="{{ f.time_label or '' }}"
++        data-time24="{{ f.scheduled_time or '' }}" data-endtime="{{ f.end_time_label or '' }}"
++        data-duration="{{ f.duration_hours if f.duration_hours is not none else '' }}" data-notes="{{ f.notes or '' }}"
++        {% if session.get('cfi_id') or session.get('is_master_admin') %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
++        data-created_by="{{ f.created_by or '' }}" data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
++        data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=f.id) }}"
++        data-cancel-url="{{ url_for('flight.schedule_cancel', scheduled_id=f.id) }}"
++        data-start-url="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}"
++        data-log-url="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}">
++      <i class="bi bi-info-circle"></i> Details
++    </button>
+   </div>
+ </div>
+ {% endmacro %}
+diff -ruN '--exclude=_patches' '--exclude=CHANGES.md' '--exclude=_BASE.txt' '--exclude=__pycache__' shopinv_queue/templates/flight/_schedule_detail_modal.html M/templates/flight/_schedule_detail_modal.html
+--- a/templates/flight/_schedule_detail_modal.html	1970-01-01 00:00:00.000000000 +0000
++++ b/templates/flight/_schedule_detail_modal.html	2026-09-23 22:11:07.306398525 +0000
+@@ -0,0 +1,254 @@
++{#
++  Shared "flight details" popup: a single modal (plus its Reschedule
++  sub-modal), populated from whichever element with a data-id/data-plane/...
++  set of data-* attributes was clicked, via the delegated handler below.
++  Originally only on the Schedule calendar (every `.schedule-block` there
++  carries this data-* set); the dashboard's flight-chip "Details" button
++  now carries the same class + attributes too, so clicking it opens this
++  exact same popup instead of a separate, thinner summary - one modal, one
++  place its markup/JS is defined, included wherever a flight needs to be
++  "clicked into" for the full picture (see dashboard.html and
++  schedule.html, both of which {% include %} this file).
++#}
++<div class="modal fade" id="scheduleDetailModal" tabindex="-1" aria-hidden="true">
++  <div class="modal-dialog">
++    <div class="modal-content">
++      <div class="modal-header">
++        <h5 class="modal-title"><i class="bi bi-airplane-fill"></i> <span id="sd-plane"></span></h5>
++        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
++      </div>
++      <div class="modal-body">
++        <div id="sd-start-locked" class="alert alert-secondary d-none py-2 px-3 mb-2 small">
++          <i class="bi bi-clock"></i> Not time yet - Start opens <strong id="sd-start-opens"></strong> ({{ start_early_buffer_min|default(30) }} min before the slot). Leaving now anyway? Press Start and you'll be asked to move the booking to now.
++        </div>
++        <div id="sd-review-alert" class="alert alert-warning d-none py-2 px-3 mb-2">
++          <i class="bi bi-exclamation-triangle-fill"></i> <strong>Needs review:</strong> <span id="sd-review-reason"></span>
++        </div>
++        <table class="table table-sm mb-0">
++          <tr><th style="width:35%;">Date</th><td id="sd-date"></td></tr>
++          <tr><th>Time</th><td id="sd-time"></td></tr>
++          <tr><th>Duration</th><td id="sd-duration"></td></tr>
++          <tr><th>Student</th><td id="sd-student"></td></tr>
++          <tr><th>Instructor</th><td id="sd-cfi"></td></tr>
++          <tr><th>Status</th><td id="sd-status"></td></tr>
++          <tr><th>Notes</th><td id="sd-notes"></td></tr>
++          <tr id="sd-private-notes-row" class="d-none"><th><i class="bi bi-eye-slash"></i> Private Notes</th><td id="sd-private-notes" class="text-danger-emphasis"></td></tr>
++          <tr><th>Scheduled by</th><td id="sd-created_by"></td></tr>
++        </table>
++        <hr class="my-2">
++        <h6 class="small text-uppercase text-muted mb-1"><i class="bi bi-cloud-sun"></i> Forecast for This Lesson</h6>
++        <div id="sd-forecast">
++          <span class="text-muted small">Loading forecast...</span>
++        </div>
++      </div>
++      <div class="modal-footer flex-wrap">
++        {% if session.get('cfi_id') %}
++        <form id="sd-start-form" method="post" action="#" class="d-inline">
++          <input type="hidden" name="move_to_now" value="0">
++          <button type="submit" id="sd-start-btn" class="btn btn-success btn-sm"><i class="bi bi-play-fill"></i> Start Flight</button>
++        </form>
++        <a id="sd-log-link" href="#" class="btn btn-outline-success btn-sm"><i class="bi bi-journal-plus"></i> Log Flight</a>
++        <button type="button" id="sd-reschedule-btn" class="btn btn-outline-warning btn-sm"><i class="bi bi-calendar2-week"></i> Reschedule</button>
++        <a id="sd-edit-link" href="#" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
++        <form id="sd-cancel-form" method="post" action="#" data-confirm="Cancel this scheduled flight?" data-confirm-style="danger" class="d-inline">
++          <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg"></i> Cancel Flight</button>
++        </form>
++        {% endif %}
++        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
++      </div>
++    </div>
++  </div>
++</div>
++
++<!-- Reschedule modal: changes only the date/time, everything else about
++     the booking (plane, student, instructor, duration, notes) stays put. -->
++<div class="modal fade" id="rescheduleModal" tabindex="-1" aria-hidden="true">
++  <div class="modal-dialog">
++    <div class="modal-content">
++      <div class="modal-header">
++        <h5 class="modal-title"><i class="bi bi-calendar2-week"></i> Reschedule <span id="rs-plane-label" class="text-muted fs-6"></span></h5>
++        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
++      </div>
++      <form method="post" id="rs-form">
++        <div class="modal-body">
++          <p class="text-muted small">Everything else about this booking (plane, student, instructor, duration, notes) stays the same - just pick a new date/time.</p>
++          <div class="mb-3">
++            <label class="form-label">New Date *</label>
++            <input type="date" name="scheduled_date" id="rs-date" class="form-control" required>
++          </div>
++          <div class="mb-2">
++            <label class="form-label">Quick pick <span class="text-muted small">(1.5-hr blocks)</span></label>
++            <div class="d-flex flex-wrap gap-1">
++              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="08:00">8:00a</button>
++              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="09:30">9:30a</button>
++              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="11:00">11:00a</button>
++              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="12:30">12:30p</button>
++              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="14:00">2:00p</button>
++              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="15:30">3:30p</button>
++              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="17:00">5:00p</button>
++              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="18:30">6:30p</button>
++              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="20:00">8:00p</button>
++            </div>
++          </div>
++          <div class="mb-1">
++            <label class="form-label">Or pick a specific time</label>
++            <input type="time" name="scheduled_time" id="rs-time" class="form-control">
++          </div>
++        </div>
++        <div class="modal-footer">
++          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
++          <button type="submit" class="btn btn-primary fw-bold btn-sm">Save New Time</button>
++        </div>
++      </form>
++    </div>
++  </div>
++</div>
++
++<script>
++var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(30) }};
++// Delegated on document (not the individual blocks/chips) so this keeps
++// working after live-refresh polling elsewhere on the page replaces DOM
++// nodes wholesale - a plain per-element addEventListener would silently
++// stop firing on anything swapped in after page load. Any element with
++// class "schedule-block" and the expected data-* attributes opens this
++// popup, whichever page included this partial.
++document.addEventListener('click', function (evt) {
++  var el = evt.target.closest('.schedule-block');
++  if (!el) return;
++  document.getElementById('sd-plane').textContent = el.dataset.plane;
++  document.getElementById('sd-date').textContent = el.dataset.date;
++  var timeText = el.dataset.time ? el.dataset.time : 'Not set';
++  if (el.dataset.time && el.dataset.endtime) {
++    timeText = el.dataset.time + ' - ' + el.dataset.endtime;
++  }
++  document.getElementById('sd-time').textContent = timeText;
++  document.getElementById('sd-duration').textContent = el.dataset.duration ? (el.dataset.duration + ' hrs') : '(default)';
++  document.getElementById('sd-student').textContent = el.dataset.student;
++  document.getElementById('sd-cfi').textContent = el.dataset.cfi ? el.dataset.cfi : (el.dataset.solo ? 'Solo (no instructor)' : 'Not assigned yet');
++  document.getElementById('sd-notes').textContent = el.dataset.notes ? el.dataset.notes : '—';
++  var privRow = document.getElementById('sd-private-notes-row');
++  if (el.dataset.privateNotes) {
++    document.getElementById('sd-private-notes').textContent = el.dataset.privateNotes;
++    privRow.classList.remove('d-none');
++  } else {
++    privRow.classList.add('d-none');
++  }
++  var reviewAlert = document.getElementById('sd-review-alert');
++  if (el.dataset.needsReview) {
++    document.getElementById('sd-review-reason').textContent = el.dataset.reviewReason;
++    reviewAlert.classList.remove('d-none');
++  } else {
++    reviewAlert.classList.add('d-none');
++  }
++  document.getElementById('sd-created_by').textContent = el.dataset.created_by ? el.dataset.created_by : '—';
++  var statusLabels = { scheduled: 'Scheduled', in_progress: 'In progress', completed: 'Completed' };
++  document.getElementById('sd-status').textContent = statusLabels[el.dataset.status] || el.dataset.status;
++
++  // Once a flight has started or finished, the scheduling actions (start /
++  // edit / cancel / log-from-schedule) no longer apply - it's already been
++  // acted on, so the modal is just a record of what was booked. Only a
++  // still-scheduled flight gets the action buttons.
++  var isScheduled = el.dataset.status === 'scheduled';
++  var editLink = document.getElementById('sd-edit-link');
++  if (editLink) { editLink.href = el.dataset.editUrl; editLink.classList.toggle('d-none', !isScheduled); }
++  var cancelForm = document.getElementById('sd-cancel-form');
++  if (cancelForm) { cancelForm.action = el.dataset.cancelUrl; cancelForm.classList.toggle('d-none', !isScheduled); }
++  var startForm = document.getElementById('sd-start-form');
++  if (startForm) { startForm.action = el.dataset.startUrl; startForm.classList.toggle('d-none', !isScheduled); }
++  // Start is only allowed from 30 min before the slot. Earlier than that the
++  // button turns amber and pressing it asks whether to move the booking to
++  // now first (_early_start_modal.html); the server enforces it too.
++  var startBtn = document.getElementById('sd-start-btn');
++  var lockedNote = document.getElementById('sd-start-locked');
++  if (startBtn && lockedNote) {
++    var locked = false;
++    if (isScheduled && el.dataset.date) {
++      var p = el.dataset.date.split('-');
++      var opens;
++      if (el.dataset.time24) {
++        var t = el.dataset.time24.split(':');
++        opens = new Date(+p[0], +p[1] - 1, +p[2], +t[0], +t[1]);
++        opens = new Date(opens.getTime() - START_EARLY_BUFFER_MIN * 60000);
++      } else {
++        opens = new Date(+p[0], +p[1] - 1, +p[2], 0, 0);
++      }
++      if (!isNaN(opens) && Date.now() < opens.getTime()) {
++        locked = true;
++        var h = opens.getHours(), m = opens.getMinutes();
++        var timeLbl = (h % 12 || 12) + ':' + (m < 10 ? '0' : '') + m + ' ' + (h < 12 ? 'AM' : 'PM');
++        var today = new Date();
++        var dayLbl = function (d) {
++          return d.toDateString() === today.toDateString() ? 'today'
++            : d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
++        };
++        var opensLbl = dayLbl(opens) + ' at ' + timeLbl;
++        document.getElementById('sd-start-opens').textContent = opensLbl;
++        var slotDay = new Date(+p[0], +p[1] - 1, +p[2]);
++        startForm.dataset.slotLabel = dayLbl(slotDay) + (el.dataset.time ? ' at ' + el.dataset.time : '');
++        startForm.dataset.opensLabel = opensLbl;
++      }
++    }
++    startBtn.disabled = false;
++    startForm.classList.toggle('early-start-form', locked);
++    var moveInput = startForm.querySelector('input[name="move_to_now"]');
++    if (moveInput) moveInput.value = '0';
++    startBtn.classList.toggle('btn-success', !locked);
++    startBtn.classList.toggle('btn-warning', locked);
++    startBtn.innerHTML = locked ? '<i class="bi bi-clock"></i> Start Early...' : '<i class="bi bi-play-fill"></i> Start Flight';
++    lockedNote.classList.toggle('d-none', !locked);
++  }
++  var logLink = document.getElementById('sd-log-link');
++  if (logLink) { logLink.href = el.dataset.logUrl; logLink.classList.toggle('d-none', !isScheduled); }
++  var rescheduleBtn = document.getElementById('sd-reschedule-btn');
++  if (rescheduleBtn) {
++    rescheduleBtn.classList.toggle('d-none', !isScheduled);
++    rescheduleBtn.onclick = function () {
++      document.getElementById('rs-form').action = el.dataset.rescheduleUrl;
++      document.getElementById('rs-plane-label').textContent = el.dataset.plane + ' – ' + el.dataset.student;
++      document.getElementById('rs-date').value = el.dataset.date;
++      document.getElementById('rs-time').value = el.dataset.time24 || '';
++      bootstrap.Modal.getOrCreateInstance(document.getElementById('scheduleDetailModal')).hide();
++      bootstrap.Modal.getOrCreateInstance(document.getElementById('rescheduleModal')).show();
++    };
++  }
++
++  var modalEl = document.getElementById('scheduleDetailModal');
++  var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
++  modal.show();
++
++  // Fetched on demand (only when this lesson is actually opened), not
++  // prefetched for every block on the calendar.
++  var forecastEl = document.getElementById('sd-forecast');
++  forecastEl.innerHTML = '<span class="text-muted small">Loading forecast...</span>';
++  var url = '{{ url_for("flight.api_forecast") }}?date=' + encodeURIComponent(el.dataset.date) +
++    (el.dataset.time24 ? '&time=' + encodeURIComponent(el.dataset.time24) : '');
++  fetch(url).then(function (r) { return r.json(); }).then(function (data) {
++    if (!data.forecast) {
++      forecastEl.innerHTML = '<span class="text-muted small">' + (data.error || 'Forecast unavailable.') + '</span>';
++      return;
++    }
++    var f = data.forecast;
++    function fmt(v, unit, digits) {
++      return (v === null || v === undefined) ? '-' : v.toFixed(digits === undefined ? 0 : digits) + unit;
++    }
++    forecastEl.innerHTML =
++      '<div class="row g-2 text-center">' +
++        '<div class="col-4 col-sm-2"><div class="text-muted small">Temp</div><div class="fw-bold">' + fmt(f.temp_f, '°F') + '</div></div>' +
++        '<div class="col-4 col-sm-2"><div class="text-muted small">Wind</div><div class="fw-bold">' + fmt(f.wind_mph, ' mph') + '</div>' +
++          (f.wind_gusts_mph ? '<div class="text-muted small">gust ' + fmt(f.wind_gusts_mph, '') + '</div>' : '') + '</div>' +
++        '<div class="col-4 col-sm-2"><div class="text-muted small">Clouds</div><div class="fw-bold">' + fmt(f.cloud_cover_pct, '%') + '</div><div class="text-muted small">' + (f.weather_label || '-') + '</div></div>' +
++        '<div class="col-4 col-sm-2"><div class="text-muted small">Visibility</div><div class="fw-bold">' + fmt(f.visibility_miles, ' mi', 1) + '</div></div>' +
++        '<div class="col-4 col-sm-2"><div class="text-muted small">Precip Chance</div><div class="fw-bold">' + fmt(f.precip_probability_pct, '%') + '</div></div>' +
++      '</div>' +
++      '<div class="form-text mt-1">Hourly forecast (not a certified aviation TAF) - check an official source like ForeFlight or aviationweather.gov before flying.</div>';
++  }).catch(function () {
++    forecastEl.innerHTML = '<span class="text-muted small">Forecast unavailable right now.</span>';
++  });
++});
++
++document.addEventListener('click', function (evt) {
++  var btn = evt.target.closest('.rs-quick-time');
++  if (!btn) return;
++  document.getElementById('rs-time').value = btn.dataset.time;
++});
++</script>
+diff -ruN '--exclude=_patches' '--exclude=CHANGES.md' '--exclude=_BASE.txt' '--exclude=__pycache__' shopinv_queue/templates/flight/dashboard.html M/templates/flight/dashboard.html
+--- a/templates/flight/dashboard.html	2026-09-23 21:49:56.000000000 +0000
++++ b/templates/flight/dashboard.html	2026-09-23 22:11:07.306244204 +0000
+@@ -209,6 +209,7 @@
+ <div id="dashboard-live-region" data-live-url="{{ url_for('flight.dashboard_live') }}">
+ {% include "flight/_dashboard_live.html" %}
+ </div>
++{% include "flight/_schedule_detail_modal.html" %}
+ {% endblock %}
+ 
+ {% block scripts %}
+diff -ruN '--exclude=_patches' '--exclude=CHANGES.md' '--exclude=_BASE.txt' '--exclude=__pycache__' shopinv_queue/templates/flight/schedule.html M/templates/flight/schedule.html
+--- a/templates/flight/schedule.html	2026-09-23 21:05:01.000000000 +0000
++++ b/templates/flight/schedule.html	2026-09-23 22:11:07.306317064 +0000
+@@ -85,106 +85,43 @@
+   .calendar-day-add:hover { background-color: rgba(13,110,253,.12); }
+   .calendar-day-add-icon { font-size: .7rem; color: #adb5bd; margin-left: auto; }
+   .calendar-day-add:hover .calendar-day-add-icon { color: #0d6efd; }
++
++  /* So the List view's auto-scroll-to-anchor (see the scripts block below)
++     doesn't land the target row half-hidden under the sticky top nav. */
++  tr.schedule-block { scroll-margin-top: 80px; }
++  /* Clicking anywhere in a day cell's open space (CFIs/admins only) jumps
++     straight to "Schedule Flight" with that date pre-filled - see the
++     delegated click handler below, which checks data-add-url on the cell
++     itself so the whole cell is clickable, not just the day number. */
++  .calendar-day-cell-add { cursor: pointer; transition: background-color .15s ease; }
++  .calendar-day-cell-add:hover { background-color: rgba(13,110,253,.08); }
++  /* The day-cell mini timeline: a fixed-height strip scaled to a 6am-8pm
++     reference window, with faint hour lines so a 9am flight and a 5pm
++     flight land visibly far apart instead of just sitting in a stacked
++     list a few pixels apart. */
++  .calendar-timeline { overflow: hidden; }
++  .calendar-time-line {
++    position: absolute; left: 0; right: 0; height: 0;
++    border-top: 1px dashed rgba(0,0,0,.14);
++    pointer-events: none;
++  }
++  .calendar-time-label {
++    position: absolute; left: 1px; top: -7px;
++    font-size: .55rem; line-height: 1; color: #adb5bd;
++  }
++  .schedule-block-timeline {
++    font-size: .62rem;
++    padding: 0 3px;
++    border-radius: 2px;
++    white-space: nowrap;
++  }
+ </style>
+ 
+ <div id="schedule-live-region" data-live-url="{{ url_for('flight.schedule_live') }}">
+ {% include "flight/_schedule_live.html" %}
+ </div>
+ 
+-<!-- Details modal (single shared modal, populated from the clicked block's data-* attributes) -->
+-<div class="modal fade" id="scheduleDetailModal" tabindex="-1" aria-hidden="true">
+-  <div class="modal-dialog">
+-    <div class="modal-content">
+-      <div class="modal-header">
+-        <h5 class="modal-title"><i class="bi bi-airplane-fill"></i> <span id="sd-plane"></span></h5>
+-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+-      </div>
+-      <div class="modal-body">
+-        <div id="sd-start-locked" class="alert alert-secondary d-none py-2 px-3 mb-2 small">
+-          <i class="bi bi-clock"></i> Not time yet - Start opens <strong id="sd-start-opens"></strong> ({{ start_early_buffer_min|default(30) }} min before the slot). Leaving now anyway? Press Start and you'll be asked to move the booking to now.
+-        </div>
+-        <div id="sd-review-alert" class="alert alert-warning d-none py-2 px-3 mb-2">
+-          <i class="bi bi-exclamation-triangle-fill"></i> <strong>Needs review:</strong> <span id="sd-review-reason"></span>
+-        </div>
+-        <table class="table table-sm mb-0">
+-          <tr><th style="width:35%;">Date</th><td id="sd-date"></td></tr>
+-          <tr><th>Time</th><td id="sd-time"></td></tr>
+-          <tr><th>Duration</th><td id="sd-duration"></td></tr>
+-          <tr><th>Student</th><td id="sd-student"></td></tr>
+-          <tr><th>Instructor</th><td id="sd-cfi"></td></tr>
+-          <tr><th>Status</th><td id="sd-status"></td></tr>
+-          <tr><th>Notes</th><td id="sd-notes"></td></tr>
+-          <tr id="sd-private-notes-row" class="d-none"><th><i class="bi bi-eye-slash"></i> Private Notes</th><td id="sd-private-notes" class="text-danger-emphasis"></td></tr>
+-          <tr><th>Scheduled by</th><td id="sd-created_by"></td></tr>
+-        </table>
+-        <hr class="my-2">
+-        <h6 class="small text-uppercase text-muted mb-1"><i class="bi bi-cloud-sun"></i> Forecast for This Lesson</h6>
+-        <div id="sd-forecast">
+-          <span class="text-muted small">Loading forecast...</span>
+-        </div>
+-      </div>
+-      <div class="modal-footer flex-wrap">
+-        {% if session.get('cfi_id') %}
+-        <form id="sd-start-form" method="post" action="#" class="d-inline">
+-          <input type="hidden" name="move_to_now" value="0">
+-          <button type="submit" id="sd-start-btn" class="btn btn-success btn-sm"><i class="bi bi-play-fill"></i> Start Flight</button>
+-        </form>
+-        <a id="sd-log-link" href="#" class="btn btn-outline-success btn-sm"><i class="bi bi-journal-plus"></i> Log Flight</a>
+-        <button type="button" id="sd-reschedule-btn" class="btn btn-outline-warning btn-sm"><i class="bi bi-calendar2-week"></i> Reschedule</button>
+-        <a id="sd-edit-link" href="#" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+-        <form id="sd-cancel-form" method="post" action="#" data-confirm="Cancel this scheduled flight?" data-confirm-style="danger" class="d-inline">
+-          <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg"></i> Cancel Flight</button>
+-        </form>
+-        {% endif %}
+-        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+-      </div>
+-    </div>
+-  </div>
+-</div>
+-
+-<!-- Reschedule modal: changes only the date/time, everything else about
+-     the booking (plane, student, instructor, duration, notes) stays put. -->
+-<div class="modal fade" id="rescheduleModal" tabindex="-1" aria-hidden="true">
+-  <div class="modal-dialog">
+-    <div class="modal-content">
+-      <div class="modal-header">
+-        <h5 class="modal-title"><i class="bi bi-calendar2-week"></i> Reschedule <span id="rs-plane-label" class="text-muted fs-6"></span></h5>
+-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+-      </div>
+-      <form method="post" id="rs-form">
+-        <div class="modal-body">
+-          <p class="text-muted small">Everything else about this booking (plane, student, instructor, duration, notes) stays the same - just pick a new date/time.</p>
+-          <div class="mb-3">
+-            <label class="form-label">New Date *</label>
+-            <input type="date" name="scheduled_date" id="rs-date" class="form-control" required>
+-          </div>
+-          <div class="mb-2">
+-            <label class="form-label">Quick pick <span class="text-muted small">(1.5-hr blocks)</span></label>
+-            <div class="d-flex flex-wrap gap-1">
+-              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="08:00">8:00a</button>
+-              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="09:30">9:30a</button>
+-              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="11:00">11:00a</button>
+-              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="12:30">12:30p</button>
+-              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="14:00">2:00p</button>
+-              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="15:30">3:30p</button>
+-              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="17:00">5:00p</button>
+-              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="18:30">6:30p</button>
+-              <button type="button" class="btn btn-outline-primary btn-sm rs-quick-time" data-time="20:00">8:00p</button>
+-            </div>
+-          </div>
+-          <div class="mb-1">
+-            <label class="form-label">Or pick a specific time</label>
+-            <input type="time" name="scheduled_time" id="rs-time" class="form-control">
+-          </div>
+-        </div>
+-        <div class="modal-footer">
+-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+-          <button type="submit" class="btn btn-primary fw-bold btn-sm">Save New Time</button>
+-        </div>
+-      </form>
+-    </div>
+-  </div>
+-</div>
++{% include "flight/_schedule_detail_modal.html" %}
+ {% endblock %}
+ 
+ {% block scripts %}
+@@ -221,148 +158,39 @@
+   }
+ })();
+ 
+-// Delegated on a stable ancestor (not the individual blocks/rows) so this
+-// keeps working after the live-refresh polling below replaces the calendar
+-// content's DOM nodes wholesale - a plain per-element addEventListener
+-// would silently stop firing on anything swapped in after page load.
+-document.addEventListener('click', function (evt) {
+-  var el = evt.target.closest('.schedule-block');
+-  if (!el) return;
+-  document.getElementById('sd-plane').textContent = el.dataset.plane;
+-  document.getElementById('sd-date').textContent = el.dataset.date;
+-  var timeText = el.dataset.time ? el.dataset.time : 'Not set';
+-  if (el.dataset.time && el.dataset.endtime) {
+-    timeText = el.dataset.time + ' - ' + el.dataset.endtime;
+-  }
+-  document.getElementById('sd-time').textContent = timeText;
+-  document.getElementById('sd-duration').textContent = el.dataset.duration ? (el.dataset.duration + ' hrs') : '(default)';
+-  document.getElementById('sd-student').textContent = el.dataset.student;
+-  document.getElementById('sd-cfi').textContent = el.dataset.cfi ? el.dataset.cfi : (el.dataset.solo ? 'Solo (no instructor)' : 'Not assigned yet');
+-  document.getElementById('sd-notes').textContent = el.dataset.notes ? el.dataset.notes : '—';
+-  var privRow = document.getElementById('sd-private-notes-row');
+-  if (el.dataset.privateNotes) {
+-    document.getElementById('sd-private-notes').textContent = el.dataset.privateNotes;
+-    privRow.classList.remove('d-none');
+-  } else {
+-    privRow.classList.add('d-none');
+-  }
+-  var reviewAlert = document.getElementById('sd-review-alert');
+-  if (el.dataset.needsReview) {
+-    document.getElementById('sd-review-reason').textContent = el.dataset.reviewReason;
+-    reviewAlert.classList.remove('d-none');
+-  } else {
+-    reviewAlert.classList.add('d-none');
+-  }
+-  document.getElementById('sd-created_by').textContent = el.dataset.created_by ? el.dataset.created_by : '—';
+-  var statusLabels = { scheduled: 'Scheduled', in_progress: 'In progress', completed: 'Completed' };
+-  document.getElementById('sd-status').textContent = statusLabels[el.dataset.status] || el.dataset.status;
+-
+-  // Once a flight has started or finished, the scheduling actions (start /
+-  // edit / cancel / log-from-schedule) no longer apply - it's already been
+-  // acted on, so the modal is just a record of what was booked. Only a
+-  // still-scheduled flight gets the action buttons.
+-  var isScheduled = el.dataset.status === 'scheduled';
+-  var editLink = document.getElementById('sd-edit-link');
+-  if (editLink) { editLink.href = el.dataset.editUrl; editLink.classList.toggle('d-none', !isScheduled); }
+-  var cancelForm = document.getElementById('sd-cancel-form');
+-  if (cancelForm) { cancelForm.action = el.dataset.cancelUrl; cancelForm.classList.toggle('d-none', !isScheduled); }
+-  var startForm = document.getElementById('sd-start-form');
+-  if (startForm) { startForm.action = el.dataset.startUrl; startForm.classList.toggle('d-none', !isScheduled); }
+-  // Start is only allowed from 30 min before the slot. Earlier than that the
+-  // button turns amber and pressing it asks whether to move the booking to
+-  // now first (_early_start_modal.html); the server enforces it too.
+-  var startBtn = document.getElementById('sd-start-btn');
+-  var lockedNote = document.getElementById('sd-start-locked');
+-  if (startBtn && lockedNote) {
+-    var locked = false;
+-    if (isScheduled && el.dataset.date) {
+-      var p = el.dataset.date.split('-');
+-      var opens;
+-      if (el.dataset.time24) {
+-        var t = el.dataset.time24.split(':');
+-        opens = new Date(+p[0], +p[1] - 1, +p[2], +t[0], +t[1]);
+-        opens = new Date(opens.getTime() - START_EARLY_BUFFER_MIN * 60000);
+-      } else {
+-        opens = new Date(+p[0], +p[1] - 1, +p[2], 0, 0);
+-      }
+-      if (!isNaN(opens) && Date.now() < opens.getTime()) {
+-        locked = true;
+-        var h = opens.getHours(), m = opens.getMinutes();
+-        var timeLbl = (h % 12 || 12) + ':' + (m < 10 ? '0' : '') + m + ' ' + (h < 12 ? 'AM' : 'PM');
+-        var today = new Date();
+-        var dayLbl = function (d) {
+-          return d.toDateString() === today.toDateString() ? 'today'
+-            : d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
+-        };
+-        var opensLbl = dayLbl(opens) + ' at ' + timeLbl;
+-        document.getElementById('sd-start-opens').textContent = opensLbl;
+-        var slotDay = new Date(+p[0], +p[1] - 1, +p[2]);
+-        startForm.dataset.slotLabel = dayLbl(slotDay) + (el.dataset.time ? ' at ' + el.dataset.time : '');
+-        startForm.dataset.opensLabel = opensLbl;
+-      }
+-    }
+-    startBtn.disabled = false;
+-    startForm.classList.toggle('early-start-form', locked);
+-    var moveInput = startForm.querySelector('input[name="move_to_now"]');
+-    if (moveInput) moveInput.value = '0';
+-    startBtn.classList.toggle('btn-success', !locked);
+-    startBtn.classList.toggle('btn-warning', locked);
+-    startBtn.innerHTML = locked ? '<i class="bi bi-clock"></i> Start Early...' : '<i class="bi bi-play-fill"></i> Start Flight';
+-    lockedNote.classList.toggle('d-none', !locked);
+-  }
+-  var logLink = document.getElementById('sd-log-link');
+-  if (logLink) { logLink.href = el.dataset.logUrl; logLink.classList.toggle('d-none', !isScheduled); }
+-  var rescheduleBtn = document.getElementById('sd-reschedule-btn');
+-  if (rescheduleBtn) {
+-    rescheduleBtn.classList.toggle('d-none', !isScheduled);
+-    rescheduleBtn.onclick = function () {
+-      document.getElementById('rs-form').action = el.dataset.rescheduleUrl;
+-      document.getElementById('rs-plane-label').textContent = el.dataset.plane + ' – ' + el.dataset.student;
+-      document.getElementById('rs-date').value = el.dataset.date;
+-      document.getElementById('rs-time').value = el.dataset.time24 || '';
+-      bootstrap.Modal.getOrCreateInstance(document.getElementById('scheduleDetailModal')).hide();
+-      bootstrap.Modal.getOrCreateInstance(document.getElementById('rescheduleModal')).show();
+-    };
++// List view opens scrolled to the most recently completed flight (see
++// list_scroll_anchor_id / _build_schedule_year_list() in flight.py)
++// instead of at January 1st - upcoming flights land just below the fold
++// (the direction someone opening the schedule actually cares about),
++// older history is one scroll up. Only on the initial load, same as the
++// conflict-highlight scroll above, and it defers to that one (a
++// highlighted conflict is the more specific thing to land on).
++{% if view == 'list' and list_scroll_anchor_id %}
++(function () {
++  if (document.querySelector('.schedule-block-highlight')) return;
++  var anchor = document.querySelector('.schedule-block[data-id="{{ list_scroll_anchor_id }}"]');
++  if (anchor) {
++    setTimeout(function () { anchor.scrollIntoView({ behavior: 'instant', block: 'start' }); }, 50);
+   }
++})();
++{% endif %}
+ 
+-  var modalEl = document.getElementById('scheduleDetailModal');
+-  var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+-  modal.show();
+-
+-  // Fetched on demand (only when this lesson is actually opened), not
+-  // prefetched for every block on the calendar.
+-  var forecastEl = document.getElementById('sd-forecast');
+-  forecastEl.innerHTML = '<span class="text-muted small">Loading forecast...</span>';
+-  var url = '{{ url_for("flight.api_forecast") }}?date=' + encodeURIComponent(el.dataset.date) +
+-    (el.dataset.time24 ? '&time=' + encodeURIComponent(el.dataset.time24) : '');
+-  fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+-    if (!data.forecast) {
+-      forecastEl.innerHTML = '<span class="text-muted small">' + (data.error || 'Forecast unavailable.') + '</span>';
+-      return;
+-    }
+-    var f = data.forecast;
+-    function fmt(v, unit, digits) {
+-      return (v === null || v === undefined) ? '-' : v.toFixed(digits === undefined ? 0 : digits) + unit;
+-    }
+-    forecastEl.innerHTML =
+-      '<div class="row g-2 text-center">' +
+-        '<div class="col-4 col-sm-2"><div class="text-muted small">Temp</div><div class="fw-bold">' + fmt(f.temp_f, '°F') + '</div></div>' +
+-        '<div class="col-4 col-sm-2"><div class="text-muted small">Wind</div><div class="fw-bold">' + fmt(f.wind_mph, ' mph') + '</div>' +
+-          (f.wind_gusts_mph ? '<div class="text-muted small">gust ' + fmt(f.wind_gusts_mph, '') + '</div>' : '') + '</div>' +
+-        '<div class="col-4 col-sm-2"><div class="text-muted small">Clouds</div><div class="fw-bold">' + fmt(f.cloud_cover_pct, '%') + '</div><div class="text-muted small">' + (f.weather_label || '-') + '</div></div>' +
+-        '<div class="col-4 col-sm-2"><div class="text-muted small">Visibility</div><div class="fw-bold">' + fmt(f.visibility_miles, ' mi', 1) + '</div></div>' +
+-        '<div class="col-4 col-sm-2"><div class="text-muted small">Precip Chance</div><div class="fw-bold">' + fmt(f.precip_probability_pct, '%') + '</div></div>' +
+-      '</div>' +
+-      '<div class="form-text mt-1">Hourly forecast (not a certified aviation TAF) - check an official source like ForeFlight or aviationweather.gov before flying.</div>';
+-  }).catch(function () {
+-    forecastEl.innerHTML = '<span class="text-muted small">Forecast unavailable right now.</span>';
+-  });
+-});
+-
++// The "flight details" popup itself (the .schedule-block delegated click
++// handler that populates and opens #scheduleDetailModal, plus the
++// reschedule quick-time buttons) now lives in _schedule_detail_modal.html,
++// included above, so it's shared with the dashboard's "Details" button
++// instead of duplicated here.
++
++// Click anywhere in a day cell's open space (not on a flight block itself)
++// to jump straight to "Schedule Flight" with that date pre-filled. Checked
++// last, after the .schedule-block delegated handler above already returned
++// early on its own clicks, so a click on a block never also triggers this.
+ document.addEventListener('click', function (evt) {
+-  var btn = evt.target.closest('.rs-quick-time');
+-  if (!btn) return;
+-  document.getElementById('rs-time').value = btn.dataset.time;
++  if (evt.target.closest('.schedule-block')) return;
++  var cell = evt.target.closest('.calendar-day-cell-add');
++  if (!cell) return;
++  var url = cell.getAttribute('data-add-url');
++  if (url) window.location.href = url;
+ });
+ 
+ // Live refresh: re-polls the same view/filters the page is currently on
