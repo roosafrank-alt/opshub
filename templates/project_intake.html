@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Intake - {{ project.name }} - OpsHub{% endblock %}
+{% block content %}
+{#- New-project intake check (app.project_intake). `data` is a saved or
+    just-posted intake (dict) or None; `form` is the posted form when it
+    came back with errors. #}
+{% set checks_by_key = {} %}
+{% if data %}{% for c in data.checks %}{% set _ = checks_by_key.update({c.key: c}) %}{% endfor %}{% endif %}
+<style>
+  .intake-check { border-top: 1px solid #eef0f3; padding: .75rem 0; }
+  .intake-check:first-of-type { border-top: 0; }
+  .intake-addr { display: none; }
+  .intake-check.is-issue .intake-addr { display: block; }
+  .intake-skip { font-size: .8rem; }
+</style>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+  <div>
+    <h4 class="mb-0"><i class="bi bi-clipboard-check"></i> Intake Check</h4>
+    <div class="text-muted"><code class="text-primary">{{ project.code }}</code> &middot; {{ project.name }}{% if project.asset_display_tag %} &middot; <i class="bi bi-airplane"></i> {{ project.asset_display_tag }}{% endif %}</div>
+  </div>
+  {% if project.intake_status in (none, 'pending') %}
+  <form method="post" class="mb-0" data-confirm="Skip the intake check for this project? You can still fill it in later from the project page." data-confirm-title="Skip Intake" data-confirm-ok="Skip it" data-confirm-style="warning">
+    <input type="hidden" name="action" value="skip">
+    <button type="submit" class="btn btn-link btn-sm text-muted intake-skip p-0">Skip &raquo;</button>
+  </form>
+  {% else %}
+  <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm">Back to project</a>
+  {% endif %}
+</div>
+<p class="text-muted small">Check these before anyone touches the plane. Anything marked <strong>Issue</strong> (and any squawk or damage) can get its own Sub Area on this project - tick "Address in this project".</p>
+
+<form method="post">
+  <div class="card p-3 mb-3">
+    {% for key, label, hint in checks %}
+    {% set c = checks_by_key.get(key, {}) %}
+    {% set st = form.get(key ~ '_status') if form else c.get('status') %}
+    <div class="intake-check {{ 'is-issue' if st == 'issue' }}" data-check="{{ key }}">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <div class="fw-bold">{{ label }} *</div>
+          <div class="small text-muted">{{ hint }}</div>
+        </div>
+        <div class="btn-group" role="group">
+          <input type="radio" class="btn-check" name="{{ key }}_status" id="{{ key }}-ok" value="ok" required {{ 'checked' if st == 'ok' }}>
+          <label class="btn btn-outline-success btn-sm fw-bold" for="{{ key }}-ok"><i class="bi bi-check-lg"></i> OK</label>
+          <input type="radio" class="btn-check" name="{{ key }}_status" id="{{ key }}-issue" value="issue" {{ 'checked' if st == 'issue' }}>
+          <label class="btn btn-outline-danger btn-sm fw-bold" for="{{ key }}-issue"><i class="bi bi-exclamation-triangle"></i> Issue</label>
+        </div>
+      </div>
+      <div class="row g-2 mt-1">
+        {% if key == 'mags' %}
+        <div class="col-6 col-md-3"><input type="text" inputmode="numeric" name="mags_left" class="form-control form-control-sm" placeholder="Left drop (RPM)" value="{{ form.get('mags_left') if form else c.get('left', '') }}"></div>
+        <div class="col-6 col-md-3"><input type="text" inputmode="numeric" name="mags_right" class="form-control form-control-sm" placeholder="Right drop (RPM)" value="{{ form.get('mags_right') if form else c.get('right', '') }}"></div>
+        {% elif key == 'oil' %}
+        <div class="col-6 col-md-3"><input type="text" inputmode="decimal" name="oil_qts" class="form-control form-control-sm" placeholder="Qts added / on dipstick" value="{{ form.get('oil_qts') if form else c.get('qts', '') }}"></div>
+        {% endif %}
+        <div class="col"><input type="text" name="{{ key }}_note" class="form-control form-control-sm" placeholder="Note (required if Issue)" value="{{ form.get(key ~ '_note') if form else c.get('note', '') }}"></div>
+      </div>
+      <div class="form-check mt-1 intake-addr">
+        <input class="form-check-input" type="checkbox" name="{{ key }}_address" value="1" id="{{ key }}-addr" {{ 'checked' if (form and form.get(key ~ '_address')) or (not form and (c.get('address') or not c)) }}>
+        <label class="form-check-label small" for="{{ key }}-addr">Address in this project (adds a "{{ label }}" Sub Area)</label>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% for kind, title, ph, icon in [('squawks', 'Squawks', 'e.g. radio 2 static on transmit', 'bi-megaphone'), ('damage', 'Damage found on walkaround', 'e.g. dent left flap trailing edge', 'bi-exclamation-octagon')] %}
+  {% set saved = (data[kind] if data else []) %}
+  <div class="card p-3 mb-3">
+    <div class="fw-bold mb-1"><i class="bi {{ icon }}"></i> {{ title }}</div>
+    <div class="small text-muted mb-2">One per line. Leave blank if none.</div>
+    {% for i in range(rows) %}
+    {% set it = saved[i] if i < saved|length else {} %}
+    {% set val = form.get(kind ~ '_' ~ i) if form else it.get('text', '') %}
+    <div class="intake-line mb-2 {{ 'd-none' if i > 0 and not val and not (i < saved|length) }}" data-kind="{{ kind }}">
+      <input type="text" name="{{ kind }}_{{ i }}" class="form-control form-control-sm" placeholder="{{ ph }}" value="{{ val or '' }}">
+      <div class="form-check mt-1">
+        <input class="form-check-input" type="checkbox" name="{{ kind }}_{{ i }}_address" value="1" id="{{ kind }}-{{ i }}-addr" {{ 'checked' if (form and form.get(kind ~ '_' ~ i ~ '_address')) or (not form and (it.get('address') or not it)) }}>
+        <label class="form-check-label small" for="{{ kind }}-{{ i }}-addr">Address in this project (adds a Sub Area for it)</label>
+      </div>
+    </div>
+    {% endfor %}
+    <button type="button" class="btn btn-link btn-sm p-0 intake-more" data-kind="{{ kind }}"><i class="bi bi-plus-lg"></i> Add another</button>
+  </div>
+  {% endfor %}
+
+  <div class="card p-3 mb-3">
+    <label class="form-label fw-bold mb-1">Other notes</label>
+    <textarea name="notes" class="form-control" rows="2" placeholder="optional">{{ form.get('notes') if form else (data.notes if data else '') }}</textarea>
+  </div>
+  <button type="submit" class="btn btn-warning fw-bold w-100 mb-4"><i class="bi bi-clipboard-check"></i> Save Intake &amp; Open Project</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  document.querySelectorAll('.intake-check').forEach(function (row) {
+    row.querySelectorAll('input[type=radio]').forEach(function (r) {
+      r.addEventListener('change', function () { row.classList.toggle('is-issue', r.value === 'issue' && r.checked); });
+    });
+  });
+  document.querySelectorAll('.intake-more').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var next = btn.parentNode.querySelector('.intake-line.d-none');
+      if (next) { next.classList.remove('d-none'); next.querySelector('input[type=text]').focus(); }
+      if (!btn.parentNode.querySelector('.intake-line.d-none')) btn.classList.add('d-none');
+    });
+  });
+})();
+</script>
+{% endblock %}

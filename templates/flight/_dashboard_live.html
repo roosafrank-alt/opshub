@@ -94,20 +94,37 @@
 </div>
 {% endif %}
 
-{% if next_lesson %}
+{% if next_lesson or session.get('is_master_admin') %}
 <div class="card p-3 mb-3 border-primary">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-      <div class="text-uppercase small fw-bold text-primary"><i class="bi bi-calendar-event"></i> Next Lesson</div>
+      <div class="text-uppercase small fw-bold text-primary"><i class="bi bi-calendar-event"></i> {{ 'Next Lesson - Whole School' if next_scope == 'school' else 'Your Next Lesson' }}</div>
+      {% if next_lesson %}
+      {% if next_lesson.starts_at %}
+      <div class="fs-2 fw-bold lh-1 mt-1 next-countdown" data-countdown-to="{{ next_lesson.starts_at }}" style="font-variant-numeric: tabular-nums;">{{ next_lesson.countdown }}</div>
+      <div class="small text-muted next-countdown-sub">{{ next_lesson.countdown }}</div>
+      {% else %}
       <div class="fs-2 fw-bold lh-1 mt-1">{{ next_lesson.countdown }}</div>
+      {% endif %}
       <div class="text-muted">
         {{ next_lesson.scheduled_date|usdate }}{% if next_lesson.time_label %} &middot; {{ next_lesson.time_label }}{% endif %}
         &middot; {{ next_lesson.plane_tag }}
-        {% if cfi %} &middot; {{ next_lesson.student_name }}{% endif %}
+        {% if cfi or next_scope == 'school' %} &middot; {{ next_lesson.student_name }}{% endif %}
         {% if next_lesson.cfi_name %} &middot; {{ next_lesson.cfi_name }}{% elif next_lesson.solo %}<span class="badge bg-secondary ms-1">Solo</span>{% else %}<span class="badge bg-danger ms-1">Needs Instructor</span>{% endif %}
       </div>
+      {% else %}
+      <div class="text-muted mt-1">Nothing booked for you coming up.</div>
+      {% endif %}
     </div>
-    <a href="{{ url_for('flight.schedule_calendar') }}" class="btn btn-outline-primary btn-sm">Full Calendar</a>
+    <div class="d-flex flex-column align-items-end gap-2">
+      {% if session.get('is_master_admin') %}
+      <div class="btn-group btn-group-sm" role="group" aria-label="Whose next lesson">
+        <a href="{{ url_for('flight.dashboard', next='mine') }}" class="btn {{ 'btn-primary' if next_scope != 'school' else 'btn-outline-primary' }}"><i class="bi bi-person"></i> Personal</a>
+        <a href="{{ url_for('flight.dashboard', next='school') }}" class="btn {{ 'btn-primary' if next_scope == 'school' else 'btn-outline-primary' }}"><i class="bi bi-people"></i> School</a>
+      </div>
+      {% endif %}
+      <a href="{{ url_for('flight.schedule_calendar') }}" class="btn btn-outline-primary btn-sm">Full Calendar</a>
+    </div>
   </div>
 </div>
 {% endif %}

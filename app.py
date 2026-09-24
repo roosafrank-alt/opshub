@@ -1,6 +1,7 @@
 import os
 import re
 import csv
+import json
 import io
 import calendar as calendar_mod
 import secrets
@@ -156,7 +157,7 @@ def _parse_error_log_entry(name, text):
 
 def usdate(value, show_time=False):
     """Formats an ISO date/datetime string ('YYYY-MM-DD' or
-    'YYYY-MM-DD HH:MM:SS'/'YYYY-MM-DDTHH:MM:SS') as MM-DD-YYYY, the display
+    'YYYY-MM-DD HH:MM:SS'/'YYYY-MM-DDTHH:MM:SS') as DD-MM-YYYY, the display
     format used everywhere in this app (storage/sorting stays ISO under the
     hood). Anything that doesn't look like an ISO date passes through
     unchanged. With show_time, appends HH:MM after the date."""
@@ -170,7 +171,7 @@ def usdate(value, show_time=False):
     if len(parts) != 3 or len(parts[0]) != 4:
         return value
     y, m, d = parts
-    out = f"{m}-{d}-{y}"
+    out = f"{d}-{m}-{y}"
     if show_time:
         rest = s[10:].replace("T", " ").strip()
         if rest:
@@ -1222,6 +1223,37 @@ def labels():
 # Projects
 # ---------------------------------------------------------------------------
 
+@app.route("/projects/parts-used")
+@login_required
+def projects_parts_used():
+    """Master list of every part used on every project (net of returns),
+    one row per project + part + Sub Area, searchable as you type."""
+    status = request.args.get("status", "all")
+    if status not in ("all", "active", "on_hold", "completed", "archived"):
+        status = "all"
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT pr.id as project_id, pr.code as project_code, pr.name as project_name, pr.status as project_status,
+               a.tag as plane_tag, p.id as part_id, p.name as part_name, p.barcode, p.unit, p.unit_cost,
+               COALESCE(NULLIF(TRIM(t.section), ''), 'General') as section,
+               SUM(CASE WHEN t.type = 'out' THEN t.qty ELSE -t.qty END) as qty_used,
+               MIN(t.created_at) as first_used, MAX(t.created_at) as last_used
+        FROM transactions t
+        JOIN parts p ON p.id = t.part_id
+        JOIN projects pr ON pr.id = t.project_id
+        LEFT JOIN assets a ON a.id = pr.asset_id
+        WHERE t.project_id IS NOT NULL AND pr.deleted_at IS NULL AND t.type IN ('out', 'in')
+          AND (? = 'all' OR pr.status = ?)
+        GROUP BY pr.id, p.id, COALESCE(NULLIF(TRIM(t.section), ''), 'General')
+        HAVING qty_used > 0
+        ORDER BY MAX(t.created_at) DESC, pr.code, p.name
+    """, (status, status)).fetchall()
+    conn.close()
+    items = [dict(r, cost=(r["qty_used"] or 0) * (r["unit_cost"] or 0)) for r in rows]
+    return render_template("projects_parts_used.html", items=items, status=status,
+                           q=request.args.get("q", ""))
+
+
 @app.route("/projects")
 @login_required
 def projects_list():
@@ -1298,11 +1330,12 @@ def project_new():
             (code, name, request.form.get("description", "").strip(), asset_id, scheduled_date,
              scheduled_end_date, scheduled_color, request.form.get("prework_checklist", "").strip() or None,
              request.form.get("standard_items", "").strip() or None, now_iso()))
-        conn.commit()
         new_id = cur.lastrowid
+        conn.execute("UPDATE projects SET intake_status = 'pending' WHERE id = ?", (new_id,))
+        conn.commit()
         conn.close()
-        flash(f"Project '{name}' created as {code}.", "success")
-        return redirect(url_for("project_detail", project_id=new_id))
+        flash(f"Project '{name}' created as {code}. Fill in the intake check before starting work.", "success")
+        return redirect(url_for("project_intake", project_id=new_id))
     assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL ORDER BY tag").fetchall()
     preselect_asset_id = request.args.get("asset_id")
     preselect_asset_tag = None
@@ -1359,6 +1392,16 @@ def project_detail(project_id):
     if not project:
         conn.close()
         abort(404)
+    # A new project's intake check comes first (small Skip on that page).
+    if project["intake_status"] == "pending":
+        conn.close()
+        return redirect(url_for("project_intake", project_id=project_id))
+    intake = None
+    if project["intake_json"]:
+        try:
+            intake = json.loads(project["intake_json"])
+        except (TypeError, ValueError):
+            intake = None
     usage_rows = conn.execute("""
         SELECT p.id as part_id, p.name, p.barcode, p.unit, p.unit_cost,
                t.section as section,
@@ -1425,7 +1468,108 @@ def project_detail(project_id):
     return render_template("project_detail.html", project=project, usage_by_section=usage_by_section,
                            total_cost=total_cost, tx=tx, all_parts=all_parts, photos=photos, open_orders=open_orders,
                            labor_sessions=labor_sessions, labor_total_cost=labor_total_cost,
-                           labor_total_hours=labor_total_hours, known_sections=known_sections)
+                           labor_total_hours=labor_total_hours, known_sections=known_sections, intake=intake)
+
+
+# ---------------------------------------------------------------- project intake
+# Checked on the plane before anyone touches it, right after a project is
+# created. Each check is OK / Issue (+ note); issues, squawks and damage
+# ticked "address in this project" each get their own Sub Area.
+INTAKE_CHECKS = [
+    ("mags", "Mag drop", "Run-up RPM drop, left and right mag"),
+    ("oil", "Oil usage", "Oil level / quarts added since last visit, burn rate"),
+    ("brakes", "Brake pedal feel", "Firm, even, no sponginess or fade"),
+    ("gauges", "Gauges working", "Engine and flight instruments all reading"),
+]
+INTAKE_EXTRA_ROWS = 6  # squawk / damage lines offered on the form
+
+
+def _intake_from_form(form):
+    """(data, errors) from the intake form."""
+    data = {"checks": [], "squawks": [], "damage": [], "notes": (form.get("notes") or "").strip()[:1000]}
+    errors = []
+    for key, label, _hint in INTAKE_CHECKS:
+        status = form.get(f"{key}_status")
+        if status not in ("ok", "issue"):
+            errors.append(f"{label}: pick OK or Issue.")
+        item = {"key": key, "label": label, "status": status,
+                "note": (form.get(f"{key}_note") or "").strip()[:300],
+                "address": status == "issue" and form.get(f"{key}_address") == "1"}
+        if key == "mags":
+            item["left"] = (form.get("mags_left") or "").strip()[:10]
+            item["right"] = (form.get("mags_right") or "").strip()[:10]
+        if key == "oil":
+            item["qts"] = (form.get("oil_qts") or "").strip()[:10]
+        if status == "issue" and not item["note"]:
+            errors.append(f"{label}: say what the issue is.")
+        data["checks"].append(item)
+    for kind in ("squawks", "damage"):
+        for i in range(INTAKE_EXTRA_ROWS):
+            text = (form.get(f"{kind}_{i}") or "").strip()[:200]
+            if text:
+                data[kind].append({"text": text, "address": form.get(f"{kind}_{i}_address") == "1"})
+    return data, errors
+
+
+def _intake_sub_areas(data):
+    """Sub Area names for everything ticked "address in this project"."""
+    names = []
+    for c in data["checks"]:
+        if c.get("address"):
+            names.append(c["label"])
+    for kind, prefix in (("squawks", "Squawk"), ("damage", "Damage")):
+        for it in data[kind]:
+            if it.get("address"):
+                names.append(f"{prefix}: {it['text'][:60]}")
+    return names
+
+
+@app.route("/projects/<int:project_id>/intake", methods=["GET", "POST"])
+@shop_role_required('admin', 'tech')
+def project_intake(project_id):
+    conn = get_db()
+    project = conn.execute("""SELECT projects.*, a.tag as asset_display_tag FROM projects
+                              LEFT JOIN assets a ON a.id = projects.asset_id WHERE projects.id = ?""",
+                           (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    existing = None
+    if project["intake_json"]:
+        try:
+            existing = json.loads(project["intake_json"])
+        except (TypeError, ValueError):
+            existing = None
+    if request.method == "POST":
+        if request.form.get("action") == "skip":
+            if project["intake_status"] in (None, "pending"):
+                conn.execute("UPDATE projects SET intake_status = 'skipped', intake_at = ?, intake_by = ? WHERE id = ?",
+                             (now_iso(), session.get("user_name"), project_id))
+                conn.commit()
+            conn.close()
+            flash("Intake check skipped.", "warning")
+            return redirect(url_for("project_detail", project_id=project_id))
+        data, errors = _intake_from_form(request.form)
+        if errors:
+            conn.close()
+            for e in errors:
+                flash(e, "danger")
+            return render_template("project_intake.html", project=project, checks=INTAKE_CHECKS,
+                                   rows=INTAKE_EXTRA_ROWS, data=data, form=request.form)
+        new_areas = _intake_sub_areas(data)
+        for name in new_areas:
+            conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
+                         (project_id, name, now_iso()))
+        conn.execute("""UPDATE projects SET intake_status = 'done', intake_json = ?, intake_at = ?, intake_by = ?
+                        WHERE id = ?""", (json.dumps(data), now_iso(), session.get("user_name"), project_id))
+        conn.commit()
+        conn.close()
+        flash("Intake check saved." + (f" Sub Area{'s' if len(new_areas) != 1 else ''} added: {', '.join(new_areas)}."
+                                       if new_areas else ""), "success")
+        return redirect(url_for("project_detail", project_id=project_id))
+    conn.close()
+    return render_template("project_intake.html", project=project, checks=INTAKE_CHECKS,
+                           rows=INTAKE_EXTRA_ROWS, data=existing, form=None)
 
 
 def _group_usage_by_section(usage_rows):
@@ -2988,7 +3132,7 @@ def _shop_period(default="this_month"):
             end = datetime.strptime(d_to, "%Y-%m-%d").date() if d_to else today
             if end < start:
                 start, end = end, start
-            return start.isoformat(), end.isoformat(), "custom", f"{start.strftime('%m-%d-%Y')} to {end.strftime('%m-%d-%Y')}"
+            return start.isoformat(), end.isoformat(), "custom", f"{start.strftime('%d-%m-%Y')} to {end.strftime('%d-%m-%Y')}"
         except ValueError:
             pass
     period = request.args.get("period", default)

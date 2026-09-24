@@ -115,13 +115,6 @@
     </div>
     {% endif %}
 
-    {% if asset.serial_number %}
-    <div class="card p-3 mt-3">
-      <div class="d-flex justify-content-between">
-        <span class="text-muted">Serial Number</span><span>{{ asset.serial_number }}</span>
-      </div>
-    </div>
-    {% endif %}
 
     {% if asset.is_flight_asset %}
     <div class="card p-3 mt-3">
@@ -177,133 +170,139 @@
       <a href="{{ url_for('asset_compression', asset_id=asset.id) }}" class="btn btn-outline-primary btn-sm w-100 mt-2"><i class="bi bi-speedometer"></i> {{ 'View / Log Checks' if compression_count else 'Log a Check' }}</a>
     </div>
 
-    {% if asset.engine_make or asset.engine_model or asset.engine_serial %}
-    <div class="card p-3 mt-3">
-      <h6><i class="bi bi-gear"></i> Engine</h6>
+    {% if asset.serial_number or asset.engine_make or asset.engine_model or asset.engine_serial or asset.prop_make or asset.prop_model or asset.prop_serial %}
+    <div class="card p-3 mt-3 small">
+      <h6><i class="bi bi-info-circle"></i> Details</h6>
+      {% if asset.serial_number %}
+      <div class="d-flex justify-content-between gap-2"><span class="text-muted">Airframe serial</span><span class="text-end">{{ asset.serial_number }}</span></div>
+      {% endif %}
       {% if asset.engine_make or asset.engine_model %}
-      <div class="d-flex justify-content-between"><span class="text-muted">Make / Model</span><span>{{ [asset.engine_make, asset.engine_model]|select|join(' ') }}</span></div>
+      <div class="d-flex justify-content-between gap-2"><span class="text-muted"><i class="bi bi-gear"></i> Engine</span><span class="text-end">{{ [asset.engine_make, asset.engine_model]|select|join(' ') }}</span></div>
       {% endif %}
       {% if asset.engine_serial %}
-      <div class="d-flex justify-content-between"><span class="text-muted">Serial</span><span>{{ asset.engine_serial }}</span></div>
+      <div class="d-flex justify-content-between gap-2"><span class="text-muted">Engine serial</span><span class="text-end">{{ asset.engine_serial }}</span></div>
       {% endif %}
-    </div>
-    {% endif %}
-
-    {% if asset.prop_make or asset.prop_model or asset.prop_serial %}
-    <div class="card p-3 mt-3">
-      <h6><i class="bi bi-airplane-engines"></i> Propeller</h6>
       {% if asset.prop_make or asset.prop_model %}
-      <div class="d-flex justify-content-between"><span class="text-muted">Make / Model</span><span>{{ [asset.prop_make, asset.prop_model]|select|join(' ') }}</span></div>
+      <div class="d-flex justify-content-between gap-2"><span class="text-muted"><i class="bi bi-airplane-engines"></i> Propeller</span><span class="text-end">{{ [asset.prop_make, asset.prop_model]|select|join(' ') }}</span></div>
       {% endif %}
       {% if asset.prop_serial %}
-      <div class="d-flex justify-content-between"><span class="text-muted">Serial</span><span>{{ asset.prop_serial }}</span></div>
+      <div class="d-flex justify-content-between gap-2"><span class="text-muted">Prop serial</span><span class="text-end">{{ asset.prop_serial }}</span></div>
       {% endif %}
     </div>
     {% endif %}
 
-    <div class="card p-3 mt-3">
-      <h6 class="mb-2"><i class="bi bi-list-check"></i> To-Do</h6>
-      {% if todos %}
-      <ul class="list-group list-group-flush mb-2">
-        {% for t in todos %}
-        <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
-          <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1">
-            <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="{{ 'Mark not done' if t.done else 'Mark done' }}">
-              <i class="bi {{ 'bi-check-square-fill text-success' if t.done else 'bi-square' }} fs-5"></i>
-            </button>
-            <span class="{{ 'text-decoration-line-through text-muted' if t.done else '' }}">{{ t.description }}</span>
-          </form>
-          <form method="post" action="{{ url_for('plane_todo_delete', asset_id=asset.id, todo_id=t.id) }}" data-confirm="Remove this to-do?" data-confirm-style="danger">
-            <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
-          </form>
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <p class="text-muted small">Nothing on the list yet.</p>
-      {% endif %}
-      <form method="post" action="{{ url_for('plane_todo_new', asset_id=asset.id) }}" class="d-flex gap-2">
-        <input type="text" name="description" class="form-control form-control-sm" placeholder="Add a to-do..." required>
-        <button class="btn btn-outline-primary btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Add</button>
-      </form>
-    </div>
-
-    <div class="card p-3 mt-3">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="mb-0"><i class="bi bi-calendar-check"></i> Maintenance</h6>
-        <a href="{{ url_for('maintenance_new', asset_id=asset.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-lg"></i> Add</a>
-      </div>
-      {% if maintenance_items %}
-      {% for mi in maintenance_items %}
-      <div class="card mb-2 {{ 'border-danger' if mi.status.urgency == 'overdue' else ('border-warning' if mi.status.urgency == 'due_soon' else '') }}">
-        <div class="card-body p-2">
-          <div class="d-flex justify-content-between align-items-start flex-wrap gap-1">
-            <div>
-              <strong>{{ mi.item.name }}</strong>
-              {% if mi.item.type == 'calendar' %}
-              <span class="badge ms-1" style="background:{{ maint_category_colors.get(mi.item.category, maint_category_colors['scheduled_maint']) }};">{{ maint_category_labels.get(mi.item.category, 'Scheduled Maintenance') }}</span>
-              {% endif %}
-              <span class="badge {{ 'bg-danger' if mi.status.urgency == 'overdue' else ('bg-warning text-dark' if mi.status.urgency == 'due_soon' else ('bg-success' if mi.status.urgency == 'ok' else 'bg-secondary')) }} ms-1">{{ mi.status.label }}</span>
-              <div class="text-muted small">
-                {% if mi.item.type == 'hours' and mi.item.interval_hours %}Every {{ '%g'|format(mi.item.interval_hours) }} hrs ({{ 'Hobbs' if mi.item.hour_type == 'hobbs' else 'Tach' }})
-                {% elif mi.item.type == 'calendar' and mi.item.interval_days %}Every {{ mi.item.interval_days }} days
-                {% endif %}
-              </div>
-              {% if mi.item.reference_info %}<div class="text-muted small">{{ mi.item.reference_info }}</div>{% endif %}
-              {% if mi.item.checklist %}
-              <div class="small mt-1">
-                <strong>Prework checklist:</strong>
-                <ul class="mb-0 ps-3">
-                  {% for line in mi.item.checklist.split('\n') %}
-                  {% if line.strip() %}<li>{{ line.strip() }}</li>{% endif %}
-                  {% endfor %}
-                </ul>
-              </div>
-              {% endif %}
-            </div>
-            <div class="d-flex gap-1">
-              <a href="{{ url_for('maintenance_edit', item_id=mi.item.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-              <form method="post" action="{{ url_for('maintenance_delete', item_id=mi.item.id) }}" data-confirm="Remove this maintenance item?" data-confirm-style="danger">
-                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-              </form>
-            </div>
-          </div>
-          <form method="post" action="{{ url_for('maintenance_complete', item_id=mi.item.id) }}" class="mt-2 maint-complete-form" data-confirm="Sign off {{ mi.item.name }} as completed? " data-confirm-title="Complete Maintenance" data-confirm-ok="Yes, mark complete" data-confirm-style="success">
-            <div class="row g-1 align-items-end">
-              {% if mi.item.type == 'hours' %}
-              {% set meter_val = asset.hobbs_hours if mi.item.hour_type == 'hobbs' else asset.tach_hours %}
-              <div class="col-4">
-                <label class="form-label small mb-0">{{ 'Hobbs' if mi.item.hour_type == 'hobbs' else 'Tach' }} now</label>
-                <input type="number" step="any" name="completed_hours" class="form-control form-control-sm" placeholder="{{ '%g'|format(meter_val) if meter_val is not none else 'hrs' }}">
-              </div>
-              {% endif %}
-              <div class="{{ 'col-4' if mi.item.type == 'hours' else 'col-6' }}">
-                <label class="form-label small mb-0">Completed by</label>
-                <select class="form-select form-select-sm maint-operator-select">
-                  <option value="" disabled selected>-- Select --</option>
-                  <option value="__new__">+ Add new name...</option>
-                </select>
-                <div class="input-group input-group-sm mt-1 maint-operator-new-row" style="display:none;">
-                  <input type="text" class="form-control maint-operator-new-input" placeholder="Name">
-                  <button type="button" class="btn btn-primary maint-operator-new-add">Add</button>
-                </div>
-                <input type="hidden" name="performed_by" class="maint-operator-hidden">
-              </div>
-              <div class="{{ 'col-4' if mi.item.type == 'hours' else 'col-6' }}">
-                <button class="btn btn-sm btn-success w-100"><i class="bi bi-check-lg"></i> Complete</button>
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
-      {% endfor %}
-      {% else %}
-      <p class="text-muted small mb-0">No maintenance items yet. <a href="{{ url_for('maintenance_new', asset_id=asset.id) }}">Add one</a>.</p>
-      {% endif %}
-    </div>
   </div>
 
   <div class="col-lg-8">
+    {#- Maintenance and To-Do sit up here (they used to be at the bottom of
+        the left column, a long scroll down on a laptop, with this side
+        mostly empty). Side by side on wide screens, stacked on phones. #}
+    <div class="row g-3 mb-3">
+      <div class="col-xl-7">
+      <div class="card p-3 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0"><i class="bi bi-calendar-check"></i> Maintenance</h6>
+          <a href="{{ url_for('maintenance_new', asset_id=asset.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-lg"></i> Add</a>
+        </div>
+        {% if maintenance_items %}
+        {% for mi in maintenance_items %}
+        <div class="card mb-2 {{ 'border-danger' if mi.status.urgency == 'overdue' else ('border-warning' if mi.status.urgency == 'due_soon' else '') }}">
+          <div class="card-body p-2">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-1">
+              <div>
+                <strong>{{ mi.item.name }}</strong>
+                {% if mi.item.type == 'calendar' %}
+                <span class="badge ms-1" style="background:{{ maint_category_colors.get(mi.item.category, maint_category_colors['scheduled_maint']) }};">{{ maint_category_labels.get(mi.item.category, 'Scheduled Maintenance') }}</span>
+                {% endif %}
+                <span class="badge {{ 'bg-danger' if mi.status.urgency == 'overdue' else ('bg-warning text-dark' if mi.status.urgency == 'due_soon' else ('bg-success' if mi.status.urgency == 'ok' else 'bg-secondary')) }} ms-1">{{ mi.status.label }}</span>
+                <div class="text-muted small">
+                  {% if mi.item.type == 'hours' and mi.item.interval_hours %}Every {{ '%g'|format(mi.item.interval_hours) }} hrs ({{ 'Hobbs' if mi.item.hour_type == 'hobbs' else 'Tach' }})
+                  {% elif mi.item.type == 'calendar' and mi.item.interval_days %}Every {{ mi.item.interval_days }} days
+                  {% endif %}
+                </div>
+                {% if mi.item.reference_info %}<div class="text-muted small">{{ mi.item.reference_info }}</div>{% endif %}
+                {% if mi.item.checklist %}
+                <div class="small mt-1">
+                  <strong>Prework checklist:</strong>
+                  <ul class="mb-0 ps-3">
+                    {% for line in mi.item.checklist.split('\n') %}
+                    {% if line.strip() %}<li>{{ line.strip() }}</li>{% endif %}
+                    {% endfor %}
+                  </ul>
+                </div>
+                {% endif %}
+              </div>
+              <div class="d-flex gap-1">
+                <a href="{{ url_for('maintenance_edit', item_id=mi.item.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                <form method="post" action="{{ url_for('maintenance_delete', item_id=mi.item.id) }}" data-confirm="Remove this maintenance item?" data-confirm-style="danger">
+                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+            </div>
+            <form method="post" action="{{ url_for('maintenance_complete', item_id=mi.item.id) }}" class="mt-2 maint-complete-form" data-confirm="Sign off {{ mi.item.name }} as completed? " data-confirm-title="Complete Maintenance" data-confirm-ok="Yes, mark complete" data-confirm-style="success">
+              <div class="row g-1 align-items-end">
+                {% if mi.item.type == 'hours' %}
+                {% set meter_val = asset.hobbs_hours if mi.item.hour_type == 'hobbs' else asset.tach_hours %}
+                <div class="col-4">
+                  <label class="form-label small mb-0">{{ 'Hobbs' if mi.item.hour_type == 'hobbs' else 'Tach' }} now</label>
+                  <input type="number" step="any" name="completed_hours" class="form-control form-control-sm" placeholder="{{ '%g'|format(meter_val) if meter_val is not none else 'hrs' }}">
+                </div>
+                {% endif %}
+                <div class="{{ 'col-4' if mi.item.type == 'hours' else 'col-6' }}">
+                  <label class="form-label small mb-0">Completed by</label>
+                  <select class="form-select form-select-sm maint-operator-select">
+                    <option value="" disabled selected>-- Select --</option>
+                    <option value="__new__">+ Add new name...</option>
+                  </select>
+                  <div class="input-group input-group-sm mt-1 maint-operator-new-row" style="display:none;">
+                    <input type="text" class="form-control maint-operator-new-input" placeholder="Name">
+                    <button type="button" class="btn btn-primary maint-operator-new-add">Add</button>
+                  </div>
+                  <input type="hidden" name="performed_by" class="maint-operator-hidden">
+                </div>
+                <div class="{{ 'col-4' if mi.item.type == 'hours' else 'col-6' }}">
+                  <button class="btn btn-sm btn-success w-100"><i class="bi bi-check-lg"></i> Complete</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-muted small mb-0">No maintenance items yet. <a href="{{ url_for('maintenance_new', asset_id=asset.id) }}">Add one</a>.</p>
+        {% endif %}
+      </div>
+      </div>
+      <div class="col-xl-5">
+      <div class="card p-3 h-100">
+        <h6 class="mb-2"><i class="bi bi-list-check"></i> To-Do</h6>
+        {% if todos %}
+        <ul class="list-group list-group-flush mb-2">
+          {% for t in todos %}
+          <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
+            <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1">
+              <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="{{ 'Mark not done' if t.done else 'Mark done' }}">
+                <i class="bi {{ 'bi-check-square-fill text-success' if t.done else 'bi-square' }} fs-5"></i>
+              </button>
+              <span class="{{ 'text-decoration-line-through text-muted' if t.done else '' }}">{{ t.description }}</span>
+            </form>
+            <form method="post" action="{{ url_for('plane_todo_delete', asset_id=asset.id, todo_id=t.id) }}" data-confirm="Remove this to-do?" data-confirm-style="danger">
+              <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted small">Nothing on the list yet.</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('plane_todo_new', asset_id=asset.id) }}" class="d-flex gap-2">
+          <input type="text" name="description" class="form-control form-control-sm" placeholder="Add a to-do..." required>
+          <button class="btn btn-outline-primary btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Add</button>
+        </form>
+      </div>
+      </div>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h5 class="mb-0">Project History <span class="text-muted fs-6">({{ project_blocks|length }} project{{ 's' if project_blocks|length != 1 }})</span></h5>
       <div class="text-end">

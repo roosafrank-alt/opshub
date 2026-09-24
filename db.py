@@ -912,6 +912,15 @@ def _migrate(conn):
         # landing currency only shows once this is set.
         ("students", "first_solo_date", "ALTER TABLE students ADD COLUMN first_solo_date TEXT"),
         ("scheduled_flights", "guest_email", "ALTER TABLE scheduled_flights ADD COLUMN guest_email TEXT"),
+        # End Flight stops the clock first (stopped_at); the flight is only
+        # logged (ended_at) once Hobbs end + paid/unpaid are filled in.
+        ("flights", "stopped_at", "ALTER TABLE flights ADD COLUMN stopped_at TEXT"),
+        # New-project intake form (app.project_intake): NULL = project made
+        # before intake existed (never asked), 'pending' | 'done' | 'skipped'.
+        ("projects", "intake_status", "ALTER TABLE projects ADD COLUMN intake_status TEXT"),
+        ("projects", "intake_json", "ALTER TABLE projects ADD COLUMN intake_json TEXT"),
+        ("projects", "intake_at", "ALTER TABLE projects ADD COLUMN intake_at TEXT"),
+        ("projects", "intake_by", "ALTER TABLE projects ADD COLUMN intake_by TEXT"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

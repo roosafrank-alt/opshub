@@ -23,6 +23,9 @@
     <a href="{{ url_for('project_labor_codes', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-qr-code"></i> Labor Codes</a>
     <a href="{{ url_for('project_checklist_print', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-list-check"></i> Job Sheet</a>
     {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
+    <a href="{{ url_for('project_intake', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-clipboard-check"></i> Intake{% if project.intake_status == 'skipped' %} <span class="badge bg-warning text-dark">skipped</span>{% endif %}</a>
+    {% endif %}
+    {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
     <a href="{{ url_for('logbook.project_logbook', project_id=project.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-journal-plus"></i> Logbook Starter</a>
     {% endif %}
     <a href="{{ url_for('project_export_csv', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Export Materials CSV</a>
@@ -47,6 +50,32 @@
     <form id="trash-form" method="post" action="{{ url_for('project_trash', project_id=project.id) }}" style="display:none;"></form>
   </div>
 </div>
+
+{% if intake %}
+{#- Intake check filled in when the project was opened (app.project_intake). #}
+{% set issues = intake.checks|selectattr('status', 'equalto', 'issue')|list %}
+<details class="card p-3 mb-3 {{ 'border-danger' if issues or intake.squawks or intake.damage else 'border-success' }}" {{ 'open' if issues or intake.squawks or intake.damage }}>
+  <summary class="fw-bold"><i class="bi bi-clipboard-check"></i> Intake check
+    <span class="fw-normal small text-muted">- {{ project.intake_by or '' }}{% if project.intake_at %}, {{ project.intake_at|usdate(true) }}{% endif %}</span>
+    {% if issues or intake.squawks or intake.damage %}<span class="badge bg-danger ms-1">{{ issues|length + intake.squawks|length + intake.damage|length }} to look at</span>{% else %}<span class="badge bg-success ms-1">all OK</span>{% endif %}
+  </summary>
+  <div class="row g-2 mt-1 small">
+    {% for c in intake.checks %}
+    <div class="col-12 col-md-6">
+      {% if c.status == 'issue' %}<i class="bi bi-exclamation-triangle-fill text-danger"></i>{% else %}<i class="bi bi-check-circle-fill text-success"></i>{% endif %}
+      <strong>{{ c.label }}</strong>{% if c.left or c.right %} (L {{ c.left or '-' }} / R {{ c.right or '-' }}){% endif %}{% if c.qts %} ({{ c.qts }} qt){% endif %}{% if c.note %} - {{ c.note }}{% endif %}
+      {% if c.address %}<span class="badge bg-light text-dark border">Sub Area</span>{% endif %}
+    </div>
+    {% endfor %}
+    {% for kind, title in [('squawks', 'Squawk'), ('damage', 'Damage')] %}
+    {% for it in intake[kind] %}
+    <div class="col-12 col-md-6"><i class="bi bi-dot"></i> <strong>{{ title }}:</strong> {{ it.text }}{% if it.address %} <span class="badge bg-light text-dark border">Sub Area</span>{% endif %}</div>
+    {% endfor %}
+    {% endfor %}
+    {% if intake.notes %}<div class="col-12 text-muted">{{ intake.notes }}</div>{% endif %}
+  </div>
+</details>
+{% endif %}
 
 <div class="row g-3">
   <div class="col-lg-7">

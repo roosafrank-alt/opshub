@@ -122,7 +122,11 @@ CREATE TABLE IF NOT EXISTS projects (
     prework_checklist TEXT, -- things to check before starting work, one per line
     standard_items TEXT, -- standard items/steps performed on this kind of job, one per line - printed together with prework_checklist as a job sheet
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    completed_at TEXT
+    completed_at TEXT,
+    intake_status TEXT, -- new-project intake form: NULL (older project, never asked) | pending | done | skipped
+    intake_json TEXT, -- the filled-in intake form (checks, squawks, damage) as JSON
+    intake_at TEXT,
+    intake_by TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_projects_asset_tag ON projects(asset_tag);
 CREATE INDEX IF NOT EXISTS idx_projects_asset_id ON projects(asset_id);
@@ -245,6 +249,7 @@ CREATE TABLE IF NOT EXISTS flights (
     night_landings_tg INTEGER, -- night touch-and-go landings
     paused_at TEXT, -- set while the start/stop clock is paused; NULL when running or not started
     paused_seconds INTEGER NOT NULL DEFAULT 0, -- accumulated paused duration, excluded from elapsed/clock billing
+    stopped_at TEXT, -- End Flight pressed: clock stopped, waiting for Hobbs end + paid/unpaid before it's logged (ended_at)
     session_warning_sent_at TEXT, -- "30 min left" push already sent for this flight's scheduled block
     session_expired_sent_at TEXT, -- "time's up" push already sent for this flight's scheduled block
     overdue_alert_sent_at TEXT, -- most recent "flight is overdue" push send time
@@ -529,6 +534,21 @@ CREATE TABLE IF NOT EXISTS flight_alerts (
 );
 CREATE INDEX IF NOT EXISTS idx_flight_alerts_open ON flight_alerts(resolved_at, scheduled_flight_id);
 
+-- Unaccounted Hobbs time (flight._hobbs_gaps): the Hobbs went up between
+-- one logged flight's end and the plane's next flight's start. Shown to
+-- master admins on Alerts until one of them marks it reviewed here.
+CREATE TABLE IF NOT EXISTS hobbs_gap_reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    asset_id INTEGER,
+    from_flight_id INTEGER NOT NULL,
+    to_flight_id INTEGER NOT NULL,
+    gap_hours REAL,
+    note TEXT,
+    reviewed_by TEXT,
+    reviewed_at TEXT NOT NULL,
+    UNIQUE(from_flight_id, to_flight_id)
+);
+
 -- Flight Academy leaderboard: flying a student logs for themselves (distance,
 -- extra landings, cross-countries, night/instrument time) - see academy.py.
 CREATE TABLE IF NOT EXISTS academy_entries (
@@ -630,4 +650,16 @@ CREATE TABLE IF NOT EXISTS academy_milestones (
     note TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(student_id, track, item)
+);
+
+-- Airport locations for the Flight Academy map (pilotlog.airport_map),
+-- looked up once per identifier from aviationweather.gov and kept here.
+-- found = 0 means the lookup came back empty (retried after a week).
+CREATE TABLE IF NOT EXISTS airport_coords (
+    code TEXT PRIMARY KEY,
+    lat REAL,
+    lon REAL,
+    name TEXT,
+    found INTEGER NOT NULL DEFAULT 0,
+    fetched_at TEXT NOT NULL
 );

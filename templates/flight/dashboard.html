@@ -214,6 +214,26 @@
 
 {% block scripts %}
 <script>
+// Next Lesson countdown: ticks every second. Lives here (not in the live
+// partial) so it keeps running after each live refresh swaps that HTML in.
+(function () {
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function tick() {
+    document.querySelectorAll('[data-countdown-to]').forEach(function (el) {
+      var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(el.getAttribute('data-countdown-to'));
+      if (!m) return;
+      var t = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], 0);  // school's local time
+      var s = Math.floor((t - new Date()) / 1000);
+      if (s <= 0) { el.textContent = 'Starting now'; return; }
+      var d = Math.floor(s / 86400); s -= d * 86400;
+      var h = Math.floor(s / 3600); s -= h * 3600;
+      var mi = Math.floor(s / 60); s -= mi * 60;
+      el.textContent = (d ? d + 'd ' : '') + (d || h ? h + 'h ' : '') + pad(mi) + 'm ' + pad(s) + 's';
+    });
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
 (function () {
   var region = document.getElementById('dashboard-live-region');
   if (!region) return;

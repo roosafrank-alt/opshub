@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Parts Used on Projects - OpsHub{% endblock %}
+{% block content %}
+<style>
+  .pu th, .pu td { font-size: .85rem; }
+  .pu td.num, .pu th.num { text-align: right; white-space: nowrap; }
+  .pu tr.pu-row { cursor: pointer; }
+  .pu mark { padding: 0; background: #ffe58f; }
+</style>
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-box-seam"></i> Parts Used on Projects</h4>
+  <a href="{{ url_for('projects_list') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Projects</a>
+</div>
+<p class="text-muted small mb-2">Every part scanned or assigned to a project (returns taken off), one line per project, part and Sub Area. Type to narrow it down - any word matches part, barcode, project, plane or area.</p>
+
+<div class="d-flex gap-2 flex-wrap mb-2">
+  <input type="search" id="pu-search" class="form-control" style="max-width:420px;" placeholder="Search part, barcode, project, plane, area..." value="{{ q }}" autocomplete="off" autofocus>
+  <form method="get" class="d-flex gap-1 mb-0">
+    <input type="hidden" name="q" value="{{ q }}" id="pu-q-keep">
+    <select name="status" class="form-select" data-no-combo onchange="document.getElementById('pu-q-keep').value = document.getElementById('pu-search').value; this.form.submit()" aria-label="Project status">
+      {% for v, l in [('all','All projects'),('active','Active'),('on_hold','On Hold'),('completed','Completed'),('archived','Archived')] %}
+      <option value="{{ v }}" {{ 'selected' if status == v }}>{{ l }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+<div class="small text-muted mb-2" id="pu-count">{{ items|length }} line{{ 's' if items|length != 1 }}</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover align-middle mb-0 pu">
+      <thead class="table-light"><tr>
+        <th>Part</th><th>Project</th><th>Plane</th><th>Area</th><th class="num">Qty</th>
+        {% if can_see_shop_costs %}<th class="num">Cost</th>{% endif %}<th>Last used</th>
+      </tr></thead>
+      <tbody id="pu-body">
+      {% for it in items %}
+        <tr class="pu-row" data-href="{{ url_for('project_detail', project_id=it.project_id) }}"
+            data-search="{{ [it.part_name, it.barcode, it.project_code, it.project_name, it.plane_tag, it.section]|select|join(' ')|lower }}"
+            data-qty="{{ it.qty_used }}" data-cost="{{ it.cost }}">
+          <td><a href="{{ url_for('part_detail', part_id=it.part_id) }}" onclick="event.stopPropagation()">{{ it.part_name }}</a><div class="text-muted small"><code>{{ it.barcode }}</code></div></td>
+          <td><code class="text-primary">{{ it.project_code }}</code> {{ it.project_name }}{% if it.project_status != 'active' %} <span class="badge bg-light text-dark border">{{ it.project_status|replace('_', ' ') }}</span>{% endif %}</td>
+          <td>{{ it.plane_tag or '-' }}</td>
+          <td>{{ it.section }}</td>
+          <td class="num fw-bold">{{ '%g'|format(it.qty_used) }}{% if it.unit %} <small class="text-muted fw-normal">{{ it.unit }}</small>{% endif %}</td>
+          {% if can_see_shop_costs %}<td class="num">${{ '%.2f'|format(it.cost) }}</td>{% endif %}
+          <td class="text-nowrap">{{ it.last_used|usdate }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="text-muted p-3">No parts have been used on {{ 'any' if status == 'all' else 'these' }} projects yet.</td></tr>
+      {% endfor %}
+        <tr id="pu-none" class="d-none"><td colspan="7" class="text-muted p-3">Nothing matches that search.</td></tr>
+      </tbody>
+      {% if items %}
+      <tfoot><tr class="table-light fw-bold"><td colspan="4">Shown</td><td class="num" id="pu-qty"></td>{% if can_see_shop_costs %}<td class="num" id="pu-cost"></td>{% endif %}<td></td></tr></tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var input = document.getElementById('pu-search');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('tr.pu-row'));
+  var count = document.getElementById('pu-count'), none = document.getElementById('pu-none');
+  var qtyEl = document.getElementById('pu-qty'), costEl = document.getElementById('pu-cost');
+  function apply() {
+    var words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+    var shown = 0, qty = 0, cost = 0;
+    rows.forEach(function (r) {
+      var hay = r.getAttribute('data-search');
+      var ok = words.every(function (w) { return hay.indexOf(w) !== -1; });
+      r.style.display = ok ? '' : 'none';
+      if (ok) { shown++; qty += parseFloat(r.dataset.qty) || 0; cost += parseFloat(r.dataset.cost) || 0; }
+    });
+    count.textContent = shown + ' of ' + rows.length + ' line' + (rows.length === 1 ? '' : 's');
+    if (none) none.classList.toggle('d-none', shown > 0 || !rows.length);
+    if (qtyEl) qtyEl.textContent = Math.round(qty * 100) / 100;
+    if (costEl) costEl.textContent = '$' + cost.toFixed(2);
+    try {
+      var ps = new URLSearchParams(location.search);
+      if (input.value) { ps.set('q', input.value); } else { ps.delete('q'); }
+      history.replaceState(null, '', location.pathname + (ps.toString() ? '?' + ps.toString() : ''));
+    } catch (e) {}
+  }
+  input.addEventListener('input', apply);
+  rows.forEach(function (r) { r.addEventListener('click', function () { location.href = r.dataset.href; }); });
+  apply();
+})();
+</script>
+{% endblock %}

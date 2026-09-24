@@ -76,7 +76,7 @@ new Chart(document.getElementById('oil-chart'), {
   type: 'line',
   data: {
     labels: {{ chart_labels|tojson }}.map(function (d) {
-      var p = d.split('-'); return p.length === 3 ? (p[1] + '-' + p[2] + '-' + p[0]) : d;
+      var p = d.split('-'); return p.length === 3 ? (p[2] + '-' + p[1] + '-' + p[0]) : d;
     }),
     datasets: [{
       label: 'Cumulative Oil Added (qt)',

@@ -41,6 +41,44 @@
 <p class="text-muted mb-4">Nothing new right now. 👍</p>
 {% endif %}
 
+{% if session.get('is_master_admin') %}
+{#- Unaccounted Hobbs time (flight._hobbs_gaps) - admins only. #}
+<h6 id="hobbs-gaps"><i class="bi bi-speedometer2"></i> Unaccounted Hobbs Time ({{ hobbs_gaps|length }}) <span class="badge bg-secondary fw-normal">admins only</span></h6>
+{% if hobbs_gaps %}
+<div class="card p-3 mb-4 border-danger">
+  {% for g in hobbs_gaps %}
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
+    <div class="flex-grow-1" style="min-width:220px;">
+      <div><strong>{{ g.plane_tag }}</strong> &middot; <span class="text-danger fw-bold">{{ '%.1f'|format(g.gap) }} hrs</span> of Hobbs with no flight logged</div>
+      <div class="small">
+        Hobbs {{ '%.1f'|format(g.prev.hobbs_end) }} at the end of
+        <a href="{{ url_for('flight.log_detail', flight_id=g.prev.id) }}">{{ g.prev.flight_date|usdate }} ({{ g.prev.student_name or '-' }}{% if g.prev.cfi_name %} / {{ g.prev.cfi_name }}{% endif %})</a>,
+        then {{ '%.1f'|format(g.next.hobbs_start) }} at the start of
+        <a href="{{ url_for('flight.log_detail', flight_id=g.next.id) }}">{{ g.next.flight_date|usdate }} ({{ g.next.student_name or '-' }}{% if g.next.cfi_name %} / {{ g.next.cfi_name }}{% endif %})</a>{% if not g.next.ended_at and g.next.started_at %} <span class="badge bg-warning text-dark">in progress</span>{% endif %}.
+      </div>
+    </div>
+    <form method="post" action="{{ url_for('flight.hobbs_gap_review') }}" class="d-flex gap-1 flex-wrap align-items-center mb-0">
+      <input type="hidden" name="from_flight_id" value="{{ g.prev.id }}">
+      <input type="hidden" name="to_flight_id" value="{{ g.next.id }}">
+      <input type="text" name="note" class="form-control form-control-sm" style="max-width:220px;" placeholder="note (ferry, run-up, misread...)">
+      <button class="btn btn-outline-danger btn-sm fw-bold"><i class="bi bi-check-lg"></i> Mark reviewed</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-muted mb-4">Every plane's Hobbs lines up flight to flight. 👍</p>
+{% endif %}
+{% if hobbs_reviewed %}
+<details class="mb-4 small">
+  <summary class="text-muted">Recently reviewed Hobbs gaps</summary>
+  {% for r in hobbs_reviewed %}
+  <div class="py-1 border-top">{{ r.plane_tag or '-' }} &middot; {{ '%.1f'|format(r.gap_hours or 0) }} hrs &middot; {{ r.reviewed_by or '-' }}, {{ r.reviewed_at|usdate(true) }}{% if r.note %} &middot; <em>{{ r.note }}</em>{% endif %}</div>
+  {% endfor %}
+</details>
+{% endif %}
+{% endif %}
+
 <h6>Acknowledged, Not Yet Resolved ({{ acked|length }})</h6>
 {% if acked %}
 <div class="card p-3 mb-4 border-warning">

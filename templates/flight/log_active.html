@@ -71,15 +71,46 @@
       <div class="text-muted small">Started {{ f.started_at }}</div>
     </div>
     <div class="text-end">
-      <div class="text-muted small">Elapsed{% if f.paused_at %} <span class="text-warning">(paused)</span>{% endif %}</div>
+      <div class="text-muted small">Elapsed{% if f.stopped_at %} <span class="text-danger">(clock stopped)</span>{% elif f.paused_at %} <span class="text-warning">(paused)</span>{% endif %}</div>
       <div class="display-6 fw-bold elapsed-timer" data-started="{{ f.started_at }}" data-paused-seconds="{{ f.paused_seconds or 0 }}"
-           data-paused-at="{{ f.paused_at or '' }}"
-           data-duration-hours="{{ f.scheduled_duration_hours if f.scheduled_duration_hours is not none else '' }}"
+           data-paused-at="{{ f.stopped_at or f.paused_at or '' }}"
+           data-duration-hours="{{ f.scheduled_duration_hours if (f.scheduled_duration_hours is not none and not f.stopped_at) else '' }}"
            data-ack-at="{{ f.overdue_acknowledged_at or '' }}"
            data-eta-at="{{ f.eta_at or '' }}">00:00:00</div>
     </div>
   </div>
 
+  {#- End / Pause / Resume up top, so they're reachable without scrolling
+     past the ETA box, progress bar and end-of-flight numbers. End submits
+     the same form as the End Flight button further down (Hobbs/Tach etc.
+     are read from there), with the same confirm step. #}
+  {% if f.can_end and f.stopped_at %}
+  <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 mb-2 active-flight-actions">
+    <span><i class="bi bi-stop-circle-fill"></i> <strong>Clock stopped</strong> at {{ f.stopped_at[11:16] }}. Fill in the ending Hobbs and paid / unpaid below to log it.</span>
+    <form method="post" action="{{ url_for('flight.log_restart_clock', flight_id=f.id) }}" class="mb-0"
+          data-confirm="Start the clock again? The time it was stopped won't be billed." data-confirm-title="Restart Clock" data-confirm-ok="Restart clock">
+      <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap"><i class="bi bi-arrow-counterclockwise"></i> Oops, restart clock</button>
+    </form>
+  </div>
+  {% elif f.can_end %}
+  <div class="d-flex flex-wrap gap-2 mb-2 active-flight-actions">
+    <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-flex flex-fill mb-0"
+          data-confirm="End this flight now? The clock stops here - then fill in the ending Hobbs and paid / unpaid to log it." data-confirm-title="End Flight" data-confirm-ok="Yes, stop the clock" data-confirm-style="danger">
+      <button type="submit" class="btn btn-danger fw-bold flex-fill"><i class="bi bi-stop-fill"></i> End Flight</button>
+    </form>
+    {% if f.paused_at %}
+    <form method="post" action="{{ url_for('flight.log_resume', flight_id=f.id) }}" class="d-flex flex-fill mb-0">
+      <button type="submit" class="btn btn-success fw-bold flex-fill"><i class="bi bi-play-fill"></i> Resume Flight</button>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('flight.log_pause', flight_id=f.id) }}" class="d-flex flex-fill mb-0">
+      <button type="submit" class="btn btn-outline-warning fw-bold flex-fill"><i class="bi bi-pause-fill"></i> Pause Flight</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if not f.stopped_at %}
   <div class="session-overdue-banner alert alert-danger d-flex justify-content-between align-items-center gap-2 py-2 mb-2 {{ '' if (f.session_status and f.session_status.overdue) else 'd-none' }}">
     <span><i class="bi bi-exclamation-triangle-fill"></i> Running more than 15 min past its scheduled block.</span>
     {% if f.can_ack %}
@@ -149,16 +180,19 @@
     {% endif %}
   </div>
 
-  {% if f.can_end %}
-  <form method="post" action="{{ url_for('flight.log_end', flight_id=f.id) }}" data-confirm="End this flight now? The clock stops and the flight is logged and billed with the numbers entered." data-confirm-title="End Flight" data-confirm-ok="Yes, end flight" data-confirm-style="danger">
+  {% endif %}{# not stopped #}
+
+  {% if f.can_end and f.stopped_at %}
+  <form method="post" id="end-form-{{ f.id }}" action="{{ url_for('flight.log_end', flight_id=f.id) }}" data-confirm="Log this flight with Hobbs end [[hobbs_end]]? It moves to Flight History and gets billed." data-confirm-title="Log Flight" data-confirm-ok="Yes, log it" data-confirm-style="success">
     <div class="row g-2">
       <div class="col-6 col-md-3">
         <label class="form-label small mb-0">Hobbs Start</label>
         <input type="text" class="form-control form-control-sm" value="{{ '%.1f'|format(f.hobbs_start) if f.hobbs_start is not none else '-' }}" disabled>
       </div>
       <div class="col-6 col-md-3">
-        <label class="form-label small mb-0">Hobbs End</label>
-        <input type="number" step="any" name="hobbs_end" class="form-control form-control-sm" placeholder="e.g. 1234.5">
+        <label class="form-label small mb-0 fw-bold">Hobbs End *</label>
+        <input type="number" step="any" name="hobbs_end" class="form-control form-control-sm" placeholder="e.g. 1234.5" required inputmode="decimal"
+               {% if f.hobbs_start is not none %}min="{{ f.hobbs_start }}"{% endif %}>
       </div>
       <div class="col-6 col-md-3">
         <label class="form-label small mb-0">Tach Start</label>
@@ -186,22 +220,22 @@
       {% endif %}
     </div>
     <div class="mt-2">
+      <div class="form-label small mb-1 fw-bold">Payment *</div>
+      <div class="btn-group w-100" role="group" aria-label="Paid or unpaid">
+        <input type="radio" class="btn-check" name="paid" id="paid-1-{{ f.id }}" value="1" required autocomplete="off">
+        <label class="btn btn-outline-success fw-bold" for="paid-1-{{ f.id }}"><i class="bi bi-check-circle"></i> Paid</label>
+        <input type="radio" class="btn-check" name="paid" id="paid-0-{{ f.id }}" value="0" required autocomplete="off">
+        <label class="btn btn-outline-danger fw-bold" for="paid-0-{{ f.id }}"><i class="bi bi-hourglass"></i> Unpaid</label>
+      </div>
+    </div>
+    <div class="mt-2">
       <label class="form-label small mb-0">Notes</label>
       <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="any note here is flagged as a squawk for the shop"></textarea>
     </div>
-    <div class="form-text mt-1">Ending this stops the clock - the instructor's billed time is the full elapsed time shown above (from Start to End, minus any paused time), not just Hobbs hours.</div>
-    <button type="submit" class="btn btn-danger fw-bold mt-2"><i class="bi bi-stop-fill"></i> End Flight</button>
+    <div class="form-text mt-1">The instructor's billed time is the elapsed time shown above (from Start to when End Flight was pressed, minus any paused time), not just Hobbs hours.</div>
+    <button type="submit" class="btn btn-success fw-bold mt-2 w-100"><i class="bi bi-journal-check"></i> Log Flight</button>
   </form>
-  {% if f.paused_at %}
-  <form method="post" action="{{ url_for('flight.log_resume', flight_id=f.id) }}" class="d-inline mt-2">
-    <button type="submit" class="btn btn-success fw-bold"><i class="bi bi-play-fill"></i> Resume Flight</button>
-  </form>
-  {% else %}
-  <form method="post" action="{{ url_for('flight.log_pause', flight_id=f.id) }}" class="d-inline mt-2">
-    <button type="submit" class="btn btn-outline-warning fw-bold"><i class="bi bi-pause-fill"></i> Pause Flight</button>
-  </form>
-  {% endif %}
-  {% else %}
+  {% elif not f.can_end %}
   <div class="alert alert-secondary small mb-0 py-2">
     <i class="bi bi-eye"></i> View only - only
     {% if f.solo %}the student flying solo{% else %}the assigned instructor{% endif %}, or an admin, can end this flight.

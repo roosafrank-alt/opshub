@@ -16,6 +16,7 @@ logbook automatically (with the flights that count toward each); the rest
 off by an instructor.
 """
 import csv
+import re
 import io
 from datetime import date
 
@@ -496,3 +497,141 @@ def pending_logbook_count():
         return 0
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------- airport map
+
+_AIRPORT_TOKEN = re.compile(r"[A-Za-z0-9]+")
+_HOME_AIRPORT = "N89"
+
+
+def _airport_codes(text):
+    """Airport identifiers typed in a From / To box ("N89", "kpou", "N89-KMGJ-N89",
+    "N89 via 44N"). Keeps 3-4 character tokens that have a letter; plain
+    words like "via" / "and" / "local" are dropped."""
+    out = []
+    for tok in _AIRPORT_TOKEN.findall(text or ""):
+        t = tok.upper()
+        if t in ("VIA", "AND", "THE", "LOCAL", "PATT", "RTN", "RET", "BACK", "TO", "FROM", "XC", "TNG", "DUAL", "SOLO"):
+            continue
+        if len(t) not in (3, 4) or not any(c.isalpha() for c in t):
+            continue
+        if len(t) == 3 and t.isalpha():
+            t = "K" + t  # POU and KPOU are the same field
+        out.append(t)
+    return out
+
+
+def _lookup_airports(conn, codes):
+    """Returns {code: row} with lat/lon for every code it can place. Unknown
+    codes are looked up on aviationweather.gov in one request (3-letter
+    all-letter codes also as K+code, e.g. POU -> KPOU) and cached in
+    airport_coords, so each airport is only ever fetched once."""
+    import json
+    import urllib.parse
+    import urllib.request
+    from datetime import datetime, timedelta
+    codes = sorted(set(codes))
+    if not codes:
+        return {}
+    marks = ",".join("?" * len(codes))
+    have = {r["code"]: r for r in conn.execute(f"SELECT * FROM airport_coords WHERE code IN ({marks})", codes)}
+    week_ago = (datetime.now() - timedelta(days=7)).isoformat(timespec="seconds")
+    todo = [c for c in codes if c not in have or (not have[c]["found"] and (have[c]["fetched_at"] or "") < week_ago)]
+    if todo:
+        ask = set(todo)
+        ask.update("K" + c for c in todo if len(c) == 3 and c.isalpha())
+        got = {}
+        try:
+            url = "https://aviationweather.gov/api/data/airport?" + urllib.parse.urlencode(
+                {"ids": ",".join(sorted(ask)), "format": "json"})
+            req = urllib.request.Request(url, headers={"User-Agent": "OpsHub-FlightSchool/1.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read().decode("utf-8")) or []
+            for a in data:
+                try:
+                    lat, lon = float(a.get("lat")), float(a.get("lon"))
+                except (TypeError, ValueError):
+                    continue
+                for key in (a.get("icaoId"), a.get("id"), a.get("faaId")):
+                    if key:
+                        got[str(key).upper()] = (lat, lon, a.get("name") or "")
+        except Exception:
+            got = None  # offline / service down: try again next time, don't cache misses
+        if got is not None:
+            now = now_iso()
+            for c in todo:
+                hit = got.get(c) or (got.get("K" + c) if len(c) == 3 else None)
+                if hit:
+                    conn.execute("""INSERT OR REPLACE INTO airport_coords (code, lat, lon, name, found, fetched_at)
+                                    VALUES (?, ?, ?, ?, 1, ?)""", (c, hit[0], hit[1], hit[2], now))
+                else:
+                    conn.execute("""INSERT OR REPLACE INTO airport_coords (code, lat, lon, name, found, fetched_at)
+                                    VALUES (?, NULL, NULL, NULL, 0, ?)""", (c, now))
+            conn.commit()
+            have = {r["code"]: r for r in conn.execute(f"SELECT * FROM airport_coords WHERE code IN ({marks})", codes)}
+    out = {c: dict(r) for c, r in have.items() if r["found"] and r["lat"] is not None}
+    # Our own field has no ICAO code, so aviationweather.gov doesn't list it.
+    if _HOME_AIRPORT in codes and _HOME_AIRPORT not in out:
+        out[_HOME_AIRPORT] = {"code": _HOME_AIRPORT, "lat": 41.72778, "lon": -74.37722,
+                              "name": "Joseph Y. Resnick (Ellenville)", "found": 1}
+    return out
+
+
+@pilotlog_bp.route("/map")
+def airport_map():
+    """Sectional-chart map of every airport the student has landed at, from
+    the From / To boxes of their logbook. Staff can switch to the whole
+    school with ?all=1."""
+    if not _access_ok():
+        flash("You don't have access to Flight Academy yet. Ask an admin.", "danger")
+        return redirect(url_for("home_launcher"))
+    conn = get_db()
+    student, students = _pick_student(conn)
+    whole_school = _is_staff() and request.args.get("all") == "1"
+    if whole_school:
+        entries = conn.execute("""SELECT l.*, s.name AS student_name FROM pilot_logbook l
+                                  JOIN students s ON s.id = l.student_id ORDER BY entry_date, l.id""").fetchall()
+    elif student:
+        entries = conn.execute("""SELECT l.*, NULL AS student_name FROM pilot_logbook l WHERE student_id = ?
+                                  ORDER BY entry_date, id""", (student["id"],)).fetchall()
+    else:
+        entries = []
+    visits = {}   # code -> {"count", "first", "last", "students"}
+    legs = {}     # (a, b) -> times flown
+    for e in entries:
+        codes = _airport_codes(e["route_from"]) + _airport_codes(e["route_to"])
+        # Every flight from the school starts at home if the From box was left empty.
+        if codes and not _airport_codes(e["route_from"]):
+            codes.insert(0, _HOME_AIRPORT)
+        for c in codes:
+            v = visits.setdefault(c, {"count": 0, "first": e["entry_date"], "last": e["entry_date"], "students": set()})
+            v["count"] += 1
+            v["last"] = e["entry_date"]
+            if e["student_name"]:
+                v["students"].add(e["student_name"])
+        for a, b in zip(codes, codes[1:]):
+            if a != b:
+                key = tuple(sorted((a, b)))
+                legs[key] = legs.get(key, 0) + 1
+    try:
+        coords = _lookup_airports(conn, list(visits.keys()) + [_HOME_AIRPORT])
+    except Exception:
+        coords = {}
+    conn.close()
+    airports, unplaced = [], []
+    for c, v in sorted(visits.items(), key=lambda kv: (-kv[1]["count"], kv[0])):
+        if c in coords:
+            r = coords[c]
+            airports.append({"code": c, "name": r["name"] or "", "lat": r["lat"], "lon": r["lon"],
+                             "count": v["count"], "first": v["first"], "last": v["last"],
+                             "students": sorted(v["students"]), "home": c == _HOME_AIRPORT})
+        else:
+            unplaced.append(c)
+    lines = [{"a": [coords[a]["lat"], coords[a]["lon"]], "b": [coords[b]["lat"], coords[b]["lon"]], "n": n}
+             for (a, b), n in legs.items() if a in coords and b in coords]
+    home = coords.get(_HOME_AIRPORT)
+    center = [home["lat"], home["lon"]] if home else [41.72778, -74.37722]
+    return render_template("academy_map.html", student=student, students=students, airports=airports,
+                           unplaced=unplaced, lines=lines, center=center, whole_school=whole_school,
+                           staff=_is_staff(), tab="map")

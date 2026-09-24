@@ -476,11 +476,11 @@ SOLO_SIGNOFF_VALID_DAYS = 90  # a student pilot's solo endorsement is good for 9
 
 
 def _us_date(iso):
-    """YYYY-MM-DD -> MM-DD-YYYY (same display format as the usdate
+    """YYYY-MM-DD -> DD-MM-YYYY (same display format as the usdate
     template filter in app.py) for dates baked into flash/review text."""
     try:
         y, m, d = str(iso)[:10].split("-")
-        return f"{m}-{d}-{y}"
+        return f"{d}-{m}-{y}"
     except ValueError:
         return iso
 
@@ -1322,12 +1322,40 @@ def _dashboard_context(conn, cfi, student):
         """, (student["id"], date.today().strftime("%Y-%m-%d"))).fetchall()
         my_requests = [dict(m, time_label=_format_time_12h(m["scheduled_time"])) for m in my_requests]
 
-    # Big "time to next lesson" tile - just the single next scheduled event,
-    # for whoever's looking (CFI sees the school's next one, a student sees
-    # their own, since `upcoming` is already scoped that way above).
+    # Big "time to next lesson" tile with a live countdown - the single next
+    # block that hasn't started yet, for whoever's looking: a CFI sees their
+    # own next lesson, a student theirs. Master admins can flip it to the
+    # whole school's next block (?next=school / ?next=mine, remembered for
+    # this login - see dashboard()).
+    next_scope = "school" if (session.get("is_master_admin") and session.get("next_scope") == "school") else "mine"
     next_lesson = None
-    if upcoming:
-        next_lesson = dict(upcoming[0], countdown=_countdown_label(upcoming[0]["scheduled_date"]))
+    now_dt = datetime.now()
+    today_s = now_dt.strftime("%Y-%m-%d")
+    if cfi or student or next_scope == "school":
+        nl_sql = """
+            SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name
+            FROM scheduled_flights sf
+            JOIN assets a ON a.id = sf.asset_id
+            JOIN students s ON s.id = sf.student_id
+            LEFT JOIN cfis c ON c.id = sf.cfi_id
+            WHERE sf.status = 'scheduled'
+              AND (sf.scheduled_date > ? OR (sf.scheduled_date = ? AND (sf.scheduled_time IS NULL OR sf.scheduled_time >= ?)))"""
+        nl_args = [today_s, today_s, now_dt.strftime("%H:%M")]
+        if next_scope == "school":
+            pass
+        elif cfi:
+            nl_sql += " AND sf.cfi_id = ?"
+            nl_args.append(cfi["id"])
+        else:
+            nl_sql += " AND sf.student_id = ?"
+            nl_args.append(student["id"])
+        nl_sql += " ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time LIMIT 1"
+        row = conn.execute(nl_sql, nl_args).fetchone()
+        if row:
+            next_lesson = dict(row, countdown=_countdown_label(row["scheduled_date"]),
+                               time_label=_format_time_12h(row["scheduled_time"]),
+                               starts_at=(f"{row['scheduled_date']}T{row['scheduled_time']}:00"
+                                          if row["scheduled_time"] else None))
 
     # "Time since last flight" tile - student dashboard only.
     last_flight_ago = None
@@ -1402,7 +1430,7 @@ def _dashboard_context(conn, cfi, student):
                 upcoming_future_days=upcoming_future_days,
                 plane_lane=plane_lane, plane_color=plane_color, plane_lane_count=plane_lane_count,
                 dashboard_wx=dashboard_wx, dashboard_notams=dashboard_notams,
-                sun_times=sun.get_sun_times(), dash_scope=dash_scope)
+                sun_times=sun.get_sun_times(), dash_scope=dash_scope, next_scope=next_scope)
 
 
 @flight_bp.route("/dashboard")
@@ -1412,6 +1440,9 @@ def dashboard():
     # this login (see _dashboard_context).
     if request.args.get("scope") in ("all", "mine"):
         session["dash_scope"] = request.args["scope"]
+    # ?next=mine|school - master admins' toggle for the Next Lesson countdown.
+    if request.args.get("next") in ("mine", "school") and session.get("is_master_admin"):
+        session["next_scope"] = request.args["next"]
     conn = get_db()
     cfi = current_cfi(conn)
     student = current_student(conn)
@@ -3277,6 +3308,64 @@ def _sync_alerts_after_post(response):
     return response
 
 
+HOBBS_GAP_MIN = 0.1  # hours - smaller differences are rounding on the meter
+
+
+def _hobbs_gaps(conn):
+    """Unaccounted Hobbs time, per plane: the next flight started with a
+    higher Hobbs than the previous logged flight ended on, so the plane ran
+    (or the meter was misread) with no flight logged for it. Pairs a master
+    admin already marked reviewed (hobbs_gap_reviews) are left out.
+    Newest first."""
+    rows = conn.execute("""
+        SELECT f.id, f.asset_id, f.flight_date, f.hobbs_start, f.hobbs_end, f.started_at, f.ended_at,
+               a.tag as plane_tag, COALESCE(NULLIF(f.guest_name, '') || ' (guest)', s.name) as student_name,
+               c.name as cfi_name
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        LEFT JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        WHERE f.hobbs_start IS NOT NULL
+        ORDER BY f.asset_id, f.hobbs_start, f.id""").fetchall()
+    reviewed = {(r["from_flight_id"], r["to_flight_id"]) for r in
+                conn.execute("SELECT from_flight_id, to_flight_id FROM hobbs_gap_reviews").fetchall()}
+    gaps = []
+    for prev, nxt in zip(rows, rows[1:]):
+        if prev["asset_id"] != nxt["asset_id"] or prev["hobbs_end"] is None:
+            continue
+        gap = round(nxt["hobbs_start"] - prev["hobbs_end"], 1)
+        if gap >= HOBBS_GAP_MIN and (prev["id"], nxt["id"]) not in reviewed:
+            gaps.append({"asset_id": prev["asset_id"], "plane_tag": prev["plane_tag"], "gap": gap,
+                         "prev": dict(prev), "next": dict(nxt)})
+    gaps.sort(key=lambda g: (g["next"]["flight_date"] or "", g["next"]["id"]), reverse=True)
+    return gaps
+
+
+@flight_bp.route("/alerts/hobbs_gap/review", methods=["POST"])
+@cfi_required
+def hobbs_gap_review():
+    """Master admin marks an unaccounted-Hobbs gap as looked into (with an
+    optional note - ferry flight, maintenance run-up, meter misread...)."""
+    if not session.get("is_master_admin"):
+        flash("Only an admin can review Hobbs gaps.", "danger")
+        return redirect(url_for("flight.alerts_list"))
+    from_id = request.form.get("from_flight_id", type=int)
+    to_id = request.form.get("to_flight_id", type=int)
+    conn = get_db()
+    pair = conn.execute("SELECT a.id a_id, a.asset_id, a.hobbs_end, b.hobbs_start FROM flights a, flights b "
+                        "WHERE a.id = ? AND b.id = ?", (from_id, to_id)).fetchone()
+    if pair:
+        conn.execute("""INSERT OR IGNORE INTO hobbs_gap_reviews (asset_id, from_flight_id, to_flight_id, gap_hours,
+                        note, reviewed_by, reviewed_at) VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                     (pair["asset_id"], from_id, to_id,
+                      round((pair["hobbs_start"] or 0) - (pair["hobbs_end"] or 0), 1),
+                      (request.form.get("note") or "").strip()[:300] or None, session.get("user_name"), now_iso()))
+        conn.commit()
+        flash("Hobbs gap marked reviewed.", "success")
+    conn.close()
+    return redirect(url_for("flight.alerts_list") + "#hobbs-gaps")
+
+
 @flight_bp.context_processor
 def _alert_nav_counts():
     """Open-alert counts for the Alerts nav badge (CFIs/admins only)."""
@@ -3288,9 +3377,11 @@ def _alert_nav_counts():
             row = conn.execute("""SELECT COUNT(*) AS total,
                                          SUM(CASE WHEN needs_review_acknowledged_at IS NULL THEN 1 ELSE 0 END) AS unacked
                                   FROM scheduled_flights WHERE status = 'scheduled' AND needs_review = 1""").fetchone()
+            # Unaccounted Hobbs time counts too - master admins only.
+            gaps = len(_hobbs_gaps(conn)) if session.get("is_master_admin") else 0
         finally:
             conn.close()
-        return {"flight_alert_counts": {"open": row["total"] or 0, "unacked": row["unacked"] or 0}}
+        return {"flight_alert_counts": {"open": (row["total"] or 0) + gaps, "unacked": (row["unacked"] or 0) + gaps}}
     except Exception:
         return {}
 
@@ -3313,6 +3404,12 @@ def alerts_list():
     resolved_count = conn.execute("SELECT COUNT(*) c FROM flight_alerts WHERE resolved_at IS NOT NULL").fetchone()["c"]
     resolved = conn.execute(base_sql + " WHERE fa.resolved_at IS NOT NULL ORDER BY fa.resolved_at DESC"
                             + ("" if show_all else " LIMIT 50")).fetchall()
+    # Unaccounted Hobbs time - master admins only (see _hobbs_gaps).
+    hobbs_gaps = _hobbs_gaps(conn) if session.get("is_master_admin") else []
+    hobbs_reviewed = conn.execute("""SELECT r.*, a.tag as plane_tag FROM hobbs_gap_reviews r
+                                     LEFT JOIN assets a ON a.id = r.asset_id
+                                     ORDER BY r.reviewed_at DESC LIMIT 10""").fetchall() \
+        if session.get("is_master_admin") else []
     conn.close()
 
     def _decorate(r):
@@ -3324,7 +3421,8 @@ def alerts_list():
     unacked = [r for r in open_rows if not r["acknowledged_at"]]
     acked = [r for r in open_rows if r["acknowledged_at"]]
     return render_template("flight/alerts.html", unacked=unacked, acked=acked,
-                           resolved=[dict(r) for r in resolved], resolved_count=resolved_count, show_all=show_all)
+                           resolved=[dict(r) for r in resolved], resolved_count=resolved_count, show_all=show_all,
+                           hobbs_gaps=hobbs_gaps, hobbs_reviewed=hobbs_reviewed)
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/review/acknowledge", methods=["POST"])
@@ -3419,20 +3517,64 @@ def schedule_start(scheduled_id):
         flash(f"Booking moved from {_slot_label(sched['scheduled_date'], sched['scheduled_time'])} "
               f"to now ({_format_time_12h(new_time)}).", "info")
     plane = conn.execute("SELECT * FROM assets WHERE id = ?", (sched["asset_id"],)).fetchone()
+    # Starting Hobbs has to be confirmed first: every Start button posts
+    # here without it, so send them to the confirm page (pre-filled from the
+    # plane's last Hobbs) and come back with it.
+    hobbs_start = _parse_float(request.form.get("hobbs_start"))
+    if hobbs_start is None:
+        conn.rollback()
+        conn.close()
+        if request.form.get("hobbs_start") not in (None, ""):
+            flash("Starting Hobbs has to be a number.", "danger")
+        return redirect(url_for("flight.schedule_start_confirm", scheduled_id=scheduled_id,
+                                move_to_now=request.form.get("move_to_now") or None))
+    last_hobbs = plane["hobbs_hours"] if plane else None
     solo = 1 if not sched["cfi_id"] else 0
     cur = conn.execute("""INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, hobbs_start, tach_start,
                            solo, scheduled_flight_id, started_at, created_at)
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                        (sched["cfi_id"], sched["student_id"], sched["asset_id"],
-                        date.today().strftime("%Y-%m-%d"), plane["hobbs_hours"] if plane else None,
+                        date.today().strftime("%Y-%m-%d"), hobbs_start,
                         plane["tach_hours"] if plane else None, solo, scheduled_id, now_iso(), now_iso()))
     flight_id = cur.lastrowid
+    if plane and last_hobbs is not None and abs(hobbs_start - last_hobbs) >= 0.05:
+        flash(f"Starting Hobbs {hobbs_start:.1f} doesn't match the last one on file for {plane['tag']} "
+              f"({last_hobbs:.1f}) - {abs(hobbs_start - last_hobbs):.1f} hrs difference.", "warning")
     conn.execute("UPDATE flights SET guest_name = ? WHERE id = ?", (sched["guest_name"], flight_id))
     conn.execute("UPDATE scheduled_flights SET status = 'in_progress' WHERE id = ?", (scheduled_id,))
     conn.commit()
     conn.close()
     flash("Flight started - fill in the rest when you're done.", "success")
     return redirect(url_for("flight.log_active", flight_id=flight_id))
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/start", methods=["GET"])
+@login_required
+def schedule_start_confirm(scheduled_id):
+    """Step before the clock starts: confirm (or correct) the starting
+    Hobbs, pre-filled with the plane's last Hobbs reading. Posts to
+    schedule_start with it (plus move_to_now if the early-start prompt
+    already said so)."""
+    conn = get_db()
+    sched = conn.execute("""SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name
+                                FROM scheduled_flights sf JOIN assets a ON a.id = sf.asset_id
+                                JOIN students s ON s.id = sf.student_id LEFT JOIN cfis c ON c.id = sf.cfi_id
+                            WHERE sf.id = ?""", (scheduled_id,)).fetchone()
+    if not sched or sched["status"] != "scheduled":
+        conn.close()
+        flash("That booking is no longer available to start (already started, flown, or cancelled).", "danger")
+        return redirect(url_for("flight.schedule_calendar"))
+    plane = conn.execute("SELECT * FROM assets WHERE id = ?", (sched["asset_id"],)).fetchone()
+    last_flight = conn.execute("""SELECT hobbs_end, flight_date FROM flights
+                                  WHERE asset_id = ? AND hobbs_end IS NOT NULL
+                                  ORDER BY COALESCE(ended_at, created_at) DESC, id DESC LIMIT 1""",
+                               (sched["asset_id"],)).fetchone()
+    conn.close()
+    last_hobbs = plane["hobbs_hours"] if plane and plane["hobbs_hours"] is not None else \
+        (last_flight["hobbs_end"] if last_flight else None)
+    return render_template("flight/start_confirm.html", sched=sched, plane=plane, last_hobbs=last_hobbs,
+                           last_flight=last_flight, move_to_now=request.args.get("move_to_now") == "1",
+                           slot_label=_slot_label(sched["scheduled_date"], sched["scheduled_time"]))
 
 
 def _can_end_flight(flight_row):
@@ -3472,7 +3614,7 @@ def _eta_impacts(conn, only_flight_id=None):
              JOIN students s ON s.id = f.student_id
              LEFT JOIN cfis c ON c.id = f.cfi_id
              LEFT JOIN scheduled_flights sf ON sf.id = f.scheduled_flight_id
-             WHERE f.started_at IS NOT NULL AND f.ended_at IS NULL AND f.eta_at IS NOT NULL"""
+             WHERE f.started_at IS NOT NULL AND f.ended_at IS NULL AND f.stopped_at IS NULL AND f.eta_at IS NOT NULL"""
     params = []
     if only_flight_id:
         sql += " AND f.id = ?"
@@ -3582,7 +3724,7 @@ def check_session_alerts():
     conn = get_db()
     try:
         rows = conn.execute(_LOG_ROW_SQL + """
-            WHERE f.started_at IS NOT NULL AND f.ended_at IS NULL AND sf.duration_hours IS NOT NULL
+            WHERE f.started_at IS NOT NULL AND f.ended_at IS NULL AND f.stopped_at IS NULL AND sf.duration_hours IS NOT NULL
         """).fetchall()
         for f in rows:
             status = _session_status(f)
@@ -4023,6 +4165,54 @@ def log_resume(flight_id):
     return redirect(url_for("flight.log_active", flight_id=flight_id))
 
 
+@flight_bp.route("/log/<int:flight_id>/stop", methods=["POST"])
+@login_required
+def log_stop(flight_id):
+    """End Flight, step 1: stops the clock now (so billed instructor time
+    ends here), but leaves the flight on the Active Flight board until the
+    rest is filled in - Hobbs end and paid/unpaid are required - by
+    log_end, which is what logs it into Flight History."""
+    conn = get_db()
+    f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
+    if not f or not f["started_at"] or f["ended_at"]:
+        conn.close()
+        flash("That flight isn't currently running.", "danger")
+        return redirect(url_for("flight.log_active"))
+    if not _can_end_flight(f):
+        conn.close()
+        flash("Only the assigned instructor, the student (on a solo flight), or an admin can end this flight.", "danger")
+        return redirect(url_for("flight.log_active"))
+    if not f["stopped_at"]:
+        stopped_at = now_iso()
+        paused_seconds = f["paused_seconds"] or 0
+        if f["paused_at"]:
+            paused_seconds += max(0, int((datetime.strptime(stopped_at, "%Y-%m-%d %H:%M:%S")
+                                          - datetime.strptime(f["paused_at"], "%Y-%m-%d %H:%M:%S")).total_seconds()))
+        conn.execute("UPDATE flights SET stopped_at = ?, paused_at = NULL, paused_seconds = ? WHERE id = ?",
+                     (stopped_at, paused_seconds, flight_id))
+        conn.commit()
+    conn.close()
+    flash("Clock stopped. Fill in the ending Hobbs and paid / unpaid below to log the flight.", "info")
+    return redirect(url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}")
+
+
+@flight_bp.route("/log/<int:flight_id>/restart_clock", methods=["POST"])
+@login_required
+def log_restart_clock(flight_id):
+    """Undo an End Flight pressed by mistake: the clock picks up again, and
+    the stopped time counts as paused (not billed)."""
+    conn = get_db()
+    f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
+    if f and f["stopped_at"] and not f["ended_at"] and _can_end_flight(f):
+        extra = max(0, int((datetime.now() - datetime.strptime(f["stopped_at"], "%Y-%m-%d %H:%M:%S")).total_seconds()))
+        conn.execute("UPDATE flights SET stopped_at = NULL, paused_seconds = COALESCE(paused_seconds, 0) + ? WHERE id = ?",
+                     (extra, flight_id))
+        conn.commit()
+        flash("Clock running again.", "success")
+    conn.close()
+    return redirect(url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}")
+
+
 @flight_bp.route("/log/<int:flight_id>/end", methods=["POST"])
 @login_required
 def log_end(flight_id):
@@ -4049,10 +4239,20 @@ def log_end(flight_id):
 
     hobbs_end = _parse_float(request.form.get("hobbs_end"))
     tach_end = _parse_float(request.form.get("tach_end"))
+    back = url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}"
+    if hobbs_end is None:
+        conn.close()
+        flash("Enter the ending Hobbs to log the flight.", "danger")
+        return redirect(back)
     if hobbs_end is not None and f["hobbs_start"] is not None and hobbs_end < f["hobbs_start"]:
         conn.close()
         flash("Ending Hobbs can't be less than starting Hobbs.", "danger")
-        return redirect(url_for("flight.log_active", flight_id=flight_id))
+        return redirect(back)
+    paid_choice = request.form.get("paid")
+    if paid_choice not in ("0", "1"):
+        conn.close()
+        flash("Pick Paid or Unpaid to log the flight.", "danger")
+        return redirect(back)
 
     oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
     ground_time_hours = _parse_float(request.form.get("ground_time_hours"))
@@ -4063,7 +4263,9 @@ def log_end(flight_id):
     night_landings_fs = _parse_int(request.form.get("night_landings_fs"))
     night_landings_tg = _parse_int(request.form.get("night_landings_tg"))
 
-    ended_at = now_iso()
+    # The clock stopped when End Flight was pressed (log_stop), not when
+    # the details got filled in - bill up to then.
+    ended_at = f["stopped_at"] or now_iso()
     started = datetime.strptime(f["started_at"], "%Y-%m-%d %H:%M:%S")
     ended = datetime.strptime(ended_at, "%Y-%m-%d %H:%M:%S")
     paused_seconds = f["paused_seconds"] or 0
@@ -4076,10 +4278,10 @@ def log_end(flight_id):
 
     conn.execute("""UPDATE flights SET hobbs_end=?, tach_end=?, oil_added_qt=?, ground_time_hours=?, notes=?,
                      squawk=?, ended_at=?, instructor_clock_hours=?, paused_at=NULL, paused_seconds=?,
-                     day_landings_fs=?, day_landings_tg=?, night_landings_fs=?, night_landings_tg=? WHERE id=?""",
+                     day_landings_fs=?, day_landings_tg=?, night_landings_fs=?, night_landings_tg=?, paid=? WHERE id=?""",
                  (hobbs_end, tach_end, oil_added_qt, ground_time_hours, notes, squawk,
                   ended_at, instructor_clock_hours, paused_seconds,
-                  day_landings_fs, day_landings_tg, night_landings_fs, night_landings_tg, flight_id))
+                  day_landings_fs, day_landings_tg, night_landings_fs, night_landings_tg, int(paid_choice), flight_id))
     if hobbs_end is not None:
         conn.execute("UPDATE assets SET hobbs_hours = ?, hobbs_updated_at = ? WHERE id = ?",
                      (hobbs_end, now_iso(), f["asset_id"]))

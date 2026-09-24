@@ -1,0 +1,105 @@
+{% extends "academy_base.html" %}
+{% block title %}Airport Map{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  #apt-map { height: 62vh; min-height: 340px; border-radius: .5rem; background: #e8e4d8; }
+  .apt-list .apt-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 800; color: #8a1c7c; }
+  .apt-list li { cursor: pointer; }
+  .apt-legend { font-size: .78rem; color: #6c757d; }
+  .apt-dot { display: inline-block; width: .8rem; height: .8rem; border-radius: 50%; border: 2px solid #8a1c7c; background: #fff; vertical-align: -1px; }
+  .apt-dot.home { background: #8a1c7c; }
+  .leaflet-popup-content { font-size: .85rem; }
+</style>
+{% if not student and not whole_school %}
+<div class="card academy-card p-4">No student profile is linked to your account, so there's no map to show.</div>
+{% else %}
+<div class="card academy-card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <div>
+      <h4 class="mb-0"><i class="bi bi-map"></i> {% if whole_school %}Whole school{% else %}{{ student.name }}{% endif %} - airports landed at</h4>
+      <div class="small text-muted">From the From / To boxes in the logbook. {{ airports|length }} airport{{ 's' if airports|length != 1 }} on the chart.</div>
+    </div>
+    {% if staff %}
+    <div class="btn-group btn-group-sm">
+      <a class="btn btn-outline-primary {{ 'active' if not whole_school }}" href="{{ url_for('pilotlog.airport_map', student_id=student.id if student else None) }}">This student</a>
+      <a class="btn btn-outline-primary {{ 'active' if whole_school }}" href="{{ url_for('pilotlog.airport_map', all=1) }}">Whole school</a>
+    </div>
+    {% endif %}
+  </div>
+  <div id="apt-map"></div>
+  <div class="apt-legend mt-1"><span class="apt-dot home"></span> home field &nbsp; <span class="apt-dot"></span> landed at (bigger = more visits) &nbsp; dashed lines = legs flown. Chart: FAA VFR Sectional (switch to street map top right).</div>
+</div>
+
+<div class="card academy-card p-3">
+  {% if airports %}
+  <div class="row g-1 apt-list">
+    {% for a in airports %}
+    <div class="col-12 col-md-6">
+      <div class="border rounded p-2 h-100" data-apt="{{ loop.index0 }}" role="button">
+        <span class="apt-code">{{ a.code }}</span> <span class="small">{{ a.name }}</span>
+        <div class="small text-muted">{{ a.count }} time{{ 's' if a.count != 1 }} &middot; first {{ a.first|usdate }}{% if a.last != a.first %} &middot; last {{ a.last|usdate }}{% endif %}{% if a.students %} &middot; {{ a.students|join(', ') }}{% endif %}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-muted">No airports yet. Fill in the From / To boxes on logbook entries (e.g. N89, KPOU) and they show up here.</div>
+  {% endif %}
+  {% if unplaced %}
+  <div class="small text-muted mt-2"><i class="bi bi-question-circle"></i> Couldn't find on the chart: {{ unplaced|join(', ') }} (typo, or not an airport identifier).</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if student or whole_school %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function () {
+  if (typeof L === 'undefined') { document.getElementById('apt-map').innerHTML = '<div class="p-3 text-muted">The map could not load (no internet?).</div>'; return; }
+  var airports = {{ airports|tojson }};
+  var lines = {{ lines|tojson }};
+  var map = L.map('apt-map', { zoomControl: true, minZoom: 6 }).setView({{ center|tojson }}, 8);
+  // FAA's own VFR Sectional chart tiles (free, public). Street map as a fallback layer.
+  var sectional = L.tileLayer('https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}', {
+    minNativeZoom: 8, maxNativeZoom: 12, maxZoom: 14, attribution: 'FAA VFR Sectional'
+  });
+  var streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 16, attribution: '&copy; OpenStreetMap'
+  });
+  sectional.addTo(map);
+  L.control.layers({ 'VFR Sectional': sectional, 'Street map': streets }, null, { position: 'topright' }).addTo(map);
+  var magenta = '#8a1c7c';
+  lines.forEach(function (ln) {
+    L.polyline([ln.a, ln.b], { color: magenta, weight: Math.min(2 + ln.n, 6), opacity: .75, dashArray: '6 6' }).addTo(map);
+  });
+  function d(t) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t || ''); return m ? m[3] + '-' + m[2] + '-' + m[1] : (t || ''); }
+  function esc(t) { return String(t || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var markers = [], bounds = [];
+  airports.forEach(function (a) {
+    var r = Math.min(7 + Math.sqrt(a.count) * 2.5, 18);
+    var m = L.circleMarker([a.lat, a.lon], {
+      radius: r, color: magenta, weight: 3, fillColor: a.home ? magenta : '#fff', fillOpacity: a.home ? .85 : .9
+    }).addTo(map);
+    m.bindTooltip(a.code, { permanent: true, direction: 'right', offset: [r, 0], className: 'fw-bold' });
+    m.bindPopup('<strong>' + esc(a.code) + '</strong> ' + esc(a.name) + '<br>' + a.count + ' landing' + (a.count === 1 ? '' : 's') +
+      '<br>First: ' + esc(d(a.first)) + (a.last !== a.first ? '<br>Last: ' + esc(d(a.last)) : '') +
+      (a.students.length ? '<br>' + esc(a.students.join(', ')) : ''));
+    markers.push(m); bounds.push([a.lat, a.lon]);
+  });
+  if (bounds.length > 1) { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 }); if (map.getZoom() < 7) { map.setZoom(7); }; }
+  else if (bounds.length === 1) { map.setView(bounds[0], 9); }
+  document.querySelectorAll('[data-apt]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      var m = markers[+el.dataset.apt]; if (!m) return;
+      map.setView(m.getLatLng(), Math.max(map.getZoom(), 10));
+      m.openPopup();
+      document.getElementById('apt-map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

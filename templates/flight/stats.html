@@ -177,7 +177,7 @@ new Chart(document.getElementById('stats-chart'), {
   type: 'bar',
   data: {
     labels: {{ chart_labels|tojson }}.map(function (d) {
-      var p = d.split('-'); return p.length === 3 ? (p[1] + '-' + p[2] + '-' + p[0]) : d;
+      var p = d.split('-'); return p.length === 3 ? (p[2] + '-' + p[1] + '-' + p[0]) : d;
     }),
     datasets: [{ label: 'Hours', data: {{ chart_hours|tojson }}, backgroundColor: '#0d6efd' }]
   },
