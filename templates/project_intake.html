@@ -33,7 +33,14 @@
   <div class="card p-3 mb-3">
     {% for key, label, hint in checks %}
     {% set c = checks_by_key.get(key, {}) %}
-    {% set st = form.get(key ~ '_status') if form else c.get('status') %}
+    {#- Defaults to OK on a brand-new intake (no saved data yet) so Save
+       works right away without clicking all four - most checks pass, and
+       missing one used to trip the browser's required-radio validation,
+       silently blocking submit and landing back at the top of the sheet
+       (exactly what looked like "Save doesn't do anything"). A form that
+       already has a status (existing data, or redisplayed after a real
+       error) keeps whatever was actually chosen. #}
+    {% set st = form.get(key ~ '_status') if form else (c.get('status') or 'ok') %}
     <div class="intake-check {{ 'is-issue' if st == 'issue' }}" data-check="{{ key }}">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
