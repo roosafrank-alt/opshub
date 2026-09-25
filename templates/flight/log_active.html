@@ -830,9 +830,18 @@ document.querySelectorAll('.use-credit-btn').forEach(function (btn) {
   btn.addEventListener('click', function () {
     var target = document.getElementById(btn.dataset.target);
     var note = document.getElementById(btn.dataset.noteTarget);
-    if (target) target.value = btn.dataset.credit;
+    var balance = parseFloat(btn.dataset.credit) || 0;
+    // Match what the server will actually apply (flight._flight_cost) - the
+    // full balance on file if the flight costs at least that much,
+    // otherwise just enough to cover the flight - so the note's "applied"
+    // and "remains" figures are what really happens, not always the whole
+    // balance regardless of the flight's own total.
+    var total = getFlightTotal(btn.dataset.flightId);
+    var applied = (total !== null && total < balance) ? total : balance;
+    var remaining = Math.max(0, balance - applied);
+    if (target) target.value = applied.toFixed(2);
     if (note) {
-      note.textContent = 'Applying $' + btn.dataset.credit + ' credit toward this flight.';
+      note.textContent = 'Applying $' + applied.toFixed(2) + ' credit toward this flight. $' + remaining.toFixed(2) + ' balance remains.';
       note.classList.remove('d-none');
     }
   });
