@@ -1147,6 +1147,14 @@ def _migrate(conn):
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('maint_prefs_split', ?)", (now_iso(),))
         conn.commit()
 
+    # A plane profile started from the "+ Add New" quick-create in the plane
+    # dropdown (see project_form.html / app.asset_quick_new) has only a tail
+    # number - flagged incomplete until someone opens Edit Profile and saves
+    # the rest, which clears the flag (see app.asset_edit).
+    if "profile_incomplete" not in asset_cols_maint:
+        conn.execute("ALTER TABLE assets ADD COLUMN profile_incomplete INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+
     # Student confirmation of a booking a CFI/admin made for them (see
     # flight.py's _booking_confirm_state/schedule_confirm_booking).
     # confirm_required is only set on that one case - a student booking

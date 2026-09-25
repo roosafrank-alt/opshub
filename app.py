@@ -2085,6 +2085,30 @@ def asset_new():
     return render_template("asset_form.html", asset=None, used_colors=used_colors, plane_colors=PLANE_COLORS)
 
 
+@app.route("/assets/quick_new", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def asset_quick_new():
+    """Minimal aircraft profile started right from the plane dropdown (see
+    the "+ Add New" option in project_form.html) - just a tail number, so
+    a project can be linked to a plane that isn't in the system yet without
+    leaving the page. Flagged profile_incomplete until someone opens Edit
+    Profile and saves the rest (see asset_edit, which clears the flag)."""
+    tag = (request.form.get("tag") or "").strip()
+    if not tag:
+        return jsonify({"error": "Enter a tail / serial number."}), 400
+    conn = get_db()
+    existing = conn.execute("SELECT id FROM assets WHERE tag = ?", (tag,)).fetchone()
+    if existing:
+        conn.close()
+        return jsonify({"error": f"An asset with tag '{tag}' already exists."}), 400
+    cur = conn.execute("""INSERT INTO assets (tag, name, profile_incomplete, created_at, updated_at)
+                          VALUES (?, ?, 1, ?, ?)""", (tag, tag, now_iso(), now_iso()))
+    new_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return jsonify({"id": new_id, "tag": tag})
+
+
 @app.route("/assets/<int:asset_id>")
 @shop_role_required('admin', 'tech')
 def asset_detail(asset_id):
@@ -2399,7 +2423,7 @@ def asset_edit(asset_id):
                          engine_make=?, engine_model=?, engine_serial=?, prop_make=?, prop_model=?, prop_serial=?,
                          is_flight_asset=?, icao24_hex=?, show_on_map=?, notes=?,
                          maint_oil_type=?, maint_tire_nose=?, maint_tire_mains=?, maint_other=?, color=?,
-                         updated_at=? WHERE id=?""",
+                         profile_incomplete=0, updated_at=? WHERE id=?""",
                      (tag, request.form.get("name", "").strip() or tag, request.form.get("make", "").strip(),
                       request.form.get("model", "").strip(), request.form.get("serial_number", "").strip(),
                       request.form.get("year", "").strip(), request.form.get("owner", "").strip(),

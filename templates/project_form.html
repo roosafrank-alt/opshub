@@ -37,7 +37,12 @@
         <option value="{{ a.id }}" data-tag="{{ a.tag }}" {% if (project and project.asset_id == a.id) or (preselect_asset_id and preselect_asset_id|string == a.id|string) %}selected{% endif %}>{{ a.tag }}{% if a.name and a.name != a.tag %} &middot; {{ a.name }}{% endif %}</option>
         {% endfor %}
       </select>
-      <div class="form-text">Link this project to an asset profile to get a combined history and hours-based maintenance tracking. Picking one fills in the project name with its tail number. <a href="{{ url_for('asset_new') }}" target="_blank">+ Add a new asset</a></div>
+      <div class="form-text">Link this project to an asset profile to get a combined history and hours-based maintenance tracking. Picking one fills in the project name with its tail number. <a href="#" id="asset-quick-add-toggle">+ Add New</a> (just a tail number, right here) or <a href="{{ url_for('asset_new') }}" target="_blank">the full form</a>.</div>
+      <div id="asset-quick-add-row" class="input-group input-group-sm mt-1" style="display:none;">
+        <input type="text" id="asset-quick-add-input" class="form-control" placeholder="Tail / serial number">
+        <button type="button" id="asset-quick-add-btn" class="btn btn-primary">Add</button>
+      </div>
+      <div id="asset-quick-add-error" class="text-danger small mt-1" style="display:none;"></div>
     </div>
     <div class="row">
       <div class="col-md-6 mb-3">
@@ -85,6 +90,60 @@
       var tag = opt ? opt.getAttribute('data-tag') : null;
       if (tag) nameInput.value = tag;
     }
+  });
+
+  // "+ Add New" - a bare tail number, created right here without leaving
+  // the page, so a plane not in the system yet doesn't hold up starting
+  // the project. Shows up flagged "Incomplete" (see asset_detail.html)
+  // until someone opens Edit Profile and fills in the rest.
+  var quickToggle = document.getElementById('asset-quick-add-toggle');
+  var quickRow = document.getElementById('asset-quick-add-row');
+  var quickInput = document.getElementById('asset-quick-add-input');
+  var quickBtn = document.getElementById('asset-quick-add-btn');
+  var quickError = document.getElementById('asset-quick-add-error');
+
+  quickToggle.addEventListener('click', function (e) {
+    e.preventDefault();
+    quickRow.style.display = 'flex';
+    quickError.style.display = 'none';
+    quickInput.value = '';
+    quickInput.focus();
+  });
+
+  function submitQuickAdd() {
+    var tag = quickInput.value.trim();
+    if (!tag) return;
+    quickError.style.display = 'none';
+    quickBtn.disabled = true;
+    fetch('{{ url_for("asset_quick_new") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'tag=' + encodeURIComponent(tag)
+    }).then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+      .then(function (result) {
+        quickBtn.disabled = false;
+        if (!result.ok) {
+          quickError.textContent = result.data.error || 'Could not add that plane.';
+          quickError.style.display = 'block';
+          return;
+        }
+        var opt = document.createElement('option');
+        opt.value = result.data.id;
+        opt.setAttribute('data-tag', result.data.tag);
+        opt.textContent = result.data.tag;
+        assetSelect.appendChild(opt);
+        assetSelect.value = result.data.id;
+        if (!nameInput.value.trim()) nameInput.value = result.data.tag;
+        quickRow.style.display = 'none';
+      }).catch(function () {
+        quickBtn.disabled = false;
+        quickError.textContent = 'Could not add that plane - check your connection and try again.';
+        quickError.style.display = 'block';
+      });
+  }
+  quickBtn.addEventListener('click', submitQuickAdd);
+  quickInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); submitQuickAdd(); }
   });
 
   var descInput = document.getElementById('project-description-input');

@@ -21,7 +21,7 @@
         {% if asset_covers.get(a.id) %}
         <img src="{{ url_for('static', filename='uploads/' + asset_covers.get(a.id)) }}" class="rounded mb-2" style="width:100%; height:140px; object-fit:cover;">
         {% endif %}
-        <h5 class="mb-1"><i class="bi bi-airplane"></i> {{ a.tag }}</h5>
+        <h5 class="mb-1"><i class="bi bi-airplane"></i> {{ a.tag }}{% if a.profile_incomplete %} <span class="badge bg-warning text-dark">Incomplete</span>{% endif %}</h5>
         {% if a.name and a.name != a.tag %}<p class="mb-1">{{ a.name }}</p>{% endif %}
         <p class="text-muted small mb-1">
           {{ [a.make, a.model, a.year]|select|join(' ') or 'No make/model on file' }}
