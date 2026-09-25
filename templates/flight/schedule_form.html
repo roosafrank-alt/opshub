@@ -27,7 +27,7 @@
     {% endif %}
   </div>
   {% endif %}
-  <form method="post">
+  <form method="post" id="schedule-form" novalidate>
     {% set allow_complete = not sched and not self_service %}
     {% set is_complete = allow_complete and ((form and form.get('already_complete')) or (not form and start_complete)) %}
     {% if allow_complete %}
@@ -47,7 +47,7 @@
     {% endif %}
     <div class="row">
       <div class="col-md-6 mb-3">
-        <label class="form-label">Plane *</label>
+        <label class="form-label">Plane <span class="text-danger">*</span></label>
         <select name="asset_id" id="plane-select" class="form-select" required>
           <option value="" disabled {% if not (form or sched) %}selected{% endif %}>-- Select a plane --</option>
           {% for p in planes %}
@@ -56,7 +56,7 @@
         </select>
       </div>
       <div class="col-md-6 mb-3">
-        <label class="form-label">Student *</label>
+        <label class="form-label">Student <span class="text-danger">*</span></label>
         {% if self_service %}
         <input type="text" class="form-control" value="{{ self_student.name }}" disabled>
         {% else %}
@@ -127,7 +127,7 @@
     </div>
     <div class="row">
       <div class="col-md-4 mb-3">
-        <label class="form-label" id="date-label">{{ 'Flight Date *' if is_complete else 'Date *' }}</label>
+        <label class="form-label" id="date-label">{{ 'Flight Date' if is_complete else 'Date' }} <span class="text-danger">*</span></label>
         <input type="date" name="scheduled_date" class="form-control" value="{{ form.get('scheduled_date') if form else (sched.scheduled_date if sched else today) }}" required{% if sched %} data-edit="1"{% endif %}>
       </div>
       <div class="col-md-4 mb-3 sched-only">
@@ -455,6 +455,48 @@ if (document.getElementById('solo-check').checked) {
 })();
 
 (function () {
+  // Highlights whichever required field(s) are actually missing on submit
+  // (Plane, Date, and the dynamically-required Repeat-Until date) instead
+  // of leaving it to the browser's own validation pop-up, which is easy to
+  // miss or inconsistent across browsers. The form has novalidate so this
+  // is the only validation that runs; it mirrors the Student picker's own
+  // is-invalid handling just below, registered first so both run together
+  // when more than one field is missing.
+  var form = document.getElementById('schedule-form');
+  if (!form) return;
+  function requiredFields() {
+    return Array.prototype.filter.call(form.querySelectorAll('[required]'), function (field) {
+      return field.id !== 'student-select'; // handled separately below
+    });
+  }
+  // Clears the highlight the moment a field is fixed, whether or not this
+  // form has been submitted yet. Repeat's Until date isn't required until
+  // the Repeat toggle turns it on, so it's included by id rather than by
+  // querying [required] once at page load.
+  var clearableFields = requiredFields();
+  var untilField = document.getElementById('repeat-until');
+  if (untilField && clearableFields.indexOf(untilField) === -1) clearableFields.push(untilField);
+  clearableFields.forEach(function (field) {
+    var clear = function () { field.classList.toggle('is-invalid', field.hasAttribute('required') && !field.checkValidity()); };
+    field.addEventListener('input', clear);
+    field.addEventListener('change', clear);
+  });
+  form.addEventListener('submit', function (e) {
+    var firstInvalid = null;
+    requiredFields().forEach(function (field) {
+      var invalid = !field.checkValidity();
+      field.classList.toggle('is-invalid', invalid);
+      if (invalid && !firstInvalid) firstInvalid = field;
+    });
+    if (firstInvalid) {
+      e.preventDefault();
+      firstInvalid.focus();
+      firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, true);
+})();
+
+(function () {
   // Student picker: one box that is both the search and the drop-down.
   // Typing filters the list shown right under it (match anywhere in the
   // name); tap a name, or use the arrow keys and Enter. The hidden
@@ -648,7 +690,7 @@ if (document.getElementById('solo-check').checked) {
     setGroup('.sched-only', !done);
     setGroup('.complete-only', done);
     submitBtn.textContent = done ? 'Flight Complete' : 'Schedule Flight';
-    dateLabel.textContent = done ? 'Flight Date *' : 'Date *';
+    dateLabel.innerHTML = (done ? 'Flight Date' : 'Date') + ' <span class="text-danger">*</span>';
     if (title) { title.textContent = done ? 'Log a Completed Flight' : 'Schedule a Flight'; }
     // Solo still disables the instructor picker in either mode.
     var solo = document.getElementById('solo-check');
