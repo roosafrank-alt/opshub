@@ -28,7 +28,7 @@
     {% endif %}
   </div>
   <div id="apt-map"></div>
-  <div class="apt-legend mt-1"><span class="apt-dot home"></span> home field &nbsp; <span class="apt-dot"></span> landed at (bigger = more visits) &nbsp; dashed lines = legs flown. Chart: FAA VFR Sectional (switch to street map top right).</div>
+  <div class="apt-legend mt-1"><span class="apt-dot home"></span> home field &nbsp; <span class="apt-dot"></span> landed at (bigger = more visits) &nbsp; dashed lines = legs flown. Street map by default (switch to VFR Sectional top right - it's clear zoomed in over N89, but the FAA's tile server doesn't have every area at every zoom, so it can look soft elsewhere).</div>
 </div>
 
 <div class="card academy-card p-3">
@@ -62,18 +62,20 @@
   var airports = {{ airports|tojson }};
   var lines = {{ lines|tojson }};
   var map = L.map('apt-map', { zoomControl: true, minZoom: 6 }).setView({{ center|tojson }}, 9);
-  // FAA's own VFR Sectional chart tiles (free, public). Street map as a fallback layer.
-  // maxZoom matches maxNativeZoom - past zoom 12 the tile server has nothing
-  // sharper, and letting Leaflet zoom further than that just upscales (and
-  // blurs) the zoom-12 tiles instead of showing more detail.
+  // FAA's own VFR Sectional chart tiles (free, public) look sharp near N89
+  // but the tile server hasn't cached every area at every zoom, so it comes
+  // back soft/blurry elsewhere no matter how the zoom range is clamped -
+  // that's a gap in the FAA's own tile coverage, not something fixable from
+  // here. Street map is the reliable default; the sectional stays one click
+  // away for whoever wants it near home.
   var sectional = L.tileLayer('https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}', {
     minNativeZoom: 8, maxNativeZoom: 12, maxZoom: 12, attribution: 'FAA VFR Sectional'
   });
   var streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 16, attribution: '&copy; OpenStreetMap'
   });
-  sectional.addTo(map);
-  L.control.layers({ 'VFR Sectional': sectional, 'Street map': streets }, null, { position: 'topright' }).addTo(map);
+  streets.addTo(map);
+  L.control.layers({ 'Street map': streets, 'VFR Sectional': sectional }, null, { position: 'topright' }).addTo(map);
   var magenta = '#8a1c7c';
   lines.forEach(function (ln) {
     L.polyline([ln.a, ln.b], { color: magenta, weight: Math.min(2 + ln.n, 6), opacity: .75, dashArray: '6 6' }).addTo(map);
@@ -81,11 +83,23 @@
   function d(t) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t || ''); return m ? m[3] + '-' + m[2] + '-' + m[1] : (t || ''); }
   function esc(t) { return String(t || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   var markers = [], bounds = [];
+  // Radius is in screen pixels (Leaflet circleMarkers don't scale with the
+  // map on their own), so zooming out to fit a spread-out set of airports
+  // used to leave them tiny relative to how much ground is now on screen.
+  // rescaleMarkers grows each one back up the further out you zoom, and
+  // shrinks it back down as you zoom in, so a dot always reads at a glance.
+  var REF_ZOOM = 10;
+  function zoomScale(zoom) { return Math.max(0.8, Math.min(2.5, Math.pow(1.15, REF_ZOOM - zoom))); }
+  function rescaleMarkers() {
+    var scale = zoomScale(map.getZoom());
+    markers.forEach(function (m) { m.setRadius(m._baseRadius * scale); });
+  }
   airports.forEach(function (a) {
     var r = Math.min(7 + Math.sqrt(a.count) * 2.5, 18);
     var m = L.circleMarker([a.lat, a.lon], {
       radius: r, color: magenta, weight: 3, fillColor: a.home ? magenta : '#fff', fillOpacity: a.home ? .85 : .9
     }).addTo(map);
+    m._baseRadius = r;
     m.bindTooltip(a.code, { permanent: true, direction: 'right', offset: [r, 0], className: 'fw-bold' });
     m.bindPopup('<strong>' + esc(a.code) + '</strong> ' + esc(a.name) + '<br>' + a.count + ' landing' + (a.count === 1 ? '' : 's') +
       '<br>First: ' + esc(d(a.first)) + (a.last !== a.first ? '<br>Last: ' + esc(d(a.last)) : '') +
@@ -94,6 +108,8 @@
   });
   if (bounds.length > 1) { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 }); if (map.getZoom() < 7) { map.setZoom(7); }; }
   else if (bounds.length === 1) { map.setView(bounds[0], 11); }
+  map.on('zoomend', rescaleMarkers);
+  rescaleMarkers();
   document.querySelectorAll('[data-apt]').forEach(function (el) {
     el.addEventListener('click', function () {
       var m = markers[+el.dataset.apt]; if (!m) return;
