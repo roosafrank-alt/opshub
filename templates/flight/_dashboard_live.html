@@ -315,6 +315,13 @@
   </div>
   <div class="flight-chip-detail" hidden>
     <div><strong>Instructor:</strong> {% if f.cfi_name %}{{ f.cfi_name.split(' ')[0] }}{% elif f.solo %}Solo{% else %}Needs CFI{% endif %}</div>
+    {% if status == 'scheduled' %}
+    {#- One-click forecast: fetched lazily the first time this chip is
+       opened (see dashboard.html's chip-click handler), same data as the
+       full "Details" modal's forecast but without needing that second
+       click - the whole point of this row is a glance, not a drill-down. #}
+    <div class="small text-muted flight-chip-forecast" data-forecast-date="{{ f.scheduled_date }}" data-forecast-time="{{ f.scheduled_time or '' }}"></div>
+    {% endif %}
     {% if status == 'in_progress' and f.get('flight_id') %}
     <a href="{{ url_for('flight.log_active') }}#active-flight-{{ f.flight_id }}" class="btn btn-dark btn-sm mt-1">Open Active Flight</a>
     {% elif status == 'scheduled' and cfi %}

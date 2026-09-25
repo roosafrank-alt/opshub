@@ -391,7 +391,7 @@
     state.chips.forEach(function (id) {
       var chip = region.querySelector('.flight-chip[data-chip-id="' + id + '"]');
       var detail = chip && chip.querySelector('.flight-chip-detail');
-      if (chip && detail) { chip.classList.add('flight-chip-open'); detail.hidden = false; }
+      if (chip && detail) { chip.classList.add('flight-chip-open'); detail.hidden = false; loadChipForecast(detail); }
     });
     (state.notamAirports || []).forEach(function (icao) {
       var toggle = region.querySelector('.notam-airport-toggle[data-notam-airport="' + icao + '"]');
@@ -449,8 +449,38 @@ document.addEventListener('click', function (evt) {
   if (opening) {
     detail.hidden = false;
     chip.classList.add('flight-chip-open');
+    loadChipForecast(detail);
   }
 });
+
+// Lazy one-click forecast for an opened flight chip - fetched once per chip
+// (data-loaded guards a re-fetch on close/reopen) so this doesn't hit the
+// weather API for every chip on the board, only the ones actually opened.
+// Same endpoint/shape as the full "Details" modal's forecast section.
+function loadChipForecast(detail) {
+  var fc = detail.querySelector('.flight-chip-forecast');
+  if (!fc || fc.dataset.loaded) return;
+  fc.dataset.loaded = '1';
+  fc.innerHTML = '<i class="bi bi-cloud-sun"></i> Loading forecast...';
+  var url = '{{ url_for("flight.api_forecast") }}?date=' + encodeURIComponent(fc.dataset.forecastDate) +
+    (fc.dataset.forecastTime ? '&time=' + encodeURIComponent(fc.dataset.forecastTime) : '');
+  fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+    if (!data.forecast) {
+      fc.innerHTML = '<i class="bi bi-cloud-sun"></i> ' + (data.error || 'Forecast unavailable.');
+      return;
+    }
+    var f = data.forecast;
+    var parts = [];
+    if (f.temp_f !== null && f.temp_f !== undefined) parts.push(Math.round(f.temp_f) + '°F');
+    if (f.wind_mph !== null && f.wind_mph !== undefined) {
+      parts.push(Math.round(f.wind_mph) + ' mph' + (f.wind_gusts_mph ? ' G' + Math.round(f.wind_gusts_mph) : ''));
+    }
+    if (f.weather_label) parts.push(f.weather_label);
+    fc.innerHTML = '<i class="bi bi-cloud-sun"></i> ' + (parts.join(' · ') || 'No forecast data');
+  }).catch(function () {
+    fc.innerHTML = '<i class="bi bi-cloud-sun"></i> Forecast unavailable right now.';
+  });
+}
 
 // Click an airport row in the NOTAMs tile to expand its notams in place,
 // grouped by the triage hierarchy (TFRs first, then closures, runways,
