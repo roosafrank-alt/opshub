@@ -212,8 +212,17 @@
              same left-to-right order, so a plane never shuffles relative
              to another one it shares a day with. #}
           {% set day_layout = md.by_day_layout.get(day) %}
-          {% if day_layout and day_layout.placements %}
-          <div class="calendar-timeline" style="position:relative; height:{{ day_layout.container_h }}px; overflow:visible;">
+          {% if day_layout %}
+          {#- Rendered even on an empty day (not gated on placements) and,
+             for a CFI/student, wired up exactly like the Day/Week timeline
+             (day-timeline-track-clickable - see the mousemove/click
+             handlers in schedule.html): hovering shows the standard block
+             a click would create, and clicking jumps to Schedule Flight
+             with that date AND time pre-filled, not just the date the
+             whole-cell click below falls back to. #}
+          <div class="calendar-timeline{{ ' day-timeline-track-clickable' if session.get('cfi_id') or session.get('student_id') }}"
+               {% if session.get('cfi_id') or session.get('student_id') %}data-track-date="{{ cell_date }}" data-start-min="{{ month_timeline_start_min }}" data-end-min="{{ month_timeline_end_min }}"{% endif %}
+               style="position:relative; height:{{ day_layout.container_h }}px; overflow:visible;">
             <div class="calendar-time-line" style="top:{{ ((540 - month_timeline_start_min) * month_timeline_px_per_min) | round(1) }}px;"><span class="calendar-time-label">9a</span></div>
             <div class="calendar-time-line" style="top:{{ ((720 - month_timeline_start_min) * month_timeline_px_per_min) | round(1) }}px;"><span class="calendar-time-label">12p</span></div>
             <div class="calendar-time-line" style="top:{{ ((900 - month_timeline_start_min) * month_timeline_px_per_min) | round(1) }}px;"><span class="calendar-time-label">3p</span></div>

@@ -484,6 +484,10 @@ var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(30) }};
 document.addEventListener('click', function (evt) {
   if (evt.target.closest('.schedule-block')) return;
   if (evt.target.closest('a')) return;
+  // Month view's per-day mini timeline (day-timeline-track-clickable, added
+  // below) already handles its own clicks with a specific time - don't also
+  // fire this coarser date-only fallback for the same click.
+  if (evt.target.closest('.day-timeline-track-clickable')) return;
   var cell = evt.target.closest('.calendar-day-cell-add');
   if (!cell) return;
   var url = cell.getAttribute('data-add-url');
