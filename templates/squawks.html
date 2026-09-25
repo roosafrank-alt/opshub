@@ -28,8 +28,11 @@
 <h6 class="mt-4">Open ({{ open_squawks|length }})</h6>
 {% if open_squawks %}
 <div class="card p-3 mb-4 border-danger">
+  {#- Whole box shaded red, same treatment as an unacknowledged alert on
+     the Flight School side (see alert_row in flight/alerts.html) - not
+     just a thin outline, so an open squawk is impossible to miss. #}
   {% for sq in open_squawks %}
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 p-2 mb-2 border rounded bg-danger-subtle border-danger-subtle">
     <div>
       <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.event_date|usdate }} &middot;
         {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
@@ -66,8 +69,9 @@
 <h6>Acknowledged, Not Yet Repaired ({{ acknowledged|length }})</h6>
 {% if acknowledged %}
 <div class="card p-3 mb-4 border-warning">
+  {#- Amber shading, same as an acknowledged-not-resolved alert. #}
   {% for sq in acknowledged %}
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 p-2 mb-2 border rounded bg-warning-subtle border-warning-subtle">
     <div>
       <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.event_date|usdate }} &middot;
         {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
