@@ -1,0 +1,26 @@
+{#- Small "View as" chip row for a master admin (or someone currently
+   previewing), shown just above the account name in the header instead of
+   buried in its dropdown - and scoped to `view_as_program` ('shop' or
+   'flight', set by whichever base template includes this) so the options
+   offered always make sense for the program that header belongs to: Shop
+   Admin/Tech/Student on the Shop Inventory/Admin side, CFI/Student on
+   Flight School. #}
+{% if is_real_master_admin %}
+{% set levels = flight_view_as_levels if view_as_program == 'flight' else shop_view_as_levels %}
+{% set active_level = (session.get('flight_role') if view_as_program == 'flight' else shop_role) if view_as_active_program == view_as_program else none %}
+<div class="d-flex align-items-center flex-wrap gap-1 mb-1" style="font-size:.68rem;">
+  <span class="text-white-50">View as:</span>
+  {% for level, label in levels.items() %}
+  {% if level != active_level %}
+  <form action="{{ url_for('view_as_start', program=view_as_program, level=level) }}" method="post" class="d-inline m-0">
+    <button type="submit" class="btn btn-outline-light py-0 px-2" style="font-size:.68rem; line-height:1.5;">{{ label }}</button>
+  </form>
+  {% endif %}
+  {% endfor %}
+  {% if view_as_active_program == view_as_program %}
+  <form action="{{ url_for('view_as_exit') }}" method="post" class="d-inline m-0">
+    <button type="submit" class="btn btn-warning py-0 px-2 fw-bold" style="font-size:.68rem; line-height:1.5;">Exit view</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}

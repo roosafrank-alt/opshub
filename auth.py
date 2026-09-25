@@ -138,50 +138,107 @@ def can_manage_billing():
 
 
 # ---------------------------------------------------------------------------
-# "View as" - lets a master admin temporarily browse Shop Inventory as an
-# Admin/Tech/Student account sees it, without logging out of their own
-# account. It works by actually swapping the session's role fields (so every
-# existing shop_role_required/can_see_shop_costs check sees exactly what
-# that role sees) and stashing the real values under _view_as_real to
-# restore on exit. Flight School roles aren't included here since a faked
-# flight_role has no matching cfis/students row and would break pages that
-# expect one - this only covers the three Shop Inventory levels.
+# "View as" - lets a master admin temporarily browse a program as a lower
+# access level sees it, without logging out of their own account. Which
+# levels make sense depends on the program: Shop Inventory's Admin/Tech/
+# Student are pure role flags (shop_role_required/can_see_shop_costs), so
+# faking one is just a session swap. Flight School's CFI/Student views are
+# per-person (a CFI's dashboard shows their own students, a student's shows
+# their own logbook), so previewing one also has to point at a real cfis/
+# students row - see _pick_view_as_flight_profile - rather than just a role
+# label, or pages that expect one would break. Either way the real session
+# fields are stashed under _view_as_real to restore on exit.
 # ---------------------------------------------------------------------------
 
 SHOP_VIEW_AS_LEVELS = {"admin": "Shop Admin", "tech": "Shop Tech", "student": "Shop Student"}
+FLIGHT_VIEW_AS_LEVELS = {"cfi": "CFI", "student": "Student"}
 
 
-def start_view_as(shop_role):
-    """True master admin only, and not already viewing as someone else."""
-    if shop_role not in SHOP_VIEW_AS_LEVELS:
-        return False
+def _pick_view_as_flight_profile(conn, level):
+    """A real cfis/students row to back a Flight School preview: the admin's
+    own linked profile at that level if they have one, else the first active
+    one alphabetically. Returns (id, name), or (None, None) if the school
+    has nobody active at that level yet to preview as."""
+    table = "cfis" if level == "cfi" else "students"
+    own_user_id = session.get("user_id")
+    if own_user_id:
+        own = conn.execute(f"SELECT id, name FROM {table} WHERE user_id = ? AND active = 1", (own_user_id,)).fetchone()
+        if own:
+            return own["id"], own["name"]
+    first = conn.execute(f"SELECT id, name FROM {table} WHERE active = 1 ORDER BY name LIMIT 1").fetchone()
+    return (first["id"], first["name"]) if first else (None, None)
+
+
+def start_view_as(conn, program, level):
+    """True master admin only, and not already viewing as someone else.
+    program is 'shop' or 'flight'; level is one of that program's own
+    *_VIEW_AS_LEVELS keys. Returns (ok, error_message_or_None)."""
     if not session.get("is_master_admin") or session.get("_view_as_real"):
-        return False
-    session["_view_as_real"] = {
-        "is_master_admin": session.get("is_master_admin"),
-        "shop_role": session.get("shop_role"),
-        "can_bill": session.get("can_bill"),
-    }
-    session["is_master_admin"] = False
-    session["shop_role"] = shop_role
-    session["can_bill"] = False
-    return True
+        return False, None
+    if program == "shop":
+        if level not in SHOP_VIEW_AS_LEVELS:
+            return False, None
+        session["_view_as_real"] = {
+            "is_master_admin": session.get("is_master_admin"),
+            "shop_role": session.get("shop_role"),
+            "can_bill": session.get("can_bill"),
+        }
+        session["is_master_admin"] = False
+        session["shop_role"] = level
+        session["can_bill"] = False
+        return True, None
+    if program == "flight":
+        if level not in FLIGHT_VIEW_AS_LEVELS:
+            return False, None
+        person_id, person_name = _pick_view_as_flight_profile(conn, level)
+        if not person_id:
+            return False, f"There's no active {FLIGHT_VIEW_AS_LEVELS[level].lower()} on file yet to preview as."
+        session["_view_as_real"] = {
+            "is_master_admin": session.get("is_master_admin"),
+            "flight_role": session.get("flight_role"),
+            "cfi_id": session.get("cfi_id"),
+            "student_id": session.get("student_id"),
+            "can_bill": session.get("can_bill"),
+        }
+        session["is_master_admin"] = False
+        session["flight_role"] = level
+        session["can_bill"] = False
+        session["cfi_id"] = person_id if level == "cfi" else None
+        session["student_id"] = person_id if level == "student" else None
+        session["_view_as_person_name"] = person_name
+        return True, None
+    return False, None
 
 
 def exit_view_as():
     real = session.pop("_view_as_real", None)
+    session.pop("_view_as_person_name", None)
     if not real:
         return False
-    session["is_master_admin"] = real["is_master_admin"]
-    session["shop_role"] = real["shop_role"]
-    session["can_bill"] = real["can_bill"]
+    for key, value in real.items():
+        session[key] = value
     return True
 
 
 def viewing_as_label():
-    if not session.get("_view_as_real"):
+    real = session.get("_view_as_real")
+    if not real:
         return None
-    return SHOP_VIEW_AS_LEVELS.get(session.get("shop_role"))
+    if "shop_role" in real:
+        return SHOP_VIEW_AS_LEVELS.get(session.get("shop_role"))
+    role_label = FLIGHT_VIEW_AS_LEVELS.get(session.get("flight_role"))
+    name = session.get("_view_as_person_name")
+    return f"{role_label} ({name})" if name and role_label else role_label
+
+
+def view_as_active_program():
+    """'shop' | 'flight' | None - which program's levels the "View as"
+    chips should treat as currently active (to grey out/exclude that one
+    and show Exit), based on which shape _view_as_real was stashed as."""
+    real = session.get("_view_as_real")
+    if not real:
+        return None
+    return "shop" if "shop_role" in real else "flight"
 
 
 # ---------------------------------------------------------------------------

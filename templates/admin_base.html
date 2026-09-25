@@ -53,16 +53,19 @@
       <div class="d-flex align-items-center gap-3">
         <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-tools"></i> Maintenance</a>
         <a href="{{ url_for('flight.dashboard') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-airplane-engines"></i> Flight School</a>
-        <div class="dropdown">
-          <a class="nav-link dropdown-toggle text-light" href="#" id="user-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="bi bi-person-circle"></i> {{ logged_in_user_name or session.get('user_name') }}
-          </a>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu-toggle">
-            <li><a class="dropdown-item" href="{{ url_for('account_page', from='admin') }}"><i class="bi bi-person-gear"></i> My Account</a></li>
-            {% include "_view_as_menu.html" %}
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="{{ url_for('logout') }}" onclick="return confirm('Log out?')"><i class="bi bi-box-arrow-right"></i> Log Out</a></li>
-          </ul>
+        <div class="d-flex flex-column align-items-end">
+          {% set view_as_program = 'shop' %}
+          {% include "_view_as_chips.html" %}
+          <div class="dropdown">
+            <a class="nav-link dropdown-toggle text-light" href="#" id="user-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-person-circle"></i> {{ logged_in_user_name or session.get('user_name') }}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu-toggle">
+              <li><a class="dropdown-item" href="{{ url_for('account_page', from='admin') }}"><i class="bi bi-person-gear"></i> My Account</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="{{ url_for('logout') }}" onclick="return confirm('Log out?')"><i class="bi bi-box-arrow-right"></i> Log Out</a></li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

@@ -26,7 +26,7 @@ from auth import (authenticate, log_in_user, log_out_user, current_user, login_r
                    master_admin_required, shop_role_required, can_see_shop_costs,
                    owner_user_id, owner_locked, authenticate_customer, log_in_combined,
                    current_customer, start_view_as, exit_view_as, viewing_as_label,
-                   SHOP_VIEW_AS_LEVELS)
+                   view_as_active_program, SHOP_VIEW_AS_LEVELS, FLIGHT_VIEW_AS_LEVELS)
 import notify
 from urllib.parse import urlparse
 import push
@@ -228,6 +228,8 @@ def inject_auth_context():
         "viewing_as": viewing_as_label(),
         "is_real_master_admin": bool(session.get("_view_as_real")) or bool(session.get("is_master_admin")),
         "shop_view_as_levels": SHOP_VIEW_AS_LEVELS,
+        "flight_view_as_levels": FLIGHT_VIEW_AS_LEVELS,
+        "view_as_active_program": view_as_active_program(),
     }
 
 
@@ -3549,16 +3551,23 @@ def admin_home():
     return render_template("admin_home.html", user_count=user_count, error_log_count=error_log_count)
 
 
-@app.route("/view-as/<level>", methods=["POST"])
-def view_as_start(level):
-    """Lets a master admin see Shop Inventory as an Admin/Tech/Student
-    account would, from the "View as" control in the navbar on every
-    shop/admin page."""
-    if not start_view_as(level):
-        flash("Can't view as that.", "danger")
+@app.route("/view-as/<program>/<level>", methods=["POST"])
+def view_as_start(program, level):
+    """Lets a master admin see a program as a lower access level would, from
+    the "View as" chips in the header - Shop Admin/Tech/Student on the Shop
+    Inventory/Admin side, CFI/Student on Flight School (see auth.start_view_as
+    for how each is backed)."""
+    if program not in ("shop", "flight"):
+        abort(404)
+    conn = get_db()
+    ok, error = start_view_as(conn, program, level)
+    conn.close()
+    if not ok:
+        flash(error or "Can't view as that.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
-    flash(f"Viewing as {SHOP_VIEW_AS_LEVELS[level]}. Nothing you do here affects real data any differently than it would for that role.", "info")
-    return redirect(url_for("dashboard"))
+    levels = SHOP_VIEW_AS_LEVELS if program == "shop" else FLIGHT_VIEW_AS_LEVELS
+    flash(f"Viewing as {levels[level]}. Nothing you do here affects real data any differently than it would for that role.", "info")
+    return redirect(url_for("dashboard") if program == "shop" else url_for("flight.dashboard"))
 
 
 @app.route("/view-as/exit", methods=["POST"])
