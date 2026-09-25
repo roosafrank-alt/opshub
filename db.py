@@ -410,6 +410,16 @@ def _migrate(conn):
     if "completed_by" not in proj_sect_cols:
         conn.execute("ALTER TABLE project_sections ADD COLUMN completed_by TEXT")
         conn.commit()
+    if "confirm_requested_at" not in proj_sect_cols:
+        # Checking a sub area off now requests confirmation instead of
+        # completing it outright - completed_at/completed_by only get set
+        # once an Inspector (or admin) confirms it (see
+        # app.project_section_complete/project_section_confirm).
+        conn.execute("ALTER TABLE project_sections ADD COLUMN confirm_requested_at TEXT")
+        conn.commit()
+    if "confirm_requested_by" not in proj_sect_cols:
+        conn.execute("ALTER TABLE project_sections ADD COLUMN confirm_requested_by TEXT")
+        conn.commit()
     if "completed_by" not in [r["name"] for r in conn.execute("PRAGMA table_info(projects)").fetchall()]:
         conn.execute("ALTER TABLE projects ADD COLUMN completed_by TEXT")
         conn.commit()

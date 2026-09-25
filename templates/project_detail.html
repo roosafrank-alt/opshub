@@ -115,18 +115,40 @@
       </form>
       {% if usage_by_section %}
         {% for section, data in usage_by_section.items() %}
-        <div class="card mb-2 {{ 'border-success' if data.completed_at }}">
+        {#- Three states: open (checkbox unticked), awaiting confirmation
+           (ticked but confirm_requested_at set, completed_at still NULL -
+           amber), and completed (an Inspector/admin confirmed it - green).
+           See project_section_complete (requests confirmation) and
+           project_section_confirm (actually completes it, or sends it
+           back). #}
+        {% set can_confirm = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector') %}
+        <div class="card mb-2 {{ 'border-success' if data.completed_at else ('border-warning' if data.confirm_requested_at) }}">
           <div class="card-header" style="cursor:pointer" onclick="toggleSection('{{ loop.index }}')">
-            <div class="d-flex justify-content-between align-items-center {{ 'bg-success-subtle' if data.completed_at }}">
-              <div class="d-flex align-items-center gap-2">
+            <div class="d-flex justify-content-between align-items-center {{ 'bg-success-subtle' if data.completed_at else ('bg-warning-subtle' if data.confirm_requested_at) }}">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
                 {% if section != 'General' and data.id %}
                 <form method="post" action="{{ url_for('project_section_complete', project_id=project.id, section_id=data.id) }}" class="mb-0" onclick="event.stopPropagation();">
-                  <input type="hidden" name="completed" value="{{ '0' if data.completed_at else '1' }}">
-                  <input type="checkbox" class="form-check-input mt-0" {{ 'checked' if data.completed_at }} onchange="this.form.submit()" title="Mark complete">
+                  <input type="hidden" name="completed" value="{{ '0' if (data.completed_at or data.confirm_requested_at) else '1' }}">
+                  <input type="checkbox" class="form-check-input mt-0" {{ 'checked' if (data.completed_at or data.confirm_requested_at) }} onchange="this.form.submit()" title="{{ 'Mark not ready' if (data.completed_at or data.confirm_requested_at) else 'Mark ready for confirmation' }}">
                 </form>
                 {% endif %}
                 <strong class="{{ 'text-decoration-line-through text-muted' if data.completed_at }}">{% if section != 'General' %}<i class="bi bi-folder2-open"></i> {% endif %}{{ section }}</strong>
-                {% if data.completed_at %}<span class="text-muted small">completed by {{ data.completed_by or 'someone' }} on {{ data.completed_at|usdate(true) }}</span>{% endif %}
+                {% if data.completed_at %}
+                <span class="text-muted small">confirmed by {{ data.completed_by or 'someone' }} on {{ data.completed_at|usdate(true) }}</span>
+                {% elif data.confirm_requested_at %}
+                <span class="text-warning small fw-bold"><i class="bi bi-hourglass-split"></i> Awaiting confirmation - marked ready by {{ data.confirm_requested_by or 'someone' }}, {{ data.confirm_requested_at|usdate(true) }}</span>
+                {% if can_confirm %}
+                <div class="d-flex gap-1" onclick="event.stopPropagation();">
+                  <form method="post" action="{{ url_for('project_section_confirm', project_id=project.id, section_id=data.id) }}" data-confirm="Confirm '{{ section }}' as complete?" data-confirm-title="Confirm Complete" data-confirm-style="success">
+                    <button class="btn btn-warning btn-sm fw-bold"><i class="bi bi-check-lg"></i> Confirm</button>
+                  </form>
+                  <form method="post" action="{{ url_for('project_section_confirm', project_id=project.id, section_id=data.id) }}" data-confirm="Send '{{ section }}' back as not yet done?" data-confirm-title="Send Back">
+                    <input type="hidden" name="action" value="send_back">
+                    <button class="btn btn-outline-secondary btn-sm">Send Back</button>
+                  </form>
+                </div>
+                {% endif %}
+                {% endif %}
                 {% if section != 'General' and data.id %}
                 <button type="button" class="btn btn-link btn-sm p-0" onclick="event.stopPropagation(); var r=document.getElementById('sec-rename-{{ loop.index }}'); r.style.display = r.style.display==='none' ? 'flex' : 'none'; if (r.style.display!=='none') { r.querySelector('input').focus(); r.querySelector('input').select(); }" title="Rename this area"><i class="bi bi-pencil"></i></button>
                 {% endif %}

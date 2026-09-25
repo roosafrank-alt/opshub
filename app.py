@@ -483,6 +483,19 @@ def dashboard():
         ORDER BY ls.started_at
     """).fetchall()
 
+    # Sub areas marked ready but not yet confirmed - an Inspector's queue,
+    # also shown to admins since they can confirm too. See
+    # project_section_complete/project_section_confirm.
+    needs_confirm_sections = []
+    if session.get("is_master_admin") or session.get("shop_role") in ("admin", "inspector"):
+        needs_confirm_sections = conn.execute("""
+            SELECT ps.*, p.id as project_id, p.code as project_code, p.name as project_name
+            FROM project_sections ps
+            JOIN projects p ON p.id = ps.project_id
+            WHERE ps.confirm_requested_at IS NOT NULL AND ps.completed_at IS NULL AND p.deleted_at IS NULL
+            ORDER BY ps.confirm_requested_at
+        """).fetchall()
+
     # Today's completed labor entries, folded into Recent Activity alongside
     # part transactions - resets naturally each day since it's filtered to today.
     recent_labor = conn.execute("""
@@ -519,7 +532,8 @@ def dashboard():
                            low_stock=low_stock, recent_activity=recent_activity,
                            reminders=reminders, upcoming_projects=upcoming_projects,
                            reschedule_requests=reschedule_requests,
-                           open_squawks=open_squawks, open_sessions=open_sessions)
+                           open_squawks=open_squawks, open_sessions=open_sessions,
+                           needs_confirm_sections=needs_confirm_sections)
 
 
 # ---------------------------------------------------------------------------
@@ -1033,6 +1047,11 @@ def project_add_section(project_id):
 @app.route("/projects/<int:project_id>/sections/<int:section_id>/complete", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def project_section_complete(project_id, section_id):
+    """Checking a sub area's box no longer completes it outright - it
+    requests confirmation instead (confirm_requested_at/by), and stays open
+    on the calendar/board until an Inspector (or admin) confirms it via
+    project_section_confirm. Unchecking it clears both the request and any
+    completion, back to plain open."""
     conn = get_db()
     section = conn.execute("SELECT id FROM project_sections WHERE id = ? AND project_id = ?",
                            (section_id, project_id)).fetchone()
@@ -1040,8 +1059,37 @@ def project_section_complete(project_id, section_id):
         conn.close()
         abort(404)
     completed = request.form.get("completed") == "1"
-    conn.execute("UPDATE project_sections SET completed_at = ?, completed_by = ? WHERE id = ?",
-                 (now_iso() if completed else None, session.get("user_name") if completed else None, section_id))
+    if completed:
+        conn.execute("UPDATE project_sections SET confirm_requested_at = ?, confirm_requested_by = ? WHERE id = ?",
+                     (now_iso(), session.get("user_name"), section_id))
+    else:
+        conn.execute("""UPDATE project_sections SET confirm_requested_at = NULL, confirm_requested_by = NULL,
+                         completed_at = NULL, completed_by = NULL WHERE id = ?""", (section_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
+@app.route("/projects/<int:project_id>/sections/<int:section_id>/confirm", methods=["POST"])
+@shop_role_required('admin', 'inspector')
+def project_section_confirm(project_id, section_id):
+    """An Inspector (or admin) signs off on a sub area someone else marked
+    ready - this is what actually completes it. 'Send back' unchecks it
+    instead, so whoever did the work knows it wasn't approved."""
+    conn = get_db()
+    section = conn.execute("SELECT id FROM project_sections WHERE id = ? AND project_id = ?",
+                           (section_id, project_id)).fetchone()
+    if not section:
+        conn.close()
+        abort(404)
+    if request.form.get("action") == "send_back":
+        conn.execute("""UPDATE project_sections SET confirm_requested_at = NULL, confirm_requested_by = NULL,
+                         completed_at = NULL, completed_by = NULL WHERE id = ?""", (section_id,))
+        flash("Sent back - unmarked as ready.", "warning")
+    else:
+        conn.execute("UPDATE project_sections SET completed_at = ?, completed_by = ? WHERE id = ?",
+                     (now_iso(), session.get("user_name"), section_id))
+        flash("Confirmed complete.", "success")
     conn.commit()
     conn.close()
     return redirect(url_for("project_detail", project_id=project_id))
@@ -1694,21 +1742,24 @@ def project_detail(project_id):
             conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
                          (project_id, name, now_iso()))
     conn.commit()
-    section_meta = {r["name"]: {"id": r["id"], "completed_at": r["completed_at"], "completed_by": r["completed_by"]}
-                     for r in conn.execute("SELECT id, name, completed_at, completed_by FROM project_sections WHERE project_id = ?",
-                                           (project_id,)).fetchall()}
+    section_meta = {r["name"]: dict(r) for r in conn.execute(
+        """SELECT id, name, completed_at, completed_by, confirm_requested_at, confirm_requested_by
+           FROM project_sections WHERE project_id = ?""", (project_id,)).fetchall()}
     for name, section_data in usage_by_section.items():
         meta = section_meta.get(name)
         section_data["id"] = meta["id"] if meta else None
         section_data["completed_at"] = meta["completed_at"] if meta else None
         section_data["completed_by"] = meta["completed_by"] if meta else None
+        section_data["confirm_requested_at"] = meta["confirm_requested_at"] if meta else None
+        section_data["confirm_requested_by"] = meta["confirm_requested_by"] if meta else None
 
-    # Open (not completed) sections first alphabetically, then completed
-    # ones at the bottom ordered by when they were completed; "General"
-    # always last since it isn't a real checkable area.
+    # Open sections first alphabetically, then ones awaiting confirmation,
+    # then fully completed ones at the bottom ordered by when they were
+    # completed; "General" always last since it isn't a real checkable area.
     usage_by_section = dict(sorted(usage_by_section.items(),
                                    key=lambda kv: (kv[0] == "General", kv[1]["completed_at"] is not None,
-                                                    kv[1]["completed_at"] or "", kv[0])))
+                                                    kv[1]["confirm_requested_at"] is not None,
+                                                    kv[1]["completed_at"] or kv[1]["confirm_requested_at"] or "", kv[0])))
 
     tx = conn.execute("""SELECT t.*, p.name as part_name, p.barcode as part_barcode FROM transactions t
                           JOIN parts p ON p.id = t.part_id
@@ -4134,7 +4185,7 @@ def _account_programs(user_row):
     shown on the centralized My Account page. Read-only: access is still
     changed by an admin in Admin > Accounts."""
     is_admin = bool(user_row["is_master_admin"])
-    shop_labels = {"admin": "Admin", "tech": "Tech", "student": "Student"}
+    shop_labels = {"admin": "Admin", "tech": "Tech", "inspector": "Inspector", "student": "Student"}
     flight_labels = {"cfi": "Instructor (CFI)", "student": "Student"}
     progs = []
     if is_admin or user_row["shop_role"]:

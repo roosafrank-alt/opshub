@@ -41,6 +41,7 @@
           <option value="" {% if not (user and user.shop_role) %}selected{% endif %}>No access</option>
           <option value="admin" {% if user and user.shop_role == 'admin' %}selected{% endif %}>Admin (full Maintenance access)</option>
           <option value="tech" {% if user and user.shop_role == 'tech' %}selected{% endif %}>Tech (scan, labor, no costs/settings)</option>
+          <option value="inspector" {% if user and user.shop_role == 'inspector' %}selected{% endif %}>Inspector (confirms sub areas marked ready)</option>
           <option value="student" {% if user and user.shop_role == 'student' %}selected{% endif %}>Student (scan/labor only)</option>
         </select>
         <div class="form-text">This is the Maintenance/shop side only - it doesn't give Flight School admin powers like ending someone else's flight. For that, check "Master Admin" below.</div>
