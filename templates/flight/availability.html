@@ -191,9 +191,14 @@
         <td class="avail-plane-col">{{ row.plane.tag }}</td>
         {% for cell in row.cells %}
         {% if cell.booked %}
-        <td class="avail-slot-booked" title="{{ cell.flight.student_name }}{% if cell.flight.cfi_name %} / {{ cell.flight.cfi_name }}{% endif %}">
+        {#- A plain student viewer sees that the plane is booked, not by
+           whom - Availability is meant to show plane free/busy, not out
+           other students (matches how the Schedule calendar itself hides
+           student identity from a student viewer). #}
+        {% set is_student_viewer = session.get('student_id') and not session.get('cfi_id') %}
+        <td class="avail-slot-booked" {% if not is_student_viewer %}title="{{ cell.flight.student_name }}{% if cell.flight.cfi_name %} / {{ cell.flight.cfi_name }}{% endif %}"{% endif %}>
           Booked
-          <span class="avail-booked-who">{{ cell.flight.student_name }}</span>
+          {% if not is_student_viewer %}<span class="avail-booked-who">{{ cell.flight.student_name }}</span>{% endif %}
         </td>
         {% else %}
         {#- schedule_new() now takes ?time=HH:MM and ?asset_id=... too, so
