@@ -24,6 +24,10 @@
         <input type="text" id="quick-desc-other-input" class="form-control" placeholder="Type what this project is...">
         <button type="button" id="quick-desc-other-add" class="btn btn-primary">Set</button>
       </div>
+      {% if not project %}
+      <input type="hidden" name="quick_types" id="quick-types-input" value="">
+      <div class="form-text">Picking Annual, 100hr, Oil Change or Maintenance also adds that job's preset Sub Areas - set those up under Manage &gt; Task Templates.</div>
+      {% endif %}
     </div>
     <div class="mb-3">
       <label class="form-label">Description <span class="text-muted small">(what exactly is being done)</span></label>
@@ -157,10 +161,12 @@
   // whichever ones are active (plus the free-text "Other" below) joined
   // with commas, rather than one button replacing another.
   var otherValue = '';
+  var quickTypesInput = document.getElementById('quick-types-input');
   function rebuildDesc() {
     var parts = Array.prototype.map.call(document.querySelectorAll('.quick-desc-btn.active'), function (b) {
       return b.getAttribute('data-value');
     });
+    if (quickTypesInput) quickTypesInput.value = parts.join(',');
     if (otherValue) parts.push(otherValue);
     descInput.value = parts.join(', ');
   }

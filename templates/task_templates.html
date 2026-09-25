@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Task Templates - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-list-check"></i> Task Templates</h4>
+  <a href="{{ url_for('projects_list') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-arrow-left"></i> Projects</a>
+</div>
+<p class="text-muted small">A preset list of Sub Areas for each Quick Type button on New/Edit Project. Pick "Annual" (or 100hr, Oil Change, Maintenance) on a new project and these get added to it automatically.</p>
+
+<div class="row g-3">
+  {% for t in quick_types %}
+  <div class="col-md-6 col-lg-3">
+    <div class="card p-3 h-100">
+      <h6 class="mb-2">{{ t }}</h6>
+      {% if areas_by_type[t] %}
+      <ul class="list-group list-group-flush mb-2">
+        {% for a in areas_by_type[t] %}
+        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+          <span>{{ a.name }}</span>
+          <form method="post" action="{{ url_for('task_template_area_delete', area_id=a.id) }}" data-confirm="Remove '{{ a.name }}' from {{ t }}?" data-confirm-title="Remove Area">
+            <button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-x-lg"></i></button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-muted small mb-2">No areas set yet.</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('task_templates') }}" class="input-group input-group-sm">
+        <input type="hidden" name="quick_type" value="{{ t }}">
+        <input type="text" name="name" class="form-control" placeholder="e.g. Engine">
+        <button class="btn btn-outline-secondary">Add</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

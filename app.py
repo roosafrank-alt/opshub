@@ -1435,6 +1435,14 @@ def projects_list():
                            proj_cover=proj_cover, q=q, status_filter=status_filter)
 
 
+# Quick Type buttons on New/Edit Project (project_form.html) - the same
+# fixed set the description-filler buttons offer. A Task Template (Manage >
+# Task Templates, admins only - see task_templates()) maps one of these to
+# a preset list of Sub Areas that get auto-created when it's picked on a
+# brand new project.
+QUICK_TYPES = ["Annual Inspection", "100hr Inspection", "Oil Change", "Maintenance"]
+
+
 @app.route("/projects/new", methods=["GET", "POST"])
 @shop_role_required('admin', 'tech')
 def project_new():
@@ -1470,9 +1478,23 @@ def project_new():
              request.form.get("standard_items", "").strip() or None, now_iso()))
         new_id = cur.lastrowid
         conn.execute("UPDATE projects SET intake_status = 'pending' WHERE id = ?", (new_id,))
+        # Whichever Quick Type buttons were picked (see project_form.html's
+        # quick_types hidden field) auto-add that type's preset Sub Areas -
+        # Manage > Task Templates is where an admin sets those up.
+        quick_types = [t for t in (request.form.get("quick_types") or "").split(",") if t]
+        added_areas = []
+        for t in quick_types:
+            for r in conn.execute("SELECT name FROM task_template_areas WHERE quick_type = ? ORDER BY sort_order, name",
+                                  (t,)).fetchall():
+                conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
+                             (new_id, r["name"], now_iso()))
+                added_areas.append(r["name"])
         conn.commit()
         conn.close()
-        flash(f"Project '{name}' created as {code}. Fill in the intake check before starting work.", "success")
+        msg = f"Project '{name}' created as {code}. Fill in the intake check before starting work."
+        if added_areas:
+            msg += f" Sub area{'s' if len(added_areas) != 1 else ''} added: {', '.join(added_areas)}."
+        flash(msg, "success")
         return redirect(url_for("project_intake", project_id=new_id))
     assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL ORDER BY tag").fetchall()
     preselect_asset_id = request.args.get("asset_id")
@@ -3293,6 +3315,45 @@ def order_cancel(order_id):
 # Labor tracking: laborers (with a scannable QR code + hourly rate) and
 # scan-to-start/scan-to-stop timed labor_sessions against a project/task.
 # ---------------------------------------------------------------------------
+
+@app.route("/manage/task-templates", methods=["GET", "POST"])
+@shop_role_required('admin')
+def task_templates():
+    """Manage > Task Templates: for each Quick Type button on New/Edit
+    Project (Annual, 100hr, Oil Change, Maintenance), a preset list of Sub
+    Areas that get auto-created on a project the moment that Quick Type is
+    picked - see the quick_types handling in project_new()."""
+    conn = get_db()
+    if request.method == "POST":
+        quick_type = request.form.get("quick_type", "")
+        name = request.form.get("name", "").strip()
+        if quick_type not in QUICK_TYPES or not name:
+            flash("Pick a Quick Type and enter an area name.", "danger")
+        else:
+            next_order = conn.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM task_template_areas WHERE quick_type = ?",
+                                      (quick_type,)).fetchone()["n"]
+            conn.execute("INSERT OR IGNORE INTO task_template_areas (quick_type, name, sort_order, created_at) VALUES (?, ?, ?, ?)",
+                         (quick_type, name, next_order, now_iso()))
+            conn.commit()
+            flash(f"Added '{name}' to {quick_type}.", "success")
+        conn.close()
+        return redirect(url_for("task_templates"))
+    areas_by_type = {t: conn.execute("SELECT * FROM task_template_areas WHERE quick_type = ? ORDER BY sort_order, name",
+                                     (t,)).fetchall() for t in QUICK_TYPES}
+    conn.close()
+    return render_template("task_templates.html", quick_types=QUICK_TYPES, areas_by_type=areas_by_type)
+
+
+@app.route("/manage/task-templates/<int:area_id>/delete", methods=["POST"])
+@shop_role_required('admin')
+def task_template_area_delete(area_id):
+    conn = get_db()
+    conn.execute("DELETE FROM task_template_areas WHERE id = ?", (area_id,))
+    conn.commit()
+    conn.close()
+    flash("Removed.", "success")
+    return redirect(url_for("task_templates"))
+
 
 @app.route("/laborers")
 @shop_role_required('admin')

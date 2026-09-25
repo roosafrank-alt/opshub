@@ -408,6 +408,21 @@ def _migrate(conn):
         conn.execute("ALTER TABLE project_sections ADD COLUMN completed_at TEXT")
         conn.commit()
 
+    # Preset Sub Areas for a Quick Type (New/Edit Project's Annual, 100hr,
+    # Oil Change, Maintenance buttons) - admin-managed from Manage > Task
+    # Templates (see app.task_templates). Picking that Quick Type on a new
+    # project auto-creates these as the project's Sub Areas.
+    conn.execute("""CREATE TABLE IF NOT EXISTS task_template_areas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quick_type TEXT NOT NULL,
+        name TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(quick_type, name)
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_task_template_areas_type ON task_template_areas(quick_type)")
+    conn.commit()
+
     # Master login: one users table shared by Shop Inventory and Flight
     # School. Brand new table, safe to create directly even on an existing
     # database.
