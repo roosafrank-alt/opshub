@@ -464,6 +464,14 @@ def dashboard():
               AND scheduled_date >= ? AND status NOT IN ('completed', 'archived')
     """, (today_str,)).fetchone()["c"]
     open_squawks = get_open_squawks(conn)
+    # Assigned-squawk alerts: this account's own to-do list (if a squawk's
+    # been handed to them and they haven't said "got it" yet), plus - for
+    # admin/master admin - everyone's unacknowledged assignments, so whoever
+    # did the assigning can see who hasn't picked it up.
+    my_assigned_squawks = get_assigned_to_me_squawks(conn, session["user_id"]) if session.get("user_id") else []
+    unacknowledged_assignments = []
+    if session.get("is_master_admin") or session.get("shop_role") == "admin":
+        unacknowledged_assignments = get_unacknowledged_assignments(conn)
 
     # Customer portal: appointments the customer asked to reschedule -
     # stays here until an admin dismisses it (see project_reschedule_dismiss).
@@ -533,7 +541,9 @@ def dashboard():
                            reminders=reminders, upcoming_projects=upcoming_projects,
                            reschedule_requests=reschedule_requests,
                            open_squawks=open_squawks, open_sessions=open_sessions,
-                           needs_confirm_sections=needs_confirm_sections)
+                           needs_confirm_sections=needs_confirm_sections,
+                           my_assigned_squawks=my_assigned_squawks,
+                           unacknowledged_assignments=unacknowledged_assignments)
 
 
 # ---------------------------------------------------------------------------
@@ -552,12 +562,18 @@ _FLIGHT_SQUAWK_COLS = """'flight' as kind, f.id as squawk_id, a.id as asset_id, 
                a.name as asset_name, f.flight_date as event_date, s.name as student_name,
                c.name as cfi_name, NULL as reported_by, f.notes as notes,
                f.squawk_acknowledged_at as acknowledged_at, f.squawk_acknowledged_by as acknowledged_by,
-               f.squawk_repaired_at as repaired_at, f.squawk_repaired_by as repaired_by"""
+               f.squawk_repaired_at as repaired_at, f.squawk_repaired_by as repaired_by,
+               f.squawk_assigned_to as assigned_to, au.name as assigned_to_name,
+               f.squawk_worker_acknowledged_at as worker_acknowledged_at,
+               f.squawk_worker_acknowledged_by as worker_acknowledged_by"""
 _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.tag as asset_tag,
                a.name as asset_name, q.reported_at as event_date, NULL as student_name,
                NULL as cfi_name, q.reported_by as reported_by, q.notes as notes,
                q.acknowledged_at as acknowledged_at, q.acknowledged_by as acknowledged_by,
-               q.repaired_at as repaired_at, q.repaired_by as repaired_by"""
+               q.repaired_at as repaired_at, q.repaired_by as repaired_by,
+               q.assigned_to as assigned_to, au.name as assigned_to_name,
+               q.worker_acknowledged_at as worker_acknowledged_at,
+               q.worker_acknowledged_by as worker_acknowledged_by"""
 
 
 def get_open_squawks(conn):
@@ -567,14 +583,67 @@ def get_open_squawks(conn):
         JOIN assets a ON a.id = f.asset_id
         JOIN students s ON s.id = f.student_id
         LEFT JOIN cfis c ON c.id = f.cfi_id
+        LEFT JOIN users au ON au.id = f.squawk_assigned_to
         WHERE f.squawk = 1 AND f.squawk_acknowledged_at IS NULL
         UNION ALL
         SELECT {_QUICK_SQUAWK_COLS}
         FROM plane_squawks q
         JOIN assets a ON a.id = q.asset_id
+        LEFT JOIN users au ON au.id = q.assigned_to
         WHERE q.acknowledged_at IS NULL
         ORDER BY event_date DESC, squawk_id DESC
     """).fetchall()
+
+
+def get_assignable_workers(conn):
+    """Techs/admins a squawk can be handed off to - see squawk_assign()."""
+    return conn.execute(
+        "SELECT id, name FROM users WHERE active = 1 AND shop_role IN ('admin', 'tech') ORDER BY name"
+    ).fetchall()
+
+
+def get_unacknowledged_assignments(conn):
+    """Squawks assigned to someone who hasn't acknowledged the assignment yet
+    (and isn't already repaired) - the admin dashboard alert for this."""
+    return conn.execute(f"""
+        SELECT {_FLIGHT_SQUAWK_COLS}
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        LEFT JOIN users au ON au.id = f.squawk_assigned_to
+        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NULL
+              AND f.squawk_assigned_to IS NOT NULL AND f.squawk_worker_acknowledged_at IS NULL
+        UNION ALL
+        SELECT {_QUICK_SQUAWK_COLS}
+        FROM plane_squawks q
+        JOIN assets a ON a.id = q.asset_id
+        LEFT JOIN users au ON au.id = q.assigned_to
+        WHERE q.repaired_at IS NULL AND q.assigned_to IS NOT NULL AND q.worker_acknowledged_at IS NULL
+        ORDER BY event_date DESC, squawk_id DESC
+    """).fetchall()
+
+
+def get_assigned_to_me_squawks(conn, user_id):
+    """This user's own squawk to-do list: assigned to them, not yet
+    acknowledged by them, not yet repaired - shown on their dashboard."""
+    return conn.execute(f"""
+        SELECT {_FLIGHT_SQUAWK_COLS}
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        LEFT JOIN users au ON au.id = f.squawk_assigned_to
+        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NULL
+              AND f.squawk_assigned_to = ? AND f.squawk_worker_acknowledged_at IS NULL
+        UNION ALL
+        SELECT {_QUICK_SQUAWK_COLS}
+        FROM plane_squawks q
+        JOIN assets a ON a.id = q.asset_id
+        LEFT JOIN users au ON au.id = q.assigned_to
+        WHERE q.repaired_at IS NULL AND q.assigned_to = ? AND q.worker_acknowledged_at IS NULL
+        ORDER BY event_date DESC, squawk_id DESC
+    """, (user_id, user_id)).fetchall()
 
 
 @app.route("/squawks")
@@ -588,11 +657,13 @@ def squawks_list():
         JOIN assets a ON a.id = f.asset_id
         JOIN students s ON s.id = f.student_id
         LEFT JOIN cfis c ON c.id = f.cfi_id
+        LEFT JOIN users au ON au.id = f.squawk_assigned_to
         WHERE f.squawk = 1 AND f.squawk_acknowledged_at IS NOT NULL AND f.squawk_repaired_at IS NULL
         UNION ALL
         SELECT {_QUICK_SQUAWK_COLS}
         FROM plane_squawks q
         JOIN assets a ON a.id = q.asset_id
+        LEFT JOIN users au ON au.id = q.assigned_to
         WHERE q.acknowledged_at IS NOT NULL AND q.repaired_at IS NULL
         ORDER BY acknowledged_at DESC LIMIT 50
     """).fetchall()
@@ -602,18 +673,21 @@ def squawks_list():
         JOIN assets a ON a.id = f.asset_id
         JOIN students s ON s.id = f.student_id
         LEFT JOIN cfis c ON c.id = f.cfi_id
+        LEFT JOIN users au ON au.id = f.squawk_assigned_to
         WHERE f.squawk = 1 AND f.squawk_repaired_at IS NOT NULL
         UNION ALL
         SELECT {_QUICK_SQUAWK_COLS}
         FROM plane_squawks q
         JOIN assets a ON a.id = q.asset_id
+        LEFT JOIN users au ON au.id = q.assigned_to
         WHERE q.repaired_at IS NOT NULL
         ORDER BY repaired_at DESC LIMIT 50
     """).fetchall()
     assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
+    assignable_workers = get_assignable_workers(conn)
     conn.close()
     return render_template("squawks.html", open_squawks=open_squawks, acknowledged=acknowledged, repaired=repaired,
-                           assets=assets)
+                           assets=assets, assignable_workers=assignable_workers)
 
 
 @app.route("/squawks/new", methods=["POST"])
@@ -661,10 +735,95 @@ def squawk_acknowledge(kind, squawk_id):
         flash("Squawk not found.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
     conn.execute(set_sql, (now_iso(), session.get("user_name"), squawk_id))
+    # Optional "Assign to" picked right alongside Acknowledge, same as
+    # squawk_assign() below - saves a second trip for the common case of
+    # acknowledging and handing it off in one go.
+    _apply_squawk_assignment(conn, kind, squawk_id, request.form.get("assigned_to"))
     conn.commit()
     conn.close()
     flash("Squawk acknowledged.", "success")
     return redirect(request.referrer or url_for("squawks_list"))
+
+
+def _apply_squawk_assignment(conn, kind, squawk_id, assigned_to_raw):
+    """Shared by squawk_acknowledge (optional assign-while-acknowledging) and
+    squawk_assign (assign/reassign/unassign on its own). Reassigning always
+    clears any previous worker acknowledgement - the new person hasn't seen
+    it yet, whatever the last one did."""
+    assigned_to_raw = (assigned_to_raw or "").strip()
+    if not assigned_to_raw:
+        return
+    assigned_to = int(assigned_to_raw) if assigned_to_raw.isdigit() else None
+    if kind == "flight":
+        conn.execute("UPDATE flights SET squawk_assigned_to = ?, squawk_worker_acknowledged_at = NULL, "
+                     "squawk_worker_acknowledged_by = NULL WHERE id = ?", (assigned_to, squawk_id))
+    elif kind == "quick":
+        conn.execute("UPDATE plane_squawks SET assigned_to = ?, worker_acknowledged_at = NULL, "
+                     "worker_acknowledged_by = NULL WHERE id = ?", (assigned_to, squawk_id))
+
+
+@app.route("/squawks/<kind>/<int:squawk_id>/assign", methods=["POST"])
+@shop_role_required('admin')
+def squawk_assign(kind, squawk_id):
+    """Hands a squawk off to a specific tech (or clears the assignment with
+    an empty pick) - separate from Acknowledge, so it can also be done (or
+    changed) later while it's sitting in Acknowledged, Not Yet Repaired."""
+    conn = get_db()
+    if kind == "flight":
+        row = conn.execute("SELECT id FROM flights WHERE id = ? AND squawk = 1", (squawk_id,)).fetchone()
+    elif kind == "quick":
+        row = conn.execute("SELECT id FROM plane_squawks WHERE id = ?", (squawk_id,)).fetchone()
+    else:
+        conn.close()
+        abort(404)
+    if not row:
+        conn.close()
+        flash("Squawk not found.", "danger")
+        return redirect(request.referrer or url_for("squawks_list"))
+    assigned_to_raw = request.form.get("assigned_to", "").strip()
+    assigned_to = int(assigned_to_raw) if assigned_to_raw.isdigit() else None
+    if kind == "flight":
+        conn.execute("UPDATE flights SET squawk_assigned_to = ?, squawk_worker_acknowledged_at = NULL, "
+                     "squawk_worker_acknowledged_by = NULL WHERE id = ?", (assigned_to, squawk_id))
+    else:
+        conn.execute("UPDATE plane_squawks SET assigned_to = ?, worker_acknowledged_at = NULL, "
+                     "worker_acknowledged_by = NULL WHERE id = ?", (assigned_to, squawk_id))
+    conn.commit()
+    conn.close()
+    flash("Assigned." if assigned_to else "Assignment cleared.", "success")
+    return redirect(request.referrer or url_for("squawks_list"))
+
+
+@app.route("/squawks/<kind>/<int:squawk_id>/worker_ack", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def squawk_worker_ack(kind, squawk_id):
+    """The assigned tech's own "I've got it" - separate from an admin's
+    Acknowledge above, which just means someone's seen the squawk exists.
+    Only the person it's assigned to (or a master admin) can do this."""
+    conn = get_db()
+    if kind == "flight":
+        row = conn.execute("SELECT id, squawk_assigned_to as assigned_to FROM flights WHERE id = ? AND squawk = 1",
+                            (squawk_id,)).fetchone()
+        set_sql = "UPDATE flights SET squawk_worker_acknowledged_at = ?, squawk_worker_acknowledged_by = ? WHERE id = ?"
+    elif kind == "quick":
+        row = conn.execute("SELECT id, assigned_to FROM plane_squawks WHERE id = ?", (squawk_id,)).fetchone()
+        set_sql = "UPDATE plane_squawks SET worker_acknowledged_at = ?, worker_acknowledged_by = ? WHERE id = ?"
+    else:
+        conn.close()
+        abort(404)
+    if not row:
+        conn.close()
+        flash("Squawk not found.", "danger")
+        return redirect(request.referrer or url_for("dashboard"))
+    if row["assigned_to"] != session.get("user_id") and not session.get("is_master_admin"):
+        conn.close()
+        flash("This squawk isn't assigned to you.", "danger")
+        return redirect(request.referrer or url_for("dashboard"))
+    conn.execute(set_sql, (now_iso(), session.get("user_name"), squawk_id))
+    conn.commit()
+    conn.close()
+    flash("Got it - marked as acknowledged.", "success")
+    return redirect(request.referrer or url_for("dashboard"))
 
 
 @app.route("/squawks/<kind>/<int:squawk_id>/repair", methods=["POST"])

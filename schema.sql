@@ -284,6 +284,9 @@ CREATE TABLE IF NOT EXISTS flights (
     squawk_acknowledged_by TEXT, -- who acknowledged it
     squawk_repaired_at TEXT, -- when the squawk was actually fixed/addressed
     squawk_repaired_by TEXT, -- who repaired/addressed it
+    squawk_assigned_to INTEGER REFERENCES users(id), -- tech this squawk was handed off to (separate from just acknowledging it)
+    squawk_worker_acknowledged_at TEXT, -- when that tech confirmed they've seen the assignment
+    squawk_worker_acknowledged_by TEXT, -- that tech's name, for display
     scheduled_flight_id INTEGER REFERENCES scheduled_flights(id), -- the booking this flight was started/logged from, if any
     started_at TEXT, -- clock time the CFI tapped "Start Flight" - set only when logged via the start/stop flow
     ended_at TEXT, -- clock time the CFI tapped "End Flight" - pairs with started_at
@@ -390,7 +393,10 @@ CREATE TABLE IF NOT EXISTS plane_squawks (
     acknowledged_at TEXT,
     acknowledged_by TEXT,
     repaired_at TEXT,
-    repaired_by TEXT
+    repaired_by TEXT,
+    assigned_to INTEGER REFERENCES users(id), -- tech this squawk was handed off to (separate from just acknowledging it)
+    worker_acknowledged_at TEXT, -- when that tech confirmed they've seen the assignment
+    worker_acknowledged_by TEXT -- that tech's name, for display
 );
 CREATE INDEX IF NOT EXISTS idx_plane_squawks_asset ON plane_squawks(asset_id);
 

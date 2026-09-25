@@ -1352,6 +1352,27 @@ def _migrate(conn):
         conn.execute("ALTER TABLE scheduled_flights ADD COLUMN cancel_reason TEXT")
         conn.commit()
 
+    # Assigning a squawk to a specific tech (users.shop_role='tech') so it
+    # shows on that person's own dashboard as something to do, separate from
+    # someone just acknowledging the squawk exists. worker_acknowledged_at
+    # is that tech's own "I've seen this, I've got it" - distinct from
+    # acknowledged_at/squawk_acknowledged_at above, which just means someone
+    # (anyone on the shop side) has seen the squawk at all. Whoever assigned
+    # it can see whether the tech has acknowledged the assignment yet - see
+    # get_open_squawks()/squawk_assign()/squawk_worker_ack() in app.py.
+    flight_cols_assign = [r["name"] for r in conn.execute("PRAGMA table_info(flights)").fetchall()]
+    if "squawk_assigned_to" not in flight_cols_assign:
+        conn.execute("ALTER TABLE flights ADD COLUMN squawk_assigned_to INTEGER")
+        conn.execute("ALTER TABLE flights ADD COLUMN squawk_worker_acknowledged_at TEXT")
+        conn.execute("ALTER TABLE flights ADD COLUMN squawk_worker_acknowledged_by TEXT")
+        conn.commit()
+    quick_cols_assign = [r["name"] for r in conn.execute("PRAGMA table_info(plane_squawks)").fetchall()]
+    if "assigned_to" not in quick_cols_assign:
+        conn.execute("ALTER TABLE plane_squawks ADD COLUMN assigned_to INTEGER")
+        conn.execute("ALTER TABLE plane_squawks ADD COLUMN worker_acknowledged_at TEXT")
+        conn.execute("ALTER TABLE plane_squawks ADD COLUMN worker_acknowledged_by TEXT")
+        conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of

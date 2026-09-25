@@ -36,13 +36,25 @@
         {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
       <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
     </div>
-    <div class="d-flex gap-2">
-      <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Acknowledge this squawk?" data-confirm-title="Acknowledge Squawk">
-        <button class="btn btn-outline-danger btn-sm fw-bold"><i class="bi bi-check-lg"></i> Acknowledge</button>
-      </form>
-      <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Mark this squawk as repaired/addressed?">
-        <button class="btn btn-success btn-sm fw-bold"><i class="bi bi-tools"></i> Mark Repaired</button>
-      </form>
+    <div class="d-flex flex-column align-items-end gap-1">
+      <div class="d-flex gap-2">
+        {#- Assign-while-acknowledging: pick a tech here and Acknowledge
+           hands it to them in the same click (see _apply_squawk_assignment
+           in app.py). Leaving it on "Assign to..." just acknowledges, same
+           as before. #}
+        <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Acknowledge this squawk?" data-confirm-title="Acknowledge Squawk" class="d-flex gap-1">
+          <select name="assigned_to" class="form-select form-select-sm" style="width:auto;">
+            <option value="">Assign to...</option>
+            {% for w in assignable_workers %}
+            <option value="{{ w.id }}">{{ w.name }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-outline-danger btn-sm fw-bold"><i class="bi bi-check-lg"></i> Acknowledge</button>
+        </form>
+        <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Mark this squawk as repaired/addressed?">
+          <button class="btn btn-success btn-sm fw-bold"><i class="bi bi-tools"></i> Mark Repaired</button>
+        </form>
+      </div>
     </div>
   </div>
   {% endfor %}
@@ -61,11 +73,32 @@
         {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
         {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
       <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-      <small class="text-muted">Acknowledged by {{ sq.acknowledged_by or '-' }}, {{ sq.acknowledged_at|usdate(true) if sq.acknowledged_at else '' }}</small>
+      <small class="text-muted d-block">Acknowledged by {{ sq.acknowledged_by or '-' }}, {{ sq.acknowledged_at|usdate(true) if sq.acknowledged_at else '' }}</small>
+      {#- Whoever assigned it can see right here whether the tech has said
+         "got it" yet (squawk_worker_ack) - that's separate from someone
+         just acknowledging the squawk exists, above. #}
+      {% if sq.assigned_to %}
+      <small class="d-block {{ 'text-success' if sq.worker_acknowledged_at else 'text-warning-emphasis fw-bold' }}">
+        <i class="bi {{ 'bi-check-circle-fill' if sq.worker_acknowledged_at else 'bi-hourglass-split' }}"></i>
+        Assigned to {{ sq.assigned_to_name or '-' }} -
+        {% if sq.worker_acknowledged_at %}acknowledged {{ sq.worker_acknowledged_at|usdate(true) }}
+        {% else %}not yet acknowledged{% endif %}
+      </small>
+      {% endif %}
     </div>
-    <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Mark this squawk as repaired/addressed?">
-      <button class="btn btn-success btn-sm fw-bold"><i class="bi bi-tools"></i> Mark Repaired</button>
-    </form>
+    <div class="d-flex flex-column align-items-end gap-1">
+      <form method="post" action="{{ url_for('squawk_assign', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex gap-1">
+        <select name="assigned_to" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+          <option value="">Unassigned</option>
+          {% for w in assignable_workers %}
+          <option value="{{ w.id }}" {{ 'selected' if sq.assigned_to == w.id }}>{{ w.name }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Mark this squawk as repaired/addressed?">
+        <button class="btn btn-success btn-sm fw-bold"><i class="bi bi-tools"></i> Mark Repaired</button>
+      </form>
+    </div>
   </div>
   {% endfor %}
 </div>
