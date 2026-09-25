@@ -322,6 +322,25 @@ def _past_booking_error(scheduled_date, scheduled_time):
             f"tick \"Flight Already Complete?\" and log it with its date and time.")
 
 
+def _tsa_gate_error(conn, student_id):
+    """An error message blocking a student's SECOND (or later) lesson
+    booking if they haven't been TSA Verified yet on their profile
+    (Students > Edit), else None. A student's very first lesson is exempt
+    (nothing to verify before they've ever flown), and so are the Guest /
+    Intro placeholder and station accounts - neither is a real trainee."""
+    if str(student_id) == str(_guest_student_id(conn)):
+        return None
+    student = conn.execute("SELECT name, is_station, tsa_verified_date FROM students WHERE id = ?", (student_id,)).fetchone()
+    if not student or student["is_station"] or student["tsa_verified_date"]:
+        return None
+    prior = conn.execute("SELECT COUNT(*) c FROM scheduled_flights WHERE student_id = ? AND status NOT IN ('cancelled', 'denied')",
+                         (student_id,)).fetchone()["c"]
+    if prior < 1:
+        return None
+    return (f"{student['name']} isn't TSA Verified yet - that's required before a second lesson can be scheduled. "
+            f"Check them off on their profile (Students > Edit) first.")
+
+
 def _scheduling_conflicts(conn, asset_id, cfi_id, student_id, scheduled_date, scheduled_time, duration_hours, exclude_id=None):
     """Checks the same day's other scheduled (not cancelled) flights for a
     double-booking: the same plane, the same instructor, or the same
@@ -3088,6 +3107,11 @@ def schedule_new():
         created_by = session.get("user_name") or (self_student["name"] if self_student else None)
         if not asset_id or not student_id or not scheduled_date:
             flash("Select a plane, a student, and a date.", "danger")
+            conn.close()
+            return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
+        tsa_error = _tsa_gate_error(conn, student_id)
+        if tsa_error:
+            flash(tsa_error, "danger")
             conn.close()
             return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
         past_error = _past_booking_error(scheduled_date, scheduled_time)
