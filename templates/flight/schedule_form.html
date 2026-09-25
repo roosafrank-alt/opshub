@@ -326,12 +326,32 @@
 
 {% block scripts %}
 <script>
-document.getElementById('solo-check').addEventListener('change', function () {
-  document.getElementById('cfi-select').disabled = this.checked;
-});
-if (document.getElementById('solo-check').checked) {
-  document.getElementById('cfi-select').disabled = true;
-}
+(function () {
+  // Solo, "part dual/part solo", and an actually-picked instructor are
+  // mutually exclusive - checking/picking one clears the others instead of
+  // just leaving a contradictory-looking form (the server already resolved
+  // this silently - solo always wins over part_solo/cfi_id - but the boxes
+  // themselves never reflected that back at you).
+  var soloCheck = document.getElementById('solo-check');
+  var partSoloCheck = document.getElementById('part-solo-check');
+  var cfiSelect = document.getElementById('cfi-select');
+  soloCheck.addEventListener('change', function () {
+    cfiSelect.disabled = this.checked;
+    if (this.checked) {
+      cfiSelect.value = '';
+      if (partSoloCheck) partSoloCheck.checked = false;
+    }
+  });
+  if (partSoloCheck) {
+    partSoloCheck.addEventListener('change', function () {
+      if (this.checked && soloCheck.checked) { soloCheck.checked = false; soloCheck.dispatchEvent(new Event('change')); }
+    });
+  }
+  cfiSelect.addEventListener('change', function () {
+    if (this.value && soloCheck.checked) { soloCheck.checked = false; soloCheck.dispatchEvent(new Event('change')); }
+  });
+  cfiSelect.disabled = soloCheck.checked;
+})();
 
 (function () {
   var hidden = document.getElementById('time-input');
