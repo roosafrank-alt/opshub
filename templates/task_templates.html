@@ -29,12 +29,25 @@
         {% endif %}
       </div>
       {% if areas_by_type[t] %}
+      {#- Each area is its own small edit form (name + Optional + Save),
+         not just a static label - used to have to be deleted and re-added
+         to fix a typo or flip Optional. flex-wrap + gap keeps the name
+         input, checkbox and buttons from crowding/overlapping each other
+         in this card's narrow column, unlike the old single-line
+         name+badge span. #}
       <ul class="list-group list-group-flush mb-2">
         {% for a in areas_by_type[t] %}
-        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
-          <span>{{ a.name }}{% if a.is_optional %} <span class="badge bg-secondary fw-normal">optional</span>{% endif %}</span>
+        <li class="list-group-item d-flex align-items-center flex-wrap gap-1 px-0 py-2">
+          <form method="post" action="{{ url_for('task_template_area_edit', area_id=a.id) }}" class="d-flex align-items-center flex-wrap gap-1 flex-grow-1" style="min-width:0;">
+            <input type="text" name="name" value="{{ a.name }}" class="form-control form-control-sm" style="min-width:70px; flex:1 1 90px;" required>
+            <div class="form-check form-check-inline m-0 text-nowrap">
+              <input type="checkbox" class="form-check-input" name="is_optional" value="1" id="opt-edit-{{ a.id }}" {% if a.is_optional %}checked{% endif %}>
+              <label class="form-check-label small text-muted" for="opt-edit-{{ a.id }}">optional</label>
+            </div>
+            <button type="submit" class="btn btn-outline-primary btn-sm py-0 px-2" title="Save changes"><i class="bi bi-check-lg"></i></button>
+          </form>
           <form method="post" action="{{ url_for('task_template_area_delete', area_id=a.id) }}" data-confirm="Remove '{{ a.name }}' from {{ t }}?" data-confirm-title="Remove Area">
-            <button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-x-lg"></i></button>
+            <button class="btn btn-link btn-sm text-danger p-0" title="Remove"><i class="bi bi-x-lg"></i></button>
           </form>
         </li>
         {% endfor %}

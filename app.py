@@ -3779,6 +3779,25 @@ def task_templates():
                            custom_type_rows=custom_type_rows)
 
 
+@app.route("/manage/task-templates/<int:area_id>/edit", methods=["POST"])
+@shop_role_required('admin')
+def task_template_area_edit(area_id):
+    """Renames a template area in place and/or flips its Optional flag -
+    used to have to be deleted and re-added to change either."""
+    name = request.form.get("name", "").strip()
+    is_optional = 1 if request.form.get("is_optional") else 0
+    conn = get_db()
+    if not name:
+        flash("Area name can't be blank.", "danger")
+    else:
+        conn.execute("UPDATE task_template_areas SET name = ?, is_optional = ? WHERE id = ?",
+                     (name, is_optional, area_id))
+        conn.commit()
+        flash(f"Saved '{name}'.", "success")
+    conn.close()
+    return redirect(url_for("task_templates"))
+
+
 @app.route("/manage/task-templates/<int:area_id>/delete", methods=["POST"])
 @shop_role_required('admin')
 def task_template_area_delete(area_id):
