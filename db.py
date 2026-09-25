@@ -1096,6 +1096,27 @@ def _migrate(conn):
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('maint_prefs_split', ?)", (now_iso(),))
         conn.commit()
 
+    # Student confirmation of a booking a CFI/admin made for them (see
+    # flight.py's _booking_confirm_state/schedule_confirm_booking).
+    # confirm_required is only set on that one case - a student booking
+    # their own flight, or a guest/intro with no login, has nobody else who
+    # needs to confirm it, so those never show an unconfirmed/confirmed
+    # mark at all. confirmed_at is NULL while still awaiting the student,
+    # then the moment they confirmed (or, for a booking that never needed
+    # confirming, the moment it was made).
+    sf_cols_confirm = [r["name"] for r in conn.execute("PRAGMA table_info(scheduled_flights)").fetchall()]
+    if "confirmed_at" not in sf_cols_confirm:
+        conn.execute("ALTER TABLE scheduled_flights ADD COLUMN confirmed_at TEXT")
+        # Bookings made before this feature existed were never asked for a
+        # confirmation, so don't retroactively flag the whole existing
+        # schedule as unconfirmed - only bookings created from here on go
+        # through the new confirm step.
+        conn.execute("UPDATE scheduled_flights SET confirmed_at = created_at")
+        conn.commit()
+    if "confirm_required" not in sf_cols_confirm:
+        conn.execute("ALTER TABLE scheduled_flights ADD COLUMN confirm_required INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of

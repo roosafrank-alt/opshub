@@ -49,6 +49,7 @@
   <div class="text-truncate sb-line1">
     {%- if f.needs_review_flag %}<i class="bi bi-exclamation-triangle-fill text-warning" title="{{ 'Needs review' if f.needs_review_active else 'Needs review (acknowledged, not resolved yet)' }}"></i> {% endif -%}
     {%- if f.eta_delay %}<i class="bi bi-hourglass-split text-warning" title="{{ f.eta_delay.reason }}"></i> {% endif -%}
+    {%- if f.confirm_required and not f.confirmed_at %}<i class="bi bi-patch-question-fill text-warning" title="Awaiting the student's confirmation"></i> {% elif f.confirm_required %}<i class="bi bi-patch-check-fill text-success" title="Confirmed by the student"></i> {% endif -%}
     {%- if f.status == 'in_progress' %}<i class="bi bi-stopwatch" title="In progress"></i> {% elif f.status == 'completed' %}<i class="bi bi-check-circle" title="Completed"></i> {% endif -%}
     <span class="sb-time">{{ f.short_time or '--' }}</span> {{ f.plane_tag }}
   </div>
@@ -97,6 +98,7 @@
   <div class="text-truncate day-timeline-block-line1">
     {%- if f.needs_review_flag %}<i class="bi bi-exclamation-triangle-fill text-warning" title="{{ 'Needs review' if f.needs_review_active else 'Needs review (acknowledged, not resolved yet)' }}"></i> {% endif -%}
     {%- if f.eta_delay %}<i class="bi bi-hourglass-split text-warning" title="{{ f.eta_delay.reason }}"></i> {% endif -%}
+    {%- if f.confirm_required and not f.confirmed_at %}<i class="bi bi-patch-question-fill text-warning" title="Awaiting the student's confirmation"></i> {% elif f.confirm_required %}<i class="bi bi-patch-check-fill text-success" title="Confirmed by the student"></i> {% endif -%}
     {%- if f.status == 'in_progress' %}<i class="bi bi-stopwatch" title="In progress"></i> {% elif f.status == 'completed' %}<i class="bi bi-check-circle" title="Completed"></i> {% endif -%}
     <strong>{{ f.short_time or '--' }}</strong> {{ f.plane_tag }}
   </div>
@@ -141,6 +143,7 @@
   <div class="text-truncate sb-line1">
     {%- if f.needs_review_flag %}<i class="bi bi-exclamation-triangle-fill text-warning" title="{{ 'Needs review' if f.needs_review_active else 'Needs review (acknowledged, not resolved yet)' }}"></i> {% endif -%}
     {%- if f.eta_delay %}<i class="bi bi-hourglass-split text-warning" title="{{ f.eta_delay.reason }}"></i> {% endif -%}
+    {%- if f.confirm_required and not f.confirmed_at %}<i class="bi bi-patch-question-fill text-warning" title="Awaiting the student's confirmation"></i> {% elif f.confirm_required %}<i class="bi bi-patch-check-fill text-success" title="Confirmed by the student"></i> {% endif -%}
     {%- if f.status == 'in_progress' %}<i class="bi bi-stopwatch" title="In progress"></i> {% elif f.status == 'completed' %}<i class="bi bi-check-circle" title="Completed"></i> {% endif -%}
     <span class="sb-time">{{ f.short_time or '--' }}</span> {{ f.plane_tag }}
   </div>

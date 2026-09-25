@@ -264,6 +264,37 @@ def _guest_fields(conn, form, student_id):
             (form.get("guest_email") or "").strip()[:120] or None)
 
 
+def _booking_confirm_state(conn, self_service, guest_name, student_id):
+    """(confirmed_at, confirm_required, notify_user_id) for a brand-new
+    booking. A student booking their own flight, or a guest/intro with no
+    account to log into, has nobody but the person who just made it - so it
+    starts confirmed and never shows an unconfirmed/confirmed mark at all
+    (confirm_required=0). A CFI/admin booking it for a real student with a
+    login is the case that actually needs the student's own OK (see
+    schedule_new / schedule_confirm_booking): it starts unconfirmed
+    (confirm_required=1), and notify_user_id is who to push a confirm
+    request to."""
+    if self_service or guest_name or not student_id:
+        return now_iso(), 0, None
+    row = conn.execute("SELECT user_id FROM students WHERE id = ?", (student_id,)).fetchone()
+    if not row or not row["user_id"]:
+        return now_iso(), 0, None
+    return None, 1, row["user_id"]
+
+
+def _notify_booking_confirm(conn, student_user_id, scheduled_id, plane_tag, scheduled_date, scheduled_time):
+    """Pushes the student a request to confirm a flight someone else just
+    booked for them - same fire-and-forget pattern as the ETA/running-late
+    pushes above (best effort; a push failure shouldn't fail the booking)."""
+    when = _format_time_12h(scheduled_time) if scheduled_time else "a time to be set"
+    try:
+        push.queue_and_push(conn, student_user_id, "Confirm your flight",
+                            f"You're booked in {plane_tag} on {scheduled_date} at {when}. Open OpsHub to confirm.",
+                            tag=f"confirm-{scheduled_id}", url=url_for("flight.dashboard"))
+    except Exception:
+        current_app.logger.exception("Booking-confirm push failed")
+
+
 PAST_BOOKING_GRACE_MIN = 5  # a booking for "right now" typed a few minutes late still goes through
 
 
@@ -3066,14 +3097,19 @@ def schedule_new():
             else:
                 needs_review, review_reason = 0, None
             status = "pending_approval" if self_service else "scheduled"
+            confirmed_at, confirm_required, notify_user_id = _booking_confirm_state(conn, self_service, guest_name, student_id)
             new_booking = conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date,
                              scheduled_time, duration_hours, notes, private_notes, status, created_by, solo, needs_review,
-                             review_reason, part_solo, guest_name, guest_phone, guest_email, created_at)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                             review_reason, part_solo, guest_name, guest_phone, guest_email, created_at, confirmed_at, confirm_required)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                          (asset_id, cfi_id, student_id, scheduled_date, scheduled_time, duration_hours,
                           notes, private_notes, status, created_by, solo, needs_review, review_reason, part_solo,
-                          guest_name, guest_phone, guest_email, now_iso()))
+                          guest_name, guest_phone, guest_email, now_iso(), confirmed_at, confirm_required))
             conn.commit()
+            if notify_user_id:
+                plane_row = conn.execute("SELECT tag FROM assets WHERE id = ?", (asset_id,)).fetchone()
+                _notify_booking_confirm(conn, notify_user_id, new_booking.lastrowid,
+                                        plane_row["tag"] if plane_row else "the plane", scheduled_date, scheduled_time)
             conn.close()
             if self_service:
                 if needs_review:
@@ -3096,6 +3132,7 @@ def schedule_new():
         created_ids = []
         skipped = []  # list of (date_str, conflict dict)
         review_count = 0
+        confirmed_at, confirm_required, notify_user_id = _booking_confirm_state(conn, self_service, guest_name, student_id)
         for occ_date in occurrence_dates:
             conflicts = _scheduling_conflicts(conn, asset_id, cfi_id, student_id, occ_date, scheduled_time, duration_hours)
             if conflicts:
@@ -3104,16 +3141,28 @@ def schedule_new():
             needs_review, review_reason = _schedule_review_flag(conn, solo, cfi_id, student_id, occ_date)
             occ_cur = conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date,
                              scheduled_time, duration_hours, notes, private_notes, status, created_by, solo, needs_review,
-                             review_reason, part_solo, guest_name, guest_phone, guest_email, created_at)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                             review_reason, part_solo, guest_name, guest_phone, guest_email, created_at, confirmed_at, confirm_required)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                          (asset_id, cfi_id, student_id, occ_date, scheduled_time, duration_hours,
                           notes, private_notes, created_by, solo, needs_review, review_reason, part_solo,
-                          guest_name, guest_phone, guest_email, now_iso()))
+                          guest_name, guest_phone, guest_email, now_iso(), confirmed_at, confirm_required))
             created_count += 1
             created_ids.append(occ_cur.lastrowid)
             if needs_review:
                 review_count += 1
         conn.commit()
+        if notify_user_id and created_count:
+            # One push for the whole series rather than one per occurrence -
+            # a 10-date recurring booking shouldn't mean 10 separate pings.
+            plane_row = conn.execute("SELECT tag FROM assets WHERE id = ?", (asset_id,)).fetchone()
+            plane_tag = plane_row["tag"] if plane_row else "the plane"
+            try:
+                push.queue_and_push(conn, notify_user_id, "Confirm your flights",
+                                    f"{created_count} new {plane_tag} flights were booked for you, starting "
+                                    f"{occurrence_dates[0]}. Open OpsHub to confirm them.",
+                                    tag=f"confirm-series-{created_ids[0]}", url=url_for("flight.dashboard"))
+            except Exception:
+                current_app.logger.exception("Booking-confirm push failed")
         conn.close()
 
         if created_count:
@@ -3492,6 +3541,27 @@ def schedule_review_acknowledge(scheduled_id):
     # where the acknowledged alert went.
     flash("Acknowledged - it stays here in Alerts (and flagged on the Schedule) until it's resolved.", "success")
     return redirect(url_for("flight.alerts_list"))
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/confirm", methods=["POST"])
+@login_required
+def schedule_confirm_booking(scheduled_id):
+    """The student's own OK on a flight a CFI/admin booked for them (see
+    _booking_confirm_state in schedule_new) - only the student it's booked
+    for can confirm it, so a CFI can't just confirm on their behalf and
+    defeat the point of asking."""
+    conn = get_db()
+    sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    if not sched or sched["student_id"] != session.get("student_id"):
+        conn.close()
+        flash("That flight isn't yours to confirm.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    if not sched["confirmed_at"]:
+        conn.execute("UPDATE scheduled_flights SET confirmed_at = ? WHERE id = ?", (now_iso(), scheduled_id))
+        conn.commit()
+        flash("Flight confirmed.", "success")
+    conn.close()
+    return redirect(request.referrer or url_for("flight.dashboard"))
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/cancel", methods=["POST"])

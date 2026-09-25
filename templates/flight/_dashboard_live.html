@@ -313,6 +313,7 @@
     {% if show_own_time and f.time_label %}<div class="flight-chip-starttime text-muted small">{{ f.time_label }}</div>{% endif %}
     <div class="flight-chip-student">
       {%- if f.needs_review_flag %}<i class="bi bi-exclamation-triangle-fill {{ 'text-danger' if f.needs_review_active else 'text-warning' }}" title="{{ 'Acknowledged - not resolved yet: ' if not f.needs_review_active }}{{ f.review_reason }}"></i> {% endif -%}
+      {%- if f.confirm_required and not f.confirmed_at %}<i class="bi bi-patch-question-fill text-warning" title="Awaiting the student's confirmation"></i> {% elif f.confirm_required %}<i class="bi bi-patch-check-fill text-success" title="Confirmed by the student"></i> {% endif -%}
       {{ f.student_name }}
     </div>
     <div class="flight-chip-plane">{{ f.plane_tag }}</div>
@@ -350,6 +351,12 @@
       {% endif %}
       <a href="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}" class="btn btn-outline-secondary btn-sm">Log</a>
     </div>
+    {% elif status == 'scheduled' and student and f.student_id == student.id and f.confirm_required and not f.confirmed_at %}
+    {#- A CFI/admin booked this one - the student's own OK, right from
+       their dashboard (see schedule_confirm_booking in flight.py). #}
+    <form method="post" action="{{ url_for('flight.schedule_confirm_booking', scheduled_id=f.id) }}" class="d-inline mt-1">
+      <button class="btn btn-warning btn-sm"><i class="bi bi-patch-question-fill"></i> Confirm this flight</button>
+    </form>
     {% endif %}
     {#
       "Details" reuses the exact same popup as the Schedule calendar
