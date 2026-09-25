@@ -1207,6 +1207,11 @@ def _migrate(conn):
         # matching dashboard notification instead of leaving it behind.
         # NULL for older rows and notifications not tied to one booking.
         ("student_notifications", "scheduled_flight_id", "ALTER TABLE student_notifications ADD COLUMN scheduled_flight_id INTEGER"),
+        # A plane to-do can be handed to a specific laborer, same idea as a
+        # squawk's assigned_to - lets it show up on that tech's own My Tasks
+        # page instead of only living on the plane's page. NULL means
+        # unassigned, same as before this column existed.
+        ("plane_todos", "assigned_to", "ALTER TABLE plane_todos ADD COLUMN assigned_to INTEGER REFERENCES users(id)"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

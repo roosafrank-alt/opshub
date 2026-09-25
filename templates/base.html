@@ -63,6 +63,7 @@
        else 'orders' if _p.startswith('/orders')
        else 'squawks' if _p.startswith('/squawks')
        else 'activity' if _p.startswith('/activity')
+       else 'my-tasks' if _p.startswith('/my-tasks')
        else 'manage' if (_p.startswith('/laborers') or _p.startswith('/shop/') or _p.startswith('/logbook'))
        else '' %}
     <div class="collapse navbar-collapse" id="nav">
@@ -81,6 +82,7 @@
         {% endif %}
         {% if is_master_admin or shop_role in ('admin', 'tech') %}
         <li class="nav-item"><a class="nav-link {{ 'fw-bold text-danger' if open_squawk_count }} {{ 'active' if sec == 'squawks' }}" id="tour-nav-squawks" href="{{ url_for('squawks_list') }}"><i class="bi bi-exclamation-triangle{{ '-fill' if open_squawk_count }}"></i> Squawks{% if open_squawk_count %} <span class="badge bg-danger">{{ open_squawk_count }}</span>{% endif %}</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'my-tasks' }}" href="{{ url_for('tech_spot') }}"><i class="bi bi-person-workspace"></i> My Tasks</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'activity' }}" href="{{ url_for('activity_log') }}"><i class="bi bi-clock-history"></i> Activity</a></li>
         {% endif %}
       </ul>

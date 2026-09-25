@@ -357,20 +357,33 @@
           </li>
           {% endfor %}
           {% for t in open_todos %}
-          <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
-            <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1">
-              <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark done">
-                <i class="bi bi-square fs-5"></i>
-              </button>
-            </form>
-            {#- The to-do text itself starts a new project pre-filled with
-               it (project_new's ?name=) - one click instead of retyping
-               what needs doing into a blank project form. Marking the
-               to-do done (the checkbox above) is still separate and
-               manual - creating the project doesn't do that on its own. #}
-            <a href="{{ url_for('project_new', asset_id=asset.id, name=t.description, quick_type='Maintenance') }}" class="flex-grow-1 text-body text-decoration-none" title="Start a project from this to-do">{{ t.description }}</a>
-            <form method="post" action="{{ url_for('plane_todo_delete', asset_id=asset.id, todo_id=t.id) }}" data-confirm="Remove this to-do?" data-confirm-style="danger">
-              <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
+          <li class="list-group-item px-0 d-flex flex-column gap-1">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1">
+                <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark done">
+                  <i class="bi bi-square fs-5"></i>
+                </button>
+                {#- The to-do text itself starts a new project pre-filled with
+                   it (project_new's ?name=) - one click instead of retyping
+                   what needs doing into a blank project form. Marking the
+                   to-do done (the checkbox above) is still separate and
+                   manual - creating the project doesn't do that on its own. #}
+                <a href="{{ url_for('project_new', asset_id=asset.id, name=t.description, quick_type='Maintenance') }}" class="flex-grow-1 text-body text-decoration-none" title="Start a project from this to-do">{{ t.description }}</a>
+              </form>
+              <form method="post" action="{{ url_for('plane_todo_delete', asset_id=asset.id, todo_id=t.id) }}" data-confirm="Remove this to-do?" data-confirm-style="danger">
+                <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
+              </form>
+            </div>
+            {#- Handing a to-do to a specific laborer puts it on their own My
+               Tasks page too, not just this plane's list (see
+               plane_todo_assign). #}
+            <form method="post" action="{{ url_for('plane_todo_assign', asset_id=asset.id, todo_id=t.id) }}" class="ps-4">
+              <select name="assigned_to" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                <option value="">Unassigned</option>
+                {% for w in assignable_workers %}
+                <option value="{{ w.id }}" {{ 'selected' if t.assigned_to == w.id }}>{{ w.name }}</option>
+                {% endfor %}
+              </select>
             </form>
           </li>
           {% endfor %}
@@ -380,6 +393,12 @@
         {% endif %}
         <form method="post" action="{{ url_for('plane_todo_new', asset_id=asset.id) }}" class="d-flex gap-2 mb-2">
           <input type="text" name="description" class="form-control form-control-sm" placeholder="Add a to-do..." required>
+          <select name="assigned_to" class="form-select form-select-sm" style="max-width:140px;">
+            <option value="">Unassigned</option>
+            {% for w in assignable_workers %}
+            <option value="{{ w.id }}">{{ w.name }}</option>
+            {% endfor %}
+          </select>
           <button class="btn btn-outline-primary btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Add</button>
         </form>
         {% if done_todos %}

@@ -413,6 +413,28 @@ def get_low_stock(conn):
 # Dashboard
 # ---------------------------------------------------------------------------
 
+def _fleet_maintenance_reminders(conn):
+    """Every active maintenance item across the fleet that's overdue or due
+    soon, worst-first - shown on the main dashboard and on My Tasks (see
+    tech_spot()) so any tech can see what needs doing, not just an admin."""
+    maint_rows = conn.execute("""
+        SELECT mi.*, a.tag as asset_tag, a.name as asset_name,
+               a.hobbs_hours as asset_hobbs_hours, a.tach_hours as asset_tach_hours
+        FROM maintenance_items mi
+        JOIN assets a ON a.id = mi.asset_id
+        WHERE mi.active = 1 AND a.deleted_at IS NULL
+    """).fetchall()
+    reminders = []
+    for m in maint_rows:
+        current = m["asset_tach_hours"] if m["hour_type"] != "hobbs" else m["asset_hobbs_hours"]
+        status = maintenance_status(m, current)
+        if status["urgency"] in ("overdue", "due_soon"):
+            reminders.append({"item": m, "status": status})
+    reminders.sort(key=lambda r: (0 if r["status"]["urgency"] == "overdue" else 1,
+                                   r["status"]["remaining"] if r["status"]["remaining"] is not None else 0))
+    return reminders
+
+
 @app.route("/shop")
 @login_required
 def dashboard():
@@ -434,21 +456,7 @@ def dashboard():
     """).fetchall()
 
     # Maintenance reminders, regardless of what project is currently open.
-    maint_rows = conn.execute("""
-        SELECT mi.*, a.tag as asset_tag, a.name as asset_name,
-               a.hobbs_hours as asset_hobbs_hours, a.tach_hours as asset_tach_hours
-        FROM maintenance_items mi
-        JOIN assets a ON a.id = mi.asset_id
-        WHERE mi.active = 1 AND a.deleted_at IS NULL
-    """).fetchall()
-    reminders = []
-    for m in maint_rows:
-        current = m["asset_tach_hours"] if m["hour_type"] != "hobbs" else m["asset_hobbs_hours"]
-        status = maintenance_status(m, current)
-        if status["urgency"] in ("overdue", "due_soon"):
-            reminders.append({"item": m, "status": status})
-    reminders.sort(key=lambda r: (0 if r["status"]["urgency"] == "overdue" else 1,
-                                   r["status"]["remaining"] if r["status"]["remaining"] is not None else 0))
+    reminders = _fleet_maintenance_reminders(conn)
 
     # Upcoming scheduled projects, regardless of what project is currently open.
     today_str = date.today().strftime("%Y-%m-%d")
@@ -644,6 +652,29 @@ def get_assigned_to_me_squawks(conn, user_id):
         JOIN assets a ON a.id = q.asset_id
         LEFT JOIN users au ON au.id = q.assigned_to
         WHERE q.repaired_at IS NULL AND q.assigned_to = ? AND q.worker_acknowledged_at IS NULL
+        ORDER BY event_date DESC, squawk_id DESC
+    """, (user_id, user_id)).fetchall()
+
+
+def get_my_squawks(conn, user_id):
+    """Every squawk assigned to this user that isn't repaired yet, accepted
+    or not - the full working list for their My Tasks page (unlike
+    get_assigned_to_me_squawks above, which is just the not-yet-accepted
+    ones for the dashboard alert)."""
+    return conn.execute(f"""
+        SELECT {_FLIGHT_SQUAWK_COLS}
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        LEFT JOIN users au ON au.id = f.squawk_assigned_to
+        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NULL AND f.squawk_assigned_to = ?
+        UNION ALL
+        SELECT {_QUICK_SQUAWK_COLS}
+        FROM plane_squawks q
+        JOIN assets a ON a.id = q.asset_id
+        LEFT JOIN users au ON au.id = q.assigned_to
+        WHERE q.repaired_at IS NULL AND q.assigned_to = ?
         ORDER BY event_date DESC, squawk_id DESC
     """, (user_id, user_id)).fetchall()
 
@@ -2736,13 +2767,17 @@ def asset_detail(asset_id):
                            (asset_id,)).fetchall()
     project_cover = None if photos else _asset_project_cover(conn, asset_id)
     todos = conn.execute(
-        "SELECT * FROM plane_todos WHERE asset_id = ? ORDER BY done, created_at DESC", (asset_id,)
+        """SELECT pt.*, u.name as assigned_to_name FROM plane_todos pt
+           LEFT JOIN users u ON u.id = pt.assigned_to
+           WHERE pt.asset_id = ? ORDER BY pt.done, pt.created_at DESC""", (asset_id,)
     ).fetchall()
+    assignable_workers = get_assignable_workers(conn)
     asset_manuals = manuals_for_asset(conn, asset)
     conn.close()
     return render_template("asset_detail.html", asset=asset, project_blocks=project_blocks, total_cost=total_cost,
                            maintenance_items=maintenance_items, oil_log=oil_log, total_oil_added=total_oil_added,
                            open_squawks=open_squawks, todo_squawks=todo_squawks, photos=photos, todos=todos, project_cover=project_cover,
+                           assignable_workers=assignable_workers,
                            latest_compression=latest_compression, compression_count=compression_count,
                            asset_manuals=asset_manuals)
 
@@ -2774,8 +2809,12 @@ def asset_squawk_new(asset_id):
 def plane_todo_new(asset_id):
     """Adds an item to this plane's to-do list - separate from squawks
     (which come from a flown flight) and from Maintenance items (which are
-    recurring/interval-based); this is just a plain running list."""
+    recurring/interval-based); this is just a plain running list. Can be
+    handed to a specific laborer right away (assigned_to), so it shows up
+    on their own My Tasks page - same idea as assigning a squawk."""
     description = request.form.get("description", "").strip()
+    assigned_to_raw = request.form.get("assigned_to", "").strip()
+    assigned_to = int(assigned_to_raw) if assigned_to_raw.isdigit() else None
     if description:
         conn = get_db()
         asset = conn.execute("SELECT id FROM assets WHERE id = ?", (asset_id,)).fetchone()
@@ -2783,12 +2822,31 @@ def plane_todo_new(asset_id):
             conn.close()
             abort(404)
         conn.execute(
-            "INSERT INTO plane_todos (asset_id, description, created_by, created_at) VALUES (?, ?, ?, ?)",
-            (asset_id, description, session.get("user_name"), now_iso()))
+            "INSERT INTO plane_todos (asset_id, description, created_by, created_at, assigned_to) VALUES (?, ?, ?, ?, ?)",
+            (asset_id, description, session.get("user_name"), now_iso(), assigned_to))
         conn.commit()
         conn.close()
         flash("To-do added.", "success")
     return redirect(url_for("asset_detail", asset_id=asset_id))
+
+
+@app.route("/assets/<int:asset_id>/todo/<int:todo_id>/assign", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def plane_todo_assign(asset_id, todo_id):
+    """Hands (or reassigns/clears) a plane to-do to a laborer - it then
+    shows on that person's My Tasks page until it's done."""
+    assigned_to_raw = request.form.get("assigned_to", "").strip()
+    assigned_to = int(assigned_to_raw) if assigned_to_raw.isdigit() else None
+    conn = get_db()
+    todo = conn.execute("SELECT id FROM plane_todos WHERE id = ? AND asset_id = ?", (todo_id, asset_id)).fetchone()
+    if not todo:
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE plane_todos SET assigned_to = ? WHERE id = ?", (assigned_to, todo_id))
+    conn.commit()
+    conn.close()
+    flash("Assigned." if assigned_to else "Assignment cleared.", "success")
+    return redirect(request.referrer or url_for("asset_detail", asset_id=asset_id))
 
 
 @app.route("/assets/<int:asset_id>/todo/<int:todo_id>/toggle", methods=["POST"])
@@ -2804,7 +2862,7 @@ def plane_todo_toggle(asset_id, todo_id):
                  (new_done, now_iso() if new_done else None, todo_id))
     conn.commit()
     conn.close()
-    return redirect(url_for("asset_detail", asset_id=asset_id))
+    return redirect(request.referrer or url_for("asset_detail", asset_id=asset_id))
 
 
 @app.route("/assets/<int:asset_id>/todo/<int:todo_id>/delete", methods=["POST"])
@@ -2816,6 +2874,26 @@ def plane_todo_delete(asset_id, todo_id):
     conn.close()
     flash("To-do removed.", "success")
     return redirect(url_for("asset_detail", asset_id=asset_id))
+
+
+@app.route("/my-tasks")
+@shop_role_required('admin', 'tech')
+def tech_spot():
+    """A laborer's own work list: squawks handed to them, plane to-dos
+    handed to them, and every fleet maintenance item that's due/overdue
+    (not assigned to anyone in particular - any tech can pick one up) - all
+    in one spot instead of hunting across Squawks and each plane's page."""
+    conn = get_db()
+    my_squawks = get_my_squawks(conn, session["user_id"])
+    my_todos = conn.execute("""
+        SELECT pt.*, a.tag as asset_tag FROM plane_todos pt
+        JOIN assets a ON a.id = pt.asset_id
+        WHERE pt.assigned_to = ? AND pt.done = 0
+        ORDER BY pt.created_at
+    """, (session["user_id"],)).fetchall()
+    reminders = _fleet_maintenance_reminders(conn)
+    conn.close()
+    return render_template("tech_spot.html", my_squawks=my_squawks, my_todos=my_todos, reminders=reminders)
 
 
 @app.route("/assets/<int:asset_id>/oil")

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}My Tasks - OpsHub{% endblock %}
+{% block content %}
+{#
+  A laborer's own work list: squawks handed to them, plane to-dos handed to
+  them, and every fleet maintenance item due/overdue (open to whoever picks
+  it up first, not assigned to one person) - see tech_spot() in app.py.
+#}
+<h4 class="mb-3"><i class="bi bi-person-workspace"></i> My Tasks</h4>
+
+<div class="card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-exclamation-triangle"></i> My Squawks <span class="text-muted small fw-normal">({{ my_squawks|length }})</span></h6>
+  {% if my_squawks %}
+  <div class="list-group list-group-flush">
+    {% for sq in my_squawks %}
+    <div class="list-group-item px-0 d-flex justify-content-between align-items-start flex-wrap gap-2">
+      <div>
+        <strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.event_date|usdate }}
+        {% if sq.worker_acknowledged_at %}<span class="badge bg-warning text-dark ms-1">Accepted</span>{% else %}<span class="badge bg-danger ms-1">New</span>{% endif %}
+        <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+      </div>
+      <div class="d-flex gap-1 flex-shrink-0">
+        {% if not sq.worker_acknowledged_at %}
+        <form method="post" action="{{ url_for('squawk_worker_ack', kind=sq.kind, squawk_id=sq.squawk_id) }}">
+          <button class="btn btn-warning btn-sm fw-bold"><i class="bi bi-check-lg"></i> Got It</button>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Mark this squawk as repaired/addressed?">
+          <button class="btn btn-success btn-sm fw-bold"><i class="bi bi-tools"></i> Mark Repaired</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-muted small mb-0">Nothing assigned to you right now. 👍</p>
+  {% endif %}
+</div>
+
+<div class="card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-list-check"></i> My Tasks <span class="text-muted small fw-normal">({{ my_todos|length }})</span></h6>
+  {% if my_todos %}
+  <ul class="list-group list-group-flush">
+    {% for t in my_todos %}
+    <li class="list-group-item px-0 d-flex align-items-start gap-2">
+      <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=t.asset_id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1">
+        <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark done">
+          <i class="bi bi-square fs-5"></i>
+        </button>
+        <span><a href="{{ url_for('asset_detail', asset_id=t.asset_id) }}" class="text-muted small">{{ t.asset_tag }}</a> - {{ t.description }}</span>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-muted small mb-0">Nothing assigned to you right now.</p>
+  {% endif %}
+</div>
+
+<div class="card p-3">
+  <h6 class="mb-2"><i class="bi bi-calendar-check"></i> Maintenance Due Fleet-Wide <span class="text-muted small fw-normal">({{ reminders|length }})</span></h6>
+  {% if reminders %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Aircraft</th><th>Item</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for r in reminders %}
+        <tr>
+          <td><a href="{{ url_for('asset_detail', asset_id=r.item.asset_id) }}">{{ r.item.asset_tag }}</a></td>
+          <td>{{ r.item.name }}</td>
+          <td><span class="badge {{ 'bg-danger' if r.status.urgency == 'overdue' else 'bg-warning text-dark' }}">{{ r.status.label }}</span></td>
+          <td><a href="{{ url_for('asset_detail', asset_id=r.item.asset_id) }}" class="btn btn-sm btn-outline-secondary">View &amp; Complete</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="form-text mt-1">Not assigned to anyone in particular - whoever gets to it first, completes it from the plane's page.</div>
+  {% else %}
+  <p class="text-muted small mb-0">Nothing due across the fleet right now.</p>
+  {% endif %}
+</div>
+{% endblock %}
