@@ -331,6 +331,33 @@ def _totals(entries):
     return {k: round(sum((e[k] or 0) for e in entries), 1) for k in keys}
 
 
+def target_eta(entries, track):
+    """Weeks-to-go for a chosen target track's headline hours requirement
+    (the "totalizar" button's estimate), based on this student's own
+    average hours/week so far - not a generic rule of thumb. None if the
+    track has no hours requirement to project, or there isn't enough
+    logbook history yet (fewer than 2 distinct flight dates, or no hours
+    logged in that span)."""
+    hour_items = [i for i in track["items"] if i["kind"] == "hours"]
+    if not hour_items:
+        return None
+    # The track's overall "total flight time" item if it has one, else
+    # whichever single item needs the most hours - the likely long pole.
+    headline = next((i for i in hour_items if i["col"] == "total"), None) or max(hour_items, key=lambda i: i["need"])
+    remaining = round(max(0.0, headline["need"] - headline["have"]), 1)
+    if remaining <= 0:
+        return {"headline": headline, "remaining": 0, "weeks": 0}
+    dates = sorted(set(e["entry_date"] for e in entries))
+    if len(dates) < 2:
+        return None
+    days = max(1, (date.fromisoformat(dates[-1][:10]) - date.fromisoformat(dates[0][:10])).days)
+    hrs_per_week = sum((e["total"] or 0) for e in entries) / (days / 7)
+    if hrs_per_week <= 0:
+        return None
+    return {"headline": headline, "remaining": remaining, "weeks": round(remaining / hrs_per_week, 1),
+            "hrs_per_week": round(hrs_per_week, 1)}
+
+
 def _pick_student(conn):
     """The student whose logbook/progress is shown: yourself, or (staff)
     whoever ?student_id picks. Returns (student, students_for_picker)."""
@@ -496,6 +523,29 @@ def milestone():
     conn.commit()
     conn.close()
     return redirect(url_for("pilotlog.progress", student_id=student_id, track=track) + f"#t-{track}")
+
+
+@pilotlog_bp.route("/totalizer")
+def totalizer():
+    """"Totalizar" - a step past Progress's fixed next-track view: pick any
+    certificate/rating as your target (not just the next logical one) and
+    see an ETA for it based on your own average pace, not a generic
+    estimate. Totals-per-category are the same numbers already on the
+    Logbook tab, just given their own page alongside the target picker."""
+    if not _access_ok():
+        flash("You don't have access to Flight Academy yet. Ask an admin.", "danger")
+        return redirect(url_for("home_launcher"))
+    conn = get_db()
+    student, students = _pick_student(conn)
+    entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? ORDER BY entry_date, id""",
+                           (student["id"],)).fetchall() if student else []
+    tracks = build_progress(conn, student) if student else []
+    conn.close()
+    target_code = request.args.get("target") or (NEXT_TRACK.get(student["pilot_certificate"], "private") if student else "private")
+    target = next((t for t in tracks if t["code"] == target_code), None)
+    eta = target_eta(entries, target) if target else None
+    return render_template("academy_totalizer.html", student=student, students=students, totals=_totals(entries),
+                           tracks=tracks, target=target, target_code=target_code, eta=eta, tab="logbook")
 
 
 @pilotlog_bp.app_template_global()

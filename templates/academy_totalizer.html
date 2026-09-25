@@ -1,0 +1,66 @@
+{% extends "academy_base.html" %}
+{% block title %}Totalizar{% endblock %}
+{% block content %}
+<style>
+  .pg-bar { position: relative; height: 1.1rem; border-radius: 999px; background: #e9ecef; overflow: hidden; }
+  .pg-fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #2b3fdb, #4dabf7); }
+  .pg-fill.done { background: linear-gradient(90deg, #2f9e44, #69db7c); }
+  .pg-big { height: 1.6rem; }
+  .pg-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 800; color: #14213d; }
+</style>
+{% if not student %}
+<div class="card academy-card p-4">No student profile is linked to your account, so there's nothing to totalize.</div>
+{% else %}
+<div class="card academy-card p-3 mb-3">
+  <h4 class="mb-1"><i class="bi bi-calculator"></i> Totalizar</h4>
+  <div class="small text-muted">Every hour category totalled from {{ student.name }}'s logbook, plus an ETA for any goal you pick - based on this student's own average pace, not a generic rule of thumb.</div>
+</div>
+
+<div class="card academy-card p-3 mb-3">
+  <h6 class="mb-2">Hours by category</h6>
+  <div class="row g-2 text-center">
+    {% for key, label in [('total','Total'),('dual','Dual rcvd'),('solo','Solo'),('pic','PIC'),('xc','XC'),('night','Night'),('actual_inst','Actual inst'),('sim_inst','Sim inst')] %}
+    <div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ '%.1f'|format(totals[key]) }}</div><div class="small text-muted">{{ label }}</div></div></div>
+    {% endfor %}
+    <div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ (totals.day_ldg + totals.night_ldg)|int }}</div><div class="small text-muted">Landings</div></div></div>
+  </div>
+</div>
+
+<div class="card academy-card p-3 mb-3">
+  <h6 class="mb-2">Pick a target</h6>
+  <form method="get" class="d-flex gap-2 flex-wrap align-items-center">
+    {% if staff and student %}<input type="hidden" name="student_id" value="{{ student.id }}">{% endif %}
+    <select name="target" class="form-select form-select-sm" style="max-width:280px;" onchange="this.form.submit()">
+      {% for t in tracks %}
+      <option value="{{ t.code }}" {{ 'selected' if t.code == target_code }}>{{ t.name }} ({{ t.pct }}%)</option>
+      {% endfor %}
+    </select>
+    <noscript><button class="btn btn-outline-primary btn-sm">Go</button></noscript>
+  </form>
+</div>
+
+{% if target %}
+<div class="card academy-card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+    <div><i class="bi {{ target.icon }}"></i> <strong>{{ target.name }}</strong> <span class="text-muted small">{{ target.ref }}</span></div>
+    <div class="small text-muted">{{ target.done_count }} of {{ target['items']|length }} met</div>
+  </div>
+  <div class="pg-bar pg-big"><div class="pg-fill {{ 'done' if target.pct >= 100 }}" style="width: {{ target.pct }}%;"></div><div class="pg-label">{{ target.pct }}%</div></div>
+  <a href="{{ url_for('pilotlog.progress', track=target.code, student_id=student.id if staff else None) }}" class="small mt-2 d-inline-block">See the full requirements checklist &raquo;</a>
+
+  {% if target.pct >= 100 %}
+  <div class="alert alert-success mt-3 mb-0 py-2"><i class="bi bi-check-circle-fill"></i> Every requirement for {{ target.name }} is already met.</div>
+  {% elif eta %}
+  <div class="alert alert-info mt-3 mb-0 py-2">
+    <i class="bi bi-graph-up-arrow"></i> At this student's average pace of <strong>{{ eta.hrs_per_week }} hrs/week</strong>,
+    {% if eta.weeks <= 0 %}the {{ eta.headline.label|lower }} requirement is already met.
+    {% else %}reaching <strong>{{ eta.headline.need }}{{ ' hrs' if eta.headline.kind == 'hours' }}</strong> ({{ eta.headline.label|lower }} - {{ eta.remaining }} to go) is about
+    <strong>{{ eta.weeks }} week{{ 's' if eta.weeks != 1 }}</strong> away.{% endif %}
+  </div>
+  {% else %}
+  <div class="small text-muted mt-3">Not enough logbook history yet to estimate a pace (need at least two different flight dates).</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
