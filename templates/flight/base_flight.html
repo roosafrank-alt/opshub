@@ -59,7 +59,7 @@
          else 'active' if _p.startswith('/flight/log/active')
          else 'history' if _p.startswith('/flight/log')
          else 'students' if _p.startswith('/flight/students')
-         else 'alerts' if _p.startswith('/flight/alerts')
+         else 'alerts' if (_p.startswith('/flight/alerts') or _p.startswith('/flight/notifications'))
          else 'reports' if _p.startswith('/flight/reports')
          else 'manage' if (_p.startswith('/flight/planes') or _p.startswith('/flight/cfis') or _p.startswith('/flight/billing') or _p.startswith('/flight/stats'))
          else '' %}
@@ -74,6 +74,8 @@
         {% if session.get('cfi_id') %}
         {% set fac = flight_alert_counts or {} %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.alerts_list') }}"><i class="bi bi-exclamation-triangle"></i> Alerts{% if fac.get('open') %} <span class="badge {{ 'bg-danger' if fac.get('unacked') else 'bg-warning text-dark' }}" title="{{ fac.get('unacked') }} new, {{ fac.get('open') }} open">{{ fac.get('open') }}</span>{% endif %}</a></li>
+        {% elif session.get('student_id') %}
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.my_alerts') }}"><i class="bi bi-bell"></i> Alerts{% if student_alert_count %} <span class="badge bg-danger">{{ student_alert_count }}</span>{% endif %}</a></li>
         {% endif %}
       </ul>
       <ul class="navbar-nav flight-nav-boxed">

@@ -861,6 +861,24 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_alerts_open ON flight_alerts(resolved_at, scheduled_flight_id)")
     conn.commit()
 
+    # Per-student notification feed - "your flight was approved/denied",
+    # etc. (see flight._notify_student). Distinct from flight_alerts above,
+    # which is the instructor-facing review queue; this is student-facing,
+    # one row per event, read_at set once they've seen it (my_alerts()/
+    # notification_dismiss() in flight.py). Shown as a dashboard banner
+    # (unread only) and in full on the student's Alerts tab.
+    conn.execute("""CREATE TABLE IF NOT EXISTS student_notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL,
+        category TEXT NOT NULL,
+        message TEXT NOT NULL,
+        link TEXT,
+        created_at TEXT NOT NULL,
+        read_at TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_student_notifications_lookup ON student_notifications(student_id, read_at, created_at)")
+    conn.commit()
+
     # Flight School Reports tab: plane issue / missing checklist / concerning
     # issue / suggestion, reportable by any logged-in user - see schema.sql
     # for the full comment and flight.reports_new()/reports_list().
