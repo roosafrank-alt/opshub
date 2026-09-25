@@ -1061,6 +1061,20 @@ def _migrate(conn):
             conn.execute(f"ALTER TABLE projects ADD COLUMN {col} TEXT")
             conn.commit()
 
+    # End Flight, marked Paid: how much was actually collected right then and
+    # by what method, plus how much of it (if any) came out of the student's
+    # existing credit - see flight.log_end. NULL/0 for a flight logged Unpaid
+    # (its cost still auto-deducts from the balance, left owed as before).
+    flight_cols_pay = [r["name"] for r in conn.execute("PRAGMA table_info(flights)").fetchall()]
+    for col, ddl in (
+        ("payment_method", "ALTER TABLE flights ADD COLUMN payment_method TEXT"),
+        ("payment_amount", "ALTER TABLE flights ADD COLUMN payment_amount REAL"),
+        ("credit_applied", "ALTER TABLE flights ADD COLUMN credit_applied REAL"),
+    ):
+        if col not in flight_cols_pay:
+            conn.execute(ddl)
+            conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of

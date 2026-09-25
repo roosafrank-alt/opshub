@@ -237,7 +237,7 @@ CREATE TABLE IF NOT EXISTS students (
 CREATE TABLE IF NOT EXISTS student_ledger (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     student_id INTEGER NOT NULL REFERENCES students(id),
-    entry_type TEXT NOT NULL, -- 'funds_added' | 'flight_deduction' | 'adjustment'
+    entry_type TEXT NOT NULL, -- 'funds_added' | 'flight_deduction' | 'adjustment' | 'payment'
     amount REAL NOT NULL, -- positive = credit (funds added), negative = debit (owed/deducted)
     flight_id INTEGER REFERENCES flights(id),
     note TEXT,

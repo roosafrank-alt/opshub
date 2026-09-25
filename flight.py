@@ -4279,6 +4279,9 @@ def log_end(flight_id):
         conn.close()
         flash("Pick Paid or Unpaid to log the flight.", "danger")
         return redirect(back)
+    payment_method = (request.form.get("payment_method") or "").strip()[:40] or None
+    payment_amount = max(0.0, _parse_float(request.form.get("payment_amount")) or 0.0)
+    credit_requested = max(0.0, _parse_float(request.form.get("credit_applied")) or 0.0)
 
     oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
     ground_time_hours = _parse_float(request.form.get("ground_time_hours"))
@@ -4322,8 +4325,42 @@ def log_end(flight_id):
     conn.execute("UPDATE flights SET solo_hours = ? WHERE id = ?",
                  (_solo_hours_from_form(request.form, f["solo"]), flight_id))
     ended_row = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (flight_id,)).fetchone()
-    if ended_row:
-        _deduct_flight_cost(conn, _row_with_cost(ended_row), created_by=session.get("user_name"))
+    cost = _row_with_cost(ended_row) if ended_row else None
+    if paid_choice == "1" and cost is not None:
+        # Paid has to actually be accounted for: the flight's cost covered
+        # either by credit already on the student's account (their existing
+        # positive balance - see students.balance) or by what was collected
+        # just now, or some of each. Clamped server-side regardless of what
+        # the form sent, since a negative/inflated credit_applied would
+        # otherwise let someone claim more credit than the student has.
+        available_credit = max(0.0, ended_row["student_balance"] or 0.0)
+        credit_applied = min(credit_requested, available_credit, cost["total"])
+        covered = payment_amount + credit_applied
+        if payment_amount > 0.005 and not payment_method:
+            conn.rollback()
+            conn.close()
+            flash("Pick how the payment was made (cash, card, etc.) to log this flight as Paid.", "danger")
+            return redirect(back)
+        if cost["total"] > 0.005 and covered + 0.005 < cost["total"]:
+            conn.rollback()
+            conn.close()
+            short = cost["total"] - covered
+            flash(f"This flight comes to ${cost['total']:.2f}. ${covered:.2f} is accounted for so far - "
+                  f"enter the remaining ${short:.2f} as a payment (or apply more credit) to log it as Paid.", "danger")
+            return redirect(back)
+        conn.execute("UPDATE flights SET payment_method=?, payment_amount=?, credit_applied=? WHERE id=?",
+                     (payment_method, payment_amount, credit_applied, flight_id))
+    if cost is not None:
+        _deduct_flight_cost(conn, cost, created_by=session.get("user_name"))
+        if paid_choice == "1" and payment_amount > 0.005:
+            # The auto-deduction above already took the flight's full cost
+            # off the balance (crediting nothing back for the credit_applied
+            # portion, since that was already sitting in the balance as
+            # existing credit) - this ledger entry is the actual new money
+            # collected right now, bringing the balance back up by that much.
+            note = f"Paid at flight ({payment_method})" if payment_method else "Paid at flight"
+            _ledger_entry(conn, ended_row["student_id"], "payment", payment_amount, note=note,
+                          flight_id=flight_id, created_by=session.get("user_name"))
     # The student's pilot logbook gets a pending, pre-filled entry.
     pilotlog.ensure_entry(conn, flight_id)
     conn.commit()
@@ -4634,6 +4671,7 @@ def log_edit(flight_id):
 _LOG_ROW_SQL = """
     SELECT f.*, COALESCE(NULLIF(f.guest_name, '') || ' (guest)', s.name) as student_name, a.tag as plane_tag, a.name as plane_name, c.name as cfi_name,
            s.rate_override as student_rate_override, s.plane_rate_override as student_plane_rate_override,
+           s.balance as student_balance,
            c.rate_per_hour as cfi_rate_per_hour,
            sf.duration_hours as scheduled_duration_hours, sf.part_solo as scheduled_part_solo
     FROM flights f
