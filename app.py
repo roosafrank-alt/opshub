@@ -2700,11 +2700,13 @@ def asset_detail(asset_id):
         JOIN assets a ON a.id = f.asset_id
         JOIN students s ON s.id = f.student_id
         LEFT JOIN cfis c ON c.id = f.cfi_id
+        LEFT JOIN users au ON au.id = f.squawk_assigned_to
         WHERE f.squawk = 1 AND f.squawk_acknowledged_at IS NULL AND a.id = ?
         UNION ALL
         SELECT {_QUICK_SQUAWK_COLS}
         FROM plane_squawks q
         JOIN assets a ON a.id = q.asset_id
+        LEFT JOIN users au ON au.id = q.assigned_to
         WHERE q.acknowledged_at IS NULL AND a.id = ?
         ORDER BY event_date DESC, squawk_id DESC
     """, (asset_id, asset_id)).fetchall()
