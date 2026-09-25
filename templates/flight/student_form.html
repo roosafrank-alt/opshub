@@ -179,6 +179,14 @@
       </select>
     </div>
 
+    <div class="mb-3 form-check">
+      <input type="checkbox" class="form-check-input" name="notify_booking_confirm" id="notify-booking-confirm-check"
+             {% if not student or student.notify_booking_confirm %}checked{% endif %}>
+      <label class="form-check-label" for="notify-booking-confirm-check">
+        Push notification when a flight is booked for them <span class="text-muted small">(asking them to confirm it - the confirm mark on the schedule shows either way)</span>
+      </label>
+    </div>
+
     {% set cur_ratings = (student.pilot_ratings or '').split(',') if student else [] %}
     <div class="mb-3" id="pilot-certs" style="scroll-margin-top:80px;">
       <label class="form-label">Pilot Certificate <span class="text-muted small">(sets the student's badge)</span></label>

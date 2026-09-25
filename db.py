@@ -893,6 +893,14 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_manual_landings_student ON manual_landings(student_id, landing_date)")
     conn.commit()
 
+    # Per-student opt-out for the "confirm your flight" push notification
+    # (see flight._notify_booking_confirm) - the unconfirmed/confirmed mark
+    # on the schedule and dashboard still always shows either way.
+    student_cols_notify = [r["name"] for r in conn.execute("PRAGMA table_info(students)").fetchall()]
+    if "notify_booking_confirm" not in student_cols_notify:
+        conn.execute("ALTER TABLE students ADD COLUMN notify_booking_confirm INTEGER NOT NULL DEFAULT 1")
+        conn.commit()
+
     # Flight Academy leaderboard: flying a student logs for themselves on
     # top of what the school's logged flights already count (distance,
     # extra landings, cross-countries, night/instrument time) - see academy.py.

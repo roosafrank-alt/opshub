@@ -1738,6 +1738,8 @@ def student_new():
                      (_tsa_verified_from_form(request.form), user_id))
         conn.execute("UPDATE students SET pay_preference = ? WHERE user_id = ?",
                      (_pay_preference_from_form(request.form), user_id))
+        conn.execute("UPDATE students SET notify_booking_confirm = ? WHERE user_id = ?",
+                     (1 if request.form.get("notify_booking_confirm") else 0, user_id))
         conn.commit()
         conn.close()
         flash(f"Student '{name}' added. Give them their username and starting password to log in.", "success")
@@ -1816,6 +1818,8 @@ def student_edit(student_id):
         pay_preference = _pay_preference_from_form(request.form)
         conn.execute("UPDATE students SET pay_preference = ? WHERE id = ?", (pay_preference, student_id))
         _log_field_change(conn, "student", student_id, "pay_preference", student["pay_preference"], pay_preference, who)
+        notify_booking_confirm = 1 if request.form.get("notify_booking_confirm") else 0
+        conn.execute("UPDATE students SET notify_booking_confirm = ? WHERE id = ?", (notify_booking_confirm, student_id))
         if student["user_id"]:
             conn.execute("UPDATE users SET email = ?, phone = ? WHERE id = ?",
                          (email or None, phone or None, student["user_id"]))
@@ -3287,9 +3291,12 @@ def schedule_new():
                           guest_name, guest_phone, guest_email, now_iso(), confirmed_at, confirm_required))
             conn.commit()
             if notify_user_id:
-                plane_row = conn.execute("SELECT tag FROM assets WHERE id = ?", (asset_id,)).fetchone()
-                _notify_booking_confirm(conn, notify_user_id, new_booking.lastrowid,
-                                        plane_row["tag"] if plane_row else "the plane", scheduled_date, scheduled_time)
+                notify_pref = conn.execute("SELECT notify_booking_confirm FROM students WHERE id = ?",
+                                           (student_id,)).fetchone()
+                if not notify_pref or notify_pref["notify_booking_confirm"]:
+                    plane_row = conn.execute("SELECT tag FROM assets WHERE id = ?", (asset_id,)).fetchone()
+                    _notify_booking_confirm(conn, notify_user_id, new_booking.lastrowid,
+                                            plane_row["tag"] if plane_row else "the plane", scheduled_date, scheduled_time)
             conn.close()
             if self_service:
                 if needs_review:
