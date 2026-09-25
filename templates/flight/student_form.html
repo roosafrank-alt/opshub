@@ -119,6 +119,15 @@
     </div>
     <p class="text-muted small mt-n2 mb-3">The Plane Rate is what this student pays per hour for any plane (planes don't have their own rate) - leave it blank and the plane isn't charged. Leave the Instructor Rate blank to use the CFI's rate.</p>
 
+    <div class="mb-3">
+      <label class="form-label">How They Usually Pay <span class="text-muted small">(shown as a hint on End Flight)</span></label>
+      <select name="pay_preference" class="form-select">
+        <option value="">- Not set -</option>
+        {% for method in pay_preferences %}
+        <option value="{{ method }}" {{ 'selected' if student and student.pay_preference == method }}>{{ method }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
     {% set cur_ratings = (student.pilot_ratings or '').split(',') if student else [] %}
     <div class="mb-3" id="pilot-certs" style="scroll-margin-top:80px;">

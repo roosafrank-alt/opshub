@@ -263,12 +263,12 @@
           <input type="number" step="0.01" min="0" name="payment_amount" class="form-control form-control-sm" placeholder="0.00">
         </div>
         <div class="col-6">
-          <label class="form-label small mb-0">How Paid</label>
+          <label class="form-label small mb-0">How Paid{% if f.student_pay_preference %} <span class="text-muted fw-normal">(usually {{ f.student_pay_preference }})</span>{% endif %}</label>
           <select name="payment_method" class="form-select form-select-sm">
             <option value="">Select...</option>
-            <option value="Cash">Cash</option>
-            <option value="Card">Card</option>
-            <option value="Check">Check</option>
+            <option value="Cash" {{ 'selected' if f.student_pay_preference == 'Cash' }}>Cash</option>
+            <option value="Card" {{ 'selected' if f.student_pay_preference == 'Card' }}>Card</option>
+            <option value="Check" {{ 'selected' if f.student_pay_preference == 'Check' }}>Check</option>
             <option value="Venmo/Zelle">Venmo/Zelle</option>
             <option value="Other">Other</option>
           </select>

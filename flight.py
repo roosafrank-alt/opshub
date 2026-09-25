@@ -571,6 +571,10 @@ def _solo_signoff_status(conn, student_id, on_date=None):
 MEDICAL_CLASSES = [("first", "First Class"), ("second", "Second Class"), ("third", "Third Class"), ("basicmed", "BasicMed")]
 MEDICAL_WARN_DAYS = 30  # "expiring soon" window for the dashboard / list badges
 
+# How a student usually pays - same option text as End Flight's "How Paid"
+# select (log_active.html) so the saved preference can pre-select it there.
+PAY_PREFERENCES = ["Cash", "Check", "Card"]
+
 
 def _medical_status(row, on_date=None):
     """A student's or CFI's medical as of on_date (YYYY-MM-DD, default
@@ -1683,13 +1687,13 @@ def student_new():
         solo_signoff_date, solo_signoff_expires = _solo_signoff_from_form(request.form)
         if not name or not username or not password:
             flash("Name, username, and a starting password are all required.", "danger")
-            return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS)
+            return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
         conn = get_db()
         existing = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
         if existing:
             conn.close()
             flash(f"Username '{username}' is already taken.", "danger")
-            return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS)
+            return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
         # A master login account (flight_role='student') plus the linked
         # student profile that holds their rate overrides - what THIS
         # student pays for the plane and for instruction, since both can
@@ -1714,11 +1718,13 @@ def student_new():
                      (_first_solo_from_form(request.form), user_id))
         conn.execute("UPDATE students SET tsa_verified_date = ? WHERE user_id = ?",
                      (_tsa_verified_from_form(request.form), user_id))
+        conn.execute("UPDATE students SET pay_preference = ? WHERE user_id = ?",
+                     (_pay_preference_from_form(request.form), user_id))
         conn.commit()
         conn.close()
         flash(f"Student '{name}' added. Give them their username and starting password to log in.", "success")
         return redirect(url_for("flight.students_list"))
-    return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS)
+    return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
 
 
 @flight_bp.route("/students/<int:student_id>/edit", methods=["GET", "POST"])
@@ -1752,7 +1758,7 @@ def student_edit(student_id):
         if not name:
             flash("Name is required.", "danger")
             conn.close()
-            return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS)
+            return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
         if new_password:
             conn.execute("UPDATE students SET name=?, rate_override=?, plane_rate_override=?, solo_currency_days=?, solo_signoff_date=?, solo_signoff_expires=?, is_station=?, active=?, password_hash=? WHERE id=?",
                          (name, rate_override, plane_rate_override, solo_currency_days, solo_signoff_date, solo_signoff_expires,
@@ -1782,6 +1788,9 @@ def student_edit(student_id):
         tsa_verified_date = _tsa_verified_from_form(request.form)
         conn.execute("UPDATE students SET tsa_verified_date = ? WHERE id = ?", (tsa_verified_date, student_id))
         _log_field_change(conn, "student", student_id, "tsa_verified_date", student["tsa_verified_date"], tsa_verified_date, who)
+        pay_preference = _pay_preference_from_form(request.form)
+        conn.execute("UPDATE students SET pay_preference = ? WHERE id = ?", (pay_preference, student_id))
+        _log_field_change(conn, "student", student_id, "pay_preference", student["pay_preference"], pay_preference, who)
         conn.commit()
         if ((solo_signoff_date, solo_signoff_expires) != (student["solo_signoff_date"], student["solo_signoff_expires"])
                 or (medical_class, medical_expires) != (student["medical_class"], student["medical_expires"])):
@@ -1815,7 +1824,7 @@ def student_edit(student_id):
     return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS,
                            ledger=ledger, can_bill=can_manage_billing(), activity=activity,
                            recent_flights=recent_flights, solo_currency=solo_currency, solo_signoff=solo_signoff,
-                           medical=medical, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS)
+                           medical=medical, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
 
 
 @flight_bp.route("/students/<int:student_id>/add_funds", methods=["POST"])
@@ -4617,6 +4626,13 @@ def _first_solo_from_form(form):
     return d
 
 
+def _pay_preference_from_form(form):
+    """students.pay_preference from the student form's How They Usually Pay
+    select - one of PAY_PREFERENCES, or None if left blank/unrecognized."""
+    v = (form.get("pay_preference") or "").strip()
+    return v if v in PAY_PREFERENCES else None
+
+
 def _tsa_verified_from_form(form):
     """students.tsa_verified_date from the student form's "TSA Verified"
     box (+ optional date; today if left blank). None = not verified yet."""
@@ -4858,7 +4874,7 @@ def log_edit(flight_id):
 _LOG_ROW_SQL = """
     SELECT f.*, COALESCE(NULLIF(f.guest_name, '') || ' (guest)', s.name) as student_name, a.tag as plane_tag, a.name as plane_name, c.name as cfi_name,
            s.rate_override as student_rate_override, s.plane_rate_override as student_plane_rate_override,
-           s.balance as student_balance,
+           s.balance as student_balance, s.pay_preference as student_pay_preference,
            c.rate_per_hour as cfi_rate_per_hour,
            sf.duration_hours as scheduled_duration_hours, sf.part_solo as scheduled_part_solo
     FROM flights f

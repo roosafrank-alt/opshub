@@ -929,6 +929,10 @@ def _migrate(conn):
         # is_flight_asset row (so it's bookable), but has no Hobbs/Tach/
         # maintenance items to track.
         ("assets", "is_simulator", "ALTER TABLE assets ADD COLUMN is_simulator INTEGER NOT NULL DEFAULT 0"),
+        # How this student usually pays (Cash/Check/Card, same option text
+        # as End Flight's "How Paid" select) - shown as a hint there so the
+        # instructor knows what to expect. NULL = not set.
+        ("students", "pay_preference", "ALTER TABLE students ADD COLUMN pay_preference TEXT"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)
