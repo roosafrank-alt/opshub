@@ -1,3 +1,4 @@
+{% from "flight/_pilot_badge.html" import pilot_badge %}
 {#
   Fast-changing dashboard sections. Rendered two ways with the exact same
   context (see _dashboard_context() in flight.py):
@@ -389,6 +390,36 @@
   groups below (today_flights is the richer view of that same day, shown
   first), and _group_by_time() for the time-slot grouping.
 #}
+{#
+  "Details" reuses the exact same popup as the Schedule calendar
+  (schedule-block class + the same data-* set _schedule_live.html's
+  schedule_chip() carries - see _schedule_detail_modal.html, included
+  once by dashboard.html) instead of linking away to the calendar. Its
+  own macro so it can sit in the Start/Log row (one row) or on its own
+  line (every other status), without repeating its long data-* list twice.
+#}
+{% macro flight_chip_details_btn(f, extra_class='') %}
+<button type="button" class="schedule-block btn btn-outline-secondary btn-sm {{ extra_class }}"
+    data-id="{{ f.id }}" data-status="{{ f.status }}" data-plane="{{ f.plane_tag }}" data-student="{{ f.student_name }}"
+    data-student-id="{{ f.student_id }}"
+    data-cfi="{{ f.cfi_name or '' }}" data-solo="{{ '1' if f.solo else '' }}" data-needs-review="{{ '1' if f.needs_review_flag else '' }}"
+    data-review-reason="{{ f.review_reason or '' }}" data-date="{{ f.scheduled_date }}" data-time="{{ f.time_label or '' }}"
+    data-time24="{{ f.scheduled_time or '' }}" data-endtime="{{ f.end_time_label or '' }}"
+    data-duration="{{ f.duration_hours if f.duration_hours is not none else '' }}"
+    {% if f.notes_visible %}data-notes="{{ f.notes or '' }}"{% endif %}
+    {% if f.private_notes_visible %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
+    {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}"
+    data-change-request-note="{{ f.change_request_note or '' }}"{% endif %} data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
+    data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=f.id) }}"
+    data-cancel-url="{{ url_for('flight.schedule_cancel', scheduled_id=f.id) }}"
+    data-request-change-url="{{ url_for('flight.schedule_request_change', scheduled_id=f.id) }}"
+    data-student-cancel-url="{{ url_for('flight.schedule_student_cancel', scheduled_id=f.id) }}"
+    data-start-url="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}"
+    data-log-url="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}">
+  <i class="bi bi-info-circle"></i> Details
+</button>
+{% endmacro %}
+
 {% macro flight_chip(f, cfi, plane_lane, plane_color, today_now_time=none, show_own_time=false) %}
 {% set status = f.status %}
 {#- Each chip judges "past" from its own start time now, not the row's -
@@ -413,6 +444,8 @@
       {%- if f.needs_review_flag %}<i class="bi bi-exclamation-triangle-fill {{ 'text-danger' if f.needs_review_active else 'text-warning' }}" title="{{ 'Acknowledged - not resolved yet: ' if not f.needs_review_active }}{{ f.review_reason }}"></i> {% endif -%}
       {%- if f.confirm_required and not f.confirmed_at %}<i class="bi bi-patch-question-fill text-warning" title="Awaiting the student's confirmation"></i> {% elif f.confirm_required %}<i class="bi bi-patch-check-fill text-success" title="Confirmed by the student"></i> {% endif -%}
       {{ f.student_name }}
+      {{- ' ' }}{{ pilot_badge(f) }}
+      {%- if f.solo %} <span class="badge bg-secondary">Solo</span>{% endif -%}
     </div>
     <div class="flight-chip-plane">{{ f.plane_tag }}</div>
     {% if f.end_time_label %}
@@ -423,6 +456,7 @@
     {% endif %}
   </div>
   <div class="flight-chip-detail" hidden>
+    {% if f.time_label %}<div><strong>Time:</strong> {{ f.time_label }}{% if f.end_time_label %} - {{ f.end_time_label }}{% endif %}</div>{% endif %}
     <div><strong>Instructor:</strong> {% if f.cfi_name %}{{ f.cfi_name.split(' ')[0] }}{% elif f.solo %}Solo{% else %}Needs CFI{% endif %}</div>
     {#- Right here so the note is one click away (expanding the chip), not
        two - it used to only show inside the separate "Details" popup. #}
@@ -436,7 +470,10 @@
     {% endif %}
     {% if status == 'in_progress' and f.get('flight_id') %}
     <a href="{{ url_for('flight.log_active') }}#active-flight-{{ f.flight_id }}" class="btn btn-dark btn-sm mt-1">Open Active Flight</a>
+    {{ flight_chip_details_btn(f, 'mt-1') }}
     {% elif status == 'scheduled' and cfi %}
+    {#- Start, Log and Details all in one row (Details used to sit on its
+       own line below). #}
     <div class="mt-1 d-flex gap-1">
       {% if f.can_start is not defined or f.can_start %}
       <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}" class="d-inline">
@@ -451,6 +488,7 @@
       </form>
       {% endif %}
       <a href="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}" class="btn btn-outline-secondary btn-sm">Log</a>
+      {{ flight_chip_details_btn(f) }}
     </div>
     {% elif status == 'scheduled' and student and f.student_id == student.id and f.confirm_required and not f.confirmed_at %}
     {#- A CFI/admin booked this one - the student's own OK, right from
@@ -458,32 +496,10 @@
     <form method="post" action="{{ url_for('flight.schedule_confirm_booking', scheduled_id=f.id) }}" class="d-inline mt-1">
       <button class="btn btn-warning btn-sm"><i class="bi bi-patch-question-fill"></i> Confirm this flight</button>
     </form>
+    {{ flight_chip_details_btn(f, 'mt-1') }}
+    {% else %}
+    {{ flight_chip_details_btn(f, 'mt-1') }}
     {% endif %}
-    {#
-      "Details" reuses the exact same popup as the Schedule calendar
-      (schedule-block class + the same data-* set _schedule_live.html's
-      schedule_chip() carries - see _schedule_detail_modal.html, included
-      once by dashboard.html) instead of linking away to the calendar.
-    #}
-    <button type="button" class="schedule-block btn btn-outline-secondary btn-sm mt-1"
-        data-id="{{ f.id }}" data-status="{{ f.status }}" data-plane="{{ f.plane_tag }}" data-student="{{ f.student_name }}"
-        data-student-id="{{ f.student_id }}"
-        data-cfi="{{ f.cfi_name or '' }}" data-solo="{{ '1' if f.solo else '' }}" data-needs-review="{{ '1' if f.needs_review_flag else '' }}"
-        data-review-reason="{{ f.review_reason or '' }}" data-date="{{ f.scheduled_date }}" data-time="{{ f.time_label or '' }}"
-        data-time24="{{ f.scheduled_time or '' }}" data-endtime="{{ f.end_time_label or '' }}"
-        data-duration="{{ f.duration_hours if f.duration_hours is not none else '' }}"
-        {% if f.notes_visible %}data-notes="{{ f.notes or '' }}"{% endif %}
-        {% if f.private_notes_visible %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
-        {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}"
-        data-change-request-note="{{ f.change_request_note or '' }}"{% endif %} data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
-        data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=f.id) }}"
-        data-cancel-url="{{ url_for('flight.schedule_cancel', scheduled_id=f.id) }}"
-        data-request-change-url="{{ url_for('flight.schedule_request_change', scheduled_id=f.id) }}"
-        data-student-cancel-url="{{ url_for('flight.schedule_student_cancel', scheduled_id=f.id) }}"
-        data-start-url="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}"
-        data-log-url="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}">
-      <i class="bi bi-info-circle"></i> Details
-    </button>
   </div>
 </div>
 {% endmacro %}

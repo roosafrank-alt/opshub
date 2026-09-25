@@ -1393,7 +1393,8 @@ def _dashboard_context(conn, cfi, student):
         # list on a busy school even though the exact same bookings show
         # fine on the Schedule calendar, which has no such cap either.
         upcoming = conn.execute("""
-            SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name, c.color as cfi_color
+            SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
+                   s.pilot_certificate as pilot_certificate, c.name as cfi_name, c.color as cfi_color
             FROM scheduled_flights sf
             JOIN assets a ON a.id = sf.asset_id
             JOIN students s ON s.id = sf.student_id
@@ -1452,7 +1453,8 @@ def _dashboard_context(conn, cfi, student):
         # so any admin/CFI looking at the dashboard sees the whole day's board
         # and watches the completed count climb as flights get logged/ended.
         today_flights = conn.execute("""
-            SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name, c.color as cfi_color,
+            SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
+                   s.pilot_certificate as pilot_certificate, c.name as cfi_name, c.color as cfi_color,
                    fl.id as flight_id
             FROM scheduled_flights sf
             JOIN assets a ON a.id = sf.asset_id
