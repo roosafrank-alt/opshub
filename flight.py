@@ -23,6 +23,7 @@ from werkzeug.security import generate_password_hash
 
 from db import get_db, now_iso, asset_meter, maintenance_status
 from auth import authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked
+from pilotlog import NEXT_TRACK, TRACK_MAP
 import weather
 import adsb
 import notams
@@ -710,6 +711,22 @@ def rating_badge_items(row):
     labels = dict(PILOT_RATINGS)
     return [{"code": r, "label": labels[r], "short": RATING_BADGES[r][0], "icon": RATING_BADGES[r][1],
              "color": RATING_BADGES[r][2]} for r in _pilot_ratings_list(row) if r in RATING_BADGES]
+
+
+@flight_bp.app_template_global()
+def student_training_info(row):
+    """For the schedule/booking form: the certificate this student is
+    working towards next (Flight Academy's NEXT_TRACK, keyed off their
+    current pilot_certificate) and whether they've soloed yet
+    (first_solo_date set). None for a station account (not a real trainee)
+    or a row that isn't a student at all, so callers only show this for
+    actual student pilots."""
+    if row is None or (row["is_station"] if "is_station" in row.keys() else 0):
+        return None
+    cert = row["pilot_certificate"] if "pilot_certificate" in row.keys() else None
+    track = TRACK_MAP.get(NEXT_TRACK.get(cert, "private"))
+    soloed = bool(row["first_solo_date"]) if "first_solo_date" in row.keys() else False
+    return {"working_towards": track["name"] if track else None, "soloed": soloed}
 
 
 def _pilot_from_form(form):

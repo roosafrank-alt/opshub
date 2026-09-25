@@ -99,9 +99,16 @@
           <option value="{{ gid }}" {% if (form and form.get('student_id')|string == gid|string) or (not form and sched and sched.student_id == gid) %}selected{% endif %}>&#9733; Guest / Intro - no profile (one-time flyer)</option>
           {% endif %}
           {% for s in students if s.id != gid %}
-          <option value="{{ s.id }}" {% if (form and form.get('student_id')|string == s.id|string) or (not form and sched and sched.student_id == s.id) %}selected{% endif %}>{{ s.name }}</option>
+          {%- set tinfo = student_training_info(s) -%}
+          <option value="{{ s.id }}" {% if (form and form.get('student_id')|string == s.id|string) or (not form and sched and sched.student_id == s.id) %}selected{% endif %}
+                  data-working-towards="{{ tinfo.working_towards if tinfo else '' }}" data-soloed="{{ '1' if tinfo and tinfo.soloed else '' }}">{{ s.name }}</option>
           {% endfor %}
         </select>
+        {#- Shown once a real student (not Guest/Intro) is picked: the
+           certificate they're training towards next and whether they've
+           soloed yet, from student_training_info() in flight.py - so
+           whoever's booking sees it without opening the student's profile. #}
+        <div id="student-training-info" class="form-text mt-1 d-none"></div>
         <div id="guest-fields" class="row g-2 mt-1 d-none">
           <div class="col-7"><input type="text" name="guest_name" maxlength="80" class="form-control form-control-sm" placeholder="Guest's name (optional)" value="{{ form.get('guest_name', '') if form else (sched.guest_name if sched and sched.guest_name else '') }}"></div>
           <div class="col-5"><input type="tel" name="guest_phone" maxlength="30" class="form-control form-control-sm" placeholder="Phone (optional)" value="{{ form.get('guest_phone', '') if form else (sched.guest_phone if sched and sched.guest_phone else '') }}"></div>
@@ -662,6 +669,26 @@ if (document.getElementById('solo-check').checked) {
   var gf = document.getElementById('guest-fields');
   if (!ss || !gf) { return; }
   function sync() { gf.classList.toggle('d-none', !ss.dataset.guestId || ss.value !== ss.dataset.guestId); }
+  ss.addEventListener('change', sync);
+  sync();
+})();
+
+(function () {
+  // Training info for the picked student: what they're working towards
+  // next and whether they've soloed (data-working-towards/data-soloed on
+  // each <option>, from student_training_info() in flight.py - blank for
+  // Guest/Intro and station accounts, so the line just stays hidden).
+  var ss = document.getElementById('student-select');
+  var info = document.getElementById('student-training-info');
+  if (!ss || !info) { return; }
+  function sync() {
+    var opt = ss.options[ss.selectedIndex];
+    var towards = opt ? opt.getAttribute('data-working-towards') : '';
+    if (!opt || !opt.value || !towards) { info.classList.add('d-none'); info.textContent = ''; return; }
+    var soloed = opt.getAttribute('data-soloed') === '1';
+    info.textContent = 'Working towards: ' + towards + ' • ' + (soloed ? 'Soloed' : 'Pre-solo');
+    info.classList.remove('d-none');
+  }
   ss.addEventListener('change', sync);
   sync();
 })();
