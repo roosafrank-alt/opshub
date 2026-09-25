@@ -32,6 +32,19 @@
     z-index: 5;
   }
   tr.schedule-block-flagged { background: #fff0f1 !important; }
+  {#- Red diagonal "hazard" slashes across the block itself, on top of
+     whatever plane/instructor color it's already drawn in, so a flagged
+     booking reads as marked even at a glance (not table rows - a thin row
+     doesn't have room for the stripes to read as anything but noise, and
+     its full-row red tint already does the job there). #}
+  .schedule-block-flagged::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(135deg, rgba(220,53,69,.55) 0 4px, transparent 4px 10px);
+    pointer-events: none;
+    border-radius: inherit;
+  }
   /* Just booked (?new=ids): a green glow so you can see what you added.
      Cleared on the first click or when you leave the page (script below). */
   @keyframes schedule-new-pulse {
