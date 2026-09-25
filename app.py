@@ -2713,6 +2713,28 @@ def asset_detail(asset_id):
         ORDER BY event_date DESC, squawk_id DESC
     """, (asset_id, asset_id)).fetchall()
 
+    # Squawks for the plane's To-Do list specifically: unlike open_squawks
+    # above (the "Needs Acknowledgement" banner - unacknowledged only),
+    # this also keeps an already-acknowledged squawk on the to-do list
+    # (shown amber there) until it's actually repaired, since acknowledging
+    # it isn't the same as it being done.
+    todo_squawks = conn.execute(f"""
+        SELECT {_FLIGHT_SQUAWK_COLS}
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        LEFT JOIN users au ON au.id = f.squawk_assigned_to
+        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NULL AND a.id = ?
+        UNION ALL
+        SELECT {_QUICK_SQUAWK_COLS}
+        FROM plane_squawks q
+        JOIN assets a ON a.id = q.asset_id
+        LEFT JOIN users au ON au.id = q.assigned_to
+        WHERE q.repaired_at IS NULL AND a.id = ?
+        ORDER BY event_date DESC, squawk_id DESC
+    """, (asset_id, asset_id)).fetchall()
+
     # Cylinder compression checks - logged from the Maintenance side (any
     # asset, not just Flight School planes), so it belongs here regardless
     # of is_flight_asset.
@@ -2732,7 +2754,7 @@ def asset_detail(asset_id):
     conn.close()
     return render_template("asset_detail.html", asset=asset, project_blocks=project_blocks, total_cost=total_cost,
                            maintenance_items=maintenance_items, oil_log=oil_log, total_oil_added=total_oil_added,
-                           open_squawks=open_squawks, photos=photos, todos=todos, project_cover=project_cover,
+                           open_squawks=open_squawks, todo_squawks=todo_squawks, photos=photos, todos=todos, project_cover=project_cover,
                            latest_compression=latest_compression, compression_count=compression_count,
                            asset_manuals=asset_manuals)
 

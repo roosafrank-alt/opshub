@@ -326,23 +326,34 @@
         {% set open_todos = todos|selectattr('done', 'equalto', 0)|list %}
         {% set done_todos = todos|selectattr('done', 'equalto', 1)|list %}
         <h6 class="mb-2"><i class="bi bi-list-check"></i> To-Do</h6>
-        {% if open_todos or open_squawks %}
+        {% if open_todos or todo_squawks %}
         <ul class="list-group list-group-flush mb-2">
-          {#- Open squawks (see the alert banner up top, and the Squawks tab
-             - both keep showing them same as before) also land right here,
-             so a tech working the plane's to-do list sees everything that
-             needs doing in one place instead of having to check two spots.
-             Checking one off acknowledges the squawk itself (same action as
-             the banner's own Acknowledge button) - there's no "delete" for
-             a squawk the way there is for a plain to-do. #}
-          {% for sq in open_squawks %}
+          {#- Squawks against this plane (see the alert banner up top, and
+             the Squawks tab - both keep showing them same as before) also
+             land right here, so a tech working the plane's to-do list sees
+             everything that needs doing in one place instead of having to
+             check two spots. An unacknowledged squawk's checkbox
+             acknowledges it (same action as the banner's own Acknowledge
+             button); once it's acknowledged it stays on this list, shown
+             amber, until the checkbox instead marks it repaired - there's
+             no "delete" for a squawk the way there is for a plain to-do. #}
+          {% for sq in todo_squawks %}
           <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
+            {% if sq.acknowledged_at %}
+            <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex align-items-start gap-2 flex-grow-1" data-confirm="Mark this squawk as repaired/addressed?">
+              <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark repaired">
+                <i class="bi bi-square fs-5 text-warning"></i>
+              </button>
+              <span><span class="badge bg-warning text-dark me-1">Squawk</span>{{ sq.notes or '(no details given)' }}</span>
+            </form>
+            {% else %}
             <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex align-items-start gap-2 flex-grow-1" data-confirm="Acknowledge this squawk?" data-confirm-title="Acknowledge Squawk">
               <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Acknowledge squawk">
                 <i class="bi bi-square fs-5 text-danger"></i>
               </button>
               <span><span class="badge bg-danger me-1">Squawk</span>{{ sq.notes or '(no details given)' }}</span>
             </form>
+            {% endif %}
           </li>
           {% endfor %}
           {% for t in open_todos %}
