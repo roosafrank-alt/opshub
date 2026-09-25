@@ -326,13 +326,13 @@
     </div>
     {% endif %}
     <div class="mb-3 sched-only">
-      <label class="form-label">Notes</label>
+      <label class="form-label">Notes {% if not self_service %}<span class="text-muted small fw-normal">(admin &amp; the assigned instructor only - not the student, not other instructors)</span>{% endif %}</label>
       <textarea name="notes" class="form-control" rows="2" placeholder="optional">{{ form.get('notes') if form else (sched.notes if sched and sched.notes else '') }}</textarea>
     </div>
     {% if not self_service %}
     <div class="mb-3 sched-only">
-      <label class="form-label"><i class="bi bi-eye-slash"></i> Private Notes <span class="text-muted small fw-normal">(admin &amp; CFI only - never shown to the student)</span></label>
-      <textarea name="private_notes" class="form-control" rows="2" placeholder="optional - stays off the student's view entirely">{{ form.get('private_notes') if form else (sched.private_notes if sched and sched.private_notes else '') }}</textarea>
+      <label class="form-label"><i class="bi bi-eye-slash"></i> General Notes <span class="text-muted small fw-normal">(admin &amp; every instructor, plus this booking's student - not other students)</span></label>
+      <textarea name="private_notes" class="form-control" rows="2" placeholder="optional">{{ form.get('private_notes') if form else (sched.private_notes if sched and sched.private_notes else '') }}</textarea>
     </div>
     {% endif %}
     {% if not sched and not self_service %}

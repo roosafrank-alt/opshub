@@ -235,8 +235,8 @@
          data-review-reason="{{ next_lesson.review_reason or '' }}" data-date="{{ next_lesson.scheduled_date }}"
          data-time="{{ next_lesson.time_label or '' }}" data-time24="{{ next_lesson.scheduled_time or '' }}"
          data-duration="{{ next_lesson.duration_hours if next_lesson.duration_hours is not none else '' }}"
-         data-notes="{{ next_lesson.notes or '' }}"
-         {% if session.get('cfi_id') or session.get('is_master_admin') %}data-private-notes="{{ next_lesson.private_notes or '' }}"{% endif %}
+         {% if next_lesson.notes_visible %}data-notes="{{ next_lesson.notes or '' }}"{% endif %}
+         {% if next_lesson.private_notes_visible %}data-private-notes="{{ next_lesson.private_notes or '' }}"{% endif %}
          {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ next_lesson.created_by or '' }}"{% endif %}
          data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=next_lesson.id) }}"
          data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=next_lesson.id) }}"
@@ -343,7 +343,7 @@
     <div><strong>Instructor:</strong> {% if f.cfi_name %}{{ f.cfi_name.split(' ')[0] }}{% elif f.solo %}Solo{% else %}Needs CFI{% endif %}</div>
     {#- Right here so the note is one click away (expanding the chip), not
        two - it used to only show inside the separate "Details" popup. #}
-    {% if f.notes %}<div><strong>Note:</strong> {{ f.notes }}</div>{% endif %}
+    {% if f.notes_visible and f.notes %}<div><strong>Note:</strong> {{ f.notes }}</div>{% endif %}
     {% if status == 'scheduled' %}
     {#- One-click forecast: fetched lazily the first time this chip is
        opened (see dashboard.html's chip-click handler), same data as the
@@ -388,8 +388,9 @@
         data-cfi="{{ f.cfi_name or '' }}" data-solo="{{ '1' if f.solo else '' }}" data-needs-review="{{ '1' if f.needs_review_flag else '' }}"
         data-review-reason="{{ f.review_reason or '' }}" data-date="{{ f.scheduled_date }}" data-time="{{ f.time_label or '' }}"
         data-time24="{{ f.scheduled_time or '' }}" data-endtime="{{ f.end_time_label or '' }}"
-        data-duration="{{ f.duration_hours if f.duration_hours is not none else '' }}" data-notes="{{ f.notes or '' }}"
-        {% if session.get('cfi_id') or session.get('is_master_admin') %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
+        data-duration="{{ f.duration_hours if f.duration_hours is not none else '' }}"
+        {% if f.notes_visible %}data-notes="{{ f.notes or '' }}"{% endif %}
+        {% if f.private_notes_visible %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
         {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}"{% endif %} data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
         data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=f.id) }}"
         data-cancel-url="{{ url_for('flight.schedule_cancel', scheduled_id=f.id) }}"

@@ -31,8 +31,8 @@
           <tr id="sd-student-row"><th>Student</th><td id="sd-student"></td></tr>
           <tr id="sd-cfi-row"><th>Instructor</th><td id="sd-cfi"></td></tr>
           <tr><th>Status</th><td id="sd-status"></td></tr>
-          <tr><th>Notes</th><td id="sd-notes"></td></tr>
-          <tr id="sd-private-notes-row" class="d-none"><th><i class="bi bi-eye-slash"></i> Private Notes</th><td id="sd-private-notes" class="text-danger-emphasis"></td></tr>
+          <tr id="sd-notes-row"><th>Notes</th><td id="sd-notes"></td></tr>
+          <tr id="sd-private-notes-row" class="d-none"><th><i class="bi bi-eye-slash"></i> General Notes</th><td id="sd-private-notes" class="text-danger-emphasis"></td></tr>
           <tr id="sd-created-row"><th>Scheduled by</th><td id="sd-created_by"></td></tr>
         </table>
         <hr class="my-2">
@@ -146,7 +146,9 @@ document.addEventListener('click', function (evt) {
     document.getElementById('sd-student').textContent = el.dataset.student;
     document.getElementById('sd-cfi').textContent = el.dataset.cfi ? el.dataset.cfi : (el.dataset.solo ? 'Solo (no instructor)' : 'Not assigned yet');
   }
-  document.getElementById('sd-notes').textContent = el.dataset.notes ? el.dataset.notes : '—';
+  var notesKnown = el.dataset.notes !== undefined;
+  document.getElementById('sd-notes-row').classList.toggle('d-none', !notesKnown);
+  if (notesKnown) { document.getElementById('sd-notes').textContent = el.dataset.notes || '—'; }
   var privRow = document.getElementById('sd-private-notes-row');
   if (el.dataset.privateNotes) {
     document.getElementById('sd-private-notes').textContent = el.dataset.privateNotes;

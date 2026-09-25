@@ -1240,10 +1240,12 @@ def _with_dashboard_row_fields(rows):
         # "still flagged but already acknowledged" distinction, so a
         # dashboard chip's warning triangle agrees with the calendar's.
         needs_review_active = bool(r["needs_review"]) and not r["needs_review_acknowledged_at"]
+        notes_visible, private_notes_visible = _note_visibility(r)
         out.append(dict(r, time_label=time_label, end_time_label=end_time_label,
                          display_color=cfi_stripe,
                          needs_review_active=needs_review_active,
-                         needs_review_flag=_needs_review_flag(r)))
+                         needs_review_flag=_needs_review_flag(r),
+                         notes_visible=notes_visible, private_notes_visible=private_notes_visible))
     return out
 
 
@@ -1457,10 +1459,12 @@ def _dashboard_context(conn, cfi, student):
         nl_sql += " ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time LIMIT 1"
         row = conn.execute(nl_sql, nl_args).fetchone()
         if row:
+            nl_notes_visible, nl_private_notes_visible = _note_visibility(row)
             next_lesson = dict(row, countdown=_countdown_label(row["scheduled_date"]),
                                time_label=_format_time_12h(row["scheduled_time"]),
                                starts_at=(f"{row['scheduled_date']}T{row['scheduled_time']}:00"
-                                          if row["scheduled_time"] else None))
+                                          if row["scheduled_time"] else None),
+                               notes_visible=nl_notes_visible, private_notes_visible=nl_private_notes_visible)
 
     # "Time since last flight" tile - student dashboard only.
     last_flight_ago = None
@@ -2427,12 +2431,28 @@ _SCHEDULE_ROW_SQL = """SELECT sf.*, a.tag as plane_tag, a.name as plane_name, CO
               WHERE sf.status IN ('scheduled', 'in_progress', 'completed')"""
 
 
+def _note_visibility(r):
+    """Who can see this booking's two note fields. Notes (the plain one)
+    shows only to admin and the specific CFI on this booking - not the
+    student, and not a different CFI just browsing the schedule.
+    private_notes still shows to every CFI and admin same as before, plus
+    now also the specific student on this booking (never a different
+    student)."""
+    is_admin = bool(session.get("is_master_admin"))
+    my_cfi_id = session.get("cfi_id")
+    my_student_id = session.get("student_id")
+    notes_visible = is_admin or bool(my_cfi_id and my_cfi_id == r["cfi_id"])
+    private_notes_visible = is_admin or bool(my_cfi_id) or bool(my_student_id and my_student_id == r["student_id"])
+    return notes_visible, private_notes_visible
+
+
 def _decorate_schedule_row(r):
     """Common per-row computed fields (instructor color, 12h time labels)
     shared by every schedule view - day/month/quarter/year/list/custom all
     build on this so a booking looks/behaves identically no matter which
     view it's shown in."""
     r = dict(r)
+    r["notes_visible"], r["private_notes_visible"] = _note_visibility(r)
     # Two colors per booking: the plane's (block background) and the
     # instructor's (thick left stripe). A solo booking shows the plane's
     # solo color if one's been picked (Planes > Edit), otherwise the plane's
