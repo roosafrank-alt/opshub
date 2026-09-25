@@ -62,6 +62,10 @@
     opacity: 0.25 !important;
     filter: grayscale(70%);
   }
+  /* Empty space on the Day/Week timeline is clickable to schedule a new
+     flight at that time (see the click handler below) - cursor says so. */
+  .day-timeline-track-clickable { cursor: pointer; }
+  .day-timeline-track-clickable .schedule-block { cursor: pointer; }
   /* Clicking a day cell (CFIs/admins only) jumps straight to "Schedule
      Flight" with that date pre-filled, instead of the generic toolbar
      button with no date picked yet. Avoids :has() for broader browser
@@ -437,6 +441,30 @@ document.addEventListener('click', function (evt) {
   setInterval(refresh, POLL_MS);
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden) refresh();
+  });
+})();
+
+// Clicking empty space on the Day/Week timeline (not an existing flight
+// block) schedules a new flight at that time, same as clicking an open
+// Availability slot does - instead of only being able to add a flight from
+// the toolbar button with no time picked yet. Delegated on document so it
+// keeps working after the live-refresh above swaps the timeline HTML.
+(function () {
+  var SCHEDULE_NEW_URL = '{{ url_for("flight.schedule_new") }}';
+  document.addEventListener('click', function (e) {
+    var track = e.target.closest('.day-timeline-track-clickable');
+    if (!track) return;
+    if (e.target.closest('.schedule-block')) return;
+    var rect = track.getBoundingClientRect();
+    if (rect.height <= 0) return;
+    var frac = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+    var startMin = parseInt(track.dataset.startMin, 10), endMin = parseInt(track.dataset.endMin, 10);
+    var totalMin = startMin + frac * (endMin - startMin);
+    totalMin = Math.round(totalMin / 15) * 15;   // nearest quarter hour
+    totalMin = Math.min(endMin, Math.max(startMin, totalMin));
+    var hh = Math.floor(totalMin / 60), mm = totalMin % 60;
+    var time = (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
+    window.location.href = SCHEDULE_NEW_URL + '?date=' + encodeURIComponent(track.dataset.trackDate) + '&time=' + time;
   });
 })();
 </script>

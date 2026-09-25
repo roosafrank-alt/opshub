@@ -496,7 +496,12 @@
       </div>
       {% endfor %}
     </div>
-    <div class="day-timeline-track">
+    {#- Clicking empty space in the track (not an existing flight block)
+       schedules a new flight at that time - see the click handler in
+       schedule.html, which turns the click's vertical position into a
+       time using these data-* bounds. #}
+    <div class="day-timeline-track{% if session.get('cfi_id') or session.get('student_id') %} day-timeline-track-clickable{% endif %}"
+         data-track-date="{{ day_str }}" data-start-min="{{ day_timeline_start_min }}" data-end-min="{{ day_timeline_end_min }}">
       {% if day_past_pct %}<div class="day-timeline-past-overlay" style="height:{{ day_past_pct }}%;"></div>{% endif %}
       {% for h in range(day_timeline_start_min // 60, day_timeline_end_min // 60 + 1) %}
       {% set line_top_pct = (h * 60 - day_timeline_start_min) / span_min * 100 %}
@@ -558,7 +563,8 @@
            class="week-timeline-day-head text-decoration-none {{ 'week-timeline-day-head-today' if wd.is_today }}">
           {{ wd.weekday }} {{ wd.day_num }}{% if wd.is_today %} <span class="badge bg-warning text-dark" style="font-size:.6rem;">TODAY</span>{% endif %}
         </a>
-        <div class="day-timeline-track">
+        <div class="day-timeline-track{% if session.get('cfi_id') or session.get('student_id') %} day-timeline-track-clickable{% endif %}"
+             data-track-date="{{ wd.date_str }}" data-start-min="{{ day_timeline_start_min }}" data-end-min="{{ day_timeline_end_min }}">
           {% if wd_past_pct %}<div class="day-timeline-past-overlay" style="height:{{ wd_past_pct }}%;"></div>{% endif %}
           {% for h in range(day_timeline_start_min // 60, day_timeline_end_min // 60 + 1) %}
           {% set line_top_pct = (h * 60 - day_timeline_start_min) / span_min * 100 %}
