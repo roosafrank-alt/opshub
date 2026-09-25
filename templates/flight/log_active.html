@@ -218,7 +218,7 @@
   {% endif %}{# not stopped #}
 
   {% if f.can_end and f.stopped_at %}
-  <form method="post" id="end-form-{{ f.id }}" action="{{ url_for('flight.log_end', flight_id=f.id) }}" data-confirm="Log this flight with Hobbs end [[hobbs_end]]? It moves to Flight History and gets billed." data-confirm-title="Log Flight" data-confirm-ok="Yes, log it" data-confirm-style="success">
+  <form method="post" id="end-form-{{ f.id }}" action="{{ url_for('flight.log_end', flight_id=f.id) }}" data-confirm="Log this flight with Hobbs end [[hobbs_end]]? It moves to Flight History and gets billed." data-confirm-title="Flight Complete" data-confirm-ok="Yes, log it" data-confirm-style="success">
     <div class="row g-2">
       <div class="col-6 col-md-3">
         {#- The clock is allowed to start before Hobbs/Tach are in (see
@@ -316,7 +316,7 @@
       <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="any note here is flagged as a squawk for the shop">{{ f.notes or '' }}</textarea>
     </div>
     <div class="form-text mt-1">The instructor's billed time is the elapsed time shown above (from Start to when End Flight was pressed, minus any paused time), not just Hobbs hours.</div>
-    <button type="submit" class="btn btn-success fw-bold mt-2 w-100"><i class="bi bi-journal-check"></i> Log Flight</button>
+    <button type="submit" class="btn btn-success fw-bold mt-2 w-100"><i class="bi bi-journal-check"></i> Flight Complete</button>
   </form>
   {% elif not f.can_end %}
   <div class="alert alert-secondary small mb-0 py-2">
