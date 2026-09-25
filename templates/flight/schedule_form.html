@@ -291,7 +291,7 @@
     {% endif %}
     <div class="d-flex justify-content-between">
       <a href="{{ url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar') }}" class="btn btn-outline-secondary">Cancel</a>
-      <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Log Flight' if is_complete else 'Schedule Flight')) }}</button>
+      <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Flight Complete' if is_complete else 'Schedule Flight')) }}</button>
     </div>
   </form>
 </div>
@@ -647,7 +647,7 @@ if (document.getElementById('solo-check').checked) {
     }
     setGroup('.sched-only', !done);
     setGroup('.complete-only', done);
-    submitBtn.textContent = done ? 'Log Flight' : 'Schedule Flight';
+    submitBtn.textContent = done ? 'Flight Complete' : 'Schedule Flight';
     dateLabel.textContent = done ? 'Flight Date *' : 'Date *';
     if (title) { title.textContent = done ? 'Log a Completed Flight' : 'Schedule a Flight'; }
     // Solo still disables the instructor picker in either mode.
