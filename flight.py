@@ -4782,7 +4782,12 @@ def log_active():
                 eta_label = _format_time_12h(r["eta_at"][11:16])
             except (TypeError, ValueError):
                 eta_label = None
-        flights.append(dict(r, can_end=_can_end_flight(r), can_ack=_can_ack_overdue(r),
+        # _row_with_cost() resolves this flight's effective plane_rate and
+        # instructor_rate (and a total, though that's 0 until Hobbs End is
+        # in) - the End Flight form needs the two rates as data-* so its own
+        # JS can total the price live as Hobbs/ground/solo are typed,
+        # instead of only finding out the total once Log Flight is pressed.
+        flights.append(dict(_row_with_cost(r), can_end=_can_end_flight(r), can_ack=_can_ack_overdue(r),
                             session_status=_session_status(r), eta_label=eta_label,
                             eta_affected=affected.get(r["id"], [])))
     # Inline "it worked" note on the card just acted on - the page's flash
