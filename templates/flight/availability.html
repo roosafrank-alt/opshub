@@ -30,8 +30,16 @@
   }
   .avail-grid { border-collapse: separate; border-spacing: 0; }
   .avail-grid th, .avail-grid td { vertical-align: middle; white-space: nowrap; }
-  .avail-grid thead th { position: sticky; top: calc(var(--flight-nav-h, 56px) + 92px); background: #fff; z-index: 5; }
-  .avail-plane-col { position: sticky; left: 0; background: #fff; z-index: 4; font-weight: 700; min-width: 90px; }
+  /* No position:sticky here on purpose - Safari has long-standing bugs
+     rendering sticky table cells when a sticky header row and a sticky
+     left column both exist in the same native <table> (rows can visually
+     overlap/collapse into each other). Chrome/Firefox handle it fine, but
+     since this table's whole point is being readable on the road, it has
+     to work in Safari on an iPhone. A plain (non-sticky) header/column is
+     a safe, universally-correct fallback; a CSS-grid-based rewrite could
+     bring sticky back later if it's worth the effort. */
+  .avail-grid thead th { background: #fff; }
+  .avail-plane-col { background: #fff; font-weight: 700; min-width: 90px; }
   .avail-slot-open {
     background: #d1f7dd;
     color: #0a3d1f;
