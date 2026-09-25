@@ -1544,6 +1544,7 @@ def _dashboard_context(conn, cfi, student):
             JOIN students s ON s.id = sf.student_id
             LEFT JOIN cfis c ON c.id = sf.cfi_id
             WHERE sf.student_id = ? AND sf.status IN ('pending_approval', 'denied') AND sf.scheduled_date >= ?
+              AND sf.student_dismissed_at IS NULL
             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
         """, (student["id"], date.today().strftime("%Y-%m-%d"))).fetchall()
         my_requests = [dict(m, time_label=_format_time_12h(m["scheduled_time"])) for m in my_requests]
@@ -3922,6 +3923,23 @@ def schedule_deny(scheduled_id):
     conn.commit()
     conn.close()
     return _pending_decision_response(True, "Flight request denied.", "info")
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/dismiss", methods=["POST"])
+@login_required
+def schedule_dismiss(scheduled_id):
+    """A student clearing a denied request off their own "Your Requests"
+    list - just hides it there, the row (and its deny_reason) stays on
+    file same as ever."""
+    conn = get_db()
+    sched = conn.execute("SELECT student_id, status FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    if not sched or sched["student_id"] != session.get("student_id") or sched["status"] != "denied":
+        conn.close()
+        return _pending_decision_response(False, "That request can't be removed.", "danger", redirect_url=url_for("flight.dashboard"))
+    conn.execute("UPDATE scheduled_flights SET student_dismissed_at = ? WHERE id = ?", (now_iso(), scheduled_id))
+    conn.commit()
+    conn.close()
+    return _pending_decision_response(True, "Removed.", "info", redirect_url=url_for("flight.dashboard"))
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/edit", methods=["GET", "POST"])

@@ -1368,6 +1368,14 @@ def _migrate(conn):
         conn.execute("ALTER TABLE scheduled_flights ADD COLUMN deny_reason TEXT")
         conn.commit()
 
+    # A student dismissing a denied request off their own "Your Requests"
+    # list (flight.schedule_dismiss) - just hides it from that list, keeps
+    # the row (and its deny_reason) on file same as ever.
+    sched_cols_dismiss = [r["name"] for r in conn.execute("PRAGMA table_info(scheduled_flights)").fetchall()]
+    if "student_dismissed_at" not in sched_cols_dismiss:
+        conn.execute("ALTER TABLE scheduled_flights ADD COLUMN student_dismissed_at TEXT")
+        conn.commit()
+
     # Assigning a squawk to a specific tech (users.shop_role='tech') so it
     # shows on that person's own dashboard as something to do, separate from
     # someone just acknowledging the squawk exists. worker_acknowledged_at

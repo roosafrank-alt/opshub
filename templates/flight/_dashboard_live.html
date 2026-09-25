@@ -653,10 +653,22 @@
 
 {% if my_requests %}
 <div class="card p-3 mb-3">
-  <h6 class="mb-2"><i class="bi bi-hourglass-split"></i> Your Requests</h6>
+  {#- Starts closed like Upcoming/Recent Flights above - same
+     dash-collapse-toggle/body mechanism (see dashboard.html's click
+     handler and dashLoadOpen/dashSaveOpen), its own "yourrequests" key so
+     opening/closing it doesn't affect the others. Sorted chronologically
+     by flight date (see my_requests in flight.py) same as ever. #}
+  <button type="button" class="dash-collapse-toggle d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0" data-collapse="yourrequests">
+    <h6 class="mb-0"><i class="bi bi-hourglass-split"></i> Your Requests</h6>
+    <span class="d-flex align-items-center gap-2">
+      <span class="badge bg-secondary fs-6">{{ my_requests|length }}</span>
+      <i class="bi bi-chevron-right dash-collapse-chevron"></i>
+    </span>
+  </button>
+  <div class="dash-collapse-body mt-2" data-collapse-body="yourrequests" hidden>
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0 table-stack">
-      <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Status</th></tr></thead>
+      <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Status</th><th></th></tr></thead>
       <tbody>
         {% for m in my_requests %}
         <tr>
@@ -671,10 +683,21 @@
             {% if m.deny_reason %}<div class="text-muted small mt-1">{{ m.deny_reason }}</div>{% endif %}
             {% endif %}
           </td>
+          <td data-label="" class="text-end">
+            {#- Only a denied request can be cleared off the list this way -
+               a still-pending one just resolves on its own (approved or
+               denied) rather than being something to dismiss. #}
+            {% if m.status != 'pending_approval' %}
+            <button type="button" class="btn btn-sm btn-link text-muted p-0 my-request-dismiss-btn" data-dismiss-url="{{ url_for('flight.schedule_dismiss', scheduled_id=m.id) }}" title="Remove from this list">
+              <i class="bi bi-x-lg"></i>
+            </button>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+  </div>
   </div>
 </div>
 {% endif %}

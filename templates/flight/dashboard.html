@@ -628,6 +628,32 @@ document.getElementById('deny-request-form').addEventListener('submit', function
 });
 }
 
+// Clear a denied request off "Your Requests" (student dashboard) - the row
+// itself (and its deny_reason) stays on file, this just hides it from the
+// list from here on (schedule_dismiss in flight.py).
+document.addEventListener('click', function (evt) {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region || !region.contains(evt.target)) return;
+  var btn = evt.target.closest('.my-request-dismiss-btn');
+  if (!btn) return;
+  var row = btn.closest('tr');
+  btn.disabled = true;
+  fetch(btn.dataset.dismissUrl, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.ok) {
+        showDashFlag(data.message, data.category);
+        btn.disabled = false;
+        return;
+      }
+      if (row) row.remove();
+    })
+    .catch(function () {
+      showDashFlag('Something went wrong - try again.', 'danger');
+      btn.disabled = false;
+    });
+});
+
 // Drops a decided (approved/denied) request's row from the Pending
 // Approval table and keeps its count badge in sync, removing the whole
 // card once nothing's left - shared by both the Approve and Deny flows
