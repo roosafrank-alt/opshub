@@ -2051,9 +2051,10 @@ def asset_new():
         cur = conn.execute("""INSERT INTO assets (tag, name, make, model, serial_number, year, owner,
                                hobbs_hours, hobbs_updated_at, tach_hours, tach_updated_at,
                                engine_make, engine_model, engine_serial, prop_make, prop_model, prop_serial,
-                               rental_rate, is_flight_asset, icao24_hex, show_on_map, color, notes, maint_prefs,
+                               rental_rate, is_flight_asset, icao24_hex, show_on_map, color, notes,
+                               maint_oil_type, maint_tire_nose, maint_tire_mains, maint_other,
                                created_at, updated_at)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (tag, request.form.get("name", "").strip() or tag,
                              request.form.get("make", "").strip(), request.form.get("model", "").strip(),
                              request.form.get("serial_number", "").strip(), request.form.get("year", "").strip(),
@@ -2065,7 +2066,11 @@ def asset_new():
                              request.form.get("prop_model", "").strip(), request.form.get("prop_serial", "").strip(),
                              _parse_float(request.form.get("rental_rate")), is_flight_asset,
                              request.form.get("icao24_hex", "").strip().upper() or None, show_on_map, color,
-                             request.form.get("notes", "").strip(), request.form.get("maint_prefs", "").strip(),
+                             request.form.get("notes", "").strip(),
+                             request.form.get("maint_oil_type", "").strip() or None,
+                             request.form.get("maint_tire_nose", "").strip() or None,
+                             request.form.get("maint_tire_mains", "").strip() or None,
+                             request.form.get("maint_other", "").strip() or None,
                              now_iso(), now_iso()))
         new_id = cur.lastrowid
         conn.commit()
@@ -2390,7 +2395,8 @@ def asset_edit(asset_id):
         # an admin instead), so this update deliberately leaves it alone.
         conn.execute("""UPDATE assets SET tag=?, name=?, make=?, model=?, serial_number=?, year=?, owner=?,
                          engine_make=?, engine_model=?, engine_serial=?, prop_make=?, prop_model=?, prop_serial=?,
-                         is_flight_asset=?, icao24_hex=?, show_on_map=?, notes=?, maint_prefs=?, color=?,
+                         is_flight_asset=?, icao24_hex=?, show_on_map=?, notes=?,
+                         maint_oil_type=?, maint_tire_nose=?, maint_tire_mains=?, maint_other=?, color=?,
                          updated_at=? WHERE id=?""",
                      (tag, request.form.get("name", "").strip() or tag, request.form.get("make", "").strip(),
                       request.form.get("model", "").strip(), request.form.get("serial_number", "").strip(),
@@ -2399,7 +2405,11 @@ def asset_edit(asset_id):
                       request.form.get("engine_serial", "").strip(), request.form.get("prop_make", "").strip(),
                       request.form.get("prop_model", "").strip(), request.form.get("prop_serial", "").strip(),
                       is_flight_asset, request.form.get("icao24_hex", "").strip().upper() or None, show_on_map,
-                      request.form.get("notes", "").strip(), request.form.get("maint_prefs", "").strip(), color,
+                      request.form.get("notes", "").strip(),
+                      request.form.get("maint_oil_type", "").strip() or None,
+                      request.form.get("maint_tire_nose", "").strip() or None,
+                      request.form.get("maint_tire_mains", "").strip() or None,
+                      request.form.get("maint_other", "").strip() or None, color,
                       now_iso(), asset_id))
         conn.commit()
         conn.close()

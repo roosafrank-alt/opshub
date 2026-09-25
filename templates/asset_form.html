@@ -105,8 +105,25 @@
     </div>
     {% endif %}
     <div class="mb-3">
-      <label class="form-label">Maintenance Preferences <span class="text-muted small">(oil type, tire pressure, etc.)</span></label>
-      <textarea name="maint_prefs" class="form-control" rows="3" placeholder="e.g. Oil: Aeroshell 15W-50&#10;Tires: 24 psi mains / 30 psi nose">{{ asset.maint_prefs if asset else '' }}</textarea>
+      <label class="form-label">Maintenance Preferences <span class="text-muted small">(shown as a quick-reference strip above Maintenance on the Aircraft page)</span></label>
+      <div class="row g-2">
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">Oil Type</label>
+          <input type="text" name="maint_oil_type" class="form-control form-control-sm" placeholder="e.g. Aeroshell 15W-50" value="{{ asset.maint_oil_type if asset else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">Tire PSI - Nose</label>
+          <input type="text" name="maint_tire_nose" class="form-control form-control-sm" placeholder="e.g. 30" value="{{ asset.maint_tire_nose if asset else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">Tire PSI - Mains</label>
+          <input type="text" name="maint_tire_mains" class="form-control form-control-sm" placeholder="e.g. 24" value="{{ asset.maint_tire_mains if asset else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0">Other</label>
+          <input type="text" name="maint_other" class="form-control form-control-sm" placeholder="e.g. anything else" value="{{ asset.maint_other if asset else '' }}">
+        </div>
+      </div>
     </div>
     <div class="mb-3">
       <label class="form-label">Notes</label>

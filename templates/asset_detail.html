@@ -119,13 +119,6 @@
       <div class="form-text">Goes straight to the Squawks page - no need to log a flight for this.</div>
     </div>
 
-    {% if asset.maint_prefs %}
-    <div class="card p-3 mt-3">
-      <h6><i class="bi bi-droplet-half"></i> Maintenance Preferences</h6>
-      <p class="mb-0" style="white-space:pre-wrap;">{{ asset.maint_prefs }}</p>
-    </div>
-    {% endif %}
-
     {% if asset.notes %}
     <div class="card p-3 mt-3">
       <h6>Notes</h6>
@@ -212,6 +205,27 @@
   </div>
 
   <div class="col-lg-8">
+    {#- Maintenance preferences: a compact, single-line strip of quick-
+       reference boxes (oil type, tire pressures, anything else) right above
+       Maintenance - obvious at a glance without reading as a warning, so a
+       light info style rather than the danger/warning colors used for
+       actual maintenance status below it. #}
+    {% if asset.maint_oil_type or asset.maint_tire_nose or asset.maint_tire_mains or asset.maint_other %}
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      {% if asset.maint_oil_type %}
+      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-normal py-2 px-2"><i class="bi bi-droplet-half"></i> Oil: {{ asset.maint_oil_type }}</span>
+      {% endif %}
+      {% if asset.maint_tire_nose %}
+      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-normal py-2 px-2"><i class="bi bi-circle"></i> Nose: {{ asset.maint_tire_nose }} psi</span>
+      {% endif %}
+      {% if asset.maint_tire_mains %}
+      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-normal py-2 px-2"><i class="bi bi-circle"></i> Mains: {{ asset.maint_tire_mains }} psi</span>
+      {% endif %}
+      {% if asset.maint_other %}
+      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-normal py-2 px-2"><i class="bi bi-info-circle"></i> {{ asset.maint_other }}</span>
+      {% endif %}
+    </div>
+    {% endif %}
     {#- Maintenance and To-Do sit up here (they used to be at the bottom of
         the left column, a long scroll down on a laptop, with this side
         mostly empty). Side by side on wide screens, stacked on phones. #}

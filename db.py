@@ -1075,6 +1075,27 @@ def _migrate(conn):
             conn.execute(ddl)
             conn.commit()
 
+    # Maintenance Preferences split into quick-reference boxes (oil type,
+    # tire pressures, anything else) instead of one free-text blob, so they
+    # can show as a compact strip above Maintenance on the Aircraft page -
+    # see asset_form.html/asset_detail.html. The old maint_prefs column's
+    # text is carried over into maint_other once, so nothing already on file
+    # is lost; maint_prefs itself is left in the database unused after that.
+    asset_cols_maint = [r["name"] for r in conn.execute("PRAGMA table_info(assets)").fetchall()]
+    for col, ddl in (
+        ("maint_oil_type", "ALTER TABLE assets ADD COLUMN maint_oil_type TEXT"),
+        ("maint_tire_nose", "ALTER TABLE assets ADD COLUMN maint_tire_nose TEXT"),
+        ("maint_tire_mains", "ALTER TABLE assets ADD COLUMN maint_tire_mains TEXT"),
+        ("maint_other", "ALTER TABLE assets ADD COLUMN maint_other TEXT"),
+    ):
+        if col not in asset_cols_maint:
+            conn.execute(ddl)
+            conn.commit()
+    if not conn.execute("SELECT 1 FROM app_settings WHERE key = 'maint_prefs_split'").fetchone():
+        conn.execute("UPDATE assets SET maint_other = maint_prefs WHERE maint_prefs IS NOT NULL AND maint_prefs != '' AND (maint_other IS NULL OR maint_other = '')")
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('maint_prefs_split', ?)", (now_iso(),))
+        conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of
