@@ -4801,6 +4801,21 @@ def log_active():
         flights.append(dict(_row_with_cost(r), can_end=_can_end_flight(r), can_ack=_can_ack_overdue(r),
                             session_status=_session_status(r), eta_label=eta_label,
                             eta_affected=affected.get(r["id"], [])))
+    # Still-flying flights above ones whose clock has already been stopped
+    # and are just waiting on End Flight's form to be filled in and
+    # submitted - those two states used to interleave by start time, mixing
+    # "still up" with "already down, needs paperwork". Within each group,
+    # whoever's logged in sees their own flight (as the assigned CFI or the
+    # solo student) first - easy to lose track of your own flight on a busy
+    # board, especially for an admin who's also instructing.
+    my_cfi_id = session.get("cfi_id")
+    my_student_id = session.get("student_id")
+    def _board_sort_key(f):
+        is_stopped = 1 if f["stopped_at"] else 0
+        is_mine = 0 if ((my_cfi_id and f["cfi_id"] == my_cfi_id) or
+                        (my_student_id and f["student_id"] == my_student_id)) else 1
+        return (is_stopped, is_mine, f["started_at"] or "")
+    flights.sort(key=_board_sort_key)
     # Inline "it worked" note on the card just acted on - the page's flash
     # messages sit at the very top, out of sight on a phone once the
     # redirect scrolls down to the card (see log_ack_overdue / log_set_eta).
