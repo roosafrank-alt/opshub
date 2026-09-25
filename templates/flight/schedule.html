@@ -93,6 +93,15 @@
     z-index: 4;
   }
   tr.schedule-block-mine { background: #eaf2ff !important; }
+  {% if session.get('student_id') and not session.get('cfi_id') %}
+  /* Everyone else's flights fade back so a student's own booking is the
+     one obvious thing on a busy calendar, not just outlined among equals. */
+  .schedule-block:not(.schedule-block-mine),
+  tr.schedule-block:not(.schedule-block-mine) {
+    opacity: 0.35;
+    filter: grayscale(35%);
+  }
+  {% endif %}
   /* Empty space on the Day/Week timeline is clickable to schedule a new
      flight at that time (see the click handler below) - cursor says so. */
   .day-timeline-track-clickable { cursor: pointer; }
