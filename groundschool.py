@@ -174,24 +174,32 @@ def _find_element_pages(conn, task, el, limit=2):
     return out
 
 
-def linked_references_html(conn, references_text):
+def linked_references_html(conn, references_text, task_id=None):
     """Renders a Task's References string with any recognized citation
-    linked to the uploaded Resource page it was found on (best-effort text
-    search - see _index_resource_pages). Unmatched tokens render as plain
-    text."""
+    linked to the uploaded Resource's complete document (best-effort text
+    search - see _index_resource_pages) - the whole document, not just the
+    page it was found on, since a Task's own References is the "go read the
+    real source" link (see task_reference_click/task_mark_read for the
+    student's per-task reading tracker); an element's own "Related Reading"
+    still links to a short excerpt around the matched page instead (see
+    _find_element_pages/element_detail.html), since that's meant as a quick
+    pointer to the relevant spot, not the whole reading assignment.
+    Unmatched tokens render as plain text. task_id, when given, tags each
+    link so the page's JS can mark the reading opened once a student clicks
+    one (class="task-ref-link" data-task-id)."""
     if not references_text:
         return Markup("")
     out = []
     pos = 0
+    link_attrs = f' class="task-ref-link" data-task-id="{task_id}"' if task_id else ""
     for m in _REF_TOKEN_RE.finditer(references_text):
         out.append(escape(references_text[pos:m.start()]))
         token = m.group(0)
         hit = _find_resource_page(conn, token)
         if hit:
-            resource_id, page_num = hit
-            href = url_for("groundschool.resource_excerpt", resource_id=resource_id,
-                            pages=f"{page_num},{page_num + 1}")
-            out.append(Markup('<a href="%s" target="_blank" rel="noopener">%s</a>') % (href, token))
+            resource_id, _page_num = hit
+            href = url_for("groundschool.resource_file", resource_id=resource_id)
+            out.append(Markup('<a href="%s" target="_blank" rel="noopener"%s>%s</a>') % (href, Markup(link_attrs), token))
         else:
             out.append(escape(token))
         pos = m.end()
@@ -490,7 +498,7 @@ def rating_detail(rating_id):
                     "SELECT * FROM acs_task_elements WHERE task_id = ? AND kind = 'skills' ORDER BY order_index",
                     (task["id"],)).fetchall(),
             }
-            references_html_by_task[task["id"]] = linked_references_html(conn, task["acs_references"])
+            references_html_by_task[task["id"]] = linked_references_html(conn, task["acs_references"], task_id=task["id"])
     viewing_student_id, students = _resolve_viewing_student(conn)
     progress = _rating_progress(conn, rating_id, viewing_student_id) if viewing_student_id else None
     element_done = _element_done_map(conn, rating_id, viewing_student_id) if viewing_student_id else {}
@@ -539,7 +547,7 @@ def task_detail(task_id):
     students = []
     if session.get("cfi_id"):
         students = conn.execute("SELECT id, name FROM students WHERE active = 1 ORDER BY name").fetchall()
-    references_html = linked_references_html(conn, task["acs_references"])
+    references_html = linked_references_html(conn, task["acs_references"], task_id=task_id)
     viewing_student_id, _ = _resolve_viewing_student(conn)
     element_ids = [e["id"] for e in knowledge] + [e["id"] for e in risk_management] + [e["id"] for e in skills]
     element_done = {}
@@ -552,6 +560,11 @@ def task_detail(task_id):
         element_done = {r["element_id"]: bool(r["self_completed_at"] and r["cfi_verified_at"]) for r in rows}
     task_done = sum(1 for v in element_done.values() if v)
     task_total = len(element_ids)
+    reading_progress = None
+    if session.get("student_id"):
+        reading_progress = conn.execute(
+            "SELECT * FROM acs_task_reading_progress WHERE student_id = ? AND task_id = ?",
+            (session["student_id"], task_id)).fetchone()
     # Sibling tasks in this area, for Prev/Next - and the next task overall
     # (rolling into the next area) so browsing doesn't dead-end at an area
     # boundary.
@@ -567,7 +580,8 @@ def task_detail(task_id):
                             skills=skills, lesson=lesson, signoffs=signoffs, my_signoff=my_signoff,
                             students=students, prev_task_id=prev_task_id, next_task_id=next_task_id,
                             tab="groundschool", references_html=references_html,
-                            element_done=element_done, task_done=task_done, task_total=task_total)
+                            element_done=element_done, task_done=task_done, task_total=task_total,
+                            reading_progress=reading_progress)
 
 
 @groundschool_bp.route("/task/<int:task_id>/lesson", methods=["POST"])
@@ -812,6 +826,56 @@ def element_item_delete(element_id, item_id):
     conn.close()
     flash("Lesson item removed.", "success")
     return redirect(url_for("groundschool.element_detail", element_id=element_id))
+
+
+@groundschool_bp.route("/task/<int:task_id>/reference-click", methods=["POST"])
+@login_required
+def task_reference_click(task_id):
+    """Records that this student opened one of the Task's own References
+    links (the full source document, not an element's short excerpt) - the
+    prerequisite task_mark_read checks for before letting them mark the
+    Task's reading as done."""
+    student_id = session.get("student_id")
+    if not student_id:
+        return {"ok": False, "error": "Only a student's own reading progress is tracked."}, 403
+    conn = get_db()
+    existing = conn.execute("SELECT 1 FROM acs_task_reading_progress WHERE student_id = ? AND task_id = ?",
+                             (student_id, task_id)).fetchone()
+    if existing:
+        conn.execute("UPDATE acs_task_reading_progress SET reference_opened_at = ? "
+                     "WHERE student_id = ? AND task_id = ? AND reference_opened_at IS NULL",
+                     (now_iso(), student_id, task_id))
+    else:
+        conn.execute("INSERT INTO acs_task_reading_progress (student_id, task_id, reference_opened_at) "
+                     "VALUES (?, ?, ?)", (student_id, task_id, now_iso()))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
+@groundschool_bp.route("/task/<int:task_id>/mark-read", methods=["POST"])
+@login_required
+def task_mark_read(task_id):
+    """A student marks a Task's reading as done - only allowed once they've
+    actually opened one of its Reference links (task_reference_click),
+    checked server-side too since the button's disabled state is just UI."""
+    student_id = session.get("student_id")
+    if not student_id:
+        flash("Only a student can mark their own reading as done.", "danger")
+        return redirect(url_for("groundschool.task_detail", task_id=task_id))
+    conn = get_db()
+    progress = conn.execute("SELECT * FROM acs_task_reading_progress WHERE student_id = ? AND task_id = ?",
+                             (student_id, task_id)).fetchone()
+    if not progress or not progress["reference_opened_at"]:
+        conn.close()
+        flash("Open one of the References links first so you've actually read it.", "danger")
+        return redirect(url_for("groundschool.task_detail", task_id=task_id))
+    conn.execute("UPDATE acs_task_reading_progress SET marked_read_at = ? WHERE student_id = ? AND task_id = ?",
+                 (now_iso(), student_id, task_id))
+    conn.commit()
+    conn.close()
+    flash("Marked as read.", "success")
+    return redirect(url_for("groundschool.task_detail", task_id=task_id))
 
 
 @groundschool_bp.route("/element/<int:element_id>/item/<int:item_id>/interact", methods=["POST"])

@@ -34,7 +34,28 @@
 <div class="card academy-card mb-3">
   <div class="card-header fw-bold"><i class="bi bi-file-text"></i> ACS Standard</div>
   <div class="card-body">
-    {% if task.acs_references %}<p class="mb-2"><strong>References:</strong> {{ references_html }}</p>{% endif %}
+    {% if task.acs_references %}
+    <p class="mb-2"><strong>References:</strong> {{ references_html }}</p>
+    {% if session.get('student_id') %}
+    {#- The reading assignment for this Task's own References (the full
+       source documents, not an element's short excerpt) - Mark as Read
+       stays disabled until a reference link's actually been opened
+       (task_reference_click), checked again server-side by
+       task_mark_read since a disabled button is only a UI nudge. #}
+    <div class="mb-2">
+      {% if reading_progress and reading_progress.marked_read_at %}
+      <span class="badge bg-success"><i class="bi bi-check-lg"></i> Read</span>
+      {% else %}
+      <form method="post" action="{{ url_for('groundschool.task_mark_read', task_id=task.id) }}" class="d-inline">
+        <button type="submit" id="mark-read-btn" class="btn btn-outline-success btn-sm"
+                {% if not (reading_progress and reading_progress.reference_opened_at) %}disabled title="Open a reference link above first"{% endif %}>
+          <i class="bi bi-bookmark-check"></i> Mark as Read
+        </button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% endif %}
     {% if task.objective %}<p class="mb-2"><strong>Objective:</strong> {{ task.objective }}</p>{% endif %}
     {% for n in notes %}
     <div class="alert alert-info py-2 px-3 small mb-2"><strong>Note:</strong> {{ n.note }}</div>
@@ -166,5 +187,20 @@
     {% endif %}
   </div>
 </div>
+{% endif %}
+{% if session.get('student_id') and task.acs_references %}
+<script>
+// Clicking a Task Reference link (opens the full source document in a new
+// tab) also records that it was opened, which is what enables Mark as Read
+// below - see task_reference_click/task_mark_read in groundschool.py.
+document.querySelectorAll('.task-ref-link').forEach(function (a) {
+  a.addEventListener('click', function () {
+    fetch('{{ url_for("groundschool.task_reference_click", task_id=task.id) }}',
+          { method: 'POST', headers: { 'X-Requested-With': 'fetch' } }).catch(function () {});
+    var btn = document.getElementById('mark-read-btn');
+    if (btn) { btn.disabled = false; btn.title = ''; }
+  }, { once: false });
+});
+</script>
 {% endif %}
 {% endblock %}

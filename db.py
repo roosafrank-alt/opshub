@@ -1047,6 +1047,21 @@ def _migrate(conn):
         PRIMARY KEY (student_id, element_id)
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_acs_element_completion_student ON acs_element_completion(student_id)")
+    # A Task's own References (the ACS's citation list, e.g. "14 CFR 61.83,
+    # AC 61-65") now link to the complete source document rather than a
+    # short excerpt (see linked_references_html) - this tracks, per student
+    # per Task, that they actually opened one of those links before letting
+    # them mark the reading as done (task_reference_click/task_mark_read in
+    # groundschool.py). Separate from acs_element_completion, which tracks
+    # a Knowledge/Risk/Skills element's own lesson items, not the Task-level
+    # reading assignment.
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_task_reading_progress (
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        task_id INTEGER NOT NULL REFERENCES acs_tasks(id),
+        reference_opened_at TEXT,
+        marked_read_at TEXT,
+        PRIMARY KEY (student_id, task_id)
+    )""")
     conn.commit()
 
     # Flight School Reports tab: plane issue / missing checklist / concerning
