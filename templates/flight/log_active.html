@@ -285,18 +285,6 @@
       </div>
       {% endif %}
     </div>
-    {#- Shown always - not just once Paid is picked - so the balance is
-       there for reference either way. "Use Credit" stays greyed out until
-       Hobbs End makes a total billable (matches what the server needs to
-       price the flight - see the hobbs-end-input listener below); applying
-       it still only actually counts once this flight is logged Paid. #}
-    {% if f.student_balance and f.student_balance > 0.005 %}
-    <div class="alert alert-success py-2 px-3 small d-flex justify-content-between align-items-center mb-2 mt-2">
-      <span><i class="bi bi-piggy-bank"></i> Credit on file: <strong>${{ '%.2f'|format(f.student_balance) }}</strong></span>
-      <button type="button" class="btn btn-outline-success btn-sm use-credit-btn" data-credit="{{ '%.2f'|format(f.student_balance) }}" data-target="credit-applied-{{ f.id }}" data-note-target="credit-note-{{ f.id }}" data-flight-id="{{ f.id }}" disabled title="Enter Hobbs End first so there's a total to apply it to">Use Credit</button>
-    </div>
-    <div class="small text-success mb-2 d-none" id="credit-note-{{ f.id }}"></div>
-    {% endif %}
     <input type="hidden" name="credit_applied" id="credit-applied-{{ f.id }}" value="0">
     {#- The actual dollar total, computed live as Hobbs/ground/solo are
        typed (see computeFlightTotal() below) - shown before Paid/Amount
@@ -314,15 +302,27 @@
         <label class="btn btn-outline-danger fw-bold" for="paid-0-{{ f.id }}"><i class="bi bi-hourglass"></i> Unpaid</label>
       </div>
     </div>
+    {#- Shown always - not just once Paid is picked - so the balance is
+       there for reference either way. "Use Credit" stays greyed out until
+       Hobbs End makes a total billable (matches what the server needs to
+       price the flight - see the hobbs-end-input listener below); applying
+       it still only actually counts once this flight is logged Paid. #}
+    {% if f.student_balance and f.student_balance > 0.005 %}
+    <div class="alert alert-success py-2 px-3 small d-flex justify-content-between align-items-center mb-2 mt-2">
+      <span><i class="bi bi-piggy-bank"></i> Credit on file: <strong>${{ '%.2f'|format(f.student_balance) }}</strong></span>
+      <button type="button" class="btn btn-outline-success btn-sm use-credit-btn" data-credit="{{ '%.2f'|format(f.student_balance) }}" data-target="credit-applied-{{ f.id }}" data-note-target="credit-note-{{ f.id }}" data-flight-id="{{ f.id }}" disabled title="Enter Hobbs End first so there's a total to apply it to">Use Credit</button>
+    </div>
+    <div class="small text-success mb-2 d-none" id="credit-note-{{ f.id }}"></div>
+    {% endif %}
     <div class="mt-2 payment-details" id="payment-details-{{ f.id }}" hidden>
       <div class="row g-2">
         <div class="col-6">
           <label class="form-label small mb-0">Amount Collected ($)</label>
-          <input type="number" step="0.01" min="0" name="payment_amount" class="form-control form-control-sm" placeholder="0.00">
+          <input type="number" step="0.01" min="0" name="payment_amount" id="payment-amount-{{ f.id }}" class="form-control form-control-sm" placeholder="0.00">
         </div>
         <div class="col-6">
           <label class="form-label small mb-0">How Paid{% if f.student_pay_preference %} <span class="text-muted fw-normal">(usually {{ f.student_pay_preference }})</span>{% endif %}</label>
-          <select name="payment_method" class="form-select form-select-sm">
+          <select name="payment_method" id="payment-method-{{ f.id }}" class="form-select form-select-sm">
             <option value="">Select...</option>
             <option value="Cash" {{ 'selected' if f.student_pay_preference == 'Cash' }}>Cash</option>
             <option value="Card" {{ 'selected' if f.student_pay_preference == 'Card' }}>Card</option>
@@ -334,6 +334,7 @@
       </div>
       <div class="form-text">Apply credit above first if there is any, then enter whatever else was actually collected and how. The flight's full cost (payment + credit) has to be accounted for before it logs as Paid.</div>
     </div>
+    <div class="alert alert-danger py-2 px-3 small d-none mt-2" id="end-payment-error-{{ f.id }}"></div>
     <div class="mt-2">
       <label class="form-label small mb-0">Notes</label>
       <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="any note here is flagged as a squawk for the shop">{{ f.notes or '' }}</textarea>
@@ -865,15 +866,18 @@ function roundUpHours(h) {
   if (!h) return 0;
   return Math.ceil((Math.round(h * 1e6) / 1e6) / 0.1 - 1e-9) * 0.1;
 }
-function computeFlightTotal(fId) {
+// Returns the flight's live dollar total, or null if there's not enough
+// entered yet to price it (mirrors flight._flight_cost() server-side) -
+// shared by the on-screen total (computeFlightTotal) and the Paid/Unpaid
+// submit check below, so both agree on the same number.
+function getFlightTotal(fId) {
   var form = document.getElementById('end-form-' + fId);
-  var display = document.getElementById('flight-total-' + fId);
-  if (!form || !display) return;
+  if (!form) return null;
   var startInput = document.getElementById('hobbs-start-' + fId);
   var endInput = document.getElementById('hobbs-end-' + fId);
   var start = startInput ? parseFloat(startInput.value) : NaN;
   var end = endInput ? parseFloat(endInput.value) : NaN;
-  if (isNaN(start) || isNaN(end) || end <= start) { display.classList.add('d-none'); return; }
+  if (isNaN(start) || isNaN(end) || end <= start) return null;
   var planeRate = parseFloat(form.dataset.planeRate) || 0;
   var instructorRate = parseFloat(form.dataset.instructorRate) || 0;
   var isSolo = form.dataset.solo === '1';
@@ -891,8 +895,13 @@ function computeFlightTotal(fId) {
   var planeCost = hours * planeRate;
   var instructorCost = isSolo ? 0 : instructorHours * instructorRate;
   var groundCost = isSolo ? 0 : groundHours * instructorRate;
-  var total = planeCost + instructorCost + groundCost;
-
+  return planeCost + instructorCost + groundCost;
+}
+function computeFlightTotal(fId) {
+  var display = document.getElementById('flight-total-' + fId);
+  if (!display) return;
+  var total = getFlightTotal(fId);
+  if (total === null) { display.classList.add('d-none'); return; }
   display.classList.remove('d-none');
   display.querySelector('.flight-total-amount').textContent = '$' + total.toFixed(2);
 }
@@ -905,6 +914,45 @@ document.querySelectorAll('[name="ground_time_hours"], [name="solo_hours"]').for
 // (e.g. filled in earlier via "Add starting info" while the flight ran).
 document.querySelectorAll('form[id^="end-form-"]').forEach(function (form) {
   computeFlightTotal(form.id.replace('end-form-', ''));
+});
+// Catch the same "Paid but not fully accounted for" case flight.log_end()
+// rejects server-side, before it ever leaves the page - a server-side
+// rejection redirects back to a blank form, losing everything just typed.
+// Mirrors the server's own math (payment + credit has to cover the total,
+// and a payment needs a payment method) so what's blocked here is exactly
+// what would otherwise bounce.
+document.querySelectorAll('form[id^="end-form-"]').forEach(function (form) {
+  var fId = form.id.replace('end-form-', '');
+  var errorBox = document.getElementById('end-payment-error-' + fId);
+  form.addEventListener('submit', function (e) {
+    if (!errorBox) return;
+    errorBox.classList.add('d-none');
+    var paidInput = form.querySelector('input[name="paid"]:checked');
+    if (!paidInput || paidInput.value !== '1') return;
+    var total = getFlightTotal(fId);
+    if (total === null || total <= 0.005) return;
+    var creditInput = document.getElementById('credit-applied-' + fId);
+    var amountInput = document.getElementById('payment-amount-' + fId);
+    var methodInput = document.getElementById('payment-method-' + fId);
+    var creditApplied = creditInput ? (parseFloat(creditInput.value) || 0) : 0;
+    var paymentAmount = amountInput ? (parseFloat(amountInput.value) || 0) : 0;
+    var covered = creditApplied + paymentAmount;
+    if (paymentAmount > 0.005 && methodInput && !methodInput.value) {
+      e.preventDefault();
+      errorBox.textContent = 'Pick how the payment was made (cash, card, etc.) to log this flight as Paid.';
+      errorBox.classList.remove('d-none');
+      methodInput.focus();
+      return;
+    }
+    if (covered + 0.005 < total) {
+      e.preventDefault();
+      var short = total - covered;
+      errorBox.textContent = 'This flight comes to $' + total.toFixed(2) + '. $' + covered.toFixed(2) +
+        ' is accounted for so far - enter the remaining $' + short.toFixed(2) + ' as a payment (or apply more credit) to log it as Paid.';
+      errorBox.classList.remove('d-none');
+      if (amountInput) amountInput.focus();
+    }
+  });
 });
 </script>
 {% endblock %}
