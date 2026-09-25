@@ -2590,7 +2590,7 @@ def _cfi_schedule_week(conn, cfi_id, week_dates):
         windows = sorted(_time_window(f["scheduled_time"], f["duration_hours"])
                          for f in flights if f["scheduled_date"] == ds
                          and _time_window(f["scheduled_time"], f["duration_hours"]))
-        segments = []
+        segments = [{"kind": "off", "left": 0, "width": 100}] if all_day_off else []
         on_start = on_end = None
         if not all_day_off and windows:
             merged = [list(windows[0])]
@@ -2642,6 +2642,7 @@ def cfi_schedule():
     cfi_id = session["cfi_id"]
     if request.method == "POST":
         off_date = request.form.get("off_date", "").strip()
+        off_end_date = request.form.get("off_end_date", "").strip()
         start_time = request.form.get("start_time", "").strip()
         end_time = request.form.get("end_time", "").strip()
         note = request.form.get("note", "").strip()
@@ -2651,14 +2652,33 @@ def cfi_schedule():
             flash("Pick a date for the time off.", "danger")
         elif start_time and end_time and end_time <= start_time:
             flash("End time has to be after start time.", "danger")
+        elif off_end_date and off_end_date < off_date:
+            flash("End date has to be on or after the start date.", "danger")
         else:
-            conn.execute("INSERT INTO cfi_time_off (cfi_id, off_date, start_time, end_time, note, recurs_weekly) "
-                        "VALUES (?, ?, ?, ?, ?, ?)",
-                        (cfi_id, off_date, start_time or None, end_time or None, note or None, recurs_weekly))
+            # A date range (off_end_date set) fills in one row per day so
+            # each day still blocks bookings independently - recurs_weekly
+            # covers the "every week" case instead, so the two are mutually
+            # exclusive (a range wins if both are somehow submitted).
+            if off_end_date and off_end_date > off_date:
+                start_d = datetime.strptime(off_date, "%Y-%m-%d").date()
+                end_d = datetime.strptime(off_end_date, "%Y-%m-%d").date()
+                span_days = min((end_d - start_d).days, 366)
+                off_dates = [(start_d + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(span_days + 1)]
+                recurs_weekly = 0
+            else:
+                off_dates = [off_date]
+            for d in off_dates:
+                conn.execute("INSERT INTO cfi_time_off (cfi_id, off_date, start_time, end_time, note, recurs_weekly) "
+                            "VALUES (?, ?, ?, ?, ?, ?)",
+                            (cfi_id, d, start_time or None, end_time or None, note or None, recurs_weekly))
             conn.commit()
-            weekday_name = datetime.strptime(off_date, "%Y-%m-%d").strftime("%A")
-            msg = (f"Time off added for every {weekday_name} - it now blocks new bookings for you on that day going forward."
-                   if recurs_weekly else "Time off added - it now blocks new bookings for you over that time.")
+            if len(off_dates) > 1:
+                msg = f"Time off added for {off_dates[0]} through {off_dates[-1]} - it now blocks new bookings for you over that span."
+            elif recurs_weekly:
+                weekday_name = datetime.strptime(off_date, "%Y-%m-%d").strftime("%A")
+                msg = f"Time off added for every {weekday_name} - it now blocks new bookings for you on that day going forward."
+            else:
+                msg = "Time off added - it now blocks new bookings for you over that time."
             flash(msg, "success")
         conn.close()
         return redirect(url_for("flight.cfi_schedule", date=anchor_date or off_date))
