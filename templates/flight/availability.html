@@ -28,10 +28,12 @@
     padding: .75rem .75rem .6rem;
     border-bottom: 1px solid #dee2e6;
   }
-  .avail-grid { border-collapse: separate; border-spacing: 0; }
+  .avail-grid { border-collapse: separate; border-spacing: 2px; }
   .avail-grid th, .avail-grid td { vertical-align: middle; white-space: nowrap; }
   .avail-grid thead th { position: sticky; top: calc(var(--flight-nav-h, 56px) + 92px); background: #fff; z-index: 5; }
-  .avail-plane-col { position: sticky; left: 0; background: #fff; z-index: 4; font-weight: 700; min-width: 90px; }
+  {#- min-width (not max) plus overflow:visible so a longer tail number (e.g.
+     N22689) never gets clipped by the sticky column, whatever its width. #}
+  .avail-plane-col { position: sticky; left: 0; background: #fff; z-index: 4; font-weight: 700; min-width: 110px; overflow: visible; box-shadow: 2px 0 3px -1px rgba(0,0,0,.08); }
   .avail-slot-open {
     background: #d1f7dd;
     color: #0a3d1f;
@@ -39,8 +41,10 @@
     text-align: center;
     font-size: .72rem;
     padding: .4rem .3rem;
-    border: 1px solid #a9e6bb;
+    border: 2px solid #a9e6bb;
+    border-radius: 4px;
   }
+  .avail-slot-open .avail-slot-time { display: block; font-weight: 700; }
   .avail-slot-open:hover { background: #a9e6bb; }
   .avail-slot-booked {
     background: #e9ecef;
@@ -48,7 +52,8 @@
     text-align: center;
     font-size: .68rem;
     padding: .4rem .3rem;
-    border: 1px solid #dee2e6;
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
   }
   .avail-slot-booked .avail-booked-who { display: block; font-size: .62rem; }
   @media (max-width: 575.98px) {
@@ -183,12 +188,16 @@
           <span class="avail-booked-who">{{ cell.flight.student_name }}</span>
         </td>
         {% else %}
-        {#- schedule_new() now takes ?time=HH:MM too, so this slot's own
-           start time comes pre-filled (still freely adjustable) instead of
-           defaulting to 9:00 and making you re-pick it by hand. #}
+        {#- schedule_new() now takes ?time=HH:MM and ?asset_id=... too, so
+           this slot's own start time and plane come pre-filled (still
+           freely adjustable) instead of defaulting to 9:00/no plane and
+           making you re-pick both by hand. The time shows on the box
+           itself (not just the column header) so each box is
+           self-labeled even once you've scrolled. #}
         <td class="avail-slot-open" role="button"
-            onclick="window.location.href='{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60)) }}'"
+            onclick="window.location.href='{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60), asset_id=row.plane.id) }}'"
             title="{{ row.plane.tag }} open {{ cell.label }} - click to schedule a flight">
+          <span class="avail-slot-time">{{ cell.label }}</span>
           Open
         </td>
         {% endif %}
@@ -221,7 +230,7 @@
         <div class="d-flex flex-wrap gap-1">
           {% for item in items %}
           <a class="btn btn-sm btn-outline-success"
-             href="{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(item.start_min // 60, item.start_min % 60)) }}"
+             href="{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(item.start_min // 60, item.start_min % 60), asset_id=item.plane_id) }}"
              title="{{ item.plane_tag }} open {{ item.label }} - click to schedule a flight">{{ item.label }}</a>
           {% endfor %}
         </div>

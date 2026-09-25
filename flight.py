@@ -3628,8 +3628,16 @@ def schedule_new():
         datetime.strptime(prefill_time, "%H:%M")
     except ValueError:
         prefill_time = ""
+    # The Availability grid/list also links here with ?asset_id=... from the
+    # specific plane/simulator whose open slot was clicked, so that plane
+    # comes pre-picked too instead of just the time - still freely
+    # changeable from there like any other booking.
+    prefill_asset_id = request.args.get("asset_id", "").strip()
+    if prefill_asset_id and not any(str(p["id"]) == prefill_asset_id for p in planes):
+        prefill_asset_id = ""
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
-                       today=prefill_date, prefill_time=prefill_time, current_cfi_id=session.get("cfi_id"),
+                       today=prefill_date, prefill_time=prefill_time, prefill_asset_id=prefill_asset_id,
+                       current_cfi_id=session.get("cfi_id"),
                        self_service=self_service, self_student=self_student,
                        # ?complete=1 opens the form with "Flight Already
                        # Complete?" already checked (old Log a Flight links).
