@@ -23,6 +23,7 @@
             <a href="{{ url_for('asset_detail', asset_id=p.id) }}" class="btn btn-outline-secondary btn-sm" title="Oil and compression reports live here now"><i class="bi bi-tools"></i> View in Maintenance</a>
             {% endif %}
             {% if session.get('is_master_admin') %}
+            <a href="{{ url_for('asset_edit', asset_id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
             <a href="{{ url_for('flight.plane_rate_edit', asset_id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-palette"></i> Color</a>
             {% endif %}
           </td>
