@@ -2216,6 +2216,16 @@ def _used_colors_for_plane(conn, asset_id):
     return cfi_colors | _used_plane_colors(conn, exclude_asset_id=asset_id)
 
 
+def _used_solo_colors_for_plane(conn, asset_id):
+    """Solo Colors already picked by other planes - its own namespace
+    (doesn't need to avoid CFI/Schedule colors, since it only ever shows on
+    that plane's own solo bookings, not next to an instructor's stripe)."""
+    rows = conn.execute(
+        "SELECT solo_color FROM assets WHERE solo_color IS NOT NULL AND deleted_at IS NULL "
+        "AND is_flight_asset = 1 AND id != ?", (asset_id,)).fetchall()
+    return {r["solo_color"] for r in rows}
+
+
 @flight_bp.route("/cfis/new", methods=["GET", "POST"])
 @admin_required
 def cfi_new():
@@ -2737,6 +2747,10 @@ def plane_rate_edit(asset_id):
         solo_color = request.form.get("solo_color", "").strip() or None
         if solo_color and solo_color not in SCHEDULE_COLORS:
             solo_color = None
+        if solo_color and solo_color in _used_solo_colors_for_plane(conn, asset_id):
+            flash("That Solo Color is already taken by another plane - pick a different one.", "danger")
+            conn.close()
+            return redirect(url_for("flight.plane_rate_edit", asset_id=asset_id))
         conn.execute("UPDATE assets SET schedule_color = ?, solo_color = ?, updated_at = ? WHERE id = ?",
                      (color, solo_color, now_iso(), asset_id))
         conn.commit()
@@ -2744,9 +2758,10 @@ def plane_rate_edit(asset_id):
         flash(f"Color updated for {plane['tag']}.", "success")
         return redirect(url_for("flight.planes_list"))
     used_colors = _used_colors_for_plane(conn, asset_id)
+    used_solo_colors = _used_solo_colors_for_plane(conn, asset_id)
     conn.close()
     return render_template("flight/plane_rate_form.html", plane=plane, used_colors=used_colors,
-                           schedule_colors=SCHEDULE_COLORS)
+                           used_solo_colors=used_solo_colors, schedule_colors=SCHEDULE_COLORS)
 
 
 _SCHEDULE_ROW_SQL = """SELECT sf.*, a.tag as plane_tag, a.name as plane_name, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,

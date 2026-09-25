@@ -36,17 +36,18 @@
       <input type="hidden" name="solo_color" id="solo-color-input" value="{{ plane.solo_color or '' }}">
       <div class="d-flex flex-wrap gap-2" id="solo-color-swatches">
         {% for c in schedule_colors %}
-        <div class="color-swatch"
+        {% set solo_taken = c in (used_solo_colors or []) %}
+        <div class="color-swatch{{ ' color-swatch-taken' if solo_taken }}"
              data-color="{{ c }}"
-             title="{{ c }}"
-             style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:pointer;border:3px solid {{ '#212529' if plane.solo_color == c else 'transparent' }};"></div>
+             title="{{ 'Already used by another plane' if solo_taken else c }}"
+             style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if solo_taken else 'pointer' }};opacity:{{ '0.25' if solo_taken else '1' }};border:3px solid {{ '#212529' if plane.solo_color == c else 'transparent' }};"></div>
         {% endfor %}
         <div class="color-swatch"
              data-color=""
              title="Auto (neon version of the Schedule Color)"
              style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if not plane.solo_color else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
       </div>
-      <div class="form-text">What solo bookings for {{ plane.tag }} show instead of the block color above. Leave unset to keep the automatic neon version.</div>
+      <div class="form-text">What solo bookings for {{ plane.tag }} show instead of the block color above. Leave unset to keep the automatic neon version. Grayed-out colors are already used by another plane's Solo Color.</div>
     </div>
     <div class="d-flex justify-content-between">
       <a href="{{ url_for('flight.planes_list') }}" class="btn btn-outline-secondary">Cancel</a>
@@ -99,6 +100,7 @@
   });
   soloSwatches.forEach(function (sw) {
     sw.addEventListener('click', function () {
+      if (sw.classList.contains('color-swatch-taken')) return;
       soloInput.value = sw.getAttribute('data-color');
       soloSwatches.forEach(function (s) { s.style.border = s.getAttribute('data-color') ? '3px solid transparent' : '3px dashed #adb5bd'; });
       sw.style.border = sw.getAttribute('data-color') ? '3px solid #212529' : '3px dashed #212529';
