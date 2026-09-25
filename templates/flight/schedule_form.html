@@ -141,7 +141,11 @@
         <label class="form-label" id="date-label">{{ 'Flight Date' if is_complete else 'Date' }} <span class="text-danger">*</span></label>
         <input type="date" name="scheduled_date" class="form-control" value="{{ form.get('scheduled_date') if form else (sched.scheduled_date if sched else today) }}" required{% if sched %} data-edit="1"{% endif %}>
       </div>
-      <div class="col-md-4 mb-3 sched-only">
+      {#- Time gets its own wide column (was squeezed into a third of the
+         row alongside Duration/Preset, which at tablet widths left the
+         Intro/Lesson preset buttons overlapping the time picker) - see
+         Duration's own full-width row below. #}
+      <div class="col-md-8 mb-3 sched-only">
         <label class="form-label">Time</label>
         <input type="hidden" id="time-input" name="scheduled_time" value="{{ form.get('scheduled_time') if form else (sched.scheduled_time if sched and sched.scheduled_time else '') }}">
         <div id="time-picker" class="d-flex align-items-stretch gap-2">
@@ -188,18 +192,21 @@
           </div>
         </div>
       </div>
+    </div>
+    <div class="row">
       <div class="col-md-4 mb-3 sched-only">
         <label class="form-label">Duration (hrs)</label>
         <input type="number" step="any" name="duration_hours" class="form-control" placeholder="e.g. 1.5" value="{% if form %}{{ form.get('duration_hours') }}{% elif sched and sched.duration_hours is not none %}{{ sched.duration_hours }}{% elif not sched %}1.5{% endif %}">
-        {#- Presets: a normal 1.5-hr lesson, or an Intro Flight (1-hr block,
-           notes start with "Intro flight" so it's easy to spot on the
-           calendar's details). #}
-        <div class="mt-2">
-          <div class="form-text mb-1">Preset</div>
-          <div class="btn-group btn-group-sm" role="group" id="flight-presets">
-            <button type="button" class="btn btn-outline-secondary preset-btn" data-preset="lesson" data-duration="1.5"><i class="bi bi-airplane"></i> Lesson <span class="opacity-75">1.5 hr</span></button>
-            <button type="button" class="btn btn-outline-secondary preset-btn" data-preset="intro" data-duration="1"><i class="bi bi-stars"></i> Intro Flight <span class="opacity-75">1 hr</span></button>
-          </div>
+      </div>
+      {#- Preset gets its own column, wide enough that the Lesson/Intro
+         Flight buttons never have to overflow or wrap into anything else -
+         they used to share a cramped third of the row with the time
+         picker, which is what overlapped them at tablet widths. #}
+      <div class="col-md-8 mb-3 sched-only">
+        <label class="form-label">Preset</label>
+        <div class="d-flex flex-wrap gap-1" id="flight-presets">
+          <button type="button" class="btn btn-outline-secondary preset-btn" data-preset="lesson" data-duration="1.5"><i class="bi bi-airplane"></i> Lesson <span class="opacity-75">1.5 hr</span></button>
+          <button type="button" class="btn btn-outline-secondary preset-btn" data-preset="intro" data-duration="1"><i class="bi bi-stars"></i> Intro Flight <span class="opacity-75">1 hr</span></button>
         </div>
       </div>
     </div>
