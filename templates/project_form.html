@@ -99,11 +99,17 @@
   // saving, so opening its date picker before that shows today's month
   // instead of jumping near the Start date, which looked like the end date
   // was wrongly defaulting to "now" instead of the project's own dates.
+  // On Edit, Through already has a value from the project (not blank), so
+  // picking a new Start date keeps following it a week out too - unless
+  // the user has typed their own Through date directly, in which case that
+  // choice sticks and stops being overwritten.
   var startInput = document.getElementById('project-scheduled-date-input');
   var endInput = document.getElementById('project-scheduled-end-date-input');
   if (startInput && endInput) {
+    var endCustomized = false;
+    endInput.addEventListener('input', function () { endCustomized = true; });
     startInput.addEventListener('change', function () {
-      if (!startInput.value || endInput.value) return;
+      if (!startInput.value || endCustomized) return;
       var d = new Date(startInput.value + 'T00:00:00');
       if (isNaN(d)) return;
       d.setDate(d.getDate() + 7);
