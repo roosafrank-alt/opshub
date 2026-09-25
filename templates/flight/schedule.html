@@ -19,6 +19,19 @@
     z-index: 5;
   }
   tr.schedule-block-highlight { background: #fff0f1 !important; }
+  {#- Flagged-for-review bookings (needs_review_active - see the Key's
+     explanation paragraph) used to just get a thin static 2px outline,
+     which was easy to miss on a busy calendar - this reuses the exact
+     same pulsing red glow already used for a scheduling conflict, so a
+     booking that still needs attention actually catches your eye. #}
+  .schedule-block-flagged, tr.schedule-block-flagged {
+    outline: 3px solid #dc3545 !important;
+    outline-offset: -2px;
+    animation: schedule-conflict-pulse 1.6s ease-in-out infinite;
+    position: relative;
+    z-index: 5;
+  }
+  tr.schedule-block-flagged { background: #fff0f1 !important; }
   /* Just booked (?new=ids): a green glow so you can see what you added.
      Cleared on the first click or when you leave the page (script below). */
   @keyframes schedule-new-pulse {
