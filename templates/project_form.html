@@ -51,11 +51,11 @@
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Scheduled Date <span class="text-muted small">(optional - shows this project on the calendar)</span></label>
-        <input type="date" name="scheduled_date" class="form-control" value="{{ project.scheduled_date if project and project.scheduled_date else '' }}">
+        <input type="date" name="scheduled_date" id="project-scheduled-date-input" class="form-control" value="{{ project.scheduled_date if project and project.scheduled_date else '' }}">
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Through <span class="text-muted small">(defaults to a week out if left blank)</span></label>
-        <input type="date" name="scheduled_end_date" class="form-control" value="{{ project.scheduled_end_date if project and project.scheduled_end_date else '' }}">
+        <input type="date" name="scheduled_end_date" id="project-scheduled-end-date-input" class="form-control" value="{{ project.scheduled_end_date if project and project.scheduled_end_date else '' }}">
       </div>
     </div>
     <div class="mb-3">
@@ -86,6 +86,25 @@
 </div>
 <script>
 (function () {
+  // Mirrors the server's own "blank Through defaults to a week out" (see
+  // project_new/project_edit in app.py) into the field itself as soon as a
+  // Start date is picked - otherwise Through stays blank until after
+  // saving, so opening its date picker before that shows today's month
+  // instead of jumping near the Start date, which looked like the end date
+  // was wrongly defaulting to "now" instead of the project's own dates.
+  var startInput = document.getElementById('project-scheduled-date-input');
+  var endInput = document.getElementById('project-scheduled-end-date-input');
+  if (startInput && endInput) {
+    startInput.addEventListener('change', function () {
+      if (!startInput.value || endInput.value) return;
+      var d = new Date(startInput.value + 'T00:00:00');
+      if (isNaN(d)) return;
+      d.setDate(d.getDate() + 7);
+      var pad = function (n) { return String(n).padStart(2, '0'); };
+      endInput.value = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    });
+  }
+
   var nameInput = document.getElementById('project-name-input');
   var assetSelect = document.getElementById('project-asset-select');
   assetSelect.addEventListener('change', function () {
