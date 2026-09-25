@@ -175,16 +175,18 @@
         {% set cell_date = '%04d-%02d-%02d'|format(md.year, md.month, day) %}
         {% set is_past_day = today_str and cell_date < today_str %}
         {#- Whole-cell click (not just the day number) jumps to "Schedule
-           Flight" with this date pre-filled, for a CFI/admin - see the
-           delegated click handler in schedule.html, which bails out early
-           on any real link or flight block inside the cell so this never
-           swallows a click meant for the day-number link or "+N more". #}
-        <td class="calendar-day-cell{{ ' calendar-day-cell-add' if session.get('cfi_id') }}{{ ' calendar-day-cell-past' if is_past_day }}"
-            {% if session.get('cfi_id') %}data-add-url="{{ url_for('flight.schedule_new', date=cell_date) }}"{% endif %}
+           Flight" (a student lands on the same form self-service, as a
+           request pending a CFI's approval) with this date pre-filled -
+           see the delegated click handler in schedule.html, which bails
+           out early on any real link or flight block inside the cell so
+           this never swallows a click meant for the day-number link or
+           "+N more". #}
+        <td class="calendar-day-cell{{ ' calendar-day-cell-add' if session.get('cfi_id') or session.get('student_id') }}{{ ' calendar-day-cell-past' if is_past_day }}"
+            {% if session.get('cfi_id') or session.get('student_id') %}data-add-url="{{ url_for('flight.schedule_new', date=cell_date) }}"{% endif %}
             style="min-height:{{ row_height }}; vertical-align:top; {% if is_today %}background:#fff8e1; box-shadow:inset 0 0 0 2px #ffc107;{% elif is_past_day %}background:#e9ecef;{% endif %}">
           <div class="calendar-day-head">
-          {% if session.get('cfi_id') %}
-          <a href="{{ url_for('flight.schedule_new', date=cell_date) }}" class="small fw-bold d-flex align-items-center gap-1 text-decoration-none calendar-day-add {{ 'text-primary' if is_today else 'text-body' }}" title="Schedule a flight on {{ cell_date|usdate }}">
+          {% if session.get('cfi_id') or session.get('student_id') %}
+          <a href="{{ url_for('flight.schedule_new', date=cell_date) }}" class="small fw-bold d-flex align-items-center gap-1 text-decoration-none calendar-day-add {{ 'text-primary' if is_today else 'text-body' }}" title="{{ 'Schedule a flight' if session.get('cfi_id') else 'Request a flight' }} on {{ cell_date|usdate }}">
             {{ day }}{% if is_today %}<span class="badge bg-warning text-dark" style="font-size:.6rem;">TODAY</span>{% endif %}
             {% if not compact %}<i class="bi bi-plus-circle calendar-day-add-icon"></i>{% endif %}
           </a>
@@ -389,6 +391,8 @@
     {% endif %}
     {% if session.get('cfi_id') %}
     <a href="{{ url_for('flight.schedule_new') }}" class="btn btn-primary fw-bold btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Schedule Flight</a>
+    {% elif session.get('student_id') %}
+    <a href="{{ url_for('flight.schedule_new') }}" class="btn btn-primary fw-bold btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Request a Flight</a>
     {% endif %}
   </div>
 </div>
