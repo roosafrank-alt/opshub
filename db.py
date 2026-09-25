@@ -1242,6 +1242,49 @@ def _migrate(conn):
         conn.execute("ALTER TABLE assets ADD COLUMN solo_color TEXT")
         conn.commit()
 
+    # Manual / Illustrated-Parts-Catalog library (Manage > Manuals) - PDFs
+    # tagged to a make/model/year/serial range at upload and auto-indexed
+    # page-by-page (see manuals.py) so a plane's detail page can show only
+    # the manuals that actually cover it, and a manual can be searched by
+    # part or figure number.
+    conn.execute("""CREATE TABLE IF NOT EXISTS manuals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        manual_type TEXT NOT NULL DEFAULT 'maintenance',
+        filename TEXT NOT NULL,
+        make TEXT,
+        model TEXT,
+        year_start INTEGER,
+        year_end INTEGER,
+        serial_start TEXT,
+        serial_end TEXT,
+        page_count INTEGER NOT NULL DEFAULT 0,
+        uploaded_by INTEGER,
+        created_at TEXT NOT NULL
+    )""")
+    conn.commit()
+    conn.execute("""CREATE TABLE IF NOT EXISTS manual_pages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        manual_id INTEGER NOT NULL,
+        page_num INTEGER NOT NULL,
+        text_content TEXT,
+        figure_refs TEXT,
+        part_numbers TEXT
+    )""")
+    conn.commit()
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_manual_pages_manual ON manual_pages(manual_id, page_num)")
+    conn.commit()
+    conn.execute("""CREATE TABLE IF NOT EXISTS manual_page_parts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        manual_page_id INTEGER NOT NULL,
+        part_number TEXT NOT NULL
+    )""")
+    conn.commit()
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_manual_page_parts_num ON manual_page_parts(part_number)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_manual_page_parts_page ON manual_page_parts(manual_page_id)")
+    conn.commit()
+
+
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of
     its newest project's cover photo (or newest project photo), so planes
