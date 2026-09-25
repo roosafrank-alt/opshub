@@ -10,7 +10,9 @@
       {% if project.status == 'active' %}<span class="badge bg-success">Active</span>
       {% elif project.status == 'on_hold' %}<span class="badge bg-warning text-dark">On Hold</span>
       {% elif project.status == 'archived' %}<span class="badge bg-dark">Archived</span>
-      {% else %}<span class="badge bg-secondary">Completed</span>{% endif %}
+      {% else %}<span class="badge bg-secondary">Completed</span>
+      {% if project.completed_at %}<span class="text-muted small ms-1">by {{ project.completed_by or 'someone' }} on {{ project.completed_at|usdate(true) }}</span>{% endif %}
+      {% endif %}
     </h4>
     <p class="text-muted mb-0">{{ project.description }}</p>
     {% if project.asset_display_id %}
@@ -124,6 +126,7 @@
                 </form>
                 {% endif %}
                 <strong class="{{ 'text-decoration-line-through text-muted' if data.completed_at }}">{% if section != 'General' %}<i class="bi bi-folder2-open"></i> {% endif %}{{ section }}</strong>
+                {% if data.completed_at %}<span class="text-muted small">completed by {{ data.completed_by or 'someone' }} on {{ data.completed_at|usdate(true) }}</span>{% endif %}
                 {% if section != 'General' and data.id %}
                 <button type="button" class="btn btn-link btn-sm p-0" onclick="event.stopPropagation(); var r=document.getElementById('sec-rename-{{ loop.index }}'); r.style.display = r.style.display==='none' ? 'flex' : 'none'; if (r.style.display!=='none') { r.querySelector('input').focus(); r.querySelector('input').select(); }" title="Rename this area"><i class="bi bi-pencil"></i></button>
                 {% endif %}

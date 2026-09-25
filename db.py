@@ -407,6 +407,12 @@ def _migrate(conn):
     if "completed_at" not in proj_sect_cols:
         conn.execute("ALTER TABLE project_sections ADD COLUMN completed_at TEXT")
         conn.commit()
+    if "completed_by" not in proj_sect_cols:
+        conn.execute("ALTER TABLE project_sections ADD COLUMN completed_by TEXT")
+        conn.commit()
+    if "completed_by" not in [r["name"] for r in conn.execute("PRAGMA table_info(projects)").fetchall()]:
+        conn.execute("ALTER TABLE projects ADD COLUMN completed_by TEXT")
+        conn.commit()
 
     # Preset Sub Areas for a Quick Type (New/Edit Project's Annual, 100hr,
     # Oil Change, Maintenance buttons) - admin-managed from Manage > Task

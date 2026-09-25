@@ -1040,8 +1040,8 @@ def project_section_complete(project_id, section_id):
         conn.close()
         abort(404)
     completed = request.form.get("completed") == "1"
-    conn.execute("UPDATE project_sections SET completed_at = ? WHERE id = ?",
-                 (now_iso() if completed else None, section_id))
+    conn.execute("UPDATE project_sections SET completed_at = ?, completed_by = ? WHERE id = ?",
+                 (now_iso() if completed else None, session.get("user_name") if completed else None, section_id))
     conn.commit()
     conn.close()
     return redirect(url_for("project_detail", project_id=project_id))
@@ -1649,13 +1649,14 @@ def project_detail(project_id):
             conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
                          (project_id, name, now_iso()))
     conn.commit()
-    section_meta = {r["name"]: {"id": r["id"], "completed_at": r["completed_at"]}
-                     for r in conn.execute("SELECT id, name, completed_at FROM project_sections WHERE project_id = ?",
+    section_meta = {r["name"]: {"id": r["id"], "completed_at": r["completed_at"], "completed_by": r["completed_by"]}
+                     for r in conn.execute("SELECT id, name, completed_at, completed_by FROM project_sections WHERE project_id = ?",
                                            (project_id,)).fetchall()}
     for name, section_data in usage_by_section.items():
         meta = section_meta.get(name)
         section_data["id"] = meta["id"] if meta else None
         section_data["completed_at"] = meta["completed_at"] if meta else None
+        section_data["completed_by"] = meta["completed_by"] if meta else None
 
     # Open (not completed) sections first alphabetically, then completed
     # ones at the bottom ordered by when they were completed; "General"
@@ -1980,8 +1981,9 @@ def project_status(project_id):
         abort(400)
     conn = get_db()
     completed_at = now_iso() if new_status == "completed" else None
-    conn.execute("UPDATE projects SET status = ?, completed_at = ? WHERE id = ?",
-                 (new_status, completed_at, project_id))
+    completed_by = session.get("user_name") if new_status == "completed" else None
+    conn.execute("UPDATE projects SET status = ?, completed_at = ?, completed_by = ? WHERE id = ?",
+                 (new_status, completed_at, completed_by, project_id))
     conn.commit()
     conn.close()
     return redirect(url_for("project_detail", project_id=project_id))
