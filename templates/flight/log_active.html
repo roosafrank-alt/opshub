@@ -336,6 +336,10 @@
       <div class="form-text">Apply credit above first if there is any, then enter whatever else was actually collected and how. The flight's full cost (payment + credit) has to be accounted for before it logs as Paid.</div>
     </div>
     <div class="alert alert-danger py-2 px-3 small d-none mt-2" id="end-payment-error-{{ f.id }}"></div>
+    <div class="form-check form-switch mt-2">
+      <input type="checkbox" class="form-check-input" role="switch" name="send_receipt_email" id="send-receipt-{{ f.id }}" value="1" checked>
+      <label class="form-check-label small" for="send-receipt-{{ f.id }}">Email a receipt to the student <span class="text-muted">(if they have an email on file)</span></label>
+    </div>
     <div class="mt-2">
       <label class="form-label small mb-0">Notes</label>
       <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="any note here is flagged as a squawk for the shop">{{ f.notes or '' }}</textarea>

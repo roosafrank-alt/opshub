@@ -5570,6 +5570,7 @@ def log_end(flight_id):
                  (_solo_hours_from_form(request.form, f["solo"]), flight_id))
     ended_row = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (flight_id,)).fetchone()
     cost = _row_with_cost(ended_row) if ended_row else None
+    credit_applied = 0.0
     if paid_choice == "1" and cost is not None:
         # Paid has to actually be accounted for: the flight's cost covered
         # either by credit already on the student's account (their existing
@@ -5607,6 +5608,8 @@ def log_end(flight_id):
                           flight_id=flight_id, created_by=session.get("user_name"))
     # The student's pilot logbook gets a pending, pre-filled entry.
     pilotlog.ensure_entry(conn, flight_id)
+    if request.form.get("send_receipt_email") and cost is not None:
+        _send_flight_receipt_email(conn, ended_row, cost, paid_choice == "1", payment_method, payment_amount, credit_applied)
     conn.commit()
     conn.close()
     if squawk:
@@ -5614,6 +5617,47 @@ def log_end(flight_id):
     else:
         flash("Flight ended and logged.", "success")
     return redirect(url_for("flight.log_history"))
+
+
+def _send_flight_receipt_email(conn, ended_row, cost, paid, payment_method, payment_amount, credit_applied):
+    """Emails the student a receipt for a just-ended flight, if they have an
+    email on file - opt-out toggle on End Flight (send_receipt_email),
+    default on. Looked up and composed here (while conn is still open) but
+    actually sent from a background thread, same pattern as the ETA-delay
+    emails above, since SMTP can take a few seconds and shouldn't hold up
+    the redirect."""
+    student = conn.execute(
+        "SELECT u.email FROM students s JOIN users u ON u.id = s.user_id WHERE s.id = ?",
+        (ended_row["student_id"],)).fetchone()
+    if not student or not student["email"]:
+        return
+    email = student["email"]
+    lines = [
+        f"Plane: {ended_row['plane_tag']}",
+        f"Flight time: {cost['hours']:.1f} hr" + (f" @ ${cost['plane_rate']:.2f}/hr = ${cost['plane_cost']:.2f}" if cost['plane_rate'] else ""),
+    ]
+    if not ended_row["solo"]:
+        lines.append(f"Instructor time: {cost['instructor_hours']:.1f} hr @ ${cost['instructor_rate']:.2f}/hr = ${cost['instructor_cost']:.2f}")
+        if cost["ground_hours"]:
+            lines.append(f"Ground time: {cost['ground_hours']:.1f} hr = ${cost['ground_cost']:.2f}")
+    lines.append(f"Total: ${cost['total']:.2f}")
+    if credit_applied > 0.005:
+        lines.append(f"Credit applied: ${credit_applied:.2f}")
+    if paid:
+        if payment_amount > 0.005:
+            lines.append(f"Paid: ${payment_amount:.2f}" + (f" ({payment_method})" if payment_method else ""))
+        lines.append("Status: Paid in full")
+    else:
+        lines.append(f"Status: Unpaid - ${cost['total'] - credit_applied:.2f} owed")
+    body = f"Thanks for flying with us! Here's a receipt for your {ended_row['flight_date']} flight.\n\n" + "\n".join(lines)
+    settings = notify.get_settings(conn)
+
+    def _send(settings=settings, email=email, body=body):
+        try:
+            notify.send_email(settings, email, "Your Fly with Kate! flight receipt", body, brand="Fly with Kate!")
+        except Exception:
+            pass
+    threading.Thread(target=_send, daemon=True).start()
 
 
 def _solo_hours_from_form(form, solo):
