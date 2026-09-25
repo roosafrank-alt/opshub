@@ -1032,6 +1032,11 @@ def _migrate(conn):
         # same idea as plane_rate_override but specific to simulator time -
         # a student can be charged differently for the sim than for a plane.
         ("students", "sim_rate_override", "ALTER TABLE students ADD COLUMN sim_rate_override REAL"),
+        # A CFI's time off can now repeat weekly (e.g. "every Saturday off")
+        # instead of being one specific date - off_date is then the anchor
+        # date (any date that falls on the repeated weekday), matched by
+        # weekday going forward. See _cfi_time_off_conflict/_cfi_schedule_week.
+        ("cfi_time_off", "recurs_weekly", "ALTER TABLE cfi_time_off ADD COLUMN recurs_weekly INTEGER NOT NULL DEFAULT 0"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

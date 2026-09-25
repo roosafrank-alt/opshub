@@ -681,13 +681,20 @@ def _medical_expired_phrase(med):
 def _cfi_time_off_conflict(conn, cfi_id, on_date, scheduled_time, duration_hours):
     """A blocking message if this CFI has requested time off that overlaps
     this booking's date/time, else None. A time-off entry with no
-    start/end time blocks the whole day."""
+    start/end time blocks the whole day. A recurring entry (recurs_weekly)
+    blocks every occurrence of its weekday from its anchor off_date onward,
+    not just that one date."""
     if not cfi_id:
         return None
     window = _time_window(scheduled_time, duration_hours)
-    rows = conn.execute("SELECT * FROM cfi_time_off WHERE cfi_id = ? AND off_date = ?",
-                        (cfi_id, on_date)).fetchall()
+    on_weekday = datetime.strptime(on_date, "%Y-%m-%d").weekday()
+    rows = conn.execute(
+        """SELECT * FROM cfi_time_off WHERE cfi_id = ?
+           AND ((recurs_weekly = 0 AND off_date = ?) OR (recurs_weekly = 1 AND off_date <= ?))""",
+        (cfi_id, on_date, on_date)).fetchall()
     for r in rows:
+        if r["recurs_weekly"] and datetime.strptime(r["off_date"], "%Y-%m-%d").weekday() != on_weekday:
+            continue
         if r["start_time"]:
             start_h, start_m = (int(x) for x in r["start_time"].split(":"))
             if r["end_time"]:
@@ -2446,11 +2453,17 @@ _CFI_SCHEDULE_DAY_END = 21 * 60
 
 
 def _time_off_label(row):
-    """'All day', '9:00 AM - 3:00 PM', or '9:00 AM onward' for a cfi_time_off row."""
+    """'All day', '9:00 AM - 3:00 PM', or '9:00 AM onward' for a cfi_time_off
+    row, with '- every <weekday>' appended for a recurring one."""
     if not row["start_time"]:
-        return "All day"
-    start = _format_time_12h(row["start_time"])
-    return f"{start} - {_format_time_12h(row['end_time'])}" if row["end_time"] else f"{start} onward"
+        label = "All day"
+    else:
+        start = _format_time_12h(row["start_time"])
+        label = f"{start} - {_format_time_12h(row['end_time'])}" if row["end_time"] else f"{start} onward"
+    if row["recurs_weekly"] if "recurs_weekly" in row.keys() else False:
+        weekday_name = datetime.strptime(row["off_date"], "%Y-%m-%d").strftime("%A")
+        label += f" - every {weekday_name}"
+    return label
 
 
 def _cfi_schedule_pct(start_min, end_min):
@@ -2474,14 +2487,23 @@ def _cfi_schedule_week(conn, cfi_id, week_dates):
            ORDER BY scheduled_date, scheduled_time""",
         (cfi_id, date_strs[0], date_strs[-1])).fetchall()
     time_off = conn.execute(
-        """SELECT * FROM cfi_time_off WHERE cfi_id = ? AND off_date BETWEEN ? AND ?
+        """SELECT * FROM cfi_time_off WHERE cfi_id = ? AND recurs_weekly = 0 AND off_date BETWEEN ? AND ?
            ORDER BY off_date, start_time""",
         (cfi_id, date_strs[0], date_strs[-1])).fetchall()
+    # A recurring entry's anchor off_date can be any date on or before this
+    # week that falls on the repeated weekday, so it's matched by weekday
+    # below instead of a plain date-range query.
+    recurring_time_off = conn.execute(
+        """SELECT * FROM cfi_time_off WHERE cfi_id = ? AND recurs_weekly = 1 AND off_date <= ?
+           ORDER BY start_time""",
+        (cfi_id, date_strs[-1])).fetchall()
 
     today_str = date.today().strftime("%Y-%m-%d")
     days = []
     for ds, d in zip(date_strs, week_dates):
         day_off = [t for t in time_off if t["off_date"] == ds]
+        day_off += [t for t in recurring_time_off
+                    if datetime.strptime(t["off_date"], "%Y-%m-%d").weekday() == d.weekday()]
         all_day_off = any(not t["start_time"] for t in day_off)
         windows = sorted(_time_window(f["scheduled_time"], f["duration_hours"])
                          for f in flights if f["scheduled_date"] == ds
@@ -2541,16 +2563,21 @@ def cfi_schedule():
         start_time = request.form.get("start_time", "").strip()
         end_time = request.form.get("end_time", "").strip()
         note = request.form.get("note", "").strip()
+        recurs_weekly = 1 if request.form.get("recurs_weekly") else 0
         anchor_date = request.form.get("view_date", "").strip()
         if not off_date:
             flash("Pick a date for the time off.", "danger")
         elif start_time and end_time and end_time <= start_time:
             flash("End time has to be after start time.", "danger")
         else:
-            conn.execute("INSERT INTO cfi_time_off (cfi_id, off_date, start_time, end_time, note) "
-                        "VALUES (?, ?, ?, ?, ?)", (cfi_id, off_date, start_time or None, end_time or None, note or None))
+            conn.execute("INSERT INTO cfi_time_off (cfi_id, off_date, start_time, end_time, note, recurs_weekly) "
+                        "VALUES (?, ?, ?, ?, ?, ?)",
+                        (cfi_id, off_date, start_time or None, end_time or None, note or None, recurs_weekly))
             conn.commit()
-            flash("Time off added - it now blocks new bookings for you over that time.", "success")
+            weekday_name = datetime.strptime(off_date, "%Y-%m-%d").strftime("%A")
+            msg = (f"Time off added for every {weekday_name} - it now blocks new bookings for you on that day going forward."
+                   if recurs_weekly else "Time off added - it now blocks new bookings for you over that time.")
+            flash(msg, "success")
         conn.close()
         return redirect(url_for("flight.cfi_schedule", date=anchor_date or off_date))
 
@@ -2565,15 +2592,25 @@ def cfi_schedule():
     week_dates = [week_start + timedelta(days=i) for i in range(7)]
 
     days = _cfi_schedule_week(conn, cfi_id, week_dates)
+    # Time reference marks (ruler) above the day bars, every 3 hours across
+    # the same 6am-9pm window the bars themselves are drawn on, so the bars
+    # are orientable at a glance instead of being a shapeless block of color.
+    hour_marks = [{"label": _format_time_12h(f"{h:02d}:00"), "left": _cfi_schedule_pct(h * 60, h * 60)[0]}
+                  for h in range(_CFI_SCHEDULE_DAY_START // 60, _CFI_SCHEDULE_DAY_END // 60 + 1, 3)]
+    # A recurring entry stays "upcoming" forever (its anchor off_date can be
+    # long past while it still blocks every future occurrence of that
+    # weekday), so it's included regardless of date.
     upcoming_time_off = [dict(t, when_label=_time_off_label(t)) for t in conn.execute(
-        "SELECT * FROM cfi_time_off WHERE cfi_id = ? AND off_date >= ? ORDER BY off_date, start_time",
+        "SELECT * FROM cfi_time_off WHERE cfi_id = ? AND (off_date >= ? OR recurs_weekly = 1) "
+        "ORDER BY recurs_weekly DESC, off_date, start_time",
         (cfi_id, today.strftime("%Y-%m-%d"))).fetchall()]
     conn.close()
     return render_template("flight/cfi_schedule.html", days=days, day_str=day_str,
                            week_label=f"Week of {week_dates[0].month}/{week_dates[0].day}",
                            week_prev=(week_start - timedelta(days=7)).strftime("%Y-%m-%d"),
                            week_next=(week_start + timedelta(days=7)).strftime("%Y-%m-%d"),
-                           upcoming_time_off=upcoming_time_off, today_str=today.strftime("%Y-%m-%d"))
+                           upcoming_time_off=upcoming_time_off, today_str=today.strftime("%Y-%m-%d"),
+                           hour_marks=hour_marks)
 
 
 @flight_bp.route("/cfis/schedule/time-off/<int:off_id>/delete", methods=["POST"])

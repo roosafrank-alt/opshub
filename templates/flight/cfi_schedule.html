@@ -23,6 +23,13 @@
   .cfi-sched-seg.gap { background: #ffc107; }
   .cfi-sched-seg.off { background: #dc3545; opacity: .85; }
   .cfi-sched-day.is-today { background: #eef6ff; }
+  .cfi-sched-day-link { text-decoration: none; color: inherit; display: block; border-radius: 4px; }
+  .cfi-sched-day-link:hover { background: rgba(13,110,253,.06); }
+  .cfi-sched-ruler { position: relative; height: 1rem; margin-bottom: .25rem; }
+  .cfi-sched-ruler span {
+    position: absolute; top: 0; transform: translateX(-50%);
+    font-size: .62rem; color: #6c757d; white-space: nowrap;
+  }
 </style>
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-calendar-week"></i> My Schedule</h4>
@@ -40,22 +47,34 @@
     <span><span class="cfi-sched-seg off d-inline-block" style="width:.8rem;height:.8rem;border-radius:2px;"></span> Time off</span>
     <span class="ms-auto">6 AM - 9 PM shown</span>
   </div>
+  {% if hour_marks %}
+  <div class="cfi-sched-ruler">
+    {% for m in hour_marks %}
+    <span style="left:{{ m.left }}%;">{{ m.label }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
   {% for day in days %}
   <div class="cfi-sched-day py-2 {{ 'is-today' if day.is_today }}">
-    <div class="d-flex justify-content-between small mb-1">
-      <span class="fw-semibold">{{ day.date_label }}{% if day.is_today %} <span class="badge bg-primary">Today</span>{% endif %}</span>
-      <span class="text-muted">
-        {%- if day.all_day_off %}Off all day
-        {%- elif day.on_label %}On {{ day.on_label }}
-        {%- else %}No bookings{% endif -%}
-      </span>
-    </div>
-    <div class="cfi-sched-bar">
-      {% for seg in day.segments %}
-      <div class="cfi-sched-seg {{ seg.kind }}" style="left:{{ seg.left }}%;width:{{ seg.width }}%;"
-           title="{{ {'flight': 'Booked', 'gap': 'Unassigned gap', 'off': 'Time off'}[seg.kind] }}"></div>
-      {% endfor %}
-    </div>
+    {#- Whole header + bar links to that day on the real Schedule calendar,
+       filtered to this CFI, instead of only showing the shape of the day
+       here with no way to see the actual bookings. #}
+    <a href="{{ url_for('flight.schedule_calendar', view='day', date=day.date, cfi_id=session.get('cfi_id')) }}" class="cfi-sched-day-link">
+      <div class="d-flex justify-content-between small mb-1">
+        <span class="fw-semibold">{{ day.date_label }}{% if day.is_today %} <span class="badge bg-primary">Today</span>{% endif %}</span>
+        <span class="text-muted">
+          {%- if day.all_day_off %}Off all day
+          {%- elif day.on_label %}On {{ day.on_label }}
+          {%- else %}No bookings{% endif -%}
+        </span>
+      </div>
+      <div class="cfi-sched-bar">
+        {% for seg in day.segments %}
+        <div class="cfi-sched-seg {{ seg.kind }}" style="left:{{ seg.left }}%;width:{{ seg.width }}%;"
+             title="{{ {'flight': 'Booked', 'gap': 'Unassigned gap', 'off': 'Time off'}[seg.kind] }}"></div>
+        {% endfor %}
+      </div>
+    </a>
     {% if day.time_off %}
     <div class="small text-danger mt-1">
       {% for t in day.time_off %}
@@ -96,11 +115,17 @@
       <label class="form-label small mb-0">Note <span class="text-muted">(optional)</span></label>
       <input type="text" name="note" maxlength="120" class="form-control form-control-sm" placeholder="e.g. vacation">
     </div>
+    <div class="col-sm-12">
+      <div class="form-check">
+        <input type="checkbox" name="recurs_weekly" value="1" class="form-check-input" id="cfi-recur-weekly">
+        <label class="form-check-label small" for="cfi-recur-weekly">Repeat every week on this day (e.g. every Saturday off)</label>
+      </div>
+    </div>
     <div class="col-sm-2">
       <button class="btn btn-primary btn-sm w-100"><i class="bi bi-plus-lg"></i> Add</button>
     </div>
   </form>
-  <div class="form-text">Leave From/To blank to block the whole day.</div>
+  <div class="form-text">Leave From/To blank to block the whole day. For a recurring day off, pick any date that falls on it - e.g. any Saturday for "every Saturday."</div>
 
   {% if upcoming_time_off %}
   <hr>
