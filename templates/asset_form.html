@@ -129,7 +129,7 @@
       <label class="form-label">Notes</label>
       <textarea name="notes" class="form-control" rows="4" placeholder="Anything else worth keeping on file for this plane">{{ asset.notes or '' }}</textarea>
     </div>
-    <div class="mb-3">
+    <div class="mb-3" id="dashboard-color-section" {% if not (asset and asset.is_flight_asset) %}hidden{% endif %}>
       <label class="form-label d-block">Dashboard Color <span class="text-muted small">(Flight School only)</span></label>
       <input type="hidden" name="color" id="color-input" value="{{ asset.color or '' }}">
       <div class="d-flex flex-wrap gap-2" id="color-swatches">
@@ -170,6 +170,16 @@
       sw.style.border = sw.getAttribute('data-color') ? '3px solid #212529' : '3px dashed #212529';
     });
   });
+
+  // Dashboard Color is Flight School only - shows/hides with that checkbox
+  // instead of always being visible on every plane.
+  var flightCheck = document.getElementById('is-flight-asset-check');
+  var colorSection = document.getElementById('dashboard-color-section');
+  if (flightCheck && colorSection) {
+    flightCheck.addEventListener('change', function () {
+      colorSection.hidden = !flightCheck.checked;
+    });
+  }
 })();
 </script>
 {% endblock %}
