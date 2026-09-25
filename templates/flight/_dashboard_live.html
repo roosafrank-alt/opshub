@@ -615,7 +615,14 @@
       <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Student</th><th>Requested Instructor</th><th></th></tr></thead>
       <tbody>
         {% for p in pending_requests %}
-        <tr>
+        {#- Click the row (anywhere but the Approve/Deny buttons) to jump to
+           this request's spot on the Schedule's Month view, outlined red
+           via the same ?highlight= mechanism a scheduling conflict uses -
+           see the delegated click handler in dashboard.html. Pending
+           requests now also draw right on the calendar itself (dashed,
+           50% see-through - see is_pending_approval/schedule-block-pending
+           in flight.py/schedule.html), so this shows exactly where it'd land. #}
+        <tr class="pending-row-clickable" data-goto-url="{{ url_for('flight.schedule_calendar', view='month', year=p.scheduled_date[:4]|int, month=p.scheduled_date[5:7]|int, highlight=p.id) }}" title="Open this flight's spot on the Schedule">
           <td data-label="Date"><small>{{ p.scheduled_date|usdate }}</small></td>
           <td data-label="Time"><small>{{ p.time_label or 'Not set' }}</small></td>
           <td data-label="Plane">{{ p.plane_tag }}</td>

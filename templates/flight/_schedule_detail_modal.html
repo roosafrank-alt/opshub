@@ -262,7 +262,7 @@ document.addEventListener('click', function (evt) {
   var createdByKnown = el.dataset.created_by !== undefined;
   document.getElementById('sd-created-row').classList.toggle('d-none', !createdByKnown);
   if (createdByKnown) document.getElementById('sd-created_by').textContent = el.dataset.created_by || '—';
-  var statusLabels = { scheduled: 'Scheduled', in_progress: 'In progress', completed: 'Completed' };
+  var statusLabels = { scheduled: 'Scheduled', in_progress: 'In progress', completed: 'Completed', pending_approval: 'Pending Approval (not yet on the calendar)' };
   document.getElementById('sd-status').textContent = statusLabels[el.dataset.status] || el.dataset.status;
 
   // Once a flight has started or finished, the scheduling actions (start /

@@ -2816,14 +2816,26 @@ def _decorate_schedule_row(r):
     # The caution triangle itself stays on until the issue is actually
     # resolved (acknowledged or not) - see _needs_review_flag().
     r["needs_review_flag"] = _needs_review_flag(r)
+    # A still-pending self-service request - not a real booking yet, so the
+    # calendar views (include_pending=True below) draw it as a 50%-see-
+    # through, dashed-outline box rather than a normal solid block. Plane
+    # availability (_build_availability_day) never sees these at all - a
+    # request awaiting approval must not block someone else's slot.
+    r["is_pending_approval"] = r["status"] == "pending_approval"
     return r
 
 
-def _schedule_rows(conn, date_from, date_to, plane_id=None, cfi_id=None):
+def _schedule_rows(conn, date_from, date_to, plane_id=None, cfi_id=None, include_pending=False):
     """Every scheduled_flights row (decorated) between two dates inclusive,
     optionally narrowed to one plane/instructor - the shared fetch behind
-    every schedule view."""
-    sql = _SCHEDULE_ROW_SQL + " AND sf.scheduled_date BETWEEN ? AND ?"
+    every schedule view. include_pending also pulls in still-pending
+    self-service requests (status='pending_approval'), for the Schedule
+    calendar's own views only - see is_pending_approval above."""
+    sql = _SCHEDULE_ROW_SQL
+    if include_pending:
+        sql = sql.replace("WHERE sf.status IN ('scheduled', 'in_progress', 'completed')",
+                           "WHERE sf.status IN ('scheduled', 'in_progress', 'completed', 'pending_approval')")
+    sql += " AND sf.scheduled_date BETWEEN ? AND ?"
     params = [date_from, date_to]
     if plane_id:
         sql += " AND sf.asset_id = ?"
@@ -2862,7 +2874,7 @@ def _build_schedule_month(conn, year, month, plane_id=None, cfi_id=None, plane_o
     month_end = f"{year:04d}-{month:02d}-{days_in_month:02d}"
 
     by_day = {d: [] for d in range(1, days_in_month + 1)}
-    for r in _schedule_rows(conn, month_start, month_end, plane_id, cfi_id):
+    for r in _schedule_rows(conn, month_start, month_end, plane_id, cfi_id, include_pending=True):
         day = int(r["scheduled_date"][8:10])
         by_day.setdefault(day, []).append(r)
 
@@ -2989,7 +3001,7 @@ def _layout_month_cell_timeline(flights, plane_order,
 
 def _build_schedule_day(conn, date_str, plane_id=None, cfi_id=None):
     """A single day's flights, sorted by time - the Day view."""
-    return _schedule_rows(conn, date_str, date_str, plane_id, cfi_id)
+    return _schedule_rows(conn, date_str, date_str, plane_id, cfi_id, include_pending=True)
 
 
 # The Availability view's window: 8am-8pm sliced into 1.5-hour slots - the
@@ -3257,7 +3269,7 @@ def _build_schedule_year_list(conn, year, plane_id=None, cfi_id=None):
     the page should open scrolled to (see list_scroll_anchor_id below) so
     a long year doesn't force scrolling from January just to reach what's
     still coming up."""
-    rows = _schedule_rows(conn, f"{year:04d}-01-01", f"{year:04d}-12-31", plane_id, cfi_id)
+    rows = _schedule_rows(conn, f"{year:04d}-01-01", f"{year:04d}-12-31", plane_id, cfi_id, include_pending=True)
     by_month = {m: [] for m in range(1, 13)}
     for r in rows:
         by_month[int(r["scheduled_date"][5:7])].append(r)
@@ -3404,7 +3416,7 @@ def _schedule_calendar_context():
             custom_end = custom_end or (today + timedelta(days=13)).strftime("%Y-%m-%d")
         if custom_start > custom_end:
             custom_start, custom_end = custom_end, custom_start
-        range_flights = _schedule_rows(conn, custom_start, custom_end, plane_id or None, cfi_id or None)
+        range_flights = _schedule_rows(conn, custom_start, custom_end, plane_id or None, cfi_id or None, include_pending=True)
         prev_month, prev_year = month, year
         next_month, next_year = month, year
     else:  # month

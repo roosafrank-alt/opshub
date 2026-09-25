@@ -4,6 +4,8 @@
 {% from "flight/_pilot_badge.html" import pilot_badge_css %}{{ pilot_badge_css() }}
 <style>
   .today-row-clickable:hover { background-color: rgba(255, 193, 7, 0.12); }
+  .pending-row-clickable { cursor: pointer; }
+  .pending-row-clickable:hover td { background-color: rgba(255, 193, 7, 0.12); }
   .wx-tile { color: #fff; transition: background .3s ease; position: relative; overflow: hidden; }
   .wx-content { position: relative; z-index: 1; }
   .wx-bg-icon { position: absolute; top: -0.5rem; right: -0.5rem; font-size: 7rem; opacity: .22; z-index: 0; pointer-events: none; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,.15)); }
@@ -486,6 +488,19 @@ function loadChipForecast(detail) {
     fc.innerHTML = '<i class="bi bi-cloud-sun"></i> Forecast unavailable right now.';
   });
 }
+
+// Click a Pending Approval row to jump to its spot on the Schedule's Month
+// view (outlined red there via ?highlight=, same mechanism as elsewhere on
+// this page) - except a click on the Approve/Deny buttons themselves,
+// which need to submit their own form rather than navigate away.
+document.addEventListener('click', function (evt) {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region || !region.contains(evt.target)) return;
+  if (evt.target.closest('form')) return;
+  var row = evt.target.closest('.pending-row-clickable');
+  if (!row) return;
+  window.location.href = row.dataset.gotoUrl;
+});
 
 // Click an airport row in the NOTAMs tile to expand its notams in place,
 // grouped by the triage hierarchy (TFRs first, then closures, runways,

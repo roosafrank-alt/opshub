@@ -11,6 +11,17 @@
     50% { box-shadow: 0 0 18px rgba(220,53,69,1); }
   }
   .schedule-block-active { animation: schedule-block-pulse 1.8s ease-in-out infinite; }
+  {#- A still-pending self-service request - not a real booking yet, so it
+     reads as "maybe" on the calendar: see-through and dashed, never a
+     solid block. Placed early so a more urgent state sharing the same
+     flight (conflict highlight, flagged, just-booked) still wins the
+     outline - see the cascade order comment on schedule-block-highlight
+     below. #}
+  .schedule-block-pending, tr.schedule-block-pending {
+    opacity: 0.5 !important;
+    outline: 3px dashed #495057 !important;
+    outline-offset: -2px;
+  }
   .schedule-block-highlight, tr.schedule-block-highlight {
     outline: 3px solid #dc3545 !important;
     outline-offset: -2px;
