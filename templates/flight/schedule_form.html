@@ -240,6 +240,30 @@
         </div>
       </div>
     </div>
+    {% if not sched and not self_service %}
+    {#- Boxed right with Date/Time/Duration above (not down by Notes/Paid
+       below) since it's really one more thing about when this books - a
+       repeat's dates come straight from the Date field right above it. #}
+    <div class="mb-3 border rounded p-2 bg-light sched-only">
+      <label class="form-label mb-1"><i class="bi bi-arrow-repeat"></i> Repeats</label>
+      <div class="row g-2 align-items-end">
+        <div class="col-auto">
+          <select name="repeat" id="repeat-select" class="form-select form-select-sm">
+            <option value="none" {% if not form or form.get('repeat', 'none') == 'none' %}selected{% endif %}>Does not repeat</option>
+            <option value="daily" {% if form and form.get('repeat') == 'daily' %}selected{% endif %}>Every day</option>
+            <option value="weekly" {% if form and form.get('repeat') == 'weekly' %}selected{% endif %}>Every week</option>
+            <option value="biweekly" {% if form and form.get('repeat') == 'biweekly' %}selected{% endif %}>Every 2 weeks</option>
+            <option value="monthly" {% if form and form.get('repeat') == 'monthly' %}selected{% endif %}>Every month</option>
+          </select>
+        </div>
+        <div class="col-auto" id="repeat-until-wrap" style="display:none;">
+          <label class="form-label small mb-0">Until</label>
+          <input type="date" name="repeat_until" id="repeat-until" class="form-control form-control-sm" value="{{ form.get('repeat_until') if form else '' }}">
+        </div>
+      </div>
+      <div class="form-text mb-0">Same plane, student, instructor and time on each date - any that conflict are skipped and you'll see which ones.</div>
+    </div>
+    {% endif %}
     {% if allow_complete %}
     <div id="complete-fields" class="complete-only">
     <div class="row">
@@ -335,27 +359,6 @@
       <label class="form-label">{% if not self_service %}<i class="bi bi-eye-slash"></i>{% endif %} Private Note {% if not self_service %}<span class="text-muted small fw-normal">(admin &amp; the assigned instructor only - not the student, not other instructors)</span>{% endif %}</label>
       <textarea name="notes" class="form-control" rows="2" placeholder="optional">{{ form.get('notes') if form else (sched.notes if sched and sched.notes else '') }}</textarea>
     </div>
-    {% if not sched and not self_service %}
-    <div class="mb-3 border rounded p-2 bg-light sched-only">
-      <label class="form-label mb-1"><i class="bi bi-arrow-repeat"></i> Repeats</label>
-      <div class="row g-2 align-items-end">
-        <div class="col-auto">
-          <select name="repeat" id="repeat-select" class="form-select form-select-sm">
-            <option value="none" {% if not form or form.get('repeat', 'none') == 'none' %}selected{% endif %}>Does not repeat</option>
-            <option value="daily" {% if form and form.get('repeat') == 'daily' %}selected{% endif %}>Every day</option>
-            <option value="weekly" {% if form and form.get('repeat') == 'weekly' %}selected{% endif %}>Every week</option>
-            <option value="biweekly" {% if form and form.get('repeat') == 'biweekly' %}selected{% endif %}>Every 2 weeks</option>
-            <option value="monthly" {% if form and form.get('repeat') == 'monthly' %}selected{% endif %}>Every month</option>
-          </select>
-        </div>
-        <div class="col-auto" id="repeat-until-wrap" style="display:none;">
-          <label class="form-label small mb-0">Until</label>
-          <input type="date" name="repeat_until" id="repeat-until" class="form-control form-control-sm" value="{{ form.get('repeat_until') if form else '' }}">
-        </div>
-      </div>
-      <div class="form-text mb-0">Same plane, student, instructor and time on each date - any that conflict are skipped and you'll see which ones.</div>
-    </div>
-    {% endif %}
     <div class="d-flex justify-content-between">
       <a href="{{ url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar') }}" class="btn btn-outline-secondary">Cancel</a>
       <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Flight Complete' if is_complete else 'Schedule Flight')) }}</button>
