@@ -3836,6 +3836,22 @@ def schedule_new():
     return render_template("flight/schedule_form.html", form=None, **form_kwargs)
 
 
+def _pending_decision_response(ok, message, category, redirect_url=None):
+    """Approve/deny reply, either shape a caller wants: the Dashboard's
+    Pending Approval buttons call these routes over fetch() so the page
+    never reloads (and the person never loses their scroll position) - for
+    that, a plain JSON body the button's own JS turns into a floating flag.
+    Anything that still posts here the old way (JS failed to load, or a
+    future caller) gets the original flash-and-redirect behavior."""
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        payload = {"ok": ok, "message": message, "category": category}
+        if redirect_url:
+            payload["redirect"] = redirect_url
+        return jsonify(payload)
+    flash(message, category)
+    return redirect(redirect_url or url_for("flight.dashboard"))
+
+
 @flight_bp.route("/schedule/<int:scheduled_id>/approve", methods=["POST"])
 @cfi_required
 def schedule_approve(scheduled_id):
@@ -3848,13 +3864,11 @@ def schedule_approve(scheduled_id):
     sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
     if not sched or sched["status"] != "pending_approval":
         conn.close()
-        flash("That request isn't awaiting approval.", "danger")
-        return redirect(url_for("flight.dashboard"))
+        return _pending_decision_response(False, "That request isn't awaiting approval.", "danger")
     past_error = _past_booking_error(sched["scheduled_date"], sched["scheduled_time"])
     if past_error:
         conn.close()
-        flash("Can't approve - the requested time has already passed. Edit it to a new time or deny it.", "danger")
-        return redirect(url_for("flight.dashboard"))
+        return _pending_decision_response(False, "Can't approve - the requested time has already passed. Edit it to a new time or deny it.", "danger")
     solo = sched["solo"]
     # A solo request stays solo (no auto-assigned instructor) - only an
     # "Any instructor" dual request (not solo, no cfi_id picked) defaults to
@@ -3864,11 +3878,9 @@ def schedule_approve(scheduled_id):
                                       sched["scheduled_date"], sched["scheduled_time"], sched["duration_hours"],
                                       exclude_id=scheduled_id)
     if conflicts:
-        for c in conflicts:
-            flash(c["message"], "danger")
-        flash("Can't approve as-is - resolve the conflict above (edit or deny the request) and try again.", "danger")
         conn.close()
-        return redirect(_conflict_highlight_url(conflicts))
+        msg = " ".join(c["message"] for c in conflicts) + " Can't approve as-is - resolve the conflict (edit or deny the request) and try again."
+        return _pending_decision_response(False, msg, "danger", redirect_url=_conflict_highlight_url(conflicts))
     needs_review, review_reason = _schedule_review_flag(conn, solo, cfi_id, sched["student_id"], sched["scheduled_date"])
     # A freshly (re)computed review flag always starts unacknowledged - see
     # the needs_review_acknowledged_at/by columns' migration comment in
@@ -3884,10 +3896,8 @@ def schedule_approve(scheduled_id):
     conn.commit()
     conn.close()
     if needs_review:
-        flash(f"Flight request approved, but flagged for review: {review_reason}", "warning")
-    else:
-        flash("Flight request approved and added to the calendar.", "success")
-    return redirect(url_for("flight.dashboard"))
+        return _pending_decision_response(True, f"Flight request approved, but flagged for review: {review_reason}", "warning")
+    return _pending_decision_response(True, "Flight request approved and added to the calendar.", "success")
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/deny", methods=["POST"])
@@ -3905,8 +3915,7 @@ def schedule_deny(scheduled_id):
                         url_for("flight.schedule_new"))
     conn.commit()
     conn.close()
-    flash("Flight request denied.", "info")
-    return redirect(url_for("flight.dashboard"))
+    return _pending_decision_response(True, "Flight request denied.", "info")
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/edit", methods=["GET", "POST"])

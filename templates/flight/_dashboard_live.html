@@ -608,8 +608,8 @@
 </div>
 
 {% if pending_requests %}
-<div class="card p-3 mb-3 border-warning">
-  <h6 class="mb-2"><i class="bi bi-hourglass-split"></i> Pending Approval <span class="badge bg-warning text-dark">{{ pending_requests|length }}</span></h6>
+<div class="card p-3 mb-3 border-warning" id="pending-approval-card">
+  <h6 class="mb-2"><i class="bi bi-hourglass-split"></i> Pending Approval <span class="badge bg-warning text-dark" id="pending-approval-count">{{ pending_requests|length }}</span></h6>
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0 table-stack">
       <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Student</th><th>Requested Instructor</th><th></th></tr></thead>
@@ -629,12 +629,16 @@
           <td data-label="Student">{{ p.student_name }}</td>
           <td data-label="Requested Instructor">{% if p.cfi_name %}{{ p.cfi_name }}{% elif p.solo %}<span class="badge bg-secondary">Solo</span>{% else %}<span class="badge bg-secondary">Any</span>{% endif %}</td>
           <td data-label="" class="text-end text-nowrap">
-            <form method="post" action="{{ url_for('flight.schedule_approve', scheduled_id=p.id) }}" class="d-inline" data-confirm="Approve this flight request? It goes onto the calendar as a confirmed booking." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success">
-              <button class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Approve</button>
-            </form>
-            <form method="post" action="{{ url_for('flight.schedule_deny', scheduled_id=p.id) }}" class="d-inline" data-confirm="Deny this flight request?" data-confirm-style="danger">
-              <button class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg"></i> Deny</button>
-            </form>
+            {#- type="button" (not submit, no wrapping <form>) so the shared
+               confirm dialog's CLICK delegate handles these (see
+               _confirm_modal.html) rather than its SUBMIT delegate - that
+               one stopImmediatePropagation()s the real click and only
+               re-dispatches a synthetic one once confirmed, so
+               .pending-decide-btn's own listener in dashboard.html can tell
+               "just opened the dialog" from "actually confirmed" apart
+               cleanly and only fire the in-place approve/deny then. #}
+            <button type="button" class="btn btn-success btn-sm pending-decide-btn" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id) }}" data-confirm="Approve this flight request? It goes onto the calendar as a confirmed booking." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success"><i class="bi bi-check-lg"></i> Approve</button>
+            <button type="button" class="btn btn-outline-danger btn-sm pending-decide-btn" data-decide-url="{{ url_for('flight.schedule_deny', scheduled_id=p.id) }}" data-confirm="Deny this flight request?" data-confirm-style="danger"><i class="bi bi-x-lg"></i> Deny</button>
           </td>
         </tr>
         {% endfor %}

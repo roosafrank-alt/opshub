@@ -6,6 +6,15 @@
   .today-row-clickable:hover { background-color: rgba(255, 193, 7, 0.12); }
   .pending-row-clickable { cursor: pointer; }
   .pending-row-clickable:hover td { background-color: rgba(255, 193, 7, 0.12); }
+  {#- The Approve/Deny "flag" - see showDashFlag() below. Fixed under the
+     sticky navbar so it's visible no matter how far down the page you've
+     scrolled, instead of the normal flash banner up at the very top. #}
+  #dash-flag-toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-12px);
+    z-index: 2000; min-width: 280px; max-width: min(90vw, 480px); text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease;
+  }
+  #dash-flag-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
   .wx-tile { color: #fff; transition: background .3s ease; position: relative; overflow: hidden; }
   .wx-content { position: relative; z-index: 1; }
   .wx-bg-icon { position: absolute; top: -0.5rem; right: -0.5rem; font-size: 7rem; opacity: .22; z-index: 0; pointer-events: none; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,.15)); }
@@ -226,6 +235,7 @@
     .wx-tile, .wx-tile::after { animation: none !important; }
   }
 </style>
+<div id="dash-flag-toast" role="alert"></div>
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
   <h4 class="mb-0">
     {% if cfi %}Welcome, {{ cfi.name }}{% elif student and student.is_station %}{{ student.name }}{% else %}Welcome, {{ student.name }}{% endif %}
@@ -496,11 +506,67 @@ function loadChipForecast(detail) {
 document.addEventListener('click', function (evt) {
   var region = document.getElementById('dashboard-live-region');
   if (!region || !region.contains(evt.target)) return;
-  if (evt.target.closest('form')) return;
+  if (evt.target.closest('.pending-decide-btn')) return;
   var row = evt.target.closest('.pending-row-clickable');
   if (!row) return;
   window.location.href = row.dataset.gotoUrl;
 });
+
+// Approve/Deny a pending request in place, right from the Dashboard - no
+// page reload, so the list doesn't jump back to the top of the page and
+// whatever else was expanded/scrolled to stays put. The buttons are plain
+// type="button"s with data-confirm (see _dashboard_live.html's comment on
+// why) - the shared confirm dialog's click delegate only lets a click
+// through to here once it's actually been confirmed, never on the first
+// click that just opens the dialog.
+document.addEventListener('click', function (evt) {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region || !region.contains(evt.target)) return;
+  var btn = evt.target.closest('.pending-decide-btn');
+  if (!btn) return;
+  var row = btn.closest('tr');
+  btn.disabled = true;
+  fetch(btn.dataset.decideUrl, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      showDashFlag(data.message, data.category);
+      if (!data.ok) {
+        btn.disabled = false;
+        if (data.redirect) window.location.href = data.redirect;
+        return;
+      }
+      if (row) row.remove();
+      var countBadge = document.getElementById('pending-approval-count');
+      if (countBadge) {
+        var n = Math.max(0, (parseInt(countBadge.textContent, 10) || 1) - 1);
+        if (n === 0) {
+          var card = document.getElementById('pending-approval-card');
+          if (card) card.remove();
+        } else {
+          countBadge.textContent = n;
+        }
+      }
+    })
+    .catch(function () {
+      showDashFlag('Something went wrong - try again.', 'danger');
+      btn.disabled = false;
+    });
+});
+
+// A flash message that floats over wherever the page is scrolled to,
+// instead of the usual alert banner up at the top (which you'd have to
+// scroll up to even see, right after doing something further down the
+// page). Fixed position, auto-dismisses itself; reuses the same
+// alert-<category> Bootstrap styling as a normal flash.
+function showDashFlag(message, category) {
+  var flag = document.getElementById('dash-flag-toast');
+  if (!flag) return;
+  clearTimeout(flag._hideTimer);
+  flag.className = 'alert alert-' + (category || 'info') + ' shadow';
+  flag.textContent = message;
+  flag.classList.add('show');
+  flag._hideTimer = setTimeout(function () { flag.classList.remove('show'); }, 4000);
+}
 
 // Click an airport row in the NOTAMs tile to expand its notams in place,
 // grouped by the triage hierarchy (TFRs first, then closures, runways,
