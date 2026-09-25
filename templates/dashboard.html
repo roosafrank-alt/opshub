@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Dashboard - OpsHub{% endblock %}
 {% block content %}
+<style>
+  .dash-collapse-btn[aria-expanded="true"] .bi-chevron-right { transform: rotate(90deg); }
+  .dash-collapse-btn .bi-chevron-right { transition: transform .15s ease-in-out; display: inline-block; }
+</style>
 
 {% if open_squawks %}
 <div class="alert alert-danger border-danger border-2 mb-3">
@@ -171,28 +175,33 @@
 
 <div class="card p-3 mb-3">
   <div class="d-flex justify-content-between align-items-center">
-    <h5 class="mb-0"><i class="bi bi-calendar3 text-primary"></i> Upcoming Schedule</h5>
+    <button type="button" class="dash-collapse-btn btn btn-link p-0 text-decoration-none text-reset d-flex align-items-center gap-2" data-bs-toggle="collapse" data-bs-target="#upcoming-schedule-body" aria-expanded="false" aria-controls="upcoming-schedule-body">
+      <h5 class="mb-0"><i class="bi bi-calendar3 text-primary"></i> Upcoming Schedule</h5>
+      <i class="bi bi-chevron-right"></i>
+    </button>
     <a href="{{ url_for('calendar_page') }}" class="small">View full calendar &raquo;</a>
   </div>
-  {% if upcoming_projects %}
-  <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0">
-      <thead><tr><th>Date</th><th>Project</th><th>Aircraft</th><th></th></tr></thead>
-      <tbody>
-        {% for p in upcoming_projects %}
-        <tr>
-          <td><small>{{ p.scheduled_date|usdate }}</small></td>
-          <td><a href="{{ url_for('project_detail', project_id=p.id) }}">{{ p.name }}</a></td>
-          <td>{{ p.asset_display_tag or '-' }}</td>
-          <td>{% if p.status == 'active' %}<span class="badge bg-success">Active</span>{% elif p.status == 'on_hold' %}<span class="badge bg-warning text-dark">On Hold</span>{% endif %}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="collapse" id="upcoming-schedule-body">
+    {% if upcoming_projects %}
+    <div class="table-responsive mt-2">
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Date</th><th>Project</th><th>Aircraft</th><th></th></tr></thead>
+        <tbody>
+          {% for p in upcoming_projects %}
+          <tr>
+            <td><small>{{ p.scheduled_date|usdate }}</small></td>
+            <td><a href="{{ url_for('project_detail', project_id=p.id) }}">{{ p.name }}</a></td>
+            <td>{{ p.asset_display_tag or '-' }}</td>
+            <td>{% if p.status == 'active' %}<span class="badge bg-success">Active</span>{% elif p.status == 'on_hold' %}<span class="badge bg-warning text-dark">On Hold</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0 mt-2">Nothing scheduled yet. <a href="{{ url_for('project_new') }}">Schedule a project</a>.</p>
+    {% endif %}
   </div>
-  {% else %}
-  <p class="text-muted mb-0">Nothing scheduled yet. <a href="{{ url_for('project_new') }}">Schedule a project</a>.</p>
-  {% endif %}
 </div>
 
 <div class="d-grid mb-3">
