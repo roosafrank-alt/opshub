@@ -2044,6 +2044,7 @@ def cfi_edit(cfi_id):
         pay_rate_per_hour = _parse_float(request.form.get("pay_rate_per_hour"))
         can_bill = 1 if request.form.get("can_bill") else 0
         active = 1 if request.form.get("active") else 0
+        is_station = 1 if request.form.get("is_station") else 0
         new_password = request.form.get("password", "")
         color = request.form.get("color", "").strip() or None
         creds = _cfi_creds_from_form(request.form)
@@ -2064,14 +2065,14 @@ def cfi_edit(cfi_id):
             conn.close()
             return redirect(url_for("flight.cfi_edit", cfi_id=cfi_id))
         if new_password:
-            conn.execute(f"""UPDATE cfis SET name=?, rate_per_hour=?, pay_rate_per_hour=?, color=?, active=?, password_hash=?,
+            conn.execute(f"""UPDATE cfis SET name=?, rate_per_hour=?, pay_rate_per_hour=?, color=?, active=?, is_station=?, password_hash=?,
                              gender=?, {cred_cols} WHERE id=?""",
-                         [name, rate_per_hour, pay_rate_per_hour, color, active, generate_password_hash(new_password, method="pbkdf2:sha256"),
+                         [name, rate_per_hour, pay_rate_per_hour, color, active, is_station, generate_password_hash(new_password, method="pbkdf2:sha256"),
                           gender, *cred_vals, cfi_id])
         else:
-            conn.execute(f"""UPDATE cfis SET name=?, rate_per_hour=?, pay_rate_per_hour=?, color=?, active=?,
+            conn.execute(f"""UPDATE cfis SET name=?, rate_per_hour=?, pay_rate_per_hour=?, color=?, active=?, is_station=?,
                              gender=?, {cred_cols} WHERE id=?""",
-                         [name, rate_per_hour, pay_rate_per_hour, color, active, gender, *cred_vals, cfi_id])
+                         [name, rate_per_hour, pay_rate_per_hour, color, active, is_station, gender, *cred_vals, cfi_id])
         _log_field_change(conn, "cfi", cfi_id, "pay_rate_per_hour", cfi_row["pay_rate_per_hour"], pay_rate_per_hour, session.get("user_name"))
         medical_class, medical_expires = _medical_from_form(request.form)
         conn.execute("UPDATE cfis SET medical_class = ?, medical_expires = ? WHERE id = ?",
@@ -2598,13 +2599,13 @@ def _build_flight_finder(conn, start_date, num_days, day_types, buckets, plane_i
     cfis = []
     if need_cfi:
         if cfi_mode == "any":
-            cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 ORDER BY name").fetchall()
+            cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
         elif cfi_mode == "female":
-            cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND gender = 'F' ORDER BY name").fetchall()
+            cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 AND gender = 'F' ORDER BY name").fetchall()
         elif cfi_mode == "male":
-            cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND gender = 'M' ORDER BY name").fetchall()
+            cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 AND gender = 'M' ORDER BY name").fetchall()
         else:
-            cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND id = ? ORDER BY name", (cfi_mode,)).fetchall()
+            cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 AND id = ? ORDER BY name", (cfi_mode,)).fetchall()
 
     end_date = start_date + timedelta(days=num_days - 1)
     day_flights = _schedule_rows(conn, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"),
@@ -2817,7 +2818,7 @@ def _schedule_calendar_context():
             new_ids.add(int(x))
 
     planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
-    cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 ORDER BY name").fetchall()
+    cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
     # Every active plane's alphabetical rank (matches the Planes legend's
     # own ORDER BY tag) - the Month view's mini timeline uses this so a
     # plane always lands in the same left-to-right position whenever it
@@ -3079,7 +3080,7 @@ def schedule_finder():
     cfi_mode = request.args.get("cfi_mode", "any").strip() or "any"
 
     all_planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
-    all_cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 ORDER BY name").fetchall()
+    all_cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
     results = _build_flight_finder(conn, start_date, num_days, day_types, buckets, plane_id or None, cfi_mode)
     conn.close()
 
@@ -3102,7 +3103,7 @@ def schedule_new():
     self_student = current_student(conn) if self_service else None
     planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
     students = conn.execute("SELECT * FROM students WHERE active = 1 ORDER BY name").fetchall()
-    cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 ORDER BY name").fetchall()
+    cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
     # Clicking a day on the calendar (see the month_table macro in
     # _schedule_live.html) links here with ?date=YYYY-MM-DD to pre-fill the
     # date field, instead of always defaulting to today.
@@ -3362,7 +3363,7 @@ def schedule_edit(scheduled_id):
         return redirect(url_for("flight.schedule_calendar"))
     planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
     students = conn.execute("SELECT * FROM students WHERE active = 1 ORDER BY name").fetchall()
-    cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 ORDER BY name").fetchall()
+    cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
                        today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session["cfi_id"], sched=sched)
     if request.method == "POST":
@@ -4749,7 +4750,7 @@ def log_new():
     conn = get_db()
     planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
     students = conn.execute("SELECT * FROM students WHERE active = 1 ORDER BY name").fetchall()
-    cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 ORDER BY name").fetchall()
+    cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
                         today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session["cfi_id"])
     if request.method == "POST":
@@ -4806,7 +4807,7 @@ def log_edit(flight_id):
         return redirect(url_for("flight.log_history"))
     planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
     students = conn.execute("SELECT * FROM students WHERE active = 1 OR id = ? ORDER BY name", (f["student_id"],)).fetchall()
-    cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 OR id = ? ORDER BY name", (f["cfi_id"],)).fetchall()
+    cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 OR id = ? ORDER BY name", (f["cfi_id"],)).fetchall()
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
                         today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session.get("cfi_id"))
 
@@ -5144,7 +5145,7 @@ def stats():
     conn = get_db()
     planes = conn.execute(
         "SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
-    cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 ORDER BY name").fetchall()
+    cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
     sql = _LOG_ROW_SQL + " WHERE f.flight_date BETWEEN ? AND ?"
     params = [start_str, end_str]
     if plane_ids:

@@ -933,6 +933,13 @@ def _migrate(conn):
         # as End Flight's "How Paid" select) - shown as a hint there so the
         # instructor knows what to expect. NULL = not set.
         ("students", "pay_preference", "ALTER TABLE students ADD COLUMN pay_preference TEXT"),
+        # A generic "station" CFI login (e.g. "Shop") - same idea as
+        # students.is_station: grants CFI-level page access to whoever logs
+        # in with it, but isn't a real instructor, so it's excluded from
+        # every instructor picker/legend/dropdown (see the "AND is_station
+        # = 0" added to the CFI queries in flight.py) while still being
+        # manageable from Manage > CFIs.
+        ("cfis", "is_station", "ALTER TABLE cfis ADD COLUMN is_station INTEGER NOT NULL DEFAULT 0"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

@@ -133,6 +133,10 @@
       <input type="checkbox" class="form-check-input" name="active" id="active-check" {% if cfi.active %}checked{% endif %}>
       <label class="form-check-label" for="active-check">Active</label>
     </div>
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" name="is_station" id="is-station-check" {% if cfi.is_station %}checked{% endif %}>
+      <label class="form-check-label" for="is-station-check">Generic station account <span class="text-muted small">(e.g. "Shop") - grants CFI-level access to whoever logs in with it, but isn't a real instructor: hidden from every Instructor picker, filter, and legend so it can't be scheduled to fly a lesson.</span></label>
+    </div>
     {% endif %}
     <div class="d-flex justify-content-between">
       <a href="{{ url_for('flight.cfis_list') }}" class="btn btn-outline-secondary">Cancel</a>

@@ -187,6 +187,7 @@ CREATE TABLE IF NOT EXISTS cfis (
     pay_rate_per_hour REAL, -- what the school pays this CFI, separate from rate_per_hour - visible only to admin + this CFI
     is_admin INTEGER NOT NULL DEFAULT 0, -- legacy flag, superseded by users.is_master_admin
     active INTEGER NOT NULL DEFAULT 1,
+    is_station INTEGER NOT NULL DEFAULT 0, -- generic "station" login (e.g. "Shop") - grants CFI-level access but isn't a real instructor: excluded from every instructor picker/legend
     color TEXT, -- admin-picked schedule color (hex); NULL = fall back to the deterministic hash-based color
     user_id INTEGER REFERENCES users(id), -- links this CFI profile to its master login
     cred_cfi INTEGER NOT NULL DEFAULT 0, -- credential checkboxes, admin-set, hidden from students
