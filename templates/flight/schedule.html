@@ -1,6 +1,10 @@
 {% extends "flight/base_flight.html" %}
 {% block title %}Schedule - OpsHub{% endblock %}
 {% block content %}
+{#- The pilot badge CSS is injected once here (not inside _schedule_live.html,
+   which the live-refresh poll below swaps wholesale) so it survives every
+   poll instead of needing to be re-added each time. #}
+{% from "flight/_pilot_badge.html" import pilot_badge_css %}{{ pilot_badge_css() }}
 <style>
   @keyframes schedule-block-pulse {
     0%, 100% { box-shadow: 0 0 4px rgba(255,193,7,0.6); }

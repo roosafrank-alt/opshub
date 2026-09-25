@@ -15,6 +15,7 @@
   rebuilt on every poll - see the delegated click handler in schedule.html's
   scripts block, which keeps working on freshly-swapped-in blocks/rows.
 #}
+{% from "flight/_pilot_badge.html" import pilot_badge %}
 {% macro schedule_block(f, compact=False, extra_style='', extra_class='') %}
 {% set is_hl = highlight_ids is defined and highlight_ids and f.id in highlight_ids %}
 {% set is_dim = highlight_ids is defined and highlight_ids and not is_hl %}
@@ -54,7 +55,7 @@
     <span class="sb-time">{{ f.short_time or '--' }}</span> {{ f.plane_tag }}
   </div>
   {% if not compact and (session.get('cfi_id') or session.get('is_master_admin')) %}
-  <div class="text-truncate sb-line2">{{ f.student_name }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}</div>
+  <div class="text-truncate sb-line2">{{ f.student_name }} {{ pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}</div>
   {% endif %}
 </div>
 {% endmacro %}
@@ -103,7 +104,7 @@
     {%- if f.status == 'in_progress' %}<i class="bi bi-stopwatch" title="In progress"></i> {% elif f.status == 'completed' %}<i class="bi bi-check-circle" title="Completed"></i> {% endif -%}
     <strong>{{ f.short_time or '--' }}</strong> {{ f.plane_tag }}
   </div>
-  {% if session.get('cfi_id') or session.get('is_master_admin') %}<div class="text-truncate day-timeline-block-line2">{{ f.student_name }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}</div>{% endif %}
+  {% if session.get('cfi_id') or session.get('is_master_admin') %}<div class="text-truncate day-timeline-block-line2">{{ f.student_name }} {{ pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}</div>{% endif %}
 </div>
 {% endmacro %}
 
@@ -149,7 +150,7 @@
     {%- if f.status == 'in_progress' %}<i class="bi bi-stopwatch" title="In progress"></i> {% elif f.status == 'completed' %}<i class="bi bi-check-circle" title="Completed"></i> {% endif -%}
     <span class="sb-time">{{ f.short_time or '--' }}</span> {{ f.plane_tag }}
   </div>
-  {% if session.get('cfi_id') or session.get('is_master_admin') %}<div class="text-truncate sb-line2">{{ f.student_name }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}</div>{% endif %}
+  {% if session.get('cfi_id') or session.get('is_master_admin') %}<div class="text-truncate sb-line2">{{ f.student_name }} {{ pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}</div>{% endif %}
   {%- if style.height_px >= 38 %}
   <div class="text-truncate sb-line3">{% if f.end_time_label %}to {{ f.end_time_label }} &middot; {% endif %}{{ '%g'|format(f.duration_hours or 1.5) }} hr</div>
   {%- endif %}
@@ -346,7 +347,7 @@
   {% if show_date %}<td data-label="Date"><small class="{{ 'fw-bold' if new_day }}">{{ f.scheduled_date|usdate }}</small>{% if new_day and is_today %} <span class="badge bg-warning text-dark">Today</span>{% endif %}</td>{% endif %}
   <td data-label="Time"><small>{{ f.time_label or 'Not set' }}</small></td>
   <td data-label="Plane"><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:{{ f.display_color }};vertical-align:-1px;{% if f.cfi_display_color %}border-left:4px solid {{ f.cfi_display_color }};{% endif %}" title="Plane color{{ ' (neon = solo)' if f.solo }}{{ ' / instructor stripe' if f.cfi_display_color }}"></span> {{ f.plane_tag }}</td>
-  <td class="stack-full" data-label="Student / Instructor">{% if session.get('cfi_id') or session.get('is_master_admin') %}{{ f.student_name }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% endif %}</td>
+  <td class="stack-full" data-label="Student / Instructor">{% if session.get('cfi_id') or session.get('is_master_admin') %}{{ f.student_name }} {{ pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% endif %}</td>
   <td data-label="Status">
     {% if f.status == 'completed' %}<span class="badge bg-success">Complete</span>
     {% elif f.status == 'in_progress' %}<span class="badge bg-warning text-dark">In Progress</span>

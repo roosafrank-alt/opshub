@@ -802,15 +802,40 @@ def _pilot_ratings_list(row):
     return [r for r in (raw or "").split(",") if r in known]
 
 
+def _row_get(row, key):
+    return row[key] if row is not None and key in row.keys() else None
+
+
+# Not a real tier in PILOT_CERTIFICATES (no certificate at all yet) - a
+# synthetic badge, one step below Student Pilot, for a trainee who hasn't
+# soloed and has nothing on file yet. Otherwise this student showed no
+# badge anywhere at all, which read as "nothing to see" rather than
+# "brand new" - see pilot_badge_info below.
+PRE_SOLO_BADGE = {"code": "pre_solo", "label": "Pre-Solo", "short": "Pre-Solo", "color": "#adb5bd",
+                  "icon": "bi-hourglass-split", "tier": 0}
+
+
 @flight_bp.app_template_global()
 def pilot_badge_info(row):
     """Badge for a student: tier from their certificate (the higher the
     certificate, the higher the tier), one star per add-on rating, and an
     instructor tag if they hold CFI/CFII/MEI. score orders students by it
-    (certificate first, then ratings). None if no certificate is set."""
+    (certificate first, then ratings). A generic station account (not a
+    real trainee) never gets one. No certificate at all, and not yet
+    soloed, gets the synthetic Pre-Solo badge (PRE_SOLO_BADGE) instead of
+    no badge; no certificate but already soloed still gets none - solo
+    without ever recording a certificate is an existing-data gap, not
+    something to relabel."""
+    if _row_get(row, "is_station") or _row_get(row, "student_is_station"):
+        return None
     cert = row["pilot_certificate"] if row is not None and "pilot_certificate" in row.keys() else None
     tiers = {c[0]: (i, c) for i, c in enumerate(PILOT_CERTIFICATES)}
     if cert not in tiers:
+        if not _row_get(row, "first_solo_date"):
+            b = PRE_SOLO_BADGE
+            return {"code": b["code"], "label": b["label"], "short": b["short"], "color": b["color"],
+                    "icon": b["icon"], "tier": b["tier"], "rating_items": [], "stars": 0, "ratings": [],
+                    "instructor": [], "score": -10, "title": b["label"]}
         return None
     rank, (code, label, short, color, icon) = tiers[cert]
     ratings = _pilot_ratings_list(row)
@@ -2801,7 +2826,9 @@ def plane_rate_edit(asset_id):
 
 
 _SCHEDULE_ROW_SQL = """SELECT sf.*, a.tag as plane_tag, a.name as plane_name, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
-                     s.is_station as student_is_station, c.name as cfi_name, c.color as cfi_color,
+                     s.is_station as student_is_station, s.pilot_certificate as pilot_certificate,
+                     s.pilot_ratings as pilot_ratings, s.first_solo_date as first_solo_date,
+                     c.name as cfi_name, c.color as cfi_color,
                      a.schedule_color as plane_color, a.solo_color as plane_solo_color
               FROM scheduled_flights sf
               JOIN assets a ON a.id = sf.asset_id
