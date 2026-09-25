@@ -116,3 +116,16 @@ def print_part_label(part):
     location = part["location"] if "location" in part.keys() else None
     img = generate_label_image(part["name"], part["barcode"], location)
     print_label_image(img)
+
+
+def print_project_label(project, asset_tag=None):
+    """project: a sqlite3.Row (or dict) with name and code. asset_tag: the
+    aircraft's tail number/tag, if known, shown as the subtitle line."""
+    img = generate_label_image(project["name"], project["code"], asset_tag)
+    print_label_image(img)
+
+
+def print_laborer_label(laborer):
+    """laborer: a sqlite3.Row (or dict) with name and code."""
+    img = generate_label_image(laborer["name"], laborer["code"])
+    print_label_image(img)

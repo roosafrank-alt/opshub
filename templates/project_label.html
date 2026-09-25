@@ -13,6 +13,12 @@
     <div style="font-size:1.3rem; font-weight:700; letter-spacing:1px;">{{ project.code }}</div>
   </div>
 </div>
+
+<div class="d-flex justify-content-center mt-3 no-print">
+  <form method="post" action="{{ url_for('project_print_label', project_id=project.id) }}">
+    <button type="submit" class="btn btn-outline-secondary"><i class="bi bi-printer"></i> Print Label</button>
+  </form>
+</div>
 {% endblock %}
 
 {% block scripts %}
