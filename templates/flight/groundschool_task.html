@@ -5,6 +5,9 @@
   .pg-bar { position: relative; height: .6rem; border-radius: 999px; background: #e9ecef; overflow: hidden; }
   .pg-fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #2b3fdb, #4dabf7); }
   .pg-fill.done { background: linear-gradient(90deg, #2f9e44, #69db7c); }
+  .el-badge { transition: box-shadow .1s, transform .1s; }
+  .el-badge:hover { box-shadow: 0 0 0 2px rgba(43,63,219,.5); transform: translateY(-1px); }
+  .el-badge .bi-chevron-right { font-size: .7em; vertical-align: 1px; opacity: .7; }
 </style>
 {% set gs_tab = 'ratings' %}
 {% include "flight/_groundschool_subnav.html" %}
@@ -45,8 +48,8 @@
       {% for el in knowledge %}
       <li class="mb-1">
         <a href="{{ url_for('groundschool.element_detail', element_id=el.id) }}"
-           class="badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
-          {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }}
+           class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
+          {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
         </a>
         {{ el.text }}
       </li>
@@ -60,8 +63,8 @@
       {% for el in risk_management %}
       <li class="mb-1">
         <a href="{{ url_for('groundschool.element_detail', element_id=el.id) }}"
-           class="badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
-          {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }}
+           class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
+          {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
         </a>
         {{ el.text }}
       </li>
@@ -75,8 +78,8 @@
       {% for el in skills %}
       <li class="mb-1">
         <a href="{{ url_for('groundschool.element_detail', element_id=el.id) }}"
-           class="badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
-          {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }}
+           class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
+          {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
         </a>
         {{ el.text }}
       </li>

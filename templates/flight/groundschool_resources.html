@@ -1,6 +1,11 @@
 {% extends "academy_base.html" %}
 {% block title %}Resources - Ground School - OpsHub{% endblock %}
 {% block content %}
+<style>
+  .resource-row { cursor: pointer; }
+  .resource-row:hover { background: rgba(43,63,219,.08); }
+  .resource-row td { vertical-align: middle; }
+</style>
 {% set gs_tab = 'resources' %}
 {% include "flight/_groundschool_subnav.html" %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -26,14 +31,15 @@
 <div class="card academy-card">
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0">
-      <thead><tr><th>Title</th><th>Type</th><th>Pages indexed</th><th></th></tr></thead>
+      <thead><tr><th>Title</th><th>Type</th><th>Pages indexed</th><th></th><th></th></tr></thead>
       <tbody>
         {% for r in resources %}
-        <tr>
-          <td><a href="{{ url_for('groundschool.resource_file', resource_id=r.id) }}" target="_blank" rel="noopener" class="fw-bold text-decoration-none">{{ r.title }}</a></td>
+        <tr class="resource-row" onclick="window.open('{{ url_for('groundschool.resource_file', resource_id=r.id) }}', '_blank')">
+          <td><span class="fw-bold"><i class="bi bi-file-earmark-pdf text-danger"></i> {{ r.title }}</span></td>
           <td class="text-muted small">{{ r.doc_type or '-' }}</td>
           <td class="text-muted small">{{ r.page_count }}</td>
-          <td class="text-end">
+          <td class="text-primary small fw-bold text-nowrap">Open <i class="bi bi-box-arrow-up-right"></i></td>
+          <td class="text-end" onclick="event.stopPropagation()">
             {% if session.get('is_master_admin') %}
             <form method="post" action="{{ url_for('groundschool.resources_delete', resource_id=r.id) }}" class="d-inline"
                   onsubmit="return confirm('Delete {{ r.title }}? References linking to it will stop auto-linking.');">
