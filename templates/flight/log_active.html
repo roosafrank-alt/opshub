@@ -416,7 +416,7 @@ document.addEventListener('submit', function (e) {
 
   // N89 (Joseph Y. Resnick Airport, Ellenville NY) as the default view.
   var N89_LAT = 41.72778, N89_LON = -74.37722;
-  var map = L.map('live-map').setView([N89_LAT, N89_LON], 10);
+  var map = L.map('live-map').setView([N89_LAT, N89_LON], 11);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
     maxZoom: 18
@@ -494,15 +494,20 @@ document.addEventListener('submit', function (e) {
   // reads cleanly - just the identifier, none of the speed/altitude detail
   // that's in the popup and the results list below the map.
   function planeIcon(track, isSchool, label, highlighted) {
-    var iconSize = highlighted ? 28 : 20;
-    var ring = highlighted ? 'box-shadow:0 0 0 3px #ffc107, 0 0 10px 3px rgba(255,193,7,.7); border-radius:50%; background:rgba(255,255,255,.5);' : '';
+    var size = highlighted ? 34 : 24;
+    var color = isSchool ? '#fd7e14' : '#6c757d';
+    var ring = highlighted ? 'box-shadow:0 0 0 3px #ffc107, 0 0 10px 3px rgba(255,193,7,.7); border-radius:50%; background:rgba(255,255,255,.55);' : '';
+    var svg = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" ' +
+      'style="display:block; transform: rotate(' + (track || 0) + 'deg); transform-origin: 50% 50%;">' +
+      '<path d="M12 0 L18.5 21 L12 16.5 L5.5 21 Z" fill="' + color + '" stroke="#212529" stroke-width="0.9" stroke-linejoin="round"/>' +
+      '</svg>';
     return L.divIcon({
       className: '',
       html: '<div style="display:flex; flex-direction:column; align-items:center; pointer-events:none;">' +
-              '<div class="adsb-plane-icon ' + (isSchool ? 'school' : 'other') + '" style="' + ring + ' transform: rotate(' + (track || 0) + 'deg); font-size: ' + iconSize + 'px; line-height:1;">&#9992;</div>' +
-              '<div style="font-size:9px; font-weight:700; line-height:1.2; padding:0 3px; margin-top:1px; border-radius:3px; white-space:nowrap; color:#212529; background:' + (highlighted ? '#ffc107' : 'rgba(255,255,255,.85)') + '; box-shadow:0 0 0 1px rgba(0,0,0,.15);">' + label + '</div>' +
-            '</div>',
-      iconSize: [70, 40], iconAnchor: [35, 14]
+              '<div style="' + ring + ' padding:3px; display:flex;">' + svg + '</div>' +
+              '<div style="font-size:10px; font-weight:700; line-height:1.2; padding:0 3px; margin-top:1px; border-radius:3px; white-space:nowrap; color:#212529; background:' + (highlighted ? '#ffc107' : 'rgba(255,255,255,.85)') + '; box-shadow:0 0 0 1px rgba(0,0,0,.15);">' + label + '</div>' +
+                '</div>',
+      iconSize: [80, 50], iconAnchor: [40, 22]
     });
   }
 
