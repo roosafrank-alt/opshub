@@ -2604,11 +2604,6 @@ def cfi_schedule():
     week_dates = [week_start + timedelta(days=i) for i in range(7)]
 
     days = _cfi_schedule_week(conn, cfi_id, week_dates)
-    # Time reference marks (ruler) above the day bars, every 3 hours across
-    # the same 6am-9pm window the bars themselves are drawn on, so the bars
-    # are orientable at a glance instead of being a shapeless block of color.
-    hour_marks = [{"label": _format_time_12h(f"{h:02d}:00"), "left": _cfi_schedule_pct(h * 60, h * 60)[0]}
-                  for h in range(_CFI_SCHEDULE_DAY_START // 60, _CFI_SCHEDULE_DAY_END // 60 + 1, 3)]
     # A recurring entry stays "upcoming" forever (its anchor off_date can be
     # long past while it still blocks every future occurrence of that
     # weekday), so it's included regardless of date.
@@ -2621,8 +2616,7 @@ def cfi_schedule():
                            week_label=f"Week of {week_dates[0].month}/{week_dates[0].day}",
                            week_prev=(week_start - timedelta(days=7)).strftime("%Y-%m-%d"),
                            week_next=(week_start + timedelta(days=7)).strftime("%Y-%m-%d"),
-                           upcoming_time_off=upcoming_time_off, today_str=today.strftime("%Y-%m-%d"),
-                           hour_marks=hour_marks)
+                           upcoming_time_off=upcoming_time_off, today_str=today.strftime("%Y-%m-%d"))
 
 
 @flight_bp.route("/cfis/schedule/time-off/<int:off_id>/delete", methods=["POST"])
