@@ -3632,18 +3632,14 @@ def schedule_start(scheduled_id):
         flash(f"Booking moved from {_slot_label(sched['scheduled_date'], sched['scheduled_time'])} "
               f"to now ({_format_time_12h(new_time)}).", "info")
     plane = conn.execute("SELECT * FROM assets WHERE id = ?", (sched["asset_id"],)).fetchone()
-    # Starting Hobbs and Tach have to be confirmed first: every Start button
-    # posts here without them, so send them to the confirm page (pre-filled
-    # from the plane's last readings) and come back with both.
+    # The clock starts right away - it no longer waits on Starting Hobbs/
+    # Tach (every plain Start button posts here with neither). Whichever of
+    # the two is still missing becomes a required field on the Log Flight
+    # form once the flight ends (see log_active.html/log_end), so it's
+    # never skipped, just no longer something you have to stop and type in
+    # before the timer can begin.
     hobbs_start = _parse_float(request.form.get("hobbs_start"))
     tach_start = _parse_float(request.form.get("tach_start"))
-    if hobbs_start is None or tach_start is None:
-        conn.rollback()
-        conn.close()
-        if request.form.get("hobbs_start") not in (None, "") and request.form.get("tach_start") not in (None, ""):
-            flash("Starting Hobbs and Tach have to be numbers.", "danger")
-        return redirect(url_for("flight.schedule_start_confirm", scheduled_id=scheduled_id,
-                                move_to_now=request.form.get("move_to_now") or None))
     last_hobbs = plane["hobbs_hours"] if plane else None
     solo = 1 if not sched["cfi_id"] else 0
     cur = conn.execute("""INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, hobbs_start, tach_start,
@@ -3653,7 +3649,7 @@ def schedule_start(scheduled_id):
                         date.today().strftime("%Y-%m-%d"), hobbs_start,
                         tach_start, solo, scheduled_id, now_iso(), now_iso()))
     flight_id = cur.lastrowid
-    if plane and last_hobbs is not None and abs(hobbs_start - last_hobbs) >= 0.05:
+    if hobbs_start is not None and last_hobbs is not None and abs(hobbs_start - last_hobbs) >= 0.05:
         flash(f"Starting Hobbs {hobbs_start:.1f} doesn't match the last one on file for {plane['tag']} "
               f"({last_hobbs:.1f}) - {abs(hobbs_start - last_hobbs):.1f} hrs difference.", "warning")
     conn.execute("UPDATE flights SET guest_name = ? WHERE id = ?", (sched["guest_name"], flight_id))
@@ -3662,35 +3658,6 @@ def schedule_start(scheduled_id):
     conn.close()
     flash("Flight started - fill in the rest when you're done.", "success")
     return redirect(url_for("flight.log_active", flight_id=flight_id))
-
-
-@flight_bp.route("/schedule/<int:scheduled_id>/start", methods=["GET"])
-@login_required
-def schedule_start_confirm(scheduled_id):
-    """Step before the clock starts: confirm (or correct) the starting
-    Hobbs, pre-filled with the plane's last Hobbs reading. Posts to
-    schedule_start with it (plus move_to_now if the early-start prompt
-    already said so)."""
-    conn = get_db()
-    sched = conn.execute("""SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name
-                                FROM scheduled_flights sf JOIN assets a ON a.id = sf.asset_id
-                                JOIN students s ON s.id = sf.student_id LEFT JOIN cfis c ON c.id = sf.cfi_id
-                            WHERE sf.id = ?""", (scheduled_id,)).fetchone()
-    if not sched or sched["status"] != "scheduled":
-        conn.close()
-        flash("That booking is no longer available to start (already started, flown, or cancelled).", "danger")
-        return redirect(url_for("flight.schedule_calendar"))
-    plane = conn.execute("SELECT * FROM assets WHERE id = ?", (sched["asset_id"],)).fetchone()
-    last_flight = conn.execute("""SELECT hobbs_end, flight_date FROM flights
-                                  WHERE asset_id = ? AND hobbs_end IS NOT NULL
-                                  ORDER BY COALESCE(ended_at, created_at) DESC, id DESC LIMIT 1""",
-                               (sched["asset_id"],)).fetchone()
-    conn.close()
-    last_hobbs = plane["hobbs_hours"] if plane and plane["hobbs_hours"] is not None else \
-        (last_flight["hobbs_end"] if last_flight else None)
-    return render_template("flight/start_confirm.html", sched=sched, plane=plane, last_hobbs=last_hobbs,
-                           last_flight=last_flight, move_to_now=request.args.get("move_to_now") == "1",
-                           slot_label=_slot_label(sched["scheduled_date"], sched["scheduled_time"]))
 
 
 def _can_end_flight(flight_row):
@@ -4360,11 +4327,22 @@ def log_end(flight_id):
         conn.close()
         flash("Enter the ending Hobbs and Tach to log the flight.", "danger")
         return redirect(back)
-    if hobbs_end is not None and f["hobbs_start"] is not None and hobbs_end < f["hobbs_start"]:
+    # Starting Hobbs/Tach are only still missing on a flight whose clock was
+    # allowed to start before they were entered (see flight.schedule_start)
+    # - the Log Flight form makes them required inputs in that case instead
+    # of the usual disabled "already on file" display, so they're required
+    # here too rather than left to end up NULL.
+    hobbs_start = f["hobbs_start"] if f["hobbs_start"] is not None else _parse_float(request.form.get("hobbs_start"))
+    tach_start = f["tach_start"] if f["tach_start"] is not None else _parse_float(request.form.get("tach_start"))
+    if hobbs_start is None or tach_start is None:
+        conn.close()
+        flash("Enter the starting Hobbs and Tach to log the flight.", "danger")
+        return redirect(back)
+    if hobbs_end < hobbs_start:
         conn.close()
         flash("Ending Hobbs can't be less than starting Hobbs.", "danger")
         return redirect(back)
-    if tach_end is not None and f["tach_start"] is not None and tach_end < f["tach_start"]:
+    if tach_end < tach_start:
         conn.close()
         flash("Ending Tach can't be less than starting Tach.", "danger")
         return redirect(back)
@@ -4399,10 +4377,10 @@ def log_end(flight_id):
     elapsed_seconds = max(0.0, (ended - started).total_seconds() - paused_seconds)
     instructor_clock_hours = elapsed_seconds / 3600.0
 
-    conn.execute("""UPDATE flights SET hobbs_end=?, tach_end=?, oil_added_qt=?, ground_time_hours=?, notes=?,
+    conn.execute("""UPDATE flights SET hobbs_start=?, hobbs_end=?, tach_start=?, tach_end=?, oil_added_qt=?, ground_time_hours=?, notes=?,
                      squawk=?, ended_at=?, instructor_clock_hours=?, paused_at=NULL, paused_seconds=?,
                      day_landings_fs=?, day_landings_tg=?, night_landings_fs=?, night_landings_tg=?, paid=? WHERE id=?""",
-                 (hobbs_end, tach_end, oil_added_qt, ground_time_hours, notes, squawk,
+                 (hobbs_start, hobbs_end, tach_start, tach_end, oil_added_qt, ground_time_hours, notes, squawk,
                   ended_at, instructor_clock_hours, paused_seconds,
                   day_landings_fs, day_landings_tg, night_landings_fs, night_landings_tg, int(paid_choice), flight_id))
     if hobbs_end is not None:
