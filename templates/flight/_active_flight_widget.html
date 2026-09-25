@@ -39,6 +39,14 @@
   .active-flight-widget-plane { font-weight: 700; }
   .active-flight-widget-timer { font-variant-numeric: tabular-nums; opacity: .9; }
   .active-flight-widget-more { color: rgba(255,255,255,.7); font-size: .7rem; white-space: nowrap; }
+  /* Pause/End are the only actual controls in this widget (the rest just
+     navigates) - give them a real tap target instead of relying on the
+     bare icon's tiny native size, so a finger on a shop tablet reliably
+     lands on the button and not the fixed bar behind/around it. */
+  #active-flight-widget-pause, .active-flight-widget a.btn {
+    min-width: 2.25rem; min-height: 2.25rem;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
   @media (max-width: 420px) {
     .active-flight-widget { left: .5rem; right: .5rem; justify-content: space-between; }
   }
@@ -80,7 +88,14 @@
     pauseBtn.disabled = true;
     fetch(url, { method: 'POST', credentials: 'same-origin' }).then(function (resp) {
       pauseBtn.disabled = false;
-      if (!resp.ok) return;
+      // fetch follows the redirect on its own, so a plain resp.ok would
+      // read true even when the session had expired and this silently
+      // landed on the login page instead of actually toggling the flight -
+      // the button would then flip in the UI while nothing changed in the
+      // database. Checking where the redirect actually ended up catches
+      // that (and any other bounce away from Active Flight) and reloads
+      // instead of lying about success.
+      if (!resp.ok || resp.url.indexOf('/flight/log/active') === -1) { location.reload(); return; }
       var icon = pauseBtn.querySelector('i');
       if (paused) {
         // Was paused, just resumed: fold the paused span into paused_seconds.
