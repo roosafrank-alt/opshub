@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS assets (
     prop_serial TEXT,
     rental_rate REAL, -- Flight School: $/hr charged to students for this aircraft (billed on Hobbs time)
     is_flight_asset INTEGER NOT NULL DEFAULT 0, -- linked to Flight School: shows up in its plane list/flight log; NOT every asset here is a flight school plane, so this isn't automatic
+    is_simulator INTEGER NOT NULL DEFAULT 0, -- a flight simulator added from Planes > Add Simulator, not a real aircraft - no Hobbs/Tach/maintenance to track
     schedule_color TEXT, -- Flight School schedule color for this plane (admin-picked on Planes > Edit; never the same as a CFI color); solo bookings show it in neon
     icao24_hex TEXT, -- Mode S / ICAO24 hex address (e.g. "A12345"), admin-entered, used for live ADS-B tracking on the Active Flight map; blank = not tracked
     notes TEXT,

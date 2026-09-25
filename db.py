@@ -924,6 +924,11 @@ def _migrate(conn):
         # TSA verification on file (set by a CFI/admin on the student
         # profile) - NULL = not verified yet.
         ("students", "tsa_verified_date", "ALTER TABLE students ADD COLUMN tsa_verified_date TEXT"),
+        # A flight simulator added from the Planes tab (flight.simulator_new)
+        # rather than a real aircraft in the Maintenance tile - still an
+        # is_flight_asset row (so it's bookable), but has no Hobbs/Tach/
+        # maintenance items to track.
+        ("assets", "is_simulator", "ALTER TABLE assets ADD COLUMN is_simulator INTEGER NOT NULL DEFAULT 0"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

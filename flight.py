@@ -2190,6 +2190,37 @@ def planes_list():
     return render_template("flight/planes.html", planes=planes)
 
 
+@flight_bp.route("/planes/simulator/new", methods=["GET", "POST"])
+@admin_required
+def simulator_new():
+    """Adds a flight simulator to the Planes list - a lighter-weight path
+    than the Maintenance tile's full aircraft form (no Hobbs/Tach, engine,
+    prop, or maintenance items to fill in for something that isn't a real
+    airplane). Still an is_flight_asset row so it shows up for booking and
+    logging the same as any plane; is_simulator just tells the Planes list
+    and schedule to skip the meter columns for it."""
+    if request.method == "POST":
+        tag = request.form.get("tag", "").strip()
+        name = request.form.get("name", "").strip()
+        if not tag:
+            flash("Give the simulator an ID (e.g. \"SIM1\").", "danger")
+            return render_template("flight/simulator_form.html")
+        conn = get_db()
+        existing = conn.execute("SELECT id FROM assets WHERE tag = ?", (tag,)).fetchone()
+        if existing:
+            conn.close()
+            flash(f"An asset with tag '{tag}' already exists.", "danger")
+            return render_template("flight/simulator_form.html")
+        conn.execute("""INSERT INTO assets (tag, name, is_flight_asset, is_simulator, created_at, updated_at)
+                         VALUES (?, ?, 1, 1, ?, ?)""",
+                     (tag, name or tag, now_iso(), now_iso()))
+        conn.commit()
+        conn.close()
+        flash(f"Simulator '{tag}' added.", "success")
+        return redirect(url_for("flight.planes_list"))
+    return render_template("flight/simulator_form.html")
+
+
 @flight_bp.route("/planes/<int:asset_id>/rate", methods=["GET", "POST"])
 @admin_required
 def plane_rate_edit(asset_id):

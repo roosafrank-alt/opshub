@@ -3,7 +3,12 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
   <h4 class="mb-0">Planes ({{ planes|length }})</h4>
-  <input type="text" id="planes-search" class="form-control form-control-sm" placeholder="Search by tail # or name..." style="min-width:220px;">
+  <div class="d-flex gap-2">
+    <input type="text" id="planes-search" class="form-control form-control-sm" placeholder="Search by tail # or name..." style="min-width:220px;">
+    {% if session.get('is_master_admin') %}
+    <a href="{{ url_for('flight.simulator_new') }}" class="btn btn-outline-primary btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Add Simulator</a>
+    {% endif %}
+  </div>
 </div>
 <p class="text-muted small">Not every aircraft in the Maintenance tile is a plane, so this list only shows the ones an admin has linked (from that aircraft's profile, "Used by Flight School"). Each plane's Schedule color is set here by an admin. What a student pays for the plane is their own Plane Rate, set on the Students page.</p>
 <div class="card">
@@ -14,12 +19,12 @@
         {% for p in planes %}
         <tr data-search="{{ (p.tag ~ ' ' ~ (p.name or ''))|lower }}">
           <td data-label=""><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:{{ p.schedule_color or '#fff' }};{{ 'border:1px dashed #adb5bd;' if not p.schedule_color }}" title="{{ 'Schedule color ' ~ p.schedule_color if p.schedule_color else 'No schedule color yet' }}"></span></td>
-          <td data-label="Tail #"><strong>{{ p.tag }}</strong>{% if p.name and p.name != p.tag %}<div class="text-muted small">{{ p.name }}</div>{% endif %}</td>
+          <td data-label="Tail #"><strong>{{ p.tag }}</strong>{% if p.is_simulator %} <span class="badge bg-secondary">Simulator</span>{% endif %}{% if p.name and p.name != p.tag %}<div class="text-muted small">{{ p.name }}</div>{% endif %}</td>
           <td data-label="Make/Model">{{ [p.make, p.model]|select|join(' ') or '-' }}</td>
           <td data-label="Hobbs">{{ '%.1f'|format(p.hobbs_hours) if p.hobbs_hours is not none else '-' }}</td>
           <td data-label="Tach">{{ '%.1f'|format(p.tach_hours) if p.tach_hours is not none else '-' }}</td>
           <td data-label="" class="text-nowrap">
-            {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
+            {% if not p.is_simulator and (session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech')) %}
             <a href="{{ url_for('asset_detail', asset_id=p.id) }}" class="btn btn-outline-secondary btn-sm" title="Oil and compression reports live here now"><i class="bi bi-tools"></i> View in Maintenance</a>
             {% endif %}
             {% if session.get('is_master_admin') %}
