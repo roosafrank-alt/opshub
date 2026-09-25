@@ -29,7 +29,7 @@
 </div>
 <p class="text-muted small">Check these before anyone touches the plane. Anything marked <strong>Issue</strong> (and any squawk or damage) can get its own Sub Area on this project - tick "Address in this project".</p>
 
-<form method="post">
+<form method="post" enctype="multipart/form-data">
   <div class="card p-3 mb-3">
     {% for key, label, hint in checks %}
     {% set c = checks_by_key.get(key, {}) %}
@@ -74,6 +74,13 @@
     {% set val = form.get(kind ~ '_' ~ i) if form else it.get('text', '') %}
     <div class="intake-line mb-2 {{ 'd-none' if i > 0 and not val and not (i < saved|length) }}" data-kind="{{ kind }}">
       <input type="text" name="{{ kind }}_{{ i }}" class="form-control form-control-sm" placeholder="{{ ph }}" value="{{ val or '' }}">
+      {% if kind == 'damage' %}
+      <div class="d-flex align-items-center gap-2 mt-1">
+        <input type="file" name="damage_{{ i }}_photo" accept="image/*" class="form-control form-control-sm" style="max-width:220px;">
+        {% if it.get('photo') %}<a href="{{ url_for('static', filename='uploads/' + it.photo) }}" target="_blank" class="small">current photo</a>{% endif %}
+        {% if it.get('at') %}<span class="text-muted small">timestamped {{ it.at|usdate(true) }}</span>{% endif %}
+      </div>
+      {% endif %}
       <div class="form-check mt-1">
         <input class="form-check-input" type="checkbox" name="{{ kind }}_{{ i }}_address" value="1" id="{{ kind }}-{{ i }}-addr" {{ 'checked' if (form and form.get(kind ~ '_' ~ i ~ '_address')) or (not form and (it.get('address') or not it)) }}>
         <label class="form-check-label small" for="{{ kind }}-{{ i }}-addr">Address in this project (adds a Sub Area for it)</label>

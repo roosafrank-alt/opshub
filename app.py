@@ -1577,8 +1577,10 @@ INTAKE_CHECKS = [
 INTAKE_EXTRA_ROWS = 6  # squawk / damage lines offered on the form
 
 
-def _intake_from_form(form):
-    """(data, errors) from the intake form."""
+def _intake_from_form(form, files=None):
+    """(data, errors) from the intake form. `files` (request.files), when
+    given, lets each damage line pick up its own photo - see the
+    damage_{i}_photo inputs in project_intake.html."""
     data = {"checks": [], "squawks": [], "damage": [], "notes": (form.get("notes") or "").strip()[:1000]}
     errors = []
     for key, label, _hint in INTAKE_CHECKS:
@@ -1600,7 +1602,15 @@ def _intake_from_form(form):
         for i in range(INTAKE_EXTRA_ROWS):
             text = (form.get(f"{kind}_{i}") or "").strip()[:200]
             if text:
-                data[kind].append({"text": text, "address": form.get(f"{kind}_{i}_address") == "1"})
+                item = {"text": text, "address": form.get(f"{kind}_{i}_address") == "1"}
+                if kind == "damage":
+                    # Timestamped at save, so it's on record that the damage
+                    # was already there at check-in, not caused in the shop.
+                    item["at"] = now_iso()
+                    photo = files.get(f"damage_{i}_photo") if files else None
+                    if photo and photo.filename and allowed_image(photo.filename):
+                        item["photo"] = save_upload(photo)
+                data[kind].append(item)
     return data, errors
 
 
@@ -1642,7 +1652,7 @@ def project_intake(project_id):
             conn.close()
             flash("Intake check skipped.", "warning")
             return redirect(url_for("project_detail", project_id=project_id))
-        data, errors = _intake_from_form(request.form)
+        data, errors = _intake_from_form(request.form, request.files)
         if errors:
             conn.close()
             for e in errors:
