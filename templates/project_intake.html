@@ -18,14 +18,17 @@
     <h4 class="mb-0"><i class="bi bi-clipboard-check"></i> Intake Check</h4>
     <div class="text-muted"><code class="text-primary">{{ project.code }}</code> &middot; {{ project.name }}{% if project.asset_display_tag %} &middot; <i class="bi bi-airplane"></i> {{ project.asset_display_tag }}{% endif %}</div>
   </div>
-  {% if project.intake_status in (none, 'pending') %}
-  <form method="post" class="mb-0" data-confirm="Skip the intake check for this project? You can still fill it in later from the project page." data-confirm-title="Skip Intake" data-confirm-ok="Skip it" data-confirm-style="warning">
-    <input type="hidden" name="action" value="skip">
-    <button type="submit" class="btn btn-link btn-sm text-muted intake-skip p-0">Skip &raquo;</button>
-  </form>
-  {% else %}
-  <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm">Back to project</a>
-  {% endif %}
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm" title="Jump to the project profile (shortcut: P)">
+      {{ 'Back to project' if project.intake_status not in (none, 'pending') else 'Jump to Project' }} <kbd class="ms-1">P</kbd>
+    </a>
+    {% if project.intake_status in (none, 'pending') %}
+    <form method="post" class="mb-0" data-confirm="Skip the intake check for this project? You can still fill it in later from the project page." data-confirm-title="Skip Intake" data-confirm-ok="Skip it" data-confirm-style="warning">
+      <input type="hidden" name="action" value="skip">
+      <button type="submit" class="btn btn-link btn-sm text-muted intake-skip p-0">Skip &raquo;</button>
+    </form>
+    {% endif %}
+  </div>
 </div>
 <p class="text-muted small">Check these before anyone touches the plane. Anything marked <strong>Issue</strong> (and any squawk or damage) can get its own Sub Area on this project - tick "Address in this project".</p>
 
@@ -108,6 +111,17 @@
 
 {% block scripts %}
 <script>
+(function () {
+  // Hotkey to jump straight to the project profile without hunting for the
+  // button - "P" (not while typing in a field, so it doesn't fire while
+  // writing a note or a damage line).
+  document.addEventListener('keydown', function (evt) {
+    if (evt.key !== 'p' && evt.key !== 'P') return;
+    var tag = (evt.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || evt.target.isContentEditable) return;
+    window.location.href = {{ url_for('project_detail', project_id=project.id)|tojson }};
+  });
+})();
 (function () {
   // Marking a check "Issue" with no note is the most common reason Save
   // bounces you back to the top of this sheet with a red banner instead of
