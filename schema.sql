@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS assets (
     rental_rate REAL, -- Flight School: $/hr charged to students for this aircraft (billed on Hobbs time)
     is_flight_asset INTEGER NOT NULL DEFAULT 0, -- linked to Flight School: shows up in its plane list/flight log; NOT every asset here is a flight school plane, so this isn't automatic
     is_simulator INTEGER NOT NULL DEFAULT 0, -- a flight simulator added from Planes > Add Simulator, not a real aircraft - no Hobbs/Tach/maintenance to track
+    sim_rate REAL, -- simulator's own base $/hr rate, set on its profile; used unless a student has their own Sim Rate override
     schedule_color TEXT, -- Flight School schedule color for this plane (admin-picked on Planes > Edit; never the same as a CFI color); solo bookings show it in neon
     icao24_hex TEXT, -- Mode S / ICAO24 hex address (e.g. "A12345"), admin-entered, used for live ADS-B tracking on the Active Flight map; blank = not tracked
     notes TEXT,
@@ -216,6 +217,7 @@ CREATE TABLE IF NOT EXISTS students (
     password_hash TEXT NOT NULL,
     rate_override REAL, -- optional custom instruction rate for this student; NULL = use the CFI's rate
     plane_rate_override REAL, -- optional custom plane rate for this student; NULL = use the plane's rate (set by an admin on the Flight School side)
+    sim_rate_override REAL, -- optional custom simulator rate for this student; NULL = use the simulator's own rate (assets.sim_rate)
     solo_signoff_date TEXT, -- YYYY-MM-DD the CFI signed this student off for solo; NULL = none on file
     solo_signoff_expires TEXT, -- YYYY-MM-DD the solo sign-off runs out (defaults to sign-off + 90 days); a solo booked after this is flagged for review
     solo_currency_days INTEGER, -- days since last dual flight before this student needs a CFI checkout before soloing again; NULL = use the default (DEFAULT_SOLO_CURRENCY_DAYS in flight.py) - a newer/lower-time student might need a shorter interval than a more experienced one

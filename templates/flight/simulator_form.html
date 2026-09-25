@@ -1,24 +1,29 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}Add Simulator - OpsHub{% endblock %}
+{% block title %}{{ 'Edit Simulator' if sim else 'Add Simulator' }} - OpsHub{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-6">
 <div class="card p-4">
-  <h4>Add Simulator</h4>
+  <h4>{{ 'Edit Simulator' if sim else 'Add Simulator' }}</h4>
   <p class="text-muted small">A lighter profile than a real aircraft - no Hobbs/Tach or maintenance to track, but it still shows up on the schedule and flight log like any plane.</p>
   <form method="post">
     <div class="mb-3">
       <label class="form-label">Simulator ID <span class="text-danger">*</span></label>
-      <input type="text" name="tag" class="form-control" placeholder="e.g. SIM1" required autofocus>
+      <input type="text" name="tag" class="form-control" placeholder="e.g. SIM1" value="{{ sim.tag if sim else '' }}" required autofocus>
       <div class="form-text">Shown on the schedule and flight log the same way a plane's tail number is.</div>
     </div>
     <div class="mb-3">
       <label class="form-label">Name <span class="text-muted small">(optional)</span></label>
-      <input type="text" name="name" class="form-control" placeholder="e.g. Redbird FMX">
+      <input type="text" name="name" class="form-control" placeholder="e.g. Redbird FMX" value="{{ sim.name if sim and sim.name != sim.tag else '' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Rate ($/hr)</label>
+      <input type="number" step="any" name="sim_rate" class="form-control" placeholder="e.g. 65.00" value="{{ sim.sim_rate if sim and sim.sim_rate is not none else '' }}">
+      <div class="form-text">What a student pays per hour on this simulator, unless their own profile has a Sim Rate override (Students &gt; Edit).</div>
     </div>
     <div class="d-flex justify-content-between">
       <a href="{{ url_for('flight.planes_list') }}" class="btn btn-outline-secondary">Cancel</a>
-      <button type="submit" class="btn btn-primary fw-bold">Add Simulator</button>
+      <button type="submit" class="btn btn-primary fw-bold">{{ 'Save Changes' if sim else 'Add Simulator' }}</button>
     </div>
   </form>
 </div>

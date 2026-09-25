@@ -999,6 +999,15 @@ def _migrate(conn):
         # = 0" added to the CFI queries in flight.py) while still being
         # manageable from Manage > CFIs.
         ("cfis", "is_station", "ALTER TABLE cfis ADD COLUMN is_station INTEGER NOT NULL DEFAULT 0"),
+        # A simulator's own base rate ($/hr), set on its profile (Manage >
+        # Planes > Add/Edit Simulator) - unlike a real plane, a sim has no
+        # per-student override baked into the design by default, so this is
+        # what's charged unless a student has their own Sim Rate override.
+        ("assets", "sim_rate", "ALTER TABLE assets ADD COLUMN sim_rate REAL"),
+        # Per-student override of the simulator rate above (Students > Edit),
+        # same idea as plane_rate_override but specific to simulator time -
+        # a student can be charged differently for the sim than for a plane.
+        ("students", "sim_rate_override", "ALTER TABLE students ADD COLUMN sim_rate_override REAL"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

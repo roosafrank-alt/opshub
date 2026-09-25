@@ -57,7 +57,12 @@
            Student picker's hidden select. #}
         <select name="asset_id" id="plane-select" class="visually-hidden" tabindex="-1" aria-hidden="true">
           <option value="" disabled {% if not (form or sched) %}selected{% endif %}>-- Select a plane --</option>
-          {% for p in planes %}
+          {#- Sims sort to the bottom of the one-tap buttons below (still
+             alphabetical by tag within each group, since `planes` already
+             comes sorted that way and Jinja's sort is stable) instead of
+             wherever their tag happens to fall alphabetically among the
+             real planes. #}
+          {% for p in planes|sort(attribute='is_simulator') %}
           <option value="{{ p.id }}" data-hobbs="{{ p.hobbs_hours if p.hobbs_hours is not none else '' }}" data-tach="{{ p.tach_hours if p.tach_hours is not none else '' }}" {% if (form and form.get('asset_id')|string == p.id|string) or (not form and sched and sched.asset_id == p.id) %}selected{% endif %}>{{ p.tag }}{% if p.name and p.name != p.tag %} - {{ p.name }}{% endif %}</option>
           {% endfor %}
         </select>

@@ -1752,6 +1752,8 @@ def student_new():
                      (_pay_preference_from_form(request.form), user_id))
         conn.execute("UPDATE students SET notify_booking_confirm = ? WHERE user_id = ?",
                      (1 if request.form.get("notify_booking_confirm") else 0, user_id))
+        conn.execute("UPDATE students SET sim_rate_override = ? WHERE user_id = ?",
+                     (_parse_float(request.form.get("sim_rate_override")), user_id))
         conn.commit()
         conn.close()
         flash(f"Student '{name}' added. Give them their username and starting password to log in.", "success")
@@ -1848,6 +1850,9 @@ def student_edit(student_id):
         pay_preference = _pay_preference_from_form(request.form)
         conn.execute("UPDATE students SET pay_preference = ? WHERE id = ?", (pay_preference, student_id))
         _log_field_change(conn, "student", student_id, "pay_preference", student["pay_preference"], pay_preference, who)
+        sim_rate_override = _parse_float(request.form.get("sim_rate_override"))
+        conn.execute("UPDATE students SET sim_rate_override = ? WHERE id = ?", (sim_rate_override, student_id))
+        _log_field_change(conn, "student", student_id, "sim_rate_override", student["sim_rate_override"], sim_rate_override, who)
         notify_booking_confirm = 1 if request.form.get("notify_booking_confirm") else 0
         conn.execute("UPDATE students SET notify_booking_confirm = ? WHERE id = ?", (notify_booking_confirm, student_id))
         if student["user_id"]:
@@ -1962,6 +1967,7 @@ def student_add_funds(student_id):
 _STUDENT_FIELD_INFO = {
     "plane_rate": {"label": "Plane Rate", "column": "plane_rate_override", "log_field": "plane_rate_override"},
     "instructor_rate": {"label": "Instructor Rate", "column": "rate_override", "log_field": "rate_override"},
+    "sim_rate": {"label": "Sim Rate", "column": "sim_rate_override", "log_field": "sim_rate_override"},
 }
 
 
@@ -2318,6 +2324,7 @@ def simulator_new():
     if request.method == "POST":
         tag = request.form.get("tag", "").strip()
         name = request.form.get("name", "").strip()
+        sim_rate = _parse_float(request.form.get("sim_rate"))
         if not tag:
             flash("Give the simulator an ID (e.g. \"SIM1\").", "danger")
             return render_template("flight/simulator_form.html")
@@ -2327,14 +2334,50 @@ def simulator_new():
             conn.close()
             flash(f"An asset with tag '{tag}' already exists.", "danger")
             return render_template("flight/simulator_form.html")
-        conn.execute("""INSERT INTO assets (tag, name, is_flight_asset, is_simulator, created_at, updated_at)
-                         VALUES (?, ?, 1, 1, ?, ?)""",
-                     (tag, name or tag, now_iso(), now_iso()))
+        conn.execute("""INSERT INTO assets (tag, name, is_flight_asset, is_simulator, sim_rate, created_at, updated_at)
+                         VALUES (?, ?, 1, 1, ?, ?, ?)""",
+                     (tag, name or tag, sim_rate, now_iso(), now_iso()))
         conn.commit()
         conn.close()
         flash(f"Simulator '{tag}' added.", "success")
         return redirect(url_for("flight.planes_list"))
     return render_template("flight/simulator_form.html")
+
+
+@flight_bp.route("/planes/simulator/<int:asset_id>/edit", methods=["GET", "POST"])
+@admin_required
+def simulator_edit(asset_id):
+    """Editing a simulator's own lightweight profile (tag, name, rate) -
+    kept separate from the Maintenance tile's full aircraft edit form
+    (asset_edit) since a sim has none of that form's fields and shouldn't
+    route an admin over to the Maintenance side at all."""
+    conn = get_db()
+    sim = conn.execute("SELECT * FROM assets WHERE id = ? AND is_simulator = 1", (asset_id,)).fetchone()
+    if not sim:
+        conn.close()
+        flash("Simulator not found.", "danger")
+        return redirect(url_for("flight.planes_list"))
+    if request.method == "POST":
+        tag = request.form.get("tag", "").strip()
+        name = request.form.get("name", "").strip()
+        sim_rate = _parse_float(request.form.get("sim_rate"))
+        if not tag:
+            conn.close()
+            flash("Give the simulator an ID (e.g. \"SIM1\").", "danger")
+            return render_template("flight/simulator_form.html", sim=sim)
+        clash = conn.execute("SELECT id FROM assets WHERE tag = ? AND id != ?", (tag, asset_id)).fetchone()
+        if clash:
+            conn.close()
+            flash(f"An asset with tag '{tag}' already exists.", "danger")
+            return render_template("flight/simulator_form.html", sim=sim)
+        conn.execute("UPDATE assets SET tag = ?, name = ?, sim_rate = ?, updated_at = ? WHERE id = ?",
+                     (tag, name or tag, sim_rate, now_iso(), asset_id))
+        conn.commit()
+        conn.close()
+        flash(f"Simulator '{tag}' updated.", "success")
+        return redirect(url_for("flight.planes_list"))
+    conn.close()
+    return render_template("flight/simulator_form.html", sim=sim)
 
 
 @flight_bp.route("/planes/<int:asset_id>/rate", methods=["GET", "POST"])
@@ -5134,6 +5177,7 @@ def log_edit(flight_id):
 _LOG_ROW_SQL = """
     SELECT f.*, COALESCE(NULLIF(f.guest_name, '') || ' (guest)', s.name) as student_name, a.tag as plane_tag, a.name as plane_name, c.name as cfi_name,
            s.rate_override as student_rate_override, s.plane_rate_override as student_plane_rate_override,
+           s.sim_rate_override as student_sim_rate_override, a.is_simulator as asset_is_simulator, a.sim_rate as asset_sim_rate,
            s.balance as student_balance, s.pay_preference as student_pay_preference,
            c.rate_per_hour as cfi_rate_per_hour,
            sf.duration_hours as scheduled_duration_hours, sf.part_solo as scheduled_part_solo
@@ -5150,7 +5194,14 @@ def _row_with_cost(row):
     # Plane rate comes only from the student's own Plane Rate (Students >
     # Edit). Planes no longer carry a rental rate of their own - the old
     # assets.rental_rate column is left in the database but ignored.
-    d["plane_rate"] = row["student_plane_rate_override"]
+    # A simulator is different: it has its own base rate (assets.sim_rate,
+    # set on its profile) since it isn't a real aircraft with a per-student
+    # design like the plane rate - a student's Sim Rate override, if set,
+    # still wins over that base rate the same way plane_rate_override would.
+    if row["asset_is_simulator"]:
+        d["plane_rate"] = row["student_sim_rate_override"] if row["student_sim_rate_override"] is not None else row["asset_sim_rate"]
+    else:
+        d["plane_rate"] = row["student_plane_rate_override"]
     d["instructor_rate"] = row["student_rate_override"] if row["student_rate_override"] is not None else row["cfi_rate_per_hour"]
     d.update(_flight_cost(d))
     return d

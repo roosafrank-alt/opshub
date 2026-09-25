@@ -166,8 +166,12 @@
         <label class="form-label">Plane Rate ($/hr) <span class="text-muted small">(billed on Hobbs time)</span></label>
         <input type="number" step="any" name="plane_rate_override" class="form-control" value="{{ student.plane_rate_override if student and student.plane_rate_override is not none else '' }}">
       </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Sim Rate ($/hr) <span class="text-muted small">(optional - overrides the simulator's own rate)</span></label>
+        <input type="number" step="any" name="sim_rate_override" class="form-control" value="{{ student.sim_rate_override if student and student.sim_rate_override is not none else '' }}">
+      </div>
     </div>
-    <p class="text-muted small mt-n2 mb-3">The Plane Rate is what this student pays per hour for any plane (planes don't have their own rate) - leave it blank and the plane isn't charged. Leave the Instructor Rate blank to use the CFI's rate.</p>
+    <p class="text-muted small mt-n2 mb-3">The Plane Rate is what this student pays per hour for any plane (planes don't have their own rate) - leave it blank and the plane isn't charged. Leave the Instructor Rate blank to use the CFI's rate. Leave the Sim Rate blank to use the simulator's own rate (set on its own profile).</p>
 
     <div class="mb-3">
       <label class="form-label">How They Usually Pay <span class="text-muted small">(shown as a hint on End Flight)</span></label>

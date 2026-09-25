@@ -1451,7 +1451,9 @@ def project_new():
         name = request.form.get("name", "").strip()
         if not name:
             flash("Project name is required.", "danger")
-            assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL ORDER BY tag").fetchall()
+            # A simulator (assets.is_simulator) isn't a real aircraft - no
+            # maintenance projects - so it stays out of this picker too.
+            assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
             conn.close()
             return render_template("project_form.html", project=None, assets=assets)
         code = gen_project_code(conn)
@@ -1496,7 +1498,7 @@ def project_new():
             msg += f" Sub area{'s' if len(added_areas) != 1 else ''} added: {', '.join(added_areas)}."
         flash(msg, "success")
         return redirect(url_for("project_intake", project_id=new_id))
-    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL ORDER BY tag").fetchall()
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
     preselect_asset_id = request.args.get("asset_id")
     preselect_asset_tag = None
     if preselect_asset_id:
@@ -1515,7 +1517,7 @@ def project_edit(project_id):
     if not project:
         conn.close()
         abort(404)
-    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL ORDER BY tag").fetchall()
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         if not name:
@@ -2087,7 +2089,9 @@ def project_labor_codes(project_id):
 def assets_list():
     conn = get_db()
     q = request.args.get("q", "").strip()
-    query = "SELECT * FROM assets WHERE deleted_at IS NULL"
+    # A flight-school simulator (assets.is_simulator) isn't a real aircraft
+    # for the shop to track - it stays in Flight School's own Planes list.
+    query = "SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0"
     params = []
     if q:
         query += " AND (tag LIKE ? OR name LIKE ? OR make LIKE ? OR model LIKE ? OR owner LIKE ?)"
@@ -4130,7 +4134,7 @@ def customers_list():
 @shop_role_required('admin')
 def customer_new():
     conn = get_db()
-    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL ORDER BY tag").fetchall()
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip()
@@ -4218,7 +4222,7 @@ def customer_edit(customer_id):
     if not customer:
         conn.close()
         abort(404)
-    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL ORDER BY tag").fetchall()
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
     linked_ids = {r["asset_id"] for r in conn.execute(
         "SELECT asset_id FROM customer_assets WHERE customer_id = ?", (customer_id,)).fetchall()}
     if request.method == "POST":

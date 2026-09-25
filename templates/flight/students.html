@@ -82,7 +82,8 @@
         <dd><a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='account') }}">{% if s.balance > 0.005 %}${{ '%.2f'|format(s.balance) }} credit{% elif s.balance < -0.005 %}${{ '%.2f'|format(-s.balance) }} owed{% else %}$0.00{% endif %}</a></dd>
         <dt>Rates</dt>
         <dd>Instructor: <a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='instructor_rate') }}">{% if s.rate_override is not none %}${{ '%.2f'|format(s.rate_override) }}/hr{% else %}CFI's rate{% endif %}</a>
-          &middot; Plane: <a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='plane_rate') }}">{% if s.plane_rate_override is not none %}${{ '%.2f'|format(s.plane_rate_override) }}/hr{% else %}not set{% endif %}</a></dd>
+          &middot; Plane: <a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='plane_rate') }}">{% if s.plane_rate_override is not none %}${{ '%.2f'|format(s.plane_rate_override) }}/hr{% else %}not set{% endif %}</a>
+          &middot; Sim: <a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='sim_rate') }}">{% if s.sim_rate_override is not none %}${{ '%.2f'|format(s.sim_rate_override) }}/hr{% else %}not set{% endif %}</a></dd>
         <dt>Username</dt>
         <dd><code>{{ s.username }}</code> &middot; {% if s.active %}Active{% else %}Inactive{% endif %}</dd>
       </dl>
@@ -96,7 +97,7 @@
 <div class="card students-desktop">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0 table-stack" id="students-table">
-      <thead class="table-light"><tr><th>Name</th><th>Last Lesson</th><th>Last Landing</th><th>Solo</th><th>Username</th><th>Instructor Rate</th><th>Plane Rate</th><th>Account</th><th>Status</th><th></th></tr></thead>
+      <thead class="table-light"><tr><th>Name</th><th>Last Lesson</th><th>Last Landing</th><th>Solo</th><th>Username</th><th>Instructor Rate</th><th>Plane Rate</th><th>Sim Rate</th><th>Account</th><th>Status</th><th></th></tr></thead>
       <tbody>
         {% for s in students %}
         <tr data-search="{{ s.name|lower }}">
@@ -131,6 +132,7 @@
           <td data-label="Username"><code>{{ s.username }}</code></td>
           <td data-label="Instructor Rate"><a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='instructor_rate') }}" class="text-decoration-none" title="View / edit / history">{% if s.rate_override is not none %}${{ '%.2f'|format(s.rate_override) }}/hr{% else %}<span class="text-muted">CFI's rate</span>{% endif %}</a></td>
           <td data-label="Plane Rate"><a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='plane_rate') }}" class="text-decoration-none" title="View / edit / history">{% if s.plane_rate_override is not none %}${{ '%.2f'|format(s.plane_rate_override) }}/hr{% else %}<span class="text-muted">Not set</span>{% endif %}</a></td>
+          <td data-label="Sim Rate"><a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='sim_rate') }}" class="text-decoration-none" title="View / edit / history">{% if s.sim_rate_override is not none %}${{ '%.2f'|format(s.sim_rate_override) }}/hr{% else %}<span class="text-muted">Not set</span>{% endif %}</a></td>
           <td class="stack-full" data-label="Account">
             <a href="{{ url_for('flight.student_field_detail', student_id=s.id, field_key='account') }}" class="text-decoration-none" title="View history">
             {% if s.balance > 0.005 %}<span class="badge bg-success">${{ '%.2f'|format(s.balance) }} credit</span>
