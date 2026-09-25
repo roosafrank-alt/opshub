@@ -227,6 +227,18 @@
     background: rgba(0,0,0,.06);
     pointer-events: none;
   }
+  /* Empty-slot hover highlight (day-timeline-track-clickable only): shows
+     which standard-length block clicking right now would create, before
+     you click - see the mousemove handler below. */
+  .day-timeline-slot-highlight {
+    position: absolute; left: 2px; right: 2px;
+    background: rgba(13,110,253,.12);
+    border: 1px dashed rgba(13,110,253,.5);
+    border-radius: 3px;
+    pointer-events: none;
+    display: none;
+    z-index: 1;
+  }
   .day-timeline-block {
     position: absolute; overflow: hidden;
     padding-top: 2px; padding-bottom: 2px; padding-left: 6px !important;
@@ -458,22 +470,59 @@ document.addEventListener('click', function (evt) {
 // Clicking empty space on the Day/Week timeline (not an existing flight
 // block) schedules a new flight at that time, same as clicking an open
 // Availability slot does - instead of only being able to add a flight from
-// the toolbar button with no time picked yet. Delegated on document so it
-// keeps working after the live-refresh above swaps the timeline HTML.
+// the toolbar button with no time picked yet. Snaps to the same standard
+// block grid Availability uses (slot-grid-start/slot-grid-min below), and
+// hovering highlights the exact slot a click would land on, so it's clear
+// beforehand what clicking will do. Delegated on document so both keep
+// working after the live-refresh above swaps the timeline HTML.
 (function () {
   var SCHEDULE_NEW_URL = '{{ url_for("flight.schedule_new") }}';
+  var GRID_START = {{ slot_grid_start_min }}, GRID_SLOT = {{ slot_grid_min }};
+  function slotBounds(track, clientY) {
+    var rect = track.getBoundingClientRect();
+    if (rect.height <= 0) return null;
+    var frac = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
+    var startMin = parseInt(track.dataset.startMin, 10), endMin = parseInt(track.dataset.endMin, 10);
+    var totalMin = startMin + frac * (endMin - startMin);
+    // Snap to the standard block grid (e.g. 8:00, 9:30, 11:00 ...), not a
+    // raw 15-minute position, so clicking always starts a normal-length slot.
+    var slotStart = GRID_START + Math.round((totalMin - GRID_START) / GRID_SLOT) * GRID_SLOT;
+    slotStart = Math.min(endMin - GRID_SLOT, Math.max(startMin, slotStart));
+    return { startMin: startMin, endMin: endMin, slotStart: slotStart, slotEnd: Math.min(endMin, slotStart + GRID_SLOT) };
+  }
+  function highlightFor(track) {
+    var hl = track.querySelector('.day-timeline-slot-highlight');
+    if (!hl) { hl = document.createElement('div'); hl.className = 'day-timeline-slot-highlight'; track.appendChild(hl); }
+    return hl;
+  }
+  document.addEventListener('mousemove', function (e) {
+    var track = e.target.closest('.day-timeline-track-clickable');
+    Array.prototype.forEach.call(document.querySelectorAll('.day-timeline-slot-highlight'), function (hl) {
+      if (hl.closest('.day-timeline-track-clickable') !== track) hl.style.display = 'none';
+    });
+    if (!track) return;
+    var hl = highlightFor(track);
+    if (e.target.closest('.schedule-block')) { hl.style.display = 'none'; return; }
+    var b = slotBounds(track, e.clientY);
+    if (!b) { hl.style.display = 'none'; return; }
+    hl.style.top = ((b.slotStart - b.startMin) / (b.endMin - b.startMin) * 100) + '%';
+    hl.style.height = ((b.slotEnd - b.slotStart) / (b.endMin - b.startMin) * 100) + '%';
+    hl.style.display = 'block';
+  });
+  document.addEventListener('mouseout', function (e) {
+    var track = e.target.closest && e.target.closest('.day-timeline-track-clickable');
+    if (!track) return;
+    if (e.relatedTarget && track.contains(e.relatedTarget)) return;   // moved within the same track
+    var hl = track.querySelector('.day-timeline-slot-highlight');
+    if (hl) hl.style.display = 'none';
+  });
   document.addEventListener('click', function (e) {
     var track = e.target.closest('.day-timeline-track-clickable');
     if (!track) return;
     if (e.target.closest('.schedule-block')) return;
-    var rect = track.getBoundingClientRect();
-    if (rect.height <= 0) return;
-    var frac = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
-    var startMin = parseInt(track.dataset.startMin, 10), endMin = parseInt(track.dataset.endMin, 10);
-    var totalMin = startMin + frac * (endMin - startMin);
-    totalMin = Math.round(totalMin / 15) * 15;   // nearest quarter hour
-    totalMin = Math.min(endMin, Math.max(startMin, totalMin));
-    var hh = Math.floor(totalMin / 60), mm = totalMin % 60;
+    var b = slotBounds(track, e.clientY);
+    if (!b) return;
+    var hh = Math.floor(b.slotStart / 60), mm = b.slotStart % 60;
     var time = (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
     window.location.href = SCHEDULE_NEW_URL + '?date=' + encodeURIComponent(track.dataset.trackDate) + '&time=' + time;
   });

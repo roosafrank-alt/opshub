@@ -3398,7 +3398,12 @@ def _schedule_calendar_context():
                 instructor_legend=instructor_legend, plane_legend=plane_legend, highlight_ids=highlight_ids,
                 new_ids=new_ids,
                 month_timeline_start_min=MONTH_TIMELINE_WINDOW_START, month_timeline_end_min=MONTH_TIMELINE_WINDOW_END,
-                month_timeline_px_per_min=MONTH_TIMELINE_PX_PER_MIN)
+                month_timeline_px_per_min=MONTH_TIMELINE_PX_PER_MIN,
+                # Day/Week timeline click-to-schedule (schedule.html): the
+                # same standard block grid Availability uses, so hovering
+                # highlights one real lesson-length slot and clicking snaps
+                # to its start instead of a raw 15-minute position.
+                slot_grid_start_min=AVAILABILITY_START_MIN, slot_grid_min=AVAILABILITY_SLOT_MIN)
 
 
 @flight_bp.route("/schedule")
