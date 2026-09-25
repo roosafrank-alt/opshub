@@ -842,6 +842,22 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_alerts_open ON flight_alerts(resolved_at, scheduled_flight_id)")
     conn.commit()
 
+    # Flight School Reports tab: plane issue / missing checklist / concerning
+    # issue / suggestion, reportable by any logged-in user - see schema.sql
+    # for the full comment and flight.reports_new()/reports_list().
+    conn.execute("""CREATE TABLE IF NOT EXISTS flight_reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category TEXT NOT NULL,
+        asset_id INTEGER REFERENCES assets(id),
+        notes TEXT NOT NULL,
+        reported_by TEXT,
+        reported_at TEXT NOT NULL DEFAULT (datetime('now')),
+        resolved_at TEXT,
+        resolved_by TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_reports_open ON flight_reports(resolved_at, category)")
+    conn.commit()
+
     # Flight Academy leaderboard: flying a student logs for themselves on
     # top of what the school's logged flights already count (distance,
     # extra landings, cross-countries, night/instrument time) - see academy.py.

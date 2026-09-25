@@ -380,6 +380,25 @@ CREATE TABLE IF NOT EXISTS plane_squawks (
 );
 CREATE INDEX IF NOT EXISTS idx_plane_squawks_asset ON plane_squawks(asset_id);
 
+-- Flight School Reports tab: anyone logged in (student or CFI) can flag a
+-- plane issue, a missing checklist, a concerning issue, or a suggestion -
+-- not just CFIs logging a flight. A 'plane_issue' report against a plane
+-- also creates a plane_squawks row (see flight.reports_new()) so it still
+-- flows into the Maintenance side's normal squawk workflow; this table is
+-- what makes it visible inside Flight School too, and covers the other
+-- three categories, which have no other home.
+CREATE TABLE IF NOT EXISTS flight_reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category TEXT NOT NULL, -- 'plane_issue' | 'missing_checklist' | 'concerning_issue' | 'suggestion'
+    asset_id INTEGER REFERENCES assets(id),
+    notes TEXT NOT NULL,
+    reported_by TEXT,
+    reported_at TEXT NOT NULL DEFAULT (datetime('now')),
+    resolved_at TEXT,
+    resolved_by TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_flight_reports_open ON flight_reports(resolved_at, category);
+
 -- Short-lived generic cache for outside-API lookups keyed by cache_key:
 -- the dashboard weather widget (ZIP forecast, civil twilight, N89 METAR -
 -- see weather.py, ~20min TTL) and live ADS-B aircraft positions (see

@@ -3666,6 +3666,77 @@ def alerts_list():
                            hobbs_gaps=hobbs_gaps, hobbs_reviewed=hobbs_reviewed)
 
 
+FLIGHT_REPORT_CATEGORIES = {
+    "plane_issue": "Plane Issue",
+    "missing_checklist": "Missing Checklist",
+    "concerning_issue": "Concerning Issue",
+    "suggestion": "Suggestion",
+}
+
+
+@flight_bp.route("/reports", methods=["GET", "POST"])
+@login_required
+def reports_list():
+    """Reports tab: any logged-in student or CFI can flag a plane issue, a
+    missing checklist, a concerning issue, or a suggestion - not just a CFI
+    logging a flight, and unlike a flight squawk it's visible right here in
+    Flight School instead of only on the Maintenance side. A Plane Issue
+    against a specific plane also creates a plane_squawks row, so it still
+    flows into the normal Maintenance squawk workflow too."""
+    conn = get_db()
+    if request.method == "POST":
+        category = request.form.get("category", "")
+        notes = (request.form.get("notes") or "").strip()
+        asset_id = _parse_int(request.form.get("asset_id"))
+        if category not in FLIGHT_REPORT_CATEGORIES:
+            flash("Pick a report type.", "danger")
+        elif not notes:
+            flash("Add a note describing it.", "danger")
+        else:
+            reported_by = session.get("user_name")
+            now = now_iso()
+            conn.execute("""INSERT INTO flight_reports (category, asset_id, notes, reported_by, reported_at)
+                            VALUES (?, ?, ?, ?, ?)""", (category, asset_id, notes, reported_by, now))
+            if category == "plane_issue" and asset_id:
+                conn.execute("""INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at)
+                                VALUES (?, ?, ?, ?)""", (asset_id, notes, reported_by, now))
+            conn.commit()
+            flash("Report filed.", "success")
+        conn.close()
+        return redirect(url_for("flight.reports_list"))
+
+    base_sql = """SELECT r.*, a.tag as plane_tag FROM flight_reports r
+                  LEFT JOIN assets a ON a.id = r.asset_id"""
+    open_rows = conn.execute(base_sql + " WHERE r.resolved_at IS NULL ORDER BY r.reported_at DESC").fetchall()
+    show_all = request.args.get("all") == "1"
+    resolved_count = conn.execute("SELECT COUNT(*) c FROM flight_reports WHERE resolved_at IS NOT NULL").fetchone()["c"]
+    resolved = conn.execute(base_sql + " WHERE r.resolved_at IS NOT NULL ORDER BY r.resolved_at DESC"
+                            + ("" if show_all else " LIMIT 50")).fetchall()
+    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+    conn.close()
+    open_by_category = {cat: [dict(r) for r in open_rows if r["category"] == cat] for cat in FLIGHT_REPORT_CATEGORIES}
+    return render_template("flight/reports.html", open_by_category=open_by_category, categories=FLIGHT_REPORT_CATEGORIES,
+                           resolved=[dict(r) for r in resolved], resolved_count=resolved_count, show_all=show_all,
+                           planes=planes)
+
+
+@flight_bp.route("/reports/<int:report_id>/resolve", methods=["POST"])
+@cfi_required
+def report_resolve(report_id):
+    conn = get_db()
+    row = conn.execute("SELECT id FROM flight_reports WHERE id = ? AND resolved_at IS NULL", (report_id,)).fetchone()
+    if not row:
+        conn.close()
+        flash("That report is no longer open.", "warning")
+        return redirect(url_for("flight.reports_list"))
+    conn.execute("UPDATE flight_reports SET resolved_at = ?, resolved_by = ? WHERE id = ?",
+                 (now_iso(), session.get("user_name"), report_id))
+    conn.commit()
+    conn.close()
+    flash("Marked resolved.", "success")
+    return redirect(url_for("flight.reports_list"))
+
+
 @flight_bp.route("/schedule/<int:scheduled_id>/review/acknowledge", methods=["POST"])
 @cfi_required
 def schedule_review_acknowledge(scheduled_id):
