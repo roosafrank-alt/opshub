@@ -1522,6 +1522,23 @@ def part_detail(part_id):
     return render_template("part_detail.html", part=part, tx=tx, photos=photos)
 
 
+@app.route("/parts/<int:part_id>/print-label", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def part_print_label(part_id):
+    conn = get_db()
+    part = conn.execute("SELECT * FROM parts WHERE id = ?", (part_id,)).fetchone()
+    conn.close()
+    if not part:
+        abort(404)
+    try:
+        from label_printer import print_part_label
+        print_part_label(part)
+        flash(f"Label sent to printer for {part['name']}.", "success")
+    except Exception as e:
+        flash(f"Couldn't print label: {e}", "danger")
+    return redirect(url_for("part_detail", part_id=part_id))
+
+
 @app.route("/parts/<int:part_id>/edit", methods=["GET", "POST"])
 @shop_role_required('admin')
 def part_edit(part_id):
@@ -2492,6 +2509,26 @@ def project_label(project_id):
     if not project:
         abort(404)
     return render_template("project_label.html", project=project)
+
+
+@app.route("/projects/<int:project_id>/print-label", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_print_label(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    asset = None
+    if project and project["asset_id"]:
+        asset = conn.execute("SELECT tag FROM assets WHERE id = ?", (project["asset_id"],)).fetchone()
+    conn.close()
+    if not project:
+        abort(404)
+    try:
+        from label_printer import print_project_label
+        print_project_label(project, asset["tag"] if asset else None)
+        flash(f"Label sent to printer for {project['name']}.", "success")
+    except Exception as e:
+        flash(f"Couldn't print label: {e}", "danger")
+    return redirect(url_for("project_label", project_id=project_id))
 
 
 @app.route("/projects/<int:project_id>/labor_codes")
@@ -3988,6 +4025,23 @@ def laborer_label(laborer_id):
     if not laborer:
         abort(404)
     return render_template("laborer_label.html", laborer=laborer)
+
+
+@app.route("/laborers/<int:laborer_id>/print-label", methods=["POST"])
+@shop_role_required('admin')
+def laborer_print_label(laborer_id):
+    conn = get_db()
+    laborer = conn.execute("SELECT * FROM laborers WHERE id = ?", (laborer_id,)).fetchone()
+    conn.close()
+    if not laborer:
+        abort(404)
+    try:
+        from label_printer import print_laborer_label
+        print_laborer_label(laborer)
+        flash(f"Label sent to printer for {laborer['name']}.", "success")
+    except Exception as e:
+        flash(f"Couldn't print label: {e}", "danger")
+    return redirect(url_for("laborer_label", laborer_id=laborer_id))
 
 
 # ---------------------------------------------------------------------------

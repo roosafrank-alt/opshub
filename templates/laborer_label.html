@@ -14,7 +14,10 @@
     <div class="no-print mt-2"><small class="text-muted">Scan this on the Labor page to clock in on a task, and scan it again to clock out.</small></div>
   </div>
 </div>
-<div class="d-flex justify-content-center mt-3 no-print">
+<div class="d-flex justify-content-center gap-2 mt-3 no-print">
+  <form method="post" action="{{ url_for('laborer_print_label', laborer_id=laborer.id) }}">
+    <button type="submit" class="btn btn-outline-secondary"><i class="bi bi-printer"></i> Print Label</button>
+  </form>
   <a href="{{ url_for('laborers_list') }}" class="btn btn-outline-secondary">Back to Laborers</a>
 </div>
 {% endblock %}
