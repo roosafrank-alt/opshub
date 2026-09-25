@@ -4532,6 +4532,37 @@ def log_resume(flight_id):
     return redirect(url_for("flight.log_active", flight_id=flight_id))
 
 
+@flight_bp.route("/log/<int:flight_id>/update_progress", methods=["POST"])
+@login_required
+def log_update_progress(flight_id):
+    """Lets the CFI fill in starting Hobbs/Tach, oil added, and a note
+    (flagged as a squawk the same as at End Flight) while the flight is
+    still running - so it doesn't all have to happen in a rush once the
+    clock stops. Only fills in a reading if it isn't already on file, same
+    rule End Flight itself uses; oil and notes just overwrite with
+    whatever's typed here."""
+    conn = get_db()
+    f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
+    if not f or not f["started_at"] or f["ended_at"]:
+        conn.close()
+        flash("That flight isn't currently running.", "danger")
+        return redirect(url_for("flight.log_active"))
+    if not _can_end_flight(f):
+        conn.close()
+        flash("Only the assigned instructor, the student (on a solo flight), or a master admin can update this flight. (The Maintenance Admin role does not count - ask a master admin to check the 'Master Admin' box for that account.)", "danger")
+        return redirect(url_for("flight.log_active"))
+    hobbs_start = _parse_float(request.form.get("hobbs_start")) if f["hobbs_start"] is None else f["hobbs_start"]
+    tach_start = _parse_float(request.form.get("tach_start")) if f["tach_start"] is None else f["tach_start"]
+    oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
+    notes = request.form.get("notes", "").strip()
+    conn.execute("UPDATE flights SET hobbs_start=?, tach_start=?, oil_added_qt=?, notes=? WHERE id=?",
+                 (hobbs_start, tach_start, oil_added_qt, notes, flight_id))
+    conn.commit()
+    conn.close()
+    flash("Flight updated.", "success")
+    return redirect(url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}")
+
+
 @flight_bp.route("/log/<int:flight_id>/stop", methods=["POST"])
 @login_required
 def log_stop(flight_id):

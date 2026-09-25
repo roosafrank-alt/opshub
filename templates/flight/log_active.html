@@ -110,6 +110,41 @@
   </div>
   {% endif %}
 
+  {% if f.can_end and not f.stopped_at %}
+  {#- Fills in starting Hobbs/Tach, oil, and a squawk note while the flight
+     is still running, so it doesn't all have to happen in a last-minute
+     rush at End Flight - see flight.log_update_progress(). Hobbs/Tach
+     Start only show here if not already on file (same as End Flight). #}
+  <details class="mb-2">
+    <summary class="text-muted small">Add starting info (Hobbs/Tach, oil, note)</summary>
+    <form method="post" action="{{ url_for('flight.log_update_progress', flight_id=f.id) }}" class="row g-2 mt-1">
+      {% if f.hobbs_start is none %}
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0">Hobbs Start</label>
+        <input type="number" step="any" name="hobbs_start" class="form-control form-control-sm" placeholder="e.g. 1233.0" inputmode="decimal">
+      </div>
+      {% endif %}
+      {% if f.tach_start is none %}
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0">Tach Start</label>
+        <input type="number" step="any" name="tach_start" class="form-control form-control-sm" placeholder="e.g. 1200.0" inputmode="decimal">
+      </div>
+      {% endif %}
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0">Oil Added (qt)</label>
+        <input type="number" step="any" name="oil_added_qt" class="form-control form-control-sm" value="{{ f.oil_added_qt if f.oil_added_qt is not none else '' }}">
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label small mb-0">Note <span class="text-muted">(flagged as a squawk)</span></label>
+        <input type="text" name="notes" class="form-control form-control-sm" value="{{ f.notes or '' }}">
+      </div>
+      <div class="col-12">
+        <button type="submit" class="btn btn-outline-secondary btn-sm">Save</button>
+      </div>
+    </form>
+  </details>
+  {% endif %}
+
   {% if not f.stopped_at %}
   <div class="session-overdue-banner alert alert-danger d-flex justify-content-between align-items-center gap-2 py-2 mb-2 {{ '' if (f.session_status and f.session_status.overdue) else 'd-none' }}">
     <span><i class="bi bi-exclamation-triangle-fill"></i> Running more than 15 min past its scheduled block.</span>
@@ -278,7 +313,7 @@
     </div>
     <div class="mt-2">
       <label class="form-label small mb-0">Notes</label>
-      <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="any note here is flagged as a squawk for the shop"></textarea>
+      <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="any note here is flagged as a squawk for the shop">{{ f.notes or '' }}</textarea>
     </div>
     <div class="form-text mt-1">The instructor's billed time is the elapsed time shown above (from Start to when End Flight was pressed, minus any paused time), not just Hobbs hours.</div>
     <button type="submit" class="btn btn-success fw-bold mt-2 w-100"><i class="bi bi-journal-check"></i> Log Flight</button>
