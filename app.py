@@ -5331,6 +5331,6 @@ if __name__ == "__main__":
     key_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "key.pem")
     if os.path.exists(cert_path) and os.path.exists(key_path):
         print("Starting with HTTPS (self-signed cert) so phone cameras can scan.")
-        app.run(host="0.0.0.0", port=5050, debug=debug_mode, ssl_context=(cert_path, key_path))
+        app.run(host="0.0.0.0", port=5050, debug=debug_mode, ssl_context=(cert_path, key_path), threaded=True)
     else:
-        app.run(host="0.0.0.0", port=5050, debug=debug_mode)
+        app.run(host="0.0.0.0", port=5050, debug=debug_mode, threaded=True)

@@ -99,6 +99,81 @@ def _find_resource_page(conn, token):
     return (row["resource_id"], row["page_num"]) if row else None
 
 
+def _excerpt_pdf_bytes(pdf_path, page_nums):
+    """Builds a small standalone PDF of just the given 1-indexed pages, so a
+    citation link opens a few-page excerpt instead of the entire source
+    document - large FAA handbooks can be hundreds of pages / tens of MB,
+    which is slow to open on its own and pointless when only one page is
+    relevant."""
+    import pypdf
+    from io import BytesIO
+    reader = pypdf.PdfReader(pdf_path)
+    writer = pypdf.PdfWriter()
+    n = len(reader.pages)
+    for p in page_nums:
+        if 1 <= p <= n:
+            writer.add_page(reader.pages[p - 1])
+    buf = BytesIO()
+    writer.write(buf)
+    buf.seek(0)
+    return buf
+
+
+# Words too generic to help match an ACS element's text against resource
+# page content - filtering these out keeps _find_element_pages() focused on
+# the subject-specific terms that actually distinguish one page from another.
+_STOPWORDS = {
+    "the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "with", "is", "are", "was",
+    "were", "be", "by", "as", "that", "this", "it", "at", "from", "which", "will", "shall",
+    "not", "may", "student", "applicant", "exhibits", "knowledge", "risk", "management",
+    "associated", "including", "appropriate", "their", "these", "those", "have", "has",
+}
+
+
+def _find_element_pages(conn, task, el, limit=2):
+    """Best-effort: among the resources this Task's References already cite,
+    rank that resource's indexed pages by how many of the element's own
+    keywords they contain, and return the top matches. This is a text-
+    overlap heuristic (not true content understanding) - it surfaces pages
+    worth checking for this specific K/R/S item, rather than just the
+    task-level document citation."""
+    references_text = task["acs_references"] if task else None
+    if not references_text:
+        return []
+    resource_ids = set()
+    for m in _REF_TOKEN_RE.finditer(references_text):
+        hit = _find_resource_page(conn, m.group(0))
+        if hit:
+            resource_ids.add(hit[0])
+    if not resource_ids:
+        return []
+    words = re.findall(r"[a-z]{4,}", (el["text"] or "").lower())
+    keywords = [w for w in words if w not in _STOPWORDS][:12]
+    if not keywords:
+        return []
+    placeholders = ",".join("?" * len(resource_ids))
+    ids = list(resource_ids)
+    pages = conn.execute(
+        f"SELECT resource_id, page_num, text FROM acs_resource_pages WHERE resource_id IN ({placeholders})",
+        ids).fetchall()
+    scored = []
+    for p in pages:
+        lower = (p["text"] or "").lower()
+        score = sum(lower.count(k) for k in keywords)
+        if score > 0:
+            scored.append((score, p["resource_id"], p["page_num"]))
+    scored.sort(key=lambda t: -t[0])
+    resource_titles = {r["id"]: r["title"] for r in conn.execute(
+        f"SELECT id, title FROM acs_resources WHERE id IN ({placeholders})", ids).fetchall()}
+    out = []
+    for score, resource_id, page_num in scored:
+        if len(out) >= limit:
+            break
+        out.append({"resource_id": resource_id, "title": resource_titles.get(resource_id, "Resource"),
+                     "page_num": page_num})
+    return out
+
+
 def linked_references_html(conn, references_text):
     """Renders a Task's References string with any recognized citation
     linked to the uploaded Resource page it was found on (best-effort text
@@ -114,7 +189,8 @@ def linked_references_html(conn, references_text):
         hit = _find_resource_page(conn, token)
         if hit:
             resource_id, page_num = hit
-            href = url_for("groundschool.resource_file", resource_id=resource_id) + f"#page={page_num}"
+            href = url_for("groundschool.resource_excerpt", resource_id=resource_id,
+                            pages=f"{page_num},{page_num + 1}")
             out.append(Markup('<a href="%s" target="_blank" rel="noopener">%s</a>') % (href, token))
         else:
             out.append(escape(token))
@@ -569,7 +645,7 @@ def resources_list():
         "SELECT r.*, (SELECT COUNT(*) FROM acs_resource_pages p WHERE p.resource_id = r.id) AS page_count "
         "FROM acs_resources r ORDER BY r.doc_type, r.title").fetchall()
     conn.close()
-    return render_template("flight/groundschool_resources.html", resources=resources, tab="groundschool")
+    return render_template("flight/groundschool_resources.html", resources=resources, tab="resources")
 
 
 @groundschool_bp.route("/resources/upload", methods=["POST"])
@@ -631,6 +707,35 @@ def resource_file(resource_id):
     return send_file(os.path.join(UPLOAD_DIR, r["filename"]), mimetype="application/pdf")
 
 
+@groundschool_bp.route("/resources/<int:resource_id>/excerpt")
+@login_required
+def resource_excerpt(resource_id):
+    """Serves just a few pages of a resource as a small standalone PDF,
+    instead of the whole (often huge) document - used by every auto-linked
+    citation so opening one is fast regardless of how big the source
+    handbook is."""
+    conn = get_db()
+    r = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (resource_id,)).fetchone()
+    conn.close()
+    if not r:
+        abort(404)
+    raw = request.args.get("pages", "")
+    try:
+        pages = sorted({int(p) for p in raw.split(",") if p.strip()})
+    except ValueError:
+        abort(400)
+    if not pages:
+        abort(400)
+    pages = pages[:5]
+    pdf_path = os.path.join(UPLOAD_DIR, r["filename"])
+    try:
+        buf = _excerpt_pdf_bytes(pdf_path, pages)
+    except Exception:
+        abort(500)
+    return send_file(buf, mimetype="application/pdf",
+                      download_name=f"{_slugify(r['title'])}-p{pages[0]}.pdf")
+
+
 # ---------------------------------------------------------------------------
 # Element lessons
 # ---------------------------------------------------------------------------
@@ -662,11 +767,13 @@ def element_detail(element_id):
             (viewing_student_id, element_id)).fetchone()
     required_ids = [it["id"] for it in items if it["required"]]
     all_required_done = all(i in done_item_ids for i in required_ids) if required_ids else True
+    related_pages = _find_element_pages(conn, task, el)
     conn.close()
     return render_template("flight/groundschool_element.html", el=el, task=task, area=area, rating=rating,
                             items=items, done_item_ids=done_item_ids, completion=completion,
                             students=students, viewing_student_id=viewing_student_id,
-                            all_required_done=all_required_done, tab="groundschool")
+                            all_required_done=all_required_done, related_pages=related_pages,
+                            tab="groundschool")
 
 
 @groundschool_bp.route("/element/<int:element_id>/item/add", methods=["POST"])

@@ -1,8 +1,6 @@
 {% extends "academy_base.html" %}
 {% block title %}{{ el.code }} - {{ rating.name }} - OpsHub{% endblock %}
 {% block content %}
-{% set gs_tab = 'ratings' %}
-{% include "flight/_groundschool_subnav.html" %}
 <div class="mb-3">
   <a href="{{ url_for('groundschool.task_detail', task_id=task.id) }}" class="text-decoration-none small text-light">
     <i class="bi bi-arrow-left"></i> Task {{ task.code }}. {{ task.title }}
@@ -28,6 +26,22 @@
     {% endif %}
   </div>
 </div>
+
+{% if related_pages %}
+<div class="card academy-card mb-3">
+  <div class="card-header fw-bold"><i class="bi bi-bookmark-star"></i> Related Reading</div>
+  <div class="card-body">
+    <p class="small text-muted mb-2">Pages in your uploaded resources that best match this item (best-effort text
+      match, not a guaranteed answer key).</p>
+    {% for rp in related_pages %}
+    <a href="{{ url_for('groundschool.resource_excerpt', resource_id=rp.resource_id, pages=(rp.page_num, rp.page_num + 1)|join(',')) }}"
+       target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm me-2 mb-2">
+      <i class="bi bi-file-earmark-pdf"></i> {{ rp.title }} - p.{{ rp.page_num }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 
 <div class="card academy-card mb-3">
   <div class="card-header fw-bold"><i class="bi bi-easel"></i> Lesson</div>
