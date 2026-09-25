@@ -1604,6 +1604,19 @@ def _student_activity(conn, student_id=None):
             a["landings_90"] += (f["day_landings_fs"] or 0) + (f["day_landings_tg"] or 0) \
                 + (f["night_landings_fs"] or 0) + (f["night_landings_tg"] or 0)
             a["night_fs_90"] += (f["night_landings_fs"] or 0)
+    # Landings entered by hand (manual_landings - another school, a rental,
+    # before this system) also count toward the 90-day currency total.
+    ml_sql = "SELECT student_id, landing_date, day_landings, night_landings FROM manual_landings"
+    ml_params = []
+    if student_id:
+        ml_sql += " WHERE student_id = ?"
+        ml_params.append(student_id)
+    for m in conn.execute(ml_sql, ml_params).fetchall():
+        if m["landing_date"] >= cutoff:
+            a = out.setdefault(m["student_id"], {"last_lesson": None, "last_landing": None,
+                                                 "landings_90": 0, "night_fs_90": 0})
+            a["landings_90"] += (m["day_landings"] or 0) + (m["night_landings"] or 0)
+            a["night_fs_90"] += (m["night_landings"] or 0)
     for sid, a in out.items():
         for key in ("last_lesson", "last_landing"):
             if a[key]:
@@ -1838,12 +1851,54 @@ def student_edit(student_id):
     solo_signoff = None if student["is_station"] else _solo_signoff_status(conn, student_id)
     medical = None if student["is_station"] else _medical_status(student)
     user_row = conn.execute("SELECT email, phone FROM users WHERE id = ?", (student["user_id"],)).fetchone() if student["user_id"] else None
+    manual_landings = conn.execute("SELECT * FROM manual_landings WHERE student_id = ? ORDER BY landing_date DESC, id DESC LIMIT 10",
+                                    (student_id,)).fetchall()
     conn.close()
     return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS,
                            ledger=ledger, can_bill=can_manage_billing(), activity=activity,
                            recent_flights=recent_flights, solo_currency=solo_currency, solo_signoff=solo_signoff,
                            medical=medical, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES,
-                           student_email=user_row["email"] if user_row else None, student_phone=user_row["phone"] if user_row else None)
+                           student_email=user_row["email"] if user_row else None, student_phone=user_row["phone"] if user_row else None,
+                           manual_landings=manual_landings, today=date.today().isoformat())
+
+
+@flight_bp.route("/students/<int:student_id>/landings/add", methods=["POST"])
+@cfi_required
+def student_landing_add(student_id):
+    """A landing that happened outside a logged flight (another school, a
+    rental, before this system) but still counts toward the student's
+    90-day landing currency - see manual_landings in schema.sql."""
+    conn = get_db()
+    student = conn.execute("SELECT id FROM students WHERE id = ?", (student_id,)).fetchone()
+    if not student:
+        conn.close()
+        flash("Student not found.", "danger")
+        return redirect(url_for("flight.students_list"))
+    landing_date = request.form.get("landing_date") or date.today().isoformat()
+    day_landings = _parse_int(request.form.get("day_landings")) or 0
+    night_landings = _parse_int(request.form.get("night_landings")) or 0
+    note = (request.form.get("note") or "").strip() or None
+    if day_landings <= 0 and night_landings <= 0:
+        flash("Enter at least one landing.", "danger")
+    else:
+        conn.execute("""INSERT INTO manual_landings (student_id, landing_date, day_landings, night_landings, note, created_by)
+                        VALUES (?, ?, ?, ?, ?, ?)""",
+                     (student_id, landing_date, day_landings, night_landings, note, session.get("user_name")))
+        conn.commit()
+        flash("Landings added.", "success")
+    conn.close()
+    return redirect(url_for("flight.student_edit", student_id=student_id))
+
+
+@flight_bp.route("/students/<int:student_id>/landings/<int:landing_id>/delete", methods=["POST"])
+@cfi_required
+def student_landing_delete(student_id, landing_id):
+    conn = get_db()
+    conn.execute("DELETE FROM manual_landings WHERE id = ? AND student_id = ?", (landing_id, student_id))
+    conn.commit()
+    conn.close()
+    flash("Removed.", "success")
+    return redirect(url_for("flight.student_edit", student_id=student_id))
 
 
 @flight_bp.route("/students/<int:student_id>/add_funds", methods=["POST"])

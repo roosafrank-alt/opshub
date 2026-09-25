@@ -54,6 +54,45 @@
       {% else %}<span class="badge bg-secondary">None on file</span>{% endif %}
     </div>
   </div>
+  {#- Landings that happened outside a logged flight (another school, a
+     rental, before this system was in use) but still count toward the
+     90-day currency total above - see flight.student_landing_add(). #}
+  <details class="mb-2">
+    <summary class="text-muted small">Add landings manually (for currency)</summary>
+    <form method="post" action="{{ url_for('flight.student_landing_add', student_id=student.id) }}" class="row g-2 align-items-end mt-1">
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0">Date</label>
+        <input type="date" name="landing_date" class="form-control form-control-sm" value="{{ today }}" required>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-0">Day</label>
+        <input type="number" name="day_landings" class="form-control form-control-sm" min="0" value="0">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-0">Night</label>
+        <input type="number" name="night_landings" class="form-control form-control-sm" min="0" value="0">
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0">Note</label>
+        <input type="text" name="note" class="form-control form-control-sm" placeholder="e.g. another school">
+      </div>
+      <div class="col-12 col-md-2">
+        <button class="btn btn-outline-secondary btn-sm w-100">Add</button>
+      </div>
+    </form>
+    {% if manual_landings %}
+    <div class="small mt-2">
+      {% for m in manual_landings %}
+      <div class="d-flex justify-content-between align-items-center py-1 {{ 'border-top' if not loop.first }}">
+        <div>{{ m.landing_date|usdate }} &middot; {{ m.day_landings }} day / {{ m.night_landings }} night{% if m.note %} &middot; <span class="text-muted">{{ m.note }}</span>{% endif %}</div>
+        <form method="post" action="{{ url_for('flight.student_landing_delete', student_id=student.id, landing_id=m.id) }}" data-confirm="Remove this manual landing entry?" data-confirm-title="Remove Entry">
+          <button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-x-lg"></i></button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </details>
   {% if recent_flights %}
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0 table-stack small">

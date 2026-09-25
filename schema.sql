@@ -399,6 +399,23 @@ CREATE TABLE IF NOT EXISTS flight_reports (
 );
 CREATE INDEX IF NOT EXISTS idx_flight_reports_open ON flight_reports(resolved_at, category);
 
+-- A landing that happened outside a logged flight (another school, a rental,
+-- before this system was in use) but still needs to count toward a
+-- student's 90-day landing currency - entered by hand on their profile.
+-- Folded into the same landings_90/night_fs_90 totals as logged flights,
+-- see flight._student_activity().
+CREATE TABLE IF NOT EXISTS manual_landings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER NOT NULL REFERENCES students(id),
+    landing_date TEXT NOT NULL,
+    day_landings INTEGER NOT NULL DEFAULT 0,
+    night_landings INTEGER NOT NULL DEFAULT 0,
+    note TEXT,
+    created_by TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_manual_landings_student ON manual_landings(student_id, landing_date);
+
 -- Short-lived generic cache for outside-API lookups keyed by cache_key:
 -- the dashboard weather widget (ZIP forecast, civil twilight, N89 METAR -
 -- see weather.py, ~20min TTL) and live ADS-B aircraft positions (see

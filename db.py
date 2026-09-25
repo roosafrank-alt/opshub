@@ -858,6 +858,22 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_reports_open ON flight_reports(resolved_at, category)")
     conn.commit()
 
+    # Landings entered by hand on a student's profile (another school, a
+    # rental, before this system) - still counted toward 90-day landing
+    # currency. See schema.sql for the full comment.
+    conn.execute("""CREATE TABLE IF NOT EXISTS manual_landings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        landing_date TEXT NOT NULL,
+        day_landings INTEGER NOT NULL DEFAULT 0,
+        night_landings INTEGER NOT NULL DEFAULT 0,
+        note TEXT,
+        created_by TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_manual_landings_student ON manual_landings(student_id, landing_date)")
+    conn.commit()
+
     # Flight Academy leaderboard: flying a student logs for themselves on
     # top of what the school's logged flights already count (distance,
     # extra landings, cross-countries, night/instrument time) - see academy.py.
