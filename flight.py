@@ -3903,15 +3903,21 @@ def schedule_approve(scheduled_id):
 @flight_bp.route("/schedule/<int:scheduled_id>/deny", methods=["POST"])
 @cfi_required
 def schedule_deny(scheduled_id):
+    """Denies a student's flight request - requires a reason (unlike an
+    approval, which just needs a click) so the student sees directly why
+    instead of a generic "contact your instructor"."""
+    reason = (request.form.get("reason") or "").strip()
+    if not reason:
+        return _pending_decision_response(False, "Say why you're denying this request.", "danger")
     conn = get_db()
     sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ? AND status = 'pending_approval'",
                          (scheduled_id,)).fetchone()
-    conn.execute("UPDATE scheduled_flights SET status = 'denied' WHERE id = ? AND status = 'pending_approval'",
-                 (scheduled_id,))
+    conn.execute("UPDATE scheduled_flights SET status = 'denied', deny_reason = ? WHERE id = ? AND status = 'pending_approval'",
+                 (reason, scheduled_id))
     if sched:
         when = f" on {_us_date(sched['scheduled_date'])}" + (f" at {_format_time_12h(sched['scheduled_time'])}" if sched["scheduled_time"] else "")
         _notify_student(conn, sched["student_id"], "flight_denied",
-                        f"Your flight request{when} was declined. Contact your instructor for details.",
+                        f"Your flight request{when} was denied: {reason}",
                         url_for("flight.schedule_new"))
     conn.commit()
     conn.close()

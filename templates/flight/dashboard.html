@@ -329,6 +329,37 @@
 </div>
 {% include "flight/_schedule_detail_modal.html" %}
 {% include "flight/_notam_detail_modal.html" %}
+{% if cfi %}
+{#- Deny a Pending Approval request with a required reason - the student
+   sees this text directly (see schedule_deny in flight.py), so a bare
+   yes/no confirm isn't enough. Opened by .pending-deny-btn's click handler
+   below; lives outside #dashboard-live-region so live-refresh polling never
+   tears it down mid-use. #}
+<div class="modal fade" id="denyRequestModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-x-lg"></i> Deny Flight Request</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="deny-request-form">
+        <div class="modal-body">
+          <div id="deny-request-error" class="alert alert-danger d-none py-2 px-3 mb-2 small"></div>
+          <p class="text-muted small">The student sees this reason directly, so be specific about why.</p>
+          <div class="mb-1">
+            <label class="form-label">Reason for denying *</label>
+            <textarea id="deny-request-reason" class="form-control" rows="3" required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Never Mind</button>
+          <button type="submit" id="deny-request-submit" class="btn btn-danger fw-bold btn-sm">Deny Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -506,7 +537,7 @@ function loadChipForecast(detail) {
 document.addEventListener('click', function (evt) {
   var region = document.getElementById('dashboard-live-region');
   if (!region || !region.contains(evt.target)) return;
-  if (evt.target.closest('.pending-decide-btn')) return;
+  if (evt.target.closest('.pending-decide-btn, .pending-deny-btn')) return;
   var row = evt.target.closest('.pending-row-clickable');
   if (!row) return;
   window.location.href = row.dataset.gotoUrl;
@@ -535,23 +566,84 @@ document.addEventListener('click', function (evt) {
         if (data.redirect) window.location.href = data.redirect;
         return;
       }
-      if (row) row.remove();
-      var countBadge = document.getElementById('pending-approval-count');
-      if (countBadge) {
-        var n = Math.max(0, (parseInt(countBadge.textContent, 10) || 1) - 1);
-        if (n === 0) {
-          var card = document.getElementById('pending-approval-card');
-          if (card) card.remove();
-        } else {
-          countBadge.textContent = n;
-        }
-      }
+      removePendingRow(row);
     })
     .catch(function () {
       showDashFlag('Something went wrong - try again.', 'danger');
       btn.disabled = false;
     });
 });
+
+// Deny needs a typed reason (see schedule_deny in flight.py - the student
+// sees it directly, so a bare "Deny?" click isn't enough) - opens a small
+// modal instead of the generic yes/no confirm dialog the Approve button
+// above uses.
+document.addEventListener('click', function (evt) {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region || !region.contains(evt.target)) return;
+  var btn = evt.target.closest('.pending-deny-btn');
+  if (!btn) return;
+  document.getElementById('deny-request-form').dataset.decideUrl = btn.dataset.decideUrl;
+  document.getElementById('deny-request-reason').value = '';
+  document.getElementById('deny-request-error').classList.add('d-none');
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('denyRequestModal')).show();
+});
+
+if (document.getElementById('deny-request-form')) {
+document.getElementById('deny-request-form').addEventListener('submit', function (evt) {
+  evt.preventDefault();
+  var form = evt.target;
+  var reason = document.getElementById('deny-request-reason').value.trim();
+  var errEl = document.getElementById('deny-request-error');
+  if (!reason) {
+    errEl.textContent = "Say why you're denying this request.";
+    errEl.classList.remove('d-none');
+    return;
+  }
+  var submitBtn = document.getElementById('deny-request-submit');
+  submitBtn.disabled = true;
+  fetch(form.dataset.decideUrl, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'reason=' + encodeURIComponent(reason)
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      submitBtn.disabled = false;
+      if (!data.ok) {
+        errEl.textContent = data.message;
+        errEl.classList.remove('d-none');
+        return;
+      }
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('denyRequestModal')).hide();
+      showDashFlag(data.message, data.category);
+      var btnEl = document.querySelector('.pending-deny-btn[data-decide-url="' + form.dataset.decideUrl + '"]');
+      removePendingRow(btnEl && btnEl.closest('tr'));
+    })
+    .catch(function () {
+      submitBtn.disabled = false;
+      errEl.textContent = 'Something went wrong - try again.';
+      errEl.classList.remove('d-none');
+    });
+});
+}
+
+// Drops a decided (approved/denied) request's row from the Pending
+// Approval table and keeps its count badge in sync, removing the whole
+// card once nothing's left - shared by both the Approve and Deny flows
+// above.
+function removePendingRow(row) {
+  if (row) row.remove();
+  var countBadge = document.getElementById('pending-approval-count');
+  if (!countBadge) return;
+  var n = Math.max(0, (parseInt(countBadge.textContent, 10) || 1) - 1);
+  if (n === 0) {
+    var card = document.getElementById('pending-approval-card');
+    if (card) card.remove();
+  } else {
+    countBadge.textContent = n;
+  }
+}
 
 // A flash message that floats over wherever the page is scrolled to,
 // instead of the usual alert banner up at the top (which you'd have to

@@ -1360,6 +1360,14 @@ def _migrate(conn):
         conn.execute("ALTER TABLE scheduled_flights ADD COLUMN cancel_reason TEXT")
         conn.commit()
 
+    # An instructor's required reason for denying a student's flight request
+    # (flight.schedule_deny) - the student sees this reason directly instead
+    # of a generic "contact your instructor".
+    sched_cols_deny = [r["name"] for r in conn.execute("PRAGMA table_info(scheduled_flights)").fetchall()]
+    if "deny_reason" not in sched_cols_deny:
+        conn.execute("ALTER TABLE scheduled_flights ADD COLUMN deny_reason TEXT")
+        conn.commit()
+
     # Assigning a squawk to a specific tech (users.shop_role='tech') so it
     # shows on that person's own dashboard as something to do, separate from
     # someone just acknowledging the squawk exists. worker_acknowledged_at

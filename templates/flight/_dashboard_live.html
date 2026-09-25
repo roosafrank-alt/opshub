@@ -638,7 +638,10 @@
                "just opened the dialog" from "actually confirmed" apart
                cleanly and only fire the in-place approve/deny then. #}
             <button type="button" class="btn btn-success btn-sm pending-decide-btn" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id) }}" data-confirm="Approve this flight request? It goes onto the calendar as a confirmed booking." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success"><i class="bi bi-check-lg"></i> Approve</button>
-            <button type="button" class="btn btn-outline-danger btn-sm pending-decide-btn" data-decide-url="{{ url_for('flight.schedule_deny', scheduled_id=p.id) }}" data-confirm="Deny this flight request?" data-confirm-style="danger"><i class="bi bi-x-lg"></i> Deny</button>
+            {#- Deny needs a typed reason, not just a yes/no - opens
+               denyRequestModal (dashboard.html) instead of the generic
+               confirm dialog the Approve button above uses. #}
+            <button type="button" class="btn btn-outline-danger btn-sm pending-deny-btn" data-decide-url="{{ url_for('flight.schedule_deny', scheduled_id=p.id) }}"><i class="bi bi-x-lg"></i> Deny</button>
           </td>
         </tr>
         {% endfor %}
@@ -665,6 +668,7 @@
             <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split"></i> Awaiting Approval</span>
             {% else %}
             <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Denied</span>
+            {% if m.deny_reason %}<div class="text-muted small mt-1">{{ m.deny_reason }}</div>{% endif %}
             {% endif %}
           </td>
         </tr>
