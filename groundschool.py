@@ -69,16 +69,21 @@ def _index_resource_pages(conn, resource_id, pdf_path):
     see _find_resource_page(). Best-effort: works the same regardless of the
     document's own section-numbering style, since it's just a text search."""
     import pdfplumber
-    conn.execute("DELETE FROM acs_resource_pages WHERE resource_id = ?", (resource_id,))
-    n = 0
+    # Extract all page text first, without touching the DB - this is the
+    # slow, CPU-bound part (can take a minute+ for a large handbook) and
+    # must not happen while holding an open write transaction, or every
+    # other page/request in the app gets "database is locked" for as long
+    # as extraction runs. Only the final write below needs the DB open,
+    # and it's a single fast batch insert.
+    pages = []
     with pdfplumber.open(pdf_path) as pdf:
         for i, page in enumerate(pdf.pages, start=1):
-            text = page.extract_text() or ""
-            conn.execute("INSERT INTO acs_resource_pages (resource_id, page_num, text) VALUES (?, ?, ?)",
-                         (resource_id, i, text))
-            n += 1
+            pages.append((resource_id, i, page.extract_text() or ""))
+    conn.execute("DELETE FROM acs_resource_pages WHERE resource_id = ?", (resource_id,))
+    conn.executemany(
+        "INSERT INTO acs_resource_pages (resource_id, page_num, text) VALUES (?, ?, ?)", pages)
     conn.commit()
-    return n
+    return len(pages)
 
 
 _REF_TOKEN_RE = re.compile(
