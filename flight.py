@@ -323,11 +323,12 @@ def _past_booking_error(scheduled_date, scheduled_time):
 
 
 def _tsa_gate_error(conn, student_id):
-    """An error message blocking a student's SECOND (or later) lesson
-    booking if they haven't been TSA Verified yet on their profile
-    (Students > Edit), else None. A student's very first lesson is exempt
-    (nothing to verify before they've ever flown), and so are the Guest /
-    Intro placeholder and station accounts - neither is a real trainee."""
+    """A heads-up message (not a block - see schedule_form.html's TSA
+    banner and log_tsa_verify()) for a student's SECOND (or later) lesson
+    if they haven't been TSA Verified yet on their profile, else None. A
+    student's very first lesson is exempt (nothing to verify before
+    they've ever flown), and so are the Guest / Intro placeholder and
+    station accounts - neither is a real trainee."""
     if str(student_id) == str(_guest_student_id(conn)):
         return None
     student = conn.execute("SELECT name, is_station, tsa_verified_date FROM students WHERE id = ?", (student_id,)).fetchone()
@@ -337,8 +338,18 @@ def _tsa_gate_error(conn, student_id):
                          (student_id,)).fetchone()["c"]
     if prior < 1:
         return None
-    return (f"{student['name']} isn't TSA Verified yet - that's required before a second lesson can be scheduled. "
-            f"Check them off on their profile (Students > Edit) first.")
+    return f"{student['name']} isn't TSA Verified yet."
+
+
+def tsa_gate_needed(student_id):
+    """Template helper (registered on flight_bp below): whether the TSA
+    heads-up banner applies to this student, for the scheduling form's
+    student picker (see schedule_form.html)."""
+    conn = get_db()
+    try:
+        return bool(_tsa_gate_error(conn, student_id))
+    finally:
+        conn.close()
 
 
 def _scheduling_conflicts(conn, asset_id, cfi_id, student_id, scheduled_date, scheduled_time, duration_hours, exclude_id=None):
@@ -404,6 +415,7 @@ def _conflict_highlight_url(conflicts):
 
 flight_bp = Blueprint("flight", __name__, url_prefix="/flight")
 flight_bp.add_app_template_global(guest_student_id)
+flight_bp.add_app_template_global(tsa_gate_needed)
 
 
 def _parse_float(val):
@@ -1745,6 +1757,24 @@ def student_new():
         flash(f"Student '{name}' added. Give them their username and starting password to log in.", "success")
         return redirect(url_for("flight.students_list"))
     return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
+
+
+@flight_bp.route("/students/<int:student_id>/tsa_verify", methods=["POST"])
+@cfi_required
+def student_tsa_verify(student_id):
+    """Quick TSA Verified check-off from the scheduling screen's heads-up
+    banner (see schedule_form.html) - doesn't block booking the flight,
+    just updates the student's profile right there so the banner clears."""
+    conn = get_db()
+    student = conn.execute("SELECT id FROM students WHERE id = ?", (student_id,)).fetchone()
+    if not student:
+        conn.close()
+        return jsonify({"error": "Student not found."}), 404
+    verified_date = (request.form.get("tsa_verified_date") or "").strip()[:10] or date.today().isoformat()
+    conn.execute("UPDATE students SET tsa_verified_date = ? WHERE id = ?", (verified_date, student_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "tsa_verified_date": verified_date})
 
 
 @flight_bp.route("/students/<int:student_id>/edit", methods=["GET", "POST"])
@@ -3240,11 +3270,6 @@ def schedule_new():
         created_by = session.get("user_name") or (self_student["name"] if self_student else None)
         if not asset_id or not student_id or not scheduled_date:
             flash("Select a plane, a student, and a date.", "danger")
-            conn.close()
-            return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
-        tsa_error = _tsa_gate_error(conn, student_id)
-        if tsa_error:
-            flash(tsa_error, "danger")
             conn.close()
             return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
         past_error = _past_booking_error(scheduled_date, scheduled_time)

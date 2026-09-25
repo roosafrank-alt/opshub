@@ -101,7 +101,8 @@
           {% for s in students if s.id != gid %}
           {%- set tinfo = student_training_info(s) -%}
           <option value="{{ s.id }}" {% if (form and form.get('student_id')|string == s.id|string) or (not form and sched and sched.student_id == s.id) %}selected{% endif %}
-                  data-working-towards="{{ tinfo.working_towards if tinfo else '' }}" data-soloed="{{ '1' if tinfo and tinfo.soloed else '' }}">{{ s.name }}</option>
+                  data-working-towards="{{ tinfo.working_towards if tinfo else '' }}" data-soloed="{{ '1' if tinfo and tinfo.soloed else '' }}"
+                  data-tsa-needed="{{ '1' if tsa_gate_needed(s.id) else '' }}">{{ s.name }}</option>
           {% endfor %}
         </select>
         {#- Shown once a real student (not Guest/Intro) is picked: the
@@ -109,6 +110,18 @@
            soloed yet, from student_training_info() in flight.py - so
            whoever's booking sees it without opening the student's profile. #}
         <div id="student-training-info" class="form-text mt-1 d-none"></div>
+        {#- Heads-up only - doesn't block booking the flight (see
+           tsa_gate_needed() / student_tsa_verify() in flight.py). #}
+        <div id="tsa-warning" class="alert alert-warning py-2 px-2 small mt-1 d-none">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-exclamation-triangle-fill"></i> Not TSA Verified yet.</span>
+            <button type="button" id="tsa-verify-btn" class="btn btn-warning btn-sm fw-bold">Verification Complete</button>
+          </div>
+          <div id="tsa-verify-row" class="input-group input-group-sm mt-1 d-none">
+            <input type="date" id="tsa-verify-date" class="form-control form-control-sm" value="{{ today }}">
+            <button type="button" id="tsa-verify-save" class="btn btn-primary btn-sm">Save</button>
+          </div>
+        </div>
         <div id="guest-fields" class="row g-2 mt-1 d-none">
           <div class="col-7"><input type="text" name="guest_name" maxlength="80" class="form-control form-control-sm" placeholder="Guest's name (optional)" value="{{ form.get('guest_name', '') if form else (sched.guest_name if sched and sched.guest_name else '') }}"></div>
           <div class="col-5"><input type="tel" name="guest_phone" maxlength="30" class="form-control form-control-sm" placeholder="Phone (optional)" value="{{ form.get('guest_phone', '') if form else (sched.guest_phone if sched and sched.guest_phone else '') }}"></div>
@@ -711,6 +724,38 @@
   }
   ss.addEventListener('change', sync);
   sync();
+
+  // TSA heads-up (doesn't block booking) - "Verification Complete" opens a
+  // tiny date box right here; saving updates the student's profile via
+  // student_tsa_verify() and clears the banner, no page reload needed.
+  var tsaWarn = document.getElementById('tsa-warning');
+  var tsaBtn = document.getElementById('tsa-verify-btn');
+  var tsaRow = document.getElementById('tsa-verify-row');
+  var tsaDate = document.getElementById('tsa-verify-date');
+  var tsaSave = document.getElementById('tsa-verify-save');
+  if (tsaWarn && tsaBtn) {
+    function syncTsa() {
+      var opt = ss.options[ss.selectedIndex];
+      var needed = opt && opt.getAttribute('data-tsa-needed') === '1';
+      tsaWarn.classList.toggle('d-none', !needed);
+      if (needed) tsaRow.classList.add('d-none');
+    }
+    ss.addEventListener('change', syncTsa);
+    syncTsa();
+    tsaBtn.addEventListener('click', function () { tsaRow.classList.remove('d-none'); });
+    tsaSave.addEventListener('click', function () {
+      var opt = ss.options[ss.selectedIndex];
+      if (!opt || !opt.value) return;
+      tsaSave.disabled = true;
+      fetch('/flight/students/' + opt.value + '/tsa_verify', {
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'tsa_verified_date=' + encodeURIComponent(tsaDate.value)
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        tsaSave.disabled = false;
+        if (data.ok) { opt.setAttribute('data-tsa-needed', ''); syncTsa(); }
+      }).catch(function () { tsaSave.disabled = false; });
+    });
+  }
 })();
 
 (function () {
