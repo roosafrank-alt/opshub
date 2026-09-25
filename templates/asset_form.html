@@ -48,6 +48,24 @@
           </label>
         </div>
         <div class="form-text">Its rental rate is set from the Flight School tile by an admin, not here.</div>
+        <div class="mt-2" id="dashboard-color-section" {% if not (asset and asset.is_flight_asset) %}hidden{% endif %}>
+          <label class="form-label d-block mb-1">Dashboard Color <span class="text-muted small">(Flight School only)</span></label>
+          <input type="hidden" name="color" id="color-input" value="{{ asset.color or '' }}">
+          <div class="d-flex flex-wrap gap-2" id="color-swatches">
+            {% for c in plane_colors or [] %}
+            {% set taken = c in (used_colors or []) %}
+            <div class="color-swatch{{ ' color-swatch-taken' if taken }}{{ ' color-swatch-selected' if asset and asset.color == c }}"
+                 data-color="{{ c }}"
+                 title="{{ 'Already in use' if taken else c }}"
+                 style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if taken else 'pointer' }};opacity:{{ '0.25' if taken else '1' }};border:3px solid {{ '#212529' if (asset and asset.color == c) else 'transparent' }};"></div>
+            {% endfor %}
+            <div class="color-swatch{{ ' color-swatch-selected' if not (asset and asset.color) }}"
+                 data-color=""
+                 title="No color (use default)"
+                 style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if not (asset and asset.color) else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
+          </div>
+          <div class="form-text">Grayed-out colors are already used by another plane. Shows as the plane's accent stripe on the flight dashboard's schedule chips. Leave unset to fall back to an auto-assigned color.</div>
+        </div>
       </div>
     </div>
     <div class="row">
@@ -128,24 +146,6 @@
     <div class="mb-3">
       <label class="form-label">Notes</label>
       <textarea name="notes" class="form-control" rows="4" placeholder="Anything else worth keeping on file for this plane">{{ asset.notes or '' }}</textarea>
-    </div>
-    <div class="mb-3" id="dashboard-color-section" {% if not (asset and asset.is_flight_asset) %}hidden{% endif %}>
-      <label class="form-label d-block">Dashboard Color <span class="text-muted small">(Flight School only)</span></label>
-      <input type="hidden" name="color" id="color-input" value="{{ asset.color or '' }}">
-      <div class="d-flex flex-wrap gap-2" id="color-swatches">
-        {% for c in plane_colors or [] %}
-        {% set taken = c in (used_colors or []) %}
-        <div class="color-swatch{{ ' color-swatch-taken' if taken }}{{ ' color-swatch-selected' if asset and asset.color == c }}"
-             data-color="{{ c }}"
-             title="{{ 'Already in use' if taken else c }}"
-             style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if taken else 'pointer' }};opacity:{{ '0.25' if taken else '1' }};border:3px solid {{ '#212529' if (asset and asset.color == c) else 'transparent' }};"></div>
-        {% endfor %}
-        <div class="color-swatch{{ ' color-swatch-selected' if not (asset and asset.color) }}"
-             data-color=""
-             title="No color (use default)"
-             style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if not (asset and asset.color) else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
-      </div>
-      <div class="form-text">Grayed-out colors are already used by another plane. Shows as the plane's accent stripe on the flight dashboard's schedule chips. Leave unset to fall back to an auto-assigned color.</div>
     </div>
     <div class="d-flex justify-content-between">
       <a href="{{ url_for('asset_detail', asset_id=asset.id) if asset else url_for('assets_list') }}" class="btn btn-outline-secondary">Cancel</a>
