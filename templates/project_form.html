@@ -46,8 +46,9 @@
         {% for a in assets %}
         <option value="{{ a.id }}" data-tag="{{ a.tag }}" {% if (project and project.asset_id == a.id) or (preselect_asset_id and preselect_asset_id|string == a.id|string) %}selected{% endif %}>{{ a.tag }}{% if a.name and a.name != a.tag %} &middot; {{ a.name }}{% endif %}</option>
         {% endfor %}
+        <option value="__add_new__">+ Add New...</option>
       </select>
-      <div class="form-text">Link this project to an asset profile to get a combined history and hours-based maintenance tracking. Picking one fills in the project name with its tail number. <a href="#" id="asset-quick-add-toggle">+ Add New</a> (just a tail number, right here) or <a href="{{ url_for('asset_new') }}" target="_blank">the full form</a>.</div>
+      <div class="form-text">Link this project to an asset profile to get a combined history and hours-based maintenance tracking. Picking one fills in the project name with its tail number. Pick "+ Add New..." above for just a tail number, right here, or use <a href="{{ url_for('asset_new') }}" target="_blank">the full form</a>.</div>
       <div id="asset-quick-add-row" class="input-group input-group-sm mt-1" style="display:none;">
         <input type="text" id="asset-quick-add-input" class="form-control" placeholder="Tail / serial number">
         <button type="button" id="asset-quick-add-btn" class="btn btn-primary">Add</button>
@@ -113,30 +114,35 @@
 
   var nameInput = document.getElementById('project-name-input');
   var assetSelect = document.getElementById('project-asset-select');
+
+  // "+ Add New..." is an option right in the dropdown, so it never leaves
+  // a real asset selected: picking it snaps the select back to whatever
+  // was picked before and opens the quick-add row instead. A bare tail
+  // number gets created right here without leaving the page, so a plane
+  // not in the system yet doesn't hold up starting the project. Shows up
+  // flagged "Incomplete" (see asset_detail.html) until someone opens Edit
+  // Profile and fills in the rest.
+  var quickRow = document.getElementById('asset-quick-add-row');
+  var quickInput = document.getElementById('asset-quick-add-input');
+  var quickBtn = document.getElementById('asset-quick-add-btn');
+  var quickError = document.getElementById('asset-quick-add-error');
+  var lastAssetValue = assetSelect.value;
+
   assetSelect.addEventListener('change', function () {
+    if (assetSelect.value === '__add_new__') {
+      assetSelect.value = lastAssetValue;
+      quickRow.style.display = 'flex';
+      quickError.style.display = 'none';
+      quickInput.value = '';
+      quickInput.focus();
+      return;
+    }
+    lastAssetValue = assetSelect.value;
     if (!nameInput.value.trim()) {
       var opt = assetSelect.options[assetSelect.selectedIndex];
       var tag = opt ? opt.getAttribute('data-tag') : null;
       if (tag) nameInput.value = tag;
     }
-  });
-
-  // "+ Add New" - a bare tail number, created right here without leaving
-  // the page, so a plane not in the system yet doesn't hold up starting
-  // the project. Shows up flagged "Incomplete" (see asset_detail.html)
-  // until someone opens Edit Profile and fills in the rest.
-  var quickToggle = document.getElementById('asset-quick-add-toggle');
-  var quickRow = document.getElementById('asset-quick-add-row');
-  var quickInput = document.getElementById('asset-quick-add-input');
-  var quickBtn = document.getElementById('asset-quick-add-btn');
-  var quickError = document.getElementById('asset-quick-add-error');
-
-  quickToggle.addEventListener('click', function (e) {
-    e.preventDefault();
-    quickRow.style.display = 'flex';
-    quickError.style.display = 'none';
-    quickInput.value = '';
-    quickInput.focus();
   });
 
   function submitQuickAdd() {
@@ -160,8 +166,9 @@
         opt.value = result.data.id;
         opt.setAttribute('data-tag', result.data.tag);
         opt.textContent = result.data.tag;
-        assetSelect.appendChild(opt);
+        assetSelect.insertBefore(opt, assetSelect.querySelector('option[value="__add_new__"]'));
         assetSelect.value = result.data.id;
+        lastAssetValue = assetSelect.value;
         if (!nameInput.value.trim()) nameInput.value = result.data.tag;
         quickRow.style.display = 'none';
       }).catch(function () {
