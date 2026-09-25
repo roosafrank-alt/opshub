@@ -3497,6 +3497,31 @@ def _alert_nav_counts():
         return {}
 
 
+@flight_bp.context_processor
+def _cfi_active_flights_widget():
+    """This CFI's own currently-running flight(s) - powers the small
+    floating timer/pause/end widget that follows them to every Flight
+    School page (see _active_flight_widget.html) so they don't have to go
+    back to Active Flight just to pause or end whatever they're flying
+    right now. Only flights assigned to them (cfi_id) that are still
+    actually running (started, not stopped, not ended)."""
+    if not session.get("cfi_id"):
+        return {}
+    try:
+        conn = get_db()
+        try:
+            rows = conn.execute("""SELECT f.id, f.started_at, f.paused_at, f.paused_seconds,
+                                           a.tag as plane_tag, s.name as student_name
+                                    FROM flights f JOIN assets a ON a.id = f.asset_id JOIN students s ON s.id = f.student_id
+                                    WHERE f.cfi_id = ? AND f.started_at IS NOT NULL AND f.ended_at IS NULL AND f.stopped_at IS NULL
+                                    ORDER BY f.started_at""", (session["cfi_id"],)).fetchall()
+        finally:
+            conn.close()
+        return {"cfi_active_flights": rows}
+    except Exception:
+        return {}
+
+
 @flight_bp.route("/alerts")
 @cfi_required
 def alerts_list():

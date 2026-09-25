@@ -1,0 +1,107 @@
+{#- Small floating widget that follows a CFI to every Flight School page
+   while they have a flight running (see cfi_active_flights in flight.py's
+   _cfi_active_flights_widget context processor): a live timer plus
+   Pause/Resume, so they don't have to go back to Active Flight just to
+   pause the clock. "End" jumps to that flight's card on Active Flight,
+   since actually ending one needs the Hobbs/paid form filled in there.
+   Only the oldest running flight shows in full; any others are just a
+   "+N more" link. #}
+{% set flights = cfi_active_flights or [] %}
+{% if flights %}
+{% set f = flights[0] %}
+<div id="active-flight-widget" class="active-flight-widget">
+  <a href="{{ url_for('flight.log_active', flight_id=f.id) }}#active-flight-{{ f.id }}" class="active-flight-widget-link text-decoration-none">
+    <i class="bi bi-stopwatch"></i>
+    <span class="active-flight-widget-plane">{{ f.plane_tag }}</span>
+    <span class="active-flight-widget-timer" data-started="{{ f.started_at }}" data-paused-seconds="{{ f.paused_seconds or 0 }}" data-paused-at="{{ f.paused_at or '' }}">00:00:00</span>
+  </a>
+  <button type="button" id="active-flight-widget-pause" class="btn btn-sm {{ 'btn-warning' if f.paused_at else 'btn-outline-light' }}" title="{{ 'Resume' if f.paused_at else 'Pause' }}"
+          data-pause-url="{{ url_for('flight.log_pause', flight_id=f.id) }}" data-resume-url="{{ url_for('flight.log_resume', flight_id=f.id) }}">
+    <i class="bi {{ 'bi-play-fill' if f.paused_at else 'bi-pause-fill' }}"></i>
+  </button>
+  <a href="{{ url_for('flight.log_active', flight_id=f.id) }}#active-flight-{{ f.id }}" class="btn btn-sm btn-outline-light" title="End Flight">
+    <i class="bi bi-stop-fill"></i> End
+  </a>
+  {% if flights|length > 1 %}
+  <a href="{{ url_for('flight.log_active') }}" class="active-flight-widget-more">+{{ flights|length - 1 }} more</a>
+  {% endif %}
+</div>
+<style>
+  .active-flight-widget {
+    position: fixed; right: .75rem; bottom: .75rem; z-index: 1050;
+    display: flex; align-items: center; gap: .4rem;
+    background: #212529; color: #fff; border-radius: 999px;
+    padding: .35rem .5rem .35rem .75rem;
+    box-shadow: 0 .25rem .75rem rgba(0,0,0,.35);
+    font-size: .85rem;
+  }
+  .active-flight-widget-link { color: #fff; display: flex; align-items: center; gap: .35rem; }
+  .active-flight-widget-plane { font-weight: 700; }
+  .active-flight-widget-timer { font-variant-numeric: tabular-nums; opacity: .9; }
+  .active-flight-widget-more { color: rgba(255,255,255,.7); font-size: .7rem; white-space: nowrap; }
+  @media (max-width: 420px) {
+    .active-flight-widget { left: .5rem; right: .5rem; justify-content: space-between; }
+  }
+</style>
+<script>
+(function () {
+  // Same started/paused_at/paused_seconds -> elapsed math as Active
+  // Flight's own .elapsed-timer cards (log_active.html) - kept as its own
+  // little script (not that shared class) so this ticks on every page,
+  // not just the one that loads that page's script block.
+  var el = document.querySelector('.active-flight-widget-timer');
+  if (!el) return;
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function tick() {
+    var started = new Date(el.getAttribute('data-started').replace(' ', 'T'));
+    var pausedSeconds = parseInt(el.getAttribute('data-paused-seconds'), 10) || 0;
+    var pausedAtStr = el.getAttribute('data-paused-at');
+    var now = pausedAtStr ? new Date(pausedAtStr.replace(' ', 'T')) : new Date();
+    var diff = Math.max(0, Math.floor((now - started) / 1000) - pausedSeconds);
+    var h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60), s = diff % 60;
+    el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // Pause/Resume right from the widget - fetch instead of a normal form
+  // post so it doesn't drag whoever's flying right now off the page
+  // they're on to Active Flight just to toggle the clock.
+  var pauseBtn = document.getElementById('active-flight-widget-pause');
+  if (!pauseBtn) return;
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function fmtLocal(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' '
+      + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+  }
+  pauseBtn.addEventListener('click', function () {
+    var paused = !!el.getAttribute('data-paused-at');
+    var url = paused ? pauseBtn.getAttribute('data-resume-url') : pauseBtn.getAttribute('data-pause-url');
+    pauseBtn.disabled = true;
+    fetch(url, { method: 'POST', credentials: 'same-origin' }).then(function (resp) {
+      pauseBtn.disabled = false;
+      if (!resp.ok) return;
+      var icon = pauseBtn.querySelector('i');
+      if (paused) {
+        // Was paused, just resumed: fold the paused span into paused_seconds.
+        var pausedAt = new Date(el.getAttribute('data-paused-at').replace(' ', 'T'));
+        var added = Math.max(0, Math.floor((new Date() - pausedAt) / 1000));
+        el.setAttribute('data-paused-seconds', (parseInt(el.getAttribute('data-paused-seconds'), 10) || 0) + added);
+        el.removeAttribute('data-paused-at');
+        pauseBtn.classList.remove('btn-warning');
+        pauseBtn.classList.add('btn-outline-light');
+        pauseBtn.title = 'Pause';
+        icon.className = 'bi bi-pause-fill';
+      } else {
+        el.setAttribute('data-paused-at', fmtLocal(new Date()));
+        pauseBtn.classList.remove('btn-outline-light');
+        pauseBtn.classList.add('btn-warning');
+        pauseBtn.title = 'Resume';
+        icon.className = 'bi bi-play-fill';
+      }
+      tick();
+    }).catch(function () { pauseBtn.disabled = false; });
+  });
+})();
+</script>
+{% endif %}
