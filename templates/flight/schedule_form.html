@@ -154,7 +154,7 @@
          Duration's own full-width row below. #}
       <div class="col-md-8 mb-3 sched-only">
         <label class="form-label">Time</label>
-        <input type="hidden" id="time-input" name="scheduled_time" value="{{ form.get('scheduled_time') if form else (sched.scheduled_time if sched and sched.scheduled_time else '') }}">
+        <input type="hidden" id="time-input" name="scheduled_time" value="{{ form.get('scheduled_time') if form else (sched.scheduled_time if sched and sched.scheduled_time else (prefill_time or '')) }}">
         <div id="time-picker" class="d-flex align-items-stretch gap-2">
           <div class="text-center">
             <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="hour-up"><i class="bi bi-caret-up-fill"></i></button>

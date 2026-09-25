@@ -3131,8 +3131,17 @@ def schedule_new():
         datetime.strptime(prefill_date, "%Y-%m-%d")
     except ValueError:
         prefill_date = date.today().strftime("%Y-%m-%d")
+    # The Availability finder (finder.html) links here with ?time=HH:MM too,
+    # from the specific open slot that was clicked, so the time picker
+    # starts on that slot instead of defaulting to 9:00 - still freely
+    # adjustable from there like any other booking.
+    prefill_time = request.args.get("time", "").strip()
+    try:
+        datetime.strptime(prefill_time, "%H:%M")
+    except ValueError:
+        prefill_time = ""
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
-                       today=prefill_date, current_cfi_id=session.get("cfi_id"),
+                       today=prefill_date, prefill_time=prefill_time, current_cfi_id=session.get("cfi_id"),
                        self_service=self_service, self_student=self_student,
                        # ?complete=1 opens the form with "Flight Already
                        # Complete?" already checked (old Log a Flight links).
