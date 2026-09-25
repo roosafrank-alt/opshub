@@ -541,7 +541,12 @@ document.addEventListener('click', function (evt) {
 // Remember which sections are open on this device, so a reload or the next
 // visit shows the dashboard the way it was left (localStorage when the
 // browser allows it; otherwise it just resets to all-closed as before).
-var DASH_OPEN_STORE = 'opshub-dash-sections-v3';
+// Bumped to v4: a saved "Upcoming: open" from before Today's Schedule/
+// Upcoming had their own separate defaults was overriding the new
+// defaults forever (explicit past clicks always win - see below), no
+// matter how many times the server-side default got fixed. Bumping the
+// key resets everyone's remembered state once so the real defaults show.
+var DASH_OPEN_STORE = 'opshub-dash-sections-v4';
 function dashLoadOpen() {
   try { return JSON.parse(localStorage.getItem(DASH_OPEN_STORE) || '{}') || {}; } catch (e) { return {}; }
 }
