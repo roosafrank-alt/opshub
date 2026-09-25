@@ -96,8 +96,10 @@
 
 {#
   NOTAMs and weather sit above Next Lesson / Today's Schedule on purpose -
-  go/no-go conditions are the first thing a CFI should see, ahead of what's
-  booked. NOTAMs are a single-line banner: one row of airport identifiers,
+  go/no-go conditions are the first thing anyone here should see, ahead of
+  what's booked - a student flying solo or planning a lesson needs this
+  same strip, not just a CFI. NOTAMs are a single-line banner: one row of
+  airport identifiers,
   N89 first then the rest by increasing distance (dashboard_notams.strip_
   airports is already sorted that way), quiet unless an airport actually
   has something active - then it's a clickable chip that expands its
@@ -111,7 +113,7 @@
   today's NOTAM numbers include one that wasn't there the last time this
   browser checked.
 #}
-{% if cfi and dashboard_notams and dashboard_notams.configured and not dashboard_notams.error %}
+{% if dashboard_notams and dashboard_notams.configured and not dashboard_notams.error %}
 <div class="notam-strip-wrap mb-2" data-notam-numbers="{{ dashboard_notams.notams|map(attribute='number')|join(',') }}">
   <div class="notam-strip-new-banner" data-notam-new-banner role="button" tabindex="0" hidden>
     <i class="bi bi-exclamation-triangle-fill"></i> New NOTAMs today <span class="notam-strip-new-banner-hint">- click to view</span>
@@ -166,7 +168,7 @@
   Sunrise/sunset/civil twilight live in the header time box
   (dashboard.html), so they're not repeated here.
 #}
-{% if cfi and dashboard_wx %}
+{% if dashboard_wx %}
 {% set c = dashboard_wx.conditions %}
 {% set wxcat = c.wx_category if c else 'unknown' %}
 {% set is_day = c.is_day if c and c.is_day is not none else true %}

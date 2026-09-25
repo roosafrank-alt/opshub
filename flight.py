@@ -1375,18 +1375,6 @@ def _dashboard_context(conn, cfi, student):
             t["slot_label"] = _slot_label(t["scheduled_date"], t["scheduled_time"])
         today_flights_total = len(today_flights)
         today_flights_completed = sum(1 for t in today_flights if t["status"] == "completed")
-        # Weather widget - cached (see weather.py), and never allowed to
-        # break the dashboard if every outside API is unreachable.
-        try:
-            dashboard_wx = weather.get_dashboard_weather(conn)
-        except Exception:
-            dashboard_wx = None
-            current_app.logger.exception("Dashboard weather fetch failed")
-        try:
-            dashboard_notams = notams.get_dashboard_notams(conn)
-        except Exception:
-            dashboard_notams = None
-            current_app.logger.exception("Dashboard NOTAM fetch failed")
     else:
         needs_review_flights = []
         eta_delayed_flights = []
@@ -1394,8 +1382,6 @@ def _dashboard_context(conn, cfi, student):
         today_flights = []
         today_flights_total = 0
         today_flights_completed = 0
-        dashboard_wx = None
-        dashboard_notams = None
         recent_flights = conn.execute("""
             SELECT f.*, c.name as cfi_name, a.tag as plane_tag, a.name as plane_name
             FROM flights f
@@ -1428,6 +1414,22 @@ def _dashboard_context(conn, cfi, student):
             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
         """, (student["id"], date.today().strftime("%Y-%m-%d"))).fetchall()
         my_requests = [dict(m, time_label=_format_time_12h(m["scheduled_time"])) for m in my_requests]
+
+    # Weather + NOTAMs - school-wide, not CFI-specific, so a student sees
+    # exactly the same strip as an instructor (a student flying solo or
+    # planning a lesson needs this at least as much). Cached (see
+    # weather.py/notams.py), and never allowed to break the dashboard if
+    # every outside API is unreachable.
+    try:
+        dashboard_wx = weather.get_dashboard_weather(conn)
+    except Exception:
+        dashboard_wx = None
+        current_app.logger.exception("Dashboard weather fetch failed")
+    try:
+        dashboard_notams = notams.get_dashboard_notams(conn)
+    except Exception:
+        dashboard_notams = None
+        current_app.logger.exception("Dashboard NOTAM fetch failed")
 
     # Big "time to next lesson" tile with a live countdown - the single next
     # block that hasn't started yet, for whoever's looking: a CFI sees their
