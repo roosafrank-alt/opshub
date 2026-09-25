@@ -192,15 +192,15 @@
            staying stuck at "-" forever. #}
         {% if f.hobbs_start is not none %}
         <label class="form-label small mb-0">Hobbs Start</label>
-        <input type="text" class="form-control form-control-sm" value="{{ '%.1f'|format(f.hobbs_start) }}" disabled>
+        <input type="text" class="form-control form-control-sm" id="hobbs-start-{{ f.id }}" value="{{ '%.1f'|format(f.hobbs_start) }}" disabled>
         {% else %}
         <label class="form-label small mb-0 fw-bold">Hobbs Start *</label>
-        <input type="number" step="any" name="hobbs_start" class="form-control form-control-sm" placeholder="e.g. 1233.0" required inputmode="decimal">
+        <input type="number" step="any" name="hobbs_start" id="hobbs-start-{{ f.id }}" class="form-control form-control-sm" placeholder="e.g. 1233.0" required inputmode="decimal">
         {% endif %}
       </div>
       <div class="col-6 col-md-3">
         <label class="form-label small mb-0 fw-bold">Hobbs End *</label>
-        <input type="number" step="any" name="hobbs_end" class="form-control form-control-sm" placeholder="e.g. 1234.5" required inputmode="decimal"
+        <input type="number" step="any" name="hobbs_end" id="hobbs-end-{{ f.id }}" class="form-control form-control-sm hobbs-end-input" data-flight-id="{{ f.id }}" placeholder="e.g. 1234.5" required inputmode="decimal"
                {% if f.hobbs_start is not none %}min="{{ f.hobbs_start }}"{% endif %}>
       </div>
       <div class="col-6 col-md-3">
@@ -234,6 +234,19 @@
       </div>
       {% endif %}
     </div>
+    {#- Shown always - not just once Paid is picked - so the balance is
+       there for reference either way. "Use Credit" stays greyed out until
+       Hobbs End makes a total billable (matches what the server needs to
+       price the flight - see the hobbs-end-input listener below); applying
+       it still only actually counts once this flight is logged Paid. #}
+    {% if f.student_balance and f.student_balance > 0.005 %}
+    <div class="alert alert-success py-2 px-3 small d-flex justify-content-between align-items-center mb-2 mt-2">
+      <span><i class="bi bi-piggy-bank"></i> Credit on file: <strong>${{ '%.2f'|format(f.student_balance) }}</strong></span>
+      <button type="button" class="btn btn-outline-success btn-sm use-credit-btn" data-credit="{{ '%.2f'|format(f.student_balance) }}" data-target="credit-applied-{{ f.id }}" data-note-target="credit-note-{{ f.id }}" data-flight-id="{{ f.id }}" disabled title="Enter Hobbs End first so there's a total to apply it to">Use Credit</button>
+    </div>
+    <div class="small text-success mb-2 d-none" id="credit-note-{{ f.id }}"></div>
+    {% endif %}
+    <input type="hidden" name="credit_applied" id="credit-applied-{{ f.id }}" value="0">
     <div class="mt-2">
       <div class="form-label small mb-1 fw-bold">Payment *</div>
       <div class="btn-group w-100" role="group" aria-label="Paid or unpaid">
@@ -243,20 +256,7 @@
         <label class="btn btn-outline-danger fw-bold" for="paid-0-{{ f.id }}"><i class="bi bi-hourglass"></i> Unpaid</label>
       </div>
     </div>
-    {#- Shown only once Paid is picked (see the paid/unpaid toggle JS below).
-       The flight's cost isn't known until Hobbs/Tach end are in and the
-       server prices it, so this doesn't try to preview a total client-side -
-       Log Flight just gets rejected with the exact shortfall if what's
-       entered here (payment + credit) doesn't cover it yet. #}
     <div class="mt-2 payment-details" id="payment-details-{{ f.id }}" hidden>
-      {% if f.student_balance and f.student_balance > 0.005 %}
-      <div class="alert alert-success py-2 px-3 small d-flex justify-content-between align-items-center mb-2">
-        <span><i class="bi bi-piggy-bank"></i> Credit on file: <strong>${{ '%.2f'|format(f.student_balance) }}</strong></span>
-        <button type="button" class="btn btn-outline-success btn-sm use-credit-btn" data-credit="{{ '%.2f'|format(f.student_balance) }}" data-target="credit-applied-{{ f.id }}" data-note-target="credit-note-{{ f.id }}">Use Credit</button>
-      </div>
-      <div class="small text-success mb-2 d-none" id="credit-note-{{ f.id }}"></div>
-      {% endif %}
-      <input type="hidden" name="credit_applied" id="credit-applied-{{ f.id }}" value="0">
       <div class="row g-2">
         <div class="col-6">
           <label class="form-label small mb-0">Amount Collected ($)</label>
@@ -776,6 +776,26 @@ document.querySelectorAll('.use-credit-btn').forEach(function (btn) {
       note.classList.remove('d-none');
     }
   });
+});
+// "Use Credit" stays disabled until Hobbs Start and End give the flight a
+// real, billable total - same precondition the server needs to price it
+// (see flight._flight_hours).
+function refreshCreditButton(fId) {
+  var creditBtn = document.querySelector('.use-credit-btn[data-flight-id="' + fId + '"]');
+  if (!creditBtn) return;
+  var startInput = document.getElementById('hobbs-start-' + fId);
+  var endInput = document.getElementById('hobbs-end-' + fId);
+  var start = startInput ? parseFloat(startInput.value) : NaN;
+  var end = endInput ? parseFloat(endInput.value) : NaN;
+  var hasTotal = !isNaN(start) && !isNaN(end) && end > start;
+  creditBtn.disabled = !hasTotal;
+  creditBtn.title = hasTotal ? '' : "Enter Hobbs Start and End first so there's a total to apply it to";
+}
+document.querySelectorAll('.hobbs-end-input').forEach(function (input) {
+  input.addEventListener('input', function () { refreshCreditButton(input.dataset.flightId); });
+});
+document.querySelectorAll('input[id^="hobbs-start-"]:not([disabled])').forEach(function (input) {
+  input.addEventListener('input', function () { refreshCreditButton(input.id.replace('hobbs-start-', '')); });
 });
 </script>
 {% endblock %}
