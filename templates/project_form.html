@@ -12,7 +12,7 @@
       <input type="text" name="name" id="project-name-input" class="form-control" value="{{ project.name if project else (preselect_asset_tag or '') }}" required autofocus>
     </div>
     <div class="mb-3">
-      <label class="form-label small mb-1 d-block">Quick Type <span class="text-muted small">(fills in the description below)</span></label>
+      <label class="form-label small mb-1 d-block">Quick Type <span class="text-muted small">(fills in the description below - pick as many as apply)</span></label>
       <div class="btn-group btn-group-sm flex-wrap" role="group">
         <button type="button" class="btn btn-outline-secondary quick-desc-btn" data-value="Annual Inspection">Annual</button>
         <button type="button" class="btn btn-outline-secondary quick-desc-btn" data-value="100hr Inspection">100hr</button>
@@ -93,24 +93,36 @@
   var otherInput = document.getElementById('quick-desc-other-input');
   var otherAdd = document.getElementById('quick-desc-other-add');
 
+  // Multiple quick types can be on at once (e.g. Annual + Oil Change) -
+  // each button just toggles on/off, and the description is rebuilt from
+  // whichever ones are active (plus the free-text "Other" below) joined
+  // with commas, rather than one button replacing another.
+  var otherValue = '';
+  function rebuildDesc() {
+    var parts = Array.prototype.map.call(document.querySelectorAll('.quick-desc-btn.active'), function (b) {
+      return b.getAttribute('data-value');
+    });
+    if (otherValue) parts.push(otherValue);
+    descInput.value = parts.join(', ');
+  }
+
   document.querySelectorAll('.quick-desc-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      descInput.value = btn.getAttribute('data-value');
-      otherRow.style.display = 'none';
+      btn.classList.toggle('active');
+      rebuildDesc();
       descInput.focus();
     });
   });
 
   otherBtn.addEventListener('click', function () {
     otherRow.style.display = 'flex';
-    otherInput.value = '';
+    otherInput.value = otherValue;
     otherInput.focus();
   });
 
   function setOther() {
-    var val = (otherInput.value || '').trim();
-    if (!val) return;
-    descInput.value = val;
+    otherValue = (otherInput.value || '').trim();
+    rebuildDesc();
     otherRow.style.display = 'none';
     descInput.focus();
   }
