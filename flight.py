@@ -944,9 +944,14 @@ def _sync_flight_alerts(conn, who=None):
     2. Every flagged, still-booked flight has exactly one open alert
        (opened if new; reason and acknowledged-by/when copied over).
     3. An open alert whose booking is no longer flagged (or was flown,
-       cancelled or deleted) is resolved: resolved_at/by + how."""
+       cancelled or deleted) is resolved: resolved_at/by + how.
+
+    Returns the list of resolution lines for alerts resolved just now (step
+    3), so a caller acting on a live request can flash them - see
+    _sync_alerts_after_post()."""
     today = date.today().isoformat()
     changed = False
+    resolved_now = []
     solos = conn.execute("""SELECT id, student_id, scheduled_date FROM scheduled_flights
                             WHERE status = 'scheduled' AND needs_review = 1 AND solo = 1 AND cfi_id IS NULL""").fetchall()
     for r in solos:
@@ -980,12 +985,14 @@ def _sync_flight_alerts(conn, who=None):
     for sf_id, a in open_alerts.items():
         sf = conn.execute("""SELECT sf.status, sf.cfi_id, sf.solo, c.name as cfi_name FROM scheduled_flights sf
                              LEFT JOIN cfis c ON c.id = sf.cfi_id WHERE sf.id = ?""", (sf_id,)).fetchone()
+        resolution = _review_resolution(sf)
         conn.execute("UPDATE flight_alerts SET resolved_at = ?, resolved_by = ?, resolution = ? WHERE id = ?",
-                     (now_iso(), who, _review_resolution(sf), a["id"]))
+                     (now_iso(), who, resolution, a["id"]))
         changed = True
+        resolved_now.append(resolution)
     if changed:
         conn.commit()
-    return changed
+    return resolved_now
 
 
 def _schedule_review_flag(conn, solo, cfi_id, student_id, flight_date=None):
@@ -4087,9 +4094,11 @@ def _sync_alerts_after_post(response):
         try:
             conn = get_db()
             try:
-                _sync_flight_alerts(conn, session.get("user_name"))
+                resolved_now = _sync_flight_alerts(conn, session.get("user_name"))
             finally:
                 conn.close()
+            for resolution in resolved_now:
+                flash(f"✓ Alert resolved: {resolution}", "success")
         except Exception:
             current_app.logger.exception("Flight alerts sync failed")
     return response

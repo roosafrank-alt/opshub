@@ -112,7 +112,21 @@
       <tbody>
         {% for al in resolved %}
         <tr>
-          <td class="stack-full" data-label="Flight"><strong>{{ al.plane_tag or '-' }}</strong> &middot; {{ al.scheduled_date|usdate if al.scheduled_date else '(booking deleted)' }}<div class="small text-muted">{{ al.student_name or '-' }}</div></td>
+          <td class="stack-full" data-label="Flight">
+            {#- Jumps back to that booking's day on the Schedule, outlined red
+               there when the booking still shows as a block (the same
+               ?highlight= mechanism the dashboard's Needs a Look uses) - a
+               cancelled or deleted booking has nothing to outline, so those
+               just link to the day, or aren't linked at all. #}
+            {% if al.scheduled_date and al.booking_status != 'cancelled' %}
+            <a href="{{ url_for('flight.schedule_calendar', view='day', date=al.scheduled_date, highlight=al.scheduled_flight_id) }}" title="Open this flight's spot on the Schedule">
+            {% elif al.scheduled_date %}
+            <a href="{{ url_for('flight.schedule_calendar', view='day', date=al.scheduled_date) }}" title="Open this day on the Schedule">
+            {% endif %}
+            <strong>{{ al.plane_tag or '-' }}</strong> &middot; {{ al.scheduled_date|usdate if al.scheduled_date else '(booking deleted)' }}
+            {% if al.scheduled_date %}</a>{% endif %}
+            <div class="small text-muted">{{ al.student_name or '-' }}</div>
+          </td>
           <td class="stack-full" data-label="Reason"><small>{{ al.reason or '-' }}</small></td>
           <td data-label="Acknowledged"><small>{% if al.acknowledged_at %}{{ al.acknowledged_by or '-' }}<br>{{ al.acknowledged_at|usdate(true) }}{% else %}<span class="text-muted">-</span>{% endif %}</small></td>
           <td data-label="Resolved"><small><strong>{{ al.resolution or 'Resolved' }}</strong><br>{{ al.resolved_by or 'Automatic' }}, {{ al.resolved_at|usdate(true) }}</small></td>
