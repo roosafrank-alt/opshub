@@ -1451,6 +1451,37 @@ def _dashboard_context(conn, cfi, student):
             t["slot_label"] = _slot_label(t["scheduled_date"], t["scheduled_time"])
         today_flights_total = len(today_flights)
         today_flights_completed = sum(1 for t in today_flights if t["status"] == "completed")
+        # Admin-only watch list: bookings a CFI/admin made for a student that
+        # the student hasn't confirmed yet, and flights cancelled in the last
+        # few days (self-cancelled by a student or cancelled outright) - both
+        # easy to miss otherwise since neither shows up on Today's Schedule
+        # or Upcoming once cancelled.
+        unconfirmed_flights = []
+        recently_cancelled_flights = []
+        if session.get("is_master_admin"):
+            unconfirmed_flights = conn.execute("""
+                SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name
+                FROM scheduled_flights sf
+                JOIN assets a ON a.id = sf.asset_id
+                JOIN students s ON s.id = sf.student_id
+                LEFT JOIN cfis c ON c.id = sf.cfi_id
+                WHERE sf.status = 'scheduled' AND sf.confirm_required = 1 AND sf.confirmed_at IS NULL
+                ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
+            """).fetchall()
+            unconfirmed_flights = [dict(u, time_label=_format_time_12h(u["scheduled_time"])) for u in unconfirmed_flights]
+            cutoff = (date.today() - timedelta(days=7)).strftime("%Y-%m-%d")
+            recently_cancelled_flights = conn.execute("""
+                SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name
+                FROM scheduled_flights sf
+                JOIN assets a ON a.id = sf.asset_id
+                JOIN students s ON s.id = sf.student_id
+                LEFT JOIN cfis c ON c.id = sf.cfi_id
+                WHERE sf.status = 'cancelled' AND sf.scheduled_date >= ?
+                ORDER BY sf.scheduled_date DESC, sf.scheduled_time IS NULL, sf.scheduled_time DESC
+                LIMIT 15
+            """, (cutoff,)).fetchall()
+            recently_cancelled_flights = [dict(c, time_label=_format_time_12h(c["scheduled_time"]))
+                                          for c in recently_cancelled_flights]
     else:
         needs_review_flights = []
         eta_delayed_flights = []
@@ -1458,6 +1489,8 @@ def _dashboard_context(conn, cfi, student):
         today_flights = []
         today_flights_total = 0
         today_flights_completed = 0
+        unconfirmed_flights = []
+        recently_cancelled_flights = []
         recent_flights = conn.execute("""
             SELECT f.*, c.name as cfi_name, a.tag as plane_tag, a.name as plane_name
             FROM flights f
@@ -1613,6 +1646,7 @@ def _dashboard_context(conn, cfi, student):
                 pending_requests=pending_requests, my_requests=my_requests,
                 needs_review_flights=needs_review_flights, eta_delayed_flights=eta_delayed_flights,
                 medical_alerts=medical_alerts,
+                unconfirmed_flights=unconfirmed_flights, recently_cancelled_flights=recently_cancelled_flights,
                 next_lesson=next_lesson, last_flight_ago=last_flight_ago,
                 solo_currency=solo_currency,
                 solo_currency_days=solo_currency["interval_days"] if solo_currency else DEFAULT_SOLO_CURRENCY_DAYS,

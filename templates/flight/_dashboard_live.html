@@ -65,6 +65,36 @@
 </div>
 {% endif %}
 
+{#- Admin-only watch list: bookings a CFI/admin made for a student that the
+   student hasn't confirmed yet, and flights cancelled in the last week
+   (including a student's own self-cancel, with their reason) - see
+   unconfirmed_flights/recently_cancelled_flights in _dashboard_context().
+   Both would otherwise be easy to miss since neither shows up on Today's
+   Schedule or Upcoming. #}
+{% if unconfirmed_flights or recently_cancelled_flights %}
+<div class="card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-binoculars"></i> Needs a Look</h6>
+  {% if unconfirmed_flights %}
+  <div class="small text-muted fw-bold mb-1">Unconfirmed ({{ unconfirmed_flights|length }})</div>
+  {% for u in unconfirmed_flights %}
+  <div class="small py-1 {{ 'border-top' if not loop.first }} d-flex justify-content-between align-items-center flex-wrap gap-1">
+    <span><strong>{{ u.student_name }}</strong> &middot; {{ u.plane_tag }} &middot; {{ u.scheduled_date|usdate }}{% if u.time_label %} &middot; {{ u.time_label }}{% endif %}</span>
+    <span class="badge bg-warning text-dark">Awaiting student OK</span>
+  </div>
+  {% endfor %}
+  {% endif %}
+  {% if recently_cancelled_flights %}
+  <div class="small text-muted fw-bold mb-1{{ ' mt-2' if unconfirmed_flights }}">Cancelled (last 7 days)</div>
+  {% for c in recently_cancelled_flights %}
+  <div class="small py-1 {{ 'border-top' if not loop.first }} d-flex justify-content-between align-items-start flex-wrap gap-1">
+    <span><strong>{{ c.student_name }}</strong> &middot; {{ c.plane_tag }} &middot; {{ c.scheduled_date|usdate }}{% if c.time_label %} &middot; {{ c.time_label }}{% endif %}
+      {% if c.cancel_reason %}<div class="text-muted">"{{ c.cancel_reason }}"</div>{% endif %}</span>
+  </div>
+  {% endfor %}
+  {% endif %}
+</div>
+{% endif %}
+
 {#- Later bookings a late flight's updated ETA runs into (same plane,
    instructor or student) - see flight._eta_impacts / log_set_eta. Goes
    away on its own once the late flight ends or the ETA is cleared. #}
