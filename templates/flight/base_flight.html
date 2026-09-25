@@ -85,10 +85,11 @@
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="manage-menu-toggle">
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/planes') }}" href="{{ url_for('flight.planes_list') }}"><i class="bi bi-airplane"></i> Planes</a></li>
             {% if session.get('is_master_admin') %}
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/cfis') and not _p.endswith('/pay') and _p != '/flight/cfis/me' }}" href="{{ url_for('flight.cfis_list') }}"><i class="bi bi-person-badge"></i> CFIs</a></li>
+            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/cfis') and not _p.endswith('/pay') and _p not in ('/flight/cfis/me', '/flight/cfis/schedule') }}" href="{{ url_for('flight.cfis_list') }}"><i class="bi bi-person-badge"></i> CFIs</a></li>
             {% endif %}
             {% if session.get('cfi_id') %}
             <li><a class="dropdown-item {{ 'active' if _p == '/flight/cfis/me' }}" href="{{ url_for('flight.cfi_me') }}"><i class="bi bi-person-vcard"></i> My CFI Profile</a></li>
+            <li><a class="dropdown-item {{ 'active' if _p == '/flight/cfis/schedule' }}" href="{{ url_for('flight.cfi_schedule') }}"><i class="bi bi-calendar-week"></i> My Schedule</a></li>
             <li><a class="dropdown-item {{ 'active' if _p.endswith('/pay') }}" href="{{ url_for('flight.cfi_pay', cfi_id=session['cfi_id']) }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
             {% endif %}
             {% if session.get('is_master_admin') or session.get('can_bill') %}

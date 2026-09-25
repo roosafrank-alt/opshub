@@ -382,6 +382,12 @@ def _scheduling_conflicts(conn, asset_id, cfi_id, student_id, scheduled_date, sc
     if med_problem:
         conflicts.append({"message": med_problem, "id": 0, "date": scheduled_date, "plane_tag": None,
                           "student_name": None, "cfi_name": None, "time": None})
+    # A CFI who's put in time off for this date/time can't be booked over it -
+    # reported the same way so every save/approve/edit/reschedule path stops on it.
+    time_off_problem = _cfi_time_off_conflict(conn, cfi_id, scheduled_date, scheduled_time, duration_hours)
+    if time_off_problem:
+        conflicts.append({"message": time_off_problem, "id": 0, "date": scheduled_date, "plane_tag": None,
+                          "student_name": None, "cfi_name": None, "time": None})
     for r in rows:
         other_window = _time_window(r["scheduled_time"], r["duration_hours"])
         if not _windows_overlap(window, other_window):
@@ -629,6 +635,35 @@ def _medical_expired_phrase(med):
     if med["days_left"] is not None and med["expires"] < date.today().isoformat():
         return f"expired {_us_date(med['expires'])}"
     return f"runs out {_us_date(med['expires'])}, before this flight"
+
+
+def _cfi_time_off_conflict(conn, cfi_id, on_date, scheduled_time, duration_hours):
+    """A blocking message if this CFI has requested time off that overlaps
+    this booking's date/time, else None. A time-off entry with no
+    start/end time blocks the whole day."""
+    if not cfi_id:
+        return None
+    window = _time_window(scheduled_time, duration_hours)
+    rows = conn.execute("SELECT * FROM cfi_time_off WHERE cfi_id = ? AND off_date = ?",
+                        (cfi_id, on_date)).fetchall()
+    for r in rows:
+        if r["start_time"]:
+            start_h, start_m = (int(x) for x in r["start_time"].split(":"))
+            if r["end_time"]:
+                end_h, end_m = (int(x) for x in r["end_time"].split(":"))
+                end_min = end_h * 60 + end_m
+            else:
+                end_min = 24 * 60
+            off_window = (start_h * 60 + start_m, end_min)
+        else:
+            off_window = None  # no time given - the whole day is off
+        if not _windows_overlap(window, off_window):
+            continue
+        name = conn.execute("SELECT name FROM cfis WHERE id = ?", (cfi_id,)).fetchone()["name"]
+        when = (f" from {_format_time_12h(r['start_time'])} to {_format_time_12h(r['end_time'])}"
+                if r["start_time"] and r["end_time"] else "")
+        return f"{name} has time off on {_us_date(on_date)}{when}{' - ' + r['note'] if r['note'] else ''}."
+    return None
 
 
 def _cfi_medical_problem(conn, cfi_id, on_date):
@@ -2307,6 +2342,164 @@ def cfi_pay(cfi_id):
         breakdown.append(dict(d, pay_hours=hrs, pay_amount=amount))
     return render_template("flight/cfi_pay.html", cfi=cfi_row, breakdown=breakdown,
                            total_hours=total_hours, total_owed=total_owed, pay_rate=pay_rate)
+
+
+# The My Schedule timeline's window - 6am-9pm covers virtually every real
+# lesson, and clamping to it keeps one early/late outlier from squashing
+# every other day's bar down to a sliver.
+_CFI_SCHEDULE_DAY_START = 6 * 60
+_CFI_SCHEDULE_DAY_END = 21 * 60
+
+
+def _time_off_label(row):
+    """'All day', '9:00 AM - 3:00 PM', or '9:00 AM onward' for a cfi_time_off row."""
+    if not row["start_time"]:
+        return "All day"
+    start = _format_time_12h(row["start_time"])
+    return f"{start} - {_format_time_12h(row['end_time'])}" if row["end_time"] else f"{start} onward"
+
+
+def _cfi_schedule_pct(start_min, end_min):
+    span = _CFI_SCHEDULE_DAY_END - _CFI_SCHEDULE_DAY_START
+    left = max(0, min(100, (start_min - _CFI_SCHEDULE_DAY_START) / span * 100))
+    right = max(0, min(100, (end_min - _CFI_SCHEDULE_DAY_START) / span * 100))
+    return left, max(right - left, 0.5)
+
+
+def _cfi_schedule_week(conn, cfi_id, week_dates):
+    """One row per day of the week for the My Schedule page: the CFI's own
+    booked span (first flight start to last flight end) with a colored
+    timeline bar - blue for booked, amber for an unassigned gap between two
+    bookings, red for time off - built from _CFI_SCHEDULE_DAY_START/END.
+    Doesn't include flight/student/plane details, just the shape of the
+    day."""
+    date_strs = [d.strftime("%Y-%m-%d") for d in week_dates]
+    flights = conn.execute(
+        """SELECT scheduled_date, scheduled_time, duration_hours FROM scheduled_flights
+           WHERE cfi_id = ? AND status = 'scheduled' AND scheduled_date BETWEEN ? AND ?
+           ORDER BY scheduled_date, scheduled_time""",
+        (cfi_id, date_strs[0], date_strs[-1])).fetchall()
+    time_off = conn.execute(
+        """SELECT * FROM cfi_time_off WHERE cfi_id = ? AND off_date BETWEEN ? AND ?
+           ORDER BY off_date, start_time""",
+        (cfi_id, date_strs[0], date_strs[-1])).fetchall()
+
+    today_str = date.today().strftime("%Y-%m-%d")
+    days = []
+    for ds, d in zip(date_strs, week_dates):
+        day_off = [t for t in time_off if t["off_date"] == ds]
+        all_day_off = any(not t["start_time"] for t in day_off)
+        windows = sorted(_time_window(f["scheduled_time"], f["duration_hours"])
+                         for f in flights if f["scheduled_date"] == ds
+                         and _time_window(f["scheduled_time"], f["duration_hours"]))
+        segments = []
+        on_start = on_end = None
+        if not all_day_off and windows:
+            merged = [list(windows[0])]
+            for w in windows[1:]:
+                if w[0] <= merged[-1][1]:
+                    merged[-1][1] = max(merged[-1][1], w[1])
+                else:
+                    merged.append(list(w))
+            on_start, on_end = merged[0][0], merged[-1][1]
+            cursor = merged[0][0]
+            for seg_start, seg_end in merged:
+                if seg_start > cursor:
+                    left, width = _cfi_schedule_pct(cursor, seg_start)
+                    segments.append({"kind": "gap", "left": left, "width": width})
+                left, width = _cfi_schedule_pct(seg_start, seg_end)
+                segments.append({"kind": "flight", "left": left, "width": width})
+                cursor = seg_end
+        for t in day_off:
+            if t["start_time"]:
+                start_h, start_m = (int(x) for x in t["start_time"].split(":"))
+                if t["end_time"]:
+                    end_h, end_m = (int(x) for x in t["end_time"].split(":"))
+                    end_min = end_h * 60 + end_m
+                else:
+                    end_min = _CFI_SCHEDULE_DAY_END
+                left, width = _cfi_schedule_pct(start_h * 60 + start_m, end_min)
+                segments.append({"kind": "off", "left": left, "width": width})
+        days.append({
+            "date": ds, "date_label": f"{d.strftime('%a')} {d.month}/{d.day}",
+            "is_today": ds == today_str,
+            "on_label": (f"{_format_time_12h(f'{on_start // 60:02d}:{on_start % 60:02d}')} - "
+                        f"{_format_time_12h(f'{on_end // 60:02d}:{on_end % 60:02d}')}") if on_start is not None else None,
+            "all_day_off": all_day_off,
+            "segments": segments,
+            "time_off": [dict(t, when_label=_time_off_label(t)) for t in day_off],
+        })
+    return days
+
+
+@flight_bp.route("/cfis/schedule", methods=["GET", "POST"])
+@cfi_required
+def cfi_schedule():
+    """A CFI's own "My Schedule" tab: a week-at-a-glance of when they're
+    booked (not what/who - just the shape of the day, see
+    _cfi_schedule_week) plus a place to put in their own time off, which
+    then blocks new bookings over it (see _cfi_time_off_conflict, checked
+    everywhere _scheduling_conflicts is)."""
+    conn = get_db()
+    cfi_id = session["cfi_id"]
+    if request.method == "POST":
+        off_date = request.form.get("off_date", "").strip()
+        start_time = request.form.get("start_time", "").strip()
+        end_time = request.form.get("end_time", "").strip()
+        note = request.form.get("note", "").strip()
+        anchor_date = request.form.get("view_date", "").strip()
+        if not off_date:
+            flash("Pick a date for the time off.", "danger")
+        elif start_time and end_time and end_time <= start_time:
+            flash("End time has to be after start time.", "danger")
+        else:
+            conn.execute("INSERT INTO cfi_time_off (cfi_id, off_date, start_time, end_time, note) "
+                        "VALUES (?, ?, ?, ?, ?)", (cfi_id, off_date, start_time or None, end_time or None, note or None))
+            conn.commit()
+            flash("Time off added - it now blocks new bookings for you over that time.", "success")
+        conn.close()
+        return redirect(url_for("flight.cfi_schedule", date=anchor_date or off_date))
+
+    today = date.today()
+    day_str = request.args.get("date", "").strip() or today.strftime("%Y-%m-%d")
+    try:
+        day_date = datetime.strptime(day_str, "%Y-%m-%d").date()
+    except ValueError:
+        day_date = today
+        day_str = today.strftime("%Y-%m-%d")
+    week_start = day_date - timedelta(days=day_date.weekday())
+    week_dates = [week_start + timedelta(days=i) for i in range(7)]
+
+    days = _cfi_schedule_week(conn, cfi_id, week_dates)
+    upcoming_time_off = [dict(t, when_label=_time_off_label(t)) for t in conn.execute(
+        "SELECT * FROM cfi_time_off WHERE cfi_id = ? AND off_date >= ? ORDER BY off_date, start_time",
+        (cfi_id, today.strftime("%Y-%m-%d"))).fetchall()]
+    conn.close()
+    return render_template("flight/cfi_schedule.html", days=days, day_str=day_str,
+                           week_label=f"Week of {week_dates[0].month}/{week_dates[0].day}",
+                           week_prev=(week_start - timedelta(days=7)).strftime("%Y-%m-%d"),
+                           week_next=(week_start + timedelta(days=7)).strftime("%Y-%m-%d"),
+                           upcoming_time_off=upcoming_time_off, today_str=today.strftime("%Y-%m-%d"))
+
+
+@flight_bp.route("/cfis/schedule/time-off/<int:off_id>/delete", methods=["POST"])
+@cfi_required
+def cfi_time_off_delete(off_id):
+    """Removes one of the current CFI's own time-off entries - CFIs can
+    only delete their own (no admin override needed; it's just their
+    personal availability, same trust level as picking their own
+    signature)."""
+    conn = get_db()
+    row = conn.execute("SELECT * FROM cfi_time_off WHERE id = ?", (off_id,)).fetchone()
+    if not row or row["cfi_id"] != session["cfi_id"]:
+        conn.close()
+        flash("Time off not found.", "danger")
+        return redirect(url_for("flight.cfi_schedule"))
+    conn.execute("DELETE FROM cfi_time_off WHERE id = ?", (off_id,))
+    conn.commit()
+    conn.close()
+    flash("Time off removed.", "success")
+    return redirect(url_for("flight.cfi_schedule", date=request.form.get("view_date", "")))
 
 
 @flight_bp.route("/planes")

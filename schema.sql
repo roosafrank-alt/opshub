@@ -211,6 +211,17 @@ CREATE TABLE IF NOT EXISTS cfis (
     signature_updated_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS cfi_time_off (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cfi_id INTEGER NOT NULL REFERENCES cfis(id),
+    off_date TEXT NOT NULL, -- YYYY-MM-DD
+    start_time TEXT, -- HH:MM; NULL together with end_time = the whole day off
+    end_time TEXT, -- HH:MM
+    note TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_cfi_time_off_cfi_date ON cfi_time_off(cfi_id, off_date);
+
 CREATE TABLE IF NOT EXISTS students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
