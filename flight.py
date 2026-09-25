@@ -585,7 +585,7 @@ MEDICAL_WARN_DAYS = 30  # "expiring soon" window for the dashboard / list badges
 
 # How a student usually pays - same option text as End Flight's "How Paid"
 # select (log_active.html) so the saved preference can pre-select it there.
-PAY_PREFERENCES = ["Cash", "Check", "Card"]
+PAY_PREFERENCES = ["Cash", "Check", "Card", "Venmo/Zelle", "Other"]
 
 
 def _medical_status(row, on_date=None):
