@@ -2402,8 +2402,11 @@ def plane_rate_edit(asset_id):
             flash("That color is already taken by an instructor or another plane - pick a different one.", "danger")
             conn.close()
             return redirect(url_for("flight.plane_rate_edit", asset_id=asset_id))
-        conn.execute("UPDATE assets SET schedule_color = ?, updated_at = ? WHERE id = ?",
-                     (color, now_iso(), asset_id))
+        solo_color = request.form.get("solo_color", "").strip() or None
+        if solo_color and solo_color not in SCHEDULE_COLORS:
+            solo_color = None
+        conn.execute("UPDATE assets SET schedule_color = ?, solo_color = ?, updated_at = ? WHERE id = ?",
+                     (color, solo_color, now_iso(), asset_id))
         conn.commit()
         conn.close()
         flash(f"Color updated for {plane['tag']}.", "success")
@@ -2416,7 +2419,7 @@ def plane_rate_edit(asset_id):
 
 _SCHEDULE_ROW_SQL = """SELECT sf.*, a.tag as plane_tag, a.name as plane_name, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
                      s.is_station as student_is_station, c.name as cfi_name, c.color as cfi_color,
-                     a.schedule_color as plane_color
+                     a.schedule_color as plane_color, a.solo_color as plane_solo_color
               FROM scheduled_flights sf
               JOIN assets a ON a.id = sf.asset_id
               JOIN students s ON s.id = sf.student_id
@@ -2432,10 +2435,11 @@ def _decorate_schedule_row(r):
     r = dict(r)
     # Two colors per booking: the plane's (block background) and the
     # instructor's (thick left stripe). A solo booking shows the plane's
+    # solo color if one's been picked (Planes > Edit), otherwise the plane's
     # color in neon, with no instructor stripe.
     r["cfi_display_color"] = _cfi_display_color(r["cfi_name"], r["cfi_color"]) if r["cfi_id"] else None
     base_plane = r.get("plane_color") or PLANE_FALLBACK_COLOR
-    r["plane_display_color"] = _neon_color(base_plane) if r["solo"] else base_plane
+    r["plane_display_color"] = (r.get("plane_solo_color") or _neon_color(base_plane)) if r["solo"] else base_plane
     r["display_color"] = r["plane_display_color"]
     r["display_text_color"] = _text_on(r["display_color"])
     r["time_label"] = _format_time_12h(r["scheduled_time"])
@@ -3059,8 +3063,9 @@ def _schedule_calendar_context():
     plane_legend = []
     for p in planes:
         base = p["schedule_color"] or PLANE_FALLBACK_COLOR
-        plane_legend.append({"tag": p["tag"], "color": base, "neon": _neon_color(base),
-                             "text": _text_on(base), "neon_text": _text_on(_neon_color(base)),
+        solo = p["solo_color"] or _neon_color(base)
+        plane_legend.append({"tag": p["tag"], "color": base, "neon": solo,
+                             "text": _text_on(base), "neon_text": _text_on(solo),
                              "unset": not p["schedule_color"]})
 
     return dict(view=view, month_data=month_data, months_data=months_data,

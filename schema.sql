@@ -96,7 +96,8 @@ CREATE TABLE IF NOT EXISTS assets (
     is_flight_asset INTEGER NOT NULL DEFAULT 0, -- linked to Flight School: shows up in its plane list/flight log; NOT every asset here is a flight school plane, so this isn't automatic
     is_simulator INTEGER NOT NULL DEFAULT 0, -- a flight simulator added from Planes > Add Simulator, not a real aircraft - no Hobbs/Tach/maintenance to track
     sim_rate REAL, -- simulator's own base $/hr rate, set on its profile; used unless a student has their own Sim Rate override
-    schedule_color TEXT, -- Flight School schedule color for this plane (admin-picked on Planes > Edit; never the same as a CFI color); solo bookings show it in neon
+    schedule_color TEXT, -- Flight School schedule color for this plane (admin-picked on Planes > Edit; never the same as a CFI color); solo bookings show it in neon unless solo_color overrides that below
+    solo_color TEXT, -- admin-picked override for this plane's solo-booking color (Planes > Edit); NULL = fall back to the auto neon version of schedule_color
     icao24_hex TEXT, -- Mode S / ICAO24 hex address (e.g. "A12345"), admin-entered, used for live ADS-B tracking on the Active Flight map; blank = not tracked
     notes TEXT,
     deleted_at TEXT, -- soft-delete: set when moved to Recently Deleted

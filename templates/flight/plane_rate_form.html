@@ -29,7 +29,24 @@
         <span id="color-preview" class="px-2 rounded fw-bold" style="background:{{ plane.schedule_color or '#868e96' }};color:#fff;">{{ plane.tag }}</span>
         <span id="color-preview-solo" class="px-2 rounded fw-bold">{{ plane.tag }} solo</span>
       </div>
-      <div class="form-text">This is the block color for {{ plane.tag }} on the Schedule (the instructor shows as a stripe on the left). Solo bookings use a neon version of it. Grayed-out colors belong to an instructor or another plane.</div>
+      <div class="form-text">This is the block color for {{ plane.tag }} on the Schedule (the instructor shows as a stripe on the left). Grayed-out colors belong to an instructor or another plane.</div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label d-block">Solo Color</label>
+      <input type="hidden" name="solo_color" id="solo-color-input" value="{{ plane.solo_color or '' }}">
+      <div class="d-flex flex-wrap gap-2" id="solo-color-swatches">
+        {% for c in schedule_colors %}
+        <div class="color-swatch"
+             data-color="{{ c }}"
+             title="{{ c }}"
+             style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:pointer;border:3px solid {{ '#212529' if plane.solo_color == c else 'transparent' }};"></div>
+        {% endfor %}
+        <div class="color-swatch"
+             data-color=""
+             title="Auto (neon version of the Schedule Color)"
+             style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if not plane.solo_color else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
+      </div>
+      <div class="form-text">What solo bookings for {{ plane.tag }} show instead of the block color above. Leave unset to keep the automatic neon version.</div>
     </div>
     <div class="d-flex justify-content-between">
       <a href="{{ url_for('flight.planes_list') }}" class="btn btn-outline-secondary">Cancel</a>
@@ -46,6 +63,8 @@
 (function () {
   var input = document.getElementById('color-input');
   var swatches = document.querySelectorAll('#color-swatches .color-swatch');
+  var soloInput = document.getElementById('solo-color-input');
+  var soloSwatches = document.querySelectorAll('#solo-color-swatches .color-swatch');
   var preview = document.getElementById('color-preview');
   var previewSolo = document.getElementById('color-preview-solo');
   // Same "neon" rule as flight.py _neon_color: same hue, full saturation, 55% lightness.
@@ -61,20 +80,29 @@
     if (s < 0.08) hue = 90;
     return 'hsl(' + hue + ', 100%, 55%)';
   }
-  function paint(hex) {
+  function paint() {
+    var hex = input.value;
     preview.style.background = hex || '#868e96';
-    previewSolo.style.background = neon(hex);
+    previewSolo.style.background = soloInput.value || neon(hex);
     previewSolo.style.color = '#111';
     previewSolo.style.boxShadow = 'inset 0 0 6px rgba(255,255,255,.75)';
   }
-  paint(input.value);
+  paint();
   swatches.forEach(function (sw) {
     sw.addEventListener('click', function () {
       if (sw.classList.contains('color-swatch-taken')) return;
       input.value = sw.getAttribute('data-color');
       swatches.forEach(function (s) { s.style.border = s.getAttribute('data-color') ? '3px solid transparent' : '3px dashed #adb5bd'; });
       sw.style.border = sw.getAttribute('data-color') ? '3px solid #212529' : '3px dashed #212529';
-      paint(input.value);
+      paint();
+    });
+  });
+  soloSwatches.forEach(function (sw) {
+    sw.addEventListener('click', function () {
+      soloInput.value = sw.getAttribute('data-color');
+      soloSwatches.forEach(function (s) { s.style.border = s.getAttribute('data-color') ? '3px solid transparent' : '3px dashed #adb5bd'; });
+      sw.style.border = sw.getAttribute('data-color') ? '3px solid #212529' : '3px dashed #212529';
+      paint();
     });
   });
 })();

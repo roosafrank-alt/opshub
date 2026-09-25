@@ -1232,6 +1232,16 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_adsb_track_icao24 ON adsb_track_points(icao24, recorded_at)")
     conn.commit()
 
+    # A plane's solo-booking color, admin-picked on Flight School > Planes >
+    # Edit alongside its regular Schedule Color. Previously this was always
+    # just an auto-brightened ("neon") version of the plane color - NULL
+    # here still falls back to that, so nothing changes for a plane that
+    # never gets one set.
+    asset_cols_solo = [r["name"] for r in conn.execute("PRAGMA table_info(assets)").fetchall()]
+    if "solo_color" not in asset_cols_solo:
+        conn.execute("ALTER TABLE assets ADD COLUMN solo_color TEXT")
+        conn.commit()
+
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of
     its newest project's cover photo (or newest project photo), so planes
