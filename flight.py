@@ -296,6 +296,47 @@ def _notify_booking_confirm(conn, student_user_id, scheduled_id, plane_tag, sche
         current_app.logger.exception("Booking-confirm push failed")
 
 
+def _within_24h_of_slot(scheduled_date, scheduled_time):
+    """Whether a booking's slot is less than 24 hours away (or already
+    passed) - used to require the cancellation-fee acknowledgement on a
+    student's own Cancel. An unparseable date doesn't block cancelling."""
+    try:
+        if scheduled_time:
+            slot = datetime.strptime(f"{scheduled_date} {scheduled_time}", "%Y-%m-%d %H:%M")
+        else:
+            slot = datetime.strptime(scheduled_date, "%Y-%m-%d")
+    except (TypeError, ValueError):
+        return False
+    return slot - datetime.now() <= timedelta(hours=24)
+
+
+def _notify_schedule_request(conn, sched, verb, note):
+    """Pushes the assigned CFI (if any) and every active master admin that a
+    student acted on their own booking - a change request or a self-cancel,
+    both of which need someone at the school to actually look at it. Best
+    effort, same as the other scheduling pushes above."""
+    student = conn.execute("SELECT name FROM students WHERE id = ?", (sched["student_id"],)).fetchone()
+    plane = conn.execute("SELECT tag FROM assets WHERE id = ?", (sched["asset_id"],)).fetchone()
+    student_name = student["name"] if student else "A student"
+    plane_tag = plane["tag"] if plane else "a plane"
+    when = _slot_label(sched["scheduled_date"], sched["scheduled_time"])
+    body = f"{student_name} {verb} their {when} flight in {plane_tag}: \"{note}\""
+    recipients = set()
+    if sched["cfi_id"]:
+        cfi = conn.execute("SELECT user_id FROM cfis WHERE id = ?", (sched["cfi_id"],)).fetchone()
+        if cfi and cfi["user_id"]:
+            recipients.add(cfi["user_id"])
+    admins = conn.execute("SELECT id FROM users WHERE active = 1 AND is_master_admin = 1").fetchall()
+    recipients.update(a["id"] for a in admins)
+    for uid in recipients:
+        try:
+            push.queue_and_push(conn, uid, "Flight schedule update", body,
+                                tag=f"schedule-{sched['id']}-{verb.split()[0]}",
+                                url=url_for("flight.schedule_calendar"))
+        except Exception:
+            current_app.logger.exception("Schedule-request push failed")
+
+
 PAST_BOOKING_GRACE_MIN = 5  # a booking for "right now" typed a few minutes late still goes through
 
 
@@ -4153,6 +4194,74 @@ def schedule_cancel(scheduled_id):
     conn.close()
     flash("Scheduled flight cancelled.", "success")
     return redirect(request.referrer or url_for("flight.schedule_calendar"))
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/request_change", methods=["POST"])
+@login_required
+def schedule_request_change(scheduled_id):
+    """A student asking the school to change their own booking - unlike a
+    CFI's Reschedule button, a student can't just move the booking
+    themselves, so this only records their note and pings the CFI/admin to
+    act on it (see _notify_schedule_request). Requires a comment so the
+    school knows what to change."""
+    conn = get_db()
+    sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    if not sched or sched["student_id"] != session.get("student_id"):
+        conn.close()
+        flash("That flight isn't yours to request a change on.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    if sched["status"] != "scheduled":
+        conn.close()
+        flash("Only a still-scheduled flight can have a change requested.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    note = (request.form.get("note") or "").strip()
+    if not note:
+        flash("Say what you'd like changed so the school knows what to do.", "danger")
+        conn.close()
+        return redirect(url_for("flight.dashboard"))
+    conn.execute("UPDATE scheduled_flights SET change_request_note = ?, change_requested_at = ? WHERE id = ?",
+                 (note, now_iso(), scheduled_id))
+    conn.commit()
+    _notify_schedule_request(conn, sched, "requested a change to", note)
+    conn.close()
+    flash("Your change request was sent to the school.", "success")
+    return redirect(url_for("flight.dashboard"))
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/student_cancel", methods=["POST"])
+@login_required
+def schedule_student_cancel(scheduled_id):
+    """A student cancelling their own booking - unlike the CFI/admin Cancel
+    button (schedule_cancel), this requires a reason, and within 24 hours of
+    the slot it also requires the cancellation-fee checkbox (enforced in the
+    modal in _schedule_detail_modal.html, and re-checked here since a POST
+    can always be sent by hand)."""
+    conn = get_db()
+    sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    if not sched or sched["student_id"] != session.get("student_id"):
+        conn.close()
+        flash("That flight isn't yours to cancel.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    if sched["status"] != "scheduled":
+        conn.close()
+        flash("That flight is already cancelled or has started.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    reason = (request.form.get("reason") or "").strip()
+    if not reason:
+        flash("Add a quick reason for the cancellation.", "danger")
+        conn.close()
+        return redirect(url_for("flight.dashboard"))
+    if _within_24h_of_slot(sched["scheduled_date"], sched["scheduled_time"]) and request.form.get("ack_fee") != "on":
+        flash("This flight is within 24 hours - check the box confirming you understand the cancellation charge before cancelling.", "danger")
+        conn.close()
+        return redirect(url_for("flight.dashboard"))
+    conn.execute("UPDATE scheduled_flights SET status = 'cancelled', cancel_reason = ? WHERE id = ?",
+                 (reason, scheduled_id))
+    conn.commit()
+    _notify_schedule_request(conn, sched, "cancelled", reason)
+    conn.close()
+    flash("Flight cancelled.", "success")
+    return redirect(url_for("flight.dashboard"))
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/start", methods=["POST"])

@@ -24,6 +24,9 @@
         <div id="sd-review-alert" class="alert alert-warning d-none py-2 px-3 mb-2">
           <i class="bi bi-exclamation-triangle-fill"></i> <strong>Needs review:</strong> <span id="sd-review-reason"></span>
         </div>
+        <div id="sd-change-request-alert" class="alert alert-info d-none py-2 px-3 mb-2">
+          <i class="bi bi-chat-left-text-fill"></i> <strong>Student requested a change:</strong> <span id="sd-change-request-note"></span>
+        </div>
         <table class="table table-sm mb-0">
           <tr><th style="width:35%;">Date</th><td id="sd-date"></td></tr>
           <tr><th>Time</th><td id="sd-time"></td></tr>
@@ -58,6 +61,10 @@
         <form id="sd-cancel-form" method="post" action="#" data-confirm="Cancel this scheduled flight?" data-confirm-style="danger" class="d-inline">
           <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg"></i> Cancel Flight</button>
         </form>
+        {% endif %}
+        {% if session.get('student_id') and not session.get('cfi_id') %}
+        <button type="button" id="sd-student-change-btn" class="btn btn-outline-warning btn-sm d-none"><i class="bi bi-chat-left-text"></i> Request Change</button>
+        <button type="button" id="sd-student-cancel-btn" class="btn btn-outline-danger btn-sm d-none"><i class="bi bi-x-lg"></i> Cancel Flight</button>
         {% endif %}
         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
       </div>
@@ -108,6 +115,66 @@
     </div>
   </div>
 </div>
+
+{% if session.get('student_id') and not session.get('cfi_id') %}
+<!-- Student: Request a Change - just a note to the school, doesn't move the
+     booking itself (only a CFI/admin can do that). -->
+<div class="modal fade" id="studentChangeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-chat-left-text"></i> Request a Change</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" id="student-change-form">
+        <div class="modal-body">
+          <p class="text-muted small">Tell the school what you'd like changed about this flight (a different time, plane, instructor, etc.) - they'll follow up to make the change.</p>
+          <div class="mb-1">
+            <label class="form-label">What would you like changed? *</label>
+            <textarea name="note" id="student-change-note" class="form-control" rows="3" required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Never Mind</button>
+          <button type="submit" class="btn btn-warning fw-bold btn-sm">Send Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Student: Cancel Flight - requires a reason; within 24 hours of the slot
+     also requires acknowledging the cancellation charge. -->
+<div class="modal fade" id="studentCancelModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-x-lg"></i> Cancel Flight</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" id="student-cancel-form">
+        <div class="modal-body">
+          <div id="student-cancel-fee-alert" class="alert alert-danger d-none py-2 px-3 mb-2 small">
+            <i class="bi bi-exclamation-triangle-fill"></i> This flight is within 24 hours - cancelling now may include a cancellation charge.
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Why are you cancelling? *</label>
+            <textarea name="reason" id="student-cancel-reason" class="form-control" rows="3" required></textarea>
+          </div>
+          <div id="student-cancel-fee-ack-row" class="form-check mt-2 d-none">
+            <input type="checkbox" class="form-check-input" name="ack_fee" id="student-cancel-fee-ack">
+            <label class="form-check-label small" for="student-cancel-fee-ack">I understand this cancellation may include a charge.</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Never Mind</button>
+          <button type="submit" id="student-cancel-submit-btn" class="btn btn-danger fw-bold btn-sm">Cancel Flight</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <script>
 var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(30) }};
@@ -163,6 +230,17 @@ document.addEventListener('click', function (evt) {
   } else {
     reviewAlert.classList.add('d-none');
   }
+  {#- data-change-request-note is only rendered for a CFI/admin viewer (see
+     _dashboard_live.html), same as data-created_by above. #}
+  var changeAlert = document.getElementById('sd-change-request-alert');
+  if (changeAlert) {
+    if (el.dataset.changeRequestNote) {
+      document.getElementById('sd-change-request-note').textContent = el.dataset.changeRequestNote;
+      changeAlert.classList.remove('d-none');
+    } else {
+      changeAlert.classList.add('d-none');
+    }
+  }
   {#- data-created_by is only rendered for a CFI/admin viewer (see
      _schedule_live.html/_dashboard_live.html) - students don't need to
      know who booked a flight, so the whole row is hidden for them rather
@@ -182,6 +260,55 @@ document.addEventListener('click', function (evt) {
   if (editLink) { editLink.href = el.dataset.editUrl; editLink.classList.toggle('d-none', !isScheduled); }
   var cancelForm = document.getElementById('sd-cancel-form');
   if (cancelForm) { cancelForm.action = el.dataset.cancelUrl; cancelForm.classList.toggle('d-none', !isScheduled); }
+  // A student's own booking - the Schedule calendar hides student identity
+  // from a student viewer entirely, so data-student-id only ever matches
+  // MY_STUDENT_ID here on the student's own dashboard chips.
+  var isMyBooking = !IS_CFI_OR_ADMIN && MY_STUDENT_ID !== null && el.dataset.studentId === String(MY_STUDENT_ID);
+  var studentChangeBtn = document.getElementById('sd-student-change-btn');
+  var studentCancelBtn = document.getElementById('sd-student-cancel-btn');
+  if (studentChangeBtn) {
+    studentChangeBtn.classList.toggle('d-none', !isScheduled || !isMyBooking);
+    studentChangeBtn.onclick = function () {
+      document.getElementById('student-change-form').action = el.dataset.requestChangeUrl;
+      document.getElementById('student-change-note').value = '';
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('scheduleDetailModal')).hide();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('studentChangeModal')).show();
+    };
+  }
+  if (studentCancelBtn) {
+    studentCancelBtn.classList.toggle('d-none', !isScheduled || !isMyBooking);
+    studentCancelBtn.onclick = function () {
+      document.getElementById('student-cancel-form').action = el.dataset.studentCancelUrl;
+      document.getElementById('student-cancel-reason').value = '';
+      // Within 24 hours of the slot, require the fee acknowledgement
+      // checkbox before Cancel Flight is enabled (server re-checks this too).
+      var within24h = false;
+      if (el.dataset.date) {
+        var p = el.dataset.date.split('-');
+        var slot;
+        if (el.dataset.time24) {
+          var t = el.dataset.time24.split(':');
+          slot = new Date(+p[0], +p[1] - 1, +p[2], +t[0], +t[1]);
+        } else {
+          slot = new Date(+p[0], +p[1] - 1, +p[2]);
+        }
+        within24h = !isNaN(slot) && (slot.getTime() - Date.now()) <= 24 * 60 * 60000;
+      }
+      var feeAlert = document.getElementById('student-cancel-fee-alert');
+      var feeAckRow = document.getElementById('student-cancel-fee-ack-row');
+      var feeAckBox = document.getElementById('student-cancel-fee-ack');
+      feeAlert.classList.toggle('d-none', !within24h);
+      feeAckRow.classList.toggle('d-none', !within24h);
+      feeAckBox.checked = false;
+      var submitBtn = document.getElementById('student-cancel-submit-btn');
+      submitBtn.disabled = within24h;
+      if (within24h) {
+        feeAckBox.onchange = function () { submitBtn.disabled = !feeAckBox.checked; };
+      }
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('scheduleDetailModal')).hide();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('studentCancelModal')).show();
+    };
+  }
   var startForm = document.getElementById('sd-start-form');
   var canStart = IS_CFI_OR_ADMIN || (el.dataset.solo && MY_STUDENT_ID !== null && el.dataset.studentId === String(MY_STUDENT_ID));
   if (startForm) { startForm.action = el.dataset.startUrl; startForm.classList.toggle('d-none', !isScheduled || !canStart); }

@@ -239,10 +239,13 @@
          data-duration="{{ next_lesson.duration_hours if next_lesson.duration_hours is not none else '' }}"
          {% if next_lesson.notes_visible %}data-notes="{{ next_lesson.notes or '' }}"{% endif %}
          {% if next_lesson.private_notes_visible %}data-private-notes="{{ next_lesson.private_notes or '' }}"{% endif %}
-         {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ next_lesson.created_by or '' }}"{% endif %}
+         {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ next_lesson.created_by or '' }}"
+         data-change-request-note="{{ next_lesson.change_request_note or '' }}"{% endif %}
          data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=next_lesson.id) }}"
          data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=next_lesson.id) }}"
          data-cancel-url="{{ url_for('flight.schedule_cancel', scheduled_id=next_lesson.id) }}"
+         data-request-change-url="{{ url_for('flight.schedule_request_change', scheduled_id=next_lesson.id) }}"
+         data-student-cancel-url="{{ url_for('flight.schedule_student_cancel', scheduled_id=next_lesson.id) }}"
          data-start-url="{{ url_for('flight.schedule_start', scheduled_id=next_lesson.id) }}"
          data-log-url="{{ url_for('flight.log_new', asset_id=next_lesson.asset_id, student_id=next_lesson.student_id, cfi_id=next_lesson.cfi_id or '', solo='on' if next_lesson.solo else '', flight_date=next_lesson.scheduled_date, scheduled_flight_id=next_lesson.id) }}"
          title="Click for full details"{% endif %}>
@@ -393,9 +396,12 @@
         data-duration="{{ f.duration_hours if f.duration_hours is not none else '' }}"
         {% if f.notes_visible %}data-notes="{{ f.notes or '' }}"{% endif %}
         {% if f.private_notes_visible %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
-        {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}"{% endif %} data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
+        {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}"
+        data-change-request-note="{{ f.change_request_note or '' }}"{% endif %} data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
         data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=f.id) }}"
         data-cancel-url="{{ url_for('flight.schedule_cancel', scheduled_id=f.id) }}"
+        data-request-change-url="{{ url_for('flight.schedule_request_change', scheduled_id=f.id) }}"
+        data-student-cancel-url="{{ url_for('flight.schedule_student_cancel', scheduled_id=f.id) }}"
         data-start-url="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}"
         data-log-url="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}">
       <i class="bi bi-info-circle"></i> Details

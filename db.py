@@ -1284,6 +1284,17 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_manual_page_parts_page ON manual_page_parts(manual_page_id)")
     conn.commit()
 
+    # A student's own "Request Change" / "Cancel" on their scheduled flight
+    # (flight.schedule_request_change / schedule_student_cancel) - both
+    # require a comment, kept here (and pushed to the CFI/admin) so the
+    # school knows why.
+    sched_cols_req = [r["name"] for r in conn.execute("PRAGMA table_info(scheduled_flights)").fetchall()]
+    if "change_request_note" not in sched_cols_req:
+        conn.execute("ALTER TABLE scheduled_flights ADD COLUMN change_request_note TEXT")
+        conn.execute("ALTER TABLE scheduled_flights ADD COLUMN change_requested_at TEXT")
+        conn.execute("ALTER TABLE scheduled_flights ADD COLUMN cancel_reason TEXT")
+        conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of
