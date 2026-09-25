@@ -173,16 +173,6 @@
     </div>
     <p class="text-muted small mt-n2 mb-3">The Plane Rate is what this student pays per hour for any plane (planes don't have their own rate) - leave it blank and the plane isn't charged. Leave the Instructor Rate blank to use the CFI's rate. Leave the Sim Rate blank to use the simulator's own rate (set on its own profile).</p>
 
-    <div class="mb-3">
-      <label class="form-label">How They Usually Pay <span class="text-muted small">(shown as a hint on End Flight)</span></label>
-      <select name="pay_preference" class="form-select">
-        <option value="">- Not set -</option>
-        {% for method in pay_preferences %}
-        <option value="{{ method }}" {{ 'selected' if student and student.pay_preference == method }}>{{ method }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
     <div class="mb-3 form-check">
       <input type="checkbox" class="form-check-input" name="notify_booking_confirm" id="notify-booking-confirm-check"
              {% if not student or student.notify_booking_confirm %}checked{% endif %}>
@@ -296,6 +286,16 @@
       <div>{{ student.solo_currency_days }} days <span class="text-muted small">(set by an admin - ask one to change it)</span></div>
     </div>
     {% endif %}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">How They Usually Pay <span class="text-muted small">(shown as a hint on End Flight)</span></label>
+      <select name="pay_preference" class="form-select">
+        <option value="">- Not set -</option>
+        {% for method in pay_preferences %}
+        <option value="{{ method }}" {{ 'selected' if student and student.pay_preference == method }}>{{ method }}</option>
+        {% endfor %}
+      </select>
     </div>
 
     {% if student %}

@@ -630,9 +630,11 @@ def _solo_signoff_status(conn, student_id, on_date=None):
 MEDICAL_CLASSES = [("first", "First Class"), ("second", "Second Class"), ("third", "Third Class"), ("basicmed", "BasicMed")]
 MEDICAL_WARN_DAYS = 30  # "expiring soon" window for the dashboard / list badges
 
-# How a student usually pays - same option text as End Flight's "How Paid"
-# select (log_active.html) so the saved preference can pre-select it there.
-PAY_PREFERENCES = ["Cash", "Check", "Card", "Venmo/Zelle", "Other"]
+# How a student usually pays - option text matches End Flight's own "How
+# Paid" select (log_active.html) so a saved preference can pre-select it
+# there. No Venmo/Zelle here - Frank asked for just Cash/Check/Card/Other
+# on this one; End Flight's own "How Paid" picker is unaffected.
+PAY_PREFERENCES = ["Cash", "Check", "Card", "Other"]
 
 
 def _medical_status(row, on_date=None):
