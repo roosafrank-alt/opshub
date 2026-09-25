@@ -1398,6 +1398,14 @@ def project_new():
         asset_id = request.form.get("asset_id") or None
         scheduled_date = request.form.get("scheduled_date", "").strip() or None
         scheduled_end_date = request.form.get("scheduled_end_date", "").strip() or None
+        # A start date with no "Through" defaults to a week-long block - most
+        # maintenance jobs run about that long, so it shows a realistic
+        # window on the calendar instead of looking like a single day.
+        if scheduled_date and not scheduled_end_date:
+            try:
+                scheduled_end_date = (date.fromisoformat(scheduled_date) + timedelta(days=7)).isoformat()
+            except ValueError:
+                pass
         if scheduled_end_date and scheduled_date and scheduled_end_date < scheduled_date:
             scheduled_end_date = scheduled_date
         scheduled_color = request.form.get("scheduled_color", "").strip() or None
@@ -1443,6 +1451,11 @@ def project_edit(project_id):
         asset_id = request.form.get("asset_id") or None
         scheduled_date = request.form.get("scheduled_date", "").strip() or None
         scheduled_end_date = request.form.get("scheduled_end_date", "").strip() or None
+        if scheduled_date and not scheduled_end_date:
+            try:
+                scheduled_end_date = (date.fromisoformat(scheduled_date) + timedelta(days=7)).isoformat()
+            except ValueError:
+                pass
         if scheduled_end_date and scheduled_date and scheduled_end_date < scheduled_date:
             scheduled_end_date = scheduled_date
         scheduled_color = request.form.get("scheduled_color", "").strip() or None
