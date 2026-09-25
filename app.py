@@ -824,7 +824,7 @@ def squawk_worker_ack(kind, squawk_id):
     conn.execute(set_sql, (now_iso(), session.get("user_name"), squawk_id))
     conn.commit()
     conn.close()
-    flash("Got it - marked as acknowledged.", "success")
+    flash("Got it - marked as accepted.", "success")
     return redirect(request.referrer or url_for("dashboard"))
 
 

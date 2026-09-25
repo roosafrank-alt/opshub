@@ -85,8 +85,8 @@
       <small class="d-block {{ 'text-success' if sq.worker_acknowledged_at else 'text-warning-emphasis fw-bold' }}">
         <i class="bi {{ 'bi-check-circle-fill' if sq.worker_acknowledged_at else 'bi-hourglass-split' }}"></i>
         Assigned to {{ sq.assigned_to_name or '-' }} -
-        {% if sq.worker_acknowledged_at %}acknowledged {{ sq.worker_acknowledged_at|usdate(true) }}
-        {% else %}not yet acknowledged{% endif %}
+        {% if sq.worker_acknowledged_at %}accepted {{ sq.worker_acknowledged_at|usdate(true) }}
+        {% else %}not yet accepted{% endif %}
       </small>
       {% endif %}
     </div>
