@@ -594,8 +594,37 @@ def squawks_list():
         WHERE q.repaired_at IS NOT NULL
         ORDER BY repaired_at DESC LIMIT 50
     """).fetchall()
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
     conn.close()
-    return render_template("squawks.html", open_squawks=open_squawks, acknowledged=acknowledged, repaired=repaired)
+    return render_template("squawks.html", open_squawks=open_squawks, acknowledged=acknowledged, repaired=repaired,
+                           assets=assets)
+
+
+@app.route("/squawks/new", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def squawk_quick_new():
+    """Report an issue against a plane right from the Squawks page itself,
+    without going through the plane's own page first - same plane_squawks
+    row as asset_squawk_new(), just filed from here instead."""
+    asset_id = request.form.get("asset_id", type=int)
+    notes = request.form.get("notes", "").strip()
+    if not asset_id:
+        flash("Pick a plane before reporting.", "danger")
+        return redirect(url_for("squawks_list"))
+    if not notes:
+        flash("Enter what's wrong before reporting.", "danger")
+        return redirect(url_for("squawks_list"))
+    conn = get_db()
+    asset = conn.execute("SELECT id FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+    conn.execute("INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at) VALUES (?, ?, ?, ?)",
+                 (asset_id, notes, session.get("user_name"), now_iso()))
+    conn.commit()
+    conn.close()
+    flash("Issue reported.", "success")
+    return redirect(url_for("squawks_list"))
 
 
 @app.route("/squawks/<kind>/<int:squawk_id>/acknowledge", methods=["POST"])
