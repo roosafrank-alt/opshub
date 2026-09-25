@@ -215,8 +215,18 @@
   .week-timeline-day-head-today { color: #b8860b; border-bottom-color: #ffc107; }
   .week-timeline-untimed { margin-top: 4px; }
   .week-timeline-untimed .schedule-block { font-size: .65rem; padding: 1px 3px; }
+  /* Shorter than Day view's full-size timeline (900px / 650px on phones) -
+     Week view already has 7 columns to show at once, so the same tall
+     axis meant scrolling a long way to see the whole week. Every hour
+     line and flight block is positioned by percentage of this height (see
+     _layout_day_timeline() in flight.py), so shrinking it keeps the same
+     colors, block proportions and hour-grid spacing, just more compact. */
+  .week-timeline-wrap .day-timeline-hours,
+  .week-timeline-wrap .day-timeline-track { height: 560px; }
   @media (max-width: 575.98px) {
     .week-timeline-days { min-width: 1400px; }
+    .week-timeline-wrap .day-timeline-hours,
+    .week-timeline-wrap .day-timeline-track { height: 420px; }
   }
 </style>
 
