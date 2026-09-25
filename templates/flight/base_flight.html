@@ -171,7 +171,13 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 {% endif %}
-{% if session.get('cfi_id') %}{% include "flight/_early_start_modal.html" %}{% include "flight/_active_flight_widget.html" %}{% endif %}
+{#- The early-start prompt has to load for students too, not just CFIs -
+   a solo student can press Start Flight on their own booking (see
+   schedule_start in flight.py), and if it's booked for later they need
+   the same "move to now & start" choice a CFI gets instead of a flash
+   message pointing at a prompt that was never on the page. #}
+{% if session.get('cfi_id') or session.get('student_id') %}{% include "flight/_early_start_modal.html" %}{% endif %}
+{% if session.get('cfi_id') %}{% include "flight/_active_flight_widget.html" %}{% endif %}
 {% include "_confirm_modal.html" %}
 {% block scripts %}{% endblock %}
 </body>
