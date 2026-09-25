@@ -435,6 +435,20 @@ var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(30) }};
 })();
 {% endif %}
 
+// Month view opens scrolled to today's row instead of the 1st of the
+// month, same reasoning as the List view above - most of what a busy
+// month grid is used for is today and what's coming, not scrolling past
+// however many past days already happened this month.
+{% if view == 'month' %}
+(function () {
+  if (document.querySelector('.schedule-block-highlight')) return;
+  var today = document.querySelector('[data-is-today="1"]');
+  if (today) {
+    setTimeout(function () { today.scrollIntoView({ behavior: 'instant', block: 'center' }); }, 50);
+  }
+})();
+{% endif %}
+
 // The "flight details" popup itself (the .schedule-block delegated click
 // handler that populates and opens #scheduleDetailModal, plus the
 // reschedule quick-time buttons) now lives in _schedule_detail_modal.html,
