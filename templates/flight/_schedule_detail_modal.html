@@ -129,9 +129,23 @@
       <form method="post" id="student-change-form">
         <div class="modal-body">
           <p class="text-muted small">Tell the school what you'd like changed about this flight (a different time, plane, instructor, etc.) - they'll follow up to make the change.</p>
+          <div class="mb-2">
+            <label class="form-label">Times that work on <span id="sc-day-label" class="fw-bold"></span></label>
+            <div class="d-flex flex-wrap gap-1" id="sc-quick-times">
+              <button type="button" class="btn btn-outline-primary btn-sm sc-quick-time" data-time="8:00a">8:00a</button>
+              <button type="button" class="btn btn-outline-primary btn-sm sc-quick-time" data-time="9:30a">9:30a</button>
+              <button type="button" class="btn btn-outline-primary btn-sm sc-quick-time" data-time="11:00a">11:00a</button>
+              <button type="button" class="btn btn-outline-primary btn-sm sc-quick-time" data-time="12:30p">12:30p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm sc-quick-time" data-time="2:00p">2:00p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm sc-quick-time" data-time="3:30p">3:30p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm sc-quick-time" data-time="5:00p">5:00p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm sc-quick-time" data-time="6:30p">6:30p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm sc-quick-time" data-time="8:00p">8:00p</button>
+            </div>
+          </div>
           <div class="mb-1">
-            <label class="form-label">What would you like changed? *</label>
-            <textarea name="note" id="student-change-note" class="form-control" rows="3" required></textarea>
+            <label class="form-label">Or type for other days and time ranges that work</label>
+            <textarea name="note" id="student-change-note" class="form-control" rows="3" placeholder="e.g. Saturday mornings, or any weekday after 4pm"></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -271,6 +285,9 @@ document.addEventListener('click', function (evt) {
     studentChangeBtn.onclick = function () {
       document.getElementById('student-change-form').action = el.dataset.requestChangeUrl;
       document.getElementById('student-change-note').value = '';
+      document.getElementById('sc-day-label').textContent = el.dataset.date || 'this flight’s day';
+      scSelectedTimes = [];
+      document.querySelectorAll('.sc-quick-time').forEach(function (b) { b.classList.remove('active', 'btn-primary'); b.classList.add('btn-outline-primary'); });
       bootstrap.Modal.getOrCreateInstance(document.getElementById('scheduleDetailModal')).hide();
       bootstrap.Modal.getOrCreateInstance(document.getElementById('studentChangeModal')).show();
     };
@@ -408,4 +425,37 @@ document.addEventListener('click', function (evt) {
   if (!btn) return;
   document.getElementById('rs-time').value = btn.dataset.time;
 });
+
+{% if session.get('student_id') and not session.get('cfi_id') %}
+// Times that work on the flight's day - clickable quick picks that get
+// folded into the note sent to the school, alongside whatever the student
+// types for other days/times (see student-change-form submit handler).
+var scSelectedTimes = [];
+document.addEventListener('click', function (evt) {
+  var btn = evt.target.closest('.sc-quick-time');
+  if (!btn) return;
+  var t = btn.dataset.time;
+  var idx = scSelectedTimes.indexOf(t);
+  if (idx === -1) {
+    scSelectedTimes.push(t);
+    btn.classList.add('active', 'btn-primary');
+    btn.classList.remove('btn-outline-primary');
+  } else {
+    scSelectedTimes.splice(idx, 1);
+    btn.classList.remove('active', 'btn-primary');
+    btn.classList.add('btn-outline-primary');
+  }
+});
+document.getElementById('student-change-form').addEventListener('submit', function (evt) {
+  var noteEl = document.getElementById('student-change-note');
+  if (!scSelectedTimes.length && !noteEl.value.trim()) {
+    evt.preventDefault();
+    alert('Pick a time that works, or type what would work instead.');
+    return;
+  }
+  if (scSelectedTimes.length) {
+    noteEl.value = 'Times that work: ' + scSelectedTimes.join(', ') + (noteEl.value.trim() ? '\n' + noteEl.value.trim() : '');
+  }
+});
+{% endif %}
 </script>
