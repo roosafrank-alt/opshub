@@ -290,9 +290,28 @@
       <textarea name="log_notes" class="form-control" rows="3" placeholder="Leave blank if nothing to report">{{ form.get('log_notes', '') if form else '' }}</textarea>
       <div class="form-text">Anything typed here counts as a squawk - it'll show up on the Maintenance side until someone acknowledges it.</div>
     </div>
-    <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" name="paid" id="paid-check" {% if form and form.get('paid') %}checked{% endif %}>
+    <div class="form-check mb-2">
+      <input type="checkbox" class="form-check-input" name="paid" id="paid-check" onchange="document.getElementById('paid-details').hidden = !this.checked;" {% if form and form.get('paid') %}checked{% endif %}>
       <label class="form-check-label" for="paid-check">Already paid <span class="text-muted small">(check if this one's been collected already)</span></label>
+    </div>
+    {#- Amount/method weren't asked at all before - Paid could be checked
+       with nothing recorded about how much or how. Same fields and the
+       same server-side "has to actually be accounted for" check as ending
+       a flight from the Active Flight clock (see log_end/_save_logged_flight). #}
+    <div class="mb-3 row g-2" id="paid-details" {% if not (form and form.get('paid')) %}hidden{% endif %}>
+      <div class="col-6">
+        <label class="form-label small mb-0">Amount Collected ($)</label>
+        <input type="number" step="0.01" min="0" name="payment_amount" class="form-control form-control-sm" placeholder="0.00" value="{{ form.get('payment_amount', '') if form else '' }}">
+      </div>
+      <div class="col-6">
+        <label class="form-label small mb-0">How Paid</label>
+        <select name="payment_method" class="form-select form-select-sm">
+          <option value="">Select...</option>
+          {% for opt in ('Cash', 'Card', 'Check', 'Venmo/Zelle', 'Other') %}
+          <option value="{{ opt }}" {% if form and form.get('payment_method') == opt %}selected{% endif %}>{{ opt }}</option>
+          {% endfor %}
+        </select>
+      </div>
     </div>
     </div>
     {% endif %}

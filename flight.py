@@ -4912,6 +4912,9 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
     # separate checkbox to remember to tick.
     squawk = 1 if notes else 0
     paid = 1 if form.get("paid") else 0
+    payment_method = (form.get("payment_method") or "").strip()[:40] or None
+    payment_amount = max(0.0, _parse_float(form.get("payment_amount")) or 0.0)
+    credit_requested = max(0.0, _parse_float(form.get("credit_applied")) or 0.0)
 
     if not asset_id or not student_id:
         return "Select a plane and a student."
@@ -4953,8 +4956,31 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
     if guest_name and str(student_id) == str(_guest_student_id(conn)):
         conn.execute("UPDATE flights SET guest_name = ? WHERE id = ?", (guest_name, new_flight_id))
     new_row = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (new_flight_id,)).fetchone()
-    if new_row:
-        _deduct_flight_cost(conn, _row_with_cost(new_row), created_by=session.get("user_name"))
+    cost = _row_with_cost(new_row) if new_row else None
+    if paid and cost is not None:
+        # Same "Paid has to actually be accounted for" check as ending a
+        # flight from the Active Flight clock (log_end) - this form used to
+        # let Paid through with no payment method and no amount at all,
+        # silently logging the flight as paid without collecting either.
+        available_credit = max(0.0, new_row["student_balance"] or 0.0)
+        credit_applied = min(credit_requested, available_credit, cost["total"])
+        covered = payment_amount + credit_applied
+        if payment_amount > 0.005 and not payment_method:
+            conn.rollback()
+            return "Pick how the payment was made (cash, card, etc.) to log this flight as Paid."
+        if cost["total"] > 0.005 and covered + 0.005 < cost["total"]:
+            short = cost["total"] - covered
+            conn.rollback()
+            return (f"This flight comes to ${cost['total']:.2f}. ${covered:.2f} is accounted for so far - "
+                    f"enter the remaining ${short:.2f} as a payment (or apply more credit) to log it as Paid.")
+        conn.execute("UPDATE flights SET payment_method=?, payment_amount=?, credit_applied=? WHERE id=?",
+                     (payment_method, payment_amount, credit_applied, new_flight_id))
+    if cost is not None:
+        _deduct_flight_cost(conn, cost, created_by=session.get("user_name"))
+        if paid and payment_amount > 0.005:
+            note = f"Paid at flight ({payment_method})" if payment_method else "Paid at flight"
+            _ledger_entry(conn, new_row["student_id"], "payment", payment_amount, note=note,
+                          flight_id=new_flight_id, created_by=session.get("user_name"))
     # The student's pilot logbook gets a pending, pre-filled entry.
     pilotlog.ensure_entry(conn, new_flight_id)
     conn.commit()
