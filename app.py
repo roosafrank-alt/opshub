@@ -1470,8 +1470,27 @@ def projects_list():
 # fixed set the description-filler buttons offer. A Task Template (Manage >
 # Task Templates, admins only - see task_templates()) maps one of these to
 # a preset list of Sub Areas that get auto-created when it's picked on a
-# brand new project.
+# brand new project. Admins can add their own beyond these 4 built-ins from
+# Manage > Task Templates (task_template_types table) - see _all_quick_types().
 QUICK_TYPES = ["Annual Inspection", "100hr Inspection", "Oil Change", "Maintenance"]
+
+
+def _all_quick_types(conn):
+    """The built-in Quick Types plus any admin-added custom ones, in the
+    order New/Edit Project's buttons and Task Templates should show them."""
+    custom = [r["name"] for r in conn.execute(
+        "SELECT name FROM task_template_types ORDER BY sort_order, name").fetchall()]
+    return QUICK_TYPES + custom
+
+
+def _quick_type_form_context(conn):
+    """quick_types + each type's optional areas (id/name), for the New/Edit
+    Project Quick Type buttons and their optional-service checkboxes."""
+    quick_types = _all_quick_types(conn)
+    optional_areas_by_type = {t: [{"id": r["id"], "name": r["name"]} for r in conn.execute(
+        "SELECT id, name FROM task_template_areas WHERE quick_type = ? AND is_optional = 1 ORDER BY sort_order, name",
+        (t,)).fetchall()] for t in quick_types}
+    return quick_types, optional_areas_by_type
 
 
 @app.route("/projects/new", methods=["GET", "POST"])
@@ -1485,8 +1504,10 @@ def project_new():
             # A simulator (assets.is_simulator) isn't a real aircraft - no
             # maintenance projects - so it stays out of this picker too.
             assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
+            quick_types, optional_areas_by_type = _quick_type_form_context(conn)
             conn.close()
-            return render_template("project_form.html", project=None, assets=assets)
+            return render_template("project_form.html", project=None, assets=assets, quick_types=quick_types,
+                                   optional_areas_by_type=optional_areas_by_type)
         code = gen_project_code(conn)
         asset_id = request.form.get("asset_id") or None
         scheduled_date = request.form.get("scheduled_date", "").strip() or None
@@ -1512,13 +1533,27 @@ def project_new():
         new_id = cur.lastrowid
         conn.execute("UPDATE projects SET intake_status = 'pending' WHERE id = ?", (new_id,))
         # Whichever Quick Type buttons were picked (see project_form.html's
-        # quick_types hidden field) auto-add that type's preset Sub Areas -
-        # Manage > Task Templates is where an admin sets those up.
+        # quick_types hidden field) auto-add that type's REQUIRED preset Sub
+        # Areas - Manage > Task Templates is where an admin sets those up.
+        # An OPTIONAL area (is_optional) only comes along if its own
+        # checkbox was ticked (optional_area_ids), instead of every
+        # optional service on the template piling onto every project.
         quick_types = [t for t in (request.form.get("quick_types") or "").split(",") if t]
         added_areas = []
         for t in quick_types:
-            for r in conn.execute("SELECT name FROM task_template_areas WHERE quick_type = ? ORDER BY sort_order, name",
+            for r in conn.execute("SELECT name FROM task_template_areas WHERE quick_type = ? AND is_optional = 0 ORDER BY sort_order, name",
                                   (t,)).fetchall():
+                conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
+                             (new_id, r["name"], now_iso()))
+                added_areas.append(r["name"])
+        optional_ids = [int(x) for x in (request.form.get("optional_area_ids") or "").split(",") if x.isdigit()]
+        if optional_ids and quick_types:
+            placeholders = ",".join("?" * len(optional_ids))
+            type_placeholders = ",".join("?" * len(quick_types))
+            for r in conn.execute(
+                f"""SELECT name FROM task_template_areas WHERE id IN ({placeholders})
+                    AND is_optional = 1 AND quick_type IN ({type_placeholders})""",
+                optional_ids + quick_types).fetchall():
                 conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
                              (new_id, r["name"], now_iso()))
                 added_areas.append(r["name"])
@@ -1535,6 +1570,7 @@ def project_new():
     if preselect_asset_id:
         a = conn.execute("SELECT tag FROM assets WHERE id = ?", (preselect_asset_id,)).fetchone()
         preselect_asset_tag = a["tag"] if a else None
+    quick_types, optional_areas_by_type = _quick_type_form_context(conn)
     conn.close()
     # Clicking a plane's to-do item (asset_detail.html) links here with
     # ?name=<the to-do text> so the project starts pre-filled from it,
@@ -1546,11 +1582,12 @@ def project_new():
     # by definition) instead of the form opening with no type picked.
     preselect_name = request.args.get("name", "").strip()
     preselect_quick_type = request.args.get("quick_type", "").strip()
-    if preselect_quick_type not in QUICK_TYPES:
+    if preselect_quick_type not in quick_types:
         preselect_quick_type = ""
     return render_template("project_form.html", project=None, assets=assets, preselect_asset_id=preselect_asset_id,
                            preselect_asset_tag=preselect_asset_tag, preselect_name=preselect_name,
-                           preselect_quick_type=preselect_quick_type)
+                           preselect_quick_type=preselect_quick_type, quick_types=quick_types,
+                           optional_areas_by_type=optional_areas_by_type)
 
 
 @app.route("/projects/<int:project_id>/edit", methods=["GET", "POST"])
@@ -1566,8 +1603,9 @@ def project_edit(project_id):
         name = request.form.get("name", "").strip()
         if not name:
             flash("Project name is required.", "danger")
+            quick_types = _all_quick_types(conn)
             conn.close()
-            return render_template("project_form.html", project=project, assets=assets)
+            return render_template("project_form.html", project=project, assets=assets, quick_types=quick_types)
         asset_id = request.form.get("asset_id") or None
         scheduled_date = request.form.get("scheduled_date", "").strip() or None
         scheduled_end_date = request.form.get("scheduled_end_date", "").strip() or None
@@ -1588,8 +1626,9 @@ def project_edit(project_id):
         conn.close()
         flash("Project updated.", "success")
         return redirect(url_for("project_detail", project_id=project_id))
+    quick_types = _all_quick_types(conn)
     conn.close()
-    return render_template("project_form.html", project=project, assets=assets)
+    return render_template("project_form.html", project=project, assets=assets, quick_types=quick_types)
 
 
 @app.route("/projects/<int:project_id>")
@@ -3462,28 +3501,48 @@ def order_cancel(order_id):
 @shop_role_required('admin')
 def task_templates():
     """Manage > Task Templates: for each Quick Type button on New/Edit
-    Project (Annual, 100hr, Oil Change, Maintenance), a preset list of Sub
-    Areas that get auto-created on a project the moment that Quick Type is
-    picked - see the quick_types handling in project_new()."""
+    Project (the 4 built-ins plus any admin-added custom ones - see
+    _all_quick_types()), a preset list of Sub Areas that get auto-created on
+    a project the moment that Quick Type is picked. An area can be marked
+    Optional - it then only comes along if its checkbox is ticked on New
+    Project, instead of every area on the template always being added."""
     conn = get_db()
     if request.method == "POST":
-        quick_type = request.form.get("quick_type", "")
-        name = request.form.get("name", "").strip()
-        if quick_type not in QUICK_TYPES or not name:
-            flash("Pick a Quick Type and enter an area name.", "danger")
+        if request.form.get("new_type_name") is not None:
+            # A whole new Quick Type button (beyond the 4 built-ins).
+            new_type_name = request.form.get("new_type_name", "").strip()
+            if not new_type_name:
+                flash("Enter a name for the new Quick Type.", "danger")
+            elif new_type_name in _all_quick_types(conn):
+                flash(f"'{new_type_name}' already exists.", "danger")
+            else:
+                next_order = conn.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM task_template_types").fetchone()["n"]
+                conn.execute("INSERT INTO task_template_types (name, sort_order, created_at) VALUES (?, ?, ?)",
+                             (new_type_name, next_order, now_iso()))
+                conn.commit()
+                flash(f"Added Quick Type '{new_type_name}'.", "success")
         else:
-            next_order = conn.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM task_template_areas WHERE quick_type = ?",
-                                      (quick_type,)).fetchone()["n"]
-            conn.execute("INSERT OR IGNORE INTO task_template_areas (quick_type, name, sort_order, created_at) VALUES (?, ?, ?, ?)",
-                         (quick_type, name, next_order, now_iso()))
-            conn.commit()
-            flash(f"Added '{name}' to {quick_type}.", "success")
+            quick_type = request.form.get("quick_type", "")
+            name = request.form.get("name", "").strip()
+            is_optional = 1 if request.form.get("is_optional") else 0
+            if quick_type not in _all_quick_types(conn) or not name:
+                flash("Pick a Quick Type and enter an area name.", "danger")
+            else:
+                next_order = conn.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM task_template_areas WHERE quick_type = ?",
+                                          (quick_type,)).fetchone()["n"]
+                conn.execute("INSERT OR IGNORE INTO task_template_areas (quick_type, name, sort_order, is_optional, created_at) VALUES (?, ?, ?, ?, ?)",
+                             (quick_type, name, next_order, is_optional, now_iso()))
+                conn.commit()
+                flash(f"Added '{name}' to {quick_type}{' (optional)' if is_optional else ''}.", "success")
         conn.close()
         return redirect(url_for("task_templates"))
+    quick_types = _all_quick_types(conn)
+    custom_type_rows = {r["name"]: r["id"] for r in conn.execute("SELECT id, name FROM task_template_types").fetchall()}
     areas_by_type = {t: conn.execute("SELECT * FROM task_template_areas WHERE quick_type = ? ORDER BY sort_order, name",
-                                     (t,)).fetchall() for t in QUICK_TYPES}
+                                     (t,)).fetchall() for t in quick_types}
     conn.close()
-    return render_template("task_templates.html", quick_types=QUICK_TYPES, areas_by_type=areas_by_type)
+    return render_template("task_templates.html", quick_types=quick_types, areas_by_type=areas_by_type,
+                           custom_type_rows=custom_type_rows)
 
 
 @app.route("/manage/task-templates/<int:area_id>/delete", methods=["POST"])
@@ -3494,6 +3553,22 @@ def task_template_area_delete(area_id):
     conn.commit()
     conn.close()
     flash("Removed.", "success")
+    return redirect(url_for("task_templates"))
+
+
+@app.route("/manage/task-templates/type/<int:type_id>/delete", methods=["POST"])
+@shop_role_required('admin')
+def task_template_type_delete(type_id):
+    """Removes one of the custom Quick Types an admin added (not the 4
+    built-ins, which aren't rows here at all) and every area under it."""
+    conn = get_db()
+    row = conn.execute("SELECT name FROM task_template_types WHERE id = ?", (type_id,)).fetchone()
+    if row:
+        conn.execute("DELETE FROM task_template_areas WHERE quick_type = ?", (row["name"],))
+        conn.execute("DELETE FROM task_template_types WHERE id = ?", (type_id,))
+        conn.commit()
+        flash(f"Removed Quick Type '{row['name']}'.", "success")
+    conn.close()
     return redirect(url_for("task_templates"))
 
 

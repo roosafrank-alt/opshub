@@ -5,18 +5,34 @@
   <h4 class="mb-0"><i class="bi bi-list-check"></i> Task Templates</h4>
   <a href="{{ url_for('projects_list') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-arrow-left"></i> Projects</a>
 </div>
-<p class="text-muted small">A preset list of Sub Areas for each Quick Type button on New/Edit Project. Pick "Annual" (or 100hr, Oil Change, Maintenance) on a new project and these get added to it automatically.</p>
+<p class="text-muted small">A preset list of Sub Areas for each Quick Type button on New/Edit Project. Pick a Quick Type on a new project and its Required areas get added automatically; an Optional area shows as its own checkbox there instead, so it only comes along when picked for that specific project.</p>
+
+<div class="card p-3 mb-3">
+  <h6 class="mb-2">Add a new Quick Type</h6>
+  <form method="post" action="{{ url_for('task_templates') }}" class="input-group input-group-sm" style="max-width:400px;">
+    <input type="text" name="new_type_name" class="form-control" placeholder="e.g. Prebuy Inspection" required>
+    <button class="btn btn-outline-primary">Add Quick Type</button>
+  </form>
+  <div class="form-text">Annual, 100hr, Oil Change and Maintenance are built in and can't be removed - anything else you add here shows up as its own button on New/Edit Project too.</div>
+</div>
 
 <div class="row g-3">
   {% for t in quick_types %}
   <div class="col-md-6 col-lg-3">
     <div class="card p-3 h-100">
-      <h6 class="mb-2">{{ t }}</h6>
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <h6 class="mb-0">{{ t }}</h6>
+        {% if t in custom_type_rows %}
+        <form method="post" action="{{ url_for('task_template_type_delete', type_id=custom_type_rows[t]) }}" data-confirm="Remove the whole '{{ t }}' Quick Type, including its areas?" data-confirm-title="Remove Quick Type" data-confirm-style="danger">
+          <button class="btn btn-link btn-sm text-danger p-0" title="Remove this Quick Type"><i class="bi bi-trash"></i></button>
+        </form>
+        {% endif %}
+      </div>
       {% if areas_by_type[t] %}
       <ul class="list-group list-group-flush mb-2">
         {% for a in areas_by_type[t] %}
         <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
-          <span>{{ a.name }}</span>
+          <span>{{ a.name }}{% if a.is_optional %} <span class="badge bg-secondary fw-normal">optional</span>{% endif %}</span>
           <form method="post" action="{{ url_for('task_template_area_delete', area_id=a.id) }}" data-confirm="Remove '{{ a.name }}' from {{ t }}?" data-confirm-title="Remove Area">
             <button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-x-lg"></i></button>
           </form>
@@ -26,11 +42,15 @@
       {% else %}
       <p class="text-muted small mb-2">No areas set yet.</p>
       {% endif %}
-      <form method="post" action="{{ url_for('task_templates') }}" class="input-group input-group-sm">
+      <form method="post" action="{{ url_for('task_templates') }}" id="add-area-form-{{ loop.index }}" class="input-group input-group-sm mb-1">
         <input type="hidden" name="quick_type" value="{{ t }}">
         <input type="text" name="name" class="form-control" placeholder="e.g. Engine">
         <button class="btn btn-outline-secondary">Add</button>
       </form>
+      <div class="form-check">
+        <input type="checkbox" class="form-check-input" form="{{ 'add-area-form-' + loop.index|string }}" name="is_optional" value="1" id="opt-{{ loop.index }}">
+        <label class="form-check-label small text-muted" for="opt-{{ loop.index }}">Optional (shows as its own checkbox on New Project)</label>
+      </div>
     </div>
   </div>
   {% endfor %}

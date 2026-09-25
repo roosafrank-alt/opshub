@@ -13,11 +13,11 @@
     </div>
     <div class="mb-3">
       <label class="form-label small mb-1 d-block">Quick Type <span class="text-muted small">(fills in the description below - pick as many as apply)</span></label>
+      {% set short_labels = {'Annual Inspection': 'Annual', '100hr Inspection': '100hr'} %}
       <div class="btn-group btn-group-sm flex-wrap" role="group">
-        <button type="button" class="btn btn-outline-secondary quick-desc-btn" data-value="Annual Inspection">Annual</button>
-        <button type="button" class="btn btn-outline-secondary quick-desc-btn" data-value="100hr Inspection">100hr</button>
-        <button type="button" class="btn btn-outline-secondary quick-desc-btn" data-value="Oil Change">Oil Change</button>
-        <button type="button" class="btn btn-outline-secondary quick-desc-btn" data-value="Maintenance">Maintenance</button>
+        {% for t in quick_types %}
+        <button type="button" class="btn btn-outline-secondary quick-desc-btn" data-value="{{ t }}">{{ short_labels.get(t, t) }}</button>
+        {% endfor %}
         <button type="button" class="btn btn-outline-secondary" id="quick-desc-other-btn">Other...</button>
       </div>
       <div id="quick-desc-other-row" class="input-group input-group-sm mt-1" style="display:none;">
@@ -26,7 +26,13 @@
       </div>
       {% if not project %}
       <input type="hidden" name="quick_types" id="quick-types-input" value="">
-      <div class="form-text">Picking Annual, 100hr, Oil Change or Maintenance also adds that job's preset Sub Areas - set those up under Manage &gt; Task Templates.</div>
+      <input type="hidden" name="optional_area_ids" id="optional-area-ids-input" value="">
+      {#- One checkbox per Optional area of each currently-picked Quick Type
+         (see optional_areas_by_type in app.project_new()) - a Required area
+         needs no checkbox, it's just always added. #}
+      <div id="optional-areas-container" class="mt-2 d-flex flex-column gap-1"></div>
+      <script type="application/json" id="optional-areas-data">{{ (optional_areas_by_type or {})|tojson }}</script>
+      <div class="form-text">Picking a Quick Type also adds its Required preset Sub Areas; an Optional one shows as its own checkbox above once picked. Set both up under Manage &gt; Task Templates.</div>
       {% endif %}
     </div>
     <div class="mb-3">
@@ -190,10 +196,46 @@
     descInput.value = parts.join(', ');
   }
 
+  // Each active Quick Type's Optional areas (from Manage > Task Templates)
+  // get their own checkbox here - Required areas need no checkbox, the
+  // server always adds those for a picked type. Unchecking a Quick Type
+  // drops its checkboxes (and whatever was checked in them).
+  var optionalAreasEl = document.getElementById('optional-areas-data');
+  var optionalAreasByType = optionalAreasEl ? JSON.parse(optionalAreasEl.textContent || '{}') : {};
+  var optionalContainer = document.getElementById('optional-areas-container');
+  var optionalIdsInput = document.getElementById('optional-area-ids-input');
+  var checkedOptionalIds = {};
+  function rebuildOptionalAreas() {
+    if (!optionalContainer) return;
+    var activeTypes = Array.prototype.map.call(document.querySelectorAll('.quick-desc-btn.active'), function (b) {
+      return b.getAttribute('data-value');
+    });
+    optionalContainer.innerHTML = '';
+    activeTypes.forEach(function (t) {
+      (optionalAreasByType[t] || []).forEach(function (area) {
+        var wrap = document.createElement('div');
+        wrap.className = 'form-check';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.className = 'form-check-input'; cb.id = 'opt-area-' + area.id;
+        cb.checked = !!checkedOptionalIds[area.id];
+        cb.addEventListener('change', function () {
+          if (cb.checked) { checkedOptionalIds[area.id] = true; } else { delete checkedOptionalIds[area.id]; }
+          if (optionalIdsInput) optionalIdsInput.value = Object.keys(checkedOptionalIds).join(',');
+        });
+        var label = document.createElement('label');
+        label.className = 'form-check-label small'; label.htmlFor = cb.id;
+        label.textContent = area.name + ' (' + t + ')';
+        wrap.appendChild(cb); wrap.appendChild(label);
+        optionalContainer.appendChild(wrap);
+      });
+    });
+  }
+
   document.querySelectorAll('.quick-desc-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       btn.classList.toggle('active');
       rebuildDesc();
+      rebuildOptionalAreas();
       descInput.focus();
     });
   });

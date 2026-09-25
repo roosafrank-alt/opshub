@@ -428,6 +428,24 @@ def _migrate(conn):
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_task_template_areas_type ON task_template_areas(quick_type)")
     conn.commit()
+    if "is_optional" not in [r["name"] for r in conn.execute("PRAGMA table_info(task_template_areas)").fetchall()]:
+        # An optional-service area (e.g. "Spark plug replacement" under
+        # Annual) only gets added to a new project when its checkbox is
+        # ticked on New Project - a required one (the default) is always
+        # added the moment its Quick Type is picked, same as before this
+        # column existed. See app.project_new()'s optional_area_ids handling.
+        conn.execute("ALTER TABLE task_template_areas ADD COLUMN is_optional INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+    # Quick Type buttons beyond the 4 built-in ones (Annual/100hr/Oil
+    # Change/Maintenance, still hardcoded as app.QUICK_TYPES) - admins add
+    # their own from Manage > Task Templates. See app._all_quick_types().
+    conn.execute("""CREATE TABLE IF NOT EXISTS task_template_types (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )""")
+    conn.commit()
 
     # Master login: one users table shared by Shop Inventory and Flight
     # School. Brand new table, safe to create directly even on an existing
