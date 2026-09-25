@@ -918,16 +918,20 @@ def _review_resolution(sf):
     return "No longer flagged"
 
 
-def _notify_student(conn, student_id, category, message, link=None):
+def _notify_student(conn, student_id, category, message, link=None, scheduled_flight_id=None):
     """Queues one row in the student's notification feed (student_notifications
     table) - shown as a banner on their dashboard and listed in full on
     their Alerts tab (my_alerts()) until they've seen it. Doesn't commit -
     callers insert this alongside whatever else they're already committing
-    in the same transaction (e.g. schedule_approve/schedule_deny below)."""
+    in the same transaction (e.g. schedule_approve/schedule_deny below).
+
+    scheduled_flight_id, when the notification is about one particular
+    booking, lets schedule_dismiss clear this notification too when the
+    student dismisses that booking from "Your Requests"."""
     if not student_id:
         return
-    conn.execute("""INSERT INTO student_notifications (student_id, category, message, link, created_at)
-                     VALUES (?, ?, ?, ?, ?)""", (student_id, category, message, link, now_iso()))
+    conn.execute("""INSERT INTO student_notifications (student_id, category, message, link, created_at, scheduled_flight_id)
+                     VALUES (?, ?, ?, ?, ?, ?)""", (student_id, category, message, link, now_iso(), scheduled_flight_id))
 
 
 def _sync_flight_alerts(conn, who=None):
@@ -3900,7 +3904,7 @@ def schedule_approve(scheduled_id):
     msg = f"Your flight request{when} was approved and added to the calendar."
     if needs_review:
         msg += f" (flagged for review: {review_reason})"
-    _notify_student(conn, sched["student_id"], "flight_approved", msg, url_for("flight.dashboard"))
+    _notify_student(conn, sched["student_id"], "flight_approved", msg, url_for("flight.dashboard"), scheduled_flight_id=scheduled_id)
     conn.commit()
     conn.close()
     if needs_review:
@@ -3926,7 +3930,7 @@ def schedule_deny(scheduled_id):
         when = f" on {_us_date(sched['scheduled_date'])}" + (f" at {_format_time_12h(sched['scheduled_time'])}" if sched["scheduled_time"] else "")
         _notify_student(conn, sched["student_id"], "flight_denied",
                         f"Your flight request{when} was denied: {reason}",
-                        url_for("flight.schedule_new"))
+                        url_for("flight.schedule_new"), scheduled_flight_id=scheduled_id)
     conn.commit()
     conn.close()
     return _pending_decision_response(True, "Flight request denied.", "info")
@@ -3937,13 +3941,18 @@ def schedule_deny(scheduled_id):
 def schedule_dismiss(scheduled_id):
     """A student clearing a denied request off their own "Your Requests"
     list - just hides it there, the row (and its deny_reason) stays on
-    file same as ever."""
+    file same as ever. Also clears that denial's own notification banner
+    (see scheduled_flight_id on student_notifications) - otherwise the
+    banner up top kept showing the same denied flight the student had just
+    removed from the list below it."""
     conn = get_db()
     sched = conn.execute("SELECT student_id, status FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
     if not sched or sched["student_id"] != session.get("student_id") or sched["status"] != "denied":
         conn.close()
         return _pending_decision_response(False, "That request can't be removed.", "danger", redirect_url=url_for("flight.dashboard"))
     conn.execute("UPDATE scheduled_flights SET student_dismissed_at = ? WHERE id = ?", (now_iso(), scheduled_id))
+    conn.execute("""UPDATE student_notifications SET read_at = ? WHERE scheduled_flight_id = ? AND student_id = ? AND read_at IS NULL""",
+                 (now_iso(), scheduled_id, session.get("student_id")))
     conn.commit()
     conn.close()
     return _pending_decision_response(True, "Removed.", "info", redirect_url=url_for("flight.dashboard"))

@@ -1154,6 +1154,12 @@ def _migrate(conn):
         # date (any date that falls on the repeated weekday), matched by
         # weekday going forward. See _cfi_time_off_conflict/_cfi_schedule_week.
         ("cfi_time_off", "recurs_weekly", "ALTER TABLE cfi_time_off ADD COLUMN recurs_weekly INTEGER NOT NULL DEFAULT 0"),
+        # Links a notification back to the booking it's about (approved/
+        # denied - see _notify_student callers), so dismissing the booking
+        # from "Your Requests" (schedule_dismiss) can also clear its
+        # matching dashboard notification instead of leaving it behind.
+        # NULL for older rows and notifications not tied to one booking.
+        ("student_notifications", "scheduled_flight_id", "ALTER TABLE student_notifications ADD COLUMN scheduled_flight_id INTEGER"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)
