@@ -72,8 +72,10 @@
   flight.py instead of normal document flow).
 #}
 {% macro day_timeline_block(f, style) %}
+{% set is_hl = highlight_ids is defined and highlight_ids and f.id in highlight_ids %}
+{% set is_dim = highlight_ids is defined and highlight_ids and not is_hl %}
 {% set is_mine = session.get('student_id') and f.student_id == session.get('student_id') %}
-<div class="d-block small px-1 rounded schedule-block day-timeline-block {{ 'schedule-block-new' if new_ids is defined and new_ids and f.id in new_ids }} {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active and f.status == 'scheduled' }} {{ 'schedule-block-mine' if is_mine }} {{ 'schedule-block-pending' if f.is_pending_approval }}"
+<div class="d-block small px-1 rounded schedule-block day-timeline-block {{ 'schedule-block-new' if new_ids is defined and new_ids and f.id in new_ids }} {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active and f.status == 'scheduled' }} {{ 'schedule-block-highlight' if is_hl }} {{ 'schedule-block-dimmed' if is_dim }} {{ 'schedule-block-mine' if is_mine }} {{ 'schedule-block-pending' if f.is_pending_approval }}"
      role="button"
      {% if f.notes_visible and f.notes %}title="Note: {{ f.notes }}"{% endif %}
      style="top:{{ style.top_pct }}%; height:{{ style.height_pct }}%; left:{{ style.left_pct }}%; width:calc({{ style.width_pct }}% - 4px); background:{{ f.display_color }}; color:{{ f.display_text_color }}; {% if f.cfi_display_color %}border-left:12px solid {{ f.cfi_display_color }};{% endif %} {{ 'opacity:0.55; filter:grayscale(55%);' if f.status == 'completed' }} {{ 'outline:2px solid #ffc107; outline-offset:-2px;' if f.status == 'in_progress' }} {{ 'outline:2px dashed #fd7e14; outline-offset:-2px;' if f.eta_delay and not f.needs_review_active }}"
@@ -118,8 +120,10 @@
   on a background fill color the way the Day/Quarter/Year blocks do.
 #}
 {% macro month_lane_block(f, style) %}
+{% set is_hl = highlight_ids is defined and highlight_ids and f.id in highlight_ids %}
+{% set is_dim = highlight_ids is defined and highlight_ids and not is_hl %}
 {% set is_mine = session.get('student_id') and f.student_id == session.get('student_id') %}
-<div class="d-block small px-1 rounded schedule-block month-lane-block {{ 'schedule-block-new' if new_ids is defined and new_ids and f.id in new_ids }} {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active and f.status == 'scheduled' }} {{ 'schedule-block-mine' if is_mine }} {{ 'schedule-block-pending' if f.is_pending_approval }}"
+<div class="d-block small px-1 rounded schedule-block month-lane-block {{ 'schedule-block-new' if new_ids is defined and new_ids and f.id in new_ids }} {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active and f.status == 'scheduled' }} {{ 'schedule-block-highlight' if is_hl }} {{ 'schedule-block-dimmed' if is_dim }} {{ 'schedule-block-mine' if is_mine }} {{ 'schedule-block-pending' if f.is_pending_approval }}"
      role="button"
      {% if f.notes_visible and f.notes %}title="Note: {{ f.notes }}"{% endif %}
      style="position:absolute; top:{{ style.top_px }}px; height:{{ style.height_px }}px; left:{{ style.left_pct }}%; width:calc({{ style.width_pct }}% - 1px); background:{{ f.display_color }}; color:{{ f.display_text_color }}; border:1px solid rgba(0,0,0,.25); {% if style.touches_prev %}border-top-left-radius:0; border-top-right-radius:0; border-top-color:rgba(0,0,0,.4);{% endif %} {% if style.touches_next %}border-bottom-left-radius:0; border-bottom-right-radius:0;{% endif %} {% if f.cfi_display_color %}border-left:6px solid {{ f.cfi_display_color }};{% endif %} box-sizing:border-box; {{ 'opacity:0.55; filter:grayscale(55%);' if f.status == 'completed' }} {{ 'outline:2px solid #ffc107; outline-offset:-2px;' if f.status == 'in_progress' }} {{ 'outline:2px dashed #fd7e14; outline-offset:-2px;' if f.eta_delay and not f.needs_review_active }}"
