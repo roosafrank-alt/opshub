@@ -310,6 +310,21 @@ def build_progress(conn, student):
     return tracks
 
 
+def active_goal_track(conn, student):
+    """The track for this student's current next goal (the same one
+    Progress opens to by default) - a compact summary for the Logbook tab
+    so the goal is visible without switching tabs. None if there's nothing
+    to show (no student picked, or that track is already fully done)."""
+    if not student:
+        return None
+    code = NEXT_TRACK.get(student["pilot_certificate"], "private")
+    tracks = build_progress(conn, student)
+    track = next((t for t in tracks if t["code"] == code), None)
+    if not track or track["pct"] >= 100:
+        return None
+    return track
+
+
 def _totals(entries):
     keys = ["total", "dual", "solo", "pic", "xc", "night", "actual_inst", "sim_inst", "approaches",
             "day_ldg", "night_ldg"]
@@ -351,11 +366,12 @@ def logbook():
         r = conn.execute("SELECT SUM(dual) d, COUNT(*) c FROM pilot_logbook WHERE cfi_id = ? AND dual > 0",
                          (session["cfi_id"],)).fetchone()
         dual_given = {"hours": round(r["d"] or 0, 1), "flights": r["c"]}
+    goal_track = active_goal_track(conn, student) if student else None
     conn.close()
     pending = [e for e in entries if e["status"] == "pending"]
     return render_template("academy_logbook.html", student=student, students=students, entries=entries,
                            pending=pending, totals=_totals(entries), staff=_is_staff(), dual_given=dual_given,
-                           tab="logbook")
+                           goal_track=goal_track, tab="logbook")
 
 
 @pilotlog_bp.route("/logbook/<int:entry_id>", methods=["GET", "POST"])

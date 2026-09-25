@@ -26,6 +26,29 @@
   {% if dual_given %}<div class="small text-muted mt-2"><i class="bi bi-person-video3"></i> Dual given by you (all students): <strong>{{ '%.1f'|format(dual_given.hours) }} hrs</strong> on {{ dual_given.flights }} flight{{ 's' if dual_given.flights != 1 }}.</div>{% endif %}
 </div>
 
+{#- Same goal the Progress tab opens to by default, condensed to a single
+   bar here so it's visible without switching tabs. No active goal (every
+   FAA track already done) gets an engaging prompt instead of a bar stuck
+   at 100%. #}
+{% if goal_track %}
+<div class="card academy-card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-1">
+    <div class="fw-bold"><i class="bi {{ goal_track.icon }}"></i> Working toward: {{ goal_track.name }}</div>
+    <span class="text-muted small">{{ goal_track.done_count }}/{{ goal_track.items|length }} requirements &middot; {{ goal_track.pct }}%</span>
+  </div>
+  <div class="progress" style="height:10px;">
+    <div class="progress-bar bg-success" role="progressbar" style="width:{{ goal_track.pct }}%;" aria-valuenow="{{ goal_track.pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+  </div>
+  <a href="{{ url_for('pilotlog.progress', track=goal_track.code) }}" class="small mt-1 d-inline-block">See full requirements &raquo;</a>
+</div>
+{% elif student %}
+<div class="card academy-card p-3 mb-3 text-center">
+  <div class="fw-bold"><i class="bi bi-stars"></i> What's Next?</div>
+  <div class="small text-muted">Pick your next goal on the Progress tab and track it right here.</div>
+  <a href="{{ url_for('pilotlog.progress') }}" class="btn btn-sm btn-outline-primary mt-2">Your Next Goal &raquo;</a>
+</div>
+{% endif %}
+
 {% if pending %}
 <div class="alert alert-warning py-2"><i class="bi bi-hourglass-split"></i> <strong>{{ pending|length }}</strong> entr{{ 'y is' if pending|length == 1 else 'ies are' }} waiting to be completed and approved.
   <a href="{{ url_for('pilotlog.entry', entry_id=pending[-1].id) }}" class="alert-link">Start with the oldest</a>.</div>
