@@ -133,6 +133,12 @@
                 </form>
                 {% endif %}
                 <strong class="{{ 'text-decoration-line-through text-muted' if data.completed_at }}">{% if section != 'General' %}<i class="bi bi-folder2-open"></i> {% endif %}{{ section }}</strong>
+                {% if data.sent_back_at %}
+                {#- Kept even once it's later confirmed, so a completed area
+                   that was sent back once still shows it wasn't approved on
+                   the first try (see project_section_confirm's send_back). #}
+                <span class="text-muted small" title="Sent back {{ data.sent_back_at|usdate(true) }}"><i class="bi bi-arrow-counterclockwise"></i> sent back by {{ data.sent_back_by or 'someone' }}, {{ data.sent_back_at|usdate(true) }}</span>
+                {% endif %}
                 {% if data.completed_at %}
                 <span class="text-muted small">confirmed by {{ data.completed_by or 'someone' }} on {{ data.completed_at|usdate(true) }}</span>
                 {% elif data.confirm_requested_at %}

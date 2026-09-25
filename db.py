@@ -420,6 +420,14 @@ def _migrate(conn):
     if "confirm_requested_by" not in proj_sect_cols:
         conn.execute("ALTER TABLE project_sections ADD COLUMN confirm_requested_by TEXT")
         conn.commit()
+    if "sent_back_at" not in proj_sect_cols:
+        # Set when an Inspector/admin sends a sub area back instead of
+        # confirming it (project_section_confirm) - kept even after it's
+        # eventually confirmed, so a later look at it still shows it wasn't
+        # approved on the first try.
+        conn.execute("ALTER TABLE project_sections ADD COLUMN sent_back_at TEXT")
+        conn.execute("ALTER TABLE project_sections ADD COLUMN sent_back_by TEXT")
+        conn.commit()
     if "completed_by" not in [r["name"] for r in conn.execute("PRAGMA table_info(projects)").fetchall()]:
         conn.execute("ALTER TABLE projects ADD COLUMN completed_by TEXT")
         conn.commit()

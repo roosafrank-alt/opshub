@@ -1243,7 +1243,8 @@ def project_section_confirm(project_id, section_id):
         abort(404)
     if request.form.get("action") == "send_back":
         conn.execute("""UPDATE project_sections SET confirm_requested_at = NULL, confirm_requested_by = NULL,
-                         completed_at = NULL, completed_by = NULL WHERE id = ?""", (section_id,))
+                         completed_at = NULL, completed_by = NULL, sent_back_at = ?, sent_back_by = ? WHERE id = ?""",
+                     (now_iso(), session.get("user_name"), section_id))
         flash("Sent back - unmarked as ready.", "warning")
     else:
         conn.execute("UPDATE project_sections SET completed_at = ?, completed_by = ? WHERE id = ?",
@@ -1902,7 +1903,8 @@ def project_detail(project_id):
                          (project_id, name, now_iso()))
     conn.commit()
     section_meta = {r["name"]: dict(r) for r in conn.execute(
-        """SELECT id, name, completed_at, completed_by, confirm_requested_at, confirm_requested_by
+        """SELECT id, name, completed_at, completed_by, confirm_requested_at, confirm_requested_by,
+                  sent_back_at, sent_back_by
            FROM project_sections WHERE project_id = ?""", (project_id,)).fetchall()}
     for name, section_data in usage_by_section.items():
         meta = section_meta.get(name)
@@ -1911,6 +1913,8 @@ def project_detail(project_id):
         section_data["completed_by"] = meta["completed_by"] if meta else None
         section_data["confirm_requested_at"] = meta["confirm_requested_at"] if meta else None
         section_data["confirm_requested_by"] = meta["confirm_requested_by"] if meta else None
+        section_data["sent_back_at"] = meta["sent_back_at"] if meta else None
+        section_data["sent_back_by"] = meta["sent_back_by"] if meta else None
 
     # Open sections first alphabetically, then ones awaiting confirmation,
     # then fully completed ones at the bottom ordered by when they were
