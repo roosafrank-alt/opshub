@@ -1118,6 +1118,25 @@ def _migrate(conn):
         conn.commit()
 
 
+
+    # ADS-B breadcrumb trail (Active Flight live map "track" line) - defined
+    # in schema.sql but that file only runs for a brand-new database, so an
+    # existing one (like this app's) never actually got this table without
+    # this migration guard. Without it, every write/read against it (see
+    # adsb.py's _record_track_points/get_track) was silently failing inside
+    # their own try/except and the track line never had anything to draw -
+    # this is that fix.
+    conn.execute("""CREATE TABLE IF NOT EXISTS adsb_track_points (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        icao24 TEXT NOT NULL,
+        lat REAL NOT NULL,
+        lon REAL NOT NULL,
+        recorded_at TEXT NOT NULL
+    )""")
+    conn.commit()
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_adsb_track_icao24 ON adsb_track_points(icao24, recorded_at)")
+    conn.commit()
+
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of
     its newest project's cover photo (or newest project photo), so planes
