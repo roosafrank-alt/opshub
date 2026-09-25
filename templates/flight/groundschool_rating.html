@@ -1,0 +1,31 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}{{ rating.name }} - Ground School - OpsHub{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('groundschool.rating_list') }}" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Ground School</a>
+  <h4 class="mb-0">{{ rating.name }}</h4>
+  {% if rating.doc_number %}<div class="text-muted small">{{ rating.doc_number }}</div>{% endif %}
+</div>
+
+{% if rating.status != 'parsed' %}
+<div class="alert alert-warning">
+  This rating hasn't been parsed successfully yet.
+  {% if rating.parse_error %}<div class="small mt-1">{{ rating.parse_error }}</div>{% endif %}
+</div>
+{% endif %}
+
+{% for area in areas %}
+<div class="card mb-3">
+  <div class="card-header fw-bold">Area {{ area.code }}. {{ area.title }}</div>
+  <div class="list-group list-group-flush">
+    {% for task in tasks_by_area.get(area.id, []) %}
+    <a href="{{ url_for('groundschool.task_detail', task_id=task.id) }}"
+       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+      <span><span class="text-muted">Task {{ task.code }}.</span> {{ task.title }}</span>
+      <i class="bi bi-chevron-right text-muted"></i>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

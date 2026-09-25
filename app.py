@@ -22,6 +22,7 @@ from logbook import logbook_bp
 from pilotlog import pilotlog_bp
 from customer import customer_bp, _owned_asset_ids, _project_bill
 from manuals import manuals_bp, manuals_for_asset
+from groundschool import groundschool_bp
 import academy
 from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
                    master_admin_required, shop_role_required, can_see_shop_costs,
@@ -69,6 +70,7 @@ app.register_blueprint(logbook_bp)
 app.register_blueprint(pilotlog_bp)
 app.register_blueprint(customer_bp)
 app.register_blueprint(manuals_bp)
+app.register_blueprint(groundschool_bp)
 
 
 # ---------------------------------------------------------------------------

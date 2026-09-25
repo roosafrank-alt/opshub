@@ -61,6 +61,7 @@
          else 'students' if _p.startswith('/flight/students')
          else 'alerts' if (_p.startswith('/flight/alerts') or _p.startswith('/flight/notifications'))
          else 'reports' if _p.startswith('/flight/reports')
+         else 'groundschool' if _p.startswith('/flight/groundschool')
          else 'manage' if (_p.startswith('/flight/planes') or _p.startswith('/flight/cfis') or _p.startswith('/flight/billing') or _p.startswith('/flight/stats'))
          else '' %}
       <ul class="navbar-nav me-auto mb-2 mb-lg-0 flight-nav-boxed">
@@ -68,6 +69,7 @@
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'active' }}" id="tour-nav-flight-active" href="{{ url_for('flight.log_active') }}"><i class="bi bi-stopwatch"></i> Active Flight</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'history' }}" id="tour-nav-flight-history" href="{{ url_for('flight.log_history') }}"><i class="bi bi-clock-history"></i> Flight History</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'reports' }}" id="tour-nav-flight-reports" href="{{ url_for('flight.reports_list') }}"><i class="bi bi-flag"></i> Reports</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'groundschool' }}" id="tour-nav-flight-groundschool" href="{{ url_for('groundschool.rating_list') }}"><i class="bi bi-mortarboard"></i> Ground School</a></li>
         {% if session.get('cfi_id') or session.get('is_master_admin') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'students' }}" id="tour-nav-flight-students" href="{{ url_for('flight.students_list') }}"><i class="bi bi-people"></i> Students</a></li>
         {% endif %}

@@ -913,6 +913,87 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_student_notifications_lookup ON student_notifications(student_id, read_at, created_at)")
     conn.commit()
 
+    # Ground School: each row is one FAA Airman Certification Standards (ACS)
+    # document (Private Pilot, Instrument, etc.) - the uploaded PDF is the
+    # source of record; acs_areas/acs_tasks/acs_task_elements are what
+    # groundschool._parse_and_store() extracts from it (see acs_parser.py).
+    # status: 'empty' (uploaded, not yet parsed/failed) | 'parsed'.
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_ratings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        doc_number TEXT,
+        pdf_filename TEXT,
+        uploaded_by INTEGER,
+        uploaded_at TEXT NOT NULL,
+        parsed_at TEXT,
+        status TEXT NOT NULL DEFAULT 'empty',
+        parse_error TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_areas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        rating_id INTEGER NOT NULL REFERENCES acs_ratings(id),
+        code TEXT NOT NULL,
+        title TEXT NOT NULL,
+        order_index INTEGER NOT NULL
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_acs_areas_rating ON acs_areas(rating_id, order_index)")
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        area_id INTEGER NOT NULL REFERENCES acs_areas(id),
+        code TEXT NOT NULL,
+        title TEXT NOT NULL,
+        acs_references TEXT,
+        objective TEXT,
+        order_index INTEGER NOT NULL
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_acs_tasks_area ON acs_tasks(area_id, order_index)")
+    # notes: the ACS's own "Note:" callouts for a task (e.g. "If K2 is
+    # selected, the evaluator must assess..."), shown verbatim alongside
+    # Objective/References - distinct from lesson content below.
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_task_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id INTEGER NOT NULL REFERENCES acs_tasks(id),
+        note TEXT NOT NULL,
+        order_index INTEGER NOT NULL
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_acs_task_notes_task ON acs_task_notes(task_id, order_index)")
+    # kind: 'knowledge' | 'risk_management' | 'skills'. code is the ACS's own
+    # reference code (e.g. "PA.I.A.K1") - kept verbatim so it can be quoted
+    # on a checkride prep sheet the same way the ACS itself is.
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_task_elements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id INTEGER NOT NULL REFERENCES acs_tasks(id),
+        kind TEXT NOT NULL,
+        code TEXT NOT NULL,
+        text TEXT NOT NULL,
+        order_index INTEGER NOT NULL
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_acs_task_elements_task ON acs_task_elements(task_id, kind, order_index)")
+    # One editable lesson body per task (chief-instructor/admin authored -
+    # talking points, materials, links - separate from the verbatim ACS text
+    # above). One row per task, created on first save.
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_lesson_content (
+        task_id INTEGER PRIMARY KEY REFERENCES acs_tasks(id),
+        content TEXT NOT NULL DEFAULT '',
+        updated_by INTEGER,
+        updated_at TEXT
+    )""")
+    # Per-student completion/sign-off against a task, one row per
+    # (student, task) - re-signing updates it in place (see
+    # groundschool.task_signoff()).
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_task_signoff (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        task_id INTEGER NOT NULL REFERENCES acs_tasks(id),
+        cfi_id INTEGER REFERENCES cfis(id),
+        signed_off_at TEXT NOT NULL,
+        notes TEXT,
+        UNIQUE(student_id, task_id)
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_acs_signoff_student ON acs_task_signoff(student_id)")
+    conn.commit()
+
     # Flight School Reports tab: plane issue / missing checklist / concerning
     # issue / suggestion, reportable by any logged-in user - see schema.sql
     # for the full comment and flight.reports_new()/reports_list().
