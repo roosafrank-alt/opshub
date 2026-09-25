@@ -41,6 +41,11 @@
       <div class="form-text">What the school pays this CFI per hour - used to auto-tally what's owed them from their logged flights. Hidden from students and other instructors.</div>
     </div>
     <div class="mb-3">
+      <label class="form-label">Non-School Plane Rate ($/hr) <span class="text-muted small">(optional)</span></label>
+      <input type="number" step="any" name="external_rate" class="form-control" value="{{ cfi.external_rate if cfi and cfi.external_rate is not none else '' }}">
+      <div class="form-text">What this CFI bills for instruction given outside a Flight School plane (e.g. in a student's own aircraft) - for reference only for now, leave blank to use the Instructor Rate above.</div>
+    </div>
+    <div class="mb-3">
       <label class="form-label d-block">Credentials <span class="text-muted small">(admin-set - hidden from students)</span></label>
       <div class="d-flex flex-wrap gap-3">
         {% for code, label in [('cred_cfi','CFI'), ('cred_cfii','CFII'), ('cred_mei','MEI'), ('cred_agi','AGI'), ('cred_bgi','BGI'), ('cred_igi','IGI')] %}

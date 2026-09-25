@@ -801,6 +801,14 @@ def _migrate(conn):
         # Optional, admin-set - only used to power the "woman only
         # instructor" filter on the flexible flight finder.
         ("gender", "ALTER TABLE cfis ADD COLUMN gender TEXT"),
+        # A separate billed rate for instruction given outside a Flight
+        # School plane (e.g. in a student's own aircraft) - NULL means "use
+        # rate_per_hour", same as pay_rate_per_hour's own NULL-means-unset
+        # convention above. Not wired into any billing flow yet (there's no
+        # way to log a flight without picking a real Flight School plane) -
+        # just the rate on file for now, for manual reference until that's
+        # built.
+        ("external_rate", "ALTER TABLE cfis ADD COLUMN external_rate REAL"),
     ]:
         if col not in cfi_cols2:
             conn.execute(ddl)

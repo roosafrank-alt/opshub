@@ -2413,6 +2413,9 @@ def cfi_edit(cfi_id):
                              gender=?, {cred_cols} WHERE id=?""",
                          [name, rate_per_hour, pay_rate_per_hour, color, active, is_station, gender, *cred_vals, cfi_id])
         _log_field_change(conn, "cfi", cfi_id, "pay_rate_per_hour", cfi_row["pay_rate_per_hour"], pay_rate_per_hour, session.get("user_name"))
+        external_rate = _parse_float(request.form.get("external_rate"))
+        conn.execute("UPDATE cfis SET external_rate = ? WHERE id = ?", (external_rate, cfi_id))
+        _log_field_change(conn, "cfi", cfi_id, "external_rate", cfi_row["external_rate"], external_rate, session.get("user_name"))
         medical_class, medical_expires = _medical_from_form(request.form)
         conn.execute("UPDATE cfis SET medical_class = ?, medical_expires = ? WHERE id = ?",
                      (medical_class, medical_expires, cfi_id))
