@@ -1366,6 +1366,7 @@ def _dashboard_context(conn, cfi, student):
     pending_requests = []
     my_requests = []
     my_notifications = []
+    my_unconfirmed = []
     plane_maint = _plane_maint_warnings(conn)
     # All / Mine toggle (CFIs): "all" (default) shows the whole school's
     # Today's Schedule, Upcoming and Recent Flights; "mine" narrows those
@@ -1545,6 +1546,11 @@ def _dashboard_context(conn, cfi, student):
             LIMIT 300
         """, (date.today().strftime("%Y-%m-%d"), student["id"])).fetchall()
         upcoming = _with_dashboard_row_fields(upcoming)
+        # Bookings a CFI/admin made for this student that still need their
+        # OK (see schedule_confirm_booking) - otherwise the only sign of
+        # this is a small icon on the flight chip, easy to miss since
+        # Upcoming starts collapsed. Surfaced as its own banner below.
+        my_unconfirmed = [u for u in upcoming if u["confirm_required"] and not u["confirmed_at"]]
         # The student's own requests that are still pending or got denied,
         # so they can see where things stand instead of them just vanishing
         # from "Upcoming" once approval is required.
@@ -1686,6 +1692,7 @@ def _dashboard_context(conn, cfi, student):
     return dict(cfi=cfi, student=student, recent_flights=recent_flights,
                 active_flights=active_flights, upcoming=upcoming, plane_maint=plane_maint,
                 pending_requests=pending_requests, my_requests=my_requests, my_notifications=my_notifications,
+                my_unconfirmed=my_unconfirmed,
                 needs_review_flights=needs_review_flights, eta_delayed_flights=eta_delayed_flights,
                 medical_alerts=medical_alerts,
                 unconfirmed_flights=unconfirmed_flights, recently_cancelled_flights=recently_cancelled_flights,
