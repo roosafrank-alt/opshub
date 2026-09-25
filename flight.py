@@ -4527,7 +4527,7 @@ def schedule_start(scheduled_id):
     conn.commit()
     conn.close()
     flash("Flight started - fill in the rest when you're done.", "success")
-    return redirect(url_for("flight.log_active", flight_id=flight_id))
+    return redirect(url_for("flight.log_active") + f"#active-flight-{flight_id}")
 
 
 def _can_end_flight(flight_row):
@@ -4751,19 +4751,18 @@ def check_session_alerts():
 @login_required
 def log_active():
     """Shows every currently-running flight (started, not yet ended) school-
-    wide - anyone logged in can see the board, but only the assigned CFI,
-    the student themselves (if solo), or a master admin can actually end
-    one (see _can_end_flight / can_end on each row, used by the template to
-    show or hide the End Flight form). ?flight_id= jumps straight to one
-    (used right after starting it); otherwise shows whichever are open."""
+    wide - anyone logged in can see the whole board, including a student who
+    has a flight of their own going (it used to filter down to just their
+    own flight after starting/pausing/etc., which meant they couldn't see
+    anyone else's was up). Only the assigned CFI, the student themselves (if
+    solo), or a master admin can actually end one (see _can_end_flight /
+    can_end on each row, used by the template to show or hide the End
+    Flight form). A leftover ?flight_id= just scrolls to that card (see
+    #active-flight-<id> handling in log_active.html) instead of hiding
+    everything else."""
     conn = get_db()
-    flight_id = request.args.get("flight_id", type=int)
-    if flight_id:
-        rows = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ? AND f.started_at IS NOT NULL AND f.ended_at IS NULL",
-                             (flight_id,)).fetchall()
-    else:
-        rows = conn.execute(_LOG_ROW_SQL + """ WHERE f.started_at IS NOT NULL AND f.ended_at IS NULL
-                             ORDER BY f.started_at""").fetchall()
+    rows = conn.execute(_LOG_ROW_SQL + """ WHERE f.started_at IS NOT NULL AND f.ended_at IS NULL
+                         ORDER BY f.started_at""").fetchall()
     impacts = _eta_impacts(conn)
     affected = {}
     if impacts:
@@ -5089,7 +5088,7 @@ def log_pause(flight_id):
         conn.commit()
         flash("Flight paused.", "success")
     conn.close()
-    return redirect(url_for("flight.log_active", flight_id=flight_id))
+    return redirect(url_for("flight.log_active") + f"#active-flight-{flight_id}")
 
 
 @flight_bp.route("/log/<int:flight_id>/resume", methods=["POST"])
@@ -5115,7 +5114,7 @@ def log_resume(flight_id):
         conn.commit()
         flash("Flight resumed.", "success")
     conn.close()
-    return redirect(url_for("flight.log_active", flight_id=flight_id))
+    return redirect(url_for("flight.log_active") + f"#active-flight-{flight_id}")
 
 
 @flight_bp.route("/log/<int:flight_id>/update_progress", methods=["POST"])
