@@ -2634,15 +2634,29 @@ def _cfi_schedule_week(conn, cfi_id, week_dates):
 
 
 @flight_bp.route("/cfis/schedule", methods=["GET", "POST"])
-@cfi_required
 def cfi_schedule():
     """A CFI's own "My Schedule" tab: a week-at-a-glance of when they're
     booked (not what/who - just the shape of the day, see
-    _cfi_schedule_week) plus a place to put in their own time off, which
-    then blocks new bookings over it (see _cfi_time_off_conflict, checked
-    everywhere _scheduling_conflicts is)."""
+    _cfi_schedule_week) plus a place to put in their own time off (or a
+    short break), which then blocks new bookings over it (see
+    _cfi_time_off_conflict, checked everywhere _scheduling_conflicts is).
+    An admin can also open/manage this same page for any CFI (?cfi_id=,
+    see the Schedule link on the CFI roster) to add a break on their
+    behalf - e.g. a CFI who's out and can't enter it themselves."""
+    raw_cfi_id = ((request.form.get("cfi_id") if request.method == "POST" else request.args.get("cfi_id")) or "").strip()
+    is_admin_view = bool(session.get("is_master_admin")) and raw_cfi_id.isdigit()
+    if not session.get("cfi_id") and not is_admin_view:
+        flash("Log in as a CFI to do that.", "danger")
+        return redirect(url_for("home_launcher"))
+    cfi_id = int(raw_cfi_id) if is_admin_view else session["cfi_id"]
     conn = get_db()
-    cfi_id = session["cfi_id"]
+    viewing_cfi = None
+    if is_admin_view:
+        viewing_cfi = conn.execute("SELECT * FROM cfis WHERE id = ?", (cfi_id,)).fetchone()
+        if not viewing_cfi:
+            conn.close()
+            flash("CFI not found.", "danger")
+            return redirect(url_for("flight.cfis_list"))
     if request.method == "POST":
         off_date = request.form.get("off_date", "").strip()
         off_end_date = request.form.get("off_end_date", "").strip()
@@ -2684,7 +2698,8 @@ def cfi_schedule():
                 msg = "Time off added - it now blocks new bookings for you over that time."
             flash(msg, "success")
         conn.close()
-        return redirect(url_for("flight.cfi_schedule", date=anchor_date or off_date))
+        return redirect(url_for("flight.cfi_schedule", date=anchor_date or off_date,
+                                cfi_id=cfi_id if is_admin_view else None))
 
     today = date.today()
     day_str = request.args.get("date", "").strip() or today.strftime("%Y-%m-%d")
@@ -2709,19 +2724,22 @@ def cfi_schedule():
                            week_label=f"Week of {week_dates[0].month}/{week_dates[0].day}",
                            week_prev=(week_start - timedelta(days=7)).strftime("%Y-%m-%d"),
                            week_next=(week_start + timedelta(days=7)).strftime("%Y-%m-%d"),
-                           upcoming_time_off=upcoming_time_off, today_str=today.strftime("%Y-%m-%d"))
+                           upcoming_time_off=upcoming_time_off, today_str=today.strftime("%Y-%m-%d"),
+                           viewing_cfi=viewing_cfi, cfi_id_param=(cfi_id if is_admin_view else None),
+                           effective_cfi_id=cfi_id)
 
 
 @flight_bp.route("/cfis/schedule/time-off/<int:off_id>/delete", methods=["POST"])
-@cfi_required
 def cfi_time_off_delete(off_id):
-    """Removes one of the current CFI's own time-off entries - CFIs can
-    only delete their own (no admin override needed; it's just their
-    personal availability, same trust level as picking their own
-    signature)."""
+    """Removes one of a CFI's time-off/break entries - a CFI can delete
+    their own, and an admin can delete any (managing it on that CFI's
+    behalf, same as adding one - see cfi_schedule)."""
+    if not session.get("cfi_id") and not session.get("is_master_admin"):
+        flash("Log in as a CFI to do that.", "danger")
+        return redirect(url_for("home_launcher"))
     conn = get_db()
     row = conn.execute("SELECT * FROM cfi_time_off WHERE id = ?", (off_id,)).fetchone()
-    if not row or row["cfi_id"] != session["cfi_id"]:
+    if not row or (row["cfi_id"] != session.get("cfi_id") and not session.get("is_master_admin")):
         conn.close()
         flash("Time off not found.", "danger")
         return redirect(url_for("flight.cfi_schedule"))
@@ -2729,7 +2747,8 @@ def cfi_time_off_delete(off_id):
     conn.commit()
     conn.close()
     flash("Time off removed.", "success")
-    return redirect(url_for("flight.cfi_schedule", date=request.form.get("view_date", "")))
+    return redirect(url_for("flight.cfi_schedule", date=request.form.get("view_date", ""),
+                            cfi_id=request.form.get("cfi_id") or None))
 
 
 @flight_bp.route("/planes")
