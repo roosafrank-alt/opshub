@@ -3623,11 +3623,20 @@ def schedule_reschedule(scheduled_id):
         flash("Not rescheduled - resolve the conflict above and try again.", "danger")
         conn.close()
         return redirect(_conflict_highlight_url(conflicts))
-    conn.execute("UPDATE scheduled_flights SET scheduled_date=?, scheduled_time=? WHERE id=?",
-                 (new_date, new_time, scheduled_id))
+    # Same flag-instead-of-block treatment as the full Edit form - moving a
+    # booking to a new date can newly trip a currency/review check even
+    # though plane/instructor/student/solo didn't change here, so this has
+    # to recompute it too instead of silently carrying over the old flag.
+    needs_review, review_reason = _schedule_review_flag(conn, sched["solo"], sched["cfi_id"], sched["student_id"], new_date)
+    conn.execute("""UPDATE scheduled_flights SET scheduled_date=?, scheduled_time=?, needs_review=?, review_reason=?,
+                     needs_review_acknowledged_at=NULL, needs_review_acknowledged_by=NULL WHERE id=?""",
+                 (new_date, new_time, needs_review, review_reason, scheduled_id))
     conn.commit()
     conn.close()
-    flash("Flight rescheduled.", "success")
+    if needs_review:
+        flash(f"Flight rescheduled, but flagged for review: {review_reason}", "warning")
+    else:
+        flash("Flight rescheduled.", "success")
     return redirect(url_for("flight.schedule_calendar", year=new_date[:4], month=int(new_date[5:7])))
 
 
