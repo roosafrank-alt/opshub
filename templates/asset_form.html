@@ -49,22 +49,22 @@
         </div>
         <div class="form-text">Its rental rate is set from the Flight School tile by an admin, not here.</div>
         <div class="mt-2" id="dashboard-color-section" {% if not (asset and asset.is_flight_asset) %}hidden{% endif %}>
-          <label class="form-label d-block mb-1">Dashboard Color <span class="text-muted small">(Flight School only)</span></label>
-          <input type="hidden" name="color" id="color-input" value="{{ asset.color or '' }}">
+          <label class="form-label d-block mb-1">Schedule Color <span class="text-muted small">(same color as Flight School &gt; Planes &gt; Edit - changing it here changes it there too)</span></label>
+          <input type="hidden" name="schedule_color" id="color-input" value="{{ asset.schedule_color or '' }}">
           <div class="d-flex flex-wrap gap-2" id="color-swatches">
-            {% for c in plane_colors or [] %}
+            {% for c in schedule_colors or [] %}
             {% set taken = c in (used_colors or []) %}
-            <div class="color-swatch{{ ' color-swatch-taken' if taken }}{{ ' color-swatch-selected' if asset and asset.color == c }}"
+            <div class="color-swatch{{ ' color-swatch-taken' if taken }}{{ ' color-swatch-selected' if asset and asset.schedule_color == c }}"
                  data-color="{{ c }}"
                  title="{{ 'Already in use' if taken else c }}"
-                 style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if taken else 'pointer' }};opacity:{{ '0.25' if taken else '1' }};border:3px solid {{ '#212529' if (asset and asset.color == c) else 'transparent' }};"></div>
+                 style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if taken else 'pointer' }};opacity:{{ '0.25' if taken else '1' }};border:3px solid {{ '#212529' if (asset and asset.schedule_color == c) else 'transparent' }};"></div>
             {% endfor %}
-            <div class="color-swatch{{ ' color-swatch-selected' if not (asset and asset.color) }}"
+            <div class="color-swatch{{ ' color-swatch-selected' if not (asset and asset.schedule_color) }}"
                  data-color=""
                  title="No color (use default)"
-                 style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if not (asset and asset.color) else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
+                 style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if not (asset and asset.schedule_color) else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
           </div>
-          <div class="form-text">Grayed-out colors are already used by another plane. Shows as the plane's accent stripe on the flight dashboard's schedule chips. Leave unset to fall back to an auto-assigned color.</div>
+          <div class="form-text">Grayed-out colors are already used by another plane or instructor. Shows as the plane's accent stripe on the Schedule and dashboard. Leave unset to fall back to an auto-assigned color.</div>
         </div>
       </div>
     </div>

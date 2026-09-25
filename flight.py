@@ -2278,12 +2278,15 @@ def _used_plane_colors(conn, exclude_asset_id=None):
     return {r["schedule_color"] for r in conn.execute(query, params).fetchall()}
 
 
-def _used_colors_for_plane(conn, asset_id):
+def _used_colors_for_plane(conn, exclude_asset_id=None):
     """What a plane can't pick: every active CFI's color plus every other
-    plane's color."""
+    plane's color. Also used from the Maintenance side's Aircraft form (see
+    app.py's asset_new/asset_edit) so a plane's color is the exact same
+    schedule_color the Flight School side edits, picked from the same
+    palette - one color per plane, matching everywhere it shows."""
     cfi_colors = {r["color"] for r in conn.execute(
         "SELECT color FROM cfis WHERE color IS NOT NULL AND active = 1").fetchall()}
-    return cfi_colors | _used_plane_colors(conn, exclude_asset_id=asset_id)
+    return cfi_colors | _used_plane_colors(conn, exclude_asset_id=exclude_asset_id)
 
 
 def _used_solo_colors_for_plane(conn, asset_id):
