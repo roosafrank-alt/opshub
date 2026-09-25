@@ -909,6 +909,18 @@ def _review_resolution(sf):
     return "No longer flagged"
 
 
+def _notify_student(conn, student_id, category, message, link=None):
+    """Queues one row in the student's notification feed (student_notifications
+    table) - shown as a banner on their dashboard and listed in full on
+    their Alerts tab (my_alerts()) until they've seen it. Doesn't commit -
+    callers insert this alongside whatever else they're already committing
+    in the same transaction (e.g. schedule_approve/schedule_deny below)."""
+    if not student_id:
+        return
+    conn.execute("""INSERT INTO student_notifications (student_id, category, message, link, created_at)
+                     VALUES (?, ?, ?, ?, ?)""", (student_id, category, message, link, now_iso()))
+
+
 def _sync_flight_alerts(conn, who=None):
     """Keeps the Alerts tab (flight_alerts) in step with the bookings'
     needs_review flags. Runs after every Flight School form post (see
@@ -1333,6 +1345,7 @@ def _dashboard_context(conn, cfi, student):
     upcoming = []
     pending_requests = []
     my_requests = []
+    my_notifications = []
     plane_maint = _plane_maint_warnings(conn)
     # All / Mine toggle (CFIs): "all" (default) shows the whole school's
     # Today's Schedule, Upcoming and Recent Flights; "mine" narrows those
@@ -1523,6 +1536,12 @@ def _dashboard_context(conn, cfi, student):
             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
         """, (student["id"], date.today().strftime("%Y-%m-%d"))).fetchall()
         my_requests = [dict(m, time_label=_format_time_12h(m["scheduled_time"])) for m in my_requests]
+        # Unread notifications ("your flight was approved", etc. - see
+        # _notify_student) for the dashboard banner. Capped at 5 so a
+        # student who hasn't looked in a while gets a banner, not a wall -
+        # the Alerts tab (my_alerts()) has the full history.
+        my_notifications = conn.execute("""SELECT * FROM student_notifications WHERE student_id = ? AND read_at IS NULL
+                                           ORDER BY created_at DESC LIMIT 5""", (student["id"],)).fetchall()
 
     # Weather + NOTAMs - school-wide, not CFI-specific, so a student sees
     # exactly the same strip as an instructor (a student flying solo or
@@ -1643,7 +1662,7 @@ def _dashboard_context(conn, cfi, student):
 
     return dict(cfi=cfi, student=student, recent_flights=recent_flights,
                 active_flights=active_flights, upcoming=upcoming, plane_maint=plane_maint,
-                pending_requests=pending_requests, my_requests=my_requests,
+                pending_requests=pending_requests, my_requests=my_requests, my_notifications=my_notifications,
                 needs_review_flights=needs_review_flights, eta_delayed_flights=eta_delayed_flights,
                 medical_alerts=medical_alerts,
                 unconfirmed_flights=unconfirmed_flights, recently_cancelled_flights=recently_cancelled_flights,
@@ -3782,6 +3801,11 @@ def schedule_approve(scheduled_id):
     conn.execute("""UPDATE scheduled_flights SET status = 'scheduled', cfi_id = ?, needs_review = ?, review_reason = ?,
                      needs_review_acknowledged_at = NULL, needs_review_acknowledged_by = NULL WHERE id = ?""",
                  (cfi_id, needs_review, review_reason, scheduled_id))
+    when = f" on {_us_date(sched['scheduled_date'])}" + (f" at {_format_time_12h(sched['scheduled_time'])}" if sched["scheduled_time"] else "")
+    msg = f"Your flight request{when} was approved and added to the calendar."
+    if needs_review:
+        msg += f" (flagged for review: {review_reason})"
+    _notify_student(conn, sched["student_id"], "flight_approved", msg, url_for("flight.dashboard"))
     conn.commit()
     conn.close()
     if needs_review:
@@ -3795,8 +3819,15 @@ def schedule_approve(scheduled_id):
 @cfi_required
 def schedule_deny(scheduled_id):
     conn = get_db()
+    sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ? AND status = 'pending_approval'",
+                         (scheduled_id,)).fetchone()
     conn.execute("UPDATE scheduled_flights SET status = 'denied' WHERE id = ? AND status = 'pending_approval'",
                  (scheduled_id,))
+    if sched:
+        when = f" on {_us_date(sched['scheduled_date'])}" + (f" at {_format_time_12h(sched['scheduled_time'])}" if sched["scheduled_time"] else "")
+        _notify_student(conn, sched["student_id"], "flight_denied",
+                        f"Your flight request{when} was declined. Contact your instructor for details.",
+                        url_for("flight.schedule_new"))
     conn.commit()
     conn.close()
     flash("Flight request denied.", "info")
@@ -4057,6 +4088,64 @@ def _cfi_active_flights_widget():
         return {"cfi_active_flights": rows}
     except Exception:
         return {}
+
+
+@flight_bp.context_processor
+def _student_notification_count():
+    """Unread count for the student's own Alerts nav badge - see
+    _alert_nav_counts above for the CFI-side equivalent."""
+    if not session.get("student_id"):
+        return {}
+    try:
+        conn = get_db()
+        try:
+            row = conn.execute("SELECT COUNT(*) c FROM student_notifications WHERE student_id = ? AND read_at IS NULL",
+                               (session["student_id"],)).fetchone()
+        finally:
+            conn.close()
+        return {"student_alert_count": row["c"] or 0}
+    except Exception:
+        return {}
+
+
+@flight_bp.route("/notifications")
+@login_required
+def my_alerts():
+    """A student's own notification history - "your flight was approved",
+    etc. (see _notify_student). Distinct from the CFI-facing /flight/alerts
+    review queue; this is the student-facing Alerts tab. Viewing this page
+    marks everything currently unread as read (clears the banner and nav
+    badge) - was_unread is captured before that update so this visit still
+    highlights what's new."""
+    conn = get_db()
+    student = current_student(conn)
+    if not student:
+        conn.close()
+        flash("Alerts are for student accounts.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    rows = conn.execute("""SELECT * FROM student_notifications WHERE student_id = ?
+                           ORDER BY created_at DESC LIMIT 100""", (student["id"],)).fetchall()
+    notifications = [dict(r, was_unread=not r["read_at"]) for r in rows]
+    conn.execute("UPDATE student_notifications SET read_at = ? WHERE student_id = ? AND read_at IS NULL",
+                (now_iso(), student["id"]))
+    conn.commit()
+    conn.close()
+    return render_template("flight/notifications.html", notifications=notifications)
+
+
+@flight_bp.route("/notifications/<int:notification_id>/dismiss", methods=["POST"])
+@login_required
+def notification_dismiss(notification_id):
+    """Dismisses one notification from the dashboard banner (marks it read)
+    without visiting the full Alerts tab - used by the X button there."""
+    conn = get_db()
+    student = current_student(conn)
+    if student:
+        conn.execute("UPDATE student_notifications SET read_at = ? WHERE id = ? AND student_id = ? AND read_at IS NULL",
+                    (now_iso(), notification_id, student["id"]))
+        conn.commit()
+    conn.close()
+    return redirect(request.referrer or url_for("flight.dashboard"))
 
 
 @flight_bp.route("/alerts")
