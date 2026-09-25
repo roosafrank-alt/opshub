@@ -2185,6 +2185,15 @@ def project_renumber_apply():
     if yy is None or num is None:
         abort(400)
     conn = get_db()
+    # If a resubmitted/double-clicked request already closed this gap, an
+    # active project is already sitting on this exact code - nothing left
+    # to shift, and trying again would collide with it. Bail out quietly.
+    already = conn.execute("SELECT 1 FROM projects WHERE deleted_at IS NULL AND code = ?",
+                            (f"{yy:02d}-{num:03d}",)).fetchone()
+    if already:
+        conn.close()
+        flash("Nothing to renumber - that gap is already closed.", "info")
+        return redirect(url_for("projects_list"))
     # The deleted project is soft-deleted, not gone - its row still holds
     # this exact code (UNIQUE across every project, deleted or not), so
     # that slot has to be freed before anything can move into it. Mangling
@@ -2193,9 +2202,18 @@ def project_renumber_apply():
     conn.execute("UPDATE projects SET code = code || '-old' || id WHERE deleted_at IS NOT NULL AND code = ?",
                  (f"{yy:02d}-{num:03d}",))
     after = _projects_after(conn, yy, num)  # lowest number first - shift in this order so no code ever collides
-    for pid, n in after:
-        conn.execute("UPDATE projects SET code = ? WHERE id = ?", (f"{yy:02d}-{n - 1:03d}", pid))
-    conn.commit()
+    try:
+        for pid, n in after:
+            conn.execute("UPDATE projects SET code = ? WHERE id = ?", (f"{yy:02d}-{n - 1:03d}", pid))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        # Belt-and-suspenders: a duplicate/resubmitted request slipped past
+        # the check above (e.g. near-simultaneous clicks). Don't half-apply
+        # a renumber - roll back and tell the user rather than 500ing.
+        conn.rollback()
+        conn.close()
+        flash("Couldn't renumber - it looks like this gap was already closed by another request. Refresh and try again if needed.", "warning")
+        return redirect(url_for("projects_list"))
     conn.close()
     flash(f"Renumbered {len(after)} project{'s' if len(after) != 1 else ''} to close the gap. "
           "Reprint any TASK- QR labels for them - the old ones won't scan anymore.", "warning")
