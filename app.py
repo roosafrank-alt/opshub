@@ -1541,10 +1541,16 @@ def project_new():
     # instead of a blank form defaulting to just the tail number - still
     # freely editable before saving. Marking the to-do itself complete is
     # still a separate, manual step (plane_todo_toggle) - creating the
-    # project doesn't do that on its own.
+    # project doesn't do that on its own. It also sends ?quick_type=Maintenance
+    # so that Quick Type button starts pressed (a to-do is maintenance work
+    # by definition) instead of the form opening with no type picked.
     preselect_name = request.args.get("name", "").strip()
+    preselect_quick_type = request.args.get("quick_type", "").strip()
+    if preselect_quick_type not in QUICK_TYPES:
+        preselect_quick_type = ""
     return render_template("project_form.html", project=None, assets=assets, preselect_asset_id=preselect_asset_id,
-                           preselect_asset_tag=preselect_asset_tag, preselect_name=preselect_name)
+                           preselect_asset_tag=preselect_asset_tag, preselect_name=preselect_name,
+                           preselect_quick_type=preselect_quick_type)
 
 
 @app.route("/projects/<int:project_id>/edit", methods=["GET", "POST"])

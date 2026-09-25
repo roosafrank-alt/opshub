@@ -340,7 +340,7 @@
                what needs doing into a blank project form. Marking the
                to-do done (the checkbox above) is still separate and
                manual - creating the project doesn't do that on its own. #}
-            <a href="{{ url_for('project_new', asset_id=asset.id, name=t.description) }}" class="flex-grow-1 text-body text-decoration-none" title="Start a project from this to-do">{{ t.description }}</a>
+            <a href="{{ url_for('project_new', asset_id=asset.id, name=t.description, quick_type='Maintenance') }}" class="flex-grow-1 text-body text-decoration-none" title="Start a project from this to-do">{{ t.description }}</a>
             <form method="post" action="{{ url_for('plane_todo_delete', asset_id=asset.id, todo_id=t.id) }}" data-confirm="Remove this to-do?" data-confirm-style="danger">
               <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
             </form>
