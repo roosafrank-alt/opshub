@@ -1,8 +1,8 @@
-{% extends "flight/base_flight.html" %}
+{% extends "academy_base.html" %}
 {% block title %}Ground School - OpsHub{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="mb-0"><i class="bi bi-mortarboard"></i> Ground School</h4>
+  <h4 class="mb-0 text-light"><i class="bi bi-mortarboard"></i> Ground School</h4>
   {% if session.get('is_master_admin') %}
   <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#uploadAcsModal">
     <i class="bi bi-plus-lg"></i> Add Rating
@@ -11,7 +11,7 @@
 </div>
 
 {% if not ratings %}
-<div class="card">
+<div class="card academy-card">
   <div class="card-body text-center text-muted py-5">
     <i class="bi bi-journal-bookmark" style="font-size:2rem;"></i>
     <p class="mt-2 mb-0">No ratings yet.</p>
@@ -24,7 +24,7 @@
 <div class="row g-3">
   {% for r in ratings %}
   <div class="col-12 col-md-6 col-lg-4">
-    <div class="card h-100">
+    <div class="card academy-card h-100">
       <div class="card-body d-flex flex-column">
         <h5 class="card-title mb-1">{{ r.name }}</h5>
         {% if r.doc_number %}<div class="text-muted small mb-2">{{ r.doc_number }}</div>{% endif %}

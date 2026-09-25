@@ -128,7 +128,7 @@ def rating_list():
     conn = get_db()
     ratings = conn.execute("SELECT * FROM acs_ratings ORDER BY name").fetchall()
     conn.close()
-    return render_template("flight/groundschool_list.html", ratings=ratings)
+    return render_template("flight/groundschool_list.html", ratings=ratings, tab="groundschool")
 
 
 @groundschool_bp.route("/upload", methods=["POST"])
@@ -239,7 +239,7 @@ def rating_detail(rating_id):
             "SELECT * FROM acs_tasks WHERE area_id = ? ORDER BY order_index", (area["id"],)).fetchall()
     conn.close()
     return render_template("flight/groundschool_rating.html", rating=rating, areas=areas,
-                            tasks_by_area=tasks_by_area)
+                            tasks_by_area=tasks_by_area, tab="groundschool")
 
 
 @groundschool_bp.route("/task/<int:task_id>")
@@ -292,7 +292,8 @@ def task_detail(task_id):
     return render_template("flight/groundschool_task.html", task=task, area=area, rating=rating,
                             notes=notes, knowledge=knowledge, risk_management=risk_management,
                             skills=skills, lesson=lesson, signoffs=signoffs, my_signoff=my_signoff,
-                            students=students, prev_task_id=prev_task_id, next_task_id=next_task_id)
+                            students=students, prev_task_id=prev_task_id, next_task_id=next_task_id,
+                            tab="groundschool")
 
 
 @groundschool_bp.route("/task/<int:task_id>/lesson", methods=["POST"])

@@ -1,14 +1,14 @@
-{% extends "flight/base_flight.html" %}
+{% extends "academy_base.html" %}
 {% block title %}Task {{ task.code }} - {{ task.title }} - OpsHub{% endblock %}
 {% block content %}
 <div class="mb-3">
-  <a href="{{ url_for('groundschool.rating_detail', rating_id=rating.id) }}" class="text-decoration-none small">
+  <a href="{{ url_for('groundschool.rating_detail', rating_id=rating.id) }}" class="text-decoration-none small text-light">
     <i class="bi bi-arrow-left"></i> {{ rating.name }}
   </a>
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-      <h4 class="mb-0">Task {{ task.code }}. {{ task.title }}</h4>
-      <div class="text-muted small">Area {{ area.code }}. {{ area.title }}</div>
+      <h4 class="mb-0 text-light">Task {{ task.code }}. {{ task.title }}</h4>
+      <div class="text-light small opacity-75">Area {{ area.code }}. {{ area.title }}</div>
     </div>
     <div class="btn-group">
       {% if prev_task_id %}<a href="{{ url_for('groundschool.task_detail', task_id=prev_task_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i> Prev</a>{% endif %}
@@ -17,7 +17,7 @@
   </div>
 </div>
 
-<div class="card mb-3">
+<div class="card academy-card mb-3">
   <div class="card-header fw-bold"><i class="bi bi-file-text"></i> ACS Standard</div>
   <div class="card-body">
     {% if task.acs_references %}<p class="mb-2"><strong>References:</strong> {{ task.acs_references }}</p>{% endif %}
@@ -55,7 +55,7 @@
   </div>
 </div>
 
-<div class="card mb-3">
+<div class="card academy-card mb-3">
   <div class="card-header fw-bold"><i class="bi bi-easel"></i> Lesson Content</div>
   <div class="card-body">
     {% if session.get('is_master_admin') %}
@@ -78,7 +78,7 @@
 </div>
 
 {% if session.get('cfi_id') %}
-<div class="card mb-3">
+<div class="card academy-card mb-3">
   <div class="card-header fw-bold"><i class="bi bi-check2-square"></i> Student Sign-Off</div>
   <div class="card-body">
     <form method="post" action="{{ url_for('groundschool.signoff_add', task_id=task.id) }}" class="row g-2 align-items-end mb-3">
@@ -123,7 +123,7 @@
   </div>
 </div>
 {% elif session.get('student_id') %}
-<div class="card mb-3">
+<div class="card academy-card mb-3">
   <div class="card-header fw-bold"><i class="bi bi-check2-square"></i> Your Status</div>
   <div class="card-body">
     {% if my_signoff %}
