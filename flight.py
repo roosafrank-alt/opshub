@@ -1236,6 +1236,11 @@ def _dashboard_context(conn, cfi, student):
             WHERE f.started_at IS NOT NULL AND f.ended_at IS NULL
             ORDER BY f.started_at
         """).fetchall()
+        # LIMIT is just a sanity cap, not a real page size - Upcoming groups
+        # everything it gets by day (below), so a low limit was quietly
+        # cutting whole days off the bottom of the list on a busy school
+        # even though the exact same bookings show fine on the Schedule
+        # calendar, which has no such cap.
         upcoming = conn.execute("""
             SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name, c.color as cfi_color
             FROM scheduled_flights sf
@@ -1245,7 +1250,7 @@ def _dashboard_context(conn, cfi, student):
             WHERE sf.status = 'scheduled' AND sf.scheduled_date >= ?
               AND (? IS NULL OR sf.cfi_id = ?)
             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
-            LIMIT 10
+            LIMIT 300
         """, (date.today().strftime("%Y-%m-%d"), mine_id, mine_id)).fetchall()
         upcoming = _with_dashboard_row_fields(upcoming)
         for u in upcoming:
@@ -1355,7 +1360,7 @@ def _dashboard_context(conn, cfi, student):
             LEFT JOIN cfis c ON c.id = sf.cfi_id
             WHERE sf.status = 'scheduled' AND sf.scheduled_date >= ? AND sf.student_id = ?
             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
-            LIMIT 10
+            LIMIT 300
         """, (date.today().strftime("%Y-%m-%d"), student["id"])).fetchall()
         upcoming = _with_dashboard_row_fields(upcoming)
         # The student's own requests that are still pending or got denied,
