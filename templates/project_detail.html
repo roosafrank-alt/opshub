@@ -16,6 +16,24 @@
     {% if project.asset_display_id %}
     <p class="mb-0"><i class="bi bi-airplane text-muted"></i> <a href="{{ url_for('asset_detail', asset_id=project.asset_display_id) }}">{{ project.asset_display_tag }} &middot; view asset profile &amp; history</a></p>
     {% endif %}
+    {#- Same compact maintenance-preference strip shown on the asset profile,
+       carried over here since the project is tied to that plane. #}
+    {% if project.asset_maint_oil_type or project.asset_maint_tire_nose or project.asset_maint_tire_mains or project.asset_maint_other %}
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+      {% if project.asset_maint_oil_type %}
+      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-normal py-2 px-2"><i class="bi bi-droplet-half"></i> Oil: {{ project.asset_maint_oil_type }}</span>
+      {% endif %}
+      {% if project.asset_maint_tire_nose %}
+      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-normal py-2 px-2"><i class="bi bi-circle"></i> Nose: {{ project.asset_maint_tire_nose }} psi</span>
+      {% endif %}
+      {% if project.asset_maint_tire_mains %}
+      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-normal py-2 px-2"><i class="bi bi-circle"></i> Mains: {{ project.asset_maint_tire_mains }} psi</span>
+      {% endif %}
+      {% if project.asset_maint_other %}
+      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-normal py-2 px-2"><i class="bi bi-info-circle"></i> {{ project.asset_maint_other }}</span>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
   <div class="d-flex gap-2 flex-wrap">
     <a href="{{ url_for('project_edit', project_id=project.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit</a>

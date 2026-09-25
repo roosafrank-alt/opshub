@@ -1464,7 +1464,9 @@ def project_edit(project_id):
 def project_detail(project_id):
     conn = get_db()
     project = conn.execute("""SELECT projects.*, a.id as asset_display_id, a.tag as asset_display_tag,
-                               a.name as asset_display_name
+                               a.name as asset_display_name, a.maint_oil_type as asset_maint_oil_type,
+                               a.maint_tire_nose as asset_maint_tire_nose, a.maint_tire_mains as asset_maint_tire_mains,
+                               a.maint_other as asset_maint_other
                                FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
                                WHERE projects.id = ?""", (project_id,)).fetchone()
     if not project:
