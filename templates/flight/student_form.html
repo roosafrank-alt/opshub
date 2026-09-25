@@ -172,6 +172,21 @@
     </div>
     <p class="text-muted small mt-n2 mb-3">Landing currency (last landing, landings in the last 90 days) only shows on this profile and the Students list once this is checked. Leave the date blank for today.</p>
 
+    <div class="row align-items-end" id="tsa-verified" style="scroll-margin-top:80px;">
+      <div class="col-md-6 mb-3">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="tsa_verified_done" id="tsa-verified-check" {% if student and student.tsa_verified_date %}checked{% endif %}
+                 onchange="document.getElementById('tsa-verified-date').disabled = !this.checked;">
+          <label class="form-check-label" for="tsa-verified-check"><strong>TSA Verified</strong></label>
+        </div>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">TSA Verification Date</label>
+        <input type="date" name="tsa_verified_date" id="tsa-verified-date" class="form-control" value="{{ student.tsa_verified_date if student and student.tsa_verified_date else '' }}" {% if not (student and student.tsa_verified_date) %}disabled{% endif %}>
+      </div>
+    </div>
+    <p class="text-muted small mt-n2 mb-3">Leave the date blank for today.</p>
+
     <div class="row" id="solo-signoff" style="scroll-margin-top:80px;">
       <div class="col-md-6 mb-3">
         <label class="form-label">Solo Sign-off Date <span class="text-muted small">(CFI solo endorsement)</span></label>

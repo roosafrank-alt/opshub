@@ -921,6 +921,9 @@ def _migrate(conn):
         ("projects", "intake_json", "ALTER TABLE projects ADD COLUMN intake_json TEXT"),
         ("projects", "intake_at", "ALTER TABLE projects ADD COLUMN intake_at TEXT"),
         ("projects", "intake_by", "ALTER TABLE projects ADD COLUMN intake_by TEXT"),
+        # TSA verification on file (set by a CFI/admin on the student
+        # profile) - NULL = not verified yet.
+        ("students", "tsa_verified_date", "ALTER TABLE students ADD COLUMN tsa_verified_date TEXT"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

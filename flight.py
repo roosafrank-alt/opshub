@@ -1693,6 +1693,8 @@ def student_new():
                      (medical_class, medical_expires, pilot_certificate, pilot_ratings, user_id))
         conn.execute("UPDATE students SET first_solo_date = ? WHERE user_id = ?",
                      (_first_solo_from_form(request.form), user_id))
+        conn.execute("UPDATE students SET tsa_verified_date = ? WHERE user_id = ?",
+                     (_tsa_verified_from_form(request.form), user_id))
         conn.commit()
         conn.close()
         flash(f"Student '{name}' added. Give them their username and starting password to log in.", "success")
@@ -1758,6 +1760,9 @@ def student_edit(student_id):
         first_solo_date = _first_solo_from_form(request.form)
         conn.execute("UPDATE students SET first_solo_date = ? WHERE id = ?", (first_solo_date, student_id))
         _log_field_change(conn, "student", student_id, "first_solo_date", student["first_solo_date"], first_solo_date, who)
+        tsa_verified_date = _tsa_verified_from_form(request.form)
+        conn.execute("UPDATE students SET tsa_verified_date = ? WHERE id = ?", (tsa_verified_date, student_id))
+        _log_field_change(conn, "student", student_id, "tsa_verified_date", student["tsa_verified_date"], tsa_verified_date, who)
         conn.commit()
         if ((solo_signoff_date, solo_signoff_expires) != (student["solo_signoff_date"], student["solo_signoff_expires"])
                 or (medical_class, medical_expires) != (student["medical_class"], student["medical_expires"])):
@@ -4550,6 +4555,19 @@ def _first_solo_from_form(form):
     if not form.get("first_solo_done"):
         return None
     d = (form.get("first_solo_date") or "").strip()[:10]
+    try:
+        datetime.strptime(d, "%Y-%m-%d")
+    except ValueError:
+        d = date.today().isoformat()
+    return d
+
+
+def _tsa_verified_from_form(form):
+    """students.tsa_verified_date from the student form's "TSA Verified"
+    box (+ optional date; today if left blank). None = not verified yet."""
+    if not form.get("tsa_verified_done"):
+        return None
+    d = (form.get("tsa_verified_date") or "").strip()[:10]
     try:
         datetime.strptime(d, "%Y-%m-%d")
     except ValueError:

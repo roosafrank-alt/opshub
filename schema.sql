@@ -227,7 +227,8 @@ CREATE TABLE IF NOT EXISTS students (
     medical_expires TEXT, -- YYYY-MM-DD the medical runs out
     pilot_certificate TEXT, -- student | sport | recreational | private | commercial | atp (badge tier)
     pilot_ratings TEXT, -- comma-separated add-ons: instrument,complex,high_performance,tailwheel,multi_engine,cfi,cfii,mei
-    first_solo_date TEXT -- YYYY-MM-DD first solo completed (CFI/admin sets it); NULL = pre-solo, landing currency hidden
+    first_solo_date TEXT, -- YYYY-MM-DD first solo completed (CFI/admin sets it); NULL = pre-solo, landing currency hidden
+    tsa_verified_date TEXT -- YYYY-MM-DD a CFI/admin verified this student's TSA status; NULL = not verified yet
 );
 
 -- Every billing balance change for a student - funds added, or a flight's
