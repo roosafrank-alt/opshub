@@ -1678,6 +1678,8 @@ def student_new():
         rate_override = _parse_float(request.form.get("rate_override"))
         plane_rate_override = _parse_float(request.form.get("plane_rate_override"))
         is_station = 1 if request.form.get("is_station") else 0
+        email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
         # Only a master admin can set/change a student's solo currency
         # interval - a regular CFI can't loosen (or tighten) how long their
         # own students can go without a checkout. Silently ignored (not
@@ -1687,6 +1689,11 @@ def student_new():
         solo_signoff_date, solo_signoff_expires = _solo_signoff_from_form(request.form)
         if not name or not username or not password:
             flash("Name, username, and a starting password are all required.", "danger")
+            return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
+        # A generic station account (e.g. "Shop") isn't a real trainee, so
+        # it doesn't need a personal email/phone on file - everyone else does.
+        if not is_station and (not email or not phone):
+            flash("Email and phone number are required for a student profile.", "danger")
             return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
         conn = get_db()
         existing = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
@@ -1699,9 +1706,9 @@ def student_new():
         # student pays for the plane and for instruction, since both can
         # vary student to student rather than following one flat rate.
         cur = conn.execute(
-            "INSERT INTO users (name, username, password_hash, password_plain, flight_role, active, created_at) "
-            "VALUES (?, ?, ?, ?, 'student', 1, ?)",
-            (name, username, generate_password_hash(password, method="pbkdf2:sha256"), password, now_iso()))
+            "INSERT INTO users (name, username, password_hash, password_plain, flight_role, active, email, phone, created_at) "
+            "VALUES (?, ?, ?, ?, 'student', 1, ?, ?, ?)",
+            (name, username, generate_password_hash(password, method="pbkdf2:sha256"), password, email or None, phone or None, now_iso()))
         conn.commit()
         user_id = cur.lastrowid
         conn.execute("""INSERT INTO students (name, username, password_hash, rate_override, plane_rate_override,
@@ -1755,10 +1762,17 @@ def student_edit(student_id):
         active = 1 if request.form.get("active") else 0
         is_station = 1 if request.form.get("is_station") else 0
         new_password = request.form.get("password", "")
+        email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
         if not name:
             flash("Name is required.", "danger")
             conn.close()
             return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
+        if not is_station and (not email or not phone):
+            flash("Email and phone number are required for a student profile.", "danger")
+            conn.close()
+            return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES,
+                                   student_email=email, student_phone=phone)
         if new_password:
             conn.execute("UPDATE students SET name=?, rate_override=?, plane_rate_override=?, solo_currency_days=?, solo_signoff_date=?, solo_signoff_expires=?, is_station=?, active=?, password_hash=? WHERE id=?",
                          (name, rate_override, plane_rate_override, solo_currency_days, solo_signoff_date, solo_signoff_expires,
@@ -1791,6 +1805,9 @@ def student_edit(student_id):
         pay_preference = _pay_preference_from_form(request.form)
         conn.execute("UPDATE students SET pay_preference = ? WHERE id = ?", (pay_preference, student_id))
         _log_field_change(conn, "student", student_id, "pay_preference", student["pay_preference"], pay_preference, who)
+        if student["user_id"]:
+            conn.execute("UPDATE users SET email = ?, phone = ? WHERE id = ?",
+                         (email or None, phone or None, student["user_id"]))
         conn.commit()
         if ((solo_signoff_date, solo_signoff_expires) != (student["solo_signoff_date"], student["solo_signoff_expires"])
                 or (medical_class, medical_expires) != (student["medical_class"], student["medical_expires"])):
@@ -1820,11 +1837,13 @@ def student_edit(student_id):
     solo_currency = None if student["is_station"] else _solo_currency_status(conn, student_id)
     solo_signoff = None if student["is_station"] else _solo_signoff_status(conn, student_id)
     medical = None if student["is_station"] else _medical_status(student)
+    user_row = conn.execute("SELECT email, phone FROM users WHERE id = ?", (student["user_id"],)).fetchone() if student["user_id"] else None
     conn.close()
     return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS,
                            ledger=ledger, can_bill=can_manage_billing(), activity=activity,
                            recent_flights=recent_flights, solo_currency=solo_currency, solo_signoff=solo_signoff,
-                           medical=medical, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
+                           medical=medical, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES,
+                           student_email=user_row["email"] if user_row else None, student_phone=user_row["phone"] if user_row else None)
 
 
 @flight_bp.route("/students/<int:student_id>/add_funds", methods=["POST"])

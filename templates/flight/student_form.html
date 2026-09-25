@@ -103,10 +103,21 @@
     </div>
     {% endif %}
     <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" name="is_station" id="is-station-check" {% if student and student.is_station %}checked{% endif %} onchange="document.getElementById('trainee-fields').style.display = this.checked ? 'none' : '';">
+      <input type="checkbox" class="form-check-input" name="is_station" id="is-station-check" {% if student and student.is_station %}checked{% endif %}
+             onchange="document.getElementById('trainee-fields').style.display = this.checked ? 'none' : ''; document.getElementById('student-email').required = document.getElementById('student-phone').required = !this.checked;">
       <label class="form-check-label" for="is-station-check">Generic station account <span class="text-muted small">(e.g. "Shop") - for booking the schedule only, not a specific trainee. No instructor color, no solo-currency tracking.</span></label>
     </div>
     <div id="trainee-fields" style="{{ 'display:none;' if student and student.is_station }}">
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Email *</label>
+        <input type="email" name="email" id="student-email" class="form-control" value="{{ student_email or '' }}" {% if not (student and student.is_station) %}required{% endif %}>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Phone *</label>
+        <input type="tel" name="phone" id="student-phone" class="form-control" value="{{ student_phone or '' }}" {% if not (student and student.is_station) %}required{% endif %}>
+      </div>
+    </div>
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Instructor Rate ($/hr) <span class="text-muted small">(optional - overrides the CFI's rate)</span></label>
