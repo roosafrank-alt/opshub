@@ -102,19 +102,30 @@
   {% if unconfirmed_flights %}
   <div class="small text-muted fw-bold mb-1">Unconfirmed ({{ unconfirmed_flights|length }})</div>
   {% for u in unconfirmed_flights %}
-  <div class="small py-1 {{ 'border-top' if not loop.first }} d-flex justify-content-between align-items-center flex-wrap gap-1">
+  {#- Jumps to that booking's day on the Schedule with it outlined red
+     (the same ?highlight= mechanism a scheduling conflict redirect uses -
+     see _conflict_highlight_url in flight.py), so "Needs a Look" isn't a
+     dead end. #}
+  <a href="{{ url_for('flight.schedule_calendar', view='day', date=u.scheduled_date, highlight=u.id) }}"
+     class="small py-1 {{ 'border-top' if not loop.first }} d-flex justify-content-between align-items-center flex-wrap gap-1 text-reset text-decoration-none today-row-clickable"
+     title="Open this flight on the Schedule">
     <span><strong>{{ u.student_name }}</strong> &middot; {{ u.plane_tag }} &middot; {{ u.scheduled_date|usdate }}{% if u.time_label %} &middot; {{ u.time_label }}{% endif %}</span>
     <span class="badge bg-warning text-dark">Awaiting student OK</span>
-  </div>
+  </a>
   {% endfor %}
   {% endif %}
   {% if recently_cancelled_flights %}
   <div class="small text-muted fw-bold mb-1{{ ' mt-2' if unconfirmed_flights }}">Cancelled (last 7 days)</div>
   {% for c in recently_cancelled_flights %}
-  <div class="small py-1 {{ 'border-top' if not loop.first }} d-flex justify-content-between align-items-start flex-wrap gap-1">
+  {#- A cancelled flight no longer shows as a block on the Schedule itself
+     (see _SCHEDULE_ROW_SQL), so this just jumps to that day for context
+     rather than trying to highlight a block that isn't there. #}
+  <a href="{{ url_for('flight.schedule_calendar', view='day', date=c.scheduled_date) }}"
+     class="small py-1 {{ 'border-top' if not loop.first }} d-flex justify-content-between align-items-start flex-wrap gap-1 text-reset text-decoration-none today-row-clickable"
+     title="Open this day on the Schedule">
     <span><strong>{{ c.student_name }}</strong> &middot; {{ c.plane_tag }} &middot; {{ c.scheduled_date|usdate }}{% if c.time_label %} &middot; {{ c.time_label }}{% endif %}
       {% if c.cancel_reason %}<div class="text-muted">"{{ c.cancel_reason }}"</div>{% endif %}</span>
-  </div>
+  </a>
   {% endfor %}
   {% endif %}
 </div>
