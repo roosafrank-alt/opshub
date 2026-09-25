@@ -165,6 +165,11 @@
       <div class="col-md-4 mb-3">
         <label class="form-label" id="date-label">{{ 'Flight Date' if is_complete else 'Date' }} <span class="text-danger">*</span></label>
         <input type="date" name="scheduled_date" class="form-control" value="{{ form.get('scheduled_date') if form else (sched.scheduled_date if sched else today) }}" required{% if sched %} data-edit="1"{% endif %}>
+        {#- The plain date field above still works for typing a date directly -
+           this is the same field, just always shown open as a full month grid
+           right below it instead of only appearing when a browser's native
+           picker icon is clicked. #}
+        <div id="date-calendar" class="mt-2"></div>
       </div>
       {#- Time gets its own wide column (was squeezed into a third of the
          row alongside Duration/Preset, which at tablet widths left the
@@ -909,6 +914,73 @@
   }
   repeatSelect.addEventListener('change', sync);
   sync();
+})();
+
+// Always-open month calendar under the Date field, so picking a day
+// doesn't require clicking the browser's own (hidden) calendar icon
+// first - it stays in sync with the plain date input either way.
+(function () {
+  var input = document.querySelector('input[name="scheduled_date"]');
+  var box = document.getElementById('date-calendar');
+  if (!input || !box) { return; }
+  var WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                'August', 'September', 'October', 'November', 'December'];
+
+  function parseYMD(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
+    return m ? { y: +m[1], m: +m[2] - 1, d: +m[3] } : null;
+  }
+  var start = parseYMD(input.value) || parseYMD(input.min) || parseYMD(new Date().toISOString().slice(0, 10));
+  var viewYear = start.y, viewMonth = start.m;
+
+  function render() {
+    var selected = input.value;
+    var minDate = input.min || null;
+    var first = new Date(viewYear, viewMonth, 1);
+    var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    var html = '<div class="d-flex justify-content-between align-items-center mb-1">'
+      + '<button type="button" class="btn btn-sm btn-outline-secondary" id="cal-prev"><i class="bi bi-chevron-left"></i></button>'
+      + '<strong class="small">' + MONTHS[viewMonth] + ' ' + viewYear + '</strong>'
+      + '<button type="button" class="btn btn-sm btn-outline-secondary" id="cal-next"><i class="bi bi-chevron-right"></i></button>'
+      + '</div><div class="d-grid" style="grid-template-columns:repeat(7,1fr);gap:2px;">';
+    WEEKDAYS.forEach(function (w) { html += '<div class="text-center text-muted small">' + w + '</div>'; });
+    for (var i = 0; i < first.getDay(); i++) { html += '<div></div>'; }
+    for (var day = 1; day <= daysInMonth; day++) {
+      var ymd = viewYear + '-' + String(viewMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+      var isSelected = ymd === selected;
+      var disabled = minDate && ymd < minDate;
+      html += '<button type="button" class="btn btn-sm ' + (isSelected ? 'btn-primary' : 'btn-outline-secondary') + '"'
+        + ' style="padding:0.2rem 0;' + (disabled ? 'opacity:.35;' : '') + '" data-date="' + ymd + '"'
+        + (disabled ? ' disabled' : '') + '>' + day + '</button>';
+    }
+    box.innerHTML = html;
+    box.querySelector('#cal-prev').addEventListener('click', function () {
+      viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      render();
+    });
+    box.querySelector('#cal-next').addEventListener('click', function () {
+      viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      render();
+    });
+    box.querySelectorAll('[data-date]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        input.value = btn.getAttribute('data-date');
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        render();
+      });
+    });
+  }
+  input.addEventListener('change', function () {
+    var p = parseYMD(input.value);
+    if (p) { viewYear = p.y; viewMonth = p.m; }
+    render();
+  });
+  // "Flight Already Complete?" toggles input.min on/off (see the sync()
+  // above) - re-render so past days grey out/in to match.
+  var completeToggle = document.getElementById('complete-check');
+  if (completeToggle) { completeToggle.addEventListener('change', render); }
+  render();
 })();
 </script>
 {% endblock %}
