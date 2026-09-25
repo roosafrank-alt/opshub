@@ -292,6 +292,7 @@
     <div class="alert alert-primary py-2 px-3 text-center mb-2 mt-2 d-none" id="flight-total-{{ f.id }}">
       <span class="small text-muted">Total</span>
       <div class="fs-4 fw-bold flight-total-amount">$0.00</div>
+      <div class="small text-muted flight-total-breakdown"></div>
     </div>
     <div class="mt-2">
       <div class="form-label small mb-1 fw-bold">Payment *</div>
@@ -866,11 +867,12 @@ function roundUpHours(h) {
   if (!h) return 0;
   return Math.ceil((Math.round(h * 1e6) / 1e6) / 0.1 - 1e-9) * 0.1;
 }
-// Returns the flight's live dollar total, or null if there's not enough
-// entered yet to price it (mirrors flight._flight_cost() server-side) -
-// shared by the on-screen total (computeFlightTotal) and the Paid/Unpaid
-// submit check below, so both agree on the same number.
-function getFlightTotal(fId) {
+// Returns the flight's live dollar total plus the Hobbs/ground hours that
+// went into it, or null if there's not enough entered yet to price it
+// (mirrors flight._flight_cost() server-side) - shared by the on-screen
+// total (computeFlightTotal) and the Paid/Unpaid submit check below, so
+// both agree on the same number.
+function getFlightBreakdown(fId) {
   var form = document.getElementById('end-form-' + fId);
   if (!form) return null;
   var startInput = document.getElementById('hobbs-start-' + fId);
@@ -895,15 +897,25 @@ function getFlightTotal(fId) {
   var planeCost = hours * planeRate;
   var instructorCost = isSolo ? 0 : instructorHours * instructorRate;
   var groundCost = isSolo ? 0 : groundHours * instructorRate;
-  return planeCost + instructorCost + groundCost;
+  return { total: planeCost + instructorCost + groundCost, hobbsHours: hours, groundHours: groundHours };
+}
+function getFlightTotal(fId) {
+  var b = getFlightBreakdown(fId);
+  return b ? b.total : null;
 }
 function computeFlightTotal(fId) {
   var display = document.getElementById('flight-total-' + fId);
   if (!display) return;
-  var total = getFlightTotal(fId);
-  if (total === null) { display.classList.add('d-none'); return; }
+  var b = getFlightBreakdown(fId);
+  if (b === null) { display.classList.add('d-none'); return; }
   display.classList.remove('d-none');
-  display.querySelector('.flight-total-amount').textContent = '$' + total.toFixed(2);
+  display.querySelector('.flight-total-amount').textContent = '$' + b.total.toFixed(2);
+  var breakdownEl = display.querySelector('.flight-total-breakdown');
+  if (breakdownEl) {
+    var parts = [b.hobbsHours.toFixed(1) + ' Hobbs hr' + (b.hobbsHours === 1 ? '' : 's')];
+    if (b.groundHours > 0) parts.push(b.groundHours.toFixed(1) + ' ground hr' + (b.groundHours === 1 ? '' : 's'));
+    breakdownEl.textContent = parts.join(' + ');
+  }
 }
 document.querySelectorAll('[name="ground_time_hours"], [name="solo_hours"]').forEach(function (input) {
   var form = input.closest('form');
