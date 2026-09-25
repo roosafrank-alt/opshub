@@ -9,9 +9,15 @@ SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "schema.s
 
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    # WAL lets readers keep working while a writer (e.g. resource PDF
+    # indexing) is mid-transaction, and busy_timeout makes any remaining
+    # contention retry for up to 30s instead of failing instantly with
+    # "database is locked".
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA busy_timeout = 30000")
     return conn
 
 
@@ -1000,6 +1006,47 @@ def _migrate(conn):
         UNIQUE(student_id, task_id)
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_acs_signoff_student ON acs_task_signoff(student_id)")
+
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_resources (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        doc_type TEXT,
+        filename TEXT NOT NULL,
+        uploaded_by INTEGER,
+        uploaded_at TEXT NOT NULL
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_resource_pages (
+        resource_id INTEGER NOT NULL REFERENCES acs_resources(id),
+        page_num INTEGER NOT NULL,
+        text TEXT NOT NULL DEFAULT '',
+        PRIMARY KEY (resource_id, page_num)
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_element_lesson_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        element_id INTEGER NOT NULL REFERENCES acs_task_elements(id),
+        order_index INTEGER NOT NULL,
+        kind TEXT NOT NULL,
+        title TEXT,
+        body TEXT,
+        url TEXT,
+        required INTEGER NOT NULL DEFAULT 1
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_acs_element_items_element ON acs_element_lesson_items(element_id, order_index)")
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_element_item_progress (
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        item_id INTEGER NOT NULL REFERENCES acs_element_lesson_items(id),
+        done_at TEXT NOT NULL,
+        PRIMARY KEY (student_id, item_id)
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_element_completion (
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        element_id INTEGER NOT NULL REFERENCES acs_task_elements(id),
+        self_completed_at TEXT,
+        cfi_id INTEGER REFERENCES cfis(id),
+        cfi_verified_at TEXT,
+        PRIMARY KEY (student_id, element_id)
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_acs_element_completion_student ON acs_element_completion(student_id)")
     conn.commit()
 
     # Flight School Reports tab: plane issue / missing checklist / concerning

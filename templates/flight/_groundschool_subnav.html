@@ -1,0 +1,6 @@
+{#- Local sub-nav within Ground School: Ratings / Resources. `gs_tab` is
+    'ratings' or 'resources', passed by the including template. #}
+<ul class="nav nav-pills mb-3 gap-1" style="--bs-nav-pills-link-active-bg:#14213d;">
+  <li class="nav-item"><a class="nav-link {{ 'active' if gs_tab == 'ratings' }}" href="{{ url_for('groundschool.rating_list') }}"><i class="bi bi-mortarboard"></i> Ratings</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if gs_tab == 'resources' }}" href="{{ url_for('groundschool.resources_list') }}"><i class="bi bi-folder2-open"></i> Resources</a></li>
+</ul>

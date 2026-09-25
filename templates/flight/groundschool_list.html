@@ -1,6 +1,12 @@
 {% extends "academy_base.html" %}
 {% block title %}Ground School - OpsHub{% endblock %}
 {% block content %}
+<style>
+  .pg-bar { position: relative; height: .6rem; border-radius: 999px; background: #e9ecef; overflow: hidden; }
+  .pg-fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #2b3fdb, #4dabf7); }
+  .pg-fill.done { background: linear-gradient(90deg, #2f9e44, #69db7c); }
+  .gs-card-link:hover { box-shadow: 0 0 0 2px rgba(255,255,255,.35); }
+</style>
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0 text-light"><i class="bi bi-mortarboard"></i> Ground School</h4>
   {% if session.get('is_master_admin') %}
@@ -24,11 +30,11 @@
 <div class="row g-3">
   {% for r in ratings %}
   <div class="col-12 col-md-6 col-lg-4">
-    <div class="card academy-card h-100">
+    <div class="card academy-card gs-card-link h-100 position-relative">
       <div class="card-body d-flex flex-column">
         <h5 class="card-title mb-1">{{ r.name }}</h5>
         {% if r.doc_number %}<div class="text-muted small mb-2">{{ r.doc_number }}</div>{% endif %}
-        <div class="mb-3">
+        <div class="mb-2">
           {% if r.status == 'parsed' %}
             <span class="badge bg-success">Ready</span>
           {% elif r.status == 'error' %}
@@ -37,23 +43,39 @@
             <span class="badge bg-secondary">Not parsed</span>
           {% endif %}
         </div>
-        <div class="mt-auto d-flex gap-2 flex-wrap">
-          <a href="{{ url_for('groundschool.rating_detail', rating_id=r.id) }}" class="btn btn-outline-primary btn-sm fw-bold">
-            <i class="bi bi-journal-text"></i> Browse
-          </a>
-          {% if session.get('is_master_admin') %}
-          <form method="post" action="{{ url_for('groundschool.reparse', rating_id=r.id) }}" class="d-inline">
-            <button type="submit" class="btn btn-outline-secondary btn-sm" title="Re-parse the uploaded PDF">
-              <i class="bi bi-arrow-repeat"></i>
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('groundschool.rating_delete', rating_id=r.id) }}" class="d-inline"
-                onsubmit="return confirm('Delete {{ r.name }}? This removes all its Areas/Tasks, lesson content, and sign-offs.');">
-            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
-          </form>
-          {% endif %}
+        {% set p = progress_by_rating.get(r.id) %}
+        {% if p %}
+        <div class="mb-3">
+          <div class="pg-bar"><div class="pg-fill {{ 'done' if p.pct >= 100 }}" style="width: {{ p.pct }}%;"></div></div>
+          <div class="small text-muted mt-1">{{ p.done }} / {{ p.total }} elements &middot; {{ p.pct }}%</div>
+        </div>
+        {% endif %}
+        {% if r.status == 'parsed' %}
+        <a href="{{ url_for('groundschool.rating_detail', rating_id=r.id) }}" class="stretched-link text-decoration-none fw-bold mt-auto">
+          <i class="bi bi-journal-text"></i> Enter course <i class="bi bi-arrow-right-short"></i>
+        </a>
+        {% endif %}
+      </div>
+      {% if session.get('is_master_admin') %}
+      <div class="position-absolute top-0 end-0 p-2" style="z-index:2;">
+        <div class="dropdown">
+          <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+              <form method="post" action="{{ url_for('groundschool.reparse', rating_id=r.id) }}">
+                <button type="submit" class="dropdown-item"><i class="bi bi-arrow-repeat"></i> Re-parse</button>
+              </form>
+            </li>
+            <li>
+              <form method="post" action="{{ url_for('groundschool.rating_delete', rating_id=r.id) }}"
+                    onsubmit="return confirm('Delete {{ r.name }}? This removes all its Areas/Tasks, lesson content, and sign-offs.');">
+                <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash"></i> Delete</button>
+              </form>
+            </li>
+          </ul>
         </div>
       </div>
+      {% endif %}
     </div>
   </div>
   {% endfor %}
