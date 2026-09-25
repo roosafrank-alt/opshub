@@ -64,6 +64,20 @@
     border-radius: 4px;
   }
   .avail-slot-booked .avail-booked-who { display: block; font-size: .62rem; }
+  {#- An open slot that's already in the past - nothing's booked there, but
+     the server's own past-booking check would refuse it anyway, so it's
+     greyed out and unclickable instead of looking like a real option (see
+     is_past in _build_availability_day). Same visual treatment as a booked
+     slot, just its own label. #}
+  .avail-slot-past {
+    background: #e9ecef;
+    color: #adb5bd;
+    text-align: center;
+    font-size: .68rem;
+    padding: .4rem .3rem;
+    border: 2px dashed #dee2e6;
+    border-radius: 4px;
+  }
   @media (max-width: 575.98px) {
     .avail-grid th, .avail-grid td { font-size: .68rem; padding: .3rem .2rem; }
   }
@@ -200,6 +214,11 @@
           Booked
           {% if not is_student_viewer %}<span class="avail-booked-who">{{ cell.flight.student_name }}</span>{% endif %}
         </td>
+        {% elif cell.is_past %}
+        <td class="avail-slot-past" title="{{ cell.label }} has already passed">
+          <span class="avail-slot-time">{{ cell.label }}</span>
+          Past
+        </td>
         {% else %}
         {#- schedule_new() now takes ?time=HH:MM and ?asset_id=... too, so
            this slot's own start time and plane come pre-filled (still
@@ -242,11 +261,18 @@
         {% if items %}
         <div class="d-flex flex-wrap gap-1">
           {% for item in items %}
+          {% if item.is_past %}
+          <span class="btn btn-sm btn-outline-secondary disabled" title="{{ item.label }} has already passed">{{ item.label }}</span>
+          {% else %}
           <a class="btn btn-sm btn-outline-success"
              href="{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(item.start_min // 60, item.start_min % 60), asset_id=item.plane_id) }}"
              title="{{ item.plane_tag }} open {{ item.label }} - click to schedule a flight">{{ item.label }}</a>
+          {% endif %}
           {% endfor %}
         </div>
+        {% if items|selectattr('is_past', 'equalto', false)|list|length == 0 %}
+        <span class="text-muted small d-block mt-1">Nothing open left today.</span>
+        {% endif %}
         {% else %}
         <span class="text-muted small">Fully booked</span>
         {% endif %}

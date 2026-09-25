@@ -406,6 +406,19 @@
   // Internal state in 24-hour form; hour12/min/ampm are derived for display.
   var hour24 = 9, minute = 0;
 
+  // Self-service students only (a CFI/admin can already book/log in the
+  // past through other means - Flight Already Complete, editing an
+  // existing booking - so this doesn't touch them). Greys out and
+  // disables a quick-pick time that's already passed today, so a student
+  // can't toggle-click their way into a time the server would reject
+  // anyway on submit (see _past_booking_error in flight.py) - see
+  // markActiveQuickBtn below and its dateField change listener.
+  var IS_STUDENT_SELF_SERVICE = {{ (session.get('student_id') and not session.get('cfi_id'))|tojson }};
+  var dateField = document.querySelector('input[name="scheduled_date"]');
+  var pastCheckNow = new Date();
+  var pastCheckTodayStr = pastCheckNow.getFullYear() + '-' + String(pastCheckNow.getMonth() + 1).padStart(2, '0') + '-' + String(pastCheckNow.getDate()).padStart(2, '0');
+  var pastCheckNowMin = pastCheckNow.getHours() * 60 + pastCheckNow.getMinutes();
+
   function parseInitial() {
     var v = hidden.value;
     if (v && /^\d{1,2}:\d{2}$/.test(v)) {
@@ -521,12 +534,22 @@
   var durationInput = document.querySelector('input[name="duration_hours"]');
   var quickBtns = document.querySelectorAll('.quick-time-btn');
   function markActiveQuickBtn() {
+    // Only today's already-passed times are ever disabled - any other date
+    // (including a past day the date field itself already blocks picking)
+    // leaves every quick-pick time available.
+    var disablePast = IS_STUDENT_SELF_SERVICE && dateField && dateField.value === pastCheckTodayStr;
     quickBtns.forEach(function (b) {
-      var match = !noTimeCheck.checked && parseInt(b.dataset.hour24, 10) === hour24 && parseInt(b.dataset.minute, 10) === minute;
+      var btnMin = parseInt(b.dataset.hour24, 10) * 60 + parseInt(b.dataset.minute, 10);
+      var isPast = disablePast && btnMin <= pastCheckNowMin;
+      var match = !isPast && !noTimeCheck.checked && parseInt(b.dataset.hour24, 10) === hour24 && parseInt(b.dataset.minute, 10) === minute;
       b.classList.toggle('btn-primary', match);
       b.classList.toggle('btn-outline-primary', !match);
+      b.disabled = isPast;
+      b.classList.toggle('opacity-50', isPast);
+      b.title = isPast ? 'Already passed today' : '';
     });
   }
+  if (dateField) { dateField.addEventListener('change', markActiveQuickBtn); }
   quickBtns.forEach(function (btn) {
     btn.addEventListener('click', function () {
       hour24 = parseInt(btn.dataset.hour24, 10);

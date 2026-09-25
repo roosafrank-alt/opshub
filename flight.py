@@ -3084,11 +3084,21 @@ def _build_availability_day(conn, date_str, plane_id=None):
     for f in day_flights:
         flights_by_asset.setdefault(f["asset_id"], []).append(f)
 
+    # A slot that's already started (or, for a wholly past day, every slot
+    # on it) is still technically "open" in the sense that nothing's booked
+    # there, but booking it would fail the server's own past-booking check
+    # anyway - see is_past below, greyed out and unclickable in the
+    # template instead of looking like a real option.
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+    now_min = now.hour * 60 + now.minute
+
     slots = []
     for start in range(AVAILABILITY_START_MIN, AVAILABILITY_END_MIN, AVAILABILITY_SLOT_MIN):
         end = start + AVAILABILITY_SLOT_MIN
         label = _format_time_12h(f"{start // 60:02d}:{start % 60:02d}")
-        slots.append({"start_min": start, "end_min": end, "label": label})
+        is_past = date_str < today_str or (date_str == today_str and start <= now_min)
+        slots.append({"start_min": start, "end_min": end, "label": label, "is_past": is_past})
 
     grid = []
     open_list = []
@@ -3101,11 +3111,11 @@ def _build_availability_day(conn, date_str, plane_id=None):
                 if _windows_overlap(window, _time_window(f["scheduled_time"], f["duration_hours"])):
                     booked_flight = f
                     break
-            cells.append({"start_min": slot["start_min"], "label": slot["label"],
+            cells.append({"start_min": slot["start_min"], "label": slot["label"], "is_past": slot["is_past"],
                           "booked": booked_flight is not None, "flight": booked_flight})
             if booked_flight is None:
                 open_list.append({"plane_tag": p["tag"], "plane_id": p["id"],
-                                  "label": slot["label"], "start_min": slot["start_min"]})
+                                  "label": slot["label"], "start_min": slot["start_min"], "is_past": slot["is_past"]})
         grid.append({"plane": p, "cells": cells})
 
     return {"planes": planes, "slots": slots, "grid": grid, "open_list": open_list}
@@ -3118,8 +3128,11 @@ def _build_availability_counts(conn, date_strs, plane_id=None):
     week or a month fits on screen; clicking a day jumps into the Day view
     for the real detail. Reuses _build_availability_day per date so the
     count always matches what the Day view would show for that same day.
+    Already-past slots (see is_past in _build_availability_day) don't count
+    as open - they're not something a student could actually book.
     Returns {date_str: open_count}."""
-    return {d: len(_build_availability_day(conn, d, plane_id)["open_list"]) for d in date_strs}
+    return {d: sum(1 for o in _build_availability_day(conn, d, plane_id)["open_list"] if not o["is_past"])
+            for d in date_strs}
 
 
 # The flexible Flight Finder's time-of-day buckets, within the same 8am-8pm
