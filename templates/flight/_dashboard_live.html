@@ -185,7 +185,7 @@
      handler and dashLoadOpen/dashSaveOpen) - "needsalook" is its own
      remembered key so opening/closing it doesn't affect the others. #}
   <button type="button" class="dash-collapse-toggle open d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0 mb-2" data-collapse="needsalook">
-    <h6 class="mb-0"><i class="bi bi-binoculars"></i> Needs a Look</h6>
+    <h6 class="mb-0"><i class="bi bi-binoculars"></i> Unconfirmed</h6>
     <span class="d-flex align-items-center gap-2">
       <span class="badge bg-secondary fs-6">{{ unconfirmed_flights|length + recently_cancelled_flights|length }}</span>
       <i class="bi bi-chevron-right dash-collapse-chevron"></i>
@@ -195,16 +195,22 @@
   {% if unconfirmed_flights %}
   <div class="small text-muted fw-bold mb-1">Unconfirmed ({{ unconfirmed_flights|length }})</div>
   {% for u in unconfirmed_flights %}
-  {#- Jumps to that booking's day on the Schedule with it outlined red
-     (the same ?highlight= mechanism a scheduling conflict redirect uses -
-     see _conflict_highlight_url in flight.py), so "Needs a Look" isn't a
-     dead end. #}
-  <a href="{{ url_for('flight.schedule_calendar', view='day', date=u.scheduled_date, highlight=u.id) }}"
-     class="small py-1 {{ 'border-top' if not loop.first }} d-flex justify-content-between align-items-center flex-wrap gap-1 text-reset text-decoration-none today-row-clickable"
-     title="Open this flight on the Schedule">
+  {#- Clicking the row itself (not the Remind button) jumps to that
+     booking's day on the Schedule with it outlined red (the same
+     ?highlight= mechanism a scheduling conflict redirect uses - see
+     _conflict_highlight_url in flight.py) - a plain div now (not an <a>),
+     since a button doesn't nest inside a link; see the delegated
+     .today-row-clickable click handler in dashboard.html and its own
+     unconfirmed-remind-btn handler right after it. #}
+  <div class="small py-1 {{ 'border-top' if not loop.first }} d-flex justify-content-between align-items-center flex-wrap gap-1 today-row-clickable"
+       role="button" data-goto-url="{{ url_for('flight.schedule_calendar', view='day', date=u.scheduled_date, highlight=u.id) }}"
+       title="Open this flight on the Schedule">
     <span><strong>{{ u.student_name }}</strong> &middot; {{ u.plane_tag }} &middot; {{ u.scheduled_date|usdate }}{% if u.time_label %} &middot; {{ u.time_label }}{% endif %}</span>
-    <span class="badge bg-warning text-dark">Awaiting student OK</span>
-  </a>
+    <span class="d-flex align-items-center gap-2">
+      <span class="badge bg-warning text-dark">Awaiting student OK</span>
+      <button type="button" class="btn btn-outline-warning btn-sm unconfirmed-remind-btn" data-remind-url="{{ url_for('flight.schedule_remind_confirm', scheduled_id=u.id) }}"><i class="bi bi-bell"></i> Remind</button>
+    </span>
+  </div>
   {% endfor %}
   {% endif %}
   {% if recently_cancelled_flights %}
@@ -221,6 +227,53 @@
   </a>
   {% endfor %}
   {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{#- Moved up next to Unconfirmed above (used to sit much further down,
+   past Today's Schedule/Upcoming) - both are admin action queues, so they
+   belong together near the top. #}
+{% if pending_requests %}
+<div class="card p-3 mb-3 border-warning" id="pending-approval-card">
+  <h6 class="mb-2"><i class="bi bi-hourglass-split"></i> Pending Approval <span class="badge bg-warning text-dark" id="pending-approval-count">{{ pending_requests|length }}</span></h6>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Student</th><th>Requested Instructor</th><th></th></tr></thead>
+      <tbody>
+        {% for p in pending_requests %}
+        {#- Click the row (anywhere but the Approve/Deny buttons) to jump to
+           this request's spot on the Schedule's Month view, outlined red
+           via the same ?highlight= mechanism a scheduling conflict uses -
+           see the delegated click handler in dashboard.html. Pending
+           requests now also draw right on the calendar itself (dashed,
+           50% see-through - see is_pending_approval/schedule-block-pending
+           in flight.py/schedule.html), so this shows exactly where it'd land. #}
+        <tr class="pending-row-clickable" data-goto-url="{{ url_for('flight.schedule_calendar', view='month', year=p.scheduled_date[:4]|int, month=p.scheduled_date[5:7]|int, highlight=p.id) }}" title="Open this flight's spot on the Schedule">
+          <td data-label="Date"><small>{{ p.scheduled_date|usdate }}</small></td>
+          <td data-label="Time"><small>{{ p.time_label or 'Not set' }}</small></td>
+          <td data-label="Plane">{{ p.plane_tag }}</td>
+          <td data-label="Student">{{ p.student_name }}</td>
+          <td data-label="Requested Instructor">{% if p.cfi_name %}{{ p.cfi_name }}{% elif p.solo %}<span class="badge bg-secondary">Solo</span>{% else %}<span class="badge bg-secondary">Any</span>{% endif %}</td>
+          <td data-label="" class="text-end text-nowrap">
+            {#- type="button" (not submit, no wrapping <form>) so the shared
+               confirm dialog's CLICK delegate handles these (see
+               _confirm_modal.html) rather than its SUBMIT delegate - that
+               one stopImmediatePropagation()s the real click and only
+               re-dispatches a synthetic one once confirmed, so
+               .pending-decide-btn's own listener in dashboard.html can tell
+               "just opened the dialog" from "actually confirmed" apart
+               cleanly and only fire the in-place approve/deny then. #}
+            <button type="button" class="btn btn-success btn-sm pending-decide-btn" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id) }}" data-confirm="Approve this flight request? It goes onto the calendar as a confirmed booking." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success"><i class="bi bi-check-lg"></i> Approve</button>
+            {#- Deny needs a typed reason, not just a yes/no - opens
+               denyRequestModal (dashboard.html) instead of the generic
+               confirm dialog the Approve button above uses. #}
+            <button type="button" class="btn btn-outline-danger btn-sm pending-deny-btn" data-decide-url="{{ url_for('flight.schedule_deny', scheduled_id=p.id) }}"><i class="bi bi-x-lg"></i> Deny</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 {% endif %}
@@ -687,50 +740,6 @@
     <a href="{{ url_for('flight.schedule_calendar') }}" class="small">Full Calendar &raquo;</a>
   </div>
 </div>
-
-{% if pending_requests %}
-<div class="card p-3 mb-3 border-warning" id="pending-approval-card">
-  <h6 class="mb-2"><i class="bi bi-hourglass-split"></i> Pending Approval <span class="badge bg-warning text-dark" id="pending-approval-count">{{ pending_requests|length }}</span></h6>
-  <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0 table-stack">
-      <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Student</th><th>Requested Instructor</th><th></th></tr></thead>
-      <tbody>
-        {% for p in pending_requests %}
-        {#- Click the row (anywhere but the Approve/Deny buttons) to jump to
-           this request's spot on the Schedule's Month view, outlined red
-           via the same ?highlight= mechanism a scheduling conflict uses -
-           see the delegated click handler in dashboard.html. Pending
-           requests now also draw right on the calendar itself (dashed,
-           50% see-through - see is_pending_approval/schedule-block-pending
-           in flight.py/schedule.html), so this shows exactly where it'd land. #}
-        <tr class="pending-row-clickable" data-goto-url="{{ url_for('flight.schedule_calendar', view='month', year=p.scheduled_date[:4]|int, month=p.scheduled_date[5:7]|int, highlight=p.id) }}" title="Open this flight's spot on the Schedule">
-          <td data-label="Date"><small>{{ p.scheduled_date|usdate }}</small></td>
-          <td data-label="Time"><small>{{ p.time_label or 'Not set' }}</small></td>
-          <td data-label="Plane">{{ p.plane_tag }}</td>
-          <td data-label="Student">{{ p.student_name }}</td>
-          <td data-label="Requested Instructor">{% if p.cfi_name %}{{ p.cfi_name }}{% elif p.solo %}<span class="badge bg-secondary">Solo</span>{% else %}<span class="badge bg-secondary">Any</span>{% endif %}</td>
-          <td data-label="" class="text-end text-nowrap">
-            {#- type="button" (not submit, no wrapping <form>) so the shared
-               confirm dialog's CLICK delegate handles these (see
-               _confirm_modal.html) rather than its SUBMIT delegate - that
-               one stopImmediatePropagation()s the real click and only
-               re-dispatches a synthetic one once confirmed, so
-               .pending-decide-btn's own listener in dashboard.html can tell
-               "just opened the dialog" from "actually confirmed" apart
-               cleanly and only fire the in-place approve/deny then. #}
-            <button type="button" class="btn btn-success btn-sm pending-decide-btn" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id) }}" data-confirm="Approve this flight request? It goes onto the calendar as a confirmed booking." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success"><i class="bi bi-check-lg"></i> Approve</button>
-            {#- Deny needs a typed reason, not just a yes/no - opens
-               denyRequestModal (dashboard.html) instead of the generic
-               confirm dialog the Approve button above uses. #}
-            <button type="button" class="btn btn-outline-danger btn-sm pending-deny-btn" data-decide-url="{{ url_for('flight.schedule_deny', scheduled_id=p.id) }}"><i class="bi bi-x-lg"></i> Deny</button>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% endif %}
 
 {% if change_requests %}
 <div class="card p-3 mb-3 border-info" id="change-request-card">

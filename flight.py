@@ -4459,6 +4459,28 @@ def schedule_review_acknowledge(scheduled_id):
     return redirect(url_for("flight.alerts_list"))
 
 
+@flight_bp.route("/schedule/<int:scheduled_id>/remind_confirm", methods=["POST"])
+@cfi_required
+def schedule_remind_confirm(scheduled_id):
+    """A CFI/admin nudging a student who still hasn't confirmed a booking
+    someone made for them (see the Unconfirmed list on the dashboard) -
+    re-sends the same push _notify_booking_confirm already sends when the
+    booking was first made, for a student who missed or dismissed it."""
+    conn = get_db()
+    sched = conn.execute("""SELECT sf.*, a.tag as plane_tag FROM scheduled_flights sf
+                             JOIN assets a ON a.id = sf.asset_id WHERE sf.id = ?""", (scheduled_id,)).fetchone()
+    if not sched or not sched["confirm_required"] or sched["confirmed_at"]:
+        conn.close()
+        return _pending_decision_response(False, "That flight isn't waiting on a confirmation.", "danger")
+    student = conn.execute("SELECT user_id FROM students WHERE id = ?", (sched["student_id"],)).fetchone()
+    if not student or not student["user_id"]:
+        conn.close()
+        return _pending_decision_response(False, "That student has no login to notify.", "danger")
+    _notify_booking_confirm(conn, student["user_id"], scheduled_id, sched["plane_tag"], sched["scheduled_date"], sched["scheduled_time"])
+    conn.close()
+    return _pending_decision_response(True, "Reminder sent.", "success")
+
+
 @flight_bp.route("/schedule/<int:scheduled_id>/confirm", methods=["POST"])
 @login_required
 def schedule_confirm_booking(scheduled_id):

@@ -537,10 +537,34 @@ function loadChipForecast(detail) {
 document.addEventListener('click', function (evt) {
   var region = document.getElementById('dashboard-live-region');
   if (!region || !region.contains(evt.target)) return;
-  if (evt.target.closest('.pending-decide-btn, .pending-deny-btn, .change-request-dismiss-btn')) return;
-  var row = evt.target.closest('.pending-row-clickable');
+  if (evt.target.closest('.pending-decide-btn, .pending-deny-btn, .change-request-dismiss-btn, .unconfirmed-remind-btn')) return;
+  var row = evt.target.closest('.pending-row-clickable, .today-row-clickable[data-goto-url]');
   if (!row) return;
   window.location.href = row.dataset.gotoUrl;
+});
+
+// Send Reminder (Unconfirmed list) - pushes the student another "confirm
+// this flight" nudge without navigating away or reloading the section.
+document.addEventListener('click', function (evt) {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region || !region.contains(evt.target)) return;
+  var btn = evt.target.closest('.unconfirmed-remind-btn');
+  if (!btn) return;
+  btn.disabled = true;
+  fetch(btn.dataset.remindUrl, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      showDashFlag(data.message, data.category);
+      if (data.ok) {
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Sent';
+      } else {
+        btn.disabled = false;
+      }
+    })
+    .catch(function () {
+      showDashFlag('Something went wrong - try again.', 'danger');
+      btn.disabled = false;
+    });
 });
 
 // Dismiss a Change Request in place (Change Requests card) - same
