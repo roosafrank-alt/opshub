@@ -1,0 +1,23 @@
+{#- Makes an "Add Photo(s)" button a true one-click picker: the file input
+   it controls is hidden (class="add-photos-input"), so tapping the button
+   itself opens the picker, and choosing photos submits the form right
+   away - no separate "Choose file" step first. Delegated on document so it
+   keeps working wherever a page adds a form like this (Parts, Projects,
+   Aircraft), not just the ones present at load time.
+   Markup: <form>
+             <input type="file" class="add-photos-input d-none" ...>
+             <button type="button" class="add-photos-trigger">Add Photo(s)</button>
+           </form> #}
+<script>
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('.add-photos-trigger');
+  if (!btn) return;
+  var form = btn.closest('form');
+  var input = form && form.querySelector('.add-photos-input');
+  if (input) input.click();
+});
+document.addEventListener('change', function (e) {
+  if (!e.target.classList || !e.target.classList.contains('add-photos-input')) return;
+  if (e.target.files && e.target.files.length) e.target.form.submit();
+});
+</script>
