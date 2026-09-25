@@ -21,6 +21,7 @@ from flight import flight_bp, _flight_hours, check_session_alerts, PLANE_COLORS
 from logbook import logbook_bp
 from pilotlog import pilotlog_bp
 from customer import customer_bp, _owned_asset_ids, _project_bill
+from manuals import manuals_bp, manuals_for_asset
 import academy
 from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
                    master_admin_required, shop_role_required, can_see_shop_costs,
@@ -67,6 +68,7 @@ app.register_blueprint(flight_bp)
 app.register_blueprint(logbook_bp)
 app.register_blueprint(pilotlog_bp)
 app.register_blueprint(customer_bp)
+app.register_blueprint(manuals_bp)
 
 
 # ---------------------------------------------------------------------------
@@ -2443,11 +2445,13 @@ def asset_detail(asset_id):
     todos = conn.execute(
         "SELECT * FROM plane_todos WHERE asset_id = ? ORDER BY done, created_at DESC", (asset_id,)
     ).fetchall()
+    asset_manuals = manuals_for_asset(conn, asset)
     conn.close()
     return render_template("asset_detail.html", asset=asset, project_blocks=project_blocks, total_cost=total_cost,
                            maintenance_items=maintenance_items, oil_log=oil_log, total_oil_added=total_oil_added,
                            open_squawks=open_squawks, photos=photos, todos=todos, project_cover=project_cover,
-                           latest_compression=latest_compression, compression_count=compression_count)
+                           latest_compression=latest_compression, compression_count=compression_count,
+                           asset_manuals=asset_manuals)
 
 
 @app.route("/assets/<int:asset_id>/squawk", methods=["POST"])
