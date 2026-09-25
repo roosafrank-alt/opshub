@@ -1491,6 +1491,23 @@ def part_detail(part_id):
     return render_template("part_detail.html", part=part, tx=tx, photos=photos)
 
 
+@app.route("/parts/<int:part_id>/print-label", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def part_print_label(part_id):
+    conn = get_db()
+    part = conn.execute("SELECT * FROM parts WHERE id = ?", (part_id,)).fetchone()
+    conn.close()
+    if not part:
+        abort(404)
+    try:
+        from label_printer import print_part_label
+        print_part_label(part)
+        flash(f"Label sent to printer for {part['name']}.", "success")
+    except Exception as e:
+        flash(f"Couldn't print label: {e}", "danger")
+    return redirect(url_for("part_detail", part_id=part_id))
+
+
 @app.route("/parts/<int:part_id>/edit", methods=["GET", "POST"])
 @shop_role_required('admin')
 def part_edit(part_id):
