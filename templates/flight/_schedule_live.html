@@ -176,14 +176,15 @@
         {% else %}
         {% set is_today = (day == today.day and md.month == today.month and md.year == today.year) %}
         {% set cell_date = '%04d-%02d-%02d'|format(md.year, md.month, day) %}
+        {% set is_past_day = today_str and cell_date < today_str %}
         {#- Whole-cell click (not just the day number) jumps to "Schedule
            Flight" with this date pre-filled, for a CFI/admin - see the
            delegated click handler in schedule.html, which bails out early
            on any real link or flight block inside the cell so this never
            swallows a click meant for the day-number link or "+N more". #}
-        <td class="calendar-day-cell{{ ' calendar-day-cell-add' if session.get('cfi_id') }}"
+        <td class="calendar-day-cell{{ ' calendar-day-cell-add' if session.get('cfi_id') }}{{ ' calendar-day-cell-past' if is_past_day }}"
             {% if session.get('cfi_id') %}data-add-url="{{ url_for('flight.schedule_new', date=cell_date) }}"{% endif %}
-            style="min-height:{{ row_height }}; vertical-align:top; {{ 'background:#fff8e1; box-shadow:inset 0 0 0 2px #ffc107;' if is_today }}">
+            style="min-height:{{ row_height }}; vertical-align:top; {% if is_today %}background:#fff8e1; box-shadow:inset 0 0 0 2px #ffc107;{% elif is_past_day %}background:#e9ecef;{% endif %}">
           <div class="calendar-day-head">
           {% if session.get('cfi_id') %}
           <a href="{{ url_for('flight.schedule_new', date=cell_date) }}" class="small fw-bold d-flex align-items-center gap-1 text-decoration-none calendar-day-add {{ 'text-primary' if is_today else 'text-body' }}" title="Schedule a flight on {{ cell_date|usdate }}">
@@ -465,6 +466,15 @@
 {% elif view == 'day' %}
 <div class="card p-3">
   {% set span_min = day_timeline_end_min - day_timeline_start_min %}
+  {#- Past-day graying: a day entirely before today is fully grayed; today
+     is grayed only up to the current time (now_min, from
+     _schedule_calendar_context); a future day gets no overlay. Sits behind
+     the flight blocks (lower in the DOM, no z-index) so booked flights
+     still show their normal colors on top of the gray. #}
+  {% set day_now_pct = ((now_min - day_timeline_start_min) / span_min * 100)|round(2) %}
+  {% set day_now_pct = [day_now_pct, 100]|min %}
+  {% set day_now_pct = [day_now_pct, 0]|max %}
+  {% set day_past_pct = 100 if (today_str and day_str < today_str) else (day_now_pct if (today_str and day_str == today_str) else 0) %}
   <div class="day-timeline-wrap">
     <div class="day-timeline-hours">
       {% for h in range(day_timeline_start_min // 60, day_timeline_end_min // 60 + 1) %}
@@ -478,6 +488,7 @@
       {% endfor %}
     </div>
     <div class="day-timeline-track">
+      {% if day_past_pct %}<div class="day-timeline-past-overlay" style="height:{{ day_past_pct }}%;"></div>{% endif %}
       {% for h in range(day_timeline_start_min // 60, day_timeline_end_min // 60 + 1) %}
       {% set line_top_pct = (h * 60 - day_timeline_start_min) / span_min * 100 %}
       <div class="day-timeline-grid-line" style="top:{{ line_top_pct }}%;"></div>
@@ -515,6 +526,9 @@
    modal and live-refresh both keep working unchanged. #}
 <div class="card p-3">
   {% set span_min = day_timeline_end_min - day_timeline_start_min %}
+  {% set week_now_pct = ((now_min - day_timeline_start_min) / span_min * 100)|round(2) %}
+  {% set week_now_pct = [week_now_pct, 100]|min %}
+  {% set week_now_pct = [week_now_pct, 0]|max %}
   <div class="week-timeline-wrap">
     <div class="day-timeline-hours">
       {% for h in range(day_timeline_start_min // 60, day_timeline_end_min // 60 + 1) %}
@@ -529,12 +543,14 @@
     </div>
     <div class="week-timeline-days">
       {% for wd in week_days %}
+      {% set wd_past_pct = 100 if (today_str and wd.date_str < today_str) else (week_now_pct if wd.is_today else 0) %}
       <div class="week-timeline-day-col">
         <a href="{{ url_for('flight.schedule_calendar', view='day', date=wd.date_str, plane_id=plane_id, cfi_id=cfi_id) }}"
            class="week-timeline-day-head text-decoration-none {{ 'week-timeline-day-head-today' if wd.is_today }}">
           {{ wd.weekday }} {{ wd.day_num }}{% if wd.is_today %} <span class="badge bg-warning text-dark" style="font-size:.6rem;">TODAY</span>{% endif %}
         </a>
         <div class="day-timeline-track">
+          {% if wd_past_pct %}<div class="day-timeline-past-overlay" style="height:{{ wd_past_pct }}%;"></div>{% endif %}
           {% for h in range(day_timeline_start_min // 60, day_timeline_end_min // 60 + 1) %}
           {% set line_top_pct = (h * 60 - day_timeline_start_min) / span_min * 100 %}
           <div class="day-timeline-grid-line" style="top:{{ line_top_pct }}%;"></div>

@@ -189,6 +189,16 @@
     border-top: 1px dashed rgba(0,0,0,.1);
     pointer-events: none;
   }
+  /* Past-day graying (Day/Week timelines): a wholly past day is 100% gray,
+     today is grayed up to the current time - see day_past_pct/wd_past_pct
+     in _schedule_live.html. Sits at the top of the track (z-index 0, no
+     "position" games) so the flight blocks - which come after it in the
+     DOM and are themselves positioned - still stack visibly on top. */
+  .day-timeline-past-overlay {
+    position: absolute; top: 0; left: 0; right: 0;
+    background: rgba(0,0,0,.06);
+    pointer-events: none;
+  }
   .day-timeline-block {
     position: absolute; overflow: hidden;
     padding-top: 2px; padding-bottom: 2px; padding-left: 6px !important;

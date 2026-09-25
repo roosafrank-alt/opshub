@@ -2921,6 +2921,13 @@ def _schedule_calendar_context():
                 week_prev=week_prev, week_next=week_next,
                 year_list=year_list, list_scroll_anchor_id=list_scroll_anchor_id,
                 custom_start=custom_start, custom_end=custom_end, range_flights=range_flights,
+                # Past-day graying (Month cells, Day/Week timelines, List/
+                # Custom rows - see schedule-row-past and the calendar-day-
+                # cell-past / day-timeline-past-overlay styles): today's date
+                # and time-of-day in minutes since midnight, so a template
+                # can tell a wholly past day from today's already-elapsed
+                # portion without doing its own clock math.
+                today_str=today.strftime("%Y-%m-%d"), now_min=datetime.now().hour * 60 + datetime.now().minute,
                 today=today, year=year, month=month, prev_year=prev_year, prev_month=prev_month,
                 next_year=next_year, next_month=next_month,
                 planes=planes, cfis=cfis, plane_id=plane_id, cfi_id=cfi_id,
