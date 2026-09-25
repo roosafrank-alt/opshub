@@ -671,6 +671,34 @@
 </div>
 {% endif %}
 
+{% if change_requests %}
+<div class="card p-3 mb-3 border-info" id="change-request-card">
+  <h6 class="mb-2"><i class="bi bi-chat-left-text-fill"></i> Change Requests <span class="badge bg-info text-dark" id="change-request-count">{{ change_requests|length }}</span></h6>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Student</th><th>Request</th><th></th></tr></thead>
+      <tbody>
+        {#- Same click-the-row-to-jump-to-the-Schedule pattern as Pending
+           Approval above, except the Dismiss button (not Approve/Deny) -
+           see the delegated handlers in dashboard.html. #}
+        {% for r in change_requests %}
+        <tr class="pending-row-clickable" data-goto-url="{{ url_for('flight.schedule_calendar', view='month', year=r.scheduled_date[:4]|int, month=r.scheduled_date[5:7]|int, highlight=r.id) }}" title="Open this flight's spot on the Schedule">
+          <td data-label="Date"><small>{{ r.scheduled_date|usdate }}</small></td>
+          <td data-label="Time"><small>{{ r.time_label or 'Not set' }}</small></td>
+          <td data-label="Plane">{{ r.plane_tag }}</td>
+          <td data-label="Student">{{ r.student_name }}</td>
+          <td class="stack-full" data-label="Request"><small>{{ r.change_request_note }}</small></td>
+          <td data-label="" class="text-end text-nowrap">
+            <button type="button" class="btn btn-outline-secondary btn-sm change-request-dismiss-btn" data-dismiss-url="{{ url_for('flight.schedule_change_request_dismiss', scheduled_id=r.id) }}" title="Mark handled"><i class="bi bi-check-lg"></i> Handled</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 {% if my_requests %}
 <div class="card p-3 mb-3">
   {#- Starts closed like Upcoming/Recent Flights above - same
@@ -698,6 +726,13 @@
           <td data-label="Status">
             {% if m.status == 'pending_approval' %}
             <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split"></i> Awaiting Approval</span>
+            {% elif m.status == 'scheduled' %}
+            {#- Booking itself is still confirmed as-is - this row just
+               means the change asked for (schedule_request_change) hasn't
+               been handled yet. Drops off once the school reschedules the
+               booking or dismisses the request. #}
+            <span class="badge bg-info text-dark"><i class="bi bi-chat-left-text-fill"></i> Change Requested</span>
+            {% if m.change_request_note %}<div class="text-muted small mt-1">&quot;{{ m.change_request_note }}&quot;</div>{% endif %}
             {% else %}
             <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Denied</span>
             {% if m.deny_reason %}<div class="text-muted small mt-1">{{ m.deny_reason }}</div>{% endif %}
@@ -706,8 +741,9 @@
           <td data-label="" class="text-end">
             {#- Only a denied request can be cleared off the list this way -
                a still-pending one just resolves on its own (approved or
-               denied) rather than being something to dismiss. #}
-            {% if m.status != 'pending_approval' %}
+               denied), and a change request is the school's to clear
+               (Change Requests card), not the student's. #}
+            {% if m.status == 'denied' %}
             <button type="button" class="btn btn-sm btn-link text-muted p-0 my-request-dismiss-btn" data-dismiss-url="{{ url_for('flight.schedule_dismiss', scheduled_id=m.id) }}" title="Remove from this list">
               <i class="bi bi-x-lg"></i>
             </button>

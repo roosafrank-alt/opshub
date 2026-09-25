@@ -537,10 +537,46 @@ function loadChipForecast(detail) {
 document.addEventListener('click', function (evt) {
   var region = document.getElementById('dashboard-live-region');
   if (!region || !region.contains(evt.target)) return;
-  if (evt.target.closest('.pending-decide-btn, .pending-deny-btn')) return;
+  if (evt.target.closest('.pending-decide-btn, .pending-deny-btn, .change-request-dismiss-btn')) return;
   var row = evt.target.closest('.pending-row-clickable');
   if (!row) return;
   window.location.href = row.dataset.gotoUrl;
+});
+
+// Dismiss a Change Request in place (Change Requests card) - same
+// fetch-and-remove-the-row pattern as the "Your Requests" dismiss button
+// below, just its own class/count badge.
+document.addEventListener('click', function (evt) {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region || !region.contains(evt.target)) return;
+  var btn = evt.target.closest('.change-request-dismiss-btn');
+  if (!btn) return;
+  var row = btn.closest('tr');
+  btn.disabled = true;
+  fetch(btn.dataset.dismissUrl, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.ok) {
+        showDashFlag(data.message, data.category);
+        btn.disabled = false;
+        return;
+      }
+      if (row) row.remove();
+      var countBadge = document.getElementById('change-request-count');
+      if (countBadge) {
+        var n = Math.max(0, (parseInt(countBadge.textContent, 10) || 1) - 1);
+        if (n === 0) {
+          var card = document.getElementById('change-request-card');
+          if (card) card.remove();
+        } else {
+          countBadge.textContent = n;
+        }
+      }
+    })
+    .catch(function () {
+      showDashFlag('Something went wrong - try again.', 'danger');
+      btn.disabled = false;
+    });
 });
 
 // Approve/Deny a pending request in place, right from the Dashboard - no

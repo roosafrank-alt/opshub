@@ -1364,6 +1364,7 @@ def _dashboard_context(conn, cfi, student):
     active_flights = []
     upcoming = []
     pending_requests = []
+    change_requests = []
     my_requests = []
     my_notifications = []
     my_unconfirmed = []
@@ -1434,6 +1435,21 @@ def _dashboard_context(conn, cfi, student):
             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
         """).fetchall()
         pending_requests = [dict(p, time_label=_format_time_12h(p["scheduled_time"])) for p in pending_requests]
+        # A student's own request to change one of their already-confirmed
+        # bookings (schedule_request_change) - school-wide, same reasoning
+        # as pending_requests above. Cleared by rescheduling the booking
+        # (schedule_reschedule) or by an explicit Dismiss once it's been
+        # handled another way (schedule_change_request_dismiss).
+        change_requests = conn.execute("""
+            SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name
+            FROM scheduled_flights sf
+            JOIN assets a ON a.id = sf.asset_id
+            JOIN students s ON s.id = sf.student_id
+            LEFT JOIN cfis c ON c.id = sf.cfi_id
+            WHERE sf.status = 'scheduled' AND sf.change_requested_at IS NOT NULL
+            ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
+        """).fetchall()
+        change_requests = [dict(r, time_label=_format_time_12h(r["scheduled_time"])) for r in change_requests]
         # Confirmed bookings flagged for review (over-currency solo, or a
         # dual flight with no instructor assigned yet) - school-wide, same
         # reasoning as recent_flights/pending_requests above.
@@ -1552,16 +1568,20 @@ def _dashboard_context(conn, cfi, student):
         # Upcoming starts collapsed. Surfaced as its own banner below.
         my_unconfirmed = [u for u in upcoming if u["confirm_required"] and not u["confirmed_at"]]
         # The student's own requests that are still pending or got denied,
-        # so they can see where things stand instead of them just vanishing
-        # from "Upcoming" once approval is required.
+        # plus any change they've asked for on an already-confirmed booking
+        # (schedule_request_change) that hasn't been handled yet, so they
+        # can see where things stand instead of them just vanishing once
+        # sent. A change request drops off here the same way it drops off
+        # the school's Change Requests queue - rescheduled or dismissed.
         my_requests = conn.execute("""
             SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name
             FROM scheduled_flights sf
             JOIN assets a ON a.id = sf.asset_id
             JOIN students s ON s.id = sf.student_id
             LEFT JOIN cfis c ON c.id = sf.cfi_id
-            WHERE sf.student_id = ? AND sf.status IN ('pending_approval', 'denied') AND sf.scheduled_date >= ?
-              AND sf.student_dismissed_at IS NULL
+            WHERE sf.student_id = ? AND sf.scheduled_date >= ?
+              AND ((sf.status IN ('pending_approval', 'denied') AND sf.student_dismissed_at IS NULL)
+                   OR (sf.status = 'scheduled' AND sf.change_requested_at IS NOT NULL))
             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
         """, (student["id"], date.today().strftime("%Y-%m-%d"))).fetchall()
         my_requests = [dict(m, time_label=_format_time_12h(m["scheduled_time"])) for m in my_requests]
@@ -1691,7 +1711,8 @@ def _dashboard_context(conn, cfi, student):
 
     return dict(cfi=cfi, student=student, recent_flights=recent_flights,
                 active_flights=active_flights, upcoming=upcoming, plane_maint=plane_maint,
-                pending_requests=pending_requests, my_requests=my_requests, my_notifications=my_notifications,
+                pending_requests=pending_requests, change_requests=change_requests,
+                my_requests=my_requests, my_notifications=my_notifications,
                 my_unconfirmed=my_unconfirmed,
                 needs_review_flights=needs_review_flights, eta_delayed_flights=eta_delayed_flights,
                 medical_alerts=medical_alerts,
@@ -4080,8 +4101,13 @@ def schedule_reschedule(scheduled_id):
     # though plane/instructor/student/solo didn't change here, so this has
     # to recompute it too instead of silently carrying over the old flag.
     needs_review, review_reason = _schedule_review_flag(conn, sched["solo"], sched["cfi_id"], sched["student_id"], new_date)
+    # Moving the booking is exactly what a change request asked for -
+    # clears it the same as an explicit Dismiss would (see
+    # schedule_change_request_dismiss), so it doesn't linger in the Change
+    # Requests queue for a request that's already been acted on.
     conn.execute("""UPDATE scheduled_flights SET scheduled_date=?, scheduled_time=?, needs_review=?, review_reason=?,
-                     needs_review_acknowledged_at=NULL, needs_review_acknowledged_by=NULL WHERE id=?""",
+                     needs_review_acknowledged_at=NULL, needs_review_acknowledged_by=NULL,
+                     change_request_note=NULL, change_requested_at=NULL WHERE id=?""",
                  (new_date, new_time, needs_review, review_reason, scheduled_id))
     conn.commit()
     conn.close()
@@ -4482,6 +4508,26 @@ def schedule_request_change(scheduled_id):
     conn.close()
     flash("Your change request was sent to the school.", "success")
     return redirect(url_for("flight.dashboard"))
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/change_request/dismiss", methods=["POST"])
+@cfi_required
+def schedule_change_request_dismiss(scheduled_id):
+    """A CFI/admin clearing a student's change request off the Change
+    Requests queue once it's been handled - by rescheduling the booking
+    (schedule_reschedule clears it the same way) or by sorting it out some
+    other way (a call, an in-person chat) that doesn't move the booking
+    itself. Doesn't touch the booking otherwise."""
+    conn = get_db()
+    sched = conn.execute("SELECT change_requested_at FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    if not sched or not sched["change_requested_at"]:
+        conn.close()
+        return _pending_decision_response(False, "That change request isn't there anymore.", "danger")
+    conn.execute("UPDATE scheduled_flights SET change_request_note = NULL, change_requested_at = NULL WHERE id = ?",
+                 (scheduled_id,))
+    conn.commit()
+    conn.close()
+    return _pending_decision_response(True, "Change request dismissed.", "info")
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/student_cancel", methods=["POST"])
