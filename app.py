@@ -1505,8 +1505,15 @@ def project_new():
         a = conn.execute("SELECT tag FROM assets WHERE id = ?", (preselect_asset_id,)).fetchone()
         preselect_asset_tag = a["tag"] if a else None
     conn.close()
+    # Clicking a plane's to-do item (asset_detail.html) links here with
+    # ?name=<the to-do text> so the project starts pre-filled from it,
+    # instead of a blank form defaulting to just the tail number - still
+    # freely editable before saving. Marking the to-do itself complete is
+    # still a separate, manual step (plane_todo_toggle) - creating the
+    # project doesn't do that on its own.
+    preselect_name = request.args.get("name", "").strip()
     return render_template("project_form.html", project=None, assets=assets, preselect_asset_id=preselect_asset_id,
-                           preselect_asset_tag=preselect_asset_tag)
+                           preselect_asset_tag=preselect_asset_tag, preselect_name=preselect_name)
 
 
 @app.route("/projects/<int:project_id>/edit", methods=["GET", "POST"])

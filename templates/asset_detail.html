@@ -307,17 +307,24 @@
       </div>
       <div class="col-xl-5">
       <div class="card p-3 h-100">
+        {% set open_todos = todos|selectattr('done', 'equalto', 0)|list %}
+        {% set done_todos = todos|selectattr('done', 'equalto', 1)|list %}
         <h6 class="mb-2"><i class="bi bi-list-check"></i> To-Do</h6>
-        {% if todos %}
+        {% if open_todos %}
         <ul class="list-group list-group-flush mb-2">
-          {% for t in todos %}
+          {% for t in open_todos %}
           <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
             <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1">
-              <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="{{ 'Mark not done' if t.done else 'Mark done' }}">
-                <i class="bi {{ 'bi-check-square-fill text-success' if t.done else 'bi-square' }} fs-5"></i>
+              <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark done">
+                <i class="bi bi-square fs-5"></i>
               </button>
-              <span class="{{ 'text-decoration-line-through text-muted' if t.done else '' }}">{{ t.description }}</span>
             </form>
+            {#- The to-do text itself starts a new project pre-filled with
+               it (project_new's ?name=) - one click instead of retyping
+               what needs doing into a blank project form. Marking the
+               to-do done (the checkbox above) is still separate and
+               manual - creating the project doesn't do that on its own. #}
+            <a href="{{ url_for('project_new', asset_id=asset.id, name=t.description) }}" class="flex-grow-1 text-body text-decoration-none" title="Start a project from this to-do">{{ t.description }}</a>
             <form method="post" action="{{ url_for('plane_todo_delete', asset_id=asset.id, todo_id=t.id) }}" data-confirm="Remove this to-do?" data-confirm-style="danger">
               <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
             </form>
@@ -327,10 +334,32 @@
         {% else %}
         <p class="text-muted small">Nothing on the list yet.</p>
         {% endif %}
-        <form method="post" action="{{ url_for('plane_todo_new', asset_id=asset.id) }}" class="d-flex gap-2">
+        <form method="post" action="{{ url_for('plane_todo_new', asset_id=asset.id) }}" class="d-flex gap-2 mb-2">
           <input type="text" name="description" class="form-control form-control-sm" placeholder="Add a to-do..." required>
           <button class="btn btn-outline-primary btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Add</button>
         </form>
+        {% if done_todos %}
+        <button type="button" class="btn btn-link btn-sm p-0 text-muted" data-bs-toggle="collapse" data-bs-target="#todo-done-{{ asset.id }}">
+          <i class="bi bi-chevron-down"></i> {{ done_todos|length }} completed
+        </button>
+        <div class="collapse mt-1" id="todo-done-{{ asset.id }}">
+          <ul class="list-group list-group-flush">
+            {% for t in done_todos %}
+            <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
+              <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1">
+                <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark not done">
+                  <i class="bi bi-check-square-fill text-success fs-5"></i>
+                </button>
+                <span class="text-decoration-line-through text-muted">{{ t.description }}</span>
+              </form>
+              <form method="post" action="{{ url_for('plane_todo_delete', asset_id=asset.id, todo_id=t.id) }}" data-confirm="Remove this to-do?" data-confirm-style="danger">
+                <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
+              </form>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
       </div>
       </div>
     </div>
