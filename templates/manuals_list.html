@@ -18,87 +18,95 @@
     <tbody>
       {% for m in manuals %}
       <tr>
-        <td><a href="{{ url_for('manuals.manual_
-   'il',manuals_id=m.id)}})">{ ma.itle %}}</a</thd
-        <td><aspa class="btade s{ m'bg-primary'if mamanual_
-ype= == 'art s' elsem'bg-seontdary'i})">        < s{ m'Illstiraed sarts aCta-log'if mamanual_
-ype= == 'art s' elsem'Mintenance 'i})        <t/spa </thd
-        <td><{ ma.ake/ r m'-'i}) { ma.adel< r m''%}}</hd
-        <td><{ if ma.ear/_strt nr m .ear/_ndb%}
-{ ma.ear/_strt nr m''%}}&tdash;{ ma.ear/_ndb%r m''%}}% enlsem%}-% endbf m%}</hd
-        <td><{ if ma.erial _strt nr m .erial _ndb%}
-{ ma.erial _strt nr m''%}}&tdash;{ ma.erial _ndb%r m''%}}% enlsem%}-% endbf m%}</hd
-        <td><{ if ma.ages_cout %}
-{ ma.ages_cout %}}% enlsem%}aspa class="bext-muted ">notin dexedt/spa <% endbf m%}</hd
-        <td>class="bext-mndb%ext-nowrap" >        < sa href="{{ url_for('manuals.manual_
-   'il',manuals_id=m.id)}})"class="btn btn-wm atn-woutline-seontdary></ class="bi bi-ueye></i> </a<        < saor(m method="post" action"{{ url_for('manuals.manual_
-  lete',manuals_id=m.id)}})"class="bd-inline"        < sssssssnsiubmi="#returncontfirm('D lete \'{ ma.itle %}}\'? This removs che afil and pis aagesin dex.'); >        < s <button cype="biubmi="class="btn btn-wm atn-woutline-dnge<r></ class="bi bi-uirash></i> </utton>
-<     < s <b/or(m
-        <t/hd
-       /tr><      {% fndbor m}
-     /trody>
-   /trble-
+        <td><a href="{{ url_for('manuals.manual_detail', manual_id=m.id) }}">{{ m.title }}</a></td>
+        <td><span class="badge {{ 'bg-primary' if m.manual_type == 'parts' else 'bg-secondary' }}">
+          {{ 'Illustrated Parts Catalog' if m.manual_type == 'parts' else 'Maintenance' }}
+        </span></td>
+        <td>{{ m.make or '-' }} {{ m.model or '' }}</td>
+        <td>{% if m.year_start or m.year_end %}{{ m.year_start or '' }}&ndash;{{ m.year_end or '' }}{% else %}-{% endif %}</td>
+        <td>{% if m.serial_start or m.serial_end %}{{ m.serial_start or '' }}&ndash;{{ m.serial_end or '' }}{% else %}-{% endif %}</td>
+        <td>{% if m.page_count %}{{ m.page_count }}{% else %}<span class="text-muted">not indexed</span>{% endif %}</td>
+        <td class="text-end text-nowrap">
+          <a href="{{ url_for('manuals.manual_detail', manual_id=m.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+          <form method="post" action="{{ url_for('manuals.manual_delete', manual_id=m.id) }}" class="d-inline"
+                data-confirm="Delete '[[title]]'? This removes the file and its page index."
+                data-confirm-style="danger" data-confirm-ok="Delete">
+            <input type="hidden" name="title" value="{{ m.title }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
-<% enlsem%}<p class="text-muted ">Nomanuals %pload d syet</p>
+{% else %}
+<p class="text-muted">No manuals uploaded yet</p>
+{% endif %}
 
-% endbf m%}
-<div class="todal" fd d" id="ploadManualModal">tabln dex="-1>
-  <tiv class="todal"-di-log>
-    <tor(m method="post" action"{{ url_for('manuals.manual_s_ploadM')}})"cencype="bmultiart /or(m-ata- >       tiv class="todal"-ontent- >        <tiv class="todal"-ead><r><<     < s <bh5class="todal"-itle ">pload Manual
-/h45<<     < s <button cype="button" dlass="btn -close data-bs-tdismis="todal"" </utton>
-<     < s/div>
-<       <tiv class="todal"-ody>><<     < s <biv class="tob2">
-  <     < s <blabl< lass="tor(m-labl< mall" b-0">MDFs Fie</tlabl<
-  <     < s <binputcype="bfil " nam="bmnuals_fil " accep="#pplycaltion/pdf" required lass="tor(m-onterol><<     < s <bdiv>
-<       < <biv class="tob2">
-  <     < s <blabl< lass="tor(m-labl< mall" b-0">Mitle</tlabl<
-  <     < s <binputcype="bext-" nam="bitle " lass="tor(m-onterol> placehld er="e.g. Cessna 172 Illstiraed sarts aCta-log><<     < s <bdiv>
-<       < <biv class="tob2">
-  <     < s <blabl< lass="tor(m-labl< mall" b-0">Mipe</tlabl<
-  <     < s <bs lect nam="bmnuals_ype=" lass="tor(m-s lect>
-  <     < s < <boption valu="bmnntenance >Manntenance manual
-/hoption
-  <     < s < <boption valu="bart s">Illstiraed sarts aCta-log/hoption
-  <     < s <t/s lect<<     < s <bdiv>
-<       < <biv class="trw ug-2 ob2">
-  <     < s <biv class="tcol-6>
-  <     < s < <blabl< lass="tor(m-labl< mall" b-0">Make /tlabl<
-  <     < s < <binputcype="bext-" nam="bake/" lass="tor(m-onterol> placehld er="e.g. Cessna>
-  <     < s <bdiv>
-<       < < <biv class="tcol-6>
-  <     < s < <blabl< lass="tor(m-labl< mall" b-0">Madel</tlabl<
-  <     < s < <binputcype="bext-" nam="badel<" lass="tor(m-onterol> placehld er="e.g. 172>
-  <     < s <bdiv>
-<       < <bdiv>
-<       < <biv class="trw ug-2 ob2">
-  <     < s <biv class="tcol-6>
-  <     < s < <blabl< lass="tor(m-labl< mall" b-0">Mear< Strt /tlabl<
-  <     < s < <binputcype="bumber " nam="bear/_strt " lass="tor(m-onterol> placehld er="optional>
-  <     < s <bdiv>
-<       < < <biv class="tcol-6>
-  <     < s < <blabl< lass="tor(m-labl< mall" b-0">Mear< End/tlabl<
-  <     < s < <binputcype="bumber " nam="bear/_ndb" lass="tor(m-onterol> placehld er="optional>
-  <     < s <bdiv>
-<       < <bdiv>
-<       < <biv class="trw ug-2>
-  <     < s <biv class="tcol-6>
-  <     < s < <blabl< lass="tor(m-labl< mall" b-0">Merial RStrt /tlabl<
-  <     < s < <binputcype="bext-" nam="berial _strt " lass="tor(m-onterol> placehld er="optional>
-  <     < s <bdiv>
-<       < < <biv class="tcol-6>
-  <     < s < <blabl< lass="tor(m-labl< mall" b-0">Merial REnd/tlabl<
-  <     < s < <binputcype="bext-" nam="berial _ndb" lass="tor(m-onterol> placehld er="optional>
-  <     < s <bdiv>
-<       < <bdiv>
-<       < <biv class="tor(m-ext- mt-2>
-Leavemake/model/ blankto amatch everyaircraft ; leavemear/serial rblankto anot  <     < s <retirict bycheatafield. LrgetrPDFs amaychke/ a few seontdsto an dex ft trPploadM./div>
-<       <tdiv>
-<       <tiv class="todal"-foot<r><<     < s <button cype="button" dlass="btn atn-woutline-seontdary>data-bs-tdismis="todal"" Cnce l</utton>
-<     < s <button cype="biubmi="class="btn btn-warning fw-bold ></ class="bi bi-upload"></i> Upload </utton>
-<     < s/div>
-<      /div>
-<    b/or(m
-   /div>
-<pdiv>
-<% endblock %}
-{
+<div class="modal fade" id="uploadManualModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{{ url_for('manuals.manuals_upload') }}" enctype="multipart/form-data">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Upload Manual</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2">
+            <label class="form-label small mb-0">PDF File</label>
+            <input type="file" name="manual_file" accept="application/pdf" required class="form-control">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small mb-0">Title</label>
+            <input type="text" name="title" class="form-control" placeholder="e.g. Cessna 172 Illustrated Parts Catalog">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small mb-0">Type</label>
+            <select name="manual_type" class="form-select">
+              <option value="maintenance">Maintenance</option>
+              <option value="parts">Illustrated Parts Catalog</option>
+            </select>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label small mb-0">Make</label>
+              <input type="text" name="make" class="form-control" placeholder="e.g. Cessna">
+            </div>
+            <div class="col-6">
+              <label class="form-label small mb-0">Model</label>
+              <input type="text" name="model" class="form-control" placeholder="e.g. 172">
+            </div>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label small mb-0">Year Start</label>
+              <input type="number" name="year_start" class="form-control" placeholder="optional">
+            </div>
+            <div class="col-6">
+              <label class="form-label small mb-0">Year End</label>
+              <input type="number" name="year_end" class="form-control" placeholder="optional">
+            </div>
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label small mb-0">Serial Start</label>
+              <input type="text" name="serial_start" class="form-control" placeholder="optional">
+            </div>
+            <div class="col-6">
+              <label class="form-label small mb-0">Serial End</label>
+              <input type="text" name="serial_end" class="form-control" placeholder="optional">
+            </div>
+          </div>
+          <div class="form-text mt-2">Leave make/model blank to match every aircraft; leave year/serial blank to not
+            restrict by that field. Large PDFs may take a few seconds to index after upload.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning fw-bold"><i class="bi bi-upload"></i> Upload</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
