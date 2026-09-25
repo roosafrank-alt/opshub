@@ -10,7 +10,7 @@
   flight.py.
 #}
 {% macro alert_row(al, show_ack, first) %}
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not first }}">
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 p-2 mb-2 border rounded {{ 'border-danger-subtle' if show_ack else 'border-warning-subtle' }}">
   <div class="flex-grow-1" style="min-width:220px;">
     <div><strong>{{ al.plane_tag or '-' }}</strong> &middot; {{ al.scheduled_date|usdate }}{% if al.time_label %} &middot; {{ al.time_label }}{% endif %} &middot; {{ al.student_name or '(student removed)' }}{% if al.cfi_name %} with {{ al.cfi_name }}{% elif al.solo %} (solo){% endif %}</div>
     <div class="small">{{ al.reason or 'Needs review' }}</div>
@@ -47,7 +47,7 @@
 {% if hobbs_gaps %}
 <div class="card p-3 mb-4 border-danger">
   {% for g in hobbs_gaps %}
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 p-2 mb-2 border border-danger-subtle rounded">
     <div class="flex-grow-1" style="min-width:220px;">
       <div><strong>{{ g.plane_tag }}</strong> &middot; <span class="text-danger fw-bold">{{ '%.1f'|format(g.gap) }} hrs</span> of Hobbs with no flight logged</div>
       <div class="small">
@@ -89,13 +89,16 @@
 {% endif %}
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-  <h6 class="mb-0">Resolved Alerts Archive ({{ resolved_count }})</h6>
+  <button type="button" class="btn btn-link btn-sm p-0 text-muted text-decoration-none" data-bs-toggle="collapse" data-bs-target="#resolved-alerts-archive">
+    <i class="bi bi-chevron-down"></i> <span class="fw-bold text-body">Resolved Alerts Archive ({{ resolved_count }})</span>
+  </button>
   {% if resolved_count > resolved|length %}
   <a href="{{ url_for('flight.alerts_list', all=1) }}" class="btn btn-outline-secondary btn-sm">Show all {{ resolved_count }}</a>
   {% elif show_all and resolved_count > 50 %}
   <a href="{{ url_for('flight.alerts_list') }}" class="btn btn-outline-secondary btn-sm">Show latest 50</a>
   {% endif %}
 </div>
+<div class="collapse" id="resolved-alerts-archive">
 {% if resolved %}
 <div class="card">
   <div class="table-responsive">
@@ -117,4 +120,5 @@
 {% else %}
 <p class="text-muted">None yet.</p>
 {% endif %}
+</div>
 {% endblock %}
