@@ -341,6 +341,9 @@
   </div>
   <div class="flight-chip-detail" hidden>
     <div><strong>Instructor:</strong> {% if f.cfi_name %}{{ f.cfi_name.split(' ')[0] }}{% elif f.solo %}Solo{% else %}Needs CFI{% endif %}</div>
+    {#- Right here so the note is one click away (expanding the chip), not
+       two - it used to only show inside the separate "Details" popup. #}
+    {% if f.notes %}<div><strong>Note:</strong> {{ f.notes }}</div>{% endif %}
     {% if status == 'scheduled' %}
     {#- One-click forecast: fetched lazily the first time this chip is
        opened (see dashboard.html's chip-click handler), same data as the
