@@ -61,6 +61,12 @@
         <form id="sd-cancel-form" method="post" action="#" data-confirm="Cancel this scheduled flight?" data-confirm-style="danger" class="d-inline">
           <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg"></i> Cancel Flight</button>
         </form>
+        {#- A still-pending request that lost the conflict check (see the
+           red highlight + faded rest-of-calendar from _conflict_highlight_url)
+           can't just be approved as-is - this denies it the same way the
+           Pending Approval card's Deny does, but with quick-pick buttons to
+           fill in what times would actually work instead of typing them out. #}
+        <button type="button" id="sd-propose-times-btn" class="btn btn-outline-warning btn-sm d-none"><i class="bi bi-signpost-split"></i> Propose New Times</button>
         {% endif %}
         {% if session.get('student_id') and not session.get('cfi_id') %}
         <button type="button" id="sd-student-change-btn" class="btn btn-outline-warning btn-sm d-none"><i class="bi bi-chat-left-text"></i> Request Change</button>
@@ -115,6 +121,56 @@
     </div>
   </div>
 </div>
+
+{% if session.get('cfi_id') %}
+<!-- CFI/admin: Propose New Times - denies the pending request (its
+     original time doesn't work - that's why it's highlighted as a
+     conflict) and tells the student what times would work instead. Pick
+     one or more quick times; picking any at all is required so the
+     student always gets something concrete to act on. -->
+<div class="modal fade" id="proposeTimesModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-signpost-split"></i> Propose New Times</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" id="propose-times-form">
+        <div class="modal-body">
+          <p class="text-muted small">This denies the request at its current time (already in conflict) and tells the student what times would work instead on <span id="pt-day-label" class="fw-bold"></span>.</p>
+          <div class="mb-2">
+            <label class="form-label">Times that would work</label>
+            <div class="d-flex flex-wrap gap-1" id="pt-quick-times">
+              <button type="button" class="btn btn-outline-primary btn-sm pt-quick-time" data-time="8:00a">8:00a</button>
+              <button type="button" class="btn btn-outline-primary btn-sm pt-quick-time" data-time="9:30a">9:30a</button>
+              <button type="button" class="btn btn-outline-primary btn-sm pt-quick-time" data-time="11:00a">11:00a</button>
+              <button type="button" class="btn btn-outline-primary btn-sm pt-quick-time" data-time="12:30p">12:30p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm pt-quick-time" data-time="2:00p">2:00p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm pt-quick-time" data-time="3:30p">3:30p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm pt-quick-time" data-time="5:00p">5:00p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm pt-quick-time" data-time="6:30p">6:30p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm pt-quick-time" data-time="8:00p">8:00p</button>
+            </div>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Note to the student (optional)</label>
+            {#- Doubles as the actual deny reason sent to schedule_deny -
+               the quick-picked times get folded in ahead of whatever's
+               typed here right before submit (see the submit handler
+               below), same pattern as student-change-form's note field. #}
+            <textarea name="reason" id="pt-note" class="form-control" rows="2" placeholder="e.g. or any day later that week"></textarea>
+          </div>
+          <div id="pt-error" class="alert alert-danger d-none py-2 px-3 mb-0 small"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Never Mind</button>
+          <button type="submit" id="pt-submit" class="btn btn-warning fw-bold btn-sm">Send to Student</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {% if session.get('student_id') and not session.get('cfi_id') %}
 <!-- Student: Request a Change - just a note to the school, doesn't move the
@@ -386,6 +442,23 @@ document.addEventListener('click', function (evt) {
     };
   }
 
+  var proposeTimesBtn = document.getElementById('sd-propose-times-btn');
+  if (proposeTimesBtn) {
+    var isPending = el.dataset.status === 'pending_approval';
+    proposeTimesBtn.classList.toggle('d-none', !isPending);
+    proposeTimesBtn.onclick = function () {
+      var form = document.getElementById('propose-times-form');
+      form.action = el.dataset.denyUrl;
+      document.getElementById('pt-day-label').textContent = el.dataset.date || 'this day';
+      document.getElementById('pt-note').value = '';
+      document.getElementById('pt-error').classList.add('d-none');
+      ptSelectedTimes = [];
+      document.querySelectorAll('.pt-quick-time').forEach(function (b) { b.classList.remove('active', 'btn-primary'); b.classList.add('btn-outline-primary'); });
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('scheduleDetailModal')).hide();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('proposeTimesModal')).show();
+    };
+  }
+
   var modalEl = document.getElementById('scheduleDetailModal');
   var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
   modal.show();
@@ -456,6 +529,42 @@ document.getElementById('student-change-form').addEventListener('submit', functi
   if (scSelectedTimes.length) {
     noteEl.value = 'Times that work: ' + scSelectedTimes.join(', ') + (noteEl.value.trim() ? '\n' + noteEl.value.trim() : '');
   }
+});
+{% endif %}
+
+{% if session.get('cfi_id') %}
+// Propose New Times (sd-propose-times-btn above): quick-picked times the
+// school is offering instead, same multi-select-toggle pattern as
+// sc-quick-time above, folded into the deny reason right before submit.
+var ptSelectedTimes = [];
+document.addEventListener('click', function (evt) {
+  var btn = evt.target.closest('.pt-quick-time');
+  if (!btn) return;
+  var t = btn.dataset.time;
+  var idx = ptSelectedTimes.indexOf(t);
+  if (idx === -1) {
+    ptSelectedTimes.push(t);
+    btn.classList.add('active', 'btn-primary');
+    btn.classList.remove('btn-outline-primary');
+  } else {
+    ptSelectedTimes.splice(idx, 1);
+    btn.classList.remove('active', 'btn-primary');
+    btn.classList.add('btn-outline-primary');
+  }
+});
+document.getElementById('propose-times-form').addEventListener('submit', function (evt) {
+  var noteEl = document.getElementById('pt-note');
+  var errEl = document.getElementById('pt-error');
+  if (!ptSelectedTimes.length) {
+    evt.preventDefault();
+    errEl.textContent = 'Pick at least one time that would work.';
+    errEl.classList.remove('d-none');
+    return;
+  }
+  errEl.classList.add('d-none');
+  noteEl.value = 'Conflicts with another booking. Times that would work instead: ' + ptSelectedTimes.join(', ') +
+    (noteEl.value.trim() ? ' - ' + noteEl.value.trim() : '');
+  ptSelectedTimes = [];
 });
 {% endif %}
 </script>
