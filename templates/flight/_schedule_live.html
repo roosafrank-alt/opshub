@@ -25,8 +25,7 @@
      data-id="{{ f.id }}"
      data-status="{{ f.status }}"
      data-plane="{{ f.plane_tag }}"
-     data-student="{{ f.student_name }}"
-     data-cfi="{{ f.cfi_name or '' }}"
+     {% if session.get('cfi_id') or session.get('is_master_admin') %}data-student="{{ f.student_name }}" data-cfi="{{ f.cfi_name or '' }}"{% endif %}
      data-solo="{{ '1' if f.solo else '' }}"
      data-needs-review="{{ '1' if f.needs_review_flag else '' }}"
      data-review-reason="{{ f.review_reason or '' }}"
@@ -53,7 +52,7 @@
     {%- if f.status == 'in_progress' %}<i class="bi bi-stopwatch" title="In progress"></i> {% elif f.status == 'completed' %}<i class="bi bi-check-circle" title="Completed"></i> {% endif -%}
     <span class="sb-time">{{ f.short_time or '--' }}</span> {{ f.plane_tag }}
   </div>
-  {% if not compact %}
+  {% if not compact and (session.get('cfi_id') or session.get('is_master_admin')) %}
   <div class="text-truncate sb-line2">{{ f.student_name }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}</div>
   {% endif %}
 </div>
@@ -77,8 +76,7 @@
      data-id="{{ f.id }}"
      data-status="{{ f.status }}"
      data-plane="{{ f.plane_tag }}"
-     data-student="{{ f.student_name }}"
-     data-cfi="{{ f.cfi_name or '' }}"
+     {% if session.get('cfi_id') or session.get('is_master_admin') %}data-student="{{ f.student_name }}" data-cfi="{{ f.cfi_name or '' }}"{% endif %}
      data-solo="{{ '1' if f.solo else '' }}"
      data-needs-review="{{ '1' if f.needs_review_flag else '' }}"
      data-review-reason="{{ f.review_reason or '' }}"
@@ -102,7 +100,7 @@
     {%- if f.status == 'in_progress' %}<i class="bi bi-stopwatch" title="In progress"></i> {% elif f.status == 'completed' %}<i class="bi bi-check-circle" title="Completed"></i> {% endif -%}
     <strong>{{ f.short_time or '--' }}</strong> {{ f.plane_tag }}
   </div>
-  <div class="text-truncate day-timeline-block-line2">{{ f.student_name }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}</div>
+  {% if session.get('cfi_id') or session.get('is_master_admin') %}<div class="text-truncate day-timeline-block-line2">{{ f.student_name }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}</div>{% endif %}
 </div>
 {% endmacro %}
 
@@ -122,8 +120,7 @@
      data-id="{{ f.id }}"
      data-status="{{ f.status }}"
      data-plane="{{ f.plane_tag }}"
-     data-student="{{ f.student_name }}"
-     data-cfi="{{ f.cfi_name or '' }}"
+     {% if session.get('cfi_id') or session.get('is_master_admin') %}data-student="{{ f.student_name }}" data-cfi="{{ f.cfi_name or '' }}"{% endif %}
      data-solo="{{ '1' if f.solo else '' }}"
      data-needs-review="{{ '1' if f.needs_review_active else '' }}"
      data-review-reason="{{ f.review_reason or '' }}"
@@ -147,7 +144,7 @@
     {%- if f.status == 'in_progress' %}<i class="bi bi-stopwatch" title="In progress"></i> {% elif f.status == 'completed' %}<i class="bi bi-check-circle" title="Completed"></i> {% endif -%}
     <span class="sb-time">{{ f.short_time or '--' }}</span> {{ f.plane_tag }}
   </div>
-  <div class="text-truncate sb-line2">{{ f.student_name }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}</div>
+  {% if session.get('cfi_id') or session.get('is_master_admin') %}<div class="text-truncate sb-line2">{{ f.student_name }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}</div>{% endif %}
   {%- if style.height_px >= 38 %}
   <div class="text-truncate sb-line3">{% if f.end_time_label %}to {{ f.end_time_label }} &middot; {% endif %}{{ '%g'|format(f.duration_hours or 1.5) }} hr</div>
   {%- endif %}
@@ -315,8 +312,9 @@
 {% set is_past = today_str and f.scheduled_date < today_str %}
 {% set is_today = today_str and f.scheduled_date == today_str %}
 <tr class="schedule-block {{ 'schedule-block-new' if is_new }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-highlight' if is_hl }} {{ 'schedule-block-dimmed' if is_dim }} {{ 'schedule-day-break' if new_day }} {{ 'schedule-row-past' if is_past and not is_hl }} {{ 'schedule-row-today' if is_today }}" role="button" style="cursor:pointer; {{ 'opacity:0.6;' if f.status == 'completed' and not is_hl }}"
-     data-id="{{ f.id }}" data-status="{{ f.status }}" data-plane="{{ f.plane_tag }}" data-student="{{ f.student_name }}"
-     data-cfi="{{ f.cfi_name or '' }}" data-solo="{{ '1' if f.solo else '' }}" data-needs-review="{{ '1' if f.needs_review_flag else '' }}"
+     data-id="{{ f.id }}" data-status="{{ f.status }}" data-plane="{{ f.plane_tag }}"
+     {% if session.get('cfi_id') or session.get('is_master_admin') %}data-student="{{ f.student_name }}" data-cfi="{{ f.cfi_name or '' }}"{% endif %}
+     data-solo="{{ '1' if f.solo else '' }}" data-needs-review="{{ '1' if f.needs_review_flag else '' }}"
      data-review-reason="{{ f.review_reason or '' }}" data-date="{{ f.scheduled_date }}" data-time="{{ f.time_label or '' }}"
      data-time24="{{ f.scheduled_time or '' }}" data-endtime="{{ f.end_time_label or '' }}"
      data-duration="{{ f.duration_hours if f.duration_hours is not none else '' }}" data-notes="{{ f.notes or '' }}"
@@ -329,7 +327,7 @@
   {% if show_date %}<td data-label="Date"><small class="{{ 'fw-bold' if new_day }}">{{ f.scheduled_date|usdate }}</small>{% if new_day and is_today %} <span class="badge bg-warning text-dark">Today</span>{% endif %}</td>{% endif %}
   <td data-label="Time"><small>{{ f.time_label or 'Not set' }}</small></td>
   <td data-label="Plane"><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:{{ f.display_color }};vertical-align:-1px;{% if f.cfi_display_color %}border-left:4px solid {{ f.cfi_display_color }};{% endif %}" title="Plane color{{ ' (neon = solo)' if f.solo }}{{ ' / instructor stripe' if f.cfi_display_color }}"></span> {{ f.plane_tag }}</td>
-  <td class="stack-full" data-label="Student / Instructor">{{ f.student_name }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}</td>
+  <td class="stack-full" data-label="Student / Instructor">{% if session.get('cfi_id') or session.get('is_master_admin') %}{{ f.student_name }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% endif %}</td>
   <td data-label="Status">
     {% if f.status == 'completed' %}<span class="badge bg-success">Complete</span>
     {% elif f.status == 'in_progress' %}<span class="badge bg-warning text-dark">In Progress</span>
@@ -420,6 +418,7 @@
       {% endfor %}
     </select>
   </div>
+  {% if session.get('cfi_id') or session.get('is_master_admin') %}
   <div class="col-auto">
     <label class="form-label small mb-0">Instructor</label>
     <select name="cfi_id" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -429,6 +428,7 @@
       {% endfor %}
     </select>
   </div>
+  {% endif %}
   {% if view == 'custom' %}
   <div class="col-auto"><button class="btn btn-primary btn-sm">Apply</button></div>
   {% endif %}
@@ -627,12 +627,14 @@
     </span>
     {% endfor %}
   </div>
+  {% if session.get('cfi_id') or session.get('is_master_admin') %}
   <div class="small fw-bold text-muted mb-1">Instructors</div>
   <div class="d-flex flex-wrap gap-3 align-items-center small">
     {% for name, color in instructor_legend.items() %}
     <span><span style="display:inline-block;width:6px;height:14px;border-radius:2px;background:{{ color }};vertical-align:-2px;"></span> {{ name }}</span>
     {% endfor %}
   </div>
+  {% endif %}
   <p class="text-muted small mb-1 mt-2"><i class="bi bi-exclamation-triangle-fill text-warning"></i> <span style="outline:2px solid #dc3545; outline-offset:2px; padding:0 3px;">Red-outlined</span> blocks are flagged for review - either an over-currency solo or a dual flight with no instructor assigned yet. Click it and edit to assign an instructor and clear the flag.</p>
   <p class="text-muted small mb-1 mt-2">Solo bookings use the plane's color in neon and have no instructor stripe. Admins pick plane colors in Manage &gt; Planes &gt; Edit, and instructor colors on each CFI; a color can only belong to one plane or one instructor.</p>
   <p class="text-muted small mb-0">Each block shows the start time and plane (then student / instructor). Busy days show the first few and a "+N more" link to that day. Click a block for full details. Use the Plane/Instructor filters above to narrow the calendar down to just one.</p>

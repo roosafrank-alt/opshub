@@ -28,8 +28,8 @@
           <tr><th style="width:35%;">Date</th><td id="sd-date"></td></tr>
           <tr><th>Time</th><td id="sd-time"></td></tr>
           <tr><th>Duration</th><td id="sd-duration"></td></tr>
-          <tr><th>Student</th><td id="sd-student"></td></tr>
-          <tr><th>Instructor</th><td id="sd-cfi"></td></tr>
+          <tr id="sd-student-row"><th>Student</th><td id="sd-student"></td></tr>
+          <tr id="sd-cfi-row"><th>Instructor</th><td id="sd-cfi"></td></tr>
           <tr><th>Status</th><td id="sd-status"></td></tr>
           <tr><th>Notes</th><td id="sd-notes"></td></tr>
           <tr id="sd-private-notes-row" class="d-none"><th><i class="bi bi-eye-slash"></i> Private Notes</th><td id="sd-private-notes" class="text-danger-emphasis"></td></tr>
@@ -123,8 +123,16 @@ document.addEventListener('click', function (evt) {
   }
   document.getElementById('sd-time').textContent = timeText;
   document.getElementById('sd-duration').textContent = el.dataset.duration ? (el.dataset.duration + ' hrs') : '(default)';
-  document.getElementById('sd-student').textContent = el.dataset.student;
-  document.getElementById('sd-cfi').textContent = el.dataset.cfi ? el.dataset.cfi : (el.dataset.solo ? 'Solo (no instructor)' : 'Not assigned yet');
+  {#- A student viewer's blocks (see _schedule_live.html) don't carry
+     data-student/data-cfi at all, so those rows are hidden here rather
+     than showing "undefined" or a guessed (possibly wrong) fallback. #}
+  var namesKnown = el.dataset.student !== undefined;
+  document.getElementById('sd-student-row').classList.toggle('d-none', !namesKnown);
+  document.getElementById('sd-cfi-row').classList.toggle('d-none', !namesKnown);
+  if (namesKnown) {
+    document.getElementById('sd-student').textContent = el.dataset.student;
+    document.getElementById('sd-cfi').textContent = el.dataset.cfi ? el.dataset.cfi : (el.dataset.solo ? 'Solo (no instructor)' : 'Not assigned yet');
+  }
   document.getElementById('sd-notes').textContent = el.dataset.notes ? el.dataset.notes : '—';
   var privRow = document.getElementById('sd-private-notes-row');
   if (el.dataset.privateNotes) {
