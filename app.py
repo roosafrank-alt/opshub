@@ -1985,6 +1985,32 @@ def project_status(project_id):
     return redirect(url_for("project_detail", project_id=project_id))
 
 
+_PROJECT_CODE_RE = re.compile(r"^(\d{2})-(\d+)$")
+
+
+def _parse_project_code(code):
+    """('26-003') -> (26, 3), or None if it isn't the auto YY-NNN format
+    gen_project_code() generates (a hand-typed custom code isn't part of
+    the auto-numbering sequence, so it's never a renumbering candidate)."""
+    m = _PROJECT_CODE_RE.match(code or "")
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def _projects_after(conn, yy, num):
+    """Active (non-deleted) projects in year `yy` numbered after `num`, as
+    (id, num) pairs sorted lowest number first - the ones a
+    renumber-after-delete would shift down by one to close the gap left at
+    `num`."""
+    rows = conn.execute("SELECT id, code FROM projects WHERE deleted_at IS NULL AND code LIKE ?",
+                        (f"{yy:02d}-%",)).fetchall()
+    after = []
+    for r in rows:
+        parsed = _parse_project_code(r["code"])
+        if parsed and parsed[0] == yy and parsed[1] > num:
+            after.append((r["id"], parsed[1]))
+    return sorted(after, key=lambda x: x[1])
+
+
 @app.route("/projects/<int:project_id>/delete", methods=["POST"])
 @shop_role_required('admin')
 def project_delete(project_id):
@@ -2009,14 +2035,70 @@ def project_trash(project_id):
     """Soft-deletes a project: hidden everywhere except Recently Deleted,
     where it can be restored or permanently purged."""
     conn = get_db()
-    project = conn.execute("SELECT name FROM projects WHERE id = ?", (project_id,)).fetchone()
+    project = conn.execute("SELECT name, code FROM projects WHERE id = ?", (project_id,)).fetchone()
     if not project:
         conn.close()
         abort(404)
     conn.execute("UPDATE projects SET deleted_at = ? WHERE id = ?", (now_iso(), project_id))
     conn.commit()
+    parsed = _parse_project_code(project["code"])
+    after = _projects_after(conn, *parsed) if parsed else []
     conn.close()
     flash(f"Project '{project['name']}' moved to Recently Deleted.", "success")
+    if after:
+        return redirect(url_for("project_renumber_confirm", yy=parsed[0], num=parsed[1]))
+    return redirect(url_for("projects_list"))
+
+
+@app.route("/projects/renumber")
+@shop_role_required('admin')
+def project_renumber_confirm():
+    """Opt-in prompt after deleting a project, offered only when a gap was
+    actually left in the auto-numbering: renumbering shifts every later
+    project's code down by one to close it, which is exactly what a
+    printed TASK- QR label (see project_labor_codes.html) has that
+    project's OLD code baked into - a project involved here needs new
+    labels printed after this. Never automatic; the flash on the previous
+    page already confirmed the delete itself."""
+    yy = request.args.get("yy", type=int)
+    num = request.args.get("num", type=int)
+    if yy is None or num is None:
+        abort(400)
+    conn = get_db()
+    ids = [pid for pid, _n in _projects_after(conn, yy, num)]
+    after = []
+    if ids:
+        rows = conn.execute("SELECT id, code, name FROM projects WHERE id IN (%s)" % ",".join("?" * len(ids)),
+                            ids).fetchall()
+        after = sorted(rows, key=lambda p: _parse_project_code(p["code"])[1])
+    conn.close()
+    if not after:
+        return redirect(url_for("projects_list"))
+    return render_template("project_renumber_confirm.html", yy=yy, num=num, after=after)
+
+
+@app.route("/projects/renumber", methods=["POST"])
+@shop_role_required('admin')
+def project_renumber_apply():
+    yy = request.form.get("yy", type=int)
+    num = request.form.get("num", type=int)
+    if yy is None or num is None:
+        abort(400)
+    conn = get_db()
+    # The deleted project is soft-deleted, not gone - its row still holds
+    # this exact code (UNIQUE across every project, deleted or not), so
+    # that slot has to be freed before anything can move into it. Mangling
+    # it here (not at delete time) keeps a plain trash/restore untouched
+    # for the far more common case where nobody renumbers.
+    conn.execute("UPDATE projects SET code = code || '-old' || id WHERE deleted_at IS NOT NULL AND code = ?",
+                 (f"{yy:02d}-{num:03d}",))
+    after = _projects_after(conn, yy, num)  # lowest number first - shift in this order so no code ever collides
+    for pid, n in after:
+        conn.execute("UPDATE projects SET code = ? WHERE id = ?", (f"{yy:02d}-{n - 1:03d}", pid))
+    conn.commit()
+    conn.close()
+    flash(f"Renumbered {len(after)} project{'s' if len(after) != 1 else ''} to close the gap. "
+          "Reprint any TASK- QR labels for them - the old ones won't scan anymore.", "warning")
     return redirect(url_for("projects_list"))
 
 
@@ -2024,14 +2106,22 @@ def project_trash(project_id):
 @shop_role_required('admin')
 def project_restore(project_id):
     conn = get_db()
-    project = conn.execute("SELECT name FROM projects WHERE id = ?", (project_id,)).fetchone()
+    project = conn.execute("SELECT name, code FROM projects WHERE id = ?", (project_id,)).fetchone()
     if not project:
         conn.close()
         abort(404)
-    conn.execute("UPDATE projects SET deleted_at = NULL WHERE id = ?", (project_id,))
+    # A code that no longer parses as plain YY-NNN was mangled by
+    # project_renumber_apply to free its slot for another project - that
+    # slot's taken now, so this one gets a fresh number instead of coming
+    # back with the leftover mangled code.
+    new_code = None if _parse_project_code(project["code"]) else gen_project_code(conn)
+    if new_code:
+        conn.execute("UPDATE projects SET deleted_at = NULL, code = ? WHERE id = ?", (new_code, project_id))
+    else:
+        conn.execute("UPDATE projects SET deleted_at = NULL WHERE id = ?", (project_id,))
     conn.commit()
     conn.close()
-    flash(f"Project '{project['name']}' restored.", "success")
+    flash(f"Project '{project['name']}' restored." + (f" Given a new code: {new_code}." if new_code else ""), "success")
     return redirect(url_for("trash_page"))
 
 

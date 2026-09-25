@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Renumber Projects - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card p-4">
+  <h4><i class="bi bi-sort-numeric-down"></i> Close the numbering gap?</h4>
+  <p class="text-muted">Deleting <code class="text-primary">{{ '%02d'|format(yy) }}-{{ '%03d'|format(num) }}</code> left a gap. These {{ after|length }} project{{ 's' if after|length != 1 }} could shift down by one to close it and keep the numbers continuous:</p>
+  <table class="table table-sm">
+    <thead><tr><th>Current</th><th></th><th>Would become</th><th>Name</th></tr></thead>
+    <tbody>
+      {% for p in after %}
+      <tr>
+        <td><code>{{ p.code }}</code></td>
+        <td><i class="bi bi-arrow-right text-muted"></i></td>
+        <td><code class="text-primary">{{ '%02d'|format(yy) }}-{{ '%03d'|format((p.code.split('-')[1]|int) - 1) }}</code></td>
+        <td>{{ p.name }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle-fill"></i> <strong>Before you do this:</strong> if any of these projects have a printed TASK- QR code stuck up in the shop (Project &gt; Print Labor Codes), that label has the OLD code on it and will stop scanning once renumbered - it'll need reprinting. If none of them do, this is safe to click.
+  </div>
+  <div class="d-flex justify-content-between">
+    <a href="{{ url_for('projects_list') }}" class="btn btn-outline-secondary">Leave numbering as-is</a>
+    <form method="post" action="{{ url_for('project_renumber_apply') }}" data-confirm="Renumber these {{ after|length }} project{{ 's' if after|length != 1 }}? Reprint any of their TASK- QR labels afterward." data-confirm-style="warning">
+      <input type="hidden" name="yy" value="{{ yy }}">
+      <input type="hidden" name="num" value="{{ num }}">
+      <button class="btn btn-warning fw-bold"><i class="bi bi-sort-numeric-down"></i> Renumber to close the gap</button>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}
