@@ -98,7 +98,18 @@
    Schedule or Upcoming. #}
 {% if unconfirmed_flights or recently_cancelled_flights %}
 <div class="card p-3 mb-3">
-  <h6 class="mb-2"><i class="bi bi-binoculars"></i> Needs a Look</h6>
+  {#- Collapsed by default, same dash-collapse-toggle/body mechanism as
+     Today's Schedule/Upcoming below (see dashboard.html's click handler
+     and dashLoadOpen/dashSaveOpen) - "needsalook" is its own remembered
+     key so opening/closing it doesn't affect the others. #}
+  <button type="button" class="dash-collapse-toggle d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0" data-collapse="needsalook">
+    <h6 class="mb-0"><i class="bi bi-binoculars"></i> Needs a Look</h6>
+    <span class="d-flex align-items-center gap-2">
+      <span class="badge bg-secondary fs-6">{{ unconfirmed_flights|length + recently_cancelled_flights|length }}</span>
+      <i class="bi bi-chevron-right dash-collapse-chevron"></i>
+    </span>
+  </button>
+  <div class="dash-collapse-body mt-2" data-collapse-body="needsalook" hidden>
   {% if unconfirmed_flights %}
   <div class="small text-muted fw-bold mb-1">Unconfirmed ({{ unconfirmed_flights|length }})</div>
   {% for u in unconfirmed_flights %}
@@ -128,6 +139,7 @@
   </a>
   {% endfor %}
   {% endif %}
+  </div>
 </div>
 {% endif %}
 
