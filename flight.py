@@ -4334,6 +4334,24 @@ def _cfi_active_flights_widget():
         return {}
 
 
+@flight_bp.route("/cfis/active-flights-status")
+@cfi_required
+def cfi_active_flights_status():
+    """Just the ids of this CFI's currently-running flights (plus each
+    one's pause state), as JSON - polled by the floating widget
+    (_active_flight_widget.html) so it notices when the flight it's showing
+    has since been paused/resumed/ended from elsewhere (another tab, another
+    device, a session-alert auto-close) and syncs up instead of ticking on
+    as an "independent" timer that's lost touch with the real flight."""
+    conn = get_db()
+    rows = conn.execute(
+        """SELECT id, paused_at, paused_seconds FROM flights
+           WHERE cfi_id = ? AND started_at IS NOT NULL AND ended_at IS NULL AND stopped_at IS NULL""",
+        (session["cfi_id"],)).fetchall()
+    conn.close()
+    return jsonify({"flights": [dict(r) for r in rows]})
+
+
 @flight_bp.context_processor
 def _student_notification_count():
     """Unread count for the student's own Alerts nav badge - see
