@@ -3700,7 +3700,7 @@ def schedule_cancel(scheduled_id):
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/start", methods=["POST"])
-@cfi_required
+@login_required
 def schedule_start(scheduled_id):
     """Starts the flight clock right from a scheduled booking: creates the
     flights row now (pre-filled from the booking, and from the plane's
@@ -3708,13 +3708,24 @@ def schedule_start(scheduled_id):
     and marks the booking in_progress so it drops off the upcoming list and
     stops blocking new bookings. The instructor finishes it later from the
     active-flight page, which is what stamps ended_at and computes the
-    billable instructor time."""
+    billable instructor time.
+
+    Any CFI (not just the one assigned) or a master admin can start a
+    booking, same as before - but a solo booking has no instructor at all,
+    so the student flying it has to be able to press Start themselves too
+    (see _can_end_flight, which grants them the same exception for ending
+    it)."""
     conn = get_db()
     sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
     if not sched or sched["status"] != "scheduled":
         conn.close()
         flash("That booking is no longer available to start (already started, flown, or cancelled).", "danger")
         return redirect(url_for("flight.schedule_calendar"))
+    if not (session.get("cfi_id") or session.get("is_master_admin")
+            or (sched["solo"] and session.get("student_id") == sched["student_id"])):
+        conn.close()
+        flash("Only a CFI, an admin, or the student (on a solo flight) can start this flight.", "danger")
+        return redirect(request.referrer or url_for("flight.schedule_calendar"))
     med_problem = _cfi_medical_problem(conn, sched["cfi_id"], date.today().isoformat())
     if med_problem:
         conn.close()
