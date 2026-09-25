@@ -54,7 +54,7 @@
         {% elif key == 'oil' %}
         <div class="col-6 col-md-3"><input type="text" inputmode="decimal" name="oil_qts" class="form-control form-control-sm" placeholder="Qts added / on dipstick" value="{{ form.get('oil_qts') if form else c.get('qts', '') }}"></div>
         {% endif %}
-        <div class="col"><input type="text" name="{{ key }}_note" class="form-control form-control-sm" placeholder="Note (required if Issue)" value="{{ form.get(key ~ '_note') if form else c.get('note', '') }}"></div>
+        <div class="col"><input type="text" name="{{ key }}_note" id="{{ key }}-note" class="form-control form-control-sm" placeholder="Note (required if Issue)" value="{{ form.get(key ~ '_note') if form else c.get('note', '') }}" {{ 'required' if st == 'issue' }}></div>
       </div>
       <div class="form-check mt-1 intake-addr">
         <input class="form-check-input" type="checkbox" name="{{ key }}_address" value="1" id="{{ key }}-addr" {{ 'checked' if (form and form.get(key ~ '_address')) or (not form and (c.get('address') or not c)) }}>
@@ -102,9 +102,19 @@
 {% block scripts %}
 <script>
 (function () {
+  // Marking a check "Issue" with no note is the most common reason Save
+  // bounces you back to the top of this sheet with a red banner instead of
+  // opening the project - making the note required right when Issue is
+  // picked catches that before submit, with the browser jumping straight
+  // to the empty field instead of a full round trip to find out why.
   document.querySelectorAll('.intake-check').forEach(function (row) {
+    var noteInput = row.querySelector('input[type=text][id$="-note"]');
     row.querySelectorAll('input[type=radio]').forEach(function (r) {
-      r.addEventListener('change', function () { row.classList.toggle('is-issue', r.value === 'issue' && r.checked); });
+      r.addEventListener('change', function () {
+        var isIssue = r.value === 'issue' && r.checked;
+        row.classList.toggle('is-issue', isIssue);
+        if (noteInput) noteInput.required = isIssue;
+      });
     });
   });
   document.querySelectorAll('.intake-more').forEach(function (btn) {
