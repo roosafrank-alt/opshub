@@ -551,11 +551,16 @@ function dashSaveOpen(key, open) {
   var region = document.getElementById('dashboard-live-region');
   if (!region) return;
   var saved = dashLoadOpen();
+  // Explicit true/false from a past click always wins over a section's
+  // own default (only "Upcoming" starts open server-side) - so someone who
+  // collapsed Upcoming before still finds it collapsed next visit, and
+  // someone who opened Today's Schedule still finds that open too.
   Object.keys(saved).forEach(function (key) {
-    if (!saved[key]) return;
     var toggle = region.querySelector('.dash-collapse-toggle[data-collapse="' + key + '"]');
     var body = region.querySelector('[data-collapse-body="' + key + '"]');
-    if (toggle && body) { toggle.classList.add('open'); body.hidden = false; }
+    if (!toggle || !body) return;
+    toggle.classList.toggle('open', !!saved[key]);
+    body.hidden = !saved[key];
   });
   dashCheckNewNotams(region);
 })();

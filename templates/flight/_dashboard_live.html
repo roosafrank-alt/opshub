@@ -466,14 +466,17 @@
   <hr class="my-3">
   {% endif %}
 
-  <button type="button" class="dash-collapse-toggle d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0 {{ 'mb-2' if upcoming_future_days else '' }}" data-collapse="upcoming">
+  <button type="button" class="dash-collapse-toggle open d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0 {{ 'mb-2' if upcoming_future_days else '' }}" data-collapse="upcoming">
     <h6 class="mb-0"><i class="bi bi-calendar-week"></i> Upcoming</h6>
     <span class="d-flex align-items-center gap-2">
       <span class="badge bg-secondary fs-6">{{ upcoming_future_days|length }} day{{ 's' if upcoming_future_days|length != 1 }}</span>
       <i class="bi bi-chevron-right dash-collapse-chevron"></i>
     </span>
   </button>
-  <div class="dash-collapse-body" data-collapse-body="upcoming" hidden>
+  {#- Upcoming is the only section that starts expanded (see the dashboard
+     JS's dashLoadOpen/dashSaveOpen) - Today's Schedule and Recent Flights
+     still start closed to keep the dashboard compact on load. #}
+  <div class="dash-collapse-body" data-collapse-body="upcoming">
     {% for day in upcoming_future_days %}
     {% if not loop.first %}<hr class="my-3">{% endif %}
     <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
