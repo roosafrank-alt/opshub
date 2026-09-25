@@ -233,8 +233,11 @@
   <div class="text-muted small font-monospace text-end" style="font-variant-numeric: tabular-nums;">
     <div><span id="dash-zulu-clock">--:--:--Z</span> <span class="text-muted">/</span> <span id="dash-local-clock">--:--:--</span></div>
     {% if sun_times %}
-    <div><span class="text-uppercase" style="font-size:.65rem;">Sun</span> <i class="bi bi-sunrise"></i> {{ sun_times.sunrise or '-' }} ({{ sun_times.sunrise_z or '-' }}) <span class="mx-1">&middot;</span> <i class="bi bi-sunset"></i> {{ sun_times.sunset or '-' }} ({{ sun_times.sunset_z or '-' }})</div>
-    <div title="Civil twilight - when it's still light enough to fly without lights/night currency, roughly 30 min before sunrise and after sunset"><span class="text-uppercase" style="font-size:.65rem;">Civil Twilight</span> <i class="bi bi-brightness-alt-low"></i> {{ sun_times.civil_begin or '-' }} ({{ sun_times.civil_begin_z or '-' }}) <span class="mx-1">&middot;</span> <i class="bi bi-brightness-alt-high"></i> {{ sun_times.civil_end or '-' }} ({{ sun_times.civil_end_z or '-' }})</div>
+    <div>
+      <span class="text-uppercase" style="font-size:.65rem;">Sun</span> <i class="bi bi-sunrise"></i> {{ sun_times.sunrise or '-' }} ({{ sun_times.sunrise_z or '-' }}) <span class="mx-1">&middot;</span> <i class="bi bi-sunset"></i> {{ sun_times.sunset or '-' }} ({{ sun_times.sunset_z or '-' }})
+      <span class="mx-2 text-muted">|</span>
+      <span title="Civil twilight - when it's still light enough to fly without lights/night currency, roughly 30 min before sunrise and after sunset"><span class="text-uppercase" style="font-size:.65rem;">Civil Twilight</span> <i class="bi bi-brightness-alt-low"></i> {{ sun_times.civil_begin or '-' }} ({{ sun_times.civil_begin_z or '-' }}) <span class="mx-1">&middot;</span> <i class="bi bi-brightness-alt-high"></i> {{ sun_times.civil_end or '-' }} ({{ sun_times.civil_end_z or '-' }})</span>
+    </div>
     {% endif %}
   </div>
 </div>
