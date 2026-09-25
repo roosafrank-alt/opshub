@@ -552,9 +552,9 @@ function dashSaveOpen(key, open) {
   if (!region) return;
   var saved = dashLoadOpen();
   // Explicit true/false from a past click always wins over a section's
-  // own default (only "Upcoming" starts open server-side) - so someone who
-  // collapsed Upcoming before still finds it collapsed next visit, and
-  // someone who opened Today's Schedule still finds that open too.
+  // own default (only "Today's Schedule" starts open server-side) - so
+  // someone who collapsed it before still finds it collapsed next visit,
+  // and someone who opened Upcoming still finds that open too.
   Object.keys(saved).forEach(function (key) {
     var toggle = region.querySelector('.dash-collapse-toggle[data-collapse="' + key + '"]');
     var body = region.querySelector('[data-collapse-body="' + key + '"]');

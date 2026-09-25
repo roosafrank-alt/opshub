@@ -1276,11 +1276,10 @@ def _dashboard_context(conn, cfi, student):
             WHERE f.started_at IS NOT NULL AND f.ended_at IS NULL
             ORDER BY f.started_at
         """).fetchall()
-        # LIMIT is just a sanity cap, not a real page size - Upcoming groups
-        # everything it gets by day (below), so a low limit was quietly
-        # cutting whole days off the bottom of the list on a busy school
-        # even though the exact same bookings show fine on the Schedule
-        # calendar, which has no such cap.
+        # No cap - Upcoming groups everything it gets by day (below), so any
+        # limit here was quietly cutting whole days off the bottom of the
+        # list on a busy school even though the exact same bookings show
+        # fine on the Schedule calendar, which has no such cap either.
         upcoming = conn.execute("""
             SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name, c.color as cfi_color
             FROM scheduled_flights sf
@@ -1290,7 +1289,6 @@ def _dashboard_context(conn, cfi, student):
             WHERE sf.status = 'scheduled' AND sf.scheduled_date >= ?
               AND (? IS NULL OR sf.cfi_id = ?)
             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
-            LIMIT 300
         """, (date.today().strftime("%Y-%m-%d"), mine_id, mine_id)).fetchall()
         upcoming = _with_dashboard_row_fields(upcoming)
         for u in upcoming:
