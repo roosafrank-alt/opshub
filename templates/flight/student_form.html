@@ -116,7 +116,11 @@
 {% endif %}
 <div class="card p-4">
   <h4>{{ 'Edit Student' if student else 'New Student' }}</h4>
-  <form method="post">
+  {#- id'd so the "How They Usually Pay" field (moved under the Account
+     card's own header below - see the form="student-form" select there)
+     can still submit with this form even though it no longer sits inside
+     these <form> tags. #}
+  <form method="post" id="student-form">
     <div class="mb-3">
       <label class="form-label">Full Name *</label>
       <input type="text" name="name" class="form-control" value="{{ student.name if student else '' }}" required autofocus>
@@ -288,15 +292,21 @@
     {% endif %}
     </div>
 
+    {% if not student %}
+    {#- A brand-new student has no Account card yet (that only shows once
+       can_bill is known to matter - see {% if student and can_bill %}
+       below), so How They Usually Pay is set right here at creation time
+       instead; editing an existing student sets it under Account. #}
     <div class="mb-3">
       <label class="form-label">How They Usually Pay <span class="text-muted small">(shown as a hint on End Flight)</span></label>
       <select name="pay_preference" class="form-select">
         <option value="">- Not set -</option>
         {% for method in pay_preferences %}
-        <option value="{{ method }}" {{ 'selected' if student and student.pay_preference == method }}>{{ method }}</option>
+        <option value="{{ method }}">{{ method }}</option>
         {% endfor %}
       </select>
     </div>
+    {% endif %}
 
     {% if student %}
     <div class="form-check mb-3">
@@ -322,6 +332,18 @@
     {% else %}
     <span class="badge bg-light text-dark border fs-6">$0.00 balance</span>
     {% endif %}
+  </div>
+  <div class="mb-3">
+    <label class="form-label">How They Usually Pay <span class="text-muted small">(shown as a hint on End Flight)</span></label>
+    {#- form="student-form" (see that <form>'s id above) so this still
+       saves with the rest of the student edit form even though it's
+       rendered here, under Account, instead of inside those <form> tags. #}
+    <select name="pay_preference" form="student-form" class="form-select">
+      <option value="">- Not set -</option>
+      {% for method in pay_preferences %}
+      <option value="{{ method }}" {{ 'selected' if student and student.pay_preference == method }}>{{ method }}</option>
+      {% endfor %}
+    </select>
   </div>
   <p class="text-muted small mb-3">Balance updates automatically when a flight is logged (its cost is deducted) - use this to record a payment or top-up.</p>
   <form method="post" action="{{ url_for('flight.student_add_funds', student_id=student.id) }}" class="row g-2 align-items-end mb-3" data-confirm="Add $[[amount]] to {{ student.name }}'s balance?" data-confirm-title="Add Funds" data-confirm-ok="Yes, add funds" data-confirm-style="success">
