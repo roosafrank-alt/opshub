@@ -36,11 +36,13 @@ import db
 from adsb import N89_LAT, N89_LON
 
 # Dashboard triage hierarchy - most operationally urgent first. Classified
-# off the NOTAM's own classification field (FDC = the FAA's flight-data
-# category, which is how TFRs are filed) and simple keyword/contraction
-# matching on the NOTAM text, using the same standard FAA contractions
-# (RWY/TWY/IAP/APCH) pilots already read NOTAMs in - not a full NOTAM
-# parser, just enough to triage which ones need eyes first.
+# by simple keyword/contraction matching on the NOTAM text, using the same
+# standard FAA contractions (RWY/TWY/IAP/APCH) pilots already read NOTAMs
+# in - not a full NOTAM parser, just enough to triage which ones need eyes
+# first. The classification field alone isn't a safe signal: FDC covers
+# TFRs but also IAP/SID/STAR procedure amendments and other flight-data
+# changes, so an FDC NOTAM about an approach must still classify as
+# "approach", not "tfr" - only the actual flight-restriction wording does.
 CATEGORY_ORDER = ["tfr", "closure", "runway", "taxiway", "approach", "other"]
 CATEGORY_LABELS = {
     "tfr": "TFRs",
@@ -69,9 +71,8 @@ _APPROACH_RE = re.compile(r"\b(IAP|APCH|APPROACH)\b")
 
 
 def _classify_notam(core):
-    classification = (core.get("classification") or "").upper()
     text = (core.get("text") or "").upper()
-    if classification == "FDC" or "FLIGHT RESTRICTION" in text or re.search(r"\bTFR\b", text):
+    if "FLIGHT RESTRICTION" in text or re.search(r"\bTFR\b", text):
         return "tfr"
     if _CLOSURE_RE.search(text):
         return "closure"
