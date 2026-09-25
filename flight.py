@@ -1106,14 +1106,33 @@ def _plane_maint_warnings(conn):
 
 def _group_by_time(rows):
     """Groups a list of flight rows (already sorted by time - every caller
-    of this is) into one bucket per distinct time slot, so two or more
-    flights booked at the same time render as chips sharing one line
-    instead of stacking as if they were simply sequential, unrelated
-    bookings. Relies on groupby's "only groups contiguous runs" behavior,
-    which is fine here since the SQL that produced `rows` already orders
-    by time."""
-    return [{"time_label": time_label, "flights": list(group)}
-            for time_label, group in itertools.groupby(rows, key=lambda r: r["time_label"] or "Not set")]
+    of this is) into one bucket per overlapping cluster of bookings, so two
+    or more flights whose scheduled windows overlap - not just ones that
+    happen to start at the exact same minute - render as chips sharing one
+    line (each in its own plane lane) instead of one row per distinct start
+    time, which drew overlapping bookings as if they simply followed one
+    another with a gap in between. Bookings with no time at all keep the
+    old behavior of sharing a single "Not set" row with each other, since
+    there's no window to compare them against."""
+    clusters = []
+    for r in rows:
+        window = _time_window(r["scheduled_time"], r["duration_hours"])
+        prev = clusters[-1] if clusters else None
+        if window is None:
+            if prev and prev["window"] is None:
+                prev["flights"].append(r)
+                continue
+        elif prev and prev["window"] is not None and window[0] < prev["window"][1]:
+            prev["flights"].append(r)
+            prev["window"] = (prev["window"][0], max(prev["window"][1], window[1]))
+            continue
+        clusters.append({"window": window, "flights": [r]})
+    groups = []
+    for c in clusters:
+        labels = list(dict.fromkeys((f["time_label"] or "Not set") for f in c["flights"]))
+        time_label = labels[0] if len(labels) == 1 else f"{labels[0]} – {labels[-1]}"
+        groups.append({"time_label": time_label, "flights": c["flights"]})
+    return groups
 
 
 def _with_dashboard_row_fields(rows):
