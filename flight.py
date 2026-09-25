@@ -122,12 +122,15 @@ def _format_time_12h(hhmm):
     return f"{hour12}:{t.minute:02d} {'AM' if t.hour < 12 else 'PM'}"
 
 
-# A booked flight can't be started until shortly before its slot: up to
-# START_EARLY_BUFFER_MIN minutes early is fine (pre-flight, getting the
-# plane out), but anything earlier than that has to be rescheduled first so
-# the calendar, conflicts and billing reflect when it really flew. A
-# booking with no time set opens at the start of its scheduled day.
-START_EARLY_BUFFER_MIN = 30
+# A booked flight can't be started before its own slot - starting earlier
+# than that has to go through the "move to now & start" flow instead (see
+# schedule_start below and _early_start_modal.html), so the calendar,
+# conflicts and billing reflect when it really flew. No free early grace
+# window before that flow kicks in - kept as a named constant (0) since
+# _start_window's math and every template that renders it still reads
+# from here. A booking with no time set opens at the start of its
+# scheduled day.
+START_EARLY_BUFFER_MIN = 0
 
 
 def _start_window(scheduled_date, scheduled_time):
@@ -4668,7 +4671,7 @@ def schedule_start(scheduled_id):
             # that posts here without going through it.
             conn.close()
             flash(f"Not started - this flight is booked for {_slot_label(sched['scheduled_date'], sched['scheduled_time'])} "
-                  f"and can only be started from {START_EARLY_BUFFER_MIN} min before its slot. "
+                  "and can't be started before then. "
                   "If it's actually leaving now, press Start again and choose \"Move to now & start\".", "warning")
             return redirect(request.referrer or url_for("flight.schedule_calendar"))
         # The instructor confirmed it's really leaving now: move the booking

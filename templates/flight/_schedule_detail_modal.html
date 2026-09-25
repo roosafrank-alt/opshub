@@ -19,7 +19,7 @@
       </div>
       <div class="modal-body">
         <div id="sd-start-locked" class="alert alert-secondary d-none py-2 px-3 mb-2 small">
-          <i class="bi bi-clock"></i> Not time yet - Start opens <strong id="sd-start-opens"></strong> ({{ start_early_buffer_min|default(30) }} min before the slot). Leaving now anyway? Press Start and you'll be asked to move the booking to now.
+          <i class="bi bi-clock"></i> Not time yet - this flight is booked for <strong id="sd-start-opens"></strong>. Leaving now anyway? Press Start and you'll be asked to move the booking to now.
         </div>
         <div id="sd-review-alert" class="alert alert-warning d-none py-2 px-3 mb-2">
           <i class="bi bi-exclamation-triangle-fill"></i> <strong>Needs review:</strong> <span id="sd-review-reason"></span>
@@ -247,7 +247,11 @@
 {% endif %}
 
 <script>
-var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(30) }};
+{#- start_early_buffer_min is never actually passed from flight.py (this
+   default is the only place it's set) - kept at 0 to match
+   START_EARLY_BUFFER_MIN there: a flight can't be started before its own
+   slot, full stop, so there's nothing to subtract. #}
+var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(0) }};
 // Who can press Start Flight on whichever booking is open in the popup:
 // any CFI, a master admin (same as before), or - new - the student
 // themselves on their own solo booking (see data-student-id, set on the
@@ -385,9 +389,10 @@ document.addEventListener('click', function (evt) {
   var startForm = document.getElementById('sd-start-form');
   var canStart = IS_CFI_OR_ADMIN || (el.dataset.solo && MY_STUDENT_ID !== null && el.dataset.studentId === String(MY_STUDENT_ID));
   if (startForm) { startForm.action = el.dataset.startUrl; startForm.classList.toggle('d-none', !isScheduled || !canStart); }
-  // Start is only allowed from 30 min before the slot. Earlier than that the
-  // button turns amber and pressing it asks whether to move the booking to
-  // now first (_early_start_modal.html); the server enforces it too.
+  // Start is only allowed once the slot itself arrives. Earlier than that
+  // the button turns amber and pressing it asks whether to move the
+  // booking to now first (_early_start_modal.html); the server enforces
+  // it too.
   var startBtn = document.getElementById('sd-start-btn');
   var lockedNote = document.getElementById('sd-start-locked');
   if (startBtn && lockedNote) {

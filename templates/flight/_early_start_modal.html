@@ -12,7 +12,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p class="mb-2">It's booked for <strong id="es-slot"></strong>. A flight can only be started from 30 minutes before its slot (<span id="es-opens"></span>).</p>
+        <p class="mb-2">It's booked for <strong id="es-slot"></strong>, and can't be started before then.</p>
         <p class="mb-0">Is it actually leaving now? Starting it will <strong>move the booking to now (<span id="es-now"></span>)</strong> so the calendar and billing match when it really flew.</p>
       </div>
       <div class="modal-footer">
@@ -34,7 +34,6 @@
     if (!el || !window.bootstrap) return false;
     pendingForm = form;
     document.getElementById('es-slot').textContent = form.dataset.slotLabel || 'later';
-    document.getElementById('es-opens').textContent = form.dataset.opensLabel ? 'opens ' + form.dataset.opensLabel : '';
     document.getElementById('es-now').textContent = nowLabel();
     var modal = bootstrap.Modal.getOrCreateInstance(el);
     // If the Start button was inside another open modal (the Schedule's
