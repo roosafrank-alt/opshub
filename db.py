@@ -403,6 +403,10 @@ def _migrate(conn):
     conn.commit()
     conn.execute("CREATE INDEX IF NOT EXISTS idx_project_sections_project ON project_sections(project_id)")
     conn.commit()
+    proj_sect_cols = [r["name"] for r in conn.execute("PRAGMA table_info(project_sections)").fetchall()]
+    if "completed_at" not in proj_sect_cols:
+        conn.execute("ALTER TABLE project_sections ADD COLUMN completed_at TEXT")
+        conn.commit()
 
     # Master login: one users table shared by Shop Inventory and Flight
     # School. Brand new table, safe to create directly even on an existing

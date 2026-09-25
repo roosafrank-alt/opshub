@@ -999,6 +999,58 @@ def project_add_section(project_id):
     return redirect(url_for("project_detail", project_id=project_id))
 
 
+@app.route("/projects/<int:project_id>/sections/<int:section_id>/complete", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_section_complete(project_id, section_id):
+    conn = get_db()
+    section = conn.execute("SELECT id FROM project_sections WHERE id = ? AND project_id = ?",
+                           (section_id, project_id)).fetchone()
+    if not section:
+        conn.close()
+        abort(404)
+    completed = request.form.get("completed") == "1"
+    conn.execute("UPDATE project_sections SET completed_at = ? WHERE id = ?",
+                 (now_iso() if completed else None, section_id))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
+@app.route("/projects/<int:project_id>/sections/<int:section_id>/rename", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_section_rename(project_id, section_id):
+    conn = get_db()
+    section = conn.execute("SELECT id, name FROM project_sections WHERE id = ? AND project_id = ?",
+                           (section_id, project_id)).fetchone()
+    if not section:
+        conn.close()
+        abort(404)
+    new_name = request.form.get("name", "").strip()
+    if not new_name:
+        flash("Enter a name for the sub area.", "danger")
+        conn.close()
+        return redirect(url_for("project_detail", project_id=project_id))
+    clash = conn.execute("SELECT id FROM project_sections WHERE project_id = ? AND name = ? AND id != ?",
+                         (project_id, new_name, section_id)).fetchone()
+    if clash:
+        flash(f"A sub area named '{new_name}' already exists.", "danger")
+        conn.close()
+        return redirect(url_for("project_detail", project_id=project_id))
+    old_name = section["name"]
+    conn.execute("UPDATE project_sections SET name = ? WHERE id = ?", (new_name, section_id))
+    # Carries through to everything already tagged with the old name, so
+    # history and totals stay grouped together under the new name instead
+    # of splitting into two folders.
+    conn.execute("UPDATE transactions SET section = ? WHERE project_id = ? AND section = ?",
+                 (new_name, project_id, old_name))
+    conn.execute("UPDATE labor_sessions SET section = ? WHERE project_id = ? AND section = ?",
+                 (new_name, project_id, old_name))
+    conn.commit()
+    conn.close()
+    flash(f"Sub area renamed to '{new_name}'.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 @app.route("/api/scan", methods=["POST"])
 @login_required
 def api_scan():
@@ -1526,8 +1578,29 @@ def project_detail(project_id):
     for name in empty_sections:
         usage_by_section.setdefault(name, {"rows": [], "cost": 0.0})
 
-    # Named sections first (alphabetical), "General" last.
-    usage_by_section = dict(sorted(usage_by_section.items(), key=lambda kv: (kv[0] == "General", kv[0])))
+    # A section can also show up here purely because a scan was tagged with
+    # that name (transactions.section), without "Add Sub Area" ever having
+    # been used - give it a real project_sections row now so it can be
+    # checked off / renamed like any other, same as the others.
+    for name in usage_by_section:
+        if name != "General":
+            conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
+                         (project_id, name, now_iso()))
+    conn.commit()
+    section_meta = {r["name"]: {"id": r["id"], "completed_at": r["completed_at"]}
+                     for r in conn.execute("SELECT id, name, completed_at FROM project_sections WHERE project_id = ?",
+                                           (project_id,)).fetchall()}
+    for name, section_data in usage_by_section.items():
+        meta = section_meta.get(name)
+        section_data["id"] = meta["id"] if meta else None
+        section_data["completed_at"] = meta["completed_at"] if meta else None
+
+    # Open (not completed) sections first alphabetically, then completed
+    # ones at the bottom ordered by when they were completed; "General"
+    # always last since it isn't a real checkable area.
+    usage_by_section = dict(sorted(usage_by_section.items(),
+                                   key=lambda kv: (kv[0] == "General", kv[1]["completed_at"] is not None,
+                                                    kv[1]["completed_at"] or "", kv[0])))
 
     tx = conn.execute("""SELECT t.*, p.name as part_name, p.barcode as part_barcode FROM transactions t
                           JOIN parts p ON p.id = t.part_id
