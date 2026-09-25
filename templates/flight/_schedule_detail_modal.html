@@ -33,7 +33,7 @@
           <tr><th>Status</th><td id="sd-status"></td></tr>
           <tr><th>Notes</th><td id="sd-notes"></td></tr>
           <tr id="sd-private-notes-row" class="d-none"><th><i class="bi bi-eye-slash"></i> Private Notes</th><td id="sd-private-notes" class="text-danger-emphasis"></td></tr>
-          <tr><th>Scheduled by</th><td id="sd-created_by"></td></tr>
+          <tr id="sd-created-row"><th>Scheduled by</th><td id="sd-created_by"></td></tr>
         </table>
         <hr class="my-2">
         <h6 class="small text-uppercase text-muted mb-1"><i class="bi bi-cloud-sun"></i> Forecast for This Lesson</h6>
@@ -161,7 +161,13 @@ document.addEventListener('click', function (evt) {
   } else {
     reviewAlert.classList.add('d-none');
   }
-  document.getElementById('sd-created_by').textContent = el.dataset.created_by ? el.dataset.created_by : '—';
+  {#- data-created_by is only rendered for a CFI/admin viewer (see
+     _schedule_live.html/_dashboard_live.html) - students don't need to
+     know who booked a flight, so the whole row is hidden for them rather
+     than showing a blank "—". #}
+  var createdByKnown = el.dataset.created_by !== undefined;
+  document.getElementById('sd-created-row').classList.toggle('d-none', !createdByKnown);
+  if (createdByKnown) document.getElementById('sd-created_by').textContent = el.dataset.created_by || '—';
   var statusLabels = { scheduled: 'Scheduled', in_progress: 'In progress', completed: 'Completed' };
   document.getElementById('sd-status').textContent = statusLabels[el.dataset.status] || el.dataset.status;
 

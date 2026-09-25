@@ -237,7 +237,7 @@
          data-duration="{{ next_lesson.duration_hours if next_lesson.duration_hours is not none else '' }}"
          data-notes="{{ next_lesson.notes or '' }}"
          {% if session.get('cfi_id') or session.get('is_master_admin') %}data-private-notes="{{ next_lesson.private_notes or '' }}"{% endif %}
-         data-created_by="{{ next_lesson.created_by or '' }}"
+         {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ next_lesson.created_by or '' }}"{% endif %}
          data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=next_lesson.id) }}"
          data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=next_lesson.id) }}"
          data-cancel-url="{{ url_for('flight.schedule_cancel', scheduled_id=next_lesson.id) }}"
@@ -390,7 +390,7 @@
         data-time24="{{ f.scheduled_time or '' }}" data-endtime="{{ f.end_time_label or '' }}"
         data-duration="{{ f.duration_hours if f.duration_hours is not none else '' }}" data-notes="{{ f.notes or '' }}"
         {% if session.get('cfi_id') or session.get('is_master_admin') %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
-        data-created_by="{{ f.created_by or '' }}" data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
+        {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}"{% endif %} data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
         data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=f.id) }}"
         data-cancel-url="{{ url_for('flight.schedule_cancel', scheduled_id=f.id) }}"
         data-start-url="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}"
