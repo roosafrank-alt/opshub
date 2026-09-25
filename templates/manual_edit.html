@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ manual.title }} - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<div class="card p-4">
+  <h4>Edit Manual</h4>
+  <form method="post" enctype="multipart/form-data">
+    <div class="mb-2">
+      <label class="form-label small mb-0">Title</label>
+      <input type="text" name="title" class="form-control" value="{{ manual.title }}" required>
+    </div>
+    <div class="mb-2">
+      <label class="form-label small mb-0">Type</label>
+      <select name="manual_type" class="form-select">
+        <option value="maintenance" {{ 'selected' if manual.manual_type == 'maintenance' }}>Maintenance Manual</option>
+        <option value="parts" {{ 'selected' if manual.manual_type == 'parts' }}>Illustrated Parts Catalog</option>
+      </select>
+    </div>
+    <div class="row g-2 mb-2">
+      <div class="col-6">
+        <label class="form-label small mb-0">Make</label>
+        <input type="text" name="make" class="form-control" value="{{ manual.make or '' }}" placeholder="e.g. Cessna">
+      </div>
+      <div class="col-6">
+        <label class="form-label small mb-0">Model</label>
+        <input type="text" name="model" class="form-control" value="{{ manual.model or '' }}" placeholder="e.g. 172">
+      </div>
+    </div>
+    <div class="row g-2 mb-2">
+      <div class="col-6">
+        <label class="form-label small mb-0">Year Start</label>
+        <input type="number" name="year_start" class="form-control" value="{{ manual.year_start or '' }}" placeholder="optional">
+      </div>
+      <div class="col-6">
+        <label class="form-label small mb-0">Year End</label>
+        <input type="number" name="year_end" class="form-control" value="{{ manual.year_end or '' }}" placeholder="optional">
+      </div>
+    </div>
+    <div class="row g-2 mb-3">
+      <div class="col-6">
+        <label class="form-label small mb-0">Serial Start</label>
+        <input type="text" name="serial_start" class="form-control" value="{{ manual.serial_start or '' }}" placeholder="optional">
+      </div>
+      <div class="col-6">
+        <label class="form-label small mb-0">Serial End</label>
+        <input type="text" name="serial_end" class="form-control" value="{{ manual.serial_end or '' }}" placeholder="optional">
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label small mb-0">Replace PDF <span class="text-muted small">(optional - leave blank to keep the current file)</span></label>
+      <input type="file" name="manual_file" accept="application/pdf" class="form-control">
+      <div class="form-text">Uploading a new file here re-indexes it from scratch, same as a fresh upload.</div>
+    </div>
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('manuals.manual_detail', manual_id=manual.id) }}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary fw-bold">Save Changes</button>
+    </div>
+  </form>
+</div>
+</div>
+</div>
+{% endblock %}

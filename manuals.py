@@ -235,6 +235,72 @@ def manual_detail(manual_id):
                            matching_assets=matching_assets)
 
 
+@manuals_bp.route("/manuals/<int:manual_id>/edit", methods=["GET", "POST"])
+@shop_role_required('admin')
+def manual_edit(manual_id):
+    """Edit a manual's title/type/make/model/year/serial tagging after
+    upload - the file itself can optionally be swapped for a new PDF too
+    (e.g. a corrected scan), which re-indexes it from scratch. Doesn't
+    touch the file if none is chosen."""
+    conn = get_db()
+    manual = conn.execute("SELECT * FROM manuals WHERE id = ?", (manual_id,)).fetchone()
+    if not manual:
+        conn.close()
+        abort(404)
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        if not title:
+            flash("Title is required.", "danger")
+            conn.close()
+            return render_template("manual_edit.html", manual=manual)
+
+        def _int_or_none(key):
+            v = request.form.get(key, "").strip()
+            return int(v) if v.isdigit() else None
+
+        new_file = request.files.get("manual_file")
+        stored_name = manual["filename"]
+        reindex = False
+        if new_file and new_file.filename:
+            if not allowed_manual(new_file.filename):
+                flash("The replacement file has to be a PDF.", "danger")
+                conn.close()
+                return render_template("manual_edit.html", manual=manual)
+            old_name = manual["filename"]
+            stored_name = save_manual_upload(new_file)
+            try:
+                os.remove(os.path.join(UPLOAD_DIR, old_name))
+            except OSError:
+                pass
+            reindex = True
+
+        conn.execute("""
+            UPDATE manuals SET title = ?, manual_type = ?, filename = ?, make = ?, model = ?,
+                                year_start = ?, year_end = ?, serial_start = ?, serial_end = ?
+            WHERE id = ?
+        """, (title, request.form.get("manual_type", "maintenance"), stored_name,
+              request.form.get("make", "").strip() or None, request.form.get("model", "").strip() or None,
+              _int_or_none("year_start"), _int_or_none("year_end"),
+              request.form.get("serial_start", "").strip() or None,
+              request.form.get("serial_end", "").strip() or None, manual_id))
+        conn.commit()
+
+        if reindex:
+            conn.execute("""DELETE FROM manual_page_parts WHERE manual_page_id IN
+                             (SELECT id FROM manual_pages WHERE manual_id = ?)""", (manual_id,))
+            conn.execute("DELETE FROM manual_pages WHERE manual_id = ?", (manual_id,))
+            conn.commit()
+            page_count = _index_manual_pdf(conn, manual_id, os.path.join(UPLOAD_DIR, stored_name))
+            conn.execute("UPDATE manuals SET page_count = ? WHERE id = ?", (page_count, manual_id))
+            conn.commit()
+
+        conn.close()
+        flash(f"'{title}' updated.", "success")
+        return redirect(url_for("manuals.manual_detail", manual_id=manual_id))
+    conn.close()
+    return render_template("manual_edit.html", manual=manual)
+
+
 @manuals_bp.route("/manuals/<int:manual_id>/delete", methods=["POST"])
 @shop_role_required('admin')
 def manual_delete(manual_id):

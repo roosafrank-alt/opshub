@@ -28,6 +28,7 @@
         <td>{% if m.page_count %}{{ m.page_count }}{% else %}<span class="text-muted">not indexed</span>{% endif %}</td>
         <td class="text-end text-nowrap">
           <a href="{{ url_for('manuals.manual_detail', manual_id=m.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+          <a href="{{ url_for('manuals.manual_edit', manual_id=m.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
           <form method="post" action="{{ url_for('manuals.manual_delete', manual_id=m.id) }}" class="d-inline"
                 data-confirm="Delete '[[title]]'? This removes the file and its page index."
                 data-confirm-style="danger" data-confirm-ok="Delete">

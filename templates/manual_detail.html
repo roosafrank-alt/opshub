@@ -14,7 +14,10 @@
       &nbsp;&middot; {{ manual.page_count }} page{{ 's' if manual.page_count != 1 }}
     </div>
   </div>
-  <a href="{{ url_for('manuals.manuals_list') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-arrow-left"></i> Manuals</a>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('manuals.manual_edit', manual_id=manual.id) }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-pencil"></i> Edit</a>
+    <a href="{{ url_for('manuals.manuals_list') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-arrow-left"></i> Manuals</a>
+  </div>
 </div>
 
 <div class="row g-3">
