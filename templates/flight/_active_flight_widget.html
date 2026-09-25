@@ -10,6 +10,7 @@
 {% if flights %}
 {% set f = flights[0] %}
 <div id="active-flight-widget" class="active-flight-widget">
+  <i class="bi bi-grip-vertical active-flight-widget-grip" title="Drag to move"></i>
   <a href="{{ url_for('flight.log_active', flight_id=f.id) }}#active-flight-{{ f.id }}" class="active-flight-widget-link text-decoration-none">
     <i class="bi bi-stopwatch"></i>
     <span class="active-flight-widget-plane">{{ f.plane_tag }}</span>
@@ -31,10 +32,13 @@
     position: fixed; right: .75rem; top: .75rem; z-index: 1050;
     display: flex; align-items: center; gap: .4rem;
     background: #198754; color: #fff; border-radius: 999px;
-    padding: .35rem .5rem .35rem .75rem;
+    padding: .35rem .5rem .35rem .5rem;
     box-shadow: 0 .25rem .75rem rgba(0,0,0,.35);
     font-size: .85rem;
+    touch-action: none; user-select: none; cursor: grab;
   }
+  .active-flight-widget.active-flight-widget-dragging { cursor: grabbing; box-shadow: 0 .5rem 1.25rem rgba(0,0,0,.5); }
+  .active-flight-widget-grip { opacity: .6; font-size: .8rem; }
   .active-flight-widget-link { color: #fff; display: flex; align-items: center; gap: .35rem; }
   .active-flight-widget-plane { font-weight: 700; }
   .active-flight-widget-timer { font-variant-numeric: tabular-nums; opacity: .9; }
@@ -117,6 +121,83 @@
       tick();
     }).catch(function () { pauseBtn.disabled = false; });
   });
+})();
+
+(function () {
+  // Lets the widget be dragged anywhere on screen (and stay there across
+  // page loads, per browser) so it can be pulled out from over whatever
+  // it's covering. A plain tap/click still reaches the timer link and the
+  // Pause/End buttons - only a real drag (movement past a small threshold)
+  // is treated as a move instead of a click.
+  var widget = document.getElementById('active-flight-widget');
+  if (!widget) return;
+  var STORAGE_KEY = 'active-flight-widget-pos';
+  var THRESHOLD = 6;
+  var dragging = false, moved = false, pointerId = null;
+  var startX, startY, origLeft, origTop;
+
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+  function place(left, top) {
+    var rect = widget.getBoundingClientRect();
+    var w = rect.width || 160, h = rect.height || 36;
+    left = clamp(left, 0, Math.max(0, window.innerWidth - w));
+    top = clamp(top, 0, Math.max(0, window.innerHeight - h));
+    widget.style.left = left + 'px';
+    widget.style.top = top + 'px';
+    widget.style.right = 'auto';
+  }
+  function restorePosition() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var pos = JSON.parse(raw);
+      if (typeof pos.left === 'number' && typeof pos.top === 'number') place(pos.left, pos.top);
+    } catch (e) {}
+  }
+  function savePosition(left, top) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ left: left, top: top })); } catch (e) {}
+  }
+
+  widget.addEventListener('pointerdown', function (e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    dragging = true; moved = false; pointerId = e.pointerId;
+    var rect = widget.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    origLeft = rect.left; origTop = rect.top;
+  });
+  widget.addEventListener('pointermove', function (e) {
+    if (!dragging || e.pointerId !== pointerId) return;
+    var dx = e.clientX - startX, dy = e.clientY - startY;
+    if (!moved && Math.abs(dx) < THRESHOLD && Math.abs(dy) < THRESHOLD) return;
+    if (!moved) {
+      moved = true;
+      widget.classList.add('active-flight-widget-dragging');
+      try { widget.setPointerCapture(pointerId); } catch (e2) {}
+    }
+    place(origLeft + dx, origTop + dy);
+  });
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    if (moved) {
+      var rect = widget.getBoundingClientRect();
+      savePosition(rect.left, rect.top);
+      widget.classList.remove('active-flight-widget-dragging');
+      // A click follows the pointerup that ends a drag - swallow just
+      // that one so it doesn't also trigger the link/button underneath.
+      var swallow = function (ce) { ce.stopPropagation(); ce.preventDefault(); };
+      widget.addEventListener('click', swallow, { capture: true, once: true });
+    }
+    if (pointerId !== null) { try { widget.releasePointerCapture(pointerId); } catch (e2) {} }
+    pointerId = null;
+  }
+  widget.addEventListener('pointerup', endDrag);
+  widget.addEventListener('pointercancel', endDrag);
+  window.addEventListener('resize', function () {
+    if (widget.style.left) place(parseFloat(widget.style.left), parseFloat(widget.style.top));
+  });
+
+  restorePosition();
 })();
 </script>
 {% endif %}
