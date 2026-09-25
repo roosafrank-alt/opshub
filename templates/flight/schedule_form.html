@@ -48,12 +48,23 @@
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Plane <span class="text-danger">*</span></label>
-        <select name="asset_id" id="plane-select" class="form-select" required>
+        {#- One tap instead of opening a dropdown: a row of plane buttons
+           built from this hidden <select>'s own options (see the script
+           below), so the plane list/order and each option's Hobbs/Tach data
+           stay in this one place. The select itself still carries the
+           value that's actually submitted and still fires 'change' (for
+           the existing Hobbs/Tach autofill just below), same as the
+           Student picker's hidden select. #}
+        <select name="asset_id" id="plane-select" class="visually-hidden" tabindex="-1" aria-hidden="true">
           <option value="" disabled {% if not (form or sched) %}selected{% endif %}>-- Select a plane --</option>
           {% for p in planes %}
           <option value="{{ p.id }}" data-hobbs="{{ p.hobbs_hours if p.hobbs_hours is not none else '' }}" data-tach="{{ p.tach_hours if p.tach_hours is not none else '' }}" {% if (form and form.get('asset_id')|string == p.id|string) or (not form and sched and sched.asset_id == p.id) %}selected{% endif %}>{{ p.tag }}{% if p.name and p.name != p.tag %} - {{ p.name }}{% endif %}</option>
           {% endfor %}
         </select>
+        <div id="plane-buttons" class="d-flex flex-wrap gap-1"></div>
+        <style>
+          #plane-buttons.is-invalid-group { outline: 2px solid #dc3545; outline-offset: 3px; border-radius: 4px; }
+        </style>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Student <span class="text-danger">*</span></label>
@@ -494,6 +505,47 @@ if (document.getElementById('solo-check').checked) {
       firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, true);
+})();
+
+(function () {
+  // Plane picker: one tap instead of a dropdown. Built from the hidden
+  // <select>'s own options, so it stays in sync with the plane list order
+  // and each plane's Hobbs/Tach data without repeating the Jinja loop.
+  // Picking a button sets the select's value and fires 'change' on it -
+  // the Hobbs/Tach autofill listener further below still runs unchanged.
+  var sel = document.getElementById('plane-select');
+  var wrap = document.getElementById('plane-buttons');
+  if (!sel || !wrap) return;
+  var opts = Array.prototype.filter.call(sel.options, function (o) { return o.value; });
+  function paint() {
+    Array.prototype.forEach.call(wrap.children, function (btn) {
+      btn.classList.toggle('btn-primary', btn.dataset.value === sel.value);
+      btn.classList.toggle('btn-outline-primary', btn.dataset.value !== sel.value);
+    });
+  }
+  opts.forEach(function (o) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-outline-primary';
+    btn.dataset.value = o.value;
+    btn.textContent = o.text;
+    btn.addEventListener('click', function () {
+      sel.value = o.value;
+      sel.dispatchEvent(new Event('change'));
+      wrap.classList.remove('is-invalid-group');
+      paint();
+    });
+    wrap.appendChild(btn);
+  });
+  paint();
+  var form = sel.form;
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      var invalid = !sel.value;
+      wrap.classList.toggle('is-invalid-group', invalid);
+      if (invalid) { e.preventDefault(); e.stopImmediatePropagation(); wrap.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    }, true);
+  }
 })();
 
 (function () {
