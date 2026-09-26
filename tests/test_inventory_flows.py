@@ -99,6 +99,17 @@ class ScanFlowTest(OpsHubTestCase):
         self.exec("UPDATE projects SET deleted_at=? WHERE id=?", (db.now_iso(), self.project))
         self._assert_rejected(self.scan("PART-001", "out", 1, self.project), status=404)
 
+    def test_scan_out_to_completed_or_archived_project_rejected(self):
+        # Marking a project completed/archived used to have no effect on
+        # scanning - stock could still be charged to it, silently changing
+        # the total on a job that's already been billed.
+        for status in ("completed", "archived"):
+            with self.subTest(status=status):
+                self.exec("UPDATE projects SET status=? WHERE id=?", (status, self.project))
+                self._assert_rejected(self.scan("PART-001", "out", 1, self.project))
+        self.exec("UPDATE projects SET status='on_hold' WHERE id=?", (self.project,))
+        self.assertEqual(self.scan("PART-001", "out", 1, self.project).status_code, 200)
+
     def test_scan_out_to_nonexistent_project_rejected(self):
         self._assert_rejected(self.scan("PART-001", "out", 1, 9999), status=404)
 

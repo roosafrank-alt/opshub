@@ -1428,10 +1428,13 @@ def api_scan():
         return jsonify({"ok": False, "error": "unknown_barcode", "barcode": barcode}), 404
 
     if action == "out" and project_id:
-        proj = conn.execute("SELECT id FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
+        proj = conn.execute("SELECT id, status FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
         if not proj:
             conn.close()
             return jsonify({"ok": False, "error": "unknown_project"}), 404
+        if proj["status"] in ("completed", "archived"):
+            conn.close()
+            return jsonify({"ok": False, "error": f"That job is {proj['status']} - reopen it first to add parts."}), 400
 
     if action == "out" and part["qty_on_hand"] < qty:
         conn.close()
