@@ -109,7 +109,6 @@ class ScanFlowTest(OpsHubTestCase):
             with self.subTest(qty=bad):
                 self._assert_rejected(self.scan("PART-001", "in", bad))
 
-    @open_finding("qa-malformed-scan-body")
     def test_non_object_json_body_is_a_400_not_a_crash(self):
         r = self.client.post("/api/scan", json=["PART-001", "in"])
         self.assertEqual(r.status_code, 400)

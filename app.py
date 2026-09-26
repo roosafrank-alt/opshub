@@ -1394,8 +1394,10 @@ def project_section_rename(project_id, section_id):
 def api_scan():
     # Changes stock and charges jobs, so it needs a Shop role - it used to be
     # login-only, which let a flight student or CFI with no shop access add or
-    # remove parts.
-    data = request.get_json(force=True)
+    # remove parts. silent=True: a malformed body is a 400, not a crash.
+    data = request.get_json(force=True, silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"ok": False, "error": "Bad request."}), 400
     barcode = (data.get("barcode") or "").strip()
     action = data.get("action")  # 'in' | 'out'
     qty = data.get("qty")
