@@ -1866,6 +1866,35 @@ def _migrate(conn):
         conn.execute("ALTER TABLE laborers ADD COLUMN user_id INTEGER REFERENCES users(id)")
     conn.commit()
 
+    # Manual schedule display order for planes/sims (idea "Move AATD Redbird"):
+    # ORDER BY tag alone can't put a plane in an arbitrary spot, so give every
+    # flight asset an explicit rank and use it (falling back to tag) everywhere
+    # the Schedule/Planes legend orders planes.
+    asset_cols_sched_order = [r["name"] for r in conn.execute("PRAGMA table_info(assets)").fetchall()]
+    if "schedule_order" not in asset_cols_sched_order:
+        conn.execute("ALTER TABLE assets ADD COLUMN schedule_order INTEGER")
+        conn.commit()
+        flight_assets = conn.execute(
+            "SELECT id, tag FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+        for i, row in enumerate(flight_assets):
+            conn.execute("UPDATE assets SET schedule_order = ? WHERE id = ?", (i * 10, row["id"]))
+        conn.commit()
+        # Frank's specific request: put the AATD Redbird simulator between
+        # N22689 and N5569P on every schedule view.
+        n22689 = conn.execute("SELECT id, schedule_order FROM assets WHERE tag = 'N22689'").fetchone()
+        n5569p = conn.execute("SELECT id, schedule_order FROM assets WHERE tag = 'N5569P'").fetchone()
+        redbird = conn.execute(
+            "SELECT id FROM assets WHERE is_simulator = 1 AND (tag LIKE '%Redbird%' OR name LIKE '%Redbird%')").fetchone()
+        if redbird and n22689 and n5569p:
+            lo, hi = sorted((n22689["schedule_order"], n5569p["schedule_order"]))
+            if hi - lo >= 2:
+                new_order = (lo + hi) // 2
+            else:
+                conn.execute("UPDATE assets SET schedule_order = schedule_order + 10 WHERE schedule_order > ?", (lo,))
+                new_order = lo + 5
+            conn.execute("UPDATE assets SET schedule_order = ? WHERE id = ?", (new_order, redbird["id"]))
+            conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of
