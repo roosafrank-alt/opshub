@@ -36,6 +36,15 @@
     font-weight: 600;
   }
   .flight-nav-boxed .dropdown-item.active { background: #212529; color: #fff; }
+  /* Makes the "alert resolved" confirmation actually read as a banner -
+     bigger, bolder, with its own shadow - instead of looking like every
+     other routine "saved" flash (see the flash loop above). */
+  .alert-flight-resolved {
+    font-size: 1.1rem;
+    font-weight: 700;
+    border: 2px solid #146c43;
+    box-shadow: 0 .25rem .75rem rgba(25,135,84,.25);
+  }
 </style>
 </head>
 <body>
@@ -132,7 +141,12 @@
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {#- The alert-resolved confirmation (see _sync_alerts_after_post in
+           flight.py) reads as a routine flash otherwise, easy to miss among
+           ordinary "saved" messages - the checkmark prefix is unique to it,
+           so it gets its own bolder, more banner-like treatment instead of
+           blending in. #}
+        <div class="alert alert-{{ category }} alert-dismissible fade show{{ ' alert-flight-resolved' if message.startswith('✓ Alert resolved') }}" role="alert">
           {{ message }}
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
