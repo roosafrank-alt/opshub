@@ -129,6 +129,13 @@ let pendingLaborer = null; // {code, name} - scanned before a project was set, w
 let pendingPart = null; // {barcode, name, unit, qty_on_hand} - scanned before a project was set
 let generalShopActive = false; // "GENERAL-SHOP" code scanned - clock in/out with no project attached
 const GENERAL_SHOP_CODE = "GENERAL-SHOP";
+// When a task/project/General code was last scanned or picked. A badge scanned
+// within a couple of minutes of that, by someone already clocked in on
+// something else, SWITCHES them to the new task (their day keeps running)
+// instead of clocking them out. A badge scanned on its own still clocks out.
+let laborContextAt = 0;
+const LABOR_SWITCH_WINDOW_MS = 2 * 60 * 1000;
+function markLaborContext() { laborContextAt = Date.now(); }
 
 function vibrate(pattern) {
   try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { /* not supported */ }
@@ -285,6 +292,7 @@ function refreshSectionsForProject(cb) {
 
 projectSelect.addEventListener('change', function () {
   generalShopActive = false;
+  if (projectSelect.value) markLaborContext();
   refreshSectionsForProject(maybeFirePendingScans);
 });
 
@@ -295,6 +303,7 @@ sectionSelect.addEventListener('change', function () {
     sectionNewInput.focus();
   } else {
     sectionNewRow.style.display = 'none';
+    markLaborContext();
   }
   maybeFirePendingLaborer();
 });
@@ -305,6 +314,7 @@ function addNewSectionFromInput() {
   addSectionOption(name);
   sectionSelect.value = name;
   sectionNewRow.style.display = 'none';
+  markLaborContext();
 }
 sectionNewAdd.addEventListener('click', addNewSectionFromInput);
 sectionNewInput.addEventListener('keydown', function (e) {
@@ -359,6 +369,7 @@ function maybeFirePendingPart() {
 
 function handleGeneralShopScan(fromCamera) {
   generalShopActive = true;
+  markLaborContext();
   projectSelect.value = '';
   updateProjectStatus();
   showResult('<i class="bi bi-clipboard-check"></i> <strong>General Shop</strong> selected - now scan a laborer badge to clock in/out.', 'scan-flash-in');
@@ -386,6 +397,7 @@ function handleProjectCodeScan(code, fromCamera) {
     .then(data => {
       if (data.found) {
         selectProjectInUI(data);
+        markLaborContext();
         showResult('<i class="bi bi-clipboard-check"></i> Project selected: <strong>' + data.code + ' - ' + data.name +
           '</strong><br><small>Now scan a part or a laborer badge.</small>', 'scan-flash-in');
         vibrate([40, 60, 40]);
@@ -408,6 +420,7 @@ function handleTaskCodeScan(code, fromCamera) {
   fetch('/api/labor/task_lookup?code=' + encodeURIComponent(code)).then(r => r.json()).then(function (data) {
     if (data.found) {
       selectProjectInUI({ id: data.project_id, code: data.project_code, name: data.project_name });
+      markLaborContext();
       if (data.section) {
         setTimeout(function () {
           let sopt = sectionSelect.querySelector('option[value="' + CSS.escape(data.section) + '"]');
@@ -456,6 +469,7 @@ function handleLaborScan(code, note) {
     body.section = currentSection();
   }
   if (note) body.note = note;
+  if (laborContextAt && Date.now() - laborContextAt < LABOR_SWITCH_WINDOW_MS) body.switch = true;
   fetch('/api/labor/scan', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
@@ -482,7 +496,16 @@ function handleLaborScan(code, note) {
       return;
     }
     const projectLabel = data.general ? 'General Shop' : data.project_code;
-    if (data.action === 'clock_in') {
+    const taskSuffix = (data.section && data.section !== 'General' && data.section !== 'General Shop') ? ' &middot; ' + data.section : '';
+    if (data.action === 'switch') {
+      const fromLabel = (data.from_general ? 'General Shop' : data.from_project_code) +
+        (data.from_section && data.from_section !== 'General' ? ' &middot; ' + data.from_section : '');
+      showResult('<i class="bi bi-arrow-left-right"></i> <strong>' + data.laborer + '</strong> switched to ' +
+        projectLabel + taskSuffix + ' (still clocked in).<br><small>' + fromLabel + ': ' + data.hours + ' hrs logged. ' +
+        'Scan just the badge to clock out for the day.</small>', 'scan-flash-in');
+      vibrate([40, 60, 40]);
+      addRecent(code, data.laborer + ' switched to ' + (data.general ? 'General Shop' : data.project_code), 'labor');
+    } else if (data.action === 'clock_in') {
       showResult('<i class="bi bi-play-circle"></i> <strong>' + data.laborer + '</strong> clocked in on ' +
         projectLabel + (data.section && data.section !== 'General' && data.section !== 'General Shop' ? ' &middot; ' + data.section : '') + '.', 'scan-flash-in');
       vibrate([40, 60, 40]);

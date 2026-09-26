@@ -18,27 +18,61 @@
       {% if g.running %}<span class="badge bg-warning text-dark ms-1"><i class="bi bi-stopwatch"></i> {{ g.running }} clocked in</span>{% endif %}</h5>
     <div class="text-end"><span class="text-muted small">{{ '%.2f'|format(g.hours) }} hrs</span> &nbsp;<strong class="fs-5">${{ '%.2f'|format(g.pay) }}</strong></div>
   </div>
+  {# Day by day: each stretch of time on one task, in order - a worker who
+     clocks in on General Shop and then scans a task mid-day shows both. #}
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0 table-stack">
-      <thead class="table-light"><tr><th>Date</th><th>Project</th><th>Task</th><th>Hours</th><th>Rate</th><th>Pay</th></tr></thead>
+      <thead class="table-light"><tr><th>Time</th><th>Project</th><th>Task</th><th>Hours</th><th>Rate</th><th>Pay</th></tr></thead>
       <tbody>
-        {% for s in g.sessions %}
+        {% for d in g.days %}
+        <tr class="table-secondary">
+          <td class="stack-full" colspan="3" data-label="Day"><strong>{{ d.date|usdate }}</strong>
+            <small class="text-muted ms-1">{{ d.first[11:16] }} &ndash; {% if d.running %}now{% else %}{{ (d.last or '')[11:16] }}{% endif %}
+            &middot; {{ d.segments|length }} task{{ '' if d.segments|length == 1 else 's' }}</small></td>
+          <td data-label="Day hours"><strong>{{ '%.2f'|format(d.hours) }}</strong></td>
+          <td class="d-none d-md-table-cell"></td>
+          <td data-label="Day pay"><strong>${{ '%.2f'|format(d.pay) }}</strong></td>
+        </tr>
+        {% for s in d.segments %}
         <tr>
-          <td data-label="Date"><small>{{ s.started_at|usdate(true) }}</small></td>
-          <td class="stack-full" data-label="Project">{% if s.project_id %}<a href="{{ url_for('project_detail', project_id=s.project_id) }}">{{ s.project_code }}</a> <small class="text-muted">{{ s.project_name }}</small>{% else %}<span class="text-muted">General Shop</span>{% endif %}</td>
+          <td data-label="Time"><small>{{ (s.started_at or '')[11:16] }} &ndash; {% if s.ended_at %}{{ s.ended_at[11:16] }}{% else %}now{% endif %}</small></td>
+          <td class="stack-full" data-label="Project">{% if s.project_id %}<a href="{{ url_for('project_detail', project_id=s.project_id) }}">{{ s.project_code }}</a> <small class="text-muted">{{ s.project_name }}</small>{% else %}<span class="text-muted">General Shop</span>{% endif %}{% if s.note %}<div><small class="text-muted fst-italic">{{ s.note }}</small></div>{% endif %}</td>
           <td data-label="Task">{{ s.section or 'General' }}</td>
           {% if s.ended_at %}
           <td data-label="Hours">{{ '%.2f'|format(s.hours or 0) }}</td>
           <td data-label="Rate">${{ '%.2f'|format(s.rate or 0) }}</td>
-          <td data-label="Pay"><strong>${{ '%.2f'|format(s.cost or 0) }}</strong></td>
+          <td data-label="Pay">${{ '%.2f'|format(s.cost or 0) }}</td>
           {% else %}
           <td data-label="Hours" colspan="3"><span class="badge bg-warning text-dark">Still clocked in</span></td>
           {% endif %}
         </tr>
         {% endfor %}
+        {% endfor %}
       </tbody>
     </table>
   </div>
+  {% if admin_view and g.tasks %}
+  {# Shop admins only: what this worker's time on each task cost. #}
+  <details class="mt-2">
+    <summary class="small fw-bold">Cost by task ({{ g.tasks|length }})</summary>
+    <div class="table-responsive mt-1">
+      <table class="table table-sm align-middle mb-0 table-stack">
+        <thead class="table-light"><tr><th>Project</th><th>Task</th><th>Hours</th><th>Cost</th><th>Share</th></tr></thead>
+        <tbody>
+          {% for t in g.tasks %}
+          <tr>
+            <td class="stack-full" data-label="Project">{% if t.project_id %}<a href="{{ url_for('project_detail', project_id=t.project_id) }}">{{ t.project_code }}</a> <small class="text-muted">{{ t.project_name }}</small>{% else %}<span class="text-muted">General Shop</span>{% endif %}</td>
+            <td data-label="Task">{{ t.section or 'General' }}</td>
+            <td data-label="Hours">{{ '%.2f'|format(t.hours) }}</td>
+            <td data-label="Cost"><strong>${{ '%.2f'|format(t.cost) }}</strong></td>
+            <td data-label="Share">{{ ('%.0f'|format(100 * t.cost / g.pay) ~ '%') if g.pay else '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+  {% endif %}
 </div>
 {% endfor %}
 {% else %}

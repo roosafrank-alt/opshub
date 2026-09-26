@@ -4455,15 +4455,51 @@ def shop_pay():
         if not g:
             g = groups[r["laborer_id"]] = {"laborer_id": r["laborer_id"], "name": r["laborer_name"],
                                             "rate": r["laborer_rate"], "hours": 0.0, "pay": 0.0,
-                                            "sessions": [], "running": 0}
+                                            "sessions": [], "running": 0, "days": [], "tasks": []}
+            g["_days"], g["_tasks"] = {}, {}
             order.append(r["laborer_id"])
         g["sessions"].append(r)
+        # Day breakdown: every stretch of time a worker clocked on one day,
+        # in order (e.g. General Shop 7:00-9:15, then 26-001 Engine
+        # 9:15-12:00 after they scanned that task mid-day).
+        day_key = (r["started_at"] or "")[:10]
+        d = g["_days"].get(day_key)
+        if not d:
+            d = g["_days"][day_key] = {"date": r["started_at"], "first": r["started_at"], "last": r["ended_at"],
+                                       "hours": 0.0, "pay": 0.0, "segments": [], "running": False}
+            g["days"].append(d)
+        d["segments"].append(r)
+        if r["ended_at"]:
+            d["hours"] += r["hours"] or 0
+            d["pay"] += r["cost"] or 0
+            if not d["running"] and (not d["last"] or r["ended_at"] > d["last"]):
+                d["last"] = r["ended_at"]
+        else:
+            d["running"] = True
+            d["last"] = None
+        # Cost by task (shown to shop admins only): what this worker's time
+        # on each project / sub-area cost over the period.
+        if r["ended_at"]:
+            tkey = (r["project_id"], r["section"] or "")
+            t = g["_tasks"].get(tkey)
+            if not t:
+                t = g["_tasks"][tkey] = {"project_id": r["project_id"], "project_code": r["project_code"],
+                                         "project_name": r["project_name"], "section": r["section"],
+                                         "hours": 0.0, "cost": 0.0, "stretches": 0}
+                g["tasks"].append(t)
+            t["hours"] += r["hours"] or 0
+            t["cost"] += r["cost"] or 0
+            t["stretches"] += 1
         if r["ended_at"]:
             g["hours"] += r["hours"] or 0
             g["pay"] += r["cost"] or 0
         else:
             g["running"] += 1
     laborers_pay = [groups[i] for i in order]
+    for g in laborers_pay:
+        g.pop("_days", None)
+        g.pop("_tasks", None)
+        g["tasks"].sort(key=lambda t: -t["cost"])
     return render_template("shop_pay.html", laborers_pay=laborers_pay, admin_view=admin_view,
                            total_hours=sum(g["hours"] for g in laborers_pay),
                            total_pay=sum(g["pay"] for g in laborers_pay),
@@ -4606,6 +4642,61 @@ def api_labor_scan():
     if not laborer["active"] and not open_session:
         conn.close()
         return jsonify({"ok": False, "error": "inactive_laborer", "name": laborer["name"]}), 400
+
+    # Switching tasks mid-day: a worker who's already clocked in (e.g. on
+    # General Shop at the start of the day) scans a DIFFERENT project/task
+    # code and then their badge. Instead of clocking them out, the time so
+    # far is closed off on what they were doing and a new stretch starts on
+    # the task they just scanned - the day keeps running. The Scan page only
+    # asks for this (switch=true) right after a task/project/General code
+    # was scanned, so a plain badge scan still clocks out as before.
+    if open_session and data.get("switch") is True:
+        target_project_id = None
+        target_section = None
+        if not general:
+            try:
+                target_project_id = int(project_id) if project_id not in (None, "") else None
+            except (TypeError, ValueError):
+                target_project_id = None
+            target_section = section
+        same_target = (open_session["project_id"] == target_project_id
+                       and (open_session["section"] or None) == (target_section or None))
+        # (An inactive worker's badge just clocks them out - see above.)
+        if (general or target_project_id) and not same_target and laborer["active"]:
+            target = None
+            if target_project_id:
+                target = conn.execute("SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL",
+                                      (target_project_id,)).fetchone()
+                if not target:
+                    conn.close()
+                    return jsonify({"ok": False, "error": "unknown_project"}), 404
+            switch_at = now_iso()
+            started = datetime.strptime(open_session["started_at"], "%Y-%m-%d %H:%M:%S")
+            ended = datetime.strptime(switch_at, "%Y-%m-%d %H:%M:%S")
+            hours = max((ended - started).total_seconds() / 3600.0, 0)
+            cost = hours * (open_session["rate"] or 0)
+            # Only end it if it's still open - a double scan can't split twice.
+            closed = conn.execute(
+                "UPDATE labor_sessions SET ended_at = ?, hours = ?, cost = ?, note = COALESCE(?, note) "
+                "WHERE id = ? AND ended_at IS NULL",
+                (switch_at, hours, cost, note, open_session["id"])).rowcount
+            if not closed:
+                conn.close()
+                return jsonify({"ok": False, "error": "already_switched"}), 409
+            conn.execute("""INSERT INTO labor_sessions (laborer_id, project_id, section, started_at, rate, created_at)
+                             VALUES (?, ?, ?, ?, ?, ?)""",
+                         (laborer["id"], target_project_id, target_section, switch_at, laborer["rate"], now_iso()))
+            conn.commit()
+            prev = conn.execute("SELECT code FROM projects WHERE id = ?", (open_session["project_id"],)).fetchone()
+            conn.close()
+            return jsonify({"ok": True, "action": "switch", "laborer": laborer["name"],
+                            "hours": round(hours, 2), "cost": round(cost, 2),
+                            "from_project_code": prev["code"] if prev else None,
+                            "from_general": open_session["project_id"] is None,
+                            "from_section": open_session["section"] or "General",
+                            "project_code": target["code"] if target else None,
+                            "general": target is None,
+                            "section": (target_section or "General") if target else "General Shop"})
 
     if open_session:
         # Clocking out of General Shop time is the one case that needs a
