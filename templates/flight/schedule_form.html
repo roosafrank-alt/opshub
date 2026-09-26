@@ -149,6 +149,9 @@
           <option value="{{ c.id }}" {% if (form and form.get('cfi_id')|string == c.id|string) or (not form and sched and sched.cfi_id == c.id) or (not form and not sched and not self_service and c.id == current_cfi_id) %}selected{% endif %}>{{ c.name }}</option>
           {% endfor %}
         </select>
+        {% if not self_service %}
+        <a href="#" id="add-break-link" target="_blank" class="small d-none"><i class="bi bi-calendar-x"></i> Add a break for this instructor</a>
+        {% endif %}
       </div>
       <div class="col-md-6 mb-3">
         <div class="form-check mt-4">
@@ -396,6 +399,28 @@
     if (this.value && soloCheck.checked) { soloCheck.checked = false; soloCheck.dispatchEvent(new Event('change')); }
   });
   cfiSelect.disabled = soloCheck.checked;
+
+  // "Add a break" only makes sense for a CFI managing their own day, or an
+  // admin who can open anyone's schedule (see is_admin_view in cfi_schedule)
+  // - a plain CFI picking a different instructor here has no way to add a
+  // break on that other CFI's behalf, so the link stays hidden for them.
+  var addBreakLink = document.getElementById('add-break-link');
+  if (addBreakLink) {
+    var IS_MASTER_ADMIN = {{ session.get('is_master_admin', false)|tojson }};
+    var CURRENT_CFI_ID = {{ (current_cfi_id or '')|string|tojson }};
+    var updateAddBreakLink = function () {
+      var picked = cfiSelect.value;
+      if (!cfiSelect.disabled && picked && (IS_MASTER_ADMIN || picked === CURRENT_CFI_ID)) {
+        addBreakLink.href = '{{ url_for("flight.cfi_schedule") }}?cfi_id=' + encodeURIComponent(picked);
+        addBreakLink.classList.remove('d-none');
+      } else {
+        addBreakLink.classList.add('d-none');
+      }
+    };
+    cfiSelect.addEventListener('change', updateAddBreakLink);
+    soloCheck.addEventListener('change', updateAddBreakLink);
+    updateAddBreakLink();
+  }
 })();
 
 (function () {
