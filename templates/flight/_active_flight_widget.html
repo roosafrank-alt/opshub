@@ -1,9 +1,12 @@
 {#- Small floating widget that follows a CFI to every Flight School page
    while they have a flight running (see cfi_active_flights in flight.py's
    _cfi_active_flights_widget context processor): a live timer plus
-   Pause/Resume, so they don't have to go back to Active Flight just to
-   pause the clock. "End" jumps to that flight's card on Active Flight,
-   since actually ending one needs the Hobbs/paid form filled in there.
+   Pause/Resume and End, directly wired to that flight the same way the
+   buttons on Active Flight itself are (see log_pause/log_resume/log_stop
+   in flight.py), so they don't have to go back to Active Flight just to
+   control the clock. End stops the real flight's clock right here (same
+   as Active Flight's own End Flight button) and lands on Active Flight to
+   finish logging Hobbs/paid, since that part still needs the form there.
    Only the oldest running flight shows in full; any others are just a
    "+N more" link. #}
 {% set flights = cfi_active_flights or [] %}
@@ -20,9 +23,12 @@
           data-pause-url="{{ url_for('flight.log_pause', flight_id=f.id) }}" data-resume-url="{{ url_for('flight.log_resume', flight_id=f.id) }}">
     <i class="bi {{ 'bi-play-fill' if f.paused_at else 'bi-pause-fill' }}"></i>
   </button>
-  <a href="{{ url_for('flight.log_active', flight_id=f.id) }}#active-flight-{{ f.id }}" class="btn btn-sm btn-outline-light" title="End Flight">
-    <i class="bi bi-stop-fill"></i> End
-  </a>
+  <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-inline"
+        data-confirm="End this flight now? The clock stops here - then fill in the ending Hobbs and paid / unpaid to log it." data-confirm-title="End Flight" data-confirm-ok="Yes, stop the clock" data-confirm-style="danger">
+    <button type="submit" class="btn btn-sm btn-outline-light" title="End Flight">
+      <i class="bi bi-stop-fill"></i> End
+    </button>
+  </form>
   {% if flights|length > 1 %}
   <a href="{{ url_for('flight.log_active') }}" class="active-flight-widget-more">+{{ flights|length - 1 }} more</a>
   {% endif %}
@@ -47,7 +53,7 @@
      navigates) - give them a real tap target instead of relying on the
      bare icon's tiny native size, so a finger on a shop tablet reliably
      lands on the button and not the fixed bar behind/around it. */
-  #active-flight-widget-pause, .active-flight-widget a.btn {
+  #active-flight-widget-pause, .active-flight-widget a.btn, .active-flight-widget button.btn {
     min-width: 2.25rem; min-height: 2.25rem;
     display: inline-flex; align-items: center; justify-content: center;
   }
