@@ -21,6 +21,40 @@ screenshots. The app's CDN libraries (Bootstrap and others) are served from
 `ux_audit.py` prints "these CDN files aren't in tests/ux/cdn-cache", add the
 missing file from the library's GitHub release, or the pages won't look real.
 
+## Navigation and flow tool
+
+```bash
+python3 tests/ux/flow_audit.py --out /tmp/flow      # about 1 minute
+```
+
+- `map.md`: taps from the home screen to every page for each account type,
+  pages that take 4+ taps, pages nothing links to, and dead ends.
+- `clickable.md`: records (planes, projects, parts) shown as plain text where a
+  link to their page would help, plus rows of look-alike boxes where only some
+  can be tapped (e.g. the shop dashboard's stat boxes).
+- `journeys.md` + `journeys/*.png`: real daily jobs from `tests/ux/journeys.py`,
+  done in a browser the way a person would, counting taps, page loads, typing
+  and scrolling, with a screenshot after every step. "STUCK" means the next step
+  couldn't be found, which is usually a flow problem worth a card.
+
+Frank wants the app streamlined: everything in a logical order, and the
+shortest, most obvious path to every daily job. Judge flows by:
+- Taps vs `target_taps` for each journey. How could it take fewer? Consider a
+  shortcut on the dashboard, a direct link from the page people are already on,
+  a sensible default (the logged-in person, today's date, the current plane or
+  project), or putting the action at the top of the page instead of the bottom.
+- Things that look tappable but aren't, or that should be (a tail number, part
+  or project shown as plain text, a stat box that goes nowhere).
+- Related things kept apart. Would a person on page A usually need B next, and
+  is B one tap away?
+- Order on the page: the most common action first, especially on a phone.
+- Consistency: the same thing is called the same and found in the same place
+  on every page.
+
+Grow `journeys.py`: add 1-2 new real daily jobs each day, the most common
+first, until every account type's top jobs are covered. Keep the old ones:
+they catch a flow that gets worse after a new feature lands.
+
 ## Each day
 
 1. **Automatic checks, all pages.** Look for anything serious: a page that
@@ -43,10 +77,12 @@ Tick an area when reviewed and add the date. After the list is done, start
 over from the top, and put areas that changed a lot since their last review
 (check `git log` on origin/main and idea-queue) first.
 
+- [ ] Daily-job flows (flow_audit journeys): charging a part to a job took 12 taps + 4 typed fields on a phone vs about 5 streamlined (found 2026-09-25); tech must add their own name under "Scanning as" even though they're logged in
 - [ ] Scan page, phone (tech): the most-used screen in the shop
 - [ ] Flight School dashboard, phone (CFI and student)
 - [ ] Shop dashboard, phone and desktop
-- [ ] Top menu / navigation on every screen size (shop admin menu overflows at 1366px, found 2026-09-25)
+- [ ] Top menu / navigation on every screen size (shop admin menu overflows at 1366px, filed 2026-09-25; two home tiles both titled "Winds Aloft")
+- [ ] Shop dashboard stat boxes: Active Projects and Low Stock Items look tappable but aren't (found 2026-09-25)
 - [ ] Log a flight / active flight, phone (CFI)
 - [ ] Schedule and calendar, phone and desktop
 - [ ] Projects list and project detail (desktop, office)
@@ -64,6 +100,10 @@ over from the top, and put areas that changed a lot since their last review
 - kind `layout`: something broken on screen, such as sideways scrolling,
   cut-off controls, overlap, or unreadable text. Severity high if it blocks a
   daily task, otherwise medium.
+- Flow findings (too many taps, missing link, wrong order, dead end) are kind
+  `improvement` with area "Navigation & flow". Put the before/after tap count
+  in `problem`, for example "12 taps + 4 fields today; about 5 with this
+  change", and attach the journey's step screenshots that show the detour.
 - kind `improvement`: a suggestion that would make a page easier or faster to
   use. Severity by how often the page is used: high for Scan, Flight
   dashboard, and Log flight; medium for other daily pages; low for admin.
