@@ -10,66 +10,145 @@
     <input type="hidden" name="wishlist_id" value="{{ form.get('wishlist_id') }}">
     <div class="alert alert-info py-2 px-3 small mb-3"><i class="bi bi-arrow-return-right"></i> Starting this order will also mark the matching "to order" entry as ordered.</div>
     {% endif %}
+    {% macro part_options(selected) %}
+        <option value="">-- Not in inventory yet / order something new --</option>
+        {% for p in parts %}
+        <option value="{{ p.id }}" {% if selected|string == p.id|string %}selected{% endif %}>{{ p.name }} ({{ '%g'|format(p.qty_on_hand) }} {{ p.unit }} on hand)</option>
+        {% endfor %}
+    {% endmacro %}
+    {% if order %}
+    {#- Edit: one item line. #}
+    {% if batch_count and batch_count > 1 %}
+    <div class="alert alert-secondary py-2 px-3 small mb-3"><i class="bi bi-boxes"></i> This item is one of {{ batch_count }} on the same order. Its tracking numbers below are shared by all of them.</div>
+    {% endif %}
     <div class="mb-3">
       <label class="form-label">Existing part (optional)</label>
       <select name="part_id" class="form-select">
-        <option value="">-- Not in inventory yet / order something new --</option>
-        {% for p in parts %}
-        <option value="{{ p.id }}" {% if (order and order.part_id == p.id) or (form and form.get('part_id')|string == p.id|string) %}selected{% endif %}>{{ p.name }} ({{ '%g'|format(p.qty_on_hand) }} {{ p.unit }} on hand)</option>
-        {% endfor %}
+        {{ part_options(form.get('part_id', '') if form else (order.part_id or '')) }}
       </select>
     </div>
     <div class="mb-3">
       <label class="form-label">Description</label>
-      <input type="text" name="description" class="form-control" placeholder="What are you ordering? (auto-filled if you picked a part above)" value="{{ form.get('description', order.description if order else '') if form else (order.description if order else '') }}">
+      <input type="text" name="description" class="form-control" placeholder="What are you ordering? (auto-filled if you picked a part above)" value="{{ form.get('description', order.description) if form else order.description }}">
     </div>
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Quantity</label>
-        <input type="number" step="any" name="qty_ordered" class="form-control" value="{{ form.get('qty_ordered', order.qty_ordered if order else 1) if form else (order.qty_ordered if order else 1) }}">
+        <input type="number" step="any" name="qty_ordered" class="form-control" value="{{ form.get('qty_ordered', order.qty_ordered) if form else order.qty_ordered }}">
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Unit Cost ($)</label>
-        <input type="number" step="any" name="unit_cost" class="form-control" value="{{ form.get('unit_cost', order.unit_cost if order else 0) if form else (order.unit_cost if order else 0) }}">
+        <input type="number" step="any" name="unit_cost" class="form-control" value="{{ form.get('unit_cost', order.unit_cost) if form else order.unit_cost }}">
       </div>
     </div>
+    {% else %}
+    {#- New: one or more items from the same supplier. Each row becomes its
+       own order line (received/cancelled on its own), saved together. #}
+    <label class="form-label fw-bold">Items</label>
+    <div id="order-items">
+      {% for it in items %}
+      <div class="order-item border rounded p-2 mb-2">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="small text-muted order-item-label">Item {{ loop.index }}</span>
+          <button type="button" class="btn btn-sm btn-link text-danger p-0 order-item-remove" title="Remove this item"><i class="bi bi-x-lg"></i> Remove</button>
+        </div>
+        <select name="part_id" class="form-select form-select-sm mb-2" aria-label="Existing part">
+          {{ part_options(it.part_id) }}
+        </select>
+        <input type="text" name="description" class="form-control form-control-sm mb-2" placeholder="What are you ordering? (auto-filled if you picked a part)" value="{{ it.description }}" aria-label="Description">
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label small mb-0">Quantity</label>
+            <input type="number" step="any" name="qty_ordered" class="form-control form-control-sm" value="{{ it.qty_ordered if it.qty_ordered != '' else 1 }}">
+          </div>
+          <div class="col-6">
+            <label class="form-label small mb-0">Unit Cost ($)</label>
+            <input type="number" step="any" name="unit_cost" class="form-control form-control-sm" value="{{ it.unit_cost if it.unit_cost != '' else 0 }}">
+          </div>
+        </div>
+        {#- Exchange units (overhauled starter, magneto, cylinder...): the old
+           core has to go back to the supplier by a deadline or a core
+           charge is billed - see Cores owed on the Orders page. The hidden
+           field carries this row's yes/no, since an unticked checkbox
+           sends nothing and the rows would fall out of step. #}
+        <div class="form-check mt-2 mb-0">
+          <input type="hidden" name="is_exchange" value="{{ 'on' if it.is_exchange == 'on' else '' }}">
+          <input class="form-check-input order-item-exchange" type="checkbox" {% if it.is_exchange == 'on' %}checked{% endif %}>
+          <label class="form-check-label small">Exchange - core due back</label>
+        </div>
+        <div class="row g-2 mt-0 order-item-core {{ '' if it.is_exchange == 'on' else 'd-none' }}">
+          <div class="col-6">
+            <label class="form-label small mb-0">Core charge ($)</label>
+            <input type="number" step="any" min="0" name="core_charge" class="form-control form-control-sm" value="{{ it.core_charge }}">
+          </div>
+          <div class="col-6">
+            <label class="form-label small mb-0">Days allowed</label>
+            <input type="number" step="1" min="1" max="365" name="core_days" class="form-control form-control-sm" value="{{ it.core_days or 30 }}">
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <button type="button" id="order-item-add" class="btn btn-outline-secondary btn-sm mb-3"><i class="bi bi-plus-lg"></i> Add another item from this supplier</button>
+    {% endif %}
     <div class="mb-3">
       <label class="form-label">Supplier</label>
       <input type="text" name="supplier" class="form-control" value="{{ form.get('supplier', order.supplier if order else '') if form else (order.supplier if order else '') }}">
     </div>
     <div class="mb-3">
       <label class="form-label">For project (optional)</label>
-      <select name="project_id" class="form-select">
+      {% set _proj = (form.get('project_id', '') if form else (order.project_id if order and order.project_id else ''))|string %}
+      <select name="project_id" class="form-select" id="order-project-select">
         <option value="">-- General stock, not tied to a job --</option>
+        <option value="__new__" {% if _proj == '__new__' %}selected{% endif %}>+ New project...</option>
         {% for pr in projects %}
-        <option value="{{ pr.id }}" {% if order and order.project_id == pr.id %}selected{% endif %}>{{ pr.code }} - {{ pr.name }}</option>
+        <option value="{{ pr.id }}" {% if _proj == pr.id|string %}selected{% endif %}>{{ pr.code }} - {{ pr.name }}</option>
         {% endfor %}
       </select>
+      <div id="order-new-project" class="row g-2 mt-1 {{ '' if _proj == '__new__' else 'd-none' }}">
+        <div class="col-sm-7">
+          <input type="text" name="new_project_name" class="form-control" placeholder="New project name, e.g. Annual - N123AB" value="{{ form.get('new_project_name', '') if form else '' }}" aria-label="New project name">
+        </div>
+        <div class="col-sm-5">
+          <select name="new_project_asset_id" class="form-select" aria-label="Plane for the new project">
+            <option value="">No plane</option>
+            {% for a in assets %}
+            <option value="{{ a.id }}" {% if form and form.get('new_project_asset_id')|string == a.id|string %}selected{% endif %}>{{ a.tag }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 form-text mt-0">Made as a new active project when you save. Fill in the rest of it (intake, sub areas) from the project page.</div>
+      </div>
     </div>
     <div class="mb-3">
       <label class="form-label">Expected arrival date</label>
-      <input type="date" name="expected_date" class="form-control" value="{{ order.expected_date if order and order.expected_date else '' }}">
+      <input type="date" name="expected_date" class="form-control" value="{{ form.get('expected_date', '') if form else (order.expected_date if order and order.expected_date else '') }}">
     </div>
-    <div class="row g-2 mb-3">
-      <div class="col-sm-7">
-        <label class="form-label">Tracking number (optional)</label>
-        <input type="text" name="tracking_number" class="form-control" autocomplete="off" placeholder="Paste it here to follow the shipment on Orders"
-               value="{{ form.get('tracking_number', order.tracking_number if order and order.tracking_number else '') if form else (order.tracking_number if order and order.tracking_number else '') }}">
+    {#- One order can ship in several packages - one row per tracking number. #}
+    <label class="form-label">Tracking numbers (optional)</label>
+    <div id="order-ships">
+      {% set _ships = ships if ships else [{'tracking_number': '', 'tracking_carrier': ''}] %}
+      {% for sh in _ships %}
+      <div class="row g-2 mb-2 order-ship">
+        <div class="col-7">
+          <input type="text" name="tracking_number" class="form-control" autocomplete="off" placeholder="Paste a tracking number" aria-label="Tracking number" value="{{ sh.tracking_number or '' }}">
+        </div>
+        <div class="col-4">
+          <select name="tracking_carrier" class="form-select" aria-label="Carrier">
+            {% for value, label in tracking_carrier_choices %}
+            <option value="{{ value }}" {% if (sh.tracking_carrier or '') == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-1 d-flex align-items-center">
+          <button type="button" class="btn btn-sm btn-link text-danger p-0 order-ship-remove" title="Remove this tracking number"><i class="bi bi-x-lg"></i></button>
+        </div>
       </div>
-      <div class="col-sm-5">
-        <label class="form-label">Carrier</label>
-        {% set _carrier = form.get('tracking_carrier', order.tracking_carrier if order else '') if form else (order.tracking_carrier if order else '') %}
-        <select name="tracking_carrier" class="form-select">
-          {% for value, label in tracking_carrier_choices %}
-          <option value="{{ value }}" {% if (_carrier or '') == value %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
+      {% endfor %}
     </div>
-    {#- Exchange units (overhauled starter, magneto, cylinder...): the old
-       core has to go back to the supplier by a deadline or a core charge is
-       billed - see Cores owed on the Orders page. #}
-    {% set _exch = form.get('is_exchange') == 'on' if form else (order.is_exchange if order else False) %}
+    <button type="button" id="order-ship-add" class="btn btn-outline-secondary btn-sm mb-3"><i class="bi bi-plus-lg"></i> Add another tracking number</button>
+    {% if order %}
+    {% set _exch = form.get('is_exchange') == 'on' if form else order.is_exchange %}
     <div class="border rounded p-2 mb-3">
       <div class="form-check">
         <input class="form-check-input" type="checkbox" name="is_exchange" id="exchange-check" {% if _exch %}checked{% endif %}
@@ -80,16 +159,17 @@
         <div class="col-6">
           <label class="form-label small mb-0" for="core-charge">Core charge ($)</label>
           <input id="core-charge" type="number" step="any" min="0" name="core_charge" class="form-control"
-                 value="{{ form.get('core_charge', '') if form else ('%g'|format(order.core_charge) if order and order.core_charge is not none else '') }}">
+                 value="{{ form.get('core_charge', '') if form else ('%g'|format(order.core_charge) if order.core_charge is not none else '') }}">
         </div>
         <div class="col-6">
           <label class="form-label small mb-0" for="core-days">Days allowed</label>
           <input id="core-days" type="number" step="1" min="1" max="365" name="core_days" class="form-control"
-                 value="{{ form.get('core_days', '30') if form else (order.core_days if order and order.core_days else 30) }}">
+                 value="{{ form.get('core_days', '30') if form else (order.core_days or 30) }}">
         </div>
         <div class="col-12 form-text mt-0">The due date is set when the order is received.</div>
       </div>
     </div>
+    {% endif %}
     <div class="mb-3">
       <label class="form-label">Note</label>
       <input type="text" name="note" class="form-control" placeholder="Order #, anything else worth knowing" value="{{ form.get('note', order.note if order else '') if form else (order.note if order and order.note else '') }}">
@@ -102,4 +182,75 @@
 </div>
 </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  // "+ New project..." shows the name/plane boxes.
+  var projSel = document.getElementById('order-project-select');
+  var newProj = document.getElementById('order-new-project');
+  if (projSel && newProj) projSel.addEventListener('change', function () {
+    newProj.classList.toggle('d-none', projSel.value !== '__new__');
+    if (projSel.value === '__new__') newProj.querySelector('input').focus();
+  });
+
+  // Repeating rows: items (New Order only) and tracking numbers.
+  function wireItem(row) {
+    var cb = row.querySelector('.order-item-exchange');
+    if (cb) cb.addEventListener('change', function () {
+      row.querySelector('input[type=hidden][name=is_exchange]').value = cb.checked ? 'on' : '';
+      row.querySelector('.order-item-core').classList.toggle('d-none', !cb.checked);
+    });
+    var rm = row.querySelector('.order-item-remove');
+    if (rm) rm.addEventListener('click', function () { row.remove(); renumber(); });
+  }
+  function renumber() {
+    var rows = document.querySelectorAll('#order-items .order-item');
+    rows.forEach(function (r, i) {
+      r.querySelector('.order-item-label').textContent = 'Item ' + (i + 1);
+      r.querySelector('.order-item-remove').style.display = rows.length > 1 ? '' : 'none';
+    });
+  }
+  var items = document.getElementById('order-items');
+  if (items) {
+    items.querySelectorAll('.order-item').forEach(wireItem);
+    renumber();
+    document.getElementById('order-item-add').addEventListener('click', function () {
+      var first = items.querySelector('.order-item');
+      var row = first.cloneNode(true);
+      row.querySelectorAll('input').forEach(function (inp) {
+        if (inp.type === 'checkbox') inp.checked = false;
+        else if (inp.name === 'qty_ordered') inp.value = '1';
+        else if (inp.name === 'unit_cost') inp.value = '0';
+        else if (inp.name === 'core_days') inp.value = '30';
+        else inp.value = '';
+      });
+      row.querySelectorAll('select').forEach(function (sel) { sel.selectedIndex = 0; });
+      row.querySelector('.order-item-core').classList.add('d-none');
+      items.appendChild(row);
+      wireItem(row);
+      renumber();
+      row.querySelector('select').focus();
+    });
+  }
+  var ships = document.getElementById('order-ships');
+  function wireShip(row) {
+    row.querySelector('.order-ship-remove').addEventListener('click', function () {
+      if (ships.querySelectorAll('.order-ship').length > 1) row.remove();
+      else { row.querySelector('input').value = ''; row.querySelector('select').selectedIndex = 0; }
+    });
+  }
+  if (ships) {
+    ships.querySelectorAll('.order-ship').forEach(wireShip);
+    document.getElementById('order-ship-add').addEventListener('click', function () {
+      var row = ships.querySelector('.order-ship').cloneNode(true);
+      row.querySelector('input').value = '';
+      row.querySelector('select').selectedIndex = 0;
+      ships.appendChild(row);
+      wireShip(row);
+      row.querySelector('input').focus();
+    });
+  }
+})();
+</script>
 {% endblock %}

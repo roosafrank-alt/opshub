@@ -3,7 +3,10 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0">Orders ({{ order_count }})</h4>
-  <a href="{{ url_for('order_new') }}" class="btn btn-warning fw-bold"><i class="bi bi-plus-lg"></i> New Order</a>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('project_new') }}" class="btn btn-outline-secondary"><i class="bi bi-clipboard-plus"></i> New Project</a>
+    <a href="{{ url_for('order_new') }}" class="btn btn-warning fw-bold"><i class="bi bi-plus-lg"></i> New Order</a>
+  </div>
 </div>
 
 {% macro urgency_badge(u) %}
@@ -149,13 +152,13 @@
 {% endif %}
 {% endmacro %}
 
-{% macro tracking_cell(o) %}
-{% if o.tracking_number %}
-<div class="order-tracking mt-1" data-order-id="{{ o.id }}" data-live="{{ 1 if o.status == 'pending' else 0 }}" data-tracking='{{ tracking_info(o)|tojson }}'>
+{% macro tracking_cell(shipments) %}
+{% for sh in shipments %}
+<div class="order-tracking mt-1" data-shipment-id="{{ sh.id }}" data-live="{{ 1 if sh.pending else 0 }}" data-tracking='{{ sh|tojson }}'>
   <a href="#" class="tracking-toggle text-decoration-none small" title="Show tracking details"><i class="bi bi-truck"></i> <span class="tracking-badge"></span> <i class="bi bi-chevron-down small"></i></a>
   <div class="tracking-details small mt-1 p-2 border rounded bg-body-tertiary" style="display:none;"></div>
 </div>
-{% endif %}
+{% endfor %}
 {% endmacro %}
 
 {% macro item_cell(o) %}
@@ -163,7 +166,6 @@
 {% else %}{{ o.description }} <span class="badge bg-secondary">new item</span>{% endif %}
 {% if o.is_exchange %} <span class="badge bg-info text-dark" title="Exchange unit - core due back{% if o.core_days %} within {{ o.core_days }} days of receiving{% endif %}">Exchange</span>{% endif %}
 {% if o.note %}<br><small class="text-muted">{{ o.note }}</small>{% endif %}
-{{ tracking_cell(o) }}
 {% endmacro %}
 
 {% if groups %}
@@ -181,7 +183,9 @@
       </div>
       {% for b in g.batches %}
       <div class="order-batch">
-        <div class="px-3 pt-2 text-muted small">Ordered {{ b.date|usdate if b.date else 'Unknown date' }} &middot; ${{ '%.2f'|format(b.subtotal) }}</div>
+        <div class="px-3 pt-2 text-muted small">Ordered {{ b.date|usdate if b.date else 'Unknown date' }} &middot; ${{ '%.2f'|format(b.subtotal) }}
+          {% if b.shipments %}&middot; {{ b.shipments|length }} package{{ 's' if b.shipments|length != 1 }}{% endif %}</div>
+        {% if b.shipments %}<div class="px-3">{{ tracking_cell(b.shipments) }}</div>{% endif %}
         <div class="table-responsive">
           <table class="table table-hover mb-0 align-middle">
             <tbody>
@@ -216,7 +220,7 @@
             <tbody>
               {% for o in g.lines %}
               <tr data-search="{{ o.search_blob }}">
-                <td>{{ o.vendor_name }}{% if o.note %}<br><small class="text-muted">{{ o.note }}</small>{% endif %}{{ tracking_cell(o) }}</td>
+                <td>{{ o.vendor_name }}{% if o.note %}<br><small class="text-muted">{{ o.note }}</small>{% endif %}{{ tracking_cell(o.shipments) }}</td>
                 <td>{{ '%g'|format(o.qty_ordered) }}</td>
                 <td>{% if o.project_name %}<a href="{{ url_for('project_detail', project_id=o.project_id) }}">{{ o.project_code }}</a>{% else %}-{% endif %}</td>
                 <td><small>{{ o.ordered_date|usdate }}</small></td>
@@ -287,7 +291,7 @@
     el.querySelector('.tracking-details').innerHTML = d;
   }
   function refresh(el) {
-    fetch('/api/orders/' + el.getAttribute('data-order-id') + '/tracking', { headers: { 'Accept': 'application/json' } })
+    fetch('/api/orders/shipments/' + el.getAttribute('data-shipment-id') + '/tracking', { headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (t) { if (t && t.ok) draw(el, t); })
       .catch(function () { /* keep what's shown */ });

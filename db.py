@@ -1823,6 +1823,44 @@ def _migrate(conn):
     # One person, several roles (idea "Admin"): a shop worker badge can be
     # linked to a login account, the same way a CFI profile already is
     # (cfis.user_id), so Payroll can show one person's pay across roles.
+    # One order, several items and several packages (idea "new order"):
+    # every order line carries a batch_id shared by the lines entered
+    # together on one New Order, and tracking numbers live per batch in
+    # order_shipments (each with its own cached carrier status) instead of
+    # one number per line. Existing orders each become their own batch and
+    # keep their one tracking number (and its cached status).
+    order_cols_batch = [r["name"] for r in conn.execute("PRAGMA table_info(orders)").fetchall()]
+    if "batch_id" not in order_cols_batch:
+        conn.execute("ALTER TABLE orders ADD COLUMN batch_id TEXT")
+    conn.execute("UPDATE orders SET batch_id = 'o' || id WHERE batch_id IS NULL OR batch_id = ''")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_orders_batch ON orders(batch_id)")
+    conn.execute("""CREATE TABLE IF NOT EXISTS order_shipments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        batch_id TEXT NOT NULL,
+        tracking_number TEXT NOT NULL,
+        tracking_carrier TEXT,
+        tracking_status TEXT,
+        tracking_detail TEXT,
+        tracking_location TEXT,
+        tracking_eta TEXT,
+        tracking_events TEXT,
+        tracking_checked_at TEXT,
+        tracking_delivered_at TEXT,
+        created_at TEXT NOT NULL
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_order_shipments_batch ON order_shipments(batch_id)")
+    conn.execute("""INSERT INTO order_shipments (batch_id, tracking_number, tracking_carrier, tracking_status,
+                        tracking_detail, tracking_location, tracking_eta, tracking_events, tracking_checked_at,
+                        tracking_delivered_at, created_at)
+                    SELECT o.batch_id, o.tracking_number, o.tracking_carrier, o.tracking_status, o.tracking_detail,
+                           o.tracking_location, o.tracking_eta, o.tracking_events, o.tracking_checked_at,
+                           o.tracking_delivered_at, COALESCE(o.created_at, datetime('now'))
+                    FROM orders o
+                    WHERE o.tracking_number IS NOT NULL AND TRIM(o.tracking_number) != ''
+                      AND NOT EXISTS (SELECT 1 FROM order_shipments s
+                                      WHERE s.batch_id = o.batch_id AND s.tracking_number = o.tracking_number)""")
+    conn.commit()
+
     laborer_cols_user = [r["name"] for r in conn.execute("PRAGMA table_info(laborers)").fetchall()]
     if "user_id" not in laborer_cols_user:
         conn.execute("ALTER TABLE laborers ADD COLUMN user_id INTEGER REFERENCES users(id)")

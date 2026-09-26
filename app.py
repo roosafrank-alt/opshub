@@ -4164,6 +4164,7 @@ def orders_list():
                              (status_filter,)).fetchall()
     else:
         rows = conn.execute(base_sql + " ORDER BY o.ordered_date DESC").fetchall()
+    ship_rows = _batch_shipments(conn, [r["batch_id"] or f"o{r['id']}" for r in rows])
     conn.close()
 
     orders = []
@@ -4171,9 +4172,12 @@ def orders_list():
         o = dict(r)
         o["item_name"] = o["part_name"] or o["description"]
         o["vendor_name"] = o["supplier"] or "No Vendor Specified"
+        o["batch_key"] = o.get("batch_id") or f"o{o['id']}"
+        o["shipments"] = [dict(tracking.to_json(sh), id=sh["id"], pending=o["status"] == "pending")
+                          for sh in ship_rows.get(o["batch_key"], [])]
         o["search_blob"] = " ".join(str(v) for v in [
             o["item_name"], o["vendor_name"], o["project_name"] or "", o["project_code"] or "", o["note"] or "",
-            o.get("tracking_number") or ""
+            " ".join(sh["number"] or "" for sh in o["shipments"])
         ]).lower()
         orders.append(o)
 
@@ -4192,7 +4196,16 @@ def orders_list():
             batches = []
             for d in sorted(by_vendor[v].keys(), reverse=True):
                 lines = by_vendor[v][d]
-                batches.append({"date": d, "lines": lines,
+                # Packages for the lines in this batch, listed once in its
+                # header instead of under every item.
+                seen, shipments = set(), []
+                for ln in lines:
+                    for sh in ln["shipments"]:
+                        if sh["id"] not in seen:
+                            seen.add(sh["id"])
+                            shipments.append(dict(sh, pending=any(x["status"] == "pending" for x in lines
+                                                                   if x["batch_key"] == ln["batch_key"])))
+                batches.append({"date": d, "lines": lines, "shipments": shipments,
                                  "subtotal": sum((i["unit_cost"] or 0) * (i["qty_ordered"] or 0) for i in lines)})
             groups.append({"label": v, "batches": batches,
                             "total": sum(b["subtotal"] for b in batches),
@@ -4279,29 +4292,106 @@ def _order_tracking_from_form(form):
     return (number or None), (carrier or None) if number else None
 
 
-@app.route("/api/orders/<int:order_id>/tracking")
-@shop_role_required('admin')
-def api_order_tracking(order_id):
-    """Latest shipping status for one order, for the Orders page's live
-    badges. Asks the carrier (via tracking.py) only when the cached status
-    is older than tracking.REFRESH_MINUTES and it isn't delivered yet."""
-    conn = get_db()
-    order = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
-    if not order or not order["tracking_number"]:
-        conn.close()
-        return jsonify({"ok": False, "error": "no_tracking"}), 404
+def _shipments_from_form(form):
+    """[(number, carrier_or_None)] from the New/Edit Order form's repeating
+    tracking-number rows (tracking_number / tracking_carrier, several of
+    each). Blanks and repeats are dropped."""
+    numbers = form.getlist("tracking_number") if hasattr(form, "getlist") else [form.get("tracking_number")]
+    carriers = form.getlist("tracking_carrier") if hasattr(form, "getlist") else [form.get("tracking_carrier")]
+    out, seen = [], set()
+    for i, raw in enumerate(numbers):
+        number = tracking.clean_number(raw)
+        if not number or number in seen:
+            continue
+        seen.add(number)
+        carrier = ((carriers[i] if i < len(carriers) else "") or "").strip().lower()
+        if carrier not in tracking.CARRIERS and carrier != "other":
+            carrier = ""
+        out.append((number, carrier or None))
+    return out
+
+
+def _save_batch_shipments(conn, batch_id, shipments):
+    """Makes the order batch's tracking numbers match `shipments`. A number
+    that's still there keeps its cached status; a changed carrier forgets
+    it; removed numbers are deleted."""
+    existing = {r["tracking_number"]: r for r in conn.execute(
+        "SELECT * FROM order_shipments WHERE batch_id = ?", (batch_id,)).fetchall()}
+    wanted = dict(shipments)
+    for number, row in existing.items():
+        if number not in wanted:
+            conn.execute("DELETE FROM order_shipments WHERE id = ?", (row["id"],))
+        elif (row["tracking_carrier"] or None) != wanted[number]:
+            conn.execute("""UPDATE order_shipments SET tracking_carrier=?, tracking_status=NULL, tracking_detail=NULL,
+                             tracking_location=NULL, tracking_eta=NULL, tracking_events=NULL,
+                             tracking_checked_at=NULL, tracking_delivered_at=NULL WHERE id=?""",
+                         (wanted[number], row["id"]))
+    for number, carrier in shipments:
+        if number not in existing:
+            conn.execute("INSERT INTO order_shipments (batch_id, tracking_number, tracking_carrier, created_at) "
+                         "VALUES (?, ?, ?, ?)", (batch_id, number, carrier, now_iso()))
+
+
+def _batch_shipments(conn, batch_ids):
+    """{batch_id: [shipment rows]} for the given order batches."""
+    batch_ids = [b for b in set(batch_ids) if b]
+    if not batch_ids:
+        return {}
+    out = {}
+    marks = ",".join("?" * len(batch_ids))
+    for r in conn.execute(f"SELECT * FROM order_shipments WHERE batch_id IN ({marks}) ORDER BY id", batch_ids):
+        out.setdefault(r["batch_id"], []).append(r)
+    return out
+
+
+def _refresh_shipment(conn, shipment):
+    """Asks the carrier for a shipment's latest status when its cache is
+    stale (tracking.needs_refresh) and some line of its order is still
+    pending. Returns (fresh shipment row, error or None)."""
+    pending = conn.execute("SELECT 1 FROM orders WHERE COALESCE(batch_id, 'o' || id) = ? AND status = 'pending'",
+                           (shipment["batch_id"],)).fetchone()
     error = None
-    if order["status"] == "pending" and tracking.needs_refresh(order):
-        result = tracking.fetch_status(order)
+    if pending and tracking.needs_refresh(shipment):
+        result = tracking.fetch_status(shipment)
         error = result.pop("error", None)
         if not error:
             result["tracking_checked_at"] = now_iso()
             cols = ", ".join(f"{k} = ?" for k in result)
-            conn.execute(f"UPDATE orders SET {cols} WHERE id = ?", (*result.values(), order_id))
+            conn.execute(f"UPDATE order_shipments SET {cols} WHERE id = ?", (*result.values(), shipment["id"]))
             conn.commit()
-            order = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+            shipment = conn.execute("SELECT * FROM order_shipments WHERE id = ?", (shipment["id"],)).fetchone()
+    return shipment, error
+
+
+@app.route("/api/orders/shipments/<int:shipment_id>/tracking")
+@shop_role_required('admin')
+def api_shipment_tracking(shipment_id):
+    """Latest status of one package, for the Orders page's live badges."""
+    conn = get_db()
+    shipment = conn.execute("SELECT * FROM order_shipments WHERE id = ?", (shipment_id,)).fetchone()
+    if not shipment:
+        conn.close()
+        return jsonify({"ok": False, "error": "no_tracking"}), 404
+    shipment, error = _refresh_shipment(conn, shipment)
     conn.close()
-    return jsonify(dict(tracking.to_json(order), ok=True, error=error))
+    return jsonify(dict(tracking.to_json(shipment), ok=True, error=error, shipment_id=shipment_id))
+
+
+@app.route("/api/orders/<int:order_id>/tracking")
+@shop_role_required('admin')
+def api_order_tracking(order_id):
+    """Older per-order address: the first package of that order's batch."""
+    conn = get_db()
+    order = conn.execute("SELECT id, COALESCE(batch_id, 'o' || id) AS batch_id FROM orders WHERE id = ?",
+                         (order_id,)).fetchone()
+    shipment = conn.execute("SELECT * FROM order_shipments WHERE batch_id = ? ORDER BY id LIMIT 1",
+                            (order["batch_id"],)).fetchone() if order else None
+    if not shipment:
+        conn.close()
+        return jsonify({"ok": False, "error": "no_tracking"}), 404
+    shipment, error = _refresh_shipment(conn, shipment)
+    conn.close()
+    return jsonify(dict(tracking.to_json(shipment), ok=True, error=error, shipment_id=shipment["id"]))
 
 
 def _order_core_from_form(form):
@@ -4340,40 +4430,116 @@ def _parse_order_numbers(form):
     return qty, cost, None
 
 
+def _order_lines_from_form(conn, form):
+    """The item rows of New Order -> ([line dicts], error). Each row is
+    part_id / description / qty_ordered / unit_cost / is_exchange /
+    core_charge / core_days (several of each, one per row, in order).
+    Completely blank rows are skipped."""
+    fields = ("part_id", "description", "qty_ordered", "unit_cost", "is_exchange", "core_charge", "core_days")
+    cols = {f: form.getlist(f) for f in fields}
+    n = max(len(v) for v in cols.values()) if cols else 0
+    lines = []
+    for i in range(n):
+        row = {f: ((cols[f][i] if i < len(cols[f]) else "") or "").strip() for f in fields}
+        part_id = row["part_id"] or None
+        description = row["description"]
+        if not part_id and not description:
+            continue
+        if not description and part_id:
+            p = conn.execute("SELECT name FROM parts WHERE id = ?", (part_id,)).fetchone()
+            description = p["name"] if p else ""
+        label = f"Item {len(lines) + 1}: " if n > 1 else ""
+        if not description:
+            return None, f"{label}Enter what you're ordering (or pick a part)."
+        qty, cost, number_error = _parse_order_numbers(row)
+        is_exchange, core_charge, core_days, core_error = _order_core_from_form(row)
+        if number_error or core_error:
+            return None, label + (number_error or core_error)
+        lines.append(dict(part_id=part_id, description=description, qty=qty, cost=cost, is_exchange=is_exchange,
+                          core_charge=core_charge, core_days=core_days))
+    if not lines:
+        return None, "Enter what you're ordering (or pick a part)."
+    return lines, None
+
+
+def _project_for_order_form(conn, form):
+    """The "For project" choice on New/Edit Order -> (project_id, error).
+    "__new__" makes a new job right there from the name (and optional
+    plane) typed in, the same way New Project starts one."""
+    raw = (form.get("project_id") or "").strip()
+    if raw != "__new__":
+        return (raw or None), None
+    name = (form.get("new_project_name") or "").strip()
+    if not name:
+        return None, "Type a name for the new project (or pick an existing one)."
+    asset_id = (form.get("new_project_asset_id") or "").strip() or None
+    if asset_id and not conn.execute("SELECT 1 FROM assets WHERE id = ? AND deleted_at IS NULL", (asset_id,)).fetchone():
+        asset_id = None
+    code = gen_project_code(conn)
+    cur = conn.execute("INSERT INTO projects (code, name, description, status, asset_id, created_at) "
+                       "VALUES (?, ?, '', 'active', ?, ?)", (code, name, asset_id, now_iso()))
+    conn.execute("UPDATE projects SET intake_status = 'pending' WHERE id = ?", (cur.lastrowid,))
+    return cur.lastrowid, None
+
+
+def _order_form_lists(conn):
+    parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
+    projects = conn.execute("SELECT * FROM projects WHERE status='active' AND deleted_at IS NULL ORDER BY name").fetchall()
+    assets = conn.execute("SELECT id, tag FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 "
+                          "AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
+    return dict(parts=parts, projects=projects, assets=assets)
+
+
+def _form_rows(form):
+    """Item and tracking rows to redraw the New Order form after an error."""
+    if not form or not hasattr(form, "getlist"):
+        return None, None
+    fields = ("part_id", "description", "qty_ordered", "unit_cost", "is_exchange", "core_charge", "core_days")
+    cols = {f: form.getlist(f) for f in fields}
+    n = max(1, max(len(v) for v in cols.values()))
+    items = [{f: (cols[f][i] if i < len(cols[f]) else "") for f in fields} for i in range(n)]
+    nums, cars = form.getlist("tracking_number"), form.getlist("tracking_carrier")
+    ships = [{"tracking_number": nums[i], "tracking_carrier": cars[i] if i < len(cars) else ""}
+             for i in range(len(nums))]
+    return items, ships
+
+
 @app.route("/orders/new", methods=["GET", "POST"])
 @shop_role_required('admin')
 def order_new():
+    """One New Order can hold several items from the same supplier (each
+    saved as its own order line, so each is received, cancelled or tracked
+    as a core on its own) and several tracking numbers for the packages it
+    ships in. Lines entered together share a batch_id."""
     conn = get_db()
     if request.method == "POST":
-        description = request.form.get("description", "").strip()
-        part_id = request.form.get("part_id") or None
         wishlist_id = request.form.get("wishlist_id") or None
-        if not description:
-            # If a part was picked, use its name as the description.
-            if part_id:
-                p = conn.execute("SELECT name FROM parts WHERE id = ?", (part_id,)).fetchone()
-                description = p["name"] if p else ""
-        qty, cost, number_error = _parse_order_numbers(request.form)
-        is_exchange, core_charge, core_days, core_error = _order_core_from_form(request.form)
-        error = "Enter what you're ordering (or pick a part)." if not description else (number_error or core_error)
+        lines, error = _order_lines_from_form(conn, request.form)
+        project_id = None
+        if not error:
+            project_id, error = _project_for_order_form(conn, request.form)
         if error:
             # Show the form again with everything still filled in. (The
             # parts/projects lists are read BEFORE closing the connection -
             # reading them after used to crash with an error page.)
+            conn.rollback()
             flash(error, "danger")
-            parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
-            projects = conn.execute("SELECT * FROM projects WHERE status='active' ORDER BY name").fetchall()
+            lists = _order_form_lists(conn)
             conn.close()
-            return render_template("order_form.html", parts=parts, projects=projects, form=request.form)
-        tracking_number, tracking_carrier = _order_tracking_from_form(request.form)
-        conn.execute("""INSERT INTO orders (part_id, description, qty_ordered, supplier, unit_cost,
-                         project_id, status, ordered_date, expected_date, note, created_at,
-                         tracking_number, tracking_carrier, is_exchange, core_charge, core_days)
-                         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                     (part_id, description, qty, request.form.get("supplier", "").strip(), cost,
-                      request.form.get("project_id") or None, now_iso(),
-                      request.form.get("expected_date") or None, request.form.get("note", "").strip(), now_iso(),
-                      tracking_number, tracking_carrier, is_exchange, core_charge, core_days))
+            items, ships = _form_rows(request.form)
+            return render_template("order_form.html", form=request.form, items=items, ships=ships, **lists)
+        batch_id = "b" + secrets.token_hex(6)
+        supplier = request.form.get("supplier", "").strip()
+        expected = request.form.get("expected_date") or None
+        note = request.form.get("note", "").strip()
+        for ln in lines:
+            conn.execute("""INSERT INTO orders (part_id, description, qty_ordered, supplier, unit_cost,
+                             project_id, status, ordered_date, expected_date, note, created_at,
+                             is_exchange, core_charge, core_days, batch_id)
+                             VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)""",
+                         (ln["part_id"], ln["description"], ln["qty"], supplier, ln["cost"], project_id, now_iso(),
+                          expected, note, now_iso(), ln["is_exchange"], ln["core_charge"], ln["core_days"], batch_id))
+        _save_batch_shipments(conn, batch_id, _shipments_from_form(request.form))
         if wishlist_id:
             # This order started from a "things to order" entry - close that
             # entry out now that it's an actual order, rather than leaving
@@ -4382,10 +4548,12 @@ def order_new():
                          (now_iso(), wishlist_id))
         conn.commit()
         conn.close()
-        flash(f"Order for '{description}' added.", "success")
+        if len(lines) == 1:
+            flash(f"Order for '{lines[0]['description']}' added.", "success")
+        else:
+            flash(f"Order added: {len(lines)} items{' from ' + supplier if supplier else ''}.", "success")
         return redirect(url_for("orders_list"))
-    parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
-    projects = conn.execute("SELECT * FROM projects WHERE status='active' ORDER BY name").fetchall()
+    lists = _order_form_lists(conn)
     prefill = {}
     wishlist_id = request.args.get("wishlist_id")
     if wishlist_id:
@@ -4394,16 +4562,21 @@ def order_new():
             prefill = {"description": w["description"], "part_id": str(w["part_id"]) if w["part_id"] else "",
                        "note": w["notes"] or "", "wishlist_id": str(wishlist_id)}
     conn.close()
-    return render_template("order_form.html", parts=parts, projects=projects, form=prefill)
+    items = [{"part_id": prefill.get("part_id", ""), "description": prefill.get("description", ""),
+              "qty_ordered": "1", "unit_cost": "0", "is_exchange": "", "core_charge": "", "core_days": "30"}]
+    return render_template("order_form.html", form=prefill, items=items, ships=[], **lists)
 
 
 @app.route("/orders/<int:order_id>/edit", methods=["GET", "POST"])
 @shop_role_required('admin')
 def order_edit(order_id):
     """Lets a pending order's quantity, cost, supplier, dates, etc. be
-    corrected/typed in before it's sent to the vendor or exported."""
+    corrected/typed in before it's sent to the vendor or exported. The
+    tracking numbers belong to the whole order (every item entered with it
+    on the same New Order), so changing them here changes them for all."""
     conn = get_db()
-    order = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+    order = conn.execute("SELECT *, COALESCE(batch_id, 'o' || id) AS batch_key FROM orders WHERE id = ?",
+                         (order_id,)).fetchone()
     if not order:
         conn.close()
         flash("Order not found.", "danger")
@@ -4415,46 +4588,51 @@ def order_edit(order_id):
         conn.close()
         flash(f"Order #{order_id} is already {order['status']} and can't be edited.", "warning")
         return redirect(url_for("orders_list"))
-    parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
-    projects = conn.execute("SELECT * FROM projects WHERE status='active' ORDER BY name").fetchall()
+    lists = _order_form_lists(conn)
+    batch_count = conn.execute("SELECT COUNT(*) c FROM orders WHERE COALESCE(batch_id, 'o' || id) = ?",
+                               (order["batch_key"],)).fetchone()["c"]
+    ships = [dict(r) for r in _batch_shipments(conn, [order["batch_key"]]).get(order["batch_key"], [])]
     if request.method == "POST":
         description = request.form.get("description", "").strip()
         part_id = request.form.get("part_id") or None
         if not description and part_id:
             p = conn.execute("SELECT name FROM parts WHERE id = ?", (part_id,)).fetchone()
             description = p["name"] if p else ""
+        _items, form_ships = _form_rows(request.form)
         if not description:
             flash("Enter what you're ordering (or pick a part).", "danger")
             conn.close()
-            return render_template("order_form.html", parts=parts, projects=projects, form=request.form, order=order)
+            return render_template("order_form.html", form=request.form, order=order, ships=form_ships,
+                                   batch_count=batch_count, **lists)
         qty, cost, number_error = _parse_order_numbers(request.form)
         is_exchange, core_charge, core_days, core_error = _order_core_from_form(request.form)
         number_error = number_error or core_error
+        project_id = None
+        if not number_error:
+            project_id, number_error = _project_for_order_form(conn, request.form)
         if number_error:
+            conn.rollback()
             flash(number_error, "danger")
             conn.close()
-            return render_template("order_form.html", parts=parts, projects=projects, form=request.form, order=order)
-        tracking_number, tracking_carrier = _order_tracking_from_form(request.form)
-        if (tracking_number or "") != (order["tracking_number"] or "") or \
-                (tracking_carrier or "") != (order["tracking_carrier"] or ""):
-            # New/changed number: forget the old number's cached status.
-            conn.execute("""UPDATE orders SET tracking_status=NULL, tracking_detail=NULL, tracking_location=NULL,
-                             tracking_eta=NULL, tracking_events=NULL, tracking_checked_at=NULL,
-                             tracking_delivered_at=NULL WHERE id=?""", (order_id,))
+            return render_template("order_form.html", form=request.form, order=order, ships=form_ships,
+                                   batch_count=batch_count, **lists)
+        if not order["batch_id"]:
+            conn.execute("UPDATE orders SET batch_id = ? WHERE id = ?", (order["batch_key"], order_id))
+        _save_batch_shipments(conn, order["batch_key"], _shipments_from_form(request.form))
         conn.execute("""UPDATE orders SET part_id=?, description=?, qty_ordered=?, supplier=?, unit_cost=?,
-                         project_id=?, expected_date=?, note=?, tracking_number=?, tracking_carrier=?,
+                         project_id=?, expected_date=?, note=?,
                          is_exchange=?, core_charge=?, core_days=?
                          WHERE id=? AND status='pending'""",
                      (part_id, description, qty, request.form.get("supplier", "").strip(), cost,
-                      request.form.get("project_id") or None, request.form.get("expected_date") or None,
-                      request.form.get("note", "").strip(), tracking_number, tracking_carrier,
+                      project_id, request.form.get("expected_date") or None,
+                      request.form.get("note", "").strip(),
                       is_exchange, core_charge, core_days, order_id))
         conn.commit()
         conn.close()
         flash(f"Order for '{description}' updated.", "success")
         return redirect(url_for("orders_list"))
     conn.close()
-    return render_template("order_form.html", parts=parts, projects=projects, form=None, order=order)
+    return render_template("order_form.html", form=None, order=order, ships=ships, batch_count=batch_count, **lists)
 
 
 @app.route("/orders/export")
