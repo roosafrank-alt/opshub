@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+{#- The Scan page loaded inside another page's hidden scan frame (see the
+   global scanner capture at the bottom): no menus, and links open in the
+   real page, not the frame. #}
+{% set embedded = request.path == '/scan' and request.args.get('embedded') == '1' %}
+{% if embedded %}<base target="_top">{% endif %}
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>{% block title %}OpsHub{% endblock %}</title>
 <link rel="manifest" href="{{ url_for('static', filename='manifest-windsaloft.json') }}">
@@ -48,6 +53,7 @@
 </style>
 </head>
 <body>
+{% if not embedded %}
 <nav class="navbar navbar-expand-xl navbar-dark bg-dark sticky-top">
   <div class="container-fluid">
     {% set back_fallback = url_for('dashboard') %}{% include "_back_button.html" %}
@@ -151,6 +157,7 @@
   </div>
 </nav>
 {% include "_view_as_banner.html" %}
+{% endif %}
 <div class="container-fluid py-3">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -167,7 +174,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='js/combo.js') }}"></script>
 <script src="{{ url_for('static', filename='js/tour.js') }}"></script>
-{% if logged_in_user_name and (request.args.get('tour') == '1' or not tour_seen_shop) %}
+{% if logged_in_user_name and not embedded and (request.args.get('tour') == '1' or not tour_seen_shop) %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   OpsHubTour.start([
@@ -187,10 +194,24 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 {% endif %}
-{% include "_labor_timer_widget.html" %}
+{% if not embedded %}{% include "_labor_timer_widget.html" %}{% endif %}
 {% include "_confirm_modal.html" %}
 {% include "_add_photos_picker.html" %}
-{% if session.get('user_id') or session.get('is_master_admin') %}
+{% if session.get('user_id') and (session.get('is_master_admin') or session.get('shop_role')) and not embedded %}
+<div id="global-scan-toasts" class="no-print" aria-live="polite"></div>
+<div id="global-scan-backdrop" class="no-print" style="display:none;"></div>
+<style>
+  #global-scan-toasts { position: fixed; top: .75rem; left: 50%; transform: translateX(-50%); z-index: 1085;
+    width: min(32rem, calc(100vw - 1.5rem)); }
+  #global-scan-toasts .global-scan-toast { position: relative; margin-bottom: .5rem; box-shadow: 0 .5rem 1.25rem rgba(0,0,0,.3); border-radius: .5rem; }
+  #global-scan-toasts .global-scan-toast .alert { margin-bottom: 0 !important; padding-right: 2.25rem; }
+  #global-scan-toasts .global-scan-toast-close { position: absolute; top: .35rem; right: .45rem; z-index: 2; }
+  #global-scan-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1080; }
+  iframe.global-scan-frame { position: fixed; left: -10000px; top: 0; width: 420px; height: 640px; border: 0; visibility: hidden; }
+  iframe.global-scan-frame.open { left: 50%; top: 4vh; transform: translateX(-50%); width: min(44rem, calc(100vw - 1.5rem));
+    height: calc(92vh - 3.5rem); visibility: visible; z-index: 1082; background: #f8f9fa; border-radius: .5rem; box-shadow: 0 1rem 2rem rgba(0,0,0,.4); }
+  #global-scan-close { position: fixed; bottom: 3vh; left: 50%; transform: translateX(-50%); z-index: 1083; min-height: 2.5rem; }
+</style>
 <script>
 // Global USB/Bluetooth barcode scanner capture - works on ANY page, not just
 // the Scan page itself. A barcode scanner types like a keyboard, but far
@@ -198,10 +219,91 @@ document.addEventListener('DOMContentLoaded', function () {
 // last), so a scan is detected purely by typing speed - no focus/field
 // requirements, and normal typing anywhere else in the app is untouched.
 // The Scan page has its own dedicated input box and handles USB input
-// itself, so this only needs to act everywhere else: catch the code, then
-// hand off to /scan to process it exactly like a scan made there.
+// itself, so this only needs to act everywhere else.
+//
+// You stay on the page you're on: the code goes to the real Scan page
+// running in a hidden frame (/scan?embedded=1 - the exact same scanning
+// logic, nothing re-implemented here), and its green/red result shows here
+// as a popup at the top. The frame only comes into view when the Scan page
+// needs an answer (Stock IN/OUT and quantity for a part, a General Shop
+// clock-out note), then hides again.
 (function () {
   if (location.pathname.startsWith('/scan')) return;
+  var SCAN_URL = "{{ url_for('scan_page') }}";
+  var frame = null, frameReady = false, queue = [];
+  var toasts = document.getElementById('global-scan-toasts');
+  var backdrop = document.getElementById('global-scan-backdrop');
+  var closeBtn = null;
+
+  function ensureFrame(firstCode) {
+    if (frame) return false;
+    frame = document.createElement('iframe');
+    frame.className = 'global-scan-frame';
+    frame.setAttribute('title', 'Scanner');
+    frame.setAttribute('tabindex', '-1');
+    frame.src = SCAN_URL + '?embedded=1&autoscan=' + encodeURIComponent(firstCode);
+    document.body.appendChild(frame);
+    return true;
+  }
+  function send(code) {
+    if (ensureFrame(code)) return;  // the first code rides along in the URL
+    if (!frameReady) { queue.push(code); return; }
+    frame.contentWindow.postMessage({ type: 'opshub-scan', code: code }, location.origin);
+  }
+  function setOpen(open) {
+    if (!frame) return;
+    frame.classList.toggle('open', open);
+    backdrop.style.display = open ? '' : 'none';
+    if (open && !closeBtn) {
+      closeBtn = document.createElement('button');
+      closeBtn.id = 'global-scan-close';
+      closeBtn.type = 'button';
+      closeBtn.className = 'btn btn-light btn-sm fw-bold';
+      closeBtn.innerHTML = '<i class="bi bi-x-lg"></i> Close scanner';
+      closeBtn.addEventListener('click', function () { setOpen(false); });
+      document.body.appendChild(closeBtn);
+    }
+    if (closeBtn) closeBtn.style.display = open ? '' : 'none';
+    if (open) { try { frame.focus(); } catch (e) {} }
+  }
+  backdrop.addEventListener('click', function () { setOpen(false); });
+  function toast(html) {
+    var wrap = document.createElement('div');
+    wrap.className = 'global-scan-toast';
+    wrap.innerHTML = html;
+    var x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'btn-close global-scan-toast-close';
+    x.setAttribute('aria-label', 'Close');
+    x.addEventListener('click', function () { wrap.remove(); });
+    wrap.appendChild(x);
+    // A link that only works inside the Scan page (e.g. "choose Stock IN /
+    // a specific quantity") is clicked there instead, which opens the frame.
+    wrap.querySelectorAll('a[href="#"][id]').forEach(function (a) {
+      a.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        frame.contentWindow.postMessage({ type: 'opshub-scan-click', id: a.id }, location.origin);
+        wrap.remove();
+      });
+    });
+    toasts.prepend(wrap);
+    while (toasts.children.length > 3) toasts.removeChild(toasts.lastChild);
+    setTimeout(function () { wrap.remove(); }, 6000);
+  }
+  window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin || !frame || e.source !== frame.contentWindow) return;
+    var d = e.data || {};
+    if (d.type === 'opshub-scan-ready') {
+      frameReady = true;
+      queue.splice(0).forEach(send);
+    } else if (d.type === 'opshub-scan-result') {
+      toast(d.html);
+      window.dispatchEvent(new Event('opshub:labor-changed'));
+    } else if (d.type === 'opshub-scan-needs-input') {
+      setOpen(!!d.open);
+    }
+  });
+
   var buffer = '';
   var lastTime = 0;
   var FAST_MS = 30; // max gap between keystrokes to still count as a scan
@@ -212,9 +314,17 @@ document.addEventListener('DOMContentLoaded', function () {
       if (buffer.length >= MIN_LEN) {
         var code = buffer;
         buffer = '';
-        // Only hijack the page when it really looks like a scanner burst,
-        // not someone hitting Enter after slowly typing into a real field.
-        window.location.href = "{{ url_for('scan_page') }}?autoscan=" + encodeURIComponent(code);
+        // Only act when it really looks like a scanner burst, not someone
+        // hitting Enter after slowly typing into a real field.
+        e.preventDefault();
+        // The burst also typed itself into whatever box had focus - take it
+        // back out, since we're staying on this page now.
+        var el = document.activeElement;
+        if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && typeof el.value === 'string'
+            && el.value.slice(-code.length) === code) {
+          el.value = el.value.slice(0, -code.length);
+        }
+        send(code);
       }
       buffer = '';
       return;

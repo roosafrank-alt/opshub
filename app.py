@@ -1213,7 +1213,8 @@ def scan_page():
     # "Scanning as" defaults to whoever's actually logged in, so a single-user
     # session never has to pick their own name - it's only an actual choice
     # on a shared/kiosk station where several people scan under one login.
-    return render_template("scan.html", projects=projects, logged_in_name=session.get("user_name") or "")
+    return render_template("scan.html", projects=projects, logged_in_name=session.get("user_name") or "",
+                           embedded=request.args.get("embedded") == "1")
 
 
 @app.route("/labor")

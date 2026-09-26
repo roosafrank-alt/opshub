@@ -4,7 +4,7 @@
 <div class="row justify-content-center">
   <div class="col-lg-8">
 
-    <p class="text-muted small mb-2">One scanner for everything. Just scan - a part, a project code, or someone's laborer badge, in any order. It figures out what the code is and asks anything it still needs afterward.</p>
+    <p class="text-muted small mb-2 {{ 'd-none' if embedded }}">One scanner for everything. Just scan - a part, a project code, or someone's laborer badge, in any order. It figures out what the code is and asks anything it still needs afterward.</p>
 
     <div class="card p-3 mb-3">
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
@@ -80,7 +80,7 @@
       <div class="tab-content">
         <div class="tab-pane fade show active" id="tab-usb">
           <label class="form-label">Scan or type any code, then press Enter</label>
-          <input type="text" id="scan-input" class="form-control form-control-lg" placeholder="Ready to scan..." autofocus autocomplete="off">
+          <input type="text" id="scan-input" class="form-control form-control-lg" placeholder="Ready to scan..." {{ "" if embedded else "autofocus" }} autocomplete="off">
           <div class="form-text">Click into this box, then scan with your USB/Bluetooth barcode scanner (it types like a keyboard). Works great on a shop PC.</div>
         </div>
         <div class="tab-pane fade" id="tab-camera">
@@ -559,7 +559,7 @@ function showGeneralNotePrompt(code, laborerName) {
 
 function routeScanValue(value, fromCamera) {
   // A plane's QR on the printed Job Sheet is a link to its aircraft page.
-  if (value.startsWith(window.location.origin + '/assets/')) { window.location.href = value; return true; }
+  if (value.startsWith(window.location.origin + '/assets/')) { window.top.location.href = value; return true; }
   if (value === GENERAL_SHOP_CODE) { handleGeneralShopScan(fromCamera); return true; }
   if (value.startsWith('LABOR-')) { handleLaborScan(value); return true; }
   if (value.startsWith('TASK-')) { handleTaskCodeScan(value, fromCamera); return true; }
@@ -959,5 +959,62 @@ document.getElementById('camera-start-btn').addEventListener('click', function()
 window.addEventListener('beforeunload', function () {
   if (cameraRunning && html5QrCode) { try { html5QrCode.stop(); } catch (e) { /* ignore */ } }
 });
+
+{% if embedded %}
+// --- Running inside another page's hidden scan frame (base.html) ---------
+// The scanning logic above is untouched. This only (1) takes codes from the
+// page the person is on, (2) hands each green/red result back to that page
+// to show as a popup, and (3) asks that page to show this frame when a scan
+// needs an answer here (part Stock IN/OUT, General Shop note, who's scanning).
+(function () {
+  const parentWin = window.parent;
+  const origin = window.location.origin;
+  function post(msg) { try { parentWin.postMessage(msg, origin); } catch (e) { /* ignore */ } }
+
+  // Never pull focus or scroll the page behind while hidden.
+  const realFocus = scanInput.focus.bind(scanInput);
+  scanInput.focus = function () { if (document.hasFocus()) realFocus(); };
+  Element.prototype.scrollIntoView = function () {
+    const r = this.getBoundingClientRect();
+    window.scrollTo(0, Math.max(r.top + window.scrollY - 20, 0));
+  };
+
+  function sendResult() {
+    const body = document.getElementById('result-body');
+    if (body && body.innerHTML.trim()) post({ type: 'opshub-scan-result', html: body.innerHTML });
+  }
+  const _showResult = showResult;
+  showResult = function () { _showResult.apply(this, arguments); sendResult(); };
+  const _showScanResult = showScanResult;
+  showScanResult = function () { _showScanResult.apply(this, arguments); sendResult(); };
+  const _flagMissingOperator = flagMissingOperator;
+  flagMissingOperator = function () { post({ type: 'opshub-scan-needs-input', open: true }); _flagMissingOperator.apply(this, arguments); };
+
+  // Show this frame while the part confirm or General Shop note is up.
+  const watched = ['confirm-card', 'general-note-card'].map(id => document.getElementById(id));
+  let wasOpen = false;
+  new MutationObserver(function () {
+    const open = watched.some(el => el && el.style.display !== 'none');
+    if (open !== wasOpen) { wasOpen = open; post({ type: 'opshub-scan-needs-input', open: open }); }
+  }).observe(document.body, { attributes: true, subtree: true, attributeFilter: ['style'] });
+
+  window.addEventListener('message', function (e) {
+    if (e.origin !== origin || e.source !== parentWin) return;
+    const d = e.data || {};
+    if (d.type === 'opshub-scan' && typeof d.code === 'string') {
+      const val = d.code.trim();
+      if (!val) return;
+      if (routeScanValue(val, false)) return;
+      if (!operatorRequiredOk()) { flagMissingOperator(); return; }
+      lookupForConfirm(val, false);
+    } else if (d.type === 'opshub-scan-click' && typeof d.id === 'string') {
+      const el = document.getElementById(d.id);
+      if (el) el.click();
+    }
+  });
+  // Ready once this page's own ?autoscan= (the first code) has gone through.
+  window.addEventListener('load', function () { setTimeout(function () { post({ type: 'opshub-scan-ready' }); }, 400); });
+})();
+{% endif %}
 </script>
 {% endblock %}
