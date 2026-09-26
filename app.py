@@ -10,11 +10,12 @@ import subprocess
 import threading
 import time
 import logging
+import math
 from datetime import date, datetime, timedelta
 from flask import (Flask, render_template, request, redirect, url_for, jsonify, flash, abort,
                     Response, session, got_request_exception)
 
-from db import (get_db, init_db, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
+from db import (get_db, init_db, close_request_conns, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
                  allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
                  MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS)
 from flight import flight_bp, _flight_hours, check_session_alerts, SCHEDULE_COLORS, _used_colors_for_plane
@@ -71,6 +72,22 @@ app.register_blueprint(pilotlog_bp)
 app.register_blueprint(customer_bp)
 app.register_blueprint(manuals_bp)
 app.register_blueprint(groundschool_bp)
+app.teardown_request(close_request_conns)
+
+
+def _parse_qty(raw, allow_zero=False):
+    """A quantity typed or scanned at the parts counter -> float, or None
+    if it isn't a usable number. Rejects NaN/Infinity (float("nan") passes
+    every `<= 0` check and would write NaN into qty_on_hand, wrecking that
+    part's count for good) and negatives; zero only when allow_zero (a
+    physical recount can legitimately be 0, a scan/assignment can't)."""
+    try:
+        val = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(val) or val < 0 or (val == 0 and not allow_zero):
+        return None
+    return val
 
 
 # ---------------------------------------------------------------------------
@@ -1324,9 +1341,14 @@ def project_section_rename(project_id, section_id):
 
 
 @app.route("/api/scan", methods=["POST"])
-@login_required
+@shop_role_required('admin', 'tech', 'student', 'inspector')
 def api_scan():
-    data = request.get_json(force=True)
+    # Changes stock and charges jobs, so it needs a Shop role - it used to be
+    # login-only, which let a flight student or CFI with no shop access add or
+    # remove parts. silent=True: a malformed body is a 400, not a crash.
+    data = request.get_json(force=True, silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"ok": False, "error": "Bad request."}), 400
     barcode = (data.get("barcode") or "").strip()
     action = data.get("action")  # 'in' | 'out'
     qty = data.get("qty")
@@ -1340,12 +1362,9 @@ def api_scan():
 
     if not barcode:
         return jsonify({"ok": False, "error": "No barcode provided."}), 400
-    try:
-        qty = float(qty)
-    except (TypeError, ValueError):
-        return jsonify({"ok": False, "error": "Quantity must be a number."}), 400
-    if qty <= 0:
-        return jsonify({"ok": False, "error": "Quantity must be greater than zero."}), 400
+    qty = _parse_qty(qty)
+    if qty is None:
+        return jsonify({"ok": False, "error": "Quantity must be a number greater than zero."}), 400
     if action not in ("in", "out"):
         return jsonify({"ok": False, "error": "Invalid action."}), 400
     if action == "out" and not project_id:
@@ -1469,13 +1488,12 @@ def part_new():
             conn.close()
             return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
                                    form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
-        try:
-            qty = float(request.form.get("qty_on_hand") or 0)
-            reorder = float(request.form.get("reorder_point") or 0)
-            cost = float(request.form.get("unit_cost") or 0)
-            sell_price = float(request.form.get("sell_price") or 0)
-        except ValueError:
-            flash("Quantity, reorder point, cost, and sell price must be numbers.", "danger")
+        qty = _parse_qty(request.form.get("qty_on_hand") or 0, allow_zero=True)
+        reorder = _parse_qty(request.form.get("reorder_point") or 0, allow_zero=True)
+        cost = _parse_qty(request.form.get("unit_cost") or 0, allow_zero=True)
+        sell_price = _parse_qty(request.form.get("sell_price") or 0, allow_zero=True)
+        if None in (qty, reorder, cost, sell_price):
+            flash("Quantity, reorder point, cost, and sell price must be numbers (0 or more).", "danger")
             conn.close()
             return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
                                    form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
@@ -1548,12 +1566,16 @@ def part_edit(part_id):
         conn.close()
         abort(404)
     if request.method == "POST":
-        try:
-            reorder = float(request.form.get("reorder_point") or 0)
-            cost = float(request.form.get("unit_cost") or 0)
-            sell_price = float(request.form.get("sell_price") or 0)
-        except ValueError:
-            flash("Reorder point, cost, and sell price must be numbers.", "danger")
+        reorder = _parse_qty(request.form.get("reorder_point") or 0, allow_zero=True)
+        cost = _parse_qty(request.form.get("unit_cost") or 0, allow_zero=True)
+        sell_price = _parse_qty(request.form.get("sell_price") or 0, allow_zero=True)
+        if not request.form.get("name", "").strip():
+            flash("Part name is required.", "danger")
+            conn.close()
+            return render_template("part_form.html", part=part, categories=CATEGORIES_DEFAULT, form=request.form,
+                                   notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
+        if None in (reorder, cost, sell_price):
+            flash("Reorder point, cost, and sell price must be numbers (0 or more).", "danger")
             conn.close()
             return render_template("part_form.html", part=part, categories=CATEGORIES_DEFAULT, form=request.form,
                                    notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
@@ -1588,10 +1610,9 @@ def part_adjust(part_id):
         flash("Select who's making this adjustment (\"Scanning as\") first.", "danger")
         conn.close()
         return redirect(url_for("part_detail", part_id=part_id))
-    try:
-        new_qty = float(request.form.get("new_qty"))
-    except (TypeError, ValueError):
-        flash("New quantity must be a number.", "danger")
+    new_qty = _parse_qty(request.form.get("new_qty"), allow_zero=True)
+    if new_qty is None:
+        flash("New quantity must be a number, 0 or more.", "danger")
         conn.close()
         return redirect(url_for("part_detail", part_id=part_id))
     delta = new_qty - part["qty_on_hand"]
@@ -2240,7 +2261,9 @@ def project_invoice_csv(project_id):
 @shop_role_required('admin', 'tech')
 def project_add_part(project_id):
     conn = get_db()
-    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    # deleted_at check matches the Scan page - no charging parts to a job
+    # that's sitting in Recently Deleted.
+    project = conn.execute("SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
     if not project:
         conn.close()
         abort(404)
@@ -2250,10 +2273,9 @@ def project_add_part(project_id):
         flash("Select who's assigning this part (\"Scanning as\") first.", "danger")
         conn.close()
         return redirect(url_for("project_detail", project_id=project_id))
-    try:
-        qty = float(request.form.get("qty"))
-    except (TypeError, ValueError):
-        flash("Quantity must be a number.", "danger")
+    qty = _parse_qty(request.form.get("qty"))
+    if qty is None:
+        flash("Quantity must be a number greater than zero.", "danger")
         conn.close()
         return redirect(url_for("project_detail", project_id=project_id))
     part = conn.execute("SELECT * FROM parts WHERE id = ?", (part_id,)).fetchone()
@@ -2289,6 +2311,9 @@ def project_status(project_id):
     if new_status not in ("active", "completed", "on_hold", "archived"):
         abort(400)
     conn = get_db()
+    if not conn.execute("SELECT 1 FROM projects WHERE id = ?", (project_id,)).fetchone():
+        conn.close()
+        abort(404)
     completed_at = now_iso() if new_status == "completed" else None
     completed_by = session.get("user_name") if new_status == "completed" else None
     conn.execute("UPDATE projects SET status = ?, completed_at = ?, completed_by = ? WHERE id = ?",
@@ -3808,7 +3833,17 @@ def order_receive(order_id):
     if not order:
         conn.close()
         abort(404)
-    conn.execute("UPDATE orders SET status='received', received_date=? WHERE id=?", (now_iso(), order_id))
+    # Claim the order atomically: only the request that actually flips it to
+    # 'received' adds stock. Stops a double-click / Back-button resubmit / two
+    # people receiving the same box from adding the quantity twice, and stops
+    # a cancelled order from being received.
+    claimed = conn.execute(
+        "UPDATE orders SET status='received', received_date=? WHERE id=? AND status NOT IN ('received', 'cancelled')",
+        (now_iso(), order_id)).rowcount
+    if not claimed:
+        conn.close()
+        flash(f"Order #{order_id} is already {order['status']} - stock was not changed.", "warning")
+        return redirect(url_for("orders_list"))
 
     part_id = order["part_id"]
     new_part_created = False
@@ -3846,9 +3881,16 @@ def order_receive(order_id):
 @shop_role_required('admin')
 def order_cancel(order_id):
     conn = get_db()
-    conn.execute("UPDATE orders SET status='cancelled' WHERE id=?", (order_id,))
+    # A received order's stock is already on the shelf - cancelling it would
+    # leave the order and inventory disagreeing.
+    changed = conn.execute("UPDATE orders SET status='cancelled' WHERE id=? AND status != 'received'",
+                           (order_id,)).rowcount
     conn.commit()
     conn.close()
+    if not changed:
+        flash("That order was already received, so it can't be cancelled. Adjust the part's count instead if needed.",
+              "warning")
+        return redirect(url_for("orders_list"))
     flash("Order cancelled.", "success")
     return redirect(url_for("orders_list"))
 
