@@ -81,6 +81,27 @@
   @media (max-width: 575.98px) {
     .avail-grid th, .avail-grid td { font-size: .68rem; padding: .3rem .2rem; }
   }
+  /* Day calendar: times down, planes across, always as wide as the screen
+     and no wider - no sideways scrolling. */
+  .avail-fit { max-width: 100%; overflow-x: hidden; }
+  .avail-grid-v { width: 100%; table-layout: fixed; }
+  .avail-grid-v th, .avail-grid-v td { white-space: normal; overflow: hidden; text-overflow: ellipsis; overflow-wrap: anywhere; }
+  .avail-grid-v .avail-time-col { width: 6rem; background: #fff; font-weight: 700; font-size: .78rem; text-align: left; white-space: nowrap; }
+  .avail-grid-v .avail-plane-head { font-weight: 700; }
+  .avail-grid-v .avail-booked-who { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Bootstrap's table styles paint every cell white; keep the green/grey
+     Open/Booked/Past colors on this grid. */
+  .avail-grid-v td.avail-slot-open { --bs-table-bg: #d1f7dd; --bs-table-color: #0a3d1f; background: #d1f7dd; }
+  .avail-grid-v td.avail-slot-open:hover { --bs-table-bg: #a9e6bb; background: #a9e6bb; }
+  .avail-grid-v td.avail-slot-booked, .avail-grid-v td.avail-slot-past { --bs-table-bg: #e9ecef; background: #e9ecef; }
+  .avail-grid-v td.avail-slot-booked { --bs-table-color: #868e96; }
+  .avail-grid-v td.avail-slot-past { --bs-table-color: #adb5bd; }
+  @media (max-width: 575.98px) {
+    .avail-grid-v th, .avail-grid-v td { font-size: .75rem; }
+    .avail-grid-v .avail-time-col { width: 4.6rem; font-size: .75rem; white-space: nowrap; }
+  }
+  /* The rest of the page wraps instead of pushing past the screen edge. */
+  .avail-toolbar .btn-group { flex-wrap: wrap; }
   .avail-week-card, .avail-month-cell {
     text-decoration: none;
     display: block;
@@ -191,45 +212,43 @@
 {% elif not planes %}
 <p class="text-muted">No active planes to show.</p>
 {% elif mode == 'calendar' %}
-<div class="table-responsive">
-  <table class="table table-bordered avail-grid mb-0">
+{#- Times run DOWN the page (one row per slot) and planes ACROSS, in a
+   fixed-width table that always fits the screen - so the day scrolls up
+   and down, never sideways (Frank's request). The time label sits on the
+   left of every row, so each box only needs to say Open/Booked. #}
+{% set is_student_viewer = session.get('student_id') and not session.get('cfi_id') %}
+<div class="avail-fit">
+  <table class="table table-bordered avail-grid avail-grid-v mb-0">
     <thead>
       <tr>
-        <th class="avail-plane-col">Plane</th>
-        {% for slot in slots %}<th class="text-center">{{ slot.label }}</th>{% endfor %}
+        <th class="avail-time-col">Time</th>
+        {% for row in grid %}<th class="text-center avail-plane-head">{{ row.plane.tag }}</th>{% endfor %}
       </tr>
     </thead>
     <tbody>
-      {% for row in grid %}
+      {% for slot in slots %}
+      {% set i = loop.index0 %}
       <tr>
-        <td class="avail-plane-col">{{ row.plane.tag }}</td>
-        {% for cell in row.cells %}
+        <th class="avail-time-col">{{ slot.label }}</th>
+        {% for row in grid %}
+        {% set cell = row.cells[i] %}
         {% if cell.booked %}
         {#- A plain student viewer sees that the plane is booked, not by
            whom - Availability is meant to show plane free/busy, not out
            other students (matches how the Schedule calendar itself hides
            student identity from a student viewer). #}
-        {% set is_student_viewer = session.get('student_id') and not session.get('cfi_id') %}
         <td class="avail-slot-booked" {% if not is_student_viewer %}title="{{ cell.flight.student_name }}{% if cell.flight.cfi_name %} / {{ cell.flight.cfi_name }}{% endif %}"{% endif %}>
           Booked
           {% if not is_student_viewer %}<span class="avail-booked-who">{{ cell.flight.student_name }}</span>{% endif %}
         </td>
         {% elif cell.is_past %}
-        <td class="avail-slot-past" title="{{ cell.label }} has already passed">
-          <span class="avail-slot-time">{{ cell.label }}</span>
-          Past
-        </td>
+        <td class="avail-slot-past" title="{{ cell.label }} has already passed">Past</td>
         {% else %}
-        {#- schedule_new() now takes ?time=HH:MM and ?asset_id=... too, so
-           this slot's own start time and plane come pre-filled (still
-           freely adjustable) instead of defaulting to 9:00/no plane and
-           making you re-pick both by hand. The time shows on the box
-           itself (not just the column header) so each box is
-           self-labeled even once you've scrolled. #}
+        {#- schedule_new() takes ?time=HH:MM and ?asset_id=..., so this
+           slot's start time and plane come pre-filled. #}
         <td class="avail-slot-open" role="button"
             onclick="window.location.href='{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60), asset_id=row.plane.id) }}'"
             title="{{ row.plane.tag }} open {{ cell.label }} - click to schedule a flight">
-          <span class="avail-slot-time">{{ cell.label }}</span>
           Open
         </td>
         {% endif %}
