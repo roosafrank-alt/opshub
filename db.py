@@ -1803,6 +1803,12 @@ def _migrate(conn):
             conn.execute(f"ALTER TABLE assets ADD COLUMN {col} TEXT")
     conn.commit()
 
+    # Optional shelf-life expiration date per part (QA feat-shelf-life-expiry).
+    part_cols_exp = [r["name"] for r in conn.execute("PRAGMA table_info(parts)").fetchall()]
+    if "expiration_date" not in part_cols_exp:
+        conn.execute("ALTER TABLE parts ADD COLUMN expiration_date TEXT")
+    conn.commit()
+
     # Shipment tracking on orders (see tracking.py): the number/carrier typed
     # on New/Edit Order, plus the last status fetched for it, cached so the
     # Orders page doesn't ask the carrier on every load.

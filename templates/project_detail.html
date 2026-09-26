@@ -412,7 +412,8 @@
         <select name="part_id" class="form-select mb-2" required>
           <option value="" disabled selected>Select a part...</option>
           {% for p in all_parts %}
-          <option value="{{ p.id }}">{{ p.name }} ({{ '%g'|format(p.qty_on_hand) }} {{ p.unit }} on hand)</option>
+          {% set _exp = part_expiry(p) %}
+          <option value="{{ p.id }}"{% if _exp and _exp.level == 'expired' %} data-expired="{{ _exp.date|usdate }}"{% endif %}>{{ p.name }} ({{ '%g'|format(p.qty_on_hand) }} {{ p.unit }} on hand){% if _exp and _exp.level == 'expired' %} - EXPIRED{% endif %}</option>
           {% endfor %}
         </select>
         <label class="form-label small">Quantity</label>
@@ -436,6 +437,7 @@
           <button type="button" id="assign-operator-new-add" class="btn btn-primary">Add</button>
         </div>
         <input type="hidden" name="performed_by" id="assign-operator-hidden">
+        <input type="hidden" name="confirm_expired" id="assign-confirm-expired" value="">
         <button class="btn btn-primary w-100">Assign to Project</button>
       </form>
       <script>
@@ -539,6 +541,14 @@
           });
 
           form.addEventListener('submit', function (e) {
+            // Expired shelf-life part: ask before using it (noted on the job).
+            var partOpt = form.querySelector('select[name="part_id"]').selectedOptions[0];
+            var expired = partOpt && partOpt.getAttribute('data-expired');
+            document.getElementById('assign-confirm-expired').value = '';
+            if (expired) {
+              if (!window.confirm('This part expired on ' + expired + '. Use anyway?')) { e.preventDefault(); return; }
+              document.getElementById('assign-confirm-expired').value = '1';
+            }
             var v = select.value;
             var name = (v && v !== '__new__') ? v.trim() : '';
             hidden.value = name;

@@ -794,9 +794,9 @@ function confirmPartScan(barcode, action, qty, outProjectId, fromCamera) {
   submitScan(barcode, qty, action, fromCamera);
 }
 
-function submitScan(barcode, qty, action, fromCamera) {
+function submitScan(barcode, qty, action, fromCamera, confirmExpired) {
   const now = Date.now();
-  if (now - lastScanTime < 400) return;
+  if (!confirmExpired && now - lastScanTime < 400) return;
   lastScanTime = now;
 
   fetch('/api/scan', {
@@ -809,9 +809,19 @@ function submitScan(barcode, qty, action, fromCamera) {
       project_id: projectSelect.value || null,
       performed_by: currentOperator() || null,
       section: currentSection() || null,
-      source: fromCamera ? 'camera_scan' : 'usb_scanner'
+      source: fromCamera ? 'camera_scan' : 'usb_scanner',
+      confirm_expired: !!confirmExpired
     })
   }).then(r => r.json()).then(data => {
+    // Expired shelf-life part: the tech must confirm before it's used.
+    if (!data.ok && data.error === 'expired') {
+      vibrate([200, 100, 200]);
+      if (window.confirm((data.name || 'This part') + ' expired on ' + data.expired_on + '. Use anyway?')) {
+        submitScan(barcode, qty, action, fromCamera, true);
+        return;
+      }
+      data = { ok: false, error: 'Not used - ' + (data.name || 'the part') + ' expired on ' + data.expired_on + '.' };
+    }
     showScanResult(barcode, action, data);
     document.getElementById('confirm-card').style.display = 'none';
     if (fromCamera) {

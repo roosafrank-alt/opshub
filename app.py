@@ -1484,6 +1484,15 @@ def api_scan():
     if action == "out" and part["qty_on_hand"] < qty:
         conn.close()
         return jsonify({"ok": False, "error": f"Only {part['qty_on_hand']:g} {part['unit']} in stock."}), 400
+    # Expired shelf-life part: the tech has to confirm ("Use anyway?"), and
+    # it's noted on the project's transaction.
+    exp = part_expiry(part) if action == "out" else None
+    if exp and exp["level"] == "expired":
+        if data.get("confirm_expired") is not True:
+            conn.close()
+            return jsonify({"ok": False, "error": "expired", "expired_on": usdate(exp["date"]),
+                            "name": part["name"]}), 409
+        note = ((note + " - ") if note else "") + f"Used past expiration (expired {usdate(exp['date'])})"
 
     delta = qty if action == "in" else -qty
     conn.execute("UPDATE parts SET qty_on_hand = qty_on_hand + ?, updated_at = ? WHERE id = ?",
@@ -1505,6 +1514,97 @@ def api_scan():
 # Parts
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Shelf-life expiration (QA feat-shelf-life-expiry): one optional date per
+# part. A part with no date looks exactly as before - no tags, no tile, no
+# warnings. Dated parts get an amber "Expires soon" tag within 60 days and a
+# red "Expired" tag after; scanning out an expired part asks "Use anyway?".
+# ---------------------------------------------------------------------------
+EXPIRY_SOON_DAYS = 60
+
+
+def part_expiry(part):
+    """{'date', 'days_left', 'level'} for a part with an expiration date
+    (level 'expired' / 'soon' / 'ok'), else None."""
+    try:
+        raw = part["expiration_date"]
+    except (KeyError, IndexError):
+        return None
+    if not raw:
+        return None
+    try:
+        d = datetime.strptime(str(raw)[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return None
+    days = (d - date.today()).days
+    level = "expired" if days < 0 else ("soon" if days <= EXPIRY_SOON_DAYS else "ok")
+    return {"date": d.isoformat(), "days_left": days, "level": level}
+
+
+app.jinja_env.globals["part_expiry"] = part_expiry
+
+
+def _parse_expiration(form):
+    """(date_or_None, error) from a form's expiration_date field. Blank is
+    fine (no expiration tracked)."""
+    raw = (form.get("expiration_date") or "").strip()
+    if not raw:
+        return None, None
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d").date().isoformat(), None
+    except ValueError:
+        return None, "Expiration date must be a real date."
+
+
+def _expiry_stats(conn):
+    rows = conn.execute("SELECT expiration_date FROM parts WHERE retired_at IS NULL AND expiration_date IS NOT NULL "
+                        "AND expiration_date != '' ORDER BY expiration_date").fetchall()
+    if not rows:
+        return None
+    today = date.today().isoformat()
+    upcoming = [r["expiration_date"] for r in rows if r["expiration_date"] >= today]
+    return {"count": len(rows), "expired": sum(1 for r in rows if r["expiration_date"] < today),
+            "soon": sum(1 for r in rows if today <= r["expiration_date"] <= (date.today() + timedelta(days=EXPIRY_SOON_DAYS)).isoformat()),
+            "next": upcoming[0] if upcoming else None}
+
+
+@app.route("/parts/expiring")
+@shop_role_required('admin', 'tech')
+def parts_expiring():
+    """Parts by Expiration Date: every dated part, soonest first (expired
+    on top in red). Parts without a date never show here."""
+    conn = get_db()
+    parts = conn.execute("""SELECT * FROM parts WHERE retired_at IS NULL AND expiration_date IS NOT NULL
+                            AND expiration_date != '' ORDER BY expiration_date, name""").fetchall()
+    conn.close()
+    return render_template("parts_expiring.html", parts=parts)
+
+
+@app.route("/parts/<int:part_id>/expiration", methods=["GET", "POST"])
+@shop_role_required('admin')
+def part_expiration_update(part_id):
+    """Asked right after receiving an order for a dated part: the new
+    stock's expiration date (Skip keeps the old one)."""
+    conn = get_db()
+    part = conn.execute("SELECT * FROM parts WHERE id = ?", (part_id,)).fetchone()
+    if not part:
+        conn.close()
+        abort(404)
+    if request.method == "POST":
+        exp, err = _parse_expiration(request.form)
+        if err or not exp:
+            conn.close()
+            flash(err or "Pick the new expiration date, or press Skip.", "danger")
+            return redirect(url_for("part_expiration_update", part_id=part_id))
+        conn.execute("UPDATE parts SET expiration_date = ?, updated_at = ? WHERE id = ?", (exp, now_iso(), part_id))
+        conn.commit()
+        conn.close()
+        flash(f"{part['name']} now expires {usdate(exp)}.", "success")
+        return redirect(url_for("orders_list"))
+    conn.close()
+    return render_template("part_expiration_update.html", part=part)
+
+
 @app.route("/parts")
 @shop_role_required('admin', 'tech')
 def parts_list():
@@ -1514,13 +1614,14 @@ def parts_list():
     part_count = conn.execute("SELECT COUNT(*) c FROM parts WHERE retired_at IS NULL").fetchone()["c"]
     total_value = conn.execute("SELECT COALESCE(SUM(qty_on_hand * unit_cost),0) v FROM parts WHERE retired_at IS NULL").fetchone()["v"]
     retired_count = conn.execute("SELECT COUNT(*) c FROM parts WHERE retired_at IS NOT NULL").fetchone()["c"]
+    expiry_stats = _expiry_stats(conn)
     if show_retired:
         parts = conn.execute("SELECT * FROM parts WHERE retired_at IS NOT NULL ORDER BY name").fetchall()
         part_covers = _part_covers(conn, parts)
         conn.close()
         return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=True,
                                part_count=part_count, total_value=total_value, part_covers=part_covers,
-                               retired_count=retired_count)
+                               retired_count=retired_count, expiry_stats=expiry_stats)
     if q:
         like = f"%{q}%"
         parts = conn.execute("""SELECT * FROM parts
@@ -1530,7 +1631,7 @@ def parts_list():
         conn.close()
         return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=False,
                                part_count=part_count, total_value=total_value, part_covers=part_covers,
-                               retired_count=retired_count)
+                               retired_count=retired_count, expiry_stats=expiry_stats)
 
     parts = conn.execute("SELECT * FROM parts WHERE retired_at IS NULL ORDER BY category, name").fetchall()
     part_covers = _part_covers(conn, parts)
@@ -1542,7 +1643,7 @@ def parts_list():
         by_category.setdefault(cat, []).append(p)
     return render_template("parts.html", parts=parts, q=q, by_category=by_category, show_retired=False,
                            part_count=part_count, total_value=total_value, part_covers=part_covers,
-                           retired_count=retired_count)
+                           retired_count=retired_count, expiry_stats=expiry_stats)
 
 
 def _part_covers(conn, parts):
@@ -1609,6 +1710,12 @@ def part_new():
             conn.close()
             return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
                                    form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
+        expiration_date, exp_err = _parse_expiration(request.form)
+        if exp_err:
+            flash(exp_err, "danger")
+            conn.close()
+            return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
+                                   form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
 
         notify_low_stock = 1 if request.form.get("notify_low_stock") else 0
         cur = conn.execute("""INSERT INTO parts (barcode, name, short_name, part_number, description, category, location, unit,
@@ -1621,6 +1728,8 @@ def part_new():
                              request.form.get("unit", "ea").strip() or "ea", qty, reorder, cost, sell_price,
                              request.form.get("supplier", "").strip(), notify_low_stock, now_iso(), now_iso()))
         new_id = cur.lastrowid
+        if expiration_date:
+            conn.execute("UPDATE parts SET expiration_date = ? WHERE id = ?", (expiration_date, new_id))
         if qty > 0:
             conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, source, created_at)
                              VALUES (?, NULL, 'in', ?, 'Initial stock', 'assigned', ?)""", (new_id, qty, now_iso()))
@@ -1691,6 +1800,13 @@ def part_edit(part_id):
             conn.close()
             return render_template("part_form.html", part=part, categories=CATEGORIES_DEFAULT, form=request.form,
                                    notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
+        expiration_date, exp_err = _parse_expiration(request.form)
+        if exp_err:
+            flash(exp_err, "danger")
+            conn.close()
+            return render_template("part_form.html", part=part, categories=CATEGORIES_DEFAULT, form=request.form,
+                                   notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
+        conn.execute("UPDATE parts SET expiration_date = ? WHERE id = ?", (expiration_date, part_id))
         notify_low_stock = 1 if request.form.get("notify_low_stock") else 0
         conn.execute("""UPDATE parts SET name=?, short_name=?, part_number=?, description=?, category=?, location=?, unit=?,
                          reorder_point=?, unit_cost=?, sell_price=?, supplier=?, notify_low_stock=?, updated_at=? WHERE id=?""",
@@ -2626,12 +2742,22 @@ def project_add_part(project_id):
         conn.close()
         return redirect(url_for("project_detail", project_id=project_id))
 
+    note = "Assigned to project"
+    exp = part_expiry(part)
+    if exp and exp["level"] == "expired":
+        # The form's confirm() (project_detail.html) sets confirm_expired;
+        # without it the part isn't used.
+        if request.form.get("confirm_expired") != "1":
+            flash(f"{part['name']} expired on {usdate(exp['date'])} - not assigned. Confirm \"Use anyway\" to use it.", "danger")
+            conn.close()
+            return redirect(url_for("project_detail", project_id=project_id))
+        note += f" - used past expiration (expired {usdate(exp['date'])})"
     section = request.form.get("section", "").strip() or None
     conn.execute("UPDATE parts SET qty_on_hand = qty_on_hand - ?, updated_at = ? WHERE id = ?",
                  (qty, now_iso(), part_id))
     conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, performed_by, section, source, created_at)
-                     VALUES (?, ?, 'out', ?, 'Assigned to project', ?, ?, 'assigned', ?)""",
-                 (part_id, project_id, qty, performed_by, section, now_iso()))
+                     VALUES (?, ?, 'out', ?, ?, ?, ?, 'assigned', ?)""",
+                 (part_id, project_id, qty, note, performed_by, section, now_iso()))
     conn.commit()
     conn.close()
     flash(f"Assigned {qty:g} {part['unit']} of {part['name']} to project.", "success")
@@ -4429,6 +4555,12 @@ def order_receive(order_id):
         return redirect(url_for("part_detail", part_id=part_id))
 
     flash(f"Received and added {order['qty_ordered']:g} to stock.", "success")
+    conn_exp = get_db()
+    dated = conn_exp.execute("SELECT expiration_date FROM parts WHERE id = ?", (part_id,)).fetchone()
+    conn_exp.close()
+    if dated and dated["expiration_date"]:
+        # A shelf-life part: ask for the new stock's date (Skip keeps the old one).
+        return redirect(url_for("part_expiration_update", part_id=part_id))
     return redirect(url_for("orders_list"))
 
 

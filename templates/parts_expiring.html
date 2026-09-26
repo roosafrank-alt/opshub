@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Parts by Expiration Date - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-hourglass-split"></i> Parts by Expiration Date ({{ parts|length }})</h4>
+  <a href="{{ url_for('parts_list') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back to Parts</a>
+</div>
+<p class="text-muted small">Only parts with an expiration date are listed, soonest first. Parts without a date never show here.</p>
+{% if parts %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 table-stack">
+      <thead class="table-light"><tr><th>Expires</th><th>Part</th><th>Location</th><th>On Hand</th><th></th></tr></thead>
+      <tbody>
+        {% for p in parts %}
+        {% set e = part_expiry(p) %}
+        <tr class="{{ 'table-danger' if e.level == 'expired' }}" style="cursor:pointer;" onclick="window.location='{{ url_for('part_detail', part_id=p.id) }}'">
+          <td data-label="Expires" class="{{ 'fw-bold' if e.level != 'ok' }}">{{ e.date|usdate }}</td>
+          <td class="stack-full" data-label="Part"><a href="{{ url_for('part_detail', part_id=p.id) }}" class="text-body text-decoration-none">{{ p.name }}</a></td>
+          <td data-label="Location">{{ p.location or '-' }}</td>
+          <td data-label="On Hand">{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
+          <td data-label="">
+            {% if e.level == 'expired' %}<span class="badge bg-danger">Expired {{ -e.days_left }} day{{ 's' if e.days_left != -1 }} ago</span>
+            {% elif e.level == 'soon' %}<span class="badge bg-warning text-dark">{% if e.days_left == 0 %}Expires today{% else %}{{ e.days_left }} day{{ 's' if e.days_left != 1 }} left{% endif %}</span>
+            {% else %}<span class="text-muted small">{% if e.days_left >= 60 %}{{ (e.days_left / 30.4)|round|int }} months{% else %}{{ e.days_left }} days{% endif %}</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<p class="text-muted">No parts have an expiration date yet. Add one on a part's Edit page (sealants, adhesives, rubber parts...).</p>
+{% endif %}
+{% endblock %}

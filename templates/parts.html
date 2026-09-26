@@ -29,7 +29,9 @@
           <span class="text-muted"><i class="bi bi-image"></i></span>
           {% endif %}
         </td>
-        <td>{{ p.name }}{% if p.short_name %}<br><small class="text-muted">aka {{ p.short_name }}</small>{% endif %}{% if p.qty_on_hand <= p.reorder_point %} <i class="bi bi-exclamation-triangle text-danger" title="Low stock"></i>{% endif %}</td>
+        {% set _exp = part_expiry(p) %}
+        <td>{{ p.name }}{% if p.short_name %}<br><small class="text-muted">aka {{ p.short_name }}</small>{% endif %}{% if p.qty_on_hand <= p.reorder_point %} <i class="bi bi-exclamation-triangle text-danger" title="Low stock"></i>{% endif %}
+          {% if _exp %}<br><small class="text-muted">Exp {{ _exp.date|usdate }}</small>{% if _exp.level == 'expired' %} <span class="badge bg-danger">Expired</span>{% elif _exp.level == 'soon' %} <span class="badge bg-warning text-dark">Expires soon</span>{% endif %}{% endif %}</td>
         <td><code>{{ p.barcode }}</code></td>
         <td>{{ p.location or '-' }}</td>
         <td>{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
@@ -62,6 +64,18 @@
       <div class="text-muted small">Inventory Value</div>
       <div class="display-6">${{ "%.2f"|format(total_value) }}</div>
     </div>
+  </div>
+  {% endif %}
+  {% if expiry_stats %}
+  {#- Only once at least one part has an expiration date. #}
+  <div class="col-12 col-md-3">
+    <a href="{{ url_for('parts_expiring') }}" class="text-decoration-none text-body">
+    <div class="card stat-card p-3 h-100 {{ 'border-danger' if expiry_stats.expired }}">
+      <div class="text-muted small"><i class="bi bi-hourglass-split"></i> Expiration Dates</div>
+      <div class="display-6 {{ 'text-warning' if expiry_stats.expired or expiry_stats.soon else '' }}">{{ expiry_stats.count }}</div>
+      <div class="small">{% if expiry_stats.expired %}<span class="text-danger fw-bold">{{ expiry_stats.expired }} expired</span> &middot; {% endif %}{% if expiry_stats.next %}next: {{ expiry_stats.next|usdate }}{% else %}none upcoming{% endif %} <i class="bi bi-chevron-right"></i></div>
+    </div>
+    </a>
   </div>
   {% endif %}
 </div>

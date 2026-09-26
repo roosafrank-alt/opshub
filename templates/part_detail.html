@@ -41,6 +41,12 @@
       <div class="d-flex justify-content-between">
         <span class="text-muted">Supplier</span><span>{{ part.supplier or '-' }}</span>
       </div>
+      {% set _exp = part_expiry(part) %}
+      {% if _exp %}
+      <div class="d-flex justify-content-between">
+        <span class="text-muted">Expires</span><span>{{ _exp.date|usdate }}{% if _exp.level == 'expired' %} <span class="badge bg-danger">Expired</span>{% elif _exp.level == 'soon' %} <span class="badge bg-warning text-dark">Expires soon</span>{% endif %}</span>
+      </div>
+      {% endif %}
       {% if part.description %}<p class="mt-2 mb-0 small text-muted">{{ part.description }}</p>{% endif %}
       {% if part.retired_at %}
       <div class="alert alert-secondary py-2 px-2 small mt-2 mb-0"><i class="bi bi-archive"></i> Retired {{ part.retired_at|usdate(true) }} - hidden from the parts list and scanning.</div>
