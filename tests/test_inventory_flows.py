@@ -295,7 +295,6 @@ class OrderReceiveTest(OpsHubTestCase):
         self.assertEqual(self.qty(self.part), 8)
         self.assertEqual(ledger_qty(self, self.part), 6)
 
-    @open_finding("qa-order-double-receive")
     def test_receiving_twice_does_not_double_count(self):
         # Receive had no status check - a
         # double-click, a Back-button resubmit, or two people receiving the
@@ -304,14 +303,12 @@ class OrderReceiveTest(OpsHubTestCase):
         self.client.post(f"/orders/{self.order}/receive")
         self.assertEqual(self.qty(self.part), 8)
 
-    @open_finding("qa-order-double-receive")
     def test_cancelled_order_cannot_be_received(self):
         self.client.post(f"/orders/{self.order}/cancel")
         self.client.post(f"/orders/{self.order}/receive")
         self.assertEqual(self.qty(self.part), 2)
         self.assertEqual(self.q1("SELECT status FROM orders WHERE id=?", (self.order,))["status"], "cancelled")
 
-    @open_finding("qa-order-double-receive")
     def test_received_order_cannot_be_cancelled(self):
         # cancelling after receiving left the
         # stock in place but showed the order as cancelled.

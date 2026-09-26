@@ -3895,7 +3895,17 @@ def order_receive(order_id):
     if not order:
         conn.close()
         abort(404)
-    conn.execute("UPDATE orders SET status='received', received_date=? WHERE id=?", (now_iso(), order_id))
+    # Claim the order atomically: only the request that actually flips it to
+    # 'received' adds stock. Stops a double-click / Back-button resubmit / two
+    # people receiving the same box from adding the quantity twice, and stops
+    # a cancelled order from being received.
+    claimed = conn.execute(
+        "UPDATE orders SET status='received', received_date=? WHERE id=? AND status NOT IN ('received', 'cancelled')",
+        (now_iso(), order_id)).rowcount
+    if not claimed:
+        conn.close()
+        flash(f"Order #{order_id} is already {order['status']} - stock was not changed.", "warning")
+        return redirect(url_for("orders_list"))
 
     part_id = order["part_id"]
     new_part_created = False
@@ -3933,9 +3943,16 @@ def order_receive(order_id):
 @shop_role_required('admin')
 def order_cancel(order_id):
     conn = get_db()
-    conn.execute("UPDATE orders SET status='cancelled' WHERE id=?", (order_id,))
+    # A received order's stock is already on the shelf - cancelling it would
+    # leave the order and inventory disagreeing.
+    changed = conn.execute("UPDATE orders SET status='cancelled' WHERE id=? AND status != 'received'",
+                           (order_id,)).rowcount
     conn.commit()
     conn.close()
+    if not changed:
+        flash("That order was already received, so it can't be cancelled. Adjust the part's count instead if needed.",
+              "warning")
+        return redirect(url_for("orders_list"))
     flash("Order cancelled.", "success")
     return redirect(url_for("orders_list"))
 
