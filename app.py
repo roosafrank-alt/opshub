@@ -3081,6 +3081,47 @@ def project_print_label(project_id):
     return redirect(url_for("project_label", project_id=project_id))
 
 
+def _project_section_or_404(conn, project_id, section_id):
+    row = conn.execute("""SELECT ps.id, ps.name, p.id AS project_id, p.code, p.name AS project_name, a.tag AS asset_tag
+                          FROM project_sections ps JOIN projects p ON p.id = ps.project_id
+                          LEFT JOIN assets a ON a.id = p.asset_id
+                          WHERE ps.id = ? AND ps.project_id = ?""", (section_id, project_id)).fetchone()
+    if not row:
+        conn.close()
+        abort(404)
+    return row
+
+
+@app.route("/projects/<int:project_id>/sections/<int:section_id>/label")
+@shop_role_required('admin', 'tech', 'inspector')
+def project_section_label(project_id, section_id):
+    """One sub area's QR code (e.g. "Plugs"), ready to print and stick on
+    the job. It's made from the project code + sub-area name (TASK-26-001::Plugs,
+    the same code the Labor Codes page and Job Sheet use), so every sub
+    area has one automatically - scanning it selects that job and area."""
+    conn = get_db()
+    section = _project_section_or_404(conn, project_id, section_id)
+    conn.close()
+    return render_template("project_section_label.html", section=section,
+                           code=f"TASK-{section['code']}::{section['name']}")
+
+
+@app.route("/projects/<int:project_id>/sections/<int:section_id>/print-label", methods=["POST"])
+@shop_role_required('admin', 'tech', 'inspector')
+def project_section_print_label(project_id, section_id):
+    conn = get_db()
+    section = _project_section_or_404(conn, project_id, section_id)
+    conn.close()
+    try:
+        from label_printer import print_task_label
+        print_task_label(section["project_name"], f"{section['code']} · {section['name']}",
+                         f"TASK-{section['code']}::{section['name']}")
+        flash(f"Label sent to printer for {section['name']}.", "success")
+    except Exception as e:
+        flash(f"Couldn't print label: {e}", "danger")
+    return redirect(url_for("project_section_label", project_id=project_id, section_id=section_id))
+
+
 @app.route("/projects/<int:project_id>/labor_codes")
 @login_required
 def project_labor_codes(project_id):

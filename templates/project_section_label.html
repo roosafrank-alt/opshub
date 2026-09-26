@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Sub Area Code - {{ section.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+  <h4 class="mb-0">Sub Area Code</h4>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('project_detail', project_id=section.project_id) }}" class="btn btn-outline-secondary">&laquo; Back to Project</a>
+    <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+  </div>
+</div>
+<p class="text-muted no-print">Scan it on the Scan page to pick this job and sub area for parts or labor.</p>
+
+<div class="d-flex justify-content-center">
+  <div class="label-card" style="width: 260px; padding: 20px;">
+    <div style="font-weight:700; font-size:1.1rem;">{{ section.name }}</div>
+    <div class="text-muted small">{{ section.project_name }}{% if section.asset_tag %} &middot; {{ section.asset_tag }}{% endif %}</div>
+    <div id="section-qr" class="d-flex justify-content-center my-2" data-code="{{ code }}"></div>
+    <div style="font-size:1rem; font-weight:700;">{{ section.code }} &middot; {{ section.name }}</div>
+  </div>
+</div>
+
+<div class="d-flex justify-content-center mt-3 no-print">
+  <form method="post" action="{{ url_for('project_section_print_label', project_id=section.project_id, section_id=section.id) }}">
+    <button type="submit" class="btn btn-outline-secondary"><i class="bi bi-printer"></i> Print Label</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+(function () {
+  var el = document.getElementById('section-qr');
+  new QRCode(el, { text: el.getAttribute('data-code'), width: 160, height: 160 });
+})();
+</script>
+{% endblock %}

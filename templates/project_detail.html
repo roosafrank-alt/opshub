@@ -194,6 +194,7 @@
                 {% endif %}
                 {% if section != 'General' and data.id %}
                 <button type="button" class="btn btn-link btn-sm p-0" onclick="event.stopPropagation(); var r=document.getElementById('sec-rename-{{ loop.index }}'); r.style.display = r.style.display==='none' ? 'flex' : 'none'; if (r.style.display!=='none') { r.querySelector('input').focus(); r.querySelector('input').select(); }" title="Rename this area"><i class="bi bi-pencil"></i></button>
+                <a href="{{ url_for('project_section_label', project_id=project.id, section_id=data.id) }}" class="btn btn-link btn-sm p-0" target="_blank" onclick="event.stopPropagation();" title="Print this sub area's QR code"><i class="bi bi-qr-code"></i></a>
                 {% endif %}
               </div>
               <span class="text-muted small">${{ "%.2f"|format(data.cost) }} <i class="bi bi-chevron-down" id="sec-chev-{{ loop.index }}"></i></span>
