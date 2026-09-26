@@ -83,6 +83,15 @@ class AdsTest(OpsHubTestCase):
                 self.assertNotEqual(c.get(f"/assets/{self.asset}/ads/print").status_code, 200)
         self.assertEqual(len(self.ads()), 1)
 
+    def test_compliance_note_prints_on_ad_sheet(self):
+        self.add()
+        ad = self.ads()[0]
+        self.client.post(f"/ads/{ad['id']}/comply", data=dict(method="inspection",
+                                                               note="Rails inspected, no cracks; see logbook p.42"))
+        html = self.client.get(f"/assets/{self.asset}/ads/print").get_data(as_text=True)
+        self.assertIn("<th>Notes</th>", html)
+        self.assertIn("Rails inspected, no cracks; see logbook p.42", html)
+
     def test_annual_project_gets_ads_on_job_sheet(self):
         self.add()
         self.add(ad_number="2018-02-02", kind="not_applicable", na_reason="n/a")

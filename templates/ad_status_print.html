@@ -22,7 +22,7 @@
   {% if ads %}
   <div class="table-responsive">
   <table class="table table-sm align-middle">
-    <thead><tr><th>AD</th><th>Subject</th><th>Type</th><th>Last complied</th><th>Method</th><th>Next due / status</th></tr></thead>
+    <thead><tr><th>AD</th><th>Subject</th><th>Type</th><th>Last complied</th><th>Method</th><th>Notes</th><th>Next due / status</th></tr></thead>
     <tbody>
       {% for a in ads %}
       <tr>
@@ -31,6 +31,7 @@
         <td>{{ kinds[a.kind] }}{% if a.interval_hours %}, {{ '%g'|format(a.interval_hours) }} hr{% elif a.interval_days %}, {{ a.interval_days }} days{% endif %}</td>
         <td class="text-nowrap">{% if a.last %}{{ a.last.complied_date|usdate }}{% if a.last.tach_hours is not none %}<br><small>{{ '%g'|format(a.last.tach_hours) }} tach</small>{% endif %}{% else %}-{% endif %}</td>
         <td>{% if a.last %}{{ methods[a.last.method] }}{% if a.last.signed_by %}<br><small>{{ a.last.signed_by }}</small>{% endif %}{% else %}-{% endif %}</td>
+        <td class="small" style="white-space:pre-line; max-width:16rem;">{{ a.last.note if a.last and a.last.note else '' }}</td>
         <td>{% if a.status == 'na' %}Not applicable{% if a.na_reason %}: {{ a.na_reason }}{% endif %}{% else %}{{ a.status_label }}{% endif %}</td>
       </tr>
       {% endfor %}
