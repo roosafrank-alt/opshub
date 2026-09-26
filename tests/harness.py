@@ -77,6 +77,11 @@ class _FakePopen:
         return 0
 
 
+# Originals kept so tools like tests/ux/ux_audit.py can briefly use the real
+# ones to start a browser. The app itself only ever sees the fakes.
+REAL_SUBPROCESS = dict(run=subprocess.run, Popen=subprocess.Popen, call=subprocess.call,
+                       check_call=subprocess.check_call, check_output=subprocess.check_output)
+
 urllib.request.urlopen = _fake_urlopen
 smtplib.SMTP = _FakeSMTP
 smtplib.SMTP_SSL = _FakeSMTP

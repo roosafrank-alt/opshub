@@ -38,10 +38,17 @@
     font-weight: 600;
   }
   .shop-nav-boxed .dropdown-item.active { background: #212529; color: #fff; }
+  /* Laptop widths (roughly 1200-1599px) are too tight to fit every button
+     with a label, so the less-used ones go icon-only (title="" gives a
+     hover tooltip) until there's enough room for their text too. */
+  .shop-nav-icon-label { display: none; }
+  @media (min-width: 1600px) {
+    .shop-nav-icon-label { display: inline; }
+  }
 </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+<nav class="navbar navbar-expand-xl navbar-dark bg-dark sticky-top">
   <div class="container-fluid">
     {% set back_fallback = url_for('dashboard') %}{% include "_back_button.html" %}
     <a class="navbar-brand p-1 me-1" href="{{ url_for('home_launcher') }}" title="All Programs"><i class="bi bi-grid-3x3-gap-fill"></i></a>
@@ -67,7 +74,7 @@
        else 'manage' if (_p.startswith('/laborers') or _p.startswith('/shop/') or _p.startswith('/logbook'))
        else '' %}
     <div class="collapse navbar-collapse" id="nav">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0 shop-nav-boxed">
+      <ul class="navbar-nav me-auto mb-2 mb-xl-0 shop-nav-boxed">
         <li class="nav-item"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'scan' }}" id="tour-nav-scan" href="{{ url_for('scan_page') }}"><i class="bi bi-upc-scan"></i> Scan</a></li>
         {% if is_master_admin or shop_role in ('admin', 'tech') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'parts' }}" id="tour-nav-parts" href="{{ url_for('parts_list') }}"><i class="bi bi-box-seam"></i> Parts</a></li>
@@ -78,17 +85,17 @@
         {% endif %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'calendar' }}" id="tour-nav-calendar" href="{{ url_for('calendar_page') }}"><i class="bi bi-calendar3"></i> Calendar</a></li>
         {% if is_master_admin or shop_role == 'admin' %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'orders' }}" href="{{ url_for('orders_list') }}"><i class="bi bi-truck"></i> Orders</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'orders' }}" href="{{ url_for('orders_list') }}" title="Orders"><i class="bi bi-truck"></i> <span class="shop-nav-icon-label">Orders</span></a></li>
         {% endif %}
         {% if is_master_admin or shop_role in ('admin', 'tech') %}
-        <li class="nav-item"><a class="nav-link {{ 'fw-bold text-danger' if open_squawk_count }} {{ 'active' if sec == 'squawks' }}" id="tour-nav-squawks" href="{{ url_for('squawks_list') }}"><i class="bi bi-exclamation-triangle{{ '-fill' if open_squawk_count }}"></i> Squawks{% if open_squawk_count %} <span class="badge bg-danger">{{ open_squawk_count }}</span>{% endif %}</a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'my-tasks' }}" href="{{ url_for('tech_spot') }}"><i class="bi bi-person-workspace"></i> My Tasks</a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'activity' }}" href="{{ url_for('activity_log') }}"><i class="bi bi-clock-history"></i> Activity</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'fw-bold text-danger' if open_squawk_count }} {{ 'active' if sec == 'squawks' }}" id="tour-nav-squawks" href="{{ url_for('squawks_list') }}" title="Squawks"><i class="bi bi-exclamation-triangle{{ '-fill' if open_squawk_count }}"></i> <span class="shop-nav-icon-label">Squawks</span>{% if open_squawk_count %} <span class="badge bg-danger">{{ open_squawk_count }}</span>{% endif %}</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'my-tasks' }}" href="{{ url_for('tech_spot') }}" title="My Tasks"><i class="bi bi-person-workspace"></i> <span class="shop-nav-icon-label">My Tasks</span></a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'activity' }}" href="{{ url_for('activity_log') }}" title="Activity"><i class="bi bi-clock-history"></i> <span class="shop-nav-icon-label">Activity</span></a></li>
         {% endif %}
       </ul>
       <div class="d-flex align-items-center gap-3 shop-nav-boxed">
         {% if is_master_admin or shop_role == 'admin' %}
-        <a href="{{ url_for('part_new') }}" class="btn btn-warning btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Add Part</a>
+        <a href="{{ url_for('part_new') }}" class="btn btn-warning btn-sm fw-bold text-nowrap"><i class="bi bi-plus-lg"></i> Add Part</a>
         {% endif %}
         {#- Manage menu - same idea as the Fly with Kate! header's Manage:
            Laborers, Labor Pay, Billing, Stats. Anyone logged in gets Labor
