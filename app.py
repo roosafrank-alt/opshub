@@ -416,7 +416,9 @@ def part_to_dict(row):
 
 
 def get_part_by_barcode(conn, barcode):
-    return conn.execute("SELECT * FROM parts WHERE barcode = ?", (barcode.strip(),)).fetchone()
+    # A retired part (see part_retire) keeps its barcode on file for history,
+    # but can't be scanned in/out anymore.
+    return conn.execute("SELECT * FROM parts WHERE barcode = ? AND retired_at IS NULL", (barcode.strip(),)).fetchone()
 
 
 def get_low_stock(conn):
@@ -1448,20 +1450,30 @@ def api_scan():
 @shop_role_required('admin', 'tech')
 def parts_list():
     q = request.args.get("q", "").strip()
+    show_retired = request.args.get("retired") == "1"
     conn = get_db()
-    part_count = conn.execute("SELECT COUNT(*) c FROM parts").fetchone()["c"]
-    total_value = conn.execute("SELECT COALESCE(SUM(qty_on_hand * unit_cost),0) v FROM parts").fetchone()["v"]
+    part_count = conn.execute("SELECT COUNT(*) c FROM parts WHERE retired_at IS NULL").fetchone()["c"]
+    total_value = conn.execute("SELECT COALESCE(SUM(qty_on_hand * unit_cost),0) v FROM parts WHERE retired_at IS NULL").fetchone()["v"]
+    retired_count = conn.execute("SELECT COUNT(*) c FROM parts WHERE retired_at IS NOT NULL").fetchone()["c"]
+    if show_retired:
+        parts = conn.execute("SELECT * FROM parts WHERE retired_at IS NOT NULL ORDER BY name").fetchall()
+        part_covers = _part_covers(conn, parts)
+        conn.close()
+        return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=True,
+                               part_count=part_count, total_value=total_value, part_covers=part_covers,
+                               retired_count=retired_count)
     if q:
         like = f"%{q}%"
         parts = conn.execute("""SELECT * FROM parts
-                                 WHERE name LIKE ? OR barcode LIKE ? OR category LIKE ? OR location LIKE ?
+                                 WHERE retired_at IS NULL AND (name LIKE ? OR barcode LIKE ? OR category LIKE ? OR location LIKE ?)
                                  ORDER BY name""", (like, like, like, like)).fetchall()
         part_covers = _part_covers(conn, parts)
         conn.close()
-        return render_template("parts.html", parts=parts, q=q, by_category=None,
-                               part_count=part_count, total_value=total_value, part_covers=part_covers)
+        return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=False,
+                               part_count=part_count, total_value=total_value, part_covers=part_covers,
+                               retired_count=retired_count)
 
-    parts = conn.execute("SELECT * FROM parts ORDER BY category, name").fetchall()
+    parts = conn.execute("SELECT * FROM parts WHERE retired_at IS NULL ORDER BY category, name").fetchall()
     part_covers = _part_covers(conn, parts)
     conn.close()
     # Group into categories for the click-to-expand browse view.
@@ -1469,8 +1481,9 @@ def parts_list():
     for p in parts:
         cat = p["category"] or "Uncategorized"
         by_category.setdefault(cat, []).append(p)
-    return render_template("parts.html", parts=parts, q=q, by_category=by_category,
-                           part_count=part_count, total_value=total_value, part_covers=part_covers)
+    return render_template("parts.html", parts=parts, q=q, by_category=by_category, show_retired=False,
+                           part_count=part_count, total_value=total_value, part_covers=part_covers,
+                           retired_count=retired_count)
 
 
 def _part_covers(conn, parts):
@@ -1518,9 +1531,13 @@ def part_new():
             conn.close()
             return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
                                    form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
-        existing = get_part_by_barcode(conn, barcode)
+        # The barcode column is unique regardless of retired status, so this
+        # has to check for one too (get_part_by_barcode excludes retired
+        # parts, which would otherwise let this slip through to a raw
+        # database error on insert).
+        existing = conn.execute("SELECT * FROM parts WHERE barcode = ?", (barcode.strip(),)).fetchone()
         if existing:
-            flash(f"A part with barcode '{barcode}' already exists ({existing['name']}).", "danger")
+            flash(f"A part with barcode '{barcode}' already exists ({existing['name']}{' - retired' if existing['retired_at'] else ''}).", "danger")
             conn.close()
             return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
                                    form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
@@ -1662,12 +1679,59 @@ def part_adjust(part_id):
 @shop_role_required('admin')
 def part_delete(part_id):
     conn = get_db()
+    # Deleting used to also wipe every transaction row for this part, so a
+    # completed/billed job would silently lose its parts and their cost.
+    # Delete now stays available only for a part that was never actually
+    # used on a job (entered by mistake, wrong barcode, etc.) - one that has
+    # real history gets Retired instead (see part_retire), which keeps every
+    # past transaction intact.
+    job_count = conn.execute(
+        "SELECT COUNT(DISTINCT project_id) c FROM transactions WHERE part_id = ? AND project_id IS NOT NULL",
+        (part_id,)).fetchone()["c"]
+    if job_count:
+        conn.close()
+        flash(f"This part is on {job_count} job{'s' if job_count != 1 else ''}, so it can't be deleted. "
+              f"Use Retire instead to hide it without losing that history.", "danger")
+        return redirect(url_for("part_detail", part_id=part_id))
     conn.execute("DELETE FROM transactions WHERE part_id = ?", (part_id,))
     conn.execute("DELETE FROM parts WHERE id = ?", (part_id,))
     conn.commit()
     conn.close()
     flash("Part deleted.", "success")
     return redirect(url_for("parts_list"))
+
+
+@app.route("/parts/<int:part_id>/retire", methods=["POST"])
+@shop_role_required('admin')
+def part_retire(part_id):
+    """Hides a part from the parts list and scan lookups without touching
+    its history - for a part that's genuinely used up/discontinued but has
+    real transaction history, where Delete is blocked (see part_delete)."""
+    conn = get_db()
+    part = conn.execute("SELECT id FROM parts WHERE id = ?", (part_id,)).fetchone()
+    if not part:
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE parts SET retired_at = ?, updated_at = ? WHERE id = ?", (now_iso(), now_iso(), part_id))
+    conn.commit()
+    conn.close()
+    flash("Part retired - hidden from the parts list and scanning, but its history is kept.", "success")
+    return redirect(url_for("parts_list"))
+
+
+@app.route("/parts/<int:part_id>/unretire", methods=["POST"])
+@shop_role_required('admin')
+def part_unretire(part_id):
+    conn = get_db()
+    part = conn.execute("SELECT id FROM parts WHERE id = ?", (part_id,)).fetchone()
+    if not part:
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE parts SET retired_at = NULL, updated_at = ? WHERE id = ?", (now_iso(), part_id))
+    conn.commit()
+    conn.close()
+    flash("Part un-retired - back on the parts list and scannable again.", "success")
+    return redirect(url_for("parts_list", retired="1"))
 
 
 # ---------------------------------------------------------------------------

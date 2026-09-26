@@ -3,7 +3,7 @@
 
 
 
-{% macro parts_table(plist, part_covers) %}
+{% macro parts_table(plist, part_covers, show_retired=False) %}
 <div class="table-responsive">
   <table class="table table-hover mb-0 align-middle">
     <thead class="table-light">
@@ -15,11 +15,12 @@
         <th>Location</th>
         <th>On Hand</th>
         {% if can_see_shop_costs %}<th>Unit Cost</th>{% endif %}
+        {% if show_retired %}<th></th>{% endif %}
       </tr>
     </thead>
     <tbody>
       {% for p in plist %}
-      <tr class="{{ 'low-stock-row' if p.qty_on_hand <= p.reorder_point else '' }}" data-search="{{ (p.name ~ ' ' ~ (p.short_name or '') ~ ' ' ~ p.barcode ~ ' ' ~ (p.category or '') ~ ' ' ~ (p.location or ''))|lower }}" onclick="if(event.target.type!=='checkbox') window.location='{{ url_for('part_detail', part_id=p.id) }}'">
+      <tr class="{{ 'low-stock-row' if p.qty_on_hand <= p.reorder_point else '' }}" data-search="{{ (p.name ~ ' ' ~ (p.short_name or '') ~ ' ' ~ p.barcode ~ ' ' ~ (p.category or '') ~ ' ' ~ (p.location or ''))|lower }}" onclick="if(event.target.type!=='checkbox' && event.target.tagName!=='BUTTON') window.location='{{ url_for('part_detail', part_id=p.id) }}'">
         <td><input type="checkbox" name="part_check" value="{{ p.id }}" onclick="event.stopPropagation()"></td>
         <td>
           {% if part_covers.get(p.id) %}
@@ -33,6 +34,13 @@
         <td>{{ p.location or '-' }}</td>
         <td>{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
         {% if can_see_shop_costs %}<td>${{ "%.2f"|format(p.unit_cost) }}</td>{% endif %}
+        {% if show_retired %}
+        <td onclick="event.stopPropagation()">
+          <form method="post" action="{{ url_for('part_unretire', part_id=p.id) }}">
+            <button class="btn btn-outline-success btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Un-retire</button>
+          </form>
+        </td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>
@@ -59,8 +67,9 @@
 </div>
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="mb-0">Parts ({{ parts|length }})</h4>
+  <h4 class="mb-0">{{ 'Retired Parts' if show_retired else 'Parts' }} ({{ parts|length }})</h4>
   <div class="d-flex gap-2">
+    {% if not show_retired %}
     <form class="d-flex" method="get">
       <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search name, barcode, category, location...">
       <button class="btn btn-outline-secondary ms-1"><i class="bi bi-search"></i></button>
@@ -68,12 +77,27 @@
     <input type="text" id="parts-live-search" class="form-control" placeholder="Filter on this page, as you type..." style="max-width:260px;">
     <a href="{{ url_for('parts_export_csv') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</a>
     <a href="{{ url_for('part_new') }}" class="btn btn-warning fw-bold text-nowrap"><i class="bi bi-plus-lg"></i> Add Part</a>
+    {% else %}
+    <a href="{{ url_for('parts_list') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-arrow-left"></i> Back to Parts</a>
+    {% endif %}
   </div>
 </div>
 
+{% if not show_retired and retired_count %}
+<p class="text-muted small"><a href="{{ url_for('parts_list', retired='1') }}">{{ retired_count }} retired part{{ 's' if retired_count != 1 }}</a> - hidden here and from scanning, history kept.</p>
+{% endif %}
+
 <form method="get" action="{{ url_for('labels') }}" id="labels-form">
 
-{% if by_category is none %}
+{% if show_retired %}
+  {% if parts %}
+  <div class="card">
+    {{ parts_table(parts, part_covers, show_retired=True) }}
+  </div>
+  {% else %}
+  <p class="text-muted">No retired parts.</p>
+  {% endif %}
+{% elif by_category is none %}
   <!-- Search results: flat list -->
   <div class="card">
     {{ parts_table(parts, part_covers) }}

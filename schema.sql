@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS parts (
     sell_price REAL DEFAULT 0, -- what you charge the customer, separate from what you paid
     supplier TEXT,
     notify_low_stock INTEGER NOT NULL DEFAULT 1, -- whether this part's low-stock reminder emails/texts are sent at all - lets a noisy/low-priority part be silenced individually without turning off low-stock alerts entirely
+    retired_at TEXT, -- set instead of deleting once a part has real usage history (see part_delete/part_retire) - hides it from the parts list and scan lookups but keeps every past transaction intact
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

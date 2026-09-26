@@ -210,7 +210,6 @@ class PartFlowTest(OpsHubTestCase):
         self.client.post(f"/parts/{pid}/delete")
         self.assertEqual(self.qty(pid), 10)
 
-    @open_finding("qa-part-delete-history")
     def test_deleting_a_part_keeps_project_parts_history(self):
         # NEEDS FRANK'S DECISION: Delete Part also runs
         # DELETE FROM transactions WHERE part_id = ?, which silently erases

@@ -1622,6 +1622,15 @@ def _migrate(conn):
         conn.execute("ALTER TABLE assets ADD COLUMN owner_student_id INTEGER REFERENCES students(id)")
         conn.commit()
 
+    # QA finding qa-part-delete-history: a part with real usage history
+    # (transactions on a project) can no longer be deleted outright - see
+    # part_delete/part_retire in app.py - retired_at hides it from the parts
+    # list and scan lookups while keeping every past transaction intact.
+    part_cols_retire = [r["name"] for r in conn.execute("PRAGMA table_info(parts)").fetchall()]
+    if "retired_at" not in part_cols_retire:
+        conn.execute("ALTER TABLE parts ADD COLUMN retired_at TEXT")
+        conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of
