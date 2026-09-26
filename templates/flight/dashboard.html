@@ -234,6 +234,10 @@
   @media (prefers-reduced-motion: reduce) {
     .wx-tile, .wx-tile::after { animation: none !important; }
   }
+  /* Phone sun/twilight block (see the header below). */
+  .dash-sun-phone { font-family: var(--bs-body-font-family); font-size: .8rem; color: var(--bs-body-color); line-height: 1.5; }
+  .dash-sun-item { white-space: nowrap; }
+  .dash-sun-z { color: var(--bs-secondary-color); font-size: .72rem; }
 </style>
 <div id="dash-flag-toast" role="alert"></div>
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
@@ -246,7 +250,18 @@
   <div class="text-muted small font-monospace text-end" style="font-variant-numeric: tabular-nums;">
     <div><span id="dash-zulu-clock">--:--:--Z</span> <span class="text-muted">/</span> <span id="dash-local-clock">--:--:--</span></div>
     {% if sun_times %}
-    <div>
+    {#- Phones: a tidy block - one line each for sunrise/sunset and civil
+       twilight, Zulu in small grey after each time, no time ever split
+       across lines, no '|' separator (QA ux-flight-dash-sun-times). #}
+    <div class="d-sm-none dash-sun-phone">
+      <div><span class="dash-sun-item"><i class="bi bi-sunrise"></i> Sunrise {{ sun_times.sunrise or '-' }} <small class="dash-sun-z">{{ sun_times.sunrise_z or '-' }}</small></span>
+        <span class="mx-1">&middot;</span>
+        <span class="dash-sun-item"><i class="bi bi-sunset"></i> Sunset {{ sun_times.sunset or '-' }} <small class="dash-sun-z">{{ sun_times.sunset_z or '-' }}</small></span></div>
+      <div title="Civil twilight - when it's still light enough to fly without lights/night currency, roughly 30 min before sunrise and after sunset">
+        <span class="dash-sun-item"><i class="bi bi-brightness-alt-low"></i> Civil twilight {{ sun_times.civil_begin or '-' }} <small class="dash-sun-z">{{ sun_times.civil_begin_z or '-' }}</small></span>
+        <span class="dash-sun-item">&ndash; {{ sun_times.civil_end or '-' }} <small class="dash-sun-z">{{ sun_times.civil_end_z or '-' }}</small></span></div>
+    </div>
+    <div class="d-none d-sm-block">
       <span class="text-uppercase" style="font-size:.65rem;">Sun</span> <i class="bi bi-sunrise"></i> {{ sun_times.sunrise or '-' }} ({{ sun_times.sunrise_z or '-' }}) <span class="mx-1">&middot;</span> <i class="bi bi-sunset"></i> {{ sun_times.sunset or '-' }} ({{ sun_times.sunset_z or '-' }})
       <span class="mx-2 text-muted">|</span>
       <span title="Civil twilight - when it's still light enough to fly without lights/night currency, roughly 30 min before sunrise and after sunset"><span class="text-uppercase" style="font-size:.65rem;">Civil Twilight</span> <i class="bi bi-brightness-alt-low"></i> {{ sun_times.civil_begin or '-' }} ({{ sun_times.civil_begin_z or '-' }}) <span class="mx-1">&middot;</span> <i class="bi bi-brightness-alt-high"></i> {{ sun_times.civil_end or '-' }} ({{ sun_times.civil_end_z or '-' }})</span>
