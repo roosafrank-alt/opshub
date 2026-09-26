@@ -3042,15 +3042,85 @@ def _decorate_schedule_row(r):
     # availability (_build_availability_day) never sees these at all - a
     # request awaiting approval must not block someone else's slot.
     r["is_pending_approval"] = r["status"] == "pending_approval"
+    r.setdefault("is_time_off", False)
+    r.setdefault("eta_delay", None)
     return r
 
 
-def _schedule_rows(conn, date_from, date_to, plane_id=None, cfi_id=None, include_pending=False):
+def _time_off_calendar_rows(conn, date_from, date_to, cfi_id=None):
+    """Every CFI break/time-off entry (cfi_time_off) that falls within
+    [date_from, date_to] - a recurring weekly one (see _cfi_time_off_conflict
+    for the same recurrence rule) expanded to each matching date in range -
+    shaped like a _decorate_schedule_row() flight so it can ride along in
+    the exact same calendar layout code as a real booking (_schedule_rows'
+    include_time_off=True). This is what makes a break show up "as a booked
+    spot" on the Day/Week/Month/Quarter/Year/List/Custom views alike,
+    instead of only blocking new bookings invisibly. Its note goes through
+    _decorate_schedule_row's own notes_visible check (admin or that same
+    CFI) same as a real booking's note - a student never sees it, even on
+    their own instructor's break."""
+    sql = """SELECT t.*, c.name as cfi_name, c.color as cfi_color FROM cfi_time_off t
+             JOIN cfis c ON c.id = t.cfi_id
+             WHERE t.off_date <= ? AND (t.recurs_weekly = 1 OR t.off_date >= ?)"""
+    params = [date_to, date_from]
+    if cfi_id:
+        sql += " AND t.cfi_id = ?"
+        params.append(cfi_id)
+    rows = conn.execute(sql, params).fetchall()
+    start_d = datetime.strptime(date_from, "%Y-%m-%d").date()
+    end_d = datetime.strptime(date_to, "%Y-%m-%d").date()
+    out = []
+    for r in rows:
+        if r["recurs_weekly"]:
+            anchor = datetime.strptime(r["off_date"], "%Y-%m-%d").date()
+            first = max(start_d, anchor)
+            d = first + timedelta(days=(anchor.weekday() - first.weekday()) % 7)
+            dates = []
+            while d <= end_d:
+                dates.append(d)
+                d += timedelta(days=7)
+        else:
+            one = datetime.strptime(r["off_date"], "%Y-%m-%d").date()
+            dates = [one] if start_d <= one <= end_d else []
+        duration = None
+        if r["start_time"]:
+            sh, sm = (int(x) for x in r["start_time"].split(":"))
+            if r["end_time"]:
+                eh, em = (int(x) for x in r["end_time"].split(":"))
+                end_min = eh * 60 + em
+            else:
+                end_min = 24 * 60
+            duration = max((end_min - (sh * 60 + sm)) / 60.0, 0.25)
+        for d in dates:
+            # Negative, and unique per (time-off row, date) - never collides
+            # with a real scheduled_flights id (always positive), and never
+            # matches a highlight/new-booking id from the URL (those only
+            # ever parse non-negative digit strings - see highlight_ids
+            # above), so a break can never accidentally render highlighted.
+            raw = dict(r, id=-(r["id"] * 1000000 + d.toordinal() % 1000000),
+                       is_time_off=True, time_off_id=r["id"], status="time_off",
+                       asset_id=None, plane_tag="Break", plane_name=None,
+                       plane_color=None, plane_solo_color=None,
+                       student_id=-1, student_name="", student_is_station=1, is_station=1,
+                       pilot_certificate=None, pilot_ratings=None, first_solo_date=None,
+                       scheduled_date=d.strftime("%Y-%m-%d"), scheduled_time=r["start_time"],
+                       duration_hours=duration, notes=r["note"], private_notes=None,
+                       solo=0, part_solo=0, needs_review=0, needs_review_acknowledged_at=None,
+                       review_reason=None, confirm_required=0, confirmed_at=None,
+                       created_by=None, guest_name=None, guest_phone=None, guest_email=None)
+            out.append(_decorate_schedule_row(raw))
+    return out
+
+
+def _schedule_rows(conn, date_from, date_to, plane_id=None, cfi_id=None, include_pending=False, include_time_off=False):
     """Every scheduled_flights row (decorated) between two dates inclusive,
     optionally narrowed to one plane/instructor - the shared fetch behind
     every schedule view. include_pending also pulls in still-pending
     self-service requests (status='pending_approval'), for the Schedule
-    calendar's own views only - see is_pending_approval above."""
+    calendar's own views only - see is_pending_approval above. include_time_off
+    also folds in every CFI break in range (see _time_off_calendar_rows) -
+    never for Plane Availability, which only cares whether a PLANE is free,
+    not an instructor, and a break has no plane_id to filter by anyway."""
     sql = _SCHEDULE_ROW_SQL
     if include_pending:
         sql = sql.replace("WHERE sf.status IN ('scheduled', 'in_progress', 'completed')",
@@ -3073,6 +3143,12 @@ def _schedule_rows(conn, date_from, date_to, plane_id=None, cfi_id=None, include
         d = _decorate_schedule_row(r)
         d["eta_delay"] = delays.get(d["id"])
         out.append(d)
+    # A break has no plane, so plane_id never matches it - filtering by a
+    # specific plane rightly shows no breaks, same as it shows no other
+    # instructor's flights either.
+    if include_time_off and not plane_id:
+        out.extend(_time_off_calendar_rows(conn, date_from, date_to, cfi_id))
+        out.sort(key=lambda r: (r["scheduled_date"], r["scheduled_time"] is None, r["scheduled_time"] or ""))
     return out
 
 
@@ -3094,7 +3170,7 @@ def _build_schedule_month(conn, year, month, plane_id=None, cfi_id=None, plane_o
     month_end = f"{year:04d}-{month:02d}-{days_in_month:02d}"
 
     by_day = {d: [] for d in range(1, days_in_month + 1)}
-    for r in _schedule_rows(conn, month_start, month_end, plane_id, cfi_id, include_pending=True):
+    for r in _schedule_rows(conn, month_start, month_end, plane_id, cfi_id, include_pending=True, include_time_off=True):
         day = int(r["scheduled_date"][8:10])
         by_day.setdefault(day, []).append(r)
 
@@ -3221,7 +3297,7 @@ def _layout_month_cell_timeline(flights, plane_order,
 
 def _build_schedule_day(conn, date_str, plane_id=None, cfi_id=None):
     """A single day's flights, sorted by time - the Day view."""
-    return _schedule_rows(conn, date_str, date_str, plane_id, cfi_id, include_pending=True)
+    return _schedule_rows(conn, date_str, date_str, plane_id, cfi_id, include_pending=True, include_time_off=True)
 
 
 # The Availability view's window: 8am-8pm sliced into 1.5-hour slots - the
@@ -3502,7 +3578,7 @@ def _build_schedule_year_list(conn, year, plane_id=None, cfi_id=None):
     the page should open scrolled to (see list_scroll_anchor_id below) so
     a long year doesn't force scrolling from January just to reach what's
     still coming up."""
-    rows = _schedule_rows(conn, f"{year:04d}-01-01", f"{year:04d}-12-31", plane_id, cfi_id, include_pending=True)
+    rows = _schedule_rows(conn, f"{year:04d}-01-01", f"{year:04d}-12-31", plane_id, cfi_id, include_pending=True, include_time_off=True)
     by_month = {m: [] for m in range(1, 13)}
     for r in rows:
         by_month[int(r["scheduled_date"][5:7])].append(r)
@@ -3649,7 +3725,7 @@ def _schedule_calendar_context():
             custom_end = custom_end or (today + timedelta(days=13)).strftime("%Y-%m-%d")
         if custom_start > custom_end:
             custom_start, custom_end = custom_end, custom_start
-        range_flights = _schedule_rows(conn, custom_start, custom_end, plane_id or None, cfi_id or None, include_pending=True)
+        range_flights = _schedule_rows(conn, custom_start, custom_end, plane_id or None, cfi_id or None, include_pending=True, include_time_off=True)
         prev_month, prev_year = month, year
         next_month, next_year = month, year
     else:  # month
