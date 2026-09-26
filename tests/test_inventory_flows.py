@@ -134,6 +134,20 @@ class ScanFlowTest(OpsHubTestCase):
                 self.login(role)
                 self.assertEqual(self.scan("PART-001", "in", 1).status_code, 200)
 
+    def test_costs_hidden_from_non_admins_on_scan_and_lookup(self):
+        # A tech doesn't see prices on screen, but the scan response and the
+        # scanner's own barcode lookup used to send unit_cost/sell_price to
+        # anyone logged in regardless of role.
+        for role, visible in (("tech", False), ("shop_student", False), ("shop_admin", True), ("master", True)):
+            with self.subTest(role=role):
+                self.login(role)
+                r = self.scan("PART-001", "in", 1)
+                self.assertEqual(("unit_cost" in r.json), visible)
+                self.assertEqual(("sell_price" in r.json), visible)
+                r2 = self.client.get("/api/lookup/PART-001")
+                self.assertEqual(("unit_cost" in r2.json), visible)
+                self.assertEqual(("sell_price" in r2.json), visible)
+
 
 class PartFlowTest(OpsHubTestCase):
     def setUp(self):
@@ -269,6 +283,17 @@ class ProjectPartsTest(OpsHubTestCase):
         self.assertIn("Engine", html)
         self.assertIn("Brakes", html)
 
+    def test_parts_used_hides_cost_from_tech_page_source(self):
+        # The Cost column was already hidden on screen for a tech, but its
+        # value still leaked into the page source via a data-cost attribute.
+        self._assign(2, section="Engine")
+        self.login("tech")
+        html = self.client.get("/projects/parts-used").get_data(as_text=True)
+        self.assertNotIn("data-cost", html)
+        self.login("shop_admin")
+        html = self.client.get("/projects/parts-used").get_data(as_text=True)
+        self.assertIn("data-cost", html)
+
     @open_finding("qa-status-missing-project")
     def test_status_change_on_missing_project_is_404(self):
         r = self.client.post("/projects/9999/status", data=dict(status="completed"))
@@ -321,6 +346,18 @@ class OrderReceiveTest(OpsHubTestCase):
         self.assertEqual(self.qty(o["part_id"]), 2)
         self.client.post(f"/orders/{self.new_item_order}/receive")
         self.assertEqual(self.q1("SELECT COUNT(*) c FROM parts WHERE name='Tire 5.00-5'")["c"], 1)
+
+    def test_export_csv_hides_costs_from_techs(self):
+        # A tech's CSV export used to include Unit Cost/Est. Total columns
+        # even though techs don't see prices on screen.
+        self.login("tech")
+        csv_text = self.client.get("/orders/export?status=all").get_data(as_text=True)
+        self.assertNotIn("Unit Cost", csv_text)
+        self.assertNotIn("12.50", csv_text)
+        self.login("shop_admin")
+        csv_text = self.client.get("/orders/export?status=all").get_data(as_text=True)
+        self.assertIn("Unit Cost", csv_text)
+        self.assertIn("12.50", csv_text)
 
 
 class LedgerInvariantTest(OpsHubTestCase):

@@ -411,8 +411,14 @@ CATEGORIES_DEFAULT = ["Fasteners", "Electrical", "Plumbing", "Bearings/Belts", "
 # Helpers
 # ---------------------------------------------------------------------------
 
-def part_to_dict(row):
-    return dict(row) if row else None
+def part_to_dict(row, include_cost=True):
+    if not row:
+        return None
+    d = dict(row)
+    if not include_cost:
+        d.pop("unit_cost", None)
+        d.pop("sell_price", None)
+    return d
 
 
 def get_part_by_barcode(conn, barcode):
@@ -1206,7 +1212,7 @@ def api_lookup(barcode):
     conn.close()
     if not part:
         return jsonify({"found": False, "barcode": barcode})
-    d = part_to_dict(part)
+    d = part_to_dict(part, include_cost=can_see_shop_costs())
     d["found"] = True
     return jsonify(d)
 
@@ -1440,7 +1446,7 @@ def api_scan():
     updated = conn.execute("SELECT * FROM parts WHERE id = ?", (part["id"],)).fetchone()
     conn.close()
 
-    d = part_to_dict(updated)
+    d = part_to_dict(updated, include_cost=can_see_shop_costs())
     d["ok"] = True
     return jsonify(d)
 
@@ -3937,18 +3943,26 @@ def orders_export():
         rows = conn.execute(base_sql + " ORDER BY o.ordered_date DESC").fetchall()
     conn.close()
 
+    show_costs = can_see_shop_costs()
     out = io.StringIO()
     writer = csv.writer(out)
-    writer.writerow(["Item", "Qty", "Unit Cost", "Est. Total", "Vendor", "Project", "Expected Date", "Note"])
+    header = ["Item", "Qty"]
+    if show_costs:
+        header += ["Unit Cost", "Est. Total"]
+    header += ["Vendor", "Project", "Expected Date", "Note"]
+    writer.writerow(header)
     for o in rows:
         vendor_name = o["supplier"] or "No Vendor Specified"
         if vendor and vendor_name != vendor:
             continue
         item_name = o["part_name"] or o["description"]
         qty = o["qty_ordered"] or 0
-        cost = o["unit_cost"] or 0
-        writer.writerow([item_name, f"{qty:g}", f"{cost:.2f}", f"{qty * cost:.2f}", vendor_name,
-                          o["project_code"] or "", o["expected_date"] or "", o["note"] or ""])
+        row = [item_name, f"{qty:g}"]
+        if show_costs:
+            cost = o["unit_cost"] or 0
+            row += [f"{cost:.2f}", f"{qty * cost:.2f}"]
+        row += [vendor_name, o["project_code"] or "", o["expected_date"] or "", o["note"] or ""]
+        writer.writerow(row)
     filename = f"orders_{(vendor or 'all').replace(' ', '_')}_{status_filter}.csv"
     return Response(out.getvalue(), mimetype="text/csv",
                      headers={"Content-Disposition": f'attachment; filename="{filename}"'})
