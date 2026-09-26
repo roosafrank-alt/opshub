@@ -35,11 +35,8 @@
     <h5 class="mb-0">{{ g.student_name }} <span class="text-muted fs-6">({{ g.flights|length }} flight{{ 's' if g.flights|length != 1 }})</span></h5>
     <div class="d-flex align-items-center gap-2">
       <strong class="fs-5">${{ '%.2f'|format(g.total) }}</strong>
-      {% if status != 'paid' %}
-      <form method="post" action="{{ url_for('flight.billing_mark_paid', student_id=g.student_id) }}" data-confirm="Mark all of {{ g.student_name }}'s unpaid flights as paid?" data-confirm-title="Mark All Paid" data-confirm-ok="Yes, mark all paid" data-confirm-style="success">
-        <button class="btn btn-success btn-sm fw-bold"><i class="bi bi-check-lg"></i> Mark All Paid</button>
-      </form>
-      {% endif %}
+      {#- The per-student "Mark All Paid" button was removed at Frank's
+         request - flights are marked paid individually or by selection. #}
     </div>
   </div>
   <div class="table-responsive">
