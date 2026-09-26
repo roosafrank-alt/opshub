@@ -266,7 +266,6 @@ class ProjectPartsTest(OpsHubTestCase):
         self._assign("nan")
         self.assertEqual(self.qty(self.part), 5)
 
-    @open_finding("qa-trashed-project-add-part")
     def test_assign_to_trashed_project_rejected(self):
         # the project page's Add Part didn't
         # check deleted_at, unlike the Scan page, so stock could be charged to

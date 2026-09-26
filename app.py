@@ -2365,7 +2365,9 @@ def project_invoice_csv(project_id):
 @shop_role_required('admin', 'tech')
 def project_add_part(project_id):
     conn = get_db()
-    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    # deleted_at check matches the Scan page - no charging parts to a job
+    # that's sitting in Recently Deleted.
+    project = conn.execute("SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
     if not project:
         conn.close()
         abort(404)
