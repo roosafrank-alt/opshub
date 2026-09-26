@@ -1697,6 +1697,17 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_payroll_payments_week ON payroll_payments(week_start)")
     conn.commit()
 
+    # Shipment tracking on orders (see tracking.py): the number/carrier typed
+    # on New/Edit Order, plus the last status fetched for it, cached so the
+    # Orders page doesn't ask the carrier on every load.
+    order_cols_tracking = [r["name"] for r in conn.execute("PRAGMA table_info(orders)").fetchall()]
+    for col in ("tracking_number", "tracking_carrier", "tracking_status", "tracking_detail",
+                "tracking_location", "tracking_eta", "tracking_events", "tracking_checked_at",
+                "tracking_delivered_at"):
+        if col not in order_cols_tracking:
+            conn.execute(f"ALTER TABLE orders ADD COLUMN {col} TEXT")
+    conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of

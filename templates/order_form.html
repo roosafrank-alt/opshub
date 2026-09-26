@@ -50,9 +50,25 @@
       <label class="form-label">Expected arrival date</label>
       <input type="date" name="expected_date" class="form-control" value="{{ order.expected_date if order and order.expected_date else '' }}">
     </div>
+    <div class="row g-2 mb-3">
+      <div class="col-sm-7">
+        <label class="form-label">Tracking number (optional)</label>
+        <input type="text" name="tracking_number" class="form-control" autocomplete="off" placeholder="Paste it here to follow the shipment on Orders"
+               value="{{ form.get('tracking_number', order.tracking_number if order and order.tracking_number else '') if form else (order.tracking_number if order and order.tracking_number else '') }}">
+      </div>
+      <div class="col-sm-5">
+        <label class="form-label">Carrier</label>
+        {% set _carrier = form.get('tracking_carrier', order.tracking_carrier if order else '') if form else (order.tracking_carrier if order else '') %}
+        <select name="tracking_carrier" class="form-select">
+          {% for value, label in tracking_carrier_choices %}
+          <option value="{{ value }}" {% if (_carrier or '') == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
     <div class="mb-3">
       <label class="form-label">Note</label>
-      <input type="text" name="note" class="form-control" placeholder="Order #, tracking info, etc." value="{{ form.get('note', order.note if order else '') if form else (order.note if order and order.note else '') }}">
+      <input type="text" name="note" class="form-control" placeholder="Order #, anything else worth knowing" value="{{ form.get('note', order.note if order else '') if form else (order.note if order and order.note else '') }}">
     </div>
     <div class="d-flex justify-content-between">
       <a href="{{ url_for('orders_list') }}" class="btn btn-outline-secondary">Cancel</a>

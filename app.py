@@ -25,6 +25,7 @@ from customer import customer_bp, _owned_asset_ids, _project_bill
 from manuals import manuals_bp, manuals_for_asset
 from groundschool import groundschool_bp
 from payroll import payroll_bp
+import tracking
 import academy
 from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
                    master_admin_required, shop_role_required, can_see_shop_costs,
@@ -207,6 +208,8 @@ def usdate(value, show_time=False):
 
 
 app.jinja_env.filters["usdate"] = usdate
+app.jinja_env.globals["tracking_carrier_choices"] = tracking.CARRIER_CHOICES
+app.jinja_env.globals["tracking_info"] = tracking.to_json
 
 
 _WIND_COMPASS_POINTS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
@@ -3815,7 +3818,8 @@ def orders_list():
         o["item_name"] = o["part_name"] or o["description"]
         o["vendor_name"] = o["supplier"] or "No Vendor Specified"
         o["search_blob"] = " ".join(str(v) for v in [
-            o["item_name"], o["vendor_name"], o["project_name"] or "", o["project_code"] or "", o["note"] or ""
+            o["item_name"], o["vendor_name"], o["project_name"] or "", o["project_code"] or "", o["note"] or "",
+            o.get("tracking_number") or ""
         ]).lower()
         orders.append(o)
 
@@ -3908,6 +3912,41 @@ def order_wishlist_dismiss(wishlist_id):
     return redirect(url_for("orders_list"))
 
 
+def _order_tracking_from_form(form):
+    """(tracking_number, carrier) from the New/Edit Order form - both None
+    when left blank. Carrier blank means "work it out from the number"."""
+    number = tracking.clean_number(form.get("tracking_number"))
+    carrier = (form.get("tracking_carrier") or "").strip().lower()
+    if carrier not in tracking.CARRIERS and carrier != "other":
+        carrier = ""
+    return (number or None), (carrier or None) if number else None
+
+
+@app.route("/api/orders/<int:order_id>/tracking")
+@shop_role_required('admin')
+def api_order_tracking(order_id):
+    """Latest shipping status for one order, for the Orders page's live
+    badges. Asks the carrier (via tracking.py) only when the cached status
+    is older than tracking.REFRESH_MINUTES and it isn't delivered yet."""
+    conn = get_db()
+    order = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+    if not order or not order["tracking_number"]:
+        conn.close()
+        return jsonify({"ok": False, "error": "no_tracking"}), 404
+    error = None
+    if order["status"] == "pending" and tracking.needs_refresh(order):
+        result = tracking.fetch_status(order)
+        error = result.pop("error", None)
+        if not error:
+            result["tracking_checked_at"] = now_iso()
+            cols = ", ".join(f"{k} = ?" for k in result)
+            conn.execute(f"UPDATE orders SET {cols} WHERE id = ?", (*result.values(), order_id))
+            conn.commit()
+            order = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+    conn.close()
+    return jsonify(dict(tracking.to_json(order), ok=True, error=error))
+
+
 def _parse_order_numbers(form):
     """Quantity and unit cost from the New/Edit Order form -> (qty, cost,
     error). Blank quantity means 1 and blank cost means 0. Quantity must be
@@ -3949,12 +3988,15 @@ def order_new():
             projects = conn.execute("SELECT * FROM projects WHERE status='active' ORDER BY name").fetchall()
             conn.close()
             return render_template("order_form.html", parts=parts, projects=projects, form=request.form)
+        tracking_number, tracking_carrier = _order_tracking_from_form(request.form)
         conn.execute("""INSERT INTO orders (part_id, description, qty_ordered, supplier, unit_cost,
-                         project_id, status, ordered_date, expected_date, note, created_at)
-                         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)""",
+                         project_id, status, ordered_date, expected_date, note, created_at,
+                         tracking_number, tracking_carrier)
+                         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)""",
                      (part_id, description, qty, request.form.get("supplier", "").strip(), cost,
                       request.form.get("project_id") or None, now_iso(),
-                      request.form.get("expected_date") or None, request.form.get("note", "").strip(), now_iso()))
+                      request.form.get("expected_date") or None, request.form.get("note", "").strip(), now_iso(),
+                      tracking_number, tracking_carrier))
         if wishlist_id:
             # This order started from a "things to order" entry - close that
             # entry out now that it's an actual order, rather than leaving
@@ -4013,11 +4055,19 @@ def order_edit(order_id):
             flash(number_error, "danger")
             conn.close()
             return render_template("order_form.html", parts=parts, projects=projects, form=request.form, order=order)
+        tracking_number, tracking_carrier = _order_tracking_from_form(request.form)
+        if (tracking_number or "") != (order["tracking_number"] or "") or \
+                (tracking_carrier or "") != (order["tracking_carrier"] or ""):
+            # New/changed number: forget the old number's cached status.
+            conn.execute("""UPDATE orders SET tracking_status=NULL, tracking_detail=NULL, tracking_location=NULL,
+                             tracking_eta=NULL, tracking_events=NULL, tracking_checked_at=NULL,
+                             tracking_delivered_at=NULL WHERE id=?""", (order_id,))
         conn.execute("""UPDATE orders SET part_id=?, description=?, qty_ordered=?, supplier=?, unit_cost=?,
-                         project_id=?, expected_date=?, note=? WHERE id=? AND status='pending'""",
+                         project_id=?, expected_date=?, note=?, tracking_number=?, tracking_carrier=?
+                         WHERE id=? AND status='pending'""",
                      (part_id, description, qty, request.form.get("supplier", "").strip(), cost,
                       request.form.get("project_id") or None, request.form.get("expected_date") or None,
-                      request.form.get("note", "").strip(), order_id))
+                      request.form.get("note", "").strip(), tracking_number, tracking_carrier, order_id))
         conn.commit()
         conn.close()
         flash(f"Order for '{description}' updated.", "success")

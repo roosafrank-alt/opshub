@@ -108,10 +108,20 @@
 {% endif %}
 {% endmacro %}
 
+{% macro tracking_cell(o) %}
+{% if o.tracking_number %}
+<div class="order-tracking mt-1" data-order-id="{{ o.id }}" data-live="{{ 1 if o.status == 'pending' else 0 }}" data-tracking='{{ tracking_info(o)|tojson }}'>
+  <a href="#" class="tracking-toggle text-decoration-none small" title="Show tracking details"><i class="bi bi-truck"></i> <span class="tracking-badge"></span> <i class="bi bi-chevron-down small"></i></a>
+  <div class="tracking-details small mt-1 p-2 border rounded bg-body-tertiary" style="display:none;"></div>
+</div>
+{% endif %}
+{% endmacro %}
+
 {% macro item_cell(o) %}
 {% if o.part_id %}<a href="{{ url_for('part_detail', part_id=o.part_id) }}">{{ o.part_name }}</a>
 {% else %}{{ o.description }} <span class="badge bg-secondary">new item</span>{% endif %}
 {% if o.note %}<br><small class="text-muted">{{ o.note }}</small>{% endif %}
+{{ tracking_cell(o) }}
 {% endmacro %}
 
 {% if groups %}
@@ -164,7 +174,7 @@
             <tbody>
               {% for o in g.lines %}
               <tr data-search="{{ o.search_blob }}">
-                <td>{{ o.vendor_name }}{% if o.note %}<br><small class="text-muted">{{ o.note }}</small>{% endif %}</td>
+                <td>{{ o.vendor_name }}{% if o.note %}<br><small class="text-muted">{{ o.note }}</small>{% endif %}{{ tracking_cell(o) }}</td>
                 <td>{{ '%g'|format(o.qty_ordered) }}</td>
                 <td>{% if o.project_name %}<a href="{{ url_for('project_detail', project_id=o.project_id) }}">{{ o.project_code }}</a>{% else %}-{% endif %}</td>
                 <td><small>{{ o.ordered_date|usdate }}</small></td>
@@ -186,6 +196,73 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+// Shipment tracking: each order with a tracking number shows its latest
+// status right on the list (refreshed in the background for pending
+// orders, no click needed); clicking it opens the full scan history.
+(function () {
+  var COLORS = { DELIVERED: 'bg-success', TRANSIT: 'bg-primary', PRE_TRANSIT: 'bg-secondary',
+                 RETURNED: 'bg-danger', FAILURE: 'bg-danger', UNKNOWN: 'bg-light text-dark border' };
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+  function usd(iso) { if (!iso || iso.length < 10) return iso || ''; var p = iso.slice(0, 10).split('-'); return p[2] + '-' + p[1] + '-' + p[0]; }
+  function draw(el, t) {
+    var badge = el.querySelector('.tracking-badge');
+    var html;
+    if (t.delivered_at) {
+      html = '<span class="badge bg-success">Delivered ' + esc(usd(t.delivered_at)) + '</span>';
+    } else if (t.label) {
+      html = '<span class="badge ' + (COLORS[t.status] || 'bg-secondary') + '">' + esc(t.label) + '</span>' +
+        (t.eta ? ' <span class="text-muted">ETA ' + esc(usd(t.eta)) + '</span>' : '') +
+        (t.location ? ' <span class="text-muted">&middot; ' + esc(t.location) + '</span>' : '');
+    } else if (t.live) {
+      html = '<span class="text-muted">' + esc(t.carrier) + ' - checking...</span>';
+    } else {
+      html = '<span class="text-muted">' + esc(t.carrier) + ' ' + esc(t.number) + '</span>';
+    }
+    badge.innerHTML = html;
+    var d = '<div><strong>' + esc(t.carrier) + '</strong> ' + esc(t.number) +
+      (t.carrier_url ? ' &middot; <a href="' + esc(t.carrier_url) + '" target="_blank" rel="noopener">Open on ' + esc(t.carrier) + ' <i class="bi bi-box-arrow-up-right"></i></a>' : '') + '</div>';
+    if (t.detail) d += '<div class="mt-1">' + esc(t.detail) + '</div>';
+    if (t.events && t.events.length) {
+      d += '<ul class="list-unstyled mb-0 mt-1">';
+      t.events.forEach(function (e) {
+        d += '<li class="border-top pt-1 mt-1"><span class="text-muted">' + esc(usd(e.when)) + ' ' + esc((e.when || '').slice(11, 16)) + '</span> ' +
+          '<strong>' + esc(e.status) + '</strong>' + (e.where ? ' &middot; ' + esc(e.where) : '') +
+          (e.detail ? '<div class="text-muted">' + esc(e.detail) + '</div>' : '') + '</li>';
+      });
+      d += '</ul>';
+    } else if (!t.live) {
+      d += '<div class="text-muted mt-1">Live status isn\'t switched on for this OpsHub yet - use the carrier link above.</div>';
+    } else if (!t.label) {
+      d += '<div class="text-muted mt-1">No scans from the carrier yet.</div>';
+    }
+    if (t.checked_at) d += '<div class="text-muted mt-1">Last checked ' + esc(usd(t.checked_at)) + ' ' + esc(t.checked_at.slice(11, 16)) + '</div>';
+    el.querySelector('.tracking-details').innerHTML = d;
+  }
+  function refresh(el) {
+    fetch('/api/orders/' + el.getAttribute('data-order-id') + '/tracking', { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (t) { if (t && t.ok) draw(el, t); })
+      .catch(function () { /* keep what's shown */ });
+  }
+  document.querySelectorAll('.order-tracking').forEach(function (el) {
+    var t = {};
+    try { t = JSON.parse(el.getAttribute('data-tracking') || '{}'); } catch (e) { /* ignore */ }
+    draw(el, t);
+    el.querySelector('.tracking-toggle').addEventListener('click', function (ev) {
+      ev.preventDefault();
+      var det = el.querySelector('.tracking-details');
+      det.style.display = det.style.display === 'none' ? 'block' : 'none';
+    });
+    if (el.getAttribute('data-live') === '1' && t.live && !t.delivered_at) refresh(el);
+  });
+  // Keep it live while the page stays open (the server only re-asks the
+  // carrier every 30 minutes per shipment, so this is cheap).
+  setInterval(function () {
+    document.querySelectorAll('.order-tracking[data-live="1"]').forEach(refresh);
+  }, 10 * 60 * 1000);
+})();
+</script>
 <script>
 (function () {
   var search = document.getElementById('orders-search');
