@@ -5283,6 +5283,49 @@ def api_labor_scan():
                      "project_code": project["code"], "general": False, "section": section or "General"})
 
 
+@app.route("/api/labor/clocked-in")
+@login_required
+def api_labor_clocked_in():
+    """Everyone clocked in right now, for the floating "who's working"
+    timer on every shop/admin page (_labor_timer_widget.html). Shop roles
+    and master admins only - flight-only accounts get an empty list rather
+    than an error so the widget just stays hidden. elapsed_seconds is
+    worked out here (not from started_at in the browser) so the phone's
+    clock/time zone can't skew it."""
+    if not (session.get("is_master_admin") or session.get("shop_role")):
+        return jsonify({"ok": True, "workers": []})
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT ls.id, ls.started_at, ls.section, ls.project_id, l.name AS laborer_name,
+               p.code AS project_code, p.name AS project_name
+        FROM labor_sessions ls
+        JOIN laborers l ON l.id = ls.laborer_id
+        LEFT JOIN projects p ON p.id = ls.project_id
+        WHERE ls.ended_at IS NULL
+        ORDER BY l.name COLLATE NOCASE
+    """).fetchall()
+    conn.close()
+    now = datetime.now()
+    workers = []
+    for r in rows:
+        try:
+            started = datetime.strptime(r["started_at"], "%Y-%m-%d %H:%M:%S")
+            elapsed = max(int((now - started).total_seconds()), 0)
+        except (TypeError, ValueError):
+            elapsed = 0
+        workers.append({
+            "name": r["laborer_name"],
+            "project_id": r["project_id"],
+            "project_code": r["project_code"],
+            "project_name": r["project_name"],
+            "general": r["project_id"] is None,
+            "section": r["section"] or "",
+            "elapsed_seconds": elapsed,
+            "url": url_for("project_detail", project_id=r["project_id"]) if r["project_id"] else None,
+        })
+    return jsonify({"ok": True, "workers": workers})
+
+
 @app.route("/api/labor/stop/<int:session_id>", methods=["POST"])
 @shop_role_required('admin', 'tech', 'student', 'inspector')
 def api_labor_stop(session_id):

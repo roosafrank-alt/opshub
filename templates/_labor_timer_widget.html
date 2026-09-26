@@ -1,0 +1,86 @@
+{#- Floating "who's clocked in" timer, on every shop, admin and (for shop
+   staff) flight school page. Lists every worker with an open labor timer,
+   the project and sub area they're on, and a live hh:mm:ss count. Fed by
+   /api/labor/clocked-in and refreshed every minute; hidden when nobody is
+   clocked in. Tap the pill to open/close the list (remembered per device).
+   Sits bottom-left so it never covers the CFI flight widget (top-right). #}
+{% if session.get('user_id') and (session.get('is_master_admin') or session.get('shop_role')) %}
+<div id="labor-timer-widget" class="labor-timer-widget no-print" style="display:none;">
+  <button type="button" id="labor-timer-toggle" class="labor-timer-pill" aria-expanded="false" title="Who's clocked in">
+    <i class="bi bi-stopwatch"></i> <span id="labor-timer-count">0</span> clocked in
+    <i class="bi bi-chevron-up" id="labor-timer-chevron"></i>
+  </button>
+  <div id="labor-timer-list" class="labor-timer-list" style="display:none;"></div>
+</div>
+<style>
+  .labor-timer-widget { position: fixed; left: .75rem; bottom: .75rem; z-index: 1040; max-width: calc(100vw - 1.5rem); font-size: .85rem; }
+  .labor-timer-pill { background: #212529; color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 999px;
+    padding: .4rem .8rem; box-shadow: 0 .25rem .75rem rgba(0,0,0,.35); min-height: 2.25rem; }
+  .labor-timer-pill .bi-stopwatch { color: #ffc107; }
+  .labor-timer-list { background: #fff; color: #212529; border: 1px solid #dee2e6; border-radius: .5rem;
+    box-shadow: 0 .5rem 1.25rem rgba(0,0,0,.25); margin-bottom: .4rem; max-height: 50vh; overflow-y: auto; width: 20rem; max-width: 100%; }
+  .labor-timer-row { display: flex; justify-content: space-between; gap: .5rem; padding: .45rem .7rem; border-bottom: 1px solid #f1f3f5; }
+  .labor-timer-row:last-child { border-bottom: 0; }
+  .labor-timer-row .labor-timer-where { color: #6c757d; font-size: .78rem; }
+  .labor-timer-row .labor-timer-clock { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .labor-timer-widget.open .labor-timer-list { display: block !important; }
+</style>
+<script>
+(function () {
+  var widget = document.getElementById('labor-timer-widget');
+  var list = document.getElementById('labor-timer-list');
+  var countEl = document.getElementById('labor-timer-count');
+  var toggle = document.getElementById('labor-timer-toggle');
+  var chevron = document.getElementById('labor-timer-chevron');
+  var KEY = 'opshub-labor-timer-open';
+  var workers = [];
+  var fetchedAt = Date.now();
+
+  function isOpen() { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } }
+  function setOpen(open) {
+    try { localStorage.setItem(KEY, open ? '1' : '0'); } catch (e) {}
+    widget.classList.toggle('open', open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    chevron.className = open ? 'bi bi-chevron-down' : 'bi bi-chevron-up';
+  }
+  function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML; }
+  function clock(sec) {
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+  function render() {
+    if (!workers.length) { widget.style.display = 'none'; return; }
+    widget.style.display = '';
+    countEl.textContent = workers.length;
+    var extra = Math.floor((Date.now() - fetchedAt) / 1000);
+    list.innerHTML = workers.map(function (w, i) {
+      var where = w.general ? 'General Shop' : (w.project_code || '') + (w.section && w.section !== 'General' ? ' · ' + w.section : '');
+      var whereHtml = w.url ? '<a href="' + w.url + '" class="text-reset">' + esc(where) + '</a>' : esc(where);
+      return '<div class="labor-timer-row"><div><div class="fw-semibold">' + esc(w.name) + '</div>' +
+        '<div class="labor-timer-where">' + whereHtml + '</div></div>' +
+        '<div class="labor-timer-clock" data-i="' + i + '">' + clock(w.elapsed_seconds + extra) + '</div></div>';
+    }).join('');
+  }
+  function tick() {
+    var extra = Math.floor((Date.now() - fetchedAt) / 1000);
+    list.querySelectorAll('.labor-timer-clock').forEach(function (el) {
+      var w = workers[+el.getAttribute('data-i')];
+      if (w) el.textContent = clock(w.elapsed_seconds + extra);
+    });
+  }
+  function load() {
+    fetch("{{ url_for('api_labor_clocked_in') }}", { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : { workers: [] }; })
+      .then(function (d) { workers = (d && d.workers) || []; fetchedAt = Date.now(); render(); })
+      .catch(function () {});
+  }
+  toggle.addEventListener('click', function () { setOpen(!widget.classList.contains('open')); });
+  setOpen(isOpen());
+  load();
+  setInterval(load, 60000);
+  setInterval(tick, 1000);
+  // A clock in/out made on this page (the Scan page) shows up right away.
+  window.addEventListener('opshub:labor-changed', load);
+})();
+</script>
+{% endif %}

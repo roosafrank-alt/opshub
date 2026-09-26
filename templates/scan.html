@@ -519,6 +519,7 @@ function handleLaborScan(code, note) {
       addRecent(code, data.laborer + ' clocked out (' + data.hours + ' hrs)', 'labor');
     }
     document.getElementById('general-note-card').style.display = 'none';
+    window.dispatchEvent(new Event('opshub:labor-changed'));
   }).catch(function () {
     showResult('Could not reach the server.', 'scan-flash-error');
   });
