@@ -109,7 +109,17 @@ def master_admin_required(f):
 
 def shop_role_required(*roles):
     """Allows master admins plus anyone whose shop_role is in `roles`.
-    e.g. @shop_role_required('admin', 'tech')"""
+    e.g. @shop_role_required('admin', 'tech')
+
+    A flight-only account (no shop_role at all - a CFI or a flight student)
+    has no shop page it CAN land on, including the Shop dashboard itself -
+    sending it there bounced it straight back here and back again, an
+    infinite redirect loop the browser reported as "too many redirects"
+    (QA finding ux-shop-link-redirect-loop). That account goes to its own
+    Flight School dashboard instead, with a plain "no shop access" message.
+    A shop account that's just missing ONE page's role (e.g. a Student on
+    an Admin-only page) still has the Shop dashboard to land on, so that
+    case is unchanged."""
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -117,6 +127,9 @@ def shop_role_required(*roles):
                 return _no_access_redirect()
             if session.get("is_master_admin") or session.get("shop_role") in roles:
                 return f(*args, **kwargs)
+            if not session.get("shop_role"):
+                flash("You don't have access to the shop side of OpsHub.", "danger")
+                return redirect(url_for("flight.dashboard"))
             flash("You don't have access to that part of Shop Inventory.", "danger")
             return redirect(url_for("dashboard"))
         return wrapper

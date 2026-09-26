@@ -98,6 +98,28 @@ class RouteCrawlTest(OpsHubTestCase):
         errors = self._crawl(missing=True)
         self.assertEqual(errors, [], f"{len(errors)} crash(es) on missing records:\n" + "\n".join(errors))
 
+    def test_flight_only_accounts_never_get_a_shop_redirect_loop(self):
+        """QA finding ux-shop-link-redirect-loop: a CFI or flight student
+        (no shop_role at all) opening a shop page used to be sent to the
+        Shop dashboard, which ALSO turned them away and sent them right
+        back - an infinite redirect the browser gave up on with
+        "too many redirects" instead of a real page. shop_role_required now
+        sends an account with no shop_role to their own Flight School
+        dashboard instead (which only needs a login, so there's nowhere
+        left to bounce from). This follows redirects for real, so a
+        regression here shows up as too many redirects or a non-200 - not
+        just a raw 302 that _crawl()'s status>=500 check would miss."""
+        ids = seed_everything(self)
+        shop_pages = ["/shop", "/squawks", "/assets/%s" % ids["asset"], "/parts",
+                      "/parts/%s" % ids["part"], "/projects", "/projects/%s" % ids["project"], "/orders"]
+        for role in ("cfi", "flight_student"):
+            client = self.login(role)
+            for url in shop_pages:
+                resp = client.get(url, follow_redirects=True)
+                self.assertEqual(resp.status_code, 200, f"[{role}] GET {url} did not land on a real page")
+                self.assertEqual(resp.request.path, "/flight/dashboard",
+                                  f"[{role}] GET {url} landed on {resp.request.path}, not the Flight dashboard")
+
     def test_crawl_made_no_outside_calls_that_escaped(self):
         # GET pages should never reboot the Pi / restart the service.
         seed_everything(self)
