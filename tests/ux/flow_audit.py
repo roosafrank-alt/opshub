@@ -317,6 +317,17 @@ class Walker:
         self.scroll_px += abs(self.page.evaluate("scrollY") - y0)
         self._shot(f"fill '{label}'")
 
+    def scan(self, code, box="#scan-input"):
+        """A USB/Bluetooth barcode scanner: types the code into the focused scan
+        box and presses Enter. Counts as 1 tap (one trigger pull), not typing."""
+        loc = self.page.locator(box)
+        if not loc.count():
+            raise LookupError(f"no scan box '{box}' on {self.page.url.replace(self.base, '')}")
+        loc.first.fill(code)
+        loc.first.press("Enter"); self.taps += 1
+        self.page.wait_for_timeout(700)
+        self._shot(f"scan '{code}'")
+
     def see(self, text):
         loc = self.page.get_by_text(text, exact=False)
         ok = loc.count() and self._visible(loc)

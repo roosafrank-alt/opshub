@@ -87,7 +87,10 @@ def seed_realistic(tc):
                  unit="ea", qty_on_hand=q, reorder_point=2 if i % 4 else q + 1, unit_cost=cost, sell_price=round(cost * 1.3, 2),
                  supplier="Aircraft Spruce" if i % 2 else "Chief Aircraft", created_at=db.now_iso(), updated_at=db.now_iso())
     for tag, name in (("N4729K", "Cessna 172S Skyhawk"), ("N81PA", "Piper PA-28-181 Archer III"), ("N2231Q", "Cessna 152")):
-        aid = seed_row(conn, "assets", tag=tag, name=name, current_hours=2310.4, created_at=db.now_iso(), updated_at=db.now_iso())
+        # The two rental trainers are Flight School planes (they show on Schedule / Log a Flight);
+        # N4729K is a customer's plane in for maintenance.
+        flight = dict(is_flight_asset=1, hobbs_hours=1000.0, tach_hours=850.0) if tag != "N4729K" else {}
+        aid = seed_row(conn, "assets", tag=tag, name=name, current_hours=2310.4, created_at=db.now_iso(), updated_at=db.now_iso(), **flight)
         if tag == "N4729K":  # the sample customer owns one plane
             conn.execute("INSERT INTO customer_assets (customer_id, asset_id) VALUES (?, ?)", (tc.customer_id, aid))
         seed_row(conn, "maintenance_items", asset_id=aid, name="100-hour inspection")
@@ -283,12 +286,15 @@ def main():
 
     # Human summary: worst first.
     def score(r):
-        return (sum(bool(r.get(k)) for k in SEVERE) * 10 + len(r.get("small_targets", [])) + len(r.get("ios_zoom_inputs", [])))
+        return (bool(r.get("error")) * 100 + sum(bool(r.get(k)) for k in SEVERE) * 10
+                + len(r.get("small_targets", [])) + len(r.get("ios_zoom_inputs", [])))
     lines = [f"# OpsHub design review - {time.strftime('%Y-%m-%d %H:%M')}", "",
              f"{len(results)} page views checked ({len(pages)} pages x roles x screen sizes).", ""]
     for r in sorted(results, key=score, reverse=True):
         probs = []
-        if r.get("error"): probs.append(f"didn't load: {r['error']}")
+        if r.get("error"):
+            loop = "TOO_MANY_REDIRECTS" in r["error"]
+            probs.append("REDIRECT LOOP (browser error page)" if loop else f"didn't load: {r['error'].splitlines()[0]}")
         if r.get("sideways_scroll"): probs.append(f"page scrolls sideways by {r['sideways_scroll']}px")
         for k, name in (("offscreen", "off the right edge"), ("js_errors", "JavaScript errors"),
                         ("broken_images", "broken images"), ("small_targets", "tap targets under 32px"),

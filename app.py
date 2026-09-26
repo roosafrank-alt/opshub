@@ -4501,11 +4501,13 @@ def api_labor_task_lookup():
 
 
 @app.route("/api/labor/scan", methods=["POST"])
-@login_required
+@shop_role_required('admin', 'tech', 'student', 'inspector')
 def api_labor_scan():
     """One scan does double duty: if this laborer has no open timer, this
     starts one against the given task; if they already have one running
-    (on any task), this same scan ends it and records the hours/cost."""
+    (on any task), this same scan ends it and records the hours/cost.
+    Changes a worker's hours, pay and a job's labor bill, so it needs a Shop
+    role (like /api/scan) - login alone let flight-only accounts clock people."""
     data = request.get_json(force=True, silent=True) or {}
     code = (data.get("code") or "").strip()
     project_id = data.get("project_id")
@@ -4579,10 +4581,10 @@ def api_labor_scan():
 
 
 @app.route("/api/labor/stop/<int:session_id>", methods=["POST"])
-@login_required
+@shop_role_required('admin', 'tech', 'student', 'inspector')
 def api_labor_stop(session_id):
     """Manual fallback next to the open-timers list, for when re-scanning
-    isn't handy."""
+    isn't handy. Shop roles only, same as the badge scan."""
     conn = get_db()
     session_row = conn.execute(
         "SELECT * FROM labor_sessions WHERE id = ? AND ended_at IS NULL", (session_id,)
