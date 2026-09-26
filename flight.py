@@ -419,6 +419,11 @@ def _scheduling_conflicts(conn, asset_id, cfi_id, student_id, scheduled_date, sc
     rows = conn.execute(sql, params).fetchall()
 
     conflicts = []
+    # A grounded plane (down for maintenance) can't be booked from today on.
+    down = grounded_problem(conn, asset_id, scheduled_date)
+    if down:
+        conflicts.append({"message": down, "id": 0, "date": scheduled_date, "plane_tag": None,
+                          "student_name": None, "cfi_name": None, "time": None})
     # A CFI with an expired medical can't be booked at all - reported like a
     # conflict so every save/approve/edit/reschedule path stops on it (a
     # repeating series skips just the dates past the expiry).
@@ -1431,6 +1436,13 @@ def _dashboard_context(conn, cfi, student):
     my_notifications = []
     my_unconfirmed = []
     plane_maint = _plane_maint_warnings(conn)
+    # 100-hr hours-left badges - master admins only.
+    hundred_badges = []
+    if session.get("is_master_admin"):
+        for a in _school_planes(conn):
+            st = hundred_hr_status(conn, a)
+            if st or a["grounded_at"]:
+                hundred_badges.append({"tag": a["tag"], "st": st, "down": bool(a["grounded_at"])})
     # All / Mine toggle (CFIs): "all" (default) shows the whole school's
     # Today's Schedule, Upcoming and Recent Flights; "mine" narrows those
     # three to flights this instructor is on. Remembered in the session
@@ -1789,7 +1801,7 @@ def _dashboard_context(conn, cfi, student):
     plane_lane_count = len(fleet) or 1
 
     return dict(cfi=cfi, student=student, recent_flights=recent_flights,
-                active_flights=active_flights, upcoming=upcoming, plane_maint=plane_maint,
+                active_flights=active_flights, upcoming=upcoming, plane_maint=plane_maint, hundred_badges=hundred_badges,
                 pending_requests=pending_requests, change_requests=change_requests,
                 my_requests=my_requests, my_notifications=my_notifications,
                 my_unconfirmed=my_unconfirmed,
@@ -2810,8 +2822,12 @@ def cfi_time_off_delete(off_id):
 def planes_list():
     conn = get_db()
     planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
+    # 100-hr hours left - master admins only (QA feat-100hr-countdown-grounding).
+    hundred = {}
+    if session.get("is_master_admin"):
+        hundred = {p["id"]: hundred_hr_status(conn, p) for p in planes}
     conn.close()
-    return render_template("flight/planes.html", planes=planes)
+    return render_template("flight/planes.html", planes=planes, hundred=hundred)
 
 
 @flight_bp.route("/planes/simulator/new", methods=["GET", "POST"])
@@ -3616,7 +3632,8 @@ def _schedule_calendar_context():
         solo = p["solo_color"] or _neon_color(base)
         plane_legend.append({"tag": p["tag"], "color": base, "neon": solo,
                              "text": _text_on(base), "neon_text": _text_on(solo),
-                             "unset": not p["schedule_color"]})
+                             "unset": not p["schedule_color"],
+                             "down": bool(p["grounded_at"]) if "grounded_at" in p.keys() else False})
 
     return dict(view=view, month_data=month_data, months_data=months_data,
                 day_str=day_str, day_flights=day_flights, day_timeline=day_timeline, day_untimed=day_untimed,
@@ -3909,6 +3926,13 @@ def schedule_new():
         repeat_until = request.form.get("repeat_until", "").strip()
         occurrence_dates = _generate_recurrence_dates(scheduled_date, repeat, repeat_until) if repeat != "none" else [scheduled_date]
 
+        down = grounded_problem(conn, asset_id, scheduled_date) if self_service else None
+        if down:
+            # A student's request isn't conflict-checked until approval, but a
+            # grounded plane is refused right away with the reason.
+            flash(down, "danger")
+            conn.close()
+            return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
         if len(occurrence_dates) == 1:
             # Single booking - identical to the pre-recurrence behavior,
             # including a hard stop (not a skip) on conflict.
@@ -4507,6 +4531,8 @@ def alerts_list():
                             + ("" if show_all else " LIMIT 50")).fetchall()
     # Unaccounted Hobbs time - master admins only (see _hobbs_gaps).
     hobbs_gaps = _hobbs_gaps(conn) if session.get("is_master_admin") else []
+    # 100-hour countdown box - master admins only.
+    hundred_rows = hundred_hr_admin_rows(conn) if session.get("is_master_admin") else []
     hobbs_reviewed = conn.execute("""SELECT r.*, a.tag as plane_tag FROM hobbs_gap_reviews r
                                      LEFT JOIN assets a ON a.id = r.asset_id
                                      ORDER BY r.reviewed_at DESC LIMIT 10""").fetchall() \
@@ -4523,7 +4549,9 @@ def alerts_list():
     acked = [r for r in open_rows if r["acknowledged_at"]]
     return render_template("flight/alerts.html", unacked=unacked, acked=acked,
                            resolved=[dict(r) for r in resolved], resolved_count=resolved_count, show_all=show_all,
-                           hobbs_gaps=hobbs_gaps, hobbs_reviewed=hobbs_reviewed)
+                           hobbs_gaps=hobbs_gaps, hobbs_reviewed=hobbs_reviewed,
+                           hundred_due=[r for r in hundred_rows if r["needs_action"]],
+                           hundred_grounded=[r for r in hundred_rows if r["grounded"]])
 
 
 FLIGHT_REPORT_CATEGORIES = {
@@ -5691,6 +5719,7 @@ def log_end(flight_id):
     if request.form.get("send_receipt_email") and cost is not None:
         _send_flight_receipt_email(conn, ended_row, cost, paid_choice == "1", payment_method, payment_amount, credit_applied)
     conn.commit()
+    check_hundred_hr_alerts(conn)  # 100-hour countdown alerts (admins)
     conn.close()
     if squawk:
         flash("Flight ended and logged. The squawk you flagged will show up on the Maintenance side until it's acknowledged.", "success")
@@ -5937,6 +5966,7 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
     # The student's pilot logbook gets a pending, pre-filled entry.
     pilotlog.ensure_entry(conn, new_flight_id)
     conn.commit()
+    check_hundred_hr_alerts(conn)  # 100-hour countdown alerts (admins)
     if squawk:
         flash("Flight logged. The squawk you flagged will show up on the Maintenance side until it's acknowledged.", "success")
     else:
@@ -6067,6 +6097,7 @@ def log_edit(flight_id):
         # Refresh the student's logbook entry (only while it's still pending).
         pilotlog.ensure_entry(conn, flight_id)
         conn.commit()
+        check_hundred_hr_alerts(conn)  # 100-hour countdown alerts (admins)
         conn.close()
         flash("Flight updated.", "success")
         return redirect(url_for("flight.log_detail", flight_id=flight_id))
@@ -6673,3 +6704,180 @@ def waitlist_offer(offer_id):
         return redirect(url_for("flight.waitlist_page"))
     return redirect(url_for("flight.schedule_new", date=offer["scheduled_date"], time=offer["scheduled_time"],
                             asset_id=offer["asset_id"], cfi_id=offer["cfi_id"] or "", waitlist_offer=offer_id))
+
+
+# ---------------------------------------------------------------------------
+# 100-hour countdown and grounding (QA feat-100hr-countdown-grounding).
+# Hours left come from each school plane's "100-Hour Inspection" maintenance
+# item (category '100hour' - the same one the Maintenance tile tracks) and
+# the plane's current tach, which every logged flight advances. Admins only:
+# a 100-hr column on Planes, a badge on the dashboard, a box at the top of
+# Alerts at 10 hours left (Ground plane / Create 100-hr project / Not yet),
+# and a text/email at 10 hours and again at zero if still not grounded.
+# Nothing grounds itself: an admin taps Ground plane; the schedule then shows
+# it as Down for maintenance, new bookings on it are blocked, and its
+# upcoming bookings are flagged in Needs a Look. Completing a 100-hr project
+# on the plane (app.project_status) or Return to service puts it back.
+# ---------------------------------------------------------------------------
+
+HUNDRED_HR_WARN_HOURS = 10.0
+GROUNDED_REVIEW_PREFIX = "Plane grounded for maintenance"
+
+
+def hundred_hr_status(conn, asset):
+    """{'left', 'last_at', 'interval', 'level'} for a plane, or None if it
+    has no hours-based 100-hour item or no tach reading yet. level is
+    'overdue' (0 or less), 'soon' (under 10) or 'ok'."""
+    item = conn.execute("""SELECT * FROM maintenance_items WHERE asset_id = ? AND category = '100hour' AND active = 1
+                           AND type = 'hours' ORDER BY id LIMIT 1""", (asset["id"],)).fetchone()
+    if not item or item["last_done_hours"] is None or not item["interval_hours"]:
+        return None
+    current = asset_meter(asset, item["hour_type"])
+    if current is None:
+        return None
+    left = round(item["interval_hours"] - (current - item["last_done_hours"]), 1)
+    level = "overdue" if left <= 0 else ("soon" if left < HUNDRED_HR_WARN_HOURS else "ok")
+    return {"left": left, "last_at": item["last_done_hours"], "interval": item["interval_hours"],
+            "current": current, "level": level, "item_id": item["id"]}
+
+
+def _school_planes(conn):
+    return conn.execute("""SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1
+                           AND is_owner_placeholder = 0 AND COALESCE(is_simulator, 0) = 0 ORDER BY tag""").fetchall()
+
+
+def grounded_problem(conn, asset_id, on_date):
+    """A booking-blocking message if the plane is grounded and the date is
+    today or later, else None."""
+    try:
+        a = conn.execute("SELECT tag, grounded_at, grounded_reason FROM assets WHERE id = ?", (int(asset_id),)).fetchone()
+    except (TypeError, ValueError):
+        return None
+    if not a or not a["grounded_at"] or (on_date and on_date < date.today().isoformat()):
+        return None
+    return (f"{a['tag']} is down for maintenance ({a['grounded_reason'] or 'grounded by an admin'}) "
+            f"and can't be booked until an admin returns it to service.")
+
+
+def check_hundred_hr_alerts(conn):
+    """Texts/emails master admins once when a school plane is under 10 hours
+    to its 100-hour, and once more if it reaches zero without being
+    grounded. Keyed on the last-100-hr tach, so the next cycle alerts again.
+    Best effort - never breaks the flight save that triggered it."""
+    try:
+        admins = conn.execute("SELECT * FROM users WHERE active = 1 AND is_master_admin = 1 "
+                              "AND (notify_email = 1 OR notify_sms = 1)").fetchall()
+        settings = notify.get_settings(conn)
+        for a in _school_planes(conn):
+            st = hundred_hr_status(conn, a)
+            if not st or st["level"] == "ok":
+                continue
+            if st["level"] == "overdue" and a["grounded_at"]:
+                continue
+            key = f"{'zero' if st['level'] == 'overdue' else 'ten'}:{st['last_at']:g}"
+            if conn.execute("SELECT 1 FROM notification_log WHERE category = '100hr' AND ref_id = ? AND ref_key = ? LIMIT 1",
+                            (a["id"], key)).fetchone():
+                continue
+            if st["level"] == "overdue":
+                subject = f"URGENT: {a['tag']} is past its 100-hour inspection"
+                body = (f"{a['tag']} has flown past its 100-hour inspection ({-st['left']:g} hrs over, tach {st['current']:g}) "
+                        f"and is still bookable. Open Alerts in Fly with Kate! to ground it.")
+            else:
+                subject = f"{a['tag']}: {st['left']:g} hrs left to its 100-hour"
+                body = (f"{a['tag']} has {st['left']:g} hours left before its 100-hour inspection (tach {st['current']:g}, "
+                        f"last 100-hr at {st['last_at']:g}). Open Alerts in Fly with Kate! to ground it or plan the inspection.")
+            for u in admins:
+                notify.notify_user(settings, u, subject, body, brand="Fly with Kate!")
+            conn.execute("INSERT INTO notification_log (category, ref_id, ref_key) VALUES ('100hr', ?, ?)", (a["id"], key))
+        conn.commit()
+    except Exception:
+        current_app.logger.exception("100-hour alert check failed")
+
+
+def hundred_hr_admin_rows(conn):
+    """School planes for the admin 100-hr views: status per plane, plus
+    whether the Alerts box should show it (under 10 hrs, not grounded, and
+    'Not yet' not pressed at this level for this cycle)."""
+    rows = []
+    for a in _school_planes(conn):
+        st = hundred_hr_status(conn, a)
+        dismissed = False
+        notified_at = None
+        if st and st["level"] != "ok":
+            key = f"{'zero' if st['level'] == 'overdue' else 'ten'}:{st['last_at']:g}"
+            dismissed = bool(conn.execute("SELECT 1 FROM notification_log WHERE category = '100hr_notyet' AND ref_id = ? "
+                                          "AND ref_key = ? LIMIT 1", (a["id"], key)).fetchone())
+            sent = conn.execute("SELECT sent_at FROM notification_log WHERE category = '100hr' AND ref_id = ? AND ref_key = ? "
+                                "ORDER BY sent_at DESC LIMIT 1", (a["id"], key)).fetchone()
+            notified_at = sent["sent_at"] if sent else None
+        booked = conn.execute("""SELECT COUNT(*) c FROM scheduled_flights WHERE asset_id = ? AND status = 'scheduled'
+                                 AND scheduled_date BETWEEN ? AND ?""",
+                              (a["id"], date.today().isoformat(), (date.today() + timedelta(days=7)).isoformat())).fetchone()["c"]
+        rows.append({"asset": a, "st": st, "grounded": bool(a["grounded_at"]), "booked_7d": booked, "notified_at": notified_at,
+                     "needs_action": bool(st and st["level"] != "ok" and not a["grounded_at"] and not dismissed)})
+    return rows
+
+
+@flight_bp.route("/planes/<int:asset_id>/ground", methods=["POST"])
+@admin_required
+def plane_ground(asset_id):
+    conn = get_db()
+    a = conn.execute("SELECT * FROM assets WHERE id = ? AND deleted_at IS NULL", (asset_id,)).fetchone()
+    if not a:
+        conn.close()
+        abort(404)
+    reason = (request.form.get("reason") or "").strip()[:120] or "100-hour inspection"
+    conn.execute("UPDATE assets SET grounded_at = ?, grounded_by = ?, grounded_reason = ? WHERE id = ?",
+                 (now_iso(), session.get("user_name"), reason, asset_id))
+    flagged = conn.execute("""UPDATE scheduled_flights SET needs_review = 1, review_reason = ?,
+                              needs_review_acknowledged_at = NULL, needs_review_acknowledged_by = NULL
+                              WHERE asset_id = ? AND status = 'scheduled' AND scheduled_date >= ?""",
+                           (f"{GROUNDED_REVIEW_PREFIX} ({reason}) - move this booking to another plane or date",
+                            asset_id, date.today().isoformat())).rowcount
+    conn.commit()
+    _sync_flight_alerts(conn, session.get("user_name"))
+    conn.close()
+    flash(f"{a['tag']} grounded - down for maintenance. " +
+          (f"{flagged} upcoming booking{'s' if flagged != 1 else ''} flagged in Needs a Look to move." if flagged
+           else "No upcoming bookings to move."), "warning")
+    return redirect(request.referrer or url_for("flight.alerts_list"))
+
+
+def return_plane_to_service(conn, asset_id, who=None):
+    conn.execute("UPDATE assets SET grounded_at = NULL, grounded_by = NULL, grounded_reason = NULL WHERE id = ?", (asset_id,))
+    conn.execute("""UPDATE scheduled_flights SET needs_review = 0, review_reason = NULL,
+                    needs_review_acknowledged_at = NULL, needs_review_acknowledged_by = NULL
+                    WHERE asset_id = ? AND status = 'scheduled' AND review_reason LIKE ?""",
+                 (asset_id, GROUNDED_REVIEW_PREFIX + "%"))
+    conn.commit()
+    _sync_flight_alerts(conn, who)
+
+
+@flight_bp.route("/planes/<int:asset_id>/return-to-service", methods=["POST"])
+@admin_required
+def plane_return_to_service(asset_id):
+    conn = get_db()
+    a = conn.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    if not a:
+        conn.close()
+        abort(404)
+    return_plane_to_service(conn, asset_id, session.get("user_name"))
+    conn.close()
+    flash(f"{a['tag']} is back in service and can be booked again.", "success")
+    return redirect(request.referrer or url_for("flight.alerts_list"))
+
+
+@flight_bp.route("/planes/<int:asset_id>/100hr-not-yet", methods=["POST"])
+@admin_required
+def plane_hundred_hr_not_yet(asset_id):
+    """'Not yet' on the Alerts box: hides it for this plane until it reaches
+    zero hours (which alerts again), or the next 100-hour cycle."""
+    conn = get_db()
+    a = conn.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    st = hundred_hr_status(conn, a) if a else None
+    if st and st["level"] != "ok":
+        key = f"{'zero' if st['level'] == 'overdue' else 'ten'}:{st['last_at']:g}"
+        conn.execute("INSERT INTO notification_log (category, ref_id, ref_key) VALUES ('100hr_notyet', ?, ?)", (asset_id, key))
+        conn.commit()
+    conn.close()
+    return redirect(request.referrer or url_for("flight.alerts_list"))

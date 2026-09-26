@@ -660,7 +660,7 @@
     {% for p in plane_legend %}
     <span title="{{ 'No color picked yet - an admin can set one in Manage > Planes' if p.unset else '' }}">
       <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:{{ p.color }};vertical-align:-2px;"></span><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:{{ p.neon }};vertical-align:-2px;margin-left:2px;" title="Solo"></span>
-      {{ p.tag }}{% if p.unset %} <span class="text-muted">(no color set)</span>{% endif %}
+      {{ p.tag }}{% if p.unset %} <span class="text-muted">(no color set)</span>{% endif %}{% if p.down %} <span class="badge bg-dark">Down for maintenance</span>{% endif %}
     </span>
     {% endfor %}
   </div>

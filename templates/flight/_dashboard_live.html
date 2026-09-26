@@ -471,6 +471,19 @@
 {% endif %}
 {% endif %}
 
+{% if hundred_badges %}
+{#- 100-hour countdown per school plane - master admins only
+   (flight.hundred_hr_status). Amber under 10 hrs, red at zero. #}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3 small">
+  <a href="{{ url_for('flight.alerts_list') }}#hundred-hr" class="text-decoration-none fw-bold text-muted"><i class="bi bi-wrench"></i> 100-hr</a>
+  {% for b in hundred_badges %}
+  {% if b.down %}<span class="badge bg-dark">{{ b.tag }} &middot; down</span>
+  {% else %}<span class="badge {{ 'bg-danger' if b.st.level == 'overdue' else ('bg-warning text-dark' if b.st.level == 'soon' else 'bg-success-subtle text-success-emphasis border border-success-subtle') }}">{{ b.tag }} &middot; {{ '%.1f'|format(b.st.left) }} left</span>{% endif %}
+  {% endfor %}
+  <span class="badge bg-secondary fw-normal">admins only</span>
+</div>
+{% endif %}
+
 {% if next_lesson or log_lesson or session.get('is_master_admin') %}
 <div class="card p-3 mb-3 border-primary">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">

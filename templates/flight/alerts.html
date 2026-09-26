@@ -35,6 +35,44 @@
 {% endmacro %}
 
 <h4 class="mb-3"><i class="bi bi-exclamation-triangle-fill text-danger"></i> Alerts</h4>
+
+{% if session.get('is_master_admin') and (hundred_due or hundred_grounded) %}
+{#- 100-hour countdown (flight.hundred_hr_admin_rows) - admins only. Nothing
+   grounds itself: the admin picks Ground plane, plans the 100-hr, or Not yet. #}
+<h5 class="fw-bold" id="hundred-hr"><i class="bi bi-wrench"></i> 100-Hour Inspection Due ({{ hundred_due|length }}) <span class="badge bg-secondary fw-normal">admins only</span></h5>
+<div class="card p-3 mb-4">
+  {% for r in hundred_due %}
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 p-2 mb-2 border rounded {{ 'bg-danger-subtle border-danger-subtle' if r.st.level == 'overdue' else 'bg-warning-subtle border-warning-subtle' }}">
+    <div class="flex-grow-1" style="min-width:220px;">
+      <div><strong>{{ r.asset.tag }}</strong> &middot;
+        {% if r.st.level == 'overdue' %}<span class="text-danger fw-bold">{{ '%.1f'|format(-r.st.left) }} hrs past</span> its 100-hour inspection
+        {% else %}<span class="text-warning-emphasis fw-bold">{{ '%.1f'|format(r.st.left) }} hrs left</span> before its 100-hour inspection{% endif %}</div>
+      <div class="small">Tach {{ '%.1f'|format(r.st.current) }} &middot; last 100-hr at {{ '%.1f'|format(r.st.last_at) }} &middot; {{ r.booked_7d }} flight{{ 's' if r.booked_7d != 1 }} booked in the next 7 days</div>
+      <div class="small text-muted">{% if r.notified_at %}Sent to admins by text/email {{ r.notified_at|usdate(true) }}{% else %}No text/email sent yet (admins need notifications turned on in their account){% endif %}</div>
+    </div>
+    <div class="d-flex gap-1 flex-wrap">
+      <form method="post" action="{{ url_for('flight.plane_ground', asset_id=r.asset.id) }}" data-confirm="Ground {{ r.asset.tag }}? It shows as Down for maintenance, new bookings are blocked and its upcoming bookings get flagged to move." data-confirm-title="Ground plane" data-confirm-ok="Yes, ground it" data-confirm-style="danger">
+        <button class="btn btn-danger btn-sm fw-bold"><i class="bi bi-slash-circle"></i> Ground plane</button>
+      </form>
+      <a href="{{ url_for('project_new', asset_id=r.asset.id, name='100hr Inspection - ' ~ r.asset.tag, quick_type='100hr Inspection') }}" class="btn btn-outline-primary btn-sm fw-bold"><i class="bi bi-tools"></i> Create 100-hr project</a>
+      <form method="post" action="{{ url_for('flight.plane_hundred_hr_not_yet', asset_id=r.asset.id) }}">
+        <button class="btn btn-outline-secondary btn-sm">Not yet</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+  {% for r in hundred_grounded %}
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-2 mb-2 border rounded bg-body-tertiary">
+    <div><strong>{{ r.asset.tag }}</strong> &middot; <span class="badge bg-dark">Down for maintenance</span>
+      <span class="small text-muted">{{ r.asset.grounded_reason or '' }} &middot; grounded by {{ r.asset.grounded_by or 'an admin' }} {{ r.asset.grounded_at|usdate(true) }}</span></div>
+    <form method="post" action="{{ url_for('flight.plane_return_to_service', asset_id=r.asset.id) }}" data-confirm="Return {{ r.asset.tag }} to service? It can be booked again.">
+      <button class="btn btn-outline-success btn-sm fw-bold"><i class="bi bi-check2-circle"></i> Return to service</button>
+    </form>
+  </div>
+  {% endfor %}
+  {% if not hundred_due and not hundred_grounded %}<p class="text-muted small mb-0">Nothing due.</p>{% endif %}
+</div>
+{% endif %}
 <p class="text-muted small">Flights flagged for review. Acknowledging just means someone's seen it - the alert stays here, and the caution flag stays on the Schedule, until the problem is actually fixed (use the Resolve button). Then it moves to Resolved on its own.</p>
 
 <h5 class="mt-4 fw-bold">Open ({{ unacked|length }})</h5>

@@ -1795,6 +1795,14 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_ad_compliance_ad ON ad_compliance(ad_id)")
     conn.commit()
 
+    # Grounding a plane for maintenance (flight.plane_ground): blocks new
+    # bookings on it until it's returned to service.
+    asset_cols_ground = [r["name"] for r in conn.execute("PRAGMA table_info(assets)").fetchall()]
+    for col in ("grounded_at", "grounded_by", "grounded_reason"):
+        if col not in asset_cols_ground:
+            conn.execute(f"ALTER TABLE assets ADD COLUMN {col} TEXT")
+    conn.commit()
+
     # Shipment tracking on orders (see tracking.py): the number/carrier typed
     # on New/Edit Order, plus the last status fetched for it, cached so the
     # Orders page doesn't ask the carrier on every load.

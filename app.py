@@ -2653,8 +2653,63 @@ def project_status(project_id):
     conn.execute("UPDATE projects SET status = ?, completed_at = ?, completed_by = ? WHERE id = ?",
                  (new_status, completed_at, completed_by, project_id))
     conn.commit()
+    if new_status == "completed":
+        _record_inspection_from_project(conn, project_id)
     conn.close()
     return redirect(url_for("project_detail", project_id=project_id))
+
+
+def _project_inspection_kinds(name):
+    """Which tracked maintenance a project is, from its name/quick type:
+    '100hour' for a 100-hour ("100hr Inspection", "100 hour") and/or
+    'oil_change' for an oil change."""
+    n = (name or "").lower()
+    kinds = []
+    if re.search(r"\b100\s*-?\s*(hr|hrs|hour|hours)\b", n):
+        kinds.append("100hour")
+    if "oil" in n:
+        kinds.append("oil_change")
+    return kinds
+
+
+def _record_inspection_from_project(conn, project_id):
+    """Completing a 100-hr or Oil Change project on a plane records it as
+    done at the plane's current tach (so the 100-hour countdown restarts),
+    and a 100-hr completion returns a grounded plane to service
+    (QA feat-100hr-countdown-grounding)."""
+    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project or not project["asset_id"]:
+        return
+    kinds = _project_inspection_kinds(project["name"])
+    if not kinds:
+        return
+    asset = conn.execute("SELECT * FROM assets WHERE id = ?", (project["asset_id"],)).fetchone()
+    if not asset or asset["tach_hours"] is None:
+        return
+    for kind in kinds:
+        item = conn.execute("""SELECT * FROM maintenance_items WHERE asset_id = ? AND category = ? AND active = 1
+                               AND type = 'hours' ORDER BY id LIMIT 1""", (asset["id"], kind)).fetchone()
+        if not item:
+            if kind != "100hour":
+                continue
+            cur = conn.execute("""INSERT INTO maintenance_items (asset_id, name, type, category, hour_type, interval_hours,
+                                   active, created_at, updated_at) VALUES (?, '100-Hour Inspection', 'hours', '100hour',
+                                   'tach', 100, 1, ?, ?)""", (asset["id"], now_iso(), now_iso()))
+            item = conn.execute("SELECT * FROM maintenance_items WHERE id = ?", (cur.lastrowid,)).fetchone()
+        reading = asset_meter(asset, item["hour_type"])
+        conn.execute("UPDATE maintenance_items SET last_done_hours = ?, last_done_date = ?, updated_at = ? WHERE id = ?",
+                     (reading, now_iso()[:10], now_iso(), item["id"]))
+        conn.execute("""INSERT INTO maintenance_log (item_id, completed_at, completed_hours, performed_by, note, project_id)
+                         VALUES (?, ?, ?, ?, ?, ?)""",
+                     (item["id"], now_iso(), reading, session.get("user_name"),
+                      f"Project {project['code']} completed", project_id))
+    conn.commit()
+    if "100hour" in kinds and asset["grounded_at"]:
+        from flight import return_plane_to_service
+        return_plane_to_service(conn, asset["id"], session.get("user_name"))
+        flash(f"{asset['tag']} is back in service - 100-hour recorded at tach {asset['tach_hours']:g}.", "success")
+    else:
+        flash(f"Recorded on {asset['tag']}'s maintenance at tach {asset['tach_hours']:g}.", "info")
 
 
 _PROJECT_CODE_RE = re.compile(r"^(\d{2})-(\d+)$")

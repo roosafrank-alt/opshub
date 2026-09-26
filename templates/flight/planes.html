@@ -14,7 +14,7 @@
 <div class="card">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0 table-stack" id="planes-table">
-      <thead class="table-light"><tr><th></th><th>Tail #</th><th>Make/Model</th><th>Hobbs</th><th>Tach</th><th></th></tr></thead>
+      <thead class="table-light"><tr><th></th><th>Tail #</th><th>Make/Model</th><th>Hobbs</th><th>Tach</th>{% if hundred %}<th>100-hr <span class="badge bg-secondary fw-normal">admins</span></th>{% endif %}<th></th></tr></thead>
       <tbody>
         {% for p in planes %}
         <tr data-search="{{ (p.tag ~ ' ' ~ (p.name or ''))|lower }}">
@@ -23,6 +23,12 @@
           <td data-label="Make/Model">{{ [p.make, p.model]|select|join(' ') or '-' }}</td>
           <td data-label="Hobbs">{{ '%.1f'|format(p.hobbs_hours) if p.hobbs_hours is not none else '-' }}</td>
           <td data-label="Tach">{{ '%.1f'|format(p.tach_hours) if p.tach_hours is not none else '-' }}</td>
+          {% if hundred %}
+          {% set h = hundred.get(p.id) %}
+          <td data-label="100-hr">{% if p.grounded_at %}<span class="badge bg-dark" title="{{ p.grounded_reason or '' }}">Down for maintenance</span>
+            {% elif h %}<span class="badge {{ 'bg-danger' if h.level == 'overdue' else ('bg-warning text-dark' if h.level == 'soon' else 'bg-success') }}" title="Last 100-hr at tach {{ '%.1f'|format(h.last_at) }}">{{ '%.1f'|format(h.left) }} left</span>
+            {% else %}<span class="text-muted small" title="Add a 100-Hour Inspection maintenance item (with its last-done tach) on the aircraft page">-</span>{% endif %}</td>
+          {% endif %}
           <td data-label="" class="text-nowrap">
             {% if not p.is_simulator and (session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech')) %}
             <a href="{{ url_for('asset_detail', asset_id=p.id) }}" class="btn btn-outline-secondary btn-sm" title="Oil and compression reports live here now"><i class="bi bi-tools"></i> View in Maintenance</a>
@@ -38,7 +44,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="6" class="text-muted text-center py-3">No planes linked yet. Add or edit an aircraft in the Maintenance tile and check "Used by Flight School".</td></tr>
+        <tr><td colspan="{{ 7 if hundred else 6 }}" class="text-muted text-center py-3">No planes linked yet. Add or edit an aircraft in the Maintenance tile and check "Used by Flight School".</td></tr>
         {% endfor %}
       </tbody>
     </table>
