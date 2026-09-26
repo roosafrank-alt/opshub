@@ -557,6 +557,8 @@ function showGeneralNotePrompt(code, laborerName) {
 // only place that ever has to ask a follow-up question.
 
 function routeScanValue(value, fromCamera) {
+  // A plane's QR on the printed Job Sheet is a link to its aircraft page.
+  if (value.startsWith(window.location.origin + '/assets/')) { window.location.href = value; return true; }
   if (value === GENERAL_SHOP_CODE) { handleGeneralShopScan(fromCamera); return true; }
   if (value.startsWith('LABOR-')) { handleLaborScan(value); return true; }
   if (value.startsWith('TASK-')) { handleTaskCodeScan(value, fromCamera); return true; }

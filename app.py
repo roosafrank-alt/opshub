@@ -3031,13 +3031,23 @@ def project_checklist_print(project_id):
     project = conn.execute("""SELECT projects.*, a.tag as asset_tag, a.name as asset_name
                                FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
                                WHERE projects.id = ?""", (project_id,)).fetchone()
-    conn.close()
     if not project:
+        conn.close()
         abort(404)
+    # Scan codes printed across the top of the sheet: the plane (a link to
+    # its aircraft page), the project code (selects the job on the Scan
+    # page), and one TASK- code per sub-area (selects job + sub-area, same
+    # codes as the Labor Codes page).
+    sub_areas = [r["name"] for r in conn.execute(
+        "SELECT name FROM project_sections WHERE project_id = ? ORDER BY id", (project_id,)).fetchall()]
+    conn.close()
+    plane_url = (url_for("asset_detail", asset_id=project["asset_id"], _external=True)
+                 if project["asset_id"] else None)
     prework_items = [ln.strip() for ln in (project["prework_checklist"] or "").splitlines() if ln.strip()]
     standard_items = [ln.strip() for ln in (project["standard_items"] or "").splitlines() if ln.strip()]
     return render_template("project_checklist.html", project=project,
-                           prework_items=prework_items, standard_items=standard_items)
+                           prework_items=prework_items, standard_items=standard_items,
+                           sub_areas=sub_areas, plane_url=plane_url)
 
 
 @app.route("/projects/<int:project_id>/label")

@@ -24,6 +24,31 @@
     </div>
   </div>
 
+  {#- Scan codes: plane, project, and each sub-area. Scanning the project
+     or a sub-area code on the Scan page selects that job/area; the plane
+     code opens the aircraft's page on a phone camera. #}
+  <div class="job-sheet-codes d-flex flex-wrap gap-3 justify-content-center border-bottom pb-3 mb-3">
+    {% if plane_url %}
+    <div class="text-center" style="width:130px;">
+      <div class="small fw-bold">Plane</div>
+      <div class="job-qr d-flex justify-content-center my-1" data-code="{{ plane_url }}"></div>
+      <div class="small">{{ project.asset_tag }}</div>
+    </div>
+    {% endif %}
+    <div class="text-center" style="width:130px;">
+      <div class="small fw-bold">Project</div>
+      <div class="job-qr d-flex justify-content-center my-1" data-code="{{ project.code }}"></div>
+      <div class="small">{{ project.code }}</div>
+    </div>
+    {% for s in sub_areas %}
+    <div class="text-center" style="width:130px;">
+      <div class="small fw-bold text-truncate" title="{{ s }}">{{ s }}</div>
+      <div class="job-qr d-flex justify-content-center my-1" data-code="TASK-{{ project.code }}::{{ s }}"></div>
+      <div class="small text-muted">Sub area</div>
+    </div>
+    {% endfor %}
+  </div>
+
   <div class="row g-4">
     <div class="col-md-6">
       <h5 class="border-bottom pb-1">Prework Checklist</h5>
@@ -69,4 +94,13 @@
     <div>Date: ______________</div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+document.querySelectorAll('.job-qr').forEach(function (el) {
+  new QRCode(el, { text: el.getAttribute('data-code'), width: 96, height: 96 });
+});
+</script>
 {% endblock %}
