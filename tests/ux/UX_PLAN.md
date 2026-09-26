@@ -77,11 +77,11 @@ Tick an area when reviewed and add the date. After the list is done, start
 over from the top, and put areas that changed a lot since their last review
 (check `git log` on origin/main and idea-queue) first.
 
-- [ ] Daily-job flows (flow_audit journeys): charging a part to a job took 12 taps + 4 typed fields on a phone vs about 5 streamlined (found 2026-09-25); tech must add their own name under "Scanning as" even though they're logged in
-- [ ] Scan page, phone (tech): the most-used screen in the shop
-- [ ] Flight School dashboard, phone (CFI and student)
+- [x] Daily-job flows (flow_audit journeys), reviewed 2026-09-26: filed ux-assign-part-flow (12 taps + 4 fields vs ~5), ux-log-flight-scroll (7 taps + 1,546px scroll). Added journeys scan-out and log-flight.
+- [x] Scan page, phone (tech), reviewed 2026-09-26: the page itself is quick (operator pre-filled, project then part scans need no extra taps); filed ux-scan-button-shop-dashboard (Scan only in the ☰ menu, 5 taps vs 3).
+- [ ] Flight School dashboard, phone (CFI and student) (clock/sun-times wrap filed 2026-09-26 as ux-flight-dash-sun-times; still needs a full review)
 - [ ] Shop dashboard, phone and desktop
-- [ ] Top menu / navigation on every screen size (shop admin menu overflows at 1366px, filed 2026-09-25; two home tiles both titled "Winds Aloft")
+- [ ] Top menu / navigation on every screen size (shop admin menu overflow at 1366px FIXED on idea-queue 2026-09-26; two home tiles both titled "Winds Aloft"; flight-only accounts hit a redirect loop on shop pages, filed ux-shop-link-redirect-loop 2026-09-26)
 - [ ] Shop dashboard stat boxes: Active Projects and Low Stock Items look tappable but aren't (found 2026-09-25)
 - [ ] Log a flight / active flight, phone (CFI)
 - [ ] Schedule and calendar, phone and desktop
@@ -94,6 +94,17 @@ over from the top, and put areas that changed a lot since their last review
 - [ ] Ground school / Academy (student, phone)
 - [ ] Billing and pay pages (desktop)
 - [ ] Admin pages: users, notifications, system (desktop)
+
+## Tool notes
+
+- 2026-09-26: `scan("CODE")` walker step added (a USB scanner: types into the
+  scan box and presses Enter, counted as 1 tap). The sample data now marks
+  N81PA and N2231Q as Flight School planes (they show on Schedule / Log a
+  Flight); N4729K stays a customer's plane. `summary.md` now lists pages that
+  didn't load first, and calls out redirect loops.
+- tests/harness.py's fake command runner now returns text (not bytes) when the
+  app asks for text, so /admin/system no longer crashes in tests (it was a test
+  artifact; the real Pi is fine).
 
 ## Card rules (qa_findings)
 

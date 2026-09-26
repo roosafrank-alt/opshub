@@ -92,4 +92,35 @@ JOURNEYS = [
             w.see("Low"),
         ),
     },
+    # Added 2026-09-26: the Scan page is the most-used screen in the shop.
+    {
+        "id": "scan-out",
+        "task": "Tech scans an oil filter out to the N4729K annual on the Scan page",
+        "role": "tech", "screen": "phone", "target_taps": 3,
+        "steps": lambda w, ids: (
+            w.start("/"),
+            w.tap("Parts, projects, labor"),
+            w.tap("Scan"),
+            w.scan("26-002"),        # the project's printed code
+            w.scan("SHOP-UX0001"),   # Oil Filter CH48110-1
+            w.see("Oil Filter CH48110-1"),
+        ),
+    },
+    {
+        "id": "log-flight",
+        "task": "CFI logs a finished lesson (plane, student, Hobbs) on a phone",
+        "role": "cfi", "screen": "phone", "target_taps": 6,
+        "steps": lambda w, ids: (
+            w.start("/"),
+            w.tap("Fly with Kate!"),
+            w.tap("Log a Flight"),
+            # "Log a Flight" opens Schedule a Flight with "Flight Already Complete" switched on.
+            w.tap("N81PA"),                          # one-tap plane buttons
+            w.fill("#student-combo-input", "Student"),
+            w.tap("#student-combo-list .list-group-item"),
+            w.fill("hobbs_end", "1001.3"),           # Hobbs start fills in from the plane
+            w.tap("Flight Complete", role="button"),
+            w.see("N81PA"),
+        ),
+    },
 ]
