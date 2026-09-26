@@ -396,6 +396,7 @@
        of view (open slots, not bookings) rather than another way to slice
        the same bookings. See flight.schedule_availability. #}
     <a href="{{ url_for('flight.schedule_availability', date=(day_str if view in ('day', 'week') else today.strftime('%Y-%m-%d')), plane_id=plane_id) }}" class="btn btn-outline-success btn-sm fw-bold"><i class="bi bi-calendar2-check"></i> Availability</a>
+    <a href="{{ url_for('flight.waitlist_page') }}" class="btn btn-outline-primary btn-sm fw-bold"><i class="bi bi-hourglass-split"></i> Waitlist</a>
     {#- Flight Finder is admin-only (booking access to it is restricted to
        admins - see admin_required on flight.schedule_finder), so the
        button itself is hidden from everyone else. #}

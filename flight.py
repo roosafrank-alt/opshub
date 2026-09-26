@@ -18,7 +18,7 @@ import math
 import csv
 import io
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, Response, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, Response, current_app, abort
 from werkzeug.security import generate_password_hash
 
 from db import get_db, now_iso, asset_meter, maintenance_status
@@ -3837,8 +3837,13 @@ def schedule_new():
     prefill_asset_id = request.args.get("asset_id", "").strip()
     if prefill_asset_id and not any(str(p["id"]) == prefill_asset_id for p in planes):
         prefill_asset_id = ""
+    # ?cfi_id= (e.g. from a waitlist "slot opened" link) pre-picks that instructor.
+    prefill_cfi_id = request.args.get("cfi_id", "").strip()
+    if prefill_cfi_id and not any(str(c["id"]) == prefill_cfi_id for c in cfis):
+        prefill_cfi_id = ""
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
                        today=prefill_date, prefill_time=prefill_time, prefill_asset_id=prefill_asset_id,
+                       prefill_cfi_id=prefill_cfi_id,
                        current_cfi_id=session.get("cfi_id"),
                        self_service=self_service, self_student=self_student,
                        # ?complete=1 opens the form with "Flight Already
@@ -4670,8 +4675,10 @@ def schedule_cancel(scheduled_id):
     conn = get_db()
     conn.execute("UPDATE scheduled_flights SET status = 'cancelled' WHERE id = ?", (scheduled_id,))
     conn.commit()
+    offered = waitlist_offer_cancelled_slot(conn, scheduled_id)
     conn.close()
-    flash("Scheduled flight cancelled.", "success")
+    flash("Scheduled flight cancelled." + (f" Offered the slot to {offered} waitlisted student{'s' if offered != 1 else ''}."
+                                           if offered else ""), "success")
     return redirect(request.referrer or url_for("flight.schedule_calendar"))
 
 
@@ -4758,6 +4765,7 @@ def schedule_student_cancel(scheduled_id):
                  (reason, scheduled_id))
     conn.commit()
     _notify_schedule_request(conn, sched, "cancelled", reason)
+    waitlist_offer_cancelled_slot(conn, scheduled_id)
     conn.close()
     flash("Flight cancelled.", "success")
     return redirect(url_for("flight.dashboard"))
@@ -6425,3 +6433,243 @@ def admin_cfi_edit(cfi_id):
     if cfi_row and cfi_row["user_id"]:
         return redirect(url_for("admin_user_edit", user_id=cfi_row["user_id"]))
     return redirect(url_for("admin_users_list"))
+
+
+# ---------------------------------------------------------------------------
+# Cancellation waitlist (QA feat-cancellation-waitlist). Students (or a CFI/
+# admin for them) join with the days, times of day and optionally the plane
+# or instructor they'd take. When any booking is cancelled, every matching
+# student gets a push/text/email at once: "A 2:00 PM slot in N123 with Kate
+# opened tomorrow - tap to grab it". Tapping opens Schedule Flight with the
+# slot filled in, so the normal booking checks (and instructor approval for
+# a student's own request) still apply; if someone already took it they
+# see "already taken". "Filled from waitlist" counts offers that turned
+# into a real booking by that student for that slot.
+# ---------------------------------------------------------------------------
+
+WAITLIST_DAYS = [(0, "Mon"), (1, "Tue"), (2, "Wed"), (3, "Thu"), (4, "Fri"), (5, "Sat"), (6, "Sun")]
+WAITLIST_PERIODS = [("morning", "Morning (before noon)"), ("afternoon", "Afternoon (noon-5)"), ("evening", "Evening (after 5)")]
+
+
+def _waitlist_period(hhmm):
+    try:
+        h = int((hhmm or "")[:2])
+    except ValueError:
+        return None
+    return "morning" if h < 12 else ("afternoon" if h < 17 else "evening")
+
+
+def _slot_minutes(hhmm, duration):
+    h, m = int(hhmm[:2]), int(hhmm[3:5])
+    start = h * 60 + m
+    return start, start + int(round((duration if duration else 1.5) * 60))
+
+
+def _slot_taken(conn, asset_id, day, hhmm, duration, ignore_id=None):
+    """Whether the plane already has a live booking overlapping that slot."""
+    start, end = _slot_minutes(hhmm, duration)
+    for r in conn.execute("""SELECT id, scheduled_time, duration_hours FROM scheduled_flights
+                             WHERE asset_id = ? AND scheduled_date = ? AND scheduled_time IS NOT NULL
+                               AND status IN ('scheduled', 'pending_approval', 'in_progress')""",
+                          (asset_id, day)).fetchall():
+        if ignore_id and r["id"] == ignore_id:
+            continue
+        s2, e2 = _slot_minutes(r["scheduled_time"], r["duration_hours"])
+        if start < e2 and s2 < end:
+            return True
+    return False
+
+
+def waitlist_offer_cancelled_slot(conn, scheduled_id):
+    """Called right after a booking is cancelled. Offers the freed slot to
+    every matching waitlisted student at once. Returns how many were offered.
+    Best effort: a notification failure never blocks the cancellation."""
+    try:
+        sched = conn.execute("""SELECT sf.*, a.tag as plane_tag, c.name as cfi_name FROM scheduled_flights sf
+                                JOIN assets a ON a.id = sf.asset_id LEFT JOIN cfis c ON c.id = sf.cfi_id
+                                WHERE sf.id = ?""", (scheduled_id,)).fetchone()
+        if not sched or not sched["scheduled_time"]:
+            return 0
+        day = sched["scheduled_date"]
+        slot_dt = datetime.strptime(f"{day} {sched['scheduled_time']}", "%Y-%m-%d %H:%M")
+        if slot_dt <= datetime.now():
+            return 0
+        weekday = str(slot_dt.weekday())
+        period = _waitlist_period(sched["scheduled_time"])
+        matches = conn.execute("""
+            SELECT w.*, s.user_id, s.name as student_name FROM flight_waitlist w JOIN students s ON s.id = w.student_id
+            WHERE w.active = 1 AND s.active = 1 AND w.student_id != ?
+              AND (w.until_date IS NULL OR w.until_date = '' OR w.until_date >= ?)
+              AND (w.asset_id IS NULL OR w.asset_id = ?)
+              AND (w.cfi_id IS NULL OR w.cfi_id = ?)""",
+                               (sched["student_id"], day, sched["asset_id"], sched["cfi_id"] or -1)).fetchall()
+        offered = 0
+        when = _format_time_12h(sched["scheduled_time"])
+        day_label = "today" if slot_dt.date() == date.today() else (
+            "tomorrow" if slot_dt.date() == date.today() + timedelta(days=1) else slot_dt.strftime("%a %b %-d"))
+        settings = notify.get_settings(conn)
+        seen_students = set()
+        for w in matches:
+            if weekday not in (w["days"] or "").split(",") or period not in (w["periods"] or "").split(","):
+                continue
+            if w["student_id"] in seen_students:
+                continue
+            seen_students.add(w["student_id"])
+            cur = conn.execute("""INSERT INTO waitlist_offers (waitlist_id, student_id, cancelled_flight_id, asset_id, cfi_id,
+                                   scheduled_date, scheduled_time, duration_hours, created_at)
+                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                               (w["id"], w["student_id"], scheduled_id, sched["asset_id"], sched["cfi_id"], day,
+                                sched["scheduled_time"], sched["duration_hours"], now_iso()))
+            conn.commit()
+            offered += 1
+            if not w["user_id"]:
+                continue
+            link = url_for("flight.waitlist_offer", offer_id=cur.lastrowid, _external=True)
+            body = (f"A {when} slot in {sched['plane_tag']}" + (f" with {sched['cfi_name']}" if sched["cfi_name"] else "")
+                    + f" opened {day_label}. Tap to grab it: {link}")
+            try:
+                push.queue_and_push(conn, w["user_id"], "A flight slot opened", body,
+                                    tag=f"waitlist-{scheduled_id}", url=link)
+            except Exception:
+                current_app.logger.exception("Waitlist push failed")
+            try:
+                user = conn.execute("SELECT * FROM users WHERE id = ?", (w["user_id"],)).fetchone()
+                if user:
+                    notify.notify_user(settings, user, "A flight slot opened", body, brand="Fly with Kate!")
+            except Exception:
+                current_app.logger.exception("Waitlist text/email failed")
+        return offered
+    except Exception:
+        current_app.logger.exception("Waitlist offer failed")
+        return 0
+
+
+def _waitlist_filled_count(conn, since):
+    return conn.execute("""
+        SELECT COUNT(DISTINCT o.cancelled_flight_id) c FROM waitlist_offers o
+        WHERE o.created_at >= ? AND EXISTS (
+            SELECT 1 FROM scheduled_flights sf WHERE sf.student_id = o.student_id AND sf.asset_id = o.asset_id
+              AND sf.scheduled_date = o.scheduled_date AND sf.scheduled_time = o.scheduled_time
+              AND sf.id != o.cancelled_flight_id AND sf.status != 'cancelled')""", (since,)).fetchone()["c"]
+
+
+@flight_bp.route("/waitlist")
+@login_required
+def waitlist_page():
+    conn = get_db()
+    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    sql = """SELECT w.*, s.name as student_name, a.tag as plane_tag, c.name as cfi_name FROM flight_waitlist w
+             JOIN students s ON s.id = w.student_id LEFT JOIN assets a ON a.id = w.asset_id
+             LEFT JOIN cfis c ON c.id = w.cfi_id
+             WHERE w.active = 1 AND (w.until_date IS NULL OR w.until_date = '' OR w.until_date >= ?)"""
+    args = [date.today().isoformat()]
+    if not staff:
+        sql += " AND w.student_id = ?"
+        args.append(session.get("student_id"))
+    entries = [dict(r) for r in conn.execute(sql + " ORDER BY w.created_at", args).fetchall()]
+    day_names = dict((str(k), v) for k, v in WAITLIST_DAYS)
+    period_names = {k: v.split(" ")[0] for k, v in WAITLIST_PERIODS}
+    for e in entries:
+        e["days_label"] = ", ".join(day_names[d] for d in (e["days"] or "").split(",") if d in day_names) or "-"
+        e["periods_label"] = ", ".join(period_names[p] for p in (e["periods"] or "").split(",") if p in period_names) or "-"
+    offers = []
+    if not staff:
+        offers = conn.execute("""SELECT o.*, a.tag as plane_tag, c.name as cfi_name FROM waitlist_offers o
+                                 JOIN assets a ON a.id = o.asset_id LEFT JOIN cfis c ON c.id = o.cfi_id
+                                 WHERE o.student_id = ? AND o.scheduled_date >= ? ORDER BY o.created_at DESC LIMIT 5""",
+                              (session.get("student_id"), date.today().isoformat())).fetchall()
+    month_start = date.today().replace(day=1).isoformat()
+    filled = _waitlist_filled_count(conn, month_start) if staff else None
+    planes = conn.execute("SELECT id, tag FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
+    cfis = conn.execute("SELECT id, name FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
+    students = conn.execute("SELECT id, name FROM students WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall() if staff else []
+    conn.close()
+    return render_template("flight/waitlist.html", entries=entries, staff=staff, filled=filled, offers=offers,
+                           planes=planes, cfis=cfis, students=students, days=WAITLIST_DAYS, periods=WAITLIST_PERIODS,
+                           today=date.today().isoformat())
+
+
+@flight_bp.route("/waitlist/join", methods=["POST"])
+@login_required
+def waitlist_join():
+    conn = get_db()
+    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    if staff:
+        try:
+            student_id = int(request.form.get("student_id") or "")
+        except ValueError:
+            student_id = None
+    else:
+        student_id = session.get("student_id")
+    student = conn.execute("SELECT id FROM students WHERE id = ? AND active = 1", (student_id,)).fetchone() if student_id else None
+    days = sorted({d for d in request.form.getlist("days") if d in {str(k) for k, _ in WAITLIST_DAYS}})
+    periods = [p for p, _ in WAITLIST_PERIODS if p in request.form.getlist("periods")]
+    if not student or not days or not periods:
+        conn.close()
+        flash("Pick " + ("a student, " if staff and not student else "") + "at least one day and one time of day.", "danger")
+        return redirect(url_for("flight.waitlist_page"))
+
+    def _opt_id(field, table):
+        try:
+            v = int(request.form.get(field) or "")
+        except ValueError:
+            return None
+        return v if conn.execute(f"SELECT id FROM {table} WHERE id = ?", (v,)).fetchone() else None
+    until = (request.form.get("until_date") or "").strip()
+    try:
+        until = datetime.strptime(until, "%Y-%m-%d").date().isoformat() if until else None
+    except ValueError:
+        until = None
+    conn.execute("""INSERT INTO flight_waitlist (student_id, days, periods, asset_id, cfi_id, until_date, active,
+                     created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)""",
+                 (student["id"], ",".join(days), ",".join(periods), _opt_id("asset_id", "assets"),
+                  _opt_id("cfi_id", "cfis"), until, now_iso(), session.get("user_name")))
+    conn.commit()
+    conn.close()
+    flash("On the waitlist - you'll get a text/notification the moment a matching slot opens." if not staff
+          else "Added to the waitlist.", "success")
+    return redirect(url_for("flight.waitlist_page"))
+
+
+@flight_bp.route("/waitlist/<int:entry_id>/remove", methods=["POST"])
+@login_required
+def waitlist_remove(entry_id):
+    conn = get_db()
+    entry = conn.execute("SELECT * FROM flight_waitlist WHERE id = ?", (entry_id,)).fetchone()
+    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    if not entry or not (staff or entry["student_id"] == session.get("student_id")):
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE flight_waitlist SET active = 0 WHERE id = ?", (entry_id,))
+    conn.commit()
+    conn.close()
+    flash("Removed from the waitlist.", "success")
+    return redirect(url_for("flight.waitlist_page"))
+
+
+@flight_bp.route("/waitlist/offer/<int:offer_id>")
+@login_required
+def waitlist_offer(offer_id):
+    """Where the "a slot opened" text/push lands. Still free -> Schedule
+    Flight with the slot filled in (normal booking rules apply). Already
+    booked by someone else -> a friendly "already taken"."""
+    conn = get_db()
+    offer = conn.execute("""SELECT o.*, a.tag as plane_tag FROM waitlist_offers o JOIN assets a ON a.id = o.asset_id
+                            WHERE o.id = ?""", (offer_id,)).fetchone()
+    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    if not offer or not (staff or offer["student_id"] == session.get("student_id")):
+        conn.close()
+        abort(404)
+    try:
+        slot_dt = datetime.strptime(f"{offer['scheduled_date']} {offer['scheduled_time']}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        slot_dt = datetime.now()
+    gone = slot_dt <= datetime.now() or _slot_taken(conn, offer["asset_id"], offer["scheduled_date"],
+                                                     offer["scheduled_time"], offer["duration_hours"])
+    conn.close()
+    if gone:
+        flash(f"Sorry - the {_format_time_12h(offer['scheduled_time'])} slot in {offer['plane_tag']} on "
+              f"{offer['scheduled_date']} was already taken. You're still on the waitlist for the next one.", "warning")
+        return redirect(url_for("flight.waitlist_page"))
+    return redirect(url_for("flight.schedule_new", date=offer["scheduled_date"], time=offer["scheduled_time"],
+                            asset_id=offer["asset_id"], cfi_id=offer["cfi_id"] or "", waitlist_offer=offer_id))

@@ -160,7 +160,7 @@
           <option value="" {% if (form and not form.get('cfi_id') and not form.get('solo')) or (not form and sched and not sched.cfi_id and not sched.solo) %}selected{% endif %}>-- Unassigned (assign later) --</option>
           {% endif %}
           {% for c in cfis %}
-          <option value="{{ c.id }}" {% if (form and form.get('cfi_id')|string == c.id|string) or (not form and sched and sched.cfi_id == c.id) or (not form and not sched and not self_service and c.id == current_cfi_id) %}selected{% endif %}>{{ c.name }}</option>
+          <option value="{{ c.id }}" {% if (form and form.get('cfi_id')|string == c.id|string) or (not form and sched and sched.cfi_id == c.id) or (not form and not sched and prefill_cfi_id and prefill_cfi_id == c.id|string) or (not form and not sched and not prefill_cfi_id and not self_service and c.id == current_cfi_id) %}selected{% endif %}>{{ c.name }}</option>
           {% endfor %}
         </select>
         {% if not self_service %}

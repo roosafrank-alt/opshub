@@ -1,0 +1,95 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Waitlist - OpsHub{% endblock %}
+{% block content %}
+{#- Cancellation waitlist - see waitlist_* in flight.py. #}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <h4 class="mb-0"><i class="bi bi-hourglass-split"></i> Waitlist</h4>
+  <div class="d-flex gap-2 align-items-center">
+    {% if staff %}<span class="badge bg-success fs-6" title="Cancelled slots re-booked by a waitlisted student this month">{{ filled }} filled from waitlist this month</span>{% endif %}
+    <a href="{{ url_for('flight.schedule_calendar') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar3"></i> Back to Schedule</a>
+  </div>
+</div>
+<p class="text-muted small">Want to fly sooner? Join the waitlist with the days and times that work{{ ' for the student' if staff }}. When a booking that fits is cancelled, everyone who matches gets a text/notification at once - the first to tap it and book gets the slot.</p>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card p-3">
+      <h6>{{ 'Add a student' if staff else 'Join the waitlist' }}</h6>
+      <form method="post" action="{{ url_for('flight.waitlist_join') }}">
+        {% if staff %}
+        <label class="form-label small mb-1" for="wl-student">Student</label>
+        <select id="wl-student" name="student_id" class="form-select mb-2" required>
+          <option value="">-- Pick a student --</option>
+          {% for s in students %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+        </select>
+        {% endif %}
+        <div class="form-label small mb-1">Days</div>
+        <div class="d-flex flex-wrap gap-1 mb-2">
+          {% for val, label in days %}
+          <input type="checkbox" class="btn-check" name="days" value="{{ val }}" id="wl-day-{{ val }}" autocomplete="off">
+          <label class="btn btn-outline-primary" for="wl-day-{{ val }}">{{ label }}</label>
+          {% endfor %}
+        </div>
+        <div class="form-label small mb-1">Time of day</div>
+        <div class="d-flex flex-wrap gap-1 mb-2">
+          {% for val, label in periods %}
+          <input type="checkbox" class="btn-check" name="periods" value="{{ val }}" id="wl-period-{{ val }}" autocomplete="off">
+          <label class="btn btn-outline-primary" for="wl-period-{{ val }}">{{ label }}</label>
+          {% endfor %}
+        </div>
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label small mb-1" for="wl-plane">Plane</label>
+            <select id="wl-plane" name="asset_id" class="form-select">
+              <option value="">Any plane</option>
+              {% for p in planes %}<option value="{{ p.id }}">{{ p.tag }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label small mb-1" for="wl-cfi">Instructor</label>
+            <select id="wl-cfi" name="cfi_id" class="form-select">
+              <option value="">Any instructor</option>
+              {% for c in cfis %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <label class="form-label small mb-1 mt-2" for="wl-until">Until (optional)</label>
+        <input id="wl-until" type="date" name="until_date" class="form-control mb-3" min="{{ today }}">
+        <button class="btn btn-primary w-100 fw-bold"><i class="bi bi-plus-lg"></i> {{ 'Add to waitlist' if staff else 'Join waitlist' }}</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    {% if offers %}
+    <div class="card p-3 mb-3 border-success">
+      <h6><i class="bi bi-bell"></i> Slots offered to you</h6>
+      {% for o in offers %}
+      <div class="d-flex justify-content-between align-items-center py-2 {{ 'border-top' if not loop.first }}">
+        <div>{{ o.scheduled_date|usdate }} &middot; {{ o.scheduled_time }} &middot; {{ o.plane_tag }}{% if o.cfi_name %} &middot; {{ o.cfi_name }}{% endif %}</div>
+        <a href="{{ url_for('flight.waitlist_offer', offer_id=o.id) }}" class="btn btn-success btn-sm fw-bold">Grab it</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="card p-3">
+      <h6>{{ "Who's waiting" if staff else 'Your waitlist' }} <span class="badge bg-secondary">{{ entries|length }}</span></h6>
+      {% if entries %}
+      {% for e in entries %}
+      <div class="d-flex justify-content-between align-items-start gap-2 py-2 {{ 'border-top' if not loop.first }}">
+        <div>
+          {% if staff %}<div class="fw-bold">{{ e.student_name }}</div>{% endif %}
+          <div>{{ e.days_label }} &middot; {{ e.periods_label }}</div>
+          <div class="small text-muted">{{ e.plane_tag or 'Any plane' }} &middot; {{ e.cfi_name or 'any instructor' }}{% if e.until_date %} &middot; until {{ e.until_date|usdate }}{% endif %} &middot; since {{ e.created_at|usdate }}</div>
+        </div>
+        <form method="post" action="{{ url_for('flight.waitlist_remove', entry_id=e.id) }}">
+          <button class="btn btn-outline-secondary btn-sm">Remove</button>
+        </form>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="text-muted small mb-0">{{ 'Nobody is on the waitlist right now.' if staff else "You're not on the waitlist yet." }}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

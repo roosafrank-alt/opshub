@@ -1724,6 +1724,35 @@ def _migrate(conn):
         conn.execute("ALTER TABLE photos ADD COLUMN found_item_id INTEGER REFERENCES found_items(id)")
     conn.commit()
 
+    # Cancellation waitlist (see waitlist_* in flight.py). days: comma list
+    # of weekday numbers (0 = Monday); periods: morning/afternoon/evening.
+    conn.execute("""CREATE TABLE IF NOT EXISTS flight_waitlist (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        days TEXT NOT NULL,
+        periods TEXT NOT NULL,
+        asset_id INTEGER REFERENCES assets(id),
+        cfi_id INTEGER REFERENCES cfis(id),
+        until_date TEXT,
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        created_by TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS waitlist_offers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        waitlist_id INTEGER REFERENCES flight_waitlist(id),
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        cancelled_flight_id INTEGER REFERENCES scheduled_flights(id),
+        asset_id INTEGER NOT NULL REFERENCES assets(id),
+        cfi_id INTEGER REFERENCES cfis(id),
+        scheduled_date TEXT NOT NULL,
+        scheduled_time TEXT NOT NULL,
+        duration_hours REAL,
+        created_at TEXT NOT NULL
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_waitlist_offers_student ON waitlist_offers(student_id)")
+    conn.commit()
+
     # Shipment tracking on orders (see tracking.py): the number/carrier typed
     # on New/Edit Order, plus the last status fetched for it, cached so the
     # Orders page doesn't ask the carrier on every load.
