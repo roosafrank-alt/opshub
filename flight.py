@@ -17,6 +17,8 @@ import itertools
 import math
 import csv
 import io
+import json
+import re
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, Response, current_app, abort
 from werkzeug.security import generate_password_hash
@@ -120,6 +122,35 @@ def _format_time_12h(hhmm):
     # so build the 12-hour hour by hand instead of relying on it.
     hour12 = t.hour % 12 or 12
     return f"{hour12}:{t.minute:02d} {'AM' if t.hour < 12 else 'PM'}"
+
+
+def _safe_json_list(raw):
+    """A scheduled_flights.proposed_times value -> a plain list of strings
+    for a template to loop over, or [] for blank/malformed JSON - never
+    lets a bad stored value break the page it's shown on."""
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+    except ValueError:
+        return []
+    return parsed if isinstance(parsed, list) else []
+
+
+def _parse_quick_time(label):
+    """'8:00a' / '12:30p' (the quick-time button shape used by the Propose
+    New Times / Request a Change modals - see pt-quick-time/sc-quick-time)
+    -> '08:00' / '12:30' (24h, scheduled_flights.scheduled_time's own
+    format). None if it isn't exactly that shape - this only ever reads
+    back a label this same app just generated, never free-typed text."""
+    m = re.match(r"^(\d{1,2}):(\d{2})([ap])$", (label or "").strip().lower())
+    if not m:
+        return None
+    hour, minute, ap = int(m.group(1)), int(m.group(2)), m.group(3)
+    if not (1 <= hour <= 12) or not (0 <= minute < 60):
+        return None
+    hour = (hour % 12) + (0 if ap == "a" else 12)
+    return f"{hour:02d}:{minute:02d}"
 
 
 # A booked flight can't be started before its own slot - starting earlier
@@ -1659,7 +1690,11 @@ def _dashboard_context(conn, cfi, student):
                    OR (sf.status = 'scheduled' AND sf.change_requested_at IS NOT NULL))
             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
         """, (student["id"], date.today().strftime("%Y-%m-%d"))).fetchall()
-        my_requests = [dict(m, time_label=_format_time_12h(m["scheduled_time"])) for m in my_requests]
+        my_requests = [dict(m, time_label=_format_time_12h(m["scheduled_time"]),
+                            # Parsed here once rather than in the template - a
+                            # bad/old JSON blob just shows no buttons instead
+                            # of a broken page.
+                            proposed_times_list=_safe_json_list(m["proposed_times"])) for m in my_requests]
         # Unread notifications ("your flight was approved", etc. - see
         # _notify_student) for the dashboard banner. Capped at 5 so a
         # student who hasn't looked in a while gets a banner, not a wall -
@@ -4123,15 +4158,36 @@ def schedule_approve(scheduled_id):
 def schedule_deny(scheduled_id):
     """Denies a student's flight request - requires a reason (unlike an
     approval, which just needs a click) so the student sees directly why
-    instead of a generic "contact your instructor"."""
+    instead of a generic "contact your instructor".
+
+    "Propose New Times" (proposeTimesModal) posts here too, with its
+    quick-picked times folded into `reason` as before (so the deny reason
+    still reads the same everywhere it's shown as plain text) plus that
+    same list separately as JSON in `proposed_times` - see
+    schedule_accept_proposed_time, which is what turns them into the
+    student's one-click buttons instead of a retype-it-yourself request."""
     reason = (request.form.get("reason") or "").strip()
     if not reason:
         return _pending_decision_response(False, "Say why you're denying this request.", "danger")
+    proposed_times_raw = (request.form.get("proposed_times") or "").strip()
+    proposed_times_json = None
+    if proposed_times_raw:
+        try:
+            labels = json.loads(proposed_times_raw)
+        except ValueError:
+            labels = []
+        # Only labels this app's own quick-time buttons could have produced,
+        # and only ones that actually parse to a real time - never anything
+        # free-typed makes it into a clickable button later.
+        valid = [l for l in labels if isinstance(l, str) and _parse_quick_time(l)]
+        if valid:
+            proposed_times_json = json.dumps(valid)
     conn = get_db()
     sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ? AND status = 'pending_approval'",
                          (scheduled_id,)).fetchone()
-    conn.execute("UPDATE scheduled_flights SET status = 'denied', deny_reason = ? WHERE id = ? AND status = 'pending_approval'",
-                 (reason, scheduled_id))
+    conn.execute("""UPDATE scheduled_flights SET status = 'denied', deny_reason = ?, proposed_times = ?
+                     WHERE id = ? AND status = 'pending_approval'""",
+                 (reason, proposed_times_json, scheduled_id))
     if sched:
         when = f" on {_us_date(sched['scheduled_date'])}" + (f" at {_format_time_12h(sched['scheduled_time'])}" if sched["scheduled_time"] else "")
         _notify_student(conn, sched["student_id"], "flight_denied",
@@ -4140,6 +4196,61 @@ def schedule_deny(scheduled_id):
     conn.commit()
     conn.close()
     return _pending_decision_response(True, "Flight request denied.", "info")
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/accept-proposed-time", methods=["POST"])
+@login_required
+def schedule_accept_proposed_time(scheduled_id):
+    """The student clicking one of the times a CFI/admin proposed instead
+    of their conflicting request (see schedule_deny's proposed_times).
+    Submits a brand new request at that time - same plane/instructor/
+    duration/notes as the denied one, on the same date - exactly as if the
+    student had filled out New Request by hand, so it still goes in as
+    pending_approval and still gets the normal conflict check at approval
+    time. The denied original is then dismissed off "Your Requests" (its
+    job was done the moment the student acted on it) and replaced there by
+    this new pending request."""
+    student_id = session.get("student_id")
+    if not student_id:
+        return _pending_decision_response(False, "Only the student who made the request can do that.", "danger")
+    time_label = (request.form.get("time") or "").strip()
+    conn = get_db()
+    sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ? AND student_id = ? AND status = 'denied'",
+                         (scheduled_id, student_id)).fetchone()
+    if not sched or not sched["proposed_times"]:
+        conn.close()
+        return _pending_decision_response(False, "That request can't be accepted anymore.", "danger",
+                                          redirect_url=url_for("flight.dashboard"))
+    try:
+        offered = json.loads(sched["proposed_times"])
+    except ValueError:
+        offered = []
+    if time_label not in offered:
+        conn.close()
+        return _pending_decision_response(False, "Pick one of the times that was offered.", "danger")
+    new_time = _parse_quick_time(time_label)
+    if not new_time:
+        conn.close()
+        return _pending_decision_response(False, "That time couldn't be read - ask your instructor to resend it.", "danger")
+    past_error = _past_booking_error(sched["scheduled_date"], new_time)
+    if past_error:
+        conn.close()
+        return _pending_decision_response(False, past_error, "danger")
+    created_by = session.get("user_name")
+    confirmed_at, confirm_required, notify_user_id = _booking_confirm_state(conn, True, sched["guest_name"], student_id)
+    new_booking = conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date,
+                     scheduled_time, duration_hours, notes, status, created_by, solo, part_solo,
+                     guest_name, guest_phone, guest_email, created_at, confirmed_at, confirm_required)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 (sched["asset_id"], sched["cfi_id"], student_id, sched["scheduled_date"], new_time,
+                  sched["duration_hours"], sched["notes"], created_by, sched["solo"], sched["part_solo"],
+                  sched["guest_name"], sched["guest_phone"], sched["guest_email"], now_iso(),
+                  confirmed_at, confirm_required))
+    conn.execute("UPDATE scheduled_flights SET student_dismissed_at = ? WHERE id = ?", (now_iso(), scheduled_id))
+    conn.commit()
+    conn.close()
+    return _pending_decision_response(True, f"Requested {_format_time_12h(new_time)} - your instructor will need to approve it.",
+                                      "success", redirect_url=url_for("flight.dashboard"))
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/dismiss", methods=["POST"])

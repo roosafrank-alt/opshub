@@ -1895,6 +1895,16 @@ def _migrate(conn):
             conn.execute("UPDATE assets SET schedule_order = ? WHERE id = ?", (new_order, redbird["id"]))
             conn.commit()
 
+    # Idea "Schedule conflict": the times a CFI/admin proposed instead, when
+    # denying a conflicting student request (see schedule_deny in flight.py) -
+    # a JSON list of display strings like ["8:00a", "9:30a"], so the
+    # student's "Your Requests" card can offer them as one-click buttons
+    # instead of the student having to retype a new request by hand.
+    sched_cols_proposed = [r["name"] for r in conn.execute("PRAGMA table_info(scheduled_flights)").fetchall()]
+    if "proposed_times" not in sched_cols_proposed:
+        conn.execute("ALTER TABLE scheduled_flights ADD COLUMN proposed_times TEXT")
+        conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of

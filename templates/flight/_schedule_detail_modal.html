@@ -160,6 +160,12 @@
                below), same pattern as student-change-form's note field. #}
             <textarea name="reason" id="pt-note" class="form-control" rows="2" placeholder="e.g. or any day later that week"></textarea>
           </div>
+          {#- The same quick-picked times, as JSON - schedule_deny stores
+             this separately from the free-text reason above so the
+             student's "Your Requests" card can offer them as one-click
+             buttons (schedule_accept_proposed_time) instead of the
+             student having to retype a new request by hand. #}
+          <input type="hidden" name="proposed_times" id="pt-times-json">
           <div id="pt-error" class="alert alert-danger d-none py-2 px-3 mb-0 small"></div>
         </div>
         <div class="modal-footer">
@@ -567,6 +573,7 @@ document.getElementById('propose-times-form').addEventListener('submit', functio
     return;
   }
   errEl.classList.add('d-none');
+  document.getElementById('pt-times-json').value = JSON.stringify(ptSelectedTimes);
   noteEl.value = 'Conflicts with another booking. Times that would work instead: ' + ptSelectedTimes.join(', ') +
     (noteEl.value.trim() ? ' - ' + noteEl.value.trim() : '');
   ptSelectedTimes = [];

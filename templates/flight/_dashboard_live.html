@@ -96,6 +96,19 @@
             {% else %}
             <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Denied</span>
             {% if m.deny_reason %}<div class="text-muted small mt-1">{{ m.deny_reason }}</div>{% endif %}
+            {% if m.proposed_times_list %}
+            {#- One click accepts that time outright - schedule_accept_proposed_time
+               books the same plane/instructor/duration at the new time and
+               sends it in as a fresh pending request, same as if the
+               student had retyped New Request by hand. #}
+            <div class="d-flex flex-wrap gap-1 mt-1">
+              {% for t in m.proposed_times_list %}
+              <button type="button" class="btn btn-outline-success btn-sm accept-proposed-time-btn"
+                      data-accept-url="{{ url_for('flight.schedule_accept_proposed_time', scheduled_id=m.id) }}"
+                      data-time="{{ t }}">{{ t }}</button>
+              {% endfor %}
+            </div>
+            {% endif %}
             {% endif %}
           </td>
           <td data-label="" class="text-end">
