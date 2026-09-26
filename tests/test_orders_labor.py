@@ -389,7 +389,6 @@ class LaborFlowTest(OpsHubTestCase):
                 self.assertEqual(self.labor(project_id=self.project).status_code, 200)
                 self.assertEqual(self.labor(project_id=self.project).status_code, 200)
 
-    @open_finding("qa-labor-closed-projects")
     def test_clocking_in_to_a_completed_or_archived_project_is_blocked(self):
         # Same rule Frank chose for parts (qa-scanout-closed-projects).
         for status in ("completed", "archived"):

@@ -4611,6 +4611,10 @@ def api_labor_task_lookup():
                      "project_name": project["name"], "section": section})
 
 
+# Jobs that can't take new labor (reopen them first) - see api_labor_scan.
+_LABOR_CLOSED_STATUSES = ("completed", "archived")
+
+
 @app.route("/api/labor/scan", methods=["POST"])
 @shop_role_required('admin', 'tech', 'student', 'inspector')
 def api_labor_scan():
@@ -4672,6 +4676,10 @@ def api_labor_scan():
                 if not target:
                     conn.close()
                     return jsonify({"ok": False, "error": "unknown_project"}), 404
+                if target["status"] in _LABOR_CLOSED_STATUSES:
+                    conn.close()
+                    return jsonify({"ok": False, "error": "project_closed", "project_code": target["code"],
+                                    "status": target["status"]}), 400
             switch_at = now_iso()
             started = datetime.strptime(open_session["started_at"], "%Y-%m-%d %H:%M:%S")
             ended = datetime.strptime(switch_at, "%Y-%m-%d %H:%M:%S")
@@ -4741,6 +4749,12 @@ def api_labor_scan():
     if not project:
         conn.close()
         return jsonify({"ok": False, "error": "unknown_project"}), 404
+    if project["status"] in _LABOR_CLOSED_STATUSES:
+        # Same rule as scanning parts out: a finished (and likely billed)
+        # job takes no more labor until it's reopened.
+        conn.close()
+        return jsonify({"ok": False, "error": "project_closed", "project_code": project["code"],
+                        "status": project["status"]}), 400
     conn.execute("""INSERT INTO labor_sessions (laborer_id, project_id, section, started_at, rate, created_at)
                      VALUES (?, ?, ?, ?, ?, ?)""",
                  (laborer["id"], project_id, section, now_iso(), laborer["rate"], now_iso()))

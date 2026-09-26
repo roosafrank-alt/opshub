@@ -491,6 +491,7 @@ function handleLaborScan(code, note) {
         return;
       }
       else if (data.error === 'unknown_project') msg = "That task's project could not be found.";
+      else if (data.error === 'project_closed') msg = 'Job ' + (data.project_code || '') + ' is ' + data.status + ' - reopen it first to clock time on it.';
       showResult(msg, 'scan-flash-error');
       vibrate([200]);
       return;
