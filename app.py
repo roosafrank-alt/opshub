@@ -1138,6 +1138,30 @@ def labor_page():
     return redirect(url_for("scan_page"))
 
 
+GENERAL_SHOP_CODE = "GENERAL-SHOP"
+
+
+@app.route("/labor/general-code")
+@shop_role_required('admin', 'tech')
+def general_shop_code_page():
+    """One shared, printable code for non-project shop time (cleanup,
+    meetings, general overhead) - scan it plus a laborer badge, in either
+    order, on the Scan page to clock in/out against no particular project."""
+    return render_template("general_shop_code.html", code=GENERAL_SHOP_CODE)
+
+
+@app.route("/labor/general-code/print-label", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def general_shop_code_print_label():
+    try:
+        from label_printer import print_task_label
+        print_task_label("Shop / General Time", "Clock in/out - any non-project work", GENERAL_SHOP_CODE)
+        flash("Label sent to printer.", "success")
+    except Exception as e:
+        flash(f"Couldn't print label: {e}", "danger")
+    return redirect(url_for("general_shop_code_page"))
+
+
 @app.route("/api/lookup/<path:barcode>")
 @login_required
 def api_lookup(barcode):
@@ -3952,6 +3976,17 @@ def task_template_type_delete(type_id):
     return redirect(url_for("task_templates"))
 
 
+@app.route("/labor/badges")
+@shop_role_required('admin', 'tech')
+def laborer_badges():
+    """Print-only view of laborer codes for admin+tech - no edit/rate/active
+    controls, so it doesn't need the full Laborers list's admin-only access."""
+    conn = get_db()
+    laborers = conn.execute("SELECT * FROM laborers WHERE active = 1 ORDER BY name").fetchall()
+    conn.close()
+    return render_template("laborer_badges.html", laborers=laborers)
+
+
 @app.route("/laborers")
 @shop_role_required('admin')
 def laborers_list():
@@ -4028,7 +4063,7 @@ def laborer_label(laborer_id):
 
 
 @app.route("/laborers/<int:laborer_id>/print-label", methods=["POST"])
-@shop_role_required('admin')
+@shop_role_required('admin', 'tech')
 def laborer_print_label(laborer_id):
     conn = get_db()
     laborer = conn.execute("SELECT * FROM laborers WHERE id = ?", (laborer_id,)).fetchone()
@@ -4041,7 +4076,10 @@ def laborer_print_label(laborer_id):
         flash(f"Label sent to printer for {laborer['name']}.", "success")
     except Exception as e:
         flash(f"Couldn't print label: {e}", "danger")
-    return redirect(url_for("laborer_label", laborer_id=laborer_id))
+    is_admin = bool(session.get("is_master_admin") or session.get("shop_role") == "admin")
+    if is_admin:
+        return redirect(url_for("laborer_label", laborer_id=laborer_id))
+    return redirect(url_for("laborer_badges"))
 
 
 # ---------------------------------------------------------------------------
@@ -4124,7 +4162,7 @@ def shop_pay():
                     pr.name as project_name, pr.id as project_id
              FROM labor_sessions ls
              JOIN laborers l ON l.id = ls.laborer_id
-             JOIN projects pr ON pr.id = ls.project_id
+             LEFT JOIN projects pr ON pr.id = ls.project_id
              WHERE date(ls.started_at) BETWEEN ? AND ?"""
     params = [start, end]
     if not admin_view:
@@ -4175,7 +4213,8 @@ def shop_billing():
         return projects[pid]
 
     for r in conn.execute("""SELECT project_id, SUM(hours) h, SUM(cost) c FROM labor_sessions
-                             WHERE ended_at IS NOT NULL AND date(started_at) BETWEEN ? AND ?
+                             WHERE ended_at IS NOT NULL AND project_id IS NOT NULL
+                               AND date(started_at) BETWEEN ? AND ?
                              GROUP BY project_id""", (start, end)).fetchall():
         p = proj(r["project_id"])
         p["labor_hours"] = r["h"] or 0
@@ -4220,7 +4259,7 @@ def shop_stats():
                                  WHERE ls.ended_at IS NOT NULL AND date(ls.started_at) BETWEEN ? AND ?
                                  GROUP BY l.id ORDER BY h DESC""", (start, end)).fetchall()
     by_aircraft = conn.execute("""SELECT COALESCE(a.tag, 'No aircraft') tag, SUM(ls.hours) h, COUNT(DISTINCT pr.id) projects
-                                  FROM labor_sessions ls JOIN projects pr ON pr.id = ls.project_id
+                                  FROM labor_sessions ls LEFT JOIN projects pr ON pr.id = ls.project_id
                                   LEFT JOIN assets a ON a.id = pr.asset_id
                                   WHERE ls.ended_at IS NOT NULL AND date(ls.started_at) BETWEEN ? AND ?
                                   GROUP BY a.id ORDER BY h DESC""", (start, end)).fetchall()
@@ -4266,6 +4305,8 @@ def api_labor_scan():
     code = (data.get("code") or "").strip()
     project_id = data.get("project_id")
     section = (data.get("section") or "").strip() or None
+    general = bool(data.get("general"))
+    note = (data.get("note") or "").strip() or None
     if not code.startswith("LABOR-"):
         return jsonify({"ok": False, "error": "not_a_laborer_code"}), 400
 
@@ -4283,22 +4324,42 @@ def api_labor_scan():
     ).fetchone()
 
     if open_session:
+        # Clocking out of General Shop time is the one case that needs a
+        # word from the person before it can complete - a quick "what did
+        # you work on" note, since there's no project/task to tell that from
+        # automatically. The scanner just holds - the timer keeps running -
+        # until the note comes back with the same scan resubmitted.
+        if open_session["project_id"] is None and not note:
+            conn.close()
+            return jsonify({"ok": False, "error": "note_required", "code": code,
+                             "laborer": laborer["name"]}), 400
         started = datetime.strptime(open_session["started_at"], "%Y-%m-%d %H:%M:%S")
         hours = max((datetime.now() - started).total_seconds() / 3600.0, 0)
         cost = hours * (open_session["rate"] or 0)
-        conn.execute("UPDATE labor_sessions SET ended_at = ?, hours = ?, cost = ? WHERE id = ?",
-                     (now_iso(), hours, cost, open_session["id"]))
+        conn.execute("UPDATE labor_sessions SET ended_at = ?, hours = ?, cost = ?, note = ? WHERE id = ?",
+                     (now_iso(), hours, cost, note, open_session["id"]))
         conn.commit()
         project = conn.execute("SELECT code, name FROM projects WHERE id = ?",
                                 (open_session["project_id"],)).fetchone()
         conn.close()
         return jsonify({"ok": True, "action": "clock_out", "laborer": laborer["name"], "hours": round(hours, 2),
                          "cost": round(cost, 2), "project_code": project["code"] if project else None,
+                         "general": project is None,
                          "section": open_session["section"] or "General"})
 
-    if not project_id:
+    if not project_id and not general:
         conn.close()
         return jsonify({"ok": False, "error": "no_task_selected", "code": code, "name": laborer["name"]}), 400
+
+    if general:
+        conn.execute("""INSERT INTO labor_sessions (laborer_id, project_id, section, started_at, rate, created_at)
+                         VALUES (?, NULL, NULL, ?, ?, ?)""",
+                     (laborer["id"], now_iso(), laborer["rate"], now_iso()))
+        conn.commit()
+        conn.close()
+        return jsonify({"ok": True, "action": "clock_in", "laborer": laborer["name"],
+                         "project_code": None, "general": True, "section": "General Shop"})
+
     project = conn.execute("SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
     if not project:
         conn.close()
@@ -4309,7 +4370,7 @@ def api_labor_scan():
     conn.commit()
     conn.close()
     return jsonify({"ok": True, "action": "clock_in", "laborer": laborer["name"],
-                     "project_code": project["code"], "section": section or "General"})
+                     "project_code": project["code"], "general": False, "section": section or "General"})
 
 
 @app.route("/api/labor/stop/<int:session_id>", methods=["POST"])

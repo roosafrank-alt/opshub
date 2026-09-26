@@ -225,7 +225,7 @@
         {% for s in open_sessions %}
         <tr data-session-id="{{ s.id }}" data-started="{{ s.started_at }}">
           <td>{{ s.laborer_name }}</td>
-          <td>{{ s.project_code }} {% if s.section %}&middot; {{ s.section }}{% endif %}</td>
+          <td>{{ s.project_code or 'General Shop' }} {% if s.section %}&middot; {{ s.section }}{% endif %}</td>
           <td class="elapsed-cell">-</td>
           <td><button class="btn btn-sm btn-outline-danger manual-stop-btn" data-id="{{ s.id }}">Stop</button></td>
         </tr>
@@ -290,7 +290,7 @@
               <td>{{ a.laborer_name }}</td>
               <td><span class="badge bg-info text-dark">LABOR</span></td>
               <td>{{ '%.2f'|format(a.hours or 0) }} hrs{% if a.section %} &middot; {{ a.section }}{% endif %}</td>
-              <td><a href="{{ url_for('project_detail', project_id=a.project_id) }}" class="text-decoration-none">{{ a.project_code }}</a></td>
+              <td>{% if a.project_id %}<a href="{{ url_for('project_detail', project_id=a.project_id) }}" class="text-decoration-none">{{ a.project_code }}</a>{% else %}General Shop{% endif %}</td>
               {% endif %}
             </tr>
             {% endfor %}
