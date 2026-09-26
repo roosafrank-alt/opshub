@@ -1741,6 +1741,31 @@ def part_delete(part_id):
         flash(f"This part is on {job_count} job{'s' if job_count != 1 else ''}, so it can't be deleted. "
               f"Use Retire instead to hide it without losing that history.", "danger")
         return redirect(url_for("part_detail", part_id=part_id))
+    # Orders and the To-Order list point at the part too, and the database
+    # refuses to delete a part something still points at (that used to show
+    # an error page). An open order or To-Order entry, or one that was
+    # already received, blocks Delete with a plain reason - Retire instead,
+    # so the order can still be received and its history still reads right.
+    open_orders = conn.execute("SELECT COUNT(*) c FROM orders WHERE part_id = ? AND status = 'pending'",
+                               (part_id,)).fetchone()["c"]
+    received_orders = conn.execute("SELECT COUNT(*) c FROM orders WHERE part_id = ? AND status = 'received'",
+                                   (part_id,)).fetchone()["c"]
+    to_order = conn.execute("SELECT COUNT(*) c FROM order_wishlist WHERE part_id = ? AND status = 'open'",
+                            (part_id,)).fetchone()["c"]
+    reason = ("it's on an open order" if open_orders else
+              "it's on the To-Order list" if to_order else
+              "it has received orders in its history" if received_orders else None)
+    if reason:
+        conn.close()
+        flash(f"This part can't be deleted because {reason}. Use Retire instead to hide it without "
+              f"losing that.", "danger")
+        return redirect(url_for("part_detail", part_id=part_id))
+    # Nothing still needs the part. Cancelled orders and closed To-Order
+    # entries keep their written description; photos are KEPT (Frank's call)
+    # - just no longer attached to a part - rather than removed.
+    conn.execute("UPDATE orders SET part_id = NULL WHERE part_id = ?", (part_id,))
+    conn.execute("UPDATE order_wishlist SET part_id = NULL WHERE part_id = ?", (part_id,))
+    conn.execute("UPDATE photos SET part_id = NULL WHERE part_id = ?", (part_id,))
     conn.execute("DELETE FROM transactions WHERE part_id = ?", (part_id,))
     conn.execute("DELETE FROM parts WHERE id = ?", (part_id,))
     conn.commit()

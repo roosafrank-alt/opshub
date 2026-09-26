@@ -132,7 +132,6 @@ class OrderFormTest(OpsHubTestCase):
         # The received order and the shelf still agree.
         self.assertEqual(self.qty(self.part), 8)
 
-    @open_finding("qa-part-delete-crash")
     def test_deleting_a_part_that_is_on_an_order_does_not_crash(self):
         # The database refuses to delete a part an order, a To-Order list
         # entry or a photo still points at, and the Delete button showed an
@@ -149,7 +148,6 @@ class OrderFormTest(OpsHubTestCase):
         self.assertIsNotNone(part)
         self.assertEqual(part["qty_on_hand"], 3)
 
-    @open_finding("qa-part-delete-crash")
     def test_deleting_a_part_on_the_to_order_list_or_with_a_photo_does_not_crash(self):
         for i, table in enumerate(("order_wishlist", "photos")):
             with self.subTest(linked_from=table):
