@@ -1707,6 +1707,23 @@ def _dashboard_context(conn, cfi, student):
                                           if row["scheduled_time"] else None),
                                notes_visible=nl_notes_visible, private_notes_visible=nl_private_notes_visible)
 
+    # "Log this lesson": a CFI's lesson from today whose start time has
+    # passed but that hasn't been started or logged yet - the Next Lesson
+    # card shows a button that opens the log form with plane, student and
+    # instructor already filled in (QA ux-log-flight-scroll).
+    log_lesson = None
+    if cfi and next_scope != "school":
+        lrow = conn.execute("""
+            SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name
+            FROM scheduled_flights sf
+            JOIN assets a ON a.id = sf.asset_id
+            JOIN students s ON s.id = sf.student_id
+            WHERE sf.status = 'scheduled' AND sf.cfi_id = ? AND sf.scheduled_date = ?
+              AND sf.scheduled_time IS NOT NULL AND sf.scheduled_time < ?
+            ORDER BY sf.scheduled_time DESC LIMIT 1""", (cfi["id"], today_s, now_dt.strftime("%H:%M"))).fetchone()
+        if lrow:
+            log_lesson = dict(lrow, time_label=_format_time_12h(lrow["scheduled_time"]))
+
     # "Time since last flight" tile - student dashboard only.
     last_flight_ago = None
     solo_currency = None
@@ -1779,7 +1796,7 @@ def _dashboard_context(conn, cfi, student):
                 needs_review_flights=needs_review_flights, eta_delayed_flights=eta_delayed_flights,
                 medical_alerts=medical_alerts,
                 unconfirmed_flights=unconfirmed_flights, recently_cancelled_flights=recently_cancelled_flights,
-                next_lesson=next_lesson, last_flight_ago=last_flight_ago,
+                next_lesson=next_lesson, log_lesson=log_lesson, last_flight_ago=last_flight_ago,
                 solo_currency=solo_currency,
                 solo_currency_days=solo_currency["interval_days"] if solo_currency else DEFAULT_SOLO_CURRENCY_DAYS,
                 today_flights=today_flights, today_flights_total=today_flights_total,

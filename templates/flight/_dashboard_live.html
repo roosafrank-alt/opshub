@@ -471,7 +471,7 @@
 {% endif %}
 {% endif %}
 
-{% if next_lesson or session.get('is_master_admin') %}
+{% if next_lesson or log_lesson or session.get('is_master_admin') %}
 <div class="card p-3 mb-3 border-primary">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div{% if next_lesson %} class="schedule-block" role="button" style="cursor:pointer;"
@@ -507,8 +507,17 @@
         {% if cfi or next_scope == 'school' %} &middot; {{ next_lesson.student_name }}{% endif %}
         {% if next_lesson.cfi_name %} &middot; {{ next_lesson.cfi_name }}{% elif next_lesson.solo %}<span class="badge bg-secondary ms-1">Solo</span>{% else %}<span class="badge bg-danger ms-1">Needs Instructor</span>{% endif %}
       </div>
-      {% else %}
+      {% elif not log_lesson %}
       <div class="text-muted mt-1">Nothing booked for you coming up.</div>
+      {% endif %}
+      {% if log_lesson %}
+      {#- A lesson that already started today and isn't logged yet: one tap
+         to the log form with plane, student and instructor filled in. #}
+      <div class="mt-2 pt-2 {{ 'border-top' if next_lesson }}">
+        <div class="small text-muted">Started {{ log_lesson.time_label }} &middot; {{ log_lesson.plane_tag }} &middot; {{ log_lesson.student_name }}</div>
+        <a href="{{ url_for('flight.log_new', asset_id=log_lesson.asset_id, student_id=log_lesson.student_id, cfi_id=log_lesson.cfi_id or '', solo='on' if log_lesson.solo else '', flight_date=log_lesson.scheduled_date, scheduled_flight_id=log_lesson.id) }}"
+           class="btn btn-success fw-bold mt-1"><i class="bi bi-journal-check"></i> Log this lesson</a>
+      </div>
       {% endif %}
     </div>
     <div class="d-flex flex-column align-items-end gap-2">

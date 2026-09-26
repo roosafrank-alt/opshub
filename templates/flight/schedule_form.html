@@ -181,12 +181,22 @@
     <div class="row">
       <div class="col-md-4 mb-3">
         <label class="form-label" id="date-label">{{ 'Flight Date' if is_complete else 'Date' }} <span class="text-danger">*</span></label>
+        {#- Logging a finished flight: it's almost always today, so the date
+           is one line ("Today, Sat, Sep 26" + Change) instead of the open
+           calendar, keeping Hobbs right under Student (QA ux-log-flight-scroll).
+           Change opens the normal date field and calendar below. #}
+        <div id="date-summary" class="form-control d-flex justify-content-between align-items-center" style="display:none !important;">
+          <span id="date-summary-text"></span>
+          <a href="#" id="date-summary-change" class="small">Change</a>
+        </div>
+        <div id="date-full">
         <input type="date" name="scheduled_date" class="form-control" value="{{ form.get('scheduled_date') if form else (sched.scheduled_date if sched else today) }}" required{% if sched %} data-edit="1"{% endif %}>
         {#- The plain date field above still works for typing a date directly -
            this is the same field, just always shown open as a full month grid
            right below it instead of only appearing when a browser's native
            picker icon is clicked. #}
         <div id="date-calendar" class="mt-2"></div>
+        </div>
       </div>
       {#- Time gets its own wide column (was squeezed into a third of the
          row alongside Duration/Preset, which at tablet widths left the
@@ -965,8 +975,43 @@
       if (rs) { rs.dispatchEvent(new Event('change')); }
     }
   }
-  completeCheck.addEventListener('change', sync);
+  // One-line date while logging a completed flight (see #date-summary).
+  var dateSummary = document.getElementById('date-summary');
+  var dateFull = document.getElementById('date-full');
+  var dateExpanded = false;
+  var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var MONS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function syncDate() {
+    if (!dateSummary || !dateBox) { return; }
+    var compact = completeCheck.checked && !dateExpanded && !!dateBox.value;
+    dateSummary.style.setProperty('display', compact ? 'flex' : 'none', 'important');
+    dateFull.style.display = compact ? 'none' : '';
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateBox.value || '');
+    if (m) {
+      var d = new Date(+m[1], +m[2] - 1, +m[3]);
+      var label = DAYS[d.getDay()] + ', ' + MONS[d.getMonth()] + ' ' + d.getDate();
+      var txt = document.getElementById('date-summary-text');
+      txt.textContent = '';
+      if (dateBox.value === todayStr) {
+        var b = document.createElement('strong'); b.textContent = 'Today'; txt.appendChild(b);
+        txt.appendChild(document.createTextNode(', ' + label));
+      } else {
+        txt.textContent = label + ', ' + m[1];
+      }
+    }
+  }
+  if (dateSummary) {
+    document.getElementById('date-summary-change').addEventListener('click', function (e) {
+      e.preventDefault();
+      dateExpanded = true;
+      syncDate();
+      dateBox.focus();
+    });
+    dateBox.addEventListener('change', syncDate);
+  }
+  completeCheck.addEventListener('change', function () { sync(); syncDate(); });
   sync();
+  syncDate();
   // Picking a plane fills in its current Hobbs/Tach as the start readings.
   document.getElementById('plane-select').addEventListener('change', function () {
     var opt = this.options[this.selectedIndex];
