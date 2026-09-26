@@ -4020,7 +4020,10 @@ def orders_list():
     parts_for_wishlist = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
     conn.close()
 
-    return render_template("orders.html", groups=groups, view=view, status_filter=status_filter,
+    cores_conn = get_db()
+    cores_owed = _cores_owed(cores_conn)
+    cores_conn.close()
+    return render_template("orders.html", groups=groups, view=view, status_filter=status_filter, cores_owed=cores_owed,
                            order_count=len(orders), wishlist_items=wishlist_items, parts_for_wishlist=parts_for_wishlist)
 
 
@@ -4099,6 +4102,25 @@ def api_order_tracking(order_id):
     return jsonify(dict(tracking.to_json(order), ok=True, error=error))
 
 
+def _order_core_from_form(form):
+    """(is_exchange, core_charge, core_days, error) from New/Edit Order: an
+    exchange unit owes its old core back to the supplier within core_days
+    of receiving it, or core_charge gets billed."""
+    if form.get("is_exchange") != "on":
+        return 0, None, None, None
+    raw_charge = (form.get("core_charge") or "").strip()
+    charge = _parse_qty(raw_charge, allow_zero=True) if raw_charge else 0.0
+    try:
+        days = int((form.get("core_days") or "30").strip())
+    except ValueError:
+        days = None
+    if charge is None:
+        return 0, None, None, "Core charge must be a number, 0 or more."
+    if days is None or not 1 <= days <= 365:
+        return 0, None, None, "Days allowed for the core must be a whole number from 1 to 365."
+    return 1, charge, days, None
+
+
 def _parse_order_numbers(form):
     """Quantity and unit cost from the New/Edit Order form -> (qty, cost,
     error). Blank quantity means 1 and blank cost means 0. Quantity must be
@@ -4130,7 +4152,8 @@ def order_new():
                 p = conn.execute("SELECT name FROM parts WHERE id = ?", (part_id,)).fetchone()
                 description = p["name"] if p else ""
         qty, cost, number_error = _parse_order_numbers(request.form)
-        error = "Enter what you're ordering (or pick a part)." if not description else number_error
+        is_exchange, core_charge, core_days, core_error = _order_core_from_form(request.form)
+        error = "Enter what you're ordering (or pick a part)." if not description else (number_error or core_error)
         if error:
             # Show the form again with everything still filled in. (The
             # parts/projects lists are read BEFORE closing the connection -
@@ -4143,12 +4166,12 @@ def order_new():
         tracking_number, tracking_carrier = _order_tracking_from_form(request.form)
         conn.execute("""INSERT INTO orders (part_id, description, qty_ordered, supplier, unit_cost,
                          project_id, status, ordered_date, expected_date, note, created_at,
-                         tracking_number, tracking_carrier)
-                         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)""",
+                         tracking_number, tracking_carrier, is_exchange, core_charge, core_days)
+                         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                      (part_id, description, qty, request.form.get("supplier", "").strip(), cost,
                       request.form.get("project_id") or None, now_iso(),
                       request.form.get("expected_date") or None, request.form.get("note", "").strip(), now_iso(),
-                      tracking_number, tracking_carrier))
+                      tracking_number, tracking_carrier, is_exchange, core_charge, core_days))
         if wishlist_id:
             # This order started from a "things to order" entry - close that
             # entry out now that it's an actual order, rather than leaving
@@ -4203,6 +4226,8 @@ def order_edit(order_id):
             conn.close()
             return render_template("order_form.html", parts=parts, projects=projects, form=request.form, order=order)
         qty, cost, number_error = _parse_order_numbers(request.form)
+        is_exchange, core_charge, core_days, core_error = _order_core_from_form(request.form)
+        number_error = number_error or core_error
         if number_error:
             flash(number_error, "danger")
             conn.close()
@@ -4215,11 +4240,13 @@ def order_edit(order_id):
                              tracking_eta=NULL, tracking_events=NULL, tracking_checked_at=NULL,
                              tracking_delivered_at=NULL WHERE id=?""", (order_id,))
         conn.execute("""UPDATE orders SET part_id=?, description=?, qty_ordered=?, supplier=?, unit_cost=?,
-                         project_id=?, expected_date=?, note=?, tracking_number=?, tracking_carrier=?
+                         project_id=?, expected_date=?, note=?, tracking_number=?, tracking_carrier=?,
+                         is_exchange=?, core_charge=?, core_days=?
                          WHERE id=? AND status='pending'""",
                      (part_id, description, qty, request.form.get("supplier", "").strip(), cost,
                       request.form.get("project_id") or None, request.form.get("expected_date") or None,
-                      request.form.get("note", "").strip(), tracking_number, tracking_carrier, order_id))
+                      request.form.get("note", "").strip(), tracking_number, tracking_carrier,
+                      is_exchange, core_charge, core_days, order_id))
         conn.commit()
         conn.close()
         flash(f"Order for '{description}' updated.", "success")
@@ -4321,6 +4348,12 @@ def order_receive(order_id):
     conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, source, created_at)
                      VALUES (?, NULL, 'in', ?, ?, 'assigned', ?)""",
                  (part_id, order["qty_ordered"], f"Received order #{order_id}", now_iso()))
+    if order["is_exchange"]:
+        # The core clock starts when the exchange unit arrives.
+        due = (date.today() + timedelta(days=order["core_days"] or 30)).isoformat()
+        conn.execute("UPDATE orders SET core_due_date = ? WHERE id = ?", (due, order_id))
+        flash(f"Exchange unit - its old core is due back to {order['supplier'] or 'the supplier'} by "
+              f"{usdate(due)}. It's listed under Cores owed on the Orders page.", "info")
     conn.commit()
     conn.close()
 
@@ -4331,6 +4364,64 @@ def order_receive(order_id):
 
     flash(f"Received and added {order['qty_ordered']:g} to stock.", "success")
     return redirect(url_for("orders_list"))
+
+
+@app.route("/orders/<int:order_id>/core-shipped", methods=["POST"])
+@shop_role_required('admin')
+def order_core_shipped(order_id):
+    conn = get_db()
+    order = conn.execute("SELECT * FROM orders WHERE id = ? AND is_exchange = 1", (order_id,)).fetchone()
+    if not order:
+        conn.close()
+        abort(404)
+    tracking_no = tracking.clean_number(request.form.get("core_tracking")) or None
+    conn.execute("UPDATE orders SET core_shipped_at = COALESCE(core_shipped_at, ?), core_tracking = ? WHERE id = ?",
+                 (now_iso(), tracking_no, order_id))
+    conn.commit()
+    conn.close()
+    flash("Core marked shipped. Press Credit received once the supplier credits it.", "success")
+    return redirect(url_for("orders_list") + "#cores-owed")
+
+
+@app.route("/orders/<int:order_id>/core-credited", methods=["POST"])
+@shop_role_required('admin')
+def order_core_credited(order_id):
+    conn = get_db()
+    order = conn.execute("SELECT * FROM orders WHERE id = ? AND is_exchange = 1", (order_id,)).fetchone()
+    if not order:
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE orders SET core_credited_at = COALESCE(core_credited_at, ?), "
+                 "core_shipped_at = COALESCE(core_shipped_at, ?) WHERE id = ?", (now_iso(), now_iso(), order_id))
+    conn.commit()
+    conn.close()
+    flash("Core credit received - that one's closed out.", "success")
+    return redirect(url_for("orders_list") + "#cores-owed")
+
+
+def _cores_owed(conn):
+    """Exchange cores still owed back (not credited yet), soonest due first,
+    with days left and a color: red overdue, amber within 7 days."""
+    rows = conn.execute("""SELECT o.*, p.name as part_name, pr.code as project_code, pr.name as project_name,
+                                  a.tag as asset_tag
+                           FROM orders o LEFT JOIN parts p ON p.id = o.part_id
+                           LEFT JOIN projects pr ON pr.id = o.project_id
+                           LEFT JOIN assets a ON a.id = pr.asset_id
+                           WHERE o.is_exchange = 1 AND o.status = 'received' AND o.core_credited_at IS NULL
+                           ORDER BY o.core_shipped_at IS NOT NULL, o.core_due_date""").fetchall()
+    today = date.today()
+    out = []
+    for r in rows:
+        c = dict(r)
+        try:
+            c["days_left"] = (datetime.strptime(r["core_due_date"], "%Y-%m-%d").date() - today).days
+        except (TypeError, ValueError):
+            c["days_left"] = None
+        c["urgency"] = ("shipped" if r["core_shipped_at"] else
+                        "overdue" if c["days_left"] is not None and c["days_left"] < 0 else
+                        "soon" if c["days_left"] is not None and c["days_left"] <= 7 else "ok")
+        out.append(c)
+    return out
 
 
 @app.route("/orders/<int:order_id>/cancel", methods=["POST"])

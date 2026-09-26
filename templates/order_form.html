@@ -66,6 +66,30 @@
         </select>
       </div>
     </div>
+    {#- Exchange units (overhauled starter, magneto, cylinder...): the old
+       core has to go back to the supplier by a deadline or a core charge is
+       billed - see Cores owed on the Orders page. #}
+    {% set _exch = form.get('is_exchange') == 'on' if form else (order.is_exchange if order else False) %}
+    <div class="border rounded p-2 mb-3">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="is_exchange" id="exchange-check" {% if _exch %}checked{% endif %}
+               onchange="document.getElementById('core-fields').classList.toggle('d-none', !this.checked);">
+        <label class="form-check-label fw-bold" for="exchange-check">Exchange - core due back</label>
+      </div>
+      <div id="core-fields" class="row g-2 mt-1 {{ '' if _exch else 'd-none' }}">
+        <div class="col-6">
+          <label class="form-label small mb-0" for="core-charge">Core charge ($)</label>
+          <input id="core-charge" type="number" step="any" min="0" name="core_charge" class="form-control"
+                 value="{{ form.get('core_charge', '') if form else ('%g'|format(order.core_charge) if order and order.core_charge is not none else '') }}">
+        </div>
+        <div class="col-6">
+          <label class="form-label small mb-0" for="core-days">Days allowed</label>
+          <input id="core-days" type="number" step="1" min="1" max="365" name="core_days" class="form-control"
+                 value="{{ form.get('core_days', '30') if form else (order.core_days if order and order.core_days else 30) }}">
+        </div>
+        <div class="col-12 form-text mt-0">The due date is set when the order is received.</div>
+      </div>
+    </div>
     <div class="mb-3">
       <label class="form-label">Note</label>
       <input type="text" name="note" class="form-control" placeholder="Order #, anything else worth knowing" value="{{ form.get('note', order.note if order else '') if form else (order.note if order and order.note else '') }}">

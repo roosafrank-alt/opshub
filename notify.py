@@ -19,7 +19,7 @@ import smtplib
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from email.mime.text import MIMEText
 
 import db
@@ -261,10 +261,43 @@ def check_flight_reminders(conn, settings):
     return sent_count
 
 
+def check_cores_due(conn, settings):
+    """Exchange cores owed back to a supplier (see orders.is_exchange): tells
+    shop admins once when one is due within 7 days, and once more if it goes
+    overdue, until it's marked shipped or credited."""
+    recipients = conn.execute(
+        "SELECT * FROM users WHERE active=1 AND (is_master_admin=1 OR shop_role='admin') "
+        "AND (notify_email=1 OR notify_sms=1)").fetchall()
+    if not recipients:
+        return 0
+    rows = conn.execute("""SELECT o.*, p.name as part_name FROM orders o LEFT JOIN parts p ON p.id = o.part_id
+                           WHERE o.is_exchange = 1 AND o.status = 'received' AND o.core_due_date IS NOT NULL
+                             AND o.core_shipped_at IS NULL AND o.core_credited_at IS NULL
+                             AND o.core_due_date <= date('now', '+7 days')""").fetchall()
+    sent = 0
+    for o in rows:
+        overdue = o["core_due_date"] < datetime.now().strftime("%Y-%m-%d")
+        key = "overdue" if overdue else "7day"
+        if conn.execute("SELECT 1 FROM notification_log WHERE category='core_due' AND ref_id=? AND ref_key=? LIMIT 1",
+                        (o["id"], key)).fetchone():
+            continue
+        item = o["part_name"] or o["description"]
+        charge = f" or be billed a ${o['core_charge']:,.2f} core charge" if o["core_charge"] else ""
+        subject = f"Core {'OVERDUE' if overdue else 'due soon'}: {item}"
+        body = (f"The core for {item} (order #{o['id']}, {o['supplier'] or 'supplier'}) "
+                f"{'was due' if overdue else 'is due'} back {o['core_due_date']}. Ship it{charge}, "
+                f"then press Core shipped on the Orders page.")
+        if any(notify_user(settings, u, subject, body, brand="Winds Aloft") for u in recipients):
+            log_notification(conn, "core_due", o["id"], key)
+            sent += 1
+    return sent
+
+
 def run_daily_checks():
     conn = db.get_db()
     settings = get_settings(conn)
     results = {
+        "cores_due": check_cores_due(conn, settings),
         "low_stock": check_low_stock(conn, settings),
         "maintenance": check_maintenance(conn, settings),
         "flight_reminder": check_flight_reminders(conn, settings),

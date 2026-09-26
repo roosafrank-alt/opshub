@@ -1753,6 +1753,17 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_waitlist_offers_student ON waitlist_offers(student_id)")
     conn.commit()
 
+    # Exchange cores (QA feat-core-return-tracker): an order for an exchange
+    # unit owes the old part back to the supplier by a deadline, or a core
+    # charge is billed. core_due_date is set when the order is received.
+    order_cols_core = [r["name"] for r in conn.execute("PRAGMA table_info(orders)").fetchall()]
+    for col, decl in (("is_exchange", "INTEGER NOT NULL DEFAULT 0"), ("core_charge", "REAL"),
+                      ("core_days", "INTEGER"), ("core_due_date", "TEXT"), ("core_shipped_at", "TEXT"),
+                      ("core_tracking", "TEXT"), ("core_credited_at", "TEXT")):
+        if col not in order_cols_core:
+            conn.execute(f"ALTER TABLE orders ADD COLUMN {col} {decl}")
+    conn.commit()
+
     # Shipment tracking on orders (see tracking.py): the number/carrier typed
     # on New/Edit Order, plus the last status fetched for it, cached so the
     # Orders page doesn't ask the carrier on every load.

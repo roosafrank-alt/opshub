@@ -13,6 +13,47 @@
 {% endif %}
 {% endmacro %}
 
+{% if cores_owed %}
+{#- Exchange cores owed back to suppliers (app._cores_owed): red overdue,
+   amber within 7 days; shipped ones wait for the credit. #}
+<div class="card p-3 mb-3 {{ 'border-danger border-2' if cores_owed|selectattr('urgency', 'equalto', 'overdue')|list else ('border-warning border-2' if cores_owed|selectattr('urgency', 'equalto', 'soon')|list else '') }}" id="cores-owed">
+  <h6 class="mb-2"><i class="bi bi-arrow-return-left"></i> Cores owed <span class="badge bg-secondary">{{ cores_owed|length }}</span></h6>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead class="table-light"><tr><th>Part</th><th>Job / aircraft</th><th>Supplier</th><th>Due</th><th>Core charge</th><th></th></tr></thead>
+      <tbody>
+        {% for c in cores_owed %}
+        <tr class="{{ 'table-danger' if c.urgency == 'overdue' else ('table-warning' if c.urgency == 'soon' else '') }}">
+          <td class="stack-full" data-label="Part">{{ c.part_name or c.description }} <small class="text-muted">#{{ c.id }}</small></td>
+          <td data-label="Job / aircraft">{% if c.project_code %}<a href="{{ url_for('project_detail', project_id=c.project_id) }}">{{ c.project_code }}</a>{% if c.asset_tag %} &middot; {{ c.asset_tag }}{% endif %}{% else %}-{% endif %}</td>
+          <td data-label="Supplier">{{ c.supplier or '-' }}</td>
+          <td data-label="Due">
+            {% if c.urgency == 'shipped' %}<span class="badge bg-info text-dark">Shipped {{ c.core_shipped_at|usdate }}</span>{% if c.core_tracking %}<div class="small text-muted">{{ c.core_tracking }}</div>{% endif %}
+            {% elif c.core_due_date %}{{ c.core_due_date|usdate }}
+              <div class="small fw-bold {{ 'text-danger' if c.urgency == 'overdue' else ('text-warning-emphasis' if c.urgency == 'soon' else 'text-muted') }}">
+                {% if c.days_left < 0 %}{{ -c.days_left }} day{{ 's' if c.days_left != -1 }} overdue{% elif c.days_left == 0 %}Due today{% else %}{{ c.days_left }} day{{ 's' if c.days_left != 1 }} left{% endif %}</div>
+            {% else %}-{% endif %}
+          </td>
+          <td data-label="Core charge">{{ '$%.2f'|format(c.core_charge) if c.core_charge else '-' }}</td>
+          <td class="text-end stack-full" data-label="">
+            {% if not c.core_shipped_at %}
+            <form method="post" action="{{ url_for('order_core_shipped', order_id=c.id) }}" class="d-flex gap-1 justify-content-end mb-1">
+              <input type="text" name="core_tracking" class="form-control form-control-sm flex-fill" placeholder="Tracking # (optional)" aria-label="Core tracking number" style="min-width:8rem;max-width:200px;">
+              <button class="btn btn-outline-primary btn-sm text-nowrap"><i class="bi bi-truck"></i> Core shipped</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{{ url_for('order_core_credited', order_id=c.id) }}" data-confirm="Mark the core credit as received? This closes it out.">
+              <button class="btn btn-outline-success btn-sm text-nowrap"><i class="bi bi-check2"></i> Credit received</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 <div class="card p-3 mb-3">
   <h6 class="mb-2"><i class="bi bi-card-checklist"></i> Things to Order <span class="badge bg-secondary">{{ wishlist_items|length }}</span></h6>
   <p class="text-muted small mb-2">A running list of stuff that's needed before anyone's placed an actual order for it - jot it down here with how urgent it is, then turn it into a real order whenever you're ready.</p>
@@ -120,6 +161,7 @@
 {% macro item_cell(o) %}
 {% if o.part_id %}<a href="{{ url_for('part_detail', part_id=o.part_id) }}">{{ o.part_name }}</a>
 {% else %}{{ o.description }} <span class="badge bg-secondary">new item</span>{% endif %}
+{% if o.is_exchange %} <span class="badge bg-info text-dark" title="Exchange unit - core due back{% if o.core_days %} within {{ o.core_days }} days of receiving{% endif %}">Exchange</span>{% endif %}
 {% if o.note %}<br><small class="text-muted">{{ o.note }}</small>{% endif %}
 {{ tracking_cell(o) }}
 {% endmacro %}
