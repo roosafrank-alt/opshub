@@ -259,9 +259,16 @@
     } else if (t.live) {
       html = '<span class="text-muted">' + esc(t.carrier) + ' - checking...</span>';
     } else {
-      html = '<span class="text-muted">' + esc(t.carrier) + ' ' + esc(t.number) + '</span>';
+      // No live status on this OpsHub (no Shippo key): just the number and
+      // a plain "Track" link straight to the carrier's own tracking page.
+      html = '<span class="text-muted">' + esc(t.carrier) + ' ' + esc(t.number) + '</span>' +
+        (t.carrier_url ? ' <span class="text-primary">Track <i class="bi bi-box-arrow-up-right"></i></span>' : '');
     }
     badge.innerHTML = html;
+    el._simple = !t.live && !t.label && !(t.events && t.events.length);
+    el._carrierUrl = t.carrier_url || '';
+    var chev = el.querySelector('.tracking-toggle .bi-chevron-down');
+    if (chev) chev.style.display = el._simple ? 'none' : '';
     var d = '<div><strong>' + esc(t.carrier) + '</strong> ' + esc(t.number) +
       (t.carrier_url ? ' &middot; <a href="' + esc(t.carrier_url) + '" target="_blank" rel="noopener">Open on ' + esc(t.carrier) + ' <i class="bi bi-box-arrow-up-right"></i></a>' : '') + '</div>';
     if (t.detail) d += '<div class="mt-1">' + esc(t.detail) + '</div>';
@@ -273,9 +280,7 @@
           (e.detail ? '<div class="text-muted">' + esc(e.detail) + '</div>' : '') + '</li>';
       });
       d += '</ul>';
-    } else if (!t.live) {
-      d += '<div class="text-muted mt-1">Live status isn\'t switched on for this OpsHub yet - use the carrier link above.</div>';
-    } else if (!t.label) {
+    } else if (t.live && !t.label) {
       d += '<div class="text-muted mt-1">No scans from the carrier yet.</div>';
     }
     if (t.checked_at) d += '<div class="text-muted mt-1">Last checked ' + esc(usd(t.checked_at)) + ' ' + esc(t.checked_at.slice(11, 16)) + '</div>';
@@ -293,6 +298,10 @@
     draw(el, t);
     el.querySelector('.tracking-toggle').addEventListener('click', function (ev) {
       ev.preventDefault();
+      if (el._simple) {
+        if (el._carrierUrl) window.open(el._carrierUrl, '_blank', 'noopener');
+        return;
+      }
       var det = el.querySelector('.tracking-details');
       det.style.display = det.style.display === 'none' ? 'block' : 'none';
     });
