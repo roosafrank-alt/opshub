@@ -448,6 +448,20 @@ class LoginFlowTest(OpsHubTestCase):
         self.assertEqual(c.get(f"/portal/aircraft/{mine}").status_code, 200)
         self.assertIn(c.get(f"/portal/aircraft/{theirs}").status_code, (302, 403, 404))
 
+    def test_flight_only_accounts_cannot_open_shop_pages(self):
+        # A flight student or CFI (no Shop role) used to get a normal 200 on
+        # every shop page - just @login_required, no role check.
+        pid = self.make_project()
+        for role in ("flight_student", "cfi", "no_roles"):
+            with self.subTest(role=role):
+                c = self.login(role)
+                for url in ("/shop", "/scan", "/projects", f"/projects/{pid}",
+                           "/projects/parts-used", "/calendar", "/shop/pay"):
+                    self.assertIn(c.get(url).status_code, (302, 403), url)
+        for role in ("tech", "shop_admin", "shop_student", "master", "inspector"):
+            with self.subTest(role=role):
+                self.assertEqual(self.login(role).get("/shop").status_code, 200)
+
 
 class CrashCleanupTest(OpsHubTestCase):
     def test_db_not_left_locked_after_a_crash(self):

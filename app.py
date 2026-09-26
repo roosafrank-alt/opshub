@@ -461,7 +461,7 @@ def _fleet_maintenance_reminders(conn):
 
 
 @app.route("/shop")
-@login_required
+@shop_role_required('admin', 'tech', 'student', 'inspector')
 def dashboard():
     conn = get_db()
     project_count = conn.execute(
@@ -1072,7 +1072,7 @@ def _build_year_list(conn, year):
 
 
 @app.route("/calendar")
-@login_required
+@shop_role_required('admin', 'tech', 'student', 'inspector')
 def calendar_page():
     conn = get_db()
     today = date.today()
@@ -1180,7 +1180,7 @@ def activity_log():
 # ---------------------------------------------------------------------------
 
 @app.route("/scan")
-@login_required
+@shop_role_required('admin', 'tech', 'student', 'inspector')
 def scan_page():
     conn = get_db()
     projects = conn.execute(
@@ -1778,7 +1778,7 @@ def labels():
 # ---------------------------------------------------------------------------
 
 @app.route("/projects/parts-used")
-@login_required
+@shop_role_required('admin', 'tech', 'student', 'inspector')
 def projects_parts_used():
     """Master list of every part used on every project (net of returns),
     one row per project + part + Sub Area, searchable as you type."""
@@ -1809,7 +1809,7 @@ def projects_parts_used():
 
 
 @app.route("/projects")
-@login_required
+@shop_role_required('admin', 'tech', 'student', 'inspector')
 def projects_list():
     conn = get_db()
     status_filter = request.args.get("status", "")
@@ -2025,7 +2025,7 @@ def project_edit(project_id):
 
 
 @app.route("/projects/<int:project_id>")
-@login_required
+@shop_role_required('admin', 'tech', 'student', 'inspector')
 def project_detail(project_id):
     conn = get_db()
     project = conn.execute("""SELECT projects.*, a.id as asset_display_id, a.tag as asset_display_tag,
@@ -4309,7 +4309,7 @@ def _shop_parts_usage(conn, start, end, project_id=None):
 
 
 @app.route("/shop/pay")
-@login_required
+@shop_role_required('admin', 'tech', 'student', 'inspector')
 def shop_pay():
     """Labor Pay: each laborer's clocked hours and pay for a period, with
     the individual sessions underneath. Shop admins see everyone; anyone
