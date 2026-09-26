@@ -3881,6 +3881,23 @@ def order_wishlist_dismiss(wishlist_id):
     return redirect(url_for("orders_list"))
 
 
+def _parse_order_numbers(form):
+    """Quantity and unit cost from the New/Edit Order form -> (qty, cost,
+    error). Blank quantity means 1 and blank cost means 0. Quantity must be
+    a real number above 0 and cost a real number 0 or more - a stray minus
+    sign would turn Receive into a silent stock removal, and nan/inf wreck
+    every total and the vendor CSV."""
+    raw_qty = (form.get("qty_ordered") or "").strip()
+    raw_cost = (form.get("unit_cost") or "").strip()
+    qty = _parse_qty(raw_qty) if raw_qty else 1.0
+    cost = _parse_qty(raw_cost, allow_zero=True) if raw_cost else 0.0
+    if qty is None:
+        return None, None, "Quantity must be a number greater than 0."
+    if cost is None:
+        return None, None, "Unit cost must be a number, 0 or more."
+    return qty, cost, None
+
+
 @app.route("/orders/new", methods=["GET", "POST"])
 @shop_role_required('admin')
 def order_new():
@@ -3894,20 +3911,16 @@ def order_new():
             if part_id:
                 p = conn.execute("SELECT name FROM parts WHERE id = ?", (part_id,)).fetchone()
                 description = p["name"] if p else ""
-        if not description:
-            flash("Enter what you're ordering (or pick a part).", "danger")
-            conn.close()
+        qty, cost, number_error = _parse_order_numbers(request.form)
+        error = "Enter what you're ordering (or pick a part)." if not description else number_error
+        if error:
+            # Show the form again with everything still filled in. (The
+            # parts/projects lists are read BEFORE closing the connection -
+            # reading them after used to crash with an error page.)
+            flash(error, "danger")
             parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
             projects = conn.execute("SELECT * FROM projects WHERE status='active' ORDER BY name").fetchall()
-            return render_template("order_form.html", parts=parts, projects=projects, form=request.form)
-        try:
-            qty = float(request.form.get("qty_ordered") or 1)
-            cost = float(request.form.get("unit_cost") or 0)
-        except ValueError:
-            flash("Quantity and cost must be numbers.", "danger")
             conn.close()
-            parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
-            projects = conn.execute("SELECT * FROM projects WHERE status='active' ORDER BY name").fetchall()
             return render_template("order_form.html", parts=parts, projects=projects, form=request.form)
         conn.execute("""INSERT INTO orders (part_id, description, qty_ordered, supplier, unit_cost,
                          project_id, status, ordered_date, expected_date, note, created_at)
@@ -3961,11 +3974,9 @@ def order_edit(order_id):
             flash("Enter what you're ordering (or pick a part).", "danger")
             conn.close()
             return render_template("order_form.html", parts=parts, projects=projects, form=request.form, order=order)
-        try:
-            qty = float(request.form.get("qty_ordered") or 1)
-            cost = float(request.form.get("unit_cost") or 0)
-        except ValueError:
-            flash("Quantity and cost must be numbers.", "danger")
+        qty, cost, number_error = _parse_order_numbers(request.form)
+        if number_error:
+            flash(number_error, "danger")
             conn.close()
             return render_template("order_form.html", parts=parts, projects=projects, form=request.form, order=order)
         conn.execute("""UPDATE orders SET part_id=?, description=?, qty_ordered=?, supplier=?, unit_cost=?,
@@ -4034,6 +4045,14 @@ def order_receive(order_id):
     if not order:
         conn.close()
         abort(404)
+    # Receive only ever ADDS stock. An older order saved with a zero,
+    # negative or nan quantity (before the form checked) is refused here
+    # rather than silently removing parts from the shelf.
+    if _parse_qty(order["qty_ordered"]) is None and order["status"] not in ('received', 'cancelled'):
+        conn.close()
+        flash(f"Order #{order_id} has a quantity of {order['qty_ordered']} - edit it to a number above 0 "
+              f"before receiving. Stock was not changed.", "danger")
+        return redirect(url_for("orders_list"))
     # Claim the order atomically: only the request that actually flips it to
     # 'received' adds stock. Stops a double-click / Back-button resubmit / two
     # people receiving the same box from adding the quantity twice, and stops

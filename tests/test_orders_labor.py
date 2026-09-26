@@ -73,13 +73,11 @@ class OrderFormTest(OpsHubTestCase):
                 self.assertIsNone(self.q1("SELECT id FROM order_wishlist WHERE description='Sneaky'"))
 
     # --- rejections ------------------------------------------------------
-    @open_finding("qa-order-form-crash")
     def test_blank_new_order_shows_the_form_again_not_a_crash(self):
         r = self.new_order(description="", part_id="")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(self.orders(), [])
 
-    @open_finding("qa-order-form-crash")
     def test_non_number_quantity_shows_the_form_again_not_a_crash(self):
         r = self.new_order(qty_ordered="four")
         self.assertEqual(r.status_code, 200)
@@ -92,7 +90,6 @@ class OrderFormTest(OpsHubTestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(self.q1("SELECT qty_ordered FROM orders WHERE id=?", (oid,))["qty_ordered"], 4)
 
-    @open_finding("qa-order-bad-numbers")
     def test_new_order_rejects_zero_negative_nan_quantities_and_costs(self):
         bad = [dict(qty_ordered=q) for q in ("0", "-3", "nan", "inf")] + \
               [dict(unit_cost=c) for c in ("-5", "nan", "inf")]
@@ -101,7 +98,6 @@ class OrderFormTest(OpsHubTestCase):
                 self.new_order(**fields)
         self.assertEqual(self.orders(), [])
 
-    @open_finding("qa-order-bad-numbers")
     def test_edit_rejects_negative_or_nan_quantity(self):
         self.new_order()
         oid = self.orders()[-1]["id"]
@@ -110,7 +106,6 @@ class OrderFormTest(OpsHubTestCase):
                 self.client.post(f"/orders/{oid}/edit", data=dict(description="Spark plug", qty_ordered=q))
                 self.assertEqual(self.q1("SELECT qty_ordered FROM orders WHERE id=?", (oid,))["qty_ordered"], 4)
 
-    @open_finding("qa-order-bad-numbers")
     def test_receiving_can_never_remove_stock(self):
         # A negative order quantity typed by mistake turns "Receive" into a
         # silent stock removal.
