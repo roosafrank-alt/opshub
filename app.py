@@ -3962,6 +3962,13 @@ def order_edit(order_id):
         conn.close()
         flash("Order not found.", "danger")
         return redirect(url_for("orders_list"))
+    if order["status"] != "pending":
+        # Received and cancelled orders are history: editing one would make
+        # the record disagree with what actually came in (and was added to
+        # stock), and change past order totals after the fact.
+        conn.close()
+        flash(f"Order #{order_id} is already {order['status']} and can't be edited.", "warning")
+        return redirect(url_for("orders_list"))
     parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
     projects = conn.execute("SELECT * FROM projects WHERE status='active' ORDER BY name").fetchall()
     if request.method == "POST":
@@ -3980,7 +3987,7 @@ def order_edit(order_id):
             conn.close()
             return render_template("order_form.html", parts=parts, projects=projects, form=request.form, order=order)
         conn.execute("""UPDATE orders SET part_id=?, description=?, qty_ordered=?, supplier=?, unit_cost=?,
-                         project_id=?, expected_date=?, note=? WHERE id=?""",
+                         project_id=?, expected_date=?, note=? WHERE id=? AND status='pending'""",
                      (part_id, description, qty, request.form.get("supplier", "").strip(), cost,
                       request.form.get("project_id") or None, request.form.get("expected_date") or None,
                       request.form.get("note", "").strip(), order_id))

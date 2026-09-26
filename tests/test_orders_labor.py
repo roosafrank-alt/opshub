@@ -115,7 +115,6 @@ class OrderFormTest(OpsHubTestCase):
             self.client.post(f"/orders/{o['id']}/receive")
         self.assertGreaterEqual(self.qty(self.part), 2)
 
-    @open_finding("qa-order-edit-after-receive")
     def test_received_or_cancelled_orders_cannot_be_edited(self):
         self.new_order(description="", part_id=str(self.part), qty_ordered="6")
         received = self.orders()[-1]["id"]
