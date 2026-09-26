@@ -1697,6 +1697,33 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_payroll_payments_week ON payroll_payments(week_start)")
     conn.commit()
 
+    # Found items / owner approvals (see found_item_* routes in app.py and
+    # customer.customer_found_item_decide): something extra a tech found on
+    # a job, priced, sent to the plane's owner on the customer portal to
+    # approve or decline. Photos live in the photos table (found_item_id).
+    conn.execute("""CREATE TABLE IF NOT EXISTS found_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL REFERENCES projects(id),
+        description TEXT NOT NULL,
+        est_parts REAL NOT NULL DEFAULT 0,
+        est_labor_hours REAL NOT NULL DEFAULT 0,
+        est_labor_rate REAL NOT NULL DEFAULT 0,
+        est_total REAL NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'waiting',
+        created_by TEXT,
+        created_at TEXT NOT NULL,
+        notified_at TEXT,
+        decided_at TEXT,
+        decided_by TEXT,
+        decision_note TEXT,
+        section_name TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_found_items_project ON found_items(project_id)")
+    photo_cols_found = [r["name"] for r in conn.execute("PRAGMA table_info(photos)").fetchall()]
+    if "found_item_id" not in photo_cols_found:
+        conn.execute("ALTER TABLE photos ADD COLUMN found_item_id INTEGER REFERENCES found_items(id)")
+    conn.commit()
+
     # Shipment tracking on orders (see tracking.py): the number/carrier typed
     # on New/Edit Order, plus the last status fetched for it, cached so the
     # Orders page doesn't ask the carrier on every load.

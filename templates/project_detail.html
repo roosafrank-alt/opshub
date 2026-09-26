@@ -269,6 +269,77 @@
       {% endif %}
     </div>
 
+    {#- Found items: extra work found during the job, sent to the plane's
+       owner to approve or decline on the customer portal (app.found_item_*). #}
+    {% set waiting_found = found_items|selectattr('status', 'equalto', 'waiting')|list %}
+    <div class="card p-3 mt-3" id="found-items">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <h6 class="mb-0"><i class="bi bi-search"></i> Found Items <span class="text-muted small fw-normal">(owner approval)</span></h6>
+        {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech', 'inspector') %}
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="var f=document.getElementById('found-item-form'); f.classList.toggle('d-none'); if (!f.classList.contains('d-none')) f.querySelector('textarea').focus();"><i class="bi bi-plus-lg"></i> Add found item</button>
+        {% endif %}
+      </div>
+      {% if not found_has_owner %}
+      <p class="small text-warning mb-2"><i class="bi bi-exclamation-circle"></i> No owner is linked to this plane in Customers, so nobody will be asked to approve found items.</p>
+      {% endif %}
+      {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech', 'inspector') %}
+      <form method="post" action="{{ url_for('found_item_new', project_id=project.id) }}" enctype="multipart/form-data" id="found-item-form" class="border rounded p-2 mb-2 d-none">
+        <label class="form-label small mb-0" for="found-desc">What did you find?</label>
+        <textarea id="found-desc" name="description" class="form-control mb-2" rows="2" required placeholder="e.g. Cracked exhaust stack, left side"></textarea>
+        <div class="row g-2">
+          <div class="col-4"><label class="form-label small mb-0" for="found-parts">Parts ($)</label>
+            <input id="found-parts" type="number" step="any" min="0" name="est_parts" class="form-control" value="0"></div>
+          <div class="col-4"><label class="form-label small mb-0" for="found-hours">Labor (hrs)</label>
+            <input id="found-hours" type="number" step="any" min="0" name="est_labor_hours" class="form-control" value="0"></div>
+          <div class="col-4"><label class="form-label small mb-0" for="found-rate">Rate ($/hr)</label>
+            <input id="found-rate" type="number" step="any" min="0" name="est_labor_rate" class="form-control" value="{{ '%g'|format(found_labor_rate) if found_labor_rate else '' }}"></div>
+        </div>
+        <label class="form-label small mb-0 mt-2" for="found-photos">Photos</label>
+        <input id="found-photos" type="file" name="photos" accept="image/*" multiple class="form-control mb-2">
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" name="notify_owner" id="found-notify" checked>
+          <label class="form-check-label small" for="found-notify">Text/email the owner now</label>
+        </div>
+        <button class="btn btn-primary w-100">Send to owner for approval</button>
+      </form>
+      {% endif %}
+      {% if found_items %}
+      {% for it in found_items %}
+      <div class="py-2 {{ 'border-top' if not loop.first }}">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div>
+            <div class="fw-bold" style="white-space:pre-wrap;">{{ it.description }}</div>
+            <div class="small text-muted">${{ '{:,.2f}'.format(it.est_total) }} est. &middot; added by {{ it.created_by or 'staff' }} {{ it.created_at|usdate }}</div>
+          </div>
+          {% if it.status == 'waiting' %}<span class="badge bg-warning text-dark">Waiting</span>
+          {% elif it.status == 'approved' %}<span class="badge bg-success">Approved</span>
+          {% else %}<span class="badge bg-secondary">Declined</span>{% endif %}
+        </div>
+        {% if it.photos %}
+        <div class="d-flex flex-wrap gap-1 mt-1">
+          {% for fn in it.photos %}<a href="{{ url_for('static', filename='uploads/' + fn) }}" target="_blank" rel="noopener"><img src="{{ url_for('static', filename='uploads/' + fn) }}" alt="Found item photo" class="rounded border" style="width:56px;height:56px;object-fit:cover;"></a>{% endfor %}
+        </div>
+        {% endif %}
+        {% if it.status != 'waiting' %}
+        <div class="small mt-1">{{ 'Approved' if it.status == 'approved' else 'Declined' }} by {{ it.decided_by }} {{ it.decided_at|usdate(true) }}{% if it.decision_note %} &middot; "{{ it.decision_note }}"{% endif %}{% if it.section_name %} &middot; added as Sub Area <strong>{{ it.section_name }}</strong>{% endif %}</div>
+        {% else %}
+        <div class="d-flex gap-2 mt-1">
+          <small class="text-muted align-self-center">{% if it.notified_at %}Owner notified {{ it.notified_at|usdate(true) }}{% else %}Owner not notified yet{% endif %}</small>
+          {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech', 'inspector') %}
+          <form method="post" action="{{ url_for('found_item_notify', item_id=it.id) }}"><button class="btn btn-link btn-sm p-0">Remind owner</button></form>
+          {% endif %}
+          {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
+          <form method="post" action="{{ url_for('found_item_delete', item_id=it.id) }}" data-confirm="Remove this found item? The owner hasn't answered it yet." data-confirm-style="danger"><button class="btn btn-link btn-sm p-0 text-danger">Remove</button></form>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="text-muted small mb-0">Nothing found yet. Found something extra? Add it with photos and a price, and the owner can approve it from their phone.</p>
+      {% endif %}
+    </div>
+
     <div class="card p-3 mt-3">
       <h6>Activity Log</h6>
       {% if tx %}

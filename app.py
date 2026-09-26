@@ -2092,6 +2092,145 @@ def project_edit(project_id):
     return render_template("project_form.html", project=project, assets=assets, quick_types=quick_types)
 
 
+# ---------------------------------------------------------------------------
+# Found items: owner approval of extra work (QA feat-owner-squawk-approval).
+# A tech/admin adds a found item to a job (description, photos, estimate);
+# the plane's owner gets a text/email with a link to their My Aircraft page
+# on the customer portal, where they Approve or Decline it (see
+# customer.customer_found_item_decide). Approved items become a Sub Area on
+# the project so the work and parts land there; declined ones stay on
+# record. The owner is whoever is linked to the job's plane in Customers.
+# ---------------------------------------------------------------------------
+
+def _found_items_for_project(conn, project_id):
+    items = [dict(r) for r in conn.execute(
+        "SELECT * FROM found_items WHERE project_id = ? ORDER BY (status = 'waiting') DESC, created_at DESC, id DESC", (project_id,)).fetchall()]
+    for it in items:
+        it["photos"] = [r["filename"] for r in conn.execute(
+            "SELECT filename FROM photos WHERE found_item_id = ? ORDER BY id", (it["id"],)).fetchall()]
+    return items
+
+
+def _project_owner_customers(conn, project):
+    if not project["asset_id"]:
+        return []
+    return conn.execute("""SELECT c.* FROM customers c JOIN customer_assets ca ON ca.customer_id = c.id
+                           WHERE ca.asset_id = ? AND c.active = 1""", (project["asset_id"],)).fetchall()
+
+
+def _found_default_labor_rate(conn=None):
+    """The shop labor rate last used on a found item, so it doesn't have to
+    be typed every time (Settings has no separate shop billing rate)."""
+    own = conn is None
+    conn = conn or get_db()
+    row = conn.execute("SELECT est_labor_rate FROM found_items WHERE est_labor_rate > 0 ORDER BY id DESC LIMIT 1").fetchone()
+    if own:
+        conn.close()
+    return row["est_labor_rate"] if row else None
+
+
+def _notify_owner_found_items(conn, project):
+    """Texts/emails every owner linked to the plane about the found items
+    still waiting on them. Returns how many owners were reached."""
+    waiting = conn.execute("SELECT COUNT(*) c FROM found_items WHERE project_id = ? AND status = 'waiting'",
+                           (project["id"],)).fetchone()["c"]
+    if not waiting:
+        return 0
+    asset = conn.execute("SELECT tag FROM assets WHERE id = ?", (project["asset_id"],)).fetchone()
+    tag = asset["tag"] if asset else "your aircraft"
+    link = url_for("customer.customer_asset", asset_id=project["asset_id"], _external=True)
+    msg = (f"We found {waiting} item{'s' if waiting != 1 else ''} on {tag} that need{'s' if waiting == 1 else ''} "
+           f"your OK. See photos and prices, then approve or decline: {link}")
+    settings = notify.get_settings(conn)
+    reached = 0
+    for c in _project_owner_customers(conn, project):
+        ok_mail, _e = notify.send_email(settings, c["email"], f"{tag}: items need your approval", msg)
+        ok_sms, _e = notify.send_sms(settings, c["phone"], msg) if c["phone"] else (False, None)
+        reached += 1 if (ok_mail or ok_sms) else 0
+    return reached
+
+
+@app.route("/projects/<int:project_id>/found-items", methods=["POST"])
+@shop_role_required('admin', 'tech', 'inspector')
+def found_item_new(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    description = (request.form.get("description") or "").strip()[:500]
+    parts = _parse_qty(request.form.get("est_parts") or "0", allow_zero=True)
+    hours = _parse_qty(request.form.get("est_labor_hours") or "0", allow_zero=True)
+    rate = _parse_qty(request.form.get("est_labor_rate") or "0", allow_zero=True)
+    if not description or parts is None or hours is None or rate is None:
+        conn.close()
+        flash("Describe what you found, and use numbers (0 or more) for the estimate.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id) + "#found-items")
+    total = round(parts + hours * rate, 2)
+    cur = conn.execute("""INSERT INTO found_items (project_id, description, est_parts, est_labor_hours, est_labor_rate,
+                           est_total, status, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, 'waiting', ?, ?)""",
+                       (project_id, description, parts, hours, rate, total, session.get("user_name"), now_iso()))
+    item_id = cur.lastrowid
+    conn.commit()
+    _saved, err = _add_photos(conn, request.files.getlist("photos"), "found_item_id", item_id)
+    if err:
+        flash(err, "warning")
+    if request.form.get("notify_owner") == "on":
+        reached = _notify_owner_found_items(conn, project)
+        conn.execute("UPDATE found_items SET notified_at = ? WHERE project_id = ? AND status = 'waiting'",
+                     (now_iso(), project_id))
+        conn.commit()
+        flash("Found item added and the owner was notified." if reached else
+              "Found item added. The owner couldn't be texted or emailed (no owner linked to this plane, "
+              "or email/SMS isn't set up) - it's waiting on their My Aircraft page.", "success" if reached else "warning")
+    else:
+        flash("Found item added - it's waiting on the owner's My Aircraft page.", "success")
+    conn.close()
+    return redirect(url_for("project_detail", project_id=project_id) + "#found-items")
+
+
+@app.route("/found-items/<int:item_id>/notify", methods=["POST"])
+@shop_role_required('admin', 'tech', 'inspector')
+def found_item_notify(item_id):
+    conn = get_db()
+    item = conn.execute("SELECT * FROM found_items WHERE id = ?", (item_id,)).fetchone()
+    if not item:
+        conn.close()
+        abort(404)
+    project = conn.execute("SELECT * FROM projects WHERE id = ?", (item["project_id"],)).fetchone()
+    reached = _notify_owner_found_items(conn, project)
+    if reached:
+        conn.execute("UPDATE found_items SET notified_at = ? WHERE project_id = ? AND status = 'waiting'",
+                     (now_iso(), project["id"]))
+        conn.commit()
+    conn.close()
+    flash("Owner notified again." if reached else "Couldn't reach the owner by text or email.",
+          "success" if reached else "warning")
+    return redirect(url_for("project_detail", project_id=item["project_id"]) + "#found-items")
+
+
+@app.route("/found-items/<int:item_id>/delete", methods=["POST"])
+@shop_role_required('admin')
+def found_item_delete(item_id):
+    """Removes a found item the owner hasn't answered yet (added by mistake).
+    Answered ones stay - they're the record of what the owner decided."""
+    conn = get_db()
+    item = conn.execute("SELECT * FROM found_items WHERE id = ?", (item_id,)).fetchone()
+    if not item:
+        conn.close()
+        abort(404)
+    if item["status"] != "waiting":
+        conn.close()
+        flash("The owner already answered this one, so it stays on the record.", "warning")
+        return redirect(url_for("project_detail", project_id=item["project_id"]) + "#found-items")
+    conn.execute("UPDATE photos SET found_item_id = NULL WHERE found_item_id = ?", (item_id,))
+    conn.execute("DELETE FROM found_items WHERE id = ?", (item_id,))
+    conn.commit()
+    conn.close()
+    flash("Found item removed.", "success")
+    return redirect(url_for("project_detail", project_id=item["project_id"]) + "#found-items")
+
+
 @app.route("/projects/<int:project_id>")
 @shop_role_required('admin', 'tech', 'student', 'inspector')
 def project_detail(project_id):
@@ -2205,11 +2344,15 @@ def project_detail(project_id):
         )
         ORDER BY section
     """, (project_id, project_id)).fetchall()]
+    found_items = _found_items_for_project(conn, project_id)
+    has_owner = bool(project["asset_id"] and _project_owner_customers(conn, project))
     conn.close()
     return render_template("project_detail.html", project=project, usage_by_section=usage_by_section,
                            total_cost=total_cost, tx=tx, all_parts=all_parts, photos=photos, open_orders=open_orders,
                            labor_sessions=labor_sessions, labor_total_cost=labor_total_cost,
-                           labor_total_hours=labor_total_hours, known_sections=known_sections, intake=intake)
+                           labor_total_hours=labor_total_hours, known_sections=known_sections, intake=intake,
+                           found_items=found_items, found_has_owner=has_owner,
+                           found_labor_rate=_found_default_labor_rate(conn=None))
 
 
 # ---------------------------------------------------------------- project intake

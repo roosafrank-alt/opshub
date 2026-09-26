@@ -162,9 +162,29 @@ def customer_asset(asset_id):
         grouped, labor, total = _project_bill(conn, j["id"])
         if total > 0 or grouped or labor:
             bills.append({"project": j, "grouped": grouped, "labor": labor, "total": total})
+    found_items = _found_items_for_asset(conn, asset_id)
     conn.close()
     return render_template("customer_asset.html", customer=cust, asset=asset, reminders=reminders,
-                            appointments=appointments, bills=bills, multi_plane=multi_plane)
+                            appointments=appointments, bills=bills, multi_plane=multi_plane,
+                            found_items=found_items)
+
+
+def _found_items_for_asset(conn, asset_id):
+    """Extra work the shop found on this plane's jobs: waiting ones first
+    (they need the owner's OK), then the last few answered ones."""
+    rows = conn.execute("""
+        SELECT fi.*, p.name as project_name FROM found_items fi
+        JOIN projects p ON p.id = fi.project_id
+        WHERE p.asset_id = ? AND p.deleted_at IS NULL
+        ORDER BY (fi.status = 'waiting') DESC, COALESCE(fi.decided_at, fi.created_at) DESC LIMIT 20
+    """, (asset_id,)).fetchall()
+    items = []
+    for r in rows:
+        it = dict(r)
+        it["photos"] = [p["filename"] for p in conn.execute(
+            "SELECT filename FROM photos WHERE found_item_id = ? ORDER BY id", (r["id"],)).fetchall()]
+        items.append(it)
+    return items
 
 
 @customer_bp.route("/aircraft/<int:asset_id>/hours", methods=["POST"])
@@ -235,3 +255,43 @@ def customer_request_reschedule(project_id):
     conn.close()
     flash("Got it - we'll be in touch to reschedule.", "success")
     return redirect(url_for("customer.customer_asset", asset_id=project["asset_id"]))
+
+
+@customer_bp.route("/found-item/<int:item_id>/decide", methods=["POST"])
+@customer_login_required
+def customer_found_item_decide(item_id):
+    """Owner approves or declines extra work the shop found (see the
+    found_item_* routes in app.py). Approved items become a Sub Area on the
+    job so the work and parts land there; either way the answer, who gave
+    it and when are kept on the record."""
+    conn = get_db()
+    cust = current_customer(conn)
+    item = conn.execute("""SELECT fi.*, p.asset_id FROM found_items fi JOIN projects p ON p.id = fi.project_id
+                           WHERE fi.id = ? AND p.deleted_at IS NULL""", (item_id,)).fetchone()
+    if not item or item["asset_id"] not in _owned_asset_ids(conn, cust["id"]):
+        conn.close()
+        abort(404)
+    decision = request.form.get("decision")
+    note = (request.form.get("note") or "").strip()[:500] or None
+    if decision not in ("approve", "decline"):
+        conn.close()
+        abort(400)
+    if item["status"] != "waiting":
+        conn.close()
+        flash("You've already answered this one.", "warning")
+        return redirect(url_for("customer.customer_asset", asset_id=item["asset_id"]))
+    section = None
+    if decision == "approve":
+        section = (item["description"].split("\n")[0].strip() or f"Found item {item_id}")[:60]
+        conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
+                     (item["project_id"], section, now_iso()))
+    claimed = conn.execute("""UPDATE found_items SET status = ?, decided_at = ?, decided_by = ?, decision_note = ?,
+                              section_name = ? WHERE id = ? AND status = 'waiting'""",
+                           ("approved" if decision == "approve" else "declined", now_iso(), cust["name"], note,
+                            section, item_id)).rowcount
+    conn.commit()
+    conn.close()
+    if claimed:
+        flash("Approved - thanks, we'll get it done." if decision == "approve" else
+              "Declined - thanks for letting us know. It's noted on the job.", "success")
+    return redirect(url_for("customer.customer_asset", asset_id=item["asset_id"]))

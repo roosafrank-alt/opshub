@@ -12,6 +12,49 @@
   </div>
 </div>
 
+{% set waiting_found = found_items|selectattr('status', 'equalto', 'waiting')|list %}
+{% if found_items %}
+{#- Extra work the shop found on this plane - approve or decline each one. #}
+<div class="card p-3 mb-3 {{ 'border-warning border-2' if waiting_found }}" id="found-items">
+  <h5><i class="bi bi-search"></i> Found During Work
+    {% if waiting_found %}<span class="badge bg-warning text-dark ms-1">{{ waiting_found|length }} need{{ 's' if waiting_found|length == 1 }} your OK</span>{% endif %}</h5>
+  {% for it in found_items %}
+  <div class="py-3 {{ 'border-top' if not loop.first }}">
+    <div class="d-flex justify-content-between align-items-start gap-2">
+      <div>
+        <div class="fw-bold" style="white-space:pre-wrap;">{{ it.description }}</div>
+        <div class="small text-muted">{{ it.project_name }} &middot; found {{ it.created_at|usdate }}</div>
+      </div>
+      <div class="text-end">
+        <div class="fw-bold fs-5">${{ '{:,.2f}'.format(it.est_total) }}</div>
+        <div class="small text-muted">est.{% if it.est_parts %} parts ${{ '{:,.2f}'.format(it.est_parts) }}{% endif %}{% if it.est_labor_hours %} &middot; labor {{ '%g'|format(it.est_labor_hours) }} hr{% endif %}</div>
+      </div>
+    </div>
+    {% if it.photos %}
+    <div class="d-flex flex-wrap gap-2 mt-2">
+      {% for fn in it.photos %}
+      <a href="{{ url_for('static', filename='uploads/' + fn) }}" target="_blank" rel="noopener"><img src="{{ url_for('static', filename='uploads/' + fn) }}" alt="Photo of the found item" class="rounded border" style="width:96px;height:96px;object-fit:cover;"></a>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if it.status == 'waiting' %}
+    <form method="post" action="{{ url_for('customer.customer_found_item_decide', item_id=it.id) }}" class="mt-2">
+      <input type="text" name="note" class="form-control mb-2" placeholder="Note for the shop (optional)" aria-label="Note for the shop">
+      <div class="d-flex gap-2">
+        <button name="decision" value="approve" class="btn btn-success fw-bold flex-fill"><i class="bi bi-check-lg"></i> Approve</button>
+        <button name="decision" value="decline" class="btn btn-outline-danger flex-fill"><i class="bi bi-x-lg"></i> Decline</button>
+      </div>
+    </form>
+    {% elif it.status == 'approved' %}
+    <div class="mt-2"><span class="badge bg-success">Approved</span> <small class="text-muted">by {{ it.decided_by }} {{ it.decided_at|usdate(true) }}{% if it.decision_note %} &middot; "{{ it.decision_note }}"{% endif %}</small></div>
+    {% else %}
+    <div class="mt-2"><span class="badge bg-secondary">Declined</span> <small class="text-muted">by {{ it.decided_by }} {{ it.decided_at|usdate(true) }}{% if it.decision_note %} &middot; "{{ it.decision_note }}"{% endif %}</small></div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <div class="row g-3">
   <div class="col-lg-7">
 
