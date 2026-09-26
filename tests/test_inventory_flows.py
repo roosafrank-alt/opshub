@@ -302,7 +302,6 @@ class ProjectPartsTest(OpsHubTestCase):
         html = self.client.get("/projects/parts-used").get_data(as_text=True)
         self.assertIn("data-cost", html)
 
-    @open_finding("qa-status-missing-project")
     def test_status_change_on_missing_project_is_404(self):
         r = self.client.post("/projects/9999/status", data=dict(status="completed"))
         self.assertEqual(r.status_code, 404)

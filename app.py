@@ -2425,6 +2425,9 @@ def project_status(project_id):
     if new_status not in ("active", "completed", "on_hold", "archived"):
         abort(400)
     conn = get_db()
+    if not conn.execute("SELECT 1 FROM projects WHERE id = ?", (project_id,)).fetchone():
+        conn.close()
+        abort(404)
     completed_at = now_iso() if new_status == "completed" else None
     completed_by = session.get("user_name") if new_status == "completed" else None
     conn.execute("UPDATE projects SET status = ?, completed_at = ?, completed_by = ? WHERE id = ?",
