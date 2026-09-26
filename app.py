@@ -3446,6 +3446,20 @@ def _parse_float(val):
         return None
 
 
+def _parse_rate(val):
+    """Hourly pay rate from a form: blank means 0, otherwise a real number
+    that's 0 or more. Returns None for anything else (-25, nan, inf, junk)
+    so the form can be shown again - a negative rate would subtract from
+    pay and labor bills, and nan/inf break every total it touches."""
+    val = (val or "").strip()
+    if not val:
+        return 0.0
+    rate = _parse_float(val)
+    if rate is None or not math.isfinite(rate) or rate < 0:
+        return None
+    return rate
+
+
 def _parse_int(val):
     val = (val or "").strip()
     if not val:
@@ -4216,8 +4230,12 @@ def laborer_new():
         if not name:
             flash("Name is required.", "danger")
             return render_template("laborer_form.html", laborer=None)
+        rate = _parse_rate(request.form.get("rate"))
+        if rate is None:
+            flash("Hourly rate must be a number, 0 or more.", "danger")
+            return render_template("laborer_form.html", laborer=None,
+                                   draft={"name": name, "rate": request.form.get("rate", "")})
         conn = get_db()
-        rate = _parse_float(request.form.get("rate")) or 0
         code = gen_labor_code(conn)
         cur = conn.execute(
             "INSERT INTO laborers (name, code, rate, active, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)",
@@ -4244,7 +4262,11 @@ def laborer_edit(laborer_id):
             flash("Name is required.", "danger")
             conn.close()
             return render_template("laborer_form.html", laborer=laborer)
-        rate = _parse_float(request.form.get("rate")) or 0
+        rate = _parse_rate(request.form.get("rate"))
+        if rate is None:
+            flash("Hourly rate must be a number, 0 or more.", "danger")
+            conn.close()
+            return render_template("laborer_form.html", laborer=laborer)
         active = 1 if request.form.get("active") == "on" else 0
         conn.execute("UPDATE laborers SET name = ?, rate = ?, active = ?, updated_at = ? WHERE id = ?",
                      (name, rate, active, now_iso(), laborer_id))

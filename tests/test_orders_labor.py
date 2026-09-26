@@ -426,7 +426,6 @@ class LaborerAdminTest(OpsHubTestCase):
         self.assertEqual(self.q("SELECT id FROM laborers"), [])
         self.assertEqual(self.client.get("/laborers/9999/edit").status_code, 404)
 
-    @open_finding("qa-laborer-bad-rate")
     def test_pay_rate_rejects_negative_or_nan(self):
         for rate in ("-25", "nan", "inf"):
             with self.subTest(rate=rate):

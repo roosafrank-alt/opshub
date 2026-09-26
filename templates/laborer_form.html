@@ -8,11 +8,11 @@
   <form method="post">
     <div class="mb-3">
       <label class="form-label">Name *</label>
-      <input type="text" name="name" class="form-control" value="{{ laborer.name if laborer else '' }}" required autofocus>
+      <input type="text" name="name" class="form-control" value="{{ laborer.name if laborer else (draft.name if draft else '') }}" required autofocus>
     </div>
     <div class="mb-3">
       <label class="form-label">Hourly Rate ($)</label>
-      <input type="number" step="any" name="rate" class="form-control" value="{{ laborer.rate if laborer else '' }}" placeholder="e.g. 65">
+      <input type="number" step="any" min="0" name="rate" class="form-control" value="{{ laborer.rate if laborer else (draft.rate if draft else '') }}" placeholder="e.g. 65">
     </div>
     {% if laborer %}
     <div class="mb-3">
