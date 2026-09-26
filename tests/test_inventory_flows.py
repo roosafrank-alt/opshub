@@ -117,7 +117,6 @@ class ScanFlowTest(OpsHubTestCase):
         self.assertEqual(r.status_code, 400)
 
     # --- who may scan -----------------------------------------------------
-    @open_finding("qa-scan-permission")
     def test_accounts_without_shop_access_cannot_change_inventory(self):
         # /api/scan was @login_required only, so a
         # flight student (or any account with no Shop role) could add/remove

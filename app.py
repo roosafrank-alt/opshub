@@ -1384,8 +1384,11 @@ def project_section_rename(project_id, section_id):
 
 
 @app.route("/api/scan", methods=["POST"])
-@login_required
+@shop_role_required('admin', 'tech', 'student', 'inspector')
 def api_scan():
+    # Changes stock and charges jobs, so it needs a Shop role - it used to be
+    # login-only, which let a flight student or CFI with no shop access add or
+    # remove parts.
     data = request.get_json(force=True)
     barcode = (data.get("barcode") or "").strip()
     action = data.get("action")  # 'in' | 'out'
