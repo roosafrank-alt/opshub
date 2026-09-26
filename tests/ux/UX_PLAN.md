@@ -124,3 +124,25 @@ over from the top, and put areas that changed a lot since their last review
   like and do afterwards.
 - Never re-file a dismissed card. Update an existing "new" card instead of
   duplicating it.
+
+## Fix previews (every card with a screenshot)
+
+Frank wants to SEE the fix before approving it. For every card you file or
+update that has screenshots, also attach a picture of what the page will look
+like after the fix:
+
+```bash
+python3 tests/ux/fix_preview.py specs.json --out /tmp/previews
+```
+
+Each spec (documented at the top of `fix_preview.py`) names the account, screen
+size and page, circles the problem in red (`problem` marks), then applies a
+temporary in-browser mockup of the suggested fix (`mock_js`, or `mock_html` for
+an error page or a brand-new screen, `after_path` if the fix lands somewhere
+else) and circles what changed in green (`changed` marks). Nothing touches app
+code. Mock what the card's suggestedFix says, using the app's own Bootstrap
+classes so it looks real, and look at both pictures before filing. Store the
+NOW picture as `screenshots[i]` (with `marks`) and the AFTER picture as
+`previews[j]` = {id, url, caption, type, marks, before: i, mock: true}; for a
+card with fixOptions, make one preview per visually different option with
+`option: <index>`.
