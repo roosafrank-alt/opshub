@@ -1575,6 +1575,17 @@ def _migrate(conn):
         conn.execute("ALTER TABLE plane_squawks ADD COLUMN repair_confirm_requested_by TEXT")
         conn.commit()
 
+    # A student's own plane, for the Schedule a Flight "Student's own plane"
+    # toggle (see _get_or_create_own_plane_asset in flight.py) - a real
+    # assets row (so everything that already joins on asset_id just works)
+    # but flagged so it never shows in the Fleet, Maintenance, or the normal
+    # plane picker until someone promotes it via asset_detail.html.
+    asset_cols_owner = [r["name"] for r in conn.execute("PRAGMA table_info(assets)").fetchall()]
+    if "is_owner_placeholder" not in asset_cols_owner:
+        conn.execute("ALTER TABLE assets ADD COLUMN is_owner_placeholder INTEGER NOT NULL DEFAULT 0")
+        conn.execute("ALTER TABLE assets ADD COLUMN owner_student_id INTEGER REFERENCES students(id)")
+        conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of

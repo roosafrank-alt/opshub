@@ -538,6 +538,40 @@ def _flight_hours(f):
     return 0.0
 
 
+def _get_or_create_own_plane_asset(conn, student_id, n_number=None):
+    """The asset id standing in for one student's own plane, for the
+    "Student's own plane" toggle on Schedule a Flight - a real assets row
+    (so every existing plane/Hobbs/billing query just works unchanged) but
+    flagged is_owner_placeholder so it never shows in the Fleet, Maintenance,
+    or the normal plane picker (see the is_owner_placeholder=0 filters added
+    alongside is_flight_asset=1) until it's promoted from its own asset page.
+    Reused across bookings for the same student (one placeholder per
+    student) so their own-plane history stays under one asset - the same
+    one that later gets promoted if they bring it to us for maintenance.
+    n_number, if given, becomes the asset's tag (rental_rate stays unset, so
+    the plane itself is never billed - only real fleet rentals are); with no
+    N-number given yet, a stable placeholder tag (OWN-<student_id>) is used
+    instead, and can be filled in on a later booking."""
+    row = conn.execute("SELECT id, tag FROM assets WHERE owner_student_id = ? AND is_owner_placeholder = 1",
+                       (student_id,)).fetchone()
+    n_number = (n_number or "").strip().upper() or None
+    if row:
+        if n_number and n_number != row["tag"] and not conn.execute(
+                "SELECT id FROM assets WHERE tag = ? AND id != ?", (n_number, row["id"])).fetchone():
+            conn.execute("UPDATE assets SET tag = ?, updated_at = ? WHERE id = ?", (n_number, now_iso(), row["id"]))
+        return row["id"]
+    tag = n_number or f"OWN-{student_id}"
+    if conn.execute("SELECT id FROM assets WHERE tag = ?", (tag,)).fetchone():
+        tag = f"OWN-{student_id}"
+    student = conn.execute("SELECT name FROM students WHERE id = ?", (student_id,)).fetchone()
+    cur = conn.execute("""INSERT INTO assets (tag, name, is_flight_asset, is_owner_placeholder, owner_student_id,
+                          created_at, updated_at)
+                          VALUES (?, ?, 1, 1, ?, ?, ?)""",
+                       (tag, f"{student['name']}'s own plane" if student else "Student's own plane",
+                        student_id, now_iso(), now_iso()))
+    return cur.lastrowid
+
+
 BILLING_ROUND_UP_HOURS = 0.1  # billed hours always round UP to this increment (6 min)
 
 DEFAULT_SOLO_CURRENCY_DAYS = 90  # a student who hasn't flown dual (with a CFI) in this many days
@@ -2758,7 +2792,7 @@ def cfi_time_off_delete(off_id):
 @cfi_required
 def planes_list():
     conn = get_db()
-    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     conn.close()
     return render_template("flight/planes.html", planes=planes)
 
@@ -3152,7 +3186,7 @@ def _build_availability_day(conn, date_str, plane_id=None):
             (plane_id,)).fetchall()
     else:
         planes = conn.execute(
-            "SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+            "SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
 
     day_flights = _schedule_rows(conn, date_str, date_str, plane_id or None)
     flights_by_asset = {}
@@ -3245,7 +3279,7 @@ def _build_flight_finder(conn, start_date, num_days, day_types, buckets, plane_i
             (plane_id,)).fetchall()
     else:
         planes = conn.execute(
-            "SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+            "SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
 
     need_cfi = cfi_mode != "solo"
     cfis = []
@@ -3469,7 +3503,7 @@ def _schedule_calendar_context():
         if x.isdigit():
             new_ids.add(int(x))
 
-    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
     # Every active plane's alphabetical rank (matches the Planes legend's
     # own ORDER BY tag) - the Month view's mini timeline uses this so a
@@ -3652,7 +3686,7 @@ def schedule_availability():
     if view not in ("day", "week", "month"):
         view = "day"
 
-    all_planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+    all_planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     ctx = dict(day_str=day_str, today=today, all_planes=all_planes, plane_id=plane_id, mode=mode, view=view)
 
     if view == "day":
@@ -3737,7 +3771,7 @@ def schedule_finder():
     plane_id = request.args.get("plane_id", "").strip()
     cfi_mode = request.args.get("cfi_mode", "any").strip() or "any"
 
-    all_planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+    all_planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     all_cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
     results = _build_flight_finder(conn, start_date, num_days, day_types, buckets, plane_id or None, cfi_mode)
     conn.close()
@@ -3759,7 +3793,7 @@ def schedule_new():
     conn = get_db()
     self_service = not session.get("cfi_id")
     self_student = current_student(conn) if self_service else None
-    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     students = conn.execute("SELECT * FROM students WHERE active = 1 ORDER BY name").fetchall()
     cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
     # Clicking a day on the calendar (see the month_table macro in
@@ -3809,6 +3843,13 @@ def schedule_new():
             return redirect(url_for("flight.log_history"))
         asset_id = request.form.get("asset_id") or None
         student_id = str(self_student["id"]) if self_service else (request.form.get("student_id") or None)
+        # "Student's own plane" - bypasses picking a plane from the fleet
+        # entirely, using (or creating) a placeholder asset just for this
+        # student instead - see _get_or_create_own_plane_asset. It never
+        # shows up in the Fleet or Maintenance until someone promotes it
+        # from the asset's own page.
+        if request.form.get("own_plane") and student_id:
+            asset_id = _get_or_create_own_plane_asset(conn, int(student_id), request.form.get("own_plane_n_number", ""))
         guest_name, guest_phone, guest_email = (None, None, None) if self_service else _guest_fields(conn, request.form, student_id)
         solo = 1 if request.form.get("solo") else 0
         # A dual booking where the student also flies part of it solo.
@@ -4083,14 +4124,25 @@ def schedule_edit(scheduled_id):
         conn.close()
         flash("Scheduled flight not found.", "danger")
         return redirect(url_for("flight.schedule_calendar"))
-    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     students = conn.execute("SELECT * FROM students WHERE active = 1 ORDER BY name").fetchall()
     cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
+    # Whether this booking already uses a student's own-plane placeholder
+    # (see _get_or_create_own_plane_asset) - pre-checks the toggle and
+    # pre-fills its N-number instead of showing a blank plane picker.
+    sched_own_plane_asset = conn.execute(
+        "SELECT tag FROM assets WHERE id = ? AND is_owner_placeholder = 1", (sched["asset_id"],)).fetchone()
+    sched_own_plane_n_number = None
+    if sched_own_plane_asset:
+        sched_own_plane_n_number = "" if sched_own_plane_asset["tag"].startswith("OWN-") else sched_own_plane_asset["tag"]
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
-                       today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session["cfi_id"], sched=sched)
+                       today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session["cfi_id"], sched=sched,
+                       sched_is_own_plane=bool(sched_own_plane_asset), sched_own_plane_n_number=sched_own_plane_n_number)
     if request.method == "POST":
         asset_id = request.form.get("asset_id") or None
         student_id = request.form.get("student_id") or None
+        if request.form.get("own_plane") and student_id:
+            asset_id = _get_or_create_own_plane_asset(conn, int(student_id), request.form.get("own_plane_n_number", ""))
         guest_name, guest_phone, guest_email = _guest_fields(conn, request.form, student_id)
         solo = 1 if request.form.get("solo") else 0
         # A dual booking where the student also flies part of it solo.
@@ -4498,7 +4550,7 @@ def reports_list():
     resolved_count = conn.execute("SELECT COUNT(*) c FROM flight_reports WHERE resolved_at IS NOT NULL").fetchone()["c"]
     resolved = conn.execute(base_sql + " WHERE r.resolved_at IS NOT NULL ORDER BY r.resolved_at DESC"
                             + ("" if show_all else " LIMIT 50")).fetchall()
-    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     conn.close()
     open_by_category = {cat: [dict(r) for r in open_rows if r["category"] == cat] for cat in FLIGHT_REPORT_CATEGORIES}
     return render_template("flight/reports.html", open_by_category=open_by_category, categories=FLIGHT_REPORT_CATEGORIES,
@@ -5767,6 +5819,8 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
     doesn't validate."""
     asset_id = form.get("asset_id") or None
     student_id = form.get("student_id") or None
+    if form.get("own_plane") and student_id:
+        asset_id = _get_or_create_own_plane_asset(conn, int(student_id), form.get("own_plane_n_number", ""))
     solo = 1 if form.get("solo") else 0
     cfi_id = None if solo else (form.get("cfi_id") or session["cfi_id"])
     flight_date = form.get(date_field, "").strip() or date.today().strftime("%Y-%m-%d")
@@ -5874,7 +5928,7 @@ def log_new():
     travels through as a hidden field so, on save, that booking gets marked
     completed instead of lingering as an upcoming/conflicting booking."""
     conn = get_db()
-    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     students = conn.execute("SELECT * FROM students WHERE active = 1 ORDER BY name").fetchall()
     cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
@@ -5931,7 +5985,7 @@ def log_edit(flight_id):
         conn.close()
         flash("Flight not found.", "danger")
         return redirect(url_for("flight.log_history"))
-    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     students = conn.execute("SELECT * FROM students WHERE active = 1 OR id = ? ORDER BY name", (f["student_id"],)).fetchall()
     cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 OR id = ? ORDER BY name", (f["cfi_id"],)).fetchall()
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
@@ -6278,7 +6332,7 @@ def stats():
 
     conn = get_db()
     planes = conn.execute(
-        "SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY tag").fetchall()
+        "SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
     sql = _LOG_ROW_SQL + " WHERE f.flight_date BETWEEN ? AND ?"
     params = [start_str, end_str]

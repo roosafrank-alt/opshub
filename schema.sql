@@ -94,6 +94,8 @@ CREATE TABLE IF NOT EXISTS assets (
     prop_serial TEXT,
     rental_rate REAL, -- Flight School: $/hr charged to students for this aircraft (billed on Hobbs time)
     is_flight_asset INTEGER NOT NULL DEFAULT 0, -- linked to Flight School: shows up in its plane list/flight log; NOT every asset here is a flight school plane, so this isn't automatic
+    is_owner_placeholder INTEGER NOT NULL DEFAULT 0, -- a student's own plane, auto-created for scheduling only (see schedule.py's "Student's own plane" toggle) - not in the Fleet or Maintenance until promoted (see asset_detail.html)
+    owner_student_id INTEGER REFERENCES students(id), -- which student this placeholder belongs to; kept even after promoting to a real fleet asset, just for history
     is_simulator INTEGER NOT NULL DEFAULT 0, -- a flight simulator added from Planes > Add Simulator, not a real aircraft - no Hobbs/Tach/maintenance to track
     sim_rate REAL, -- simulator's own base $/hr rate, set on its profile; used unless a student has their own Sim Rate override
     schedule_color TEXT, -- Flight School schedule color for this plane (admin-picked on Planes > Edit; never the same as a CFI color); solo bookings show it in neon unless solo_color overrides that below

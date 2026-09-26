@@ -720,7 +720,7 @@ def squawks_list():
         WHERE q.repaired_at IS NOT NULL
         ORDER BY repaired_at DESC LIMIT 50
     """).fetchall()
-    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     assignable_workers = get_assignable_workers(conn)
     conn.close()
     return render_template("squawks.html", open_squawks=open_squawks, acknowledged=acknowledged, repaired=repaired,
@@ -1802,7 +1802,7 @@ def project_new():
             flash("Project name is required.", "danger")
             # A simulator (assets.is_simulator) isn't a real aircraft - no
             # maintenance projects - so it stays out of this picker too.
-            assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
+            assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
             quick_types, optional_areas_by_type = _quick_type_form_context(conn)
             conn.close()
             return render_template("project_form.html", project=None, assets=assets, quick_types=quick_types,
@@ -1863,7 +1863,7 @@ def project_new():
             msg += f" Sub area{'s' if len(added_areas) != 1 else ''} added: {', '.join(added_areas)}."
         flash(msg, "success")
         return redirect(url_for("project_intake", project_id=new_id))
-    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     preselect_asset_id = request.args.get("asset_id")
     preselect_asset_tag = None
     if preselect_asset_id:
@@ -1897,7 +1897,7 @@ def project_edit(project_id):
     if not project:
         conn.close()
         abort(404)
-    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         if not name:
@@ -2609,7 +2609,7 @@ def assets_list():
     q = request.args.get("q", "").strip()
     # A flight-school simulator (assets.is_simulator) isn't a real aircraft
     # for the shop to track - it stays in Flight School's own Planes list.
-    query = "SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0"
+    query = "SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0"
     params = []
     if q:
         query += " AND (tag LIKE ? OR name LIKE ? OR make LIKE ? OR model LIKE ? OR owner LIKE ?)"
@@ -2851,13 +2851,49 @@ def asset_detail(asset_id):
     ).fetchall()
     assignable_workers = get_assignable_workers(conn)
     asset_manuals = manuals_for_asset(conn, asset)
+    owner_student = None
+    if asset["is_owner_placeholder"] and asset["owner_student_id"]:
+        owner_student = conn.execute("SELECT id, name FROM students WHERE id = ?", (asset["owner_student_id"],)).fetchone()
     conn.close()
     return render_template("asset_detail.html", asset=asset, project_blocks=project_blocks, total_cost=total_cost,
                            maintenance_items=maintenance_items, oil_log=oil_log, total_oil_added=total_oil_added,
                            open_squawks=open_squawks, todo_squawks=todo_squawks, photos=photos, todos=todos, project_cover=project_cover,
                            assignable_workers=assignable_workers,
                            latest_compression=latest_compression, compression_count=compression_count,
-                           asset_manuals=asset_manuals)
+                           asset_manuals=asset_manuals, owner_student=owner_student)
+
+
+@app.route("/assets/<int:asset_id>/promote_own_plane", methods=["POST"])
+@shop_role_required('admin')
+def asset_promote_own_plane(asset_id):
+    """Turns a student's own-plane placeholder (see _get_or_create_own_plane_asset
+    in flight.py, and the "Student's own plane" toggle on Schedule a Flight)
+    into a real Fleet/Maintenance asset - for when the student brings that
+    plane to us for maintenance. Needs a real N-number now, since it's about
+    to show up in the Fleet like any other plane; not required before this
+    (see the toggle - it's optional there)."""
+    conn = get_db()
+    asset = conn.execute("SELECT id FROM assets WHERE id = ? AND is_owner_placeholder = 1", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        flash("Not a student-owned placeholder plane.", "danger")
+        return redirect(url_for("asset_detail", asset_id=asset_id))
+    n_number = request.form.get("n_number", "").strip().upper()
+    if not n_number:
+        conn.close()
+        flash("Enter the plane's N-number to add it to the fleet.", "danger")
+        return redirect(url_for("asset_detail", asset_id=asset_id))
+    conflict = conn.execute("SELECT id FROM assets WHERE tag = ? AND id != ?", (n_number, asset_id)).fetchone()
+    if conflict:
+        conn.close()
+        flash(f"{n_number} is already used by another plane in the fleet.", "danger")
+        return redirect(url_for("asset_detail", asset_id=asset_id))
+    conn.execute("UPDATE assets SET tag = ?, is_owner_placeholder = 0, updated_at = ? WHERE id = ?",
+                 (n_number, now_iso(), asset_id))
+    conn.commit()
+    conn.close()
+    flash(f"{n_number} added to the Fleet and Maintenance.", "success")
+    return redirect(url_for("asset_detail", asset_id=asset_id))
 
 
 @app.route("/assets/<int:asset_id>/squawk", methods=["POST"])
@@ -4785,7 +4821,7 @@ def customers_list():
 @shop_role_required('admin')
 def customer_new():
     conn = get_db()
-    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip()
@@ -4873,7 +4909,7 @@ def customer_edit(customer_id):
     if not customer:
         conn.close()
         abort(404)
-    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 ORDER BY tag").fetchall()
+    assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     linked_ids = {r["asset_id"] for r in conn.execute(
         "SELECT asset_id FROM customer_assets WHERE customer_id = ?", (customer_id,)).fetchall()}
     if request.method == "POST":

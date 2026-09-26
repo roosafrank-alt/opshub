@@ -70,6 +70,20 @@
         <style>
           #plane-buttons.is-invalid-group { outline: 2px solid #dc3545; outline-offset: 3px; border-radius: 4px; }
         </style>
+        {#- Bypasses picking a plane from the fleet entirely - the booking
+           gets tied to a placeholder plane just for this student instead
+           (see _get_or_create_own_plane_asset in flight.py), which never
+           shows up in the Fleet or Maintenance until it's promoted from its
+           own asset page. #}
+        <div class="form-check form-switch mt-2">
+          <input type="checkbox" class="form-check-input" role="switch" name="own_plane" id="own-plane-check" value="1"
+                 {% if (form and form.get('own_plane')) or (not form and sched_is_own_plane) %}checked{% endif %}>
+          <label class="form-check-label" for="own-plane-check">Student's own plane</label>
+        </div>
+        <div id="own-plane-n-number-wrap" class="mt-1 d-none">
+          <input type="text" name="own_plane_n_number" id="own-plane-n-number" class="form-control form-control-sm" placeholder="N-number (optional)" maxlength="10"
+                 value="{{ form.get('own_plane_n_number', '') if form else (sched_own_plane_n_number or '') }}">
+        </div>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Student <span class="text-danger">*</span></label>
@@ -668,10 +682,28 @@
   var form = sel.form;
   if (form) {
     form.addEventListener('submit', function (e) {
+      var ownPlane = document.getElementById('own-plane-check');
+      if (ownPlane && ownPlane.checked) return;
       var invalid = !sel.value;
       wrap.classList.toggle('is-invalid-group', invalid);
       if (invalid) { e.preventDefault(); e.stopImmediatePropagation(); wrap.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     }, true);
+  }
+
+  // "Student's own plane" hides the picker (it isn't needed - the booking
+  // uses a placeholder plane behind the scenes instead) and shows an
+  // optional N-number field in its place.
+  var ownPlaneCheck = document.getElementById('own-plane-check');
+  var ownPlaneWrap = document.getElementById('own-plane-n-number-wrap');
+  if (ownPlaneCheck && ownPlaneWrap) {
+    var updateOwnPlane = function () {
+      var checked = ownPlaneCheck.checked;
+      wrap.classList.toggle('d-none', checked);
+      ownPlaneWrap.classList.toggle('d-none', !checked);
+      wrap.classList.remove('is-invalid-group');
+    };
+    ownPlaneCheck.addEventListener('change', updateOwnPlane);
+    updateOwnPlane();
   }
 })();
 
