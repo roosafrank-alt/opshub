@@ -115,6 +115,9 @@
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/manage/task-templates') }}" href="{{ url_for('task_templates') }}"><i class="bi bi-list-check"></i> Task Templates</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/billing') }}" href="{{ url_for('shop_billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
+            {% if is_master_admin %}
+            <li><a class="dropdown-item {{ 'active' if _p.startswith('/payroll') }}" href="{{ url_for('payroll.payroll_page') }}"><i class="bi bi-wallet2"></i> Payroll</a></li>
+            {% endif %}
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/stats') }}" href="{{ url_for('shop_stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/logbook') }}" href="{{ url_for('logbook.logbook_list') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>

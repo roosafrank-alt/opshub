@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Payroll - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-wallet2"></i> Payroll <span class="text-muted fs-6">- week of {{ week.isoformat()|usdate }} to {{ week_end.isoformat()|usdate }}</span></h4>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('payroll.payroll_page', week=prev_week) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i> Previous week</a>
+    {% if next_week %}
+    <a href="{{ url_for('payroll.payroll_page', week=next_week) }}" class="btn btn-outline-secondary btn-sm">Next week <i class="bi bi-chevron-right"></i></a>
+    <a href="{{ url_for('payroll.payroll_page', week=this_week) }}" class="btn btn-outline-secondary btn-sm">This week</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3">
+      <div class="text-muted small">Owed this week</div>
+      <div class="fs-3 fw-bold">${{ '{:,.2f}'.format(totals.owed) }}</div>
+      <div class="text-muted small">{{ '%.1f'|format(totals.hours) }} hrs</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 border-success">
+      <div class="text-muted small">Paid</div>
+      <div class="fs-3 fw-bold text-success">${{ '{:,.2f}'.format(totals.paid) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 {{ 'border-warning' if totals.unpaid_people }}">
+      <div class="text-muted small">Still to pay</div>
+      <div class="fs-3 fw-bold">${{ '{:,.2f}'.format(totals.unpaid) }}</div>
+      <div class="text-muted small">{{ totals.unpaid_people }} {{ 'person' if totals.unpaid_people == 1 else 'people' }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 {{ 'border-danger' if totals.flags }}">
+      <div class="text-muted small">Flagged</div>
+      <div class="fs-3 fw-bold {{ 'text-danger' if totals.flags }}">{{ totals.flags }}</div>
+      <div class="text-muted small">far from their usual</div>
+    </div>
+  </div>
+</div>
+
+<div class="card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h6 class="text-muted mb-0">This week, by person</h6>
+    <a href="{{ url_for('payroll.payroll_export', week=week.isoformat()) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download"></i> Spreadsheet (CSV)</a>
+  </div>
+  {% if rows %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead class="table-light"><tr><th>Name</th><th>Type</th><th>Hours</th><th>Owed</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for r in rows %}
+        <tr class="{{ 'table-danger' if r.flag and not r.payment }}">
+          <td class="stack-full" data-label="Name">
+            {% if r.type == 'cfi' %}<a href="{{ url_for('flight.cfi_pay', cfi_id=r.id) }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}
+            {% if not r.active %}<span class="badge bg-light text-muted border ms-1">inactive</span>{% endif %}
+            {% if r.flag %}<div><small class="text-danger"><i class="bi bi-exclamation-triangle"></i> {{ r.flag }}</small></div>{% endif %}
+          </td>
+          <td data-label="Type">{{ r.kind }}</td>
+          <td data-label="Hours">{{ '%.2f'|format(r.hours) }}</td>
+          <td data-label="Owed"><strong>${{ '{:,.2f}'.format(r.amount) }}</strong></td>
+          <td data-label="Status">
+            {% if r.payment %}
+            <span class="badge bg-success"><i class="bi bi-check-circle"></i> Paid ${{ '{:,.2f}'.format(r.payment.amount) }}</span>
+            <div><small class="text-muted">{{ r.payment.paid_at|usdate }}{% if r.payment.paid_by %} by {{ r.payment.paid_by }}{% endif %}{% if r.payment.note %} &middot; {{ r.payment.note }}{% endif %}</small></div>
+            {% if r.changed_since_paid %}<div><small class="text-warning"><i class="bi bi-exclamation-circle"></i> Now owed ${{ '{:,.2f}'.format(r.amount) }} - hours changed after it was paid</small></div>{% endif %}
+            {% elif r.amount %}
+            <span class="badge bg-warning text-dark">Unpaid</span>
+            {% else %}
+            <span class="text-muted small">Nothing owed</span>
+            {% endif %}
+          </td>
+          <td data-label="" class="text-end">
+            {% if r.payment %}
+            <form method="post" action="{{ url_for('payroll.payroll_unmark_paid') }}" class="d-inline" data-confirm="Mark {{ r.name }} as NOT paid for this week?" data-confirm-style="danger">
+              <input type="hidden" name="week" value="{{ week.isoformat() }}">
+              <input type="hidden" name="person_type" value="{{ r.type }}">
+              <input type="hidden" name="person_id" value="{{ r.id }}">
+              <button class="btn btn-outline-secondary btn-sm">Undo</button>
+            </form>
+            {% elif r.amount %}
+            <form method="post" action="{{ url_for('payroll.payroll_mark_paid') }}" class="d-flex gap-1 justify-content-end">
+              <input type="hidden" name="week" value="{{ week.isoformat() }}">
+              <input type="hidden" name="person_type" value="{{ r.type }}">
+              <input type="hidden" name="person_id" value="{{ r.id }}">
+              <input type="text" name="note" class="form-control form-control-sm" placeholder="Note (check #, Venmo...)" style="max-width:170px;">
+              <button class="btn btn-success btn-sm text-nowrap"><i class="bi bi-check2"></i> Mark paid</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="text-muted small mt-2 mb-0">Shop workers: clocked labor at the rate saved on each timer. CFIs: instructor + ground time on dual flights at their pay rate.
+    Flagged means {{ flag_ratio }}% or more above or below their average over the last {{ baseline_weeks }} paid weeks.</p>
+  {% else %}
+  <p class="text-muted mb-0">No shop workers or CFIs yet.</p>
+  {% endif %}
+</div>
+
+<div class="card p-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h6 class="text-muted mb-0">Past weeks</h6>
+    <a href="{{ url_for('payroll.payroll_history_export') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download"></i> Full year (CSV)</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead class="table-light"><tr><th>Week</th><th>Owed</th><th>Paid</th><th>Unpaid</th></tr></thead>
+      <tbody>
+        {% for h in history %}
+        <tr class="{{ 'table-active' if h.week == week }}">
+          <td class="stack-full" data-label="Week"><a href="{{ url_for('payroll.payroll_page', week=h.week.isoformat()) }}">{{ h.week.isoformat()|usdate }} to {{ h.end.isoformat()|usdate }}</a></td>
+          <td data-label="Owed">${{ '{:,.2f}'.format(h.owed) }}</td>
+          <td data-label="Paid">${{ '{:,.2f}'.format(h.paid) }}</td>
+          <td data-label="Unpaid">{% if h.unpaid_people %}<span class="badge bg-warning text-dark">{{ h.unpaid_people }}</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

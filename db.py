@@ -1679,6 +1679,24 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_system_alerts_unresolved ON system_alerts(resolved_at)")
     conn.commit()
 
+    # Payroll (see payroll.py): one row per person per week an admin marked
+    # paid, with the amount/hours owed at that moment. person_type is
+    # 'laborer' (laborers.id) or 'cfi' (cfis.id); week_start is a Monday.
+    conn.execute("""CREATE TABLE IF NOT EXISTS payroll_payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        person_type TEXT NOT NULL,
+        person_id INTEGER NOT NULL,
+        week_start TEXT NOT NULL,
+        hours REAL NOT NULL DEFAULT 0,
+        amount REAL NOT NULL DEFAULT 0,
+        paid_at TEXT NOT NULL,
+        paid_by TEXT,
+        note TEXT,
+        UNIQUE(person_type, person_id, week_start)
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_payroll_payments_week ON payroll_payments(week_start)")
+    conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of

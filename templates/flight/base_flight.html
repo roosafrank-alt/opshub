@@ -108,6 +108,9 @@
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing') }}" href="{{ url_for('flight.billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/stats') }}" href="{{ url_for('flight.stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
             {% endif %}
+            {% if session.get('is_master_admin') %}
+            <li><a class="dropdown-item" href="{{ url_for('payroll.payroll_page') }}"><i class="bi bi-wallet2"></i> Payroll</a></li>
+            {% endif %}
           </ul>
         </li>
         {% endif %}
