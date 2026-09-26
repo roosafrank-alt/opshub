@@ -128,6 +128,7 @@
   <details class="mb-2" open>
     <summary class="text-muted small">Add starting info (Hobbs/Tach, oil, note)</summary>
     <form method="post" action="{{ url_for('flight.log_update_progress', flight_id=f.id) }}" class="row g-2 mt-1">
+      {% if not f.asset_is_owner_placeholder %}
       {% if f.hobbs_start is none %}
       <div class="col-6 col-md-3">
         <label class="form-label small mb-0">Hobbs Start</label>
@@ -139,6 +140,7 @@
         <label class="form-label small mb-0">Tach Start</label>
         <input type="number" step="any" name="tach_start" class="form-control form-control-sm" placeholder="e.g. 1200.0" inputmode="decimal">
       </div>
+      {% endif %}
       {% endif %}
       <div class="col-6 col-md-3">
         <label class="form-label small mb-0">Oil Added (qt)</label>
@@ -232,9 +234,24 @@
      data-solo/instructor-clock-hours let the live-total script below price
      the flight the same way _flight_cost() does server-side, so there's a
      real number on screen before Paid/Amount Collected are ever touched. #}
-  <form method="post" id="end-form-{{ f.id }}" action="{{ url_for('flight.log_end', flight_id=f.id) }}" data-confirm="Log this flight with Hobbs end [[hobbs_end]]? It moves to Flight History and gets billed." data-confirm-title="Flight Complete" data-confirm-ok="Yes, log it" data-confirm-style="success"
+  <form method="post" id="end-form-{{ f.id }}" action="{{ url_for('flight.log_end', flight_id=f.id) }}"
+        data-confirm="{{ 'Log this flight with [[recorded_hours]] hours recorded? It moves to Flight History and gets billed.' if f.asset_is_owner_placeholder else 'Log this flight with Hobbs end [[hobbs_end]]? It moves to Flight History and gets billed.' }}"
+        data-confirm-title="Flight Complete" data-confirm-ok="Yes, log it" data-confirm-style="success"
         data-plane-rate="{{ f.plane_rate or 0 }}" data-instructor-rate="{{ f.instructor_rate or 0 }}"
         data-solo="{{ '1' if f.solo else '' }}" data-instructor-clock-hours="{{ f.instructor_clock_hours if f.instructor_clock_hours is not none else '' }}">
+    {% if f.asset_is_owner_placeholder %}
+    {#- A student's own plane has no real Hobbs/Tach on file - just one box
+       for how long the flight actually took (see _flight_hours), billed at
+       the CFI's Non-School Plane Rate instead of the usual per-Hobbs-hour
+       plane cost (there isn't one - see _row_with_cost). #}
+    <div class="row g-2">
+      <div class="col-6 col-md-4">
+        <label class="form-label small mb-0 fw-bold">Recorded Time (hrs) *</label>
+        <input type="number" step="any" name="recorded_hours" id="recorded-hours-{{ f.id }}" class="form-control form-control-sm recorded-hours-input" data-flight-id="{{ f.id }}" placeholder="e.g. 1.5" required inputmode="decimal" min="0">
+        <div class="form-text">Student's own plane - no Hobbs/Tach to log, just the total time this flight took.</div>
+      </div>
+    </div>
+    {% else %}
     <div class="row g-2">
       <div class="col-6 col-md-3">
         {#- The clock is allowed to start before Hobbs/Tach are in (see
@@ -269,6 +286,7 @@
                {% if f.tach_start is not none %}min="{{ f.tach_start }}"{% endif %}>
       </div>
     </div>
+    {% endif %}
     <div class="row g-2 mt-1">
       <div class="col-6 col-md-4">
         <label class="form-label small mb-0">Oil Added (qt)</label>
@@ -850,21 +868,33 @@ document.querySelectorAll('.use-credit-btn').forEach(function (btn) {
     }
   });
 });
-// "Use Credit" stays disabled until Hobbs Start and End give the flight a
-// real, billable total - same precondition the server needs to price it
-// (see flight._flight_hours).
-function refreshCreditButton(fId) {
-  var creditBtn = document.querySelector('.use-credit-btn[data-flight-id="' + fId + '"]');
-  if (!creditBtn) return;
+// The hours flown for one flight's live pricing, mirroring
+// flight._flight_hours(): the single Recorded Time box for a student's own
+// plane (no real Hobbs/Tach for those - see log_active.html's is_owner_
+// placeholder branch), else Hobbs Start/End - or null if there's not
+// enough entered yet.
+function getEnteredHours(fId) {
+  var recordedInput = document.getElementById('recorded-hours-' + fId);
+  if (recordedInput) {
+    var recorded = parseFloat(recordedInput.value);
+    return (!isNaN(recorded) && recorded > 0) ? recorded : null;
+  }
   var startInput = document.getElementById('hobbs-start-' + fId);
   var endInput = document.getElementById('hobbs-end-' + fId);
   var start = startInput ? parseFloat(startInput.value) : NaN;
   var end = endInput ? parseFloat(endInput.value) : NaN;
-  var hasTotal = !isNaN(start) && !isNaN(end) && end > start;
-  creditBtn.disabled = !hasTotal;
-  creditBtn.title = hasTotal ? '' : "Enter Hobbs Start and End first so there's a total to apply it to";
+  return (!isNaN(start) && !isNaN(end) && end > start) ? (end - start) : null;
 }
-document.querySelectorAll('.hobbs-end-input').forEach(function (input) {
+// "Use Credit" stays disabled until there's a real, billable total - same
+// precondition the server needs to price it (see flight._flight_hours).
+function refreshCreditButton(fId) {
+  var creditBtn = document.querySelector('.use-credit-btn[data-flight-id="' + fId + '"]');
+  if (!creditBtn) return;
+  var hasTotal = getEnteredHours(fId) !== null;
+  creditBtn.disabled = !hasTotal;
+  creditBtn.title = hasTotal ? '' : "Enter the flight's hours first so there's a total to apply it to";
+}
+document.querySelectorAll('.hobbs-end-input, .recorded-hours-input').forEach(function (input) {
   input.addEventListener('input', function () { refreshCreditButton(input.dataset.flightId); computeFlightTotal(input.dataset.flightId); });
 });
 document.querySelectorAll('input[id^="hobbs-start-"]:not([disabled])').forEach(function (input) {
@@ -888,11 +918,8 @@ function roundUpHours(h) {
 function getFlightBreakdown(fId) {
   var form = document.getElementById('end-form-' + fId);
   if (!form) return null;
-  var startInput = document.getElementById('hobbs-start-' + fId);
-  var endInput = document.getElementById('hobbs-end-' + fId);
-  var start = startInput ? parseFloat(startInput.value) : NaN;
-  var end = endInput ? parseFloat(endInput.value) : NaN;
-  if (isNaN(start) || isNaN(end) || end <= start) return null;
+  var rawHours = getEnteredHours(fId);
+  if (rawHours === null) return null;
   var planeRate = parseFloat(form.dataset.planeRate) || 0;
   var instructorRate = parseFloat(form.dataset.instructorRate) || 0;
   var isSolo = form.dataset.solo === '1';
@@ -902,8 +929,8 @@ function getFlightBreakdown(fId) {
   var ground = groundInput ? (parseFloat(groundInput.value) || 0) : 0;
   var soloPortion = (!isSolo && soloInput) ? (parseFloat(soloInput.value) || 0) : 0;
 
-  var hours = roundUpHours(end - start);
-  var rawInstructorHours = clockHoursRaw ? parseFloat(clockHoursRaw) : (end - start);
+  var hours = roundUpHours(rawHours);
+  var rawInstructorHours = clockHoursRaw ? parseFloat(clockHoursRaw) : rawHours;
   rawInstructorHours = Math.max(0, rawInstructorHours - soloPortion);
   var instructorHours = roundUpHours(rawInstructorHours);
   var groundHours = roundUpHours(ground);
@@ -925,7 +952,8 @@ function computeFlightTotal(fId) {
   display.querySelector('.flight-total-amount').textContent = '$' + b.total.toFixed(2);
   var breakdownEl = display.querySelector('.flight-total-breakdown');
   if (breakdownEl) {
-    var parts = [b.hobbsHours.toFixed(1) + ' Hobbs hr' + (b.hobbsHours === 1 ? '' : 's')];
+    var isOwnPlane = !!document.getElementById('recorded-hours-' + fId);
+    var parts = [b.hobbsHours.toFixed(1) + (isOwnPlane ? ' recorded hr' : ' Hobbs hr') + (b.hobbsHours === 1 ? '' : 's')];
     if (b.groundHours > 0) parts.push(b.groundHours.toFixed(1) + ' ground hr' + (b.groundHours === 1 ? '' : 's'));
     breakdownEl.textContent = parts.join(' + ');
   }

@@ -1271,6 +1271,12 @@ def _migrate(conn):
         # page instead of only living on the plane's page. NULL means
         # unassigned, same as before this column existed.
         ("plane_todos", "assigned_to", "ALTER TABLE plane_todos ADD COLUMN assigned_to INTEGER REFERENCES users(id)"),
+        # A flight in a student's own plane (see _get_or_create_own_plane_asset
+        # in flight.py) has no real Hobbs/Tach to read - there's just one
+        # recorded time box for how long the flight actually took, billed at
+        # the CFI's Non-School Plane Rate (cfis.external_rate) instead of the
+        # usual Hobbs/Tach-derived hours. NULL for every other flight.
+        ("flights", "recorded_hours", "ALTER TABLE flights ADD COLUMN recorded_hours REAL"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

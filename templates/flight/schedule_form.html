@@ -293,7 +293,7 @@
     {% endif %}
     {% if allow_complete %}
     <div id="complete-fields" class="complete-only">
-    <div class="row">
+    <div class="row" id="hobbs-tach-fields">
       <div class="col-md-6 mb-3">
         <label class="form-label">Hobbs Start</label>
         <input type="number" step="any" id="hobbs-start" name="hobbs_start" class="form-control" value="{{ form.get('hobbs_start', '') if form else '' }}">
@@ -309,6 +309,18 @@
       <div class="col-md-6 mb-3">
         <label class="form-label">Tach End</label>
         <input type="number" step="any" name="tach_end" class="form-control" value="{{ form.get('tach_end', '') if form else '' }}">
+      </div>
+    </div>
+    {#- Student's own plane has no real Hobbs/Tach to log - just the one
+       recorded-time box (see _flight_hours/_row_with_cost), billed at the
+       CFI's Non-School Plane Rate instead of a per-Hobbs-hour plane cost
+       (there isn't one). Toggled by the same "Student's own plane" switch
+       as the Plane field above - see updateOwnPlane() below. #}
+    <div class="row d-none" id="recorded-hours-field">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Recorded Time (hrs)</label>
+        <input type="number" step="any" name="recorded_hours" class="form-control" placeholder="e.g. 1.5" min="0" value="{{ form.get('recorded_hours', '') if form else '' }}">
+        <div class="form-text">Student's own plane - no Hobbs/Tach on file, just the total time this flight took.</div>
       </div>
     </div>
     <div class="row">
@@ -705,12 +717,16 @@
   // optional N-number field in its place.
   var ownPlaneCheck = document.getElementById('own-plane-check');
   var ownPlaneWrap = document.getElementById('own-plane-n-number-wrap');
+  var hobbsTachFields = document.getElementById('hobbs-tach-fields');
+  var recordedHoursField = document.getElementById('recorded-hours-field');
   if (ownPlaneCheck && ownPlaneWrap) {
     var updateOwnPlane = function () {
       var checked = ownPlaneCheck.checked;
       wrap.classList.toggle('d-none', checked);
       ownPlaneWrap.classList.toggle('d-none', !checked);
       wrap.classList.remove('is-invalid-group');
+      if (hobbsTachFields) hobbsTachFields.classList.toggle('d-none', checked);
+      if (recordedHoursField) recordedHoursField.classList.toggle('d-none', !checked);
     };
     ownPlaneCheck.addEventListener('change', updateOwnPlane);
     updateOwnPlane();

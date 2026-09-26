@@ -311,6 +311,7 @@ CREATE TABLE IF NOT EXISTS flights (
     eta_set_by TEXT, -- who entered that ETA
     solo_hours REAL, -- part of a dual flight the student flew alone: not billed for the instructor, logged as solo/PIC
     guest_name TEXT, -- flown by a guest (Guest / Intro placeholder student): their name
+    recorded_hours REAL, -- a student's-own-plane flight's single recorded time box, instead of Hobbs/Tach
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_flights_asset ON flights(asset_id);

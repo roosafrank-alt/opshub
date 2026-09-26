@@ -8,11 +8,20 @@
   {% if prefill and prefill.scheduled_flight_id %}
   <p class="text-muted small">Pre-filled from your scheduled booking.</p>
   {% endif %}
+  {% set is_own_plane = (form and form.get('own_plane')) or (not form and prefill and prefill.own_plane) %}
   <form method="post" action="{% if edit_flight_id %}{{ url_for('flight.log_edit', flight_id=edit_flight_id) }}{% endif %}">
     <input type="hidden" name="scheduled_flight_id" value="{{ form.get('scheduled_flight_id') if form else (prefill.scheduled_flight_id if prefill else '') }}">
     <div class="row">
       <div class="col-md-6 mb-3">
-        <label class="form-label">Plane *</label>
+        <label class="form-label">Plane {% if not is_own_plane %}*{% endif %}</label>
+        {% if is_own_plane %}
+        {#- This booking used "Student's own plane" (see
+           _get_or_create_own_plane_asset) - there's no real plane to pick,
+           the flights row gets tied back to that same placeholder asset
+           automatically (via student_id + own_plane below). #}
+        <input type="hidden" name="own_plane" value="1">
+        <input type="text" class="form-control" value="Student's own plane" disabled>
+        {% else %}
         <select name="asset_id" id="plane-select" class="form-select" required>
           <option value="" disabled {% if not (form and form.get('asset_id')) and not (prefill and prefill.asset_id) %}selected{% endif %}>-- Select a plane --</option>
           {% for p in planes %}
@@ -22,6 +31,7 @@
           </option>
           {% endfor %}
         </select>
+        {% endif %}
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Student *</label>
@@ -64,6 +74,15 @@
       <label class="form-label">Flight Date</label>
       <input type="date" name="flight_date" class="form-control" value="{{ form.get('flight_date') if form else (prefill.flight_date if prefill and prefill.flight_date else today) }}">
     </div>
+    {% if is_own_plane %}
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Recorded Time (hrs)</label>
+        <input type="number" step="any" name="recorded_hours" class="form-control" placeholder="e.g. 1.5" min="0" value="{{ form.get('recorded_hours') if form else '' }}">
+        <div class="form-text">Student's own plane - no Hobbs/Tach on file, just the total time this flight took.</div>
+      </div>
+    </div>
+    {% else %}
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Hobbs Start</label>
@@ -82,6 +101,7 @@
         <input type="number" step="any" name="tach_end" class="form-control" value="{{ form.get('tach_end') if form else '' }}">
       </div>
     </div>
+    {% endif %}
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Oil Added (qt) <span class="text-muted small">(if any)</span></label>
@@ -157,15 +177,18 @@
 
 {% block scripts %}
 <script>
-document.getElementById('plane-select').addEventListener('change', function () {
-  var opt = this.options[this.selectedIndex];
-  var hobbs = opt.getAttribute('data-hobbs');
-  var tach = opt.getAttribute('data-tach');
-  var hobbsStart = document.getElementById('hobbs-start');
-  var tachStart = document.getElementById('tach-start');
-  if (hobbs && !hobbsStart.value) hobbsStart.value = hobbs;
-  if (tach && !tachStart.value) tachStart.value = tach;
-});
+var planeSelect = document.getElementById('plane-select');
+if (planeSelect) {
+  planeSelect.addEventListener('change', function () {
+    var opt = this.options[this.selectedIndex];
+    var hobbs = opt.getAttribute('data-hobbs');
+    var tach = opt.getAttribute('data-tach');
+    var hobbsStart = document.getElementById('hobbs-start');
+    var tachStart = document.getElementById('tach-start');
+    if (hobbs && hobbsStart && !hobbsStart.value) hobbsStart.value = hobbs;
+    if (tach && tachStart && !tachStart.value) tachStart.value = tach;
+  });
+}
 document.getElementById('solo-check').addEventListener('change', function () {
   document.getElementById('cfi-select').disabled = this.checked;
 });
