@@ -39,12 +39,16 @@
 </div>
 
 <div class="card p-3 mb-3">
+  {#- Checking a task off no longer finishes it outright - it goes to
+     Awaiting Confirmation until an Inspector or admin signs off (see
+     plane_todo_toggle/plane_todo_confirm in app.py), same request/confirm
+     step a squawk's repair or a project sub area already requires. #}
   <h6 class="mb-2"><i class="bi bi-list-check"></i> My Tasks <span class="text-muted small fw-normal">({{ my_todos|length }})</span></h6>
   {% if my_todos %}
   <ul class="list-group list-group-flush">
     {% for t in my_todos %}
     <li class="list-group-item px-0 d-flex align-items-start gap-2">
-      <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=t.asset_id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1">
+      <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=t.asset_id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1" data-confirm="Mark this task done? An Inspector or admin will still need to confirm it.">
         <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark done">
           <i class="bi bi-square fs-5"></i>
         </button>
@@ -55,6 +59,43 @@
   </ul>
   {% else %}
   <p class="text-muted small mb-0">Nothing assigned to you right now.</p>
+  {% endif %}
+</div>
+
+{% if my_todos_pending %}
+<div class="card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-hourglass-split"></i> Awaiting Confirmation <span class="text-muted small fw-normal">({{ my_todos_pending|length }})</span></h6>
+  <ul class="list-group list-group-flush">
+    {% for t in my_todos_pending %}
+    <li class="list-group-item px-0 d-flex align-items-start gap-2">
+      <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=t.asset_id, todo_id=t.id) }}" data-confirm="Undo - back to not done yet?">
+        <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Undo">
+          <i class="bi bi-square fs-5 text-warning"></i>
+        </button>
+      </form>
+      <span><a href="{{ url_for('asset_detail', asset_id=t.asset_id) }}" class="text-muted small">{{ t.asset_tag }}</a> - {{ t.description }}
+        <small class="text-warning-emphasis fw-bold d-block">Marked ready - waiting on an Inspector or admin to confirm</small>
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-check-square"></i> Completed <span class="text-muted small fw-normal">({{ my_todos_done|length }})</span></h6>
+  {% if my_todos_done %}
+  <ul class="list-group list-group-flush">
+    {% for t in my_todos_done %}
+    <li class="list-group-item px-0 d-flex align-items-start gap-2">
+      <i class="bi bi-check-square-fill text-success fs-5"></i>
+      <span class="text-decoration-line-through text-muted"><a href="{{ url_for('asset_detail', asset_id=t.asset_id) }}" class="text-muted small">{{ t.asset_tag }}</a> - {{ t.description }}</span>
+      {% if t.confirmed_by %}<span class="small text-muted ms-auto">confirmed by {{ t.confirmed_by }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-muted small mb-0">Nothing completed yet.</p>
   {% endif %}
 </div>
 

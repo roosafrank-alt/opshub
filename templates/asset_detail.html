@@ -400,7 +400,27 @@
           {% for t in open_todos %}
           <li class="list-group-item px-0 d-flex flex-column gap-1">
             <div class="d-flex justify-content-between align-items-start gap-2">
-              <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1">
+              {% if t.confirm_requested_at %}
+              {#- Same request/confirm two-step a squawk's repair uses above:
+                 checking the box only asked for confirmation - an Inspector
+                 (or admin) has to sign off (plane_todo_confirm) before this
+                 to-do actually counts as done. #}
+              <span class="flex-grow-1">{{ t.description }}
+                <small class="text-warning-emphasis fw-bold d-block"><i class="bi bi-hourglass-split"></i> Awaiting confirmation - marked ready by {{ t.confirm_requested_by or '-' }}</small>
+              </span>
+              {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector') %}
+              <div class="d-flex gap-1">
+                <form method="post" action="{{ url_for('plane_todo_confirm', asset_id=asset.id, todo_id=t.id) }}" data-confirm="Confirm this task as done?" data-confirm-title="Confirm Task" data-confirm-style="success">
+                  <button class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Confirm</button>
+                </form>
+                <form method="post" action="{{ url_for('plane_todo_confirm', asset_id=asset.id, todo_id=t.id) }}" data-confirm="Send this back as not yet done?" data-confirm-title="Send Back">
+                  <input type="hidden" name="action" value="send_back">
+                  <button class="btn btn-outline-secondary btn-sm">Send Back</button>
+                </form>
+              </div>
+              {% endif %}
+              {% else %}
+              <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1" data-confirm="Mark this task done? An Inspector or admin will still need to confirm it.">
                 <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark done">
                   <i class="bi bi-square fs-5"></i>
                 </button>
@@ -411,6 +431,7 @@
                    manual - creating the project doesn't do that on its own. #}
                 <a href="{{ url_for('project_new', asset_id=asset.id, name=t.description, quick_type='Maintenance') }}" class="flex-grow-1 text-body text-decoration-none" title="Start a project from this to-do">{{ t.description }}</a>
               </form>
+              {% endif %}
               <form method="post" action="{{ url_for('plane_todo_delete', asset_id=asset.id, todo_id=t.id) }}" data-confirm="Remove this to-do?" data-confirm-style="danger">
                 <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
               </form>

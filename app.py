@@ -3538,14 +3538,55 @@ def plane_todo_assign(asset_id, todo_id):
 @app.route("/assets/<int:asset_id>/todo/<int:todo_id>/toggle", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def plane_todo_toggle(asset_id, todo_id):
+    """Checking a plane to-do's box no longer completes it outright - it
+    requests confirmation instead (confirm_requested_at/by), same
+    request/confirm two-step a project sub area or a squawk's repair
+    already requires (see project_section_complete and squawk_repair).
+    Unchecking a still-open one just cancels the request, back to plain
+    open. A to-do already confirmed done can still be reopened here (unlike
+    squawks/sections, which only reopen via "Send Back" during the awaiting
+    step) - toggling a done row clears done, completed_at and confirmed_by."""
     conn = get_db()
     todo = conn.execute("SELECT * FROM plane_todos WHERE id = ? AND asset_id = ?", (todo_id, asset_id)).fetchone()
     if not todo:
         conn.close()
         abort(404)
-    new_done = 0 if todo["done"] else 1
-    conn.execute("UPDATE plane_todos SET done = ?, completed_at = ? WHERE id = ?",
-                 (new_done, now_iso() if new_done else None, todo_id))
+    if todo["done"]:
+        conn.execute("""UPDATE plane_todos SET done = 0, completed_at = NULL, confirmed_by = NULL,
+                         confirm_requested_at = NULL, confirm_requested_by = NULL WHERE id = ?""", (todo_id,))
+    elif todo["confirm_requested_at"]:
+        conn.execute("UPDATE plane_todos SET confirm_requested_at = NULL, confirm_requested_by = NULL WHERE id = ?",
+                     (todo_id,))
+    else:
+        conn.execute("UPDATE plane_todos SET confirm_requested_at = ?, confirm_requested_by = ? WHERE id = ?",
+                     (now_iso(), session.get("user_name"), todo_id))
+        flash("Marked ready - an Inspector or admin needs to confirm it.", "success")
+    conn.commit()
+    conn.close()
+    return redirect(request.referrer or url_for("asset_detail", asset_id=asset_id))
+
+
+@app.route("/assets/<int:asset_id>/todo/<int:todo_id>/confirm", methods=["POST"])
+@shop_role_required('admin', 'inspector')
+def plane_todo_confirm(asset_id, todo_id):
+    """An Inspector (or admin) signs off on a to-do someone else marked
+    ready - this is what actually completes it. 'Send back' cancels the
+    request instead, so whoever did the work knows it wasn't approved (same
+    pattern as project_section_confirm/squawk_repair_confirm)."""
+    conn = get_db()
+    todo = conn.execute("SELECT id FROM plane_todos WHERE id = ? AND asset_id = ?", (todo_id, asset_id)).fetchone()
+    if not todo:
+        conn.close()
+        abort(404)
+    if request.form.get("action") == "send_back":
+        conn.execute("""UPDATE plane_todos SET confirm_requested_at = NULL, confirm_requested_by = NULL,
+                         sent_back_at = ?, sent_back_by = ? WHERE id = ?""",
+                     (now_iso(), session.get("user_name"), todo_id))
+        flash("Sent back - unmarked as done.", "warning")
+    else:
+        conn.execute("UPDATE plane_todos SET done = 1, completed_at = ?, confirmed_by = ? WHERE id = ?",
+                     (now_iso(), session.get("user_name"), todo_id))
+        flash("Confirmed complete.", "success")
     conn.commit()
     conn.close()
     return redirect(request.referrer or url_for("asset_detail", asset_id=asset_id))
@@ -3571,15 +3612,33 @@ def tech_spot():
     in one spot instead of hunting across Squawks and each plane's page."""
     conn = get_db()
     my_squawks = get_my_squawks(conn, session["user_id"])
+    # Open (not yet checked off) and awaiting-confirmation to-dos are both
+    # "not done yet", just split so the page can show the pending ones as
+    # waiting on an Inspector rather than actionable. Completed shows what
+    # this laborer has actually finished (see plane_todo_confirm) - the
+    # requested "Completed" section on this page - most recent first.
     my_todos = conn.execute("""
         SELECT pt.*, a.tag as asset_tag FROM plane_todos pt
         JOIN assets a ON a.id = pt.asset_id
-        WHERE pt.assigned_to = ? AND pt.done = 0
+        WHERE pt.assigned_to = ? AND pt.done = 0 AND pt.confirm_requested_at IS NULL
         ORDER BY pt.created_at
+    """, (session["user_id"],)).fetchall()
+    my_todos_pending = conn.execute("""
+        SELECT pt.*, a.tag as asset_tag FROM plane_todos pt
+        JOIN assets a ON a.id = pt.asset_id
+        WHERE pt.assigned_to = ? AND pt.done = 0 AND pt.confirm_requested_at IS NOT NULL
+        ORDER BY pt.confirm_requested_at
+    """, (session["user_id"],)).fetchall()
+    my_todos_done = conn.execute("""
+        SELECT pt.*, a.tag as asset_tag FROM plane_todos pt
+        JOIN assets a ON a.id = pt.asset_id
+        WHERE pt.assigned_to = ? AND pt.done = 1
+        ORDER BY pt.completed_at DESC LIMIT 25
     """, (session["user_id"],)).fetchall()
     reminders = _fleet_maintenance_reminders(conn)
     conn.close()
-    return render_template("tech_spot.html", my_squawks=my_squawks, my_todos=my_todos, reminders=reminders)
+    return render_template("tech_spot.html", my_squawks=my_squawks, my_todos=my_todos,
+                           my_todos_pending=my_todos_pending, my_todos_done=my_todos_done, reminders=reminders)
 
 
 @app.route("/assets/<int:asset_id>/oil")

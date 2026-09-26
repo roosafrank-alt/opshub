@@ -1277,6 +1277,17 @@ def _migrate(conn):
         # the CFI's Non-School Plane Rate (cfis.external_rate) instead of the
         # usual Hobbs/Tach-derived hours. NULL for every other flight.
         ("flights", "recorded_hours", "ALTER TABLE flights ADD COLUMN recorded_hours REAL"),
+        # A plane to-do's checkbox no longer completes it outright - same
+        # request/confirm two-step a project sub area or a squawk's repair
+        # already requires (see project_section_complete/confirm and
+        # squawk_repair/repair_confirm): checking it off asks for an
+        # Inspector (or admin) to confirm before "done" is set. NULL for
+        # every to-do that isn't currently awaiting confirmation.
+        ("plane_todos", "confirm_requested_at", "ALTER TABLE plane_todos ADD COLUMN confirm_requested_at TEXT"),
+        ("plane_todos", "confirm_requested_by", "ALTER TABLE plane_todos ADD COLUMN confirm_requested_by TEXT"),
+        ("plane_todos", "confirmed_by", "ALTER TABLE plane_todos ADD COLUMN confirmed_by TEXT"),
+        ("plane_todos", "sent_back_at", "ALTER TABLE plane_todos ADD COLUMN sent_back_at TEXT"),
+        ("plane_todos", "sent_back_by", "ALTER TABLE plane_todos ADD COLUMN sent_back_by TEXT"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)
