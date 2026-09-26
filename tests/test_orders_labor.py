@@ -360,7 +360,6 @@ class LaborFlowTest(OpsHubTestCase):
             self.assertEqual(r.json["action"], "clock_out")
         self.assertEqual(self.q("SELECT id FROM labor_sessions WHERE ended_at IS NULL"), [])
 
-    @open_finding("qa-labor-malformed-body")
     def test_garbled_labor_scans_are_rejected_not_crashes(self):
         for body in (["LABOR-AAAA0001"], "LABOR-AAAA0001", {"code": 12345}, {"code": ["LABOR-AAAA0001"]},
                      {"code": "LABOR-AAAA0001", "project_id": {"id": 1}}):

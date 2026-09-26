@@ -4623,11 +4623,29 @@ def api_labor_scan():
     (on any task), this same scan ends it and records the hours/cost.
     Changes a worker's hours, pay and a job's labor bill, so it needs a Shop
     role (like /api/scan) - login alone let flight-only accounts clock people."""
-    data = request.get_json(force=True, silent=True) or {}
-    code = (data.get("code") or "").strip()
+    # A garbled body (not a JSON object, or fields of the wrong type) gets a
+    # plain 400, same as /api/scan - never a crash in the error log.
+    data = request.get_json(force=True, silent=True)
+    if data is None:
+        data = {}
+    if not isinstance(data, dict):
+        return jsonify({"ok": False, "error": "bad_request"}), 400
+    for field in ("code", "section", "note"):
+        if data.get(field) is not None and not isinstance(data[field], str):
+            return jsonify({"ok": False, "error": "bad_request"}), 400
     project_id = data.get("project_id")
+    if project_id in ("", None):
+        project_id = None
+    elif isinstance(project_id, bool) or not isinstance(project_id, (int, str)):
+        return jsonify({"ok": False, "error": "bad_request"}), 400
+    else:
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            project_id = -1  # text that isn't a job id: matches no job -> "unknown_project" below
+    code = (data.get("code") or "").strip()
     section = (data.get("section") or "").strip() or None
-    general = bool(data.get("general"))
+    general = data.get("general") is True
     note = (data.get("note") or "").strip() or None
     if not code.startswith("LABOR-"):
         return jsonify({"ok": False, "error": "not_a_laborer_code"}), 400
