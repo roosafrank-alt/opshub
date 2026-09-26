@@ -10,6 +10,7 @@ import subprocess
 import threading
 import time
 import logging
+import math
 from datetime import date, datetime, timedelta
 from flask import (Flask, render_template, request, redirect, url_for, jsonify, flash, abort,
                     Response, session, got_request_exception)
@@ -72,6 +73,21 @@ app.register_blueprint(customer_bp)
 app.register_blueprint(manuals_bp)
 app.register_blueprint(groundschool_bp)
 app.teardown_request(close_request_conns)
+
+
+def _parse_qty(raw, allow_zero=False):
+    """A quantity typed or scanned at the parts counter -> float, or None
+    if it isn't a usable number. Rejects NaN/Infinity (float("nan") passes
+    every `<= 0` check and would write NaN into qty_on_hand, wrecking that
+    part's count for good) and negatives; zero only when allow_zero (a
+    physical recount can legitimately be 0, a scan/assignment can't)."""
+    try:
+        val = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(val) or val < 0 or (val == 0 and not allow_zero):
+        return None
+    return val
 
 
 # ---------------------------------------------------------------------------
@@ -1382,12 +1398,9 @@ def api_scan():
 
     if not barcode:
         return jsonify({"ok": False, "error": "No barcode provided."}), 400
-    try:
-        qty = float(qty)
-    except (TypeError, ValueError):
-        return jsonify({"ok": False, "error": "Quantity must be a number."}), 400
-    if qty <= 0:
-        return jsonify({"ok": False, "error": "Quantity must be greater than zero."}), 400
+    qty = _parse_qty(qty)
+    if qty is None:
+        return jsonify({"ok": False, "error": "Quantity must be a number greater than zero."}), 400
     if action not in ("in", "out"):
         return jsonify({"ok": False, "error": "Invalid action."}), 400
     if action == "out" and not project_id:
@@ -1511,13 +1524,12 @@ def part_new():
             conn.close()
             return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
                                    form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
-        try:
-            qty = float(request.form.get("qty_on_hand") or 0)
-            reorder = float(request.form.get("reorder_point") or 0)
-            cost = float(request.form.get("unit_cost") or 0)
-            sell_price = float(request.form.get("sell_price") or 0)
-        except ValueError:
-            flash("Quantity, reorder point, cost, and sell price must be numbers.", "danger")
+        qty = _parse_qty(request.form.get("qty_on_hand") or 0, allow_zero=True)
+        reorder = _parse_qty(request.form.get("reorder_point") or 0, allow_zero=True)
+        cost = _parse_qty(request.form.get("unit_cost") or 0, allow_zero=True)
+        sell_price = _parse_qty(request.form.get("sell_price") or 0, allow_zero=True)
+        if None in (qty, reorder, cost, sell_price):
+            flash("Quantity, reorder point, cost, and sell price must be numbers (0 or more).", "danger")
             conn.close()
             return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
                                    form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
@@ -1590,12 +1602,11 @@ def part_edit(part_id):
         conn.close()
         abort(404)
     if request.method == "POST":
-        try:
-            reorder = float(request.form.get("reorder_point") or 0)
-            cost = float(request.form.get("unit_cost") or 0)
-            sell_price = float(request.form.get("sell_price") or 0)
-        except ValueError:
-            flash("Reorder point, cost, and sell price must be numbers.", "danger")
+        reorder = _parse_qty(request.form.get("reorder_point") or 0, allow_zero=True)
+        cost = _parse_qty(request.form.get("unit_cost") or 0, allow_zero=True)
+        sell_price = _parse_qty(request.form.get("sell_price") or 0, allow_zero=True)
+        if None in (reorder, cost, sell_price):
+            flash("Reorder point, cost, and sell price must be numbers (0 or more).", "danger")
             conn.close()
             return render_template("part_form.html", part=part, categories=CATEGORIES_DEFAULT, form=request.form,
                                    notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
@@ -1630,10 +1641,9 @@ def part_adjust(part_id):
         flash("Select who's making this adjustment (\"Scanning as\") first.", "danger")
         conn.close()
         return redirect(url_for("part_detail", part_id=part_id))
-    try:
-        new_qty = float(request.form.get("new_qty"))
-    except (TypeError, ValueError):
-        flash("New quantity must be a number.", "danger")
+    new_qty = _parse_qty(request.form.get("new_qty"), allow_zero=True)
+    if new_qty is None:
+        flash("New quantity must be a number, 0 or more.", "danger")
         conn.close()
         return redirect(url_for("part_detail", part_id=part_id))
     delta = new_qty - part["qty_on_hand"]
@@ -2292,10 +2302,9 @@ def project_add_part(project_id):
         flash("Select who's assigning this part (\"Scanning as\") first.", "danger")
         conn.close()
         return redirect(url_for("project_detail", project_id=project_id))
-    try:
-        qty = float(request.form.get("qty"))
-    except (TypeError, ValueError):
-        flash("Quantity must be a number.", "danger")
+    qty = _parse_qty(request.form.get("qty"))
+    if qty is None:
+        flash("Quantity must be a number greater than zero.", "danger")
         conn.close()
         return redirect(url_for("project_detail", project_id=project_id))
     part = conn.execute("SELECT * FROM parts WHERE id = ?", (part_id,)).fetchone()

@@ -102,7 +102,6 @@ class ScanFlowTest(OpsHubTestCase):
     def test_scan_out_to_nonexistent_project_rejected(self):
         self._assert_rejected(self.scan("PART-001", "out", 1, 9999), status=404)
 
-    @open_finding("qa-nan-quantities")
     def test_nan_and_infinity_quantities_rejected(self):
         # float("nan") slipped past the `qty <= 0`
         # check and wrote NaN into qty_on_hand, permanently corrupting the part.
@@ -164,7 +163,6 @@ class PartFlowTest(OpsHubTestCase):
         self._new(name="  ")
         self.assertEqual(self.q1("SELECT COUNT(*) c FROM parts")["c"], 0)
 
-    @open_finding("qa-nan-quantities")
     def test_new_part_rejects_nan_or_negative_stock(self):
         for bad in ("nan", "inf", "-5"):
             with self.subTest(qty=bad):
@@ -187,14 +185,12 @@ class PartFlowTest(OpsHubTestCase):
         self.assertEqual(self.qty(pid), 7)
         self.assertEqual(ledger_qty(self, pid), 7)
 
-    @open_finding("qa-negative-recount")
     def test_count_adjustment_rejects_negative(self):
         # A physical count can't be negative.
         pid = self.make_part(qty=10)
         self.client.post(f"/parts/{pid}/adjust", data=dict(new_qty="-2", performed_by="Frank"))
         self.assertEqual(self.qty(pid), 10)
 
-    @open_finding("qa-nan-quantities")
     def test_count_adjustment_rejects_nan_or_infinity(self):
         pid = self.make_part(qty=10)
         for bad in ("nan", "inf"):
@@ -339,7 +335,6 @@ class LedgerInvariantTest(OpsHubTestCase):
     still equal what its transaction history adds up to, and never go
     negative. Seeded, so a failure is reproducible."""
 
-    @open_finding("qa-order-double-receive + qa-negative-recount + qa-nan-quantities")
     def test_random_day_at_the_parts_counter(self):
         rnd = random.Random(1234)
         parts = [self.make_part(name=f"P{i}", barcode=f"B{i}", qty=rnd.randint(0, 20)) for i in range(5)]
