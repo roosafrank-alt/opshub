@@ -1764,6 +1764,37 @@ def _migrate(conn):
             conn.execute(f"ALTER TABLE orders ADD COLUMN {col} {decl}")
     conn.commit()
 
+    # AD compliance (see ads.py). A recurring AD links to the maintenance
+    # item that tracks when it's next due.
+    conn.execute("""CREATE TABLE IF NOT EXISTS ads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        asset_id INTEGER NOT NULL REFERENCES assets(id),
+        ad_number TEXT NOT NULL,
+        subject TEXT,
+        kind TEXT NOT NULL,
+        interval_hours REAL,
+        interval_days INTEGER,
+        na_reason TEXT,
+        maintenance_item_id INTEGER REFERENCES maintenance_items(id),
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        created_by TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_ads_asset ON ads(asset_id)")
+    conn.execute("""CREATE TABLE IF NOT EXISTS ad_compliance (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ad_id INTEGER NOT NULL REFERENCES ads(id),
+        complied_date TEXT NOT NULL,
+        tach_hours REAL,
+        method TEXT NOT NULL,
+        signed_by TEXT,
+        note TEXT,
+        photo TEXT,
+        created_at TEXT NOT NULL
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_ad_compliance_ad ON ad_compliance(ad_id)")
+    conn.commit()
+
     # Shipment tracking on orders (see tracking.py): the number/carrier typed
     # on New/Edit Order, plus the last status fetched for it, cached so the
     # Orders page doesn't ask the carrier on every load.

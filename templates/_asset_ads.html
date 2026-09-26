@@ -1,0 +1,72 @@
+{#- Airworthiness Directives on this aircraft (ads.py): status of each,
+    compliance history, add/record forms, printable AD Status sheet. #}
+{% set ad_badge = {'overdue': 'bg-danger', 'due_soon': 'bg-warning text-dark', 'open': 'bg-danger-subtle text-danger-emphasis border border-danger-subtle',
+                   'ok': 'bg-success', 'unknown': 'bg-secondary', 'complied': 'bg-success', 'terminated': 'bg-secondary', 'na': 'bg-light text-muted border'} %}
+<div class="card p-3 mb-3" id="ads">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h6 class="mb-0"><i class="bi bi-shield-check"></i> ADs <span class="text-muted small fw-normal">(Airworthiness Directives)</span></h6>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('ads.ad_status_print', asset_id=asset.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer"></i> AD Status sheet</a>
+      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#ad-new-form"><i class="bi bi-plus-lg"></i> Add AD</button>
+    </div>
+  </div>
+  <form method="post" action="{{ url_for('ads.ad_new', asset_id=asset.id) }}" id="ad-new-form" class="collapse border rounded p-2 mb-2">
+    <div class="row g-2">
+      <div class="col-sm-4"><label class="form-label small mb-0" for="ad-number">AD number</label>
+        <input id="ad-number" name="ad_number" class="form-control" placeholder="e.g. 2011-10-09" required></div>
+      <div class="col-sm-8"><label class="form-label small mb-0" for="ad-subject">Subject</label>
+        <input id="ad-subject" name="subject" class="form-control" placeholder="e.g. Seat rail inspection"></div>
+      <div class="col-sm-4"><label class="form-label small mb-0" for="ad-kind">Kind</label>
+        <select id="ad-kind" name="kind" class="form-select" required
+                onchange="var k=this.value; document.getElementById('ad-int-hours').classList.toggle('d-none', k!=='recurring_hours'); document.getElementById('ad-int-days').classList.toggle('d-none', k!=='recurring_date'); document.getElementById('ad-na').classList.toggle('d-none', k!=='not_applicable');">
+          {% for val, label in ad_kinds %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+        </select></div>
+      <div class="col-sm-4 d-none" id="ad-int-hours"><label class="form-label small mb-0" for="ad-hours">Every (tach hours)</label>
+        <input id="ad-hours" type="number" step="any" min="0" name="interval_hours" class="form-control" placeholder="e.g. 100"></div>
+      <div class="col-sm-4 d-none" id="ad-int-days"><label class="form-label small mb-0" for="ad-days">Every (days)</label>
+        <input id="ad-days" type="number" step="1" min="1" name="interval_days" class="form-control" placeholder="e.g. 365"></div>
+      <div class="col-sm-8 d-none" id="ad-na"><label class="form-label small mb-0" for="ad-na-reason">Why it doesn't apply</label>
+        <input id="ad-na-reason" name="na_reason" class="form-control" placeholder="e.g. Serial number not affected"></div>
+    </div>
+    <button class="btn btn-primary btn-sm mt-2">Add AD</button>
+  </form>
+  {% if asset_ads %}
+  {% for a in asset_ads %}
+  <div class="py-2 {{ 'border-top' if not loop.first }}">
+    <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+      <div>
+        <strong>AD {{ a.ad_number }}</strong>{% if a.subject %} &middot; {{ a.subject }}{% endif %}
+        <div class="small text-muted">{{ dict(ad_kinds)[a.kind] }}{% if a.interval_hours %} every {{ '%g'|format(a.interval_hours) }} hrs{% elif a.interval_days %} every {{ a.interval_days }} days{% endif %}{% if a.na_reason %} &middot; {{ a.na_reason }}{% endif %}
+          {% if a.last %} &middot; last: {{ a.last.complied_date|usdate }}{% if a.last.tach_hours is not none %} at {{ '%g'|format(a.last.tach_hours) }} tach{% endif %} ({{ dict(ad_methods)[a.last.method] }}{% if a.last.signed_by %}, {{ a.last.signed_by }}{% endif %}){% if a.last.photo %} <a href="{{ url_for('static', filename='uploads/' + a.last.photo) }}" target="_blank" rel="noopener">logbook photo</a>{% endif %}{% endif %}</div>
+      </div>
+      <span class="badge {{ ad_badge.get(a.status, 'bg-secondary') }}">{{ a.status_label }}</span>
+    </div>
+    {% if a.status not in ('na', 'terminated') %}
+    <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#ad-comply-{{ a.id }}">Record compliance</button>
+    {% endif %}
+    {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
+    <form method="post" action="{{ url_for('ads.ad_delete', ad_id=a.id) }}" class="d-inline" data-confirm="Remove AD {{ a.ad_number }} from this aircraft?" data-confirm-style="danger"><button class="btn btn-link btn-sm p-0 text-danger ms-2">Remove</button></form>
+    {% endif %}
+    <form method="post" action="{{ url_for('ads.ad_comply', ad_id=a.id) }}" enctype="multipart/form-data" id="ad-comply-{{ a.id }}" class="collapse border rounded p-2 mt-1">
+      <div class="row g-2">
+        <div class="col-6 col-sm-3"><label class="form-label small mb-0" for="adc-date-{{ a.id }}">Date</label>
+          <input id="adc-date-{{ a.id }}" type="date" name="complied_date" class="form-control" value="{{ today_iso or '' }}"></div>
+        <div class="col-6 col-sm-3"><label class="form-label small mb-0" for="adc-tach-{{ a.id }}">Tach</label>
+          <input id="adc-tach-{{ a.id }}" type="number" step="any" min="0" name="tach_hours" class="form-control" value="{{ '%g'|format(asset.tach_hours) if asset.tach_hours is not none else '' }}"></div>
+        <div class="col-6 col-sm-3"><label class="form-label small mb-0" for="adc-method-{{ a.id }}">Method</label>
+          <select id="adc-method-{{ a.id }}" name="method" class="form-select">{% for val, label in ad_methods %}<option value="{{ val }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-sm-3"><label class="form-label small mb-0" for="adc-by-{{ a.id }}">Signed by</label>
+          <input id="adc-by-{{ a.id }}" name="signed_by" class="form-control" value="{{ session.get('user_name') or '' }}"></div>
+        <div class="col-sm-6"><label class="form-label small mb-0" for="adc-note-{{ a.id }}">Note</label>
+          <input id="adc-note-{{ a.id }}" name="note" class="form-control" placeholder="Optional"></div>
+        <div class="col-sm-6"><label class="form-label small mb-0" for="adc-photo-{{ a.id }}">Logbook entry photo</label>
+          <input id="adc-photo-{{ a.id }}" type="file" name="photo" accept="image/*" class="form-control"></div>
+      </div>
+      <button class="btn btn-success btn-sm mt-2">Save compliance</button>
+    </form>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="text-muted small mb-0">No ADs recorded for this aircraft yet. Add the ones that apply; recurring ones then show up in Maintenance and reminders like any other due item.</p>
+  {% endif %}
+</div>

@@ -26,6 +26,7 @@ from manuals import manuals_bp, manuals_for_asset
 from groundschool import groundschool_bp
 from payroll import payroll_bp
 import tracking
+from ads import ads_bp, ads_for_asset, add_ads_to_annual_project, AD_KINDS, AD_METHODS
 import academy
 from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
                    master_admin_required, shop_role_required, can_see_shop_costs,
@@ -75,6 +76,7 @@ app.register_blueprint(customer_bp)
 app.register_blueprint(manuals_bp)
 app.register_blueprint(groundschool_bp)
 app.register_blueprint(payroll_bp)
+app.register_blueprint(ads_bp)
 app.teardown_request(close_request_conns)
 
 
@@ -2018,11 +2020,18 @@ def project_new():
                 conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
                              (new_id, r["name"], now_iso()))
                 added_areas.append(r["name"])
+        # An Annual on a plane with ADs: its open and recurring ADs go on the
+        # Job Sheet list so the IA checks them off during the annual.
+        ads_added = 0
+        if asset_id and ("annual" in name.lower() or any(t.lower() == "annual" for t in quick_types)):
+            ads_added = add_ads_to_annual_project(conn, new_id, asset_id)
         conn.commit()
         conn.close()
         msg = f"Project '{name}' created as {code}. Fill in the intake check before starting work."
         if added_areas:
             msg += f" Sub area{'s' if len(added_areas) != 1 else ''} added: {', '.join(added_areas)}."
+        if ads_added:
+            msg += f" {ads_added} AD{'s' if ads_added != 1 else ''} added to the Job Sheet."
         flash(msg, "success")
         return redirect(url_for("project_intake", project_id=new_id))
     assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
@@ -3163,8 +3172,10 @@ def asset_detail(asset_id):
     owner_student = None
     if asset["is_owner_placeholder"] and asset["owner_student_id"]:
         owner_student = conn.execute("SELECT id, name FROM students WHERE id = ?", (asset["owner_student_id"],)).fetchone()
+    asset_ads = ads_for_asset(conn, asset)
     conn.close()
     return render_template("asset_detail.html", asset=asset, project_blocks=project_blocks, total_cost=total_cost,
+                           asset_ads=asset_ads, ad_kinds=AD_KINDS, ad_methods=AD_METHODS, today_iso=date.today().isoformat(),
                            maintenance_items=maintenance_items, oil_log=oil_log, total_oil_added=total_oil_added,
                            open_squawks=open_squawks, todo_squawks=todo_squawks, photos=photos, todos=todos, project_cover=project_cover,
                            assignable_workers=assignable_workers,
