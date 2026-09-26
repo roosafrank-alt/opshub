@@ -1559,6 +1559,22 @@ def _migrate(conn):
         conn.execute("ALTER TABLE plane_squawks ADD COLUMN worker_acknowledged_by TEXT")
         conn.commit()
 
+    # Marking a squawk repaired now goes through the same request/confirm
+    # two-step as a project sub area (see project_section_complete/_confirm
+    # in app.py): squawk_repair only requests confirmation, and an Inspector
+    # or admin has to actually confirm it via squawk_repair_confirm before
+    # repaired_at gets set. "Send back" clears the request without repairing.
+    flight_cols_repair_confirm = [r["name"] for r in conn.execute("PRAGMA table_info(flights)").fetchall()]
+    if "squawk_repair_confirm_requested_at" not in flight_cols_repair_confirm:
+        conn.execute("ALTER TABLE flights ADD COLUMN squawk_repair_confirm_requested_at TEXT")
+        conn.execute("ALTER TABLE flights ADD COLUMN squawk_repair_confirm_requested_by TEXT")
+        conn.commit()
+    quick_cols_repair_confirm = [r["name"] for r in conn.execute("PRAGMA table_info(plane_squawks)").fetchall()]
+    if "repair_confirm_requested_at" not in quick_cols_repair_confirm:
+        conn.execute("ALTER TABLE plane_squawks ADD COLUMN repair_confirm_requested_at TEXT")
+        conn.execute("ALTER TABLE plane_squawks ADD COLUMN repair_confirm_requested_by TEXT")
+        conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of

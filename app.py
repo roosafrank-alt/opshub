@@ -575,7 +575,9 @@ _FLIGHT_SQUAWK_COLS = """'flight' as kind, f.id as squawk_id, a.id as asset_id, 
                f.squawk_repaired_at as repaired_at, f.squawk_repaired_by as repaired_by,
                f.squawk_assigned_to as assigned_to, au.name as assigned_to_name,
                f.squawk_worker_acknowledged_at as worker_acknowledged_at,
-               f.squawk_worker_acknowledged_by as worker_acknowledged_by"""
+               f.squawk_worker_acknowledged_by as worker_acknowledged_by,
+               f.squawk_repair_confirm_requested_at as repair_confirm_requested_at,
+               f.squawk_repair_confirm_requested_by as repair_confirm_requested_by"""
 _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.tag as asset_tag,
                a.name as asset_name, q.reported_at as event_date, NULL as student_name,
                NULL as cfi_name, q.reported_by as reported_by, q.notes as notes,
@@ -583,7 +585,9 @@ _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.
                q.repaired_at as repaired_at, q.repaired_by as repaired_by,
                q.assigned_to as assigned_to, au.name as assigned_to_name,
                q.worker_acknowledged_at as worker_acknowledged_at,
-               q.worker_acknowledged_by as worker_acknowledged_by"""
+               q.worker_acknowledged_by as worker_acknowledged_by,
+               q.repair_confirm_requested_at as repair_confirm_requested_at,
+               q.repair_confirm_requested_by as repair_confirm_requested_by"""
 
 
 def get_open_squawks(conn):
@@ -796,7 +800,7 @@ def _apply_squawk_assignment(conn, kind, squawk_id, assigned_to_raw):
 
 
 @app.route("/squawks/<kind>/<int:squawk_id>/assign", methods=["POST"])
-@shop_role_required('admin')
+@shop_role_required('admin', 'tech')
 def squawk_assign(kind, squawk_id):
     """Hands a squawk off to a specific tech (or clears the assignment with
     an empty pick) - separate from Acknowledge, so it can also be done (or
@@ -862,21 +866,24 @@ def squawk_worker_ack(kind, squawk_id):
 @app.route("/squawks/<kind>/<int:squawk_id>/repair", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def squawk_repair(kind, squawk_id):
-    """Marks a squawk as actually fixed/addressed - a separate step from
-    acknowledging it, since seeing an issue and fixing it aren't the same
-    thing. Also acknowledges it if that hadn't happened yet, so a tech can
-    jump straight to "repaired" without an extra click."""
+    """Marking a squawk repaired only requests confirmation now - same
+    request/confirm two-step a project sub area requires (see
+    project_section_complete/project_section_confirm): it stays in
+    Acknowledged, Not Yet Repaired, flagged as awaiting confirmation, until
+    an Inspector or admin signs off via squawk_repair_confirm. Also
+    acknowledges it if that hadn't happened yet, so a tech can jump straight
+    to "repaired" without an extra click."""
     conn = get_db()
     if kind == "flight":
         row = conn.execute("SELECT id, squawk_acknowledged_at as acked FROM flights WHERE id = ? AND squawk = 1",
                             (squawk_id,)).fetchone()
         ack_sql = "UPDATE flights SET squawk_acknowledged_at = ?, squawk_acknowledged_by = ? WHERE id = ?"
-        repair_sql = "UPDATE flights SET squawk_repaired_at = ?, squawk_repaired_by = ? WHERE id = ?"
+        confirm_req_sql = "UPDATE flights SET squawk_repair_confirm_requested_at = ?, squawk_repair_confirm_requested_by = ? WHERE id = ?"
     elif kind == "quick":
         row = conn.execute("SELECT id, acknowledged_at as acked FROM plane_squawks WHERE id = ?",
                             (squawk_id,)).fetchone()
         ack_sql = "UPDATE plane_squawks SET acknowledged_at = ?, acknowledged_by = ? WHERE id = ?"
-        repair_sql = "UPDATE plane_squawks SET repaired_at = ?, repaired_by = ? WHERE id = ?"
+        confirm_req_sql = "UPDATE plane_squawks SET repair_confirm_requested_at = ?, repair_confirm_requested_by = ? WHERE id = ?"
     else:
         conn.close()
         abort(404)
@@ -886,10 +893,44 @@ def squawk_repair(kind, squawk_id):
         return redirect(request.referrer or url_for("dashboard"))
     if not row["acked"]:
         conn.execute(ack_sql, (now_iso(), session.get("user_name"), squawk_id))
-    conn.execute(repair_sql, (now_iso(), session.get("user_name"), squawk_id))
+    conn.execute(confirm_req_sql, (now_iso(), session.get("user_name"), squawk_id))
     conn.commit()
     conn.close()
-    flash("Squawk marked repaired.", "success")
+    flash("Marked ready for repair confirmation - an Inspector or admin needs to confirm it.", "success")
+    return redirect(request.referrer or url_for("dashboard"))
+
+
+@app.route("/squawks/<kind>/<int:squawk_id>/repair_confirm", methods=["POST"])
+@shop_role_required('admin', 'inspector')
+def squawk_repair_confirm(kind, squawk_id):
+    """An Inspector (or admin) signs off on a squawk someone else marked
+    ready to repair - this is what actually marks it repaired. 'Send back'
+    clears the request instead, so whoever fixed it knows it wasn't
+    approved (same pattern as project_section_confirm)."""
+    conn = get_db()
+    if kind == "flight":
+        row = conn.execute("SELECT id FROM flights WHERE id = ? AND squawk = 1", (squawk_id,)).fetchone()
+        send_back_sql = "UPDATE flights SET squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL WHERE id = ?"
+        confirm_sql = "UPDATE flights SET squawk_repaired_at = ?, squawk_repaired_by = ?, squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL WHERE id = ?"
+    elif kind == "quick":
+        row = conn.execute("SELECT id FROM plane_squawks WHERE id = ?", (squawk_id,)).fetchone()
+        send_back_sql = "UPDATE plane_squawks SET repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL WHERE id = ?"
+        confirm_sql = "UPDATE plane_squawks SET repaired_at = ?, repaired_by = ?, repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL WHERE id = ?"
+    else:
+        conn.close()
+        abort(404)
+    if not row:
+        conn.close()
+        flash("Squawk not found.", "danger")
+        return redirect(request.referrer or url_for("dashboard"))
+    if request.form.get("action") == "send_back":
+        conn.execute(send_back_sql, (squawk_id,))
+        flash("Sent back - not marked repaired.", "warning")
+    else:
+        conn.execute(confirm_sql, (now_iso(), session.get("user_name"), squawk_id))
+        flash("Squawk marked repaired.", "success")
+    conn.commit()
+    conn.close()
     return redirect(request.referrer or url_for("squawks_list"))
 
 
