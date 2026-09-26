@@ -415,7 +415,6 @@ class LoginFlowTest(OpsHubTestCase):
 
 
 class CrashCleanupTest(OpsHubTestCase):
-    @open_finding("qa-db-lock-after-crash")
     def test_db_not_left_locked_after_a_crash(self):
         """A route that crashes between writing and committing must not leave
         the database write-locked for everyone else. A temporary trigger makes

@@ -10,6 +10,7 @@ SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "schema.s
 
 def get_db():
     conn = sqlite3.connect(DB_PATH, timeout=30)
+    _track_request_conn(conn)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     # WAL lets readers keep working while a writer (e.g. resource PDF
@@ -19,6 +20,41 @@ def get_db():
     conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA busy_timeout = 30000")
     return conn
+
+
+def _track_request_conn(conn):
+    """Remembers every connection opened while handling a web request so
+    close_request_conns() can roll back + close any that a route left open.
+    Without this, a route that crashes between an UPDATE and its commit()
+    keeps holding SQLite's write lock, and every other save in the app
+    (scans, logins, flights) stalls for up to 30s with "database is locked"
+    until Python happens to garbage-collect the dead connection. Outside a
+    request (startup, background threads, scripts) this is a no-op."""
+    try:
+        from flask import g, has_request_context
+    except ImportError:  # pragma: no cover
+        return
+    if has_request_context():
+        g.setdefault("_opshub_db_conns", []).append(conn)
+
+
+def close_request_conns(exc=None):
+    """Flask teardown hook (registered in app.py): roll back and close any
+    connection a route didn't close itself. Closing an already-closed
+    sqlite3 connection is harmless, so well-behaved routes are unaffected."""
+    try:
+        from flask import g
+    except ImportError:  # pragma: no cover
+        return
+    for conn in g.pop("_opshub_db_conns", []):
+        try:
+            conn.rollback()
+        except sqlite3.ProgrammingError:
+            pass  # already closed by the route - the normal case
+        try:
+            conn.close()
+        except sqlite3.Error:
+            pass
 
 
 def init_db():

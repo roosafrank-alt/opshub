@@ -14,7 +14,7 @@ from datetime import date, datetime, timedelta
 from flask import (Flask, render_template, request, redirect, url_for, jsonify, flash, abort,
                     Response, session, got_request_exception)
 
-from db import (get_db, init_db, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
+from db import (get_db, init_db, close_request_conns, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
                  allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
                  MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS)
 from flight import flight_bp, _flight_hours, check_session_alerts, SCHEDULE_COLORS, _used_colors_for_plane
@@ -71,6 +71,7 @@ app.register_blueprint(pilotlog_bp)
 app.register_blueprint(customer_bp)
 app.register_blueprint(manuals_bp)
 app.register_blueprint(groundschool_bp)
+app.teardown_request(close_request_conns)
 
 
 # ---------------------------------------------------------------------------
