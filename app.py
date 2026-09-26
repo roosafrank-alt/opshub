@@ -2001,6 +2001,25 @@ def projects_list():
     conn = get_db()
     status_filter = request.args.get("status", "")
     q = request.args.get("q", "").strip()
+    # "Deleted" is its own pill (like Archived), showing what's in Recently
+    # Deleted without leaving the Projects page - the restore/purge actions
+    # themselves still live on the trash page (project_restore/project_purge)
+    # so there's exactly one place that does the actual DB work.
+    if status_filter == "deleted":
+        query = """SELECT projects.*, a.id as asset_display_id, a.tag as asset_display_tag, a.name as asset_display_name
+                   FROM projects LEFT JOIN assets a ON a.id = projects.asset_id WHERE projects.deleted_at IS NOT NULL"""
+        params = []
+        if q:
+            query += " AND (projects.name LIKE ? OR projects.code LIKE ? OR projects.description LIKE ? OR a.tag LIKE ? OR a.name LIKE ?)"
+            like = f"%{q}%"
+            params += [like, like, like, like, like]
+        query += " ORDER BY projects.deleted_at DESC"
+        projects = conn.execute(query, params).fetchall()
+        proj_costs = {p["id"]: 0 for p in projects}
+        proj_cover = {}
+        conn.close()
+        return render_template("projects.html", projects=projects, by_year=None, proj_costs=proj_costs,
+                               proj_cover=proj_cover, q=q, status_filter=status_filter)
     query = """SELECT projects.*, a.id as asset_display_id, a.tag as asset_display_tag, a.name as asset_display_name
                FROM projects LEFT JOIN assets a ON a.id = projects.asset_id WHERE projects.deleted_at IS NULL"""
     params = []

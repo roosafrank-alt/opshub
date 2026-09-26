@@ -1,11 +1,26 @@
 {% extends "base.html" %}
 {% block title %}Projects - OpsHub{% endblock %}
 
-{% macro project_tiles(plist) %}
+{% macro project_tiles(plist, deleted=false) %}
 <div class="row g-3">
   {% for p in plist %}
   <div class="col-md-6 col-lg-4">
     <div class="card p-3 h-100">
+      {% if deleted %}
+      <div class="d-flex justify-content-between gap-2">
+        <div class="flex-grow-1">
+          <h5><code class="text-primary small">{{ p.code }}</code> {{ p.name }}</h5>
+          <span class="badge bg-secondary">Deleted {{ p.deleted_at.split('T')[0] if p.deleted_at else '' }}</span>
+        </div>
+        {% if proj_cover.get(p.id) %}
+        <img src="{{ url_for('static', filename='uploads/' + proj_cover.get(p.id)) }}" class="rounded flex-shrink-0" style="width:56px; height:56px; object-fit:cover;">
+        {% endif %}
+      </div>
+      <p class="text-muted small mb-1">{{ p.description or 'No description' }}</p>
+      <form method="post" action="{{ url_for('project_restore', project_id=p.id) }}" class="mt-1">
+        <button class="btn btn-outline-success btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>
+      </form>
+      {% else %}
       <a href="{{ url_for('project_detail', project_id=p.id) }}" class="text-decoration-none text-dark">
         <div class="d-flex justify-content-between gap-2">
           <div class="flex-grow-1">
@@ -28,10 +43,11 @@
       {% if p.asset_display_id %}
       <a href="{{ url_for('asset_detail', asset_id=p.asset_display_id) }}" class="small mt-1"><i class="bi bi-airplane"></i> {{ p.asset_display_tag }}</a>
       {% endif %}
+      {% endif %}
     </div>
   </div>
   {% else %}
-  <p class="text-muted">No projects here.</p>
+  <p class="text-muted">{{ 'Nothing in Deleted.' if deleted else 'No projects here.' }}</p>
   {% endfor %}
 </div>
 {% endmacro %}
@@ -57,9 +73,13 @@
   <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='on_hold' }}" href="{{ url_for('projects_list', status='on_hold', q=q) }}">On Hold</a></li>
   <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='completed' }}" href="{{ url_for('projects_list', status='completed', q=q) }}">Completed</a></li>
   <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='archived' }}" href="{{ url_for('projects_list', status='archived', q=q) }}">Archived</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='deleted' }}" href="{{ url_for('projects_list', status='deleted', q=q) }}"><i class="bi bi-trash3"></i> Deleted</a></li>
 </ul>
 
-{% if by_year is none %}
+{% if status_filter == 'deleted' %}
+  <!-- Deleted folder: soft-deleted projects, restorable in place -->
+  {{ project_tiles(projects, deleted=true) }}
+{% elif by_year is none %}
   <!-- Search results: flat grid -->
   {{ project_tiles(projects) }}
 {% else %}
