@@ -182,7 +182,6 @@ class PartFlowTest(OpsHubTestCase):
                 self._new(name="Bad " + bad, qty_on_hand=bad)
                 self.assertIsNone(self.q1("SELECT * FROM parts WHERE name=?", ("Bad " + bad,)))
 
-    @open_finding("qa-blank-part-name")
     def test_edit_cannot_blank_the_name(self):
         # Edit saved an empty name, leaving a
         # part with no visible label anywhere in the app.

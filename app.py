@@ -1631,6 +1631,11 @@ def part_edit(part_id):
         reorder = _parse_qty(request.form.get("reorder_point") or 0, allow_zero=True)
         cost = _parse_qty(request.form.get("unit_cost") or 0, allow_zero=True)
         sell_price = _parse_qty(request.form.get("sell_price") or 0, allow_zero=True)
+        if not request.form.get("name", "").strip():
+            flash("Part name is required.", "danger")
+            conn.close()
+            return render_template("part_form.html", part=part, categories=CATEGORIES_DEFAULT, form=request.form,
+                                   notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
         if None in (reorder, cost, sell_price):
             flash("Reorder point, cost, and sell price must be numbers (0 or more).", "danger")
             conn.close()
