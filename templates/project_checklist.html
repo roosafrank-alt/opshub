@@ -10,13 +10,32 @@
 </div>
 
 <div class="job-sheet mx-auto" style="max-width:800px; background:#fff; border:1px solid #dee2e6; padding:2rem;">
+  {#- Top of the sheet: the overall project's details first, with its own
+     scan codes (project + plane) tucked into the header - then, if the
+     project has sub areas, each one gets its own dedicated row below,
+     instead of every code (plane/project/sub-area) sitting in one mixed
+     strip like before. #}
   <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
-    <div>
-      <h3 class="mb-0">{{ project.name }}</h3>
-      <div class="text-muted"><code class="text-primary">{{ project.code }}</code>
-        {% if project.asset_tag %} &middot; {{ project.asset_tag }}{% if project.asset_name and project.asset_name != project.asset_tag %} ({{ project.asset_name }}){% endif %}{% endif %}
+    <div class="d-flex align-items-start gap-3">
+      <div class="d-flex flex-column gap-2">
+        <div class="text-center" style="width:96px;">
+          <div class="job-qr d-flex justify-content-center" data-code="{{ project.code }}"></div>
+          <div class="small text-muted">Project</div>
+        </div>
+        {% if plane_url %}
+        <div class="text-center" style="width:96px;">
+          <div class="job-qr d-flex justify-content-center" data-code="{{ plane_url }}"></div>
+          <div class="small text-muted">Plane</div>
+        </div>
+        {% endif %}
       </div>
-      {% if project.description %}<div class="mt-1">{{ project.description }}</div>{% endif %}
+      <div>
+        <h3 class="mb-0">{{ project.name }}</h3>
+        <div class="text-muted"><code class="text-primary">{{ project.code }}</code>
+          {% if project.asset_tag %} &middot; {{ project.asset_tag }}{% if project.asset_name and project.asset_name != project.asset_tag %} ({{ project.asset_name }}){% endif %}{% endif %}
+        </div>
+        {% if project.description %}<div class="mt-1">{{ project.description }}</div>{% endif %}
+      </div>
     </div>
     <div class="text-end small text-muted">
       <div>Date: ______________</div>
@@ -24,30 +43,27 @@
     </div>
   </div>
 
-  {#- Scan codes: plane, project, and each sub-area. Scanning the project
-     or a sub-area code on the Scan page selects that job/area; the plane
-     code opens the aircraft's page on a phone camera. #}
-  <div class="job-sheet-codes d-flex flex-wrap gap-3 justify-content-center border-bottom pb-3 mb-3">
-    {% if plane_url %}
-    <div class="text-center" style="width:130px;">
-      <div class="small fw-bold">Plane</div>
-      <div class="job-qr d-flex justify-content-center my-1" data-code="{{ plane_url }}"></div>
-      <div class="small">{{ project.asset_tag }}</div>
-    </div>
-    {% endif %}
-    <div class="text-center" style="width:130px;">
-      <div class="small fw-bold">Project</div>
-      <div class="job-qr d-flex justify-content-center my-1" data-code="{{ project.code }}"></div>
-      <div class="small">{{ project.code }}</div>
-    </div>
+  {#- Each sub area gets its own dedicated row/section (its own scan code,
+     name and a note line), stacked below the project instead of squeezed
+     into the header strip. Scanning a sub area's code on the Scan page
+     selects that job + area, same as the Labor Codes page. #}
+  {% if sub_areas %}
+  <div class="job-sheet-sections border-bottom pb-3 mb-3">
+    <h5 class="border-bottom pb-1">Sub Areas</h5>
     {% for s in sub_areas %}
-    <div class="text-center" style="width:130px;">
-      <div class="small fw-bold text-truncate" title="{{ s }}">{{ s }}</div>
-      <div class="job-qr d-flex justify-content-center my-1" data-code="TASK-{{ project.code }}::{{ s }}"></div>
-      <div class="small text-muted">Sub area</div>
+    <div class="d-flex align-items-center gap-3 py-2{{ ' border-top' if not loop.first else '' }}">
+      <div class="text-center flex-shrink-0" style="width:80px;">
+        <div class="job-qr d-flex justify-content-center" data-code="TASK-{{ project.code }}::{{ s }}"></div>
+      </div>
+      <div class="flex-grow-1">
+        <div class="fw-bold">{{ s }}</div>
+        <div class="small text-muted">TASK-{{ project.code }}::{{ s }}</div>
+        <div style="border-bottom:1px solid #ccc; height:24px; margin-top:.5rem;"></div>
+      </div>
     </div>
     {% endfor %}
   </div>
+  {% endif %}
 
   <div class="row g-4">
     <div class="col-md-6">

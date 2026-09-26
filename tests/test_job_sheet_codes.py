@@ -20,3 +20,25 @@ class JobSheetCodesTest(OpsHubTestCase):
         pid = self.make_project(name="Shop job")
         html = self.login("tech").get(f"/projects/{pid}/checklist").get_data(as_text=True)
         self.assertNotIn(">Plane<", html)
+
+    def test_project_details_come_before_sub_areas_each_in_their_own_row(self):
+        """idea "Job sheet" revision 2: project details up top, then each
+        sub area in its own dedicated row/section below, not mixed together
+        in one strip of codes."""
+        pid = self.make_project(name="Annual - N777")
+        self.exec("INSERT INTO project_sections (project_id, name) VALUES (?, 'Plugs')", (pid,))
+        self.exec("INSERT INTO project_sections (project_id, name) VALUES (?, 'Brakes')", (pid,))
+        code = self.q1("SELECT code FROM projects WHERE id = ?", (pid,))["code"]
+        html = self.login("tech").get(f"/projects/{pid}/checklist").get_data(as_text=True)
+        # The project's own name/header comes before the Sub Areas section.
+        self.assertLess(html.index("Annual - N777"), html.index("Sub Areas"))
+        # Each sub area name appears in its own row, in order, after the header.
+        self.assertLess(html.index("Sub Areas"), html.index("Plugs"))
+        self.assertLess(html.index("Plugs"), html.index("Brakes"))
+        self.assertIn(f'data-code="TASK-{code}::Plugs"', html)
+        self.assertIn(f'data-code="TASK-{code}::Brakes"', html)
+
+    def test_job_sheet_without_sub_areas_has_no_sub_areas_section(self):
+        pid = self.make_project(name="Shop job, no sub areas")
+        html = self.login("tech").get(f"/projects/{pid}/checklist").get_data(as_text=True)
+        self.assertNotIn("Sub Areas", html)
