@@ -298,6 +298,37 @@ class LaborFlowTest(OpsHubTestCase):
         self.labor()
         self.assertAlmostEqual(self.sessions()[0]["cost"], 40, places=1)
 
+    def test_scan_order_does_not_matter(self):
+        """Idea 'scanning': the Scan page and the dedicated Labor Scan page
+        both let a person scan their laborer badge or the project/task code
+        in either order (each queues the first one client-side and re-fires
+        it once the other is known - see pendingLaborer in scan.html and
+        labor.html). This locks in the server side of that: a laborer code
+        with no project yet is told exactly that (no_task_selected, not a
+        crash or a silent no-op) rather than clocking in against nothing,
+        and once the project is known the same scan (project first) clocks
+        in exactly like project-first always has."""
+        # Badge first, no project known yet: told to scan a project next -
+        # nothing gets clocked in against no task.
+        r = self.labor()
+        self.assertEqual((r.status_code, r.json["error"]), (400, "no_task_selected"))
+        self.assertEqual(self.sessions(), [])
+        # The project becomes known (e.g. the Scan page's task/project
+        # lookup) and the SAME badge scan is resubmitted with it - clocks in
+        # exactly like it would have if the project had been scanned first.
+        r = self.labor(project_id=self.project, section="Brakes")
+        self.assertEqual(r.json["action"], "clock_in")
+        s = self.sessions()[0]
+        self.assertEqual((s["project_id"], s["section"], s["ended_at"]), (self.project, "Brakes", None))
+        self.backdate(s["id"], 1)
+        r = self.labor()
+        self.assertEqual(r.json["action"], "clock_out")
+        # Project-first order still works exactly as before.
+        r = self.labor(code="LABOR-BBBB0002", project_id=self.project, section="Annual")
+        self.assertEqual(r.json["action"], "clock_in")
+        s = self.sessions(self.other)[0]
+        self.assertEqual((s["project_id"], s["section"]), (self.project, "Annual"))
+
     def test_general_shop_time_needs_a_note_to_clock_out(self):
         self.labor(general=True)
         sid = self.sessions()[0]["id"]
