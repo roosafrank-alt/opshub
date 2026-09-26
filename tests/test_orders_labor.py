@@ -354,7 +354,6 @@ class LaborFlowTest(OpsHubTestCase):
         self.assertEqual((r.status_code, r.json["error"]), (400, "inactive_laborer"))
         self.assertEqual(self.sessions(), [])
 
-    @open_finding("qa-labor-inactive-timer")
     def test_deactivated_laborer_can_still_clock_out(self):
         # Clocked in, then deactivated (quit / let go that afternoon): their
         # badge is refused, so the timer - and their pay - keeps running.

@@ -4522,13 +4522,17 @@ def api_labor_scan():
     if not laborer:
         conn.close()
         return jsonify({"ok": False, "error": "unknown_laborer", "code": code}), 404
-    if not laborer["active"]:
-        conn.close()
-        return jsonify({"ok": False, "error": "inactive_laborer", "name": laborer["name"]}), 400
 
     open_session = conn.execute(
         "SELECT * FROM labor_sessions WHERE laborer_id = ? AND ended_at IS NULL", (laborer["id"],)
     ).fetchone()
+
+    # An inactive worker can't START a timer, but their badge still clocks
+    # them OUT of one that was already running when they were deactivated -
+    # otherwise their hours and pay keep growing until someone notices.
+    if not laborer["active"] and not open_session:
+        conn.close()
+        return jsonify({"ok": False, "error": "inactive_laborer", "name": laborer["name"]}), 400
 
     if open_session:
         # Clocking out of General Shop time is the one case that needs a
