@@ -4765,12 +4765,13 @@ def laborer_badges():
 def laborers_list():
     conn = get_db()
     q = request.args.get("q", "").strip()
-    query = "SELECT * FROM laborers WHERE 1=1"
+    query = ("SELECT laborers.*, u.name AS account_name, u.id AS account_id FROM laborers "
+             "LEFT JOIN users u ON u.id = laborers.user_id WHERE 1=1")
     params = []
     if q:
-        query += " AND name LIKE ?"
+        query += " AND laborers.name LIKE ?"
         params.append(f"%{q}%")
-    query += " ORDER BY active DESC, name"
+    query += " ORDER BY laborers.active DESC, laborers.name"
     laborers = conn.execute(query, params).fetchall()
     conn.close()
     return render_template("laborers.html", laborers=laborers, q=q)
@@ -5409,6 +5410,57 @@ def admin_users_list():
                            viewer_is_owner=session.get("user_id") == owner_id)
 
 
+def _pay_link_context(conn, user_row=None):
+    """What the Pay section of Admin > Accounts shows: this account's shop
+    worker badge(s) and CFI profile, plus the unlinked badges that could be
+    linked to it (e.g. a shop badge made as "Kate" before her login existed)."""
+    linked_laborers, cfi = [], None
+    if user_row:
+        linked_laborers = conn.execute("SELECT * FROM laborers WHERE user_id = ? ORDER BY name",
+                                       (user_row["id"],)).fetchall()
+        cfi = conn.execute("SELECT id, name, pay_rate_per_hour FROM cfis WHERE user_id = ?",
+                           (user_row["id"],)).fetchone()
+    unlinked_laborers = conn.execute(
+        "SELECT id, name, rate, active FROM laborers WHERE user_id IS NULL ORDER BY active DESC, name").fetchall()
+    return dict(linked_laborers=linked_laborers, cfi_profile=cfi, unlinked_laborers=unlinked_laborers)
+
+
+def _apply_pay_links(conn, user_row, form):
+    """Saves the Pay section of the account form. Returns an error message
+    (nothing saved) or None.
+      badge = "" (leave as is) | "new" (make a new worker badge) | "<laborer id>" (link that badge)
+      badge_rate = hourly rate for a new badge
+      unlink_badge = laborer id to unlink from this account
+      cfi_pay_rate = CFI pay per instructed hour (only when they have a CFI profile)"""
+    badge = (form.get("badge") or "").strip()
+    new_rate = None
+    if badge == "new":
+        new_rate = _parse_rate(form.get("badge_rate"))
+        if new_rate is None:
+            return "Shop hourly rate must be a number, 0 or more."
+    cfi_rate_raw = (form.get("cfi_pay_rate") or "").strip()
+    cfi_rate = None
+    if cfi_rate_raw:
+        cfi_rate = _parse_rate(cfi_rate_raw)
+        if cfi_rate is None:
+            return "CFI pay rate must be a number, 0 or more."
+    if badge == "new":
+        conn.execute("INSERT INTO laborers (name, code, rate, active, user_id, created_at, updated_at) "
+                     "VALUES (?, ?, ?, 1, ?, ?, ?)",
+                     (user_row["name"], gen_labor_code(conn), new_rate, user_row["id"], now_iso(), now_iso()))
+    elif badge.isdigit():
+        conn.execute("UPDATE laborers SET user_id = ?, updated_at = ? WHERE id = ? AND user_id IS NULL",
+                     (user_row["id"], now_iso(), int(badge)))
+    unlink = (form.get("unlink_badge") or "").strip()
+    if unlink.isdigit():
+        conn.execute("UPDATE laborers SET user_id = NULL, updated_at = ? WHERE id = ? AND user_id = ?",
+                     (now_iso(), int(unlink), user_row["id"]))
+    if cfi_rate is not None:
+        conn.execute("UPDATE cfis SET pay_rate_per_hour = ? WHERE user_id = ?", (cfi_rate, user_row["id"]))
+    conn.commit()
+    return None
+
+
 @app.route("/admin/users/new", methods=["GET", "POST"])
 @master_admin_required
 def admin_user_new():
@@ -5428,15 +5480,25 @@ def admin_user_new():
         notify_maintenance = 1 if request.form.get("notify_maintenance") else 0
         notify_flight_reminders = 1 if request.form.get("notify_flight_reminders") else 0
         academy_access = 1 if request.form.get("academy_access") else 0
-        if not name or not username or not password:
-            flash("Name, username, and password are all required.", "danger")
-            return render_template("admin_user_form.html", user=None, name=name, username=username)
         conn = get_db()
+        pay_ctx = _pay_link_context(conn)
+        preset = {"shop_role": shop_role, "flight_role": flight_role, "badge": request.form.get("badge", ""),
+                  "badge_rate": request.form.get("badge_rate", ""), "cfi_pay_rate": request.form.get("cfi_pay_rate", "")}
+        if not name or not username or not password:
+            conn.close()
+            flash("Name, username, and password are all required.", "danger")
+            return render_template("admin_user_form.html", user=None, name=name, username=username, preset=preset, **pay_ctx)
         existing = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
         if existing:
             conn.close()
             flash(f"Username '{username}' is already taken.", "danger")
-            return render_template("admin_user_form.html", user=None, name=name, username="")
+            return render_template("admin_user_form.html", user=None, name=name, username="", preset=preset, **pay_ctx)
+        badge = (request.form.get("badge") or "").strip()
+        if (badge == "new" and _parse_rate(request.form.get("badge_rate")) is None) or \
+                ((request.form.get("cfi_pay_rate") or "").strip() and _parse_rate(request.form.get("cfi_pay_rate")) is None):
+            conn.close()
+            flash("Pay rates must be a number, 0 or more.", "danger")
+            return render_template("admin_user_form.html", user=None, name=name, username=username, preset=preset, **pay_ctx)
         cur = conn.execute(
             "INSERT INTO users (name, username, password_hash, password_plain, is_master_admin, shop_role, flight_role, can_bill, active, "
             "email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, created_at) "
@@ -5446,10 +5508,23 @@ def admin_user_new():
         conn.commit()
         user_row = conn.execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone()
         ensure_flight_profile(conn, user_row)
+        _apply_pay_links(conn, user_row, request.form)
+        new_badge = conn.execute("SELECT id FROM laborers WHERE user_id = ? ORDER BY id DESC LIMIT 1",
+                                 (user_row["id"],)).fetchone()
         conn.close()
         flash(f"Account created for {name}.", "success")
+        if badge == "new" and new_badge:
+            flash("Their shop worker badge is ready - print it so they can scan in and out.", "info")
+            return redirect(url_for("laborer_label", laborer_id=new_badge["id"]))
         return redirect(url_for("admin_users_list"))
-    return render_template("admin_user_form.html", user=None)
+    # "Add CFI" / "New Laborer" elsewhere in the app land here with the
+    # role picked already (?flight_role=cfi, ?shop_role=tech&badge=new).
+    preset = {"shop_role": request.args.get("shop_role", ""), "flight_role": request.args.get("flight_role", ""),
+              "badge": request.args.get("badge", ""), "badge_rate": "", "cfi_pay_rate": ""}
+    conn = get_db()
+    pay_ctx = _pay_link_context(conn)
+    conn.close()
+    return render_template("admin_user_form.html", user=None, preset=preset, **pay_ctx)
 
 
 @app.route("/admin/users/<int:user_id>/edit", methods=["GET", "POST"])
@@ -5495,6 +5570,12 @@ def admin_user_edit(user_id):
             flash("You can't deactivate your own account.", "danger")
             conn.close()
             return render_template("admin_user_form.html", user=user_row)
+        if (request.form.get("badge") == "new" and _parse_rate(request.form.get("badge_rate")) is None) or \
+                ((request.form.get("cfi_pay_rate") or "").strip() and _parse_rate(request.form.get("cfi_pay_rate")) is None):
+            flash("Pay rates must be a number, 0 or more.", "danger")
+            pay_ctx = _pay_link_context(conn, user_row)
+            conn.close()
+            return render_template("admin_user_form.html", user=user_row, **pay_ctx)
         if new_password:
             conn.execute(
                 "UPDATE users SET name=?, shop_role=?, flight_role=?, is_master_admin=?, can_bill=?, active=?, password_hash=?, password_plain=?, "
@@ -5522,11 +5603,13 @@ def admin_user_edit(user_id):
             conn.execute("UPDATE cfis SET active=? WHERE user_id=?", (active, user_id))
             conn.execute("UPDATE students SET active=? WHERE user_id=?", (active, user_id))
         conn.commit()
+        _apply_pay_links(conn, user_row, request.form)
         conn.close()
         flash("Account updated.", "success")
         return redirect(url_for("admin_users_list"))
+    pay_ctx = _pay_link_context(conn, user_row)
     conn.close()
-    return render_template("admin_user_form.html", user=user_row)
+    return render_template("admin_user_form.html", user=user_row, **pay_ctx)
 
 
 # Where "My Account" was opened from, so the centralized account page can

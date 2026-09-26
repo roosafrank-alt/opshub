@@ -5,7 +5,7 @@
   <h4 class="mb-0">CFIs ({{ cfis|length }})</h4>
   <div class="d-flex align-items-center gap-2">
     <input type="text" id="cfis-search" class="form-control form-control-sm" placeholder="Search by name..." style="min-width:200px;">
-    <a href="{{ url_for('flight.cfi_new') }}" class="btn btn-primary fw-bold"><i class="bi bi-plus-lg"></i> Add CFI</a>
+    <a href="{{ url_for('admin_user_new', flight_role='cfi') if session.get('is_master_admin') else url_for('flight.cfi_new') }}" class="btn btn-primary fw-bold"><i class="bi bi-plus-lg"></i> Add CFI</a>
   </div>
 </div>
 <div class="card">

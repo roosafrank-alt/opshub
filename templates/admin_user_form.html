@@ -38,20 +38,22 @@
       <div class="col-6 mb-3">
         <label class="form-label">Maintenance Role</label>
         <select name="shop_role" class="form-select">
-          <option value="" {% if not (user and user.shop_role) %}selected{% endif %}>No access</option>
-          <option value="admin" {% if user and user.shop_role == 'admin' %}selected{% endif %}>Admin (full Maintenance access)</option>
-          <option value="tech" {% if user and user.shop_role == 'tech' %}selected{% endif %}>Tech (scan, labor, no costs/settings)</option>
-          <option value="inspector" {% if user and user.shop_role == 'inspector' %}selected{% endif %}>Inspector (confirms sub areas marked ready)</option>
-          <option value="student" {% if user and user.shop_role == 'student' %}selected{% endif %}>Student (scan/labor only)</option>
+          {% set _pre_shop = user.shop_role if user else (preset.shop_role if preset else '') %}
+          <option value="" {% if not _pre_shop %}selected{% endif %}>No access</option>
+          <option value="admin" {% if _pre_shop == 'admin' %}selected{% endif %}>Admin (full Maintenance access)</option>
+          <option value="tech" {% if _pre_shop == 'tech' %}selected{% endif %}>Tech (scan, labor, no costs/settings)</option>
+          <option value="inspector" {% if _pre_shop == 'inspector' %}selected{% endif %}>Inspector (confirms sub areas marked ready)</option>
+          <option value="student" {% if _pre_shop == 'student' %}selected{% endif %}>Student (scan/labor only)</option>
         </select>
         <div class="form-text">This is the Maintenance/shop side only - it doesn't give Flight School admin powers like ending someone else's flight. For that, check "Master Admin" below.</div>
       </div>
       <div class="col-6 mb-3">
         <label class="form-label">Flight School Role</label>
         <select name="flight_role" class="form-select">
-          <option value="" {% if not (user and user.flight_role) %}selected{% endif %}>No access</option>
-          <option value="cfi" {% if user and user.flight_role == 'cfi' %}selected{% endif %}>CFI / Instructor</option>
-          <option value="student" {% if user and user.flight_role == 'student' %}selected{% endif %}>Student</option>
+          {% set _pre_flight = user.flight_role if user else (preset.flight_role if preset else '') %}
+          <option value="" {% if not _pre_flight %}selected{% endif %}>No access</option>
+          <option value="cfi" {% if _pre_flight == 'cfi' %}selected{% endif %}>CFI / Instructor</option>
+          <option value="student" {% if _pre_flight == 'student' %}selected{% endif %}>Student</option>
         </select>
       </div>
     </div>
@@ -71,6 +73,56 @@
     <div class="form-check mb-3">
       <input type="checkbox" class="form-check-input" name="active" id="active-check" {% if user.active %}checked{% endif %}>
       <label class="form-check-label" for="active-check">Active</label>
+    </div>
+    {% endif %}
+
+    {#- Pay: one person, every role. A shop worker badge (clocks labor at
+       its own hourly rate) and a CFI profile (paid per instructed hour)
+       both hang off this one account, so Payroll adds them up as one
+       person even though each role has its own rate. #}
+    {% set _linked = linked_laborers|default([]) %}
+    {% set _unlinked = unlinked_laborers|default([]) %}
+    <hr class="my-3">
+    <h6 class="mb-1"><i class="bi bi-cash-stack"></i> Pay</h6>
+    <div class="form-text mb-2">One account per person. Their shop badge and CFI profile each keep their own rate, and Payroll shows their pay together.</div>
+    <div class="mb-3">
+      <label class="form-label">Shop worker badge <span class="text-muted small">(scans in/out for labor hours)</span></label>
+      {% for l in _linked %}
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge bg-light text-dark border"><i class="bi bi-person-badge"></i> {{ l.name }} &middot; ${{ '%.2f'|format(l.rate or 0) }}/hr{% if not l.active %} &middot; inactive{% endif %}</span>
+        <a href="{{ url_for('laborer_edit', laborer_id=l.id) }}" class="small">Edit rate</a>
+        <div class="form-check mb-0 ms-2">
+          <input class="form-check-input" type="checkbox" name="unlink_badge" value="{{ l.id }}" id="unlink-{{ l.id }}">
+          <label class="form-check-label small text-muted" for="unlink-{{ l.id }}">Unlink</label>
+        </div>
+      </div>
+      {% endfor %}
+      {% set _pre_badge = preset.badge if preset else '' %}
+      <div class="row g-2 align-items-end">
+        <div class="col-sm-7">
+          <select name="badge" class="form-select" id="badge-select">
+            <option value="">{{ 'Keep as is' if _linked else 'No shop badge' }}</option>
+            <option value="new" {% if _pre_badge == 'new' %}selected{% endif %}>Make a new badge for them</option>
+            {% if _unlinked %}
+            <optgroup label="Link an existing badge (same person)">
+              {% for l in _unlinked %}
+              <option value="{{ l.id }}" {% if _pre_badge == l.id|string %}selected{% endif %}>{{ l.name }} (${{ '%.2f'|format(l.rate or 0) }}/hr){% if not l.active %} - inactive{% endif %}</option>
+              {% endfor %}
+            </optgroup>
+            {% endif %}
+          </select>
+        </div>
+        <div class="col-sm-5" id="badge-rate-wrap">
+          <label class="form-label small mb-0">Shop hourly rate ($)</label>
+          <input type="number" step="0.01" min="0" name="badge_rate" class="form-control" value="{{ preset.badge_rate if preset else '' }}" placeholder="0.00">
+        </div>
+      </div>
+    </div>
+    {% if cfi_profile or not user %}
+    <div class="mb-3" id="cfi-pay-wrap">
+      <label class="form-label">CFI pay rate <span class="text-muted small">($ per instructed hour{% if not user %} - used when Flight School Role is CFI{% endif %})</span></label>
+      <input type="number" step="0.01" min="0" name="cfi_pay_rate" class="form-control" style="max-width:12rem;"
+             value="{{ ('%.2f'|format(cfi_profile.pay_rate_per_hour) if cfi_profile and cfi_profile.pay_rate_per_hour is not none else '') if user else (preset.cfi_pay_rate if preset else '') }}" placeholder="0.00">
     </div>
     {% endif %}
 
@@ -122,4 +174,14 @@
 </div>
 </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var sel = document.getElementById('badge-select');
+  var wrap = document.getElementById('badge-rate-wrap');
+  function sync() { wrap.style.display = sel.value === 'new' ? '' : 'none'; }
+  if (sel && wrap) { sel.addEventListener('change', sync); sync(); }
+})();
+</script>
 {% endblock %}

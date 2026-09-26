@@ -1820,6 +1820,14 @@ def _migrate(conn):
             conn.execute(f"ALTER TABLE orders ADD COLUMN {col} TEXT")
     conn.commit()
 
+    # One person, several roles (idea "Admin"): a shop worker badge can be
+    # linked to a login account, the same way a CFI profile already is
+    # (cfis.user_id), so Payroll can show one person's pay across roles.
+    laborer_cols_user = [r["name"] for r in conn.execute("PRAGMA table_info(laborers)").fetchall()]
+    if "user_id" not in laborer_cols_user:
+        conn.execute("ALTER TABLE laborers ADD COLUMN user_id INTEGER REFERENCES users(id)")
+    conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of

@@ -52,10 +52,23 @@
     <table class="table table-sm align-middle mb-0 table-stack">
       <thead class="table-light"><tr><th>Name</th><th>Type</th><th>Hours</th><th>Owed</th><th>Status</th><th></th></tr></thead>
       <tbody>
-        {% for r in rows %}
+        {% for g in groups %}
+        {% set multi = g.rows|length > 1 %}
+        {% if multi %}
+        <tr class="table-light">
+          <td class="stack-full" data-label="Person"><strong>{{ g.name }}</strong> <span class="text-muted small">- {{ g.rows|length }} roles</span></td>
+          <td data-label="Type"><span class="text-muted small">Combined</span></td>
+          <td data-label="Hours"><strong>{{ '%.2f'|format(g.hours) }}</strong></td>
+          <td data-label="Owed"><strong>${{ '{:,.2f}'.format(g.amount) }}</strong></td>
+          <td data-label="" colspan="2"></td>
+        </tr>
+        {% endif %}
+        {% for r in g.rows %}
         <tr class="{{ 'table-danger' if r.flag and not r.payment }}">
           <td class="stack-full" data-label="Name">
+            {% if multi %}<span class="text-muted ms-2">&#8627;</span>{% endif %}
             {% if r.type == 'cfi' %}<a href="{{ url_for('flight.cfi_pay', cfi_id=r.id) }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}
+            {% if not multi and r.person_name and r.person_name != r.name %}<span class="text-muted small">({{ r.person_name }})</span>{% endif %}
             {% if not r.active %}<span class="badge bg-light text-muted border ms-1">inactive</span>{% endif %}
             {% if r.flag %}<div><small class="text-danger"><i class="bi bi-exclamation-triangle"></i> {{ r.flag }}</small></div>{% endif %}
           </td>
@@ -93,10 +106,11 @@
           </td>
         </tr>
         {% endfor %}
+        {% endfor %}
       </tbody>
     </table>
   </div>
-  <p class="text-muted small mt-2 mb-0">Shop workers: clocked labor at the rate saved on each timer. CFIs: instructor + ground time on dual flights at their pay rate.
+  <p class="text-muted small mt-2 mb-0">Someone with more than one role (linked in Admin &gt; Accounts &gt; Pay) is listed once with a combined total, and each role is paid at its own rate. Shop workers: clocked labor at the rate saved on each timer. CFIs: instructor + ground time on dual flights at their pay rate.
     Flagged means {{ flag_ratio }}% or more above or below their average over the last {{ baseline_weeks }} paid weeks.</p>
   {% else %}
   <p class="text-muted mb-0">No shop workers or CFIs yet.</p>

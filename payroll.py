@@ -79,15 +79,37 @@ def _people(conn):
     """Everyone who can be on payroll: shop workers, then CFIs (not the
     shared station logins)."""
     people = []
-    for r in conn.execute("SELECT id, name, active FROM laborers ORDER BY name").fetchall():
+    # user_id/person_name: the login account a shop badge or CFI profile
+    # belongs to (Admin > Accounts > Pay), so one person's roles group
+    # together - e.g. shop badge "Kate" and CFI "Katelynn Kearney".
+    for r in conn.execute("""SELECT l.id, l.name, l.active, l.user_id, u.name AS person_name
+                             FROM laborers l LEFT JOIN users u ON u.id = l.user_id ORDER BY l.name""").fetchall():
         people.append({"type": "laborer", "id": r["id"], "name": r["name"], "active": bool(r["active"]),
-                       "kind": "Shop"})
-    for r in conn.execute("SELECT id, name, active, is_station FROM cfis ORDER BY name").fetchall():
+                       "kind": "Shop", "user_id": r["user_id"], "person_name": r["person_name"] or r["name"]})
+    for r in conn.execute("""SELECT c.id, c.name, c.active, c.is_station, c.user_id, u.name AS person_name
+                             FROM cfis c LEFT JOIN users u ON u.id = c.user_id ORDER BY c.name""").fetchall():
         if r["is_station"]:
             continue
         people.append({"type": "cfi", "id": r["id"], "name": r["name"], "active": bool(r["active"]),
-                       "kind": "CFI"})
+                       "kind": "CFI", "user_id": r["user_id"], "person_name": r["person_name"] or r["name"]})
     return people
+
+
+def group_by_person(rows):
+    """Payroll rows grouped into one entry per person: a person's shop badge
+    and CFI profile are separate rows (each at its own rate, each marked
+    paid on its own) that sit together under one name with a combined total."""
+    groups, index = [], {}
+    for r in sorted(rows, key=lambda r: ((r.get("person_name") or r["name"]).lower(), r["kind"])):
+        key = ("user", r["user_id"]) if r.get("user_id") else (r["type"], r["id"])
+        if key not in index:
+            index[key] = {"name": r.get("person_name") or r["name"], "rows": [], "hours": 0.0, "amount": 0.0}
+            groups.append(index[key])
+        g = index[key]
+        g["rows"].append(r)
+        g["hours"] += r["hours"]
+        g["amount"] += r["amount"]
+    return groups
 
 
 def _payments(conn, first_week, last_week):
@@ -167,6 +189,7 @@ def payroll_page():
     conn.close()
     this_week = week_start_of(date.today())
     return render_template("payroll.html", week=week, week_end=week + timedelta(days=6), rows=rows,
+                           groups=group_by_person(rows),
                            totals=totals, history=history,
                            prev_week=(week - timedelta(weeks=1)).isoformat(),
                            next_week=(week + timedelta(weeks=1)).isoformat() if week < this_week else None,
@@ -245,13 +268,13 @@ def payroll_export():
     conn = get_db()
     rows, totals, _history = build_payroll(conn, week)
     conn.close()
-    out = [["Week of", "Name", "Type", "Hours", "Owed", "Paid", "Paid amount", "Paid on", "Paid by", "Note", "Flag"]]
-    for r in rows:
+    out = [["Week of", "Person", "Name", "Type", "Hours", "Owed", "Paid", "Paid amount", "Paid on", "Paid by", "Note", "Flag"]]
+    for r in [r for g in group_by_person(rows) for r in g["rows"]]:
         p = r["payment"]
-        out.append([week.isoformat(), r["name"], r["kind"], f"{r['hours']:.2f}", f"{r['amount']:.2f}",
+        out.append([week.isoformat(), r["person_name"], r["name"], r["kind"], f"{r['hours']:.2f}", f"{r['amount']:.2f}",
                     "Yes" if p else "No", f"{p['amount']:.2f}" if p else "", (p["paid_at"] or "")[:10] if p else "",
                     (p["paid_by"] or "") if p else "", (p["note"] or "") if p else "", r["flag"] or ""])
-    out.append(["", "Total", "", f"{totals['hours']:.2f}", f"{totals['owed']:.2f}", "", f"{totals['paid']:.2f}",
+    out.append(["", "Total", "", "", f"{totals['hours']:.2f}", f"{totals['owed']:.2f}", "", f"{totals['paid']:.2f}",
                 "", "", "", ""])
     return _csv_response(out, f"payroll_week_{week.isoformat()}.csv")
 
@@ -268,7 +291,7 @@ def payroll_history_export():
     paid = _payments(conn, first, this_week)
     people = {(p["type"], p["id"]): p for p in _people(conn)}
     conn.close()
-    out = [["Week of", "Name", "Type", "Hours", "Owed", "Paid", "Paid amount", "Paid on"]]
+    out = [["Week of", "Person", "Name", "Type", "Hours", "Owed", "Paid", "Paid amount", "Paid on"]]
     for i in range(52):
         w = (this_week - timedelta(weeks=i)).isoformat()
         for key, p in people.items():
@@ -277,7 +300,7 @@ def payroll_history_export():
             if not v and not pay:
                 continue
             v = v or {"hours": 0.0, "amount": 0.0}
-            out.append([w, p["name"], p["kind"], f"{v['hours']:.2f}", f"{v['amount']:.2f}",
+            out.append([w, p["person_name"], p["name"], p["kind"], f"{v['hours']:.2f}", f"{v['amount']:.2f}",
                         "Yes" if pay else "No", f"{pay['amount']:.2f}" if pay else "",
                         (pay["paid_at"] or "")[:10] if pay else ""])
     return _csv_response(out, f"payroll_history_{this_week.isoformat()}.csv")

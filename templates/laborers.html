@@ -9,7 +9,7 @@
       <button class="btn btn-outline-secondary ms-1"><i class="bi bi-search"></i></button>
     </form>
     <a href="{{ url_for('labor_page') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-arrow-left"></i> Labor</a>
-    <a href="{{ url_for('laborer_new') }}" class="btn btn-warning fw-bold text-nowrap"><i class="bi bi-plus-lg"></i> New Laborer</a>
+    <a href="{{ url_for('admin_user_new', shop_role='tech', badge='new') if is_master_admin else url_for('laborer_new') }}" class="btn btn-warning fw-bold text-nowrap"><i class="bi bi-plus-lg"></i> New Laborer</a>
   </div>
 </div>
 
@@ -20,7 +20,7 @@
     <tbody>
       {% for l in laborers %}
       <tr class="{{ '' if l.active else 'text-muted' }}">
-        <td>{{ l.name }}</td>
+        <td>{{ l.name }}{% if l.account_name %}<div class="small text-muted"><i class="bi bi-link-45deg"></i> {% if is_master_admin %}<a href="{{ url_for('admin_user_edit', user_id=l.account_id) }}" class="text-muted">{{ l.account_name }}</a>{% else %}{{ l.account_name }}{% endif %}</div>{% endif %}</td>
         <td>${{ "%.2f"|format(l.rate) }}/hr</td>
         <td><code class="small">{{ l.code }}</code></td>
         <td>{% if l.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
