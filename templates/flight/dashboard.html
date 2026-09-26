@@ -238,7 +238,7 @@
 <div id="dash-flag-toast" role="alert"></div>
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
   <h4 class="mb-0">
-    {% if cfi %}Welcome, {{ cfi.name }}{% elif student and student.is_station %}{{ student.name }}{% else %}Welcome, {{ student.name }}{% endif %}
+    {% if cfi %}Welcome, {{ cfi.name|first_name }}{% elif student and student.is_station %}{{ student.name }}{% else %}Welcome, {{ student.name|first_name }}{% endif %}
   </h4>
   {#- Local clock, Zulu clock and today's sunrise/sunset - the same info
      Active Flight's header shows, plus the sun times (see sun.py) that the

@@ -208,6 +208,15 @@ def usdate(value, show_time=False):
 
 
 app.jinja_env.filters["usdate"] = usdate
+
+
+def first_name(value):
+    """'Kate Frank' -> 'Kate', for friendly greetings ("Welcome, Kate")."""
+    parts = str(value or "").split()
+    return parts[0] if parts else ""
+
+
+app.jinja_env.filters["first_name"] = first_name
 app.jinja_env.globals["tracking_carrier_choices"] = tracking.CARRIER_CHOICES
 app.jinja_env.globals["tracking_info"] = tracking.to_json
 
