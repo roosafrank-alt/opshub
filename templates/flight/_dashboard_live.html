@@ -278,6 +278,37 @@
 </div>
 {% endif %}
 
+{#- Change Requests moved up next to Unconfirmed/Pending Approval above
+   (used to sit much further down, past Today's Schedule/Upcoming) - all
+   three are admin action queues, so they belong together near the top. #}
+{% if change_requests %}
+<div class="card p-3 mb-3 border-info" id="change-request-card">
+  <h6 class="mb-2"><i class="bi bi-chat-left-text-fill"></i> Change Requests <span class="badge bg-info text-dark" id="change-request-count">{{ change_requests|length }}</span></h6>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Student</th><th>Request</th><th></th></tr></thead>
+      <tbody>
+        {#- Same click-the-row-to-jump-to-the-Schedule pattern as Pending
+           Approval above, except the Dismiss button (not Approve/Deny) -
+           see the delegated handlers in dashboard.html. #}
+        {% for r in change_requests %}
+        <tr class="pending-row-clickable" data-goto-url="{{ url_for('flight.schedule_calendar', view='month', year=r.scheduled_date[:4]|int, month=r.scheduled_date[5:7]|int, highlight=r.id) }}" title="Open this flight's spot on the Schedule">
+          <td data-label="Date"><small>{{ r.scheduled_date|usdate }}</small></td>
+          <td data-label="Time"><small>{{ r.time_label or 'Not set' }}</small></td>
+          <td data-label="Plane">{{ r.plane_tag }}</td>
+          <td data-label="Student">{{ r.student_name }}</td>
+          <td class="stack-full" data-label="Request"><small>{{ r.change_request_note }}</small></td>
+          <td data-label="" class="text-end text-nowrap">
+            <button type="button" class="btn btn-outline-secondary btn-sm change-request-dismiss-btn" data-dismiss-url="{{ url_for('flight.schedule_change_request_dismiss', scheduled_id=r.id) }}" title="Mark handled"><i class="bi bi-check-lg"></i> Handled</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 {#- Later bookings a late flight's updated ETA runs into (same plane,
    instructor or student) - see flight._eta_impacts / log_set_eta. Goes
    away on its own once the late flight ends or the ETA is cleared. #}
@@ -740,34 +771,6 @@
     <a href="{{ url_for('flight.schedule_calendar') }}" class="small">Full Calendar &raquo;</a>
   </div>
 </div>
-
-{% if change_requests %}
-<div class="card p-3 mb-3 border-info" id="change-request-card">
-  <h6 class="mb-2"><i class="bi bi-chat-left-text-fill"></i> Change Requests <span class="badge bg-info text-dark" id="change-request-count">{{ change_requests|length }}</span></h6>
-  <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0 table-stack">
-      <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Student</th><th>Request</th><th></th></tr></thead>
-      <tbody>
-        {#- Same click-the-row-to-jump-to-the-Schedule pattern as Pending
-           Approval above, except the Dismiss button (not Approve/Deny) -
-           see the delegated handlers in dashboard.html. #}
-        {% for r in change_requests %}
-        <tr class="pending-row-clickable" data-goto-url="{{ url_for('flight.schedule_calendar', view='month', year=r.scheduled_date[:4]|int, month=r.scheduled_date[5:7]|int, highlight=r.id) }}" title="Open this flight's spot on the Schedule">
-          <td data-label="Date"><small>{{ r.scheduled_date|usdate }}</small></td>
-          <td data-label="Time"><small>{{ r.time_label or 'Not set' }}</small></td>
-          <td data-label="Plane">{{ r.plane_tag }}</td>
-          <td data-label="Student">{{ r.student_name }}</td>
-          <td class="stack-full" data-label="Request"><small>{{ r.change_request_note }}</small></td>
-          <td data-label="" class="text-end text-nowrap">
-            <button type="button" class="btn btn-outline-secondary btn-sm change-request-dismiss-btn" data-dismiss-url="{{ url_for('flight.schedule_change_request_dismiss', scheduled_id=r.id) }}" title="Mark handled"><i class="bi bi-check-lg"></i> Handled</button>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% endif %}
 
 {% if plane_maint %}
 <div class="card p-3 mb-3">
