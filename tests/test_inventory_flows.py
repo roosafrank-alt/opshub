@@ -99,10 +99,20 @@ class ScanFlowTest(OpsHubTestCase):
         self.exec("UPDATE projects SET deleted_at=? WHERE id=?", (db.now_iso(), self.project))
         self._assert_rejected(self.scan("PART-001", "out", 1, self.project), status=404)
 
+    def test_scan_out_to_completed_or_archived_project_rejected(self):
+        # Marking a project completed/archived used to have no effect on
+        # scanning - stock could still be charged to it, silently changing
+        # the total on a job that's already been billed.
+        for status in ("completed", "archived"):
+            with self.subTest(status=status):
+                self.exec("UPDATE projects SET status=? WHERE id=?", (status, self.project))
+                self._assert_rejected(self.scan("PART-001", "out", 1, self.project))
+        self.exec("UPDATE projects SET status='on_hold' WHERE id=?", (self.project,))
+        self.assertEqual(self.scan("PART-001", "out", 1, self.project).status_code, 200)
+
     def test_scan_out_to_nonexistent_project_rejected(self):
         self._assert_rejected(self.scan("PART-001", "out", 1, 9999), status=404)
 
-    @open_finding("qa-nan-quantities")
     def test_nan_and_infinity_quantities_rejected(self):
         # float("nan") slipped past the `qty <= 0`
         # check and wrote NaN into qty_on_hand, permanently corrupting the part.
@@ -110,7 +120,6 @@ class ScanFlowTest(OpsHubTestCase):
             with self.subTest(qty=bad):
                 self._assert_rejected(self.scan("PART-001", "in", bad))
 
-    @open_finding("qa-malformed-scan-body")
     def test_non_object_json_body_is_a_400_not_a_crash(self):
         r = self.client.post("/api/scan", json=["PART-001", "in"])
         self.assertEqual(r.status_code, 400)
@@ -118,7 +127,6 @@ class ScanFlowTest(OpsHubTestCase):
         self.assertEqual(r.status_code, 400)
 
     # --- who may scan -----------------------------------------------------
-    @open_finding("qa-scan-permission")
     def test_accounts_without_shop_access_cannot_change_inventory(self):
         # /api/scan was @login_required only, so a
         # flight student (or any account with no Shop role) could add/remove
@@ -135,6 +143,20 @@ class ScanFlowTest(OpsHubTestCase):
             with self.subTest(role=role):
                 self.login(role)
                 self.assertEqual(self.scan("PART-001", "in", 1).status_code, 200)
+
+    def test_costs_hidden_from_non_admins_on_scan_and_lookup(self):
+        # A tech doesn't see prices on screen, but the scan response and the
+        # scanner's own barcode lookup used to send unit_cost/sell_price to
+        # anyone logged in regardless of role.
+        for role, visible in (("tech", False), ("shop_student", False), ("shop_admin", True), ("master", True)):
+            with self.subTest(role=role):
+                self.login(role)
+                r = self.scan("PART-001", "in", 1)
+                self.assertEqual(("unit_cost" in r.json), visible)
+                self.assertEqual(("sell_price" in r.json), visible)
+                r2 = self.client.get("/api/lookup/PART-001")
+                self.assertEqual(("unit_cost" in r2.json), visible)
+                self.assertEqual(("sell_price" in r2.json), visible)
 
 
 class PartFlowTest(OpsHubTestCase):
@@ -164,14 +186,12 @@ class PartFlowTest(OpsHubTestCase):
         self._new(name="  ")
         self.assertEqual(self.q1("SELECT COUNT(*) c FROM parts")["c"], 0)
 
-    @open_finding("qa-nan-quantities")
     def test_new_part_rejects_nan_or_negative_stock(self):
         for bad in ("nan", "inf", "-5"):
             with self.subTest(qty=bad):
                 self._new(name="Bad " + bad, qty_on_hand=bad)
                 self.assertIsNone(self.q1("SELECT * FROM parts WHERE name=?", ("Bad " + bad,)))
 
-    @open_finding("qa-blank-part-name")
     def test_edit_cannot_blank_the_name(self):
         # Edit saved an empty name, leaving a
         # part with no visible label anywhere in the app.
@@ -187,14 +207,12 @@ class PartFlowTest(OpsHubTestCase):
         self.assertEqual(self.qty(pid), 7)
         self.assertEqual(ledger_qty(self, pid), 7)
 
-    @open_finding("qa-negative-recount")
     def test_count_adjustment_rejects_negative(self):
         # A physical count can't be negative.
         pid = self.make_part(qty=10)
         self.client.post(f"/parts/{pid}/adjust", data=dict(new_qty="-2", performed_by="Frank"))
         self.assertEqual(self.qty(pid), 10)
 
-    @open_finding("qa-nan-quantities")
     def test_count_adjustment_rejects_nan_or_infinity(self):
         pid = self.make_part(qty=10)
         for bad in ("nan", "inf"):
@@ -214,7 +232,6 @@ class PartFlowTest(OpsHubTestCase):
         self.client.post(f"/parts/{pid}/delete")
         self.assertEqual(self.qty(pid), 10)
 
-    @open_finding("qa-part-delete-history")
     def test_deleting_a_part_keeps_project_parts_history(self):
         # NEEDS FRANK'S DECISION: Delete Part also runs
         # DELETE FROM transactions WHERE part_id = ?, which silently erases
@@ -258,7 +275,6 @@ class ProjectPartsTest(OpsHubTestCase):
         self._assign("nan")
         self.assertEqual(self.qty(self.part), 5)
 
-    @open_finding("qa-trashed-project-add-part")
     def test_assign_to_trashed_project_rejected(self):
         # the project page's Add Part didn't
         # check deleted_at, unlike the Scan page, so stock could be charged to
@@ -275,7 +291,17 @@ class ProjectPartsTest(OpsHubTestCase):
         self.assertIn("Engine", html)
         self.assertIn("Brakes", html)
 
-    @open_finding("qa-status-missing-project")
+    def test_parts_used_hides_cost_from_tech_page_source(self):
+        # The Cost column was already hidden on screen for a tech, but its
+        # value still leaked into the page source via a data-cost attribute.
+        self._assign(2, section="Engine")
+        self.login("tech")
+        html = self.client.get("/projects/parts-used").get_data(as_text=True)
+        self.assertNotIn("data-cost", html)
+        self.login("shop_admin")
+        html = self.client.get("/projects/parts-used").get_data(as_text=True)
+        self.assertIn("data-cost", html)
+
     def test_status_change_on_missing_project_is_404(self):
         r = self.client.post("/projects/9999/status", data=dict(status="completed"))
         self.assertEqual(r.status_code, 404)
@@ -299,7 +325,6 @@ class OrderReceiveTest(OpsHubTestCase):
         self.assertEqual(self.qty(self.part), 8)
         self.assertEqual(ledger_qty(self, self.part), 6)
 
-    @open_finding("qa-order-double-receive")
     def test_receiving_twice_does_not_double_count(self):
         # Receive had no status check - a
         # double-click, a Back-button resubmit, or two people receiving the
@@ -308,14 +333,12 @@ class OrderReceiveTest(OpsHubTestCase):
         self.client.post(f"/orders/{self.order}/receive")
         self.assertEqual(self.qty(self.part), 8)
 
-    @open_finding("qa-order-double-receive")
     def test_cancelled_order_cannot_be_received(self):
         self.client.post(f"/orders/{self.order}/cancel")
         self.client.post(f"/orders/{self.order}/receive")
         self.assertEqual(self.qty(self.part), 2)
         self.assertEqual(self.q1("SELECT status FROM orders WHERE id=?", (self.order,))["status"], "cancelled")
 
-    @open_finding("qa-order-double-receive")
     def test_received_order_cannot_be_cancelled(self):
         # cancelling after receiving left the
         # stock in place but showed the order as cancelled.
@@ -331,6 +354,18 @@ class OrderReceiveTest(OpsHubTestCase):
         self.client.post(f"/orders/{self.new_item_order}/receive")
         self.assertEqual(self.q1("SELECT COUNT(*) c FROM parts WHERE name='Tire 5.00-5'")["c"], 1)
 
+    def test_export_csv_hides_costs_from_techs(self):
+        # A tech's CSV export used to include Unit Cost/Est. Total columns
+        # even though techs don't see prices on screen.
+        self.login("tech")
+        csv_text = self.client.get("/orders/export?status=all").get_data(as_text=True)
+        self.assertNotIn("Unit Cost", csv_text)
+        self.assertNotIn("12.50", csv_text)
+        self.login("shop_admin")
+        csv_text = self.client.get("/orders/export?status=all").get_data(as_text=True)
+        self.assertIn("Unit Cost", csv_text)
+        self.assertIn("12.50", csv_text)
+
 
 class LedgerInvariantTest(OpsHubTestCase):
     """The big one: after a long random mix of everything people do at the
@@ -339,7 +374,6 @@ class LedgerInvariantTest(OpsHubTestCase):
     still equal what its transaction history adds up to, and never go
     negative. Seeded, so a failure is reproducible."""
 
-    @open_finding("qa-order-double-receive + qa-negative-recount + qa-nan-quantities")
     def test_random_day_at_the_parts_counter(self):
         rnd = random.Random(1234)
         parts = [self.make_part(name=f"P{i}", barcode=f"B{i}", qty=rnd.randint(0, 20)) for i in range(5)]
@@ -413,9 +447,22 @@ class LoginFlowTest(OpsHubTestCase):
         self.assertEqual(c.get(f"/portal/aircraft/{mine}").status_code, 200)
         self.assertIn(c.get(f"/portal/aircraft/{theirs}").status_code, (302, 403, 404))
 
+    def test_flight_only_accounts_cannot_open_shop_pages(self):
+        # A flight student or CFI (no Shop role) used to get a normal 200 on
+        # every shop page - just @login_required, no role check.
+        pid = self.make_project()
+        for role in ("flight_student", "cfi", "no_roles"):
+            with self.subTest(role=role):
+                c = self.login(role)
+                for url in ("/shop", "/scan", "/projects", f"/projects/{pid}",
+                           "/projects/parts-used", "/calendar", "/shop/pay"):
+                    self.assertIn(c.get(url).status_code, (302, 403), url)
+        for role in ("tech", "shop_admin", "shop_student", "master", "inspector"):
+            with self.subTest(role=role):
+                self.assertEqual(self.login(role).get("/shop").status_code, 200)
+
 
 class CrashCleanupTest(OpsHubTestCase):
-    @open_finding("qa-db-lock-after-crash")
     def test_db_not_left_locked_after_a_crash(self):
         """A route that crashes between writing and committing must not leave
         the database write-locked for everyone else. A temporary trigger makes

@@ -105,8 +105,18 @@ class RouteCrawlTest(OpsHubTestCase):
             for rule in _get_rules():
                 if "<" not in rule.rule:
                     self.login(role).get(rule.rule)
-        bad = [s for s in SIDE_EFFECTS if s[0] == "subprocess"]
+        bad = [s for s in SIDE_EFFECTS if s[0] == "subprocess" and not _read_only_command(s[1])]
         self.assertEqual(bad, [], "A GET page ran a shell command: %r" % bad)
+
+
+# Commands a page may run just to READ the Pi's status (the System page shows
+# the CPU temperature). Anything else from a GET page - reboot, restart, lp,
+# git - is still a failure.
+_READ_ONLY_COMMANDS = {("vcgencmd", "measure_temp"), ("vcgencmd", "get_throttled")}
+
+
+def _read_only_command(args):
+    return isinstance(args, (list, tuple)) and tuple(args[:2]) in _READ_ONLY_COMMANDS
 
 
 class CrawlerSanityTest(OpsHubTestCase):

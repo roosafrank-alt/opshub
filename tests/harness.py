@@ -60,18 +60,27 @@ class _FakeSMTP:
         raise _Blocked("smtp disabled in tests")
 
 
+def _wants_text(k):
+    # Real subprocess returns str instead of bytes when asked for text. The
+    # fakes must do the same, or app code that (correctly) passes text=True
+    # and then regex-searches the output would crash only in tests.
+    return bool(k.get("text") or k.get("universal_newlines") or k.get("encoding") or k.get("errors"))
+
+
 def _fake_run(args, *a, **k):
     SIDE_EFFECTS.append(("subprocess", args))
-    return subprocess.CompletedProcess(args, 0, b"", b"")
+    empty = "" if _wants_text(k) else b""
+    return subprocess.CompletedProcess(args, 0, empty, empty)
 
 
 class _FakePopen:
     def __init__(self, args, *a, **k):
         SIDE_EFFECTS.append(("subprocess", args))
         self.returncode = 0
+        self._empty = "" if _wants_text(k) else b""
 
     def communicate(self, *a, **k):
-        return (b"", b"")
+        return (self._empty, self._empty)
 
     def wait(self, *a, **k):
         return 0
@@ -89,7 +98,7 @@ subprocess.run = _fake_run
 subprocess.Popen = _FakePopen
 subprocess.call = lambda args, *a, **k: (SIDE_EFFECTS.append(("subprocess", args)) or 0)
 subprocess.check_call = subprocess.call
-subprocess.check_output = lambda args, *a, **k: (SIDE_EFFECTS.append(("subprocess", args)) or b"")
+subprocess.check_output = lambda args, *a, **k: (SIDE_EFFECTS.append(("subprocess", args)) or ("" if _wants_text(k) else b""))
 
 import app as app_module  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402

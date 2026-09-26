@@ -11,6 +11,8 @@ python3 -m unittest tests.test_inventory_flows -v
 ```
 
 Tests use a throwaway database in a temp folder, never `instance/shopinv.db`.
+The faked shell commands return empty output as text or bytes, whichever the
+caller asked for (`text=True` etc.), exactly like the real `subprocess`.
 Internet, email, SMS, push, the label printer, and reboot/restart are all faked.
 They're safe to run on the Mac, the Pi (even while the live app is running), or in
 a cloud session. They need only the standard library plus Flask.
@@ -63,8 +65,10 @@ Shop / inventory
 - [x] Project page "Add Part"
 - [x] Orders: receive, cancel, double-receive
 - [x] Ledger invariant: on-hand always matches transaction history (randomized)
-- [ ] Orders: new, edit, wishlist, export CSV (tech sees costs?)
-- [ ] Labor tracking: `/api/labor/scan` start/stop, double-start, stop someone else's session, pay totals
+- [x] Orders: new, edit, wishlist, export CSV (tech sees costs?)
+- [x] Labor tracking: `/api/labor/scan` start/stop, double-start, stop someone else's session, pay totals
+- [ ] Labor: two scans of the same badge at the same instant (needs a threaded test; today's check-then-insert isn't atomic)
+- [ ] Pi health / System page (`/admin/system`, `pi_health.py`) once it's live: temperature parsing, alert thresholds, no duplicate alerts
 - [ ] Project lifecycle: new, intake, edit, status, trash/restore/purge, renumber after delete
 - [ ] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
 - [ ] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s)
