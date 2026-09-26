@@ -44,9 +44,29 @@
           <button type="button" id="section-new-add" class="btn btn-primary">Add</button>
         </div>
       </div>
-      <div class="mt-2" id="laborer-pending-row" style="display:none;">
-        <span class="badge bg-warning text-dark" id="laborer-pending-badge"></span>
-        <span class="text-muted small">waiting on a project to clock in - scan a project code, or use "change" above.</span>
+    </div>
+
+    <!-- Click-less pairing: shows the first thing scanned on the left and an
+         empty, waiting slot on the right until its match (part <-> project,
+         or laborer <-> project/task) arrives - then the pair fires
+         immediately, no button required. -->
+    <div id="pairing-card" class="card p-3 mb-3 border-warning" style="display:none;">
+      <div class="row g-2 align-items-center text-center">
+        <div class="col-5">
+          <div class="text-muted small mb-1">Scanned</div>
+          <div id="pairing-left" class="fw-bold fs-5"></div>
+          <div id="pairing-left-sub" class="text-muted small"></div>
+        </div>
+        <div class="col-2"><i class="bi bi-arrow-left-right fs-4 text-muted"></i></div>
+        <div class="col-5">
+          <div class="text-muted small mb-1">Waiting for...</div>
+          <div class="border border-dashed rounded p-2 text-muted" id="pairing-right">
+            <i class="bi bi-upc-scan"></i> Scan now
+          </div>
+        </div>
+      </div>
+      <div class="text-center mt-2">
+        <button type="button" class="btn btn-link btn-sm text-muted" id="pairing-cancel-btn">Cancel</button>
       </div>
     </div>
 
@@ -84,6 +104,13 @@
       <div id="confirm-body"></div>
     </div>
 
+    <!-- The one moment this scanner asks for the keyboard: clocking OUT of
+         General Shop time needs a quick word on what was actually worked on,
+         since there's no project/task to infer it from. -->
+    <div id="general-note-card" class="card p-3 mb-3 border-warning" style="display:none;">
+      <div id="general-note-body"></div>
+    </div>
+
     <div id="result-card" class="card p-3 mb-3" style="display:none;">
       <div id="result-body"></div>
     </div>
@@ -99,6 +126,9 @@ let html5QrCode = null;
 let cameraRunning = false;
 let lastScanTime = 0;
 let pendingLaborer = null; // {code, name} - scanned before a project was set, waiting to fire
+let pendingPart = null; // {barcode, name, unit, qty_on_hand} - scanned before a project was set
+let generalShopActive = false; // "GENERAL-SHOP" code scanned - clock in/out with no project attached
+const GENERAL_SHOP_CODE = "GENERAL-SHOP";
 
 function vibrate(pattern) {
   try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { /* not supported */ }
@@ -180,15 +210,22 @@ const sectionNewAdd = document.getElementById('section-new-add');
 const projectStatusBadge = document.getElementById('project-status-badge');
 const projectPickerRow = document.getElementById('project-picker-row');
 const projectChangeLink = document.getElementById('project-change-link');
-const laborerPendingRow = document.getElementById('laborer-pending-row');
-const laborerPendingBadge = document.getElementById('laborer-pending-badge');
+const pairingCard = document.getElementById('pairing-card');
+const pairingLeft = document.getElementById('pairing-left');
+const pairingLeftSub = document.getElementById('pairing-left-sub');
+const pairingCancelBtn = document.getElementById('pairing-cancel-btn');
 
 projectChangeLink.addEventListener('click', function () {
+  generalShopActive = false;
+  updateProjectStatus();
   projectPickerRow.style.display = projectPickerRow.style.display === 'none' ? 'block' : 'none';
 });
 
 function updateProjectStatus() {
-  if (projectSelect.value) {
+  if (generalShopActive) {
+    projectStatusBadge.textContent = 'General Shop';
+    projectStatusBadge.className = 'badge bg-warning text-dark';
+  } else if (projectSelect.value) {
     const opt = projectSelect.options[projectSelect.selectedIndex];
     projectStatusBadge.textContent = opt ? (opt.getAttribute('data-code') || 'Set') : 'Set';
     projectStatusBadge.className = 'badge bg-success';
@@ -198,13 +235,32 @@ function updateProjectStatus() {
   }
 }
 
-function updateLaborerPendingUI() {
-  if (pendingLaborer) {
-    laborerPendingRow.style.display = 'block';
-    laborerPendingBadge.textContent = pendingLaborer.name + ' scanned';
+// Shows whichever of pendingPart/pendingLaborer is waiting on its match, on
+// one side of the pairing card, with an empty "Scan now" slot on the other -
+// the same card either way, since both are "first scan waits for a second".
+function updatePairingUI() {
+  if (pendingPart) {
+    pairingCard.style.display = 'block';
+    pairingLeft.textContent = pendingPart.name;
+    pairingLeftSub.textContent = pendingPart.barcode;
+  } else if (pendingLaborer) {
+    pairingCard.style.display = 'block';
+    pairingLeft.textContent = pendingLaborer.name;
+    pairingLeftSub.textContent = 'Laborer badge';
   } else {
-    laborerPendingRow.style.display = 'none';
+    pairingCard.style.display = 'none';
   }
+}
+
+pairingCancelBtn.addEventListener('click', function () {
+  pendingPart = null;
+  pendingLaborer = null;
+  updatePairingUI();
+});
+
+function maybeFirePendingScans() {
+  maybeFirePendingPart();
+  maybeFirePendingLaborer();
 }
 
 function addSectionOption(name) {
@@ -228,7 +284,8 @@ function refreshSectionsForProject(cb) {
 }
 
 projectSelect.addEventListener('change', function () {
-  refreshSectionsForProject(maybeFirePendingLaborer);
+  generalShopActive = false;
+  refreshSectionsForProject(maybeFirePendingScans);
 });
 
 sectionSelect.addEventListener('change', function () {
@@ -260,10 +317,10 @@ function currentSection() {
 }
 
 function maybeFirePendingLaborer() {
-  if (pendingLaborer && projectSelect.value) {
+  if (pendingLaborer && (projectSelect.value || generalShopActive)) {
     const code = pendingLaborer.code;
     pendingLaborer = null;
-    updateLaborerPendingUI();
+    updatePairingUI();
     handleLaborScan(code);
   }
 }
@@ -278,6 +335,7 @@ function maybeFirePendingLaborer() {
 const PROJECT_CODE_RE = /^\d{2}-\d{3,}$/;
 
 function selectProjectInUI(project) {
+  generalShopActive = false;
   let opt = projectSelect.querySelector('option[value="' + project.id + '"]');
   if (!opt) {
     opt = document.createElement('option');
@@ -287,7 +345,30 @@ function selectProjectInUI(project) {
   opt.setAttribute('data-code', project.code);
   opt.textContent = project.code + ' - ' + project.name;
   projectSelect.value = String(project.id);
-  refreshSectionsForProject(maybeFirePendingLaborer);
+  refreshSectionsForProject(maybeFirePendingScans);
+}
+
+function maybeFirePendingPart() {
+  if (pendingPart && !generalShopActive && projectSelect.value) {
+    const p = pendingPart;
+    pendingPart = null;
+    updatePairingUI();
+    submitScan(p.barcode, 1, 'out', p.fromCamera);
+  }
+}
+
+function handleGeneralShopScan(fromCamera) {
+  generalShopActive = true;
+  projectSelect.value = '';
+  updateProjectStatus();
+  showResult('<i class="bi bi-clipboard-check"></i> <strong>General Shop</strong> selected - now scan a laborer badge to clock in/out.', 'scan-flash-in');
+  vibrate([40, 60, 40]);
+  maybeFirePendingLaborer();
+  if (fromCamera && cameraRunning && html5QrCode) {
+    try { html5QrCode.resume(); } catch (e) { /* ignore */ }
+  } else if (!fromCamera) {
+    scanInput.focus();
+  }
 }
 
 function showResult(html, cls) {
@@ -332,7 +413,7 @@ function handleTaskCodeScan(code, fromCamera) {
           let sopt = sectionSelect.querySelector('option[value="' + CSS.escape(data.section) + '"]');
           if (!sopt) { sopt = document.createElement('option'); sopt.value = data.section; sopt.textContent = data.section; sectionSelect.appendChild(sopt); }
           sectionSelect.value = data.section;
-          maybeFirePendingLaborer();
+          maybeFirePendingScans();
         }, 150);
       }
       showResult('<i class="bi bi-clipboard-check"></i> Task selected: <strong>' + data.project_code +
@@ -366,21 +447,32 @@ function flagMissingOperator() {
 // Who's currently clocked in, and recent labor activity, both live on the
 // Dashboard now - a clock-in/clock-out here just confirms and moves on.
 
-function handleLaborScan(code) {
-  const task = { project_id: projectSelect.value || null, section: currentSection() };
+function handleLaborScan(code, note) {
+  const body = { code: code };
+  if (generalShopActive && !projectSelect.value) {
+    body.general = true;
+  } else {
+    body.project_id = projectSelect.value || null;
+    body.section = currentSection();
+  }
+  if (note) body.note = note;
   fetch('/api/labor/scan', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code: code, project_id: task.project_id, section: task.section })
+    body: JSON.stringify(body)
   }).then(r => r.json()).then(function (data) {
     if (!data.ok) {
       let msg = 'Scan failed.';
       if (data.error === 'unknown_laborer') msg = 'No laborer found for that code.';
       else if (data.error === 'inactive_laborer') msg = data.name + ' is marked inactive.';
+      else if (data.error === 'note_required') {
+        showGeneralNotePrompt(code, data.laborer);
+        return;
+      }
       else if (data.error === 'no_task_selected') {
         pendingLaborer = { code: code, name: data.name || 'Laborer' };
-        updateLaborerPendingUI();
+        updatePairingUI();
         showResult('<i class="bi bi-hourglass-split"></i> <strong>' + pendingLaborer.name +
-          '</strong> scanned - now scan a project code (or use "change" above) to start their timer.', 'scan-flash-in');
+          '</strong> scanned - now scan a project code (or "' + GENERAL_SHOP_CODE + '") to start their timer.', 'scan-flash-in');
         vibrate([60]);
         return;
       }
@@ -389,20 +481,49 @@ function handleLaborScan(code) {
       vibrate([200]);
       return;
     }
+    const projectLabel = data.general ? 'General Shop' : data.project_code;
     if (data.action === 'clock_in') {
       showResult('<i class="bi bi-play-circle"></i> <strong>' + data.laborer + '</strong> clocked in on ' +
-        data.project_code + (data.section && data.section !== 'General' ? ' &middot; ' + data.section : '') + '.', 'scan-flash-in');
+        projectLabel + (data.section && data.section !== 'General' && data.section !== 'General Shop' ? ' &middot; ' + data.section : '') + '.', 'scan-flash-in');
       vibrate([40, 60, 40]);
       addRecent(code, data.laborer + ' clocked in', 'labor');
     } else {
       showResult('<i class="bi bi-stop-circle"></i> <strong>' + data.laborer + '</strong> clocked out of ' +
-        data.project_code + (data.section && data.section !== 'General' ? ' &middot; ' + data.section : '') +
+        projectLabel + (data.section && data.section !== 'General' && data.section !== 'General Shop' ? ' &middot; ' + data.section : '') +
         ': ' + data.hours + ' hrs.', 'scan-flash-in');
       vibrate([40, 60, 40, 60, 40]);
       addRecent(code, data.laborer + ' clocked out (' + data.hours + ' hrs)', 'labor');
     }
+    document.getElementById('general-note-card').style.display = 'none';
   }).catch(function () {
     showResult('Could not reach the server.', 'scan-flash-error');
+  });
+}
+
+// The one keyboard moment: clocking out of General Shop time needs a note on
+// what was actually worked on. The timer keeps running server-side until
+// this comes back, so there's no data loss if it's dismissed.
+function showGeneralNotePrompt(code, laborerName) {
+  const card = document.getElementById('general-note-card');
+  const body = document.getElementById('general-note-body');
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  body.innerHTML = `
+    <div class="mb-2"><strong>${laborerName}</strong> - what did you work on during this General Shop time?</div>
+    <textarea id="general-note-input" class="form-control mb-2" rows="2" placeholder="e.g. Swept and organized the parts room"></textarea>
+    <div class="d-flex gap-2">
+      <button class="btn btn-warning fw-bold flex-fill" id="general-note-submit">Submit &amp; Clock Out</button>
+      <button class="btn btn-outline-secondary" id="general-note-cancel">Not now</button>
+    </div>`;
+  const input = document.getElementById('general-note-input');
+  input.focus();
+  document.getElementById('general-note-submit').addEventListener('click', function () {
+    const note = input.value.trim();
+    if (!note) { input.classList.add('is-invalid'); input.focus(); return; }
+    handleLaborScan(code, note);
+  });
+  document.getElementById('general-note-cancel').addEventListener('click', function () {
+    card.style.display = 'none';
   });
 }
 
@@ -412,6 +533,7 @@ function handleLaborScan(code) {
 // only place that ever has to ask a follow-up question.
 
 function routeScanValue(value, fromCamera) {
+  if (value === GENERAL_SHOP_CODE) { handleGeneralShopScan(fromCamera); return true; }
   if (value.startsWith('LABOR-')) { handleLaborScan(value); return true; }
   if (value.startsWith('TASK-')) { handleTaskCodeScan(value, fromCamera); return true; }
   if (PROJECT_CODE_RE.test(value)) { handleProjectCodeScan(value, fromCamera); return true; }
@@ -437,7 +559,27 @@ document.addEventListener('click', function(e) {
     }
   }
 });
-window.addEventListener('load', () => { scanInput.focus(); updateProjectStatus(); });
+window.addEventListener('load', () => {
+  scanInput.focus();
+  updateProjectStatus();
+  // A scan made anywhere else in the app (base.html's global USB capture)
+  // lands here as ?autoscan=<code> - process it exactly like a scan made
+  // directly in this page's own USB box, then scrub the URL so a refresh
+  // doesn't replay it.
+  const params = new URLSearchParams(window.location.search);
+  const auto = params.get('autoscan');
+  if (auto) {
+    history.replaceState({}, '', window.location.pathname);
+    // Give the "Scanning as" default (set from the /api/operators fetch
+    // above) a moment to land before checking it.
+    setTimeout(function () {
+      if (!routeScanValue(auto, false)) {
+        if (!operatorRequiredOk()) { flagMissingOperator(); }
+        else { lookupForConfirm(auto, false); }
+      }
+    }, 250);
+  }
+});
 
 // --- Camera flow -------------------------------------------------------
 
@@ -463,8 +605,44 @@ function handleCameraDecode(decodedText) {
 function lookupForConfirm(barcode, fromCamera) {
   fetch('/api/lookup/' + encodeURIComponent(barcode))
     .then(r => r.json())
-    .then(data => showPartConfirm(barcode, data, fromCamera))
-    .catch(() => showPartConfirm(barcode, { found: false }, fromCamera));
+    .then(data => handlePartLookupResult(barcode, data, fromCamera))
+    .catch(() => handlePartLookupResult(barcode, { found: false }, fromCamera));
+}
+
+// A part scanned while a project is already active needs no click at all -
+// it's an unambiguous Stock OUT of 1. Otherwise it waits (paired, on the
+// left of the pairing card) for a project/task scan to complete it, with a
+// link to fall back to the old manual Stock IN / quantity flow.
+function handlePartLookupResult(barcode, data, fromCamera) {
+  if (!data.found) {
+    showPartConfirm(barcode, data, fromCamera);
+    return;
+  }
+  if (!generalShopActive && projectSelect.value) {
+    submitScan(barcode, 1, 'out', fromCamera);
+    return;
+  }
+  pendingPart = { barcode: barcode, name: data.name, fromCamera: fromCamera };
+  updatePairingUI();
+  showResult('<i class="bi bi-box-seam"></i> <strong>' + data.name +
+    '</strong> scanned - now scan a project or task code to remove qty 1, or ' +
+    '<a href="#" id="pending-part-manual-link">choose Stock IN / a specific quantity</a> instead.', 'scan-flash-in');
+  vibrate([40]);
+  const link = document.getElementById('pending-part-manual-link');
+  if (link) {
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      const pp = pendingPart;
+      pendingPart = null;
+      updatePairingUI();
+      showPartConfirm(pp.barcode, data, pp.fromCamera);
+    });
+  }
+  if (fromCamera && cameraRunning && html5QrCode) {
+    try { html5QrCode.resume(); } catch (e) { /* ignore */ }
+  } else if (!fromCamera) {
+    scanInput.focus();
+  }
 }
 
 function showPartConfirm(barcode, data, fromCamera) {

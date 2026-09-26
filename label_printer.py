@@ -46,12 +46,12 @@ def _draw_centered(draw, text, y, font, width, fill=0):
     return th
 
 
-def generate_label_image(name, code, location=None):
+def generate_label_image(name, code, location=None, force_qr=False):
     w, h = LABEL_PX
     img = Image.new("1", (w, h), 1)
     draw = ImageDraw.Draw(img)
 
-    if code.startswith("SHOP-"):
+    if force_qr or code.startswith("SHOP-"):
         import qrcode
         qr = qrcode.QRCode(border=2, box_size=6)
         qr.add_data(code)
@@ -120,12 +120,22 @@ def print_part_label(part):
 
 def print_project_label(project, asset_tag=None):
     """project: a sqlite3.Row (or dict) with name and code. asset_tag: the
-    aircraft's tail number/tag, if known, shown as the subtitle line."""
-    img = generate_label_image(project["name"], project["code"], asset_tag)
+    aircraft's tail number/tag, if known, shown as the subtitle line.
+    Always a QR (matches the on-screen project_label.html page), since a
+    plain project code like "26-001" doesn't start with "SHOP-"."""
+    img = generate_label_image(project["name"], project["code"], asset_tag, force_qr=True)
     print_label_image(img)
 
 
 def print_laborer_label(laborer):
-    """laborer: a sqlite3.Row (or dict) with name and code."""
-    img = generate_label_image(laborer["name"], laborer["code"])
+    """laborer: a sqlite3.Row (or dict) with name and code. Always a QR -
+    a LABOR-xxxx code doesn't start with "SHOP-" either."""
+    img = generate_label_image(laborer["name"], laborer["code"], force_qr=True)
+    print_label_image(img)
+
+
+def print_task_label(title, subtitle, code):
+    """A project's General/task or sub-area QR code (TASK-...), or the
+    General Shop clock-in code. Always a QR."""
+    img = generate_label_image(title, code, subtitle, force_qr=True)
     print_label_image(img)

@@ -514,7 +514,7 @@ CREATE TABLE IF NOT EXISTS laborers (
 CREATE TABLE IF NOT EXISTS labor_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     laborer_id INTEGER NOT NULL REFERENCES laborers(id),
-    project_id INTEGER NOT NULL REFERENCES projects(id),
+    project_id INTEGER REFERENCES projects(id), -- NULL = General Shop (non-project) time
     section TEXT, -- which task/sub-area of the project, e.g. "Brakes"
     started_at TEXT NOT NULL DEFAULT (datetime('now')),
     ended_at TEXT, -- NULL while the timer is running

@@ -25,7 +25,7 @@
         {% for s in g.sessions %}
         <tr>
           <td data-label="Date"><small>{{ s.started_at|usdate(true) }}</small></td>
-          <td class="stack-full" data-label="Project"><a href="{{ url_for('project_detail', project_id=s.project_id) }}">{{ s.project_code }}</a> <small class="text-muted">{{ s.project_name }}</small></td>
+          <td class="stack-full" data-label="Project">{% if s.project_id %}<a href="{{ url_for('project_detail', project_id=s.project_id) }}">{{ s.project_code }}</a> <small class="text-muted">{{ s.project_name }}</small>{% else %}<span class="text-muted">General Shop</span>{% endif %}</td>
           <td data-label="Task">{{ s.section or 'General' }}</td>
           {% if s.ended_at %}
           <td data-label="Hours">{{ '%.2f'|format(s.hours or 0) }}</td>
