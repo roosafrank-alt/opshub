@@ -505,8 +505,12 @@ def dashboard():
     # did the assigning can see who hasn't picked it up.
     my_assigned_squawks = get_assigned_to_me_squawks(conn, session["user_id"]) if session.get("user_id") else []
     unacknowledged_assignments = []
+    system_alerts = []
     if session.get("is_master_admin") or session.get("shop_role") == "admin":
         unacknowledged_assignments = get_unacknowledged_assignments(conn)
+        system_alerts = conn.execute(
+            "SELECT * FROM system_alerts WHERE resolved_at IS NULL ORDER BY created_at DESC"
+        ).fetchall()
 
     # Customer portal: appointments the customer asked to reschedule -
     # stays here until an admin dismisses it (see project_reschedule_dismiss).
@@ -578,7 +582,8 @@ def dashboard():
                            open_squawks=open_squawks, open_sessions=open_sessions,
                            needs_confirm_sections=needs_confirm_sections,
                            my_assigned_squawks=my_assigned_squawks,
-                           unacknowledged_assignments=unacknowledged_assignments)
+                           unacknowledged_assignments=unacknowledged_assignments,
+                           system_alerts=system_alerts)
 
 
 # ---------------------------------------------------------------------------
@@ -5330,10 +5335,22 @@ def admin_reset():
 # README for the one-time `visudo` line) - nothing else is granted.
 # ---------------------------------------------------------------------------
 
+def _read_pi_temp_c():
+    """Current SoC temperature via vcgencmd, or None off-Pi/if unavailable.
+    Same reading pi_health.py's cron job alerts on - see that file."""
+    try:
+        out = subprocess.run(["vcgencmd", "measure_temp"], capture_output=True, text=True,
+                              timeout=5, check=False).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    m = re.search(r"temp=([\d.]+)", out)
+    return float(m.group(1)) if m else None
+
+
 @app.route("/admin/system")
 @master_admin_required
 def admin_system():
-    return render_template("admin_system.html")
+    return render_template("admin_system.html", pi_temp_c=_read_pi_temp_c())
 
 
 def _run_delayed_command(args, delay=2.0):
@@ -5402,6 +5419,19 @@ def admin_system_log_clear():
     except OSError as e:
         flash(f"Couldn't clear the log: {e}", "danger")
     return redirect(url_for("admin_system_log"))
+
+
+@app.route("/system_alerts/<int:alert_id>/acknowledge", methods=["POST"])
+@shop_role_required('admin')
+def system_alert_acknowledge(alert_id):
+    """Dismisses a Pi health banner (see dashboard()) - written by
+    pi_health.py's cron job, not by this app."""
+    conn = get_db()
+    conn.execute("UPDATE system_alerts SET resolved_at = ? WHERE id = ? AND resolved_at IS NULL",
+                 (now_iso(), alert_id))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("dashboard"))
 
 
 def _delete_photo_files(conn, where_clause, params):

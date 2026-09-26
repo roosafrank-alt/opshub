@@ -1664,6 +1664,21 @@ def _migrate(conn):
         conn.execute("ALTER TABLE parts ADD COLUMN retired_at TEXT")
         conn.commit()
 
+    # Pi health alerts (temperature/throttling) - written by pi_health.py, a
+    # standalone cron script that runs every 5 minutes independent of this
+    # app, so it keeps alerting even if OpsHub itself is stuck. Shown as a
+    # dashboard banner to shop admins (see dashboard()) until acknowledged.
+    conn.execute("""CREATE TABLE IF NOT EXISTS system_alerts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        message TEXT NOT NULL,
+        level TEXT NOT NULL DEFAULT 'warning',
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        resolved_at TEXT
+    )""")
+    conn.commit()
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_system_alerts_unresolved ON system_alerts(resolved_at)")
+    conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of

@@ -11,6 +11,21 @@
 </p>
 
 <div class="card p-4 mb-3">
+  <h6><i class="bi bi-thermometer-half"></i> Pi Temperature</h6>
+  <p class="text-muted small mb-0">
+    {% if pi_temp_c is not none %}
+    Current SoC temperature: <strong>{{ "%.0f"|format(pi_temp_c) }}&deg;C</strong>
+    {% else %}
+    Couldn't read the temperature (vcgencmd isn't available here).
+    {% endif %}
+  </p>
+  <p class="text-muted small mb-0 mt-1">
+    A cron job checks this every 5 minutes and posts a Pi Health Alert on the dashboard if it goes above 75&deg;C
+    or the Pi reports throttling.
+  </p>
+</div>
+
+<div class="card p-4 mb-3">
   <h6><i class="bi bi-arrow-clockwise"></i> Restart the App</h6>
   <p class="text-muted small">
     Restarts just the OpsHub program itself (a few seconds of downtime). Try this first if something in
