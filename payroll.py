@@ -157,7 +157,8 @@ def build_payroll(conn, week):
     return rows, totals, history
 
 
-@payroll_bp.route("/payroll")
+@payroll_bp.route("/payroll")  # old address - bookmarks from when it lived under Manage
+@payroll_bp.route("/admin/payroll")
 @master_admin_required
 def payroll_page():
     week = _parse_week(request.args.get("week"))

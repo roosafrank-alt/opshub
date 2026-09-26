@@ -46,6 +46,7 @@
       <ul class="navbar-nav me-auto mb-2 mb-lg-0 admin-nav-boxed">
         <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'admin_home' }}" href="{{ url_for('admin_home') }}"><i class="bi bi-grid-3x3-gap"></i> Overview</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'admin_users_list' }}" href="{{ url_for('admin_users_list') }}"><i class="bi bi-shield-lock"></i> Accounts</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if (request.endpoint or '').startswith('payroll.') }}" href="{{ url_for('payroll.payroll_page') }}"><i class="bi bi-wallet2"></i> Payroll</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'admin_notifications' }}" href="{{ url_for('admin_notifications') }}"><i class="bi bi-bell"></i> Notifications</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint in ('admin_system', 'admin_system_log') }}" href="{{ url_for('admin_system') }}"><i class="bi bi-hdd-rack"></i> System</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'admin_reset' }}" href="{{ url_for('admin_reset') }}"><i class="bi bi-arrow-counterclockwise"></i> Reset Data</a></li>
