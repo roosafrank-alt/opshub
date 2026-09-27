@@ -396,6 +396,12 @@ def log_in_combined(user_row, customer_row, remember=True):
             student = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_row["id"],)).fetchone()
             if student:
                 session["student_id"] = student["id"]
+        elif user_row["shop_role"] == "admin" and not user_row["is_master_admin"]:
+            # The unbilled, never-bookable cfis row ensure_flight_profile
+            # just made sure exists for them (idea "shop admin skip launcher").
+            cfi = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
+            if cfi:
+                session["cfi_id"] = cfi["id"]
         conn.close()
     if customer_row:
         session["customer_id"] = customer_row["id"]
@@ -413,11 +419,13 @@ def account_program_count():
     """How many of the program tiles (Fly with Kate!, Winds Aloft, Flight
     Academy, My Aircraft) this session's account can see - mirrors
     home_launcher.html's own tile conditions (QA ux-launcher-single-program).
-    A master admin always sees all four, so this is never 1 for them."""
+    A master admin always sees all four, so this is never 1 for them. A
+    shop admin also counts Fly with Kate! now (ux-shop-admin-skip-launcher),
+    same as the picker's own tile condition."""
     is_master_admin = session.get("is_master_admin")
     is_admin_like = bool(is_master_admin or session.get("shop_role") == "admin")
     count = 0
-    if is_master_admin or session.get("flight_role"):
+    if is_master_admin or session.get("flight_role") or is_admin_like:
         count += 1
     if is_master_admin or session.get("shop_role"):
         count += 1

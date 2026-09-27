@@ -324,6 +324,12 @@ def home_launcher():
             return render_template("home_launcher.html", user=None, customer=None, username=username)
         log_in_combined(user_row, customer_row, remember=remember)
         flash(f"Welcome, {(user_row or customer_row)['name']}!", "success")
+        if user_row and user_row["shop_role"] == "admin" and not user_row["is_master_admin"]:
+            # Idea ux-shop-admin-skip-launcher: a shop admin's login goes
+            # straight to the shop home instead of "Choose a program" -
+            # the grid button (same url_for('home_launcher') link) still
+            # opens the real picker any time they want to switch programs.
+            return redirect(url_for("dashboard"))
         return redirect(url_for("home_launcher"))
 
     only_program = single_program_endpoint()

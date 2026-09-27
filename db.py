@@ -2264,7 +2264,15 @@ def _migrate_flight_accounts_to_users(conn):
 def ensure_flight_profile(conn, user_row):
     """Make sure a user with flight_role set has the matching cfis/students
     profile row to hold their rate info, creating an empty one if needed
-    (e.g. an admin just granted someone CFI access from the accounts page)."""
+    (e.g. an admin just granted someone CFI access from the accounts page).
+
+    Idea "shop admin skip launcher": a shop admin (not master) with no
+    Flight School Role of their own also gets a cfis row - is_station=1
+    (never offered as a bookable instructor, no pay-rate or listing
+    anywhere real CFIs show up) and no pay rate, the same "instructor
+    without billing" view any unbilled CFI gets. Setting a real Flight
+    School Role for them on the accounts page overrides this, same as
+    for anyone else."""
     if user_row["flight_role"] == "cfi":
         row = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
         if not row:
@@ -2280,6 +2288,15 @@ def ensure_flight_profile(conn, user_row):
             conn.execute(
                 "INSERT INTO students (name, username, password_hash, active, user_id, created_at) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
+                (user_row["name"], user_row["username"], user_row["password_hash"], user_row["active"],
+                 user_row["id"], now_iso()))
+            conn.commit()
+    elif user_row["shop_role"] == "admin" and not user_row["is_master_admin"]:
+        row = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
+        if not row:
+            conn.execute(
+                "INSERT INTO cfis (name, username, password_hash, rate_per_hour, active, is_station, user_id, created_at) "
+                "VALUES (?, ?, ?, 0, ?, 1, ?, ?)",
                 (user_row["name"], user_row["username"], user_row["password_hash"], user_row["active"],
                  user_row["id"], now_iso()))
             conn.commit()

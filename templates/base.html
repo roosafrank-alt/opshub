@@ -93,6 +93,13 @@
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'my-tasks' }}" href="{{ url_for('tech_spot') }}"><i class="bi bi-person-workspace"></i> My Tasks</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'activity' }}" href="{{ url_for('activity_log') }}"><i class="bi bi-clock-history"></i> Activity</a></li>
         {% endif %}
+        {% if shop_role == 'admin' and not is_master_admin and session.get('cfi_id') %}
+        {#- Idea ux-shop-admin-skip-launcher: a shop admin gets Flight School
+           too (see auth.log_in_combined/db.ensure_flight_profile) - this is
+           how they reach it day to day without going back through the
+           program picker every time. #}
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('flight.index') }}"><i class="bi bi-airplane-engines"></i> Fly with Kate!</a></li>
+        {% endif %}
       </ul>
       <div class="d-flex align-items-center gap-3 shop-nav-boxed">
         <div class="d-flex flex-column align-items-end">
