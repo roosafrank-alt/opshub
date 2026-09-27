@@ -207,9 +207,16 @@
       {% for week in md.weeks %}
       <tr>
         {% for day in week %}
-        {% if day is none %}
-        <td class="bg-light" style="min-height:{{ row_height }};"></td>
+        {% if not day.in_month %}
+        {#- Idea "month view": leading/trailing days from the adjacent
+           month, shown greyed out so the grid is never left with odd
+           blank boxes - no flights looked up for them since by_day only
+           covers this month's own days. #}
+        <td class="bg-light text-muted" style="min-height:{{ row_height }};">
+          <div class="calendar-day-head"><div class="small">{{ day.day }}</div></div>
+        </td>
         {% else %}
+        {% set day = day.day %}
         {% set is_today = (day == today.day and md.month == today.month and md.year == today.year) %}
         {% set cell_date = '%04d-%02d-%02d'|format(md.year, md.month, day) %}
         {% set is_past_day = today_str and cell_date < today_str %}

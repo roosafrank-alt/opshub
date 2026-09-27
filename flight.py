@@ -3404,15 +3404,26 @@ def _build_schedule_month(conn, year, month, plane_id=None, cfi_id=None, plane_o
             placements, container_h = _layout_month_cell_timeline(timed, plane_order)
             by_day_layout[day] = {"placements": placements, "container_h": container_h, "untimed": untimed}
 
+    # Idea "month view": the grid's leading/trailing cells (before day 1 and
+    # after the last day) used to render blank, so a month starting or
+    # ending mid-week left odd empty boxes. They now show the adjacent
+    # month's real day numbers (greyed out, in_month False, no flights
+    # looked up for them) so every box in the grid is filled.
+    prev_month_end = _add_months(date(year, month, 1), -1)
+    prev_days_in_month = calendar_mod.monthrange(prev_month_end.year, prev_month_end.month)[1]
+
     weeks = []
-    week = [None] * first_weekday
+    week = [{"day": prev_days_in_month - first_weekday + 1 + i, "in_month": False} for i in range(first_weekday)]
     for d in range(1, days_in_month + 1):
-        week.append(d)
+        week.append({"day": d, "in_month": True})
         if len(week) == 7:
             weeks.append(week)
             week = []
     if week:
-        week += [None] * (7 - len(week))
+        next_day = 1
+        while len(week) < 7:
+            week.append({"day": next_day, "in_month": False})
+            next_day += 1
         weeks.append(week)
 
     return {"year": year, "month": month, "month_name": calendar_mod.month_name[month],
