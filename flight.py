@@ -1934,20 +1934,16 @@ def _dashboard_context(conn, cfi, student):
     # clock is the shop's local time).
     today_now_time = datetime.now().strftime("%H:%M")
 
-    # Stable per-plane column ("lane") for the same-time chip rows
-    # (time_group_row() in _dashboard_live.html) - based on the WHOLE
-    # fleet's tag order (not just who happens to be flying today), so a
-    # given plane always renders in the same lane everywhere on the
-    # dashboard instead of shifting around depending on which flights
-    # happen to be booked or how they sorted that particular poll. The
-    # accent color for each plane's stripe comes from its own profile
-    # (Planes > Edit color, the same one the Schedule uses) rather than
-    # this ordering - see _plane_display_color().
+    # Idea "todays view": same-time chip rows used to give every plane in
+    # the fleet its own fixed grid column, so a plane that wasn't first
+    # alphabetically left an empty gap before its chip on a day it was the
+    # only one flying. Chips now just pack left instead (see the plain flex
+    # .flight-chip-grid in style.css); plane_color is still each plane's
+    # own accent color for its chip's stripe (Planes > Edit color, the same
+    # one the Schedule uses) - see _plane_display_color().
     fleet = conn.execute(
         "SELECT tag, color, schedule_color FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY schedule_order, tag").fetchall()
-    plane_lane = {r["tag"]: i for i, r in enumerate(fleet)}
     plane_color = {r["tag"]: _plane_display_color(r["tag"], r["color"], r["schedule_color"]) for r in fleet}
-    plane_lane_count = len(fleet) or 1
 
     return dict(cfi=cfi, student=student, recent_flights=recent_flights,
                 active_flights=active_flights, upcoming=upcoming, plane_maint=plane_maint, hundred_badges=hundred_badges,
@@ -1964,7 +1960,7 @@ def _dashboard_context(conn, cfi, student):
                 today_flights_completed=today_flights_completed, today_str=today_str,
                 today_time_groups=today_time_groups, today_now_time=today_now_time,
                 upcoming_future_days=upcoming_future_days,
-                plane_lane=plane_lane, plane_color=plane_color, plane_lane_count=plane_lane_count,
+                plane_color=plane_color,
                 dashboard_wx=dashboard_wx, dashboard_notams=dashboard_notams,
                 sun_times=sun.get_sun_times(), dash_scope=dash_scope, next_scope=next_scope)
 

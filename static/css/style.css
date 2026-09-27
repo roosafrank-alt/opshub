@@ -127,12 +127,12 @@ body { background: #f4f5f7; }
 .flight-chip-day { font-weight: 700; font-size: .82rem; margin-right: .15rem; }
 .flight-chip-detail { margin-top: .35rem; padding-top: .35rem; border-top: 1px dashed rgba(0,0,0,.18); font-size: .74rem; min-width: 8rem; }
 .flight-chip-time { font-size: .78rem; font-weight: 700; color: #495057; padding-top: .45rem; min-width: 3.4rem; }
-/* Same-time flights render as a grid, one column per plane in the fleet
-   (see plane_lane/plane_color in _dashboard_context()) - each chip is
-   placed in its plane's own column via an inline grid-column style, so a
-   given plane always lands in the same visual slot instead of shifting
-   around based on whichever flight sorts first that moment. */
-.flight-chip-grid { display: grid; gap: .5rem; flex: 1 1 auto; min-width: 0; }
+/* Idea "todays view": same-time flights used to render as a grid, one fixed
+   column per plane in the whole fleet, so a plane that wasn't flying that
+   slot still reserved an empty column before whichever plane's chip did
+   show up. Chips now just pack left-to-right instead - no gap before the
+   first (or only) one. */
+.flight-chip-grid { display: flex; flex-wrap: wrap; gap: .5rem; flex: 1 1 auto; min-width: 0; }
 /* The dashboard's chips (not the Schedule List view's, which have no
    per-flight instructor/plane colors) get two flush-left accent stripes -
    instructor color first and a little wider, then the assigned plane's own

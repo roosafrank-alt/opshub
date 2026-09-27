@@ -689,7 +689,7 @@
 </button>
 {% endmacro %}
 
-{% macro flight_chip(f, cfi, plane_lane, plane_color, today_now_time=none, show_own_time=false) %}
+{% macro flight_chip(f, cfi, plane_color, today_now_time=none, show_own_time=false) %}
 {% set status = f.status %}
 {#- Each chip judges "past" from its own start time now, not the row's -
    a merged, overlapping row (see _group_by_time in flight.py) can hold
@@ -697,9 +697,7 @@
    would mis-dim whichever one didn't share the earliest start. #}
 {% set is_past = today_now_time and f.scheduled_time and f.scheduled_time < today_now_time %}
 {% set icon = 'bi-circle' if status == 'scheduled' else ('bi-activity' if status == 'in_progress' else ('bi-pause-circle' if status == 'balance_hold' else 'bi-check-circle-fill')) %}
-{% set lane = plane_lane.get(f.plane_tag) %}
-<div class="flight-chip flight-chip-striped flight-chip-{{ status }}{{ ' flight-chip-past' if is_past and status == 'scheduled' }}" data-chip-id="{{ f.id }}"
-     style="{% if lane is not none %}grid-column: {{ lane + 1 }};{% endif %}">
+<div class="flight-chip flight-chip-striped flight-chip-{{ status }}{{ ' flight-chip-past' if is_past and status == 'scheduled' }}" data-chip-id="{{ f.id }}">
   <span class="flight-chip-stripe flight-chip-stripe-instructor" style="background: {{ f.display_color }};" title="{{ 'Instructor: ' ~ f.cfi_name if f.cfi_name else 'No instructor' }}"></span>
   <span class="flight-chip-stripe flight-chip-stripe-plane" style="background: {{ plane_color.get(f.plane_tag, '#868e96') }};" title="Plane: {{ f.plane_tag }}"></span>
   <i class="bi {{ icon }} flight-chip-icon"></i>
@@ -781,13 +779,13 @@
 </div>
 {% endmacro %}
 
-{% macro time_group_row(group, cfi, plane_lane, plane_color, plane_lane_count, today_now_time=none) %}
+{% macro time_group_row(group, cfi, plane_color, today_now_time=none) %}
 {% set distinct_times = group.flights|map(attribute='time_label')|unique|list %}
 <div class="d-flex flex-wrap align-items-start gap-2 mb-2">
   <span class="flight-chip-time">{{ group.time_label }}</span>
-  <div class="flight-chip-grid" style="grid-template-columns: repeat({{ plane_lane_count }}, minmax(6.5rem, 1fr));">
+  <div class="flight-chip-grid">
     {% for f in group.flights %}
-    {{ flight_chip(f, cfi, plane_lane, plane_color, today_now_time, distinct_times|length > 1) }}
+    {{ flight_chip(f, cfi, plane_color, today_now_time, distinct_times|length > 1) }}
     {% endfor %}
   </div>
 </div>
@@ -846,7 +844,7 @@
     <div class="dash-now-line" title="Current time - {{ today_now_time }}"><span>Now</span></div>
     {% set ns.now_line_shown = true %}
     {% endif %}
-    {{ time_group_row(group, cfi, plane_lane, plane_color, plane_lane_count, today_now_time) }}
+    {{ time_group_row(group, cfi, plane_color, today_now_time) }}
     {% endfor %}
     {% if not ns.now_line_shown %}
     <div class="dash-now-line" title="Current time - {{ today_now_time }}"><span>Now</span></div>
@@ -887,7 +885,7 @@
       <span class="badge bg-secondary fs-6">{{ day.flights|length }} flight{{ 's' if day.flights|length != 1 }} booked</span>
     </div>
     {% for group in day.time_groups %}
-    {{ time_group_row(group, cfi, plane_lane, plane_color, plane_lane_count) }}
+    {{ time_group_row(group, cfi, plane_color) }}
     {% endfor %}
     {% else %}
     <p class="text-muted small mb-0">Nothing else on the books yet.</p>
