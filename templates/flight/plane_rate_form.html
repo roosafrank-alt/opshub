@@ -31,6 +31,11 @@
       </div>
       <div class="form-text">This is the block color for {{ plane.tag }} on the Schedule (the instructor shows as a stripe on the left). Grayed-out colors belong to an instructor or another plane.</div>
     </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox" class="form-check-input" name="solo_allowed" id="solo-allowed-check" {{ 'checked' if plane.solo_allowed }}>
+      <label class="form-check-label" for="solo-allowed-check">Solo flights allowed</label>
+      <div class="form-text">Unchecked, {{ plane.tag }} can't be booked solo - the Solo checkbox on new bookings is disabled for this plane.</div>
+    </div>
     <div class="mb-3">
       <label class="form-label d-block">Solo Color</label>
       <input type="hidden" name="solo_color" id="solo-color-input" value="{{ plane.solo_color or '' }}">

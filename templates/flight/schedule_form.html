@@ -63,7 +63,7 @@
              wherever their tag happens to fall alphabetically among the
              real planes. #}
           {% for p in planes|sort(attribute='is_simulator') %}
-          <option value="{{ p.id }}" data-hobbs="{{ p.hobbs_hours if p.hobbs_hours is not none else '' }}" data-tach="{{ p.tach_hours if p.tach_hours is not none else '' }}" {% if (form and form.get('asset_id')|string == p.id|string) or (not form and sched and sched.asset_id == p.id) or (not form and not sched and prefill_asset_id and prefill_asset_id == p.id|string) %}selected{% endif %}>{{ p.tag }}{% if p.name and p.name != p.tag %} - {{ p.name }}{% endif %}</option>
+          <option value="{{ p.id }}" data-hobbs="{{ p.hobbs_hours if p.hobbs_hours is not none else '' }}" data-tach="{{ p.tach_hours if p.tach_hours is not none else '' }}" data-solo-allowed="{{ '1' if p.solo_allowed else '' }}" {% if (form and form.get('asset_id')|string == p.id|string) or (not form and sched and sched.asset_id == p.id) or (not form and not sched and prefill_asset_id and prefill_asset_id == p.id|string) %}selected{% endif %}>{{ p.tag }}{% if p.name and p.name != p.tag %} - {{ p.name }}{% endif %}</option>
           {% endfor %}
         </select>
         <div id="plane-buttons" class="d-flex flex-wrap gap-1"></div>
@@ -172,6 +172,7 @@
           <input type="checkbox" class="form-check-input" name="solo" id="solo-check" {% if (form and form.get('solo')) or (not form and sched and sched.solo) %}checked{% endif %}>
           <label class="form-check-label" for="solo-check">Solo <span class="text-muted small">(no instructor)</span></label>
         </div>
+        <div id="solo-not-allowed-note" class="form-text text-danger d-none">This plane isn't approved for solo flights.</div>
         <div class="form-check">
           <input type="checkbox" class="form-check-input" name="part_solo" id="part-solo-check" {% if (form and form.get('part_solo')) or (not form and sched and sched.part_solo) %}checked{% endif %}>
           <label class="form-check-label" for="part-solo-check">Part dual, part solo <span class="text-muted small">(e.g. instructor gets out for pattern solos - enter the solo part when logging it)</span></label>
@@ -1029,7 +1030,8 @@
   sync();
   syncDate();
   // Picking a plane fills in its current Hobbs/Tach as the start readings.
-  document.getElementById('plane-select').addEventListener('change', function () {
+  var planeSelectEl = document.getElementById('plane-select');
+  planeSelectEl.addEventListener('change', function () {
     var opt = this.options[this.selectedIndex];
     var hobbs = opt.getAttribute('data-hobbs');
     var tach = opt.getAttribute('data-tach');
@@ -1038,6 +1040,24 @@
     if (hobbs && !hobbsStart.value) hobbsStart.value = hobbs;
     if (tach && !tachStart.value) tachStart.value = tach;
   });
+  // Disables Solo (unchecking it if it was checked) when the selected
+  // plane isn't approved for solo flights (Planes > Edit > Solo flights
+  // allowed) - checked on load too, not just on change, so re-rendering
+  // the form after a validation error (or editing a booking on a plane
+  // that no longer allows it) reflects it right away.
+  function syncSoloAllowed() {
+    var opt = planeSelectEl.options[planeSelectEl.selectedIndex];
+    var soloAllowed = !opt || !!opt.getAttribute('data-solo-allowed');
+    var soloCheckEl = document.getElementById('solo-check');
+    var soloNote = document.getElementById('solo-not-allowed-note');
+    if (soloCheckEl) {
+      soloCheckEl.disabled = !soloAllowed;
+      if (!soloAllowed && soloCheckEl.checked) { soloCheckEl.checked = false; soloCheckEl.dispatchEvent(new Event('change')); }
+    }
+    if (soloNote) soloNote.classList.toggle('d-none', soloAllowed);
+  }
+  planeSelectEl.addEventListener('change', syncSoloAllowed);
+  syncSoloAllowed();
 })();
 
 (function () {

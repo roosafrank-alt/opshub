@@ -1306,6 +1306,10 @@ def _migrate(conn):
         # existing hobbs_updated_at/tach_updated_at.
         ("assets", "hobbs_updated_by", "ALTER TABLE assets ADD COLUMN hobbs_updated_by TEXT"),
         ("assets", "tach_updated_by", "ALTER TABLE assets ADD COLUMN tach_updated_by TEXT"),
+        # Idea "solo flights allowed": a Planes > Edit checkbox that blocks
+        # booking a plane solo regardless of the student's own sign-off.
+        # Defaults to allowed so no existing plane is suddenly un-bookable.
+        ("assets", "solo_allowed", "ALTER TABLE assets ADD COLUMN solo_allowed INTEGER NOT NULL DEFAULT 1"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

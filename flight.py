@@ -3015,8 +3015,9 @@ def plane_rate_edit(asset_id):
             flash("That Solo Color is already taken by another plane - pick a different one.", "danger")
             conn.close()
             return redirect(url_for("flight.plane_rate_edit", asset_id=asset_id))
-        conn.execute("UPDATE assets SET schedule_color = ?, solo_color = ?, updated_at = ? WHERE id = ?",
-                     (color, solo_color, now_iso(), asset_id))
+        solo_allowed = 1 if request.form.get("solo_allowed") else 0
+        conn.execute("UPDATE assets SET schedule_color = ?, solo_color = ?, solo_allowed = ?, updated_at = ? WHERE id = ?",
+                     (color, solo_color, solo_allowed, now_iso(), asset_id))
         conn.commit()
         conn.close()
         flash(f"Color updated for {plane['tag']}.", "success")
@@ -4146,6 +4147,12 @@ def schedule_new():
             flash("Select a plane, a student, and a date.", "danger")
             conn.close()
             return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
+        if solo:
+            plane_row = conn.execute("SELECT tag, solo_allowed FROM assets WHERE id = ?", (asset_id,)).fetchone()
+            if plane_row and not plane_row["solo_allowed"]:
+                flash(f"{plane_row['tag']} isn't approved for solo flights.", "danger")
+                conn.close()
+                return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
         past_error = _past_booking_error(scheduled_date, scheduled_time)
         if past_error:
             flash(past_error, "danger")
@@ -4513,6 +4520,12 @@ def schedule_edit(scheduled_id):
             flash("Select a plane, a student, and a date.", "danger")
             conn.close()
             return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
+        if solo:
+            plane_row = conn.execute("SELECT tag, solo_allowed FROM assets WHERE id = ?", (asset_id,)).fetchone()
+            if plane_row and not plane_row["solo_allowed"]:
+                flash(f"{plane_row['tag']} isn't approved for solo flights.", "danger")
+                conn.close()
+                return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
         # Moving a booking into the past isn't allowed; editing other details
         # of a booking whose time has already passed still is.
         if (scheduled_date, scheduled_time) != (sched["scheduled_date"], sched["scheduled_time"]):

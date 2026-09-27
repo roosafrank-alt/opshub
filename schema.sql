@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS assets (
     sim_rate REAL, -- simulator's own base $/hr rate, set on its profile; used unless a student has their own Sim Rate override
     schedule_color TEXT, -- Flight School schedule color for this plane (admin-picked on Planes > Edit; never the same as a CFI color); solo bookings show it in neon unless solo_color overrides that below
     solo_color TEXT, -- admin-picked override for this plane's solo-booking color (Planes > Edit); NULL = fall back to the auto neon version of schedule_color
+    solo_allowed INTEGER NOT NULL DEFAULT 1, -- Planes > Edit checkbox; unchecked blocks booking this plane solo regardless of the student's own solo sign-off
     icao24_hex TEXT, -- Mode S / ICAO24 hex address (e.g. "A12345"), admin-entered, used for live ADS-B tracking on the Active Flight map; blank = not tracked
     notes TEXT,
     deleted_at TEXT, -- soft-delete: set when moved to Recently Deleted
