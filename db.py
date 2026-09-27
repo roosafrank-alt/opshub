@@ -1816,37 +1816,50 @@ def _migrate(conn):
     fi_project_id_col = next((c for c in fi_cols if c["name"] == "project_id"), None)
     fi_has_asset_id = any(c["name"] == "asset_id" for c in fi_cols)
     if (fi_project_id_col is not None and fi_project_id_col["notnull"]) or not fi_has_asset_id:
-        conn.execute("DROP TABLE IF EXISTS found_items_new")
-        conn.execute("""CREATE TABLE found_items_new (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            project_id INTEGER REFERENCES projects(id),
-            asset_id INTEGER REFERENCES assets(id),
-            description TEXT NOT NULL,
-            est_parts REAL NOT NULL DEFAULT 0,
-            est_labor_hours REAL NOT NULL DEFAULT 0,
-            est_labor_rate REAL NOT NULL DEFAULT 0,
-            est_total REAL NOT NULL DEFAULT 0,
-            status TEXT NOT NULL DEFAULT 'waiting',
-            created_by TEXT,
-            created_at TEXT NOT NULL,
-            notified_at TEXT,
-            decided_at TEXT,
-            decided_by TEXT,
-            decision_note TEXT,
-            section_name TEXT
-        )""")
-        old_cols = [c["name"] for c in fi_cols]
-        asset_id_expr = "asset_id" if "asset_id" in old_cols else "(SELECT asset_id FROM projects WHERE projects.id = found_items.project_id)"
-        conn.execute(f"""INSERT INTO found_items_new
-            (id, project_id, asset_id, description, est_parts, est_labor_hours, est_labor_rate,
-             est_total, status, created_by, created_at, notified_at, decided_at, decided_by, decision_note, section_name)
-            SELECT id, project_id, {asset_id_expr}, description, est_parts, est_labor_hours, est_labor_rate,
-             est_total, status, created_by, created_at, notified_at, decided_at, decided_by, decision_note, section_name
-            FROM found_items""")
-        conn.execute("DROP TABLE found_items")
-        conn.execute("ALTER TABLE found_items_new RENAME TO found_items")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_found_items_project ON found_items(project_id)")
+        # photos.found_item_id (and found_item_messages) reference
+        # found_items, so DROP TABLE found_items - an implicit delete of
+        # every row - fails with "FOREIGN KEY constraint failed" once any
+        # photo is attached to a found item, and the app won't start.
+        # Foreign keys have to be off for the swap (SQLite's documented
+        # table-rebuild recipe), and PRAGMA foreign_keys is silently ignored
+        # inside an open transaction, so commit first. The ids are copied
+        # unchanged, so every reference still points at the right row after.
         conn.commit()
+        conn.execute("PRAGMA foreign_keys = OFF")
+        try:
+            conn.execute("DROP TABLE IF EXISTS found_items_new")
+            conn.execute("""CREATE TABLE found_items_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER REFERENCES projects(id),
+                asset_id INTEGER REFERENCES assets(id),
+                description TEXT NOT NULL,
+                est_parts REAL NOT NULL DEFAULT 0,
+                est_labor_hours REAL NOT NULL DEFAULT 0,
+                est_labor_rate REAL NOT NULL DEFAULT 0,
+                est_total REAL NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'waiting',
+                created_by TEXT,
+                created_at TEXT NOT NULL,
+                notified_at TEXT,
+                decided_at TEXT,
+                decided_by TEXT,
+                decision_note TEXT,
+                section_name TEXT
+            )""")
+            old_cols = [c["name"] for c in fi_cols]
+            asset_id_expr = "asset_id" if "asset_id" in old_cols else "(SELECT asset_id FROM projects WHERE projects.id = found_items.project_id)"
+            conn.execute(f"""INSERT INTO found_items_new
+                (id, project_id, asset_id, description, est_parts, est_labor_hours, est_labor_rate,
+                 est_total, status, created_by, created_at, notified_at, decided_at, decided_by, decision_note, section_name)
+                SELECT id, project_id, {asset_id_expr}, description, est_parts, est_labor_hours, est_labor_rate,
+                 est_total, status, created_by, created_at, notified_at, decided_at, decided_by, decision_note, section_name
+                FROM found_items""")
+            conn.execute("DROP TABLE found_items")
+            conn.execute("ALTER TABLE found_items_new RENAME TO found_items")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_found_items_project ON found_items(project_id)")
+            conn.commit()
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON")
 
     # Detach (never delete) a purged job's logbook entries and found items
     # from it so a job purged before this fix - already permanently deleted
