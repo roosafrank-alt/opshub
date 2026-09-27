@@ -53,7 +53,10 @@ def generate_label_image(name, code, location=None, force_qr=False):
 
     if force_qr or code.startswith("SHOP-"):
         import qrcode
-        qr = qrcode.QRCode(border=2, box_size=6)
+        # High error correction (~30% of the code can be smudged/torn and
+        # still scan) - these get stuck on tools and job boards in a shop,
+        # not kept pristine like a shipping label.
+        qr = qrcode.QRCode(border=2, box_size=6, error_correction=qrcode.constants.ERROR_CORRECT_H)
         qr.add_data(code)
         qr.make(fit=True)
         code_img = qr.make_image(fill_color="black", back_color="white").convert("1")

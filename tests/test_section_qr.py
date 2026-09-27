@@ -27,3 +27,19 @@ class SectionQrTest(OpsHubTestCase):
         c = self.login("tech")
         self.assertEqual(c.get(f"/projects/{other}/sections/{self.sid}/label").status_code, 404)
         self.assertEqual(c.get(f"/projects/{self.pid}/sections/9999/label").status_code, 404)
+
+    def test_scan_page_selects_the_sub_area_after_the_section_refetch_not_on_a_fixed_timer(self):
+        """Revision 4 ("do not link... when scanned"): handleTaskCodeScan used
+        to set the scanned sub area on a fixed 150ms timer, racing the
+        project's own /api/sections refetch - a slow Pi/wifi could still be
+        mid-fetch when the timer fired, leaving no sub area selected (or a
+        duplicate option) once that fetch finally landed. It's now set from
+        selectProjectInUI's own refresh callback instead, so it always runs
+        after the real section list is in.
+        """
+        html = self.login("tech").get("/scan").get_data(as_text=True)
+        start = html.index("function handleTaskCodeScan")
+        task_scan_js = html[start:start + 1200]
+        self.assertNotIn("setTimeout", task_scan_js)
+        self.assertIn("selectProjectInUI({ id: data.project_id, code: data.project_code, name: data.project_name }, function () {",
+                      task_scan_js)

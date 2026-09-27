@@ -344,7 +344,7 @@ function maybeFirePendingLaborer() {
 //                       anything, since a part could be going in or out
 const PROJECT_CODE_RE = /^\d{2}-\d{3,}$/;
 
-function selectProjectInUI(project) {
+function selectProjectInUI(project, afterRefresh) {
   generalShopActive = false;
   let opt = projectSelect.querySelector('option[value="' + project.id + '"]');
   if (!opt) {
@@ -355,7 +355,10 @@ function selectProjectInUI(project) {
   opt.setAttribute('data-code', project.code);
   opt.textContent = project.code + ' - ' + project.name;
   projectSelect.value = String(project.id);
-  refreshSectionsForProject(maybeFirePendingScans);
+  refreshSectionsForProject(function () {
+    if (afterRefresh) afterRefresh();
+    maybeFirePendingScans();
+  });
 }
 
 function maybeFirePendingPart() {
@@ -419,16 +422,19 @@ function handleProjectCodeScan(code, fromCamera) {
 function handleTaskCodeScan(code, fromCamera) {
   fetch('/api/labor/task_lookup?code=' + encodeURIComponent(code)).then(r => r.json()).then(function (data) {
     if (data.found) {
-      selectProjectInUI({ id: data.project_id, code: data.project_code, name: data.project_name });
+      // Sets the sub area only after refreshSectionsForProject's own fetch
+      // has repopulated the dropdown from this project's real sections -
+      // doing it on a fixed timer instead used to race that fetch (a slow
+      // Pi/wifi could still be loading sections after the timer fired),
+      // sometimes leaving a duplicate option and, when the real fetch lost
+      // the race outright, no section selected at all.
+      selectProjectInUI({ id: data.project_id, code: data.project_code, name: data.project_name }, function () {
+        if (!data.section) return;
+        let sopt = sectionSelect.querySelector('option[value="' + CSS.escape(data.section) + '"]');
+        if (!sopt) { sopt = document.createElement('option'); sopt.value = data.section; sopt.textContent = data.section; sectionSelect.insertBefore(sopt, sectionSelect.lastElementChild); }
+        sectionSelect.value = data.section;
+      });
       markLaborContext();
-      if (data.section) {
-        setTimeout(function () {
-          let sopt = sectionSelect.querySelector('option[value="' + CSS.escape(data.section) + '"]');
-          if (!sopt) { sopt = document.createElement('option'); sopt.value = data.section; sopt.textContent = data.section; sectionSelect.appendChild(sopt); }
-          sectionSelect.value = data.section;
-          maybeFirePendingScans();
-        }, 150);
-      }
       showResult('<i class="bi bi-clipboard-check"></i> Task selected: <strong>' + data.project_code +
         (data.section ? ' &middot; ' + data.section : '') + '</strong>.' +
         (pendingLaborer ? '' : ' Now scan a part or a laborer badge.'), 'scan-flash-in');
