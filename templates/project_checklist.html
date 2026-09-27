@@ -10,24 +10,16 @@
 </div>
 
 <div class="job-sheet mx-auto" style="max-width:800px; background:#fff; border:1px solid #dee2e6; padding:2rem;">
-  {#- Top of the sheet: the overall project's details first, with its own
-     scan codes (project + plane) tucked into the header - then, if the
-     project has sub areas, each one gets its own dedicated row below,
-     instead of every code (plane/project/sub-area) sitting in one mixed
-     strip like before. #}
+  {#- Top of the sheet: the overall project's details first, with just its
+     own scan code tucked into the header - then, if the project has sub
+     areas, each one gets its own dedicated, boxed section below, instead
+     of every code (plane/project/sub-area) sitting in one mixed strip
+     like before. #}
   <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
     <div class="d-flex align-items-start gap-3">
-      <div class="d-flex flex-column gap-2">
-        <div class="text-center" style="width:96px;">
-          <div class="job-qr d-flex justify-content-center" data-code="{{ project.code }}"></div>
-          <div class="small text-muted">Project</div>
-        </div>
-        {% if plane_url %}
-        <div class="text-center" style="width:96px;">
-          <div class="job-qr d-flex justify-content-center" data-code="{{ plane_url }}"></div>
-          <div class="small text-muted">Plane</div>
-        </div>
-        {% endif %}
+      <div class="text-center flex-shrink-0" style="width:96px;">
+        <div class="job-qr d-flex justify-content-center" data-code="{{ project.code }}"></div>
+        <div class="small text-muted">Project</div>
       </div>
       <div>
         <h3 class="mb-0">{{ project.name }}</h3>
@@ -43,15 +35,17 @@
     </div>
   </div>
 
-  {#- Each sub area gets its own dedicated row/section (its own scan code,
-     name and a note line), stacked below the project instead of squeezed
-     into the header strip. Scanning a sub area's code on the Scan page
-     selects that job + area, same as the Labor Codes page. #}
+  {#- Each sub area gets its own dedicated, boxed section (its own scan
+     code, name and a note line), stacked below the project instead of
+     squeezed into the header strip. A solid box around each one sets it
+     apart as its own distinct area on the sheet. Scanning a sub area's
+     code on the Scan page selects that job + area, same as the Labor
+     Codes page. #}
   {% if sub_areas %}
-  <div class="job-sheet-sections border-bottom pb-3 mb-3">
-    <h5 class="border-bottom pb-1">Sub Areas</h5>
+  <div class="job-sheet-sections mb-3">
+    <h5 class="border-bottom pb-1 mb-3">Sub Areas</h5>
     {% for s in sub_areas %}
-    <div class="d-flex align-items-center gap-3 py-2{{ ' border-top' if not loop.first else '' }}">
+    <div class="d-flex align-items-center gap-3 p-2 mb-2" style="border:1.5px solid #adb5bd; border-radius:6px;">
       <div class="text-center flex-shrink-0" style="width:80px;">
         <div class="job-qr d-flex justify-content-center" data-code="TASK-{{ project.code }}::{{ s }}"></div>
       </div>
