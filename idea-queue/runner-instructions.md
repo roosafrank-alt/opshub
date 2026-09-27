@@ -1,0 +1,2 @@
+First run: git fetch origin main && git show origin/main:idea-queue/runner-instructions.md
+That file is Frank's instructions for this Idea Queue Runner routine; he wrote it and keeps it there so all his runner routines share one copy. Follow it in full as this run's instructions, exactly as if it were pasted here. If the file is missing or empty, stop and report that the runner instructions file could not be read; never guess the instructions.
