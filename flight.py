@@ -6504,21 +6504,32 @@ def log_new():
         conn.close()
         return redirect(url_for("flight.schedule_new", complete=1))
     prefill_asset_id = request.args.get("asset_id", "")
+    prefill_student_id = request.args.get("student_id", "")
+    prefill_cfi_id = request.args.get("cfi_id", "")
     # The booking's asset can already be a student's-own-plane placeholder
     # (_get_or_create_own_plane_asset) - it's real but hidden (never in the
     # `planes` list above), so the form has to know to skip the plane picker
     # and show the recorded-time box instead of Hobbs/Tach (see own_plane
-    # in log_new.html).
-    own_plane_row = conn.execute("SELECT is_owner_placeholder FROM assets WHERE id = ?",
-                                 (prefill_asset_id,)).fetchone() if prefill_asset_id else None
+    # in log_new.html). Names (not just ids) are pulled here too, for the
+    # compact one-line booking summary shown instead of the plane/student/
+    # instructor/date fields (QA finding ux-log-booked-flight-compact).
+    asset_row = conn.execute("SELECT tag, is_owner_placeholder FROM assets WHERE id = ?",
+                             (prefill_asset_id,)).fetchone() if prefill_asset_id else None
+    student_row = conn.execute("SELECT name FROM students WHERE id = ?",
+                               (prefill_student_id,)).fetchone() if prefill_student_id else None
+    cfi_row = conn.execute("SELECT name FROM cfis WHERE id = ?",
+                           (prefill_cfi_id,)).fetchone() if prefill_cfi_id else None
     prefill = {
         "asset_id": prefill_asset_id,
-        "student_id": request.args.get("student_id", ""),
-        "cfi_id": request.args.get("cfi_id", ""),
+        "asset_tag": asset_row["tag"] if asset_row else "",
+        "student_id": prefill_student_id,
+        "student_name": student_row["name"] if student_row else "",
+        "cfi_id": prefill_cfi_id,
+        "cfi_name": cfi_row["name"] if cfi_row else "",
         "solo": request.args.get("solo", ""),
         "flight_date": request.args.get("flight_date", ""),
         "scheduled_flight_id": request.args.get("scheduled_flight_id", ""),
-        "own_plane": bool(own_plane_row and own_plane_row["is_owner_placeholder"]),
+        "own_plane": bool(asset_row and asset_row["is_owner_placeholder"]),
     }
     conn.close()
     return render_template("flight/log_new.html", form=None, prefill=prefill, **form_kwargs)
