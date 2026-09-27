@@ -37,6 +37,7 @@
           <td class="small" data-label="Type">
             {% if entry.entry_type == 'funds_added' %}<span class="badge bg-success">Funds Added</span>
             {% elif entry.entry_type == 'flight_deduction' %}<span class="badge bg-secondary">Flight</span>
+            {% elif entry.entry_type == 'cancellation_fee' %}<span class="badge bg-danger">Late Cancel</span>
             {% else %}<span class="badge bg-info text-dark">Adjustment</span>{% endif %}
           </td>
           <td class="small fw-bold {{ 'text-success' if entry.amount > 0 else ('text-danger' if entry.amount < 0 else '') }}" data-label="Amount">

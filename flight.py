@@ -330,10 +330,35 @@ def _notify_booking_confirm(conn, student_user_id, scheduled_id, plane_tag, sche
         current_app.logger.exception("Booking-confirm push failed")
 
 
-def _within_24h_of_slot(scheduled_date, scheduled_time):
-    """Whether a booking's slot is less than 24 hours away (or already
-    passed) - used to require the cancellation-fee acknowledgement on a
-    student's own Cancel. An unparseable date doesn't block cancelling."""
+CANCEL_FEE_WINDOW_KEY = "cancel_fee_window_hours"
+CANCEL_FEE_AMOUNT_KEY = "cancel_fee_amount"
+DEFAULT_CANCEL_FEE_WINDOW_HOURS = 24  # matches the fee behavior before this was configurable
+
+
+def _cancel_fee_settings(conn):
+    """The school's late-cancellation policy: how close to the slot a
+    student's own cancel counts as "late" (window_hours) and the flat fee
+    charged when it does (fee_amount, 0 = no fee). Set from
+    flight.cancel_fee_settings_edit; stored in app_settings like
+    OWN_PLANE_COLOR_KEY above."""
+    rows = conn.execute("SELECT key, value FROM app_settings WHERE key IN (?, ?)",
+                        (CANCEL_FEE_WINDOW_KEY, CANCEL_FEE_AMOUNT_KEY)).fetchall()
+    values = {r["key"]: r["value"] for r in rows}
+    try:
+        window_hours = float(values.get(CANCEL_FEE_WINDOW_KEY) or DEFAULT_CANCEL_FEE_WINDOW_HOURS)
+    except (TypeError, ValueError):
+        window_hours = DEFAULT_CANCEL_FEE_WINDOW_HOURS
+    try:
+        fee_amount = float(values.get(CANCEL_FEE_AMOUNT_KEY) or 0)
+    except (TypeError, ValueError):
+        fee_amount = 0
+    return window_hours, fee_amount
+
+
+def _within_cancel_fee_window(scheduled_date, scheduled_time, window_hours):
+    """Whether a booking's slot is less than window_hours away (or already
+    passed) - used to decide whether a student's own Cancel gets the
+    late-cancellation fee. An unparseable date doesn't block cancelling."""
     try:
         if scheduled_time:
             slot = datetime.strptime(f"{scheduled_date} {scheduled_time}", "%Y-%m-%d %H:%M")
@@ -341,7 +366,7 @@ def _within_24h_of_slot(scheduled_date, scheduled_time):
             slot = datetime.strptime(scheduled_date, "%Y-%m-%d")
     except (TypeError, ValueError):
         return False
-    return slot - datetime.now() <= timedelta(hours=24)
+    return slot - datetime.now() <= timedelta(hours=window_hours)
 
 
 def _notify_schedule_request(conn, sched, verb, note):
@@ -3034,6 +3059,36 @@ def own_plane_color_edit():
                            used_colors=used_colors, schedule_colors=SCHEDULE_COLORS)
 
 
+@flight_bp.route("/settings/cancellation-fee", methods=["GET", "POST"])
+@admin_required
+def cancel_fee_settings_edit():
+    """The school-wide late-cancellation policy (_cancel_fee_settings) used
+    by schedule_student_cancel: how close to a slot a student's own cancel
+    counts as late, and the flat fee charged for it (0 = no fee, cancelling
+    stays free)."""
+    conn = get_db()
+    if request.method == "POST":
+        try:
+            window_hours = max(0.0, float(request.form.get("window_hours") or 0))
+        except ValueError:
+            window_hours = DEFAULT_CANCEL_FEE_WINDOW_HOURS
+        try:
+            fee_amount = max(0.0, float(request.form.get("fee_amount") or 0))
+        except ValueError:
+            fee_amount = 0.0
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
+                     (CANCEL_FEE_WINDOW_KEY, window_hours))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
+                     (CANCEL_FEE_AMOUNT_KEY, fee_amount))
+        conn.commit()
+        conn.close()
+        flash("Cancellation fee policy updated.", "success")
+        return redirect(url_for("flight.cancel_fee_settings_edit"))
+    window_hours, fee_amount = _cancel_fee_settings(conn)
+    conn.close()
+    return render_template("flight/cancel_fee_settings_form.html", window_hours=window_hours, fee_amount=fee_amount)
+
+
 _SCHEDULE_ROW_SQL = """SELECT sf.*, a.tag as plane_tag, a.name as plane_name, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
                      s.is_station as student_is_station, s.pilot_certificate as pilot_certificate,
                      s.pilot_ratings as pilot_ratings, s.first_solo_date as first_solo_date,
@@ -4690,6 +4745,24 @@ def _cfi_active_flights_widget():
         return {}
 
 
+@flight_bp.context_processor
+def _cancel_fee_widget_settings():
+    """The school's cancel-fee window/amount, for the student-cancel modal
+    in _schedule_detail_modal.html (see _cancel_fee_settings) - only needed
+    for a student viewer, since that's the only one who sees that modal."""
+    if not session.get("student_id"):
+        return {}
+    try:
+        conn = get_db()
+        try:
+            window_hours, fee_amount = _cancel_fee_settings(conn)
+        finally:
+            conn.close()
+        return {"cancel_fee_window_hours": window_hours, "cancel_fee_amount": fee_amount}
+    except Exception:
+        return {}
+
+
 @flight_bp.route("/cfis/active-flights-status")
 @cfi_required
 def cfi_active_flights_status():
@@ -5021,10 +5094,13 @@ def schedule_change_request_dismiss(scheduled_id):
 @login_required
 def schedule_student_cancel(scheduled_id):
     """A student cancelling their own booking - unlike the CFI/admin Cancel
-    button (schedule_cancel), this requires a reason, and within 24 hours of
-    the slot it also requires the cancellation-fee checkbox (enforced in the
-    modal in _schedule_detail_modal.html, and re-checked here since a POST
-    can always be sent by hand)."""
+    button (schedule_cancel), this requires a reason, and within the
+    school's cancel-fee window (_cancel_fee_settings) it also requires the
+    fee-acknowledgement checkbox (enforced in the modal in
+    _schedule_detail_modal.html, and re-checked here since a POST can
+    always be sent by hand) and automatically charges the configured fee
+    to the student's account via the ledger - the same billing mechanism
+    a completed flight's cost is deducted through (_deduct_flight_cost)."""
     conn = get_db()
     sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
     if not sched or sched["student_id"] != session.get("student_id"):
@@ -5040,17 +5116,27 @@ def schedule_student_cancel(scheduled_id):
         flash("Add a quick reason for the cancellation.", "danger")
         conn.close()
         return redirect(url_for("flight.dashboard"))
-    if _within_24h_of_slot(sched["scheduled_date"], sched["scheduled_time"]) and request.form.get("ack_fee") != "on":
-        flash("This flight is within 24 hours - check the box confirming you understand the cancellation charge before cancelling.", "danger")
+    window_hours, fee_amount = _cancel_fee_settings(conn)
+    late = _within_cancel_fee_window(sched["scheduled_date"], sched["scheduled_time"], window_hours)
+    if late and fee_amount and request.form.get("ack_fee") != "on":
+        flash(f"This flight is within {window_hours:g} hours - check the box confirming you understand the "
+              f"${fee_amount:,.2f} cancellation charge before cancelling.", "danger")
         conn.close()
         return redirect(url_for("flight.dashboard"))
     conn.execute("UPDATE scheduled_flights SET status = 'cancelled', cancel_reason = ? WHERE id = ?",
                  (reason, scheduled_id))
+    if late and fee_amount:
+        _ledger_entry(conn, sched["student_id"], "cancellation_fee", -fee_amount,
+                      note=f"Late cancellation - within {window_hours:g}h of the flight ({reason})",
+                      created_by=session.get("user_name"))
     conn.commit()
     _notify_schedule_request(conn, sched, "cancelled", reason)
     waitlist_offer_cancelled_slot(conn, scheduled_id)
     conn.close()
-    flash("Flight cancelled.", "success")
+    if late and fee_amount:
+        flash(f"Flight cancelled. A ${fee_amount:,.2f} late-cancellation fee was added to your account.", "warning")
+    else:
+        flash("Flight cancelled.", "success")
     return redirect(url_for("flight.dashboard"))
 
 

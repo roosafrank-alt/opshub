@@ -219,8 +219,9 @@
   </div>
 </div>
 
-<!-- Student: Cancel Flight - requires a reason; within 24 hours of the slot
-     also requires acknowledging the cancellation charge. -->
+<!-- Student: Cancel Flight - requires a reason; within the school's
+     cancel-fee window also requires acknowledging the charge, which is
+     added to the student's account automatically the moment they cancel. -->
 <div class="modal fade" id="studentCancelModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -231,7 +232,7 @@
       <form method="post" id="student-cancel-form">
         <div class="modal-body">
           <div id="student-cancel-fee-alert" class="alert alert-danger d-none py-2 px-3 mb-2 small">
-            <i class="bi bi-exclamation-triangle-fill"></i> This flight is within 24 hours - cancelling now may include a cancellation charge.
+            <i class="bi bi-exclamation-triangle-fill"></i> <span id="student-cancel-fee-alert-text"></span>
           </div>
           <div class="mb-1">
             <label class="form-label">Why are you cancelling? *</label>
@@ -239,7 +240,7 @@
           </div>
           <div id="student-cancel-fee-ack-row" class="form-check mt-2 d-none">
             <input type="checkbox" class="form-check-input" name="ack_fee" id="student-cancel-fee-ack">
-            <label class="form-check-label small" for="student-cancel-fee-ack">I understand this cancellation may include a charge.</label>
+            <label class="form-check-label small" for="student-cancel-fee-ack" id="student-cancel-fee-ack-label"></label>
           </div>
         </div>
         <div class="modal-footer">
@@ -266,6 +267,11 @@ var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(0) }};
 // booking is whose from them).
 var IS_CFI_OR_ADMIN = {{ (session.get('cfi_id') or session.get('is_master_admin'))|tojson }};
 var MY_STUDENT_ID = {{ session.get('student_id')|tojson }};
+// The school's late-cancellation policy (see flight.cancel_fee_settings_edit) -
+// only meaningful for a student viewer, who's the only one who sees the
+// student-cancel modal below.
+var CANCEL_FEE_WINDOW_HOURS = {{ cancel_fee_window_hours|default(24) }};
+var CANCEL_FEE_AMOUNT = {{ cancel_fee_amount|default(0) }};
 // Delegated on document (not the individual blocks/chips) so this keeps
 // working after live-refresh polling elsewhere on the page replaces DOM
 // nodes wholesale - a plain per-element addEventListener would silently
@@ -363,9 +369,10 @@ document.addEventListener('click', function (evt) {
     studentCancelBtn.onclick = function () {
       document.getElementById('student-cancel-form').action = el.dataset.studentCancelUrl;
       document.getElementById('student-cancel-reason').value = '';
-      // Within 24 hours of the slot, require the fee acknowledgement
-      // checkbox before Cancel Flight is enabled (server re-checks this too).
-      var within24h = false;
+      // Within the school's cancel-fee window, require the fee
+      // acknowledgement checkbox before Cancel Flight is enabled (server
+      // re-checks this too, and is what actually charges the fee).
+      var late = false;
       if (el.dataset.date) {
         var p = el.dataset.date.split('-');
         var slot;
@@ -375,17 +382,23 @@ document.addEventListener('click', function (evt) {
         } else {
           slot = new Date(+p[0], +p[1] - 1, +p[2]);
         }
-        within24h = !isNaN(slot) && (slot.getTime() - Date.now()) <= 24 * 60 * 60000;
+        late = !isNaN(slot) && (slot.getTime() - Date.now()) <= CANCEL_FEE_WINDOW_HOURS * 60 * 60000;
       }
+      var chargeable = late && CANCEL_FEE_AMOUNT > 0;
       var feeAlert = document.getElementById('student-cancel-fee-alert');
       var feeAckRow = document.getElementById('student-cancel-fee-ack-row');
       var feeAckBox = document.getElementById('student-cancel-fee-ack');
-      feeAlert.classList.toggle('d-none', !within24h);
-      feeAckRow.classList.toggle('d-none', !within24h);
+      var feeAmountStr = '$' + CANCEL_FEE_AMOUNT.toFixed(2);
+      document.getElementById('student-cancel-fee-alert-text').textContent =
+        'This flight is within ' + CANCEL_FEE_WINDOW_HOURS + ' hours - cancelling now adds a ' + feeAmountStr + ' cancellation charge to your account.';
+      document.getElementById('student-cancel-fee-ack-label').textContent =
+        'I understand this cancellation adds a ' + feeAmountStr + ' charge.';
+      feeAlert.classList.toggle('d-none', !chargeable);
+      feeAckRow.classList.toggle('d-none', !chargeable);
       feeAckBox.checked = false;
       var submitBtn = document.getElementById('student-cancel-submit-btn');
-      submitBtn.disabled = within24h;
-      if (within24h) {
+      submitBtn.disabled = chargeable;
+      if (chargeable) {
         feeAckBox.onchange = function () { submitBtn.disabled = !feeAckBox.checked; };
       }
       bootstrap.Modal.getOrCreateInstance(document.getElementById('scheduleDetailModal')).hide();
