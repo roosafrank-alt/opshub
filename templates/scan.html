@@ -489,6 +489,9 @@ function handleLaborScan(code, note) {
         return;
       }
       else if (data.error === 'no_task_selected') {
+        // See handlePartLookupResult's comment above: replaces, never
+        // joins, whatever was already pending.
+        pendingPart = null;
         pendingLaborer = { code: code, name: data.name || 'Laborer' };
         updatePairingUI();
         showResult('<i class="bi bi-hourglass-split"></i> <strong>' + pendingLaborer.name +
@@ -655,6 +658,13 @@ function handlePartLookupResult(barcode, data, fromCamera) {
     submitScan(barcode, 1, 'out', fromCamera);
     return;
   }
+  // Replaces (never joins) whatever was pending before - a part and a
+  // laborer badge can't both be waiting on the next project scan at once,
+  // or that scan would fire both, one of them on a scan the person had
+  // already moved past mentally (see pairingCancelBtn's comment and the
+  // idea "scanner": two scans finish one thing, a third always starts a
+  // new one).
+  pendingLaborer = null;
   pendingPart = { barcode: barcode, name: data.name, fromCamera: fromCamera };
   updatePairingUI();
   showResult('<i class="bi bi-box-seam"></i> <strong>' + data.name +
