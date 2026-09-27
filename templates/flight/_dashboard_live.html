@@ -602,7 +602,31 @@
          schedule-block div above, so a click on it bubbles up to the same
          delegated handler (_schedule_detail_modal.html) that opens this
          same popup for the card itself - no separate data-* needed here. #}
+      {% if next_lesson.ready_for_quick_actions and next_lesson.status == 'scheduled' %}
+      {#- Idea ux-next-lesson-start-log: within 30 min of the slot, Start
+         Flight and Log Flight take over as the two big buttons and
+         Details & changes shrinks to a small link underneath - before
+         that (and for a balance-hold booking, which can't start yet) it
+         stays the one big Details & changes button above. #}
+      <div class="d-flex gap-2 mt-2">
+        {% if next_lesson.can_start %}
+        <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=next_lesson.id) }}" class="flex-fill">
+          <button class="btn btn-success w-100 fw-bold"><i class="bi bi-play-fill"></i> Start Flight</button>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=next_lesson.id) }}" class="flex-fill early-start-form"
+              data-slot-label="{{ next_lesson.slot_label }}" data-opens-label="{{ next_lesson.start_opens_label }}">
+          <input type="hidden" name="move_to_now" value="0">
+          <button class="btn btn-outline-warning w-100 fw-bold" title="Booked for {{ next_lesson.slot_label }} - starting now will ask to move it"><i class="bi bi-clock"></i> Start Flight</button>
+        </form>
+        {% endif %}
+        <a href="{{ url_for('flight.log_new', asset_id=next_lesson.asset_id, student_id=next_lesson.student_id, cfi_id=next_lesson.cfi_id or '', solo='on' if next_lesson.solo else '', flight_date=next_lesson.scheduled_date, scheduled_flight_id=next_lesson.id) }}"
+           class="btn btn-outline-success fw-bold flex-fill"><i class="bi bi-journal-check"></i> Log Flight</a>
+      </div>
+      <button type="button" class="btn btn-link btn-sm w-100 mt-1"><i class="bi bi-info-circle"></i> Details &amp; changes</button>
+      {% else %}
       <button type="button" class="btn btn-primary w-100 mt-2"><i class="bi bi-info-circle"></i> Details &amp; changes <i class="bi bi-chevron-right"></i></button>
+      {% endif %}
       {% elif not log_lesson %}
       <div class="text-muted mt-1">Nothing booked for you coming up.</div>
       {% endif %}
@@ -747,8 +771,12 @@
     <a href="{{ url_for('flight.log_active') }}#active-flight-{{ f.flight_id }}" class="btn btn-dark btn-sm mt-1">Open Active Flight</a>
     {{ flight_chip_details_btn(f, 'mt-1') }}
     {% elif status == 'scheduled' and cfi %}
-    {#- Start, Log and Details all in one row (Details used to sit on its
-       own line below). #}
+    {#- Idea ux-next-lesson-start-log: Start and Log only join Details in
+       this row once the booking is within 30 min of its slot (same rule
+       as the Next Lesson card) - before that, just Details, so a chip
+       tapped open hours early doesn't invite an accidental Start/Log tap.
+       Details' own "Start Early..." still works the whole time. #}
+    {% if f.ready_for_quick_actions %}
     <div class="mt-1 d-flex gap-1">
       {% if f.can_start is not defined or f.can_start %}
       <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}" class="d-inline">
@@ -765,6 +793,11 @@
       <a href="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}" class="btn btn-outline-secondary btn-sm">Log</a>
       {{ flight_chip_details_btn(f) }}
     </div>
+    {% else %}
+    <div class="mt-1">
+      {{ flight_chip_details_btn(f) }}
+    </div>
+    {% endif %}
     {% elif status == 'scheduled' and student and f.student_id == student.id and f.confirm_required and not f.confirmed_at %}
     {#- A CFI/admin booked this one - the student's own OK, right from
        their dashboard (see schedule_confirm_booking in flight.py). #}

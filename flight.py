@@ -180,6 +180,26 @@ def _start_window(scheduled_date, scheduled_time):
     return datetime.now() >= opens_at, opens_at
 
 
+QUICK_ACTIONS_LEAD_MIN = 30  # idea ux-next-lesson-start-log
+
+
+def _ready_for_quick_actions(scheduled_date, scheduled_time):
+    """True once a booking is within QUICK_ACTIONS_LEAD_MIN of its slot (or
+    it has no time set, which can't count down to anything) - when the Next
+    Lesson card and today's flight chips show Start Flight/Log Flight
+    inline instead of just Details, to keep those big buttons off screen
+    until they're actually relevant and prevent an accidental tap on a
+    lesson that's still hours out. Details & changes (and Start Early...
+    inside it) stays reachable the whole time either way."""
+    if not scheduled_time:
+        return True
+    try:
+        slot = datetime.strptime(f"{scheduled_date} {scheduled_time}", "%Y-%m-%d %H:%M")
+    except (TypeError, ValueError):
+        return True
+    return datetime.now() >= slot - timedelta(minutes=QUICK_ACTIONS_LEAD_MIN)
+
+
 def _slot_label(scheduled_date, scheduled_time):
     """'Thu 9/24 at 2:00 PM' (or 'today at 2:00 PM') for a booking's slot -
     what the early-start prompt tells the instructor it's booked for."""
@@ -1697,6 +1717,9 @@ def _dashboard_context(conn, cfi, student):
             t["can_start"] = can_start
             t["start_opens_label"] = _opens_label(opens_at)
             t["slot_label"] = _slot_label(t["scheduled_date"], t["scheduled_time"])
+            # Idea ux-next-lesson-start-log: today's flight chips get the
+            # same 30-minutes-out gate as the Next Lesson card.
+            t["ready_for_quick_actions"] = _ready_for_quick_actions(t["scheduled_date"], t["scheduled_time"])
         today_flights_total = len(today_flights)
         today_flights_completed = sum(1 for t in today_flights if t["status"] == "completed")
         # Admin-only watch list: bookings a CFI/admin made for a student that
@@ -1860,13 +1883,24 @@ def _dashboard_context(conn, cfi, student):
         row = conn.execute(nl_sql, nl_args).fetchone()
         if row:
             nl_notes_visible, nl_private_notes_visible = _note_visibility(row)
+            nl_can_start, nl_opens_at = _start_window(row["scheduled_date"], row["scheduled_time"])
             next_lesson = dict(row, countdown=_countdown_label(row["scheduled_date"]),
                                time_label=_format_time_12h(row["scheduled_time"]),
                                starts_at=(f"{row['scheduled_date']}T{row['scheduled_time']}:00"
                                           if row["scheduled_time"] else None),
                                is_balance_hold=row["status"] == "balance_hold",
                                student_owed=round(max(0.0, -(row["student_balance"] or 0.0)), 2),
-                               notes_visible=nl_notes_visible, private_notes_visible=nl_private_notes_visible)
+                               notes_visible=nl_notes_visible, private_notes_visible=nl_private_notes_visible,
+                               # Idea ux-next-lesson-start-log: Start Flight/Log
+                               # Flight only show inline once within
+                               # QUICK_ACTIONS_LEAD_MIN of the slot - can_start/
+                               # start_opens_label/slot_label are the same
+                               # early-start-form fields today_flights' chips
+                               # already use, reused as-is so pressing Start
+                               # before the actual slot still asks first.
+                               ready_for_quick_actions=_ready_for_quick_actions(row["scheduled_date"], row["scheduled_time"]),
+                               can_start=nl_can_start, start_opens_label=_opens_label(nl_opens_at),
+                               slot_label=_slot_label(row["scheduled_date"], row["scheduled_time"]))
 
     # "Log this lesson": a CFI's lesson from today whose start time has
     # passed but that hasn't been started or logged yet - the Next Lesson
