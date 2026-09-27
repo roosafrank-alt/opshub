@@ -51,7 +51,7 @@
      {% if f.notes_visible %}data-notes="{{ f.notes or '' }}"{% endif %}
      {% if f.private_notes_visible %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
      {% if not f.is_time_off %}
-     {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}" data-deny-url="{{ url_for('flight.schedule_deny', scheduled_id=f.id) }}"
+     {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}" data-deny-url="{{ url_for('flight.schedule_deny', scheduled_id=f.id) }}" data-approve-url="{{ url_for('flight.schedule_approve', scheduled_id=f.id) }}"
      data-change-request-note="{{ f.change_request_note or '' }}"{% endif %}
      data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
      data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=f.id) }}"
@@ -112,7 +112,7 @@
      {% if f.notes_visible %}data-notes="{{ f.notes or '' }}"{% endif %}
      {% if f.private_notes_visible %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
      {% if not f.is_time_off %}
-     {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}" data-deny-url="{{ url_for('flight.schedule_deny', scheduled_id=f.id) }}"
+     {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}" data-deny-url="{{ url_for('flight.schedule_deny', scheduled_id=f.id) }}" data-approve-url="{{ url_for('flight.schedule_approve', scheduled_id=f.id) }}"
      data-change-request-note="{{ f.change_request_note or '' }}"{% endif %}
      data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
      data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=f.id) }}"
@@ -166,7 +166,7 @@
      {% if f.notes_visible %}data-notes="{{ f.notes or '' }}"{% endif %}
      {% if f.private_notes_visible %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
      {% if not f.is_time_off %}
-     {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}" data-deny-url="{{ url_for('flight.schedule_deny', scheduled_id=f.id) }}"
+     {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}" data-deny-url="{{ url_for('flight.schedule_deny', scheduled_id=f.id) }}" data-approve-url="{{ url_for('flight.schedule_approve', scheduled_id=f.id) }}"
      data-change-request-note="{{ f.change_request_note or '' }}"{% endif %}
      data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
      data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=f.id) }}"
@@ -373,7 +373,7 @@
      data-student-id="{{ f.student_id }}"
      {% if f.notes_visible %}data-notes="{{ f.notes or '' }}"{% endif %}
      {% if f.private_notes_visible %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
-     {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}" data-deny-url="{{ url_for('flight.schedule_deny', scheduled_id=f.id) }}" data-change-request-note="{{ f.change_request_note or '' }}"{% endif %} data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
+     {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}" data-deny-url="{{ url_for('flight.schedule_deny', scheduled_id=f.id) }}" data-approve-url="{{ url_for('flight.schedule_approve', scheduled_id=f.id) }}" data-change-request-note="{{ f.change_request_note or '' }}"{% endif %} data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
      data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=f.id) }}"
      data-cancel-url="{{ url_for('flight.schedule_cancel', scheduled_id=f.id) }}"
      data-request-change-url="{{ url_for('flight.schedule_request_change', scheduled_id=f.id) }}"

@@ -354,13 +354,27 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-x-lg"></i> Deny Flight Request</h5>
+        <h5 class="modal-title"><i class="bi bi-x-lg"></i> Deny / Propose New Times</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <form id="deny-request-form">
         <div class="modal-body">
           <div id="deny-request-error" class="alert alert-danger d-none py-2 px-3 mb-2 small"></div>
-          <p class="text-muted small">The student sees this reason directly, so be specific about why.</p>
+          <p class="text-muted small">The student sees this reason directly, so be specific about why. Pick times that would work instead (optional) and they're offered to the student as one-click buttons.</p>
+          <div class="mb-2">
+            <label class="form-label">Times that would work <span class="text-muted">(optional)</span></label>
+            <div class="d-flex flex-wrap gap-1" id="drt-quick-times">
+              <button type="button" class="btn btn-outline-primary btn-sm drt-quick-time" data-time="8:00a">8:00a</button>
+              <button type="button" class="btn btn-outline-primary btn-sm drt-quick-time" data-time="9:30a">9:30a</button>
+              <button type="button" class="btn btn-outline-primary btn-sm drt-quick-time" data-time="11:00a">11:00a</button>
+              <button type="button" class="btn btn-outline-primary btn-sm drt-quick-time" data-time="12:30p">12:30p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm drt-quick-time" data-time="2:00p">2:00p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm drt-quick-time" data-time="3:30p">3:30p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm drt-quick-time" data-time="5:00p">5:00p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm drt-quick-time" data-time="6:30p">6:30p</button>
+              <button type="button" class="btn btn-outline-primary btn-sm drt-quick-time" data-time="8:00p">8:00p</button>
+            </div>
+          </div>
           <div class="mb-1">
             <label class="form-label">Reason for denying *</label>
             <textarea id="deny-request-reason" class="form-control" rows="3" required></textarea>
@@ -653,6 +667,7 @@ document.addEventListener('click', function (evt) {
 // sees it directly, so a bare "Deny?" click isn't enough) - opens a small
 // modal instead of the generic yes/no confirm dialog the Approve button
 // above uses.
+var drtSelectedTimes = [];
 document.addEventListener('click', function (evt) {
   var region = document.getElementById('dashboard-live-region');
   if (!region || !region.contains(evt.target)) return;
@@ -661,7 +676,28 @@ document.addEventListener('click', function (evt) {
   document.getElementById('deny-request-form').dataset.decideUrl = btn.dataset.decideUrl;
   document.getElementById('deny-request-reason').value = '';
   document.getElementById('deny-request-error').classList.add('d-none');
+  drtSelectedTimes = [];
+  document.querySelectorAll('.drt-quick-time').forEach(function (b) { b.classList.remove('active', 'btn-primary'); b.classList.add('btn-outline-primary'); });
   bootstrap.Modal.getOrCreateInstance(document.getElementById('denyRequestModal')).show();
+});
+
+// Quick-picked times (optional) fold into the reason text sent to
+// schedule_deny, same pattern as the Schedule calendar's own Propose New
+// Times modal - see proposeTimesModal in _schedule_detail_modal.html.
+document.addEventListener('click', function (evt) {
+  var btn = evt.target.closest('.drt-quick-time');
+  if (!btn) return;
+  var t = btn.dataset.time;
+  var idx = drtSelectedTimes.indexOf(t);
+  if (idx === -1) {
+    drtSelectedTimes.push(t);
+    btn.classList.add('active', 'btn-primary');
+    btn.classList.remove('btn-outline-primary');
+  } else {
+    drtSelectedTimes.splice(idx, 1);
+    btn.classList.remove('active', 'btn-primary');
+    btn.classList.add('btn-outline-primary');
+  }
 });
 
 if (document.getElementById('deny-request-form')) {
@@ -675,12 +711,16 @@ document.getElementById('deny-request-form').addEventListener('submit', function
     errEl.classList.remove('d-none');
     return;
   }
+  var body = 'reason=' + encodeURIComponent(reason);
+  if (drtSelectedTimes.length) {
+    body += '&proposed_times=' + encodeURIComponent(JSON.stringify(drtSelectedTimes));
+  }
   var submitBtn = document.getElementById('deny-request-submit');
   submitBtn.disabled = true;
   fetch(form.dataset.decideUrl, {
     method: 'POST',
     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'reason=' + encodeURIComponent(reason)
+    body: body
   })
     .then(function (r) { return r.json(); })
     .then(function (data) {

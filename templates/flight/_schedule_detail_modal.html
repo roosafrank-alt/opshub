@@ -61,12 +61,18 @@
         <form id="sd-cancel-form" method="post" action="#" data-confirm="Cancel this scheduled flight?" data-confirm-style="danger" class="d-inline">
           <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg"></i> Cancel Flight</button>
         </form>
-        {#- A still-pending request that lost the conflict check (see the
-           red highlight + faded rest-of-calendar from _conflict_highlight_url)
-           can't just be approved as-is - this denies it the same way the
-           Pending Approval card's Deny does, but with quick-pick buttons to
-           fill in what times would actually work instead of typing them out. #}
-        <button type="button" id="sd-propose-times-btn" class="btn btn-outline-warning btn-sm d-none"><i class="bi bi-signpost-split"></i> Propose New Times</button>
+        {#- Approve/Deny for a still-pending request, right from the
+           calendar - same actions as the Dashboard's Pending Approval
+           card, so a CFI never has to leave the Schedule view to act on
+           one. Approve re-checks conflicts server-side (schedule_approve)
+           and simply fails with a message if it lost the conflict check
+           in the meantime; Deny opens proposeTimesModal, which folds in
+           optional quick-pick times the same way the Dashboard's own deny
+           modal does. #}
+        <form id="sd-approve-form" method="post" action="#" class="d-inline d-none" data-confirm="Approve this flight request? It goes onto the calendar as a confirmed booking." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success">
+          <button type="submit" id="sd-approve-btn" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Approve</button>
+        </form>
+        <button type="button" id="sd-propose-times-btn" class="btn btn-outline-warning btn-sm d-none"><i class="bi bi-signpost-split"></i> Deny / Propose Times</button>
         {% endif %}
         {% if session.get('student_id') and not session.get('cfi_id') %}
         <button type="button" id="sd-student-change-btn" class="btn btn-outline-warning btn-sm d-none"><i class="bi bi-chat-left-text"></i> Request Change</button>
@@ -123,23 +129,22 @@
 </div>
 
 {% if session.get('cfi_id') %}
-<!-- CFI/admin: Propose New Times - denies the pending request (its
-     original time doesn't work - that's why it's highlighted as a
-     conflict) and tells the student what times would work instead. Pick
-     one or more quick times; picking any at all is required so the
-     student always gets something concrete to act on. -->
+<!-- CFI/admin: Deny / Propose New Times - denies the pending request and,
+     optionally, tells the student what times would work instead. A reason
+     is required if no times are picked; picking times is required if no
+     reason is typed - either way the student gets something concrete. -->
 <div class="modal fade" id="proposeTimesModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-signpost-split"></i> Propose New Times</h5>
+        <h5 class="modal-title"><i class="bi bi-signpost-split"></i> Deny / Propose New Times</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <form method="post" id="propose-times-form">
         <div class="modal-body">
-          <p class="text-muted small">This denies the request at its current time (already in conflict) and tells the student what times would work instead on <span id="pt-day-label" class="fw-bold"></span>.</p>
+          <p class="text-muted small">Denies the request at its current time on <span id="pt-day-label" class="fw-bold"></span>. Picking times that would work instead (optional) offers them to the student as one-click buttons.</p>
           <div class="mb-2">
-            <label class="form-label">Times that would work</label>
+            <label class="form-label">Times that would work <span class="text-muted">(optional)</span></label>
             <div class="d-flex flex-wrap gap-1" id="pt-quick-times">
               <button type="button" class="btn btn-outline-primary btn-sm pt-quick-time" data-time="8:00a">8:00a</button>
               <button type="button" class="btn btn-outline-primary btn-sm pt-quick-time" data-time="9:30a">9:30a</button>
@@ -153,9 +158,9 @@
             </div>
           </div>
           <div class="mb-1">
-            <label class="form-label">Note to the student (optional)</label>
+            <label class="form-label">Reason for denying <span class="text-muted">(required if no times are picked above)</span></label>
             {#- Doubles as the actual deny reason sent to schedule_deny -
-               the quick-picked times get folded in ahead of whatever's
+               if times were picked, they get folded in ahead of whatever's
                typed here right before submit (see the submit handler
                below), same pattern as student-change-form's note field. #}
             <textarea name="reason" id="pt-note" class="form-control" rows="2" placeholder="e.g. or any day later that week"></textarea>
@@ -466,6 +471,13 @@ document.addEventListener('click', function (evt) {
     };
   }
 
+  var approveForm = document.getElementById('sd-approve-form');
+  if (approveForm) {
+    var isPendingApproval = el.dataset.status === 'pending_approval';
+    approveForm.classList.toggle('d-none', !isPendingApproval);
+    approveForm.action = el.dataset.approveUrl || '#';
+  }
+
   var proposeTimesBtn = document.getElementById('sd-propose-times-btn');
   if (proposeTimesBtn) {
     var isPending = el.dataset.status === 'pending_approval';
@@ -579,16 +591,19 @@ document.addEventListener('click', function (evt) {
 document.getElementById('propose-times-form').addEventListener('submit', function (evt) {
   var noteEl = document.getElementById('pt-note');
   var errEl = document.getElementById('pt-error');
-  if (!ptSelectedTimes.length) {
+  var note = noteEl.value.trim();
+  if (!ptSelectedTimes.length && !note) {
     evt.preventDefault();
-    errEl.textContent = 'Pick at least one time that would work.';
+    errEl.textContent = "Say why you're denying this request, or pick times that would work instead.";
     errEl.classList.remove('d-none');
     return;
   }
   errEl.classList.add('d-none');
-  document.getElementById('pt-times-json').value = JSON.stringify(ptSelectedTimes);
-  noteEl.value = 'Conflicts with another booking. Times that would work instead: ' + ptSelectedTimes.join(', ') +
-    (noteEl.value.trim() ? ' - ' + noteEl.value.trim() : '');
+  if (ptSelectedTimes.length) {
+    document.getElementById('pt-times-json').value = JSON.stringify(ptSelectedTimes);
+    noteEl.value = 'Conflicts with another booking. Times that would work instead: ' + ptSelectedTimes.join(', ') +
+      (note ? ' - ' + note : '');
+  }
   ptSelectedTimes = [];
 });
 {% endif %}
