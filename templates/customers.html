@@ -20,6 +20,11 @@
         <td>{% if c.planes %}{% for tag in c.planes %}<span class="badge bg-secondary">{{ tag }}</span> {% endfor %}{% else %}<span class="text-muted">none linked</span>{% endif %}</td>
         <td>{% if c.row.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
         <td class="text-end text-nowrap">
+          {% if is_real_master_admin and not view_as_active_program and c.row.active %}
+          <form method="post" action="{{ url_for('view_as_start', program='owner', level=c.row.id) }}" class="d-inline">
+            <button type="submit" class="btn btn-sm btn-outline-adm" title="View My Aircraft as this owner"><i class="bi bi-person-badge"></i> View as</button>
+          </form>
+          {% endif %}
           <a href="{{ url_for('customer_detail', customer_id=c.row.id) }}" class="btn btn-sm btn-outline-adm"><i class="bi bi-eye"></i></a>
           <a href="{{ url_for('customer_edit', customer_id=c.row.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
           <form method="post" action="{{ url_for('customer_delete', customer_id=c.row.id) }}" class="d-inline" data-confirm="Remove this customer account? They'll no longer be able to log in." data-confirm-title="Remove Customer">

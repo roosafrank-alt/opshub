@@ -220,6 +220,27 @@ def start_view_as(conn, program, level):
         session["student_id"] = person_id if level == "student" else None
         session["_view_as_person_name"] = person_name
         return True, None
+    if program == "owner":
+        # level is a customers.id (as a string, from the URL) rather than a
+        # role name - My Aircraft has no roles, just "this real owner's
+        # view", picked from customers_list rather than a fixed level set.
+        try:
+            customer_id = int(level)
+        except ValueError:
+            return False, None
+        customer = conn.execute("SELECT id, name FROM customers WHERE id = ? AND active = 1",
+                                (customer_id,)).fetchone()
+        if not customer:
+            return False, "That customer account isn't active."
+        session["_view_as_real"] = {
+            "is_master_admin": session.get("is_master_admin"),
+            "customer_id": session.get("customer_id"),
+            "customer_name": session.get("customer_name"),
+        }
+        session["is_master_admin"] = False
+        session["customer_id"] = customer["id"]
+        session["customer_name"] = customer["name"]
+        return True, None
     return False, None
 
 
@@ -237,6 +258,8 @@ def viewing_as_label():
     real = session.get("_view_as_real")
     if not real:
         return None
+    if "customer_id" in real:
+        return f"Owner ({session.get('customer_name')})"
     if "shop_role" in real:
         return SHOP_VIEW_AS_LEVELS.get(session.get("shop_role"))
     role_label = FLIGHT_VIEW_AS_LEVELS.get(session.get("flight_role"))
@@ -245,12 +268,15 @@ def viewing_as_label():
 
 
 def view_as_active_program():
-    """'shop' | 'flight' | None - which program's levels the "View as"
-    chips should treat as currently active (to grey out/exclude that one
-    and show Exit), based on which shape _view_as_real was stashed as."""
+    """'shop' | 'flight' | 'owner' | None - which program's levels the
+    "View as" chips should treat as currently active (to grey out/exclude
+    that one and show Exit), based on which shape _view_as_real was
+    stashed as."""
     real = session.get("_view_as_real")
     if not real:
         return None
+    if "customer_id" in real:
+        return "owner"
     return "shop" if "shop_role" in real else "flight"
 
 

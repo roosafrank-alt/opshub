@@ -5705,10 +5705,11 @@ def admin_home():
 @app.route("/view-as/<program>/<level>", methods=["POST"])
 def view_as_start(program, level):
     """Lets a master admin see a program as a lower access level would, from
-    the "View as" chips in the header - Shop Admin/Tech/Student on the Shop
-    Inventory/Admin side, CFI/Student on Flight School (see auth.start_view_as
-    for how each is backed)."""
-    if program not in ("shop", "flight"):
+    the "View as" chips in the header - Shop Admin/Tech/Apprentice on the Shop
+    Inventory/Admin side, CFI/Student on Flight School - or, for My Aircraft
+    (no roles there), as one specific real owner picked on Admin > Customers
+    (see auth.start_view_as for how each is backed)."""
+    if program not in ("shop", "flight", "owner"):
         abort(404)
     conn = get_db()
     ok, error = start_view_as(conn, program, level)
@@ -5716,6 +5717,9 @@ def view_as_start(program, level):
     if not ok:
         flash(error or "Can't view as that.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
+    if program == "owner":
+        flash(f"Viewing as {session.get('customer_name')} (owner). Nothing you do here affects real data any differently than it would for that owner.", "info")
+        return redirect(url_for("customer.customer_dashboard"))
     levels = SHOP_VIEW_AS_LEVELS if program == "shop" else FLIGHT_VIEW_AS_LEVELS
     flash(f"Viewing as {levels[level]}. Nothing you do here affects real data any differently than it would for that role.", "info")
     return redirect(url_for("dashboard") if program == "shop" else url_for("flight.dashboard"))
@@ -5723,8 +5727,15 @@ def view_as_start(program, level):
 
 @app.route("/view-as/exit", methods=["POST"])
 def view_as_exit():
+    was_owner = view_as_active_program() == "owner"
     if exit_view_as():
         flash("Back to your own admin view.", "info")
+    # Exiting an owner preview clears session['customer_id'], so the portal
+    # page we were just on (referrer) would immediately bounce to the
+    # customer login screen - send an admin back to Admin > Customers
+    # instead, same place the preview was started from.
+    if was_owner:
+        return redirect(url_for("customers_list"))
     return redirect(request.referrer or url_for("dashboard"))
 
 
