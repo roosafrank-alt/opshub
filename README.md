@@ -31,12 +31,16 @@ python3 app.py
 The app starts on **http://localhost:5050**. On first run it automatically creates
 `instance/shopinv.db` (a SQLite file — no separate database server needed).
 
-To use it from a phone on the same network (for camera scanning), find the shop
-computer's local IP address (e.g. `192.168.1.50`) and visit `http://192.168.1.50:5050`
-from the phone's browser. Camera scanning requires either `https://` or `localhost` in
-most mobile browsers — if the camera won't start over plain `http://` from another
-device, put the app behind a simple reverse proxy with a self-signed cert, or just use
-the USB scanner workflow on the shop PC (it works over plain http with no restrictions).
+Phones reach the live OpsHub on the Pi at **https://opshub.taila1bcc5.ts.net**
+(Tailscale Funnel, see `CLAUDE.md`), with no Wi-Fi or Tailscale app needed.
+
+On the shop Wi-Fi you can also use the Pi's local address directly: find its IP on the
+`192.168.9.x` network (`hostname -I` on the Pi) and visit `https://<that IP>:5050`.
+When `cert.pem` and `key.pem` are in the app folder the app serves HTTPS itself (see the
+bottom of `app.py`), which phone cameras need for scanning. The browser will warn once
+about the self-signed certificate. Without those files the app falls back to plain
+`http://`, and camera scanning then only works on `localhost`. The USB scanner workflow
+on the shop PC works either way.
 
 ## Day-to-day use
 
