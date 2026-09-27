@@ -30,7 +30,10 @@ running fine. That happened on Sep 27, 2026.
 Frank asked for these to be kept here because he forgets them. When he asks how to
 get onto the Pi or run the tests, give him these exact commands.
 
-- **Log in to the Pi** (from the Mac, works anywhere via Tailscale):
+- **Log in to the Pi at home** (Mac on the same network as the Pi; finds the Pi by
+  name, so it keeps working even if its local `192.168.9.x` address changes):
+  `ssh frank@opshub.local`
+- **Log in to the Pi from anywhere** (via Tailscale):
   `ssh frank@100.101.116.22`
 - **Run the test suite on the Pi** (the app keeps Flask in its own `vendor`
   folder, so plain `python3` fails with "No module named 'flask'" without the
