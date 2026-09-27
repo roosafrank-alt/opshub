@@ -24,8 +24,11 @@
       {% endif %}
     </h4>
     {% if project.description %}<p class="text-muted mb-0">{{ project.description }}</p>{% endif %}
+    {#- QA ux-project-header-plane: was a full sentence on its own line
+       ("N12345 - view asset profile & history"), repeating the tail number
+       just to link to the plane - now a small tag, same one-tap link. #}
     {% if project.asset_display_id %}
-    <p class="mb-0"><i class="bi bi-airplane text-muted"></i> <a href="{{ url_for('asset_detail', asset_id=project.asset_display_id) }}">{{ project.asset_display_tag }} &middot; view asset profile &amp; history</a></p>
+    <a href="{{ url_for('asset_detail', asset_id=project.asset_display_id) }}" class="badge bg-light text-dark border fw-normal py-2 px-2 text-decoration-none"><i class="bi bi-airplane"></i> {{ project.asset_display_tag }} <i class="bi bi-chevron-right"></i></a>
     {% endif %}
     {#- Same compact maintenance-preference strip shown on the asset profile,
        carried over here since the project is tied to that plane. #}
