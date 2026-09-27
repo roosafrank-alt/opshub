@@ -200,7 +200,12 @@
   <button type="button" class="dash-collapse-toggle open d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0 mb-2" data-collapse="needsalook">
     <h6 class="mb-0"><i class="bi bi-binoculars"></i> Unconfirmed</h6>
     <span class="d-flex align-items-center gap-2">
-      <span class="badge bg-secondary fs-6">{{ unconfirmed_flights|length + recently_cancelled_flights|length }}</span>
+      {#- data-unconfirmed-ids carries just the unconfirmed flight ids (not
+         the cancelled ones folded into the count below) - see
+         dashCheckNewUnconfirmed in dashboard.html, which colors this
+         badge yellow when any of these ids haven't been seen on this
+         browser yet, grey once this section's been opened. #}
+      <span id="unconfirmed-count-badge" class="badge bg-secondary fs-6" data-unconfirmed-ids="{{ unconfirmed_flights|map(attribute='id')|join(',') }}">{{ unconfirmed_flights|length + recently_cancelled_flights|length }}</span>
       <i class="bi bi-chevron-right dash-collapse-chevron"></i>
     </span>
   </button>

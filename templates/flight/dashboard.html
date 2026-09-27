@@ -879,6 +879,7 @@ document.addEventListener('click', function (evt) {
   body.hidden = !opening;
   toggle.classList.toggle('open', opening);
   dashSaveOpen(toggle.dataset.collapse, opening);
+  if (opening && toggle.dataset.collapse === 'needsalook') dashMarkUnconfirmedSeen(region);
 });
 
 // Remember which sections are open on this device, so a reload or the next
@@ -914,7 +915,47 @@ function dashSaveOpen(key, open) {
     body.hidden = !saved[key];
   });
   dashCheckNewNotams(region);
+  dashCheckNewUnconfirmed(region);
 })();
+
+// Colors the Unconfirmed badge yellow when it includes a flight this
+// browser hasn't seen there yet, grey once they've all been seen - same
+// idea as the NOTAM new-badges above, but "seen" here just means the
+// Unconfirmed section has actually been opened (dashMarkUnconfirmedSeen,
+// called from the shared .dash-collapse-toggle handler below), not tied
+// to a calendar day, since an unconfirmed flight can sit for a while.
+// Read-only: re-run on load and after every live-refresh poll, never
+// itself marking anything seen (a routine poll must never turn yellow
+// back to grey on its own).
+var UNCONFIRMED_SEEN_STORE = 'opshub-dash-unconfirmed-seen-v1';
+function dashUnconfirmedSeenIds() {
+  try { return JSON.parse(localStorage.getItem(UNCONFIRMED_SEEN_STORE) || '[]') || []; } catch (e) { return []; }
+}
+function dashCheckNewUnconfirmed(region) {
+  var badge = region.querySelector('#unconfirmed-count-badge');
+  if (!badge) return;
+  var ids = (badge.dataset.unconfirmedIds || '').split(',').filter(Boolean);
+  var seenSet = {};
+  dashUnconfirmedSeenIds().forEach(function (id) { seenSet[id] = true; });
+  var hasNew = ids.some(function (id) { return !seenSet[id]; });
+  badge.classList.toggle('bg-warning', hasNew);
+  badge.classList.toggle('text-dark', hasNew);
+  badge.classList.toggle('bg-secondary', !hasNew);
+}
+// Marks every currently-shown unconfirmed flight id as seen (persisted on
+// this browser) and re-renders the badge to match - called only when the
+// Unconfirmed section is actually opened, never from a poll.
+function dashMarkUnconfirmedSeen(region) {
+  var badge = region.querySelector('#unconfirmed-count-badge');
+  if (!badge) return;
+  var ids = (badge.dataset.unconfirmedIds || '').split(',').filter(Boolean);
+  if (!ids.length) return;
+  var seenSet = {};
+  dashUnconfirmedSeenIds().forEach(function (id) { seenSet[id] = true; });
+  ids.forEach(function (id) { seenSet[id] = true; });
+  try { localStorage.setItem(UNCONFIRMED_SEEN_STORE, JSON.stringify(Object.keys(seenSet))); } catch (e) {}
+  dashCheckNewUnconfirmed(region);
+}
 
 // Lights up the thin red banner above the NOTAM strip, and a numbered
 // badge on each airport chip, when today's active NOTAM numbers include
