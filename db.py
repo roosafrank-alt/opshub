@@ -482,6 +482,16 @@ def _migrate(conn):
         conn.execute("ALTER TABLE project_sections ADD COLUMN sent_back_at TEXT")
         conn.execute("ALTER TABLE project_sections ADD COLUMN sent_back_by TEXT")
         conn.commit()
+    if "linked_squawk_kind" not in proj_sect_cols:
+        # QA finding ux-squawk-on-project: a Sub Area created via "Fix on
+        # this job"/"Do on this job" (see app.py) is tied to the plane's own
+        # squawk or to-do it stands in for, so checking it off moves that
+        # squawk/to-do to Inspection too, and confirming/sending it back
+        # does the same - one record, not a copy, wherever it shows.
+        conn.execute("ALTER TABLE project_sections ADD COLUMN linked_squawk_kind TEXT")
+        conn.execute("ALTER TABLE project_sections ADD COLUMN linked_squawk_id INTEGER")
+        conn.execute("ALTER TABLE project_sections ADD COLUMN linked_todo_id INTEGER REFERENCES plane_todos(id)")
+        conn.commit()
     if "completed_by" not in [r["name"] for r in conn.execute("PRAGMA table_info(projects)").fetchall()]:
         conn.execute("ALTER TABLE projects ADD COLUMN completed_by TEXT")
         conn.commit()

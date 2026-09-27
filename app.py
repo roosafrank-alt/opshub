@@ -712,6 +712,30 @@ def get_open_squawks(conn):
     """).fetchall()
 
 
+def get_plane_open_squawks(conn, asset_id):
+    """Every one of this plane's squawks that isn't signed off yet (any
+    step through Inspection), not just brand-new ones - the plane page's
+    To-Do list and the project page's squawks & to-dos box (QA finding
+    ux-squawk-on-project) both use this, unlike get_open_squawks() above,
+    which is just the unacknowledged ones."""
+    return conn.execute(f"""
+        SELECT {_FLIGHT_SQUAWK_COLS}
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        LEFT JOIN users au ON au.id = f.squawk_assigned_to
+        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NULL AND a.id = ?
+        UNION ALL
+        SELECT {_QUICK_SQUAWK_COLS}
+        FROM plane_squawks q
+        JOIN assets a ON a.id = q.asset_id
+        LEFT JOIN users au ON au.id = q.assigned_to
+        WHERE q.repaired_at IS NULL AND a.id = ?
+        ORDER BY event_date DESC, squawk_id DESC
+    """, (asset_id, asset_id)).fetchall()
+
+
 def get_assignable_workers(conn):
     """Techs/admins a squawk can be handed off to - see squawk_assign()."""
     return conn.execute(
@@ -1422,6 +1446,185 @@ def api_sections(project_id):
     return jsonify([r["name"] for r in rows])
 
 
+def _find_or_create_linked_section(conn, project_id, base_name, linked_squawk_kind=None,
+                                    linked_squawk_id=None, linked_todo_id=None):
+    """The Sub Area standing in for a plane's squawk/to-do on this job - see
+    project_squawk_fix_on_job/project_todo_do_on_job. Reuses one already
+    linked to it (double-submit safety) rather than making a second; a
+    fresh name gets a "(2)", "(3)" ... suffix if it collides with an
+    unrelated Sub Area already on this project (project_sections.name is
+    unique per project)."""
+    if linked_squawk_kind:
+        existing = conn.execute(
+            "SELECT id FROM project_sections WHERE project_id = ? AND linked_squawk_kind = ? AND linked_squawk_id = ?",
+            (project_id, linked_squawk_kind, linked_squawk_id)).fetchone()
+    else:
+        existing = conn.execute(
+            "SELECT id FROM project_sections WHERE project_id = ? AND linked_todo_id = ?",
+            (project_id, linked_todo_id)).fetchone()
+    if existing:
+        return existing["id"]
+    name = (base_name or "Untitled").strip()[:60] or "Untitled"
+    candidate, n = name, 2
+    while conn.execute("SELECT id FROM project_sections WHERE project_id = ? AND name = ?",
+                        (project_id, candidate)).fetchone():
+        candidate = f"{name} ({n})"
+        n += 1
+    cur = conn.execute("""INSERT INTO project_sections
+                          (project_id, name, created_at, linked_squawk_kind, linked_squawk_id, linked_todo_id)
+                          VALUES (?, ?, ?, ?, ?, ?)""",
+                       (project_id, candidate, now_iso(), linked_squawk_kind, linked_squawk_id, linked_todo_id))
+    return cur.lastrowid
+
+
+# A Sub Area linked to a squawk or to-do (see _find_or_create_linked_section)
+# mirrors its own request/confirm/send-back steps onto that squawk/to-do, so
+# whichever page someone's looking at - the project, the plane, My Tasks -
+# shows the same status for the same underlying work (QA finding
+# ux-squawk-on-project). `section` needs linked_squawk_kind, linked_squawk_id
+# and linked_todo_id selected.
+def _propagate_section_check(conn, section, by):
+    if section["linked_squawk_kind"]:
+        kind, sid = section["linked_squawk_kind"], section["linked_squawk_id"]
+        table = "flights" if kind == "flight" else "plane_squawks"
+        acked_col = "squawk_acknowledged_at" if kind == "flight" else "acknowledged_at"
+        row = conn.execute(f"SELECT {acked_col} as acked FROM {table} WHERE id = ?", (sid,)).fetchone()
+        if not row:
+            return
+        if kind == "flight":
+            if not row["acked"]:
+                conn.execute("UPDATE flights SET squawk_acknowledged_at = ?, squawk_acknowledged_by = ? WHERE id = ?",
+                             (now_iso(), by, sid))
+            conn.execute("""UPDATE flights SET squawk_repair_confirm_requested_at = ?,
+                            squawk_repair_confirm_requested_by = ?, squawk_sent_back_note = NULL WHERE id = ?""",
+                         (now_iso(), by, sid))
+        else:
+            if not row["acked"]:
+                conn.execute("UPDATE plane_squawks SET acknowledged_at = ?, acknowledged_by = ? WHERE id = ?",
+                             (now_iso(), by, sid))
+            conn.execute("""UPDATE plane_squawks SET repair_confirm_requested_at = ?,
+                            repair_confirm_requested_by = ?, sent_back_note = NULL WHERE id = ?""",
+                         (now_iso(), by, sid))
+    elif section["linked_todo_id"]:
+        conn.execute("UPDATE plane_todos SET confirm_requested_at = ?, confirm_requested_by = ? WHERE id = ?",
+                     (now_iso(), by, section["linked_todo_id"]))
+
+
+def _propagate_section_uncheck(conn, section):
+    if section["linked_squawk_kind"]:
+        kind, sid = section["linked_squawk_kind"], section["linked_squawk_id"]
+        if kind == "flight":
+            conn.execute("UPDATE flights SET squawk_repair_confirm_requested_at = NULL, "
+                         "squawk_repair_confirm_requested_by = NULL WHERE id = ?", (sid,))
+        else:
+            conn.execute("UPDATE plane_squawks SET repair_confirm_requested_at = NULL, "
+                         "repair_confirm_requested_by = NULL WHERE id = ?", (sid,))
+    elif section["linked_todo_id"]:
+        conn.execute("UPDATE plane_todos SET confirm_requested_at = NULL, confirm_requested_by = NULL WHERE id = ?",
+                     (section["linked_todo_id"],))
+
+
+def _propagate_section_confirm(conn, section, by):
+    if section["linked_squawk_kind"]:
+        kind, sid = section["linked_squawk_kind"], section["linked_squawk_id"]
+        if kind == "flight":
+            conn.execute("""UPDATE flights SET squawk_repaired_at = ?, squawk_repaired_by = ?,
+                            squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL
+                            WHERE id = ?""", (now_iso(), by, sid))
+        else:
+            conn.execute("""UPDATE plane_squawks SET repaired_at = ?, repaired_by = ?,
+                            repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL
+                            WHERE id = ?""", (now_iso(), by, sid))
+    elif section["linked_todo_id"]:
+        conn.execute("UPDATE plane_todos SET done = 1, completed_at = ?, confirmed_by = ? WHERE id = ?",
+                     (now_iso(), by, section["linked_todo_id"]))
+
+
+def _propagate_section_send_back(conn, section, by):
+    if section["linked_squawk_kind"]:
+        kind, sid = section["linked_squawk_kind"], section["linked_squawk_id"]
+        if kind == "flight":
+            conn.execute("UPDATE flights SET squawk_repair_confirm_requested_at = NULL, "
+                         "squawk_repair_confirm_requested_by = NULL WHERE id = ?", (sid,))
+        else:
+            conn.execute("UPDATE plane_squawks SET repair_confirm_requested_at = NULL, "
+                         "repair_confirm_requested_by = NULL WHERE id = ?", (sid,))
+    elif section["linked_todo_id"]:
+        conn.execute("""UPDATE plane_todos SET confirm_requested_at = NULL, confirm_requested_by = NULL,
+                        sent_back_at = ?, sent_back_by = ? WHERE id = ?""",
+                     (now_iso(), by, section["linked_todo_id"]))
+
+
+@app.route("/projects/<int:project_id>/squawks/<kind>/<int:squawk_id>/fix_on_job", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_squawk_fix_on_job(project_id, kind, squawk_id):
+    """Claims a plane's squawk for this job in one step (QA finding
+    ux-squawk-on-project): assigns it to me, moves it straight to Working,
+    and gives it a matching Sub Area on this project so parts and labor
+    charged here are tied to it. Checking that Sub Area off later moves the
+    squawk to Inspection automatically (see _propagate_section_check)."""
+    conn = get_db()
+    project = conn.execute("SELECT id, asset_id FROM projects WHERE id = ? AND deleted_at IS NULL",
+                           (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    if kind == "flight":
+        row = conn.execute("SELECT id, notes FROM flights WHERE id = ? AND squawk = 1 AND asset_id = ?",
+                           (squawk_id, project["asset_id"])).fetchone()
+    elif kind == "quick":
+        row = conn.execute("SELECT id, notes FROM plane_squawks WHERE id = ? AND asset_id = ?",
+                           (squawk_id, project["asset_id"])).fetchone()
+    else:
+        conn.close()
+        abort(404)
+    if not row:
+        conn.close()
+        flash("Squawk not found.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id))
+    by, uid = session.get("user_name"), session.get("user_id")
+    _find_or_create_linked_section(conn, project_id, row["notes"], linked_squawk_kind=kind, linked_squawk_id=squawk_id)
+    if kind == "flight":
+        conn.execute("""UPDATE flights SET squawk_acknowledged_at = COALESCE(squawk_acknowledged_at, ?),
+                        squawk_acknowledged_by = COALESCE(squawk_acknowledged_by, ?), squawk_assigned_to = ?,
+                        squawk_worker_acknowledged_at = ?, squawk_worker_acknowledged_by = ? WHERE id = ?""",
+                     (now_iso(), by, uid, now_iso(), by, squawk_id))
+    else:
+        conn.execute("""UPDATE plane_squawks SET acknowledged_at = COALESCE(acknowledged_at, ?),
+                        acknowledged_by = COALESCE(acknowledged_by, ?), assigned_to = ?,
+                        worker_acknowledged_at = ?, worker_acknowledged_by = ? WHERE id = ?""",
+                     (now_iso(), by, uid, now_iso(), by, squawk_id))
+    conn.commit()
+    conn.close()
+    flash("Added as a Sub Area on this job, assigned to you.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
+@app.route("/projects/<int:project_id>/todos/<int:todo_id>/do_on_job", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_todo_do_on_job(project_id, todo_id):
+    """Same idea as project_squawk_fix_on_job, for a plane to-do: claims it,
+    gives it a matching Sub Area on this job, and moves it to Working."""
+    conn = get_db()
+    project = conn.execute("SELECT id, asset_id FROM projects WHERE id = ? AND deleted_at IS NULL",
+                           (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    todo = conn.execute("SELECT id, description FROM plane_todos WHERE id = ? AND asset_id = ?",
+                        (todo_id, project["asset_id"])).fetchone()
+    if not todo:
+        conn.close()
+        flash("To-do not found.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id))
+    _find_or_create_linked_section(conn, project_id, todo["description"], linked_todo_id=todo_id)
+    conn.execute("UPDATE plane_todos SET assigned_to = ? WHERE id = ?", (session.get("user_id"), todo_id))
+    conn.commit()
+    conn.close()
+    flash("Added as a Sub Area on this job, assigned to you.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 @app.route("/projects/<int:project_id>/add_section", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def project_add_section(project_id):
@@ -1455,18 +1658,22 @@ def project_section_complete(project_id, section_id):
     project_section_confirm. Unchecking it clears both the request and any
     completion, back to plain open."""
     conn = get_db()
-    section = conn.execute("SELECT id FROM project_sections WHERE id = ? AND project_id = ?",
+    section = conn.execute("""SELECT id, linked_squawk_kind, linked_squawk_id, linked_todo_id
+                              FROM project_sections WHERE id = ? AND project_id = ?""",
                            (section_id, project_id)).fetchone()
     if not section:
         conn.close()
         abort(404)
     completed = request.form.get("completed") == "1"
+    by = session.get("user_name")
     if completed:
         conn.execute("UPDATE project_sections SET confirm_requested_at = ?, confirm_requested_by = ? WHERE id = ?",
-                     (now_iso(), session.get("user_name"), section_id))
+                     (now_iso(), by, section_id))
+        _propagate_section_check(conn, section, by)
     else:
         conn.execute("""UPDATE project_sections SET confirm_requested_at = NULL, confirm_requested_by = NULL,
                          completed_at = NULL, completed_by = NULL WHERE id = ?""", (section_id,))
+        _propagate_section_uncheck(conn, section)
     conn.commit()
     conn.close()
     return redirect(url_for("project_detail", project_id=project_id))
@@ -1479,19 +1686,23 @@ def project_section_confirm(project_id, section_id):
     ready - this is what actually completes it. 'Send back' unchecks it
     instead, so whoever did the work knows it wasn't approved."""
     conn = get_db()
-    section = conn.execute("SELECT id FROM project_sections WHERE id = ? AND project_id = ?",
+    section = conn.execute("""SELECT id, linked_squawk_kind, linked_squawk_id, linked_todo_id
+                              FROM project_sections WHERE id = ? AND project_id = ?""",
                            (section_id, project_id)).fetchone()
     if not section:
         conn.close()
         abort(404)
+    by = session.get("user_name")
     if request.form.get("action") == "send_back":
         conn.execute("""UPDATE project_sections SET confirm_requested_at = NULL, confirm_requested_by = NULL,
                          completed_at = NULL, completed_by = NULL, sent_back_at = ?, sent_back_by = ? WHERE id = ?""",
-                     (now_iso(), session.get("user_name"), section_id))
+                     (now_iso(), by, section_id))
+        _propagate_section_send_back(conn, section, by)
         flash("Sent back - unmarked as ready.", "warning")
     else:
         conn.execute("UPDATE project_sections SET completed_at = ?, completed_by = ? WHERE id = ?",
-                     (now_iso(), session.get("user_name"), section_id))
+                     (now_iso(), by, section_id))
+        _propagate_section_confirm(conn, section, by)
         flash("Confirmed complete.", "success")
     conn.commit()
     conn.close()
@@ -2652,12 +2863,39 @@ def project_detail(project_id):
     # QA feat-shop-job-payments: what Mark Completed should warn about, if
     # anything - 0 once the job's marked Paid.
     unpaid_amount = 0 if (project["payment_status"] or "not_invoiced") == "paid" else _project_all_time_total(conn, project_id)
+
+    # QA finding ux-squawk-on-project: the plane's own open squawks and
+    # to-dos, right on the job they're likely to get fixed on, each tagged
+    # with whichever Sub Area (on this job or another) already stands in
+    # for it, if any - see _find_or_create_linked_section.
+    plane_squawks, plane_todos_open = [], []
+    if project["asset_id"]:
+        for sq in get_plane_open_squawks(conn, project["asset_id"]):
+            d = dict(sq)
+            link = conn.execute("""SELECT ps.project_id, p.code, p.name FROM project_sections ps
+                                   JOIN projects p ON p.id = ps.project_id
+                                   WHERE ps.linked_squawk_kind = ? AND ps.linked_squawk_id = ?""",
+                                (sq["kind"], sq["squawk_id"])).fetchone()
+            d["link"] = dict(link) if link else None
+            plane_squawks.append(d)
+        todo_rows = conn.execute("""SELECT pt.*, u.name as assigned_to_name FROM plane_todos pt
+                                    LEFT JOIN users u ON u.id = pt.assigned_to
+                                    WHERE pt.asset_id = ? AND pt.done = 0 ORDER BY pt.created_at""",
+                                 (project["asset_id"],)).fetchall()
+        for t in todo_rows:
+            d = dict(t)
+            link = conn.execute("""SELECT ps.project_id, p.code, p.name FROM project_sections ps
+                                   JOIN projects p ON p.id = ps.project_id
+                                   WHERE ps.linked_todo_id = ?""", (t["id"],)).fetchone()
+            d["link"] = dict(link) if link else None
+            plane_todos_open.append(d)
     conn.close()
     return render_template("project_detail.html", project=project, usage_by_section=usage_by_section,
                            total_cost=total_cost, tx=tx, all_parts=all_parts, photos=photos, open_orders=open_orders,
                            labor_sessions=labor_sessions, labor_total_cost=labor_total_cost,
                            labor_total_hours=labor_total_hours, known_sections=known_sections, intake=intake,
                            found_items=found_items, found_has_owner=has_owner, unpaid_amount=unpaid_amount,
+                           plane_squawks=plane_squawks, plane_todos_open=plane_todos_open,
                            found_labor_rate=_found_default_labor_rate(conn=None))
 
 
@@ -2712,15 +2950,18 @@ def _intake_from_form(form, files=None):
 
 
 def _intake_sub_areas(data):
-    """Sub Area names for everything ticked "address in this project"."""
+    """Sub Area names for check/damage items ticked "address in this
+    project". Squawks are handled separately in project_intake - each one
+    becomes a real plane squawk, claimed on this job via the same
+    Sub-Area-linking "Fix on this job" uses, instead of a plain named area
+    (QA finding ux-squawk-on-project: one list, not two)."""
     names = []
     for c in data["checks"]:
         if c.get("address"):
             names.append(c["label"])
-    for kind, prefix in (("squawks", "Squawk"), ("damage", "Damage")):
-        for it in data[kind]:
-            if it.get("address"):
-                names.append(f"{prefix}: {it['text'][:60]}")
+    for it in data["damage"]:
+        if it.get("address"):
+            names.append(f"Damage: {it['text'][:60]}")
     return names
 
 
@@ -2760,6 +3001,29 @@ def project_intake(project_id):
         for name in new_areas:
             conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
                          (project_id, name, now_iso()))
+        # Squawks entered here become real plane squawks too, so there's one
+        # list, not two - and one ticked "address in this project" gets
+        # claimed on this job the same way "Fix on this job" does. A project
+        # with no plane attached falls back to a plain named Sub Area, since
+        # there's no plane to attach a real squawk to.
+        by, uid = session.get("user_name"), session.get("user_id")
+        for it in data["squawks"]:
+            if project["asset_id"]:
+                cur = conn.execute(
+                    "INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at) VALUES (?, ?, ?, ?)",
+                    (project["asset_id"], it["text"], by, now_iso()))
+                it["squawk_id"] = cur.lastrowid
+                if it.get("address"):
+                    _find_or_create_linked_section(conn, project_id, it["text"],
+                                                   linked_squawk_kind="quick", linked_squawk_id=it["squawk_id"])
+                    conn.execute("""UPDATE plane_squawks SET acknowledged_at = ?, acknowledged_by = ?,
+                                    assigned_to = ?, worker_acknowledged_at = ?, worker_acknowledged_by = ?
+                                    WHERE id = ?""", (now_iso(), by, uid, now_iso(), by, it["squawk_id"]))
+                    new_areas.append(it["text"][:60])
+            elif it.get("address"):
+                conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
+                             (project_id, f"Squawk: {it['text'][:60]}", now_iso()))
+                new_areas.append(f"Squawk: {it['text'][:60]}")
         conn.execute("""UPDATE projects SET intake_status = 'done', intake_json = ?, intake_at = ?, intake_by = ?
                         WHERE id = ?""", (json.dumps(data), now_iso(), session.get("user_name"), project_id))
         conn.commit()
@@ -3660,22 +3924,7 @@ def asset_detail(asset_id):
     # this also keeps an already-acknowledged squawk on the to-do list
     # (shown amber there) until it's actually repaired, since acknowledging
     # it isn't the same as it being done.
-    todo_squawks = conn.execute(f"""
-        SELECT {_FLIGHT_SQUAWK_COLS}
-        FROM flights f
-        JOIN assets a ON a.id = f.asset_id
-        JOIN students s ON s.id = f.student_id
-        LEFT JOIN cfis c ON c.id = f.cfi_id
-        LEFT JOIN users au ON au.id = f.squawk_assigned_to
-        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NULL AND a.id = ?
-        UNION ALL
-        SELECT {_QUICK_SQUAWK_COLS}
-        FROM plane_squawks q
-        JOIN assets a ON a.id = q.asset_id
-        LEFT JOIN users au ON au.id = q.assigned_to
-        WHERE q.repaired_at IS NULL AND a.id = ?
-        ORDER BY event_date DESC, squawk_id DESC
-    """, (asset_id, asset_id)).fetchall()
+    todo_squawks = get_plane_open_squawks(conn, asset_id)
 
     # Cylinder compression checks - logged from the Maintenance side (any
     # asset, not just Flight School planes), so it belongs here regardless

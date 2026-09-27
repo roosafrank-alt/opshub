@@ -105,6 +105,37 @@
   </div>
 </div>
 
+{#- QA finding ux-squawk-on-project: the plane's own open squawks and
+   to-dos, right on the job a tech is likely to fix them on, each with one
+   "claim it for this job" control - see project_detail() in app.py. #}
+{% if plane_squawks or plane_todos_open %}
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_project_action, todo_step_pills, todo_project_action %}
+{% set project_can_assign = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
+<div class="card p-3 mb-3 border-danger">
+  <h6 class="mb-2"><i class="bi bi-exclamation-triangle-fill text-danger"></i> {{ project.asset_display_tag }}: squawks &amp; to-dos <span class="text-muted small fw-normal">({{ plane_squawks|length + plane_todos_open|length }})</span></h6>
+  {% if plane_squawks %}
+  <div class="text-uppercase text-muted small fw-bold mb-1">Squawks</div>
+  {% for sq in plane_squawks %}
+  <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
+    <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+    {{ squawk_step_pills(sq) }}
+    {{ squawk_project_action(sq, project.id, project_can_assign) }}
+  </div>
+  {% endfor %}
+  {% endif %}
+  {% if plane_todos_open %}
+  <div class="text-uppercase text-muted small fw-bold mb-1 {{ 'mt-3' if plane_squawks }}">Plane To-Do List</div>
+  {% for t in plane_todos_open %}
+  <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
+    <div>{{ t.description }}</div>
+    {{ todo_step_pills(t) }}
+    {{ todo_project_action(t, project.id, project_can_assign) }}
+  </div>
+  {% endfor %}
+  {% endif %}
+</div>
+{% endif %}
+
 {% if intake %}
 {#- Intake check filled in when the project was opened (app.project_intake). #}
 {% set issues = intake.checks|selectattr('status', 'equalto', 'issue')|list %}

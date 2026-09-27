@@ -124,3 +124,65 @@
   </form>
 </div>
 {%- endmacro %}
+
+{#- Project page's squawks & to-dos box (QA finding ux-squawk-on-project):
+   each squawk shows plane, note and step pills, plus one control - "Fix on
+   this job" claims it (assigns to me, moves to Working) and gives it a
+   matching Sub Area, same idea as squawk_new_actions but tied to this job's
+   parts and labor instead of just to a person. `sq.link`, when set, is the
+   {project_id, code, name} of whichever project's Sub Area already stands
+   in for it (see project_detail() in app.py). #}
+{% macro squawk_project_action(sq, project_id, can_assign) %}
+{%- if sq.repair_confirm_requested_at -%}
+<small class="text-muted d-block"><i class="bi bi-hourglass-split"></i> With inspector</small>
+{%- elif sq.link -%}
+  {%- if sq.link.project_id == project_id -%}
+<small class="text-muted d-block">{{ sq.assigned_to_name ~ ' · ' if sq.assigned_to_name }}Sub Area on this job</small>
+  {%- else -%}
+<small class="text-muted d-block">Sub Area on <a href="{{ url_for('project_detail', project_id=sq.link.project_id) }}">job {{ sq.link.code }}</a></small>
+  {%- endif -%}
+{%- elif can_assign -%}
+<form method="post" action="{{ url_for('project_squawk_fix_on_job', project_id=project_id, kind=sq.kind, squawk_id=sq.squawk_id) }}">
+  <button class="btn btn-danger btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Fix on this job</button>
+</form>
+{%- endif -%}
+{%- endmacro %}
+
+{#- To do -> Working -> Inspection -> Done, the plane to-do equivalent of
+   squawk_step_pills. "Working" means it has a linked Sub Area somewhere
+   (t.link) that hasn't itself been checked off yet. #}
+{% macro todo_step_pills(t) %}
+{%- set steps = ['To do', 'Working', 'Inspection', 'Done'] -%}
+{%- if t.completed_at -%}
+{%- set current = 3 -%}
+{%- elif t.confirm_requested_at -%}
+{%- set current = 2 -%}
+{%- elif t.link -%}
+{%- set current = 1 -%}
+{%- else -%}
+{%- set current = 0 -%}
+{%- endif -%}
+<div class="d-flex gap-1 flex-wrap">
+  {%- for label in steps %}
+  <span class="badge rounded-pill {{ 'bg-primary text-white' if loop.index0 == current else 'bg-white text-muted border' }}">{% if loop.index0 < current %}<i class="bi bi-check-lg"></i> {% endif %}{{ label }}</span>
+  {%- endfor %}
+</div>
+{%- endmacro %}
+
+{#- Same idea as squawk_project_action, for a plane to-do: "Do on this job"
+   claims it and gives it a matching Sub Area (project_todo_do_on_job). #}
+{% macro todo_project_action(t, project_id, can_assign) %}
+{%- if t.confirm_requested_at -%}
+<small class="text-muted d-block"><i class="bi bi-hourglass-split"></i> With inspector</small>
+{%- elif t.link -%}
+  {%- if t.link.project_id == project_id -%}
+<small class="text-muted d-block">{{ t.assigned_to_name ~ ' · ' if t.assigned_to_name }}Sub Area on this job</small>
+  {%- else -%}
+<small class="text-muted d-block">Sub Area on <a href="{{ url_for('project_detail', project_id=t.link.project_id) }}">job {{ t.link.code }}</a></small>
+  {%- endif -%}
+{%- elif can_assign -%}
+<form method="post" action="{{ url_for('project_todo_do_on_job', project_id=project_id, todo_id=t.id) }}">
+  <button class="btn btn-outline-primary btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Do on this job</button>
+</form>
+{%- endif -%}
+{%- endmacro %}
