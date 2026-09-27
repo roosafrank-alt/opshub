@@ -115,7 +115,12 @@
 </div>
 {% endif %}
 <div class="card p-4">
-  <h4>{{ 'Edit Student' if student else 'New Student' }}</h4>
+  <div class="d-flex justify-content-between align-items-start mb-2">
+    <h4 class="mb-0">{{ 'Edit Student' if student else 'New Student' }}</h4>
+    {% if student and student.user_id %}
+    <a href="{{ url_for('admin_user_edit', user_id=student.user_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-shield-lock"></i> Edit Account</a>
+    {% endif %}
+  </div>
   {#- id'd so the "How They Usually Pay" field (moved under the Account
      card's own header below - see the form="student-form" select there)
      can still submit with this form even though it no longer sits inside

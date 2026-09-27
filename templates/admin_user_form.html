@@ -2,10 +2,14 @@
 {% block title %}{{ 'Edit Account' if user else 'New Account' }} - OpsHub{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
-<div class="col-lg-6">
+<div class="col-lg-7">
 <div class="card p-4">
   <h4>{{ 'Edit Account: ' + user.name if user else 'New Account' }}</h4>
+  <p class="text-muted small mb-3">One login works for both Maintenance and Flight School. Every account is set up the same way, in the sections below.</p>
   <form method="post">
+
+    {#- ===================== Login ===================== #}
+    <h6 class="mb-2"><i class="bi bi-key"></i> Login</h6>
     <div class="mb-3">
       <label class="form-label">Full Name *</label>
       <input type="text" name="name" class="form-control" value="{{ user.name if user else (name or '') }}" required autofocus>
@@ -34,6 +38,10 @@
       <input type="text" name="password" class="form-control">
     </div>
     {% endif %}
+
+    {#- ===================== Access ===================== #}
+    <hr class="my-3">
+    <h6 class="mb-2"><i class="bi bi-shield-lock"></i> Access</h6>
     <div class="row">
       <div class="col-6 mb-3">
         <label class="form-label">Maintenance Role</label>
@@ -76,7 +84,26 @@
     </div>
     {% endif %}
 
-    {#- Pay: one person, every role. A shop worker badge (clocks labor at
+    {#- ===================== Profiles ===================== #}
+    {% if user and (cfi_profile or student_profile or linked_laborers) %}
+    <hr class="my-3">
+    <h6 class="mb-2"><i class="bi bi-person-vcard"></i> Profiles</h6>
+    <div class="form-text mb-2">Program-specific details (certs, ratings, medical, billing overrides) live on that program's own profile page, linked to this account.</div>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      {% if cfi_profile %}
+      <a href="{{ url_for('flight.cfi_edit', cfi_id=cfi_profile.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-airplane-engines"></i> CFI Profile</a>
+      {% endif %}
+      {% if student_profile %}
+      <a href="{{ url_for('flight.student_edit', student_id=student_profile.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-mortarboard"></i> Student Profile</a>
+      {% endif %}
+      {% for l in linked_laborers %}
+      <a href="{{ url_for('laborer_label', laborer_id=l.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-person-badge"></i> Shop Badge{% if linked_laborers|length > 1 %} ({{ l.name }}){% endif %}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {#- ===================== Pay ===================== #}
+    {#- One person, every role. A shop worker badge (clocks labor at
        its own hourly rate) and a CFI profile (paid per instructed hour)
        both hang off this one account, so Payroll adds them up as one
        person even though each role has its own rate. #}
@@ -126,8 +153,9 @@
     </div>
     {% endif %}
 
+    {#- ===================== Contact & reminders ===================== #}
     <hr class="my-3">
-    <h6 class="mb-2"><i class="bi bi-bell"></i> Reminders</h6>
+    <h6 class="mb-2"><i class="bi bi-bell"></i> Contact &amp; reminders</h6>
     <div class="row">
       <div class="col-6 mb-3">
         <label class="form-label">Email</label>

@@ -5711,16 +5711,21 @@ def admin_users_list():
 def _pay_link_context(conn, user_row=None):
     """What the Pay section of Admin > Accounts shows: this account's shop
     worker badge(s) and CFI profile, plus the unlinked badges that could be
-    linked to it (e.g. a shop badge made as "Kate" before her login existed)."""
-    linked_laborers, cfi = [], None
+    linked to it (e.g. a shop badge made as "Kate" before her login existed).
+    Also gathers the CFI/student profile links shown in the Profiles section
+    (same two lookups the Pay section already needs, plus the student row)."""
+    linked_laborers, cfi, student = [], None, None
     if user_row:
         linked_laborers = conn.execute("SELECT * FROM laborers WHERE user_id = ? ORDER BY name",
                                        (user_row["id"],)).fetchall()
         cfi = conn.execute("SELECT id, name, pay_rate_per_hour FROM cfis WHERE user_id = ?",
                            (user_row["id"],)).fetchone()
+        student = conn.execute("SELECT id, name FROM students WHERE user_id = ?",
+                               (user_row["id"],)).fetchone()
     unlinked_laborers = conn.execute(
         "SELECT id, name, rate, active FROM laborers WHERE user_id IS NULL ORDER BY active DESC, name").fetchall()
-    return dict(linked_laborers=linked_laborers, cfi_profile=cfi, unlinked_laborers=unlinked_laborers)
+    return dict(linked_laborers=linked_laborers, cfi_profile=cfi, student_profile=student,
+                unlinked_laborers=unlinked_laborers)
 
 
 def _apply_pay_links(conn, user_row, form):
