@@ -30,10 +30,16 @@
   .tile-flight { background: linear-gradient(135deg, #ffffff, #eef0fb); border: 1px solid #2b3fdb; color: var(--fwk-navy); }
   .tile-flight:hover { color: var(--fwk-navy); }
   .tile-flight .opacity-75 { opacity: 1; color: var(--fwk-muted); }
+  {#- Its own plum look (matches Admin > Customers' color scheme), so My
+     Aircraft doesn't get mistaken for the Winds Aloft shop tile it used to
+     share a style with. #}
+  .tile-aircraft { background: linear-gradient(135deg, #6c5ea8, #4b3f72); border: 1px solid #8a78c9; }
+  .tile-aircraft:hover { box-shadow: 0 16px 34px rgba(75,63,114,.32); }
   .launcher-tile img.tile-icon { width: 56px; height: 56px; border-radius: 12px; background: #fff; padding: 6px; margin-bottom: .75rem; }
   .tile-flight img.tile-icon { border: 1px solid #eef0f4; box-shadow: 0 2px 6px rgba(20,33,61,.1); }
   .tile-shop .tile-accent { color: #7c86e6; }
   .tile-flight .tile-accent { color: var(--fwk-blue); }
+  .tile-aircraft .tile-accent { color: #c9bdf0; }
   .picker-bg {
     background: linear-gradient(rgba(244,246,250,.87), rgba(244,246,250,.91)),
                 url("{{ url_for('static', filename='img/runway-sunset.jpg') }}") center 32% / cover no-repeat;
@@ -53,6 +59,7 @@
   .launcher-tile::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
   .tile-shop::before { background: linear-gradient(90deg, #2830a4, #6f7bd6); }
   .tile-flight::before { background: linear-gradient(90deg, #2b3fdb, #6f83ff); }
+  .tile-aircraft::before { background: linear-gradient(90deg, #4b3f72, #8a78c9); }
   .tile-shop:hover { box-shadow: 0 16px 34px rgba(40,48,164,.32); }
   .tile-flight:hover { box-shadow: 0 16px 34px rgba(43,63,219,.32); }
   .fwk-logo { width: 100px; height: 100px; border-radius: 50%; border: 2px solid #eef0f4; background: #fff; padding: 2px; }
@@ -98,10 +105,10 @@
   <div class="row g-4 justify-content-center">
     {% if is_admin_like or customer %}
     <div class="col-md-5">
-      <a href="{{ url_for('customers_list') if is_admin_like else url_for('customer.customer_dashboard') }}" class="launcher-tile tile-shop">
-        <i class="bi bi-airplane-engines" style="color: #7c86e6; font-size: 3.5rem;"></i>
+      <a href="{{ url_for('customers_list') if is_admin_like else url_for('customer.customer_dashboard') }}" class="launcher-tile tile-aircraft">
+        <i class="bi bi-airplane-engines" style="color: #c9bdf0; font-size: 3.5rem;"></i>
         <div class="fs-3 fw-bold">My Aircraft</div>
-        <div class="tile-accent small text-uppercase" style="letter-spacing:.12em;">Winds Aloft</div>
+        <div class="tile-accent small text-uppercase" style="letter-spacing:.12em;">OpsHub</div>
         <div class="opacity-75 mt-2">{{ 'Manage customer accounts & aircraft' if is_admin_like else 'Reminders, appointments & bills' }}</div>
       </a>
     </div>
