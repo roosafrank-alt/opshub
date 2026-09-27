@@ -74,7 +74,10 @@
 <div class="row">
   <div class="col-md-6 mb-3">
     <form method="post" action="{{ url_for('admin_notifications_test_email') }}" class="d-flex gap-2">
-      <input type="email" name="test_email" class="form-control" placeholder="Send a test email to...">
+      <input type="email" name="test_email" class="form-control" list="test-email-list" placeholder="Send a test email to..." autocomplete="off">
+      <datalist id="test-email-list">
+        {% for p in email_people %}<option value="{{ p.email }}">{{ p.name }}</option>{% endfor %}
+      </datalist>
       <button type="submit" class="btn btn-outline-secondary text-nowrap">Send Test</button>
     </form>
   </div>

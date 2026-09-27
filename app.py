@@ -6372,11 +6372,19 @@ def admin_notifications():
         WHERE u.active = 1 AND (u.is_master_admin = 1 OR u.flight_role IS NOT NULL AND u.flight_role != '')
         GROUP BY u.id ORDER BY device_count = 0, u.name
     """).fetchall()
+    # Every active account with an email on file - lets "Send a test email
+    # to..." offer a filterable pick-list instead of having to remember or
+    # look up an address, while still taking any typed-in email too (see
+    # the <datalist> in admin_notifications.html, same pattern as the part
+    # form's Category field).
+    email_people = conn.execute(
+        "SELECT name, email FROM users WHERE active = 1 AND email IS NOT NULL AND email != '' ORDER BY name"
+    ).fetchall()
     conn.close()
     return render_template("admin_notifications.html", settings=settings,
                            email_configured=notify.email_configured(settings),
                            sms_configured=notify.sms_configured(settings),
-                           push_people=push_people)
+                           push_people=push_people, email_people=email_people)
 
 
 @app.route("/admin/notifications/test_push", methods=["POST"])
