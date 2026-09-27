@@ -44,36 +44,6 @@
     font-weight: 600;
   }
   .flight-nav-boxed .dropdown-item.active { background: #212529; color: #fff; }
-  {#- QA ux-flight-groundschool-link: on a phone the menu used to be a
-     full-width block of blue pushing the page down. It's now a compact
-     panel hanging from the right of the bar, just wide enough for the
-     same-width buttons, with the page still visible around it. Position/
-     size apply to the collapse element itself (not just .show) so
-     Bootstrap's own open/close height transition animates within the
-     already-floating box instead of flashing full-width first. #}
-  @media (max-width: 991.98px) {
-    .navbar.sticky-top { position: sticky; }
-    #nav.navbar-collapse {
-      position: absolute;
-      top: 100%;
-      right: .75rem;
-      left: auto;
-      width: 230px;
-      max-width: calc(100vw - 1.5rem);
-      max-height: calc(100vh - 5rem);
-      overflow-y: auto;
-      background: var(--bs-primary, #0d6efd);
-      border-radius: 12px;
-      padding: .6rem;
-      box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.35);
-      z-index: 1030;
-    }
-    #nav.navbar-collapse.show { display: flex; flex-direction: column; gap: .3rem; }
-    #nav.navbar-collapse .navbar-nav { width: 100%; margin: 0 !important; }
-    #nav.navbar-collapse .nav-item, #nav.navbar-collapse .dropdown { width: 100%; }
-    #nav.navbar-collapse .nav-link { width: 100%; text-align: left; }
-    #nav.navbar-collapse .d-flex.flex-column.align-items-end { align-items: stretch; width: 100%; }
-  }
   /* Makes the "alert resolved" confirmation actually read as a banner -
      bigger, bolder, with its own shadow - instead of looking like every
      other routine "saved" flash (see the flash loop above). */

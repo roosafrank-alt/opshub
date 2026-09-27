@@ -266,3 +266,47 @@ body { background: #f4f5f7; }
 .error-log-chevron { transition: transform .15s ease; color: #6c757d; }
 .error-log-row.error-log-row-open .error-log-chevron { transform: rotate(90deg); }
 .error-log-detail-row td { border-top: none; }
+
+/* Idea "Mobile view drop downs" - every header's collapsed mobile menu (Fly
+   with Kate!, Winds Aloft, Admin, My Account) now opens the same way: a
+   compact panel hanging from the right of the bar, just wide enough for its
+   same-width buttons, with the page still visible around it - instead of a
+   full-width block of color that used to push the page down, and could
+   leave a wide dropdown like Manage hanging off the left edge of the
+   screen. Position/size apply to the collapse element itself (not just
+   .show) so Bootstrap's own open/close height transition animates within
+   the already-floating box instead of flashing full-width first. Each
+   navbar's own background color rule (below) makes the panel read as part
+   of that bar. */
+@media (max-width: 991.98px) {
+  .navbar-expand-lg #nav.navbar-collapse {
+    position: absolute; top: 100%; right: .75rem; left: auto;
+    width: 230px; max-width: calc(100vw - 1.5rem); max-height: calc(100vh - 5rem);
+    overflow-y: auto; border-radius: 12px; padding: .6rem;
+    box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.35); z-index: 1030;
+  }
+  .navbar-expand-lg #nav.navbar-collapse.show { display: flex; flex-direction: column; gap: .3rem; }
+  .navbar-expand-lg #nav.navbar-collapse .navbar-nav,
+  .navbar-expand-lg #nav.navbar-collapse .d-flex { width: 100%; margin: 0 !important; flex-direction: column; align-items: stretch !important; gap: .3rem; }
+  .navbar-expand-lg #nav.navbar-collapse .nav-item,
+  .navbar-expand-lg #nav.navbar-collapse .dropdown { width: 100%; }
+  .navbar-expand-lg #nav.navbar-collapse .nav-link { width: 100%; text-align: left; }
+}
+@media (max-width: 1199.98px) {
+  .navbar-expand-xl #nav.navbar-collapse {
+    position: absolute; top: 100%; right: .75rem; left: auto;
+    width: 230px; max-width: calc(100vw - 1.5rem); max-height: calc(100vh - 5rem);
+    overflow-y: auto; border-radius: 12px; padding: .6rem;
+    box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.35); z-index: 1030;
+  }
+  .navbar-expand-xl #nav.navbar-collapse.show { display: flex; flex-direction: column; gap: .3rem; }
+  .navbar-expand-xl #nav.navbar-collapse .navbar-nav,
+  .navbar-expand-xl #nav.navbar-collapse .d-flex { width: 100%; margin: 0 !important; flex-direction: column; align-items: stretch !important; gap: .3rem; }
+  .navbar-expand-xl #nav.navbar-collapse .nav-item,
+  .navbar-expand-xl #nav.navbar-collapse .dropdown { width: 100%; }
+  .navbar-expand-xl #nav.navbar-collapse .nav-link { width: 100%; text-align: left; }
+}
+.navbar.bg-primary #nav.navbar-collapse { background: var(--bs-primary, #0d6efd); }
+.navbar.bg-dark #nav.navbar-collapse { background: var(--bs-dark, #212529); }
+.admin-nav #nav.navbar-collapse { background: var(--admin-purple, #4b3f72); }
+.account-nav #nav.navbar-collapse { background: #1f2937; }
