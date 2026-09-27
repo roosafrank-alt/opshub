@@ -783,12 +783,19 @@
   function selectedText() { var o = sel.options[sel.selectedIndex]; return o && o.value ? o.text : ''; }
   function render(q) {
     q = norm(q).trim();
-    shown = opts.filter(function (o) { return o.guest || !q || norm(o.text).indexOf(q) !== -1; });
+    var matches = opts.filter(function (o) { return o.guest || !q || norm(o.text).indexOf(q) !== -1; });
+    // Typing narrows to matching students - Guest/Intro always matches (it's
+    // the intro-flight catch-all, not a name to search) but shouldn't sit
+    // above the student just typed, where it's the easiest line to
+    // mis-tap on a phone (QA ux-student-picker-guest-first). Moved to the
+    // bottom, in small grey text, once there's something to match against;
+    // an empty box keeps today's order (Guest first, then every student).
+    shown = q ? matches.filter(function (o) { return !o.guest; }).concat(matches.filter(function (o) { return o.guest; })) : matches;
     var real = shown.filter(function (o) { return !o.guest; }).length;
     list.innerHTML = '';
     shown.forEach(function (o, i) {
       var b = document.createElement('div');
-      b.className = 'list-group-item list-group-item-action' + (o.value === sel.value ? ' chosen' : '');
+      b.className = 'list-group-item list-group-item-action' + (o.value === sel.value ? ' chosen' : '') + (q && o.guest ? ' small text-muted' : '');
       b.setAttribute('role', 'option');
       var t = esc(o.text);
       if (q && !o.guest) {
