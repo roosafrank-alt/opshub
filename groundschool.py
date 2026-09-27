@@ -561,10 +561,13 @@ def task_detail(task_id):
     task_done = sum(1 for v in element_done.values() if v)
     task_total = len(element_ids)
     reading_progress = None
-    if session.get("student_id"):
-        reading_progress = conn.execute(
-            "SELECT * FROM acs_task_reading_progress WHERE student_id = ? AND task_id = ?",
-            (session["student_id"], task_id)).fetchone()
+    if viewing_student_id:
+        reading_progress = conn.execute("""
+            SELECT acs_task_reading_progress.*, cfis.name AS cfi_name
+            FROM acs_task_reading_progress
+            LEFT JOIN cfis ON cfis.id = acs_task_reading_progress.cfi_id
+            WHERE acs_task_reading_progress.student_id = ? AND acs_task_reading_progress.task_id = ?
+        """, (viewing_student_id, task_id)).fetchone()
     # Sibling tasks in this area, for Prev/Next - and the next task overall
     # (rolling into the next area) so browsing doesn't dead-end at an area
     # boundary.
@@ -581,7 +584,7 @@ def task_detail(task_id):
                             students=students, prev_task_id=prev_task_id, next_task_id=next_task_id,
                             tab="groundschool", references_html=references_html,
                             element_done=element_done, task_done=task_done, task_total=task_total,
-                            reading_progress=reading_progress)
+                            reading_progress=reading_progress, viewing_student_id=viewing_student_id)
 
 
 @groundschool_bp.route("/task/<int:task_id>/lesson", methods=["POST"])
@@ -875,6 +878,35 @@ def task_mark_read(task_id):
     conn.commit()
     conn.close()
     flash("Marked as read.", "success")
+    return redirect(url_for("groundschool.task_detail", task_id=task_id))
+
+
+@groundschool_bp.route("/task/<int:task_id>/verify-reading", methods=["POST"])
+@cfi_required
+def task_verify_reading(task_id):
+    """A CFI checking off that they've reviewed this Task's knowledge area
+    with the student - only shown once the student has checked their own
+    Mark as Read box (see groundschool_task.html), same self-report-then-CFI-
+    verify shape as acs_element_completion's self_completed_at/cfi_verified_at."""
+    student_id = request.form.get("student_id", type=int)
+    conn = get_db()
+    student = conn.execute("SELECT id, name FROM students WHERE id = ?", (student_id,)).fetchone()
+    if not student:
+        conn.close()
+        flash("Choose a student to verify.", "danger")
+        return redirect(url_for("groundschool.task_detail", task_id=task_id))
+    progress = conn.execute("SELECT * FROM acs_task_reading_progress WHERE student_id = ? AND task_id = ?",
+                             (student_id, task_id)).fetchone()
+    if not progress or not progress["marked_read_at"]:
+        conn.close()
+        flash(f"{student['name']} hasn't marked this Task's reading as done yet.", "danger")
+        return redirect(url_for("groundschool.task_detail", task_id=task_id))
+    conn.execute("UPDATE acs_task_reading_progress SET cfi_id = ?, cfi_verified_at = ? "
+                 "WHERE student_id = ? AND task_id = ?",
+                 (session.get("cfi_id"), now_iso(), student_id, task_id))
+    conn.commit()
+    conn.close()
+    flash(f"Reviewed this Task's knowledge area with {student['name']}.", "success")
     return redirect(url_for("groundschool.task_detail", task_id=task_id))
 
 

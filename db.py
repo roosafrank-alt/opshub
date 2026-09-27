@@ -1104,9 +1104,21 @@ def _migrate(conn):
         task_id INTEGER NOT NULL REFERENCES acs_tasks(id),
         reference_opened_at TEXT,
         marked_read_at TEXT,
+        cfi_id INTEGER REFERENCES cfis(id),
+        cfi_verified_at TEXT,
         PRIMARY KEY (student_id, task_id)
     )""")
     conn.commit()
+    # cfi_id/cfi_verified_at added later - the CFI's own check-off, once the
+    # student's marked_read_at is set, that they reviewed this Task's
+    # knowledge area with the student (groundschool.task_verify_reading).
+    reading_progress_cols = [r["name"] for r in conn.execute("PRAGMA table_info(acs_task_reading_progress)").fetchall()]
+    if "cfi_id" not in reading_progress_cols:
+        conn.execute("ALTER TABLE acs_task_reading_progress ADD COLUMN cfi_id INTEGER REFERENCES cfis(id)")
+        conn.commit()
+    if "cfi_verified_at" not in reading_progress_cols:
+        conn.execute("ALTER TABLE acs_task_reading_progress ADD COLUMN cfi_verified_at TEXT")
+        conn.commit()
 
     # Flight School Reports tab: plane issue / missing checklist / concerning
     # issue / suggestion, reportable by any logged-in user - see schema.sql

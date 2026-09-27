@@ -41,17 +41,51 @@
        source documents, not an element's short excerpt) - Mark as Read
        stays disabled until a reference link's actually been opened
        (task_reference_click), checked again server-side by
-       task_mark_read since a disabled button is only a UI nudge. #}
-    <div class="mb-2">
+       task_mark_read since a disabled checkbox is only a UI nudge. Once
+       checked, the CFI's own Reading Review box below can check it off too. #}
+    <div class="mb-2 form-check">
       {% if reading_progress and reading_progress.marked_read_at %}
-      <span class="badge bg-success"><i class="bi bi-check-lg"></i> Read</span>
+      <input type="checkbox" class="form-check-input" id="mark-read-checkbox" checked disabled>
+      <label class="form-check-label small" for="mark-read-checkbox">
+        Marked as read
+        {% if reading_progress.cfi_verified_at %} - reviewed with {{ reading_progress.cfi_name or 'your CFI' }}{% endif %}
+      </label>
       {% else %}
       <form method="post" action="{{ url_for('groundschool.task_mark_read', task_id=task.id) }}" class="d-inline">
-        <button type="submit" id="mark-read-btn" class="btn btn-outline-success btn-sm"
-                {% if not (reading_progress and reading_progress.reference_opened_at) %}disabled title="Open a reference link above first"{% endif %}>
-          <i class="bi bi-bookmark-check"></i> Mark as Read
-        </button>
+        <input type="checkbox" class="form-check-input" id="mark-read-checkbox" onchange="this.form.submit()"
+               {% if not (reading_progress and reading_progress.reference_opened_at) %}disabled title="Open a reference link above first"{% endif %}>
+        <label class="form-check-label small" for="mark-read-checkbox">Mark as read</label>
       </form>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if session.get('cfi_id') %}
+    {#- The CFI's own check-off that they reviewed this knowledge area with
+       the student, once the student's checked Mark as Read above - mirrors
+       acs_element_completion's self_completed_at/cfi_verified_at pattern. #}
+    <div class="mb-2 border rounded p-2 bg-body-tertiary">
+      <form method="get" class="row g-2 align-items-end mb-1">
+        <div class="col-auto">
+          <label class="form-label small mb-0">Reading Review - Student</label>
+          <select name="student_id" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">Choose...</option>
+            {% for s in students %}<option value="{{ s.id }}" {{ 'selected' if viewing_student_id == s.id }}>{{ s.name }}</option>{% endfor %}
+          </select>
+        </div>
+      </form>
+      {% if viewing_student_id %}
+        {% if reading_progress and reading_progress.cfi_verified_at %}
+        <span class="badge bg-success"><i class="bi bi-check-lg"></i> Reviewed with student</span>
+        <span class="text-muted small ms-1">{{ reading_progress.cfi_verified_at|usdate(true) }} - {{ reading_progress.cfi_name or '' }}</span>
+        {% elif reading_progress and reading_progress.marked_read_at %}
+        <form method="post" action="{{ url_for('groundschool.task_verify_reading', task_id=task.id) }}" class="form-check mb-0">
+          <input type="hidden" name="student_id" value="{{ viewing_student_id }}">
+          <input type="checkbox" class="form-check-input" id="verify-reading-checkbox" onchange="this.form.submit()">
+          <label class="form-check-label small" for="verify-reading-checkbox">I reviewed this knowledge area with the student</label>
+        </form>
+        {% else %}
+        <p class="text-muted small mb-0">This student hasn't marked the reading as read yet.</p>
+        {% endif %}
       {% endif %}
     </div>
     {% endif %}
@@ -197,8 +231,8 @@ document.querySelectorAll('.task-ref-link').forEach(function (a) {
   a.addEventListener('click', function () {
     fetch('{{ url_for("groundschool.task_reference_click", task_id=task.id) }}',
           { method: 'POST', headers: { 'X-Requested-With': 'fetch' } }).catch(function () {});
-    var btn = document.getElementById('mark-read-btn');
-    if (btn) { btn.disabled = false; btn.title = ''; }
+    var box = document.getElementById('mark-read-checkbox');
+    if (box) { box.disabled = false; box.title = ''; }
   }, { once: false });
 });
 </script>
