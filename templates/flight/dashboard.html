@@ -238,6 +238,23 @@
   .dash-sun-phone { font-family: var(--bs-body-font-family); font-size: .8rem; color: var(--bs-body-color); line-height: 1.5; }
   .dash-sun-item { white-space: nowrap; }
   .dash-sun-z { color: var(--bs-secondary-color); font-size: .72rem; }
+
+  /* Phone-only compact shortcut row (QA ux-flight-dash-tiles-phone): the
+     five CFI shortcuts as one row of small buttons instead of the big
+     two-per-row tiles below, so Pending Approval/Today's Schedule move up
+     onto the first screen. sm and up keep the original tiles untouched. */
+  .dash-shortcut-sm {
+    min-height: 68px;
+    padding: .35rem .1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .15rem;
+    text-align: center;
+  }
+  .dash-shortcut-sm i { font-size: 1.15rem; }
+  .dash-shortcut-sm .dash-shortcut-label { font-size: .62rem; line-height: 1.1; }
 </style>
 <div id="dash-flag-toast" role="alert"></div>
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
@@ -274,7 +291,49 @@
 {% endif %}
 
 {% if cfi %}
-<div class="row row-cols-2 row-cols-md-5 g-3 mb-3">
+<div class="d-sm-none row row-cols-5 g-2 mb-3">
+  <div class="col">
+    <a href="{{ url_for('flight.log_new') }}" class="text-decoration-none">
+      <div class="card dash-shortcut-sm">
+        <i class="bi bi-journal-plus text-warning"></i>
+        <div class="fw-bold dash-shortcut-label">Log a Flight</div>
+      </div>
+    </a>
+  </div>
+  <div class="col">
+    <a href="{{ url_for('flight.schedule_new') }}" class="text-decoration-none">
+      <div class="card dash-shortcut-sm">
+        <i class="bi bi-calendar-plus text-success"></i>
+        <div class="fw-bold dash-shortcut-label">Schedule Flight</div>
+      </div>
+    </a>
+  </div>
+  <div class="col">
+    <a href="{{ url_for('flight.schedule_calendar') }}" class="text-decoration-none">
+      <div class="card dash-shortcut-sm">
+        <i class="bi bi-calendar3 text-info"></i>
+        <div class="fw-bold dash-shortcut-label">Schedule</div>
+      </div>
+    </a>
+  </div>
+  <div class="col">
+    <a href="{{ url_for('flight.students_list') }}" class="text-decoration-none">
+      <div class="card dash-shortcut-sm">
+        <i class="bi bi-people text-primary"></i>
+        <div class="fw-bold dash-shortcut-label">Students</div>
+      </div>
+    </a>
+  </div>
+  <div class="col">
+    <a href="{{ url_for('flight.planes_list') }}" class="text-decoration-none">
+      <div class="card dash-shortcut-sm">
+        <i class="bi bi-airplane text-secondary"></i>
+        <div class="fw-bold dash-shortcut-label">Planes</div>
+      </div>
+    </a>
+  </div>
+</div>
+<div class="d-none d-sm-flex row row-cols-2 row-cols-md-5 g-3 mb-3">
   <div class="col">
     <a href="{{ url_for('flight.log_new') }}" class="text-decoration-none">
       <div class="card p-3 text-center">
