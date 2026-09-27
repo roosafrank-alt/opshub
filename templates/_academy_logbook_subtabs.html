@@ -1,0 +1,11 @@
+{#- Logbook / Progress / Map - related tabs inside the Logbook section of Flight Academy. #}
+{% set _tab = tab if tab is defined else 'logbook' %}
+<ul class="nav nav-pills academy-subtabs mb-3 gap-1">
+  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'logbook' }}" href="{{ url_for('pilotlog.logbook') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'progress' }}" href="{{ url_for('pilotlog.progress') }}"><i class="bi bi-bar-chart-steps"></i> Progress</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'map' }}" href="{{ url_for('pilotlog.airport_map') }}"><i class="bi bi-map"></i> Map</a></li>
+</ul>
+<style>
+  .academy-subtabs .nav-link { color: #14213d; border: 1px solid #dee2e6; background: #fff; }
+  .academy-subtabs .nav-link.active { background: #14213d; color: #fff; font-weight: 700; }
+</style>

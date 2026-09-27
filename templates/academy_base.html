@@ -36,6 +36,7 @@
   {% for cat, msg in messages %}<div class="alert alert-{{ cat }} py-2">{{ msg }}</div>{% endfor %}
   {% endwith %}
   {% include "_academy_tabs.html" %}
+  {% if tab in ('logbook', 'progress', 'map') %}{% include "_academy_logbook_subtabs.html" %}{% endif %}
   {% if students %}
   <form method="get" class="mb-3 d-flex align-items-center gap-2">
     <label class="text-light small mb-0">Student</label>

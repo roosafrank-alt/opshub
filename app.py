@@ -243,6 +243,11 @@ def first_name(value):
 app.jinja_env.filters["first_name"] = first_name
 app.jinja_env.globals["tracking_carrier_choices"] = tracking.CARRIER_CHOICES
 app.jinja_env.globals["tracking_info"] = tracking.to_json
+app.jinja_env.globals["academy_point_rules"] = academy.POINT_RULES
+app.jinja_env.globals["academy_entry_kinds"] = academy.ENTRY_KINDS
+app.jinja_env.globals["academy_achievements"] = academy.ACHIEVEMENTS
+app.jinja_env.globals["academy_cert_points"] = academy.CERT_POINTS
+app.jinja_env.globals["academy_rating_points"] = academy.RATING_POINTS
 
 
 _WIND_COMPASS_POINTS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
@@ -404,9 +409,7 @@ def academy_page():
                            my_rank=academy.rank_of(stats, my_id) if my_id else None,
                            entries=entries, staff=staff, period=period,
                            entry_kinds=academy.ENTRY_KINDS, entry_kind_map=academy.ENTRY_KIND_MAP,
-                           point_rules=academy.POINT_RULES, achievements=academy.ACHIEVEMENTS,
-                           leaderboard_defs=academy.LEADERBOARDS, cert_points=academy.CERT_POINTS,
-                           rating_points=academy.RATING_POINTS, today=date.today().isoformat())
+                           leaderboard_defs=academy.LEADERBOARDS, today=date.today().isoformat())
 
 
 @app.route("/academy/entry", methods=["POST"])
