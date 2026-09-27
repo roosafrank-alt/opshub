@@ -24,3 +24,22 @@ running fine. That happened on Sep 27, 2026.
   app folder, see the bottom of `app.py`), because Funnel proxies to
   `https+insecure://127.0.0.1:5050`. Don't change the port or switch the app to
   plain HTTP.
+
+## Frank's Pi cheat sheet
+
+Frank asked for these to be kept here because he forgets them. When he asks how to
+get onto the Pi or run the tests, give him these exact commands.
+
+- **Log in to the Pi at home** (Mac on the same network as the Pi; finds the Pi by
+  name, so it keeps working even if its local `192.168.9.x` address changes):
+  `ssh frank@opshub.local`
+- **Log in to the Pi from anywhere** (via Tailscale):
+  `ssh frank@100.101.116.22`
+- **Run the test suite on the Pi** (the app keeps Flask in its own `vendor`
+  folder, so plain `python3` fails with "No module named 'flask'" without the
+  `PYTHONPATH` part):
+  `cd ~/shopinv && PYTHONPATH=/home/frank/shopinv/vendor python3 -m unittest discover -s tests`
+  To keep a copy of the output, add `2>&1 | tee ~/test-run.log | tail -40`.
+  It takes about 3 minutes and should end with `OK`.
+- The app lives in `~/shopinv` on the Pi (not `~/opshub`) and runs as the
+  `opshub` systemd service.
