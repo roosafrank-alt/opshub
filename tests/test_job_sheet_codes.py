@@ -1,6 +1,6 @@
 """Job Sheet scan codes (idea "Job sheet"): the printable job sheet shows the
-project and each sub-area as QR codes. Revision 3: only the project's own
-code sits in the header (no plane code), to keep the header simple."""
+project and each sub-area as QR codes. Revision 3 dropped the plane's own
+QR code from the header - only the project's code shows there now."""
 from harness import OpsHubTestCase
 
 
@@ -17,8 +17,9 @@ class JobSheetCodesTest(OpsHubTestCase):
         self.assertIn(f'data-code="TASK-{code}::Plugs"', html)
 
     def test_job_sheet_never_shows_a_plane_code(self):
-        """Revision 3: Frank asked for only the project code up top, not the
-        plane's, even when the project has a plane attached."""
+        """Revision 3: the plane's own code is gone from the header, even
+        when the project has a plane attached - only the project code
+        shows there now."""
         asset = self.make_asset("N555")
         pid = self.make_project(name="Annual - N555", asset_id=asset)
         html = self.login("tech").get(f"/projects/{pid}/checklist").get_data(as_text=True)
