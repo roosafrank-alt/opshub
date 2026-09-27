@@ -213,6 +213,27 @@ def usdate(value, show_time=False):
 app.jinja_env.filters["usdate"] = usdate
 
 
+def shortdate(value):
+    """'YYYY-MM-DD' -> 'MM-DD' - the compact month-day date for the phone
+    dashboard's Today/Upcoming headers (QA ux-flight-dash-section-headers).
+    Deliberately month-day, not this app's usual day-month (usdate above) -
+    Frank asked for that order specifically for this one spot."""
+    if not value:
+        return value
+    s = str(value).strip()
+    if len(s) < 10:
+        return value
+    date_part = s[:10]
+    parts = date_part.split("-")
+    if len(parts) != 3 or len(parts[0]) != 4:
+        return value
+    _, m, d = parts
+    return f"{m}-{d}"
+
+
+app.jinja_env.filters["shortdate"] = shortdate
+
+
 def first_name(value):
     """'Kate Frank' -> 'Kate', for friendly greetings ("Welcome, Kate")."""
     parts = str(value or "").split()

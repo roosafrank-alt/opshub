@@ -769,12 +769,22 @@
       <a href="{{ url_for('flight.dashboard', scope='mine') }}" class="btn {{ 'btn-primary' if dash_scope == 'mine' else 'btn-outline-primary' }}"><i class="bi bi-person"></i> Mine</a>
     </div>
   </div>
+  {#- Phones: "Today's Schedule (27-09-2026)" squeezed next to the big
+     completion badge wrapped into three lines, splitting the date in half
+     (QA ux-flight-dash-section-headers). Just "Today" plus a small grey
+     month-day date, and a shorter "X of Y done" badge, fit on one line;
+     sm and up keep the full wording and the app's usual day-month date. #}
   <button type="button" class="dash-collapse-toggle open d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0 {{ 'mb-2' if today_time_groups or today_flights_total }}" data-collapse="today">
-    <h6 class="mb-0"><i class="bi bi-calendar-day"></i> Today's Schedule <span class="text-muted small fw-normal">({{ today_str|usdate }})</span></h6>
+    <h6 class="mb-0">
+      <i class="bi bi-calendar-day"></i>
+      <span class="d-none d-sm-inline">Today's Schedule <span class="text-muted small fw-normal">({{ today_str|usdate }})</span></span>
+      <span class="d-sm-none">Today <span class="text-muted small fw-normal">{{ today_str|shortdate }}</span></span>
+    </h6>
     <span class="d-flex align-items-center gap-2">
       {% if today_flights_total %}
       <span class="badge {{ 'bg-success' if today_flights_completed == today_flights_total else 'bg-primary' }} fs-6">
-        {{ today_flights_completed }} of {{ today_flights_total }} flight{{ 's' if today_flights_total != 1 }} complete
+        <span class="d-none d-sm-inline">{{ today_flights_completed }} of {{ today_flights_total }} flight{{ 's' if today_flights_total != 1 }} complete</span>
+        <span class="d-sm-none">{{ today_flights_completed }} of {{ today_flights_total }} done</span>
       </span>
       {% else %}
       <span class="badge bg-secondary fs-6">0 flights booked</span>
@@ -806,10 +816,14 @@
   <hr class="my-3">
   {% endif %}
 
+  {#- The badge used to count days ("0 days"/"1 day"), which reads like a
+     countdown ("in 1 day") rather than what's actually booked - now counts
+     flights instead (QA ux-flight-dash-section-headers). #}
+  {% set upcoming_flight_count = upcoming_future_days|map(attribute='flights')|map('length')|sum %}
   <button type="button" class="dash-collapse-toggle d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0 {{ 'mb-2' if upcoming_future_days else '' }}" data-collapse="upcoming">
     <h6 class="mb-0"><i class="bi bi-calendar-week"></i> Upcoming</h6>
     <span class="d-flex align-items-center gap-2">
-      <span class="badge bg-secondary fs-6">{{ upcoming_future_days|length }} day{{ 's' if upcoming_future_days|length != 1 }}</span>
+      <span class="badge bg-secondary fs-6">{{ upcoming_flight_count ~ ' flight' ~ ('s' if upcoming_flight_count != 1) if upcoming_flight_count else 'None booked' }}</span>
       <i class="bi bi-chevron-right dash-collapse-chevron"></i>
     </span>
   </button>
@@ -821,7 +835,11 @@
     {% for day in upcoming_future_days %}
     {% if not loop.first %}<hr class="my-3">{% endif %}
     <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-      <h6 class="mb-0"><i class="bi bi-calendar-day"></i> {{ day.weekday }}'s Schedule <span class="text-muted small fw-normal">({{ day.date|usdate }})</span></h6>
+      <h6 class="mb-0">
+        <i class="bi bi-calendar-day"></i>
+        <span class="d-none d-sm-inline">{{ day.weekday }}'s Schedule <span class="text-muted small fw-normal">({{ day.date|usdate }})</span></span>
+        <span class="d-sm-none">{{ day.weekday }} <span class="text-muted small fw-normal">{{ day.date|shortdate }}</span></span>
+      </h6>
       <span class="badge bg-secondary fs-6">{{ day.flights|length }} flight{{ 's' if day.flights|length != 1 }} booked</span>
     </div>
     {% for group in day.time_groups %}
