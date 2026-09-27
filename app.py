@@ -578,6 +578,13 @@ def dashboard():
     if session.get("is_master_admin") or session.get("shop_role") in ("admin", "inspector"):
         squawks_awaiting_confirm = get_squawks_awaiting_confirm(conn)
 
+    # QA finding ux-shop-stat-boxes-by-role: a Tech's Pending Orders stat box
+    # opened a page they can't see (Orders is admin-only), so it swaps for
+    # Open Squawks instead - something a Tech actually acts on.
+    open_squawk_count = 0
+    if not session.get("is_master_admin") and session.get("shop_role") == "tech":
+        open_squawk_count = get_open_squawk_count(conn)
+
     # Customer portal: appointments the customer asked to reschedule -
     # stays here until an admin dismisses it (see project_reschedule_dismiss).
     reschedule_requests = conn.execute("""
@@ -651,7 +658,7 @@ def dashboard():
                            unacknowledged_assignments=unacknowledged_assignments,
                            squawks_awaiting_confirm=squawks_awaiting_confirm,
                            system_alerts=system_alerts, tool_reminders=tool_reminders,
-                           active_projects=active_projects)
+                           active_projects=active_projects, open_squawk_count=open_squawk_count)
 
 
 # ---------------------------------------------------------------------------
@@ -724,6 +731,16 @@ def get_open_squawks(conn):
         WHERE q.acknowledged_at IS NULL
         ORDER BY event_date DESC, squawk_id DESC
     """).fetchall()
+
+
+def get_open_squawk_count(conn):
+    """Every squawk not yet marked repaired, across both tables - the
+    Tech's dashboard stat box (QA finding ux-shop-stat-boxes-by-role), which
+    stands in for Pending Orders since Techs can't see Orders."""
+    return conn.execute("""
+        SELECT (SELECT COUNT(*) FROM flights WHERE squawk = 1 AND squawk_repaired_at IS NULL) +
+               (SELECT COUNT(*) FROM plane_squawks WHERE repaired_at IS NULL) AS c
+    """).fetchone()["c"]
 
 
 def get_plane_open_squawks(conn, asset_id):
@@ -1934,6 +1951,7 @@ def part_expiration_update(part_id):
 def parts_list():
     q = request.args.get("q", "").strip()
     show_retired = request.args.get("retired") == "1"
+    show_low_stock = request.args.get("low_stock") == "1"
     conn = get_db()
     part_count = conn.execute("SELECT COUNT(*) c FROM parts WHERE retired_at IS NULL").fetchone()["c"]
     total_value = conn.execute("SELECT COALESCE(SUM(qty_on_hand * unit_cost),0) v FROM parts WHERE retired_at IS NULL").fetchone()["v"]
@@ -1944,6 +1962,18 @@ def parts_list():
         part_covers = _part_covers(conn, parts)
         conn.close()
         return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=True,
+                               show_low_stock=False,
+                               part_count=part_count, total_value=total_value, part_covers=part_covers,
+                               retired_count=retired_count, expiry_stats=expiry_stats)
+    if show_low_stock:
+        # Dashboard's Low Stock Items box links here (QA finding
+        # ux-shop-stat-boxes-by-role) - same rows get_low_stock() already
+        # flags on the shop dashboard, just as a real filtered list.
+        parts = get_low_stock(conn)
+        part_covers = _part_covers(conn, parts)
+        conn.close()
+        return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=False,
+                               show_low_stock=True,
                                part_count=part_count, total_value=total_value, part_covers=part_covers,
                                retired_count=retired_count, expiry_stats=expiry_stats)
     if q:
@@ -1954,6 +1984,7 @@ def parts_list():
         part_covers = _part_covers(conn, parts)
         conn.close()
         return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=False,
+                               show_low_stock=False,
                                part_count=part_count, total_value=total_value, part_covers=part_covers,
                                retired_count=retired_count, expiry_stats=expiry_stats)
 
@@ -1966,6 +1997,7 @@ def parts_list():
         cat = p["category"] or "Uncategorized"
         by_category.setdefault(cat, []).append(p)
     return render_template("parts.html", parts=parts, q=q, by_category=by_category, show_retired=False,
+                           show_low_stock=False,
                            part_count=part_count, total_value=total_value, part_covers=part_covers,
                            retired_count=retired_count, expiry_stats=expiry_stats)
 

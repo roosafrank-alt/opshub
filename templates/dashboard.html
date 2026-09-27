@@ -39,6 +39,10 @@
    just bounces them back. Admins and Techs (and master admins, whatever
    their shop_role) keep today's page unchanged. #}
 {% set is_limited_role = not session.get('is_master_admin') and session.get('shop_role') in ('apprentice', 'inspector') %}
+{#- QA ux-shop-stat-boxes-by-role: a Tech's Pending Orders box opened a page
+   they can't see (Orders is admin-only) - swap it for Open Squawks, which
+   they can act on. Admins (and master admins) keep Pending Orders. #}
+{% set is_tech_role = not session.get('is_master_admin') and session.get('shop_role') == 'tech' %}
 {% macro needs_confirm_box() %}
 <div class="alert alert-info border-info border-2 mb-3">
   <div class="d-flex justify-content-between align-items-center mb-2">
@@ -218,32 +222,60 @@
 {% if not is_limited_role %}
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-3">
-    <div class="card stat-card p-3">
-      <div class="text-muted small">Active Projects</div>
-      <div class="display-6">{{ project_count }}</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <a href="{{ url_for('orders_list', status='pending') }}" class="text-decoration-none text-reset">
-    <div class="card stat-card p-3">
-      <div class="text-muted small">Pending Orders</div>
-      <div class="display-6">{{ pending_orders_count }}</div>
+    <a href="{{ url_for('projects_list') }}" class="text-decoration-none text-reset">
+    <div class="card stat-card p-3 d-flex flex-row justify-content-between align-items-start">
+      <div>
+        <div class="text-muted small">Active Projects</div>
+        <div class="display-6">{{ project_count }}</div>
+      </div>
+      <i class="bi bi-chevron-right text-muted mt-1"></i>
     </div>
     </a>
+  </div>
+  <div class="col-6 col-md-3">
+    {% if is_tech_role %}
+    <a href="{{ url_for('squawks_list') }}" class="text-decoration-none text-reset">
+    <div class="card stat-card p-3 d-flex flex-row justify-content-between align-items-start">
+      <div>
+        <div class="text-muted small">Open Squawks</div>
+        <div class="display-6">{{ open_squawk_count }}</div>
+      </div>
+      <i class="bi bi-chevron-right text-muted mt-1"></i>
+    </div>
+    </a>
+    {% else %}
+    <a href="{{ url_for('orders_list', status='pending') }}" class="text-decoration-none text-reset">
+    <div class="card stat-card p-3 d-flex flex-row justify-content-between align-items-start">
+      <div>
+        <div class="text-muted small">Pending Orders</div>
+        <div class="display-6">{{ pending_orders_count }}</div>
+      </div>
+      <i class="bi bi-chevron-right text-muted mt-1"></i>
+    </div>
+    </a>
+    {% endif %}
   </div>
   <div class="col-6 col-md-3">
     <a href="{{ url_for('calendar_page') }}" class="text-decoration-none text-reset">
-    <div class="card stat-card p-3">
-      <div class="text-muted small">Upcoming Projects</div>
-      <div class="display-6">{{ upcoming_count }}</div>
+    <div class="card stat-card p-3 d-flex flex-row justify-content-between align-items-start">
+      <div>
+        <div class="text-muted small">Upcoming Projects</div>
+        <div class="display-6">{{ upcoming_count }}</div>
+      </div>
+      <i class="bi bi-chevron-right text-muted mt-1"></i>
     </div>
     </a>
   </div>
   <div class="col-6 col-md-3">
-    <div class="card stat-card p-3 {{ 'border border-danger' if low_stock else '' }}">
-      <div class="text-muted small">Low Stock Items</div>
-      <div class="display-6 {{ 'text-danger' if low_stock else '' }}">{{ low_stock|length }}</div>
+    <a href="{{ url_for('parts_list', low_stock=1) }}" class="text-decoration-none text-reset">
+    <div class="card stat-card p-3 d-flex flex-row justify-content-between align-items-start {{ 'border border-danger' if low_stock else '' }}">
+      <div>
+        <div class="text-muted small">Low Stock Items</div>
+        <div class="display-6 {{ 'text-danger' if low_stock else '' }}">{{ low_stock|length }}</div>
+      </div>
+      <i class="bi bi-chevron-right {{ 'text-danger' if low_stock else 'text-muted' }} mt-1"></i>
     </div>
+    </a>
   </div>
 </div>
 {% endif %}

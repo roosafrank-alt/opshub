@@ -69,9 +69,12 @@ class ShopDashboardByRoleTest(OpsHubTestCase):
         self.assertNotIn("Active Projects</h6>", body)
 
     def test_tech_keeps_the_full_dashboard(self):
+        # QA fix ux-shop-stat-boxes-by-role: a Tech's stat row shows Open
+        # Squawks instead of Pending Orders, since Orders is admin-only.
         c = self.login("tech")
         body = c.get("/shop").get_data(as_text=True)
-        self.assertIn("Pending Orders", body)
+        self.assertIn("Open Squawks", body)
+        self.assertNotIn("Pending Orders", body)
         self.assertIn("Low Stock", body)
 
     def test_master_admin_keeps_full_dashboard_even_with_apprentice_shop_role(self):
