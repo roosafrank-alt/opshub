@@ -6157,6 +6157,7 @@ def api_labor_clocked_in():
         except (TypeError, ValueError):
             elapsed = 0
         workers.append({
+            "id": r["id"],
             "name": r["laborer_name"],
             "project_id": r["project_id"],
             "project_code": r["project_code"],

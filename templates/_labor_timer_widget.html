@@ -27,6 +27,7 @@
   .labor-timer-row .labor-timer-where { color: #6c757d; font-size: .78rem; }
   .labor-timer-row .labor-timer-clock { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
   .labor-timer-widget.open .labor-timer-list { display: block !important; }
+  .labor-timer-stop-btn { padding: .15rem .4rem; line-height: 1; }
 </style>
 <script>
 (function () {
@@ -123,9 +124,32 @@
       var whereHtml = w.url ? '<a href="' + w.url + '" class="text-reset">' + esc(where) + '</a>' : esc(where);
       return '<div class="labor-timer-row"><div><div class="fw-semibold">' + esc(w.name) + '</div>' +
         '<div class="labor-timer-where">' + whereHtml + '</div></div>' +
-        '<div class="labor-timer-clock" data-i="' + i + '">' + clock(w.elapsed_seconds + extra) + '</div></div>';
+        '<div class="d-flex align-items-center gap-2">' +
+        '<div class="labor-timer-clock" data-i="' + i + '">' + clock(w.elapsed_seconds + extra) + '</div>' +
+        '<button type="button" class="btn btn-outline-danger btn-sm labor-timer-stop-btn" data-id="' + w.id + '" title="Clock out"><i class="bi bi-box-arrow-right"></i></button>' +
+        '</div></div>';
     }).join('');
   }
+  // "click to lock out": the manual clock-out fallback the Scan and Labor
+  // pages already had (api_labor_stop), now reachable right from this
+  // floating list too, so an admin doesn't have to go find the worker
+  // elsewhere just to end a timer someone forgot to stop.
+  list.addEventListener('click', function (e) {
+    var btn = e.target.closest('.labor-timer-stop-btn');
+    if (!btn) return;
+    e.preventDefault();
+    var id = btn.getAttribute('data-id');
+    var w = workers.find(function (x) { return String(x.id) === id; });
+    if (!window.confirm('Clock out ' + (w ? w.name : 'this worker') + '? This ends their timer.')) return;
+    btn.disabled = true;
+    fetch('/api/labor/stop/' + id, { method: 'POST' })
+      .then(function (r) { return r.json(); })
+      .then(function () {
+        load();
+        window.dispatchEvent(new Event('opshub:labor-changed'));
+      })
+      .catch(function () { btn.disabled = false; });
+  });
   function tick() {
     var extra = Math.floor((Date.now() - fetchedAt) / 1000);
     list.querySelectorAll('.labor-timer-clock').forEach(function (el) {
