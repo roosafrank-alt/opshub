@@ -1544,6 +1544,7 @@ def _dashboard_context(conn, cfi, student):
     my_requests = []
     my_notifications = []
     my_unconfirmed = []
+    my_balance_hold = None
     plane_maint = _plane_maint_warnings(conn)
     # 100-hr hours-left badges - master admins only.
     hundred_badges = []
@@ -1779,6 +1780,25 @@ def _dashboard_context(conn, cfi, student):
         # the Alerts tab (my_alerts()) has the full history.
         my_notifications = conn.execute("""SELECT * FROM student_notifications WHERE student_id = ? AND read_at IS NULL
                                            ORDER BY created_at DESC LIMIT 5""", (student["id"],)).fetchall()
+        # Balance-hold banner (QA feat-owed-balance-on-bookings): built from
+        # `upcoming` (already this student's own bookings, already includes
+        # 'balance_hold' rows, already ordered by date/time) rather than a
+        # fresh query, so the banner can't show a different soonest lesson
+        # than the one that's actually first on the page below it.
+        my_balance_hold = None
+        held = [u for u in upcoming if u["status"] == "balance_hold"]
+        if held:
+            limit = _balance_hold_limit(conn)
+            soonest = held[0]
+            days_left = None
+            if soonest["held_release_date"]:
+                try:
+                    days_left = (datetime.strptime(soonest["held_release_date"], "%Y-%m-%d").date() - date.today()).days
+                except ValueError:
+                    pass
+            my_balance_hold = dict(owed=student_owed(student), limit=limit, count=len(held),
+                                    soonest_date=soonest["scheduled_date"], soonest_plane=soonest["plane_tag"],
+                                    release_date=soonest["held_release_date"], days_left=days_left)
 
     # Weather + NOTAMs - school-wide, not CFI-specific, so a student sees
     # exactly the same strip as an instructor (a student flying solo or
@@ -1921,7 +1941,7 @@ def _dashboard_context(conn, cfi, student):
                 active_flights=active_flights, upcoming=upcoming, plane_maint=plane_maint, hundred_badges=hundred_badges,
                 pending_requests=pending_requests, change_requests=change_requests,
                 my_requests=my_requests, my_notifications=my_notifications,
-                my_unconfirmed=my_unconfirmed,
+                my_unconfirmed=my_unconfirmed, my_balance_hold=my_balance_hold,
                 needs_review_flights=needs_review_flights, eta_delayed_flights=eta_delayed_flights,
                 medical_alerts=medical_alerts,
                 unconfirmed_flights=unconfirmed_flights, recently_cancelled_flights=recently_cancelled_flights,
@@ -7296,7 +7316,11 @@ def check_balance_hold(conn, student_id):
 def _notify_balance_hold(conn, student, owed, limit, kind):
     """Tells the student their flights just went on hold, or just came off
     it - dashboard banner + Alerts tab (_notify_student) plus a text/email,
-    same channels as every other student-facing notice."""
+    same channels as every other student-facing notice. Uses a literal
+    dashboard path rather than url_for - this (and _notify_balance_hold_reminder/
+    _release_balance_hold_slot below) can run from check_balance_hold_releases's
+    background thread, which has no request context for url_for to build
+    against, same reasoning as the push URLs in check_session_alerts."""
     if kind == "started":
         subject = "Your flights are on hold"
         body = (f"Your account owes ${owed:.2f}, over the school's ${limit:.2f} limit, so your upcoming flights "
@@ -7313,7 +7337,7 @@ def _notify_balance_hold(conn, student, owed, limit, kind):
             if user:
                 settings = notify.get_settings(conn)
                 notify.notify_user(settings, user, subject, body, brand="Fly with Kate!")
-                push.queue_and_push(conn, user["id"], subject, body, tag="balance-hold", url=url_for("flight.dashboard"))
+                push.queue_and_push(conn, user["id"], subject, body, tag="balance-hold", url="/flight/dashboard")
         except Exception:
             current_app.logger.exception("Balance hold notify failed")
 
@@ -7376,7 +7400,7 @@ def _notify_balance_hold_reminder(conn, student, sf):
                 settings = notify.get_settings(conn)
                 notify.notify_user(settings, user, "Your held lesson opens tomorrow", body, brand="Fly with Kate!")
                 push.queue_and_push(conn, user["id"], "Your held lesson opens tomorrow", body,
-                                    tag=f"balance-hold-reminder-{sf['id']}", url=url_for("flight.dashboard"))
+                                    tag=f"balance-hold-reminder-{sf['id']}", url="/flight/dashboard")
         except Exception:
             current_app.logger.exception("Balance hold reminder notify failed")
 
@@ -7405,7 +7429,7 @@ def _release_balance_hold_slot(conn, sf, student):
                 settings = notify.get_settings(conn)
                 notify.notify_user(settings, user, f"You lost your {when} spot", body, brand="Fly with Kate!")
                 push.queue_and_push(conn, user["id"], f"You lost your {when} spot", body,
-                                    tag=f"balance-hold-released-{sf['id']}", url=url_for("flight.dashboard"))
+                                    tag=f"balance-hold-released-{sf['id']}", url="/flight/dashboard")
         except Exception:
             current_app.logger.exception("Balance hold release notify failed")
 
