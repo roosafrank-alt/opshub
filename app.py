@@ -2109,6 +2109,20 @@ def project_new():
                                    optional_areas_by_type=optional_areas_by_type)
         code = gen_project_code(conn)
         asset_id = request.form.get("asset_id") or None
+        # QA fix qa-project-missing-plane: the plane picked on the form can
+        # be gone by the time Save is pressed (permanently deleted in
+        # another tab, or an old form resubmitted) - without this check
+        # the INSERT below hits a FOREIGN KEY constraint (an error page)
+        # instead of a plain "pick again" message, and the typed project
+        # details are lost.
+        if asset_id and not conn.execute(
+                "SELECT 1 FROM assets WHERE id = ? AND deleted_at IS NULL", (asset_id,)).fetchone():
+            flash("That aircraft is no longer on file. Pick another aircraft (or none) and save again.", "danger")
+            assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
+            quick_types, optional_areas_by_type = _quick_type_form_context(conn)
+            conn.close()
+            return render_template("project_form.html", project=None, assets=assets, quick_types=quick_types,
+                                   optional_areas_by_type=optional_areas_by_type, preselect_name=name)
         scheduled_date = request.form.get("scheduled_date", "").strip() or None
         scheduled_end_date = request.form.get("scheduled_end_date", "").strip() or None
         # A start date with no "Through" defaults to a week-long block - most
@@ -2213,6 +2227,21 @@ def project_edit(project_id):
             conn.close()
             return render_template("project_form.html", project=project, assets=assets, quick_types=quick_types)
         asset_id = request.form.get("asset_id") or None
+        # QA fix qa-project-missing-plane: see project_new's identical check.
+        if asset_id and not conn.execute(
+                "SELECT 1 FROM assets WHERE id = ? AND deleted_at IS NULL", (asset_id,)).fetchone():
+            flash("That aircraft is no longer on file. Pick another aircraft (or none) and save again.", "danger")
+            quick_types = _all_quick_types(conn)
+            kept = dict(project)
+            kept.update(name=name, description=request.form.get("description", "").strip(),
+                        scheduled_date=request.form.get("scheduled_date", "").strip() or None,
+                        scheduled_end_date=request.form.get("scheduled_end_date", "").strip() or None,
+                        scheduled_color=request.form.get("scheduled_color", "").strip() or None,
+                        prework_checklist=request.form.get("prework_checklist", "").strip() or None,
+                        standard_items=request.form.get("standard_items", "").strip() or None,
+                        asset_id=None)
+            conn.close()
+            return render_template("project_form.html", project=kept, assets=assets, quick_types=quick_types)
         scheduled_date = request.form.get("scheduled_date", "").strip() or None
         scheduled_end_date = request.form.get("scheduled_end_date", "").strip() or None
         if scheduled_date and not scheduled_end_date:
