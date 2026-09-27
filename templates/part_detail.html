@@ -23,6 +23,7 @@
       <div class="d-flex justify-content-between">
         <span class="text-muted">Reorder Point</span><span>{{ '%g'|format(part.reorder_point) }} {{ part.unit }}</span>
       </div>
+      {% if can_see_shop_costs %}
       <div class="d-flex justify-content-between">
         <span class="text-muted">Unit Cost</span><span>${{ "%.2f"|format(part.unit_cost) }}</span>
       </div>
@@ -32,6 +33,7 @@
       <div class="d-flex justify-content-between">
         <span class="text-muted">Total Value</span><span>${{ "%.2f"|format(part.qty_on_hand * part.unit_cost) }}</span>
       </div>
+      {% endif %}
       <div class="d-flex justify-content-between">
         <span class="text-muted">Category</span><span>{{ part.category or '-' }}</span>
       </div>

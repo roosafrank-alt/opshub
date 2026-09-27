@@ -512,17 +512,17 @@
           </h6>
           <p class="text-muted small mb-0">{{ block.project.description or 'No description' }} &middot; {{ block.project.created_at|usdate }}</p>
         </div>
-        <strong>${{ "%.2f"|format(block.cost) }}</strong>
+        {% if can_see_shop_costs %}<strong>${{ "%.2f"|format(block.cost) }}</strong>{% endif %}
       </div>
       {% if block.usage %}
       <table class="table table-sm mb-0">
-        <thead><tr><th>Part</th><th>Qty Used</th><th>Cost</th></tr></thead>
+        <thead><tr><th>Part</th><th>Qty Used</th>{% if can_see_shop_costs %}<th>Cost</th>{% endif %}</tr></thead>
         <tbody>
           {% for u in block.usage %}
           <tr>
             <td>{{ u.name }}</td>
             <td>{{ '%g'|format(u.qty_used) }} {{ u.unit }}</td>
-            <td>${{ "%.2f"|format(u.qty_used * u.unit_cost) }}</td>
+            {% if can_see_shop_costs %}<td>${{ "%.2f"|format(u.qty_used * u.unit_cost) }}</td>{% endif %}
           </tr>
           {% endfor %}
         </tbody>

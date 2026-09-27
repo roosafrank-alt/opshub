@@ -143,7 +143,7 @@
   <div class="col-lg-7">
     <div class="card p-3">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
-        <h5 class="mb-0">Parts Used <span class="text-muted fs-6">(total ${{ "%.2f"|format(total_cost) }})</span></h5>
+        <h5 class="mb-0">Parts Used {% if can_see_shop_costs %}<span class="text-muted fs-6">(total ${{ "%.2f"|format(total_cost) }})</span>{% endif %}</h5>
         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="var f=document.getElementById('add-section-row'); f.style.display = f.style.display==='none' ? 'flex' : 'none';"><i class="bi bi-folder-plus"></i> Add Sub Area</button>
       </div>
       <form id="add-section-row" method="post" action="{{ url_for('project_add_section', project_id=project.id) }}" class="gap-2 mt-2 mb-2" style="display:none;">
@@ -197,7 +197,7 @@
                 <a href="{{ url_for('project_section_label', project_id=project.id, section_id=data.id) }}" class="btn btn-link btn-sm p-0" target="_blank" onclick="event.stopPropagation();" title="Print this sub area's QR code"><i class="bi bi-qr-code"></i></a>
                 {% endif %}
               </div>
-              <span class="text-muted small">${{ "%.2f"|format(data.cost) }} <i class="bi bi-chevron-down" id="sec-chev-{{ loop.index }}"></i></span>
+              <span class="text-muted small">{% if can_see_shop_costs %}${{ "%.2f"|format(data.cost) }} {% endif %}<i class="bi bi-chevron-down" id="sec-chev-{{ loop.index }}"></i></span>
             </div>
             {% if section != 'General' and data.id %}
             <form method="post" action="{{ url_for('project_section_rename', project_id=project.id, section_id=data.id) }}" id="sec-rename-{{ loop.index }}" class="input-group input-group-sm mt-2" style="display:none; max-width:280px;" onclick="event.stopPropagation();">
@@ -209,13 +209,13 @@
           <div id="sec-{{ loop.index }}" style="display:{{ 'block' if loop.first else 'none' }};">
             {% if data.rows %}
             <table class="table table-sm mb-0">
-              <thead><tr><th>Part</th><th>Qty Used</th><th>Cost</th></tr></thead>
+              <thead><tr><th>Part</th><th>Qty Used</th>{% if can_see_shop_costs %}<th>Cost</th>{% endif %}</tr></thead>
               <tbody>
                 {% for u in data.rows %}
                 <tr>
                   <td><a href="{{ url_for('part_detail', part_id=u.part_id) }}">{{ u.name }}</a></td>
                   <td>{{ '%g'|format(u.qty_used) }} {{ u.unit }}</td>
-                  <td>${{ "%.2f"|format(u.qty_used * u.unit_cost) }}</td>
+                  {% if can_see_shop_costs %}<td>${{ "%.2f"|format(u.qty_used * u.unit_cost) }}</td>{% endif %}
                 </tr>
                 {% endfor %}
               </tbody>
@@ -245,13 +245,13 @@
         <h6 class="mb-0"><i class="bi bi-person-workspace"></i> Labor</h6>
         <div class="text-end">
           <span class="text-muted small d-block">{{ '%.2f'|format(labor_total_hours) }} hrs logged</span>
-          <strong>${{ "%.2f"|format(labor_total_cost) }}</strong>
+          {% if can_see_shop_costs %}<strong>${{ "%.2f"|format(labor_total_cost) }}</strong>{% endif %}
         </div>
       </div>
       {% if labor_sessions %}
       <div class="table-responsive">
       <table class="table table-sm mb-0">
-        <thead><tr><th>Laborer</th><th>Task</th><th>Started</th><th>Hours</th><th>Cost</th></tr></thead>
+        <thead><tr><th>Laborer</th><th>Task</th><th>Started</th><th>Hours</th>{% if can_see_shop_costs %}<th>Cost</th>{% endif %}</tr></thead>
         <tbody>
           {% for s in labor_sessions %}
           <tr>
@@ -259,7 +259,7 @@
             <td>{{ s.section or 'General' }}</td>
             <td><small>{{ s.started_at|usdate(true) }}</small></td>
             <td>{% if s.ended_at %}{{ '%.2f'|format(s.hours or 0) }}{% else %}<span class="badge bg-warning text-dark">Running</span>{% endif %}</td>
-            <td>{% if s.ended_at %}${{ '%.2f'|format(s.cost or 0) }}{% else %}-{% endif %}</td>
+            {% if can_see_shop_costs %}<td>{% if s.ended_at %}${{ '%.2f'|format(s.cost or 0) }}{% else %}-{% endif %}</td>{% endif %}
           </tr>
           {% endfor %}
         </tbody>
