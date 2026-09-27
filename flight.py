@@ -483,7 +483,7 @@ def _scheduling_conflicts(conn, asset_id, cfi_id, student_id, scheduled_date, sc
              JOIN assets a ON a.id = sf.asset_id
              JOIN students s ON s.id = sf.student_id
              LEFT JOIN cfis c ON c.id = sf.cfi_id
-             WHERE sf.status = 'scheduled' AND sf.scheduled_date = ?
+             WHERE sf.status IN ('scheduled', 'balance_hold') AND sf.scheduled_date = ?
                AND (sf.asset_id = ? OR sf.student_id = ? OR (sf.cfi_id IS NOT NULL AND sf.cfi_id = ?))"""
     params = [scheduled_date, asset_id, student_id, cfi_id]
     if exclude_id:
@@ -1279,6 +1279,7 @@ def _ledger_entry(conn, student_id, entry_type, amount, note=None, flight_id=Non
                      VALUES (?, ?, ?, ?, ?, ?, ?)""",
                  (student_id, entry_type, amount, flight_id, note, created_by, now_iso()))
     conn.execute("UPDATE students SET balance = balance + ? WHERE id = ?", (amount, student_id))
+    check_balance_hold(conn, student_id)
 
 
 def _deduct_flight_cost(conn, flight_row_dict, created_by=None):
@@ -1514,10 +1515,20 @@ def _with_dashboard_row_fields(rows):
         # dashboard chip's warning triangle agrees with the calendar's.
         needs_review_active = bool(r["needs_review"]) and not r["needs_review_acknowledged_at"]
         notes_visible, private_notes_visible = _note_visibility(r)
+        # A red "$X owed" badge on the chip (feat-owed-balance-on-bookings) -
+        # not every caller's query selects student_balance, so this quietly
+        # reads as "not owed" rather than erroring for those.
+        try:
+            student_balance = r["student_balance"]
+        except (KeyError, IndexError):
+            student_balance = None
+        student_owed_amt = round(max(0.0, -(student_balance or 0.0)), 2)
         out.append(dict(r, time_label=time_label, end_time_label=end_time_label,
                          display_color=cfi_stripe,
                          needs_review_active=needs_review_active,
                          needs_review_flag=_needs_review_flag(r),
+                         is_balance_hold=r["status"] == "balance_hold",
+                         student_owed=student_owed_amt,
                          notes_visible=notes_visible, private_notes_visible=private_notes_visible))
     return out
 
@@ -1579,12 +1590,12 @@ def _dashboard_context(conn, cfi, student):
         # fine on the Schedule calendar, which has no such cap either.
         upcoming = conn.execute("""
             SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
-                   s.pilot_certificate as pilot_certificate, c.name as cfi_name, c.color as cfi_color
+                   s.pilot_certificate as pilot_certificate, s.balance as student_balance, c.name as cfi_name, c.color as cfi_color
             FROM scheduled_flights sf
             JOIN assets a ON a.id = sf.asset_id
             JOIN students s ON s.id = sf.student_id
             LEFT JOIN cfis c ON c.id = sf.cfi_id
-            WHERE sf.status = 'scheduled' AND sf.scheduled_date >= ?
+            WHERE sf.status IN ('scheduled', 'balance_hold') AND sf.scheduled_date >= ?
               AND (? IS NULL OR sf.cfi_id = ?)
             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
         """, (date.today().strftime("%Y-%m-%d"), mine_id, mine_id)).fetchall()
@@ -1654,14 +1665,14 @@ def _dashboard_context(conn, cfi, student):
         # and watches the completed count climb as flights get logged/ended.
         today_flights = conn.execute("""
             SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
-                   s.pilot_certificate as pilot_certificate, c.name as cfi_name, c.color as cfi_color,
+                   s.pilot_certificate as pilot_certificate, s.balance as student_balance, c.name as cfi_name, c.color as cfi_color,
                    fl.id as flight_id
             FROM scheduled_flights sf
             JOIN assets a ON a.id = sf.asset_id
             JOIN students s ON s.id = sf.student_id
             LEFT JOIN cfis c ON c.id = sf.cfi_id
             LEFT JOIN flights fl ON fl.scheduled_flight_id = sf.id AND fl.ended_at IS NULL
-            WHERE sf.scheduled_date = ? AND sf.status IN ('scheduled', 'in_progress', 'completed')
+            WHERE sf.scheduled_date = ? AND sf.status IN ('scheduled', 'in_progress', 'completed', 'balance_hold')
               AND (? IS NULL OR sf.cfi_id = ?)
             ORDER BY sf.scheduled_time IS NULL, sf.scheduled_time
         """, (date.today().strftime("%Y-%m-%d"), mine_id, mine_id)).fetchall()
@@ -1724,12 +1735,13 @@ def _dashboard_context(conn, cfi, student):
             ORDER BY f.created_at DESC LIMIT 10
         """, (student["id"],)).fetchall()
         upcoming = conn.execute("""
-            SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name, c.color as cfi_color
+            SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
+                   s.balance as student_balance, c.name as cfi_name, c.color as cfi_color
             FROM scheduled_flights sf
             JOIN assets a ON a.id = sf.asset_id
             JOIN students s ON s.id = sf.student_id
             LEFT JOIN cfis c ON c.id = sf.cfi_id
-            WHERE sf.status = 'scheduled' AND sf.scheduled_date >= ? AND sf.student_id = ?
+            WHERE sf.status IN ('scheduled', 'balance_hold') AND sf.scheduled_date >= ? AND sf.student_id = ?
             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
             LIMIT 300
         """, (date.today().strftime("%Y-%m-%d"), student["id"])).fetchall()
@@ -1795,12 +1807,13 @@ def _dashboard_context(conn, cfi, student):
     today_s = now_dt.strftime("%Y-%m-%d")
     if cfi or student or next_scope == "school":
         nl_sql = """
-            SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name
+            SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
+                   s.balance as student_balance, c.name as cfi_name
             FROM scheduled_flights sf
             JOIN assets a ON a.id = sf.asset_id
             JOIN students s ON s.id = sf.student_id
             LEFT JOIN cfis c ON c.id = sf.cfi_id
-            WHERE sf.status = 'scheduled'
+            WHERE sf.status IN ('scheduled', 'balance_hold')
               AND (sf.scheduled_date > ? OR (sf.scheduled_date = ? AND (sf.scheduled_time IS NULL OR sf.scheduled_time >= ?)))"""
         nl_args = [today_s, today_s, now_dt.strftime("%H:%M")]
         if next_scope == "school":
@@ -1819,6 +1832,8 @@ def _dashboard_context(conn, cfi, student):
                                time_label=_format_time_12h(row["scheduled_time"]),
                                starts_at=(f"{row['scheduled_date']}T{row['scheduled_time']}:00"
                                           if row["scheduled_time"] else None),
+                               is_balance_hold=row["status"] == "balance_hold",
+                               student_owed=round(max(0.0, -(row["student_balance"] or 0.0)), 2),
                                notes_visible=nl_notes_visible, private_notes_visible=nl_private_notes_visible)
 
     # "Log this lesson": a CFI's lesson from today whose start time has
@@ -2368,9 +2383,26 @@ def student_field_detail(student_id, field_key):
     if field_key == "account":
         ledger = conn.execute("SELECT * FROM student_ledger WHERE student_id = ? ORDER BY created_at DESC, id DESC LIMIT 100",
                               (student_id,)).fetchall()
+        # Balance hold status (feat-owed-balance-on-bookings): held flights
+        # with their release dates, and whether/when the student has seen
+        # the hold notice (student_notifications.read_at - see _notify_student).
+        held_flights = conn.execute("""
+            SELECT sf.*, a.tag as plane_tag FROM scheduled_flights sf JOIN assets a ON a.id = sf.asset_id
+            WHERE sf.student_id = ? AND sf.status = 'balance_hold'
+            ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time""", (student_id,)).fetchall()
+        released_count = conn.execute("""SELECT COUNT(*) c FROM scheduled_flights
+                                         WHERE student_id = ? AND released_from_hold_at IS NOT NULL""",
+                                      (student_id,)).fetchone()["c"]
+        last_hold_notice = conn.execute("""SELECT * FROM student_notifications WHERE student_id = ?
+                                           AND category = 'balance_hold' ORDER BY created_at DESC LIMIT 1""",
+                                        (student_id,)).fetchone()
+        hold_limit = _balance_hold_limit(conn)
         conn.close()
         return render_template("flight/student_field_detail.html", student=student, field_key=field_key,
-                               label="Account", ledger=ledger, can_bill=can_manage_billing())
+                               label="Account", ledger=ledger, can_bill=can_manage_billing(),
+                               held_flights=held_flights, released_count=released_count,
+                               last_hold_notice=last_hold_notice, hold_limit=hold_limit,
+                               student_owed=student_owed(student))
 
     info = _STUDENT_FIELD_INFO.get(field_key)
     if not info:
@@ -3110,6 +3142,7 @@ def cancel_fee_settings_edit():
 _SCHEDULE_ROW_SQL = """SELECT sf.*, a.tag as plane_tag, a.name as plane_name, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
                      s.is_station as student_is_station, s.pilot_certificate as pilot_certificate,
                      s.pilot_ratings as pilot_ratings, s.first_solo_date as first_solo_date,
+                     s.balance as student_balance,
                      c.name as cfi_name, c.color as cfi_color,
                      a.schedule_color as plane_color, a.solo_color as plane_solo_color,
                      a.is_owner_placeholder as is_owner_placeholder
@@ -3117,7 +3150,7 @@ _SCHEDULE_ROW_SQL = """SELECT sf.*, a.tag as plane_tag, a.name as plane_name, CO
               JOIN assets a ON a.id = sf.asset_id
               JOIN students s ON s.id = sf.student_id
               LEFT JOIN cfis c ON c.id = sf.cfi_id
-              WHERE sf.status IN ('scheduled', 'in_progress', 'completed')"""
+              WHERE sf.status IN ('scheduled', 'in_progress', 'completed', 'balance_hold')"""
 
 
 def _note_visibility(r):
@@ -3179,6 +3212,12 @@ def _decorate_schedule_row(r, own_plane_color=None):
     # availability (_build_availability_day) never sees these at all - a
     # request awaiting approval must not block someone else's slot.
     r["is_pending_approval"] = r["status"] == "pending_approval"
+    # A booking held for a student who's over the school's balance limit
+    # (see check_balance_hold) - same "not a real confirmed slot right now"
+    # treatment as is_pending_approval above, with its own badge/label.
+    r["is_balance_hold"] = r["status"] == "balance_hold"
+    r.setdefault("student_balance", 0)
+    r["student_owed"] = round(max(0.0, -(r["student_balance"] or 0.0)), 2)
     r.setdefault("is_time_off", False)
     r.setdefault("eta_delay", None)
     return r
@@ -3260,8 +3299,8 @@ def _schedule_rows(conn, date_from, date_to, plane_id=None, cfi_id=None, include
     not an instructor, and a break has no plane_id to filter by anyway."""
     sql = _SCHEDULE_ROW_SQL
     if include_pending:
-        sql = sql.replace("WHERE sf.status IN ('scheduled', 'in_progress', 'completed')",
-                           "WHERE sf.status IN ('scheduled', 'in_progress', 'completed', 'pending_approval')")
+        sql = sql.replace("WHERE sf.status IN ('scheduled', 'in_progress', 'completed', 'balance_hold')",
+                           "WHERE sf.status IN ('scheduled', 'in_progress', 'completed', 'balance_hold', 'pending_approval')")
     sql += " AND sf.scheduled_date BETWEEN ? AND ?"
     params = [date_from, date_to]
     if plane_id:
@@ -4220,6 +4259,10 @@ def schedule_new():
                           notes, private_notes, status, created_by, solo, needs_review, review_reason, part_solo,
                           guest_name, guest_phone, guest_email, now_iso(), confirmed_at, confirm_required))
             conn.commit()
+            # A student already over the balance limit gets even a brand new
+            # booking swept straight onto hold, same as every other upcoming
+            # one - otherwise they could dodge the hold just by booking again.
+            check_balance_hold(conn, student_id)
             if notify_user_id:
                 notify_pref = conn.execute("SELECT notify_booking_confirm FROM students WHERE id = ?",
                                            (student_id,)).fetchone()
@@ -4268,6 +4311,8 @@ def schedule_new():
             if needs_review:
                 review_count += 1
         conn.commit()
+        if created_count:
+            check_balance_hold(conn, student_id)
         if notify_user_id and created_count:
             # One push for the whole series rather than one per occurrence -
             # a 10-date recurring booking shouldn't mean 10 separate pings.
@@ -6647,9 +6692,13 @@ def log_delete(flight_id):
         return redirect(url_for("flight.log_history"))
     f = _row_with_cost(row)
     who = session.get("user_name")
+    ledger_students = set()
     for led in conn.execute("SELECT id, student_id, amount FROM student_ledger WHERE flight_id = ?", (flight_id,)).fetchall():
         conn.execute("UPDATE students SET balance = balance - ? WHERE id = ?", (led["amount"], led["student_id"]))
         conn.execute("DELETE FROM student_ledger WHERE id = ?", (led["id"],))
+        ledger_students.add(led["student_id"])
+    for sid in ledger_students:
+        check_balance_hold(conn, sid)
     if f["scheduled_flight_id"] and f["started_at"] and not f["ended_at"]:
         conn.execute("UPDATE scheduled_flights SET status = 'scheduled' WHERE id = ? AND status = 'in_progress'",
                      (f["scheduled_flight_id"],))
@@ -6940,7 +6989,7 @@ def _slot_taken(conn, asset_id, day, hhmm, duration, ignore_id=None):
     start, end = _slot_minutes(hhmm, duration)
     for r in conn.execute("""SELECT id, scheduled_time, duration_hours FROM scheduled_flights
                              WHERE asset_id = ? AND scheduled_date = ? AND scheduled_time IS NOT NULL
-                               AND status IN ('scheduled', 'pending_approval', 'in_progress')""",
+                               AND status IN ('scheduled', 'pending_approval', 'in_progress', 'balance_hold')""",
                           (asset_id, day)).fetchall():
         if ignore_id and r["id"] == ignore_id:
             continue
@@ -7143,6 +7192,245 @@ def waitlist_offer(offer_id):
         return redirect(url_for("flight.waitlist_page"))
     return redirect(url_for("flight.schedule_new", date=offer["scheduled_date"], time=offer["scheduled_time"],
                             asset_id=offer["asset_id"], cfi_id=offer["cfi_id"] or "", waitlist_offer=offer_id))
+
+
+# ---------------------------------------------------------------------------
+# Balance hold (QA feat-owed-balance-on-bookings). CFIs/admins see a red "$X
+# owed" badge on a student's booking chips everywhere on the schedule and
+# dashboard (a student sees it too, but only on their own bookings - never
+# another student's); tapping it opens the student's Account page. When
+# Settings > Balance Hold has a dollar limit set and a student's owed
+# balance goes over it, every one of their upcoming bookings flips to
+# status 'balance_hold' ("Pending - Balance Hold" on the calendar) - see
+# check_balance_hold, called from _ledger_entry every time a balance
+# changes (a flight logged, a payment, a late-cancellation fee) and from
+# schedule_new/log_delete for the two balance-affecting paths that don't go
+# through _ledger_entry directly. Paying back down under the limit un-holds
+# them automatically, same function.
+#
+# A held booking only keeps its spot for the student until 5 days before
+# its date - check_balance_hold_releases (piggybacked on the session-alert
+# loop in app.py, so it runs about once a minute) sends a day-before
+# reminder, then actually releases (cancels) it once that day arrives if
+# still unpaid, offering the freed slot to the cancellation waitlist first
+# (waitlist_offer_cancelled_slot, same as any other cancellation) before
+# telling the student they lost it.
+# ---------------------------------------------------------------------------
+
+BALANCE_HOLD_LIMIT_KEY = "balance_hold_limit"
+BALANCE_HOLD_RELEASE_DAYS = 5
+
+
+def _balance_hold_limit(conn):
+    """The dollar amount a student can owe before their flights go on hold
+    (Settings > Balance Hold), or None if the school hasn't turned it on
+    (blank/0 = off, same convention as the cancellation fee amount)."""
+    row = conn.execute("SELECT value FROM app_settings WHERE key = ?", (BALANCE_HOLD_LIMIT_KEY,)).fetchone()
+    try:
+        limit = float(row["value"]) if row and row["value"] not in (None, "") else None
+    except (TypeError, ValueError):
+        limit = None
+    return limit if limit and limit > 0 else None
+
+
+def student_owed(student_row):
+    """Dollar amount a student currently owes (0 if they're even or sitting
+    on a credit) - students.balance is negative when they owe money, same
+    convention as the Account page (flight/student_field_detail.html)."""
+    if not student_row:
+        return 0.0
+    try:
+        bal = student_row["balance"]
+    except (KeyError, IndexError):
+        bal = None
+    return round(max(0.0, -(bal or 0.0)), 2)
+
+
+def _hold_release_date(scheduled_date):
+    try:
+        d = datetime.strptime(scheduled_date, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return None
+    return (d - timedelta(days=BALANCE_HOLD_RELEASE_DAYS)).isoformat()
+
+
+def check_balance_hold(conn, student_id):
+    """Called right after a student's balance changes. Puts every one of
+    their upcoming scheduled/pending bookings on hold the moment their owed
+    balance crosses the school's limit, and automatically releases them
+    (back to whatever status they were before) the moment a payment brings
+    it back under. Best effort - a failure here should never break the save
+    that triggered it."""
+    try:
+        if not student_id:
+            return
+        limit = _balance_hold_limit(conn)
+        student = conn.execute("SELECT * FROM students WHERE id = ?", (student_id,)).fetchone()
+        if not student or student["is_station"]:
+            return
+        owed = student_owed(student)
+        held = conn.execute("SELECT * FROM scheduled_flights WHERE student_id = ? AND status = 'balance_hold'",
+                            (student_id,)).fetchall()
+        if limit is not None and owed > limit:
+            upcoming = conn.execute("""SELECT * FROM scheduled_flights WHERE student_id = ?
+                                       AND status IN ('scheduled', 'pending_approval')
+                                       AND scheduled_date >= ?""", (student_id, date.today().isoformat())).fetchall()
+            now = now_iso()
+            for sf in upcoming:
+                conn.execute("""UPDATE scheduled_flights SET status = 'balance_hold', hold_previous_status = ?,
+                                hold_started_at = ?, held_release_date = ? WHERE id = ?""",
+                            (sf["status"], now, _hold_release_date(sf["scheduled_date"]), sf["id"]))
+            if upcoming or held:
+                _notify_balance_hold(conn, student, owed, limit, "started")
+        elif held:
+            for sf in held:
+                conn.execute("""UPDATE scheduled_flights SET status = ?, hold_previous_status = NULL,
+                                hold_started_at = NULL, held_release_date = NULL WHERE id = ?""",
+                            (sf["hold_previous_status"] or "scheduled", sf["id"]))
+            _notify_balance_hold(conn, student, owed, limit, "lifted")
+        conn.commit()
+    except Exception:
+        current_app.logger.exception("Balance hold check failed")
+
+
+def _notify_balance_hold(conn, student, owed, limit, kind):
+    """Tells the student their flights just went on hold, or just came off
+    it - dashboard banner + Alerts tab (_notify_student) plus a text/email,
+    same channels as every other student-facing notice."""
+    if kind == "started":
+        subject = "Your flights are on hold"
+        body = (f"Your account owes ${owed:.2f}, over the school's ${limit:.2f} limit, so your upcoming flights "
+                f"are on hold until it's paid. A held lesson stays reserved for you until 5 days before it, then "
+                f"opens up to other students if it's still unpaid by then. Pay your balance with the school to "
+                f"keep your spots.")
+    else:
+        subject = "Your flights are back on"
+        body = "Your balance is paid down and your flights are off hold - nothing else to do."
+    _notify_student(conn, student["id"], "balance_hold", body)
+    if student["user_id"]:
+        try:
+            user = conn.execute("SELECT * FROM users WHERE id = ?", (student["user_id"],)).fetchone()
+            if user:
+                settings = notify.get_settings(conn)
+                notify.notify_user(settings, user, subject, body, brand="Fly with Kate!")
+                push.queue_and_push(conn, user["id"], subject, body, tag="balance-hold", url=url_for("flight.dashboard"))
+        except Exception:
+            current_app.logger.exception("Balance hold notify failed")
+
+
+def run_balance_hold_release_check():
+    """No-arg wrapper for check_balance_hold_releases(conn), same calling
+    convention as check_session_alerts() - started from the same background
+    thread in app.py, opening/closing its own connection since it runs off
+    the request cycle."""
+    conn = get_db()
+    try:
+        check_balance_hold_releases(conn)
+    finally:
+        conn.close()
+
+
+def check_balance_hold_releases(conn):
+    """Piggybacked on the session-alert loop (app._start_session_alert_loop,
+    runs about once a minute): sends a day-before reminder for a held
+    lesson about to open to everyone, and actually releases (cancels, then
+    offers to the cancellation waitlist) any held lesson whose 5-day mark
+    has arrived and is still unpaid. Best effort - never breaks the loop."""
+    try:
+        limit = _balance_hold_limit(conn)
+        if limit is None:
+            return
+        today = date.today().isoformat()
+        tomorrow = (date.today() + timedelta(days=1)).isoformat()
+        held = conn.execute("""SELECT * FROM scheduled_flights WHERE status = 'balance_hold'
+                               AND held_release_date IS NOT NULL""").fetchall()
+        for sf in held:
+            student = conn.execute("SELECT * FROM students WHERE id = ?", (sf["student_id"],)).fetchone()
+            if not student or student_owed(student) <= limit:
+                continue  # paid down since - check_balance_hold already released it, but be safe
+            if sf["held_release_date"] == tomorrow:
+                key = f"remind:{sf['held_release_date']}"
+                if not conn.execute("""SELECT 1 FROM notification_log WHERE category = 'balance_hold_reminder'
+                                       AND ref_id = ? AND ref_key = ?""", (sf["id"], key)).fetchone():
+                    _notify_balance_hold_reminder(conn, student, sf)
+                    conn.execute("""INSERT INTO notification_log (category, ref_id, ref_key)
+                                    VALUES ('balance_hold_reminder', ?, ?)""", (sf["id"], key))
+                    conn.commit()
+            if sf["held_release_date"] <= today:
+                _release_balance_hold_slot(conn, sf, student)
+    except Exception:
+        current_app.logger.exception("Balance hold release check failed")
+
+
+def _notify_balance_hold_reminder(conn, student, sf):
+    plane = conn.execute("SELECT tag FROM assets WHERE id = ?", (sf["asset_id"],)).fetchone()
+    when = _slot_label(sf["scheduled_date"], sf["scheduled_time"])
+    body = (f"Your {when} lesson in {plane['tag'] if plane else 'the plane'} opens to other students tomorrow "
+            f"unless your balance is paid before then.")
+    _notify_student(conn, student["id"], "balance_hold", body, scheduled_flight_id=sf["id"])
+    conn.commit()
+    if student["user_id"]:
+        try:
+            user = conn.execute("SELECT * FROM users WHERE id = ?", (student["user_id"],)).fetchone()
+            if user:
+                settings = notify.get_settings(conn)
+                notify.notify_user(settings, user, "Your held lesson opens tomorrow", body, brand="Fly with Kate!")
+                push.queue_and_push(conn, user["id"], "Your held lesson opens tomorrow", body,
+                                    tag=f"balance-hold-reminder-{sf['id']}", url=url_for("flight.dashboard"))
+        except Exception:
+            current_app.logger.exception("Balance hold reminder notify failed")
+
+
+def _release_balance_hold_slot(conn, sf, student):
+    """Actually gives up a held slot: cancels the booking (so it shows as
+    open on the calendar and blocks nothing new), offers it to the
+    cancellation waitlist first, and tells the student they lost it."""
+    plane = conn.execute("SELECT tag FROM assets WHERE id = ?", (sf["asset_id"],)).fetchone()
+    when = _slot_label(sf["scheduled_date"], sf["scheduled_time"])
+    conn.execute("""UPDATE scheduled_flights SET status = 'cancelled',
+                    cancel_reason = 'Balance hold - released to other students after 5 days unpaid',
+                    released_from_hold_at = ? WHERE id = ?""", (now_iso(), sf["id"]))
+    conn.commit()
+    offered = waitlist_offer_cancelled_slot(conn, sf["id"])
+    body = (f"Your balance was still over the limit 5 days before your {when} lesson in "
+            f"{plane['tag'] if plane else 'the plane'}, so that slot opened up"
+            + (" and another student was offered it" if offered else "")
+            + ". Your other flights stay on hold until the balance is paid.")
+    _notify_student(conn, student["id"], "balance_hold", body)
+    conn.commit()
+    if student["user_id"]:
+        try:
+            user = conn.execute("SELECT * FROM users WHERE id = ?", (student["user_id"],)).fetchone()
+            if user:
+                settings = notify.get_settings(conn)
+                notify.notify_user(settings, user, f"You lost your {when} spot", body, brand="Fly with Kate!")
+                push.queue_and_push(conn, user["id"], f"You lost your {when} spot", body,
+                                    tag=f"balance-hold-released-{sf['id']}", url=url_for("flight.dashboard"))
+        except Exception:
+            current_app.logger.exception("Balance hold release notify failed")
+
+
+@flight_bp.route("/settings/balance-hold", methods=["GET", "POST"])
+@admin_required
+def balance_hold_settings_edit():
+    """The school-wide balance-hold limit (_balance_hold_limit) used by
+    check_balance_hold: how much a student can owe before their upcoming
+    flights go on hold (0/blank = off, holds never happen)."""
+    conn = get_db()
+    if request.method == "POST":
+        try:
+            limit = max(0.0, float(request.form.get("limit") or 0))
+        except ValueError:
+            limit = 0.0
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
+                     (BALANCE_HOLD_LIMIT_KEY, limit))
+        conn.commit()
+        conn.close()
+        flash("Balance hold policy updated." if limit else "Balance hold turned off.", "success")
+        return redirect(url_for("flight.balance_hold_settings_edit"))
+    limit = _balance_hold_limit(conn)
+    conn.close()
+    return render_template("flight/balance_hold_settings_form.html", limit=limit)
 
 
 # ---------------------------------------------------------------------------
