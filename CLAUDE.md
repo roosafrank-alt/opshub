@@ -43,3 +43,18 @@ get onto the Pi or run the tests, give him these exact commands.
   It takes about 3 minutes and should end with `OK`.
 - The app lives in `~/shopinv` on the Pi (not `~/opshub`) and runs as the
   `opshub` systemd service.
+
+## Keep the Idea Queue runner copies in step
+
+The **Idea Queue Runner** routine holds the real runner instructions in its own
+prompt. **Idea Queue Runner 17** and **Idea Queue Runner 47** (and any copy added
+later) don't: their prompt just says to read `idea-queue/runner-instructions.md`
+from main and follow it.
+
+- When you change the Idea Queue Runner's instructions, make the same change in
+  `idea-queue/runner-instructions.md`, so the copies stay in step. The file must
+  always match the original routine's prompt, plus the THIS FILE rule at the end.
+- If Frank says "sync the runner file", compare the original routine's prompt
+  with the file and bring the file back in line with the prompt.
+- Known-good backups from before this was set up (Sep 27, 2026) are the branches
+  `backup/main-2026-09-27` and `backup/idea-queue-2026-09-27`.
