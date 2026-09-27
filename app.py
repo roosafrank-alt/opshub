@@ -544,6 +544,19 @@ def dashboard():
         WHERE deleted_at IS NULL AND scheduled_date IS NOT NULL
               AND scheduled_date >= ? AND status NOT IN ('completed', 'archived')
     """, (today_str,)).fetchone()["c"]
+    # QA finding ux-shop-dash-by-role: an Apprentice or Inspector's shop home
+    # is reshaped around the one thing they actually do - open a project -
+    # instead of the admin's full page, most of which just bounces them
+    # back (they can't open Parts, Orders, Squawks or Activity). See
+    # is_limited_role in dashboard.html.
+    active_projects = []
+    if not session.get("is_master_admin") and session.get("shop_role") in ("apprentice", "inspector"):
+        active_projects = conn.execute("""
+            SELECT projects.*, a.tag as asset_display_tag
+            FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
+            WHERE projects.status = 'active' AND projects.deleted_at IS NULL
+            ORDER BY projects.created_at DESC
+        """).fetchall()
     open_squawks = get_open_squawks(conn)
     assignable_workers = get_assignable_workers(conn)
     # Assigned-squawk alerts: this account's own work list (every squawk
@@ -637,7 +650,8 @@ def dashboard():
                            my_squawks=my_squawks,
                            unacknowledged_assignments=unacknowledged_assignments,
                            squawks_awaiting_confirm=squawks_awaiting_confirm,
-                           system_alerts=system_alerts, tool_reminders=tool_reminders)
+                           system_alerts=system_alerts, tool_reminders=tool_reminders,
+                           active_projects=active_projects)
 
 
 # ---------------------------------------------------------------------------

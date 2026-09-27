@@ -64,10 +64,13 @@ class SquawkInspectorSignoffTest(OpsHubTestCase):
         self.assertIsNotNone(row["repaired_at"])
 
     def test_inspector_does_not_see_assign_controls_on_dashboard(self):
+        # QA ux-shop-dash-by-role reshaped the Inspector's dashboard around
+        # their own projects - the New Squawks box (nothing they can act on)
+        # is hidden entirely now instead of showing read-only.
         self.make_new_squawk()
         c = self.login("inspector")
         body = c.get("/shop").get_data(as_text=True)
-        self.assertIn("for your info", body)
+        self.assertNotIn("New Squawk", body)
         self.assertNotIn("I'll take it", body)
 
     def test_inspector_does_not_see_assign_controls_on_squawks_page(self):

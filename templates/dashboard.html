@@ -32,6 +32,37 @@
 
 {% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions, squawk_my_actions, squawk_confirm_actions %}
 {% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
+{#- QA ux-shop-dash-by-role: an Apprentice or Inspector's shop home is
+   reshaped around opening a project - Scan, then (Inspector only) Sub
+   Areas Awaiting Confirmation, then Active Projects, Upcoming Schedule and
+   Currently Clocked In - instead of the admin's full page, most of which
+   just bounces them back. Admins and Techs (and master admins, whatever
+   their shop_role) keep today's page unchanged. #}
+{% set is_limited_role = not session.get('is_master_admin') and session.get('shop_role') in ('apprentice', 'inspector') %}
+{% macro needs_confirm_box() %}
+<div class="alert alert-info border-info border-2 mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="alert-heading mb-0"><i class="bi bi-clipboard-check-fill"></i> {{ needs_confirm_sections|length }} Sub Area{{ 's' if needs_confirm_sections|length != 1 }} Awaiting Confirmation</h5>
+  </div>
+  {% for s in needs_confirm_sections %}
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
+    <div>
+      <div><strong><a href="{{ url_for('project_detail', project_id=s.project_id) }}" class="alert-link">{{ s.project_code }}</a></strong> &middot; {{ s.project_name }} &middot; <i class="bi bi-folder2-open"></i> {{ s.name }}</div>
+      <div class="small text-muted">Marked ready by {{ s.confirm_requested_by or 'someone' }}, {{ s.confirm_requested_at|usdate(true) }}</div>
+    </div>
+    <div class="d-flex gap-2 flex-shrink-0">
+      <form method="post" action="{{ url_for('project_section_confirm', project_id=s.project_id, section_id=s.id) }}" data-confirm="Confirm '{{ s.name }}' on {{ s.project_code }} as complete?" data-confirm-title="Confirm Complete" data-confirm-style="success">
+        <button class="btn btn-info btn-sm fw-bold"><i class="bi bi-check-lg"></i> Confirm</button>
+      </form>
+      <form method="post" action="{{ url_for('project_section_confirm', project_id=s.project_id, section_id=s.id) }}" data-confirm="Send '{{ s.name }}' back as not yet done?" data-confirm-title="Send Back">
+        <input type="hidden" name="action" value="send_back">
+        <button class="btn btn-outline-secondary btn-sm">Send Back</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}
 
 {#- Phones: the Scan page (the shop's most-used screen) is one big thumb
    tap from where techs land, above everything else. Desktop keeps it in
@@ -44,6 +75,31 @@
 <a href="{{ url_for('squawks_list', report=1) }}#report-squawk-form" class="btn btn-outline-danger fw-bold w-100 py-2 mb-3 d-md-none">
   <i class="bi bi-flag"></i> Report a squawk
 </a>
+{% endif %}
+
+{% if is_limited_role %}
+{% if needs_confirm_sections %}{{ needs_confirm_box() }}{% endif %}
+{#- Active Projects: the one thing an Apprentice or Inspector actually
+   does here - opening a project used to take 3 taps (menu, Projects, the
+   project); this is 1. #}
+<div class="card p-0 mb-3">
+  <h6 class="mb-0 p-3 pb-2"><i class="bi bi-clipboard-check"></i> Active Projects</h6>
+  {% if active_projects %}
+  <div class="list-group list-group-flush">
+    {% for p in active_projects %}
+    <a href="{{ url_for('project_detail', project_id=p.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
+      <div>
+        <div class="fw-bold">{{ p.name }}{% if p.asset_display_tag and p.asset_display_tag not in p.name %} - {{ p.asset_display_tag }}{% endif %}</div>
+        <div class="text-muted small">{{ p.code }}</div>
+      </div>
+      <i class="bi bi-chevron-right text-muted"></i>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-muted small px-3 pb-3 mb-0">No active projects right now.</p>
+  {% endif %}
+</div>
 {% endif %}
 
 {#- An Inspector's actual to-do on this dashboard: repairs waiting on their
@@ -66,7 +122,7 @@
 </div>
 {% endif %}
 
-{% if open_squawks %}
+{% if open_squawks and not is_limited_role %}
 <div class="alert alert-danger border-danger border-2 mb-3">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="alert-heading mb-0"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} New Squawk{{ 's' if open_squawks|length != 1 }}{{ ' - Pick Who Fixes Them' if can_assign_squawks else ' (for your info)' }}</h5>
@@ -94,7 +150,7 @@
    that isn't signed off yet, not just brand-new ones - same rows and
    buttons as My Tasks (see get_my_squawks in app.py and QA finding
    ux-squawk-my-list-dashboard). One button each: the next step. #}
-{% if my_squawks %}
+{% if my_squawks and not is_limited_role %}
 <div class="alert alert-warning border-warning border-2 mb-3">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="alert-heading mb-0"><i class="bi bi-clipboard-check"></i> My Squawks <span class="fw-normal">({{ my_squawks|length }})</span></h5>
@@ -128,7 +184,7 @@
 </div>
 {% endif %}
 
-{% if reschedule_requests %}
+{% if reschedule_requests and not is_limited_role %}
 <div class="alert alert-warning border-warning border-2 mb-3">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="alert-heading mb-0"><i class="bi bi-calendar-x-fill"></i> {{ reschedule_requests|length }} Customer Reschedule Request{{ 's' if reschedule_requests|length != 1 }}</h5>
@@ -155,32 +211,11 @@
    confirmed yet - project_section_complete requests confirmation instead
    of completing outright, and project_section_confirm here is what
    actually finishes it. Admins see this too since they can confirm as
-   well. #}
-{% if needs_confirm_sections %}
-<div class="alert alert-info border-info border-2 mb-3">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <h5 class="alert-heading mb-0"><i class="bi bi-clipboard-check-fill"></i> {{ needs_confirm_sections|length }} Sub Area{{ 's' if needs_confirm_sections|length != 1 }} Awaiting Confirmation</h5>
-  </div>
-  {% for s in needs_confirm_sections %}
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
-    <div>
-      <div><strong><a href="{{ url_for('project_detail', project_id=s.project_id) }}" class="alert-link">{{ s.project_code }}</a></strong> &middot; {{ s.project_name }} &middot; <i class="bi bi-folder2-open"></i> {{ s.name }}</div>
-      <div class="small text-muted">Marked ready by {{ s.confirm_requested_by or 'someone' }}, {{ s.confirm_requested_at|usdate(true) }}</div>
-    </div>
-    <div class="d-flex gap-2 flex-shrink-0">
-      <form method="post" action="{{ url_for('project_section_confirm', project_id=s.project_id, section_id=s.id) }}" data-confirm="Confirm '{{ s.name }}' on {{ s.project_code }} as complete?" data-confirm-title="Confirm Complete" data-confirm-style="success">
-        <button class="btn btn-info btn-sm fw-bold"><i class="bi bi-check-lg"></i> Confirm</button>
-      </form>
-      <form method="post" action="{{ url_for('project_section_confirm', project_id=s.project_id, section_id=s.id) }}" data-confirm="Send '{{ s.name }}' back as not yet done?" data-confirm-title="Send Back">
-        <input type="hidden" name="action" value="send_back">
-        <button class="btn btn-outline-secondary btn-sm">Send Back</button>
-      </form>
-    </div>
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
+   well. Limited-role Inspectors already got this higher up the page,
+   right under Scan - see needs_confirm_box() above. #}
+{% if needs_confirm_sections and not is_limited_role %}{{ needs_confirm_box() }}{% endif %}
 
+{% if not is_limited_role %}
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-3">
     <div class="card stat-card p-3">
@@ -211,8 +246,9 @@
     </div>
   </div>
 </div>
+{% endif %}
 
-{% if tool_reminders %}
+{% if tool_reminders and not is_limited_role %}
 <div class="card p-3 mb-3 border-warning">
   <h5><i class="bi bi-wrench-adjustable text-warning"></i> Tools Due for Calibration <span class="badge bg-warning text-dark">{{ tool_reminders|length }}</span></h5>
   <div class="table-responsive">
@@ -232,7 +268,7 @@
 </div>
 {% endif %}
 
-{% if reminders %}
+{% if reminders and not is_limited_role %}
 <div class="card p-3 mb-3 border-warning">
   <h5><i class="bi bi-calendar-check text-warning"></i> Maintenance Reminders <span class="badge bg-warning text-dark">{{ reminders|length }}</span></h5>
   <div class="table-responsive">
@@ -320,6 +356,7 @@
   {% endif %}
 </div>
 
+{% if not is_limited_role %}
 <div class="row g-3">
   <div class="col-lg-6">
     <div class="card p-3">
@@ -385,6 +422,7 @@
     </div>
   </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
