@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Tool' if tool else 'Add Tool' }} - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<div class="card p-4">
+  <h4>{{ 'Edit Tool' if tool else 'Add Tool' }}</h4>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Name *</label>
+      <input type="text" name="name" class="form-control" value="{{ tool.name if tool else '' }}" placeholder="e.g. Torque wrench 20-150 in-lb (1/4&quot;)" required autofocus>
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Serial / ID</label>
+        <input type="text" name="serial" class="form-control" value="{{ tool.serial if tool else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Location</label>
+        <input type="text" name="location" class="form-control" value="{{ tool.location if tool else '' }}" placeholder="e.g. Tool crib">
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Calibration interval (days)</label>
+      <input type="number" min="1" step="1" name="calibration_interval_days" class="form-control" style="max-width:200px;" value="{{ tool.calibration_interval_days if tool and tool.calibration_interval_days else '' }}" placeholder="e.g. 365">
+      <div class="form-text">Leave blank for a tool that doesn't need periodic calibration (e.g. a timing light) - it'll show as "not required" with no due date or dashboard reminder.</div>
+    </div>
+    {% if tool and tool.last_calibrated_date %}
+    <div class="mb-3">
+      <label class="form-label">Last Calibrated</label>
+      <div>{{ tool.last_calibrated_date|usdate }}{% if tool.next_due_date %} <span class="text-muted small">- next due {{ tool.next_due_date|usdate }}</span>{% endif %}</div>
+      <div class="form-text">Use Mark Calibrated on the tools list to record a new calibration (with its certificate).</div>
+    </div>
+    {% endif %}
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('tools_list') }}" class="btn btn-outline-secondary">Cancel</a>
+      <div class="d-flex gap-2">
+        {% if tool %}
+        <button type="button" class="btn btn-outline-danger" data-confirm="Remove {{ tool.name }}? Its calibration history is kept." data-confirm-style="danger" onclick="document.getElementById('tool-delete-form').submit();">Delete</button>
+        {% endif %}
+        <button type="submit" class="btn btn-primary fw-bold">{{ 'Save Changes' if tool else 'Add Tool' }}</button>
+      </div>
+    </div>
+  </form>
+  {% if tool %}
+  <form id="tool-delete-form" method="post" action="{{ url_for('tool_delete', tool_id=tool.id) }}" style="display:none;"></form>
+  {% endif %}
+</div>
+</div>
+</div>
+{% endblock %}

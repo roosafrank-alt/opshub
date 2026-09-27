@@ -506,6 +506,7 @@ def dashboard():
 
     # Maintenance reminders, regardless of what project is currently open.
     reminders = _fleet_maintenance_reminders(conn)
+    tool_reminders = _tools_due_reminders(conn)
 
     # Upcoming scheduled projects, regardless of what project is currently open.
     today_str = date.today().strftime("%Y-%m-%d")
@@ -607,7 +608,7 @@ def dashboard():
                            needs_confirm_sections=needs_confirm_sections,
                            my_assigned_squawks=my_assigned_squawks,
                            unacknowledged_assignments=unacknowledged_assignments,
-                           system_alerts=system_alerts)
+                           system_alerts=system_alerts, tool_reminders=tool_reminders)
 
 
 # ---------------------------------------------------------------------------
@@ -5673,6 +5674,180 @@ def shop_stats():
                            top_parts=top_parts, by_laborer=by_laborer, by_aircraft=by_aircraft,
                            projects_worked=projects_worked, max_h=max_h,
                            periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end)
+
+
+# ---------------------------------------------------------------------------
+# Calibrated Tools (QA feat-tool-calibration): torque wrenches, pressure
+# gauges and testers that need periodic recalibration, tracked with a due
+# date, calibration history and certificate. A tool with no interval set
+# ("not required") never shows a due date or a dashboard reminder.
+# ---------------------------------------------------------------------------
+
+ALLOWED_TOOL_CERT_EXT = {"pdf", "jpg", "jpeg", "png", "webp"}
+
+
+def _allowed_tool_cert(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_TOOL_CERT_EXT
+
+
+def _tool_status(next_due_date):
+    """(urgency, label) for a tool's next_due_date - None if calibration
+    isn't required or it's never been calibrated yet."""
+    if not next_due_date:
+        return None
+    due = datetime.strptime(next_due_date[:10], "%Y-%m-%d").date()
+    delta = (due - date.today()).days
+    if delta < 0:
+        return {"urgency": "overdue", "label": f"Overdue {abs(delta)} day{'s' if abs(delta) != 1 else ''}"}
+    if delta <= 30:
+        return {"urgency": "due_soon", "label": "Due today" if delta == 0 else f"Due in {delta} day{'s' if delta != 1 else ''}"}
+    return {"urgency": "ok", "label": "OK"}
+
+
+def _tools_due_reminders(conn):
+    """Tools overdue or due within 30 days, for the Maintenance dashboard -
+    same "quiet unless something needs attention" idea as
+    _fleet_maintenance_reminders, just for tools instead of aircraft."""
+    tools = conn.execute("""SELECT * FROM shop_tools WHERE deleted_at IS NULL AND active = 1
+                            AND calibration_interval_days IS NOT NULL AND next_due_date IS NOT NULL
+                            ORDER BY next_due_date""").fetchall()
+    out = []
+    for t in tools:
+        st = _tool_status(t["next_due_date"])
+        if st and st["urgency"] in ("overdue", "due_soon"):
+            out.append({"tool": t, "status": st})
+    return out
+
+
+@app.route("/shop/tools")
+@shop_role_required('admin', 'tech', 'inspector')
+def tools_list():
+    conn = get_db()
+    tools = conn.execute("SELECT * FROM shop_tools WHERE deleted_at IS NULL ORDER BY name").fetchall()
+    conn.close()
+    rows = []
+    overdue_count = due_soon_count = 0
+    for t in tools:
+        st = _tool_status(t["next_due_date"])
+        if st and st["urgency"] == "overdue":
+            overdue_count += 1
+        elif st and st["urgency"] == "due_soon":
+            due_soon_count += 1
+        rows.append({"tool": t, "status": st})
+    return render_template("shop_tools.html", rows=rows, overdue_count=overdue_count, due_soon_count=due_soon_count)
+
+
+@app.route("/shop/tools/new", methods=["GET", "POST"])
+@shop_role_required('admin')
+def tool_new():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        if not name:
+            flash("Name is required.", "danger")
+            return redirect(url_for("tool_new"))
+        serial = request.form.get("serial", "").strip() or None
+        location = request.form.get("location", "").strip() or None
+        interval_raw = request.form.get("calibration_interval_days", "").strip()
+        interval = int(interval_raw) if interval_raw.isdigit() and int(interval_raw) > 0 else None
+        conn = get_db()
+        conn.execute("""INSERT INTO shop_tools (name, serial, location, calibration_interval_days, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?)""", (name, serial, location, interval, now_iso(), now_iso()))
+        conn.commit()
+        conn.close()
+        flash(f"{name} added.", "success")
+        return redirect(url_for("tools_list"))
+    return render_template("tool_form.html", tool=None)
+
+
+@app.route("/shop/tools/<int:tool_id>/edit", methods=["GET", "POST"])
+@shop_role_required('admin')
+def tool_edit(tool_id):
+    conn = get_db()
+    tool = conn.execute("SELECT * FROM shop_tools WHERE id = ? AND deleted_at IS NULL", (tool_id,)).fetchone()
+    if not tool:
+        conn.close()
+        abort(404)
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        if not name:
+            conn.close()
+            flash("Name is required.", "danger")
+            return redirect(url_for("tool_edit", tool_id=tool_id))
+        serial = request.form.get("serial", "").strip() or None
+        location = request.form.get("location", "").strip() or None
+        interval_raw = request.form.get("calibration_interval_days", "").strip()
+        interval = int(interval_raw) if interval_raw.isdigit() and int(interval_raw) > 0 else None
+        # Changing the interval (or clearing it) re-figures Next Due off the
+        # same Last Calibrated date, so it doesn't need a fresh calibration
+        # just because the interval was corrected.
+        next_due = None
+        if interval and tool["last_calibrated_date"]:
+            next_due = (datetime.strptime(tool["last_calibrated_date"][:10], "%Y-%m-%d").date()
+                        + timedelta(days=interval)).isoformat()
+        conn.execute("""UPDATE shop_tools SET name = ?, serial = ?, location = ?, calibration_interval_days = ?,
+                        next_due_date = ?, updated_at = ? WHERE id = ?""",
+                     (name, serial, location, interval, next_due, now_iso(), tool_id))
+        conn.commit()
+        conn.close()
+        flash("Saved.", "success")
+        return redirect(url_for("tools_list"))
+    conn.close()
+    return render_template("tool_form.html", tool=tool)
+
+
+@app.route("/shop/tools/<int:tool_id>/delete", methods=["POST"])
+@shop_role_required('admin')
+def tool_delete(tool_id):
+    conn = get_db()
+    tool = conn.execute("SELECT name FROM shop_tools WHERE id = ?", (tool_id,)).fetchone()
+    if not tool:
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE shop_tools SET deleted_at = ? WHERE id = ?", (now_iso(), tool_id))
+    conn.commit()
+    conn.close()
+    flash(f"{tool['name']} removed.", "success")
+    return redirect(url_for("tools_list"))
+
+
+@app.route("/shop/tools/<int:tool_id>/calibrate", methods=["POST"])
+@shop_role_required('admin', 'tech', 'inspector')
+def tool_mark_calibrated(tool_id):
+    conn = get_db()
+    tool = conn.execute("SELECT * FROM shop_tools WHERE id = ? AND deleted_at IS NULL", (tool_id,)).fetchone()
+    if not tool:
+        conn.close()
+        abort(404)
+    if not tool["calibration_interval_days"]:
+        conn.close()
+        flash("This tool isn't set up to require calibration - edit it to add an interval first.", "danger")
+        return redirect(url_for("tools_list"))
+    calibrated_at = request.form.get("calibrated_at", "").strip() or date.today().isoformat()
+    try:
+        datetime.strptime(calibrated_at, "%Y-%m-%d")
+    except ValueError:
+        calibrated_at = date.today().isoformat()
+    cert_file = None
+    up = request.files.get("cert")
+    if up and up.filename:
+        if not _allowed_tool_cert(up.filename):
+            conn.close()
+            flash("Certificate must be a PDF, JPG or PNG.", "danger")
+            return redirect(url_for("tools_list"))
+        cert_file = save_upload(up)
+    next_due = (datetime.strptime(calibrated_at, "%Y-%m-%d").date()
+                + timedelta(days=tool["calibration_interval_days"])).isoformat()
+    conn.execute("""INSERT INTO tool_calibrations (tool_id, calibrated_at, cert_file, performed_by, note, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)""",
+                 (tool_id, calibrated_at, cert_file, session.get("user_name"),
+                  request.form.get("note", "").strip() or None, now_iso()))
+    conn.execute("""UPDATE shop_tools SET last_calibrated_date = ?, next_due_date = ?,
+                    cert_file = COALESCE(?, cert_file), updated_at = ? WHERE id = ?""",
+                 (calibrated_at, next_due, cert_file, now_iso(), tool_id))
+    conn.commit()
+    conn.close()
+    flash(f"{tool['name']} marked calibrated.", "success")
+    return redirect(url_for("tools_list"))
 
 
 @app.route("/api/labor/task_lookup")

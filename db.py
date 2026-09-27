@@ -1323,6 +1323,38 @@ def _migrate(conn):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)
             conn.commit()
+    # QA feat-tool-calibration: torque wrenches, gauges and testers that need
+    # periodic recalibration - a due date derives from the last calibration
+    # plus the tool's own interval, NULL interval meaning "not required".
+    # tool_calibrations keeps the full history (each time it went out);
+    # shop_tools.last_calibrated_date/next_due_date/cert_file just mirror
+    # that history's most recent row for quick list/badge/dashboard reads.
+    conn.execute("""CREATE TABLE IF NOT EXISTS shop_tools (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        serial TEXT,
+        location TEXT,
+        calibration_interval_days INTEGER,
+        last_calibrated_date TEXT,
+        next_due_date TEXT,
+        cert_file TEXT,
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        deleted_at TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_shop_tools_due ON shop_tools(next_due_date)")
+    conn.execute("""CREATE TABLE IF NOT EXISTS tool_calibrations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tool_id INTEGER NOT NULL REFERENCES shop_tools(id),
+        calibrated_at TEXT NOT NULL,
+        cert_file TEXT,
+        performed_by TEXT,
+        note TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_tool_calibrations_tool ON tool_calibrations(tool_id, calibrated_at)")
+    conn.commit()
     conn.execute("""CREATE TABLE IF NOT EXISTS pilot_logbook (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         flight_id INTEGER UNIQUE REFERENCES flights(id),

@@ -115,6 +115,7 @@
                 <li><a class="dropdown-item {{ 'active' if _p.startswith('/customers') }}" href="{{ url_for('customers_list') }}"><i class="bi bi-people"></i> Customers</a></li>
                 <li><a class="dropdown-item {{ 'active' if _p.startswith('/manuals') }}" href="{{ url_for('manuals.manuals_list') }}"><i class="bi bi-file-earmark-pdf"></i> Manuals</a></li>
                 <li><a class="dropdown-item {{ 'active' if _p.startswith('/manage/task-templates') }}" href="{{ url_for('task_templates') }}"><i class="bi bi-list-check"></i> Task Templates</a></li>
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/tools') }}" href="{{ url_for('tools_list') }}"><i class="bi bi-wrench-adjustable"></i> Calibrated Tools</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/billing') }}" href="{{ url_for('shop_billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
                 <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/stats') }}" href="{{ url_for('shop_stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
@@ -122,6 +123,9 @@
                 <li><a class="dropdown-item {{ 'active' if _p.startswith('/logbook') }}" href="{{ url_for('logbook.logbook_list') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
                 {% else %}
                 <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
+                {% if shop_role in ('tech', 'inspector') %}
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/tools') }}" href="{{ url_for('tools_list') }}"><i class="bi bi-wrench-adjustable"></i> Calibrated Tools</a></li>
+                {% endif %}
                 {% if shop_role == 'tech' %}
                 <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/badges') }}" href="{{ url_for('laborer_badges') }}"><i class="bi bi-printer"></i> Print Worker Badges</a></li>
                 <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/general-code') }}" href="{{ url_for('general_shop_code_page') }}"><i class="bi bi-qr-code"></i> General Shop Code</a></li>
