@@ -255,7 +255,28 @@
 {% if pending_requests %}
 <div class="card p-3 mb-3 border-warning" id="pending-approval-card">
   <h6 class="mb-2"><i class="bi bi-hourglass-split"></i> Pending Approval <span class="badge bg-warning text-dark" id="pending-approval-count">{{ pending_requests|length }}</span></h6>
-  <div class="table-responsive">
+  {#- Phones: one compact line per request (bold "Tomorrow · 10:00 AM ·
+     N2231Q", grey student/instructor underneath, Approve/Deny on the
+     right) instead of the labeled-field box below, which ran about 190px
+     tall each (QA ux-pending-approval-compact). Same click-the-row and
+     Deny-needs-a-reason behavior as the table - see the delegated
+     handlers in dashboard.html, which key off these same classes. sm and
+     up keep the table untouched. #}
+  <div class="d-sm-none">
+    {% for p in pending_requests %}
+    <div class="d-flex justify-content-between align-items-center gap-1 py-2 pending-row-clickable {{ 'border-top' if not loop.first }}" data-goto-url="{{ url_for('flight.schedule_calendar', view='month', year=p.scheduled_date[:4]|int, month=p.scheduled_date[5:7]|int, highlight=p.id) }}" title="Open this flight's spot on the Schedule">
+      <div class="flex-grow-1" style="min-width:0;">
+        <div class="fw-bold text-truncate" style="font-size:.92rem;">{{ p.day_label }} &middot; {{ p.time_label or 'Not set' }} &middot; {{ p.plane_tag }}</div>
+        <div class="small text-muted text-truncate">{{ p.student_name }} &middot; {% if p.cfi_name %}{{ p.cfi_name }}{% elif p.solo %}solo{% else %}any instructor{% endif %}</div>
+      </div>
+      <div class="d-flex gap-1 text-nowrap">
+        <button type="button" class="btn btn-success btn-sm pending-decide-btn px-2 py-1" style="font-size:.78rem;" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id) }}" data-confirm="Approve this flight request? It goes onto the calendar as a confirmed booking." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success">Approve</button>
+        <button type="button" class="btn btn-outline-danger btn-sm pending-deny-btn px-2 py-1" style="font-size:.78rem;" data-decide-url="{{ url_for('flight.schedule_deny', scheduled_id=p.id) }}">Deny</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="table-responsive d-none d-sm-block">
     <table class="table table-sm align-middle mb-0 table-stack">
       <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Student</th><th>Requested Instructor</th><th></th></tr></thead>
       <tbody>

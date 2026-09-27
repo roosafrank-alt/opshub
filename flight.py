@@ -217,6 +217,23 @@ def _countdown_label(scheduled_date_str):
     return f"in {delta} days"
 
 
+def _short_day_label(date_str):
+    """'2026-09-24' -> 'Today' / 'Tomorrow' / 'Wed' - short day label for the
+    dashboard's compact Pending Approval row on phones (QA
+    ux-pending-approval-compact), so a CFI doesn't have to work out which
+    weekday a bare date like '28-09-2026' is."""
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return date_str
+    delta = (d - date.today()).days
+    if delta == 0:
+        return "Today"
+    if delta == 1:
+        return "Tomorrow"
+    return d.strftime("%a")
+
+
 def _days_ago_label(date_str):
     """'2026-09-10' -> 'Today' / '3 days ago' / '2 weeks ago', for the "time
     since last flight" dashboard tile."""
@@ -1589,7 +1606,7 @@ def _dashboard_context(conn, cfi, student):
             WHERE sf.status = 'pending_approval'
             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
         """).fetchall()
-        pending_requests = [dict(p, time_label=_format_time_12h(p["scheduled_time"])) for p in pending_requests]
+        pending_requests = [dict(p, time_label=_format_time_12h(p["scheduled_time"]), day_label=_short_day_label(p["scheduled_date"])) for p in pending_requests]
         # A student's own request to change one of their already-confirmed
         # bookings (schedule_request_change) - school-wide, same reasoning
         # as pending_requests above. Cleared by rescheduling the booking
