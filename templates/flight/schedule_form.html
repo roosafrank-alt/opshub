@@ -399,7 +399,35 @@
       <label class="form-label">{% if not self_service %}<i class="bi bi-eye-slash"></i>{% endif %} Private Note {% if not self_service %}<span class="text-muted small fw-normal">(admin &amp; the assigned instructor only - not the student, not other instructors)</span>{% endif %}</label>
       <textarea name="notes" class="form-control" rows="2" placeholder="optional">{{ form.get('notes') if form else (sched.notes if sched and sched.notes else '') }}</textarea>
     </div>
-    <div class="d-flex justify-content-between">
+    {#- Logging a completed flight on a phone (QA ux-log-flight-sticky-save):
+       once Hobbs End is filled in most lessons need nothing else, but Tach,
+       oil, ground time, landings and squawks used to sit between here and
+       the save button - a screen and a half of scrolling just to reach it.
+       Pinning this bar to the bottom of the screen (phone only, and only
+       while logging a completed flight - see sync() below) lets it be
+       tapped right after Hobbs End; the optional fields stay exactly where
+       they are for anyone who needs them. Desktop and the ordinary
+       Schedule/Edit forms are unaffected. #}
+    <style>
+      @media (max-width: 575.98px) {
+        body.flight-complete-sticky { padding-bottom: 4.75rem; }
+        body.flight-complete-sticky #sched-form-footer {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 1030;
+          gap: .5rem;
+          margin: 0;
+          background: var(--bs-body-bg, #fff);
+          padding: .6rem 1rem calc(.6rem + env(safe-area-inset-bottom, 0px));
+          box-shadow: 0 -.125rem .5rem rgba(0,0,0,.15);
+        }
+        body.flight-complete-sticky #sched-form-footer #submit-btn { flex: 1 1 auto; }
+        body.flight-complete-sticky #sched-form-footer > .btn-outline-secondary { flex: 0 0 auto; }
+      }
+    </style>
+    <div class="d-flex justify-content-between" id="sched-form-footer">
       <a href="{{ url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar') }}" class="btn btn-outline-secondary">Cancel</a>
       <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Flight Complete' if is_complete else 'Schedule Flight')) }}</button>
     </div>
@@ -980,6 +1008,7 @@
     setGroup('.sched-only', !done);
     setGroup('.complete-only', done);
     submitBtn.textContent = done ? 'Flight Complete' : 'Schedule Flight';
+    document.body.classList.toggle('flight-complete-sticky', done);
     dateLabel.innerHTML = (done ? 'Flight Date' : 'Date') + ' <span class="text-danger">*</span>';
     if (title) { title.textContent = done ? 'Log a Completed Flight' : 'Schedule a Flight'; }
     // Solo still disables the instructor picker in either mode.
