@@ -166,7 +166,7 @@ ROLES = {
     "shop_admin":    dict(shop_role="admin"),
     "tech":          dict(shop_role="tech"),
     "inspector":     dict(shop_role="inspector"),
-    "shop_student":  dict(shop_role="student"),
+    "shop_student":  dict(shop_role="apprentice"),
     "cfi":           dict(flight_role="cfi"),
     "cfi_billing":   dict(flight_role="cfi", can_bill=1),
     "flight_student": dict(flight_role="student"),

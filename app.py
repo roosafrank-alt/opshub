@@ -477,7 +477,7 @@ def _fleet_maintenance_reminders(conn):
 
 
 @app.route("/shop")
-@shop_role_required('admin', 'tech', 'student', 'inspector')
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def dashboard():
     conn = get_db()
     project_count = conn.execute(
@@ -1093,7 +1093,7 @@ def _build_year_list(conn, year):
 
 
 @app.route("/calendar")
-@shop_role_required('admin', 'tech', 'student', 'inspector')
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def calendar_page():
     conn = get_db()
     today = date.today()
@@ -1201,7 +1201,7 @@ def activity_log():
 # ---------------------------------------------------------------------------
 
 @app.route("/scan")
-@shop_role_required('admin', 'tech', 'student', 'inspector')
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def scan_page():
     conn = get_db()
     projects = conn.execute(
@@ -1436,7 +1436,7 @@ def project_section_rename(project_id, section_id):
 
 
 @app.route("/api/scan", methods=["POST"])
-@shop_role_required('admin', 'tech', 'student', 'inspector')
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def api_scan():
     # Changes stock and charges jobs, so it needs a Shop role - it used to be
     # login-only, which let a flight student or CFI with no shop access add or
@@ -1965,7 +1965,7 @@ def labels():
 # ---------------------------------------------------------------------------
 
 @app.route("/projects/parts-used")
-@shop_role_required('admin', 'tech', 'student', 'inspector')
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def projects_parts_used():
     """Master list of every part used on every project (net of returns),
     one row per project + part + Sub Area, searchable as you type."""
@@ -1996,7 +1996,7 @@ def projects_parts_used():
 
 
 @app.route("/projects")
-@shop_role_required('admin', 'tech', 'student', 'inspector')
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def projects_list():
     conn = get_db()
     status_filter = request.args.get("status", "")
@@ -2408,7 +2408,7 @@ def found_item_delete(item_id):
 
 
 @app.route("/projects/<int:project_id>")
-@shop_role_required('admin', 'tech', 'student', 'inspector')
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def project_detail(project_id):
     conn = get_db()
     project = conn.execute("""SELECT projects.*, a.id as asset_display_id, a.tag as asset_display_tag,
@@ -5261,7 +5261,7 @@ def _shop_parts_usage(conn, start, end, project_id=None):
 
 
 @app.route("/shop/pay")
-@shop_role_required('admin', 'tech', 'student', 'inspector')
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def shop_pay():
     """Labor Pay: each laborer's clocked hours and pay for a period, with
     the individual sessions underneath. Shop admins see everyone; anyone
@@ -5447,7 +5447,7 @@ _LABOR_CLOSED_STATUSES = ("completed", "archived")
 
 
 @app.route("/api/labor/scan", methods=["POST"])
-@shop_role_required('admin', 'tech', 'student', 'inspector')
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def api_labor_scan():
     """One scan does double duty: if this laborer has no open timer, this
     starts one against the given task; if they already have one running
@@ -5657,7 +5657,7 @@ def api_labor_clocked_in():
 
 
 @app.route("/api/labor/stop/<int:session_id>", methods=["POST"])
-@shop_role_required('admin', 'tech', 'student', 'inspector')
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def api_labor_stop(session_id):
     """Manual fallback next to the open-timers list, for when re-scanning
     isn't handy. Shop roles only, same as the badge scan."""
@@ -5962,7 +5962,7 @@ def _account_programs(user_row):
     shown on the centralized My Account page. Read-only: access is still
     changed by an admin in Admin > Accounts."""
     is_admin = bool(user_row["is_master_admin"])
-    shop_labels = {"admin": "Admin", "tech": "Tech", "inspector": "Inspector", "student": "Student"}
+    shop_labels = {"admin": "Admin", "tech": "Tech", "inspector": "Inspector", "apprentice": "Apprentice"}
     flight_labels = {"cfi": "Instructor (CFI)", "student": "Student"}
     progs = []
     if is_admin or user_row["shop_role"]:

@@ -1953,6 +1953,12 @@ def _migrate(conn):
         conn.execute("ALTER TABLE scheduled_flights ADD COLUMN proposed_times TEXT")
         conn.commit()
 
+    # Idea "remove student from maintenance role, add apprentice": shop_role
+    # 'student' renamed to 'apprentice' (Maintenance Role dropdown only -
+    # flight_role's own 'student' is a separate column, untouched).
+    conn.execute("UPDATE users SET shop_role = 'apprentice' WHERE shop_role = 'student'")
+    conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of
