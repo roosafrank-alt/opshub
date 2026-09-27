@@ -151,6 +151,21 @@
 <div class="row g-3">
   <div class="col-lg-7">
     <div class="card p-3">
+      {% set waiting_found = found_items|selectattr('status', 'equalto', 'waiting')|list %}
+      {% set total_parts = usage_by_section.values() | map(attribute='rows') | map('length') | sum %}
+      {#- QA ux-project-sections-tabs: one card with tabs instead of five
+         stacked boxes (most of them empty most of the time) - each tab
+         shows a count so you can tell at a glance if there's anything in
+         it without opening it. #}
+      <ul class="nav nav-pills flex-wrap gap-1 mb-3" role="tablist">
+        <li class="nav-item" role="presentation"><button class="nav-link active" id="tab-parts-btn" data-bs-toggle="pill" data-bs-target="#tab-parts" type="button" role="tab">Parts <span class="badge rounded-pill bg-secondary">{{ total_parts }}</span></button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" id="tab-labor-btn" data-bs-toggle="pill" data-bs-target="#tab-labor" type="button" role="tab">Labor <span class="badge rounded-pill bg-secondary">{{ '%g'|format(labor_total_hours) }}h</span></button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" id="tab-found-btn" data-bs-toggle="pill" data-bs-target="#tab-found" type="button" role="tab">Found items <span class="badge rounded-pill {{ 'bg-warning text-dark' if waiting_found else 'bg-secondary' }}">{{ found_items|length }}</span></button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" id="tab-photos-btn" data-bs-toggle="pill" data-bs-target="#tab-photos" type="button" role="tab">Photos <span class="badge rounded-pill bg-secondary">{{ photos|length }}</span></button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" id="tab-history-btn" data-bs-toggle="pill" data-bs-target="#tab-history" type="button" role="tab">History</button></li>
+      </ul>
+      <div class="tab-content">
+      <div class="tab-pane fade show active" id="tab-parts" role="tabpanel">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
         <h5 class="mb-0">Parts Used {% if can_see_shop_costs %}<span class="text-muted fs-6">(total ${{ "%.2f"|format(total_cost) }})</span>{% endif %}</h5>
         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="var f=document.getElementById('add-section-row'); f.style.display = f.style.display==='none' ? 'flex' : 'none';"><i class="bi bi-folder-plus"></i> Add Sub Area</button>
@@ -247,9 +262,9 @@
       {% else %}
       <p class="text-muted">No parts assigned yet.</p>
       {% endif %}
-    </div>
+      </div>
 
-    <div class="card p-3 mt-3">
+      <div class="tab-pane fade" id="tab-labor" role="tabpanel">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h6 class="mb-0"><i class="bi bi-person-workspace"></i> Labor</h6>
         <div class="text-end">
@@ -277,12 +292,12 @@
       {% else %}
       <p class="text-muted small mb-0">No labor logged yet. Print <a href="{{ url_for('project_labor_codes', project_id=project.id) }}">Labor Codes</a> and scan them on the <a href="{{ url_for('labor_page') }}">Labor</a> page.</p>
       {% endif %}
-    </div>
+      </div>
 
-    {#- Found items: extra work found during the job, sent to the plane's
-       owner to approve or decline on the customer portal (app.found_item_*). #}
-    {% set waiting_found = found_items|selectattr('status', 'equalto', 'waiting')|list %}
-    <div class="card p-3 mt-3" id="found-items">
+      {#- Found items: extra work found during the job, sent to the plane's
+         owner to approve or decline on the customer portal (app.found_item_*). #}
+      <div class="tab-pane fade" id="tab-found" role="tabpanel">
+      <div id="found-items"></div>
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
         <h6 class="mb-0"><i class="bi bi-search"></i> Found Items <span class="text-muted small fw-normal">(owner approval)</span></h6>
         {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech', 'inspector') %}
@@ -377,9 +392,9 @@
       {% else %}
       <p class="text-muted small mb-0">Nothing found yet. Found something extra? Add it with photos and a price, and the owner can approve it from their phone.</p>
       {% endif %}
-    </div>
+      </div>
 
-    <div class="card p-3 mt-3">
+      <div class="tab-pane fade" id="tab-history" role="tabpanel">
       <h6>Activity Log</h6>
       {% if tx %}
       <div class="table-responsive">
@@ -403,9 +418,9 @@
       {% else %}
       <p class="text-muted">No activity yet.</p>
       {% endif %}
-    </div>
+      </div>
 
-    <div class="card p-3 mt-3">
+      <div class="tab-pane fade" id="tab-photos" role="tabpanel">
       <h6>Photos</h6>
       {% if photos %}
       <div class="row g-2 mb-2">
@@ -436,7 +451,29 @@
         <input type="file" name="photos" accept="image/*" multiple class="add-photos-input d-none">
         <button type="button" class="add-photos-trigger btn btn-outline-primary btn-sm w-100"><i class="bi bi-camera"></i> Add Photo(s)</button>
       </form>
+      </div>
+      </div>
     </div>
+    <script>
+      {#- Found-item actions (app.found_item_*) redirect back here with
+         #found-items so the page lands on that section - now that it's a
+         tab, switch to it and scroll there instead of landing on a
+         hidden pane. Deferred to DOMContentLoaded since bootstrap.bundle.js
+         (needed for bootstrap.Tab) loads at the bottom of base.html, after
+         this script runs. #}
+      document.addEventListener('DOMContentLoaded', function () {
+        if (window.location.hash === '#found-items') {
+          var btn = document.getElementById('tab-found-btn');
+          if (btn && window.bootstrap) {
+            new bootstrap.Tab(btn).show();
+            setTimeout(function () {
+              var target = document.getElementById('found-items');
+              if (target) target.scrollIntoView({ block: 'start' });
+            }, 50);
+          }
+        }
+      });
+    </script>
   </div>
 
   {#- On phones this column comes first, so Assign Parts sits right under
@@ -445,7 +482,10 @@
     <div class="card p-3 mb-3 mb-lg-0" id="assign-parts-card">
       <h6>Assign Parts to This Project</h6>
       <a href="{{ url_for('scan_page', autoscan=project.code) }}" class="btn btn-warning btn-lg fw-bold w-100 mb-2 d-lg-none"><i class="bi bi-upc-scan"></i> Scan a part</a>
-      <p class="text-muted small d-none d-md-block">Tip: on the <a href="{{ url_for('scan_page') }}">Scan</a> page, scan this project's <a href="{{ url_for('project_label', project_id=project.id) }}">printed code</a> first to select it (no phone dropdown needed), then scan parts to assign them - handy if you're carrying a printed code sheet instead of your phone.</p>
+      <a href="#" class="small d-none d-md-inline-block mb-2" data-bs-toggle="collapse" data-bs-target="#assign-tip-collapse" role="button">Using a printed code sheet?</a>
+      <div class="collapse d-none d-md-block" id="assign-tip-collapse">
+        <p class="text-muted small">Tip: on the <a href="{{ url_for('scan_page') }}">Scan</a> page, scan this project's <a href="{{ url_for('project_label', project_id=project.id) }}">printed code</a> first to select it (no phone dropdown needed), then scan parts to assign them - handy if you're carrying a printed code sheet instead of your phone.</p>
+      </div>
       <form method="post" action="{{ url_for('project_add_part', project_id=project.id) }}" id="assign-part-form">
         <label class="form-label small">Part</label>
         <select name="part_id" class="form-select mb-2" required>
