@@ -85,8 +85,10 @@ CREATE TABLE IF NOT EXISTS assets (
     hours_updated_at TEXT,
     hobbs_hours REAL, -- manually-updated Hobbs meter reading
     hobbs_updated_at TEXT,
+    hobbs_updated_by TEXT, -- e.g. "Shop - Frank" or "Owner - Jane Smith"
     tach_hours REAL, -- manually-updated tach time reading, used for maintenance intervals
     tach_updated_at TEXT,
+    tach_updated_by TEXT,
     engine_make TEXT,
     engine_model TEXT,
     engine_serial TEXT,

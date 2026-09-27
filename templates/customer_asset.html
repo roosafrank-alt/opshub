@@ -173,6 +173,10 @@
         Hobbs: {{ '%.1f'|format(asset.hobbs_hours) if asset.hobbs_hours is not none else '-' }}
         &middot; Tach: {{ '%.1f'|format(asset.tach_hours) if asset.tach_hours is not none else '-' }}
       </div>
+      <div class="small text-muted mb-2">
+        {% if asset.hobbs_updated_at %}Hobbs updated {{ asset.hobbs_updated_at }}{% if asset.hobbs_updated_by %} by {{ asset.hobbs_updated_by }}{% endif %}<br>{% endif %}
+        {% if asset.tach_updated_at %}Tach updated {{ asset.tach_updated_at }}{% if asset.tach_updated_by %} by {{ asset.tach_updated_by }}{% endif %}{% endif %}
+      </div>
       <form method="post" action="{{ url_for('customer.customer_update_hours', asset_id=asset.id) }}" class="row g-2">
         <div class="col-6">
           <label class="form-label small mb-0">Hobbs</label>

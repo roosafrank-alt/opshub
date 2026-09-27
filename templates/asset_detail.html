@@ -57,12 +57,12 @@
         <span class="text-muted">Hobbs</span>
         <strong>{{ '%g'|format(asset.hobbs_hours) + ' hrs' if asset.hobbs_hours is not none else '-' }}</strong>
       </div>
-      <div class="text-muted small mb-2">Updated {{ asset.hobbs_updated_at or '-' }}</div>
+      <div class="text-muted small mb-2">{% if asset.hobbs_updated_at %}Updated {{ asset.hobbs_updated_at }}{% if asset.hobbs_updated_by %} by {{ asset.hobbs_updated_by }}{% endif %}{% else %}Updated -{% endif %}</div>
       <div class="d-flex justify-content-between">
         <span class="text-muted">Tach</span>
         <strong>{{ '%g'|format(asset.tach_hours) + ' hrs' if asset.tach_hours is not none else '-' }}</strong>
       </div>
-      <div class="text-muted small">Updated {{ asset.tach_updated_at or '-' }}</div>
+      <div class="text-muted small">{% if asset.tach_updated_at %}Updated {{ asset.tach_updated_at }}{% if asset.tach_updated_by %} by {{ asset.tach_updated_by }}{% endif %}{% else %}Updated -{% endif %}</div>
       <form method="post" action="{{ url_for('asset_update_hours', asset_id=asset.id) }}" class="mt-2">
         <label class="form-label small mb-0">Log new reading</label>
         <div class="row g-1">

@@ -1300,6 +1300,12 @@ def _migrate(conn):
         ("plane_todos", "confirmed_by", "ALTER TABLE plane_todos ADD COLUMN confirmed_by TEXT"),
         ("plane_todos", "sent_back_at", "ALTER TABLE plane_todos ADD COLUMN sent_back_at TEXT"),
         ("plane_todos", "sent_back_by", "ALTER TABLE plane_todos ADD COLUMN sent_back_by TEXT"),
+        # Idea "add who updated the tach": who last logged a Hobbs/Tach
+        # reading - "Shop - <name>" from asset_update_hours, "Owner - <name>"
+        # from the My Aircraft portal's customer_update_hours - next to the
+        # existing hobbs_updated_at/tach_updated_at.
+        ("assets", "hobbs_updated_by", "ALTER TABLE assets ADD COLUMN hobbs_updated_by TEXT"),
+        ("assets", "tach_updated_by", "ALTER TABLE assets ADD COLUMN tach_updated_by TEXT"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

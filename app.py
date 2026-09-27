@@ -3860,14 +3860,15 @@ def asset_update_hours(asset_id):
         flash("Enter a Hobbs and/or Tach reading.", "danger")
         conn.close()
         return redirect(url_for("asset_detail", asset_id=asset_id))
+    updated_by = f"Shop - {session.get('user_name')}"
     updates = []
     if hobbs is not None:
-        conn.execute("UPDATE assets SET hobbs_hours = ?, hobbs_updated_at = ?, updated_at = ? WHERE id = ?",
-                     (hobbs, now_iso(), now_iso(), asset_id))
+        conn.execute("UPDATE assets SET hobbs_hours = ?, hobbs_updated_at = ?, hobbs_updated_by = ?, updated_at = ? WHERE id = ?",
+                     (hobbs, now_iso(), updated_by, now_iso(), asset_id))
         updates.append(f"Hobbs {hobbs:g}")
     if tach is not None:
-        conn.execute("UPDATE assets SET tach_hours = ?, tach_updated_at = ?, updated_at = ? WHERE id = ?",
-                     (tach, now_iso(), now_iso(), asset_id))
+        conn.execute("UPDATE assets SET tach_hours = ?, tach_updated_at = ?, tach_updated_by = ?, updated_at = ? WHERE id = ?",
+                     (tach, now_iso(), updated_by, now_iso(), asset_id))
         updates.append(f"Tach {tach:g}")
     conn.commit()
     conn.close()
