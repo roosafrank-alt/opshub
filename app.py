@@ -558,6 +558,11 @@ def dashboard():
         system_alerts = conn.execute(
             "SELECT * FROM system_alerts WHERE resolved_at IS NULL ORDER BY created_at DESC"
         ).fetchall()
+    # An Inspector's actual to-do: repairs waiting on their sign-off. Shown
+    # to admins too, since they can confirm a repair as well.
+    squawks_awaiting_confirm = []
+    if session.get("is_master_admin") or session.get("shop_role") in ("admin", "inspector"):
+        squawks_awaiting_confirm = get_squawks_awaiting_confirm(conn)
 
     # Customer portal: appointments the customer asked to reschedule -
     # stays here until an admin dismisses it (see project_reschedule_dismiss).
@@ -630,6 +635,7 @@ def dashboard():
                            needs_confirm_sections=needs_confirm_sections,
                            my_assigned_squawks=my_assigned_squawks,
                            unacknowledged_assignments=unacknowledged_assignments,
+                           squawks_awaiting_confirm=squawks_awaiting_confirm,
                            system_alerts=system_alerts, tool_reminders=tool_reminders)
 
 
@@ -715,6 +721,30 @@ def get_unacknowledged_assignments(conn):
     """).fetchall()
 
 
+def get_squawks_awaiting_confirm(conn):
+    """Squawks a tech has marked ready for repair, still waiting on an
+    Inspector or admin to sign off (squawk_repair_confirm) - the dashboard
+    alert that gives an Inspector something to actually do, since the
+    pages the Confirm button used to live on (Squawks, a plane's page) were
+    off-limits to them (QA finding ux-squawk-inspector-signoff)."""
+    return conn.execute(f"""
+        SELECT {_FLIGHT_SQUAWK_COLS}
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        LEFT JOIN users au ON au.id = f.squawk_assigned_to
+        WHERE f.squawk = 1 AND f.squawk_repair_confirm_requested_at IS NOT NULL
+        UNION ALL
+        SELECT {_QUICK_SQUAWK_COLS}
+        FROM plane_squawks q
+        JOIN assets a ON a.id = q.asset_id
+        LEFT JOIN users au ON au.id = q.assigned_to
+        WHERE q.repair_confirm_requested_at IS NOT NULL
+        ORDER BY event_date DESC, squawk_id DESC
+    """).fetchall()
+
+
 def get_assigned_to_me_squawks(conn, user_id):
     """This user's own squawk to-do list: assigned to them, not yet
     acknowledged by them, not yet repaired - shown on their dashboard."""
@@ -761,7 +791,7 @@ def get_my_squawks(conn, user_id):
 
 
 @app.route("/squawks")
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def squawks_list():
     conn = get_db()
     open_squawks = get_open_squawks(conn)
@@ -3534,7 +3564,7 @@ def asset_quick_new():
 
 
 @app.route("/assets/<int:asset_id>")
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def asset_detail(asset_id):
     """Profile page for one plane/asset: its saved data plus combined history
     across every project ever tagged to it (each year gets its own project

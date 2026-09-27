@@ -2,6 +2,7 @@
 {% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions %}
 {% block title %}{{ asset.tag }} - OpsHub{% endblock %}
 {% block content %}
+{% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
 {% if photos %}
 <img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;">
 {% elif project_cover %}
@@ -13,12 +14,14 @@
     <h4 class="mb-0"><i class="bi bi-airplane"></i> {{ asset.tag }}{% if asset.name and asset.name != asset.tag %} &middot; {{ asset.name }}{% endif %}{% if asset.profile_incomplete %} <span class="badge bg-warning text-dark" title="Started from the plane dropdown's + Add New - fill in the rest below and save to clear this.">Incomplete</span>{% endif %}</h4>
     <p class="text-muted mb-0">{{ [asset.make, asset.model, asset.year]|select|join(' ') or 'No make/model on file' }}{% if asset.owner %} &middot; Owner: {{ asset.owner }}{% endif %}</p>
   </div>
+  {% if can_assign_squawks %}
   <div class="d-flex gap-2 flex-wrap">
     <a href="{{ url_for('project_new', asset_id=asset.id) }}" class="btn btn-warning fw-bold btn-sm"><i class="bi bi-plus-lg"></i> New Project for This Aircraft</a>
     <a href="{{ url_for('asset_edit', asset_id=asset.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit Profile</a>
     <button class="btn btn-danger btn-sm" type="button" data-confirm="Delete this asset? It will move to Recently Deleted, where it can be restored or permanently removed. Linked projects are kept." data-confirm-style="danger" onclick="document.getElementById('asset-trash-form').submit();"><i class="bi bi-trash3"></i> Delete</button>
     <form id="asset-trash-form" method="post" action="{{ url_for('asset_trash', asset_id=asset.id) }}" style="display:none;"></form>
   </div>
+  {% endif %}
 </div>
 
 {% if asset.is_owner_placeholder %}
@@ -33,7 +36,7 @@
 
 {% if open_squawks %}
 <div class="alert alert-danger border-danger border-2 mb-3">
-  <h5 class="alert-heading mb-2"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} New Squawk{{ 's' if open_squawks|length != 1 }} - Pick Who Fixes Them</h5>
+  <h5 class="alert-heading mb-2"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} New Squawk{{ 's' if open_squawks|length != 1 }}{{ ' - Pick Who Fixes Them' if can_assign_squawks else ' (for your info)' }}</h5>
   {% for sq in open_squawks %}
   <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
     <div><strong>{{ sq.event_date|usdate }}</strong> &middot;
@@ -41,7 +44,9 @@
       {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
     <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
     {{ squawk_step_pills(sq) }}
+    {% if can_assign_squawks %}
     {{ squawk_new_actions(sq, assignable_workers, session.get('user_id')) }}
+    {% endif %}
   </div>
   {% endfor %}
 </div>
@@ -134,6 +139,7 @@
     </div>
     {% endif %}
 
+    {% if can_assign_squawks %}
     <div class="card p-3 mt-3">
       <h6><i class="bi bi-exclamation-triangle"></i> Report an Issue</h6>
       <form method="post" action="{{ url_for('asset_squawk_new', asset_id=asset.id) }}">
@@ -142,6 +148,7 @@
       </form>
       <div class="form-text">Goes straight to the Squawks page - no need to log a flight for this.</div>
     </div>
+    {% endif %}
 
     {% if asset.notes %}
     <div class="card p-3 mt-3">
@@ -366,7 +373,7 @@
               </form>
             </div>
             {% endif %}
-            {% elif sq.acknowledged_at %}
+            {% elif sq.acknowledged_at and can_assign_squawks %}
             <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex align-items-start gap-2 flex-grow-1" data-confirm="Mark this squawk as repaired/addressed? An Inspector or admin will still need to confirm it.">
               <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark repaired">
                 <i class="bi bi-square fs-5 text-warning"></i>
@@ -378,7 +385,7 @@
             {% endif %}
             </div>
             <div class="ps-4">{{ squawk_step_pills(sq) }}</div>
-            {% if sq.acknowledged_at %}
+            {% if sq.acknowledged_at and can_assign_squawks %}
             {#- Same assign dropdown a plain to-do has below (plane_todo_assign)
                - hands the squawk to a tech via squawk_assign, which also
                shows up on the Squawks tab (same assigned_to column). A new,
@@ -392,7 +399,7 @@
                 {% endfor %}
               </select>
             </form>
-            {% else %}
+            {% elif not sq.acknowledged_at and can_assign_squawks %}
             <div class="ps-4">{{ squawk_new_actions(sq, assignable_workers, session.get('user_id')) }}</div>
             {% endif %}
           </li>

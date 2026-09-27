@@ -38,10 +38,40 @@
 </a>
 
 {% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions %}
+{% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
+
+{#- An Inspector's actual to-do on this dashboard: repairs waiting on their
+   sign-off. Admins can confirm too. See get_squawks_awaiting_confirm and
+   squawk_repair_confirm in app.py. #}
+{% if squawks_awaiting_confirm %}
+<div class="alert alert-success border-success border-2 mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="alert-heading mb-0"><i class="bi bi-patch-check-fill"></i> {{ squawks_awaiting_confirm|length }} Repair{{ 's' if squawks_awaiting_confirm|length != 1 }} To Sign Off</h5>
+    <a href="{{ url_for('squawks_list') }}" class="btn btn-outline-success btn-sm fw-bold">View All</a>
+  </div>
+  {% for sq in squawks_awaiting_confirm %}
+  <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
+    <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; done by {{ sq.repair_confirm_requested_by or '-' }}, {{ sq.repair_confirm_requested_at|usdate(true) if sq.repair_confirm_requested_at else '' }}</div>
+    <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+    {{ squawk_step_pills(sq) }}
+    <div class="d-flex gap-1 flex-wrap">
+      <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Confirm this squawk as repaired?" data-confirm-title="Confirm Repair" data-confirm-style="success">
+        <button class="btn btn-success btn-sm fw-bold"><i class="bi bi-check-lg"></i> Sign off</button>
+      </form>
+      <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Send this back as not yet repaired?" data-confirm-title="Send Back">
+        <input type="hidden" name="action" value="send_back">
+        <button class="btn btn-outline-secondary btn-sm">Send back</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 {% if open_squawks %}
 <div class="alert alert-danger border-danger border-2 mb-3">
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <h5 class="alert-heading mb-0"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} New Squawk{{ 's' if open_squawks|length != 1 }} - Pick Who Fixes Them</h5>
+    <h5 class="alert-heading mb-0"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} New Squawk{{ 's' if open_squawks|length != 1 }}{{ ' - Pick Who Fixes Them' if can_assign_squawks else ' (for your info)' }}</h5>
     <a href="{{ url_for('squawks_list') }}" class="btn btn-outline-danger btn-sm fw-bold">
       <span class="d-none d-md-inline">View All</span><span class="d-md-none">{{ 'See all ' ~ open_squawks|length if open_squawks|length > 2 else 'View All' }}</span></a>
   </div>
@@ -54,7 +84,9 @@
       {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
     <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
     {{ squawk_step_pills(sq) }}
+    {% if can_assign_squawks %}
     {{ squawk_new_actions(sq, assignable_workers, session.get('user_id')) }}
+    {% endif %}
   </div>
   {% endfor %}
 </div>
