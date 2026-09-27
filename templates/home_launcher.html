@@ -110,13 +110,13 @@
     </div>
   </div>
   <div class="row g-4 justify-content-center">
-    {% if is_admin_like or customer %}
+    {% if user.is_master_admin or user.flight_role %}
     <div class="col-md-5">
-      <a href="{{ url_for('customers_list') if is_admin_like else url_for('customer.customer_dashboard') }}" class="launcher-tile tile-aircraft">
-        <i class="bi bi-airplane-engines" style="color: #c9bdf0; font-size: 3.5rem;"></i>
-        <div class="fs-3 fw-bold">My Aircraft</div>
-        <div class="tile-accent small text-uppercase" style="letter-spacing:.12em;">OpsHub</div>
-        <div class="opacity-75 mt-2">{{ 'Manage customer accounts & aircraft' if is_admin_like else 'Reminders, appointments & bills' }}</div>
+      <a href="{{ url_for('flight.index') }}" class="launcher-tile tile-flight">
+        <img src="{{ url_for('static', filename='icons/flywithkate/icon-192.png') }}" class="tile-icon rounded-circle" alt="Fly with Kate">
+        <div class="fs-3 fw-bold">Fly with Kate!</div>
+        <div class="tile-accent small text-uppercase" style="letter-spacing:.12em;">Aviation Services</div>
+        <div class="opacity-75 mt-2">Log flights, students &amp; instructors</div>
       </a>
     </div>
     {% endif %}
@@ -130,16 +130,6 @@
       </a>
     </div>
     {% endif %}
-    {% if user.is_master_admin or user.flight_role %}
-    <div class="col-md-5">
-      <a href="{{ url_for('flight.index') }}" class="launcher-tile tile-flight">
-        <img src="{{ url_for('static', filename='icons/flywithkate/icon-192.png') }}" class="tile-icon rounded-circle" alt="Fly with Kate">
-        <div class="fs-3 fw-bold">Fly with Kate!</div>
-        <div class="tile-accent small text-uppercase" style="letter-spacing:.12em;">Aviation Services</div>
-        <div class="opacity-75 mt-2">Log flights, students &amp; instructors</div>
-      </a>
-    </div>
-    {% endif %}
     {% if user.is_master_admin or user.academy_access %}
     <div class="col-md-5">
       <a href="{{ url_for('academy_page') }}" class="launcher-tile tile-academy">
@@ -147,6 +137,16 @@
         <div class="fs-3 fw-bold">Flight Academy</div>
         <div class="tile-accent small text-uppercase" style="letter-spacing:.12em;">Fly with Kate!</div>
         <div class="opacity-75 mt-2">Student progress, ratings &amp; lesson plans</div>
+      </a>
+    </div>
+    {% endif %}
+    {% if is_admin_like or customer %}
+    <div class="col-md-5">
+      <a href="{{ url_for('customers_list') if is_admin_like else url_for('customer.customer_dashboard') }}" class="launcher-tile tile-aircraft">
+        <i class="bi bi-airplane-engines" style="color: #c9bdf0; font-size: 3.5rem;"></i>
+        <div class="fs-3 fw-bold">My Aircraft</div>
+        <div class="tile-accent small text-uppercase" style="letter-spacing:.12em;">OpsHub</div>
+        <div class="opacity-75 mt-2">{{ 'Manage customer accounts & aircraft' if is_admin_like else 'Reminders, appointments & bills' }}</div>
       </a>
     </div>
     {% endif %}
