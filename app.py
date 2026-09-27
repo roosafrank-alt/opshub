@@ -2313,9 +2313,9 @@ def found_item_new(project_id):
         flash("Describe what you found, and use numbers (0 or more) for the estimate.", "danger")
         return redirect(url_for("project_detail", project_id=project_id) + "#found-items")
     total = round(parts + hours * rate, 2)
-    cur = conn.execute("""INSERT INTO found_items (project_id, description, est_parts, est_labor_hours, est_labor_rate,
-                           est_total, status, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, 'waiting', ?, ?)""",
-                       (project_id, description, parts, hours, rate, total, session.get("user_name"), now_iso()))
+    cur = conn.execute("""INSERT INTO found_items (project_id, asset_id, description, est_parts, est_labor_hours, est_labor_rate,
+                           est_total, status, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'waiting', ?, ?)""",
+                       (project_id, project["asset_id"], description, parts, hours, rate, total, session.get("user_name"), now_iso()))
     item_id = cur.lastrowid
     conn.commit()
     _saved, err = _add_photos(conn, request.files.getlist("photos"), "found_item_id", item_id)
@@ -3052,6 +3052,13 @@ def _purge_project(conn, project_id):
     conn.execute("DELETE FROM photos WHERE project_id = ?", (project_id,))
     conn.execute("UPDATE orders SET project_id = NULL WHERE project_id = ?", (project_id,))
     conn.execute("UPDATE maintenance_log SET project_id = NULL WHERE project_id = ?", (project_id,))
+    # QA fix qa-project-purge-crash: logbook entries and owner-approved
+    # (found) items are kept, not deleted - each already has its own
+    # asset_id, so detaching the job link here (instead of leaving it
+    # pointing at a row that's about to not exist) is enough to keep them
+    # on the plane's record without a FOREIGN KEY crash.
+    conn.execute("UPDATE logbook_entries SET project_id = NULL WHERE project_id = ?", (project_id,))
+    conn.execute("UPDATE found_items SET project_id = NULL WHERE project_id = ?", (project_id,))
     conn.execute("DELETE FROM project_sections WHERE project_id = ?", (project_id,))
     conn.execute("DELETE FROM labor_sessions WHERE project_id = ?", (project_id,))
     conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
@@ -3068,7 +3075,7 @@ def project_purge(project_id):
     _purge_project(conn, project_id)
     conn.commit()
     conn.close()
-    flash(f"Project '{project['name']}' permanently deleted.", "success")
+    flash(f"Project '{project['name']}' permanently deleted. Its logbook entries and owner-approved items were kept on the plane's record.", "success")
     return redirect(url_for("trash_page"))
 
 
@@ -3914,6 +3921,11 @@ def _purge_asset(conn, asset_id):
         conn.execute("DELETE FROM maintenance_log WHERE item_id = ?", (item_id,))
     conn.execute("DELETE FROM maintenance_items WHERE asset_id = ?", (asset_id,))
     conn.execute("UPDATE projects SET asset_id = NULL WHERE asset_id = ?", (asset_id,))
+    # Same reasoning as _purge_project (QA fix qa-project-purge-crash):
+    # these reference this asset too, so detach rather than leave a
+    # dangling reference that would FOREIGN KEY-crash the delete.
+    conn.execute("UPDATE logbook_entries SET asset_id = NULL WHERE asset_id = ?", (asset_id,))
+    conn.execute("UPDATE found_items SET asset_id = NULL WHERE asset_id = ?", (asset_id,))
     conn.execute("DELETE FROM assets WHERE id = ?", (asset_id,))
 
 

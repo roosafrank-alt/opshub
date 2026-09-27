@@ -1742,7 +1742,8 @@ def _migrate(conn):
     # approve or decline. Photos live in the photos table (found_item_id).
     conn.execute("""CREATE TABLE IF NOT EXISTS found_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        project_id INTEGER NOT NULL REFERENCES projects(id),
+        project_id INTEGER REFERENCES projects(id), -- NULL once that project is permanently deleted; asset_id keeps this on the plane's record either way
+        asset_id INTEGER REFERENCES assets(id),
         description TEXT NOT NULL,
         est_parts REAL NOT NULL DEFAULT 0,
         est_labor_hours REAL NOT NULL DEFAULT 0,
@@ -1761,6 +1762,59 @@ def _migrate(conn):
     photo_cols_found = [r["name"] for r in conn.execute("PRAGMA table_info(photos)").fetchall()]
     if "found_item_id" not in photo_cols_found:
         conn.execute("ALTER TABLE photos ADD COLUMN found_item_id INTEGER REFERENCES found_items(id)")
+    conn.commit()
+
+    # QA fix qa-project-purge-crash: found_items.project_id used to be
+    # NOT NULL, so permanently deleting a job with an extra-repair item on
+    # it hit a FOREIGN KEY constraint (a 500 page) instead of deleting the
+    # job - and stopped Empty Trash from finishing too. SQLite can't drop a
+    # NOT NULL in place, so this rebuilds the table (once) when it's still
+    # the old, stricter shape, adding asset_id at the same time so an item
+    # stays on the plane's record (found by asset_id) after its job is gone.
+    fi_cols = conn.execute("PRAGMA table_info(found_items)").fetchall()
+    fi_project_id_col = next((c for c in fi_cols if c["name"] == "project_id"), None)
+    fi_has_asset_id = any(c["name"] == "asset_id" for c in fi_cols)
+    if (fi_project_id_col is not None and fi_project_id_col["notnull"]) or not fi_has_asset_id:
+        conn.execute("DROP TABLE IF EXISTS found_items_new")
+        conn.execute("""CREATE TABLE found_items_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id INTEGER REFERENCES projects(id),
+            asset_id INTEGER REFERENCES assets(id),
+            description TEXT NOT NULL,
+            est_parts REAL NOT NULL DEFAULT 0,
+            est_labor_hours REAL NOT NULL DEFAULT 0,
+            est_labor_rate REAL NOT NULL DEFAULT 0,
+            est_total REAL NOT NULL DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'waiting',
+            created_by TEXT,
+            created_at TEXT NOT NULL,
+            notified_at TEXT,
+            decided_at TEXT,
+            decided_by TEXT,
+            decision_note TEXT,
+            section_name TEXT
+        )""")
+        old_cols = [c["name"] for c in fi_cols]
+        asset_id_expr = "asset_id" if "asset_id" in old_cols else "(SELECT asset_id FROM projects WHERE projects.id = found_items.project_id)"
+        conn.execute(f"""INSERT INTO found_items_new
+            (id, project_id, asset_id, description, est_parts, est_labor_hours, est_labor_rate,
+             est_total, status, created_by, created_at, notified_at, decided_at, decided_by, decision_note, section_name)
+            SELECT id, project_id, {asset_id_expr}, description, est_parts, est_labor_hours, est_labor_rate,
+             est_total, status, created_by, created_at, notified_at, decided_at, decided_by, decision_note, section_name
+            FROM found_items""")
+        conn.execute("DROP TABLE found_items")
+        conn.execute("ALTER TABLE found_items_new RENAME TO found_items")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_found_items_project ON found_items(project_id)")
+        conn.commit()
+
+    # Detach (never delete) a purged job's logbook entries and found items
+    # from it so a job purged before this fix - already permanently deleted
+    # but left with dangling references - doesn't leave orphaned rows
+    # pointing at a project id that no longer exists.
+    conn.execute("UPDATE found_items SET project_id = NULL WHERE project_id IS NOT NULL "
+                 "AND project_id NOT IN (SELECT id FROM projects)")
+    conn.execute("UPDATE logbook_entries SET project_id = NULL WHERE project_id IS NOT NULL "
+                 "AND project_id NOT IN (SELECT id FROM projects)")
     conn.commit()
 
     # Found item conversation (idea "New feature: Owners approve extra
