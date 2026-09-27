@@ -401,6 +401,44 @@ def current_customer(conn):
     return conn.execute("SELECT * FROM customers WHERE id = ?", (cid,)).fetchone()
 
 
+def account_program_count():
+    """How many of the program tiles (Fly with Kate!, Winds Aloft, Flight
+    Academy, My Aircraft) this session's account can see - mirrors
+    home_launcher.html's own tile conditions (QA ux-launcher-single-program).
+    A master admin always sees all four, so this is never 1 for them."""
+    is_master_admin = session.get("is_master_admin")
+    is_admin_like = bool(is_master_admin or session.get("shop_role") == "admin")
+    count = 0
+    if is_master_admin or session.get("flight_role"):
+        count += 1
+    if is_master_admin or session.get("shop_role"):
+        count += 1
+    if is_master_admin or session.get("academy_access"):
+        count += 1
+    if is_admin_like or session.get("customer_id"):
+        count += 1
+    return count
+
+
+def single_program_endpoint():
+    """The one endpoint to send an account straight to instead of showing
+    'Choose a program', when it has exactly one program tile - None for an
+    account with zero (no access yet) or two-plus (a real choice to make)."""
+    if account_program_count() != 1:
+        return None
+    is_master_admin = session.get("is_master_admin")
+    is_admin_like = bool(is_master_admin or session.get("shop_role") == "admin")
+    if is_master_admin or session.get("flight_role"):
+        return "flight.index"
+    if is_master_admin or session.get("shop_role"):
+        return "dashboard"
+    if is_master_admin or session.get("academy_access"):
+        return "academy_page"
+    if is_admin_like or session.get("customer_id"):
+        return "customers_list" if is_admin_like else "customer.customer_dashboard"
+    return None
+
+
 def customer_login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):

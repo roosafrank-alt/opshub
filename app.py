@@ -32,7 +32,8 @@ from auth import (authenticate, log_in_user, log_out_user, current_user, login_r
                    master_admin_required, shop_role_required, can_see_shop_costs,
                    owner_user_id, owner_locked, authenticate_customer, log_in_combined,
                    current_customer, start_view_as, exit_view_as, viewing_as_label,
-                   view_as_active_program, SHOP_VIEW_AS_LEVELS, FLIGHT_VIEW_AS_LEVELS)
+                   view_as_active_program, SHOP_VIEW_AS_LEVELS, FLIGHT_VIEW_AS_LEVELS,
+                   account_program_count, single_program_endpoint)
 import notify
 from urllib.parse import urlparse
 import push
@@ -267,6 +268,7 @@ def inject_auth_context():
         "shop_view_as_levels": SHOP_VIEW_AS_LEVELS,
         "flight_view_as_levels": FLIGHT_VIEW_AS_LEVELS,
         "view_as_active_program": view_as_active_program(),
+        "single_program_account": account_program_count() == 1,
     }
 
 
@@ -281,7 +283,9 @@ def home_launcher():
     against both the staff `users` table and the `customers` table, so a
     flight student who's also an aircraft-owning customer (same
     email/password in both) gets every tile at once - see
-    auth.log_in_combined."""
+    auth.log_in_combined. An account with only one tile (a lone CFI/student,
+    a tech, or an aircraft owner) skips this picker entirely and lands
+    straight on that program's home - see auth.single_program_endpoint."""
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
@@ -300,6 +304,10 @@ def home_launcher():
         log_in_combined(user_row, customer_row, remember=remember)
         flash(f"Welcome, {(user_row or customer_row)['name']}!", "success")
         return redirect(url_for("home_launcher"))
+
+    only_program = single_program_endpoint()
+    if only_program:
+        return redirect(url_for(only_program))
 
     conn = get_db()
     user = current_user(conn)

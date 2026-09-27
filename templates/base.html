@@ -50,7 +50,9 @@
 <nav class="navbar navbar-expand-xl navbar-dark bg-dark sticky-top">
   <div class="container-fluid">
     {% set back_fallback = url_for('dashboard') %}{% include "_back_button.html" %}
+    {% if not single_program_account %}
     <a class="navbar-brand p-1 me-1" href="{{ url_for('home_launcher') }}" title="All Programs"><i class="bi bi-grid-3x3-gap-fill"></i></a>
+    {% endif %}
     <a class="navbar-brand fw-bold d-flex align-items-center gap-2" id="tour-nav-maintenance" href="{{ url_for('dashboard') }}" title="Maintenance Dashboard">
       <img src="{{ url_for('static', filename='icons/windsaloft/icon-192.png') }}" style="width:28px;height:28px;border-radius:7px;" alt="Winds Aloft">
       <span>Winds Aloft</span>
