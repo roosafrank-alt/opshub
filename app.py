@@ -545,6 +545,7 @@ def dashboard():
               AND scheduled_date >= ? AND status NOT IN ('completed', 'archived')
     """, (today_str,)).fetchone()["c"]
     open_squawks = get_open_squawks(conn)
+    assignable_workers = get_assignable_workers(conn)
     # Assigned-squawk alerts: this account's own to-do list (if a squawk's
     # been handed to them and they haven't said "got it" yet), plus - for
     # admin/master admin - everyone's unacknowledged assignments, so whoever
@@ -625,7 +626,7 @@ def dashboard():
                            low_stock=low_stock, recent_activity=recent_activity,
                            reminders=reminders, upcoming_projects=upcoming_projects,
                            reschedule_requests=reschedule_requests,
-                           open_squawks=open_squawks, open_sessions=open_sessions,
+                           open_squawks=open_squawks, assignable_workers=assignable_workers, open_sessions=open_sessions,
                            needs_confirm_sections=needs_confirm_sections,
                            my_assigned_squawks=my_assigned_squawks,
                            unacknowledged_assignments=unacknowledged_assignments,
@@ -848,13 +849,16 @@ def squawk_acknowledge(kind, squawk_id):
         flash("Squawk not found.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
     conn.execute(set_sql, (now_iso(), session.get("user_name"), squawk_id))
-    # Optional "Assign to" picked right alongside Acknowledge, same as
-    # squawk_assign() below - saves a second trip for the common case of
-    # acknowledging and handing it off in one go.
-    _apply_squawk_assignment(conn, kind, squawk_id, request.form.get("assigned_to"))
+    # A new squawk's only action is "Assign to..." or "I'll take it" (see
+    # squawk_new_actions in _squawk_macros.html) - picking a name or taking
+    # it acknowledges and assigns in the same request, so it always leaves
+    # here with an owner. squawk_assign() below still handles a later
+    # reassignment on its own, separate from acknowledging.
+    assigned_to_raw = request.form.get("assigned_to")
+    _apply_squawk_assignment(conn, kind, squawk_id, assigned_to_raw)
     conn.commit()
     conn.close()
-    flash("Squawk acknowledged.", "success")
+    flash("Assigned and acknowledged." if (assigned_to_raw or "").strip() else "Squawk acknowledged.", "success")
     return redirect(request.referrer or url_for("squawks_list"))
 
 

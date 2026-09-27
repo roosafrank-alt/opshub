@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions %}
 {% block title %}{{ asset.tag }} - OpsHub{% endblock %}
 {% block content %}
 {% if photos %}
@@ -32,18 +33,15 @@
 
 {% if open_squawks %}
 <div class="alert alert-danger border-danger border-2 mb-3">
-  <h5 class="alert-heading mb-2"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} Open Squawk{{ 's' if open_squawks|length != 1 }} - Needs Acknowledgement</h5>
+  <h5 class="alert-heading mb-2"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} New Squawk{{ 's' if open_squawks|length != 1 }} - Pick Who Fixes Them</h5>
   {% for sq in open_squawks %}
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
-    <div>
-      <div><strong>{{ sq.event_date|usdate }}</strong> &middot;
-        {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
-        {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
-      <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-    </div>
-    <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Acknowledge this squawk?" data-confirm-title="Acknowledge Squawk">
-      <button class="btn btn-danger btn-sm fw-bold"><i class="bi bi-check-lg"></i> Acknowledge</button>
-    </form>
+  <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
+    <div><strong>{{ sq.event_date|usdate }}</strong> &middot;
+      {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
+      {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
+    <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+    {{ squawk_step_pills(sq) }}
+    {{ squawk_new_actions(sq, assignable_workers, session.get('user_id')) }}
   </div>
   {% endfor %}
 </div>
@@ -376,17 +374,16 @@
               <span><span class="badge bg-warning text-dark me-1">Squawk</span>{{ sq.notes or '(no details given)' }}</span>
             </form>
             {% else %}
-            <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex align-items-start gap-2 flex-grow-1" data-confirm="Acknowledge this squawk?" data-confirm-title="Acknowledge Squawk">
-              <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Acknowledge squawk">
-                <i class="bi bi-square fs-5 text-danger"></i>
-              </button>
-              <span><span class="badge bg-danger me-1">Squawk</span>{{ sq.notes or '(no details given)' }}</span>
-            </form>
+            <span class="flex-grow-1"><span class="badge bg-danger me-1">Squawk</span>{{ sq.notes or '(no details given)' }}</span>
             {% endif %}
             </div>
+            <div class="ps-4">{{ squawk_step_pills(sq) }}</div>
+            {% if sq.acknowledged_at %}
             {#- Same assign dropdown a plain to-do has below (plane_todo_assign)
                - hands the squawk to a tech via squawk_assign, which also
-               shows up on the Squawks tab (same assigned_to column). #}
+               shows up on the Squawks tab (same assigned_to column). A new,
+               unacknowledged squawk picks who fixes it below instead
+               (squawk_new_actions), acknowledging and assigning together. #}
             <form method="post" action="{{ url_for('squawk_assign', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="ps-4">
               <select name="assigned_to" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
                 <option value="">Unassigned</option>
@@ -395,6 +392,9 @@
                 {% endfor %}
               </select>
             </form>
+            {% else %}
+            <div class="ps-4">{{ squawk_new_actions(sq, assignable_workers, session.get('user_id')) }}</div>
+            {% endif %}
           </li>
           {% endfor %}
           {% for t in open_todos %}

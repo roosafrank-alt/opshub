@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions %}
 {% block title %}Squawks - OpsHub{% endblock %}
 {% block content %}
 <h4 class="mb-3"><i class="bi bi-exclamation-triangle-fill text-danger"></i> Squawks</h4>
-<p class="text-muted small">Flagged by a CFI when logging a flight in Flight School, or reported directly - from a plane's page, or right here below. Acknowledging just means someone's seen it - it stays here until it's actually marked repaired.</p>
+<p class="text-muted small">Flagged by a CFI when logging a flight in Flight School, or reported directly - from a plane's page, or right here below. Picking who fixes a new one acknowledges it too - it stays here until it's actually marked repaired.</p>
 
 <div class="card p-3 mb-4">
   <h6 class="mb-2">Report an Issue</h6>
@@ -32,33 +33,17 @@
      the Flight School side (see alert_row in flight/alerts.html) - not
      just a thin outline, so an open squawk is impossible to miss. #}
   {% for sq in open_squawks %}
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 p-2 mb-2 border rounded bg-danger-subtle border-danger-subtle">
-    <div>
-      <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.event_date|usdate }} &middot;
-        {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
-        {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
-      <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-    </div>
-    <div class="d-flex flex-column align-items-end gap-1">
-      <div class="d-flex gap-2">
-        {#- Assign-while-acknowledging: pick a tech here and Acknowledge
-           hands it to them in the same click (see _apply_squawk_assignment
-           in app.py). Leaving it on "Assign to..." just acknowledges, same
-           as before. #}
-        <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Acknowledge this squawk?" data-confirm-title="Acknowledge Squawk" class="d-flex gap-1">
-          <select name="assigned_to" class="form-select form-select-sm" style="width:auto;">
-            <option value="">Assign to...</option>
-            {% for w in assignable_workers %}
-            <option value="{{ w.id }}">{{ w.name }}</option>
-            {% endfor %}
-          </select>
-          <button class="btn btn-outline-danger btn-sm fw-bold"><i class="bi bi-check-lg"></i> Acknowledge</button>
-        </form>
-        <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Mark this squawk as repaired/addressed? An Inspector or admin will still need to confirm it.">
-          <button class="btn btn-success btn-sm fw-bold"><i class="bi bi-tools"></i> Mark Repaired</button>
-        </form>
-      </div>
-    </div>
+  <div class="d-flex flex-column gap-1 p-2 mb-2 border rounded bg-danger-subtle border-danger-subtle">
+    <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.event_date|usdate }} &middot;
+      {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
+      {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
+    <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+    {{ squawk_step_pills(sq) }}
+    {#- Picking a name or "I'll take it" acknowledges and assigns in one
+       request, no confirmation pop-up - see squawk_acknowledge in app.py
+       and _apply_squawk_assignment. Reassigning and Mark Repaired only show
+       up once a squawk has an owner, below in Acknowledged. #}
+    {{ squawk_new_actions(sq, assignable_workers, session.get('user_id')) }}
   </div>
   {% endfor %}
 </div>
@@ -77,6 +62,7 @@
         {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
         {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
       <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+      <div class="my-1">{{ squawk_step_pills(sq) }}</div>
       <small class="text-muted d-block">Acknowledged by {{ sq.acknowledged_by or '-' }}, {{ sq.acknowledged_at|usdate(true) if sq.acknowledged_at else '' }}</small>
       {#- Whoever assigned it can see right here whether the tech has said
          "got it" yet (squawk_worker_ack) - that's separate from someone

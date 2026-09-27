@@ -1,0 +1,49 @@
+{#- Shared by dashboard.html, squawks.html and asset_detail.html, so a
+   squawk's stage and its "pick who fixes it" controls look and behave the
+   same everywhere it shows (see QA finding ux-squawk-assign-from-dashboard).
+   Every place these run alongside a squawk row/card must have already
+   assigned the loop variable `sq` (see get_open_squawks() in app.py for its
+   columns) and be inside a context with `assignable_workers` available. #}
+
+{#- Reported -> Assigned -> Working -> Inspection -> Done. Earlier steps get
+   a checkmark, the current one is highlighted; later ones stay plain. #}
+{% macro squawk_step_pills(sq) %}
+{%- set steps = ['Reported', 'Assigned', 'Working', 'Inspection', 'Done'] -%}
+{%- if sq.repaired_at -%}
+{%- set current = 4 -%}
+{%- elif sq.repair_confirm_requested_at -%}
+{%- set current = 3 -%}
+{%- elif not sq.acknowledged_at -%}
+{%- set current = 0 -%}
+{%- elif sq.worker_acknowledged_at or not sq.assigned_to -%}
+{%- set current = 2 -%}
+{%- else -%}
+{%- set current = 1 -%}
+{%- endif -%}
+<div class="d-flex gap-1 flex-wrap">
+  {%- for label in steps %}
+  <span class="badge rounded-pill {{ 'bg-primary text-white' if loop.index0 == current else 'bg-white text-muted border' }}">{% if loop.index0 < current %}<i class="bi bi-check-lg"></i> {% endif %}{{ label }}</span>
+  {%- endfor %}
+</div>
+{%- endmacro %}
+
+{#- A brand-new (unacknowledged) squawk's one and only action: pick a name
+   (acknowledges + assigns in the same request via squawk_acknowledge, see
+   app.py) or take it yourself - no confirmation pop-up either way, so
+   picking who fixes it is the single fastest thing to do with it. #}
+{% macro squawk_new_actions(sq, assignable_workers, current_user_id, size='btn-sm') %}
+<div class="d-flex gap-1 flex-wrap">
+  <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}">
+    <select name="assigned_to" class="form-select form-select-sm" style="width:auto;" onchange="this.value && this.form.submit()" aria-label="Assign to">
+      <option value="" selected>Assign to...</option>
+      {% for w in assignable_workers %}
+      <option value="{{ w.id }}">{{ w.name }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}">
+    <input type="hidden" name="assigned_to" value="{{ current_user_id }}">
+    <button class="btn btn-danger {{ size }} fw-bold"><i class="bi bi-person-check-fill"></i> I'll take it</button>
+  </form>
+</div>
+{%- endmacro %}
