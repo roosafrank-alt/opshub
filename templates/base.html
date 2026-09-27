@@ -43,13 +43,6 @@
     font-weight: 600;
   }
   .shop-nav-boxed .dropdown-item.active { background: #212529; color: #fff; }
-  /* Laptop widths (roughly 1200-1599px) are too tight to fit every button
-     with a label, so the less-used ones go icon-only (title="" gives a
-     hover tooltip) until there's enough room for their text too. */
-  .shop-nav-icon-label { display: none; }
-  @media (min-width: 1600px) {
-    .shop-nav-icon-label { display: inline; }
-  }
 </style>
 </head>
 <body>
@@ -91,65 +84,64 @@
         {% endif %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'calendar' }}" id="tour-nav-calendar" href="{{ url_for('calendar_page') }}"><i class="bi bi-calendar3"></i> Calendar</a></li>
         {% if is_master_admin or shop_role == 'admin' %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'orders' }}" href="{{ url_for('orders_list') }}" title="Orders"><i class="bi bi-truck"></i> <span class="shop-nav-icon-label">Orders</span></a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'orders' }}" href="{{ url_for('orders_list') }}"><i class="bi bi-truck"></i> Orders</a></li>
         {% endif %}
         {% if is_master_admin or shop_role in ('admin', 'tech') %}
-        <li class="nav-item"><a class="nav-link {{ 'fw-bold text-danger' if open_squawk_count }} {{ 'active' if sec == 'squawks' }}" id="tour-nav-squawks" href="{{ url_for('squawks_list') }}" title="Squawks"><i class="bi bi-exclamation-triangle{{ '-fill' if open_squawk_count }}"></i> <span class="shop-nav-icon-label">Squawks</span>{% if open_squawk_count %} <span class="badge bg-danger">{{ open_squawk_count }}</span>{% endif %}</a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'my-tasks' }}" href="{{ url_for('tech_spot') }}" title="My Tasks"><i class="bi bi-person-workspace"></i> <span class="shop-nav-icon-label">My Tasks</span></a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'activity' }}" href="{{ url_for('activity_log') }}" title="Activity"><i class="bi bi-clock-history"></i> <span class="shop-nav-icon-label">Activity</span></a></li>
+        <li class="nav-item"><a class="nav-link {{ 'fw-bold text-danger' if open_squawk_count }} {{ 'active' if sec == 'squawks' }}" id="tour-nav-squawks" href="{{ url_for('squawks_list') }}"><i class="bi bi-exclamation-triangle{{ '-fill' if open_squawk_count }}"></i> Squawks{% if open_squawk_count %} <span class="badge bg-danger">{{ open_squawk_count }}</span>{% endif %}</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'my-tasks' }}" href="{{ url_for('tech_spot') }}"><i class="bi bi-person-workspace"></i> My Tasks</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'activity' }}" href="{{ url_for('activity_log') }}"><i class="bi bi-clock-history"></i> Activity</a></li>
         {% endif %}
       </ul>
       <div class="d-flex align-items-center gap-3 shop-nav-boxed">
-        {% if is_master_admin or shop_role == 'admin' %}
-        <a href="{{ url_for('part_new') }}" class="btn btn-warning btn-sm fw-bold text-nowrap"><i class="bi bi-plus-lg"></i> Add Part</a>
-        {% endif %}
-        {#- Manage menu - same idea as the Fly with Kate! header's Manage:
-           Laborers, Labor Pay, Billing, Stats. Anyone logged in gets Labor
-           Pay (their own hours/pay); the rest is shop admins. #}
-        <div class="dropdown">
-          <a class="nav-link dropdown-toggle text-light {{ 'active' if sec == 'manage' }}" href="#" id="shop-manage-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="bi bi-gear"></i> Manage
-          </a>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shop-manage-toggle">
-            {% if is_master_admin or shop_role == 'admin' %}
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/laborers') }}" href="{{ url_for('laborers_list') }}"><i class="bi bi-person-badge"></i> Laborers</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/badges') }}" href="{{ url_for('laborer_badges') }}"><i class="bi bi-printer"></i> Print Worker Badges</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/general-code') }}" href="{{ url_for('general_shop_code_page') }}"><i class="bi bi-qr-code"></i> General Shop Code</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> Labor Pay</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/customers') }}" href="{{ url_for('customers_list') }}"><i class="bi bi-people"></i> Customers</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/manuals') }}" href="{{ url_for('manuals.manuals_list') }}"><i class="bi bi-file-earmark-pdf"></i> Manuals</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/manage/task-templates') }}" href="{{ url_for('task_templates') }}"><i class="bi bi-list-check"></i> Task Templates</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/billing') }}" href="{{ url_for('shop_billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/stats') }}" href="{{ url_for('shop_stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/logbook') }}" href="{{ url_for('logbook.logbook_list') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
-            {% else %}
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
-            {% if shop_role == 'tech' %}
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/badges') }}" href="{{ url_for('laborer_badges') }}"><i class="bi bi-printer"></i> Print Worker Badges</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/general-code') }}" href="{{ url_for('general_shop_code_page') }}"><i class="bi bi-qr-code"></i> General Shop Code</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/logbook') }}" href="{{ url_for('logbook.logbook_list') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
-            {% endif %}
-            {% endif %}
-          </ul>
-        </div>
         <div class="d-flex flex-column align-items-end">
           {% set view_as_program = 'shop' %}
           {% include "_view_as_chips.html" %}
-          <div class="dropdown">
-            <a class="nav-link dropdown-toggle text-light" href="#" id="user-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="bi bi-person-circle"></i> {{ logged_in_user_name }}
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu-toggle">
-              <li><a class="dropdown-item" href="{{ url_for('account_page', from='shop') }}"><i class="bi bi-person-gear"></i> My Account</a></li>
-              {% if is_master_admin %}
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="{{ url_for('admin_home') }}"><i class="bi bi-shield-lock-fill"></i> Admin</a></li>
-              {% endif %}
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="{{ url_for('logout') }}" onclick="return confirm('Log out?')"><i class="bi bi-box-arrow-right"></i> Log Out</a></li>
-            </ul>
+          <div class="d-flex align-items-center gap-2">
+            {#- Manage menu - same idea as the Fly with Kate! header's Manage:
+               Laborers, Labor Pay, Billing, Stats. Anyone logged in gets Labor
+               Pay (their own hours/pay); the rest is shop admins. #}
+            <div class="dropdown">
+              <a class="nav-link dropdown-toggle text-light {{ 'active' if sec == 'manage' }}" href="#" id="shop-manage-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-gear"></i> Manage
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shop-manage-toggle">
+                {% if is_master_admin or shop_role == 'admin' %}
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/laborers') }}" href="{{ url_for('laborers_list') }}"><i class="bi bi-person-badge"></i> Laborers</a></li>
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/badges') }}" href="{{ url_for('laborer_badges') }}"><i class="bi bi-printer"></i> Print Worker Badges</a></li>
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/general-code') }}" href="{{ url_for('general_shop_code_page') }}"><i class="bi bi-qr-code"></i> General Shop Code</a></li>
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> Labor Pay</a></li>
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/customers') }}" href="{{ url_for('customers_list') }}"><i class="bi bi-people"></i> Customers</a></li>
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/manuals') }}" href="{{ url_for('manuals.manuals_list') }}"><i class="bi bi-file-earmark-pdf"></i> Manuals</a></li>
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/manage/task-templates') }}" href="{{ url_for('task_templates') }}"><i class="bi bi-list-check"></i> Task Templates</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/billing') }}" href="{{ url_for('shop_billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/stats') }}" href="{{ url_for('shop_stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/logbook') }}" href="{{ url_for('logbook.logbook_list') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
+                {% else %}
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
+                {% if shop_role == 'tech' %}
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/badges') }}" href="{{ url_for('laborer_badges') }}"><i class="bi bi-printer"></i> Print Worker Badges</a></li>
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/general-code') }}" href="{{ url_for('general_shop_code_page') }}"><i class="bi bi-qr-code"></i> General Shop Code</a></li>
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/logbook') }}" href="{{ url_for('logbook.logbook_list') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
+                {% endif %}
+                {% endif %}
+              </ul>
+            </div>
+            <div class="dropdown">
+              <a class="nav-link dropdown-toggle text-light" href="#" id="user-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-person-circle"></i> {{ logged_in_user_name }}
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu-toggle">
+                <li><a class="dropdown-item" href="{{ url_for('account_page', from='shop') }}"><i class="bi bi-person-gear"></i> My Account</a></li>
+                {% if is_master_admin %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('admin_home') }}"><i class="bi bi-shield-lock-fill"></i> Admin</a></li>
+                {% endif %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('logout') }}" onclick="return confirm('Log out?')"><i class="bi bi-box-arrow-right"></i> Log Out</a></li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
