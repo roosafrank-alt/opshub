@@ -14,6 +14,14 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 <style>
+  {#- QA: the Manage box sat flush against the top of the navbar instead of
+     level with Schedule/Active Flight/etc - its <li> is a flex sibling of
+     the "View as" + account chips <li>, which is two rows tall, and the
+     default flex stretch pinned Manage to the top of that taller box
+     instead of centering it in it. #}
+  .flight-nav-boxed {
+    align-items: center;
+  }
   .flight-nav-boxed .nav-link {
     border: 1px solid rgba(255,255,255,.35);
     border-radius: 8px;
