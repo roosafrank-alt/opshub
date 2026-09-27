@@ -17,12 +17,21 @@
       <div>
         <strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.event_date|usdate }}
         {% if sq.worker_acknowledged_at %}<span class="badge bg-warning text-dark ms-1">Accepted</span>{% else %}<span class="badge bg-danger ms-1">New</span>{% endif %}
+        {% if sq.repair_confirm_requested_at %}<span class="badge bg-secondary ms-1">Repaired</span>{% endif %}
         <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
       </div>
       <div class="d-flex gap-1 flex-shrink-0">
         {% if not sq.worker_acknowledged_at %}
         <form method="post" action="{{ url_for('squawk_worker_ack', kind=sq.kind, squawk_id=sq.squawk_id) }}">
           <button class="btn btn-warning btn-sm fw-bold"><i class="bi bi-check-lg"></i> Got It</button>
+        </form>
+        {% elif sq.repair_confirm_requested_at %}
+        {#- Marked repaired and awaiting an Inspector/admin's confirmation
+           (squawk_repair_confirm) - button greys out; tapping it again
+           toggles the request back off (squawk_repair undoes it when
+           already requested), same button either way. #}
+        <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Undo Mark Repaired? This goes back to not yet repaired.">
+          <button class="btn btn-secondary btn-sm fw-bold" title="Marked repaired - tap to undo"><i class="bi bi-check2-square"></i> Repaired</button>
         </form>
         {% else %}
         <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Mark this squawk as repaired/addressed?">

@@ -948,24 +948,39 @@ def squawk_repair(kind, squawk_id):
     Acknowledged, Not Yet Repaired, flagged as awaiting confirmation, until
     an Inspector or admin signs off via squawk_repair_confirm. Also
     acknowledges it if that hadn't happened yet, so a tech can jump straight
-    to "repaired" without an extra click."""
+    to "repaired" without an extra click.
+
+    Hitting this same button again while already awaiting confirmation
+    undoes the request instead (My Tasks greys the button out and toggles
+    it back), so a tech can take back an accidental Mark Repaired without
+    needing an Inspector to Send Back."""
     conn = get_db()
     if kind == "flight":
-        row = conn.execute("SELECT id, squawk_acknowledged_at as acked FROM flights WHERE id = ? AND squawk = 1",
-                            (squawk_id,)).fetchone()
+        row = conn.execute("SELECT id, squawk_acknowledged_at as acked, "
+                            "squawk_repair_confirm_requested_at as confirm_requested FROM flights "
+                            "WHERE id = ? AND squawk = 1", (squawk_id,)).fetchone()
         ack_sql = "UPDATE flights SET squawk_acknowledged_at = ?, squawk_acknowledged_by = ? WHERE id = ?"
         confirm_req_sql = "UPDATE flights SET squawk_repair_confirm_requested_at = ?, squawk_repair_confirm_requested_by = ? WHERE id = ?"
+        undo_sql = "UPDATE flights SET squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL WHERE id = ?"
     elif kind == "quick":
-        row = conn.execute("SELECT id, acknowledged_at as acked FROM plane_squawks WHERE id = ?",
-                            (squawk_id,)).fetchone()
+        row = conn.execute("SELECT id, acknowledged_at as acked, "
+                            "repair_confirm_requested_at as confirm_requested FROM plane_squawks "
+                            "WHERE id = ?", (squawk_id,)).fetchone()
         ack_sql = "UPDATE plane_squawks SET acknowledged_at = ?, acknowledged_by = ? WHERE id = ?"
         confirm_req_sql = "UPDATE plane_squawks SET repair_confirm_requested_at = ?, repair_confirm_requested_by = ? WHERE id = ?"
+        undo_sql = "UPDATE plane_squawks SET repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL WHERE id = ?"
     else:
         conn.close()
         abort(404)
     if not row:
         conn.close()
         flash("Squawk not found.", "danger")
+        return redirect(request.referrer or url_for("dashboard"))
+    if row["confirm_requested"]:
+        conn.execute(undo_sql, (squawk_id,))
+        conn.commit()
+        conn.close()
+        flash("Un-marked - back to not yet repaired.", "warning")
         return redirect(request.referrer or url_for("dashboard"))
     if not row["acked"]:
         conn.execute(ack_sql, (now_iso(), session.get("user_name"), squawk_id))
