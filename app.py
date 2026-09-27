@@ -1775,6 +1775,29 @@ def project_section_rename(project_id, section_id):
     return redirect(url_for("project_detail", project_id=project_id))
 
 
+@app.route("/projects/<int:project_id>/sections/<int:section_id>/notes", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_section_notes(project_id, section_id):
+    """Idea "Discrepancy List": notes is shop-only - never shown on the
+    invoice (project_invoice_csv) or in My Aircraft (customer._project_bill).
+    description is the write-up an owner actually sees there, once it's
+    filled in."""
+    conn = get_db()
+    section = conn.execute("SELECT id FROM project_sections WHERE id = ? AND project_id = ?",
+                           (section_id, project_id)).fetchone()
+    if not section:
+        conn.close()
+        abort(404)
+    notes = request.form.get("notes", "").strip()
+    description = request.form.get("description", "").strip()
+    conn.execute("UPDATE project_sections SET notes = ?, description = ? WHERE id = ?",
+                 (notes, description, section_id))
+    conn.commit()
+    conn.close()
+    flash("Saved.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 @app.route("/api/scan", methods=["POST"])
 @shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def api_scan():
@@ -2856,7 +2879,7 @@ def project_detail(project_id):
     conn.commit()
     section_meta = {r["name"]: dict(r) for r in conn.execute(
         """SELECT id, name, completed_at, completed_by, confirm_requested_at, confirm_requested_by,
-                  sent_back_at, sent_back_by
+                  sent_back_at, sent_back_by, notes, description
            FROM project_sections WHERE project_id = ?""", (project_id,)).fetchall()}
     for name, section_data in usage_by_section.items():
         meta = section_meta.get(name)
@@ -2867,6 +2890,8 @@ def project_detail(project_id):
         section_data["confirm_requested_by"] = meta["confirm_requested_by"] if meta else None
         section_data["sent_back_at"] = meta["sent_back_at"] if meta else None
         section_data["sent_back_by"] = meta["sent_back_by"] if meta else None
+        section_data["notes"] = meta["notes"] if meta else None
+        section_data["description"] = meta["description"] if meta else None
 
     # Open sections first alphabetically, then ones awaiting confirmation,
     # then fully completed ones at the bottom ordered by when they were

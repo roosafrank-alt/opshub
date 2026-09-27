@@ -495,6 +495,13 @@ def _migrate(conn):
     if "completed_by" not in [r["name"] for r in conn.execute("PRAGMA table_info(projects)").fetchall()]:
         conn.execute("ALTER TABLE projects ADD COLUMN completed_by TEXT")
         conn.commit()
+    if "notes" not in proj_sect_cols:
+        # Idea "Discrepancy List": notes is shop-only, never shown on the
+        # invoice or in My Aircraft; description is the write-up an owner
+        # actually sees there (see customer._project_bill/project_detail()).
+        conn.execute("ALTER TABLE project_sections ADD COLUMN notes TEXT")
+        conn.execute("ALTER TABLE project_sections ADD COLUMN description TEXT")
+        conn.commit()
 
     # Preset Sub Areas for a Quick Type (New/Edit Project's Annual, 100hr,
     # Oil Change, Maintenance buttons) - admin-managed from Manage > Task

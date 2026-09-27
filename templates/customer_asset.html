@@ -203,6 +203,13 @@
           <div class="fw-bold">${{ '%.2f'|format(b.total) }}</div>
         </div>
         <div class="text-muted small">{{ b.project.status|capitalize }}{% if b.project.completed_at %} &middot; completed {{ b.project.completed_at|usdate }}{% endif %}</div>
+        {% if b.discrepancies %}
+        <div class="mt-1">
+          {% for d in b.discrepancies %}
+          <div class="small"><strong>{{ d.name }}:</strong> <span class="text-muted">{{ d.description }}</span></div>
+          {% endfor %}
+        </div>
+        {% endif %}
       </div>
       {% endfor %}
       {% else %}

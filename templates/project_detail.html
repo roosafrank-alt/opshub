@@ -266,6 +266,22 @@
             {% else %}
             <p class="text-muted small p-2 mb-0">No parts assigned to this area yet.</p>
             {% endif %}
+            {% if section != 'General' and data.id %}
+            <div class="p-2 border-top">
+              <button type="button" class="btn btn-link btn-sm p-0 mb-1" onclick="event.stopPropagation(); var f=document.getElementById('sec-notes-{{ loop.index }}'); f.style.display = f.style.display==='none' ? 'block' : 'none';"><i class="bi bi-card-text"></i> Notes &amp; Description</button>
+              <form method="post" action="{{ url_for('project_section_notes', project_id=project.id, section_id=data.id) }}" id="sec-notes-{{ loop.index }}" style="display:{{ 'block' if data.notes or data.description else 'none' }};">
+                <div class="mb-2">
+                  <label class="form-label small mb-0">Description <span class="text-muted">(shown to the aircraft owner in My Aircraft)</span></label>
+                  <textarea name="description" class="form-control form-control-sm" rows="2">{{ data.description or '' }}</textarea>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small mb-0">Internal Notes <span class="text-muted">(shop only - never shown to the owner or on the invoice)</span></label>
+                  <textarea name="notes" class="form-control form-control-sm" rows="2">{{ data.notes or '' }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+              </form>
+            </div>
+            {% endif %}
           </div>
         </div>
         {% endfor %}
