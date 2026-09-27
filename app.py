@@ -2559,12 +2559,15 @@ def project_detail(project_id):
     """, (project_id, project_id)).fetchall()]
     found_items = _found_items_for_project(conn, project_id)
     has_owner = bool(project["asset_id"] and _project_owner_customers(conn, project))
+    # QA feat-shop-job-payments: what Mark Completed should warn about, if
+    # anything - 0 once the job's marked Paid.
+    unpaid_amount = 0 if (project["payment_status"] or "not_invoiced") == "paid" else _project_all_time_total(conn, project_id)
     conn.close()
     return render_template("project_detail.html", project=project, usage_by_section=usage_by_section,
                            total_cost=total_cost, tx=tx, all_parts=all_parts, photos=photos, open_orders=open_orders,
                            labor_sessions=labor_sessions, labor_total_cost=labor_total_cost,
                            labor_total_hours=labor_total_hours, known_sections=known_sections, intake=intake,
-                           found_items=found_items, found_has_owner=has_owner,
+                           found_items=found_items, found_has_owner=has_owner, unpaid_amount=unpaid_amount,
                            found_labor_rate=_found_default_labor_rate(conn=None))
 
 
@@ -5526,23 +5529,43 @@ def shop_pay():
                            periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end)
 
 
+def _project_all_time_total(conn, project_id):
+    """This project's all-time billed total (parts at sell price + clocked
+    labor) - same math as Billing's per-project total, just with no date
+    filter. Used for the "unpaid job" warning on Mark Completed."""
+    parts_total = sum(u["qty"] * u["sell_price"] for u in _shop_parts_usage(conn, "2000-01-01", "2100-01-01", project_id))
+    labor_total = conn.execute("""SELECT COALESCE(SUM(cost), 0) c FROM labor_sessions
+                                  WHERE project_id = ? AND ended_at IS NOT NULL""", (project_id,)).fetchone()["c"]
+    return parts_total + (labor_total or 0)
+
+
+PAYMENT_METHODS = ("Cash", "Card", "Check", "Venmo/Zelle", "Other")
+
+
 @app.route("/shop/billing")
 @shop_role_required('admin')
 def shop_billing():
     """Billing: every project with labor or parts in the period - parts at
     sell price plus clocked labor - with a link to its customer invoice
-    CSV. Totals across the top."""
+    CSV. Totals across the top, plus each job's payment status (QA
+    feat-shop-job-payments) and an "Owed to the shop" total for whatever's
+    been invoiced in this period but not yet marked paid."""
     start, end, period, label = _shop_period("this_month")
+    unpaid_only = request.args.get("unpaid") == "1"
     conn = get_db()
     projects = {}
 
     def proj(pid):
         if pid not in projects:
-            p = conn.execute("""SELECT pr.id, pr.code, pr.name, pr.status, a.tag as asset_tag
+            p = conn.execute("""SELECT pr.id, pr.code, pr.name, pr.status, pr.payment_status,
+                                       pr.invoiced_at, pr.paid_at, pr.paid_method, a.tag as asset_tag
                                 FROM projects pr LEFT JOIN assets a ON a.id = pr.asset_id WHERE pr.id = ?""",
                              (pid,)).fetchone()
             projects[pid] = {"id": pid, "code": p["code"] if p else "?", "name": p["name"] if p else "(deleted)",
                              "status": p["status"] if p else "", "asset_tag": p["asset_tag"] if p else None,
+                             "payment_status": (p["payment_status"] if p else None) or "not_invoiced",
+                             "invoiced_at": p["invoiced_at"] if p else None, "paid_at": p["paid_at"] if p else None,
+                             "paid_method": p["paid_method"] if p else None,
                              "labor_hours": 0.0, "labor": 0.0, "parts": 0.0, "parts_cost": 0.0, "parts_count": 0}
         return projects[pid]
 
@@ -5562,9 +5585,54 @@ def shop_billing():
     rows = sorted(projects.values(), key=lambda p: p["code"] or "")
     for p in rows:
         p["total"] = p["labor"] + p["parts"]
+        p["invoiced_days_ago"] = (date.today() - datetime.strptime(p["invoiced_at"][:10], "%Y-%m-%d").date()).days \
+            if p["invoiced_at"] else None
     totals = {k: sum(p[k] for p in rows) for k in ("labor_hours", "labor", "parts", "parts_cost", "total")}
-    return render_template("shop_billing.html", projects=rows, totals=totals,
+    owed_rows = [p for p in rows if p["payment_status"] == "invoiced"]
+    owed = {"total": sum(p["total"] for p in owed_rows), "jobs": len(owed_rows),
+            "over_30": sum(1 for p in owed_rows if (p["invoiced_days_ago"] or 0) > 30)}
+    if unpaid_only:
+        rows = [p for p in rows if p["payment_status"] != "paid"]
+    return render_template("shop_billing.html", projects=rows, totals=totals, owed=owed, unpaid_only=unpaid_only,
+                           payment_methods=PAYMENT_METHODS,
                            periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end)
+
+
+@app.route("/shop/billing/<int:project_id>/mark-invoiced", methods=["POST"])
+@shop_role_required('admin')
+def project_mark_invoiced(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    conn.execute("UPDATE projects SET payment_status = 'invoiced', invoiced_at = ?, invoiced_by = ? WHERE id = ?",
+                 (now_iso(), session.get("user_name"), project_id))
+    conn.commit()
+    conn.close()
+    flash("Marked invoiced.", "success")
+    return redirect(request.referrer or url_for("shop_billing"))
+
+
+@app.route("/shop/billing/<int:project_id>/mark-paid", methods=["POST"])
+@shop_role_required('admin')
+def project_mark_paid(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    method = request.form.get("paid_method", "").strip()
+    if method not in PAYMENT_METHODS:
+        conn.close()
+        flash("Pick how it was paid.", "danger")
+        return redirect(request.referrer or url_for("shop_billing"))
+    conn.execute("""UPDATE projects SET payment_status = 'paid', paid_at = ?, paid_by = ?, paid_method = ?
+                    WHERE id = ?""", (now_iso(), session.get("user_name"), method, project_id))
+    conn.commit()
+    conn.close()
+    flash("Marked paid.", "success")
+    return redirect(request.referrer or url_for("shop_billing"))
 
 
 @app.route("/shop/stats")

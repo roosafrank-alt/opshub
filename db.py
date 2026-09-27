@@ -1310,6 +1310,15 @@ def _migrate(conn):
         # booking a plane solo regardless of the student's own sign-off.
         # Defaults to allowed so no existing plane is suddenly un-bookable.
         ("assets", "solo_allowed", "ALTER TABLE assets ADD COLUMN solo_allowed INTEGER NOT NULL DEFAULT 1"),
+        # QA feat-shop-job-payments: whether a job's bill has gone out and
+        # been paid, shown on Manage > Billing - 'not_invoiced' (default,
+        # NULL reads the same way), 'invoiced' or 'paid'.
+        ("projects", "payment_status", "ALTER TABLE projects ADD COLUMN payment_status TEXT"),
+        ("projects", "invoiced_at", "ALTER TABLE projects ADD COLUMN invoiced_at TEXT"),
+        ("projects", "invoiced_by", "ALTER TABLE projects ADD COLUMN invoiced_by TEXT"),
+        ("projects", "paid_at", "ALTER TABLE projects ADD COLUMN paid_at TEXT"),
+        ("projects", "paid_by", "ALTER TABLE projects ADD COLUMN paid_by TEXT"),
+        ("projects", "paid_method", "ALTER TABLE projects ADD COLUMN paid_method TEXT"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

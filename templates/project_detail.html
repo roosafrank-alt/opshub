@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% block title %}{{ project.name }} - OpsHub{% endblock %}
 {% block content %}
+{#- QA feat-shop-job-payments: a plain "mark completed?" doesn't say the
+   bill's still outstanding, and completing a job is usually when the
+   plane leaves - unpaid_amount (0 once the job's marked Paid) is set in
+   project_detail() from _project_all_time_total(). #}
+{% if unpaid_amount %}
+{% set complete_confirm = "This job hasn't been paid yet ($" + ('%.2f'|format(unpaid_amount)) + " owed). Mark it completed anyway?" %}
+{% else %}
+{% set complete_confirm = "Mark this project as completed?" %}
+{% endif %}
 {% if photos %}
 <img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;">
 {% endif %}
@@ -43,7 +52,7 @@
   <div class="d-flex d-md-none gap-2 flex-wrap">
     <a href="{{ url_for('project_edit', project_id=project.id) }}" class="btn btn-outline-primary"><i class="bi bi-pencil"></i> Edit</a>
     {% if project.status not in ('completed', 'archived') %}
-    <form method="post" action="{{ url_for('project_status', project_id=project.id) }}" data-confirm="Mark this project as completed?" data-confirm-title="Complete Project" data-confirm-ok="Yes, mark completed" data-confirm-style="success"><input type="hidden" name="status" value="completed">
+    <form method="post" action="{{ url_for('project_status', project_id=project.id) }}" data-confirm="{{ complete_confirm }}" data-confirm-title="Complete Project" data-confirm-ok="Yes, mark completed" data-confirm-style="success"><input type="hidden" name="status" value="completed">
       <button class="btn btn-outline-success"><i class="bi bi-check2-circle"></i> Mark Completed</button></form>
     {% endif %}
     <div class="dropdown">
@@ -96,7 +105,7 @@
       <button class="btn btn-outline-warning btn-sm">On Hold</button></form>
     {% endif %}
     {% if project.status not in ('completed', 'archived') %}
-    <form method="post" action="{{ url_for('project_status', project_id=project.id) }}" data-confirm="Mark this project as completed?" data-confirm-title="Complete Project" data-confirm-ok="Yes, mark completed" data-confirm-style="success"><input type="hidden" name="status" value="completed">
+    <form method="post" action="{{ url_for('project_status', project_id=project.id) }}" data-confirm="{{ complete_confirm }}" data-confirm-title="Complete Project" data-confirm-ok="Yes, mark completed" data-confirm-style="success"><input type="hidden" name="status" value="completed">
       <button class="btn btn-outline-secondary btn-sm">Mark Completed</button></form>
     {% endif %}
     {% if project.status != 'archived' %}

@@ -2,15 +2,25 @@
    _shop_period() in app.py): quick buttons plus a custom from/to range.
    The including page sets `period_endpoint`. #}
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-  <div class="btn-group flex-wrap" role="group">
-    {% for key, name in periods %}
-    <a href="{{ url_for(period_endpoint, period=key) }}" class="btn btn-sm {{ 'btn-dark' if period == key else 'btn-outline-dark' }}">{{ name }}</a>
-    {% endfor %}
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    {% set unpaid_arg = {'unpaid': '1'} if (unpaid_only is defined and unpaid_only) else {} %}
+    <div class="btn-group flex-wrap" role="group">
+      {% for key, name in periods %}
+      <a href="{{ url_for(period_endpoint, period=key, **unpaid_arg) }}" class="btn btn-sm {{ 'btn-dark' if period == key else 'btn-outline-dark' }}">{{ name }}</a>
+      {% endfor %}
+    </div>
+    {#- Billing only (QA feat-shop-job-payments) - Labor Pay/Stats don't pass
+       `unpaid_only`, so this stays out of their period row entirely. #}
+    {% if unpaid_only is defined %}
+    <a href="{{ url_for(period_endpoint, period=period, **({'unpaid': '0'} if unpaid_only else {'unpaid': '1'})) }}"
+       class="btn btn-sm {{ 'btn-danger' if unpaid_only else 'btn-outline-danger' }}">Unpaid only</a>
+    {% endif %}
   </div>
   <form method="get" class="d-flex align-items-center gap-1 flex-wrap">
     <input type="date" name="from" class="form-control form-control-sm" style="width:auto;" value="{{ start if period == 'custom' else '' }}" aria-label="From">
     <span class="small text-muted">to</span>
     <input type="date" name="to" class="form-control form-control-sm" style="width:auto;" value="{{ end if period == 'custom' else '' }}" aria-label="To">
+    {% if unpaid_only is defined and unpaid_only %}<input type="hidden" name="unpaid" value="1">{% endif %}
     <button class="btn btn-sm {{ 'btn-dark' if period == 'custom' else 'btn-outline-dark' }}">Go</button>
   </form>
 </div>
