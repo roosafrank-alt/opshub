@@ -1741,6 +1741,25 @@ def _migrate(conn):
         conn.execute("ALTER TABLE photos ADD COLUMN found_item_id INTEGER REFERENCES found_items(id)")
     conn.commit()
 
+    # Found item conversation (idea "New feature: Owners approve extra
+    # repairs" revision 2): a back-and-forth note thread on one found item,
+    # shop and owner both post to it. author_type is 'shop' or 'owner'.
+    # Photos on a message live in the photos table (found_item_message_id),
+    # same pattern as a found item's own photos.
+    conn.execute("""CREATE TABLE IF NOT EXISTS found_item_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        found_item_id INTEGER NOT NULL REFERENCES found_items(id),
+        author_type TEXT NOT NULL,
+        author_name TEXT,
+        body TEXT,
+        created_at TEXT NOT NULL
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_found_item_messages_item ON found_item_messages(found_item_id)")
+    photo_cols_found2 = [r["name"] for r in conn.execute("PRAGMA table_info(photos)").fetchall()]
+    if "found_item_message_id" not in photo_cols_found2:
+        conn.execute("ALTER TABLE photos ADD COLUMN found_item_message_id INTEGER REFERENCES found_item_messages(id)")
+    conn.commit()
+
     # Cancellation waitlist (see waitlist_* in flight.py). days: comma list
     # of weekday numbers (0 = Monday); periods: morning/afternoon/evening.
     conn.execute("""CREATE TABLE IF NOT EXISTS flight_waitlist (
@@ -2168,3 +2187,20 @@ def save_upload(file_storage):
     stored_name = f"{unique}.{ext}"
     file_storage.save(os.path.join(UPLOAD_DIR, stored_name))
     return stored_name
+
+
+def found_item_messages(conn, found_item_id):
+    """The back-and-forth note thread on one found item (shop and owner
+    both post here - see found_item_message_new in app.py and
+    customer_found_item_message_new in customer.py), oldest first, each
+    with its own photos."""
+    rows = conn.execute(
+        "SELECT * FROM found_item_messages WHERE found_item_id = ? ORDER BY created_at, id",
+        (found_item_id,)).fetchall()
+    out = []
+    for r in rows:
+        m = dict(r)
+        m["photos"] = [p["filename"] for p in conn.execute(
+            "SELECT filename FROM photos WHERE found_item_message_id = ? ORDER BY id", (m["id"],)).fetchall()]
+        out.append(m)
+    return out

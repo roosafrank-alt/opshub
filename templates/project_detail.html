@@ -334,6 +334,35 @@
           {% endif %}
         </div>
         {% endif %}
+        {#- Back-and-forth notes with the owner on this specific item -
+           either side can add text and a photo, whatever its current
+           status (the owner may still ask a question or reconsider). #}
+        {% if it.messages %}
+        <div class="mt-2 border-top pt-2">
+          {% for m in it.messages %}
+          <div class="small mb-2 {{ 'text-end' if m.author_type == 'shop' }}">
+            <div class="d-inline-block p-2 rounded {{ 'bg-primary text-white' if m.author_type == 'shop' else 'bg-light border' }}" style="max-width:85%; text-align:left;">
+              <div class="fw-bold">{{ m.author_name or ('The owner' if m.author_type == 'owner' else 'Staff') }} <span class="fw-normal {{ 'text-white-50' if m.author_type == 'shop' else 'text-muted' }}">{{ m.created_at|usdate(true) }}</span></div>
+              <div style="white-space:pre-wrap;">{{ m.body }}</div>
+              {% if m.photos %}
+              <div class="d-flex flex-wrap gap-1 mt-1">
+                {% for fn in m.photos %}<a href="{{ url_for('static', filename='uploads/' + fn) }}" target="_blank" rel="noopener"><img src="{{ url_for('static', filename='uploads/' + fn) }}" alt="Photo" class="rounded border" style="width:56px;height:56px;object-fit:cover;"></a>{% endfor %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech', 'inspector') %}
+        <form method="post" action="{{ url_for('found_item_message_new', item_id=it.id) }}" enctype="multipart/form-data" class="mt-1">
+          <div class="input-group input-group-sm">
+            <input type="text" name="body" class="form-control" placeholder="Reply to the owner...">
+            <input type="file" name="photos" accept="image/*" class="form-control" style="max-width:9rem;">
+            <button class="btn btn-outline-primary"><i class="bi bi-send"></i></button>
+          </div>
+        </form>
+        {% endif %}
       </div>
       {% endfor %}
       {% else %}
