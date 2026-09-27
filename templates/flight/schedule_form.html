@@ -297,7 +297,7 @@
     <div class="row" id="hobbs-tach-fields">
       <div class="col-md-6 mb-3">
         <label class="form-label">Hobbs Start</label>
-        <input type="number" step="any" id="hobbs-start" name="hobbs_start" class="form-control" value="{{ form.get('hobbs_start', '') if form else '' }}">
+        <input type="text" id="hobbs-start" class="form-control" disabled>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Hobbs End</label>
@@ -305,12 +305,13 @@
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Tach Start</label>
-        <input type="number" step="any" id="tach-start" name="tach_start" class="form-control" value="{{ form.get('tach_start', '') if form else '' }}">
+        <input type="text" id="tach-start" class="form-control" disabled>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Tach End</label>
         <input type="number" step="any" name="tach_end" class="form-control" value="{{ form.get('tach_end', '') if form else '' }}">
       </div>
+      <div class="form-text mt-n2 mb-2">Starting Hobbs/Tach come from the plane's last flight (or its reading on file) - not editable here.</div>
     </div>
     {#- Student's own plane has no real Hobbs/Tach to log - just the one
        recorded-time box (see _flight_hours/_row_with_cost), billed at the
@@ -1065,17 +1066,20 @@
   completeCheck.addEventListener('change', function () { sync(); syncDate(); });
   sync();
   syncDate();
-  // Picking a plane fills in its current Hobbs/Tach as the start readings.
+  // Picking a plane fills in its current Hobbs/Tach as the start readings -
+  // not editable (chained automatically from the plane's last flight).
   var planeSelectEl = document.getElementById('plane-select');
-  planeSelectEl.addEventListener('change', function () {
-    var opt = this.options[this.selectedIndex];
-    var hobbs = opt.getAttribute('data-hobbs');
-    var tach = opt.getAttribute('data-tach');
+  function syncStartMeters() {
+    var opt = planeSelectEl.options[planeSelectEl.selectedIndex];
+    var hobbs = opt ? opt.getAttribute('data-hobbs') : '';
+    var tach = opt ? opt.getAttribute('data-tach') : '';
     var hobbsStart = document.getElementById('hobbs-start');
     var tachStart = document.getElementById('tach-start');
-    if (hobbs && !hobbsStart.value) hobbsStart.value = hobbs;
-    if (tach && !tachStart.value) tachStart.value = tach;
-  });
+    if (hobbsStart) hobbsStart.value = hobbs ? parseFloat(hobbs).toFixed(1) : '';
+    if (tachStart) tachStart.value = tach ? parseFloat(tach).toFixed(1) : '';
+  }
+  planeSelectEl.addEventListener('change', syncStartMeters);
+  syncStartMeters();
   // Disables Solo (unchecking it if it was checked) when the selected
   // plane isn't approved for solo flights (Planes > Edit > Solo flights
   // allowed) - checked on load too, not just on change, so re-rendering

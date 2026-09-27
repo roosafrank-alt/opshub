@@ -5323,15 +5323,13 @@ def schedule_start(scheduled_id):
         flash(f"Booking moved from {_slot_label(sched['scheduled_date'], sched['scheduled_time'])} "
               f"to now ({_format_time_12h(new_time)}).", "info")
     plane = conn.execute("SELECT * FROM assets WHERE id = ?", (sched["asset_id"],)).fetchone()
-    # The clock starts right away - it no longer waits on Starting Hobbs/
-    # Tach (every plain Start button posts here with neither). Whichever of
-    # the two is still missing becomes a required field on the Log Flight
-    # form once the flight ends (see log_active.html/log_end), so it's
-    # never skipped, just no longer something you have to stop and type in
-    # before the timer can begin.
-    hobbs_start = _parse_float(request.form.get("hobbs_start"))
-    tach_start = _parse_float(request.form.get("tach_start"))
-    last_hobbs = plane["hobbs_hours"] if plane else None
+    # The clock starts right away - no waiting on Starting Hobbs/Tach. They
+    # aren't typed in at all: a student or instructor can't edit them, so
+    # they're taken straight from the plane's current reading (chained
+    # automatically from the previous flight's ending reading once one
+    # exists - see the UPDATE in _save_logged_flight/log_end).
+    hobbs_start = plane["hobbs_hours"] if plane else None
+    tach_start = plane["tach_hours"] if plane else None
     solo = 1 if not sched["cfi_id"] else 0
     cur = conn.execute("""INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, hobbs_start, tach_start,
                            solo, scheduled_flight_id, started_at, created_at)
@@ -5340,9 +5338,6 @@ def schedule_start(scheduled_id):
                         date.today().strftime("%Y-%m-%d"), hobbs_start,
                         tach_start, solo, scheduled_id, now_iso(), now_iso()))
     flight_id = cur.lastrowid
-    if hobbs_start is not None and last_hobbs is not None and abs(hobbs_start - last_hobbs) >= 0.05:
-        flash(f"Starting Hobbs {hobbs_start:.1f} doesn't match the last one on file for {plane['tag']} "
-              f"({last_hobbs:.1f}) - {abs(hobbs_start - last_hobbs):.1f} hrs difference.", "warning")
     conn.execute("UPDATE flights SET guest_name = ? WHERE id = ?", (sched["guest_name"], flight_id))
     conn.execute("UPDATE scheduled_flights SET status = 'in_progress' WHERE id = ?", (scheduled_id,))
     conn.commit()
@@ -6374,9 +6369,16 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
         hobbs_start = hobbs_end = tach_start = tach_end = None
     else:
         recorded_hours = None
-        hobbs_start = _parse_float(form.get("hobbs_start"))
+        # Starting Hobbs/Tach are never taken from the form - a student or
+        # instructor can't edit them. They come straight from the plane's
+        # current reading (assets.hobbs_hours/tach_hours), which is itself
+        # always the previous flight's ending reading once one exists (see
+        # the UPDATE below), so this is really "chain off the last flight,
+        # or the plane's reading on file if there isn't one yet".
+        plane_row = conn.execute("SELECT hobbs_hours, tach_hours FROM assets WHERE id = ?", (asset_id,)).fetchone()
+        hobbs_start = plane_row["hobbs_hours"] if plane_row else None
+        tach_start = plane_row["tach_hours"] if plane_row else None
         hobbs_end = _parse_float(form.get("hobbs_end"))
-        tach_start = _parse_float(form.get("tach_start"))
         tach_end = _parse_float(form.get("tach_end"))
     oil_added_qt = _parse_float(form.get("oil_added_qt"))
     ground_time_hours = _parse_float(form.get("ground_time_hours"))
