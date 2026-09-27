@@ -76,7 +76,7 @@
        else '' %}
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav me-auto mb-2 mb-xl-0 shop-nav-boxed">
-        <li class="nav-item"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'scan' }}" id="tour-nav-scan" href="{{ url_for('scan_page') }}"><i class="bi bi-upc-scan"></i> Scan</a></li>
+        <li class="nav-item d-none d-xl-block"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'scan' }}" id="tour-nav-scan" href="{{ url_for('scan_page') }}"><i class="bi bi-upc-scan"></i> Scan</a></li>
         {% if is_master_admin or shop_role in ('admin', 'tech') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'parts' }}" id="tour-nav-parts" href="{{ url_for('parts_list') }}"><i class="bi bi-box-seam"></i> Parts</a></li>
         {% endif %}
@@ -198,6 +198,12 @@ document.addEventListener('DOMContentLoaded', function () {
 {% if session.get('user_id') and (session.get('is_master_admin') or session.get('shop_role')) and not embedded %}
 <div id="global-scan-toasts" class="no-print" aria-live="polite"></div>
 <div id="global-scan-backdrop" class="no-print" style="display:none;"></div>
+{% if not request.path.startswith('/scan') %}
+{#- Small always-visible shortcut for phones, where the Scan nav link is
+   tucked inside the collapsed hamburger menu (see the d-none d-xl-block
+   above - it's hidden here on purpose so this isn't shown twice). #}
+<a href="{{ url_for('scan_page') }}" class="btn btn-warning rounded-circle d-xl-none no-print mobile-scan-fab" title="Scan"><i class="bi bi-upc-scan"></i></a>
+{% endif %}
 <style>
   #global-scan-toasts { position: fixed; top: .75rem; left: 50%; transform: translateX(-50%); z-index: 1085;
     width: min(32rem, calc(100vw - 1.5rem)); }
@@ -209,6 +215,9 @@ document.addEventListener('DOMContentLoaded', function () {
   iframe.global-scan-frame.open { left: 50%; top: 4vh; transform: translateX(-50%); width: min(44rem, calc(100vw - 1.5rem));
     height: calc(92vh - 3.5rem); visibility: visible; z-index: 1082; background: #f8f9fa; border-radius: .5rem; box-shadow: 0 1rem 2rem rgba(0,0,0,.4); }
   #global-scan-close { position: fixed; bottom: 3vh; left: 50%; transform: translateX(-50%); z-index: 1083; min-height: 2.5rem; }
+  .mobile-scan-fab { position: fixed; right: 1.1rem; bottom: 1.1rem; width: 3.5rem; height: 3.5rem;
+    display: flex; align-items: center; justify-content: center; font-size: 1.6rem; z-index: 1075;
+    box-shadow: 0 .3rem .9rem rgba(0,0,0,.35); }
 </style>
 <script>
 // Global USB/Bluetooth barcode scanner capture - works on ANY page, not just
