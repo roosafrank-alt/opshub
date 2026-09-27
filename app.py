@@ -675,6 +675,23 @@ _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.
                q.repair_confirm_requested_by as repair_confirm_requested_by,
                q.sent_back_note as sent_back_note"""
 
+# Reported -> Assigned -> Working -> Inspection -> Done - the same five
+# steps and order the step pills show everywhere a squawk appears (see
+# squawk_step_pills in templates/_squawk_macros.html, which this mirrors).
+SQUAWK_STEPS = ["new", "assigned", "working", "inspection", "done"]
+
+
+def squawk_step_index(sq):
+    if sq["repaired_at"]:
+        return 4
+    if sq["repair_confirm_requested_at"]:
+        return 3
+    if not sq["acknowledged_at"]:
+        return 0
+    if sq["worker_acknowledged_at"] or not sq["assigned_to"]:
+        return 2
+    return 1
+
 
 def get_open_squawks(conn):
     return conn.execute(f"""
@@ -811,8 +828,24 @@ def squawks_list():
     assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     assignable_workers = get_assignable_workers(conn)
     conn.close()
-    return render_template("squawks.html", open_squawks=open_squawks, acknowledged=acknowledged, repaired=repaired,
-                           assets=assets, assignable_workers=assignable_workers)
+
+    # One list at a time, filtered by step, instead of 3 stacked lists that
+    # each mixed several steps together (QA finding ux-squawk-page-steps).
+    # open_squawks is always step "new" and repaired always "done"; the old
+    # "acknowledged" list actually mixed assigned/working/inspection, so it
+    # gets bucketed the same way.
+    buckets = {step: [] for step in SQUAWK_STEPS}
+    for sq in list(open_squawks) + list(acknowledged) + list(repaired):
+        buckets[SQUAWK_STEPS[squawk_step_index(sq)]].append(sq)
+    step_counts = {step: len(rows) for step, rows in buckets.items()}
+    current_step = request.args.get("step")
+    if current_step not in SQUAWK_STEPS:
+        current_step = next((s for s in SQUAWK_STEPS if step_counts[s]), "new")
+
+    return render_template("squawks.html", step_counts=step_counts, current_step=current_step,
+                           squawks_for_step=buckets[current_step],
+                           assets=assets, assignable_workers=assignable_workers,
+                           show_report_form=request.args.get("report") == "1")
 
 
 @app.route("/squawks/new", methods=["POST"])

@@ -30,15 +30,21 @@
 </div>
 {% endif %}
 
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions, squawk_my_actions, squawk_confirm_actions %}
+{% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
+
 {#- Phones: the Scan page (the shop's most-used screen) is one big thumb
    tap from where techs land, above everything else. Desktop keeps it in
-   the top menu. #}
+   the top menu. Report a squawk sits right under it - reporting one used
+   to take a trip through the menu to the Squawks page first. #}
 <a href="{{ url_for('scan_page') }}" class="btn btn-warning btn-lg fw-bold w-100 py-3 mb-3 d-md-none dash-scan-btn">
   <i class="bi bi-upc-scan"></i> Scan
 </a>
-
-{% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions, squawk_my_actions, squawk_confirm_actions %}
-{% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
+{% if can_assign_squawks %}
+<a href="{{ url_for('squawks_list', report=1) }}#report-squawk-form" class="btn btn-outline-danger fw-bold w-100 py-2 mb-3 d-md-none">
+  <i class="bi bi-flag"></i> Report a squawk
+</a>
+{% endif %}
 
 {#- An Inspector's actual to-do on this dashboard: repairs waiting on their
    sign-off. Admins can confirm too. See get_squawks_awaiting_confirm and

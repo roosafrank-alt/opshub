@@ -1,8 +1,9 @@
 {% extends "base.html" %}
-{% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions, squawk_confirm_actions %}
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions, squawk_confirm_actions, squawk_step_action %}
 {% block title %}{{ asset.tag }} - OpsHub{% endblock %}
 {% block content %}
 {% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
+{% set can_confirm_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector') %}
 {% if photos %}
 <img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;">
 {% elif project_cover %}
@@ -347,53 +348,17 @@
              the Squawks tab - both keep showing them same as before) also
              land right here, so a tech working the plane's to-do list sees
              everything that needs doing in one place instead of having to
-             check two spots. An unacknowledged squawk's checkbox
-             acknowledges it (same action as the banner's own Acknowledge
-             button); once it's acknowledged it stays on this list, shown
-             amber, until the checkbox instead requests repair confirmation
-             - same request/confirm two-step a project sub area requires
-             (see project_detail.html), signed off via squawk_repair_confirm
-             below - there's no "delete" for a squawk the way there is for a
-             plain to-do. #}
+             check two spots. One next-step button each, same as the
+             Squawks page and My Tasks (squawk_step_action) - there's no
+             "delete" for a squawk the way there is for a plain to-do. #}
           {% for sq in todo_squawks %}
           <li class="list-group-item px-0 d-flex flex-column gap-1">
-            <div class="d-flex justify-content-between align-items-start gap-2">
+            <div><span class="badge {{ 'bg-warning text-dark' if sq.acknowledged_at else 'bg-danger' }} me-1">Squawk</span>{{ sq.notes or '(no details given)' }}</div>
             {% if sq.repair_confirm_requested_at %}
-            <span class="flex-grow-1"><span class="badge bg-warning text-dark me-1">Squawk</span>{{ sq.notes or '(no details given)' }}
-              <small class="text-warning-emphasis fw-bold d-block"><i class="bi bi-hourglass-split"></i> Awaiting repair confirmation - marked ready by {{ sq.repair_confirm_requested_by or '-' }}</small>
-            </span>
-            {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector') %}
-            {{ squawk_confirm_actions(sq, confirm_label='Confirm', send_back_label='Send Back', size='btn-sm') }}
+            <small class="text-warning-emphasis fw-bold d-block"><i class="bi bi-hourglass-split"></i> Awaiting repair confirmation - marked ready by {{ sq.repair_confirm_requested_by or '-' }}</small>
             {% endif %}
-            {% elif sq.acknowledged_at and can_assign_squawks %}
-            <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex align-items-start gap-2 flex-grow-1" data-confirm="Mark this squawk as repaired/addressed? An Inspector or admin will still need to confirm it.">
-              <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark repaired">
-                <i class="bi bi-square fs-5 text-warning"></i>
-              </button>
-              <span><span class="badge bg-warning text-dark me-1">Squawk</span>{{ sq.notes or '(no details given)' }}</span>
-            </form>
-            {% else %}
-            <span class="flex-grow-1"><span class="badge bg-danger me-1">Squawk</span>{{ sq.notes or '(no details given)' }}</span>
-            {% endif %}
-            </div>
             <div class="ps-4">{{ squawk_step_pills(sq) }}</div>
-            {% if sq.acknowledged_at and can_assign_squawks %}
-            {#- Same assign dropdown a plain to-do has below (plane_todo_assign)
-               - hands the squawk to a tech via squawk_assign, which also
-               shows up on the Squawks tab (same assigned_to column). A new,
-               unacknowledged squawk picks who fixes it below instead
-               (squawk_new_actions), acknowledging and assigning together. #}
-            <form method="post" action="{{ url_for('squawk_assign', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="ps-4">
-              <select name="assigned_to" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
-                <option value="">Unassigned</option>
-                {% for w in assignable_workers %}
-                <option value="{{ w.id }}" {{ 'selected' if sq.assigned_to == w.id }}>{{ w.name }}</option>
-                {% endfor %}
-              </select>
-            </form>
-            {% elif not sq.acknowledged_at and can_assign_squawks %}
-            <div class="ps-4">{{ squawk_new_actions(sq, assignable_workers, session.get('user_id')) }}</div>
-            {% endif %}
+            <div class="ps-4">{{ squawk_step_action(sq, assignable_workers, session.get('user_id'), can_assign_squawks, can_confirm_squawks) }}</div>
           </li>
           {% endfor %}
           {% for t in open_todos %}

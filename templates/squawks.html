@@ -1,144 +1,88 @@
 {% extends "base.html" %}
-{% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions, squawk_confirm_actions %}
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_step_action %}
 {% block title %}Squawks - OpsHub{% endblock %}
 {% block content %}
 {% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
-<h4 class="mb-3"><i class="bi bi-exclamation-triangle-fill text-danger"></i> Squawks</h4>
-<p class="text-muted small">Flagged by a CFI when logging a flight in Flight School, or reported directly - from a plane's page, or right here below. Picking who fixes a new one acknowledges it too - it stays here until it's actually marked repaired.</p>
+{% set can_confirm_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector') %}
+{#- One step's worth of an outline/solid pair, per step (see SQUAWK_STEPS/
+   squawk_step_index in app.py): "new" is red/danger, "inspection" green/
+   success (an Inspector's own step, worth standing out even unselected),
+   everything else plain gray - matches the approved mockup. #}
+{% set step_colors = {'new': 'danger', 'assigned': 'secondary', 'working': 'secondary', 'inspection': 'success', 'done': 'secondary'} %}
+{% set step_labels = {'new': 'New', 'assigned': 'Assigned', 'working': 'Working', 'inspection': 'Inspection', 'done': 'Done'} %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <h4 class="mb-0"><i class="bi bi-exclamation-triangle-fill text-danger"></i> Squawks</h4>
+  {% if can_assign_squawks %}
+  <button type="button" class="btn btn-outline-danger btn-sm fw-bold" data-bs-toggle="collapse" data-bs-target="#report-squawk-form"><i class="bi bi-flag"></i> Report a squawk</button>
+  {% endif %}
+</div>
 
 {% if can_assign_squawks %}
-<div class="card p-3 mb-4">
-  <h6 class="mb-2">Report an Issue</h6>
-  <form method="post" action="{{ url_for('squawk_quick_new') }}" class="row g-2 align-items-start">
-    <div class="col-12 col-md-3">
-      <select name="asset_id" class="form-select form-select-sm" required>
-        <option value="" disabled selected>Plane...</option>
-        {% for a in assets %}
-        <option value="{{ a.id }}">{{ a.tag }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-12 col-md-7">
-      <input type="text" name="notes" class="form-control form-control-sm" placeholder="What's wrong with it?" required>
-    </div>
-    <div class="col-12 col-md-2">
-      <button class="btn btn-outline-danger btn-sm fw-bold w-100"><i class="bi bi-flag"></i> Report</button>
-    </div>
-  </form>
-  <div class="form-text">No need to log a flight for this - goes straight to Open below.</div>
-</div>
+<form method="post" action="{{ url_for('squawk_quick_new') }}" id="report-squawk-form" class="collapse{{ ' show' if show_report_form }} card p-3 mb-3 row g-2 align-items-start">
+  <div class="col-12 col-md-3">
+    <select name="asset_id" class="form-select form-select-sm" required>
+      <option value="" disabled selected>Plane...</option>
+      {% for a in assets %}
+      <option value="{{ a.id }}">{{ a.tag }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-12 col-md-7">
+    <input type="text" name="notes" class="form-control form-control-sm" placeholder="What's wrong with it?" required>
+  </div>
+  <div class="col-12 col-md-2">
+    <button class="btn btn-outline-danger btn-sm fw-bold w-100"><i class="bi bi-flag"></i> Report</button>
+  </div>
+</form>
 {% endif %}
 
-<h6 class="mt-4">Open ({{ open_squawks|length }})</h6>
-{% if open_squawks %}
-<div class="card p-3 mb-4 border-danger">
-  {#- Whole box shaded red, same treatment as an unacknowledged alert on
-     the Flight School side (see alert_row in flight/alerts.html) - not
-     just a thin outline, so an open squawk is impossible to miss. #}
-  {% for sq in open_squawks %}
-  <div class="d-flex flex-column gap-1 p-2 mb-2 border rounded bg-danger-subtle border-danger-subtle">
-    <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.event_date|usdate }} &middot;
-      {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
-      {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
-    <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-    {{ squawk_step_pills(sq) }}
-    {#- Picking a name or "I'll take it" acknowledges and assigns in one
-       request, no confirmation pop-up - see squawk_acknowledge in app.py
-       and _apply_squawk_assignment. Reassigning and Mark Repaired only show
-       up once a squawk has an owner, below in Acknowledged. An Inspector
-       can't do either (they aren't a shop_role_required('admin', 'tech')
-       route), so they get a read-only view here - their own sign-off box
-       is on the dashboard. #}
-    {% if can_assign_squawks %}
-    {{ squawk_new_actions(sq, assignable_workers, session.get('user_id')) }}
-    {% endif %}
-  </div>
+{#- Step filters: one list at a time instead of 3 stacked lists that each
+   mixed several steps together. Opens on the first step with anything in
+   it (see squawks_list() in app.py). #}
+<div class="d-flex gap-2 flex-wrap mb-3">
+  {% for step in ['new', 'assigned', 'working', 'inspection', 'done'] %}
+  <a href="{{ url_for('squawks_list', step=step) }}" class="btn btn-sm fw-bold {{ 'btn-' ~ step_colors[step] if step == current_step else 'btn-outline-' ~ step_colors[step] }}">{{ step_labels[step] }} {{ step_counts[step] }}</a>
   {% endfor %}
 </div>
-{% else %}
-<p class="text-muted mb-4">Nothing open right now. 👍</p>
-{% endif %}
 
-<h6>Acknowledged, Not Yet Repaired ({{ acknowledged|length }})</h6>
-{% if acknowledged %}
-<div class="card p-3 mb-4 border-warning">
-  {#- Amber shading, same as an acknowledged-not-resolved alert. #}
-  {% for sq in acknowledged %}
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 p-2 mb-2 border rounded bg-warning-subtle border-warning-subtle">
-    <div>
+<h6>{{ step_labels[current_step] }}{{ ' - pick who fixes it' if current_step == 'new' else '' }} ({{ step_counts[current_step] }})</h6>
+{% if squawks_for_step %}
+  {% if current_step == 'done' %}
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th>Plane</th><th>Date</th><th>Reported by</th><th>Notes</th><th>Repaired</th></tr></thead>
+        <tbody>
+          {% for sq in squawks_for_step %}
+          <tr>
+            <td><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></td>
+            <td><small>{{ sq.event_date|usdate }}</small></td>
+            <td>{{ sq.reported_by if sq.kind == 'quick' else sq.student_name }}</td>
+            <td><small>{{ sq.notes or '-' }}</small></td>
+            <td><small>{{ sq.repaired_by or '-' }}<br>{{ sq.repaired_at|usdate(true) if sq.repaired_at else '' }}</small></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card p-3 mb-4 border-{{ step_colors[current_step] }}">
+    {% for sq in squawks_for_step %}
+    <div class="d-flex flex-column gap-1 p-2 mb-2 border rounded bg-{{ step_colors[current_step] }}-subtle border-{{ step_colors[current_step] }}-subtle">
       <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.event_date|usdate }} &middot;
         {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
         {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
       <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-      <div class="my-1">{{ squawk_step_pills(sq) }}</div>
-      <small class="text-muted d-block">Acknowledged by {{ sq.acknowledged_by or '-' }}, {{ sq.acknowledged_at|usdate(true) if sq.acknowledged_at else '' }}</small>
-      {#- Whoever assigned it can see right here whether the tech has said
-         "got it" yet (squawk_worker_ack) - that's separate from someone
-         just acknowledging the squawk exists, above. #}
-      {% if sq.assigned_to %}
-      <small class="d-block {{ 'text-success' if sq.worker_acknowledged_at else 'text-warning-emphasis fw-bold' }}">
-        <i class="bi {{ 'bi-check-circle-fill' if sq.worker_acknowledged_at else 'bi-hourglass-split' }}"></i>
-        Assigned to {{ sq.assigned_to_name or '-' }} -
-        {% if sq.worker_acknowledged_at %}accepted {{ sq.worker_acknowledged_at|usdate(true) }}
-        {% else %}not yet accepted{% endif %}
-      </small>
-      {% endif %}
-      {#- Same request/confirm two-step a project sub area requires (see
-         project_detail.html) - marking repaired just requests confirmation
-         until an Inspector or admin signs off, see squawk_repair_confirm. #}
-      {% if sq.repair_confirm_requested_at %}
-      <small class="text-warning-emphasis fw-bold d-block"><i class="bi bi-hourglass-split"></i> Awaiting repair confirmation - marked ready by {{ sq.repair_confirm_requested_by or '-' }}</small>
-      {% endif %}
+      {% if sq.assigned_to %}<small class="text-muted d-block">Assigned to {{ sq.assigned_to_name or '-' }}</small>{% endif %}
+      {{ squawk_step_pills(sq) }}
+      {{ squawk_step_action(sq, assignable_workers, session.get('user_id'), can_assign_squawks, can_confirm_squawks) }}
     </div>
-    <div class="d-flex flex-column align-items-end gap-1">
-      {% if can_assign_squawks %}
-      <form method="post" action="{{ url_for('squawk_assign', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex gap-1">
-        <select name="assigned_to" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
-          <option value="">Unassigned</option>
-          {% for w in assignable_workers %}
-          <option value="{{ w.id }}" {{ 'selected' if sq.assigned_to == w.id }}>{{ w.name }}</option>
-          {% endfor %}
-        </select>
-      </form>
-      {% endif %}
-      {% if sq.repair_confirm_requested_at %}
-        {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector') %}
-        {{ squawk_confirm_actions(sq, confirm_label='Confirm', send_back_label='Send Back') }}
-        {% endif %}
-      {% elif can_assign_squawks %}
-      <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Mark this squawk as repaired/addressed? An Inspector or admin will still need to confirm it.">
-        <button class="btn btn-success btn-sm fw-bold"><i class="bi bi-tools"></i> Mark Repaired</button>
-      </form>
-      {% endif %}
-    </div>
+    {% endfor %}
   </div>
-  {% endfor %}
-</div>
+  {% endif %}
 {% else %}
-<p class="text-muted mb-4">None right now.</p>
-{% endif %}
-
-<h6>Recently Repaired</h6>
-{% if repaired %}
-<div class="card">
-  <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0">
-      <thead class="table-light"><tr><th>Plane</th><th>Date</th><th>Reported by</th><th>Notes</th><th>Repaired</th></tr></thead>
-      <tbody>
-        {% for sq in repaired %}
-        <tr>
-          <td><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></td>
-          <td><small>{{ sq.event_date|usdate }}</small></td>
-          <td>{{ sq.reported_by if sq.kind == 'quick' else sq.student_name }}</td>
-          <td><small>{{ sq.notes or '-' }}</small></td>
-          <td><small>{{ sq.repaired_by or '-' }}<br>{{ sq.repaired_at|usdate(true) if sq.repaired_at else '' }}</small></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% else %}
-<p class="text-muted">None yet.</p>
+<p class="text-muted mb-4">Nothing here right now. 👍</p>
 {% endif %}
 {% endblock %}
