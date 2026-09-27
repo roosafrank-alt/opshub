@@ -6849,6 +6849,87 @@ def billing_mark_paid(student_id):
     return redirect(url_for("flight.billing"))
 
 
+def _billing_cross_check(conn):
+    """Idea "Billing cross check": OpsHub actually tracks what a student
+    owes two separate, unconnected ways - the Billing page's flights.paid
+    checkbox (toggled by hand, per flight) and the student_ledger/
+    students.balance running total (what Add Funds, flight logging, cancel
+    fees, and the balance-hold feature all actually use). Nothing keeps
+    them in sync automatically, so this is the "automated verification
+    accountant" Frank asked for: it flags where they've drifted apart,
+    rather than trying to be a third source of truth. Read-only - it
+    doesn't fix anything, just surfaces what to look at.
+
+    Returns a dict with three lists, each empty when everything reconciles:
+      balance_mismatches - a student whose stored balance disagrees with
+        the sum of their own ledger entries (something updated one without
+        the other - a bug, or a hand edit to the database).
+      paid_flag_mismatches - a student where what the Billing page's
+        "unpaid" flights add up to doesn't match what the ledger says they
+        owe (a flight marked paid without a matching payment, a payment
+        recorded without marking the flight(s) paid, or a rate changed
+        after the flight was logged so the live Billing total no longer
+        matches what was actually charged at the time).
+      unlogged_charges - a finished flight with no student_ledger
+        'flight_deduction' row at all (not even the $0 one every flight
+        gets - see _deduct_flight_cost) - it was never run through the
+        normal charge path, so nothing charged the student for it.
+    """
+    tolerance = 0.01
+    students = conn.execute("SELECT id, name, balance FROM students WHERE is_station = 0").fetchall()
+
+    unpaid_rows = [_row_with_cost(r) for r in conn.execute(_LOG_ROW_SQL + " WHERE f.paid = 0").fetchall()]
+    unpaid_total_by_student = {}
+    for f in unpaid_rows:
+        unpaid_total_by_student[f["student_id"]] = unpaid_total_by_student.get(f["student_id"], 0.0) + f["total"]
+
+    balance_mismatches = []
+    paid_flag_mismatches = []
+    for s in students:
+        ledger_total = conn.execute("SELECT COALESCE(SUM(amount), 0) t FROM student_ledger WHERE student_id = ?",
+                                    (s["id"],)).fetchone()["t"]
+        if abs((s["balance"] or 0) - ledger_total) > tolerance:
+            balance_mismatches.append({"student_id": s["id"], "student_name": s["name"],
+                                       "stored_balance": s["balance"] or 0, "ledger_total": ledger_total,
+                                       "diff": round((s["balance"] or 0) - ledger_total, 2)})
+        # Compared against ALL non-station students, not just ones with an
+        # unpaid flight right now - a student who owes money for a reason
+        # other than an unpaid flight (a late-cancellation fee, say) with
+        # nothing showing unpaid on the Billing page is just as real a
+        # mismatch as the other way around.
+        unpaid_total = unpaid_total_by_student.get(s["id"], 0.0)
+        owed = student_owed(s)
+        if abs(unpaid_total - owed) > tolerance:
+            paid_flag_mismatches.append({"student_id": s["id"], "student_name": s["name"],
+                                         "unpaid_flights_total": round(unpaid_total, 2), "ledger_owed": owed,
+                                         "diff": round(unpaid_total - owed, 2)})
+
+    unlogged_charges = conn.execute(f"""
+        SELECT f.id, f.flight_date, COALESCE(NULLIF(f.guest_name, '') || ' (guest)', s.name) as student_name, a.tag as plane_tag
+        FROM flights f
+        JOIN students s ON s.id = f.student_id
+        JOIN assets a ON a.id = f.asset_id
+        WHERE {_FINISHED_FLIGHT_SQL}
+          AND NOT EXISTS (SELECT 1 FROM student_ledger sl WHERE sl.entry_type = 'flight_deduction' AND sl.flight_id = f.id)
+        ORDER BY f.flight_date DESC
+    """).fetchall()
+
+    balance_mismatches.sort(key=lambda m: m["student_name"])
+    paid_flag_mismatches.sort(key=lambda m: m["student_name"])
+    return {"balance_mismatches": balance_mismatches, "paid_flag_mismatches": paid_flag_mismatches,
+            "unlogged_charges": [dict(u) for u in unlogged_charges]}
+
+
+@flight_bp.route("/billing/cross-check")
+@billing_required
+def billing_cross_check():
+    conn = get_db()
+    result = _billing_cross_check(conn)
+    conn.close()
+    clean = not (result["balance_mismatches"] or result["paid_flag_mismatches"] or result["unlogged_charges"])
+    return render_template("flight/billing_cross_check.html", clean=clean, **result)
+
+
 def _stats_range(range_key, custom_start, custom_end):
     """Resolves a preset ('week'/'month'/'year'/'custom') plus optional
     custom start/end strings into a concrete (range_key, start_date,

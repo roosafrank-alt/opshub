@@ -1,0 +1,92 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Billing Cross-Check - OpsHub{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0">Billing Cross-Check
+    <span class="text-muted fs-6">- reconciles the Billing page's paid/unpaid flights against each student's actual balance</span>
+  </h4>
+  <a href="{{ url_for('flight.billing') }}" class="btn btn-outline-secondary btn-sm">&laquo; Billing</a>
+</div>
+
+{% if clean %}
+<div class="alert alert-success border-success border-2">
+  <i class="bi bi-check-circle-fill"></i> Everything checks out - every student's balance matches their ledger, and what the Billing page shows as unpaid matches what they actually owe.
+</div>
+{% endif %}
+
+<div class="card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-cash-coin"></i> Balance doesn't match the ledger
+    {% if balance_mismatches %}<span class="badge bg-danger">{{ balance_mismatches|length }}</span>{% else %}<span class="badge bg-success">0</span>{% endif %}
+  </h6>
+  <p class="text-muted small mb-2">A student's stored balance should always equal the sum of their own ledger entries (payments, flight charges, fees). These don't - something changed one without the other.</p>
+  {% if balance_mismatches %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead class="table-light"><tr><th>Student</th><th>Stored Balance</th><th>Sum of Ledger</th><th>Difference</th><th></th></tr></thead>
+      <tbody>
+        {% for m in balance_mismatches %}
+        <tr>
+          <td data-label="Student">{{ m.student_name }}</td>
+          <td data-label="Stored Balance">${{ '%.2f'|format(m.stored_balance) }}</td>
+          <td data-label="Sum of Ledger">${{ '%.2f'|format(m.ledger_total) }}</td>
+          <td data-label="Difference"><strong class="text-danger">${{ '%.2f'|format(m.diff) }}</strong></td>
+          <td data-label=""><a href="{{ url_for('flight.student_field_detail', student_id=m.student_id, field_key='account') }}" class="btn btn-outline-primary btn-sm">View Account</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-receipt"></i> Unpaid flights don't add up to what's owed
+    {% if paid_flag_mismatches %}<span class="badge bg-danger">{{ paid_flag_mismatches|length }}</span>{% else %}<span class="badge bg-success">0</span>{% endif %}
+  </h6>
+  <p class="text-muted small mb-2">The Billing page's "unpaid" total (each flight's own paid/unpaid checkbox) should match what the student's balance says they owe. When these disagree, either a flight was marked paid without a matching payment, a payment was recorded without marking the flight(s) paid, or a rate changed after the flight was logged.</p>
+  {% if paid_flag_mismatches %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead class="table-light"><tr><th>Student</th><th>Unpaid Flights Total</th><th>Owed per Ledger</th><th>Difference</th><th></th></tr></thead>
+      <tbody>
+        {% for m in paid_flag_mismatches %}
+        <tr>
+          <td data-label="Student">{{ m.student_name }}</td>
+          <td data-label="Unpaid Flights Total">${{ '%.2f'|format(m.unpaid_flights_total) }}</td>
+          <td data-label="Owed per Ledger">${{ '%.2f'|format(m.ledger_owed) }}</td>
+          <td data-label="Difference"><strong class="text-danger">${{ '%.2f'|format(m.diff) }}</strong></td>
+          <td data-label=""><a href="{{ url_for('flight.billing', status='all') }}" class="btn btn-outline-primary btn-sm">View Billing</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-exclamation-triangle"></i> Finished flights never charged
+    {% if unlogged_charges %}<span class="badge bg-danger">{{ unlogged_charges|length }}</span>{% else %}<span class="badge bg-success">0</span>{% endif %}
+  </h6>
+  <p class="text-muted small mb-2">Every logged flight normally gets a ledger entry the moment it's finished - even a $0 one, so its billing status stays traceable. These have none at all, so nothing ever charged the student for them.</p>
+  {% if unlogged_charges %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead class="table-light"><tr><th>Date</th><th>Student</th><th>Plane</th><th></th></tr></thead>
+      <tbody>
+        {% for f in unlogged_charges %}
+        <tr>
+          <td data-label="Date">{{ f.flight_date|usdate }}</td>
+          <td data-label="Student">{{ f.student_name }}</td>
+          <td data-label="Plane">{{ f.plane_tag }}</td>
+          <td data-label=""><a href="{{ url_for('flight.log_detail', flight_id=f.id) }}" class="btn btn-outline-primary btn-sm">View Flight</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<p class="text-muted small">This is read-only - it doesn't fix anything on its own, just flags what to look at. CFI pay isn't cross-checked yet (a later version).</p>
+{% endblock %}
