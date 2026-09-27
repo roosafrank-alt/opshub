@@ -2822,9 +2822,19 @@ def project_status(project_id):
     if new_status not in ("active", "completed", "on_hold", "archived"):
         abort(400)
     conn = get_db()
-    if not conn.execute("SELECT 1 FROM projects WHERE id = ?", (project_id,)).fetchone():
+    current = conn.execute("SELECT status FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not current:
         conn.close()
         abort(404)
+    # QA fix qa-project-double-complete: pressing Complete on a job that's
+    # already completed (a double tap, or pressing it again later) used to
+    # re-run the 100-hour/oil-change recording every time, duplicating the
+    # plane's maintenance history entry. Already completed -> completed is
+    # a no-op; reopening it first (to any other status) and completing it
+    # again still records normally.
+    if new_status == "completed" and current["status"] == "completed":
+        conn.close()
+        return redirect(url_for("project_detail", project_id=project_id))
     completed_at = now_iso() if new_status == "completed" else None
     completed_by = session.get("user_name") if new_status == "completed" else None
     conn.execute("UPDATE projects SET status = ?, completed_at = ?, completed_by = ? WHERE id = ?",
