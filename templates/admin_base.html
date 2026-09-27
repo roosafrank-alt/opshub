@@ -52,8 +52,10 @@
         <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'admin_reset' }}" href="{{ url_for('admin_reset') }}"><i class="bi bi-arrow-counterclockwise"></i> Reset Data</a></li>
       </ul>
       <div class="d-flex align-items-center gap-3">
-        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-tools"></i> Maintenance</a>
-        <a href="{{ url_for('flight.dashboard') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-airplane-engines"></i> Flight School</a>
+        <div class="d-flex admin-nav-boxed">
+          <a href="{{ url_for('dashboard') }}" class="nav-link"><i class="bi bi-tools"></i> Maintenance</a>
+          <a href="{{ url_for('flight.dashboard') }}" class="nav-link"><i class="bi bi-airplane-engines"></i> Flight School</a>
+        </div>
         <div class="d-flex flex-column align-items-end">
           {% set view_as_program = 'shop' %}
           {% include "_view_as_chips.html" %}

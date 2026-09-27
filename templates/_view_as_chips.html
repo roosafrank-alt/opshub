@@ -8,7 +8,7 @@
 {% if is_real_master_admin %}
 {% set levels = flight_view_as_levels if view_as_program == 'flight' else shop_view_as_levels %}
 {% set active_level = (session.get('flight_role') if view_as_program == 'flight' else shop_role) if view_as_active_program == view_as_program else none %}
-<div class="d-flex align-items-center flex-wrap gap-1 mb-1" style="font-size:.68rem;">
+<div class="d-flex align-items-center flex-nowrap gap-1 mb-1 text-nowrap" style="font-size:.68rem;">
   <span class="text-white-50">View as:</span>
   {% for level, label in levels.items() %}
   {% if level != active_level %}
