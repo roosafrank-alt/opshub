@@ -54,14 +54,14 @@ class SquawkRepairToggleTest(OpsHubTestCase):
         body = r.get_data(as_text=True)
         self.assertIn("With inspector (tap to undo)", body)
         self.assertIn("btn-secondary", body)
-        self.assertNotIn("Done - send to inspector", body)
+        self.assertNotIn("Mark as Repaired", body)
 
     def test_my_tasks_shows_done_send_to_inspector_before_any_request(self):
         squawk_id = self.make_quick_squawk(assigned_to=self.tech_id, worker_acknowledged=True)
         c = self.login("tech")
         r = c.get("/my-tasks")
         body = r.get_data(as_text=True)
-        self.assertIn("Done - send to inspector", body)
+        self.assertIn("Mark as Repaired", body)
         self.assertNotIn("With inspector (tap to undo)", body)
 
     def test_undo_still_leaves_it_acknowledged(self):

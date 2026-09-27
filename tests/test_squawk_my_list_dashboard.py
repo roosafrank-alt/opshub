@@ -31,7 +31,7 @@ class SquawkMyListDashboardTest(OpsHubTestCase):
         c = self.login("tech")
         body = c.get("/shop").get_data(as_text=True)
         self.assertIn("My Squawks", body)
-        self.assertIn("Start work", body)
+        self.assertIn("Accepted", body)
 
     def test_dashboard_still_shows_squawk_once_accepted_but_not_repaired(self):
         # This is the actual bug: it used to disappear from the dashboard
@@ -40,7 +40,7 @@ class SquawkMyListDashboardTest(OpsHubTestCase):
         c = self.login("tech")
         body = c.get("/shop").get_data(as_text=True)
         self.assertIn("My Squawks", body)
-        self.assertIn("Done - send to inspector", body)
+        self.assertIn("Mark as Repaired", body)
 
     def test_dashboard_shows_with_inspector_while_awaiting_confirm(self):
         self.make_squawk(worker_acknowledged=True, confirm_requested=True)
@@ -85,6 +85,6 @@ class SquawkMyListDashboardTest(OpsHubTestCase):
         self.make_squawk(worker_acknowledged=True)
         c = self.login("tech")
         body = c.get("/my-tasks").get_data(as_text=True)
-        self.assertIn("Done - send to inspector", body)
+        self.assertIn("Mark as Repaired", body)
         self.assertIn("Reported", body)
         self.assertIn("Working", body)

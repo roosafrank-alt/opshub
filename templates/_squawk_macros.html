@@ -50,12 +50,12 @@
 
 {#- A tech's own squawk list (dashboard's "My Squawks" box and My Tasks -
    see get_my_squawks in app.py) shows exactly one button per squawk, the
-   next step: Start work -> Done - send to inspector -> With inspector (tap
-   to undo). See QA finding ux-squawk-my-list-dashboard. #}
+   next step: Accepted -> Mark as Repaired -> With inspector (tap
+   to undo). See QA finding ux-squawk-my-list-dashboard and idea "techs status". #}
 {% macro squawk_my_actions(sq, size='btn-sm') %}
 {%- if not sq.worker_acknowledged_at %}
 <form method="post" action="{{ url_for('squawk_worker_ack', kind=sq.kind, squawk_id=sq.squawk_id) }}">
-  <button class="btn btn-warning {{ size }} fw-bold"><i class="bi bi-play-fill"></i> Start work</button>
+  <button class="btn btn-warning {{ size }} fw-bold"><i class="bi bi-play-fill"></i> Accepted</button>
 </form>
 {%- elif sq.repair_confirm_requested_at %}
 {#- Awaiting an Inspector/admin's sign-off - tapping again undoes the
@@ -65,7 +65,7 @@
 </form>
 {%- else %}
 <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Send this squawk to the Inspector as repaired?">
-  <button class="btn btn-success {{ size }} fw-bold"><i class="bi bi-tools"></i> Done - send to inspector</button>
+  <button class="btn btn-success {{ size }} fw-bold"><i class="bi bi-tools"></i> Mark as Repaired</button>
 </form>
 {%- if sq.sent_back_note %}
 <small class="text-danger-emphasis d-block mt-1"><i class="bi bi-arrow-counterclockwise"></i> Sent back: {{ sq.sent_back_note }}</small>
@@ -74,8 +74,8 @@
 {%- endmacro %}
 
 {#- One list, one control each: whatever a squawk's current step needs next
-   (New: Assign to.../I'll take it, Assigned: Reassign, Working: Done - send
-   to inspector, Inspection: Sign off/Send back, Done: nothing) - see the
+   (New: Assign to.../I'll take it, Assigned: Reassign, Working: Mark as
+   Repaired, Inspection: Sign off/Send back, Done: nothing) - see the
    Squawks page and QA finding ux-squawk-page-steps. `can_assign` gates the
    New/Assigned/Working controls (same roles as squawk_acknowledge/
    squawk_assign/squawk_repair - admin/tech); `can_confirm` gates Inspection
@@ -90,7 +90,7 @@
 {%- elif sq.worker_acknowledged_at or not sq.assigned_to -%}
   {%- if can_assign %}
   <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Send this squawk to the Inspector as repaired?">
-    <button class="btn btn-success {{ size }} fw-bold"><i class="bi bi-tools"></i> Done - send to inspector</button>
+    <button class="btn btn-success {{ size }} fw-bold"><i class="bi bi-tools"></i> Mark as Repaired</button>
   </form>
   {% endif -%}
 {%- else -%}

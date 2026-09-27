@@ -53,7 +53,7 @@ class SquawkPageStepsTest(OpsHubTestCase):
                           acknowledged_by="Admin", worker_acknowledged_at=db.now_iso())
         c = self.login("shop_admin")
         body = c.get("/squawks?step=working").get_data(as_text=True)
-        self.assertIn("Done - send to inspector", body)
+        self.assertIn("Mark as Repaired", body)
 
     def test_assigned_step_shows_reassign_control(self):
         self.make_squawk(assigned_to=self.tech_id, acknowledged_at=db.now_iso(), acknowledged_by="Admin")
@@ -90,5 +90,5 @@ class SquawkPageStepsTest(OpsHubTestCase):
                           acknowledged_by="Admin", worker_acknowledged_at=db.now_iso())
         c = self.login("shop_admin")
         body = c.get(f"/assets/{self.asset_id}").get_data(as_text=True)
-        self.assertIn("Done - send to inspector", body)
+        self.assertIn("Mark as Repaired", body)
         self.assertNotIn("bi-square fs-5 text-warning", body)
