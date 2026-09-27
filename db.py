@@ -1349,6 +1349,12 @@ def _migrate(conn):
         # NULL unless paid_method is 'Card' through that button.
         ("projects", "card_last4", "ALTER TABLE projects ADD COLUMN card_last4 TEXT"),
         ("projects", "card_charge_id", "ALTER TABLE projects ADD COLUMN card_charge_id TEXT"),
+        # Idea "Credit card" (revision): the same simulated "Pay with Card"
+        # also on Fly with Kate's End Flight payment box and a student's Add
+        # Funds - NULL unless payment_method/the add-funds note is 'Card'
+        # through one of those.
+        ("flights", "card_last4", "ALTER TABLE flights ADD COLUMN card_last4 TEXT"),
+        ("flights", "card_charge_id", "ALTER TABLE flights ADD COLUMN card_charge_id TEXT"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

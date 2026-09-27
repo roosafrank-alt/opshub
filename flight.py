@@ -19,6 +19,7 @@ import csv
 import io
 import json
 import re
+import secrets
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, Response, current_app, abort
 from werkzeug.security import generate_password_hash
@@ -1269,6 +1270,17 @@ def _log_field_change(conn, entity_type, entity_id, field_name, old_value, new_v
                   "" if new_value is None else str(new_value), changed_by, now_iso()))
 
 
+def _simulate_card_charge(card_number):
+    """Idea "Credit card" (revision): the same simulated Stripe-style charge
+    as app.project_pay_card, reused on the flight side (End Flight and Add
+    Funds) - no real Stripe account, no network call. Returns (last4,
+    charge_id), or None if card_number doesn't look like a card number."""
+    digits = re.sub(r"\D", "", card_number or "")
+    if len(digits) < 4:
+        return None
+    return digits[-4:], "sim_ch_" + secrets.token_hex(8)
+
+
 def _ledger_entry(conn, student_id, entry_type, amount, note=None, flight_id=None, created_by=None):
     """Records one balance-changing event (funds added, a flight's cost
     auto-deducted, or a manual adjustment) and keeps students.balance - the
@@ -2371,6 +2383,19 @@ def student_add_funds(student_id):
         flash("Enter a positive dollar amount to add.", "danger")
         conn.close()
         return redirect(url_for("flight.student_edit", student_id=student_id))
+    # Idea "Credit card" (revision): same simulated Stripe-style charge as
+    # End Flight and Manage > Billing, offered here as an alternative to
+    # cash/check/etc. - the "Card (simulated)" checkbox just adds a card
+    # number field to this same Add Funds form rather than a separate flow.
+    if request.form.get("paid_by_card") == "1":
+        charged = _simulate_card_charge(request.form.get("card_number"))
+        if not charged:
+            conn.close()
+            flash("Enter a card number to simulate the charge.", "danger")
+            return redirect(url_for("flight.student_edit", student_id=student_id))
+        last4, charge_id = charged
+        card_note = f"Card ending in {last4} (simulated, {charge_id})"
+        note = f"{note} - {card_note}" if note else card_note
     _ledger_entry(conn, student_id, "funds_added", amount, note=note, created_by=session.get("user_name"))
     conn.commit()
     conn.close()
@@ -6084,6 +6109,14 @@ def log_end(flight_id):
     payment_method = (request.form.get("payment_method") or "").strip()[:40] or None
     payment_amount = max(0.0, _parse_float(request.form.get("payment_amount")) or 0.0)
     credit_requested = max(0.0, _parse_float(request.form.get("credit_applied")) or 0.0)
+    card_last4 = card_charge_id = None
+    if payment_method == "Card" and payment_amount > 0.005:
+        charged = _simulate_card_charge(request.form.get("card_number"))
+        if not charged:
+            conn.close()
+            flash("Enter a card number to simulate the charge.", "danger")
+            return redirect(back)
+        card_last4, card_charge_id = charged
 
     oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
     ground_time_hours = _parse_float(request.form.get("ground_time_hours"))
@@ -6153,8 +6186,9 @@ def log_end(flight_id):
             flash(f"This flight comes to ${cost['total']:.2f}. ${covered:.2f} is accounted for so far - "
                   f"enter the remaining ${short:.2f} as a payment (or apply more credit) to log it as Paid.", "danger")
             return redirect(back)
-        conn.execute("UPDATE flights SET payment_method=?, payment_amount=?, credit_applied=? WHERE id=?",
-                     (payment_method, payment_amount, credit_applied, flight_id))
+        conn.execute("UPDATE flights SET payment_method=?, payment_amount=?, credit_applied=?, "
+                     "card_last4=?, card_charge_id=? WHERE id=?",
+                     (payment_method, payment_amount, credit_applied, card_last4, card_charge_id, flight_id))
     if cost is not None:
         _deduct_flight_cost(conn, cost, created_by=session.get("user_name"))
         if paid_choice == "1" and payment_amount > 0.005:
@@ -6164,6 +6198,8 @@ def log_end(flight_id):
             # existing credit) - this ledger entry is the actual new money
             # collected right now, bringing the balance back up by that much.
             note = f"Paid at flight ({payment_method})" if payment_method else "Paid at flight"
+            if card_last4:
+                note += f" - simulated charge ending in {card_last4}"
             _ledger_entry(conn, ended_row["student_id"], "payment", payment_amount, note=note,
                           flight_id=flight_id, created_by=session.get("user_name"))
     # The student's pilot logbook gets a pending, pre-filled entry.

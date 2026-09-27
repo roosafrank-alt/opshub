@@ -351,6 +351,13 @@
           </select>
         </div>
       </div>
+      {#- Idea "Credit card" (revision): a simulated Stripe-style charge,
+         same idea as Manage > Billing's Pay with Card - shown only once
+         Card is picked above (see the payment-method-select listener). #}
+      <div class="mt-2 d-none" id="card-number-wrap-{{ f.id }}">
+        <label class="form-label small mb-0">Card Number <span class="badge bg-secondary">Simulated</span></label>
+        <input type="text" name="card_number" id="card-number-{{ f.id }}" class="form-control form-control-sm" inputmode="numeric" placeholder="4242 4242 4242 4242">
+      </div>
       <div class="form-text">Apply credit above first if there is any, then enter whatever else was actually collected and how. The flight's full cost (payment + credit) has to be accounted for before it logs as Paid.</div>
     </div>
     <div class="alert alert-danger py-2 px-3 small d-none mt-2" id="end-payment-error-{{ f.id }}"></div>
@@ -846,6 +853,16 @@ document.querySelectorAll('.payment-choice-radio').forEach(function (radio) {
   radio.addEventListener('change', function () {
     var details = document.getElementById(radio.dataset.paymentDetails);
     if (details) details.hidden = (radio.value !== '1');
+  });
+});
+// Idea "Credit card" (revision): reveal the simulated card-number box only
+// once Card is actually picked as How Paid.
+document.querySelectorAll('select[id^="payment-method-"]').forEach(function (select) {
+  var fId = select.id.replace('payment-method-', '');
+  var wrap = document.getElementById('card-number-wrap-' + fId);
+  if (!wrap) return;
+  select.addEventListener('change', function () {
+    wrap.classList.toggle('d-none', select.value !== 'Card');
   });
 });
 document.querySelectorAll('.use-credit-btn').forEach(function (btn) {
