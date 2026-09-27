@@ -383,32 +383,44 @@ def _migrate(conn):
     flight_cols = [r["name"] for r in flight_cols_info]
     cfi_id_notnull = next((r["notnull"] for r in flight_cols_info if r["name"] == "cfi_id"), 0)
     if cfi_id_notnull:
-        conn.execute("""CREATE TABLE flights_new (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            cfi_id INTEGER REFERENCES cfis(id),
-            student_id INTEGER NOT NULL REFERENCES students(id),
-            asset_id INTEGER NOT NULL REFERENCES assets(id),
-            flight_date TEXT NOT NULL,
-            hobbs_start REAL,
-            hobbs_end REAL,
-            tach_start REAL,
-            tach_end REAL,
-            oil_added_qt REAL,
-            notes TEXT,
-            solo INTEGER NOT NULL DEFAULT 0,
-            paid INTEGER NOT NULL DEFAULT 0,
-            squawk INTEGER NOT NULL DEFAULT 0,
-            squawk_acknowledged_at TEXT,
-            squawk_acknowledged_by TEXT,
-            created_at TEXT NOT NULL DEFAULT (datetime('now'))
-        )""")
-        conn.execute("""INSERT INTO flights_new (id, cfi_id, student_id, asset_id, flight_date, hobbs_start,
-                         hobbs_end, tach_start, tach_end, oil_added_qt, notes, created_at)
-                         SELECT id, cfi_id, student_id, asset_id, flight_date, hobbs_start, hobbs_end, tach_start,
-                                tach_end, oil_added_qt, notes, created_at FROM flights""")
-        conn.execute("DROP TABLE flights")
-        conn.execute("ALTER TABLE flights_new RENAME TO flights")
+        # QA fix qa-startup-old-backup-flights: a billing charge
+        # (student_ledger.flight_id) or logbook entry (pilot_logbook.flight_id)
+        # already pointing at a flight makes DROP TABLE flights fail with
+        # "FOREIGN KEY constraint failed" on an older backup that already has
+        # those tables - same cause, same fix, as qa-project-purge-crash's
+        # found_items rebuild: foreign keys off for the swap, ids unchanged
+        # so every reference still lands on the right row after.
         conn.commit()
+        conn.execute("PRAGMA foreign_keys = OFF")
+        try:
+            conn.execute("""CREATE TABLE flights_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cfi_id INTEGER REFERENCES cfis(id),
+                student_id INTEGER NOT NULL REFERENCES students(id),
+                asset_id INTEGER NOT NULL REFERENCES assets(id),
+                flight_date TEXT NOT NULL,
+                hobbs_start REAL,
+                hobbs_end REAL,
+                tach_start REAL,
+                tach_end REAL,
+                oil_added_qt REAL,
+                notes TEXT,
+                solo INTEGER NOT NULL DEFAULT 0,
+                paid INTEGER NOT NULL DEFAULT 0,
+                squawk INTEGER NOT NULL DEFAULT 0,
+                squawk_acknowledged_at TEXT,
+                squawk_acknowledged_by TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )""")
+            conn.execute("""INSERT INTO flights_new (id, cfi_id, student_id, asset_id, flight_date, hobbs_start,
+                             hobbs_end, tach_start, tach_end, oil_added_qt, notes, created_at)
+                             SELECT id, cfi_id, student_id, asset_id, flight_date, hobbs_start, hobbs_end, tach_start,
+                                    tach_end, oil_added_qt, notes, created_at FROM flights""")
+            conn.execute("DROP TABLE flights")
+            conn.execute("ALTER TABLE flights_new RENAME TO flights")
+            conn.commit()
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_flights_asset ON flights(asset_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_flights_student ON flights(student_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_flights_cfi ON flights(cfi_id)")
