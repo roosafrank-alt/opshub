@@ -3,7 +3,9 @@
    the project and sub area they're on, and a live hh:mm:ss count. Fed by
    /api/labor/clocked-in and refreshed every minute; hidden when nobody is
    clocked in. Tap the pill to open/close the list (remembered per device).
-   Sits bottom-left so it never covers the CFI flight widget (top-right). #}
+   Defaults to bottom-left so it never covers the CFI flight widget
+   (top-right), but can be dragged anywhere; the dropped position is
+   remembered per device. #}
 {% if session.get('user_id') and (session.get('is_master_admin') or session.get('shop_role')) %}
 <div id="labor-timer-widget" class="labor-timer-widget no-print" style="display:none;">
   <button type="button" id="labor-timer-toggle" class="labor-timer-pill" aria-expanded="false" title="Who's clocked in">
@@ -15,7 +17,8 @@
 <style>
   .labor-timer-widget { position: fixed; left: .75rem; bottom: .75rem; z-index: 1040; max-width: calc(100vw - 1.5rem); font-size: .85rem; }
   .labor-timer-pill { background: #212529; color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 999px;
-    padding: .4rem .8rem; box-shadow: 0 .25rem .75rem rgba(0,0,0,.35); min-height: 2.25rem; }
+    padding: .4rem .8rem; box-shadow: 0 .25rem .75rem rgba(0,0,0,.35); min-height: 2.25rem; cursor: grab; touch-action: none; }
+  .labor-timer-widget.dragging .labor-timer-pill { cursor: grabbing; }
   .labor-timer-pill .bi-stopwatch { color: #ffc107; }
   .labor-timer-list { background: #fff; color: #212529; border: 1px solid #dee2e6; border-radius: .5rem;
     box-shadow: 0 .5rem 1.25rem rgba(0,0,0,.25); margin-bottom: .4rem; max-height: 50vh; overflow-y: auto; width: 20rem; max-width: 100%; }
@@ -33,8 +36,70 @@
   var toggle = document.getElementById('labor-timer-toggle');
   var chevron = document.getElementById('labor-timer-chevron');
   var KEY = 'opshub-labor-timer-open';
+  var POS_KEY = 'opshub-labor-timer-pos';
   var workers = [];
   var fetchedAt = Date.now();
+
+  function clampPos(left, top) {
+    var margin = 4;
+    var maxLeft = Math.max(margin, window.innerWidth - widget.offsetWidth - margin);
+    var maxTop = Math.max(margin, window.innerHeight - widget.offsetHeight - margin);
+    return { left: Math.min(Math.max(left, margin), maxLeft), top: Math.min(Math.max(top, margin), maxTop) };
+  }
+  function applyPos(pos) {
+    widget.style.left = pos.left + 'px';
+    widget.style.top = pos.top + 'px';
+    widget.style.right = 'auto';
+    widget.style.bottom = 'auto';
+  }
+  function savedPos() {
+    try { return JSON.parse(localStorage.getItem(POS_KEY)); } catch (e) { return null; }
+  }
+  function restorePos() {
+    var pos = savedPos();
+    if (pos) applyPos(pos);
+  }
+  window.addEventListener('resize', function () {
+    var pos = savedPos();
+    if (pos && widget.style.display !== 'none') applyPos(clampPos(pos.left, pos.top));
+  });
+
+  var dragging = false, moved = false, dragStartX, dragStartY, dragStartLeft, dragStartTop;
+  toggle.addEventListener('pointerdown', function (e) {
+    if (e.button) return;
+    dragging = true;
+    moved = false;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    var rect = widget.getBoundingClientRect();
+    dragStartLeft = rect.left;
+    dragStartTop = rect.top;
+    if (toggle.setPointerCapture) toggle.setPointerCapture(e.pointerId);
+  });
+  toggle.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    var dx = e.clientX - dragStartX, dy = e.clientY - dragStartY;
+    if (!moved && Math.hypot(dx, dy) > 6) {
+      moved = true;
+      widget.classList.add('dragging');
+    }
+    if (moved) applyPos(clampPos(dragStartLeft + dx, dragStartTop + dy));
+  });
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    widget.classList.remove('dragging');
+    if (moved) {
+      var rect = widget.getBoundingClientRect();
+      try { localStorage.setItem(POS_KEY, JSON.stringify({ left: rect.left, top: rect.top })); } catch (err) {}
+    }
+  }
+  toggle.addEventListener('pointerup', endDrag);
+  toggle.addEventListener('pointercancel', endDrag);
+  toggle.addEventListener('click', function (e) {
+    if (moved) { e.preventDefault(); moved = false; return; }
+    setOpen(!widget.classList.contains('open'));
+  });
 
   function isOpen() { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } }
   function setOpen(open) {
@@ -74,7 +139,7 @@
       .then(function (d) { workers = (d && d.workers) || []; fetchedAt = Date.now(); render(); })
       .catch(function () {});
   }
-  toggle.addEventListener('click', function () { setOpen(!widget.classList.contains('open')); });
+  restorePos();
   setOpen(isOpen());
   load();
   setInterval(load, 60000);
