@@ -24,6 +24,36 @@
   <a href="{{ url_for('flight.student_edit', student_id=student.id) }}#account" class="btn btn-success btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Add Funds</a>
   {% endif %}
 </div>
+{% if held_flights or released_count %}
+<div class="card p-3 mb-3 border-warning">
+  <h6 class="mb-2"><i class="bi bi-pause-circle"></i> Balance Hold</h6>
+  {% if held_flights %}
+  <p class="small mb-2">
+    Owes <strong>${{ '%.2f'|format(student_owed) }}</strong>{% if hold_limit %}, over the school's ${{ '%.2f'|format(hold_limit) }} limit{% endif %}
+    {% if held_flights[0].hold_started_at %} - on hold since {{ held_flights[0].hold_started_at[:16] }}{% endif %}.
+    {% if last_hold_notice %}
+      {% if last_hold_notice.read_at %}Seen by student {{ last_hold_notice.read_at[:16] }}.{% else %}<span class="text-warning fw-bold">Not seen yet.</span>{% endif %}
+    {% endif %}
+  </p>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0 table-stack">
+      <thead class="table-light"><tr><th>Date</th><th>Plane</th><th>Opens to others</th></tr></thead>
+      <tbody>
+        {% for f in held_flights %}
+        <tr>
+          <td class="small" data-label="Date">{{ f.scheduled_date|usdate }}{% if f.scheduled_time %} &middot; {{ f.scheduled_time }}{% endif %}</td>
+          <td class="small" data-label="Plane">{{ f.plane_tag }}</td>
+          <td class="small" data-label="Opens to others">{{ f.held_release_date|usdate if f.held_release_date else '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="small mb-0 text-muted">No flights on hold right now. {{ released_count }} lost their spot to a balance hold before.</p>
+  {% endif %}
+</div>
+{% endif %}
 <div class="card p-3">
   <h6 class="text-muted mb-2">Full History</h6>
   {% if ledger %}

@@ -547,6 +547,9 @@
          title="Click for full details"{% endif %}>
       <div class="text-uppercase small fw-bold text-primary"><i class="bi bi-calendar-event"></i> {{ 'Next Lesson - Whole School' if next_scope == 'school' else 'Your Next Lesson' }}</div>
       {% if next_lesson %}
+      {% if next_lesson.is_balance_hold %}
+      <span class="badge bg-warning text-dark mt-1">Pending - Balance Hold</span>
+      {% endif %}
       {% if next_lesson.starts_at %}
       <div class="fs-2 fw-bold lh-1 mt-1 next-countdown" data-countdown-to="{{ next_lesson.starts_at }}" style="font-variant-numeric: tabular-nums;">{{ next_lesson.countdown }}</div>
       <div class="small text-muted next-countdown-sub">{{ next_lesson.countdown }}</div>
@@ -559,6 +562,13 @@
         {% if cfi or next_scope == 'school' %} &middot; {{ next_lesson.student_name }}{% endif %}
         {% if next_lesson.cfi_name %} &middot; {{ next_lesson.cfi_name }}{% elif next_lesson.solo %}<span class="badge bg-secondary ms-1">Solo</span>{% else %}<span class="badge bg-danger ms-1">Needs Instructor</span>{% endif %}
       </div>
+      {% if next_lesson.student_owed %}
+      <a href="{{ url_for('flight.student_field_detail', student_id=next_lesson.student_id, field_key='account') if cfi or session.get('is_master_admin') else '#' }}"
+         class="badge bg-danger mt-1 text-decoration-none" onclick="event.stopPropagation();"
+         {% if not (cfi or session.get('is_master_admin')) %}style="pointer-events:none;"{% endif %}>
+        <i class="bi bi-cash-coin"></i> ${{ '%.0f'|format(next_lesson.student_owed) }} owed
+      </a>
+      {% endif %}
       {#- One clear way into the lesson's own details (Request Change,
          Cancel, Start/Log for CFIs) instead of relying on the card's own
          tap-anywhere behavior, which looked like plain text with nothing
@@ -660,7 +670,7 @@
    flights that started at different times, so a single row-wide flag
    would mis-dim whichever one didn't share the earliest start. #}
 {% set is_past = today_now_time and f.scheduled_time and f.scheduled_time < today_now_time %}
-{% set icon = 'bi-circle' if status == 'scheduled' else ('bi-activity' if status == 'in_progress' else 'bi-check-circle-fill') %}
+{% set icon = 'bi-circle' if status == 'scheduled' else ('bi-activity' if status == 'in_progress' else ('bi-pause-circle' if status == 'balance_hold' else 'bi-check-circle-fill')) %}
 {% set lane = plane_lane.get(f.plane_tag) %}
 <div class="flight-chip flight-chip-striped flight-chip-{{ status }}{{ ' flight-chip-past' if is_past and status == 'scheduled' }}" data-chip-id="{{ f.id }}"
      style="{% if lane is not none %}grid-column: {{ lane + 1 }};{% endif %}">
@@ -679,8 +689,16 @@
       {{ f.student_name }}
       {{- ' ' }}{{ pilot_badge(f) }}
       {%- if f.solo %} <span class="badge bg-secondary">Solo</span>{% endif -%}
+      {%- if f.is_balance_hold %} <span class="badge bg-warning text-dark">Pending - Balance Hold</span>{% endif -%}
     </div>
     <div class="flight-chip-plane">{{ f.plane_tag }}</div>
+    {% if f.student_owed %}
+    <a href="{{ url_for('flight.student_field_detail', student_id=f.student_id, field_key='account') if cfi or session.get('is_master_admin') else '#' }}"
+       class="badge bg-danger text-decoration-none" onclick="event.stopPropagation();"
+       {% if not (cfi or session.get('is_master_admin')) %}style="pointer-events:none;"{% endif %}>
+      <i class="bi bi-cash-coin"></i> ${{ '%.0f'|format(f.student_owed) }} owed
+    </a>
+    {% endif %}
     {% if f.end_time_label %}
     {#- Shows the flight's end time right on the chip (not just inside the
        click-to-expand detail), so a glance at the board tells you when a

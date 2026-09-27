@@ -18,7 +18,7 @@ from flask import (Flask, render_template, request, redirect, url_for, jsonify, 
 from db import (get_db, init_db, close_request_conns, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
                  allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
                  MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS, found_item_messages)
-from flight import flight_bp, _flight_hours, check_session_alerts, SCHEDULE_COLORS, _used_colors_for_plane
+from flight import flight_bp, _flight_hours, check_session_alerts, run_balance_hold_release_check, SCHEDULE_COLORS, _used_colors_for_plane
 from logbook import logbook_bp
 from pilotlog import pilotlog_bp
 from customer import customer_bp, _owned_asset_ids, _project_bill
@@ -7391,6 +7391,10 @@ def _start_session_alert_loop(debug_mode):
                 check_session_alerts()
             except Exception:
                 app.logger.exception("Session alert check failed")
+            try:
+                run_balance_hold_release_check()
+            except Exception:
+                app.logger.exception("Balance hold release check failed")
             time.sleep(60)
 
     threading.Thread(target=_loop, daemon=True).start()

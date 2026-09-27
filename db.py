@@ -1331,6 +1331,18 @@ def _migrate(conn):
         ("projects", "paid_at", "ALTER TABLE projects ADD COLUMN paid_at TEXT"),
         ("projects", "paid_by", "ALTER TABLE projects ADD COLUMN paid_by TEXT"),
         ("projects", "paid_method", "ALTER TABLE projects ADD COLUMN paid_method TEXT"),
+        # QA feat-owed-balance-on-bookings: when a student's owed balance
+        # crosses the school's limit (Settings > Balance Hold), every one of
+        # their upcoming bookings flips to status 'balance_hold' -
+        # hold_previous_status remembers what to restore it to once paid
+        # down (see flight.check_balance_hold). held_release_date is the day
+        # (lesson date minus 5 days) the slot opens to everyone else if
+        # still unpaid by then; released_from_hold_at is set once that
+        # actually happens (see flight.check_balance_hold_releases).
+        ("scheduled_flights", "hold_previous_status", "ALTER TABLE scheduled_flights ADD COLUMN hold_previous_status TEXT"),
+        ("scheduled_flights", "hold_started_at", "ALTER TABLE scheduled_flights ADD COLUMN hold_started_at TEXT"),
+        ("scheduled_flights", "held_release_date", "ALTER TABLE scheduled_flights ADD COLUMN held_release_date TEXT"),
+        ("scheduled_flights", "released_from_hold_at", "ALTER TABLE scheduled_flights ADD COLUMN released_from_hold_at TEXT"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)
