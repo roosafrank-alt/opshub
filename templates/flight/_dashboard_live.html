@@ -526,7 +526,7 @@
 {% if next_lesson or log_lesson or session.get('is_master_admin') %}
 <div class="card p-3 mb-3 border-primary">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div{% if next_lesson %} class="schedule-block" role="button" style="cursor:pointer;"
+    <div class="flex-grow-1{% if next_lesson %} schedule-block{% endif %}"{% if next_lesson %} role="button" style="cursor:pointer;"
          data-id="{{ next_lesson.id }}" data-status="{{ next_lesson.status }}" data-plane="{{ next_lesson.plane_tag }}"
          data-student="{{ next_lesson.student_name }}" data-student-id="{{ next_lesson.student_id }}" data-cfi="{{ next_lesson.cfi_name or '' }}"
          data-solo="{{ '1' if next_lesson.solo else '' }}" data-needs-review="{{ '1' if next_lesson.needs_review else '' }}"
@@ -559,6 +559,14 @@
         {% if cfi or next_scope == 'school' %} &middot; {{ next_lesson.student_name }}{% endif %}
         {% if next_lesson.cfi_name %} &middot; {{ next_lesson.cfi_name }}{% elif next_lesson.solo %}<span class="badge bg-secondary ms-1">Solo</span>{% else %}<span class="badge bg-danger ms-1">Needs Instructor</span>{% endif %}
       </div>
+      {#- One clear way into the lesson's own details (Request Change,
+         Cancel, Start/Log for CFIs) instead of relying on the card's own
+         tap-anywhere behavior, which looked like plain text with nothing
+         to press (QA ux-next-lesson-details-button). Nested inside the
+         schedule-block div above, so a click on it bubbles up to the same
+         delegated handler (_schedule_detail_modal.html) that opens this
+         same popup for the card itself - no separate data-* needed here. #}
+      <button type="button" class="btn btn-primary w-100 mt-2"><i class="bi bi-info-circle"></i> Details &amp; changes <i class="bi bi-chevron-right"></i></button>
       {% elif not log_lesson %}
       <div class="text-muted mt-1">Nothing booked for you coming up.</div>
       {% endif %}
@@ -572,15 +580,14 @@
       </div>
       {% endif %}
     </div>
+    {% if session.get('is_master_admin') %}
     <div class="d-flex flex-column align-items-end gap-2">
-      {% if session.get('is_master_admin') %}
       <div class="btn-group btn-group-sm" role="group" aria-label="Whose next lesson">
         <a href="{{ url_for('flight.dashboard', next='mine') }}" class="btn {{ 'btn-primary' if next_scope != 'school' else 'btn-outline-primary' }}"><i class="bi bi-person"></i> Personal</a>
         <a href="{{ url_for('flight.dashboard', next='school') }}" class="btn {{ 'btn-primary' if next_scope == 'school' else 'btn-outline-primary' }}"><i class="bi bi-people"></i> School</a>
       </div>
-      {% endif %}
-      <a href="{{ url_for('flight.schedule_calendar') }}" class="btn btn-outline-primary btn-sm">Full Calendar</a>
     </div>
+    {% endif %}
   </div>
 </div>
 {% endif %}
