@@ -68,15 +68,62 @@ class FoundItemsTest(OpsHubTestCase):
         c.post(f"/portal/found-item/{iid}/decide", data=dict(decision="decline"))
         self.assertEqual(self.q1("SELECT status FROM found_items WHERE id=?", (iid,))["status"], "approved")
 
-    def test_owner_declines_and_it_stays_on_record(self):
+    def test_owner_declining_without_a_note_is_refused(self):
+        """Revision 2: a decline needs a note, so the shop knows why."""
         self.add_item()
         iid = self.items()[-1]["id"]
         self.login("customer").post(f"/portal/found-item/{iid}/decide", data=dict(decision="decline"))
+        self.assertEqual(self.q1("SELECT status FROM found_items WHERE id=?", (iid,))["status"], "waiting")
+
+    def test_owner_declines_and_it_stays_on_record(self):
+        self.add_item()
+        iid = self.items()[-1]["id"]
+        self.login("customer").post(f"/portal/found-item/{iid}/decide",
+                                    data=dict(decision="decline", note="Not right now, budget's tight."))
         self.assertEqual(self.q1("SELECT status FROM found_items WHERE id=?", (iid,))["status"], "declined")
         self.assertIsNone(self.q1("SELECT id FROM project_sections WHERE project_id=?", (self.project,)))
         # Admin can't delete an answered item.
         self.login("shop_admin").post(f"/found-items/{iid}/delete")
         self.assertEqual(len(self.items()), 1)
+
+    def test_owner_can_reconsider_a_declined_item(self):
+        """Revision 2: the owner can change their mind on a declined item."""
+        self.add_item()
+        iid = self.items()[-1]["id"]
+        c = self.login("customer")
+        c.post(f"/portal/found-item/{iid}/decide", data=dict(decision="decline", note="Not now."))
+        self.assertEqual(self.q1("SELECT status FROM found_items WHERE id=?", (iid,))["status"], "declined")
+        c.post(f"/portal/found-item/{iid}/decide", data=dict(decision="approve"))
+        row = self.q1("SELECT status FROM found_items WHERE id=?", (iid,))
+        self.assertEqual(row["status"], "approved")
+        self.assertIsNotNone(self.q1("SELECT id FROM project_sections WHERE project_id=?", (self.project,)))
+
+    def test_approved_item_cannot_be_reconsidered(self):
+        self.add_item()
+        iid = self.items()[-1]["id"]
+        c = self.login("customer")
+        c.post(f"/portal/found-item/{iid}/decide", data=dict(decision="approve"))
+        c.post(f"/portal/found-item/{iid}/decide", data=dict(decision="decline", note="Changed my mind"))
+        self.assertEqual(self.q1("SELECT status FROM found_items WHERE id=?", (iid,))["status"], "approved")
+
+    def test_shop_and_owner_can_message_back_and_forth(self):
+        self.add_item()
+        iid = self.items()[-1]["id"]
+        self.login("shop_admin").post(f"/found-items/{iid}/message", data=dict(body="Any thoughts on this one?"))
+        self.login("customer").post(f"/portal/found-item/{iid}/message", data=dict(body="Can you send a closer photo?"))
+        html = self.login("shop_admin").get(f"/projects/{self.project}").get_data(as_text=True)
+        self.assertIn("Any thoughts on this one?", html)
+        self.assertIn("Can you send a closer photo?", html)
+        owner_html = self.login("customer").get(f"/portal/aircraft/{self.asset}").get_data(as_text=True)
+        self.assertIn("Any thoughts on this one?", owner_html)
+        self.assertIn("Can you send a closer photo?", owner_html)
+
+    def test_message_requires_a_body(self):
+        self.add_item()
+        iid = self.items()[-1]["id"]
+        r = self.login("shop_admin").post(f"/found-items/{iid}/message", data=dict(body=""))
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.q1("SELECT COUNT(*) c FROM found_item_messages WHERE found_item_id=?", (iid,))["c"], 0)
 
     def test_owner_cannot_answer_another_owners_item(self):
         self.add_item(project=self.other_project)

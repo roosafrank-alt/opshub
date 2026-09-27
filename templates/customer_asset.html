@@ -38,18 +38,55 @@
     </div>
     {% endif %}
     {% if it.status == 'waiting' %}
-    <form method="post" action="{{ url_for('customer.customer_found_item_decide', item_id=it.id) }}" class="mt-2">
-      <input type="text" name="note" class="form-control mb-2" placeholder="Note for the shop (optional)" aria-label="Note for the shop">
+    <form method="post" action="{{ url_for('customer.customer_found_item_decide', item_id=it.id) }}" class="mt-2 found-decide-form">
+      <input type="text" name="note" class="form-control mb-2 found-decide-note" placeholder="Note for the shop (required to decline)" aria-label="Note for the shop">
       <div class="d-flex gap-2">
         <button name="decision" value="approve" class="btn btn-success fw-bold flex-fill"><i class="bi bi-check-lg"></i> Approve</button>
-        <button name="decision" value="decline" class="btn btn-outline-danger flex-fill"><i class="bi bi-x-lg"></i> Decline</button>
+        <button name="decision" value="decline" class="btn btn-outline-danger flex-fill found-decline-btn"><i class="bi bi-x-lg"></i> Decline</button>
       </div>
     </form>
     {% elif it.status == 'approved' %}
     <div class="mt-2"><span class="badge bg-success">Approved</span> <small class="text-muted">by {{ it.decided_by }} {{ it.decided_at|usdate(true) }}{% if it.decision_note %} &middot; "{{ it.decision_note }}"{% endif %}</small></div>
     {% else %}
     <div class="mt-2"><span class="badge bg-secondary">Declined</span> <small class="text-muted">by {{ it.decided_by }} {{ it.decided_at|usdate(true) }}{% if it.decision_note %} &middot; "{{ it.decision_note }}"{% endif %}</small></div>
+    <details class="mt-2">
+      <summary class="small text-primary" style="cursor:pointer;">Changed your mind? Reconsider this item</summary>
+      <form method="post" action="{{ url_for('customer.customer_found_item_decide', item_id=it.id) }}" class="mt-2 found-decide-form">
+        <input type="text" name="note" class="form-control mb-2 found-decide-note" placeholder="Note for the shop (required to decline again)" aria-label="Note for the shop">
+        <div class="d-flex gap-2">
+          <button name="decision" value="approve" class="btn btn-success fw-bold flex-fill"><i class="bi bi-check-lg"></i> Approve now</button>
+          <button name="decision" value="decline" class="btn btn-outline-danger flex-fill found-decline-btn"><i class="bi bi-x-lg"></i> Still declining</button>
+        </div>
+      </form>
+    </details>
     {% endif %}
+
+    {#- Back-and-forth notes with the shop on this specific item - either
+       side can add text and a photo, whatever the item's current status. #}
+    {% if it.messages %}
+    <div class="mt-2 border-top pt-2">
+      {% for m in it.messages %}
+      <div class="small mb-2 {{ 'text-end' if m.author_type == 'owner' }}">
+        <div class="d-inline-block p-2 rounded {{ 'bg-primary text-white' if m.author_type == 'owner' else 'bg-light border' }}" style="max-width:85%; text-align:left;">
+          <div class="fw-bold">{{ m.author_name or ('You' if m.author_type == 'owner' else 'The shop') }} <span class="fw-normal {{ 'text-white-50' if m.author_type == 'owner' else 'text-muted' }}">{{ m.created_at|usdate(true) }}</span></div>
+          <div style="white-space:pre-wrap;">{{ m.body }}</div>
+          {% if m.photos %}
+          <div class="d-flex flex-wrap gap-1 mt-1">
+            {% for fn in m.photos %}<a href="{{ url_for('static', filename='uploads/' + fn) }}" target="_blank" rel="noopener"><img src="{{ url_for('static', filename='uploads/' + fn) }}" alt="Photo" class="rounded border" style="width:56px;height:56px;object-fit:cover;"></a>{% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <form method="post" action="{{ url_for('customer.customer_found_item_message', item_id=it.id) }}" enctype="multipart/form-data" class="mt-1">
+      <div class="input-group input-group-sm">
+        <input type="text" name="body" class="form-control" placeholder="Ask a question or add a note..." required>
+        <input type="file" name="photos" accept="image/*" class="form-control" style="max-width:9rem;">
+        <button class="btn btn-outline-primary"><i class="bi bi-send"></i></button>
+      </div>
+    </form>
   </div>
   {% endfor %}
 </div>
@@ -171,4 +208,22 @@
 
   </div>
 </div>
+<script>
+// Decline requires a note (the server enforces this too) - catch it here
+// so the owner isn't sent back a whole page load just to find that out.
+document.querySelectorAll('.found-decide-form').forEach(function (form) {
+  form.addEventListener('submit', function (e) {
+    var clicked = e.submitter;
+    if (clicked && clicked.classList.contains('found-decline-btn')) {
+      var note = form.querySelector('.found-decide-note');
+      if (note && !note.value.trim()) {
+        e.preventDefault();
+        note.focus();
+        note.classList.add('is-invalid');
+        note.placeholder = 'Let the shop know why - required to decline';
+      }
+    }
+  });
+});
+</script>
 {% endblock %}

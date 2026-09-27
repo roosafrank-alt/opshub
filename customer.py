@@ -16,7 +16,7 @@ the regular Manage menu (see /customers routes in app.py).
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 
-from db import get_db, now_iso, asset_meter, maintenance_status
+from db import get_db, now_iso, asset_meter, maintenance_status, found_item_messages, allowed_image, save_upload
 from auth import (authenticate_customer, log_in_customer, log_out_customer,
                    current_customer, customer_login_required)
 
@@ -183,6 +183,7 @@ def _found_items_for_asset(conn, asset_id):
         it = dict(r)
         it["photos"] = [p["filename"] for p in conn.execute(
             "SELECT filename FROM photos WHERE found_item_id = ? ORDER BY id", (r["id"],)).fetchall()]
+        it["messages"] = found_item_messages(conn, r["id"])
         items.append(it)
     return items
 
@@ -276,9 +277,18 @@ def customer_found_item_decide(item_id):
     if decision not in ("approve", "decline"):
         conn.close()
         abort(400)
-    if item["status"] != "waiting":
+    # Declining requires a note, so the shop knows why - approving doesn't
+    # (the item's own description already says what it's for).
+    if decision == "decline" and not note:
         conn.close()
-        flash("You've already answered this one.", "warning")
+        flash("Let the shop know why you're declining, so it's on record.", "danger")
+        return redirect(url_for("customer.customer_asset", asset_id=item["asset_id"]))
+    # An approved item already became a Sub Area and work may be underway,
+    # so that decision is final. A declined item can be reconsidered -
+    # re-deciding it (either way) just overwrites the old answer.
+    if item["status"] == "approved":
+        conn.close()
+        flash("You already approved this one, and it's on the job.", "warning")
         return redirect(url_for("customer.customer_asset", asset_id=item["asset_id"]))
     section = None
     if decision == "approve":
@@ -286,7 +296,7 @@ def customer_found_item_decide(item_id):
         conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
                      (item["project_id"], section, now_iso()))
     claimed = conn.execute("""UPDATE found_items SET status = ?, decided_at = ?, decided_by = ?, decision_note = ?,
-                              section_name = ? WHERE id = ? AND status = 'waiting'""",
+                              section_name = ? WHERE id = ? AND status IN ('waiting', 'declined')""",
                            ("approved" if decision == "approve" else "declined", now_iso(), cust["name"], note,
                             section, item_id)).rowcount
     conn.commit()
@@ -295,3 +305,43 @@ def customer_found_item_decide(item_id):
         flash("Approved - thanks, we'll get it done." if decision == "approve" else
               "Declined - thanks for letting us know. It's noted on the job.", "success")
     return redirect(url_for("customer.customer_asset", asset_id=item["asset_id"]))
+
+
+@customer_bp.route("/found-item/<int:item_id>/message", methods=["POST"])
+@customer_login_required
+def customer_found_item_message(item_id):
+    """The owner's side of the back-and-forth on one found item - a note
+    (with an optional photo) added to its conversation thread, visible to
+    the shop on the project page. Works whatever the item's status is, so
+    an owner can ask a question or explain a decline even after answering."""
+    conn = get_db()
+    cust = current_customer(conn)
+    item = conn.execute("""SELECT fi.*, p.asset_id FROM found_items fi JOIN projects p ON p.id = fi.project_id
+                           WHERE fi.id = ? AND p.deleted_at IS NULL""", (item_id,)).fetchone()
+    if not item or item["asset_id"] not in _owned_asset_ids(conn, cust["id"]):
+        conn.close()
+        abort(404)
+    body = (request.form.get("body") or "").strip()[:1000]
+    if not body:
+        conn.close()
+        flash("Type a note before sending.", "danger")
+        return redirect(url_for("customer.customer_asset", asset_id=item["asset_id"]) + "#found-items")
+    cur = conn.execute("""INSERT INTO found_item_messages (found_item_id, author_type, author_name, body, created_at)
+                          VALUES (?, 'owner', ?, ?, ?)""",
+                       (item_id, cust["name"], body, now_iso()))
+    conn.commit()
+    saved = 0
+    try:
+        for f in request.files.getlist("photos"):
+            if f and f.filename and allowed_image(f.filename):
+                stored_name = save_upload(f)
+                conn.execute("INSERT INTO photos (found_item_message_id, filename, created_at) VALUES (?, ?, ?)",
+                             (cur.lastrowid, stored_name, now_iso()))
+                saved += 1
+        conn.commit()
+    except OSError:
+        conn.rollback()
+        flash("Note sent, but a photo couldn't be saved.", "warning")
+    conn.close()
+    flash("Note sent.", "success")
+    return redirect(url_for("customer.customer_asset", asset_id=item["asset_id"]) + "#found-items")

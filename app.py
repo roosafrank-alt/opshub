@@ -17,7 +17,7 @@ from flask import (Flask, render_template, request, redirect, url_for, jsonify, 
 
 from db import (get_db, init_db, close_request_conns, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
                  allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
-                 MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS)
+                 MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS, found_item_messages)
 from flight import flight_bp, _flight_hours, check_session_alerts, SCHEDULE_COLORS, _used_colors_for_plane
 from logbook import logbook_bp
 from pilotlog import pilotlog_bp
@@ -2253,6 +2253,7 @@ def _found_items_for_project(conn, project_id):
     for it in items:
         it["photos"] = [r["filename"] for r in conn.execute(
             "SELECT filename FROM photos WHERE found_item_id = ? ORDER BY id", (it["id"],)).fetchall()]
+        it["messages"] = found_item_messages(conn, it["id"])
     return items
 
 
@@ -2351,6 +2352,36 @@ def found_item_notify(item_id):
     conn.close()
     flash("Owner notified again." if reached else "Couldn't reach the owner by text or email.",
           "success" if reached else "warning")
+    return redirect(url_for("project_detail", project_id=item["project_id"]) + "#found-items")
+
+
+@app.route("/found-items/<int:item_id>/message", methods=["POST"])
+@shop_role_required('admin', 'tech', 'inspector')
+def found_item_message_new(item_id):
+    """The shop's side of the back-and-forth on one found item - a note
+    (with an optional photo) added to its conversation thread, visible to
+    the owner on their My Aircraft page. Works whatever the item's current
+    status is, so the shop can keep explaining or answering a question
+    even after the owner has already approved or declined."""
+    conn = get_db()
+    item = conn.execute("SELECT * FROM found_items WHERE id = ?", (item_id,)).fetchone()
+    if not item:
+        conn.close()
+        abort(404)
+    body = (request.form.get("body") or "").strip()[:1000]
+    if not body:
+        conn.close()
+        flash("Type a note before sending.", "danger")
+        return redirect(url_for("project_detail", project_id=item["project_id"]) + "#found-items")
+    cur = conn.execute("""INSERT INTO found_item_messages (found_item_id, author_type, author_name, body, created_at)
+                          VALUES (?, 'shop', ?, ?, ?)""",
+                       (item_id, session.get("user_name"), body, now_iso()))
+    conn.commit()
+    _saved, err = _add_photos(conn, request.files.getlist("photos"), "found_item_message_id", cur.lastrowid)
+    if err:
+        flash(err, "warning")
+    conn.close()
+    flash("Note added.", "success")
     return redirect(url_for("project_detail", project_id=item["project_id"]) + "#found-items")
 
 
