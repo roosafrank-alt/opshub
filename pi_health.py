@@ -19,14 +19,23 @@ system_alerts table so the OpsHub dashboard can show it to shop admins
 (see dashboard() / system_alert_acknowledge() in app.py).
 """
 
+import os
 import re
 import subprocess
+import sys
 import urllib.error
 import urllib.request
 
 import db
 
-NTFY_URL = "https://ntfy.sh/opshub-pi-health-k7x9m2qp4w"
+# The ntfy topic works like a password: anyone who knows it can read the
+# alerts or post fake ones, and this repo is public. So the full topic URL
+# (e.g. https://ntfy.sh/opshub-<random>) lives only on the Pi, in this file,
+# never in the repo. Healthchecks.io's ntfy integration uses the same topic,
+# so every alert lands in one ntfy subscription.
+#   printf '%s' 'https://ntfy.sh/opshub-<random>' > ~/.opshub-ntfy-url
+#   chmod 600 ~/.opshub-ntfy-url
+NTFY_URL_FILE = os.path.expanduser("~/.opshub-ntfy-url")
 
 ALERT_TEMP_C = 75.0
 RECOVER_TEMP_C = 70.0
@@ -59,7 +68,15 @@ def read_throttled():
 def notify(message):
     """Best-effort phone push via ntfy.sh - no account/API key needed. The
     system_alerts row is the record of truth if this fails."""
-    req = urllib.request.Request(NTFY_URL, data=message.encode("utf-8"), method="POST")
+    try:
+        with open(NTFY_URL_FILE) as f:
+            url = f.read().strip()
+    except OSError:
+        url = ""
+    if not url:
+        print(f"pi_health: no ntfy topic in {NTFY_URL_FILE} - alert shown on the dashboard only", file=sys.stderr)
+        return
+    req = urllib.request.Request(url, data=message.encode("utf-8"), method="POST")
     try:
         urllib.request.urlopen(req, timeout=10)
     except (urllib.error.URLError, OSError):
