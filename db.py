@@ -1480,30 +1480,43 @@ def _migrate(conn):
     ls_cols = conn.execute("PRAGMA table_info(labor_sessions)").fetchall()
     project_id_col = next((c for c in ls_cols if c["name"] == "project_id"), None)
     if project_id_col is not None and project_id_col["notnull"]:
-        conn.execute("DROP TABLE IF EXISTS labor_sessions_new")
-        conn.execute("""CREATE TABLE labor_sessions_new (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            laborer_id INTEGER NOT NULL REFERENCES laborers(id),
-            project_id INTEGER REFERENCES projects(id),
-            section TEXT,
-            started_at TEXT NOT NULL DEFAULT (datetime('now')),
-            ended_at TEXT,
-            hours REAL,
-            rate REAL,
-            cost REAL,
-            note TEXT,
-            created_at TEXT NOT NULL DEFAULT (datetime('now'))
-        )""")
-        conn.execute("""INSERT INTO labor_sessions_new
-            (id, laborer_id, project_id, section, started_at, ended_at, hours, rate, cost, note, created_at)
-            SELECT id, laborer_id, project_id, section, started_at, ended_at, hours, rate, cost, note, created_at
-            FROM labor_sessions""")
-        conn.execute("DROP TABLE labor_sessions")
-        conn.execute("ALTER TABLE labor_sessions_new RENAME TO labor_sessions")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_labor_sessions_laborer ON labor_sessions(laborer_id)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_labor_sessions_project ON labor_sessions(project_id)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_labor_sessions_open ON labor_sessions(laborer_id, ended_at)")
+        # Same class of bug as qa-project-purge-crash (found_items) and
+        # qa-startup-old-backup-flights: nothing references labor_sessions
+        # today, but DROP TABLE labor_sessions still runs with foreign keys
+        # on, so the day something does (a future column REFERENCES
+        # labor_sessions(id)) this rebuild would crash startup exactly the
+        # same way on an old backup. Off for the swap, ids unchanged, back
+        # on after - matches the other two rebuilds so predeploy_check's
+        # "every DROP TABLE rebuild guards its foreign keys" check passes.
         conn.commit()
+        conn.execute("PRAGMA foreign_keys = OFF")
+        try:
+            conn.execute("DROP TABLE IF EXISTS labor_sessions_new")
+            conn.execute("""CREATE TABLE labor_sessions_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                laborer_id INTEGER NOT NULL REFERENCES laborers(id),
+                project_id INTEGER REFERENCES projects(id),
+                section TEXT,
+                started_at TEXT NOT NULL DEFAULT (datetime('now')),
+                ended_at TEXT,
+                hours REAL,
+                rate REAL,
+                cost REAL,
+                note TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )""")
+            conn.execute("""INSERT INTO labor_sessions_new
+                (id, laborer_id, project_id, section, started_at, ended_at, hours, rate, cost, note, created_at)
+                SELECT id, laborer_id, project_id, section, started_at, ended_at, hours, rate, cost, note, created_at
+                FROM labor_sessions""")
+            conn.execute("DROP TABLE labor_sessions")
+            conn.execute("ALTER TABLE labor_sessions_new RENAME TO labor_sessions")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_labor_sessions_laborer ON labor_sessions(laborer_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_labor_sessions_project ON labor_sessions(project_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_labor_sessions_open ON labor_sessions(laborer_id, ended_at)")
+            conn.commit()
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON")
 
     _migrate_flight_accounts_to_users(conn)
     _carry_over_project_photos_to_assets(conn)
