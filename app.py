@@ -7273,12 +7273,15 @@ def _remove_flight_logins(conn, user_ids, role):
 
 
 def _wipe_flight_log(conn, where="1=1", params=()):
-    """Deletes logged flights. Billing entries for them are kept (so
-    balances don't change) but un-linked from the deleted flight."""
+    """Deletes logged flights. Billing entries and each flight's pilot
+    logbook page (Flight Academy - pilot_logbook.flight_id, a hard foreign
+    key) are kept (so balances and a student's logged hours don't change)
+    but un-linked from the deleted flight."""
     ids = [r["id"] for r in conn.execute(f"SELECT id FROM flights WHERE {where}", params).fetchall()]
     if ids:
         ph = _ids_placeholders(ids)
         conn.execute(f"UPDATE student_ledger SET flight_id = NULL WHERE flight_id IN ({ph})", ids)
+        conn.execute(f"UPDATE pilot_logbook SET flight_id = NULL WHERE flight_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM flights WHERE id IN ({ph})", ids)
     return len(ids)
 
