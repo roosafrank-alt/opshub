@@ -74,7 +74,19 @@ else
   fi
 fi
 
-if [ "$page_ok" = "yes" ]; then
+# Phones reach OpsHub through Tailscale Funnel. If Funnel is off, the app
+# is "up" on the Pi but unreachable from phones ("cannot establish a secure
+# connection"), so that counts as down too. funnel-watchdog.sh turns it back
+# on; this makes sure Frank hears about it. Only a status that clearly
+# says Funnel is off counts - if this user can't read the status at all,
+# skip the check rather than raise a false alarm.
+funnel_ok="yes"
+funnel_status=$(tailscale funnel status 2>/dev/null)
+if [ -n "$funnel_status" ] && ! echo "$funnel_status" | grep -q "(Funnel on)"; then
+  funnel_ok="no"
+fi
+
+if [ "$page_ok" = "yes" ] && [ "$funnel_ok" = "yes" ]; then
   curl -fsS --max-time 10 "$PING_URL" -o /dev/null
   exit 0
 fi
@@ -82,6 +94,9 @@ fi
 service_state=$(systemctl is-active opshub 2>/dev/null || echo "unknown")
 disk_use=$(df -h / 2>/dev/null | awk 'NR==2 {print $5 " used on /"}')
 reason="page check: $page_detail; opshub service: $service_state; disk: ${disk_use:-unknown}"
+if [ "$funnel_ok" = "no" ]; then
+  reason="Tailscale Funnel is OFF - phones can't reach OpsHub (funnel-watchdog.sh should turn it back on within 5 min); $reason"
+fi
 
 log_down "$reason"
 curl -fsS --max-time 10 --data-raw "$reason" "$PING_URL/fail" -o /dev/null
