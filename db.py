@@ -1969,6 +1969,30 @@ def _migrate(conn):
     conn.execute("UPDATE users SET shop_role = 'apprentice' WHERE shop_role = 'student'")
     conn.commit()
 
+    # QA fix qa-labor-double-clock-in: a worker can never have two open
+    # timers - before the unique index below can be added, close out any
+    # duplicate open sessions a past double-scan already left running (keep
+    # the newest, end each older one right when the next one started, same
+    # math as a normal clock-out).
+    dupe_laborers = conn.execute(
+        "SELECT laborer_id FROM labor_sessions WHERE ended_at IS NULL GROUP BY laborer_id HAVING COUNT(*) > 1"
+    ).fetchall()
+    for row in dupe_laborers:
+        open_sessions = conn.execute(
+            "SELECT * FROM labor_sessions WHERE laborer_id = ? AND ended_at IS NULL ORDER BY started_at",
+            (row["laborer_id"],)).fetchall()
+        for i, sess in enumerate(open_sessions[:-1]):
+            close_at = open_sessions[i + 1]["started_at"]
+            started = datetime.strptime(sess["started_at"], "%Y-%m-%d %H:%M:%S")
+            ended = datetime.strptime(close_at, "%Y-%m-%d %H:%M:%S")
+            hours = max((ended - started).total_seconds() / 3600.0, 0)
+            conn.execute("UPDATE labor_sessions SET ended_at = ?, hours = ?, cost = ? WHERE id = ?",
+                         (close_at, hours, hours * (sess["rate"] or 0), sess["id"]))
+    conn.commit()
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_labor_sessions_one_open "
+                 "ON labor_sessions(laborer_id) WHERE ended_at IS NULL")
+    conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of

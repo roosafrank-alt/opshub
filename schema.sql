@@ -531,6 +531,10 @@ CREATE TABLE IF NOT EXISTS labor_sessions (
 CREATE INDEX IF NOT EXISTS idx_labor_sessions_laborer ON labor_sessions(laborer_id);
 CREATE INDEX IF NOT EXISTS idx_labor_sessions_project ON labor_sessions(project_id);
 CREATE INDEX IF NOT EXISTS idx_labor_sessions_open ON labor_sessions(laborer_id, ended_at);
+-- QA fix qa-labor-double-clock-in: a worker can never have two open timers -
+-- enforced here (not just in app.py's check-then-insert) so two clock-in
+-- scans arriving at the same instant can't both slip through.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labor_sessions_one_open ON labor_sessions(laborer_id) WHERE ended_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_transactions_part ON transactions(part_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_project ON transactions(project_id);

@@ -5587,10 +5587,22 @@ def api_labor_scan():
         return jsonify({"ok": False, "error": "no_task_selected", "code": code, "name": laborer["name"]}), 400
 
     if general:
-        conn.execute("""INSERT INTO labor_sessions (laborer_id, project_id, section, started_at, rate, created_at)
-                         VALUES (?, NULL, NULL, ?, ?, ?)""",
-                     (laborer["id"], now_iso(), laborer["rate"], now_iso()))
-        conn.commit()
+        try:
+            conn.execute("""INSERT INTO labor_sessions (laborer_id, project_id, section, started_at, rate, created_at)
+                             VALUES (?, NULL, NULL, ?, ?, ?)""",
+                         (laborer["id"], now_iso(), laborer["rate"], now_iso()))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            # Two clock-in scans arrived at the same instant (a double tap,
+            # the scanner sending the code twice, two phones at once) - the
+            # other one already started the timer a moment ago; this one
+            # just reports that instead of starting a second timer too (see
+            # idx_labor_sessions_one_open in schema.sql, QA fix
+            # qa-labor-double-clock-in).
+            conn.rollback()
+            conn.close()
+            return jsonify({"ok": True, "action": "already_clocked_in", "laborer": laborer["name"],
+                             "project_code": None, "general": True, "section": "General Shop"})
         conn.close()
         return jsonify({"ok": True, "action": "clock_in", "laborer": laborer["name"],
                          "project_code": None, "general": True, "section": "General Shop"})
@@ -5605,10 +5617,17 @@ def api_labor_scan():
         conn.close()
         return jsonify({"ok": False, "error": "project_closed", "project_code": project["code"],
                         "status": project["status"]}), 400
-    conn.execute("""INSERT INTO labor_sessions (laborer_id, project_id, section, started_at, rate, created_at)
-                     VALUES (?, ?, ?, ?, ?, ?)""",
-                 (laborer["id"], project_id, section, now_iso(), laborer["rate"], now_iso()))
-    conn.commit()
+    try:
+        conn.execute("""INSERT INTO labor_sessions (laborer_id, project_id, section, started_at, rate, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?)""",
+                     (laborer["id"], project_id, section, now_iso(), laborer["rate"], now_iso()))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        # Same double-scan race as above, on a task/project code this time.
+        conn.rollback()
+        conn.close()
+        return jsonify({"ok": True, "action": "already_clocked_in", "laborer": laborer["name"],
+                         "project_code": project["code"], "general": False, "section": section or "General"})
     conn.close()
     return jsonify({"ok": True, "action": "clock_in", "laborer": laborer["name"],
                      "project_code": project["code"], "general": False, "section": section or "General"})

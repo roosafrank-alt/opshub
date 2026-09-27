@@ -520,6 +520,13 @@ function handleLaborScan(code, note) {
         projectLabel + (data.section && data.section !== 'General' && data.section !== 'General Shop' ? ' &middot; ' + data.section : '') + '.', 'scan-flash-in');
       vibrate([40, 60, 40]);
       addRecent(code, data.laborer + ' clocked in', 'labor');
+    } else if (data.action === 'already_clocked_in') {
+      // Two clock-in scans arrived at once (a double tap, or the scanner
+      // sending the code twice) - the other one already started the
+      // timer, so this one's a no-op, not a second one.
+      showResult('<i class="bi bi-play-circle"></i> <strong>' + data.laborer + '</strong> is already clocked in on ' +
+        projectLabel + (data.section && data.section !== 'General' && data.section !== 'General Shop' ? ' &middot; ' + data.section : '') + '.', 'scan-flash-in');
+      vibrate([40]);
     } else {
       showResult('<i class="bi bi-stop-circle"></i> <strong>' + data.laborer + '</strong> clocked out of ' +
         projectLabel + (data.section && data.section !== 'General' && data.section !== 'General Shop' ? ' &middot; ' + data.section : '') +
