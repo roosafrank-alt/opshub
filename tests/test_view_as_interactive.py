@@ -62,3 +62,32 @@ class ViewAsInteractiveTest(OpsHubTestCase):
         with c.session_transaction() as s:
             self.assertTrue(s["is_master_admin"])
             self.assertEqual(s["shop_role"], "admin")
+
+    def test_view_as_chip_row_offers_inspector(self):
+        # Idea "view as": the Maintenance tab's View as chips were missing
+        # Inspector (SHOP_VIEW_AS_LEVELS only had admin/tech/apprentice).
+        c = self.login("master")
+        body = c.get("/shop").get_data(as_text=True)
+        self.assertIn(">Inspector<", body)
+
+    def test_viewing_as_inspector_can_sign_off_a_squawk_repair(self):
+        squawk_id = self.exec(
+            "INSERT INTO plane_squawks (asset_id, notes, reported_at, acknowledged_at, acknowledged_by, "
+            "assigned_to, worker_acknowledged_at, repair_confirm_requested_at, repair_confirm_requested_by) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
+            (self.asset_id, "Left brake soft", db.now_iso(), db.now_iso(), "Tech",
+             self.users["tech"]["id"], db.now_iso(), db.now_iso(), "Tech"))
+        c = self.login("master")
+        c.post("/view-as/shop/inspector")
+        with c.session_transaction() as s:
+            self.assertEqual(s["shop_role"], "inspector")
+        r = c.post(f"/squawks/quick/{squawk_id}/repair_confirm")
+        self.assertEqual(r.status_code, 302)
+        row = self.q1("SELECT * FROM plane_squawks WHERE id = ?", (squawk_id,))
+        self.assertIsNotNone(row["repaired_at"])
+
+    def test_viewing_as_inspector_is_still_refused_parts(self):
+        c = self.login("master")
+        c.post("/view-as/shop/inspector")
+        r = c.get("/parts")
+        self.assertEqual(r.status_code, 302)

@@ -163,7 +163,7 @@ def can_manage_billing():
 # fields are stashed under _view_as_real to restore on exit.
 # ---------------------------------------------------------------------------
 
-SHOP_VIEW_AS_LEVELS = {"admin": "Shop Admin", "tech": "Shop Tech", "apprentice": "Shop Apprentice"}
+SHOP_VIEW_AS_LEVELS = {"admin": "Admin", "tech": "Tech", "apprentice": "Apprentice", "inspector": "Inspector"}
 FLIGHT_VIEW_AS_LEVELS = {"cfi": "CFI", "student": "Student"}
 
 
