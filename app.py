@@ -4724,10 +4724,18 @@ def _batch_shipments(conn, batch_ids):
 
 def _refresh_shipment(conn, shipment):
     """Asks the carrier for a shipment's latest status when its cache is
-    stale (tracking.needs_refresh) and some line of its order is still
-    pending. Returns (fresh shipment row, error or None)."""
-    pending = conn.execute("SELECT 1 FROM orders WHERE COALESCE(batch_id, 'o' || id) = ? AND status = 'pending'",
-                           (shipment["batch_id"],)).fetchone()
+    stale (tracking.needs_refresh) and it's still worth checking. Returns
+    (fresh shipment row, error or None). A regular order batch is worth
+    checking while any of its lines is still pending; a core's return
+    shipment (batch_id "core<order_id>" - see order_core_shipped) is worth
+    checking until that core's credit is received."""
+    batch_id = shipment["batch_id"]
+    if batch_id.startswith("core") and batch_id[4:].isdigit():
+        pending = conn.execute("SELECT 1 FROM orders WHERE id = ? AND core_credited_at IS NULL",
+                               (int(batch_id[4:]),)).fetchone()
+    else:
+        pending = conn.execute("SELECT 1 FROM orders WHERE COALESCE(batch_id, 'o' || id) = ? AND status = 'pending'",
+                               (batch_id,)).fetchone()
     error = None
     if pending and tracking.needs_refresh(shipment):
         result = tracking.fetch_status(shipment)
@@ -5141,6 +5149,15 @@ def order_core_shipped(order_id):
     tracking_no = tracking.clean_number(request.form.get("core_tracking")) or None
     conn.execute("UPDATE orders SET core_shipped_at = COALESCE(core_shipped_at, ?), core_tracking = ? WHERE id = ?",
                  (now_iso(), tracking_no, order_id))
+    # Idea "order tracking live": the core's own return shipment, tracked
+    # with the same order_shipments/live-status machinery as a regular
+    # order (see _refresh_shipment's core-batch case below) - a synthetic
+    # batch id keyed to this order rather than a real order batch.
+    batch_id = f"core{order_id}"
+    conn.execute("DELETE FROM order_shipments WHERE batch_id = ?", (batch_id,))
+    if tracking_no:
+        conn.execute("INSERT INTO order_shipments (batch_id, tracking_number, tracking_carrier, created_at) "
+                     "VALUES (?, ?, ?, ?)", (batch_id, tracking_no, tracking.guess_carrier(tracking_no) or None, now_iso()))
     conn.commit()
     conn.close()
     flash("Core marked shipped. Press Credit received once the supplier credits it.", "success")
@@ -5174,6 +5191,7 @@ def _cores_owed(conn):
                            WHERE o.is_exchange = 1 AND o.status = 'received' AND o.core_credited_at IS NULL
                            ORDER BY o.core_shipped_at IS NOT NULL, o.core_due_date""").fetchall()
     today = date.today()
+    shipments_by_batch = _batch_shipments(conn, [f"core{r['id']}" for r in rows])
     out = []
     for r in rows:
         c = dict(r)
@@ -5184,6 +5202,9 @@ def _cores_owed(conn):
         c["urgency"] = ("shipped" if r["core_shipped_at"] else
                         "overdue" if c["days_left"] is not None and c["days_left"] < 0 else
                         "soon" if c["days_left"] is not None and c["days_left"] <= 7 else "ok")
+        # Still worth live-refreshing until the core's credit is received -
+        # _cores_owed already filters to core_credited_at IS NULL rows.
+        c["shipments"] = [dict(sh, pending=True) for sh in shipments_by_batch.get(f"core{r['id']}", [])]
         out.append(c)
     return out
 

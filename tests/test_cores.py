@@ -69,6 +69,40 @@ class CoresTest(OpsHubTestCase):
         self.login("tech").post(f"/orders/{o['id']}/core-credited")
         self.assertIsNone(self.q1("SELECT core_credited_at FROM orders WHERE id=?", (o["id"],))["core_credited_at"])
 
+    def test_core_shipped_with_tracking_creates_a_live_shipment(self):
+        o = self.order()
+        self.client.post(f"/orders/{o['id']}/receive")
+        self.client.post(f"/orders/{o['id']}/core-shipped", data=dict(core_tracking="1Z999AA10123456784"))
+        sh = self.q1("SELECT * FROM order_shipments WHERE batch_id = ?", (f"core{o['id']}",))
+        self.assertIsNotNone(sh)
+        self.assertEqual(sh["tracking_number"], "1Z999AA10123456784")
+        self.assertEqual(sh["tracking_carrier"], "ups")
+        html = self.client.get("/orders").get_data(as_text=True)
+        self.assertIn("order-tracking", html)
+        self.assertIn(f'data-shipment-id="{sh["id"]}"', html)
+
+    def test_core_tracking_is_clickable_and_expandable_via_the_live_endpoint(self):
+        o = self.order()
+        self.client.post(f"/orders/{o['id']}/receive")
+        self.client.post(f"/orders/{o['id']}/core-shipped", data=dict(core_tracking="1Z999AA10123456784"))
+        sh = self.q1("SELECT * FROM order_shipments WHERE batch_id = ?", (f"core{o['id']}",))
+        d = self.client.get(f"/api/orders/shipments/{sh['id']}/tracking").get_json()
+        self.assertTrue(d["ok"])
+        self.assertIn("ups.com", d["carrier_url"])
+
+    def test_core_shipment_stops_refreshing_once_credited(self):
+        import app as app_module
+        o = self.order()
+        self.client.post(f"/orders/{o['id']}/receive")
+        self.client.post(f"/orders/{o['id']}/core-shipped", data=dict(core_tracking="1Z999AA10123456784"))
+        self.client.post(f"/orders/{o['id']}/core-credited")
+        sh = self.q1("SELECT * FROM order_shipments WHERE batch_id = ?", (f"core{o['id']}",))
+        conn = db.get_db()
+        refreshed, error = app_module._refresh_shipment(conn, sh)
+        conn.close()
+        self.assertIsNone(error)
+        self.assertIsNone(refreshed["tracking_checked_at"])  # never even asked, since it's already credited
+
     def test_admin_alerted_once_when_due_within_7_days(self):
         o = self.order()
         self.client.post(f"/orders/{o['id']}/receive")

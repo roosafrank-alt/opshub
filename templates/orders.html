@@ -16,6 +16,18 @@
 {% endif %}
 {% endmacro %}
 
+{#- Idea "order tracking live": one clickable number with live carrier
+   status/delivery time, reused everywhere a tracking number shows -
+   regular order shipments below, and a core's own return shipment. #}
+{% macro tracking_cell(shipments) %}
+{% for sh in shipments %}
+<div class="order-tracking mt-1" data-shipment-id="{{ sh.id }}" data-live="{{ 1 if sh.pending else 0 }}" data-tracking='{{ sh|tojson }}'>
+  <a href="#" class="tracking-toggle text-decoration-none small" title="Show tracking details"><i class="bi bi-truck"></i> <span class="tracking-badge"></span> <i class="bi bi-chevron-down small"></i></a>
+  <div class="tracking-details small mt-1 p-2 border rounded bg-body-tertiary" style="display:none;"></div>
+</div>
+{% endfor %}
+{% endmacro %}
+
 {% if cores_owed %}
 {#- Exchange cores owed back to suppliers (app._cores_owed): red overdue,
    amber within 7 days; shipped ones wait for the credit. #}
@@ -31,7 +43,7 @@
           <td data-label="Job / aircraft">{% if c.project_code %}<a href="{{ url_for('project_detail', project_id=c.project_id) }}">{{ c.project_code }}</a>{% if c.asset_tag %} &middot; {{ c.asset_tag }}{% endif %}{% else %}-{% endif %}</td>
           <td data-label="Supplier">{{ c.supplier or '-' }}</td>
           <td data-label="Due">
-            {% if c.urgency == 'shipped' %}<span class="badge bg-info text-dark">Shipped {{ c.core_shipped_at|usdate }}</span>{% if c.core_tracking %}<div class="small text-muted">{{ c.core_tracking }}</div>{% endif %}
+            {% if c.urgency == 'shipped' %}<span class="badge bg-info text-dark">Shipped {{ c.core_shipped_at|usdate }}</span>{% if c.shipments %}{{ tracking_cell(c.shipments) }}{% elif c.core_tracking %}<div class="small text-muted">{{ c.core_tracking }}</div>{% endif %}
             {% elif c.core_due_date %}{{ c.core_due_date|usdate }}
               <div class="small fw-bold {{ 'text-danger' if c.urgency == 'overdue' else ('text-warning-emphasis' if c.urgency == 'soon' else 'text-muted') }}">
                 {% if c.days_left < 0 %}{{ -c.days_left }} day{{ 's' if c.days_left != -1 }} overdue{% elif c.days_left == 0 %}Due today{% else %}{{ c.days_left }} day{{ 's' if c.days_left != 1 }} left{% endif %}</div>
@@ -150,15 +162,6 @@
 {% else %}
 <span class="badge bg-secondary">Cancelled</span>
 {% endif %}
-{% endmacro %}
-
-{% macro tracking_cell(shipments) %}
-{% for sh in shipments %}
-<div class="order-tracking mt-1" data-shipment-id="{{ sh.id }}" data-live="{{ 1 if sh.pending else 0 }}" data-tracking='{{ sh|tojson }}'>
-  <a href="#" class="tracking-toggle text-decoration-none small" title="Show tracking details"><i class="bi bi-truck"></i> <span class="tracking-badge"></span> <i class="bi bi-chevron-down small"></i></a>
-  <div class="tracking-details small mt-1 p-2 border rounded bg-body-tertiary" style="display:none;"></div>
-</div>
-{% endfor %}
 {% endmacro %}
 
 {% macro item_cell(o) %}
