@@ -3086,8 +3086,66 @@ def project_restore(project_id):
     return redirect(url_for("trash_page"))
 
 
-def _purge_project(conn, project_id):
-    conn.execute("DELETE FROM transactions WHERE project_id = ?", (project_id,))
+def _project_purge_preview(conn, project_id):
+    """What Delete Forever would touch on this job besides the job itself -
+    parts still net "taken" against it and hours clocked on it - so the
+    Recently Deleted page can ask what to do with them first (QA fix
+    qa-project-purge-erases-pay) instead of silently erasing a worker's pay
+    or a part's usage history."""
+    parts = conn.execute("""
+        SELECT p.id as part_id, p.name, p.barcode, p.unit,
+               SUM(CASE WHEN t.type = 'out' THEN t.qty WHEN t.type = 'in' THEN -t.qty ELSE 0 END) as qty
+        FROM transactions t JOIN parts p ON p.id = t.part_id
+        WHERE t.project_id = ? AND t.type IN ('out', 'in')
+        GROUP BY t.part_id HAVING qty > 0 ORDER BY p.name
+    """, (project_id,)).fetchall()
+    hours = conn.execute("""
+        SELECT ls.id, ls.hours, ls.cost, ls.section, ls.started_at, l.name as laborer_name
+        FROM labor_sessions ls JOIN laborers l ON l.id = ls.laborer_id
+        WHERE ls.project_id = ? AND ls.hours IS NOT NULL ORDER BY ls.started_at
+    """, (project_id,)).fetchall()
+    hours_out = []
+    for h in hours:
+        h = dict(h)
+        try:
+            h["date_label"] = datetime.strptime(h["started_at"][:10], "%Y-%m-%d").strftime("%b %-d")
+        except ValueError:
+            h["date_label"] = h["started_at"][:10]
+        hours_out.append(h)
+    return {
+        "parts": [dict(r) for r in parts],
+        "hours": hours_out,
+        "hours_total": round(sum(h["hours"] or 0 for h in hours), 2),
+    }
+
+
+def _purge_project(conn, project_id, parts_action=None, hours_action=None):
+    """parts_action: 'return' puts net-taken quantities back on the shelf
+    (with a new "Returned - job deleted" transaction so a recount still
+    adds up) and detaches the rest of the job's transactions; anything else
+    (including None, a job with no parts) just detaches them, annotated
+    "(deleted job)" so a part's own history keeps them instead of losing
+    that record. hours_action: 'transfer' moves the job's labor_sessions to
+    General Shop time (same laborer/dates/rate/pay, just no project) so pay
+    totals don't change; anything else (including None) deletes them, same
+    as the original behavior. Returns a summary dict for the flash message."""
+    summary = {"parts_returned": 0, "hours_transferred": 0.0, "hours_removed": 0.0}
+    if parts_action == "return":
+        for row in conn.execute("""
+                SELECT part_id, SUM(CASE WHEN type = 'out' THEN qty WHEN type = 'in' THEN -qty ELSE 0 END) as qty
+                FROM transactions WHERE project_id = ? AND type IN ('out', 'in')
+                GROUP BY part_id HAVING qty > 0""", (project_id,)).fetchall():
+            conn.execute("UPDATE parts SET qty_on_hand = qty_on_hand + ?, updated_at = ? WHERE id = ?",
+                         (row["qty"], now_iso(), row["part_id"]))
+            conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, performed_by, source, created_at)
+                             VALUES (?, NULL, 'in', ?, 'Returned - job deleted', ?, 'assigned', ?)""",
+                         (row["part_id"], row["qty"], session.get("user_name"), now_iso()))
+            summary["parts_returned"] += row["qty"]
+        conn.execute("UPDATE transactions SET project_id = NULL WHERE project_id = ?", (project_id,))
+    else:
+        conn.execute("""UPDATE transactions SET project_id = NULL,
+                         note = CASE WHEN note IS NULL OR note = '' THEN 'Deleted job' ELSE note || ' (deleted job)' END
+                         WHERE project_id = ?""", (project_id,))
     conn.execute("DELETE FROM photos WHERE project_id = ?", (project_id,))
     conn.execute("UPDATE orders SET project_id = NULL WHERE project_id = ?", (project_id,))
     conn.execute("UPDATE maintenance_log SET project_id = NULL WHERE project_id = ?", (project_id,))
@@ -3099,8 +3157,36 @@ def _purge_project(conn, project_id):
     conn.execute("UPDATE logbook_entries SET project_id = NULL WHERE project_id = ?", (project_id,))
     conn.execute("UPDATE found_items SET project_id = NULL WHERE project_id = ?", (project_id,))
     conn.execute("DELETE FROM project_sections WHERE project_id = ?", (project_id,))
-    conn.execute("DELETE FROM labor_sessions WHERE project_id = ?", (project_id,))
+    if hours_action == "transfer":
+        row = conn.execute("SELECT COALESCE(SUM(hours), 0) t FROM labor_sessions WHERE project_id = ? AND hours IS NOT NULL",
+                           (project_id,)).fetchone()
+        summary["hours_transferred"] = row["t"] or 0.0
+        conn.execute("UPDATE labor_sessions SET project_id = NULL, section = NULL WHERE project_id = ?", (project_id,))
+    else:
+        row = conn.execute("SELECT COALESCE(SUM(hours), 0) t FROM labor_sessions WHERE project_id = ? AND hours IS NOT NULL",
+                           (project_id,)).fetchone()
+        summary["hours_removed"] = row["t"] or 0.0
+        conn.execute("DELETE FROM labor_sessions WHERE project_id = ?", (project_id,))
     conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+    return summary
+
+
+def _purge_summary_clause(summary):
+    """'3 parts returned to stock; 4.0 hours moved to General Shop time' -
+    or '' if this purge didn't touch any parts/hours (nothing to report)."""
+    parts = []
+    if summary["parts_returned"]:
+        parts.append(f"{summary['parts_returned']:g} parts returned to stock")
+    if summary["hours_transferred"]:
+        parts.append(f"{summary['hours_transferred']:g} hours moved to General Shop time")
+    if summary["hours_removed"]:
+        parts.append(f"{summary['hours_removed']:g} hours removed from pay")
+    return "; ".join(parts)
+
+
+def _purge_summary_message(name, summary):
+    clause = _purge_summary_clause(summary)
+    return f"Job '{name}' deleted. {clause}." if clause else f"Project '{name}' permanently deleted. Its logbook entries and owner-approved items were kept on the plane's record."
 
 
 @app.route("/projects/<int:project_id>/purge", methods=["POST"])
@@ -3111,10 +3197,21 @@ def project_purge(project_id):
     if not project:
         conn.close()
         abort(404)
-    _purge_project(conn, project_id)
+    preview = _project_purge_preview(conn, project_id)
+    parts_action = request.form.get("parts_action")
+    hours_action = request.form.get("hours_action")
+    if preview["parts"] and parts_action not in ("return", "deleted"):
+        conn.close()
+        flash("Choose what happens to the parts taken for this job before deleting it.", "danger")
+        return redirect(url_for("trash_page"))
+    if preview["hours"] and hours_action not in ("remove", "transfer"):
+        conn.close()
+        flash("Choose what happens to the hours clocked on this job before deleting it.", "danger")
+        return redirect(url_for("trash_page"))
+    summary = _purge_project(conn, project_id, parts_action=parts_action, hours_action=hours_action)
     conn.commit()
     conn.close()
-    flash(f"Project '{project['name']}' permanently deleted. Its logbook entries and owner-approved items were kept on the plane's record.", "success")
+    flash(_purge_summary_message(project["name"], summary), "success")
     return redirect(url_for("trash_page"))
 
 
@@ -3997,8 +4094,17 @@ def trash_page():
     deleted_assets = conn.execute(
         "SELECT * FROM assets WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
     ).fetchall()
+    # QA fix qa-project-purge-erases-pay: what Delete Forever would do to
+    # each job's parts/hours, keyed by project id for the page's own JS to
+    # show a "what happens to these?" pop-up instead of the plain confirm
+    # when a job actually has something tied to it.
+    purge_previews = {p["id"]: _project_purge_preview(conn, p["id"]) for p in deleted_projects}
+    any_parts_in_trash = any(p["parts"] for p in purge_previews.values())
+    any_hours_in_trash = any(p["hours"] for p in purge_previews.values())
     conn.close()
-    return render_template("trash.html", deleted_projects=deleted_projects, deleted_assets=deleted_assets)
+    return render_template("trash.html", deleted_projects=deleted_projects, deleted_assets=deleted_assets,
+                           purge_previews=purge_previews, any_parts_in_trash=any_parts_in_trash,
+                           any_hours_in_trash=any_hours_in_trash)
 
 
 @app.route("/trash/empty", methods=["POST"])
@@ -4007,15 +4113,36 @@ def trash_empty():
     conn = get_db()
     project_ids = [r["id"] for r in conn.execute(
         "SELECT id FROM projects WHERE deleted_at IS NOT NULL").fetchall()]
+    # Same "what happens to parts/hours" questions as a single Delete
+    # Forever, asked once and applied to every job in the bin (QA fix
+    # qa-project-purge-erases-pay) - only required when at least one of
+    # them actually has parts or hours tied to it.
+    previews = [_project_purge_preview(conn, pid) for pid in project_ids]
+    any_parts = any(p["parts"] for p in previews)
+    any_hours = any(p["hours"] for p in previews)
+    parts_action = request.form.get("parts_action")
+    hours_action = request.form.get("hours_action")
+    if any_parts and parts_action not in ("return", "deleted"):
+        conn.close()
+        flash("Choose what happens to the parts taken for jobs in Recently Deleted before emptying it.", "danger")
+        return redirect(url_for("trash_page"))
+    if any_hours and hours_action not in ("remove", "transfer"):
+        conn.close()
+        flash("Choose what happens to the hours clocked on jobs in Recently Deleted before emptying it.", "danger")
+        return redirect(url_for("trash_page"))
+    totals = {"parts_returned": 0, "hours_transferred": 0.0, "hours_removed": 0.0}
     for pid in project_ids:
-        _purge_project(conn, pid)
+        s = _purge_project(conn, pid, parts_action=parts_action, hours_action=hours_action)
+        for k in totals:
+            totals[k] += s[k]
     asset_ids = [r["id"] for r in conn.execute(
         "SELECT id FROM assets WHERE deleted_at IS NOT NULL").fetchall()]
     for aid in asset_ids:
         _purge_asset(conn, aid)
     conn.commit()
     conn.close()
-    flash("Recently Deleted emptied.", "success")
+    clause = _purge_summary_clause(totals)
+    flash(f"Recently Deleted emptied. {clause}." if clause else "Recently Deleted emptied.", "success")
     return redirect(url_for("trash_page"))
 
 

@@ -4,9 +4,13 @@
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-trash3"></i> Recently Deleted</h4>
   {% if deleted_projects or deleted_assets %}
-  <form method="post" action="{{ url_for('trash_empty') }}" data-confirm="Permanently delete everything in Recently Deleted? This cannot be undone." data-confirm-style="danger">
-    <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash3"></i> Empty Trash</button>
-  </form>
+    {% if any_parts_in_trash or any_hours_in_trash %}
+    <button type="button" class="btn btn-outline-danger btn-sm" id="empty-trash-open-btn"><i class="bi bi-trash3"></i> Empty Trash</button>
+    {% else %}
+    <form method="post" action="{{ url_for('trash_empty') }}" data-confirm="Permanently delete everything in Recently Deleted? This cannot be undone." data-confirm-style="danger">
+      <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash3"></i> Empty Trash</button>
+    </form>
+    {% endif %}
   {% endif %}
 </div>
 
@@ -18,6 +22,7 @@
       <thead><tr><th>Code</th><th>Name</th><th>Deleted</th><th></th></tr></thead>
       <tbody>
         {% for p in deleted_projects %}
+        {% set preview = purge_previews[p.id] %}
         <tr>
           <td><code class="text-primary">{{ p.code }}</code></td>
           <td>{{ p.name }}</td>
@@ -26,9 +31,13 @@
             <form method="post" action="{{ url_for('project_restore', project_id=p.id) }}" class="d-inline">
               <button class="btn btn-sm btn-outline-success">Restore</button>
             </form>
+            {% if preview.parts or preview.hours %}
+            <button type="button" class="btn btn-sm btn-outline-danger purge-info-open-btn" data-project-id="{{ p.id }}">Delete Forever</button>
+            {% else %}
             <form method="post" action="{{ url_for('project_purge', project_id=p.id) }}" class="d-inline" data-confirm="Permanently delete this project and all its history? This cannot be undone." data-confirm-style="danger">
               <button class="btn btn-sm btn-outline-danger">Delete Forever</button>
             </form>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}
@@ -69,4 +78,182 @@
   <p class="text-muted small mb-0">No deleted assets.</p>
   {% endif %}
 </div>
+
+{#- QA fix qa-project-purge-erases-pay: a job with parts taken or hours
+   clocked can't just be permanently deleted with a plain yes/no - this
+   asks what happens to each before it goes. One shared modal, populated
+   from PURGE_PREVIEWS by project id (same pattern as the Schedule Detail
+   popup) rather than one modal per row. #}
+<div class="modal fade" id="purgeInfoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete this job forever?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" id="purge-info-form">
+        <div class="modal-body">
+          <p><strong id="pi-job-name"></strong> still has records tied to it. Choose what happens to them before it is deleted.</p>
+          <div class="card p-2 mb-2 d-none" id="pi-parts-card">
+            <div class="fw-bold small"><i class="bi bi-box-seam"></i> <span id="pi-parts-count"></span> parts taken for this job</div>
+            <div class="text-muted small mb-2" id="pi-parts-list"></div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="parts_action" id="pi-parts-return" value="return">
+              <label class="form-check-label small" for="pi-parts-return">Return to stock &mdash; put them back on the shelf (count goes up by <span id="pi-parts-total"></span>)</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="parts_action" id="pi-parts-deleted" value="deleted">
+              <label class="form-check-label small" for="pi-parts-deleted">Deleted &mdash; they stay used; history kept as &ldquo;deleted job&rdquo; so recounts still add up</label>
+            </div>
+          </div>
+          <div class="card p-2 mb-2 d-none" id="pi-hours-card">
+            <div class="fw-bold small"><i class="bi bi-clock-history"></i> <span id="pi-hours-total"></span> hours clocked on this job</div>
+            <div class="text-muted small mb-2" id="pi-hours-list"></div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="hours_action" id="pi-hours-remove" value="remove">
+              <label class="form-check-label small" for="pi-hours-remove">Remove from pay &mdash; hours are deleted and pay totals drop</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="hours_action" id="pi-hours-transfer" value="transfer">
+              <label class="form-check-label small" for="pi-hours-transfer">Transfer to General Shop time &mdash; hours and pay are kept</label>
+            </div>
+          </div>
+          <div class="text-muted small">This cannot be undone.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger fw-bold btn-sm" id="pi-submit-btn" disabled>Delete Forever</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if any_parts_in_trash or any_hours_in_trash %}
+{#- Empty Trash asks the same two questions once (no per-job breakdown -
+   there could be many) and applies the answers to every job it deletes. #}
+<div class="modal fade" id="emptyTrashModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Empty Recently Deleted?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{{ url_for('trash_empty') }}" id="empty-trash-form">
+        <div class="modal-body">
+          <p>Some jobs in Recently Deleted still have parts taken or hours clocked. Choose what happens to them before everything is permanently deleted.</p>
+          {% if any_parts_in_trash %}
+          <div class="card p-2 mb-2">
+            <div class="fw-bold small"><i class="bi bi-box-seam"></i> Parts taken</div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="parts_action" id="et-parts-return" value="return">
+              <label class="form-check-label small" for="et-parts-return">Return to stock &mdash; put them back on the shelf</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="parts_action" id="et-parts-deleted" value="deleted">
+              <label class="form-check-label small" for="et-parts-deleted">Deleted &mdash; they stay used; history kept as &ldquo;deleted job&rdquo;</label>
+            </div>
+          </div>
+          {% endif %}
+          {% if any_hours_in_trash %}
+          <div class="card p-2 mb-2">
+            <div class="fw-bold small"><i class="bi bi-clock-history"></i> Hours clocked</div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="hours_action" id="et-hours-remove" value="remove">
+              <label class="form-check-label small" for="et-hours-remove">Remove from pay &mdash; hours are deleted and pay totals drop</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="hours_action" id="et-hours-transfer" value="transfer">
+              <label class="form-check-label small" for="et-hours-transfer">Transfer to General Shop time &mdash; hours and pay are kept</label>
+            </div>
+          </div>
+          {% endif %}
+          <div class="text-muted small">This applies to every job being emptied, and cannot be undone.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger fw-bold btn-sm" id="et-submit-btn" disabled>Empty Trash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+var PURGE_PREVIEWS = {{ purge_previews|tojson }};
+(function () {
+  var modalEl = document.getElementById('purgeInfoModal');
+  if (!modalEl) return;
+  var form = document.getElementById('purge-info-form');
+  var submitBtn = document.getElementById('pi-submit-btn');
+  var partsCard = document.getElementById('pi-parts-card');
+  var hoursCard = document.getElementById('pi-hours-card');
+
+  function fmtMoney(n) { return '$' + (Math.round(n * 100) / 100).toFixed(2); }
+
+  function syncSubmit() {
+    var partsOk = partsCard.classList.contains('d-none') || form.querySelector('input[name="parts_action"]:checked');
+    var hoursOk = hoursCard.classList.contains('d-none') || form.querySelector('input[name="hours_action"]:checked');
+    submitBtn.disabled = !(partsOk && hoursOk);
+  }
+  form.addEventListener('change', syncSubmit);
+
+  document.querySelectorAll('.purge-info-open-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var pid = btn.dataset.projectId;
+      var row = btn.closest('tr');
+      var name = row ? row.children[1].textContent.trim() : '';
+      var preview = PURGE_PREVIEWS[pid] || { parts: [], hours: [], hours_total: 0 };
+      form.action = '/projects/' + pid + '/purge';
+      document.getElementById('pi-job-name').textContent = name;
+      form.querySelectorAll('input[type=radio]').forEach(function (r) { r.checked = false; });
+
+      var hasParts = preview.parts && preview.parts.length;
+      partsCard.classList.toggle('d-none', !hasParts);
+      if (hasParts) {
+        var totalQty = preview.parts.reduce(function (s, p) { return s + p.qty; }, 0);
+        document.getElementById('pi-parts-count').textContent = totalQty;
+        document.getElementById('pi-parts-total').textContent = totalQty;
+        document.getElementById('pi-parts-list').textContent = preview.parts.map(function (p) {
+          return p.name + (p.barcode ? ' ' + p.barcode : '') + ' ×' + p.qty;
+        }).join(', ');
+      }
+
+      var hasHours = preview.hours && preview.hours.length;
+      hoursCard.classList.toggle('d-none', !hasHours);
+      if (hasHours) {
+        document.getElementById('pi-hours-total').textContent = preview.hours_total;
+        document.getElementById('pi-hours-list').textContent = preview.hours.map(function (h) {
+          return h.laborer_name + ' — ' + (h.section || 'General') + ', ' + h.date_label + ' (' + fmtMoney(h.cost || 0) + ')';
+        }).join('; ');
+      }
+
+      syncSubmit();
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+  });
+})();
+
+(function () {
+  var openBtn = document.getElementById('empty-trash-open-btn');
+  var modalEl = document.getElementById('emptyTrashModal');
+  if (!openBtn || !modalEl) return;
+  var form = document.getElementById('empty-trash-form');
+  var submitBtn = document.getElementById('et-submit-btn');
+  function syncSubmit() {
+    var partsGroup = form.querySelectorAll('input[name="parts_action"]');
+    var hoursGroup = form.querySelectorAll('input[name="hours_action"]');
+    var partsOk = !partsGroup.length || form.querySelector('input[name="parts_action"]:checked');
+    var hoursOk = !hoursGroup.length || form.querySelector('input[name="hours_action"]:checked');
+    submitBtn.disabled = !(partsOk && hoursOk);
+  }
+  form.addEventListener('change', syncSubmit);
+  openBtn.addEventListener('click', function () {
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  });
+})();
+</script>
 {% endblock %}
