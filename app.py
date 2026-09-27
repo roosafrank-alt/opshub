@@ -5580,14 +5580,14 @@ def shop_billing():
     def proj(pid):
         if pid not in projects:
             p = conn.execute("""SELECT pr.id, pr.code, pr.name, pr.status, pr.payment_status,
-                                       pr.invoiced_at, pr.paid_at, pr.paid_method, a.tag as asset_tag
+                                       pr.invoiced_at, pr.paid_at, pr.paid_method, pr.card_last4, a.tag as asset_tag
                                 FROM projects pr LEFT JOIN assets a ON a.id = pr.asset_id WHERE pr.id = ?""",
                              (pid,)).fetchone()
             projects[pid] = {"id": pid, "code": p["code"] if p else "?", "name": p["name"] if p else "(deleted)",
                              "status": p["status"] if p else "", "asset_tag": p["asset_tag"] if p else None,
                              "payment_status": (p["payment_status"] if p else None) or "not_invoiced",
                              "invoiced_at": p["invoiced_at"] if p else None, "paid_at": p["paid_at"] if p else None,
-                             "paid_method": p["paid_method"] if p else None,
+                             "paid_method": p["paid_method"] if p else None, "card_last4": p["card_last4"] if p else None,
                              "labor_hours": 0.0, "labor": 0.0, "parts": 0.0, "parts_cost": 0.0, "parts_count": 0}
         return projects[pid]
 
@@ -5654,6 +5654,34 @@ def project_mark_paid(project_id):
     conn.commit()
     conn.close()
     flash("Marked paid.", "success")
+    return redirect(request.referrer or url_for("shop_billing"))
+
+
+@app.route("/shop/billing/<int:project_id>/pay-card", methods=["POST"])
+@shop_role_required('admin')
+def project_pay_card(project_id):
+    """Idea "Credit card": a simulated Stripe-style card charge so Frank can
+    see how a "Pay with Card" flow would feel - no real Stripe account, no
+    network call, no real charge. Only the card's last 4 digits are kept,
+    alongside a fake charge id, next to the usual Mark Paid fields."""
+    conn = get_db()
+    project = conn.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    card_number = re.sub(r"\D", "", request.form.get("card_number", ""))
+    if len(card_number) < 4:
+        conn.close()
+        flash("Enter a card number to simulate the charge.", "danger")
+        return redirect(request.referrer or url_for("shop_billing"))
+    last4 = card_number[-4:]
+    charge_id = "sim_ch_" + secrets.token_hex(8)
+    conn.execute("""UPDATE projects SET payment_status = 'paid', paid_at = ?, paid_by = ?, paid_method = 'Card',
+                    card_last4 = ?, card_charge_id = ? WHERE id = ?""",
+                 (now_iso(), session.get("user_name"), last4, charge_id, project_id))
+    conn.commit()
+    conn.close()
+    flash(f"Card charged (simulated) - ending in {last4}, receipt {charge_id}.", "success")
     return redirect(request.referrer or url_for("shop_billing"))
 
 

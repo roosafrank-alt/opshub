@@ -1343,6 +1343,12 @@ def _migrate(conn):
         ("scheduled_flights", "hold_started_at", "ALTER TABLE scheduled_flights ADD COLUMN hold_started_at TEXT"),
         ("scheduled_flights", "held_release_date", "ALTER TABLE scheduled_flights ADD COLUMN held_release_date TEXT"),
         ("scheduled_flights", "released_from_hold_at", "ALTER TABLE scheduled_flights ADD COLUMN released_from_hold_at TEXT"),
+        # Idea "Credit card": a simulated Stripe-style "Pay with Card" option
+        # next to Mark Paid on Billing - no real Stripe account or charges,
+        # just a fake receipt so Frank can see how the flow would feel.
+        # NULL unless paid_method is 'Card' through that button.
+        ("projects", "card_last4", "ALTER TABLE projects ADD COLUMN card_last4 TEXT"),
+        ("projects", "card_charge_id", "ALTER TABLE projects ADD COLUMN card_charge_id TEXT"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

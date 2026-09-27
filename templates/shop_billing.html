@@ -33,7 +33,7 @@
           <td data-label="Status"><span class="badge {{ 'bg-success' if p.status == 'completed' else ('bg-primary' if p.status == 'active' else 'bg-secondary') }}">{{ (p.status or '-')|replace('_', ' ')|title }}</span></td>
           <td data-label="Payment">
             {% if p.payment_status == 'paid' %}
-            <span class="badge bg-success"><i class="bi bi-check-lg"></i> Paid {{ p.paid_at|usdate }}{% if p.paid_method %} &middot; {{ p.paid_method }}{% endif %}</span>
+            <span class="badge bg-success"><i class="bi bi-check-lg"></i> Paid {{ p.paid_at|usdate }}{% if p.paid_method %} &middot; {{ p.paid_method }}{% if p.card_last4 %} ****{{ p.card_last4 }}{% endif %}{% endif %}</span>
             {% elif p.payment_status == 'invoiced' %}
             <span class="badge {{ 'bg-danger' if (p.invoiced_days_ago or 0) > 30 else 'bg-warning text-dark' }}">Invoiced {{ p.invoiced_at|usdate }} &middot; {{ p.invoiced_days_ago }} day{{ 's' if p.invoiced_days_ago != 1 }}</span>
             {% else %}
@@ -51,6 +51,9 @@
             {% elif p.payment_status == 'invoiced' %}
             <button type="button" class="btn btn-sm btn-outline-success mark-paid-btn"
                     data-mark-paid-url="{{ url_for('project_mark_paid', project_id=p.id) }}" data-project-label="{{ p.code }} &middot; {{ p.name }}">Mark Paid</button>
+            <button type="button" class="btn btn-sm btn-outline-primary pay-card-btn"
+                    data-pay-card-url="{{ url_for('project_pay_card', project_id=p.id) }}" data-project-label="{{ p.code }} &middot; {{ p.name }}"
+                    data-project-total="{{ '%.2f'|format(p.total) }}"><i class="bi bi-credit-card"></i> Pay with Card</button>
             {% endif %}
             <a href="{{ url_for('project_invoice_csv', project_id=p.id) }}" class="btn btn-sm btn-outline-success text-nowrap" title="Customer invoice (whole project, all dates)"><i class="bi bi-download"></i> Invoice</a>
           </td>
@@ -95,6 +98,46 @@
     </div>
   </div>
 </div>
+
+{#- Idea "Credit card": a simulated Stripe-style "Pay with Card" flow - no
+   real Stripe account, no network call, just a fake charge id and a spinner
+   so Frank can see how it would feel. Card fields aren't validated for real
+   (any digits work) and nothing but the last 4 digits is ever kept. #}
+<div class="modal fade" id="payCardModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" id="pay-card-form">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-credit-card"></i> Pay with Card <span class="badge bg-secondary ms-1">Simulated</span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2" id="pay-card-project"></p>
+          <p class="mb-3 fs-4 fw-bold" id="pay-card-total"></p>
+          <p class="small text-muted">This is a simulated Stripe-style checkout - no Stripe account is connected and no real charge happens. Any card number works.</p>
+          <div class="mb-2">
+            <label class="form-label">Card number</label>
+            <input type="text" name="card_number" class="form-control" inputmode="numeric" placeholder="4242 4242 4242 4242" required>
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">Expiry</label>
+              <input type="text" name="card_expiry" class="form-control" placeholder="MM/YY">
+            </div>
+            <div class="col-6">
+              <label class="form-label">CVC</label>
+              <input type="text" name="card_cvc" class="form-control" inputmode="numeric" placeholder="123">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary fw-bold btn-sm" id="pay-card-submit"><i class="bi bi-lock-fill"></i> Charge Card</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -105,6 +148,31 @@ document.querySelectorAll('.mark-paid-btn').forEach(function (btn) {
     document.getElementById('mark-paid-project').innerHTML = btn.dataset.projectLabel;
     bootstrap.Modal.getOrCreateInstance(document.getElementById('markPaidModal')).show();
   });
+});
+
+document.querySelectorAll('.pay-card-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var form = document.getElementById('pay-card-form');
+    form.action = btn.dataset.payCardUrl;
+    document.getElementById('pay-card-project').innerHTML = btn.dataset.projectLabel;
+    document.getElementById('pay-card-total').textContent = '$' + btn.dataset.projectTotal;
+    var submitBtn = document.getElementById('pay-card-submit');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="bi bi-lock-fill"></i> Charge Card';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('payCardModal')).show();
+  });
+});
+
+// A short fake "processing" delay so the simulated checkout feels like it's
+// actually reaching Stripe, before the form really submits to our own route.
+document.getElementById('pay-card-form').addEventListener('submit', function (e) {
+  var submitBtn = document.getElementById('pay-card-submit');
+  if (submitBtn.disabled) return; // already processing this submit
+  e.preventDefault();
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+  var form = e.target;
+  setTimeout(function () { form.submit(); }, 1200);
 });
 </script>
 {% endblock %}
