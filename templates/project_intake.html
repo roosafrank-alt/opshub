@@ -30,7 +30,7 @@
     {% endif %}
   </div>
 </div>
-<p class="text-muted small">Check these before anyone touches the plane. Anything marked <strong>Issue</strong> (and any squawk or damage) can get its own Sub Area on this project - tick "Address in this project".</p>
+<p class="text-muted small">Check these before anyone touches the plane. Anything marked <strong>Issue</strong> (and any squawk or damage) can get its own Discrepancy on this project - tick "Address in this project".</p>
 
 <form method="post" enctype="multipart/form-data">
   <div class="card p-3 mb-3">
@@ -68,7 +68,7 @@
       </div>
       <div class="form-check mt-1 intake-addr">
         <input class="form-check-input" type="checkbox" name="{{ key }}_address" value="1" id="{{ key }}-addr" {{ 'checked' if (form and form.get(key ~ '_address')) or (not form and (c.get('address') or not c)) }}>
-        <label class="form-check-label small" for="{{ key }}-addr">Address in this project (adds a "{{ label }}" Sub Area)</label>
+        <label class="form-check-label small" for="{{ key }}-addr">Address in this project (adds a "{{ label }}" Discrepancy)</label>
       </div>
     </div>
     {% endfor %}
@@ -93,7 +93,7 @@
       {% endif %}
       <div class="form-check mt-1">
         <input class="form-check-input" type="checkbox" name="{{ kind }}_{{ i }}_address" value="1" id="{{ kind }}-{{ i }}-addr" {{ 'checked' if (form and form.get(kind ~ '_' ~ i ~ '_address')) or (not form and (it.get('address') or not it)) }}>
-        <label class="form-check-label small" for="{{ kind }}-{{ i }}-addr">Address in this project (adds a Sub Area for it)</label>
+        <label class="form-check-label small" for="{{ kind }}-{{ i }}-addr">Address in this project (adds a Discrepancy for it)</label>
       </div>
     </div>
     {% endfor %}

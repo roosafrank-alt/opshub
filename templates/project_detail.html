@@ -149,12 +149,12 @@
     <div class="col-12 col-md-6">
       {% if c.status == 'issue' %}<i class="bi bi-exclamation-triangle-fill text-danger"></i>{% else %}<i class="bi bi-check-circle-fill text-success"></i>{% endif %}
       <strong>{{ c.label }}</strong>{% if c.left or c.right %} (L {{ c.left or '-' }} / R {{ c.right or '-' }}){% endif %}{% if c.qts %} ({{ c.qts }} qt){% endif %}{% if c.note %} - {{ c.note }}{% endif %}
-      {% if c.address %}<span class="badge bg-light text-dark border">Sub Area</span>{% endif %}
+      {% if c.address %}<span class="badge bg-light text-dark border">Discrepancy</span>{% endif %}
     </div>
     {% endfor %}
     {% for kind, title in [('squawks', 'Squawk'), ('damage', 'Damage')] %}
     {% for it in intake[kind] %}
-    <div class="col-12 col-md-6"><i class="bi bi-dot"></i> <strong>{{ title }}:</strong> {{ it.text }}{% if it.address %} <span class="badge bg-light text-dark border">Sub Area</span>{% endif %}
+    <div class="col-12 col-md-6"><i class="bi bi-dot"></i> <strong>{{ title }}:</strong> {{ it.text }}{% if it.address %} <span class="badge bg-light text-dark border">Discrepancy</span>{% endif %}
       {% if kind == 'damage' %}
       {% if it.at %}<div class="text-muted" style="font-size:.8rem;">timestamped at check-in, {{ it.at|usdate(true) }}</div>{% endif %}
       {% if it.photo %}<a href="{{ url_for('static', filename='uploads/' + it.photo) }}" target="_blank"><img src="{{ url_for('static', filename='uploads/' + it.photo) }}" class="rounded mt-1" style="max-height:80px;"></a>{% endif %}
@@ -186,8 +186,8 @@
       <div class="tab-content">
       <div class="tab-pane fade show active" id="tab-parts" role="tabpanel">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
-        <h5 class="mb-0">Parts Used {% if can_see_shop_costs %}<span class="text-muted fs-6">(total ${{ "%.2f"|format(total_cost) }})</span>{% endif %}</h5>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="var f=document.getElementById('add-section-row'); f.style.display = f.style.display==='none' ? 'flex' : 'none';"><i class="bi bi-folder-plus"></i> Add Sub Area</button>
+        <h5 class="mb-0">Discrepancy List {% if can_see_shop_costs %}<span class="text-muted fs-6">(total ${{ "%.2f"|format(total_cost) }})</span>{% endif %}</h5>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="var f=document.getElementById('add-section-row'); f.style.display = f.style.display==='none' ? 'flex' : 'none';"><i class="bi bi-folder-plus"></i> Add Discrepancy</button>
       </div>
       <form id="add-section-row" method="post" action="{{ url_for('project_add_section', project_id=project.id) }}" class="gap-2 mt-2 mb-2" style="display:none;">
         <input type="text" name="name" class="form-control form-control-sm" placeholder="e.g. Brakes, Engine" required>
@@ -365,7 +365,7 @@
         </div>
         {% endif %}
         {% if it.status != 'waiting' %}
-        <div class="small mt-1">{{ 'Approved' if it.status == 'approved' else 'Declined' }} by {{ it.decided_by }} {{ it.decided_at|usdate(true) }}{% if it.decision_note %} &middot; "{{ it.decision_note }}"{% endif %}{% if it.section_name %} &middot; added as Sub Area <strong>{{ it.section_name }}</strong>{% endif %}</div>
+        <div class="small mt-1">{{ 'Approved' if it.status == 'approved' else 'Declined' }} by {{ it.decided_by }} {{ it.decided_at|usdate(true) }}{% if it.decision_note %} &middot; "{{ it.decision_note }}"{% endif %}{% if it.section_name %} &middot; added as Discrepancy <strong>{{ it.section_name }}</strong>{% endif %}</div>
         {% else %}
         <div class="d-flex gap-2 mt-1">
           <small class="text-muted align-self-center">{% if it.notified_at %}Owner notified {{ it.notified_at|usdate(true) }}{% else %}Owner not notified yet{% endif %}</small>

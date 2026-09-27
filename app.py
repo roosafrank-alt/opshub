@@ -1627,7 +1627,7 @@ def project_squawk_fix_on_job(project_id, kind, squawk_id):
                      (now_iso(), by, uid, now_iso(), by, squawk_id))
     conn.commit()
     conn.close()
-    flash("Added as a Sub Area on this job, assigned to you.", "success")
+    flash("Added as a Discrepancy on this job, assigned to you.", "success")
     return redirect(url_for("project_detail", project_id=project_id))
 
 
@@ -1652,7 +1652,7 @@ def project_todo_do_on_job(project_id, todo_id):
     conn.execute("UPDATE plane_todos SET assigned_to = ? WHERE id = ?", (session.get("user_id"), todo_id))
     conn.commit()
     conn.close()
-    flash("Added as a Sub Area on this job, assigned to you.", "success")
+    flash("Added as a Discrepancy on this job, assigned to you.", "success")
     return redirect(url_for("project_detail", project_id=project_id))
 
 
@@ -1669,14 +1669,14 @@ def project_add_section(project_id):
         abort(404)
     name = request.form.get("name", "").strip()
     if not name:
-        flash("Enter a name for the sub area.", "danger")
+        flash("Enter a name for the discrepancy.", "danger")
         conn.close()
         return redirect(url_for("project_detail", project_id=project_id))
     conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
                  (project_id, name, now_iso()))
     conn.commit()
     conn.close()
-    flash(f"Sub area '{name}' added.", "success")
+    flash(f"Discrepancy '{name}' added.", "success")
     return redirect(url_for("project_detail", project_id=project_id))
 
 
@@ -1751,13 +1751,13 @@ def project_section_rename(project_id, section_id):
         abort(404)
     new_name = request.form.get("name", "").strip()
     if not new_name:
-        flash("Enter a name for the sub area.", "danger")
+        flash("Enter a name for the discrepancy.", "danger")
         conn.close()
         return redirect(url_for("project_detail", project_id=project_id))
     clash = conn.execute("SELECT id FROM project_sections WHERE project_id = ? AND name = ? AND id != ?",
                          (project_id, new_name, section_id)).fetchone()
     if clash:
-        flash(f"A sub area named '{new_name}' already exists.", "danger")
+        flash(f"A discrepancy named '{new_name}' already exists.", "danger")
         conn.close()
         return redirect(url_for("project_detail", project_id=project_id))
     old_name = section["name"]
@@ -1771,7 +1771,7 @@ def project_section_rename(project_id, section_id):
                  (new_name, project_id, old_name))
     conn.commit()
     conn.close()
-    flash(f"Sub area renamed to '{new_name}'.", "success")
+    flash(f"Discrepancy renamed to '{new_name}'.", "success")
     return redirect(url_for("project_detail", project_id=project_id))
 
 
@@ -2534,7 +2534,7 @@ def project_new():
         conn.close()
         msg = f"Project '{name}' created as {code}. Fill in the intake check before starting work."
         if added_areas:
-            msg += f" Sub area{'s' if len(added_areas) != 1 else ''} added: {', '.join(added_areas)}."
+            msg += f" Discrepanc{'ies' if len(added_areas) != 1 else 'y'} added: {', '.join(added_areas)}."
         if ads_added:
             msg += f" {ads_added} AD{'s' if ads_added != 1 else ''} added to the Job Sheet."
         flash(msg, "success")
@@ -3074,7 +3074,7 @@ def project_intake(project_id):
                         WHERE id = ?""", (json.dumps(data), now_iso(), session.get("user_name"), project_id))
         conn.commit()
         conn.close()
-        flash("Intake check saved." + (f" Sub Area{'s' if len(new_areas) != 1 else ''} added: {', '.join(new_areas)}."
+        flash("Intake check saved." + (f" Discrepanc{'ies' if len(new_areas) != 1 else 'y'} added: {', '.join(new_areas)}."
                                        if new_areas else ""), "success")
         return redirect(url_for("project_detail", project_id=project_id))
     conn.close()

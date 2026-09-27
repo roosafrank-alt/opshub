@@ -137,9 +137,9 @@
 <small class="text-muted d-block"><i class="bi bi-hourglass-split"></i> With inspector</small>
 {%- elif sq.link -%}
   {%- if sq.link.project_id == project_id -%}
-<small class="text-muted d-block">{{ sq.assigned_to_name ~ ' · ' if sq.assigned_to_name }}Sub Area on this job</small>
+<small class="text-muted d-block">{{ sq.assigned_to_name ~ ' · ' if sq.assigned_to_name }}Discrepancy on this job</small>
   {%- else -%}
-<small class="text-muted d-block">Sub Area on <a href="{{ url_for('project_detail', project_id=sq.link.project_id) }}">job {{ sq.link.code }}</a></small>
+<small class="text-muted d-block">Discrepancy on <a href="{{ url_for('project_detail', project_id=sq.link.project_id) }}">job {{ sq.link.code }}</a></small>
   {%- endif -%}
 {%- elif can_assign -%}
 <form method="post" action="{{ url_for('project_squawk_fix_on_job', project_id=project_id, kind=sq.kind, squawk_id=sq.squawk_id) }}">
@@ -176,9 +176,9 @@
 <small class="text-muted d-block"><i class="bi bi-hourglass-split"></i> With inspector</small>
 {%- elif t.link -%}
   {%- if t.link.project_id == project_id -%}
-<small class="text-muted d-block">{{ t.assigned_to_name ~ ' · ' if t.assigned_to_name }}Sub Area on this job</small>
+<small class="text-muted d-block">{{ t.assigned_to_name ~ ' · ' if t.assigned_to_name }}Discrepancy on this job</small>
   {%- else -%}
-<small class="text-muted d-block">Sub Area on <a href="{{ url_for('project_detail', project_id=t.link.project_id) }}">job {{ t.link.code }}</a></small>
+<small class="text-muted d-block">Discrepancy on <a href="{{ url_for('project_detail', project_id=t.link.project_id) }}">job {{ t.link.code }}</a></small>
   {%- endif -%}
 {%- elif can_assign -%}
 <form method="post" action="{{ url_for('project_todo_do_on_job', project_id=project_id, todo_id=t.id) }}">

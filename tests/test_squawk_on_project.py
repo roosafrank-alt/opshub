@@ -77,7 +77,7 @@ class SquawkOnProjectTest(OpsHubTestCase):
         c = self.login("tech")
         c.post(f"/projects/{self.project_id}/squawks/quick/{squawk_id}/fix_on_job")
         body = c.get(f"/projects/{self.project_id}").get_data(as_text=True)
-        self.assertIn("Sub Area on this job", body)
+        self.assertIn("Discrepancy on this job", body)
         self.assertNotIn("Fix on this job", body)
 
     # ----- checking the linked sub area off propagates --------------------
@@ -168,7 +168,7 @@ class SquawkOnProjectTest(OpsHubTestCase):
         c = self.login("tech")
         c.post(f"/projects/{other_project_id}/squawks/quick/{squawk_id}/fix_on_job")
         body = c.get(f"/projects/{self.project_id}").get_data(as_text=True)
-        self.assertIn("Sub Area on", body)
+        self.assertIn("Discrepancy on", body)
         self.assertNotIn("Fix on this job", body)
 
     # ----- intake ------------------------------------------------------------

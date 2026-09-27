@@ -55,7 +55,7 @@ class ShopDashboardByRoleTest(OpsHubTestCase):
             (self.project_id, "Brakes", db.now_iso(), db.now_iso(), "Tech"))
         c = self.login("inspector")
         body = c.get("/shop").get_data(as_text=True)
-        self.assertIn("Sub Area", body)
+        self.assertIn("Discrepancy", body)
         self.assertIn("Awaiting Confirmation", body)
         # Right under Scan, before Active Projects.
         self.assertLess(body.index("Awaiting Confirmation"), body.index("Active Projects"))
