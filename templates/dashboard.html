@@ -37,7 +37,7 @@
   <i class="bi bi-upc-scan"></i> Scan
 </a>
 
-{% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions %}
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions, squawk_my_actions, squawk_confirm_actions %}
 {% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
 
 {#- An Inspector's actual to-do on this dashboard: repairs waiting on their
@@ -54,15 +54,7 @@
     <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; done by {{ sq.repair_confirm_requested_by or '-' }}, {{ sq.repair_confirm_requested_at|usdate(true) if sq.repair_confirm_requested_at else '' }}</div>
     <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
     {{ squawk_step_pills(sq) }}
-    <div class="d-flex gap-1 flex-wrap">
-      <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Confirm this squawk as repaired?" data-confirm-title="Confirm Repair" data-confirm-style="success">
-        <button class="btn btn-success btn-sm fw-bold"><i class="bi bi-check-lg"></i> Sign off</button>
-      </form>
-      <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Send this back as not yet repaired?" data-confirm-title="Send Back">
-        <input type="hidden" name="action" value="send_back">
-        <button class="btn btn-outline-secondary btn-sm">Send back</button>
-      </form>
-    </div>
+    {{ squawk_confirm_actions(sq) }}
   </div>
   {% endfor %}
 </div>
@@ -92,24 +84,22 @@
 </div>
 {% endif %}
 
-{#- This account's own squawk to-do list: something got assigned to them
-   and they haven't said "got it" yet (see squawk_worker_ack in app.py) -
-   separate from the "someone's seen this squawk exists" alert above. #}
-{% if my_assigned_squawks %}
+{#- This account's own squawk work list: every squawk assigned to them
+   that isn't signed off yet, not just brand-new ones - same rows and
+   buttons as My Tasks (see get_my_squawks in app.py and QA finding
+   ux-squawk-my-list-dashboard). One button each: the next step. #}
+{% if my_squawks %}
 <div class="alert alert-warning border-warning border-2 mb-3">
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <h5 class="alert-heading mb-0"><i class="bi bi-clipboard-check"></i> {{ my_assigned_squawks|length }} Squawk{{ 's' if my_assigned_squawks|length != 1 }} Assigned To You</h5>
-    <a href="{{ url_for('squawks_list') }}" class="btn btn-outline-warning btn-sm fw-bold">View All</a>
+    <h5 class="alert-heading mb-0"><i class="bi bi-clipboard-check"></i> My Squawks <span class="fw-normal">({{ my_squawks|length }})</span></h5>
+    <a href="{{ url_for('tech_spot') }}" class="btn btn-outline-warning btn-sm fw-bold">My Tasks</a>
   </div>
-  {% for sq in my_assigned_squawks %}
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
-    <div>
-      <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.event_date|usdate }}</div>
-      <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-    </div>
-    <form method="post" action="{{ url_for('squawk_worker_ack', kind=sq.kind, squawk_id=sq.squawk_id) }}">
-      <button class="btn btn-warning btn-sm fw-bold"><i class="bi bi-check-lg"></i> Got It</button>
-    </form>
+  {% for sq in my_squawks %}
+  <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
+    <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.event_date|usdate }}</div>
+    <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+    {{ squawk_step_pills(sq) }}
+    {{ squawk_my_actions(sq) }}
   </div>
   {% endfor %}
 </div>

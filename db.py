@@ -2150,6 +2150,20 @@ def _migrate(conn):
                  "ON labor_sessions(laborer_id) WHERE ended_at IS NULL")
     conn.commit()
 
+    # QA finding ux-squawk-my-list-dashboard: an Inspector's "Send Back" on a
+    # squawk repair now carries an optional note, so the tech sees why it
+    # came back instead of just watching the button revert (see
+    # squawk_repair_confirm in app.py). Cleared the next time the tech sends
+    # it back to the Inspector, so it never shows stale.
+    flight_cols_sent_back = [r["name"] for r in conn.execute("PRAGMA table_info(flights)").fetchall()]
+    if "squawk_sent_back_note" not in flight_cols_sent_back:
+        conn.execute("ALTER TABLE flights ADD COLUMN squawk_sent_back_note TEXT")
+        conn.commit()
+    quick_cols_sent_back = [r["name"] for r in conn.execute("PRAGMA table_info(plane_squawks)").fetchall()]
+    if "sent_back_note" not in quick_cols_sent_back:
+        conn.execute("ALTER TABLE plane_squawks ADD COLUMN sent_back_note TEXT")
+        conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions %}
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions, squawk_confirm_actions %}
 {% block title %}{{ asset.tag }} - OpsHub{% endblock %}
 {% block content %}
 {% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
@@ -363,15 +363,7 @@
               <small class="text-warning-emphasis fw-bold d-block"><i class="bi bi-hourglass-split"></i> Awaiting repair confirmation - marked ready by {{ sq.repair_confirm_requested_by or '-' }}</small>
             </span>
             {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector') %}
-            <div class="d-flex gap-1">
-              <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Confirm this squawk as repaired?" data-confirm-title="Confirm Repair" data-confirm-style="success">
-                <button class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Confirm</button>
-              </form>
-              <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Send this back as not yet repaired?" data-confirm-title="Send Back">
-                <input type="hidden" name="action" value="send_back">
-                <button class="btn btn-outline-secondary btn-sm">Send Back</button>
-              </form>
-            </div>
+            {{ squawk_confirm_actions(sq, confirm_label='Confirm', send_back_label='Send Back', size='btn-sm') }}
             {% endif %}
             {% elif sq.acknowledged_at and can_assign_squawks %}
             <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex align-items-start gap-2 flex-grow-1" data-confirm="Mark this squawk as repaired/addressed? An Inspector or admin will still need to confirm it.">

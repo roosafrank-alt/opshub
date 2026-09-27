@@ -546,11 +546,12 @@ def dashboard():
     """, (today_str,)).fetchone()["c"]
     open_squawks = get_open_squawks(conn)
     assignable_workers = get_assignable_workers(conn)
-    # Assigned-squawk alerts: this account's own to-do list (if a squawk's
-    # been handed to them and they haven't said "got it" yet), plus - for
-    # admin/master admin - everyone's unacknowledged assignments, so whoever
-    # did the assigning can see who hasn't picked it up.
-    my_assigned_squawks = get_assigned_to_me_squawks(conn, session["user_id"]) if session.get("user_id") else []
+    # Assigned-squawk alerts: this account's own work list (every squawk
+    # assigned to them not yet signed off, same as My Tasks - see
+    # get_my_squawks), plus - for admin/master admin - everyone's
+    # unacknowledged assignments, so whoever did the assigning can see who
+    # hasn't picked it up.
+    my_squawks = get_my_squawks(conn, session["user_id"]) if session.get("user_id") else []
     unacknowledged_assignments = []
     system_alerts = []
     if session.get("is_master_admin") or session.get("shop_role") == "admin":
@@ -633,7 +634,7 @@ def dashboard():
                            reschedule_requests=reschedule_requests,
                            open_squawks=open_squawks, assignable_workers=assignable_workers, open_sessions=open_sessions,
                            needs_confirm_sections=needs_confirm_sections,
-                           my_assigned_squawks=my_assigned_squawks,
+                           my_squawks=my_squawks,
                            unacknowledged_assignments=unacknowledged_assignments,
                            squawks_awaiting_confirm=squawks_awaiting_confirm,
                            system_alerts=system_alerts, tool_reminders=tool_reminders)
@@ -660,7 +661,8 @@ _FLIGHT_SQUAWK_COLS = """'flight' as kind, f.id as squawk_id, a.id as asset_id, 
                f.squawk_worker_acknowledged_at as worker_acknowledged_at,
                f.squawk_worker_acknowledged_by as worker_acknowledged_by,
                f.squawk_repair_confirm_requested_at as repair_confirm_requested_at,
-               f.squawk_repair_confirm_requested_by as repair_confirm_requested_by"""
+               f.squawk_repair_confirm_requested_by as repair_confirm_requested_by,
+               f.squawk_sent_back_note as sent_back_note"""
 _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.tag as asset_tag,
                a.name as asset_name, q.reported_at as event_date, NULL as student_name,
                NULL as cfi_name, q.reported_by as reported_by, q.notes as notes,
@@ -670,7 +672,8 @@ _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.
                q.worker_acknowledged_at as worker_acknowledged_at,
                q.worker_acknowledged_by as worker_acknowledged_by,
                q.repair_confirm_requested_at as repair_confirm_requested_at,
-               q.repair_confirm_requested_by as repair_confirm_requested_by"""
+               q.repair_confirm_requested_by as repair_confirm_requested_by,
+               q.sent_back_note as sent_back_note"""
 
 
 def get_open_squawks(conn):
@@ -745,33 +748,11 @@ def get_squawks_awaiting_confirm(conn):
     """).fetchall()
 
 
-def get_assigned_to_me_squawks(conn, user_id):
-    """This user's own squawk to-do list: assigned to them, not yet
-    acknowledged by them, not yet repaired - shown on their dashboard."""
-    return conn.execute(f"""
-        SELECT {_FLIGHT_SQUAWK_COLS}
-        FROM flights f
-        JOIN assets a ON a.id = f.asset_id
-        JOIN students s ON s.id = f.student_id
-        LEFT JOIN cfis c ON c.id = f.cfi_id
-        LEFT JOIN users au ON au.id = f.squawk_assigned_to
-        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NULL
-              AND f.squawk_assigned_to = ? AND f.squawk_worker_acknowledged_at IS NULL
-        UNION ALL
-        SELECT {_QUICK_SQUAWK_COLS}
-        FROM plane_squawks q
-        JOIN assets a ON a.id = q.asset_id
-        LEFT JOIN users au ON au.id = q.assigned_to
-        WHERE q.repaired_at IS NULL AND q.assigned_to = ? AND q.worker_acknowledged_at IS NULL
-        ORDER BY event_date DESC, squawk_id DESC
-    """, (user_id, user_id)).fetchall()
-
-
 def get_my_squawks(conn, user_id):
     """Every squawk assigned to this user that isn't repaired yet, accepted
-    or not - the full working list for their My Tasks page (unlike
-    get_assigned_to_me_squawks above, which is just the not-yet-accepted
-    ones for the dashboard alert)."""
+    or not - the full working list for their My Tasks page and the
+    dashboard's My Squawks box (both show the same rows and buttons - see
+    QA finding ux-squawk-my-list-dashboard)."""
     return conn.execute(f"""
         SELECT {_FLIGHT_SQUAWK_COLS}
         FROM flights f
@@ -994,14 +975,16 @@ def squawk_repair(kind, squawk_id):
                             "squawk_repair_confirm_requested_at as confirm_requested FROM flights "
                             "WHERE id = ? AND squawk = 1", (squawk_id,)).fetchone()
         ack_sql = "UPDATE flights SET squawk_acknowledged_at = ?, squawk_acknowledged_by = ? WHERE id = ?"
-        confirm_req_sql = "UPDATE flights SET squawk_repair_confirm_requested_at = ?, squawk_repair_confirm_requested_by = ? WHERE id = ?"
+        confirm_req_sql = ("UPDATE flights SET squawk_repair_confirm_requested_at = ?, "
+                            "squawk_repair_confirm_requested_by = ?, squawk_sent_back_note = NULL WHERE id = ?")
         undo_sql = "UPDATE flights SET squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL WHERE id = ?"
     elif kind == "quick":
         row = conn.execute("SELECT id, acknowledged_at as acked, "
                             "repair_confirm_requested_at as confirm_requested FROM plane_squawks "
                             "WHERE id = ?", (squawk_id,)).fetchone()
         ack_sql = "UPDATE plane_squawks SET acknowledged_at = ?, acknowledged_by = ? WHERE id = ?"
-        confirm_req_sql = "UPDATE plane_squawks SET repair_confirm_requested_at = ?, repair_confirm_requested_by = ? WHERE id = ?"
+        confirm_req_sql = ("UPDATE plane_squawks SET repair_confirm_requested_at = ?, "
+                            "repair_confirm_requested_by = ?, sent_back_note = NULL WHERE id = ?")
         undo_sql = "UPDATE plane_squawks SET repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL WHERE id = ?"
     else:
         conn.close()
@@ -1035,11 +1018,13 @@ def squawk_repair_confirm(kind, squawk_id):
     conn = get_db()
     if kind == "flight":
         row = conn.execute("SELECT id FROM flights WHERE id = ? AND squawk = 1", (squawk_id,)).fetchone()
-        send_back_sql = "UPDATE flights SET squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL WHERE id = ?"
+        send_back_sql = ("UPDATE flights SET squawk_repair_confirm_requested_at = NULL, "
+                          "squawk_repair_confirm_requested_by = NULL, squawk_sent_back_note = ? WHERE id = ?")
         confirm_sql = "UPDATE flights SET squawk_repaired_at = ?, squawk_repaired_by = ?, squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL WHERE id = ?"
     elif kind == "quick":
         row = conn.execute("SELECT id FROM plane_squawks WHERE id = ?", (squawk_id,)).fetchone()
-        send_back_sql = "UPDATE plane_squawks SET repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL WHERE id = ?"
+        send_back_sql = ("UPDATE plane_squawks SET repair_confirm_requested_at = NULL, "
+                          "repair_confirm_requested_by = NULL, sent_back_note = ? WHERE id = ?")
         confirm_sql = "UPDATE plane_squawks SET repaired_at = ?, repaired_by = ?, repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL WHERE id = ?"
     else:
         conn.close()
@@ -1049,7 +1034,8 @@ def squawk_repair_confirm(kind, squawk_id):
         flash("Squawk not found.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
     if request.form.get("action") == "send_back":
-        conn.execute(send_back_sql, (squawk_id,))
+        note = (request.form.get("note") or "").strip() or None
+        conn.execute(send_back_sql, (note, squawk_id))
         flash("Sent back - not marked repaired.", "warning")
     else:
         conn.execute(confirm_sql, (now_iso(), session.get("user_name"), squawk_id))
