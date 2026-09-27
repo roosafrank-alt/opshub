@@ -8,7 +8,7 @@
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
   <div>
     <h4 class="mb-0">{{ asset.tag }}</h4>
-    <div class="text-muted">{{ asset.make }} {{ asset.model }}{% if asset.year %} ({{ asset.year }}){% endif %}</div>
+    <div class="text-muted">{{ [asset.make, asset.model] | select | join(' ') }}{% if asset.year %} ({{ asset.year }}){% endif %}</div>
   </div>
 </div>
 
