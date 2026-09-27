@@ -14,12 +14,13 @@
     <table class="table table-hover align-middle mb-0" id="users-table">
       <thead class="table-light"><tr><th>Name</th><th>Username</th><th>Password</th><th>Shop Role</th><th>Flight Role</th><th>Admin</th><th>Billing</th><th>Status</th><th></th></tr></thead>
       <tbody>
+        {% set shop_role_colors = {'admin': 'bg-dark', 'tech': 'bg-primary', 'inspector': 'bg-info text-dark', 'apprentice': 'bg-success', 'student': 'bg-secondary'} %}
         {% for u in users %}
         <tr data-search="{{ (u.name ~ ' ' ~ u.username)|lower }}">
           <td>{{ u.name }}</td>
           <td><code>{{ u.username }}</code></td>
           <td>{% if u.id == owner_id and not viewer_is_owner %}<span class="text-muted small"><i class="bi bi-lock"></i> hidden</span>{% else %}<code>{{ u.password_plain or '-' }}</code>{% endif %}</td>
-          <td>{% if u.shop_role %}<span class="badge bg-secondary">{{ u.shop_role|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+          <td>{% if u.shop_role %}<span class="badge {{ shop_role_colors.get(u.shop_role, 'bg-secondary') }}">{{ u.shop_role|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
           <td>{% if u.flight_role %}<span class="badge bg-primary">{{ u.flight_role|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
           <td>{% if u.id == owner_id %}<span class="badge bg-dark" title="Only this person can change this account"><i class="bi bi-lock-fill"></i> Owner</span> {% endif %}{% if u.is_master_admin %}<span class="badge bg-warning text-dark">Master Admin</span>{% endif %}</td>
           <td>{% if u.is_master_admin or u.can_bill %}<span class="badge bg-info text-dark">Billing</span>{% endif %}</td>
