@@ -22,12 +22,6 @@
           <div class="job-qr d-flex justify-content-center" data-code="{{ project.code }}"></div>
           <div class="small text-muted">Project</div>
         </div>
-        {% if plane_url %}
-        <div class="text-center" style="width:96px;">
-          <div class="job-qr d-flex justify-content-center" data-code="{{ plane_url }}"></div>
-          <div class="small text-muted">Plane</div>
-        </div>
-        {% endif %}
       </div>
       <div>
         <h3 class="mb-0">{{ project.name }}</h3>
@@ -48,10 +42,10 @@
      into the header strip. Scanning a sub area's code on the Scan page
      selects that job + area, same as the Labor Codes page. #}
   {% if sub_areas %}
-  <div class="job-sheet-sections border-bottom pb-3 mb-3">
+  <div class="job-sheet-sections mb-3">
     <h5 class="border-bottom pb-1">Sub Areas</h5>
     {% for s in sub_areas %}
-    <div class="d-flex align-items-center gap-3 py-2{{ ' border-top' if not loop.first else '' }}">
+    <div class="d-flex align-items-center gap-3 p-2 mb-2" style="border:1.5px solid #333; border-radius:8px;">
       <div class="text-center flex-shrink-0" style="width:80px;">
         <div class="job-qr d-flex justify-content-center" data-code="TASK-{{ project.code }}::{{ s }}"></div>
       </div>
