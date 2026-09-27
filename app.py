@@ -6742,6 +6742,7 @@ def admin_user_new():
         notify_maintenance = 1 if request.form.get("notify_maintenance") else 0
         notify_flight_reminders = 1 if request.form.get("notify_flight_reminders") else 0
         academy_access = 1 if request.form.get("academy_access") else 0
+        groundschool_access = 1 if request.form.get("groundschool_access") else 0
         conn = get_db()
         pay_ctx = _pay_link_context(conn)
         preset = {"shop_role": shop_role, "flight_role": flight_role, "badge": request.form.get("badge", ""),
@@ -6763,10 +6764,10 @@ def admin_user_new():
             return render_template("admin_user_form.html", user=None, name=name, username=username, preset=preset, **pay_ctx)
         cur = conn.execute(
             "INSERT INTO users (name, username, password_hash, password_plain, is_master_admin, shop_role, flight_role, can_bill, active, "
-            "email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (name, username, generate_password_hash(password, method="pbkdf2:sha256"), password, is_master_admin, shop_role, flight_role, can_bill,
-             email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, now_iso()))
+             email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, now_iso()))
         conn.commit()
         user_row = conn.execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone()
         ensure_flight_profile(conn, user_row)
@@ -6820,6 +6821,7 @@ def admin_user_edit(user_id):
         notify_maintenance = 1 if request.form.get("notify_maintenance") else 0
         notify_flight_reminders = 1 if request.form.get("notify_flight_reminders") else 0
         academy_access = 1 if request.form.get("academy_access") else 0
+        groundschool_access = 1 if request.form.get("groundschool_access") else 0
         if not name:
             flash("Name is required.", "danger")
             conn.close()
@@ -6841,16 +6843,16 @@ def admin_user_edit(user_id):
         if new_password:
             conn.execute(
                 "UPDATE users SET name=?, shop_role=?, flight_role=?, is_master_admin=?, can_bill=?, active=?, password_hash=?, password_plain=?, "
-                "email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, notify_maintenance=?, notify_flight_reminders=?, academy_access=? WHERE id=?",
+                "email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, notify_maintenance=?, notify_flight_reminders=?, academy_access=?, groundschool_access=? WHERE id=?",
                 (name, shop_role, flight_role, is_master_admin, can_bill, active,
                  generate_password_hash(new_password, method="pbkdf2:sha256"), new_password,
-                 email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, user_id))
+                 email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, user_id))
         else:
             conn.execute(
                 "UPDATE users SET name=?, shop_role=?, flight_role=?, is_master_admin=?, can_bill=?, active=?, "
-                "email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, notify_maintenance=?, notify_flight_reminders=?, academy_access=? WHERE id=?",
+                "email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, notify_maintenance=?, notify_flight_reminders=?, academy_access=?, groundschool_access=? WHERE id=?",
                 (name, shop_role, flight_role, is_master_admin, can_bill, active,
-                 email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, user_id))
+                 email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, user_id))
         conn.commit()
         user_row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
         ensure_flight_profile(conn, user_row)

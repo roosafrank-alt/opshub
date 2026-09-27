@@ -54,6 +54,7 @@ def log_in_user(user_row, remember=True):
     session["flight_role"] = user_row["flight_role"]
     session["can_bill"] = bool(user_row["can_bill"])
     session["academy_access"] = bool(user_row["academy_access"])
+    session["groundschool_access"] = bool(user_row["groundschool_access"] or user_row["academy_access"])
     session["tour_seen_shop"] = bool(user_row["tour_seen_shop"])
     session["tour_seen_flight"] = bool(user_row["tour_seen_flight"])
 
@@ -384,6 +385,7 @@ def log_in_combined(user_row, customer_row, remember=True):
         session["flight_role"] = user_row["flight_role"]
         session["can_bill"] = bool(user_row["can_bill"])
         session["academy_access"] = bool(user_row["academy_access"])
+        session["groundschool_access"] = bool(user_row["groundschool_access"] or user_row["academy_access"])
         session["tour_seen_shop"] = bool(user_row["tour_seen_shop"])
         session["tour_seen_flight"] = bool(user_row["tour_seen_flight"])
         conn = get_db()

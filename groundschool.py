@@ -360,6 +360,22 @@ def _check_self_complete(conn, student_id, element_id):
 # Routes
 # ---------------------------------------------------------------------------
 
+@groundschool_bp.before_request
+def _require_groundschool_access():
+    """Ground School (lesson plans & resources) used to be reachable by any
+    logged-in flight account that typed the address - the only links to it
+    were the Flight Academy tabs, which most CFIs/students don't have. Now
+    that there's a Ground School button in the Fly with Kate! menu (see
+    base_flight.html), it needs the same admin-assigned gate Flight Academy
+    already has, same as academy_page() in app.py."""
+    if not session.get("user_id"):
+        return None
+    if not (session.get("is_master_admin") or session.get("groundschool_access")):
+        flash("You don't have access to Ground School yet. Ask an admin.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    return None
+
+
 @groundschool_bp.route("")
 @login_required
 def rating_list():

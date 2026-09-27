@@ -8,6 +8,7 @@ import db
 class GroundschoolReadingTest(OpsHubTestCase):
     def setUp(self):
         super().setUp()
+        self.exec("UPDATE users SET groundschool_access = 1 WHERE username IN ('flight_student', 'cfi')")
         self.student_id = self.q1("SELECT id FROM students WHERE user_id = ?",
                                   (self.users["flight_student"]["id"],))["id"]
         conn = db.get_db()

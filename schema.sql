@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
     notify_push_timeup INTEGER NOT NULL DEFAULT 0, -- phone push: "flight time is up" at the end of the block
     notify_push_late INTEGER NOT NULL DEFAULT 0, -- phone push: "flight is running late" (15+ min past, repeats every 15 min)
     academy_access INTEGER NOT NULL DEFAULT 0, -- Flight Academy tile (phase 3: student progress/ratings/lesson plans) - admin-assigned per account, master admins always have it
+    groundschool_access INTEGER NOT NULL DEFAULT 0, -- Ground School button in the Fly with Kate! menu - admin-assigned per account, master admins and academy_access accounts always have it
     tour_seen_shop INTEGER NOT NULL DEFAULT 0, -- dismissed (or finished) the Shop Inventory guided tour at least once
     tour_seen_flight INTEGER NOT NULL DEFAULT 0, -- dismissed (or finished) the Flight School guided tour at least once
     created_at TEXT NOT NULL DEFAULT (datetime('now'))

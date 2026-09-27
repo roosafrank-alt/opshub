@@ -550,6 +550,7 @@ def _migrate(conn):
         flight_role TEXT,
         can_bill INTEGER NOT NULL DEFAULT 0,
         academy_access INTEGER NOT NULL DEFAULT 0,
+        groundschool_access INTEGER NOT NULL DEFAULT 0,
         active INTEGER NOT NULL DEFAULT 1,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )""")
@@ -566,6 +567,7 @@ def _migrate(conn):
         ("notify_maintenance", "ALTER TABLE users ADD COLUMN notify_maintenance INTEGER NOT NULL DEFAULT 0"),
         ("notify_flight_reminders", "ALTER TABLE users ADD COLUMN notify_flight_reminders INTEGER NOT NULL DEFAULT 0"),
         ("academy_access", "ALTER TABLE users ADD COLUMN academy_access INTEGER NOT NULL DEFAULT 0"),
+        ("groundschool_access", "ALTER TABLE users ADD COLUMN groundschool_access INTEGER NOT NULL DEFAULT 0"),
     ):
         if col not in user_cols:
             conn.execute(ddl)
