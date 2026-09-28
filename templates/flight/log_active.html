@@ -366,6 +366,21 @@
         <label class="btn btn-outline-danger fw-bold" for="paid-0-{{ f.id }}"><i class="bi bi-hourglass"></i> Unpaid</label>
       </div>
     </div>
+    {#- Idea "billing": only shown once Unpaid is picked (see the
+       payment-choice-radio listener below) - Wave is invoice-based (a
+       "Pay now" link the student pays, not a point-of-sale card swipe), so
+       this is the smallest real way to charge right there instead of
+       leaving it owed until someone remembers Billing > Invoice in Wave.
+       Guest flights are left off, same as Billing's own Wave invoicing -
+       the guest, not the account they were booked under, owes for those. #}
+    {% if can_bill and wave_connected and not f.guest_name %}
+    <div class="mt-2 d-none" id="wave-invoice-wrap-{{ f.id }}">
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" role="switch" name="wave_invoice_now" id="wave-invoice-now-{{ f.id }}" value="1" checked>
+        <label class="form-check-label small" for="wave-invoice-now-{{ f.id }}"><i class="bi bi-send"></i> Invoice through Wave now <span class="text-muted">(emails a Pay now link and opens it here - flips to Paid on its own once they pay)</span></label>
+      </div>
+    </div>
+    {% endif %}
     {#- Shown always - not just once Paid is picked - so the balance is
        there for reference either way. "Use Credit" stays greyed out until
        Hobbs End makes a total billable (matches what the server needs to
@@ -950,12 +965,15 @@ document.addEventListener('submit', function (e) {
 // more credit than is real.
 document.querySelectorAll('.payment-choice-radio').forEach(function (radio) {
   radio.addEventListener('change', function () {
+    var fId = (radio.dataset.paymentDetails || '').replace('payment-details-', '');
     var details = document.getElementById(radio.dataset.paymentDetails);
     if (details) details.hidden = (radio.value !== '1');
-    if (radio.value === '1') {
-      var fId = (radio.dataset.paymentDetails || '').replace('payment-details-', '');
-      if (fId) refreshPaymentAmount(fId);
-    }
+    if (radio.value === '1' && fId) refreshPaymentAmount(fId);
+    // Idea "billing": "Invoice through Wave now" only makes sense once
+    // Unpaid is picked - Paid already has its own Amount Collected/How
+    // Paid fields just above, and doesn't need a Wave invoice at all.
+    var waveWrap = fId && document.getElementById('wave-invoice-wrap-' + fId);
+    if (waveWrap) waveWrap.classList.toggle('d-none', radio.value !== '0');
   });
 });
 // Idea "Credit card" (revision): reveal the simulated card-number box only

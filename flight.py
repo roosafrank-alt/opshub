@@ -36,6 +36,7 @@ import push
 import notify
 import wave_billing
 import threading
+import time
 import pilotlog
 
 # Distinct colors cycled through for each instructor on the schedule
@@ -5831,6 +5832,10 @@ def log_active():
                 dict(b, shared=impacts[b["id"]]["shared"]))
         for lst in affected.values():
             lst.sort(key=lambda b: b["scheduled_time"] or "")
+    # Idea "billing": whether End Session can offer "Invoice through Wave
+    # now" for an Unpaid flight - same connected-accounts check as the
+    # Billing page's own Invoice in Wave button (see flight.billing).
+    wave_accounts, _wave_default = wave_billing.program_accounts(conn, "flight")
     conn.close()
     flights = []
     for r in rows:
@@ -5877,7 +5882,8 @@ def log_active():
     # redirect scrolls down to the card (see log_ack_overdue / log_set_eta).
     return render_template("flight/log_active.html", flights=flights, eta_turnaround=ETA_TURNAROUND_MIN,
                            acked_id=request.args.get("acked", type=int),
-                           eta_saved_id=request.args.get("eta_saved", type=int))
+                           eta_saved_id=request.args.get("eta_saved", type=int),
+                           can_bill=can_manage_billing(), wave_connected=bool(wave_accounts))
 
 
 @flight_bp.route("/log/<int:flight_id>/ack_overdue", methods=["POST"])
@@ -6520,17 +6526,85 @@ def log_end(flight_id):
     if request.form.get("send_receipt_email") and cost is not None:
         _send_flight_receipt_email(conn, ended_row, cost, paid_choice == "1", payment_method, payment_amount, credit_applied)
     conn.commit()
+    # Idea "billing": ending Unpaid used to just log the flight owed, with no
+    # way to actually get paid short of the separate Billing page's "Invoice
+    # in Wave" button later. When the CFI/admin ticks "Invoice through Wave
+    # now", make one real Wave invoice for just this flight, right here, and
+    # email it (Wave's own "Pay now" link) - see wave_billing.py and
+    # billing_wave_invoice above for the same pattern batched across a
+    # student's flights. Gated the same way Billing itself is
+    # (can_manage_billing) so a solo student ending their own flight never
+    # sees or triggers this. Never blocks or undoes the flight save above -
+    # a Wave hiccup only costs a flash warning, the session is still logged.
+    wave_invoice_ok, wave_invoice_msg, wave_local_id = None, None, None
+    if (paid_choice == "0" and cost is not None and cost["total"] > 0.005
+            and not (ended_row["guest_name"] or "").strip()
+            and request.form.get("wave_invoice_now") and can_manage_billing()):
+        try:
+            cfg = wave_billing.choose_account(conn, "flight")
+            name, email = _student_billing_contact(conn, ended_row["student_id"])
+            lines = wave_billing.flight_lines(cfg, [cost])
+            inv = wave_billing.create_invoice(conn, cfg, name, email, lines, memo="Flight training")
+            sent = False
+            if email:
+                try:
+                    wave_billing.send_invoice(cfg, inv["id"], email)
+                    sent = True
+                except wave_billing.WaveError:
+                    pass  # invoice still exists in Wave - the Open Wave invoice link still works
+            wave_local_id = wave_billing.record_invoice(conn, "student", ended_row["student_id"], inv, name, email,
+                                                        session.get("user_name"), cfg, sent=sent)
+            conn.execute("UPDATE flights SET wave_invoice_id = ? WHERE id = ?", (wave_local_id, flight_id))
+            conn.commit()
+            wave_invoice_ok = True
+            wave_invoice_msg = (f"Wave invoice #{inv.get('invoiceNumber') or ''} made for ${wave_billing.money(inv.get('total')):.2f}"
+                                 + (f" and emailed to {email} - open it below to charge it right now." if sent
+                                    else " - open it below to charge it right now."))
+        except wave_billing.WaveError as e:
+            wave_invoice_ok = False
+            wave_invoice_msg = f"Logged as Unpaid, but the Wave invoice wasn't made: {e}"
     check_hundred_hr_alerts(conn)  # 100-hour countdown alerts (admins)
     conn.close()
     if squawk:
         flash("Session ended and logged. The squawk you flagged will show up on the Maintenance side until it's acknowledged.", "success")
     else:
         flash("Session ended and logged.", "success")
-    # ended_flight_id lets log_history build the "Book next lesson" box in
-    # the flash above (see _next_lesson_preview) - just this one flight, so
-    # the box only appears right after ending THIS session, not on every
-    # later visit to Flight History.
+    if wave_invoice_msg:
+        flash(wave_invoice_msg, "success" if wave_invoice_ok else "warning")
+    if wave_local_id:
+        # Right after this, the student is often still there to pay from
+        # the invoice's Pay now link - check back every 20s for a few
+        # minutes so it flips to Paid here as soon as that happens, instead
+        # of only on the usual 30-minute background poll (app.py's
+        # run_wave_payment_check).
+        threading.Thread(target=_quick_wave_check, args=(wave_local_id,), daemon=True).start()
+    # ended_flight_id lets log_history build the "Book next lesson" and
+    # "Open Wave invoice" boxes in the flash above (see _next_lesson_preview
+    # / _ended_flight_wave_invoice) - just this one flight, so they only
+    # appear right after ending THIS session, not on every later visit to
+    # Flight History.
     return redirect(url_for("flight.log_history", ended_flight_id=flight_id))
+
+
+def _quick_wave_check(local_id):
+    """Idea "billing": right after inviting someone to pay a just-created
+    Wave invoice at session end (see log_end), check Wave back every 20
+    seconds for a few minutes instead of waiting for the usual 30-minute
+    background poll (app.py's run_wave_payment_check) - covers the common
+    case where the student pays on the spot while the CFI is still there.
+    Quietly gives up after the last try either way; the 30-minute poll
+    still catches it eventually if this misses."""
+    for _ in range(12):
+        time.sleep(20)
+        conn = get_db()
+        try:
+            _, paid, _ = wave_billing.sync_open_invoices(conn, wave_billing.apply_paid, only_id=local_id)
+            if paid:
+                return
+        except wave_billing.WaveError:
+            return  # e.g. Wave got disconnected meanwhile - the 30-min poll will pick it back up
+        finally:
+            conn.close()
 
 
 def _send_flight_receipt_email(conn, ended_row, cost, paid, payment_method, payment_amount, credit_applied):
@@ -7127,6 +7201,26 @@ def _next_lesson_preview(flight_id):
     }
 
 
+def _ended_flight_wave_invoice(flight_id):
+    """Idea "billing": the "Open Wave invoice" box on the "Session ended and
+    logged" flash, right after ending an Unpaid session with "Invoice
+    through Wave now" ticked (see log_end) - so the CFI/admin can open it
+    (or hand the phone to the student) without hunting for it on Billing.
+    Same gate as Billing itself (can_manage_billing), and only for the
+    flight that was just ended, same pattern as _next_lesson_preview."""
+    if not flight_id or not can_manage_billing():
+        return None
+    conn = get_db()
+    row = conn.execute("SELECT wave_invoice_id FROM flights WHERE id = ?", (flight_id,)).fetchone()
+    inv = None
+    if row and row["wave_invoice_id"]:
+        inv = conn.execute("SELECT * FROM wave_invoices WHERE id = ?", (row["wave_invoice_id"],)).fetchone()
+    conn.close()
+    if not inv:
+        return None
+    return {"view_url": inv["view_url"], "invoice_number": inv["invoice_number"], "total": inv["total"]}
+
+
 @flight_bp.route("/log")
 @login_required
 def log_history():
@@ -7140,9 +7234,11 @@ def log_history():
                              (student["id"],)).fetchall()
     conn.close()
     flights = [_row_with_cost(r) for r in rows]
-    next_lesson = _next_lesson_preview(request.args.get("ended_flight_id", type=int))
+    ended_flight_id = request.args.get("ended_flight_id", type=int)
+    next_lesson = _next_lesson_preview(ended_flight_id)
+    wave_invoice = _ended_flight_wave_invoice(ended_flight_id)
     return render_template("flight/log_history.html", flights=flights, cfi=cfi, can_bill=can_manage_billing(),
-                           next_lesson=next_lesson)
+                           next_lesson=next_lesson, wave_invoice=wave_invoice)
 
 
 @flight_bp.route("/log/<int:flight_id>")

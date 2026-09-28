@@ -237,6 +237,19 @@
             <a href="{{ next_lesson.edit_url }}" class="btn btn-outline-success flex-shrink-0" title="Pick a different date or time before booking"><i class="bi bi-pencil"></i></a>
           </div>
           {% endif %}
+          {#- Idea "billing": right in the same "Session ended and logged"
+             confirmation, when End Session's "Invoice through Wave now" made
+             one (see log_end / _ended_flight_wave_invoice) - so the CFI can
+             open Wave's pay link on the spot instead of hunting for it on
+             Billing. wave_invoice only comes from log_history, so this never
+             shows for any other flash on any other page. #}
+          {% if wave_invoice and message.startswith('Session ended and logged') %}
+          <div class="mt-2">
+            <a href="{{ wave_invoice.view_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm w-100 fw-bold">
+              <i class="bi bi-send"></i> Open Wave invoice{% if wave_invoice.invoice_number %} #{{ wave_invoice.invoice_number }}{% endif %} - ${{ '%.2f'|format(wave_invoice.total or 0) }}
+            </a>
+          </div>
+          {% endif %}
         </div>
       {% endfor %}
     {% endif %}

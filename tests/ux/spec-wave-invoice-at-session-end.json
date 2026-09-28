@@ -1,0 +1,57 @@
+{
+  "checks": [
+    {
+      "role": "master",
+      "size": "phone",
+      "sql": [
+        "UPDATE assets SET is_flight_asset = 1, hobbs_hours = 500.0, tach_hours = 480.0 WHERE id = {asset}",
+        "INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, solo, hobbs_start, tach_start, started_at, created_at) VALUES ({cfi}, {student}, {asset}, date('now'), 0, 500.0, 480.0, datetime('now', '-90 minutes'), datetime('now'))",
+        "INSERT INTO app_settings (key, value) VALUES ('wave_acct1_token', 'proof-token')",
+        "INSERT INTO app_settings (key, value) VALUES ('wave_acct1_business_id', 'BIZ-PROOF')",
+        "INSERT INTO app_settings (key, value) VALUES ('wave_acct1_flight_product_id', 'PROD-PROOF')",
+        "INSERT INTO app_settings (key, value) VALUES ('wave_flight_accounts', '1')",
+        "INSERT INTO app_settings (key, value) VALUES ('wave_flight_default', '1')"
+      ],
+      "steps": [
+        ["start", "/flight/log/active"],
+        ["see", "Elapsed"],
+        ["tap", "End Session"],
+        ["fill", "hobbs_end", "501.5"],
+        ["fill", "tach_end", "481.3"],
+        ["tap", "Unpaid"],
+        ["see", "Invoice through Wave now"],
+        ["shot", {"caption": "Ending Unpaid now offers to invoice through Wave right there, instead of only logging it owed",
+                  "focus": "[id^='wave-invoice-wrap-']",
+                  "changed": [{"sel": "[id^='wave-invoice-wrap-']", "note": "New: Invoice through Wave now"}]}],
+        ["tap", "[id^='wave-invoice-now-']"],
+        ["tap", "Session Complete"],
+        ["tap", "Yes, log it"],
+        ["see", "Session ended and logged."]
+      ]
+    },
+    {
+      "role": "master",
+      "size": "phone",
+      "sql": [
+        "INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, solo, hobbs_start, tach_start, started_at, created_at) VALUES ({cfi}, {student}, {asset}, date('now'), 0, 501.5, 481.3, datetime('now', '-90 minutes'), datetime('now'))",
+        "INSERT INTO wave_invoices (kind, ref_id, wave_invoice_id, invoice_number, status, view_url, total, sent_at, created_at) VALUES ('student', {student}, 'INV-PROOF', '101', 'SENT', 'https://next.waveapps.com/view/INV-PROOF', 225.00, datetime('now'), datetime('now'))",
+        "UPDATE flights SET wave_invoice_id = (SELECT id FROM wave_invoices WHERE wave_invoice_id = 'INV-PROOF') WHERE id = (SELECT MAX(id) FROM flights)"
+      ],
+      "steps": [
+        ["start", "/flight/log/active"],
+        ["tap", "End Session"],
+        ["fill", "hobbs_end", "503.0"],
+        ["fill", "tach_end", "482.6"],
+        ["tap", "Unpaid"],
+        ["tap", "[id^='wave-invoice-now-']"],
+        ["tap", "Session Complete"],
+        ["tap", "Yes, log it"],
+        ["see", "Session ended and logged."],
+        ["see", "Open Wave invoice"],
+        ["shot", {"caption": "Once an invoice is on file, the same confirmation offers to open it and hand it to the student right there",
+                  "focus": ".alert-success",
+                  "changed": [{"sel": ".alert-success a[href*='waveapps']", "note": "New: Open Wave invoice link"}]}]
+      ]
+    }
+  ]
+}
