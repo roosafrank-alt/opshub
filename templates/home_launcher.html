@@ -98,10 +98,14 @@
 
   {% if user or customer %}
   {% set is_admin_like = user and (user.is_master_admin or user.shop_role == 'admin') %}
+  {% set is_shop_admin = user and user.shop_role == 'admin' and not user.is_master_admin %}
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <div class="opshub-picker-corner mb-1"><i class="bi bi-grid-3x3-gap"></i> OpsHub</div>
       <div class="picker-title fs-4 fw-bold">Choose a program</div>
+      {% if is_shop_admin %}
+      <div class="picker-signedin small mt-1">Signing in skips this page and goes straight to Winds Aloft - come back here anytime to switch programs.</div>
+      {% endif %}
     </div>
     <div class="text-end">
       <div class="picker-signedin small">Signed in as <strong>{{ user.name if user else customer.name }}</strong></div>
@@ -110,7 +114,7 @@
     </div>
   </div>
   <div class="row g-4 justify-content-center">
-    {% if user.is_master_admin or user.flight_role %}
+    {% if user.is_master_admin or user.flight_role or is_admin_like %}
     <div class="col-md-5">
       <a href="{{ url_for('flight.index') }}" class="launcher-tile tile-flight">
         <img src="{{ url_for('static', filename='icons/flywithkate/icon-192.png') }}" class="tile-icon rounded-circle" alt="Fly with Kate">
@@ -150,7 +154,7 @@
       </a>
     </div>
     {% endif %}
-    {% if not (is_admin_like or customer) and not (user.is_master_admin or user.shop_role) and not (user.is_master_admin or user.flight_role) and not (user.is_master_admin or user.academy_access) %}
+    {% if not (is_admin_like or customer) and not (user.is_master_admin or user.shop_role) and not (user.is_master_admin or user.flight_role or is_admin_like) and not (user.is_master_admin or user.academy_access) %}
     <div class="col-md-6 text-center picker-empty">
       Your account doesn't have access to any programs yet. Ask an admin to set that up.
     </div>

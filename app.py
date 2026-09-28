@@ -243,6 +243,11 @@ def first_name(value):
 app.jinja_env.filters["first_name"] = first_name
 app.jinja_env.globals["tracking_carrier_choices"] = tracking.CARRIER_CHOICES
 app.jinja_env.globals["tracking_info"] = tracking.to_json
+app.jinja_env.globals["academy_point_rules"] = academy.POINT_RULES
+app.jinja_env.globals["academy_entry_kinds"] = academy.ENTRY_KINDS
+app.jinja_env.globals["academy_achievements"] = academy.ACHIEVEMENTS
+app.jinja_env.globals["academy_cert_points"] = academy.CERT_POINTS
+app.jinja_env.globals["academy_rating_points"] = academy.RATING_POINTS
 
 
 _WIND_COMPASS_POINTS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
@@ -324,6 +329,12 @@ def home_launcher():
             return render_template("home_launcher.html", user=None, customer=None, username=username)
         log_in_combined(user_row, customer_row, remember=remember)
         flash(f"Welcome, {(user_row or customer_row)['name']}!", "success")
+        if user_row and user_row["shop_role"] == "admin" and not user_row["is_master_admin"]:
+            # Idea ux-shop-admin-skip-launcher: a shop admin's login goes
+            # straight to the shop home instead of "Choose a program" -
+            # the grid button (same url_for('home_launcher') link) still
+            # opens the real picker any time they want to switch programs.
+            return redirect(url_for("dashboard"))
         return redirect(url_for("home_launcher"))
 
     only_program = single_program_endpoint()
@@ -398,9 +409,7 @@ def academy_page():
                            my_rank=academy.rank_of(stats, my_id) if my_id else None,
                            entries=entries, staff=staff, period=period,
                            entry_kinds=academy.ENTRY_KINDS, entry_kind_map=academy.ENTRY_KIND_MAP,
-                           point_rules=academy.POINT_RULES, achievements=academy.ACHIEVEMENTS,
-                           leaderboard_defs=academy.LEADERBOARDS, cert_points=academy.CERT_POINTS,
-                           rating_points=academy.RATING_POINTS, today=date.today().isoformat())
+                           leaderboard_defs=academy.LEADERBOARDS, today=date.today().isoformat())
 
 
 @app.route("/academy/entry", methods=["POST"])
@@ -544,13 +553,27 @@ def dashboard():
         WHERE deleted_at IS NULL AND scheduled_date IS NOT NULL
               AND scheduled_date >= ? AND status NOT IN ('completed', 'archived')
     """, (today_str,)).fetchone()["c"]
+    # QA finding ux-shop-dash-by-role: an Apprentice or Inspector's shop home
+    # is reshaped around the one thing they actually do - open a project -
+    # instead of the admin's full page, most of which just bounces them
+    # back (they can't open Parts, Orders, Squawks or Activity). See
+    # is_limited_role in dashboard.html.
+    active_projects = []
+    if not session.get("is_master_admin") and session.get("shop_role") in ("apprentice", "inspector"):
+        active_projects = conn.execute("""
+            SELECT projects.*, a.tag as asset_display_tag
+            FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
+            WHERE projects.status = 'active' AND projects.deleted_at IS NULL
+            ORDER BY projects.created_at DESC
+        """).fetchall()
     open_squawks = get_open_squawks(conn)
     assignable_workers = get_assignable_workers(conn)
-    # Assigned-squawk alerts: this account's own to-do list (if a squawk's
-    # been handed to them and they haven't said "got it" yet), plus - for
-    # admin/master admin - everyone's unacknowledged assignments, so whoever
-    # did the assigning can see who hasn't picked it up.
-    my_assigned_squawks = get_assigned_to_me_squawks(conn, session["user_id"]) if session.get("user_id") else []
+    # Assigned-squawk alerts: this account's own work list (every squawk
+    # assigned to them not yet signed off, same as My Tasks - see
+    # get_my_squawks), plus - for admin/master admin - everyone's
+    # unacknowledged assignments, so whoever did the assigning can see who
+    # hasn't picked it up.
+    my_squawks = get_my_squawks(conn, session["user_id"]) if session.get("user_id") else []
     unacknowledged_assignments = []
     system_alerts = []
     if session.get("is_master_admin") or session.get("shop_role") == "admin":
@@ -558,6 +581,18 @@ def dashboard():
         system_alerts = conn.execute(
             "SELECT * FROM system_alerts WHERE resolved_at IS NULL ORDER BY created_at DESC"
         ).fetchall()
+    # An Inspector's actual to-do: repairs waiting on their sign-off. Shown
+    # to admins too, since they can confirm a repair as well.
+    squawks_awaiting_confirm = []
+    if session.get("is_master_admin") or session.get("shop_role") in ("admin", "inspector"):
+        squawks_awaiting_confirm = get_squawks_awaiting_confirm(conn)
+
+    # QA finding ux-shop-stat-boxes-by-role: a Tech's Pending Orders stat box
+    # opened a page they can't see (Orders is admin-only), so it swaps for
+    # Open Squawks instead - something a Tech actually acts on.
+    open_squawk_count = 0
+    if not session.get("is_master_admin") and session.get("shop_role") == "tech":
+        open_squawk_count = get_open_squawk_count(conn)
 
     # Customer portal: appointments the customer asked to reschedule -
     # stays here until an admin dismisses it (see project_reschedule_dismiss).
@@ -628,9 +663,11 @@ def dashboard():
                            reschedule_requests=reschedule_requests,
                            open_squawks=open_squawks, assignable_workers=assignable_workers, open_sessions=open_sessions,
                            needs_confirm_sections=needs_confirm_sections,
-                           my_assigned_squawks=my_assigned_squawks,
+                           my_squawks=my_squawks,
                            unacknowledged_assignments=unacknowledged_assignments,
-                           system_alerts=system_alerts, tool_reminders=tool_reminders)
+                           squawks_awaiting_confirm=squawks_awaiting_confirm,
+                           system_alerts=system_alerts, tool_reminders=tool_reminders,
+                           active_projects=active_projects, open_squawk_count=open_squawk_count)
 
 
 # ---------------------------------------------------------------------------
@@ -654,7 +691,8 @@ _FLIGHT_SQUAWK_COLS = """'flight' as kind, f.id as squawk_id, a.id as asset_id, 
                f.squawk_worker_acknowledged_at as worker_acknowledged_at,
                f.squawk_worker_acknowledged_by as worker_acknowledged_by,
                f.squawk_repair_confirm_requested_at as repair_confirm_requested_at,
-               f.squawk_repair_confirm_requested_by as repair_confirm_requested_by"""
+               f.squawk_repair_confirm_requested_by as repair_confirm_requested_by,
+               f.squawk_sent_back_note as sent_back_note"""
 _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.tag as asset_tag,
                a.name as asset_name, q.reported_at as event_date, NULL as student_name,
                NULL as cfi_name, q.reported_by as reported_by, q.notes as notes,
@@ -664,7 +702,25 @@ _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.
                q.worker_acknowledged_at as worker_acknowledged_at,
                q.worker_acknowledged_by as worker_acknowledged_by,
                q.repair_confirm_requested_at as repair_confirm_requested_at,
-               q.repair_confirm_requested_by as repair_confirm_requested_by"""
+               q.repair_confirm_requested_by as repair_confirm_requested_by,
+               q.sent_back_note as sent_back_note"""
+
+# Reported -> Assigned -> Working -> Inspection -> Done - the same five
+# steps and order the step pills show everywhere a squawk appears (see
+# squawk_step_pills in templates/_squawk_macros.html, which this mirrors).
+SQUAWK_STEPS = ["new", "assigned", "working", "inspection", "done"]
+
+
+def squawk_step_index(sq):
+    if sq["repaired_at"]:
+        return 4
+    if sq["repair_confirm_requested_at"]:
+        return 3
+    if not sq["acknowledged_at"]:
+        return 0
+    if sq["worker_acknowledged_at"] or not sq["assigned_to"]:
+        return 2
+    return 1
 
 
 def get_open_squawks(conn):
@@ -684,6 +740,40 @@ def get_open_squawks(conn):
         WHERE q.acknowledged_at IS NULL
         ORDER BY event_date DESC, squawk_id DESC
     """).fetchall()
+
+
+def get_open_squawk_count(conn):
+    """Every squawk not yet marked repaired, across both tables - the
+    Tech's dashboard stat box (QA finding ux-shop-stat-boxes-by-role), which
+    stands in for Pending Orders since Techs can't see Orders."""
+    return conn.execute("""
+        SELECT (SELECT COUNT(*) FROM flights WHERE squawk = 1 AND squawk_repaired_at IS NULL) +
+               (SELECT COUNT(*) FROM plane_squawks WHERE repaired_at IS NULL) AS c
+    """).fetchone()["c"]
+
+
+def get_plane_open_squawks(conn, asset_id):
+    """Every one of this plane's squawks that isn't signed off yet (any
+    step through Inspection), not just brand-new ones - the plane page's
+    To-Do list and the project page's squawks & to-dos box (QA finding
+    ux-squawk-on-project) both use this, unlike get_open_squawks() above,
+    which is just the unacknowledged ones."""
+    return conn.execute(f"""
+        SELECT {_FLIGHT_SQUAWK_COLS}
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        LEFT JOIN users au ON au.id = f.squawk_assigned_to
+        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NULL AND a.id = ?
+        UNION ALL
+        SELECT {_QUICK_SQUAWK_COLS}
+        FROM plane_squawks q
+        JOIN assets a ON a.id = q.asset_id
+        LEFT JOIN users au ON au.id = q.assigned_to
+        WHERE q.repaired_at IS NULL AND a.id = ?
+        ORDER BY event_date DESC, squawk_id DESC
+    """, (asset_id, asset_id)).fetchall()
 
 
 def get_assignable_workers(conn):
@@ -715,9 +805,12 @@ def get_unacknowledged_assignments(conn):
     """).fetchall()
 
 
-def get_assigned_to_me_squawks(conn, user_id):
-    """This user's own squawk to-do list: assigned to them, not yet
-    acknowledged by them, not yet repaired - shown on their dashboard."""
+def get_squawks_awaiting_confirm(conn):
+    """Squawks a tech has marked ready for repair, still waiting on an
+    Inspector or admin to sign off (squawk_repair_confirm) - the dashboard
+    alert that gives an Inspector something to actually do, since the
+    pages the Confirm button used to live on (Squawks, a plane's page) were
+    off-limits to them (QA finding ux-squawk-inspector-signoff)."""
     return conn.execute(f"""
         SELECT {_FLIGHT_SQUAWK_COLS}
         FROM flights f
@@ -725,23 +818,22 @@ def get_assigned_to_me_squawks(conn, user_id):
         JOIN students s ON s.id = f.student_id
         LEFT JOIN cfis c ON c.id = f.cfi_id
         LEFT JOIN users au ON au.id = f.squawk_assigned_to
-        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NULL
-              AND f.squawk_assigned_to = ? AND f.squawk_worker_acknowledged_at IS NULL
+        WHERE f.squawk = 1 AND f.squawk_repair_confirm_requested_at IS NOT NULL
         UNION ALL
         SELECT {_QUICK_SQUAWK_COLS}
         FROM plane_squawks q
         JOIN assets a ON a.id = q.asset_id
         LEFT JOIN users au ON au.id = q.assigned_to
-        WHERE q.repaired_at IS NULL AND q.assigned_to = ? AND q.worker_acknowledged_at IS NULL
+        WHERE q.repair_confirm_requested_at IS NOT NULL
         ORDER BY event_date DESC, squawk_id DESC
-    """, (user_id, user_id)).fetchall()
+    """).fetchall()
 
 
 def get_my_squawks(conn, user_id):
     """Every squawk assigned to this user that isn't repaired yet, accepted
-    or not - the full working list for their My Tasks page (unlike
-    get_assigned_to_me_squawks above, which is just the not-yet-accepted
-    ones for the dashboard alert)."""
+    or not - the full working list for their My Tasks page and the
+    dashboard's My Squawks box (both show the same rows and buttons - see
+    QA finding ux-squawk-my-list-dashboard)."""
     return conn.execute(f"""
         SELECT {_FLIGHT_SQUAWK_COLS}
         FROM flights f
@@ -761,7 +853,7 @@ def get_my_squawks(conn, user_id):
 
 
 @app.route("/squawks")
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def squawks_list():
     conn = get_db()
     open_squawks = get_open_squawks(conn)
@@ -800,8 +892,24 @@ def squawks_list():
     assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     assignable_workers = get_assignable_workers(conn)
     conn.close()
-    return render_template("squawks.html", open_squawks=open_squawks, acknowledged=acknowledged, repaired=repaired,
-                           assets=assets, assignable_workers=assignable_workers)
+
+    # One list at a time, filtered by step, instead of 3 stacked lists that
+    # each mixed several steps together (QA finding ux-squawk-page-steps).
+    # open_squawks is always step "new" and repaired always "done"; the old
+    # "acknowledged" list actually mixed assigned/working/inspection, so it
+    # gets bucketed the same way.
+    buckets = {step: [] for step in SQUAWK_STEPS}
+    for sq in list(open_squawks) + list(acknowledged) + list(repaired):
+        buckets[SQUAWK_STEPS[squawk_step_index(sq)]].append(sq)
+    step_counts = {step: len(rows) for step, rows in buckets.items()}
+    current_step = request.args.get("step")
+    if current_step not in SQUAWK_STEPS:
+        current_step = next((s for s in SQUAWK_STEPS if step_counts[s]), "new")
+
+    return render_template("squawks.html", step_counts=step_counts, current_step=current_step,
+                           squawks_for_step=buckets[current_step],
+                           assets=assets, assignable_workers=assignable_workers,
+                           show_report_form=request.args.get("report") == "1")
 
 
 @app.route("/squawks/new", methods=["POST"])
@@ -964,14 +1072,16 @@ def squawk_repair(kind, squawk_id):
                             "squawk_repair_confirm_requested_at as confirm_requested FROM flights "
                             "WHERE id = ? AND squawk = 1", (squawk_id,)).fetchone()
         ack_sql = "UPDATE flights SET squawk_acknowledged_at = ?, squawk_acknowledged_by = ? WHERE id = ?"
-        confirm_req_sql = "UPDATE flights SET squawk_repair_confirm_requested_at = ?, squawk_repair_confirm_requested_by = ? WHERE id = ?"
+        confirm_req_sql = ("UPDATE flights SET squawk_repair_confirm_requested_at = ?, "
+                            "squawk_repair_confirm_requested_by = ?, squawk_sent_back_note = NULL WHERE id = ?")
         undo_sql = "UPDATE flights SET squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL WHERE id = ?"
     elif kind == "quick":
         row = conn.execute("SELECT id, acknowledged_at as acked, "
                             "repair_confirm_requested_at as confirm_requested FROM plane_squawks "
                             "WHERE id = ?", (squawk_id,)).fetchone()
         ack_sql = "UPDATE plane_squawks SET acknowledged_at = ?, acknowledged_by = ? WHERE id = ?"
-        confirm_req_sql = "UPDATE plane_squawks SET repair_confirm_requested_at = ?, repair_confirm_requested_by = ? WHERE id = ?"
+        confirm_req_sql = ("UPDATE plane_squawks SET repair_confirm_requested_at = ?, "
+                            "repair_confirm_requested_by = ?, sent_back_note = NULL WHERE id = ?")
         undo_sql = "UPDATE plane_squawks SET repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL WHERE id = ?"
     else:
         conn.close()
@@ -1005,11 +1115,13 @@ def squawk_repair_confirm(kind, squawk_id):
     conn = get_db()
     if kind == "flight":
         row = conn.execute("SELECT id FROM flights WHERE id = ? AND squawk = 1", (squawk_id,)).fetchone()
-        send_back_sql = "UPDATE flights SET squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL WHERE id = ?"
+        send_back_sql = ("UPDATE flights SET squawk_repair_confirm_requested_at = NULL, "
+                          "squawk_repair_confirm_requested_by = NULL, squawk_sent_back_note = ? WHERE id = ?")
         confirm_sql = "UPDATE flights SET squawk_repaired_at = ?, squawk_repaired_by = ?, squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL WHERE id = ?"
     elif kind == "quick":
         row = conn.execute("SELECT id FROM plane_squawks WHERE id = ?", (squawk_id,)).fetchone()
-        send_back_sql = "UPDATE plane_squawks SET repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL WHERE id = ?"
+        send_back_sql = ("UPDATE plane_squawks SET repair_confirm_requested_at = NULL, "
+                          "repair_confirm_requested_by = NULL, sent_back_note = ? WHERE id = ?")
         confirm_sql = "UPDATE plane_squawks SET repaired_at = ?, repaired_by = ?, repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL WHERE id = ?"
     else:
         conn.close()
@@ -1019,7 +1131,8 @@ def squawk_repair_confirm(kind, squawk_id):
         flash("Squawk not found.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
     if request.form.get("action") == "send_back":
-        conn.execute(send_back_sql, (squawk_id,))
+        note = (request.form.get("note") or "").strip() or None
+        conn.execute(send_back_sql, (note, squawk_id))
         flash("Sent back - not marked repaired.", "warning")
     else:
         conn.execute(confirm_sql, (now_iso(), session.get("user_name"), squawk_id))
@@ -1373,6 +1486,185 @@ def api_sections(project_id):
     return jsonify([r["name"] for r in rows])
 
 
+def _find_or_create_linked_section(conn, project_id, base_name, linked_squawk_kind=None,
+                                    linked_squawk_id=None, linked_todo_id=None):
+    """The Sub Area standing in for a plane's squawk/to-do on this job - see
+    project_squawk_fix_on_job/project_todo_do_on_job. Reuses one already
+    linked to it (double-submit safety) rather than making a second; a
+    fresh name gets a "(2)", "(3)" ... suffix if it collides with an
+    unrelated Sub Area already on this project (project_sections.name is
+    unique per project)."""
+    if linked_squawk_kind:
+        existing = conn.execute(
+            "SELECT id FROM project_sections WHERE project_id = ? AND linked_squawk_kind = ? AND linked_squawk_id = ?",
+            (project_id, linked_squawk_kind, linked_squawk_id)).fetchone()
+    else:
+        existing = conn.execute(
+            "SELECT id FROM project_sections WHERE project_id = ? AND linked_todo_id = ?",
+            (project_id, linked_todo_id)).fetchone()
+    if existing:
+        return existing["id"]
+    name = (base_name or "Untitled").strip()[:60] or "Untitled"
+    candidate, n = name, 2
+    while conn.execute("SELECT id FROM project_sections WHERE project_id = ? AND name = ?",
+                        (project_id, candidate)).fetchone():
+        candidate = f"{name} ({n})"
+        n += 1
+    cur = conn.execute("""INSERT INTO project_sections
+                          (project_id, name, created_at, linked_squawk_kind, linked_squawk_id, linked_todo_id)
+                          VALUES (?, ?, ?, ?, ?, ?)""",
+                       (project_id, candidate, now_iso(), linked_squawk_kind, linked_squawk_id, linked_todo_id))
+    return cur.lastrowid
+
+
+# A Sub Area linked to a squawk or to-do (see _find_or_create_linked_section)
+# mirrors its own request/confirm/send-back steps onto that squawk/to-do, so
+# whichever page someone's looking at - the project, the plane, My Tasks -
+# shows the same status for the same underlying work (QA finding
+# ux-squawk-on-project). `section` needs linked_squawk_kind, linked_squawk_id
+# and linked_todo_id selected.
+def _propagate_section_check(conn, section, by):
+    if section["linked_squawk_kind"]:
+        kind, sid = section["linked_squawk_kind"], section["linked_squawk_id"]
+        table = "flights" if kind == "flight" else "plane_squawks"
+        acked_col = "squawk_acknowledged_at" if kind == "flight" else "acknowledged_at"
+        row = conn.execute(f"SELECT {acked_col} as acked FROM {table} WHERE id = ?", (sid,)).fetchone()
+        if not row:
+            return
+        if kind == "flight":
+            if not row["acked"]:
+                conn.execute("UPDATE flights SET squawk_acknowledged_at = ?, squawk_acknowledged_by = ? WHERE id = ?",
+                             (now_iso(), by, sid))
+            conn.execute("""UPDATE flights SET squawk_repair_confirm_requested_at = ?,
+                            squawk_repair_confirm_requested_by = ?, squawk_sent_back_note = NULL WHERE id = ?""",
+                         (now_iso(), by, sid))
+        else:
+            if not row["acked"]:
+                conn.execute("UPDATE plane_squawks SET acknowledged_at = ?, acknowledged_by = ? WHERE id = ?",
+                             (now_iso(), by, sid))
+            conn.execute("""UPDATE plane_squawks SET repair_confirm_requested_at = ?,
+                            repair_confirm_requested_by = ?, sent_back_note = NULL WHERE id = ?""",
+                         (now_iso(), by, sid))
+    elif section["linked_todo_id"]:
+        conn.execute("UPDATE plane_todos SET confirm_requested_at = ?, confirm_requested_by = ? WHERE id = ?",
+                     (now_iso(), by, section["linked_todo_id"]))
+
+
+def _propagate_section_uncheck(conn, section):
+    if section["linked_squawk_kind"]:
+        kind, sid = section["linked_squawk_kind"], section["linked_squawk_id"]
+        if kind == "flight":
+            conn.execute("UPDATE flights SET squawk_repair_confirm_requested_at = NULL, "
+                         "squawk_repair_confirm_requested_by = NULL WHERE id = ?", (sid,))
+        else:
+            conn.execute("UPDATE plane_squawks SET repair_confirm_requested_at = NULL, "
+                         "repair_confirm_requested_by = NULL WHERE id = ?", (sid,))
+    elif section["linked_todo_id"]:
+        conn.execute("UPDATE plane_todos SET confirm_requested_at = NULL, confirm_requested_by = NULL WHERE id = ?",
+                     (section["linked_todo_id"],))
+
+
+def _propagate_section_confirm(conn, section, by):
+    if section["linked_squawk_kind"]:
+        kind, sid = section["linked_squawk_kind"], section["linked_squawk_id"]
+        if kind == "flight":
+            conn.execute("""UPDATE flights SET squawk_repaired_at = ?, squawk_repaired_by = ?,
+                            squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL
+                            WHERE id = ?""", (now_iso(), by, sid))
+        else:
+            conn.execute("""UPDATE plane_squawks SET repaired_at = ?, repaired_by = ?,
+                            repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL
+                            WHERE id = ?""", (now_iso(), by, sid))
+    elif section["linked_todo_id"]:
+        conn.execute("UPDATE plane_todos SET done = 1, completed_at = ?, confirmed_by = ? WHERE id = ?",
+                     (now_iso(), by, section["linked_todo_id"]))
+
+
+def _propagate_section_send_back(conn, section, by):
+    if section["linked_squawk_kind"]:
+        kind, sid = section["linked_squawk_kind"], section["linked_squawk_id"]
+        if kind == "flight":
+            conn.execute("UPDATE flights SET squawk_repair_confirm_requested_at = NULL, "
+                         "squawk_repair_confirm_requested_by = NULL WHERE id = ?", (sid,))
+        else:
+            conn.execute("UPDATE plane_squawks SET repair_confirm_requested_at = NULL, "
+                         "repair_confirm_requested_by = NULL WHERE id = ?", (sid,))
+    elif section["linked_todo_id"]:
+        conn.execute("""UPDATE plane_todos SET confirm_requested_at = NULL, confirm_requested_by = NULL,
+                        sent_back_at = ?, sent_back_by = ? WHERE id = ?""",
+                     (now_iso(), by, section["linked_todo_id"]))
+
+
+@app.route("/projects/<int:project_id>/squawks/<kind>/<int:squawk_id>/fix_on_job", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_squawk_fix_on_job(project_id, kind, squawk_id):
+    """Claims a plane's squawk for this job in one step (QA finding
+    ux-squawk-on-project): assigns it to me, moves it straight to Working,
+    and gives it a matching Sub Area on this project so parts and labor
+    charged here are tied to it. Checking that Sub Area off later moves the
+    squawk to Inspection automatically (see _propagate_section_check)."""
+    conn = get_db()
+    project = conn.execute("SELECT id, asset_id FROM projects WHERE id = ? AND deleted_at IS NULL",
+                           (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    if kind == "flight":
+        row = conn.execute("SELECT id, notes FROM flights WHERE id = ? AND squawk = 1 AND asset_id = ?",
+                           (squawk_id, project["asset_id"])).fetchone()
+    elif kind == "quick":
+        row = conn.execute("SELECT id, notes FROM plane_squawks WHERE id = ? AND asset_id = ?",
+                           (squawk_id, project["asset_id"])).fetchone()
+    else:
+        conn.close()
+        abort(404)
+    if not row:
+        conn.close()
+        flash("Squawk not found.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id))
+    by, uid = session.get("user_name"), session.get("user_id")
+    _find_or_create_linked_section(conn, project_id, row["notes"], linked_squawk_kind=kind, linked_squawk_id=squawk_id)
+    if kind == "flight":
+        conn.execute("""UPDATE flights SET squawk_acknowledged_at = COALESCE(squawk_acknowledged_at, ?),
+                        squawk_acknowledged_by = COALESCE(squawk_acknowledged_by, ?), squawk_assigned_to = ?,
+                        squawk_worker_acknowledged_at = ?, squawk_worker_acknowledged_by = ? WHERE id = ?""",
+                     (now_iso(), by, uid, now_iso(), by, squawk_id))
+    else:
+        conn.execute("""UPDATE plane_squawks SET acknowledged_at = COALESCE(acknowledged_at, ?),
+                        acknowledged_by = COALESCE(acknowledged_by, ?), assigned_to = ?,
+                        worker_acknowledged_at = ?, worker_acknowledged_by = ? WHERE id = ?""",
+                     (now_iso(), by, uid, now_iso(), by, squawk_id))
+    conn.commit()
+    conn.close()
+    flash("Added as a Discrepancy on this job, assigned to you.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
+@app.route("/projects/<int:project_id>/todos/<int:todo_id>/do_on_job", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_todo_do_on_job(project_id, todo_id):
+    """Same idea as project_squawk_fix_on_job, for a plane to-do: claims it,
+    gives it a matching Sub Area on this job, and moves it to Working."""
+    conn = get_db()
+    project = conn.execute("SELECT id, asset_id FROM projects WHERE id = ? AND deleted_at IS NULL",
+                           (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    todo = conn.execute("SELECT id, description FROM plane_todos WHERE id = ? AND asset_id = ?",
+                        (todo_id, project["asset_id"])).fetchone()
+    if not todo:
+        conn.close()
+        flash("To-do not found.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id))
+    _find_or_create_linked_section(conn, project_id, todo["description"], linked_todo_id=todo_id)
+    conn.execute("UPDATE plane_todos SET assigned_to = ? WHERE id = ?", (session.get("user_id"), todo_id))
+    conn.commit()
+    conn.close()
+    flash("Added as a Discrepancy on this job, assigned to you.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 @app.route("/projects/<int:project_id>/add_section", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def project_add_section(project_id):
@@ -1386,14 +1678,14 @@ def project_add_section(project_id):
         abort(404)
     name = request.form.get("name", "").strip()
     if not name:
-        flash("Enter a name for the sub area.", "danger")
+        flash("Enter a name for the discrepancy.", "danger")
         conn.close()
         return redirect(url_for("project_detail", project_id=project_id))
     conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
                  (project_id, name, now_iso()))
     conn.commit()
     conn.close()
-    flash(f"Sub area '{name}' added.", "success")
+    flash(f"Discrepancy '{name}' added.", "success")
     return redirect(url_for("project_detail", project_id=project_id))
 
 
@@ -1406,18 +1698,22 @@ def project_section_complete(project_id, section_id):
     project_section_confirm. Unchecking it clears both the request and any
     completion, back to plain open."""
     conn = get_db()
-    section = conn.execute("SELECT id FROM project_sections WHERE id = ? AND project_id = ?",
+    section = conn.execute("""SELECT id, linked_squawk_kind, linked_squawk_id, linked_todo_id
+                              FROM project_sections WHERE id = ? AND project_id = ?""",
                            (section_id, project_id)).fetchone()
     if not section:
         conn.close()
         abort(404)
     completed = request.form.get("completed") == "1"
+    by = session.get("user_name")
     if completed:
         conn.execute("UPDATE project_sections SET confirm_requested_at = ?, confirm_requested_by = ? WHERE id = ?",
-                     (now_iso(), session.get("user_name"), section_id))
+                     (now_iso(), by, section_id))
+        _propagate_section_check(conn, section, by)
     else:
         conn.execute("""UPDATE project_sections SET confirm_requested_at = NULL, confirm_requested_by = NULL,
                          completed_at = NULL, completed_by = NULL WHERE id = ?""", (section_id,))
+        _propagate_section_uncheck(conn, section)
     conn.commit()
     conn.close()
     return redirect(url_for("project_detail", project_id=project_id))
@@ -1430,19 +1726,23 @@ def project_section_confirm(project_id, section_id):
     ready - this is what actually completes it. 'Send back' unchecks it
     instead, so whoever did the work knows it wasn't approved."""
     conn = get_db()
-    section = conn.execute("SELECT id FROM project_sections WHERE id = ? AND project_id = ?",
+    section = conn.execute("""SELECT id, linked_squawk_kind, linked_squawk_id, linked_todo_id
+                              FROM project_sections WHERE id = ? AND project_id = ?""",
                            (section_id, project_id)).fetchone()
     if not section:
         conn.close()
         abort(404)
+    by = session.get("user_name")
     if request.form.get("action") == "send_back":
         conn.execute("""UPDATE project_sections SET confirm_requested_at = NULL, confirm_requested_by = NULL,
                          completed_at = NULL, completed_by = NULL, sent_back_at = ?, sent_back_by = ? WHERE id = ?""",
-                     (now_iso(), session.get("user_name"), section_id))
+                     (now_iso(), by, section_id))
+        _propagate_section_send_back(conn, section, by)
         flash("Sent back - unmarked as ready.", "warning")
     else:
         conn.execute("UPDATE project_sections SET completed_at = ?, completed_by = ? WHERE id = ?",
-                     (now_iso(), session.get("user_name"), section_id))
+                     (now_iso(), by, section_id))
+        _propagate_section_confirm(conn, section, by)
         flash("Confirmed complete.", "success")
     conn.commit()
     conn.close()
@@ -1460,13 +1760,13 @@ def project_section_rename(project_id, section_id):
         abort(404)
     new_name = request.form.get("name", "").strip()
     if not new_name:
-        flash("Enter a name for the sub area.", "danger")
+        flash("Enter a name for the discrepancy.", "danger")
         conn.close()
         return redirect(url_for("project_detail", project_id=project_id))
     clash = conn.execute("SELECT id FROM project_sections WHERE project_id = ? AND name = ? AND id != ?",
                          (project_id, new_name, section_id)).fetchone()
     if clash:
-        flash(f"A sub area named '{new_name}' already exists.", "danger")
+        flash(f"A discrepancy named '{new_name}' already exists.", "danger")
         conn.close()
         return redirect(url_for("project_detail", project_id=project_id))
     old_name = section["name"]
@@ -1480,7 +1780,30 @@ def project_section_rename(project_id, section_id):
                  (new_name, project_id, old_name))
     conn.commit()
     conn.close()
-    flash(f"Sub area renamed to '{new_name}'.", "success")
+    flash(f"Discrepancy renamed to '{new_name}'.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
+@app.route("/projects/<int:project_id>/sections/<int:section_id>/notes", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_section_notes(project_id, section_id):
+    """Idea "Discrepancy List": notes is shop-only - never shown on the
+    invoice (project_invoice_csv) or in My Aircraft (customer._project_bill).
+    description is the write-up an owner actually sees there, once it's
+    filled in."""
+    conn = get_db()
+    section = conn.execute("SELECT id FROM project_sections WHERE id = ? AND project_id = ?",
+                           (section_id, project_id)).fetchone()
+    if not section:
+        conn.close()
+        abort(404)
+    notes = request.form.get("notes", "").strip()
+    description = request.form.get("description", "").strip()
+    conn.execute("UPDATE project_sections SET notes = ?, description = ? WHERE id = ?",
+                 (notes, description, section_id))
+    conn.commit()
+    conn.close()
+    flash("Saved.", "success")
     return redirect(url_for("project_detail", project_id=project_id))
 
 
@@ -1660,6 +1983,7 @@ def part_expiration_update(part_id):
 def parts_list():
     q = request.args.get("q", "").strip()
     show_retired = request.args.get("retired") == "1"
+    show_low_stock = request.args.get("low_stock") == "1"
     conn = get_db()
     part_count = conn.execute("SELECT COUNT(*) c FROM parts WHERE retired_at IS NULL").fetchone()["c"]
     total_value = conn.execute("SELECT COALESCE(SUM(qty_on_hand * unit_cost),0) v FROM parts WHERE retired_at IS NULL").fetchone()["v"]
@@ -1670,6 +1994,18 @@ def parts_list():
         part_covers = _part_covers(conn, parts)
         conn.close()
         return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=True,
+                               show_low_stock=False,
+                               part_count=part_count, total_value=total_value, part_covers=part_covers,
+                               retired_count=retired_count, expiry_stats=expiry_stats)
+    if show_low_stock:
+        # Dashboard's Low Stock Items box links here (QA finding
+        # ux-shop-stat-boxes-by-role) - same rows get_low_stock() already
+        # flags on the shop dashboard, just as a real filtered list.
+        parts = get_low_stock(conn)
+        part_covers = _part_covers(conn, parts)
+        conn.close()
+        return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=False,
+                               show_low_stock=True,
                                part_count=part_count, total_value=total_value, part_covers=part_covers,
                                retired_count=retired_count, expiry_stats=expiry_stats)
     if q:
@@ -1680,6 +2016,7 @@ def parts_list():
         part_covers = _part_covers(conn, parts)
         conn.close()
         return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=False,
+                               show_low_stock=False,
                                part_count=part_count, total_value=total_value, part_covers=part_covers,
                                retired_count=retired_count, expiry_stats=expiry_stats)
 
@@ -1692,6 +2029,7 @@ def parts_list():
         cat = p["category"] or "Uncategorized"
         by_category.setdefault(cat, []).append(p)
     return render_template("parts.html", parts=parts, q=q, by_category=by_category, show_retired=False,
+                           show_low_stock=False,
                            part_count=part_count, total_value=total_value, part_covers=part_covers,
                            retired_count=retired_count, expiry_stats=expiry_stats)
 
@@ -2228,7 +2566,7 @@ def project_new():
         conn.close()
         msg = f"Project '{name}' created as {code}. Fill in the intake check before starting work."
         if added_areas:
-            msg += f" Sub area{'s' if len(added_areas) != 1 else ''} added: {', '.join(added_areas)}."
+            msg += f" Discrepanc{'ies' if len(added_areas) != 1 else 'y'} added: {', '.join(added_areas)}."
         if ads_added:
             msg += f" {ads_added} AD{'s' if ads_added != 1 else ''} added to the Job Sheet."
         flash(msg, "success")
@@ -2550,7 +2888,7 @@ def project_detail(project_id):
     conn.commit()
     section_meta = {r["name"]: dict(r) for r in conn.execute(
         """SELECT id, name, completed_at, completed_by, confirm_requested_at, confirm_requested_by,
-                  sent_back_at, sent_back_by
+                  sent_back_at, sent_back_by, notes, description
            FROM project_sections WHERE project_id = ?""", (project_id,)).fetchall()}
     for name, section_data in usage_by_section.items():
         meta = section_meta.get(name)
@@ -2561,6 +2899,8 @@ def project_detail(project_id):
         section_data["confirm_requested_by"] = meta["confirm_requested_by"] if meta else None
         section_data["sent_back_at"] = meta["sent_back_at"] if meta else None
         section_data["sent_back_by"] = meta["sent_back_by"] if meta else None
+        section_data["notes"] = meta["notes"] if meta else None
+        section_data["description"] = meta["description"] if meta else None
 
     # Open sections first alphabetically, then ones awaiting confirmation,
     # then fully completed ones at the bottom ordered by when they were
@@ -2603,12 +2943,39 @@ def project_detail(project_id):
     # QA feat-shop-job-payments: what Mark Completed should warn about, if
     # anything - 0 once the job's marked Paid.
     unpaid_amount = 0 if (project["payment_status"] or "not_invoiced") == "paid" else _project_all_time_total(conn, project_id)
+
+    # QA finding ux-squawk-on-project: the plane's own open squawks and
+    # to-dos, right on the job they're likely to get fixed on, each tagged
+    # with whichever Sub Area (on this job or another) already stands in
+    # for it, if any - see _find_or_create_linked_section.
+    plane_squawks, plane_todos_open = [], []
+    if project["asset_id"]:
+        for sq in get_plane_open_squawks(conn, project["asset_id"]):
+            d = dict(sq)
+            link = conn.execute("""SELECT ps.project_id, p.code, p.name FROM project_sections ps
+                                   JOIN projects p ON p.id = ps.project_id
+                                   WHERE ps.linked_squawk_kind = ? AND ps.linked_squawk_id = ?""",
+                                (sq["kind"], sq["squawk_id"])).fetchone()
+            d["link"] = dict(link) if link else None
+            plane_squawks.append(d)
+        todo_rows = conn.execute("""SELECT pt.*, u.name as assigned_to_name FROM plane_todos pt
+                                    LEFT JOIN users u ON u.id = pt.assigned_to
+                                    WHERE pt.asset_id = ? AND pt.done = 0 ORDER BY pt.created_at""",
+                                 (project["asset_id"],)).fetchall()
+        for t in todo_rows:
+            d = dict(t)
+            link = conn.execute("""SELECT ps.project_id, p.code, p.name FROM project_sections ps
+                                   JOIN projects p ON p.id = ps.project_id
+                                   WHERE ps.linked_todo_id = ?""", (t["id"],)).fetchone()
+            d["link"] = dict(link) if link else None
+            plane_todos_open.append(d)
     conn.close()
     return render_template("project_detail.html", project=project, usage_by_section=usage_by_section,
                            total_cost=total_cost, tx=tx, all_parts=all_parts, photos=photos, open_orders=open_orders,
                            labor_sessions=labor_sessions, labor_total_cost=labor_total_cost,
                            labor_total_hours=labor_total_hours, known_sections=known_sections, intake=intake,
                            found_items=found_items, found_has_owner=has_owner, unpaid_amount=unpaid_amount,
+                           plane_squawks=plane_squawks, plane_todos_open=plane_todos_open,
                            found_labor_rate=_found_default_labor_rate(conn=None))
 
 
@@ -2663,15 +3030,18 @@ def _intake_from_form(form, files=None):
 
 
 def _intake_sub_areas(data):
-    """Sub Area names for everything ticked "address in this project"."""
+    """Sub Area names for check/damage items ticked "address in this
+    project". Squawks are handled separately in project_intake - each one
+    becomes a real plane squawk, claimed on this job via the same
+    Sub-Area-linking "Fix on this job" uses, instead of a plain named area
+    (QA finding ux-squawk-on-project: one list, not two)."""
     names = []
     for c in data["checks"]:
         if c.get("address"):
             names.append(c["label"])
-    for kind, prefix in (("squawks", "Squawk"), ("damage", "Damage")):
-        for it in data[kind]:
-            if it.get("address"):
-                names.append(f"{prefix}: {it['text'][:60]}")
+    for it in data["damage"]:
+        if it.get("address"):
+            names.append(f"Damage: {it['text'][:60]}")
     return names
 
 
@@ -2711,11 +3081,34 @@ def project_intake(project_id):
         for name in new_areas:
             conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
                          (project_id, name, now_iso()))
+        # Squawks entered here become real plane squawks too, so there's one
+        # list, not two - and one ticked "address in this project" gets
+        # claimed on this job the same way "Fix on this job" does. A project
+        # with no plane attached falls back to a plain named Sub Area, since
+        # there's no plane to attach a real squawk to.
+        by, uid = session.get("user_name"), session.get("user_id")
+        for it in data["squawks"]:
+            if project["asset_id"]:
+                cur = conn.execute(
+                    "INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at) VALUES (?, ?, ?, ?)",
+                    (project["asset_id"], it["text"], by, now_iso()))
+                it["squawk_id"] = cur.lastrowid
+                if it.get("address"):
+                    _find_or_create_linked_section(conn, project_id, it["text"],
+                                                   linked_squawk_kind="quick", linked_squawk_id=it["squawk_id"])
+                    conn.execute("""UPDATE plane_squawks SET acknowledged_at = ?, acknowledged_by = ?,
+                                    assigned_to = ?, worker_acknowledged_at = ?, worker_acknowledged_by = ?
+                                    WHERE id = ?""", (now_iso(), by, uid, now_iso(), by, it["squawk_id"]))
+                    new_areas.append(it["text"][:60])
+            elif it.get("address"):
+                conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
+                             (project_id, f"Squawk: {it['text'][:60]}", now_iso()))
+                new_areas.append(f"Squawk: {it['text'][:60]}")
         conn.execute("""UPDATE projects SET intake_status = 'done', intake_json = ?, intake_at = ?, intake_by = ?
                         WHERE id = ?""", (json.dumps(data), now_iso(), session.get("user_name"), project_id))
         conn.commit()
         conn.close()
-        flash("Intake check saved." + (f" Sub Area{'s' if len(new_areas) != 1 else ''} added: {', '.join(new_areas)}."
+        flash("Intake check saved." + (f" Discrepanc{'ies' if len(new_areas) != 1 else 'y'} added: {', '.join(new_areas)}."
                                        if new_areas else ""), "success")
         return redirect(url_for("project_detail", project_id=project_id))
     conn.close()
@@ -3534,7 +3927,7 @@ def asset_quick_new():
 
 
 @app.route("/assets/<int:asset_id>")
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def asset_detail(asset_id):
     """Profile page for one plane/asset: its saved data plus combined history
     across every project ever tagged to it (each year gets its own project
@@ -3611,22 +4004,7 @@ def asset_detail(asset_id):
     # this also keeps an already-acknowledged squawk on the to-do list
     # (shown amber there) until it's actually repaired, since acknowledging
     # it isn't the same as it being done.
-    todo_squawks = conn.execute(f"""
-        SELECT {_FLIGHT_SQUAWK_COLS}
-        FROM flights f
-        JOIN assets a ON a.id = f.asset_id
-        JOIN students s ON s.id = f.student_id
-        LEFT JOIN cfis c ON c.id = f.cfi_id
-        LEFT JOIN users au ON au.id = f.squawk_assigned_to
-        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NULL AND a.id = ?
-        UNION ALL
-        SELECT {_QUICK_SQUAWK_COLS}
-        FROM plane_squawks q
-        JOIN assets a ON a.id = q.asset_id
-        LEFT JOIN users au ON au.id = q.assigned_to
-        WHERE q.repaired_at IS NULL AND a.id = ?
-        ORDER BY event_date DESC, squawk_id DESC
-    """, (asset_id, asset_id)).fetchall()
+    todo_squawks = get_plane_open_squawks(conn, asset_id)
 
     # Cylinder compression checks - logged from the Maintenance side (any
     # asset, not just Flight School planes), so it belongs here regardless
@@ -6364,6 +6742,7 @@ def admin_user_new():
         notify_maintenance = 1 if request.form.get("notify_maintenance") else 0
         notify_flight_reminders = 1 if request.form.get("notify_flight_reminders") else 0
         academy_access = 1 if request.form.get("academy_access") else 0
+        groundschool_access = 1 if request.form.get("groundschool_access") else 0
         conn = get_db()
         pay_ctx = _pay_link_context(conn)
         preset = {"shop_role": shop_role, "flight_role": flight_role, "badge": request.form.get("badge", ""),
@@ -6385,10 +6764,10 @@ def admin_user_new():
             return render_template("admin_user_form.html", user=None, name=name, username=username, preset=preset, **pay_ctx)
         cur = conn.execute(
             "INSERT INTO users (name, username, password_hash, password_plain, is_master_admin, shop_role, flight_role, can_bill, active, "
-            "email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (name, username, generate_password_hash(password, method="pbkdf2:sha256"), password, is_master_admin, shop_role, flight_role, can_bill,
-             email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, now_iso()))
+             email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, now_iso()))
         conn.commit()
         user_row = conn.execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone()
         ensure_flight_profile(conn, user_row)
@@ -6442,6 +6821,7 @@ def admin_user_edit(user_id):
         notify_maintenance = 1 if request.form.get("notify_maintenance") else 0
         notify_flight_reminders = 1 if request.form.get("notify_flight_reminders") else 0
         academy_access = 1 if request.form.get("academy_access") else 0
+        groundschool_access = 1 if request.form.get("groundschool_access") else 0
         if not name:
             flash("Name is required.", "danger")
             conn.close()
@@ -6463,16 +6843,16 @@ def admin_user_edit(user_id):
         if new_password:
             conn.execute(
                 "UPDATE users SET name=?, shop_role=?, flight_role=?, is_master_admin=?, can_bill=?, active=?, password_hash=?, password_plain=?, "
-                "email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, notify_maintenance=?, notify_flight_reminders=?, academy_access=? WHERE id=?",
+                "email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, notify_maintenance=?, notify_flight_reminders=?, academy_access=?, groundschool_access=? WHERE id=?",
                 (name, shop_role, flight_role, is_master_admin, can_bill, active,
                  generate_password_hash(new_password, method="pbkdf2:sha256"), new_password,
-                 email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, user_id))
+                 email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, user_id))
         else:
             conn.execute(
                 "UPDATE users SET name=?, shop_role=?, flight_role=?, is_master_admin=?, can_bill=?, active=?, "
-                "email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, notify_maintenance=?, notify_flight_reminders=?, academy_access=? WHERE id=?",
+                "email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, notify_maintenance=?, notify_flight_reminders=?, academy_access=?, groundschool_access=? WHERE id=?",
                 (name, shop_role, flight_role, is_master_admin, can_bill, active,
-                 email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, user_id))
+                 email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, user_id))
         conn.commit()
         user_row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
         ensure_flight_profile(conn, user_row)

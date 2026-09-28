@@ -6,7 +6,7 @@ own plane" toggle - see _get_or_create_own_plane_asset in flight.py):
   - a generic, shared "Student's Own Plane" Schedule color (one setting,
     not per-student - see _own_plane_schedule_color/own_plane_color_edit)
   - Hobbs/Tach are replaced by one "Recorded Time" box when completing the
-    flight (flights.recorded_hours), at End Flight, Log Flight, and editing
+    flight (flights.recorded_hours), at End Session, Log Flight, and editing
     an already-logged flight alike.
 """
 from datetime import date, timedelta
@@ -156,7 +156,7 @@ class OwnPlaneColorTest(OpsHubTestCase):
 
 
 class OwnPlaneCompletionTest(OpsHubTestCase):
-    """Completing a flight (End Flight / Log Flight / editing a logged
+    """Completing a flight (End Session / Log Flight / editing a logged
     flight) for a student's own plane: no Hobbs/Tach, one Recorded Time box
     instead, and the plane's real meters are never touched."""
 

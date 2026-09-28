@@ -1,15 +1,74 @@
-{#- Flight Academy tabs: Leaderboard / Logbook / Progress / Map. Pages pass `tab`. #}
+{#- Flight Academy tabs: Board / Logbook (+ Progress/Map inside) / Ground School / More.
+   Resources sits in the row on a wide screen (room to stay on one line) and
+   moves under More on a phone, alongside How points work. #}
 {% set _tab = tab if tab is defined else 'leaderboard' %}
 {% set _pend = pending_logbook_count() %}
-<ul class="nav nav-pills academy-tabs mb-3 gap-1">
-  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'leaderboard' }}" href="{{ url_for('academy_page') }}"><i class="bi bi-trophy"></i> Leaderboard</a></li>
-  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'logbook' }}" href="{{ url_for('pilotlog.logbook') }}"><i class="bi bi-journal-text"></i> Logbook{% if _pend %} <span class="badge bg-warning text-dark">{{ _pend }}</span>{% endif %}</a></li>
-  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'progress' }}" href="{{ url_for('pilotlog.progress') }}"><i class="bi bi-bar-chart-steps"></i> Progress</a></li>
-  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'map' }}" href="{{ url_for('pilotlog.airport_map') }}"><i class="bi bi-map"></i> Map</a></li>
-  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'groundschool' }}" href="{{ url_for('groundschool.rating_list') }}"><i class="bi bi-mortarboard"></i> Ground School</a></li>
-  <li class="nav-item ms-auto"><a class="nav-link {{ 'active' if _tab == 'resources' }}" href="{{ url_for('groundschool.resources_list') }}"><i class="bi bi-folder2-open"></i> Resources</a></li>
-</ul>
+<div class="academy-tabs-row">
+  <a class="academy-tab {{ 'active' if _tab == 'leaderboard' }}" href="{{ url_for('academy_page') }}">
+    <i class="bi bi-trophy"></i><span>Board</span>
+  </a>
+  <a class="academy-tab {{ 'active' if _tab in ('logbook', 'progress', 'map') }}" href="{{ url_for('pilotlog.logbook') }}">
+    <i class="bi bi-journal-text"></i><span>Logbook{% if _pend %} <span class="badge bg-warning text-dark">{{ _pend }}</span>{% endif %}</span>
+  </a>
+  <a class="academy-tab {{ 'active' if _tab == 'groundschool' }}" href="{{ url_for('groundschool.rating_list') }}">
+    <i class="bi bi-mortarboard"></i><span>Ground School</span>
+  </a>
+  <a class="academy-tab academy-tab-resources {{ 'active' if _tab == 'resources' }}" href="{{ url_for('groundschool.resources_list') }}">
+    <i class="bi bi-folder2-open"></i><span>Resources</span>
+  </a>
+  <div class="dropdown academy-tab-more">
+    <button type="button" class="academy-tab" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="bi bi-three-dots"></i><span>More</span>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li class="academy-tab-resources-item"><a class="dropdown-item {{ 'active' if _tab == 'resources' }}" href="{{ url_for('groundschool.resources_list') }}"><i class="bi bi-folder2-open"></i> Resources</a></li>
+      <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#howPointsModal"><i class="bi bi-info-circle"></i> How points work</button></li>
+    </ul>
+  </div>
+</div>
 <style>
-  .academy-tabs .nav-link { color: #cfd8ff; border: 1px solid rgba(255,255,255,.25); }
-  .academy-tabs .nav-link.active { background: #fff; color: #14213d; font-weight: 700; }
+  .academy-tabs-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4rem; margin-bottom: 1rem; }
+  .academy-tab {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem;
+    width: 100%; padding: .4rem .2rem; border-radius: 10px; border: 1px solid rgba(255,255,255,.3);
+    color: #cfd8ff; background: transparent; font-size: .75rem; line-height: 1.15; text-decoration: none;
+  }
+  .academy-tab i { font-size: 1.05rem; }
+  .academy-tab.active { background: #fff; color: #14213d; font-weight: 700; border-color: #fff; }
+  .academy-tab-resources { display: none; }
+  @media (min-width: 768px) {
+    .academy-tabs-row { grid-template-columns: repeat(5, 1fr); }
+    .academy-tab-resources { display: flex; }
+    .academy-tab-resources-item { display: none; }
+  }
 </style>
+
+<div class="modal fade" id="howPointsModal" tabindex="-1" aria-labelledby="howPointsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="howPointsModalLabel"><i class="bi bi-info-circle"></i> How points work</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row small">
+          <div class="col-md-4">
+            <strong>From the flight log</strong>
+            <ul class="mb-2">{% for key, label, per in academy_point_rules %}<li>{{ label }}: {{ per }} each</li>{% endfor %}</ul>
+          </div>
+          <div class="col-md-4">
+            <strong>Logged by you</strong>
+            <ul class="mb-2">{% for code, label, unit, per in academy_entry_kinds %}<li>{{ label }}: {{ '%g'|format(per) }} per {{ unit.rstrip('s') if unit != 'nm' else 'nm' }}</li>{% endfor %}</ul>
+          </div>
+          <div class="col-md-4">
+            <strong>Badges</strong>
+            <ul class="mb-2">
+              <li>Achievements: {% for a in academy_achievements %}{{ a[1] }} +{{ a[6] }}{{ ', ' if not loop.last }}{% endfor %}</li>
+              <li>Certificate: Sport +{{ academy_cert_points.sport }}, Rec +{{ academy_cert_points.recreational }}, Private +{{ academy_cert_points.private }}, Commercial +{{ academy_cert_points.commercial }}, ATP +{{ academy_cert_points.atp }}; each rating +{{ academy_rating_points }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

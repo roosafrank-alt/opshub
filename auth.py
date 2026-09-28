@@ -54,6 +54,7 @@ def log_in_user(user_row, remember=True):
     session["flight_role"] = user_row["flight_role"]
     session["can_bill"] = bool(user_row["can_bill"])
     session["academy_access"] = bool(user_row["academy_access"])
+    session["groundschool_access"] = bool(user_row["groundschool_access"] or user_row["academy_access"])
     session["tour_seen_shop"] = bool(user_row["tour_seen_shop"])
     session["tour_seen_flight"] = bool(user_row["tour_seen_flight"])
 
@@ -160,11 +161,22 @@ def can_manage_billing():
 # their own logbook), so previewing one also has to point at a real cfis/
 # students row - see _pick_view_as_flight_profile - rather than just a role
 # label, or pages that expect one would break. Either way the real session
-# fields are stashed under _view_as_real to restore on exit.
+# fields are stashed under _view_as_real to restore on exit - captured once,
+# on the very first preview, so switching straight from one preview to
+# another (e.g. CFI to Student, without exiting back to the real admin
+# view first - idea "view change") always restores the true admin session,
+# not whichever preview was active just before the switch. _view_as_program
+# separately tracks which preview is active right now, for the "View as"
+# chips to grey out/show Exit on the right program.
 # ---------------------------------------------------------------------------
 
-SHOP_VIEW_AS_LEVELS = {"admin": "Shop Admin", "tech": "Shop Tech", "apprentice": "Shop Apprentice"}
+SHOP_VIEW_AS_LEVELS = {"admin": "Admin", "tech": "Tech", "apprentice": "Apprentice", "inspector": "Inspector"}
 FLIGHT_VIEW_AS_LEVELS = {"cfi": "CFI", "student": "Student"}
+# Every session field any preview (shop, flight or owner) can touch - the
+# full baseline snapshotted on first entry, so exiting always restores
+# everything regardless of which programs were previewed along the way.
+_VIEW_AS_SNAPSHOT_KEYS = ("is_master_admin", "shop_role", "flight_role", "cfi_id", "student_id",
+                          "can_bill", "customer_id", "customer_name")
 
 
 def _pick_view_as_flight_profile(conn, level):
@@ -183,44 +195,24 @@ def _pick_view_as_flight_profile(conn, level):
 
 
 def start_view_as(conn, program, level):
-    """True master admin only, and not already viewing as someone else.
-    program is 'shop' or 'flight'; level is one of that program's own
-    *_VIEW_AS_LEVELS keys. Returns (ok, error_message_or_None)."""
-    if not session.get("is_master_admin") or session.get("_view_as_real"):
+    """True master admin only - which includes a master admin already
+    previewing someone else, who can switch straight to a different
+    preview (even a different program) without exiting back to their own
+    view first (idea "view change"). program is 'shop', 'flight' or
+    'owner'; level is one of that program's own *_VIEW_AS_LEVELS keys (or,
+    for 'owner', a customer id). Returns (ok, error_message_or_None)."""
+    if not session.get("is_master_admin") and not session.get("_view_as_real"):
         return False, None
     if program == "shop":
         if level not in SHOP_VIEW_AS_LEVELS:
             return False, None
-        session["_view_as_real"] = {
-            "is_master_admin": session.get("is_master_admin"),
-            "shop_role": session.get("shop_role"),
-            "can_bill": session.get("can_bill"),
-        }
-        session["is_master_admin"] = False
-        session["shop_role"] = level
-        session["can_bill"] = False
-        return True, None
-    if program == "flight":
+    elif program == "flight":
         if level not in FLIGHT_VIEW_AS_LEVELS:
             return False, None
         person_id, person_name = _pick_view_as_flight_profile(conn, level)
         if not person_id:
             return False, f"There's no active {FLIGHT_VIEW_AS_LEVELS[level].lower()} on file yet to preview as."
-        session["_view_as_real"] = {
-            "is_master_admin": session.get("is_master_admin"),
-            "flight_role": session.get("flight_role"),
-            "cfi_id": session.get("cfi_id"),
-            "student_id": session.get("student_id"),
-            "can_bill": session.get("can_bill"),
-        }
-        session["is_master_admin"] = False
-        session["flight_role"] = level
-        session["can_bill"] = False
-        session["cfi_id"] = person_id if level == "cfi" else None
-        session["student_id"] = person_id if level == "student" else None
-        session["_view_as_person_name"] = person_name
-        return True, None
-    if program == "owner":
+    elif program == "owner":
         # level is a customers.id (as a string, from the URL) rather than a
         # role name - My Aircraft has no roles, just "this real owner's
         # view", picked from customers_list rather than a fixed level set.
@@ -232,21 +224,42 @@ def start_view_as(conn, program, level):
                                 (customer_id,)).fetchone()
         if not customer:
             return False, "That customer account isn't active."
-        session["_view_as_real"] = {
-            "is_master_admin": session.get("is_master_admin"),
-            "customer_id": session.get("customer_id"),
-            "customer_name": session.get("customer_name"),
-        }
-        session["is_master_admin"] = False
+    else:
+        return False, None
+
+    # Baseline snapshot, captured once on the very first preview this
+    # session. Every switch after that - same program at a different
+    # level, or straight to a different program - re-applies that baseline
+    # before layering the new preview on top, so nothing left over from an
+    # earlier preview (e.g. a Shop Tech shop_role) lingers once you've
+    # switched to previewing Flight School instead.
+    if "_view_as_real" not in session:
+        session["_view_as_real"] = {k: session.get(k) for k in _VIEW_AS_SNAPSHOT_KEYS}
+    for k, v in session["_view_as_real"].items():
+        session[k] = v
+    session.pop("_view_as_person_name", None)
+
+    session["is_master_admin"] = False
+    if program == "shop":
+        session["shop_role"] = level
+        session["can_bill"] = False
+    elif program == "flight":
+        session["flight_role"] = level
+        session["can_bill"] = False
+        session["cfi_id"] = person_id if level == "cfi" else None
+        session["student_id"] = person_id if level == "student" else None
+        session["_view_as_person_name"] = person_name
+    elif program == "owner":
         session["customer_id"] = customer["id"]
         session["customer_name"] = customer["name"]
-        return True, None
-    return False, None
+    session["_view_as_program"] = program
+    return True, None
 
 
 def exit_view_as():
     real = session.pop("_view_as_real", None)
     session.pop("_view_as_person_name", None)
+    session.pop("_view_as_program", None)
     if not real:
         return False
     for key, value in real.items():
@@ -255,12 +268,12 @@ def exit_view_as():
 
 
 def viewing_as_label():
-    real = session.get("_view_as_real")
-    if not real:
+    if not session.get("_view_as_real"):
         return None
-    if "customer_id" in real:
+    program = session.get("_view_as_program")
+    if program == "owner":
         return f"Owner ({session.get('customer_name')})"
-    if "shop_role" in real:
+    if program == "shop":
         return SHOP_VIEW_AS_LEVELS.get(session.get("shop_role"))
     role_label = FLIGHT_VIEW_AS_LEVELS.get(session.get("flight_role"))
     name = session.get("_view_as_person_name")
@@ -270,14 +283,10 @@ def viewing_as_label():
 def view_as_active_program():
     """'shop' | 'flight' | 'owner' | None - which program's levels the
     "View as" chips should treat as currently active (to grey out/exclude
-    that one and show Exit), based on which shape _view_as_real was
-    stashed as."""
-    real = session.get("_view_as_real")
-    if not real:
+    that one and show Exit)."""
+    if not session.get("_view_as_real"):
         return None
-    if "customer_id" in real:
-        return "owner"
-    return "shop" if "shop_role" in real else "flight"
+    return session.get("_view_as_program")
 
 
 # ---------------------------------------------------------------------------
@@ -376,6 +385,7 @@ def log_in_combined(user_row, customer_row, remember=True):
         session["flight_role"] = user_row["flight_role"]
         session["can_bill"] = bool(user_row["can_bill"])
         session["academy_access"] = bool(user_row["academy_access"])
+        session["groundschool_access"] = bool(user_row["groundschool_access"] or user_row["academy_access"])
         session["tour_seen_shop"] = bool(user_row["tour_seen_shop"])
         session["tour_seen_flight"] = bool(user_row["tour_seen_flight"])
         conn = get_db()
@@ -388,6 +398,12 @@ def log_in_combined(user_row, customer_row, remember=True):
             student = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_row["id"],)).fetchone()
             if student:
                 session["student_id"] = student["id"]
+        elif user_row["shop_role"] == "admin" and not user_row["is_master_admin"]:
+            # The unbilled, never-bookable cfis row ensure_flight_profile
+            # just made sure exists for them (idea "shop admin skip launcher").
+            cfi = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
+            if cfi:
+                session["cfi_id"] = cfi["id"]
         conn.close()
     if customer_row:
         session["customer_id"] = customer_row["id"]
@@ -405,11 +421,13 @@ def account_program_count():
     """How many of the program tiles (Fly with Kate!, Winds Aloft, Flight
     Academy, My Aircraft) this session's account can see - mirrors
     home_launcher.html's own tile conditions (QA ux-launcher-single-program).
-    A master admin always sees all four, so this is never 1 for them."""
+    A master admin always sees all four, so this is never 1 for them. A
+    shop admin also counts Fly with Kate! now (ux-shop-admin-skip-launcher),
+    same as the picker's own tile condition."""
     is_master_admin = session.get("is_master_admin")
     is_admin_like = bool(is_master_admin or session.get("shop_role") == "admin")
     count = 0
-    if is_master_admin or session.get("flight_role"):
+    if is_master_admin or session.get("flight_role") or is_admin_like:
         count += 1
     if is_master_admin or session.get("shop_role"):
         count += 1

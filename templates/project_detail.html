@@ -105,6 +105,37 @@
   </div>
 </div>
 
+{#- QA finding ux-squawk-on-project: the plane's own open squawks and
+   to-dos, right on the job a tech is likely to fix them on, each with one
+   "claim it for this job" control - see project_detail() in app.py. #}
+{% if plane_squawks or plane_todos_open %}
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_project_action, todo_step_pills, todo_project_action %}
+{% set project_can_assign = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
+<div class="card p-3 mb-3 border-danger">
+  <h6 class="mb-2"><i class="bi bi-exclamation-triangle-fill text-danger"></i> {{ project.asset_display_tag }}: squawks &amp; to-dos <span class="text-muted small fw-normal">({{ plane_squawks|length + plane_todos_open|length }})</span></h6>
+  {% if plane_squawks %}
+  <div class="text-uppercase text-muted small fw-bold mb-1">Squawks</div>
+  {% for sq in plane_squawks %}
+  <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
+    <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+    {{ squawk_step_pills(sq) }}
+    {{ squawk_project_action(sq, project.id, project_can_assign) }}
+  </div>
+  {% endfor %}
+  {% endif %}
+  {% if plane_todos_open %}
+  <div class="text-uppercase text-muted small fw-bold mb-1 {{ 'mt-3' if plane_squawks }}">Plane To-Do List</div>
+  {% for t in plane_todos_open %}
+  <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
+    <div>{{ t.description }}</div>
+    {{ todo_step_pills(t) }}
+    {{ todo_project_action(t, project.id, project_can_assign) }}
+  </div>
+  {% endfor %}
+  {% endif %}
+</div>
+{% endif %}
+
 {% if intake %}
 {#- Intake check filled in when the project was opened (app.project_intake). #}
 {% set issues = intake.checks|selectattr('status', 'equalto', 'issue')|list %}
@@ -118,12 +149,12 @@
     <div class="col-12 col-md-6">
       {% if c.status == 'issue' %}<i class="bi bi-exclamation-triangle-fill text-danger"></i>{% else %}<i class="bi bi-check-circle-fill text-success"></i>{% endif %}
       <strong>{{ c.label }}</strong>{% if c.left or c.right %} (L {{ c.left or '-' }} / R {{ c.right or '-' }}){% endif %}{% if c.qts %} ({{ c.qts }} qt){% endif %}{% if c.note %} - {{ c.note }}{% endif %}
-      {% if c.address %}<span class="badge bg-light text-dark border">Sub Area</span>{% endif %}
+      {% if c.address %}<span class="badge bg-light text-dark border">Discrepancy</span>{% endif %}
     </div>
     {% endfor %}
     {% for kind, title in [('squawks', 'Squawk'), ('damage', 'Damage')] %}
     {% for it in intake[kind] %}
-    <div class="col-12 col-md-6"><i class="bi bi-dot"></i> <strong>{{ title }}:</strong> {{ it.text }}{% if it.address %} <span class="badge bg-light text-dark border">Sub Area</span>{% endif %}
+    <div class="col-12 col-md-6"><i class="bi bi-dot"></i> <strong>{{ title }}:</strong> {{ it.text }}{% if it.address %} <span class="badge bg-light text-dark border">Discrepancy</span>{% endif %}
       {% if kind == 'damage' %}
       {% if it.at %}<div class="text-muted" style="font-size:.8rem;">timestamped at check-in, {{ it.at|usdate(true) }}</div>{% endif %}
       {% if it.photo %}<a href="{{ url_for('static', filename='uploads/' + it.photo) }}" target="_blank"><img src="{{ url_for('static', filename='uploads/' + it.photo) }}" class="rounded mt-1" style="max-height:80px;"></a>{% endif %}
@@ -155,8 +186,8 @@
       <div class="tab-content">
       <div class="tab-pane fade show active" id="tab-parts" role="tabpanel">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
-        <h5 class="mb-0">Parts Used {% if can_see_shop_costs %}<span class="text-muted fs-6">(total ${{ "%.2f"|format(total_cost) }})</span>{% endif %}</h5>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="var f=document.getElementById('add-section-row'); f.style.display = f.style.display==='none' ? 'flex' : 'none';"><i class="bi bi-folder-plus"></i> Add Sub Area</button>
+        <h5 class="mb-0">Discrepancy List {% if can_see_shop_costs %}<span class="text-muted fs-6">(total ${{ "%.2f"|format(total_cost) }})</span>{% endif %}</h5>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="var f=document.getElementById('add-section-row'); f.style.display = f.style.display==='none' ? 'flex' : 'none';"><i class="bi bi-folder-plus"></i> Add Discrepancy</button>
       </div>
       <form id="add-section-row" method="post" action="{{ url_for('project_add_section', project_id=project.id) }}" class="gap-2 mt-2 mb-2" style="display:none;">
         <input type="text" name="name" class="form-control form-control-sm" placeholder="e.g. Brakes, Engine" required>
@@ -234,6 +265,22 @@
             </table>
             {% else %}
             <p class="text-muted small p-2 mb-0">No parts assigned to this area yet.</p>
+            {% endif %}
+            {% if section != 'General' and data.id %}
+            <div class="p-2 border-top">
+              <button type="button" class="btn btn-link btn-sm p-0 mb-1" onclick="event.stopPropagation(); var f=document.getElementById('sec-notes-{{ loop.index }}'); f.style.display = f.style.display==='none' ? 'block' : 'none';"><i class="bi bi-card-text"></i> Notes &amp; Description</button>
+              <form method="post" action="{{ url_for('project_section_notes', project_id=project.id, section_id=data.id) }}" id="sec-notes-{{ loop.index }}" style="display:{{ 'block' if data.notes or data.description else 'none' }};">
+                <div class="mb-2">
+                  <label class="form-label small mb-0">Description <span class="text-muted">(shown to the aircraft owner in My Aircraft)</span></label>
+                  <textarea name="description" class="form-control form-control-sm" rows="2">{{ data.description or '' }}</textarea>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small mb-0">Internal Notes <span class="text-muted">(shop only - never shown to the owner or on the invoice)</span></label>
+                  <textarea name="notes" class="form-control form-control-sm" rows="2">{{ data.notes or '' }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+              </form>
+            </div>
             {% endif %}
           </div>
         </div>
@@ -334,7 +381,7 @@
         </div>
         {% endif %}
         {% if it.status != 'waiting' %}
-        <div class="small mt-1">{{ 'Approved' if it.status == 'approved' else 'Declined' }} by {{ it.decided_by }} {{ it.decided_at|usdate(true) }}{% if it.decision_note %} &middot; "{{ it.decision_note }}"{% endif %}{% if it.section_name %} &middot; added as Sub Area <strong>{{ it.section_name }}</strong>{% endif %}</div>
+        <div class="small mt-1">{{ 'Approved' if it.status == 'approved' else 'Declined' }} by {{ it.decided_by }} {{ it.decided_at|usdate(true) }}{% if it.decision_note %} &middot; "{{ it.decision_note }}"{% endif %}{% if it.section_name %} &middot; added as Discrepancy <strong>{{ it.section_name }}</strong>{% endif %}</div>
         {% else %}
         <div class="d-flex gap-2 mt-1">
           <small class="text-muted align-self-center">{% if it.notified_at %}Owner notified {{ it.notified_at|usdate(true) }}{% else %}Owner not notified yet{% endif %}</small>

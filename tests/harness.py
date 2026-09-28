@@ -219,8 +219,11 @@ class OpsHubTestCase(unittest.TestCase):
                 s["customer_id"] = self.customer_id
                 s["customer_name"] = "Owner Customer"
             return self.client
-        u = self.users[role]
         conn = db.get_db()
+        # Re-fetch fresh (not the row cached in self.users at setUp) so a
+        # test that flips an access flag with self.exec() after setUp and
+        # before login() sees its own change, the same way a real login does.
+        u = conn.execute("SELECT * FROM users WHERE id = ?", (self.users[role]["id"],)).fetchone()
         cfi = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (u["id"],)).fetchone()
         stu = conn.execute("SELECT id FROM students WHERE user_id = ?", (u["id"],)).fetchone()
         conn.close()
@@ -232,6 +235,7 @@ class OpsHubTestCase(unittest.TestCase):
             s["flight_role"] = u["flight_role"]
             s["can_bill"] = bool(u["can_bill"])
             s["academy_access"] = bool(u["academy_access"])
+            s["groundschool_access"] = bool(u["groundschool_access"] or u["academy_access"])
             s["tour_seen_shop"] = True
             s["tour_seen_flight"] = True
             if u["flight_role"] == "cfi" and cfi:

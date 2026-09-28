@@ -11,7 +11,7 @@
         <div class="d-flex justify-content-between align-items-start">
           <div>
             <div class="fw-bold fs-5">{{ s.asset.tag }}</div>
-            <div class="text-muted small">{{ s.asset.make }} {{ s.asset.model }}</div>
+            {% if s.asset.make or s.asset.model %}<div class="text-muted small">{{ [s.asset.make, s.asset.model] | select | join(' ') }}</div>{% endif %}
           </div>
           <i class="bi bi-chevron-right text-muted"></i>
         </div>

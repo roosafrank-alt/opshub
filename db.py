@@ -482,8 +482,25 @@ def _migrate(conn):
         conn.execute("ALTER TABLE project_sections ADD COLUMN sent_back_at TEXT")
         conn.execute("ALTER TABLE project_sections ADD COLUMN sent_back_by TEXT")
         conn.commit()
+    if "linked_squawk_kind" not in proj_sect_cols:
+        # QA finding ux-squawk-on-project: a Sub Area created via "Fix on
+        # this job"/"Do on this job" (see app.py) is tied to the plane's own
+        # squawk or to-do it stands in for, so checking it off moves that
+        # squawk/to-do to Inspection too, and confirming/sending it back
+        # does the same - one record, not a copy, wherever it shows.
+        conn.execute("ALTER TABLE project_sections ADD COLUMN linked_squawk_kind TEXT")
+        conn.execute("ALTER TABLE project_sections ADD COLUMN linked_squawk_id INTEGER")
+        conn.execute("ALTER TABLE project_sections ADD COLUMN linked_todo_id INTEGER REFERENCES plane_todos(id)")
+        conn.commit()
     if "completed_by" not in [r["name"] for r in conn.execute("PRAGMA table_info(projects)").fetchall()]:
         conn.execute("ALTER TABLE projects ADD COLUMN completed_by TEXT")
+        conn.commit()
+    if "notes" not in proj_sect_cols:
+        # Idea "Discrepancy List": notes is shop-only, never shown on the
+        # invoice or in My Aircraft; description is the write-up an owner
+        # actually sees there (see customer._project_bill/project_detail()).
+        conn.execute("ALTER TABLE project_sections ADD COLUMN notes TEXT")
+        conn.execute("ALTER TABLE project_sections ADD COLUMN description TEXT")
         conn.commit()
 
     # Preset Sub Areas for a Quick Type (New/Edit Project's Annual, 100hr,
@@ -533,6 +550,7 @@ def _migrate(conn):
         flight_role TEXT,
         can_bill INTEGER NOT NULL DEFAULT 0,
         academy_access INTEGER NOT NULL DEFAULT 0,
+        groundschool_access INTEGER NOT NULL DEFAULT 0,
         active INTEGER NOT NULL DEFAULT 1,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )""")
@@ -549,6 +567,7 @@ def _migrate(conn):
         ("notify_maintenance", "ALTER TABLE users ADD COLUMN notify_maintenance INTEGER NOT NULL DEFAULT 0"),
         ("notify_flight_reminders", "ALTER TABLE users ADD COLUMN notify_flight_reminders INTEGER NOT NULL DEFAULT 0"),
         ("academy_access", "ALTER TABLE users ADD COLUMN academy_access INTEGER NOT NULL DEFAULT 0"),
+        ("groundschool_access", "ALTER TABLE users ADD COLUMN groundschool_access INTEGER NOT NULL DEFAULT 0"),
     ):
         if col not in user_cols:
             conn.execute(ddl)
@@ -2150,6 +2169,20 @@ def _migrate(conn):
                  "ON labor_sessions(laborer_id) WHERE ended_at IS NULL")
     conn.commit()
 
+    # QA finding ux-squawk-my-list-dashboard: an Inspector's "Send Back" on a
+    # squawk repair now carries an optional note, so the tech sees why it
+    # came back instead of just watching the button revert (see
+    # squawk_repair_confirm in app.py). Cleared the next time the tech sends
+    # it back to the Inspector, so it never shows stale.
+    flight_cols_sent_back = [r["name"] for r in conn.execute("PRAGMA table_info(flights)").fetchall()]
+    if "squawk_sent_back_note" not in flight_cols_sent_back:
+        conn.execute("ALTER TABLE flights ADD COLUMN squawk_sent_back_note TEXT")
+        conn.commit()
+    quick_cols_sent_back = [r["name"] for r in conn.execute("PRAGMA table_info(plane_squawks)").fetchall()]
+    if "sent_back_note" not in quick_cols_sent_back:
+        conn.execute("ALTER TABLE plane_squawks ADD COLUMN sent_back_note TEXT")
+        conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of
@@ -2233,7 +2266,15 @@ def _migrate_flight_accounts_to_users(conn):
 def ensure_flight_profile(conn, user_row):
     """Make sure a user with flight_role set has the matching cfis/students
     profile row to hold their rate info, creating an empty one if needed
-    (e.g. an admin just granted someone CFI access from the accounts page)."""
+    (e.g. an admin just granted someone CFI access from the accounts page).
+
+    Idea "shop admin skip launcher": a shop admin (not master) with no
+    Flight School Role of their own also gets a cfis row - is_station=1
+    (never offered as a bookable instructor, no pay-rate or listing
+    anywhere real CFIs show up) and no pay rate, the same "instructor
+    without billing" view any unbilled CFI gets. Setting a real Flight
+    School Role for them on the accounts page overrides this, same as
+    for anyone else."""
     if user_row["flight_role"] == "cfi":
         row = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
         if not row:
@@ -2249,6 +2290,15 @@ def ensure_flight_profile(conn, user_row):
             conn.execute(
                 "INSERT INTO students (name, username, password_hash, active, user_id, created_at) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
+                (user_row["name"], user_row["username"], user_row["password_hash"], user_row["active"],
+                 user_row["id"], now_iso()))
+            conn.commit()
+    elif user_row["shop_role"] == "admin" and not user_row["is_master_admin"]:
+        row = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
+        if not row:
+            conn.execute(
+                "INSERT INTO cfis (name, username, password_hash, rate_per_hour, active, is_station, user_id, created_at) "
+                "VALUES (?, ?, ?, 0, ?, 1, ?, ?)",
                 (user_row["name"], user_row["username"], user_row["password_hash"], user_row["active"],
                  user_row["id"], now_iso()))
             conn.commit()

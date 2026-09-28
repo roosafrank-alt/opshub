@@ -45,14 +45,14 @@
         </div>
       </div>
       <div class="modal-footer flex-wrap">
-        {#- Start Flight is its own condition (not CFI-only) - a solo
+        {#- Start Session is its own condition (not CFI-only) - a solo
            booking has no instructor at all, so the student flying it has
            to be able to press Start themselves. The JS below (canStart)
            decides whether to actually show it for whoever's looking, same
            idea as the Active Flight board's own can_end/can_ack. #}
         <form id="sd-start-form" method="post" action="#" class="d-inline d-none">
           <input type="hidden" name="move_to_now" value="0">
-          <button type="submit" id="sd-start-btn" class="btn btn-success btn-sm"><i class="bi bi-play-fill"></i> Start Flight</button>
+          <button type="submit" id="sd-start-btn" class="btn btn-success btn-sm"><i class="bi bi-play-fill"></i> Start Session</button>
         </form>
         {% if session.get('cfi_id') %}
         <a id="sd-log-link" href="#" class="btn btn-outline-success btn-sm"><i class="bi bi-journal-plus"></i> Log Flight</a>
@@ -264,7 +264,7 @@
    START_EARLY_BUFFER_MIN there: a flight can't be started before its own
    slot, full stop, so there's nothing to subtract. #}
 var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(0) }};
-// Who can press Start Flight on whichever booking is open in the popup:
+// Who can press Start Session on whichever booking is open in the popup:
 // any CFI, a master admin (same as before), or - new - the student
 // themselves on their own solo booking (see data-student-id, set on the
 // dashboard's flight chips and Next Lesson tile; the Schedule calendar
@@ -453,7 +453,7 @@ document.addEventListener('click', function (evt) {
     if (moveInput) moveInput.value = '0';
     startBtn.classList.toggle('btn-success', !locked);
     startBtn.classList.toggle('btn-warning', locked);
-    startBtn.innerHTML = locked ? '<i class="bi bi-clock"></i> Start Early...' : '<i class="bi bi-play-fill"></i> Start Flight';
+    startBtn.innerHTML = locked ? '<i class="bi bi-clock"></i> Start Early...' : '<i class="bi bi-play-fill"></i> Start Session';
     lockedNote.classList.toggle('d-none', !locked);
   }
   var logLink = document.getElementById('sd-log-link');

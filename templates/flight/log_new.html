@@ -5,12 +5,33 @@
 <div class="col-lg-7">
 <div class="card p-4">
   <h4>{% if edit_flight_id %}Edit Logged Flight{% else %}Log a Flight{% endif %}</h4>
+  {% set is_booking = prefill and prefill.scheduled_flight_id %}
+  {% if is_booking %}
+  {#- QA ux-log-booked-flight-compact: the plane/student/instructor/date are
+     already filled in from the booking - showing them as one compact line
+     (with a Change button to get to the real fields) puts Hobbs, the one
+     thing a CFI actually has to type, on the first screen instead of below
+     a full set of pickers nobody needs to touch. #}
+  <div class="d-flex justify-content-between align-items-center bg-light rounded p-2 mb-3">
+    <div>
+      <div class="fw-bold">{{ prefill.asset_tag or 'Student\'s own plane' }} &middot; {{ prefill.student_name or 'Guest / Intro' }}</div>
+      <div class="text-muted small">
+        {% if prefill.solo %}solo{% else %}with {{ prefill.cfi_name or 'no instructor picked' }}{% endif %}
+        {% if prefill.flight_date and '-' in prefill.flight_date %} &middot; {{ prefill.flight_date[5:7] }}/{{ prefill.flight_date[8:10] }}/{{ prefill.flight_date[0:4] }}{% endif %}
+        &middot; {{ 'solo' if prefill.solo else 'dual' }}
+      </div>
+    </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="booking-change-btn">Change</button>
+  </div>
+  {% else %}
   {% if prefill and prefill.scheduled_flight_id %}
   <p class="text-muted small">Pre-filled from your scheduled booking.</p>
+  {% endif %}
   {% endif %}
   {% set is_own_plane = (form and form.get('own_plane')) or (not form and prefill and prefill.own_plane) %}
   <form method="post" action="{% if edit_flight_id %}{{ url_for('flight.log_edit', flight_id=edit_flight_id) }}{% endif %}">
     <input type="hidden" name="scheduled_flight_id" value="{{ form.get('scheduled_flight_id') if form else (prefill.scheduled_flight_id if prefill else '') }}">
+    <div id="booking-fields" class="{{ 'd-none' if is_booking }}">
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Plane {% if not is_own_plane %}*{% endif %}</label>
@@ -74,6 +95,7 @@
       <label class="form-label">Flight Date</label>
       <input type="date" name="flight_date" class="form-control" value="{{ form.get('flight_date') if form else (prefill.flight_date if prefill and prefill.flight_date else today) }}">
     </div>
+    </div>
     {% if is_own_plane %}
     <div class="row">
       <div class="col-md-6 mb-3">
@@ -86,7 +108,7 @@
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Hobbs Start</label>
-        <input type="number" step="any" id="hobbs-start" name="hobbs_start" class="form-control" value="{{ form.get('hobbs_start') if form else '' }}">
+        <input type="text" id="hobbs-start" class="form-control" disabled>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Hobbs End</label>
@@ -94,12 +116,13 @@
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Tach Start</label>
-        <input type="number" step="any" id="tach-start" name="tach_start" class="form-control" value="{{ form.get('tach_start') if form else '' }}">
+        <input type="text" id="tach-start" class="form-control" disabled>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Tach End</label>
         <input type="number" step="any" name="tach_end" class="form-control" value="{{ form.get('tach_end') if form else '' }}">
       </div>
+      <div class="form-text mt-n2 mb-2">Starting Hobbs/Tach come from the plane's last flight (or its reading on file) - not editable here.</div>
     </div>
     {% endif %}
     <div class="row">
@@ -165,7 +188,33 @@
         </select>
       </div>
     </div>
-    <div class="d-flex justify-content-between">
+    {% if is_booking %}
+    {#- Same pinned-bottom-bar treatment as logging a completed flight from
+       Schedule a Flight (QA ux-log-flight-sticky-save) - Log Flight stays
+       reachable as soon as Hobbs End is typed, without scrolling past oil,
+       ground time, landings and squawks first. Phone only; desktop and a
+       plain (no-booking) Log a Flight are unaffected. #}
+    <style>
+      @media (max-width: 575.98px) {
+        body.log-flight-sticky { padding-bottom: 4.75rem; }
+        body.log-flight-sticky #log-form-footer {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 1030;
+          gap: .5rem;
+          margin: 0;
+          background: var(--bs-body-bg, #fff);
+          padding: .6rem 1rem calc(.6rem + env(safe-area-inset-bottom, 0px));
+          box-shadow: 0 -.125rem .5rem rgba(0,0,0,.15);
+        }
+        body.log-flight-sticky #log-form-footer button[type="submit"] { flex: 1 1 auto; }
+        body.log-flight-sticky #log-form-footer > .btn-outline-secondary { flex: 0 0 auto; }
+      }
+    </style>
+    {% endif %}
+    <div class="d-flex justify-content-between" id="log-form-footer">
       <a href="{% if edit_flight_id %}{{ url_for('flight.log_detail', flight_id=edit_flight_id) }}{% else %}{{ url_for('flight.dashboard') }}{% endif %}" class="btn btn-outline-secondary">Cancel</a>
       <button type="submit" class="btn btn-primary fw-bold">{% if edit_flight_id %}Save Changes{% else %}Log Flight{% endif %}</button>
     </div>
@@ -177,18 +226,30 @@
 
 {% block scripts %}
 <script>
-var planeSelect = document.getElementById('plane-select');
-if (planeSelect) {
-  planeSelect.addEventListener('change', function () {
-    var opt = this.options[this.selectedIndex];
-    var hobbs = opt.getAttribute('data-hobbs');
-    var tach = opt.getAttribute('data-tach');
-    var hobbsStart = document.getElementById('hobbs-start');
-    var tachStart = document.getElementById('tach-start');
-    if (hobbs && hobbsStart && !hobbsStart.value) hobbsStart.value = hobbs;
-    if (tach && tachStart && !tachStart.value) tachStart.value = tach;
+{% if is_booking %}
+document.body.classList.add('log-flight-sticky');
+var bookingChangeBtn = document.getElementById('booking-change-btn');
+if (bookingChangeBtn) {
+  bookingChangeBtn.addEventListener('click', function () {
+    document.getElementById('booking-fields').classList.remove('d-none');
+    bookingChangeBtn.closest('.bg-light').classList.add('d-none');
   });
 }
+{% endif %}
+var planeSelect = document.getElementById('plane-select');
+function syncStartMeters() {
+  var hobbsStart = document.getElementById('hobbs-start');
+  var tachStart = document.getElementById('tach-start');
+  var opt = planeSelect ? planeSelect.options[planeSelect.selectedIndex] : null;
+  var hobbs = opt ? opt.getAttribute('data-hobbs') : '';
+  var tach = opt ? opt.getAttribute('data-tach') : '';
+  if (hobbsStart) hobbsStart.value = hobbs ? parseFloat(hobbs).toFixed(1) : '';
+  if (tachStart) tachStart.value = tach ? parseFloat(tach).toFixed(1) : '';
+}
+if (planeSelect) {
+  planeSelect.addEventListener('change', syncStartMeters);
+}
+syncStartMeters();
 document.getElementById('solo-check').addEventListener('change', function () {
   document.getElementById('cfi-select').disabled = this.checked;
 });

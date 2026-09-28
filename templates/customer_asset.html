@@ -8,7 +8,7 @@
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
   <div>
     <h4 class="mb-0">{{ asset.tag }}</h4>
-    <div class="text-muted">{{ asset.make }} {{ asset.model }}{% if asset.year %} ({{ asset.year }}){% endif %}</div>
+    <div class="text-muted">{{ [asset.make, asset.model] | select | join(' ') }}{% if asset.year %} ({{ asset.year }}){% endif %}</div>
   </div>
 </div>
 
@@ -203,6 +203,13 @@
           <div class="fw-bold">${{ '%.2f'|format(b.total) }}</div>
         </div>
         <div class="text-muted small">{{ b.project.status|capitalize }}{% if b.project.completed_at %} &middot; completed {{ b.project.completed_at|usdate }}{% endif %}</div>
+        {% if b.discrepancies %}
+        <div class="mt-1">
+          {% for d in b.discrepancies %}
+          <div class="small"><strong>{{ d.name }}:</strong> <span class="text-muted">{{ d.description }}</span></div>
+          {% endfor %}
+        </div>
+        {% endif %}
       </div>
       {% endfor %}
       {% else %}

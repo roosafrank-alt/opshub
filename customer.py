@@ -78,6 +78,17 @@ def _project_bill(conn, project_id):
     return grouped, labor, round(grand_total, 2)
 
 
+def _project_discrepancy_descriptions(conn, project_id):
+    """Each discrepancy's owner-facing write-up for this job, for the "Job
+    Costs" box - only ones the shop actually wrote a Description for (its
+    internal Notes never show here, or anywhere else in the portal - see
+    project_section_notes in app.py)."""
+    return conn.execute(
+        "SELECT name, description FROM project_sections "
+        "WHERE project_id = ? AND description IS NOT NULL AND TRIM(description) != '' ORDER BY name",
+        (project_id,)).fetchall()
+
+
 @customer_bp.route("/login", methods=["GET", "POST"])
 def customer_login():
     if request.method == "POST":
@@ -160,8 +171,10 @@ def customer_asset(asset_id):
     bills = []
     for j in jobs:
         grouped, labor, total = _project_bill(conn, j["id"])
-        if total > 0 or grouped or labor:
-            bills.append({"project": j, "grouped": grouped, "labor": labor, "total": total})
+        discrepancies = _project_discrepancy_descriptions(conn, j["id"])
+        if total > 0 or grouped or labor or discrepancies:
+            bills.append({"project": j, "grouped": grouped, "labor": labor, "total": total,
+                          "discrepancies": discrepancies})
     found_items = _found_items_for_asset(conn, asset_id)
     conn.close()
     return render_template("customer_asset.html", customer=cust, asset=asset, reminders=reminders,

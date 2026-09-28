@@ -46,23 +46,23 @@ class SquawkRepairToggleTest(OpsHubTestCase):
         self.assertIsNone(row["repair_confirm_requested_at"])
         self.assertIsNone(row["repaired_at"])
 
-    def test_my_tasks_shows_repaired_badge_and_greyed_button_while_awaiting_confirmation(self):
+    def test_my_tasks_shows_with_inspector_and_greyed_button_while_awaiting_confirmation(self):
         squawk_id = self.make_quick_squawk(assigned_to=self.tech_id, worker_acknowledged=True)
         c = self.login("tech")
         c.post(f"/squawks/quick/{squawk_id}/repair")
         r = c.get("/my-tasks")
         body = r.get_data(as_text=True)
-        self.assertIn('bg-secondary ms-1">Repaired</span>', body)
+        self.assertIn("With inspector (tap to undo)", body)
         self.assertIn("btn-secondary", body)
-        self.assertNotIn("btn-success btn-sm fw-bold\"><i class=\"bi bi-tools\"></i> Mark Repaired", body)
+        self.assertNotIn("Mark as Repaired", body)
 
-    def test_my_tasks_shows_mark_repaired_before_any_request(self):
+    def test_my_tasks_shows_done_send_to_inspector_before_any_request(self):
         squawk_id = self.make_quick_squawk(assigned_to=self.tech_id, worker_acknowledged=True)
         c = self.login("tech")
         r = c.get("/my-tasks")
         body = r.get_data(as_text=True)
-        self.assertIn("btn-success btn-sm fw-bold\"><i class=\"bi bi-tools\"></i> Mark Repaired", body)
-        self.assertNotIn("btn-secondary", body)
+        self.assertIn("Mark as Repaired", body)
+        self.assertNotIn("With inspector (tap to undo)", body)
 
     def test_undo_still_leaves_it_acknowledged(self):
         squawk_id = self.make_quick_squawk(assigned_to=self.tech_id, worker_acknowledged=True)

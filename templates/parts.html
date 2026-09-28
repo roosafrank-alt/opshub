@@ -81,9 +81,9 @@
 </div>
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="mb-0">{{ 'Retired Parts' if show_retired else 'Parts' }} ({{ parts|length }})</h4>
+  <h4 class="mb-0">{% if show_retired %}Retired Parts{% elif show_low_stock %}Low Stock Items{% else %}Parts{% endif %} ({{ parts|length }})</h4>
   <div class="d-flex gap-2">
-    {% if not show_retired %}
+    {% if not show_retired and not show_low_stock %}
     <form class="d-flex" method="get">
       <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search name, barcode, category, location...">
       <button class="btn btn-outline-secondary ms-1"><i class="bi bi-search"></i></button>
@@ -97,7 +97,7 @@
   </div>
 </div>
 
-{% if not show_retired and retired_count %}
+{% if not show_retired and not show_low_stock and retired_count %}
 <p class="text-muted small"><a href="{{ url_for('parts_list', retired='1') }}">{{ retired_count }} retired part{{ 's' if retired_count != 1 }}</a> - hidden here and from scanning, history kept.</p>
 {% endif %}
 

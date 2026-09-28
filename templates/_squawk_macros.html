@@ -47,3 +47,142 @@
   </form>
 </div>
 {%- endmacro %}
+
+{#- A tech's own squawk list (dashboard's "My Squawks" box and My Tasks -
+   see get_my_squawks in app.py) shows exactly one button per squawk, the
+   next step: Accepted -> Mark as Repaired -> With inspector (tap
+   to undo). See QA finding ux-squawk-my-list-dashboard and idea "techs status". #}
+{% macro squawk_my_actions(sq, size='btn-sm') %}
+{%- if not sq.worker_acknowledged_at %}
+<form method="post" action="{{ url_for('squawk_worker_ack', kind=sq.kind, squawk_id=sq.squawk_id) }}">
+  <button class="btn btn-warning {{ size }} fw-bold"><i class="bi bi-play-fill"></i> Accepted</button>
+</form>
+{%- elif sq.repair_confirm_requested_at %}
+{#- Awaiting an Inspector/admin's sign-off - tapping again undoes the
+   request (squawk_repair toggles it back off when already requested). #}
+<form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Undo - back to not yet repaired?">
+  <button class="btn btn-secondary {{ size }} fw-bold" title="With the Inspector - tap to undo"><i class="bi bi-hourglass-split"></i> With inspector (tap to undo)</button>
+</form>
+{%- else %}
+<form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Send this squawk to the Inspector as repaired?">
+  <button class="btn btn-success {{ size }} fw-bold"><i class="bi bi-tools"></i> Mark as Repaired</button>
+</form>
+{%- if sq.sent_back_note %}
+<small class="text-danger-emphasis d-block mt-1"><i class="bi bi-arrow-counterclockwise"></i> Sent back: {{ sq.sent_back_note }}</small>
+{%- endif %}
+{%- endif %}
+{%- endmacro %}
+
+{#- One list, one control each: whatever a squawk's current step needs next
+   (New: Assign to.../I'll take it, Assigned: Reassign, Working: Mark as
+   Repaired, Inspection: Sign off/Send back, Done: nothing) - see the
+   Squawks page and QA finding ux-squawk-page-steps. `can_assign` gates the
+   New/Assigned/Working controls (same roles as squawk_acknowledge/
+   squawk_assign/squawk_repair - admin/tech); `can_confirm` gates Inspection
+   (admin/inspector, same as squawk_repair_confirm). Renders nothing if the
+   viewer's role doesn't match what that step needs. #}
+{% macro squawk_step_action(sq, assignable_workers, current_user_id, can_assign, can_confirm, size='btn-sm') %}
+{%- if sq.repaired_at -%}
+{%- elif sq.repair_confirm_requested_at -%}
+  {%- if can_confirm %}{{ squawk_confirm_actions(sq, confirm_label='Sign off', send_back_label='Send back', size=size) }}{% endif -%}
+{%- elif not sq.acknowledged_at -%}
+  {%- if can_assign %}{{ squawk_new_actions(sq, assignable_workers, current_user_id, size=size) }}{% endif -%}
+{%- elif sq.worker_acknowledged_at or not sq.assigned_to -%}
+  {%- if can_assign %}
+  <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Send this squawk to the Inspector as repaired?">
+    <button class="btn btn-success {{ size }} fw-bold"><i class="bi bi-tools"></i> Mark as Repaired</button>
+  </form>
+  {% endif -%}
+{%- else -%}
+  {%- if can_assign %}
+  <form method="post" action="{{ url_for('squawk_assign', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex gap-1 align-items-center">
+    <label class="small text-muted mb-0">Reassign</label>
+    <select name="assigned_to" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+      <option value="">Unassigned</option>
+      {% for w in assignable_workers %}
+      <option value="{{ w.id }}" {{ 'selected' if sq.assigned_to == w.id }}>{{ w.name }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  {% endif -%}
+{%- endif -%}
+{%- endmacro %}
+
+{#- An Inspector's (or admin's) sign-off on a repair someone marked ready -
+   Sign off confirms it, Send back reopens it for the tech with an optional
+   note (squawk_my_actions above shows it once the squawk's back at "Done -
+   send to inspector"). See squawk_repair_confirm in app.py. #}
+{% macro squawk_confirm_actions(sq, confirm_label='Sign off', send_back_label='Send back', size='btn-sm') %}
+<div class="d-flex gap-1 flex-wrap align-items-center">
+  <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Confirm this squawk as repaired?" data-confirm-title="Confirm Repair" data-confirm-style="success">
+    <button class="btn btn-success {{ size }} fw-bold"><i class="bi bi-check-lg"></i> {{ confirm_label }}</button>
+  </form>
+  <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex gap-1">
+    <input type="hidden" name="action" value="send_back">
+    <input type="text" name="note" class="form-control form-control-sm" style="width:150px;" placeholder="Reason (optional)">
+    <button class="btn btn-outline-secondary {{ size }}">{{ send_back_label }}</button>
+  </form>
+</div>
+{%- endmacro %}
+
+{#- Project page's squawks & to-dos box (QA finding ux-squawk-on-project):
+   each squawk shows plane, note and step pills, plus one control - "Fix on
+   this job" claims it (assigns to me, moves to Working) and gives it a
+   matching Sub Area, same idea as squawk_new_actions but tied to this job's
+   parts and labor instead of just to a person. `sq.link`, when set, is the
+   {project_id, code, name} of whichever project's Sub Area already stands
+   in for it (see project_detail() in app.py). #}
+{% macro squawk_project_action(sq, project_id, can_assign) %}
+{%- if sq.repair_confirm_requested_at -%}
+<small class="text-muted d-block"><i class="bi bi-hourglass-split"></i> With inspector</small>
+{%- elif sq.link -%}
+  {%- if sq.link.project_id == project_id -%}
+<small class="text-muted d-block">{{ sq.assigned_to_name ~ ' · ' if sq.assigned_to_name }}Discrepancy on this job</small>
+  {%- else -%}
+<small class="text-muted d-block">Discrepancy on <a href="{{ url_for('project_detail', project_id=sq.link.project_id) }}">job {{ sq.link.code }}</a></small>
+  {%- endif -%}
+{%- elif can_assign -%}
+<form method="post" action="{{ url_for('project_squawk_fix_on_job', project_id=project_id, kind=sq.kind, squawk_id=sq.squawk_id) }}">
+  <button class="btn btn-danger btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Fix on this job</button>
+</form>
+{%- endif -%}
+{%- endmacro %}
+
+{#- To do -> Working -> Inspection -> Done, the plane to-do equivalent of
+   squawk_step_pills. "Working" means it has a linked Sub Area somewhere
+   (t.link) that hasn't itself been checked off yet. #}
+{% macro todo_step_pills(t) %}
+{%- set steps = ['To do', 'Working', 'Inspection', 'Done'] -%}
+{%- if t.completed_at -%}
+{%- set current = 3 -%}
+{%- elif t.confirm_requested_at -%}
+{%- set current = 2 -%}
+{%- elif t.link -%}
+{%- set current = 1 -%}
+{%- else -%}
+{%- set current = 0 -%}
+{%- endif -%}
+<div class="d-flex gap-1 flex-wrap">
+  {%- for label in steps %}
+  <span class="badge rounded-pill {{ 'bg-primary text-white' if loop.index0 == current else 'bg-white text-muted border' }}">{% if loop.index0 < current %}<i class="bi bi-check-lg"></i> {% endif %}{{ label }}</span>
+  {%- endfor %}
+</div>
+{%- endmacro %}
+
+{#- Same idea as squawk_project_action, for a plane to-do: "Do on this job"
+   claims it and gives it a matching Sub Area (project_todo_do_on_job). #}
+{% macro todo_project_action(t, project_id, can_assign) %}
+{%- if t.confirm_requested_at -%}
+<small class="text-muted d-block"><i class="bi bi-hourglass-split"></i> With inspector</small>
+{%- elif t.link -%}
+  {%- if t.link.project_id == project_id -%}
+<small class="text-muted d-block">{{ t.assigned_to_name ~ ' · ' if t.assigned_to_name }}Discrepancy on this job</small>
+  {%- else -%}
+<small class="text-muted d-block">Discrepancy on <a href="{{ url_for('project_detail', project_id=t.link.project_id) }}">job {{ t.link.code }}</a></small>
+  {%- endif -%}
+{%- elif can_assign -%}
+<form method="post" action="{{ url_for('project_todo_do_on_job', project_id=project_id, todo_id=t.id) }}">
+  <button class="btn btn-outline-primary btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Do on this job</button>
+</form>
+{%- endif -%}
+{%- endmacro %}

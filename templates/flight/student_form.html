@@ -303,7 +303,7 @@
        below), so How They Usually Pay is set right here at creation time
        instead; editing an existing student sets it under Account. #}
     <div class="mb-3">
-      <label class="form-label">How They Usually Pay <span class="text-muted small">(shown as a hint on End Flight)</span></label>
+      <label class="form-label">How They Usually Pay <span class="text-muted small">(shown as a hint on End Session)</span></label>
       <select name="pay_preference" class="form-select">
         <option value="">- Not set -</option>
         {% for method in pay_preferences %}
@@ -339,7 +339,7 @@
     {% endif %}
   </div>
   <div class="mb-3">
-    <label class="form-label">How They Usually Pay <span class="text-muted small">(shown as a hint on End Flight)</span></label>
+    <label class="form-label">How They Usually Pay <span class="text-muted small">(shown as a hint on End Session)</span></label>
     {#- form="student-form" (see that <form>'s id above) so this still
        saves with the rest of the student edit form even though it's
        rendered here, under Account, instead of inside those <form> tags. #}
@@ -361,7 +361,7 @@
       <input type="text" name="note" class="form-control form-control-sm" placeholder="e.g. Check #1024" style="width:200px;">
     </div>
     {#- Idea "Credit card" (revision): same simulated Stripe-style charge as
-       End Flight and Manage > Billing's Pay with Card - no real Stripe
+       End Session and Manage > Billing's Pay with Card - no real Stripe
        account, no network call. #}
     <div class="col-auto form-check mb-1">
       <input type="checkbox" class="form-check-input" name="paid_by_card" id="add-funds-card-check" value="1">
