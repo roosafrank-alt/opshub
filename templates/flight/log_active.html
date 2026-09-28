@@ -153,7 +153,7 @@
         <input type="number" step="any" name="oil_added_qt" class="form-control form-control-sm" value="{{ f.oil_added_qt if f.oil_added_qt is not none else '' }}">
       </div>
       <div class="col-12 col-md-3">
-        <label class="form-label small mb-0">Note <span class="text-muted">(flagged as a squawk)</span></label>
+        <label class="form-label small mb-0">Note{% if not f.asset_is_owner_placeholder %} <span class="text-muted">(flagged as a squawk)</span>{% endif %}</label>
         <input type="text" name="notes" class="form-control form-control-sm" value="{{ f.notes or '' }}">
       </div>
       <div class="col-12">
@@ -377,7 +377,7 @@
     </div>
     <div class="mt-2">
       <label class="form-label small mb-0">Notes</label>
-      <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="any note here is flagged as a squawk for the shop">{{ f.notes or '' }}</textarea>
+      <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="{{ 'any note here is saved with the flight' if f.asset_is_owner_placeholder else 'any note here is flagged as a squawk for the shop' }}">{{ f.notes or '' }}</textarea>
     </div>
     <div class="form-text mt-1">The instructor's billed time is the elapsed time shown above (from Start to when End Session was pressed, minus any paused time), not just Hobbs hours.</div>
     <button type="submit" class="btn btn-success fw-bold mt-2 w-100"><i class="bi bi-journal-check"></i> Session Complete</button>

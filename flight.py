@@ -6266,7 +6266,11 @@ def log_end(flight_id):
         oil_added_by = session.get("user_name")
     ground_time_hours = _parse_float(request.form.get("ground_time_hours"))
     notes = request.form.get("notes", "").strip()
-    squawk = 1 if notes else 0
+    # A student's own plane isn't looked after by the shop and can't be
+    # opened in Maintenance, so its notes stay plain notes instead of
+    # becoming a New Squawk someone has to spot and dismiss by hand. A
+    # simulator still goes to Squawks - the school does fix a broken sim.
+    squawk = 1 if notes and not is_own_plane else 0
     day_landings_fs = _parse_int(request.form.get("day_landings_fs"))
     day_landings_tg = _parse_int(request.form.get("day_landings_tg"))
     night_landings_fs = _parse_int(request.form.get("night_landings_fs"))
@@ -6540,8 +6544,10 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
     night_landings_fs = _parse_int(form.get("night_landings_fs"))
     night_landings_tg = _parse_int(form.get("night_landings_tg"))
     # Any note is treated as a squawk needing shop attention - no
-    # separate checkbox to remember to tick.
-    squawk = 1 if notes else 0
+    # separate checkbox to remember to tick. Except a student's own plane:
+    # the shop doesn't look after it and can't open it in Maintenance, so
+    # its notes stay plain notes (a simulator still goes to Squawks).
+    squawk = 1 if notes and not is_own_plane else 0
     paid = 1 if form.get("paid") else 0
     payment_method = (form.get("payment_method") or "").strip()[:40] or None
     payment_amount = max(0.0, _parse_float(form.get("payment_amount")) or 0.0)
@@ -6756,7 +6762,10 @@ def log_edit(flight_id):
         day_landings_tg = _parse_int(request.form.get("day_landings_tg"))
         night_landings_fs = _parse_int(request.form.get("night_landings_fs"))
         night_landings_tg = _parse_int(request.form.get("night_landings_tg"))
-        squawk = 1 if notes else 0
+        # A student's own plane isn't looked after by the shop, so its notes
+        # stay plain notes instead of a New Squawk (a simulator still goes
+        # to Squawks) - see _save_logged_flight for the same rule.
+        squawk = 1 if notes and not is_own_plane else 0
         paid = 1 if request.form.get("paid") else 0
 
         if not asset_id or not student_id:

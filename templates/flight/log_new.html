@@ -161,9 +161,15 @@
       </div>
     </div>
     <div class="mb-3">
+      {% if is_own_plane %}
+      <label class="form-label">Notes</label>
+      <textarea name="notes" class="form-control" rows="3" placeholder="Leave blank if nothing to report">{{ form.get('notes') if form else '' }}</textarea>
+      <div class="form-text">Saved with this flight. The shop doesn't look after this plane, so this stays a note - it won't go to Maintenance.</div>
+      {% else %}
       <label class="form-label">Squawks / Notes <span class="text-muted small">(issues found, anything the shop should know)</span></label>
       <textarea name="notes" class="form-control" rows="3" placeholder="Leave blank if nothing to report">{{ form.get('notes') if form else '' }}</textarea>
       <div class="form-text">Anything typed here counts as a squawk - it'll show up prominently on the Maintenance side until someone acknowledges it. Leave it blank for a routine flight with nothing to flag.</div>
+      {% endif %}
     </div>
     <div class="form-check mb-2">
       <input type="checkbox" class="form-check-input" name="paid" id="paid-check" onchange="document.getElementById('paid-details').hidden = !this.checked;" {% if form and form.get('paid') %}checked{% endif %}>

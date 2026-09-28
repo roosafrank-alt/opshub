@@ -361,9 +361,9 @@
       </div>
     </div>
     <div class="mb-3">
-      <label class="form-label">Squawks / Notes <span class="text-muted small">(issues found, anything the shop should know)</span></label>
+      <label class="form-label" id="log-notes-label">Squawks / Notes <span class="text-muted small">(issues found, anything the shop should know)</span></label>
       <textarea name="log_notes" class="form-control" rows="3" placeholder="Leave blank if nothing to report">{{ form.get('log_notes', '') if form else '' }}</textarea>
-      <div class="form-text">Anything typed here counts as a squawk - it'll show up on the Maintenance side until someone acknowledges it.</div>
+      <div class="form-text" id="log-notes-help">Anything typed here counts as a squawk - it'll show up on the Maintenance side until someone acknowledges it.</div>
     </div>
     <div class="form-check mb-2">
       <input type="checkbox" class="form-check-input" name="paid" id="paid-check" onchange="document.getElementById('paid-details').hidden = !this.checked;" {% if form and form.get('paid') %}checked{% endif %}>
@@ -749,6 +749,8 @@
   var ownPlaneWrap = document.getElementById('own-plane-n-number-wrap');
   var hobbsTachFields = document.getElementById('hobbs-tach-fields');
   var recordedHoursField = document.getElementById('recorded-hours-field');
+  var logNotesLabel = document.getElementById('log-notes-label');
+  var logNotesHelp = document.getElementById('log-notes-help');
   if (ownPlaneCheck && ownPlaneWrap) {
     var updateOwnPlane = function () {
       var checked = ownPlaneCheck.checked;
@@ -757,6 +759,14 @@
       wrap.classList.remove('is-invalid-group');
       if (hobbsTachFields) hobbsTachFields.classList.toggle('d-none', checked);
       if (recordedHoursField) recordedHoursField.classList.toggle('d-none', !checked);
+      // A student's own plane isn't looked after by the shop, so a note
+      // typed here stays a plain note instead of becoming a squawk (see
+      // flight.py's _save_logged_flight) - the label/help text says so.
+      if (logNotesLabel) logNotesLabel.innerHTML = checked ? 'Notes'
+        : 'Squawks / Notes <span class="text-muted small">(issues found, anything the shop should know)</span>';
+      if (logNotesHelp) logNotesHelp.textContent = checked
+        ? "Saved with this flight. The shop doesn't look after this plane, so this stays a note - it won't go to Maintenance."
+        : "Anything typed here counts as a squawk - it'll show up on the Maintenance side until someone acknowledges it.";
     };
     ownPlaneCheck.addEventListener('change', updateOwnPlane);
     updateOwnPlane();
