@@ -1,27 +1,27 @@
 {#- Small floating widget that follows a CFI to every Flight School page
    while they have a flight running (see cfi_active_flights in flight.py's
-   _cfi_active_flights_widget context processor): a live timer plus
-   Pause/Resume and End, directly wired to that flight the same way the
-   buttons on Active Flight itself are (see log_pause/log_resume/log_stop
-   in flight.py), so they don't have to go back to Active Flight just to
-   control the clock. End stops the real flight's clock right here (same
-   as Active Flight's own End Session button) and lands on Active Flight to
-   finish logging Hobbs/paid, since that part still needs the form there.
-   Only the oldest running flight shows in full; any others are just a
-   "+N more" link. #}
+   _cfi_active_flights_widget context processor). It's a remote control
+   for that flight: just the live timer, Pause/Start and End - no tail
+   number. Pause/Start and End post to the same routes as the buttons on
+   Active Flight itself (log_pause/log_resume/log_stop in flight.py), then
+   read the flight's real state back from the server so the widget shows
+   what the flight is actually doing, and tell every open copy of Active
+   Flight (this tab and any other) to catch up right away - see the
+   'active-flight-changed' event handled in log_active.html. End lands on
+   Active Flight to finish logging Hobbs/paid, since that still needs the
+   form there. Only the oldest running flight shows in full; any others
+   are just a "+N more" link. #}
 {% set flights = cfi_active_flights or [] %}
 {% if flights %}
 {% set f = flights[0] %}
 <div id="active-flight-widget" class="active-flight-widget" data-flight-id="{{ f.id }}">
   <i class="bi bi-grip-vertical active-flight-widget-grip" title="Drag to move"></i>
-  <a href="{{ url_for('flight.log_active', flight_id=f.id) }}#active-flight-{{ f.id }}" class="active-flight-widget-link text-decoration-none">
-    <i class="bi bi-stopwatch"></i>
-    <span class="active-flight-widget-plane">{{ f.plane_tag }}</span>
+  <a href="{{ url_for('flight.log_active', flight_id=f.id) }}#active-flight-{{ f.id }}" class="active-flight-widget-link text-decoration-none" title="Open Active Flight">
     <span class="active-flight-widget-timer" data-started="{{ f.started_at }}" data-paused-seconds="{{ f.paused_seconds or 0 }}" data-paused-at="{{ f.paused_at or '' }}">00:00:00</span>
   </a>
-  <button type="button" id="active-flight-widget-pause" class="btn btn-sm {{ 'btn-warning' if f.paused_at else 'btn-outline-light' }}" title="{{ 'Resume' if f.paused_at else 'Pause' }}"
+  <button type="button" id="active-flight-widget-pause" class="btn btn-sm {{ 'btn-warning' if f.paused_at else 'btn-outline-light' }}" title="{{ 'Start the clock again' if f.paused_at else 'Pause the clock' }}"
           data-pause-url="{{ url_for('flight.log_pause', flight_id=f.id) }}" data-resume-url="{{ url_for('flight.log_resume', flight_id=f.id) }}">
-    <i class="bi {{ 'bi-play-fill' if f.paused_at else 'bi-pause-fill' }}"></i>
+    <i class="bi {{ 'bi-play-fill' if f.paused_at else 'bi-pause-fill' }}"></i> <span class="active-flight-widget-pause-label">{{ 'Start' if f.paused_at else 'Pause' }}</span>
   </button>
   <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-inline"
         data-confirm="End this session now? The clock stops here - then fill in the ending Hobbs and paid / unpaid to log it." data-confirm-title="End Session" data-confirm-ok="Yes, stop the clock" data-confirm-style="danger">
@@ -46,16 +46,15 @@
   .active-flight-widget.active-flight-widget-dragging { cursor: grabbing; box-shadow: 0 .5rem 1.25rem rgba(0,0,0,.5); }
   .active-flight-widget-grip { opacity: .6; font-size: .8rem; }
   .active-flight-widget-link { color: #fff; display: flex; align-items: center; gap: .35rem; }
-  .active-flight-widget-plane { font-weight: 700; }
-  .active-flight-widget-timer { font-variant-numeric: tabular-nums; opacity: .9; }
+  .active-flight-widget-timer { font-variant-numeric: tabular-nums; font-weight: 700; }
   .active-flight-widget-more { color: rgba(255,255,255,.7); font-size: .7rem; white-space: nowrap; }
-  /* Pause/End are the only actual controls in this widget (the rest just
+  /* Pause/Start and End are the only actual controls in this widget (the rest just
      navigates) - give them a real tap target instead of relying on the
      bare icon's tiny native size, so a finger on a shop tablet reliably
      lands on the button and not the fixed bar behind/around it. */
   #active-flight-widget-pause, .active-flight-widget a.btn, .active-flight-widget button.btn {
     min-width: 2.25rem; min-height: 2.25rem;
-    display: inline-flex; align-items: center; justify-content: center;
+    display: inline-flex; align-items: center; justify-content: center; gap: .2rem;
   }
   @media (max-width: 420px) {
     .active-flight-widget { left: .5rem; right: .5rem; justify-content: space-between; }
@@ -82,91 +81,72 @@
   tick();
   setInterval(tick, 1000);
 
-  // The widget is rendered once at page load and then just ticks locally
-  // off that snapshot - it has no way to notice on its own if the flight
-  // it's showing gets paused/resumed/ended from somewhere else (another
-  // tab, another device, a session-alert auto-close) while this page sits
-  // open. Left unchecked it just keeps counting as if nothing happened -
-  // an "independent" timer that's lost touch with the real flight. This
-  // re-checks the real state periodically and reloads to pick up whatever
-  // changed (including the widget disappearing once the flight's done).
+  // The widget only knows the flight's state from when this page loaded,
+  // so it re-reads the real state from the server: right after its own
+  // Pause/Start, whenever another tab says something changed, when the
+  // phone comes back to this page, and every 10 seconds regardless (a
+  // pause/end from another device, a session-alert auto-close). The server
+  // is always the source of truth - the widget never just assumes a tap
+  // worked.
   var widgetFlightId = parseInt(document.getElementById('active-flight-widget').getAttribute('data-flight-id'), 10);
+  var pauseBtn = document.getElementById('active-flight-widget-pause');
+  var PING_KEY = 'active-flight-changed';
+
+  function showState(pausedAt, pausedSeconds) {
+    el.setAttribute('data-paused-at', pausedAt || '');
+    el.setAttribute('data-paused-seconds', pausedSeconds || 0);
+    if (pauseBtn) {
+      pauseBtn.classList.toggle('btn-warning', !!pausedAt);
+      pauseBtn.classList.toggle('btn-outline-light', !pausedAt);
+      pauseBtn.title = pausedAt ? 'Start the clock again' : 'Pause the clock';
+      pauseBtn.querySelector('i').className = pausedAt ? 'bi bi-play-fill' : 'bi bi-pause-fill';
+      pauseBtn.querySelector('.active-flight-widget-pause-label').textContent = pausedAt ? 'Start' : 'Pause';
+    }
+    tick();
+  }
+
   function syncWithServer() {
-    fetch('{{ url_for("flight.cfi_active_flights_status") }}', { credentials: 'same-origin' })
+    return fetch('{{ url_for("flight.cfi_active_flights_status") }}', { credentials: 'same-origin', cache: 'no-store' })
       .then(function (resp) { return resp.ok ? resp.json() : null; })
       .then(function (data) {
         if (!data) return;
         var mine = data.flights.filter(function (f) { return f.id === widgetFlightId; })[0];
+        // Ended/stopped elsewhere: reload so the widget goes away.
         if (!mine) { location.reload(); return; }
-        var pausedAt = mine.paused_at || '';
-        var pausedSeconds = mine.paused_seconds || 0;
-        if (pausedAt !== (el.getAttribute('data-paused-at') || '') || pausedSeconds !== parseInt(el.getAttribute('data-paused-seconds'), 10)) {
-          location.reload();
-        }
+        showState(mine.paused_at, mine.paused_seconds);
       }).catch(function () {});
   }
-  setInterval(syncWithServer, 30000);
 
-  // Pause/Resume right from the widget - fetch instead of a normal form
-  // post so it doesn't drag whoever's flying right now off the page
-  // they're on to Active Flight just to toggle the clock.
-  var pauseBtn = document.getElementById('active-flight-widget-pause');
-  if (!pauseBtn) return;
-  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
-  function fmtLocal(d) {
-    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' '
-      + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+  // Tell every copy of Active Flight (this tab via the event, other tabs
+  // via the storage event) that this flight just changed, so their big
+  // timer and Pause/Resume buttons catch up now instead of on their next
+  // poll.
+  function announceChange() {
+    try { window.dispatchEvent(new CustomEvent('active-flight-changed', { detail: { flightId: widgetFlightId, source: 'widget' } })); } catch (e) {}
+    try { localStorage.setItem(PING_KEY, String(Date.now())); } catch (e) {}
   }
+
+  window.addEventListener('storage', function (e) { if (e.key === PING_KEY) syncWithServer(); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) syncWithServer(); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) syncWithServer(); });
+  setInterval(syncWithServer, 10000);
+
+  // Pause/Start right from the widget - fetch instead of a normal form
+  // post so it doesn't drag whoever's flying off the page they're on.
+  if (!pauseBtn) return;
   pauseBtn.addEventListener('click', function () {
     var paused = !!el.getAttribute('data-paused-at');
     var url = paused ? pauseBtn.getAttribute('data-resume-url') : pauseBtn.getAttribute('data-pause-url');
     pauseBtn.disabled = true;
     fetch(url, { method: 'POST', credentials: 'same-origin' }).then(function (resp) {
-      pauseBtn.disabled = false;
       // fetch follows the redirect on its own, so a plain resp.ok would
       // read true even when the session had expired and this silently
-      // landed on the login page instead of actually toggling the flight -
-      // the button would then flip in the UI while nothing changed in the
-      // database. Checking where the redirect actually ended up catches
-      // that (and any other bounce away from Active Flight) and reloads
-      // instead of lying about success.
+      // landed on the login page instead of actually toggling the flight.
+      // Anything but a landing on Active Flight means it didn't happen -
+      // reload so whatever went wrong is shown.
       if (!resp.ok || resp.url.indexOf('/flight/log/active') === -1) { location.reload(); return; }
-      var icon = pauseBtn.querySelector('i');
-      // Active Flight's own big Elapsed number for this same flight (if
-      // this page happens to be Active Flight itself) reads its own
-      // data-paused-at/data-paused-seconds on every tick - see the
-      // .elapsed-timer script in log_active.html. It has no other way to
-      // learn the flight was just paused/resumed from here, so without this
-      // it would keep counting past the widget's frozen time until the
-      // page next reloads. Mirror the same attribute changes onto it so
-      // both numbers move together.
-      var pageTimer = document.querySelector('#active-flight-' + widgetFlightId + ' .elapsed-timer');
-      if (paused) {
-        // Was paused, just resumed: fold the paused span into paused_seconds.
-        var pausedAt = new Date(el.getAttribute('data-paused-at').replace(' ', 'T'));
-        var added = Math.max(0, Math.floor((new Date() - pausedAt) / 1000));
-        var newPausedSeconds = (parseInt(el.getAttribute('data-paused-seconds'), 10) || 0) + added;
-        el.setAttribute('data-paused-seconds', newPausedSeconds);
-        el.removeAttribute('data-paused-at');
-        if (pageTimer) {
-          pageTimer.setAttribute('data-paused-seconds', newPausedSeconds);
-          pageTimer.removeAttribute('data-paused-at');
-        }
-        pauseBtn.classList.remove('btn-warning');
-        pauseBtn.classList.add('btn-outline-light');
-        pauseBtn.title = 'Pause';
-        icon.className = 'bi bi-pause-fill';
-      } else {
-        var pausedAtNow = fmtLocal(new Date());
-        el.setAttribute('data-paused-at', pausedAtNow);
-        if (pageTimer) pageTimer.setAttribute('data-paused-at', pausedAtNow);
-        pauseBtn.classList.remove('btn-outline-light');
-        pauseBtn.classList.add('btn-warning');
-        pauseBtn.title = 'Resume';
-        icon.className = 'bi bi-play-fill';
-      }
-      tick();
-    }).catch(function () { pauseBtn.disabled = false; });
+      return syncWithServer().then(announceChange);
+    }).catch(function () {}).then(function () { pauseBtn.disabled = false; });
   });
 })();
 

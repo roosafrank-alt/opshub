@@ -489,6 +489,55 @@
   setInterval(tick, 1000);
 })();
 
+// Keeps this page in step with the real flights. A flight can be paused,
+// resumed or stopped without this page reloading - most often from the
+// CFI's floating widget (_active_flight_widget.html) on this page or in
+// another tab, but also from another phone. Without this the big Elapsed
+// timer kept counting and the card still offered "Pause Flight" after the
+// flight had actually been paused. Checks the server right after the
+// widget changes something, when the phone comes back to this page, and
+// every 10 seconds; if anything differs it reloads - unless something's
+// been typed into a form here, in which case it just corrects the timers
+// so the typing isn't lost.
+(function () {
+  var typed = false;
+  document.addEventListener('input', function (e) {
+    if (e.target.closest && e.target.closest('form')) typed = true;
+  });
+  function cards() {
+    return Array.prototype.slice.call(document.querySelectorAll('#active-flights-col .card[id^="active-flight-"]'));
+  }
+  function sync() {
+    fetch('{{ url_for("flight.log_active_status") }}', { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (resp) { return resp.ok ? resp.json() : null; })
+      .then(function (data) {
+        if (!data) return;
+        var byId = {};
+        data.flights.forEach(function (f) { byId[f.id] = f; });
+        var shown = cards();
+        var changed = shown.length !== data.flights.length;
+        shown.forEach(function (card) {
+          var f = byId[parseInt(card.id.replace('active-flight-', ''), 10)];
+          var timer = card.querySelector('.elapsed-timer');
+          if (!f) { changed = true; return; }
+          if (!timer) return;
+          var pausedAt = f.stopped_at || f.paused_at || '';
+          var pausedSeconds = String(f.paused_seconds || 0);
+          if ((timer.getAttribute('data-paused-at') || '') !== pausedAt || (timer.getAttribute('data-paused-seconds') || '0') !== pausedSeconds) {
+            changed = true;
+            timer.setAttribute('data-paused-at', pausedAt);
+            timer.setAttribute('data-paused-seconds', pausedSeconds);
+          }
+        });
+        if (changed && !typed) location.reload();
+      }).catch(function () {});
+  }
+  window.addEventListener('active-flight-changed', sync);
+  window.addEventListener('storage', function (e) { if (e.key === 'active-flight-changed') sync(); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) sync(); });
+  setInterval(sync, 10000);
+})();
+
 // Tap feedback for Acknowledge / ETA: the tapped button shows "Saving..."
 // right away and the form's buttons lock so a second tap can't double-post.
 // The tapped button's name/value (eta_minutes) is copied into a hidden
