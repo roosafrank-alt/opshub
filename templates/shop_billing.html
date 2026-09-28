@@ -20,6 +20,20 @@
 </div>
 {% set period_endpoint = 'shop_billing' %}{% include "_shop_period.html" %}
 
+{#- Wave invoicing (wave_billing.py): real invoices made in Wave, emailed
+   with Wave's own Pay now link. Payments are checked every half hour in
+   the background; this button checks right away. #}
+<div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+  {% if wave_connected %}
+  <form method="post" action="{{ url_for('shop_wave_sync') }}" class="d-inline">
+    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-repeat"></i> Check Wave for payments</button>
+  </form>
+  <span class="small text-muted"><i class="bi bi-check-circle text-success"></i> Wave connected</span>
+  {% elif session.get('is_master_admin') %}
+  <a href="{{ url_for('admin_wave') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-plug"></i> Connect Wave to send real invoices</a>
+  {% endif %}
+</div>
+
 {% if projects %}
 <div class="card">
   <div class="table-responsive">
@@ -39,11 +53,26 @@
             {% else %}
             <span class="badge bg-light text-dark border">Not invoiced</span>
             {% endif %}
+            {% if p.wave %}
+            <div class="small mt-1">
+              <a href="{{ p.wave.view_url }}" target="_blank" rel="noopener" title="Open in Wave">Wave #{{ p.wave.invoice_number }}</a>
+              <span class="badge {{ 'bg-success' if p.wave.status == 'PAID' else ('bg-info text-dark' if p.wave.status in ('PARTIAL', 'VIEWED', 'SENT') else ('bg-danger' if p.wave.status == 'OVERDUE' else 'bg-secondary')) }}">{{ (p.wave.status or '')|title }}</span>
+              {% if p.wave.status not in ('PAID',) and p.wave.amount_due is not none %}<span class="text-muted">${{ '%.2f'|format(p.wave.amount_due) }} due</span>{% endif %}
+            </div>
+            {% endif %}
           </td>
           <td data-label="Parts (sale)">${{ '%.2f'|format(p.parts) }}{% if p.parts_count %} <small class="text-muted">({{ p.parts_count }} part{{ 's' if p.parts_count != 1 }})</small>{% endif %}</td>
           <td data-label="Labor">${{ '%.2f'|format(p.labor) }} <small class="text-muted">({{ '%.1f'|format(p.labor_hours) }} hr)</small></td>
           <td data-label="Total"><strong>${{ '%.2f'|format(p.total) }}</strong></td>
           <td class="text-end text-nowrap">
+            {% if wave_connected and not p.wave and p.payment_status != 'paid' and p.total > 0 %}
+            <button type="button" class="btn btn-sm btn-primary wave-invoice-btn"
+                    data-wave-url="{{ url_for('project_wave_invoice', project_id=p.id) }}" data-project-label="{{ p.code }} &middot; {{ p.name }}"
+                    data-customer-name="{{ p.customer_name or '' }}" data-customer-email="{{ p.customer_email or '' }}"><i class="bi bi-send"></i> Invoice in Wave</button>
+            {% endif %}
+            {% if p.wave and p.wave.pdf_url %}
+            <a href="{{ p.wave.pdf_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Wave invoice PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+            {% endif %}
             {% if p.payment_status == 'not_invoiced' %}
             <form method="post" action="{{ url_for('project_mark_invoiced', project_id=p.id) }}" class="d-inline">
               <button class="btn btn-sm btn-outline-primary">Mark Invoiced</button>
@@ -64,7 +93,7 @@
     </table>
   </div>
 </div>
-<p class="small text-muted mt-2 mb-0">Parts are billed at sell price (your cost for them in this period: ${{ '%.2f'|format(totals.parts_cost) }}). Labor is clocked time at each laborer's rate when they clocked in. The Invoice button downloads the full customer invoice for that project, covering all dates.</p>
+<p class="small text-muted mt-2 mb-0">Parts are billed at sell price (your cost for them in this period: ${{ '%.2f'|format(totals.parts_cost) }}). Labor is clocked time at each laborer's rate when they clocked in. The Invoice button downloads the full customer invoice for that project, covering all dates.{% if wave_connected %} Invoice in Wave sends that same invoice through Wave, and the job turns Paid here once the customer pays it in Wave.{% endif %}</p>
 {% else %}
 <p class="text-muted">{{ 'No unpaid jobs in this period.' if unpaid_only else 'No parts used or labor clocked on any project in this period.' }}</p>
 {% endif %}
@@ -93,6 +122,41 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-success fw-bold btn-sm"><i class="bi bi-check-lg"></i> Mark Paid</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{#- Wave: who the invoice goes to (filled in from the plane's My Aircraft
+   owner when there is one) and whether Wave emails it right away. #}
+<div class="modal fade" id="waveInvoiceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" id="wave-invoice-form">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-send"></i> Invoice in Wave</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2" id="wave-invoice-project"></p>
+          <p class="small text-muted">Makes a real invoice in Wave for the whole job (every part and all labor, all dates - same as the Invoice download). The customer can pay it online from Wave's email.</p>
+          <div class="mb-2">
+            <label class="form-label">Bill to <span class="text-danger">*</span></label>
+            <input type="text" name="customer_name" id="wave-customer-name" class="form-control" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Email</label>
+            <input type="email" name="customer_email" id="wave-customer-email" class="form-control" placeholder="owner@example.com">
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="send" value="1" id="wave-send" checked>
+            <label class="form-check-label" for="wave-send">Email it to them from Wave now</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary fw-bold btn-sm"><i class="bi bi-send"></i> Create Invoice</button>
         </div>
       </form>
     </div>
@@ -147,6 +211,17 @@ document.querySelectorAll('.mark-paid-btn').forEach(function (btn) {
     document.getElementById('mark-paid-form').action = btn.dataset.markPaidUrl;
     document.getElementById('mark-paid-project').innerHTML = btn.dataset.projectLabel;
     bootstrap.Modal.getOrCreateInstance(document.getElementById('markPaidModal')).show();
+  });
+});
+
+document.querySelectorAll('.wave-invoice-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.getElementById('wave-invoice-form').action = btn.dataset.waveUrl;
+    document.getElementById('wave-invoice-project').textContent = btn.dataset.projectLabel;
+    document.getElementById('wave-customer-name').value = btn.dataset.customerName;
+    document.getElementById('wave-customer-email').value = btn.dataset.customerEmail;
+    document.getElementById('wave-send').checked = true;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('waveInvoiceModal')).show();
   });
 });
 

@@ -15,6 +15,13 @@
 
 <div class="mb-3">
   <a href="{{ url_for('flight.billing_cross_check') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-shield-check"></i> Billing Cross-Check</a>
+  {#- Wave invoicing (wave_billing.py) - checked in the background every
+     half hour too; this checks right away. #}
+  {% if wave_connected %}
+  <form method="post" action="{{ url_for('flight.billing_wave_sync') }}" class="d-inline">
+    <button class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-repeat"></i> Check Wave for payments</button>
+  </form>
+  {% endif %}
 </div>
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -39,6 +46,12 @@
     <h5 class="mb-0">{{ g.student_name }} <span class="text-muted fs-6">({{ g.flights|length }} flight{{ 's' if g.flights|length != 1 }})</span></h5>
     <div class="d-flex align-items-center gap-2">
       <strong class="fs-5">${{ '%.2f'|format(g.total) }}</strong>
+      {% if wave_connected and g.wave_ready_count %}
+      <button type="button" class="btn btn-primary btn-sm wave-invoice-btn"
+              data-wave-url="{{ url_for('flight.billing_wave_invoice', student_id=g.student_id) }}"
+              data-label="{{ g.student_name }} - {{ g.wave_ready_count }} unpaid flight{{ 's' if g.wave_ready_count != 1 }}, ${{ '%.2f'|format(g.wave_ready_total) }}"
+              data-customer-name="{{ g.bill_name }}" data-customer-email="{{ g.bill_email }}"><i class="bi bi-send"></i> Invoice in Wave</button>
+      {% endif %}
       {#- The per-student "Mark All Paid" button was removed at Frank's
          request - flights are marked paid individually or by selection. #}
     </div>
@@ -58,7 +71,7 @@
           <td data-label="Plane $">${{ '%.2f'|format(f.plane_cost) }}</td>
           <td class="stack-full" data-label="Instructor $">${{ '%.2f'|format(f.instructor_cost) }}{% if f.instructor_clock_hours is not none %}<br><span class="badge bg-info text-dark" title="Instructor billed on clocked time, not flight hours">{{ '%.1f'|format(f.instructor_hours) }} hr clocked</span>{% endif %}</td>
           <td data-label="Ground $">${{ '%.2f'|format(f.ground_cost) }}</td>
-          <td data-label="Total"><strong>${{ '%.2f'|format(f.total) }}</strong></td>
+          <td data-label="Total"><strong>${{ '%.2f'|format(f.total) }}</strong>{% if f.wave %}<br><a href="{{ f.wave.view_url }}" target="_blank" rel="noopener" class="badge {{ 'bg-success' if f.wave.status == 'PAID' else 'bg-info text-dark' }} text-decoration-none" title="Wave invoice - {{ (f.wave.status or '')|title }}">Wave #{{ f.wave.invoice_number }}</a>{% endif %}</td>
           {% if status == 'all' %}
           <td data-label="Status">{% if f.paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}</td>
           {% endif %}
@@ -80,10 +93,54 @@
   {% if status == 'unpaid' %}No unpaid flights - everyone's paid up. 👍{% elif status == 'paid' %}No paid flights yet.{% else %}No flights logged yet.{% endif %}
 </p>
 {% endif %}
+
+<div class="modal fade" id="waveInvoiceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" id="wave-invoice-form">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-send"></i> Invoice in Wave</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2 fw-bold" id="wave-invoice-label"></p>
+          <p class="small text-muted">Makes one real invoice in Wave for every unpaid flight not already on one (plane, instructor and ground as separate lines). They can pay it online from Wave's email, and the flights turn Paid here once they do.</p>
+          <div class="mb-2">
+            <label class="form-label">Bill to <span class="text-danger">*</span></label>
+            <input type="text" name="customer_name" id="wave-customer-name" class="form-control" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Email</label>
+            <input type="email" name="customer_email" id="wave-customer-email" class="form-control" placeholder="student@example.com">
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="send" value="1" id="wave-send" checked>
+            <label class="form-check-label" for="wave-send">Email it to them from Wave now</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary fw-bold btn-sm"><i class="bi bi-send"></i> Create Invoice</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+document.querySelectorAll('.wave-invoice-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.getElementById('wave-invoice-form').action = btn.dataset.waveUrl;
+    document.getElementById('wave-invoice-label').textContent = btn.dataset.label;
+    document.getElementById('wave-customer-name').value = btn.dataset.customerName;
+    document.getElementById('wave-customer-email').value = btn.dataset.customerEmail;
+    document.getElementById('wave-send').checked = true;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('waveInvoiceModal')).show();
+  });
+});
+
 document.querySelectorAll('.billing-row').forEach(function (row) {
   row.addEventListener('click', function (e) {
     if (e.target.closest('a, button, form, input')) { return; }

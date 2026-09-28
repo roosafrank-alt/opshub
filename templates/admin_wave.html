@@ -1,0 +1,78 @@
+{% extends "admin_base.html" %}
+{% block title %}Wave Invoicing - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<h4 class="mb-3"><i class="bi bi-receipt"></i> Wave Invoicing
+  {% if connected %}<span class="badge bg-success fs-6 align-middle">Connected</span>{% else %}<span class="badge bg-secondary fs-6 align-middle">Not set up</span>{% endif %}
+</h4>
+<p class="text-muted">
+  Once this is set up, Shop <strong>Billing</strong> and Flight School <strong>Billing</strong> get an
+  <strong>Invoice in Wave</strong> button. It makes a real invoice in your Wave account and can email it with Wave's
+  own <em>Pay now</em> link (card or bank, if Wave Payments is turned on in Wave). OpsHub checks Wave every half hour
+  and marks the job or flights Paid once the invoice is paid there.
+  {% if open_count %}<br><strong>{{ open_count }}</strong> Wave invoice{{ 's' if open_count != 1 }} waiting on payment.{% endif %}
+</p>
+
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+<form method="post" action="{{ url_for('admin_wave') }}">
+  <div class="card p-4 mb-4">
+    <h5 class="mb-3">1. Access token</h5>
+    <p class="small text-muted mb-2">
+      In Wave's developer portal (developer.waveapps.com), sign in, go to <em>Manage Applications</em>,
+      create an application, then open it and click <em>Create token</em> to get a full access token. Paste it here.
+    </p>
+    <input type="password" name="wave_access_token" class="form-control" autocomplete="off"
+           placeholder="{{ 'Saved - leave blank to keep it' if settings.wave_access_token else 'Paste the full access token' }}">
+  </div>
+
+  {% if settings.wave_access_token and not error %}
+  <div class="card p-4 mb-4">
+    <h5 class="mb-3">2. Business</h5>
+    {% set company = businesses|rejectattr('isPersonal')|list %}
+    <select name="wave_business_id" class="form-select">
+      <option value="">Select...</option>
+      {% for b in businesses %}
+      <option value="{{ b.id }}" {{ 'selected' if b.id == settings.wave_business_id or (not settings.wave_business_id and company|length == 1 and b.id == company[0].id) }}>{{ b.name }}{% if b.currency %} ({{ b.currency.code }}){% endif %}{% if b.isPersonal %} - personal{% endif %}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  {% if settings.wave_business_id %}
+  <div class="card p-4 mb-4">
+    <h5 class="mb-2">3. Products for invoice lines</h5>
+    <p class="small text-muted">Wave puts every invoice line under one of your products or services (that's also which income account it lands in).
+      If you don't have these yet, add them in Wave under <em>Sales &amp; Payments &gt; Products &amp; Services</em> (price can be $0 - OpsHub sets the price on each line), then reload this page.</p>
+    {% for key, label, needed in [('wave_labor_product_id', 'Shop labor', 'Shop jobs'), ('wave_parts_product_id', 'Parts', 'Shop jobs'), ('wave_flight_product_id', 'Flight training', 'Flight School')] %}
+    <div class="mb-3">
+      <label class="form-label">{{ label }} <small class="text-muted">- used by {{ needed }}</small></label>
+      <select name="{{ key }}" class="form-select">
+        <option value="">Not set</option>
+        {% for p in products %}
+        <option value="{{ p.id }}" {{ 'selected' if p.id == settings[key] }}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% else %}
+  <input type="hidden" name="wave_business_id" value="{{ settings.wave_business_id }}">
+  {% for key in ['wave_labor_product_id', 'wave_parts_product_id', 'wave_flight_product_id'] %}
+  <input type="hidden" name="{{ key }}" value="{{ settings[key] }}">
+  {% endfor %}
+  {% endif %}
+
+  <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-save"></i> Save</button>
+</form>
+
+{% if settings.wave_access_token %}
+<form method="post" action="{{ url_for('admin_wave_disconnect') }}" class="mt-3"
+      data-confirm="Disconnect Wave? Invoices already made stay in Wave, but OpsHub stops making new ones and checking for payments." data-confirm-title="Disconnect Wave" data-confirm-ok="Disconnect" data-confirm-style="danger">
+  <button class="btn btn-outline-danger btn-sm"><i class="bi bi-plug"></i> Disconnect Wave</button>
+</form>
+{% endif %}
+</div>
+</div>
+{% endblock %}
