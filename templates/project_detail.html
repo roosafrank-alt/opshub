@@ -105,37 +105,6 @@
   </div>
 </div>
 
-{#- QA finding ux-squawk-on-project: the plane's own open squawks and
-   to-dos, right on the job a tech is likely to fix them on, each with one
-   "claim it for this job" control - see project_detail() in app.py. #}
-{% if plane_squawks or plane_todos_open %}
-{% from "_squawk_macros.html" import squawk_step_pills, squawk_project_action, todo_step_pills, todo_project_action %}
-{% set project_can_assign = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
-<div class="card p-3 mb-3 border-danger">
-  <h6 class="mb-2"><i class="bi bi-exclamation-triangle-fill text-danger"></i> {{ project.asset_display_tag }}: squawks &amp; to-dos <span class="text-muted small fw-normal">({{ plane_squawks|length + plane_todos_open|length }})</span></h6>
-  {% if plane_squawks %}
-  <div class="text-uppercase text-muted small fw-bold mb-1">Squawks</div>
-  {% for sq in plane_squawks %}
-  <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
-    <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-    {{ squawk_step_pills(sq) }}
-    {{ squawk_project_action(sq, project.id, project_can_assign) }}
-  </div>
-  {% endfor %}
-  {% endif %}
-  {% if plane_todos_open %}
-  <div class="text-uppercase text-muted small fw-bold mb-1 {{ 'mt-3' if plane_squawks }}">Plane To-Do List</div>
-  {% for t in plane_todos_open %}
-  <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
-    <div>{{ t.description }}</div>
-    {{ todo_step_pills(t) }}
-    {{ todo_project_action(t, project.id, project_can_assign) }}
-  </div>
-  {% endfor %}
-  {% endif %}
-</div>
-{% endif %}
-
 {% if intake %}
 {#- Intake check filled in when the project was opened (app.project_intake). #}
 {% set issues = intake.checks|selectattr('status', 'equalto', 'issue')|list %}
@@ -537,50 +506,120 @@
     </script>
   </div>
 
-  {#- On phones this column comes first, so Assign Parts sits right under
-     the title; on large screens it stays on the right. #}
+  {#- Idea "project": divide the page in half - project info (Discrepancies,
+     Parts, etc) on the left in col-lg-7 above, plane info (squawks/to-dos)
+     on the right here. On phones this column still comes first, so the
+     plane's open squawks/to-dos (and the Assign Parts shortcut) sit right
+     under the title; on large screens it stays on the right. #}
   <div class="col-lg-5 order-first order-lg-last">
-    <div class="card p-3 mb-3 mb-lg-0" id="assign-parts-card">
-      <h6>Assign Parts to This Project</h6>
-      <a href="{{ url_for('scan_page', autoscan=project.code) }}" class="btn btn-warning btn-lg fw-bold w-100 mb-2 d-lg-none"><i class="bi bi-upc-scan"></i> Scan a part</a>
-      <a href="#" class="small d-none d-md-inline-block mb-2" data-bs-toggle="collapse" data-bs-target="#assign-tip-collapse" role="button">Using a printed code sheet?</a>
-      <div class="collapse d-none d-md-block" id="assign-tip-collapse">
-        <p class="text-muted small">Tip: on the <a href="{{ url_for('scan_page') }}">Scan</a> page, scan this project's <a href="{{ url_for('project_label', project_id=project.id) }}">printed code</a> first to select it (no phone dropdown needed), then scan parts to assign them - handy if you're carrying a printed code sheet instead of your phone.</p>
+    {#- QA finding ux-squawk-on-project: the plane's own open squawks and
+       to-dos, right on the job a tech is likely to fix them on, each with
+       one "claim it for this job" control - see project_detail() in app.py. #}
+    {% if plane_squawks or plane_todos_open %}
+    {% from "_squawk_macros.html" import squawk_step_pills, squawk_project_action, todo_step_pills, todo_project_action %}
+    {% set project_can_assign = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
+    <div class="card p-3 mb-3 border-danger">
+      <h6 class="mb-2"><i class="bi bi-exclamation-triangle-fill text-danger"></i> {{ project.asset_display_tag }}: squawks &amp; to-dos <span class="text-muted small fw-normal">({{ plane_squawks|length + plane_todos_open|length }})</span></h6>
+      {% if plane_squawks %}
+      <div class="text-uppercase text-muted small fw-bold mb-1">Squawks</div>
+      {% for sq in plane_squawks %}
+      <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
+        <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+        {{ squawk_step_pills(sq) }}
+        {{ squawk_project_action(sq, project.id, project_can_assign) }}
       </div>
-      <form method="post" action="{{ url_for('project_add_part', project_id=project.id) }}" id="assign-part-form">
-        <label class="form-label small">Part</label>
-        <select name="part_id" class="form-select mb-2" required>
-          <option value="" disabled selected>Select a part...</option>
-          {% for p in all_parts %}
-          {% set _exp = part_expiry(p) %}
-          <option value="{{ p.id }}"{% if _exp and _exp.level == 'expired' %} data-expired="{{ _exp.date|usdate }}"{% endif %}>{{ p.name }} ({{ '%g'|format(p.qty_on_hand) }} {{ p.unit }} on hand){% if _exp and _exp.level == 'expired' %} - EXPIRED{% endif %}</option>
-          {% endfor %}
-        </select>
-        <label class="form-label small">Quantity</label>
-        <input type="number" step="any" name="qty" class="form-control mb-2" value="1" required>
-        <label class="form-label small">Area / Sub-System <span class="text-muted small">(optional, e.g. Brakes, Engine)</span></label>
-        <select id="assign-section-select" name="section" class="form-select form-select-sm mb-2">
-          <option value="">-- General (no specific area) --</option>
-          <option value="__new__">+ Add new area...</option>
-        </select>
-        <div id="assign-section-new-row" class="input-group input-group-sm mb-2" style="display:none;">
-          <input type="text" id="assign-section-new-input" class="form-control" placeholder="e.g. Brakes, Engine, Avionics">
-          <button type="button" id="assign-section-new-add" class="btn btn-primary">Add</button>
+      {% endfor %}
+      {% endif %}
+      {% if plane_todos_open %}
+      <div class="text-uppercase text-muted small fw-bold mb-1 {{ 'mt-3' if plane_squawks }}">Plane To-Do List</div>
+      {% for t in plane_todos_open %}
+      <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
+        <div>{{ t.description }}</div>
+        {{ todo_step_pills(t) }}
+        {{ todo_project_action(t, project.id, project_can_assign) }}
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {#- Idea "project": the Assign Parts form used to sit here in full and
+       took up most of this column - now it's a small wrench icon that
+       opens the same form in a popup (#assignPartsModal below). #}
+    <div class="d-flex justify-content-end mb-3">
+      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#assignPartsModal" title="Assign a part to this project"><i class="bi bi-wrench"></i> Assign Parts</button>
+    </div>
+
+    {% if open_orders %}
+    <div class="card p-3 mb-3">
+      <h6><i class="bi bi-truck"></i> Pending Orders for This Job</h6>
+      <ul class="list-group list-group-flush">
+        {% for o in open_orders %}
+        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+          <span>{{ o.description }} <small class="text-muted">x{{ '%g'|format(o.qty_ordered) }}</small></span>
+          <a href="{{ url_for('orders_list') }}" class="badge bg-warning text-dark text-decoration-none">Pending</a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{#- Idea "project": Assign Parts used to be a full card in the right
+   column, taking up most of it - now it's this popup, opened from the
+   small wrench button above. Same form and script as before, unchanged. #}
+<div class="modal fade" id="assignPartsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-wrench"></i> Assign Parts to This Project</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <a href="{{ url_for('scan_page', autoscan=project.code) }}" class="btn btn-warning btn-lg fw-bold w-100 mb-2 d-lg-none"><i class="bi bi-upc-scan"></i> Scan a part</a>
+        <a href="#" class="small d-none d-md-inline-block mb-2" data-bs-toggle="collapse" data-bs-target="#assign-tip-collapse" role="button">Using a printed code sheet?</a>
+        <div class="collapse d-none d-md-block" id="assign-tip-collapse">
+          <p class="text-muted small">Tip: on the <a href="{{ url_for('scan_page') }}">Scan</a> page, scan this project's <a href="{{ url_for('project_label', project_id=project.id) }}">printed code</a> first to select it (no phone dropdown needed), then scan parts to assign them - handy if you're carrying a printed code sheet instead of your phone.</p>
         </div>
-        <label class="form-label small">Scanning as</label>
-        <select id="assign-operator-select" class="form-select form-select-sm mb-2">
-          <option value="" disabled selected>-- Select --</option>
-          <option value="__new__">+ Add new name...</option>
-        </select>
-        <div id="assign-operator-new-row" class="input-group input-group-sm mb-2" style="display:none;">
-          <input type="text" id="assign-operator-new-input" class="form-control" placeholder="e.g. Frank, Shop PC, Tablet 1">
-          <button type="button" id="assign-operator-new-add" class="btn btn-primary">Add</button>
-        </div>
-        <input type="hidden" name="performed_by" id="assign-operator-hidden">
-        <input type="hidden" name="confirm_expired" id="assign-confirm-expired" value="">
-        <button class="btn btn-primary w-100">Assign to Project</button>
-      </form>
-      <script>
+        <form method="post" action="{{ url_for('project_add_part', project_id=project.id) }}" id="assign-part-form">
+          <label class="form-label small">Part</label>
+          <select name="part_id" class="form-select mb-2" required>
+            <option value="" disabled selected>Select a part...</option>
+            {% for p in all_parts %}
+            {% set _exp = part_expiry(p) %}
+            <option value="{{ p.id }}"{% if _exp and _exp.level == 'expired' %} data-expired="{{ _exp.date|usdate }}"{% endif %}>{{ p.name }} ({{ '%g'|format(p.qty_on_hand) }} {{ p.unit }} on hand){% if _exp and _exp.level == 'expired' %} - EXPIRED{% endif %}</option>
+            {% endfor %}
+          </select>
+          <label class="form-label small">Quantity</label>
+          <input type="number" step="any" name="qty" class="form-control mb-2" value="1" required>
+          <label class="form-label small">Area / Sub-System <span class="text-muted small">(optional, e.g. Brakes, Engine)</span></label>
+          <select id="assign-section-select" name="section" class="form-select form-select-sm mb-2">
+            <option value="">-- General (no specific area) --</option>
+            <option value="__new__">+ Add new area...</option>
+          </select>
+          <div id="assign-section-new-row" class="input-group input-group-sm mb-2" style="display:none;">
+            <input type="text" id="assign-section-new-input" class="form-control" placeholder="e.g. Brakes, Engine, Avionics">
+            <button type="button" id="assign-section-new-add" class="btn btn-primary">Add</button>
+          </div>
+          <label class="form-label small">Scanning as</label>
+          <select id="assign-operator-select" class="form-select form-select-sm mb-2">
+            <option value="" disabled selected>-- Select --</option>
+            <option value="__new__">+ Add new name...</option>
+          </select>
+          <div id="assign-operator-new-row" class="input-group input-group-sm mb-2" style="display:none;">
+            <input type="text" id="assign-operator-new-input" class="form-control" placeholder="e.g. Frank, Shop PC, Tablet 1">
+            <button type="button" id="assign-operator-new-add" class="btn btn-primary">Add</button>
+          </div>
+          <input type="hidden" name="performed_by" id="assign-operator-hidden">
+          <input type="hidden" name="confirm_expired" id="assign-confirm-expired" value="">
+          <button class="btn btn-primary w-100">Assign to Project</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
         (function () {
           var select = document.getElementById('assign-operator-select');
           var hidden = document.getElementById('assign-operator-hidden');
@@ -710,20 +749,4 @@
           });
         })();
       </script>
-    </div>
-    {% if open_orders %}
-    <div class="card p-3 mt-lg-3 mb-3">
-      <h6><i class="bi bi-truck"></i> Pending Orders for This Job</h6>
-      <ul class="list-group list-group-flush">
-        {% for o in open_orders %}
-        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-          <span>{{ o.description }} <small class="text-muted">x{{ '%g'|format(o.qty_ordered) }}</small></span>
-          <a href="{{ url_for('orders_list') }}" class="badge bg-warning text-dark text-decoration-none">Pending</a>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
-  </div>
-</div>
 {% endblock %}
