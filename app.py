@@ -5895,9 +5895,13 @@ def _shop_parts_usage(conn, start, end, project_id=None):
 def shop_pay():
     """Labor Pay: each laborer's clocked hours and pay for a period, with
     the individual sessions underneath. Shop admins see everyone; anyone
-    else sees only the laborer record with their own name (their pay)."""
+    else sees only the laborer record with their own name (their pay).
+    A shop admin can also jump straight to one laborer's pay (laborer_id),
+    same idea as a CFI's own Pay page."""
     start, end, period, label = _shop_period("this_week")
     admin_view = bool(session.get("is_master_admin") or session.get("shop_role") == "admin")
+    laborer_id = request.args.get("laborer_id", type=int) if admin_view else None
+    laborer_name = None
     conn = get_db()
     sql = """SELECT ls.*, l.name as laborer_name, l.rate as laborer_rate, pr.code as project_code,
                     pr.name as project_name, pr.id as project_id
@@ -5906,7 +5910,12 @@ def shop_pay():
              LEFT JOIN projects pr ON pr.id = ls.project_id
              WHERE date(ls.started_at) BETWEEN ? AND ?"""
     params = [start, end]
-    if not admin_view:
+    if laborer_id:
+        sql += " AND l.id = ?"
+        params.append(laborer_id)
+        laborer_row = conn.execute("SELECT name FROM laborers WHERE id = ?", (laborer_id,)).fetchone()
+        laborer_name = laborer_row["name"] if laborer_row else None
+    elif not admin_view:
         sql += " AND lower(trim(l.name)) = lower(trim(?))"
         params.append(session.get("user_name") or "")
     sql += " ORDER BY l.name, ls.started_at"
@@ -5966,7 +5975,8 @@ def shop_pay():
     return render_template("shop_pay.html", laborers_pay=laborers_pay, admin_view=admin_view,
                            total_hours=sum(g["hours"] for g in laborers_pay),
                            total_pay=sum(g["pay"] for g in laborers_pay),
-                           periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end)
+                           periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end,
+                           laborer_id=laborer_id, laborer_name=laborer_name)
 
 
 def _project_all_time_total(conn, project_id):

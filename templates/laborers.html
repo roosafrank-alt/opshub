@@ -26,7 +26,8 @@
         <td>{% if l.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
         <td class="text-end text-nowrap">
           <a href="{{ url_for('laborer_label', laborer_id=l.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-qr-code"></i> Code</a>
-          <a href="{{ url_for('admin_user_edit', user_id=l.account_id) if (is_master_admin and l.account_id) else url_for('laborer_edit', laborer_id=l.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+          <a href="{{ url_for('admin_user_edit', user_id=l.account_id) if (is_master_admin and l.account_id) else url_for('laborer_edit', laborer_id=l.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i> Edit</a>
+          <a href="{{ url_for('shop_pay', laborer_id=l.id) }}" class="btn btn-sm btn-outline-success"><i class="bi bi-cash-stack"></i> Pay</a>
         </td>
       </tr>
       {% endfor %}

@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Labor Pay' if admin_view else 'My Pay' }} - OpsHub{% endblock %}
+{% block title %}{{ (laborer_name ~ '\'s Pay') if laborer_name else ('Labor Pay' if admin_view else 'My Pay') }} - OpsHub{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="mb-0"><i class="bi bi-cash-stack"></i> {{ 'Labor Pay' if admin_view else 'My Pay' }} <span class="text-muted fs-6">- {{ period_label }}</span></h4>
+  <h4 class="mb-0"><i class="bi bi-cash-stack"></i> {{ (laborer_name ~ '\'s Pay') if laborer_name else ('Labor Pay' if admin_view else 'My Pay') }} <span class="text-muted fs-6">- {{ period_label }}</span></h4>
   <div class="text-end">
     <span class="text-muted small d-block">{{ '%.1f'|format(total_hours) }} hrs clocked</span>
     <strong class="fs-4">${{ '%.2f'|format(total_pay) }}</strong>
