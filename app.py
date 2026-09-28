@@ -37,7 +37,7 @@ from auth import (authenticate, log_in_user, log_out_user, current_user, login_r
                    real_is_master_admin, view_as_chips, home_view_as_level,
                    account_program_count, single_program_endpoint,
                    person_view_active, person_view_name, can_view_as_person,
-                   start_view_as_person, stop_view_as_person)
+                   start_view_as_person, stop_view_as_person, real_user_id)
 import notify
 from urllib.parse import urlparse
 import push
@@ -6800,7 +6800,7 @@ def admin_users_list():
     owner_id = owner_user_id(conn)
     conn.close()
     return render_template("admin_users.html", users=users, owner_id=owner_id,
-                           viewer_is_owner=session.get("user_id") == owner_id)
+                           viewer_is_owner=real_user_id() == owner_id)
 
 
 def _pay_link_context(conn, user_row=None):

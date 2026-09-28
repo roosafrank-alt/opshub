@@ -485,7 +485,9 @@ def owner_user_id(conn=None):
 
 
 def is_owner(conn=None):
-    uid = session.get("user_id")
+    """True only for the REAL signed-in account (see real_user_id) - a
+    master admin "viewing as" the owner is not treated as the owner."""
+    uid = real_user_id()
     return bool(uid) and uid == owner_user_id(conn)
 
 
@@ -699,6 +701,21 @@ def can_view_as_person():
         base = real.get("_view_as_real") or real
         return bool(base.get("is_master_admin"))
     return real_is_master_admin()
+
+
+def real_user_id():
+    """The real signed-in account's own users.id - even mid preview, whether
+    that's a role preview (_view_as_real, session['user_id'] itself is never
+    part of that snapshot so this only matters if that ever changes), viewing
+    as another person (_PERSON_VIEW_KEY swaps session['user_id'] to the
+    viewed person's own id), or both at once. Needed anywhere that must know
+    who is really at the keyboard, such as the owner-account lock in
+    Admin > Accounts - see owner_user_id/is_owner below."""
+    base = session.get(_PERSON_VIEW_KEY) or session
+    real = base.get("_view_as_real")
+    if real and "user_id" in real:
+        return real.get("user_id")
+    return base.get("user_id")
 
 
 def _admin_session():
