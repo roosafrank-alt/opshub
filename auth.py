@@ -20,7 +20,7 @@ from functools import wraps
 from flask import session, redirect, url_for, flash
 from werkzeug.security import check_password_hash
 
-from db import get_db, ensure_flight_profile
+from db import get_db, ensure_flight_profile, user_shop_roles, user_flight_roles
 
 
 def authenticate(username, password):
@@ -179,40 +179,116 @@ _VIEW_AS_SNAPSHOT_KEYS = ("is_master_admin", "shop_role", "flight_role", "cfi_id
                           "can_bill", "customer_id", "customer_name")
 
 
+# Idea "view as for multi-role accounts": someone who holds more than one
+# role in a program (ticked separately in Admin > Accounts - e.g. Admin AND
+# Inspector, or CFI AND Student) gets the same chips, limited to their own
+# roles, and switching uses the app for real as that role. Clicking the chip
+# for your normal role (Admin for a master admin) goes straight back to your
+# normal view - no separate "Back to admin" step.
+
+
+def _real(key):
+    """The signed-in account's own session value, even mid-preview."""
+    real = session.get("_view_as_real")
+    return real.get(key) if real else session.get(key)
+
+
+def real_is_master_admin():
+    return bool(_real("is_master_admin"))
+
+
+def _own_roles(conn, program):
+    uid = session.get("user_id")
+    if not uid:
+        return []
+    row = conn.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
+    if not row:
+        return []
+    return user_shop_roles(row) if program == "shop" else user_flight_roles(row)
+
+
+def home_view_as_level(program):
+    """The chip that means "my normal view" in this program: Admin for a
+    master admin, otherwise the account's own main role there."""
+    if real_is_master_admin():
+        return "admin"
+    return _real("shop_role") if program == "shop" else _real("flight_role")
+
+
+def allowed_view_as_levels(conn, program):
+    """{level: label} this account may switch to in 'shop' or 'flight' -
+    every level for a master admin, just their own roles for anyone else
+    (and nothing at all when they only have one role there)."""
+    levels = SHOP_VIEW_AS_LEVELS if program == "shop" else FLIGHT_VIEW_AS_LEVELS
+    if real_is_master_admin():
+        return dict(levels)
+    own = [r for r in _own_roles(conn, program) if r in levels]
+    if len(own) < 2:
+        return {}
+    return {r: levels[r] for r in own}
+
+
+def view_as_chips(conn, program):
+    """The header's chip row for one program: a list of dicts with
+    level, label and action - 'exit' (back to your normal view), 'current'
+    (the view you're in now) or 'start' (switch to it)."""
+    levels = allowed_view_as_levels(conn, program)
+    if not levels:
+        return []
+    home = home_view_as_level(program)
+    previewing = bool(session.get("_view_as_real"))
+    here = session.get("_view_as_program") == program if previewing else True
+    current = (session.get("shop_role") if program == "shop" else session.get("flight_role")) if previewing and here else None
+    chips = []
+    if home not in levels:
+        # A master admin on Flight School: CFI/Student are previews, and
+        # "Admin" is the way back.
+        chips.append(dict(level=home, label="Admin", action="exit" if previewing else "current"))
+    for level, label in levels.items():
+        if level == home:
+            action = "exit" if previewing else "current"
+        elif level == current:
+            action = "current"
+        else:
+            action = "start"
+        chips.append(dict(level=level, label=label, action=action))
+    return chips
+
+
 def _pick_view_as_flight_profile(conn, level):
-    """A real cfis/students row to back a Flight School preview: the admin's
-    own linked profile at that level if they have one, else the first active
-    one alphabetically. Returns (id, name), or (None, None) if the school
-    has nobody active at that level yet to preview as."""
+    """A real cfis/students row to back a Flight School preview: the
+    account's own linked profile at that level if they have one, else (for a
+    master admin only) the first active one alphabetically. Returns
+    (id, name), or (None, None) if there's nobody to preview as."""
     table = "cfis" if level == "cfi" else "students"
     own_user_id = session.get("user_id")
     if own_user_id:
         own = conn.execute(f"SELECT id, name FROM {table} WHERE user_id = ? AND active = 1", (own_user_id,)).fetchone()
         if own:
             return own["id"], own["name"]
+    if not real_is_master_admin():
+        return None, None
     first = conn.execute(f"SELECT id, name FROM {table} WHERE active = 1 ORDER BY name LIMIT 1").fetchone()
     return (first["id"], first["name"]) if first else (None, None)
 
 
 def start_view_as(conn, program, level):
-    """True master admin only - which includes a master admin already
-    previewing someone else, who can switch straight to a different
-    preview (even a different program) without exiting back to their own
-    view first (idea "view change"). program is 'shop', 'flight' or
-    'owner'; level is one of that program's own *_VIEW_AS_LEVELS keys (or,
-    for 'owner', a customer id). Returns (ok, error_message_or_None)."""
-    if not session.get("is_master_admin") and not session.get("_view_as_real"):
-        return False, None
-    if program == "shop":
-        if level not in SHOP_VIEW_AS_LEVELS:
+    """A master admin (any level, any program, or a specific owner), or an
+    account with several roles in a program (just its own roles) - either
+    one already previewing can switch straight to a different preview
+    without exiting first (idea "view change"). program is 'shop', 'flight'
+    or 'owner'; level is one of that program's own *_VIEW_AS_LEVELS keys
+    (or, for 'owner', a customer id). Returns (ok, error_message_or_None)."""
+    if program == "shop" or program == "flight":
+        if level not in allowed_view_as_levels(conn, program):
             return False, None
-    elif program == "flight":
-        if level not in FLIGHT_VIEW_AS_LEVELS:
-            return False, None
+    if program == "flight":
         person_id, person_name = _pick_view_as_flight_profile(conn, level)
         if not person_id:
             return False, f"There's no active {FLIGHT_VIEW_AS_LEVELS[level].lower()} on file yet to preview as."
     elif program == "owner":
+        if not real_is_master_admin():
+            return False, None
         # level is a customers.id (as a string, from the URL) rather than a
         # role name - My Aircraft has no roles, just "this real owner's
         # view", picked from customers_list rather than a fixed level set.
@@ -224,7 +300,7 @@ def start_view_as(conn, program, level):
                                 (customer_id,)).fetchone()
         if not customer:
             return False, "That customer account isn't active."
-    else:
+    elif program != "shop":
         return False, None
 
     # Baseline snapshot, captured once on the very first preview this
@@ -277,13 +353,16 @@ def viewing_as_label():
         return SHOP_VIEW_AS_LEVELS.get(session.get("shop_role"))
     role_label = FLIGHT_VIEW_AS_LEVELS.get(session.get("flight_role"))
     name = session.get("_view_as_person_name")
-    return f"{role_label} ({name})" if name and role_label else role_label
+    # Your own profile needs no name after it - only a master admin
+    # previewing someone else's does.
+    if name and role_label and name != session.get("user_name"):
+        return f"{role_label} ({name})"
+    return role_label
 
 
 def view_as_active_program():
-    """'shop' | 'flight' | 'owner' | None - which program's levels the
-    "View as" chips should treat as currently active (to grey out/exclude
-    that one and show Exit)."""
+    """'shop' | 'flight' | 'owner' | None - which program's preview is
+    active right now."""
     if not session.get("_view_as_real"):
         return None
     return session.get("_view_as_program")

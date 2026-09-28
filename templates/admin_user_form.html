@@ -42,29 +42,39 @@
     {#- ===================== Access ===================== #}
     <hr class="my-3">
     <h6 class="mb-2"><i class="bi bi-shield-lock"></i> Access</h6>
+    {#- Every role is its own checkbox, so one person can hold several
+       (e.g. Admin AND Inspector, or CFI AND Student). The first ticked one
+       in each list is their normal role; they switch to the others with the
+       "View as" chips in the header, and can use the app fully as that role. #}
+    {% set _pre_shop = preset.shop_roles if preset else (user_shop_roles(user) if user else []) %}
+    {% set _pre_flight = preset.flight_roles if preset else (user_flight_roles(user) if user else []) %}
     <div class="row">
       <div class="col-6 mb-3">
-        <label class="form-label">Maintenance Role</label>
-        <select name="shop_role" class="form-select">
-          {% set _pre_shop = user.shop_role if user else (preset.shop_role if preset else '') %}
-          <option value="" {% if not _pre_shop %}selected{% endif %}>No access</option>
-          <option value="admin" {% if _pre_shop == 'admin' %}selected{% endif %}>Admin (full Maintenance access)</option>
-          <option value="tech" {% if _pre_shop == 'tech' %}selected{% endif %}>Tech (scan, labor, no costs/settings)</option>
-          <option value="inspector" {% if _pre_shop == 'inspector' %}selected{% endif %}>Inspector (confirms sub areas marked ready)</option>
-          <option value="apprentice" {% if _pre_shop == 'apprentice' %}selected{% endif %}>Apprentice (scan/labor only)</option>
-        </select>
-        <div class="form-text">This is the Maintenance/shop side only - it doesn't give Flight School admin powers like ending someone else's flight. For that, check "Master Admin" below.</div>
+        <label class="form-label d-block">Maintenance Roles</label>
+        {% for value, label, hint in [
+            ('admin', 'Admin', 'full Maintenance access'),
+            ('tech', 'Tech', 'scan, labor, no costs/settings'),
+            ('inspector', 'Inspector', 'confirms sub areas marked ready, signs off repairs'),
+            ('apprentice', 'Apprentice', 'scan/labor only')] %}
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="shop_roles" value="{{ value }}" id="shop-role-{{ value }}" {% if value in _pre_shop %}checked{% endif %}>
+          <label class="form-check-label" for="shop-role-{{ value }}">{{ label }} <span class="text-muted small">({{ hint }})</span></label>
+        </div>
+        {% endfor %}
+        <div class="form-text">None ticked = no Maintenance access. This is the Maintenance/shop side only - it doesn't give Flight School admin powers like ending someone else's flight. For that, check "Master Admin" below.</div>
       </div>
       <div class="col-6 mb-3">
-        <label class="form-label">Flight School Role</label>
-        <select name="flight_role" class="form-select">
-          {% set _pre_flight = user.flight_role if user else (preset.flight_role if preset else '') %}
-          <option value="" {% if not _pre_flight %}selected{% endif %}>No access</option>
-          <option value="cfi" {% if _pre_flight == 'cfi' %}selected{% endif %}>CFI / Instructor</option>
-          <option value="student" {% if _pre_flight == 'student' %}selected{% endif %}>Student</option>
-        </select>
+        <label class="form-label d-block">Flight School Roles</label>
+        {% for value, label in [('cfi', 'CFI / Instructor'), ('student', 'Student')] %}
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="flight_roles" value="{{ value }}" id="flight-role-{{ value }}" {% if value in _pre_flight %}checked{% endif %}>
+          <label class="form-check-label" for="flight-role-{{ value }}">{{ label }}</label>
+        </div>
+        {% endfor %}
+        <div class="form-text">None ticked = no Flight School access.</div>
       </div>
     </div>
+    <div class="form-text mb-3">More than one role ticked? The first ticked role is what they see when they log in. The "View as" chips at the top of the page switch to any of their other roles, and everything works as it does for that role.</div>
     <div class="form-check mb-2">
       <input type="checkbox" class="form-check-input" name="is_master_admin" id="master-admin-check" {% if user and user.is_master_admin %}checked{% endif %}>
       <label class="form-check-label" for="master-admin-check">Master Admin <span class="text-muted small">(full access to everything in both programs, including this page)</span></label>
