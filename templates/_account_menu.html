@@ -1,0 +1,23 @@
+{#- Idea "Drop down menu": the account menu, shared between the Shop and
+   Flight School headers. Included twice per header - once as an icon next
+   to the hamburger (always visible, `menu_id_suffix` "mobile", no name) and
+   once inline in the expanded desktop nav (`menu_id_suffix` "desktop", with
+   the name) - so on a phone it opens straight from the top bar instead of
+   needing the hamburger menu open first (a dropdown nested inside a
+   dropdown). Callers set `account_from` ('shop' or 'flight'), `logout_url`,
+   `menu_id_suffix`, `wrapper_classes` and `show_name`. #}
+{% set _menu_id = 'user-menu-toggle-' ~ menu_id_suffix %}
+<div class="dropdown{{ ' ' ~ wrapper_classes if wrapper_classes }}">
+  <a class="nav-link dropdown-toggle text-light" href="#" id="{{ _menu_id }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <i class="bi bi-person-circle"></i>{% if show_name %} {{ logged_in_user_name }}{% endif %}
+  </a>
+  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="{{ _menu_id }}">
+    <li><a class="dropdown-item" href="{{ url_for('account_page', from=account_from) }}"><i class="bi bi-person-gear"></i> My Account</a></li>
+    {% if is_master_admin %}
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="{{ url_for('admin_home') }}"><i class="bi bi-shield-lock-fill"></i> Admin</a></li>
+    {% endif %}
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="{{ logout_url }}" onclick="return confirm('Log out?')"><i class="bi bi-box-arrow-right"></i> Log Out</a></li>
+  </ul>
+</div>

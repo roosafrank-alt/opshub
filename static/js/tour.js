@@ -5,9 +5,23 @@
    handful of things worth knowing on first login, and replayable later
    from My Account. */
 window.OpsHubTour = (function () {
+  // A step's selector can match more than one element - e.g. the account
+  // menu now has a mobile copy (icon only, next to the hamburger) and a
+  // desktop copy (inline once the nav is expanded), only one of which is
+  // ever visible at a given screen width. Picks the visible match, falling
+  // back to the first one so a step with no visible match yet still spotlights
+  // something rather than showing an empty box.
+  function visibleTarget(selector) {
+    var els = document.querySelectorAll(selector);
+    for (var i = 0; i < els.length; i++) {
+      if (els[i].offsetParent !== null) return els[i];
+    }
+    return els[0] || null;
+  }
+
   function start(steps, opts) {
     opts = opts || {};
-    steps = (steps || []).filter(function (s) { return !s.selector || document.querySelector(s.selector); });
+    steps = (steps || []).filter(function (s) { return !s.selector || visibleTarget(s.selector); });
     if (!steps.length) { if (opts.onFinish) opts.onFinish(); return; }
 
     var idx = 0;
@@ -33,7 +47,7 @@ window.OpsHubTour = (function () {
 
     function reposition() {
       var step = steps[idx];
-      var target = step.selector ? document.querySelector(step.selector) : null;
+      var target = step.selector ? visibleTarget(step.selector) : null;
 
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'center' });

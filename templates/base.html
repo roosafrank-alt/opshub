@@ -60,6 +60,17 @@
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
       <span class="navbar-toggler-icon"></span>
     </button>
+    {#- Idea "Drop down menu": on a phone (below xl, where the nav collapses
+       into the hamburger), the account menu opens straight from here
+       instead of needing the hamburger menu open first - that was a
+       dropdown nested inside a dropdown. The full-width one with the name
+       still shows inline once the nav is expanded (xl+) below. #}
+    {% set account_from = 'shop' %}
+    {% set logout_url = url_for('logout') %}
+    {% set menu_id_suffix = 'mobile' %}
+    {% set wrapper_classes = 'd-xl-none ms-1' %}
+    {% set show_name = false %}
+    {% include "_account_menu.html" %}
     {#- Which section is open, from the URL - highlights that nav button
        (.nav-link.active above). #}
     {% set _p = request.path %}
@@ -141,20 +152,15 @@
                 {% endif %}
               </ul>
             </div>
-            <div class="dropdown">
-              <a class="nav-link dropdown-toggle text-light" href="#" id="user-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-person-circle"></i> {{ logged_in_user_name }}
-              </a>
-              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu-toggle">
-                <li><a class="dropdown-item" href="{{ url_for('account_page', from='shop') }}"><i class="bi bi-person-gear"></i> My Account</a></li>
-                {% if is_master_admin %}
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="{{ url_for('admin_home') }}"><i class="bi bi-shield-lock-fill"></i> Admin</a></li>
-                {% endif %}
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="{{ url_for('logout') }}" onclick="return confirm('Log out?')"><i class="bi bi-box-arrow-right"></i> Log Out</a></li>
-              </ul>
-            </div>
+            {#- Same account menu as the icon next to the hamburger above -
+               this copy only shows once the nav is expanded (xl+), where it
+               sits inline instead of inside a hamburger panel. #}
+            {% set account_from = 'shop' %}
+            {% set logout_url = url_for('logout') %}
+            {% set menu_id_suffix = 'desktop' %}
+            {% set wrapper_classes = 'd-none d-xl-block' %}
+            {% set show_name = true %}
+            {% include "_account_menu.html" %}
           </div>
         </div>
       </div>
@@ -190,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
     { selector: '#tour-nav-aircraft', title: 'Aircraft', text: 'Every asset\'s maintenance history, meters, and due items live here.' },
     { selector: '#tour-nav-calendar', title: 'Calendar', text: 'A month view of everything scheduled or due.' },
     { selector: '#tour-nav-squawks', title: 'Squawks', text: 'Open issues that need attention show up here, with a red badge when something\'s outstanding.' },
-    { selector: '#user-menu-toggle', title: 'Your Account', text: 'Update your contact info and password, and you can replay this tour any time from here.' }
+    { selector: '#user-menu-toggle-mobile, #user-menu-toggle-desktop', title: 'Your Account', text: 'Update your contact info and password, and you can replay this tour any time from here.' }
   ], {
     onFinish: function () {
       fetch("{{ url_for('tour_seen') }}", { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'side=shop' });

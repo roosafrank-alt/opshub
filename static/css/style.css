@@ -310,3 +310,15 @@ body { background: #f4f5f7; }
 .navbar.bg-dark #nav.navbar-collapse { background: var(--bs-dark, #212529); }
 .admin-nav #nav.navbar-collapse { background: var(--admin-purple, #4b3f72); }
 .account-nav #nav.navbar-collapse { background: #1f2937; }
+/* Idea "Drop down menu": the collapsed-nav ".d-flex" rules above stack
+   every flex row full-width, one item per line - fine for the nav links,
+   but it also caught the "View as" chip row and stretched its label and
+   each button into its own full-width block. Keep that row itself
+   horizontal and compact regardless. */
+.navbar-collapse .view-as-chips {
+  flex-direction: row !important;
+  align-items: center !important;
+  flex-wrap: wrap;
+  width: auto !important;
+  margin: 0 0 .25rem !important;
+}
