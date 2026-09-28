@@ -399,3 +399,19 @@ body { background: #f4f5f7; }
   .squawk-btn.btn-sm { padding: .15rem .45rem; font-size: .72rem; }
   .squawk-select.form-select-sm { padding: .15rem 1.3rem .15rem .4rem; font-size: .72rem; }
 }
+
+/* Idea "Squalk view", round 2 (reference image: "Done" wrapping to its own
+   line under the other 4 step pills, pushing the action button and the
+   whole card a row taller). Keeps the same 5 pills - same badge markup,
+   colors and checkmarks as squawk_step_pills always had - on one line
+   instead of wrapping, which is what actually shortens the card on a
+   phone; overflow-x is just a safety valve for an unusually narrow window,
+   never needed at normal phone widths. */
+.squawk-step-pills {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+@media (max-width: 575.98px) {
+  .squawk-step-pills { gap: .2rem; }
+  .squawk-step-pills .badge { font-size: .62rem; padding: .17rem .26rem; }
+}
