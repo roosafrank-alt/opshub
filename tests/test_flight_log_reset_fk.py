@@ -40,3 +40,24 @@ class FlightLogResetKeepsPilotLogbookTest(OpsHubTestCase):
         entry = self.q1("SELECT * FROM pilot_logbook WHERE id = ?", (self.entry_id,))
         self.assertIsNotNone(entry)
         self.assertIsNone(entry["flight_id"])
+
+
+class FlightLogResetCoversEveryForeignKeyTest(OpsHubTestCase):
+    """Guard for the future, the same one Reset Schedule got after it broke
+    the same way: every table with a hard foreign key to flights must be
+    un-linked by _wipe_flight_log, or Reset Flight Log starts failing again
+    the first time that table has a row. pilot_logbook was missed exactly
+    once and cost three crashes on the Pi before anyone saw why."""
+    HANDLED = {("student_ledger", "flight_id"), ("pilot_logbook", "flight_id")}
+
+    def test_all_foreign_keys_to_flights_are_handled(self):
+        conn = db.get_db()
+        tables = [r["name"] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
+        found = set()
+        for t in tables:
+            for fk in conn.execute(f"PRAGMA foreign_key_list('{t}')").fetchall():
+                if fk["table"] == "flights":
+                    found.add((t, fk["from"]))
+        conn.close()
+        self.assertEqual(found - self.HANDLED, set(),
+                         "New foreign key to flights - un-link it in _wipe_flight_log in app.py")

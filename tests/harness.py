@@ -109,6 +109,15 @@ from flask.testing import FlaskClient  # noqa: E402
 flask_app = app_module.app
 flask_app.config.update(TESTING=True, PROPAGATE_EXCEPTIONS=False)
 
+# The error log goes in the temp folder too. app.py works ERROR_LOG_DIR out
+# from where app.py itself sits, so running the suite in ~/shopinv on the Pi
+# (the documented way - see CLAUDE.md) used to save every deliberate crash a
+# test makes into the LIVE instance/error_logs/, where it showed up on
+# Admin -> System as a real error to chase. _PerFileErrorHandler reads this
+# global on every write, so re-pointing it here is enough.
+app_module.ERROR_LOG_DIR = os.path.join(_TMP_ROOT, "error_logs")
+os.makedirs(app_module.ERROR_LOG_DIR, exist_ok=True)
+
 # When a route crashes mid-save, its half-finished SQLite connection can keep
 # the database write-locked until Python's garbage collector happens to run.
 # Collecting after every request stops one crash from stalling every later
