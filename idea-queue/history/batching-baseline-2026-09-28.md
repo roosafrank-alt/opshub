@@ -29,3 +29,14 @@ count, median and mean minutes per idea, total hours, retries, failures.
 Also count how many runs stopped right away with "Queue empty. Checked at"
 and how many batches ran ("in a batch" in results), plus meta/runner
 writes per day (its version on 2026-10-05 minus 1067, divided by 7).
+
+## Parallel waves (added 2026-09-28)
+
+After batching, the runner was changed to work up to 4 pending ideas at the
+same time (one helper agent each), instead of one after another. The
+instructions are saved as runner-instructions-2026-09-28-after-parallel.md.
+Ideas finished after it went live count toward the "after" numbers too, but
+time per idea (startedAt to finishedAt) no longer shows the speed-up, since
+ideas in a wave overlap. To see it, compare how long the queue took to empty
+after Frank added several ideas at once: the first startedAt to the last
+finishedAt of each wave. Related ideas still say "Built in a batch with".
