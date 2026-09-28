@@ -51,12 +51,13 @@
   <h6 class="text-muted mb-2">Top-off History</h6>
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0">
-      <thead><tr><th>Date</th><th>Added</th><th>Hours Since Last Top-off</th><th>Running Total</th></tr></thead>
+      <thead><tr><th>Date</th><th>Added</th><th>By</th><th>Hours Since Last Top-off</th><th>Running Total</th></tr></thead>
       <tbody>
         {% for e in events_detail %}
         <tr>
           <td>{{ e.flight_date|usdate }}</td>
           <td>{{ '%g'|format(e.qty) }} qt</td>
+          <td>{{ e.added_by or '-' }}</td>
           <td>{{ '%.1f'|format(e.hours_since_last) }} hrs</td>
           <td>{{ '%g'|format(e.cumulative_qt) }} qt</td>
         </tr>

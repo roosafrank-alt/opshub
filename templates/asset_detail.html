@@ -175,7 +175,7 @@
       <div class="small mt-1" style="max-height:160px; overflow-y:auto;">
         {% for f in oil_log %}
         <div class="d-flex justify-content-between border-top pt-1 mt-1">
-          <span class="text-muted">{{ f.flight_date|usdate }}</span>
+          <span class="text-muted">{{ f.flight_date|usdate }}{% if f.oil_added_by %} - {{ f.oil_added_by }}{% endif %}</span>
           <span>{{ '%g'|format(f.oil_added_qt) }} qt</span>
         </div>
         {% endfor %}

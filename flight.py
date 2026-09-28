@@ -6016,9 +6016,10 @@ def log_update_progress(flight_id):
     hobbs_start = _parse_float(request.form.get("hobbs_start")) if f["hobbs_start"] is None else f["hobbs_start"]
     tach_start = _parse_float(request.form.get("tach_start")) if f["tach_start"] is None else f["tach_start"]
     oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
+    oil_added_by = session.get("user_name") if oil_added_qt is not None else None
     notes = request.form.get("notes", "").strip()
-    conn.execute("UPDATE flights SET hobbs_start=?, tach_start=?, oil_added_qt=?, notes=? WHERE id=?",
-                 (hobbs_start, tach_start, oil_added_qt, notes, flight_id))
+    conn.execute("UPDATE flights SET hobbs_start=?, tach_start=?, oil_added_qt=?, oil_added_by=?, notes=? WHERE id=?",
+                 (hobbs_start, tach_start, oil_added_qt, oil_added_by, notes, flight_id))
     conn.commit()
     conn.close()
     flash("Flight updated.", "success")
@@ -6155,6 +6156,7 @@ def log_end(flight_id):
         card_last4, card_charge_id = charged
 
     oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
+    oil_added_by = session.get("user_name") if oil_added_qt is not None else None
     ground_time_hours = _parse_float(request.form.get("ground_time_hours"))
     notes = request.form.get("notes", "").strip()
     squawk = 1 if notes else 0
@@ -6176,10 +6178,10 @@ def log_end(flight_id):
     elapsed_seconds = max(0.0, (ended - started).total_seconds() - paused_seconds)
     instructor_clock_hours = elapsed_seconds / 3600.0
 
-    conn.execute("""UPDATE flights SET hobbs_start=?, hobbs_end=?, tach_start=?, tach_end=?, recorded_hours=?, oil_added_qt=?, ground_time_hours=?, notes=?,
+    conn.execute("""UPDATE flights SET hobbs_start=?, hobbs_end=?, tach_start=?, tach_end=?, recorded_hours=?, oil_added_qt=?, oil_added_by=?, ground_time_hours=?, notes=?,
                      squawk=?, ended_at=?, instructor_clock_hours=?, paused_at=NULL, paused_seconds=?,
                      day_landings_fs=?, day_landings_tg=?, night_landings_fs=?, night_landings_tg=?, paid=? WHERE id=?""",
-                 (hobbs_start, hobbs_end, tach_start, tach_end, recorded_hours, oil_added_qt, ground_time_hours, notes, squawk,
+                 (hobbs_start, hobbs_end, tach_start, tach_end, recorded_hours, oil_added_qt, oil_added_by, ground_time_hours, notes, squawk,
                   ended_at, instructor_clock_hours, paused_seconds,
                   day_landings_fs, day_landings_tg, night_landings_fs, night_landings_tg, int(paid_choice), flight_id))
     # A student's own plane has no real Hobbs/Tach for the shop to track -
@@ -6422,6 +6424,7 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
         hobbs_end = _parse_float(form.get("hobbs_end"))
         tach_end = _parse_float(form.get("tach_end"))
     oil_added_qt = _parse_float(form.get("oil_added_qt"))
+    oil_added_by = session.get("user_name") if oil_added_qt is not None else None
     ground_time_hours = _parse_float(form.get("ground_time_hours"))
     notes = form.get(notes_field, "").strip()
     scheduled_flight_id = form.get("scheduled_flight_id") or None
@@ -6445,12 +6448,12 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
         return "Ending Hobbs can't be less than starting Hobbs."
 
     cur = conn.execute("""INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, hobbs_start, hobbs_end,
-                     tach_start, tach_end, recorded_hours, oil_added_qt, notes, solo, squawk, ground_time_hours, paid,
+                     tach_start, tach_end, recorded_hours, oil_added_qt, oil_added_by, notes, solo, squawk, ground_time_hours, paid,
                      scheduled_flight_id, day_landings_fs, day_landings_tg, night_landings_fs, night_landings_tg,
                      created_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                  (cfi_id, student_id, asset_id, flight_date, hobbs_start, hobbs_end,
-                  tach_start, tach_end, recorded_hours, oil_added_qt, notes, solo, squawk, ground_time_hours, paid,
+                  tach_start, tach_end, recorded_hours, oil_added_qt, oil_added_by, notes, solo, squawk, ground_time_hours, paid,
                   scheduled_flight_id, day_landings_fs, day_landings_tg, night_landings_fs, night_landings_tg,
                   now_iso()))
     new_flight_id = cur.lastrowid
@@ -6631,6 +6634,7 @@ def log_edit(flight_id):
             tach_start = _parse_float(request.form.get("tach_start"))
             tach_end = _parse_float(request.form.get("tach_end"))
         oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
+        oil_added_by = session.get("user_name") if oil_added_qt is not None else None
         ground_time_hours = _parse_float(request.form.get("ground_time_hours"))
         notes = request.form.get("notes", "").strip()
         day_landings_fs = _parse_int(request.form.get("day_landings_fs"))
@@ -6654,10 +6658,10 @@ def log_edit(flight_id):
             return render_template("flight/log_new.html", form=request.form, edit_flight_id=flight_id, **form_kwargs)
 
         conn.execute("""UPDATE flights SET cfi_id=?, student_id=?, asset_id=?, flight_date=?, hobbs_start=?, hobbs_end=?,
-                         tach_start=?, tach_end=?, recorded_hours=?, oil_added_qt=?, notes=?, solo=?, squawk=?, ground_time_hours=?, paid=?,
+                         tach_start=?, tach_end=?, recorded_hours=?, oil_added_qt=?, oil_added_by=?, notes=?, solo=?, squawk=?, ground_time_hours=?, paid=?,
                          day_landings_fs=?, day_landings_tg=?, night_landings_fs=?, night_landings_tg=? WHERE id=?""",
                      (cfi_id, student_id, asset_id, flight_date, hobbs_start, hobbs_end,
-                      tach_start, tach_end, recorded_hours, oil_added_qt, notes, solo, squawk, ground_time_hours, paid,
+                      tach_start, tach_end, recorded_hours, oil_added_qt, oil_added_by, notes, solo, squawk, ground_time_hours, paid,
                       day_landings_fs, day_landings_tg, night_landings_fs, night_landings_tg, flight_id))
         if hobbs_end is not None:
             conn.execute("UPDATE assets SET hobbs_hours = ?, hobbs_updated_at = ? WHERE id = ? AND (hobbs_hours IS NULL OR hobbs_hours <= ?)",

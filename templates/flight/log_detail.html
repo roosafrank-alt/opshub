@@ -30,7 +30,7 @@
           {% if f.hobbs_start is not none and f.hobbs_end is not none %}<span class="text-muted small">({{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }} hrs)</span>{% endif %}</td></tr>
         <tr><th>Tach</th><td>{% if f.tach_start is not none %}{{ '%.1f'|format(f.tach_start) }}{% else %}-{% endif %} &rarr; {% if f.tach_end is not none %}{{ '%.1f'|format(f.tach_end) }}{% else %}-{% endif %}
           {% if f.tach_start is not none and f.tach_end is not none %}<span class="text-muted small">({{ '%.1f'|format(f.tach_end - f.tach_start) }} hrs)</span>{% endif %}</td></tr>
-        <tr><th>Oil Added</th><td>{% if f.oil_added_qt %}{{ '%g'|format(f.oil_added_qt) }} qt{% else %}-{% endif %}</td></tr>
+        <tr><th>Oil Added</th><td>{% if f.oil_added_qt %}{{ '%g'|format(f.oil_added_qt) }} qt{% if f.oil_added_by %} <span class="text-muted small">(logged by {{ f.oil_added_by }})</span>{% endif %}{% else %}-{% endif %}</td></tr>
         <tr><th>Landings</th><td>
           {% set total_landings = (f.day_landings_fs or 0) + (f.day_landings_tg or 0) + (f.night_landings_fs or 0) + (f.night_landings_tg or 0) %}
           {% if total_landings %}

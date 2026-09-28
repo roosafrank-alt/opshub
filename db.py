@@ -1378,6 +1378,11 @@ def _migrate(conn):
         # through one of those.
         ("flights", "card_last4", "ALTER TABLE flights ADD COLUMN card_last4 TEXT"),
         ("flights", "card_charge_id", "ALTER TABLE flights ADD COLUMN card_charge_id TEXT"),
+        # Idea "oil": who logged an Oil Added reading, next to the existing
+        # oil_added_qt - whoever's session set it (End Session, Log Flight,
+        # Edit Flight, or the mid-flight progress update), same pattern as
+        # assets.hobbs_updated_by/tach_updated_by above.
+        ("flights", "oil_added_by", "ALTER TABLE flights ADD COLUMN oil_added_by TEXT"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

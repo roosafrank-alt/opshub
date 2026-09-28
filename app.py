@@ -4279,7 +4279,7 @@ def asset_oil(asset_id):
         if f["oil_added_qt"]:
             cumulative_qt += f["oil_added_qt"]
             events_detail.append({
-                "flight_date": f["flight_date"], "qty": f["oil_added_qt"],
+                "flight_date": f["flight_date"], "qty": f["oil_added_qt"], "added_by": f["oil_added_by"],
                 "hours_since_last": hours_cursor - last_event_hours,
                 "cumulative_qt": cumulative_qt,
             })
