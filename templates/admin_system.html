@@ -48,6 +48,29 @@
   </form>
 </div>
 
+<div class="card p-4 mb-3 border-danger">
+  <h6 class="text-danger"><i class="bi bi-power"></i> Shut Down the Pi</h6>
+  <p class="text-muted small">
+    Safely turns the Raspberry Pi off so you can unplug it, move it or work on it without risking the
+    SD card or the database. OpsHub will be <strong>offline for everyone</strong> until it's turned back on,
+    and the uptime monitor will send its "OpsHub is down" alert while it's off - that's expected.
+  </p>
+  <ol class="text-muted small mb-3">
+    <li>Tap <strong>Shut Down Pi</strong> below.</li>
+    <li>Wait until the Pi's green light stops blinking (about 20-30 seconds). The red light may stay on - that's fine.</li>
+    <li>Now it's safe to unplug the power.</li>
+  </ol>
+  <p class="small mb-2"><strong>Turning it back on:</strong></p>
+  <p class="text-muted small">
+    Once the Pi is off, this page can't reach it, so there's no "on" button here - it has to be done at the
+    Pi. Unplug the power cable and plug it back in (on a Raspberry Pi 5 you can instead press its small
+    power button once). OpsHub comes back up by itself in about a minute; just reload this page.
+  </p>
+  <form method="post" action="{{ url_for('admin_system_shutdown') }}" data-confirm="Shut down the Pi? OpsHub will go OFFLINE for everyone and stay off until someone unplugs and replugs the Pi's power. Continue?" data-confirm-style="danger">
+    <button class="btn btn-danger fw-bold"><i class="bi bi-power"></i> Shut Down Pi</button>
+  </form>
+</div>
+
 <div class="card p-4 mb-3">
   <h6><i class="bi bi-file-text"></i> Error Log</h6>
   <p class="text-muted small mb-2">
@@ -60,7 +83,7 @@
 <div class="card p-4">
   <h6 class="mb-2"><i class="bi bi-info-circle"></i> Heads up</h6>
   <p class="text-muted small mb-0">
-    Both buttons need this page to load at all - if the Pi is fully offline (powered off, no network,
+    The restart and reboot buttons need this page to load at all - if the Pi is fully offline (powered off, no network,
     completely hung), nothing remote can reach it and someone will still need to be there in person.
     These help with the "the app or SSH got stuck but the Pi itself is still up and reachable" case,
     which is the much more common one.
