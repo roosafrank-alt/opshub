@@ -47,7 +47,7 @@ get onto the Pi or run the tests, give him these exact commands.
 ## Keep the Idea Queue runner copies in step
 
 The **Idea Queue Runner** routine holds the real runner instructions in its own
-prompt. **Idea Queue Runner 17** and **Idea Queue Runner 47** (and any copy added
+prompt. **Idea Queue Runner 17**, **32** and **47** (and any copy added
 later) don't: their prompt just says to read `idea-queue/runner-instructions.md`
 from main and follow it.
 
@@ -64,5 +64,8 @@ from main and follow it.
   from there) and ask Frank to paste the same text into that routine's prompt. Don't
   delete and recreate the routine to get around it - that loses its history, and the page's
   Wake / Deploy / Roll back buttons fire it by that exact id.
+- The **Stuck Job Watchdog** routine (hourly) follows `idea-queue/stuck-job-watchdog.md`
+  from main: it stops routine sessions that run too long or stop making progress, and
+  puts their ideas back in the queue. Don't remove it or loosen its limits unless Frank asks.
 - Known-good backups from before this was set up (Sep 27, 2026) are the branches
   `backup/main-2026-09-27` and `backup/idea-queue-2026-09-27`.
