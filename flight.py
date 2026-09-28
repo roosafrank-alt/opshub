@@ -3057,9 +3057,12 @@ def cfi_time_off_delete(off_id):
 def planes_list():
     conn = get_db()
     planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY schedule_order, tag").fetchall()
-    # 100-hr hours left - master admins only (QA feat-100hr-countdown-grounding).
+    # 100-hr hours left - shown to the same staff who get the "View in
+    # Maintenance" link below (master admins and shop admin/tech), not to
+    # plain CFIs (QA feat-100hr-countdown-grounding keeps the countdown and
+    # grounding decision with staff who manage maintenance).
     hundred = {}
-    if session.get("is_master_admin"):
+    if session.get("is_master_admin") or session.get("shop_role") in ("admin", "tech"):
         hundred = {p["id"]: hundred_hr_status(conn, p) for p in planes}
     own_plane_color = _own_plane_schedule_color(conn)
     conn.close()

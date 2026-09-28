@@ -32,6 +32,16 @@
           {% if a.hobbs_hours is not none %}{% if a.tach_hours is not none %} &middot; {% endif %}Hobbs {{ '%g'|format(a.hobbs_hours) }}{% endif %}
         </p>
         {% endif %}
+        {% set h = hundred.get(a.id) %}
+        {% if h %}
+        <p class="small mb-1">
+          <span class="badge {{ 'bg-danger' if h.level == 'overdue' else ('bg-warning text-dark' if h.level == 'soon' else 'bg-success') }}"
+                title="Last 100-hr at tach {{ '%.1f'|format(h.last_at) }}">
+            <i class="bi bi-wrench"></i>
+            {% if h.level == 'overdue' %}{{ '%.1f'|format(-h.left) }} hrs past 100-hr{% else %}{{ '%.1f'|format(h.left) }} hrs to 100-hr{% endif %}
+          </span>
+        </p>
+        {% endif %}
         <div class="mt-auto">
           <span class="badge bg-secondary">{{ project_counts.get(a.id, 0) }} project{{ 's' if project_counts.get(a.id, 0) != 1 }}</span>
           {% if a.is_flight_asset %}<span class="badge bg-primary"><i class="bi bi-airplane-engines"></i> Flight School</span>{% endif %}

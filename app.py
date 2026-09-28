@@ -19,7 +19,7 @@ from db import (get_db, init_db, user_shop_roles, user_flight_roles, clean_roles
                  close_request_conns, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
                  allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
                  MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS, found_item_messages)
-from flight import flight_bp, _flight_hours, check_session_alerts, run_balance_hold_release_check
+from flight import flight_bp, _flight_hours, check_session_alerts, run_balance_hold_release_check, hundred_hr_status
 from logbook import logbook_bp
 from pilotlog import pilotlog_bp
 from customer import customer_bp, _owned_asset_ids, _project_bill
@@ -3823,6 +3823,11 @@ def assets_list():
     assets = conn.execute(query, params).fetchall()
     project_counts = {}
     asset_covers = {}
+    # Hours left to each aircraft's next 100-hour inspection, reusing the
+    # same flight.hundred_hr_status() the Flight School side shows on its
+    # Planes list - None for an asset with no active hours-based 100-Hour
+    # Inspection item set up (or no tach reading yet).
+    hundred = {}
     for a in assets:
         row = conn.execute("SELECT COUNT(*) c FROM projects WHERE asset_id = ?", (a["id"],)).fetchone()
         project_counts[a["id"]] = row["c"]
@@ -3835,8 +3840,10 @@ def assets_list():
             fallback = _asset_project_cover(conn, a["id"])
             if fallback:
                 asset_covers[a["id"]] = fallback["filename"]
+        hundred[a["id"]] = hundred_hr_status(conn, a)
     conn.close()
-    return render_template("assets.html", assets=assets, project_counts=project_counts, q=q, asset_covers=asset_covers)
+    return render_template("assets.html", assets=assets, project_counts=project_counts, q=q,
+                           asset_covers=asset_covers, hundred=hundred)
 
 
 def _asset_project_cover(conn, asset_id):
