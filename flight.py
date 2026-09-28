@@ -21,7 +21,7 @@ import json
 import re
 import secrets
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, Response, current_app, abort
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, Response, current_app, abort, has_request_context
 from werkzeug.security import generate_password_hash
 
 from db import get_db, now_iso, asset_meter, maintenance_status
@@ -3501,6 +3501,29 @@ def _schedule_rows(conn, date_from, date_to, plane_id=None, cfi_id=None, include
     return out
 
 
+def _hide_other_students_past_flights(rows):
+    """Idea "past views": a plain student viewer's Schedule calendar
+    (Day/Week/Month/Quarter/Year - see _build_schedule_day and
+    _build_schedule_month below) should show nothing on an already-past day
+    except that student's own flights. Filtering the rows here, before the
+    Day/Month timeline layout runs, means another student's past booking
+    (or a CFI break, which never belongs to a student) doesn't even reserve
+    a "Past" placeholder box or count toward a day's "+N more" - the day
+    just reads as empty. CFI/admin viewers, and anything not in the past,
+    are untouched; a student's own past flights stay exactly as they were
+    (see the matching is_mine check in _schedule_live.html). _build_schedule_month
+    is also called directly (no request/session) by a few tests and by any
+    future non-request caller - outside a request there's no viewer to
+    filter for, so rows pass through unchanged."""
+    if not has_request_context():
+        return rows
+    my_student_id = session.get("student_id")
+    if not my_student_id or session.get("cfi_id") or session.get("is_master_admin"):
+        return rows
+    today_str = date.today().strftime("%Y-%m-%d")
+    return [r for r in rows if r["scheduled_date"] >= today_str or r.get("student_id") == my_student_id]
+
+
 def _build_schedule_month(conn, year, month, plane_id=None, cfi_id=None, plane_order=None):
     """One month's schedule grid: weeks of day-numbers plus a by_day map of
     that day's scheduled flights, each colored by instructor and labeled
@@ -3519,7 +3542,9 @@ def _build_schedule_month(conn, year, month, plane_id=None, cfi_id=None, plane_o
     month_end = f"{year:04d}-{month:02d}-{days_in_month:02d}"
 
     by_day = {d: [] for d in range(1, days_in_month + 1)}
-    for r in _schedule_rows(conn, month_start, month_end, plane_id, cfi_id, include_pending=True, include_time_off=True):
+    month_rows = _hide_other_students_past_flights(
+        _schedule_rows(conn, month_start, month_end, plane_id, cfi_id, include_pending=True, include_time_off=True))
+    for r in month_rows:
         day = int(r["scheduled_date"][8:10])
         by_day.setdefault(day, []).append(r)
 
@@ -3665,7 +3690,8 @@ def _layout_month_cell_timeline(flights, plane_order,
 
 def _build_schedule_day(conn, date_str, plane_id=None, cfi_id=None):
     """A single day's flights, sorted by time - the Day view."""
-    return _schedule_rows(conn, date_str, date_str, plane_id, cfi_id, include_pending=True, include_time_off=True)
+    rows = _schedule_rows(conn, date_str, date_str, plane_id, cfi_id, include_pending=True, include_time_off=True)
+    return _hide_other_students_past_flights(rows)
 
 
 # The Availability view's window: 8am-8pm sliced into 1.5-hour slots - the

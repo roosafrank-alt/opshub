@@ -232,7 +232,16 @@
         <th class="avail-time-col">{{ slot.label }}</th>
         {% for row in grid %}
         {% set cell = row.cells[i] %}
-        {% if cell.booked %}
+        {% if is_student_viewer and cell.is_past %}
+        {#- Idea "past views": a student sees a past slot as just "Past",
+           whether or not it was ever booked - not "Booked" (which would
+           show a bygone flight as if it still mattered) and not "Open"
+           (which would look bookable when the server's own past-booking
+           check would refuse it). CFI/admin viewers still get the real
+           Booked/Open distinction below even for a past slot, since
+           historical detail is useful to staff. #}
+        <td class="avail-slot-past" title="{{ cell.label }} has already passed">Past</td>
+        {% elif cell.booked %}
         {#- A plain student viewer sees that the plane is booked, not by
            whom - Availability is meant to show plane free/busy, not out
            other students (matches how the Schedule calendar itself hides
