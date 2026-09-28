@@ -20,6 +20,7 @@ import unittest
 from harness import OpsHubTestCase
 import adsb
 import db
+import pi_health
 import push
 
 
@@ -93,3 +94,49 @@ class NonUtcTimezoneTest(OpsHubTestCase):
         points = adsb.get_track(conn, "a1b2c3", since_minutes=30)
         conn.close()
         self.assertEqual(len(points), 1, "a point from seconds ago fell outside a 30-minute window")
+
+    def test_a_pi_health_alert_is_stamped_on_the_local_clock(self):
+        """pi_health.main() raises the alert the dashboard banner shows, and
+        the banner prints created_at with no timezone conversion. Stamped in
+        UTC it read four hours into the future on the Pi."""
+        self.addCleanup(setattr, pi_health, "read_temp_c", pi_health.read_temp_c)
+        pi_health.read_temp_c = lambda: pi_health.ALERT_TEMP_C + 15
+        pi_health.main()
+
+        row = self.q1("SELECT * FROM system_alerts WHERE resolved_at IS NULL")
+        self.assertIsNotNone(row, "no alert was raised")
+        self.assertEqual(row["created_at"][:13], db.now_iso()[:13],
+                         "alert time %s is not on the same clock as local now %s"
+                         % (row["created_at"], db.now_iso()))
+
+    def test_the_banner_shows_the_alert_at_the_local_time(self):
+        """The symptom Frank would actually have seen: an alert raised now,
+        shown on the dashboard as happening hours from now."""
+        self.addCleanup(setattr, pi_health, "read_temp_c", pi_health.read_temp_c)
+        pi_health.read_temp_c = lambda: pi_health.ALERT_TEMP_C + 15
+        pi_health.main()
+
+        html = self.login("shop_admin").get("/shop").get_data(as_text=True)
+        self.assertIn("Pi Health Alert", html)
+        # usdate(show_time=True) renders DD-MM-YYYY HH:MM, local clock.
+        self.assertIn(db.now_iso()[11:16], html,
+                      "banner doesn't show the alert at the current local time")
+
+    def test_resolving_an_alert_uses_the_local_clock_too(self):
+        """pi_health clears an alert once the Pi cools down, and app.py's
+        Acknowledge button clears the same column with now_iso() - both must
+        write the same clock or the two disagree by the UTC offset."""
+        conn = db.get_db()
+        conn.execute("INSERT INTO system_alerts (message, level, created_at) VALUES (?, 'warning', ?)",
+                     ("OpsHub Pi: temp 90C", db.now_iso()))
+        conn.commit()
+        conn.close()
+        # The faked vcgencmd reports nothing, so main() sees a cool Pi and
+        # treats the open alert as recovered.
+        pi_health.main()
+
+        row = self.q1("SELECT resolved_at FROM system_alerts")
+        self.assertIsNotNone(row["resolved_at"], "the alert wasn't resolved")
+        self.assertEqual(row["resolved_at"][:13], db.now_iso()[:13],
+                         "resolved_at %s is not on the same clock as local now %s"
+                         % (row["resolved_at"], db.now_iso()))
