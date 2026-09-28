@@ -334,11 +334,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var buffer = '';
   var lastTime = 0;
-  var FAST_MS = 30; // max gap between keystrokes to still count as a scan
+  // Max gap between keystrokes to still count as a scan. A USB scanner is a
+  // few ms per key, but a Bluetooth one or a busy Pi browser can stretch that
+  // - people typing are still well over 80ms a key.
+  var FAST_MS = 50;
   var MIN_LEN = 4;
+  // A scanner types capitals by pressing Shift before each one (LABOR-,
+  // SHOP-, GENERAL-SHOP, TASK-). Those key presses used to wipe the buffer,
+  // so only the tail after the last capital was ever captured and badges,
+  // part labels and the General Shop code never registered from other pages.
+  var MODIFIER_KEYS = { Shift: 1, CapsLock: 1, Control: 1, Alt: 1, AltGraph: 1, Meta: 1, NumLock: 1 };
   document.addEventListener('keydown', function (e) {
     var now = Date.now();
-    if (e.key === 'Enter') {
+    if (MODIFIER_KEYS[e.key]) return; // part of the burst, not a break in it
+    // Enter ends a scan; some scanners are set to send Tab instead.
+    if (e.key === 'Enter' || (e.key === 'Tab' && buffer.length >= MIN_LEN && now - lastTime <= FAST_MS)) {
       if (buffer.length >= MIN_LEN) {
         var code = buffer;
         buffer = '';
@@ -357,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function () {
       buffer = '';
       return;
     }
-    if (e.key.length !== 1) { buffer = ''; return; } // ignore Shift/Ctrl/etc.
+    if (e.key.length !== 1 || e.ctrlKey || e.metaKey) { buffer = ''; return; } // arrows, Ctrl+V, etc.
     if (now - lastTime > FAST_MS) buffer = '';
     buffer += e.key;
     lastTime = now;
