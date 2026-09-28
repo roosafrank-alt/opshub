@@ -50,6 +50,22 @@
     font-weight: 600;
   }
   .flight-nav-boxed .dropdown-item.active { background: #212529; color: #fff; }
+  {#- QA feat-drop-active-flight-tab: Active Flight turns yellow (same as
+     the dashboard's "N flights in progress" strip, alert-warning) with a
+     small dark count badge whenever one or more flights are in the air -
+     but only when it's NOT the current page, which keeps its usual solid-
+     white "you are here" look (.nav-link.active above) with the badge
+     just added on top. #}
+  .flight-nav-boxed .nav-link.flight-nav-flying {
+    background: #ffc107;
+    border-color: #ffc107;
+    color: #212529 !important;
+    font-weight: 600;
+  }
+  .flight-nav-boxed .nav-link.flight-nav-flying:hover {
+    background: #ffca2c;
+    border-color: #ffca2c;
+  }
   /* Makes the "alert resolved" confirmation actually read as a banner -
      bigger, bolder, with its own shadow - instead of looking like every
      other routine "saved" flash (see the flash loop above). */
@@ -105,7 +121,7 @@
          else '' %}
       <ul class="navbar-nav me-auto mb-2 mb-lg-0 flight-nav-boxed">
         <li class="nav-item"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'schedule' }}" id="tour-nav-flight-schedule" href="{{ url_for('flight.schedule_calendar') }}"><i class="bi bi-calendar3"></i> <span class="nav-label">Schedule</span></a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'active' }}" id="tour-nav-flight-active" href="{{ url_for('flight.log_active') }}"><i class="bi bi-stopwatch"></i> <span class="nav-label">Active Flight</span></a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'active' else ('flight-nav-flying' if flight_active_nav_count) }}" id="tour-nav-flight-active" href="{{ url_for('flight.log_active') }}"><i class="bi bi-stopwatch"></i> <span class="nav-label">Active Flight</span>{% if flight_active_nav_count %} <span class="badge bg-dark" title="{{ flight_active_nav_count }} flight{{ 's' if flight_active_nav_count != 1 }} in the air">{{ flight_active_nav_count }}</span>{% endif %}</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'history' }}" id="tour-nav-flight-history" href="{{ url_for('flight.log_history') }}"><i class="bi bi-clock-history"></i> <span class="nav-label">Flight History</span></a></li>
         {% if session.get('is_master_admin') or session.get('groundschool_access') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'groundschool' }}" href="{{ url_for('groundschool.rating_list') }}"><i class="bi bi-mortarboard"></i> <span class="nav-label">Ground School</span></a></li>

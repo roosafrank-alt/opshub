@@ -5035,6 +5035,30 @@ def hobbs_gap_review():
 
 
 @flight_bp.context_processor
+def _flight_active_nav_count():
+    """How many flights are in the air school-wide right now, for the
+    Active Flight nav tab (see base_flight.html): it turns yellow with this
+    count so nobody has to open the tab just to find out nothing - or
+    something - is flying. Same started/not-ended test as the Active
+    Flights board (log_active) and the dashboard's "N flights in progress"
+    strip, so a paused flight (still up, just on a break) still counts -
+    only stopped_at is irrelevant here, same as those. Refreshed on every
+    page load, same as the Alerts badge above; the floating timer is what
+    keeps ticking live in between for a CFI's own flight."""
+    if not session.get("user_id"):
+        return {}
+    try:
+        conn = get_db()
+        try:
+            row = conn.execute("SELECT COUNT(*) AS c FROM flights WHERE started_at IS NOT NULL AND ended_at IS NULL").fetchone()
+        finally:
+            conn.close()
+        return {"flight_active_nav_count": row["c"] or 0}
+    except Exception:
+        return {}
+
+
+@flight_bp.context_processor
 def _alert_nav_counts():
     """Open-alert counts for the Alerts nav badge (CFIs/admins only)."""
     if not session.get("cfi_id"):
