@@ -1,0 +1,27 @@
+{
+  "checks": [
+    {
+      "role": "cfi",
+      "size": "phone",
+      "steps": [
+        ["start", "/flight/schedule"],
+        ["see", "Month"],
+        ["shot", {"caption": "Month view on a phone: today's outlined box alone marks the date, so the next day's number stays readable",
+                   "focus": "tr:has(td[data-is-today=\"1\"])",
+                   "changed": [
+                     {"sel": "td[data-is-today=\"1\"] + td", "note": "Next day's number no longer covered"},
+                     {"sel": "td[data-is-today=\"1\"]", "note": "Today shown by the yellow outline alone"}
+                   ]}]
+      ]
+    },
+    {
+      "role": "cfi",
+      "size": "desktop",
+      "steps": [
+        ["start", "/flight/schedule"],
+        ["see", "TODAY"],
+        ["shot", {"caption": "Desktop keeps the TODAY tag", "focus": "tr:has(td[data-is-today=\"1\"])"}]
+      ]
+    }
+  ]
+}
