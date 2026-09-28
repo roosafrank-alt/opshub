@@ -225,6 +225,33 @@ document.addEventListener('DOMContentLoaded', function () {
    camera", not "type a code". #}
 <a href="{{ url_for('scan_page', cam=1) }}" class="btn btn-warning rounded-circle d-lg-none no-print mobile-scan-fab" title="Scan"><i class="bi bi-upc-scan"></i></a>
 {% endif %}
+<script>
+// QA fix ux-camera-prompt-every-launch: on an iPhone, a home-screen app
+// (this one, since apple-mobile-web-app-capable makes it full-screen) can
+// never keep a "yes" answer to the camera prompt - it's a long-standing
+// WebKit limit, not anything OpsHub does. Safari itself DOES remember it
+// (Website Settings > Camera), so the fix is to send just the tap that
+// opens Scan/Labor to Safari instead of opening it inside this app: a
+// same-origin link opened this way keeps the same login, and iOS hands
+// target="_blank" off to real Safari when tapped from a home-screen app
+// (it stays inside the app on Android and in a normal browser tab, so
+// window.open() below is skipped everywhere except iPhone's home-screen
+// app). Scoped to just Scan/Labor so phone alerts, which need this app to
+// stay a home-screen app, are untouched.
+(function () {
+  if (!window.navigator.standalone) return;
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('a[href]');
+    if (!a) return;
+    var url;
+    try { url = new URL(a.href, window.location.href); } catch (err) { return; }
+    if (url.origin !== window.location.origin) return;
+    if (url.pathname !== '/scan' && url.pathname !== '/labor') return;
+    e.preventDefault();
+    window.open(url.href, '_blank', 'noopener');
+  });
+})();
+</script>
 <style>
   #global-scan-toasts { position: fixed; top: .75rem; left: 50%; transform: translateX(-50%); z-index: 1085;
     width: min(32rem, calc(100vw - 1.5rem)); }
