@@ -61,7 +61,11 @@
           <a href="{{ url_for('dashboard') }}" class="nav-link"><i class="bi bi-tools"></i> <span class="nav-label">Maintenance</span></a>
           <a href="{{ url_for('flight.dashboard') }}" class="nav-link"><i class="bi bi-airplane-engines"></i> <span class="nav-label">Flight School</span></a>
         </div>
-        <div class="d-flex flex-column align-items-end">
+        {#- QA ux-header-viewas-inline: the "View as" chips sit on the same
+           line as the account button, just to its left, whenever there's
+           room (flex-wrap lets them still drop to their own line in the
+           narrow icons-only band, same as the phone dropdown panel). #}
+        <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
           {% set view_as_program = 'shop' %}
           {% include "_view_as_chips.html" %}
           <div class="dropdown admin-nav-boxed">

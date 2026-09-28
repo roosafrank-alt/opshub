@@ -114,7 +114,11 @@
         {% endif %}
       </ul>
       <div class="d-flex align-items-center gap-3 shop-nav-boxed">
-        <div class="d-flex flex-column align-items-end">
+        {#- QA ux-header-viewas-inline: the "View as" chips sit on the same
+           line as the Manage/account row, just to its left, whenever there's
+           room (flex-wrap lets them still drop to their own line in the
+           narrow icons-only band, same as the phone dropdown panel). #}
+        <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
           {% set view_as_program = 'shop' %}
           {% include "_view_as_chips.html" %}
           <div class="d-flex align-items-center gap-2">

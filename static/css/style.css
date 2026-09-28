@@ -344,13 +344,20 @@ body { background: #f4f5f7; }
    every flex row full-width, one item per line - fine for the nav links,
    but it also caught the "View as" chip row and stretched its label and
    each button into its own full-width block. Keep that row itself
-   horizontal and compact regardless. */
+   horizontal and compact regardless. Idea ux-header-viewas-inline: no
+   margin here any more - the chips now sit beside the account button on
+   the .gap-2 row in _*_base.html (templates/base.html, admin_base.html,
+   flight/base_flight.html), which supplies the gap both between the chips
+   and the account button on one line and between the two rows when it
+   wraps to two (narrow "icons-only" band, or the phone dropdown panel). A
+   margin here would only misalign the chips against the account button
+   when they share a line. */
 .navbar-collapse .view-as-chips {
   flex-direction: row !important;
   align-items: center !important;
   flex-wrap: wrap;
   width: auto !important;
-  margin: 0 0 .25rem !important;
+  margin: 0 !important;
 }
 
 /* Idea "Squalk view": a squawk's step pills (squawk_step_pills in
