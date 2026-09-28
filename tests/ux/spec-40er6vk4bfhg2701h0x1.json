@@ -1,0 +1,39 @@
+{
+  "checks": [
+    {
+      "role": "master", "size": "desktop",
+      "steps": [
+        ["start", "/flight/planes"],
+        ["see", "Planes ("],
+        ["shot", {"caption": "Planes page - the bottom box is gone", "focus": "full"}]
+      ]
+    },
+    {
+      "role": "master", "size": "desktop",
+      "steps": [
+        ["start", "/flight/planes"],
+        ["tap", "Manage"],
+        ["shot", {"caption": "Manage menu: one School Settings item instead of Cancellation Fee + Balance Hold"}],
+        ["tap", "School Settings"],
+        ["see", "Students Aircraft"],
+        ["see", "Late-Cancellation Fee"],
+        ["see", "Balance Hold"],
+        ["shot", {"caption": "One School Settings page: Students Aircraft, Late-Cancellation Fee and Balance Hold together", "focus": "full"}],
+        ["fill", "external_rate_{cfi}", "55"],
+        ["tap", "Save"],
+        ["see", "School Settings updated"],
+        ["shot", {"caption": "Saved - Cfi's Students Aircraft Rate is now $55/hr", "changed": [{"sel": "[name='external_rate_{cfi}']", "note": "Saved rate"}]}]
+      ]
+    },
+    {
+      "role": "master", "size": "desktop",
+      "steps": [
+        ["start", "/flight/cfis/{cfi}/edit"],
+        ["see", "Students Aircraft Rate ($/hr)"],
+        ["see", "$55.00/hr"],
+        ["see", "Change in Manage"],
+        ["shot", {"caption": "CFI's own profile: the rate is read-only, with a link back to School Settings"}]
+      ]
+    }
+  ]
+}

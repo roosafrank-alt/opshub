@@ -1,0 +1,104 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}School Settings - OpsHub{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<h4 class="mb-3"><i class="bi bi-sliders"></i> School Settings</h4>
+<form method="post">
+  <div class="card p-4 mb-3">
+    <h5><i class="bi bi-airplane"></i> Students Aircraft</h5>
+    <p class="text-muted small">Lessons in a student's own plane (Schedule a Flight's "Student's own plane" toggle) - the plane itself is never billed, only instructor time, at the rate below (blank = that CFI's usual Instructor Rate).</p>
+    <div class="row">
+      <div class="col-md-5 mb-3 mb-md-0">
+        <label class="form-label d-block">Calendar Color</label>
+        <input type="hidden" name="color" id="color-input" value="{{ own_plane_color or '' }}">
+        <div class="d-flex flex-wrap gap-2" id="color-swatches">
+          {% for c in schedule_colors %}
+          {% set taken = c in (used_colors or []) %}
+          <div class="color-swatch{{ ' color-swatch-taken' if taken }}"
+               data-color="{{ c }}"
+               title="{{ 'Already used by an instructor or a plane' if taken else c }}"
+               style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if taken else 'pointer' }};opacity:{{ '0.25' if taken else '1' }};border:3px solid {{ '#212529' if own_plane_color == c else 'transparent' }};"></div>
+          {% endfor %}
+          <div class="color-swatch"
+               data-color=""
+               title="No color"
+               style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if not own_plane_color else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
+        </div>
+        <div class="form-text">The block color for every student's own-plane booking on the Schedule. Grayed-out colors belong to an instructor or a real plane.</div>
+      </div>
+      <div class="col-md-7">
+        <label class="form-label d-block">Instructor Rate in a Students Aircraft ($/hr)</label>
+        {% for c in cfis %}
+        <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+          <div>{{ c.name }}{% if not c.active %} <span class="badge bg-secondary">Inactive</span>{% endif %}</div>
+          <div class="input-group" style="max-width:170px;">
+            <span class="input-group-text">$</span>
+            <input type="number" step="any" min="0" name="external_rate_{{ c.id }}" class="form-control"
+                   value="{{ '%g'|format(c.external_rate) if c.external_rate is not none else '' }}"
+                   placeholder="uses ${{ '%g'|format(c.rate_per_hour) }}">
+          </div>
+        </div>
+        {% else %}
+        <p class="text-muted small">No CFIs yet - add one from Manage &gt; CFIs.</p>
+        {% endfor %}
+        <div class="form-text">Blank uses that CFI's Instructor Rate (set on Manage &gt; CFIs &gt; Edit).</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card p-4 mb-3">
+    <h5><i class="bi bi-cash-coin"></i> Late-Cancellation Fee</h5>
+    <p class="text-muted small">When a student cancels their own booking this close to (or after) the flight's start time, the fee below is charged automatically to their account. Set the fee to $0 to turn the charge off - cancelling stays free.</p>
+    <div class="row">
+      <div class="col-sm-6 mb-3 mb-sm-0">
+        <label class="form-label">Cancel within this many hours of the flight...</label>
+        <input type="number" name="window_hours" class="form-control" min="0" step="1" value="{{ '%g'|format(window_hours) }}" required>
+        <div class="form-text">e.g. 24 or 48. A cancellation earlier than this counts as free.</div>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label">...gets charged this fee</label>
+        <div class="input-group">
+          <span class="input-group-text">$</span>
+          <input type="number" name="fee_amount" class="form-control" min="0" step="0.01" value="{{ '%.2f'|format(fee_amount) }}" required>
+        </div>
+        <div class="form-text">Shows in the student's balance history as "Late Cancel".</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card p-4 mb-3">
+    <h5><i class="bi bi-pause-circle"></i> Balance Hold</h5>
+    <p class="text-muted small">When a student's owed balance goes over the limit below, every one of their upcoming flights (including standing weekly ones) is put on hold until they pay it down - a held lesson stays reserved for them until 5 days before it, then opens up to other students if it's still unpaid. Leave it blank or $0 to turn this off - balances are still tracked, but flights never go on hold.</p>
+    <label class="form-label">Put a student's flights on hold when they owe more than...</label>
+    <div class="input-group" style="max-width:220px;">
+      <span class="input-group-text">$</span>
+      <input type="number" name="limit" class="form-control" min="0" step="0.01" value="{{ '%.2f'|format(limit) if limit else '' }}" placeholder="Off">
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-between mb-4">
+    <a href="{{ url_for('flight.planes_list') }}" class="btn btn-outline-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary fw-bold">Save</button>
+  </div>
+</form>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var input = document.getElementById('color-input');
+  var swatches = document.querySelectorAll('#color-swatches .color-swatch');
+  swatches.forEach(function (sw) {
+    sw.addEventListener('click', function () {
+      if (sw.classList.contains('color-swatch-taken')) return;
+      input.value = sw.getAttribute('data-color');
+      swatches.forEach(function (s) { s.style.border = s.getAttribute('data-color') ? '3px solid transparent' : '3px dashed #adb5bd'; });
+      sw.style.border = sw.getAttribute('data-color') ? '3px solid #212529' : '3px dashed #212529';
+    });
+  });
+})();
+</script>
+{% endblock %}

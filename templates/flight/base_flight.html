@@ -134,8 +134,7 @@
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/planes') }}" href="{{ url_for('flight.planes_list') }}"><i class="bi bi-airplane"></i> Planes</a></li>
             {% if session.get('is_master_admin') %}
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/cfis') and not _p.endswith('/pay') and _p not in ('/flight/cfis/me', '/flight/cfis/schedule') }}" href="{{ url_for('flight.cfis_list') }}"><i class="bi bi-person-badge"></i> CFIs</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p == '/flight/settings/cancellation-fee' }}" href="{{ url_for('flight.cancel_fee_settings_edit') }}"><i class="bi bi-cash-coin"></i> Cancellation Fee</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p == '/flight/settings/balance-hold' }}" href="{{ url_for('flight.balance_hold_settings_edit') }}"><i class="bi bi-pause-circle"></i> Balance Hold</a></li>
+            <li><a class="dropdown-item {{ 'active' if _p == '/flight/settings/school' }}" href="{{ url_for('flight.school_settings_edit') }}"><i class="bi bi-sliders"></i> School Settings</a></li>
             {% endif %}
             {% if session.get('cfi_id') %}
             <li><a class="dropdown-item {{ 'active' if _p == '/flight/cfis/me' }}" href="{{ url_for('flight.cfi_me') }}"><i class="bi bi-person-vcard"></i> My CFI Profile</a></li>

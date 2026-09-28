@@ -272,7 +272,7 @@ var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(0) }};
 // booking is whose from them).
 var IS_CFI_OR_ADMIN = {{ (session.get('cfi_id') or session.get('is_master_admin'))|tojson }};
 var MY_STUDENT_ID = {{ session.get('student_id')|tojson }};
-// The school's late-cancellation policy (see flight.cancel_fee_settings_edit) -
+// The school's late-cancellation policy (see flight.school_settings_edit) -
 // only meaningful for a student viewer, who's the only one who sees the
 // student-cancel modal below.
 var CANCEL_FEE_WINDOW_HOURS = {{ cancel_fee_window_hours|default(24) }};

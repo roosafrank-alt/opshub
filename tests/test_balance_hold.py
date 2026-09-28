@@ -13,17 +13,17 @@ import flight
 
 class BalanceHoldSettingsTest(OpsHubTestCase):
     def test_defaults_to_off(self):
-        html = self.login("master").get("/flight/settings/balance-hold").get_data(as_text=True)
+        html = self.login("master").get("/flight/settings/school").get_data(as_text=True)
         self.assertIsNone(flight._balance_hold_limit(db.get_db()))
         self.assertIn('placeholder="Off"', html)
 
     def test_admin_sets_the_limit(self):
         c = self.login("master")
-        c.post("/flight/settings/balance-hold", data={"limit": "100"})
+        c.post("/flight/settings/school", data={"limit": "100"})
         self.assertEqual(flight._balance_hold_limit(db.get_db()), 100.0)
 
     def test_non_admin_cannot_reach_the_settings_page(self):
-        r = self.login("cfi").get("/flight/settings/balance-hold", follow_redirects=True)
+        r = self.login("cfi").get("/flight/settings/school", follow_redirects=True)
         self.assertNotIn("Balance Hold", r.get_data(as_text=True))
 
 
@@ -34,7 +34,7 @@ class BalanceHoldHoldAndReleaseTest(OpsHubTestCase):
         self.exec("UPDATE assets SET is_flight_asset = 1 WHERE id = ?", (self.plane,))
         self.student_id = self.q1("SELECT id FROM students WHERE user_id = ?",
                                   (self.users["flight_student"]["id"],))["id"]
-        self.login("master").post("/flight/settings/balance-hold", data={"limit": "100"})
+        self.login("master").post("/flight/settings/school", data={"limit": "100"})
 
     def _book(self, when):
         conn = db.get_db()

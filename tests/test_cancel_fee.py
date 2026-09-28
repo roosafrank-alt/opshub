@@ -9,21 +9,21 @@ import db
 
 class CancelFeeSettingsTest(OpsHubTestCase):
     def test_defaults_to_24h_and_no_fee(self):
-        html = self.login("master").get("/flight/settings/cancellation-fee").get_data(as_text=True)
+        html = self.login("master").get("/flight/settings/school").get_data(as_text=True)
         self.assertIn('value="24"', html)
         self.assertIn('value="0.00"', html)
 
     def test_admin_can_set_the_policy(self):
         c = self.login("master")
-        r = c.post("/flight/settings/cancellation-fee", data={"window_hours": "48", "fee_amount": "75"},
+        r = c.post("/flight/settings/school", data={"window_hours": "48", "fee_amount": "75"},
                    follow_redirects=True)
         self.assertEqual(r.status_code, 200)
-        html = c.get("/flight/settings/cancellation-fee").get_data(as_text=True)
+        html = c.get("/flight/settings/school").get_data(as_text=True)
         self.assertIn('value="48"', html)
         self.assertIn('value="75.00"', html)
 
     def test_non_admin_cannot_reach_the_settings_page(self):
-        r = self.login("cfi").get("/flight/settings/cancellation-fee", follow_redirects=True)
+        r = self.login("cfi").get("/flight/settings/school", follow_redirects=True)
         self.assertNotIn("Late-Cancellation Fee", r.get_data(as_text=True))
 
 
@@ -35,7 +35,7 @@ class StudentCancelFeeTest(OpsHubTestCase):
         self.student_id = self.q1("SELECT id FROM students WHERE user_id = ?",
                                   (self.users["flight_student"]["id"],))["id"]
         # Turn the policy on: 24h window, $50 fee.
-        self.login("master").post("/flight/settings/cancellation-fee",
+        self.login("master").post("/flight/settings/school",
                                    data={"window_hours": "24", "fee_amount": "50"})
 
     def _book(self, when):
@@ -75,7 +75,7 @@ class StudentCancelFeeTest(OpsHubTestCase):
         self.assertIsNone(self.q1("SELECT * FROM student_ledger WHERE student_id = ?", (self.student_id,)))
 
     def test_fee_set_to_zero_never_charges_even_when_late(self):
-        self.login("master").post("/flight/settings/cancellation-fee",
+        self.login("master").post("/flight/settings/school",
                                   data={"window_hours": "24", "fee_amount": "0"})
         sched = self._book(datetime.now() + timedelta(hours=2))
         c = self.login("flight_student")

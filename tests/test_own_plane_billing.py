@@ -99,7 +99,7 @@ class OwnPlaneColorTest(OpsHubTestCase):
 
     def test_master_admin_can_set_the_color(self):
         color = flight.SCHEDULE_COLORS[0]
-        r = self.login("master").post("/flight/planes/own-plane/color", data={"color": color})
+        r = self.login("master").post("/flight/settings/school", data={"color": color})
         self.assertEqual(r.status_code, 302)
         conn = db.get_db()
         self.assertEqual(flight._own_plane_schedule_color(conn), color)
@@ -109,14 +109,14 @@ class OwnPlaneColorTest(OpsHubTestCase):
         asset = self.make_asset("N123")
         self.exec("UPDATE assets SET is_flight_asset = 1, schedule_color = ? WHERE id = ?",
                   (flight.SCHEDULE_COLORS[0], asset))
-        r = self.login("master").post("/flight/planes/own-plane/color", data={"color": flight.SCHEDULE_COLORS[0]})
+        r = self.login("master").post("/flight/settings/school", data={"color": flight.SCHEDULE_COLORS[0]})
         self.assertEqual(r.status_code, 302)
         conn = db.get_db()
         self.assertIsNone(flight._own_plane_schedule_color(conn))
         conn.close()
 
     def test_non_admin_cannot_reach_the_route(self):
-        r = self.login("cfi").post("/flight/planes/own-plane/color", data={"color": flight.SCHEDULE_COLORS[0]})
+        r = self.login("cfi").post("/flight/settings/school", data={"color": flight.SCHEDULE_COLORS[0]})
         self.assertNotEqual(r.status_code, 200)
 
     def test_own_plane_booking_shows_the_generic_color_on_the_calendar(self):
@@ -149,10 +149,17 @@ class OwnPlaneColorTest(OpsHubTestCase):
         conn.close()
         self.assertNotEqual(rows[0]["display_color"], color)
 
-    def test_planes_page_shows_the_own_plane_card(self):
+    def test_planes_page_no_longer_shows_the_own_plane_card(self):
+        # QA ux-students-aircraft-settings: the color (and the CFI Students
+        # Aircraft rates) moved to Manage > School Settings, one home for
+        # all of Students Aircraft instead of a box at the bottom of Planes.
         html = self.login("master").get("/flight/planes").get_data(as_text=True)
-        self.assertIn("Student's Own Plane", html)
-        self.assertIn("own-plane/color", html)
+        self.assertNotIn("Student's Own Plane", html)
+
+    def test_school_settings_page_shows_the_students_aircraft_box(self):
+        html = self.login("master").get("/flight/settings/school").get_data(as_text=True)
+        self.assertIn("Students Aircraft", html)
+        self.assertIn("Calendar Color", html)
 
 
 class OwnPlaneCompletionTest(OpsHubTestCase):

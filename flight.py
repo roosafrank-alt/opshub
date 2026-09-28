@@ -379,7 +379,7 @@ def _cancel_fee_settings(conn):
     """The school's late-cancellation policy: how close to the slot a
     student's own cancel counts as "late" (window_hours) and the flat fee
     charged when it does (fee_amount, 0 = no fee). Set from
-    flight.cancel_fee_settings_edit; stored in app_settings like
+    flight.school_settings_edit; stored in app_settings like
     OWN_PLANE_COLOR_KEY above."""
     rows = conn.execute("SELECT key, value FROM app_settings WHERE key IN (?, ?)",
                         (CANCEL_FEE_WINDOW_KEY, CANCEL_FEE_AMOUNT_KEY)).fetchall()
@@ -721,8 +721,9 @@ OWN_PLANE_COLOR_KEY = "own_plane_schedule_color"
 
 def _own_plane_schedule_color(conn):
     """The one shared Schedule block color for every student's-own-plane
-    booking, set from the Planes page (flight.own_plane_color_edit) rather
-    than per student - there's a separate real assets row behind each
+    booking, set from Manage > School Settings (flight.school_settings_edit,
+    Students Aircraft box) rather than per student - there's a separate real
+    assets row behind each
     student's own plane (_get_or_create_own_plane_asset), but they should
     all look like the same generic "not one of our planes" block on the
     calendar rather than each needing its own color (or none at all, which
@@ -2760,7 +2761,6 @@ def cfi_edit(cfi_id):
         name = request.form.get("name", "").strip()
         rate_per_hour = _parse_float(request.form.get("rate_per_hour")) or 0
         pay_rate_per_hour = _parse_float(request.form.get("pay_rate_per_hour"))
-        external_rate = _parse_float(request.form.get("external_rate"))
         can_bill = 1 if request.form.get("can_bill") else 0
         active = 1 if request.form.get("active") else 0
         is_station = 1 if request.form.get("is_station") else 0
@@ -2780,12 +2780,6 @@ def cfi_edit(cfi_id):
             conn.close()
             return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=cfi_row, used_colors=used_colors,
                                     instructor_colors=SCHEDULE_COLORS)
-        if external_rate is not None and external_rate < 0:
-            flash("Students Aircraft Rate can't be a negative number.", "danger")
-            used_colors = _used_cfi_colors(conn, cfi_id)
-            conn.close()
-            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=cfi_row, used_colors=used_colors,
-                                    instructor_colors=SCHEDULE_COLORS)
         if color and color in _used_cfi_colors(conn, exclude_cfi_id=cfi_id):
             flash("That color is already taken by another instructor or a plane - pick a different one.", "danger")
             conn.close()
@@ -2800,8 +2794,8 @@ def cfi_edit(cfi_id):
                              gender=?, {cred_cols} WHERE id=?""",
                          [name, rate_per_hour, pay_rate_per_hour, color, active, is_station, gender, *cred_vals, cfi_id])
         _log_field_change(conn, "cfi", cfi_id, "pay_rate_per_hour", cfi_row["pay_rate_per_hour"], pay_rate_per_hour, session.get("user_name"))
-        conn.execute("UPDATE cfis SET external_rate = ? WHERE id = ?", (external_rate, cfi_id))
-        _log_field_change(conn, "cfi", cfi_id, "external_rate", cfi_row["external_rate"], external_rate, session.get("user_name"))
+        # Students Aircraft Rate (external_rate) is edited from Manage >
+        # School Settings now, not here - see flight.school_settings_edit.
         medical_class, medical_expires = _medical_from_form(request.form)
         conn.execute("UPDATE cfis SET medical_class = ?, medical_expires = ? WHERE id = ?",
                      (medical_class, medical_expires, cfi_id))
@@ -3152,9 +3146,8 @@ def planes_list():
     hundred = {}
     if session.get("is_master_admin") or session.get("shop_role") in ("admin", "tech"):
         hundred = {p["id"]: hundred_hr_status(conn, p) for p in planes}
-    own_plane_color = _own_plane_schedule_color(conn)
     conn.close()
-    return render_template("flight/planes.html", planes=planes, hundred=hundred, own_plane_color=own_plane_color)
+    return render_template("flight/planes.html", planes=planes, hundred=hundred)
 
 
 @flight_bp.route("/planes/simulator/new", methods=["GET", "POST"])
@@ -3270,46 +3263,31 @@ def plane_rate_edit(asset_id):
                            used_solo_colors=used_solo_colors, schedule_colors=SCHEDULE_COLORS)
 
 
-@flight_bp.route("/planes/own-plane/color", methods=["GET", "POST"])
+@flight_bp.route("/settings/school", methods=["GET", "POST"])
 @admin_required
-def own_plane_color_edit():
-    """The one shared Schedule color for every "Student's own plane"
-    booking (see _own_plane_schedule_color) - there's a real (but hidden)
-    asset row per student behind the scenes, but this is the one place to
-    give the generic idea of "a non-owned aircraft" a single color for the
-    calendar, rather than needing to color each student's own-plane asset
-    individually (which the Planes page has no listing for anyway - see
-    is_owner_placeholder filters there)."""
+def school_settings_edit():
+    """One school-wide settings page (QA ux-students-aircraft-settings):
+    replaces three separate Manage menu items/pages - Planes' old bottom
+    "Student's Own Plane" box, each CFI's mid-profile Students Aircraft
+    Rate, and the old standalone Cancellation Fee / Balance Hold pages -
+    with three boxes on one page and one Save button, so each school-wide
+    money/calendar rule has exactly one home. See _own_plane_schedule_color,
+    _cancel_fee_settings and _balance_hold_limit for how each value is
+    stored and used elsewhere (those helpers, and the app_settings keys
+    they read, are unchanged - this only moves the editing UI)."""
     conn = get_db()
+    cfis = conn.execute("SELECT * FROM cfis ORDER BY active DESC, name").fetchall()
     if request.method == "POST":
         color = request.form.get("color", "").strip() or None
         if color and color not in SCHEDULE_COLORS:
             color = None
-        if color and color in _used_colors_for_plane(conn):
-            flash("That color is already taken by an instructor or a plane - pick a different one.", "danger")
-            conn.close()
-            return redirect(url_for("flight.own_plane_color_edit"))
-        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (OWN_PLANE_COLOR_KEY, color))
-        conn.commit()
-        conn.close()
-        flash("Color updated for Student's Own Plane.", "success")
-        return redirect(url_for("flight.planes_list"))
-    current_color = _own_plane_schedule_color(conn)
-    used_colors = _used_colors_for_plane(conn)
-    conn.close()
-    return render_template("flight/own_plane_color_form.html", current_color=current_color,
-                           used_colors=used_colors, schedule_colors=SCHEDULE_COLORS)
-
-
-@flight_bp.route("/settings/cancellation-fee", methods=["GET", "POST"])
-@admin_required
-def cancel_fee_settings_edit():
-    """The school-wide late-cancellation policy (_cancel_fee_settings) used
-    by schedule_student_cancel: how close to a slot a student's own cancel
-    counts as late, and the flat fee charged for it (0 = no fee, cancelling
-    stays free)."""
-    conn = get_db()
-    if request.method == "POST":
+        rates = {}
+        rate_error = None
+        for c in cfis:
+            rate = _parse_float(request.form.get(f"external_rate_{c['id']}"))
+            if rate is not None and rate < 0:
+                rate_error = f"{c['name']}'s Students Aircraft Rate can't be a negative number."
+            rates[c["id"]] = rate
         try:
             window_hours = max(0.0, float(request.form.get("window_hours") or 0))
         except ValueError:
@@ -3318,17 +3296,40 @@ def cancel_fee_settings_edit():
             fee_amount = max(0.0, float(request.form.get("fee_amount") or 0))
         except ValueError:
             fee_amount = 0.0
+        try:
+            limit = max(0.0, float(request.form.get("limit") or 0))
+        except ValueError:
+            limit = 0.0
+        if color and color in _used_colors_for_plane(conn):
+            flash("That Calendar Color is already taken by an instructor or a plane - pick a different one.", "danger")
+            conn.close()
+            return redirect(url_for("flight.school_settings_edit"))
+        if rate_error:
+            flash(rate_error, "danger")
+            conn.close()
+            return redirect(url_for("flight.school_settings_edit"))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (OWN_PLANE_COLOR_KEY, color))
+        for c in cfis:
+            _log_field_change(conn, "cfi", c["id"], "external_rate", c["external_rate"], rates[c["id"]], session.get("user_name"))
+        conn.executemany("UPDATE cfis SET external_rate = ? WHERE id = ?", [(rates[c["id"]], c["id"]) for c in cfis])
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
                      (CANCEL_FEE_WINDOW_KEY, window_hours))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
                      (CANCEL_FEE_AMOUNT_KEY, fee_amount))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
+                     (BALANCE_HOLD_LIMIT_KEY, limit))
         conn.commit()
         conn.close()
-        flash("Cancellation fee policy updated.", "success")
-        return redirect(url_for("flight.cancel_fee_settings_edit"))
+        flash("School Settings updated.", "success")
+        return redirect(url_for("flight.school_settings_edit"))
+    own_plane_color = _own_plane_schedule_color(conn)
     window_hours, fee_amount = _cancel_fee_settings(conn)
+    limit = _balance_hold_limit(conn)
+    used_colors = _used_colors_for_plane(conn)
     conn.close()
-    return render_template("flight/cancel_fee_settings_form.html", window_hours=window_hours, fee_amount=fee_amount)
+    return render_template("flight/school_settings_form.html", cfis=cfis, own_plane_color=own_plane_color,
+                           window_hours=window_hours, fee_amount=fee_amount, limit=limit,
+                           used_colors=used_colors, schedule_colors=SCHEDULE_COLORS)
 
 
 _SCHEDULE_ROW_SQL = """SELECT sf.*, a.tag as plane_tag, a.name as plane_name, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
@@ -7990,27 +7991,9 @@ def _release_balance_hold_slot(conn, sf, student):
             current_app.logger.exception("Balance hold release notify failed")
 
 
-@flight_bp.route("/settings/balance-hold", methods=["GET", "POST"])
-@admin_required
-def balance_hold_settings_edit():
-    """The school-wide balance-hold limit (_balance_hold_limit) used by
-    check_balance_hold: how much a student can owe before their upcoming
-    flights go on hold (0/blank = off, holds never happen)."""
-    conn = get_db()
-    if request.method == "POST":
-        try:
-            limit = max(0.0, float(request.form.get("limit") or 0))
-        except ValueError:
-            limit = 0.0
-        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
-                     (BALANCE_HOLD_LIMIT_KEY, limit))
-        conn.commit()
-        conn.close()
-        flash("Balance hold policy updated." if limit else "Balance hold turned off.", "success")
-        return redirect(url_for("flight.balance_hold_settings_edit"))
-    limit = _balance_hold_limit(conn)
-    conn.close()
-    return render_template("flight/balance_hold_settings_form.html", limit=limit)
+    # The balance-hold limit is edited from flight.school_settings_edit now
+    # (Manage > School Settings), together with Students Aircraft and the
+    # Late-Cancellation Fee - see that route.
 
 
 # ---------------------------------------------------------------------------
