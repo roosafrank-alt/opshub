@@ -32,7 +32,9 @@
 #}
 {% if my_balance_hold %}
 <div class="alert alert-danger border-danger border-2 mb-3">
-  <h5 class="alert-heading mb-2"><i class="bi bi-exclamation-triangle-fill"></i> Your flight{{ 's are' if my_balance_hold.count != 1 else ' is' }} on hold: balance owed ${{ '%.2f'|format(my_balance_hold.owed) }}</h5>
+  {#- Idea "header": the owed amount links straight to the Account/billing
+     page, so a student can go pay without hunting for it in the menu. #}
+  <h5 class="alert-heading mb-2"><i class="bi bi-exclamation-triangle-fill"></i> Your flight{{ 's are' if my_balance_hold.count != 1 else ' is' }} on hold: balance owed <a href="{{ url_for('account_page', from='flight') }}" class="alert-link text-decoration-underline">${{ '%.2f'|format(my_balance_hold.owed) }}</a></h5>
   <p class="mb-2">
     {% if my_balance_hold.limit %}That's ${{ '%.2f'|format(my_balance_hold.owed - my_balance_hold.limit) }} over the school's ${{ '%.2f'|format(my_balance_hold.limit) }} limit. {% endif %}
     Your {{ my_balance_hold.soonest_date|usdate }} lesson in {{ my_balance_hold.soonest_plane }} is held for you
@@ -589,9 +591,13 @@
         {% if next_lesson.cfi_name %} &middot; {{ next_lesson.cfi_name }}{% elif next_lesson.solo %}<span class="badge bg-secondary ms-1">Solo</span>{% else %}<span class="badge bg-danger ms-1">Needs Instructor</span>{% endif %}
       </div>
       {% if next_lesson.student_owed %}
-      <a href="{{ url_for('flight.student_field_detail', student_id=next_lesson.student_id, field_key='account') if cfi or session.get('is_master_admin') else '#' }}"
+      {#- Idea "header": same fix as the flight-chip badge below - a
+         student sees their own Next Lesson owed amount linked to Account. #}
+      {% set _nl_owed_href = url_for('flight.student_field_detail', student_id=next_lesson.student_id, field_key='account') if cfi or session.get('is_master_admin')
+         else url_for('account_page', from='flight') if session.get('student_id') == next_lesson.student_id else none %}
+      <a href="{{ _nl_owed_href or '#' }}"
          class="badge bg-danger mt-1 text-decoration-none" onclick="event.stopPropagation();"
-         {% if not (cfi or session.get('is_master_admin')) %}style="pointer-events:none;"{% endif %}>
+         {% if not _nl_owed_href %}style="pointer-events:none;"{% endif %}>
         <i class="bi bi-cash-coin"></i> ${{ '%.0f'|format(next_lesson.student_owed) }} owed
       </a>
       {% endif %}
@@ -748,9 +754,16 @@
     </div>
     <div class="flight-chip-plane">{{ f.plane_tag }}</div>
     {% if f.student_owed %}
-    <a href="{{ url_for('flight.student_field_detail', student_id=f.student_id, field_key='account') if cfi or session.get('is_master_admin') else '#' }}"
+    {#- Idea "header": a student sees this on their own chip (dash_scope
+       "mine") - takes them to their Account/billing page, same as the
+       balance-hold banner above. A CFI/admin still goes to that student's
+       Account tab; anyone else viewing (neither staff nor that student)
+       gets a plain, unclickable badge, same as before. #}
+    {% set _owed_href = url_for('flight.student_field_detail', student_id=f.student_id, field_key='account') if cfi or session.get('is_master_admin')
+       else url_for('account_page', from='flight') if session.get('student_id') == f.student_id else none %}
+    <a href="{{ _owed_href or '#' }}"
        class="badge bg-danger text-decoration-none" onclick="event.stopPropagation();"
-       {% if not (cfi or session.get('is_master_admin')) %}style="pointer-events:none;"{% endif %}>
+       {% if not _owed_href %}style="pointer-events:none;"{% endif %}>
       <i class="bi bi-cash-coin"></i> ${{ '%.0f'|format(f.student_owed) }} owed
     </a>
     {% endif %}

@@ -105,7 +105,11 @@ class BalanceHoldHoldAndReleaseTest(OpsHubTestCase):
         self._book(date.today() + timedelta(days=10))
         self._owe(150)
         html = self.login("flight_student").get("/flight/dashboard").get_data(as_text=True)
-        self.assertIn("balance owed $150.00", html)
+        self.assertIn("balance owed", html)
+        # The owed amount is a link to the Account page (idea "header"), not
+        # plain text, so check the link and the amount separately.
+        self.assertIn('href="/account?from=flight"', html)
+        self.assertIn(">$150.00</a>", html)
         self.assertIn("$50.00 over the school", html)
         self.assertIn("Pending - Balance Hold", html)
 
