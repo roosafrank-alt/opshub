@@ -1,6 +1,30 @@
 {% extends "flight/base_flight.html" %}
 {% block title %}Flight History - OpsHub{% endblock %}
 {% block content %}
+<style>
+  /* Phone-only compact rows for Flight History (replaces the table-stack
+     10-item box below the sm breakpoint, same 575.98px cutoff table-stack
+     itself uses elsewhere, so "phone" means the same thing on this page as
+     on the rest of the app). Each flight is two lines instead of a full
+     card, so a lot more fit on one screen; the full detail (Tach, cost,
+     Edit, Delete, Mark Paid) is one tap away on the flight's own page. */
+  .flight-compact-row {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: .4rem;
+    padding: .5rem .65rem;
+    margin-bottom: .4rem;
+    cursor: pointer;
+  }
+  .flight-compact-row:last-child { margin-bottom: 0; }
+  .flight-compact-summary {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .flight-compact-tags .badge { font-weight: 600; }
+</style>
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0">Flight History (<span id="visible-count">{{ flights|length }}</span>)</h4>
   <div class="d-flex align-items-center gap-2">
@@ -14,7 +38,34 @@
 
 <p class="text-muted small mb-2">Click any plane, student, or instructor below to filter the list to just them.</p>
 
-<div class="card">
+{% set is_own_history = session.get('student_id') %}
+<div class="d-sm-none" id="history-compact">
+  {% for f in flights %}
+  <div class="flight-compact-row" data-search="{{ (f.plane_tag ~ ' ' ~ (f.plane_name or '') ~ ' ' ~ (f.cfi_name or 'solo') ~ ' ' ~ f.student_name)|lower }}" data-href="{{ url_for('flight.log_detail', flight_id=f.id) }}">
+    <div class="d-flex justify-content-between align-items-baseline">
+      <span class="fw-bold text-truncate">{{ f.flight_date|usdate }} {{ f.plane_tag }}</span>
+      <span class="d-flex align-items-center gap-1 flex-shrink-0 ms-2">
+        {% if f.hobbs_start is not none and f.hobbs_end is not none %}<span class="fw-bold">{{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }} hr</span>{% endif %}
+        <i class="bi bi-chevron-right text-muted"></i>
+      </span>
+    </div>
+    <div class="d-flex justify-content-between align-items-start mt-1">
+      <small class="text-muted flight-compact-summary">{% if not (is_own_history and f.student_id == is_own_history) %}{{ f.student_name }} &middot; {% endif %}{% if f.solo %}Solo{% else %}with {{ f.cfi_name or '-' }}{% endif %}{% if f.notes %} &middot; {{ f.notes }}{% endif %}</small>
+      {% if (can_bill and not f.paid) or f.oil_added_qt or (f.squawk and not f.squawk_acknowledged_at) %}
+      <span class="d-flex flex-wrap gap-1 justify-content-end flex-shrink-0 ms-2 flight-compact-tags">
+        {% if can_bill and not f.paid %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}
+        {% if f.oil_added_qt %}<span class="badge bg-light text-dark border">+{{ '%g'|format(f.oil_added_qt) }} qt oil</span>{% endif %}
+        {% if f.squawk and not f.squawk_acknowledged_at %}<span class="badge bg-danger">Squawk</span>{% endif %}
+      </span>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="text-muted text-center py-3">No flights logged yet.</div>
+  {% endfor %}
+</div>
+
+<div class="card d-none d-sm-block">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0 table-stack" id="history-table">
       <thead class="table-light">
@@ -77,13 +128,19 @@
   var clearBtn = document.getElementById('clear-filter');
   var countEl = document.getElementById('visible-count');
   var rows = document.querySelectorAll('#history-table tbody tr[data-search]');
+  // The compact phone rows are rendered from the same flights list, in the
+  // same order, so they line up 1:1 with the table rows above - filtering
+  // both together off the table's list keeps a single visible-count instead
+  // of counting each flight twice (once per view).
+  var compactRows = document.querySelectorAll('#history-compact > [data-search]');
 
   function applyFilter(q) {
     q = (q || '').trim().toLowerCase();
     var visible = 0;
-    rows.forEach(function (row) {
+    rows.forEach(function (row, i) {
       var match = row.getAttribute('data-search').indexOf(q) !== -1;
       row.style.display = match ? '' : 'none';
+      if (compactRows[i]) { compactRows[i].style.display = match ? '' : 'none'; }
       if (match) { visible++; }
     });
     countEl.textContent = visible;
@@ -110,8 +167,10 @@
 
   // Clicking a row opens its detail page - unless the click actually landed
   // on one of the row's own interactive bits (filter chip, mark-paid
-  // button/form), which keep their own behavior.
-  document.querySelectorAll('.history-row').forEach(function (row) {
+  // button/form), which keep their own behavior. The phone compact rows
+  // have no interactive bits of their own, so a tap anywhere on one opens
+  // the flight.
+  document.querySelectorAll('.history-row, .flight-compact-row').forEach(function (row) {
     row.addEventListener('click', function (e) {
       if (e.target.closest('a, button, form')) { return; }
       window.location.href = row.getAttribute('data-href');
