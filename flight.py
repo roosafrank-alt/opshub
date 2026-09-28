@@ -5944,6 +5944,25 @@ def api_live_track():
     return resp
 
 
+@flight_bp.route("/log/active-status")
+@login_required
+def log_active_status():
+    """Every running flight's clock state (started, not yet ended), as JSON -
+    polled by Active Flight (log_active.html) so its timers and Pause/Resume
+    buttons follow the real flight when it's paused, resumed or stopped from
+    somewhere else: the CFI's floating widget on another page or tab,
+    another phone, a session-alert auto-close. Same set of flights the page
+    itself lists, so it tells no one anything they can't already see."""
+    conn = get_db()
+    rows = conn.execute(
+        """SELECT id, paused_at, paused_seconds, stopped_at FROM flights
+           WHERE started_at IS NOT NULL AND ended_at IS NULL""").fetchall()
+    conn.close()
+    resp = jsonify({"flights": [dict(r) for r in rows]})
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
 @flight_bp.route("/log/<int:flight_id>/pause", methods=["POST"])
 @login_required
 def log_pause(flight_id):
