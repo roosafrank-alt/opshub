@@ -7672,11 +7672,14 @@ def _wipe_flight_log(conn, where="1=1", params=()):
 
 def _wipe_schedule(conn, where="1=1", params=()):
     """Deletes bookings (scheduled, pending approval, denied, cancelled).
-    Logged flights that were started from a booking are kept."""
+    Logged flights that were started from a booking, and waitlist offers
+    made when a booking was cancelled (waitlist_offers.cancelled_flight_id,
+    a hard foreign key), are kept but un-linked from the deleted booking."""
     ids = [r["id"] for r in conn.execute(f"SELECT id FROM scheduled_flights WHERE {where}", params).fetchall()]
     if ids:
         ph = _ids_placeholders(ids)
         conn.execute(f"UPDATE flights SET scheduled_flight_id = NULL WHERE scheduled_flight_id IN ({ph})", ids)
+        conn.execute(f"UPDATE waitlist_offers SET cancelled_flight_id = NULL WHERE cancelled_flight_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM notification_log WHERE category = 'flight_reminder' AND ref_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM flight_alerts WHERE scheduled_flight_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM scheduled_flights WHERE id IN ({ph})", ids)
@@ -7700,6 +7703,12 @@ def _wipe_students(conn):
         conn.execute(f"DELETE FROM student_ledger WHERE student_id IN ({ph})", ids)
         _wipe_flight_log(conn, f"student_id IN ({ph})", ids)
         _wipe_schedule(conn, f"student_id IN ({ph})", ids)
+        # Cancellation waitlist rows are the student's own requests/offers -
+        # hard foreign keys to students, so they go with the student.
+        conn.execute(f"DELETE FROM waitlist_offers WHERE student_id IN ({ph})", ids)
+        conn.execute(f"UPDATE waitlist_offers SET waitlist_id = NULL WHERE waitlist_id IN "
+                     f"(SELECT id FROM flight_waitlist WHERE student_id IN ({ph}))", ids)
+        conn.execute(f"DELETE FROM flight_waitlist WHERE student_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM field_change_log WHERE entity_type = 'student' AND entity_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM students WHERE id IN ({ph})", ids)
         _remove_flight_logins(conn, [r["user_id"] for r in rows], "student")
@@ -7722,6 +7731,8 @@ def _wipe_instructors(conn):
                          WHERE cfi_id IN ({ph}) AND solo = 0 AND status IN ('scheduled', 'pending_approval')""", ids)
         conn.execute(f"UPDATE scheduled_flights SET cfi_id = NULL WHERE cfi_id IN ({ph})", ids)
         conn.execute(f"UPDATE students SET created_by_cfi_id = NULL WHERE created_by_cfi_id IN ({ph})", ids)
+        conn.execute(f"UPDATE flight_waitlist SET cfi_id = NULL WHERE cfi_id IN ({ph})", ids)
+        conn.execute(f"UPDATE waitlist_offers SET cfi_id = NULL WHERE cfi_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM field_change_log WHERE entity_type = 'cfi' AND entity_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM cfis WHERE id IN ({ph})", ids)
         _remove_flight_logins(conn, user_ids, "cfi")
@@ -7737,6 +7748,10 @@ def _wipe_planes(conn):
         ph = _ids_placeholders(plane_ids)
         _wipe_flight_log(conn, f"asset_id IN ({ph})", plane_ids)
         _wipe_schedule(conn, f"asset_id IN ({ph})", plane_ids)
+        # Waitlist offers are for a slot on that plane (asset_id NOT NULL) so
+        # they go; a waitlist request just loses its plane preference.
+        conn.execute(f"DELETE FROM waitlist_offers WHERE asset_id IN ({ph})", plane_ids)
+        conn.execute(f"UPDATE flight_waitlist SET asset_id = NULL WHERE asset_id IN ({ph})", plane_ids)
         item_ids = [r["id"] for r in conn.execute(
             f"SELECT id FROM maintenance_items WHERE asset_id IN ({ph})", plane_ids).fetchall()]
         if item_ids:
