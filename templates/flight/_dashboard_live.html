@@ -642,9 +642,16 @@
     </div>
     {% if session.get('is_master_admin') %}
     <div class="d-flex flex-column align-items-end gap-2">
+      {#- Buttons, not links: a plain <a> navigated to a fresh /dashboard
+         page load, which reset scroll to the top (QA "your next lesson
+         toggling") - these instead fetch just this scope from
+         flight.dashboard_live and swap it into #dashboard-live-region in
+         place, same pattern as the region's own poll refresh (see the
+         next-scope-btn click handler in dashboard.html), so the page never
+         moves. #}
       <div class="btn-group btn-group-sm" role="group" aria-label="Whose next lesson">
-        <a href="{{ url_for('flight.dashboard', next='mine') }}" class="btn {{ 'btn-primary' if next_scope != 'school' else 'btn-outline-primary' }}"><i class="bi bi-person"></i> Personal</a>
-        <a href="{{ url_for('flight.dashboard', next='school') }}" class="btn {{ 'btn-primary' if next_scope == 'school' else 'btn-outline-primary' }}"><i class="bi bi-people"></i> School</a>
+        <button type="button" class="btn next-scope-btn {{ 'btn-primary' if next_scope != 'school' else 'btn-outline-primary' }}" data-next-scope="mine"><i class="bi bi-person"></i> Personal</button>
+        <button type="button" class="btn next-scope-btn {{ 'btn-primary' if next_scope == 'school' else 'btn-outline-primary' }}" data-next-scope="school"><i class="bi bi-people"></i> School</button>
       </div>
     </div>
     {% endif %}

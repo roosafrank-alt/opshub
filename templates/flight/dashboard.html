@@ -556,6 +556,29 @@
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden) refresh();
   });
+
+  // Next Lesson card's Personal/School toggle (master admins only) - fetch
+  // just that scope from dashboard_live and swap it in like refresh() does
+  // above, instead of the plain <a href> it used to be, which navigated to
+  // a fresh page load and reset scroll to the top (QA "your next lesson
+  // toggling").
+  document.addEventListener('click', function (evt) {
+    if (!region.contains(evt.target)) return;
+    var btn = evt.target.closest('.next-scope-btn');
+    if (!btn || inFlight) return;
+    inFlight = true;
+    var openState = captureOpenState();
+    fetch(url + '?next=' + encodeURIComponent(btn.dataset.nextScope),
+        { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+      .then(function (resp) { return resp.ok ? resp.text() : null; })
+      .then(function (html) {
+        if (html === null) { showDashFlag('Something went wrong - try again.', 'danger'); return; }
+        region.innerHTML = html;
+        restoreOpenState(openState);
+      })
+      .catch(function () { showDashFlag('Something went wrong - try again.', 'danger'); })
+      .finally(function () { inFlight = false; });
+  });
 })();
 
 // Click a flight chip to expand it in place (instructor + Start/Log or a

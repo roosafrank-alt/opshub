@@ -2052,7 +2052,15 @@ def dashboard_live():
     Renders the exact same partial template dashboard.html includes, built
     from the exact same _dashboard_context() query logic as the full page,
     so a shop-TV/kiosk browser left open on /flight/dashboard stays current
-    when a flight is ended or a booking is made from another device."""
+    when a flight is ended or a booking is made from another device.
+
+    Also doubles as the Next Lesson card's Personal/School toggle target
+    (?next=mine|school, same param and session key as dashboard()) so
+    flipping it is an in-place fetch instead of a full navigation - see the
+    next-scope-btn click handler in dashboard.html - and doesn't reset the
+    page's scroll position."""
+    if request.args.get("next") in ("mine", "school") and session.get("is_master_admin"):
+        session["next_scope"] = request.args["next"]
     conn = get_db()
     cfi = current_cfi(conn)
     student = current_student(conn)
