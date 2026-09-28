@@ -2,77 +2,139 @@
 {% block title %}Wave Invoicing - OpsHub{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
-<div class="col-lg-7">
-<h4 class="mb-3"><i class="bi bi-receipt"></i> Wave Invoicing
-  {% if connected %}<span class="badge bg-success fs-6 align-middle">Connected</span>{% else %}<span class="badge bg-secondary fs-6 align-middle">Not set up</span>{% endif %}
-</h4>
+<div class="col-lg-8">
+<h4 class="mb-3"><i class="bi bi-receipt"></i> Wave Invoicing</h4>
 <p class="text-muted">
-  Once this is set up, Shop <strong>Billing</strong> and Flight School <strong>Billing</strong> get an
-  <strong>Invoice in Wave</strong> button. It makes a real invoice in your Wave account and can email it with Wave's
-  own <em>Pay now</em> link (card or bank, if Wave Payments is turned on in Wave). OpsHub checks Wave every half hour
-  and marks the job or flights Paid once the invoice is paid there.
-  {% if open_count %}<br><strong>{{ open_count }}</strong> Wave invoice{{ 's' if open_count != 1 }} waiting on payment.{% endif %}
+  Set up to three Wave accounts, tick which program each one is for, and pick each program's default. <strong>Invoice in Wave</strong>
+  on Billing starts on the default and can swap to any other account the program has, one invoice at a time. Wave emails the
+  invoice with its own <em>Pay now</em> link (card or bank, if Wave Payments is on), and OpsHub checks every half hour and marks
+  the job or flights Paid once it's paid - always in the account it was made in.
+</p>
+<p class="small text-muted">
+  <strong>Access token:</strong> in Wave's developer portal (developer.waveapps.com), sign in, go to <em>Manage Applications</em>,
+  create an application, then open it and click <em>Create token</em>. One Wave login can hold several businesses: for a second
+  business under the same login, choose <em>Same Wave login as Account N</em> instead of pasting the token again.
+  <br><strong>Products:</strong> Wave puts every invoice line under one of the business's products or services. Add them in Wave under
+  <em>Sales &amp; Payments &gt; Products &amp; Services</em> if needed (price can be $0 - OpsHub sets the price on each line),
+  then reload this page. An account only needs the products for the programs it's used for.
 </p>
 
-{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
-
 <form method="post" action="{{ url_for('admin_wave') }}">
+  {% for a in accounts %}
+  {% set cfg = a.cfg %}{% set n = cfg.n %}
   <div class="card p-4 mb-4">
-    <h5 class="mb-3">1. Access token</h5>
-    <p class="small text-muted mb-2">
-      In Wave's developer portal (developer.waveapps.com), sign in, go to <em>Manage Applications</em>,
-      create an application, then open it and click <em>Create token</em> to get a full access token. Paste it here.
-    </p>
-    <input type="password" name="wave_access_token" class="form-control" autocomplete="off"
-           placeholder="{{ 'Saved - leave blank to keep it' if settings.wave_access_token else 'Paste the full access token' }}">
-  </div>
+    <h5 class="mb-3">
+      Account {{ n }}{% if cfg.name != 'Account ' ~ n %} <span class="text-muted fw-normal">- {{ cfg.name }}</span>{% endif %}
+      {% if a.connected %}<span class="badge bg-success">Connected</span>{% else %}<span class="badge bg-secondary">Not set up</span>{% endif %}
+      {% if a.open_count %}<small class="text-muted fw-normal">&middot; {{ a.open_count }} invoice{{ 's' if a.open_count != 1 }} waiting on payment</small>{% endif %}
+    </h5>
+    {% if a.error %}<div class="alert alert-danger py-2">{{ a.error }}</div>{% endif %}
 
-  {% if settings.wave_access_token and not error %}
-  <div class="card p-4 mb-4">
-    <h5 class="mb-3">2. Business</h5>
-    {% set company = businesses|rejectattr('isPersonal')|list %}
-    <select name="wave_business_id" class="form-select">
+    <div class="row g-2">
+      <div class="col-md-6 mb-2">
+        <label class="form-label">Nickname <small class="text-muted">(optional)</small></label>
+        <input type="text" name="{{ account_key(n, 'name') }}" class="form-control" value="{{ cfg.name if cfg.name != 'Account ' ~ n and cfg.name != cfg.business_name else '' }}" placeholder="{{ cfg.business_name or 'e.g. Maintenance' }}">
+      </div>
+      <div class="col-md-6 mb-2">
+        <label class="form-label">Wave login</label>
+        <select name="{{ account_key(n, 'token_from') }}" class="form-select wave-token-from" data-account="{{ n }}">
+          <option value="">Its own access token</option>
+          {% for other in accounts if other.cfg.n != n %}
+          <option value="{{ other.cfg.n }}" {{ 'selected' if cfg.token_from == other.cfg.n|string }}>Same Wave login as Account {{ other.cfg.n }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="mb-3 wave-own-token" data-account="{{ n }}" {% if cfg.token_from %}style="display:none"{% endif %}>
+      <label class="form-label">Access token</label>
+      <input type="password" name="{{ account_key(n, 'token') }}" class="form-control" autocomplete="off"
+             placeholder="{{ 'Saved - leave blank to keep it' if cfg.own_token else 'Paste the full access token' }}">
+    </div>
+
+    {% if cfg.token and not a.error %}
+    {% set company = a.businesses|rejectattr('isPersonal')|list %}
+    <label class="form-label">Business</label>
+    <select name="{{ account_key(n, 'business_id') }}" class="form-select mb-3">
       <option value="">Select...</option>
-      {% for b in businesses %}
-      <option value="{{ b.id }}" {{ 'selected' if b.id == settings.wave_business_id or (not settings.wave_business_id and company|length == 1 and b.id == company[0].id) }}>{{ b.name }}{% if b.currency %} ({{ b.currency.code }}){% endif %}{% if b.isPersonal %} - personal{% endif %}</option>
+      {% for b in a.businesses %}
+      <option value="{{ b.id }}|{{ b.name }}" {{ 'selected' if b.id == cfg.business_id or (not cfg.business_id and company|length == 1 and b.id == company[0].id) }}>{{ b.name }}{% if b.currency %} ({{ b.currency.code }}){% endif %}{% if b.isPersonal %} - personal{% endif %}</option>
       {% endfor %}
     </select>
-  </div>
+    {% if cfg.business_id %}
+    <div class="row g-2">
+      {% for key, field in [('labor', 'labor_product_id'), ('parts', 'parts_product_id'), ('flight', 'flight_product_id')] %}
+      <div class="col-md-4 mb-2">
+        <label class="form-label small">Product for {{ product_labels[key] }}</label>
+        <select name="{{ account_key(n, field) }}" class="form-select form-select-sm">
+          <option value="">Not set</option>
+          {% for p in a.products %}
+          <option value="{{ p.id }}" {{ 'selected' if p.id == cfg[key ~ '_product'] }}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% else %}
+    {#- Can't list businesses/products right now - keep what's saved. #}
+    <input type="hidden" name="{{ account_key(n, 'business_id') }}" value="{{ cfg.business_id }}">
+    {% for key, field in [('labor', 'labor_product_id'), ('parts', 'parts_product_id'), ('flight', 'flight_product_id')] %}
+    <input type="hidden" name="{{ account_key(n, field) }}" value="{{ cfg[key ~ '_product'] }}">
+    {% endfor %}
+    {% endif %}
 
-  {% if settings.wave_business_id %}
+    <div class="mt-2">
+      <span class="form-label me-2">Use for:</span>
+      {% for p in programs %}
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" name="use_{{ p.key }}_{{ n }}" value="1" id="use_{{ p.key }}_{{ n }}" {{ 'checked' if a.programs[p.key] }}>
+        <label class="form-check-label" for="use_{{ p.key }}_{{ n }}">{{ p.label }}</label>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
   <div class="card p-4 mb-4">
-    <h5 class="mb-2">3. Products for invoice lines</h5>
-    <p class="small text-muted">Wave puts every invoice line under one of your products or services (that's also which income account it lands in).
-      If you don't have these yet, add them in Wave under <em>Sales &amp; Payments &gt; Products &amp; Services</em> (price can be $0 - OpsHub sets the price on each line), then reload this page.</p>
-    {% for key, label, needed in [('wave_labor_product_id', 'Shop labor', 'Shop jobs'), ('wave_parts_product_id', 'Parts', 'Shop jobs'), ('wave_flight_product_id', 'Flight training', 'Flight School')] %}
+    <h5 class="mb-3">Default account for each program</h5>
+    {% for p in programs %}
     <div class="mb-3">
-      <label class="form-label">{{ label }} <small class="text-muted">- used by {{ needed }}</small></label>
-      <select name="{{ key }}" class="form-select">
-        <option value="">Not set</option>
-        {% for p in products %}
-        <option value="{{ p.id }}" {{ 'selected' if p.id == settings[key] }}>{{ p.name }}</option>
+      <label class="form-label">{{ p.label }}</label>
+      <select name="{{ program_key(p.key, 'default') }}" class="form-select">
+        {% for a in accounts %}
+        <option value="{{ a.cfg.n }}" {{ 'selected' if p.default == a.cfg.n }}>Account {{ a.cfg.n }}{% if a.cfg.name != 'Account ' ~ a.cfg.n %} - {{ a.cfg.name }}{% endif %}{% if not a.programs[p.key] %} (not ticked for {{ p.label }}){% endif %}</option>
         {% endfor %}
       </select>
+      <div class="form-text">
+        {% if p.connected %}Invoice in Wave can use: {% for c in p.connected %}{{ c.name }}{{ ', ' if not loop.last }}{% endfor %}.
+        {% else %}No connected account is ticked for {{ p.label }} yet, so its Billing page has no Invoice in Wave button.{% endif %}
+      </div>
     </div>
     {% endfor %}
   </div>
-  {% endif %}
-  {% else %}
-  <input type="hidden" name="wave_business_id" value="{{ settings.wave_business_id }}">
-  {% for key in ['wave_labor_product_id', 'wave_parts_product_id', 'wave_flight_product_id'] %}
-  <input type="hidden" name="{{ key }}" value="{{ settings[key] }}">
-  {% endfor %}
-  {% endif %}
 
   <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-save"></i> Save</button>
 </form>
 
-{% if settings.wave_access_token %}
-<form method="post" action="{{ url_for('admin_wave_disconnect') }}" class="mt-3"
-      data-confirm="Disconnect Wave? Invoices already made stay in Wave, but OpsHub stops making new ones and checking for payments." data-confirm-title="Disconnect Wave" data-confirm-ok="Disconnect" data-confirm-style="danger">
-  <button class="btn btn-outline-danger btn-sm"><i class="bi bi-plug"></i> Disconnect Wave</button>
-</form>
-{% endif %}
+<div class="d-flex gap-2 flex-wrap mt-3">
+  {% for a in accounts if a.cfg.own_token or a.cfg.token_from or a.cfg.business_id %}
+  <form method="post" action="{{ url_for('admin_wave_disconnect', n=a.cfg.n) }}"
+        data-confirm="Disconnect {{ a.cfg.name }}? Invoices already made in it stay in Wave, but OpsHub stops using it and can't check those invoices for payment." data-confirm-title="Disconnect Wave account" data-confirm-ok="Disconnect" data-confirm-style="danger">
+    <button class="btn btn-outline-danger btn-sm"><i class="bi bi-plug"></i> Disconnect Account {{ a.cfg.n }}</button>
+  </form>
+  {% endfor %}
 </div>
 </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.wave-token-from').forEach(function (sel) {
+  sel.addEventListener('change', function () {
+    var box = document.querySelector('.wave-own-token[data-account="' + sel.dataset.account + '"]');
+    if (box) box.style.display = sel.value ? 'none' : '';
+  });
+});
+</script>
 {% endblock %}

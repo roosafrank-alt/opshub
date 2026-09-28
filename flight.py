@@ -7148,7 +7148,7 @@ def billing():
     rows = conn.execute(sql).fetchall()
     flights = [_row_with_cost(r) for r in rows]
     wave_invoices = {r["id"]: dict(r) for r in conn.execute("SELECT * FROM wave_invoices WHERE kind = 'student'").fetchall()}
-    wave_connected = wave_billing.is_connected(wave_billing.get_settings(conn))
+    wave_accounts, wave_default = wave_billing.program_accounts(conn, "flight")
     groups = {}
     order = []
     for f in flights:
@@ -7169,7 +7169,8 @@ def billing():
     students_billing.sort(key=lambda g: g["student_name"])
     grand_total = sum(g["total"] for g in students_billing)
     return render_template("flight/billing.html", students_billing=students_billing,
-                           grand_total=grand_total, status=status, wave_connected=wave_connected)
+                           grand_total=grand_total, status=status, wave_connected=bool(wave_accounts),
+                           wave_accounts=wave_accounts, wave_default=wave_default)
 
 
 def _student_billing_contact(conn, student_id):
@@ -7212,12 +7213,10 @@ def billing_wave_invoice(student_id):
         conn.close()
         flash("Enter the student's email so Wave can send it (or untick Email it now).", "danger")
         return redirect(back)
-    settings = wave_billing.get_settings(conn)
     try:
-        if not wave_billing.is_connected(settings):
-            raise wave_billing.WaveError("Wave isn't connected yet - an admin can set it up under Admin > Wave.")
-        lines = wave_billing.flight_lines(settings, flights)
-        inv = wave_billing.create_invoice(conn, settings, name, email, lines, memo="Flight training")
+        cfg = wave_billing.choose_account(conn, "flight", request.form.get("wave_account"))
+        lines = wave_billing.flight_lines(cfg, flights)
+        inv = wave_billing.create_invoice(conn, cfg, name, email, lines, memo="Flight training")
     except wave_billing.WaveError as e:
         conn.close()
         flash(str(e), "danger")
@@ -7225,16 +7224,16 @@ def billing_wave_invoice(student_id):
     sent_msg, sent = "", False
     if send:
         try:
-            wave_billing.send_invoice(settings, inv["id"], email)
+            wave_billing.send_invoice(cfg, inv["id"], email)
             sent, sent_msg = True, f" and emailed to {email}"
         except wave_billing.WaveError as e:
             sent_msg = f", but it wasn't emailed ({e}) - send it from Wave"
     local_id = wave_billing.record_invoice(conn, "student", student_id, inv, name, email,
-                                           session.get("user_name"), sent=sent)
+                                           session.get("user_name"), cfg, sent=sent)
     conn.executemany("UPDATE flights SET wave_invoice_id = ? WHERE id = ?", [(local_id, f["id"]) for f in flights])
     conn.commit()
     conn.close()
-    flash(f"Wave invoice #{inv.get('invoiceNumber') or ''} created for {len(flights)} flight"
+    flash(f"Wave invoice #{inv.get('invoiceNumber') or ''} created in {cfg['name']} for {len(flights)} flight"
           f"{'s' if len(flights) != 1 else ''}, ${wave_billing.money(inv.get('total')):.2f}{sent_msg}.",
           "success" if sent or not send else "warning")
     return redirect(back)
@@ -7248,7 +7247,7 @@ def billing_wave_sync():
     back = request.referrer or url_for("flight.billing")
     conn = get_db()
     try:
-        checked, paid, errors = wave_billing.sync_open_invoices(conn, wave_billing.apply_paid)
+        checked, paid, errors = wave_billing.sync_open_invoices(conn, wave_billing.apply_paid, program="flight")
     except wave_billing.WaveError as e:
         conn.close()
         flash(str(e), "danger")

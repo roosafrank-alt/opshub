@@ -1387,10 +1387,43 @@ def _migrate(conn):
         # billed on, so Wave marking that invoice paid marks these flights
         # paid - and so the same flight is never put on two invoices.
         ("flights", "wave_invoice_id", "ALTER TABLE flights ADD COLUMN wave_invoice_id INTEGER"),
+        # Wave with several accounts: which account (Admin > Wave, 1-3) and
+        # which Wave business an invoice was made in, so its payment is
+        # always looked up there even after a program swaps accounts.
+        ("wave_invoices", "account", "ALTER TABLE wave_invoices ADD COLUMN account INTEGER"),
+        ("wave_invoices", "business_id", "ALTER TABLE wave_invoices ADD COLUMN business_id TEXT"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)
             conn.commit()
+    # Wave with several accounts (see wave_billing.ACCOUNTS/PROGRAMS): the
+    # first version had one Wave connection used by both the Shop and the
+    # Flight School. It becomes Account 1, given to (and the default for)
+    # both programs; its invoices are marked as made in Account 1, and
+    # remembered customers move to per-business keys. The old keys are
+    # removed afterwards, so this only ever runs once.
+    old = {r["key"]: r["value"] or "" for r in conn.execute(
+        """SELECT key, value FROM app_settings WHERE key IN ('wave_access_token', 'wave_business_id',
+           'wave_labor_product_id', 'wave_parts_product_id', 'wave_flight_product_id')""").fetchall()}
+    if old:
+        biz = old.get("wave_business_id", "")
+        new = {"wave_acct1_token": old.get("wave_access_token", ""), "wave_acct1_business_id": biz,
+               "wave_acct1_labor_product_id": old.get("wave_labor_product_id", ""),
+               "wave_acct1_parts_product_id": old.get("wave_parts_product_id", ""),
+               "wave_acct1_flight_product_id": old.get("wave_flight_product_id", "")}
+        if old.get("wave_access_token"):
+            new.update(wave_shop_accounts="1", wave_shop_default="1", wave_flight_accounts="1", wave_flight_default="1")
+        for key, value in new.items():
+            conn.execute("INSERT INTO app_settings (key, value) VALUES (?, ?) "
+                         "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, value))
+        conn.execute("UPDATE wave_invoices SET account = 1, business_id = COALESCE(business_id, ?) WHERE account IS NULL",
+                     (biz,))
+        if biz:
+            conn.execute("""UPDATE app_settings SET key = 'wavecust:' || ? || ':' || substr(key, 10)
+                            WHERE key LIKE 'wavecust:%' AND substr(key, 10) NOT LIKE '%:%'""", (biz,))
+        conn.execute("""DELETE FROM app_settings WHERE key IN ('wave_access_token', 'wave_business_id',
+                        'wave_labor_product_id', 'wave_parts_product_id', 'wave_flight_product_id')""")
+        conn.commit()
     # QA feat-tool-calibration: torque wrenches, gauges and testers that need
     # periodic recalibration - a due date derives from the last calibration
     # plus the tool's own interval, NULL interval meaning "not required".

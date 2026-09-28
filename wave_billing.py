@@ -12,6 +12,15 @@ app_settings like the SMTP/Twilio settings (Admin > Wave). Every invoice
 line needs a Wave product, so Admin > Wave also picks which of the
 business's products stand for shop labor, parts and flight training.
 
+Up to three Wave accounts can be set up (ACCOUNTS), each one Wave business
+with its own products. An account can share another account's Wave login
+(two businesses under one login) or have its own token. Each program - the
+Shop and the Flight School - is given any of the accounts plus a default
+one; the Invoice in Wave box preselects the default and can swap to another
+of that program's accounts for any single invoice. Every invoice remembers
+the account and business it was made in, so its payment is always looked up
+in the right place.
+
 Nothing here talks to the database except the settings/customer-cache
 helpers - the callers in app.py / flight.py decide what goes on an invoice
 and what happens once it's paid (see sync_open_invoices)."""
@@ -23,8 +32,27 @@ from db import now_iso
 
 API_URL = "https://gql.waveapps.com/graphql/public"
 
-SETTINGS_KEYS = ["wave_access_token", "wave_business_id",
-                 "wave_labor_product_id", "wave_parts_product_id", "wave_flight_product_id"]
+ACCOUNTS = (1, 2, 3)
+ACCOUNT_FIELDS = ("name", "token", "token_from", "business_id", "business_name",
+                  "labor_product_id", "parts_product_id", "flight_product_id")
+PROGRAMS = {"shop": {"label": "Shop", "products": ("labor", "parts")},
+            "flight": {"label": "Flight School", "products": ("flight",)}}
+PRODUCT_LABELS = {"labor": "shop labor", "parts": "parts", "flight": "flight training"}
+# Which program an invoice kind belongs to.
+KIND_PROGRAM = {"project": "shop", "student": "flight"}
+
+
+def account_key(n, field):
+    return f"wave_acct{n}_{field}"
+
+
+def program_key(program, field):
+    """field: 'accounts' (comma list of account numbers) or 'default'."""
+    return f"wave_{program}_{field}"
+
+
+SETTINGS_KEYS = ([account_key(n, f) for n in ACCOUNTS for f in ACCOUNT_FIELDS]
+                 + [program_key(p, f) for p in PROGRAMS for f in ("accounts", "default")])
 
 # Wave's own invoice statuses. Anything in here is finished - no need to
 # keep asking Wave about it.
@@ -56,8 +84,55 @@ def save_settings(conn, values):
     conn.commit()
 
 
-def is_connected(settings):
-    return bool(settings["wave_access_token"] and settings["wave_business_id"])
+def account_config(raw, n):
+    """Account n from get_settings(): {n, name, token (resolved - its own,
+    or the login it shares), own_token, token_from, business_id,
+    business_name, labor_product, parts_product, flight_product}."""
+    def v(field):
+        return raw.get(account_key(n, field), "")
+    token_from = v("token_from")
+    token = v("token")
+    if not token and token_from.isdigit() and int(token_from) in ACCOUNTS and int(token_from) != n:
+        token = raw.get(account_key(int(token_from), "token"), "")
+    return {"n": n, "name": v("name") or v("business_name") or f"Account {n}", "own_token": v("token"),
+            "token": token, "token_from": token_from, "business_id": v("business_id"),
+            "business_name": v("business_name"), "labor_product": v("labor_product_id"),
+            "parts_product": v("parts_product_id"), "flight_product": v("flight_product_id")}
+
+
+def is_connected(cfg):
+    return bool(cfg and cfg["token"] and cfg["business_id"])
+
+
+def program_accounts(conn, program):
+    """(connected accounts given to this program, default account number or
+    None). The default is the saved one if it's still connected, else the
+    first connected account."""
+    raw = get_settings(conn)
+    wanted = [int(x) for x in raw[program_key(program, "accounts")].split(",") if x.strip().isdigit()]
+    accounts = [account_config(raw, n) for n in ACCOUNTS if n in wanted]
+    accounts = [a for a in accounts if is_connected(a)]
+    default = raw[program_key(program, "default")]
+    numbers = [a["n"] for a in accounts]
+    default = int(default) if default.isdigit() and int(default) in numbers else (numbers[0] if numbers else None)
+    return accounts, default
+
+
+def choose_account(conn, program, requested=None):
+    """The account to invoice from: the one picked in the Invoice in Wave
+    box (must be one of this program's), else the program's default."""
+    accounts, default = program_accounts(conn, program)
+    if not accounts:
+        raise WaveError(f"Wave isn't connected for the {PROGRAMS[program]['label']} yet - set it up under Admin > Wave.")
+    n = default
+    if requested not in (None, ""):
+        try:
+            n = int(requested)
+        except (TypeError, ValueError):
+            n = -1
+        if n not in [a["n"] for a in accounts]:
+            raise WaveError(f"That Wave account isn't set up for the {PROGRAMS[program]['label']}.")
+    return next(a for a in accounts if a["n"] == n)
 
 
 # ---------------------------------------------------------------------------
@@ -135,19 +210,25 @@ def get_invoice(token, business_id, invoice_id):
 # Customers
 # ---------------------------------------------------------------------------
 
-def _customer_cache_key(email):
-    return "wavecust:" + email.strip().lower()
+def _customer_cache_key(business_id, email):
+    return f"wavecust:{business_id}:{email.strip().lower()}"
 
 
-def find_or_create_customer(conn, settings, name, email):
-    """Wave customer id for this person. Remembered per email address in
-    app_settings, then looked up in Wave by email (so a customer Frank
-    already has in Wave is reused, not duplicated), then created."""
-    token, business_id = settings["wave_access_token"], settings["wave_business_id"]
+def forget_business_customers(conn, business_id):
+    """Drops remembered customer ids for a business (after disconnecting it)."""
+    conn.execute("DELETE FROM app_settings WHERE key LIKE ?", (f"wavecust:{business_id}:%",))
+
+
+def find_or_create_customer(conn, cfg, name, email):
+    """Wave customer id for this person in this account's business. Remembered
+    per business + email address in app_settings, then looked up in Wave by
+    email (so a customer Frank already has in Wave is reused, not
+    duplicated), then created."""
+    token, business_id = cfg["token"], cfg["business_id"]
     email = (email or "").strip()
     name = (name or "").strip() or email
     if email:
-        row = conn.execute("SELECT value FROM app_settings WHERE key = ?", (_customer_cache_key(email),)).fetchone()
+        row = conn.execute("SELECT value FROM app_settings WHERE key = ?", (_customer_cache_key(business_id, email),)).fetchone()
         if row and row["value"]:
             return row["value"]
         try:
@@ -156,7 +237,7 @@ def find_or_create_customer(conn, settings, name, email):
                         {"businessId": business_id, "email": email})
             for e in data["business"]["customers"]["edges"]:
                 if (e["node"].get("email") or "").strip().lower() == email.lower():
-                    _remember_customer(conn, email, e["node"]["id"])
+                    _remember_customer(conn, business_id, email, e["node"]["id"])
                     return e["node"]["id"]
         except WaveError:
             pass  # lookup is only a nicety - fall through and create
@@ -166,19 +247,19 @@ def find_or_create_customer(conn, settings, name, email):
     result = _check_mutation(data.get("customerCreate"), "add the customer")
     cust_id = result["customer"]["id"]
     if email:
-        _remember_customer(conn, email, cust_id)
+        _remember_customer(conn, business_id, email, cust_id)
     return cust_id
 
 
-def _remember_customer(conn, email, cust_id):
+def _remember_customer(conn, business_id, email, cust_id):
     conn.execute("INSERT INTO app_settings (key, value) VALUES (?, ?) "
-                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (_customer_cache_key(email), cust_id))
+                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (_customer_cache_key(business_id, email), cust_id))
     conn.commit()
 
 
-def forget_customer(conn, email):
+def forget_customer(conn, business_id, email):
     if email:
-        conn.execute("DELETE FROM app_settings WHERE key = ?", (_customer_cache_key(email),))
+        conn.execute("DELETE FROM app_settings WHERE key = ?", (_customer_cache_key(business_id, email),))
         conn.commit()
 
 
@@ -189,15 +270,17 @@ def forget_customer(conn, email):
 _INVOICE_FIELDS = "id invoiceNumber status viewUrl pdfUrl total { value } amountDue { value }"
 
 
-def create_invoice(conn, settings, customer_name, customer_email, items, memo="", po_number=""):
+def create_invoice(conn, cfg, customer_name, customer_email, items, memo="", po_number=""):
     """Creates an approved (SAVED, not draft) invoice. items: dicts with
     productId, description, quantity, unitPrice. Returns Wave's invoice
     (id, invoiceNumber, status, viewUrl, pdfUrl, total, amountDue)."""
     if not items:
         raise WaveError("Nothing to invoice - no charges found.")
-    customer_id = find_or_create_customer(conn, settings, customer_name, customer_email)
+    if not is_connected(cfg):
+        raise WaveError(f"Wave {cfg['name']} isn't connected - check it under Admin > Wave.")
+    customer_id = find_or_create_customer(conn, cfg, customer_name, customer_email)
     variables = {"input": {
-        "businessId": settings["wave_business_id"],
+        "businessId": cfg["business_id"],
         "customerId": customer_id,
         "status": "SAVED",
         "items": [{"productId": i["productId"], "description": i["description"][:255],
@@ -207,21 +290,21 @@ def create_invoice(conn, settings, customer_name, customer_email, items, memo=""
     }}
     query = "mutation ($input: InvoiceCreateInput!) { invoiceCreate(input: $input) { didSucceed inputErrors { code message path } invoice { %s } } }" % _INVOICE_FIELDS
     try:
-        data = _gql(settings["wave_access_token"], query, variables)
+        data = _gql(cfg["token"], query, variables)
         return _check_mutation(data.get("invoiceCreate"), "create the invoice")["invoice"]
     except WaveError as e:
         # A remembered customer that was since deleted in Wave - forget it
         # so the next try makes a fresh one.
         if "customer" in str(e).lower():
-            forget_customer(conn, customer_email)
+            forget_customer(conn, cfg["business_id"], customer_email)
         raise
 
 
-def send_invoice(settings, invoice_id, to_email, message=""):
+def send_invoice(cfg, invoice_id, to_email, message=""):
     """Has Wave email the invoice (with its PDF and online Pay link)."""
     if not to_email:
         raise WaveError("No email address to send the invoice to.")
-    data = _gql(settings["wave_access_token"],
+    data = _gql(cfg["token"],
                 """mutation ($input: InvoiceSendInput!) { invoiceSend(input: $input) {
                     didSucceed inputErrors { code message path } } }""",
                 {"input": {"invoiceId": invoice_id, "to": [to_email.strip()], "attachPDF": True,
@@ -241,37 +324,54 @@ def money(v):
 # Local invoice records (wave_invoices table)
 # ---------------------------------------------------------------------------
 
-def record_invoice(conn, kind, ref_id, inv, customer_name, customer_email, created_by, sent=False):
+def record_invoice(conn, kind, ref_id, inv, customer_name, customer_email, created_by, cfg, sent=False):
     """Saves the Wave invoice against the job ('project') or student
-    ('student') it was made for. Returns the new wave_invoices.id."""
-    cur = conn.execute("""INSERT INTO wave_invoices (kind, ref_id, wave_invoice_id, invoice_number, status, view_url,
-                              pdf_url, total, amount_due, customer_name, customer_email, sent_at, created_at, created_by)
-                          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                       (kind, ref_id, inv["id"], inv.get("invoiceNumber"), inv.get("status"), inv.get("viewUrl"),
-                        inv.get("pdfUrl"), money(inv.get("total")), money(inv.get("amountDue")),
+    ('student') it was made for, and the account (cfg) it was made in.
+    Returns the new wave_invoices.id."""
+    cur = conn.execute("""INSERT INTO wave_invoices (kind, ref_id, wave_invoice_id, account, business_id, invoice_number, status,
+                              view_url, pdf_url, total, amount_due, customer_name, customer_email, sent_at, created_at, created_by)
+                          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                       (kind, ref_id, inv["id"], cfg["n"], cfg["business_id"], inv.get("invoiceNumber"), inv.get("status"),
+                        inv.get("viewUrl"), inv.get("pdfUrl"), money(inv.get("total")), money(inv.get("amountDue")),
                         customer_name, customer_email, now_iso() if sent else None, now_iso(), created_by))
     return cur.lastrowid
 
 
-def sync_open_invoices(conn, on_paid, only_id=None):
-    """Asks Wave about every invoice that isn't paid yet (or just only_id)
-    and saves its status. For each one that's newly paid, calls
-    on_paid(conn, wave_invoices_row) so the caller can mark the job/flights
-    paid. Returns (checked, newly_paid, errors)."""
-    settings = get_settings(conn)
-    if not is_connected(settings):
+def has_any_connected(conn):
+    raw = get_settings(conn)
+    return any(is_connected(account_config(raw, n)) for n in ACCOUNTS)
+
+
+def sync_open_invoices(conn, on_paid, only_id=None, program=None):
+    """Asks Wave about every invoice that isn't paid yet (just one
+    program's with program=, or just only_id) and saves its status. Each is
+    asked in the account and business it was made in. For each one that's
+    newly paid, calls on_paid(conn, wave_invoices_row) so the caller can
+    mark the job/flights paid. Returns (checked, newly_paid, errors)."""
+    raw = get_settings(conn)
+    accounts = {n: account_config(raw, n) for n in ACCOUNTS}
+    if not any(is_connected(a) for a in accounts.values()):
         raise WaveError("Wave isn't connected yet - set it up under Admin > Wave.")
     sql = "SELECT * FROM wave_invoices WHERE paid_applied_at IS NULL"
     params = []
+    if program:
+        kinds = [k for k, p in KIND_PROGRAM.items() if p == program]
+        sql += f" AND kind IN ({','.join('?' * len(kinds))})"
+        params += kinds
     if only_id:
         sql += " AND id = ?"
         params.append(only_id)
     checked, newly_paid, errors = 0, 0, []
     for row in conn.execute(sql, params).fetchall():
+        cfg = accounts.get(row["account"] or 1)
+        label = f"#{row['invoice_number'] or row['id']}"
+        if not cfg or not cfg["token"]:
+            errors.append(f"{label}: made in Wave account {row['account'] or 1}, which isn't connected any more.")
+            continue
         try:
-            inv = get_invoice(settings["wave_access_token"], settings["wave_business_id"], row["wave_invoice_id"])
+            inv = get_invoice(cfg["token"], row["business_id"] or cfg["business_id"], row["wave_invoice_id"])
         except WaveError as e:
-            errors.append(f"#{row['invoice_number'] or row['id']}: {e}")
+            errors.append(f"{label}: {e}")
             continue
         checked += 1
         conn.execute("""UPDATE wave_invoices SET status = ?, amount_due = ?, amount_paid = ?, view_url = COALESCE(?, view_url),
@@ -324,10 +424,10 @@ def _line(product_id, description, amount, quantity=None, rate=None):
     return {"productId": product_id, "description": description, "quantity": 1, "unitPrice": amount, "amount": amount}
 
 
-def project_lines(conn, settings, project_id):
+def project_lines(conn, cfg, project_id):
     """The whole job (all dates, same as the Invoice CSV): parts at sell
     price per area worked on, then labor per worker/area/rate."""
-    labor_product, parts_product = settings["wave_labor_product_id"], settings["wave_parts_product_id"]
+    labor_product, parts_product = cfg["labor_product"], cfg["parts_product"]
     usage = conn.execute("""
         SELECT p.name, p.unit, COALESCE(p.sell_price, 0) as sell_price, t.section as section,
                SUM(CASE WHEN t.type='out' THEN t.qty ELSE -t.qty END) as qty_used
@@ -340,9 +440,9 @@ def project_lines(conn, settings, project_id):
         WHERE ls.project_id = ? AND ls.ended_at IS NOT NULL
         GROUP BY l.id, ls.section, ls.rate ORDER BY ls.section, l.name""", (project_id,)).fetchall()
     if usage and not parts_product:
-        raise WaveError("Pick the Wave product to use for parts under Admin > Wave first.")
+        raise WaveError(f"Pick the Wave product for parts on {cfg['name']} under Admin > Wave first.")
     if labor and not labor_product:
-        raise WaveError("Pick the Wave product to use for labor under Admin > Wave first.")
+        raise WaveError(f"Pick the Wave product for shop labor on {cfg['name']} under Admin > Wave first.")
     lines = []
     for u in usage:
         amount = (u["qty_used"] or 0) * (u["sell_price"] or 0)
@@ -361,12 +461,12 @@ def project_lines(conn, settings, project_id):
     return lines
 
 
-def flight_lines(settings, flights):
+def flight_lines(cfg, flights):
     """Each flight's plane / instructor / ground charges as its own line,
     from flight.py's already-costed rows (_row_with_cost)."""
-    product = settings["wave_flight_product_id"]
+    product = cfg["flight_product"]
     if not product:
-        raise WaveError("Pick the Wave product to use for flight training under Admin > Wave first.")
+        raise WaveError(f"Pick the Wave product for flight training on {cfg['name']} under Admin > Wave first.")
     lines = []
     for f in flights:
         when = f["flight_date"] or ""

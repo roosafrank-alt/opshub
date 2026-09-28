@@ -141,6 +141,21 @@
         <div class="modal-body">
           <p class="mb-2" id="wave-invoice-project"></p>
           <p class="small text-muted">Makes a real invoice in Wave for the whole job (every part and all labor, all dates - same as the Invoice download). The customer can pay it online from Wave's email.</p>
+          {#- Swap Wave accounts for this one invoice - starts on the
+             program's default (Admin > Wave). #}
+          {% if wave_accounts|length > 1 %}
+          <div class="mb-2">
+            <label class="form-label">Wave account</label>
+            <select name="wave_account" class="form-select">
+              {% for a in wave_accounts %}
+              <option value="{{ a.n }}" {{ 'selected' if a.n == wave_default }}>{{ a.name }}{% if a.business_name and a.business_name != a.name %} ({{ a.business_name }}){% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% elif wave_accounts %}
+          <input type="hidden" name="wave_account" value="{{ wave_accounts[0].n }}">
+          <p class="small mb-2">Wave account: <strong>{{ wave_accounts[0].name }}</strong></p>
+          {% endif %}
           <div class="mb-2">
             <label class="form-label">Bill to <span class="text-danger">*</span></label>
             <input type="text" name="customer_name" id="wave-customer-name" class="form-control" required>

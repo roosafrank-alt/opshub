@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS wave_invoices (
     kind TEXT NOT NULL, -- 'project' | 'student'
     ref_id INTEGER NOT NULL,
     wave_invoice_id TEXT NOT NULL,
+    account INTEGER, -- which of the Admin > Wave accounts (1-3) it was made in
+    business_id TEXT, -- the Wave business it was made in
     invoice_number TEXT,
     status TEXT, -- Wave's own status: SAVED, SENT, VIEWED, PARTIAL, OVERDUE, PAID...
     view_url TEXT, -- customer-facing page with Wave's Pay now button
