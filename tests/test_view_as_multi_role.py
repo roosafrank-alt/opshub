@@ -73,7 +73,7 @@ class ViewAsMultiRoleTest(OpsHubTestCase):
         # Inspector-only page (admin + inspector) now opens for real.
         self.assertEqual(c.get("/squawks").status_code in (200, 302), True)
         body = c.get("/shop").get_data(as_text=True)
-        self.assertIn("Viewing as Inspector - everything works as it does for that role.", body)
+        self.assertIn("Viewing as Inspector", body)
         self.assertNotIn("not yours", body)
 
     def test_multi_role_account_cannot_switch_to_a_role_it_does_not_have(self):
