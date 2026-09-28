@@ -42,6 +42,33 @@ CREATE TABLE IF NOT EXISTS app_settings (
     value TEXT
 );
 
+-- Real invoices made in Wave (waveapps.com) from Billing - see wave_billing.py.
+-- kind 'project' = a shop job (ref_id = projects.id), 'student' = a flight
+-- student's unpaid flights (ref_id = students.id; the flights point back via
+-- flights.wave_invoice_id). paid_applied_at is set once Wave said PAID and
+-- the job/flights were marked paid here, so it's never applied twice.
+CREATE TABLE IF NOT EXISTS wave_invoices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL, -- 'project' | 'student'
+    ref_id INTEGER NOT NULL,
+    wave_invoice_id TEXT NOT NULL,
+    invoice_number TEXT,
+    status TEXT, -- Wave's own status: SAVED, SENT, VIEWED, PARTIAL, OVERDUE, PAID...
+    view_url TEXT, -- customer-facing page with Wave's Pay now button
+    pdf_url TEXT,
+    total REAL,
+    amount_due REAL,
+    amount_paid REAL,
+    customer_name TEXT,
+    customer_email TEXT,
+    sent_at TEXT, -- when Wave emailed it from OpsHub (NULL = not emailed from here)
+    last_checked_at TEXT,
+    paid_applied_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    created_by TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_wave_invoices_ref ON wave_invoices(kind, ref_id);
+
 -- Prevents re-sending the same reminder every time the daily check runs.
 -- ref_key lets the same ref_id be notified again if its urgency level
 -- changes (e.g. due_soon -> overdue).

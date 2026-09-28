@@ -39,6 +39,7 @@ from auth import (authenticate, log_in_user, log_out_user, current_user, login_r
                    person_view_active, person_view_name, can_view_as_person,
                    start_view_as_person, stop_view_as_person, real_user_id)
 import notify
+import wave_billing
 from urllib.parse import urlparse
 import push
 
@@ -6101,6 +6102,11 @@ def shop_billing():
         p["parts"] += u["qty"] * u["sell_price"]
         p["parts_cost"] += u["qty"] * u["unit_cost"]
         p["parts_count"] += 1
+    wave_by_project = wave_billing.latest_for(conn, "project", projects.keys())
+    for pid, p in projects.items():
+        p["wave"] = wave_by_project.get(pid)
+        p["customer_name"], p["customer_email"] = _project_customer(conn, pid)
+    wave_settings = wave_billing.get_settings(conn)
     conn.close()
     rows = sorted(projects.values(), key=lambda p: p["code"] or "")
     for p in rows:
@@ -6114,7 +6120,7 @@ def shop_billing():
     if unpaid_only:
         rows = [p for p in rows if p["payment_status"] != "paid"]
     return render_template("shop_billing.html", projects=rows, totals=totals, owed=owed, unpaid_only=unpaid_only,
-                           payment_methods=PAYMENT_METHODS,
+                           payment_methods=PAYMENT_METHODS, wave_connected=wave_billing.is_connected(wave_settings),
                            periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end)
 
 
@@ -6181,6 +6187,130 @@ def project_pay_card(project_id):
     conn.close()
     flash(f"Card charged (simulated) - ending in {last4}, receipt {charge_id}.", "success")
     return redirect(request.referrer or url_for("shop_billing"))
+
+
+# ---------------------------------------------------------------------------
+# Wave invoicing (see wave_billing.py): a real invoice in Wave for a job,
+# emailed by Wave with its own Pay now link, and a payment check that
+# flips the job to Paid once the customer pays in Wave.
+# ---------------------------------------------------------------------------
+
+def _project_customer(conn, project_id):
+    """(name, email) to bill for a job: the first My Aircraft customer
+    linked to its plane, else the plane's Owner text with no email."""
+    row = conn.execute("""SELECT c.name, c.email FROM projects pr
+                          JOIN customer_assets ca ON ca.asset_id = pr.asset_id
+                          JOIN customers c ON c.id = ca.customer_id
+                          WHERE pr.id = ? AND c.active = 1 ORDER BY c.id LIMIT 1""", (project_id,)).fetchone()
+    if row:
+        return row["name"], row["email"]
+    row = conn.execute("""SELECT a.owner FROM projects pr JOIN assets a ON a.id = pr.asset_id
+                          WHERE pr.id = ?""", (project_id,)).fetchone()
+    return ((row["owner"] or "") if row else ""), ""
+
+
+@app.route("/shop/billing/<int:project_id>/wave-invoice", methods=["POST"])
+@shop_role_required('admin')
+def project_wave_invoice(project_id):
+    """Makes the job's invoice in Wave (whole job, all dates - same lines
+    as the Invoice CSV), optionally has Wave email it, and marks the job
+    Invoiced here."""
+    back = request.referrer or url_for("shop_billing")
+    conn = get_db()
+    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    existing = wave_billing.latest_for(conn, "project", [project_id]).get(project_id)
+    if existing:
+        conn.close()
+        flash(f"This job already has Wave invoice #{existing['invoice_number'] or ''}.", "warning")
+        return redirect(back)
+    name = request.form.get("customer_name", "").strip()
+    email = request.form.get("customer_email", "").strip()
+    send = request.form.get("send") == "1"
+    if not name:
+        conn.close()
+        flash("Enter who the invoice is for.", "danger")
+        return redirect(back)
+    if send and not email:
+        conn.close()
+        flash("Enter the customer's email so Wave can send it (or untick Email it now).", "danger")
+        return redirect(back)
+    settings = wave_billing.get_settings(conn)
+    try:
+        if not wave_billing.is_connected(settings):
+            raise wave_billing.WaveError("Wave isn't connected yet - set it up under Admin > Wave.")
+        lines = wave_billing.project_lines(conn, settings, project_id)
+        memo = f"{project['code']} - {project['name']}"
+        inv = wave_billing.create_invoice(conn, settings, name, email, lines, memo=memo, po_number=project["code"] or "")
+    except wave_billing.WaveError as e:
+        conn.close()
+        flash(str(e), "danger")
+        return redirect(back)
+    sent_msg, sent = "", False
+    if send:
+        try:
+            wave_billing.send_invoice(settings, inv["id"], email)
+            sent, sent_msg = True, f" and emailed to {email}"
+        except wave_billing.WaveError as e:
+            sent_msg = f", but it wasn't emailed ({e}) - send it from Wave"
+    wave_billing.record_invoice(conn, "project", project_id, inv, name, email, session.get("user_name"), sent=sent)
+    if (project["payment_status"] or "not_invoiced") == "not_invoiced":
+        conn.execute("UPDATE projects SET payment_status = 'invoiced', invoiced_at = ?, invoiced_by = ? WHERE id = ?",
+                     (now_iso(), session.get("user_name"), project_id))
+    conn.commit()
+    conn.close()
+    flash(f"Wave invoice #{inv.get('invoiceNumber') or ''} created for ${wave_billing.money(inv.get('total')):.2f}{sent_msg}.",
+          "success" if sent or not send else "warning")
+    return redirect(back)
+
+
+@app.route("/shop/billing/wave-sync", methods=["POST"])
+@shop_role_required('admin')
+def shop_wave_sync():
+    """Check Wave for payments now (it's also checked in the background
+    every half hour - see _start_session_alert_loop)."""
+    return _wave_sync_and_report(request.referrer or url_for("shop_billing"))
+
+
+def _wave_sync_and_report(back):
+    conn = get_db()
+    try:
+        checked, paid, errors = wave_billing.sync_open_invoices(conn, wave_billing.apply_paid)
+    except wave_billing.WaveError as e:
+        conn.close()
+        flash(str(e), "danger")
+        return redirect(back)
+    conn.close()
+    msg = f"Checked {checked} open Wave invoice{'s' if checked != 1 else ''}"
+    msg += f" - {paid} newly paid." if paid else " - no new payments."
+    flash(msg, "success")
+    for e in errors[:3]:
+        flash("Wave " + e, "warning")
+    return redirect(back)
+
+
+WAVE_SYNC_EVERY_SECONDS = 30 * 60
+_wave_last_sync = [0.0]
+
+
+def run_wave_payment_check():
+    """Background: every half hour, ask Wave about unpaid invoices and mark
+    newly paid jobs/flights paid. Quietly does nothing until Wave is set up
+    or when nothing is waiting on a payment."""
+    if time.time() - _wave_last_sync[0] < WAVE_SYNC_EVERY_SECONDS:
+        return
+    _wave_last_sync[0] = time.time()
+    conn = get_db()
+    try:
+        if not wave_billing.is_connected(wave_billing.get_settings(conn)):
+            return
+        if not conn.execute("SELECT 1 FROM wave_invoices WHERE paid_applied_at IS NULL LIMIT 1").fetchone():
+            return
+        wave_billing.sync_open_invoices(conn, wave_billing.apply_paid)
+    finally:
+        conn.close()
 
 
 @app.route("/shop/stats")
@@ -7454,6 +7584,57 @@ def admin_notifications():
                            push_people=push_people, email_people=email_people)
 
 
+@app.route("/admin/wave", methods=["GET", "POST"])
+@master_admin_required
+def admin_wave():
+    """Admin > Wave: the access token, which Wave business to invoice from,
+    and which of its products stand for labor / parts / flight training
+    (Wave needs a product on every invoice line)."""
+    conn = get_db()
+    if request.method == "POST":
+        current = wave_billing.get_settings(conn)
+        token = request.form.get("wave_access_token", "").strip() or current["wave_access_token"]
+        business_id = request.form.get("wave_business_id", "").strip()
+        values = {"wave_access_token": token, "wave_business_id": business_id,
+                  "wave_labor_product_id": request.form.get("wave_labor_product_id", ""),
+                  "wave_parts_product_id": request.form.get("wave_parts_product_id", ""),
+                  "wave_flight_product_id": request.form.get("wave_flight_product_id", "")}
+        if business_id != current["wave_business_id"]:
+            # Products and remembered customers belong to one business.
+            values.update(wave_labor_product_id="", wave_parts_product_id="", wave_flight_product_id="")
+            conn.execute("DELETE FROM app_settings WHERE key LIKE 'wavecust:%'")
+        wave_billing.save_settings(conn, values)
+        conn.close()
+        flash("Wave settings saved.", "success")
+        return redirect(url_for("admin_wave"))
+    settings = wave_billing.get_settings(conn)
+    open_count = conn.execute("SELECT COUNT(*) c FROM wave_invoices WHERE paid_applied_at IS NULL").fetchone()["c"]
+    conn.close()
+    businesses, products, error = [], [], None
+    if settings["wave_access_token"]:
+        try:
+            businesses = wave_billing.list_businesses(settings["wave_access_token"])
+            if settings["wave_business_id"]:
+                products = wave_billing.list_products(settings["wave_access_token"], settings["wave_business_id"])
+        except wave_billing.WaveError as e:
+            error = str(e)
+    return render_template("admin_wave.html", settings=settings, businesses=businesses, products=products,
+                           error=error, connected=wave_billing.is_connected(settings), open_count=open_count)
+
+
+@app.route("/admin/wave/disconnect", methods=["POST"])
+@master_admin_required
+def admin_wave_disconnect():
+    """Forgets the token (invoices already made stay in Wave and on Billing)."""
+    conn = get_db()
+    wave_billing.save_settings(conn, {k: "" for k in wave_billing.SETTINGS_KEYS})
+    conn.execute("DELETE FROM app_settings WHERE key LIKE 'wavecust:%'")
+    conn.commit()
+    conn.close()
+    flash("Wave disconnected.", "success")
+    return redirect(url_for("admin_wave"))
+
+
 @app.route("/admin/notifications/test_push", methods=["POST"])
 @master_admin_required
 def admin_notifications_test_push():
@@ -8011,6 +8192,10 @@ def _start_session_alert_loop(debug_mode):
                 run_balance_hold_release_check()
             except Exception:
                 app.logger.exception("Balance hold release check failed")
+            try:
+                run_wave_payment_check()
+            except Exception:
+                app.logger.exception("Wave payment check failed")
             time.sleep(60)
 
     threading.Thread(target=_loop, daemon=True).start()

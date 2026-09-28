@@ -1383,6 +1383,10 @@ def _migrate(conn):
         # Edit Flight, or the mid-flight progress update), same pattern as
         # assets.hobbs_updated_by/tach_updated_by above.
         ("flights", "oil_added_by", "ALTER TABLE flights ADD COLUMN oil_added_by TEXT"),
+        # Wave invoicing: which Wave invoice (wave_invoices.id) a flight was
+        # billed on, so Wave marking that invoice paid marks these flights
+        # paid - and so the same flight is never put on two invoices.
+        ("flights", "wave_invoice_id", "ALTER TABLE flights ADD COLUMN wave_invoice_id INTEGER"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)
