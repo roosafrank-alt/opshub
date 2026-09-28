@@ -3945,9 +3945,18 @@ def _schedule_calendar_context():
     view = request.args.get("view", "month")
     if view not in ("day", "week", "month", "quarter", "year", "list", "custom"):
         view = "month"
+    # With no year/month given, the month follows the day being looked at
+    # (?date=), not today - otherwise stepping from Sep 30 to Oct 1 in the
+    # Day view and pressing Month opened September.
+    base = today
+    if "year" not in request.args and "month" not in request.args:
+        try:
+            base = datetime.strptime(request.args.get("date", "").strip(), "%Y-%m-%d").date()
+        except ValueError:
+            base = today
     try:
-        year = int(request.args.get("year", today.year))
-        month = int(request.args.get("month", today.month))
+        year = int(request.args.get("year", base.year))
+        month = int(request.args.get("month", base.month))
     except ValueError:
         year, month = today.year, today.month
     if month < 1:
