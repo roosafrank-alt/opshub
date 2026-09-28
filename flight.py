@@ -6247,8 +6247,16 @@ def log_end(flight_id):
             return redirect(back)
         card_last4, card_charge_id = charged
 
+    # Oil may already have been logged mid-flight (log_update_progress) - only
+    # overwrite it if End Session actually typed a new value, same fallback
+    # rule as hobbs_start/tach_start above, so leaving this blank here can't
+    # clobber an entry already on file.
     oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
-    oil_added_by = session.get("user_name") if oil_added_qt is not None else None
+    if oil_added_qt is None:
+        oil_added_qt = f["oil_added_qt"]
+        oil_added_by = f["oil_added_by"]
+    else:
+        oil_added_by = session.get("user_name")
     ground_time_hours = _parse_float(request.form.get("ground_time_hours"))
     notes = request.form.get("notes", "").strip()
     squawk = 1 if notes else 0

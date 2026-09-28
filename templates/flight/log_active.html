@@ -296,7 +296,11 @@
     <div class="row g-2 mt-1">
       <div class="col-6 col-md-4">
         <label class="form-label small mb-0">Oil Added (qt)</label>
-        <input type="number" step="any" name="oil_added_qt" class="form-control form-control-sm" placeholder="optional">
+        <input type="number" step="any" name="oil_added_qt" class="form-control form-control-sm"
+               placeholder="{{ '%.1f qt already on file'|format(f.oil_added_qt) if f.oil_added_qt is not none else 'optional' }}">
+        {% if f.oil_added_qt is not none %}
+        <div class="form-text">{{ '%.1f'|format(f.oil_added_qt) }} qt already added this flight{% if f.oil_added_by %} (by {{ f.oil_added_by }}){% endif %}. Leave blank to keep it, or type a new amount to replace it.</div>
+        {% endif %}
       </div>
       <div class="col-6 col-md-4">
         <label class="form-label small mb-0">Extra Ground Time (hrs)</label>
