@@ -611,13 +611,13 @@
       <div class="d-flex gap-2 mt-2">
         {% if next_lesson.can_start %}
         <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=next_lesson.id) }}" class="flex-fill">
-          <button class="btn btn-success w-100 fw-bold"><i class="bi bi-play-fill"></i> Start Flight</button>
+          <button class="btn btn-success w-100 fw-bold"><i class="bi bi-play-fill"></i> Start Session</button>
         </form>
         {% else %}
         <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=next_lesson.id) }}" class="flex-fill early-start-form"
               data-slot-label="{{ next_lesson.slot_label }}" data-opens-label="{{ next_lesson.start_opens_label }}">
           <input type="hidden" name="move_to_now" value="0">
-          <button class="btn btn-outline-warning w-100 fw-bold" title="Booked for {{ next_lesson.slot_label }} - starting now will ask to move it"><i class="bi bi-clock"></i> Start Flight</button>
+          <button class="btn btn-outline-warning w-100 fw-bold" title="Booked for {{ next_lesson.slot_label }} - starting now will ask to move it"><i class="bi bi-clock"></i> Start Session</button>
         </form>
         {% endif %}
         <a href="{{ url_for('flight.log_new', asset_id=next_lesson.asset_id, student_id=next_lesson.student_id, cfi_id=next_lesson.cfi_id or '', solo='on' if next_lesson.solo else '', flight_date=next_lesson.scheduled_date, scheduled_flight_id=next_lesson.id) }}"

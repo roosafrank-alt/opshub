@@ -5,7 +5,7 @@
    buttons on Active Flight itself are (see log_pause/log_resume/log_stop
    in flight.py), so they don't have to go back to Active Flight just to
    control the clock. End stops the real flight's clock right here (same
-   as Active Flight's own End Flight button) and lands on Active Flight to
+   as Active Flight's own End Session button) and lands on Active Flight to
    finish logging Hobbs/paid, since that part still needs the form there.
    Only the oldest running flight shows in full; any others are just a
    "+N more" link. #}
@@ -24,8 +24,8 @@
     <i class="bi {{ 'bi-play-fill' if f.paused_at else 'bi-pause-fill' }}"></i>
   </button>
   <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-inline"
-        data-confirm="End this flight now? The clock stops here - then fill in the ending Hobbs and paid / unpaid to log it." data-confirm-title="End Flight" data-confirm-ok="Yes, stop the clock" data-confirm-style="danger">
-    <button type="submit" class="btn btn-sm btn-outline-light" title="End Flight">
+        data-confirm="End this session now? The clock stops here - then fill in the ending Hobbs and paid / unpaid to log it." data-confirm-title="End Session" data-confirm-ok="Yes, stop the clock" data-confirm-style="danger">
+    <button type="submit" class="btn btn-sm btn-outline-light" title="End Session">
       <i class="bi bi-stop-fill"></i> End
     </button>
   </form>

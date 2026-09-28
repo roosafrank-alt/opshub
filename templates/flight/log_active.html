@@ -92,7 +92,7 @@
 
   {#- End / Pause / Resume up top, so they're reachable without scrolling
      past the ETA box, progress bar and end-of-flight numbers. End submits
-     the same form as the End Flight button further down (Hobbs/Tach etc.
+     the same form as the End Session button further down (Hobbs/Tach etc.
      are read from there), with the same confirm step. #}
   {% if f.can_end and f.stopped_at %}
   <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 mb-2 active-flight-actions">
@@ -105,8 +105,8 @@
   {% elif f.can_end %}
   <div class="d-flex flex-wrap gap-2 mb-2 active-flight-actions">
     <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-flex flex-fill mb-0"
-          data-confirm="End this flight now? The clock stops here - then fill in the ending Hobbs and paid / unpaid to log it." data-confirm-title="End Flight" data-confirm-ok="Yes, stop the clock" data-confirm-style="danger">
-      <button type="submit" class="btn btn-danger fw-bold flex-fill"><i class="bi bi-stop-fill"></i> End Flight</button>
+          data-confirm="End this session now? The clock stops here - then fill in the ending Hobbs and paid / unpaid to log it." data-confirm-title="End Session" data-confirm-ok="Yes, stop the clock" data-confirm-style="danger">
+      <button type="submit" class="btn btn-danger fw-bold flex-fill"><i class="bi bi-stop-fill"></i> End Session</button>
     </form>
     {% if f.paused_at %}
     <form method="post" action="{{ url_for('flight.log_resume', flight_id=f.id) }}" class="d-flex flex-fill mb-0">
@@ -123,8 +123,8 @@
   {% if f.can_end and not f.stopped_at %}
   {#- Fills in starting Hobbs/Tach, oil, and a squawk note while the flight
      is still running, so it doesn't all have to happen in a last-minute
-     rush at End Flight - see flight.log_update_progress(). Hobbs/Tach
-     Start only show here if not already on file (same as End Flight). #}
+     rush at End Session - see flight.log_update_progress(). Hobbs/Tach
+     Start only show here if not already on file (same as End Session). #}
   <details class="mb-2" open>
     <summary class="text-muted small">Add starting info (Hobbs/Tach, oil, note)</summary>
     <form method="post" action="{{ url_for('flight.log_update_progress', flight_id=f.id) }}" class="row g-2 mt-1">
@@ -235,8 +235,8 @@
      the flight the same way _flight_cost() does server-side, so there's a
      real number on screen before Paid/Amount Collected are ever touched. #}
   <form method="post" id="end-form-{{ f.id }}" action="{{ url_for('flight.log_end', flight_id=f.id) }}"
-        data-confirm="{{ 'Log this flight with [[recorded_hours]] hours recorded? It moves to Flight History and gets billed.' if f.asset_is_owner_placeholder else 'Log this flight with Hobbs end [[hobbs_end]]? It moves to Flight History and gets billed.' }}"
-        data-confirm-title="Flight Complete" data-confirm-ok="Yes, log it" data-confirm-style="success"
+        data-confirm="{{ 'Log this session with [[recorded_hours]] hours recorded? It moves to Flight History and gets billed.' if f.asset_is_owner_placeholder else 'Log this session with Hobbs end [[hobbs_end]]? It moves to Flight History and gets billed.' }}"
+        data-confirm-title="Session Complete" data-confirm-ok="Yes, log it" data-confirm-style="success"
         data-plane-rate="{{ f.plane_rate or 0 }}" data-instructor-rate="{{ f.instructor_rate or 0 }}"
         data-solo="{{ '1' if f.solo else '' }}" data-instructor-clock-hours="{{ f.instructor_clock_hours if f.instructor_clock_hours is not none else '' }}">
     {% if f.asset_is_owner_placeholder %}
@@ -369,8 +369,8 @@
       <label class="form-label small mb-0">Notes</label>
       <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="any note here is flagged as a squawk for the shop">{{ f.notes or '' }}</textarea>
     </div>
-    <div class="form-text mt-1">The instructor's billed time is the elapsed time shown above (from Start to when End Flight was pressed, minus any paused time), not just Hobbs hours.</div>
-    <button type="submit" class="btn btn-success fw-bold mt-2 w-100"><i class="bi bi-journal-check"></i> Flight Complete</button>
+    <div class="form-text mt-1">The instructor's billed time is the elapsed time shown above (from Start to when End Session was pressed, minus any paused time), not just Hobbs hours.</div>
+    <button type="submit" class="btn btn-success fw-bold mt-2 w-100"><i class="bi bi-journal-check"></i> Session Complete</button>
   </form>
   {% elif not f.can_end %}
   <div class="alert alert-secondary small mb-0 py-2">
@@ -383,7 +383,7 @@
     {% else %}
     <div class="card p-4 text-center">
       <i class="bi bi-stopwatch fs-1 text-muted"></i>
-      <p class="text-muted mt-2 mb-0">No flight is currently running. Start one from the <a href="{{ url_for('flight.schedule_calendar') }}">Schedule</a>, or log one that's already done with <a href="{{ url_for('flight.schedule_new', complete=1) }}">Schedule Flight &rarr; Flight Already Complete?</a></p>
+      <p class="text-muted mt-2 mb-0">No flight is currently running. Start one from the <a href="{{ url_for('flight.schedule_calendar') }}">Schedule</a>, or log one that's already done with <a href="{{ url_for('flight.schedule_new', complete=1) }}">Schedule Flight &rarr; Session Already Complete?</a></p>
     </div>
     {% endif %}
   </div>
@@ -843,7 +843,7 @@ document.addEventListener('submit', function (e) {
   setInterval(poll, 15000);
 })();
 
-// End Flight's Payment section: only shown once Paid is picked (Unpaid
+// End Session's Payment section: only shown once Paid is picked (Unpaid
 // needs none of this - its cost still auto-deducts and is left owed, same
 // as before), and the "Use Credit" button just fills the hidden
 // credit_applied field - the server clamps it to what the student actually

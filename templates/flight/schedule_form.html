@@ -32,7 +32,7 @@
     {% set is_complete = allow_complete and ((form and form.get('already_complete')) or (not form and start_complete)) %}
     {% if allow_complete %}
     {#
-      "Flight Already Complete?" replaces the old stand-alone Log a Flight
+      "Session Already Complete?" replaces the old stand-alone Log a Flight
       page: for a flight that already happened but was never put on the
       schedule. Checked, the booking-only fields (time, duration, repeats,
       booking notes) hide and the same fields the log form has (Hobbs/Tach,
@@ -41,7 +41,7 @@
     #}
     <div class="form-check form-switch mb-3 p-2 ps-5 border rounded bg-light">
       <input type="checkbox" class="form-check-input" role="switch" name="already_complete" id="complete-check" value="1" {% if is_complete %}checked{% endif %}>
-      <label class="form-check-label fw-bold" for="complete-check">Flight Already Complete?</label>
+      <label class="form-check-label fw-bold" for="complete-check">Session Already Complete?</label>
       <div class="form-text mt-0">Check this to log a flight that already happened (and wasn't on the schedule) with its Hobbs/Tach, landings and squawks.</div>
     </div>
     {% endif %}
@@ -430,7 +430,7 @@
     </style>
     <div class="d-flex justify-content-between" id="sched-form-footer">
       <a href="{{ url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar') }}" class="btn btn-outline-secondary">Cancel</a>
-      <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Flight Complete' if is_complete else 'Schedule Flight')) }}</button>
+      <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Session Complete' if is_complete else 'Schedule Flight')) }}</button>
     </div>
   </form>
 </div>
@@ -501,7 +501,7 @@
   var hour24 = 9, minute = 0;
 
   // Self-service students only (a CFI/admin can already book/log in the
-  // past through other means - Flight Already Complete, editing an
+  // past through other means - Session Already Complete, editing an
   // existing booking - so this doesn't touch them). Greys out and
   // disables a quick-pick time that's already passed today, so a student
   // can't toggle-click their way into a time the server would reject
@@ -988,7 +988,7 @@
 })();
 
 (function () {
-  // "Flight Already Complete?" - swap the booking-only fields for the
+  // "Session Already Complete?" - swap the booking-only fields for the
   // log fields. Hidden inputs are disabled so they aren't validated or
   // sent (e.g. Repeats' required Until date).
   var completeCheck = document.getElementById('complete-check');
@@ -1015,10 +1015,10 @@
     }
     setGroup('.sched-only', !done);
     setGroup('.complete-only', done);
-    submitBtn.textContent = done ? 'Flight Complete' : 'Schedule Flight';
+    submitBtn.textContent = done ? 'Session Complete' : 'Schedule Flight';
     document.body.classList.toggle('flight-complete-sticky', done);
     dateLabel.innerHTML = (done ? 'Flight Date' : 'Date') + ' <span class="text-danger">*</span>';
-    if (title) { title.textContent = done ? 'Log a Completed Flight' : 'Schedule a Flight'; }
+    if (title) { title.textContent = done ? 'Log a Completed Session' : 'Schedule a Flight'; }
     // Solo still disables the instructor picker in either mode.
     var solo = document.getElementById('solo-check');
     document.getElementById('cfi-select').disabled = solo.checked;
@@ -1180,7 +1180,7 @@
     if (p) { viewYear = p.y; viewMonth = p.m; }
     render();
   });
-  // "Flight Already Complete?" toggles input.min on/off (see the sync()
+  // "Session Already Complete?" toggles input.min on/off (see the sync()
   // above) - re-render so past days grey out/in to match.
   var completeToggle = document.getElementById('complete-check');
   if (completeToggle) { completeToggle.addEventListener('change', render); }

@@ -1,6 +1,6 @@
 """Idea "Credit card" (revision): Frank's follow-up asked for the same
 simulated Stripe-style "Pay with Card" (already on Manage > Billing) to also
-show on Fly with Kate's End Flight payment box and on a student's Add Funds
+show on Fly with Kate's End Session payment box and on a student's Add Funds
 - still no real Stripe account, no network call, just a fake charge id and
 the card's last 4 digits kept alongside the usual paid fields."""
 from datetime import date

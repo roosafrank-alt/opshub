@@ -186,7 +186,7 @@ QUICK_ACTIONS_LEAD_MIN = 30  # idea ux-next-lesson-start-log
 def _ready_for_quick_actions(scheduled_date, scheduled_time):
     """True once a booking is within QUICK_ACTIONS_LEAD_MIN of its slot (or
     it has no time set, which can't count down to anything) - when the Next
-    Lesson card and today's flight chips show Start Flight/Log Flight
+    Lesson card and today's flight chips show Start Session/Log Flight
     inline instead of just Details, to keep those big buttons off screen
     until they're actually relevant and prevent an accidental tap on a
     lesson that's still hours out. Details & changes (and Start Early...
@@ -440,7 +440,7 @@ PAST_BOOKING_GRACE_MIN = 5  # a booking for "right now" typed a few minutes late
 def _past_booking_error(scheduled_date, scheduled_time):
     """An error message when a booking's date (and time, if given) has
     already passed, else None. Past flights aren't booked - they're logged
-    with Schedule Flight's "Flight Already Complete?" option instead."""
+    with Schedule Flight's "Session Already Complete?" option instead."""
     try:
         d = datetime.strptime(scheduled_date, "%Y-%m-%d").date()
     except (TypeError, ValueError):
@@ -457,7 +457,7 @@ def _past_booking_error(scheduled_date, scheduled_time):
         return None
     when = _us_date(scheduled_date) + (f" at {_format_time_12h(scheduled_time)}" if scheduled_time else "")
     return (f"{when} is in the past - a flight can't be booked before now. If it already happened, "
-            f"tick \"Flight Already Complete?\" and log it with its date and time.")
+            f"tick \"Session Already Complete?\" and log it with its date and time.")
 
 
 def _tsa_gate_error(conn, student_id):
@@ -791,10 +791,10 @@ def _solo_signoff_status(conn, student_id, on_date=None):
 MEDICAL_CLASSES = [("first", "First Class"), ("second", "Second Class"), ("third", "Third Class"), ("basicmed", "BasicMed")]
 MEDICAL_WARN_DAYS = 30  # "expiring soon" window for the dashboard / list badges
 
-# How a student usually pays - option text matches End Flight's own "How
+# How a student usually pays - option text matches End Session's own "How
 # Paid" select (log_active.html) so a saved preference can pre-select it
 # there. No Venmo/Zelle here - Frank asked for just Cash/Check/Card/Other
-# on this one; End Flight's own "How Paid" picker is unaffected.
+# on this one; End Session's own "How Paid" picker is unaffected.
 PAY_PREFERENCES = ["Cash", "Check", "Card", "Other"]
 
 
@@ -1094,7 +1094,7 @@ def _review_resolution(sf):
     if status == "cancelled":
         return "Booking cancelled"
     if status in ("in_progress", "completed"):
-        return "Flight flown" if status == "completed" else "Flight started"
+        return "Session completed" if status == "completed" else "Session started"
     if status != "scheduled":
         return f"Booking {status.replace('_', ' ')}"
     if sf["cfi_id"]:
@@ -1292,7 +1292,7 @@ def _log_field_change(conn, entity_type, entity_id, field_name, old_value, new_v
 
 def _simulate_card_charge(card_number):
     """Idea "Credit card" (revision): the same simulated Stripe-style charge
-    as app.project_pay_card, reused on the flight side (End Flight and Add
+    as app.project_pay_card, reused on the flight side (End Session and Add
     Funds) - no real Stripe account, no network call. Returns (last4,
     charge_id), or None if card_number doesn't look like a card number."""
     digits = re.sub(r"\D", "", card_number or "")
@@ -1891,7 +1891,7 @@ def _dashboard_context(conn, cfi, student):
                                is_balance_hold=row["status"] == "balance_hold",
                                student_owed=round(max(0.0, -(row["student_balance"] or 0.0)), 2),
                                notes_visible=nl_notes_visible, private_notes_visible=nl_private_notes_visible,
-                               # Idea ux-next-lesson-start-log: Start Flight/Log
+                               # Idea ux-next-lesson-start-log: Start Session/Log
                                # Flight only show inline once within
                                # QUICK_ACTIONS_LEAD_MIN of the slot - can_start/
                                # start_opens_label/slot_label are the same
@@ -2414,7 +2414,7 @@ def student_add_funds(student_id):
         conn.close()
         return redirect(url_for("flight.student_edit", student_id=student_id))
     # Idea "Credit card" (revision): same simulated Stripe-style charge as
-    # End Flight and Manage > Billing, offered here as an alternative to
+    # End Session and Manage > Billing, offered here as an alternative to
     # cash/check/etc. - the "Card (simulated)" checkbox just adds a card
     # number field to this same Add Funds form rather than a separate flow.
     if request.form.get("paid_by_card") == "1":
@@ -4241,10 +4241,10 @@ def schedule_new():
                        current_cfi_id=session.get("cfi_id"),
                        self_service=self_service, self_student=self_student,
                        # ?complete=1 opens the form with "Flight Already
-                       # Complete?" already checked (old Log a Flight links).
+                       # Already Complete?" already checked (old Log a Flight links).
                        start_complete=(not self_service and request.args.get("complete") == "1"))
     if request.method == "POST":
-        # "Flight Already Complete?" (CFI/admin only): the flight already
+        # "Session Already Complete?" (CFI/admin only): the flight already
         # happened and was never put on the schedule, so log it straight
         # into Flight History instead of booking it - same saving, Hobbs/
         # Tach, squawk and auto-deduct as logging a booking (log_new). This
@@ -5383,7 +5383,7 @@ def schedule_start(scheduled_id):
     conn.execute("UPDATE scheduled_flights SET status = 'in_progress' WHERE id = ?", (scheduled_id,))
     conn.commit()
     conn.close()
-    flash("Flight started - fill in the rest when you're done.", "success")
+    flash("Session started - fill in the rest when you're done.", "success")
     return redirect(url_for("flight.log_active") + f"#active-flight-{flight_id}")
 
 
@@ -5641,14 +5641,14 @@ def log_active():
                 eta_label = None
         # _row_with_cost() resolves this flight's effective plane_rate and
         # instructor_rate (and a total, though that's 0 until Hobbs End is
-        # in) - the End Flight form needs the two rates as data-* so its own
+        # in) - the End Session form needs the two rates as data-* so its own
         # JS can total the price live as Hobbs/ground/solo are typed,
         # instead of only finding out the total once Log Flight is pressed.
         flights.append(dict(_row_with_cost(r), can_end=_can_end_flight(r), can_ack=_can_ack_overdue(r),
                             session_status=_session_status(r), eta_label=eta_label,
                             eta_affected=affected.get(r["id"], [])))
     # Still-flying flights above ones whose clock has already been stopped
-    # and are just waiting on End Flight's form to be filled in and
+    # and are just waiting on End Session's form to be filled in and
     # submitted - those two states used to interleave by start time, mixing
     # "still up" with "already down, needs paperwork". Within each group,
     # whoever's logged in sees their own flight (as the assigned CFI or the
@@ -5998,10 +5998,10 @@ def log_resume(flight_id):
 @login_required
 def log_update_progress(flight_id):
     """Lets the CFI fill in starting Hobbs/Tach, oil added, and a note
-    (flagged as a squawk the same as at End Flight) while the flight is
+    (flagged as a squawk the same as at End Session) while the flight is
     still running - so it doesn't all have to happen in a rush once the
     clock stops. Only fills in a reading if it isn't already on file, same
-    rule End Flight itself uses; oil and notes just overwrite with
+    rule End Session itself uses; oil and notes just overwrite with
     whatever's typed here."""
     conn = get_db()
     f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
@@ -6028,7 +6028,7 @@ def log_update_progress(flight_id):
 @flight_bp.route("/log/<int:flight_id>/stop", methods=["POST"])
 @login_required
 def log_stop(flight_id):
-    """End Flight, step 1: stops the clock now (so billed instructor time
+    """End Session, step 1: stops the clock now (so billed instructor time
     ends here), but leaves the flight on the Active Flight board until the
     rest is filled in - Hobbs end and paid/unpaid are required - by
     log_end, which is what logs it into Flight History."""
@@ -6052,14 +6052,14 @@ def log_stop(flight_id):
                      (stopped_at, paused_seconds, flight_id))
         conn.commit()
     conn.close()
-    flash("Clock stopped. Fill in the ending Hobbs and paid / unpaid below to log the flight.", "info")
+    flash("Clock stopped. Fill in the ending Hobbs and paid / unpaid below to log the session.", "info")
     return redirect(url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}")
 
 
 @flight_bp.route("/log/<int:flight_id>/restart_clock", methods=["POST"])
 @login_required
 def log_restart_clock(flight_id):
-    """Undo an End Flight pressed by mistake: the clock picks up again, and
+    """Undo an End Session pressed by mistake: the clock picks up again, and
     the stopped time counts as paused (not billed)."""
     conn = get_db()
     f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
@@ -6163,7 +6163,7 @@ def log_end(flight_id):
     night_landings_fs = _parse_int(request.form.get("night_landings_fs"))
     night_landings_tg = _parse_int(request.form.get("night_landings_tg"))
 
-    # The clock stopped when End Flight was pressed (log_stop), not when
+    # The clock stopped when End Session was pressed (log_stop), not when
     # the details got filled in - bill up to then.
     ended_at = f["stopped_at"] or now_iso()
     started = datetime.strptime(f["started_at"], "%Y-%m-%d %H:%M:%S")
@@ -6246,15 +6246,15 @@ def log_end(flight_id):
     check_hundred_hr_alerts(conn)  # 100-hour countdown alerts (admins)
     conn.close()
     if squawk:
-        flash("Flight ended and logged. The squawk you flagged will show up on the Maintenance side until it's acknowledged.", "success")
+        flash("Session ended and logged. The squawk you flagged will show up on the Maintenance side until it's acknowledged.", "success")
     else:
-        flash("Flight ended and logged.", "success")
+        flash("Session ended and logged.", "success")
     return redirect(url_for("flight.log_history"))
 
 
 def _send_flight_receipt_email(conn, ended_row, cost, paid, payment_method, payment_amount, credit_applied):
     """Emails the student a receipt for a just-ended flight, if they have an
-    email on file - opt-out toggle on End Flight (send_receipt_email),
+    email on file - opt-out toggle on End Session (send_receipt_email),
     default on. Looked up and composed here (while conn is still open) but
     actually sent from a background thread, same pattern as the ETA-delay
     emails above, since SMTP can take a few seconds and shouldn't hold up
@@ -6389,7 +6389,7 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
     row, the plane's new Hobbs/Tach, marking its booking completed (when
     there is one), the squawk, and the auto-deduct from the student's
     balance. Shared by log_new (logging a scheduled booking after the fact)
-    and schedule_new's "Flight Already Complete?" mode (a flight that was
+    and schedule_new's "Session Already Complete?" mode (a flight that was
     never put on the schedule) - date_field/notes_field say which form
     fields hold the date and the squawk notes, since Schedule Flight's own
     date/notes fields have different names. Commits and flashes the success
@@ -6541,7 +6541,7 @@ def log_new():
     # Pre-fill from a scheduled booking, if this was reached by clicking
     # "Log Flight" on one. The old stand-alone "Log a Flight" page (no
     # booking to pre-fill from) is gone - that's now Schedule Flight with
-    # "Flight Already Complete?" checked - so an old bookmark or link with
+    # "Session Already Complete?" checked - so an old bookmark or link with
     # no booking goes there instead.
     if not request.args.get("scheduled_flight_id"):
         conn.close()

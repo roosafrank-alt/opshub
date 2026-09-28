@@ -1,6 +1,6 @@
 """QA finding ux-next-lesson-start-log: starting or logging the next lesson
 meant opening the "Details & changes" pop-up first. The Next Lesson card
-(and today's flight chips) now show Start Flight/Log Flight directly once
+(and today's flight chips) now show Start Session/Log Flight directly once
 the booking is within 30 minutes of its slot - before that, still just the
 one Details & changes button, so there's nothing to accidentally tap on a
 lesson still hours out. See _ready_for_quick_actions in flight.py."""
@@ -32,7 +32,7 @@ class NextLessonStartLogButtonsTest(OpsHubTestCase):
 
     def _next_lesson_card(self, body):
         # The static, hidden schedule-detail-modal markup also contains the
-        # literal words "Start Flight"/"Log Flight" (populated by JS when a
+        # literal words "Start Session"/"Log Flight" (populated by JS when a
         # card/chip is clicked), so assertions have to be scoped to just the
         # Next Lesson card's own HTML, not the whole page.
         start = body.index("Your Next Lesson")
@@ -44,14 +44,14 @@ class NextLessonStartLogButtonsTest(OpsHubTestCase):
         c = self.login("cfi")
         card = self._next_lesson_card(c.get("/flight/dashboard").get_data(as_text=True))
         self.assertIn("Details &amp; changes", card)
-        self.assertNotIn("Start Flight", card)
+        self.assertNotIn("Start Session", card)
         self.assertNotIn("Log Flight", card)
 
     def test_within_30_min_shows_start_and_log_flight(self):
         self._book(15)
         c = self.login("cfi")
         card = self._next_lesson_card(c.get("/flight/dashboard").get_data(as_text=True))
-        self.assertIn("Start Flight", card)
+        self.assertIn("Start Session", card)
         self.assertIn("Log Flight", card)
         # Details shrinks to a small link, still present.
         self.assertIn("Details &amp; changes", card)
@@ -67,7 +67,7 @@ class NextLessonStartLogButtonsTest(OpsHubTestCase):
         self._book(0)  # this exact minute - both "ready" and "can start"
         c = self.login("cfi")
         card = self._next_lesson_card(c.get("/flight/dashboard").get_data(as_text=True))
-        self.assertIn("Start Flight", card)
+        self.assertIn("Start Session", card)
         self.assertNotIn("early-start-form", card)
 
     def test_balance_hold_booking_never_shows_start_log_even_when_close(self):
@@ -75,7 +75,7 @@ class NextLessonStartLogButtonsTest(OpsHubTestCase):
         c = self.login("cfi")
         card = self._next_lesson_card(c.get("/flight/dashboard").get_data(as_text=True))
         self.assertIn("Details &amp; changes", card)
-        self.assertNotIn("Start Flight", card)
+        self.assertNotIn("Start Session", card)
         self.assertNotIn("Log Flight", card)
 
     def _chip_detail(self, body):
