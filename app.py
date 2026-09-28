@@ -169,6 +169,29 @@ def _log_request_exception(sender, exception, **extra):
 
 got_request_exception.connect(_log_request_exception, app)
 
+
+def _skip_flasks_own_exception_log(exc_info):
+    """Drops Flask's own copy of an unhandled exception.
+
+    Flask's handle_exception() sends got_request_exception (logged just
+    above) and then, when the exception isn't being propagated - i.e. debug
+    off, which is how the Pi runs - logs the very same traceback itself
+    through app.logger. Every crash therefore landed in the error log
+    TWICE: once as Flask's "Exception on /api/scan [POST]" and once as the
+    hook's "Unhandled exception on POST /api/scan: ...". Two files, one
+    problem, and the count on Admin -> Home doubled with it.
+
+    The hook's line is the one worth keeping: it names the method and path
+    in the order _ERROR_LOG_AFFECTED_RE reads, so the log's Affected column
+    says "POST /api/scan" instead of "-". This replaces Flask's
+    log_exception (its only caller is handle_exception, always after the
+    signal above, so nothing goes unlogged) to keep it to one file each.
+    test_error_log.py fails if a Flask upgrade ever brings the second copy
+    back."""
+
+
+app.log_exception = _skip_flasks_own_exception_log
+
 _ERROR_LOG_HEAD_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) \[(\w+)\] (.*)$")
 _ERROR_LOG_AFFECTED_RE = re.compile(r"on (\S+ \S+):")
 
