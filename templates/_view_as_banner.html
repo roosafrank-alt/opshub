@@ -5,6 +5,16 @@
   <form method="post" action="{{ url_for('view_as_person_exit') }}" class="d-inline m-0 ms-2">
     <button type="submit" class="btn btn-dark btn-sm py-0 px-2" style="font-size:.75rem;">Back to my view</button>
   </form>
+  {%- elif view_as_active_program == 'owner' %}
+  {#- The shop/flight previews have an "exit" chip in _view_as_chips.html
+     right in the header, but My Aircraft (the "owner" preview) has no
+     chips of its own - it's not a role - so without this the banner said
+     "Viewing as <owner>" with no way back at all (bug: "no button to
+     return to users logged in view"). Reuses the same view_as_exit route
+     the shop/flight exit chip already posts to. #}
+  <form method="post" action="{{ url_for('view_as_exit') }}" class="d-inline m-0 ms-2">
+    <button type="submit" class="btn btn-dark btn-sm py-0 px-2" style="font-size:.75rem;">Back to my view</button>
+  </form>
   {%- endif %}
 </div>
 {% endif %}

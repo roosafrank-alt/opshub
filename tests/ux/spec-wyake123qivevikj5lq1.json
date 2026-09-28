@@ -1,0 +1,20 @@
+{
+  "checks": [
+    {
+      "role": "master",
+      "size": "desktop",
+      "steps": [
+        ["start", "/customers"],
+        ["see", "Owner Customer"],
+        ["tap", "View as"],
+        ["see", "Viewing as Owner"],
+        ["see", "Back to my view"],
+        ["shot", {"caption": "Owner preview banner now offers a way back",
+                  "changed": [{"sel": "text=Back to my view", "note": "New: Back to my view button"}]}],
+        ["tap", "Back to my view"],
+        ["see", "View as"],
+        ["shot", {"caption": "Back to the admin's own Customers view"}]
+      ]
+    }
+  ]
+}

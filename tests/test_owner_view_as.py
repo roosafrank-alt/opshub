@@ -108,3 +108,17 @@ class OwnerViewAsTest(OpsHubTestCase):
         c.post("/view-as/exit", headers={"Referer": "/portal/"})
         self.assertEqual(c.get("/shop").status_code, 200)
         self.assertEqual(c.get("/flight/dashboard").status_code, 200)
+
+    def test_owner_preview_banner_has_a_way_back(self):
+        # Bug: the My Aircraft portal showed "Viewing as Owner (...)" with
+        # no button at all to get back to the admin's own view - the portal
+        # has no "View as" chips of its own (unlike Shop/Flight School), and
+        # the banner's only exit button used to be conditioned on
+        # person_view_name, which an owner preview never sets. Locks in
+        # that the banner now offers a working way back for this preview.
+        c = self.login("master")
+        c.post(f"/view-as/owner/{self.customer_id}")
+        html = c.get("/portal/", follow_redirects=True).get_data(as_text=True)
+        self.assertIn("Viewing as Owner", html)
+        self.assertIn('action="/view-as/exit"', html)
+        self.assertIn("Back to my view", html)
