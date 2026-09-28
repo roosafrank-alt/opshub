@@ -118,6 +118,43 @@ class SquawkOnProjectTest(OpsHubTestCase):
         self.assertIsNone(row["repair_confirm_requested_at"])
         self.assertIsNone(row["repaired_at"])
 
+    # ----- discrepancy list keeps the squawk's/to-do's own status ----------
+    # idea "Reported Assigned Working Inspection Done": moving a squawk/
+    # to-do into the Discrepancy List (via Fix/Do on this job) must not lose
+    # its own step pills or assigned tech.
+
+    def test_discrepancy_list_shows_step_pills_and_assigned_tech_for_linked_squawk(self):
+        squawk_id = self.make_squawk("Alternator light on")
+        c = self.login("tech")
+        c.post(f"/projects/{self.project_id}/squawks/quick/{squawk_id}/fix_on_job")
+        body = c.get(f"/projects/{self.project_id}").get_data(as_text=True)
+        self.assertIn(f"Assigned to {self.users['tech']['name']}", body)
+        self.assertIn("bg-primary text-white\">Working", body)
+
+    def test_discrepancy_list_still_shows_done_pill_and_tech_after_repair(self):
+        # Once fully repaired, the plane's own squawks & to-dos box drops it
+        # (get_plane_open_squawks only lists still-open ones) - the
+        # Discrepancy List item it turned into must keep showing where it
+        # landed, instead of that status disappearing.
+        squawk_id = self.make_squawk("Nose strut low")
+        c = self.login("tech")
+        c.post(f"/projects/{self.project_id}/squawks/quick/{squawk_id}/fix_on_job")
+        section = self.get_section(project_id=self.project_id, linked_squawk_id=squawk_id)
+        c.post(f"/projects/{self.project_id}/sections/{section['id']}/complete", data={"completed": "1"})
+        c2 = self.login("inspector")
+        c2.post(f"/projects/{self.project_id}/sections/{section['id']}/confirm")
+        body = c2.get(f"/projects/{self.project_id}").get_data(as_text=True)
+        self.assertNotIn("squawks &amp; to-dos", body)
+        self.assertIn(f"Assigned to {self.users['tech']['name']}", body)
+        self.assertIn("bg-primary text-white\">Done", body)
+
+    def test_discrepancy_list_shows_assigned_tech_for_linked_todo(self):
+        todo_id = self.make_todo("Replace cracked nav light lens")
+        c = self.login("tech")
+        c.post(f"/projects/{self.project_id}/todos/{todo_id}/do_on_job")
+        body = c.get(f"/projects/{self.project_id}").get_data(as_text=True)
+        self.assertIn(f"Assigned to {self.users['tech']['name']}", body)
+
     # ----- do on this job (to-do) ------------------------------------------
 
     def test_do_on_this_job_creates_linked_section_and_claims_todo(self):

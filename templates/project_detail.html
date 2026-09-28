@@ -163,6 +163,12 @@
         <button type="submit" class="btn btn-secondary btn-sm text-nowrap">Add</button>
       </form>
       {% if usage_by_section %}
+        {#- QA finding ux-squawk-on-project / idea "Reported Assigned Working
+           Inspection Done": a Discrepancy created via "Fix on this job" or
+           "Do on this job" keeps showing the squawk's/to-do's own step pills
+           and assigned tech here, not just this area's own open/awaiting/
+           completed state. #}
+        {% from "_squawk_macros.html" import squawk_step_pills, squawk_assigned_line, todo_step_pills %}
         {% for section, data in usage_by_section.items() %}
         {#- Three states: open (checkbox unticked), awaiting confirmation
            (ticked but confirm_requested_at set, completed_at still NULL -
@@ -223,6 +229,17 @@
               </div>
               <span class="text-muted small">{% if can_see_shop_costs %}${{ "%.2f"|format(data.cost) }} {% endif %}<i class="bi bi-chevron-down" id="sec-chev-{{ loop.index }}"></i></span>
             </div>
+            {% if data.linked_squawk %}
+            <div class="d-flex align-items-center gap-2 flex-wrap mt-1 discrepancy-linked-status" onclick="event.stopPropagation();">
+              {{ squawk_step_pills(data.linked_squawk) }}
+              {{ squawk_assigned_line(data.linked_squawk) }}
+            </div>
+            {% elif data.linked_todo %}
+            <div class="d-flex align-items-center gap-2 flex-wrap mt-1 discrepancy-linked-status" onclick="event.stopPropagation();">
+              {{ todo_step_pills(data.linked_todo) }}
+              {% if data.linked_todo.assigned_to_name %}<small class="text-muted d-block">Assigned to {{ data.linked_todo.assigned_to_name }}</small>{% endif %}
+            </div>
+            {% endif %}
             {% if section != 'General' and data.id %}
             <form method="post" action="{{ url_for('project_section_rename', project_id=project.id, section_id=data.id) }}" id="sec-rename-{{ loop.index }}" class="input-group input-group-sm mt-2" style="display:none; max-width:280px;" onclick="event.stopPropagation();">
               <input type="text" name="name" class="form-control form-control-sm" value="{{ section }}" required>

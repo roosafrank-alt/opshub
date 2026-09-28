@@ -815,6 +815,40 @@ def get_plane_open_squawks(conn, asset_id):
     """, (asset_id, asset_id)).fetchall()
 
 
+def _squawk_by_kind_id(conn, kind, squawk_id):
+    """One specific squawk, whatever step it's on (unlike
+    get_plane_open_squawks, this doesn't drop it once it's repaired) - used
+    to show its Reported/Assigned/Working/Inspection/Done pills and assigned
+    tech on a Discrepancy List item it's linked to (QA finding
+    ux-squawk-on-project, idea "Reported Assigned Working Inspection Done")."""
+    if kind == "flight":
+        row = conn.execute(f"""
+            SELECT {_FLIGHT_SQUAWK_COLS}
+            FROM flights f
+            JOIN assets a ON a.id = f.asset_id
+            JOIN students s ON s.id = f.student_id
+            LEFT JOIN cfis c ON c.id = f.cfi_id
+            LEFT JOIN users au ON au.id = f.squawk_assigned_to
+            WHERE f.id = ?""", (squawk_id,)).fetchone()
+    else:
+        row = conn.execute(f"""
+            SELECT {_QUICK_SQUAWK_COLS}
+            FROM plane_squawks q
+            JOIN assets a ON a.id = q.asset_id
+            LEFT JOIN users au ON au.id = q.assigned_to
+            WHERE q.id = ?""", (squawk_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def _todo_by_id(conn, todo_id):
+    """One specific plane to-do, whatever step it's on - the to-do
+    equivalent of _squawk_by_kind_id above."""
+    row = conn.execute("""SELECT pt.*, u.name as assigned_to_name FROM plane_todos pt
+                          LEFT JOIN users u ON u.id = pt.assigned_to WHERE pt.id = ?""",
+                       (todo_id,)).fetchone()
+    return dict(row) if row else None
+
+
 def get_assignable_workers(conn):
     """Techs/admins a squawk can be handed off to - see squawk_assign()."""
     return conn.execute(
@@ -2927,7 +2961,8 @@ def project_detail(project_id):
     conn.commit()
     section_meta = {r["name"]: dict(r) for r in conn.execute(
         """SELECT id, name, completed_at, completed_by, confirm_requested_at, confirm_requested_by,
-                  sent_back_at, sent_back_by, notes, description
+                  sent_back_at, sent_back_by, notes, description,
+                  linked_squawk_kind, linked_squawk_id, linked_todo_id
            FROM project_sections WHERE project_id = ?""", (project_id,)).fetchall()}
     for name, section_data in usage_by_section.items():
         meta = section_meta.get(name)
@@ -2940,6 +2975,23 @@ def project_detail(project_id):
         section_data["sent_back_by"] = meta["sent_back_by"] if meta else None
         section_data["notes"] = meta["notes"] if meta else None
         section_data["description"] = meta["description"] if meta else None
+        # A Discrepancy that came from "Fix on this job"/"Do on this job"
+        # keeps the squawk's/to-do's own Reported/Assigned/Working/
+        # Inspection/Done pills and assigned tech showing here too, instead
+        # of that getting lost in the move (idea "Reported Assigned Working
+        # Inspection Done"; builds on the "Assigned to <name>" work from QA
+        # finding ux-squawk-on-project).
+        section_data["linked_squawk"] = None
+        section_data["linked_todo"] = None
+        if meta and meta["linked_squawk_kind"]:
+            section_data["linked_squawk"] = _squawk_by_kind_id(
+                conn, meta["linked_squawk_kind"], meta["linked_squawk_id"])
+        elif meta and meta["linked_todo_id"]:
+            section_data["linked_todo"] = _todo_by_id(conn, meta["linked_todo_id"])
+            if section_data["linked_todo"] is not None:
+                # It's linked to this very Discrepancy, so todo_step_pills'
+                # "has a linked Sub Area" check (t.link) is always true here.
+                section_data["linked_todo"]["link"] = True
 
     # Open sections first alphabetically, then ones awaiting confirmation,
     # then fully completed ones at the bottom ordered by when they were
