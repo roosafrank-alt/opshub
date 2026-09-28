@@ -53,3 +53,28 @@ class ActiveFlightWidgetTest(OpsHubTestCase):
         self.exec("UPDATE flights SET ended_at = ? WHERE id = ?", (db.now_iso(), fid))
         r = self.client.get("/flight/log/active")
         self.assertNotIn(b"active-flight-widget", r.data)
+
+    def test_widget_shows_just_timer_pause_and_end_not_the_tail_number(self):
+        self.start_flight()
+        r = self.client.get("/flight/log/active")
+        html = r.data.decode()
+        widget = html[html.index('id="active-flight-widget"'):html.index("</div>", html.index('id="active-flight-widget"'))]
+        self.assertNotIn("N123", widget)
+        self.assertIn("active-flight-widget-timer", widget)
+        self.assertIn("Pause", widget)
+        self.assertIn("End", widget)
+
+    def test_active_flight_page_can_see_a_pause_made_from_the_widget(self):
+        """Active Flight polls log_active_status so its big timer and
+        Pause/Resume buttons follow a pause made elsewhere (the widget)
+        instead of counting on as if nothing happened."""
+        fid = self.start_flight()
+        self.assertIn(b"log/active-status", self.client.get("/flight/log/active").data)
+        state = {f["id"]: f for f in self.client.get("/flight/log/active-status").get_json()["flights"]}
+        self.assertIsNone(state[fid]["paused_at"])
+        self.client.post(f"/flight/log/{fid}/pause")
+        state = {f["id"]: f for f in self.client.get("/flight/log/active-status").get_json()["flights"]}
+        self.assertIsNotNone(state[fid]["paused_at"])
+        self.client.post(f"/flight/log/{fid}/stop")
+        state = {f["id"]: f for f in self.client.get("/flight/log/active-status").get_json()["flights"]}
+        self.assertIsNotNone(state[fid]["stopped_at"])
