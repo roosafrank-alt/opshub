@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
     is_master_admin INTEGER NOT NULL DEFAULT 0, -- full access to everything, both programs
     shop_role TEXT, -- NULL (no Shop Inventory access), 'admin', 'tech', or 'student'
     flight_role TEXT, -- NULL (no Flight School access), 'cfi', or 'student'
+    shop_roles TEXT, -- every Maintenance role the account holds, comma-separated (shop_role is the main one)
+    flight_roles TEXT, -- every Flight School role the account holds, comma-separated (flight_role is the main one)
     can_bill INTEGER NOT NULL DEFAULT 0, -- Flight School: can see $ totals / outstanding balances and manage billing (master admins always can)
     active INTEGER NOT NULL DEFAULT 1,
     email TEXT, -- for email reminders (low stock, maintenance due, flight reminders)

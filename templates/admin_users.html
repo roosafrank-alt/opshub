@@ -20,8 +20,8 @@
           <td>{{ u.name }}</td>
           <td><code>{{ u.username }}</code></td>
           <td>{% if u.id == owner_id and not viewer_is_owner %}<span class="text-muted small"><i class="bi bi-lock"></i> hidden</span>{% else %}<code>{{ u.password_plain or '-' }}</code>{% endif %}</td>
-          <td>{% if u.shop_role %}<span class="badge {{ shop_role_colors.get(u.shop_role, 'bg-secondary') }}">{{ u.shop_role|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
-          <td>{% if u.flight_role %}<span class="badge bg-primary">{{ u.flight_role|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+          <td>{% for r in user_shop_roles(u) %}<span class="badge {{ shop_role_colors.get(r, 'bg-secondary') }} me-1">{{ r|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endfor %}</td>
+          <td>{% for r in user_flight_roles(u) %}<span class="badge bg-primary me-1">{{ 'CFI' if r == 'cfi' else r|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endfor %}</td>
           <td>{% if u.id == owner_id %}<span class="badge bg-dark" title="Only this person can change this account"><i class="bi bi-lock-fill"></i> Owner</span> {% endif %}{% if u.is_master_admin %}<span class="badge bg-warning text-dark">Master Admin</span>{% endif %}</td>
           <td>{% if u.is_master_admin or u.can_bill %}<span class="badge bg-info text-dark">Billing</span>{% endif %}</td>
           <td>{% if u.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>

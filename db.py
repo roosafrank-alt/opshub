@@ -568,6 +568,10 @@ def _migrate(conn):
         ("notify_flight_reminders", "ALTER TABLE users ADD COLUMN notify_flight_reminders INTEGER NOT NULL DEFAULT 0"),
         ("academy_access", "ALTER TABLE users ADD COLUMN academy_access INTEGER NOT NULL DEFAULT 0"),
         ("groundschool_access", "ALTER TABLE users ADD COLUMN groundschool_access INTEGER NOT NULL DEFAULT 0"),
+        # Every role an account holds, comma-separated (see user_shop_roles).
+        # shop_role/flight_role stay as the account's main role per program.
+        ("shop_roles", "ALTER TABLE users ADD COLUMN shop_roles TEXT"),
+        ("flight_roles", "ALTER TABLE users ADD COLUMN flight_roles TEXT"),
     ):
         if col not in user_cols:
             conn.execute(ddl)
@@ -2263,6 +2267,49 @@ def _migrate_flight_accounts_to_users(conn):
         conn.commit()
 
 
+# ---------------------------------------------------------------------------
+# One account, several roles. Admin > Accounts ticks each role separately, so
+# someone can be e.g. a shop Admin AND an Inspector, or a CFI AND a Student.
+# users.shop_roles/flight_roles hold every role ticked (comma-separated);
+# users.shop_role/flight_role hold the main one - the first of the ticked
+# roles in the orders below - which is what every existing permission check
+# reads. The other roles are used through the "View as" chips, which switch
+# the session to that role for real (not read-only).
+# ---------------------------------------------------------------------------
+SHOP_ROLE_ORDER = ("admin", "tech", "inspector", "apprentice")
+FLIGHT_ROLE_ORDER = ("cfi", "student")
+
+
+def _row_get(row, key):
+    try:
+        return row[key]
+    except (IndexError, KeyError):
+        return None
+
+
+def _roles_of(row, list_key, main_key, order):
+    have = {r.strip() for r in (_row_get(row, list_key) or "").split(",") if r.strip()}
+    if _row_get(row, main_key):
+        have.add(_row_get(row, main_key))
+    return [r for r in order if r in have]
+
+
+def user_shop_roles(user_row):
+    """Every Maintenance role this account holds, main role first."""
+    return _roles_of(user_row, "shop_roles", "shop_role", SHOP_ROLE_ORDER)
+
+
+def user_flight_roles(user_row):
+    """Every Flight School role this account holds, main role first."""
+    return _roles_of(user_row, "flight_roles", "flight_role", FLIGHT_ROLE_ORDER)
+
+
+def clean_roles(values, order):
+    """Ticked role checkboxes -> (comma list or None, main role or None)."""
+    picked = [r for r in order if r in set(values or [])]
+    return (",".join(picked) or None), (picked[0] if picked else None)
+
+
 def ensure_flight_profile(conn, user_row):
     """Make sure a user with flight_role set has the matching cfis/students
     profile row to hold their rate info, creating an empty one if needed
@@ -2275,7 +2322,8 @@ def ensure_flight_profile(conn, user_row):
     without billing" view any unbilled CFI gets. Setting a real Flight
     School Role for them on the accounts page overrides this, same as
     for anyone else."""
-    if user_row["flight_role"] == "cfi":
+    flight_roles = user_flight_roles(user_row)
+    if "cfi" in flight_roles:
         row = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
         if not row:
             conn.execute(
@@ -2284,7 +2332,7 @@ def ensure_flight_profile(conn, user_row):
                 (user_row["name"], user_row["username"], user_row["password_hash"], user_row["active"],
                  user_row["id"], now_iso()))
             conn.commit()
-    elif user_row["flight_role"] == "student":
+    if "student" in flight_roles:
         row = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_row["id"],)).fetchone()
         if not row:
             conn.execute(
@@ -2293,7 +2341,7 @@ def ensure_flight_profile(conn, user_row):
                 (user_row["name"], user_row["username"], user_row["password_hash"], user_row["active"],
                  user_row["id"], now_iso()))
             conn.commit()
-    elif user_row["shop_role"] == "admin" and not user_row["is_master_admin"]:
+    if not flight_roles and user_row["shop_role"] == "admin" and not user_row["is_master_admin"]:
         row = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
         if not row:
             conn.execute(
