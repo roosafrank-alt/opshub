@@ -32,14 +32,13 @@ def _clear_the_test_log():
     """Empties the error log between tests - but ONLY once it has proved the
     log is the harness's temp one.
 
-    Without that proof this walked the live instance/error_logs/ and deleted
-    Frank's real errors, which is exactly what it did on the Pi on
-    2026-09-28: app.py there had the fix, tests/harness.py didn't, so
-    ERROR_LOG_DIR was still the live folder and eleven saved tracebacks went
-    with it. A checkout where the harness predates the redirect must skip
-    these tests, not quietly wipe the log - the canary below is what fails
-    in that case, and it can't help if the damage is already done by the
-    time it runs."""
+    Without that proof this walks whatever ERROR_LOG_DIR happens to be, so
+    on a checkout whose harness.py predates that redirect it would delete
+    the live instance/error_logs/ - the Pi's real saved tracebacks, the only
+    copy there is. The canary below does catch the misconfiguration, but it
+    is one test among several: by the time it runs the others have already
+    done the deleting. So the refusal belongs here, before anything is
+    removed."""
     d = os.path.abspath(app_module.ERROR_LOG_DIR)
     tmp = os.path.abspath(tempfile.gettempdir()) + os.sep
     if not d.startswith(tmp):

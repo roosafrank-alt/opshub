@@ -98,8 +98,12 @@ def _record_track_points(conn, entries):
         conn.executemany(
             "INSERT INTO adsb_track_points (icao24, lat, lon, recorded_at) VALUES (?, ?, ?, ?)",
             [(e["icao24"], e["lat"], e["lon"], now) for e in fresh])
+        # 'localtime' because recorded_at above is db.now_iso(), i.e. Python's
+        # LOCAL clock, while SQLite's datetime('now') is UTC. Without it the
+        # cutoff sits UTC-offset hours too late, so on the Pi (EDT, UTC-4)
+        # this pruned the trail after 8 hours rather than TRACK_MAX_AGE_HOURS.
         conn.execute(
-            "DELETE FROM adsb_track_points WHERE recorded_at < datetime('now', ?)",
+            "DELETE FROM adsb_track_points WHERE recorded_at < datetime('now', 'localtime', ?)",
             (f"-{TRACK_MAX_AGE_HOURS} hours",))
         conn.commit()
     except Exception:
@@ -116,7 +120,11 @@ def get_track(conn, icao24, since_minutes=None):
     sql = "SELECT lat, lon, recorded_at FROM adsb_track_points WHERE icao24 = ?"
     params = [icao24]
     if since_minutes:
-        sql += " AND recorded_at >= datetime('now', ?)"
+        # 'localtime' for the same reason as the prune in
+        # _record_track_points: recorded_at is stored on the local clock.
+        # Without it, on any machine east or west of UTC this window either
+        # dropped every point or let through ones it shouldn't.
+        sql += " AND recorded_at >= datetime('now', 'localtime', ?)"
         params.append(f"-{since_minutes} minutes")
     sql += " ORDER BY recorded_at DESC LIMIT ?"
     params.append(TRACK_MAX_POINTS_PER_PLANE)
