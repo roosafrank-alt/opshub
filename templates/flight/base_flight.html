@@ -116,6 +116,20 @@
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.alerts_list') }}"><i class="bi bi-exclamation-triangle"></i> Alerts{% if fac.get('open') %} <span class="badge {{ 'bg-danger' if fac.get('unacked') else 'bg-warning text-dark' }}" title="{{ fac.get('unacked') }} new, {{ fac.get('open') }} open">{{ fac.get('open') }}</span>{% endif %}</a></li>
         {% elif session.get('student_id') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.my_alerts') }}"><i class="bi bi-bell"></i> Alerts{% if student_alert_count %} <span class="badge bg-danger">{{ student_alert_count }}</span>{% endif %}</a></li>
+        {#- Idea "my account": students get a distinct account tab here,
+           spaced away from Alerts (ms-3) so it reads as its own button
+           instead of part of Alerts. It's the same account menu that used
+           to sit further right inline with the name (see the show_name
+           swap below) - moved up here and shown icon-only, so students see
+           one account menu, not two. #}
+        <li class="nav-item d-none d-lg-flex align-items-center ms-3">
+          {% set account_from = 'flight' %}
+          {% set logout_url = url_for('flight.logout') %}
+          {% set menu_id_suffix = 'desktop' %}
+          {% set wrapper_classes = '' %}
+          {% set show_name = false %}
+          {% include "_account_menu.html" %}
+        </li>
         {% endif %}
       </ul>
       <ul class="navbar-nav flight-nav-boxed">
@@ -150,13 +164,17 @@
             {% include "_view_as_chips.html" %}
             {#- Same account menu as the icon next to the hamburger above -
                this copy only shows once the nav is expanded (lg+), where it
-               sits inline instead of inside a hamburger panel. #}
+               sits inline instead of inside a hamburger panel. Students get
+               it instead next to Alerts on the left (idea "my account"), so
+               it's skipped here to avoid showing it twice. #}
+            {% if not session.get('student_id') %}
             {% set account_from = 'flight' %}
             {% set logout_url = url_for('flight.logout') %}
             {% set menu_id_suffix = 'desktop' %}
             {% set wrapper_classes = 'd-none d-lg-block' %}
             {% set show_name = true %}
             {% include "_account_menu.html" %}
+            {% endif %}
           </div>
         </li>
       </ul>
