@@ -3478,9 +3478,16 @@ def _build_schedule_month(conn, year, month, plane_id=None, cfi_id=None, plane_o
     # looked up for them) so every box in the grid is filled.
     prev_month_end = _add_months(date(year, month, 1), -1)
     prev_days_in_month = calendar_mod.monthrange(prev_month_end.year, prev_month_end.month)[1]
+    next_month_start = _add_months(date(year, month, 1), 1)
 
+    # Idea "calendar": these overflow cells need their own real date (not
+    # just a bare day number) so the template can wire them up exactly
+    # like an in-month cell - clicking one should jump to Schedule Flight
+    # pre-filled with that actual date, same as any other day box.
     weeks = []
-    week = [{"day": prev_days_in_month - first_weekday + 1 + i, "in_month": False} for i in range(first_weekday)]
+    week = [{"day": prev_days_in_month - first_weekday + 1 + i, "in_month": False,
+             "date": f"{prev_month_end.year:04d}-{prev_month_end.month:02d}-{prev_days_in_month - first_weekday + 1 + i:02d}"}
+            for i in range(first_weekday)]
     for d in range(1, days_in_month + 1):
         week.append({"day": d, "in_month": True})
         if len(week) == 7:
@@ -3489,7 +3496,8 @@ def _build_schedule_month(conn, year, month, plane_id=None, cfi_id=None, plane_o
     if week:
         next_day = 1
         while len(week) < 7:
-            week.append({"day": next_day, "in_month": False})
+            week.append({"day": next_day, "in_month": False,
+                         "date": f"{next_month_start.year:04d}-{next_month_start.month:02d}-{next_day:02d}"})
             next_day += 1
         weeks.append(week)
 
