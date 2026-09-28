@@ -53,10 +53,15 @@
 <div class="d-none d-sm-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0">Flight History (<span id="visible-count">{{ flights|length }}</span>)</h4>
   <div class="d-flex align-items-center gap-2">
-    <input type="text" id="history-search" class="form-control form-control-sm" placeholder="Search plane, instructor, student..." style="min-width:240px;">
-    <button type="button" id="clear-filter" class="btn btn-outline-secondary btn-sm" style="display:none;">Clear filter</button>
+    {#- Idea ux-button-text-wrap: Billing (and Clear filter) are flex items
+       next to the search box, so without text-nowrap/flex-shrink-0 the
+       icon and word can be squeezed onto 2 lines; the search box (already
+       the flexible one here) narrows instead - see the smaller min-width
+       below. #}
+    <input type="text" id="history-search" class="form-control form-control-sm" placeholder="Search plane, instructor, student..." style="min-width:180px;">
+    <button type="button" id="clear-filter" class="btn btn-outline-secondary btn-sm text-nowrap flex-shrink-0" style="display:none;">Clear filter</button>
     {% if can_bill %}
-    <a href="{{ url_for('flight.billing') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-receipt"></i> Billing</a>
+    <a href="{{ url_for('flight.billing') }}" class="btn btn-outline-primary btn-sm text-nowrap flex-shrink-0"><i class="bi bi-receipt"></i> Billing</a>
     {% endif %}
   </div>
 </div>

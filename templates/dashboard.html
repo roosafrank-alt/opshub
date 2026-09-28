@@ -132,8 +132,11 @@
 <div class="alert alert-danger border-danger border-2 mb-3 squawk-alert">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="alert-heading mb-0"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} New Squawk{{ 's' if open_squawks|length != 1 }}{{ ' - Pick Who Fixes Them' if can_assign_squawks else ' (for your info)' }}</h5>
-    <a href="{{ url_for('squawks_list') }}" class="btn btn-outline-danger btn-sm fw-bold">
-      <span class="d-none d-md-inline">View All</span><span class="d-md-none">{{ 'See all ' ~ open_squawks|length if open_squawks|length > 2 else 'View All' }}</span></a>
+    {#- Idea ux-button-text-wrap: same wording on phone and desktop now
+       ("See all N", or "View All" when there's nothing more to see) -
+       used to say "View All" on desktop but "See all N" on phones.
+       text-nowrap/flex-shrink-0 keep it on one line next to the heading. #}
+    <a href="{{ url_for('squawks_list') }}" class="btn btn-outline-danger btn-sm fw-bold text-nowrap flex-shrink-0">{{ 'See all ' ~ open_squawks|length if open_squawks|length > 2 else 'View All' }}</a>
   </div>
   {% for sq in open_squawks[:5] %}
   {#- On phones only the 2 newest show, so the stat boxes and recent
@@ -409,7 +412,7 @@
               <td><a href="{{ url_for('part_detail', part_id=p.id) }}">{{ p.name }}</a><br><small class="text-muted">{{ p.barcode }}</small></td>
               <td>{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
               <td>{{ '%g'|format(p.reorder_point) }} {{ p.unit }}</td>
-              <td><a href="{{ url_for('scan_page') }}" class="btn btn-sm btn-outline-primary">Scan In</a></td>
+              <td><a href="{{ url_for('scan_page') }}" class="btn btn-sm btn-outline-primary text-nowrap">Scan In</a></td>
             </tr>
             {% endfor %}
           </tbody>
