@@ -7646,8 +7646,59 @@ def admin_wave():
                          "products": spec["products"]})
     conn.close()
     return render_template("admin_wave.html", accounts=accounts, programs=programs,
+                           enabled=wave_billing.is_enabled(raw),
                            product_labels=wave_billing.PRODUCT_LABELS,
                            program_key=wave_billing.program_key, account_key=wave_billing.account_key)
+
+
+@app.route("/admin/wave/toggle", methods=["POST"])
+@master_admin_required
+def admin_wave_toggle():
+    """The on/off switch: off hides Invoice in Wave everywhere and pauses
+    the payment check, keeping every setting and invoice for later."""
+    on = request.form.get("enabled") == "1"
+    conn = get_db()
+    wave_billing.save_settings(conn, {wave_billing.ENABLED_KEY: "1" if on else "0"})
+    conn.close()
+    flash("Wave invoicing turned on." if on else
+          "Wave invoicing turned off. Settings and invoices are kept - switch it back on any time.", "success")
+    return redirect(url_for("admin_wave"))
+
+
+@app.route("/admin/wave/test/<int:n>", methods=["POST"])
+@master_admin_required
+def admin_wave_test(n):
+    """Test connection: read-only checks on one account as saved."""
+    if n not in wave_billing.ACCOUNTS:
+        abort(404)
+    conn = get_db()
+    results = wave_billing.test_account(conn, n)
+    name = wave_billing.account_config(wave_billing.get_settings(conn), n)["name"]
+    conn.close()
+    ok = all(r[0] for r in results)
+    flash(f"{name} test: " + ("everything checks out." if ok else "something needs fixing."), "success" if ok else "warning")
+    for good, msg in results:
+        flash(("\u2713 " if good else "\u2717 ") + msg, "success" if good else "danger")
+    return redirect(url_for("admin_wave"))
+
+
+@app.route("/admin/wave/test/<int:n>/invoice", methods=["POST"])
+@master_admin_required
+def admin_wave_test_invoice(n):
+    """Make a test invoice: a $1 draft in Wave, emailed to no one."""
+    if n not in wave_billing.ACCOUNTS:
+        abort(404)
+    conn = get_db()
+    try:
+        inv = wave_billing.create_test_invoice(conn, n)
+    except wave_billing.WaveError as e:
+        conn.close()
+        flash(str(e), "danger")
+        return redirect(url_for("admin_wave"))
+    conn.close()
+    flash(f"Test invoice #{inv.get('invoiceNumber') or ''} made in Wave as a draft for $1.00 to \"OpsHub test\" - "
+          "nothing was sent to anyone. Find it under Sales & Payments > Invoices in Wave and delete it there.", "success")
+    return redirect(url_for("admin_wave"))
 
 
 @app.route("/admin/wave/disconnect/<int:n>", methods=["POST"])

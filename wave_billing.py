@@ -51,8 +51,14 @@ def program_key(program, field):
     return f"wave_{program}_{field}"
 
 
+# Admin > Wave's on/off switch. Off hides every Invoice in Wave / Check
+# Wave button and pauses the background payment check; all settings and
+# invoices are kept for when it's switched back on. Missing = on.
+ENABLED_KEY = "wave_enabled"
+
 SETTINGS_KEYS = ([account_key(n, f) for n in ACCOUNTS for f in ACCOUNT_FIELDS]
-                 + [program_key(p, f) for p in PROGRAMS for f in ("accounts", "default")])
+                 + [program_key(p, f) for p in PROGRAMS for f in ("accounts", "default")]
+                 + [ENABLED_KEY])
 
 # Wave's own invoice statuses. Anything in here is finished - no need to
 # keep asking Wave about it.
@@ -104,11 +110,20 @@ def is_connected(cfg):
     return bool(cfg and cfg["token"] and cfg["business_id"])
 
 
+def is_enabled(raw):
+    return raw.get(ENABLED_KEY, "") != "0"
+
+
+TURNED_OFF = "Wave invoicing is turned off - switch it back on under Admin > Wave."
+
+
 def program_accounts(conn, program):
     """(connected accounts given to this program, default account number or
     None). The default is the saved one if it's still connected, else the
     first connected account."""
     raw = get_settings(conn)
+    if not is_enabled(raw):
+        return [], None
     wanted = [int(x) for x in raw[program_key(program, "accounts")].split(",") if x.strip().isdigit()]
     accounts = [account_config(raw, n) for n in ACCOUNTS if n in wanted]
     accounts = [a for a in accounts if is_connected(a)]
@@ -121,6 +136,8 @@ def program_accounts(conn, program):
 def choose_account(conn, program, requested=None):
     """The account to invoice from: the one picked in the Invoice in Wave
     box (must be one of this program's), else the program's default."""
+    if not is_enabled(get_settings(conn)):
+        raise WaveError(TURNED_OFF)
     accounts, default = program_accounts(conn, program)
     if not accounts:
         raise WaveError(f"Wave isn't connected for the {PROGRAMS[program]['label']} yet - set it up under Admin > Wave.")
@@ -270,8 +287,9 @@ def forget_customer(conn, business_id, email):
 _INVOICE_FIELDS = "id invoiceNumber status viewUrl pdfUrl total { value } amountDue { value }"
 
 
-def create_invoice(conn, cfg, customer_name, customer_email, items, memo="", po_number=""):
-    """Creates an approved (SAVED, not draft) invoice. items: dicts with
+def create_invoice(conn, cfg, customer_name, customer_email, items, memo="", po_number="", status="SAVED"):
+    """Creates an approved (SAVED) invoice, or a DRAFT one (the Admin > Wave
+    test - drafts stay out of Wave's books and can't be sent). items: dicts with
     productId, description, quantity, unitPrice. Returns Wave's invoice
     (id, invoiceNumber, status, viewUrl, pdfUrl, total, amountDue)."""
     if not items:
@@ -282,7 +300,7 @@ def create_invoice(conn, cfg, customer_name, customer_email, items, memo="", po_
     variables = {"input": {
         "businessId": cfg["business_id"],
         "customerId": customer_id,
-        "status": "SAVED",
+        "status": status,
         "items": [{"productId": i["productId"], "description": i["description"][:255],
                    "quantity": i["quantity"], "unitPrice": i["unitPrice"]} for i in items],
         **({"memo": memo} if memo else {}),
@@ -339,7 +357,7 @@ def record_invoice(conn, kind, ref_id, inv, customer_name, customer_email, creat
 
 def has_any_connected(conn):
     raw = get_settings(conn)
-    return any(is_connected(account_config(raw, n)) for n in ACCOUNTS)
+    return is_enabled(raw) and any(is_connected(account_config(raw, n)) for n in ACCOUNTS)
 
 
 def sync_open_invoices(conn, on_paid, only_id=None, program=None):
@@ -349,6 +367,8 @@ def sync_open_invoices(conn, on_paid, only_id=None, program=None):
     newly paid, calls on_paid(conn, wave_invoices_row) so the caller can
     mark the job/flights paid. Returns (checked, newly_paid, errors)."""
     raw = get_settings(conn)
+    if not is_enabled(raw):
+        raise WaveError(TURNED_OFF)
     accounts = {n: account_config(raw, n) for n in ACCOUNTS}
     if not any(is_connected(a) for a in accounts.values()):
         raise WaveError("Wave isn't connected yet - set it up under Admin > Wave.")
@@ -384,6 +404,61 @@ def sync_open_invoices(conn, on_paid, only_id=None, program=None):
             newly_paid += 1
         conn.commit()
     return checked, newly_paid, errors
+
+
+def test_account(conn, n):
+    """Admin > Wave > Test connection: read-only checks on account n as
+    saved. Returns [(ok, message)] - the login, the business, and each
+    product the programs it's ticked for need."""
+    raw = get_settings(conn)
+    cfg = account_config(raw, n)
+    results = []
+    if not cfg["token"]:
+        return [(False, "No access token saved" + (" (the account it shares a login with has none)" if cfg["token_from"] else "") + ".")]
+    try:
+        businesses = list_businesses(cfg["token"])
+    except WaveError as e:
+        return [(False, str(e))]
+    results.append((True, f"Wave accepted the access token ({len(businesses)} business{'es' if len(businesses) != 1 else ''} on this login)."))
+    biz = next((b for b in businesses if b["id"] == cfg["business_id"]), None)
+    if not cfg["business_id"]:
+        return results + [(False, "No business picked yet.")]
+    if not biz:
+        return results + [(False, "The picked business isn't on this Wave login any more - pick it again.")]
+    results.append((True, f"Business found: {biz['name']}."))
+    try:
+        products = {p["id"]: p["name"] for p in list_products(cfg["token"], cfg["business_id"])}
+    except WaveError as e:
+        return results + [(False, str(e))]
+    programs = [p for p in PROGRAMS if str(n) in raw[program_key(p, "accounts")].split(",")]
+    if not programs:
+        results.append((False, "Not ticked for the Shop or the Flight School, so no Billing page uses it yet."))
+    for p in programs:
+        for kind in PROGRAMS[p]["products"]:
+            pid = cfg[kind + "_product"]
+            if not pid:
+                results.append((False, f"{PROGRAMS[p]['label']}: no product picked for {PRODUCT_LABELS[kind]}."))
+            elif pid not in products:
+                results.append((False, f"{PROGRAMS[p]['label']}: the {PRODUCT_LABELS[kind]} product is gone or archived in Wave - pick another."))
+            else:
+                results.append((True, f"{PROGRAMS[p]['label']}: {PRODUCT_LABELS[kind]} goes under \"{products[pid]}\"."))
+    return results
+
+
+def create_test_invoice(conn, n):
+    """Admin > Wave > Make a test invoice: a $1.00 DRAFT in account n for a
+    customer called "OpsHub test", using the first product it has. Proves
+    the whole invoice path works without anything reaching Wave's books or
+    anyone's inbox. Not recorded against any job or student."""
+    cfg = account_config(get_settings(conn), n)
+    if not is_connected(cfg):
+        raise WaveError(f"{cfg['name']} isn't connected yet - save its token and business first.")
+    product = cfg["labor_product"] or cfg["parts_product"] or cfg["flight_product"]
+    if not product:
+        raise WaveError(f"Pick at least one product for {cfg['name']} first.")
+    return create_invoice(conn, cfg, "OpsHub test", "",
+                          [{"productId": product, "description": "OpsHub test invoice - safe to delete", "quantity": 1, "unitPrice": 1.0}],
+                          memo="Test from OpsHub Admin > Wave. This draft can be deleted.", status="DRAFT")
 
 
 def apply_paid(conn, row):

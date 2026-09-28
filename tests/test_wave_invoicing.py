@@ -471,3 +471,71 @@ class WaveTransportTest(OpsHubTestCase):
     def test_no_token_never_calls_out(self):
         with self.assertRaises(wave_billing.WaveError):
             wave_billing.list_businesses("")
+
+
+class WaveSwitchAndTestButtonsTest(WaveTestBase):
+    def setUp(self):
+        super().setUp()
+        conn = db.get_db()
+        self.laborer = seed_row(conn, "laborers", name="Tech", code="LABOR-A", rate=85, active=1)
+        conn.commit()
+        conn.close()
+        self.project = self.make_project(name="Annual - N12345")
+        self.exec("""INSERT INTO labor_sessions (laborer_id, project_id, started_at, ended_at, hours, rate, cost, created_at)
+                     VALUES (?,?,?,?,?,?,?,?)""", (self.laborer, self.project, db.now_iso(), db.now_iso(), 1, 85, 85, db.now_iso()))
+        self.connect_wave()
+
+    def test_switch_off_hides_buttons_refuses_and_pauses_then_back_on(self):
+        c = self.login("master")
+        c.post("/admin/wave/toggle", data={"enabled": "0"})
+        self.assertIn("Wave invoicing off", c.get("/admin/wave").get_data(as_text=True))
+        html = self.login("shop_admin").get("/shop/billing?period=all").get_data(as_text=True)
+        self.assertNotIn("Invoice in Wave</button>", html)
+        self.assertNotIn("Check Wave for payments", html)
+        html = self.login("shop_admin").post(f"/shop/billing/{self.project}/wave-invoice", follow_redirects=True,
+                                             data={"customer_name": "Owner"}).get_data(as_text=True)
+        self.assertIn("Wave invoicing is turned off", html)
+        self.assertEqual(self.wave.created_items(), [])
+        app_module._wave_last_sync[0] = 0
+        self.exec("""INSERT INTO wave_invoices (kind, ref_id, wave_invoice_id, account, created_at)
+                     VALUES ('project', ?, 'INV9', 1, ?)""", (self.project, db.now_iso()))
+        app_module.run_wave_payment_check()
+        self.assertEqual([q for q, v in self.wave.calls if "invoice(id:" in q], [])
+        # Settings survived; back on, the button is back.
+        self.login("master").post("/admin/wave/toggle", data={"enabled": "1"})
+        html = self.login("shop_admin").get("/shop/billing?period=all").get_data(as_text=True)
+        self.assertIn("Check Wave for payments", html)
+
+    def test_connection_test_reports_each_check(self):
+        c = self.login("master")
+        html = c.post("/admin/wave/test/1", follow_redirects=True).get_data(as_text=True)
+        self.assertIn("everything checks out", html)
+        self.assertIn("Business found: Winds Aloft LLC", html)
+        self.assertIn("Flight School: flight training goes under", html)
+        self.assertEqual([q for q, v in self.wave.calls if "mutation" in q], [])  # read-only
+        self.exec("UPDATE app_settings SET value = 'P-OLD' WHERE key = 'wave_acct1_parts_product_id'")
+        html = c.post("/admin/wave/test/1", follow_redirects=True).get_data(as_text=True)
+        self.assertIn("something needs fixing", html)
+        self.assertIn("parts product is gone or archived", html)
+
+    def test_connection_test_without_a_token(self):
+        html = self.login("master").post("/admin/wave/test/3", follow_redirects=True).get_data(as_text=True)
+        self.assertIn("No access token saved", html)
+
+    def test_test_invoice_is_a_draft_sent_to_no_one(self):
+        html = self.login("master").post("/admin/wave/test/1/invoice", follow_redirects=True).get_data(as_text=True)
+        self.assertIn("made in Wave as a draft", html)
+        create = [v for q, v in self.wave.calls if "invoiceCreate" in q][0]["input"]
+        self.assertEqual(create["status"], "DRAFT")
+        self.assertEqual(create["items"][0]["unitPrice"], 1.0)
+        self.assertEqual([q for q, v in self.wave.calls if "invoiceSend" in q], [])
+        self.assertIsNone(self.q1("SELECT 1 FROM wave_invoices"))  # not tied to any job
+
+    def test_switch_and_tests_are_master_admin_only(self):
+        c = self.login("shop_admin")
+        c.post("/admin/wave/toggle", data={"enabled": "0"})
+        c.post("/admin/wave/test/1/invoice")
+        conn = db.get_db()
+        self.assertTrue(wave_billing.is_enabled(wave_billing.get_settings(conn)))
+        conn.close()
+        self.assertEqual(self.wave.created_items(), [])

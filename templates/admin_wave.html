@@ -3,7 +3,26 @@
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-8">
-<h4 class="mb-3"><i class="bi bi-receipt"></i> Wave Invoicing</h4>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <h4 class="mb-0"><i class="bi bi-receipt"></i> Wave Invoicing
+    {% if enabled %}<span class="badge bg-success fs-6 align-middle">On</span>{% else %}<span class="badge bg-secondary fs-6 align-middle">Off</span>{% endif %}
+  </h4>
+  {#- On/off switch - off hides every Invoice in Wave button and pauses the
+     payment check, but keeps all of the settings below. #}
+  <form method="post" action="{{ url_for('admin_wave_toggle') }}" class="d-flex align-items-center">
+    <input type="hidden" name="enabled" value="{{ '0' if enabled else '1' }}">
+    <div class="form-check form-switch mb-0">
+      <input class="form-check-input" type="checkbox" role="switch" id="wave-enabled" {{ 'checked' if enabled }} onchange="this.form.submit()">
+      <label class="form-check-label fw-bold" for="wave-enabled">Wave invoicing {{ 'on' if enabled else 'off' }}</label>
+    </div>
+  </form>
+</div>
+{% if not enabled %}
+<div class="alert alert-secondary">
+  Wave invoicing is <strong>off</strong>: no Invoice in Wave buttons on Billing, and payments aren't being checked.
+  Everything below is kept - flip the switch to turn it back on. The test buttons still work.
+</div>
+{% endif %}
 <p class="text-muted">
   Set up to three Wave accounts, tick which program each one is for, and pick each program's default. <strong>Invoice in Wave</strong>
   on Billing starts on the default and can swap to any other account the program has, one invoice at a time. Wave emails the
@@ -83,6 +102,14 @@
     {% endfor %}
     {% endif %}
 
+    <div class="d-flex gap-2 flex-wrap mt-2 mb-2">
+      {#- Tests use what's already saved - Save first after changing anything. #}
+      <button type="submit" class="btn btn-sm btn-outline-primary" form="wave-test-{{ n }}" {{ 'disabled' if not cfg.token }}>
+        <i class="bi bi-plug"></i> Test connection</button>
+      <button type="submit" class="btn btn-sm btn-outline-secondary" form="wave-test-invoice-{{ n }}" {{ 'disabled' if not a.connected }}
+              title="Makes a $1 draft invoice in Wave - nothing is sent. Delete it in Wave afterwards.">
+        <i class="bi bi-file-earmark-text"></i> Make a test invoice (draft)</button>
+    </div>
     <div class="mt-2">
       <span class="form-label me-2">Use for:</span>
       {% for p in programs %}
@@ -114,7 +141,15 @@
   </div>
 
   <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-save"></i> Save</button>
+  <span class="small text-muted ms-2">The test buttons use the saved settings - save first after changing anything.</span>
 </form>
+
+{#- The test buttons above belong to these forms (form="..."), so they
+   never become the Save form's Enter-key button. #}
+{% for a in accounts %}
+<form method="post" id="wave-test-{{ a.cfg.n }}" action="{{ url_for('admin_wave_test', n=a.cfg.n) }}"></form>
+<form method="post" id="wave-test-invoice-{{ a.cfg.n }}" action="{{ url_for('admin_wave_test_invoice', n=a.cfg.n) }}"></form>
+{% endfor %}
 
 <div class="d-flex gap-2 flex-wrap mt-3">
   {% for a in accounts if a.cfg.own_token or a.cfg.token_from or a.cfg.business_id %}
