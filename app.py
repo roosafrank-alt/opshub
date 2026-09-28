@@ -7782,12 +7782,12 @@ def admin_reset():
 
 
 # ---------------------------------------------------------------------------
-# Master admin: remote restart/reboot (a "backdoor" for when SSH is down but
+# Master admin: remote restart/reboot/shutdown (a "backdoor" for when SSH is down but
 # this app itself is still reachable - see admin_system.html for the pitch).
 # Both run the actual command a couple seconds after responding, in a
 # background thread, so the browser gets its response/flash message before
 # the connection drops out from under it. Requires the Pi's OS user this app
-# runs as to have passwordless sudo for exactly these two commands (see the
+# runs as to have passwordless sudo for exactly these commands (see the
 # README for the one-time `visudo` line) - nothing else is granted.
 # ---------------------------------------------------------------------------
 
@@ -7829,6 +7829,18 @@ def admin_system_restart_app():
 def admin_system_reboot():
     flash("Rebooting the Pi now - everything will be unreachable for 30-60 seconds.", "success")
     _run_delayed_command(["sudo", "reboot"])
+    return redirect(url_for("admin_system"))
+
+
+@app.route("/admin/system/shutdown", methods=["POST"])
+@master_admin_required
+def admin_system_shutdown():
+    # A clean power-off before unplugging the Pi (so the SD card and the
+    # database aren't mid-write when the power goes). Nothing remote can turn
+    # it back on afterwards - see admin_system.html for how to power it up.
+    flash("Shutting the Pi down now. Wait until its green light stops blinking (about 20-30 seconds) "
+          "before unplugging it. To turn it back on, plug the power back in.", "success")
+    _run_delayed_command(["sudo", "shutdown", "-h", "now"])
     return redirect(url_for("admin_system"))
 
 
