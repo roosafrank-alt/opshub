@@ -15,7 +15,8 @@ from datetime import date, datetime, timedelta
 from flask import (Flask, render_template, request, redirect, url_for, jsonify, flash, abort,
                     Response, session, got_request_exception)
 
-from db import (get_db, init_db, close_request_conns, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
+from db import (get_db, init_db, user_shop_roles, user_flight_roles, clean_roles, SHOP_ROLE_ORDER, FLIGHT_ROLE_ORDER,
+                 close_request_conns, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
                  allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
                  MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS, found_item_messages)
 from flight import flight_bp, _flight_hours, check_session_alerts, run_balance_hold_release_check, SCHEDULE_COLORS, _used_colors_for_plane
@@ -33,6 +34,7 @@ from auth import (authenticate, log_in_user, log_out_user, current_user, login_r
                    owner_user_id, owner_locked, authenticate_customer, log_in_combined,
                    current_customer, start_view_as, exit_view_as, viewing_as_label,
                    view_as_active_program, SHOP_VIEW_AS_LEVELS, FLIGHT_VIEW_AS_LEVELS,
+                   real_is_master_admin, view_as_chips, home_view_as_level,
                    account_program_count, single_program_endpoint)
 import notify
 from urllib.parse import urlparse
@@ -242,6 +244,8 @@ def first_name(value):
 
 app.jinja_env.filters["first_name"] = first_name
 app.jinja_env.globals["tracking_carrier_choices"] = tracking.CARRIER_CHOICES
+app.jinja_env.globals["user_shop_roles"] = user_shop_roles
+app.jinja_env.globals["user_flight_roles"] = user_flight_roles
 app.jinja_env.globals["tracking_info"] = tracking.to_json
 app.jinja_env.globals["academy_point_rules"] = academy.POINT_RULES
 app.jinja_env.globals["academy_entry_kinds"] = academy.ENTRY_KINDS
@@ -270,6 +274,18 @@ def wind_compass_label(deg):
 app.jinja_env.globals["_wind_compass"] = wind_compass_label
 
 
+def _view_as_chip_rows():
+    """{'shop': [...], 'flight': [...]} for _view_as_chips.html - see
+    auth.view_as_chips."""
+    if not session.get("user_id"):
+        return {}
+    conn = get_db()
+    try:
+        return {p: view_as_chips(conn, p) for p in ("shop", "flight")}
+    finally:
+        conn.close()
+
+
 @app.context_processor
 def inject_auth_context():
     open_squawk_count = 0
@@ -290,9 +306,8 @@ def inject_auth_context():
         "maint_category_colors": CATEGORY_COLORS,
         "maint_category_labels": CATEGORY_LABELS,
         "viewing_as": viewing_as_label(),
-        "is_real_master_admin": bool(session.get("_view_as_real")) or bool(session.get("is_master_admin")),
-        "shop_view_as_levels": SHOP_VIEW_AS_LEVELS,
-        "flight_view_as_levels": FLIGHT_VIEW_AS_LEVELS,
+        "is_real_master_admin": real_is_master_admin(),
+        "view_as_chip_rows": _view_as_chip_rows(),
         "view_as_active_program": view_as_active_program(),
         "single_program_account": account_program_count() == 1,
     }
@@ -6621,13 +6636,18 @@ def admin_home():
 
 @app.route("/view-as/<program>/<level>", methods=["POST"])
 def view_as_start(program, level):
-    """Lets a master admin see a program as a lower access level would, from
-    the "View as" chips in the header - Shop Admin/Tech/Apprentice on the Shop
-    Inventory/Admin side, CFI/Student on Flight School - or, for My Aircraft
-    (no roles there), as one specific real owner picked on Admin > Customers
-    (see auth.start_view_as for how each is backed)."""
+    """Switches to another role from the "View as" chips in the header -
+    any Shop or Flight School level for a master admin, or one of their own
+    other roles for an account that holds several (Admin + Inspector, CFI +
+    Student, ...). It isn't read-only: everything works as it would for that
+    role. Clicking your normal role's chip (Admin for a master admin) goes
+    straight back to your normal view. A master admin can also view My
+    Aircraft as one specific real owner, picked on Admin > Customers (see
+    auth.start_view_as for how each is backed)."""
     if program not in ("shop", "flight", "owner"):
         abort(404)
+    if program != "owner" and level == home_view_as_level(program):
+        return view_as_exit()
     conn = get_db()
     ok, error = start_view_as(conn, program, level)
     conn.close()
@@ -6638,7 +6658,7 @@ def view_as_start(program, level):
         flash(f"Viewing as {session.get('customer_name')} (owner). Nothing you do here affects real data any differently than it would for that owner.", "info")
         return redirect(url_for("customer.customer_dashboard"))
     levels = SHOP_VIEW_AS_LEVELS if program == "shop" else FLIGHT_VIEW_AS_LEVELS
-    flash(f"Viewing as {levels[level]}. Nothing you do here affects real data any differently than it would for that role.", "info")
+    flash(f"Viewing as {levels[level]} - you can use everything a{'n' if levels[level][0] in 'AEIOU' else ''} {levels[level]} can.", "info")
     return redirect(url_for("dashboard") if program == "shop" else url_for("flight.dashboard"))
 
 
@@ -6646,7 +6666,7 @@ def view_as_start(program, level):
 def view_as_exit():
     was_owner = view_as_active_program() == "owner"
     if exit_view_as():
-        flash("Back to your own admin view.", "info")
+        flash("Back to your normal view.", "info")
     # Exiting an owner preview clears session['customer_id'], so the portal
     # page we were just on (referrer) would immediately bounce to the
     # customer login screen - send an admin back to Admin > Customers
@@ -6723,6 +6743,20 @@ def _apply_pay_links(conn, user_row, form):
     return None
 
 
+def _form_roles(form):
+    """The ticked Maintenance / Flight School role checkboxes (plus the old
+    single shop_role/flight_role field, still sent by a couple of links) ->
+    (shop_roles, shop_role, flight_roles, flight_role) to save - see
+    db.clean_roles."""
+    shop_roles, shop_role = clean_roles(form.getlist("shop_roles") + form.getlist("shop_role"), SHOP_ROLE_ORDER)
+    flight_roles, flight_role = clean_roles(form.getlist("flight_roles") + form.getlist("flight_role"), FLIGHT_ROLE_ORDER)
+    return shop_roles, shop_role, flight_roles, flight_role
+
+
+def _role_preset(shop_roles, flight_roles, **extra):
+    return dict(shop_roles=(shop_roles or "").split(","), flight_roles=(flight_roles or "").split(","), **extra)
+
+
 @app.route("/admin/users/new", methods=["GET", "POST"])
 @master_admin_required
 def admin_user_new():
@@ -6730,8 +6764,7 @@ def admin_user_new():
         name = request.form.get("name", "").strip()
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        shop_role = request.form.get("shop_role") or None
-        flight_role = request.form.get("flight_role") or None
+        shop_roles, shop_role, flight_roles, flight_role = _form_roles(request.form)
         is_master_admin = 1 if request.form.get("is_master_admin") else 0
         can_bill = 1 if request.form.get("can_bill") else 0
         email = request.form.get("email", "").strip() or None
@@ -6745,8 +6778,8 @@ def admin_user_new():
         groundschool_access = 1 if request.form.get("groundschool_access") else 0
         conn = get_db()
         pay_ctx = _pay_link_context(conn)
-        preset = {"shop_role": shop_role, "flight_role": flight_role, "badge": request.form.get("badge", ""),
-                  "badge_rate": request.form.get("badge_rate", ""), "cfi_pay_rate": request.form.get("cfi_pay_rate", "")}
+        preset = _role_preset(shop_roles, flight_roles, badge=request.form.get("badge", ""),
+                              badge_rate=request.form.get("badge_rate", ""), cfi_pay_rate=request.form.get("cfi_pay_rate", ""))
         if not name or not username or not password:
             conn.close()
             flash("Name, username, and password are all required.", "danger")
@@ -6763,10 +6796,11 @@ def admin_user_new():
             flash("Pay rates must be a number, 0 or more.", "danger")
             return render_template("admin_user_form.html", user=None, name=name, username=username, preset=preset, **pay_ctx)
         cur = conn.execute(
-            "INSERT INTO users (name, username, password_hash, password_plain, is_master_admin, shop_role, flight_role, can_bill, active, "
+            "INSERT INTO users (name, username, password_hash, password_plain, is_master_admin, shop_role, flight_role, shop_roles, flight_roles, can_bill, active, "
             "email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (name, username, generate_password_hash(password, method="pbkdf2:sha256"), password, is_master_admin, shop_role, flight_role, can_bill,
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (name, username, generate_password_hash(password, method="pbkdf2:sha256"), password, is_master_admin, shop_role, flight_role,
+             shop_roles, flight_roles, can_bill,
              email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, now_iso()))
         conn.commit()
         user_row = conn.execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone()
@@ -6782,8 +6816,8 @@ def admin_user_new():
         return redirect(url_for("admin_users_list"))
     # "Add CFI" / "New Laborer" elsewhere in the app land here with the
     # role picked already (?flight_role=cfi, ?shop_role=tech&badge=new).
-    preset = {"shop_role": request.args.get("shop_role", ""), "flight_role": request.args.get("flight_role", ""),
-              "badge": request.args.get("badge", ""), "badge_rate": "", "cfi_pay_rate": ""}
+    shop_roles, _, flight_roles, _ = _form_roles(request.args)
+    preset = _role_preset(shop_roles, flight_roles, badge=request.args.get("badge", ""), badge_rate="", cfi_pay_rate="")
     conn = get_db()
     pay_ctx = _pay_link_context(conn)
     conn.close()
@@ -6807,8 +6841,7 @@ def admin_user_edit(user_id):
         return redirect(url_for("admin_users_list"))
     if request.method == "POST":
         name = request.form.get("name", "").strip()
-        shop_role = request.form.get("shop_role") or None
-        flight_role = request.form.get("flight_role") or None
+        shop_roles, shop_role, flight_roles, flight_role = _form_roles(request.form)
         is_master_admin = 1 if request.form.get("is_master_admin") else 0
         can_bill = 1 if request.form.get("can_bill") else 0
         active = 1 if request.form.get("active") else 0
@@ -6842,16 +6875,16 @@ def admin_user_edit(user_id):
             return render_template("admin_user_form.html", user=user_row, **pay_ctx)
         if new_password:
             conn.execute(
-                "UPDATE users SET name=?, shop_role=?, flight_role=?, is_master_admin=?, can_bill=?, active=?, password_hash=?, password_plain=?, "
+                "UPDATE users SET name=?, shop_role=?, flight_role=?, shop_roles=?, flight_roles=?, is_master_admin=?, can_bill=?, active=?, password_hash=?, password_plain=?, "
                 "email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, notify_maintenance=?, notify_flight_reminders=?, academy_access=?, groundschool_access=? WHERE id=?",
-                (name, shop_role, flight_role, is_master_admin, can_bill, active,
+                (name, shop_role, flight_role, shop_roles, flight_roles, is_master_admin, can_bill, active,
                  generate_password_hash(new_password, method="pbkdf2:sha256"), new_password,
                  email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, user_id))
         else:
             conn.execute(
-                "UPDATE users SET name=?, shop_role=?, flight_role=?, is_master_admin=?, can_bill=?, active=?, "
+                "UPDATE users SET name=?, shop_role=?, flight_role=?, shop_roles=?, flight_roles=?, is_master_admin=?, can_bill=?, active=?, "
                 "email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, notify_maintenance=?, notify_flight_reminders=?, academy_access=?, groundschool_access=? WHERE id=?",
-                (name, shop_role, flight_role, is_master_admin, can_bill, active,
+                (name, shop_role, flight_role, shop_roles, flight_roles, is_master_admin, can_bill, active,
                  email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, user_id))
         conn.commit()
         user_row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
@@ -6898,11 +6931,11 @@ def _account_programs(user_row):
     if is_admin or user_row["shop_role"]:
         progs.append(dict(key="shop", name="Winds Aloft - Maintenance", icon="bi-tools",
                           url=url_for("dashboard"),
-                          role="Master admin" if is_admin else shop_labels.get(user_row["shop_role"], (user_row["shop_role"] or "").title())))
+                          role="Master admin" if is_admin else " + ".join(shop_labels.get(r, r.title()) for r in user_shop_roles(user_row))))
     if is_admin or user_row["flight_role"]:
         progs.append(dict(key="flight", name="Fly with Kate! - Flight School", icon="bi-airplane-engines",
                           url=url_for("flight.dashboard"),
-                          role="Master admin" if is_admin else flight_labels.get(user_row["flight_role"], (user_row["flight_role"] or "").title())))
+                          role="Master admin" if is_admin else " + ".join(flight_labels.get(r, r.title()) for r in user_flight_roles(user_row))))
     if is_admin or user_row["academy_access"]:
         progs.append(dict(key="academy", name="Flight Academy", icon="bi-mortarboard",
                           url=url_for("academy_page"), role="Master admin" if is_admin else "Access granted"))

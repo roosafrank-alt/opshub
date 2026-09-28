@@ -61,4 +61,4 @@ class PersonLinksTest(OpsHubTestCase):
         self.assertIn("/admin/users/new?shop_role=tech", c.get("/laborers").get_data(as_text=True))
         self.assertIn("/admin/users/new?flight_role=cfi", c.get("/flight/cfis").get_data(as_text=True))
         html = c.get("/admin/users/new?flight_role=cfi").get_data(as_text=True)
-        self.assertIn('value="cfi" selected', html)
+        self.assertIn('value="cfi" id="flight-role-cfi" checked', html)
