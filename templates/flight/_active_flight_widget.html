@@ -132,18 +132,34 @@
       // instead of lying about success.
       if (!resp.ok || resp.url.indexOf('/flight/log/active') === -1) { location.reload(); return; }
       var icon = pauseBtn.querySelector('i');
+      // Active Flight's own big Elapsed number for this same flight (if
+      // this page happens to be Active Flight itself) reads its own
+      // data-paused-at/data-paused-seconds on every tick - see the
+      // .elapsed-timer script in log_active.html. It has no other way to
+      // learn the flight was just paused/resumed from here, so without this
+      // it would keep counting past the widget's frozen time until the
+      // page next reloads. Mirror the same attribute changes onto it so
+      // both numbers move together.
+      var pageTimer = document.querySelector('#active-flight-' + widgetFlightId + ' .elapsed-timer');
       if (paused) {
         // Was paused, just resumed: fold the paused span into paused_seconds.
         var pausedAt = new Date(el.getAttribute('data-paused-at').replace(' ', 'T'));
         var added = Math.max(0, Math.floor((new Date() - pausedAt) / 1000));
-        el.setAttribute('data-paused-seconds', (parseInt(el.getAttribute('data-paused-seconds'), 10) || 0) + added);
+        var newPausedSeconds = (parseInt(el.getAttribute('data-paused-seconds'), 10) || 0) + added;
+        el.setAttribute('data-paused-seconds', newPausedSeconds);
         el.removeAttribute('data-paused-at');
+        if (pageTimer) {
+          pageTimer.setAttribute('data-paused-seconds', newPausedSeconds);
+          pageTimer.removeAttribute('data-paused-at');
+        }
         pauseBtn.classList.remove('btn-warning');
         pauseBtn.classList.add('btn-outline-light');
         pauseBtn.title = 'Pause';
         icon.className = 'bi bi-pause-fill';
       } else {
-        el.setAttribute('data-paused-at', fmtLocal(new Date()));
+        var pausedAtNow = fmtLocal(new Date());
+        el.setAttribute('data-paused-at', pausedAtNow);
+        if (pageTimer) pageTimer.setAttribute('data-paused-at', pausedAtNow);
         pauseBtn.classList.remove('btn-outline-light');
         pauseBtn.classList.add('btn-warning');
         pauseBtn.title = 'Resume';
