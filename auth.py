@@ -371,6 +371,8 @@ def exit_view_as():
 
 
 def viewing_as_label():
+    if person_view_active() and not session.get("_view_as_real"):
+        return f"{person_view_name()} (view only)"
     if not session.get("_view_as_real"):
         return None
     program = session.get("_view_as_program")
@@ -483,6 +485,13 @@ def log_in_combined(user_row, customer_row, remember=True):
     Pass None for whichever didn't match; at least one must be given."""
     session.clear()
     session.permanent = bool(remember)
+    _fill_session(user_row, customer_row)
+
+
+def _fill_session(user_row, customer_row):
+    """Everything log_in_combined puts in the session for these accounts -
+    shared with "view as a person" (start_view_as_person), which builds the
+    exact same session a real login by that person would get."""
     if user_row:
         session["user_id"] = user_row["id"]
         session["user_name"] = user_row["name"]
@@ -572,3 +581,100 @@ def customer_login_required(f):
         return f(*args, **kwargs)
     return wrapper
 
+
+
+# ---------------------------------------------------------------------------
+# "View as a person" (idea: an admin sees anybody's exact app without
+# logging out and typing their password). Picked from the account menu.
+# Unlike the role chips above - which keep the admin's own account and just
+# swap a role in - this builds the session a real login by that person
+# would get (_fill_session, the same code log_in_combined uses), so every
+# page shows their own data: their dashboard, their students, their
+# account. The admin's whole session is kept under _person_view_real and
+# put back on exit.
+#
+# It's VIEW ONLY: while active, app.block_writes_in_person_view refuses
+# every request that would change something (anything but GET/HEAD/OPTIONS),
+# apart from going back to your own view or picking someone else. Otherwise
+# an admin could change someone's password, or have payroll, charges and
+# sign-offs recorded under that person's name.
+# ---------------------------------------------------------------------------
+
+_PERSON_VIEW_KEY = "_person_view_real"
+
+
+def person_view_active():
+    return bool(session.get(_PERSON_VIEW_KEY))
+
+
+def person_view_name():
+    return session.get("_person_view_name") if person_view_active() else None
+
+
+def can_view_as_person():
+    """Only a real master admin - checked against their own saved session
+    while a person view is active (the session then belongs to the person
+    being viewed) and ignoring any role preview (_view_as_real)."""
+    real = session.get(_PERSON_VIEW_KEY)
+    if real:
+        base = real.get("_view_as_real") or real
+        return bool(base.get("is_master_admin"))
+    return real_is_master_admin()
+
+
+def _admin_session():
+    """The admin's own session to return to: the saved one while a person
+    view is active, else the current one - without any role preview."""
+    base = dict(session.get(_PERSON_VIEW_KEY) or session)
+    for k in ("_flashes", _PERSON_VIEW_KEY, "_person_view_name"):
+        base.pop(k, None)
+    real = base.pop("_view_as_real", None)
+    base.pop("_view_as_program", None)
+    base.pop("_view_as_person_name", None)
+    if real:
+        base.update(real)
+    return base
+
+
+def start_view_as_person(conn, user_id):
+    """Returns (ok, error_message_or_None). Viewing yourself just goes back
+    to your own view."""
+    if not can_view_as_person():
+        return False, None
+    admin = _admin_session()
+    if user_id == admin.get("user_id"):
+        stop_view_as_person()
+        return True, None
+    user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not user or not user["active"]:
+        return False, "That account isn't active."
+    # Same match log_in_combined makes at the login form: a customer
+    # account under the same email/username is that person's My Aircraft.
+    customer = conn.execute("SELECT * FROM customers WHERE lower(email) = lower(?) AND active = 1",
+                            (user["username"],)).fetchone()
+    flashes = session.get("_flashes")
+    permanent = session.permanent
+    session.clear()
+    session.permanent = permanent
+    if flashes:
+        session["_flashes"] = flashes
+    _fill_session(user, customer)
+    session[_PERSON_VIEW_KEY] = admin
+    session["_person_view_name"] = user["name"]
+    return True, None
+
+
+def stop_view_as_person():
+    """Back to the admin's own view (with no role preview). Returns False
+    if no person view was active."""
+    if not person_view_active():
+        return False
+    admin = _admin_session()
+    flashes = session.get("_flashes")
+    permanent = session.permanent
+    session.clear()
+    session.permanent = permanent
+    session.update(admin)
+    if flashes:
+        session["_flashes"] = flashes
+    return True

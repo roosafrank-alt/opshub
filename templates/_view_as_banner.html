@@ -1,5 +1,10 @@
 {% if viewing_as %}
 <div class="bg-warning text-dark text-center py-1 small fw-bold">
   <i class="bi bi-eye"></i> Viewing as {{ viewing_as }}
+  {%- if person_view_name %}
+  <form method="post" action="{{ url_for('view_as_person_exit') }}" class="d-inline m-0 ms-2">
+    <button type="submit" class="btn btn-dark btn-sm py-0 px-2" style="font-size:.75rem;">Back to my view</button>
+  </form>
+  {%- endif %}
 </div>
 {% endif %}
