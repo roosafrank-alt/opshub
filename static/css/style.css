@@ -322,3 +322,13 @@ body { background: #f4f5f7; }
   width: auto !important;
   margin: 0 0 .25rem !important;
 }
+/* Idea "View": once the window is narrow but still wide enough that the nav
+   sits in one row (above the hamburger breakpoint), the tiles were allowed
+   to shrink to fit, so their label wrapped under the icon and each tile's
+   apparent size changed with the window width. Keep every tile its natural
+   size instead, and let the row scroll sideways if it doesn't all fit,
+   rather than silently clipping items with no way to reach them. */
+.shop-nav-boxed .nav-link, .flight-nav-boxed .nav-link { white-space: nowrap; }
+.shop-nav-boxed, .shop-nav-boxed .nav-item,
+.flight-nav-boxed, .flight-nav-boxed .nav-item { flex-shrink: 0; }
+#nav.navbar-collapse { overflow-x: auto; -webkit-overflow-scrolling: touch; }
