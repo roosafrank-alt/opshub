@@ -7,6 +7,7 @@ prints as a Code128 barcode.
 """
 import io
 import textwrap
+import time
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -98,10 +99,28 @@ def generate_label_image(name, code, location=None, force_qr=False):
     return img
 
 
+# The QL-810W naps when idle and the first send right after waking it can
+# fail with a transient USB error (device briefly not enumerated / not
+# answering) even though it's plugged in and otherwise fine. brother_ql has
+# no real "wake" or status-ping call to use ahead of time (discover() just
+# does the same USB device lookup send() already does), so the pragmatic
+# fix is: on a transient-looking failure, give it a moment and try again.
+_PRINT_RETRIES = 2  # extra attempts after the first, e.g. 1 + 2 = 3 tries total
+_PRINT_RETRY_DELAY = 1.5  # seconds to wait before each retry
+
+
 def print_label_image(img):
     from brother_ql.conversion import convert
     from brother_ql.backends.helpers import send
     from brother_ql.raster import BrotherQLRaster
+
+    try:
+        import usb.core
+        transient_errors = (usb.core.USBError, ValueError)
+    except Exception:
+        # pyusb always ships alongside brother_ql, but fall back to catching
+        # everything transient-looking rather than skip retries entirely.
+        transient_errors = (OSError, ValueError)
 
     qlr = BrotherQLRaster(PRINTER_MODEL)
     qlr.exception_on_warning = True
@@ -110,8 +129,17 @@ def print_label_image(img):
         threshold=70, dither=False, compress=False, red=False,
         dpi_600=False, hq=True, cut=True,
     )
-    send(instructions=instructions, printer_identifier=PRINTER_IDENTIFIER,
-         backend_identifier=BACKEND, blocking=True)
+
+    attempts = _PRINT_RETRIES + 1
+    for attempt in range(attempts):
+        try:
+            send(instructions=instructions, printer_identifier=PRINTER_IDENTIFIER,
+                 backend_identifier=BACKEND, blocking=True)
+            return
+        except transient_errors:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(_PRINT_RETRY_DELAY)
 
 
 def print_part_label(part):
