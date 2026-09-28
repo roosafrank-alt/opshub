@@ -49,22 +49,11 @@
         </div>
         <div class="form-text">Its rental rate is set from the Flight School tile by an admin, not here.</div>
         <div class="mt-2" id="dashboard-color-section" {% if not (asset and asset.is_flight_asset) %}hidden{% endif %}>
-          <label class="form-label d-block mb-1">Schedule Color <span class="text-muted small">(same color as Flight School &gt; Planes &gt; Edit - changing it here changes it there too)</span></label>
-          <input type="hidden" name="schedule_color" id="color-input" value="{{ asset.schedule_color or '' }}">
-          <div class="d-flex flex-wrap gap-2" id="color-swatches">
-            {% for c in schedule_colors or [] %}
-            {% set taken = c in (used_colors or []) %}
-            <div class="color-swatch{{ ' color-swatch-taken' if taken }}{{ ' color-swatch-selected' if asset and asset.schedule_color == c }}"
-                 data-color="{{ c }}"
-                 title="{{ 'Already in use' if taken else c }}"
-                 style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if taken else 'pointer' }};opacity:{{ '0.25' if taken else '1' }};border:3px solid {{ '#212529' if (asset and asset.schedule_color == c) else 'transparent' }};"></div>
-            {% endfor %}
-            <div class="color-swatch{{ ' color-swatch-selected' if not (asset and asset.schedule_color) }}"
-                 data-color=""
-                 title="No color (use default)"
-                 style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if not (asset and asset.schedule_color) else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
-          </div>
-          <div class="form-text">Grayed-out colors are already used by another plane or instructor. Shows as the plane's accent stripe on the Schedule and dashboard. Leave unset to fall back to an auto-assigned color.</div>
+          {% if asset %}
+          <div class="form-text mb-0">Schedule Color, Solo Color and Solo flights allowed are all set together on <a href="{{ url_for('flight.plane_rate_edit', asset_id=asset.id) }}">Flight School &gt; Planes &gt; Edit</a>.</div>
+          {% else %}
+          <div class="form-text mb-0">Schedule Color, Solo Color and Solo flights allowed can be set on Flight School &gt; Planes &gt; Edit once this aircraft is saved.</div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -160,19 +149,8 @@
 {% block scripts %}
 <script>
 (function () {
-  var input = document.getElementById('color-input');
-  var swatches = document.querySelectorAll('#color-swatches .color-swatch');
-  swatches.forEach(function (sw) {
-    sw.addEventListener('click', function () {
-      if (sw.classList.contains('color-swatch-taken')) return;
-      input.value = sw.getAttribute('data-color');
-      swatches.forEach(function (s) { s.style.border = s.getAttribute('data-color') ? '3px solid transparent' : '3px dashed #adb5bd'; });
-      sw.style.border = sw.getAttribute('data-color') ? '3px solid #212529' : '3px dashed #212529';
-    });
-  });
-
-  // Dashboard Color is Flight School only - shows/hides with that checkbox
-  // instead of always being visible on every plane.
+  // The color/solo note is Flight School only - shows/hides with that
+  // checkbox instead of always being visible on every plane.
   var flightCheck = document.getElementById('is-flight-asset-check');
   var colorSection = document.getElementById('dashboard-color-section');
   if (flightCheck && colorSection) {

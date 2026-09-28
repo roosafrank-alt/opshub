@@ -18,7 +18,7 @@ from flask import (Flask, render_template, request, redirect, url_for, jsonify, 
 from db import (get_db, init_db, close_request_conns, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
                  allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
                  MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS, found_item_messages)
-from flight import flight_bp, _flight_hours, check_session_alerts, run_balance_hold_release_check, SCHEDULE_COLORS, _used_colors_for_plane
+from flight import flight_bp, _flight_hours, check_session_alerts, run_balance_hold_release_check
 from logbook import logbook_bp
 from pilotlog import pilotlog_bp
 from customer import customer_bp, _owned_asset_ids, _project_bill
@@ -3841,28 +3841,15 @@ def _asset_project_cover(conn, asset_id):
 def asset_new():
     if request.method == "POST":
         tag = request.form.get("tag", "").strip()
-        color = request.form.get("schedule_color", "").strip() or None
-        if color and color not in SCHEDULE_COLORS:
-            color = None
         if not tag:
             flash("Tail / serial number is required.", "danger")
-            conn = get_db()
-            used_colors = _used_colors_for_plane(conn)
-            conn.close()
-            return render_template("asset_form.html", asset=None, used_colors=used_colors, schedule_colors=SCHEDULE_COLORS)
+            return render_template("asset_form.html", asset=None)
         conn = get_db()
         existing = conn.execute("SELECT id FROM assets WHERE tag = ?", (tag,)).fetchone()
         if existing:
             flash(f"An asset with tag '{tag}' already exists.", "danger")
-            used_colors = _used_colors_for_plane(conn)
             conn.close()
-            return render_template("asset_form.html", asset=None, used_colors=used_colors, schedule_colors=SCHEDULE_COLORS)
-        if color and color in _used_colors_for_plane(conn):
-            flash("That color is already taken by another plane or instructor - pick a different one.", "danger")
-            used_colors = _used_colors_for_plane(conn)
-            conn.close()
-            return render_template("asset_form.html", asset=None, used_colors=used_colors,
-                                    schedule_colors=SCHEDULE_COLORS)
+            return render_template("asset_form.html", asset=None)
         hobbs_hours = _parse_float(request.form.get("hobbs_hours"))
         tach_hours = _parse_float(request.form.get("tach_hours"))
         is_flight_asset = 1 if request.form.get("is_flight_asset") else 0
@@ -3870,10 +3857,10 @@ def asset_new():
         cur = conn.execute("""INSERT INTO assets (tag, name, make, model, serial_number, year, owner,
                                hobbs_hours, hobbs_updated_at, tach_hours, tach_updated_at,
                                engine_make, engine_model, engine_serial, prop_make, prop_model, prop_serial,
-                               rental_rate, is_flight_asset, icao24_hex, show_on_map, schedule_color, notes,
+                               rental_rate, is_flight_asset, icao24_hex, show_on_map, notes,
                                maint_oil_type, maint_tire_nose, maint_tire_mains, maint_other,
                                created_at, updated_at)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (tag, request.form.get("name", "").strip() or tag,
                              request.form.get("make", "").strip(), request.form.get("model", "").strip(),
                              request.form.get("serial_number", "").strip(), request.form.get("year", "").strip(),
@@ -3884,7 +3871,7 @@ def asset_new():
                              request.form.get("engine_serial", "").strip(), request.form.get("prop_make", "").strip(),
                              request.form.get("prop_model", "").strip(), request.form.get("prop_serial", "").strip(),
                              _parse_float(request.form.get("rental_rate")), is_flight_asset,
-                             request.form.get("icao24_hex", "").strip().upper() or None, show_on_map, color,
+                             request.form.get("icao24_hex", "").strip().upper() or None, show_on_map,
                              request.form.get("notes", "").strip(),
                              request.form.get("maint_oil_type", "").strip() or None,
                              request.form.get("maint_tire_nose", "").strip() or None,
@@ -3896,10 +3883,7 @@ def asset_new():
         conn.close()
         flash(f"Aircraft '{tag}' created.", "success")
         return redirect(url_for("asset_detail", asset_id=new_id))
-    conn = get_db()
-    used_colors = _used_colors_for_plane(conn)
-    conn.close()
-    return render_template("asset_form.html", asset=None, used_colors=used_colors, schedule_colors=SCHEDULE_COLORS)
+    return render_template("asset_form.html", asset=None)
 
 
 @app.route("/assets/quick_new", methods=["POST"])
@@ -4367,34 +4351,24 @@ def asset_edit(asset_id):
         tag = request.form.get("tag", "").strip()
         if not tag:
             flash("Tail / serial number is required.", "danger")
-            schedule_colors = SCHEDULE_COLORS
-            used_colors = _used_colors_for_plane(conn, exclude_asset_id=asset_id)
             conn.close()
-            return render_template("asset_form.html", asset=asset, schedule_colors=schedule_colors, used_colors=used_colors)
+            return render_template("asset_form.html", asset=asset)
         clash = conn.execute("SELECT id FROM assets WHERE tag = ? AND id != ?", (tag, asset_id)).fetchone()
         if clash:
             flash(f"Another asset already uses tag '{tag}'.", "danger")
-            schedule_colors = SCHEDULE_COLORS
-            used_colors = _used_colors_for_plane(conn, exclude_asset_id=asset_id)
             conn.close()
-            return render_template("asset_form.html", asset=asset, schedule_colors=schedule_colors, used_colors=used_colors)
-        color = request.form.get("schedule_color", "").strip() or None
-        if color and color not in SCHEDULE_COLORS:
-            color = None
-        if color and color in _used_colors_for_plane(conn, exclude_asset_id=asset_id):
-            flash("That color is already assigned to another aircraft or instructor - pick a different one.", "danger")
-            schedule_colors = SCHEDULE_COLORS
-            used_colors = _used_colors_for_plane(conn, exclude_asset_id=asset_id)
-            conn.close()
-            return render_template("asset_form.html", asset=asset, schedule_colors=schedule_colors, used_colors=used_colors)
+            return render_template("asset_form.html", asset=asset)
         is_flight_asset = 1 if request.form.get("is_flight_asset") else 0
         show_on_map = 1 if request.form.get("show_on_map") else 0
         # rental_rate isn't on this form anymore (set from Flight School by
         # an admin instead), so this update deliberately leaves it alone.
+        # Same for schedule_color/solo_color/solo_allowed, which all live on
+        # Flight School > Planes > Edit now (Idea "under edit aircraft in Fly
+        # With Kate!" - combining them here too just split them across pages).
         conn.execute("""UPDATE assets SET tag=?, name=?, make=?, model=?, serial_number=?, year=?, owner=?,
                          engine_make=?, engine_model=?, engine_serial=?, prop_make=?, prop_model=?, prop_serial=?,
                          is_flight_asset=?, icao24_hex=?, show_on_map=?, notes=?,
-                         maint_oil_type=?, maint_tire_nose=?, maint_tire_mains=?, maint_other=?, schedule_color=?,
+                         maint_oil_type=?, maint_tire_nose=?, maint_tire_mains=?, maint_other=?,
                          profile_incomplete=0, updated_at=? WHERE id=?""",
                      (tag, request.form.get("name", "").strip() or tag, request.form.get("make", "").strip(),
                       request.form.get("model", "").strip(), request.form.get("serial_number", "").strip(),
@@ -4407,16 +4381,14 @@ def asset_edit(asset_id):
                       request.form.get("maint_oil_type", "").strip() or None,
                       request.form.get("maint_tire_nose", "").strip() or None,
                       request.form.get("maint_tire_mains", "").strip() or None,
-                      request.form.get("maint_other", "").strip() or None, color,
+                      request.form.get("maint_other", "").strip() or None,
                       now_iso(), asset_id))
         conn.commit()
         conn.close()
         flash("Aircraft updated.", "success")
         return redirect(url_for("asset_detail", asset_id=asset_id))
-    schedule_colors = SCHEDULE_COLORS
-    used_colors = _used_colors_for_plane(conn, exclude_asset_id=asset_id)
     conn.close()
-    return render_template("asset_form.html", asset=asset, schedule_colors=schedule_colors, used_colors=used_colors)
+    return render_template("asset_form.html", asset=asset)
 
 
 @app.route("/assets/<int:asset_id>/update_hours", methods=["POST"])
