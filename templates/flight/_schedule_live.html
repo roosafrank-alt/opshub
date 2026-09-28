@@ -21,16 +21,20 @@
 {% set is_dim = highlight_ids is defined and highlight_ids and not is_hl %}
 {% set is_new = new_ids is defined and new_ids and f.id in new_ids %}
 {% set is_mine = session.get('student_id') and f.student_id == session.get('student_id') %}
-{#- A CFI break (f.is_time_off - see _time_off_calendar_rows) rides the
-   same layout/positioning as a real booking so it shows up on the
-   calendar "as a booked spot", but it isn't one: it has no
-   scheduled_flights row behind it, so none of the real booking actions
-   (edit/reschedule/cancel/start/log/deny) apply, and clicking it doesn't
-   open the booking detail popup (that's keyed off the .schedule-block
-   class specifically - see the delegated handler in
-   _schedule_detail_modal.html). Its note still shows on hover
-   (f.notes_visible is computed the same admin-or-that-CFI way as a real
-   booking's note - never for a student). #}
+{% set today_str_pb = today.strftime('%Y-%m-%d') if today is defined and today else '' %}
+{% set is_past_block = today_str_pb and f.scheduled_date < today_str_pb %}
+{% set hide_past_detail = is_past_block and not (session.get('cfi_id') or session.get('is_master_admin')) %}
+{#- Students never get to see what a PAST slot held (booked or not, whose
+   it was, what plane) - only that it's in the past - so the shop's
+   historical busyness isn't visible to them. See hide_past_detail below
+   and the matching block in day_timeline_block()/month_lane_block()/
+   schedule_row(). CFI/admin viewers are unaffected. #}
+{% if hide_past_detail %}
+<div class="d-block small mb-1 px-1 rounded text-center {{ extra_class }}"
+     style="background:#e9ecef; color:#6c757d; {{ extra_style }}">
+  <div class="text-truncate sb-line1">Past</div>
+</div>
+{% else %}
 <div class="d-block small mb-1 px-1 rounded {{ 'schedule-block' if not f.is_time_off else 'schedule-time-off-block' }} {{ 'schedule-block-new' if is_new }} {{ extra_class }} {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active and f.status == 'scheduled' }} {{ 'schedule-block-highlight' if is_hl }} {{ 'schedule-block-dimmed' if is_dim }} {{ 'schedule-block-mine' if is_mine }} {{ 'schedule-block-pending' if f.is_pending_approval }}"
      {% if not f.is_time_off %}role="button"{% endif %}
      {% if f.is_time_off and f.notes_visible and f.notes %}title="Break note: {{ f.notes }}"{% endif %}
@@ -75,6 +79,7 @@
   <div class="text-truncate sb-line2">{{ f.student_name }} {{ pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% if f.student_owed %} &middot; <span class="text-danger fw-bold">${{ '%.0f'|format(f.student_owed) }} owed</span>{% endif %}</div>
   {% endif %}
 </div>
+{% endif %}
 {% endmacro %}
 
 {#
@@ -92,6 +97,16 @@
 {% set is_hl = highlight_ids is defined and highlight_ids and f.id in highlight_ids %}
 {% set is_dim = highlight_ids is defined and highlight_ids and not is_hl %}
 {% set is_mine = session.get('student_id') and f.student_id == session.get('student_id') %}
+{% set today_str_pb = today.strftime('%Y-%m-%d') if today is defined and today else '' %}
+{% set is_past_block = today_str_pb and f.scheduled_date < today_str_pb %}
+{% set hide_past_detail = is_past_block and not (session.get('cfi_id') or session.get('is_master_admin')) %}
+{#- See the matching comment in schedule_block() above. #}
+{% if hide_past_detail %}
+<div class="d-block small px-1 rounded day-timeline-block text-center d-flex align-items-center justify-content-center"
+     style="top:{{ style.top_pct }}%; height:{{ style.height_pct }}%; left:{{ style.left_pct }}%; width:calc({{ style.width_pct }}% - 4px); background:#e9ecef; color:#6c757d; cursor:default; box-shadow:none;">
+  <span class="text-truncate">Past</span>
+</div>
+{% else %}
 <div class="d-block small px-1 rounded {{ 'schedule-block' if not f.is_time_off else 'schedule-time-off-block' }} day-timeline-block {{ 'schedule-block-new' if new_ids is defined and new_ids and f.id in new_ids }} {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active and f.status == 'scheduled' }} {{ 'schedule-block-highlight' if is_hl }} {{ 'schedule-block-dimmed' if is_dim }} {{ 'schedule-block-mine' if is_mine }} {{ 'schedule-block-pending' if f.is_pending_approval }}"
      {% if not f.is_time_off %}role="button"{% endif %}
      {% if f.is_time_off and f.notes_visible and f.notes %}title="Break note: {{ f.notes }}"{% elif f.notes_visible and f.notes %}title="Note: {{ f.notes }}"{% endif %}
@@ -131,6 +146,7 @@
   </div>
   {% if session.get('cfi_id') or session.get('is_master_admin') %}<div class="text-truncate day-timeline-block-line2">{{ f.student_name }} {{ pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% if f.student_owed %} &middot; <span class="text-danger fw-bold">${{ '%.0f'|format(f.student_owed) }} owed</span>{% endif %}</div>{% endif %}
 </div>
+{% endif %}
 {% endmacro %}
 
 {#
@@ -146,6 +162,16 @@
 {% set is_hl = highlight_ids is defined and highlight_ids and f.id in highlight_ids %}
 {% set is_dim = highlight_ids is defined and highlight_ids and not is_hl %}
 {% set is_mine = session.get('student_id') and f.student_id == session.get('student_id') %}
+{% set today_str_pb = today.strftime('%Y-%m-%d') if today is defined and today else '' %}
+{% set is_past_block = today_str_pb and f.scheduled_date < today_str_pb %}
+{% set hide_past_detail = is_past_block and not (session.get('cfi_id') or session.get('is_master_admin')) %}
+{#- See the matching comment in schedule_block() above. #}
+{% if hide_past_detail %}
+<div class="d-block small px-1 rounded month-lane-block text-center d-flex align-items-center justify-content-center"
+     style="position:absolute; top:{{ style.top_px }}px; height:{{ style.height_px }}px; left:{{ style.left_pct }}%; width:calc({{ style.width_pct }}% - 1px); background:#e9ecef; color:#6c757d; border:1px solid rgba(0,0,0,.15); box-sizing:border-box;">
+  <span class="text-truncate">Past</span>
+</div>
+{% else %}
 <div class="d-block small px-1 rounded {{ 'schedule-block' if not f.is_time_off else 'schedule-time-off-block' }} month-lane-block {{ 'schedule-block-new' if new_ids is defined and new_ids and f.id in new_ids }} {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active and f.status == 'scheduled' }} {{ 'schedule-block-highlight' if is_hl }} {{ 'schedule-block-dimmed' if is_dim }} {{ 'schedule-block-mine' if is_mine }} {{ 'schedule-block-pending' if f.is_pending_approval }}"
      {% if not f.is_time_off %}role="button"{% endif %}
      {% if f.is_time_off and f.notes_visible and f.notes %}title="Break note: {{ f.notes }}"{% elif f.notes_visible and f.notes %}title="Note: {{ f.notes }}"{% endif %}
@@ -188,6 +214,7 @@
   <div class="text-truncate sb-line3">{% if f.end_time_label %}to {{ f.end_time_label }} &middot; {% endif %}{{ '%g'|format(f.duration_hours or 1.5) }} hr</div>
   {%- endif %}
 </div>
+{% endif %}
 {% endmacro %}
 
 {% macro month_table(md, row_height, compact, max_blocks=99, layout_full=false) %}
@@ -412,6 +439,19 @@
 {% set is_past = today_str and f.scheduled_date < today_str %}
 {% set is_today = today_str and f.scheduled_date == today_str %}
 {% set is_mine = session.get('student_id') and f.student_id == session.get('student_id') %}
+{% set hide_past_detail = is_past and not (session.get('cfi_id') or session.get('is_master_admin')) %}
+{#- See the matching comment in schedule_block() above: a student gets a
+   bare "Past" row instead of the real time/plane/status/note. #}
+{% if hide_past_detail %}
+<tr class="{{ 'schedule-day-break' if new_day }} schedule-row-past" style="background:#e9ecef; color:#6c757d;">
+  {% if show_date %}<td data-label="Date"><small class="{{ 'fw-bold' if new_day }}">{{ f.scheduled_date|usdate }}</small></td>{% endif %}
+  <td data-label="Time"><small>Past</small></td>
+  <td data-label="Plane"></td>
+  <td class="stack-full" data-label="Student / Instructor"></td>
+  <td data-label="Status"></td>
+  <td class="stack-full" data-label="Note"></td>
+</tr>
+{% else %}
 <tr class="schedule-block {{ 'schedule-block-new' if is_new }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active and f.status == 'scheduled' }} {{ 'schedule-block-highlight' if is_hl }} {{ 'schedule-block-dimmed' if is_dim }} {{ 'schedule-day-break' if new_day }} {{ 'schedule-row-past' if is_past and not is_hl }} {{ 'schedule-row-today' if is_today }} {{ 'schedule-block-mine' if is_mine }} {{ 'schedule-block-pending' if f.is_pending_approval }}" role="button" style="cursor:pointer; {{ 'opacity:0.6;' if f.status == 'completed' and not is_hl }}"
      data-id="{{ f.id }}" data-status="{{ f.status }}" data-plane="{{ f.plane_tag }}"
      {% if session.get('cfi_id') or session.get('is_master_admin') %}data-student="{{ f.student_name }}" data-cfi="{{ f.cfi_name or '' }}"{% endif %}
@@ -449,6 +489,7 @@
      a note is visible without clicking anything. #}
   <td class="stack-full" data-label="Note"><small class="text-muted">{{ f.notes if f.notes_visible else '' }}</small></td>
 </tr>
+{% endif %}
 {% endmacro %}
 
 {# Sticky toolbar: the date / range title, view buttons, prev/today/next,
