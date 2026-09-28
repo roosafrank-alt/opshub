@@ -35,7 +35,9 @@ from auth import (authenticate, log_in_user, log_out_user, current_user, login_r
                    current_customer, start_view_as, exit_view_as, viewing_as_label,
                    view_as_active_program, SHOP_VIEW_AS_LEVELS, FLIGHT_VIEW_AS_LEVELS,
                    real_is_master_admin, view_as_chips, home_view_as_level,
-                   account_program_count, single_program_endpoint)
+                   account_program_count, single_program_endpoint,
+                   person_view_active, person_view_name, can_view_as_person,
+                   start_view_as_person, stop_view_as_person)
 import notify
 from urllib.parse import urlparse
 import push
@@ -310,7 +312,29 @@ def inject_auth_context():
         "view_as_chip_rows": _view_as_chip_rows(),
         "view_as_active_program": view_as_active_program(),
         "single_program_account": account_program_count() == 1,
+        "person_view_name": person_view_name(),
+        "can_view_as_person": can_view_as_person(),
     }
+
+
+# Viewing as a person (auth.start_view_as_person) is look-only: refuse
+# anything that would change data while it's on. Going back to your own
+# view, picking someone else, the role chips and logging out still work.
+_PERSON_VIEW_ALLOWED = {"view_as_person_start", "view_as_person_exit", "view_as_start", "view_as_exit"}
+
+
+@app.before_request
+def block_writes_in_person_view():
+    if not person_view_active() or request.method in ("GET", "HEAD", "OPTIONS"):
+        return None
+    if request.endpoint in _PERSON_VIEW_ALLOWED:
+        return None
+    msg = (f"You're only looking at {person_view_name()}'s account, so nothing can be changed. "
+           "Use Back to my view to make changes.")
+    if request.is_json or request.path.startswith("/api/") or request.accept_mimetypes.best == "application/json":
+        return jsonify(ok=False, error=msg), 403
+    flash(msg, "warning")
+    return redirect(request.referrer or url_for("home_launcher"))
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -6642,6 +6666,57 @@ def view_as_start(program, level):
     levels = SHOP_VIEW_AS_LEVELS if program == "shop" else FLIGHT_VIEW_AS_LEVELS
     flash(f"Viewing as {levels[level]} - you can use everything a{'n' if levels[level][0] in 'AEIOU' else ''} {levels[level]} can.", "info")
     return redirect(url_for("dashboard") if program == "shop" else url_for("flight.dashboard"))
+
+
+@app.route("/view-as/people")
+def view_as_people():
+    """Admins only: everyone who can log in, to see the app exactly as that
+    person does (view only) - opened from "View as someone" in the account
+    menu. Your own row is first: it's your normal view."""
+    if not can_view_as_person():
+        flash("That's for admins only.", "danger")
+        return redirect(url_for("home_launcher"))
+    conn = get_db()
+    users = conn.execute("SELECT * FROM users WHERE active = 1 ORDER BY name COLLATE NOCASE").fetchall()
+    user_emails = {str(u["username"] or "").lower() for u in users}
+    owners = [c for c in conn.execute("SELECT id, name, email FROM customers WHERE active = 1 ORDER BY name COLLATE NOCASE").fetchall()
+              if str(c["email"] or "").lower() not in user_emails]
+    conn.close()
+    me = (session.get("_person_view_real") or session).get("user_id")
+    people = []
+    for u in users:
+        roles = ["Admin"] if u["is_master_admin"] else []
+        roles += [SHOP_VIEW_AS_LEVELS.get(r, r.title()) for r in user_shop_roles(u)]
+        roles += [FLIGHT_VIEW_AS_LEVELS.get(r, r.title()) for r in user_flight_roles(u)]
+        if u["academy_access"] and not u["is_master_admin"]:
+            roles.append("Academy")
+        people.append(dict(id=u["id"], name=u["name"], username=u["username"], roles=list(dict.fromkeys(roles)),
+                           me=u["id"] == me))
+    people.sort(key=lambda p: not p["me"])
+    return render_template("view_as_people.html", people=people, owners=owners,
+                           current_person=person_view_name())
+
+
+@app.route("/view-as/person/<int:user_id>", methods=["POST"])
+def view_as_person_start(user_id):
+    conn = get_db()
+    ok, error = start_view_as_person(conn, user_id)
+    conn.close()
+    if not ok:
+        flash(error or "Can't view as that person.", "danger")
+        return redirect(request.referrer or url_for("home_launcher"))
+    if person_view_active():
+        flash(f"Viewing {person_view_name()}'s app exactly as they see it. It's view only: nothing can be changed until you go back to your own view.", "info")
+    else:
+        flash("Back to your own view.", "info")
+    return redirect(url_for("home_launcher"))
+
+
+@app.route("/view-as/person/exit", methods=["POST"])
+def view_as_person_exit():
+    if stop_view_as_person():
+        flash("Back to your own view.", "info")
+    return redirect(url_for("home_launcher"))
 
 
 @app.route("/view-as/exit", methods=["POST"])
