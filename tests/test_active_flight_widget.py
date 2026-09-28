@@ -54,11 +54,28 @@ class ActiveFlightWidgetTest(OpsHubTestCase):
         r = self.client.get("/flight/log/active")
         self.assertNotIn(b"active-flight-widget", r.data)
 
+    def test_widget_hidden_on_active_flight_page_itself(self):
+        """QA fix 'timer covers header': Active Flight already has its own
+        big timer and End Session button, so the floating widget is
+        rendered but CSS-hidden there (kept in the HTML rather than left
+        out, so it doesn't need its own separate on/off logic - see
+        _active_flight_widget.html) and shown normally everywhere else."""
+        self.start_flight()
+        active = self.client.get("/flight/log/active").data.decode()
+        self.assertIn('id="active-flight-widget-wrap" class="d-none"', active)
+        dashboard = self.client.get("/flight/dashboard").data.decode()
+        self.assertIn('id="active-flight-widget-wrap" class=""', dashboard)
+
     def test_widget_shows_just_timer_pause_and_end_not_the_tail_number(self):
+        # QA fix "timer covers header": the collapsed round icon
+        # (#active-flight-widget) and the popup it opens
+        # (#active-flight-widget-panel, with the clock/Pause/End) are now
+        # separate elements inside one wrapper - check the whole wrapper.
         self.start_flight()
         r = self.client.get("/flight/log/active")
         html = r.data.decode()
-        widget = html[html.index('id="active-flight-widget"'):html.index("</div>", html.index('id="active-flight-widget"'))]
+        start = html.index('id="active-flight-widget-wrap"')
+        widget = html[start:html.index("<style>", start)]
         self.assertNotIn("N123", widget)
         self.assertIn("active-flight-widget-timer", widget)
         self.assertIn("Pause", widget)

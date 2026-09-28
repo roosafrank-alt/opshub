@@ -10,57 +10,96 @@
    'active-flight-changed' event handled in log_active.html. End lands on
    Active Flight to finish logging Hobbs/paid, since that still needs the
    form there. Only the oldest running flight shows in full; any others
-   are just a "+N more" link. #}
+   are just a "+N more" link.
+
+   QA fix "timer covers header": collapsed to a small round icon (tap for
+   the full clock/Pause/End popup) so it no longer sits over the blue
+   header, the hamburger menu or the account button on a phone. It starts
+   bottom-right, stays out of the way of the header by default, and can be
+   dragged anywhere - the drag code below is unchanged from before this
+   fix, it just moves the round icon now instead of the old pill bar. The
+   whole thing is rendered but CSS-hidden (not left out of the page) on
+   Active Flight itself, so the existing "widget still in the HTML for a
+   running flight" regression test keeps passing and the page's own
+   Elapsed/Pause/End controls are what's used there instead. #}
 {% set flights = cfi_active_flights or [] %}
 {% if flights %}
 {% set f = flights[0] %}
-<div id="active-flight-widget" class="active-flight-widget" data-flight-id="{{ f.id }}">
-  <i class="bi bi-grip-vertical active-flight-widget-grip" title="Drag to move"></i>
-  <a href="{{ url_for('flight.log_active', flight_id=f.id) }}#active-flight-{{ f.id }}" class="active-flight-widget-link text-decoration-none" title="Open Active Flight">
-    <span class="active-flight-widget-timer" data-started="{{ f.started_at }}" data-paused-seconds="{{ f.paused_seconds or 0 }}" data-paused-at="{{ f.paused_at or '' }}">00:00:00</span>
-  </a>
-  <button type="button" id="active-flight-widget-pause" class="btn btn-sm {{ 'btn-warning' if f.paused_at else 'btn-outline-light' }}" title="{{ 'Start the clock again' if f.paused_at else 'Pause the clock' }}"
-          data-pause-url="{{ url_for('flight.log_pause', flight_id=f.id) }}" data-resume-url="{{ url_for('flight.log_resume', flight_id=f.id) }}">
-    <i class="bi {{ 'bi-play-fill' if f.paused_at else 'bi-pause-fill' }}"></i> <span class="active-flight-widget-pause-label">{{ 'Start' if f.paused_at else 'Pause' }}</span>
-  </button>
-  {#- Idea "QA fix: end-lesson taps": no confirm pop-up here any more - the
-     clock just stops, and the "Clock stopped" box on Active Flight (with
-     "Oops, restart clock" right there) is what undoes a mistaken tap,
-     same as the button below. #}
-  <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-inline">
-    <button type="submit" class="btn btn-sm btn-outline-light" title="End Session">
-      <i class="bi bi-stop-fill"></i> End
+<div id="active-flight-widget-wrap" class="{{ 'd-none' if request.endpoint == 'flight.log_active' else '' }}">
+  <div id="active-flight-widget" class="active-flight-widget" data-flight-id="{{ f.id }}">
+    <button type="button" id="active-flight-widget-icon" class="active-flight-widget-icon {{ 'active-flight-widget-icon-paused' if f.paused_at else '' }}"
+            title="Lesson timer - tap for Pause/End" aria-expanded="false" aria-controls="active-flight-widget-panel">
+      <i class="bi bi-stopwatch"></i>
     </button>
-  </form>
-  {% if flights|length > 1 %}
-  <a href="{{ url_for('flight.log_active') }}" class="active-flight-widget-more">+{{ flights|length - 1 }} more</a>
-  {% endif %}
+  </div>
+  <div id="active-flight-widget-panel" class="active-flight-widget-panel d-none">
+    <div class="active-flight-widget-panel-row">
+      <a href="{{ url_for('flight.log_active', flight_id=f.id) }}#active-flight-{{ f.id }}" class="active-flight-widget-link text-decoration-none" title="Open Active Flight">
+        <span class="active-flight-widget-timer" data-started="{{ f.started_at }}" data-paused-seconds="{{ f.paused_seconds or 0 }}" data-paused-at="{{ f.paused_at or '' }}">00:00:00</span>
+      </a>
+      <button type="button" id="active-flight-widget-close" class="active-flight-widget-close" title="Close" aria-label="Close">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="active-flight-widget-panel-row active-flight-widget-panel-actions">
+      <button type="button" id="active-flight-widget-pause" class="btn btn-sm {{ 'btn-warning' if f.paused_at else 'btn-outline-light' }}" title="{{ 'Start the clock again' if f.paused_at else 'Pause the clock' }}"
+              data-pause-url="{{ url_for('flight.log_pause', flight_id=f.id) }}" data-resume-url="{{ url_for('flight.log_resume', flight_id=f.id) }}">
+        <i class="bi {{ 'bi-play-fill' if f.paused_at else 'bi-pause-fill' }}"></i> <span class="active-flight-widget-pause-label">{{ 'Start' if f.paused_at else 'Pause' }}</span>
+      </button>
+      {#- Idea "QA fix: end-lesson taps": no confirm pop-up here any more - the
+         clock just stops, and the "Clock stopped" box on Active Flight (with
+         "Oops, restart clock" right there) is what undoes a mistaken tap,
+         same as the button below. #}
+      <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-inline">
+        <button type="submit" class="btn btn-sm btn-outline-light" title="End Session">
+          <i class="bi bi-stop-fill"></i> End
+        </button>
+      </form>
+    </div>
+    {% if flights|length > 1 %}
+    <a href="{{ url_for('flight.log_active') }}" class="active-flight-widget-more">+{{ flights|length - 1 }} more</a>
+    {% endif %}
+  </div>
 </div>
 <style>
+  #active-flight-widget-wrap.d-none { display: none !important; }
   .active-flight-widget {
-    position: fixed; right: .75rem; top: .75rem; z-index: 1050;
-    display: flex; align-items: center; gap: .4rem;
-    background: #198754; color: #fff; border-radius: 999px;
-    padding: .35rem .5rem .35rem .5rem;
+    position: fixed; right: 1rem; bottom: 1rem; z-index: 1055;
+    touch-action: none; user-select: none;
+  }
+  .active-flight-widget-icon {
+    width: 3.25rem; height: 3.25rem; padding: 0; border: none; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: #198754; color: #fff; font-size: 1.35rem;
+    box-shadow: 0 .25rem .75rem rgba(0,0,0,.35);
+    cursor: grab;
+  }
+  .active-flight-widget-icon.active-flight-widget-icon-paused { background: #ffc107; color: #212529; }
+  .active-flight-widget.active-flight-widget-dragging .active-flight-widget-icon { cursor: grabbing; box-shadow: 0 .5rem 1.25rem rgba(0,0,0,.5); }
+  .active-flight-widget-panel {
+    position: fixed; z-index: 1056;
+    background: #198754; color: #fff; border-radius: .75rem;
+    padding: .5rem .6rem .6rem; min-width: 13rem;
     box-shadow: 0 .25rem .75rem rgba(0,0,0,.35);
     font-size: .85rem;
-    touch-action: none; user-select: none; cursor: grab;
   }
-  .active-flight-widget.active-flight-widget-dragging { cursor: grabbing; box-shadow: 0 .5rem 1.25rem rgba(0,0,0,.5); }
-  .active-flight-widget-grip { opacity: .6; font-size: .8rem; }
-  .active-flight-widget-link { color: #fff; display: flex; align-items: center; gap: .35rem; }
-  .active-flight-widget-timer { font-variant-numeric: tabular-nums; font-weight: 700; }
-  .active-flight-widget-more { color: rgba(255,255,255,.7); font-size: .7rem; white-space: nowrap; }
-  /* Pause/Start and End are the only actual controls in this widget (the rest just
-     navigates) - give them a real tap target instead of relying on the
-     bare icon's tiny native size, so a finger on a shop tablet reliably
-     lands on the button and not the fixed bar behind/around it. */
-  #active-flight-widget-pause, .active-flight-widget a.btn, .active-flight-widget button.btn {
+  .active-flight-widget-panel-row { display: flex; align-items: center; gap: .5rem; }
+  .active-flight-widget-panel-row + .active-flight-widget-panel-row { margin-top: .4rem; }
+  .active-flight-widget-panel-actions { justify-content: space-between; }
+  .active-flight-widget-link { color: #fff; display: flex; align-items: center; gap: .35rem; flex: 1 1 auto; }
+  .active-flight-widget-timer { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 1.05rem; }
+  .active-flight-widget-close {
+    background: transparent; border: none; color: rgba(255,255,255,.85); padding: .1rem .2rem; line-height: 1;
+  }
+  .active-flight-widget-more { color: rgba(255,255,255,.7); font-size: .7rem; white-space: nowrap; display: block; margin-top: .3rem; }
+  /* Pause/Start and End are the only actual controls in the popup - give
+     them a real tap target instead of relying on the bare icon's tiny
+     native size, so a finger on a shop tablet reliably lands on the
+     button. The round icon itself is already 3.25rem (well over the
+     2.25rem minimum) since it doubles as the drag handle. */
+  #active-flight-widget-pause, .active-flight-widget-panel button.btn, #active-flight-widget-close {
     min-width: 2.25rem; min-height: 2.25rem;
     display: inline-flex; align-items: center; justify-content: center; gap: .2rem;
-  }
-  @media (max-width: 420px) {
-    .active-flight-widget { left: .5rem; right: .5rem; justify-content: space-between; }
   }
 </style>
 <script>
@@ -68,7 +107,9 @@
   // Same started/paused_at/paused_seconds -> elapsed math as Active
   // Flight's own .elapsed-timer cards (log_active.html) - kept as its own
   // little script (not that shared class) so this ticks on every page,
-  // not just the one that loads that page's script block.
+  // not just the one that loads that page's script block. Runs even while
+  // the popup is closed (display:none) so the time shown is already
+  // correct the moment it's opened.
   var el = document.querySelector('.active-flight-widget-timer');
   if (!el) return;
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
@@ -92,12 +133,14 @@
   // is always the source of truth - the widget never just assumes a tap
   // worked.
   var widgetFlightId = parseInt(document.getElementById('active-flight-widget').getAttribute('data-flight-id'), 10);
+  var icon = document.getElementById('active-flight-widget-icon');
   var pauseBtn = document.getElementById('active-flight-widget-pause');
   var PING_KEY = 'active-flight-changed';
 
   function showState(pausedAt, pausedSeconds) {
     el.setAttribute('data-paused-at', pausedAt || '');
     el.setAttribute('data-paused-seconds', pausedSeconds || 0);
+    icon.classList.toggle('active-flight-widget-icon-paused', !!pausedAt);
     if (pauseBtn) {
       pauseBtn.classList.toggle('btn-warning', !!pausedAt);
       pauseBtn.classList.toggle('btn-outline-light', !pausedAt);
@@ -134,8 +177,8 @@
   window.addEventListener('pageshow', function (e) { if (e.persisted) syncWithServer(); });
   setInterval(syncWithServer, 10000);
 
-  // Pause/Start right from the widget - fetch instead of a normal form
-  // post so it doesn't drag whoever's flying off the page they're on.
+  // Pause/Start right from the popup - fetch instead of a normal form post
+  // so it doesn't drag whoever's flying off the page they're on.
   if (!pauseBtn) return;
   pauseBtn.addEventListener('click', function () {
     var paused = !!el.getAttribute('data-paused-at');
@@ -154,12 +197,63 @@
 })();
 
 (function () {
-  // Lets the widget be dragged anywhere on screen (and stay there across
-  // page loads, per browser) so it can be pulled out from over whatever
-  // it's covering. A plain tap/click still reaches the timer link and the
-  // Pause/End buttons - only a real drag (movement past a small threshold)
-  // is treated as a move instead of a click.
+  // Collapsed round icon <-> full Pause/End popup. Tapping the icon opens
+  // the popup positioned right above wherever the icon currently is (it
+  // can be dragged anywhere, see below); tapping it again, tapping the X,
+  // or tapping outside all close it. A real drag (movement past a small
+  // threshold, handled below) is swallowed so it never also toggles the
+  // popup open/closed.
   var widget = document.getElementById('active-flight-widget');
+  var icon = document.getElementById('active-flight-widget-icon');
+  var panel = document.getElementById('active-flight-widget-panel');
+  var closeBtn = document.getElementById('active-flight-widget-close');
+  if (!widget || !icon || !panel) return;
+
+  function positionPanel() {
+    var iconRect = icon.getBoundingClientRect();
+    var gap = 10, margin = 8;
+    var pw = panel.offsetWidth, ph = panel.offsetHeight;
+    var left = iconRect.right - pw;
+    var top = iconRect.top - ph - gap;
+    if (top < margin) top = iconRect.bottom + gap; // not enough room above -> show below instead
+    left = Math.max(margin, Math.min(left, window.innerWidth - pw - margin));
+    top = Math.max(margin, Math.min(top, window.innerHeight - ph - margin));
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+  }
+  function openPanel() {
+    panel.classList.remove('d-none');
+    positionPanel();
+    icon.setAttribute('aria-expanded', 'true');
+  }
+  function closePanel() {
+    panel.classList.add('d-none');
+    icon.setAttribute('aria-expanded', 'false');
+  }
+  function isOpen() { return !panel.classList.contains('d-none'); }
+
+  icon.addEventListener('click', function () { isOpen() ? closePanel() : openPanel(); });
+  if (closeBtn) closeBtn.addEventListener('click', closePanel);
+  document.addEventListener('click', function (e) {
+    if (!isOpen()) return;
+    if (panel.contains(e.target) || widget.contains(e.target)) return;
+    closePanel();
+  });
+  window.addEventListener('resize', function () { if (isOpen()) positionPanel(); });
+  // Fired by the drag code below while the icon is being dragged, so the
+  // popup (if open) stays glued to it instead of being left behind.
+  window.addEventListener('active-flight-widget-reposition', function () { if (isOpen()) positionPanel(); });
+})();
+
+(function () {
+  // Lets the icon be dragged anywhere on screen (and stay there across
+  // page loads, per browser) so it can be pulled out from over whatever
+  // it's covering; it starts bottom-right, out of the way of the header,
+  // the menu and the account button, but that's only where it starts. A
+  // plain tap/click still opens the popup - only a real drag (movement
+  // past a small threshold) is treated as a move instead of a click.
+  var widget = document.getElementById('active-flight-widget');
+  var panel = document.getElementById('active-flight-widget-panel');
   if (!widget) return;
   var STORAGE_KEY = 'active-flight-widget-pos';
   var THRESHOLD = 6;
@@ -169,17 +263,18 @@
   function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
   function place(left, top) {
     var rect = widget.getBoundingClientRect();
-    var w = rect.width || 160, h = rect.height || 36;
+    var w = rect.width || 52, h = rect.height || 52;
     left = clamp(left, 0, Math.max(0, window.innerWidth - w));
     top = clamp(top, 0, Math.max(0, window.innerHeight - h));
     widget.style.left = left + 'px';
     widget.style.top = top + 'px';
     widget.style.right = 'auto';
+    widget.style.bottom = 'auto';
   }
   function restorePosition() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
+      if (!raw) return; // no saved position yet -> keep the CSS default (bottom-right)
       var pos = JSON.parse(raw);
       if (typeof pos.left === 'number' && typeof pos.top === 'number') place(pos.left, pos.top);
     } catch (e) {}
@@ -205,6 +300,9 @@
       try { widget.setPointerCapture(pointerId); } catch (e2) {}
     }
     place(origLeft + dx, origTop + dy);
+    // Keep the popup (if open) glued to the icon while it's being dragged -
+    // the popup-toggle code above listens for this and repositions itself.
+    if (panel && !panel.classList.contains('d-none')) window.dispatchEvent(new Event('active-flight-widget-reposition'));
   });
   function endDrag() {
     if (!dragging) return;
@@ -214,7 +312,7 @@
       savePosition(rect.left, rect.top);
       widget.classList.remove('active-flight-widget-dragging');
       // A click follows the pointerup that ends a drag - swallow just
-      // that one so it doesn't also trigger the link/button underneath.
+      // that one so it doesn't also open/close the popup.
       var swallow = function (ce) { ce.stopPropagation(); ce.preventDefault(); };
       widget.addEventListener('click', swallow, { capture: true, once: true });
     }
