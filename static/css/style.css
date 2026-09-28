@@ -161,6 +161,20 @@ body { background: #f4f5f7; }
   .flight-chip-student, .flight-chip-day { font-size: .76rem; }
   .flight-chip-plane { font-size: .68rem; }
   .flight-chip-endtime { font-size: .6rem; }
+  /* Idea "phone view upcoming": .flight-chip-main's lines had no width cap,
+     so on a phone a chip sized to its full unwrapped student name/badges
+     and claimed most of the row - two bookings sharing a start time (see
+     flight-chip-grid's flex-wrap above) stacked into separate rows instead
+     of sitting side by side the way the Schedule calendar's own boxes do
+     (those truncate long text with .text-truncate to stay small). Capping
+     + truncating the chip's text lines here keeps chips small enough that
+     same-time chips line up across the row again on phone widths only -
+     bigger screens have room and are unaffected. */
+  .flight-chip-main { min-width: 0; max-width: 6.2rem; }
+  .flight-chip-student, .flight-chip-plane, .flight-chip-starttime, .flight-chip-endtime {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .flight-chip-grid { gap: .35rem; }
 }
 
 /* Dashboard section collapse - Today's Schedule / Upcoming / Recent Flights
