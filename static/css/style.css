@@ -445,6 +445,24 @@ body { background: #f4f5f7; }
   .squawk-step-pills .badge { font-size: .62rem; padding: .17rem .26rem; }
 }
 
+/* QA fix ux-plane-todo-pills-overflow: a narrow BOX (e.g. the To-Do column
+   on a plane's page at desktop widths) can be narrower than a phone
+   screen even though the viewport itself is wide, so the phone-only
+   media query above never fires there and "Done" pushes past the box,
+   scrolling the whole page sideways. .squawk-item is the row every
+   squawk_step_pills call sits inside (asset_detail.html, squawks.html,
+   dashboard.html, tech_spot.html, project_detail.html); making it a query
+   container lets the same small pill size kick in whenever ITS box is
+   narrow, not just when the viewport is - same badge markup/colors/order
+   as always, just sized to fit. */
+.squawk-item {
+  container-type: inline-size;
+}
+@container (max-width: 400px) {
+  .squawk-step-pills { gap: .2rem; }
+  .squawk-step-pills .badge { font-size: .62rem; padding: .17rem .26rem; }
+}
+
 /* QA fix ux-phone-list-toolbars: on the Parts/Projects/Orders list pages,
    the toolbar's search box (a lone input or a small `<form>`) needs to
    drop to its own full-width line below the title/buttons on phones, but
