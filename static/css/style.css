@@ -22,6 +22,19 @@ body { background: #f4f5f7; }
 .big-toggle .btn { font-size: 1.25rem; padding: .75rem 1.5rem; }
 #scan-input { font-size: 1.5rem; }
 
+/* QA fix ux-resize-scan-tabs-phone: "USB / Keyboard Scanner" was too long to
+   sit next to "Camera Scanner" from 320px up to ~430px wide, so the Camera
+   tab dropped to its own row and looked like a loose link instead of a tab
+   (the scan.html markup already swaps in the shorter "USB Scanner" / "Camera"
+   labels below the sm breakpoint). Below that same breakpoint the two tabs
+   also become equal width, side by side, matching Frank's approved mockup;
+   wider screens are untouched and keep their natural (content-sized) width
+   with the full names. */
+@media (max-width: 575.98px) {
+  .scan-tabs .nav-item { flex: 1 1 0; }
+  .scan-tabs .nav-link { text-align: center; }
+}
+
 /* Mobile-friendly tables: add class="table-stack" + data-label="..." on each
    <td> and, below a phone-width breakpoint, each row renders as a stacked
    card instead of a wide horizontally-scrolling table, so nothing gets
@@ -77,6 +90,17 @@ body { background: #f4f5f7; }
      this pass is about not wasting the room that was freed up. */
   .container-fluid { padding-left: .5rem; padding-right: .5rem; }
   .container-fluid.py-3 { padding-top: .5rem; padding-bottom: .5rem; }
+  /* Bootstrap's default .row sets --bs-gutter-x: 1.5rem on itself, giving it
+     a -.75rem (12px) side margin that bleeds past this .5rem (8px) container
+     padding by 4px on each edge - every centered form page (built as
+     `.row.justify-content-center > .col-*`, e.g. New Part, New Project,
+     Request a Flight, Edit Aircraft, New Student, the settings forms) was
+     4px wider than the phone below this breakpoint, causing a small
+     sideways wiggle while scrolling. Matching the row's gutter to the
+     container's padding here removes the overflow; the col's own padding
+     (also driven by --bs-gutter-x) shrinks along with it, so the card still
+     sits the same visual distance from the screen edge. */
+  .row { --bs-gutter-x: 1rem; }
   .row.g-3, .row.g-4 { --bs-gutter-x: .5rem; --bs-gutter-y: .5rem; }
   .card.p-3 { padding: .65rem !important; }
   .card.p-4 { padding: .85rem !important; }
