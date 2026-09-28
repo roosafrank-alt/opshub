@@ -213,6 +213,18 @@
                 </form>
                 {% endif %}
                 <strong class="{{ 'text-decoration-line-through text-muted' if data.completed_at }}">{% if section != 'General' %}<i class="bi bi-folder2-open"></i> {% endif %}{{ section }}</strong>
+                {% if section != 'General' and data.id %}
+                {#- Idea "project sheet": the description used to be hidden until
+                   you expanded the area AND opened its own Notes & Description
+                   toggle - now a one-line preview shows right in the header, and
+                   this pencil jumps straight to editing it (openSectionNotes
+                   below expands the area and opens the notes form in one click,
+                   instead of dropdown-then-notes-toggle). #}
+                {% if data.description or data.notes %}
+                <span class="text-muted small text-truncate" style="max-width:220px;" title="{{ data.description or data.notes }}">{{ data.description or data.notes }}</span>
+                {% endif %}
+                <button type="button" class="btn btn-link btn-sm p-0" onclick="event.stopPropagation(); openSectionNotes('{{ loop.index }}');" title="Edit description/notes"><i class="bi bi-pencil-square"></i></button>
+                {% endif %}
                 {% if data.sent_back_at %}
                 {#- Kept even once it's later confirmed, so a completed area
                    that was sent back once still shows it wasn't approved on
@@ -292,6 +304,20 @@
             var open = panel.style.display !== 'none';
             panel.style.display = open ? 'none' : 'block';
             if (chev) chev.className = open ? 'bi bi-chevron-down' : 'bi bi-chevron-up';
+          }
+          function openSectionNotes(idx) {
+            var panel = document.getElementById('sec-' + idx);
+            var chev = document.getElementById('sec-chev-' + idx);
+            if (panel.style.display === 'none') {
+              panel.style.display = 'block';
+              if (chev) chev.className = 'bi bi-chevron-up';
+            }
+            var notes = document.getElementById('sec-notes-' + idx);
+            if (!notes) return;
+            notes.style.display = 'block';
+            notes.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            var textarea = notes.querySelector('textarea[name="description"]');
+            if (textarea) textarea.focus();
           }
         </script>
       {% else %}
