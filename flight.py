@@ -34,6 +34,7 @@ import notams
 import sun
 import push
 import notify
+import wave_billing
 import threading
 import pilotlog
 
@@ -7145,22 +7146,119 @@ def billing():
         sql += " WHERE f.paid = 1"
     sql += " ORDER BY f.student_id, f.flight_date, f.id"
     rows = conn.execute(sql).fetchall()
-    conn.close()
     flights = [_row_with_cost(r) for r in rows]
+    wave_invoices = {r["id"]: dict(r) for r in conn.execute("SELECT * FROM wave_invoices WHERE kind = 'student'").fetchall()}
+    wave_connected = wave_billing.is_connected(wave_billing.get_settings(conn))
     groups = {}
     order = []
     for f in flights:
         sid = f["student_id"]
         if sid not in groups:
-            groups[sid] = {"student_id": sid, "student_name": f["student_name"], "flights": [], "total": 0.0}
+            name, email = _student_billing_contact(conn, sid)
+            groups[sid] = {"student_id": sid, "student_name": f["student_name"], "flights": [], "total": 0.0,
+                           "bill_name": name, "bill_email": email, "wave_ready_count": 0, "wave_ready_total": 0.0}
             order.append(sid)
+        f["wave"] = wave_invoices.get(f["wave_invoice_id"]) if f["wave_invoice_id"] else None
         groups[sid]["flights"].append(f)
         groups[sid]["total"] += f["total"]
+        if _wave_invoiceable(f):
+            groups[sid]["wave_ready_count"] += 1
+            groups[sid]["wave_ready_total"] += f["total"]
+    conn.close()
     students_billing = [groups[sid] for sid in order]
     students_billing.sort(key=lambda g: g["student_name"])
     grand_total = sum(g["total"] for g in students_billing)
     return render_template("flight/billing.html", students_billing=students_billing,
-                           grand_total=grand_total, status=status)
+                           grand_total=grand_total, status=status, wave_connected=wave_connected)
+
+
+def _student_billing_contact(conn, student_id):
+    """(name, email) to put on a student's Wave invoice - their master
+    login's email, since students have none of their own."""
+    row = conn.execute("""SELECT s.name, u.email FROM students s LEFT JOIN users u ON u.id = s.user_id
+                          WHERE s.id = ?""", (student_id,)).fetchone()
+    return (row["name"], row["email"] or "") if row else ("", "")
+
+
+def _wave_invoiceable(f):
+    """An unpaid flight that isn't on a Wave invoice yet and actually costs
+    something. Guest flights are left off - the guest, not the station
+    account they were booked under, is who owes for those."""
+    return (not f["paid"] and not f["wave_invoice_id"] and f["total"] > 0
+            and not (f.get("guest_name") or "").strip())
+
+
+@flight_bp.route("/billing/student/<int:student_id>/wave-invoice", methods=["POST"])
+@billing_required
+def billing_wave_invoice(student_id):
+    """One Wave invoice for all of a student's unpaid flights that aren't
+    on one yet (one line each for plane / instructor / ground per flight).
+    Wave marking it paid later ticks those flights Paid here."""
+    back = request.referrer or url_for("flight.billing")
+    name = request.form.get("customer_name", "").strip()
+    email = request.form.get("customer_email", "").strip()
+    send = request.form.get("send") == "1"
+    conn = get_db()
+    rows = conn.execute(_LOG_ROW_SQL + " WHERE f.student_id = ? AND f.paid = 0 ORDER BY f.flight_date, f.id",
+                        (student_id,)).fetchall()
+    flights = [f for f in (_row_with_cost(r) for r in rows) if _wave_invoiceable(f)]
+    if not flights:
+        conn.close()
+        flash("No unpaid flights left to invoice for this student.", "warning")
+        return redirect(back)
+    if not name:
+        name = _student_billing_contact(conn, student_id)[0]
+    if send and not email:
+        conn.close()
+        flash("Enter the student's email so Wave can send it (or untick Email it now).", "danger")
+        return redirect(back)
+    settings = wave_billing.get_settings(conn)
+    try:
+        if not wave_billing.is_connected(settings):
+            raise wave_billing.WaveError("Wave isn't connected yet - an admin can set it up under Admin > Wave.")
+        lines = wave_billing.flight_lines(settings, flights)
+        inv = wave_billing.create_invoice(conn, settings, name, email, lines, memo="Flight training")
+    except wave_billing.WaveError as e:
+        conn.close()
+        flash(str(e), "danger")
+        return redirect(back)
+    sent_msg, sent = "", False
+    if send:
+        try:
+            wave_billing.send_invoice(settings, inv["id"], email)
+            sent, sent_msg = True, f" and emailed to {email}"
+        except wave_billing.WaveError as e:
+            sent_msg = f", but it wasn't emailed ({e}) - send it from Wave"
+    local_id = wave_billing.record_invoice(conn, "student", student_id, inv, name, email,
+                                           session.get("user_name"), sent=sent)
+    conn.executemany("UPDATE flights SET wave_invoice_id = ? WHERE id = ?", [(local_id, f["id"]) for f in flights])
+    conn.commit()
+    conn.close()
+    flash(f"Wave invoice #{inv.get('invoiceNumber') or ''} created for {len(flights)} flight"
+          f"{'s' if len(flights) != 1 else ''}, ${wave_billing.money(inv.get('total')):.2f}{sent_msg}.",
+          "success" if sent or not send else "warning")
+    return redirect(back)
+
+
+@flight_bp.route("/billing/wave-sync", methods=["POST"])
+@billing_required
+def billing_wave_sync():
+    """Check Wave for payments now (also done every half hour in the
+    background)."""
+    back = request.referrer or url_for("flight.billing")
+    conn = get_db()
+    try:
+        checked, paid, errors = wave_billing.sync_open_invoices(conn, wave_billing.apply_paid)
+    except wave_billing.WaveError as e:
+        conn.close()
+        flash(str(e), "danger")
+        return redirect(back)
+    conn.close()
+    flash(f"Checked {checked} open Wave invoice{'s' if checked != 1 else ''}"
+          + (f" - {paid} newly paid." if paid else " - no new payments."), "success")
+    for e in errors[:3]:
+        flash("Wave " + e, "warning")
+    return redirect(back)
 
 
 @flight_bp.route("/billing/export")
