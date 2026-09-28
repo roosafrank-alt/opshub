@@ -415,3 +415,24 @@ body { background: #f4f5f7; }
   .squawk-step-pills { gap: .2rem; }
   .squawk-step-pills .badge { font-size: .62rem; padding: .17rem .26rem; }
 }
+
+/* QA fix ux-phone-list-toolbars: on the Parts/Projects/Orders list pages,
+   the toolbar's search box (a lone input or a small `<form>`) needs to
+   drop to its own full-width line below the title/buttons on phones, but
+   sit back at its normal inline size next to those buttons on desktop.
+   Bootstrap's utilities don't include a responsive width toggle, so this
+   is the one small rule for it - pair it with `order-md-*` on the other
+   toolbar items to restore their exact original left-to-right order once
+   this box goes back to being just another inline item at md+. */
+.list-toolbar-search {
+  flex: 1 1 100%;
+}
+@media (min-width: 768px) {
+  .list-toolbar-search {
+    flex: 0 1 auto;
+  }
+}
+.list-toolbar-search,
+.list-toolbar-search input {
+  font-size: 16px;
+}

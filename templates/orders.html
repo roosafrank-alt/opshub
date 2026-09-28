@@ -138,13 +138,18 @@
     <li class="nav-item"><a class="nav-link {{ 'active' if status_filter == 'cancelled' }}" href="{{ url_for('orders_list', status='cancelled', view=view) }}">Cancelled</a></li>
     <li class="nav-item"><a class="nav-link {{ 'active' if status_filter == 'all' }}" href="{{ url_for('orders_list', status='all', view=view) }}">All</a></li>
   </ul>
-  <div class="d-flex gap-2 align-items-center">
-    <div class="btn-group btn-group-sm" role="group">
+  {#- Idea ux-phone-list-toolbars: on a phone, By Vendor/By Part and Export
+     share a line, with the search box dropping to its own full-width line
+     below. order-md-* restores the original left-to-right order at md+
+     (see .list-toolbar-search in style.css); ms-auto/ms-md-0 is what pushes
+     Export to the far right on that shared phone line only. #}
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <div class="btn-group btn-group-sm order-md-1" role="group">
       <a href="{{ url_for('orders_list', status=status_filter, view='vendor') }}" class="btn {{ 'btn-warning' if view == 'vendor' else 'btn-outline-secondary' }}">By Vendor</a>
       <a href="{{ url_for('orders_list', status=status_filter, view='part') }}" class="btn {{ 'btn-warning' if view == 'part' else 'btn-outline-secondary' }}">By Part</a>
     </div>
-    <input type="text" id="orders-search" class="form-control form-control-sm" placeholder="Search item, vendor, project..." style="min-width:220px;">
-    <a href="{{ url_for('orders_export', status=status_filter) }}" class="btn btn-outline-secondary btn-sm text-nowrap"><i class="bi bi-download"></i> Export All (CSV)</a>
+    <a href="{{ url_for('orders_export', status=status_filter) }}" class="btn btn-outline-secondary btn-sm text-nowrap order-md-3 ms-auto ms-md-0"><i class="bi bi-download"></i> Export All (CSV)</a>
+    <input type="text" id="orders-search" class="form-control form-control-sm list-toolbar-search order-md-2" placeholder="Search item, vendor, project..." style="min-width:220px;">
   </div>
 </div>
 
