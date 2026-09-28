@@ -214,6 +214,21 @@
            covers this month's own days. #}
         <td class="bg-light text-muted" style="min-height:{{ row_height }};">
           <div class="calendar-day-head"><div class="small">{{ day.day }}</div></div>
+          {% if layout_full %}
+          {#- Idea "Calendar" (revision): these overflow days used to skip
+             the mini timeline entirely, so they were the only days in
+             Month view with no hour reference marks at all. Same hourly
+             marks as an in-month day (see the layout_full block below),
+             just no flight blocks since none are looked up for these
+             days. #}
+          <div class="calendar-timeline" style="position:relative; height:{{ ((month_timeline_end_min - month_timeline_start_min) * month_timeline_px_per_min) | round(1) }}px; overflow:visible;">
+            {% for h in range(month_timeline_start_min // 60, month_timeline_end_min // 60 + 1) %}
+            {% set hour12 = h % 12 %}
+            {% set hour12 = 12 if hour12 == 0 else hour12 %}
+            <div class="calendar-time-line" style="top:{{ ((h * 60 - month_timeline_start_min) * month_timeline_px_per_min) | round(1) }}px;"><span class="calendar-time-label">{{ hour12 }}{{ 'a' if h < 12 else 'p' }}</span></div>
+            {% endfor %}
+          </div>
+          {% endif %}
         </td>
         {% else %}
         {% set day = day.day %}
