@@ -129,17 +129,40 @@ def print_label_image(img):
         threshold=70, dither=False, compress=False, red=False,
         dpi_600=False, hq=True, cut=True,
     )
-
     attempts = _PRINT_RETRIES + 1
     for attempt in range(attempts):
         try:
-            send(instructions=instructions, printer_identifier=PRINTER_IDENTIFIER,
+            result = send(instructions=instructions, printer_identifier=PRINTER_IDENTIFIER,
                  backend_identifier=BACKEND, blocking=True)
+            _raise_if_not_printed(result)
             return
         except transient_errors:
             if attempt == attempts - 1:
                 raise
             time.sleep(_PRINT_RETRY_DELAY)
+
+
+def _raise_if_not_printed(result):
+    """brother_ql's send() only raises if it can't talk to the printer at
+    all - if the USB connection is fine but the printer silently fails to
+    actually produce the label (out of paper, cover open, jammed, no media),
+    send() still returns normally with a status dict, just with
+    did_print=False / an errors list. OpsHub's callers only catch
+    exceptions, so without this check they'd flash a false "success" even
+    though nothing printed. Check the *final* status after brother_ql's own
+    internal wait/read loop, and turn a real failure into an exception so
+    the existing except-block in app.py flashes it instead. This isn't a
+    transient_errors type, so it isn't retried by print_label_image - a
+    stuck cover or empty tray won't fix itself a moment later."""
+    printer_state = (result or {}).get("printer_state") or {}
+    errors = printer_state.get("errors") or []
+    if errors:
+        raise RuntimeError("Printer error: " + ", ".join(errors))
+    if not (result or {}).get("did_print"):
+        raise RuntimeError(
+            "Printer didn't confirm the label printed. Check it's on, has "
+            "labels loaded, and the cover is closed."
+        )
 
 
 def print_part_label(part):
