@@ -280,15 +280,15 @@
       <div class="col-6 col-md-3">
         {% if f.tach_start is not none %}
         <label class="form-label small mb-0">Tach Start</label>
-        <input type="text" class="form-control form-control-sm" value="{{ '%.1f'|format(f.tach_start) }}" disabled>
+        <input type="text" class="form-control form-control-sm" id="tach-start-{{ f.id }}" value="{{ '%.1f'|format(f.tach_start) }}" disabled>
         {% else %}
         <label class="form-label small mb-0 fw-bold">Tach Start *</label>
-        <input type="number" step="any" name="tach_start" class="form-control form-control-sm" placeholder="e.g. 1200.0" required inputmode="decimal">
+        <input type="number" step="any" name="tach_start" id="tach-start-{{ f.id }}" class="form-control form-control-sm" placeholder="e.g. 1200.0" required inputmode="decimal">
         {% endif %}
       </div>
       <div class="col-6 col-md-3">
         <label class="form-label small mb-0 fw-bold">Tach End *</label>
-        <input type="number" step="any" name="tach_end" class="form-control form-control-sm" placeholder="e.g. 1201.4" required inputmode="decimal"
+        <input type="number" step="any" name="tach_end" id="tach-end-{{ f.id }}" class="form-control form-control-sm" placeholder="e.g. 1201.4" required inputmode="decimal"
                {% if f.tach_start is not none %}min="{{ f.tach_start }}"{% endif %}>
       </div>
     </div>
@@ -1109,6 +1109,76 @@ document.querySelectorAll('form[id^="end-form-"]').forEach(function (form) {
       if (amountInput) amountInput.focus();
     }
   });
+});
+// Idea "hobbs and tach cross check": Hobbs/Tach are engine-time gauges, so
+// the hours they imply (end minus start) should never come in ABOVE this
+// session's actual elapsed time (Start to when End Session was pressed,
+// minus any paused time - the same instructor_clock_hours math as
+// flight.log_end and the Elapsed timer up top, reused here via the frozen
+// elapsed-timer element's data-paused-at). When it does, that's almost
+// always a misread gauge or a typo, not a real 2+ hour flight that took
+// 40 minutes - so instead of a second dialog, this rewrites the SAME
+// "Log this session..." confirm (_confirm_modal.html, above) into a
+// "double-check this" warning, which the CFI has to explicitly accept
+// ("Yes, this is correct") before Session Complete goes through. Reverts
+// to the normal message the moment the numbers stop looking off. Real
+// Hobbs/Tach flights only - a student's own plane (recorded_hours) has no
+// Hobbs/Tach to cross-check.
+var HOBBSTACH_SLACK_HOURS = 0.05;  // ~3 min - Hobbs/Tach round to a tenth, so a hair over isn't worth flagging
+document.querySelectorAll('form[id^="end-form-"]').forEach(function (form) {
+  var fId = form.id.replace('end-form-', '');
+  if (document.getElementById('recorded-hours-' + fId)) return;  // own-plane flight - no Hobbs/Tach
+  var defaultConfirm = {
+    text: form.getAttribute('data-confirm'),
+    title: form.getAttribute('data-confirm-title'),
+    ok: form.getAttribute('data-confirm-ok'),
+    style: form.getAttribute('data-confirm-style')
+  };
+  function elapsedHours() {
+    var card = form.closest('.card');
+    var timer = card ? card.querySelector('.elapsed-timer') : null;
+    var pausedAtStr = timer ? timer.getAttribute('data-paused-at') : '';
+    if (!timer || !pausedAtStr) return null;
+    var started = new Date(timer.getAttribute('data-started').replace(' ', 'T'));
+    var stopped = new Date(pausedAtStr.replace(' ', 'T'));
+    var pausedSeconds = parseInt(timer.getAttribute('data-paused-seconds'), 10) || 0;
+    return Math.max(0, Math.floor((stopped - started) / 1000) - pausedSeconds) / 3600;
+  }
+  function fieldHours(startId, endId) {
+    var startEl = document.getElementById(startId), endEl = document.getElementById(endId);
+    var start = startEl ? parseFloat(startEl.value) : NaN;
+    var end = endEl ? parseFloat(endEl.value) : NaN;
+    return (!isNaN(start) && !isNaN(end)) ? (end - start) : null;
+  }
+  function refreshHobbsTachConfirm() {
+    var elapsed = elapsedHours();
+    var over = null;
+    if (elapsed !== null) {
+      var hobbsHours = fieldHours('hobbs-start-' + fId, 'hobbs-end-' + fId);
+      var tachHours = fieldHours('tach-start-' + fId, 'tach-end-' + fId);
+      if (hobbsHours !== null && hobbsHours - elapsed > HOBBSTACH_SLACK_HOURS) over = { label: 'Hobbs', hours: hobbsHours };
+      else if (tachHours !== null && tachHours - elapsed > HOBBSTACH_SLACK_HOURS) over = { label: 'Tach', hours: tachHours };
+    }
+    if (over) {
+      form.setAttribute('data-confirm',
+        'The ending ' + over.label + ' entered means ' + over.hours.toFixed(1) + ' hr of flight time - more than ' +
+        "this session's " + elapsed.toFixed(1) + ' hr elapsed (Start to End Session). Double-check the ' + over.label +
+        " reading, then confirm if it's correct.");
+      form.setAttribute('data-confirm-title', 'Double-check ' + over.label + ' End');
+      form.setAttribute('data-confirm-ok', 'Yes, this is correct');
+      form.setAttribute('data-confirm-style', 'warning');
+    } else {
+      form.setAttribute('data-confirm', defaultConfirm.text || '');
+      form.setAttribute('data-confirm-title', defaultConfirm.title || '');
+      form.setAttribute('data-confirm-ok', defaultConfirm.ok || '');
+      form.setAttribute('data-confirm-style', defaultConfirm.style || '');
+    }
+  }
+  ['hobbs_start', 'hobbs_end', 'tach_start', 'tach_end'].forEach(function (name) {
+    var el = form.querySelector('[name="' + name + '"]');
+    if (el) el.addEventListener('input', refreshHobbsTachConfirm);
+  });
+  refreshHobbsTachConfirm();
 });
 </script>
 {% endblock %}
