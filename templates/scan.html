@@ -573,9 +573,23 @@ function showGeneralNotePrompt(code, laborerName) {
 // part barcode and falls through to the confirm flow (false), which is the
 // only place that ever has to ask a follow-up question.
 
+// A USB scanner types like a keyboard, so what arrives depends on the PC:
+// Caps Lock flips every letter (LABOR-AB12 comes in as labor-ab12), and some
+// scanners add stray control characters. Prefixes are matched case-blind and
+// LABOR-/GENERAL-SHOP codes (always upper case when printed) are put back to
+// upper case; the server also matches parts and task areas case-blind.
+function normalizeScanValue(value) {
+  value = String(value || '').replace(/[\x00-\x1f\x7f]/g, '').trim();
+  const upper = value.toUpperCase();
+  if (upper === GENERAL_SHOP_CODE || upper.startsWith('LABOR-')) return upper;
+  if (upper.startsWith('TASK-')) return 'TASK-' + value.slice(5);
+  return value;
+}
+
 function routeScanValue(value, fromCamera) {
   // A plane's QR on the printed Job Sheet is a link to its aircraft page.
   if (value.startsWith(window.location.origin + '/assets/')) { window.top.location.href = value; return true; }
+  value = normalizeScanValue(value);
   if (value === GENERAL_SHOP_CODE) { handleGeneralShopScan(fromCamera); return true; }
   if (value.startsWith('LABOR-')) { handleLaborScan(value); return true; }
   if (value.startsWith('TASK-')) { handleTaskCodeScan(value, fromCamera); return true; }
@@ -583,18 +597,43 @@ function routeScanValue(value, fromCamera) {
   return false;
 }
 
+// Everything a scan (USB box, camera, another page's capture) ends up doing.
+function processScan(raw, fromCamera) {
+  const val = normalizeScanValue(raw);
+  if (!val) return;
+  if (routeScanValue(val, fromCamera)) return;
+  if (!operatorRequiredOk()) { flagMissingOperator(); return; }
+  lookupForConfirm(val, fromCamera);
+}
+
 const scanInput = document.getElementById('scan-input');
 scanInput.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') {
+  // Most scanners end a code with Enter; some are set to send Tab instead.
+  if (e.key === 'Enter' || (e.key === 'Tab' && scanInput.value.trim())) {
     e.preventDefault();
-    const val = scanInput.value.trim();
+    const val = scanInput.value;
     scanInput.value = '';
-    if (!val) return;
-    if (routeScanValue(val, false)) return;
-    if (!operatorRequiredOk()) { flagMissingOperator(); return; }
-    lookupForConfirm(val, false);
+    processScan(val, false);
   }
 });
+// A scan made while something else on this page has focus (the "Scanning as"
+// dropdown after a "select who's scanning" warning, a button just clicked)
+// used to be lost - or worse, typed into that dropdown and changed who was
+// scanning. Any printable key outside a text box goes to the scan box instead.
+document.addEventListener('keydown', function (e) {
+  if (e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey) return;
+  const el = document.activeElement;
+  if (el === scanInput) return;
+  const tag = el ? el.tagName : '';
+  if (tag === 'TEXTAREA' || (tag === 'INPUT' && el.type !== 'button' && el.type !== 'submit' && el.type !== 'checkbox' && el.type !== 'radio')) return;
+  if (el && el.isContentEditable) return;
+  if (!document.getElementById('tab-usb').classList.contains('active')) return;
+  if (e.key.length !== 1) return;
+  if (e.key === ' ' && !scanInput.value) return; // Space still presses a focused button
+  e.preventDefault();
+  scanInput.value += e.key;
+  scanInput.focus();
+}, true);
 document.addEventListener('click', function(e) {
   if (document.getElementById('tab-usb').classList.contains('active') || document.getElementById('tab-usb').classList.contains('show')) {
     if (!e.target.closest('select') && !e.target.closest('button') && !e.target.closest('input[type=number]')) {
@@ -626,12 +665,7 @@ window.addEventListener('load', () => {
     history.replaceState({}, '', window.location.pathname);
     // Give the "Scanning as" default (set from the /api/operators fetch
     // above) a moment to land before checking it.
-    setTimeout(function () {
-      if (!routeScanValue(auto, false)) {
-        if (!operatorRequiredOk()) { flagMissingOperator(); }
-        else { lookupForConfirm(auto, false); }
-      }
-    }, 250);
+    setTimeout(function () { processScan(auto, false); }, 250);
   }
 });
 
@@ -641,13 +675,14 @@ function handleCameraDecode(decodedText) {
   if (cameraRunning && html5QrCode) {
     try { html5QrCode.pause(true); } catch (e) { /* ignore */ }
   }
-  if (routeScanValue(decodedText, true)) return;
+  const val = normalizeScanValue(decodedText);
+  if (routeScanValue(val, true)) return;
   if (!operatorRequiredOk()) {
     flagMissingOperator();
     if (cameraRunning && html5QrCode) { try { html5QrCode.resume(); } catch (e) {} }
     return;
   }
-  lookupForConfirm(decodedText, true);
+  lookupForConfirm(val, true);
 }
 
 // --- Part confirm flow (both USB and camera land here) ----------------
@@ -1038,11 +1073,7 @@ window.addEventListener('beforeunload', function () {
     if (e.origin !== origin || e.source !== parentWin) return;
     const d = e.data || {};
     if (d.type === 'opshub-scan' && typeof d.code === 'string') {
-      const val = d.code.trim();
-      if (!val) return;
-      if (routeScanValue(val, false)) return;
-      if (!operatorRequiredOk()) { flagMissingOperator(); return; }
-      lookupForConfirm(val, false);
+      processScan(d.code, false);
     } else if (d.type === 'opshub-scan-click' && typeof d.id === 'string') {
       const el = document.getElementById(d.id);
       if (el) el.click();

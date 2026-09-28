@@ -117,6 +117,8 @@ flask_app.config.update(TESTING=True, PROPAGATE_EXCEPTIONS=False)
 # global on every write, so re-pointing it here is enough.
 app_module.ERROR_LOG_DIR = os.path.join(_TMP_ROOT, "error_logs")
 os.makedirs(app_module.ERROR_LOG_DIR, exist_ok=True)
+assert app_module.ERROR_LOG_DIR.startswith(tempfile.gettempdir()), \
+    "test error log must be under the temp folder, not %s" % app_module.ERROR_LOG_DIR
 
 # When a route crashes mid-save, its half-finished SQLite connection can keep
 # the database write-locked until Python's garbage collector happens to run.

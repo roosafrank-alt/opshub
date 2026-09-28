@@ -56,8 +56,14 @@ class ViewAsAlertsStayUnreadTest(OpsHubTestCase):
     def test_viewing_as_someone_the_phone_alert_check_touches_no_ones_queue(self):
         cfi_user_id = self.users["cfi"]["id"]
         conn = db.get_db()
+        # No created_at on purpose, so SQLite's DEFAULT (datetime('now'), UTC)
+        # fills it exactly as push.queue_and_push leaves it. Passing
+        # db.now_iso() instead wrote LOCAL time, which the pickup route -
+        # comparing against datetime('now', '-30 minutes'), also UTC - read
+        # as four hours old on the Pi and deleted as stale, so this failed
+        # there and passed on any UTC machine.
         seed_row(conn, "push_pending", user_id=cfi_user_id, title="30 min left",
-                 body="Session ends soon", created_at=db.now_iso())
+                 body="Session ends soon")
         conn.commit()
         conn.close()
 

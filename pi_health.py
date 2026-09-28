@@ -107,14 +107,22 @@ def main():
             reasons.append("soft temp limit active")
         message = "OpsHub Pi: " + ", ".join(reasons)
         level = "critical" if currently_throttled else "warning"
+        # db.now_iso() (the local clock), not SQLite's datetime('now') (UTC):
+        # the dashboard banner prints created_at straight through the usdate
+        # filter with no timezone conversion, and app.py's Acknowledge button
+        # writes resolved_at with now_iso() too. Storing UTC here made an
+        # alert raised at 3:10pm read as 7:10pm on the Pi - four hours into
+        # the future, on a banner whose whole job is to say when the Pi got hot.
         conn.execute(
-            "INSERT INTO system_alerts (message, level, created_at) VALUES (?, ?, datetime('now'))",
-            (message, level),
+            "INSERT INTO system_alerts (message, level, created_at) VALUES (?, ?, ?)",
+            (message, level, db.now_iso()),
         )
         conn.commit()
         notify(message)
     elif recovered and open_alert:
-        conn.execute("UPDATE system_alerts SET resolved_at = datetime('now') WHERE resolved_at IS NULL")
+        # Local clock, same as the insert above and as app.py's Acknowledge.
+        conn.execute("UPDATE system_alerts SET resolved_at = ? WHERE resolved_at IS NULL",
+                     (db.now_iso(),))
         conn.commit()
 
     conn.close()

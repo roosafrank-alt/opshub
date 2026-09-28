@@ -541,7 +541,16 @@ def part_to_dict(row, include_cost=True):
 def get_part_by_barcode(conn, barcode):
     # A retired part (see part_retire) keeps its barcode on file for history,
     # but can't be scanned in/out anymore.
-    return conn.execute("SELECT * FROM parts WHERE barcode = ? AND retired_at IS NULL", (barcode.strip(),)).fetchone()
+    barcode = barcode.strip()
+    part = conn.execute("SELECT * FROM parts WHERE barcode = ? AND retired_at IS NULL", (barcode,)).fetchone()
+    if part:
+        return part
+    # A USB scanner types like a keyboard, so Caps Lock on the shop PC flips
+    # every letter (SHOP-AB12 arrives as shop-ab12). Fall back to ignoring
+    # case, but only when that still points at exactly one part.
+    rows = conn.execute("SELECT * FROM parts WHERE barcode = ? COLLATE NOCASE AND retired_at IS NULL LIMIT 2",
+                        (barcode,)).fetchall()
+    return rows[0] if len(rows) == 1 else None
 
 
 def get_low_stock(conn):
@@ -1524,7 +1533,7 @@ def api_project_lookup(code):
     page so a project's own printed code can be scanned to select it."""
     conn = get_db()
     project = conn.execute(
-        "SELECT * FROM projects WHERE code = ? AND deleted_at IS NULL", (code.strip(),)
+        "SELECT * FROM projects WHERE code = ? COLLATE NOCASE AND deleted_at IS NULL", (code.strip(),)
     ).fetchone()
     conn.close()
     if not project:
@@ -6677,15 +6686,24 @@ def api_labor_task_lookup():
     """Resolves a scanned TASK- QR code (see project_labor_codes.html) to the
     project + section it identifies, without starting anything."""
     code = request.args.get("code", "").strip()
-    if not code.startswith("TASK-"):
+    # Prefix checked case-blind: Caps Lock on a USB scanner sends "task-".
+    if not code.upper().startswith("TASK-"):
         return jsonify({"found": False})
     rest = code[len("TASK-"):]
     if "::" in rest:
         project_code, section = rest.split("::", 1)
     else:
         project_code, section = rest, ""
+    project_code = project_code.strip()
     conn = get_db()
-    project = conn.execute("SELECT * FROM projects WHERE code = ? AND deleted_at IS NULL", (project_code,)).fetchone()
+    project = conn.execute("SELECT * FROM projects WHERE code = ? COLLATE NOCASE AND deleted_at IS NULL",
+                           (project_code,)).fetchone()
+    if project and section:
+        # Same Caps Lock case: "bRAKES" should still land on the "Brakes" area.
+        known = conn.execute("SELECT name FROM project_sections WHERE project_id = ? AND name = ? COLLATE NOCASE",
+                             (project["id"], section)).fetchone()
+        if known:
+            section = known["name"]
     conn.close()
     if not project:
         return jsonify({"found": False})
@@ -6729,11 +6747,14 @@ def api_labor_scan():
     section = (data.get("section") or "").strip() or None
     general = data.get("general") is True
     note = (data.get("note") or "").strip() or None
-    if not code.startswith("LABOR-"):
+    # Badge codes are always upper case (db.gen_labor_code); a USB scanner
+    # with Caps Lock on sends them lower case, so match case-blind.
+    if not code.upper().startswith("LABOR-"):
         return jsonify({"ok": False, "error": "not_a_laborer_code"}), 400
 
     conn = get_db()
-    laborer = conn.execute("SELECT * FROM laborers WHERE code = ?", (code,)).fetchone()
+    laborer = conn.execute("SELECT * FROM laborers WHERE code = ?", (code,)).fetchone() or \
+        conn.execute("SELECT * FROM laborers WHERE code = ? COLLATE NOCASE", (code,)).fetchone()
     if not laborer:
         conn.close()
         return jsonify({"ok": False, "error": "unknown_laborer", "code": code}), 404

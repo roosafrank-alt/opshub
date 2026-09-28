@@ -12,6 +12,8 @@ be worth reading. Two things were making it lie about how much was wrong:
 Frank hit both on 2026-09-27: 11 entries in the log, 4 of them one pair of
 CrashCleanupTest's "forced crash for test" saved twice over."""
 import os
+import tempfile
+import unittest
 
 from harness import OpsHubTestCase, GC_AFTER_REQUEST
 import app as app_module
@@ -24,6 +26,27 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def _log_files():
     d = app_module.ERROR_LOG_DIR
     return sorted(n for n in os.listdir(d) if n.endswith(".log")) if os.path.isdir(d) else []
+
+
+def _clear_the_test_log():
+    """Empties the error log between tests - but ONLY once it has proved the
+    log is the harness's temp one.
+
+    Without that proof this walks whatever ERROR_LOG_DIR happens to be, so
+    on a checkout whose harness.py predates that redirect it would delete
+    the live instance/error_logs/ - the Pi's real saved tracebacks, the only
+    copy there is. The canary below does catch the misconfiguration, but it
+    is one test among several: by the time it runs the others have already
+    done the deleting. So the refusal belongs here, before anything is
+    removed."""
+    d = os.path.abspath(app_module.ERROR_LOG_DIR)
+    tmp = os.path.abspath(tempfile.gettempdir()) + os.sep
+    if not d.startswith(tmp):
+        raise unittest.SkipTest(
+            "refusing to delete anything in %s - it isn't a temp folder, so it may be the "
+            "live error log. tests/harness.py needs the ERROR_LOG_DIR redirect." % d)
+    for name in _log_files():
+        os.remove(os.path.join(d, name))
 
 
 class ErrorLogStaysOutOfTheRepoTest(OpsHubTestCase):
@@ -42,8 +65,7 @@ class OneFilePerCrashTest(OpsHubTestCase):
 
     def setUp(self):
         super().setUp()
-        for name in _log_files():
-            os.remove(os.path.join(app_module.ERROR_LOG_DIR, name))
+        _clear_the_test_log()
 
     def _crash_a_request(self):
         # Same shape as CrashCleanupTest: a trigger makes the scan's INSERT
@@ -77,8 +99,7 @@ class OneFilePerCrashTest(OpsHubTestCase):
 class ErrorLogPageTest(OpsHubTestCase):
     def setUp(self):
         super().setUp()
-        for name in _log_files():
-            os.remove(os.path.join(app_module.ERROR_LOG_DIR, name))
+        _clear_the_test_log()
         with open(os.path.join(app_module.ERROR_LOG_DIR, "2026-09-27_21-25-47-000.log"), "w") as f:
             f.write("2026-09-27 21:25:47 [ERROR] Unhandled exception on POST /api/scan: boom\n"
                     "Traceback (most recent call last):\n  ...\n")
