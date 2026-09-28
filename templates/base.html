@@ -43,6 +43,18 @@
     font-weight: 600;
   }
   .shop-nav-boxed .dropdown-item.active { background: #212529; color: #fff; }
+  /* Idea "header view": once the window is narrow but still wide enough to
+     keep the nav in one row (above the xl hamburger breakpoint), there isn't
+     always room for every tile's icon + label side by side, and letting the
+     tiles shrink to fit made their apparent size change with the window
+     width (see the reverted "Idea: View" commit - Frank rejected the
+     sideways-scroll fix that replaced it). Icons always stay full size;
+     instead, in that tight band, just the text label hides and the tile
+     becomes icon-only. Labels come back once there's comfortably enough
+     room again. */
+  @media (min-width: 1200px) and (max-width: 1699.98px) {
+    .shop-nav-boxed .nav-label { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -87,29 +99,29 @@
        else '' %}
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav me-auto mb-2 mb-xl-0 shop-nav-boxed">
-        <li class="nav-item d-none d-xl-block"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'scan' }}" id="tour-nav-scan" href="{{ url_for('scan_page') }}"><i class="bi bi-upc-scan"></i> Scan</a></li>
+        <li class="nav-item d-none d-xl-block"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'scan' }}" id="tour-nav-scan" href="{{ url_for('scan_page') }}"><i class="bi bi-upc-scan"></i> <span class="nav-label">Scan</span></a></li>
         {% if is_master_admin or shop_role in ('admin', 'tech') %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'parts' }}" id="tour-nav-parts" href="{{ url_for('parts_list') }}"><i class="bi bi-box-seam"></i> Parts</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'parts' }}" id="tour-nav-parts" href="{{ url_for('parts_list') }}"><i class="bi bi-box-seam"></i> <span class="nav-label">Parts</span></a></li>
         {% endif %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'projects' }}" id="tour-nav-projects" href="{{ url_for('projects_list') }}"><i class="bi bi-clipboard-check"></i> Projects</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'projects' }}" id="tour-nav-projects" href="{{ url_for('projects_list') }}"><i class="bi bi-clipboard-check"></i> <span class="nav-label">Projects</span></a></li>
         {% if is_master_admin or shop_role in ('admin', 'tech') %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'aircraft' }}" id="tour-nav-aircraft" href="{{ url_for('assets_list') }}"><i class="bi bi-airplane"></i> Aircraft</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'aircraft' }}" id="tour-nav-aircraft" href="{{ url_for('assets_list') }}"><i class="bi bi-airplane"></i> <span class="nav-label">Aircraft</span></a></li>
         {% endif %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'calendar' }}" id="tour-nav-calendar" href="{{ url_for('calendar_page') }}"><i class="bi bi-calendar3"></i> Calendar</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'calendar' }}" id="tour-nav-calendar" href="{{ url_for('calendar_page') }}"><i class="bi bi-calendar3"></i> <span class="nav-label">Calendar</span></a></li>
         {% if is_master_admin or shop_role == 'admin' %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'orders' }}" href="{{ url_for('orders_list') }}"><i class="bi bi-truck"></i> Orders</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'orders' }}" href="{{ url_for('orders_list') }}"><i class="bi bi-truck"></i> <span class="nav-label">Orders</span></a></li>
         {% endif %}
         {% if is_master_admin or shop_role in ('admin', 'tech') %}
-        <li class="nav-item"><a class="nav-link {{ 'fw-bold text-danger' if open_squawk_count }} {{ 'active' if sec == 'squawks' }}" id="tour-nav-squawks" href="{{ url_for('squawks_list') }}"><i class="bi bi-exclamation-triangle{{ '-fill' if open_squawk_count }}"></i> Squawks{% if open_squawk_count %} <span class="badge bg-danger">{{ open_squawk_count }}</span>{% endif %}</a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'my-tasks' }}" href="{{ url_for('tech_spot') }}"><i class="bi bi-person-workspace"></i> My Tasks</a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'activity' }}" href="{{ url_for('activity_log') }}"><i class="bi bi-clock-history"></i> Activity</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'fw-bold text-danger' if open_squawk_count }} {{ 'active' if sec == 'squawks' }}" id="tour-nav-squawks" href="{{ url_for('squawks_list') }}"><i class="bi bi-exclamation-triangle{{ '-fill' if open_squawk_count }}"></i> <span class="nav-label">Squawks</span>{% if open_squawk_count %} <span class="badge bg-danger">{{ open_squawk_count }}</span>{% endif %}</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'my-tasks' }}" href="{{ url_for('tech_spot') }}"><i class="bi bi-person-workspace"></i> <span class="nav-label">My Tasks</span></a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'activity' }}" href="{{ url_for('activity_log') }}"><i class="bi bi-clock-history"></i> <span class="nav-label">Activity</span></a></li>
         {% endif %}
         {% if shop_role == 'admin' and not is_master_admin and session.get('cfi_id') %}
         {#- Idea ux-shop-admin-skip-launcher: a shop admin gets Flight School
            too (see auth.log_in_combined/db.ensure_flight_profile) - this is
            how they reach it day to day without going back through the
            program picker every time. #}
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('flight.index') }}"><i class="bi bi-airplane-engines"></i> Fly with Kate!</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('flight.index') }}"><i class="bi bi-airplane-engines"></i> <span class="nav-label">Fly with Kate!</span></a></li>
         {% endif %}
       </ul>
       <div class="d-flex align-items-center gap-3 shop-nav-boxed">
@@ -122,7 +134,7 @@
                Pay (their own hours/pay); the rest is shop admins. #}
             <div class="dropdown">
               <a class="nav-link dropdown-toggle text-light {{ 'active' if sec == 'manage' }}" href="#" id="shop-manage-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-gear"></i> Manage
+                <i class="bi bi-gear"></i> <span class="nav-label">Manage</span>
               </a>
               <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shop-manage-toggle">
                 {% if is_master_admin or shop_role == 'admin' %}

@@ -31,6 +31,18 @@
     font-weight: 600;
   }
   .admin-nav-boxed .dropdown-item.active { background: #212529; color: #fff; }
+  /* Idea "header view": once the window is narrow but still wide enough to
+     keep the nav in one row (above the lg hamburger breakpoint), there isn't
+     always room for every tile's icon + label side by side, and letting the
+     tiles shrink to fit made their apparent size change with the window
+     width (see the reverted "Idea: View" commit - Frank rejected the
+     sideways-scroll fix that replaced it). Icons always stay full size;
+     instead, in that tight band, just the text label hides and the tile
+     becomes icon-only. Labels come back once there's comfortably enough
+     room again. */
+  @media (min-width: 992px) and (max-width: 1399.98px) {
+    .admin-nav-boxed .nav-label { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -44,17 +56,17 @@
     </button>
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0 admin-nav-boxed">
-        <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'admin_home' }}" href="{{ url_for('admin_home') }}"><i class="bi bi-grid-3x3-gap"></i> Overview</a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'admin_users_list' }}" href="{{ url_for('admin_users_list') }}"><i class="bi bi-shield-lock"></i> Accounts</a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if (request.endpoint or '').startswith('payroll.') }}" href="{{ url_for('payroll.payroll_page') }}"><i class="bi bi-wallet2"></i> Payroll</a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'admin_notifications' }}" href="{{ url_for('admin_notifications') }}"><i class="bi bi-bell"></i> Notifications</a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint in ('admin_system', 'admin_system_log') }}" href="{{ url_for('admin_system') }}"><i class="bi bi-hdd-rack"></i> System</a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'admin_reset' }}" href="{{ url_for('admin_reset') }}"><i class="bi bi-arrow-counterclockwise"></i> Reset Data</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'admin_home' }}" href="{{ url_for('admin_home') }}"><i class="bi bi-grid-3x3-gap"></i> <span class="nav-label">Overview</span></a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'admin_users_list' }}" href="{{ url_for('admin_users_list') }}"><i class="bi bi-shield-lock"></i> <span class="nav-label">Accounts</span></a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if (request.endpoint or '').startswith('payroll.') }}" href="{{ url_for('payroll.payroll_page') }}"><i class="bi bi-wallet2"></i> <span class="nav-label">Payroll</span></a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'admin_notifications' }}" href="{{ url_for('admin_notifications') }}"><i class="bi bi-bell"></i> <span class="nav-label">Notifications</span></a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint in ('admin_system', 'admin_system_log') }}" href="{{ url_for('admin_system') }}"><i class="bi bi-hdd-rack"></i> <span class="nav-label">System</span></a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if request.endpoint == 'admin_reset' }}" href="{{ url_for('admin_reset') }}"><i class="bi bi-arrow-counterclockwise"></i> <span class="nav-label">Reset Data</span></a></li>
       </ul>
       <div class="d-flex align-items-center gap-3">
         <div class="d-flex admin-nav-boxed">
-          <a href="{{ url_for('dashboard') }}" class="nav-link"><i class="bi bi-tools"></i> Maintenance</a>
-          <a href="{{ url_for('flight.dashboard') }}" class="nav-link"><i class="bi bi-airplane-engines"></i> Flight School</a>
+          <a href="{{ url_for('dashboard') }}" class="nav-link"><i class="bi bi-tools"></i> <span class="nav-label">Maintenance</span></a>
+          <a href="{{ url_for('flight.dashboard') }}" class="nav-link"><i class="bi bi-airplane-engines"></i> <span class="nav-label">Flight School</span></a>
         </div>
         <div class="d-flex flex-column align-items-end">
           {% set view_as_program = 'shop' %}

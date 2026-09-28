@@ -44,6 +44,18 @@
     font-weight: 600;
   }
   .flight-nav-boxed .dropdown-item.active { background: #212529; color: #fff; }
+  /* Idea "header view": once the window is narrow but still wide enough to
+     keep the nav in one row (above the lg hamburger breakpoint), there isn't
+     always room for every tile's icon + label side by side, and letting the
+     tiles shrink to fit made their apparent size change with the window
+     width (see the reverted "Idea: View" commit - Frank rejected the
+     sideways-scroll fix that replaced it). Icons always stay full size;
+     instead, in that tight band, just the text label hides and the tile
+     becomes icon-only. Labels come back once there's comfortably enough
+     room again. */
+  @media (min-width: 992px) and (max-width: 1399.98px) {
+    .flight-nav-boxed .nav-label { display: none; }
+  }
   /* Makes the "alert resolved" confirmation actually read as a banner -
      bigger, bolder, with its own shadow - instead of looking like every
      other routine "saved" flash (see the flash loop above). */
@@ -98,24 +110,24 @@
          else 'manage' if (_p.startswith('/flight/planes') or _p.startswith('/flight/cfis') or _p.startswith('/flight/billing') or _p.startswith('/flight/stats'))
          else '' %}
       <ul class="navbar-nav me-auto mb-2 mb-lg-0 flight-nav-boxed">
-        <li class="nav-item"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'schedule' }}" id="tour-nav-flight-schedule" href="{{ url_for('flight.schedule_calendar') }}"><i class="bi bi-calendar3"></i> Schedule</a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'active' }}" id="tour-nav-flight-active" href="{{ url_for('flight.log_active') }}"><i class="bi bi-stopwatch"></i> Active Flight</a></li>
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'history' }}" id="tour-nav-flight-history" href="{{ url_for('flight.log_history') }}"><i class="bi bi-clock-history"></i> Flight History</a></li>
+        <li class="nav-item"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'schedule' }}" id="tour-nav-flight-schedule" href="{{ url_for('flight.schedule_calendar') }}"><i class="bi bi-calendar3"></i> <span class="nav-label">Schedule</span></a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'active' }}" id="tour-nav-flight-active" href="{{ url_for('flight.log_active') }}"><i class="bi bi-stopwatch"></i> <span class="nav-label">Active Flight</span></a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'history' }}" id="tour-nav-flight-history" href="{{ url_for('flight.log_history') }}"><i class="bi bi-clock-history"></i> <span class="nav-label">Flight History</span></a></li>
         {% if session.get('is_master_admin') or session.get('groundschool_access') %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'groundschool' }}" href="{{ url_for('groundschool.rating_list') }}"><i class="bi bi-mortarboard"></i> Ground School</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'groundschool' }}" href="{{ url_for('groundschool.rating_list') }}"><i class="bi bi-mortarboard"></i> <span class="nav-label">Ground School</span></a></li>
         {% endif %}
         {% if session.get('is_master_admin') or session.get('academy_access') %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'academy' }}" href="{{ url_for('academy_page') }}"><i class="bi bi-trophy"></i> Academy</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'academy' }}" href="{{ url_for('academy_page') }}"><i class="bi bi-trophy"></i> <span class="nav-label">Academy</span></a></li>
         {% endif %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'reports' }}" id="tour-nav-flight-reports" href="{{ url_for('flight.reports_list') }}"><i class="bi bi-flag"></i> Reports</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'reports' }}" id="tour-nav-flight-reports" href="{{ url_for('flight.reports_list') }}"><i class="bi bi-flag"></i> <span class="nav-label">Reports</span></a></li>
         {% if session.get('cfi_id') or session.get('is_master_admin') %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'students' }}" id="tour-nav-flight-students" href="{{ url_for('flight.students_list') }}"><i class="bi bi-people"></i> Students</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'students' }}" id="tour-nav-flight-students" href="{{ url_for('flight.students_list') }}"><i class="bi bi-people"></i> <span class="nav-label">Students</span></a></li>
         {% endif %}
         {% if session.get('cfi_id') %}
         {% set fac = flight_alert_counts or {} %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.alerts_list') }}"><i class="bi bi-exclamation-triangle"></i> Alerts{% if fac.get('open') %} <span class="badge {{ 'bg-danger' if fac.get('unacked') else 'bg-warning text-dark' }}" title="{{ fac.get('unacked') }} new, {{ fac.get('open') }} open">{{ fac.get('open') }}</span>{% endif %}</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.alerts_list') }}"><i class="bi bi-exclamation-triangle"></i> <span class="nav-label">Alerts</span>{% if fac.get('open') %} <span class="badge {{ 'bg-danger' if fac.get('unacked') else 'bg-warning text-dark' }}" title="{{ fac.get('unacked') }} new, {{ fac.get('open') }} open">{{ fac.get('open') }}</span>{% endif %}</a></li>
         {% elif session.get('student_id') %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.my_alerts') }}"><i class="bi bi-bell"></i> Alerts{% if student_alert_count %} <span class="badge bg-danger">{{ student_alert_count }}</span>{% endif %}</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.my_alerts') }}"><i class="bi bi-bell"></i> <span class="nav-label">Alerts</span>{% if student_alert_count %} <span class="badge bg-danger">{{ student_alert_count }}</span>{% endif %}</a></li>
         {#- Idea "my account": students get a distinct account tab here,
            spaced away from Alerts (ms-3) so it reads as its own button
            instead of part of Alerts. It's the same account menu that used
@@ -136,7 +148,7 @@
         {% if session.get('cfi_id') or session.get('is_master_admin') %}
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle {{ 'active' if sec == 'manage' }}" href="#" id="manage-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="bi bi-gear"></i> Manage
+            <i class="bi bi-gear"></i> <span class="nav-label">Manage</span>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="manage-menu-toggle">
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/planes') }}" href="{{ url_for('flight.planes_list') }}"><i class="bi bi-airplane"></i> Planes</a></li>
