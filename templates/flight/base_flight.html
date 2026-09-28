@@ -189,6 +189,38 @@
         <div class="alert alert-{{ category }} alert-dismissible fade show{{ ' alert-flight-resolved' if message.startswith('✓ Alert resolved') }}" role="alert">
           {{ message }}
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          {#- Idea "Book next lesson": right in the "Session ended and
+             logged" confirmation (the moment a CFI/admin is most likely to
+             lock in the student's next lesson), so booking it doesn't take
+             starting over from Schedule > Schedule Flight. next_lesson only
+             comes from log_history (see _next_lesson_preview in flight.py),
+             so this never shows for any other flash on any other page.
+             Deliberately just the button + pencil, no explanatory line -
+             Frank asked for the box to stay small. #}
+          {% if next_lesson and message.startswith('Session ended and logged') %}
+          <div class="d-flex gap-2 mt-2">
+            <form method="post" action="{{ url_for('flight.schedule_new') }}" class="flex-fill mb-0">
+              <input type="hidden" name="student_id" value="{{ next_lesson.student_id }}">
+              {% if next_lesson.solo %}
+              <input type="hidden" name="solo" value="1">
+              {% elif next_lesson.cfi_id %}
+              <input type="hidden" name="cfi_id" value="{{ next_lesson.cfi_id }}">
+              {% endif %}
+              {% if next_lesson.own_plane %}
+              <input type="hidden" name="own_plane" value="1">
+              {% else %}
+              <input type="hidden" name="asset_id" value="{{ next_lesson.asset_id }}">
+              {% endif %}
+              <input type="hidden" name="scheduled_date" value="{{ next_lesson.date }}">
+              <input type="hidden" name="scheduled_time" value="{{ next_lesson.time }}">
+              {% if next_lesson.duration_hours is not none %}
+              <input type="hidden" name="duration_hours" value="{{ next_lesson.duration_hours }}">
+              {% endif %}
+              <button type="submit" class="btn btn-success fw-bold w-100 text-start"><i class="bi bi-calendar-plus"></i> Book <strong>{{ next_lesson.label }}</strong></button>
+            </form>
+            <a href="{{ next_lesson.edit_url }}" class="btn btn-outline-success flex-shrink-0" title="Pick a different date or time before booking"><i class="bi bi-pencil"></i></a>
+          </div>
+          {% endif %}
         </div>
       {% endfor %}
     {% endif %}

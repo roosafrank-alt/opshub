@@ -77,7 +77,7 @@
            own asset page. #}
         <div class="form-check form-switch mt-2">
           <input type="checkbox" class="form-check-input" role="switch" name="own_plane" id="own-plane-check" value="1"
-                 {% if (form and form.get('own_plane')) or (not form and sched_is_own_plane) %}checked{% endif %}>
+                 {% if (form and form.get('own_plane')) or (not form and sched_is_own_plane) or (not form and not sched and prefill_own_plane) %}checked{% endif %}>
           <label class="form-check-label" for="own-plane-check">Students Aircraft</label>
         </div>
         <div id="own-plane-n-number-wrap" class="mt-1 d-none">
@@ -119,7 +119,7 @@
           {% endif %}
           {% for s in students if s.id != gid %}
           {%- set tinfo = student_training_info(s) -%}
-          <option value="{{ s.id }}" {% if (form and form.get('student_id')|string == s.id|string) or (not form and sched and sched.student_id == s.id) %}selected{% endif %}
+          <option value="{{ s.id }}" {% if (form and form.get('student_id')|string == s.id|string) or (not form and sched and sched.student_id == s.id) or (not form and not sched and prefill_student_id and prefill_student_id == s.id|string) %}selected{% endif %}
                   data-working-towards="{{ tinfo.working_towards if tinfo else '' }}" data-soloed="{{ '1' if tinfo and tinfo.soloed else '' }}"
                   data-tsa-needed="{{ '1' if tsa_gate_needed(s.id) else '' }}">{{ s.name }}</option>
           {% endfor %}
@@ -169,7 +169,7 @@
       </div>
       <div class="col-md-6 mb-3">
         <div class="form-check mt-4">
-          <input type="checkbox" class="form-check-input" name="solo" id="solo-check" {% if (form and form.get('solo')) or (not form and sched and sched.solo) %}checked{% endif %}>
+          <input type="checkbox" class="form-check-input" name="solo" id="solo-check" {% if (form and form.get('solo')) or (not form and sched and sched.solo) or (not form and not sched and prefill_solo) %}checked{% endif %}>
           <label class="form-check-label" for="solo-check">Solo <span class="text-muted small">(no instructor)</span></label>
         </div>
         <div id="solo-not-allowed-note" class="form-text text-danger d-none">This plane isn't approved for solo flights.</div>

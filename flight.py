@@ -4395,9 +4395,22 @@ def schedule_new():
     prefill_cfi_id = request.args.get("cfi_id", "").strip()
     if prefill_cfi_id and not any(str(c["id"]) == prefill_cfi_id for c in cfis):
         prefill_cfi_id = ""
+    # ?student_id= (e.g. the "Book next lesson" pencil icon on the
+    # Session-ended box - see _next_lesson_preview) pre-picks that student -
+    # a CFI/admin booking only, same as ?cfi_id=/?asset_id= above.
+    prefill_student_id = "" if self_service else request.args.get("student_id", "").strip()
+    if prefill_student_id and not any(str(s["id"]) == prefill_student_id for s in students):
+        prefill_student_id = ""
+    # ?solo=1/?own_plane=1 (same "Book next lesson" pencil icon) pre-check
+    # those boxes when the lesson that just ended was solo or on the
+    # student's own plane - own_plane's asset isn't in `planes` above (it's
+    # excluded on purpose - see the query), so it's a checkbox, not a pick.
+    prefill_solo = (not self_service) and request.args.get("solo") == "1"
+    prefill_own_plane = (not self_service) and request.args.get("own_plane") == "1"
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
                        today=prefill_date, prefill_time=prefill_time, prefill_asset_id=prefill_asset_id,
-                       prefill_cfi_id=prefill_cfi_id,
+                       prefill_cfi_id=prefill_cfi_id, prefill_student_id=prefill_student_id,
+                       prefill_solo=prefill_solo, prefill_own_plane=prefill_own_plane,
                        current_cfi_id=session.get("cfi_id"),
                        self_service=self_service, self_student=self_student,
                        # ?complete=1 opens the form with "Flight Already
@@ -6489,7 +6502,11 @@ def log_end(flight_id):
         flash("Session ended and logged. The squawk you flagged will show up on the Maintenance side until it's acknowledged.", "success")
     else:
         flash("Session ended and logged.", "success")
-    return redirect(url_for("flight.log_history"))
+    # ended_flight_id lets log_history build the "Book next lesson" box in
+    # the flash above (see _next_lesson_preview) - just this one flight, so
+    # the box only appears right after ending THIS session, not on every
+    # later visit to Flight History.
+    return redirect(url_for("flight.log_history", ended_flight_id=flight_id))
 
 
 def _send_flight_receipt_email(conn, ended_row, cost, paid, payment_method, payment_amount, credit_applied):
@@ -7032,6 +7049,60 @@ def _row_with_cost(row):
     return d
 
 
+def _next_lesson_preview(flight_id):
+    """Idea "Book next lesson": the one-tap / pencil-edit booking preview
+    for the two-line box in the "Session ended and logged" flash right
+    after End Session (see log_end's redirect here, and the box itself in
+    base_flight.html's flash loop). Same instructor, plane and time slot as
+    the flight that just ended, one week out (same day-of-week, same time).
+    CFI/admin only - a solo student ending their own flight doesn't see it,
+    and only the instructor who actually flew it (or a master admin) can
+    one-tap rebook it, not just anyone who happens to load this URL."""
+    if not flight_id or not (session.get("cfi_id") or session.get("is_master_admin")):
+        return None
+    conn = get_db()
+    f = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (flight_id,)).fetchone()
+    conn.close()
+    if not f or not f["ended_at"] or not f["started_at"]:
+        return None
+    if not session.get("is_master_admin") and f["cfi_id"] != session.get("cfi_id"):
+        return None
+    try:
+        started = datetime.strptime(f["started_at"], "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return None
+    next_dt = started + timedelta(days=7)
+    next_date = next_dt.strftime("%Y-%m-%d")
+    next_time = next_dt.strftime("%H:%M")
+    # DD-MM-YYYY is this app's own display format everywhere (see usdate in
+    # app.py) - the weekday abbreviation in front is the one addition, so
+    # the button reads like a date instead of a bare number.
+    label = f"{next_dt.strftime('%a')}, {next_dt.strftime('%d-%m-%Y')} {_format_time_12h(next_time)}"
+    is_own_plane = bool(f["asset_is_owner_placeholder"])
+    is_solo = bool(f["solo"])
+    edit_params = {"date": next_date, "time": next_time, "student_id": f["student_id"]}
+    if is_solo:
+        edit_params["solo"] = "1"
+    elif f["cfi_id"]:
+        edit_params["cfi_id"] = f["cfi_id"]
+    if is_own_plane:
+        edit_params["own_plane"] = "1"
+    else:
+        edit_params["asset_id"] = f["asset_id"]
+    return {
+        "label": label,
+        "student_id": f["student_id"],
+        "cfi_id": f["cfi_id"],
+        "asset_id": f["asset_id"],
+        "own_plane": is_own_plane,
+        "solo": is_solo,
+        "date": next_date,
+        "time": next_time,
+        "duration_hours": f["scheduled_duration_hours"],
+        "edit_url": url_for("flight.schedule_new", **edit_params),
+    }
+
+
 @flight_bp.route("/log")
 @login_required
 def log_history():
@@ -7045,7 +7116,9 @@ def log_history():
                              (student["id"],)).fetchall()
     conn.close()
     flights = [_row_with_cost(r) for r in rows]
-    return render_template("flight/log_history.html", flights=flights, cfi=cfi, can_bill=can_manage_billing())
+    next_lesson = _next_lesson_preview(request.args.get("ended_flight_id", type=int))
+    return render_template("flight/log_history.html", flights=flights, cfi=cfi, can_bill=can_manage_billing(),
+                           next_lesson=next_lesson)
 
 
 @flight_bp.route("/log/<int:flight_id>")
