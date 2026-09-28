@@ -56,5 +56,13 @@ from main and follow it.
   always match the original routine's prompt, plus the THIS FILE rule at the end.
 - If Frank says "sync the runner file", compare the original routine's prompt
   with the file and bring the file back in line with the prompt.
+- The **Idea Queue Runner** routine was created through the API, not by an agent, so
+  `update_trigger` refuses to change its prompt ("Agents can only update routines they
+  created"). Only Frank can edit it, at
+  https://claude.ai/code/routines/trig_01FMiUsrsJWLuJxRr9saRxMS. So when a change to the
+  runner instructions is made from a session: push the file to main (the copies read it
+  from there) and ask Frank to paste the same text into that routine's prompt. Don't
+  delete and recreate the routine to get around it - that loses its history, and the page's
+  Wake / Deploy / Roll back buttons fire it by that exact id.
 - Known-good backups from before this was set up (Sep 27, 2026) are the branches
   `backup/main-2026-09-27` and `backup/idea-queue-2026-09-27`.
