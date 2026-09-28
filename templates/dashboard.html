@@ -110,24 +110,26 @@
    sign-off. Admins can confirm too. See get_squawks_awaiting_confirm and
    squawk_repair_confirm in app.py. #}
 {% if squawks_awaiting_confirm %}
-<div class="alert alert-success border-success border-2 mb-3">
+<div class="alert alert-success border-success border-2 mb-3 squawk-alert">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="alert-heading mb-0"><i class="bi bi-patch-check-fill"></i> {{ squawks_awaiting_confirm|length }} Repair{{ 's' if squawks_awaiting_confirm|length != 1 }} To Sign Off</h5>
     <a href="{{ url_for('squawks_list') }}" class="btn btn-outline-success btn-sm fw-bold">View All</a>
   </div>
   {% for sq in squawks_awaiting_confirm %}
-  <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
+  <div class="d-flex flex-column gap-1 py-2 squawk-item {{ 'border-top' if not loop.first }}">
     <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; done by {{ sq.repair_confirm_requested_by or '-' }}, {{ sq.repair_confirm_requested_at|usdate(true) if sq.repair_confirm_requested_at else '' }}</div>
     <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-    {{ squawk_step_pills(sq) }}
-    {{ squawk_confirm_actions(sq) }}
+    <div class="squawk-row-actions">
+      {{ squawk_step_pills(sq) }}
+      {{ squawk_confirm_actions(sq) }}
+    </div>
   </div>
   {% endfor %}
 </div>
 {% endif %}
 
 {% if open_squawks and not is_limited_role %}
-<div class="alert alert-danger border-danger border-2 mb-3">
+<div class="alert alert-danger border-danger border-2 mb-3 squawk-alert">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="alert-heading mb-0"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} New Squawk{{ 's' if open_squawks|length != 1 }}{{ ' - Pick Who Fixes Them' if can_assign_squawks else ' (for your info)' }}</h5>
     <a href="{{ url_for('squawks_list') }}" class="btn btn-outline-danger btn-sm fw-bold">
@@ -136,15 +138,17 @@
   {% for sq in open_squawks[:5] %}
   {#- On phones only the 2 newest show, so the stat boxes and recent
      activity aren't pushed several screens down; "See all N" has the rest. #}
-  <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}{{ ' d-none d-md-flex' if loop.index > 2 }}">
+  <div class="d-flex flex-column gap-1 py-2 squawk-item {{ 'border-top' if not loop.first }}{{ ' d-none d-md-flex' if loop.index > 2 }}">
     <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.event_date|usdate }} &middot;
       {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
       {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
     <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-    {{ squawk_step_pills(sq) }}
-    {% if can_assign_squawks %}
-    {{ squawk_new_actions(sq, assignable_workers, session.get('user_id')) }}
-    {% endif %}
+    <div class="squawk-row-actions">
+      {{ squawk_step_pills(sq) }}
+      {% if can_assign_squawks %}
+      {{ squawk_new_actions(sq, assignable_workers, session.get('user_id')) }}
+      {% endif %}
+    </div>
   </div>
   {% endfor %}
 </div>
@@ -155,17 +159,19 @@
    buttons as My Tasks (see get_my_squawks in app.py and QA finding
    ux-squawk-my-list-dashboard). One button each: the next step. #}
 {% if my_squawks and not is_limited_role %}
-<div class="alert alert-warning border-warning border-2 mb-3">
+<div class="alert alert-warning border-warning border-2 mb-3 squawk-alert">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="alert-heading mb-0"><i class="bi bi-clipboard-check"></i> My Squawks <span class="fw-normal">({{ my_squawks|length }})</span></h5>
     <a href="{{ url_for('tech_spot') }}" class="btn btn-outline-warning btn-sm fw-bold">My Tasks</a>
   </div>
   {% for sq in my_squawks %}
-  <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
+  <div class="d-flex flex-column gap-1 py-2 squawk-item {{ 'border-top' if not loop.first }}">
     <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.event_date|usdate }}</div>
     <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-    {{ squawk_step_pills(sq) }}
-    {{ squawk_my_actions(sq) }}
+    <div class="squawk-row-actions">
+      {{ squawk_step_pills(sq) }}
+      {{ squawk_my_actions(sq) }}
+    </div>
   </div>
   {% endfor %}
 </div>

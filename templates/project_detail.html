@@ -523,10 +523,12 @@
       {% if plane_squawks %}
       <div class="text-uppercase text-muted small fw-bold mb-1">Squawks</div>
       {% for sq in plane_squawks %}
-      <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
+      <div class="d-flex flex-column gap-1 py-2 squawk-item {{ 'border-top' if not loop.first }}">
         <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-        {{ squawk_step_pills(sq) }}
-        {{ squawk_project_action(sq, project.id, project_can_assign) }}
+        <div class="squawk-row-actions">
+          {{ squawk_step_pills(sq) }}
+          {{ squawk_project_action(sq, project.id, project_can_assign) }}
+        </div>
       </div>
       {% endfor %}
       {% endif %}

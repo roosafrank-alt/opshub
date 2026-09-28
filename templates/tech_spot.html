@@ -14,11 +14,13 @@
   {% if my_squawks %}
   <div class="list-group list-group-flush">
     {% for sq in my_squawks %}
-    <div class="list-group-item px-0 d-flex flex-column gap-1">
+    <div class="list-group-item px-0 d-flex flex-column gap-1 squawk-item">
       <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.event_date|usdate }}</div>
       <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-      {{ squawk_step_pills(sq) }}
-      {{ squawk_my_actions(sq) }}
+      <div class="squawk-row-actions">
+        {{ squawk_step_pills(sq) }}
+        {{ squawk_my_actions(sq) }}
+      </div>
     </div>
     {% endfor %}
   </div>

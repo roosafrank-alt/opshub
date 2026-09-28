@@ -36,18 +36,20 @@
 {% endif %}
 
 {% if open_squawks %}
-<div class="alert alert-danger border-danger border-2 mb-3">
+<div class="alert alert-danger border-danger border-2 mb-3 squawk-alert">
   <h5 class="alert-heading mb-2"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} New Squawk{{ 's' if open_squawks|length != 1 }}{{ ' - Pick Who Fixes Them' if can_assign_squawks else ' (for your info)' }}</h5>
   {% for sq in open_squawks %}
-  <div class="d-flex flex-column gap-1 py-2 {{ 'border-top' if not loop.first }}">
+  <div class="d-flex flex-column gap-1 py-2 squawk-item {{ 'border-top' if not loop.first }}">
     <div><strong>{{ sq.event_date|usdate }}</strong> &middot;
       {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
       {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
     <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-    {{ squawk_step_pills(sq) }}
-    {% if can_assign_squawks %}
-    {{ squawk_new_actions(sq, assignable_workers, session.get('user_id')) }}
-    {% endif %}
+    <div class="squawk-row-actions">
+      {{ squawk_step_pills(sq) }}
+      {% if can_assign_squawks %}
+      {{ squawk_new_actions(sq, assignable_workers, session.get('user_id')) }}
+      {% endif %}
+    </div>
   </div>
   {% endfor %}
 </div>
@@ -352,13 +354,15 @@
              Squawks page and My Tasks (squawk_step_action) - there's no
              "delete" for a squawk the way there is for a plain to-do. #}
           {% for sq in todo_squawks %}
-          <li class="list-group-item px-0 d-flex flex-column gap-1">
+          <li class="list-group-item px-0 d-flex flex-column gap-1 squawk-item">
             <div><span class="badge {{ 'bg-warning text-dark' if sq.acknowledged_at else 'bg-danger' }} me-1">Squawk</span>{{ sq.notes or '(no details given)' }}</div>
             {% if sq.repair_confirm_requested_at %}
             <small class="text-warning-emphasis fw-bold d-block"><i class="bi bi-hourglass-split"></i> Awaiting repair confirmation - marked ready by {{ sq.repair_confirm_requested_by or '-' }}</small>
             {% endif %}
-            <div class="ps-4">{{ squawk_step_pills(sq) }}</div>
-            <div class="ps-4">{{ squawk_step_action(sq, assignable_workers, session.get('user_id'), can_assign_squawks, can_confirm_squawks) }}</div>
+            <div class="ps-4 squawk-row-actions">
+              {{ squawk_step_pills(sq) }}
+              {{ squawk_step_action(sq, assignable_workers, session.get('user_id'), can_assign_squawks, can_confirm_squawks) }}
+            </div>
           </li>
           {% endfor %}
           {% for t in open_todos %}

@@ -70,14 +70,16 @@
   {% else %}
   <div class="card p-3 mb-4 border-{{ step_colors[current_step] }}">
     {% for sq in squawks_for_step %}
-    <div class="d-flex flex-column gap-1 p-2 mb-2 border rounded bg-{{ step_colors[current_step] }}-subtle border-{{ step_colors[current_step] }}-subtle">
+    <div class="d-flex flex-column gap-1 p-2 mb-2 border rounded bg-{{ step_colors[current_step] }}-subtle border-{{ step_colors[current_step] }}-subtle squawk-item">
       <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.event_date|usdate }} &middot;
         {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
         {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
       <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
       {% if sq.assigned_to %}<small class="text-muted d-block">Assigned to {{ sq.assigned_to_name or '-' }}</small>{% endif %}
-      {{ squawk_step_pills(sq) }}
-      {{ squawk_step_action(sq, assignable_workers, session.get('user_id'), can_assign_squawks, can_confirm_squawks) }}
+      <div class="squawk-row-actions">
+        {{ squawk_step_pills(sq) }}
+        {{ squawk_step_action(sq, assignable_workers, session.get('user_id'), can_assign_squawks, can_confirm_squawks) }}
+      </div>
     </div>
     {% endfor %}
   </div>

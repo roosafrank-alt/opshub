@@ -34,7 +34,7 @@
 {% macro squawk_new_actions(sq, assignable_workers, current_user_id, size='btn-sm') %}
 <div class="d-flex gap-1 flex-wrap">
   <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}">
-    <select name="assigned_to" class="form-select form-select-sm" style="width:auto;" onchange="this.value && this.form.submit()" aria-label="Assign to">
+    <select name="assigned_to" class="form-select form-select-sm squawk-select" style="width:auto;" onchange="this.value && this.form.submit()" aria-label="Assign to">
       <option value="" selected>Assign to...</option>
       {% for w in assignable_workers %}
       <option value="{{ w.id }}">{{ w.name }}</option>
@@ -43,7 +43,7 @@
   </form>
   <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}">
     <input type="hidden" name="assigned_to" value="{{ current_user_id }}">
-    <button class="btn btn-danger {{ size }} fw-bold"><i class="bi bi-person-check-fill"></i> I'll take it</button>
+    <button class="btn btn-danger {{ size }} squawk-btn fw-bold"><i class="bi bi-person-check-fill"></i> I'll take it</button>
   </form>
 </div>
 {%- endmacro %}
@@ -55,17 +55,17 @@
 {% macro squawk_my_actions(sq, size='btn-sm') %}
 {%- if not sq.worker_acknowledged_at %}
 <form method="post" action="{{ url_for('squawk_worker_ack', kind=sq.kind, squawk_id=sq.squawk_id) }}">
-  <button class="btn btn-warning {{ size }} fw-bold"><i class="bi bi-play-fill"></i> Accepted</button>
+  <button class="btn btn-warning {{ size }} squawk-btn fw-bold"><i class="bi bi-play-fill"></i> Accepted</button>
 </form>
 {%- elif sq.repair_confirm_requested_at %}
 {#- Awaiting an Inspector/admin's sign-off - tapping again undoes the
    request (squawk_repair toggles it back off when already requested). #}
 <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Undo - back to not yet repaired?">
-  <button class="btn btn-secondary {{ size }} fw-bold" title="With the Inspector - tap to undo"><i class="bi bi-hourglass-split"></i> With inspector (tap to undo)</button>
+  <button class="btn btn-secondary {{ size }} squawk-btn fw-bold" title="With the Inspector - tap to undo"><i class="bi bi-hourglass-split"></i> With inspector (tap to undo)</button>
 </form>
 {%- else %}
 <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Send this squawk to the Inspector as repaired?">
-  <button class="btn btn-success {{ size }} fw-bold"><i class="bi bi-tools"></i> Mark as Repaired</button>
+  <button class="btn btn-success {{ size }} squawk-btn fw-bold"><i class="bi bi-tools"></i> Mark as Repaired</button>
 </form>
 {%- if sq.sent_back_note %}
 <small class="text-danger-emphasis d-block mt-1"><i class="bi bi-arrow-counterclockwise"></i> Sent back: {{ sq.sent_back_note }}</small>
@@ -90,14 +90,14 @@
 {%- elif sq.worker_acknowledged_at or not sq.assigned_to -%}
   {%- if can_assign %}
   <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Send this squawk to the Inspector as repaired?">
-    <button class="btn btn-success {{ size }} fw-bold"><i class="bi bi-tools"></i> Mark as Repaired</button>
+    <button class="btn btn-success {{ size }} squawk-btn fw-bold"><i class="bi bi-tools"></i> Mark as Repaired</button>
   </form>
   {% endif -%}
 {%- else -%}
   {%- if can_assign %}
   <form method="post" action="{{ url_for('squawk_assign', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex gap-1 align-items-center">
     <label class="small text-muted mb-0">Reassign</label>
-    <select name="assigned_to" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+    <select name="assigned_to" class="form-select form-select-sm squawk-select" style="width:auto;" onchange="this.form.submit()">
       <option value="">Unassigned</option>
       {% for w in assignable_workers %}
       <option value="{{ w.id }}" {{ 'selected' if sq.assigned_to == w.id }}>{{ w.name }}</option>
@@ -115,12 +115,12 @@
 {% macro squawk_confirm_actions(sq, confirm_label='Sign off', send_back_label='Send back', size='btn-sm') %}
 <div class="d-flex gap-1 flex-wrap align-items-center">
   <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Confirm this squawk as repaired?" data-confirm-title="Confirm Repair" data-confirm-style="success">
-    <button class="btn btn-success {{ size }} fw-bold"><i class="bi bi-check-lg"></i> {{ confirm_label }}</button>
+    <button class="btn btn-success {{ size }} squawk-btn fw-bold"><i class="bi bi-check-lg"></i> {{ confirm_label }}</button>
   </form>
   <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex gap-1">
     <input type="hidden" name="action" value="send_back">
     <input type="text" name="note" class="form-control form-control-sm" style="width:150px;" placeholder="Reason (optional)">
-    <button class="btn btn-outline-secondary {{ size }}">{{ send_back_label }}</button>
+    <button class="btn btn-outline-secondary {{ size }} squawk-btn">{{ send_back_label }}</button>
   </form>
 </div>
 {%- endmacro %}
@@ -143,7 +143,7 @@
   {%- endif -%}
 {%- elif can_assign -%}
 <form method="post" action="{{ url_for('project_squawk_fix_on_job', project_id=project_id, kind=sq.kind, squawk_id=sq.squawk_id) }}">
-  <button class="btn btn-danger btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Fix on this job</button>
+  <button class="btn btn-danger btn-sm squawk-btn fw-bold"><i class="bi bi-plus-lg"></i> Fix on this job</button>
 </form>
 {%- endif -%}
 {%- endmacro %}
