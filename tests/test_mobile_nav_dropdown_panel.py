@@ -6,8 +6,13 @@ header's "Manage" dropdown opening off the left edge of a phone screen: it
 was dropdown-menu-end against a toggle that used to sit mid-width in the
 full-width strip, and now sits near the true right edge of the panel. The
 shared CSS lives in static/css/style.css (`#nav.navbar-collapse` inside the
-`.navbar-expand-lg`/`.navbar-expand-xl` media queries); this just checks
-every header's markup carries the pieces that CSS depends on."""
+`.navbar-expand-lg` media query); this just checks every header's markup
+carries the pieces that CSS depends on.
+
+Idea ux-header-width-rules moved the Winds Aloft header from
+navbar-expand-xl to navbar-expand-lg too, so every header now collapses to
+the hamburger at the same ~992px breakpoint (see
+tests/test_header_width_rules.py for the icon/word/hamburger rule itself)."""
 from harness import OpsHubTestCase
 
 
@@ -28,7 +33,7 @@ class MobileNavDropdownPanelTest(OpsHubTestCase):
     def test_shop_header_uses_the_shared_panel(self):
         c = self.login("master")
         body = c.get("/shop").get_data(as_text=True)
-        self._assert_panel_ready(body, "navbar-expand-xl")
+        self._assert_panel_ready(body, "navbar-expand-lg")
         self.assertIn("bg-dark", body)
         # The "Manage" dropdown stays end-aligned - it's the toggle's own
         # position (now near the panel's right edge) that fixed the cutoff,

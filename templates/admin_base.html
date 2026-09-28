@@ -8,6 +8,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+<script defer src="{{ url_for('static', filename='js/nav-fit.js') }}"></script>
 <style>
   :root { --admin-purple: #4b3f72; --admin-purple-dk: #2f2848; }
   .admin-nav-boxed .nav-link {
@@ -31,18 +32,10 @@
     font-weight: 600;
   }
   .admin-nav-boxed .dropdown-item.active { background: #212529; color: #fff; }
-  /* Idea "header view": once the window is narrow but still wide enough to
-     keep the nav in one row (above the lg hamburger breakpoint), there isn't
-     always room for every tile's icon + label side by side, and letting the
-     tiles shrink to fit made their apparent size change with the window
-     width (see the reverted "Idea: View" commit - Frank rejected the
-     sideways-scroll fix that replaced it). Icons always stay full size;
-     instead, in that tight band, just the text label hides and the tile
-     becomes icon-only. Labels come back once there's comfortably enough
-     room again. */
-  @media (min-width: 992px) and (max-width: 1399.98px) {
-    .admin-nav-boxed .nav-label { display: none; }
-  }
+  /* QA ux-header-width-rules: this link sits outside the icon/word row (it
+     has no icon-only mode), but the row still used to shrink it enough to
+     wrap "Program Picker" onto 2 lines - keep it one line always. */
+  .admin-program-picker { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -50,7 +43,7 @@
   <div class="container-fluid">
     {% set back_fallback = url_for('admin_home') %}{% include "_back_button.html" %}
     <a class="navbar-brand fw-bold" href="{{ url_for('admin_home') }}"><i class="bi bi-shield-lock-fill"></i> Admin</a>
-    <a class="text-white-50 small d-none d-md-inline ms-1" href="{{ url_for('home_launcher') }}" title="Back to the program picker"><i class="bi bi-house-door"></i> Program Picker</a>
+    <a class="text-white-50 small d-none d-md-inline ms-1 admin-program-picker" href="{{ url_for('home_launcher') }}" title="Back to the program picker"><i class="bi bi-house-door"></i> Program Picker</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -71,7 +64,7 @@
         <div class="d-flex flex-column align-items-end">
           {% set view_as_program = 'shop' %}
           {% include "_view_as_chips.html" %}
-          <div class="dropdown">
+          <div class="dropdown admin-nav-boxed">
             <a class="nav-link dropdown-toggle text-light" href="#" id="user-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-person-circle"></i> {{ logged_in_user_name or session.get('user_name') }}
             </a>

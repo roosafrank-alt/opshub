@@ -13,6 +13,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+<script defer src="{{ url_for('static', filename='js/nav-fit.js') }}"></script>
 <style>
   {#- QA: the Manage box sat flush against the top of the navbar instead of
      level with Schedule/Active Flight/etc - its <li> is a flex sibling of
@@ -44,18 +45,6 @@
     font-weight: 600;
   }
   .flight-nav-boxed .dropdown-item.active { background: #212529; color: #fff; }
-  /* Idea "header view": once the window is narrow but still wide enough to
-     keep the nav in one row (above the lg hamburger breakpoint), there isn't
-     always room for every tile's icon + label side by side, and letting the
-     tiles shrink to fit made their apparent size change with the window
-     width (see the reverted "Idea: View" commit - Frank rejected the
-     sideways-scroll fix that replaced it). Icons always stay full size;
-     instead, in that tight band, just the text label hides and the tile
-     becomes icon-only. Labels come back once there's comfortably enough
-     room again. */
-  @media (min-width: 992px) and (max-width: 1399.98px) {
-    .flight-nav-boxed .nav-label { display: none; }
-  }
   /* Makes the "alert resolved" confirmation actually read as a banner -
      bigger, bolder, with its own shadow - instead of looking like every
      other routine "saved" flash (see the flash loop above). */
