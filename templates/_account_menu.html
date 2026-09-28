@@ -12,7 +12,10 @@
     <i class="bi bi-person-circle"></i>{% if show_name %} {{ logged_in_user_name }}{% endif %}
   </a>
   <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="{{ _menu_id }}">
-    <li><a class="dropdown-item" href="{{ url_for('account_page', from=account_from) }}"><i class="bi bi-person-gear"></i> My Account</a></li>
+    {#- Idea "name change": students see "My Settings" here (session['student_id'],
+       including a master admin previewing as a student - start_view_as sets the
+       same key) - every other role (CFI, admin, shop) keeps "My Account". #}
+    <li><a class="dropdown-item" href="{{ url_for('account_page', from=account_from) }}"><i class="bi bi-person-gear"></i> {{ 'My Settings' if session.get('student_id') else 'My Account' }}</a></li>
     {% if is_master_admin %}
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="{{ url_for('admin_home') }}"><i class="bi bi-shield-lock-fill"></i> Admin</a></li>

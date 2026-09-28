@@ -24,7 +24,9 @@
         <i class="bi bi-person-circle"></i> {{ session.get('user_name') }}
       </a>
       <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu-toggle">
-        <li><a class="dropdown-item" href="{{ url_for('account_page', from='academy') }}"><i class="bi bi-person-gear"></i> My Account</a></li>
+        {#- Idea "name change": students see "My Settings" here; a CFI/admin
+           viewing Academy (academy_access) keeps "My Account". #}
+        <li><a class="dropdown-item" href="{{ url_for('account_page', from='academy') }}"><i class="bi bi-person-gear"></i> {{ 'My Settings' if session.get('student_id') else 'My Account' }}</a></li>
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item" href="{{ url_for('logout') }}" onclick="return confirm('Log out?')"><i class="bi bi-box-arrow-right"></i> Log Out</a></li>
       </ul>

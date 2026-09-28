@@ -26,7 +26,9 @@
         <i class="bi bi-person-circle"></i> {{ session.get('user_name') }}
       </a>
       <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu-toggle">
-        <li><a class="dropdown-item" href="{{ url_for('account_page', from='academy') }}"><i class="bi bi-person-gear"></i> My Account</a></li>
+        {#- Idea "name change": students see "My Settings" here; a CFI/admin
+           viewing Academy (academy_access/is_master_admin) keeps "My Account". #}
+        <li><a class="dropdown-item" href="{{ url_for('account_page', from='academy') }}"><i class="bi bi-person-gear"></i> {{ 'My Settings' if session.get('student_id') else 'My Account' }}</a></li>
         {% if session.get('is_master_admin') %}
         <li><hr class="dropdown-divider"></li>
         <li><h6 class="dropdown-header">Admin</h6></li>
