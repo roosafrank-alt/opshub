@@ -108,11 +108,62 @@ def _owner_preview_redirect():
     return redirect(url_for("customer.customer_dashboard"))
 
 
+def refresh_or_expire_session():
+    """QA fix (qa-session-keeps-old-access): sessions last up to 180 days
+    (PERMANENT_SESSION_LIFETIME, app.py), so without this a deactivated
+    account, or one whose roles were just changed in Admin > Accounts,
+    kept its OLD access until it happened to log out and back in. Called
+    right after the existing `session.get("user_id")` check in every
+    login-gated decorator (here and in flight.py), before any role check,
+    so every protected page re-checks the signed-in account against the
+    `users` table. Does nothing (no query) when there's no signed-in
+    account. Returns a redirect response - the caller must return it
+    immediately - when the account is gone or deactivated; otherwise
+    refreshes the session's mirrored role fields from the fresh row and
+    returns None ("carry on").
+
+    Only touches the CURRENTLY ACTIVE session's mirrored fields (whatever
+    `session.get(...)` returns right now) - during "View as a person"
+    (_PERSON_VIEW_KEY) that's the person being viewed, which is exactly
+    right: it's their access that must never go stale. It deliberately
+    does NOT touch the live role fields while a role/owner preview
+    (_view_as_real, start_view_as) is active, since those are
+    intentionally showing a DIFFERENT role than the account's real one -
+    overwriting them here would silently cancel the preview on every
+    request. Instead it refreshes the _view_as_real snapshot itself, so
+    exiting the preview lands on up-to-date real roles instead of ones
+    frozen from whenever the preview started."""
+    uid = session.get("user_id")
+    if not uid:
+        return None
+    conn = get_db()
+    row = conn.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
+    conn.close()
+    if not row or not row["active"]:
+        session.clear()
+        flash("You've been signed out because this account is no longer active.", "danger")
+        return redirect(url_for("home_launcher"))
+    fresh = dict(is_master_admin=bool(row["is_master_admin"]), shop_role=row["shop_role"],
+                flight_role=row["flight_role"], can_bill=bool(row["can_bill"]))
+    preview = session.get("_view_as_real")
+    if preview is not None:
+        preview.update(fresh)
+        session["_view_as_real"] = preview
+    else:
+        session.update(fresh)
+    session["academy_access"] = bool(row["academy_access"])
+    session["groundschool_access"] = bool(row["groundschool_access"] or row["academy_access"])
+    return None
+
+
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
             return _no_access_redirect()
+        expired = refresh_or_expire_session()
+        if expired:
+            return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
         return f(*args, **kwargs)
@@ -124,6 +175,9 @@ def master_admin_required(f):
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
             return _no_access_redirect()
+        expired = refresh_or_expire_session()
+        if expired:
+            return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
         if not session.get("is_master_admin"):
@@ -151,6 +205,9 @@ def shop_role_required(*roles):
         def wrapper(*args, **kwargs):
             if not session.get("user_id"):
                 return _no_access_redirect()
+            expired = refresh_or_expire_session()
+            if expired:
+                return expired
             if _owner_preview_blocked():
                 return _owner_preview_redirect()
             if session.get("is_master_admin") or session.get("shop_role") in roles:
@@ -572,12 +629,34 @@ def single_program_endpoint():
     return None
 
 
+def _refresh_or_expire_customer_session():
+    """Same idea as refresh_or_expire_session, for the separate customer
+    portal account system (own table, own session key: customer_id).
+    There are no roles to refresh here - just whether the account is still
+    active - so it's its own small helper rather than folded into the
+    users-table one above."""
+    cid = session.get("customer_id")
+    if not cid:
+        return None
+    conn = get_db()
+    row = conn.execute("SELECT * FROM customers WHERE id = ?", (cid,)).fetchone()
+    conn.close()
+    if not row or not row["active"]:
+        session.clear()
+        flash("You've been signed out because this account is no longer active.", "danger")
+        return redirect(url_for("customer.customer_login"))
+    return None
+
+
 def customer_login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not session.get("customer_id"):
             flash("Log in to see your aircraft.", "danger")
             return redirect(url_for("customer.customer_login"))
+        expired = _refresh_or_expire_customer_session()
+        if expired:
+            return expired
         return f(*args, **kwargs)
     return wrapper
 

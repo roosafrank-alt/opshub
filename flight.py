@@ -25,7 +25,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from werkzeug.security import generate_password_hash
 
 from db import get_db, now_iso, asset_meter, maintenance_status
-from auth import authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked, view_as_active_program
+from auth import (authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked,
+                  view_as_active_program, refresh_or_expire_session)
 from pilotlog import NEXT_TRACK, TRACK_MAP
 import weather
 import adsb
@@ -1403,6 +1404,9 @@ def _owner_preview_redirect():
 def cfi_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
+        expired = refresh_or_expire_session()
+        if expired:
+            return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
         if not session.get("cfi_id"):
@@ -1415,6 +1419,15 @@ def cfi_required(f):
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
+        # No plain session.get("user_id") check here (unlike the other
+        # decorators below): this gate is on cfi_id/student_id instead, so
+        # refresh_or_expire_session runs unconditionally - it's a no-op
+        # when there's no signed-in account, and clears cfi_id/student_id
+        # along with everything else when the account has been deactivated,
+        # which the check right after still catches with its own message.
+        expired = refresh_or_expire_session()
+        if expired:
+            return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
         if not session.get("cfi_id") and not session.get("student_id"):
@@ -1431,6 +1444,9 @@ def admin_required(f):
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
             return redirect(url_for("home_launcher"))
+        expired = refresh_or_expire_session()
+        if expired:
+            return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
         if not session.get("is_master_admin"):
@@ -1447,6 +1463,9 @@ def billing_required(f):
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
             return redirect(url_for("home_launcher"))
+        expired = refresh_or_expire_session()
+        if expired:
+            return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
         if not can_manage_billing():
