@@ -12,6 +12,8 @@ be worth reading. Two things were making it lie about how much was wrong:
 Frank hit both on 2026-09-27: 11 entries in the log, 4 of them one pair of
 CrashCleanupTest's "forced crash for test" saved twice over."""
 import os
+import tempfile
+import unittest
 
 from harness import OpsHubTestCase, GC_AFTER_REQUEST
 import app as app_module
@@ -24,6 +26,28 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def _log_files():
     d = app_module.ERROR_LOG_DIR
     return sorted(n for n in os.listdir(d) if n.endswith(".log")) if os.path.isdir(d) else []
+
+
+def _clear_the_test_log():
+    """Empties the error log between tests - but ONLY once it has proved the
+    log is the harness's temp one.
+
+    Without that proof this walked the live instance/error_logs/ and deleted
+    Frank's real errors, which is exactly what it did on the Pi on
+    2026-09-28: app.py there had the fix, tests/harness.py didn't, so
+    ERROR_LOG_DIR was still the live folder and eleven saved tracebacks went
+    with it. A checkout where the harness predates the redirect must skip
+    these tests, not quietly wipe the log - the canary below is what fails
+    in that case, and it can't help if the damage is already done by the
+    time it runs."""
+    d = os.path.abspath(app_module.ERROR_LOG_DIR)
+    tmp = os.path.abspath(tempfile.gettempdir()) + os.sep
+    if not d.startswith(tmp):
+        raise unittest.SkipTest(
+            "refusing to delete anything in %s - it isn't a temp folder, so it may be the "
+            "live error log. tests/harness.py needs the ERROR_LOG_DIR redirect." % d)
+    for name in _log_files():
+        os.remove(os.path.join(d, name))
 
 
 class ErrorLogStaysOutOfTheRepoTest(OpsHubTestCase):
@@ -42,8 +66,7 @@ class OneFilePerCrashTest(OpsHubTestCase):
 
     def setUp(self):
         super().setUp()
-        for name in _log_files():
-            os.remove(os.path.join(app_module.ERROR_LOG_DIR, name))
+        _clear_the_test_log()
 
     def _crash_a_request(self):
         # Same shape as CrashCleanupTest: a trigger makes the scan's INSERT
@@ -77,8 +100,7 @@ class OneFilePerCrashTest(OpsHubTestCase):
 class ErrorLogPageTest(OpsHubTestCase):
     def setUp(self):
         super().setUp()
-        for name in _log_files():
-            os.remove(os.path.join(app_module.ERROR_LOG_DIR, name))
+        _clear_the_test_log()
         with open(os.path.join(app_module.ERROR_LOG_DIR, "2026-09-27_21-25-47-000.log"), "w") as f:
             f.write("2026-09-27 21:25:47 [ERROR] Unhandled exception on POST /api/scan: boom\n"
                     "Traceback (most recent call last):\n  ...\n")
