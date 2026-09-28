@@ -1,0 +1,32 @@
+{
+  "checks": [
+    {
+      "role": "master",
+      "size": "desktop",
+      "sql": [
+        "INSERT INTO student_notifications (student_id, category, message, created_at) VALUES ({student}, 'approval', 'Your flight was approved', datetime('now'))"
+      ],
+      "steps": [
+        ["start", "/view-as/people"],
+        ["tap", ".people-row:has-text('flight_student') button"],
+        ["start", "/flight/notifications"],
+        ["see", "Viewing as Flight Student"],
+        ["see", "New"],
+        ["see", "Your flight was approved"],
+        ["shot", {"caption": "Admin viewing as the student opens Alerts: it's shown as New here for the admin's look, but not marked read underneath.",
+                   "changed": [{"sel": ".badge.bg-success", "note": "New - shown, but this look-only visit doesn't clear it for the student"}]}]
+      ]
+    },
+    {
+      "role": "flight_student",
+      "size": "phone",
+      "steps": [
+        ["start", "/flight/notifications"],
+        ["see", "New"],
+        ["see", "Your flight was approved"],
+        ["shot", {"caption": "The student's own later visit to Alerts still shows it as New - the admin's earlier view-only peek didn't mark it read for them.",
+                   "changed": [{"sel": ".badge.bg-success", "note": "Still New for the student's own visit"}]}]
+      ]
+    }
+  ]
+}

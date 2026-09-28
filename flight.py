@@ -26,7 +26,7 @@ from werkzeug.security import generate_password_hash
 
 from db import get_db, now_iso, asset_meter, maintenance_status
 from auth import (authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked,
-                  view_as_active_program, refresh_or_expire_session)
+                   view_as_active_program, refresh_or_expire_session, person_view_active)
 from pilotlog import NEXT_TRACK, TRACK_MAP
 import weather
 import adsb
@@ -5127,7 +5127,10 @@ def my_alerts():
     review queue; this is the student-facing Alerts tab. Viewing this page
     marks everything currently unread as read (clears the banner and nav
     badge) - was_unread is captured before that update so this visit still
-    highlights what's new."""
+    highlights what's new. Except while an admin is "viewing as" this
+    student (auth.person_view_active): that's look-only, so what's new is
+    still shown here (was_unread), but nothing is actually marked read -
+    the student still sees it highlighted as new themselves later."""
     conn = get_db()
     student = current_student(conn)
     if not student:
@@ -5137,9 +5140,10 @@ def my_alerts():
     rows = conn.execute("""SELECT * FROM student_notifications WHERE student_id = ?
                            ORDER BY created_at DESC LIMIT 100""", (student["id"],)).fetchall()
     notifications = [dict(r, was_unread=not r["read_at"]) for r in rows]
-    conn.execute("UPDATE student_notifications SET read_at = ? WHERE student_id = ? AND read_at IS NULL",
-                (now_iso(), student["id"]))
-    conn.commit()
+    if not person_view_active():
+        conn.execute("UPDATE student_notifications SET read_at = ? WHERE student_id = ? AND read_at IS NULL",
+                    (now_iso(), student["id"]))
+        conn.commit()
     conn.close()
     return render_template("flight/notifications.html", notifications=notifications)
 
@@ -6031,7 +6035,16 @@ def push_unsubscribe():
 @login_required
 def push_pending():
     """Polled by the service worker when a (payload-less) push wakes it -
-    returns and clears this user's queued alerts."""
+    returns and clears this user's queued alerts. While an admin is
+    "viewing as" someone (auth.person_view_active), session["user_id"] is
+    that person's id, not the admin's own - so this has to be a no-op:
+    picking it up under the viewed person's id would clear THEIR queued
+    alerts (and hand them to the admin's device instead), and there's no
+    session id here that's safely "the admin's own real device" either.
+    Nothing is picked up or cleared for anyone until the admin goes back
+    to their own view."""
+    if person_view_active():
+        return jsonify({"alerts": []})
     conn = get_db()
     # Only the last half hour - anything older is stale (a "30 minutes
     # left" from yesterday is just noise) and is dropped instead. Alerts
