@@ -2,7 +2,7 @@
 student's own plane (the is_owner_placeholder asset behind the "Student's
 own plane" toggle - see _get_or_create_own_plane_asset in flight.py):
   - no aircraft cost at all, only instructor time, billed at the CFI's
-    Non-School Plane Rate (cfis.external_rate) instead of their usual rate
+    Students Aircraft Rate (cfis.external_rate) instead of their usual rate
   - a generic, shared "Student's Own Plane" Schedule color (one setting,
     not per-student - see _own_plane_schedule_color/own_plane_color_edit)
   - Hobbs/Tach are replaced by one "Recorded Time" box when completing the

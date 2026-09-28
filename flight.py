@@ -2706,6 +2706,7 @@ def cfi_edit(cfi_id):
         name = request.form.get("name", "").strip()
         rate_per_hour = _parse_float(request.form.get("rate_per_hour")) or 0
         pay_rate_per_hour = _parse_float(request.form.get("pay_rate_per_hour"))
+        external_rate = _parse_float(request.form.get("external_rate"))
         can_bill = 1 if request.form.get("can_bill") else 0
         active = 1 if request.form.get("active") else 0
         is_station = 1 if request.form.get("is_station") else 0
@@ -2721,8 +2722,15 @@ def cfi_edit(cfi_id):
             color = None
         if not name:
             flash("Name is required.", "danger")
+            used_colors = _used_cfi_colors(conn, cfi_id)
             conn.close()
-            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=cfi_row, used_colors=_used_cfi_colors(conn, cfi_id),
+            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=cfi_row, used_colors=used_colors,
+                                    instructor_colors=SCHEDULE_COLORS)
+        if external_rate is not None and external_rate < 0:
+            flash("Students Aircraft Rate can't be a negative number.", "danger")
+            used_colors = _used_cfi_colors(conn, cfi_id)
+            conn.close()
+            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=cfi_row, used_colors=used_colors,
                                     instructor_colors=SCHEDULE_COLORS)
         if color and color in _used_cfi_colors(conn, exclude_cfi_id=cfi_id):
             flash("That color is already taken by another instructor or a plane - pick a different one.", "danger")
@@ -2738,7 +2746,6 @@ def cfi_edit(cfi_id):
                              gender=?, {cred_cols} WHERE id=?""",
                          [name, rate_per_hour, pay_rate_per_hour, color, active, is_station, gender, *cred_vals, cfi_id])
         _log_field_change(conn, "cfi", cfi_id, "pay_rate_per_hour", cfi_row["pay_rate_per_hour"], pay_rate_per_hour, session.get("user_name"))
-        external_rate = _parse_float(request.form.get("external_rate"))
         conn.execute("UPDATE cfis SET external_rate = ? WHERE id = ?", (external_rate, cfi_id))
         _log_field_change(conn, "cfi", cfi_id, "external_rate", cfi_row["external_rate"], external_rate, session.get("user_name"))
         medical_class, medical_expires = _medical_from_form(request.form)
@@ -6842,8 +6849,8 @@ def _row_with_cost(row):
         d["plane_rate"] = row["student_sim_rate_override"] if row["student_sim_rate_override"] is not None else row["asset_sim_rate"]
     else:
         d["plane_rate"] = row["student_plane_rate_override"]
-    # Instructor time in a student's own plane bills at the CFI's Non-School
-    # Plane Rate (cfis.external_rate, set on the CFI's own profile) instead
+    # Instructor time in a student's own plane bills at the CFI's Students
+    # Aircraft Rate (cfis.external_rate, set on the CFI's own profile) instead
     # of their usual Instructor Rate, when they've set one - a student's own
     # rate override, when set, still wins over either, same as before.
     if row["asset_is_owner_placeholder"] and row["cfi_external_rate"] is not None:
