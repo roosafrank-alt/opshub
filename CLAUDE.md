@@ -47,7 +47,7 @@ get onto the Pi or run the tests, give him these exact commands.
 ## Keep the Idea Queue runner copies in step
 
 The **Idea Queue Runner** routine holds the real runner instructions in its own
-prompt. **Idea Queue Runner 17** and **Idea Queue Runner 47** (and any copy added
+prompt. **Idea Queue Runner 17**, **32** and **47** (and any copy added
 later) don't: their prompt just says to read `idea-queue/runner-instructions.md`
 from main and follow it.
 
