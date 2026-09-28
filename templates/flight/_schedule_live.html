@@ -1,7 +1,7 @@
 {#
   The schedule page's actual calendar/list content: title, view toolbar,
   Plane/Instructor filter form, the view itself (month grid / day list /
-  quarter / year / list / custom range), and the instructor-color Key.
+  year / list / custom range), and the instructor-color Key.
   Rendered two ways with the exact same context (see
   _schedule_calendar_context() in flight.py):
     1. Included directly inside schedule.html for the normal first load.
@@ -73,7 +73,7 @@
      data-log-url="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}"
      {% endif %}>
   {#- One tidy line: short time + plane (status as a small icon), then the
-     people on a second line in the full-size month/quarter grids only
+     people on a second line in the full-size month grid only
      (hidden on phones, see schedule.html). #}
   <div class="text-truncate sb-line1">
     {%- if f.needs_review_flag %}<i class="bi bi-exclamation-triangle-fill {{ 'text-danger' if f.needs_review_active else 'text-warning' }}" title="{{ 'Needs review' if f.needs_review_active else 'Needs review (acknowledged, not resolved yet)' }}"></i> {% endif -%}
@@ -508,7 +508,6 @@
     {% if view == 'day' %}{{ day_str|usdate }}
     {% elif view == 'week' %}{{ week_start_str|usdate }} - {{ week_end_str|usdate }}
     {% elif view == 'month' %}{{ month_data.month_name }} {{ month_data.year }}
-    {% elif view == 'quarter' %}{{ months_data[0].month_name }} - {{ months_data[-1].month_name }} {{ months_data[0].year }}
     {% elif view == 'year' %}{{ year }}
     {% elif view == 'list' %}{{ year }} - All Flights
     {% else %}{{ custom_start|usdate }} - {{ custom_end|usdate }}
@@ -519,10 +518,13 @@
       <a href="{{ url_for('flight.schedule_calendar', view='day', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'day' else 'btn-outline-secondary' }}">Day</a>
       <a href="{{ url_for('flight.schedule_calendar', view='week', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'week' else 'btn-outline-secondary' }}">Week</a>
       <a href="{{ url_for('flight.schedule_calendar', view='month', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'month' else 'btn-outline-secondary' }}">Month</a>
-      <a href="{{ url_for('flight.schedule_calendar', view='quarter', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'quarter' else 'btn-outline-secondary' }}">Quarter</a>
       <a href="{{ url_for('flight.schedule_calendar', view='year', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'year' else 'btn-outline-secondary' }}">Year</a>
       <a href="{{ url_for('flight.schedule_calendar', view='list', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'list' else 'btn-outline-secondary' }}">List</a>
-      <a href="{{ url_for('flight.schedule_calendar', view='custom', start=custom_start, end=custom_end, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'custom' else 'btn-outline-secondary' }}">Custom Range</a>
+      {#- "Custom Range" wraps or gets cut off on a phone-width row of six
+         buttons, so it reads as just "Range" under the sm breakpoint
+         (576px) - tablets and desktop keep the full "Custom Range". Same
+         link/behavior either way, just shorter text on the small screen. #}
+      <a href="{{ url_for('flight.schedule_calendar', view='custom', start=custom_start, end=custom_end, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'custom' else 'btn-outline-secondary' }}"><span class="d-none d-sm-inline">Custom Range</span><span class="d-inline d-sm-none">Range</span></a>
     </div>
     {#- Not one more entry in the Day/Week/Month/... group above - a
        separate button next to it, since Availability is a different kind
@@ -614,11 +616,6 @@
    timeline, and a plane's left-to-right slot is stable (alphabetical by
    tag, same order as the Planes legend) so it doesn't shuffle day to day. #}
 {{ month_table(month_data, '160px', false, layout_full=true) }}
-
-{% elif view == 'quarter' %}
-{% for md in months_data %}
-{{ month_table(md, '90px', false, 3) }}
-{% endfor %}
 
 {% elif view == 'year' %}
 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">

@@ -1357,7 +1357,10 @@ def calendar_page():
     conn = get_db()
     today = date.today()
     view = request.args.get("view", "month")
-    if view not in ("month", "quarter", "year", "list"):
+    if view not in ("month", "year", "list"):
+        # Also catches an old view=quarter link/bookmark (Quarter view was
+        # retired - see the Idea Queue "QA fix: Schedule on a phone" idea):
+        # it just opens Month instead of erroring.
         view = "month"
     try:
         year = int(request.args.get("year", today.year))
@@ -1377,14 +1380,6 @@ def calendar_page():
         months_data = [_build_month_data(conn, year, month)]
         prev_month, prev_year = (12, year - 1) if month == 1 else (month - 1, year)
         next_month, next_year = (1, year + 1) if month == 12 else (month + 1, year)
-    elif view == "quarter":
-        quarter_start = ((month - 1) // 3) * 3 + 1
-        months_data = []
-        for i in range(3):
-            m = quarter_start + i
-            months_data.append(_build_month_data(conn, year, m))
-        prev_month, prev_year = (quarter_start - 3, year) if quarter_start > 1 else (10, year - 1)
-        next_month, next_year = (quarter_start + 3, year) if quarter_start < 10 else (1, year + 1)
     elif view == "list":
         year_list = _build_year_list(conn, year)
         months_data = []

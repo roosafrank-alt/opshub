@@ -164,10 +164,31 @@
     /* Keep it compact on phones so the calendar still gets most of the screen. */
     .schedule-toolbar { padding: .4rem .75rem .4rem; margin-bottom: .6rem; }
     .schedule-toolbar h4 { font-size: 1rem; }
-    .schedule-toolbar .btn-group { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
+    /* min-width:0 is the part that actually makes max-width:100% work: a
+       flex item's default min-width is its content's natural width, so
+       without it a view-picker row too wide to fit (7 buttons, before the
+       Quarter removal below) just pushed the whole toolbar - and the page
+       - wider than the screen instead of shrinking to fit and scrolling
+       internally. That was the main cause of the Schedule page sliding
+       sideways on a phone. */
+    .schedule-toolbar .btn-group { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; min-width: 0; }
     .schedule-toolbar .form-label { font-size: .7rem; }
+    /* The other few px of sideways slide: .container-fluid's own phone
+       padding is tightened to .5rem here (see .container-fluid in
+       style.css, same breakpoint), but this toolbar's edge-to-edge bleed
+       above still assumed Bootstrap's stock .75rem gutter, so its negative
+       margin overshot the container's padding by .25rem (4px) on each
+       side. Match it here so the toolbar's edges land exactly on the
+       screen edges instead of a few px past them. overflow-x:hidden is a
+       last-resort backstop on top of that: on the very smallest phones
+       (320px) the six view buttons are still a hair too wide to shrink
+       into the space left after the toolbar's own padding, so a few px
+       bleeds past this box - hidden here keeps it from ever reaching the
+       page itself. The btn-group's own overflow-x:auto above still lets
+       someone scroll to it if that ever happens. */
+    .schedule-toolbar { margin-left: -.5rem; margin-right: -.5rem; overflow-x: hidden; }
   }
-  /* Month / quarter / year grid: the day number sits in its own header
+  /* Month / year grid: the day number sits in its own header
      strip, and blocks start below it so they never cover the date. Blocks
      are one tidy line (time + plane) plus the people line. */
   .calendar-day-cell { padding: .25rem !important; }

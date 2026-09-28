@@ -206,10 +206,15 @@ class CfiBreakCalendarTest(OpsHubTestCase):
         r = self.login("cfi").get(f"/flight/schedule?view=week&date={self.day.isoformat()}")
         self.assertEqual(200, r.status_code)
 
-    def test_schedule_quarter_page_renders_with_a_break(self):
+    def test_schedule_old_quarter_link_falls_back_to_month(self):
+        # Quarter view was retired (QA fix: Schedule on a phone) - an old
+        # view=quarter link or bookmark just opens Month instead of erroring.
         self.make_time_off()
         r = self.login("cfi").get(f"/flight/schedule?view=quarter&year={self.day.year}&month={self.day.month}")
         self.assertEqual(200, r.status_code)
+        html = r.get_data(as_text=True)
+        self.assertIn("schedule-time-off-block", html)
+        self.assertNotIn(">Quarter<", html)
 
     def test_schedule_year_page_renders_with_a_break(self):
         self.make_time_off()

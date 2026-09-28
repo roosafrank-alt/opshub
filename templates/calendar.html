@@ -4,13 +4,11 @@
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-calendar3"></i>
     {% if view == 'month' %}{{ month_name }} {{ year }}
-    {% elif view == 'quarter' %}{{ months_data[0].month_name }} - {{ months_data[-1].month_name }} {{ year }}
     {% else %}{{ year }}{% endif %}
   </h4>
   <div class="d-flex gap-2 align-items-center flex-wrap">
     <div class="btn-group btn-group-sm" role="group">
       <a href="{{ url_for('calendar_page', view='month', year=year, month=month) }}" class="btn {{ 'btn-warning' if view == 'month' else 'btn-outline-secondary' }}">Month</a>
-      <a href="{{ url_for('calendar_page', view='quarter', year=year, month=month) }}" class="btn {{ 'btn-warning' if view == 'quarter' else 'btn-outline-secondary' }}">Quarter</a>
       <a href="{{ url_for('calendar_page', view='year', year=year, month=month) }}" class="btn {{ 'btn-warning' if view == 'year' else 'btn-outline-secondary' }}">Year</a>
       <a href="{{ url_for('calendar_page', view='list', year=year, month=month) }}" class="btn {{ 'btn-warning' if view == 'list' else 'btn-outline-secondary' }}">List</a>
     </div>
@@ -80,12 +78,6 @@
 
 {% if view == 'month' %}
   {{ month_grid(months_data[0], false) }}
-{% elif view == 'quarter' %}
-  <div class="row">
-    {% for md in months_data %}
-    <div class="col-md-4">{{ month_grid(md, true) }}</div>
-    {% endfor %}
-  </div>
 {% elif view == 'list' %}
   <div class="card">
     {% for m in year_list %}

@@ -3362,7 +3362,7 @@ def _note_visibility(r):
 
 def _decorate_schedule_row(r, own_plane_color=None):
     """Common per-row computed fields (instructor color, 12h time labels)
-    shared by every schedule view - day/month/quarter/year/list/custom all
+    shared by every schedule view - day/month/year/list/custom all
     build on this so a booking looks/behaves identically no matter which
     view it's shown in.
 
@@ -4022,7 +4022,7 @@ def _build_schedule_year_list(conn, year, plane_id=None, cfi_id=None):
 
 def _schedule_calendar_context():
     """Builds the schedule calendar's template context (all views: Day,
-    Month, Quarter, Year, List, Custom Range) from the current request's
+    Month, Year, List, Custom Range) from the current request's
     query args. Shared by schedule_calendar() (the full page) and
     schedule_live() (the live-refresh fragment, see below) so a TV/kiosk
     browser left open on the Schedule page - not just the Dashboard - picks
@@ -4030,7 +4030,10 @@ def _schedule_calendar_context():
     conn = get_db()
     today = date.today()
     view = request.args.get("view", "month")
-    if view not in ("day", "week", "month", "quarter", "year", "list", "custom"):
+    if view not in ("day", "week", "month", "year", "list", "custom"):
+        # Also catches an old view=quarter link/bookmark (Quarter view was
+        # retired - see the Idea Queue "QA fix: Schedule on a phone" idea):
+        # it just opens Month instead of erroring.
         view = "month"
     # With no year/month given, the month follows the day being looked at
     # (?date=), not today - otherwise stepping from Sep 30 to Oct 1 in the
@@ -4128,12 +4131,6 @@ def _schedule_calendar_context():
         week_next = (week_start + timedelta(days=7)).strftime("%Y-%m-%d")
         prev_month, prev_year = month, year
         next_month, next_year = month, year
-    elif view == "quarter":
-        quarter_start = ((month - 1) // 3) * 3 + 1
-        for i in range(3):
-            months_data.append(_build_schedule_month(conn, year, quarter_start + i, plane_id or None, cfi_id or None))
-        prev_month, prev_year = (quarter_start - 3, year) if quarter_start > 1 else (10, year - 1)
-        next_month, next_year = (quarter_start + 3, year) if quarter_start < 10 else (1, year + 1)
     elif view == "year":
         months_data = [_build_schedule_month(conn, year, m, plane_id or None, cfi_id or None) for m in range(1, 13)]
         prev_month, prev_year = month, year - 1
@@ -4209,8 +4206,10 @@ def schedule_calendar():
     started or completed, greyed out) colored by instructor and labeled
     with plane + time, optionally filtered down to one plane or one
     instructor. Several views share this one route: Day, Week, Month
-    (default), Quarter, Year, List (grouped by month, like Maintenance's),
-    and a Custom Range someone picks by hand."""
+    (default), Year, List (grouped by month, like Maintenance's), and a
+    Custom Range someone picks by hand. (Quarter was retired - too
+    cramped to fit phone screens alongside the other views - see the Idea
+    Queue "QA fix: Schedule on a phone" idea.)"""
     return render_template("flight/schedule.html", **_schedule_calendar_context())
 
 
