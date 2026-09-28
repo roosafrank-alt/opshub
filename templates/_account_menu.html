@@ -16,11 +16,23 @@
        including a master admin previewing as a student - start_view_as sets the
        same key) - every other role (CFI, admin, shop) keeps "My Account". #}
     <li><a class="dropdown-item" href="{{ url_for('account_page', from=account_from) }}"><i class="bi bi-person-gear"></i> {{ 'My Settings' if session.get('student_id') else 'My Account' }}</a></li>
+    {#- Idea "view anybody's account": admins only. While viewing as someone
+       (view only), the menu offers the way back instead of Log Out. #}
+    {% if person_view_name %}
+    <li><hr class="dropdown-divider"></li>
+    <li><span class="dropdown-item-text small text-muted"><i class="bi bi-eye"></i> Viewing {{ person_view_name }}</span></li>
+    <li><form method="post" action="{{ url_for('view_as_person_exit') }}" class="m-0"><button type="submit" class="dropdown-item fw-bold"><i class="bi bi-arrow-return-left"></i> Back to my view</button></form></li>
+    <li><a class="dropdown-item" href="{{ url_for('view_as_people') }}"><i class="bi bi-people"></i> View someone else</a></li>
+    {% elif can_view_as_person %}
+    <li><a class="dropdown-item" href="{{ url_for('view_as_people') }}"><i class="bi bi-eye"></i> View as someone</a></li>
+    {% endif %}
     {% if is_master_admin %}
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="{{ url_for('admin_home') }}"><i class="bi bi-shield-lock-fill"></i> Admin</a></li>
     {% endif %}
+    {% if not person_view_name %}
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="{{ logout_url }}" onclick="return confirm('Log out?')"><i class="bi bi-box-arrow-right"></i> Log Out</a></li>
+    {% endif %}
   </ul>
 </div>
