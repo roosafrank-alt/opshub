@@ -2783,6 +2783,105 @@ def _found_default_labor_rate(conn=None):
     return row["est_labor_rate"] if row else None
 
 
+def _notify_owner_job_ready(conn, project):
+    """Texts/emails every owner linked to the plane that this job is done
+    and ready for pickup - same channels/settings as found items above
+    (QA finding feat-job-closeout-owner-ready). Returns how many owners
+    were reached."""
+    if not project["asset_id"]:
+        return 0
+    asset = conn.execute("SELECT tag FROM assets WHERE id = ?", (project["asset_id"],)).fetchone()
+    tag = asset["tag"] if asset else "your aircraft"
+    total = _project_all_time_total(conn, project["id"])
+    link = url_for("customer.customer_asset", asset_id=project["asset_id"], _external=True)
+    msg = f"{tag} is ready for pickup. Total ${total:.2f}. See the work done in your portal: {link}"
+    settings = notify.get_settings(conn)
+    reached = 0
+    for c in _project_owner_customers(conn, project):
+        ok_mail, _e = notify.send_email(settings, c["email"], f"{tag} is ready for pickup", msg)
+        ok_sms, _e = notify.send_sms(settings, c["phone"], msg) if c["phone"] else (False, None)
+        reached += 1 if (ok_mail or ok_sms) else 0
+    return reached
+
+
+def _project_closeout_checklist(conn, project, usage_by_section, plane_squawks, labor_sessions):
+    """What's still loose on this job, for the "Close out this job" pop-up
+    on Mark Completed (QA finding feat-job-closeout-owner-ready): each
+    applicable check is either green ("ok", nothing to do) or amber ("warn",
+    with a one-tap link/action to go fix it) - a check that doesn't apply to
+    this job (e.g. no plane attached, nothing billable) is left out
+    entirely. Reuses the data project_detail() already loaded; see
+    NOT DEPLOYED YET in the runner instructions before changing this."""
+    items = []
+
+    # Discrepancies / Sub Areas already on this job (the Parts tab list).
+    non_general = {name: data for name, data in usage_by_section.items() if name != "General"}
+    if non_general:
+        open_names = [name for name, data in non_general.items() if not data.get("completed_at")]
+        if not open_names:
+            text = (f"{next(iter(non_general))} discrepancy marked Done" if len(non_general) == 1
+                    else f"All {len(non_general)} discrepancies marked Done")
+            items.append({"status": "ok", "text": text})
+        else:
+            text = (f"{open_names[0]} discrepancy still open" if len(open_names) == 1
+                    else f"{len(open_names)} discrepancies still open: " + ", ".join(open_names[:3])
+                    + ("..." if len(open_names) > 3 else ""))
+            items.append({"status": "warn", "text": text, "anchor": "tab-parts", "action_label": "Open it"})
+
+    # This plane's open squawks (same list shown in the sidebar card).
+    if project["asset_id"]:
+        if plane_squawks:
+            for sq in plane_squawks[:3]:
+                label = (sq.get("notes") or "(no details given)").strip().replace("\n", " ")[:60]
+                items.append({"status": "warn", "text": f"Squawk still open: {label}",
+                              "anchor": f"squawk-{sq['kind']}-{sq['squawk_id']}", "action_label": "Open it"})
+            if len(plane_squawks) > 3:
+                items.append({"status": "warn", "text": f"+{len(plane_squawks) - 3} more open squawk(s)"})
+        else:
+            tag = project["asset_display_tag"] or "this plane"
+            items.append({"status": "ok", "text": f"No open squawks on {tag}"})
+
+    # Logbook entries saved against this job (logbook.py).
+    saved = conn.execute("SELECT COUNT(*) c FROM logbook_entries WHERE project_id = ? AND deleted_at IS NULL",
+                         (project["id"],)).fetchone()["c"]
+    if saved:
+        items.append({"status": "ok", "text": "Logbook entry saved"})
+    else:
+        items.append({"status": "warn", "text": "No logbook entry saved yet",
+                      "url": url_for("logbook.project_logbook", project_id=project["id"]), "action_label": "Draft it"})
+
+    # Billing (QA feat-shop-job-payments): only applies if there's anything
+    # to bill in the first place.
+    total_bill = _project_all_time_total(conn, project["id"])
+    if total_bill > 0:
+        payment_status = project["payment_status"] or "not_invoiced"
+        # period=all, since this job's billing period may not be the
+        # current month and the row has to actually be on the page for the
+        # #proj-<id> anchor to land on it.
+        billing_url = url_for("shop_billing", period="all") + f"#proj-{project['id']}"
+        if payment_status == "paid":
+            items.append({"status": "ok", "text": f"Paid in full (${total_bill:.2f})"})
+        elif payment_status == "invoiced":
+            items.append({"status": "warn", "text": f"${total_bill:.2f} invoiced, not paid yet",
+                          "url": billing_url, "action_label": "Open it"})
+        else:
+            items.append({"status": "warn", "text": f"${total_bill:.2f} not invoiced yet",
+                          "url": billing_url, "action_label": "Send invoice"})
+
+    # Who's still clocked in on this job (see the labor timer widget /
+    # /api/labor/stop for the same manual-stop fallback).
+    running = [s for s in labor_sessions if not s["ended_at"]]
+    if running:
+        names = ", ".join(sorted({s["laborer_name"] for s in running}))
+        items.append({"status": "warn", "text": f"Still clocked in: {names}",
+                      "stop_ids": [s["id"] for s in running],
+                      "action_label": "Stop timer" + ("s" if len(running) > 1 else "")})
+    else:
+        items.append({"status": "ok", "text": "No workers still clocked in"})
+
+    return items
+
+
 def _notify_owner_found_items(conn, project):
     """Texts/emails every owner linked to the plane about the found items
     still waiting on them. Returns how many owners were reached."""
@@ -3079,6 +3178,21 @@ def project_detail(project_id):
                                    WHERE ps.linked_todo_id = ?""", (t["id"],)).fetchone()
             d["link"] = dict(link) if link else None
             plane_todos_open.append(d)
+
+    # QA finding feat-job-closeout-owner-ready: what's still loose on this
+    # job, shown in the "Close out this job" pop-up on Mark Completed, plus
+    # a preview of the "Tell the owner it's ready" message it can send using
+    # the same email/text channels as Found Items above.
+    closeout_checklist = [] if project["status"] in ("completed", "archived") else \
+        _project_closeout_checklist(conn, project, usage_by_section, plane_squawks, labor_sessions)
+    owner_notify_preview = ""
+    if has_owner:
+        owner_names = [c["name"] for c in _project_owner_customers(conn, project)]
+        who = owner_names[0] if len(owner_names) == 1 else f"{owner_names[0]} +{len(owner_names) - 1} more"
+        tag = project["asset_display_tag"] or "This aircraft"
+        owner_notify_preview = (f'Email + text to {who}: "{tag} is ready for pickup. '
+                                f'Total ${_project_all_time_total(conn, project_id):.2f}. '
+                                f'See the work done in your portal."')
     conn.close()
     return render_template("project_detail.html", project=project, usage_by_section=usage_by_section,
                            total_cost=total_cost, tx=tx, all_parts=all_parts, photos=photos, open_orders=open_orders,
@@ -3086,6 +3200,7 @@ def project_detail(project_id):
                            labor_total_hours=labor_total_hours, known_sections=known_sections, intake=intake,
                            found_items=found_items, found_has_owner=has_owner, unpaid_amount=unpaid_amount,
                            plane_squawks=plane_squawks, plane_todos_open=plane_todos_open,
+                           closeout_checklist=closeout_checklist, owner_notify_preview=owner_notify_preview,
                            found_labor_rate=_found_default_labor_rate(conn=None))
 
 
@@ -3406,7 +3521,7 @@ def project_status(project_id):
     if new_status not in ("active", "completed", "on_hold", "archived"):
         abort(400)
     conn = get_db()
-    current = conn.execute("SELECT status FROM projects WHERE id = ?", (project_id,)).fetchone()
+    current = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
     if not current:
         conn.close()
         abort(404)
@@ -3426,6 +3541,17 @@ def project_status(project_id):
     conn.commit()
     if new_status == "completed":
         _record_inspection_from_project(conn, project_id)
+        # QA finding feat-job-closeout-owner-ready: "Tell the owner it's
+        # ready" checkbox on the Close out this job pop-up - same
+        # email/text channels as Found Items, no new notification channel.
+        if request.form.get("notify_owner") == "on":
+            reached = _notify_owner_job_ready(conn, current)
+            conn.execute("UPDATE projects SET ready_notified_at = ?, ready_notified_by = ? WHERE id = ?",
+                         (now_iso(), session.get("user_name"), project_id))
+            conn.commit()
+            flash("Marked completed and the owner was told it's ready." if reached else
+                  "Marked completed. The owner couldn't be texted or emailed (no owner linked to this plane, "
+                  "or email/SMS isn't set up).", "success" if reached else "warning")
     conn.close()
     return redirect(url_for("project_detail", project_id=project_id))
 

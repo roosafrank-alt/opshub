@@ -101,13 +101,18 @@ class ShopJobPaymentsTest(OpsHubTestCase):
         self.assertNotIn("Oil Change - N999", html)
 
     def test_mark_completed_warns_about_unpaid_amount(self):
+        # QA finding feat-job-closeout-owner-ready: the old plain "mark
+        # completed?" confirm was replaced by the Close out this job
+        # pop-up's checklist, which now carries this same warning.
         html = self.login("shop_admin").get(f"/projects/{self.project}").get_data(as_text=True)
-        self.assertIn("hasn&#39;t been paid yet ($170.00 owed)", html)
+        self.assertIn("Close out this job", html)
+        self.assertIn("$170.00 not invoiced yet", html)
 
     def test_mark_completed_confirm_is_plain_once_paid(self):
         c = self.login("shop_admin")
         c.post(f"/shop/billing/{self.project}/mark-invoiced", follow_redirects=True)
         c.post(f"/shop/billing/{self.project}/mark-paid", data={"paid_method": "Cash"}, follow_redirects=True)
         html = c.get(f"/projects/{self.project}").get_data(as_text=True)
-        self.assertNotIn("hasn&#39;t been paid yet", html)
-        self.assertIn("Mark this project as completed?", html)
+        self.assertNotIn("not invoiced yet", html)
+        self.assertNotIn("not paid yet", html)
+        self.assertIn("Paid in full ($170.00)", html)

@@ -1392,6 +1392,11 @@ def _migrate(conn):
         # always looked up there even after a program swaps accounts.
         ("wave_invoices", "account", "ALTER TABLE wave_invoices ADD COLUMN account INTEGER"),
         ("wave_invoices", "business_id", "ALTER TABLE wave_invoices ADD COLUMN business_id TEXT"),
+        # QA finding feat-job-closeout-owner-ready: set when "Tell the owner
+        # it's ready" on the Close out this job pop-up actually reached an
+        # owner (email or text) - see app._notify_owner_job_ready.
+        ("projects", "ready_notified_at", "ALTER TABLE projects ADD COLUMN ready_notified_at TEXT"),
+        ("projects", "ready_notified_by", "ALTER TABLE projects ADD COLUMN ready_notified_by TEXT"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)

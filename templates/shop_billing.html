@@ -41,7 +41,7 @@
       <thead class="table-light"><tr><th>Project</th><th>Aircraft</th><th>Status</th><th>Payment</th><th>Parts (sale)</th><th>Labor</th><th>Total</th><th></th></tr></thead>
       <tbody>
         {% for p in projects %}
-        <tr>
+        <tr id="proj-{{ p.id }}">
           <td class="stack-full" data-label="Project"><a href="{{ url_for('project_detail', project_id=p.id) }}"><strong>{{ p.code }}</strong></a> <small class="text-muted">{{ p.name }}</small></td>
           <td data-label="Aircraft">{{ p.asset_tag or '-' }}</td>
           <td data-label="Status"><span class="badge {{ 'bg-success' if p.status == 'completed' else ('bg-primary' if p.status == 'active' else 'bg-secondary') }}">{{ (p.status or '-')|replace('_', ' ')|title }}</span></td>
