@@ -1862,6 +1862,12 @@ def _migrate(conn):
     # standalone cron script that runs every 5 minutes independent of this
     # app, so it keeps alerting even if OpsHub itself is stuck. Shown as a
     # dashboard banner to shop admins (see dashboard()) until acknowledged.
+    # created_at/resolved_at hold LOCAL time here (db.now_iso()), because the
+    # dashboard banner prints created_at straight out with no conversion. Pass
+    # them explicitly, as pi_health.py and app.py's Acknowledge both do - the
+    # DEFAULT below is datetime('now'), which is UTC, and an existing database
+    # keeps that default whatever this CREATE says, so relying on it would
+    # store a timestamp hours off on any machine that isn't on UTC.
     conn.execute("""CREATE TABLE IF NOT EXISTS system_alerts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         message TEXT NOT NULL,
