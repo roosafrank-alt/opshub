@@ -6685,9 +6685,17 @@ def log_edit(flight_id):
             hobbs_start = hobbs_end = tach_start = tach_end = None
         else:
             recorded_hours = None
-            hobbs_start = _parse_float(request.form.get("hobbs_start"))
+            # Hobbs Start / Tach Start aren't editable on this form (see
+            # log_new.html: those boxes are disabled and have no name=, the
+            # same as the "Log a Flight" page) - the form never actually
+            # submits them, so reading them from request.form here always
+            # got None and silently nulled out the flight's starting
+            # readings on every save, zeroing its billed hours (the bug
+            # behind "changed hobbs but the bill didn't update"). Keep the
+            # flight's existing starting readings instead.
+            hobbs_start = f["hobbs_start"]
+            tach_start = f["tach_start"]
             hobbs_end = _parse_float(request.form.get("hobbs_end"))
-            tach_start = _parse_float(request.form.get("tach_start"))
             tach_end = _parse_float(request.form.get("tach_end"))
         oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
         oil_added_by = session.get("user_name") if oil_added_qt is not None else None
