@@ -4,7 +4,6 @@
 <style>
   .dash-collapse-btn[aria-expanded="true"] .bi-chevron-right { transform: rotate(90deg); }
   .dash-collapse-btn .bi-chevron-right { transition: transform .15s ease-in-out; display: inline-block; }
-  .dash-scan-btn { font-size: 1.6rem; border-radius: .6rem; }
 </style>
 
 {#- Pi temperature/throttling alerts from pi_health.py's cron job (own
@@ -68,13 +67,11 @@
 </div>
 {% endmacro %}
 
-{#- Phones: the Scan page (the shop's most-used screen) is one big thumb
-   tap from where techs land, above everything else. Desktop keeps it in
-   the top menu. Report a squawk sits right under it - reporting one used
-   to take a trip through the menu to the Squawks page first. #}
-<a href="{{ url_for('scan_page') }}" class="btn btn-warning btn-lg fw-bold w-100 py-3 mb-3 d-md-none dash-scan-btn">
-  <i class="bi bi-upc-scan"></i> Scan
-</a>
+{#- Phones: the Scan page's own shortcut is the floating Scan button
+   (base.html's mobile-scan-fab) in the lower-right corner of every page,
+   so no duplicate button is needed here. Desktop keeps Scan in the top
+   menu. Report a squawk sits at the top of the phone dashboard - reporting
+   one used to take a trip through the menu to the Squawks page first. #}
 {% if can_assign_squawks %}
 <a href="{{ url_for('squawks_list', report=1) }}#report-squawk-form" class="btn btn-outline-danger fw-bold w-100 py-2 mb-3 d-md-none">
   <i class="bi bi-flag"></i> Report a squawk
@@ -361,8 +358,9 @@
   </div>
 </div>
 
-{#- Phones already get the big Scan button at the top of the page, so this
-   one only shows on larger screens (no duplicate on mobile). #}
+{#- Phones already get the floating Scan button (base.html's
+   mobile-scan-fab), so this only shows on larger screens (no duplicate on
+   mobile). #}
 <div class="d-none d-md-grid mb-3">
   <a href="{{ url_for('scan_page') }}" class="btn btn-warning btn-lg fw-bold py-3">
     <i class="bi bi-upc-scan"></i> Go to Scan In / Out

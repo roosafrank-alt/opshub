@@ -219,8 +219,11 @@ document.addEventListener('DOMContentLoaded', function () {
 {% if not request.path.startswith('/scan') %}
 {#- Small always-visible shortcut for phones, where the Scan nav link is
    tucked inside the collapsed hamburger menu (see the d-none d-lg-block
-   above - it's hidden here on purpose so this isn't shown twice). #}
-<a href="{{ url_for('scan_page') }}" class="btn btn-warning rounded-circle d-lg-none no-print mobile-scan-fab" title="Scan"><i class="bi bi-upc-scan"></i></a>
+   above - it's hidden here on purpose so this isn't shown twice). ?cam=1
+   tells scan.html to switch straight to the Camera tab and start the
+   camera, since a phone tapping this almost always means "scan with the
+   camera", not "type a code". #}
+<a href="{{ url_for('scan_page', cam=1) }}" class="btn btn-warning rounded-circle d-lg-none no-print mobile-scan-fab" title="Scan"><i class="bi bi-upc-scan"></i></a>
 {% endif %}
 <style>
   #global-scan-toasts { position: fixed; top: .75rem; left: 50%; transform: translateX(-50%); z-index: 1085;

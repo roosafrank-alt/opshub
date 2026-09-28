@@ -603,13 +603,24 @@ document.addEventListener('click', function(e) {
   }
 });
 window.addEventListener('load', () => {
-  scanInput.focus();
   updateProjectStatus();
+  // The floating Scan button (base.html's mobile-scan-fab, the "scan icon"
+  // in the lower right on phones) links here with ?cam=1: switch straight
+  // to the Camera tab and start the camera, instead of landing on the USB
+  // tab or making them tap Start Camera themselves.
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('cam') === '1') {
+    history.replaceState({}, '', window.location.pathname);
+    const camTabBtn = document.getElementById('camera-tab-btn');
+    new bootstrap.Tab(camTabBtn).show();
+    startCameraScanner(document.getElementById('camera-start-btn'));
+  } else {
+    scanInput.focus();
+  }
   // A scan made anywhere else in the app (base.html's global USB capture)
   // lands here as ?autoscan=<code> - process it exactly like a scan made
   // directly in this page's own USB box, then scrub the URL so a refresh
   // doesn't replay it.
-  const params = new URLSearchParams(window.location.search);
   const auto = params.get('autoscan');
   if (auto) {
     history.replaceState({}, '', window.location.pathname);
@@ -942,9 +953,8 @@ function addRecent(code, label, kind) {
 }
 
 // Camera scanner (html5-qrcode) - supports many 1D/2D formats
-document.getElementById('camera-start-btn').addEventListener('click', function() {
+function startCameraScanner(btn) {
   if (cameraRunning) return;
-  const btn = this;
   btn.disabled = true;
   btn.textContent = 'Starting...';
   html5QrCode = new Html5Qrcode("reader");
@@ -977,6 +987,9 @@ document.getElementById('camera-start-btn').addEventListener('click', function()
     btn.textContent = 'Start Camera';
     alert('Could not start camera: ' + err);
   });
+}
+document.getElementById('camera-start-btn').addEventListener('click', function() {
+  startCameraScanner(this);
 });
 
 window.addEventListener('beforeunload', function () {
