@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+{#- maximum-scale=1 blocks pinch-to-zoom on the phone everywhere else in
+   Fly with Kate on purpose (it's what keeps an input field from jumping the
+   whole page when it's tapped) - a page block so the Schedule calendar can
+   override it and let a finger-pinch enlarge the lesson tiles, the way
+   Frank asked for, without loosening that guard on every other screen. #}
+{% block viewport %}<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">{% endblock %}
 <title>{% block title %}OpsHub{% endblock %}</title>
 <link rel="manifest" href="{{ url_for('static', filename='manifest-flywithkate.json') }}">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/flywithkate/apple-touch-icon.png') }}">
