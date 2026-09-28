@@ -290,10 +290,13 @@ class OwnPlaneSquawkTest(OpsHubTestCase):
         self.assertNotIn("Left mag a little rough on run-up", body)
 
     def test_end_session_note_on_simulator_is_still_a_squawk(self):
+        # Idea "sim session": a simulator has no real Hobbs/Tach either (see
+        # test_sim_session.py) - it logs recorded_hours same as a student's
+        # own plane, just still flagged as a squawk since the school does
+        # fix a broken sim.
         fid = self.start_flight(self.sim_asset)
         r = self.login("cfi").post(f"/flight/log/{fid}/end", data={
-            "hobbs_start": "10.0", "hobbs_end": "11.0", "tach_start": "10.0", "tach_end": "11.0",
-            "paid": "0", "notes": "Oil light flickered",
+            "recorded_hours": "1.0", "paid": "0", "notes": "Oil light flickered",
         })
         self.assertEqual(r.status_code, 302)
         row = self.q1("SELECT notes, squawk FROM flights WHERE id = ?", (fid,))

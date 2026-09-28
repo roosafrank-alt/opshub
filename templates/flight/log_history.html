@@ -75,7 +75,7 @@
     <div class="d-flex justify-content-between align-items-baseline">
       <span class="fw-bold text-truncate">{{ f.flight_date|usdate }} {{ f.plane_tag }}</span>
       <span class="d-flex align-items-center gap-1 flex-shrink-0 ms-2">
-        {% if f.hobbs_start is not none and f.hobbs_end is not none %}<span class="fw-bold">{{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }} hr</span>{% endif %}
+        {% if f.hobbs_start is not none and f.hobbs_end is not none %}<span class="fw-bold">{{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }} hr</span>{% elif f.asset_is_simulator and f.recorded_hours is not none %}<span class="fw-bold">{{ '%.1f'|format(f.recorded_hours) }} hr</span> <span class="text-muted small">sim</span>{% endif %}
         <i class="bi bi-chevron-right text-muted"></i>
       </span>
     </div>
@@ -113,7 +113,7 @@
           <td data-label="Plane"><a href="#" class="filter-chip text-decoration-none" data-filter="{{ f.plane_tag|lower }}">{{ f.plane_tag }}</a></td>
           <td data-label="Student"><a href="#" class="filter-chip text-decoration-none" data-filter="{{ f.student_name|lower }}">{{ f.student_name }}</a></td>
           <td data-label="Instructor">{% if f.solo %}<span class="badge bg-secondary">Solo</span>{% else %}<a href="#" class="filter-chip text-decoration-none" data-filter="{{ (f.cfi_name or '')|lower }}">{{ f.cfi_name or '-' }}</a>{% endif %}</td>
-          <td data-label="Hobbs">{% if f.hobbs_start is not none and f.hobbs_end is not none %}{{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }} hrs{% else %}-{% endif %}</td>
+          <td data-label="Hobbs">{% if f.hobbs_start is not none and f.hobbs_end is not none %}{{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }} hrs{% elif f.asset_is_simulator and f.recorded_hours is not none %}<span class="text-muted small">Sim:</span> {{ '%.1f'|format(f.recorded_hours) }} hrs{% else %}-{% endif %}</td>
           <td data-label="Tach">{% if f.tach_start is not none and f.tach_end is not none %}{{ '%.1f'|format(f.tach_end - f.tach_start) }} hrs{% else %}-{% endif %}</td>
           <td data-label="Oil Added">{% if f.oil_added_qt %}{{ '%g'|format(f.oil_added_qt) }} qt{% else %}-{% endif %}</td>
           {% if can_bill %}

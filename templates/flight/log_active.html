@@ -74,19 +74,26 @@
   {% set can_see_names = session.get('cfi_id') or session.get('is_master_admin') or (session.get('student_id') and f.student_id == session.get('student_id')) %}
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
     <div>
-      <h5 class="mb-0">{{ 'Students Aircraft' if f.asset_is_owner_placeholder else f.plane_tag }} {% if f.solo %}<span class="badge bg-secondary">Solo</span> {% endif %}{% if can_see_names %}with {{ f.student_name }}{% endif %} {% if f.paused_at %}<span class="badge bg-warning text-dark"><i class="bi bi-pause-fill"></i> Paused</span>{% endif %} {% if not f.can_end %}<span class="badge bg-light text-muted border" title="Only {% if f.solo %}the student flying solo{% else %}the assigned instructor{% endif %}, or a master admin, can pause or end this flight"><i class="bi bi-lock-fill"></i> View only</span>{% endif %}</h5>
+      <h5 class="mb-0">{{ 'Students Aircraft' if f.asset_is_owner_placeholder else f.plane_tag }} {% if f.asset_is_simulator %}<span class="badge bg-info text-dark">Sim session</span> {% endif %}{% if f.solo %}<span class="badge bg-secondary">Solo</span> {% endif %}{% if can_see_names %}with {{ f.student_name }}{% endif %} {% if f.paused_at %}<span class="badge bg-warning text-dark"><i class="bi bi-pause-fill"></i> Paused</span>{% endif %} {% if not f.can_end %}<span class="badge bg-light text-muted border" title="Only {% if f.solo %}the student flying solo{% else %}the assigned instructor{% endif %}, or a master admin, can pause or end this flight"><i class="bi bi-lock-fill"></i> View only</span>{% endif %}</h5>
       {% if can_see_names %}
       <div class="text-muted small">Student: {{ f.student_name }}{% if f.cfi_name %} &middot; {{ 'Supervising instructor' if f.solo else 'Instructor' }}: {{ f.cfi_name }}{% endif %}</div>
       {% endif %}
       <div class="text-muted small">Started {{ f.started_at }}</div>
     </div>
     <div class="text-end">
-      <div class="text-muted small">Elapsed{% if f.stopped_at %} <span class="text-danger">(clock stopped)</span>{% elif f.paused_at %} <span class="text-warning">(paused)</span>{% endif %}</div>
+      {#- A simulator runs on a stopwatch, not meters - "Session clock" says
+         so instead of the generic "Elapsed", and (while still running) a
+         line under the timer reminds the CFI that End Session fills Sim
+         Time in from it (see the Sim Time box further down). #}
+      <div class="text-muted small">{{ 'Session clock' if f.asset_is_simulator else 'Elapsed' }}{% if f.stopped_at %} <span class="text-danger">(clock stopped)</span>{% elif f.paused_at %} <span class="text-warning">(paused)</span>{% endif %}</div>
       <div class="display-6 fw-bold elapsed-timer" data-started="{{ f.started_at }}" data-paused-seconds="{{ f.paused_seconds or 0 }}"
            data-paused-at="{{ f.stopped_at or f.paused_at or '' }}"
            data-duration-hours="{{ f.scheduled_duration_hours if (f.scheduled_duration_hours is not none and not f.stopped_at) else '' }}"
            data-ack-at="{{ f.overdue_acknowledged_at or '' }}"
            data-eta-at="{{ f.eta_at or '' }}">00:00:00</div>
+      {% if f.asset_is_simulator and not f.stopped_at %}
+      <div class="text-muted small">End Session fills Sim Time in from this</div>
+      {% endif %}
     </div>
   </div>
 
@@ -96,7 +103,11 @@
      are read from there), with the same confirm step. #}
   {% if f.can_end and f.stopped_at %}
   <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 mb-2 active-flight-actions">
+    {% if f.asset_is_simulator %}
+    <span><i class="bi bi-stop-circle-fill"></i> <strong>Clock stopped</strong> at {{ f.stopped_at[11:16] }}{% if f.sim_elapsed_hours is not none %} - {{ '%.1f'|format(f.sim_elapsed_hours) }} hrs on the sim{% endif %}. Check Sim Time and paid / unpaid below to log it.</span>
+    {% else %}
     <span><i class="bi bi-stop-circle-fill"></i> <strong>Clock stopped</strong> at {{ f.stopped_at[11:16] }}. Fill in the ending Hobbs and paid / unpaid below to log it.</span>
+    {% endif %}
     <form method="post" action="{{ url_for('flight.log_restart_clock', flight_id=f.id) }}" class="mb-0"
           data-confirm="Start the clock again? The time it was stopped won't be billed." data-confirm-title="Restart Clock" data-confirm-ok="Restart clock">
       <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap"><i class="bi bi-arrow-counterclockwise"></i> Oops, restart clock</button>
@@ -110,11 +121,11 @@
     </form>
     {% if f.paused_at %}
     <form method="post" action="{{ url_for('flight.log_resume', flight_id=f.id) }}" class="d-flex flex-fill mb-0">
-      <button type="submit" class="btn btn-success fw-bold flex-fill"><i class="bi bi-play-fill"></i> Resume Flight</button>
+      <button type="submit" class="btn btn-success fw-bold flex-fill"><i class="bi bi-play-fill"></i> {{ 'Resume Session' if f.asset_is_simulator else 'Resume Flight' }}</button>
     </form>
     {% else %}
     <form method="post" action="{{ url_for('flight.log_pause', flight_id=f.id) }}" class="d-flex flex-fill mb-0">
-      <button type="submit" class="btn btn-outline-warning fw-bold flex-fill"><i class="bi bi-pause-fill"></i> Pause Flight</button>
+      <button type="submit" class="btn btn-outline-warning fw-bold flex-fill"><i class="bi bi-pause-fill"></i> {{ 'Pause Session' if f.asset_is_simulator else 'Pause Flight' }}</button>
     </form>
     {% endif %}
   </div>
@@ -128,9 +139,9 @@
      Session); when already on file they still show, read-only, above Oil
      Added so the student/CFI can check them against the plane's gauges. #}
   <details class="mb-2" open>
-    <summary class="text-muted small">{{ 'Add a note' if f.asset_is_owner_placeholder else 'Add starting info (Hobbs/Tach, oil, note)' }}</summary>
+    <summary class="text-muted small">{{ 'Add a note' if (f.asset_is_owner_placeholder or f.asset_is_simulator) else 'Add starting info (Hobbs/Tach, oil, note)' }}</summary>
     <form method="post" action="{{ url_for('flight.log_update_progress', flight_id=f.id) }}" class="row g-2 mt-1">
-      {% if not f.asset_is_owner_placeholder %}
+      {% if not f.asset_is_owner_placeholder and not f.asset_is_simulator %}
       <div class="col-6 col-md-3">
         <label class="form-label small mb-0">Hobbs Start</label>
         {% if f.hobbs_start is none %}
@@ -148,7 +159,7 @@
         {% endif %}
       </div>
       {% endif %}
-      {% if not f.asset_is_owner_placeholder %}
+      {% if not f.asset_is_owner_placeholder and not f.asset_is_simulator %}
       <div class="col-6 col-md-3">
         <label class="form-label small mb-0">Oil Added (qt)</label>
         <input type="number" step="any" name="oil_added_qt" class="form-control form-control-sm" value="{{ f.oil_added_qt if f.oil_added_qt is not none else '' }}">
@@ -243,10 +254,11 @@
      the flight the same way _flight_cost() does server-side, so there's a
      real number on screen before Paid/Amount Collected are ever touched. #}
   <form method="post" id="end-form-{{ f.id }}" action="{{ url_for('flight.log_end', flight_id=f.id) }}"
-        data-confirm="{{ 'Log this session with [[recorded_hours]] hours recorded? It moves to Flight History and gets billed.' if f.asset_is_owner_placeholder else 'Log this session with Hobbs end [[hobbs_end]]? It moves to Flight History and gets billed.' }}"
+        data-confirm="{{ 'Log this session with [[recorded_hours]] hours of sim time? It moves to Flight History and gets billed.' if f.asset_is_simulator else ('Log this session with [[recorded_hours]] hours recorded? It moves to Flight History and gets billed.' if f.asset_is_owner_placeholder else 'Log this session with Hobbs end [[hobbs_end]]? It moves to Flight History and gets billed.') }}"
         data-confirm-title="Session Complete" data-confirm-ok="Yes, log it" data-confirm-style="success"
         data-plane-rate="{{ f.plane_rate or 0 }}" data-instructor-rate="{{ f.instructor_rate or 0 }}"
-        data-solo="{{ '1' if f.solo else '' }}" data-instructor-clock-hours="{{ f.instructor_clock_hours if f.instructor_clock_hours is not none else '' }}">
+        data-solo="{{ '1' if f.solo else '' }}" data-instructor-clock-hours="{{ f.instructor_clock_hours if f.instructor_clock_hours is not none else '' }}"
+        data-sim="{{ '1' if f.asset_is_simulator else '' }}">
     {% if f.asset_is_owner_placeholder %}
     {#- A student's own plane has no real Hobbs/Tach on file - just one box
        for how long the flight actually took (see _flight_hours), billed at
@@ -257,6 +269,20 @@
         <label class="form-label small mb-0 fw-bold">Recorded Time (hrs) *</label>
         <input type="number" step="any" name="recorded_hours" id="recorded-hours-{{ f.id }}" class="form-control form-control-sm recorded-hours-input" data-flight-id="{{ f.id }}" placeholder="e.g. 1.5" required inputmode="decimal" min="0">
         <div class="form-text">Student's own plane - no Hobbs/Tach to log, just the total time this flight took.</div>
+      </div>
+    </div>
+    {% elif f.asset_is_simulator %}
+    {#- A simulator runs on a stopwatch, not meters - one box, already filled
+       in from the session clock (see _sim_elapsed_hours/flight.log_active),
+       billed at the sim's rate instead of a Hobbs-hour plane cost (see
+       _row_with_cost). Still a plain number input - the CFI can change it
+       before Session Complete. #}
+    <div class="row g-2">
+      <div class="col-6 col-md-4">
+        <label class="form-label small mb-0 fw-bold">Sim Time (hrs) *</label>
+        <input type="number" step="any" name="recorded_hours" id="recorded-hours-{{ f.id }}" class="form-control form-control-sm recorded-hours-input" data-flight-id="{{ f.id }}"
+               value="{{ '%.1f'|format(f.sim_elapsed_hours) if f.sim_elapsed_hours is not none else '' }}" placeholder="e.g. 1.5" required inputmode="decimal" min="0">
+        <div class="form-text">Filled in from the session clock{% if f.sim_elapsed_label %} ({{ f.sim_elapsed_label }}){% endif %}. Change it if needed.</div>
       </div>
     </div>
     {% else %}
@@ -296,7 +322,7 @@
     </div>
     {% endif %}
     <div class="row g-2 mt-1">
-      {% if not f.asset_is_owner_placeholder %}
+      {% if not f.asset_is_owner_placeholder and not f.asset_is_simulator %}
       <div class="col-6 col-md-4">
         <label class="form-label small mb-0">Oil Added (qt)</label>
         <input type="number" step="any" name="oil_added_qt" class="form-control form-control-sm"
@@ -310,7 +336,7 @@
         <label class="form-label small mb-0">Extra Ground Time (hrs)</label>
         <input type="number" step="any" name="ground_time_hours" class="form-control form-control-sm" placeholder="optional, billed separately">
       </div>
-      {% if not f.solo and not f.asset_is_owner_placeholder %}
+      {% if not f.solo and not f.asset_is_owner_placeholder and not f.asset_is_simulator %}
       <div class="col-6 col-md-4">
         <label class="form-label small mb-0">Solo Portion (hrs){% if f.scheduled_part_solo %} <span class="badge bg-info text-dark">booked dual + solo</span>{% endif %}</label>
         <input type="number" step="0.1" min="0" name="solo_hours" class="form-control form-control-sm" placeholder="part flown solo, if any">
@@ -1032,8 +1058,20 @@ function computeFlightTotal(fId) {
   display.querySelector('.flight-total-amount').textContent = '$' + b.total.toFixed(2);
   var breakdownEl = display.querySelector('.flight-total-breakdown');
   if (breakdownEl) {
+    var form = document.getElementById('end-form-' + fId);
+    var isSim = form && form.dataset.sim === '1';
     var isOwnPlane = !!document.getElementById('recorded-hours-' + fId);
-    var parts = [b.hobbsHours.toFixed(1) + (isOwnPlane ? ' recorded hr' : ' Hobbs hr') + (b.hobbsHours === 1 ? '' : 's')];
+    var parts;
+    if (isSim) {
+      // Spells out the rate too (and that the instructor's part comes from
+      // the clock, not this box) since Sim Time isn't a meter reading like
+      // Hobbs - there's nothing else on screen tying the number to the price.
+      var simRate = form ? (parseFloat(form.dataset.planeRate) || 0) : 0;
+      var rateLabel = simRate ? ' x $' + (simRate % 1 === 0 ? simRate.toFixed(0) : simRate.toFixed(2)) + '/hr' : '';
+      parts = [b.hobbsHours.toFixed(1) + ' sim hr' + (b.hobbsHours === 1 ? '' : 's') + rateLabel + ' (+ instructor time from the clock)'];
+    } else {
+      parts = [b.hobbsHours.toFixed(1) + (isOwnPlane ? ' recorded hr' : ' Hobbs hr') + (b.hobbsHours === 1 ? '' : 's')];
+    }
     if (b.groundHours > 0) parts.push(b.groundHours.toFixed(1) + ' ground hr' + (b.groundHours === 1 ? '' : 's'));
     breakdownEl.textContent = parts.join(' + ');
   }
@@ -1060,7 +1098,12 @@ document.querySelectorAll('form[id^="end-form-"]').forEach(function (form) {
 // the instructor can change it before logging, this just saves typing
 // what the clock already recorded.
 document.querySelectorAll('.recorded-hours-input').forEach(function (input) {
-  if (input.value) return;
+  // A simulator's box already carries a server-filled value (from the
+  // session clock - see f.sim_elapsed_hours) rather than needing this
+  // client-side autofill, but still needs the 'input' event fired so
+  // refreshCreditButton (Use Credit) picks it up on first load same as a
+  // typed value would.
+  if (input.value) { input.dispatchEvent(new Event('input')); return; }
   var card = input.closest('.card');
   var timer = card ? card.querySelector('.elapsed-timer') : null;
   var pausedAtStr = timer ? timer.getAttribute('data-paused-at') : '';
@@ -1131,7 +1174,7 @@ document.querySelectorAll('form[id^="end-form-"]').forEach(function (form) {
 var HOBBSTACH_SLACK_HOURS = 0.05;  // ~3 min - Hobbs/Tach round to a tenth, so a hair over isn't worth flagging
 document.querySelectorAll('form[id^="end-form-"]').forEach(function (form) {
   var fId = form.id.replace('end-form-', '');
-  if (document.getElementById('recorded-hours-' + fId)) return;  // own-plane flight - no Hobbs/Tach
+  if (document.getElementById('recorded-hours-' + fId)) return;  // own-plane or sim flight - no Hobbs/Tach
   var defaultConfirm = {
     text: form.getAttribute('data-confirm'),
     title: form.getAttribute('data-confirm-title'),
