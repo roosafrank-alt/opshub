@@ -255,6 +255,21 @@
   }
   .dash-shortcut-sm i { font-size: 1.15rem; }
   .dash-shortcut-sm .dash-shortcut-label { font-size: .62rem; line-height: 1.1; }
+
+  /* Phone-only compact shortcut row for a student's two shortcuts (QA
+     ux-student-dash-shortcuts): slim side-by-side buttons instead of the
+     big tiles below, matching the CFI row above so Your Next Lesson moves
+     up. sm and up keep the original tiles untouched. */
+  .dash-shortcut-row {
+    min-height: 45px;
+    padding: .4rem .6rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: .5rem;
+  }
+  .dash-shortcut-row i { font-size: 1.3rem; }
+  .dash-shortcut-row .dash-shortcut-label { font-size: .8rem; line-height: 1.1; }
 </style>
 <div id="dash-flag-toast" role="alert"></div>
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
@@ -362,8 +377,26 @@
 {% endif %}
 
 {% if student %}
-<div class="row g-3 mb-3">
-  <div class="col-6 col-md-4">
+<div class="d-sm-none row row-cols-2 g-2 mb-3">
+  <div class="col">
+    <a href="{{ url_for('flight.schedule_new') }}" class="text-decoration-none">
+      <div class="card dash-shortcut-row">
+        <i class="bi bi-calendar-plus text-warning"></i>
+        <div class="fw-bold dash-shortcut-label">Request a Flight</div>
+      </div>
+    </a>
+  </div>
+  <div class="col">
+    <a href="{{ url_for('flight.schedule_calendar') }}" class="text-decoration-none">
+      <div class="card dash-shortcut-row">
+        <i class="bi bi-calendar3 text-info"></i>
+        <div class="fw-bold dash-shortcut-label">Schedule</div>
+      </div>
+    </a>
+  </div>
+</div>
+<div class="d-none d-sm-flex row row-cols-2 row-cols-md-4 g-3 mb-3">
+  <div class="col">
     <a href="{{ url_for('flight.schedule_new') }}" class="text-decoration-none">
       <div class="card p-3 text-center">
         <i class="bi bi-calendar-plus fs-2 text-warning"></i>
@@ -371,7 +404,7 @@
       </div>
     </a>
   </div>
-  <div class="col-6 col-md-4">
+  <div class="col">
     <a href="{{ url_for('flight.schedule_calendar') }}" class="text-decoration-none">
       <div class="card p-3 text-center">
         <i class="bi bi-calendar3 fs-2 text-info"></i>
