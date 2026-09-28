@@ -46,7 +46,7 @@
         <select name="asset_id" id="plane-select" class="form-select" required>
           <option value="" disabled {% if not (form and form.get('asset_id')) and not (prefill and prefill.asset_id) %}selected{% endif %}>-- Select a plane --</option>
           {% for p in planes %}
-          <option value="{{ p.id }}" data-hobbs="{{ p.hobbs_hours if p.hobbs_hours is not none else '' }}" data-tach="{{ p.tach_hours if p.tach_hours is not none else '' }}"
+          <option value="{{ p.id }}" data-hobbs="{{ p.hobbs_hours if p.hobbs_hours is not none else '' }}" data-tach="{{ p.tach_hours if p.tach_hours is not none else '' }}" data-sim="{{ '1' if p.is_simulator else '' }}"
                   {% if (form and form.get('asset_id')|string == p.id|string) or (not form and prefill and prefill.asset_id|string == p.id|string) %}selected{% endif %}>
             {{ p.tag }}{% if p.name and p.name != p.tag %} - {{ p.name }}{% endif %}
           </option>
@@ -105,7 +105,15 @@
       </div>
     </div>
     {% else %}
-    <div class="row">
+    {#- A simulator asset (picked from the same select above) has no real
+       Hobbs/Tach either - just one Sim Time box, typed by hand here since no
+       session clock ran for a flight logged after the fact (End Session's
+       version autofills it from the clock - see log_active.html). Which of
+       these two shows is decided client-side, from the selected plane's own
+       data-sim flag (see syncAssetType() below) - a sim can appear in this
+       same picker as any other plane, and "Change" can pick a different one
+       without reloading the page. #}
+    <div class="row" id="hobbs-tach-fields">
       <div class="col-md-6 mb-3">
         <label class="form-label">Hobbs Start</label>
         <input type="text" id="hobbs-start" class="form-control" disabled>
@@ -124,18 +132,27 @@
       </div>
       <div class="form-text mt-n2 mb-2">Starting Hobbs/Tach come from the plane's last flight (or its reading on file) - not editable here.</div>
     </div>
+    <div class="row d-none" id="sim-time-field">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Sim Time (hrs)</label>
+        <input type="number" step="any" name="sim_recorded_hours" class="form-control" placeholder="e.g. 1.5" min="0" value="{{ form.get('sim_recorded_hours') if form else '' }}">
+        <div class="form-text">Simulator session - no Hobbs/Tach, just how long the session ran.</div>
+      </div>
+    </div>
     {% endif %}
     <div class="row">
-      <div class="col-md-6 mb-3">
+      {% if not is_own_plane %}
+      <div class="col-md-6 mb-3" id="oil-added-field">
         <label class="form-label">Oil Added (qt) <span class="text-muted small">(if any)</span></label>
         <input type="number" step="any" name="oil_added_qt" class="form-control" placeholder="e.g. 1" value="{{ form.get('oil_added_qt') if form else '' }}">
       </div>
+      {% endif %}
       <div class="col-md-6 mb-3">
         <label class="form-label">Ground Time (hrs) <span class="text-muted small">(billed separately at the instructor rate, no plane charge)</span></label>
         <input type="number" step="any" name="ground_time_hours" class="form-control" placeholder="e.g. 0.5" value="{{ form.get('ground_time_hours') if form else '' }}">
       </div>
     </div>
-    <div class="mb-3">
+    <div class="mb-3" id="solo-portion-field">
       <label class="form-label">Solo Portion (hrs) <span class="text-muted small">(dual lesson where the student also flew part alone - that part isn't billed for the instructor and logs as solo/PIC)</span></label>
       <input type="number" step="0.1" min="0" name="solo_hours" class="form-control" style="max-width:180px;" placeholder="e.g. 0.8" value="{{ form.get('solo_hours') if form and form.get('solo_hours') is not none else '' }}">
     </div>
@@ -161,9 +178,15 @@
       </div>
     </div>
     <div class="mb-3">
+      {% if is_own_plane %}
+      <label class="form-label">Notes</label>
+      <textarea name="notes" class="form-control" rows="3" placeholder="Leave blank if nothing to report">{{ form.get('notes') if form else '' }}</textarea>
+      <div class="form-text">Saved with this flight. The shop doesn't look after this plane, so this stays a note - it won't go to Maintenance.</div>
+      {% else %}
       <label class="form-label">Squawks / Notes <span class="text-muted small">(issues found, anything the shop should know)</span></label>
       <textarea name="notes" class="form-control" rows="3" placeholder="Leave blank if nothing to report">{{ form.get('notes') if form else '' }}</textarea>
       <div class="form-text">Anything typed here counts as a squawk - it'll show up prominently on the Maintenance side until someone acknowledges it. Leave it blank for a routine flight with nothing to flag.</div>
+      {% endif %}
     </div>
     <div class="form-check mb-2">
       <input type="checkbox" class="form-check-input" name="paid" id="paid-check" onchange="document.getElementById('paid-details').hidden = !this.checked;" {% if form and form.get('paid') %}checked{% endif %}>
@@ -250,6 +273,29 @@ if (planeSelect) {
   planeSelect.addEventListener('change', syncStartMeters);
 }
 syncStartMeters();
+// Idea "sim session": a simulator has no real Hobbs/Tach, oil or solo
+// portion - swap in the single Sim Time box and hide Oil Added/Solo Portion
+// whenever the selected plane is a sim (see data-sim on each <option>
+// above). Student's own plane has no <select> at all (is_own_plane's fields
+// are a separate, always-own-plane block above), so this only ever runs for
+// a real plane vs. a simulator.
+var hobbsTachFields = document.getElementById('hobbs-tach-fields');
+var simTimeField = document.getElementById('sim-time-field');
+var oilAddedField = document.getElementById('oil-added-field');
+var soloPortionField = document.getElementById('solo-portion-field');
+function syncAssetType() {
+  if (!planeSelect) return;
+  var opt = planeSelect.options[planeSelect.selectedIndex];
+  var isSim = opt && opt.getAttribute('data-sim') === '1';
+  if (hobbsTachFields) hobbsTachFields.classList.toggle('d-none', isSim);
+  if (simTimeField) simTimeField.classList.toggle('d-none', !isSim);
+  if (oilAddedField) oilAddedField.classList.toggle('d-none', isSim);
+  if (soloPortionField) soloPortionField.classList.toggle('d-none', isSim);
+}
+if (planeSelect) {
+  planeSelect.addEventListener('change', syncAssetType);
+}
+syncAssetType();
 document.getElementById('solo-check').addEventListener('change', function () {
   document.getElementById('cfi-select').disabled = this.checked;
 });

@@ -2,7 +2,7 @@
 student's own plane (the is_owner_placeholder asset behind the "Student's
 own plane" toggle - see _get_or_create_own_plane_asset in flight.py):
   - no aircraft cost at all, only instructor time, billed at the CFI's
-    Non-School Plane Rate (cfis.external_rate) instead of their usual rate
+    Students Aircraft Rate (cfis.external_rate) instead of their usual rate
   - a generic, shared "Student's Own Plane" Schedule color (one setting,
     not per-student - see _own_plane_schedule_color/own_plane_color_edit)
   - Hobbs/Tach are replaced by one "Recorded Time" box when completing the
@@ -247,3 +247,95 @@ class OwnPlaneCompletionTest(OpsHubTestCase):
         row = self.q1("SELECT asset_id, recorded_hours FROM flights WHERE id = ?", (fid,))
         self.assertEqual(row["asset_id"], self.own_asset)
         self.assertEqual(row["recorded_hours"], 2.3)
+
+
+class OwnPlaneSquawkTest(OpsHubTestCase):
+    """QA fix ux-own-plane-notes-to-shop: a note on a student's own plane
+    (is_owner_placeholder) is saved but never turns into a squawk, since the
+    shop doesn't look after that plane and can't open it in Maintenance. A
+    simulator note still becomes a squawk - someone at the school does fix a
+    broken sim. Covers all three places a flight's squawk flag is set:
+    log_end (End Session), _save_logged_flight (Log Flight / Schedule
+    Flight's "already complete" mode), and log_edit (editing a logged
+    flight)."""
+
+    def setUp(self):
+        super().setUp()
+        self.student = self.q1("SELECT id FROM students WHERE user_id = ?", (self.users["flight_student"]["id"],))["id"]
+        self.cfi = self.q1("SELECT id FROM cfis WHERE user_id = ?", (self.users["cfi"]["id"],))["id"]
+        conn = db.get_db()
+        self.own_asset = flight._get_or_create_own_plane_asset(conn, self.student, "N999OWN")
+        conn.commit()
+        conn.close()
+        self.sim_asset = self.exec(
+            "INSERT INTO assets (tag, name, is_flight_asset, is_simulator, created_at, updated_at) "
+            "VALUES (?,?,1,1,?,?)", ("SIM1", "Redbird", db.now_iso(), db.now_iso()))
+
+    def start_flight(self, asset_id):
+        return self.exec(
+            "INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, solo, started_at, stopped_at, created_at) "
+            "VALUES (?,?,?,?,0,?,?,?)",
+            (self.cfi, self.student, asset_id, date.today().isoformat(), db.now_iso(), db.now_iso(), db.now_iso()))
+
+    def test_end_session_note_on_own_plane_is_saved_but_not_a_squawk(self):
+        fid = self.start_flight(self.own_asset)
+        r = self.login("cfi").post(f"/flight/log/{fid}/end", data={
+            "recorded_hours": "1.5", "paid": "0", "notes": "Left mag a little rough on run-up",
+        })
+        self.assertEqual(r.status_code, 302)
+        row = self.q1("SELECT notes, squawk FROM flights WHERE id = ?", (fid,))
+        self.assertEqual(row["notes"], "Left mag a little rough on run-up")
+        self.assertEqual(row["squawk"], 0)
+        body = self.login("shop_admin").get("/squawks").get_data(as_text=True)
+        self.assertNotIn("Left mag a little rough on run-up", body)
+
+    def test_end_session_note_on_simulator_is_still_a_squawk(self):
+        # Idea "sim session": a simulator has no real Hobbs/Tach either (see
+        # test_sim_session.py) - it logs recorded_hours same as a student's
+        # own plane, just still flagged as a squawk since the school does
+        # fix a broken sim.
+        fid = self.start_flight(self.sim_asset)
+        r = self.login("cfi").post(f"/flight/log/{fid}/end", data={
+            "recorded_hours": "1.0", "paid": "0", "notes": "Oil light flickered",
+        })
+        self.assertEqual(r.status_code, 302)
+        row = self.q1("SELECT notes, squawk FROM flights WHERE id = ?", (fid,))
+        self.assertEqual(row["squawk"], 1)
+        body = self.login("shop_admin").get("/squawks").get_data(as_text=True)
+        self.assertIn("Oil light flickered", body)
+
+    def test_log_flight_note_on_own_plane_is_not_a_squawk(self):
+        r = self.login("cfi").post("/flight/log/new", data={
+            "own_plane": "1", "student_id": str(self.student), "cfi_id": str(self.cfi),
+            "flight_date": date.today().isoformat(), "recorded_hours": "1.2", "paid": "",
+            "notes": "Cracked windscreen, owner aware",
+        })
+        self.assertEqual(r.status_code, 302)
+        row = self.q1("SELECT squawk FROM flights WHERE student_id = ? AND asset_id = ?", (self.student, self.own_asset))
+        self.assertEqual(row["squawk"], 0)
+
+    def test_log_flight_note_on_a_real_plane_is_still_a_squawk(self):
+        real_asset = self.make_asset("N123")
+        self.exec("UPDATE assets SET is_flight_asset = 1 WHERE id = ?", (real_asset,))
+        r = self.login("cfi").post("/flight/log/new", data={
+            "asset_id": str(real_asset), "student_id": str(self.student), "cfi_id": str(self.cfi),
+            "flight_date": date.today().isoformat(), "hobbs_end": "101.0", "paid": "",
+            "notes": "Left brake soft",
+        })
+        self.assertEqual(r.status_code, 302)
+        row = self.q1("SELECT squawk FROM flights WHERE asset_id = ?", (real_asset,))
+        self.assertEqual(row["squawk"], 1)
+
+    def test_editing_an_own_plane_flight_note_does_not_become_a_squawk(self):
+        fid = self.exec(
+            "INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, solo, recorded_hours, ended_at, created_at) "
+            "VALUES (?,?,?,?,0,?,?,?)",
+            (self.cfi, self.student, self.own_asset, date.today().isoformat(), 1.0, db.now_iso(), db.now_iso()))
+        r = self.login("cfi").post(f"/flight/log/{fid}/edit", data={
+            "student_id": str(self.student), "cfi_id": str(self.cfi), "own_plane": "1",
+            "flight_date": date.today().isoformat(), "recorded_hours": "2.3", "paid": "",
+            "notes": "Added a note after the fact",
+        })
+        self.assertEqual(r.status_code, 302)
+        row = self.q1("SELECT squawk FROM flights WHERE id = ?", (fid,))
+        self.assertEqual(row["squawk"], 0)

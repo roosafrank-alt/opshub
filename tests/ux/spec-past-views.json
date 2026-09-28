@@ -1,0 +1,43 @@
+{
+  "checks": [
+    {
+      "role": "flight_student", "size": "phone",
+      "sql": ["UPDATE assets SET is_flight_asset = 1 WHERE id = {asset}",
+              "UPDATE scheduled_flights SET scheduled_date = '2026-09-25', scheduled_time = '09:00', duration_hours = 1.5, status = 'completed' WHERE id = {sched}"],
+      "steps": [
+        ["start", "/flight/schedule/availability?view=day&date=2026-09-25&mode=calendar"],
+        ["see", "Past"],
+        ["shot", {"caption": "Student's Availability view: a past slot shows Past, not Booked, even though it was booked",
+                   "changed": [{"sel": ".avail-slot-past", "note": "Past - not Booked, even though a flight was booked here"}]}]
+      ]
+    },
+    {
+      "role": "cfi", "size": "desktop",
+      "steps": [
+        ["start", "/flight/schedule/availability?view=day&date=2026-09-25&mode=calendar"],
+        ["see", "Booked"],
+        ["shot", {"caption": "CFI's Availability view is unaffected: still sees Booked for a past slot",
+                   "focus": ".avail-slot-booked"}]
+      ]
+    },
+    {
+      "role": "flight_student", "size": "phone",
+      "steps": [
+        ["start", "/flight/schedule?view=month"],
+        ["see", "9:00a"],
+        ["shot", {"caption": "Student's Schedule (Month view): their own past flight still shows in full",
+                   "focus": "td[data-add-url*='2026-09-25']", "pad": 30,
+                   "changed": [{"sel": ".schedule-block-mine", "note": "Own past flight - full detail kept, not hidden"}]}]
+      ]
+    },
+    {
+      "role": "cfi", "size": "desktop",
+      "steps": [
+        ["start", "/flight/schedule?view=month"],
+        ["see", "9:00a"],
+        ["shot", {"caption": "CFI's Schedule (Month view) is unaffected: still sees full detail for a past flight",
+                   "focus": ".schedule-block[data-date=\"2026-09-25\"]"}]
+      ]
+    }
+  ]
+}

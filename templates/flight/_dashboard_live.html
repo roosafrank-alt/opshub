@@ -665,22 +665,6 @@
 </div>
 {% endif %}
 
-{% if student and not student.is_station %}
-<div class="row g-3 mb-3">
-  <div class="col-6 col-md-4">
-    <div class="card p-3 text-center h-100 justify-content-center">
-      <div class="text-uppercase small text-muted">Time Since Last Flight</div>
-      <div class="fs-3 fw-bold {{ 'text-danger' if solo_currency and not solo_currency.ok else 'text-success' }}">
-        {{ last_flight_ago or 'No flights yet' }}
-      </div>
-      {% if solo_currency and not solo_currency.ok %}
-      <div class="small text-danger"><i class="bi bi-exclamation-triangle-fill"></i> CFI checkout needed to solo</div>
-      {% endif %}
-    </div>
-  </div>
-</div>
-{% endif %}
-
 {#
   Merged schedule: today's board (status-aware, CFI/admin only) followed by
   each future day that has a booking, as rows of small clickable "chips" -
@@ -989,7 +973,19 @@
 
 <div class="card p-3">
   <button type="button" class="dash-collapse-toggle d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0" data-collapse="recent">
-    <h6 class="mb-0">{% if cfi and dash_scope != 'mine' %}Recent Flights (Whole School){% else %}Your Recent Flights{% endif %}</h6>
+    <div>
+      <h6 class="mb-0">{% if cfi and dash_scope != 'mine' %}Recent Flights (Whole School){% else %}Your Recent Flights{% endif %}</h6>
+      {#- QA ux-student-last-flight-box: replaces the old half-width "Time
+         Since Last Flight" tile above - same last_flight_ago/solo_currency
+         data, shown as one small line right under the heading it's about
+         instead of its own mostly-empty box. Student's own view only, same
+         condition the old tile used. #}
+      {% if student and not student.is_station and last_flight_ago %}
+      <div class="small last-flew-line {{ 'text-danger' if solo_currency and not solo_currency.ok else 'text-success' }}">
+        <i class="bi bi-clock-history"></i> Last flew: {{ last_flight_ago|replace('Today', 'today') }}{% if solo_currency and not solo_currency.ok %} &middot; CFI checkout needed to solo{% endif %}
+      </div>
+      {% endif %}
+    </div>
     <span class="d-flex align-items-center gap-2">
       <span class="badge bg-secondary fs-6">{{ recent_flights|length }}</span>
       <i class="bi bi-chevron-right dash-collapse-chevron"></i>

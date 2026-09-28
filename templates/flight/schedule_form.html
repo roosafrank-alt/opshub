@@ -63,7 +63,7 @@
              wherever their tag happens to fall alphabetically among the
              real planes. #}
           {% for p in planes|sort(attribute='is_simulator') %}
-          <option value="{{ p.id }}" data-hobbs="{{ p.hobbs_hours if p.hobbs_hours is not none else '' }}" data-tach="{{ p.tach_hours if p.tach_hours is not none else '' }}" data-solo-allowed="{{ '1' if p.solo_allowed else '' }}" {% if (form and form.get('asset_id')|string == p.id|string) or (not form and sched and sched.asset_id == p.id) or (not form and not sched and prefill_asset_id and prefill_asset_id == p.id|string) %}selected{% endif %}>{{ p.tag }}{% if p.name and p.name != p.tag %} - {{ p.name }}{% endif %}</option>
+          <option value="{{ p.id }}" data-hobbs="{{ p.hobbs_hours if p.hobbs_hours is not none else '' }}" data-tach="{{ p.tach_hours if p.tach_hours is not none else '' }}" data-solo-allowed="{{ '1' if p.solo_allowed else '' }}" data-sim="{{ '1' if p.is_simulator else '' }}" {% if (form and form.get('asset_id')|string == p.id|string) or (not form and sched and sched.asset_id == p.id) or (not form and not sched and prefill_asset_id and prefill_asset_id == p.id|string) %}selected{% endif %}>{{ p.tag }}{% if p.name and p.name != p.tag %} - {{ p.name }}{% endif %}</option>
           {% endfor %}
         </select>
         <div id="plane-buttons" class="d-flex flex-wrap gap-1"></div>
@@ -78,7 +78,7 @@
         <div class="form-check form-switch mt-2">
           <input type="checkbox" class="form-check-input" role="switch" name="own_plane" id="own-plane-check" value="1"
                  {% if (form and form.get('own_plane')) or (not form and sched_is_own_plane) %}checked{% endif %}>
-          <label class="form-check-label" for="own-plane-check">Student's own plane</label>
+          <label class="form-check-label" for="own-plane-check">Students Aircraft</label>
         </div>
         <div id="own-plane-n-number-wrap" class="mt-1 d-none">
           <input type="text" name="own_plane_n_number" id="own-plane-n-number" class="form-control form-control-sm" placeholder="N-number (optional)" maxlength="10"
@@ -315,7 +315,7 @@
     </div>
     {#- Student's own plane has no real Hobbs/Tach to log - just the one
        recorded-time box (see _flight_hours/_row_with_cost), billed at the
-       CFI's Non-School Plane Rate instead of a per-Hobbs-hour plane cost
+       CFI's Students Aircraft Rate instead of a per-Hobbs-hour plane cost
        (there isn't one). Toggled by the same "Student's own plane" switch
        as the Plane field above - see updateOwnPlane() below. #}
     <div class="row d-none" id="recorded-hours-field">
@@ -325,8 +325,20 @@
         <div class="form-text">Student's own plane - no Hobbs/Tach on file, just the total time this flight took.</div>
       </div>
     </div>
-    <div class="row">
+    {#- A simulator (picked from the same plane buttons above) has no real
+       Hobbs/Tach either - just one Sim Time box, typed by hand here since no
+       session clock ran for a flight logged after the fact. Toggled by the
+       picked plane's own data-sim flag - see updateOwnPlane() below, which
+       despite its name now also handles this. #}
+    <div class="row d-none" id="sim-hours-field">
       <div class="col-md-6 mb-3">
+        <label class="form-label">Sim Time (hrs)</label>
+        <input type="number" step="any" name="sim_recorded_hours" class="form-control" placeholder="e.g. 1.5" min="0" value="{{ form.get('sim_recorded_hours', '') if form else '' }}">
+        <div class="form-text">Simulator session - no Hobbs/Tach, just how long the session ran.</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-3" id="oil-added-field">
         <label class="form-label">Oil Added (qt) <span class="text-muted small">(if any)</span></label>
         <input type="number" step="any" name="oil_added_qt" class="form-control" placeholder="e.g. 1" value="{{ form.get('oil_added_qt', '') if form else '' }}">
       </div>
@@ -335,7 +347,7 @@
         <input type="number" step="any" name="ground_time_hours" class="form-control" placeholder="e.g. 0.5" value="{{ form.get('ground_time_hours', '') if form else '' }}">
       </div>
     </div>
-    <div class="mb-3">
+    <div class="mb-3" id="solo-portion-field">
       <label class="form-label">Solo Portion (hrs) <span class="text-muted small">(dual lesson where the student also flew part alone - that part isn't billed for the instructor and logs as solo/PIC)</span></label>
       <input type="number" step="0.1" min="0" name="solo_hours" class="form-control" style="max-width:180px;" placeholder="e.g. 0.8" value="{{ form.get('solo_hours', '') if form else '' }}">
     </div>
@@ -361,9 +373,9 @@
       </div>
     </div>
     <div class="mb-3">
-      <label class="form-label">Squawks / Notes <span class="text-muted small">(issues found, anything the shop should know)</span></label>
+      <label class="form-label" id="log-notes-label">Squawks / Notes <span class="text-muted small">(issues found, anything the shop should know)</span></label>
       <textarea name="log_notes" class="form-control" rows="3" placeholder="Leave blank if nothing to report">{{ form.get('log_notes', '') if form else '' }}</textarea>
-      <div class="form-text">Anything typed here counts as a squawk - it'll show up on the Maintenance side until someone acknowledges it.</div>
+      <div class="form-text" id="log-notes-help">Anything typed here counts as a squawk - it'll show up on the Maintenance side until someone acknowledges it.</div>
     </div>
     <div class="form-check mb-2">
       <input type="checkbox" class="form-check-input" name="paid" id="paid-check" onchange="document.getElementById('paid-details').hidden = !this.checked;" {% if form and form.get('paid') %}checked{% endif %}>
@@ -749,16 +761,41 @@
   var ownPlaneWrap = document.getElementById('own-plane-n-number-wrap');
   var hobbsTachFields = document.getElementById('hobbs-tach-fields');
   var recordedHoursField = document.getElementById('recorded-hours-field');
+  var simHoursField = document.getElementById('sim-hours-field');
+  var oilAddedField = document.getElementById('oil-added-field');
+  var soloPortionField = document.getElementById('solo-portion-field');
+  var logNotesLabel = document.getElementById('log-notes-label');
+  var logNotesHelp = document.getElementById('log-notes-help');
   if (ownPlaneCheck && ownPlaneWrap) {
     var updateOwnPlane = function () {
       var checked = ownPlaneCheck.checked;
       wrap.classList.toggle('d-none', checked);
       ownPlaneWrap.classList.toggle('d-none', !checked);
       wrap.classList.remove('is-invalid-group');
-      if (hobbsTachFields) hobbsTachFields.classList.toggle('d-none', checked);
+      // A simulator (like a student's own plane) has no real Hobbs/Tach,
+      // takes no oil, and flies no "solo portion" - just one Sim Time box,
+      // typed by hand here since no session clock ran for a flight logged
+      // after the fact (End Session's version autofills it from the clock -
+      // see log_active.html).
+      var selOpt = sel.options[sel.selectedIndex];
+      var isSim = !checked && selOpt && selOpt.getAttribute('data-sim') === '1';
+      if (hobbsTachFields) hobbsTachFields.classList.toggle('d-none', checked || isSim);
       if (recordedHoursField) recordedHoursField.classList.toggle('d-none', !checked);
+      if (simHoursField) simHoursField.classList.toggle('d-none', !isSim);
+      if (oilAddedField) oilAddedField.classList.toggle('d-none', checked || isSim);
+      if (soloPortionField) soloPortionField.classList.toggle('d-none', isSim);
+      // A student's own plane isn't looked after by the shop, so a note
+      // typed here stays a plain note instead of becoming a squawk (see
+      // flight.py's _save_logged_flight) - the label/help text says so. A
+      // simulator still goes to Squawks, same as a real plane.
+      if (logNotesLabel) logNotesLabel.innerHTML = checked ? 'Notes'
+        : 'Squawks / Notes <span class="text-muted small">(issues found, anything the shop should know)</span>';
+      if (logNotesHelp) logNotesHelp.textContent = checked
+        ? "Saved with this flight. The shop doesn't look after this plane, so this stays a note - it won't go to Maintenance."
+        : "Anything typed here counts as a squawk - it'll show up on the Maintenance side until someone acknowledges it.";
     };
     ownPlaneCheck.addEventListener('change', updateOwnPlane);
+    sel.addEventListener('change', updateOwnPlane);
     updateOwnPlane();
   }
 })();

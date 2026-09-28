@@ -1,5 +1,14 @@
 {% extends "flight/base_flight.html" %}
 {% block title %}Schedule - OpsHub{% endblock %}
+{#- Idea "Calendar": let a finger-pinch on the phone (or a trackpad
+   pinch/Ctrl+scroll on a computer) zoom in on the calendar so each lesson
+   tile - and its time/plane/student text - gets bigger and easier to read,
+   instead of staying locked at the small size that fits everything on
+   screen at once. Every other Fly with Kate screen keeps maximum-scale=1
+   (see base_flight.html), since it's what stops a tapped input field from
+   jumping the whole page; this is the one screen where reading a tile
+   matters more than that guard. #}
+{% block viewport %}<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">{% endblock %}
 {% block content %}
 {#- The pilot badge CSS is injected once here (not inside _schedule_live.html,
    which the live-refresh poll below swaps wholesale) so it survives every

@@ -21,11 +21,12 @@ import json
 import re
 import secrets
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, Response, current_app, abort
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, Response, current_app, abort, has_request_context
 from werkzeug.security import generate_password_hash
 
 from db import get_db, now_iso, asset_meter, maintenance_status
-from auth import authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked, view_as_active_program
+from auth import (authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked,
+                   view_as_active_program, refresh_or_expire_session, person_view_active)
 from pilotlog import NEXT_TRACK, TRACK_MAP
 import weather
 import adsb
@@ -643,6 +644,40 @@ def _flight_hours(f):
     if f["tach_start"] is not None and f["tach_end"] is not None:
         return max(0.0, f["tach_end"] - f["tach_start"])
     return 0.0
+
+
+def _sim_elapsed_seconds(f):
+    """Raw session-clock seconds (Start Session to End Session, minus any
+    paused time) for a simulator flight whose clock has already been stopped
+    but isn't logged yet - the same started_at/stopped_at/paused_seconds math
+    as log_end's instructor_clock_hours. None if the clock hasn't been
+    stopped yet - there's nothing to show."""
+    if not f["stopped_at"]:
+        return None
+    started = datetime.strptime(f["started_at"], "%Y-%m-%d %H:%M:%S")
+    stopped = datetime.strptime(f["stopped_at"], "%Y-%m-%d %H:%M:%S")
+    return max(0.0, (stopped - started).total_seconds() - (f["paused_seconds"] or 0))
+
+
+def _sim_elapsed_hours(f):
+    """Session-clock hours, rounded to the NEAREST tenth of an hour (not
+    rounded up like billed hours - see _round_up_hours) per the idea: 1:16 on
+    the clock becomes 1.3 - used to pre-fill the End Session form's Sim Time
+    box before Session Complete is pressed. None if the clock hasn't stopped."""
+    seconds = _sim_elapsed_seconds(f)
+    return None if seconds is None else round(seconds / 3600.0 + 1e-9, 1)
+
+
+def _sim_elapsed_label(f):
+    """The session clock's stopped time as 'H:MM', matching what the
+    Elapsed/Session clock timer itself showed - used in the End Session
+    form's helper text (Sim Time was 'filled in from the session clock
+    (1:16)'). None if the clock hasn't stopped."""
+    seconds = _sim_elapsed_seconds(f)
+    if seconds is None:
+        return None
+    total_minutes = int(seconds // 60)
+    return f"{total_minutes // 60}:{total_minutes % 60:02d}"
 
 
 def _get_or_create_own_plane_asset(conn, student_id, n_number=None):
@@ -1369,6 +1404,9 @@ def _owner_preview_redirect():
 def cfi_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
+        expired = refresh_or_expire_session()
+        if expired:
+            return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
         if not session.get("cfi_id"):
@@ -1381,6 +1419,15 @@ def cfi_required(f):
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
+        # No plain session.get("user_id") check here (unlike the other
+        # decorators below): this gate is on cfi_id/student_id instead, so
+        # refresh_or_expire_session runs unconditionally - it's a no-op
+        # when there's no signed-in account, and clears cfi_id/student_id
+        # along with everything else when the account has been deactivated,
+        # which the check right after still catches with its own message.
+        expired = refresh_or_expire_session()
+        if expired:
+            return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
         if not session.get("cfi_id") and not session.get("student_id"):
@@ -1397,6 +1444,9 @@ def admin_required(f):
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
             return redirect(url_for("home_launcher"))
+        expired = refresh_or_expire_session()
+        if expired:
+            return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
         if not session.get("is_master_admin"):
@@ -1413,6 +1463,9 @@ def billing_required(f):
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
             return redirect(url_for("home_launcher"))
+        expired = refresh_or_expire_session()
+        if expired:
+            return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
         if not can_manage_billing():
@@ -2706,6 +2759,7 @@ def cfi_edit(cfi_id):
         name = request.form.get("name", "").strip()
         rate_per_hour = _parse_float(request.form.get("rate_per_hour")) or 0
         pay_rate_per_hour = _parse_float(request.form.get("pay_rate_per_hour"))
+        external_rate = _parse_float(request.form.get("external_rate"))
         can_bill = 1 if request.form.get("can_bill") else 0
         active = 1 if request.form.get("active") else 0
         is_station = 1 if request.form.get("is_station") else 0
@@ -2721,8 +2775,15 @@ def cfi_edit(cfi_id):
             color = None
         if not name:
             flash("Name is required.", "danger")
+            used_colors = _used_cfi_colors(conn, cfi_id)
             conn.close()
-            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=cfi_row, used_colors=_used_cfi_colors(conn, cfi_id),
+            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=cfi_row, used_colors=used_colors,
+                                    instructor_colors=SCHEDULE_COLORS)
+        if external_rate is not None and external_rate < 0:
+            flash("Students Aircraft Rate can't be a negative number.", "danger")
+            used_colors = _used_cfi_colors(conn, cfi_id)
+            conn.close()
+            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=cfi_row, used_colors=used_colors,
                                     instructor_colors=SCHEDULE_COLORS)
         if color and color in _used_cfi_colors(conn, exclude_cfi_id=cfi_id):
             flash("That color is already taken by another instructor or a plane - pick a different one.", "danger")
@@ -2738,7 +2799,6 @@ def cfi_edit(cfi_id):
                              gender=?, {cred_cols} WHERE id=?""",
                          [name, rate_per_hour, pay_rate_per_hour, color, active, is_station, gender, *cred_vals, cfi_id])
         _log_field_change(conn, "cfi", cfi_id, "pay_rate_per_hour", cfi_row["pay_rate_per_hour"], pay_rate_per_hour, session.get("user_name"))
-        external_rate = _parse_float(request.form.get("external_rate"))
         conn.execute("UPDATE cfis SET external_rate = ? WHERE id = ?", (external_rate, cfi_id))
         _log_field_change(conn, "cfi", cfi_id, "external_rate", cfi_row["external_rate"], external_rate, session.get("user_name"))
         medical_class, medical_expires = _medical_from_form(request.form)
@@ -3460,6 +3520,29 @@ def _schedule_rows(conn, date_from, date_to, plane_id=None, cfi_id=None, include
     return out
 
 
+def _hide_other_students_past_flights(rows):
+    """Idea "past views": a plain student viewer's Schedule calendar
+    (Day/Week/Month/Quarter/Year - see _build_schedule_day and
+    _build_schedule_month below) should show nothing on an already-past day
+    except that student's own flights. Filtering the rows here, before the
+    Day/Month timeline layout runs, means another student's past booking
+    (or a CFI break, which never belongs to a student) doesn't even reserve
+    a "Past" placeholder box or count toward a day's "+N more" - the day
+    just reads as empty. CFI/admin viewers, and anything not in the past,
+    are untouched; a student's own past flights stay exactly as they were
+    (see the matching is_mine check in _schedule_live.html). _build_schedule_month
+    is also called directly (no request/session) by a few tests and by any
+    future non-request caller - outside a request there's no viewer to
+    filter for, so rows pass through unchanged."""
+    if not has_request_context():
+        return rows
+    my_student_id = session.get("student_id")
+    if not my_student_id or session.get("cfi_id") or session.get("is_master_admin"):
+        return rows
+    today_str = date.today().strftime("%Y-%m-%d")
+    return [r for r in rows if r["scheduled_date"] >= today_str or r.get("student_id") == my_student_id]
+
+
 def _build_schedule_month(conn, year, month, plane_id=None, cfi_id=None, plane_order=None):
     """One month's schedule grid: weeks of day-numbers plus a by_day map of
     that day's scheduled flights, each colored by instructor and labeled
@@ -3478,7 +3561,9 @@ def _build_schedule_month(conn, year, month, plane_id=None, cfi_id=None, plane_o
     month_end = f"{year:04d}-{month:02d}-{days_in_month:02d}"
 
     by_day = {d: [] for d in range(1, days_in_month + 1)}
-    for r in _schedule_rows(conn, month_start, month_end, plane_id, cfi_id, include_pending=True, include_time_off=True):
+    month_rows = _hide_other_students_past_flights(
+        _schedule_rows(conn, month_start, month_end, plane_id, cfi_id, include_pending=True, include_time_off=True))
+    for r in month_rows:
         day = int(r["scheduled_date"][8:10])
         by_day.setdefault(day, []).append(r)
 
@@ -3624,7 +3709,8 @@ def _layout_month_cell_timeline(flights, plane_order,
 
 def _build_schedule_day(conn, date_str, plane_id=None, cfi_id=None):
     """A single day's flights, sorted by time - the Day view."""
-    return _schedule_rows(conn, date_str, date_str, plane_id, cfi_id, include_pending=True, include_time_off=True)
+    rows = _schedule_rows(conn, date_str, date_str, plane_id, cfi_id, include_pending=True, include_time_off=True)
+    return _hide_other_students_past_flights(rows)
 
 
 # The Availability view's window: 8am-8pm sliced into 1.5-hour slots - the
@@ -5041,7 +5127,10 @@ def my_alerts():
     review queue; this is the student-facing Alerts tab. Viewing this page
     marks everything currently unread as read (clears the banner and nav
     badge) - was_unread is captured before that update so this visit still
-    highlights what's new."""
+    highlights what's new. Except while an admin is "viewing as" this
+    student (auth.person_view_active): that's look-only, so what's new is
+    still shown here (was_unread), but nothing is actually marked read -
+    the student still sees it highlighted as new themselves later."""
     conn = get_db()
     student = current_student(conn)
     if not student:
@@ -5051,9 +5140,10 @@ def my_alerts():
     rows = conn.execute("""SELECT * FROM student_notifications WHERE student_id = ?
                            ORDER BY created_at DESC LIMIT 100""", (student["id"],)).fetchall()
     notifications = [dict(r, was_unread=not r["read_at"]) for r in rows]
-    conn.execute("UPDATE student_notifications SET read_at = ? WHERE student_id = ? AND read_at IS NULL",
-                (now_iso(), student["id"]))
-    conn.commit()
+    if not person_view_active():
+        conn.execute("UPDATE student_notifications SET read_at = ? WHERE student_id = ? AND read_at IS NULL",
+                    (now_iso(), student["id"]))
+        conn.commit()
     conn.close()
     return render_template("flight/notifications.html", notifications=notifications)
 
@@ -5717,9 +5807,18 @@ def log_active():
         # in) - the End Session form needs the two rates as data-* so its own
         # JS can total the price live as Hobbs/ground/solo are typed,
         # instead of only finding out the total once Log Flight is pressed.
-        flights.append(dict(_row_with_cost(r), can_end=_can_end_flight(r), can_ack=_can_ack_overdue(r),
+        row_cost = _row_with_cost(r)
+        # A simulator's clock is what fills in Sim Time on the End Session
+        # form (see _sim_elapsed_hours) - computed here, before the form is
+        # even submitted, so it can show up already filled in rather than
+        # only being known once log_end runs the same math server-side.
+        is_sim_row = bool(row_cost.get("asset_is_simulator"))
+        sim_elapsed_hours = _sim_elapsed_hours(r) if is_sim_row else None
+        sim_elapsed_label = _sim_elapsed_label(r) if is_sim_row else None
+        flights.append(dict(row_cost, can_end=_can_end_flight(r), can_ack=_can_ack_overdue(r),
                             session_status=_session_status(r), eta_label=eta_label,
-                            eta_affected=affected.get(r["id"], [])))
+                            eta_affected=affected.get(r["id"], []), sim_elapsed_hours=sim_elapsed_hours,
+                            sim_elapsed_label=sim_elapsed_label))
     # Still-flying flights above ones whose clock has already been stopped
     # and are just waiting on End Session's form to be filled in and
     # submitted - those two states used to interleave by start time, mixing
@@ -5936,7 +6035,16 @@ def push_unsubscribe():
 @login_required
 def push_pending():
     """Polled by the service worker when a (payload-less) push wakes it -
-    returns and clears this user's queued alerts."""
+    returns and clears this user's queued alerts. While an admin is
+    "viewing as" someone (auth.person_view_active), session["user_id"] is
+    that person's id, not the admin's own - so this has to be a no-op:
+    picking it up under the viewed person's id would clear THEIR queued
+    alerts (and hand them to the admin's device instead), and there's no
+    session id here that's safely "the admin's own real device" either.
+    Nothing is picked up or cleared for anyone until the admin goes back
+    to their own view."""
+    if person_view_active():
+        return jsonify({"alerts": []})
     conn = get_db()
     # Only the last half hour - anything older is stale (a "30 minutes
     # left" from yesterday is just noise) and is dropped instead. Alerts
@@ -6105,10 +6213,25 @@ def log_update_progress(flight_id):
         conn.close()
         flash("Only the assigned instructor, the student (on a solo flight), or a master admin can update this flight. (The Maintenance Admin role does not count - ask a master admin to check the 'Master Admin' box for that account.)", "danger")
         return redirect(url_for("flight.log_active"))
-    hobbs_start = _parse_float(request.form.get("hobbs_start")) if f["hobbs_start"] is None else f["hobbs_start"]
-    tach_start = _parse_float(request.form.get("tach_start")) if f["tach_start"] is None else f["tach_start"]
-    oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
-    oil_added_by = session.get("user_name") if oil_added_qt is not None else None
+    asset = conn.execute("SELECT is_owner_placeholder, is_simulator FROM assets WHERE id = ?", (f["asset_id"],)).fetchone()
+    is_own_plane = bool(asset and asset["is_owner_placeholder"])
+    is_sim = bool(asset and asset["is_simulator"])
+    if is_sim:
+        # A simulator has no Hobbs/Tach or oil to fill in here - the form no
+        # longer offers those boxes for one (see log_active.html), and anything
+        # sent for them is ignored rather than saved.
+        hobbs_start = f["hobbs_start"]
+        tach_start = f["tach_start"]
+        oil_added_qt = f["oil_added_qt"]
+        oil_added_by = f["oil_added_by"]
+    else:
+        hobbs_start = _parse_float(request.form.get("hobbs_start")) if f["hobbs_start"] is None else f["hobbs_start"]
+        tach_start = _parse_float(request.form.get("tach_start")) if f["tach_start"] is None else f["tach_start"]
+        # A student's own plane never tracks Oil Added (no Maintenance page or
+        # oil history for it - see the "own-plane oil" QA fix), regardless of
+        # what's posted.
+        oil_added_qt = None if is_own_plane else _parse_float(request.form.get("oil_added_qt"))
+        oil_added_by = session.get("user_name") if oil_added_qt is not None else None
     notes = request.form.get("notes", "").strip()
     conn.execute("UPDATE flights SET hobbs_start=?, tach_start=?, oil_added_qt=?, oil_added_by=?, notes=? WHERE id=?",
                  (hobbs_start, tach_start, oil_added_qt, oil_added_by, notes, flight_id))
@@ -6191,15 +6314,20 @@ def log_end(flight_id):
         return redirect(url_for("flight.log_active"))
 
     back = url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}"
-    asset = conn.execute("SELECT is_owner_placeholder FROM assets WHERE id = ?", (f["asset_id"],)).fetchone()
+    asset = conn.execute("SELECT is_owner_placeholder, is_simulator FROM assets WHERE id = ?", (f["asset_id"],)).fetchone()
     is_own_plane = bool(asset and asset["is_owner_placeholder"])
-    if is_own_plane:
-        # No real Hobbs/Tach to read on a student's own plane - just how
-        # long the flight actually took (see _flight_hours/_row_with_cost).
+    # A simulator has no real Hobbs/Tach either - like a student's own plane,
+    # it logs a single "how long did it take" number (recorded_hours - see
+    # _flight_hours/_row_with_cost), but pre-filled from the session clock
+    # instead of typed by hand (see _sim_elapsed_hours / log_active.html's
+    # Sim Time box) - the CFI can still change it before Session Complete.
+    is_sim = bool(asset and asset["is_simulator"])
+    if is_own_plane or is_sim:
         recorded_hours = _parse_float(request.form.get("recorded_hours"))
         if recorded_hours is None or recorded_hours <= 0:
             conn.close()
-            flash("Enter the recorded flight time to log the flight.", "danger")
+            flash("Enter the recorded flight time to log the flight." if is_own_plane
+                  else "Enter the sim time to log the flight.", "danger")
             return redirect(back)
         hobbs_start = hobbs_end = tach_start = tach_end = None
     else:
@@ -6247,11 +6375,26 @@ def log_end(flight_id):
             return redirect(back)
         card_last4, card_charge_id = charged
 
-    oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
-    oil_added_by = session.get("user_name") if oil_added_qt is not None else None
+    # Oil may already have been logged mid-flight (log_update_progress) - only
+    # overwrite it if End Session actually typed a new value, same fallback
+    # rule as hobbs_start/tach_start above, so leaving this blank here can't
+    # clobber an entry already on file. A student's own plane and a simulator
+    # never track oil at all (no Maintenance page or oil history for either -
+    # see the "own-plane oil" and Redbird sim QA fixes), regardless of what's
+    # posted.
+    oil_added_qt = None if (is_own_plane or is_sim) else _parse_float(request.form.get("oil_added_qt"))
+    if oil_added_qt is None:
+        oil_added_qt = f["oil_added_qt"]
+        oil_added_by = f["oil_added_by"]
+    else:
+        oil_added_by = session.get("user_name")
     ground_time_hours = _parse_float(request.form.get("ground_time_hours"))
     notes = request.form.get("notes", "").strip()
-    squawk = 1 if notes else 0
+    # A student's own plane isn't looked after by the shop and can't be
+    # opened in Maintenance, so its notes stay plain notes instead of
+    # becoming a New Squawk someone has to spot and dismiss by hand. A
+    # simulator still goes to Squawks - the school does fix a broken sim.
+    squawk = 1 if notes and not is_own_plane else 0
     day_landings_fs = _parse_int(request.form.get("day_landings_fs"))
     day_landings_tg = _parse_int(request.form.get("day_landings_tg"))
     night_landings_fs = _parse_int(request.form.get("night_landings_fs"))
@@ -6288,9 +6431,11 @@ def log_end(flight_id):
         conn.execute("UPDATE scheduled_flights SET status = 'completed' WHERE id = ?", (f["scheduled_flight_id"],))
     # Auto-deduct now that the flight is actually complete (Hobbs/Tach end,
     # elapsed instructor time, etc. are all in) - see log_new for the other
-    # completion path (logged after the fact in one step).
+    # completion path (logged after the fact in one step). No such thing as
+    # a "solo portion" of a sim session (see is_sim above) - the form no
+    # longer offers the box, and anything sent for it is ignored.
     conn.execute("UPDATE flights SET solo_hours = ? WHERE id = ?",
-                 (_solo_hours_from_form(request.form, f["solo"]), flight_id))
+                 (None if is_sim else _solo_hours_from_form(request.form, f["solo"]), flight_id))
     ended_row = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (flight_id,)).fetchone()
     cost = _row_with_cost(ended_row) if ended_row else None
     credit_applied = 0.0
@@ -6494,13 +6639,21 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
     is_own_plane = bool(form.get("own_plane") and student_id)
     if is_own_plane:
         asset_id = _get_or_create_own_plane_asset(conn, int(student_id), form.get("own_plane_n_number", ""))
+    # A simulator has no real Hobbs/Tach either - like a student's own plane
+    # it logs a single "how long did it take" box (recorded_hours), but typed
+    # by hand here (see sim_recorded_hours in log_new.html/schedule_form.html)
+    # since no session clock ran for a flight logged after the fact.
+    is_sim = False
+    if asset_id and not is_own_plane:
+        sim_row = conn.execute("SELECT is_simulator FROM assets WHERE id = ?", (asset_id,)).fetchone()
+        is_sim = bool(sim_row and sim_row["is_simulator"])
     solo = 1 if form.get("solo") else 0
     cfi_id = None if solo else (form.get("cfi_id") or session["cfi_id"])
     flight_date = form.get(date_field, "").strip() or date.today().strftime("%Y-%m-%d")
-    if is_own_plane:
-        # No real Hobbs/Tach for a student's own plane - just the one
-        # recorded-time box (see _flight_hours/_row_with_cost).
-        recorded_hours = _parse_float(form.get("recorded_hours"))
+    if is_own_plane or is_sim:
+        # No real Hobbs/Tach for a student's own plane or a simulator - just
+        # the one recorded-time box (see _flight_hours/_row_with_cost).
+        recorded_hours = _parse_float(form.get("sim_recorded_hours") if is_sim else form.get("recorded_hours"))
         hobbs_start = hobbs_end = tach_start = tach_end = None
     else:
         recorded_hours = None
@@ -6515,7 +6668,12 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
         tach_start = plane_row["tach_hours"] if plane_row else None
         hobbs_end = _parse_float(form.get("hobbs_end"))
         tach_end = _parse_float(form.get("tach_end"))
-    oil_added_qt = _parse_float(form.get("oil_added_qt"))
+    # A student's own plane and a simulator never track Oil Added (no
+    # Maintenance page or oil history for either - see the "own-plane oil"
+    # and Redbird sim QA fixes) - ignore it even if a stale value is sitting
+    # in a hidden field (schedule_form.html's own-plane toggle just hides the
+    # box rather than removing it).
+    oil_added_qt = None if (is_own_plane or is_sim) else _parse_float(form.get("oil_added_qt"))
     oil_added_by = session.get("user_name") if oil_added_qt is not None else None
     ground_time_hours = _parse_float(form.get("ground_time_hours"))
     notes = form.get(notes_field, "").strip()
@@ -6525,8 +6683,10 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
     night_landings_fs = _parse_int(form.get("night_landings_fs"))
     night_landings_tg = _parse_int(form.get("night_landings_tg"))
     # Any note is treated as a squawk needing shop attention - no
-    # separate checkbox to remember to tick.
-    squawk = 1 if notes else 0
+    # separate checkbox to remember to tick. Except a student's own plane:
+    # the shop doesn't look after it and can't open it in Maintenance, so
+    # its notes stay plain notes (a simulator still goes to Squawks).
+    squawk = 1 if notes and not is_own_plane else 0
     paid = 1 if form.get("paid") else 0
     payment_method = (form.get("payment_method") or "").strip()[:40] or None
     payment_amount = max(0.0, _parse_float(form.get("payment_amount")) or 0.0)
@@ -6536,6 +6696,8 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
         return "Select a plane and a student."
     if is_own_plane and (recorded_hours is None or recorded_hours <= 0):
         return "Enter the recorded flight time."
+    if is_sim and (recorded_hours is None or recorded_hours <= 0):
+        return "Enter the sim time to log the flight."
     if hobbs_end is not None and hobbs_start is not None and hobbs_end < hobbs_start:
         return "Ending Hobbs can't be less than starting Hobbs."
 
@@ -6565,7 +6727,8 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
     # a flight is what "completes" it for billing purposes, whether it
     # was entered after the fact (here) or ended via the Active Flight
     # clock (see log_end).
-    conn.execute("UPDATE flights SET solo_hours = ? WHERE id = ?", (_solo_hours_from_form(form, solo), new_flight_id))
+    conn.execute("UPDATE flights SET solo_hours = ? WHERE id = ?",
+                 (None if is_sim else _solo_hours_from_form(form, solo), new_flight_id))
     # Guest (no profile): the name typed on the form, else the booking's.
     guest_name, _guest_phone, _guest_email = _guest_fields(conn, form, student_id)
     if not guest_name and scheduled_flight_id:
@@ -6713,11 +6876,19 @@ def log_edit(flight_id):
             asset_id = _get_or_create_own_plane_asset(conn, int(student_id))
         else:
             asset_id = request.form.get("asset_id") or None
+        # A simulator has no real Hobbs/Tach either - like a student's own
+        # plane it logs a single "how long did it take" box, typed by hand
+        # (see sim_recorded_hours in log_new.html) since no session clock is
+        # available for an already-logged flight being edited.
+        is_sim = False
+        if asset_id and not is_own_plane:
+            sim_row = conn.execute("SELECT is_simulator FROM assets WHERE id = ?", (asset_id,)).fetchone()
+            is_sim = bool(sim_row and sim_row["is_simulator"])
         solo = 1 if request.form.get("solo") else 0
         cfi_id = None if solo else (request.form.get("cfi_id") or None)
         flight_date = request.form.get("flight_date", "").strip() or f["flight_date"]
-        if is_own_plane:
-            recorded_hours = _parse_float(request.form.get("recorded_hours"))
+        if is_own_plane or is_sim:
+            recorded_hours = _parse_float(request.form.get("sim_recorded_hours") if is_sim else request.form.get("recorded_hours"))
             hobbs_start = hobbs_end = tach_start = tach_end = None
         else:
             recorded_hours = None
@@ -6733,15 +6904,24 @@ def log_edit(flight_id):
             tach_start = f["tach_start"]
             hobbs_end = _parse_float(request.form.get("hobbs_end"))
             tach_end = _parse_float(request.form.get("tach_end"))
-        oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
-        oil_added_by = session.get("user_name") if oil_added_qt is not None else None
+        # A simulator takes no oil at all - the form no longer offers the
+        # box, and anything sent for it is ignored rather than saved.
+        if is_sim:
+            oil_added_qt = None
+            oil_added_by = None
+        else:
+            oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
+            oil_added_by = session.get("user_name") if oil_added_qt is not None else None
         ground_time_hours = _parse_float(request.form.get("ground_time_hours"))
         notes = request.form.get("notes", "").strip()
         day_landings_fs = _parse_int(request.form.get("day_landings_fs"))
         day_landings_tg = _parse_int(request.form.get("day_landings_tg"))
         night_landings_fs = _parse_int(request.form.get("night_landings_fs"))
         night_landings_tg = _parse_int(request.form.get("night_landings_tg"))
-        squawk = 1 if notes else 0
+        # A student's own plane isn't looked after by the shop, so its notes
+        # stay plain notes instead of a New Squawk (a simulator still goes
+        # to Squawks) - see _save_logged_flight for the same rule.
+        squawk = 1 if notes and not is_own_plane else 0
         paid = 1 if request.form.get("paid") else 0
 
         if not asset_id or not student_id:
@@ -6750,6 +6930,10 @@ def log_edit(flight_id):
             return render_template("flight/log_new.html", form=request.form, edit_flight_id=flight_id, **form_kwargs)
         if is_own_plane and (recorded_hours is None or recorded_hours <= 0):
             flash("Enter the recorded flight time.", "danger")
+            conn.close()
+            return render_template("flight/log_new.html", form=request.form, edit_flight_id=flight_id, **form_kwargs)
+        if is_sim and (recorded_hours is None or recorded_hours <= 0):
+            flash("Enter the sim time to log the flight.", "danger")
             conn.close()
             return render_template("flight/log_new.html", form=request.form, edit_flight_id=flight_id, **form_kwargs)
         if hobbs_end is not None and hobbs_start is not None and hobbs_end < hobbs_start:
@@ -6770,7 +6954,7 @@ def log_edit(flight_id):
             conn.execute("UPDATE assets SET tach_hours = ?, tach_updated_at = ? WHERE id = ? AND (tach_hours IS NULL OR tach_hours <= ?)",
                          (tach_end, now_iso(), asset_id, tach_end))
         conn.execute("UPDATE flights SET solo_hours = ? WHERE id = ?",
-                     (_solo_hours_from_form(request.form, solo), flight_id))
+                     (None if is_sim else _solo_hours_from_form(request.form, solo), flight_id))
         conn.execute("UPDATE flights SET guest_name = ? WHERE id = ?",
                      (_guest_fields(conn, request.form, student_id)[0], flight_id))
         edited_row = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (flight_id,)).fetchone()
@@ -6789,6 +6973,7 @@ def log_edit(flight_id):
         "asset_id": f["asset_id"], "student_id": f["student_id"], "cfi_id": f["cfi_id"], "solo": f["solo"],
         "flight_date": f["flight_date"], "hobbs_start": f["hobbs_start"], "hobbs_end": f["hobbs_end"],
         "tach_start": f["tach_start"], "tach_end": f["tach_end"], "recorded_hours": f["recorded_hours"],
+        "sim_recorded_hours": f["recorded_hours"],
         "oil_added_qt": f["oil_added_qt"],
         "ground_time_hours": f["ground_time_hours"], "notes": f["notes"], "paid": f["paid"],
         "day_landings_fs": f["day_landings_fs"], "day_landings_tg": f["day_landings_tg"],
@@ -6834,8 +7019,8 @@ def _row_with_cost(row):
         d["plane_rate"] = row["student_sim_rate_override"] if row["student_sim_rate_override"] is not None else row["asset_sim_rate"]
     else:
         d["plane_rate"] = row["student_plane_rate_override"]
-    # Instructor time in a student's own plane bills at the CFI's Non-School
-    # Plane Rate (cfis.external_rate, set on the CFI's own profile) instead
+    # Instructor time in a student's own plane bills at the CFI's Students
+    # Aircraft Rate (cfis.external_rate, set on the CFI's own profile) instead
     # of their usual Instructor Rate, when they've set one - a student's own
     # rate override, when set, still wins over either, same as before.
     if row["asset_is_owner_placeholder"] and row["cfi_external_rate"] is not None:

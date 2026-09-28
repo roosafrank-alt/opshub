@@ -4,7 +4,6 @@
 <style>
   .dash-collapse-btn[aria-expanded="true"] .bi-chevron-right { transform: rotate(90deg); }
   .dash-collapse-btn .bi-chevron-right { transition: transform .15s ease-in-out; display: inline-block; }
-  .dash-scan-btn { font-size: 1.6rem; border-radius: .6rem; }
 </style>
 
 {#- Pi temperature/throttling alerts from pi_health.py's cron job (own
@@ -68,13 +67,11 @@
 </div>
 {% endmacro %}
 
-{#- Phones: the Scan page (the shop's most-used screen) is one big thumb
-   tap from where techs land, above everything else. Desktop keeps it in
-   the top menu. Report a squawk sits right under it - reporting one used
-   to take a trip through the menu to the Squawks page first. #}
-<a href="{{ url_for('scan_page') }}" class="btn btn-warning btn-lg fw-bold w-100 py-3 mb-3 d-md-none dash-scan-btn">
-  <i class="bi bi-upc-scan"></i> Scan
-</a>
+{#- Phones: the Scan page's own shortcut is the floating Scan button
+   (base.html's mobile-scan-fab) in the lower-right corner of every page,
+   so no duplicate button is needed here. Desktop keeps Scan in the top
+   menu. Report a squawk sits at the top of the phone dashboard - reporting
+   one used to take a trip through the menu to the Squawks page first. #}
 {% if can_assign_squawks %}
 <a href="{{ url_for('squawks_list', report=1) }}#report-squawk-form" class="btn btn-outline-danger fw-bold w-100 py-2 mb-3 d-md-none">
   <i class="bi bi-flag"></i> Report a squawk
@@ -132,8 +129,11 @@
 <div class="alert alert-danger border-danger border-2 mb-3 squawk-alert">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="alert-heading mb-0"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} New Squawk{{ 's' if open_squawks|length != 1 }}{{ ' - Pick Who Fixes Them' if can_assign_squawks else ' (for your info)' }}</h5>
-    <a href="{{ url_for('squawks_list') }}" class="btn btn-outline-danger btn-sm fw-bold">
-      <span class="d-none d-md-inline">View All</span><span class="d-md-none">{{ 'See all ' ~ open_squawks|length if open_squawks|length > 2 else 'View All' }}</span></a>
+    {#- Idea ux-button-text-wrap: same wording on phone and desktop now
+       ("See all N", or "View All" when there's nothing more to see) -
+       used to say "View All" on desktop but "See all N" on phones.
+       text-nowrap/flex-shrink-0 keep it on one line next to the heading. #}
+    <a href="{{ url_for('squawks_list') }}" class="btn btn-outline-danger btn-sm fw-bold text-nowrap flex-shrink-0">{{ 'See all ' ~ open_squawks|length if open_squawks|length > 2 else 'View All' }}</a>
   </div>
   {% for sq in open_squawks[:5] %}
   {#- On phones only the 2 newest show, so the stat boxes and recent
@@ -358,8 +358,9 @@
   </div>
 </div>
 
-{#- Phones already get the big Scan button at the top of the page, so this
-   one only shows on larger screens (no duplicate on mobile). #}
+{#- Phones already get the floating Scan button (base.html's
+   mobile-scan-fab), so this only shows on larger screens (no duplicate on
+   mobile). #}
 <div class="d-none d-md-grid mb-3">
   <a href="{{ url_for('scan_page') }}" class="btn btn-warning btn-lg fw-bold py-3">
     <i class="bi bi-upc-scan"></i> Go to Scan In / Out
@@ -409,7 +410,7 @@
               <td><a href="{{ url_for('part_detail', part_id=p.id) }}">{{ p.name }}</a><br><small class="text-muted">{{ p.barcode }}</small></td>
               <td>{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
               <td>{{ '%g'|format(p.reorder_point) }} {{ p.unit }}</td>
-              <td><a href="{{ url_for('scan_page') }}" class="btn btn-sm btn-outline-primary">Scan In</a></td>
+              <td><a href="{{ url_for('scan_page') }}" class="btn btn-sm btn-outline-primary text-nowrap">Scan In</a></td>
             </tr>
             {% endfor %}
           </tbody>

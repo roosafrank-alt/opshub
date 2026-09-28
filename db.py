@@ -1321,7 +1321,7 @@ def _migrate(conn):
         # A flight in a student's own plane (see _get_or_create_own_plane_asset
         # in flight.py) has no real Hobbs/Tach to read - there's just one
         # recorded time box for how long the flight actually took, billed at
-        # the CFI's Non-School Plane Rate (cfis.external_rate) instead of the
+        # the CFI's Students Aircraft Rate (cfis.external_rate) instead of the
         # usual Hobbs/Tach-derived hours. NULL for every other flight.
         ("flights", "recorded_hours", "ALTER TABLE flights ADD COLUMN recorded_hours REAL"),
         # A plane to-do's checkbox no longer completes it outright - same

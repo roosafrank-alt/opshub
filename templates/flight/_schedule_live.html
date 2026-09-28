@@ -23,11 +23,18 @@
 {% set is_mine = session.get('student_id') and f.student_id == session.get('student_id') %}
 {% set today_str_pb = today.strftime('%Y-%m-%d') if today is defined and today else '' %}
 {% set is_past_block = today_str_pb and f.scheduled_date < today_str_pb %}
-{% set hide_past_detail = is_past_block and not (session.get('cfi_id') or session.get('is_master_admin')) %}
+{% set hide_past_detail = is_past_block and not is_mine and not (session.get('cfi_id') or session.get('is_master_admin')) %}
 {#- Students never get to see what a PAST slot held (booked or not, whose
    it was, what plane) - only that it's in the past - so the shop's
-   historical busyness isn't visible to them. See hide_past_detail below
-   and the matching block in day_timeline_block()/month_lane_block()/
+   historical busyness isn't visible to them. A student's OWN past flight
+   is the one exception (see is_mine above): idea "past views" wants those
+   kept on the calendar exactly as normal, not anonymized - the other
+   student's past bookings this same query might still include have
+   already been dropped entirely before this macro ever runs (see
+   _hide_other_students_past_flights in flight.py), so this hide_past_detail
+   branch below is really only reached for CFI breaks and any other
+   student's flight that slipped through on a non-Schedule-calendar view.
+   See the matching block in day_timeline_block()/month_lane_block()/
    schedule_row(). CFI/admin viewers are unaffected. #}
 {% if hide_past_detail %}
 <div class="d-block small mb-1 px-1 rounded text-center {{ extra_class }}"
@@ -99,7 +106,7 @@
 {% set is_mine = session.get('student_id') and f.student_id == session.get('student_id') %}
 {% set today_str_pb = today.strftime('%Y-%m-%d') if today is defined and today else '' %}
 {% set is_past_block = today_str_pb and f.scheduled_date < today_str_pb %}
-{% set hide_past_detail = is_past_block and not (session.get('cfi_id') or session.get('is_master_admin')) %}
+{% set hide_past_detail = is_past_block and not is_mine and not (session.get('cfi_id') or session.get('is_master_admin')) %}
 {#- See the matching comment in schedule_block() above. #}
 {% if hide_past_detail %}
 <div class="d-block small px-1 rounded day-timeline-block text-center d-flex align-items-center justify-content-center"
@@ -164,7 +171,7 @@
 {% set is_mine = session.get('student_id') and f.student_id == session.get('student_id') %}
 {% set today_str_pb = today.strftime('%Y-%m-%d') if today is defined and today else '' %}
 {% set is_past_block = today_str_pb and f.scheduled_date < today_str_pb %}
-{% set hide_past_detail = is_past_block and not (session.get('cfi_id') or session.get('is_master_admin')) %}
+{% set hide_past_detail = is_past_block and not is_mine and not (session.get('cfi_id') or session.get('is_master_admin')) %}
 {#- See the matching comment in schedule_block() above. #}
 {% if hide_past_detail %}
 <div class="d-block small px-1 rounded month-lane-block text-center d-flex align-items-center justify-content-center"

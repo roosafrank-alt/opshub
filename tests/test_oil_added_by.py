@@ -58,6 +58,30 @@ class OilAddedByTest(OpsHubTestCase):
         self.assertEqual(row["oil_added_qt"], 2.0)
         self.assertEqual(row["oil_added_by"], "Cfi")
 
+    def test_end_session_keeps_mid_flight_oil_when_form_blank(self):
+        # Idea "adding oil": oil added mid-flight (log_update_progress) must
+        # survive End Session even when its form doesn't send a new
+        # oil_added_qt (blank field, or no field at all) - it used to get
+        # overwritten back to NULL, losing the earlier entry.
+        flight_id = self.start_flight()
+        c = self.login("cfi")
+        c.post(f"/flight/log/{flight_id}/update_progress", data=dict(oil_added_qt="1", notes=""))
+        c.post(f"/flight/log/{flight_id}/end", data=dict(
+            hobbs_end="502.0", tach_end="481.5", oil_added_qt="", paid="0"))
+        row = self.flight_row(flight_id)
+        self.assertEqual(row["oil_added_qt"], 1.0)
+        self.assertEqual(row["oil_added_by"], "Cfi")
+
+    def test_end_session_can_still_replace_mid_flight_oil(self):
+        flight_id = self.start_flight()
+        c = self.login("cfi")
+        c.post(f"/flight/log/{flight_id}/update_progress", data=dict(oil_added_qt="1", notes=""))
+        c.post(f"/flight/log/{flight_id}/end", data=dict(
+            hobbs_end="502.0", tach_end="481.5", oil_added_qt="2.5", paid="0"))
+        row = self.flight_row(flight_id)
+        self.assertEqual(row["oil_added_qt"], 2.5)
+        self.assertEqual(row["oil_added_by"], "Cfi")
+
     # ----- Log a Flight (after the fact) ----------------------------------
     def test_log_new_tags_who_entered_oil(self):
         c = self.login("cfi")

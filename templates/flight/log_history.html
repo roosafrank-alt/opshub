@@ -24,19 +24,49 @@
     white-space: nowrap;
   }
   .flight-compact-tags .badge { font-weight: 600; }
+  .history-search-icon {
+    position: absolute;
+    left: .75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    pointer-events: none;
+  }
 </style>
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+
+<!-- Phone-only header: title + a small Billing link, then a full-width
+     search box (normal-size text so iOS doesn't zoom on focus). Desktop
+     keeps the header/instructions/footnote below exactly as they were. -->
+<div class="d-sm-none mb-2">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h4 class="mb-0">Flight History (<span id="visible-count-phone">{{ flights|length }}</span>)</h4>
+    {% if can_bill %}
+    <a href="{{ url_for('flight.billing') }}" class="text-decoration-none small fw-bold"><i class="bi bi-receipt"></i> Billing</a>
+    {% endif %}
+  </div>
+  <div class="position-relative">
+    <i class="bi bi-search history-search-icon"></i>
+    <input type="search" id="history-search-phone" class="form-control ps-5" placeholder="Search, or tap a plane or name below" style="font-size:1rem;">
+  </div>
+</div>
+
+<div class="d-none d-sm-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0">Flight History (<span id="visible-count">{{ flights|length }}</span>)</h4>
   <div class="d-flex align-items-center gap-2">
-    <input type="text" id="history-search" class="form-control form-control-sm" placeholder="Search plane, instructor, student..." style="min-width:240px;">
-    <button type="button" id="clear-filter" class="btn btn-outline-secondary btn-sm" style="display:none;">Clear filter</button>
+    {#- Idea ux-button-text-wrap: Billing (and Clear filter) are flex items
+       next to the search box, so without text-nowrap/flex-shrink-0 the
+       icon and word can be squeezed onto 2 lines; the search box (already
+       the flexible one here) narrows instead - see the smaller min-width
+       below. #}
+    <input type="text" id="history-search" class="form-control form-control-sm" placeholder="Search plane, instructor, student..." style="min-width:180px;">
+    <button type="button" id="clear-filter" class="btn btn-outline-secondary btn-sm text-nowrap flex-shrink-0" style="display:none;">Clear filter</button>
     {% if can_bill %}
-    <a href="{{ url_for('flight.billing') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-receipt"></i> Billing</a>
+    <a href="{{ url_for('flight.billing') }}" class="btn btn-outline-primary btn-sm text-nowrap flex-shrink-0"><i class="bi bi-receipt"></i> Billing</a>
     {% endif %}
   </div>
 </div>
 
-<p class="text-muted small mb-2">Click any plane, student, or instructor below to filter the list to just them.</p>
+<p class="text-muted small mb-2 d-none d-sm-block">Click any plane, student, or instructor below to filter the list to just them.</p>
 
 {% set is_own_history = session.get('student_id') %}
 <div class="d-sm-none" id="history-compact">
@@ -45,7 +75,7 @@
     <div class="d-flex justify-content-between align-items-baseline">
       <span class="fw-bold text-truncate">{{ f.flight_date|usdate }} {{ f.plane_tag }}</span>
       <span class="d-flex align-items-center gap-1 flex-shrink-0 ms-2">
-        {% if f.hobbs_start is not none and f.hobbs_end is not none %}<span class="fw-bold">{{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }} hr</span>{% endif %}
+        {% if f.hobbs_start is not none and f.hobbs_end is not none %}<span class="fw-bold">{{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }} hr</span>{% elif f.asset_is_simulator and f.recorded_hours is not none %}<span class="fw-bold">{{ '%.1f'|format(f.recorded_hours) }} hr</span> <span class="text-muted small">sim</span>{% endif %}
         <i class="bi bi-chevron-right text-muted"></i>
       </span>
     </div>
@@ -83,7 +113,7 @@
           <td data-label="Plane"><a href="#" class="filter-chip text-decoration-none" data-filter="{{ f.plane_tag|lower }}">{{ f.plane_tag }}</a></td>
           <td data-label="Student"><a href="#" class="filter-chip text-decoration-none" data-filter="{{ f.student_name|lower }}">{{ f.student_name }}</a></td>
           <td data-label="Instructor">{% if f.solo %}<span class="badge bg-secondary">Solo</span>{% else %}<a href="#" class="filter-chip text-decoration-none" data-filter="{{ (f.cfi_name or '')|lower }}">{{ f.cfi_name or '-' }}</a>{% endif %}</td>
-          <td data-label="Hobbs">{% if f.hobbs_start is not none and f.hobbs_end is not none %}{{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }} hrs{% else %}-{% endif %}</td>
+          <td data-label="Hobbs">{% if f.hobbs_start is not none and f.hobbs_end is not none %}{{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }} hrs{% elif f.asset_is_simulator and f.recorded_hours is not none %}<span class="text-muted small">Sim:</span> {{ '%.1f'|format(f.recorded_hours) }} hrs{% else %}-{% endif %}</td>
           <td data-label="Tach">{% if f.tach_start is not none and f.tach_end is not none %}{{ '%.1f'|format(f.tach_end - f.tach_start) }} hrs{% else %}-{% endif %}</td>
           <td data-label="Oil Added">{% if f.oil_added_qt %}{{ '%g'|format(f.oil_added_qt) }} qt{% else %}-{% endif %}</td>
           {% if can_bill %}
@@ -118,15 +148,17 @@
     </table>
   </div>
 </div>
-<p class="text-muted small mt-2">Oil-consumption analytics (qt/hr, hours-to-oil-change) are coming in a later phase. Oil added and squawks are also visible from the plane's profile in Maintenance.</p>
+<p class="text-muted small mt-2 d-none d-sm-block">Oil-consumption analytics (qt/hr, hours-to-oil-change) are coming in a later phase. Oil added and squawks are also visible from the plane's profile in Maintenance.</p>
 {% endblock %}
 
 {% block scripts %}
 <script>
 (function () {
   var input = document.getElementById('history-search');
+  var phoneInput = document.getElementById('history-search-phone');
   var clearBtn = document.getElementById('clear-filter');
   var countEl = document.getElementById('visible-count');
+  var countElPhone = document.getElementById('visible-count-phone');
   var rows = document.querySelectorAll('#history-table tbody tr[data-search]');
   // The compact phone rows are rendered from the same flights list, in the
   // same order, so they line up 1:1 with the table rows above - filtering
@@ -134,7 +166,7 @@
   // of counting each flight twice (once per view).
   var compactRows = document.querySelectorAll('#history-compact > [data-search]');
 
-  function applyFilter(q) {
+  function applyFilter(q, source) {
     q = (q || '').trim().toLowerCase();
     var visible = 0;
     rows.forEach(function (row, i) {
@@ -144,10 +176,16 @@
       if (match) { visible++; }
     });
     countEl.textContent = visible;
+    countElPhone.textContent = visible;
     clearBtn.style.display = q ? '' : 'none';
+    // Keep the phone search box and the desktop one in step, in case the
+    // viewport is resized across the breakpoint mid-filter.
+    if (source !== input && input.value !== q) { input.value = q; }
+    if (source !== phoneInput && phoneInput.value !== q) { phoneInput.value = q; }
   }
 
-  input.addEventListener('input', function () { applyFilter(input.value); });
+  input.addEventListener('input', function () { applyFilter(input.value, input); });
+  phoneInput.addEventListener('input', function () { applyFilter(phoneInput.value, phoneInput); });
 
   clearBtn.addEventListener('click', function () {
     input.value = '';

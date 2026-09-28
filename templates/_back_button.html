@@ -27,6 +27,35 @@
   .navbar > .container-fluid { justify-content: flex-start; }
   .navbar > .container-fluid > .navbar-toggler,
   .navbar > .container-fluid > :last-child { margin-left: auto; }
+  /* QA ux-phone-header-one-row: below the ~992px hamburger breakpoint, the
+     top row (Back, the program-grid icon, the brand logo+name, the
+     hamburger and the mobile account-menu icon) is a flex child of
+     .container-fluid, which inherits .navbar's own flex-wrap:wrap - that's
+     what let one of those icons drop onto a second row when they didn't
+     all fit, making the header taller on some pages than others. Below
+     that breakpoint the collapsible nav is already pulled out of normal
+     flow (see the "Mobile view drop downs" idea's position:absolute rule
+     in style.css), so it never needed the wrap - only the always-visible
+     row did, by mistake. Forcing nowrap here, together with the smaller
+     brand sizing below, keeps that row exactly one line, the same height
+     on every page. */
+  @media (max-width: 991.98px) {
+    .navbar > .container-fluid { flex-wrap: nowrap; }
+  }
+  /* The brand logo+name (Fly with Kate!, Winds Aloft) a little smaller on
+     narrow phones, so Back + the grid icon + logo + name + the hamburger +
+     the account icon all fit on that one line. */
+  @media (max-width: 575.98px) {
+    .opshub-hdr-logo { width: 22px !important; height: 22px !important; }
+    .opshub-hdr-name { font-size: .92rem; }
+    .opshub-hdr-subtag { display: none; }
+  }
+  /* On the very smallest phones there still isn't room for the name next
+     to everything else - hide it and keep just the logo, per the
+     Frank-approved mockup. */
+  @media (max-width: 349.98px) {
+    .opshub-hdr-name { display: none; }
+  }
 </style>
 <script>
 (function () {

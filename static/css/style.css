@@ -324,35 +324,40 @@ body { background: #f4f5f7; }
   .navbar-expand-lg #nav.navbar-collapse .dropdown { width: 100%; }
   .navbar-expand-lg #nav.navbar-collapse .nav-link { width: 100%; text-align: left; }
 }
-@media (max-width: 1199.98px) {
-  .navbar-expand-xl #nav.navbar-collapse {
-    position: absolute; top: 100%; right: .75rem; left: auto;
-    width: 230px; max-width: calc(100vw - 1.5rem); max-height: calc(100vh - 5rem);
-    overflow-y: auto; border-radius: 12px; padding: .6rem;
-    box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.35); z-index: 1030;
-  }
-  .navbar-expand-xl #nav.navbar-collapse.show { display: flex; flex-direction: column; gap: .3rem; }
-  .navbar-expand-xl #nav.navbar-collapse .navbar-nav,
-  .navbar-expand-xl #nav.navbar-collapse .d-flex { width: 100%; margin: 0 !important; flex-direction: column; align-items: stretch !important; gap: .3rem; }
-  .navbar-expand-xl #nav.navbar-collapse .nav-item,
-  .navbar-expand-xl #nav.navbar-collapse .dropdown { width: 100%; }
-  .navbar-expand-xl #nav.navbar-collapse .nav-link { width: 100%; text-align: left; }
-}
 .navbar.bg-primary #nav.navbar-collapse { background: var(--bs-primary, #0d6efd); }
 .navbar.bg-dark #nav.navbar-collapse { background: var(--bs-dark, #212529); }
 .admin-nav #nav.navbar-collapse { background: var(--admin-purple, #4b3f72); }
 .account-nav #nav.navbar-collapse { background: #1f2937; }
+
+/* Idea ux-header-width-rules: every header's icon buttons show a text label
+   only once static/js/nav-fit.js has confirmed the whole row fits with
+   words on one line (it adds .hdr-words to the <nav>); default to
+   icon-only so a label is never caught mid-wrap. Below the shared ~992px
+   hamburger breakpoint the collapsed menu is a single column, where labels
+   always fit, so they always show there regardless of .hdr-words. */
+.navbar .nav-label { display: none; }
+.navbar.hdr-words .nav-label { display: inline; }
+@media (max-width: 991.98px) {
+  .navbar .nav-label { display: inline; }
+}
 /* Idea "Drop down menu": the collapsed-nav ".d-flex" rules above stack
    every flex row full-width, one item per line - fine for the nav links,
    but it also caught the "View as" chip row and stretched its label and
    each button into its own full-width block. Keep that row itself
-   horizontal and compact regardless. */
+   horizontal and compact regardless. Idea ux-header-viewas-inline: no
+   margin here any more - the chips now sit beside the account button on
+   the .gap-2 row in _*_base.html (templates/base.html, admin_base.html,
+   flight/base_flight.html), which supplies the gap both between the chips
+   and the account button on one line and between the two rows when it
+   wraps to two (narrow "icons-only" band, or the phone dropdown panel). A
+   margin here would only misalign the chips against the account button
+   when they share a line. */
 .navbar-collapse .view-as-chips {
   flex-direction: row !important;
   align-items: center !important;
   flex-wrap: wrap;
   width: auto !important;
-  margin: 0 0 .25rem !important;
+  margin: 0 !important;
 }
 
 /* Idea "Squalk view": a squawk's step pills (squawk_step_pills in
@@ -398,4 +403,41 @@ body { background: #f4f5f7; }
   .squawk-row-actions { gap: .3rem; }
   .squawk-btn.btn-sm { padding: .15rem .45rem; font-size: .72rem; }
   .squawk-select.form-select-sm { padding: .15rem 1.3rem .15rem .4rem; font-size: .72rem; }
+}
+
+/* Idea "Squalk view", round 2 (reference image: "Done" wrapping to its own
+   line under the other 4 step pills, pushing the action button and the
+   whole card a row taller). Keeps the same 5 pills - same badge markup,
+   colors and checkmarks as squawk_step_pills always had - on one line
+   instead of wrapping, which is what actually shortens the card on a
+   phone; overflow-x is just a safety valve for an unusually narrow window,
+   never needed at normal phone widths. */
+.squawk-step-pills {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+@media (max-width: 575.98px) {
+  .squawk-step-pills { gap: .2rem; }
+  .squawk-step-pills .badge { font-size: .62rem; padding: .17rem .26rem; }
+}
+
+/* QA fix ux-phone-list-toolbars: on the Parts/Projects/Orders list pages,
+   the toolbar's search box (a lone input or a small `<form>`) needs to
+   drop to its own full-width line below the title/buttons on phones, but
+   sit back at its normal inline size next to those buttons on desktop.
+   Bootstrap's utilities don't include a responsive width toggle, so this
+   is the one small rule for it - pair it with `order-md-*` on the other
+   toolbar items to restore their exact original left-to-right order once
+   this box goes back to being just another inline item at md+. */
+.list-toolbar-search {
+  flex: 1 1 100%;
+}
+@media (min-width: 768px) {
+  .list-toolbar-search {
+    flex: 0 1 auto;
+  }
+}
+.list-toolbar-search,
+.list-toolbar-search input {
+  font-size: 16px;
 }

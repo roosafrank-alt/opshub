@@ -155,7 +155,7 @@
       <div class="tab-content">
       <div class="tab-pane fade show active" id="tab-parts" role="tabpanel">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
-        <h5 class="mb-0">Discrepancy List {% if can_see_shop_costs %}<span class="text-muted fs-6">(total ${{ "%.2f"|format(total_cost) }})</span>{% endif %}</h5>
+        <h5 class="mb-0">Discrepancy List {#- Idea "project": Assign Parts moved here from under the plane's squawks/to-dos card, as an icon-only button right next to the total it affects. #}<button type="button" id="assign-parts-btn" class="btn btn-outline-primary btn-sm py-0 px-1 align-middle" data-bs-toggle="modal" data-bs-target="#assignPartsModal" title="Assign a part to this project"><i class="bi bi-wrench"></i></button> {% if can_see_shop_costs %}<span id="discrepancy-total" class="text-muted fs-6">(total ${{ "%.2f"|format(total_cost) }})</span>{% endif %}</h5>
         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="var f=document.getElementById('add-section-row'); f.style.display = f.style.display==='none' ? 'flex' : 'none';"><i class="bi bi-folder-plus"></i> Add Discrepancy</button>
       </div>
       <form id="add-section-row" method="post" action="{{ url_for('project_add_section', project_id=project.id) }}" class="gap-2 mt-2 mb-2" style="display:none;">
@@ -163,6 +163,12 @@
         <button type="submit" class="btn btn-secondary btn-sm text-nowrap">Add</button>
       </form>
       {% if usage_by_section %}
+        {#- QA finding ux-squawk-on-project / idea "Reported Assigned Working
+           Inspection Done": a Discrepancy created via "Fix on this job" or
+           "Do on this job" keeps showing the squawk's/to-do's own step pills
+           and assigned tech here, not just this area's own open/awaiting/
+           completed state. #}
+        {% from "_squawk_macros.html" import squawk_step_pills, squawk_assigned_line, todo_step_pills %}
         {% for section, data in usage_by_section.items() %}
         {#- Three states: open (checkbox unticked), awaiting confirmation
            (ticked but confirm_requested_at set, completed_at still NULL -
@@ -223,6 +229,17 @@
               </div>
               <span class="text-muted small">{% if can_see_shop_costs %}${{ "%.2f"|format(data.cost) }} {% endif %}<i class="bi bi-chevron-down" id="sec-chev-{{ loop.index }}"></i></span>
             </div>
+            {% if data.linked_squawk %}
+            <div class="d-flex align-items-center gap-2 flex-wrap mt-1 discrepancy-linked-status" onclick="event.stopPropagation();">
+              {{ squawk_step_pills(data.linked_squawk) }}
+              {{ squawk_assigned_line(data.linked_squawk) }}
+            </div>
+            {% elif data.linked_todo %}
+            <div class="d-flex align-items-center gap-2 flex-wrap mt-1 discrepancy-linked-status" onclick="event.stopPropagation();">
+              {{ todo_step_pills(data.linked_todo) }}
+              {% if data.linked_todo.assigned_to_name %}<small class="text-muted d-block">Assigned to {{ data.linked_todo.assigned_to_name }}</small>{% endif %}
+            </div>
+            {% endif %}
             {% if section != 'General' and data.id %}
             <form method="post" action="{{ url_for('project_section_rename', project_id=project.id, section_id=data.id) }}" id="sec-rename-{{ loop.index }}" class="input-group input-group-sm mt-2" style="display:none; max-width:280px;" onclick="event.stopPropagation();">
               <input type="text" name="name" class="form-control form-control-sm" value="{{ section }}" required>
@@ -509,14 +526,14 @@
   {#- Idea "project": divide the page in half - project info (Discrepancies,
      Parts, etc) on the left in col-lg-7 above, plane info (squawks/to-dos)
      on the right here. On phones this column still comes first, so the
-     plane's open squawks/to-dos (and the Assign Parts shortcut) sit right
-     under the title; on large screens it stays on the right. #}
+     plane's open squawks/to-dos sit right under the title; on large
+     screens it stays on the right. #}
   <div class="col-lg-5 order-first order-lg-last">
     {#- QA finding ux-squawk-on-project: the plane's own open squawks and
        to-dos, right on the job a tech is likely to fix them on, each with
        one "claim it for this job" control - see project_detail() in app.py. #}
     {% if plane_squawks or plane_todos_open %}
-    {% from "_squawk_macros.html" import squawk_step_pills, squawk_project_action, todo_step_pills, todo_project_action %}
+    {% from "_squawk_macros.html" import squawk_step_pills, squawk_project_action, squawk_assigned_line, todo_step_pills, todo_project_action %}
     {% set project_can_assign = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
     <div class="card p-3 mb-3 border-danger">
       <h6 class="mb-2"><i class="bi bi-exclamation-triangle-fill text-danger"></i> {{ project.asset_display_tag }}: squawks &amp; to-dos <span class="text-muted small fw-normal">({{ plane_squawks|length + plane_todos_open|length }})</span></h6>
@@ -525,6 +542,7 @@
       {% for sq in plane_squawks %}
       <div class="d-flex flex-column gap-1 py-2 squawk-item {{ 'border-top' if not loop.first }}">
         <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+        {{ squawk_assigned_line(sq) }}
         <div class="squawk-row-actions">
           {{ squawk_step_pills(sq) }}
           {{ squawk_project_action(sq, project.id, project_can_assign) }}
@@ -545,13 +563,6 @@
     </div>
     {% endif %}
 
-    {#- Idea "project": the Assign Parts form used to sit here in full and
-       took up most of this column - now it's a small wrench icon that
-       opens the same form in a popup (#assignPartsModal below). #}
-    <div class="d-flex justify-content-end mb-3">
-      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#assignPartsModal" title="Assign a part to this project"><i class="bi bi-wrench"></i> Assign Parts</button>
-    </div>
-
     {% if open_orders %}
     <div class="card p-3 mb-3">
       <h6><i class="bi bi-truck"></i> Pending Orders for This Job</h6>
@@ -570,7 +581,8 @@
 
 {#- Idea "project": Assign Parts used to be a full card in the right
    column, taking up most of it - now it's this popup, opened from the
-   small wrench button above. Same form and script as before, unchanged. #}
+   small wrench-only button next to the Discrepancy List total above.
+   Same form and script as before, unchanged. #}
 <div class="modal fade" id="assignPartsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">

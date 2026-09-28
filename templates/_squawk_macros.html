@@ -6,7 +6,11 @@
    columns) and be inside a context with `assignable_workers` available. #}
 
 {#- Reported -> Assigned -> Working -> Inspection -> Done. Earlier steps get
-   a checkmark, the current one is highlighted; later ones stay plain. #}
+   a checkmark, the current one is highlighted; later ones stay plain.
+   .squawk-step-pills (see idea "Squalk view", round 2, in style.css) keeps
+   all 5 on one line and shrinks them to fit on a phone instead of wrapping
+   "Done" onto its own row - same badge markup/colors/checkmarks either
+   way, only the sizing changes. #}
 {% macro squawk_step_pills(sq) %}
 {%- set steps = ['Reported', 'Assigned', 'Working', 'Inspection', 'Done'] -%}
 {%- if sq.repaired_at -%}
@@ -20,11 +24,20 @@
 {%- else -%}
 {%- set current = 1 -%}
 {%- endif -%}
-<div class="d-flex gap-1 flex-wrap">
+<div class="d-flex gap-1 squawk-step-pills">
   {%- for label in steps %}
   <span class="badge rounded-pill {{ 'bg-primary text-white' if loop.index0 == current else 'bg-white text-muted border' }}">{% if loop.index0 < current %}<i class="bi bi-check-lg"></i> {% endif %}{{ label }}</span>
   {%- endfor %}
 </div>
+{%- endmacro %}
+
+{#- "Assigned to <name>" wherever a squawk shows and nothing else already
+   says whose hands it's in - so the Squawks list, the plane's page and a
+   job's squawks box all show the same thing, and it doesn't read as if
+   the assignment disappeared just because you're looking at it from the
+   project page instead of the dashboard (idea "Squalk view", round 2). #}
+{% macro squawk_assigned_line(sq) %}
+{%- if sq.assigned_to %}<small class="text-muted d-block">Assigned to {{ sq.assigned_to_name or '-' }}</small>{% endif -%}
 {%- endmacro %}
 
 {#- A brand-new (unacknowledged) squawk's one and only action: pick a name
@@ -131,13 +144,15 @@
    matching Sub Area, same idea as squawk_new_actions but tied to this job's
    parts and labor instead of just to a person. `sq.link`, when set, is the
    {project_id, code, name} of whichever project's Sub Area already stands
-   in for it (see project_detail() in app.py). #}
+   in for it (see project_detail() in app.py). The caller shows "Assigned
+   to <name>" itself (squawk_assigned_line) whenever there is one, so these
+   status lines don't repeat it. #}
 {% macro squawk_project_action(sq, project_id, can_assign) %}
 {%- if sq.repair_confirm_requested_at -%}
 <small class="text-muted d-block"><i class="bi bi-hourglass-split"></i> With inspector</small>
 {%- elif sq.link -%}
   {%- if sq.link.project_id == project_id -%}
-<small class="text-muted d-block">{{ sq.assigned_to_name ~ ' · ' if sq.assigned_to_name }}Discrepancy on this job</small>
+<small class="text-muted d-block">Discrepancy on this job</small>
   {%- else -%}
 <small class="text-muted d-block">Discrepancy on <a href="{{ url_for('project_detail', project_id=sq.link.project_id) }}">job {{ sq.link.code }}</a></small>
   {%- endif -%}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_squawk_macros.html" import squawk_step_pills, squawk_step_action %}
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_step_action, squawk_assigned_line %}
 {% block title %}Squawks - OpsHub{% endblock %}
 {% block content %}
 {% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
@@ -75,7 +75,7 @@
         {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
         {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
       <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
-      {% if sq.assigned_to %}<small class="text-muted d-block">Assigned to {{ sq.assigned_to_name or '-' }}</small>{% endif %}
+      {{ squawk_assigned_line(sq) }}
       <div class="squawk-row-actions">
         {{ squawk_step_pills(sq) }}
         {{ squawk_step_action(sq, assignable_workers, session.get('user_id'), can_assign_squawks, can_confirm_squawks) }}

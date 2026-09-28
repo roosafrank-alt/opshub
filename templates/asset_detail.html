@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions, squawk_confirm_actions, squawk_step_action %}
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_new_actions, squawk_confirm_actions, squawk_step_action, squawk_assigned_line %}
 {% block title %}{{ asset.tag }} - OpsHub{% endblock %}
 {% block content %}
 {% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
@@ -358,6 +358,8 @@
             <div><span class="badge {{ 'bg-warning text-dark' if sq.acknowledged_at else 'bg-danger' }} me-1">Squawk</span>{{ sq.notes or '(no details given)' }}</div>
             {% if sq.repair_confirm_requested_at %}
             <small class="text-warning-emphasis fw-bold d-block"><i class="bi bi-hourglass-split"></i> Awaiting repair confirmation - marked ready by {{ sq.repair_confirm_requested_by or '-' }}</small>
+            {% else %}
+            {{ squawk_assigned_line(sq) }}
             {% endif %}
             <div class="ps-4 squawk-row-actions">
               {{ squawk_step_pills(sq) }}
