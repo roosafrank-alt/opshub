@@ -74,7 +74,7 @@
   {% set can_see_names = session.get('cfi_id') or session.get('is_master_admin') or (session.get('student_id') and f.student_id == session.get('student_id')) %}
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
     <div>
-      <h5 class="mb-0">{{ f.plane_tag }} {% if f.solo %}<span class="badge bg-secondary">Solo</span> {% endif %}{% if can_see_names %}with {{ f.student_name }}{% endif %} {% if f.paused_at %}<span class="badge bg-warning text-dark"><i class="bi bi-pause-fill"></i> Paused</span>{% endif %} {% if not f.can_end %}<span class="badge bg-light text-muted border" title="Only {% if f.solo %}the student flying solo{% else %}the assigned instructor{% endif %}, or a master admin, can pause or end this flight"><i class="bi bi-lock-fill"></i> View only</span>{% endif %}</h5>
+      <h5 class="mb-0">{{ 'Students Aircraft' if f.asset_is_owner_placeholder else f.plane_tag }} {% if f.solo %}<span class="badge bg-secondary">Solo</span> {% endif %}{% if can_see_names %}with {{ f.student_name }}{% endif %} {% if f.paused_at %}<span class="badge bg-warning text-dark"><i class="bi bi-pause-fill"></i> Paused</span>{% endif %} {% if not f.can_end %}<span class="badge bg-light text-muted border" title="Only {% if f.solo %}the student flying solo{% else %}the assigned instructor{% endif %}, or a master admin, can pause or end this flight"><i class="bi bi-lock-fill"></i> View only</span>{% endif %}</h5>
       {% if can_see_names %}
       <div class="text-muted small">Student: {{ f.student_name }}{% if f.cfi_name %} &middot; {{ 'Supervising instructor' if f.solo else 'Instructor' }}: {{ f.cfi_name }}{% endif %}</div>
       {% endif %}
@@ -1039,6 +1039,33 @@ document.querySelectorAll('[name="ground_time_hours"], [name="solo_hours"]').for
 // (e.g. filled in earlier via "Add starting info" while the flight ran).
 document.querySelectorAll('form[id^="end-form-"]').forEach(function (form) {
   computeFlightTotal(form.id.replace('end-form-', ''));
+});
+// Idea "Record time correction": pre-fill Recorded Time (hrs) for a
+// student's-own-plane end session from the big Elapsed timer shown above
+// it on this same card - the clock already stopped when End Session was
+// pressed, so data-paused-at there is the stopped_at time (see the
+// elapsed-timer script up top and flight.log_end, which computes
+// instructor_clock_hours the same way: started_at to stopped_at, minus
+// paused_seconds). Rounded up to the next tenth of an hour, same
+// convention as billing (roundUpHours above), so it matches what the
+// timer shows rather than a raw fraction. Still a plain number input -
+// the instructor can change it before logging, this just saves typing
+// what the clock already recorded.
+document.querySelectorAll('.recorded-hours-input').forEach(function (input) {
+  if (input.value) return;
+  var card = input.closest('.card');
+  var timer = card ? card.querySelector('.elapsed-timer') : null;
+  var pausedAtStr = timer ? timer.getAttribute('data-paused-at') : '';
+  if (!timer || !pausedAtStr) return;
+  var started = new Date(timer.getAttribute('data-started').replace(' ', 'T'));
+  var stopped = new Date(pausedAtStr.replace(' ', 'T'));
+  var pausedSeconds = parseInt(timer.getAttribute('data-paused-seconds'), 10) || 0;
+  var diffSec = Math.max(0, Math.floor((stopped - started) / 1000) - pausedSeconds);
+  var hours = roundUpHours(diffSec / 3600);
+  if (hours > 0) {
+    input.value = hours.toFixed(1);
+    input.dispatchEvent(new Event('input'));
+  }
 });
 // Catch the same "Paid but not fully accounted for" case flight.log_end()
 // rejects server-side, before it ever leaves the page - a server-side
