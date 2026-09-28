@@ -6114,7 +6114,12 @@ def log_update_progress(flight_id):
         return redirect(url_for("flight.log_active"))
     hobbs_start = _parse_float(request.form.get("hobbs_start")) if f["hobbs_start"] is None else f["hobbs_start"]
     tach_start = _parse_float(request.form.get("tach_start")) if f["tach_start"] is None else f["tach_start"]
-    oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
+    # A student's own plane never tracks Oil Added (no Maintenance page or
+    # oil history for it - see the "own-plane oil" QA fix), regardless of
+    # what's posted.
+    asset = conn.execute("SELECT is_owner_placeholder FROM assets WHERE id = ?", (f["asset_id"],)).fetchone()
+    is_own_plane = bool(asset and asset["is_owner_placeholder"])
+    oil_added_qt = None if is_own_plane else _parse_float(request.form.get("oil_added_qt"))
     oil_added_by = session.get("user_name") if oil_added_qt is not None else None
     notes = request.form.get("notes", "").strip()
     conn.execute("UPDATE flights SET hobbs_start=?, tach_start=?, oil_added_qt=?, oil_added_by=?, notes=? WHERE id=?",
@@ -6257,8 +6262,10 @@ def log_end(flight_id):
     # Oil may already have been logged mid-flight (log_update_progress) - only
     # overwrite it if End Session actually typed a new value, same fallback
     # rule as hobbs_start/tach_start above, so leaving this blank here can't
-    # clobber an entry already on file.
-    oil_added_qt = _parse_float(request.form.get("oil_added_qt"))
+    # clobber an entry already on file. A student's own plane never tracks
+    # oil at all (no Maintenance page or oil history for it - see the
+    # "own-plane oil" QA fix), regardless of what's posted.
+    oil_added_qt = None if is_own_plane else _parse_float(request.form.get("oil_added_qt"))
     if oil_added_qt is None:
         oil_added_qt = f["oil_added_qt"]
         oil_added_by = f["oil_added_by"]
@@ -6534,7 +6541,11 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
         tach_start = plane_row["tach_hours"] if plane_row else None
         hobbs_end = _parse_float(form.get("hobbs_end"))
         tach_end = _parse_float(form.get("tach_end"))
-    oil_added_qt = _parse_float(form.get("oil_added_qt"))
+    # A student's own plane never tracks Oil Added (no Maintenance page or
+    # oil history for it - see the "own-plane oil" QA fix) - ignore it even
+    # if a stale value is sitting in a hidden field (schedule_form.html's
+    # own-plane toggle just hides the box rather than removing it).
+    oil_added_qt = None if is_own_plane else _parse_float(form.get("oil_added_qt"))
     oil_added_by = session.get("user_name") if oil_added_qt is not None else None
     ground_time_hours = _parse_float(form.get("ground_time_hours"))
     notes = form.get(notes_field, "").strip()

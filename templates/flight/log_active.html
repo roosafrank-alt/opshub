@@ -128,7 +128,7 @@
      Session); when already on file they still show, read-only, above Oil
      Added so the student/CFI can check them against the plane's gauges. #}
   <details class="mb-2" open>
-    <summary class="text-muted small">Add starting info (Hobbs/Tach, oil, note)</summary>
+    <summary class="text-muted small">{{ 'Add a note' if f.asset_is_owner_placeholder else 'Add starting info (Hobbs/Tach, oil, note)' }}</summary>
     <form method="post" action="{{ url_for('flight.log_update_progress', flight_id=f.id) }}" class="row g-2 mt-1">
       {% if not f.asset_is_owner_placeholder %}
       <div class="col-6 col-md-3">
@@ -148,10 +148,12 @@
         {% endif %}
       </div>
       {% endif %}
+      {% if not f.asset_is_owner_placeholder %}
       <div class="col-6 col-md-3">
         <label class="form-label small mb-0">Oil Added (qt)</label>
         <input type="number" step="any" name="oil_added_qt" class="form-control form-control-sm" value="{{ f.oil_added_qt if f.oil_added_qt is not none else '' }}">
       </div>
+      {% endif %}
       <div class="col-12 col-md-3">
         <label class="form-label small mb-0">Note{% if not f.asset_is_owner_placeholder %} <span class="text-muted">(flagged as a squawk)</span>{% endif %}</label>
         <input type="text" name="notes" class="form-control form-control-sm" value="{{ f.notes or '' }}">
@@ -294,6 +296,7 @@
     </div>
     {% endif %}
     <div class="row g-2 mt-1">
+      {% if not f.asset_is_owner_placeholder %}
       <div class="col-6 col-md-4">
         <label class="form-label small mb-0">Oil Added (qt)</label>
         <input type="number" step="any" name="oil_added_qt" class="form-control form-control-sm"
@@ -302,6 +305,7 @@
         <div class="form-text">{{ '%.1f'|format(f.oil_added_qt) }} qt already added this flight{% if f.oil_added_by %} (by {{ f.oil_added_by }}){% endif %}. Leave blank to keep it, or type a new amount to replace it.</div>
         {% endif %}
       </div>
+      {% endif %}
       <div class="col-6 col-md-4">
         <label class="form-label small mb-0">Extra Ground Time (hrs)</label>
         <input type="number" step="any" name="ground_time_hours" class="form-control form-control-sm" placeholder="optional, billed separately">

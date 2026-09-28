@@ -126,10 +126,12 @@
     </div>
     {% endif %}
     <div class="row">
+      {% if not is_own_plane %}
       <div class="col-md-6 mb-3">
         <label class="form-label">Oil Added (qt) <span class="text-muted small">(if any)</span></label>
         <input type="number" step="any" name="oil_added_qt" class="form-control" placeholder="e.g. 1" value="{{ form.get('oil_added_qt') if form else '' }}">
       </div>
+      {% endif %}
       <div class="col-md-6 mb-3">
         <label class="form-label">Ground Time (hrs) <span class="text-muted small">(billed separately at the instructor rate, no plane charge)</span></label>
         <input type="number" step="any" name="ground_time_hours" class="form-control" placeholder="e.g. 0.5" value="{{ form.get('ground_time_hours') if form else '' }}">

@@ -326,7 +326,7 @@
       </div>
     </div>
     <div class="row">
-      <div class="col-md-6 mb-3">
+      <div class="col-md-6 mb-3" id="oil-added-field">
         <label class="form-label">Oil Added (qt) <span class="text-muted small">(if any)</span></label>
         <input type="number" step="any" name="oil_added_qt" class="form-control" placeholder="e.g. 1" value="{{ form.get('oil_added_qt', '') if form else '' }}">
       </div>
@@ -749,6 +749,7 @@
   var ownPlaneWrap = document.getElementById('own-plane-n-number-wrap');
   var hobbsTachFields = document.getElementById('hobbs-tach-fields');
   var recordedHoursField = document.getElementById('recorded-hours-field');
+  var oilAddedField = document.getElementById('oil-added-field');
   var logNotesLabel = document.getElementById('log-notes-label');
   var logNotesHelp = document.getElementById('log-notes-help');
   if (ownPlaneCheck && ownPlaneWrap) {
@@ -759,6 +760,7 @@
       wrap.classList.remove('is-invalid-group');
       if (hobbsTachFields) hobbsTachFields.classList.toggle('d-none', checked);
       if (recordedHoursField) recordedHoursField.classList.toggle('d-none', !checked);
+      if (oilAddedField) oilAddedField.classList.toggle('d-none', checked);
       // A student's own plane isn't looked after by the shop, so a note
       // typed here stays a plain note instead of becoming a squawk (see
       // flight.py's _save_logged_flight) - the label/help text says so.
