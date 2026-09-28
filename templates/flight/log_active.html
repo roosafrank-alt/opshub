@@ -115,8 +115,13 @@
   </div>
   {% elif f.can_end %}
   <div class="d-flex flex-wrap gap-2 mb-2 active-flight-actions">
-    <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-flex flex-fill mb-0"
-          data-confirm="End this session now? The clock stops here - then fill in the ending Hobbs and paid / unpaid to log it." data-confirm-title="End Session" data-confirm-ok="Yes, stop the clock" data-confirm-style="danger">
+    {#- Idea "QA fix: end-lesson taps": End Session used to ask "End this
+       session now?" in a pop-up every time, even though the "Clock
+       stopped" box right below already says what happened and has "Oops,
+       restart clock" one tap away - so it stops the clock right away
+       instead. The floating widget's End button (_active_flight_widget.html)
+       works the same way. #}
+    <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-flex flex-fill mb-0">
       <button type="submit" class="btn btn-danger fw-bold flex-fill"><i class="bi bi-stop-fill"></i> End Session</button>
     </form>
     {% if f.paused_at %}
@@ -377,6 +382,10 @@
       <div class="row g-2">
         <div class="col-6">
           <label class="form-label small mb-0">Amount Collected ($)</label>
+          {#- Idea "QA fix: end-lesson taps": starts filled in with the
+             flight total (after any credit applied) the moment Paid is
+             tapped, instead of blank - see refreshPaymentAmount() below.
+             Still a plain number input the CFI can change. #}
           <input type="number" step="0.01" min="0" name="payment_amount" id="payment-amount-{{ f.id }}" class="form-control form-control-sm" placeholder="0.00">
         </div>
         <div class="col-6">
@@ -391,6 +400,7 @@
           </select>
         </div>
       </div>
+      <div class="small text-success mt-1 d-none" id="payment-amount-note-{{ f.id }}"><i class="bi bi-check-lg"></i> Filled in from the flight total - change it only if they paid a different amount.</div>
       {#- Idea "Credit card" (revision): a simulated Stripe-style charge,
          same idea as Manage > Billing's Pay with Card - shown only once
          Card is picked above (see the payment-method-select listener). #}
@@ -942,6 +952,10 @@ document.querySelectorAll('.payment-choice-radio').forEach(function (radio) {
   radio.addEventListener('change', function () {
     var details = document.getElementById(radio.dataset.paymentDetails);
     if (details) details.hidden = (radio.value !== '1');
+    if (radio.value === '1') {
+      var fId = (radio.dataset.paymentDetails || '').replace('payment-details-', '');
+      if (fId) refreshPaymentAmount(fId);
+    }
   });
 });
 // Idea "Credit card" (revision): reveal the simulated card-number box only
@@ -972,6 +986,44 @@ document.querySelectorAll('.use-credit-btn').forEach(function (btn) {
       note.textContent = 'Applying $' + applied.toFixed(2) + ' credit toward this flight. $' + remaining.toFixed(2) + ' balance remains.';
       note.classList.remove('d-none');
     }
+    // Amount Collected already showed the pre-credit total (or whatever the
+    // CFI typed) - once credit is applied, refresh it so it still matches
+    // what's actually left to collect, same as if Paid had just been tapped.
+    refreshPaymentAmount(btn.dataset.flightId);
+  });
+});
+// Idea "QA fix: end-lesson taps": Amount Collected used to start blank, so
+// the CFI read the Total box just above it and typed the same figure in by
+// hand. It now fills itself in with the flight's live total minus any
+// credit already applied (getFlightTotal/credit-applied, same numbers the
+// Total box and Use Credit already use) - first when Paid is tapped, and
+// kept in sync while the CFI hasn't actually typed a different amount
+// themselves (data-auto-filled), e.g. if credit gets applied afterward or
+// Hobbs End changes. The moment the CFI types their own number, it stops
+// overwriting - see the payment-amount input listener below.
+function refreshPaymentAmount(fId) {
+  var amountInput = document.getElementById('payment-amount-' + fId);
+  var note = document.getElementById('payment-amount-note-' + fId);
+  if (!amountInput || amountInput.dataset.autoFilled === 'false') return;
+  var total = getFlightTotal(fId);
+  if (total === null) return;
+  var creditInput = document.getElementById('credit-applied-' + fId);
+  var credit = creditInput ? (parseFloat(creditInput.value) || 0) : 0;
+  var amount = Math.max(0, total - credit);
+  amountInput.dataset.settingAuto = '1';
+  amountInput.value = amount.toFixed(2);
+  delete amountInput.dataset.settingAuto;
+  amountInput.classList.add('border-success');
+  if (note) note.classList.remove('d-none');
+}
+document.querySelectorAll('input[id^="payment-amount-"]').forEach(function (input) {
+  input.dataset.autoFilled = 'true';
+  input.addEventListener('input', function () {
+    if (input.dataset.settingAuto === '1') return;  // this is our own programmatic fill, not a real edit
+    input.dataset.autoFilled = 'false';
+    input.classList.remove('border-success');
+    var note = document.getElementById('payment-amount-note-' + input.id.replace('payment-amount-', ''));
+    if (note) note.classList.add('d-none');
   });
 });
 // The hours flown for one flight's live pricing, mirroring
@@ -1056,6 +1108,10 @@ function computeFlightTotal(fId) {
   if (b === null) { display.classList.add('d-none'); return; }
   display.classList.remove('d-none');
   display.querySelector('.flight-total-amount').textContent = '$' + b.total.toFixed(2);
+  // Keep Amount Collected in step with the total while it's still the
+  // auto-filled figure (see refreshPaymentAmount) - e.g. Hobbs End is
+  // corrected after Paid was already tapped.
+  refreshPaymentAmount(fId);
   var breakdownEl = display.querySelector('.flight-total-breakdown');
   if (breakdownEl) {
     var form = document.getElementById('end-form-' + fId);

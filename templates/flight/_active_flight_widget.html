@@ -23,8 +23,11 @@
           data-pause-url="{{ url_for('flight.log_pause', flight_id=f.id) }}" data-resume-url="{{ url_for('flight.log_resume', flight_id=f.id) }}">
     <i class="bi {{ 'bi-play-fill' if f.paused_at else 'bi-pause-fill' }}"></i> <span class="active-flight-widget-pause-label">{{ 'Start' if f.paused_at else 'Pause' }}</span>
   </button>
-  <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-inline"
-        data-confirm="End this session now? The clock stops here - then fill in the ending Hobbs and paid / unpaid to log it." data-confirm-title="End Session" data-confirm-ok="Yes, stop the clock" data-confirm-style="danger">
+  {#- Idea "QA fix: end-lesson taps": no confirm pop-up here any more - the
+     clock just stops, and the "Clock stopped" box on Active Flight (with
+     "Oops, restart clock" right there) is what undoes a mistaken tap,
+     same as the button below. #}
+  <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-inline">
     <button type="submit" class="btn btn-sm btn-outline-light" title="End Session">
       <i class="bi bi-stop-fill"></i> End
     </button>
