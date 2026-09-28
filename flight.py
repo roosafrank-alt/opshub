@@ -25,7 +25,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from werkzeug.security import generate_password_hash
 
 from db import get_db, now_iso, asset_meter, maintenance_status
-from auth import authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked
+from auth import authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked, view_as_active_program
 from pilotlog import NEXT_TRACK, TRACK_MAP
 import weather
 import adsb
@@ -1348,9 +1348,29 @@ def _rededuct_flight_cost(conn, flight_row_dict, created_by=None):
     _deduct_flight_cost(conn, flight_row_dict, created_by=created_by)
 
 
+def _owner_preview_blocked():
+    """True while a master admin is previewing 'My Aircraft' as a real
+    owner (auth.start_view_as(conn, 'owner', ...)). That preview must never
+    reach a Flight School page - the session's cfi_id/student_id/user_id/
+    is_master_admin aren't reset for it the way they are for a shop/flight
+    preview (My Aircraft has no role of its own to swap in), so each
+    decorator below checks this first instead of trusting those fields are
+    off (QA "view": a stale cfi_id/student_id let an owner preview reach
+    other tabs and programs it was never supposed to). See auth.py's
+    matching helper for the same check on the Shop Inventory side."""
+    return view_as_active_program() == "owner"
+
+
+def _owner_preview_redirect():
+    flash("Exit the owner preview to use staff pages.", "info")
+    return redirect(url_for("customer.customer_dashboard"))
+
+
 def cfi_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
+        if _owner_preview_blocked():
+            return _owner_preview_redirect()
         if not session.get("cfi_id"):
             flash("Log in as a CFI to do that.", "danger")
             return redirect(url_for("home_launcher"))
@@ -1361,6 +1381,8 @@ def cfi_required(f):
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
+        if _owner_preview_blocked():
+            return _owner_preview_redirect()
         if not session.get("cfi_id") and not session.get("student_id"):
             return redirect(url_for("home_launcher"))
         return f(*args, **kwargs)
@@ -1375,6 +1397,8 @@ def admin_required(f):
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
             return redirect(url_for("home_launcher"))
+        if _owner_preview_blocked():
+            return _owner_preview_redirect()
         if not session.get("is_master_admin"):
             flash("That's admin-only.", "danger")
             return redirect(url_for("flight.dashboard"))
@@ -1389,6 +1413,8 @@ def billing_required(f):
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
             return redirect(url_for("home_launcher"))
+        if _owner_preview_blocked():
+            return _owner_preview_redirect()
         if not can_manage_billing():
             flash("Billing isn't turned on for your account - ask an admin.", "danger")
             return redirect(url_for("flight.dashboard"))

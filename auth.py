@@ -87,11 +87,34 @@ def _no_access_redirect():
     return redirect(url_for("home_launcher"))
 
 
+def _owner_preview_blocked():
+    """True while a master admin is previewing 'My Aircraft' as a real
+    owner (start_view_as(conn, 'owner', ...)). That preview exists to show
+    exactly what a real customer portal login would show, so it must never
+    reach a staff page - not even ones only gated on "is someone logged
+    in?" - regardless of whatever shop_role/flight_role/cfi_id/student_id
+    the previewing admin's own real account happens to carry (those aren't
+    reset for an owner preview the way they are for a shop/flight one,
+    since My Aircraft has no role of its own to swap in). Every staff-facing
+    decorator below checks this first and fails closed, rather than relying
+    on each of those fields separately staying "off" (QA "view": a stale
+    shop_role/flight_role/cfi_id let an owner preview reach other tabs and
+    programs it was never supposed to)."""
+    return session.get("_view_as_program") == "owner" and bool(session.get("_view_as_real"))
+
+
+def _owner_preview_redirect():
+    flash("Exit the owner preview to use staff pages.", "info")
+    return redirect(url_for("customer.customer_dashboard"))
+
+
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
             return _no_access_redirect()
+        if _owner_preview_blocked():
+            return _owner_preview_redirect()
         return f(*args, **kwargs)
     return wrapper
 
@@ -101,6 +124,8 @@ def master_admin_required(f):
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
             return _no_access_redirect()
+        if _owner_preview_blocked():
+            return _owner_preview_redirect()
         if not session.get("is_master_admin"):
             flash("That's for admins only.", "danger")
             return redirect(url_for("home_launcher"))
@@ -126,6 +151,8 @@ def shop_role_required(*roles):
         def wrapper(*args, **kwargs):
             if not session.get("user_id"):
                 return _no_access_redirect()
+            if _owner_preview_blocked():
+                return _owner_preview_redirect()
             if session.get("is_master_admin") or session.get("shop_role") in roles:
                 return f(*args, **kwargs)
             if not session.get("shop_role"):
