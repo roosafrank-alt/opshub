@@ -834,7 +834,10 @@
 
 {% macro time_group_row(group, cfi, plane_color, today_now_time=none) %}
 {% set distinct_times = group.flights|map(attribute='time_label')|unique|list %}
-<div class="d-flex flex-wrap align-items-start gap-2 mb-2">
+{#- flight-chip-row: same d-flex row as before, just a hook so the phone
+   media query (style.css) can shrink this row's own gap without touching
+   every other "gap-2" row in the app. #}
+<div class="d-flex flex-wrap align-items-start gap-2 mb-2 flight-chip-row">
   <span class="flight-chip-time">{{ group.time_label }}</span>
   <div class="flight-chip-grid">
     {% for f in group.flights %}

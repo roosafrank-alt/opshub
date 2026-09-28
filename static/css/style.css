@@ -175,6 +175,24 @@ body { background: #f4f5f7; }
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .flight-chip-grid { gap: .35rem; }
+  /* Idea "phone view upcoming" (revision): 6.2rem above still only fit two
+     same-time chips across - Frank wants four (N20267S, N22689, AATD
+     Redbird, N5569P, ordered by _group_by_time in flight.py). Shrinks the
+     chip further so four fit on a typical phone width: the status icon and
+     each chip's own end time are dropped here (the color/border already
+     carries status, and the shared start time already shows once as the
+     row's own flight-chip-time label), which also frees up the padding
+     that was reserved for the icon. flight-chip-row (time_group_row in
+     _dashboard_live.html) narrows this row's own gap the same way, without
+     touching every other "gap-2" row in the app. */
+  .flight-chip-row { gap: .3rem; }
+  .flight-chip { min-width: 0; padding: .25rem .3rem .25rem .7rem; }
+  .flight-chip-striped { padding-left: .7rem; }
+  .flight-chip-icon, .flight-chip-endtime { display: none; }
+  .flight-chip-student, .flight-chip-day, .flight-chip-starttime { font-size: .7rem; }
+  .flight-chip-plane { font-size: .62rem; }
+  .flight-chip-main { max-width: 2.9rem; }
+  .flight-chip-grid { gap: .3rem; }
 }
 
 /* Dashboard section collapse - Today's Schedule / Upcoming / Recent Flights

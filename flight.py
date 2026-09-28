@@ -1519,6 +1519,21 @@ def _plane_maint_warnings(conn):
     return items
 
 
+# Idea "phone view upcoming" (revision): Frank's fixed left-to-right order
+# for same-time-slot dashboard chips, so a row of same-time bookings reads
+# the same way every time instead of whatever order the query happened to
+# return. Matched case-insensitively against each flight's plane_tag; a
+# plane/sim not in this list (a future addition to the fleet) keeps
+# sorting after all of these, in its original (chronological) order.
+DASHBOARD_PLANE_ORDER = ["N20267S", "N22689", "AATD Redbird", "N5569P"]
+_DASHBOARD_PLANE_ORDER_INDEX = {tag.lower(): i for i, tag in enumerate(DASHBOARD_PLANE_ORDER)}
+
+
+def _dashboard_plane_sort_key(f):
+    return _DASHBOARD_PLANE_ORDER_INDEX.get((f["plane_tag"] or "").strip().lower(),
+                                             len(DASHBOARD_PLANE_ORDER))
+
+
 def _group_by_time(rows):
     """Groups a list of flight rows (already sorted by time - every caller
     of this is) into one bucket per overlapping cluster of bookings, so two
@@ -1546,7 +1561,11 @@ def _group_by_time(rows):
     for c in clusters:
         labels = list(dict.fromkeys((f["time_label"] or "Not set") for f in c["flights"]))
         time_label = labels[0] if len(labels) == 1 else f"{labels[0]} – {labels[-1]}"
-        groups.append({"time_label": time_label, "flights": c["flights"]})
+        # Sorted for display only, from a copy - label picking above stays
+        # on the original chronological order, so a merged cluster that
+        # spans more than one start time still shows "earliest – latest".
+        flights = sorted(c["flights"], key=_dashboard_plane_sort_key)
+        groups.append({"time_label": time_label, "flights": flights})
     return groups
 
 
