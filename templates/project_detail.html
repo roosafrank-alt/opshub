@@ -155,7 +155,7 @@
       <div class="tab-content">
       <div class="tab-pane fade show active" id="tab-parts" role="tabpanel">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
-        <h5 class="mb-0">Discrepancy List {% if can_see_shop_costs %}<span class="text-muted fs-6">(total ${{ "%.2f"|format(total_cost) }})</span>{% endif %}</h5>
+        <h5 class="mb-0">Discrepancy List {#- Idea "project": Assign Parts moved here from under the plane's squawks/to-dos card, as an icon-only button right next to the total it affects. #}<button type="button" id="assign-parts-btn" class="btn btn-outline-primary btn-sm py-0 px-1 align-middle" data-bs-toggle="modal" data-bs-target="#assignPartsModal" title="Assign a part to this project"><i class="bi bi-wrench"></i></button> {% if can_see_shop_costs %}<span id="discrepancy-total" class="text-muted fs-6">(total ${{ "%.2f"|format(total_cost) }})</span>{% endif %}</h5>
         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="var f=document.getElementById('add-section-row'); f.style.display = f.style.display==='none' ? 'flex' : 'none';"><i class="bi bi-folder-plus"></i> Add Discrepancy</button>
       </div>
       <form id="add-section-row" method="post" action="{{ url_for('project_add_section', project_id=project.id) }}" class="gap-2 mt-2 mb-2" style="display:none;">
@@ -509,8 +509,8 @@
   {#- Idea "project": divide the page in half - project info (Discrepancies,
      Parts, etc) on the left in col-lg-7 above, plane info (squawks/to-dos)
      on the right here. On phones this column still comes first, so the
-     plane's open squawks/to-dos (and the Assign Parts shortcut) sit right
-     under the title; on large screens it stays on the right. #}
+     plane's open squawks/to-dos sit right under the title; on large
+     screens it stays on the right. #}
   <div class="col-lg-5 order-first order-lg-last">
     {#- QA finding ux-squawk-on-project: the plane's own open squawks and
        to-dos, right on the job a tech is likely to fix them on, each with
@@ -546,13 +546,6 @@
     </div>
     {% endif %}
 
-    {#- Idea "project": the Assign Parts form used to sit here in full and
-       took up most of this column - now it's a small wrench icon that
-       opens the same form in a popup (#assignPartsModal below). #}
-    <div class="d-flex justify-content-end mb-3">
-      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#assignPartsModal" title="Assign a part to this project"><i class="bi bi-wrench"></i> Assign Parts</button>
-    </div>
-
     {% if open_orders %}
     <div class="card p-3 mb-3">
       <h6><i class="bi bi-truck"></i> Pending Orders for This Job</h6>
@@ -571,7 +564,8 @@
 
 {#- Idea "project": Assign Parts used to be a full card in the right
    column, taking up most of it - now it's this popup, opened from the
-   small wrench button above. Same form and script as before, unchanged. #}
+   small wrench-only button next to the Discrepancy List total above.
+   Same form and script as before, unchanged. #}
 <div class="modal fade" id="assignPartsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
