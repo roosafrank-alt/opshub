@@ -6129,7 +6129,7 @@ def shop_billing():
     for pid, p in projects.items():
         p["wave"] = wave_by_project.get(pid)
         p["customer_name"], p["customer_email"] = _project_customer(conn, pid)
-    wave_settings = wave_billing.get_settings(conn)
+    wave_accounts, wave_default = wave_billing.program_accounts(conn, "shop")
     conn.close()
     rows = sorted(projects.values(), key=lambda p: p["code"] or "")
     for p in rows:
@@ -6143,7 +6143,8 @@ def shop_billing():
     if unpaid_only:
         rows = [p for p in rows if p["payment_status"] != "paid"]
     return render_template("shop_billing.html", projects=rows, totals=totals, owed=owed, unpaid_only=unpaid_only,
-                           payment_methods=PAYMENT_METHODS, wave_connected=wave_billing.is_connected(wave_settings),
+                           payment_methods=PAYMENT_METHODS, wave_connected=bool(wave_accounts),
+                           wave_accounts=wave_accounts, wave_default=wave_default,
                            periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end)
 
 
@@ -6260,13 +6261,11 @@ def project_wave_invoice(project_id):
         conn.close()
         flash("Enter the customer's email so Wave can send it (or untick Email it now).", "danger")
         return redirect(back)
-    settings = wave_billing.get_settings(conn)
     try:
-        if not wave_billing.is_connected(settings):
-            raise wave_billing.WaveError("Wave isn't connected yet - set it up under Admin > Wave.")
-        lines = wave_billing.project_lines(conn, settings, project_id)
+        cfg = wave_billing.choose_account(conn, "shop", request.form.get("wave_account"))
+        lines = wave_billing.project_lines(conn, cfg, project_id)
         memo = f"{project['code']} - {project['name']}"
-        inv = wave_billing.create_invoice(conn, settings, name, email, lines, memo=memo, po_number=project["code"] or "")
+        inv = wave_billing.create_invoice(conn, cfg, name, email, lines, memo=memo, po_number=project["code"] or "")
     except wave_billing.WaveError as e:
         conn.close()
         flash(str(e), "danger")
@@ -6274,17 +6273,18 @@ def project_wave_invoice(project_id):
     sent_msg, sent = "", False
     if send:
         try:
-            wave_billing.send_invoice(settings, inv["id"], email)
+            wave_billing.send_invoice(cfg, inv["id"], email)
             sent, sent_msg = True, f" and emailed to {email}"
         except wave_billing.WaveError as e:
             sent_msg = f", but it wasn't emailed ({e}) - send it from Wave"
-    wave_billing.record_invoice(conn, "project", project_id, inv, name, email, session.get("user_name"), sent=sent)
+    wave_billing.record_invoice(conn, "project", project_id, inv, name, email, session.get("user_name"), cfg, sent=sent)
     if (project["payment_status"] or "not_invoiced") == "not_invoiced":
         conn.execute("UPDATE projects SET payment_status = 'invoiced', invoiced_at = ?, invoiced_by = ? WHERE id = ?",
                      (now_iso(), session.get("user_name"), project_id))
     conn.commit()
     conn.close()
-    flash(f"Wave invoice #{inv.get('invoiceNumber') or ''} created for ${wave_billing.money(inv.get('total')):.2f}{sent_msg}.",
+    flash(f"Wave invoice #{inv.get('invoiceNumber') or ''} created in {cfg['name']} for "
+          f"${wave_billing.money(inv.get('total')):.2f}{sent_msg}.",
           "success" if sent or not send else "warning")
     return redirect(back)
 
@@ -6300,7 +6300,7 @@ def shop_wave_sync():
 def _wave_sync_and_report(back):
     conn = get_db()
     try:
-        checked, paid, errors = wave_billing.sync_open_invoices(conn, wave_billing.apply_paid)
+        checked, paid, errors = wave_billing.sync_open_invoices(conn, wave_billing.apply_paid, program="shop")
     except wave_billing.WaveError as e:
         conn.close()
         flash(str(e), "danger")
@@ -6327,7 +6327,7 @@ def run_wave_payment_check():
     _wave_last_sync[0] = time.time()
     conn = get_db()
     try:
-        if not wave_billing.is_connected(wave_billing.get_settings(conn)):
+        if not wave_billing.has_any_connected(conn):
             return
         if not conn.execute("SELECT 1 FROM wave_invoices WHERE paid_applied_at IS NULL LIMIT 1").fetchone():
             return
@@ -7610,51 +7610,146 @@ def admin_notifications():
 @app.route("/admin/wave", methods=["GET", "POST"])
 @master_admin_required
 def admin_wave():
-    """Admin > Wave: the access token, which Wave business to invoice from,
-    and which of its products stand for labor / parts / flight training
-    (Wave needs a product on every invoice line)."""
+    """Admin > Wave: up to three Wave accounts (each one business with its
+    own products, its own login or sharing another account's), which
+    programs each is used for, and each program's default account - the
+    one Invoice in Wave preselects (any of the program's accounts can
+    still be picked there for a single invoice)."""
     conn = get_db()
     if request.method == "POST":
         current = wave_billing.get_settings(conn)
-        token = request.form.get("wave_access_token", "").strip() or current["wave_access_token"]
-        business_id = request.form.get("wave_business_id", "").strip()
-        values = {"wave_access_token": token, "wave_business_id": business_id,
-                  "wave_labor_product_id": request.form.get("wave_labor_product_id", ""),
-                  "wave_parts_product_id": request.form.get("wave_parts_product_id", ""),
-                  "wave_flight_product_id": request.form.get("wave_flight_product_id", "")}
-        if business_id != current["wave_business_id"]:
-            # Products and remembered customers belong to one business.
-            values.update(wave_labor_product_id="", wave_parts_product_id="", wave_flight_product_id="")
-            conn.execute("DELETE FROM app_settings WHERE key LIKE 'wavecust:%'")
+        values = {}
+        for n in wave_billing.ACCOUNTS:
+            k = lambda f: wave_billing.account_key(n, f)  # noqa: E731
+            # A blank token box keeps the saved token (it's never shown).
+            values[k("token")] = request.form.get(k("token"), "").strip() or current[k("token")]
+            values[k("token_from")] = request.form.get(k("token_from"), "")
+            if values[k("token_from")]:
+                values[k("token")] = ""  # sharing another account's login
+            values[k("name")] = request.form.get(k("name"), "")
+            # Business select sends "id|name" so the name can be shown
+            # without asking Wave again.
+            biz_id, _, biz_name = request.form.get(k("business_id"), "").partition("|")
+            values[k("business_id")] = biz_id
+            values[k("business_name")] = biz_name if biz_id else ""
+            if biz_id == current[k("business_id")] and not biz_name:
+                values[k("business_name")] = current[k("business_name")]
+            for f in ("labor_product_id", "parts_product_id", "flight_product_id"):
+                values[k(f)] = "" if biz_id != current[k("business_id")] else request.form.get(k(f), "")
+        for program in wave_billing.PROGRAMS:
+            picked = [str(n) for n in wave_billing.ACCOUNTS if request.form.get(f"use_{program}_{n}") == "1"]
+            values[wave_billing.program_key(program, "accounts")] = ",".join(picked)
+            default = request.form.get(wave_billing.program_key(program, "default"), "")
+            values[wave_billing.program_key(program, "default")] = default if default in picked else (picked[0] if picked else "")
         wave_billing.save_settings(conn, values)
         conn.close()
         flash("Wave settings saved.", "success")
         return redirect(url_for("admin_wave"))
-    settings = wave_billing.get_settings(conn)
-    open_count = conn.execute("SELECT COUNT(*) c FROM wave_invoices WHERE paid_applied_at IS NULL").fetchone()["c"]
+    raw = wave_billing.get_settings(conn)
+    accounts = []
+    for n in wave_billing.ACCOUNTS:
+        cfg = wave_billing.account_config(raw, n)
+        open_count = conn.execute("SELECT COUNT(*) c FROM wave_invoices WHERE paid_applied_at IS NULL AND COALESCE(account, 1) = ?",
+                                  (n,)).fetchone()["c"]
+        info = {"cfg": cfg, "connected": wave_billing.is_connected(cfg), "open_count": open_count,
+                "businesses": [], "products": [], "error": None,
+                "programs": {p: str(n) in raw[wave_billing.program_key(p, "accounts")].split(",") for p in wave_billing.PROGRAMS}}
+        if cfg["token"]:
+            try:
+                info["businesses"] = wave_billing.list_businesses(cfg["token"])
+                if cfg["business_id"]:
+                    info["products"] = wave_billing.list_products(cfg["token"], cfg["business_id"])
+            except wave_billing.WaveError as e:
+                info["error"] = str(e)
+        accounts.append(info)
+    programs = []
+    for p, spec in wave_billing.PROGRAMS.items():
+        connected, default = wave_billing.program_accounts(conn, p)
+        programs.append({"key": p, "label": spec["label"], "connected": connected, "default": default,
+                         "products": spec["products"]})
     conn.close()
-    businesses, products, error = [], [], None
-    if settings["wave_access_token"]:
-        try:
-            businesses = wave_billing.list_businesses(settings["wave_access_token"])
-            if settings["wave_business_id"]:
-                products = wave_billing.list_products(settings["wave_access_token"], settings["wave_business_id"])
-        except wave_billing.WaveError as e:
-            error = str(e)
-    return render_template("admin_wave.html", settings=settings, businesses=businesses, products=products,
-                           error=error, connected=wave_billing.is_connected(settings), open_count=open_count)
+    return render_template("admin_wave.html", accounts=accounts, programs=programs,
+                           enabled=wave_billing.is_enabled(raw),
+                           product_labels=wave_billing.PRODUCT_LABELS,
+                           program_key=wave_billing.program_key, account_key=wave_billing.account_key)
 
 
-@app.route("/admin/wave/disconnect", methods=["POST"])
+@app.route("/admin/wave/toggle", methods=["POST"])
 @master_admin_required
-def admin_wave_disconnect():
-    """Forgets the token (invoices already made stay in Wave and on Billing)."""
+def admin_wave_toggle():
+    """The on/off switch: off hides Invoice in Wave everywhere and pauses
+    the payment check, keeping every setting and invoice for later."""
+    on = request.form.get("enabled") == "1"
     conn = get_db()
-    wave_billing.save_settings(conn, {k: "" for k in wave_billing.SETTINGS_KEYS})
-    conn.execute("DELETE FROM app_settings WHERE key LIKE 'wavecust:%'")
+    wave_billing.save_settings(conn, {wave_billing.ENABLED_KEY: "1" if on else "0"})
+    conn.close()
+    flash("Wave invoicing turned on." if on else
+          "Wave invoicing turned off. Settings and invoices are kept - switch it back on any time.", "success")
+    return redirect(url_for("admin_wave"))
+
+
+@app.route("/admin/wave/test/<int:n>", methods=["POST"])
+@master_admin_required
+def admin_wave_test(n):
+    """Test connection: read-only checks on one account as saved."""
+    if n not in wave_billing.ACCOUNTS:
+        abort(404)
+    conn = get_db()
+    results = wave_billing.test_account(conn, n)
+    name = wave_billing.account_config(wave_billing.get_settings(conn), n)["name"]
+    conn.close()
+    ok = all(r[0] for r in results)
+    flash(f"{name} test: " + ("everything checks out." if ok else "something needs fixing."), "success" if ok else "warning")
+    for good, msg in results:
+        flash(("\u2713 " if good else "\u2717 ") + msg, "success" if good else "danger")
+    return redirect(url_for("admin_wave"))
+
+
+@app.route("/admin/wave/test/<int:n>/invoice", methods=["POST"])
+@master_admin_required
+def admin_wave_test_invoice(n):
+    """Make a test invoice: a $1 draft in Wave, emailed to no one."""
+    if n not in wave_billing.ACCOUNTS:
+        abort(404)
+    conn = get_db()
+    try:
+        inv = wave_billing.create_test_invoice(conn, n)
+    except wave_billing.WaveError as e:
+        conn.close()
+        flash(str(e), "danger")
+        return redirect(url_for("admin_wave"))
+    conn.close()
+    flash(f"Test invoice #{inv.get('invoiceNumber') or ''} made in Wave as a draft for $1.00 to \"OpsHub test\" - "
+          "nothing was sent to anyone. Find it under Sales & Payments > Invoices in Wave and delete it there.", "success")
+    return redirect(url_for("admin_wave"))
+
+
+@app.route("/admin/wave/disconnect/<int:n>", methods=["POST"])
+@master_admin_required
+def admin_wave_disconnect(n):
+    """Clears one Wave account and takes it off both programs. Invoices
+    already made in it stay in Wave; OpsHub just can't check them for
+    payment any more until it's connected again."""
+    if n not in wave_billing.ACCOUNTS:
+        abort(404)
+    conn = get_db()
+    raw = wave_billing.get_settings(conn)
+    cfg = wave_billing.account_config(raw, n)
+    values = {wave_billing.account_key(n, f): "" for f in wave_billing.ACCOUNT_FIELDS}
+    for m in wave_billing.ACCOUNTS:  # accounts that shared this one's login lose it too
+        if raw[wave_billing.account_key(m, "token_from")] == str(n):
+            values[wave_billing.account_key(m, "token_from")] = ""
+    for p in wave_billing.PROGRAMS:
+        kept = [x for x in raw[wave_billing.program_key(p, "accounts")].split(",") if x and x != str(n)]
+        values[wave_billing.program_key(p, "accounts")] = ",".join(kept)
+        if raw[wave_billing.program_key(p, "default")] == str(n):
+            values[wave_billing.program_key(p, "default")] = kept[0] if kept else ""
+    wave_billing.save_settings(conn, values)
+    if cfg["business_id"]:
+        wave_billing.forget_business_customers(conn, cfg["business_id"])
     conn.commit()
     conn.close()
-    flash("Wave disconnected.", "success")
+    flash(f"{cfg['name']} disconnected.", "success")
     return redirect(url_for("admin_wave"))
 
 
