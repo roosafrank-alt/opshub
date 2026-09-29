@@ -2140,6 +2140,10 @@ def _migrate(conn):
         created_at TEXT NOT NULL
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_order_shipments_batch ON order_shipments(batch_id)")
+    # Each package can be marked received or cancelled on its own (NULL = still open).
+    ship_cols = [r["name"] for r in conn.execute("PRAGMA table_info(order_shipments)").fetchall()]
+    if "status" not in ship_cols:
+        conn.execute("ALTER TABLE order_shipments ADD COLUMN status TEXT")
     conn.execute("""INSERT INTO order_shipments (batch_id, tracking_number, tracking_carrier, tracking_status,
                         tracking_detail, tracking_location, tracking_eta, tracking_events, tracking_checked_at,
                         tracking_delivered_at, created_at)

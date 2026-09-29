@@ -5203,7 +5203,8 @@ def orders_list():
         o["item_name"] = o["part_name"] or o["description"]
         o["vendor_name"] = o["supplier"] or "No Vendor Specified"
         o["batch_key"] = o.get("batch_id") or f"o{o['id']}"
-        o["shipments"] = [dict(tracking.to_json(sh), id=sh["id"], pending=o["status"] == "pending")
+        o["shipments"] = [dict(tracking.to_json(sh), id=sh["id"], pkg_status=sh["status"] or "",
+                               pending=o["status"] == "pending" and not sh["status"])
                           for sh in ship_rows.get(o["batch_key"], [])]
         o["search_blob"] = " ".join(str(v) for v in [
             o["item_name"], o["vendor_name"], o["project_name"] or "", o["project_code"] or "", o["note"] or "",
@@ -5233,8 +5234,8 @@ def orders_list():
                     for sh in ln["shipments"]:
                         if sh["id"] not in seen:
                             seen.add(sh["id"])
-                            shipments.append(dict(sh, pending=any(x["status"] == "pending" for x in lines
-                                                                   if x["batch_key"] == ln["batch_key"])))
+                            shipments.append(dict(sh, pending=not sh["pkg_status"] and any(
+                                x["status"] == "pending" for x in lines if x["batch_key"] == ln["batch_key"])))
                 batches.append({"date": d, "lines": lines, "shipments": shipments,
                                  "subtotal": sum((i["unit_cost"] or 0) * (i["qty_ordered"] or 0) for i in lines)})
             groups.append({"label": v, "batches": batches,
@@ -5876,6 +5877,26 @@ def order_cancel(order_id):
               "warning")
         return redirect(url_for("orders_list"))
     flash("Order cancelled.", "success")
+    return redirect(url_for("orders_list"))
+
+
+@app.route("/orders/shipments/<int:shipment_id>/<action>", methods=["POST"])
+@shop_role_required('admin')
+def order_shipment_mark(shipment_id, action):
+    """Marks ONE tracking number (package) of an order received or cancelled.
+    The order's other packages and its item lines are left alone; items are
+    still received one at a time."""
+    if action not in ("receive", "cancel", "reopen"):
+        abort(404)
+    conn = get_db()
+    new = {"receive": "received", "cancel": "cancelled", "reopen": None}[action]
+    changed = conn.execute("UPDATE order_shipments SET status=? WHERE id=?", (new, shipment_id)).rowcount
+    conn.commit()
+    conn.close()
+    if not changed:
+        abort(404)
+    flash({"receive": "Package marked received.", "cancel": "Package cancelled.",
+           "reopen": "Package put back as open."}[action], "success")
     return redirect(url_for("orders_list"))
 
 

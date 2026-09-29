@@ -75,3 +75,19 @@ class MultiItemOrderTest(OpsHubTestCase):
         self.assertEqual(len(self.q("SELECT id FROM order_shipments WHERE batch_id = ?", (b["batch_id"],))), 2)
         d = self.c.get(f"/api/orders/{b['id']}/tracking").get_json()
         self.assertTrue(d["ok"])
+
+    def test_receive_or_cancel_one_tracking_number(self):
+        self.post_new([("description", "A"), ("qty_ordered", "1"), ("description", "B"), ("qty_ordered", "1"),
+                       ("tracking_number", "1Z999AA10123456784"), ("tracking_number", "123456789012")])
+        s1, s2 = self.q("SELECT * FROM order_shipments ORDER BY id")
+        self.c.post(f"/orders/shipments/{s1['id']}/receive")
+        self.c.post(f"/orders/shipments/{s2['id']}/cancel")
+        st = [r["status"] for r in self.q("SELECT status FROM order_shipments ORDER BY id")]
+        self.assertEqual(st, ["received", "cancelled"])
+        html = self.c.get("/orders").get_data(as_text=True)
+        self.assertIn("Received", html)
+        self.c.post(f"/orders/shipments/{s1['id']}/reopen")
+        self.assertIsNone(self.q1("SELECT status FROM order_shipments WHERE id = ?", (s1["id"],))["status"])
+        # The order's items and other package are untouched.
+        self.assertEqual([r["status"] for r in self.q("SELECT status FROM orders")], ["pending", "pending"])
+        self.assertEqual(self.c.post("/orders/shipments/%d/bogus" % s1["id"]).status_code, 404)

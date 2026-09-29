@@ -19,10 +19,19 @@
 {#- Idea "order tracking live": one clickable number with live carrier
    status/delivery time, reused everywhere a tracking number shows -
    regular order shipments below, and a core's own return shipment. #}
-{% macro tracking_cell(shipments) %}
+{% macro tracking_cell(shipments, actions=False) %}
 {% for sh in shipments %}
 <div class="order-tracking mt-1" data-shipment-id="{{ sh.id }}" data-live="{{ 1 if sh.pending else 0 }}" data-tracking='{{ sh|tojson }}'>
   <a href="#" class="tracking-toggle text-decoration-none small" title="Show tracking details"><i class="bi bi-truck"></i> <span class="tracking-badge"></span> <i class="bi bi-chevron-down small"></i></a>
+  {% if sh.pkg_status %}<span class="badge {{ 'bg-success' if sh.pkg_status == 'received' else 'bg-secondary' }}">{{ 'Received' if sh.pkg_status == 'received' else 'Cancelled' }}</span>{% endif %}
+  {% if actions and sh.id %}<span class="d-inline-flex gap-1 ms-1">
+    {% if not sh.pkg_status %}
+    <form method="post" action="{{ url_for('order_shipment_mark', shipment_id=sh.id, action='receive') }}" class="d-inline"><button class="btn btn-outline-success btn-sm py-0" title="Mark just this tracking number received"><i class="bi bi-check2"></i> Receive</button></form>
+    <form method="post" action="{{ url_for('order_shipment_mark', shipment_id=sh.id, action='cancel') }}" class="d-inline" data-confirm="Cancel just this tracking number? The rest of the order is not touched." data-confirm-style="danger"><button class="btn btn-outline-danger btn-sm py-0" title="Cancel just this tracking number"><i class="bi bi-x-lg"></i> Cancel</button></form>
+    {% else %}
+    <form method="post" action="{{ url_for('order_shipment_mark', shipment_id=sh.id, action='reopen') }}" class="d-inline"><button class="btn btn-link btn-sm py-0" title="Put this tracking number back as open">Undo</button></form>
+    {% endif %}
+  </span>{% endif %}
   <div class="tracking-details small mt-1 p-2 border rounded bg-body-tertiary" style="display:none;"></div>
 </div>
 {% endfor %}
@@ -199,7 +208,7 @@
       <div class="order-batch">
         <div class="px-3 pt-2 text-muted small">Ordered {{ b.date|usdate if b.date else 'Unknown date' }} &middot; ${{ '%.2f'|format(b.subtotal) }}
           {% if b.shipments %}&middot; {{ b.shipments|length }} package{{ 's' if b.shipments|length != 1 }}{% endif %}</div>
-        {% if b.shipments %}<div class="px-3">{{ tracking_cell(b.shipments) }}</div>{% endif %}
+        {% if b.shipments %}<div class="px-3">{{ tracking_cell(b.shipments, true) }}</div>{% endif %}
         <div class="table-responsive">
           <table class="table table-hover mb-0 align-middle">
             <tbody>
