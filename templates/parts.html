@@ -3,7 +3,7 @@
 
 
 
-{% macro parts_table(plist, part_covers, show_retired=False) %}
+{% macro parts_table(plist, part_covers, show_retired=False, can_reorder=False) %}
 <div class="table-responsive">
   <table class="table table-hover mb-0 align-middle">
     <thead class="table-light">
@@ -15,7 +15,7 @@
         <th>Location</th>
         <th>On Hand</th>
         {% if can_see_shop_costs %}<th>Unit Cost</th>{% endif %}
-        {% if show_retired %}<th></th>{% endif %}
+        {% if show_retired or can_reorder %}<th></th>{% endif %}
       </tr>
     </thead>
     <tbody>
@@ -36,6 +36,9 @@
         <td>{{ p.location or '-' }}</td>
         <td>{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
         {% if can_see_shop_costs %}<td>${{ "%.2f"|format(p.unit_cost) }}</td>{% endif %}
+        {% if can_reorder %}
+        <td class="text-nowrap" onclick="event.stopPropagation()"><a href="{{ url_for('order_new', part_id=p.id) }}" class="btn btn-warning btn-sm">Reorder</a></td>
+        {% endif %}
         {% if show_retired %}
         <td onclick="event.stopPropagation()">
           <form method="post" action="{{ url_for('part_unretire', part_id=p.id) }}">
@@ -119,7 +122,7 @@
 {% elif by_category is none %}
   <!-- Search results: flat list -->
   <div class="card">
-    {{ parts_table(parts, part_covers) }}
+    {{ parts_table(parts, part_covers, can_reorder=show_low_stock and (session.get('is_master_admin') or session.get('shop_role') == 'admin')) }}
   </div>
 {% else %}
   <!-- Browse view: click a category to expand it -->

@@ -410,7 +410,8 @@
               <td><a href="{{ url_for('part_detail', part_id=p.id) }}">{{ p.name }}</a><br><small class="text-muted">{{ p.barcode }}</small></td>
               <td>{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
               <td>{{ '%g'|format(p.reorder_point) }} {{ p.unit }}</td>
-              <td><a href="{{ url_for('scan_page') }}" class="btn btn-sm btn-outline-primary text-nowrap">Scan In</a></td>
+              <td class="text-nowrap"><a href="{{ url_for('scan_page') }}" class="btn btn-sm btn-outline-primary text-nowrap">Scan In</a>
+                {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}<a href="{{ url_for('order_new', part_id=p.id) }}" class="btn btn-sm btn-warning text-nowrap">Reorder</a>{% endif %}</td>
             </tr>
             {% endfor %}
           </tbody>

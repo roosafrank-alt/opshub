@@ -5606,9 +5606,20 @@ def order_new():
         if w:
             prefill = {"description": w["description"], "part_id": str(w["part_id"]) if w["part_id"] else "",
                        "note": w["notes"] or "", "wishlist_id": str(wishlist_id)}
+    qty, cost = "1", "0"
+    reorder_part = request.args.get("part_id")
+    if reorder_part and not wishlist_id:
+        # Reorder button on Low Stock: part, usual supplier and a quantity
+        # that brings it back up to its reorder point are already filled in.
+        rp = conn.execute("SELECT * FROM parts WHERE id = ? AND retired_at IS NULL", (reorder_part,)).fetchone()
+        if rp:
+            missing = (rp["reorder_point"] or 0) - (rp["qty_on_hand"] or 0)
+            qty = "%g" % max(1, missing)
+            cost = "%g" % (rp["unit_cost"] or 0)
+            prefill = {"part_id": str(rp["id"]), "description": rp["name"], "supplier": rp["supplier"] or ""}
     conn.close()
     items = [{"part_id": prefill.get("part_id", ""), "description": prefill.get("description", ""),
-              "qty_ordered": "1", "unit_cost": "0", "is_exchange": "", "core_charge": "", "core_days": "30"}]
+              "qty_ordered": qty, "unit_cost": cost, "is_exchange": "", "core_charge": "", "core_days": "30"}]
     return render_template("order_form.html", form=prefill, items=items, ships=[], **lists)
 
 
