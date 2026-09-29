@@ -5187,6 +5187,30 @@ def my_alerts():
     return render_template("flight/notifications.html", notifications=notifications)
 
 
+@flight_bp.route("/my-account")
+@login_required
+def my_account():
+    """Student-facing "My Account" tab (next to Alerts): the student's own
+    logged flights split into Unpaid and Paid, plus their account balance.
+    Reuses Flight History's row query and cost math (_LOG_ROW_SQL,
+    _row_with_cost)."""
+    conn = get_db()
+    student = current_student(conn)
+    if not student:
+        conn.close()
+        flash("My Account is for student accounts.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    rows = conn.execute(_LOG_ROW_SQL + " WHERE f.student_id = ? ORDER BY f.flight_date DESC, f.id DESC LIMIT 200",
+                        (student["id"],)).fetchall()
+    conn.close()
+    flights = [_row_with_cost(r) for r in rows]
+    unpaid = [f for f in flights if not f["paid"]]
+    paid = [f for f in flights if f["paid"]]
+    return render_template("flight/my_account.html", unpaid=unpaid, paid=paid,
+                           unpaid_total=round(sum(f["total"] or 0 for f in unpaid), 2),
+                           balance=student["balance"] or 0.0)
+
+
 @flight_bp.route("/notifications/<int:notification_id>/dismiss", methods=["POST"])
 @login_required
 def notification_dismiss(notification_id):

@@ -116,6 +116,7 @@
          else 'academy' if _p.startswith('/academy')
          else 'students' if _p.startswith('/flight/students')
          else 'alerts' if (_p.startswith('/flight/alerts') or _p.startswith('/flight/notifications'))
+         else 'myaccount' if _p.startswith('/flight/my-account')
          else 'reports' if _p.startswith('/flight/reports')
          else 'manage' if (_p.startswith('/flight/planes') or _p.startswith('/flight/cfis') or _p.startswith('/flight/billing') or _p.startswith('/flight/stats'))
          else '' %}
@@ -138,6 +139,7 @@
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.alerts_list') }}"><i class="bi bi-exclamation-triangle"></i> <span class="nav-label">Alerts</span>{% if fac.get('open') %} <span class="badge {{ 'bg-danger' if fac.get('unacked') else 'bg-warning text-dark' }}" title="{{ fac.get('unacked') }} new, {{ fac.get('open') }} open">{{ fac.get('open') }}</span>{% endif %}</a></li>
         {% elif session.get('student_id') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.my_alerts') }}"><i class="bi bi-bell"></i> <span class="nav-label">Alerts</span>{% if student_alert_count %} <span class="badge bg-danger">{{ student_alert_count }}</span>{% endif %}</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'myaccount' }}" id="tour-nav-flight-myaccount" href="{{ url_for('flight.my_account') }}"><i class="bi bi-person-vcard"></i> <span class="nav-label">My Account</span></a></li>
         {% endif %}
       </ul>
       <ul class="navbar-nav flight-nav-boxed">
