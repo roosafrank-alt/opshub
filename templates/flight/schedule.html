@@ -499,6 +499,7 @@ var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(0) }};
 {% if view == 'month' %}
 (function () {
   if (document.querySelector('.schedule-block-highlight')) return;
+  if (document.documentElement.classList.contains('tv-mode')) return;  // TV: the whole month fits on screen, stay at the top
   var today = document.querySelector('[data-is-today="1"]');
   if (today) {
     setTimeout(function () { today.scrollIntoView({ behavior: 'instant', block: 'center' }); }, 50);

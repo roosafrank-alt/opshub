@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>try { if (localStorage.getItem('opshubTv') === '1') document.documentElement.classList.add('tv-mode'); } catch (e) {}</script>
 <meta charset="utf-8">
 {#- maximum-scale=1 blocks pinch-to-zoom on the phone everywhere else in
    Fly with Kate on purpose (it's what keeps an input field from jumping the
@@ -75,6 +76,11 @@
     border: 2px solid #146c43;
     box-shadow: 0 .25rem .75rem rgba(25,135,84,.25);
   }
+  /* TV mode (switched on from the account menu on the shop TV's browser
+     only): no scroll bar; the page is shrunk to fit the screen height by
+     the script at the bottom. A mouse wheel / remote keys still scroll. */
+  html.tv-mode { scrollbar-width: none; }
+  html.tv-mode::-webkit-scrollbar { display: none; }
 </style>
 </head>
 <body>
@@ -300,6 +306,38 @@ if ('serviceWorker' in navigator) {
 {% if session.get('cfi_id') %}{% include "flight/_active_flight_widget.html" %}{% endif %}
 {% include "_labor_timer_widget.html" %}
 {% include "_confirm_modal.html" %}
+<script>
+// TV mode: fit the page to the screen height (zoomed out only as far as
+// needed, never below 55%); anything still taller scrolls as usual.
+(function () {
+  var root = document.documentElement, box = document.querySelector('.container-fluid.py-3');
+  function fit() {
+    if (!box) return;
+    if (obs) obs.disconnect();
+    box.style.zoom = '';
+    if (root.classList.contains('tv-mode')) {
+      var avail = window.innerHeight - box.getBoundingClientRect().top - window.scrollY;
+      var need = box.scrollHeight;
+      if (need > avail && avail > 0) box.style.zoom = Math.max(0.55, avail / need).toFixed(3);
+    }
+    if (obs) obs.observe(box, { childList: true, subtree: true });
+  }
+  var timer, obs = window.MutationObserver ? new MutationObserver(function () { clearTimeout(timer); timer = setTimeout(fit, 150); }) : null;
+  window.addEventListener('resize', fit);
+  window.addEventListener('load', fit);
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest && e.target.closest('[data-tv-toggle]');
+    if (!t) return;
+    e.preventDefault();
+    var on = !root.classList.contains('tv-mode');
+    root.classList.toggle('tv-mode', on);
+    try { localStorage.setItem('opshubTv', on ? '1' : '0'); } catch (err) {}
+    fit();
+    window.scrollTo(0, 0);
+  });
+  fit();
+})();
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
