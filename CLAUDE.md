@@ -46,26 +46,28 @@ get onto the Pi or run the tests, give him these exact commands.
 
 ## Keep the Idea Queue runner copies in step
 
-The **Idea Queue Runner** routine holds the real runner instructions in its own
-prompt. **Idea Queue Runner 17**, **32** and **47** (and any copy added
-later) don't: their prompt just says to read `idea-queue/runner-instructions.md`
-from main and follow it.
+Since Sep 29, 2026 the runner works in two steps, to save usage on the many runs
+that find nothing to do:
 
-- When you change the Idea Queue Runner's instructions, make the same change in
-  `idea-queue/runner-instructions.md`, so the copies stay in step. The file must
-  always match the original routine's prompt, plus the THIS FILE rule at the end.
-- If Frank says "sync the runner file", compare the original routine's prompt
-  with the file and bring the file back in line with the prompt.
-- The **Idea Queue Runner** routine was created through the API, not by an agent, so
-  `update_trigger` refuses to change its prompt ("Agents can only update routines they
-  created"). Only Frank can edit it, at
-  https://claude.ai/code/routines/trig_01FMiUsrsJWLuJxRr9saRxMS. So when a change to the
-  runner instructions is made from a session: push the file to main (the copies read it
-  from there) and ask Frank to paste the same text into that routine's prompt. Don't
-  delete and recreate the routine to get around it - that loses its history, and the page's
-  Wake / Deploy / Roll back buttons fire it by that exact id.
+- **Idea Queue Runner** (:02) and **Idea Queue Runner 17**, **32** and **47** run on a
+  cheap model. Their prompt just says to read `idea-queue/runner-quick-check.md` from
+  main and follow it. That small file checks the queue and, only when there is work,
+  fires the **Idea Queue Runner (page button)** routine (trig_01Kp15uGZfSdqeWMGiTUXo5n).
+- **Idea Queue Runner (page button)** runs on the full model and follows the full rule
+  book, `idea-queue/runner-instructions.md`, from main.
+- So `idea-queue/runner-instructions.md` on main is the one real copy of the runner
+  instructions. Change it (and `runner-quick-check.md`) only when Frank asks, and push
+  to main so every routine picks it up. No routine prompt holds a pasted copy any more.
+- The four scheduled runner routines were created through the API, not by an agent, so
+  `update_trigger` refuses to change their prompts ("Agents can only update
+  routines they created"). Only Frank can edit them (prompt and model), e.g. the :02 one at
+  https://claude.ai/code/routines/trig_01FMiUsrsJWLuJxRr9saRxMS. Don't delete and
+  recreate them to get around it - that loses their history, and the page's
+  Wake / Deploy / Roll back buttons fire the :02 one by that exact id.
 - The **Stuck Job Watchdog** routine (hourly) follows `idea-queue/stuck-job-watchdog.md`
-  from main: it stops routine sessions that run too long or stop making progress, and
-  puts their ideas back in the queue. Don't remove it or loosen its limits unless Frank asks.
+  from main. It works only from the Idea Queue's meta/runner lock (routines can't list
+  routines or stop other sessions): a heartbeat stale 30+ minutes gets one phone alert to
+  Frank, and one stale 90+ minutes gets the lock cleared. Don't remove it or loosen its
+  limits unless Frank asks.
 - Known-good backups from before this was set up (Sep 27, 2026) are the branches
   `backup/main-2026-09-27` and `backup/idea-queue-2026-09-27`.
