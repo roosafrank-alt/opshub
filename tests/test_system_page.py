@@ -38,5 +38,34 @@ class PiTempTest(OpsHubTestCase):
                 self.assertNotEqual(self.login(role).get("/admin/system").status_code, 200)
 
 
+@unittest.skipUnless(hasattr(app_module, "admin_system_shutdown"), "Safe shutdown button not on this branch yet")
+class ShutdownTest(OpsHubTestCase):
+    def _post_shutdown(self, role):
+        calls = []
+        saved = app_module._run_delayed_command
+        app_module._run_delayed_command = lambda args, delay=2.0: calls.append(args)
+        try:
+            resp = self.login(role).post("/admin/system/shutdown")
+        finally:
+            app_module._run_delayed_command = saved
+        return resp, calls
+
+    def test_master_admin_can_shut_down(self):
+        resp, calls = self._post_shutdown("master")
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(calls, [["sudo", "shutdown", "-h", "now"]])
+
+    def test_other_roles_cannot_shut_down(self):
+        for role in ("shop_admin", "tech", "cfi"):
+            with self.subTest(role=role):
+                _, calls = self._post_shutdown(role)
+                self.assertEqual(calls, [])
+
+    def test_system_page_shows_shutdown_and_power_on_help(self):
+        html = self.login("master").get("/admin/system").get_data(as_text=True)
+        self.assertIn("Shut Down Pi", html)
+        self.assertIn("plug it back in", html)
+
+
 if __name__ == "__main__":
     unittest.main()

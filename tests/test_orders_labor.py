@@ -73,13 +73,11 @@ class OrderFormTest(OpsHubTestCase):
                 self.assertIsNone(self.q1("SELECT id FROM order_wishlist WHERE description='Sneaky'"))
 
     # --- rejections ------------------------------------------------------
-    @open_finding("qa-order-form-crash")
     def test_blank_new_order_shows_the_form_again_not_a_crash(self):
         r = self.new_order(description="", part_id="")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(self.orders(), [])
 
-    @open_finding("qa-order-form-crash")
     def test_non_number_quantity_shows_the_form_again_not_a_crash(self):
         r = self.new_order(qty_ordered="four")
         self.assertEqual(r.status_code, 200)
@@ -92,7 +90,6 @@ class OrderFormTest(OpsHubTestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(self.q1("SELECT qty_ordered FROM orders WHERE id=?", (oid,))["qty_ordered"], 4)
 
-    @open_finding("qa-order-bad-numbers")
     def test_new_order_rejects_zero_negative_nan_quantities_and_costs(self):
         bad = [dict(qty_ordered=q) for q in ("0", "-3", "nan", "inf")] + \
               [dict(unit_cost=c) for c in ("-5", "nan", "inf")]
@@ -101,7 +98,6 @@ class OrderFormTest(OpsHubTestCase):
                 self.new_order(**fields)
         self.assertEqual(self.orders(), [])
 
-    @open_finding("qa-order-bad-numbers")
     def test_edit_rejects_negative_or_nan_quantity(self):
         self.new_order()
         oid = self.orders()[-1]["id"]
@@ -110,7 +106,6 @@ class OrderFormTest(OpsHubTestCase):
                 self.client.post(f"/orders/{oid}/edit", data=dict(description="Spark plug", qty_ordered=q))
                 self.assertEqual(self.q1("SELECT qty_ordered FROM orders WHERE id=?", (oid,))["qty_ordered"], 4)
 
-    @open_finding("qa-order-bad-numbers")
     def test_receiving_can_never_remove_stock(self):
         # A negative order quantity typed by mistake turns "Receive" into a
         # silent stock removal.
@@ -120,7 +115,6 @@ class OrderFormTest(OpsHubTestCase):
             self.client.post(f"/orders/{o['id']}/receive")
         self.assertGreaterEqual(self.qty(self.part), 2)
 
-    @open_finding("qa-order-edit-after-receive")
     def test_received_or_cancelled_orders_cannot_be_edited(self):
         self.new_order(description="", part_id=str(self.part), qty_ordered="6")
         received = self.orders()[-1]["id"]
@@ -138,7 +132,6 @@ class OrderFormTest(OpsHubTestCase):
         # The received order and the shelf still agree.
         self.assertEqual(self.qty(self.part), 8)
 
-    @open_finding("qa-part-delete-crash")
     def test_deleting_a_part_that_is_on_an_order_does_not_crash(self):
         # The database refuses to delete a part an order, a To-Order list
         # entry or a photo still points at, and the Delete button showed an
@@ -155,7 +148,6 @@ class OrderFormTest(OpsHubTestCase):
         self.assertIsNotNone(part)
         self.assertEqual(part["qty_on_hand"], 3)
 
-    @open_finding("qa-part-delete-crash")
     def test_deleting_a_part_on_the_to_order_list_or_with_a_photo_does_not_crash(self):
         for i, table in enumerate(("order_wishlist", "photos")):
             with self.subTest(linked_from=table):
@@ -306,6 +298,37 @@ class LaborFlowTest(OpsHubTestCase):
         self.labor()
         self.assertAlmostEqual(self.sessions()[0]["cost"], 40, places=1)
 
+    def test_scan_order_does_not_matter(self):
+        """Idea 'scanning': the Scan page and the dedicated Labor Scan page
+        both let a person scan their laborer badge or the project/task code
+        in either order (each queues the first one client-side and re-fires
+        it once the other is known - see pendingLaborer in scan.html and
+        labor.html). This locks in the server side of that: a laborer code
+        with no project yet is told exactly that (no_task_selected, not a
+        crash or a silent no-op) rather than clocking in against nothing,
+        and once the project is known the same scan (project first) clocks
+        in exactly like project-first always has."""
+        # Badge first, no project known yet: told to scan a project next -
+        # nothing gets clocked in against no task.
+        r = self.labor()
+        self.assertEqual((r.status_code, r.json["error"]), (400, "no_task_selected"))
+        self.assertEqual(self.sessions(), [])
+        # The project becomes known (e.g. the Scan page's task/project
+        # lookup) and the SAME badge scan is resubmitted with it - clocks in
+        # exactly like it would have if the project had been scanned first.
+        r = self.labor(project_id=self.project, section="Brakes")
+        self.assertEqual(r.json["action"], "clock_in")
+        s = self.sessions()[0]
+        self.assertEqual((s["project_id"], s["section"], s["ended_at"]), (self.project, "Brakes", None))
+        self.backdate(s["id"], 1)
+        r = self.labor()
+        self.assertEqual(r.json["action"], "clock_out")
+        # Project-first order still works exactly as before.
+        r = self.labor(code="LABOR-BBBB0002", project_id=self.project, section="Annual")
+        self.assertEqual(r.json["action"], "clock_in")
+        s = self.sessions(self.other)[0]
+        self.assertEqual((s["project_id"], s["section"]), (self.project, "Annual"))
+
     def test_general_shop_time_needs_a_note_to_clock_out(self):
         self.labor(general=True)
         sid = self.sessions()[0]["id"]
@@ -354,7 +377,6 @@ class LaborFlowTest(OpsHubTestCase):
         self.assertEqual((r.status_code, r.json["error"]), (400, "inactive_laborer"))
         self.assertEqual(self.sessions(), [])
 
-    @open_finding("qa-labor-inactive-timer")
     def test_deactivated_laborer_can_still_clock_out(self):
         # Clocked in, then deactivated (quit / let go that afternoon): their
         # badge is refused, so the timer - and their pay - keeps running.
@@ -369,7 +391,6 @@ class LaborFlowTest(OpsHubTestCase):
             self.assertEqual(r.json["action"], "clock_out")
         self.assertEqual(self.q("SELECT id FROM labor_sessions WHERE ended_at IS NULL"), [])
 
-    @open_finding("qa-labor-malformed-body")
     def test_garbled_labor_scans_are_rejected_not_crashes(self):
         for body in (["LABOR-AAAA0001"], "LABOR-AAAA0001", {"code": 12345}, {"code": ["LABOR-AAAA0001"]},
                      {"code": "LABOR-AAAA0001", "project_id": {"id": 1}}):
@@ -377,7 +398,6 @@ class LaborFlowTest(OpsHubTestCase):
                 r = self.client.post("/api/labor/scan", json=body)
                 self.assertIn(r.status_code, (400, 404))
 
-    @open_finding("qa-labor-permission")
     def test_accounts_without_shop_access_cannot_clock_labor(self):
         self.login("tech")
         self.labor(code="LABOR-BBBB0002", project_id=self.project)
@@ -399,7 +419,6 @@ class LaborFlowTest(OpsHubTestCase):
                 self.assertEqual(self.labor(project_id=self.project).status_code, 200)
                 self.assertEqual(self.labor(project_id=self.project).status_code, 200)
 
-    @open_finding("qa-labor-closed-projects")
     def test_clocking_in_to_a_completed_or_archived_project_is_blocked(self):
         # Same rule Frank chose for parts (qa-scanout-closed-projects).
         for status in ("completed", "archived"):
@@ -428,7 +447,6 @@ class LaborerAdminTest(OpsHubTestCase):
         self.assertEqual(self.q("SELECT id FROM laborers"), [])
         self.assertEqual(self.client.get("/laborers/9999/edit").status_code, 404)
 
-    @open_finding("qa-laborer-bad-rate")
     def test_pay_rate_rejects_negative_or_nan(self):
         for rate in ("-25", "nan", "inf"):
             with self.subTest(rate=rate):

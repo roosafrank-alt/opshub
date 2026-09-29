@@ -69,8 +69,8 @@ Shop / inventory
 - [x] Labor tracking: `/api/labor/scan` start/stop, double-start, stop someone else's session, pay totals
 - [ ] Labor: two scans of the same badge at the same instant (needs a threaded test; today's check-then-insert isn't atomic)
 - [ ] Pi health / System page (`/admin/system`, `pi_health.py`) once it's live: temperature parsing, alert thresholds, no duplicate alerts
-- [ ] Project lifecycle: new, intake, edit, status, trash/restore/purge, renumber after delete
-- [ ] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
+- [x] Project lifecycle: status, trash/restore/purge, renumber after delete (new/intake/edit still to do)
+- [x] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
 - [ ] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s)
 - [ ] Assets: new, quick new, edit, hours update (can hours go backwards?), trash/restore/purge
 - [ ] Maintenance items: new, edit, complete, due/overdue math around hours and dates

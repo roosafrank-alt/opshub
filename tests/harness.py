@@ -109,6 +109,17 @@ from flask.testing import FlaskClient  # noqa: E402
 flask_app = app_module.app
 flask_app.config.update(TESTING=True, PROPAGATE_EXCEPTIONS=False)
 
+# The error log goes in the temp folder too. app.py works ERROR_LOG_DIR out
+# from where app.py itself sits, so running the suite in ~/shopinv on the Pi
+# (the documented way - see CLAUDE.md) used to save every deliberate crash a
+# test makes into the LIVE instance/error_logs/, where it showed up on
+# Admin -> System as a real error to chase. _PerFileErrorHandler reads this
+# global on every write, so re-pointing it here is enough.
+app_module.ERROR_LOG_DIR = os.path.join(_TMP_ROOT, "error_logs")
+os.makedirs(app_module.ERROR_LOG_DIR, exist_ok=True)
+assert app_module.ERROR_LOG_DIR.startswith(tempfile.gettempdir()), \
+    "test error log must be under the temp folder, not %s" % app_module.ERROR_LOG_DIR
+
 # When a route crashes mid-save, its half-finished SQLite connection can keep
 # the database write-locked until Python's garbage collector happens to run.
 # Collecting after every request stops one crash from stalling every later
@@ -166,7 +177,7 @@ ROLES = {
     "shop_admin":    dict(shop_role="admin"),
     "tech":          dict(shop_role="tech"),
     "inspector":     dict(shop_role="inspector"),
-    "shop_student":  dict(shop_role="student"),
+    "shop_student":  dict(shop_role="apprentice"),
     "cfi":           dict(flight_role="cfi"),
     "cfi_billing":   dict(flight_role="cfi", can_bill=1),
     "flight_student": dict(flight_role="student"),
@@ -219,8 +230,11 @@ class OpsHubTestCase(unittest.TestCase):
                 s["customer_id"] = self.customer_id
                 s["customer_name"] = "Owner Customer"
             return self.client
-        u = self.users[role]
         conn = db.get_db()
+        # Re-fetch fresh (not the row cached in self.users at setUp) so a
+        # test that flips an access flag with self.exec() after setUp and
+        # before login() sees its own change, the same way a real login does.
+        u = conn.execute("SELECT * FROM users WHERE id = ?", (self.users[role]["id"],)).fetchone()
         cfi = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (u["id"],)).fetchone()
         stu = conn.execute("SELECT id FROM students WHERE user_id = ?", (u["id"],)).fetchone()
         conn.close()
@@ -232,6 +246,7 @@ class OpsHubTestCase(unittest.TestCase):
             s["flight_role"] = u["flight_role"]
             s["can_bill"] = bool(u["can_bill"])
             s["academy_access"] = bool(u["academy_access"])
+            s["groundschool_access"] = bool(u["groundschool_access"] or u["academy_access"])
             s["tour_seen_shop"] = True
             s["tour_seen_flight"] = True
             if u["flight_role"] == "cfi" and cfi:
