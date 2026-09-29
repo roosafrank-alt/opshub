@@ -65,8 +65,9 @@ from main and follow it.
   delete and recreate the routine to get around it - that loses its history, and the page's
   Wake / Deploy / Roll back buttons fire it by that exact id.
 - The **Stuck Job Watchdog** routine (hourly) follows `idea-queue/stuck-job-watchdog.md`
-  from main: it reports routine runs that run too long or stop making progress to Frank's
-  phone (routines can't stop other sessions; he stops them) and clears a stale Idea Queue
-  lock once no runner is still going. Don't remove it or loosen its limits unless Frank asks.
+  from main. It works only from the Idea Queue's meta/runner lock (routines can't list
+  routines or stop other sessions): a heartbeat stale 30+ minutes gets one phone alert to
+  Frank, and one stale 90+ minutes gets the lock cleared. Don't remove it or loosen its
+  limits unless Frank asks.
 - Known-good backups from before this was set up (Sep 27, 2026) are the branches
   `backup/main-2026-09-27` and `backup/idea-queue-2026-09-27`.
