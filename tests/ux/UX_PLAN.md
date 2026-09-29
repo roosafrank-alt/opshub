@@ -79,8 +79,8 @@ over from the top, and put areas that changed a lot since their last review
 
 - [x] Daily-job flows (flow_audit journeys), reviewed 2026-09-26: filed ux-assign-part-flow (12 taps + 4 fields vs ~5), ux-log-flight-scroll (7 taps + 1,546px scroll). Added journeys scan-out and log-flight.
 - [x] Scan page, phone (tech), reviewed 2026-09-26: the page itself is quick (operator pre-filled, project then part scans need no extra taps); filed ux-scan-button-shop-dashboard (Scan only in the ☰ menu, 5 taps vs 3).
-- [ ] Flight School dashboard, phone (CFI and student) (clock/sun-times wrap filed 2026-09-26 as ux-flight-dash-sun-times; still needs a full review)
-- [ ] Shop dashboard, phone and desktop
+- [x] Flight School dashboard, phone (CFI and student), reviewed 2026-09-29: earlier cards (sun times, tiles, next lesson, section headers) are all fixed on main; the desktop tile-height card (ux-flight-dash-tiles-desktop) is still waiting; Frank wants all 4 quick-access tiles kept. Nothing new filed.
+- [x] Shop dashboard, phone and desktop, reviewed 2026-09-29: filed ux-shop-recent-activity-phone (5-column table, dates on 3 lines) and ux-shop-clocked-in-empty (full box for 'nobody clocked in'). Low-stock rows, Upcoming header and Reorder buttons now fixed on main.
 - [ ] Top menu / navigation on every screen size (shop admin menu overflow at 1366px FIXED on idea-queue 2026-09-26; two home tiles both titled "Winds Aloft"; flight-only accounts hit a redirect loop on shop pages, filed ux-shop-link-redirect-loop 2026-09-26)
 - [ ] Shop dashboard stat boxes: Active Projects and Low Stock Items look tappable but aren't (found 2026-09-25)
 - [ ] Log a flight / active flight, phone (CFI)
@@ -96,6 +96,14 @@ over from the top, and put areas that changed a lot since their last review
 - [ ] Admin pages: users, notifications, system (desktop)
 
 ## Tool notes
+
+- 2026-09-29: journeys.py brought up to date with the app: techs and CFIs now land
+  straight on their home page (no launcher tile), Assign Parts is the wrench pop-up
+  on the project page, the log-flight button is "Session Complete", and the phone
+  Scan button opens the camera (the test browser has none, so scan-out taps the
+  "USB Scanner" tab first). Added journeys start-next-lesson and report-squawk.
+  All 9 journeys finish; results 2026-09-29: assign-part 7 taps (target 5, was 12),
+  report-squawk 5 (target 4), everything else on target.
 
 - 2026-09-26: `scan("CODE")` walker step added (a USB scanner: types into the
   scan box and presses Enter, counted as 1 tap). The sample data now marks

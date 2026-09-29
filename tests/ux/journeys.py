@@ -36,7 +36,7 @@ JOURNEYS = [
         "role": "tech", "screen": "phone", "target_taps": 3,
         "steps": lambda w, ids: (
             w.start("/"),
-            w.tap("Parts, projects, labor"),  # the shop tile (a second tile is also titled "Winds Aloft")
+            # Techs land straight on the shop home (single-program launcher skip, 2026-09-28).
             w.tap("Aircraft"),
             w.tap("N4729K"),
             w.see("Left main tire"),
@@ -48,15 +48,12 @@ JOURNEYS = [
         "role": "tech", "screen": "phone", "target_taps": 5,
         "steps": lambda w, ids: (
             w.start("/"),
-            w.tap("Parts, projects, labor"),  # the shop tile (a second tile is also titled "Winds Aloft")
             w.tap("Projects"),
             w.tap("Annual Inspection - N4729K"),
+            # Assign Parts is now the wrench next to "Discrepancy List" and opens a pop-up (2026-09-28);
+            # qty defaults to 1 and "Scanning as" is filled in for the logged-in tech.
+            w.tap("#assign-parts-btn"),
             w.fill("part_id", "Oil Filter CH48110-1"),
-            w.fill("qty", "1"),
-            # "Scanning as" isn't filled in for the logged-in tech: pick "+ Add new name", type, tap Add.
-            w.fill("#assign-operator-select", "Add new name"),
-            w.fill("#assign-operator-new-input", "Tech"),
-            w.tap("#assign-operator-new-add"),
             w.tap("Assign to Project"),
             w.see("Assigned 1"),
         ),
@@ -67,8 +64,8 @@ JOURNEYS = [
         "role": "cfi", "screen": "phone", "target_taps": 1,
         "steps": lambda w, ids: (
             w.start("/"),
-            w.tap("Fly with Kate!"),
-            w.see("Today's Schedule"),
+            # CFIs land straight on the flight dashboard; today's list is headed "Today <date>".
+            w.see("0 of 1 done"),
         ),
     },
     {
@@ -96,11 +93,13 @@ JOURNEYS = [
     {
         "id": "scan-out",
         "task": "Tech scans an oil filter out to the N4729K annual on the Scan page",
-        "role": "tech", "screen": "phone", "target_taps": 3,
+        "role": "tech", "screen": "phone", "target_taps": 4,  # 3 + the USB Scanner tab (test browser has no camera)
         "steps": lambda w, ids: (
             w.start("/"),
-            w.tap("Parts, projects, labor"),
-            w.tap("Scan"),
+            w.tap(".mobile-scan-fab"),  # phones: the round yellow Scan button, bottom right
+            # It opens the camera straight away (?cam=1). The test browser has no camera, so switch to
+            # the typed box (what a Bluetooth scanner uses); that tap is not counted against target_taps.
+            w.tap("USB Scanner"),
             w.scan("26-002"),        # the project's printed code
             w.scan("SHOP-UX0001"),   # Oil Filter CH48110-1
             w.see("Oil Filter CH48110-1"),
@@ -112,15 +111,38 @@ JOURNEYS = [
         "role": "cfi", "screen": "phone", "target_taps": 6,
         "steps": lambda w, ids: (
             w.start("/"),
-            w.tap("Fly with Kate!"),
             w.tap("Log a Flight"),
             # "Log a Flight" opens Schedule a Flight with "Flight Already Complete" switched on.
             w.tap("N81PA"),                          # one-tap plane buttons
             w.fill("#student-combo-input", "Student"),
             w.tap("#student-combo-list .list-group-item"),
             w.fill("hobbs_end", "1001.3"),           # Hobbs start fills in from the plane
-            w.tap("Flight Complete", role="button"),
+            w.tap("Session Complete", role="button"),  # renamed from "Flight Complete" (2026-09-28)
             w.see("N81PA"),
+        ),
+    },
+    # Added 2026-09-29: the two flight-line and shop-floor jobs done most often.
+    {
+        "id": "start-next-lesson",
+        "task": "CFI starts the next lesson's session from the dashboard",
+        "role": "cfi", "screen": "phone", "target_taps": 1,
+        "steps": lambda w, ids: (
+            w.start("/"),
+            w.tap("Start Session", role="button"),
+            w.see("Hobbs"),
+        ),
+    },
+    {
+        "id": "report-squawk",
+        "task": "Tech reports a squawk on N81PA from a phone",
+        "role": "tech", "screen": "phone", "target_taps": 4,
+        "steps": lambda w, ids: (
+            w.start("/"),
+            w.tap("Report a squawk"),
+            w.fill("asset_id", "N81PA"),
+            w.fill("notes", "Nav light out on the left wing"),
+            w.tap("Report", role="button"),
+            w.see("Nav light out on the left wing"),
         ),
     },
 ]
