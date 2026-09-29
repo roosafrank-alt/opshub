@@ -1,14 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Laborers - OpsHub{% endblock %}
+{% block title %}Workers - OpsHub{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="mb-0">Laborers ({{ laborers|length }})</h4>
+  <h4 class="mb-0">Workers ({{ laborers|length }})</h4>
   <div class="d-flex gap-2">
     <form class="d-flex" method="get">
       <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search name...">
       <button class="btn btn-outline-secondary ms-1"><i class="bi bi-search"></i></button>
     </form>
     <a href="{{ url_for('labor_page') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-arrow-left"></i> Labor</a>
+    <a href="{{ url_for('laborer_badges') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-printer"></i> Print Badges</a>
+    <a href="{{ url_for('general_shop_code_page') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-qr-code"></i> Shop Code</a>
     <a href="{{ url_for('admin_user_new', shop_role='tech', badge='new') if is_master_admin else url_for('laborer_new') }}" class="btn btn-warning fw-bold text-nowrap"><i class="bi bi-plus-lg"></i> New Laborer</a>
   </div>
 </div>

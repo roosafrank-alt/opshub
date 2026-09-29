@@ -131,9 +131,7 @@
               </a>
               <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shop-manage-toggle">
                 {% if is_master_admin or shop_role == 'admin' %}
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/laborers') }}" href="{{ url_for('laborers_list') }}"><i class="bi bi-person-badge"></i> Laborers</a></li>
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/badges') }}" href="{{ url_for('laborer_badges') }}"><i class="bi bi-printer"></i> Print Worker Badges</a></li>
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/general-code') }}" href="{{ url_for('general_shop_code_page') }}"><i class="bi bi-qr-code"></i> General Shop Code</a></li>
+                <li><a class="dropdown-item {{ 'active' if _p.startswith('/laborers') or _p.startswith('/labor/badges') or _p.startswith('/labor/general-code') }}" href="{{ url_for('laborers_list') }}"><i class="bi bi-person-badge"></i> Workers</a></li>
                 <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> Labor Pay</a></li>
                 <li><a class="dropdown-item {{ 'active' if _p.startswith('/customers') }}" href="{{ url_for('customers_list') }}"><i class="bi bi-people"></i> Customers</a></li>
                 <li><a class="dropdown-item {{ 'active' if _p.startswith('/manuals') }}" href="{{ url_for('manuals.manuals_list') }}"><i class="bi bi-file-earmark-pdf"></i> Manuals</a></li>
