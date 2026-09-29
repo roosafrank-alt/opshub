@@ -980,6 +980,27 @@ def get_my_squawks(conn, user_id):
     """, (user_id, user_id)).fetchall()
 
 
+def get_my_done_squawks(conn, user_id, limit=25):
+    """Squawks assigned to this user that are repaired, newest first - the
+    completed squawks shown beside completed to-dos on My Tasks."""
+    return conn.execute(f"""
+        SELECT {_FLIGHT_SQUAWK_COLS}
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        LEFT JOIN users au ON au.id = f.squawk_assigned_to
+        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NOT NULL AND f.squawk_assigned_to = ?
+        UNION ALL
+        SELECT {_QUICK_SQUAWK_COLS}
+        FROM plane_squawks q
+        JOIN assets a ON a.id = q.asset_id
+        LEFT JOIN users au ON au.id = q.assigned_to
+        WHERE q.repaired_at IS NOT NULL AND q.assigned_to = ?
+        ORDER BY repaired_at DESC LIMIT ?
+    """, (user_id, user_id, limit)).fetchall()
+
+
 @app.route("/squawks")
 @shop_role_required('admin', 'tech', 'inspector')
 def squawks_list():
@@ -4498,10 +4519,12 @@ def tech_spot():
         WHERE pt.assigned_to = ? AND pt.done = 1
         ORDER BY pt.completed_at DESC LIMIT 25
     """, (session["user_id"],)).fetchall()
+    my_squawks_done = get_my_done_squawks(conn, session["user_id"])
     reminders = _fleet_maintenance_reminders(conn)
     conn.close()
     return render_template("tech_spot.html", my_squawks=my_squawks, my_todos=my_todos,
-                           my_todos_pending=my_todos_pending, my_todos_done=my_todos_done, reminders=reminders)
+                           my_todos_pending=my_todos_pending, my_todos_done=my_todos_done,
+                           my_squawks_done=my_squawks_done, reminders=reminders)
 
 
 @app.route("/assets/<int:asset_id>/oil")

@@ -86,9 +86,16 @@
 {% endif %}
 
 <div class="card p-3 mb-3">
-  <h6 class="mb-2"><i class="bi bi-check-square"></i> Completed <span class="text-muted small fw-normal">({{ my_todos_done|length }})</span></h6>
-  {% if my_todos_done %}
+  <h6 class="mb-2"><i class="bi bi-check-square"></i> Completed <span class="text-muted small fw-normal">({{ my_todos_done|length + my_squawks_done|length }})</span></h6>
+  {% if my_todos_done or my_squawks_done %}
   <ul class="list-group list-group-flush">
+    {% for sq in my_squawks_done %}
+    <li class="list-group-item px-0 d-flex align-items-start gap-2">
+      <i class="bi bi-check-square-fill text-success fs-5"></i>
+      <span class="text-decoration-line-through text-muted"><span class="badge bg-secondary">Squawk</span> <a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="text-muted small">{{ sq.asset_tag }}</a> - {{ sq.notes or 'Squawk' }}</span>
+      {% if sq.repaired_by %}<span class="small text-muted ms-auto">repaired by {{ sq.repaired_by }}</span>{% endif %}
+    </li>
+    {% endfor %}
     {% for t in my_todos_done %}
     <li class="list-group-item px-0 d-flex align-items-start gap-2">
       <i class="bi bi-check-square-fill text-success fs-5"></i>
