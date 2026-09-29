@@ -71,7 +71,7 @@ Shop / inventory
 - [ ] Pi health / System page (`/admin/system`, `pi_health.py`) once it's live: temperature parsing, alert thresholds, no duplicate alerts
 - [x] Project lifecycle: status, trash/restore/purge, renumber after delete (new/intake/edit still to do)
 - [x] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
-- [ ] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s)
+- [x] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s), inspector confirm / send back, fix on job
 - [ ] Assets: new, quick new, edit, hours update (can hours go backwards?), trash/restore/purge
 - [ ] Maintenance items: new, edit, complete, due/overdue math around hours and dates
 - [ ] Logbook entries: create, edit, print, starter templates
