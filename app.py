@@ -848,6 +848,28 @@ def get_plane_open_squawks(conn, asset_id):
     """, (asset_id, asset_id)).fetchall()
 
 
+def get_plane_done_squawks(conn, asset_id):
+    """This plane's completed (repaired) squawks, newest first - the plane
+    page's Squawks history, with the same columns as the Squawks page's Done
+    list."""
+    return conn.execute(f"""
+        SELECT {_FLIGHT_SQUAWK_COLS}
+        FROM flights f
+        JOIN assets a ON a.id = f.asset_id
+        JOIN students s ON s.id = f.student_id
+        LEFT JOIN cfis c ON c.id = f.cfi_id
+        LEFT JOIN users au ON au.id = f.squawk_assigned_to
+        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NOT NULL AND a.id = ?
+        UNION ALL
+        SELECT {_QUICK_SQUAWK_COLS}
+        FROM plane_squawks q
+        JOIN assets a ON a.id = q.asset_id
+        LEFT JOIN users au ON au.id = q.assigned_to
+        WHERE q.repaired_at IS NOT NULL AND a.id = ?
+        ORDER BY repaired_at DESC
+    """, (asset_id, asset_id)).fetchall()
+
+
 def _squawk_by_kind_id(conn, kind, squawk_id):
     """One specific squawk, whatever step it's on (unlike
     get_plane_open_squawks, this doesn't drop it once it's repaired) - used
@@ -4241,6 +4263,7 @@ def asset_detail(asset_id):
     # (shown amber there) until it's actually repaired, since acknowledging
     # it isn't the same as it being done.
     todo_squawks = get_plane_open_squawks(conn, asset_id)
+    done_squawks = get_plane_done_squawks(conn, asset_id)
 
     # Cylinder compression checks - logged from the Maintenance side (any
     # asset, not just Flight School planes), so it belongs here regardless
@@ -4269,7 +4292,7 @@ def asset_detail(asset_id):
     return render_template("asset_detail.html", asset=asset, project_blocks=project_blocks, total_cost=total_cost,
                            asset_ads=asset_ads, ad_kinds=AD_KINDS, ad_methods=AD_METHODS, today_iso=date.today().isoformat(),
                            maintenance_items=maintenance_items, oil_log=oil_log, total_oil_added=total_oil_added,
-                           open_squawks=open_squawks, todo_squawks=todo_squawks, photos=photos, todos=todos, project_cover=project_cover,
+                           open_squawks=open_squawks, todo_squawks=todo_squawks, done_squawks=done_squawks, photos=photos, todos=todos, project_cover=project_cover,
                            assignable_workers=assignable_workers,
                            latest_compression=latest_compression, compression_count=compression_count,
                            asset_manuals=asset_manuals, owner_student=owner_student)
