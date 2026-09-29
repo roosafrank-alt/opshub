@@ -217,6 +217,13 @@ body { background: #f4f5f7; }
   .flight-chip-plane { font-size: .62rem; }
   .flight-chip-main { max-width: 2.9rem; }
   .flight-chip-grid { gap: .3rem; }
+  /* QA ux-flight-today-names-phone: a time with only one or two bookings has
+     room, so its chips use the whole row and show the full name, plane and
+     end time. Three or four at one time keep the small side-by-side boxes. */
+  .flight-chip-grid-few > .flight-chip { flex: 1 1 100%; }
+  .flight-chip-grid-few .flight-chip-main { max-width: none; flex: 1 1 auto; }
+  .flight-chip-grid-few .flight-chip-endtime { display: block; }
+  .flight-chip-grid-few .flight-chip-student { white-space: normal; }
 }
 
 /* Dashboard section collapse - Today's Schedule / Upcoming / Recent Flights

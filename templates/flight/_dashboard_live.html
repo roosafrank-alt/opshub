@@ -823,7 +823,7 @@
    every other "gap-2" row in the app. #}
 <div class="d-flex flex-wrap align-items-start gap-2 mb-2 flight-chip-row">
   <span class="flight-chip-time">{{ group.time_label }}</span>
-  <div class="flight-chip-grid">
+  <div class="flight-chip-grid{{ ' flight-chip-grid-few' if group.flights|length <= 2 }}">
     {% for f in group.flights %}
     {{ flight_chip(f, cfi, plane_color, today_now_time, distinct_times|length > 1) }}
     {% endfor %}
