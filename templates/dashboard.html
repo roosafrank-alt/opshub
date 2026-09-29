@@ -170,7 +170,7 @@
     <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
     <div class="squawk-row-actions">
       {{ squawk_step_pills(sq) }}
-      {{ squawk_my_actions(sq) }}
+      {{ squawk_my_actions(sq, can_confirm=(session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector'))) }}
     </div>
   </div>
   {% endfor %}

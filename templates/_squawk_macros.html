@@ -65,11 +65,15 @@
    see get_my_squawks in app.py) shows exactly one button per squawk, the
    next step: Accepted -> Mark as Repaired -> With inspector (tap
    to undo). See QA finding ux-squawk-my-list-dashboard and idea "techs status". #}
-{% macro squawk_my_actions(sq, size='btn-sm') %}
+{% macro squawk_my_actions(sq, size='btn-sm', can_confirm=False) %}
 {%- if not sq.worker_acknowledged_at %}
 <form method="post" action="{{ url_for('squawk_worker_ack', kind=sq.kind, squawk_id=sq.squawk_id) }}">
   <button class="btn btn-warning {{ size }} squawk-btn fw-bold"><i class="bi bi-play-fill"></i> Accepted</button>
 </form>
+{%- elif sq.repair_confirm_requested_at and can_confirm %}
+{#- The viewer is the one who signs off (admin/inspector), so their own
+   task gets Sign off / Send back right here instead of waiting on someone else. #}
+{{ squawk_confirm_actions(sq, size=size) }}
 {%- elif sq.repair_confirm_requested_at %}
 {#- Awaiting an Inspector/admin's sign-off - tapping again undoes the
    request (squawk_repair toggles it back off when already requested). #}

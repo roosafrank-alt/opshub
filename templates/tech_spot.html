@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% from "_squawk_macros.html" import squawk_step_pills, squawk_my_actions %}
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_my_actions, squawk_confirm_actions %}
+{% set can_confirm = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector') %}
 {% block title %}My Tasks - OpsHub{% endblock %}
 {% block content %}
 {#
@@ -19,7 +20,7 @@
       <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
       <div class="squawk-row-actions">
         {{ squawk_step_pills(sq) }}
-        {{ squawk_my_actions(sq) }}
+        {{ squawk_my_actions(sq, can_confirm=can_confirm) }}
       </div>
     </div>
     {% endfor %}
@@ -65,8 +66,19 @@
         </button>
       </form>
       <span><a href="{{ url_for('asset_detail', asset_id=t.asset_id) }}" class="text-muted small">{{ t.asset_tag }}</a> - {{ t.description }}
-        <small class="text-warning-emphasis fw-bold d-block">Marked ready - waiting on an Inspector or admin to confirm</small>
+        {% if not can_confirm %}<small class="text-warning-emphasis fw-bold d-block">Marked ready - waiting on an Inspector or admin to confirm</small>{% endif %}
       </span>
+      {% if can_confirm %}
+      <div class="ms-auto d-flex gap-1 flex-wrap align-items-center">
+        <form method="post" action="{{ url_for('plane_todo_confirm', asset_id=t.asset_id, todo_id=t.id) }}" data-confirm="Confirm this task as done?" data-confirm-title="Confirm Task" data-confirm-style="success">
+          <button class="btn btn-success btn-sm fw-bold"><i class="bi bi-check-lg"></i> Sign off</button>
+        </form>
+        <form method="post" action="{{ url_for('plane_todo_confirm', asset_id=t.asset_id, todo_id=t.id) }}">
+          <input type="hidden" name="action" value="send_back">
+          <button class="btn btn-outline-secondary btn-sm">Send back</button>
+        </form>
+      </div>
+      {% endif %}
     </li>
     {% endfor %}
   </ul>
