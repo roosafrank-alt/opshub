@@ -17,6 +17,7 @@ the regular Manage menu (see /customers routes in app.py).
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 
 from db import get_db, now_iso, asset_meter, maintenance_status, found_item_messages, allowed_image, save_upload
+import auth
 from auth import (authenticate_customer, log_in_customer, log_out_customer,
                    current_customer, customer_login_required)
 
@@ -94,10 +95,15 @@ def customer_login():
     if request.method == "POST":
         email = request.form.get("email", "")
         password = request.form.get("password", "")
+        if not auth.login_allowed(email):
+            flash(auth.LOGIN_BLOCKED_MSG, "danger")
+            return render_template("customer_login.html", email=email)
         row = authenticate_customer(email, password)
         if not row:
-            flash("Incorrect email or password.", "danger")
+            auth.login_failed(email)
+            flash(auth.LOGIN_BLOCKED_MSG, "danger")
             return render_template("customer_login.html", email=email)
+        auth.login_succeeded(email)
         log_in_customer(row)
         return redirect(url_for("customer.customer_dashboard"))
     return render_template("customer_login.html", email="")

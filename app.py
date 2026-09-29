@@ -11,7 +11,7 @@ import threading
 import time
 import logging
 import math
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from flask import (Flask, render_template, request, redirect, url_for, jsonify, flash, abort,
                     Response, session, got_request_exception)
 
@@ -36,6 +36,7 @@ from auth import (authenticate, log_in_user, log_out_user, current_user, login_r
                    view_as_active_program, SHOP_VIEW_AS_LEVELS, FLIGHT_VIEW_AS_LEVELS,
                    real_is_master_admin, view_as_chips, home_view_as_level,
                    account_program_count, single_program_endpoint,
+                   login_allowed, login_failed, login_succeeded, unlock_account, LOGIN_BLOCKED_MSG,
                    person_view_active, person_view_name, can_view_as_person,
                    start_view_as_person, stop_view_as_person, real_user_id)
 import notify
@@ -383,13 +384,18 @@ def home_launcher():
         # closes instead of staying signed in for the next person. A
         # checkbox only appears in form data at all when it's checked.
         remember = "remember" in request.form
+        if not login_allowed(username):
+            flash(LOGIN_BLOCKED_MSG, "danger")
+            return render_template("home_launcher.html", user=None, customer=None, username=username)
         user_row = authenticate(username, password)
         # Customers log in by email - the hub's "Username" field doubles as
         # that when it doesn't match a staff username.
         customer_row = authenticate_customer(username, password)
         if not user_row and not customer_row:
-            flash("Incorrect username or password.", "danger")
+            login_failed(username)
+            flash(LOGIN_BLOCKED_MSG, "danger")
             return render_template("home_launcher.html", user=None, customer=None, username=username)
+        login_succeeded(username)
         log_in_combined(user_row, customer_row, remember=remember)
         flash(f"Welcome, {(user_row or customer_row)['name']}!", "success")
         if user_row and user_row["shop_role"] == "admin" and not user_row["is_master_admin"]:
@@ -8105,6 +8111,23 @@ def _read_pi_temp_c():
         return None
     m = re.search(r"temp=([\d.]+)", out)
     return float(m.group(1)) if m else None
+
+
+@app.route("/admin/login-attempts", methods=["GET", "POST"])
+@master_admin_required
+def admin_login_attempts():
+    """Recent failed logins and lockouts, with an Unlock button per locked account."""
+    if request.method == "POST":
+        unlock_account(request.form.get("account", ""))
+        flash("Unlocked.", "success")
+        return redirect(url_for("admin_login_attempts"))
+    conn = get_db()
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    locked = conn.execute("SELECT account, locked_until FROM login_lockouts WHERE locked_until > ? "
+                          "ORDER BY locked_until DESC", (now,)).fetchall()
+    attempts = conn.execute("SELECT * FROM login_attempts ORDER BY id DESC LIMIT 100").fetchall()
+    conn.close()
+    return render_template("admin_login_attempts.html", locked=locked, attempts=attempts)
 
 
 @app.route("/admin/system")

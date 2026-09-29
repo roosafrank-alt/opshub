@@ -17,7 +17,9 @@ separate one.
 """
 from functools import wraps
 
-from flask import session, redirect, url_for, flash
+from datetime import datetime, timedelta, timezone
+
+from flask import session, redirect, url_for, flash, request
 from werkzeug.security import check_password_hash
 
 from db import get_db, ensure_flight_profile, user_shop_roles, user_flight_roles
@@ -774,3 +776,115 @@ def stop_view_as_person():
     if flashes:
         session["_flashes"] = flashes
     return True
+
+
+# ---------------------------------------------------------------------------
+# Login lockout. All three login forms (hub, /flight/login, customer portal)
+# call login_allowed() before checking a password, login_failed() after a
+# wrong one and login_succeeded() after a right one. Never permanent: 5 wrong
+# passwords in a row lock that account name for 15 min, then 1 hr, 4 hr, 16 hr,
+# capped at 24 hr. Unknown names are tracked the same way, so the behaviour
+# doesn't reveal which usernames exist.
+# ---------------------------------------------------------------------------
+LOCKOUT_FAILS = 5
+LOCKOUT_MINUTES = (15, 60, 240, 960, 1440)
+SOURCE_WINDOW_MIN = 10
+SOURCE_MAX_NAMES = 10   # this many different names failing from one source within the window slows it down
+LOGIN_BLOCKED_MSG = "Incorrect username or password, or too many tries. Please try again later."
+_LOOPBACK = ("127.0.0.1", "::1", "localhost")
+
+
+def _utc():
+    return datetime.now(timezone.utc)
+
+
+def _iso(dt):
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def login_source():
+    """Who is really asking. Behind Tailscale Funnel remote_addr is always the
+    local proxy, so X-Forwarded-For (the last entry, the one the proxy itself
+    added) is only trusted when the request comes from localhost."""
+    addr = request.remote_addr or ""
+    if addr in _LOOPBACK:
+        xff = [p.strip() for p in request.headers.get("X-Forwarded-For", "").split(",") if p.strip()]
+        if xff:
+            return xff[-1][:64]
+    return addr[:64]
+
+
+def _acct(username):
+    return (username or "").strip().lower()[:200]
+
+
+def _log_attempt(conn, username, source, kind):
+    conn.execute("INSERT INTO login_attempts (at, username, source, kind) VALUES (?,?,?,?)",
+                 (_iso(_utc()), (username or "").strip()[:200], source, kind))
+
+
+def login_allowed(username):
+    """False while this account name is locked, or this source has been trying
+    too many different names. The proxy's own address is never limited."""
+    now = _iso(_utc())
+    conn = get_db()
+    try:
+        row = conn.execute("SELECT locked_until FROM login_lockouts WHERE account = ?",
+                           (_acct(username),)).fetchone()
+        if row and row["locked_until"] and row["locked_until"] > now:
+            return False
+        source = login_source()
+        if source and source not in _LOOPBACK:
+            since = _iso(_utc() - timedelta(minutes=SOURCE_WINDOW_MIN))
+            n = conn.execute("SELECT COUNT(DISTINCT lower(username)) FROM login_attempts "
+                             "WHERE source = ? AND kind = 'failed' AND at >= ?", (source, since)).fetchone()[0]
+            if n >= SOURCE_MAX_NAMES:
+                return False
+        return True
+    finally:
+        conn.close()
+
+
+def login_failed(username):
+    """Records a wrong password; locks the account on the 5th in a row."""
+    acct = _acct(username)
+    source = login_source()
+    now = _utc()
+    conn = get_db()
+    try:
+        _log_attempt(conn, username, source, "failed")
+        row = conn.execute("SELECT * FROM login_lockouts WHERE account = ?", (acct,)).fetchone()
+        fails = (row["fails"] if row else 0) + 1
+        lockouts = row["lockouts"] if row else 0
+        locked_until = None
+        if fails >= LOCKOUT_FAILS:
+            mins = LOCKOUT_MINUTES[min(lockouts, len(LOCKOUT_MINUTES) - 1)]
+            locked_until = _iso(now + timedelta(minutes=mins))
+            lockouts += 1
+            fails = 0
+            _log_attempt(conn, username, source, "locked")
+        conn.execute("INSERT INTO login_lockouts (account, fails, lockouts, locked_until) VALUES (?,?,?,?) "
+                     "ON CONFLICT(account) DO UPDATE SET fails=excluded.fails, lockouts=excluded.lockouts, "
+                     "locked_until=excluded.locked_until", (acct, fails, lockouts, locked_until))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def login_succeeded(username):
+    """A correct login wipes the count (and the repeat-lockout history)."""
+    conn = get_db()
+    try:
+        conn.execute("DELETE FROM login_lockouts WHERE account = ?", (_acct(username),))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def unlock_account(account):
+    conn = get_db()
+    try:
+        conn.execute("DELETE FROM login_lockouts WHERE account = ?", (_acct(account),))
+        conn.commit()
+    finally:
+        conn.close()

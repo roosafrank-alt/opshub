@@ -25,6 +25,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from werkzeug.security import generate_password_hash
 
 from db import get_db, now_iso, asset_meter, maintenance_status
+import auth
 from auth import (authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked,
                    view_as_active_program, refresh_or_expire_session, person_view_active)
 from pilotlog import NEXT_TRACK, TRACK_MAP
@@ -1500,10 +1501,16 @@ def login():
     """Login now lives on the master homepage - this just sends people
     there (and still handles a posted form for anything old pointing here)."""
     if request.method == "POST":
-        user_row = authenticate(request.form.get("username", ""), request.form.get("password", ""))
-        if not user_row:
-            flash("Incorrect username or password.", "danger")
+        uname = request.form.get("username", "")
+        if not auth.login_allowed(uname):
+            flash(auth.LOGIN_BLOCKED_MSG, "danger")
             return redirect(url_for("home_launcher"))
+        user_row = authenticate(uname, request.form.get("password", ""))
+        if not user_row:
+            auth.login_failed(uname)
+            flash(auth.LOGIN_BLOCKED_MSG, "danger")
+            return redirect(url_for("home_launcher"))
+        auth.login_succeeded(uname)
         log_in_user(user_row)
         return redirect(url_for("flight.dashboard"))
     return redirect(url_for("home_launcher"))

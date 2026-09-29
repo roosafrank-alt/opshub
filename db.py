@@ -2140,6 +2140,22 @@ def _migrate(conn):
         created_at TEXT NOT NULL
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_order_shipments_batch ON order_shipments(batch_id)")
+    # Login lockout: one row per account name (lowercased username/email) that has
+    # wrong passwords on record, plus a log of failed attempts and lockouts.
+    conn.execute("""CREATE TABLE IF NOT EXISTS login_lockouts (
+        account TEXT PRIMARY KEY,
+        fails INTEGER NOT NULL DEFAULT 0,
+        lockouts INTEGER NOT NULL DEFAULT 0,
+        locked_until TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS login_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        at TEXT NOT NULL,
+        username TEXT,
+        source TEXT,
+        kind TEXT NOT NULL
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_login_attempts_source ON login_attempts(source, at)")
     # Each package can be marked received or cancelled on its own (NULL = still open).
     ship_cols = [r["name"] for r in conn.execute("PRAGMA table_info(order_shipments)").fetchall()]
     if "status" not in ship_cols:
