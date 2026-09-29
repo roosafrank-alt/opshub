@@ -171,8 +171,11 @@
       </div>
       {% endif %}
       <div class="col-12 col-md-3">
-        <label class="form-label small mb-0">Note{% if not f.asset_is_owner_placeholder %} <span class="text-muted">(flagged as a squawk)</span>{% endif %}</label>
+        <label class="form-label small mb-0">Note{% if not f.asset_is_owner_placeholder %} <span class="text-muted">(sent to Maintenance when you Save)</span>{% endif %}</label>
         <input type="text" name="notes" class="form-control form-control-sm" value="{{ f.notes or '' }}">
+        {% if f.squawk and f.notes and not f.asset_is_owner_placeholder %}
+        <div class="small text-success mt-1"><i class="bi bi-send-check-fill"></i> Note sent to Maintenance. Edit it and Save to update the squawk.</div>
+        {% endif %}
       </div>
       <div class="col-12">
         <button type="submit" class="btn btn-outline-secondary btn-sm">Save</button>

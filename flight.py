@@ -6277,11 +6277,25 @@ def log_update_progress(flight_id):
         oil_added_qt = None if is_own_plane else _parse_float(request.form.get("oil_added_qt"))
         oil_added_by = session.get("user_name") if oil_added_qt is not None else None
     notes = request.form.get("notes", "").strip()
-    conn.execute("UPDATE flights SET hobbs_start=?, tach_start=?, oil_added_qt=?, oil_added_by=?, notes=? WHERE id=?",
-                 (hobbs_start, tach_start, oil_added_qt, oil_added_by, notes, flight_id))
+    # A saved note goes to Maintenance right away (same rule as End Session:
+    # not for a student's own plane) instead of waiting for the session to
+    # end. Editing it later just changes the text the squawk shows, since the
+    # Maintenance page reads flights.notes. Clearing the note takes the
+    # squawk back off only while nobody at the shop has acknowledged it.
+    if notes and not is_own_plane:
+        squawk = 1
+    elif not notes and not f["squawk_acknowledged_at"]:
+        squawk = 0
+    else:
+        squawk = f["squawk"]
+    conn.execute("UPDATE flights SET hobbs_start=?, tach_start=?, oil_added_qt=?, oil_added_by=?, notes=?, squawk=? WHERE id=?",
+                 (hobbs_start, tach_start, oil_added_qt, oil_added_by, notes, squawk, flight_id))
     conn.commit()
     conn.close()
-    flash("Flight updated.", "success")
+    if squawk and notes:
+        flash("Flight updated. Your note was sent to Maintenance as a squawk. You can still edit it here.", "success")
+    else:
+        flash("Flight updated.", "success")
     return redirect(url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}")
 
 
