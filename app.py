@@ -4709,6 +4709,11 @@ def asset_update_hours(asset_id):
         flash("Enter a Hobbs and/or Tach reading.", "danger")
         conn.close()
         return redirect(url_for("asset_detail", asset_id=asset_id))
+    for reading, label in ((hobbs, "Hobbs"), (tach, "Tach")):
+        if reading is not None and not (math.isfinite(reading) and reading >= 0):
+            flash(f"Enter a valid {label} reading.", "danger")
+            conn.close()
+            return redirect(url_for("asset_detail", asset_id=asset_id))
     updated_by = f"Shop - {session.get('user_name')}"
     updates = []
     if hobbs is not None:
