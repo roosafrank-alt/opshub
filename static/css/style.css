@@ -490,3 +490,17 @@ body { background: #f4f5f7; }
 .list-toolbar-search input {
   font-size: 16px;
 }
+
+/* Idea "View": above the hamburger breakpoint every header tile keeps one
+   fixed size (icon size, padding, label on one line) at any window width.
+   When the row doesn't fit with words, nav-fit.js drops to icons only; when
+   even the icons don't fit, the bar keeps its natural width and the whole
+   page scrolls sideways (the bar goes with it), rather than shrinking or
+   wrapping tiles or clipping them. Not done with overflow on the nav row
+   itself, since that would also clip the Manage / account dropdown menus. */
+@media (min-width: 992px) {
+  .navbar { min-width: max-content; }
+  .navbar .nav-link, .navbar .btn, .navbar .nav-item { white-space: nowrap; flex-shrink: 0; }
+  .navbar .navbar-collapse { flex-wrap: nowrap; }
+  .navbar .nav-link > i, .navbar .btn > i { font-size: 1rem; flex-shrink: 0; }
+}
