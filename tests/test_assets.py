@@ -10,7 +10,6 @@ import db
 
 
 class NewAircraftTest(OpsHubTestCase):
-    @open_finding("qa-asset-new-crash")
     def test_admin_can_add_an_aircraft(self):
         self.login("shop_admin")
         r = self.client.post("/assets/new", data=dict(tag="N777", make="Cessna", hobbs_hours="10.5"))

@@ -4171,7 +4171,7 @@ def asset_new():
                                rental_rate, is_flight_asset, icao24_hex, show_on_map, notes,
                                maint_oil_type, maint_tire_nose, maint_tire_mains, maint_other,
                                created_at, updated_at)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (tag, request.form.get("name", "").strip() or tag,
                              request.form.get("make", "").strip(), request.form.get("model", "").strip(),
                              request.form.get("serial_number", "").strip(), request.form.get("year", "").strip(),
