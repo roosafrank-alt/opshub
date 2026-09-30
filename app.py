@@ -1118,9 +1118,12 @@ def squawk_acknowledge(kind, squawk_id):
     # here with an owner. squawk_assign() below still handles a later
     # reassignment on its own, separate from acknowledging.
     assigned_to_raw = request.form.get("assigned_to")
-    _apply_squawk_assignment(conn, kind, squawk_id, assigned_to_raw)
+    assigned_ok = _apply_squawk_assignment(conn, kind, squawk_id, assigned_to_raw)
     conn.commit()
     conn.close()
+    if not assigned_ok:
+        flash("Squawk acknowledged, but pick a shop worker to assign it.", "danger")
+        return redirect(request.referrer or url_for("squawks_list"))
     flash("Assigned and acknowledged." if (assigned_to_raw or "").strip() else "Squawk acknowledged.", "success")
     return redirect(request.referrer or url_for("squawks_list"))
 
@@ -1132,14 +1135,17 @@ def _apply_squawk_assignment(conn, kind, squawk_id, assigned_to_raw):
     it yet, whatever the last one did."""
     assigned_to_raw = (assigned_to_raw or "").strip()
     if not assigned_to_raw:
-        return
+        return True
     assigned_to = int(assigned_to_raw) if assigned_to_raw.isdigit() else None
+    if assigned_to not in {w["id"] for w in get_assignable_workers(conn)}:
+        return False
     if kind == "flight":
         conn.execute("UPDATE flights SET squawk_assigned_to = ?, squawk_worker_acknowledged_at = NULL, "
                      "squawk_worker_acknowledged_by = NULL WHERE id = ?", (assigned_to, squawk_id))
     elif kind == "quick":
         conn.execute("UPDATE plane_squawks SET assigned_to = ?, worker_acknowledged_at = NULL, "
                      "worker_acknowledged_by = NULL WHERE id = ?", (assigned_to, squawk_id))
+    return True
 
 
 @app.route("/squawks/<kind>/<int:squawk_id>/assign", methods=["POST"])
@@ -1162,6 +1168,10 @@ def squawk_assign(kind, squawk_id):
         return redirect(request.referrer or url_for("squawks_list"))
     assigned_to_raw = request.form.get("assigned_to", "").strip()
     assigned_to = int(assigned_to_raw) if assigned_to_raw.isdigit() else None
+    if assigned_to_raw and assigned_to not in {w["id"] for w in get_assignable_workers(conn)}:
+        conn.close()
+        flash("Pick a shop worker.", "danger")
+        return redirect(request.referrer or url_for("squawks_list"))
     if kind == "flight":
         conn.execute("UPDATE flights SET squawk_assigned_to = ?, squawk_worker_acknowledged_at = NULL, "
                      "squawk_worker_acknowledged_by = NULL WHERE id = ?", (assigned_to, squawk_id))
