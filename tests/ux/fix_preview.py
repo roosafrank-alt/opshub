@@ -15,9 +15,10 @@ specs.json is a list of specs:
   {
     "name": "sun-times",                 # file name stem
     "role": "cfi",                       # master | shop_admin | tech | cfi | flight_student | customer
-    "size": "phone",                     # phone | desktop
+    "size": "phone",                     # phone | desktop | tv (1920x1080, the shop TV)
     "path": "/flight/dashboard",         # may use {project} {asset} {part} {order} {student} ... ids
     "setup_js": "...",                   # optional: runs before both shots (open a menu, fill a field)
+    "wait_ms": 600,                      # optional: pause after setup_js (default 200; menus animate ~350ms)
     "focus": "#sunline",                 # optional: crop to this element (CSS selector, plus padding);
                                          #   omit for the top screenful, "full" for the whole page,
                                          #   {"from": sel, "to": sel} for the full-width band between two
@@ -54,6 +55,8 @@ sys.path.insert(0, os.path.dirname(HERE))
 
 import ux_audit as ux  # noqa: E402  (harness, sample data, CDN cache, screen sizes)
 from ux_audit import harness, flask_app, PASSWORD  # noqa: E402
+
+TV = dict(viewport={"width": 1920, "height": 1080})  # the TV plugged into the Pi (added 2026-09-30)
 
 RECTS_JS = r"""
 (specs) => specs.map(m => {
@@ -157,7 +160,9 @@ def main():
         for spec in specs:
             rec = {"name": spec["name"]}
             try:
-                ctx = browser.new_context(**(ux.PHONE if spec.get("size", "phone") == "phone" else ux.DESKTOP))
+                size_name = spec.get("size", "phone")
+                ctx = browser.new_context(**(ux.PHONE if size_name == "phone" else
+                                             TV if size_name == "tv" else ux.DESKTOP))
                 ctx.route(re.compile(r"^https?://(?!127\.0\.0\.1)"), ux._serve_cdn)
                 role = spec.get("role", "master")
                 user = "owner@example.com" if role == "customer" else role
@@ -172,7 +177,7 @@ def main():
                 if spec.get("dump"):
                     open(os.path.join(args.out, spec["name"] + ".html"), "w").write(page.content())
                 if spec.get("setup_js"):
-                    page.evaluate(spec["setup_js"]); time.sleep(0.2)
+                    page.evaluate(spec["setup_js"]); time.sleep(spec.get("wait_ms", 200) / 1000)
                 name, marks, ok = shoot(page, spec, spec.get("problem"), spec.get("focus"), os.path.join(args.out, spec["name"] + "-now.png"))
                 rec["now"] = {"file": name, "marks": marks}
                 if not ok:

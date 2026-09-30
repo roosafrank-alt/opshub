@@ -29,6 +29,17 @@ target_taps: what a streamlined version of this task should take. The
 reviewer suggests changes when the real count is well above it.
 """
 
+
+def _tap_tomorrow(w):
+    """Tap tomorrow on the schedule form's month calendar, paging to next month
+    first when tomorrow is the 1st (a person has to do that too)."""
+    import datetime
+    t = datetime.date.today() + datetime.timedelta(days=1)
+    if t.day == 1:
+        w.tap("#cal-next")
+    w.tap(f"#date-calendar [data-date='{t.isoformat()}']")
+
+
 JOURNEYS = [
     {
         "id": "squawks",
@@ -82,10 +93,11 @@ JOURNEYS = [
     {
         "id": "low-stock",
         "task": "Shop admin finds which parts need reordering",
-        "role": "shop_admin", "screen": "desktop", "target_taps": 2,
+        "role": "shop_admin", "screen": "desktop", "target_taps": 1,
         "steps": lambda w, ids: (
-            w.start("/"),
-            w.tap("Parts, projects, labor"),  # the shop tile (a second tile is also titled "Winds Aloft")
+            # Since ux-shop-admin-skip-launcher went live (2026-09-29) a shop admin's login lands
+            # straight on the shop home; "/" is now only the program picker behind the grid button.
+            w.start("/shop"),
             w.see("Low"),
         ),
     },
@@ -143,6 +155,38 @@ JOURNEYS = [
             w.fill("notes", "Nav light out on the left wing"),
             w.tap("Report", role="button"),
             w.see("Nav light out on the left wing"),
+        ),
+    },
+    # Added 2026-09-30: Frank's first goal is "scheduling in less than a minute", from both sides.
+    {
+        "id": "request-lesson",
+        "task": "Student asks for a lesson in N81PA tomorrow at 2 pm from a phone",
+        "role": "flight_student", "screen": "phone", "target_taps": 5,
+        "steps": lambda w, ids: (
+            w.start("/"),
+            w.tap("Request a Flight"),
+            w.tap("N81PA"),                       # one-tap plane buttons
+            _tap_tomorrow(w),                     # the always-open month calendar under Date
+            w.tap("2:00p"),                       # quick-pick time (1.5-hr lesson blocks)
+            w.tap("Request Flight", role="button"),
+            w.see("N81PA"),
+        ),
+    },
+    {
+        "id": "cfi-book-lesson",
+        "task": "CFI books a student's next lesson in N81PA for tomorrow at 9:30 am",
+        "role": "cfi", "screen": "phone", "target_taps": 6,
+        "steps": lambda w, ids: (
+            w.start("/"),
+            w.tap("Schedule"),
+            w.tap("Schedule Flight"),
+            w.tap("N81PA"),
+            w.fill("#student-combo-input", "Student"),
+            w.tap("#student-combo-list .list-group-item"),
+            _tap_tomorrow(w),                     # the always-open month calendar under Date
+            w.tap("9:30a"),
+            w.tap("Schedule Flight", role="button"),
+            w.see("Your new booking"),            # lands on the month view with the new booking lit up
         ),
     },
 ]

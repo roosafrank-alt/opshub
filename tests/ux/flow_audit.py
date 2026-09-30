@@ -82,8 +82,20 @@ def app_map(tc, roles, out_dir):
     all_routes = {norm(UX.crawl._build_url(r, tc._ids)) for r in UX.crawl._get_rules()}
     for role in roles:
         client = tc.login(role)
-        dist, via, inbound, outlinks, reachable = {"/": 0}, {"/": None}, defaultdict(set), {}, set()
-        heap = [(0, "/")]
+        # Single-program accounts (tech, CFI, student, owner) are redirected from "/" straight
+        # to their own home page; follow that so their map isn't empty (fixed 2026-09-30).
+        home = "/"
+        for _ in range(3):
+            r0 = client.get(home)
+            loc = r0.headers.get("Location") if 300 <= r0.status_code < 400 else None
+            if not loc:
+                break
+            nxt = urlparse(loc)
+            if nxt.netloc and "127.0.0.1" not in nxt.netloc and "localhost" not in nxt.netloc:
+                break
+            home = nxt.path or "/"
+        dist, via, inbound, outlinks, reachable = {home: 0}, {home: None}, defaultdict(set), {}, set()
+        heap = [(0, home)]
         while heap:
             d, path = heapq.heappop(heap)
             if d > dist.get(path, 99):
@@ -248,8 +260,11 @@ class Walker:
         # the menu for it); only then fall back to anything containing the text.
         for group in (cands[:n_exact], cands[n_exact:]):
             for c in group:
-                if c.count() and self._visible(c):
-                    return c.first
+                # The first match may be a hidden twin (e.g. the schedule form's Intro quick-pick
+                # times sit hidden next to the Lesson ones): prefer the first VISIBLE match.
+                for i in range(min(c.count(), 12)):
+                    if self._visible(c.nth(i)):
+                        return c.nth(i)
             for c in group:
                 if c.count():
                     return c.first
@@ -452,6 +467,9 @@ def main():
     ap.add_argument("--port", type=int, default=5098)
     args = ap.parse_args()
     parts = set(args.only or ["map", "clickable", "journeys"])
+    if "map" in parts and BeautifulSoup is None:
+        sys.exit("flow_audit needs BeautifulSoup for the app map: "
+                 "pip install --break-system-packages beautifulsoup4 (or run with --only clickable journeys)")
     os.makedirs(args.out, exist_ok=True)
 
     tc = UX._Seeder(); tc.setUp()
