@@ -242,6 +242,24 @@ def usdate(value, show_time=False):
 app.jinja_env.filters["usdate"] = usdate
 
 
+def shortwhen(value):
+    """'Today 7:56 PM' for today's ISO datetimes, otherwise the usdate date
+    (DD-MM-YYYY). Anything unparsable passes through via usdate()."""
+    if not value:
+        return value
+    s = str(value).strip().replace("T", " ")
+    try:
+        dt = datetime.strptime(s[:16], "%Y-%m-%d %H:%M")
+    except ValueError:
+        return usdate(value)
+    if dt.date() == datetime.now().date():
+        return "Today " + dt.strftime("%I:%M %p").lstrip("0")
+    return usdate(s[:10])
+
+
+app.jinja_env.filters["shortwhen"] = shortwhen
+
+
 def shortdate(value):
     """'YYYY-MM-DD' -> 'MM-DD' - the compact month-day date for the phone
     dashboard's Today/Upcoming headers (QA ux-flight-dash-section-headers).

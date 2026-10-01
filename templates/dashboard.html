@@ -445,10 +445,39 @@
     <div class="card p-3">
       <div class="d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Activity</h5>
-        <a href="{{ url_for('activity_log') }}" class="small">View full log, sortable &raquo;</a>
+        <a href="{{ url_for('activity_log') }}" class="small"><span class="d-none d-md-inline">View full log, sortable</span><span class="d-md-none">Full log</span> &raquo;</a>
       </div>
       {% if recent_activity %}
-      <div class="table-responsive">
+      <div class="d-md-none recent-activity-phone mt-2">
+        {% for a in recent_activity %}
+        <div class="py-2 border-bottom">
+          <div class="d-flex justify-content-between align-items-baseline gap-2">
+            {% if a.kind == 'part' %}
+            <div class="min-w-0 text-truncate" style="min-width:0">
+              <a href="{{ url_for('part_detail', part_id=a.part_id) }}" class="text-decoration-none">{{ a.part_name }}</a>
+              {% if a.tx_type == 'in' %}<span class="badge bg-success">IN</span>
+              {% elif a.tx_type == 'out' %}<span class="badge bg-primary">OUT</span>
+              {% else %}<span class="badge bg-secondary">ADJUST</span>{% endif %}
+              {{ '%g'|format(a.qty) }}
+            </div>
+            {% else %}
+            <div class="min-w-0 text-truncate" style="min-width:0">
+              {{ a.laborer_name }} <span class="badge bg-info text-dark">LABOR</span> {{ '%.2f'|format(a.hours or 0) }} hrs
+            </div>
+            {% endif %}
+            <small class="text-muted text-nowrap">{{ a.when|shortwhen }}</small>
+          </div>
+          <small class="text-muted d-block text-truncate">
+            {%- if a.kind == 'part' -%}
+              {%- if a.project_name %}for <a href="{{ url_for('project_detail', project_id=a.project_id) }}" class="text-muted">{{ a.project_name }}</a>{% else %}no project{% endif -%}
+            {%- else -%}
+              {%- if a.project_id %}for <a href="{{ url_for('project_detail', project_id=a.project_id) }}" class="text-muted">{{ a.project_code }}</a>{% else %}for General Shop{% endif %}{% if a.section %} &middot; {{ a.section }}{% endif -%}
+            {%- endif -%}
+          </small>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="table-responsive d-none d-md-block">
         <table class="table table-sm align-middle">
           <thead><tr><th>When</th><th>Activity</th><th>Type</th><th>Detail</th><th>Project</th></tr></thead>
           <tbody>
