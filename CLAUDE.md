@@ -71,3 +71,13 @@ that find nothing to do:
   limits unless Frank asks.
 - Known-good backups from before this was set up (Sep 27, 2026) are the branches
   `backup/main-2026-09-27` and `backup/idea-queue-2026-09-27`.
+
+## Access codes sheet
+
+Frank keeps every access code (tokens, passwords, keys, write keys) in one private
+Claude Doc, **Access codes**: https://claude.ai/code/artifact/2aafcc06-f186-4745-b96a-ba7ce557ac5e
+
+- When Frank asks for a code, read it from that doc with the Claude Docs tools.
+- When an access code comes up in a chat, add it to that doc (what it is, the code, the
+  date, how to get it again). If it changed, replace the old row.
+- Codes go only in that doc, never in this repo, a commit, a routine prompt or a page.
