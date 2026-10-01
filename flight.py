@@ -1420,6 +1420,22 @@ def cfi_required(f):
     return wrapper
 
 
+def cfi_or_admin_required(f):
+    """CFIs and master admins (Alerts page and resolving reports)."""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        expired = refresh_or_expire_session()
+        if expired:
+            return expired
+        if _owner_preview_blocked():
+            return _owner_preview_redirect()
+        if not (session.get("cfi_id") or session.get("is_master_admin")):
+            flash("Log in as a CFI to do that.", "danger")
+            return redirect(url_for("home_launcher"))
+        return f(*args, **kwargs)
+    return wrapper
+
+
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -5068,8 +5084,9 @@ def _flight_active_nav_count():
 
 @flight_bp.context_processor
 def _alert_nav_counts():
-    """Open-alert counts for the Alerts nav badge (CFIs/admins only)."""
-    if not session.get("cfi_id"):
+    """Open-alert counts for the Alerts nav badge (CFIs/admins only). Open
+    reports (flight_reports) count too, since they live on the Alerts page."""
+    if not (session.get("cfi_id") or session.get("is_master_admin")):
         return {}
     try:
         conn = get_db()
@@ -5079,9 +5096,11 @@ def _alert_nav_counts():
                                   FROM scheduled_flights WHERE status = 'scheduled' AND needs_review = 1""").fetchone()
             # Unaccounted Hobbs time counts too - master admins only.
             gaps = len(_hobbs_gaps(conn)) if session.get("is_master_admin") else 0
+            reports = conn.execute("SELECT COUNT(*) c FROM flight_reports WHERE resolved_at IS NULL").fetchone()["c"]
         finally:
             conn.close()
-        return {"flight_alert_counts": {"open": (row["total"] or 0) + gaps, "unacked": (row["unacked"] or 0) + gaps}}
+        return {"flight_alert_counts": {"open": (row["total"] or 0) + gaps + reports,
+                                        "unacked": (row["unacked"] or 0) + gaps + reports}}
     except Exception:
         return {}
 
@@ -5158,9 +5177,10 @@ def _student_notification_count():
         try:
             row = conn.execute("SELECT COUNT(*) c FROM student_notifications WHERE student_id = ? AND read_at IS NULL",
                                (session["student_id"],)).fetchone()
+            reports = conn.execute("SELECT COUNT(*) c FROM flight_reports WHERE resolved_at IS NULL").fetchone()["c"]
         finally:
             conn.close()
-        return {"student_alert_count": row["c"] or 0}
+        return {"student_alert_count": (row["c"] or 0) + reports}
     except Exception:
         return {}
 
@@ -5190,8 +5210,9 @@ def my_alerts():
         conn.execute("UPDATE student_notifications SET read_at = ? WHERE student_id = ? AND read_at IS NULL",
                     (now_iso(), student["id"]))
         conn.commit()
+    reports_ctx = _reports_context(conn, request.args.get("all") == "1")
     conn.close()
-    return render_template("flight/notifications.html", notifications=notifications)
+    return render_template("flight/notifications.html", notifications=notifications, **reports_ctx)
 
 
 @flight_bp.route("/my-account")
@@ -5234,7 +5255,7 @@ def notification_dismiss(notification_id):
 
 
 @flight_bp.route("/alerts")
-@cfi_required
+@cfi_or_admin_required
 def alerts_list():
     conn = get_db()
     _sync_flight_alerts(conn, None)
@@ -5259,6 +5280,7 @@ def alerts_list():
                                      LEFT JOIN assets a ON a.id = r.asset_id
                                      ORDER BY r.reviewed_at DESC LIMIT 10""").fetchall() \
         if session.get("is_master_admin") else []
+    reports_ctx = _reports_context(conn, show_all)
     conn.close()
 
     def _decorate(r):
@@ -5273,7 +5295,7 @@ def alerts_list():
                            resolved=[dict(r) for r in resolved], resolved_count=resolved_count, show_all=show_all,
                            hobbs_gaps=hobbs_gaps, hobbs_reviewed=hobbs_reviewed,
                            hundred_due=[r for r in hundred_rows if r["needs_action"]],
-                           hundred_grounded=[r for r in hundred_rows if r["grounded"]])
+                           hundred_grounded=[r for r in hundred_rows if r["grounded"]], **reports_ctx)
 
 
 FLIGHT_REPORT_CATEGORIES = {
@@ -5284,17 +5306,39 @@ FLIGHT_REPORT_CATEGORIES = {
 }
 
 
+def _reports_context(conn, show_all=False):
+    """Open/resolved reports plus the planes list, for the Reports section
+    shared by the CFI/admin Alerts page and the student Alerts page."""
+    base_sql = """SELECT r.*, a.tag as plane_tag FROM flight_reports r
+                  LEFT JOIN assets a ON a.id = r.asset_id"""
+    open_rows = conn.execute(base_sql + " WHERE r.resolved_at IS NULL ORDER BY r.reported_at DESC").fetchall()
+    resolved_count = conn.execute("SELECT COUNT(*) c FROM flight_reports WHERE resolved_at IS NOT NULL").fetchone()["c"]
+    resolved = conn.execute(base_sql + " WHERE r.resolved_at IS NOT NULL ORDER BY r.resolved_at DESC"
+                            + ("" if show_all else " LIMIT 50")).fetchall()
+    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY schedule_order, tag").fetchall()
+    return {"open_reports": [dict(r) for r in open_rows], "resolved_reports": [dict(r) for r in resolved],
+            "resolved_report_count": resolved_count, "report_planes": planes,
+            "report_categories": FLIGHT_REPORT_CATEGORIES}
+
+
+def _alerts_home_url():
+    """Where the merged Alerts tab lives for this login."""
+    if session.get("cfi_id") or session.get("is_master_admin"):
+        return url_for("flight.alerts_list")
+    return url_for("flight.my_alerts")
+
+
 @flight_bp.route("/reports", methods=["GET", "POST"])
 @login_required
 def reports_list():
-    """Reports tab: any logged-in student or CFI can flag a plane issue, a
-    missing checklist, a concerning issue, or a suggestion - not just a CFI
-    logging a flight, and unlike a flight squawk it's visible right here in
-    Flight School instead of only on the Maintenance side. A Plane Issue
-    against a specific plane also creates a plane_squawks row, so it still
-    flows into the normal Maintenance squawk workflow too."""
-    conn = get_db()
+    """Filing a report (POST) - any logged-in student or CFI can flag a plane
+    issue, a missing checklist, a concerning issue, or a suggestion. The
+    reports themselves are listed on the Alerts page (the old Reports tab was
+    folded into it), so a GET here - an old link - just goes there. A Plane
+    Issue against a specific plane also creates a plane_squawks row, so it
+    still flows into the normal Maintenance squawk workflow too."""
     if request.method == "POST":
+        conn = get_db()
         category = request.form.get("category", "")
         notes = (request.form.get("notes") or "").strip()
         asset_id = _parse_int(request.form.get("asset_id"))
@@ -5313,38 +5357,24 @@ def reports_list():
             conn.commit()
             flash("Report filed.", "success")
         conn.close()
-        return redirect(url_for("flight.reports_list"))
-
-    base_sql = """SELECT r.*, a.tag as plane_tag FROM flight_reports r
-                  LEFT JOIN assets a ON a.id = r.asset_id"""
-    open_rows = conn.execute(base_sql + " WHERE r.resolved_at IS NULL ORDER BY r.reported_at DESC").fetchall()
-    show_all = request.args.get("all") == "1"
-    resolved_count = conn.execute("SELECT COUNT(*) c FROM flight_reports WHERE resolved_at IS NOT NULL").fetchone()["c"]
-    resolved = conn.execute(base_sql + " WHERE r.resolved_at IS NOT NULL ORDER BY r.resolved_at DESC"
-                            + ("" if show_all else " LIMIT 50")).fetchall()
-    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY schedule_order, tag").fetchall()
-    conn.close()
-    open_by_category = {cat: [dict(r) for r in open_rows if r["category"] == cat] for cat in FLIGHT_REPORT_CATEGORIES}
-    return render_template("flight/reports.html", open_by_category=open_by_category, categories=FLIGHT_REPORT_CATEGORIES,
-                           resolved=[dict(r) for r in resolved], resolved_count=resolved_count, show_all=show_all,
-                           planes=planes)
+    return redirect(_alerts_home_url())
 
 
 @flight_bp.route("/reports/<int:report_id>/resolve", methods=["POST"])
-@cfi_required
+@cfi_or_admin_required
 def report_resolve(report_id):
     conn = get_db()
     row = conn.execute("SELECT id FROM flight_reports WHERE id = ? AND resolved_at IS NULL", (report_id,)).fetchone()
     if not row:
         conn.close()
         flash("That report is no longer open.", "warning")
-        return redirect(url_for("flight.reports_list"))
+        return redirect(url_for("flight.alerts_list"))
     conn.execute("UPDATE flight_reports SET resolved_at = ?, resolved_by = ? WHERE id = ?",
                  (now_iso(), session.get("user_name"), report_id))
     conn.commit()
     conn.close()
     flash("Marked resolved.", "success")
-    return redirect(url_for("flight.reports_list"))
+    return redirect(url_for("flight.alerts_list"))
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/review/acknowledge", methods=["POST"])

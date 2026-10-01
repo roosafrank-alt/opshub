@@ -1,0 +1,93 @@
+{#
+  Reports on the Alerts page (the old Reports tab was folded into Alerts).
+  Shared by the CFI/admin Alerts page (alerts.html) and the student Alerts
+  page (notifications.html). Filing posts to flight.reports_list; resolving
+  (CFI/admin only) posts to flight.report_resolve. A Plane Issue also creates
+  a Maintenance squawk (see flight.reports_list()).
+#}
+{% set report_style = {
+  'plane_issue': ('bi-airplane-engines', 'bg-danger'),
+  'missing_checklist': ('bi-list-check', 'bg-warning text-dark'),
+  'concerning_issue': ('bi-exclamation-diamond', 'bg-danger-subtle text-danger-emphasis border border-danger-subtle'),
+  'suggestion': ('bi-lightbulb', 'bg-info-subtle text-info-emphasis border border-info-subtle'),
+} %}
+
+{% macro report_button() %}
+<button type="button" class="btn btn-warning btn-sm fw-bold text-nowrap" id="report-issue-btn" data-bs-toggle="modal" data-bs-target="#report-issue-modal"><i class="bi bi-flag"></i> Report an issue</button>
+{% endmacro %}
+
+{% macro report_modal(categories, planes) %}
+<div class="modal fade" id="report-issue-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="post" action="{{ url_for('flight.reports_list') }}" class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title"><i class="bi bi-flag-fill text-warning"></i> Report an issue</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body d-grid gap-2">
+        <select name="category" class="form-select form-select-sm" required>
+          <option value="" disabled selected>Type...</option>
+          {% for key, label in categories.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+        </select>
+        <select name="asset_id" class="form-select form-select-sm">
+          <option value="">Plane (if relevant)</option>
+          {% for p in planes %}<option value="{{ p.id }}">{{ p.tag }}</option>{% endfor %}
+        </select>
+        <input type="text" name="notes" class="form-control form-control-sm" placeholder="What's going on?" required>
+        <div class="small text-muted">A Plane Issue also shows up as a squawk on the Maintenance side.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-warning btn-sm fw-bold"><i class="bi bi-flag"></i> Submit</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro open_reports(rows, categories, can_resolve) %}
+<h5 class="mt-4 fw-bold" id="open-reports"><i class="bi bi-flag-fill text-warning"></i> Reports from students &amp; CFIs ({{ rows|length }})</h5>
+{% if rows %}
+<div class="card p-3 mb-4">
+  {% for r in rows %}
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
+    <div class="flex-grow-1" style="min-width:220px;">
+      <div><span class="badge {{ report_style[r.category][1] }}"><i class="bi {{ report_style[r.category][0] }}"></i> {{ categories.get(r.category, r.category) }}</span>
+        {% if r.plane_tag %}<strong>{{ r.plane_tag }}</strong> &middot; {% endif %}{{ r.notes }}</div>
+      <small class="text-muted">{{ r.reported_by or 'Someone' }}, {{ r.reported_at|usdate(true) }}</small>
+    </div>
+    {% if can_resolve %}
+    <form method="post" action="{{ url_for('flight.report_resolve', report_id=r.id) }}">
+      <button class="btn btn-outline-success btn-sm fw-bold"><i class="bi bi-check-lg"></i> Resolve</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-muted mb-4">No open reports.</p>
+{% endif %}
+{% endmacro %}
+
+{% macro resolved_reports(rows, categories) %}
+{% if rows %}
+<h6 class="mt-3">Resolved reports</h6>
+<div class="card mb-3">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead class="table-light"><tr><th>Type</th><th>Plane</th><th>Note</th><th>Reported</th><th>Resolved</th></tr></thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="stack-full" data-label="Type"><span class="badge {{ report_style[r.category][1] }}"><i class="bi {{ report_style[r.category][0] }}"></i> {{ categories.get(r.category, r.category) }}</span></td>
+          <td data-label="Plane">{{ r.plane_tag or '-' }}</td>
+          <td class="stack-full" data-label="Note"><small>{{ r.notes }}</small></td>
+          <td data-label="Reported"><small>{{ r.reported_by or '-' }}<br>{{ r.reported_at|usdate(true) }}</small></td>
+          <td data-label="Resolved"><small>{{ r.resolved_by or '-' }}<br>{{ r.resolved_at|usdate(true) }}</small></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endmacro %}

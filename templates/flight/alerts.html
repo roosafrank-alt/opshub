@@ -9,6 +9,7 @@
   itself is fixed, then it moves to Resolved. See _sync_flight_alerts() in
   flight.py.
 #}
+{% import "flight/_reports_parts.html" as rp %}
 {% macro alert_row(al, show_ack, first) %}
 {#- Active (not-yet-resolved) alerts get their whole box shaded, not just a
    thin outline, so they're impossible to miss on the page - red while
@@ -34,7 +35,11 @@
 </div>
 {% endmacro %}
 
-<h4 class="mb-3"><i class="bi bi-exclamation-triangle-fill text-danger"></i> Alerts</h4>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <h4 class="mb-0"><i class="bi bi-exclamation-triangle-fill text-danger"></i> Alerts</h4>
+  {{ rp.report_button() }}
+</div>
+{{ rp.report_modal(report_categories, report_planes) }}
 
 {% if session.get('is_master_admin') and (hundred_due or hundred_grounded) %}
 {#- 100-hour countdown (flight.hundred_hr_admin_rows) - admins only. Nothing
@@ -83,6 +88,8 @@
 {% else %}
 <p class="text-muted mb-4">Nothing new right now. 👍</p>
 {% endif %}
+
+{{ rp.open_reports(open_reports, report_categories, true) }}
 
 {% if session.get('is_master_admin') %}
 {#- Unaccounted Hobbs time (flight._hobbs_gaps) - admins only. #}
@@ -133,15 +140,17 @@
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
   <button type="button" class="btn btn-link btn-sm p-0 text-muted text-decoration-none" data-bs-toggle="collapse" data-bs-target="#resolved-alerts-archive">
-    <i class="bi bi-chevron-down"></i> <span class="fw-bold text-body">Resolved Alerts Archive ({{ resolved_count }})</span>
+    <i class="bi bi-chevron-down"></i> <span class="fw-bold text-body">Resolved Archive ({{ resolved_count + resolved_report_count }})</span>
   </button>
-  {% if resolved_count > resolved|length %}
-  <a href="{{ url_for('flight.alerts_list', all=1) }}" class="btn btn-outline-secondary btn-sm">Show all {{ resolved_count }}</a>
-  {% elif show_all and resolved_count > 50 %}
+  {% if resolved_count > resolved|length or resolved_report_count > resolved_reports|length %}
+  <a href="{{ url_for('flight.alerts_list', all=1) }}" class="btn btn-outline-secondary btn-sm">Show all</a>
+  {% elif show_all and (resolved_count > 50 or resolved_report_count > 50) %}
   <a href="{{ url_for('flight.alerts_list') }}" class="btn btn-outline-secondary btn-sm">Show latest 50</a>
   {% endif %}
 </div>
 <div class="collapse" id="resolved-alerts-archive">
+{{ rp.resolved_reports(resolved_reports, report_categories) }}
+{% if resolved %}<h6 class="mt-3">Resolved alerts</h6>{% endif %}
 {% if resolved %}
 <div class="card">
   <div class="table-responsive">

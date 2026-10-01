@@ -123,7 +123,6 @@
          else 'students' if _p.startswith('/flight/students')
          else 'alerts' if (_p.startswith('/flight/alerts') or _p.startswith('/flight/notifications'))
          else 'myaccount' if _p.startswith('/flight/my-account')
-         else 'reports' if _p.startswith('/flight/reports')
          else 'manage' if (_p.startswith('/flight/planes') or _p.startswith('/flight/cfis') or _p.startswith('/flight/billing') or _p.startswith('/flight/stats'))
          else '' %}
       <ul class="navbar-nav me-auto mb-2 mb-lg-0 flight-nav-boxed">
@@ -136,13 +135,12 @@
         {% if session.get('is_master_admin') or session.get('academy_access') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'academy' }}" href="{{ url_for('academy_page') }}"><i class="bi bi-trophy"></i> <span class="nav-label">Academy</span></a></li>
         {% endif %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'reports' }}" id="tour-nav-flight-reports" href="{{ url_for('flight.reports_list') }}"><i class="bi bi-flag"></i> <span class="nav-label">Reports</span></a></li>
         {% if session.get('cfi_id') or session.get('is_master_admin') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'students' }}" id="tour-nav-flight-students" href="{{ url_for('flight.students_list') }}"><i class="bi bi-people"></i> <span class="nav-label">Students</span></a></li>
         {% endif %}
-        {% if session.get('cfi_id') %}
+        {% if session.get('cfi_id') or session.get('is_master_admin') %}
         {% set fac = flight_alert_counts or {} %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.alerts_list') }}"><i class="bi bi-exclamation-triangle"></i> <span class="nav-label">Alerts</span>{% if fac.get('open') %} <span class="badge {{ 'bg-danger' if fac.get('unacked') else 'bg-warning text-dark' }}" title="{{ fac.get('unacked') }} new, {{ fac.get('open') }} open">{{ fac.get('open') }}</span>{% endif %}</a></li>
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.alerts_list') }}"><i class="bi bi-exclamation-triangle"></i> <span class="nav-label">Alerts</span>{% if fac.get('open') %} <span class="badge {{ 'bg-danger' if fac.get('unacked') else 'bg-warning text-dark' }}" title="{{ fac.get("unacked") }} new, {{ fac.get("open") }} open (alerts and reports)">{{ fac.get('open') }}</span>{% endif %}</a></li>
         {% elif session.get('student_id') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.my_alerts') }}"><i class="bi bi-bell"></i> <span class="nav-label">Alerts</span>{% if student_alert_count %} <span class="badge bg-danger">{{ student_alert_count }}</span>{% endif %}</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'myaccount' }}" id="tour-nav-flight-myaccount" href="{{ url_for('flight.my_account') }}"><i class="bi bi-person-vcard"></i> <span class="nav-label">My Account</span></a></li>
@@ -275,9 +273,8 @@ document.addEventListener('DOMContentLoaded', function () {
     { selector: '#tour-nav-flight-schedule', title: 'Schedule', text: 'The flight calendar - book, reschedule, or see what\'s coming up. To log a flight that already happened, use Schedule Flight and check "Session Already Complete?".' },
     { selector: '#tour-nav-flight-active', title: 'Active Flight', text: 'Flights in progress right now, with a live map and elapsed time.' },
     { selector: '#tour-nav-flight-history', title: 'Flight History', text: 'Every logged flight, searchable.' },
-    { selector: '#tour-nav-flight-reports', title: 'Reports', text: 'File a plane issue, a missing checklist, a concerning issue, or a suggestion - anyone logged in can, and everyone sees it here.' },
     { selector: '#tour-nav-flight-students', title: 'Students', text: 'Your student roster - rates, account balances, and profiles.' },
-    { selector: '#tour-nav-flight-alerts', title: 'Alerts', text: 'Flights flagged for review (no instructor, solo sign-off expired, over solo currency). Each has a Resolve button that takes you to the fix; it stays open until it\'s fixed, then moves to the resolved archive.' },
+    { selector: '#tour-nav-flight-alerts', title: 'Alerts', text: 'Flights flagged for review and reports from students and CFIs (use Report an issue for a plane issue, missing checklist, concern or suggestion). Flags: no instructor, solo sign-off expired, over solo currency. Each has a Resolve button that takes you to the fix; it stays open until it\'s fixed, then moves to the resolved archive.' },
     { selector: '#manage-menu-toggle', title: 'Manage', text: 'Planes, CFIs, Billing, and Stats live in here.' },
     { selector: '#user-menu-toggle-mobile, #user-menu-toggle-desktop', title: 'Your Account', text: 'Update your info and password, and you can replay this tour any time from here.' }
   ], {
