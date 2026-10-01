@@ -66,6 +66,13 @@ i=$(age_hours "$STATE/installed")
 rk=$(eff_age "$STATE/rkhunter.ok")
 [ "$rk" -le 216 ] || problems+=("rootkit check has not finished in $rk hours")
 
+# Weekly Lynis audit (only once lynis-install.sh has been run).
+if [ -e "$STATE/lynis.installed" ]; then
+  ly=$(eff_age "$STATE/lynis.ran"); li=$(age_hours "$STATE/lynis.installed")
+  [ "$ly" -le "$li" ] || ly=$li
+  [ "$ly" -le 216 ] || problems+=("Lynis audit has not finished in $ly hours")
+fi
+
 ua=$(eff_age /var/lib/apt/periodic/unattended-upgrades-stamp)
 [ "$ua" -le 72 ] || problems+=("automatic security updates have not run in $ua hours")
 
