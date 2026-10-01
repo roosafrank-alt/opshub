@@ -5128,6 +5128,10 @@ def maintenance_edit(item_id):
     if not item:
         conn.close()
         abort(404)
+    if not item["active"]:
+        conn.close()
+        flash("That maintenance item was removed.", "warning")
+        return redirect(url_for("asset_detail", asset_id=item["asset_id"]))
     asset = conn.execute("SELECT * FROM assets WHERE id = ?", (item["asset_id"],)).fetchone()
     if request.method == "POST":
         name = request.form.get("name", "").strip()
@@ -5173,6 +5177,10 @@ def maintenance_complete(item_id):
     if not item:
         conn.close()
         abort(404)
+    if not item["active"]:
+        conn.close()
+        flash("That maintenance item was removed.", "warning")
+        return redirect(url_for("asset_detail", asset_id=item["asset_id"]))
     asset = conn.execute("SELECT * FROM assets WHERE id = ?", (item["asset_id"],)).fetchone()
     performed_by = request.form.get("performed_by", "").strip()
     if not performed_by:

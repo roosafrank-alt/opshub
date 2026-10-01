@@ -176,7 +176,6 @@ class EditDeleteTest(OpsHubTestCase):
         body = self.client.get(f"/assets/{self.a}").get_data(as_text=True)
         self.assertNotIn(">Oil<", body)
 
-    @open_finding("qa-maint-deleted-item-still-editable")
     def test_removed_item_cannot_be_completed_or_edited(self):
         self.login("shop_admin")
         self.client.post(f"/maintenance/{self.iid}/delete")
