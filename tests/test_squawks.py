@@ -71,7 +71,6 @@ class ReportTest(SquawkBase):
             self.client.post(f"/assets/{self.asset}/squawk", data=dict(notes="x"))
             self.assertEqual(self.q1("SELECT COUNT(*) n FROM plane_squawks")["n"], before, role)
 
-    @open_finding("qa-squawk-trashed-plane")
     def test_cannot_report_against_a_trashed_plane(self):
         self.exec("UPDATE assets SET deleted_at=? WHERE id=?", (db.now_iso(), self.asset))
         self.login("tech")

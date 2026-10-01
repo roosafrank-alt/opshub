@@ -1082,10 +1082,14 @@ def squawk_quick_new():
         flash("Enter what's wrong before reporting.", "danger")
         return redirect(url_for("squawks_list"))
     conn = get_db()
-    asset = conn.execute("SELECT id FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    asset = conn.execute("SELECT id, deleted_at FROM assets WHERE id = ?", (asset_id,)).fetchone()
     if not asset:
         conn.close()
         abort(404)
+    if asset["deleted_at"]:
+        conn.close()
+        flash("That plane is in the trash.", "danger")
+        return redirect(url_for("squawks_list"))
     conn.execute("INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at) VALUES (?, ?, ?, ?)",
                  (asset_id, notes, session.get("user_name"), now_iso()))
     conn.commit()
@@ -4378,10 +4382,14 @@ def asset_squawk_new(asset_id):
         flash("Enter what's wrong before reporting.", "danger")
         return redirect(url_for("asset_detail", asset_id=asset_id))
     conn = get_db()
-    asset = conn.execute("SELECT id FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    asset = conn.execute("SELECT id, deleted_at FROM assets WHERE id = ?", (asset_id,)).fetchone()
     if not asset:
         conn.close()
         abort(404)
+    if asset["deleted_at"]:
+        conn.close()
+        flash("That plane is in the trash.", "danger")
+        return redirect(url_for("asset_detail", asset_id=asset_id))
     conn.execute("INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at) VALUES (?, ?, ?, ?)",
                  (asset_id, notes, session.get("user_name"), now_iso()))
     conn.commit()
