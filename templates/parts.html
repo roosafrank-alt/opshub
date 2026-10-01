@@ -93,13 +93,11 @@
      order-md-* classes put everything back in its original left-to-right
      order once there's room for one line again (see .list-toolbar-search
      in style.css). #}
-  <form class="d-none d-md-flex order-md-1" method="get">
-    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search name, barcode, category, location...">
-    <button class="btn btn-outline-secondary ms-1"><i class="bi bi-search"></i></button>
-  </form>
   <a href="{{ url_for('parts_export_csv') }}" class="btn btn-outline-secondary text-nowrap order-md-3"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</a>
   <a href="{{ url_for('part_new') }}" class="btn btn-warning fw-bold text-nowrap order-md-4"><i class="bi bi-plus-lg"></i> Add Part</a>
-  <input type="text" id="parts-live-search" class="form-control list-toolbar-search order-md-2" placeholder="Search parts: name, barcode, location..." style="max-width:260px;">
+  <form method="get" class="list-toolbar-search order-md-2" style="width:340px;max-width:100%;">
+    <input type="text" name="q" value="{{ q }}" id="parts-live-search" class="form-control" placeholder="Search parts: name, barcode, category, location..." autocomplete="off" enterkeyhint="search">
+  </form>
   {% else %}
   <a href="{{ url_for('parts_list') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-arrow-left"></i> Back to Parts</a>
   {% endif %}
@@ -177,8 +175,7 @@ function toggleCategory(idx) {
 }
 
 // Live, filter-as-you-type search across whatever's loaded on this page
-// (name, short name, barcode, category, location) - separate from the "q"
-// box above, which does a full server-side search instead.
+// (name, short name, barcode, category, location). Enter in the box still runs the full server-side search.
 (function () {
   var liveSearch = document.getElementById('parts-live-search');
   if (!liveSearch) return;
