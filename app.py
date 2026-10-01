@@ -1290,7 +1290,8 @@ def squawk_repair(kind, squawk_id):
     conn = get_db()
     if kind == "flight":
         row = conn.execute("SELECT id, squawk_acknowledged_at as acked, "
-                            "squawk_repair_confirm_requested_at as confirm_requested FROM flights "
+                            "squawk_repair_confirm_requested_at as confirm_requested, "
+                            "squawk_repaired_at as repaired FROM flights "
                             "WHERE id = ? AND squawk = 1", (squawk_id,)).fetchone()
         ack_sql = "UPDATE flights SET squawk_acknowledged_at = ?, squawk_acknowledged_by = ? WHERE id = ?"
         confirm_req_sql = ("UPDATE flights SET squawk_repair_confirm_requested_at = ?, "
@@ -1298,7 +1299,8 @@ def squawk_repair(kind, squawk_id):
         undo_sql = "UPDATE flights SET squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL WHERE id = ?"
     elif kind == "quick":
         row = conn.execute("SELECT id, acknowledged_at as acked, "
-                            "repair_confirm_requested_at as confirm_requested FROM plane_squawks "
+                            "repair_confirm_requested_at as confirm_requested, "
+                            "repaired_at as repaired FROM plane_squawks "
                             "WHERE id = ?", (squawk_id,)).fetchone()
         ack_sql = "UPDATE plane_squawks SET acknowledged_at = ?, acknowledged_by = ? WHERE id = ?"
         confirm_req_sql = ("UPDATE plane_squawks SET repair_confirm_requested_at = ?, "
@@ -1310,6 +1312,10 @@ def squawk_repair(kind, squawk_id):
     if not row:
         conn.close()
         flash("Squawk not found.", "danger")
+        return redirect(request.referrer or url_for("dashboard"))
+    if row["repaired"]:
+        conn.close()
+        flash("This squawk is already repaired. If it came back, use Reopen.", "warning")
         return redirect(request.referrer or url_for("dashboard"))
     if row["confirm_requested"]:
         conn.execute(undo_sql, (squawk_id,))

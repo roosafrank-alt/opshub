@@ -223,7 +223,6 @@ class WorkflowTest(SquawkBase):
         self.assertEqual(self.sq()["repaired_by"], first["repaired_by"])
         self.assertEqual(self.sq()["repaired_at"], first["repaired_at"])
 
-    @open_finding("qa-squawk-repair-after-done")
     def test_mark_repaired_on_a_finished_squawk_is_ignored(self):
         self.login("tech")
         self.post("quick", "repair")
