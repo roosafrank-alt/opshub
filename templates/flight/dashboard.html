@@ -257,6 +257,11 @@
   .dash-shortcut-sm i { font-size: 1.15rem; }
   .dash-shortcut-sm .dash-shortcut-label { font-size: .62rem; line-height: 1.1; }
 
+  /* Desktop CFI quick-access tiles (QA ux-flight-dash-tiles-desktop): same
+     icon-above-name look, trimmed from ~110px to ~80px tall. */
+  .dash-tile-lg { padding: .9rem .5rem; }
+  .dash-tile-lg i { line-height: 1.2; }
+
   /* Phone-only compact shortcut row for a student's two shortcuts (QA
      ux-student-dash-shortcuts): slim side-by-side buttons instead of the
      big tiles below, matching the CFI row above so Your Next Lesson moves
@@ -351,32 +356,32 @@
 <div class="d-none d-sm-flex row row-cols-2 row-cols-md-4 g-3 mb-3">
   <div class="col">
     <a href="{{ url_for('flight.log_new') }}" class="text-decoration-none">
-      <div class="card p-3 text-center">
-        <i class="bi bi-journal-plus fs-2 text-warning"></i>
+      <div class="card dash-tile-lg text-center">
+        <i class="bi bi-journal-plus fs-4 text-warning"></i>
         <div class="fw-bold mt-1">Log a Flight</div>
       </div>
     </a>
   </div>
   <div class="col">
     <a href="{{ url_for('flight.schedule_calendar') }}" class="text-decoration-none">
-      <div class="card p-3 text-center">
-        <i class="bi bi-calendar3 fs-2 text-info"></i>
+      <div class="card dash-tile-lg text-center">
+        <i class="bi bi-calendar3 fs-4 text-info"></i>
         <div class="fw-bold mt-1">Schedule</div>
       </div>
     </a>
   </div>
   <div class="col">
     <a href="{{ url_for('flight.students_list') }}" class="text-decoration-none">
-      <div class="card p-3 text-center">
-        <i class="bi bi-people fs-2 text-primary"></i>
+      <div class="card dash-tile-lg text-center">
+        <i class="bi bi-people fs-4 text-primary"></i>
         <div class="fw-bold mt-1">Students</div>
       </div>
     </a>
   </div>
   <div class="col">
     <a href="{{ url_for('flight.planes_list') }}" class="text-decoration-none">
-      <div class="card p-3 text-center">
-        <i class="bi bi-airplane fs-2 text-secondary"></i>
+      <div class="card dash-tile-lg text-center">
+        <i class="bi bi-airplane fs-4 text-secondary"></i>
         <div class="fw-bold mt-1">Planes</div>
       </div>
     </a>
