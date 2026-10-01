@@ -5432,6 +5432,165 @@ def schedule_cancel(scheduled_id):
     return redirect(request.referrer or url_for("flight.schedule_calendar"))
 
 
+# ---------------------------------------------------------------------------
+# Weather cancellation (QA feat-weather-day). CFI/admin picks a day and
+# Morning / Afternoon / All day, ticks the lessons and one tap cancels them
+# all: no cancellation charge, the freed slots are NOT offered to the
+# waitlist (nobody can fly), and each student gets an alert/text starting
+# "Weather cancellation" with 3 new times that book with one tap.
+# ---------------------------------------------------------------------------
+WEATHER_PERIODS = [("morning", "Morning"), ("afternoon", "Afternoon"), ("all", "All day")]
+
+
+def _weather_period_match(period, hhmm):
+    if period == "all" or not hhmm:
+        return True
+    return (hhmm < "12:00") == (period == "morning")
+
+
+def _weather_staff_only():
+    if not (session.get("cfi_id") or session.get("is_master_admin")):
+        flash("Log in as a CFI or admin to do that.", "danger")
+        return redirect(url_for("flight.schedule_calendar"))
+    return None
+
+
+def _weather_suggest_times(conn, sched, count=3):
+    """Next `count` days (starting the day after the cancelled one) when the
+    same plane, instructor and student are free at the same time of day."""
+    out = []
+    try:
+        base = datetime.strptime(sched["scheduled_date"], "%Y-%m-%d").date()
+    except ValueError:
+        return out
+    base = max(base, date.today())
+    for i in range(1, 15):
+        d = (base + timedelta(days=i)).strftime("%Y-%m-%d")
+        if _scheduling_conflicts(conn, sched["asset_id"], sched["cfi_id"], sched["student_id"], d,
+                                 sched["scheduled_time"], sched["duration_hours"]):
+            continue
+        out.append(d)
+        if len(out) >= count:
+            break
+    return out
+
+
+@flight_bp.route("/schedule/weather", methods=["GET", "POST"])
+@login_required
+def weather_cancel():
+    blocked = _weather_staff_only()
+    if blocked:
+        return blocked
+    conn = get_db()
+    day = (request.values.get("date") or date.today().strftime("%Y-%m-%d")).strip()
+    period = request.values.get("period") or "all"
+    if period not in {k for k, _ in WEATHER_PERIODS}:
+        period = "all"
+    rows = conn.execute("""SELECT sf.*, a.tag as plane_tag, c.name as cfi_name,
+                                  COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name
+                           FROM scheduled_flights sf JOIN assets a ON a.id = sf.asset_id
+                           JOIN students s ON s.id = sf.student_id LEFT JOIN cfis c ON c.id = sf.cfi_id
+                           WHERE sf.scheduled_date = ? AND sf.status IN ('scheduled', 'balance_hold')
+                           ORDER BY sf.scheduled_time""", (day,)).fetchall()
+    lessons = [r for r in rows if _weather_period_match(period, r["scheduled_time"])]
+    if request.method == "POST" and request.form.get("do") == "cancel":
+        ids = {int(x) for x in request.form.getlist("ids") if x.isdigit()}
+        picked = [r for r in lessons if r["id"] in ids]
+        if not picked:
+            conn.close()
+            flash("Tick at least one lesson to call off.", "warning")
+            return redirect(url_for("flight.weather_cancel", date=day, period=period))
+        settings = notify.get_settings(conn)
+        texted = 0
+        for r in picked:
+            conn.execute("UPDATE scheduled_flights SET status = 'cancelled', cancel_reason = ? WHERE id = ?",
+                         ("Weather cancellation", r["id"]))
+            conn.commit()
+            student = conn.execute("SELECT user_id FROM students WHERE id = ?", (r["student_id"],)).fetchone()
+            if not student or r["guest_name"]:
+                continue
+            times = _weather_suggest_times(conn, r)
+            for d in times:
+                conn.execute("""INSERT INTO weather_offers (cancelled_flight_id, student_id, scheduled_date,
+                                scheduled_time, created_at) VALUES (?, ?, ?, ?, ?)""",
+                             (r["id"], r["student_id"], d, r["scheduled_time"] or "", now_iso()))
+            conn.commit()
+            link = url_for("flight.weather_rebook", scheduled_id=r["id"], _external=True)
+            was = _slot_label(r["scheduled_date"], r["scheduled_time"])
+            body = (f"Weather cancellation: your {was} flight in {r['plane_tag']} is called off. No charge. "
+                    + (f"New times: {', '.join(_slot_label(d, r['scheduled_time']) for d in times)}. Tap one: {link}"
+                       if times else f"We'll find you a new time. Details: {link}"))
+            _notify_student(conn, r["student_id"], "weather", body.split(" Tap one:")[0].split(" Details:")[0],
+                            link=url_for("flight.weather_rebook", scheduled_id=r["id"]), scheduled_flight_id=r["id"])
+            conn.commit()
+            if not student["user_id"]:
+                continue
+            try:
+                push.queue_and_push(conn, student["user_id"], "Weather cancellation", body,
+                                    tag=f"weather-{r['id']}", url=link)
+            except Exception:
+                current_app.logger.exception("Weather push failed")
+            try:
+                user = conn.execute("SELECT * FROM users WHERE id = ?", (student["user_id"],)).fetchone()
+                if user:
+                    notify.notify_user(settings, user, "Weather cancellation", body, brand="Fly with Kate!")
+            except Exception:
+                current_app.logger.exception("Weather text/email failed")
+            texted += 1
+        conn.close()
+        flash(f"Weather cancellation done: {len(picked)} lesson{'s' if len(picked) != 1 else ''} called off, no charge, "
+              f"{texted} student{'s' if texted != 1 else ''} sent 3 new times.", "success")
+        return redirect(url_for("flight.schedule_calendar", view="day", date=day))
+    conn.close()
+    return render_template("flight/weather_cancel.html", day=day, period=period, periods=WEATHER_PERIODS,
+                           lessons=lessons, time12=_format_time_12h)
+
+
+@flight_bp.route("/schedule/weather/<int:scheduled_id>", methods=["GET", "POST"])
+@login_required
+def weather_rebook(scheduled_id):
+    """Where the student lands from the Weather cancellation alert: the 3
+    suggested times; one tap books it as the same lesson (same plane,
+    instructor and notes)."""
+    conn = get_db()
+    old = conn.execute("""SELECT sf.*, a.tag as plane_tag FROM scheduled_flights sf JOIN assets a ON a.id = sf.asset_id
+                          WHERE sf.id = ? AND sf.status = 'cancelled' AND sf.cancel_reason = 'Weather cancellation'""",
+                       (scheduled_id,)).fetchone()
+    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    if not old or not (staff or old["student_id"] == session.get("student_id")):
+        conn.close()
+        abort(404)
+    offers = conn.execute("SELECT * FROM weather_offers WHERE cancelled_flight_id = ? ORDER BY scheduled_date",
+                          (scheduled_id,)).fetchall()
+    if request.method == "POST":
+        offer = next((o for o in offers if str(o["id"]) == request.form.get("offer_id")), None)
+        if not offer or old["student_id"] != session.get("student_id"):
+            conn.close()
+            abort(404)
+        if any(o["taken_at"] for o in offers):
+            conn.close()
+            flash("You already picked a new time for that lesson.", "info")
+            return redirect(url_for("flight.dashboard"))
+        if _scheduling_conflicts(conn, old["asset_id"], old["cfi_id"], old["student_id"], offer["scheduled_date"],
+                                 offer["scheduled_time"], old["duration_hours"]):
+            conn.close()
+            flash("Sorry, that time was just taken. Pick another one.", "warning")
+            return redirect(url_for("flight.weather_rebook", scheduled_id=scheduled_id))
+        conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date, scheduled_time,
+                        duration_hours, notes, status, created_by, solo, part_solo)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, ?)""",
+                     (old["asset_id"], old["cfi_id"], old["student_id"], offer["scheduled_date"], offer["scheduled_time"] or None,
+                      old["duration_hours"], old["notes"], "Weather rebook", old["solo"], old["part_solo"]))
+        conn.execute("UPDATE weather_offers SET taken_at = ? WHERE id = ?", (now_iso(), offer["id"]))
+        conn.commit()
+        conn.close()
+        flash("Booked: " + _slot_label(offer["scheduled_date"], offer["scheduled_time"]) + ".", "success")
+        return redirect(url_for("flight.dashboard"))
+    conn.close()
+    return render_template("flight/weather_rebook.html", old=old, offers=offers, label=_slot_label,
+                           mine=old["student_id"] == session.get("student_id"))
+
+
 @flight_bp.route("/schedule/<int:scheduled_id>/request_change", methods=["POST"])
 @login_required
 def schedule_request_change(scheduled_id):

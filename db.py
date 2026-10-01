@@ -2042,6 +2042,18 @@ def _migrate(conn):
         created_at TEXT NOT NULL
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_waitlist_offers_student ON waitlist_offers(student_id)")
+    # Weather cancellation: the 3 new times offered to a student whose lesson was
+    # called off for weather (flight.weather_cancel). One tap books one of them.
+    conn.execute("""CREATE TABLE IF NOT EXISTS weather_offers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cancelled_flight_id INTEGER NOT NULL REFERENCES scheduled_flights(id),
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        scheduled_date TEXT NOT NULL,
+        scheduled_time TEXT NOT NULL,
+        taken_at TEXT,
+        created_at TEXT NOT NULL
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_weather_offers_flight ON weather_offers(cancelled_flight_id)")
     conn.commit()
 
     # Exchange cores (QA feat-core-return-tracker): an order for an exchange

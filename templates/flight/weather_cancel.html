@@ -1,0 +1,47 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Weather cancellation - OpsHub{% endblock %}
+{% block content %}
+{#- Weather cancellation - see weather_cancel in flight.py. #}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <h4 class="mb-0"><i class="bi bi-cloud-lightning-rain"></i> Weather cancellation</h4>
+  <a href="{{ url_for('flight.schedule_calendar', view='day', date=day) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar3"></i> Back to Schedule</a>
+</div>
+<form method="get" class="card p-3 mb-3" id="wx-pick">
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-sm-4">
+      <label class="form-label small mb-1" for="wx-date">Day</label>
+      <input type="date" id="wx-date" name="date" value="{{ day }}" class="form-control" onchange="this.form.submit()">
+    </div>
+    <div class="col-12 col-sm-8">
+      <div class="form-label small mb-1">When</div>
+      <div class="d-flex gap-1">
+        {% for val, label in periods %}
+        <input type="radio" class="btn-check" name="period" value="{{ val }}" id="wx-p-{{ val }}" autocomplete="off" {{ 'checked' if val == period }} onchange="this.form.submit()">
+        <label class="btn btn-outline-primary" for="wx-p-{{ val }}">{{ label }}</label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</form>
+
+<form method="post" class="card p-3" id="wx-form">
+  <input type="hidden" name="date" value="{{ day }}">
+  <input type="hidden" name="period" value="{{ period }}">
+  <input type="hidden" name="do" value="cancel">
+  {% if lessons %}
+  <div class="form-label small mb-1">Lessons to call off ({{ lessons|length }})</div>
+  <div class="list-group mb-3">
+    {% for l in lessons %}
+    <label class="list-group-item d-flex gap-2 align-items-center">
+      <input type="checkbox" class="form-check-input mt-0" name="ids" value="{{ l.id }}" checked>
+      <span><strong>{{ time12(l.scheduled_time) or 'Time not set' }}</strong> &middot; {{ l.student_name }} &middot; {{ l.plane_tag }}{% if l.cfi_name %} &middot; {{ l.cfi_name }}{% endif %}</span>
+    </label>
+    {% endfor %}
+  </div>
+  <button type="submit" class="btn btn-danger btn-lg fw-bold"><i class="bi bi-cloud-lightning-rain"></i> Weather cancellation: call off ticked lessons</button>
+  <p class="text-muted small mt-2 mb-0">Weather cancellation calls off every ticked lesson with no charge, does not offer the slots to the waitlist, and sends each student an alert and text with 3 new times they can book with one tap.</p>
+  {% else %}
+  <p class="mb-0 text-muted">No lessons booked for that day and time.</p>
+  {% endif %}
+</form>
+{% endblock %}
