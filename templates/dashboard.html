@@ -206,6 +206,21 @@
 </div>
 {% endif %}
 
+{% if owner_requests and not is_limited_role %}
+<div class="alert alert-primary border-primary border-2 mb-3">
+  <h5 class="alert-heading mb-2"><i class="bi bi-calendar-plus-fill"></i> {{ owner_requests|length }} Owner Booking Request{{ 's' if owner_requests|length != 1 }}</h5>
+  {% for p in owner_requests %}
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
+    <div>
+      <div><strong><a href="{{ url_for('project_detail', project_id=p.id) }}" class="alert-link">{{ p.asset_display_tag }}</a></strong> &middot; {{ p.name }}</div>
+      <div class="small">Wants the week of {{ p.customer_requested_week|usdate }}</div>
+    </div>
+    <a href="{{ url_for('project_edit', project_id=p.id) }}" class="btn btn-primary btn-sm fw-bold flex-shrink-0">Set date</a>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 {% if reschedule_requests and not is_limited_role %}
 <div class="alert alert-warning border-warning border-2 mb-3">
   <div class="d-flex justify-content-between align-items-center mb-2">

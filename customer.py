@@ -14,9 +14,10 @@ staff-only. From here they can:
 Admin manages customer accounts and which aircraft they're linked to from
 the regular Manage menu (see /customers routes in app.py).
 """
+from datetime import date, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 
-from db import get_db, now_iso, asset_meter, maintenance_status, found_item_messages, allowed_image, save_upload
+from db import get_db, now_iso, gen_project_code, asset_meter, maintenance_status, found_item_messages, allowed_image, save_upload
 import auth
 from auth import (authenticate_customer, log_in_customer, log_out_customer,
                    current_customer, customer_login_required)
@@ -165,10 +166,16 @@ def customer_asset(asset_id):
     reminders.sort(key=lambda r: {"overdue": 0, "due_soon": 1, "ok": 2, "unknown": 3}.get(r["status"]["urgency"], 4))
 
     appointments = conn.execute("""
-        SELECT * FROM projects WHERE asset_id = ? AND deleted_at IS NULL AND scheduled_date IS NOT NULL
+        SELECT * FROM projects WHERE asset_id = ? AND deleted_at IS NULL
+              AND (scheduled_date IS NOT NULL OR customer_requested_week IS NOT NULL)
               AND status NOT IN ('completed', 'archived')
-        ORDER BY scheduled_date
+        ORDER BY (scheduled_date IS NULL) DESC, scheduled_date
     """, (asset_id,)).fetchall()
+    # reminders already asked for (waiting on the shop to set a date)
+    requested = {a["customer_requested_item_id"]: a["customer_requested_week"] for a in appointments
+                 if a["scheduled_date"] is None and a["customer_requested_item_id"]}
+    for r in reminders:
+        r["requested_week"] = requested.get(r["item"]["id"])
 
     jobs = conn.execute("""
         SELECT * FROM projects WHERE asset_id = ? AND deleted_at IS NULL
@@ -185,7 +192,51 @@ def customer_asset(asset_id):
     conn.close()
     return render_template("customer_asset.html", customer=cust, asset=asset, reminders=reminders,
                             appointments=appointments, bills=bills, multi_plane=multi_plane,
-                            found_items=found_items)
+                            found_items=found_items, week_options=_week_options())
+
+
+def _week_options(n=6):
+    """The next n weeks as (Monday ISO date, label), starting next week."""
+    today = date.today()
+    monday = today - timedelta(days=today.weekday()) + timedelta(days=7)
+    return [((monday + timedelta(weeks=i)).isoformat(), (monday + timedelta(weeks=i)).strftime("Week of %b %-d"))
+            for i in range(n)]
+
+
+@customer_bp.route("/aircraft/<int:asset_id>/book/<int:item_id>", methods=["POST"])
+@customer_login_required
+def customer_book_item(asset_id, item_id):
+    """Owner taps "Book it" on a due reminder: makes a ready-made job on that
+    plane (no date yet) carrying the week they'd like. The shop sets the date;
+    until then it shows under Appointments as Requested."""
+    conn = get_db()
+    cust = current_customer(conn)
+    asset = _require_owned_asset(conn, cust["id"], asset_id)
+    item = conn.execute("SELECT * FROM maintenance_items WHERE id = ? AND asset_id = ? AND active = 1",
+                        (item_id, asset_id)).fetchone()
+    if not item:
+        conn.close()
+        abort(404)
+    week = request.form.get("week", "")
+    if week not in [w for w, _ in _week_options()]:
+        week = _week_options()[0][0]
+    dup = conn.execute("""SELECT 1 FROM projects WHERE asset_id = ? AND deleted_at IS NULL AND scheduled_date IS NULL
+                          AND customer_requested_item_id = ? AND status NOT IN ('completed', 'archived')""",
+                       (asset_id, item_id)).fetchone()
+    if dup:
+        conn.close()
+        flash("Already requested - the shop will set the date.", "info")
+        return redirect(url_for("customer.customer_asset", asset_id=asset_id))
+    label = dict(_week_options())[week]
+    status = maintenance_status(item, asset_meter(asset, item["hour_type"]))
+    desc = f"Requested by owner {cust['name']} from My Aircraft ({status['label']}). Preferred: {label}."
+    conn.execute("""INSERT INTO projects (code, name, description, status, asset_id, created_at,
+                    customer_requested_week, customer_requested_item_id) VALUES (?, ?, ?, 'active', ?, ?, ?, ?)""",
+                 (gen_project_code(conn), item["name"], desc, asset_id, now_iso(), week, item_id))
+    conn.commit()
+    conn.close()
+    flash(f"Requested - {label}. The shop will confirm the date.", "success")
+    return redirect(url_for("customer.customer_asset", asset_id=asset_id))
 
 
 def _found_items_for_asset(conn, asset_id):

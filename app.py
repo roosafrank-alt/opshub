@@ -707,6 +707,16 @@ def dashboard():
         ORDER BY projects.customer_reschedule_requested_at DESC
     """).fetchall()
 
+    # Owner "Book it" requests still waiting for the shop to set a date
+    # (they drop off by themselves once Edit Project gets a scheduled date).
+    owner_requests = conn.execute("""
+        SELECT projects.*, a.tag as asset_display_tag
+        FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
+        WHERE projects.deleted_at IS NULL AND projects.customer_requested_week IS NOT NULL
+              AND projects.scheduled_date IS NULL AND projects.status NOT IN ('completed', 'archived')
+        ORDER BY projects.created_at
+    """).fetchall()
+
     open_sessions = conn.execute("""
         SELECT ls.*, l.name as laborer_name, p.code as project_code, p.name as project_name
         FROM labor_sessions ls
@@ -765,6 +775,7 @@ def dashboard():
                            low_stock=low_stock, recent_activity=recent_activity,
                            reminders=reminders, upcoming_projects=upcoming_projects,
                            reschedule_requests=reschedule_requests,
+                           owner_requests=owner_requests,
                            open_squawks=open_squawks, assignable_workers=assignable_workers, open_sessions=open_sessions,
                            needs_confirm_sections=needs_confirm_sections,
                            my_squawks=my_squawks, part_arrivals=part_arrivals,

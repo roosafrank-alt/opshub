@@ -100,14 +100,28 @@
       <h5><i class="bi bi-calendar-check"></i> Maintenance Reminders</h5>
       {% if reminders %}
       {% for r in reminders %}
-      <div class="d-flex justify-content-between align-items-center py-2 {{ 'border-top' if not loop.first }}">
-        <div>
-          <div class="fw-bold">{{ r.item.name }}</div>
-          <div class="small urgency-{{ r.status.urgency }}">{{ r.status.label }}</div>
+      <div class="py-2 {{ 'border-top' if not loop.first }}">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-bold">{{ r.item.name }}</div>
+            <div class="small urgency-{{ r.status.urgency }}">{{ r.status.label }}</div>
+          </div>
+          {% if r.status.urgency == 'overdue' %}<span class="badge bg-danger">Overdue</span>
+          {% elif r.status.urgency == 'due_soon' %}<span class="badge bg-warning text-dark">Due Soon</span>
+          {% else %}<span class="badge bg-success">OK</span>{% endif %}
         </div>
-        {% if r.status.urgency == 'overdue' %}<span class="badge bg-danger">Overdue</span>
-        {% elif r.status.urgency == 'due_soon' %}<span class="badge bg-warning text-dark">Due Soon</span>
-        {% else %}<span class="badge bg-success">OK</span>{% endif %}
+        {% if r.status.urgency in ('overdue', 'due_soon') %}
+          {% if r.requested_week %}
+          <div class="mt-1"><span class="badge bg-primary"><i class="bi bi-check2"></i> Requested</span> <span class="small text-muted">the shop will set the date</span></div>
+          {% else %}
+          <form method="post" action="{{ url_for('customer.customer_book_item', asset_id=asset.id, item_id=r.item.id) }}" class="d-flex gap-2 mt-2">
+            <select name="week" class="form-select form-select-sm" aria-label="Preferred week">
+              {% for w, lbl in week_options %}<option value="{{ w }}">{{ lbl }}</option>{% endfor %}
+            </select>
+            <button class="btn btn-primary btn-sm text-nowrap fw-bold"><i class="bi bi-calendar-plus"></i> Book it</button>
+          </form>
+          {% endif %}
+        {% endif %}
       </div>
       {% endfor %}
       {% else %}
@@ -124,11 +138,14 @@
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
           <div>
             <div class="fw-bold">{{ p.name }}</div>
-            <div class="text-muted small">{{ p.scheduled_date|usdate }}{% if p.scheduled_end_date and p.scheduled_end_date != p.scheduled_date %} &ndash; {{ p.scheduled_end_date|usdate }}{% endif %}</div>
+            {% if not p.scheduled_date %}<div class="text-muted small">{{ p.customer_requested_week|usdate }} week requested</div>
+            {% else %}<div class="text-muted small">{{ p.scheduled_date|usdate }}{% if p.scheduled_end_date and p.scheduled_end_date != p.scheduled_date %} &ndash; {{ p.scheduled_end_date|usdate }}{% endif %}</div>{% endif %}
             {% if p.description %}<div class="small mt-1">{{ p.description }}</div>{% endif %}
           </div>
           <div class="text-end">
-            {% if p.customer_confirmed_at %}
+            {% if not p.scheduled_date %}
+              <span class="badge bg-primary">Requested</span>
+            {% elif p.customer_confirmed_at %}
               <span class="badge bg-success">Confirmed</span>
             {% elif p.customer_reschedule_requested_at %}
               <span class="badge bg-warning text-dark">Reschedule Requested</span>
@@ -137,7 +154,9 @@
             {% endif %}
           </div>
         </div>
-        {% if p.customer_reschedule_requested_at %}
+        {% if not p.scheduled_date %}
+        <div class="small text-muted mt-1">Waiting for the shop to set the date.</div>
+        {% elif p.customer_reschedule_requested_at %}
         <div class="small text-muted mt-1">You asked: "{{ p.customer_reschedule_note }}" &mdash; we'll be in touch.</div>
         {% else %}
         <div class="d-flex gap-2 mt-2">

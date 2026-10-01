@@ -1642,6 +1642,13 @@ def _migrate(conn):
         if col not in proj_cols_cust:
             conn.execute(f"ALTER TABLE projects ADD COLUMN {col} TEXT")
             conn.commit()
+    # Owner "Book it" requests: the week the owner asked for (Monday, YYYY-MM-DD)
+    # and which reminder it came from. A request is waiting while scheduled_date is NULL.
+    proj_cols_cust = [r["name"] for r in conn.execute("PRAGMA table_info(projects)").fetchall()]
+    for col, ddl in (("customer_requested_week", "TEXT"), ("customer_requested_item_id", "INTEGER")):
+        if col not in proj_cols_cust:
+            conn.execute(f"ALTER TABLE projects ADD COLUMN {col} {ddl}")
+            conn.commit()
 
     # End Flight, marked Paid: how much was actually collected right then and
     # by what method, plus how much of it (if any) came out of the student's
