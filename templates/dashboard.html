@@ -367,14 +367,14 @@
   </a>
 </div>
 
-<div class="card p-3 mb-3">
+{% if open_sessions %}
+<div class="card p-3 mb-3" id="clocked-in-card">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="mb-0"><i class="bi bi-stopwatch"></i> Currently Clocked In</h5>
     {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
-    <a href="{{ url_for('laborers_list') }}" class="small">Manage Workers</a>
+    <a href="{{ url_for('laborers_list') }}" class="small manage-workers-link">Manage Workers</a>
     {% endif %}
   </div>
-  {% if open_sessions %}
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0" id="open-sessions-table">
       <thead><tr><th>Laborer</th><th>Task</th><th>Elapsed</th><th></th></tr></thead>
@@ -390,10 +390,15 @@
       </tbody>
     </table>
   </div>
-  {% else %}
-  <p class="text-muted small mb-0" id="no-open-sessions">Nobody's clocked in right now.</p>
+</div>
+{% else %}
+<div class="d-flex justify-content-between align-items-center bg-light rounded px-3 py-2 mb-3 small text-muted" id="no-open-sessions">
+  <span><i class="bi bi-stopwatch"></i> Nobody clocked in right now</span>
+  {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
+  <a href="{{ url_for('laborers_list') }}" class="small manage-workers-link">Manage Workers</a>
   {% endif %}
 </div>
+{% endif %}
 
 {% if not is_limited_role %}
 <div class="row g-3">
@@ -487,7 +492,9 @@
     if (row) row.remove();
     var table = document.getElementById('open-sessions-table');
     if (table && !table.querySelector('tbody tr')) {
-      table.closest('.table-responsive').outerHTML = '<p class="text-muted small mb-0" id="no-open-sessions">Nobody\'s clocked in right now.</p>';
+      var card = document.getElementById('clocked-in-card');
+      var link = card.querySelector('.manage-workers-link');
+      card.outerHTML = '<div class="d-flex justify-content-between align-items-center bg-light rounded px-3 py-2 mb-3 small text-muted" id="no-open-sessions"><span><i class="bi bi-stopwatch"></i> Nobody clocked in right now</span>' + (link ? link.outerHTML : '') + '</div>';
     }
   }
 

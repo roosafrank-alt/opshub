@@ -33,7 +33,9 @@ class ShopDashboardByRoleTest(OpsHubTestCase):
         c = self.login("shop_student")
         body = c.get("/shop").get_data(as_text=True)
         self.assertIn("Upcoming Schedule", body)
-        self.assertIn("Currently Clocked In", body)
+        # Nobody is clocked in here, so the box shrinks to one slim line.
+        self.assertIn("Nobody clocked in right now", body)
+        self.assertNotIn("Currently Clocked In", body)
 
     def test_inspector_sees_active_projects_list(self):
         c = self.login("inspector")
