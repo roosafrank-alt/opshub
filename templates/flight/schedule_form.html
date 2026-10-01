@@ -39,10 +39,9 @@
       oil, ground time, landings, squawks, paid) show instead, and saving
       logs it straight into Flight History (schedule_new -> _save_logged_flight).
     #}
-    <div class="form-check form-switch mb-3 p-2 ps-5 border rounded bg-light">
+    <div class="form-check form-switch mb-2">
       <input type="checkbox" class="form-check-input" role="switch" name="already_complete" id="complete-check" value="1" {% if is_complete %}checked{% endif %}>
-      <label class="form-check-label fw-bold" for="complete-check">Session Already Complete?</label>
-      <div class="form-text mt-0">Check this to log a flight that already happened (and wasn't on the schedule) with its Hobbs/Tach, landings and squawks.</div>
+      <label class="form-check-label small" for="complete-check">Already flown? Log a finished session instead</label>
     </div>
     {% endif %}
     <div class="row">
@@ -440,6 +439,7 @@
         body.flight-complete-sticky #sched-form-footer > .btn-outline-secondary { flex: 0 0 auto; }
       }
     </style>
+    <script>document.body.classList.add('flight-complete-sticky');</script>
     <div class="d-flex justify-content-between" id="sched-form-footer">
       <a href="{{ url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar') }}" class="btn btn-outline-secondary">Cancel</a>
       <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Session Complete' if is_complete else 'Schedule Flight')) }}</button>
@@ -1053,8 +1053,7 @@
     setGroup('.sched-only', !done);
     setGroup('.complete-only', done);
     submitBtn.textContent = done ? 'Session Complete' : 'Schedule Flight';
-    document.body.classList.toggle('flight-complete-sticky', done);
-    dateLabel.innerHTML = (done ? 'Flight Date' : 'Date') + ' <span class="text-danger">*</span>';
+        dateLabel.innerHTML = (done ? 'Flight Date' : 'Date') + ' <span class="text-danger">*</span>';
     if (title) { title.textContent = done ? 'Log a Completed Session' : 'Schedule a Flight'; }
     // Solo still disables the instructor picker in either mode.
     var solo = document.getElementById('solo-check');
@@ -1124,7 +1123,7 @@
   // that no longer allows it) reflects it right away.
   function syncSoloAllowed() {
     var opt = planeSelectEl.options[planeSelectEl.selectedIndex];
-    var soloAllowed = !opt || !!opt.getAttribute('data-solo-allowed');
+    var soloAllowed = !opt || !opt.value || !!opt.getAttribute('data-solo-allowed');
     var soloCheckEl = document.getElementById('solo-check');
     var soloNote = document.getElementById('solo-not-allowed-note');
     if (soloCheckEl) {
