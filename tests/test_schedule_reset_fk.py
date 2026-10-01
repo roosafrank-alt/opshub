@@ -48,7 +48,8 @@ class ScheduleResetCoversEveryForeignKeyTest(OpsHubTestCase):
     """Guard for the future: every table with a hard foreign key to
     scheduled_flights must be handled by _wipe_schedule, or Reset Schedule
     will start failing again the first time that table has a row."""
-    HANDLED = {("flights", "scheduled_flight_id"), ("waitlist_offers", "cancelled_flight_id")}
+    HANDLED = {("flights", "scheduled_flight_id"), ("waitlist_offers", "cancelled_flight_id"),
+               ("weather_offers", "cancelled_flight_id")}
 
     def test_all_foreign_keys_to_bookings_are_handled(self):
         conn = db.get_db()

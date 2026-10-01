@@ -8684,6 +8684,7 @@ def _wipe_schedule(conn, where="1=1", params=()):
         ph = _ids_placeholders(ids)
         conn.execute(f"UPDATE flights SET scheduled_flight_id = NULL WHERE scheduled_flight_id IN ({ph})", ids)
         conn.execute(f"UPDATE waitlist_offers SET cancelled_flight_id = NULL WHERE cancelled_flight_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM weather_offers WHERE cancelled_flight_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM notification_log WHERE category = 'flight_reminder' AND ref_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM flight_alerts WHERE scheduled_flight_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM scheduled_flights WHERE id IN ({ph})", ids)
