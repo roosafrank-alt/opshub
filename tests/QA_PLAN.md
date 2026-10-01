@@ -73,7 +73,7 @@ Shop / inventory
 - [x] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
 - [x] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s), inspector confirm / send back, fix on job
 - [x] Assets: new, quick new, edit, hours update, trash/restore/purge (open: qa-asset-new-crash, qa-asset-purge-crash, qa-asset-hours-bad-values; still undecided: should a lower Hobbs/Tach reading than the last one be allowed?)
-- [ ] Maintenance items: new, edit, complete, due/overdue math around hours and dates
+- [x] Maintenance items: new, edit, complete, due/overdue math around hours and dates (open: qa-maint-bad-numbers, qa-maint-deleted-item-still-editable)
 - [ ] Logbook entries: create, edit, print, starter templates
 - [ ] Photos: upload (bad file types, huge files), set cover, delete
 - [ ] Trash page: empty trash, restore conflicts

@@ -132,7 +132,6 @@ class HoursTest(OpsHubTestCase):
             self.client.post(f"/assets/{a}/update_hours", data=dict(hobbs_hours="5"))
             self.assertIsNone(self.hours(a)["h"], role)
 
-    @open_finding("qa-asset-hours-bad-values")
     def test_negative_and_infinite_readings_rejected(self):
         a = self.make_asset("N1")
         self.exec("UPDATE assets SET hobbs_hours=10, tach_hours=10 WHERE id=?", (a,))
