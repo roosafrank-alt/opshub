@@ -123,6 +123,12 @@
   </form>
   {% endif -%}
 {%- endif -%}
+{%- if can_confirm and not sq.repaired_at and not sq.repair_confirm_requested_at %}
+  <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="mt-1" data-confirm="Sign this squawk off as repaired by you?">
+    <input type="hidden" name="action" value="self_repair">
+    <button class="btn btn-outline-success {{ size }} squawk-btn"><i class="bi bi-check-lg"></i> I repaired it - sign off</button>
+  </form>
+{%- endif %}
 {%- endmacro %}
 
 {#- An Inspector's (or admin's) sign-off on a repair someone marked ready -

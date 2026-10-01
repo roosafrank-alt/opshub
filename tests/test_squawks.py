@@ -199,7 +199,6 @@ class WorkflowTest(SquawkBase):
             self.post("flight", "acknowledge", assigned_to=who)
             self.assertIsNone(self.sq("flight")["assigned_to"], who)
 
-    @open_finding("qa-squawk-confirm-unrequested")
     def test_inspector_cannot_confirm_a_repair_nobody_marked_done(self):
         self.login("inspector")
         self.post("quick", "repair_confirm")
@@ -207,7 +206,12 @@ class WorkflowTest(SquawkBase):
         self.assertIsNone(self.sq()["repaired_at"])
         self.assertIsNone(self.sq("flight")["repaired_at"])
 
-    @open_finding("qa-squawk-confirm-unrequested")
+    def test_inspector_can_sign_off_own_repair_in_one_step(self):
+        self.login("inspector")
+        self.post("quick", "repair_confirm", action="self_repair")
+        self.assertTrue(self.sq()["repaired_at"])
+        self.assertEqual(self.sq()["repaired_by"], self.users["inspector"]["name"])
+
     def test_second_confirm_does_not_rewrite_who_signed_off(self):
         self.login("tech")
         self.post("quick", "repair")

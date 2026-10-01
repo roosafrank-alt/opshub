@@ -1335,12 +1335,12 @@ def squawk_repair_confirm(kind, squawk_id):
     approved (same pattern as project_section_confirm)."""
     conn = get_db()
     if kind == "flight":
-        row = conn.execute("SELECT id FROM flights WHERE id = ? AND squawk = 1", (squawk_id,)).fetchone()
+        row = conn.execute("SELECT id, squawk_repaired_at as done, squawk_repair_confirm_requested_at as asked FROM flights WHERE id = ? AND squawk = 1", (squawk_id,)).fetchone()
         send_back_sql = ("UPDATE flights SET squawk_repair_confirm_requested_at = NULL, "
                           "squawk_repair_confirm_requested_by = NULL, squawk_sent_back_note = ? WHERE id = ?")
         confirm_sql = "UPDATE flights SET squawk_repaired_at = ?, squawk_repaired_by = ?, squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL WHERE id = ?"
     elif kind == "quick":
-        row = conn.execute("SELECT id FROM plane_squawks WHERE id = ?", (squawk_id,)).fetchone()
+        row = conn.execute("SELECT id, repaired_at as done, repair_confirm_requested_at as asked FROM plane_squawks WHERE id = ?", (squawk_id,)).fetchone()
         send_back_sql = ("UPDATE plane_squawks SET repair_confirm_requested_at = NULL, "
                           "repair_confirm_requested_by = NULL, sent_back_note = ? WHERE id = ?")
         confirm_sql = "UPDATE plane_squawks SET repaired_at = ?, repaired_by = ?, repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL WHERE id = ?"
@@ -1351,7 +1351,19 @@ def squawk_repair_confirm(kind, squawk_id):
         conn.close()
         flash("Squawk not found.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
-    if request.form.get("action") == "send_back":
+    action = request.form.get("action")
+    if action == "self_repair":
+        # The inspector/admin did the repair themselves: sign it off in one step.
+        if row["done"]:
+            conn.close()
+            flash("This squawk is already signed off.", "warning")
+            return redirect(request.referrer or url_for("squawks_list"))
+    elif row["done"] or not row["asked"]:
+        # Sign off / Send back only work on a squawk a tech marked ready.
+        conn.close()
+        flash("This squawk isn't waiting for sign-off.", "warning")
+        return redirect(request.referrer or url_for("squawks_list"))
+    if action == "send_back":
         note = (request.form.get("note") or "").strip() or None
         conn.execute(send_back_sql, (note, squawk_id))
         flash("Sent back - not marked repaired.", "warning")
