@@ -4809,6 +4809,35 @@ def _purge_asset(conn, asset_id):
     # dangling reference that would FOREIGN KEY-crash the delete.
     conn.execute("UPDATE logbook_entries SET asset_id = NULL WHERE asset_id = ?", (asset_id,))
     conn.execute("UPDATE found_items SET asset_id = NULL WHERE asset_id = ?", (asset_id,))
+    # QA fix qa-asset-purge-crash: flights, squawks and compression checks
+    # require an aircraft, so their history moves to a hidden "Deleted
+    # aircraft" record (kept, never listed in the fleet) instead of being
+    # erased or crashing the delete. Everything that only makes sense for a
+    # plane that exists (bookings, to-dos, ADs, offers, owner links) goes.
+    keep = {"flights": 0, "plane_squawks": 0, "compression_checks": 0}
+    if any(conn.execute(f"SELECT 1 FROM {t} WHERE asset_id = ? LIMIT 1", (asset_id,)).fetchone() for t in keep):
+        archive = conn.execute("SELECT id FROM assets WHERE tag = 'Deleted aircraft'").fetchone()
+        if archive:
+            archive_id = archive["id"]
+        else:
+            archive_id = conn.execute(
+                "INSERT INTO assets (tag, name, is_owner_placeholder) VALUES ('Deleted aircraft', "
+                "'History of aircraft that were deleted forever', 1)").lastrowid
+        for t in keep:
+            conn.execute(f"UPDATE {t} SET asset_id = ? WHERE asset_id = ?", (archive_id, asset_id))
+    for row in conn.execute("SELECT id FROM scheduled_flights WHERE asset_id = ?", (asset_id,)).fetchall():
+        conn.execute("UPDATE flights SET scheduled_flight_id = NULL WHERE scheduled_flight_id = ?", (row["id"],))
+        conn.execute("DELETE FROM waitlist_offers WHERE cancelled_flight_id = ?", (row["id"],))
+    conn.execute("DELETE FROM waitlist_offers WHERE asset_id = ?", (asset_id,))
+    conn.execute("DELETE FROM scheduled_flights WHERE asset_id = ?", (asset_id,))
+    conn.execute("UPDATE project_sections SET linked_todo_id = NULL WHERE linked_todo_id IN "
+                 "(SELECT id FROM plane_todos WHERE asset_id = ?)", (asset_id,))
+    conn.execute("DELETE FROM plane_todos WHERE asset_id = ?", (asset_id,))
+    conn.execute("DELETE FROM ad_compliance WHERE ad_id IN (SELECT id FROM ads WHERE asset_id = ?)", (asset_id,))
+    conn.execute("DELETE FROM ads WHERE asset_id = ?", (asset_id,))
+    conn.execute("DELETE FROM customer_assets WHERE asset_id = ?", (asset_id,))
+    for t in ("photos", "flight_reports", "pilot_logbook", "flight_waitlist"):
+        conn.execute(f"UPDATE {t} SET asset_id = NULL WHERE asset_id = ?", (asset_id,))
     conn.execute("DELETE FROM assets WHERE id = ?", (asset_id,))
 
 
@@ -4823,7 +4852,7 @@ def asset_purge(asset_id):
     _purge_asset(conn, asset_id)
     conn.commit()
     conn.close()
-    flash(f"Aircraft '{asset['tag']}' permanently deleted. Any linked projects were kept, just unlinked.", "success")
+    flash(f"Aircraft '{asset['tag']}' permanently deleted. Linked projects were kept (just unlinked), and its flight and squawk history was kept.", "success")
     return redirect(url_for("trash_page"))
 
 

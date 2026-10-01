@@ -174,7 +174,6 @@ class TrashRestorePurgeTest(OpsHubTestCase):
         self.assertIsNone(self.q1("SELECT id FROM assets WHERE id=?", (a,)))
         self.assertIsNone(self.q1("SELECT asset_id FROM projects WHERE id=?", (p,))["asset_id"])
 
-    @open_finding("qa-asset-purge-crash")
     def test_purge_aircraft_with_squawk_or_flight_history(self):
         for kind in ("squawk", "flight"):
             a = self.make_asset("N-" + kind)
@@ -192,3 +191,6 @@ class TrashRestorePurgeTest(OpsHubTestCase):
             r = self.client.post(f"/assets/{a}/purge")
             self.assertLess(r.status_code, 400, kind)
             self.assertIsNone(self.q1("SELECT id FROM assets WHERE id=?", (a,)), kind)
+            table = "plane_squawks" if kind == "squawk" else "flights"
+            kept = self.q1(f"SELECT a.tag FROM {table} t JOIN assets a ON a.id = t.asset_id")
+            self.assertEqual(kept["tag"], "Deleted aircraft", kind)  # history kept, not erased
