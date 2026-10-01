@@ -112,7 +112,7 @@
         {% for w in wishlist_items %}
         <tr>
           <td>{{ urgency_badge(w.urgency) }}</td>
-          <td>{{ w.part_name or w.description }}</td>
+          <td>{{ w.part_name or w.description }}{% if w.project_id %} <a href="{{ url_for('project_detail', project_id=w.project_id) }}" class="badge bg-light text-dark border fw-normal text-decoration-none"><i class="bi bi-wrench"></i> {{ w.project_code }}</a>{% endif %}</td>
           <td><small class="text-muted">{{ w.notes or '' }}</small></td>
           <td><small class="text-muted">{{ w.requested_by or '' }}</small></td>
           <td class="text-end text-nowrap">

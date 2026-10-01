@@ -670,6 +670,14 @@ def dashboard():
     # unacknowledged assignments, so whoever did the assigning can see who
     # hasn't picked it up.
     my_squawks = get_my_squawks(conn, session["user_id"]) if session.get("user_id") else []
+    # Parts this person asked for from a job that have since arrived.
+    part_arrivals = []
+    if session.get("user_id"):
+        part_arrivals = conn.execute("""
+            SELECT w.id, w.description, w.project_id, p.code AS project_code, p.name AS project_name
+            FROM order_wishlist w JOIN projects p ON p.id = w.project_id
+            WHERE w.requested_by_id = ? AND w.arrived_at IS NOT NULL AND w.arrival_seen_at IS NULL
+            ORDER BY w.arrived_at""", (session["user_id"],)).fetchall()
     unacknowledged_assignments = []
     system_alerts = []
     if session.get("is_master_admin") or session.get("shop_role") == "admin":
@@ -759,7 +767,7 @@ def dashboard():
                            reschedule_requests=reschedule_requests,
                            open_squawks=open_squawks, assignable_workers=assignable_workers, open_sessions=open_sessions,
                            needs_confirm_sections=needs_confirm_sections,
-                           my_squawks=my_squawks,
+                           my_squawks=my_squawks, part_arrivals=part_arrivals,
                            unacknowledged_assignments=unacknowledged_assignments,
                            squawks_awaiting_confirm=squawks_awaiting_confirm,
                            system_alerts=system_alerts, tool_reminders=tool_reminders,
@@ -3104,6 +3112,66 @@ def found_item_delete(item_id):
     return redirect(url_for("project_detail", project_id=item["project_id"]) + "#found-items")
 
 
+def _job_part_requests(conn, project_id):
+    """A job's part requests, newest first, each with a step: 'asked' (on
+    the To order list), 'ordered' (an order is placed; expected date from
+    it) or 'arrived'. Dismissed requests are left out."""
+    rows = conn.execute("""
+        SELECT w.*, (SELECT MAX(o.expected_date) FROM orders o WHERE o.wishlist_id = w.id AND o.status != 'cancelled') AS expected_date
+        FROM order_wishlist w
+        WHERE w.project_id = ? AND w.status IN ('open', 'ordered')
+        ORDER BY w.created_at DESC""", (project_id,)).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["step"] = "arrived" if r["arrived_at"] else ("ordered" if r["status"] == "ordered" else "asked")
+        if d["step"] == "arrived" and r["arrived_at"] < (datetime.now() - timedelta(days=7)).isoformat():
+            continue  # old news: stop listing it a week after it came in
+        out.append(d)
+    return out
+
+
+@app.route("/projects/<int:project_id>/part-request", methods=["POST"])
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
+def project_part_request(project_id):
+    """'Need a part' on a job: lands on the admin's To order list with the
+    job and urgency already filled in."""
+    conn = get_db()
+    project = conn.execute("SELECT id FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    description = request.form.get("description", "").strip()[:200]
+    urgency = request.form.get("urgency") or "needed_now"
+    if urgency not in ("rush", "needed_now", "no_rush"):
+        urgency = "needed_now"
+    if not description:
+        conn.close()
+        flash("Type what part you need.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id))
+    conn.execute(
+        "INSERT INTO order_wishlist (description, urgency, notes, requested_by, requested_by_id, project_id, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (description, urgency, request.form.get("notes", "").strip()[:500] or None,
+         session.get("user_name"), session.get("user_id"), project_id, now_iso()))
+    conn.commit()
+    conn.close()
+    flash(f"Asked the office for '{description}'. You'll see it here when it arrives.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
+@app.route("/part-requests/<int:wishlist_id>/seen", methods=["POST"])
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
+def part_request_seen(wishlist_id):
+    conn = get_db()
+    conn.execute("UPDATE order_wishlist SET arrival_seen_at = ? WHERE id = ? AND arrived_at IS NOT NULL "
+                 "AND (requested_by_id = ? OR ?)",
+                 (now_iso(), wishlist_id, session.get("user_id"), 1 if session.get("is_master_admin") else 0))
+    conn.commit()
+    conn.close()
+    return redirect(request.referrer or url_for("dashboard"))
+
+
 @app.route("/projects/<int:project_id>")
 @shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def project_detail(project_id):
@@ -3216,8 +3284,11 @@ def project_detail(project_id):
     all_parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
     photos = conn.execute("SELECT * FROM photos WHERE project_id = ? ORDER BY is_cover DESC, created_at DESC",
                            (project_id,)).fetchall()
-    open_orders = conn.execute("SELECT * FROM orders WHERE project_id = ? AND status = 'pending' ORDER BY ordered_date",
-                                (project_id,)).fetchall()
+    # Pending orders tied to a part request are shown with that request.
+    open_orders = conn.execute("SELECT * FROM orders WHERE project_id = ? AND status = 'pending' "
+                               "AND wishlist_id IS NULL ORDER BY ordered_date", (project_id,)).fetchall()
+    part_requests = _job_part_requests(conn, project_id)
+    waiting_on_parts = bool(open_orders) or any(r["step"] != "arrived" for r in part_requests)
 
     labor_sessions = conn.execute("""
         SELECT ls.*, l.name as laborer_name
@@ -3286,6 +3357,7 @@ def project_detail(project_id):
     conn.close()
     return render_template("project_detail.html", project=project, usage_by_section=usage_by_section,
                            total_cost=total_cost, tx=tx, all_parts=all_parts, photos=photos, open_orders=open_orders,
+                           part_requests=part_requests, waiting_on_parts=waiting_on_parts,
                            labor_sessions=labor_sessions, labor_total_cost=labor_total_cost,
                            labor_total_hours=labor_total_hours, known_sections=known_sections, intake=intake,
                            found_items=found_items, found_has_owner=has_owner, unpaid_amount=unpaid_amount,
@@ -5339,8 +5411,9 @@ def orders_list():
 
     conn = get_db()
     wishlist_items = conn.execute("""
-        SELECT w.*, p.name as part_name FROM order_wishlist w
+        SELECT w.*, p.name as part_name, pj.code as project_code FROM order_wishlist w
         LEFT JOIN parts p ON p.id = w.part_id
+        LEFT JOIN projects pj ON pj.id = w.project_id
         WHERE w.status = 'open'
         ORDER BY CASE w.urgency WHEN 'rush' THEN 0 WHEN 'needed_now' THEN 1 ELSE 2 END, w.created_at
     """).fetchall()
@@ -5656,10 +5729,11 @@ def order_new():
         for ln in lines:
             conn.execute("""INSERT INTO orders (part_id, description, qty_ordered, supplier, unit_cost,
                              project_id, status, ordered_date, expected_date, note, created_at,
-                             is_exchange, core_charge, core_days, batch_id)
-                             VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)""",
+                             is_exchange, core_charge, core_days, batch_id, wishlist_id)
+                             VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                          (ln["part_id"], ln["description"], ln["qty"], supplier, ln["cost"], project_id, now_iso(),
-                          expected, note, now_iso(), ln["is_exchange"], ln["core_charge"], ln["core_days"], batch_id))
+                          expected, note, now_iso(), ln["is_exchange"], ln["core_charge"], ln["core_days"], batch_id,
+                          wishlist_id if wishlist_id and str(wishlist_id).isdigit() else None))
         _save_batch_shipments(conn, batch_id, _shipments_from_form(request.form))
         if wishlist_id:
             # This order started from a "things to order" entry - close that
@@ -5681,7 +5755,8 @@ def order_new():
         w = conn.execute("SELECT * FROM order_wishlist WHERE id = ? AND status = 'open'", (wishlist_id,)).fetchone()
         if w:
             prefill = {"description": w["description"], "part_id": str(w["part_id"]) if w["part_id"] else "",
-                       "note": w["notes"] or "", "wishlist_id": str(wishlist_id)}
+                       "note": w["notes"] or "", "wishlist_id": str(wishlist_id),
+                       "project_id": str(w["project_id"]) if w["project_id"] else ""}
     qty, cost = "1", "0"
     reorder_part = request.args.get("part_id")
     if reorder_part and not wishlist_id:
@@ -5860,6 +5935,11 @@ def order_receive(order_id):
     conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, source, created_at)
                      VALUES (?, NULL, 'in', ?, ?, 'assigned', ?)""",
                  (part_id, order["qty_ordered"], f"Received order #{order_id}", now_iso()))
+    if order["wishlist_id"]:
+        # Ordered for a job's part request: mark it arrived so whoever asked
+        # is told (shop home) and the job stops showing "Waiting on parts".
+        conn.execute("UPDATE order_wishlist SET arrived_at = ? WHERE id = ? AND arrived_at IS NULL",
+                     (now_iso(), order["wishlist_id"]))
     if order["is_exchange"]:
         # The core clock starts when the exchange unit arrives.
         due = (date.today() + timedelta(days=order["core_days"] or 30)).isoformat()

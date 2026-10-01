@@ -2125,6 +2125,21 @@ def _migrate(conn):
         conn.execute("ALTER TABLE orders ADD COLUMN batch_id TEXT")
     conn.execute("UPDATE orders SET batch_id = 'o' || id WHERE batch_id IS NULL OR batch_id = ''")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_orders_batch ON orders(batch_id)")
+
+    # Part requests from a job (idea "Techs ask for a part right from the
+    # job"): a "things to order" entry can say which job it is for and who
+    # asked, and is stamped when the part arrives so the asker is told. An
+    # order line made from the entry remembers it (orders.wishlist_id) so
+    # receiving the order can close the loop.
+    wish_cols = [r["name"] for r in conn.execute("PRAGMA table_info(order_wishlist)").fetchall()]
+    for col, decl in (("project_id", "INTEGER"), ("requested_by_id", "INTEGER"),
+                      ("arrived_at", "TEXT"), ("arrival_seen_at", "TEXT")):
+        if col not in wish_cols:
+            conn.execute(f"ALTER TABLE order_wishlist ADD COLUMN {col} {decl}")
+    order_cols_wish = [r["name"] for r in conn.execute("PRAGMA table_info(orders)").fetchall()]
+    if "wishlist_id" not in order_cols_wish:
+        conn.execute("ALTER TABLE orders ADD COLUMN wishlist_id INTEGER")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_order_wishlist_project ON order_wishlist(project_id)")
     conn.execute("""CREATE TABLE IF NOT EXISTS order_shipments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         batch_id TEXT NOT NULL,

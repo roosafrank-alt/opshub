@@ -1,0 +1,28 @@
+{"checks": [
+ {"role": "tech", "size": "phone", "steps": [
+   ["start", "/projects/{project}"],
+   ["tap", "Need a part"],
+   ["fill", "Part needed", "Brake pad set"],
+   ["fill", "How soon", "Rush - plane is down"],
+   ["tap", "Ask"],
+   ["see", "Waiting on parts"],
+   ["see", "Asked"],
+   ["shot", {"caption": "Tech asked for a part from the job: the job now says Waiting on parts and the part shows Asked", "focus": "full",
+     "changed": [{"sel": "#part-request-form", "note": "Need a part form"}]}]
+ ]},
+ {"role": "shop_admin", "size": "desktop", "steps": [
+   ["start", "/orders?status=to_order"],
+   ["see", "Brake pad set"],
+   ["shot", {"caption": "Admin sees the request on To order with the job tag and Rush urgency"}]
+ ]},
+ {"role": "tech", "size": "phone",
+  "sql": ["UPDATE order_wishlist SET status='ordered', arrived_at=datetime('now') WHERE description='Brake pad set'"],
+  "steps": [
+   ["start", "/shop"],
+   ["see", "Your part arrived"],
+   ["shot", {"caption": "Tech is told on the shop home the moment the part arrives"}],
+   ["start", "/projects/{project}"],
+   ["see", "Arrived"],
+   ["shot", {"caption": "Job no longer says Waiting on parts; the part shows Arrived - in stock"}]
+ ]}
+]}

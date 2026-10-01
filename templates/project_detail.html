@@ -20,6 +20,7 @@
       {% else %}<span class="badge bg-secondary">Completed</span>
       {% if project.completed_at %}<span class="text-muted small ms-1">by {{ project.completed_by or 'someone' }} on {{ project.completed_at|usdate(true) }}</span>{% endif %}
       {% endif %}
+      {% if waiting_on_parts and project.status != 'completed' %}<span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split"></i> Waiting on parts</span>{% endif %}
     </h4>
     {% if project.description %}<p class="text-muted mb-0">{{ project.description }}</p>{% endif %}
     {#- QA ux-project-header-plane: was a full sentence on its own line
@@ -561,17 +562,48 @@
     </div>
     {% endif %}
 
-    {% if open_orders %}
-    <div class="card p-3 mb-3">
-      <h6><i class="bi bi-truck"></i> Pending Orders for This Job</h6>
+    {#- Part requests (idea "Techs ask for a part right from the job"):
+       Need a part -> Asked -> On order -> Arrived, per part. #}
+    {% if project.status in ('active', 'on_hold') or part_requests or open_orders %}
+    <div class="card p-3 mb-3 {{ 'border-warning' if waiting_on_parts }}">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h6 class="mb-0"><i class="bi bi-box-seam"></i> Parts for This Job</h6>
+        {% if project.status in ('active', 'on_hold') %}
+        <button class="btn btn-warning btn-sm fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#part-request-form"><i class="bi bi-plus-lg"></i> Need a part</button>
+        {% endif %}
+      </div>
+      <form method="post" action="{{ url_for('project_part_request', project_id=project.id) }}" id="part-request-form" class="collapse border rounded p-2 my-2">
+        <input type="text" name="description" class="form-control mb-2" placeholder="What part? e.g. Brake pad set" maxlength="200" required aria-label="Part needed">
+        <div class="d-flex gap-2">
+          <select name="urgency" class="form-select" aria-label="How soon">
+            <option value="rush">Rush - plane is down</option>
+            <option value="needed_now" selected>Needed soon</option>
+            <option value="no_rush">No rush</option>
+          </select>
+          <button class="btn btn-warning fw-bold text-nowrap">Ask</button>
+        </div>
+      </form>
+      {% if part_requests or open_orders %}
       <ul class="list-group list-group-flush">
+        {% for r in part_requests %}
+        <li class="list-group-item d-flex justify-content-between align-items-center px-0 gap-2">
+          <span>{{ r.description }}{% if r.urgency == 'rush' %} <span class="badge bg-danger">Rush</span>{% endif %}
+            <small class="text-muted d-block">{{ r.requested_by or '' }}{% if r.step == 'ordered' and r.expected_date %} &middot; due {{ r.expected_date|usdate }}{% endif %}</small></span>
+          {% if r.step == 'arrived' %}<span class="badge bg-success"><i class="bi bi-check-lg"></i> Arrived - in stock</span>
+          {% elif r.step == 'ordered' %}<span class="badge bg-info text-dark">On order</span>
+          {% else %}<span class="badge bg-secondary">Asked</span>{% endif %}
+        </li>
+        {% endfor %}
         {% for o in open_orders %}
         <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-          <span>{{ o.description }} <small class="text-muted">x{{ '%g'|format(o.qty_ordered) }}</small></span>
-          <a href="{{ url_for('orders_list') }}" class="badge bg-warning text-dark text-decoration-none">Pending</a>
+          <span>{{ o.description }} <small class="text-muted">x{{ '%g'|format(o.qty_ordered) }}{% if o.expected_date %} &middot; due {{ o.expected_date|usdate }}{% endif %}</small></span>
+          {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}<a href="{{ url_for('orders_list') }}" class="badge bg-info text-dark text-decoration-none">On order</a>{% else %}<span class="badge bg-info text-dark">On order</span>{% endif %}
         </li>
         {% endfor %}
       </ul>
+      {% else %}
+      <p class="text-muted small mb-0">Nothing requested for this job.</p>
+      {% endif %}
     </div>
     {% endif %}
   </div>

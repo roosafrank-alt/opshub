@@ -154,6 +154,18 @@
 </div>
 {% endif %}
 
+{#- Parts this person asked for from a job that have arrived. #}
+{% if part_arrivals %}
+<div class="alert alert-success border-success mb-3">
+  {% for w in part_arrivals %}
+  <div class="d-flex justify-content-between align-items-center gap-2 {{ 'border-top pt-2 mt-2' if not loop.first }}">
+    <a href="{{ url_for('project_detail', project_id=w.project_id) }}" class="alert-link"><i class="bi bi-box-seam"></i> Your part arrived: {{ w.description }} <span class="fw-normal">&middot; {{ w.project_code }} {{ w.project_name }}</span></a>
+    <form method="post" action="{{ url_for('part_request_seen', wishlist_id=w.id) }}"><button class="btn btn-outline-success btn-sm">Got it</button></form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 {#- This account's own squawk work list: every squawk assigned to them
    that isn't signed off yet, not just brand-new ones - same rows and
    buttons as My Tasks (see get_my_squawks in app.py and QA finding
