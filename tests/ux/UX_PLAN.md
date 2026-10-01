@@ -83,8 +83,8 @@ over from the top, and put areas that changed a lot since their last review
 - [x] Shop dashboard, phone and desktop, reviewed 2026-09-29: filed ux-shop-recent-activity-phone (5-column table, dates on 3 lines) and ux-shop-clocked-in-empty (full box for 'nobody clocked in'). Low-stock rows, Upcoming header and Reorder buttons now fixed on main.
 - [x] Top menu / navigation on every screen size, reviewed 2026-09-30: phone ☰ menus and desktop headers checked for every account; the icons-only shop header at 1366px follows the approved width rule (not re-filed). Filed ux-launcher-phone-rows (owner's 'Choose a program' is 3.5 screens on a phone), ux-viewas-chips-cut-phone (Inspector chip off the edge of the ☰ menu), ux-admin-header-programs (grid icon means Overview in Admin) and ux-workers-new-laborer-wording. The 'two tiles both titled Winds Aloft' note is gone (the flight tile is now Fly with Kate!).
 - [x] Shop dashboard stat boxes, reviewed 2026-09-30: all 4 boxes now have an arrow and open their page (fixed on main by ux-shop-stat-boxes-by-role). Nothing new filed.
-- [ ] Log a flight / active flight, phone (CFI)
-- [ ] Schedule and calendar, phone and desktop
+- [x] Log a flight / active flight, phone (CFI), reviewed 2026-10-01: filed ux-session-complete-popup (ending a lesson 7 taps, target 6: a 'Log this session?' pop-up after Session Complete) and ux-active-flight-tidy (two 'Clock stopped' messages, raw start time, student named twice, a screen of empty map). Added journey end-lesson.
+- [x] Schedule and calendar, phone and desktop, reviewed 2026-10-01: filed ux-schedule-phone-month (Month on a phone is 3 screens of hour lines; tomorrow's lesson reads '10:…'), ux-schedule-phone-toolbar (7 pinned rows of controls cover ~40% of the screen) and ux-book-form-phone (Schedule Flight ~1,950px down). Desktop Month/Week left as is. Added journey cfi-tomorrow. Also filed ux-header-view-overflow: the queued 'View' idea (c0d7ff5, idea-queue only) makes nav-fit.js keep words on, so admin headers run 360-480px off a 1366px screen.
 - [ ] Projects list and project detail (desktop, office)
 - [ ] Parts list and part detail (phone and desktop)
 - [ ] Orders (desktop)
@@ -97,6 +97,7 @@ over from the top, and put areas that changed a lot since their last review
 
 ## Tool notes
 
+- 2026-10-01: fix_preview.py specs take `sql` (sample-data setup with the same {id} placeholders, e.g. a lesson in the air); rows stay for later specs in the same run. Marks taken right after a setup_js that submits a form come back empty (the page is mid-navigation), so mark those by `box` or by hand. journeys.py has `_sample(sql)` for a journey's own sample record; added end-lesson (CFI, 7 taps, target 6) and cfi-tomorrow (CFI, 3 taps, target 2). All 13 journeys finish. Note: the 2026-09-30 cards ux-launcher-phone-rows, ux-viewas-chips-cut-phone, ux-admin-header-programs and ux-workers-new-laborer-wording are not in the card list (not re-filed).
 - 2026-09-30: flow_audit's app map now follows the redirect from "/" for one-program
   accounts, so tech, CFI, student and owner maps are no longer empty (they showed
   "0 pages reachable"). The walker taps the first VISIBLE match (the schedule form has

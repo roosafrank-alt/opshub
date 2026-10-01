@@ -40,6 +40,22 @@ def _tap_tomorrow(w):
     w.tap(f"#date-calendar [data-date='{t.isoformat()}']")
 
 
+def _tomorrow():
+    import datetime
+    return (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+
+
+def _sample(sql):
+    """Adds one sample record for a journey that needs it (e.g. a lesson
+    already in the air). Runs in the same process as the throwaway app, so
+    it writes to the test database, never a real one."""
+    import db
+    conn = db.get_db()
+    conn.execute(sql)
+    conn.commit()
+    conn.close()
+
+
 JOURNEYS = [
     {
         "id": "squawks",
@@ -187,6 +203,41 @@ JOURNEYS = [
             w.tap("9:30a"),
             w.tap("Schedule Flight", role="button"),
             w.see("Your new booking"),            # lands on the month view with the new booking lit up
+        ),
+    },
+    # Added 2026-10-01 (focus: Log a flight / active flight, Schedule and calendar on phones).
+    {
+        "id": "end-lesson",
+        "task": "CFI ends the lesson that's in the air and logs it as paid (phone)",
+        "role": "cfi", "screen": "phone", "target_taps": 6,
+        "steps": lambda w, ids: (
+            _sample("INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, solo, hobbs_start, tach_start, "
+                    "started_at, created_at) VALUES (%d, %d, (SELECT id FROM assets WHERE tag='N2231Q'), date('now'), 0, "
+                    "1000.0, 850.0, datetime('now', '-80 minutes'), datetime('now'))" % (ids["cfi"], ids["student"])),
+            w.start("/"),
+            w.tap("View / End Flights"),          # the yellow 'flight in progress' box on the dashboard
+            w.tap("End Session"),
+            w.fill("hobbs_end", "1001.2"),        # 1.2 hr on the meter, inside the 1.3 hr on the clock
+            w.fill("tach_end", "851.0"),
+            w.tap("Paid"),                        # amount fills itself in from the flight total
+            w.tap("Session Complete", role="button"),
+            w.tap("Yes, log it"),                 # 'Log this session with Hobbs end ...?' pop-up
+            w.see("logged"),
+        ),
+    },
+    {
+        "id": "cfi-tomorrow",
+        "task": "CFI checks who is flying tomorrow on the Schedule (phone)",
+        "role": "cfi", "screen": "phone", "target_taps": 2,
+        "steps": lambda w, ids: (
+            _sample("INSERT INTO scheduled_flights (asset_id, student_id, cfi_id, scheduled_date, scheduled_time, "
+                    "duration_hours) VALUES ((SELECT id FROM assets WHERE tag='N2231Q'), %d, %d, date('now', '+1 day'), "
+                    "'10:30', 1.5)" % (ids["student"], ids["cfi"])),
+            w.start("/"),
+            w.tap("Schedule"),                    # opens on Month: 7 thin columns of hour lines on a phone
+            w.tap("Day"),                         # Day view, today
+            w.tap("[href*='view=day&date=%s'].btn-sm" % _tomorrow()),   # the › next-day arrow
+            w.see("10:30a N2231Q"),
         ),
     },
 ]

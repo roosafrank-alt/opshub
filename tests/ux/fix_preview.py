@@ -30,7 +30,9 @@ specs.json is a list of specs:
                                          #   redirects somewhere else); same {id} placeholders
     "focus_after": "#sunline",           # optional: crop for AFTER (defaults to focus)
     "changed": [{"sel": "...", "note": "One line per time, no '|'"}], # green marks on AFTER
-    "now_only": false                    # true: just the marked NOW shot (no mockup)
+    "now_only": false,                   # true: just the marked NOW shot (no mockup)
+    "sql": ["UPDATE ..."]                # optional: set up sample data first (same {id} placeholders,
+                                         #   e.g. a running lesson: INSERT INTO flights ... started_at ...)
   }
 A mark's "sel" may match several elements; each gets its own box. A mark may
 use "box": [x, y, w, h] in page pixels instead of "sel".
@@ -160,6 +162,8 @@ def main():
         for spec in specs:
             rec = {"name": spec["name"]}
             try:
+                for q in spec.get("sql", []):  # sample-data setup for this spec (added 2026-10-01)
+                    tc.exec(q.format(**ids))
                 size_name = spec.get("size", "phone")
                 ctx = browser.new_context(**(ux.PHONE if size_name == "phone" else
                                              TV if size_name == "tv" else ux.DESKTOP))
