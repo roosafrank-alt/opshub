@@ -21,7 +21,8 @@ class DiscrepancyRenameTest(OpsHubTestCase):
     def test_add_discrepancy_button_and_flash_message(self):
         c = self.login("shop_admin")
         body = c.get(f"/projects/{self.project_id}").get_data(as_text=True)
-        self.assertIn("Add Discrepancy", body)
+        # Phones show just "Add"; wider screens add " Discrepancy" in a span.
+        self.assertIn('Add<span class="d-none d-sm-inline"> Discrepancy</span>', body)
         self.assertNotIn("Add Sub Area", body)
         r = c.post(f"/projects/{self.project_id}/add_section", data={"name": "Brakes"}, follow_redirects=True)
         self.assertIn("Discrepancy &#39;Brakes&#39; added.", r.get_data(as_text=True))
