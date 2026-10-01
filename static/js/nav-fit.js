@@ -48,6 +48,21 @@
       host = hostFor(labels[i]);
       if (host.getBoundingClientRect().height > before[i] + 1) { fits = false; break; }
     }
+    // Same-size buttons can't wrap any more, so also check the row itself:
+    // words only if nothing in the header runs past the window's right edge.
+    if (fits) {
+      var vw = document.documentElement.clientWidth;
+      var boxes = [nav, nav.firstElementChild, nav.querySelector('.navbar-collapse')];
+      for (i = 0; i < boxes.length; i++) {
+        if (boxes[i] && boxes[i].scrollWidth > boxes[i].clientWidth + 1) { fits = false; break; }
+      }
+      if (fits) {
+        var all = nav.querySelectorAll('.nav-link, .btn, .dropdown-toggle, .view-as-chips');
+        for (i = 0; i < all.length; i++) {
+          if (all[i].getBoundingClientRect().right > vw + 1) { fits = false; break; }
+        }
+      }
+    }
     nav.classList.toggle('hdr-words', fits);
   }
 
