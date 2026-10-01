@@ -260,6 +260,21 @@ def shortwhen(value):
 app.jinja_env.filters["shortwhen"] = shortwhen
 
 
+def time12(value):
+    """'2026-10-01 13:06:00' -> '1:06 PM' (12-hour, no leading zero)."""
+    if not value:
+        return value
+    s = str(value).strip().replace("T", " ")
+    try:
+        dt = datetime.strptime(s[:16], "%Y-%m-%d %H:%M")
+    except ValueError:
+        return value
+    return dt.strftime("%I:%M %p").lstrip("0")
+
+
+app.jinja_env.filters["time12"] = time12
+
+
 def shortdate(value):
     """'YYYY-MM-DD' -> 'MM-DD' - the compact month-day date for the phone
     dashboard's Today/Upcoming headers (QA ux-flight-dash-section-headers).

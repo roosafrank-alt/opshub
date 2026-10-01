@@ -75,10 +75,7 @@
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
     <div>
       <h5 class="mb-0">{{ 'Students Aircraft' if f.asset_is_owner_placeholder else f.plane_tag }} {% if f.asset_is_simulator %}<span class="badge bg-info text-dark">Sim session</span> {% endif %}{% if f.solo %}<span class="badge bg-secondary">Solo</span> {% endif %}{% if can_see_names %}with {{ f.student_name }}{% endif %} {% if f.paused_at %}<span class="badge bg-warning text-dark"><i class="bi bi-pause-fill"></i> Paused</span>{% endif %} {% if not f.can_end %}<span class="badge bg-light text-muted border" title="Only {% if f.solo %}the student flying solo{% else %}the assigned instructor{% endif %}, or a master admin, can pause or end this flight"><i class="bi bi-lock-fill"></i> View only</span>{% endif %}</h5>
-      {% if can_see_names %}
-      <div class="text-muted small">Student: {{ f.student_name }}{% if f.cfi_name %} &middot; {{ 'Supervising instructor' if f.solo else 'Instructor' }}: {{ f.cfi_name }}{% endif %}</div>
-      {% endif %}
-      <div class="text-muted small">Started {{ f.started_at }}</div>
+      <div class="text-muted small">{% if can_see_names and f.cfi_name %}{{ 'Supervising instructor' if f.solo else 'Instructor' }}: {{ f.cfi_name }} &middot; {% endif %}Started {{ f.started_at|time12 }}</div>
     </div>
     <div class="text-end">
       {#- A simulator runs on a stopwatch, not meters - "Session clock" says
@@ -104,9 +101,9 @@
   {% if f.can_end and f.stopped_at %}
   <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 mb-2 active-flight-actions">
     {% if f.asset_is_simulator %}
-    <span><i class="bi bi-stop-circle-fill"></i> <strong>Clock stopped</strong> at {{ f.stopped_at[11:16] }}{% if f.sim_elapsed_hours is not none %} - {{ '%.1f'|format(f.sim_elapsed_hours) }} hrs on the sim{% endif %}. Check Sim Time and paid / unpaid below to log it.</span>
+    <span><i class="bi bi-stop-circle-fill"></i> <strong>Clock stopped</strong> at {{ f.stopped_at|time12 }}{% if f.sim_elapsed_hours is not none %} - {{ '%.1f'|format(f.sim_elapsed_hours) }} hrs on the sim{% endif %}. Check Sim Time and paid / unpaid below to log it.</span>
     {% else %}
-    <span><i class="bi bi-stop-circle-fill"></i> <strong>Clock stopped</strong> at {{ f.stopped_at[11:16] }}. Fill in the ending Hobbs and paid / unpaid below to log it.</span>
+    <span><i class="bi bi-stop-circle-fill"></i> <strong>Clock stopped</strong> at {{ f.stopped_at|time12 }}. Fill in the ending Hobbs and paid / unpaid below to log it.</span>
     {% endif %}
     <form method="post" action="{{ url_for('flight.log_restart_clock', flight_id=f.id) }}" class="mb-0"
           data-confirm="Start the clock again? The time it was stopped won't be billed." data-confirm-title="Restart Clock" data-confirm-ok="Restart clock">
@@ -460,8 +457,10 @@
     <div class="card p-3">
       <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
         <h6 class="mb-0"><i class="bi bi-broadcast"></i> Live Aircraft Map <span class="text-muted small fw-normal">(25nm around N89)</span></h6>
-        <span class="text-muted small" id="live-map-status">Loading...</span>
+        <span class="text-muted small">&middot; <span id="live-map-status">Loading...</span></span>
+        <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="map-toggle">Show map</button>
       </div>
+      <div id="map-body" class="d-none">
       <div class="row g-2 align-items-end mb-2">
         <div class="col-auto">
           <label class="form-label small mb-0">Traffic</label>
@@ -481,6 +480,7 @@
         <span class="adsb-plane-icon other">&#9992;</span> Other traffic. A school plane needs an ICAO24/Mode S hex and "Turn this plane on in the live map view" checked on its Aircraft profile to appear here at all.
       </div>
       <div id="adsb-results" class="mt-2" style="max-height:200px; overflow-y:auto;"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -678,6 +678,20 @@ document.addEventListener('submit', function (e) {
     icon: L.divIcon({ className: '', html: '<div style="font-size:16px;">&#9873;</div>', iconSize: [20, 20], iconAnchor: [10, 10] })
   }).addTo(map).bindPopup('N89 - Joseph Y. Resnick Airport');
   L.circle([N89_LAT, N89_LON], { radius: 25 * 1852, color: '#0d6efd', weight: 1, fill: false, dashArray: '4,6' }).addTo(map);
+
+  // The map stays folded to one line until a plane shows up or it is tapped.
+  var mapBody = document.getElementById('map-body');
+  var mapToggle = document.getElementById('map-toggle');
+  var mapTouched = false;
+  function setMapOpen(open) {
+    mapBody.classList.toggle('d-none', !open);
+    mapToggle.textContent = open ? 'Hide map' : 'Show map';
+    if (open) { map.invalidateSize(); }
+  }
+  mapToggle.addEventListener('click', function () {
+    mapTouched = true;
+    setMapOpen(mapBody.classList.contains('d-none'));
+  });
 
   var markers = {};  // icao24 -> Leaflet marker
   // icao24 -> {lat, lon, speed_kt, track_deg, ts} - the last REAL OpenSky
@@ -915,15 +929,16 @@ document.addEventListener('submit', function (e) {
           // flight ended) - keep the trail on screen rather than yanking it.
         }
         if (!planes.length) {
-          statusEl.textContent = mode === 'all' ? 'No traffic reporting nearby right now.' : 'No tracked aircraft currently flying.';
+          statusEl.textContent = mode === 'all' ? 'no traffic reporting nearby' : 'no tracked aircraft flying';
         } else {
           statusEl.textContent = positioned + ' of ' + planes.length + ' shown live';
+          if (!mapTouched) setMapOpen(true);
         }
         renderResults(latestPlanes, searchInput.value);
         tickTimeInAir();
       })
       .catch(function () {
-        statusEl.textContent = 'Live tracking unavailable right now.';
+        statusEl.textContent = 'live tracking unavailable';
       });
   }
 

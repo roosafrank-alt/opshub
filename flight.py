@@ -6551,7 +6551,6 @@ def log_stop(flight_id):
                      (stopped_at, paused_seconds, flight_id))
         conn.commit()
     conn.close()
-    flash("Clock stopped. Fill in the ending Hobbs and paid / unpaid below to log the session.", "info")
     return redirect(url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}")
 
 
