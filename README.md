@@ -76,3 +76,4 @@ on the shop PC works either way.
 
 Everything lives in `instance/shopinv.db`. Copy that one file to back up or move your
 data to another machine.
+Pipeline test Oct 1, 2026: idea to deploy with no Allow prompts.
