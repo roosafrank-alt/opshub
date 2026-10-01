@@ -1650,6 +1650,13 @@ def _migrate(conn):
             conn.execute(f"ALTER TABLE projects ADD COLUMN {col} {ddl}")
             conn.commit()
 
+    # "Promised back" date on a job (shop-only unless promised_show_owner = 1).
+    proj_cols_cust = [r["name"] for r in conn.execute("PRAGMA table_info(projects)").fetchall()]
+    for col, ddl in (("promised_date", "TEXT"), ("promised_show_owner", "INTEGER NOT NULL DEFAULT 0")):
+        if col not in proj_cols_cust:
+            conn.execute(f"ALTER TABLE projects ADD COLUMN {col} {ddl}")
+            conn.commit()
+
     # End Flight, marked Paid: how much was actually collected right then and
     # by what method, plus how much of it (if any) came out of the student's
     # existing credit - see flight.log_end. NULL/0 for a flight logged Unpaid

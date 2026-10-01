@@ -34,6 +34,8 @@
           <img src="{{ url_for('static', filename='uploads/' + proj_cover.get(p.id)) }}" class="rounded flex-shrink-0" style="width:56px; height:56px; object-fit:cover;">
           {% endif %}
         </div>
+        {% set t = proj_tags.get(p.id) %}
+        {% if t %}<div class="small mb-1 promised-tag"><i class="bi bi-calendar-check"></i> <span class="badge bg-{{ t[2] }}{{ ' text-dark' if t[2] in ('warning', 'light') }}{{ ' border' if t[2] == 'light' }}">{{ t[1] }}</span>{% if p.promised_date %} <span class="text-muted">Promised {{ p.promised_date|usdate }}</span>{% endif %}</div>{% endif %}
         <p class="text-muted small mb-1">{{ p.description or 'No description' }}</p>
         <div>
           <span class="text-muted small">Parts cost so far:</span>
@@ -79,6 +81,7 @@
   <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='completed' }}" href="{{ url_for('projects_list', status='completed', q=q) }}">Completed</a></li>
   <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='archived' }}" href="{{ url_for('projects_list', status='archived', q=q) }}">Archived</a></li>
   <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='deleted' }}" href="{{ url_for('projects_list', status='deleted', q=q) }}"><i class="bi bi-trash3"></i> Deleted</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='late' }} text-danger fw-bold" href="{{ url_for('projects_list', status='late', q=q) }}"><i class="bi bi-exclamation-triangle"></i> Late / due soon{% if late_count %} <span class="badge bg-danger">{{ late_count }}</span>{% endif %}</a></li>
 </ul>
 
 {% if status_filter == 'deleted' %}

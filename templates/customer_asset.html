@@ -141,6 +141,7 @@
             {% if not p.scheduled_date %}<div class="text-muted small">{{ p.customer_requested_week|usdate }} week requested</div>
             {% else %}<div class="text-muted small">{{ p.scheduled_date|usdate }}{% if p.scheduled_end_date and p.scheduled_end_date != p.scheduled_date %} &ndash; {{ p.scheduled_end_date|usdate }}{% endif %}</div>{% endif %}
             {% if p.description %}<div class="small mt-1">{{ p.description }}</div>{% endif %}
+            {% if p.promised_show_owner and p.promised_date %}<div class="small mt-1"><i class="bi bi-calendar-check"></i> Promised back: {{ p.promised_date|usdate }} &ndash; we'll let you know if that changes</div>{% endif %}
           </div>
           <div class="text-end">
             {% if not p.scheduled_date %}

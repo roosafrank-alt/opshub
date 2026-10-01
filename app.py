@@ -2616,6 +2616,41 @@ def projects_parts_used():
                            q=request.args.get("q", ""))
 
 
+
+def _promised_from_form():
+    """('Promised back' date or None, 'Show to owner' 0/1) from the job form.
+    The owner switch only counts when there is a date; it is off unless ticked."""
+    d = request.form.get("promised_date", "").strip() or None
+    if d:
+        try:
+            date.fromisoformat(d)
+        except ValueError:
+            d = None
+    return d, (1 if d and request.form.get("promised_show_owner") else 0)
+
+
+def promised_tag(p, today=None):
+    """Shop-only flag for a job's 'Promised back' date: (key, text, bootstrap colour)
+    or None for a finished job. key 'late' / 'soon' feed the Late / due soon filter."""
+    if p["status"] in ("completed", "archived"):
+        return None
+    d = p["promised_date"]
+    if not d:
+        return ("none", "No date set", "light")
+    try:
+        days = (date.fromisoformat(d) - (today or date.today())).days
+    except ValueError:
+        return ("none", "No date set", "light")
+    if days < 0:
+        return ("late", f"{-days} day{'s' if days != -1 else ''} late", "danger")
+    if days == 0:
+        return ("soon", "Due today", "warning")
+    if days == 1:
+        return ("soon", "Due tomorrow", "warning")
+    if days == 2:
+        return ("soon", "Due in 2 days", "warning")
+    return ("ok", "On track", "success")
+
 @app.route("/projects")
 @shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def projects_list():
@@ -2640,11 +2675,14 @@ def projects_list():
         proj_cover = {}
         conn.close()
         return render_template("projects.html", projects=projects, by_year=None, proj_costs=proj_costs,
-                               proj_cover=proj_cover, q=q, status_filter=status_filter)
+                               proj_cover=proj_cover, q=q, status_filter=status_filter,
+                               proj_tags={}, late_count=0)
     query = """SELECT projects.*, a.id as asset_display_id, a.tag as asset_display_tag, a.name as asset_display_name
                FROM projects LEFT JOIN assets a ON a.id = projects.asset_id WHERE projects.deleted_at IS NULL"""
     params = []
-    if status_filter:
+    if status_filter == "late":
+        query += " AND status IN ('active', 'on_hold')"
+    elif status_filter:
         query += " AND status = ?"
         params.append(status_filter)
     else:
@@ -2657,6 +2695,11 @@ def projects_list():
         params += [like, like, like, like, like]
     query += " ORDER BY projects.created_at DESC"
     projects = conn.execute(query, params).fetchall()
+    # Promised-back flags (shop only); the "Late / due soon" pill counts and filters on them.
+    proj_tags = {p["id"]: promised_tag(p) for p in projects}
+    late_count = sum(1 for t in proj_tags.values() if t and t[0] in ("late", "soon"))
+    if status_filter == "late":
+        projects = [p for p in projects if proj_tags[p["id"]] and proj_tags[p["id"]][0] in ("late", "soon")]
     proj_costs = {}
     proj_cover = {}
     for p in projects:
@@ -2683,7 +2726,8 @@ def projects_list():
 
     conn.close()
     return render_template("projects.html", projects=projects, by_year=by_year, proj_costs=proj_costs,
-                           proj_cover=proj_cover, q=q, status_filter=status_filter)
+                           proj_cover=proj_cover, q=q, status_filter=status_filter,
+                           proj_tags=proj_tags, late_count=late_count)
 
 
 # Quick Type buttons on New/Edit Project (project_form.html) - the same
@@ -2757,13 +2801,16 @@ def project_new():
         if scheduled_end_date and scheduled_date and scheduled_end_date < scheduled_date:
             scheduled_end_date = scheduled_date
         scheduled_color = request.form.get("scheduled_color", "").strip() or None
+        promised_date, promised_show_owner = _promised_from_form()
         cur = conn.execute(
             """INSERT INTO projects (code, name, description, status, asset_id, scheduled_date,
-                                      scheduled_end_date, scheduled_color, prework_checklist, standard_items, created_at)
-               VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?)""",
+                                      scheduled_end_date, scheduled_color, prework_checklist, standard_items, created_at,
+                                      promised_date, promised_show_owner)
+               VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (code, name, request.form.get("description", "").strip(), asset_id, scheduled_date,
              scheduled_end_date, scheduled_color, request.form.get("prework_checklist", "").strip() or None,
-             request.form.get("standard_items", "").strip() or None, now_iso()))
+             request.form.get("standard_items", "").strip() or None, now_iso(),
+             promised_date, promised_show_owner))
         new_id = cur.lastrowid
         conn.execute("UPDATE projects SET intake_status = 'pending' WHERE id = ?", (new_id,))
         # Whichever Quick Type buttons were picked (see project_form.html's
@@ -2860,6 +2907,8 @@ def project_edit(project_id):
                         scheduled_color=request.form.get("scheduled_color", "").strip() or None,
                         prework_checklist=request.form.get("prework_checklist", "").strip() or None,
                         standard_items=request.form.get("standard_items", "").strip() or None,
+                        promised_date=request.form.get("promised_date", "").strip() or None,
+                        promised_show_owner=1 if request.form.get("promised_show_owner") else 0,
                         asset_id=None)
             conn.close()
             return render_template("project_form.html", project=kept, assets=assets, quick_types=quick_types)
@@ -2873,11 +2922,14 @@ def project_edit(project_id):
         if scheduled_end_date and scheduled_date and scheduled_end_date < scheduled_date:
             scheduled_end_date = scheduled_date
         scheduled_color = request.form.get("scheduled_color", "").strip() or None
+        promised_date, promised_show_owner = _promised_from_form()
         conn.execute("""UPDATE projects SET name = ?, description = ?, asset_id = ?, scheduled_date = ?,
-                         scheduled_end_date = ?, scheduled_color = ?, prework_checklist = ?, standard_items = ? WHERE id = ?""",
+                         scheduled_end_date = ?, scheduled_color = ?, prework_checklist = ?, standard_items = ?,
+                         promised_date = ?, promised_show_owner = ? WHERE id = ?""",
                      (name, request.form.get("description", "").strip(), asset_id, scheduled_date,
                       scheduled_end_date, scheduled_color, request.form.get("prework_checklist", "").strip() or None,
-                      request.form.get("standard_items", "").strip() or None, project_id))
+                      request.form.get("standard_items", "").strip() or None,
+                      promised_date, promised_show_owner, project_id))
         conn.commit()
         conn.close()
         flash("Project updated.", "success")

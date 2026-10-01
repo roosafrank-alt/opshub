@@ -196,7 +196,9 @@ CREATE TABLE IF NOT EXISTS projects (
     customer_reschedule_requested_at TEXT, -- customer portal: set when they ask to reschedule instead - clears customer_confirmed_at
     customer_reschedule_note TEXT, -- what the customer said they need (shown to admin on the Maintenance dashboard until dismissed)
     customer_requested_week TEXT, -- customer portal 'Book it': Monday (YYYY-MM-DD) of the week the owner asked for; waiting while scheduled_date is NULL
-    customer_requested_item_id INTEGER -- the maintenance item the request came from
+    customer_requested_item_id INTEGER, -- the maintenance item the request came from
+    promised_date TEXT, -- optional date (YYYY-MM-DD) the owner was promised the plane back; shop-only unless promised_show_owner = 1
+    promised_show_owner INTEGER NOT NULL DEFAULT 0 -- 1 = the owner's portal shows the promised date (off by default)
 );
 CREATE INDEX IF NOT EXISTS idx_projects_asset_tag ON projects(asset_tag);
 CREATE INDEX IF NOT EXISTS idx_projects_asset_id ON projects(asset_id);
