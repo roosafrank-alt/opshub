@@ -159,34 +159,40 @@
     padding: .75rem .75rem .6rem;
     border-bottom: 1px solid #dee2e6;
   }
-  .schedule-toolbar.is-stuck { box-shadow: 0 4px 8px -4px rgba(0,0,0,.18); }
+  .schedule-toolbar.is-stuck, .sch-head.is-stuck { box-shadow: 0 4px 8px -4px rgba(0,0,0,.18); }
+  /* Desktop: one pinned flex row (title left, everything else right, filters
+     on their own line). The wrappers vanish so each control is a flex item
+     ordered as before: views, Availability/Waitlist/..., prev/today/next,
+     then Schedule Flight. */
+  .schedule-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+  .sch-head, .sch-nav, .sch-views, .sch-actions { display: contents; }
+  .schedule-toolbar h4 { margin-right: auto !important; }
+  .sch-views { order: 1; }
+  .sch-actions > * { order: 2; }
+  .sch-actions > .btn-primary { order: 4; }
+  .sch-nav > * { order: 3; }
+  .sch-filters { order: 5; flex: 0 0 100%; }
   @media (max-width: 575.98px) {
-    /* Keep it compact on phones so the calendar still gets most of the screen. */
-    .schedule-toolbar { padding: .4rem .75rem .4rem; margin-bottom: .6rem; }
-    .schedule-toolbar h4 { font-size: 1rem; }
-    /* min-width:0 is the part that actually makes max-width:100% work: a
-       flex item's default min-width is its content's natural width, so
-       without it a view-picker row too wide to fit (7 buttons, before the
-       Quarter removal below) just pushed the whole toolbar - and the page
-       - wider than the screen instead of shrinking to fit and scrolling
-       internally. That was the main cause of the Schedule page sliding
-       sideways on a phone. */
-    .schedule-toolbar .btn-group { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; min-width: 0; }
-    .schedule-toolbar .form-label { font-size: .7rem; }
-    /* The other few px of sideways slide: .container-fluid's own phone
-       padding is tightened to .5rem here (see .container-fluid in
-       style.css, same breakpoint), but this toolbar's edge-to-edge bleed
-       above still assumed Bootstrap's stock .75rem gutter, so its negative
-       margin overshot the container's padding by .25rem (4px) on each
-       side. Match it here so the toolbar's edges land exactly on the
-       screen edges instead of a few px past them. overflow-x:hidden is a
-       last-resort backstop on top of that: on the very smallest phones
-       (320px) the six view buttons are still a hair too wide to shrink
-       into the space left after the toolbar's own padding, so a few px
-       bleeds past this box - hidden here keeps it from ever reaching the
-       page itself. The btn-group's own overflow-x:auto above still lets
-       someone scroll to it if that ever happens. */
-    .schedule-toolbar { margin-left: -.5rem; margin-right: -.5rem; overflow-x: hidden; }
+    /* Phone: 4 tidy rows. Only line 1 (month + prev/today/next) stays pinned
+       under the navbar; view buttons, Plane/Instructor and the action
+       buttons scroll away with the page. The toolbar box itself vanishes so
+       .sch-head's sticky range is the whole page, not just the toolbar. */
+    .schedule-toolbar { display: contents; }
+    .sch-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem;
+      position: sticky; top: var(--flight-nav-h, 56px); z-index: 1010; background: #f4f5f7;
+      margin: 0 -.5rem .4rem; padding: .35rem .5rem; border-bottom: 1px solid #dee2e6; }
+    .sch-head h4 { font-size: 1rem; margin-right: 0 !important; min-width: 0; }
+    .sch-nav { display: inline-flex; flex: none; }
+    .sch-nav > .btn:not(:first-child) { margin-left: -1px; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+    .sch-nav > .btn:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+    .sch-views { display: block; margin-bottom: .4rem; }
+    /* min-width:0 is what makes max-width:100% work on a flex item, so six
+       view buttons shrink to fit instead of widening the page sideways. */
+    .sch-views .btn-group { display: flex; width: 100%; flex-wrap: nowrap; overflow-x: auto; min-width: 0; }
+    .sch-views .btn-group .btn { flex: 1 1 0; padding-left: .25rem; padding-right: .25rem; }
+    .sch-filters { margin-bottom: .4rem !important; }
+    .sch-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .6rem; }
+    .sch-actions > .btn { order: 0; padding-left: .5rem; padding-right: .5rem; font-size: .8rem; }
   }
   /* Month / year grid: the day number sits in its own header
      strip, and blocks start below it so they never cover the date. Blocks
@@ -384,6 +390,7 @@
   function markStuck() {
     var tb = document.querySelector('.schedule-toolbar');
     if (!tb) return;
+    if (getComputedStyle(tb).display === 'contents') tb = document.querySelector('.sch-head') || tb;
     var navH = nav ? nav.offsetHeight : 0;
     tb.classList.toggle('is-stuck', window.scrollY > 0 && tb.getBoundingClientRect().top <= navH + 1);
   }

@@ -503,7 +503,11 @@
    Schedule Flight and the filters stay pinned under the navbar while the
    calendar or list scrolls underneath (styles in schedule.html). #}
 <div class="schedule-toolbar">
-<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+{#- Phone: line 1 (.sch-head: month + prev/today/next) is the only part that
+   stays pinned; views, filters and actions scroll away. Desktop: the
+   wrappers are display:contents so everything is one pinned flex row, as
+   before (styles in schedule.html). #}
+<div class="sch-head">
   <h4 class="mb-0"><i class="bi bi-calendar3"></i>
     {% if view == 'day' %}{{ day_str|usdate }}
     {% elif view == 'week' %}{{ week_start_str|usdate }} - {{ week_end_str|usdate }}
@@ -513,7 +517,23 @@
     {% else %}{{ custom_start|usdate }} - {{ custom_end|usdate }}
     {% endif %}
   </h4>
-  <div class="d-flex gap-2 align-items-center flex-wrap">
+  <div class="sch-nav">
+    {% if view == 'day' %}
+    <a href="{{ url_for('flight.schedule_calendar', view='day', date=day_prev, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+    <a href="{{ url_for('flight.schedule_calendar', view='day', plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm">Today</a>
+    <a href="{{ url_for('flight.schedule_calendar', view='day', date=day_next, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
+    {% elif view == 'week' %}
+    <a href="{{ url_for('flight.schedule_calendar', view='week', date=week_prev, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+    <a href="{{ url_for('flight.schedule_calendar', view='week', plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm">Today</a>
+    <a href="{{ url_for('flight.schedule_calendar', view='week', date=week_next, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
+    {% elif view != 'custom' %}
+    <a href="{{ url_for('flight.schedule_calendar', view=view, year=prev_year, month=prev_month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+    <a href="{{ url_for('flight.schedule_calendar', view=view, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm">Today</a>
+    <a href="{{ url_for('flight.schedule_calendar', view=view, year=next_year, month=next_month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
+    {% endif %}
+  </div>
+</div>
+<div class="sch-views">
     <div class="btn-group btn-group-sm" role="group">
       <a href="{{ url_for('flight.schedule_calendar', view='day', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'day' else 'btn-outline-secondary' }}">Day</a>
       <a href="{{ url_for('flight.schedule_calendar', view='week', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'week' else 'btn-outline-secondary' }}">Week</a>
@@ -526,6 +546,52 @@
          link/behavior either way, just shorter text on the small screen. #}
       <a href="{{ url_for('flight.schedule_calendar', view='custom', start=custom_start, end=custom_end, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'custom' else 'btn-outline-secondary' }}"><span class="d-none d-sm-inline">Custom Range</span><span class="d-inline d-sm-none">Range</span></a>
     </div>
+</div>
+<form method="get" class="row g-2 align-items-end mb-0 sch-filters">
+  <input type="hidden" name="view" value="{{ view }}">
+  <input type="hidden" name="year" value="{{ year }}">
+  <input type="hidden" name="month" value="{{ month }}">
+  {% if view == 'day' or view == 'week' %}<input type="hidden" name="date" value="{{ day_str }}">{% endif %}
+  {% if view == 'custom' %}
+  <div class="col-auto">
+    <label class="form-label small mb-0">From</label>
+    <input type="date" name="start" class="form-control form-control-sm" value="{{ custom_start }}">
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-0">To</label>
+    <input type="date" name="end" class="form-control form-control-sm" value="{{ custom_end }}">
+  </div>
+  {% endif %}
+  <div class="col-6 col-sm-auto">
+    <label class="form-label small mb-0 d-none d-sm-block">Plane</label>
+    <select name="plane_id" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">All Planes</option>
+      {% for p in planes %}
+      <option value="{{ p.id }}" {% if plane_id == p.id|string %}selected{% endif %}>{{ p.tag }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% if session.get('cfi_id') or session.get('is_master_admin') %}
+  <div class="col-6 col-sm-auto">
+    <label class="form-label small mb-0 d-none d-sm-block">Instructor</label>
+    <select name="cfi_id" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">All Instructors</option>
+      {% for c in cfis %}
+      <option value="{{ c.id }}" {% if cfi_id == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  {% if view == 'custom' %}
+  <div class="col-auto"><button class="btn btn-primary btn-sm">Apply</button></div>
+  {% endif %}
+</form>
+<div class="sch-actions">
+    {% if session.get('cfi_id') %}
+    <a href="{{ url_for('flight.schedule_new') }}" class="btn btn-primary fw-bold btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Schedule Flight</a>
+    {% elif session.get('student_id') %}
+    <a href="{{ url_for('flight.schedule_new') }}" class="btn btn-primary fw-bold btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Request a Flight</a>
+    {% endif %}
     {#- Not one more entry in the Day/Week/Month/... group above - a
        separate button next to it, since Availability is a different kind
        of view (open slots, not bookings) rather than another way to slice
@@ -541,67 +607,7 @@
     {% if session.get('is_master_admin') %}
     <a href="{{ url_for('flight.schedule_finder') }}" class="btn btn-outline-primary btn-sm fw-bold"><i class="bi bi-search"></i> Flight Finder</a>
     {% endif %}
-    {% if view == 'day' %}
-    <a href="{{ url_for('flight.schedule_calendar', view='day', date=day_prev, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
-    <a href="{{ url_for('flight.schedule_calendar', view='day', plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm">Today</a>
-    <a href="{{ url_for('flight.schedule_calendar', view='day', date=day_next, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
-    {% elif view == 'week' %}
-    <a href="{{ url_for('flight.schedule_calendar', view='week', date=week_prev, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
-    <a href="{{ url_for('flight.schedule_calendar', view='week', plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm">Today</a>
-    <a href="{{ url_for('flight.schedule_calendar', view='week', date=week_next, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
-    {% elif view != 'custom' %}
-    <a href="{{ url_for('flight.schedule_calendar', view=view, year=prev_year, month=prev_month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
-    <a href="{{ url_for('flight.schedule_calendar', view=view, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm">Today</a>
-    <a href="{{ url_for('flight.schedule_calendar', view=view, year=next_year, month=next_month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
-    {% endif %}
-    {% if session.get('cfi_id') %}
-    <a href="{{ url_for('flight.schedule_new') }}" class="btn btn-primary fw-bold btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Schedule Flight</a>
-    {% elif session.get('student_id') %}
-    <a href="{{ url_for('flight.schedule_new') }}" class="btn btn-primary fw-bold btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Request a Flight</a>
-    {% endif %}
-  </div>
 </div>
-
-
-<form method="get" class="row g-2 align-items-end mb-0">
-  <input type="hidden" name="view" value="{{ view }}">
-  <input type="hidden" name="year" value="{{ year }}">
-  <input type="hidden" name="month" value="{{ month }}">
-  {% if view == 'day' or view == 'week' %}<input type="hidden" name="date" value="{{ day_str }}">{% endif %}
-  {% if view == 'custom' %}
-  <div class="col-auto">
-    <label class="form-label small mb-0">From</label>
-    <input type="date" name="start" class="form-control form-control-sm" value="{{ custom_start }}">
-  </div>
-  <div class="col-auto">
-    <label class="form-label small mb-0">To</label>
-    <input type="date" name="end" class="form-control form-control-sm" value="{{ custom_end }}">
-  </div>
-  {% endif %}
-  <div class="col-auto">
-    <label class="form-label small mb-0">Plane</label>
-    <select name="plane_id" class="form-select form-select-sm" onchange="this.form.submit()">
-      <option value="">All Planes</option>
-      {% for p in planes %}
-      <option value="{{ p.id }}" {% if plane_id == p.id|string %}selected{% endif %}>{{ p.tag }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  {% if session.get('cfi_id') or session.get('is_master_admin') %}
-  <div class="col-auto">
-    <label class="form-label small mb-0">Instructor</label>
-    <select name="cfi_id" class="form-select form-select-sm" onchange="this.form.submit()">
-      <option value="">All Instructors</option>
-      {% for c in cfis %}
-      <option value="{{ c.id }}" {% if cfi_id == c.id|string %}selected{% endif %}>{{ c.name }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  {% endif %}
-  {% if view == 'custom' %}
-  <div class="col-auto"><button class="btn btn-primary btn-sm">Apply</button></div>
-  {% endif %}
-</form>
 </div>
 
 {% if highlight_ids is defined and highlight_ids %}
