@@ -92,7 +92,8 @@ JOURNEYS = [
         "steps": lambda w, ids: (
             w.start("/"),
             # CFIs land straight on the flight dashboard; today's list is headed "Today <date>".
-            w.see("0 of 1 done"),
+            # 2 since 2026-10-01: the sample data also has a lesson booked 20 minutes ago (start-late-lesson).
+            w.see("0 of 2 done"),
         ),
     },
     {
@@ -238,6 +239,32 @@ JOURNEYS = [
             w.tap("Day"),                         # Day view, today
             w.tap("[href*='view=day&date=%s'].btn-sm" % _tomorrow()),   # the › next-day arrow
             w.see("10:30a N2231Q"),
+        ),
+    },
+    # Added 2026-10-01 by a second review run (same focus areas): a late start and approving a request.
+    {
+        "id": "start-late-lesson",
+        "task": "CFI starts a lesson booked 20 minutes ago (the student ran late) from the dashboard",
+        "role": "cfi", "screen": "phone", "target_taps": 1,
+        "steps": lambda w, ids: (
+            w.start("/"),
+            # Once the booked time has passed, the Next Lesson card only offers "Log this lesson" (the
+            # manual log form, no clock). Starting the clock means finding the grey block in Today's
+            # list, tapping it open, then its small Start button.
+            w.tap(f".flight-chip[data-chip-id='{ids['late_lesson']}']"),
+            w.tap("Start", role="button"),
+            w.see("Hobbs"),
+        ),
+    },
+    {
+        "id": "cfi-approve-request",
+        "task": "CFI approves a student's lesson request from the dashboard",
+        "role": "cfi", "screen": "phone", "target_taps": 2,
+        "steps": lambda w, ids: (
+            w.start("/"),
+            w.tap("Approve", role="button"),       # Pending Approval card, top of the dashboard
+            w.tap("Yes, approve", role="button"),  # confirm pop-up
+            w.see("pproved"),
         ),
     },
 ]

@@ -93,8 +93,25 @@ def seed_realistic(tc):
         aid = seed_row(conn, "assets", tag=tag, name=name, current_hours=2310.4, created_at=db.now_iso(), updated_at=db.now_iso(), **flight)
         if tag == "N4729K":  # the sample customer owns one plane
             conn.execute("INSERT INTO customer_assets (customer_id, asset_id) VALUES (?, ?)", (tc.customer_id, aid))
+        if tag == "N2231Q":
+            n2231q = aid
         seed_row(conn, "maintenance_items", asset_id=aid, name="100-hour inspection")
         seed_row(conn, "plane_squawks", asset_id=aid, notes="Left main tire showing cord on outboard side, needs replacement before next flight")
+    # Added 2026-10-01 for the CFI dashboard and two journeys: a lesson booked 20 minutes ago that
+    # nobody has pressed Start on yet (the student ran late), and one student request waiting for
+    # approval (tomorrow 4 pm). Both in N2231Q; the original sample booking (no time) is left as is
+    # so start-next-lesson and log-flight behave as before.
+    import datetime as _dt
+    began = max(_dt.datetime.now() - _dt.timedelta(minutes=20),
+                _dt.datetime.combine(_dt.date.today(), _dt.time(0, 0)))
+    sc = conn.execute("SELECT student_id, cfi_id FROM scheduled_flights WHERE id = ?", (ids["sched"],)).fetchone()
+    ids["late_lesson"] = seed_row(conn, "scheduled_flights", asset_id=n2231q, student_id=sc["student_id"],
+                                  cfi_id=sc["cfi_id"], status="scheduled", duration_hours=1.5,
+                                  scheduled_date=began.strftime("%Y-%m-%d"), scheduled_time=began.strftime("%H:%M"))
+    ids["request"] = seed_row(conn, "scheduled_flights", asset_id=n2231q, student_id=sc["student_id"],
+                              cfi_id=sc["cfi_id"], status="pending_approval", duration_hours=1.5,
+                              scheduled_date=(_dt.date.today() + _dt.timedelta(days=1)).isoformat(),
+                              scheduled_time="16:00", created_by="flight_student")
     conn.commit()
     conn.close()
     for n in ("Annual Inspection - N4729K", "Prop strike teardown and IRAN - N81PA", "Avionics upgrade (GTN 650Xi)"):
