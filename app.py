@@ -5032,6 +5032,41 @@ def _parse_int(val):
         return None
 
 
+def _maint_number(val, label, *, positive=False, whole=False):
+    """Maintenance form number: blank is fine (returns (None, None)); otherwise
+    it must be a real, finite number (0 or more, or above 0 when positive=True).
+    Returns (value, None) or (None, plain message) so the form can be shown
+    again and the old values kept."""
+    val = (val or "").strip()
+    if not val:
+        return None, None
+    num = _parse_float(val)
+    if num is None or not math.isfinite(num) or num < 0 or (positive and num <= 0):
+        return None, f"Enter a valid number of {label}."
+    if whole:
+        num = int(num)
+        if positive and num <= 0:
+            return None, f"Enter a valid number of {label}."
+    return num, None
+
+
+def _maint_form_numbers(form, mtype, need_last_done=True):
+    """Read and check every number on the add/edit maintenance form.
+    Returns (values dict, error message or None)."""
+    vals = {}
+    interval_hours, e1 = _maint_number(form.get("interval_hours"), "hours", positive=True)
+    interval_days, e2 = _maint_number(form.get("interval_days"), "days", positive=True, whole=True)
+    if mtype == "hours":
+        lead, e3 = _maint_number(form.get("remind_lead_hours"), "hours")
+    else:
+        lead, e3 = _maint_number(form.get("remind_lead_days"), "days")
+    last_hours, e4 = (_maint_number(form.get("last_done_hours"), "hours") if need_last_done else (None, None))
+    err = e1 or e2 or e3 or e4
+    vals.update(interval_hours=interval_hours, interval_days=interval_days, remind_lead=lead,
+                last_done_hours=last_hours)
+    return vals, err
+
+
 @app.route("/assets/<int:asset_id>/maintenance/new", methods=["GET", "POST"])
 @shop_role_required('admin')
 def maintenance_new(asset_id):
@@ -5055,18 +5090,20 @@ def maintenance_new(asset_id):
         hour_type = request.form.get("hour_type", "tach")
         if hour_type not in ("tach", "hobbs"):
             hour_type = "tach"
-        interval_hours = _parse_float(request.form.get("interval_hours"))
-        interval_days = _parse_int(request.form.get("interval_days"))
-        last_done_hours = _parse_float(request.form.get("last_done_hours"))
+        nums, num_err = _maint_form_numbers(request.form, mtype)
+        if num_err:
+            flash(num_err, "danger")
+            conn.close()
+            return render_template("maintenance_form.html", asset=asset, item=None)
+        interval_hours = nums["interval_hours"]
+        interval_days = nums["interval_days"]
+        last_done_hours = nums["last_done_hours"]
         if mtype == "hours" and last_done_hours is None:
             last_done_hours = asset_meter(asset, hour_type)
         last_done_date = request.form.get("last_done_date", "").strip()
         if mtype == "calendar" and not last_done_date:
             last_done_date = now_iso()[:10]
-        if mtype == "hours":
-            remind_lead = _parse_float(request.form.get("remind_lead_hours"))
-        else:
-            remind_lead = _parse_float(request.form.get("remind_lead_days"))
+        remind_lead = nums["remind_lead"]
         conn.execute("""INSERT INTO maintenance_items (asset_id, name, type, category, hour_type, interval_hours,
                          interval_days, last_done_hours, last_done_date, remind_lead, checklist, reference_info, notes,
                          active, created_at, updated_at)
@@ -5107,12 +5144,14 @@ def maintenance_edit(item_id):
         hour_type = request.form.get("hour_type", "tach")
         if hour_type not in ("tach", "hobbs"):
             hour_type = "tach"
-        interval_hours = _parse_float(request.form.get("interval_hours"))
-        interval_days = _parse_int(request.form.get("interval_days"))
-        if mtype == "hours":
-            remind_lead = _parse_float(request.form.get("remind_lead_hours"))
-        else:
-            remind_lead = _parse_float(request.form.get("remind_lead_days"))
+        nums, num_err = _maint_form_numbers(request.form, mtype, need_last_done=False)
+        if num_err:
+            flash(num_err, "danger")
+            conn.close()
+            return render_template("maintenance_form.html", asset=asset, item=item)
+        interval_hours = nums["interval_hours"]
+        interval_days = nums["interval_days"]
+        remind_lead = nums["remind_lead"]
         conn.execute("""UPDATE maintenance_items SET name=?, type=?, category=?, hour_type=?, interval_hours=?,
                          interval_days=?, remind_lead=?, checklist=?, reference_info=?, notes=?, updated_at=? WHERE id=?""",
                      (name, mtype, category, hour_type, interval_hours, interval_days, remind_lead,
@@ -5145,6 +5184,8 @@ def maintenance_complete(item_id):
     if item["type"] == "hours":
         current_reading = asset_meter(asset, item["hour_type"])
         completed_hours = _parse_float(request.form.get("completed_hours"))
+        if completed_hours is not None and (not math.isfinite(completed_hours) or completed_hours < 0):
+            completed_hours = None
         if completed_hours is None:
             completed_hours = current_reading
         conn.execute("UPDATE maintenance_items SET last_done_hours=?, updated_at=? WHERE id=?",
