@@ -2,7 +2,7 @@
 {% block title %}Orders - OpsHub{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="mb-0">Orders ({{ order_count }})</h4>
+  <h4 class="mb-0">Orders{% if status_filter != 'to_order' %} ({{ order_count }}){% endif %}</h4>
   <div class="d-flex gap-2">
     <a href="{{ url_for('project_new') }}" class="btn btn-outline-secondary"><i class="bi bi-clipboard-plus"></i> New Project</a>
     <a href="{{ url_for('order_new') }}" class="btn btn-warning fw-bold"><i class="bi bi-plus-lg"></i> New Order</a>
@@ -78,38 +78,29 @@
 </div>
 {% endif %}
 
-<div class="card p-3 mb-3">
-  <h6 class="mb-2"><i class="bi bi-card-checklist"></i> Things to Order <span class="badge bg-secondary">{{ wishlist_items|length }}</span></h6>
-  <p class="text-muted small mb-2">A running list of stuff that's needed before anyone's placed an actual order for it - jot it down here with how urgent it is, then turn it into a real order whenever you're ready.</p>
-
-  <form method="post" action="{{ url_for('order_wishlist_new') }}" class="row g-2 align-items-end mb-3">
+{% macro to_order_panel() %}
+<div class="card p-3 mb-3" id="to-order">
+  <form method="post" action="{{ url_for('order_wishlist_new') }}" class="row g-2 align-items-center mb-3">
     <div class="col-md-4">
-      <label class="form-label small mb-1">What's needed</label>
-      <input type="text" name="description" class="form-control form-control-sm" placeholder="Description, or pick a part below">
+      <input type="text" name="description" class="form-control form-control-sm" placeholder="What's needed, or pick a part" aria-label="Item needed">
     </div>
     <div class="col-md-3">
-      <label class="form-label small mb-1">Existing part (optional)</label>
-      <select name="part_id" class="form-select form-select-sm">
+      <select name="part_id" class="form-select form-select-sm" aria-label="Existing part (optional)">
         <option value="">-- Not in inventory yet --</option>
         {% for p in parts_for_wishlist %}
         <option value="{{ p.id }}">{{ p.name }}</option>
         {% endfor %}
       </select>
     </div>
-    <div class="col-md-2">
-      <label class="form-label small mb-1">Urgency</label>
-      <select name="urgency" class="form-select form-select-sm">
+    <div class="col-md-3">
+      <select name="urgency" class="form-select form-select-sm" aria-label="Urgency">
         <option value="no_rush">No Rush</option>
-        <option value="needed_now">Needed Now</option>
+        <option value="needed_now" selected>Needed Now</option>
         <option value="rush">Rush</option>
       </select>
     </div>
     <div class="col-md-2">
-      <label class="form-label small mb-1">Notes</label>
-      <input type="text" name="notes" class="form-control form-control-sm" placeholder="optional">
-    </div>
-    <div class="col-md-1">
-      <button type="submit" class="btn btn-warning btn-sm fw-bold w-100"><i class="bi bi-plus-lg"></i></button>
+      <button type="submit" class="btn btn-warning btn-sm fw-bold w-100"><i class="bi bi-plus-lg"></i> Add</button>
     </div>
   </form>
 
@@ -139,14 +130,17 @@
   <p class="text-muted small mb-0">Nothing on the list right now.</p>
   {% endif %}
 </div>
+{% endmacro %}
 
 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
   <ul class="nav nav-pills mb-0">
+    <li class="nav-item"><a class="nav-link {{ 'active' if status_filter == 'to_order' }}" href="{{ url_for('orders_list', status='to_order', view=view) }}">To order{% if wish_count %} <span class="badge bg-danger">{{ wish_count }}</span>{% endif %}</a></li>
     <li class="nav-item"><a class="nav-link {{ 'active' if status_filter == 'pending' }}" href="{{ url_for('orders_list', status='pending', view=view) }}">Pending</a></li>
     <li class="nav-item"><a class="nav-link {{ 'active' if status_filter == 'received' }}" href="{{ url_for('orders_list', status='received', view=view) }}">Received</a></li>
     <li class="nav-item"><a class="nav-link {{ 'active' if status_filter == 'cancelled' }}" href="{{ url_for('orders_list', status='cancelled', view=view) }}">Cancelled</a></li>
     <li class="nav-item"><a class="nav-link {{ 'active' if status_filter == 'all' }}" href="{{ url_for('orders_list', status='all', view=view) }}">All</a></li>
   </ul>
+  {% if status_filter != 'to_order' %}
   {#- Idea ux-phone-list-toolbars: on a phone, By Vendor/By Part and Export
      share a line, with the search box dropping to its own full-width line
      below. order-md-* restores the original left-to-right order at md+
@@ -166,7 +160,10 @@
     <a href="{{ url_for('orders_export', status=status_filter) }}" class="btn btn-outline-secondary btn-sm text-nowrap flex-shrink-0 order-md-3 ms-auto ms-md-0"><i class="bi bi-download"></i> Export All (CSV)</a>
     <input type="text" id="orders-search" class="form-control form-control-sm list-toolbar-search order-md-2" placeholder="Search item, vendor, project..." style="min-width:160px;">
   </div>
+  {% endif %}
 </div>
+
+{% if status_filter == 'to_order' %}{{ to_order_panel() }}{% endif %}
 
 {% macro order_actions(o) %}
 {% if o.status == 'pending' %}
@@ -191,7 +188,8 @@
 {% if o.note %}<br><small class="text-muted">{{ o.note }}</small>{% endif %}
 {% endmacro %}
 
-{% if groups %}
+{% if status_filter == 'to_order' %}
+{% elif groups %}
   {% if view == 'vendor' %}
     {% for g in groups %}
     <div class="card mb-3 order-group">

@@ -5228,7 +5228,10 @@ def orders_list():
     vendor might have several separate orders placed on different days,
     each with its own set of parts."""
     conn = get_db()
-    status_filter = request.args.get("status", "pending")
+    # "To order" (the open wishlist) is the first tab; with no tab picked,
+    # the page opens on it when anything is waiting, otherwise on Pending.
+    wish_count = conn.execute("SELECT COUNT(*) c FROM order_wishlist WHERE status = 'open'").fetchone()["c"]
+    status_filter = request.args.get("status") or ("to_order" if wish_count else "pending")
     view = request.args.get("view", "vendor")
     if view not in ("vendor", "part"):
         view = "vendor"
@@ -5236,7 +5239,9 @@ def orders_list():
                   FROM orders o
                   LEFT JOIN parts p ON p.id = o.part_id
                   LEFT JOIN projects pr ON pr.id = o.project_id"""
-    if status_filter and status_filter != "all":
+    if status_filter == "to_order":
+        rows = []
+    elif status_filter and status_filter != "all":
         rows = conn.execute(base_sql + " WHERE o.status = ? ORDER BY o.ordered_date DESC",
                              (status_filter,)).fetchall()
     else:
@@ -5317,7 +5322,8 @@ def orders_list():
     cores_owed = _cores_owed(cores_conn)
     cores_conn.close()
     return render_template("orders.html", groups=groups, view=view, status_filter=status_filter, cores_owed=cores_owed,
-                           order_count=len(orders), wishlist_items=wishlist_items, parts_for_wishlist=parts_for_wishlist)
+                           order_count=len(orders), wishlist_items=wishlist_items, parts_for_wishlist=parts_for_wishlist,
+                           wish_count=wish_count)
 
 
 @app.route("/orders/wishlist/new", methods=["POST"])
@@ -5335,7 +5341,7 @@ def order_wishlist_new():
         conn.close()
     if not description:
         flash("Enter what you need (or pick a part).", "danger")
-        return redirect(url_for("orders_list"))
+        return redirect(url_for("orders_list", status="to_order"))
     conn = get_db()
     conn.execute(
         "INSERT INTO order_wishlist (description, part_id, urgency, notes, requested_by, created_at) "
@@ -5345,7 +5351,7 @@ def order_wishlist_new():
     conn.commit()
     conn.close()
     flash(f"Added '{description}' to the order list.", "success")
-    return redirect(url_for("orders_list"))
+    return redirect(url_for("orders_list", status="to_order"))
 
 
 @app.route("/orders/wishlist/<int:wishlist_id>/dismiss", methods=["POST"])
@@ -5357,7 +5363,7 @@ def order_wishlist_dismiss(wishlist_id):
     conn.commit()
     conn.close()
     flash("Removed from the order list.", "info")
-    return redirect(url_for("orders_list"))
+    return redirect(url_for("orders_list", status="to_order"))
 
 
 def _order_tracking_from_form(form):
