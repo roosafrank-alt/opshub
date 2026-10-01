@@ -1,0 +1,26 @@
+{
+  "checks": [
+    {
+      "role": "cfi",
+      "size": "desktop",
+      "sql": [
+        "UPDATE assets SET is_flight_asset = 1 WHERE id = {asset}",
+        "INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date, scheduled_time, duration_hours, status, solo) VALUES ({asset}, {cfi}, {student}, date('now','-7 days'), '09:30', 1.5, 'completed', 0)",
+        "INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date, scheduled_time, duration_hours, status, solo) VALUES ({asset}, {cfi}, {student}, date('now','-14 days'), '09:30', 1.5, 'completed', 0)",
+        "INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date, scheduled_time, duration_hours, status, solo) VALUES ({asset}, {cfi}, {student}, date('now','-21 days'), '11:00', 1.5, 'completed', 0)"
+      ],
+      "steps": [
+        ["start", "/flight/schedule/new"],
+        ["tap", "#student-combo-toggle"],
+        ["tap", "#student-combo-list .list-group-item:nth-child(2)"],
+        ["see", "usual lesson"],
+        ["see", "Same time as usual"],
+        ["see", "Different time"],
+        ["shot", {"caption": "Picking the student fills in plane, instructor and length, and pre-picks Same time as usual",
+                  "focus": "#schedule-form",
+                  "changed": [{"sel": "#usual-note", "note": "New: green note saying where the fill-in came from"},
+                              {"sel": "#usual-time-toggle", "note": "New: Same time as usual (pre-picked) or Different time"}]}]
+      ]
+    }
+  ]
+}

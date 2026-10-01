@@ -4381,6 +4381,42 @@ def schedule_finder():
                            all_cfis=all_cfis, results=results, finder_buckets=FINDER_TIME_BUCKETS, today=today)
 
 
+def _usual_lessons(conn, planes):
+    """Each student's 'usual lesson', worked out from their last 3 booked
+    lessons (no schema change): the most common plane, instructor, and
+    time of day, plus the latest length. Used by the booking form to fill
+    plane/instructor/length in when a student is picked."""
+    from collections import Counter
+    plane_ids = {p["id"] for p in planes}
+    rows = conn.execute(
+        "SELECT student_id, asset_id, cfi_id, solo, scheduled_time, duration_hours FROM scheduled_flights "
+        "WHERE status IN ('scheduled', 'in_progress', 'completed', 'balance_hold') "
+        "ORDER BY scheduled_date DESC, COALESCE(scheduled_time, '') DESC, id DESC").fetchall()
+    per = {}
+    for r in rows:
+        lst = per.setdefault(r["student_id"], [])
+        if len(lst) < 3 and r["asset_id"] in plane_ids:
+            lst.append(r)
+    def top(vals):
+        vals = [v for v in vals if v not in (None, "")]
+        if not vals:
+            return None
+        c = Counter(vals)
+        best = max(c.values())
+        return next(v for v in vals if c[v] == best)  # ties: most recent
+    out = {}
+    for sid, lst in per.items():
+        solo = sum(1 for r in lst if r["solo"]) * 2 > len(lst)
+        out[str(sid)] = {
+            "asset_id": top([r["asset_id"] for r in lst]),
+            "cfi_id": None if solo else top([r["cfi_id"] for r in lst]),
+            "solo": solo,
+            "time": top([r["scheduled_time"] for r in lst]),
+            "hours": next((r["duration_hours"] for r in lst if r["duration_hours"]), None),
+        }
+    return out
+
+
 @flight_bp.route("/schedule/new", methods=["GET", "POST"])
 @login_required
 def schedule_new():
@@ -4437,6 +4473,7 @@ def schedule_new():
     prefill_solo = (not self_service) and request.args.get("solo") == "1"
     prefill_own_plane = (not self_service) and request.args.get("own_plane") == "1"
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
+                       usual_lessons=({} if self_service else _usual_lessons(conn, planes)),
                        today=prefill_date, prefill_time=prefill_time, prefill_asset_id=prefill_asset_id,
                        prefill_cfi_id=prefill_cfi_id, prefill_student_id=prefill_student_id,
                        prefill_solo=prefill_solo, prefill_own_plane=prefill_own_plane,
