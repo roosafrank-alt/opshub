@@ -639,10 +639,20 @@
       {% if log_lesson %}
       {#- A lesson that already started today and isn't logged yet: one tap
          to the log form with plane, student and instructor filled in. #}
+      {% set _ll_log_url = url_for('flight.log_new', asset_id=log_lesson.asset_id, student_id=log_lesson.student_id, cfi_id=log_lesson.cfi_id or '', solo='on' if log_lesson.solo else '', flight_date=log_lesson.scheduled_date, scheduled_flight_id=log_lesson.id) %}
       <div class="mt-2 pt-2 {{ 'border-top' if next_lesson }}">
-        <div class="small text-muted">Started {{ log_lesson.time_label }} &middot; {{ log_lesson.plane_tag }} &middot; {{ log_lesson.student_name }}</div>
-        <a href="{{ url_for('flight.log_new', asset_id=log_lesson.asset_id, student_id=log_lesson.student_id, cfi_id=log_lesson.cfi_id or '', solo='on' if log_lesson.solo else '', flight_date=log_lesson.scheduled_date, scheduled_flight_id=log_lesson.id) }}"
-           class="btn btn-success fw-bold mt-1"><i class="bi bi-journal-check"></i> Log this lesson</a>
+        {% if log_lesson.can_still_start %}
+        <div class="small text-muted"><span class="badge bg-warning text-dark">Not started</span> Booked {{ log_lesson.time_label }} &middot; {{ log_lesson.plane_tag }} &middot; {{ log_lesson.student_name }}</div>
+        <div class="d-flex gap-2 mt-1">
+          <form method="post" action="{{ url_for('flight.schedule_start', scheduled_id=log_lesson.id) }}" class="flex-fill">
+            <button class="btn btn-success w-100 fw-bold"><i class="bi bi-play-fill"></i> Start Session</button>
+          </form>
+          <a href="{{ _ll_log_url }}" class="btn btn-outline-success fw-bold flex-fill"><i class="bi bi-journal-check"></i> Log Flight</a>
+        </div>
+        {% else %}
+        <div class="small text-muted">Not started &middot; Booked {{ log_lesson.time_label }} &middot; {{ log_lesson.plane_tag }} &middot; {{ log_lesson.student_name }}</div>
+        <a href="{{ _ll_log_url }}" class="btn btn-success fw-bold mt-1"><i class="bi bi-journal-check"></i> Log this lesson</a>
+        {% endif %}
       </div>
       {% endif %}
     </div>

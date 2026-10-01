@@ -2041,7 +2041,12 @@ def _dashboard_context(conn, cfi, student):
               AND sf.scheduled_time IS NOT NULL AND sf.scheduled_time < ?
             ORDER BY sf.scheduled_time DESC LIMIT 1""", (cfi["id"], today_s, now_dt.strftime("%H:%M"))).fetchone()
         if lrow:
-            log_lesson = dict(lrow, time_label=_format_time_12h(lrow["scheduled_time"]))
+            _w = _time_window(lrow["scheduled_time"], lrow["duration_hours"])
+            _now_min = now_dt.hour * 60 + now_dt.minute
+            # Booked block not over yet: the card keeps Start Session + Log
+            # Flight (QA ux-late-lesson-start) instead of only "Log this lesson".
+            log_lesson = dict(lrow, time_label=_format_time_12h(lrow["scheduled_time"]),
+                              can_still_start=bool(_w and _now_min < _w[1]))
 
     # "Time since last flight" tile - student dashboard only.
     last_flight_ago = None
