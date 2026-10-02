@@ -3,7 +3,10 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 no-print">
   <h4 class="mb-0">Project Code</h4>
-  <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-secondary" data-change="JOBS-18">&laquo; Back to Project</a>
+    <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+  </div>
 </div>
 
 <div class="d-flex justify-content-center">

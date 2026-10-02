@@ -4,6 +4,10 @@
 {% block content %}
 {% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
 {% set can_confirm_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector') %}
+{#- JOBS-04/05: show each control only to the roles that can use it. Admin and
+   tech run the plane's page; an inspector keeps Confirm / Send Back, sign-off
+   and the AD controls and can read the rest. Delete is admin only. #}
+{% set is_admin_role = session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
 {% if photos %}
 <img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;">
 {% elif project_cover %}
@@ -12,15 +16,17 @@
 {% endif %}
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
   <div>
-    <h4 class="mb-0"><i class="bi bi-airplane"></i> {{ asset.tag }}{% if asset.name and asset.name != asset.tag %} &middot; {{ asset.name }}{% endif %}{% if asset.profile_incomplete %} <span class="badge bg-warning text-dark" title="Started from the plane dropdown's + Add New - fill in the rest below and save to clear this.">Incomplete</span>{% endif %}</h4>
+    <h4 class="mb-0"><i class="bi bi-airplane"></i> {{ asset.tag }}{% if asset.name and asset.name != asset.tag %} &middot; {{ asset.name }}{% endif %}{% if asset.profile_incomplete %} <span class="badge bg-warning text-dark" title="Started from the plane dropdown's + Add New - use Edit Profile to fill in the rest and save to clear this.">Incomplete</span>{% endif %}</h4>
     <p class="text-muted mb-0">{{ [asset.make, asset.model, asset.year]|select|join(' ') or 'No make/model on file' }}{% if asset.owner %} &middot; Owner: {{ asset.owner }}{% endif %}</p>
   </div>
   {% if can_assign_squawks %}
   <div class="d-flex gap-2 flex-wrap">
     <a href="{{ url_for('project_new', asset_id=asset.id) }}" class="btn btn-warning fw-bold btn-sm"><i class="bi bi-plus-lg"></i> New Project for This Aircraft</a>
-    <a href="{{ url_for('asset_edit', asset_id=asset.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit Profile</a>
-    <button class="btn btn-danger btn-sm" type="button" data-confirm="Delete this asset? It will move to Recently Deleted, where it can be restored or permanently removed. Linked projects are kept." data-confirm-style="danger" onclick="document.getElementById('asset-trash-form').submit();"><i class="bi bi-trash3"></i> Delete</button>
+    <a href="{{ url_for('asset_edit', asset_id=asset.id) }}" class="btn btn-outline-primary btn-sm" data-change="JOBS-04"><i class="bi bi-pencil"></i> Edit Profile</a>
+    {% if is_admin_role %}
+    <button class="btn btn-danger btn-sm" type="button" data-confirm="Delete this aircraft? It will move to Recently Deleted, where it can be restored or permanently removed. Linked projects are kept." data-confirm-style="danger" data-change="JOBS-24" onclick="document.getElementById('asset-trash-form').submit();"><i class="bi bi-trash3"></i> Delete</button>
     <form id="asset-trash-form" method="post" action="{{ url_for('asset_trash', asset_id=asset.id) }}" style="display:none;"></form>
+    {% endif %}
   </div>
   {% endif %}
 </div>
@@ -28,16 +34,18 @@
 {% if asset.is_owner_placeholder %}
 <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
   <div><i class="bi bi-info-circle"></i> This is {{ owner_student.name ~ "'s" if owner_student else "a student's" }} own plane, tracked here for scheduling only - it isn't in your Fleet or Maintenance yet.</div>
+  {% if is_admin_role %}
   <form method="post" action="{{ url_for('asset_promote_own_plane', asset_id=asset.id) }}" class="d-flex gap-1" data-confirm="Add this plane to the Fleet and Maintenance? It'll show up everywhere a real plane does from now on." data-confirm-title="Add to Fleet">
     <input type="text" name="n_number" class="form-control form-control-sm" placeholder="N-number" style="width:140px;" required>
     <button class="btn btn-primary btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Add to Fleet &amp; Maintenance</button>
   </form>
+  {% endif %}
 </div>
 {% endif %}
 
 {% if open_squawks %}
 <div class="alert alert-danger border-danger border-2 mb-3 squawk-alert">
-  <h5 class="alert-heading mb-2"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} New Squawk{{ 's' if open_squawks|length != 1 }}{{ ' - Pick Who Fixes Them' if can_assign_squawks else ' (for your info)' }}</h5>
+  <h5 class="alert-heading mb-2" data-change="JOBS-35"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} New Squawk{{ 's' if open_squawks|length != 1 }}{{ ' - Pick Who Fixes Them' if can_assign_squawks else ' (for your info)' }}</h5>
   {% for sq in open_squawks %}
   <div class="d-flex flex-column gap-1 py-2 squawk-item {{ 'border-top' if not loop.first }}">
     <div><strong>{{ sq.event_date|usdate }}</strong> &middot;
@@ -63,12 +71,13 @@
         <span class="text-muted">Hobbs</span>
         <strong>{{ '%g'|format(asset.hobbs_hours) + ' hrs' if asset.hobbs_hours is not none else '-' }}</strong>
       </div>
-      <div class="text-muted small mb-2">{% if asset.hobbs_updated_at %}Updated {{ asset.hobbs_updated_at }}{% if asset.hobbs_updated_by %} by {{ asset.hobbs_updated_by }}{% endif %}{% else %}Updated -{% endif %}</div>
+      <div class="text-muted small mb-2" data-change="JOBS-23">{% if asset.hobbs_updated_at %}Updated {{ asset.hobbs_updated_at|usdate(true) }}{% if asset.hobbs_updated_by %} by {{ asset.hobbs_updated_by }}{% endif %}{% else %}Updated -{% endif %}</div>
       <div class="d-flex justify-content-between">
         <span class="text-muted">Tach</span>
         <strong>{{ '%g'|format(asset.tach_hours) + ' hrs' if asset.tach_hours is not none else '-' }}</strong>
       </div>
-      <div class="text-muted small">{% if asset.tach_updated_at %}Updated {{ asset.tach_updated_at }}{% if asset.tach_updated_by %} by {{ asset.tach_updated_by }}{% endif %}{% else %}Updated -{% endif %}</div>
+      <div class="text-muted small" data-change="JOBS-23">{% if asset.tach_updated_at %}Updated {{ asset.tach_updated_at|usdate(true) }}{% if asset.tach_updated_by %} by {{ asset.tach_updated_by }}{% endif %}{% else %}Updated -{% endif %}</div>
+      {% if can_assign_squawks %}
       <form method="post" action="{{ url_for('asset_update_hours', asset_id=asset.id) }}" class="mt-2">
         <label class="form-label small mb-0">Log new reading</label>
         <div class="row g-1">
@@ -87,6 +96,7 @@
         </div>
         <button class="btn btn-secondary btn-sm w-100 mt-1">Save</button>
       </form>
+      {% endif %}
     </div>
 
     <div class="card p-3 mt-3">
@@ -101,14 +111,16 @@
             </a>
             {% if photo.is_cover %}
             <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-1"><i class="bi bi-star-fill"></i> Cover</span>
-            {% else %}
+            {% elif can_assign_squawks %}
             <form method="post" action="{{ url_for('photo_set_cover', photo_id=photo.id) }}">
               <button class="btn btn-sm btn-light position-absolute top-0 start-0 m-1 py-0 px-1" title="Set as cover photo"><i class="bi bi-star"></i></button>
             </form>
             {% endif %}
+            {% if can_assign_squawks %}
             <form method="post" action="{{ url_for('photo_delete', photo_id=photo.id) }}" data-confirm="Delete this photo?" data-confirm-style="danger">
               <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 py-0 px-1"><i class="bi bi-x"></i></button>
             </form>
+            {% endif %}
           </div>
         </div>
         {% endfor %}
@@ -120,10 +132,12 @@
       {% else %}
       <p class="text-muted small">No photos yet.</p>
       {% endif %}
+      {% if can_assign_squawks %}
       <form method="post" action="{{ url_for('asset_add_photos', asset_id=asset.id) }}" enctype="multipart/form-data">
         <input type="file" name="photos" accept="image/*" multiple class="add-photos-input d-none">
         <button type="button" class="add-photos-trigger btn btn-outline-primary btn-sm w-100"><i class="bi bi-camera"></i> Add Photo(s)</button>
       </form>
+      {% endif %}
     </div>
 
     {% if asset_manuals %}
@@ -144,10 +158,10 @@
 
     {% if can_assign_squawks %}
     <div class="card p-3 mt-3">
-      <h6><i class="bi bi-exclamation-triangle"></i> Report an Issue</h6>
+      <h6 data-change="JOBS-29"><i class="bi bi-exclamation-triangle"></i> Report a Squawk</h6>
       <form method="post" action="{{ url_for('asset_squawk_new', asset_id=asset.id) }}">
         <textarea name="notes" class="form-control form-control-sm mb-2" rows="2" placeholder="What's wrong with this aircraft?" required></textarea>
-        <button class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-flag"></i> Report</button>
+        <button class="btn btn-outline-danger btn-sm w-100" data-change="JOBS-29"><i class="bi bi-flag"></i> Report squawk</button>
       </form>
       <div class="form-text">Goes straight to the Squawks page - no need to log a flight for this.</div>
     </div>
@@ -212,7 +226,7 @@
       {% else %}
       <div class="text-muted small mt-1">No compression checks logged yet.</div>
       {% endif %}
-      <a href="{{ url_for('asset_compression', asset_id=asset.id) }}" class="btn btn-outline-primary btn-sm w-100 mt-2"><i class="bi bi-speedometer"></i> {{ 'View / Log Checks' if compression_count else 'Log a Check' }}</a>
+      <a href="{{ url_for('asset_compression', asset_id=asset.id) }}" class="btn btn-outline-primary btn-sm w-100 mt-2"><i class="bi bi-speedometer"></i> {% if can_assign_squawks %}{{ 'View / Log Checks' if compression_count else 'Log a Check' }}{% else %}View Checks{% endif %}</a>
     </div>
 
     {% if asset.serial_number or asset.engine_make or asset.engine_model or asset.engine_serial or asset.prop_make or asset.prop_model or asset.prop_serial %}
@@ -268,7 +282,7 @@
       <div class="card p-3 h-100">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h6 class="mb-0"><i class="bi bi-calendar-check"></i> Maintenance</h6>
-          <a href="{{ url_for('maintenance_new', asset_id=asset.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-lg"></i> Add</a>
+          {% if can_assign_squawks %}<a href="{{ url_for('maintenance_new', asset_id=asset.id) }}" class="btn btn-sm btn-outline-primary" data-change="JOBS-04"><i class="bi bi-plus-lg"></i> Add</a>{% endif %}
         </div>
         {% if maintenance_items %}
         {% for mi in maintenance_items %}
@@ -298,13 +312,18 @@
                 </div>
                 {% endif %}
               </div>
+              {% if can_assign_squawks %}
               <div class="d-flex gap-1">
-                <a href="{{ url_for('maintenance_edit', item_id=mi.item.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                <a href="{{ url_for('maintenance_edit', item_id=mi.item.id) }}" class="btn btn-sm btn-outline-secondary" data-change="JOBS-04"><i class="bi bi-pencil"></i></a>
+                {% if is_admin_role %}
                 <form method="post" action="{{ url_for('maintenance_delete', item_id=mi.item.id) }}" data-confirm="Remove this maintenance item?" data-confirm-style="danger">
                   <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                 </form>
+                {% endif %}
               </div>
+              {% endif %}
             </div>
+            {% if can_assign_squawks %}
             <form method="post" action="{{ url_for('maintenance_complete', item_id=mi.item.id) }}" class="mt-2 maint-complete-form" data-confirm="Sign off {{ mi.item.name }} as completed? " data-confirm-title="Complete Maintenance" data-confirm-ok="Yes, mark complete" data-confirm-style="success">
               <div class="row g-1 align-items-end">
                 {% if mi.item.type == 'hours' %}
@@ -316,7 +335,7 @@
                 {% endif %}
                 <div class="{{ 'col-4' if mi.item.type == 'hours' else 'col-6' }}">
                   <label class="form-label small mb-0">Completed by</label>
-                  <select class="form-select form-select-sm maint-operator-select">
+                  <select class="form-select form-select-sm maint-operator-select" data-change="JOBS-22">
                     <option value="" disabled selected>-- Select --</option>
                     <option value="__new__">+ Add new name...</option>
                   </select>
@@ -331,11 +350,12 @@
                 </div>
               </div>
             </form>
+            {% endif %}
           </div>
         </div>
         {% endfor %}
         {% else %}
-        <p class="text-muted small mb-0">No maintenance items yet. <a href="{{ url_for('maintenance_new', asset_id=asset.id) }}">Add one</a>.</p>
+        <p class="text-muted small mb-0">No maintenance items yet.{% if can_assign_squawks %} <a href="{{ url_for('maintenance_new', asset_id=asset.id) }}">Add one</a>.{% endif %}</p>
         {% endif %}
       </div>
       </div>
@@ -390,25 +410,32 @@
               </div>
               {% endif %}
               {% else %}
+              {% if can_assign_squawks %}
               <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1" data-confirm="Mark this task done? An Inspector or admin will still need to confirm it.">
                 <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark done">
                   <i class="bi bi-square fs-5"></i>
                 </button>
-                {#- The to-do text itself starts a new project pre-filled with
-                   it (project_new's ?name=) - one click instead of retyping
-                   what needs doing into a blank project form. Marking the
-                   to-do done (the checkbox above) is still separate and
-                   manual - creating the project doesn't do that on its own. #}
-                <a href="{{ url_for('project_new', asset_id=asset.id, name=t.description, quick_type='Maintenance') }}" class="flex-grow-1 text-body text-decoration-none" title="Start a project from this to-do">{{ t.description }}</a>
+                {#- JOBS-36: the to-do text is plain text now. Starting a project
+                   from it (project_new's ?name=, one click instead of retyping
+                   what needs doing) is the small "Start job" link at the end.
+                   Marking the to-do done is still separate and manual. #}
+                <span class="flex-grow-1">{{ t.description }}
+                  <a href="{{ url_for('project_new', asset_id=asset.id, name=t.description, quick_type='Maintenance') }}" class="small ms-1 text-nowrap" title="Start a project from this to-do" data-change="JOBS-36">Start job</a></span>
               </form>
+              {% else %}
+              <span class="flex-grow-1">{{ t.description }}</span>
               {% endif %}
+              {% endif %}
+              {% if can_assign_squawks %}
               <form method="post" action="{{ url_for('plane_todo_delete', asset_id=asset.id, todo_id=t.id) }}" data-confirm="Remove this to-do?" data-confirm-style="danger">
                 <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
               </form>
+              {% endif %}
             </div>
             {#- Handing a to-do to a specific laborer puts it on their own My
                Tasks page too, not just this plane's list (see
                plane_todo_assign). #}
+            {% if can_assign_squawks %}
             <form method="post" action="{{ url_for('plane_todo_assign', asset_id=asset.id, todo_id=t.id) }}" class="ps-4">
               <select name="assigned_to" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
                 <option value="">Unassigned</option>
@@ -417,12 +444,16 @@
                 {% endfor %}
               </select>
             </form>
+            {% elif t.assigned_to_name %}
+            <small class="text-muted ps-4">Assigned to {{ t.assigned_to_name }}</small>
+            {% endif %}
           </li>
           {% endfor %}
         </ul>
         {% else %}
         <p class="text-muted small">Nothing on the list yet.</p>
         {% endif %}
+        {% if can_assign_squawks %}
         <form method="post" action="{{ url_for('plane_todo_new', asset_id=asset.id) }}" class="d-flex gap-2 mb-2">
           <input type="text" name="description" class="form-control form-control-sm" placeholder="Add a to-do..." required>
           <select name="assigned_to" class="form-select form-select-sm" style="max-width:140px;">
@@ -433,6 +464,7 @@
           </select>
           <button class="btn btn-outline-primary btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Add</button>
         </form>
+        {% endif %}
         {% if done_todos %}
         <button type="button" class="btn btn-link btn-sm p-0 text-muted" data-bs-toggle="collapse" data-bs-target="#todo-done-{{ asset.id }}">
           <i class="bi bi-chevron-down"></i> {{ done_todos|length }} completed
@@ -441,7 +473,8 @@
           <ul class="list-group list-group-flush">
             {% for t in done_todos %}
             <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
-              <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1">
+              {% if can_assign_squawks %}
+              <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1" data-confirm="Reopen this to-do?" data-confirm-title="Reopen To-Do" data-confirm-ok="Reopen" data-confirm-style="warning" data-change="JOBS-42">
                 <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark not done">
                   <i class="bi bi-check-square-fill text-success fs-5"></i>
                 </button>
@@ -450,6 +483,9 @@
               <form method="post" action="{{ url_for('plane_todo_delete', asset_id=asset.id, todo_id=t.id) }}" data-confirm="Remove this to-do?" data-confirm-style="danger">
                 <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
               </form>
+              {% else %}
+              <span class="d-flex align-items-start gap-2 flex-grow-1"><i class="bi bi-check-square-fill text-success fs-5"></i> <span class="text-decoration-line-through text-muted">{{ t.description }}</span></span>
+              {% endif %}
             </li>
             {% endfor %}
           </ul>
@@ -483,11 +519,13 @@
     {% include "_asset_ads.html" %}
 
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h5 class="mb-0">Project History <span class="text-muted fs-6">({{ project_blocks|length }} project{{ 's' if project_blocks|length != 1 }})</span></h5>
-      <div class="text-end">
+      <h5 class="mb-0" data-change="JOBS-06">Project History <span class="text-muted fs-6">({{ project_blocks|length }} project{{ 's' if project_blocks|length != 1 }})</span></h5>
+      {% if can_see_shop_costs %}
+      <div class="text-end" data-change="JOBS-07">
         <span class="text-muted small d-block">Total parts cost across all years</span>
         <strong class="fs-5">${{ "%.2f"|format(total_cost) }}</strong>
       </div>
+      {% endif %}
     </div>
 
     {% for block in project_blocks %}
@@ -523,7 +561,7 @@
       {% endif %}
     </div>
     {% else %}
-    <p class="text-muted">No projects yet for this asset. <a href="{{ url_for('project_new', asset_id=asset.id) }}">Create one</a>.</p>
+    <p class="text-muted">No projects yet for this aircraft.{% if can_assign_squawks %} <a href="{{ url_for('project_new', asset_id=asset.id) }}">Create one</a>.{% endif %}</p>
     {% endfor %}
   </div>
 </div>
@@ -539,6 +577,12 @@
     if (!select) return;
     var saved = '';
     try { saved = localStorage.getItem('shopinv_operator') || ''; } catch (e) { /* ignore */ }
+    // JOBS-22: "Completed by" starts on the logged-in person, still changeable.
+    // On the shared shop login it starts on the last name typed in by hand on
+    // this device instead (kept in this browser's localStorage).
+    var loggedIn = {{ (session.get('user_name') or '')|tojson }};
+    var sharedShopLogin = {{ (shared_shop_login or false)|tojson }};
+    if (loggedIn && !sharedShopLogin) { saved = loggedIn; }
 
     function addOption(name) {
       var opt = document.createElement('option');

@@ -42,7 +42,7 @@
     </div>
     <div class="col-12 col-md-1"><button class="btn btn-primary btn-sm w-100">Update</button></div>
   </div>
-  <div class="form-text">Everything below is a starting point built from this project's sub areas and the parts scanned into them. Edit the wording, then Save to logbook. Part numbers come from each part's Part Number (or its barcode).</div>
+  <div class="form-text">Everything below is a starting point built from this project's discrepancies and the parts scanned into them. Edit the wording, then Save to logbook. Part numbers come from each part's Part Number (or its barcode).</div>
 </form>
 
 {% macro starter_card(body, log_type, section, title, subtitle) %}
@@ -60,7 +60,7 @@
   </div>
   <textarea name="body" class="form-control lb-text" rows="{{ [body.count('\n') + 2, 14]|min }}">{{ body }}</textarea>
   <div class="d-flex gap-2 mt-2">
-    <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-journal-plus"></i> Save to logbook</button>
+    {% if can_edit %}<button type="submit" class="btn btn-success btn-sm"><i class="bi bi-journal-plus"></i> Save to logbook</button>{% endif %}
     <button type="button" class="btn btn-outline-secondary btn-sm" onclick="lbCopy(this)"><i class="bi bi-clipboard"></i> Copy</button>
   </div>
 </form>
@@ -68,11 +68,11 @@
 
 <div class="row g-3">
   <div class="col-lg-6">
-    <h5>Sub area entries <small class="text-muted fs-6">(one per sub area, with its endorsement)</small></h5>
+    <h5 data-change="JOBS-11">Discrepancy entries <small class="text-muted fs-6">(one per discrepancy, with its endorsement)</small></h5>
     {% for s in section_starters %}
       {{ starter_card(s.body, s.log_type, s.section, s.section, s.part_count ~ ' part' ~ ('s' if s.part_count != 1 else '')) }}
     {% else %}
-      <p class="text-muted">No sub areas or parts on this project yet. Add a sub area or scan parts in, and they'll show up here.</p>
+      <p class="text-muted">No discrepancies or parts on this project yet. Add a discrepancy or scan parts in, and they'll show up here.</p>
     {% endfor %}
   </div>
   <div class="col-lg-6">
@@ -95,7 +95,7 @@
       <div class="small"><strong>{{ e.entry_date|usdate }}</strong> &middot; <span class="badge bg-light text-dark border">{{ log_type_labels[e.log_type] }}</span>
         {{ e.section or 'Combined' }} <span class="text-muted">- {{ e.body.split('\n')[1] if e.body.count('\n') else e.body[:80] }}</span></div>
       <div class="d-flex gap-1">
-        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('logbook.entry_detail', entry_id=e.id) }}"><i class="bi bi-pencil"></i></a>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('logbook.entry_detail', entry_id=e.id) }}" title="{{ 'Edit this entry' if can_edit else 'Open this entry' }}"><i class="bi bi-{{ 'pencil' if can_edit else 'eye' }}"></i></a>
         <a class="btn btn-outline-primary btn-sm" target="_blank" href="{{ url_for('logbook.entry_print', entry_id=e.id) }}"><i class="bi bi-printer"></i> Sticker</a>
       </div>
     </div>

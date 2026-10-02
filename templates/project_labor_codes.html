@@ -2,22 +2,33 @@
 {% block title %}Labor Codes - {{ project.name }}{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 no-print">
-  <h4 class="mb-0">Labor Codes - {{ project.code }}</h4>
-  <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Print All</button>
+  <div>
+    <h4 class="mb-0">Labor Codes - {{ project.code }}</h4>
+    {#- JOBS-40: the plane's N-number, so the sheet on the wall says which aircraft. #}
+    {% if project.plane_tag %}<div class="text-muted small" data-change="JOBS-40"><i class="bi bi-airplane"></i> {{ project.plane_tag }}</div>{% endif %}
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-secondary" data-change="JOBS-18">&laquo; Back to Project</a>
+    <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Print All</button>
+  </div>
 </div>
-<p class="text-muted no-print">Scan a task's code on the <a href="{{ url_for('labor_page') }}">Labor</a> page to select it, then scan a laborer's code to start their timer.</p>
+<p class="text-muted no-print">Scan a discrepancy's code on the <a href="{{ url_for('labor_page') }}">Labor</a> page to select it, then scan a laborer's code to start their timer.</p>
 
 <div class="d-flex flex-wrap gap-3 justify-content-center">
   <div class="label-card" style="width: 240px; padding: 16px;">
     <div style="font-weight:700;">{{ project.name }}</div>
+    {% if project.plane_tag %}<div class="text-muted small">{{ project.plane_tag }}</div>{% endif %}
     <div class="text-muted small mb-1">General (whole project)</div>
     <div class="task-qr d-flex justify-content-center my-2" data-code="TASK-{{ project.code }}"></div>
     <div style="font-size:0.85rem; font-weight:700;">{{ project.code }}</div>
   </div>
-  {% for s in sections %}
-  <div class="label-card" style="width: 240px; padding: 16px;">
+  {#- JOBS-40: open discrepancies print first; ones an inspector has confirmed are
+     listed last, in grey, marked done. #}
+  {% for sec in sections %}
+  {% set s = sec.name %}
+  <div class="label-card" style="width: 240px; padding: 16px;{{ ' opacity:.55;' if sec.done }}"{% if sec.done %} data-change="JOBS-40"{% endif %}>
     <div style="font-weight:700;">{{ project.name }}</div>
-    <div class="text-muted small mb-1">{{ s }}</div>
+    <div class="text-muted small mb-1">{{ s }}{% if sec.done %} <span class="badge bg-secondary">done</span>{% endif %}</div>
     <div class="task-qr d-flex justify-content-center my-2" data-code="TASK-{{ project.code }}::{{ s }}"></div>
     <div style="font-size:0.85rem; font-weight:700;">{{ project.code }} &middot; {{ s }}</div>
   </div>

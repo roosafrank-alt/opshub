@@ -10,6 +10,29 @@
 #}
 <h4 class="mb-3"><i class="bi bi-person-workspace"></i> My Tasks</h4>
 
+{% if inspector_only %}
+{#- JOBS-15: an inspector's My Tasks - squawk repairs waiting for a sign-off. The plane
+   to-dos waiting for a sign-off are in the Awaiting Confirmation card below. #}
+<div class="card p-3 mb-3" data-change="JOBS-15">
+  <h6 class="mb-2"><i class="bi bi-exclamation-triangle"></i> Squawks to Sign Off <span class="text-muted small fw-normal">({{ awaiting_squawks|length }})</span></h6>
+  {% if awaiting_squawks %}
+  <div class="list-group list-group-flush">
+    {% for sq in awaiting_squawks %}
+    <div class="list-group-item px-0 d-flex flex-column gap-1 squawk-item">
+      <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.event_date|usdate }}</div>
+      <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+      <div class="squawk-row-actions">
+        {{ squawk_step_pills(sq) }}
+        {{ squawk_confirm_actions(sq, confirm_label='Sign off', send_back_label='Send back') }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-muted small mb-0">Nothing waiting for your sign-off. 👍</p>
+  {% endif %}
+</div>
+{% else %}
 <div class="card p-3 mb-3">
   <h6 class="mb-2"><i class="bi bi-exclamation-triangle"></i> My Squawks <span class="text-muted small fw-normal">({{ my_squawks|length }})</span></h6>
   {% if my_squawks %}
@@ -30,12 +53,15 @@
   {% endif %}
 </div>
 
+{% endif %}
+
+{% if not inspector_only %}
 <div class="card p-3 mb-3">
   {#- Checking a task off no longer finishes it outright - it goes to
      Awaiting Confirmation until an Inspector or admin signs off (see
      plane_todo_toggle/plane_todo_confirm in app.py), same request/confirm
      step a squawk's repair or a project sub area already requires. #}
-  <h6 class="mb-2"><i class="bi bi-list-check"></i> My Tasks <span class="text-muted small fw-normal">({{ my_todos|length }})</span></h6>
+  <h6 class="mb-2" data-change="JOBS-28"><i class="bi bi-list-check"></i> My To-Dos <span class="text-muted small fw-normal">({{ my_todos|length }})</span></h6>
   {% if my_todos %}
   <ul class="list-group list-group-flush">
     {% for t in my_todos %}
@@ -53,6 +79,7 @@
   <p class="text-muted small mb-0">Nothing assigned to you right now.</p>
   {% endif %}
 </div>
+{% endif %}
 
 {% if my_todos_pending %}
 <div class="card p-3 mb-3">
@@ -60,11 +87,15 @@
   <ul class="list-group list-group-flush">
     {% for t in my_todos_pending %}
     <li class="list-group-item px-0 d-flex align-items-start gap-2">
-      <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=t.asset_id, todo_id=t.id) }}" data-confirm="Undo - back to not done yet?">
+      {% if inspector_only %}
+      <i class="bi bi-square fs-5 text-warning"></i>
+      {% else %}
+      <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=t.asset_id, todo_id=t.id) }}" data-confirm="Reopen this to-do?" data-confirm-title="Reopen To-Do" data-confirm-ok="Reopen" data-confirm-style="warning" data-change="JOBS-42">
         <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Undo">
           <i class="bi bi-square fs-5 text-warning"></i>
         </button>
       </form>
+      {% endif %}
       <span><a href="{{ url_for('asset_detail', asset_id=t.asset_id) }}" class="text-muted small">{{ t.asset_tag }}</a> - {{ t.description }}
         {% if not can_confirm %}<small class="text-warning-emphasis fw-bold d-block">Marked ready - waiting on an Inspector or admin to confirm</small>{% endif %}
       </span>
@@ -85,6 +116,7 @@
 </div>
 {% endif %}
 
+{% if not inspector_only %}
 <div class="card p-3 mb-3">
   <h6 class="mb-2"><i class="bi bi-check-square"></i> Completed <span class="text-muted small fw-normal">({{ my_todos_done|length + my_squawks_done|length }})</span></h6>
   {% if my_todos_done or my_squawks_done %}
@@ -132,4 +164,5 @@
   <p class="text-muted small mb-0">Nothing due across the fleet right now.</p>
   {% endif %}
 </div>
+{% endif %}
 {% endblock %}

@@ -35,27 +35,29 @@
       {% if chart_labels %}
       <canvas id="compression-chart" height="100"></canvas>
       {% else %}
-      <p class="text-muted small mb-0">No compression checks logged yet for this asset.</p>
+      <p class="text-muted small mb-0">No compression checks logged yet for this aircraft.</p>
       {% endif %}
     </div>
   </div>
   <div class="col-lg-5">
     <div class="card p-3 h-100">
-      <h6 class="text-muted mb-2">Log a Check</h6>
+      {% if can_edit_checks %}
+      <h6 class="text-muted mb-2">{{ 'Correct this Check' if editing else 'Log a Check' }}</h6>
       <form method="post">
+        {% if editing %}<input type="hidden" name="check_id" value="{{ editing.id }}">{% endif %}
         <div class="row g-2">
           <div class="col-6">
             <label class="form-label small mb-0">Date</label>
-            <input type="date" name="checked_date" class="form-control form-control-sm" value="{{ today }}">
+            <input type="date" name="checked_date" class="form-control form-control-sm" value="{{ editing.checked_date if editing else today }}">
           </div>
           <div class="col-6">
             <label class="form-label small mb-0">Hours (Tach/Hobbs)</label>
-            <input type="number" step="any" name="hours" class="form-control form-control-sm">
+            <input type="number" step="any" name="hours" class="form-control form-control-sm" value="{{ '%g'|format(editing.hours) if editing and editing.hours is not none else '' }}">
           </div>
         </div>
         <div class="mt-2">
           <label class="form-label small mb-0">Master Orifice <span class="text-muted">(reference, e.g. 80)</span></label>
-          <input type="number" step="any" name="master_orifice" class="form-control form-control-sm" value="80">
+          <input type="number" step="any" name="master_orifice" class="form-control form-control-sm" value="{{ ('%g'|format(editing.master_orifice) if editing.master_orifice is not none else '') if editing else 80 }}">
         </div>
         <div class="mt-2">
           <label class="form-label small mb-0">Number of Cylinders</label>
@@ -69,20 +71,25 @@
           {% for i in range(1, 7) %}
           <div class="col-4 cyl-field" data-cyl="{{ i }}">
             <label class="form-label small mb-0">Cyl {{ i }}</label>
-            <input type="number" step="any" name="cyl{{ i }}" class="form-control form-control-sm">
+            <input type="number" step="any" name="cyl{{ i }}" class="form-control form-control-sm" value="{{ '%g'|format(editing['cyl' ~ i]) if editing and editing['cyl' ~ i] is not none else '' }}">
           </div>
           {% endfor %}
         </div>
         <div class="mt-2">
           <label class="form-label small mb-0">Performed By</label>
-          <input type="text" name="performed_by" class="form-control form-control-sm" placeholder="optional">
+          <input type="text" name="performed_by" class="form-control form-control-sm" placeholder="optional" value="{{ (editing.performed_by or '') if editing else '' }}">
         </div>
         <div class="mt-2">
           <label class="form-label small mb-0">Notes</label>
-          <input type="text" name="notes" class="form-control form-control-sm" placeholder="optional">
+          <input type="text" name="notes" class="form-control form-control-sm" placeholder="optional" value="{{ (editing.notes or '') if editing else '' }}">
         </div>
-        <button class="btn btn-primary btn-sm w-100 mt-2 fw-bold">Log Check</button>
+        <button class="btn btn-primary btn-sm w-100 mt-2 fw-bold">{{ 'Save Changes' if editing else 'Log Check' }}</button>
+        {% if editing %}<a href="{{ url_for('asset_compression', asset_id=asset.id) }}" class="btn btn-outline-secondary btn-sm w-100 mt-1">Cancel</a>{% endif %}
       </form>
+      {% else %}
+      <h6 class="text-muted mb-2">Log a Check</h6>
+      <p class="text-muted small mb-0">Only admins and techs can log or change compression checks.</p>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -92,7 +99,7 @@
   <h6 class="text-muted mb-2">History</h6>
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0">
-      <thead><tr><th>Date</th><th>Hours</th><th>Master</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>By</th><th>Notes</th></tr></thead>
+      <thead><tr><th>Date</th><th>Hours</th><th>Master</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>By</th><th>Notes</th>{% if can_edit_checks %}<th></th>{% endif %}</tr></thead>
       <tbody>
         {% for c in checks %}
         <tr>
@@ -104,6 +111,14 @@
           {% endfor %}
           <td><small class="text-muted">{{ c.performed_by or '-' }}</small></td>
           <td><small class="text-muted">{{ c.notes or '-' }}</small></td>
+          {% if can_edit_checks %}
+          <td class="text-nowrap text-end" data-change="JOBS-27">
+            <a href="{{ url_for('asset_compression', asset_id=asset.id, edit=c.id) }}" class="btn btn-sm btn-outline-secondary py-0 px-1" title="Correct this check"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{{ url_for('asset_compression_delete', asset_id=asset.id, check_id=c.id) }}" class="d-inline" data-confirm="Remove the {{ c.checked_date|usdate }} compression check?" data-confirm-style="danger">
+              <button class="btn btn-sm btn-outline-danger py-0 px-1" title="Remove this check"><i class="bi bi-x"></i></button>
+            </form>
+          </td>
+          {% endif %}
         </tr>
         {% endfor %}
       </tbody>
@@ -128,8 +143,10 @@
       if (!show) { input.value = ''; }
     });
   }
-  select.addEventListener('change', apply);
-  apply();
+  if (select) {
+    select.addEventListener('change', apply);
+    apply();
+  }
 })();
 </script>
 {% if chart_labels %}

@@ -17,9 +17,13 @@
         {% endif %}
       </div>
       <p class="text-muted small mb-1">{{ p.description or 'No description' }}</p>
-      <form method="post" action="{{ url_for('project_restore', project_id=p.id) }}" class="mt-1">
+      {% if is_master_admin or shop_role == 'admin' %}
+      {#- JOBS-25: Restore from here comes back to this Deleted view with a message. #}
+      <form method="post" action="{{ url_for('project_restore', project_id=p.id) }}" class="mt-1" data-change="JOBS-25">
+        <input type="hidden" name="next" value="projects_deleted">
         <button class="btn btn-outline-success btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>
       </form>
+      {% endif %}
       {% else %}
       <a href="{{ url_for('project_detail', project_id=p.id) }}" class="text-decoration-none text-dark">
         <div class="d-flex justify-content-between gap-2">
@@ -37,13 +41,20 @@
         {% set t = proj_tags.get(p.id) %}
         {% if t %}<div class="small mb-1 promised-tag"><i class="bi bi-calendar-check"></i> <span class="badge bg-{{ t[2] }}{{ ' text-dark' if t[2] in ('warning', 'light') }}{{ ' border' if t[2] == 'light' }}">{{ t[1] }}</span>{% if p.promised_date %} <span class="text-muted">Promised {{ p.promised_date|usdate }}</span>{% endif %}</div>{% endif %}
         <p class="text-muted small mb-1">{{ p.description or 'No description' }}</p>
-        <div>
+        {% if can_see_shop_costs %}
+        <div data-change="JOBS-07">
           <span class="text-muted small">Parts cost so far:</span>
           <strong>${{ "%.2f"|format(proj_costs.get(p.id, 0)) }}</strong>
         </div>
+        {% endif %}
       </a>
       {% if p.asset_display_id %}
+      {#- JOBS-03: the plane's page is for admin, tech and inspector; others just see the tail number. #}
+      {% if is_master_admin or shop_role in ('admin', 'tech', 'inspector') %}
       <a href="{{ url_for('asset_detail', asset_id=p.asset_display_id) }}" class="small mt-1"><i class="bi bi-airplane"></i> {{ p.asset_display_tag }}</a>
+      {% else %}
+      <span class="small mt-1 text-muted"><i class="bi bi-airplane"></i> {{ p.asset_display_tag }}</span>
+      {% endif %}
       {% endif %}
       {% endif %}
     </div>
@@ -65,11 +76,15 @@
      order-md-* puts it back in its original spot, first, at md+ - see
      .list-toolbar-search in style.css). #}
   <a href="{{ url_for('projects_parts_used') }}" class="btn btn-outline-primary text-nowrap order-md-2"><i class="bi bi-box-seam"></i> <span class="d-none d-md-inline">Parts Used</span></a>
+  {% if is_master_admin or shop_role in ('admin', 'tech') %}
   <a href="{{ url_for('project_new') }}" class="btn btn-warning fw-bold text-nowrap order-md-3"><i class="bi bi-plus-lg"></i> New Project</a>
+  {% endif %}
+  {% if is_master_admin or shop_role == 'admin' %}
   <a href="{{ url_for('trash_page') }}" class="btn btn-outline-secondary btn-sm text-nowrap order-md-4" title="Recently Deleted"><i class="bi bi-trash3"></i></a>
+  {% endif %}
   <form class="d-flex gap-2 list-toolbar-search order-md-1" method="get">
     {% if request.args.get('status') %}<input type="hidden" name="status" value="{{ request.args.get('status') }}">{% endif %}
-    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search name, code, description, asset...">
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search name, code, description, aircraft...">
     <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
   </form>
 </div>
@@ -86,6 +101,9 @@
 
 {% if status_filter == 'deleted' %}
   <!-- Deleted folder: soft-deleted projects, restorable in place -->
+  {% if is_master_admin or shop_role == 'admin' %}
+  <p class="small text-muted" data-change="JOBS-25">To delete a job for good, or empty everything at once, go to <a href="{{ url_for('trash_page') }}">Recently Deleted</a>.</p>
+  {% endif %}
   {{ project_tiles(projects, deleted=true) }}
 {% elif by_year is none %}
   <!-- Search results: flat grid -->
@@ -110,7 +128,7 @@
     </div>
   </div>
   {% else %}
-  <p class="text-muted">No projects yet. <a href="{{ url_for('project_new') }}">Create one</a>.</p>
+  <p class="text-muted">No projects yet.{% if is_master_admin or shop_role in ('admin', 'tech') %} <a href="{{ url_for('project_new') }}">Create one</a>.{% endif %}</p>
   {% endfor %}
 {% endif %}
 

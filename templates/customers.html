@@ -27,7 +27,7 @@
           {% endif %}
           <a href="{{ url_for('customer_detail', customer_id=c.row.id) }}" class="btn btn-sm btn-outline-adm"><i class="bi bi-eye"></i></a>
           <a href="{{ url_for('customer_edit', customer_id=c.row.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-          <form method="post" action="{{ url_for('customer_delete', customer_id=c.row.id) }}" class="d-inline" data-confirm="Remove this customer account? They'll no longer be able to log in." data-confirm-title="Remove Customer">
+          <form method="post" action="{{ url_for('customer_delete', customer_id=c.row.id) }}" class="d-inline" data-confirm="Delete this customer account for good? To just stop them logging in, untick Active on their account instead." data-confirm-title="Delete Customer" data-confirm-ok="Delete" data-confirm-style="danger" data-change="JOBS-32">
             <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
           </form>
         </td>

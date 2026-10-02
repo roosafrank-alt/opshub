@@ -535,6 +535,20 @@ def _migrate(conn):
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )""")
     conn.commit()
+    # JOBS-39: default time block (days) per Quick Type, set from Manage >
+    # Task Templates and used for a new project's "Through" date when that is
+    # left blank. Seeded once, when the table is first created: Oil Change 1
+    # day, Annual Inspection 1 week. A type with no row means 1 day.
+    _days_table_new = not conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'task_template_days'").fetchone()
+    conn.execute("""CREATE TABLE IF NOT EXISTS task_template_days (
+        quick_type TEXT PRIMARY KEY,
+        days INTEGER NOT NULL
+    )""")
+    if _days_table_new:
+        conn.execute("INSERT OR IGNORE INTO task_template_days (quick_type, days) VALUES ('Oil Change', 1)")
+        conn.execute("INSERT OR IGNORE INTO task_template_days (quick_type, days) VALUES ('Annual Inspection', 7)")
+    conn.commit()
 
     # Master login: one users table shared by Shop Inventory and Flight
     # School. Brand new table, safe to create directly even on an existing
@@ -1274,6 +1288,12 @@ def _migrate(conn):
         ("projects", "intake_json", "ALTER TABLE projects ADD COLUMN intake_json TEXT"),
         ("projects", "intake_at", "ALTER TABLE projects ADD COLUMN intake_at TEXT"),
         ("projects", "intake_by", "ALTER TABLE projects ADD COLUMN intake_by TEXT"),
+        # JOBS-01: every shop role can do the Intake Check. The role of whoever
+        # did it is kept so an apprentice's check is flagged "needs
+        # verification" until an admin/tech/inspector verifies it (who + when).
+        ("projects", "intake_by_role", "ALTER TABLE projects ADD COLUMN intake_by_role TEXT"),
+        ("projects", "intake_verified_by", "ALTER TABLE projects ADD COLUMN intake_verified_by TEXT"),
+        ("projects", "intake_verified_at", "ALTER TABLE projects ADD COLUMN intake_verified_at TEXT"),
         # TSA verification on file (set by a CFI/admin on the student
         # profile) - NULL = not verified yet.
         ("students", "tsa_verified_date", "ALTER TABLE students ADD COLUMN tsa_verified_date TEXT"),
@@ -2300,6 +2320,20 @@ def _migrate(conn):
     if "sent_back_note" not in quick_cols_sent_back:
         conn.execute("ALTER TABLE plane_squawks ADD COLUMN sent_back_note TEXT")
         conn.commit()
+
+    # JOBS-08: "Reopen" on a signed-off squawk puts it back at New and keeps a
+    # "Reopened by <name> on <date>" note (who/when), shown wherever it lists.
+    # JOBS-13: the same for a confirmed job discrepancy an admin/inspector reopens.
+    for _tbl, _col, _ddl in (
+            ("flights", "squawk_reopened_at", "ALTER TABLE flights ADD COLUMN squawk_reopened_at TEXT"),
+            ("flights", "squawk_reopened_by", "ALTER TABLE flights ADD COLUMN squawk_reopened_by TEXT"),
+            ("plane_squawks", "reopened_at", "ALTER TABLE plane_squawks ADD COLUMN reopened_at TEXT"),
+            ("plane_squawks", "reopened_by", "ALTER TABLE plane_squawks ADD COLUMN reopened_by TEXT"),
+            ("project_sections", "reopened_at", "ALTER TABLE project_sections ADD COLUMN reopened_at TEXT"),
+            ("project_sections", "reopened_by", "ALTER TABLE project_sections ADD COLUMN reopened_by TEXT")):
+        if _col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({_tbl})").fetchall()]:
+            conn.execute(_ddl)
+            conn.commit()
 
 
 def _carry_over_project_photos_to_assets(conn):
