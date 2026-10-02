@@ -50,7 +50,10 @@
     document.getElementById('retry').onclick = go;
   }
   function go() {
-    path = document.getElementById('path').value || '/';
+    path = (document.getElementById('path').value || '/').trim();
+    try { if (/^https?:\/\//i.test(path)) { var u = new URL(path); path = u.pathname + u.search; } } catch (e) {}   // a pasted full address works too
+    if (path.charAt(0) !== '/') path = '/' + path;
+    document.getElementById('path').value = path;
     document.getElementById('fa').src = location.origin + path;
     var box = document.getElementById('fb-problem'); box.style.display = 'none';
     var target = beforeOrigin() + path;
