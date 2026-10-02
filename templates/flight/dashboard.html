@@ -318,114 +318,54 @@
 <p class="text-muted small mt-n2 mb-3"><i class="bi bi-info-circle"></i> Station account - use Schedule below to book time on a plane.</p>
 {% endif %}
 
+{#- FLY-30 (Frank): the shortcut tiles are each kind of user's most frequent
+   jobs - not one list for everybody. Instructors: the calendar, open times,
+   who is waiting for a slot, their students. Students: ask for a flight, see
+   their bookings, see open times, the waitlist - never planes. Logging a past
+   session is not a daily job: it lives on the Schedule form's "Log a past
+   session instead of booking" switch and the Flight History page. #}
+{% macro shortcut_tiles(tiles) %}
+<div class="d-sm-none row row-cols-4 g-2 mb-3" data-change="FLY-30">
+  {% for t in tiles %}
+  <div class="col">
+    <a href="{{ t.url }}" class="text-decoration-none">
+      <div class="card dash-shortcut-sm">
+        <i class="bi {{ t.icon }} {{ t.color }}"></i>
+        <div class="fw-bold dash-shortcut-label">{{ t.label }}</div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+<div class="d-none d-sm-flex row row-cols-4 g-2 g-lg-3 mb-3" data-change="FLY-30">
+  {% for t in tiles %}
+  <div class="col">
+    <a href="{{ t.url }}" class="text-decoration-none">
+      <div class="card dash-tile-lg text-center">
+        <i class="bi {{ t.icon }} fs-4 {{ t.color }}"></i>
+        <div class="fw-bold mt-1">{{ t.label }}</div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}
 {% if cfi %}
-<div class="d-sm-none row row-cols-4 g-2 mb-3">
-  <div class="col">
-    <a href="{{ url_for('flight.log_new') }}" class="text-decoration-none">
-      <div class="card dash-shortcut-sm">
-        <i class="bi bi-journal-plus text-warning"></i>
-        <div class="fw-bold dash-shortcut-label" data-change="FLY-13">Log a Past Session</div>
-      </div>
-    </a>
-  </div>
-  <div class="col">
-    <a href="{{ url_for('flight.schedule_calendar') }}" class="text-decoration-none">
-      <div class="card dash-shortcut-sm">
-        <i class="bi bi-calendar3 text-info"></i>
-        <div class="fw-bold dash-shortcut-label">Schedule</div>
-      </div>
-    </a>
-  </div>
-  <div class="col">
-    <a href="{{ url_for('flight.students_list') }}" class="text-decoration-none">
-      <div class="card dash-shortcut-sm">
-        <i class="bi bi-people text-primary"></i>
-        <div class="fw-bold dash-shortcut-label">Students</div>
-      </div>
-    </a>
-  </div>
-  <div class="col">
-    <a href="{{ url_for('flight.planes_list') }}" class="text-decoration-none">
-      <div class="card dash-shortcut-sm">
-        <i class="bi bi-airplane text-secondary"></i>
-        <div class="fw-bold dash-shortcut-label">Planes</div>
-      </div>
-    </a>
-  </div>
-</div>
-<div class="d-none d-sm-flex row row-cols-2 row-cols-md-4 g-3 mb-3">
-  <div class="col">
-    <a href="{{ url_for('flight.log_new') }}" class="text-decoration-none">
-      <div class="card dash-tile-lg text-center">
-        <i class="bi bi-journal-plus fs-4 text-warning"></i>
-        <div class="fw-bold mt-1" data-change="FLY-13">Log a Past Session</div>
-      </div>
-    </a>
-  </div>
-  <div class="col">
-    <a href="{{ url_for('flight.schedule_calendar') }}" class="text-decoration-none">
-      <div class="card dash-tile-lg text-center">
-        <i class="bi bi-calendar3 fs-4 text-info"></i>
-        <div class="fw-bold mt-1">Schedule</div>
-      </div>
-    </a>
-  </div>
-  <div class="col">
-    <a href="{{ url_for('flight.students_list') }}" class="text-decoration-none">
-      <div class="card dash-tile-lg text-center">
-        <i class="bi bi-people fs-4 text-primary"></i>
-        <div class="fw-bold mt-1">Students</div>
-      </div>
-    </a>
-  </div>
-  <div class="col">
-    <a href="{{ url_for('flight.planes_list') }}" class="text-decoration-none">
-      <div class="card dash-tile-lg text-center">
-        <i class="bi bi-airplane fs-4 text-secondary"></i>
-        <div class="fw-bold mt-1">Planes</div>
-      </div>
-    </a>
-  </div>
-</div>
+{{ shortcut_tiles([
+  {'url': url_for('flight.schedule_calendar'), 'icon': 'bi-calendar3', 'color': 'text-info', 'label': 'Schedule'},
+  {'url': url_for('flight.schedule_availability'), 'icon': 'bi-grid-3x3-gap', 'color': 'text-success', 'label': 'Availability'},
+  {'url': url_for('flight.waitlist_page'), 'icon': 'bi-hourglass-split', 'color': 'text-warning', 'label': 'Waitlist'},
+  {'url': url_for('flight.students_list'), 'icon': 'bi-people', 'color': 'text-primary', 'label': 'Students'},
+]) }}
 {% endif %}
 
 {% if student %}
-<div class="d-sm-none row row-cols-2 g-2 mb-3">
-  <div class="col">
-    <a href="{{ url_for('flight.schedule_new') }}" class="text-decoration-none">
-      <div class="card dash-shortcut-row">
-        <i class="bi bi-calendar-plus text-warning"></i>
-        <div class="fw-bold dash-shortcut-label">Request a Flight</div>
-      </div>
-    </a>
-  </div>
-  <div class="col">
-    <a href="{{ url_for('flight.schedule_calendar') }}" class="text-decoration-none">
-      <div class="card dash-shortcut-row">
-        <i class="bi bi-calendar3 text-info"></i>
-        <div class="fw-bold dash-shortcut-label">Schedule</div>
-      </div>
-    </a>
-  </div>
-</div>
-<div class="d-none d-sm-flex row row-cols-2 row-cols-md-4 g-3 mb-3">
-  <div class="col">
-    <a href="{{ url_for('flight.schedule_new') }}" class="text-decoration-none">
-      <div class="card p-3 text-center">
-        <i class="bi bi-calendar-plus fs-2 text-warning"></i>
-        <div class="fw-bold mt-1">Request a Flight</div>
-      </div>
-    </a>
-  </div>
-  <div class="col">
-    <a href="{{ url_for('flight.schedule_calendar') }}" class="text-decoration-none">
-      <div class="card p-3 text-center">
-        <i class="bi bi-calendar3 fs-2 text-info"></i>
-        <div class="fw-bold mt-1">Schedule</div>
-      </div>
-    </a>
-  </div>
-</div>
+{{ shortcut_tiles([
+  {'url': url_for('flight.schedule_new'), 'icon': 'bi-calendar-plus', 'color': 'text-warning', 'label': 'Request a Flight'},
+  {'url': url_for('flight.schedule_calendar'), 'icon': 'bi-calendar3', 'color': 'text-info', 'label': 'Schedule'},
+  {'url': url_for('flight.schedule_availability'), 'icon': 'bi-grid-3x3-gap', 'color': 'text-success', 'label': 'Availability'},
+  {'url': url_for('flight.waitlist_page'), 'icon': 'bi-hourglass-split', 'color': 'text-secondary', 'label': 'Waitlist'},
+]) }}
 {% endif %}
 
 <div id="dashboard-live-region" data-live-url="{{ url_for('flight.dashboard_live') }}">

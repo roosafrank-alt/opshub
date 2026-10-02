@@ -537,3 +537,25 @@ body { background: #f4f5f7; }
 .btn-owner:hover, .btn-owner:focus { background: var(--owner-teal-dk); border-color: var(--owner-teal-dk); color: #fff; }
 .btn-outline-owner { color: var(--owner-teal); border-color: var(--owner-teal); }
 .btn-outline-owner:hover { background: var(--owner-teal); border-color: var(--owner-teal); color: #fff; }
+
+/* UI-2 (Frank): tighter spacing on a laptop at half-screen width (about 576-1099px).
+   Phones and full-width desktops are untouched; this only trims the padding and gaps
+   that were sized for a phone's thumb or a wide monitor. */
+@media (min-width: 576px) and (max-width: 1099.98px) {
+  .container-fluid.py-3 { padding-top: .5rem !important; padding-bottom: .5rem !important; }
+  .navbar { padding-top: .25rem; padding-bottom: .25rem; }
+  h4, .h4 { font-size: 1.2rem; margin-bottom: .4rem; }
+  h5, .h5 { font-size: 1.05rem; }
+  .card.p-4 { padding: 1rem !important; }
+  .card.p-3 { padding: .7rem !important; }
+  .card-body { padding: .7rem; }
+  .mb-4 { margin-bottom: 1rem !important; }
+  .mb-3 { margin-bottom: .6rem !important; }
+  .form-label { margin-bottom: .15rem; }
+  .table > :not(caption) > * > * { padding: .3rem .45rem; }
+  .list-group-item { padding: .45rem .75rem; }
+  .alert { padding: .5rem .75rem; margin-bottom: .6rem; }
+  .btn { --bs-btn-padding-y: .3rem; }
+  .btn-sm { --bs-btn-padding-y: .2rem; }
+  .dash-tile-lg { padding: .6rem .4rem; }
+}

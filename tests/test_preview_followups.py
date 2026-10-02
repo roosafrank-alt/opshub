@@ -22,3 +22,21 @@ class FollowUpTest(OpsHubTestCase):
         self.assertTrue(r.headers["Location"].endswith("/flight/students"), r.headers["Location"])
         r = c.post(f"/admin/users/{uid}/edit?next=//evil.example", data={"name": "Tech Person", "shop_role": "tech", "active": "1"})
         self.assertNotIn("evil.example", r.headers["Location"])
+
+
+class DashboardShortcutsTest(OpsHubTestCase):
+    """FLY-30: each kind of user gets their own most-frequent shortcuts."""
+    def test_instructor_tiles(self):
+        html = self.login("cfi").get("/flight/dashboard").get_data(as_text=True)
+        for needle in ("/flight/schedule/availability", "/flight/waitlist", "/flight/students"):
+            self.assertIn(f'href="{needle}"', html)
+        self.assertNotIn("Log a Past Session", html)
+
+    def test_student_tiles_have_no_planes(self):
+        html = self.login("flight_student").get("/flight/dashboard").get_data(as_text=True)
+        for needle in ("/flight/schedule/availability", "/flight/waitlist", "/flight/schedule/new"):
+            self.assertIn(f'href="{needle}"', html)
+        self.assertNotIn('class="fw-bold dash-shortcut-label">Planes<', html)
+
+    def test_flight_history_has_the_log_a_past_session_button_for_instructors(self):
+        self.assertIn("Log a Past Session", self.login("cfi").get("/flight/log").get_data(as_text=True))

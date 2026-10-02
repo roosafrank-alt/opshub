@@ -347,9 +347,11 @@ class DashboardTest(FlyBase):
 
 class WordingTest(FlyBase):
     def test_one_name_for_logging_a_past_session(self):  # FLY-13
-        html = self.login("cfi").get("/flight/dashboard").get_data(as_text=True)
+        html = self.login("cfi").get("/flight/log").get_data(as_text=True)   # FLY-30: no longer a dashboard tile
         self.assertIn("Log a Past Session", html)
         self.assertNotIn("Log a Flight", html)
+        dash = self.login("cfi").get("/flight/dashboard").get_data(as_text=True)
+        self.assertNotIn("Log a Past Session", dash)
         form = self.login("cfi").get("/flight/schedule/new?complete=1").get_data(as_text=True)
         self.assertIn("Log a past session instead of booking", form)
         self.assertIn("Log a Past Session", form)
