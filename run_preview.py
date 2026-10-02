@@ -33,9 +33,11 @@ if os.path.isdir(vend):
     sys.path.insert(0, vend)
 sys.path.insert(0, HERE)            # our preview/ package
 import preview  # noqa: E402
-preview.neutralize()                # BEFORE the app is imported
+# This copy's own folder goes first on the path BEFORE neutralize(): that call imports notify (which imports db),
+# and those must come from THIS tree - otherwise the "before" copy would load the new code's db.py and database.
 sys.path.insert(0, tree)
 os.chdir(tree)
+preview.neutralize()                # before the app is imported
 import db  # noqa: E402
 if args.db:
     db.DB_PATH = args.db
