@@ -1,10 +1,10 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}{% if edit_flight_id %}Edit Flight{% else %}Log a Flight{% endif %} - OpsHub{% endblock %}
+{% block title %}{% if edit_flight_id %}Edit Flight{% else %}Log a Past Session{% endif %} - OpsHub{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-7">
 <div class="card p-4">
-  <h4>{% if edit_flight_id %}Edit Logged Flight{% else %}Log a Flight{% endif %}</h4>
+  <h4>{% if edit_flight_id %}Edit Logged Flight{% else %}<span data-change="FLY-13">Log a Past Session</span>{% endif %}</h4>
   {% set is_booking = prefill and prefill.scheduled_flight_id %}
   {% if is_booking %}
   {#- QA ux-log-booked-flight-compact: the plane/student/instructor/date are
@@ -31,6 +31,7 @@
   {% set is_own_plane = (form and form.get('own_plane')) or (not form and prefill and prefill.own_plane) %}
   <form method="post" action="{% if edit_flight_id %}{{ url_for('flight.log_edit', flight_id=edit_flight_id) }}{% endif %}">
     <input type="hidden" name="scheduled_flight_id" value="{{ form.get('scheduled_flight_id') if form else (prefill.scheduled_flight_id if prefill else '') }}">
+    <input type="hidden" name="return_to" value="{{ return_to or '' }}">
     <div id="booking-fields" class="{{ 'd-none' if is_booking }}">
     <div class="row">
       <div class="col-md-6 mb-3">
@@ -188,6 +189,16 @@
       <div class="form-text">Anything typed here counts as a squawk - it'll show up prominently on the Maintenance side until someone acknowledges it. Leave it blank for a routine flight with nothing to flag.</div>
       {% endif %}
     </div>
+    {% if edit_flight_id %}
+    {#- FLY-10: editing a logged flight can't record a payment (these boxes used to be
+       accepted and thrown away), so they are gone - Mark Paid on Flight History / Flight
+       Detail records one properly. #}
+    <div class="mb-3 small" data-change="FLY-10">
+      <span class="text-muted">Payment:</span>
+      {% if edit_paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}
+      <span class="text-muted">To record a payment use Billing.</span>
+    </div>
+    {% else %}
     <div class="form-check mb-2">
       <input type="checkbox" class="form-check-input" name="paid" id="paid-check" onchange="document.getElementById('paid-details').hidden = !this.checked;" {% if form and form.get('paid') %}checked{% endif %}>
       <label class="form-check-label" for="paid-check">Already paid <span class="text-muted small">(check if this one's been collected already)</span></label>
@@ -211,6 +222,7 @@
         </select>
       </div>
     </div>
+    {% endif %}
     {% if is_booking %}
     {#- Same pinned-bottom-bar treatment as logging a completed flight from
        Schedule a Flight (QA ux-log-flight-sticky-save) - Log Flight stays
@@ -238,8 +250,8 @@
     </style>
     {% endif %}
     <div class="d-flex justify-content-between" id="log-form-footer">
-      <a href="{% if edit_flight_id %}{{ url_for('flight.log_detail', flight_id=edit_flight_id) }}{% else %}{{ url_for('flight.dashboard') }}{% endif %}" class="btn btn-outline-secondary">Cancel</a>
-      <button type="submit" class="btn btn-primary fw-bold">{% if edit_flight_id %}Save Changes{% else %}Log Flight{% endif %}</button>
+      <a href="{{ return_to or (url_for('flight.log_detail', flight_id=edit_flight_id) if edit_flight_id else url_for('flight.dashboard')) }}" class="btn btn-outline-secondary" data-change="FLY-31">Cancel</a>
+      <button type="submit" class="btn btn-primary fw-bold">{% if edit_flight_id %}Save Changes{% else %}Log Session{% endif %}</button>
     </div>
   </form>
 </div>

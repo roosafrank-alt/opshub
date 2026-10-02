@@ -47,15 +47,10 @@
     <span><span class="cfi-sched-seg flight d-inline-block" style="width:.8rem;height:.8rem;border-radius:2px;"></span> Booked</span>
     <span><span class="cfi-sched-seg gap d-inline-block" style="width:.8rem;height:.8rem;border-radius:2px;"></span> Unassigned gap</span>
     <span><span class="cfi-sched-seg off d-inline-block" style="width:.8rem;height:.8rem;border-radius:2px;"></span> Time off</span>
-    <span class="ms-auto">6 AM - 9 PM shown</span>
+    <span class="ms-auto">{{ school_day_label }} shown</span>
   </div>
   <div class="cfi-sched-ruler small text-muted">
-    <span style="left:0%">6a</span>
-    <span style="left:20%">9a</span>
-    <span style="left:40%">noon</span>
-    <span style="left:60%">3p</span>
-    <span style="left:80%">6p</span>
-    <span style="left:100%">9p</span>
+    {% for tick in ruler %}<span style="left:{{ tick.left }}%">{{ tick.label }}</span>{% endfor %}
   </div>
   {% for day in days %}
   <div class="cfi-sched-day py-2 {{ 'is-today' if day.is_today }}">
@@ -99,6 +94,23 @@
   {% endfor %}
 </div>
 
+{% if time_off_warning %}
+<div class="alert alert-warning mb-3" data-change="FLY-18">
+  <h6 class="alert-heading mb-1"><i class="bi bi-exclamation-triangle-fill"></i> {{ time_off_warning|length }} lesson{{ 's are' if time_off_warning|length != 1 else ' is' }} already booked then</h6>
+  <ul class="mb-2">
+    {% for b in time_off_warning %}<li>{{ b.when_label }} &middot; {{ b.student_name }} &middot; {{ b.plane_tag }}</li>{% endfor %}
+  </ul>
+  <form method="post" class="d-flex gap-2 flex-wrap">
+    {% for k in ('view_date', 'cfi_id', 'off_date', 'off_end_date', 'start_time', 'end_time', 'note', 'recurs_weekly') %}
+    {% if time_off_form.get(k) %}<input type="hidden" name="{{ k }}" value="{{ time_off_form.get(k) }}">{% endif %}
+    {% endfor %}
+    <input type="hidden" name="confirm_overlap" value="1">
+    <button class="btn btn-warning fw-bold btn-sm">Add time off anyway (I'll move them)</button>
+    <a href="{{ url_for('flight.cfi_schedule', date=time_off_form.get('view_date') or None, cfi_id=cfi_id_param) }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+  </form>
+  <div class="small mt-2">Those lessons get the review triangle on the Dashboard until they're moved.</div>
+</div>
+{% endif %}
 <div class="card p-3">
   <h6 class="mb-2"><i class="bi bi-calendar-x"></i> Add time off / a break <span class="text-muted small fw-normal">(blocks new bookings {{ 'for them' if viewing_cfi else 'for you' }} over this time)</span></h6>
   <form method="post" class="row g-2 align-items-end">

@@ -20,8 +20,9 @@ import io
 import json
 import re
 import secrets
+from urllib.parse import urlparse, parse_qs
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, Response, current_app, abort, has_request_context
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, Response, current_app, abort, has_request_context, g
 from werkzeug.security import generate_password_hash
 
 from db import get_db, now_iso, asset_meter, maintenance_status
@@ -444,7 +445,7 @@ PAST_BOOKING_GRACE_MIN = 5  # a booking for "right now" typed a few minutes late
 def _past_booking_error(scheduled_date, scheduled_time):
     """An error message when a booking's date (and time, if given) has
     already passed, else None. Past flights aren't booked - they're logged
-    with Schedule Flight's "Session Already Complete?" option instead."""
+    with Schedule Flight's "Log a past session" option instead."""
     try:
         d = datetime.strptime(scheduled_date, "%Y-%m-%d").date()
     except (TypeError, ValueError):
@@ -461,7 +462,7 @@ def _past_booking_error(scheduled_date, scheduled_time):
         return None
     when = _us_date(scheduled_date) + (f" at {_format_time_12h(scheduled_time)}" if scheduled_time else "")
     return (f"{when} is in the past - a flight can't be booked before now. If it already happened, "
-            f"tick \"Session Already Complete?\" and log it with its date and time.")
+            f"use \"Log a Past Session\" and log it with its date and time.")
 
 
 def _tsa_gate_error(conn, student_id):
@@ -1118,6 +1119,9 @@ def _alert_fix_links(reason, scheduled_id, student_id):
             links.append(dict(label="Check currency", icon="bi-person-lines-fill",
                               url=url_for("flight.student_edit", student_id=student_id),
                               hint="The student's solo currency and recent flights"))
+    if "time off" in reason:
+        links.append(dict(label="Move this lesson", icon="bi-calendar2-week", url=edit_url,
+                          hint="Pick a new time or instructor for this lesson"))
     if not any(l["url"] == edit_url for l in links):
         links.append(dict(label="Assign CFI" if not links else "Open booking", icon="bi-person-plus" if not links else "bi-pencil",
                           url=edit_url, hint="Edit the booking"))
@@ -1536,43 +1540,6 @@ def login():
 def logout():
     log_out_user()
     return redirect(url_for("home_launcher"))
-
-
-@flight_bp.route("/signup", methods=["GET", "POST"])
-def signup():
-    """CFI (admin) self-signup. Students don't sign up themselves - a CFI
-    creates their profile from the Students page. Creates a master login
-    account (flight_role='cfi') plus the linked CFI profile."""
-    if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
-        rate = _parse_float(request.form.get("rate_per_hour")) or 0
-        if not name or not username or not password:
-            flash("Name, username, and password are all required.", "danger")
-            return render_template("flight/signup.html", name=name, username=username)
-        conn = get_db()
-        existing = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
-        if existing:
-            conn.close()
-            flash(f"Username '{username}' is already taken.", "danger")
-            return render_template("flight/signup.html", name=name, username="")
-        cur = conn.execute(
-            "INSERT INTO users (name, username, password_hash, password_plain, flight_role, active, created_at) "
-            "VALUES (?, ?, ?, ?, 'cfi', 1, ?)",
-            (name, username, generate_password_hash(password, method="pbkdf2:sha256"), password, now_iso()))
-        conn.commit()
-        user_row = conn.execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone()
-        conn.close()
-        log_in_user(user_row)
-        if rate:
-            conn = get_db()
-            conn.execute("UPDATE cfis SET rate_per_hour = ? WHERE user_id = ?", (rate, user_row["id"]))
-            conn.commit()
-            conn.close()
-        flash(f"Welcome, {name}!", "success")
-        return redirect(url_for("flight.dashboard"))
-    return render_template("flight/signup.html", name="", username="")
 
 
 def _plane_maint_warnings(conn):
@@ -2164,6 +2131,9 @@ def dashboard_live():
     page's scroll position."""
     if request.args.get("next") in ("mine", "school") and session.get("is_master_admin"):
         session["next_scope"] = request.args["next"]
+    # FLY-29: the All / Mine toggle swaps in place the same way.
+    if request.args.get("scope") in ("all", "mine"):
+        session["dash_scope"] = request.args["scope"]
     conn = get_db()
     cfi = current_cfi(conn)
     student = current_student(conn)
@@ -2942,11 +2912,9 @@ def cfi_pay(cfi_id):
                            total_hours=total_hours, total_owed=total_owed, pay_rate=pay_rate)
 
 
-# The My Schedule timeline's window - 6am-9pm covers virtually every real
-# lesson, and clamping to it keeps one early/late outlier from squashing
-# every other day's bar down to a sliver.
-_CFI_SCHEDULE_DAY_START = 6 * 60
-_CFI_SCHEDULE_DAY_END = 21 * 60
+# The My Schedule timeline uses the school-day window (see _school_day_window);
+# clamping to it keeps one early/late outlier from squashing every other day's
+# bar down to a sliver.
 
 
 def _time_off_label(row):
@@ -2963,10 +2931,67 @@ def _time_off_label(row):
     return label
 
 
+def _school_day_label():
+    """'6 AM - 9 PM' for the pages that say what hours they cover."""
+    start, end = _school_day_window()
+    return f"{_hour_label(start // 60)} - {_hour_label(end // 60)}"
+
+
+def _school_day_ruler():
+    """Hour tick labels along My Schedule's day bar: [{'left': %, 'label'}, ...]."""
+    start, end = _school_day_window()
+    span = end - start
+    hours = list(range(start // 60, end // 60 + 1))
+    step = 3 if len(hours) > 9 else 2 if len(hours) > 5 else 1
+    ticks = hours[::step]
+    if hours[-1] not in ticks:
+        ticks.append(hours[-1])
+    out = []
+    for h in ticks:
+        label = "noon" if h == 12 else ("midnight" if h % 24 == 0 else f"{(h - 1) % 12 + 1}{'a' if h % 24 < 12 else 'p'}")
+        out.append({"left": round((h * 60 - start) / span * 100, 2), "label": label})
+    return out
+
+
+def _time_off_overlapping_bookings(conn, cfi_id, off_dates, start_time, end_time, recurs_weekly=False):
+    """FLY-18: this CFI's upcoming confirmed bookings that a new time-off entry
+    would sit on top of (same rule as _cfi_time_off_conflict: no times = the
+    whole day; a weekly entry covers every matching weekday from its date on)."""
+    today_str = date.today().strftime("%Y-%m-%d")
+    if start_time:
+        sh, sm = (int(x) for x in start_time.split(":"))
+        if end_time:
+            eh, em = (int(x) for x in end_time.split(":"))
+            end_min = eh * 60 + em
+        else:
+            end_min = 24 * 60
+        off_window = (sh * 60 + sm, end_min)
+    else:
+        off_window = None
+    anchor = off_dates[0]
+    anchor_wd = datetime.strptime(anchor, "%Y-%m-%d").weekday()
+    rows = conn.execute("""SELECT sf.*, a.tag as plane_tag, s.name as student_name FROM scheduled_flights sf
+                           JOIN assets a ON a.id = sf.asset_id JOIN students s ON s.id = sf.student_id
+                           WHERE sf.cfi_id = ? AND sf.status IN ('scheduled', 'balance_hold') AND sf.scheduled_date >= ?
+                           ORDER BY sf.scheduled_date, sf.scheduled_time""", (cfi_id, today_str)).fetchall()
+    out = []
+    for r in rows:
+        if recurs_weekly:
+            if r["scheduled_date"] < anchor or datetime.strptime(r["scheduled_date"], "%Y-%m-%d").weekday() != anchor_wd:
+                continue
+        elif r["scheduled_date"] not in off_dates:
+            continue
+        if not _windows_overlap(_time_window(r["scheduled_time"], r["duration_hours"]), off_window):
+            continue
+        out.append(dict(r, when_label=f"{_us_date(r['scheduled_date'])} {_format_time_12h(r['scheduled_time']) or '(no time)'}"))
+    return out
+
+
 def _cfi_schedule_pct(start_min, end_min):
-    span = _CFI_SCHEDULE_DAY_END - _CFI_SCHEDULE_DAY_START
-    left = max(0, min(100, (start_min - _CFI_SCHEDULE_DAY_START) / span * 100))
-    right = max(0, min(100, (end_min - _CFI_SCHEDULE_DAY_START) / span * 100))
+    day_start, day_end = _school_day_window()
+    span = day_end - day_start
+    left = max(0, min(100, (start_min - day_start) / span * 100))
+    right = max(0, min(100, (end_min - day_start) / span * 100))
     return left, max(right - left, 0.5)
 
 
@@ -2974,7 +2999,7 @@ def _cfi_schedule_week(conn, cfi_id, week_dates):
     """One row per day of the week for the My Schedule page: the CFI's own
     booked span (first flight start to last flight end) with a colored
     timeline bar - blue for booked, amber for an unassigned gap between two
-    bookings, red for time off - built from _CFI_SCHEDULE_DAY_START/END.
+    bookings, red for time off - built from the school-day window (_school_day_window).
     Doesn't include flight/student/plane details, just the shape of the
     day."""
     date_strs = [d.strftime("%Y-%m-%d") for d in week_dates]
@@ -3030,7 +3055,7 @@ def _cfi_schedule_week(conn, cfi_id, week_dates):
                     end_h, end_m = (int(x) for x in t["end_time"].split(":"))
                     end_min = end_h * 60 + end_m
                 else:
-                    end_min = _CFI_SCHEDULE_DAY_END
+                    end_min = _school_day_window()[1]
                 left, width = _cfi_schedule_pct(start_h * 60 + start_m, end_min)
                 segments.append({"kind": "off", "left": left, "width": width})
         days.append({
@@ -3055,6 +3080,13 @@ def cfi_schedule():
     An admin can also open/manage this same page for any CFI (?cfi_id=,
     see the Schedule link on the CFI roster) to add a break on their
     behalf - e.g. a CFI who's out and can't enter it themselves."""
+    # FLY-38: the same standard login check as every other page (an expired or
+    # deactivated login is sent to the sign-in page).
+    expired = refresh_or_expire_session()
+    if expired:
+        return expired
+    if _owner_preview_blocked():
+        return _owner_preview_redirect()
     raw_cfi_id = ((request.form.get("cfi_id") if request.method == "POST" else request.args.get("cfi_id")) or "").strip()
     is_admin_view = bool(session.get("is_master_admin")) and raw_cfi_id.isdigit()
     if not session.get("cfi_id") and not is_admin_view:
@@ -3077,6 +3109,8 @@ def cfi_schedule():
         note = request.form.get("note", "").strip()
         recurs_weekly = 1 if request.form.get("recurs_weekly") else 0
         anchor_date = request.form.get("view_date", "").strip()
+        time_off_warning = None
+        do_insert = False
         if not off_date:
             flash("Pick a date for the time off.", "danger")
         elif start_time and end_time and end_time <= start_time:
@@ -3096,10 +3130,25 @@ def cfi_schedule():
                 recurs_weekly = 0
             else:
                 off_dates = [off_date]
+            overlaps = _time_off_overlapping_bookings(conn, cfi_id, off_dates, start_time, end_time, recurs_weekly)
+            if overlaps and not request.form.get("confirm_overlap"):
+                # FLY-18: say which lessons are already booked then, and let
+                # the CFI add the time off anyway or back out.
+                time_off_warning = overlaps
+            else:
+                do_insert = True
+        if do_insert:
             for d in off_dates:
                 conn.execute("INSERT INTO cfi_time_off (cfi_id, off_date, start_time, end_time, note, recurs_weekly) "
                             "VALUES (?, ?, ?, ?, ?, ?)",
                             (cfi_id, d, start_time or None, end_time or None, note or None, recurs_weekly))
+            # Lessons already booked in that time get the review triangle
+            # (Dashboard > Needs Review) until they're moved.
+            who_off = (viewing_cfi["name"] if viewing_cfi else session.get("user_name")) or "The instructor"
+            for b in overlaps:
+                conn.execute("""UPDATE scheduled_flights SET needs_review = 1, review_reason = ?,
+                                 needs_review_acknowledged_at = NULL, needs_review_acknowledged_by = NULL WHERE id = ?""",
+                             (f"{who_off} has time off over this lesson - move it to a new time or instructor.", b["id"]))
             conn.commit()
             if len(off_dates) > 1:
                 msg = f"Time off added for {off_dates[0]} through {off_dates[-1]} - it now blocks new bookings for you over that span."
@@ -3108,10 +3157,14 @@ def cfi_schedule():
                 msg = f"Time off added for every {weekday_name} - it now blocks new bookings for you on that day going forward."
             else:
                 msg = "Time off added - it now blocks new bookings for you over that time."
-            flash(msg, "success")
-        conn.close()
-        return redirect(url_for("flight.cfi_schedule", date=anchor_date or off_date,
-                                cfi_id=cfi_id if is_admin_view else None))
+            if overlaps:
+                msg += (f" {len(overlaps)} lesson{'s' if len(overlaps) != 1 else ''} already booked then "
+                        f"{'are' if len(overlaps) != 1 else 'is'} flagged on the Dashboard until moved.")
+            flash(msg, "success" if not overlaps else "warning")
+        if time_off_warning is None:
+            conn.close()
+            return redirect(url_for("flight.cfi_schedule", date=anchor_date or off_date,
+                                    cfi_id=cfi_id if is_admin_view else None))
 
     today = date.today()
     day_str = request.args.get("date", "").strip() or today.strftime("%Y-%m-%d")
@@ -3123,6 +3176,8 @@ def cfi_schedule():
     week_start = day_date - timedelta(days=day_date.weekday())
     week_dates = [week_start + timedelta(days=i) for i in range(7)]
 
+    if request.method != "POST":
+        time_off_warning = None
     days = _cfi_schedule_week(conn, cfi_id, week_dates)
     # A recurring entry stays "upcoming" forever (its anchor off_date can be
     # long past while it still blocks every future occurrence of that
@@ -3138,7 +3193,9 @@ def cfi_schedule():
                            week_next=(week_start + timedelta(days=7)).strftime("%Y-%m-%d"),
                            upcoming_time_off=upcoming_time_off, today_str=today.strftime("%Y-%m-%d"),
                            viewing_cfi=viewing_cfi, cfi_id_param=(cfi_id if is_admin_view else None),
-                           effective_cfi_id=cfi_id)
+                           effective_cfi_id=cfi_id, time_off_warning=time_off_warning,
+                           school_day_label=_school_day_label(), ruler=_school_day_ruler(),
+                           time_off_form=request.form if request.method == "POST" else None)
 
 
 @flight_bp.route("/cfis/schedule/time-off/<int:off_id>/delete", methods=["POST"])
@@ -3146,6 +3203,11 @@ def cfi_time_off_delete(off_id):
     """Removes one of a CFI's time-off/break entries - a CFI can delete
     their own, and an admin can delete any (managing it on that CFI's
     behalf, same as adding one - see cfi_schedule)."""
+    expired = refresh_or_expire_session()  # FLY-38: same login check as every other page
+    if expired:
+        return expired
+    if _owner_preview_blocked():
+        return _owner_preview_redirect()
     if not session.get("cfi_id") and not session.get("is_master_admin"):
         flash("Log in as a CFI to do that.", "danger")
         return redirect(url_for("home_launcher"))
@@ -3329,6 +3391,15 @@ def school_settings_edit():
             limit = max(0.0, float(request.form.get("limit") or 0))
         except ValueError:
             limit = 0.0
+        # FLY-37: the school-day window every calendar view and Availability use.
+        day_start_h = _parse_int(request.form.get("day_start_hour"))
+        day_end_h = _parse_int(request.form.get("day_end_hour"))
+        if day_start_h is None and day_end_h is None:
+            day_start_h, day_end_h = _school_day_hours(conn)  # form didn't send them: leave as is
+        elif day_start_h is None or day_end_h is None or not (0 <= day_start_h < day_end_h <= 24 and day_end_h - day_start_h >= 4):
+            flash("Calendar hours: pick a start before the end, at least 4 hours apart.", "danger")
+            conn.close()
+            return redirect(url_for("flight.school_settings_edit"))
         if color and color in _used_colors_for_plane(conn):
             flash("That Calendar Color is already taken by an instructor or a plane - pick a different one.", "danger")
             conn.close()
@@ -3347,6 +3418,8 @@ def school_settings_edit():
                      (CANCEL_FEE_AMOUNT_KEY, fee_amount))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
                      (BALANCE_HOLD_LIMIT_KEY, limit))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (SCHOOL_DAY_START_KEY, day_start_h))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (SCHOOL_DAY_END_KEY, day_end_h))
         conn.commit()
         conn.close()
         flash("School Settings updated.", "success")
@@ -3355,10 +3428,12 @@ def school_settings_edit():
     window_hours, fee_amount = _cancel_fee_settings(conn)
     limit = _balance_hold_limit(conn)
     used_colors = _used_colors_for_plane(conn)
+    day_start_h, day_end_h = _school_day_hours(conn)
     conn.close()
     return render_template("flight/school_settings_form.html", cfis=cfis, own_plane_color=own_plane_color,
                            window_hours=window_hours, fee_amount=fee_amount, limit=limit,
-                           used_colors=used_colors, schedule_colors=SCHEDULE_COLORS)
+                           used_colors=used_colors, schedule_colors=SCHEDULE_COLORS,
+                           day_start_hour=day_start_h, day_end_hour=day_end_h, hour_label=_hour_label)
 
 
 _SCHEDULE_ROW_SQL = """SELECT sf.*, a.tag as plane_tag, a.name as plane_name, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
@@ -3647,8 +3722,57 @@ def _build_schedule_month(conn, year, month, plane_id=None, cfi_id=None, plane_o
 # 0.25 px/min matches the ~210px cell height already in use for a normal
 # (non-packed) day, so a typical day looks the same as before; a packed one
 # just grows a bit past that instead of hiding blocks behind "+N more".
-MONTH_TIMELINE_WINDOW_START = 6 * 60
-MONTH_TIMELINE_WINDOW_END = 20 * 60
+# FLY-37: one school-day window (hours, School Settings > Calendar hours) used by
+# the Day/Week timelines, the Month mini-timeline, Availability and My Schedule.
+SCHOOL_DAY_START_KEY = "school_day_start_hour"
+SCHOOL_DAY_END_KEY = "school_day_end_hour"
+DEFAULT_SCHOOL_DAY_START_HOUR = 6
+DEFAULT_SCHOOL_DAY_END_HOUR = 21
+
+
+def _school_day_hours(conn):
+    """(start_hour, end_hour) of the school day from School Settings, 6 and 21
+    (6 AM - 9 PM) unless Frank changed it; bad values fall back to the default."""
+    rows = conn.execute("SELECT key, value FROM app_settings WHERE key IN (?, ?)",
+                        (SCHOOL_DAY_START_KEY, SCHOOL_DAY_END_KEY)).fetchall()
+    vals = {r["key"]: r["value"] for r in rows}
+    try:
+        start = int(float(vals.get(SCHOOL_DAY_START_KEY)))
+        end = int(float(vals.get(SCHOOL_DAY_END_KEY)))
+    except (TypeError, ValueError):
+        return DEFAULT_SCHOOL_DAY_START_HOUR, DEFAULT_SCHOOL_DAY_END_HOUR
+    if not (0 <= start < end <= 24 and end - start >= 4):
+        return DEFAULT_SCHOOL_DAY_START_HOUR, DEFAULT_SCHOOL_DAY_END_HOUR
+    return start, end
+
+
+def _school_day_window(conn=None):
+    """(start_min, end_min) minutes since midnight for the school day; looked up
+    once per request."""
+    cached = g.get("_school_day_window") if has_request_context() else None
+    if cached:
+        return cached
+    own = conn is None
+    if own:
+        conn = get_db()
+    try:
+        start, end = _school_day_hours(conn)
+    finally:
+        if own:
+            conn.close()
+    window = (start * 60, end * 60)
+    if has_request_context():
+        g._school_day_window = window
+    return window
+
+
+def _hour_label(hour):
+    """6 -> '6 AM', 21 -> '9 PM', 24 -> 'midnight'."""
+    if hour % 24 == 0:
+        return "midnight"
+    return f"{(hour - 1) % 12 + 1} {'AM' if hour % 24 < 12 else 'PM'}"
+
+
 MONTH_TIMELINE_PX_PER_MIN = 0.45  # was 0.25 - bigger blocks with room for 3 lines (see MONTH_BLOCK_PX_PER_MIN)
 MONTH_TIMELINE_BLOCK_PX = 30  # approx rendered height of one (2-line) block
 # Month blocks are sized by the booking's length on the same px-per-minute
@@ -3660,7 +3784,7 @@ MONTH_BLOCK_MIN_PX = 22
 
 
 def _layout_month_cell_timeline(flights, plane_order,
-                                 window_start=MONTH_TIMELINE_WINDOW_START, window_end=MONTH_TIMELINE_WINDOW_END,
+                                 window_start=None, window_end=None,
                                  px_per_min=MONTH_TIMELINE_PX_PER_MIN, block_px=MONTH_TIMELINE_BLOCK_PX):
     """Positions one day cell's timed flights on its to-scale mini timeline
     using a fixed lane per plane, not a per-collision cluster.
@@ -3686,6 +3810,8 @@ def _layout_month_cell_timeline(flights, plane_order,
 
     Returns (placements, container_height_px) where placements is a list
     of (flight, {top_px, height_px, left_pct, width_pct})."""
+    if window_start is None or window_end is None:
+        window_start, window_end = _school_day_window()
     base_height = (window_end - window_start) * px_per_min
     if not flights:
         return [], round(base_height + 4, 1)
@@ -3744,13 +3870,10 @@ def _build_schedule_day(conn, date_str, plane_id=None, cfi_id=None):
     return _hide_other_students_past_flights(rows)
 
 
-# The Availability view's window: 8am-8pm sliced into 1.5-hour slots - the
-# same length as a normal booking's default duration (see
-# DEFAULT_SCHEDULE_BLOCK_HOURS above), so a slot lines up with how a
-# booking actually blocks the plane. 720 minutes / 90 = 8 whole slots, no
-# partial slot at the end.
-AVAILABILITY_START_MIN = 8 * 60
-AVAILABILITY_END_MIN = 20 * 60
+# The Availability view slices the school day (see _school_day_window) into
+# 1.5-hour slots - the same length as a normal booking's default duration (see
+# DEFAULT_SCHEDULE_BLOCK_HOURS above), so a slot lines up with how a booking
+# actually blocks the plane.
 AVAILABILITY_SLOT_MIN = int(DEFAULT_SCHEDULE_BLOCK_HOURS * 60)
 
 
@@ -3794,7 +3917,8 @@ def _build_availability_day(conn, date_str, plane_id=None):
     now_min = now.hour * 60 + now.minute
 
     slots = []
-    for start in range(AVAILABILITY_START_MIN, AVAILABILITY_END_MIN, AVAILABILITY_SLOT_MIN):
+    day_start, day_end = _school_day_window(conn)
+    for start in range(day_start, day_end - AVAILABILITY_SLOT_MIN + 1, AVAILABILITY_SLOT_MIN):
         end = start + AVAILABILITY_SLOT_MIN
         label = _format_time_12h(f"{start // 60:02d}:{start % 60:02d}")
         is_past = date_str < today_str or (date_str == today_str and start <= now_min)
@@ -3933,11 +4057,9 @@ def _build_flight_finder(conn, start_date, num_days, day_types, buckets, plane_i
 # school's actual operating hours - the old month-cell mini timeline this
 # was modeled after used the same 6am-8pm reference window; widened an
 # hour here since a dedicated Day view can afford to show a bit more).
-DAY_TIMELINE_START_MIN = 6 * 60
-DAY_TIMELINE_END_MIN = 21 * 60
 
 
-def _layout_day_timeline(flights, window_start=DAY_TIMELINE_START_MIN, window_end=DAY_TIMELINE_END_MIN):
+def _layout_day_timeline(flights, window_start=None, window_end=None):
     """Positions each timed flight on a single vertical hour axis for the
     Day view (see the attached reference screenshot this was modeled
     after): top/height as a percent of the axis so a flight lands at its
@@ -3961,6 +4083,8 @@ def _layout_day_timeline(flights, window_start=DAY_TIMELINE_START_MIN, window_en
        flights gets 3 equal columns, while an unrelated flight elsewhere
        in the day still gets the full width.
     """
+    if window_start is None or window_end is None:
+        window_start, window_end = _school_day_window()
     timed = []
     untimed = []
     windows = []
@@ -4201,7 +4325,7 @@ def _schedule_calendar_context():
 
     return dict(view=view, month_data=month_data, months_data=months_data,
                 day_str=day_str, day_flights=day_flights, day_timeline=day_timeline, day_untimed=day_untimed,
-                day_timeline_start_min=DAY_TIMELINE_START_MIN, day_timeline_end_min=DAY_TIMELINE_END_MIN,
+                day_timeline_start_min=_school_day_window()[0], day_timeline_end_min=_school_day_window()[1],
                 day_prev=day_prev, day_next=day_next,
                 week_days=week_days, week_start_str=week_start_str, week_end_str=week_end_str,
                 week_prev=week_prev, week_next=week_next,
@@ -4219,13 +4343,13 @@ def _schedule_calendar_context():
                 planes=planes, cfis=cfis, plane_id=plane_id, cfi_id=cfi_id,
                 instructor_legend=instructor_legend, plane_legend=plane_legend, highlight_ids=highlight_ids,
                 new_ids=new_ids,
-                month_timeline_start_min=MONTH_TIMELINE_WINDOW_START, month_timeline_end_min=MONTH_TIMELINE_WINDOW_END,
+                month_timeline_start_min=_school_day_window()[0], month_timeline_end_min=_school_day_window()[1],
                 month_timeline_px_per_min=MONTH_TIMELINE_PX_PER_MIN,
                 # Day/Week timeline click-to-schedule (schedule.html): the
                 # same standard block grid Availability uses, so hovering
                 # highlights one real lesson-length slot and clicking snaps
                 # to its start instead of a raw 15-minute position.
-                slot_grid_start_min=AVAILABILITY_START_MIN, slot_grid_min=AVAILABILITY_SLOT_MIN)
+                slot_grid_start_min=_school_day_window()[0], slot_grid_min=AVAILABILITY_SLOT_MIN)
 
 
 @flight_bp.route("/schedule")
@@ -4287,7 +4411,8 @@ def schedule_availability():
         view = "day"
 
     all_planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY schedule_order, tag").fetchall()
-    ctx = dict(day_str=day_str, today=today, all_planes=all_planes, plane_id=plane_id, mode=mode, view=view)
+    ctx = dict(day_str=day_str, today=today, all_planes=all_planes, plane_id=plane_id, mode=mode, view=view,
+               school_day_label=_school_day_label())
 
     if view == "day":
         availability = _build_availability_day(conn, day_str, plane_id or None)
@@ -4478,7 +4603,7 @@ def schedule_new():
                        prefill_cfi_id=prefill_cfi_id, prefill_student_id=prefill_student_id,
                        prefill_solo=prefill_solo, prefill_own_plane=prefill_own_plane,
                        current_cfi_id=session.get("cfi_id"),
-                       self_service=self_service, self_student=self_student,
+                       self_service=self_service, self_student=self_student, return_to=_form_return_to(),
                        # ?complete=1 opens the form with "Flight Already
                        # Already Complete?" already checked (old Log a Flight links).
                        start_complete=(not self_service and request.args.get("complete") == "1"))
@@ -4495,7 +4620,7 @@ def schedule_new():
                 conn.close()
                 return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
             conn.close()
-            return redirect(url_for("flight.log_history"))
+            return redirect(url_for("flight.log_history", logged_flight_id=getattr(g, "logged_flight_id", None)))
         asset_id = request.form.get("asset_id") or None
         student_id = str(self_student["id"]) if self_service else (request.form.get("student_id") or None)
         # "Student's own plane" - bypasses picking a plane from the fleet
@@ -4523,6 +4648,10 @@ def schedule_new():
         # force it to None here too so nothing sneaks through even if a
         # student's request happened to include the field name.
         private_notes = (request.form.get("private_notes", "").strip() or None) if not self_service else None
+        if self_service:
+            # FLY-06: a student's "Note to the school" goes in the note every
+            # instructor (and the student) can see, not the instructor-only one.
+            private_notes, notes = notes, None
         created_by = session.get("user_name") or (self_student["name"] if self_student else None)
         if not asset_id or not student_id or not scheduled_date:
             flash("Select a plane, a student, and a date.", "danger")
@@ -4679,7 +4808,117 @@ def schedule_new():
     return render_template("flight/schedule_form.html", form=None, **form_kwargs)
 
 
-def _pending_decision_response(ok, message, category, redirect_url=None):
+def _referrer_url():
+    """The same-site page this request came from (a form's hidden return_to
+    first, then the browser's referrer) as 'path?query', or None."""
+    raw = request.form.get("return_to") or request.referrer or ""
+    if not raw:
+        return None
+    try:
+        u = urlparse(raw)
+    except ValueError:
+        return None
+    if u.netloc and u.netloc != request.host:
+        return None
+    if not u.path.startswith("/"):
+        return None
+    return u.path + ("?" + u.query if u.query else "")
+
+
+def _form_return_to():
+    """Where a booking/log form's Cancel button goes back to (FLY-31): the page
+    the form was opened from. Remembered in a hidden return_to field so it
+    survives a failed save. None when unknown or when it's the form itself."""
+    if request.method == "POST":
+        ref = request.form.get("return_to") or None
+        if ref:
+            return _referrer_url()
+        return None
+    ref = _referrer_url()
+    if not ref:
+        return None
+    path = urlparse(ref).path
+    if path == request.path or path.endswith(("/schedule/new", "/log/new", "/edit")):
+        return None
+    return ref
+
+
+def _schedule_page_args():
+    """Query args of the Schedule calendar page this request came from, or None
+    when it came from anywhere else (the Dashboard, a form, ...)."""
+    ref = _referrer_url()
+    if not ref:
+        return None
+    u = urlparse(ref)
+    if u.path.rstrip("/") != url_for("flight.schedule_calendar").rstrip("/"):
+        return None
+    return {k: v[0] for k, v in parse_qs(u.query).items() if v}
+
+
+def _calendar_url_for(args, day_str, spotlight=None):
+    """The Schedule calendar in the view the CFI was using (args = that page's
+    query args), opened on day_str, with the booking(s) in `spotlight`
+    outlined green (FLY-33, FLY-39). Falls back to Month view."""
+    args = args or {}
+    view = args.get("view") if args.get("view") in ("day", "week", "month", "year", "list", "custom") else "month"
+    kw = {}
+    for k in ("plane_id", "cfi_id"):
+        if args.get(k):
+            kw[k] = args[k]
+    year, month = day_str[:4], int(day_str[5:7])
+    if view in ("day", "week"):
+        kw["date"] = day_str
+    elif view == "custom":
+        start, end = args.get("start"), args.get("end")
+        if start and end and start <= day_str <= end:
+            kw.update(start=start, end=end)
+        else:
+            view = "month"
+            kw.update(year=year, month=month)
+    else:
+        kw.update(year=year, month=month)
+    if spotlight:
+        kw["new"] = spotlight
+    return url_for("flight.schedule_calendar", view=view, **kw)
+
+
+def _calendar_stay_url(day_str, spotlight=None):
+    """If the person acted from the Schedule calendar, the calendar URL to go
+    back to (same view and day, booking spotlighted); None otherwise so the
+    caller keeps its old destination."""
+    args = _schedule_page_args()
+    if args is None or not day_str:
+        return None
+    return _calendar_url_for(args, day_str, spotlight)
+
+
+def _booking_when(scheduled_date, scheduled_time):
+    """'Thu 02-10-2026 2:00 PM' for a booking's slot, for student messages."""
+    try:
+        day = datetime.strptime(scheduled_date, "%Y-%m-%d").strftime("%a") + " " + _us_date(scheduled_date)
+    except (TypeError, ValueError):
+        day = scheduled_date or ""
+    return f"{day} {_format_time_12h(scheduled_time)}" if scheduled_time else day
+
+
+def _notify_student_booking_change(conn, sched, message):
+    """FLY-04: tells the student (Alerts banner + phone push) that the school
+    cancelled, moved or edited their booking. Skips guests (no account).
+    Doesn't commit - callers commit with their own change."""
+    if not sched or sched["guest_name"]:
+        return
+    _notify_student(conn, sched["student_id"], "booking_changed", message, url_for("flight.dashboard"),
+                    scheduled_flight_id=sched["id"])
+    row = conn.execute("SELECT user_id FROM students WHERE id = ?", (sched["student_id"],)).fetchone()
+    if row and row["user_id"]:
+        try:
+            push.queue_and_push(conn, row["user_id"], "Your lesson changed", message,
+                                tag=f"booking-change-{sched['id']}", url=url_for("flight.dashboard"))
+        except Exception:
+            current_app.logger.exception("Booking-change push failed")
+
+
+def _pending_decision_response(ok, message, category, redirect_url=None, stay_url=None):
     """Approve/deny reply, either shape a caller wants: the Dashboard's
     Pending Approval buttons call these routes over fetch() so the page
     never reloads (and the person never loses their scroll position) - for
@@ -4692,7 +4931,7 @@ def _pending_decision_response(ok, message, category, redirect_url=None):
             payload["redirect"] = redirect_url
         return jsonify(payload)
     flash(message, category)
-    return redirect(redirect_url or url_for("flight.dashboard"))
+    return redirect(redirect_url or stay_url or url_for("flight.dashboard"))
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/approve", methods=["POST"])
@@ -4715,8 +4954,11 @@ def schedule_approve(scheduled_id):
     solo = sched["solo"]
     # A solo request stays solo (no auto-assigned instructor) - only an
     # "Any instructor" dual request (not solo, no cfi_id picked) defaults to
-    # whichever CFI is doing the approving.
-    cfi_id = sched["cfi_id"] or (None if solo else session["cfi_id"])
+    # whichever CFI is doing the approving - unless they chose "Approve -
+    # assign an instructor later" (FLY-16), which leaves it unassigned and
+    # flagged "No instructor assigned yet".
+    assign_later = request.values.get("assign") == "later"
+    cfi_id = sched["cfi_id"] or (None if (solo or assign_later) else session["cfi_id"])
     conflicts = _scheduling_conflicts(conn, sched["asset_id"], cfi_id, sched["student_id"],
                                       sched["scheduled_date"], sched["scheduled_time"], sched["duration_hours"],
                                       exclude_id=scheduled_id)
@@ -4738,9 +4980,10 @@ def schedule_approve(scheduled_id):
     _notify_student(conn, sched["student_id"], "flight_approved", msg, url_for("flight.dashboard"), scheduled_flight_id=scheduled_id)
     conn.commit()
     conn.close()
+    stay = _calendar_stay_url(sched["scheduled_date"], scheduled_id)
     if needs_review:
-        return _pending_decision_response(True, f"Flight request approved, but flagged for review: {review_reason}", "warning")
-    return _pending_decision_response(True, "Flight request approved and added to the calendar.", "success")
+        return _pending_decision_response(True, f"Flight request approved, but flagged for review: {review_reason}", "warning", stay_url=stay)
+    return _pending_decision_response(True, "Flight request approved and added to the calendar.", "success", stay_url=stay)
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/deny", methods=["POST"])
@@ -4785,7 +5028,8 @@ def schedule_deny(scheduled_id):
                         url_for("flight.schedule_new"), scheduled_flight_id=scheduled_id)
     conn.commit()
     conn.close()
-    return _pending_decision_response(True, "Flight request denied.", "info")
+    return _pending_decision_response(True, "Flight request denied.", "info",
+                                      stay_url=_calendar_stay_url(sched["scheduled_date"]) if sched else None)
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/accept-proposed-time", methods=["POST"])
@@ -4829,11 +5073,11 @@ def schedule_accept_proposed_time(scheduled_id):
     created_by = session.get("user_name")
     confirmed_at, confirm_required, notify_user_id = _booking_confirm_state(conn, True, sched["guest_name"], student_id)
     new_booking = conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date,
-                     scheduled_time, duration_hours, notes, status, created_by, solo, part_solo,
+                     scheduled_time, duration_hours, notes, private_notes, status, created_by, solo, part_solo,
                      guest_name, guest_phone, guest_email, created_at, confirmed_at, confirm_required)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                  (sched["asset_id"], sched["cfi_id"], student_id, sched["scheduled_date"], new_time,
-                  sched["duration_hours"], sched["notes"], created_by, sched["solo"], sched["part_solo"],
+                  sched["duration_hours"], sched["notes"], sched["private_notes"], created_by, sched["solo"], sched["part_solo"],
                   sched["guest_name"], sched["guest_phone"], sched["guest_email"], now_iso(),
                   confirmed_at, confirm_required))
     conn.execute("UPDATE scheduled_flights SET student_dismissed_at = ? WHERE id = ?", (now_iso(), scheduled_id))
@@ -4887,7 +5131,8 @@ def schedule_edit(scheduled_id):
         sched_own_plane_n_number = "" if sched_own_plane_asset["tag"].startswith("OWN-") else sched_own_plane_asset["tag"]
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
                        today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session["cfi_id"], sched=sched,
-                       sched_is_own_plane=bool(sched_own_plane_asset), sched_own_plane_n_number=sched_own_plane_n_number)
+                       sched_is_own_plane=bool(sched_own_plane_asset), sched_own_plane_n_number=sched_own_plane_n_number,
+                       return_to=_form_return_to())
     if request.method == "POST":
         asset_id = request.form.get("asset_id") or None
         student_id = request.form.get("student_id") or None
@@ -4944,13 +5189,35 @@ def schedule_edit(scheduled_id):
                       request.form.get("notes", "").strip() or None,
                       request.form.get("private_notes", "").strip() or None,
                       solo, part_solo, guest_name, guest_phone, guest_email, needs_review, review_reason, scheduled_id))
+        # FLY-04: tell the student when the school changed the date, time,
+        # plane or instructor of their confirmed booking.
+        if (sched["status"] in ("scheduled", "balance_hold") and str(sched["student_id"]) == str(student_id)
+                and ((scheduled_date, scheduled_time) != (sched["scheduled_date"], sched["scheduled_time"])
+                     or str(asset_id) != str(sched["asset_id"]) or str(cfi_id or "") != str(sched["cfi_id"] or ""))):
+            old_plane = conn.execute("SELECT tag FROM assets WHERE id = ?", (sched["asset_id"],)).fetchone()
+            new_plane = conn.execute("SELECT tag FROM assets WHERE id = ?", (asset_id,)).fetchone()
+            new_cfi = conn.execute("SELECT name FROM cfis WHERE id = ?", (cfi_id,)).fetchone() if cfi_id else None
+            moved = (scheduled_date, scheduled_time) != (sched["scheduled_date"], sched["scheduled_time"])
+            msg = (f"Your {_booking_when(sched['scheduled_date'], sched['scheduled_time'])} lesson"
+                   f"{' in ' + old_plane['tag'] if old_plane else ''} was ")
+            msg += f"moved to {_booking_when(scheduled_date, scheduled_time)}" if moved else "changed"
+            details = []
+            if new_plane and str(asset_id) != str(sched["asset_id"]):
+                details.append(f"plane {new_plane['tag']}")
+            if str(cfi_id or "") != str(sched["cfi_id"] or ""):
+                details.append(f"instructor {new_cfi['name']}" if new_cfi else "no instructor yet")
+            if details:
+                msg += (" - now " if moved else " - now ") + ", ".join(details)
+            msg += f" by {session.get('user_name') or 'the school'}."
+            _notify_student_booking_change(conn, sched, msg)
         conn.commit()
         conn.close()
         if needs_review:
             flash(f"Scheduled flight updated, but still flagged for review: {review_reason}", "warning")
         else:
             flash("Scheduled flight updated.", "success")
-        return redirect(url_for("flight.schedule_calendar", year=scheduled_date[:4], month=int(scheduled_date[5:7])))
+        # FLY-33: back to the view the CFI was on, on the booking's day, with it outlined green.
+        return redirect(_calendar_url_for(_schedule_page_args(), scheduled_date, scheduled_id))
     conn.close()
     return render_template("flight/schedule_form.html", form=None, **form_kwargs)
 
@@ -5005,13 +5272,21 @@ def schedule_reschedule(scheduled_id):
                      needs_review_acknowledged_at=NULL, needs_review_acknowledged_by=NULL,
                      change_request_note=NULL, change_requested_at=NULL WHERE id=?""",
                  (new_date, new_time, needs_review, review_reason, scheduled_id))
+    if (new_date, new_time) != (sched["scheduled_date"], sched["scheduled_time"]):
+        plane = conn.execute("SELECT tag FROM assets WHERE id = ?", (sched["asset_id"],)).fetchone()
+        _notify_student_booking_change(
+            conn, sched,
+            f"Your {_booking_when(sched['scheduled_date'], sched['scheduled_time'])} lesson"
+            f"{' in ' + plane['tag'] if plane else ''} was moved to {_booking_when(new_date, new_time)} "
+            f"by {session.get('user_name') or 'the school'}.")
     conn.commit()
     conn.close()
     if needs_review:
         flash(f"Flight rescheduled, but flagged for review: {review_reason}", "warning")
     else:
         flash("Flight rescheduled.", "success")
-    return redirect(url_for("flight.schedule_calendar", year=new_date[:4], month=int(new_date[5:7])))
+    # FLY-33: back to the view the CFI was using, on the new day, with the moved booking outlined green.
+    return redirect(_calendar_url_for(_schedule_page_args(), new_date, scheduled_id))
 
 
 # ---------------------------------------------------------------------------
@@ -5163,8 +5438,8 @@ def _cfi_active_flights_widget():
             rows = conn.execute("""SELECT f.id, f.started_at, f.paused_at, f.paused_seconds,
                                            a.tag as plane_tag, s.name as student_name
                                     FROM flights f JOIN assets a ON a.id = f.asset_id JOIN students s ON s.id = f.student_id
-                                    WHERE f.cfi_id = ? AND f.started_at IS NOT NULL AND f.ended_at IS NULL AND f.stopped_at IS NULL
-                                    ORDER BY f.started_at""", (session["cfi_id"],)).fetchall()
+                                    WHERE (f.cfi_id = ? OR f.started_by_cfi_id = ?) AND f.started_at IS NOT NULL AND f.ended_at IS NULL AND f.stopped_at IS NULL
+                                    ORDER BY f.started_at""", (session["cfi_id"], session["cfi_id"])).fetchall()
         finally:
             conn.close()
         return {"cfi_active_flights": rows}
@@ -5202,8 +5477,8 @@ def cfi_active_flights_status():
     conn = get_db()
     rows = conn.execute(
         """SELECT id, paused_at, paused_seconds FROM flights
-           WHERE cfi_id = ? AND started_at IS NOT NULL AND ended_at IS NULL AND stopped_at IS NULL""",
-        (session["cfi_id"],)).fetchall()
+           WHERE (cfi_id = ? OR started_by_cfi_id = ?) AND started_at IS NOT NULL AND ended_at IS NULL AND stopped_at IS NULL""",
+        (session["cfi_id"], session["cfi_id"])).fetchall()
     conn.close()
     return jsonify({"flights": [dict(r) for r in rows]})
 
@@ -5434,17 +5709,26 @@ def schedule_review_acknowledge(scheduled_id):
     dismissed."""
     conn = get_db()
     sf = conn.execute("SELECT id FROM scheduled_flights WHERE id = ? AND needs_review = 1", (scheduled_id,)).fetchone()
+    ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     if not sf:
         conn.close()
+        if ajax:
+            return jsonify({"ok": False, "message": "That flight is no longer flagged for review.", "category": "warning"})
         flash("That flight is no longer flagged for review.", "warning")
         return redirect(request.referrer or url_for("flight.dashboard"))
     conn.execute("UPDATE scheduled_flights SET needs_review_acknowledged_at = ?, needs_review_acknowledged_by = ? WHERE id = ?",
                  (now_iso(), session.get("user_name"), scheduled_id))
     conn.commit()
     conn.close()
+    msg = "Acknowledged - it stays here in Alerts (and flagged on the Schedule) until it's resolved."
+    if ajax:
+        # FLY-17: the Dashboard's Needs Review banner acts in place; the
+        # floating message carries an Open Alerts link.
+        return jsonify({"ok": True, "message": msg, "category": "success", "link": url_for("flight.alerts_list"),
+                        "link_text": "Open Alerts"})
     # Lands on the Alerts tab (not back on the dashboard) so it's clear
     # where the acknowledged alert went.
-    flash("Acknowledged - it stays here in Alerts (and flagged on the Schedule) until it's resolved.", "success")
+    flash(msg, "success")
     return redirect(url_for("flight.alerts_list"))
 
 
@@ -5494,14 +5778,44 @@ def schedule_confirm_booking(scheduled_id):
 @flight_bp.route("/schedule/<int:scheduled_id>/cancel", methods=["POST"])
 @cfi_required
 def schedule_cancel(scheduled_id):
+    """Staff cancel of a booking. Only a booking that is still Scheduled or on
+    Balance Hold can be cancelled (FLY-03) - one that has started or been
+    flown has to be ended from Active Flight. Asks for a short reason and
+    records who cancelled and when; the student is told (FLY-04)."""
+    back = request.referrer or url_for("flight.schedule_calendar")
     conn = get_db()
-    conn.execute("UPDATE scheduled_flights SET status = 'cancelled' WHERE id = ?", (scheduled_id,))
+    sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    if not sched:
+        conn.close()
+        flash("That booking wasn't found.", "danger")
+        return redirect(back)
+    if sched["status"] in ("in_progress", "completed"):
+        conn.close()
+        flash("That flight has already started or been flown - end it from Active Flight instead.", "danger")
+        return redirect(back)
+    if sched["status"] not in ("scheduled", "balance_hold"):
+        conn.close()
+        flash("That booking can't be cancelled - it's already " + sched["status"].replace("_", " ") + ".", "danger")
+        return redirect(back)
+    reason = (request.form.get("reason") or "").strip()
+    if not reason:
+        conn.close()
+        flash("Give a short reason for cancelling - the student is told why.", "danger")
+        return redirect(back)
+    who = session.get("user_name") or "the school"
+    conn.execute("""UPDATE scheduled_flights SET status = 'cancelled', cancel_reason = ?, cancelled_by = ?, cancelled_at = ?
+                     WHERE id = ?""", (reason, who, now_iso(), scheduled_id))
+    plane = conn.execute("SELECT tag FROM assets WHERE id = ?", (sched["asset_id"],)).fetchone()
+    _notify_student_booking_change(
+        conn, sched,
+        f"Your {_booking_when(sched['scheduled_date'], sched['scheduled_time'])} lesson"
+        f"{' in ' + plane['tag'] if plane else ''} was cancelled by {who}: {reason}")
     conn.commit()
     offered = waitlist_offer_cancelled_slot(conn, scheduled_id)
     conn.close()
     flash("Scheduled flight cancelled." + (f" Offered the slot to {offered} waitlisted student{'s' if offered != 1 else ''}."
                                            if offered else ""), "success")
-    return redirect(request.referrer or url_for("flight.schedule_calendar"))
+    return redirect(back)
 
 
 # ---------------------------------------------------------------------------
@@ -5574,6 +5888,7 @@ def weather_cancel():
             return redirect(url_for("flight.weather_cancel", date=day, period=period))
         settings = notify.get_settings(conn)
         texted = 0
+        with_times = 0
         for r in picked:
             conn.execute("UPDATE scheduled_flights SET status = 'cancelled', cancel_reason = ? WHERE id = ?",
                          ("Weather cancellation", r["id"]))
@@ -5609,9 +5924,17 @@ def weather_cancel():
             except Exception:
                 current_app.logger.exception("Weather text/email failed")
             texted += 1
+            if times:
+                with_times += 1
         conn.close()
+        # FLY-28: say what was really offered, so the office knows who still needs a call.
+        if texted:
+            no_times = texted - with_times
+            detail = f" ({with_times} with new times to pick, {no_times} with none open - follow up)"
+        else:
+            detail = ""
         flash(f"Weather cancellation done: {len(picked)} lesson{'s' if len(picked) != 1 else ''} called off, no charge, "
-              f"{texted} student{'s' if texted != 1 else ''} sent 3 new times.", "success")
+              f"{texted} student{'s' if texted != 1 else ''} texted{detail}.", "success")
         return redirect(url_for("flight.schedule_calendar", view="day", date=day))
     conn.close()
     return render_template("flight/weather_cancel.html", day=day, period=period, periods=WEATHER_PERIODS,
@@ -5713,6 +6036,26 @@ def schedule_change_request_dismiss(scheduled_id):
     conn.commit()
     conn.close()
     return _pending_decision_response(True, "Change request dismissed.", "info")
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/change_request/withdraw", methods=["POST"])
+@login_required
+def schedule_change_request_withdraw(scheduled_id):
+    """A student taking back a change request they sent (FLY-35) - same effect
+    as the school's Handled (clears it off the Change Requests queue) and the
+    school is told."""
+    conn = get_db()
+    sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    if not sched or sched["student_id"] != session.get("student_id") or not sched["change_requested_at"]:
+        conn.close()
+        return _pending_decision_response(False, "That change request isn't there anymore.", "danger",
+                                          redirect_url=url_for("flight.dashboard"))
+    conn.execute("UPDATE scheduled_flights SET change_request_note = NULL, change_requested_at = NULL WHERE id = ?",
+                 (scheduled_id,))
+    conn.commit()
+    _notify_schedule_request(conn, sched, "withdrew the change request for", sched["change_request_note"] or "")
+    conn.close()
+    return _pending_decision_response(True, "Change request withdrawn.", "info", redirect_url=url_for("flight.dashboard"))
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/student_cancel", methods=["POST"])
@@ -5837,11 +6180,11 @@ def schedule_start(scheduled_id):
     tach_start = plane["tach_hours"] if plane else None
     solo = 1 if not sched["cfi_id"] else 0
     cur = conn.execute("""INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, hobbs_start, tach_start,
-                           solo, scheduled_flight_id, started_at, created_at)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                           solo, scheduled_flight_id, started_at, created_at, started_by_cfi_id)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                        (sched["cfi_id"], sched["student_id"], sched["asset_id"],
                         date.today().strftime("%Y-%m-%d"), hobbs_start,
-                        tach_start, solo, scheduled_id, now_iso(), now_iso()))
+                        tach_start, solo, scheduled_id, now_iso(), now_iso(), session.get("cfi_id")))
     flight_id = cur.lastrowid
     conn.execute("UPDATE flights SET guest_name = ? WHERE id = ?", (sched["guest_name"], flight_id))
     conn.execute("UPDATE scheduled_flights SET status = 'in_progress' WHERE id = ?", (scheduled_id,))
@@ -5852,15 +6195,23 @@ def schedule_start(scheduled_id):
 
 
 def _can_end_flight(flight_row):
-    """Who's allowed to end a given active flight: a master admin, the CFI
-    actually assigned to it, or - for a solo flight - the student flying
-    it. Everyone logged in can now SEE the Active Flight board (it's
+    """Who's allowed to end a given active flight: a master admin (always),
+    the CFI actually assigned to it, the CFI who started it, or - for a solo
+    flight - the student flying it. Everyone logged in can now SEE the Active Flight board (it's
     school-wide), but ending someone else's flight for them is limited to
     the people who'd actually know how it went."""
     if session.get("is_master_admin"):
         return True
     my_cfi_id = session.get("cfi_id")
     if my_cfi_id and flight_row["cfi_id"] == my_cfi_id:
+        return True
+    # FLY-05: whoever pressed Start (e.g. an instructor covering a lesson) can
+    # also pause and end it; an admin can always override (above).
+    try:
+        starter = flight_row["started_by_cfi_id"]
+    except (KeyError, IndexError):
+        starter = None
+    if my_cfi_id and starter and starter == my_cfi_id:
         return True
     my_student_id = session.get("student_id")
     if flight_row["solo"] and my_student_id and flight_row["student_id"] == my_student_id:
@@ -6608,6 +6959,36 @@ def log_restart_clock(flight_id):
     return redirect(url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}")
 
 
+@flight_bp.route("/log/<int:flight_id>/discard", methods=["POST"])
+@login_required
+def log_discard(flight_id):
+    """FLY-09: throws away a session that was started by mistake - removes the
+    flight record, puts the booking back to Scheduled and charges nothing
+    (no receipt, no ledger). Same people who can end it (see _can_end_flight);
+    only while it is still running (started, not yet ended)."""
+    conn = get_db()
+    f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
+    if not f or not f["started_at"] or f["ended_at"]:
+        conn.close()
+        flash("That session isn't running, so there's nothing to discard.", "danger")
+        return redirect(url_for("flight.log_active"))
+    if not _can_end_flight(f):
+        conn.close()
+        flash("Only the assigned instructor, whoever started it, the student (on a solo flight), or a master admin can discard this session.", "danger")
+        return redirect(url_for("flight.log_active"))
+    if f["scheduled_flight_id"]:
+        conn.execute("UPDATE scheduled_flights SET status = 'scheduled' WHERE id = ? AND status = 'in_progress'",
+                     (f["scheduled_flight_id"],))
+    _log_field_change(conn, "flight", flight_id, "discarded", "started by mistake", "", session.get("user_name"))
+    pilotlog.remove_for_flight(conn, flight_id)
+    conn.execute("DELETE FROM flights WHERE id = ?", (flight_id,))
+    conn.commit()
+    conn.close()
+    flash("Session discarded - the booking is back on the schedule." if f["scheduled_flight_id"]
+          else "Session discarded.", "success")
+    return redirect(url_for("flight.log_active"))
+
+
 @flight_bp.route("/log/<int:flight_id>/end", methods=["POST"])
 @login_required
 def log_end(flight_id):
@@ -6677,14 +7058,17 @@ def log_end(flight_id):
             conn.close()
             flash("Ending Tach can't be less than starting Tach.", "danger")
             return redirect(back)
-    paid_choice = request.form.get("paid")
+    # FLY-07: a student ending their own solo flight never takes payment - it
+    # always logs Unpaid for the school to settle on Billing.
+    student_ending = bool(session.get("student_id") and not session.get("cfi_id") and not session.get("is_master_admin"))
+    paid_choice = "0" if student_ending else request.form.get("paid")
     if paid_choice not in ("0", "1"):
         conn.close()
         flash("Pick Paid or Unpaid to log the flight.", "danger")
         return redirect(back)
-    payment_method = (request.form.get("payment_method") or "").strip()[:40] or None
-    payment_amount = max(0.0, _parse_float(request.form.get("payment_amount")) or 0.0)
-    credit_requested = max(0.0, _parse_float(request.form.get("credit_applied")) or 0.0)
+    payment_method = None if student_ending else ((request.form.get("payment_method") or "").strip()[:40] or None)
+    payment_amount = 0.0 if student_ending else max(0.0, _parse_float(request.form.get("payment_amount")) or 0.0)
+    credit_requested = 0.0 if student_ending else max(0.0, _parse_float(request.form.get("credit_applied")) or 0.0)
     card_last4 = card_charge_id = None
     if payment_method == "Card" and payment_amount > 0.005:
         charged = _simulate_card_charge(request.form.get("card_number"))
@@ -7157,6 +7541,7 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
     pilotlog.ensure_entry(conn, new_flight_id)
     conn.commit()
     check_hundred_hr_alerts(conn)  # 100-hour countdown alerts (admins)
+    g.logged_flight_id = new_flight_id  # lets the caller show Book next lesson (FLY-40)
     if squawk:
         flash("Flight logged. The squawk you flagged will show up on the Maintenance side until it's acknowledged.", "success")
     else:
@@ -7177,7 +7562,8 @@ def log_new():
     students = conn.execute("SELECT * FROM students WHERE active = 1 ORDER BY name").fetchall()
     cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
-                        today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session["cfi_id"])
+                        today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session["cfi_id"],
+                        return_to=_form_return_to())
     if request.method == "POST":
         error = _save_logged_flight(conn, request.form)
         if error:
@@ -7185,7 +7571,7 @@ def log_new():
             conn.close()
             return render_template("flight/log_new.html", form=request.form, **form_kwargs)
         conn.close()
-        return redirect(url_for("flight.log_history"))
+        return redirect(url_for("flight.log_history", logged_flight_id=getattr(g, "logged_flight_id", None)))
 
     # Pre-fill from a scheduled booking, if this was reached by clicking
     # "Log Flight" on one. The old stand-alone "Log a Flight" page (no
@@ -7254,7 +7640,8 @@ def log_edit(flight_id):
     students = conn.execute("SELECT * FROM students WHERE active = 1 OR id = ? ORDER BY name", (f["student_id"],)).fetchall()
     cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 OR id = ? ORDER BY name", (f["cfi_id"],)).fetchall()
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
-                        today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session.get("cfi_id"))
+                        today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session.get("cfi_id"),
+                        return_to=_form_return_to(), edit_paid=bool(f["paid"]))
 
     if request.method == "POST":
         student_id = request.form.get("student_id") or None
@@ -7313,7 +7700,9 @@ def log_edit(flight_id):
         # stay plain notes instead of a New Squawk (a simulator still goes
         # to Squawks) - see _save_logged_flight for the same rule.
         squawk = 1 if notes and not is_own_plane else 0
-        paid = 1 if request.form.get("paid") else 0
+        # FLY-10: payments aren't taken on this form (Mark Paid / Billing record
+        # them), so the paid flag stays exactly as it was.
+        paid = f["paid"]
 
         if not asset_id or not student_id:
             flash("Select a plane and a student.", "danger")
@@ -7422,6 +7811,29 @@ def _row_with_cost(row):
     return d
 
 
+def _logged_flight_slot(f):
+    """datetime a flight logged after the fact "happened" at, for the Book next
+    lesson box (FLY-40): its date at the linked booking's time, else the
+    student's usual lesson time, else 9:00 AM. None if the date is unreadable."""
+    time_str = None
+    conn = get_db()
+    if f["scheduled_flight_id"]:
+        b = conn.execute("SELECT scheduled_time FROM scheduled_flights WHERE id = ?", (f["scheduled_flight_id"],)).fetchone()
+        time_str = b["scheduled_time"] if b else None
+    if not time_str:
+        times = [r["scheduled_time"] for r in conn.execute(
+            """SELECT scheduled_time FROM scheduled_flights WHERE student_id = ? AND scheduled_time IS NOT NULL
+               AND status IN ('scheduled', 'in_progress', 'completed') ORDER BY scheduled_date DESC, id DESC LIMIT 3""",
+            (f["student_id"],)).fetchall()]
+        if times:
+            time_str = max(set(times), key=times.count)
+    conn.close()
+    try:
+        return datetime.strptime(f"{f['flight_date']} {time_str or '09:00'}", "%Y-%m-%d %H:%M")
+    except (TypeError, ValueError):
+        return None
+
+
 def _next_lesson_preview(flight_id):
     """Idea "Book next lesson": the one-tap / pencil-edit booking preview
     for the two-line box in the "Session ended and logged" flash right
@@ -7436,14 +7848,21 @@ def _next_lesson_preview(flight_id):
     conn = get_db()
     f = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (flight_id,)).fetchone()
     conn.close()
-    if not f or not f["ended_at"] or not f["started_at"]:
+    if not f:
         return None
     if not session.get("is_master_admin") and f["cfi_id"] != session.get("cfi_id"):
         return None
-    try:
-        started = datetime.strptime(f["started_at"], "%Y-%m-%d %H:%M:%S")
-    except ValueError:
-        return None
+    if f["ended_at"] and f["started_at"]:
+        try:
+            started = datetime.strptime(f["started_at"], "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return None
+    else:
+        # FLY-40: a flight logged after the fact has no clock times - use the
+        # flight's date at the booking's time (or the student's usual time).
+        started = _logged_flight_slot(f)
+        if not started:
+            return None
     next_dt = started + timedelta(days=7)
     next_date = next_dt.strftime("%Y-%m-%d")
     next_time = next_dt.strftime("%H:%M")
@@ -7501,19 +7920,25 @@ def _ended_flight_wave_invoice(flight_id):
 def log_history():
     conn = get_db()
     cfi = current_cfi(conn)
+    # FLY-24: the latest 100 flights, with "Show older flights" adding 100 more each time.
+    limit = max(100, min(request.args.get("limit", 100, type=int) or 100, 5000))
     if cfi:
-        rows = conn.execute(_LOG_ROW_SQL + " ORDER BY f.flight_date DESC, f.id DESC LIMIT 100").fetchall()
+        rows = conn.execute(_LOG_ROW_SQL + " ORDER BY f.flight_date DESC, f.id DESC LIMIT ?", (limit + 1,)).fetchall()
     else:
         student = current_student(conn)
-        rows = conn.execute(_LOG_ROW_SQL + " WHERE f.student_id = ? ORDER BY f.flight_date DESC, f.id DESC LIMIT 100",
-                             (student["id"],)).fetchall()
+        rows = conn.execute(_LOG_ROW_SQL + " WHERE f.student_id = ? ORDER BY f.flight_date DESC, f.id DESC LIMIT ?",
+                             (student["id"], limit + 1)).fetchall()
     conn.close()
-    flights = [_row_with_cost(r) for r in rows]
+    has_older = len(rows) > limit
+    flights = [_row_with_cost(r) for r in rows[:limit]]
     ended_flight_id = request.args.get("ended_flight_id", type=int)
     next_lesson = _next_lesson_preview(ended_flight_id)
     wave_invoice = _ended_flight_wave_invoice(ended_flight_id)
+    # FLY-40: a flight logged after the fact gets the same Book next lesson box.
+    logged_next = _next_lesson_preview(request.args.get("logged_flight_id", type=int))
     return render_template("flight/log_history.html", flights=flights, cfi=cfi, can_bill=can_manage_billing(),
-                           next_lesson=next_lesson, wave_invoice=wave_invoice)
+                           next_lesson=next_lesson, wave_invoice=wave_invoice, logged_next=logged_next,
+                           has_older=has_older, limit=limit)
 
 
 @flight_bp.route("/log/<int:flight_id>")
@@ -7536,8 +7961,11 @@ def log_detail(flight_id):
         flash("That's not your flight.", "danger")
         return redirect(url_for("flight.log_history"))
     f = _row_with_cost(row)
+    booking = (conn.execute("SELECT scheduled_date, scheduled_time FROM scheduled_flights WHERE id = ?",
+                            (f["scheduled_flight_id"],)).fetchone() if f.get("scheduled_flight_id") else None)
     conn.close()
-    return render_template("flight/log_detail.html", f=f, can_bill=can_manage_billing())
+    return render_template("flight/log_detail.html", f=f, can_bill=can_manage_billing(), booking=booking,
+                           booking_time=_format_time_12h(booking["scheduled_time"]) if booking else "")
 
 
 @flight_bp.route("/log/<int:flight_id>/delete", methods=["POST"])
@@ -7581,17 +8009,76 @@ def log_delete(flight_id):
     return redirect(url_for("flight.log_history"))
 
 
+PAYMENT_METHODS = ("Cash", "Card", "Check", "Venmo/Zelle", "Other")
+
+
+def record_flight_payment(conn, flight_id, amount=None, method=None, created_by=None):
+    """FLY-11: marks one logged flight Paid and puts the money on the student's
+    account (a 'payment' ledger row tied to the flight, the same row End
+    Session writes), so the balance, Billing and the cross-check agree.
+    amount defaults to the flight's total. Returns (student_name, amount,
+    method); doesn't commit. (After merge this should call the shared
+    flight_payments helper from SCHOOL-01.)"""
+    row = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (flight_id,)).fetchone()
+    if not row:
+        return None
+    cost = _row_with_cost(row)
+    amount = round(cost["total"] if amount is None else max(0.0, amount), 2)
+    method = (method or "").strip()[:40] or ("Other" if amount > 0.005 else None)
+    conn.execute("UPDATE flights SET paid = 1, payment_method = ?, payment_amount = ? WHERE id = ?",
+                 (method, amount if amount > 0.005 else None, flight_id))
+    if amount > 0.005:
+        _ledger_entry(conn, row["student_id"], "payment", amount, note=f"Marked paid ({method})",
+                      flight_id=flight_id, created_by=created_by)
+    return row["student_name"], amount, method
+
+
+def reverse_flight_payment(conn, flight_id):
+    """Marks a flight Unpaid again and takes back the payment(s) that Mark paid
+    / End Session added to the student's account. Returns (student_name,
+    amount_removed); doesn't commit."""
+    row = conn.execute("SELECT f.student_id, COALESCE(NULLIF(f.guest_name, '') || ' (guest)', s.name) as student_name "
+                       "FROM flights f JOIN students s ON s.id = f.student_id WHERE f.id = ?", (flight_id,)).fetchone()
+    if not row:
+        return None
+    removed = 0.0
+    for led in conn.execute("SELECT id, amount FROM student_ledger WHERE entry_type = 'payment' AND flight_id = ?",
+                            (flight_id,)).fetchall():
+        removed += led["amount"]
+        conn.execute("UPDATE students SET balance = balance - ? WHERE id = ?", (led["amount"], row["student_id"]))
+        conn.execute("DELETE FROM student_ledger WHERE id = ?", (led["id"],))
+    conn.execute("UPDATE flights SET paid = 0, payment_method = NULL, payment_amount = NULL WHERE id = ?", (flight_id,))
+    check_balance_hold(conn, row["student_id"])
+    return row["student_name"], round(removed, 2)
+
+
 @flight_bp.route("/log/<int:flight_id>/toggle_paid", methods=["POST"])
 @billing_required
 def log_toggle_paid(flight_id):
+    """Mark paid asks for the amount (pre-filled with the flight total) and how
+    it was paid and adds that payment to the student's account; Mark unpaid
+    takes it back off (FLY-11)."""
     conn = get_db()
     f = conn.execute("SELECT paid FROM flights WHERE id = ?", (flight_id,)).fetchone()
     if not f:
         conn.close()
         flash("Flight not found.", "danger")
         return redirect(url_for("flight.log_history"))
-    conn.execute("UPDATE flights SET paid = ? WHERE id = ?", (0 if f["paid"] else 1, flight_id))
-    conn.commit()
+    who = session.get("user_name")
+    if f["paid"]:
+        name, removed = reverse_flight_payment(conn, flight_id)
+        conn.commit()
+        flash(f"Marked unpaid - ${removed:,.2f} payment taken off {name}'s account." if removed > 0.005
+              else "Marked unpaid.", "success")
+    else:
+        amount = _parse_float(request.form.get("payment_amount"))
+        method = request.form.get("payment_method")
+        if method and method not in PAYMENT_METHODS:
+            method = "Other"
+        name, amount, method = record_flight_payment(conn, flight_id, amount, method, created_by=who)
+        conn.commit()
+        flash(f"Marked paid - ${amount:,.2f} {method} payment added to {name}'s account." if amount > 0.005
+              else "Marked paid ($0.00 flight - nothing to add).", "success")
     conn.close()
     return redirect(request.referrer or url_for("flight.log_history"))
 
@@ -8142,6 +8629,12 @@ def waitlist_page():
                                  JOIN assets a ON a.id = o.asset_id LEFT JOIN cfis c ON c.id = o.cfi_id
                                  WHERE o.student_id = ? AND o.scheduled_date >= ? ORDER BY o.created_at DESC LIMIT 5""",
                               (session.get("student_id"), date.today().isoformat())).fetchall()
+        # FLY-34: once the student has requested (or booked) that slot, the
+        # offer is no longer listed - the request is waiting on a CFI.
+        offers = [o for o in offers if not conn.execute(
+            """SELECT 1 FROM scheduled_flights WHERE student_id = ? AND asset_id = ? AND scheduled_date = ?
+               AND scheduled_time = ? AND status IN ('pending_approval', 'scheduled', 'balance_hold', 'in_progress', 'completed')""",
+            (session.get("student_id"), o["asset_id"], o["scheduled_date"], o["scheduled_time"])).fetchone()]
     month_start = date.today().replace(day=1).isoformat()
     filled = _waitlist_filled_count(conn, month_start) if staff else None
     planes = conn.execute("SELECT id, tag FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY schedule_order, tag").fetchall()

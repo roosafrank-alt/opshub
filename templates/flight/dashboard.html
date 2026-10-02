@@ -324,7 +324,7 @@
     <a href="{{ url_for('flight.log_new') }}" class="text-decoration-none">
       <div class="card dash-shortcut-sm">
         <i class="bi bi-journal-plus text-warning"></i>
-        <div class="fw-bold dash-shortcut-label">Log a Flight</div>
+        <div class="fw-bold dash-shortcut-label" data-change="FLY-13">Log a Past Session</div>
       </div>
     </a>
   </div>
@@ -358,7 +358,7 @@
     <a href="{{ url_for('flight.log_new') }}" class="text-decoration-none">
       <div class="card dash-tile-lg text-center">
         <i class="bi bi-journal-plus fs-4 text-warning"></i>
-        <div class="fw-bold mt-1">Log a Flight</div>
+        <div class="fw-bold mt-1" data-change="FLY-13">Log a Past Session</div>
       </div>
     </a>
   </div>
@@ -549,6 +549,16 @@
   }
 
   function restoreOpenState(state) {
+    // A section the person closed/opened on purpose keeps that choice even
+    // when the server's own default for it is the other way round.
+    var savedOpen = dashLoadOpen();
+    Object.keys(savedOpen).forEach(function (key) {
+      var toggle = region.querySelector('.dash-collapse-toggle[data-collapse="' + key + '"]');
+      var body = region.querySelector('[data-collapse-body="' + key + '"]');
+      if (!toggle || !body) return;
+      toggle.classList.toggle('open', !!savedOpen[key]);
+      body.hidden = !savedOpen[key];
+    });
     state.sections.forEach(function (key) {
       var toggle = region.querySelector('.dash-collapse-toggle[data-collapse="' + key + '"]');
       var body = region.querySelector('[data-collapse-body="' + key + '"]');
@@ -594,11 +604,13 @@
   // toggling").
   document.addEventListener('click', function (evt) {
     if (!region.contains(evt.target)) return;
-    var btn = evt.target.closest('.next-scope-btn');
+    // The All / Mine buttons (FLY-29) swap in place the same way.
+    var btn = evt.target.closest('.next-scope-btn, .dash-scope-btn');
     if (!btn || inFlight) return;
     inFlight = true;
     var openState = captureOpenState();
-    fetch(url + '?next=' + encodeURIComponent(btn.dataset.nextScope),
+    fetch(url + (btn.dataset.dashScope ? '?scope=' + encodeURIComponent(btn.dataset.dashScope)
+                                       : '?next=' + encodeURIComponent(btn.dataset.nextScope)),
         { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
       .then(function (resp) { return resp.ok ? resp.text() : null; })
       .then(function (html) {
@@ -775,6 +787,54 @@ document.addEventListener('click', function (evt) {
     });
 });
 
+// Acknowledge a Needs Review flight in place (FLY-17): the row leaves the
+// banner and the floating message offers an Open Alerts link, instead of
+// jumping to the Alerts page.
+document.addEventListener('click', function (evt) {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region || !region.contains(evt.target)) return;
+  var btn = evt.target.closest('.ack-review-btn');
+  if (!btn) return;
+  var row = btn.closest('.needs-review-row');
+  btn.disabled = true;
+  fetch(btn.dataset.ackUrl, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      showDashFlag(data.message, data.category, data.link, data.link_text);
+      if (!data.ok) { btn.disabled = false; return; }
+      if (row) row.remove();
+      var left = region.querySelectorAll('.needs-review-row').length;
+      var banner = document.getElementById('needs-review-banner');
+      if (!left && banner) { banner.remove(); return; }
+      var count = document.getElementById('needs-review-count');
+      if (count) count.textContent = left;
+    })
+    .catch(function () {
+      showDashFlag('Something went wrong - try again.', 'danger');
+      btn.disabled = false;
+    });
+});
+
+// Withdraw a change request the student sent (FLY-35).
+document.addEventListener('click', function (evt) {
+  var region = document.getElementById('dashboard-live-region');
+  if (!region || !region.contains(evt.target)) return;
+  var btn = evt.target.closest('.withdraw-change-btn');
+  if (!btn) return;
+  var row = btn.closest('tr');
+  btn.disabled = true;
+  fetch(btn.dataset.withdrawUrl, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      showDashFlag(data.message, data.category);
+      if (data.ok && row) row.remove(); else btn.disabled = false;
+    })
+    .catch(function () {
+      showDashFlag('Something went wrong - try again.', 'danger');
+      btn.disabled = false;
+    });
+});
+
 // Deny needs a typed reason (see schedule_deny in flight.py - the student
 // sees it directly, so a bare "Deny?" click isn't enough) - opens a small
 // modal instead of the generic yes/no confirm dialog the Approve button
@@ -931,14 +991,21 @@ function removePendingRow(row) {
 // scroll up to even see, right after doing something further down the
 // page). Fixed position, auto-dismisses itself; reuses the same
 // alert-<category> Bootstrap styling as a normal flash.
-function showDashFlag(message, category) {
+function showDashFlag(message, category, linkUrl, linkText) {
   var flag = document.getElementById('dash-flag-toast');
   if (!flag) return;
   clearTimeout(flag._hideTimer);
   flag.className = 'alert alert-' + (category || 'info') + ' shadow';
   flag.textContent = message;
+  if (linkUrl) {
+    var a = document.createElement('a');
+    a.href = linkUrl;
+    a.className = 'alert-link ms-2 fw-bold';
+    a.textContent = linkText || 'Open';
+    flag.appendChild(a);
+  }
   flag.classList.add('show');
-  flag._hideTimer = setTimeout(function () { flag.classList.remove('show'); }, 4000);
+  flag._hideTimer = setTimeout(function () { flag.classList.remove('show'); }, linkUrl ? 8000 : 4000);
 }
 
 // Click an airport row in the NOTAMs tile to expand its notams in place,

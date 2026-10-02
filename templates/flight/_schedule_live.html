@@ -402,15 +402,15 @@
              breathing room between them keep their true to-scale position. #}
           {% set min_gap_pct = (32 / timeline_h * 100) | round(2) %}
           <div class="calendar-timeline" style="position:relative; height:{{ timeline_h }}px;">
-            <div class="calendar-time-line" style="top:{{ ((540 - 360) / 840 * 100) | round(2) }}%;"><span class="calendar-time-label">9a</span></div>
-            <div class="calendar-time-line" style="top:{{ ((720 - 360) / 840 * 100) | round(2) }}%;"><span class="calendar-time-label">12p</span></div>
-            <div class="calendar-time-line" style="top:{{ ((900 - 360) / 840 * 100) | round(2) }}%;"><span class="calendar-time-label">3p</span></div>
-            <div class="calendar-time-line" style="top:{{ ((1080 - 360) / 840 * 100) | round(2) }}%;"><span class="calendar-time-label">6p</span></div>
+            <div class="calendar-time-line" style="top:{{ ((540 - month_timeline_start_min) / (month_timeline_end_min - month_timeline_start_min) * 100) | round(2) }}%;"><span class="calendar-time-label">9a</span></div>
+            <div class="calendar-time-line" style="top:{{ ((720 - month_timeline_start_min) / (month_timeline_end_min - month_timeline_start_min) * 100) | round(2) }}%;"><span class="calendar-time-label">12p</span></div>
+            <div class="calendar-time-line" style="top:{{ ((900 - month_timeline_start_min) / (month_timeline_end_min - month_timeline_start_min) * 100) | round(2) }}%;"><span class="calendar-time-label">3p</span></div>
+            <div class="calendar-time-line" style="top:{{ ((1080 - month_timeline_start_min) / (month_timeline_end_min - month_timeline_start_min) * 100) | round(2) }}%;"><span class="calendar-time-label">6p</span></div>
             {% set ns = namespace(min_top=0.0) %}
             {% for f in timed %}
             {% set mins = f.scheduled_time[:2] | int * 60 + f.scheduled_time[3:5] | int %}
-            {% set clamped = [[mins, 360] | max, 1200] | min %}
-            {% set raw_top_pct = ((clamped - 360) / 840 * 100) | round(2) %}
+            {% set clamped = [[mins, month_timeline_start_min] | max, month_timeline_end_min] | min %}
+            {% set raw_top_pct = ((clamped - month_timeline_start_min) / (month_timeline_end_min - month_timeline_start_min) * 100) | round(2) %}
             {% set top_pct = [raw_top_pct, ns.min_top] | max %}
             {% set ns.min_top = top_pct + min_gap_pct %}
             {{ schedule_block(f, compact, 'position:absolute; top:' ~ top_pct ~ '%; left:0; right:0; z-index:' ~ (loop.index + 1) ~ ';', 'schedule-block-timeline') }}
@@ -538,13 +538,13 @@
       <a href="{{ url_for('flight.schedule_calendar', view='day', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'day' else 'btn-outline-secondary' }}">Day</a>
       <a href="{{ url_for('flight.schedule_calendar', view='week', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'week' else 'btn-outline-secondary' }}">Week</a>
       <a href="{{ url_for('flight.schedule_calendar', view='month', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'month' else 'btn-outline-secondary' }}">Month</a>
-      <a href="{{ url_for('flight.schedule_calendar', view='year', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'year' else 'btn-outline-secondary' }}">Year</a>
+      <a href="{{ url_for('flight.schedule_calendar', view='year', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn d-none d-sm-inline-block {{ 'btn-warning' if view == 'year' else 'btn-outline-secondary' }}">Year</a>
       <a href="{{ url_for('flight.schedule_calendar', view='list', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'list' else 'btn-outline-secondary' }}">List</a>
       {#- "Custom Range" wraps or gets cut off on a phone-width row of six
          buttons, so it reads as just "Range" under the sm breakpoint
          (576px) - tablets and desktop keep the full "Custom Range". Same
          link/behavior either way, just shorter text on the small screen. #}
-      <a href="{{ url_for('flight.schedule_calendar', view='custom', start=custom_start, end=custom_end, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'custom' else 'btn-outline-secondary' }}"><span class="d-none d-sm-inline">Custom Range</span><span class="d-inline d-sm-none">Range</span></a>
+      <a href="{{ url_for('flight.schedule_calendar', view='custom', start=custom_start, end=custom_end, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn d-none d-sm-inline-block {{ 'btn-warning' if view == 'custom' else 'btn-outline-secondary' }}">Custom Range</a>
     </div>
 </div>
 <form method="get" class="row g-2 align-items-end mb-0 sch-filters">
@@ -597,16 +597,22 @@
        of view (open slots, not bookings) rather than another way to slice
        the same bookings. See flight.schedule_availability. #}
     <a href="{{ url_for('flight.schedule_availability', date=(day_str if view in ('day', 'week') else today.strftime('%Y-%m-%d')), plane_id=plane_id) }}" class="btn btn-outline-success btn-sm fw-bold"><i class="bi bi-calendar2-check"></i> Availability</a>
-    <a href="{{ url_for('flight.waitlist_page') }}" class="btn btn-outline-primary btn-sm fw-bold"><i class="bi bi-hourglass-split"></i> Waitlist</a>
-    {% if session.get('cfi_id') or session.get('is_master_admin') %}
-    <a href="{{ url_for('flight.weather_cancel', date=(day_str if view in ('day', 'week') else today.strftime('%Y-%m-%d'))) }}" class="btn btn-danger btn-sm fw-bold"><i class="bi bi-cloud-lightning-rain"></i> Weather cancellation</a>
-    {% endif %}
-    {#- Flight Finder is admin-only (booking access to it is restricted to
-       admins - see admin_required on flight.schedule_finder), so the
-       button itself is hidden from everyone else. #}
-    {% if session.get('is_master_admin') %}
-    <a href="{{ url_for('flight.schedule_finder') }}" class="btn btn-outline-primary btn-sm fw-bold"><i class="bi bi-search"></i> Flight Finder</a>
-    {% endif %}
+    {#- FLY-20: Waitlist, Weather cancellation, Flight Finder (and Year / Range on a phone) live in one More menu. #}
+    <div class="dropdown" data-change="FLY-20 FLY-02">
+      <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-three-dots"></i> More</button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{{ url_for('flight.waitlist_page') }}"><i class="bi bi-hourglass-split"></i> Waitlist</a></li>
+        {% if session.get('is_master_admin') %}
+        <li><a class="dropdown-item" href="{{ url_for('flight.schedule_finder') }}"><i class="bi bi-search"></i> Flight Finder</a></li>
+        {% endif %}
+        <li class="d-sm-none"><a class="dropdown-item" href="{{ url_for('flight.schedule_calendar', view='year', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}"><i class="bi bi-calendar4"></i> Year view</a></li>
+        <li class="d-sm-none"><a class="dropdown-item" href="{{ url_for('flight.schedule_calendar', view='custom', start=custom_start, end=custom_end, plane_id=plane_id, cfi_id=cfi_id) }}"><i class="bi bi-calendar-range"></i> Custom range</a></li>
+        {% if session.get('cfi_id') or session.get('is_master_admin') %}
+        <li><hr class="dropdown-divider"></li>
+        <li class="px-2"><a class="dropdown-item text-danger fw-bold border border-danger rounded" href="{{ url_for('flight.weather_cancel', date=(day_str if view in ('day', 'week') else today.strftime('%Y-%m-%d'))) }}"><i class="bi bi-cloud-lightning-rain"></i> Weather cancellation</a></li>
+        {% endif %}
+      </ul>
+    </div>
 </div>
 </div>
 
@@ -811,7 +817,15 @@
     {% endfor %}
   </div>
   {% endif %}
-  <p class="text-muted small mb-1 mt-2"><i class="bi bi-exclamation-triangle-fill text-danger"></i> The <strong>triangle</strong> marks any booking flagged for review - an over-currency solo, an expired sign-off, or a dual flight with no instructor assigned yet. A <span style="outline:3px solid #dc3545; outline-offset:2px; padding:0 3px; background-image:repeating-linear-gradient(135deg, rgba(220,53,69,.55) 0 4px, transparent 4px 10px); animation: schedule-conflict-pulse 1.6s ease-in-out infinite;">pulsing red outline with red slashes</span> means it's also still unacknowledged on the Alerts tab; acknowledging it there clears the outline and slashes and turns the triangle amber, but the triangle itself stays until the actual issue is fixed (instructor assigned, sign-off renewed, etc.) - so an amber triangle with no outline just means someone already looked at it. Click the block and edit to resolve it.</p>
-  <p class="text-muted small mb-1 mt-2">Solo bookings use the plane's color in neon and have no instructor stripe. Admins pick plane colors in Manage &gt; Planes &gt; Edit, and instructor colors on each CFI; a color can only belong to one plane or one instructor.</p>
-  <p class="text-muted small mb-0">Each block shows the start time and plane (then student / instructor). Busy days show the first few and a "+N more" link to that day. Click a block for full details. Use the Plane/Instructor filters above to narrow the calendar down to just one.</p>
+  <ul class="list-unstyled small text-muted mb-2 mt-2" data-change="FLY-36">
+    <li><i class="bi bi-exclamation-triangle-fill text-danger"></i> <strong>Triangle</strong> - flagged for review (an over-currency solo, an expired sign-off, or a dual flight with no instructor yet). Red with a pulsing outline = not acknowledged yet; amber = someone looked, but it isn't fixed. Click the block and edit to resolve it.</li>
+    <li><span style="display:inline-block;width:22px;height:11px;border:2px dashed #6c757d;border-radius:3px;opacity:.7;vertical-align:-1px;"></span> <strong>Dashed see-through box</strong> - a student's request still waiting for an instructor's OK.</li>
+    <li><span style="display:inline-block;width:22px;height:11px;border:2px dashed #fd7e14;border-radius:3px;vertical-align:-1px;"></span> <strong>Orange dashed outline</strong> - may start late (an earlier flight is running late).</li>
+    <li><i class="bi bi-patch-question-fill text-warning"></i> / <i class="bi bi-patch-check-fill text-success"></i> <strong>Question mark / check</strong> - booked for the student; waiting for their OK / they confirmed.</li>
+    <li><i class="bi bi-pause-circle"></i> <strong>Pause</strong> - Pending - Balance Hold (the student owes more than the school's limit).</li>
+    <li><i class="bi bi-stopwatch"></i> / <i class="bi bi-check-circle"></i> <strong>Stopwatch / check circle</strong> - flying now / flown (shown faded).</li>
+    <li><span style="display:inline-block;padding:0 6px;background:#e9ecef;color:#6c757d;border-radius:3px;">Past</span> <strong>Grey Past</strong> - a slot from an earlier day (students don't see who had it).</li>
+  </ul>
+  <p class="text-muted small mb-1">Solo bookings use the plane's color in neon and have no instructor stripe. Admins pick plane colors in Manage &gt; Planes &gt; Edit, and instructor colors on each CFI; a color can only belong to one plane or one instructor.</p>
+  <p class="text-muted small mb-0">Each block shows the start time and plane (then student / instructor). Click a block for full details. Use the Plane/Instructor filters above to narrow the calendar down to just one.</p>
 </div>

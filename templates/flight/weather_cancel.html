@@ -24,22 +24,49 @@
   </div>
 </form>
 
-<form method="post" class="card p-3" id="wx-form">
+<form method="post" class="card p-3" id="wx-form" data-day="{{ day|usdate }}" data-confirm="Call off the ticked lessons? This can't be undone." data-confirm-title="Weather cancellation" data-confirm-ok="Yes, call them off" data-confirm-style="danger" data-change="FLY-02 FLY-28">
   <input type="hidden" name="date" value="{{ day }}">
   <input type="hidden" name="period" value="{{ period }}">
   <input type="hidden" name="do" value="cancel">
   {% if lessons %}
-  <div class="form-label small mb-1">Lessons to call off ({{ lessons|length }})</div>
+  <div class="d-flex justify-content-between align-items-center mb-1">
+    <div class="form-label small mb-0">Tick the lessons to call off ({{ lessons|length }} on this day)</div>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="wx-all">Select all</button>
+  </div>
   <div class="list-group mb-3">
     {% for l in lessons %}
     <label class="list-group-item d-flex gap-2 align-items-center">
-      <input type="checkbox" class="form-check-input mt-0" name="ids" value="{{ l.id }}" checked>
+      <input type="checkbox" class="form-check-input mt-0 wx-tick" name="ids" value="{{ l.id }}" data-student="{{ '' if l.guest_name else l.student_id }}">
       <span><strong>{{ time12(l.scheduled_time) or 'Time not set' }}</strong> &middot; {{ l.student_name }} &middot; {{ l.plane_tag }}{% if l.cfi_name %} &middot; {{ l.cfi_name }}{% endif %}</span>
     </label>
     {% endfor %}
   </div>
-  <button type="submit" class="btn btn-danger btn-lg fw-bold"><i class="bi bi-cloud-lightning-rain"></i> Weather cancellation: call off ticked lessons</button>
-  <p class="text-muted small mt-2 mb-0">Weather cancellation calls off every ticked lesson with no charge, does not offer the slots to the waitlist, and sends each student an alert and text with 3 new times they can book with one tap.</p>
+  <button type="submit" class="btn btn-danger btn-lg fw-bold" id="wx-go" disabled><i class="bi bi-cloud-lightning-rain"></i> Weather cancellation: call off ticked lessons</button>
+  <p class="text-muted small mt-2 mb-0">Weather cancellation calls off every ticked lesson with no charge, does not offer the slots to the waitlist, and sends each student an alert and text with up to 3 new times they can book with one tap.</p>
+  <script>
+  (function () {
+    var form = document.getElementById('wx-form');
+    var ticks = form.querySelectorAll('.wx-tick');
+    var all = document.getElementById('wx-all');
+    var go = document.getElementById('wx-go');
+    function refresh() {
+      var n = 0, students = {};
+      ticks.forEach(function (t) { if (t.checked) { n++; if (t.dataset.student) students[t.dataset.student] = 1; } });
+      var s = Object.keys(students).length;
+      go.disabled = n === 0;
+      all.textContent = n === ticks.length ? 'Clear all' : 'Select all';
+      form.setAttribute('data-confirm', 'Call off ' + n + ' lesson' + (n === 1 ? '' : 's') + ' on ' + form.dataset.day +
+        ' and text ' + s + ' student' + (s === 1 ? '' : 's') + "? This can't be undone.");
+    }
+    all.addEventListener('click', function () {
+      var on = !Array.prototype.every.call(ticks, function (t) { return t.checked; });
+      ticks.forEach(function (t) { t.checked = on; });
+      refresh();
+    });
+    ticks.forEach(function (t) { t.addEventListener('change', refresh); });
+    refresh();
+  })();
+  </script>
   {% else %}
   <p class="mb-0 text-muted">No lessons booked for that day and time.</p>
   {% endif %}

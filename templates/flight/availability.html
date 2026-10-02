@@ -170,9 +170,9 @@
 </div>
 
 {% if view == 'day' %}
-<p class="text-muted small">Plane availability only - a slot shown here just means that plane is free then; it doesn't check whether an instructor is also available. Times are 8 AM - 8 PM in 1.5-hour slots (the same length as a normal booking).</p>
+<p class="text-muted small">Plane availability only - a slot shown here just means that plane is free then; it doesn't check whether an instructor is also available. Times are {{ school_day_label }} in 1.5-hour slots (the same length as a normal booking).</p>
 {% else %}
-<p class="text-muted small">Each day shows how many open (plane, time-slot) pairs it has, 8 AM - 8 PM in 1.5-hour slots - click a day to see the full breakdown.</p>
+<p class="text-muted small">Each day shows how many open (plane, time-slot) pairs it has, {{ school_day_label }} in 1.5-hour slots - click a day to see the full breakdown.</p>
 {% endif %}
 
 {% if view == 'week' %}
@@ -272,7 +272,7 @@
    reads like a simple "here's what's free today" sheet rather than a wall
    of individual rows. #}
 {% if not open_list %}
-<p class="text-muted">Nothing open today in the 8 AM - 8 PM window.</p>
+<p class="text-muted">Nothing open today in the {{ school_day_label }} window.</p>
 {% else %}
 {% set open_by_plane = {} %}
 {% for item in open_list %}

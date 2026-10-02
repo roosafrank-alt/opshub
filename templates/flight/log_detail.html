@@ -1,5 +1,6 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}Flight Detail - OpsHub{% endblock %}
+{% block title %}Flight Detail - OpsHub{% include "flight/_mark_paid_modal.html" %}
+{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-journal-text"></i> Flight Detail</h4>
@@ -53,9 +54,9 @@
     <div class="card p-3 mb-3">
       <h6 class="text-muted mb-2"><i class="bi bi-stopwatch"></i> Start/Stop Clock</h6>
       <table class="table table-sm mb-0">
-        <tr><th style="width:35%;">Started</th><td>{{ f.started_at }}</td></tr>
-        <tr><th>Ended</th><td>{{ f.ended_at or '(still running)' }}</td></tr>
-        <tr><th>Elapsed (raw)</th><td>{% if f.instructor_clock_hours is not none %}{{ '%.2f'|format(f.instructor_clock_hours) }} hrs{% else %}-{% endif %}</td></tr>
+        <tr><th style="width:35%;">Started</th><td data-change="FLY-26">{{ f.started_at|usdate }} {{ f.started_at|time12 }}</td></tr>
+        <tr><th>Ended</th><td>{% if f.ended_at %}{{ f.ended_at|usdate }} {{ f.ended_at|time12 }}{% else %}(still running){% endif %}</td></tr>
+        <tr><th>Elapsed</th><td data-change="FLY-26">{% if f.instructor_clock_hours is not none %}{% set el_min = (f.instructor_clock_hours * 60)|round|int %}{% if el_min >= 60 %}{{ el_min // 60 }} hr {{ el_min % 60 }} min{% else %}{{ el_min }} min{% endif %} ({{ '%.2f'|format(f.instructor_clock_hours) }} hrs){% else %}-{% endif %}</td></tr>
       </table>
       <p class="text-muted small mb-0 mt-2">The instructor is billed on this clocked time (rounded up), not the Hobbs/Tach hours - it covers the pre/post-flight time with the student, not just time in the air.</p>
     </div>
@@ -82,9 +83,13 @@
         <tr class="table-light"><th>Total</th><td class="fs-5"><strong>${{ '%.2f'|format(f.total) }}</strong></td></tr>
         <tr><th>Status</th><td>{% if f.paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}</td></tr>
       </table>
-      <form method="post" action="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" class="mt-2" data-confirm="{{ 'Mark this flight as UNPAID? It will show as owed again.' if f.paid else 'Mark this flight as PAID?' }}" data-confirm-title="{{ 'Mark Unpaid' if f.paid else 'Mark Paid' }}" data-confirm-ok="{{ 'Yes, mark unpaid' if f.paid else 'Yes, mark paid' }}" data-confirm-style="{{ 'warning' if f.paid else 'success' }}">
-        <button class="btn btn-sm btn-outline-{{ 'secondary' if f.paid else 'success' }}">{{ 'Mark Unpaid' if f.paid else 'Mark Paid' }}</button>
+      {% if f.paid %}
+      <form method="post" action="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" class="mt-2" data-confirm="Mark this flight as UNPAID? The payment recorded for it comes back off the student's account and it shows as owed again." data-confirm-title="Mark Unpaid" data-confirm-ok="Yes, mark unpaid" data-confirm-style="warning" data-change="FLY-11">
+        <button class="btn btn-sm btn-outline-secondary">Mark Unpaid</button>
       </form>
+      {% else %}
+      <button type="button" class="btn btn-sm btn-outline-success mt-2 mark-paid-btn" data-url="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" data-total="{{ '%.2f'|format(f.total) }}" data-who="{{ f.student_name }}" data-change="FLY-11">Mark Paid</button>
+      {% endif %}
       <p class="text-muted small mb-0 mt-2">Billed hours are rounded up to the nearest 0.1 hr, so a few minutes still results in a real charge.</p>
     </div>
     {% endif %}
@@ -92,8 +97,8 @@
     <div class="card p-3">
       <h6 class="text-muted mb-2">Record</h6>
       <table class="table table-sm mb-0">
-        <tr><th style="width:45%;">Logged</th><td><small>{{ f.created_at }}</small></td></tr>
-        {% if f.scheduled_flight_id %}<tr><th>From Schedule</th><td><small>Booking #{{ f.scheduled_flight_id }}</small></td></tr>{% endif %}
+        <tr><th style="width:45%;">Logged</th><td data-change="FLY-26"><small>{{ f.created_at|usdate }} {{ f.created_at|time12 }}</small></td></tr>
+        {% if f.scheduled_flight_id %}<tr><th>From Schedule</th><td data-change="FLY-26"><small>{% if booking %}<a href="{{ url_for('flight.schedule_calendar', view='day', date=booking.scheduled_date) }}">{{ booking.scheduled_date|usdate }}{% if booking.scheduled_time %} {{ booking_time }}{% endif %} booking</a>{% else %}Booking #{{ f.scheduled_flight_id }} (no longer on the schedule){% endif %}</small></td></tr>{% endif %}
       </table>
     </div>
   </div>
