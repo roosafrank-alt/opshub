@@ -57,11 +57,12 @@
     </div>
     <div class="d-flex gap-1 flex-wrap">
       <form method="post" action="{{ url_for('flight.plane_ground', asset_id=r.asset.id) }}" data-confirm="Ground {{ r.asset.tag }}? It shows as Down for maintenance, new bookings are blocked and its upcoming bookings get flagged to move." data-confirm-title="Ground plane" data-confirm-ok="Yes, ground it" data-confirm-style="danger">
+        <input type="hidden" name="from_100hr" value="1">
         <button class="btn btn-danger btn-sm fw-bold"><i class="bi bi-slash-circle"></i> Ground plane</button>
       </form>
       <a href="{{ url_for('project_new', asset_id=r.asset.id, name='100hr Inspection - ' ~ r.asset.tag, quick_type='100hr Inspection') }}" class="btn btn-outline-primary btn-sm fw-bold"><i class="bi bi-tools"></i> Create 100-hr project</a>
-      <form method="post" action="{{ url_for('flight.plane_hundred_hr_not_yet', asset_id=r.asset.id) }}">
-        <button class="btn btn-outline-secondary btn-sm">Not yet</button>
+      <form method="post" action="{{ url_for('flight.plane_hundred_hr_not_yet', asset_id=r.asset.id) }}" data-confirm="Snooze this reminder for {{ r.asset.tag }}? It comes back when the plane reaches 0 hrs left (or on its next 100-hour cycle)." data-confirm-title="Not Yet" data-confirm-ok="Yes, snooze it" data-confirm-style="warning">
+        <button class="btn btn-outline-secondary btn-sm" data-change="SCHOOL-30">Not yet</button>
       </form>
     </div>
   </div>
@@ -91,6 +92,14 @@
 
 {{ rp.open_reports(open_reports, report_categories, true) }}
 
+<style>
+  .hobbs-gap-form input[name="note"] { max-width: 220px; }
+  @media (max-width: 575.98px) {
+    .hobbs-gap-form { flex-direction: column; align-items: stretch !important; width: 100%; }
+    .hobbs-gap-form input[name="note"] { max-width: none; width: 100%; }
+    .hobbs-gap-form button { width: 100%; }
+  }
+</style>
 {% if session.get('is_master_admin') %}
 {#- Unaccounted Hobbs time (flight._hobbs_gaps) - admins only. #}
 <h5 id="hobbs-gaps" class="fw-bold"><i class="bi bi-speedometer2"></i> Unaccounted Hobbs Time ({{ hobbs_gaps|length }}) <span class="badge bg-secondary fw-normal">admins only</span></h5>
@@ -107,11 +116,14 @@
         <a href="{{ url_for('flight.log_detail', flight_id=g.next.id) }}">{{ g.next.flight_date|usdate }} ({{ g.next.student_name or '-' }}{% if g.next.cfi_name %} / {{ g.next.cfi_name }}{% endif %})</a>{% if not g.next.ended_at and g.next.started_at %} <span class="badge bg-warning text-dark">in progress</span>{% endif %}.
       </div>
     </div>
-    <form method="post" action="{{ url_for('flight.hobbs_gap_review') }}" class="d-flex gap-1 flex-wrap align-items-center mb-0">
+    {#- SCHOOL-50: on a phone the note and button stack full-width under
+       the gap text (hobbs-gap-form in base_flight's stacking rules is
+       the same pattern the alert rows use). SCHOOL-30: asks first. #}
+    <form method="post" action="{{ url_for('flight.hobbs_gap_review') }}" class="hobbs-gap-form d-flex gap-1 align-items-center mb-0" data-change="SCHOOL-30 SCHOOL-50" data-confirm="Mark this Hobbs gap on {{ g.plane_tag }} as reviewed? It leaves this list." data-confirm-title="Mark Reviewed" data-confirm-ok="Yes, mark reviewed" data-confirm-style="danger">
       <input type="hidden" name="from_flight_id" value="{{ g.prev.id }}">
       <input type="hidden" name="to_flight_id" value="{{ g.next.id }}">
-      <input type="text" name="note" class="form-control form-control-sm" style="max-width:220px;" placeholder="note (ferry, run-up, misread...)">
-      <button class="btn btn-outline-danger btn-sm fw-bold"><i class="bi bi-check-lg"></i> Mark reviewed</button>
+      <input type="text" name="note" class="form-control form-control-sm" placeholder="note (ferry, run-up, misread...)">
+      <button class="btn btn-outline-danger btn-sm fw-bold text-nowrap"><i class="bi bi-check-lg"></i> Mark reviewed</button>
     </form>
   </div>
   {% endfor %}

@@ -19,15 +19,30 @@
 {{ rp.report_modal(report_categories, report_planes) }}
 <p class="text-muted small">Notifications about your flights - request approvals, denials, and anything else your instructor or the school needs you to know.</p>
 
+{#- SCHOOL-49: nothing is marked read just by opening this tab. Each item
+   keeps its New badge until you tap View or its x; "Mark all read" clears
+   the lot. #}
 {% if notifications %}
+{% if unread_count %}
+<form method="post" action="{{ url_for('flight.notifications_mark_all_read') }}" class="mb-2 text-end">
+  <button class="btn btn-outline-secondary btn-sm" data-change="SCHOOL-49"><i class="bi bi-check2-all"></i> Mark all read</button>
+</form>
+{% endif %}
 <div class="card p-3">
   {% for n in notifications %}
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}" data-change="SCHOOL-49">
     <div>
       <div>{% if n.was_unread %}<span class="badge bg-success me-1">New</span>{% endif %}{{ n.message }}</div>
       <small class="text-muted">{{ n.created_at|usdate(true) }}</small>
     </div>
-    {% if n.link %}<a href="{{ n.link }}" class="btn btn-outline-secondary btn-sm text-nowrap">View</a>{% endif %}
+    <div class="d-flex gap-1">
+      {% if n.link %}<a href="{{ url_for('flight.notification_open', notification_id=n.id) }}" class="btn btn-outline-secondary btn-sm text-nowrap">View</a>{% endif %}
+      {% if n.was_unread %}
+      <form method="post" action="{{ url_for('flight.notification_dismiss', notification_id=n.id) }}" class="d-inline">
+        <button class="btn btn-outline-secondary btn-sm" title="Mark read"><i class="bi bi-x-lg"></i></button>
+      </form>
+      {% endif %}
+    </div>
   </div>
   {% endfor %}
 </div>
@@ -35,10 +50,7 @@
 <p class="text-muted">No notifications yet - you'll see updates here when your instructor approves or responds to a flight request.</p>
 {% endif %}
 
-{{ rp.open_reports(open_reports, report_categories, false) }}
-{% if resolved_reports %}
-<details class="mb-3"><summary class="fw-bold">Resolved reports ({{ resolved_report_count }})</summary>
-{{ rp.resolved_reports(resolved_reports, report_categories) }}
-</details>
-{% endif %}
+{#- SCHOOL-09: only the reports this student filed, and no status - the
+   school-wide list (with Resolve) stays on the CFI/admin Alerts page. #}
+{{ rp.open_reports(open_reports, report_categories, false, true) }}
 {% endblock %}

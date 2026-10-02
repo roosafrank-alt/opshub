@@ -1,0 +1,46 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Edit {{ plane.tag }} - OpsHub{% endblock %}
+{% block content %}
+{#- SCHOOL-27: Fly with Kate!'s own small plane form. Saves the same
+   aircraft record Winds Aloft's Maintenance form edits, but Save brings
+   the admin back to Planes. Color and solo rules live on the Color page. #}
+{% set F = form %}
+<div class="row justify-content-center">
+<div class="col-lg-5">
+<div class="card p-4" data-change="SCHOOL-27">
+  <h4>Edit Plane: {{ plane.tag }}</h4>
+  <p class="text-muted small">The basics the flight school needs. Maintenance details (engine, prop, inspections) are on the aircraft's page in Winds Aloft.</p>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Tail number <span class="text-danger">*</span></label>
+      <input type="text" name="tag" class="form-control" value="{{ F.get('tag') if F is not none else plane.tag }}" required autofocus>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Name <span class="text-muted small">(optional)</span></label>
+      <input type="text" name="name" class="form-control" value="{{ F.get('name') if F is not none else (plane.name if plane.name != plane.tag else '') }}" placeholder="e.g. The blue Skyhawk">
+    </div>
+    <div class="row">
+      <div class="col-6 mb-3">
+        <label class="form-label">Make</label>
+        <input type="text" name="make" class="form-control" value="{{ F.get('make') if F is not none else (plane.make or '') }}" placeholder="Cessna">
+      </div>
+      <div class="col-6 mb-3">
+        <label class="form-label">Model</label>
+        <input type="text" name="model" class="form-control" value="{{ F.get('model') if F is not none else (plane.model or '') }}" placeholder="172S">
+      </div>
+    </div>
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" name="is_flight_asset" id="is-flight-asset" {{ 'checked' if (F.get('is_flight_asset') if F is not none else plane.is_flight_asset) }}>
+      <label class="form-check-label" for="is-flight-asset">Used by Flight School <span class="text-muted small">(untick to take it off the Planes list and the Schedule)</span></label>
+    </div>
+    <p class="small text-muted">Schedule color and solo rules: <a href="{{ url_for('flight.plane_rate_edit', asset_id=plane.id) }}">Color &amp; solo settings</a>.
+      {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}Maintenance: <a href="{{ url_for('asset_detail', asset_id=plane.id) }}">open in Winds Aloft</a>.{% endif %}</p>
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('flight.planes_list') }}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary fw-bold">Save</button>
+    </div>
+  </form>
+</div>
+</div>
+</div>
+{% endblock %}

@@ -655,6 +655,13 @@ def _migrate(conn):
     flight_cols = [r["name"] for r in conn.execute("PRAGMA table_info(flights)").fetchall()]
     if "squawk_repaired_at" not in flight_cols:
         conn.execute("ALTER TABLE flights ADD COLUMN squawk_repaired_at TEXT")
+    # SCHOOL-23: CFI pay periods - an admin marks a period paid and the
+    # dual flights in it move to the Paid section of the CFI's Pay page.
+    for col, ddl in (("cfi_paid_at", "ALTER TABLE flights ADD COLUMN cfi_paid_at TEXT"),
+                     ("cfi_paid_by", "ALTER TABLE flights ADD COLUMN cfi_paid_by TEXT"),
+                     ("cfi_paid_note", "ALTER TABLE flights ADD COLUMN cfi_paid_note TEXT")):
+        if col not in flight_cols:
+            conn.execute(ddl)
         conn.execute("ALTER TABLE flights ADD COLUMN squawk_repaired_by TEXT")
         conn.commit()
 
@@ -1169,6 +1176,16 @@ def _migrate(conn):
         resolved_by TEXT
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_reports_open ON flight_reports(resolved_at, category)")
+    conn.commit()
+    # SCHOOL-31: a Plane Issue report remembers the Maintenance squawk it
+    # made, so Alerts can show the squawk's status and the two stay in step.
+    # SCHOOL-09: who filed it (login id), so a student's Alerts tab can show
+    # just their own reports.
+    report_cols = [r["name"] for r in conn.execute("PRAGMA table_info(flight_reports)").fetchall()]
+    if "squawk_id" not in report_cols:
+        conn.execute("ALTER TABLE flight_reports ADD COLUMN squawk_id INTEGER")
+    if "reported_by_user_id" not in report_cols:
+        conn.execute("ALTER TABLE flight_reports ADD COLUMN reported_by_user_id INTEGER")
     conn.commit()
 
     # Landings entered by hand on a student's profile (another school, a

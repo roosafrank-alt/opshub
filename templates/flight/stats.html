@@ -16,41 +16,43 @@
         <option value="custom" {% if range_key == 'custom' %}selected{% endif %}>Custom Range</option>
       </select>
     </div>
-    <div class="col-auto">
-      <label class="form-label small mb-0">Planes <span class="text-muted" style="font-weight:normal;">(ctrl/cmd-click to compare a few)</span></label>
-      <select name="plane_id" class="form-select form-select-sm" multiple size="3" style="min-width:140px;">
-        {% for p in planes %}
-        <option value="{{ p.id }}" {% if p.id|string in plane_ids %}selected{% endif %}>{{ p.tag }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-auto">
-      <label class="form-label small mb-0">Instructors <span class="text-muted" style="font-weight:normal;">(ctrl/cmd-click to compare a few)</span></label>
-      <select name="cfi_id" class="form-select form-select-sm" multiple size="3" style="min-width:140px;">
-        {% for c in cfis %}
-        <option value="{{ c.id }}" {% if c.id|string in cfi_ids %}selected{% endif %}>{{ c.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    {% if plane_ids or cfi_ids %}
-    <div class="col-auto">
-      <label class="form-label small mb-0 d-block">&nbsp;</label>
-      <a href="{{ url_for('flight.stats', range=range_key, start=start, end=end) }}" class="btn btn-outline-secondary btn-sm">Clear Selection</a>
-    </div>
-    {% endif %}
-    <div class="col-auto" id="custom-start-col" style="{{ '' if range_key == 'custom' else 'display:none;' }}">
+    {#- SCHOOL-18: From / To stay visible (greyed until Custom Range is
+       picked) instead of appearing out of nowhere. #}
+    <div class="col-auto" id="custom-start-col" data-change="SCHOOL-18">
       <label class="form-label small mb-0">From</label>
-      <input type="date" name="start" class="form-control form-control-sm" value="{{ start }}">
+      <input type="date" name="start" class="form-control form-control-sm" value="{{ start }}" {% if range_key != 'custom' %}disabled{% endif %}>
     </div>
-    <div class="col-auto" id="custom-end-col" style="{{ '' if range_key == 'custom' else 'display:none;' }}">
+    <div class="col-auto" id="custom-end-col">
       <label class="form-label small mb-0">To</label>
-      <input type="date" name="end" class="form-control form-control-sm" value="{{ end }}">
+      <input type="date" name="end" class="form-control form-control-sm" value="{{ end }}" {% if range_key != 'custom' %}disabled{% endif %}>
     </div>
     <div class="col-auto">
       <button class="btn btn-primary btn-sm">Apply</button>
     </div>
     <div class="col-auto ms-auto text-muted small align-self-end">
       {{ start|usdate }} &ndash; {{ end|usdate }} &middot; {{ flight_count }} flight{{ 's' if flight_count != 1 }}
+    </div>
+    {#- SCHOOL-18: tap-to-include chips instead of ctrl-click list boxes.
+       Nothing ticked = everything, same as the "All" chip. #}
+    <div class="col-12" data-change="SCHOOL-18">
+      <div class="small text-muted mb-1">Planes <span class="fw-normal">(tap to include)</span></div>
+      <div class="d-flex flex-wrap gap-1 stats-chips" data-chips="plane_id">
+        <button type="button" class="btn btn-sm chip-all {{ 'btn-primary' if not plane_ids else 'btn-outline-primary' }}">All</button>
+        {% for p in planes %}
+        <input type="checkbox" class="btn-check" name="plane_id" value="{{ p.id }}" id="plane-chip-{{ p.id }}" autocomplete="off" {% if p.id|string in plane_ids %}checked{% endif %}>
+        <label class="btn btn-sm btn-outline-primary" for="plane-chip-{{ p.id }}">{{ p.tag }}</label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-12">
+      <div class="small text-muted mb-1">Instructors <span class="fw-normal">(tap to include)</span></div>
+      <div class="d-flex flex-wrap gap-1 stats-chips" data-chips="cfi_id">
+        <button type="button" class="btn btn-sm chip-all {{ 'btn-primary' if not cfi_ids else 'btn-outline-primary' }}">All</button>
+        {% for c in cfis %}
+        <input type="checkbox" class="btn-check" name="cfi_id" value="{{ c.id }}" id="cfi-chip-{{ c.id }}" autocomplete="off" {% if c.id|string in cfi_ids %}checked{% endif %}>
+        <label class="btn btn-sm btn-outline-primary" for="cfi-chip-{{ c.id }}">{{ c.name }}</label>
+        {% endfor %}
+      </div>
     </div>
   </form>
 </div>
@@ -65,22 +67,22 @@
   </div>
   <div class="col-6 col-md-3">
     <div class="card stat-card p-3">
-      <div class="text-muted small">Hours Billed</div>
+      <div class="text-muted small" data-change="SCHOOL-19">Hours Paid</div>
       <div class="display-6">{{ '%.1f'|format(billed_hours) }}</div>
-      <div class="text-muted small">from paid flights</div>
+      <div class="text-muted small">on flights marked paid</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="card stat-card p-3 border-success">
       <div class="text-muted small">Revenue Collected</div>
-      <div class="display-6 text-success">${{ '%.0f'|format(revenue_collected) }}</div>
+      <div class="display-6 text-success" data-change="SCHOOL-19">${{ '{:,.2f}'.format(revenue_collected) }}</div>
       <div class="text-muted small">paid flights</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="card stat-card p-3 {{ 'border-warning' if outstanding else '' }}">
       <div class="text-muted small">Outstanding</div>
-      <div class="display-6 {{ 'text-warning' if outstanding else '' }}">${{ '%.0f'|format(outstanding) }}</div>
+      <div class="display-6 {{ 'text-warning' if outstanding else '' }}" data-change="SCHOOL-19">${{ '{:,.2f}'.format(outstanding) }}</div>
       <div class="text-muted small">not yet paid</div>
     </div>
   </div>
@@ -89,7 +91,7 @@
 <div class="row g-3 mb-3">
   <div class="col-lg-4">
     <div class="card p-3 h-100">
-      <h6 class="text-muted">Hours Flown by Day</h6>
+      <h6 class="text-muted" data-change="SCHOOL-17">Hours Flown by Day</h6>
       {% if chart_labels %}
       <canvas id="stats-chart" height="110"></canvas>
       {% else %}
@@ -129,7 +131,7 @@
           <thead><tr><th>Plane</th><th>Hours</th><th>Revenue</th></tr></thead>
           <tbody>
             {% for r in plane_rows %}
-            <tr><td>{{ r.plane }}</td><td>{{ '%.1f'|format(r.hours) }}</td><td>${{ '%.0f'|format(r.revenue) }}</td></tr>
+            <tr><td>{{ r.plane }}</td><td>{{ '%.1f'|format(r.hours) }}</td><td data-change="SCHOOL-19">${{ '{:,.2f}'.format(r.revenue) }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -148,7 +150,7 @@
           <thead><tr><th>Instructor</th><th>Hours</th><th>Revenue</th></tr></thead>
           <tbody>
             {% for r in instructor_rows %}
-            <tr><td>{{ r.instructor }}</td><td>{{ '%.1f'|format(r.hours) }}</td><td>${{ '%.0f'|format(r.revenue) }}</td></tr>
+            <tr><td>{{ r.instructor }}</td><td>{{ '%.1f'|format(r.hours) }}</td><td data-change="SCHOOL-19">${{ '{:,.2f}'.format(r.revenue) }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -165,8 +167,18 @@
 <script>
 document.getElementById('range-select').addEventListener('change', function () {
   var isCustom = this.value === 'custom';
-  document.getElementById('custom-start-col').style.display = isCustom ? '' : 'none';
-  document.getElementById('custom-end-col').style.display = isCustom ? '' : 'none';
+  document.querySelectorAll('#custom-start-col input, #custom-end-col input').forEach(function (i) { i.disabled = !isCustom; });
+});
+// SCHOOL-18: the "All" chip clears the others; ticking one un-highlights All.
+document.querySelectorAll('.stats-chips').forEach(function (group) {
+  var all = group.querySelector('.chip-all');
+  var boxes = group.querySelectorAll('input.btn-check');
+  function sync() {
+    var any = Array.prototype.some.call(boxes, function (b) { return b.checked; });
+    all.className = 'btn btn-sm chip-all ' + (any ? 'btn-outline-primary' : 'btn-primary');
+  }
+  all.addEventListener('click', function () { boxes.forEach(function (b) { b.checked = false; }); sync(); });
+  boxes.forEach(function (b) { b.addEventListener('change', sync); });
 });
 </script>
 {% if chart_labels or plane_chart_labels or instructor_chart_labels %}
@@ -176,9 +188,9 @@ document.getElementById('range-select').addEventListener('change', function () {
 new Chart(document.getElementById('stats-chart'), {
   type: 'bar',
   data: {
-    labels: {{ chart_labels|tojson }}.map(function (d) {
-      var p = d.split('-'); return p.length === 3 ? (p[2] + '-' + p[1] + '-' + p[0]) : d;
-    }),
+    {#- SCHOOL-17: same US date style as the rest of the app (the usdate
+       filter), not day-month-year. #}
+    labels: {{ chart_labels|map('usdate')|list|tojson }},
     datasets: [{ label: 'Hours', data: {{ chart_hours|tojson }}, backgroundColor: '#0d6efd' }]
   },
   options: {

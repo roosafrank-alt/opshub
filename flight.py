@@ -3038,11 +3038,13 @@ def cfi_me():
 @flight_bp.route("/cfis/<int:cfi_id>/pay")
 @login_required
 def cfi_pay(cfi_id):
-    """Auto-tallied hours/amount owed to this CFI, from their logged
-    (non-solo) flights x their pay rate (separate from what students are
-    billed) - clickable breakdown per flight. Visible only to a master
-    admin or the CFI themselves."""
-    cfi_row = None
+    """Hours/amount owed to this CFI from their logged (non-solo) flights x
+    their pay rate (separate from what students are billed) - clickable
+    breakdown per flight. Visible only to a master admin or the CFI
+    themselves. SCHOOL-23: a This Week / This Month / Custom range (the
+    Stats range control), an Owed section and a Paid section (flights an
+    admin marked paid with cfi_pay_mark_paid), and plain words when no
+    pay rate is set instead of $0.00."""
     conn = get_db()
     cfi_row = conn.execute("SELECT * FROM cfis WHERE id = ?", (cfi_id,)).fetchone()
     if not cfi_row:
@@ -3054,22 +3056,68 @@ def cfi_pay(cfi_id):
         conn.close()
         flash("You can only view your own pay.", "danger")
         return redirect(url_for("flight.dashboard"))
-    rows = conn.execute(_LOG_ROW_SQL + " WHERE f.cfi_id = ? AND f.solo = 0 ORDER BY f.flight_date DESC, f.id DESC",
-                        (cfi_id,)).fetchall()
+    range_key, start, end = _stats_range(
+        request.args.get("range", "month"), request.args.get("start", ""), request.args.get("end", ""))
+    start_str, end_str = start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
+    rows = conn.execute(_LOG_ROW_SQL + " WHERE f.cfi_id = ? AND f.solo = 0 AND f.flight_date BETWEEN ? AND ? "
+                        "ORDER BY f.flight_date DESC, f.id DESC", (cfi_id, start_str, end_str)).fetchall()
     conn.close()
-    pay_rate = cfi_row["pay_rate_per_hour"] or 0
-    breakdown = []
-    total_hours = 0.0
-    total_owed = 0.0
+    pay_rate = cfi_row["pay_rate_per_hour"]
+    rate = pay_rate or 0
+    owed, paid = [], []
     for r in rows:
         d = _row_with_cost(r)
         hrs = (d["instructor_hours"] or 0) + (d["ground_hours"] or 0)
-        amount = hrs * pay_rate
-        total_hours += hrs
-        total_owed += amount
-        breakdown.append(dict(d, pay_hours=hrs, pay_amount=amount))
-    return render_template("flight/cfi_pay.html", cfi=cfi_row, breakdown=breakdown,
-                           total_hours=total_hours, total_owed=total_owed, pay_rate=pay_rate)
+        (paid if d.get("cfi_paid_at") else owed).append(dict(d, pay_hours=hrs, pay_amount=hrs * rate))
+    return render_template("flight/cfi_pay.html", cfi=cfi_row, breakdown=owed, paid_breakdown=paid,
+                           total_hours=sum(b["pay_hours"] for b in owed), total_owed=sum(b["pay_amount"] for b in owed),
+                           paid_hours=sum(b["pay_hours"] for b in paid), paid_total=sum(b["pay_amount"] for b in paid),
+                           pay_rate=pay_rate, range_key=range_key, start=start_str, end=end_str)
+
+
+@flight_bp.route("/cfis/<int:cfi_id>/pay/mark-paid", methods=["POST"])
+@admin_required
+def cfi_pay_mark_paid(cfi_id):
+    """SCHOOL-23: admin "Mark period paid" - every still-owed dual flight in
+    the range shown (``start``/``end`` from the form) is stamped paid to the
+    CFI with a note, and moves to the Paid section of their Pay page."""
+    start_str = (request.form.get("start") or "").strip()[:10]
+    end_str = (request.form.get("end") or "").strip()[:10]
+    note = (request.form.get("note") or "").strip()[:200] or None
+    back = url_for("flight.cfi_pay", cfi_id=cfi_id, range="custom", start=start_str, end=end_str)
+    try:
+        datetime.strptime(start_str, "%Y-%m-%d")
+        datetime.strptime(end_str, "%Y-%m-%d")
+    except ValueError:
+        flash("Pick the pay period first.", "danger")
+        return redirect(url_for("flight.cfi_pay", cfi_id=cfi_id))
+    conn = get_db()
+    cfi_row = conn.execute("SELECT * FROM cfis WHERE id = ?", (cfi_id,)).fetchone()
+    if not cfi_row:
+        conn.close()
+        flash("CFI not found.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    rows = conn.execute(_LOG_ROW_SQL + " WHERE f.cfi_id = ? AND f.solo = 0 AND f.cfi_paid_at IS NULL "
+                        "AND f.flight_date BETWEEN ? AND ?", (cfi_id, start_str, end_str)).fetchall()
+    if not rows:
+        conn.close()
+        flash("Nothing owed in that period - every flight in it is already marked paid.", "warning")
+        return redirect(back)
+    rate = cfi_row["pay_rate_per_hour"] or 0
+    total = 0.0
+    for r in rows:
+        d = _row_with_cost(r)
+        total += ((d["instructor_hours"] or 0) + (d["ground_hours"] or 0)) * rate
+    conn.executemany("UPDATE flights SET cfi_paid_at = ?, cfi_paid_by = ?, cfi_paid_note = ? WHERE id = ?",
+                     [(now_iso(), session.get("user_name"), note, r["id"]) for r in rows])
+    _log_field_change(conn, "cfi", cfi_id, "pay_period_paid", "",
+                      f"{_us_date(start_str)} - {_us_date(end_str)}: {len(rows)} flights, ${total:,.2f}" + (f" ({note})" if note else ""),
+                      session.get("user_name"))
+    conn.commit()
+    conn.close()
+    flash(f"Marked {len(rows)} flight{'s' if len(rows) != 1 else ''} ({_us_date(start_str)} - {_us_date(end_str)}, "
+          f"${total:,.2f}) paid to {cfi_row['name']}.", "success")
+    return redirect(back)
 
 
 # The My Schedule timeline's window - 6am-9pm covers virtually every real
@@ -3302,11 +3350,56 @@ def planes_list():
     # Maintenance" link below (master admins and shop admin/tech), not to
     # plain CFIs (QA feat-100hr-countdown-grounding keeps the countdown and
     # grounding decision with staff who manage maintenance).
+    # SCHOOL-25: the hours-left number is for master admins only now (Frank:
+    # "admins only for hours left"); the Down for maintenance badge itself
+    # shows next to the tail number for every CFI and admin on this page.
     hundred = {}
-    if session.get("is_master_admin") or session.get("shop_role") in ("admin", "tech"):
+    if session.get("is_master_admin"):
         hundred = {p["id"]: hundred_hr_status(conn, p) for p in planes}
     conn.close()
     return render_template("flight/planes.html", planes=planes, hundred=hundred)
+
+
+@flight_bp.route("/planes/<int:asset_id>/edit", methods=["GET", "POST"])
+@admin_required
+def plane_edit(asset_id):
+    """SCHOOL-27: Fly with Kate!'s own small plane form (tail number, name,
+    make/model, "used by Flight School") - saves the same aircraft record
+    the Maintenance side edits, but Save comes back to Planes instead of
+    leaving the admin in Winds Aloft. Color and solo rules stay on the
+    Color page (plane_rate_edit). Simulators keep their own form."""
+    conn = get_db()
+    plane = conn.execute("SELECT * FROM assets WHERE id = ? AND deleted_at IS NULL", (asset_id,)).fetchone()
+    if not plane:
+        conn.close()
+        flash("Plane not found.", "danger")
+        return redirect(url_for("flight.planes_list"))
+    if plane["is_simulator"]:
+        conn.close()
+        return redirect(url_for("flight.simulator_edit", asset_id=asset_id))
+    if request.method == "POST":
+        tag = request.form.get("tag", "").strip()
+        name = request.form.get("name", "").strip()
+        make = request.form.get("make", "").strip()
+        model = request.form.get("model", "").strip()
+        is_flight_asset = 1 if request.form.get("is_flight_asset") else 0
+        if not tag:
+            flash("Tail number is required.", "danger")
+            conn.close()
+            return render_template("flight/plane_form.html", plane=plane, form=request.form)
+        dup = conn.execute("SELECT id FROM assets WHERE tag = ? AND id != ? AND deleted_at IS NULL", (tag, asset_id)).fetchone()
+        if dup:
+            flash(f"There is already an aircraft with the tail number {tag}.", "danger")
+            conn.close()
+            return render_template("flight/plane_form.html", plane=plane, form=request.form)
+        conn.execute("UPDATE assets SET tag = ?, name = ?, make = ?, model = ?, is_flight_asset = ?, updated_at = ? WHERE id = ?",
+                     (tag, name or tag, make, model, is_flight_asset, now_iso(), asset_id))
+        conn.commit()
+        conn.close()
+        flash(f"{tag} saved." + ("" if is_flight_asset else f" {tag} is no longer used by the flight school, so it's off the Planes list."), "success")
+        return redirect(url_for("flight.planes_list"))
+    conn.close()
+    return render_template("flight/plane_form.html", plane=plane, form=None)
 
 
 @flight_bp.route("/planes/simulator/new", methods=["GET", "POST"])
@@ -5378,10 +5471,11 @@ def _student_notification_count():
         try:
             row = conn.execute("SELECT COUNT(*) c FROM student_notifications WHERE student_id = ? AND read_at IS NULL",
                                (session["student_id"],)).fetchone()
-            reports = conn.execute("SELECT COUNT(*) c FROM flight_reports WHERE resolved_at IS NULL").fetchone()["c"]
         finally:
             conn.close()
-        return {"student_alert_count": (row["c"] or 0) + reports}
+        # SCHOOL-09: other people's reports are no longer on the student's
+        # Alerts tab, so they don't count in its badge either.
+        return {"student_alert_count": row["c"] or 0}
     except Exception:
         return {}
 
@@ -5406,14 +5500,49 @@ def my_alerts():
         return redirect(url_for("flight.dashboard"))
     rows = conn.execute("""SELECT * FROM student_notifications WHERE student_id = ?
                            ORDER BY created_at DESC LIMIT 100""", (student["id"],)).fetchall()
+    # SCHOOL-49: opening the tab no longer marks everything read - the New
+    # badge stays until the item is tapped (View), its x is pressed, or
+    # "Mark all read" is used (see notification_open / notifications_mark_all_read).
     notifications = [dict(r, was_unread=not r["read_at"]) for r in rows]
-    if not person_view_active():
-        conn.execute("UPDATE student_notifications SET read_at = ? WHERE student_id = ? AND read_at IS NULL",
-                    (now_iso(), student["id"]))
-        conn.commit()
-    reports_ctx = _reports_context(conn, request.args.get("all") == "1")
+    # SCHOOL-09: only the reports this student filed, without their status.
+    reports_ctx = _reports_context(conn, request.args.get("all") == "1",
+                                   only_user_id=session.get("user_id"), only_name=session.get("user_name"))
     conn.close()
-    return render_template("flight/notifications.html", notifications=notifications, **reports_ctx)
+    return render_template("flight/notifications.html", notifications=notifications,
+                           unread_count=sum(1 for n in notifications if n["was_unread"]), **reports_ctx)
+
+
+@flight_bp.route("/notifications/mark-all-read", methods=["POST"])
+@login_required
+def notifications_mark_all_read():
+    """SCHOOL-49: "Mark all read" on the student's Alerts tab."""
+    conn = get_db()
+    student = current_student(conn)
+    if student and not person_view_active():
+        conn.execute("UPDATE student_notifications SET read_at = ? WHERE student_id = ? AND read_at IS NULL",
+                     (now_iso(), student["id"]))
+        conn.commit()
+    conn.close()
+    return redirect(url_for("flight.my_alerts"))
+
+
+@flight_bp.route("/notifications/<int:notification_id>/open")
+@login_required
+def notification_open(notification_id):
+    """SCHOOL-49: tapping a notification's View link marks just that one
+    read and then goes where it points."""
+    conn = get_db()
+    student = current_student(conn)
+    row = conn.execute("SELECT * FROM student_notifications WHERE id = ? AND student_id = ?",
+                       (notification_id, student["id"] if student else -1)).fetchone()
+    if row and not row["read_at"] and not person_view_active():
+        conn.execute("UPDATE student_notifications SET read_at = ? WHERE id = ?", (now_iso(), notification_id))
+        conn.commit()
+    conn.close()
+    link = row["link"] if row and row["link"] else None
+    if link and link.startswith("/") and not link.startswith("//"):
+        return redirect(link)
+    return redirect(url_for("flight.my_alerts"))
 
 
 @flight_bp.route("/my-account")
@@ -5507,19 +5636,45 @@ FLIGHT_REPORT_CATEGORIES = {
 }
 
 
-def _reports_context(conn, show_all=False):
+def _auto_resolve_repaired_reports(conn):
+    """SCHOOL-31: a Plane Issue report whose Maintenance squawk has since
+    been marked repaired resolves itself (resolved by "Squawk repaired"),
+    so Alerts and Squawks agree. Run before listing reports."""
+    conn.execute("""UPDATE flight_reports SET resolved_at = ?, resolved_by = 'Squawk repaired'
+                    WHERE resolved_at IS NULL AND squawk_id IS NOT NULL
+                      AND EXISTS (SELECT 1 FROM plane_squawks q WHERE q.id = flight_reports.squawk_id
+                                  AND q.repaired_at IS NOT NULL)""", (now_iso(),))
+    conn.commit()
+
+
+def _reports_context(conn, show_all=False, only_user_id=None, only_name=None):
     """Open/resolved reports plus the planes list, for the Reports section
-    shared by the CFI/admin Alerts page and the student Alerts page."""
-    base_sql = """SELECT r.*, a.tag as plane_tag FROM flight_reports r
-                  LEFT JOIN assets a ON a.id = r.asset_id"""
-    open_rows = conn.execute(base_sql + " WHERE r.resolved_at IS NULL ORDER BY r.reported_at DESC").fetchall()
-    resolved_count = conn.execute("SELECT COUNT(*) c FROM flight_reports WHERE resolved_at IS NOT NULL").fetchone()["c"]
-    resolved = conn.execute(base_sql + " WHERE r.resolved_at IS NOT NULL ORDER BY r.resolved_at DESC"
-                            + ("" if show_all else " LIMIT 50")).fetchall()
+    shared by the CFI/admin Alerts page and the student Alerts page.
+    SCHOOL-09: with ``only_user_id`` (a student's Alerts tab) just the
+    reports that person filed come back (``only_name`` matches reports
+    filed before the login id was stored). SCHOOL-31: each report carries
+    its squawk's status (``squawk_status``: 'open' / 'repaired' / None)."""
+    _auto_resolve_repaired_reports(conn)
+    base_sql = """SELECT r.*, a.tag as plane_tag, q.repaired_at as squawk_repaired_at,
+                         CASE WHEN r.squawk_id IS NULL THEN NULL WHEN q.id IS NULL THEN 'gone'
+                              WHEN q.repaired_at IS NOT NULL THEN 'repaired' ELSE 'open' END as squawk_status
+                  FROM flight_reports r
+                  LEFT JOIN assets a ON a.id = r.asset_id
+                  LEFT JOIN plane_squawks q ON q.id = r.squawk_id"""
+    mine = ""
+    params = []
+    if only_user_id is not None:
+        mine = " AND (r.reported_by_user_id = ? OR (r.reported_by_user_id IS NULL AND r.reported_by = ?))"
+        params = [only_user_id, only_name or ""]
+    open_rows = conn.execute(base_sql + " WHERE r.resolved_at IS NULL" + mine + " ORDER BY r.reported_at DESC", params).fetchall()
+    resolved_count = conn.execute("SELECT COUNT(*) c FROM flight_reports r WHERE r.resolved_at IS NOT NULL" + mine, params).fetchone()["c"]
+    resolved = conn.execute(base_sql + " WHERE r.resolved_at IS NOT NULL" + mine + " ORDER BY r.resolved_at DESC"
+                            + ("" if show_all else " LIMIT 50"), params).fetchall()
     planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY schedule_order, tag").fetchall()
     return {"open_reports": [dict(r) for r in open_rows], "resolved_reports": [dict(r) for r in resolved],
             "resolved_report_count": resolved_count, "report_planes": planes,
-            "report_categories": FLIGHT_REPORT_CATEGORIES}
+            "report_categories": FLIGHT_REPORT_CATEGORIES, "reports_mine": only_user_id is not None,
+            "can_open_squawks": bool(session.get("is_master_admin") or session.get("shop_role") in ("admin", "tech", "inspector"))}
 
 
 def _alerts_home_url():
@@ -5550,11 +5705,15 @@ def reports_list():
         else:
             reported_by = session.get("user_name")
             now = now_iso()
-            conn.execute("""INSERT INTO flight_reports (category, asset_id, notes, reported_by, reported_at)
-                            VALUES (?, ?, ?, ?, ?)""", (category, asset_id, notes, reported_by, now))
+            cur = conn.execute("""INSERT INTO flight_reports (category, asset_id, notes, reported_by, reported_at, reported_by_user_id)
+                                  VALUES (?, ?, ?, ?, ?, ?)""", (category, asset_id, notes, reported_by, now, session.get("user_id")))
+            report_id = cur.lastrowid
             if category == "plane_issue" and asset_id:
-                conn.execute("""INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at)
-                                VALUES (?, ?, ?, ?)""", (asset_id, notes, reported_by, now))
+                # SCHOOL-31: remember the squawk this made, so Alerts can show
+                # its status and resolve the report when it's repaired.
+                sq = conn.execute("""INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at)
+                                     VALUES (?, ?, ?, ?)""", (asset_id, notes, reported_by, now))
+                conn.execute("UPDATE flight_reports SET squawk_id = ? WHERE id = ?", (sq.lastrowid, report_id))
             conn.commit()
             flash("Report filed.", "success")
         conn.close()
@@ -5565,17 +5724,26 @@ def reports_list():
 @cfi_or_admin_required
 def report_resolve(report_id):
     conn = get_db()
-    row = conn.execute("SELECT id FROM flight_reports WHERE id = ? AND resolved_at IS NULL", (report_id,)).fetchone()
+    row = conn.execute("""SELECT r.id, r.squawk_id, r.notes, q.repaired_at as squawk_repaired_at, q.id as squawk_row
+                          FROM flight_reports r LEFT JOIN plane_squawks q ON q.id = r.squawk_id
+                          WHERE r.id = ? AND r.resolved_at IS NULL""", (report_id,)).fetchone()
     if not row:
         conn.close()
         flash("That report is no longer open.", "warning")
         return redirect(url_for("flight.alerts_list"))
-    conn.execute("UPDATE flight_reports SET resolved_at = ?, resolved_by = ? WHERE id = ?",
-                 (now_iso(), session.get("user_name"), report_id))
+    who = session.get("user_name")
+    conn.execute("UPDATE flight_reports SET resolved_at = ?, resolved_by = ? WHERE id = ?", (now_iso(), who, report_id))
+    msg = "Report marked resolved."
+    # SCHOOL-31: "Also close the squawk in Maintenance?" - ticked on the
+    # Resolve form when the report's squawk is still open.
+    if request.form.get("close_squawk") == "1" and row["squawk_row"] and not row["squawk_repaired_at"]:
+        conn.execute("""UPDATE plane_squawks SET repaired_at = ?, repaired_by = ?, repair_confirm_requested_at = NULL,
+                        repair_confirm_requested_by = NULL WHERE id = ?""", (now_iso(), who, row["squawk_id"]))
+        msg += f" Squawk #{row['squawk_id']} closed in Maintenance too."
     conn.commit()
     conn.close()
-    flash("Marked resolved.", "success")
-    return redirect(url_for("flight.alerts_list"))
+    flash(msg, "success")
+    return redirect(url_for("flight.alerts_list") + "#open-reports")
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/review/acknowledge", methods=["POST"])
@@ -8827,7 +8995,10 @@ def plane_ground(asset_id):
     if not a:
         conn.close()
         abort(404)
-    reason = (request.form.get("reason") or "").strip()[:120] or "100-hour inspection"
+    # SCHOOL-26: the reason box is optional (Planes rows and the 100-hour box
+    # on Alerts both post here) - blank falls back to "grounded by an admin".
+    reason = (request.form.get("reason") or "").strip()[:120] or (
+        "100-hour inspection" if request.form.get("from_100hr") else "grounded by an admin")
     conn.execute("UPDATE assets SET grounded_at = ?, grounded_by = ?, grounded_reason = ? WHERE id = ?",
                  (now_iso(), session.get("user_name"), reason, asset_id))
     flagged = conn.execute("""UPDATE scheduled_flights SET needs_review = 1, review_reason = ?,
@@ -8880,5 +9051,10 @@ def plane_hundred_hr_not_yet(asset_id):
         key = f"{'zero' if st['level'] == 'overdue' else 'ten'}:{st['last_at']:g}"
         conn.execute("INSERT INTO notification_log (category, ref_id, ref_key) VALUES ('100hr_notyet', ?, ?)", (asset_id, key))
         conn.commit()
+        # SCHOOL-30: say what happened.
+        if st["level"] == "overdue":
+            flash(f"{a['tag']} 100-hour reminder snoozed until its next 100-hour cycle.", "info")
+        else:
+            flash(f"{a['tag']} 100-hour reminder snoozed until it reaches 0 hrs left.", "info")
     conn.close()
     return redirect(request.referrer or url_for("flight.alerts_list"))

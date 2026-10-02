@@ -10,32 +10,74 @@
   {% endif %}
 </div>
 
+{#- SCHOOL-23: the same range control as Statistics. #}
+<div class="card p-3 mb-3" data-change="SCHOOL-23">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label small mb-0">Pay period</label>
+      <select name="range" id="range-select" class="form-select form-select-sm">
+        <option value="week" {% if range_key == 'week' %}selected{% endif %}>This Week</option>
+        <option value="month" {% if range_key == 'month' %}selected{% endif %}>This Month</option>
+        <option value="year" {% if range_key == 'year' %}selected{% endif %}>This Year</option>
+        <option value="custom" {% if range_key == 'custom' %}selected{% endif %}>Custom Range</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-0">From</label>
+      <input type="date" name="start" class="form-control form-control-sm" value="{{ start }}" {% if range_key != 'custom' %}disabled{% endif %}>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-0">To</label>
+      <input type="date" name="end" class="form-control form-control-sm" value="{{ end }}" {% if range_key != 'custom' %}disabled{% endif %}>
+    </div>
+    <div class="col-auto"><button class="btn btn-primary btn-sm">Apply</button></div>
+    <div class="col-auto ms-auto text-muted small align-self-end">{{ start|usdate }} &ndash; {{ end|usdate }}</div>
+  </form>
+</div>
+
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-4">
     <div class="card stat-card p-3">
       <div class="text-muted small">Pay Rate</div>
+      {% if pay_rate is not none %}
       <div class="display-6">${{ '%.2f'|format(pay_rate) }}<span class="fs-6 text-muted">/hr</span></div>
       <div class="text-muted small">separate from student billing rate</div>
+      {% else %}
+      <div class="fs-5 fw-bold text-warning-emphasis" data-change="SCHOOL-23">No pay rate set - ask an admin</div>
+      <div class="text-muted small">hours are listed below; amounts show once a rate is set</div>
+      {% endif %}
     </div>
   </div>
   <div class="col-6 col-md-4">
     <div class="card stat-card p-3">
-      <div class="text-muted small">Hours (all time)</div>
+      <div class="text-muted small">Hours owed</div>
       <div class="display-6">{{ '%.1f'|format(total_hours) }}</div>
-      <div class="text-muted small">instructor + ground time</div>
+      <div class="text-muted small">instructor + ground time, this period</div>
     </div>
   </div>
   <div class="col-6 col-md-4">
     <div class="card stat-card p-3 border-success">
-      <div class="text-muted small">Total Owed</div>
-      <div class="display-6 text-success">${{ '%.2f'|format(total_owed) }}</div>
-      <div class="text-muted small">from all logged dual flights</div>
+      <div class="text-muted small">Owed this period</div>
+      <div class="display-6 text-success">{% if pay_rate is not none %}${{ '{:,.2f}'.format(total_owed) }}{% else %}-{% endif %}</div>
+      <div class="text-muted small">dual flights not yet paid out</div>
     </div>
   </div>
 </div>
 
-<div class="card p-3">
-  <h6 class="text-muted mb-2">Breakdown by Flight</h6>
+<div class="card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h6 class="text-muted mb-0">Owed ({{ breakdown|length }} flight{{ 's' if breakdown|length != 1 }})</h6>
+    {% if session.get('is_master_admin') and breakdown %}
+    {#- SCHOOL-23: admin marks the whole period shown as paid. #}
+    <form method="post" action="{{ url_for('flight.cfi_pay_mark_paid', cfi_id=cfi.id) }}" class="d-flex gap-1 flex-wrap align-items-center" data-change="SCHOOL-23"
+          data-confirm="Mark every owed flight from {{ start|usdate }} to {{ end|usdate }} as paid to {{ cfi.name }}{% if pay_rate is not none %} (${{ '{:,.2f}'.format(total_owed) }}){% endif %}?" data-confirm-title="Mark Period Paid" data-confirm-ok="Yes, mark paid" data-confirm-style="success">
+      <input type="hidden" name="start" value="{{ start }}">
+      <input type="hidden" name="end" value="{{ end }}">
+      <input type="text" name="note" class="form-control form-control-sm" placeholder="note (check #, Zelle...)" style="max-width:200px;">
+      <button class="btn btn-success btn-sm fw-bold text-nowrap"><i class="bi bi-check-lg"></i> Mark period paid</button>
+    </form>
+    {% endif %}
+  </div>
   {% if breakdown %}
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0 table-stack">
@@ -47,14 +89,49 @@
           <td data-label="Student">{{ b.student_name }}</td>
           <td data-label="Plane">{{ b.plane_tag }}</td>
           <td data-label="Hours">{{ '%.1f'|format(b.pay_hours) }}</td>
-          <td data-label="Amount"><strong>${{ '%.2f'|format(b.pay_amount) }}</strong></td>
+          <td data-label="Amount"><strong>{% if pay_rate is not none %}${{ '{:,.2f}'.format(b.pay_amount) }}{% else %}<span class="text-muted">no rate</span>{% endif %}</strong></td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
   {% else %}
-  <p class="text-muted small mb-0">No dual flights logged for this instructor yet.</p>
+  <p class="text-muted small mb-0">No dual flights owed in this period.</p>
   {% endif %}
 </div>
+
+{#- SCHOOL-23: what has already been paid out in this period. #}
+<div class="card p-3" data-change="SCHOOL-23">
+  <h6 class="text-muted mb-2">Paid ({{ paid_breakdown|length }} flight{{ 's' if paid_breakdown|length != 1 }}{% if paid_breakdown %} &middot; {{ '%.1f'|format(paid_hours) }} hrs{% if pay_rate is not none %} &middot; ${{ '{:,.2f}'.format(paid_total) }}{% endif %}{% endif %})</h6>
+  {% if paid_breakdown %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead class="table-light"><tr><th>Date</th><th>Student</th><th>Plane</th><th>Hours</th><th>Amount</th><th>Paid</th></tr></thead>
+      <tbody>
+        {% for b in paid_breakdown %}
+        <tr>
+          <td data-label="Date"><a href="{{ url_for('flight.log_detail', flight_id=b.id) }}" class="text-decoration-none"><small>{{ b.flight_date|usdate }}</small></a></td>
+          <td data-label="Student">{{ b.student_name }}</td>
+          <td data-label="Plane">{{ b.plane_tag }}</td>
+          <td data-label="Hours">{{ '%.1f'|format(b.pay_hours) }}</td>
+          <td data-label="Amount">{% if pay_rate is not none %}${{ '{:,.2f}'.format(b.pay_amount) }}{% else %}<span class="text-muted">no rate</span>{% endif %}</td>
+          <td data-label="Paid"><small>{{ b.cfi_paid_at|usdate }}{% if b.cfi_paid_note %} &middot; {{ b.cfi_paid_note }}{% endif %}</small></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted small mb-0">Nothing paid out in this period yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('range-select').addEventListener('change', function () {
+  var isCustom = this.value === 'custom';
+  document.querySelectorAll('input[name="start"], input[name="end"]').forEach(function (i) { i.disabled = !isCustom; });
+});
+</script>
 {% endblock %}

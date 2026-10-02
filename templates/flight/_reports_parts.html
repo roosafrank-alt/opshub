@@ -44,8 +44,10 @@
 </div>
 {% endmacro %}
 
-{% macro open_reports(rows, categories, can_resolve) %}
-<h5 class="mt-4 fw-bold" id="open-reports"><i class="bi bi-flag-fill text-warning"></i> Reports from students &amp; CFIs ({{ rows|length }})</h5>
+{% macro open_reports(rows, categories, can_resolve, mine=false) %}
+{#- mine=true is the student's own list (SCHOOL-09): no reporter name, no
+   status, nothing to resolve. #}
+<h5 class="mt-4 fw-bold" id="open-reports"{% if mine %} data-change="SCHOOL-09"{% endif %}><i class="bi bi-flag-fill text-warning"></i> {% if mine %}Your reports{% else %}Reports from students &amp; CFIs{% endif %} ({{ rows|length }})</h5>
 {% if rows %}
 <div class="card p-3 mb-4">
   {% for r in rows %}
@@ -53,18 +55,35 @@
     <div class="flex-grow-1" style="min-width:220px;">
       <div><span class="badge {{ report_style[r.category][1] }}"><i class="bi {{ report_style[r.category][0] }}"></i> {{ categories.get(r.category, r.category) }}</span>
         {% if r.plane_tag %}<strong>{{ r.plane_tag }}</strong> &middot; {% endif %}{{ r.notes }}</div>
-      <small class="text-muted">{{ r.reported_by or 'Someone' }}, {{ r.reported_at|usdate(true) }}</small>
+      <small class="text-muted">{% if not mine %}{{ r.reported_by or 'Someone' }}, {% endif %}{{ r.reported_at|usdate(true) }}</small>
+      {#- SCHOOL-31: the Maintenance squawk this Plane Issue made. #}
+      {% if not mine and r.squawk_status %}
+      <div class="small" data-change="SCHOOL-31">
+        {% if can_open_squawks and r.squawk_status != 'gone' %}<a href="{{ url_for('squawks_list') }}">Squawk #{{ r.squawk_id }}</a>{% else %}Squawk #{{ r.squawk_id }}{% endif %}
+        {% if r.squawk_status == 'open' %}<span class="badge bg-warning text-dark">open</span>
+        {% elif r.squawk_status == 'repaired' %}<span class="badge bg-success">repaired</span>
+        {% else %}<span class="badge bg-secondary">removed</span>{% endif %}
+      </div>
+      {% endif %}
     </div>
     {% if can_resolve %}
-    <form method="post" action="{{ url_for('flight.report_resolve', report_id=r.id) }}">
-      <button class="btn btn-outline-success btn-sm fw-bold"><i class="bi bi-check-lg"></i> Resolve</button>
+    {#- SCHOOL-30: Resolve asks first, like Acknowledge. SCHOOL-31: with
+       an open squawk, offer to close that too. #}
+    <form method="post" action="{{ url_for('flight.report_resolve', report_id=r.id) }}" class="text-end" data-confirm="Resolve this report? It moves to Resolved reports." data-confirm-title="Resolve Report" data-confirm-ok="Yes, resolve it" data-confirm-style="success">
+      {% if r.squawk_status == 'open' %}
+      <div class="form-check form-check-inline small mb-1" data-change="SCHOOL-31">
+        <input class="form-check-input" type="checkbox" name="close_squawk" value="1" id="close-squawk-{{ r.id }}">
+        <label class="form-check-label" for="close-squawk-{{ r.id }}">Also close the squawk in Maintenance</label>
+      </div>
+      {% endif %}
+      <button class="btn btn-outline-success btn-sm fw-bold" data-change="SCHOOL-30"><i class="bi bi-check-lg"></i> Resolve</button>
     </form>
     {% endif %}
   </div>
   {% endfor %}
 </div>
 {% else %}
-<p class="text-muted mb-4">No open reports.</p>
+<p class="text-muted mb-4">{% if mine %}You haven't filed any reports.{% else %}No open reports.{% endif %}</p>
 {% endif %}
 {% endmacro %}
 
