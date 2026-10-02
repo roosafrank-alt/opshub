@@ -158,7 +158,7 @@ class OwnPlaneColorTest(OpsHubTestCase):
 
     def test_school_settings_page_shows_the_students_aircraft_box(self):
         html = self.login("master").get("/flight/settings/school").get_data(as_text=True)
-        self.assertIn("Students Aircraft", html)
+        self.assertIn("Student's Own Plane", html)  # SCHOOL-29 wording
         self.assertIn("Calendar Color", html)
 
 

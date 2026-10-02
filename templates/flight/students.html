@@ -25,10 +25,18 @@
   .sm-detail dd { margin-bottom: 0; }
 </style>
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="mb-0">Students ({{ students|length }})</h4>
-  <div class="d-flex align-items-center gap-2">
+  <h4 class="mb-0">Students (<span id="students-count" data-change="SCHOOL-42">{{ students|length }}</span>)</h4>
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    {#- SCHOOL-42: Active / All, like Billing's Unpaid / Paid / All. The
+       count in the title is only what's shown. #}
+    <div class="btn-group" role="group" data-change="SCHOOL-42">
+      <a href="{{ url_for('flight.students_list', show='active') }}" class="btn btn-sm {{ 'btn-primary' if show == 'active' else 'btn-outline-primary' }}">Active</a>
+      <a href="{{ url_for('flight.students_list', show='all') }}" class="btn btn-sm {{ 'btn-primary' if show == 'all' else 'btn-outline-primary' }}">All</a>
+    </div>
     <input type="text" id="students-search" class="form-control form-control-sm" placeholder="Search by name..." style="min-width:200px;">
-    <a href="{{ url_for('admin_user_new', flight_role='student') if session.get('is_master_admin') else url_for('flight.student_new') }}" class="btn btn-primary fw-bold"><i class="bi bi-plus-lg"></i> Add Student</a>
+    {#- SCHOOL-03: admins use the in-program New Student form too (it
+       makes the login account as well) instead of leaving for Admin. #}
+    <a href="{{ url_for('flight.student_new') }}" class="btn btn-primary fw-bold" data-change="SCHOOL-03"><i class="bi bi-plus-lg"></i> Add Student</a>
   </div>
 </div>
 <div class="card students-mobile">
@@ -157,11 +165,16 @@
 (function () {
   var input = document.getElementById('students-search');
   var rows = document.querySelectorAll('#students-table tbody tr[data-search], .students-mobile .sm-item[data-search]');
+  var countEl = document.getElementById('students-count');
   input.addEventListener('input', function () {
     var q = input.value.trim().toLowerCase();
+    var shown = 0;
     rows.forEach(function (row) {
-      row.style.display = row.getAttribute('data-search').indexOf(q) !== -1 ? '' : 'none';
+      var hit = row.getAttribute('data-search').indexOf(q) !== -1;
+      row.style.display = hit ? '' : 'none';
+      if (hit) shown += 1;
     });
+    if (countEl) countEl.textContent = shown / 2;  // each student has a phone row and a table row
   });
   // Phone list: tap a student's line to show/hide the rest of their info.
   document.querySelectorAll('.students-mobile .sm-row').forEach(function (btn) {

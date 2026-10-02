@@ -36,6 +36,7 @@ import sun
 import push
 import notify
 import wave_billing
+import flight_payments
 import threading
 import time
 import pilotlog
@@ -835,6 +836,9 @@ MEDICAL_WARN_DAYS = 30  # "expiring soon" window for the dashboard / list badges
 # there. No Venmo/Zelle here - Frank asked for just Cash/Check/Card/Other
 # on this one; End Session's own "How Paid" picker is unaffected.
 PAY_PREFERENCES = ["Cash", "Check", "Card", "Other"]
+# "How was it paid?" choices for Mark Paid on Billing (SCHOOL-21) - the same
+# list End Session's How Paid picker offers.
+PAYMENT_METHODS = ("Cash", "Card", "Check", "Venmo/Zelle", "Other")
 
 
 def _medical_status(row, on_date=None):
@@ -1406,6 +1410,9 @@ def _owner_preview_redirect():
 
 
 def cfi_required(f):
+    """CFIs - and master admins (SCHOOL-44: the owner's own account must
+    never be locked out of Students / Planes just because the CFI box
+    wasn't ticked on their account)."""
     @wraps(f)
     def wrapper(*args, **kwargs):
         expired = refresh_or_expire_session()
@@ -1413,7 +1420,7 @@ def cfi_required(f):
             return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
-        if not session.get("cfi_id"):
+        if not (session.get("cfi_id") or session.get("is_master_admin")):
             flash("Log in as a CFI to do that.", "danger")
             return redirect(url_for("home_launcher"))
         return f(*args, **kwargs)
@@ -2233,15 +2240,22 @@ def _student_activity(conn, student_id=None):
 @flight_bp.route("/students")
 @cfi_required
 def students_list():
+    # SCHOOL-42: Active (default) / All, like Billing's filter buttons.
+    show = request.args.get("show", "active").strip().lower()
+    if show not in ("active", "all"):
+        show = "active"
     conn = get_db()
-    students = conn.execute("SELECT * FROM students ORDER BY active DESC, name").fetchall()
+    if show == "active":
+        students = conn.execute("SELECT * FROM students WHERE active = 1 ORDER BY name").fetchall()
+    else:
+        students = conn.execute("SELECT * FROM students ORDER BY active DESC, name").fetchall()
     activity = _student_activity(conn)
     currency = {s["id"]: _solo_currency_status(conn, s["id"]) for s in students if not s["is_station"]}
     signoff = {s["id"]: _solo_signoff_status(conn, s["id"]) for s in students if not s["is_station"]}
     medical = {s["id"]: _medical_status(s) for s in students if not s["is_station"]}
     conn.close()
     return render_template("flight/students.html", students=students, activity=activity, currency=currency,
-                           signoff=signoff, medical=medical, medical_warn_days=MEDICAL_WARN_DAYS)
+                           signoff=signoff, medical=medical, medical_warn_days=MEDICAL_WARN_DAYS, show=show)
 
 
 def _refresh_solo_review_flags(conn, student_id):
@@ -2284,15 +2298,68 @@ def _solo_signoff_from_form(form):
     return signoff, expires
 
 
+def _new_starting_password():
+    """SCHOOL-43: a one-time starting password offered on New Student / New
+    CFI (shown masked, with Show and Copy) instead of asking the admin to
+    make one up and keeping it readable on file. Letters and digits only,
+    no look-alikes (0/O, 1/l/I)."""
+    alphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    return "".join(secrets.choice(alphabet) for _ in range(10))
+
+
+def _student_form_context(conn, student, **extra):
+    """Everything student_form.html needs, for a GET and for every
+    re-render after a rejected save (SCHOOL-47: the Account card, Lessons &
+    Landings, contact info etc. used to vanish on an error). ``student`` is
+    the stored row (None on New Student); ``extra`` can carry ``form``
+    (the submitted values, SCHOOL-15) and ``error_field``."""
+    ctx = dict(student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES,
+               pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES,
+               can_bill=can_manage_billing(), is_admin=bool(session.get("is_master_admin")),
+               today=date.today().isoformat(), form=None, error_field=None)
+    if student:
+        student_id = student["id"]
+        ctx["ledger"] = conn.execute("SELECT * FROM student_ledger WHERE student_id = ? ORDER BY created_at DESC, id DESC LIMIT 25",
+                                     (student_id,)).fetchall()
+        ctx["activity"] = _student_activity(conn, student_id).get(student_id)
+        ctx["recent_flights"] = conn.execute(f"""SELECT f.*, c.name as cfi_name, a.tag as plane_tag FROM flights f
+                                          JOIN assets a ON a.id = f.asset_id LEFT JOIN cfis c ON c.id = f.cfi_id
+                                          WHERE f.student_id = ? AND {_FINISHED_FLIGHT_SQL}
+                                          ORDER BY f.flight_date DESC, f.id DESC LIMIT 10""", (student_id,)).fetchall()
+        ctx["solo_currency"] = None if student["is_station"] else _solo_currency_status(conn, student_id)
+        ctx["solo_signoff"] = None if student["is_station"] else _solo_signoff_status(conn, student_id)
+        ctx["medical"] = None if student["is_station"] else _medical_status(student)
+        user_row = conn.execute("SELECT email, phone FROM users WHERE id = ?", (student["user_id"],)).fetchone() if student["user_id"] else None
+        ctx["student_email"] = user_row["email"] if user_row else None
+        ctx["student_phone"] = user_row["phone"] if user_row else None
+        ctx["manual_landings"] = conn.execute("SELECT * FROM manual_landings WHERE student_id = ? ORDER BY landing_date DESC, id DESC LIMIT 10",
+                                              (student_id,)).fetchall()
+        # SCHOOL-01: Add Funds offers to apply the money to these.
+        ctx["unpaid_flights"] = flight_payments.unpaid_flights_for_student(conn, student_id) if ctx["can_bill"] else []
+    else:
+        ctx["starting_password"] = _new_starting_password()
+    ctx.update(extra)
+    if ctx.get("form") is not None:
+        # SCHOOL-15 / SCHOOL-47: what was typed wins over what's stored.
+        ctx["student_email"] = ctx["form"].get("email", "")
+        ctx["student_phone"] = ctx["form"].get("phone", "")
+    return ctx
+
+
 @flight_bp.route("/students/new", methods=["GET", "POST"])
 @cfi_required
 def student_new():
+    conn = get_db()
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        rate_override = _parse_float(request.form.get("rate_override"))
-        plane_rate_override = _parse_float(request.form.get("plane_rate_override"))
+        # SCHOOL-12: rates are money - admin-only, on this form and on the
+        # rate detail pages alike. A CFI's form shows them read-only.
+        is_admin = bool(session.get("is_master_admin"))
+        rate_override = _parse_float(request.form.get("rate_override")) if is_admin else None
+        plane_rate_override = _parse_float(request.form.get("plane_rate_override")) if is_admin else None
+        sim_rate_override = _parse_float(request.form.get("sim_rate_override")) if is_admin else None
         is_station = 1 if request.form.get("is_station") else 0
         email = request.form.get("email", "").strip()
         phone = request.form.get("phone", "").strip()
@@ -2301,30 +2368,41 @@ def student_new():
         # own students can go without a checkout. Silently ignored (not
         # flashed as an error) for anyone else, same as the field just not
         # being on the form for them.
-        solo_currency_days = _parse_int(request.form.get("solo_currency_days")) if session.get("is_master_admin") else None
+        solo_currency_days = _parse_int(request.form.get("solo_currency_days")) if is_admin else None
         solo_signoff_date, solo_signoff_expires = _solo_signoff_from_form(request.form)
-        if not name or not username or not password:
-            flash("Name, username, and a starting password are all required.", "danger")
-            return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
+
+        def _again(message, field):
+            # SCHOOL-15: keep what was typed and point at the field.
+            flash(message, "danger")
+            ctx = _student_form_context(conn, None, form=request.form, error_field=field)
+            conn.close()
+            return render_template("flight/student_form.html", **ctx)
+
+        if not name:
+            return _again("Name is required.", "name")
+        if not username:
+            return _again("Username is required.", "username")
+        if not password:
+            return _again("A starting password is required.", "password")
         # A generic station account (e.g. "Shop") isn't a real trainee, so
         # it doesn't need a personal email/phone on file - everyone else does.
-        if not is_station and (not email or not phone):
-            flash("Email and phone number are required for a student profile.", "danger")
-            return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
-        conn = get_db()
+        if not is_station and not email:
+            return _again("Email is required for a student profile.", "email")
+        if not is_station and not phone:
+            return _again("Phone number is required for a student profile.", "phone")
         existing = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
         if existing:
-            conn.close()
-            flash(f"Username '{username}' is already taken.", "danger")
-            return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
+            return _again(f"Username '{username}' is already taken - pick another.", "username")
         # A master login account (flight_role='student') plus the linked
         # student profile that holds their rate overrides - what THIS
         # student pays for the plane and for instruction, since both can
         # vary student to student rather than following one flat rate.
+        # SCHOOL-43: the starting password is no longer kept readable on
+        # file (password_plain) - it was shown once, with Copy.
         cur = conn.execute(
             "INSERT INTO users (name, username, password_hash, password_plain, flight_role, active, email, phone, created_at) "
-            "VALUES (?, ?, ?, ?, 'student', 1, ?, ?, ?)",
-            (name, username, generate_password_hash(password, method="pbkdf2:sha256"), password, email or None, phone or None, now_iso()))
+            "VALUES (?, ?, ?, NULL, 'student', 1, ?, ?, ?)",
+            (name, username, generate_password_hash(password, method="pbkdf2:sha256"), email or None, phone or None, now_iso()))
         conn.commit()
         user_id = cur.lastrowid
         conn.execute("""INSERT INTO students (name, username, password_hash, rate_override, plane_rate_override,
@@ -2345,13 +2423,14 @@ def student_new():
                      (_pay_preference_from_form(request.form), user_id))
         conn.execute("UPDATE students SET notify_booking_confirm = ? WHERE user_id = ?",
                      (1 if request.form.get("notify_booking_confirm") else 0, user_id))
-        conn.execute("UPDATE students SET sim_rate_override = ? WHERE user_id = ?",
-                     (_parse_float(request.form.get("sim_rate_override")), user_id))
+        conn.execute("UPDATE students SET sim_rate_override = ? WHERE user_id = ?", (sim_rate_override, user_id))
         conn.commit()
         conn.close()
         flash(f"Student '{name}' added. Give them their username and starting password to log in.", "success")
         return redirect(url_for("flight.students_list"))
-    return render_template("flight/student_form.html", student=None, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
+    ctx = _student_form_context(conn, None)
+    conn.close()
+    return render_template("flight/student_form.html", **ctx)
 
 
 @flight_bp.route("/students/<int:student_id>/tsa_verify", methods=["POST"])
@@ -2387,12 +2466,21 @@ def student_edit(student_id):
         return redirect(url_for("flight.students_list"))
     if request.method == "POST":
         name = request.form.get("name", "").strip()
-        rate_override = _parse_float(request.form.get("rate_override"))
-        plane_rate_override = _parse_float(request.form.get("plane_rate_override"))
+        is_admin = bool(session.get("is_master_admin"))
+        # SCHOOL-12: rates are admin-only - a CFI's save leaves them as they
+        # were (their form shows them read-only).
+        if is_admin:
+            rate_override = _parse_float(request.form.get("rate_override"))
+            plane_rate_override = _parse_float(request.form.get("plane_rate_override"))
+            sim_rate_override = _parse_float(request.form.get("sim_rate_override"))
+        else:
+            rate_override = student["rate_override"]
+            plane_rate_override = student["plane_rate_override"]
+            sim_rate_override = student["sim_rate_override"]
         # Admin-only field (see student_new) - a non-admin CFI editing other
         # fields on this student leaves the existing interval untouched
         # rather than having it silently wiped back to the default.
-        if session.get("is_master_admin"):
+        if is_admin:
             solo_currency_days = _parse_int(request.form.get("solo_currency_days"))
         else:
             solo_currency_days = student["solo_currency_days"]
@@ -2402,15 +2490,21 @@ def student_edit(student_id):
         new_password = request.form.get("password", "")
         email = request.form.get("email", "").strip()
         phone = request.form.get("phone", "").strip()
+
+        def _again(message, field):
+            # SCHOOL-47: the whole page comes back (Account card, Lessons &
+            # Landings, contact info), with what was typed (SCHOOL-15).
+            flash(message, "danger")
+            ctx = _student_form_context(conn, student, form=request.form, error_field=field)
+            conn.close()
+            return render_template("flight/student_form.html", **ctx)
+
         if not name:
-            flash("Name is required.", "danger")
-            conn.close()
-            return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES)
-        if not is_station and (not email or not phone):
-            flash("Email and phone number are required for a student profile.", "danger")
-            conn.close()
-            return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES,
-                                   student_email=email, student_phone=phone)
+            return _again("Name is required.", "name")
+        if not is_station and not email:
+            return _again("Email is required for a student profile.", "email")
+        if not is_station and not phone:
+            return _again("Phone number is required for a student profile.", "phone")
         if new_password:
             conn.execute("UPDATE students SET name=?, rate_override=?, plane_rate_override=?, solo_currency_days=?, solo_signoff_date=?, solo_signoff_expires=?, is_station=?, active=?, password_hash=? WHERE id=?",
                          (name, rate_override, plane_rate_override, solo_currency_days, solo_signoff_date, solo_signoff_expires,
@@ -2443,7 +2537,6 @@ def student_edit(student_id):
         pay_preference = _pay_preference_from_form(request.form)
         conn.execute("UPDATE students SET pay_preference = ? WHERE id = ?", (pay_preference, student_id))
         _log_field_change(conn, "student", student_id, "pay_preference", student["pay_preference"], pay_preference, who)
-        sim_rate_override = _parse_float(request.form.get("sim_rate_override"))
         conn.execute("UPDATE students SET sim_rate_override = ? WHERE id = ?", (sim_rate_override, student_id))
         _log_field_change(conn, "student", student_id, "sim_rate_override", student["sim_rate_override"], sim_rate_override, who)
         notify_booking_confirm = 1 if request.form.get("notify_booking_confirm") else 0
@@ -2459,37 +2552,21 @@ def student_edit(student_id):
                 flash(f"{reflagged} upcoming solo flight{'s' if reflagged != 1 else ''} for this student "
                       f"{'are' if reflagged != 1 else 'is'} now flagged for review - past the solo sign-off or medical expiry.", "warning")
         # Keep the master login account (the actual place passwords/active
-        # are checked at sign-in) in step with this edit.
+        # are checked at sign-in) in step with this edit. SCHOOL-43: a reset
+        # password is no longer kept readable on file.
         if student["user_id"]:
             if new_password:
-                conn.execute("UPDATE users SET name=?, active=?, password_hash=?, password_plain=? WHERE id=?",
-                             (name, active, generate_password_hash(new_password, method="pbkdf2:sha256"), new_password, student["user_id"]))
+                conn.execute("UPDATE users SET name=?, active=?, password_hash=?, password_plain=NULL WHERE id=?",
+                             (name, active, generate_password_hash(new_password, method="pbkdf2:sha256"), student["user_id"]))
             else:
                 conn.execute("UPDATE users SET name=?, active=? WHERE id=?", (name, active, student["user_id"]))
             conn.commit()
         conn.close()
         flash("Student updated.", "success")
         return redirect(url_for("flight.students_list"))
-    ledger = conn.execute("SELECT * FROM student_ledger WHERE student_id = ? ORDER BY created_at DESC, id DESC LIMIT 25",
-                          (student_id,)).fetchall()
-    activity = _student_activity(conn, student_id).get(student_id)
-    recent_flights = conn.execute(f"""SELECT f.*, c.name as cfi_name, a.tag as plane_tag FROM flights f
-                                      JOIN assets a ON a.id = f.asset_id LEFT JOIN cfis c ON c.id = f.cfi_id
-                                      WHERE f.student_id = ? AND {_FINISHED_FLIGHT_SQL}
-                                      ORDER BY f.flight_date DESC, f.id DESC LIMIT 10""", (student_id,)).fetchall()
-    solo_currency = None if student["is_station"] else _solo_currency_status(conn, student_id)
-    solo_signoff = None if student["is_station"] else _solo_signoff_status(conn, student_id)
-    medical = None if student["is_station"] else _medical_status(student)
-    user_row = conn.execute("SELECT email, phone FROM users WHERE id = ?", (student["user_id"],)).fetchone() if student["user_id"] else None
-    manual_landings = conn.execute("SELECT * FROM manual_landings WHERE student_id = ? ORDER BY landing_date DESC, id DESC LIMIT 10",
-                                    (student_id,)).fetchall()
+    ctx = _student_form_context(conn, student)
     conn.close()
-    return render_template("flight/student_form.html", student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS,
-                           ledger=ledger, can_bill=can_manage_billing(), activity=activity,
-                           recent_flights=recent_flights, solo_currency=solo_currency, solo_signoff=solo_signoff,
-                           medical=medical, medical_classes=MEDICAL_CLASSES, pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES,
-                           student_email=user_row["email"] if user_row else None, student_phone=user_row["phone"] if user_row else None,
-                           manual_landings=manual_landings, today=date.today().isoformat())
+    return render_template("flight/student_form.html", **ctx)
 
 
 @flight_bp.route("/students/<int:student_id>/landings/add", methods=["POST"])
@@ -2563,11 +2640,32 @@ def student_add_funds(student_id):
         last4, charge_id = charged
         card_note = f"Card ending in {last4} (simulated, {charge_id})"
         note = f"{note} - {card_note}" if note else card_note
-    _ledger_entry(conn, student_id, "funds_added", amount, note=note, created_by=session.get("user_name"))
+    # SCHOOL-01: the Add Funds form lists the student's unpaid flights;
+    # ticked ones are paid out of this money (each marked paid with its
+    # own payment line) and only the rest goes on as a plain top-up.
+    apply_ids = []
+    for raw in request.form.getlist("apply_flight_ids"):
+        try:
+            apply_ids.append(int(raw))
+        except (TypeError, ValueError):
+            pass
+    method = (request.form.get("paid_method") or "").strip()[:40] or ("Card" if request.form.get("paid_by_card") == "1" else None)
+    r = flight_payments.apply_funds_to_flights(conn, student_id, amount, apply_ids, method=method, note=note,
+                                               created_by=session.get("user_name"))
+    if not r["ok"]:
+        conn.rollback()
+        conn.close()
+        flash(r["error"], "danger")
+        return redirect(url_for("flight.student_edit", student_id=student_id) + "#account")
     conn.commit()
     conn.close()
-    flash(f"Added ${amount:.2f} to {student['name']}'s balance.", "success")
-    return redirect(url_for("flight.student_edit", student_id=student_id))
+    msg = f"Added ${amount:,.2f} to {student['name']}'s account."
+    if r["paid"]:
+        msg += f" Marked paid: {', '.join(r['paid'])}."
+        if r["remainder"] > 0.005:
+            msg += f" ${r['remainder']:,.2f} left as credit."
+    flash(msg, "success")
+    return redirect(url_for("flight.student_edit", student_id=student_id) + "#account")
 
 
 _STUDENT_FIELD_INFO = {
@@ -2708,42 +2806,73 @@ def _used_solo_colors_for_plane(conn, asset_id):
     return {r["solo_color"] for r in rows}
 
 
+def _cfi_form_context(conn, cfi_row, **extra):
+    """Everything cfi_form.html needs - for a GET and for every re-render
+    after a rejected save (SCHOOL-15 / SCHOOL-16: the form comes back with
+    what was typed, via ``form``, and the offending field in
+    ``error_field``)."""
+    cfi_id = cfi_row["id"] if cfi_row else None
+    user_row = conn.execute("SELECT * FROM users WHERE id = ?", (cfi_row["user_id"],)).fetchone() if cfi_row and cfi_row["user_id"] else None
+    ctx = dict(medical_classes=MEDICAL_CLASSES, cfi=cfi_row, cfi_user=user_row,
+               used_colors=_used_cfi_colors(conn, exclude_cfi_id=cfi_id), instructor_colors=SCHEDULE_COLORS,
+               form=None, error_field=None)
+    if not cfi_row:
+        ctx["starting_password"] = _new_starting_password()
+    ctx.update(extra)
+    return ctx
+
+
 @flight_bp.route("/cfis/new", methods=["GET", "POST"])
 @admin_required
 def cfi_new():
+    conn = get_db()
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         rate_per_hour = _parse_float(request.form.get("rate_per_hour")) or 0
+        # SCHOOL-02: the Pay Rate typed on New CFI is saved (it used to be
+        # silently dropped until Edit CFI was used).
+        pay_rate_per_hour = _parse_float(request.form.get("pay_rate_per_hour"))
         can_bill = 1 if request.form.get("can_bill") else 0
         color = request.form.get("color", "").strip() or None
-        conn = get_db()
         if color and color not in SCHEDULE_COLORS:
             color = None
+
+        def _again(message, field):
+            # SCHOOL-15: keep what was typed and point at the field.
+            flash(message, "danger")
+            ctx = _cfi_form_context(conn, None, form=request.form, error_field=field)
+            conn.close()
+            return render_template("flight/cfi_form.html", **ctx)
+
+        if not name:
+            return _again("Name is required.", "name")
+        if not username:
+            return _again("Username is required.", "username")
+        if not password:
+            return _again("A starting password is required.", "password")
         if color and color in _used_cfi_colors(conn):
-            flash("That color is already taken by another instructor or a plane - pick a different one.", "danger")
-            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=None, used_colors=_used_cfi_colors(conn),
-                                    instructor_colors=SCHEDULE_COLORS, name=name, username=username)
-        if not name or not username or not password:
-            flash("Name, username, and a starting password are all required.", "danger")
-            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=None, used_colors=_used_cfi_colors(conn),
-                                    instructor_colors=SCHEDULE_COLORS)
+            return _again("That color is already taken by another instructor or a plane - pick a different one.", "color")
         existing = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
         if existing:
-            conn.close()
-            flash(f"Username '{username}' is already taken.", "danger")
-            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=None, instructor_colors=SCHEDULE_COLORS)
+            return _again(f"Username '{username}' is already taken - pick another.", "username")
+        # SCHOOL-43: the starting password is shown once (with Copy), not
+        # kept readable on file.
         cur = conn.execute(
             "INSERT INTO users (name, username, password_hash, password_plain, flight_role, can_bill, active, created_at) "
-            "VALUES (?, ?, ?, ?, 'cfi', ?, 1, ?)",
-            (name, username, generate_password_hash(password, method="pbkdf2:sha256"), password, can_bill, now_iso()))
+            "VALUES (?, ?, ?, NULL, 'cfi', ?, 1, ?)",
+            (name, username, generate_password_hash(password, method="pbkdf2:sha256"), can_bill, now_iso()))
         conn.commit()
         user_id = cur.lastrowid
-        conn.execute(
-            "INSERT INTO cfis (name, username, password_hash, rate_per_hour, color, active, user_id, created_at) "
-            "VALUES (?, ?, ?, ?, ?, 1, ?, ?)",
-            (name, username, generate_password_hash(password, method="pbkdf2:sha256"), rate_per_hour, color, user_id, now_iso()))
+        cur = conn.execute(
+            "INSERT INTO cfis (name, username, password_hash, rate_per_hour, pay_rate_per_hour, color, active, user_id, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)",
+            (name, username, generate_password_hash(password, method="pbkdf2:sha256"), rate_per_hour, pay_rate_per_hour,
+             color, user_id, now_iso()))
+        cfi_id = cur.lastrowid
+        if pay_rate_per_hour is not None:
+            _log_field_change(conn, "cfi", cfi_id, "pay_rate_per_hour", None, pay_rate_per_hour, session.get("user_name"))
         medical_class, medical_expires = _medical_from_form(request.form)
         conn.execute("UPDATE cfis SET medical_class = ?, medical_expires = ? WHERE user_id = ?",
                      (medical_class, medical_expires, user_id))
@@ -2764,10 +2893,9 @@ def cfi_new():
         conn.close()
         flash(f"CFI '{name}' added. Give them their username and starting password to log in.", "success")
         return redirect(url_for("flight.cfis_list"))
-    conn = get_db()
-    used_colors = _used_cfi_colors(conn)
+    ctx = _cfi_form_context(conn, None)
     conn.close()
-    return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=None, used_colors=used_colors, instructor_colors=SCHEDULE_COLORS)
+    return render_template("flight/cfi_form.html", **ctx)
 
 
 @flight_bp.route("/cfis/<int:cfi_id>/edit", methods=["GET", "POST"])
@@ -2779,7 +2907,6 @@ def cfi_edit(cfi_id):
         conn.close()
         flash("CFI not found.", "danger")
         return redirect(url_for("flight.cfis_list"))
-    user_row = conn.execute("SELECT * FROM users WHERE id = ?", (cfi_row["user_id"],)).fetchone() if cfi_row["user_id"] else None
     if request.method == "POST" and owner_locked(cfi_row["user_id"], conn):
         # Same rule as Admin > Accounts: the owner's own instructor profile
         # (name, password, active, billing) can only be changed by the owner.
@@ -2803,16 +2930,19 @@ def cfi_edit(cfi_id):
             gender = None
         if color and color not in SCHEDULE_COLORS:
             color = None
+
+        def _again(message, field):
+            # SCHOOL-16: every rejected save keeps what was typed (a taken
+            # color used to reload the page and lose the other edits).
+            flash(message, "danger")
+            ctx = _cfi_form_context(conn, cfi_row, form=request.form, error_field=field)
+            conn.close()
+            return render_template("flight/cfi_form.html", **ctx)
+
         if not name:
-            flash("Name is required.", "danger")
-            used_colors = _used_cfi_colors(conn, cfi_id)
-            conn.close()
-            return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=cfi_row, used_colors=used_colors,
-                                    instructor_colors=SCHEDULE_COLORS)
+            return _again("Name is required.", "name")
         if color and color in _used_cfi_colors(conn, exclude_cfi_id=cfi_id):
-            flash("That color is already taken by another instructor or a plane - pick a different one.", "danger")
-            conn.close()
-            return redirect(url_for("flight.cfi_edit", cfi_id=cfi_id))
+            return _again("That color is already taken by another instructor or a plane - pick a different one.", "color")
         if new_password:
             conn.execute(f"""UPDATE cfis SET name=?, rate_per_hour=?, pay_rate_per_hour=?, color=?, active=?, is_station=?, password_hash=?,
                              gender=?, {cred_cols} WHERE id=?""",
@@ -2823,8 +2953,8 @@ def cfi_edit(cfi_id):
                              gender=?, {cred_cols} WHERE id=?""",
                          [name, rate_per_hour, pay_rate_per_hour, color, active, is_station, gender, *cred_vals, cfi_id])
         _log_field_change(conn, "cfi", cfi_id, "pay_rate_per_hour", cfi_row["pay_rate_per_hour"], pay_rate_per_hour, session.get("user_name"))
-        # Students Aircraft Rate (external_rate) is edited from Manage >
-        # School Settings now, not here - see flight.school_settings_edit.
+        # The Student's Own Plane rate (external_rate) is edited from Manage >
+        # School Settings, not here - see flight.school_settings_edit.
         medical_class, medical_expires = _medical_from_form(request.form)
         conn.execute("UPDATE cfis SET medical_class = ?, medical_expires = ? WHERE id = ?",
                      (medical_class, medical_expires, cfi_id))
@@ -2849,12 +2979,13 @@ def cfi_edit(cfi_id):
                 flash(f"Heads up: {name} has {upcoming} booking{'s' if upcoming != 1 else ''} after their medical "
                       f"expired ({_us_date(medical_expires)}) - they can't be started until the medical is updated.", "warning")
         # Keep the master login account (the actual place passwords/active/
-        # can_bill are checked) in step with this edit.
+        # can_bill are checked) in step with this edit. SCHOOL-43: a reset
+        # password is no longer kept readable on file.
         if cfi_row["user_id"]:
             if new_password:
-                conn.execute("UPDATE users SET name=?, active=?, can_bill=?, password_hash=?, password_plain=? WHERE id=?",
+                conn.execute("UPDATE users SET name=?, active=?, can_bill=?, password_hash=?, password_plain=NULL WHERE id=?",
                              (name, active, can_bill, generate_password_hash(new_password, method="pbkdf2:sha256"),
-                              new_password, cfi_row["user_id"]))
+                              cfi_row["user_id"]))
             else:
                 conn.execute("UPDATE users SET name=?, active=?, can_bill=? WHERE id=?",
                              (name, active, can_bill, cfi_row["user_id"]))
@@ -2862,10 +2993,9 @@ def cfi_edit(cfi_id):
         conn.close()
         flash("CFI updated.", "success")
         return redirect(url_for("flight.cfis_list"))
-    used_colors = _used_cfi_colors(conn, exclude_cfi_id=cfi_id)
+    ctx = _cfi_form_context(conn, cfi_row)
     conn.close()
-    return render_template("flight/cfi_form.html", medical_classes=MEDICAL_CLASSES, cfi=cfi_row, cfi_user=user_row,
-                           used_colors=used_colors, instructor_colors=SCHEDULE_COLORS)
+    return render_template("flight/cfi_form.html", **ctx)
 
 
 @flight_bp.route("/cfis/me", methods=["GET", "POST"])
@@ -3306,16 +3436,21 @@ def school_settings_edit():
     they read, are unchanged - this only moves the editing UI)."""
     conn = get_db()
     cfis = conn.execute("SELECT * FROM cfis ORDER BY active DESC, name").fetchall()
+    # SCHOOL-28: Cancel goes back to wherever School Settings was opened
+    # from (carried through the form so a rejected save keeps it).
+    back = request.form.get("back") if request.method == "POST" else _safe_back_url(request.referrer)
     if request.method == "POST":
         color = request.form.get("color", "").strip() or None
         if color and color not in SCHEDULE_COLORS:
             color = None
         rates = {}
         rate_error = None
+        rate_error_cfi = None
         for c in cfis:
             rate = _parse_float(request.form.get(f"external_rate_{c['id']}"))
-            if rate is not None and rate < 0:
-                rate_error = f"{c['name']}'s Students Aircraft Rate can't be a negative number."
+            if rate is not None and rate < 0 and not rate_error:
+                rate_error = f"{c['name']}'s rate in a student's own plane can't be a negative number."
+                rate_error_cfi = c["id"]
             rates[c["id"]] = rate
         try:
             window_hours = max(0.0, float(request.form.get("window_hours") or 0))
@@ -3329,14 +3464,22 @@ def school_settings_edit():
             limit = max(0.0, float(request.form.get("limit") or 0))
         except ValueError:
             limit = 0.0
+
+        def _again(message, field):
+            # SCHOOL-16: a rejected save shows the form again with every
+            # value just typed, and the message next to the field.
+            flash(message, "danger")
+            typed = [dict(c, external_rate=rates[c["id"]]) for c in cfis]
+            ctx = dict(cfis=typed, own_plane_color=color, window_hours=window_hours, fee_amount=fee_amount,
+                       limit=limit, used_colors=_used_colors_for_plane(conn), schedule_colors=SCHEDULE_COLORS,
+                       error_field=field, error_cfi=rate_error_cfi, back=back, form=request.form)
+            conn.close()
+            return render_template("flight/school_settings_form.html", **ctx)
+
         if color and color in _used_colors_for_plane(conn):
-            flash("That Calendar Color is already taken by an instructor or a plane - pick a different one.", "danger")
-            conn.close()
-            return redirect(url_for("flight.school_settings_edit"))
+            return _again("That Calendar Color is already taken by an instructor or a plane - pick a different one.", "color")
         if rate_error:
-            flash(rate_error, "danger")
-            conn.close()
-            return redirect(url_for("flight.school_settings_edit"))
+            return _again(rate_error, "external_rate")
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (OWN_PLANE_COLOR_KEY, color))
         for c in cfis:
             _log_field_change(conn, "cfi", c["id"], "external_rate", c["external_rate"], rates[c["id"]], session.get("user_name"))
@@ -3358,7 +3501,23 @@ def school_settings_edit():
     conn.close()
     return render_template("flight/school_settings_form.html", cfis=cfis, own_plane_color=own_plane_color,
                            window_hours=window_hours, fee_amount=fee_amount, limit=limit,
-                           used_colors=used_colors, schedule_colors=SCHEDULE_COLORS)
+                           used_colors=used_colors, schedule_colors=SCHEDULE_COLORS, back=back)
+
+
+def _safe_back_url(referrer):
+    """A same-site page to return to (for Cancel buttons), or None when the
+    referrer is missing or points off-site."""
+    if not referrer:
+        return None
+    try:
+        host = request.host_url.rstrip("/")
+    except RuntimeError:
+        return None
+    if referrer.startswith(host + "/"):
+        return referrer[len(host):]
+    if referrer.startswith("/") and not referrer.startswith("//"):
+        return referrer
+    return None
 
 
 _SCHEDULE_ROW_SQL = """SELECT sf.*, a.tag as plane_tag, a.name as plane_name, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
@@ -7584,16 +7743,106 @@ def log_delete(flight_id):
 @flight_bp.route("/log/<int:flight_id>/toggle_paid", methods=["POST"])
 @billing_required
 def log_toggle_paid(flight_id):
+    """Mark one flight paid or unpaid (Billing, Flight History, Flight
+    Detail). SCHOOL-01: goes through flight_payments so the student's
+    ledger moves with the tick - Mark Paid records the payment, Mark
+    Unpaid takes that same line back. Optional form field ``paid_method``
+    (SCHOOL-21: cash / card / check...) and ``note``. SCHOOL-22: says what
+    it did."""
     conn = get_db()
     f = conn.execute("SELECT paid FROM flights WHERE id = ?", (flight_id,)).fetchone()
     if not f:
         conn.close()
         flash("Flight not found.", "danger")
         return redirect(url_for("flight.log_history"))
-    conn.execute("UPDATE flights SET paid = ? WHERE id = ?", (0 if f["paid"] else 1, flight_id))
+    who = session.get("user_name")
+    if f["paid"]:
+        r = flight_payments.reverse_flight_payment(conn, flight_id, created_by=who)
+        flash(f"Marked {r['label']} unpaid for {r['student_name']}.", "warning")
+    else:
+        method = (request.form.get("paid_method") or "").strip()[:40] or None
+        note = (request.form.get("note") or "").strip()[:120] or None
+        r = flight_payments.record_flight_payment(conn, flight_id, method=method, note=note, created_by=who)
+        flash(f"Marked {r['label']} paid for {r['student_name']}" + (f" ({method})" if method else "") + ".", "success")
     conn.commit()
     conn.close()
     return redirect(request.referrer or url_for("flight.log_history"))
+
+
+@flight_bp.route("/billing/mark-selected-paid", methods=["POST"])
+@billing_required
+def billing_mark_selected_paid():
+    """SCHOOL-20: "Mark N selected paid" on Billing - the ticked flights
+    (form field ``ids``, comma-separated) are each marked paid through
+    flight_payments (SCHOOL-01), with one "how was it paid" box for the
+    lot (SCHOOL-21)."""
+    back = request.referrer or url_for("flight.billing")
+    try:
+        ids = [int(x) for x in (request.form.get("ids") or "").split(",") if x.strip()]
+    except ValueError:
+        ids = []
+    if not ids:
+        flash("Tick at least one flight first.", "warning")
+        return redirect(back)
+    method = (request.form.get("paid_method") or "").strip()[:40] or None
+    who = session.get("user_name")
+    conn = get_db()
+    done, total, skipped = 0, 0.0, 0
+    for fid in ids:
+        r = flight_payments.record_flight_payment(conn, fid, method=method, created_by=who)
+        if not r["ok"] or r["already_paid"]:
+            skipped += 1
+            continue
+        done += 1
+        total += r["flight"]["total"]
+    conn.commit()
+    conn.close()
+    msg = f"Marked {done} flight{'s' if done != 1 else ''} (${total:,.2f}) paid" + (f" ({method})" if method else "") + "."
+    if skipped:
+        msg += f" {skipped} already paid - left alone."
+    flash(msg, "success" if done else "warning")
+    return redirect(back)
+
+
+@flight_bp.route("/billing/student/<int:student_id>/pay-card", methods=["POST"])
+@billing_required
+def billing_pay_card(student_id):
+    """SCHOOL-21: "Pay with Card" per student on Billing - the same
+    simulated Stripe-style charge as the shop's Billing page, for the
+    student's whole unpaid total; each unpaid flight is then marked paid
+    through flight_payments (SCHOOL-01) with the card's last 4 on the
+    ledger line."""
+    back = request.referrer or url_for("flight.billing")
+    conn = get_db()
+    student = conn.execute("SELECT id, name FROM students WHERE id = ?", (student_id,)).fetchone()
+    if not student:
+        conn.close()
+        flash("Student not found.", "danger")
+        return redirect(back)
+    unpaid = flight_payments.unpaid_flights_for_student(conn, student_id)
+    if not unpaid:
+        conn.close()
+        flash(f"{student['name']} has no unpaid flights.", "warning")
+        return redirect(back)
+    charged = _simulate_card_charge(request.form.get("card_number"))
+    if not charged:
+        conn.close()
+        flash("Enter a card number to simulate the charge.", "danger")
+        return redirect(back)
+    last4, charge_id = charged
+    who = session.get("user_name")
+    total = 0.0
+    for f in unpaid:
+        r = flight_payments.record_flight_payment(conn, f["id"], method="Card",
+                                                  note=f"simulated charge ending in {last4} ({charge_id})", created_by=who)
+        total += r["recorded"]
+    conn.executemany("UPDATE flights SET card_last4 = ?, card_charge_id = ? WHERE id = ?",
+                     [(last4, charge_id, f["id"]) for f in unpaid])
+    conn.commit()
+    conn.close()
+    flash(f"Charged ${total:,.2f} to the card ending in {last4} (simulated) - {len(unpaid)} flight"
+          f"{'s' if len(unpaid) != 1 else ''} marked paid for {student['name']}.", "success")
+    return redirect(back)
 
 
 @flight_bp.route("/billing")
@@ -7624,11 +7873,15 @@ def billing():
         if sid not in groups:
             name, email = _student_billing_contact(conn, sid)
             groups[sid] = {"student_id": sid, "student_name": f["student_name"], "flights": [], "total": 0.0,
-                           "bill_name": name, "bill_email": email, "wave_ready_count": 0, "wave_ready_total": 0.0}
+                           "bill_name": name, "bill_email": email, "wave_ready_count": 0, "wave_ready_total": 0.0,
+                           "unpaid_count": 0, "unpaid_total": 0.0}
             order.append(sid)
         f["wave"] = wave_invoices.get(f["wave_invoice_id"]) if f["wave_invoice_id"] else None
         groups[sid]["flights"].append(f)
         groups[sid]["total"] += f["total"]
+        if not f["paid"]:
+            groups[sid]["unpaid_count"] += 1
+            groups[sid]["unpaid_total"] += f["total"]
         if _wave_invoiceable(f):
             groups[sid]["wave_ready_count"] += 1
             groups[sid]["wave_ready_total"] += f["total"]
@@ -7638,7 +7891,8 @@ def billing():
     grand_total = sum(g["total"] for g in students_billing)
     return render_template("flight/billing.html", students_billing=students_billing,
                            grand_total=grand_total, status=status, wave_connected=bool(wave_accounts),
-                           wave_accounts=wave_accounts, wave_default=wave_default)
+                           wave_accounts=wave_accounts, wave_default=wave_default,
+                           payment_methods=PAYMENT_METHODS)
 
 
 def _student_billing_contact(conn, student_id):
@@ -7780,17 +8034,6 @@ def billing_export():
     fname = f"flight_billing_{scope}_{date.today().strftime('%Y%m%d')}.csv"
     return Response(buf.getvalue(), mimetype="text/csv",
                      headers={"Content-Disposition": f"attachment; filename={fname}"})
-
-
-@flight_bp.route("/billing/student/<int:student_id>/mark_paid", methods=["POST"])
-@billing_required
-def billing_mark_paid(student_id):
-    conn = get_db()
-    conn.execute("UPDATE flights SET paid = 1 WHERE student_id = ? AND paid = 0", (student_id,))
-    conn.commit()
-    conn.close()
-    flash("Marked paid.", "success")
-    return redirect(url_for("flight.billing"))
 
 
 def _billing_cross_check(conn):

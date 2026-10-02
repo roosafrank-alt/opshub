@@ -117,93 +117,158 @@
 <div class="card p-4">
   <div class="d-flex justify-content-between align-items-start mb-2">
     <h4 class="mb-0">{{ 'Edit Student' if student else 'New Student' }}</h4>
-    {% if student and student.user_id %}
-    <a href="{{ url_for('admin_user_edit', user_id=student.user_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-shield-lock"></i> Edit Account</a>
+    {#- SCHOOL-04: only admins can open the Admin account form, so only
+       admins see the button. ?next= asks the Admin form to come back here
+       after Save (the Admin form itself is the chrome part's). #}
+    {% if student and student.user_id and session.get('is_master_admin') %}
+    <a href="{{ url_for('admin_user_edit', user_id=student.user_id, next=request.path) }}" class="btn btn-outline-secondary btn-sm" data-change="SCHOOL-04"><i class="bi bi-shield-lock"></i> Edit Account</a>
     {% endif %}
   </div>
-  {#- id'd so the "How They Usually Pay" field (moved under the Account
-     card's own header below - see the form="student-form" select there)
-     can still submit with this form even though it no longer sits inside
-     these <form> tags. #}
-  <form method="post" id="student-form">
+  {#- SCHOOL-15 / SCHOOL-47: after a rejected save the form comes back
+     with what was typed (``form``) and the offending field outlined
+     (``error_field``); otherwise it shows the stored student. #}
+  {% set F = form %}
+  {% macro fv(name, stored) %}{{ F.get(name, '') if F is not none else (stored if stored is not none else '') }}{% endmacro %}
+  {% macro fchecked(name, stored) %}{{ 'checked' if (F.get(name) if F is not none else stored) }}{% endmacro %}
+  {% macro inv(name) %}{{ ' is-invalid' if error_field == name }}{% endmacro %}
+  <form method="post" id="student-form"{% if F is not none %} data-change="SCHOOL-15 SCHOOL-47"{% endif %}>
     <div class="mb-3">
       <label class="form-label">Full Name *</label>
-      <input type="text" name="name" class="form-control" value="{{ student.name if student else '' }}" required autofocus>
+      <input type="text" name="name" class="form-control{{ inv('name') }}" value="{{ fv('name', student.name if student else '') }}" required autofocus>
     </div>
     {% if not student %}
     <div class="mb-3">
       <label class="form-label">Username *</label>
-      <input type="text" name="username" class="form-control" required>
+      <input type="text" name="username" class="form-control{{ inv('username') }}" value="{{ fv('username', '') }}" required>
     </div>
-    <div class="mb-3">
+    <div class="mb-3" data-change="SCHOOL-43">
       <label class="form-label">Starting Password *</label>
-      <input type="text" name="password" class="form-control" required>
-      <div class="form-text">Give this to the student - they can log in with it right away.</div>
+      <div class="input-group">
+        <input type="password" name="password" id="password-input" class="form-control{{ inv('password') }}" value="{{ fv('password', starting_password) }}" required autocomplete="new-password">
+        <button type="button" class="btn btn-outline-secondary" id="password-show" title="Show / hide"><i class="bi bi-eye"></i> Show</button>
+        <button type="button" class="btn btn-outline-secondary" id="password-copy" title="Copy to clipboard"><i class="bi bi-clipboard"></i> Copy</button>
+      </div>
+      <div class="form-text">A one-time password was made up for you - copy it and give it to the student now (it isn't kept on file). You can type your own instead.</div>
     </div>
     {% else %}
     <div class="mb-3">
       <label class="form-label">Username</label>
       <div><code>{{ student.username }}</code></div>
     </div>
-    <div class="mb-3">
+    <div class="mb-3" data-change="SCHOOL-43">
       <label class="form-label">Reset Password <span class="text-muted small">(leave blank to keep current)</span></label>
-      <input type="text" name="password" class="form-control">
+      <div class="input-group">
+        <input type="password" name="password" id="password-input" class="form-control" autocomplete="new-password">
+        <button type="button" class="btn btn-outline-secondary" id="password-show" title="Show / hide"><i class="bi bi-eye"></i> Show</button>
+        <button type="button" class="btn btn-outline-secondary" id="password-copy" title="Copy to clipboard"><i class="bi bi-clipboard"></i> Copy</button>
+      </div>
     </div>
     {% endif %}
+    <script>
+    (function () {
+      var inp = document.getElementById('password-input'), show = document.getElementById('password-show'), copy = document.getElementById('password-copy');
+      if (!inp) return;
+      show.addEventListener('click', function () {
+        var open = inp.type === 'password';
+        inp.type = open ? 'text' : 'password';
+        show.innerHTML = open ? '<i class="bi bi-eye-slash"></i> Hide' : '<i class="bi bi-eye"></i> Show';
+      });
+      copy.addEventListener('click', function () {
+        if (!inp.value) return;
+        var done = function () { copy.innerHTML = '<i class="bi bi-check-lg"></i> Copied'; setTimeout(function () { copy.innerHTML = '<i class="bi bi-clipboard"></i> Copy'; }, 1500); };
+        if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(inp.value).then(done, done); }
+        else { var t = inp.type; inp.type = 'text'; inp.select(); try { document.execCommand('copy'); } catch (e) {} inp.type = t; done(); }
+      });
+    })();
+    </script>
     <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" name="is_station" id="is-station-check" {% if student and student.is_station %}checked{% endif %}
+      <input type="checkbox" class="form-check-input" name="is_station" id="is-station-check" {{ fchecked('is_station', student and student.is_station) }}
              onchange="document.getElementById('trainee-fields').style.display = this.checked ? 'none' : ''; document.getElementById('student-email').required = document.getElementById('student-phone').required = !this.checked;">
       <label class="form-check-label" for="is-station-check">Generic station account <span class="text-muted small">(e.g. "Shop") - for booking the schedule only, not a specific trainee. No instructor color, no solo-currency tracking.</span></label>
     </div>
-    <div id="trainee-fields" style="{{ 'display:none;' if student and student.is_station }}">
+    {% set station_now = (F.get('is_station') if F is not none else (student and student.is_station)) %}
+    <div id="trainee-fields" style="{{ 'display:none;' if station_now }}">
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Email *</label>
-        <input type="email" name="email" id="student-email" class="form-control" value="{{ student_email or '' }}" {% if not (student and student.is_station) %}required{% endif %}>
+        <input type="email" name="email" id="student-email" class="form-control{{ inv('email') }}" value="{{ student_email or '' }}" {% if not station_now %}required{% endif %}>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Phone *</label>
-        <input type="tel" name="phone" id="student-phone" class="form-control" value="{{ student_phone or '' }}" {% if not (student and student.is_station) %}required{% endif %}>
+        <input type="tel" name="phone" id="student-phone" class="form-control{{ inv('phone') }}" value="{{ student_phone or '' }}" {% if not station_now %}required{% endif %}>
       </div>
     </div>
+    {#- SCHOOL-12: rates are money - admin-only here and on the rate
+       detail pages. A CFI sees them read-only. #}
+    {% if is_admin %}
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Instructor Rate ($/hr) <span class="text-muted small">(optional - overrides the CFI's rate)</span></label>
-        <input type="number" step="any" name="rate_override" class="form-control" value="{{ student.rate_override if student and student.rate_override is not none else '' }}">
+        <input type="number" step="any" name="rate_override" class="form-control" value="{{ fv('rate_override', student.rate_override if student else '') }}">
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Plane Rate ($/hr) <span class="text-muted small">(billed on Hobbs time)</span></label>
-        <input type="number" step="any" name="plane_rate_override" class="form-control" value="{{ student.plane_rate_override if student and student.plane_rate_override is not none else '' }}">
+        <input type="number" step="any" name="plane_rate_override" class="form-control" value="{{ fv('plane_rate_override', student.plane_rate_override if student else '') }}">
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Sim Rate ($/hr) <span class="text-muted small">(optional - overrides the simulator's own rate)</span></label>
-        <input type="number" step="any" name="sim_rate_override" class="form-control" value="{{ student.sim_rate_override if student and student.sim_rate_override is not none else '' }}">
+        <input type="number" step="any" name="sim_rate_override" class="form-control" value="{{ fv('sim_rate_override', student.sim_rate_override if student else '') }}">
       </div>
     </div>
     <p class="text-muted small mt-n2 mb-3">The Plane Rate is what this student pays per hour for any plane (planes don't have their own rate) - leave it blank and the plane isn't charged. Leave the Instructor Rate blank to use the CFI's rate. Leave the Sim Rate blank to use the simulator's own rate (set on its own profile).</p>
+    {% else %}
+    <div class="row" data-change="SCHOOL-12">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Instructor Rate</label>
+        <div>{% if student and student.rate_override is not none %}${{ '%.2f'|format(student.rate_override) }}/hr{% else %}<span class="text-muted">CFI's rate</span>{% endif %}</div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Plane Rate</label>
+        <div>{% if student and student.plane_rate_override is not none %}${{ '%.2f'|format(student.plane_rate_override) }}/hr{% else %}<span class="text-muted">Not set - plane not charged</span>{% endif %}</div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Sim Rate</label>
+        <div>{% if student and student.sim_rate_override is not none %}${{ '%.2f'|format(student.sim_rate_override) }}/hr{% else %}<span class="text-muted">Simulator's rate</span>{% endif %}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {#- SCHOOL-48: How They Usually Pay lives here, next to the rates, on
+       New Student and Edit Student alike. #}
+    <div class="mb-3" data-change="SCHOOL-48">
+      <label class="form-label">How They Usually Pay <span class="text-muted small">(shown as a hint on End Session)</span></label>
+      {% set pay_now = (F.get('pay_preference') if F is not none else (student.pay_preference if student else '')) %}
+      <select name="pay_preference" class="form-select">
+        <option value="">- Not set -</option>
+        {% for method in pay_preferences %}
+        <option value="{{ method }}" {{ 'selected' if pay_now == method }}>{{ method }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
     <div class="mb-3 form-check">
       <input type="checkbox" class="form-check-input" name="notify_booking_confirm" id="notify-booking-confirm-check"
-             {% if not student or student.notify_booking_confirm %}checked{% endif %}>
+             {{ fchecked('notify_booking_confirm', (not student) or student.notify_booking_confirm) }}>
       <label class="form-check-label" for="notify-booking-confirm-check">
         Push notification when a flight is booked for them <span class="text-muted small">(asking them to confirm it - the confirm mark on the schedule shows either way)</span>
       </label>
     </div>
 
     {% set cur_ratings = (student.pilot_ratings or '').split(',') if student else [] %}
+    {% set cert_now = (F.get('pilot_certificate') if F is not none else (student.pilot_certificate if student else '')) %}
     <div class="mb-3" id="pilot-certs" style="scroll-margin-top:80px;">
       <label class="form-label">Pilot Certificate <span class="text-muted small">(sets the student's badge)</span></label>
       <select name="pilot_certificate" class="form-select mb-2">
         <option value="">- None yet -</option>
         {% for code, label, short, color, icon in pilot_certificates %}
-        <option value="{{ code }}" {{ 'selected' if student and student.pilot_certificate == code }}>{{ label }}</option>
+        <option value="{{ code }}" {{ 'selected' if cert_now == code }}>{{ label }}</option>
         {% endfor %}
       </select>
       <label class="form-label d-block mb-1">Ratings &amp; Endorsements <span class="text-muted small">(each adds a star)</span></label>
       <div class="d-flex flex-wrap gap-3">
         {% for code, label in pilot_ratings %}
         <div class="form-check">
-          <input type="checkbox" class="form-check-input" name="rating_{{ code }}" id="rating-{{ code }}" {{ 'checked' if code in cur_ratings }}>
+          <input type="checkbox" class="form-check-input" name="rating_{{ code }}" id="rating-{{ code }}" {{ fchecked('rating_' ~ code, code in cur_ratings) }}>
           <label class="form-check-label" for="rating-{{ code }}">{{ label }}</label>
         </div>
         {% endfor %}
@@ -216,13 +281,13 @@
         <select name="medical_class" class="form-select">
           <option value="">- Not tracked -</option>
           {% for code, label in medical_classes %}
-          <option value="{{ code }}" {{ 'selected' if student and student.medical_class == code }}>{{ label }}</option>
+          <option value="{{ code }}" {{ 'selected' if (F.get('medical_class') if F is not none else (student.medical_class if student else '')) == code }}>{{ label }}</option>
           {% endfor %}
         </select>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Medical Expires</label>
-        <input type="date" name="medical_expires" class="form-control" value="{{ student.medical_expires if student and student.medical_expires else '' }}">
+        <input type="date" name="medical_expires" class="form-control" value="{{ fv('medical_expires', student.medical_expires if student else '') }}">
       </div>
     </div>
     <p class="text-muted small mt-n2 mb-3">With an expired medical a student can still fly dual, but a solo gets flagged for review (and shows on the Alerts tab) until an instructor is added or the medical is updated. Leave it blank if you don't track it.</p>
@@ -230,14 +295,14 @@
     <div class="row align-items-end" id="first-solo" style="scroll-margin-top:80px;">
       <div class="col-md-6 mb-3">
         <div class="form-check">
-          <input type="checkbox" class="form-check-input" name="first_solo_done" id="first-solo-check" {% if student and student.first_solo_date %}checked{% endif %}
+          <input type="checkbox" class="form-check-input" name="first_solo_done" id="first-solo-check" {{ fchecked('first_solo_done', student and student.first_solo_date) }}
                  onchange="document.getElementById('first-solo-date').disabled = !this.checked;">
           <label class="form-check-label" for="first-solo-check"><strong>Has completed first solo</strong></label>
         </div>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">First Solo Date</label>
-        <input type="date" name="first_solo_date" id="first-solo-date" class="form-control" value="{{ student.first_solo_date if student and student.first_solo_date else '' }}" {% if not (student and student.first_solo_date) %}disabled{% endif %}>
+        <input type="date" name="first_solo_date" id="first-solo-date" class="form-control" value="{{ fv('first_solo_date', student.first_solo_date if student else '') }}" {% if not (F.get('first_solo_done') if F is not none else (student and student.first_solo_date)) %}disabled{% endif %}>
       </div>
     </div>
     <p class="text-muted small mt-n2 mb-3">Landing currency (last landing, landings in the last 90 days) only shows on this profile and the Students list once this is checked. Leave the date blank for today.</p>
@@ -245,14 +310,14 @@
     <div class="row align-items-end" id="tsa-verified" style="scroll-margin-top:80px;">
       <div class="col-md-6 mb-3">
         <div class="form-check">
-          <input type="checkbox" class="form-check-input" name="tsa_verified_done" id="tsa-verified-check" {% if student and student.tsa_verified_date %}checked{% endif %}
+          <input type="checkbox" class="form-check-input" name="tsa_verified_done" id="tsa-verified-check" {{ fchecked('tsa_verified_done', student and student.tsa_verified_date) }}
                  onchange="document.getElementById('tsa-verified-date').disabled = !this.checked;">
           <label class="form-check-label" for="tsa-verified-check"><strong>TSA Verified</strong></label>
         </div>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">TSA Verification Date</label>
-        <input type="date" name="tsa_verified_date" id="tsa-verified-date" class="form-control" value="{{ student.tsa_verified_date if student and student.tsa_verified_date else '' }}" {% if not (student and student.tsa_verified_date) %}disabled{% endif %}>
+        <input type="date" name="tsa_verified_date" id="tsa-verified-date" class="form-control" value="{{ fv('tsa_verified_date', student.tsa_verified_date if student else '') }}" {% if not (F.get('tsa_verified_done') if F is not none else (student and student.tsa_verified_date)) %}disabled{% endif %}>
       </div>
     </div>
     <p class="text-muted small mt-n2 mb-3">Leave the date blank for today.</p>
@@ -260,11 +325,11 @@
     <div class="row" id="solo-signoff" style="scroll-margin-top:80px;">
       <div class="col-md-6 mb-3">
         <label class="form-label">Solo Sign-off Date <span class="text-muted small">(CFI solo endorsement)</span></label>
-        <input type="date" name="solo_signoff_date" id="solo-signoff-date" class="form-control" value="{{ student.solo_signoff_date if student and student.solo_signoff_date else '' }}">
+        <input type="date" name="solo_signoff_date" id="solo-signoff-date" class="form-control" value="{{ fv('solo_signoff_date', student.solo_signoff_date if student else '') }}">
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Solo Sign-off Expires <span class="text-muted small">(90 days - fills in by itself)</span></label>
-        <input type="date" name="solo_signoff_expires" id="solo-signoff-expires" class="form-control" value="{{ student.solo_signoff_expires if student and student.solo_signoff_expires else '' }}">
+        <input type="date" name="solo_signoff_expires" id="solo-signoff-expires" class="form-control" value="{{ fv('solo_signoff_expires', student.solo_signoff_expires if student else '') }}">
       </div>
     </div>
     <p class="text-muted small mt-n2 mb-3">Solo flights booked after the expiry date are flagged for review on the dashboard, the same as an over-currency solo. Leave the expiry blank and it's set to 90 days after the sign-off.</p>
@@ -286,7 +351,7 @@
     {% if session.get('is_master_admin') %}
     <div class="mb-3">
       <label class="form-label">Solo Currency Interval (days) <span class="text-muted small">(optional - overrides the {{ default_solo_currency_days }}-day default)</span></label>
-      <input type="number" step="1" min="1" name="solo_currency_days" class="form-control" value="{{ student.solo_currency_days if student and student.solo_currency_days is not none else '' }}" placeholder="{{ default_solo_currency_days }}">
+      <input type="number" step="1" min="1" name="solo_currency_days" class="form-control" value="{{ fv('solo_currency_days', student.solo_currency_days if student else '') }}" placeholder="{{ default_solo_currency_days }}">
       <div class="form-text">A newer/lower-time student needing more frequent refreshers can be set shorter (e.g. 14 days); a more experienced student can be set longer. Leave blank to use the {{ default_solo_currency_days }}-day shop default. This is how long they can go since their last dual (CFI) flight before a checkout is required to solo again. Admins only.</div>
     </div>
     {% elif student and student.solo_currency_days %}
@@ -297,25 +362,9 @@
     {% endif %}
     </div>
 
-    {% if not student %}
-    {#- A brand-new student has no Account card yet (that only shows once
-       can_bill is known to matter - see {% if student and can_bill %}
-       below), so How They Usually Pay is set right here at creation time
-       instead; editing an existing student sets it under Account. #}
-    <div class="mb-3">
-      <label class="form-label">How They Usually Pay <span class="text-muted small">(shown as a hint on End Session)</span></label>
-      <select name="pay_preference" class="form-select">
-        <option value="">- Not set -</option>
-        {% for method in pay_preferences %}
-        <option value="{{ method }}">{{ method }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    {% endif %}
-
     {% if student %}
     <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" name="active" id="active-check" {% if student.active %}checked{% endif %}>
+      <input type="checkbox" class="form-check-input" name="active" id="active-check" {{ fchecked('active', student.active) }}>
       <label class="form-check-label" for="active-check">Active</label>
     </div>
     {% endif %}
@@ -327,7 +376,8 @@
 </div>
 
 {% if student and can_bill %}
-<div class="card p-4 mt-3">
+{#- SCHOOL-14: id="account" so the Account page's Add Funds link lands here. #}
+<div class="card p-4 mt-3" id="account" style="scroll-margin-top:80px;" data-change="SCHOOL-14">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
     <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Account</h5>
     {% if student.balance > 0.005 %}
@@ -338,23 +388,11 @@
     <span class="badge bg-light text-dark border fs-6">$0.00 balance</span>
     {% endif %}
   </div>
-  <div class="mb-3">
-    <label class="form-label">How They Usually Pay <span class="text-muted small">(shown as a hint on End Session)</span></label>
-    {#- form="student-form" (see that <form>'s id above) so this still
-       saves with the rest of the student edit form even though it's
-       rendered here, under Account, instead of inside those <form> tags. #}
-    <select name="pay_preference" form="student-form" class="form-select">
-      <option value="">- Not set -</option>
-      {% for method in pay_preferences %}
-      <option value="{{ method }}" {{ 'selected' if student and student.pay_preference == method }}>{{ method }}</option>
-      {% endfor %}
-    </select>
-  </div>
   <p class="text-muted small mb-3">Balance updates automatically when a flight is logged (its cost is deducted) - use this to record a payment or top-up.</p>
   <form method="post" id="add-funds-form" action="{{ url_for('flight.student_add_funds', student_id=student.id) }}" class="row g-2 align-items-end mb-3" data-confirm="Add $[[amount]] to {{ student.name }}'s balance?" data-confirm-title="Add Funds" data-confirm-ok="Yes, add funds" data-confirm-style="success">
     <div class="col-auto">
       <label class="form-label small mb-0">Add Funds ($)</label>
-      <input type="number" step="0.01" min="0.01" name="amount" class="form-control form-control-sm" placeholder="e.g. 500.00" required style="width:140px;">
+      <input type="number" step="0.01" min="0.01" name="amount" id="add-funds-amount" class="form-control form-control-sm" placeholder="e.g. 500.00" required style="width:140px;">
     </div>
     <div class="col-auto">
       <label class="form-label small mb-0">Note <span class="text-muted">(optional)</span></label>
@@ -371,6 +409,22 @@
       <label class="form-label small mb-0">Card Number</label>
       <input type="text" name="card_number" class="form-control form-control-sm" inputmode="numeric" placeholder="4242 4242 4242 4242" style="width:200px;">
     </div>
+    {#- SCHOOL-01: apply the money to the oldest unpaid flights - ticked
+       ones are marked paid out of this amount (each gets its own payment
+       line on the ledger); what's left stays as credit. Pre-ticked,
+       oldest first, as far as the amount typed reaches. #}
+    {% if unpaid_flights %}
+    <div class="col-12" id="add-funds-apply" data-change="SCHOOL-01">
+      <div class="small fw-bold mb-1">Mark these unpaid flights paid with it:</div>
+      {% for f in unpaid_flights %}
+      <div class="form-check small">
+        <input class="form-check-input apply-flight" type="checkbox" name="apply_flight_ids" value="{{ f.id }}" id="apply-flight-{{ f.id }}" data-due="{{ '%.2f'|format(f.due) }}">
+        <label class="form-check-label" for="apply-flight-{{ f.id }}">{{ f.flight_date|usdate }} {{ f.plane_tag }} &middot; {{ f.cfi_name or 'Solo' }} &middot; <strong>${{ '%.2f'|format(f.due) }}</strong></label>
+      </div>
+      {% endfor %}
+      <div class="form-text" id="add-funds-apply-note">Ticked flights: $0.00. Untick any you don't want paid from this money.</div>
+    </div>
+    {% endif %}
     <div class="col-auto">
       <button type="submit" class="btn btn-success btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Add Funds</button>
     </div>
@@ -382,6 +436,31 @@
     if (check && wrap) {
       check.addEventListener('change', function () { wrap.classList.toggle('d-none', !check.checked); });
     }
+    var amount = document.getElementById('add-funds-amount');
+    var boxes = document.querySelectorAll('.apply-flight');
+    var note = document.getElementById('add-funds-apply-note');
+    if (!amount || !boxes.length) return;
+    function sumTicked() {
+      var t = 0;
+      boxes.forEach(function (b) { if (b.checked) t += parseFloat(b.getAttribute('data-due') || '0'); });
+      return t;
+    }
+    function refreshNote() {
+      var t = sumTicked(), a = parseFloat(amount.value || '0');
+      note.textContent = 'Ticked flights: $' + t.toFixed(2) + (t > a + 0.005 ? ' - more than you are adding, untick some.' : (a - t > 0.005 && a > 0 ? ' - $' + (a - t).toFixed(2) + ' stays as credit.' : ''));
+      note.classList.toggle('text-danger', t > a + 0.005);
+    }
+    amount.addEventListener('input', function () {
+      var left = parseFloat(amount.value || '0');
+      boxes.forEach(function (b) {
+        var due = parseFloat(b.getAttribute('data-due') || '0');
+        b.checked = due <= left + 0.005;
+        if (b.checked) left -= due;
+      });
+      refreshNote();
+    });
+    boxes.forEach(function (b) { b.addEventListener('change', refreshNote); });
+    refreshNote();
   })();
   </script>
   {% if ledger %}
@@ -396,6 +475,8 @@
             {% if entry.entry_type == 'funds_added' %}<span class="badge bg-success">Funds Added</span>
             {% elif entry.entry_type == 'flight_deduction' %}<span class="badge bg-secondary">Flight</span>
             {% elif entry.entry_type == 'cancellation_fee' %}<span class="badge bg-danger">Late Cancel</span>
+            {% elif entry.entry_type == 'payment' %}<span class="badge bg-success" data-change="SCHOOL-01">Payment</span>
+            {% elif entry.entry_type == 'payment_reversal' %}<span class="badge bg-warning text-dark" data-change="SCHOOL-01">Payment Reversed</span>
             {% else %}<span class="badge bg-info text-dark">Adjustment</span>{% endif %}
           </td>
           <td class="small fw-bold {{ 'text-success' if entry.amount > 0 else ('text-danger' if entry.amount < 0 else '') }}" data-label="Amount">
