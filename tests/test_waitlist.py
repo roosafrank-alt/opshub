@@ -57,7 +57,7 @@ class WaitlistTest(OpsHubTestCase):
         self.join()
         sid = self.book()
         SIDE_EFFECTS.clear()
-        self.login("cfi").post(f"/flight/schedule/{sid}/cancel")
+        self.login("cfi").post(f"/flight/schedule/{sid}/cancel", data={"reason": "test"})
         o = self.offers()
         self.assertEqual(len(o), 1)
         self.assertEqual((o[0]["student_id"], o[0]["scheduled_time"]), (self.student, "14:00"))
@@ -74,13 +74,13 @@ class WaitlistTest(OpsHubTestCase):
         other_plane = self.make_asset("N999")
         self.join(asset_id=str(other_plane))
         sid = self.book()
-        self.login("cfi").post(f"/flight/schedule/{sid}/cancel")
+        self.login("cfi").post(f"/flight/schedule/{sid}/cancel", data={"reason": "test"})
         self.assertEqual(self.offers(), [])
 
     def test_offer_already_taken(self):
         self.join()
         sid = self.book()
-        self.login("cfi").post(f"/flight/schedule/{sid}/cancel")
+        self.login("cfi").post(f"/flight/schedule/{sid}/cancel", data={"reason": "test"})
         oid = self.offers()[0]["id"]
         self.book(time="14:30")  # someone else grabbed it first
         r = self.login("flight_student").get(f"/flight/waitlist/offer/{oid}")
@@ -90,7 +90,7 @@ class WaitlistTest(OpsHubTestCase):
     def test_other_student_cannot_use_offer(self):
         self.join()
         sid = self.book()
-        self.login("cfi").post(f"/flight/schedule/{sid}/cancel")
+        self.login("cfi").post(f"/flight/schedule/{sid}/cancel", data={"reason": "test"})
         oid = self.offers()[0]["id"]
         self.exec("UPDATE waitlist_offers SET student_id = ? WHERE id = ?", (self.other_student, oid))
         self.assertEqual(self.login("flight_student").get(f"/flight/waitlist/offer/{oid}").status_code, 404)
@@ -98,7 +98,7 @@ class WaitlistTest(OpsHubTestCase):
     def test_filled_count_for_staff(self):
         self.join()
         sid = self.book()
-        self.login("cfi").post(f"/flight/schedule/{sid}/cancel")
+        self.login("cfi").post(f"/flight/schedule/{sid}/cancel", data={"reason": "test"})
         self.book(student=self.student)  # the waitlisted student booked it
         html = self.login("cfi").get("/flight/waitlist").get_data(as_text=True)
         self.assertIn("1 filled from waitlist", html)

@@ -24,7 +24,9 @@ class BalanceHoldSettingsTest(OpsHubTestCase):
 
     def test_non_admin_cannot_reach_the_settings_page(self):
         r = self.login("cfi").get("/flight/settings/school", follow_redirects=True)
-        self.assertNotIn("Balance Hold", r.get_data(as_text=True))
+        # (the dashboard they land on has "Balance Hold" in its Details popup
+        # wording - FLY-14 - so look for the settings box's own text instead)
+        self.assertNotIn("Put a student's flights on hold", r.get_data(as_text=True))
 
 
 class BalanceHoldHoldAndReleaseTest(OpsHubTestCase):

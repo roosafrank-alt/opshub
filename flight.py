@@ -3394,7 +3394,9 @@ def school_settings_edit():
         # FLY-37: the school-day window every calendar view and Availability use.
         day_start_h = _parse_int(request.form.get("day_start_hour"))
         day_end_h = _parse_int(request.form.get("day_end_hour"))
-        if day_start_h is None or day_end_h is None or not (0 <= day_start_h < day_end_h <= 24 and day_end_h - day_start_h >= 4):
+        if day_start_h is None and day_end_h is None:
+            day_start_h, day_end_h = _school_day_hours(conn)  # form didn't send them: leave as is
+        elif day_start_h is None or day_end_h is None or not (0 <= day_start_h < day_end_h <= 24 and day_end_h - day_start_h >= 4):
             flash("Calendar hours: pick a start before the end, at least 4 hours apart.", "danger")
             conn.close()
             return redirect(url_for("flight.school_settings_edit"))

@@ -402,15 +402,15 @@
              breathing room between them keep their true to-scale position. #}
           {% set min_gap_pct = (32 / timeline_h * 100) | round(2) %}
           <div class="calendar-timeline" style="position:relative; height:{{ timeline_h }}px;">
-            <div class="calendar-time-line" style="top:{{ ((540 - 360) / 840 * 100) | round(2) }}%;"><span class="calendar-time-label">9a</span></div>
-            <div class="calendar-time-line" style="top:{{ ((720 - 360) / 840 * 100) | round(2) }}%;"><span class="calendar-time-label">12p</span></div>
-            <div class="calendar-time-line" style="top:{{ ((900 - 360) / 840 * 100) | round(2) }}%;"><span class="calendar-time-label">3p</span></div>
-            <div class="calendar-time-line" style="top:{{ ((1080 - 360) / 840 * 100) | round(2) }}%;"><span class="calendar-time-label">6p</span></div>
+            <div class="calendar-time-line" style="top:{{ ((540 - month_timeline_start_min) / (month_timeline_end_min - month_timeline_start_min) * 100) | round(2) }}%;"><span class="calendar-time-label">9a</span></div>
+            <div class="calendar-time-line" style="top:{{ ((720 - month_timeline_start_min) / (month_timeline_end_min - month_timeline_start_min) * 100) | round(2) }}%;"><span class="calendar-time-label">12p</span></div>
+            <div class="calendar-time-line" style="top:{{ ((900 - month_timeline_start_min) / (month_timeline_end_min - month_timeline_start_min) * 100) | round(2) }}%;"><span class="calendar-time-label">3p</span></div>
+            <div class="calendar-time-line" style="top:{{ ((1080 - month_timeline_start_min) / (month_timeline_end_min - month_timeline_start_min) * 100) | round(2) }}%;"><span class="calendar-time-label">6p</span></div>
             {% set ns = namespace(min_top=0.0) %}
             {% for f in timed %}
             {% set mins = f.scheduled_time[:2] | int * 60 + f.scheduled_time[3:5] | int %}
-            {% set clamped = [[mins, 360] | max, 1200] | min %}
-            {% set raw_top_pct = ((clamped - 360) / 840 * 100) | round(2) %}
+            {% set clamped = [[mins, month_timeline_start_min] | max, month_timeline_end_min] | min %}
+            {% set raw_top_pct = ((clamped - month_timeline_start_min) / (month_timeline_end_min - month_timeline_start_min) * 100) | round(2) %}
             {% set top_pct = [raw_top_pct, ns.min_top] | max %}
             {% set ns.min_top = top_pct + min_gap_pct %}
             {{ schedule_block(f, compact, 'position:absolute; top:' ~ top_pct ~ '%; left:0; right:0; z-index:' ~ (loop.index + 1) ~ ';', 'schedule-block-timeline') }}

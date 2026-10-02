@@ -29,12 +29,12 @@ class AvailabilityPastBookedShowsPastTest(OpsHubTestCase):
         conn.close()
 
     def test_student_sees_past_booked_slot_as_past_not_booked(self):
-        # The 9:00 AM flight falls in the 8:00 AM - 9:30 AM availability
-        # slot; a student should see it (and every other slot on this
-        # wholly-past day) as plain "Past", never "Booked".
+        # The 9:00 AM flight falls in an availability slot; a student should
+        # see it (and every other slot on this wholly-past day, from the
+        # school day's first slot at 6:00 AM) as plain "Past", never "Booked".
         html = self.login("flight_student").get(
             f"/flight/schedule/availability?view=day&date={self.day.isoformat()}&mode=calendar").get_data(as_text=True)
-        self.assertIn('class="avail-slot-past" title="8:00 AM has already passed">Past</td>', html)
+        self.assertIn('class="avail-slot-past" title="6:00 AM has already passed">Past</td>', html)
         self.assertNotIn('class="avail-slot-booked"', html)
 
     def test_cfi_still_sees_past_booked_slot_as_booked(self):

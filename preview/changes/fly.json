@@ -1,0 +1,341 @@
+[
+ {
+  "id": "FLY-01",
+  "status": "logic",
+  "pages": [
+   "/flight/signup"
+  ],
+  "where": "The /flight/signup page and address are gone (404). Nothing links to it any more; the link on the old flight login page is removed.",
+  "see_as": "admin",
+  "detail": "Route, signup.html and the 'New CFI? Create an account' link in templates/flight/login.html are removed. Chrome builder deletes the rest of the old login templates (login.html here is unused: /flight/login only redirects). Merge note: if chrome deletes login.html while this branch edited it, keep the deletion."
+ },
+ {
+  "id": "FLY-02",
+  "status": "built",
+  "pages": [
+   "/flight/schedule/weather",
+   "/flight/schedule"
+  ],
+  "where": "Weather cancellation page opens with no lessons ticked, a Select all button, the red button stays disabled until something is ticked and asks 'Call off N lessons on DD-MM-YYYY and text N students? This can't be undone.' first. In the Schedule toolbar the button now lives in the More menu as an outlined red item.",
+  "see_as": "cfi",
+  "detail": "Confirm counts lessons ticked and distinct non-guest students ticked. Uses the app's shared confirm dialog (the text is rebuilt as lessons are ticked)."
+ },
+ {
+  "id": "FLY-03",
+  "status": "built",
+  "pages": [
+   "/flight/schedule",
+   "/flight/dashboard"
+  ],
+  "where": "Details popup: Cancel Flight now asks for a reason (also offered for Pending - Balance Hold bookings). A booking that already started or was flown is refused with 'end it from Active Flight instead'. Dashboard Cancelled (last 7 days) shows 'cancelled by <name> on <date>' under the reason.",
+  "see_as": "cfi",
+  "detail": "New columns scheduled_flights.cancelled_by / cancelled_at (db.py startup migration). Reason is required."
+ },
+ {
+  "id": "FLY-04",
+  "status": "logic",
+  "pages": [
+   "/flight/dashboard",
+   "/flight/notifications"
+  ],
+  "where": "Student gets an Alerts banner on the Dashboard and a phone push when a CFI cancels, reschedules (quick Reschedule) or edits (date, time, plane or instructor) a confirmed booking, e.g. 'Your Fri 02-10-2026 9:00 AM lesson in N123 was moved to Sat 03-10-2026 11:00 AM by Kate.'",
+  "see_as": "student",
+  "detail": "Not sent for guest bookings (no account), nor for edits that change none of date/time/plane/instructor."
+ },
+ {
+  "id": "FLY-05",
+  "status": "logic",
+  "pages": [
+   "/flight/log/active"
+  ],
+  "where": "Whoever pressed Start can pause and end that flight (their card and the floating timer show it); the assigned CFI, a solo student and any master admin still can. The 'View only' note now says 'the assigned instructor or whoever started it, or an admin'.",
+  "see_as": "cfi",
+  "detail": "New column flights.started_by_cfi_id (db.py startup migration), set when Start is pressed. Flights started before this change have no starter recorded."
+ },
+ {
+  "id": "FLY-06",
+  "status": "built",
+  "pages": [
+   "/flight/schedule/new",
+   "/flight/dashboard",
+   "/flight/schedule"
+  ],
+  "where": "Request a Flight: the student's box is now 'Note to the school (optional)'. It shows in Pending Approval (phone and table), in the Details popup for CFIs while pending (labelled 'Note from student'), and under Your Requests for the student. The CFI-only Private Note is separate.",
+  "see_as": "student",
+  "detail": "The student's note is stored in the booking's existing 'General Notes' field (private_notes: every CFI + admin + that student can already see it); the CFI's eye-slash Private Note (notes) is untouched. Older pending requests that were written under 'Private Note' stay in that old field."
+ },
+ {
+  "id": "FLY-07",
+  "status": "built",
+  "pages": [
+   "/flight/log/active"
+  ],
+  "where": "When the student ends their own solo flight the whole payment block is hidden (Paid/Unpaid, Amount, How Paid, Use Credit) and it always logs Unpaid; the switch reads 'Email me a receipt'.",
+  "see_as": "student",
+  "detail": "Enforced on the server too (a posted paid=1 is ignored for a student). Frank's thought about auto-drafting the card on file through Wave so the invoice goes to whoever handles billing: NOT built. It needs a decision (does Wave allow charging a stored card, who reviews it) before anything is built."
+ },
+ {
+  "id": "FLY-08",
+  "status": "logic",
+  "pages": [
+   "/flight/log/active"
+  ],
+  "where": "Students no longer see the Live Aircraft Map card on Active Flight (it never worked for them); CFIs and admins still do.",
+  "see_as": "student"
+ },
+ {
+  "id": "FLY-09",
+  "status": "built",
+  "pages": [
+   "/flight/log/active"
+  ],
+  "where": "Each running session card has a small 'Discard session - started by mistake' link (for whoever can end it) with a confirm. It removes the record, puts the booking back to Scheduled, sends no receipt and charges nothing.",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-10",
+  "status": "partial",
+  "pages": [
+   "/flight/log/{id}/edit"
+  ],
+  "where": "Edit Logged Flight: Already paid, Amount Collected and How Paid are gone; a line shows the Paid/Unpaid badge and 'To record a payment use Billing.' Saving no longer touches the paid flag.",
+  "see_as": "cfi",
+  "detail": "Simplest version per the build instructions. After merge, point any payment recording at the shared flight_payments helper from SCHOOL-01 (this part only needed the fields removed, so little should change)."
+ },
+ {
+  "id": "FLY-11",
+  "status": "partial",
+  "pages": [
+   "/flight/log",
+   "/flight/log/{id}"
+  ],
+  "where": "Mark paid on Flight History and Flight Detail opens a small box with the amount (pre-filled with the flight total) and how paid, adds that payment to the student's account and says e.g. 'Marked paid - $123.40 Cash payment added to Sam's account.' Mark unpaid takes the payment back off and says so.",
+  "see_as": "admin",
+  "detail": "Built behind record_flight_payment(conn, flight_id, amount, method, created_by) and reverse_flight_payment(conn, flight_id) in flight.py. After merge these should call the shared flight_payments helper from SCHOOL-01. The Billing page's own Mark paid form still posts to the same route and works (it records the full total as 'Other'); the school builder owns that page."
+ },
+ {
+  "id": "FLY-13",
+  "status": "partial",
+  "pages": [
+   "/flight/dashboard",
+   "/flight/schedule/new",
+   "/flight/log/new",
+   "/flight/log/active"
+  ],
+  "where": "One name, 'session': Dashboard tile 'Log a Past Session', switch 'Log a past session instead of booking', heading 'Log a Past Session', save button 'Log Session', Active Flight empty-state link and the past-date error text. 'Session Complete' stays only for ending a live session.",
+  "see_as": "cfi",
+  "detail": "Tour text NOT changed: it lives in templates/flight/base_flight.html (chrome builder's file). The Schedule tour step still says 'check \"Session Already Complete?\"' and needs to become: 'To log a session that already happened, use Log a Past Session.' Also the date label on that form is now 'Session Date'."
+ },
+ {
+  "id": "FLY-14",
+  "status": "built",
+  "pages": [
+   "/flight/schedule",
+   "/flight/dashboard"
+  ],
+  "where": "Details popup: Status shows 'Pending - Balance Hold (student owes more than the school's limit)'; Duration shows '1.5 hrs (default)' when none was set.",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-16",
+  "status": "built",
+  "pages": [
+   "/flight/dashboard",
+   "/flight/schedule"
+  ],
+  "where": "For a request with no instructor, Approve asks 'Approve and assign yourself as the instructor?' and a second button 'Approve - assign an instructor later' approves it with the booking flagged 'No instructor assigned yet' (phone row shows it as a short 'Later' button).",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-17",
+  "status": "built",
+  "pages": [
+   "/flight/dashboard"
+  ],
+  "where": "Acknowledge on the Needs Review banner now acts in place: the row leaves the banner and a floating message appears with an 'Open Alerts' link.",
+  "see_as": "cfi",
+  "detail": "Acknowledge buttons on the Alerts page itself still go to the Alerts page as before."
+ },
+ {
+  "id": "FLY-18",
+  "status": "built",
+  "pages": [
+   "/flight/cfis/schedule"
+  ],
+  "where": "Adding time off over booked lessons first lists them ('N lessons are already booked then: date time, student, plane') with 'Add time off anyway (I'll move them)' or Cancel. If added, those lessons get the review triangle on the Dashboard (Needs Review) until moved.",
+  "see_as": "cfi",
+  "detail": "The flag clears when the lesson is edited or rescheduled. The Alerts fix-link for these says 'Move this lesson'. The week bar still shows the booked segments under the red bar (not changed)."
+ },
+ {
+  "id": "FLY-20",
+  "status": "built",
+  "pages": [
+   "/flight/schedule"
+  ],
+  "where": "Schedule toolbar: Schedule Flight and Availability stay visible; Waitlist, Weather cancellation (outlined red) and Flight Finder (admins) are in a More menu; on a phone Year and Custom Range are hidden from the view buttons and appear in More as well.",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-22",
+  "status": "built",
+  "pages": [
+   "/flight/dashboard"
+  ],
+  "where": "Dashboard Recent Flights rows open that flight's detail page, with a 'Flight History \u00bb' link under the table.",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-23",
+  "status": "built",
+  "pages": [
+   "/flight/dashboard"
+  ],
+  "where": "Student dashboard: Upcoming starts open; the Next Lesson card now shows even with nothing booked and has a 'Request a Flight' button.",
+  "see_as": "student",
+  "detail": "Someone who opened or closed Upcoming on purpose on that phone keeps their own choice (saved per device)."
+ },
+ {
+  "id": "FLY-24",
+  "status": "built",
+  "pages": [
+   "/flight/log"
+  ],
+  "where": "Flight History shows the latest 100 and a 'Show older flights' button at the bottom that adds 100 more each tap.",
+  "see_as": "cfi",
+  "detail": "Date-range filter NOT built (the report allowed either); the search box still filters what is loaded."
+ },
+ {
+  "id": "FLY-25",
+  "status": "built",
+  "pages": [
+   "/flight/log"
+  ],
+  "where": "The footnote under the Flight History table (oil analytics coming later and the Maintenance pointer) is removed completely.",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-26",
+  "status": "built",
+  "pages": [
+   "/flight/log/{id}"
+  ],
+  "where": "Flight Detail: Started, Ended and Logged show '02-10-2026 2:03 PM' style; Elapsed shows '1 hr 38 min (1.63 hrs)'; the 'From Schedule' line is a link that opens that day on the Schedule.",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-28",
+  "status": "built",
+  "pages": [
+   "/flight/schedule/weather"
+  ],
+  "where": "After a weather cancellation the green message counts what happened: 'N students texted (X with new times to pick, Y with none open - follow up)'.",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-29",
+  "status": "built",
+  "pages": [
+   "/flight/dashboard"
+  ],
+  "where": "All / Mine on the dashboard now swap in place like Personal / School (same live-refresh fetch) instead of reloading the page.",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-31",
+  "status": "built",
+  "pages": [
+   "/flight/schedule/new",
+   "/flight/log/new",
+   "/flight/log/{id}/edit"
+  ],
+  "where": "Cancel on the booking and log forms goes back to the page the form was opened from (remembered in the form), falling back to today's choices.",
+  "see_as": "cfi",
+  "detail": "Done server-side from the page the form was opened from rather than the browser history, so it still works after a failed save."
+ },
+ {
+  "id": "FLY-32",
+  "status": "built",
+  "pages": [
+   "/flight/schedule"
+  ],
+  "where": "Deny / Propose Times: when only times are picked the student is told just 'Times that would work instead: 9:30a, 2:00p' (plus whatever the CFI typed). No invented 'Conflicts with another booking'.",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-33",
+  "status": "logic",
+  "pages": [
+   "/flight/schedule"
+  ],
+  "where": "After Save Changes (Edit) or Save New Time (Reschedule) the calendar opens in the same view the CFI was using, on the booking's new day, with the booking outlined green.",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-34",
+  "status": "built",
+  "pages": [
+   "/flight/waitlist"
+  ],
+  "where": "Waitlist text now says 'the first request a CFI approves gets the slot', and a slot offer disappears from 'Slots offered to you' once the student has requested (or booked) it.",
+  "see_as": "student"
+ },
+ {
+  "id": "FLY-35",
+  "status": "built",
+  "pages": [
+   "/flight/dashboard"
+  ],
+  "where": "Your Requests: a 'Withdraw' link under a Change Requested row (asks first) clears the request like the school's Handled and sends the school a push.",
+  "see_as": "student"
+ },
+ {
+  "id": "FLY-36",
+  "status": "built",
+  "pages": [
+   "/flight/schedule"
+  ],
+  "where": "The Key at the bottom of the Schedule has one line per marking (triangle, dashed pending box, orange outline, question/check icons, pause icon, stopwatch/check circle, grey Past); the '+N more' sentence is gone.",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-37",
+  "status": "built",
+  "pages": [
+   "/flight/settings/school",
+   "/flight/schedule",
+   "/flight/schedule/availability",
+   "/flight/cfis/schedule"
+  ],
+  "where": "New 'Calendar Hours' box in School Settings (default 6 AM - 9 PM). Day, Week, Month and Year timelines, Availability and My Schedule all use it, so a 6:30 AM or 8 PM booking shows everywhere.",
+  "see_as": "admin",
+  "detail": "Availability slots are 1.5 hours starting at the day's first hour. Not changed: the quick-pick time buttons on the booking form (8:00a-8:00p) and the Flight Finder's Morning/Afternoon/Evening buckets (8 AM-8 PM)."
+ },
+ {
+  "id": "FLY-38",
+  "status": "logic",
+  "pages": [
+   "/flight/cfis/schedule"
+  ],
+  "where": "Adding or deleting time off now uses the standard login check (expired or deactivated logins are sent to sign in).",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-39",
+  "status": "logic",
+  "pages": [
+   "/flight/schedule"
+  ],
+  "where": "Approve or Send to Student from the calendar popup returns to the same calendar view and day, with the approved booking outlined green. The Dashboard's own buttons still act in place.",
+  "see_as": "cfi"
+ },
+ {
+  "id": "FLY-40",
+  "status": "built",
+  "pages": [
+   "/flight/log"
+  ],
+  "where": "After logging a session (Log Session, or Log Flight from a booking) Flight History shows the same green 'Book <next week>' box and pencil as End Session does, based on the flight's date and the booking's time (or the student's usual time).",
+  "see_as": "cfi",
+  "detail": "The End Session version is still drawn by base_flight.html (chrome's file); this one is drawn on the Flight History page, so the two look the same but live in different files."
+ }
+]
