@@ -655,6 +655,8 @@ def _migrate(conn):
     flight_cols = [r["name"] for r in conn.execute("PRAGMA table_info(flights)").fetchall()]
     if "squawk_repaired_at" not in flight_cols:
         conn.execute("ALTER TABLE flights ADD COLUMN squawk_repaired_at TEXT")
+        conn.execute("ALTER TABLE flights ADD COLUMN squawk_repaired_by TEXT")
+        conn.commit()
     # SCHOOL-23: CFI pay periods - an admin marks a period paid and the
     # dual flights in it move to the Paid section of the CFI's Pay page.
     for col, ddl in (("cfi_paid_at", "ALTER TABLE flights ADD COLUMN cfi_paid_at TEXT"),
@@ -662,8 +664,7 @@ def _migrate(conn):
                      ("cfi_paid_note", "ALTER TABLE flights ADD COLUMN cfi_paid_note TEXT")):
         if col not in flight_cols:
             conn.execute(ddl)
-        conn.execute("ALTER TABLE flights ADD COLUMN squawk_repaired_by TEXT")
-        conn.commit()
+    conn.commit()
 
     # Project job sheets: a prework checklist (things to check before
     # starting) and a standard-items-performed list, both printable together.

@@ -47,11 +47,16 @@ class ViewAsAlertsStayUnreadTest(OpsHubTestCase):
         self.assertIn("New", html2)
         self.assertIn("Your flight was approved", html2)
 
-        # And it IS marked read now, for the student's own real visit -
-        # confirms the fix only skips the write during a person view, it
-        # doesn't break the normal case.
+        # SCHOOL-49: just opening the tab no longer marks it read either -
+        # the New badge stays until the student taps it, its x, or "Mark
+        # all read". Mark all read works for the student's own real visit
+        # (confirms the view-as fix only skips the write during a person
+        # view, it doesn't break the normal case).
         row2 = self.q1("SELECT read_at FROM student_notifications WHERE student_id = ?", (student_id,))
-        self.assertIsNotNone(row2["read_at"])
+        self.assertIsNone(row2["read_at"])
+        student_client.post("/flight/notifications/mark-all-read")
+        row3 = self.q1("SELECT read_at FROM student_notifications WHERE student_id = ?", (student_id,))
+        self.assertIsNotNone(row3["read_at"])
 
     def test_viewing_as_someone_the_phone_alert_check_touches_no_ones_queue(self):
         cfi_user_id = self.users["cfi"]["id"]

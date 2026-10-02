@@ -44,16 +44,26 @@ class ReportsInAlertsTest(OpsHubTestCase):
         self._file(self.login("cfi"), category="plane_issue", asset_id=aid, notes="Flat tire")
         self.assertEqual(self.q1("SELECT COUNT(*) c FROM plane_squawks WHERE asset_id = ?", (aid,))["c"], 1)
 
-    def test_student_sees_reports_but_cannot_resolve(self):
+    def test_student_sees_only_their_own_reports_and_cannot_resolve(self):
+        # SCHOOL-09: a student's Alerts tab lists just the reports THEY
+        # filed (no status, no Resolve); other people's stay on the
+        # CFI/admin Alerts page.
         self._file(self.login("cfi"))
         s = self.login("flight_student")
         body = s.get("/flight/notifications").get_data(as_text=True)
         self.assertIn("Report an issue", body)
-        self.assertIn("Add a coffee machine", body)
+        self.assertNotIn("Add a coffee machine", body)
+        self.assertIn("Your reports (0)", body)
+        self._file(s, notes="Headset jack is loose")
+        body = s.get("/flight/notifications").get_data(as_text=True)
+        self.assertIn("Headset jack is loose", body)
+        self.assertIn("Your reports (1)", body)
+        self.assertNotIn("Add a coffee machine", body)
         self.assertNotIn("/resolve", body)
-        rid = self.q1("SELECT id FROM flight_reports")["id"]
+        self.assertNotIn("Resolved reports", body)
+        rid = self.q1("SELECT id FROM flight_reports ORDER BY id LIMIT 1")["id"]
         s.post(f"/flight/reports/{rid}/resolve")
-        self.assertIsNone(self.q1("SELECT resolved_at FROM flight_reports")["resolved_at"])
+        self.assertIsNone(self.q1("SELECT resolved_at FROM flight_reports WHERE id = ?", (rid,))["resolved_at"])
 
     def test_badge_counts_open_reports(self):
         c = self.login("cfi")

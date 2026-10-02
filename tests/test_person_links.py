@@ -59,6 +59,10 @@ class PersonLinksTest(OpsHubTestCase):
     def test_add_buttons_send_master_admins_to_admin(self):
         c = self.login("master")
         self.assertIn("/admin/users/new?shop_role=tech", c.get("/laborers").get_data(as_text=True))
-        self.assertIn("/admin/users/new?flight_role=cfi", c.get("/flight/cfis").get_data(as_text=True))
+        # SCHOOL-03: Fly with Kate!'s Add CFI keeps admins in the program
+        # (the in-program form makes the login account too).
+        html_cfis = c.get("/flight/cfis").get_data(as_text=True)
+        self.assertIn("/flight/cfis/new", html_cfis)
+        self.assertNotIn("/admin/users/new?flight_role=cfi", html_cfis)
         html = c.get("/admin/users/new?flight_role=cfi").get_data(as_text=True)
         self.assertIn('value="cfi" id="flight-role-cfi" checked', html)

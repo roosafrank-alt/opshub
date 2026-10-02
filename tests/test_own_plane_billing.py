@@ -110,7 +110,10 @@ class OwnPlaneColorTest(OpsHubTestCase):
         self.exec("UPDATE assets SET is_flight_asset = 1, schedule_color = ? WHERE id = ?",
                   (flight.SCHEDULE_COLORS[0], asset))
         r = self.login("master").post("/flight/settings/school", data={"color": flight.SCHEDULE_COLORS[0]})
-        self.assertEqual(r.status_code, 302)
+        # SCHOOL-16: a rejected save shows the form again (with the typed
+        # values) instead of redirecting and losing them.
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("already taken", r.get_data(as_text=True))
         conn = db.get_db()
         self.assertIsNone(flight._own_plane_schedule_color(conn))
         conn.close()
