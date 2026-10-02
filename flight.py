@@ -445,7 +445,7 @@ PAST_BOOKING_GRACE_MIN = 5  # a booking for "right now" typed a few minutes late
 def _past_booking_error(scheduled_date, scheduled_time):
     """An error message when a booking's date (and time, if given) has
     already passed, else None. Past flights aren't booked - they're logged
-    with Schedule Flight's "Session Already Complete?" option instead."""
+    with Schedule Flight's "Log a past session" option instead."""
     try:
         d = datetime.strptime(scheduled_date, "%Y-%m-%d").date()
     except (TypeError, ValueError):
@@ -462,7 +462,7 @@ def _past_booking_error(scheduled_date, scheduled_time):
         return None
     when = _us_date(scheduled_date) + (f" at {_format_time_12h(scheduled_time)}" if scheduled_time else "")
     return (f"{when} is in the past - a flight can't be booked before now. If it already happened, "
-            f"tick \"Session Already Complete?\" and log it with its date and time.")
+            f"use \"Log a Past Session\" and log it with its date and time.")
 
 
 def _tsa_gate_error(conn, student_id):
@@ -4445,7 +4445,7 @@ def schedule_new():
                        prefill_cfi_id=prefill_cfi_id, prefill_student_id=prefill_student_id,
                        prefill_solo=prefill_solo, prefill_own_plane=prefill_own_plane,
                        current_cfi_id=session.get("cfi_id"),
-                       self_service=self_service, self_student=self_student,
+                       self_service=self_service, self_student=self_student, return_to=_form_return_to(),
                        # ?complete=1 opens the form with "Flight Already
                        # Already Complete?" already checked (old Log a Flight links).
                        start_complete=(not self_service and request.args.get("complete") == "1"))
@@ -4490,6 +4490,10 @@ def schedule_new():
         # force it to None here too so nothing sneaks through even if a
         # student's request happened to include the field name.
         private_notes = (request.form.get("private_notes", "").strip() or None) if not self_service else None
+        if self_service:
+            # FLY-06: a student's "Note to the school" goes in the note every
+            # instructor (and the student) can see, not the instructor-only one.
+            private_notes, notes = notes, None
         created_by = session.get("user_name") or (self_student["name"] if self_student else None)
         if not asset_id or not student_id or not scheduled_date:
             flash("Select a plane, a student, and a date.", "danger")
@@ -4911,11 +4915,11 @@ def schedule_accept_proposed_time(scheduled_id):
     created_by = session.get("user_name")
     confirmed_at, confirm_required, notify_user_id = _booking_confirm_state(conn, True, sched["guest_name"], student_id)
     new_booking = conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date,
-                     scheduled_time, duration_hours, notes, status, created_by, solo, part_solo,
+                     scheduled_time, duration_hours, notes, private_notes, status, created_by, solo, part_solo,
                      guest_name, guest_phone, guest_email, created_at, confirmed_at, confirm_required)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                  (sched["asset_id"], sched["cfi_id"], student_id, sched["scheduled_date"], new_time,
-                  sched["duration_hours"], sched["notes"], created_by, sched["solo"], sched["part_solo"],
+                  sched["duration_hours"], sched["notes"], sched["private_notes"], created_by, sched["solo"], sched["part_solo"],
                   sched["guest_name"], sched["guest_phone"], sched["guest_email"], now_iso(),
                   confirmed_at, confirm_required))
     conn.execute("UPDATE scheduled_flights SET student_dismissed_at = ? WHERE id = ?", (now_iso(), scheduled_id))
@@ -5276,8 +5280,8 @@ def _cfi_active_flights_widget():
             rows = conn.execute("""SELECT f.id, f.started_at, f.paused_at, f.paused_seconds,
                                            a.tag as plane_tag, s.name as student_name
                                     FROM flights f JOIN assets a ON a.id = f.asset_id JOIN students s ON s.id = f.student_id
-                                    WHERE f.cfi_id = ? AND f.started_at IS NOT NULL AND f.ended_at IS NULL AND f.stopped_at IS NULL
-                                    ORDER BY f.started_at""", (session["cfi_id"],)).fetchall()
+                                    WHERE (f.cfi_id = ? OR f.started_by_cfi_id = ?) AND f.started_at IS NOT NULL AND f.ended_at IS NULL AND f.stopped_at IS NULL
+                                    ORDER BY f.started_at""", (session["cfi_id"], session["cfi_id"])).fetchall()
         finally:
             conn.close()
         return {"cfi_active_flights": rows}
@@ -5315,8 +5319,8 @@ def cfi_active_flights_status():
     conn = get_db()
     rows = conn.execute(
         """SELECT id, paused_at, paused_seconds FROM flights
-           WHERE cfi_id = ? AND started_at IS NOT NULL AND ended_at IS NULL AND stopped_at IS NULL""",
-        (session["cfi_id"],)).fetchall()
+           WHERE (cfi_id = ? OR started_by_cfi_id = ?) AND started_at IS NOT NULL AND ended_at IS NULL AND stopped_at IS NULL""",
+        (session["cfi_id"], session["cfi_id"])).fetchall()
     conn.close()
     return jsonify({"flights": [dict(r) for r in rows]})
 
@@ -6018,11 +6022,11 @@ def schedule_start(scheduled_id):
     tach_start = plane["tach_hours"] if plane else None
     solo = 1 if not sched["cfi_id"] else 0
     cur = conn.execute("""INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, hobbs_start, tach_start,
-                           solo, scheduled_flight_id, started_at, created_at)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                           solo, scheduled_flight_id, started_at, created_at, started_by_cfi_id)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                        (sched["cfi_id"], sched["student_id"], sched["asset_id"],
                         date.today().strftime("%Y-%m-%d"), hobbs_start,
-                        tach_start, solo, scheduled_id, now_iso(), now_iso()))
+                        tach_start, solo, scheduled_id, now_iso(), now_iso(), session.get("cfi_id")))
     flight_id = cur.lastrowid
     conn.execute("UPDATE flights SET guest_name = ? WHERE id = ?", (sched["guest_name"], flight_id))
     conn.execute("UPDATE scheduled_flights SET status = 'in_progress' WHERE id = ?", (scheduled_id,))
@@ -6033,15 +6037,23 @@ def schedule_start(scheduled_id):
 
 
 def _can_end_flight(flight_row):
-    """Who's allowed to end a given active flight: a master admin, the CFI
-    actually assigned to it, or - for a solo flight - the student flying
-    it. Everyone logged in can now SEE the Active Flight board (it's
+    """Who's allowed to end a given active flight: a master admin (always),
+    the CFI actually assigned to it, the CFI who started it, or - for a solo
+    flight - the student flying it. Everyone logged in can now SEE the Active Flight board (it's
     school-wide), but ending someone else's flight for them is limited to
     the people who'd actually know how it went."""
     if session.get("is_master_admin"):
         return True
     my_cfi_id = session.get("cfi_id")
     if my_cfi_id and flight_row["cfi_id"] == my_cfi_id:
+        return True
+    # FLY-05: whoever pressed Start (e.g. an instructor covering a lesson) can
+    # also pause and end it; an admin can always override (above).
+    try:
+        starter = flight_row["started_by_cfi_id"]
+    except (KeyError, IndexError):
+        starter = None
+    if my_cfi_id and starter and starter == my_cfi_id:
         return True
     my_student_id = session.get("student_id")
     if flight_row["solo"] and my_student_id and flight_row["student_id"] == my_student_id:
@@ -6789,6 +6801,36 @@ def log_restart_clock(flight_id):
     return redirect(url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}")
 
 
+@flight_bp.route("/log/<int:flight_id>/discard", methods=["POST"])
+@login_required
+def log_discard(flight_id):
+    """FLY-09: throws away a session that was started by mistake - removes the
+    flight record, puts the booking back to Scheduled and charges nothing
+    (no receipt, no ledger). Same people who can end it (see _can_end_flight);
+    only while it is still running (started, not yet ended)."""
+    conn = get_db()
+    f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
+    if not f or not f["started_at"] or f["ended_at"]:
+        conn.close()
+        flash("That session isn't running, so there's nothing to discard.", "danger")
+        return redirect(url_for("flight.log_active"))
+    if not _can_end_flight(f):
+        conn.close()
+        flash("Only the assigned instructor, whoever started it, the student (on a solo flight), or a master admin can discard this session.", "danger")
+        return redirect(url_for("flight.log_active"))
+    if f["scheduled_flight_id"]:
+        conn.execute("UPDATE scheduled_flights SET status = 'scheduled' WHERE id = ? AND status = 'in_progress'",
+                     (f["scheduled_flight_id"],))
+    _log_field_change(conn, "flight", flight_id, "discarded", "started by mistake", "", session.get("user_name"))
+    pilotlog.remove_for_flight(conn, flight_id)
+    conn.execute("DELETE FROM flights WHERE id = ?", (flight_id,))
+    conn.commit()
+    conn.close()
+    flash("Session discarded - the booking is back on the schedule." if f["scheduled_flight_id"]
+          else "Session discarded.", "success")
+    return redirect(url_for("flight.log_active"))
+
+
 @flight_bp.route("/log/<int:flight_id>/end", methods=["POST"])
 @login_required
 def log_end(flight_id):
@@ -6858,14 +6900,17 @@ def log_end(flight_id):
             conn.close()
             flash("Ending Tach can't be less than starting Tach.", "danger")
             return redirect(back)
-    paid_choice = request.form.get("paid")
+    # FLY-07: a student ending their own solo flight never takes payment - it
+    # always logs Unpaid for the school to settle on Billing.
+    student_ending = bool(session.get("student_id") and not session.get("cfi_id") and not session.get("is_master_admin"))
+    paid_choice = "0" if student_ending else request.form.get("paid")
     if paid_choice not in ("0", "1"):
         conn.close()
         flash("Pick Paid or Unpaid to log the flight.", "danger")
         return redirect(back)
-    payment_method = (request.form.get("payment_method") or "").strip()[:40] or None
-    payment_amount = max(0.0, _parse_float(request.form.get("payment_amount")) or 0.0)
-    credit_requested = max(0.0, _parse_float(request.form.get("credit_applied")) or 0.0)
+    payment_method = None if student_ending else ((request.form.get("payment_method") or "").strip()[:40] or None)
+    payment_amount = 0.0 if student_ending else max(0.0, _parse_float(request.form.get("payment_amount")) or 0.0)
+    credit_requested = 0.0 if student_ending else max(0.0, _parse_float(request.form.get("credit_applied")) or 0.0)
     card_last4 = card_charge_id = None
     if payment_method == "Card" and payment_amount > 0.005:
         charged = _simulate_card_charge(request.form.get("card_number"))

@@ -59,8 +59,10 @@
     #active-map-col { position: sticky; top: 1rem; align-self: flex-start; }
   }
 </style>
+{#- FLY-08: the position feed is instructors-only, so students don't get the Live Aircraft Map card. #}
+{% set show_map = session.get('cfi_id') or session.get('is_master_admin') %}
 <div class="row g-3">
-  <div class="col-lg-5" id="active-flights-col">
+  <div class="col-lg-{{ 5 if show_map else 8 }}" id="active-flights-col">
     {% if flights %}
     {% for f in flights %}
     <div class="card p-3 mb-3" id="active-flight-{{ f.id }}">
@@ -131,6 +133,14 @@
     </form>
     {% endif %}
   </div>
+  {% endif %}
+
+  {% if f.can_end %}
+  {#- FLY-09: a session started by mistake can be thrown away - removes the record, puts the booking back on the schedule, charges nothing. #}
+  <form method="post" action="{{ url_for('flight.log_discard', flight_id=f.id) }}" class="mb-2 text-end"
+        data-confirm="Discard this session? It is removed, nothing is charged, and the booking goes back on the schedule." data-confirm-title="Discard Session" data-confirm-ok="Yes, discard it" data-confirm-style="danger">
+    <button type="submit" class="btn btn-link btn-sm text-danger p-0" data-change="FLY-09"><i class="bi bi-trash"></i> Discard session - started by mistake</button>
+  </form>
   {% endif %}
 
   {% if f.can_end and not f.stopped_at %}
@@ -348,6 +358,11 @@
       </div>
       {% endif %}
     </div>
+{% set student_ending = session.get('student_id') and not session.get('cfi_id') and not session.get('is_master_admin') %}
+    {% if student_ending %}
+    {#- FLY-07: a student ending their own flight takes no payment - it always logs Unpaid and the school settles it on Billing. #}
+    <input type="hidden" name="paid" value="0">
+    {% else %}
     <input type="hidden" name="credit_applied" id="credit-applied-{{ f.id }}" value="0">
     {#- The actual dollar total, computed live as Hobbs/ground/solo are
        typed (see computeFlightTotal() below) - shown before Paid/Amount
@@ -426,9 +441,10 @@
       <div class="form-text">Apply credit above first if there is any, then enter whatever else was actually collected and how. The flight's full cost (payment + credit) has to be accounted for before it logs as Paid.</div>
     </div>
     <div class="alert alert-danger py-2 px-3 small d-none mt-2" id="end-payment-error-{{ f.id }}"></div>
+    {% endif %}
     <div class="form-check form-switch mt-2">
       <input type="checkbox" class="form-check-input" role="switch" name="send_receipt_email" id="send-receipt-{{ f.id }}" value="1" checked>
-      <label class="form-check-label small" for="send-receipt-{{ f.id }}">Email a receipt to the student <span class="text-muted">(if they have an email on file)</span></label>
+      <label class="form-check-label small" for="send-receipt-{{ f.id }}"{% if student_ending %} data-change="FLY-07"{% endif %}>{% if student_ending %}Email me a receipt <span class="text-muted">(if you have an email on file)</span>{% else %}Email a receipt to the student <span class="text-muted">(if they have an email on file)</span>{% endif %}</label>
     </div>
     <div class="mt-2">
       <label class="form-label small mb-0">Notes</label>
@@ -440,7 +456,7 @@
   {% elif not f.can_end %}
   <div class="alert alert-secondary small mb-0 py-2">
     <i class="bi bi-eye"></i> View only - only
-    {% if f.solo %}the student flying solo{% else %}the assigned instructor{% endif %}, or an admin, can end this flight.
+    {% if f.solo %}the student flying solo{% else %}the assigned instructor or whoever started it{% endif %}, or an admin, can end this flight.
   </div>
   {% endif %}
 </div>
@@ -448,11 +464,12 @@
     {% else %}
     <div class="card p-4 text-center">
       <i class="bi bi-stopwatch fs-1 text-muted"></i>
-      <p class="text-muted mt-2 mb-0">No flight is currently running. Start one from the <a href="{{ url_for('flight.schedule_calendar') }}">Schedule</a>, or log one that's already done with <a href="{{ url_for('flight.schedule_new', complete=1) }}">Schedule Flight &rarr; Session Already Complete?</a></p>
+      <p class="text-muted mt-2 mb-0">No flight is currently running. Start one from the <a href="{{ url_for('flight.schedule_calendar') }}">Schedule</a>, or log one that's already done with <a href="{{ url_for('flight.schedule_new', complete=1) }}" data-change="FLY-13">Log a Past Session</a>.</p>
     </div>
     {% endif %}
   </div>
 
+  {% if show_map %}
   <div class="col-lg-7" id="active-map-col">
     <div class="card p-3">
       <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
@@ -483,6 +500,7 @@
       </div>
     </div>
   </div>
+  {% endif %}
 </div>
 {% endblock %}
 
@@ -662,6 +680,7 @@ document.addEventListener('submit', function (e) {
 })();
 
 (function () {
+  if (!document.getElementById('live-map')) return;  // students get no map (FLY-08)
   var statusEl = document.getElementById('live-map-status');
   var modeSelect = document.getElementById('adsb-mode');
   var searchInput = document.getElementById('adsb-search');

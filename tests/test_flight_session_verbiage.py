@@ -64,7 +64,9 @@ class FlightSessionVerbiageTest(OpsHubTestCase):
     def test_schedule_form_complete_checkbox_says_session(self):
         c = self.login("cfi")
         body = c.get("/flight/schedule/new").get_data(as_text=True)
-        self.assertIn("Session Already Complete?", body)
+        # FLY-13: one name for logging a past session.
+        self.assertIn("Log a past session instead of booking", body)
+        self.assertNotIn("Session Already Complete?", body)
         self.assertNotIn("Flight Already Complete?", body)
 
     def test_next_lesson_card_start_button_says_start_session(self):

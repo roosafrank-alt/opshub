@@ -28,11 +28,12 @@
   </div>
   {% endif %}
   <form method="post" id="schedule-form" novalidate>
+    <input type="hidden" name="return_to" value="{{ return_to or '' }}">
     {% set allow_complete = not sched and not self_service %}
     {% set is_complete = allow_complete and ((form and form.get('already_complete')) or (not form and start_complete)) %}
     {% if allow_complete %}
     {#
-      "Session Already Complete?" replaces the old stand-alone Log a Flight
+      "Log a past session" replaces the old stand-alone Log a Flight
       page: for a flight that already happened but was never put on the
       schedule. Checked, the booking-only fields (time, duration, repeats,
       booking notes) hide and the same fields the log form has (Hobbs/Tach,
@@ -41,7 +42,7 @@
     #}
     <div class="form-check form-switch mb-2">
       <input type="checkbox" class="form-check-input" role="switch" name="already_complete" id="complete-check" value="1" {% if is_complete %}checked{% endif %}>
-      <label class="form-check-label small" for="complete-check">Already flown? Log a finished session instead</label>
+      <label class="form-check-label small" for="complete-check" data-change="FLY-13">Log a past session instead of booking</label>
     </div>
     {% endif %}
     <div class="row">
@@ -416,7 +417,8 @@
     </div>
     {% endif %}
     <div class="mb-3 sched-only">
-      <label class="form-label">{% if not self_service %}<i class="bi bi-eye-slash"></i>{% endif %} Private Note {% if not self_service %}<span class="text-muted small fw-normal">(admin &amp; the assigned instructor only - not the student, not other instructors)</span>{% endif %}</label>
+      {% if self_service %}<label class="form-label" data-change="FLY-06">Note to the school <span class="text-muted small fw-normal">(optional - the instructor who approves this will see it)</span></label>
+      {% else %}<label class="form-label"><i class="bi bi-eye-slash"></i> Private Note <span class="text-muted small fw-normal">(admin &amp; the assigned instructor only - not the student, not other instructors)</span></label>{% endif %}
       <textarea name="notes" class="form-control" rows="2" placeholder="optional">{{ form.get('notes') if form else (sched.notes if sched and sched.notes else '') }}</textarea>
     </div>
     {#- Logging a completed flight on a phone (QA ux-log-flight-sticky-save):
@@ -449,8 +451,8 @@
     </style>
     <script>document.body.classList.add('flight-complete-sticky');</script>
     <div class="d-flex justify-content-between" id="sched-form-footer">
-      <a href="{{ url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar') }}" class="btn btn-outline-secondary">Cancel</a>
-      <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Session Complete' if is_complete else 'Schedule Flight')) }}</button>
+      <a href="{{ return_to or (url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar')) }}" class="btn btn-outline-secondary" data-change="FLY-31">Cancel</a>
+      <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Log Session' if is_complete else 'Schedule Flight')) }}</button>
     </div>
   </form>
 </div>
@@ -521,7 +523,7 @@
   var hour24 = 9, minute = 0;
 
   // Self-service students only (a CFI/admin can already book/log in the
-  // past through other means - Session Already Complete, editing an
+  // past through other means - Log a Past Session, editing an
   // existing booking - so this doesn't touch them). Greys out and
   // disables a quick-pick time that's already passed today, so a student
   // can't toggle-click their way into a time the server would reject
@@ -1096,7 +1098,7 @@
 })();
 
 (function () {
-  // "Session Already Complete?" - swap the booking-only fields for the
+  // "Log a past session instead of booking" - swap the booking-only fields for the
   // log fields. Hidden inputs are disabled so they aren't validated or
   // sent (e.g. Repeats' required Until date).
   var completeCheck = document.getElementById('complete-check');
@@ -1123,9 +1125,9 @@
     }
     setGroup('.sched-only', !done);
     setGroup('.complete-only', done);
-    submitBtn.textContent = done ? 'Session Complete' : 'Schedule Flight';
-        dateLabel.innerHTML = (done ? 'Flight Date' : 'Date') + ' <span class="text-danger">*</span>';
-    if (title) { title.textContent = done ? 'Log a Completed Session' : 'Schedule a Flight'; }
+    submitBtn.textContent = done ? 'Log Session' : 'Schedule Flight';
+        dateLabel.innerHTML = (done ? 'Session Date' : 'Date') + ' <span class="text-danger">*</span>';
+    if (title) { title.textContent = done ? 'Log a Past Session' : 'Schedule a Flight'; }
     // Solo still disables the instructor picker in either mode.
     var solo = document.getElementById('solo-check');
     document.getElementById('cfi-select').disabled = solo.checked;
@@ -1287,7 +1289,7 @@
     if (p) { viewYear = p.y; viewMonth = p.m; }
     render();
   });
-  // "Session Already Complete?" toggles input.min on/off (see the sync()
+  // "Log a past session" toggles input.min on/off (see the sync()
   // above) - re-render so past days grey out/in to match.
   var completeToggle = document.getElementById('complete-check');
   if (completeToggle) { completeToggle.addEventListener('change', render); }

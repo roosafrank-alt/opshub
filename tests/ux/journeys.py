@@ -113,13 +113,13 @@ JOURNEYS = [
         "steps": lambda w, ids: (
             w.start("/"),
             w.tap("Fly with Kate!"),
-            w.tap("Log a Flight"),
-            # "Log a Flight" opens Schedule a Flight with "Session Already Complete" switched on.
+            w.tap("Log a Past Session"),
+            # "Log a Past Session" opens Schedule a Flight with "Log a past session instead of booking" switched on.
             w.tap("N81PA"),                          # one-tap plane buttons
             w.fill("#student-combo-input", "Student"),
             w.tap("#student-combo-list .list-group-item"),
             w.fill("hobbs_end", "1001.3"),           # Hobbs start fills in from the plane
-            w.tap("Session Complete", role="button"),
+            w.tap("Log Session", role="button"),
             w.see("N81PA"),
         ),
     },
