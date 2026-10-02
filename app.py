@@ -492,9 +492,15 @@ def academy_page():
         period = "all"
     conn = get_db()
     stats = academy.student_stats(conn, academy.period_start(period))
-    boards = academy.leaderboards(stats)
     my_id = session.get("student_id")
     me = stats.get(my_id) if my_id else None
+    # ACAD-1: filter the boards by pilot level. A student lands on their own level
+    # (so they aren't ranked against a commercial pilot); everyone else on Everyone.
+    level = request.args.get("level", "")
+    if level not in academy.LEVEL_KEYS:
+        level = academy.level_of(me["student"]) if me else "all"
+    board_stats = academy.only_level(stats, level)
+    boards = academy.leaderboards(board_stats)
     staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
     entry_sql = """SELECT e.*, s.name as student_name FROM academy_entries e
                      JOIN students s ON s.id = e.student_id"""
@@ -518,7 +524,8 @@ def academy_page():
         entries = []
     conn.close()
     return render_template("academy.html", stats=stats, boards=boards, me=me,
-                           my_rank=academy.rank_of(stats, my_id) if my_id else None,
+                           my_rank=academy.rank_of(board_stats, my_id) if my_id else None,
+                           level=level, levels=academy.LEVELS,
                            entries=entries, staff=staff, period=period, picked_student=picked,
                            entry_kinds=academy.ENTRY_KINDS, entry_kind_map=academy.ENTRY_KIND_MAP,
                            leaderboard_defs=academy.LEADERBOARDS, today=date.today().isoformat())

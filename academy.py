@@ -62,6 +62,35 @@ LEADERBOARDS = [
 ]
 
 
+# ACAD-1 (Frank): the leaderboard can be limited to one pilot level so a student pilot
+# isn't ranked against a commercial pilot. (key, label, certificates that belong to it);
+# a student with no certificate on file yet (pre-solo) counts as a student pilot.
+LEVELS = [
+    ("all", "Everyone", None),
+    ("student", "Student pilots", ("student", None, "")),
+    ("sport_rec", "Sport / Recreational", ("sport", "recreational")),
+    ("private", "Private", ("private",)),
+    ("commercial", "Commercial / ATP", ("commercial", "atp")),
+]
+LEVEL_KEYS = [k for k, _l, _c in LEVELS]
+
+
+def level_of(student_row):
+    """Which LEVELS key (other than 'all') this student belongs to."""
+    cert = student_row["pilot_certificate"] if student_row is not None and "pilot_certificate" in student_row.keys() else None
+    for key, _label, certs in LEVELS:
+        if certs is not None and cert in certs:
+            return key
+    return "student"
+
+
+def only_level(stats, level):
+    """The stats of just the students at that level ('all' keeps everybody)."""
+    if level == "all":
+        return stats
+    return {sid: st for sid, st in stats.items() if level_of(st["student"]) == level}
+
+
 def period_start(period):
     """First day (YYYY-MM-DD) counted for 'month' / 'year', else None (all time)."""
     today = date.today()

@@ -47,7 +47,7 @@
       {% if me %}
       <div class="d-flex gap-4 text-center">
         <div><div class="stat">{{ me.points }}</div><div class="small opacity-75">points</div></div>
-        <div><div class="stat">{{ '#' ~ my_rank if my_rank else '-' }}</div><div class="small opacity-75">rank</div></div>
+        <div><div class="stat">{{ '#' ~ my_rank if my_rank else '-' }}</div><div class="small opacity-75">rank{% if level != 'all' %} in {% for k, l, _c in levels %}{% if k == level %}{{ l|lower }}{% endif %}{% endfor %}{% endif %}</div></div>
         <div><div class="stat">{{ '%.1f'|format(me.hours) }}</div><div class="small opacity-75">hours</div></div>
         <div><div class="stat">{{ me.achievement_count }}</div><div class="small opacity-75">badges</div></div>
       </div>
@@ -125,7 +125,13 @@
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div class="btn-group">
       {% for key, label in [('all', 'All Time'), ('year', 'This Year'), ('month', 'This Month')] %}
-      <a href="{{ url_for('academy_page', period=key, student_id=picked_student.id if picked_student else None) }}" class="btn btn-sm {{ 'btn-light' if period == key else 'btn-outline-light' }}">{{ label }}</a>
+      <a href="{{ url_for('academy_page', period=key, level=level, student_id=picked_student.id if picked_student else None) }}" class="btn btn-sm {{ 'btn-light' if period == key else 'btn-outline-light' }}">{{ label }}</a>
+      {% endfor %}
+    </div>
+    {#- ACAD-1: rank students only against others at the same pilot level. #}
+    <div class="btn-group flex-wrap" data-change="ACAD-1" role="group" aria-label="Pilot level">
+      {% for key, label, _certs in levels %}
+      <a href="{{ url_for('academy_page', period=period, level=key, student_id=picked_student.id if picked_student else None) }}" class="btn btn-sm {{ 'btn-light' if level == key else 'btn-outline-light' }}">{{ label }}</a>
       {% endfor %}
     </div>
   </div>
