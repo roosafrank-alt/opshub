@@ -5,7 +5,7 @@ the approved change it belongs to."""
 import re
 
 import db
-from tests.harness import OpsHubTestCase
+from harness import OpsHubTestCase
 
 
 def get(client, url):

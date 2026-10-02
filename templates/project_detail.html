@@ -119,7 +119,7 @@
           <button class="dropdown-item text-success">{{ 'Restore' if project.status == 'archived' else 'Mark Active' }}</button></form></li>
         {% endif %}
         {% if project.status not in ('on_hold', 'archived') %}
-        <li><form method="post" action="{{ url_for('project_status', project_id=project.id) }}" data-confirm="Put this job on hold? It stays on the calendar and the owner can see it is on hold." data-confirm-title="On Hold" data-confirm-ok="Put on hold" data-confirm-style="warning"><input type="hidden" name="status" value="on_hold">
+        <li><form method="post" action="{{ url_for('project_status', project_id=project.id) }}" data-confirm="Put this job on hold? It stays on the calendar and the owner can see it is on hold." data-confirm-title="On Hold" data-confirm-ok="Put on hold" data-confirm-style="warning" data-change="JOBS-14"><input type="hidden" name="status" value="on_hold">
           <button class="dropdown-item">On Hold</button></form></li>
         {% endif %}
         {% endif %}
