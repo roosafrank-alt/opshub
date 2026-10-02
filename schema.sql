@@ -192,6 +192,9 @@ CREATE TABLE IF NOT EXISTS projects (
     intake_json TEXT, -- the filled-in intake form (checks, squawks, damage) as JSON
     intake_at TEXT,
     intake_by TEXT,
+    intake_by_role TEXT, -- shop role of whoever did the intake (an apprentice's needs verifying)
+    intake_verified_by TEXT,
+    intake_verified_at TEXT,
     customer_confirmed_at TEXT, -- customer portal: set when the aircraft owner confirms this appointment (scheduled_date)
     customer_reschedule_requested_at TEXT, -- customer portal: set when they ask to reschedule instead - clears customer_confirmed_at
     customer_reschedule_note TEXT, -- what the customer said they need (shown to admin on the Maintenance dashboard until dismissed)

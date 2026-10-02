@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Manuals - OpsHub{% endblock %}
 {% block content %}
+{% set is_manage = is_master_admin or shop_role == 'admin' %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0">Manuals ({{ manuals|length }})</h4>
+  {#- JOBS-17: everyone in the shop can read the manuals; uploading, editing and deleting stay admin only. #}
+  {% if is_manage %}
   <button class="btn btn-warning fw-bold text-nowrap" type="button" data-bs-toggle="modal" data-bs-target="#uploadManualModal">
     <i class="bi bi-upload"></i> Upload Manual
   </button>
+  {% endif %}
 </div>
 <p class="text-muted small">Parts and maintenance manuals, tagged to a make/model/year/serial range so they show up
   automatically on the aircraft they apply to. PDFs are scanned for figure and part numbers on upload so pages can be
@@ -28,6 +32,7 @@
         <td>{% if m.page_count %}{{ m.page_count }}{% else %}<span class="text-muted">not indexed</span>{% endif %}</td>
         <td class="text-end text-nowrap">
           <a href="{{ url_for('manuals.manual_detail', manual_id=m.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+          {% if is_manage %}
           <a href="{{ url_for('manuals.manual_edit', manual_id=m.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
           <form method="post" action="{{ url_for('manuals.manual_delete', manual_id=m.id) }}" class="d-inline"
                 data-confirm="Delete '[[title]]'? This removes the file and its page index."
@@ -35,6 +40,7 @@
             <input type="hidden" name="title" value="{{ m.title }}">
             <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
           </form>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}
@@ -45,6 +51,7 @@
 <p class="text-muted">No manuals uploaded yet.</p>
 {% endif %}
 
+{% if is_manage %}
 <div class="modal fade" id="uploadManualModal" tabindex="-1">
   <div class="modal-dialog">
     <form method="post" action="{{ url_for('manuals.manuals_upload') }}" enctype="multipart/form-data">
@@ -110,4 +117,5 @@
     </form>
   </div>
 </div>
+{% endif %}
 {% endblock %}

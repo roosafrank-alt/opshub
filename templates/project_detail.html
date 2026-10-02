@@ -1,6 +1,25 @@
 {% extends "base.html" %}
 {% block title %}{{ project.name }} - OpsHub{% endblock %}
 {% block content %}
+{#- JOBS-03: each button shows only for the roles that can use it. Edit, Mark
+   Completed, status changes, Print Code: admin and tech. Materials CSV,
+   Invoice, Archive, Delete: admin. An inspector keeps Confirm / Send Back. #}
+{% set is_admin_role = is_master_admin or shop_role == 'admin' %}
+{% set can_work = is_master_admin or shop_role in ('admin', 'tech') %}
+{% set can_confirm = is_master_admin or shop_role in ('admin', 'inspector') %}
+{% set is_deleted = project.deleted_at is not none %}
+{% if is_deleted %}
+{#- JOBS-38: a job in Recently Deleted is read-only until an admin restores it. #}
+<div class="alert alert-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" data-change="JOBS-38">
+  <div><i class="bi bi-trash3"></i> <strong>This job is in Recently Deleted.</strong> Nothing on it can be changed until it is restored.</div>
+  {% if is_admin_role %}
+  <form method="post" action="{{ url_for('project_restore', project_id=project.id) }}">
+    <input type="hidden" name="next" value="project">
+    <button class="btn btn-outline-success btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
 {% if photos %}
 <img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;">
 {% endif %}
@@ -10,7 +29,7 @@
       {#- QA ux-project-header-buttons: a one-tap print shortcut right by the
          code, so Print Code is still 1 tap at check-in even though it moved
          into More... below - same roles who can reach that page today. #}
-      {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
+      {% if can_work and not is_deleted %}
       <a href="{{ url_for('project_label', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 align-middle" title="Print this project code"><i class="bi bi-qr-code"></i></a>
       {% endif %}
       &middot; {{ project.name }}
@@ -27,7 +46,11 @@
        ("N12345 - view asset profile & history"), repeating the tail number
        just to link to the plane - now a small tag, same one-tap link. #}
     {% if project.asset_display_id %}
+    {% if is_master_admin or shop_role in ('admin', 'tech', 'inspector') %}
     <a href="{{ url_for('asset_detail', asset_id=project.asset_display_id) }}" class="badge bg-light text-dark border fw-normal py-2 px-2 text-decoration-none"><i class="bi bi-airplane"></i> {{ project.asset_display_tag }} <i class="bi bi-chevron-right"></i></a>
+    {% else %}
+    <span class="badge bg-light text-dark border fw-normal py-2 px-2"><i class="bi bi-airplane"></i> {{ project.asset_display_tag }}</span>
+    {% endif %}
     {% endif %}
     {#- Same compact maintenance-preference strip shown on the asset profile,
        carried over here since the project is tied to that plane. #}
@@ -52,36 +75,43 @@
      Edit, Mark Completed, More... - instead of 12 same-looking buttons on
      desktop/iPad (phones already worked this way, QA ux-assign-part-flow).
      Everything else moves into More..., grouped so it's still easy to find. #}
-  <div class="d-flex gap-2 flex-wrap">
+  <div class="d-flex gap-2 flex-wrap" data-change="JOBS-03">
+    {% if can_work and not is_deleted %}
     <a href="{{ url_for('project_edit', project_id=project.id) }}" class="btn btn-outline-primary"><i class="bi bi-pencil"></i> Edit</a>
     {% if project.status not in ('completed', 'archived') %}
     {#- QA finding feat-job-closeout-owner-ready: Mark Completed now opens a
        "Close out this job" pop-up (closeoutModal below) naming what's still
        loose - an open squawk, no logbook entry, nothing invoiced, someone
        still clocked in - each with a one-tap fix, plus "Tell the owner it's
-       ready" using the same email/text channels as Found Items. Replaces
-       the old plain data-confirm("Mark this project as completed?" /
-       QA feat-shop-job-payments' unpaid warning), which is now the billing
-       line in that checklist instead. #}
+       ready" using the same email/text channels as Found Items. #}
     <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#closeoutModal"><i class="bi bi-check2-circle"></i> Mark Completed</button>
     {% endif %}
+    {% endif %}
+    {% if not is_deleted %}
     <div class="dropdown">
       <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">More&hellip;</button>
       <ul class="dropdown-menu dropdown-menu-end">
         <li><h6 class="dropdown-header">Print</h6></li>
+        {% if can_work %}
         <li><a class="dropdown-item" href="{{ url_for('project_label', project_id=project.id) }}"><i class="bi bi-printer"></i> Print Code</a></li>
+        {% endif %}
         <li><a class="dropdown-item" href="{{ url_for('project_labor_codes', project_id=project.id) }}"><i class="bi bi-qr-code"></i> Labor Codes</a></li>
         <li><a class="dropdown-item" href="{{ url_for('project_checklist_print', project_id=project.id) }}"><i class="bi bi-list-check"></i> Job Sheet</a></li>
-        {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
+        {#- JOBS-01: every shop role can do the Intake Check. JOBS-16: the
+           Logbook Starter is open to inspectors too. #}
         <li><hr class="dropdown-divider"></li>
         <li><h6 class="dropdown-header">Paperwork</h6></li>
         <li><a class="dropdown-item" href="{{ url_for('project_intake', project_id=project.id) }}"><i class="bi bi-clipboard-check"></i> Intake{% if project.intake_status == 'skipped' %} <span class="badge bg-warning text-dark">skipped</span>{% endif %}</a></li>
+        {% if is_master_admin or shop_role in ('admin', 'tech', 'inspector') %}
         <li><a class="dropdown-item" href="{{ url_for('logbook.project_logbook', project_id=project.id) }}"><i class="bi bi-journal-plus"></i> Logbook Starter</a></li>
         {% endif %}
+        {% if is_admin_role %}
         <li><hr class="dropdown-divider"></li>
         <li><h6 class="dropdown-header">Export</h6></li>
         <li><a class="dropdown-item" href="{{ url_for('project_export_csv', project_id=project.id) }}"><i class="bi bi-file-earmark-spreadsheet"></i> Materials CSV</a></li>
         <li><a class="dropdown-item" href="{{ url_for('project_invoice_csv', project_id=project.id) }}"><i class="bi bi-receipt"></i> Invoice</a></li>
+        {% endif %}
+        {% if can_work %}
         <li><hr class="dropdown-divider"></li>
         <li><h6 class="dropdown-header">Status</h6></li>
         {% if project.status != 'active' %}
@@ -89,18 +119,24 @@
           <button class="dropdown-item text-success">{{ 'Restore' if project.status == 'archived' else 'Mark Active' }}</button></form></li>
         {% endif %}
         {% if project.status not in ('on_hold', 'archived') %}
-        <li><form method="post" action="{{ url_for('project_status', project_id=project.id) }}"><input type="hidden" name="status" value="on_hold">
+        <li><form method="post" action="{{ url_for('project_status', project_id=project.id) }}" data-confirm="Put this job on hold? It stays on the calendar and the owner can see it is on hold." data-confirm-title="On Hold" data-confirm-ok="Put on hold" data-confirm-style="warning"><input type="hidden" name="status" value="on_hold">
           <button class="dropdown-item">On Hold</button></form></li>
         {% endif %}
+        {% endif %}
+        {% if is_admin_role %}
         {% if project.status != 'archived' %}
         <li><button class="dropdown-item text-danger" type="button" data-confirm="Archive this project? All history is kept - you can restore it later from the Archived filter." data-confirm-style="danger" onclick="document.getElementById('del-form').submit();">Archive</button></li>
         {% endif %}
         <li><hr class="dropdown-divider"></li>
         <li><button class="dropdown-item text-danger" type="button" data-confirm="Delete this project? It will move to Recently Deleted, where it can be restored or permanently removed." data-confirm-style="danger" onclick="document.getElementById('trash-form').submit();"><i class="bi bi-trash3"></i> Delete</button></li>
+        {% endif %}
       </ul>
     </div>
+    {% if is_admin_role %}
     <form id="del-form" method="post" action="{{ url_for('project_delete', project_id=project.id) }}" style="display:none;"></form>
     <form id="trash-form" method="post" action="{{ url_for('project_trash', project_id=project.id) }}" style="display:none;"></form>
+    {% endif %}
+    {% endif %}
   </div>
 </div>
 
@@ -109,7 +145,12 @@
 {% set issues = intake.checks|selectattr('status', 'equalto', 'issue')|list %}
 <details class="card p-3 mb-3 {{ 'border-danger' if issues or intake.squawks or intake.damage else 'border-success' }}" {{ 'open' if issues or intake.squawks or intake.damage }}>
   <summary class="fw-bold"><i class="bi bi-clipboard-check"></i> Intake check
-    <span class="fw-normal small text-muted">- {{ project.intake_by or '' }}{% if project.intake_at %}, {{ project.intake_at|usdate(true) }}{% endif %}</span>
+    <span class="fw-normal small text-muted" data-change="JOBS-01">- done by {{ project.intake_by or 'someone' }}{% if project.intake_by_role %} ({{ project.intake_by_role|capitalize }}){% endif %}{% if project.intake_at %}, {{ project.intake_at|usdate(true) }}{% endif %}</span>
+    {#- JOBS-01: an apprentice's intake check needs an admin, tech or inspector to verify it. #}
+    {% if project.intake_by_role == 'apprentice' %}
+    {% if project.intake_verified_at %}<span class="badge bg-success ms-1" data-change="JOBS-01"><i class="bi bi-patch-check"></i> Verified by {{ project.intake_verified_by or 'someone' }}, {{ project.intake_verified_at|usdate(true) }}</span>
+    {% else %}<span class="badge bg-warning text-dark ms-1" data-change="JOBS-01"><i class="bi bi-hourglass-split"></i> Needs verification</span>{% endif %}
+    {% endif %}
     {% if issues or intake.squawks or intake.damage %}<span class="badge bg-danger ms-1">{{ issues|length + intake.squawks|length + intake.damage|length }} to look at</span>{% else %}<span class="badge bg-success ms-1">all OK</span>{% endif %}
   </summary>
   <div class="row g-2 mt-1 small">
@@ -133,6 +174,12 @@
     {% if intake.notes %}<div class="col-12 text-muted">{{ intake.notes }}</div>{% endif %}
   </div>
 </details>
+  {% if project.intake_by_role == 'apprentice' and not project.intake_verified_at and (is_master_admin or shop_role in ('admin', 'tech', 'inspector')) and not is_deleted %}
+  <form method="post" action="{{ url_for('project_intake_verify', project_id=project.id) }}" class="mb-3" data-confirm="Verify this intake check that {{ project.intake_by or 'an apprentice' }} did?" data-confirm-title="Verify Intake" data-confirm-ok="Verify" data-confirm-style="success" data-change="JOBS-01">
+    <button class="btn btn-outline-success btn-sm py-0"><i class="bi bi-patch-check"></i> Verify</button>
+  </form>
+  {% endif %}
+
 {% endif %}
 
 <div class="row g-3">
@@ -175,16 +222,27 @@
            See project_section_complete (requests confirmation) and
            project_section_confirm (actually completes it, or sends it
            back). #}
-        {% set can_confirm = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector') %}
         <div class="card mb-2 {{ 'border-success' if data.completed_at else ('border-warning' if data.confirm_requested_at) }}">
           <div class="card-header" style="cursor:pointer" onclick="toggleSection('{{ loop.index }}')">
             <div class="d-flex justify-content-between align-items-center {{ 'bg-success-subtle' if data.completed_at else ('bg-warning-subtle' if data.confirm_requested_at) }}">
               <div class="d-flex align-items-center gap-2 flex-wrap">
-                {% if section != 'General' and data.id %}
-                <form method="post" action="{{ url_for('project_section_complete', project_id=project.id, section_id=data.id) }}" class="mb-0" onclick="event.stopPropagation();">
+                {% if section != 'General' and data.id and not is_deleted %}
+                {#- JOBS-12: the box asks first and says what happened (Marked ready... / Back to open).
+                   JOBS-13: once an inspector has confirmed it, a tech cannot undo it - the box is locked
+                   for them, and an admin or inspector has to answer "Undo the sign-off" first. #}
+                {% if data.completed_at and not can_confirm %}
+                <span class="text-success" title="Confirmed by {{ data.completed_by or 'an inspector' }} - only an admin or inspector can reopen it" data-change="JOBS-13"><i class="bi bi-check-square-fill fs-5"></i></span>
+                {% elif can_work or data.completed_at %}
+                <form method="post" action="{{ url_for('project_section_complete', project_id=project.id, section_id=data.id) }}" class="mb-0" onclick="event.stopPropagation();"
+                      data-confirm="{% if data.completed_at %}Undo the sign-off on '{{ section }}'? It goes back to open.{% elif data.confirm_requested_at %}Take '{{ section }}' back to open?{% else %}Mark '{{ section }}' ready for confirmation? An Inspector or admin will still need to confirm it.{% endif %}"
+                      data-confirm-title="{{ 'Undo Sign-off' if data.completed_at else ('Back to Open' if data.confirm_requested_at else 'Ready for Confirmation') }}"
+                      data-confirm-style="{{ 'warning' if (data.completed_at or data.confirm_requested_at) else 'primary' }}" data-change="JOBS-12">
                   <input type="hidden" name="completed" value="{{ '0' if (data.completed_at or data.confirm_requested_at) else '1' }}">
-                  <input type="checkbox" class="form-check-input mt-0" {{ 'checked' if (data.completed_at or data.confirm_requested_at) }} onchange="this.form.submit()" title="{{ 'Mark not ready' if (data.completed_at or data.confirm_requested_at) else 'Mark ready for confirmation' }}">
+                  <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="{{ 'Mark not ready' if (data.completed_at or data.confirm_requested_at) else 'Mark ready for confirmation' }}">
+                    <i class="bi {{ 'bi-check-square-fill text-success' if data.completed_at else ('bi-check-square-fill text-warning' if data.confirm_requested_at else 'bi-square') }} fs-5"></i>
+                  </button>
                 </form>
+                {% endif %}
                 {% endif %}
                 <strong class="{{ 'text-decoration-line-through text-muted' if data.completed_at }}">{% if section != 'General' %}<i class="bi bi-folder2-open"></i> {% endif %}{{ section }}</strong>
                 {% if section != 'General' and data.id %}
@@ -205,6 +263,9 @@
                    the first try (see project_section_confirm's send_back). #}
                 <span class="text-muted small" title="Sent back {{ data.sent_back_at|usdate(true) }}"><i class="bi bi-arrow-counterclockwise"></i> sent back by {{ data.sent_back_by or 'someone' }}, {{ data.sent_back_at|usdate(true) }}</span>
                 {% endif %}
+                {% if data.reopened_at and not data.completed_at %}
+                <span class="text-muted small" data-change="JOBS-13"><i class="bi bi-arrow-counterclockwise"></i> reopened by {{ data.reopened_by or 'someone' }}, {{ data.reopened_at|usdate(true) }}</span>
+                {% endif %}
                 {% if data.completed_at %}
                 <span class="text-muted small">confirmed by {{ data.completed_by or 'someone' }} on {{ data.completed_at|usdate(true) }}</span>
                 {% elif data.confirm_requested_at %}
@@ -222,8 +283,8 @@
                 {% endif %}
                 {% endif %}
                 {% if section != 'General' and data.id %}
-                <button type="button" class="btn btn-link btn-sm p-0" onclick="event.stopPropagation(); var r=document.getElementById('sec-rename-{{ loop.index }}'); r.style.display = r.style.display==='none' ? 'flex' : 'none'; if (r.style.display!=='none') { r.querySelector('input').focus(); r.querySelector('input').select(); }" title="Rename this area"><i class="bi bi-pencil"></i></button>
-                <a href="{{ url_for('project_section_label', project_id=project.id, section_id=data.id) }}" class="btn btn-link btn-sm p-0" target="_blank" onclick="event.stopPropagation();" title="Print this sub area's QR code"><i class="bi bi-qr-code"></i></a>
+                <button type="button" class="btn btn-link btn-sm p-0" onclick="event.stopPropagation(); var r=document.getElementById('sec-rename-{{ loop.index }}'); r.style.display = r.style.display==='none' ? 'flex' : 'none'; if (r.style.display!=='none') { r.querySelector('input').focus(); r.querySelector('input').select(); }" title="Rename this discrepancy" data-change="JOBS-11"><i class="bi bi-pencil"></i></button>
+                <a href="{{ url_for('project_section_label', project_id=project.id, section_id=data.id) }}" class="btn btn-link btn-sm p-0" target="_blank" onclick="event.stopPropagation();" title="Print this discrepancy's QR code"><i class="bi bi-qr-code"></i></a>
                 {% endif %}
               </div>
               <span class="text-muted small">{% if can_see_shop_costs %}${{ "%.2f"|format(data.cost) }} {% endif %}<i class="bi bi-chevron-down" id="sec-chev-{{ loop.index }}"></i></span>
@@ -261,7 +322,7 @@
               </tbody>
             </table>
             {% else %}
-            <p class="text-muted small p-2 mb-0">No parts assigned to this area yet.</p>
+            <p class="text-muted small p-2 mb-0">No parts assigned to this discrepancy yet.</p>
             {% endif %}
             {% if section != 'General' and data.id %}
             <div class="p-2 border-top">
@@ -321,7 +382,7 @@
       {% if labor_sessions %}
       <div class="table-responsive">
       <table class="table table-sm mb-0">
-        <thead><tr><th>Laborer</th><th>Task</th><th>Started</th><th>Hours</th>{% if can_see_shop_costs %}<th>Cost</th>{% endif %}</tr></thead>
+        <thead><tr><th>Laborer</th><th data-change="JOBS-11">Discrepancy</th><th>Started</th><th>Hours</th>{% if can_see_shop_costs %}<th>Cost</th>{% endif %}</tr></thead>
         <tbody>
           {% for s in labor_sessions %}
           <tr>
@@ -355,6 +416,7 @@
       {% endif %}
       {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech', 'inspector') %}
       <form method="post" action="{{ url_for('found_item_new', project_id=project.id) }}" enctype="multipart/form-data" id="found-item-form" class="border rounded p-2 mb-2 d-none">
+        {#- JOBS-41: JS below asks once before sending an estimate that totals $0. #}
         <label class="form-label small mb-0" for="found-desc">What did you find?</label>
         <textarea id="found-desc" name="description" class="form-control mb-2" rows="2" required placeholder="e.g. Cracked exhaust stack, left side"></textarea>
         <div class="row g-2">
@@ -371,7 +433,7 @@
           <input class="form-check-input" type="checkbox" name="notify_owner" id="found-notify" checked>
           <label class="form-check-label small" for="found-notify">Text/email the owner now</label>
         </div>
-        <button class="btn btn-primary w-100">Send to owner for approval</button>
+        <button class="btn btn-primary w-100" data-change="JOBS-41">Send to owner for approval</button>
       </form>
       {% endif %}
       {% if found_items %}
@@ -445,7 +507,7 @@
       {% if tx %}
       <div class="table-responsive">
       <table class="table table-sm">
-        <thead><tr><th>When</th><th>Part</th><th>Type</th><th>Qty</th><th>Area</th><th>By</th><th>Note</th></tr></thead>
+        <thead><tr><th>When</th><th>Part</th><th>Type</th><th>Qty</th><th data-change="JOBS-11">Discrepancy</th><th>By</th><th>Note</th></tr></thead>
         <tbody>
           {% for t in tx %}
           <tr>
@@ -501,6 +563,40 @@
       </div>
     </div>
     <script>
+      // JOBS-21: the close-out pop-up's "Open it" for found items switches to that tab.
+      document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('a[href="#found-items"]').forEach(function (a) {
+          a.addEventListener('click', function (e) {
+            var btn = document.getElementById('tab-found-btn');
+            if (!btn || !window.bootstrap) return;
+            e.preventDefault();
+            new bootstrap.Tab(btn).show();
+            setTimeout(function () {
+              var target = document.getElementById('found-items');
+              if (target) target.scrollIntoView({ block: 'start' });
+            }, 50);
+          });
+        });
+      });
+      // JOBS-41: sending the owner a found item whose estimate totals $0 asks first.
+      document.addEventListener('DOMContentLoaded', function () {
+        var f = document.getElementById('found-item-form');
+        if (!f) return;
+        f.addEventListener('submit', function (e) {
+          if (f.dataset.zeroOk === '1') { f.dataset.zeroOk = ''; return; }
+          var num = function (n) { var v = parseFloat(f.elements[n] && f.elements[n].value); return isNaN(v) ? 0 : v; };
+          var total = num('est_parts') + num('est_labor_hours') * num('est_labor_rate');
+          if (total > 0) return;
+          e.preventDefault();
+          if (!window.OpsHubConfirm) { if (window.confirm('Send this with no price? The owner will see $0.00.')) { f.dataset.zeroOk = '1'; f.requestSubmit(); } return; }
+          var q = document.createElement('div');
+          q.setAttribute('data-confirm', 'Send this with no price? The owner will see $0.00.');
+          q.setAttribute('data-confirm-title', 'No price on this');
+          q.setAttribute('data-confirm-ok', 'Send');
+          q.setAttribute('data-confirm-style', 'warning');
+          window.OpsHubConfirm(q, f, function () { f.dataset.zeroOk = '1'; f.requestSubmit(); });
+        });
+      });
       {#- Found-item actions (app.found_item_*) redirect back here with
          #found-items so the page lands on that section - now that it's a
          tab, switch to it and scroll there instead of landing on a
@@ -637,10 +733,10 @@
           </select>
           <label class="form-label small">Quantity</label>
           <input type="number" step="any" name="qty" class="form-control mb-2" value="1" required>
-          <label class="form-label small">Area / Sub-System <span class="text-muted small">(optional, e.g. Brakes, Engine)</span></label>
+          <label class="form-label small" data-change="JOBS-11">Discrepancy <span class="text-muted small">(optional, e.g. Brakes, Engine)</span></label>
           <select id="assign-section-select" name="section" class="form-select form-select-sm mb-2">
-            <option value="">-- General (no specific area) --</option>
-            <option value="__new__">+ Add new area...</option>
+            <option value="">-- General (no specific discrepancy) --</option>
+            <option value="__new__">+ Add new discrepancy...</option>
           </select>
           <div id="assign-section-new-row" class="input-group input-group-sm mb-2" style="display:none;">
             <input type="text" id="assign-section-new-input" class="form-control" placeholder="e.g. Brakes, Engine, Avionics">
@@ -723,7 +819,7 @@
             if (e.key === 'Enter') { e.preventDefault(); addNewFromInput(); }
           });
 
-          // Area / sub-system (e.g. Brakes, Engine) - scoped to this project,
+          // Discrepancy (e.g. Brakes, Engine) - scoped to this project,
           // same inline-add pattern as the operator picker above.
           var sectionSelect = document.getElementById('assign-section-select');
           var sectionNewRow = document.getElementById('assign-section-new-row');
@@ -783,12 +879,12 @@
               alert("Select who's assigning this part first (\"Scanning as\").");
               return;
             }
-            // Area/section is optional, but if someone left "+ Add new area..."
+            // The discrepancy is optional, but if someone left "+ Add new discrepancy..."
             // selected without actually typing one, don't submit that literal value.
             if (sectionSelect.value === '__new__') {
               e.preventDefault();
               sectionNewInput.focus();
-              alert('Type the new area name, or pick "General" if this part isn\'t tied to a specific area.');
+              alert('Type the new discrepancy name, or pick "General" if this part isn\'t tied to a specific discrepancy.');
             }
           });
         })();
@@ -810,7 +906,7 @@
       <div class="modal-body">
         <ul class="list-unstyled mb-3">
           {% for item in closeout_checklist %}
-          <li class="d-flex align-items-start gap-2 mb-2">
+          <li class="d-flex align-items-start gap-2 mb-2"{% if item.key == 'found' %} data-change="JOBS-21"{% endif %}>
             {% if item.status == 'ok' %}
             <i class="bi bi-check-circle-fill text-success mt-1"></i>
             {% else %}
@@ -819,7 +915,7 @@
             <span>
               {{ item.text }}
               {% if item.anchor %}
-              <a href="#{{ item.anchor }}" data-bs-dismiss="modal" class="ms-1">{{ item.action_label }}</a>
+              <a href="#{{ item.anchor }}" data-bs-dismiss="modal" class="ms-1"{% if item.key == 'found' %} data-change="JOBS-21"{% endif %}>{{ item.action_label }}</a>
               {% elif item.url %}
               <a href="{{ item.url }}" data-bs-dismiss="modal" class="ms-1">{{ item.action_label }}</a>
               {% elif item.stop_ids %}

@@ -349,7 +349,7 @@ def _view_as_chip_rows():
 @app.context_processor
 def inject_auth_context():
     open_squawk_count = 0
-    if session.get("is_master_admin") or session.get("shop_role") in ("admin", "tech"):
+    if session.get("is_master_admin") or session.get("shop_role") in ("admin", "tech", "inspector"):
         conn = get_db()
         open_squawk_count = conn.execute(
             "SELECT COUNT(*) c FROM flights WHERE squawk = 1 AND squawk_acknowledged_at IS NULL"
@@ -822,7 +822,8 @@ _FLIGHT_SQUAWK_COLS = """'flight' as kind, f.id as squawk_id, a.id as asset_id, 
                f.squawk_worker_acknowledged_by as worker_acknowledged_by,
                f.squawk_repair_confirm_requested_at as repair_confirm_requested_at,
                f.squawk_repair_confirm_requested_by as repair_confirm_requested_by,
-               f.squawk_sent_back_note as sent_back_note"""
+               f.squawk_sent_back_note as sent_back_note,
+               f.squawk_reopened_at as reopened_at, f.squawk_reopened_by as reopened_by"""
 _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.tag as asset_tag,
                a.name as asset_name, q.reported_at as event_date, NULL as student_name,
                NULL as cfi_name, q.reported_by as reported_by, q.notes as notes,
@@ -833,7 +834,8 @@ _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.
                q.worker_acknowledged_by as worker_acknowledged_by,
                q.repair_confirm_requested_at as repair_confirm_requested_at,
                q.repair_confirm_requested_by as repair_confirm_requested_by,
-               q.sent_back_note as sent_back_note"""
+               q.sent_back_note as sent_back_note,
+               q.reopened_at as reopened_at, q.reopened_by as reopened_by"""
 
 # Reported -> Assigned -> Working -> Inspection -> Done - the same five
 # steps and order the step pills show everywhere a squawk appears (see
@@ -846,14 +848,19 @@ def squawk_step_index(sq):
         return 4
     if sq["repair_confirm_requested_at"]:
         return 3
-    if not sq["acknowledged_at"]:
+    # JOBS-09: an acknowledged squawk nobody is assigned to counts as New
+    # (it shows the Assign to / I'll take it controls), and Working only shows
+    # once someone is actually on it.
+    if not sq["acknowledged_at"] or not sq["assigned_to"]:
         return 0
-    if sq["worker_acknowledged_at"] or not sq["assigned_to"]:
+    if sq["worker_acknowledged_at"]:
         return 2
     return 1
 
 
 def get_open_squawks(conn):
+    """Squawks still at the New step: not signed off or with the inspector, and
+    either not acknowledged yet or nobody assigned (JOBS-09)."""
     return conn.execute(f"""
         SELECT {_FLIGHT_SQUAWK_COLS}
         FROM flights f
@@ -861,13 +868,15 @@ def get_open_squawks(conn):
         JOIN students s ON s.id = f.student_id
         LEFT JOIN cfis c ON c.id = f.cfi_id
         LEFT JOIN users au ON au.id = f.squawk_assigned_to
-        WHERE f.squawk = 1 AND f.squawk_acknowledged_at IS NULL
+        WHERE f.squawk = 1 AND f.squawk_repaired_at IS NULL AND f.squawk_repair_confirm_requested_at IS NULL
+              AND (f.squawk_acknowledged_at IS NULL OR f.squawk_assigned_to IS NULL)
         UNION ALL
         SELECT {_QUICK_SQUAWK_COLS}
         FROM plane_squawks q
         JOIN assets a ON a.id = q.asset_id
         LEFT JOIN users au ON au.id = q.assigned_to
-        WHERE q.acknowledged_at IS NULL
+        WHERE q.repaired_at IS NULL AND q.repair_confirm_requested_at IS NULL
+              AND (q.acknowledged_at IS NULL OR q.assigned_to IS NULL)
         ORDER BY event_date DESC, squawk_id DESC
     """).fetchall()
 
@@ -1106,7 +1115,12 @@ def squawks_list():
     # "acknowledged" list actually mixed assigned/working/inspection, so it
     # gets bucketed the same way.
     buckets = {step: [] for step in SQUAWK_STEPS}
+    seen = set()
     for sq in list(open_squawks) + list(acknowledged) + list(repaired):
+        key = (sq["kind"], sq["squawk_id"])
+        if key in seen:  # an acknowledged squawk nobody is on is in both lists (JOBS-09)
+            continue
+        seen.add(key)
         buckets[SQUAWK_STEPS[squawk_step_index(sq)]].append(sq)
     step_counts = {step: len(rows) for step, rows in buckets.items()}
     current_step = request.args.get("step")
@@ -1122,7 +1136,7 @@ def squawks_list():
 @app.route("/squawks/new", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def squawk_quick_new():
-    """Report an issue against a plane right from the Squawks page itself,
+    """Report a squawk against a plane right from the Squawks page itself,
     without going through the plane's own page first - same plane_squawks
     row as asset_squawk_new(), just filed from here instead."""
     asset_id = request.form.get("asset_id", type=int)
@@ -1146,7 +1160,7 @@ def squawk_quick_new():
                  (asset_id, notes, session.get("user_name"), now_iso()))
     conn.commit()
     conn.close()
-    flash("Issue reported.", "success")
+    flash("Squawk reported - it's on the Squawks page as New.", "success")
     return redirect(url_for("squawks_list"))
 
 
@@ -1379,6 +1393,47 @@ def squawk_repair_confirm(kind, squawk_id):
     conn.commit()
     conn.close()
     return redirect(request.referrer or url_for("squawks_list"))
+
+
+@app.route("/squawks/<kind>/<int:squawk_id>/reopen", methods=["POST"])
+@shop_role_required('admin', 'tech', 'inspector')
+def squawk_reopen(kind, squawk_id):
+    """JOBS-08: a signed-off squawk that came back goes back to New (not
+    acknowledged, nobody assigned, not repaired) and keeps its history, with a
+    "Reopened by <name> on <date>" note, instead of becoming a second,
+    unconnected squawk."""
+    conn = get_db()
+    if kind == "flight":
+        row = conn.execute("SELECT id, squawk_repaired_at as done FROM flights WHERE id = ? AND squawk = 1",
+                           (squawk_id,)).fetchone()
+        reopen_sql = ("UPDATE flights SET squawk_repaired_at = NULL, squawk_repaired_by = NULL, "
+                      "squawk_acknowledged_at = NULL, squawk_acknowledged_by = NULL, squawk_assigned_to = NULL, "
+                      "squawk_worker_acknowledged_at = NULL, squawk_worker_acknowledged_by = NULL, "
+                      "squawk_repair_confirm_requested_at = NULL, squawk_repair_confirm_requested_by = NULL, "
+                      "squawk_sent_back_note = NULL, squawk_reopened_at = ?, squawk_reopened_by = ? WHERE id = ?")
+    elif kind == "quick":
+        row = conn.execute("SELECT id, repaired_at as done FROM plane_squawks WHERE id = ?", (squawk_id,)).fetchone()
+        reopen_sql = ("UPDATE plane_squawks SET repaired_at = NULL, repaired_by = NULL, "
+                      "acknowledged_at = NULL, acknowledged_by = NULL, assigned_to = NULL, "
+                      "worker_acknowledged_at = NULL, worker_acknowledged_by = NULL, "
+                      "repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL, "
+                      "sent_back_note = NULL, reopened_at = ?, reopened_by = ? WHERE id = ?")
+    else:
+        conn.close()
+        abort(404)
+    if not row:
+        conn.close()
+        flash("Squawk not found.", "danger")
+        return redirect(request.referrer or url_for("squawks_list"))
+    if not row["done"]:
+        conn.close()
+        flash("This squawk isn't signed off, so there is nothing to reopen.", "warning")
+        return redirect(request.referrer or url_for("squawks_list"))
+    conn.execute(reopen_sql, (now_iso(), session.get("user_name"), squawk_id))
+    conn.commit()
+    conn.close()
+    flash("Squawk reopened - it's back at New.", "success")
+    return redirect(url_for("squawks_list", step="new"))
 
 
 # ---------------------------------------------------------------------------
@@ -1829,6 +1884,20 @@ def _propagate_section_send_back(conn, section, by):
                      (now_iso(), by, section["linked_todo_id"]))
 
 
+def _propagate_section_reopen(conn, section):
+    """JOBS-13: reopening a CONFIRMED discrepancy also takes the squawk or
+    plane to-do it stands in for back out of Done, so the two agree."""
+    if section["linked_squawk_kind"]:
+        kind, sid = section["linked_squawk_kind"], section["linked_squawk_id"]
+        if kind == "flight":
+            conn.execute("UPDATE flights SET squawk_repaired_at = NULL, squawk_repaired_by = NULL WHERE id = ?", (sid,))
+        else:
+            conn.execute("UPDATE plane_squawks SET repaired_at = NULL, repaired_by = NULL WHERE id = ?", (sid,))
+    elif section["linked_todo_id"]:
+        conn.execute("""UPDATE plane_todos SET done = 0, completed_at = NULL, confirmed_by = NULL WHERE id = ?""",
+                     (section["linked_todo_id"],))
+
+
 @app.route("/projects/<int:project_id>/squawks/<kind>/<int:squawk_id>/fix_on_job", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def project_squawk_fix_on_job(project_id, kind, squawk_id):
@@ -1899,6 +1968,17 @@ def project_todo_do_on_job(project_id, todo_id):
     return redirect(url_for("project_detail", project_id=project_id))
 
 
+def _deleted_job_block(conn, project_id):
+    """JOBS-38: a job in Recently Deleted is read-only until it is restored.
+    Returns a redirect to flash-and-leave when it is deleted, else None."""
+    row = conn.execute("SELECT deleted_at FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if row and row["deleted_at"]:
+        conn.close()
+        flash("That job is in Recently Deleted. Restore it first to change anything.", "warning")
+        return redirect(url_for("project_detail", project_id=project_id))
+    return None
+
+
 @app.route("/projects/<int:project_id>/add_section", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def project_add_section(project_id):
@@ -1915,6 +1995,12 @@ def project_add_section(project_id):
         flash("Enter a name for the discrepancy.", "danger")
         conn.close()
         return redirect(url_for("project_detail", project_id=project_id))
+    # JOBS-10: say so when that name is already on this job, instead of
+    # claiming it was added.
+    if conn.execute("SELECT 1 FROM project_sections WHERE project_id = ? AND name = ?", (project_id, name)).fetchone():
+        conn.close()
+        flash(f"A discrepancy named '{name}' is already on this job.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id))
     conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
                  (project_id, name, now_iso()))
     conn.commit()
@@ -1924,30 +2010,58 @@ def project_add_section(project_id):
 
 
 @app.route("/projects/<int:project_id>/sections/<int:section_id>/complete", methods=["POST"])
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def project_section_complete(project_id, section_id):
     """Checking a sub area's box no longer completes it outright - it
     requests confirmation instead (confirm_requested_at/by), and stays open
     on the calendar/board until an Inspector (or admin) confirms it via
     project_section_confirm. Unchecking it clears both the request and any
-    completion, back to plain open."""
+    completion, back to plain open.
+
+    JOBS-13: once an inspector or admin has confirmed it, a tech can no longer
+    undo that by unticking; an admin or inspector can, and it keeps a
+    "reopened by <name>" note. JOBS-12: both directions say what happened.
+    An inspector can only reopen an already-confirmed one (they confirm, they
+    don't mark things ready)."""
     conn = get_db()
-    section = conn.execute("""SELECT id, linked_squawk_kind, linked_squawk_id, linked_todo_id
-                              FROM project_sections WHERE id = ? AND project_id = ?""",
+    section = conn.execute("""SELECT ps.id, ps.linked_squawk_kind, ps.linked_squawk_id, ps.linked_todo_id,
+                                     ps.completed_at, ps.confirm_requested_at, p.deleted_at
+                              FROM project_sections ps JOIN projects p ON p.id = ps.project_id
+                              WHERE ps.id = ? AND ps.project_id = ?""",
                            (section_id, project_id)).fetchone()
     if not section:
         conn.close()
         abort(404)
+    if section["deleted_at"]:
+        conn.close()
+        flash("That job is in Recently Deleted. Restore it first to change anything.", "warning")
+        return redirect(url_for("project_detail", project_id=project_id))
     completed = request.form.get("completed") == "1"
     by = session.get("user_name")
+    role = "admin" if session.get("is_master_admin") else session.get("shop_role")
+    can_sign_off = role in ("admin", "inspector")
+    if section["completed_at"] and not can_sign_off:
+        conn.close()
+        flash("An Inspector or admin already confirmed that one, so only they can reopen it.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id))
+    if role == "inspector" and not section["completed_at"]:
+        conn.close()
+        flash("Inspectors confirm discrepancies. Use Confirm or Send Back instead.", "warning")
+        return redirect(url_for("project_detail", project_id=project_id))
     if completed:
         conn.execute("UPDATE project_sections SET confirm_requested_at = ?, confirm_requested_by = ? WHERE id = ?",
                      (now_iso(), by, section_id))
         _propagate_section_check(conn, section, by)
+        flash("Marked ready - an Inspector or admin needs to confirm it.", "success")
     else:
+        if section["completed_at"]:
+            conn.execute("UPDATE project_sections SET reopened_at = ?, reopened_by = ? WHERE id = ?",
+                         (now_iso(), by, section_id))
+            _propagate_section_reopen(conn, section)
         conn.execute("""UPDATE project_sections SET confirm_requested_at = NULL, confirm_requested_by = NULL,
                          completed_at = NULL, completed_by = NULL WHERE id = ?""", (section_id,))
         _propagate_section_uncheck(conn, section)
+        flash("Back to open.", "success")
     conn.commit()
     conn.close()
     return redirect(url_for("project_detail", project_id=project_id))
@@ -1960,6 +2074,9 @@ def project_section_confirm(project_id, section_id):
     ready - this is what actually completes it. 'Send back' unchecks it
     instead, so whoever did the work knows it wasn't approved."""
     conn = get_db()
+    blocked = _deleted_job_block(conn, project_id)
+    if blocked:
+        return blocked
     section = conn.execute("""SELECT id, linked_squawk_kind, linked_squawk_id, linked_todo_id
                               FROM project_sections WHERE id = ? AND project_id = ?""",
                            (section_id, project_id)).fetchone()
@@ -1987,6 +2104,9 @@ def project_section_confirm(project_id, section_id):
 @shop_role_required('admin', 'tech')
 def project_section_rename(project_id, section_id):
     conn = get_db()
+    blocked = _deleted_job_block(conn, project_id)
+    if blocked:
+        return blocked
     section = conn.execute("SELECT id, name FROM project_sections WHERE id = ? AND project_id = ?",
                            (section_id, project_id)).fetchone()
     if not section:
@@ -2026,6 +2146,9 @@ def project_section_notes(project_id, section_id):
     description is the write-up an owner actually sees there, once it's
     filled in."""
     conn = get_db()
+    blocked = _deleted_job_block(conn, project_id)
+    if blocked:
+        return blocked
     section = conn.execute("SELECT id FROM project_sections WHERE id = ? AND project_id = ?",
                            (section_id, project_id)).fetchone()
     if not section:
@@ -2757,6 +2880,31 @@ def _quick_type_form_context(conn):
     return quick_types, optional_areas_by_type
 
 
+def _quick_type_days(conn):
+    """{quick type: default days} from Manage > Task Templates (JOBS-39)."""
+    return {r["quick_type"]: r["days"] for r in conn.execute("SELECT quick_type, days FROM task_template_days").fetchall()}
+
+
+def _quick_types_in_text(conn, text):
+    """The Quick Types whose name appears in this text (a project's description)."""
+    low = (text or "").lower()
+    return [t for t in _all_quick_types(conn) if t.lower() in low]
+
+
+def _default_through_date(conn, start_iso, quick_types):
+    """JOBS-39: the "Through" date for a job with a start date and no Through:
+    start + (the longest default time block of its Quick Types) days, counting
+    the start day, so a 1-day job ends the same day and a 1-week job ends 6
+    days later. A job with no Quick Type, or a type with no time block set,
+    is one day."""
+    days_by_type = _quick_type_days(conn)
+    days = max([days_by_type.get(t, 1) for t in quick_types] or [1])
+    try:
+        return (date.fromisoformat(start_iso) + timedelta(days=max(days, 1) - 1)).isoformat()
+    except ValueError:
+        return None
+
+
 @app.route("/projects/new", methods=["GET", "POST"])
 @shop_role_required('admin', 'tech')
 def project_new():
@@ -2790,14 +2938,13 @@ def project_new():
                                    optional_areas_by_type=optional_areas_by_type, preselect_name=name)
         scheduled_date = request.form.get("scheduled_date", "").strip() or None
         scheduled_end_date = request.form.get("scheduled_end_date", "").strip() or None
-        # A start date with no "Through" defaults to a week-long block - most
-        # maintenance jobs run about that long, so it shows a realistic
-        # window on the calendar instead of looking like a single day.
+        # JOBS-39: a start date with no "Through" gets that job type's default
+        # time block from Manage > Task Templates (Oil Change 1 day, Annual 1
+        # week, anything else 1 day) - not a flat week.
+        picked_types = [t for t in (request.form.get("quick_types") or "").split(",") if t] \
+            or _quick_types_in_text(conn, request.form.get("description", ""))
         if scheduled_date and not scheduled_end_date:
-            try:
-                scheduled_end_date = (date.fromisoformat(scheduled_date) + timedelta(days=7)).isoformat()
-            except ValueError:
-                pass
+            scheduled_end_date = _default_through_date(conn, scheduled_date, picked_types)
         if scheduled_end_date and scheduled_date and scheduled_end_date < scheduled_date:
             scheduled_end_date = scheduled_date
         scheduled_color = request.form.get("scheduled_color", "").strip() or None
@@ -2859,6 +3006,7 @@ def project_new():
         a = conn.execute("SELECT tag FROM assets WHERE id = ?", (preselect_asset_id,)).fetchone()
         preselect_asset_tag = a["tag"] if a else None
     quick_types, optional_areas_by_type = _quick_type_form_context(conn)
+    quick_type_days = _quick_type_days(conn)
     conn.close()
     # Clicking a plane's to-do item (asset_detail.html) links here with
     # ?name=<the to-do text> so the project starts pre-filled from it,
@@ -2875,7 +3023,7 @@ def project_new():
     return render_template("project_form.html", project=None, assets=assets, preselect_asset_id=preselect_asset_id,
                            preselect_asset_tag=preselect_asset_tag, preselect_name=preselect_name,
                            preselect_quick_type=preselect_quick_type, quick_types=quick_types,
-                           optional_areas_by_type=optional_areas_by_type)
+                           optional_areas_by_type=optional_areas_by_type, quick_type_days=quick_type_days)
 
 
 @app.route("/projects/<int:project_id>/edit", methods=["GET", "POST"])
@@ -2886,6 +3034,11 @@ def project_edit(project_id):
     if not project:
         conn.close()
         abort(404)
+    if project["deleted_at"]:
+        # JOBS-38: a deleted job can't be edited until it is restored.
+        conn.close()
+        flash("That job is in Recently Deleted. Restore it first to change anything.", "warning")
+        return redirect(url_for("project_detail", project_id=project_id))
     assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     if request.method == "POST":
         name = request.form.get("name", "").strip()
@@ -2915,10 +3068,8 @@ def project_edit(project_id):
         scheduled_date = request.form.get("scheduled_date", "").strip() or None
         scheduled_end_date = request.form.get("scheduled_end_date", "").strip() or None
         if scheduled_date and not scheduled_end_date:
-            try:
-                scheduled_end_date = (date.fromisoformat(scheduled_date) + timedelta(days=7)).isoformat()
-            except ValueError:
-                pass
+            scheduled_end_date = _default_through_date(
+                conn, scheduled_date, _quick_types_in_text(conn, request.form.get("description", "")))
         if scheduled_end_date and scheduled_date and scheduled_end_date < scheduled_date:
             scheduled_end_date = scheduled_date
         scheduled_color = request.form.get("scheduled_color", "").strip() or None
@@ -2935,8 +3086,10 @@ def project_edit(project_id):
         flash("Project updated.", "success")
         return redirect(url_for("project_detail", project_id=project_id))
     quick_types = _all_quick_types(conn)
+    quick_type_days = _quick_type_days(conn)
     conn.close()
-    return render_template("project_form.html", project=project, assets=assets, quick_types=quick_types)
+    return render_template("project_form.html", project=project, assets=assets, quick_types=quick_types,
+                           quick_type_days=quick_type_days)
 
 
 # ---------------------------------------------------------------------------
@@ -3034,6 +3187,18 @@ def _project_closeout_checklist(conn, project, usage_by_section, plane_squawks, 
         else:
             tag = project["asset_display_tag"] or "this plane"
             items.append({"status": "ok", "text": f"No open squawks on {tag}"})
+
+    # JOBS-21: found items the owner hasn't answered yet - a job shouldn't be
+    # closed (and the owner told it is ready) with a quote still waiting on them.
+    waiting_found = conn.execute("SELECT COUNT(*) c FROM found_items WHERE project_id = ? AND status = 'waiting'",
+                                 (project["id"],)).fetchone()["c"]
+    total_found = conn.execute("SELECT COUNT(*) c FROM found_items WHERE project_id = ?", (project["id"],)).fetchone()["c"]
+    if waiting_found:
+        items.append({"status": "warn", "key": "found",
+                      "text": f"{waiting_found} found item{'s' if waiting_found != 1 else ''} still waiting on the owner",
+                      "anchor": "found-items", "action_label": "Open it", "open_tab": "tab-found-btn"})
+    elif total_found:
+        items.append({"status": "ok", "key": "found", "text": "All found items answered"})
 
     # Logbook entries saved against this job (logbook.py).
     saved = conn.execute("SELECT COUNT(*) c FROM logbook_entries WHERE project_id = ? AND deleted_at IS NULL",
@@ -3281,8 +3446,11 @@ def project_detail(project_id):
     if not project:
         conn.close()
         abort(404)
-    # A new project's intake check comes first (small Skip on that page).
-    if project["intake_status"] == "pending":
+    # A new project's intake check comes first (Skip for now is on that page).
+    # JOBS-01: every shop role can do the intake check, so everyone is sent
+    # there (an apprentice's is then flagged "needs verification").
+    # JOBS-38: a deleted job is never forwarded to its intake.
+    if project["intake_status"] == "pending" and not project["deleted_at"]:
         conn.close()
         return redirect(url_for("project_intake", project_id=project_id))
     intake = None
@@ -3333,7 +3501,7 @@ def project_detail(project_id):
     conn.commit()
     section_meta = {r["name"]: dict(r) for r in conn.execute(
         """SELECT id, name, completed_at, completed_by, confirm_requested_at, confirm_requested_by,
-                  sent_back_at, sent_back_by, notes, description,
+                  sent_back_at, sent_back_by, reopened_at, reopened_by, notes, description,
                   linked_squawk_kind, linked_squawk_id, linked_todo_id
            FROM project_sections WHERE project_id = ?""", (project_id,)).fetchall()}
     for name, section_data in usage_by_section.items():
@@ -3345,6 +3513,8 @@ def project_detail(project_id):
         section_data["confirm_requested_by"] = meta["confirm_requested_by"] if meta else None
         section_data["sent_back_at"] = meta["sent_back_at"] if meta else None
         section_data["sent_back_by"] = meta["sent_back_by"] if meta else None
+        section_data["reopened_at"] = meta["reopened_at"] if meta else None
+        section_data["reopened_by"] = meta["reopened_by"] if meta else None
         section_data["notes"] = meta["notes"] if meta else None
         section_data["description"] = meta["description"] if meta else None
         # A Discrepancy that came from "Fix on this job"/"Do on this job"
@@ -3528,8 +3698,16 @@ def _intake_sub_areas(data):
     return names
 
 
+def _intake_actor_role():
+    """The shop role to record next to an intake check (JOBS-01). A master
+    admin counts as an admin."""
+    if session.get("is_master_admin"):
+        return "admin"
+    return session.get("shop_role") or ""
+
+
 @app.route("/projects/<int:project_id>/intake", methods=["GET", "POST"])
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def project_intake(project_id):
     conn = get_db()
     project = conn.execute("""SELECT projects.*, a.tag as asset_display_tag FROM projects
@@ -3538,6 +3716,11 @@ def project_intake(project_id):
     if not project:
         conn.close()
         abort(404)
+    if project["deleted_at"]:
+        # JOBS-38: a job in Recently Deleted can't have its intake changed.
+        conn.close()
+        flash("That job is in Recently Deleted. Restore it first to change anything.", "warning")
+        return redirect(url_for("project_detail", project_id=project_id))
     existing = None
     if project["intake_json"]:
         try:
@@ -3547,8 +3730,9 @@ def project_intake(project_id):
     if request.method == "POST":
         if request.form.get("action") == "skip":
             if project["intake_status"] in (None, "pending"):
-                conn.execute("UPDATE projects SET intake_status = 'skipped', intake_at = ?, intake_by = ? WHERE id = ?",
-                             (now_iso(), session.get("user_name"), project_id))
+                conn.execute("""UPDATE projects SET intake_status = 'skipped', intake_at = ?, intake_by = ?,
+                                 intake_by_role = ? WHERE id = ?""",
+                             (now_iso(), session.get("user_name"), _intake_actor_role(), project_id))
                 conn.commit()
             conn.close()
             flash("Intake check skipped.", "warning")
@@ -3587,8 +3771,12 @@ def project_intake(project_id):
                 conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
                              (project_id, f"Squawk: {it['text'][:60]}", now_iso()))
                 new_areas.append(f"Squawk: {it['text'][:60]}")
-        conn.execute("""UPDATE projects SET intake_status = 'done', intake_json = ?, intake_at = ?, intake_by = ?
-                        WHERE id = ?""", (json.dumps(data), now_iso(), session.get("user_name"), project_id))
+        # JOBS-01: who did it (and their role) is kept; saving again clears any
+        # earlier verification, since the check itself just changed.
+        conn.execute("""UPDATE projects SET intake_status = 'done', intake_json = ?, intake_at = ?, intake_by = ?,
+                         intake_by_role = ?, intake_verified_by = NULL, intake_verified_at = NULL
+                        WHERE id = ?""", (json.dumps(data), now_iso(), session.get("user_name"),
+                                          _intake_actor_role(), project_id))
         conn.commit()
         conn.close()
         flash("Intake check saved." + (f" Discrepanc{'ies' if len(new_areas) != 1 else 'y'} added: {', '.join(new_areas)}."
@@ -3597,6 +3785,29 @@ def project_intake(project_id):
     conn.close()
     return render_template("project_intake.html", project=project, checks=INTAKE_CHECKS,
                            rows=INTAKE_EXTRA_ROWS, data=existing, form=None)
+
+
+@app.route("/projects/<int:project_id>/intake/verify", methods=["POST"])
+@shop_role_required('admin', 'tech', 'inspector')
+def project_intake_verify(project_id):
+    """JOBS-01: an admin, tech or inspector verifies an intake check an
+    apprentice did. Who and when are recorded."""
+    conn = get_db()
+    project = conn.execute("SELECT id, intake_status, deleted_at FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    if project["deleted_at"]:
+        conn.close()
+        flash("That job is in Recently Deleted. Restore it first to change anything.", "warning")
+        return redirect(url_for("project_detail", project_id=project_id))
+    if project["intake_status"] == "done":
+        conn.execute("UPDATE projects SET intake_verified_by = ?, intake_verified_at = ? WHERE id = ?",
+                     (session.get("user_name"), now_iso(), project_id))
+        conn.commit()
+        flash("Intake check verified.", "success")
+    conn.close()
+    return redirect(url_for("project_detail", project_id=project_id))
 
 
 def _group_usage_by_section(usage_rows):
@@ -3783,6 +3994,11 @@ def project_status(project_id):
     if not current:
         conn.close()
         abort(404)
+    if current["deleted_at"]:
+        # JOBS-38: no status changes on a job in Recently Deleted.
+        conn.close()
+        flash("That job is in Recently Deleted. Restore it first to change anything.", "warning")
+        return redirect(url_for("project_detail", project_id=project_id))
     # QA fix qa-project-double-complete: pressing Complete on a job that's
     # already completed (a double tap, or pressing it again later) used to
     # re-run the 100-hour/oil-change recording every time, duplicating the
@@ -3810,6 +4026,14 @@ def project_status(project_id):
             flash("Marked completed and the owner was told it's ready." if reached else
                   "Marked completed. The owner couldn't be texted or emailed (no owner linked to this plane, "
                   "or email/SMS isn't set up).", "success" if reached else "warning")
+        else:
+            flash(f"Job {current['code']} marked completed.", "success")  # JOBS-14
+    elif new_status == "on_hold":
+        flash(f"Job {current['code']} put on hold.", "success")  # JOBS-14
+    elif new_status == "archived":
+        flash(f"Job {current['code']} archived.", "success")
+    else:
+        flash(f"Job {current['code']} " + ("restored." if current["status"] == "archived" else "marked active."), "success")
     conn.close()
     return redirect(url_for("project_detail", project_id=project_id))
 
@@ -3900,6 +4124,9 @@ def project_delete(project_id):
     history, parts usage, and photos stay intact and searchable; it's just
     hidden from the default project views."""
     conn = get_db()
+    blocked = _deleted_job_block(conn, project_id)
+    if blocked:
+        return blocked
     project = conn.execute("SELECT name FROM projects WHERE id = ?", (project_id,)).fetchone()
     if not project:
         conn.close()
@@ -4022,6 +4249,13 @@ def project_restore(project_id):
     conn.commit()
     conn.close()
     flash(f"Project '{project['name']}' restored." + (f" Given a new code: {new_code}." if new_code else ""), "success")
+    # JOBS-25/38: Restore returns to wherever it was pressed - the Deleted view
+    # on Projects, or the job itself - and Recently Deleted otherwise.
+    back = request.form.get("next")
+    if back == "projects_deleted":
+        return redirect(url_for("projects_list", status="deleted"))
+    if back == "project":
+        return redirect(url_for("project_detail", project_id=project_id))
     return redirect(url_for("trash_page"))
 
 
@@ -4262,7 +4496,9 @@ def project_labor_codes(project_id):
     project as a whole ("General") and one per area/sub-system that's been
     used on it, so a laborer can scan the specific task they're working."""
     conn = get_db()
-    project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    project = conn.execute("""SELECT projects.*, a.tag AS asset_tag FROM projects
+                              LEFT JOIN assets a ON a.id = projects.asset_id WHERE projects.id = ?""",
+                           (project_id,)).fetchone()
     if not project:
         conn.close()
         abort(404)
@@ -4275,9 +4511,13 @@ def project_labor_codes(project_id):
         )
         ORDER BY section
     """, (project_id, project_id)).fetchall()
+    confirmed = {r["name"] for r in conn.execute(
+        "SELECT name FROM project_sections WHERE project_id = ? AND completed_at IS NOT NULL", (project_id,)).fetchall()}
     conn.close()
-    section_names = [r["section"] for r in sections]
-    return render_template("project_labor_codes.html", project=project, sections=section_names)
+    # JOBS-40: open discrepancies first, confirmed ones last (shown as done).
+    section_rows = [{"name": r["section"], "done": r["section"] in confirmed} for r in sections]
+    section_rows.sort(key=lambda x: x["done"])
+    return render_template("project_labor_codes.html", project=project, sections=section_rows)
 
 
 # ---------------------------------------------------------------------------
@@ -4286,7 +4526,7 @@ def project_labor_codes(project_id):
 # ---------------------------------------------------------------------------
 
 @app.route("/assets")
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def assets_list():
     conn = get_db()
     q = request.args.get("q", "").strip()
@@ -4308,7 +4548,8 @@ def assets_list():
     # Inspection item set up (or no tach reading yet).
     hundred = {}
     for a in assets:
-        row = conn.execute("SELECT COUNT(*) c FROM projects WHERE asset_id = ?", (a["id"],)).fetchone()
+        # JOBS-06: jobs in Recently Deleted don't count.
+        row = conn.execute("SELECT COUNT(*) c FROM projects WHERE asset_id = ? AND deleted_at IS NULL", (a["id"],)).fetchone()
         project_counts[a["id"]] = row["c"]
         photo = conn.execute(
             "SELECT filename FROM photos WHERE asset_id = ? ORDER BY is_cover DESC, created_at DESC LIMIT 1",
@@ -4348,7 +4589,7 @@ def asset_new():
         conn = get_db()
         existing = conn.execute("SELECT id FROM assets WHERE tag = ?", (tag,)).fetchone()
         if existing:
-            flash(f"An asset with tag '{tag}' already exists.", "danger")
+            flash(f"An aircraft with tail number '{tag}' already exists.", "danger")
             conn.close()
             return render_template("asset_form.html", asset=None)
         hobbs_hours = _parse_float(request.form.get("hobbs_hours"))
@@ -4402,13 +4643,27 @@ def asset_quick_new():
     existing = conn.execute("SELECT id FROM assets WHERE tag = ?", (tag,)).fetchone()
     if existing:
         conn.close()
-        return jsonify({"error": f"An asset with tag '{tag}' already exists."}), 400
+        return jsonify({"error": f"An aircraft with tail number '{tag}' already exists."}), 400
     cur = conn.execute("""INSERT INTO assets (tag, name, profile_incomplete, created_at, updated_at)
                           VALUES (?, ?, 1, ?, ?)""", (tag, tag, now_iso(), now_iso()))
     new_id = cur.lastrowid
     conn.commit()
     conn.close()
     return jsonify({"id": new_id, "tag": tag})
+
+
+def is_shared_shop_login():
+    """True when the signed-in account is the shop's shared login (an account
+    whose name or username starts with the word "shop") rather than a named
+    person. JOBS-22: there, "Completed by" can't default to the account name."""
+    idents = [(session.get("user_name") or "")]
+    if session.get("user_id"):
+        conn = get_db()
+        row = conn.execute("SELECT username FROM users WHERE id = ?", (session["user_id"],)).fetchone()
+        conn.close()
+        if row:
+            idents.append(row["username"] or "")
+    return any(re.match(r"^shop\b", x.strip().lower()) for x in idents if x)
 
 
 @app.route("/assets/<int:asset_id>")
@@ -4422,8 +4677,9 @@ def asset_detail(asset_id):
     if not asset:
         conn.close()
         abort(404)
+    # JOBS-06: jobs in Recently Deleted stay out of the history and the total.
     projects = conn.execute(
-        "SELECT * FROM projects WHERE asset_id = ? ORDER BY created_at DESC", (asset_id,)
+        "SELECT * FROM projects WHERE asset_id = ? AND deleted_at IS NULL ORDER BY created_at DESC", (asset_id,)
     ).fetchall()
     project_blocks = []
     total_cost = 0.0
@@ -4464,32 +4720,18 @@ def asset_detail(asset_id):
         oil_log = [f for f in asset_flights if f["oil_added_qt"]]
         total_oil_added = sum(f["oil_added_qt"] or 0 for f in asset_flights)
 
-    # Open squawks against this plane - flagged during a logged flight, or
-    # reported directly (see asset_squawk_new()). A quick squawk can exist
-    # for any asset, not just a Flight School plane.
-    open_squawks = conn.execute(f"""
-        SELECT {_FLIGHT_SQUAWK_COLS}
-        FROM flights f
-        JOIN assets a ON a.id = f.asset_id
-        JOIN students s ON s.id = f.student_id
-        LEFT JOIN cfis c ON c.id = f.cfi_id
-        LEFT JOIN users au ON au.id = f.squawk_assigned_to
-        WHERE f.squawk = 1 AND f.squawk_acknowledged_at IS NULL AND a.id = ?
-        UNION ALL
-        SELECT {_QUICK_SQUAWK_COLS}
-        FROM plane_squawks q
-        JOIN assets a ON a.id = q.asset_id
-        LEFT JOIN users au ON au.id = q.assigned_to
-        WHERE q.acknowledged_at IS NULL AND a.id = ?
-        ORDER BY event_date DESC, squawk_id DESC
-    """, (asset_id, asset_id)).fetchall()
+    # Squawks at the New step (JOBS-35): the red banner at the top holds just
+    # these - not acknowledged yet, or nobody assigned (JOBS-09). Once someone
+    # is assigned they move into the To-Do card below instead of showing twice.
+    plane_open = get_plane_open_squawks(conn, asset_id)
+    open_squawks = [sq for sq in plane_open if squawk_step_index(sq) == 0]
 
     # Squawks for the plane's To-Do list specifically: unlike open_squawks
     # above (the "Needs Acknowledgement" banner - unacknowledged only),
     # this also keeps an already-acknowledged squawk on the to-do list
     # (shown amber there) until it's actually repaired, since acknowledging
     # it isn't the same as it being done.
-    todo_squawks = get_plane_open_squawks(conn, asset_id)
+    todo_squawks = [sq for sq in plane_open if squawk_step_index(sq) != 0]
     done_squawks = get_plane_done_squawks(conn, asset_id)
 
     # Cylinder compression checks - logged from the Maintenance side (any
@@ -4522,7 +4764,8 @@ def asset_detail(asset_id):
                            open_squawks=open_squawks, todo_squawks=todo_squawks, done_squawks=done_squawks, photos=photos, todos=todos, project_cover=project_cover,
                            assignable_workers=assignable_workers,
                            latest_compression=latest_compression, compression_count=compression_count,
-                           asset_manuals=asset_manuals, owner_student=owner_student)
+                           asset_manuals=asset_manuals, owner_student=owner_student,
+                           shared_shop_login=is_shared_shop_login())
 
 
 @app.route("/assets/<int:asset_id>/promote_own_plane", methods=["POST"])
@@ -4580,7 +4823,7 @@ def asset_squawk_new(asset_id):
                  (asset_id, notes, session.get("user_name"), now_iso()))
     conn.commit()
     conn.close()
-    flash("Issue reported - it'll show up on the Squawks page until it's addressed.", "success")
+    flash("Squawk reported - it's on the Squawks page as New.", "success")
     return redirect(url_for("asset_detail", asset_id=asset_id))
 
 
@@ -4648,9 +4891,11 @@ def plane_todo_toggle(asset_id, todo_id):
     if todo["done"]:
         conn.execute("""UPDATE plane_todos SET done = 0, completed_at = NULL, confirmed_by = NULL,
                          confirm_requested_at = NULL, confirm_requested_by = NULL WHERE id = ?""", (todo_id,))
+        flash("Back to not done yet.", "success")  # JOBS-42
     elif todo["confirm_requested_at"]:
         conn.execute("UPDATE plane_todos SET confirm_requested_at = NULL, confirm_requested_by = NULL WHERE id = ?",
                      (todo_id,))
+        flash("Back to not done yet.", "success")  # JOBS-42
     else:
         conn.execute("UPDATE plane_todos SET confirm_requested_at = ?, confirm_requested_by = ? WHERE id = ?",
                      (now_iso(), session.get("user_name"), todo_id))
@@ -4698,13 +4943,27 @@ def plane_todo_delete(asset_id, todo_id):
 
 
 @app.route("/my-tasks")
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def tech_spot():
     """A laborer's own work list: squawks handed to them, plane to-dos
     handed to them, and every fleet maintenance item that's due/overdue
     (not assigned to anyone in particular - any tech can pick one up) - all
     in one spot instead of hunting across Squawks and each plane's page."""
     conn = get_db()
+    # JOBS-15: an inspector's My Tasks is just what they can act on - squawk
+    # repairs and plane to-dos waiting for a sign-off, for everyone.
+    if session.get("shop_role") == "inspector" and not session.get("is_master_admin"):
+        awaiting_todos = conn.execute("""
+            SELECT pt.*, a.tag as asset_tag FROM plane_todos pt
+            JOIN assets a ON a.id = pt.asset_id
+            WHERE pt.done = 0 AND pt.confirm_requested_at IS NOT NULL
+            ORDER BY pt.confirm_requested_at
+        """).fetchall()
+        awaiting_squawks = get_squawks_awaiting_confirm(conn)
+        conn.close()
+        return render_template("tech_spot.html", inspector_only=True, my_squawks=[], my_todos=[],
+                               my_todos_pending=awaiting_todos, my_todos_done=[], my_squawks_done=[],
+                               reminders=[], awaiting_squawks=awaiting_squawks)
     my_squawks = get_my_squawks(conn, session["user_id"])
     # Open (not yet checked off) and awaiting-confirmation to-dos are both
     # "not done yet", just split so the page can show the pending ones as
@@ -4738,7 +4997,7 @@ def tech_spot():
 
 
 @app.route("/assets/<int:asset_id>/oil")
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def asset_oil(asset_id):
     """Oil consumption for one asset, tracked here in Maintenance (not just
     Flight School) - a running chart of quarts added over time, plus hours
@@ -4788,7 +5047,7 @@ def asset_oil(asset_id):
 
 
 @app.route("/assets/<int:asset_id>/compression", methods=["GET", "POST"])
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def asset_compression(asset_id):
     """Cylinder compression checks for one asset, logged here in
     Maintenance - a running trend chart (one line per cylinder) plus a
@@ -4801,9 +5060,35 @@ def asset_compression(asset_id):
         conn.close()
         abort(404)
 
+    # JOBS-27: admin and tech can correct (pencil) or remove (X) a check;
+    # an inspector can look but not log or change anything.
+    can_edit_checks = bool(session.get("is_master_admin") or session.get("shop_role") in ("admin", "tech"))
     if request.method == "POST":
+        if not can_edit_checks:
+            conn.close()
+            flash("You don't have access to that part of Shop Inventory.", "danger")
+            return redirect(url_for("asset_compression", asset_id=asset_id))
         checked_date = request.form.get("checked_date", "").strip() or date.today().strftime("%Y-%m-%d")
         cyls = [_parse_float(request.form.get(f"cyl{i}")) for i in range(1, 7)]
+        check_id = request.form.get("check_id", type=int)
+        if check_id:
+            existing = conn.execute("SELECT id FROM compression_checks WHERE id = ? AND asset_id = ?",
+                                    (check_id, asset_id)).fetchone()
+            if not existing:
+                conn.close()
+                abort(404)
+            conn.execute("""UPDATE compression_checks SET checked_date = ?, hours = ?, master_orifice = ?,
+                             cyl1 = ?, cyl2 = ?, cyl3 = ?, cyl4 = ?, cyl5 = ?, cyl6 = ?, performed_by = ?, notes = ?
+                             WHERE id = ?""",
+                         (checked_date, _parse_float(request.form.get("hours")),
+                          _parse_float(request.form.get("master_orifice")),
+                          cyls[0], cyls[1], cyls[2], cyls[3], cyls[4], cyls[5],
+                          request.form.get("performed_by", "").strip() or session.get("user_name"),
+                          request.form.get("notes", "").strip() or None, check_id))
+            conn.commit()
+            conn.close()
+            flash("Compression check updated.", "success")
+            return redirect(url_for("asset_compression", asset_id=asset_id))
         conn.execute("""INSERT INTO compression_checks (asset_id, checked_date, hours, master_orifice,
                          cyl1, cyl2, cyl3, cyl4, cyl5, cyl6, performed_by, notes, created_at)
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -4842,13 +5127,38 @@ def asset_compression(asset_id):
         if used:
             default_num_cylinders = used
 
+    editing = None
+    edit_id = request.args.get("edit", type=int)
+    if edit_id and can_edit_checks:
+        editing = next((c for c in checks if c["id"] == edit_id), None)
+        if editing:
+            used = max((i for i in range(1, 7) if editing[f"cyl{i}"] is not None), default=None)
+            if used:
+                default_num_cylinders = used
+
     return render_template("asset_compression.html", asset=asset, checks=history, latest=latest,
                            chart_labels=chart_labels, cyl_series=cyl_series, default_num_cylinders=default_num_cylinders,
-                           today=date.today().strftime("%Y-%m-%d"))
+                           today=date.today().strftime("%Y-%m-%d"), can_edit_checks=can_edit_checks, editing=editing)
+
+
+@app.route("/assets/<int:asset_id>/compression/<int:check_id>/delete", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def asset_compression_delete(asset_id, check_id):
+    """JOBS-27: remove a compression check that was typed in wrong."""
+    conn = get_db()
+    row = conn.execute("SELECT id FROM compression_checks WHERE id = ? AND asset_id = ?", (check_id, asset_id)).fetchone()
+    if not row:
+        conn.close()
+        abort(404)
+    conn.execute("DELETE FROM compression_checks WHERE id = ?", (check_id,))
+    conn.commit()
+    conn.close()
+    flash("Compression check removed.", "success")
+    return redirect(url_for("asset_compression", asset_id=asset_id))
 
 
 @app.route("/assets/<int:asset_id>/edit", methods=["GET", "POST"])
-@shop_role_required('admin')
+@shop_role_required('admin', 'tech')
 def asset_edit(asset_id):
     conn = get_db()
     asset = conn.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
@@ -4863,7 +5173,7 @@ def asset_edit(asset_id):
             return render_template("asset_form.html", asset=asset)
         clash = conn.execute("SELECT id FROM assets WHERE tag = ? AND id != ?", (tag, asset_id)).fetchone()
         if clash:
-            flash(f"Another asset already uses tag '{tag}'.", "danger")
+            flash(f"Another aircraft already uses tail number '{tag}'.", "danger")
             conn.close()
             return render_template("asset_form.html", asset=asset)
         is_flight_asset = 1 if request.form.get("is_flight_asset") else 0
@@ -5164,7 +5474,7 @@ def _maint_form_numbers(form, mtype, need_last_done=True):
 
 
 @app.route("/assets/<int:asset_id>/maintenance/new", methods=["GET", "POST"])
-@shop_role_required('admin')
+@shop_role_required('admin', 'tech')
 def maintenance_new(asset_id):
     conn = get_db()
     asset = conn.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
@@ -5217,7 +5527,7 @@ def maintenance_new(asset_id):
 
 
 @app.route("/maintenance/<int:item_id>/edit", methods=["GET", "POST"])
-@shop_role_required('admin')
+@shop_role_required('admin', 'tech')
 def maintenance_edit(item_id):
     conn = get_db()
     item = conn.execute("SELECT * FROM maintenance_items WHERE id = ?", (item_id,)).fetchone()
@@ -5396,6 +5706,9 @@ def part_add_photos(part_id):
 @shop_role_required('admin', 'tech')
 def project_add_photos(project_id):
     conn = get_db()
+    blocked = _deleted_job_block(conn, project_id)
+    if blocked:
+        return blocked
     project = conn.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
     if not project:
         conn.close()
@@ -6263,12 +6576,37 @@ def task_templates():
         conn.close()
         return redirect(url_for("task_templates"))
     quick_types = _all_quick_types(conn)
+    quick_type_days = _quick_type_days(conn)  # JOBS-39
     custom_type_rows = {r["name"]: r["id"] for r in conn.execute("SELECT id, name FROM task_template_types").fetchall()}
     areas_by_type = {t: conn.execute("SELECT * FROM task_template_areas WHERE quick_type = ? ORDER BY sort_order, name",
                                      (t,)).fetchall() for t in quick_types}
     conn.close()
     return render_template("task_templates.html", quick_types=quick_types, areas_by_type=areas_by_type,
-                           custom_type_rows=custom_type_rows)
+                           custom_type_rows=custom_type_rows, quick_type_days=quick_type_days)
+
+
+@app.route("/manage/task-templates/days", methods=["POST"])
+@shop_role_required('admin')
+def task_template_days():
+    """JOBS-39: the default time block (days) for each Quick Type, used for a
+    new project's Through date when that is left blank. Blank = 1 day."""
+    conn = get_db()
+    for t in _all_quick_types(conn):
+        raw = (request.form.get("days_" + t) or "").strip()
+        if not raw:
+            conn.execute("DELETE FROM task_template_days WHERE quick_type = ?", (t,))
+            continue
+        if not raw.isdigit() or not (1 <= int(raw) <= 365):
+            conn.rollback()
+            conn.close()
+            flash(f"Use a whole number of days from 1 to 365 for {t}.", "danger")
+            return redirect(url_for("task_templates"))
+        conn.execute("INSERT INTO task_template_days (quick_type, days) VALUES (?, ?) "
+                     "ON CONFLICT(quick_type) DO UPDATE SET days = excluded.days", (t, int(raw)))
+    conn.commit()
+    conn.close()
+    flash("Default time blocks saved.", "success")
+    return redirect(url_for("task_templates"))
 
 
 @app.route("/manage/task-templates/<int:area_id>/edit", methods=["POST"])
@@ -8084,11 +8422,13 @@ def project_reschedule_dismiss(project_id):
     flag so it drops off the dashboard. Doesn't touch scheduled_date itself;
     use the normal Edit Project form for that."""
     conn = get_db()
+    proj = conn.execute("SELECT code FROM projects WHERE id = ?", (project_id,)).fetchone()
     conn.execute("UPDATE projects SET customer_reschedule_requested_at = NULL, customer_reschedule_note = NULL WHERE id = ?",
                  (project_id,))
     conn.commit()
     conn.close()
-    flash("Dismissed.", "success")
+    # JOBS-14: say what was cleared.
+    flash(f"Reschedule request for {proj['code']} cleared." if proj else "Reschedule request cleared.", "success")
     return redirect(request.referrer or url_for("dashboard"))
 
 

@@ -162,7 +162,7 @@ def manuals_for_asset(conn, asset):
 # ---------------------------------------------------------------------------
 
 @manuals_bp.route("/manuals")
-@shop_role_required('admin')
+@shop_role_required('admin', 'tech', 'inspector', 'apprentice')
 def manuals_list():
     conn = get_db()
     manuals = conn.execute("SELECT * FROM manuals ORDER BY created_at DESC").fetchall()
@@ -212,7 +212,7 @@ def manuals_upload():
 
 
 @manuals_bp.route("/manuals/<int:manual_id>")
-@shop_role_required('admin')
+@shop_role_required('admin', 'tech', 'inspector', 'apprentice')
 def manual_detail(manual_id):
     conn = get_db()
     manual = conn.execute("SELECT * FROM manuals WHERE id = ?", (manual_id,)).fetchone()

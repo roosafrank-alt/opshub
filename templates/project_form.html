@@ -6,17 +6,18 @@
 <div class="card p-4">
   <h4>{{ 'Edit Project' if project else 'New Project' }}</h4>
   {% if project %}<p class="text-muted small mb-3"><code class="text-primary">{{ project.code }}</code> - the project code doesn't change.</p>{% endif %}
-  <form method="post" id="project-form" data-preselect-quick-type="{{ preselect_quick_type or '' }}">
+  <script type="application/json" id="quick-type-days-json">{{ (quick_type_days or {})|tojson }}</script>
+  <form method="post" id="project-form" data-preselect-quick-type="{{ preselect_quick_type or '' }}" data-editing="{{ '1' if project else '' }}">
     <div class="mb-3">
       <label class="form-label">Project Name *</label>
       <input type="text" name="name" id="project-name-input" class="form-control" value="{{ project.name if project else (preselect_name or preselect_asset_tag or '') }}" required autofocus>
     </div>
     <div class="mb-3">
-      <label class="form-label small mb-1 d-block">Quick Type <span class="text-muted small">(fills in the description below - pick as many as apply)</span></label>
+      <label class="form-label small mb-1 d-block">Quick Type <span class="text-muted small">{% if project %}(tap to add or remove just that word in the description below){% else %}(fills in the description below - pick as many as apply){% endif %}</span></label>
       {% set short_labels = {'Annual Inspection': 'Annual', '100hr Inspection': '100hr'} %}
       <div class="btn-group btn-group-sm flex-wrap" role="group">
         {% for t in quick_types %}
-        <button type="button" class="btn btn-outline-secondary quick-desc-btn" data-value="{{ t }}">{{ short_labels.get(t, t) }}</button>
+        <button type="button" class="btn btn-outline-secondary quick-desc-btn" data-value="{{ t }}" {% if project %}data-change="JOBS-19"{% endif %}>{{ short_labels.get(t, t) }}</button>
         {% endfor %}
         <button type="button" class="btn btn-outline-secondary" id="quick-desc-other-btn">Other...</button>
       </div>
@@ -37,10 +38,10 @@
     </div>
     <div class="mb-3">
       <label class="form-label">Description <span class="text-muted small">(what exactly is being done)</span></label>
-      <textarea name="description" id="project-description-input" class="form-control" rows="3" placeholder="e.g. Conveyor belt #3 rebuild">{{ project.description if project else '' }}</textarea>
+      <textarea name="description" id="project-description-input" class="form-control" rows="3" placeholder="e.g. Annual inspection, replace left brake pads" data-change="JOBS-20">{{ project.description if project else '' }}</textarea>
     </div>
     <div class="mb-3">
-      <label class="form-label">Aircraft / Plane <span class="text-muted small">(optional)</span></label>
+      <label class="form-label">Aircraft <span class="text-muted small">(optional)</span></label>
       <select name="asset_id" id="project-asset-select" class="form-select">
         <option value="">-- None --</option>
         {% for a in assets %}
@@ -48,7 +49,7 @@
         {% endfor %}
         <option value="__add_new__">+ Add New...</option>
       </select>
-      <div class="form-text">Link this project to an asset profile to get a combined history and hours-based maintenance tracking. Picking one fills in the project name with its tail number. Pick "+ Add New..." above for just a tail number, right here, or use <a href="{{ url_for('asset_new') }}" target="_blank">the full form</a>.</div>
+      <div class="form-text" data-change="JOBS-20 JOBS-24">Link this job to a plane to get its combined history and hours-based maintenance tracking. Picking one fills in the project name with its tail number. Pick "+ Add New..." above for just a tail number, right here{% if is_master_admin or shop_role == 'admin' %}, or use <a href="{{ url_for('asset_new') }}" target="_blank">the full form</a>{% endif %}.</div>
       <div id="asset-quick-add-row" class="input-group input-group-sm mt-1" style="display:none;">
         <input type="text" id="asset-quick-add-input" class="form-control" placeholder="Tail / serial number">
         <button type="button" id="asset-quick-add-btn" class="btn btn-primary">Add</button>
@@ -61,8 +62,8 @@
         <input type="date" name="scheduled_date" id="project-scheduled-date-input" class="form-control" value="{{ project.scheduled_date if project and project.scheduled_date else '' }}">
       </div>
       <div class="col-md-6 mb-3">
-        <label class="form-label">Through <span class="text-muted small">(defaults to a week out if left blank)</span></label>
-        <input type="date" name="scheduled_end_date" id="project-scheduled-end-date-input" class="form-control" value="{{ project.scheduled_end_date if project and project.scheduled_end_date else '' }}">
+        <label class="form-label">Through <span class="text-muted small">(left blank, it's filled in from the job type: Oil Change 1 day, Annual 1 week)</span></label>
+        <input type="date" name="scheduled_end_date" id="project-scheduled-end-date-input" class="form-control" value="{{ project.scheduled_end_date if project and project.scheduled_end_date else '' }}" data-change="JOBS-39">
       </div>
     </div>
     <div class="row align-items-end">
@@ -105,29 +106,45 @@
 </div>
 <script>
 (function () {
-  // Mirrors the server's own "blank Through defaults to a week out" (see
-  // project_new/project_edit in app.py) into the field itself as soon as a
-  // Start date is picked - otherwise Through stays blank until after
-  // saving, so opening its date picker before that shows today's month
-  // instead of jumping near the Start date, which looked like the end date
-  // was wrongly defaulting to "now" instead of the project's own dates.
-  // On Edit, Through already has a value from the project (not blank), so
-  // picking a new Start date keeps following it a week out too - unless
-  // the user has typed their own Through date directly, in which case that
-  // choice sticks and stops being overwritten.
+  // Mirrors the server's own default for a blank Through (JOBS-39) into the
+  // field as soon as a Start date is picked, so its date picker opens near
+  // the start instead of on today. The default is the longest time block of
+  // the picked Quick Types (Manage > Task Templates; Oil Change 1 day, Annual
+  // 1 week; anything else 1 day), counting the start day. On Edit a job that
+  // already has both dates keeps its length when the Start date moves. Once
+  // someone types their own Through date it is left alone.
   var startInput = document.getElementById('project-scheduled-date-input');
   var endInput = document.getElementById('project-scheduled-end-date-input');
-  if (startInput && endInput) {
-    var endCustomized = false;
-    endInput.addEventListener('input', function () { endCustomized = true; });
-    startInput.addEventListener('change', function () {
-      if (!startInput.value || endCustomized) return;
-      var d = new Date(startInput.value + 'T00:00:00');
-      if (isNaN(d)) return;
-      d.setDate(d.getDate() + 7);
-      var pad = function (n) { return String(n).padStart(2, '0'); };
-      endInput.value = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  var daysEl = document.getElementById('quick-type-days-json');
+  var typeDays = daysEl ? JSON.parse(daysEl.textContent || '{}') : {};
+  var endCustomized = false;
+  var keepLength = null;  // days between start and end when editing a job that has both
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  function isoOf(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function activeTypeNames() {
+    return Array.prototype.map.call(document.querySelectorAll('.quick-desc-btn.active'), function (b) {
+      return b.getAttribute('data-value');
     });
+  }
+  function typeBlockDays() {
+    var days = 1;
+    activeTypeNames().forEach(function (t) { if (typeDays[t] && typeDays[t] > days) days = typeDays[t]; });
+    return days;
+  }
+  function followStart() {
+    if (!startInput || !endInput || !startInput.value || endCustomized) return;
+    var d = new Date(startInput.value + 'T00:00:00');
+    if (isNaN(d)) return;
+    d.setDate(d.getDate() + (keepLength !== null ? keepLength : typeBlockDays() - 1));
+    endInput.value = isoOf(d);
+  }
+  if (startInput && endInput) {
+    if (startInput.value && endInput.value) {
+      var d0 = new Date(startInput.value + 'T00:00:00'), d1 = new Date(endInput.value + 'T00:00:00');
+      if (!isNaN(d0) && !isNaN(d1)) keepLength = Math.max(0, Math.round((d1 - d0) / 86400000));
+    }
+    endInput.addEventListener('input', function () { endCustomized = true; });
+    startInput.addEventListener('change', followStart);
   }
 
   var nameInput = document.getElementById('project-name-input');
@@ -207,18 +224,35 @@
   var otherAdd = document.getElementById('quick-desc-other-add');
 
   // Multiple quick types can be on at once (e.g. Annual + Oil Change) -
-  // each button just toggles on/off, and the description is rebuilt from
-  // whichever ones are active (plus the free-text "Other" below) joined
-  // with commas, rather than one button replacing another.
+  // each button just toggles on/off. On a NEW project the description is
+  // rebuilt from whichever ones are active (plus the free-text "Other" below)
+  // joined with commas. On EDIT (JOBS-19) the description already has what
+  // someone typed, so a button starts pressed when its name is already in the
+  // description, and a tap only adds or removes that one phrase.
+  var editing = document.getElementById('project-form').dataset.editing === '1';
   var otherValue = '';
   var quickTypesInput = document.getElementById('quick-types-input');
+  function escRe(t) { return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function hasPhrase(text, phrase) { return text.toLowerCase().indexOf(phrase.toLowerCase()) !== -1; }
+  function addPhrase(phrase) {
+    var cur = descInput.value.replace(/[\s,]+$/, '');
+    descInput.value = cur ? (cur + ', ' + phrase) : phrase;
+  }
+  function removePhrase(phrase) {
+    var re = new RegExp('\\s*,?\\s*' + escRe(phrase), 'i');
+    var v = descInput.value.replace(re, '');
+    descInput.value = v.replace(/^[\s,]+/, '').replace(/\s+,/g, ',');
+  }
   function rebuildDesc() {
-    var parts = Array.prototype.map.call(document.querySelectorAll('.quick-desc-btn.active'), function (b) {
-      return b.getAttribute('data-value');
-    });
+    var parts = activeTypeNames();
     if (quickTypesInput) quickTypesInput.value = parts.join(',');
     if (otherValue) parts.push(otherValue);
     descInput.value = parts.join(', ');
+  }
+  if (editing) {
+    document.querySelectorAll('.quick-desc-btn').forEach(function (b) {
+      if (hasPhrase(descInput.value, b.getAttribute('data-value'))) b.classList.add('active');
+    });
   }
 
   // Each active Quick Type's Optional areas (from Manage > Task Templates)
@@ -259,8 +293,14 @@
   document.querySelectorAll('.quick-desc-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       btn.classList.toggle('active');
-      rebuildDesc();
-      rebuildOptionalAreas();
+      var phrase = btn.getAttribute('data-value');
+      if (editing) {
+        if (btn.classList.contains('active')) addPhrase(phrase); else removePhrase(phrase);
+      } else {
+        rebuildDesc();
+        rebuildOptionalAreas();
+      }
+      followStart();
       descInput.focus();
     });
   });
@@ -282,8 +322,13 @@
   });
 
   function setOther() {
-    otherValue = (otherInput.value || '').trim();
-    rebuildDesc();
+    var typed = (otherInput.value || '').trim();
+    if (editing) {
+      if (typed && !hasPhrase(descInput.value, typed)) addPhrase(typed);
+    } else {
+      otherValue = typed;
+      rebuildDesc();
+    }
     otherRow.style.display = 'none';
     descInput.focus();
   }

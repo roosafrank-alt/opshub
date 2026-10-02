@@ -26,7 +26,7 @@
         <tr>
           <td><code class="text-primary">{{ p.code }}</code></td>
           <td>{{ p.name }}</td>
-          <td><small class="text-muted">{{ p.deleted_at }}</small></td>
+          <td><small class="text-muted" data-change="JOBS-23">{{ p.deleted_at|usdate(true) }}</small></td>
           <td class="text-end text-nowrap">
             <form method="post" action="{{ url_for('project_restore', project_id=p.id) }}" class="d-inline">
               <button class="btn btn-sm btn-outline-success">Restore</button>
@@ -60,12 +60,12 @@
         <tr>
           <td>{{ a.tag }}</td>
           <td>{{ a.name or '-' }}</td>
-          <td><small class="text-muted">{{ a.deleted_at }}</small></td>
+          <td><small class="text-muted" data-change="JOBS-23">{{ a.deleted_at|usdate(true) }}</small></td>
           <td class="text-end text-nowrap">
             <form method="post" action="{{ url_for('asset_restore', asset_id=a.id) }}" class="d-inline">
               <button class="btn btn-sm btn-outline-success">Restore</button>
             </form>
-            <form method="post" action="{{ url_for('asset_purge', asset_id=a.id) }}" class="d-inline" data-confirm="Permanently delete this asset and its maintenance history? Linked projects are kept, just unlinked. This cannot be undone." data-confirm-style="danger">
+            <form method="post" action="{{ url_for('asset_purge', asset_id=a.id) }}" class="d-inline" data-confirm="Permanently delete this aircraft and its maintenance history? Linked projects are kept, just unlinked. This cannot be undone." data-confirm-style="danger">
               <button class="btn btn-sm btn-outline-danger">Delete Forever</button>
             </form>
           </td>
@@ -75,7 +75,7 @@
     </table>
   </div>
   {% else %}
-  <p class="text-muted small mb-0">No deleted assets.</p>
+  <p class="text-muted small mb-0" data-change="JOBS-24">No deleted aircraft.</p>
   {% endif %}
 </div>
 

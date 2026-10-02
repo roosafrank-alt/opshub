@@ -16,6 +16,27 @@
   <div class="form-text">Annual, 100hr, Oil Change and Maintenance are built in and can't be removed - anything else you add here shows up as its own button on New/Edit Project too.</div>
 </div>
 
+{#- JOBS-39: default time block (days) per Quick Type - its own block, saved by
+   app.task_template_days. Used for a new project's Through date when blank. #}
+<div class="card p-3 mb-3" data-change="JOBS-39">
+  <h6 class="mb-2">Default time block</h6>
+  <form method="post" action="{{ url_for('task_template_days') }}">
+    <div class="row g-2">
+      {% for t in quick_types %}
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0" for="days-{{ loop.index }}">{{ t }}</label>
+        <div class="input-group input-group-sm">
+          <input type="number" min="1" max="365" step="1" inputmode="numeric" class="form-control" id="days-{{ loop.index }}" name="days_{{ t }}" value="{{ quick_type_days.get(t, '') }}" placeholder="1">
+          <span class="input-group-text">days</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="form-text">How many days a job of this type usually takes. A new project with a Scheduled Date and no Through date is blocked out on the calendar for this long. Blank means 1 day.</div>
+    <button class="btn btn-outline-primary btn-sm mt-2">Save time blocks</button>
+  </form>
+</div>
+
 <div class="row g-3">
   {% for t in quick_types %}
   <div class="col-md-6 col-lg-3">

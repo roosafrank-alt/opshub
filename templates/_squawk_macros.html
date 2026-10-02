@@ -17,9 +17,10 @@
 {%- set current = 4 -%}
 {%- elif sq.repair_confirm_requested_at -%}
 {%- set current = 3 -%}
-{%- elif not sq.acknowledged_at -%}
+{%- elif not sq.acknowledged_at or not sq.assigned_to -%}
+{#- JOBS-09: an acknowledged squawk with nobody on it is still New. -#}
 {%- set current = 0 -%}
-{%- elif sq.worker_acknowledged_at or not sq.assigned_to -%}
+{%- elif sq.worker_acknowledged_at -%}
 {%- set current = 2 -%}
 {%- else -%}
 {%- set current = 1 -%}
@@ -40,13 +41,18 @@
 {%- if sq.assigned_to %}<small class="text-muted d-block">Assigned to {{ sq.assigned_to_name or '-' }}</small>{% endif -%}
 {%- endmacro %}
 
+{#- JOBS-08: "Reopened by <name> on <date>" for a squawk that came back. -#}
+{% macro squawk_reopened_line(sq) %}
+{%- if sq.reopened_at %}<small class="text-muted d-block" data-change="JOBS-08"><i class="bi bi-arrow-counterclockwise"></i> Reopened by {{ sq.reopened_by or 'someone' }} on {{ sq.reopened_at|usdate }}</small>{% endif -%}
+{%- endmacro %}
+
 {#- A brand-new (unacknowledged) squawk's one and only action: pick a name
    (acknowledges + assigns in the same request via squawk_acknowledge, see
    app.py) or take it yourself - no confirmation pop-up either way, so
    picking who fixes it is the single fastest thing to do with it. #}
 {% macro squawk_new_actions(sq, assignable_workers, current_user_id, size='btn-sm') %}
 <div class="d-flex gap-1 flex-wrap">
-  <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}">
+  <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-change="JOBS-09">
     <select name="assigned_to" class="form-select form-select-sm squawk-select" style="width:auto;" onchange="this.value && this.form.submit()" aria-label="Assign to">
       <option value="" selected>Assign to...</option>
       {% for w in assignable_workers %}
@@ -102,9 +108,9 @@
 {%- if sq.repaired_at -%}
 {%- elif sq.repair_confirm_requested_at -%}
   {%- if can_confirm %}{{ squawk_confirm_actions(sq, confirm_label='Sign off', send_back_label='Send back', size=size) }}{% endif -%}
-{%- elif not sq.acknowledged_at -%}
+{%- elif not sq.acknowledged_at or not sq.assigned_to -%}
   {%- if can_assign %}{{ squawk_new_actions(sq, assignable_workers, current_user_id, size=size) }}{% endif -%}
-{%- elif sq.worker_acknowledged_at or not sq.assigned_to -%}
+{%- elif sq.worker_acknowledged_at -%}
   {%- if can_assign %}
   <form method="post" action="{{ url_for('squawk_repair', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Send this squawk to the Inspector as repaired?">
     <button class="btn btn-success {{ size }} squawk-btn fw-bold"><i class="bi bi-tools"></i> Mark as Repaired</button>

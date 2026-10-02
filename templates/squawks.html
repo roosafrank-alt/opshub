@@ -1,9 +1,10 @@
 {% extends "base.html" %}
-{% from "_squawk_macros.html" import squawk_step_pills, squawk_step_action, squawk_assigned_line %}
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_step_action, squawk_assigned_line, squawk_reopened_line %}
 {% block title %}Squawks - OpsHub{% endblock %}
 {% block content %}
 {% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
 {% set can_confirm_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector') %}
+{% set can_reopen_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech', 'inspector') %}
 {#- One step's worth of an outline/solid pair, per step (see SQUAWK_STEPS/
    squawk_step_index in app.py): "new" is red/danger, "inspection" green/
    success (an Inspector's own step, worth standing out even unselected),
@@ -14,7 +15,7 @@
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
   <h4 class="mb-0"><i class="bi bi-exclamation-triangle-fill text-danger"></i> Squawks</h4>
   {% if can_assign_squawks %}
-  <button type="button" class="btn btn-outline-danger btn-sm fw-bold" data-bs-toggle="collapse" data-bs-target="#report-squawk-form"><i class="bi bi-flag"></i> Report a squawk</button>
+  <button type="button" class="btn btn-outline-danger btn-sm fw-bold" data-bs-toggle="collapse" data-bs-target="#report-squawk-form" data-change="JOBS-29"><i class="bi bi-flag"></i> Report squawk</button>
   {% endif %}
 </div>
 
@@ -32,7 +33,7 @@
     <input type="text" name="notes" class="form-control form-control-sm" placeholder="What's wrong with it?" required>
   </div>
   <div class="col-12 col-md-2">
-    <button class="btn btn-outline-danger btn-sm fw-bold w-100"><i class="bi bi-flag"></i> Report</button>
+    <button class="btn btn-outline-danger btn-sm fw-bold w-100" data-change="JOBS-29"><i class="bi bi-flag"></i> Report squawk</button>
   </div>
 </form>
 {% endif %}
@@ -52,15 +53,22 @@
   <div class="card">
     <div class="table-responsive">
       <table class="table table-sm align-middle mb-0">
-        <thead class="table-light"><tr><th>Plane</th><th>Date</th><th>Reported by</th><th>Notes</th><th>Repaired</th></tr></thead>
+        <thead class="table-light"><tr><th>Plane</th><th>Date</th><th>Reported by</th><th>Notes</th><th>Repaired</th>{% if can_reopen_squawks %}<th></th>{% endif %}</tr></thead>
         <tbody>
           {% for sq in squawks_for_step %}
           <tr>
             <td><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></td>
             <td><small>{{ sq.event_date|usdate }}</small></td>
             <td>{{ sq.reported_by if sq.kind == 'quick' else sq.student_name }}</td>
-            <td><small>{{ sq.notes or '-' }}</small></td>
+            <td><small>{{ sq.notes or '-' }}</small>{{ squawk_reopened_line(sq) }}</td>
             <td><small>{{ sq.repaired_by or '-' }}<br>{{ sq.repaired_at|usdate(true) if sq.repaired_at else '' }}</small></td>
+            {% if can_reopen_squawks %}
+            <td class="text-end">
+              <form method="post" action="{{ url_for('squawk_reopen', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Reopen this squawk? It goes back to New." data-confirm-title="Reopen Squawk" data-confirm-ok="Reopen" data-confirm-style="warning" data-change="JOBS-08">
+                <button class="btn btn-outline-secondary btn-sm py-0">Reopen</button>
+              </form>
+            </td>
+            {% endif %}
           </tr>
           {% endfor %}
         </tbody>
@@ -75,6 +83,7 @@
         {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
         {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
       <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+      {{ squawk_reopened_line(sq) }}
       {{ squawk_assigned_line(sq) }}
       <div class="squawk-row-actions">
         {{ squawk_step_pills(sq) }}

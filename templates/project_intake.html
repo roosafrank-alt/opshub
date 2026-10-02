@@ -19,17 +19,24 @@
     <div class="text-muted"><code class="text-primary">{{ project.code }}</code> &middot; {{ project.name }}{% if project.asset_display_tag %} &middot; <i class="bi bi-airplane"></i> {{ project.asset_display_tag }}{% endif %}</div>
   </div>
   <div class="d-flex align-items-center gap-2">
-    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm" title="Jump to the project profile (shortcut: P)">
-      {{ 'Back to project' if project.intake_status not in (none, 'pending') else 'Jump to Project' }} <kbd class="ms-1">P</kbd>
+    {#- JOBS-02: while the intake is still pending the job page just forwards back
+       here, so Jump to Project (and the P key) is hidden; "Skip for now" below
+       is the real way out. Once saved or skipped it is "Back to project". #}
+    {% if project.intake_status not in (none, 'pending') %}
+    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-secondary btn-sm" title="Back to the project profile (shortcut: P)" data-change="JOBS-02">
+      Back to project <kbd class="ms-1">P</kbd>
     </a>
-    {% if project.intake_status in (none, 'pending') %}
-    <form method="post" class="mb-0" data-confirm="Skip the intake check for this project? You can still fill it in later from the project page." data-confirm-title="Skip Intake" data-confirm-ok="Skip it" data-confirm-style="warning">
-      <input type="hidden" name="action" value="skip">
-      <button type="submit" class="btn btn-link btn-sm text-muted intake-skip p-0">Skip &raquo;</button>
-    </form>
     {% endif %}
   </div>
 </div>
+{% if project.intake_status in (none, 'pending') %}
+<form method="post" id="intake-skip-form" class="d-none" data-confirm="Skip the intake check for this project? You can still fill it in later from the project page." data-confirm-title="Skip Intake" data-confirm-ok="Skip it" data-confirm-style="warning">
+  <input type="hidden" name="action" value="skip">
+</form>
+{% endif %}
+{% if project.intake_status == 'done' and project.intake_by %}
+<div class="small text-muted mb-1" data-change="JOBS-01">Last saved by {{ project.intake_by }}{% if project.intake_by_role %} ({{ project.intake_by_role|capitalize }}){% endif %}{% if project.intake_at %}, {{ project.intake_at|usdate(true) }}{% endif %}.</div>
+{% endif %}
 <p class="text-muted small">Check these before anyone touches the plane. Anything marked <strong>Issue</strong> (and any squawk or damage) can get its own Discrepancy on this project - tick "Address in this project".</p>
 
 <form method="post" enctype="multipart/form-data">
@@ -105,7 +112,12 @@
     <label class="form-label fw-bold mb-1">Other notes</label>
     <textarea name="notes" class="form-control" rows="2" placeholder="optional">{{ form.get('notes') if form else (data.notes if data else '') }}</textarea>
   </div>
-  <button type="submit" class="btn btn-warning fw-bold w-100 mb-4"><i class="bi bi-clipboard-check"></i> Save Intake &amp; Open Project</button>
+  <div class="d-flex gap-2 flex-wrap mb-4" data-change="JOBS-02">
+    <button type="submit" class="btn btn-warning fw-bold flex-grow-1"><i class="bi bi-clipboard-check"></i> Save Intake &amp; Open Project</button>
+    {% if project.intake_status in (none, 'pending') %}
+    <button type="submit" form="intake-skip-form" class="btn btn-outline-secondary">Skip for now - open project</button>
+    {% endif %}
+  </div>
 </form>
 {% endblock %}
 
@@ -115,12 +127,14 @@
   // Hotkey to jump straight to the project profile without hunting for the
   // button - "P" (not while typing in a field, so it doesn't fire while
   // writing a note or a damage line).
+  {% if project.intake_status not in (none, 'pending') %}
   document.addEventListener('keydown', function (evt) {
     if (evt.key !== 'p' && evt.key !== 'P') return;
     var tag = (evt.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea' || evt.target.isContentEditable) return;
     window.location.href = {{ url_for('project_detail', project_id=project.id)|tojson }};
   });
+  {% endif %}
 })();
 (function () {
   // Marking a check "Issue" with no note is the most common reason Save

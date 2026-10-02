@@ -128,7 +128,7 @@ PLACEHOLDERS = [
     ("{serial}", "airframe S/N"), ("{engine}", "engine make/model"), ("{engine_serial}", "engine S/N"),
     ("{prop}", "prop make/model"), ("{prop_serial}", "prop S/N"), ("{tach}", "tach time"),
     ("{hobbs}", "Hobbs time"), ("{project_code}", "project number"), ("{project_name}", "project name"),
-    ("{work}", "one line per sub area's work"), ("{parts}", "parts list with P/N"),
+    ("{work}", "one line per discrepancy's work"), ("{parts}", "parts list with P/N"),
     ("{return_to_service}", "standard return-to-service sentence"),
 ]
 
@@ -315,7 +315,7 @@ def _parse_date(v):
 # ---------------------------------------------------------------- starter
 
 @logbook_bp.route("/projects/<int:project_id>/logbook")
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def project_logbook(project_id):
     conn = get_db()
     project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
@@ -337,7 +337,7 @@ def project_logbook(project_id):
     return render_template("logbook_starter.html", project=project, asset=asset, project_type=project_type,
                            project_types=PROJECT_TYPES, log_types=LOG_TYPES, log_type_labels=LOG_TYPE_LABELS,
                            entry_date=entry_date, tach=tach, hobbs=hobbs, section_starters=section_starters,
-                           combined=combined, saved=saved)
+                           combined=combined, saved=saved, can_edit=_can_edit())
 
 
 @logbook_bp.route("/projects/<int:project_id>/logbook/save", methods=["POST"])
@@ -379,7 +379,7 @@ def project_logbook_save(project_id):
 # ---------------------------------------------------------------- browse
 
 @logbook_bp.route("/logbook")
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def logbook_list():
     conn = get_db()
     q = (request.args.get("q") or "").strip()
@@ -423,7 +423,7 @@ def logbook_list():
 
 
 @logbook_bp.route("/assets/<int:asset_id>/logbook")
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def asset_logbook(asset_id):
     conn = get_db()
     asset = conn.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
@@ -477,11 +477,16 @@ def _get_entry(conn, entry_id):
 
 
 @logbook_bp.route("/logbook/<int:entry_id>", methods=["GET", "POST"])
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def entry_detail(entry_id):
     conn = get_db()
     e = _get_entry(conn, entry_id)
     if request.method == "POST":
+        # JOBS-16: an inspector can read and print entries; saving is admin/tech.
+        if not _can_edit():
+            conn.close()
+            flash("You don't have access to that part of Shop Inventory.", "danger")
+            return redirect(url_for("logbook.entry_detail", entry_id=entry_id))
         body = (request.form.get("body") or "").strip()
         if not body:
             flash("The entry text can't be empty.", "danger")
@@ -499,11 +504,11 @@ def entry_detail(entry_id):
         return redirect(url_for("logbook.entry_detail", entry_id=entry_id))
     conn.close()
     return render_template("logbook_entry.html", e=e, log_types=LOG_TYPES, log_type_labels=LOG_TYPE_LABELS,
-                           project_type_labels=PROJECT_TYPE_LABELS, is_admin=_is_admin())
+                           project_type_labels=PROJECT_TYPE_LABELS, is_admin=_is_admin(), can_edit=_can_edit())
 
 
 @logbook_bp.route("/logbook/<int:entry_id>/print")
-@shop_role_required('admin', 'tech')
+@shop_role_required('admin', 'tech', 'inspector')
 def entry_print(entry_id):
     conn = get_db()
     e = _get_entry(conn, entry_id)
