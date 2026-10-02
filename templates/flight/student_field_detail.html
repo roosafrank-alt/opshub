@@ -68,6 +68,8 @@
             {% if entry.entry_type == 'funds_added' %}<span class="badge bg-success">Funds Added</span>
             {% elif entry.entry_type == 'flight_deduction' %}<span class="badge bg-secondary">Flight</span>
             {% elif entry.entry_type == 'cancellation_fee' %}<span class="badge bg-danger">Late Cancel</span>
+            {% elif entry.entry_type == 'payment' %}<span class="badge bg-success" data-change="SCHOOL-01">Payment</span>
+            {% elif entry.entry_type == 'payment_reversal' %}<span class="badge bg-warning text-dark" data-change="SCHOOL-01">Payment Reversed</span>
             {% else %}<span class="badge bg-info text-dark">Adjustment</span>{% endif %}
           </td>
           <td class="small fw-bold {{ 'text-success' if entry.amount > 0 else ('text-danger' if entry.amount < 0 else '') }}" data-label="Amount">
@@ -89,12 +91,18 @@
 <div class="card p-3 mb-3">
   <h6 class="text-muted mb-2">Current Value</h6>
   <div class="fs-4 fw-bold mb-2">
-    {% if current_value is not none %}${{ '%.2f'|format(current_value) }}/hr{% else %}<span class="text-muted fs-6">Using the default rate</span>{% endif %}
+    {#- SCHOOL-13: there is no default plane rate - blank means the plane
+       isn't charged. "Default" wording only fits the instructor and sim
+       rates, which do fall back to the CFI's / simulator's own rate. #}
+    {% if current_value is not none %}${{ '%.2f'|format(current_value) }}/hr
+    {% elif field_key == 'plane_rate' %}<span class="text-muted fs-6" data-change="SCHOOL-13">No plane rate - this student is not charged for the plane</span>
+    {% elif field_key == 'instructor_rate' %}<span class="text-muted fs-6" data-change="SCHOOL-13">Not set - uses the CFI's rate</span>
+    {% else %}<span class="text-muted fs-6" data-change="SCHOOL-13">Not set - uses the simulator's rate</span>{% endif %}
   </div>
   {% if session.get('is_master_admin') %}
   <form method="post" class="row g-2 align-items-end">
     <div class="col-auto">
-      <label class="form-label small mb-0">New Value ($/hr, blank = use default)</label>
+      <label class="form-label small mb-0">New Value ($/hr, {% if field_key == 'plane_rate' %}<span data-change="SCHOOL-13">blank = plane not charged</span>{% elif field_key == 'instructor_rate' %}blank = CFI's rate{% else %}blank = simulator's rate{% endif %})</label>
       <input type="number" step="any" name="value" class="form-control form-control-sm" value="{{ current_value if current_value is not none else '' }}" style="width:160px;">
     </div>
     <div class="col-auto">

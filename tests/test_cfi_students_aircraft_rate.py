@@ -24,7 +24,7 @@ class CfiStudentsAircraftRateTest(OpsHubTestCase):
 
     def test_cfi_form_shows_the_students_aircraft_rate_read_only(self):
         html = self.login("master").get(f"/flight/cfis/{self.cfi_id}/edit").get_data(as_text=True)
-        self.assertIn("Students Aircraft Rate ($/hr)", html)
+        self.assertIn("Instructor rate in a student's own plane ($/hr)", html)  # SCHOOL-29 wording
         self.assertIn("Not set - uses the Instructor Rate", html)
         self.assertIn("Change in Manage", html)
         self.assertIn("School Settings", html)
@@ -44,7 +44,9 @@ class CfiStudentsAircraftRateTest(OpsHubTestCase):
 
     def test_negative_students_aircraft_rate_is_rejected(self):
         r = self._set("-15")
-        self.assertEqual(r.status_code, 302)
+        # SCHOOL-16: the form comes back with the message (no redirect).
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("can&#39;t be a negative number", r.get_data(as_text=True))
         row = self.q1("SELECT external_rate FROM cfis WHERE id = ?", (self.cfi_id,))
         self.assertIsNone(row["external_rate"])
 

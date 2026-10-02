@@ -14,19 +14,18 @@
 <div class="card">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0 table-stack" id="planes-table">
-      <thead class="table-light"><tr><th></th><th>Tail #</th><th>Make/Model</th><th>Hobbs</th><th>Tach</th>{% if hundred %}<th>100-hr <span class="badge bg-secondary fw-normal">staff</span></th>{% endif %}<th></th></tr></thead>
+      <thead class="table-light"><tr><th></th><th>Tail #</th><th>Make/Model</th><th>Hobbs</th><th>Tach</th>{% if hundred %}<th>100-hr <span class="badge bg-secondary fw-normal">admins</span></th>{% endif %}<th></th></tr></thead>
       <tbody>
         {% for p in planes %}
         <tr data-search="{{ (p.tag ~ ' ' ~ (p.name or ''))|lower }}">
           <td data-label=""><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:{{ p.schedule_color or '#fff' }};{{ 'border:1px dashed #adb5bd;' if not p.schedule_color }}" title="{{ 'Schedule color ' ~ p.schedule_color if p.schedule_color else 'No schedule color yet' }}"></span></td>
-          <td data-label="Tail #"><strong>{{ p.tag }}</strong>{% if p.is_simulator %} <span class="badge bg-secondary">Simulator</span>{% endif %}{% if p.name and p.name != p.tag %}<div class="text-muted small">{{ p.name }}</div>{% endif %}</td>
+          <td data-label="Tail #"><strong>{{ p.tag }}</strong>{% if p.is_simulator %} <span class="badge bg-secondary">Simulator</span>{% endif %}{% if p.grounded_at %} <span class="badge bg-dark" data-change="SCHOOL-25" title="{{ p.grounded_reason or '' }}">Down for maintenance</span>{% endif %}{% if p.name and p.name != p.tag %}<div class="text-muted small">{{ p.name }}</div>{% endif %}</td>
           <td data-label="Make/Model">{{ [p.make, p.model]|select|join(' ') or '-' }}</td>
           <td data-label="Hobbs">{{ '%.1f'|format(p.hobbs_hours) if p.hobbs_hours is not none else '-' }}</td>
           <td data-label="Tach">{{ '%.1f'|format(p.tach_hours) if p.tach_hours is not none else '-' }}</td>
           {% if hundred %}
           {% set h = hundred.get(p.id) %}
-          <td data-label="100-hr">{% if p.grounded_at %}<span class="badge bg-dark" title="{{ p.grounded_reason or '' }}">Down for maintenance</span>
-            {% elif h %}<span class="badge {{ 'bg-danger' if h.level == 'overdue' else ('bg-warning text-dark' if h.level == 'soon' else 'bg-success') }}" title="Last 100-hr at tach {{ '%.1f'|format(h.last_at) }}">{{ '%.1f'|format(h.left) }} left</span>
+          <td data-label="100-hr">{% if h %}<span class="badge {{ 'bg-danger' if h.level == 'overdue' else ('bg-warning text-dark' if h.level == 'soon' else 'bg-success') }}" title="Last 100-hr at tach {{ '%.1f'|format(h.last_at) }}">{{ '%.1f'|format(h.left) }} left</span>
             {% else %}<span class="text-muted small" title="Add a 100-Hour Inspection maintenance item (with its last-done tach) on the aircraft page">-</span>{% endif %}</td>
           {% endif %}
           <td data-label="" class="text-nowrap">
@@ -37,9 +36,25 @@
             {% if p.is_simulator %}
             <a href="{{ url_for('flight.simulator_edit', asset_id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
             {% else %}
-            <a href="{{ url_for('asset_edit', asset_id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+            {#- SCHOOL-27: Fly with Kate!'s own plane form - Save comes back here. #}
+            <a href="{{ url_for('flight.plane_edit', asset_id=p.id) }}" class="btn btn-outline-secondary btn-sm" data-change="SCHOOL-27"><i class="bi bi-pencil"></i> Edit</a>
             {% endif %}
             <a href="{{ url_for('flight.plane_rate_edit', asset_id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-palette"></i> Color</a>
+            {#- SCHOOL-26: Ground (reason optional) / Return to service right
+               on the row, same confirm text as the 100-hour box on Alerts. #}
+            {% if not p.is_simulator %}
+            {% if p.grounded_at %}
+            <form method="post" action="{{ url_for('flight.plane_return_to_service', asset_id=p.id) }}" class="d-inline" data-confirm="Return {{ p.tag }} to service? It can be booked again." data-confirm-title="Return to service" data-confirm-ok="Yes, back in service" data-confirm-style="success">
+              <button class="btn btn-outline-success btn-sm fw-bold" data-change="SCHOOL-26"><i class="bi bi-check2-circle"></i> Return to service</button>
+            </form>
+            {% else %}
+            <button type="button" class="btn btn-outline-danger btn-sm ground-toggle" data-change="SCHOOL-26" data-target="ground-form-{{ p.id }}"><i class="bi bi-slash-circle"></i> Ground</button>
+            <form method="post" action="{{ url_for('flight.plane_ground', asset_id=p.id) }}" class="d-none mt-1 d-flex gap-1 align-items-center ground-form" id="ground-form-{{ p.id }}" data-confirm="Ground {{ p.tag }}? It shows as Down for maintenance, new bookings are blocked and its upcoming bookings get flagged to move." data-confirm-title="Ground plane" data-confirm-ok="Yes, ground it" data-confirm-style="danger">
+              <input type="text" name="reason" class="form-control form-control-sm" placeholder="Reason (optional)" maxlength="120" style="max-width:220px;">
+              <button class="btn btn-danger btn-sm fw-bold text-nowrap">Ground plane</button>
+            </form>
+            {% endif %}
+            {% endif %}
             {% endif %}
           </td>
         </tr>
@@ -55,6 +70,14 @@
 {% block scripts %}
 <script>
 (function () {
+  document.querySelectorAll('.ground-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var f = document.getElementById(btn.getAttribute('data-target'));
+      if (!f) return;
+      f.classList.toggle('d-none');
+      if (!f.classList.contains('d-none')) { var i = f.querySelector('input[name="reason"]'); if (i) i.focus(); }
+    });
+  });
   var input = document.getElementById('planes-search');
   var rows = document.querySelectorAll('#planes-table tbody tr[data-search]');
   input.addEventListener('input', function () {

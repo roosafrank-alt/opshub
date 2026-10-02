@@ -470,7 +470,13 @@ def apply_paid(conn, row):
         conn.execute("""UPDATE projects SET payment_status = 'paid', paid_at = ?, paid_by = 'Wave', paid_method = 'Wave'
                         WHERE id = ? AND COALESCE(payment_status, '') != 'paid'""", (now_iso(), row["ref_id"]))
     elif row["kind"] == "student":
-        conn.execute("UPDATE flights SET paid = 1 WHERE wave_invoice_id = ? AND paid = 0", (row["id"],))
+        # SCHOOL-01: through flight_payments so the student's ledger gets
+        # the matching payment line (method "Wave"), not just the tick.
+        import flight_payments
+        ids = [r["id"] for r in conn.execute("SELECT id FROM flights WHERE wave_invoice_id = ? AND paid = 0",
+                                              (row["id"],)).fetchall()]
+        for fid in ids:
+            flight_payments.record_flight_payment(conn, fid, method="Wave", created_by="Wave")
 
 
 def latest_for(conn, kind, ref_ids):

@@ -4,15 +4,18 @@
 <div class="row justify-content-center">
 <div class="col-lg-7">
 <h4 class="mb-3"><i class="bi bi-sliders"></i> School Settings</h4>
-<form method="post">
+<form method="post"{% if form %} data-change="SCHOOL-16"{% endif %}>
+  <input type="hidden" name="back" value="{{ back or '' }}">
   <div class="card p-4 mb-3">
-    <h5><i class="bi bi-airplane"></i> Students Aircraft</h5>
+    {#- SCHOOL-29: one name for one idea - "Student's Own Plane", matching
+       the Schedule a Flight toggle. #}
+    <h5 data-change="SCHOOL-29"><i class="bi bi-airplane"></i> Student's Own Plane</h5>
     <p class="text-muted small">Lessons in a student's own plane (Schedule a Flight's "Student's own plane" toggle) - the plane itself is never billed, only instructor time, at the rate below (blank = that CFI's usual Instructor Rate).</p>
     <div class="row">
       <div class="col-md-5 mb-3 mb-md-0">
-        <label class="form-label d-block">Calendar Color</label>
+        <label class="form-label d-block">Calendar Color{% if error_field == 'color' %} <span class="text-danger small">- that one is taken, pick another</span>{% endif %}</label>
         <input type="hidden" name="color" id="color-input" value="{{ own_plane_color or '' }}">
-        <div class="d-flex flex-wrap gap-2" id="color-swatches">
+        <div class="d-flex flex-wrap gap-2{{ ' border border-danger rounded p-1' if error_field == 'color' }}" id="color-swatches">
           {% for c in schedule_colors %}
           {% set taken = c in (used_colors or []) %}
           <div class="color-swatch{{ ' color-swatch-taken' if taken }}"
@@ -28,13 +31,13 @@
         <div class="form-text">The block color for every student's own-plane booking on the Schedule. Grayed-out colors belong to an instructor or a real plane.</div>
       </div>
       <div class="col-md-7">
-        <label class="form-label d-block">Instructor Rate in a Students Aircraft ($/hr)</label>
+        <label class="form-label d-block" data-change="SCHOOL-29">Instructor rate in a student's own plane ($/hr)</label>
         {% for c in cfis %}
         <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
           <div>{{ c.name }}{% if not c.active %} <span class="badge bg-secondary">Inactive</span>{% endif %}</div>
           <div class="input-group" style="max-width:170px;">
             <span class="input-group-text">$</span>
-            <input type="number" step="any" min="0" name="external_rate_{{ c.id }}" class="form-control"
+            <input type="number" step="any" min="0" name="external_rate_{{ c.id }}" class="form-control{{ ' is-invalid' if error_cfi == c.id }}"
                    value="{{ '%g'|format(c.external_rate) if c.external_rate is not none else '' }}"
                    placeholder="uses ${{ '%g'|format(c.rate_per_hour) }}">
           </div>
@@ -97,7 +100,8 @@
   </div>
 
   <div class="d-flex justify-content-between mb-4">
-    <a href="{{ url_for('flight.planes_list') }}" class="btn btn-outline-secondary">Cancel</a>
+    {#- SCHOOL-28: Cancel goes back to the page this was opened from. #}
+    <a href="{{ back or url_for('flight.dashboard') }}" class="btn btn-outline-secondary" data-change="SCHOOL-28">Cancel</a>
     <button type="submit" class="btn btn-primary fw-bold">Save</button>
   </div>
 </form>

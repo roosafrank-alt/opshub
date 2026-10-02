@@ -21,6 +21,8 @@
   <form method="post" action="{{ url_for('flight.billing_wave_sync') }}" class="d-inline">
     <button class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-repeat"></i> Check Wave for payments</button>
   </form>
+  {% elif session.get('is_master_admin') %}
+  <a href="{{ url_for('admin_wave') }}" class="btn btn-sm btn-outline-secondary" data-change="SCHOOL-21"><i class="bi bi-plug"></i> Connect Wave to send real invoices</a>
   {% endif %}
 </div>
 
@@ -34,7 +36,10 @@
   <div class="d-flex align-items-center gap-2">
     <span class="text-muted small" id="billing-selected-count">0 selected</span>
     <button type="button" class="btn btn-outline-secondary btn-sm" id="billing-select-all"><i class="bi bi-check2-square"></i> Select All</button>
-    <button type="button" class="btn btn-success btn-sm fw-bold" id="billing-export-btn"><i class="bi bi-download"></i> Export CSV</button>
+    {% if status != 'paid' %}
+    <button type="button" class="btn btn-success btn-sm fw-bold" id="billing-mark-selected-btn" data-change="SCHOOL-20" disabled><i class="bi bi-check-lg"></i> Mark <span id="billing-selected-n">0</span> selected paid</button>
+    {% endif %}
+    <button type="button" class="btn btn-outline-success btn-sm fw-bold" id="billing-export-btn"><i class="bi bi-download"></i> Export CSV</button>
   </div>
   {% endif %}
 </div>
@@ -52,8 +57,15 @@
               data-label="{{ g.student_name }} - {{ g.wave_ready_count }} unpaid flight{{ 's' if g.wave_ready_count != 1 }}, ${{ '%.2f'|format(g.wave_ready_total) }}"
               data-customer-name="{{ g.bill_name }}" data-customer-email="{{ g.bill_email }}"><i class="bi bi-send"></i> Invoice in Wave</button>
       {% endif %}
+      {% if status != 'paid' and g.unpaid_total > 0.005 %}
+      <button type="button" class="btn btn-outline-primary btn-sm pay-card-btn" data-change="SCHOOL-21"
+              data-pay-card-url="{{ url_for('flight.billing_pay_card', student_id=g.student_id) }}"
+              data-label="{{ g.student_name }} - {{ g.unpaid_count }} unpaid flight{{ 's' if g.unpaid_count != 1 }}"
+              data-total="{{ '%.2f'|format(g.unpaid_total) }}"><i class="bi bi-credit-card"></i> Pay with Card</button>
+      {% endif %}
       {#- The per-student "Mark All Paid" button was removed at Frank's
-         request - flights are marked paid individually or by selection. #}
+         request - flights are marked paid individually or by selection
+         (see "Mark N selected paid" above). #}
     </div>
   </div>
   <div class="table-responsive">
@@ -62,7 +74,7 @@
       <tbody>
         {% for f in g.flights %}
         <tr class="billing-row" style="cursor:pointer;" data-href="{{ url_for('flight.log_detail', flight_id=f.id) }}">
-          <td data-label="Select"><input type="checkbox" class="form-check-input billing-select-row" data-group="{{ g.student_id }}" value="{{ f.id }}"></td>
+          <td data-label="Select"><input type="checkbox" class="form-check-input billing-select-row" data-group="{{ g.student_id }}" value="{{ f.id }}" data-total="{{ '%.2f'|format(f.total) }}" {{ 'disabled' if f.paid and status == 'all' }}></td>
           <td data-label="Date"><small>{{ f.flight_date|usdate }}</small></td>
           <td data-label="Plane">{{ f.plane_tag }}</td>
           <td data-label="Instructor">{% if f.solo %}<span class="badge bg-secondary">Solo</span>{% else %}{{ f.cfi_name or '-' }}{% endif %}</td>
@@ -77,9 +89,15 @@
           {% endif %}
           <td data-label="">
             <a href="{{ url_for('flight.log_detail', flight_id=f.id) }}" class="btn btn-outline-secondary btn-sm" title="More details"><i class="bi bi-info-circle"></i></a>
-            <form method="post" action="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" class="d-inline" data-confirm="{{ 'Mark this flight as UNPAID? It will show as owed again.' if f.paid else 'Mark this flight as PAID?' }}" data-confirm-title="{{ 'Mark Unpaid' if f.paid else 'Mark Paid' }}" data-confirm-ok="{{ 'Yes, mark unpaid' if f.paid else 'Yes, mark paid' }}" data-confirm-style="{{ 'warning' if f.paid else 'success' }}">
-              <button class="btn btn-outline-{{ 'secondary' if f.paid else 'success' }} btn-sm">{{ 'Mark Unpaid' if f.paid else 'Mark Paid' }}</button>
+            {% if f.paid %}
+            <form method="post" action="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" class="d-inline" data-confirm="Mark this flight as UNPAID? It will show as owed again and the payment comes off {{ g.student_name }}'s account." data-confirm-title="Mark Unpaid" data-confirm-ok="Yes, mark unpaid" data-confirm-style="warning">
+              <button class="btn btn-outline-secondary btn-sm" data-change="SCHOOL-01 SCHOOL-22">Mark Unpaid</button>
             </form>
+            {% else %}
+            <button type="button" class="btn btn-outline-success btn-sm mark-paid-btn" data-change="SCHOOL-01 SCHOOL-21 SCHOOL-22"
+                    data-mark-paid-url="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}"
+                    data-label="{{ f.flight_date|usdate }} {{ f.plane_tag }} - {{ g.student_name }}" data-total="{{ '%.2f'|format(f.total) }}">Mark Paid</button>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}
@@ -93,6 +111,78 @@
   {% if status == 'unpaid' %}No unpaid flights - everyone's paid up. 👍{% elif status == 'paid' %}No paid flights yet.{% else %}No flights logged yet.{% endif %}
 </p>
 {% endif %}
+
+{#- SCHOOL-21: the same "how was it paid" box the shop's Billing page uses.
+   Opened by each Mark Paid button (one flight) and by "Mark N selected
+   paid" (SCHOOL-20, posts the ticked ids in one go). SCHOOL-01: either
+   way the payment lands on the student's account too. #}
+<div class="modal fade" id="markPaidModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" id="mark-paid-form">
+        <input type="hidden" name="ids" id="mark-paid-ids" value="">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-cash-coin"></i> Mark Paid</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-1 fw-bold" id="mark-paid-label"></p>
+          <p class="mb-3 fs-4 fw-bold" id="mark-paid-total"></p>
+          <label class="form-label">How was it paid? <span class="text-danger">*</span></label>
+          <select name="paid_method" class="form-select" required>
+            <option value="" selected disabled>Select...</option>
+            {% for m in payment_methods %}
+            <option value="{{ m }}">{{ m }}</option>
+            {% endfor %}
+          </select>
+          <p class="small text-muted mt-2 mb-0">The payment goes on the student's account as well, so their balance and this page agree.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success fw-bold btn-sm"><i class="bi bi-check-lg"></i> Mark Paid</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{#- SCHOOL-21: simulated Stripe-style "Pay with Card" for a student's whole
+   unpaid total - same as the shop's Billing page. No real charge. #}
+<div class="modal fade" id="payCardModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" id="pay-card-form">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-credit-card"></i> Pay with Card <span class="badge bg-secondary ms-1">Simulated</span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2" id="pay-card-label"></p>
+          <p class="mb-3 fs-4 fw-bold" id="pay-card-total"></p>
+          <p class="small text-muted">This is a simulated Stripe-style checkout - no Stripe account is connected and no real charge happens. Any card number works. Every unpaid flight for this student is marked paid and the payment goes on their account.</p>
+          <div class="mb-2">
+            <label class="form-label">Card number</label>
+            <input type="text" name="card_number" class="form-control" inputmode="numeric" placeholder="4242 4242 4242 4242" required>
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">Expiry</label>
+              <input type="text" name="card_expiry" class="form-control" placeholder="MM/YY">
+            </div>
+            <div class="col-6">
+              <label class="form-label">CVC</label>
+              <input type="text" name="card_cvc" class="form-control" inputmode="numeric" placeholder="123">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary fw-bold btn-sm" id="pay-card-submit"><i class="bi bi-lock-fill"></i> Charge Card</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <div class="modal fade" id="waveInvoiceModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -156,6 +246,41 @@ document.querySelectorAll('.wave-invoice-btn').forEach(function (btn) {
   });
 });
 
+function openMarkPaid(url, label, total, ids) {
+  document.getElementById('mark-paid-form').action = url;
+  document.getElementById('mark-paid-ids').value = ids || '';
+  document.getElementById('mark-paid-label').textContent = label;
+  document.getElementById('mark-paid-total').textContent = '$' + total;
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('markPaidModal')).show();
+}
+document.querySelectorAll('.mark-paid-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    openMarkPaid(btn.dataset.markPaidUrl, btn.dataset.label, btn.dataset.total, '');
+  });
+});
+
+document.querySelectorAll('.pay-card-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var form = document.getElementById('pay-card-form');
+    form.action = btn.dataset.payCardUrl;
+    document.getElementById('pay-card-label').textContent = btn.dataset.label;
+    document.getElementById('pay-card-total').textContent = '$' + btn.dataset.total;
+    var submitBtn = document.getElementById('pay-card-submit');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="bi bi-lock-fill"></i> Charge Card';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('payCardModal')).show();
+  });
+});
+document.getElementById('pay-card-form').addEventListener('submit', function (e) {
+  var submitBtn = document.getElementById('pay-card-submit');
+  if (submitBtn.disabled) return;
+  e.preventDefault();
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+  var form = e.target;
+  setTimeout(function () { form.submit(); }, 1200);
+});
+
 document.querySelectorAll('.billing-row').forEach(function (row) {
   row.addEventListener('click', function (e) {
     if (e.target.closest('a, button, form, input')) { return; }
@@ -169,10 +294,20 @@ document.querySelectorAll('.billing-row').forEach(function (row) {
   var countEl = document.getElementById('billing-selected-count');
   var selectAllBtn = document.getElementById('billing-select-all');
   var exportBtn = document.getElementById('billing-export-btn');
+  var markSelectedBtn = document.getElementById('billing-mark-selected-btn');
+  var selectedN = document.getElementById('billing-selected-n');
+
+  function selectedTotal() {
+    var t = 0;
+    document.querySelectorAll('.billing-select-row:checked').forEach(function (cb) { t += parseFloat(cb.getAttribute('data-total') || '0'); });
+    return t;
+  }
 
   function updateCount() {
     var n = document.querySelectorAll('.billing-select-row:checked').length;
     if (countEl) countEl.textContent = n + ' selected';
+    if (selectedN) selectedN.textContent = n;
+    if (markSelectedBtn) markSelectedBtn.disabled = n === 0;
     groupChecks.forEach(function (gc) {
       var members = document.querySelectorAll('.billing-select-row[data-group="' + gc.getAttribute('data-group') + '"]');
       var checked = document.querySelectorAll('.billing-select-row[data-group="' + gc.getAttribute('data-group') + '"]:checked');
@@ -198,6 +333,15 @@ document.querySelectorAll('.billing-row').forEach(function (row) {
       var allChecked = document.querySelectorAll('.billing-select-row').length === document.querySelectorAll('.billing-select-row:checked').length;
       rowChecks.forEach(function (cb) { cb.checked = !allChecked; });
       updateCount();
+    });
+  }
+  if (markSelectedBtn) {
+    markSelectedBtn.addEventListener('click', function () {
+      var ids = Array.prototype.map.call(document.querySelectorAll('.billing-select-row:checked'), function (cb) { return cb.value; });
+      if (!ids.length) return;
+      openMarkPaid("{{ url_for('flight.billing_mark_selected_paid') }}",
+                   ids.length + ' flight' + (ids.length === 1 ? '' : 's') + ' selected',
+                   selectedTotal().toFixed(2), ids.join(','));
     });
   }
   if (exportBtn) {

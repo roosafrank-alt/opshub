@@ -3,19 +3,26 @@
    moves under More on a phone, alongside How points work. #}
 {% set _tab = tab if tab is defined else 'leaderboard' %}
 {% set _pend = pending_logbook_count() %}
-<div class="academy-tabs-row">
+{#- SCHOOL-06: an account with Ground School but no Flight Academy access
+   only gets the tabs it can open (Ground School, Resources) - Board,
+   Logbook and How points work would just bounce it out. #}
+{% set _academy_ok = session.get('is_master_admin') or session.get('academy_access') %}
+<div class="academy-tabs-row{{ ' academy-tabs-gs-only' if not _academy_ok }}" data-change="SCHOOL-06">
+  {% if _academy_ok %}
   <a class="academy-tab {{ 'active' if _tab == 'leaderboard' }}" href="{{ url_for('academy_page') }}">
     <i class="bi bi-trophy"></i><span>Board</span>
   </a>
   <a class="academy-tab {{ 'active' if _tab in ('logbook', 'progress', 'map') }}" href="{{ url_for('pilotlog.logbook') }}">
     <i class="bi bi-journal-text"></i><span>Logbook{% if _pend %} <span class="badge bg-warning text-dark">{{ _pend }}</span>{% endif %}</span>
   </a>
+  {% endif %}
   <a class="academy-tab {{ 'active' if _tab == 'groundschool' }}" href="{{ url_for('groundschool.rating_list') }}">
     <i class="bi bi-mortarboard"></i><span>Ground School</span>
   </a>
   <a class="academy-tab academy-tab-resources {{ 'active' if _tab == 'resources' }}" href="{{ url_for('groundschool.resources_list') }}">
     <i class="bi bi-folder2-open"></i><span>Resources</span>
   </a>
+  {% if _academy_ok %}
   <div class="dropdown academy-tab-more">
     <button type="button" class="academy-tab" data-bs-toggle="dropdown" aria-expanded="false">
       <i class="bi bi-three-dots"></i><span>More</span>
@@ -25,6 +32,7 @@
       <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#howPointsModal"><i class="bi bi-info-circle"></i> How points work</button></li>
     </ul>
   </div>
+  {% endif %}
 </div>
 <style>
   .academy-tabs-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4rem; margin-bottom: 1rem; }
@@ -36,13 +44,17 @@
   .academy-tab i { font-size: 1.05rem; }
   .academy-tab.active { background: #fff; color: #14213d; font-weight: 700; border-color: #fff; }
   .academy-tab-resources { display: none; }
+  .academy-tabs-gs-only { grid-template-columns: repeat(2, 1fr); }
+  .academy-tabs-gs-only .academy-tab-resources { display: flex; }
   @media (min-width: 768px) {
     .academy-tabs-row { grid-template-columns: repeat(5, 1fr); }
+    .academy-tabs-gs-only { grid-template-columns: repeat(2, 1fr); }
     .academy-tab-resources { display: flex; }
     .academy-tab-resources-item { display: none; }
   }
 </style>
 
+{% if _academy_ok %}
 <div class="modal fade" id="howPointsModal" tabindex="-1" aria-labelledby="howPointsModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
@@ -72,3 +84,4 @@
     </div>
   </div>
 </div>
+{% endif %}

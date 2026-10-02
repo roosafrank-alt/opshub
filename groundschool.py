@@ -276,10 +276,11 @@ def _parse_and_store(conn, rating_id, pdf_path):
 # ---------------------------------------------------------------------------
 
 def _rating_progress(conn, rating_id, student_id):
+    """SCHOOL-07: an element counts as done once a CFI has verified it; the
+    student's own self-completion is shown as information, not a gate."""
     rows = conn.execute("""
         SELECT a.id AS area_id, t.id AS task_id,
-               CASE WHEN c.self_completed_at IS NOT NULL AND c.cfi_verified_at IS NOT NULL
-                    THEN 1 ELSE 0 END AS done
+               CASE WHEN c.cfi_verified_at IS NOT NULL THEN 1 ELSE 0 END AS done
         FROM acs_areas a
         JOIN acs_tasks t ON t.area_id = a.id
         JOIN acs_task_elements e ON e.task_id = t.id
@@ -308,8 +309,7 @@ def _rating_progress(conn, rating_id, student_id):
 def _element_done_map(conn, rating_id, student_id):
     rows = conn.execute("""
         SELECT e.id AS element_id,
-               CASE WHEN c.self_completed_at IS NOT NULL AND c.cfi_verified_at IS NOT NULL
-                    THEN 1 ELSE 0 END AS done
+               CASE WHEN c.cfi_verified_at IS NOT NULL THEN 1 ELSE 0 END AS done
         FROM acs_areas a
         JOIN acs_tasks t ON t.area_id = a.id
         JOIN acs_task_elements e ON e.task_id = t.id
@@ -319,13 +319,46 @@ def _element_done_map(conn, rating_id, student_id):
     return {r["element_id"]: bool(r["done"]) for r in rows}
 
 
+GS_STUDENT_KEY = "gs_student_id"
+
+
 def _resolve_viewing_student(conn):
+    """SCHOOL-08: whose progress the Ground School pages show. A student
+    always sees themselves (no picker). Staff get ONE picker (rendered by
+    flight/_groundschool_picker.html at the top of every Ground School
+    page) whose choice is remembered in the session, so Prev / Next, the
+    back links and every redirect keep it. ?student_id= (a link or the
+    picker) sets it; ?student_id=0 clears it."""
     if session.get("student_id"):
         return session["student_id"], []
     if session.get("cfi_id") or session.get("is_master_admin"):
-        students = conn.execute("SELECT id, name FROM students WHERE active = 1 ORDER BY name").fetchall()
-        return request.args.get("student_id", type=int), students
+        students = conn.execute("SELECT id, name FROM students WHERE active = 1 AND COALESCE(is_station, 0) = 0 ORDER BY name").fetchall()
+        if "student_id" in request.args:
+            sid = request.args.get("student_id", type=int) or None
+            session[GS_STUDENT_KEY] = sid
+        else:
+            sid = session.get(GS_STUDENT_KEY)
+        if sid and not any(st["id"] == sid for st in students):
+            sid = None
+        return sid, students
     return None, []
+
+
+def _student_url(endpoint, **values):
+    """url_for that carries the chosen student (staff only) - SCHOOL-08."""
+    if not session.get("student_id") and session.get(GS_STUDENT_KEY):
+        values.setdefault("student_id", session[GS_STUDENT_KEY])
+    return url_for(endpoint, **values)
+
+
+groundschool_bp.add_app_template_global(_student_url, "gs_url")
+
+
+def _gone(what):
+    """SCHOOL-40: a stale link to a deleted rating / task / element gets a
+    message and the Ground School list, not a bare Not Found page."""
+    flash(f"That {what} is no longer here.", "warning")
+    return redirect(url_for("groundschool.rating_list"))
 
 
 def _check_self_complete(conn, student_id, element_id):
@@ -389,7 +422,7 @@ def rating_list():
                 progress_by_rating[r["id"]] = _rating_progress(conn, r["id"], viewing_student_id)
     conn.close()
     return render_template("flight/groundschool_list.html", ratings=ratings, tab="groundschool",
-                            progress_by_rating=progress_by_rating, students=students,
+                            progress_by_rating=progress_by_rating, gs_students=students,
                             viewing_student_id=viewing_student_id)
 
 
@@ -492,7 +525,7 @@ def rating_detail(rating_id):
     rating = conn.execute("SELECT * FROM acs_ratings WHERE id = ?", (rating_id,)).fetchone()
     if not rating:
         conn.close()
-        abort(404)
+        return _gone("rating")
     areas = conn.execute("SELECT * FROM acs_areas WHERE rating_id = ? ORDER BY order_index",
                           (rating_id,)).fetchall()
     tasks_by_area = {}
@@ -522,7 +555,7 @@ def rating_detail(rating_id):
     return render_template("flight/groundschool_rating.html", rating=rating, areas=areas,
                             tasks_by_area=tasks_by_area, elements_by_task=elements_by_task,
                             references_html_by_task=references_html_by_task, tab="groundschool",
-                            students=students, viewing_student_id=viewing_student_id,
+                            gs_students=students, viewing_student_id=viewing_student_id,
                             progress=progress, element_done=element_done)
 
 
@@ -533,7 +566,7 @@ def task_detail(task_id):
     task = conn.execute("SELECT * FROM acs_tasks WHERE id = ?", (task_id,)).fetchone()
     if not task:
         conn.close()
-        abort(404)
+        return _gone("task")
     area = conn.execute("SELECT * FROM acs_areas WHERE id = ?", (task["area_id"],)).fetchone()
     rating = conn.execute("SELECT * FROM acs_ratings WHERE id = ?", (area["rating_id"],)).fetchone()
     notes = conn.execute("SELECT * FROM acs_task_notes WHERE task_id = ? ORDER BY order_index",
@@ -560,11 +593,13 @@ def task_detail(task_id):
     if session.get("student_id"):
         my_signoff = conn.execute("SELECT * FROM acs_task_signoff WHERE task_id = ? AND student_id = ?",
                                    (task_id, session["student_id"])).fetchone()
-    students = []
-    if session.get("cfi_id"):
-        students = conn.execute("SELECT id, name FROM students WHERE active = 1 ORDER BY name").fetchall()
+    # SCHOOL-41: the chosen student's sign-off on this task (shown with its
+    # note next to the progress bar for staff).
+    viewing_signoff = None
     references_html = linked_references_html(conn, task["acs_references"], task_id=task_id)
-    viewing_student_id, _ = _resolve_viewing_student(conn)
+    # SCHOOL-08: the one picker at the top of the page is the student every
+    # box below (Reading Review, Sign-Off) acts on.
+    viewing_student_id, students = _resolve_viewing_student(conn)
     element_ids = [e["id"] for e in knowledge] + [e["id"] for e in risk_management] + [e["id"] for e in skills]
     element_done = {}
     if viewing_student_id and element_ids:
@@ -573,9 +608,11 @@ def task_detail(task_id):
             f"SELECT element_id, self_completed_at, cfi_verified_at FROM acs_element_completion "
             f"WHERE student_id = ? AND element_id IN ({placeholders})",
             [viewing_student_id] + element_ids).fetchall()
-        element_done = {r["element_id"]: bool(r["self_completed_at"] and r["cfi_verified_at"]) for r in rows}
+        element_done = {r["element_id"]: bool(r["cfi_verified_at"]) for r in rows}
     task_done = sum(1 for v in element_done.values() if v)
     task_total = len(element_ids)
+    if viewing_student_id:
+        viewing_signoff = next((so for so in signoffs if so["student_id"] == viewing_student_id), None)
     reading_progress = None
     if viewing_student_id:
         reading_progress = conn.execute("""
@@ -597,10 +634,11 @@ def task_detail(task_id):
     return render_template("flight/groundschool_task.html", task=task, area=area, rating=rating,
                             notes=notes, knowledge=knowledge, risk_management=risk_management,
                             skills=skills, lesson=lesson, signoffs=signoffs, my_signoff=my_signoff,
-                            students=students, prev_task_id=prev_task_id, next_task_id=next_task_id,
+                            gs_students=students, prev_task_id=prev_task_id, next_task_id=next_task_id,
                             tab="groundschool", references_html=references_html,
                             element_done=element_done, task_done=task_done, task_total=task_total,
-                            reading_progress=reading_progress, viewing_student_id=viewing_student_id)
+                            reading_progress=reading_progress, viewing_student_id=viewing_student_id,
+                            viewing_signoff=viewing_signoff)
 
 
 @groundschool_bp.route("/task/<int:task_id>/lesson", methods=["POST"])
@@ -649,10 +687,17 @@ def signoff_add(task_id):
         conn.execute("INSERT INTO acs_task_signoff (student_id, task_id, cfi_id, signed_off_at, notes) "
                      "VALUES (?, ?, ?, ?, ?)",
                      (student_id, task_id, session.get("cfi_id"), now_iso(), notes))
+    # SCHOOL-41: signing off the task verifies every one of its elements for
+    # this student, so the progress bars agree with the sign-off.
+    verified = 0
+    for e in conn.execute("SELECT id FROM acs_task_elements WHERE task_id = ?", (task_id,)).fetchall():
+        if _verify_element(conn, student_id, e["id"]):
+            verified += 1
     conn.commit()
     conn.close()
-    flash(f"Signed off {student['name']} on this Task.", "success")
-    return redirect(url_for("groundschool.task_detail", task_id=task_id))
+    flash(f"Signed off {student['name']} on this Task" + (f" - {verified} element{'s' if verified != 1 else ''} verified." if verified else "."),
+          "success")
+    return redirect(url_for("groundschool.task_detail", task_id=task_id, student_id=student_id))
 
 
 @groundschool_bp.route("/task/<int:task_id>/signoff/<int:signoff_id>/remove", methods=["POST"])
@@ -663,7 +708,7 @@ def signoff_remove(task_id, signoff_id):
     conn.commit()
     conn.close()
     flash("Sign-off removed.", "success")
-    return redirect(url_for("groundschool.task_detail", task_id=task_id))
+    return redirect(_student_url("groundschool.task_detail", task_id=task_id))
 
 
 # ---------------------------------------------------------------------------
@@ -780,13 +825,18 @@ def element_detail(element_id):
     el = conn.execute("SELECT * FROM acs_task_elements WHERE id = ?", (element_id,)).fetchone()
     if not el:
         conn.close()
-        abort(404)
+        return _gone("element")
     task = conn.execute("SELECT * FROM acs_tasks WHERE id = ?", (el["task_id"],)).fetchone()
     area = conn.execute("SELECT * FROM acs_areas WHERE id = ?", (task["area_id"],)).fetchone()
     rating = conn.execute("SELECT * FROM acs_ratings WHERE id = ?", (area["rating_id"],)).fetchone()
     items = conn.execute("SELECT * FROM acs_element_lesson_items WHERE element_id = ? ORDER BY order_index",
                           (element_id,)).fetchall()
     viewing_student_id, students = _resolve_viewing_student(conn)
+    # SCHOOL-07: an element with nothing required to click or watch is
+    # self-completed the moment the student opens it (the visit is the
+    # lesson) - otherwise text-only and empty elements could never finish.
+    if session.get("student_id") and not any(it["required"] for it in items):
+        _check_self_complete(conn, session["student_id"], element_id)
     done_item_ids = set()
     completion = None
     if viewing_student_id:
@@ -804,7 +854,7 @@ def element_detail(element_id):
     conn.close()
     return render_template("flight/groundschool_element.html", el=el, task=task, area=area, rating=rating,
                             items=items, done_item_ids=done_item_ids, completion=completion,
-                            students=students, viewing_student_id=viewing_student_id,
+                            gs_students=students, viewing_student_id=viewing_student_id,
                             all_required_done=all_required_done, related_pages=related_pages,
                             tab="groundschool")
 
@@ -923,7 +973,7 @@ def task_verify_reading(task_id):
     conn.commit()
     conn.close()
     flash(f"Reviewed this Task's knowledge area with {student['name']}.", "success")
-    return redirect(url_for("groundschool.task_detail", task_id=task_id))
+    return redirect(url_for("groundschool.task_detail", task_id=task_id, student_id=student_id))
 
 
 @groundschool_bp.route("/element/<int:element_id>/item/<int:item_id>/interact", methods=["POST"])
@@ -951,6 +1001,24 @@ def element_item_interact(element_id, item_id):
     return {"ok": True, "self_completed": bool(completion and completion["self_completed_at"])}
 
 
+def _verify_element(conn, student_id, element_id):
+    """Marks one element CFI-verified for a student. Returns True when it
+    was newly verified (False if it already was). SCHOOL-07: no gate on the
+    student's own self-completion - the CFI's word is what counts."""
+    existing = conn.execute("SELECT * FROM acs_element_completion WHERE student_id = ? AND element_id = ?",
+                             (student_id, element_id)).fetchone()
+    if existing and existing["cfi_verified_at"]:
+        return False
+    if existing:
+        conn.execute("UPDATE acs_element_completion SET cfi_id = ?, cfi_verified_at = ? "
+                     "WHERE student_id = ? AND element_id = ?",
+                     (session.get("cfi_id"), now_iso(), student_id, element_id))
+    else:
+        conn.execute("INSERT INTO acs_element_completion (student_id, element_id, cfi_id, cfi_verified_at) "
+                     "VALUES (?, ?, ?, ?)", (student_id, element_id, session.get("cfi_id"), now_iso()))
+    return True
+
+
 @groundschool_bp.route("/element/<int:element_id>/verify", methods=["POST"])
 @cfi_required
 def element_verify(element_id):
@@ -960,17 +1028,9 @@ def element_verify(element_id):
         if student_id else None
     if not student:
         conn.close()
-        flash("Choose a student to verify.", "danger")
+        flash("Choose a student at the top of the page first.", "danger")
         return redirect(url_for("groundschool.element_detail", element_id=element_id))
-    existing = conn.execute("SELECT * FROM acs_element_completion WHERE student_id = ? AND element_id = ?",
-                             (student_id, element_id)).fetchone()
-    if existing:
-        conn.execute("UPDATE acs_element_completion SET cfi_id = ?, cfi_verified_at = ? "
-                     "WHERE student_id = ? AND element_id = ?",
-                     (session.get("cfi_id"), now_iso(), student_id, element_id))
-    else:
-        conn.execute("INSERT INTO acs_element_completion (student_id, element_id, cfi_id, cfi_verified_at) "
-                     "VALUES (?, ?, ?, ?)", (student_id, element_id, session.get("cfi_id"), now_iso()))
+    _verify_element(conn, student_id, element_id)
     conn.commit()
     conn.close()
     flash(f"Verified {student['name']} on this element.", "success")

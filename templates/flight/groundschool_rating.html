@@ -1,6 +1,7 @@
 {% extends "academy_base.html" %}
 {% block title %}{{ rating.name }} - Ground School - OpsHub{% endblock %}
 {% block content %}
+{% include "flight/_groundschool_picker.html" %}
 <style>
   .pg-bar { position: relative; height: .6rem; border-radius: 999px; background: #e9ecef; overflow: hidden; }
   .pg-fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #2b3fdb, #4dabf7); }
@@ -15,7 +16,7 @@
   .el-badge .bi-chevron-right { font-size: .7em; vertical-align: 1px; opacity: .7; }
 </style>
 <div class="mb-3">
-  <a href="{{ url_for('groundschool.rating_list') }}" class="text-decoration-none small text-light"><i class="bi bi-arrow-left"></i> Ground School</a>
+  <a href="{{ gs_url('groundschool.rating_list') }}" class="text-decoration-none small text-light"><i class="bi bi-arrow-left"></i> Ground School</a>
   <h4 class="mb-0 text-light">{{ rating.name }}</h4>
   {% if rating.doc_number %}<div class="text-light small opacity-75">{{ rating.doc_number }}</div>{% endif %}
 </div>
@@ -64,7 +65,7 @@
           <span class="text-muted">Task {{ task.code }}.</span> {{ task.title }}
           {% if tp %}<span class="small text-muted ms-2">({{ tp.done }}/{{ tp.total }} &middot; {{ tp.pct }}%)</span>{% endif %}
         </span>
-        <a href="{{ url_for('groundschool.task_detail', task_id=task.id) }}" class="small text-decoration-none flex-shrink-0"
+        <a href="{{ gs_url('groundschool.task_detail', task_id=task.id) }}" class="small text-decoration-none flex-shrink-0"
            onclick="event.stopPropagation();" title="Open the full Task page">
           Full page <i class="bi bi-box-arrow-up-right"></i>
         </a>
@@ -83,7 +84,7 @@
           <ul class="list-unstyled mb-2">
             {% for el in els['knowledge'] %}
             <li class="mb-1">
-              <a href="{{ url_for('groundschool.element_detail', element_id=el.id) }}"
+              <a href="{{ gs_url('groundschool.element_detail', element_id=el.id) }}"
                  class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
                 {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
               </a>
@@ -98,7 +99,7 @@
           <ul class="list-unstyled mb-2">
             {% for el in els['risk_management'] %}
             <li class="mb-1">
-              <a href="{{ url_for('groundschool.element_detail', element_id=el.id) }}"
+              <a href="{{ gs_url('groundschool.element_detail', element_id=el.id) }}"
                  class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
                 {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
               </a>
@@ -113,7 +114,7 @@
           <ul class="list-unstyled mb-0">
             {% for el in els['skills'] %}
             <li class="mb-1">
-              <a href="{{ url_for('groundschool.element_detail', element_id=el.id) }}"
+              <a href="{{ gs_url('groundschool.element_detail', element_id=el.id) }}"
                  class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
                 {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
               </a>

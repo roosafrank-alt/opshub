@@ -1,0 +1,14 @@
+{#- SCHOOL-08: the ONE student picker for every Ground School page (staff
+   only - a student always sees their own progress). "Choose a student..."
+   is a real blank; the choice is remembered in the session
+   (groundschool._resolve_viewing_student) and carried on every Prev /
+   Next / back link (gs_url) and redirect, so it never resets. #}
+{% if gs_students %}
+<form method="get" class="mb-3 d-flex align-items-center gap-2" data-change="SCHOOL-08">
+  <label class="text-light small mb-0">Student</label>
+  <select name="student_id" class="form-select form-select-sm" style="max-width:280px;" onchange="this.form.submit()">
+    <option value="0" {{ 'selected' if not viewing_student_id }}>Choose a student...</option>
+    {% for s in gs_students %}<option value="{{ s.id }}" {{ 'selected' if viewing_student_id == s.id }}>{{ s.name }}</option>{% endfor %}
+  </select>
+</form>
+{% endif %}

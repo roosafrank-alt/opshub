@@ -167,6 +167,23 @@ def _is_staff():
     return bool(session.get("is_master_admin") or session.get("cfi_id"))
 
 
+def _require_access(what="your logbook"):
+    """SCHOOL-36: the redirect to send back when this page can't be shown,
+    or None. Nobody signed in (an old notification link after the session
+    expired) goes to the login page with a plain "please sign in" and comes
+    back here afterwards (session['login_next'], honoured by the login
+    form in app.home_launcher) - only a signed-in account without Academy
+    access is told to ask an admin."""
+    if not session.get("user_id"):
+        session["login_next"] = request.full_path.rstrip("?")
+        flash(f"Please sign in to see {what}.", "info")
+        return redirect(url_for("home_launcher"))
+    if not _access_ok():
+        flash("You don't have access to Flight Academy yet. Ask an admin.", "danger")
+        return redirect(url_for("home_launcher"))
+    return None
+
+
 def _num(v, kind="hrs"):
     v = (v or "").strip() if isinstance(v, str) else v
     if v in (None, ""):
@@ -381,9 +398,9 @@ def _can_touch(entry):
 
 @pilotlog_bp.route("/logbook")
 def logbook():
-    if not _access_ok():
-        flash("You don't have access to Flight Academy yet. Ask an admin.", "danger")
-        return redirect(url_for("home_launcher"))
+    denied = _require_access()
+    if denied:
+        return denied
     conn = get_db()
     student, students = _pick_student(conn)
     entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ?
@@ -403,8 +420,9 @@ def logbook():
 
 @pilotlog_bp.route("/logbook/<int:entry_id>", methods=["GET", "POST"])
 def entry(entry_id):
-    if not _access_ok():
-        return redirect(url_for("home_launcher"))
+    denied = _require_access()
+    if denied:
+        return denied
     conn = get_db()
     e = conn.execute("""SELECT l.*, s.name as student_name FROM pilot_logbook l JOIN students s ON s.id = l.student_id
                         WHERE l.id = ?""", (entry_id,)).fetchone()
@@ -482,9 +500,9 @@ def export_csv():
 
 @pilotlog_bp.route("/progress")
 def progress():
-    if not _access_ok():
-        flash("You don't have access to Flight Academy yet. Ask an admin.", "danger")
-        return redirect(url_for("home_launcher"))
+    denied = _require_access()
+    if denied:
+        return denied
     conn = get_db()
     student, students = _pick_student(conn)
     tracks = build_progress(conn, student) if student else []
@@ -527,14 +545,14 @@ def milestone():
 
 @pilotlog_bp.route("/totalizer")
 def totalizer():
-    """"Totalizar" - a step past Progress's fixed next-track view: pick any
+    """Totalizer (SCHOOL-35: one name everywhere) - a step past Progress's fixed next-track view: pick any
     certificate/rating as your target (not just the next logical one) and
     see an ETA for it based on your own average pace, not a generic
     estimate. Totals-per-category are the same numbers already on the
     Logbook tab, just given their own page alongside the target picker."""
-    if not _access_ok():
-        flash("You don't have access to Flight Academy yet. Ask an admin.", "danger")
-        return redirect(url_for("home_launcher"))
+    denied = _require_access()
+    if denied:
+        return denied
     conn = get_db()
     student, students = _pick_student(conn)
     entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? ORDER BY entry_date, id""",
@@ -544,8 +562,11 @@ def totalizer():
     target_code = request.args.get("target") or (NEXT_TRACK.get(student["pilot_certificate"], "private") if student else "private")
     target = next((t for t in tracks if t["code"] == target_code), None)
     eta = target_eta(entries, target) if target else None
+    # SCHOOL-35: tab stays "logbook" (the Academy tab row and the sub-tab
+    # strip key on it); subtab lights the Totalizer sub-tab.
     return render_template("academy_totalizer.html", student=student, students=students, totals=_totals(entries),
-                           tracks=tracks, target=target, target_code=target_code, eta=eta, tab="logbook")
+                           tracks=tracks, target=target, target_code=target_code, eta=eta, tab="logbook",
+                           subtab="totalizer")
 
 
 @pilotlog_bp.app_template_global()
@@ -649,9 +670,9 @@ def airport_map():
     """Sectional-chart map of every airport the student has landed at, from
     the From / To boxes of their logbook. Staff can switch to the whole
     school with ?all=1."""
-    if not _access_ok():
-        flash("You don't have access to Flight Academy yet. Ask an admin.", "danger")
-        return redirect(url_for("home_launcher"))
+    denied = _require_access()
+    if denied:
+        return denied
     conn = get_db()
     student, students = _pick_student(conn)
     whole_school = _is_staff() and request.args.get("all") == "1"

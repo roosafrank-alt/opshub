@@ -6,53 +6,70 @@
 <div class="card p-4">
   <div class="d-flex justify-content-between align-items-start mb-2">
     <h4 class="mb-0">{{ 'Edit CFI' if cfi else 'New CFI' }}</h4>
+    {#- SCHOOL-04: ?next= asks the Admin account form to come back here
+       after Save (that form is the chrome part's). Edit CFI is admin-only
+       already, so the button never shows to a plain CFI. #}
     {% if cfi and cfi.user_id %}
-    <a href="{{ url_for('admin_user_edit', user_id=cfi.user_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-shield-lock"></i> Edit Account</a>
+    <a href="{{ url_for('admin_user_edit', user_id=cfi.user_id, next=request.path) }}" class="btn btn-outline-secondary btn-sm" data-change="SCHOOL-04"><i class="bi bi-shield-lock"></i> Edit Account</a>
     {% endif %}
   </div>
-  <form method="post">
+  {#- SCHOOL-15 / SCHOOL-16: after a rejected save the form comes back
+     with what was typed (``form``) and the offending field outlined. #}
+  {% set F = form %}
+  {% macro fv(name, stored) %}{{ F.get(name, '') if F is not none else (stored if stored is not none else '') }}{% endmacro %}
+  {% macro fchecked(name, stored) %}{{ 'checked' if (F.get(name) if F is not none else stored) }}{% endmacro %}
+  {% macro inv(name) %}{{ ' is-invalid' if error_field == name }}{% endmacro %}
+  <form method="post"{% if F is not none %} data-change="SCHOOL-15 SCHOOL-16"{% endif %}>
     <div class="mb-3">
       <label class="form-label">Full Name *</label>
-      <input type="text" name="name" class="form-control" value="{{ cfi.name if cfi else '' }}" required autofocus>
+      <input type="text" name="name" class="form-control{{ inv('name') }}" value="{{ fv('name', cfi.name if cfi else '') }}" required autofocus>
     </div>
     {% if not cfi %}
     <div class="mb-3">
       <label class="form-label">Username *</label>
-      <input type="text" name="username" class="form-control" required>
+      <input type="text" name="username" class="form-control{{ inv('username') }}" value="{{ fv('username', '') }}" required>
     </div>
-    <div class="mb-3">
+    <div class="mb-3" data-change="SCHOOL-43">
       <label class="form-label">Starting Password *</label>
-      <input type="text" name="password" class="form-control" required>
-      <div class="form-text">Give this to the instructor - they can log in with it right away.</div>
+      <div class="input-group">
+        <input type="password" name="password" id="password-input" class="form-control{{ inv('password') }}" value="{{ fv('password', starting_password) }}" required autocomplete="new-password">
+        <button type="button" class="btn btn-outline-secondary" id="password-show" title="Show / hide"><i class="bi bi-eye"></i> Show</button>
+        <button type="button" class="btn btn-outline-secondary" id="password-copy" title="Copy to clipboard"><i class="bi bi-clipboard"></i> Copy</button>
+      </div>
+      <div class="form-text">A one-time password was made up for you - copy it and give it to the instructor now (it isn't kept on file). You can type your own instead.</div>
     </div>
     {% else %}
     <div class="mb-3">
       <label class="form-label">Username</label>
       <div><code>{{ cfi.username }}</code></div>
     </div>
-    <div class="mb-3">
+    <div class="mb-3" data-change="SCHOOL-43">
       <label class="form-label">Reset Password <span class="text-muted small">(leave blank to keep current)</span></label>
-      <input type="text" name="password" class="form-control">
+      <div class="input-group">
+        <input type="password" name="password" id="password-input" class="form-control" value="{{ fv('password', '') }}" autocomplete="new-password">
+        <button type="button" class="btn btn-outline-secondary" id="password-show" title="Show / hide"><i class="bi bi-eye"></i> Show</button>
+        <button type="button" class="btn btn-outline-secondary" id="password-copy" title="Copy to clipboard"><i class="bi bi-clipboard"></i> Copy</button>
+      </div>
     </div>
     {% endif %}
     <div class="mb-3">
       <label class="form-label">Instructor Rate ($/hr) *</label>
-      <input type="number" step="any" name="rate_per_hour" class="form-control" value="{{ cfi.rate_per_hour if cfi else '' }}" required>
+      <input type="number" step="any" name="rate_per_hour" class="form-control" value="{{ fv('rate_per_hour', cfi.rate_per_hour if cfi else '') }}" required>
       <div class="form-text">What this CFI bills students for instruction time - a student can still be given their own override rate from the Students page.</div>
     </div>
     <div class="mb-3">
       <label class="form-label">Pay Rate ($/hr) <span class="text-muted small">(admin + this CFI only - separate from the billed rate above)</span></label>
-      <input type="number" step="any" name="pay_rate_per_hour" class="form-control" value="{{ cfi.pay_rate_per_hour if cfi and cfi.pay_rate_per_hour is not none else '' }}">
+      <input type="number" step="any" name="pay_rate_per_hour" class="form-control" value="{{ fv('pay_rate_per_hour', cfi.pay_rate_per_hour if cfi else '') }}"{% if not cfi %} data-change="SCHOOL-02"{% endif %}>
       <div class="form-text">What the school pays this CFI per hour - used to auto-tally what's owed them from their logged flights. Hidden from students and other instructors.</div>
     </div>
     {% if cfi %}
     <div class="mb-3">
-      <label class="form-label">Students Aircraft Rate ($/hr)</label>
+      <label class="form-label" data-change="SCHOOL-29">Instructor rate in a student's own plane ($/hr)</label>
       <div>
         {% if cfi.external_rate is not none %}${{ '%.2f'|format(cfi.external_rate) }}/hr{% else %}Not set - uses the Instructor Rate{% endif %}
         &middot; <a href="{{ url_for('flight.school_settings_edit') }}">Change in Manage &gt; School Settings</a>
       </div>
-      <div class="form-text">What this CFI bills for instruction given outside a Flight School plane (e.g. in a student's own aircraft) - edited from Manage &gt; School Settings so it has one home.</div>
+      <div class="form-text">What this CFI bills for instruction given in a student's own plane - edited from Manage &gt; School Settings so it has one home.</div>
     </div>
     {% endif %}
     <div class="mb-3">
@@ -60,7 +77,7 @@
       <div class="d-flex flex-wrap gap-3">
         {% for code, label in [('cred_cfi','CFI'), ('cred_cfii','CFII'), ('cred_mei','MEI'), ('cred_agi','AGI'), ('cred_bgi','BGI'), ('cred_igi','IGI')] %}
         <div class="form-check">
-          <input type="checkbox" class="form-check-input" name="{{ code }}" id="{{ code }}-check" {% if cfi and cfi[code] %}checked{% endif %}>
+          <input type="checkbox" class="form-check-input" name="{{ code }}" id="{{ code }}-check" {{ fchecked(code, cfi and cfi[code]) }}>
           <label class="form-check-label" for="{{ code }}-check">{{ label }}</label>
         </div>
         {% endfor %}
@@ -72,19 +89,20 @@
       <div class="d-flex flex-wrap gap-3">
         {% for code, label in [('cred_high_performance','High Performance'), ('cred_complex','Complex'), ('cred_tailwheel','Tailwheel')] %}
         <div class="form-check">
-          <input type="checkbox" class="form-check-input" name="{{ code }}" id="{{ code }}-check" {% if cfi and cfi[code] %}checked{% endif %}>
+          <input type="checkbox" class="form-check-input" name="{{ code }}" id="{{ code }}-check" {{ fchecked(code, cfi and cfi[code]) }}>
           <label class="form-check-label" for="{{ code }}-check">{{ label }}</label>
         </div>
         {% endfor %}
       </div>
     </div>
 
+    {% set gender_now = (F.get('gender') if F is not none else (cfi.gender if cfi else '')) %}
     <div class="mb-3">
       <label class="form-label">Gender <span class="text-muted small">(admin-set, optional - only used to power the "woman only instructor" filter on the flight finder)</span></label>
       <select name="gender" class="form-select" style="max-width:220px;">
-        <option value="" {{ 'selected' if not (cfi and cfi.gender) }}>- Not specified -</option>
-        <option value="F" {{ 'selected' if cfi and cfi.gender == 'F' }}>Female</option>
-        <option value="M" {{ 'selected' if cfi and cfi.gender == 'M' }}>Male</option>
+        <option value="" {{ 'selected' if not gender_now }}>- Not specified -</option>
+        <option value="F" {{ 'selected' if gender_now == 'F' }}>Female</option>
+        <option value="M" {{ 'selected' if gender_now == 'M' }}>Male</option>
       </select>
     </div>
     <div class="row" id="medical" style="scroll-margin-top:80px;">
@@ -93,24 +111,24 @@
         <select name="medical_class" class="form-select">
           <option value="">- Not tracked -</option>
           {% for code, label in medical_classes %}
-          <option value="{{ code }}" {{ 'selected' if cfi and cfi.medical_class == code }}>{{ label }}</option>
+          <option value="{{ code }}" {{ 'selected' if (F.get('medical_class') if F is not none else (cfi.medical_class if cfi else '')) == code }}>{{ label }}</option>
           {% endfor %}
         </select>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Medical Expires</label>
-        <input type="date" name="medical_expires" class="form-control" value="{{ cfi.medical_expires if cfi and cfi.medical_expires else '' }}">
+        <input type="date" name="medical_expires" class="form-control" value="{{ fv('medical_expires', cfi.medical_expires if cfi else '') }}">
       </div>
     </div>
     <p class="text-muted small mt-n2 mb-3">A CFI can't be booked on, or start, a flight after their medical expires. Leave it blank if you don't track it.</p>
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Flight Instructor Certificate #</label>
-        <input type="text" name="cfi_cert_number" maxlength="40" class="form-control" value="{{ cfi.cfi_cert_number if cfi and cfi.cfi_cert_number else '' }}">
+        <input type="text" name="cfi_cert_number" maxlength="40" class="form-control" value="{{ fv('cfi_cert_number', cfi.cfi_cert_number if cfi else '') }}">
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">CFI Certificate Expires</label>
-        <input type="date" name="cfi_cert_expires" class="form-control" value="{{ cfi.cfi_cert_expires if cfi and cfi.cfi_cert_expires else '' }}">
+        <input type="date" name="cfi_cert_expires" class="form-control" value="{{ fv('cfi_cert_expires', cfi.cfi_cert_expires if cfi else '') }}">
       </div>
     </div>
     <p class="text-muted small mt-n2 mb-3">Printed with this instructor's name on students' logbook entries (Flight Academy &gt; Logbook).</p>
@@ -122,34 +140,35 @@
     </div>
     {% endif %}
     <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" name="can_bill" id="can-bill-check" {% if cfi_user and cfi_user.can_bill %}checked{% endif %}>
+      <input type="checkbox" class="form-check-input" name="can_bill" id="can-bill-check" {{ fchecked('can_bill', cfi_user and cfi_user.can_bill) }}>
       <label class="form-check-label" for="can-bill-check">Can manage billing <span class="text-muted small">($ totals, outstanding balances, marking paid - master admins always can regardless of this)</span></label>
     </div>
+    {% set color_now = (F.get('color') if F is not none else (cfi.color if cfi else '')) or '' %}
     <div class="mb-3">
-      <label class="form-label d-block">Schedule Color</label>
-      <input type="hidden" name="color" id="color-input" value="{{ cfi.color if cfi else '' }}">
-      <div class="d-flex flex-wrap gap-2" id="color-swatches">
+      <label class="form-label d-block">Schedule Color{% if error_field == 'color' %} <span class="text-danger small">- that one is taken, pick another</span>{% endif %}</label>
+      <input type="hidden" name="color" id="color-input" value="{{ color_now }}">
+      <div class="d-flex flex-wrap gap-2{{ ' border border-danger rounded p-1' if error_field == 'color' }}" id="color-swatches">
         {% for c in instructor_colors %}
         {% set taken = c in (used_colors or []) %}
-        <div class="color-swatch{{ ' color-swatch-taken' if taken }}{{ ' color-swatch-selected' if cfi and cfi.color == c }}"
+        <div class="color-swatch{{ ' color-swatch-taken' if taken }}{{ ' color-swatch-selected' if color_now == c }}"
              data-color="{{ c }}"
              title="{{ 'Already in use' if taken else c }}"
-             style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if taken else 'pointer' }};opacity:{{ '0.25' if taken else '1' }};border:3px solid {{ '#212529' if (cfi and cfi.color == c) else 'transparent' }};"></div>
+             style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if taken else 'pointer' }};opacity:{{ '0.25' if taken else '1' }};border:3px solid {{ '#212529' if color_now == c else 'transparent' }};"></div>
         {% endfor %}
-        <div class="color-swatch{{ ' color-swatch-selected' if cfi and not cfi.color }}"
+        <div class="color-swatch{{ ' color-swatch-selected' if cfi and not color_now }}"
              data-color=""
              title="No color (use default)"
-             style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if (cfi and not cfi.color) else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
+             style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if (cfi and not color_now) else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
       </div>
       <div class="form-text">Grayed-out colors are already used by another active instructor or by a plane (planes and instructors each need their own color on the Schedule). Leave unset to fall back to an auto-assigned color.</div>
     </div>
     {% if cfi %}
     <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" name="active" id="active-check" {% if cfi.active %}checked{% endif %}>
+      <input type="checkbox" class="form-check-input" name="active" id="active-check" {{ fchecked('active', cfi.active) }}>
       <label class="form-check-label" for="active-check">Active</label>
     </div>
     <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" name="is_station" id="is-station-check" {% if cfi.is_station %}checked{% endif %}>
+      <input type="checkbox" class="form-check-input" name="is_station" id="is-station-check" {{ fchecked('is_station', cfi.is_station) }}>
       <label class="form-check-label" for="is-station-check">Generic station account <span class="text-muted small">(e.g. "Shop") - grants CFI-level access to whoever logs in with it, but isn't a real instructor: hidden from every Instructor picker, filter, and legend so it can't be scheduled to fly a lesson.</span></label>
     </div>
     {% endif %}
@@ -165,6 +184,22 @@
 
 {% block scripts %}
 <script>
+(function () {
+  var inp = document.getElementById('password-input'), show = document.getElementById('password-show'), copy = document.getElementById('password-copy');
+  if (inp) {
+    show.addEventListener('click', function () {
+      var open = inp.type === 'password';
+      inp.type = open ? 'text' : 'password';
+      show.innerHTML = open ? '<i class="bi bi-eye-slash"></i> Hide' : '<i class="bi bi-eye"></i> Show';
+    });
+    copy.addEventListener('click', function () {
+      if (!inp.value) return;
+      var done = function () { copy.innerHTML = '<i class="bi bi-check-lg"></i> Copied'; setTimeout(function () { copy.innerHTML = '<i class="bi bi-clipboard"></i> Copy'; }, 1500); };
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(inp.value).then(done, done); }
+      else { var t = inp.type; inp.type = 'text'; inp.select(); try { document.execCommand('copy'); } catch (e) {} inp.type = t; done(); }
+    });
+  }
+})();
 (function () {
   var input = document.getElementById('color-input');
   var swatches = document.querySelectorAll('#color-swatches .color-swatch');

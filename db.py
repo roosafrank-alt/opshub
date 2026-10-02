@@ -671,6 +671,14 @@ def _migrate(conn):
         conn.execute("ALTER TABLE flights ADD COLUMN squawk_repaired_at TEXT")
         conn.execute("ALTER TABLE flights ADD COLUMN squawk_repaired_by TEXT")
         conn.commit()
+    # SCHOOL-23: CFI pay periods - an admin marks a period paid and the
+    # dual flights in it move to the Paid section of the CFI's Pay page.
+    for col, ddl in (("cfi_paid_at", "ALTER TABLE flights ADD COLUMN cfi_paid_at TEXT"),
+                     ("cfi_paid_by", "ALTER TABLE flights ADD COLUMN cfi_paid_by TEXT"),
+                     ("cfi_paid_note", "ALTER TABLE flights ADD COLUMN cfi_paid_note TEXT")):
+        if col not in flight_cols:
+            conn.execute(ddl)
+    conn.commit()
 
     # Project job sheets: a prework checklist (things to check before
     # starting) and a standard-items-performed list, both printable together.
@@ -1184,6 +1192,16 @@ def _migrate(conn):
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_reports_open ON flight_reports(resolved_at, category)")
     conn.commit()
+    # SCHOOL-31: a Plane Issue report remembers the Maintenance squawk it
+    # made, so Alerts can show the squawk's status and the two stay in step.
+    # SCHOOL-09: who filed it (login id), so a student's Alerts tab can show
+    # just their own reports.
+    report_cols = [r["name"] for r in conn.execute("PRAGMA table_info(flight_reports)").fetchall()]
+    if "squawk_id" not in report_cols:
+        conn.execute("ALTER TABLE flight_reports ADD COLUMN squawk_id INTEGER")
+    if "reported_by_user_id" not in report_cols:
+        conn.execute("ALTER TABLE flight_reports ADD COLUMN reported_by_user_id INTEGER")
+    conn.commit()
 
     # Landings entered by hand on a student's profile (another school, a
     # rental, before this system) - still counted toward 90-day landing
@@ -1199,6 +1217,11 @@ def _migrate(conn):
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_manual_landings_student ON manual_landings(student_id, landing_date)")
+    # SCHOOL-37: a landing logged on the Academy board writes one of these
+    # too; this links the two so removing either removes both.
+    ml_cols = [r["name"] for r in conn.execute("PRAGMA table_info(manual_landings)").fetchall()]
+    if "academy_entry_id" not in ml_cols:
+        conn.execute("ALTER TABLE manual_landings ADD COLUMN academy_entry_id INTEGER")
     conn.commit()
 
     # Per-student opt-out for the "confirm your flight" push notification

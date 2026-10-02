@@ -14,8 +14,12 @@
 </div>
 {% endmacro %}
 <h4 class="mb-2"><i class="bi bi-person-vcard"></i> My Account</h4>
-<p class="mb-3">Account balance: <span class="fw-bold {{ 'text-danger' if balance < 0 else 'text-success' }}" id="acct-balance">${{ '%.2f'|format(balance) }}</span>
-  {% if balance < 0 %}<span class="text-muted small">owed</span>{% endif %}</p>
+{#- SCHOOL-10: same wording as the staff Account badge - never "$-150.00". #}
+<p class="mb-1">Account balance:
+  {% if balance < -0.005 %}<span class="fw-bold text-danger" id="acct-balance" data-change="SCHOOL-10">${{ '%.2f'|format(-balance) }} owed</span>
+  {% elif balance > 0.005 %}<span class="fw-bold text-success" id="acct-balance" data-change="SCHOOL-10">${{ '%.2f'|format(balance) }} credit</span>
+  {% else %}<span class="fw-bold" id="acct-balance" data-change="SCHOOL-10">$0.00</span>{% endif %}</p>
+<p class="text-muted small mb-3" data-change="SCHOOL-10">Balance includes payments you've made; the flights below are what the school hasn't marked paid yet.</p>
 <h6 class="text-warning-emphasis"><span class="badge bg-warning text-dark">Unpaid</span> {{ unpaid|length }} flight{{ 's' if unpaid|length != 1 }} - ${{ '%.2f'|format(unpaid_total) }}</h6>
 {{ flight_rows(unpaid) }}
 <h6><span class="badge bg-success">Paid</span> {{ paid|length }} flight{{ 's' if paid|length != 1 }}</h6>
