@@ -1804,6 +1804,19 @@ def _migrate(conn):
         conn.execute("ALTER TABLE scheduled_flights ADD COLUMN cancel_reason TEXT")
         conn.commit()
 
+    # Who cancelled a booking and when (a staff Cancel Flight asks for a reason
+    # too - flight.schedule_cancel), and which instructor pressed Start on a
+    # flight, so whoever started it can also pause and end it (FLY-03/FLY-05).
+    sched_cols_cancel = [r["name"] for r in conn.execute("PRAGMA table_info(scheduled_flights)").fetchall()]
+    if "cancelled_by" not in sched_cols_cancel:
+        conn.execute("ALTER TABLE scheduled_flights ADD COLUMN cancelled_by TEXT")
+        conn.execute("ALTER TABLE scheduled_flights ADD COLUMN cancelled_at TEXT")
+        conn.commit()
+    flight_cols_starter = [r["name"] for r in conn.execute("PRAGMA table_info(flights)").fetchall()]
+    if "started_by_cfi_id" not in flight_cols_starter:
+        conn.execute("ALTER TABLE flights ADD COLUMN started_by_cfi_id INTEGER")
+        conn.commit()
+
     # An instructor's required reason for denying a student's flight request
     # (flight.schedule_deny) - the student sees this reason directly instead
     # of a generic "contact your instructor".

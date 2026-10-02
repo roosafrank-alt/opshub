@@ -1,0 +1,27 @@
+{#- The Book next lesson box (same one End Session shows in base_flight.html's
+   message), for a flight logged after the fact - FLY-40. `book` is
+   flight._next_lesson_preview(). #}
+{% if book %}
+<div class="d-flex gap-2 mb-3" data-change="FLY-40">
+  <form method="post" action="{{ url_for('flight.schedule_new') }}" class="flex-fill mb-0">
+    <input type="hidden" name="student_id" value="{{ book.student_id }}">
+    {% if book.solo %}
+    <input type="hidden" name="solo" value="1">
+    {% elif book.cfi_id %}
+    <input type="hidden" name="cfi_id" value="{{ book.cfi_id }}">
+    {% endif %}
+    {% if book.own_plane %}
+    <input type="hidden" name="own_plane" value="1">
+    {% else %}
+    <input type="hidden" name="asset_id" value="{{ book.asset_id }}">
+    {% endif %}
+    <input type="hidden" name="scheduled_date" value="{{ book.date }}">
+    <input type="hidden" name="scheduled_time" value="{{ book.time }}">
+    {% if book.duration_hours is not none %}
+    <input type="hidden" name="duration_hours" value="{{ book.duration_hours }}">
+    {% endif %}
+    <button type="submit" class="btn btn-success fw-bold w-100 text-start"><i class="bi bi-calendar-plus"></i> Book <strong>{{ book.label }}</strong></button>
+  </form>
+  <a href="{{ book.edit_url }}" class="btn btn-outline-success flex-shrink-0" title="Pick a different date or time before booking"><i class="bi bi-pencil"></i></a>
+</div>
+{% endif %}

@@ -1,6 +1,7 @@
 {% extends "flight/base_flight.html" %}
 {% block title %}Flight History - OpsHub{% endblock %}
 {% block content %}
+{% set book = logged_next %}{% include "flight/_book_next_box.html" %}
 <style>
   /* Phone-only compact rows for Flight History (replaces the table-stack
      10-item box below the sm breakpoint, same 575.98px cutoff table-stack
@@ -120,9 +121,13 @@
           <td data-label="Cost"><small>${{ '%.2f'|format(f.total) }}{% if f.ground_hours %}<br>(incl. {{ '%g'|format(f.ground_hours) }} hr ground){% endif %}{% if f.instructor_clock_hours is not none %}<br><span class="badge bg-info text-dark">Clocked {{ '%.1f'|format(f.instructor_clock_hours) }} hr instructor time</span>{% endif %}</small></td>
           <td data-label="Paid">
             {% if f.paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}
-            <form method="post" action="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" class="d-inline" data-confirm="{{ 'Mark this flight as UNPAID? It will show as owed again.' if f.paid else 'Mark this flight as PAID?' }}" data-confirm-title="{{ 'Mark Unpaid' if f.paid else 'Mark Paid' }}" data-confirm-ok="{{ 'Yes, mark unpaid' if f.paid else 'Yes, mark paid' }}" data-confirm-style="{{ 'warning' if f.paid else 'success' }}">
-              <button class="btn btn-link btn-sm p-0 ms-1">{{ 'Mark unpaid' if f.paid else 'Mark paid' }}</button>
+            {% if f.paid %}
+            <form method="post" action="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" class="d-inline" data-confirm="Mark this flight as UNPAID? The payment recorded for it comes back off the student's account and it shows as owed again." data-confirm-title="Mark Unpaid" data-confirm-ok="Yes, mark unpaid" data-confirm-style="warning">
+              <button class="btn btn-link btn-sm p-0 ms-1">Mark unpaid</button>
             </form>
+            {% else %}
+            <button type="button" class="btn btn-link btn-sm p-0 ms-1 mark-paid-btn" data-url="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" data-total="{{ '%.2f'|format(f.total) }}" data-who="{{ f.student_name }}" data-change="FLY-11">Mark paid</button>
+            {% endif %}
           </td>
           {% endif %}
           <td class="stack-full" data-label="Notes">
@@ -148,7 +153,12 @@
     </table>
   </div>
 </div>
-<p class="text-muted small mt-2 d-none d-sm-block">Oil-consumption analytics (qt/hr, hours-to-oil-change) are coming in a later phase. Oil added and squawks are also visible from the plane's profile in Maintenance.</p>
+{% if has_older %}
+<div class="text-center mt-3" data-change="FLY-24">
+  <a href="{{ url_for('flight.log_history', limit=limit + 100) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-clock-history"></i> Show older flights</a>
+</div>
+{% endif %}
+{% include "flight/_mark_paid_modal.html" %}
 {% endblock %}
 
 {% block scripts %}
