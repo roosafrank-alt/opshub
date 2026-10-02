@@ -3,6 +3,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-cash-stack"></i> {{ (laborer_name ~ '\'s Pay') if laborer_name else ('Labor Pay' if admin_view else 'My Pay') }} <span class="text-muted fs-6">- {{ period_label }}</span></h4>
+  {% if admin_view and laborer_id %}<a href="{{ url_for('shop_pay', **all_workers_args) }}" class="btn btn-outline-secondary btn-sm" data-change="SHOP-42"><i class="bi bi-people"></i> All workers</a>{% endif %}
   <div class="text-end">
     <span class="text-muted small d-block">{{ '%.1f'|format(total_hours) }} hrs clocked</span>
     <strong class="fs-4">${{ '%.2f'|format(total_pay) }}</strong>
@@ -76,6 +77,6 @@
 </div>
 {% endfor %}
 {% else %}
-<p class="text-muted">{% if admin_view %}No labor clocked in this period.{% else %}No labor clocked under your name ({{ logged_in_user_name }}) in this period. Pay shows the laborer whose name matches your login.{% endif %}</p>
+<p class="text-muted">{% if admin_view %}No labor clocked in this period.{% else %}<span data-change="SHOP-10">No hours clocked on your badge in this period - ask an admin to link your badge to your login.</span>{% endif %}</p>
 {% endif %}
 {% endblock %}

@@ -26,7 +26,7 @@
 <div class="row g-3">
   <div class="col-lg-4">
     <div class="card p-3 h-100">
-      <h6>Hours by Worker</h6>
+      <h6 data-change="SHOP-17">Hours by Worker</h6>
       {% for r in by_laborer %}
       <div class="small d-flex justify-content-between"><span>{{ r.name }}</span><span>{{ '%.1f'|format(r.h or 0) }} hr &middot; ${{ '%.2f'|format(r.c or 0) }}</span></div>
       <div class="progress mb-2" style="height:.5rem;"><div class="progress-bar bg-dark" style="width:{{ ((r.h or 0) / max_h * 100)|round(1) }}%;"></div></div>

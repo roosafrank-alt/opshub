@@ -1563,33 +1563,49 @@ ACTIVITY_SORT_COLUMNS = {
 }
 
 
+ACTIVITY_PAGE_SIZE = 200
+
+
 @app.route("/activity")
 @shop_role_required('admin', 'tech')
 def activity_log():
     conn = get_db()
     q = request.args.get("q", "").strip()
     sort = request.args.get("sort", "date")
+    # SHOP-03: techs don't see dollar costs, so they can't sort by them either.
+    if sort == "cost" and not can_see_shop_costs():
+        sort = "date"
     direction = request.args.get("dir", "desc")
     sort_col = ACTIVITY_SORT_COLUMNS.get(sort, "t.created_at")
     direction_sql = "ASC" if direction == "asc" else "DESC"
+    # SHOP-24: newest 200 first; "Show more" asks for 200 more at a time.
+    try:
+        limit = int(request.args.get("limit", ACTIVITY_PAGE_SIZE))
+    except ValueError:
+        limit = ACTIVITY_PAGE_SIZE
+    limit = min(max(limit, ACTIVITY_PAGE_SIZE), 100000)
 
-    query = """
-        SELECT t.*, p.name as part_name, p.barcode as part_barcode, p.unit_cost,
-               pr.name as project_name, (t.qty * p.unit_cost) as cost
+    where = " WHERE 1=1"
+    params = []
+    if q:
+        where += " AND (p.name LIKE ? OR pr.name LIKE ? OR t.performed_by LIKE ? OR t.note LIKE ? OR t.section LIKE ?)"
+        like = f"%{q}%"
+        params += [like, like, like, like, like]
+    base = """
         FROM transactions t
         JOIN parts p ON p.id = t.part_id
         LEFT JOIN projects pr ON pr.id = t.project_id
-        WHERE 1=1
     """
-    params = []
-    if q:
-        query += " AND (p.name LIKE ? OR pr.name LIKE ? OR t.performed_by LIKE ? OR t.note LIKE ? OR t.section LIKE ?)"
-        like = f"%{q}%"
-        params += [like, like, like, like, like]
-    query += f" ORDER BY {sort_col} {direction_sql}, t.id {direction_sql}"
-    tx = conn.execute(query, params).fetchall()
+    total = conn.execute("SELECT COUNT(*) c " + base + where, params).fetchone()["c"]
+    query = """
+        SELECT t.*, p.name as part_name, p.barcode as part_barcode, p.unit_cost,
+               pr.name as project_name, (t.qty * p.unit_cost) as cost
+    """ + base + where
+    query += f" ORDER BY {sort_col} {direction_sql}, t.id {direction_sql} LIMIT ?"
+    tx = conn.execute(query, params + [limit]).fetchall()
     conn.close()
-    return render_template("activity.html", tx=tx, sort=sort, direction=direction, q=q)
+    return render_template("activity.html", tx=tx, sort=sort, direction=direction, q=q,
+                           total=total, limit=limit, page_size=ACTIVITY_PAGE_SIZE)
 
 
 # ---------------------------------------------------------------------------
@@ -6362,10 +6378,14 @@ def task_templates():
             else:
                 next_order = conn.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM task_template_areas WHERE quick_type = ?",
                                           (quick_type,)).fetchone()["n"]
-                conn.execute("INSERT OR IGNORE INTO task_template_areas (quick_type, name, sort_order, is_optional, created_at) VALUES (?, ?, ?, ?, ?)",
-                             (quick_type, name, next_order, is_optional, now_iso()))
+                added = conn.execute("INSERT OR IGNORE INTO task_template_areas (quick_type, name, sort_order, is_optional, created_at) VALUES (?, ?, ?, ?, ?)",
+                                     (quick_type, name, next_order, is_optional, now_iso())).rowcount
                 conn.commit()
-                flash(f"Added '{name}' to {quick_type}{' (optional)' if is_optional else ''}.", "success")
+                if added:
+                    flash(f"Added '{name}' to {quick_type}{' (optional)' if is_optional else ''}.", "success")
+                else:
+                    # SHOP-13: it was already there - say so instead of "Added".
+                    flash(f"'{name}' is already on {quick_type}.", "danger")
         conn.close()
         return redirect(url_for("task_templates"))
     quick_types = _all_quick_types(conn)
@@ -6632,8 +6652,16 @@ def shop_pay():
         laborer_row = conn.execute("SELECT name FROM laborers WHERE id = ?", (laborer_id,)).fetchone()
         laborer_name = laborer_row["name"] if laborer_row else None
     elif not admin_view:
-        sql += " AND lower(trim(l.name)) = lower(trim(?))"
-        params.append(session.get("user_name") or "")
+        # SHOP-10: every worker badge linked to this login; only when none is
+        # linked does it fall back to a badge spelled like the login name.
+        linked_ids = [r["id"] for r in conn.execute("SELECT id FROM laborers WHERE user_id = ?",
+                                                    (session.get("user_id"),)).fetchall()] if session.get("user_id") else []
+        if linked_ids:
+            sql += " AND l.id IN (%s)" % ",".join("?" * len(linked_ids))
+            params.extend(linked_ids)
+        else:
+            sql += " AND lower(trim(l.name)) = lower(trim(?))"
+            params.append(session.get("user_name") or "")
     sql += " ORDER BY l.name, ls.started_at"
     rows = conn.execute(sql, params).fetchall()
     conn.close()
@@ -6688,7 +6716,10 @@ def shop_pay():
         g.pop("_days", None)
         g.pop("_tasks", None)
         g["tasks"].sort(key=lambda t: -t["cost"])
+    # SHOP-42: "All workers" link = this same page and period without the worker filter.
+    all_workers_args = {k: v for k, v in request.args.items() if k != "laborer_id"}
     return render_template("shop_pay.html", laborers_pay=laborers_pay, admin_view=admin_view,
+                           all_workers_args=all_workers_args,
                            total_hours=sum(g["hours"] for g in laborers_pay),
                            total_pay=sum(g["pay"] for g in laborers_pay),
                            periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end,
@@ -6724,7 +6755,8 @@ def shop_billing():
     def proj(pid):
         if pid not in projects:
             p = conn.execute("""SELECT pr.id, pr.code, pr.name, pr.status, pr.payment_status,
-                                       pr.invoiced_at, pr.paid_at, pr.paid_method, pr.card_last4, a.tag as asset_tag
+                                       pr.invoiced_at, pr.paid_at, pr.paid_method, pr.card_last4,
+                                       pr.invoiced_by, pr.paid_by, a.tag as asset_tag
                                 FROM projects pr LEFT JOIN assets a ON a.id = pr.asset_id WHERE pr.id = ?""",
                              (pid,)).fetchone()
             projects[pid] = {"id": pid, "code": p["code"] if p else "?", "name": p["name"] if p else "(deleted)",
@@ -6732,6 +6764,7 @@ def shop_billing():
                              "payment_status": (p["payment_status"] if p else None) or "not_invoiced",
                              "invoiced_at": p["invoiced_at"] if p else None, "paid_at": p["paid_at"] if p else None,
                              "paid_method": p["paid_method"] if p else None, "card_last4": p["card_last4"] if p else None,
+                             "invoiced_by": p["invoiced_by"] if p else None, "paid_by": p["paid_by"] if p else None,
                              "labor_hours": 0.0, "labor": 0.0, "parts": 0.0, "parts_cost": 0.0, "parts_count": 0}
         return projects[pid]
 
@@ -6807,31 +6840,37 @@ def project_mark_paid(project_id):
     return redirect(request.referrer or url_for("shop_billing"))
 
 
-@app.route("/shop/billing/<int:project_id>/pay-card", methods=["POST"])
+@app.route("/shop/billing/<int:project_id>/undo-payment", methods=["POST"])
 @shop_role_required('admin')
-def project_pay_card(project_id):
-    """Idea "Credit card": a simulated Stripe-style card charge so Frank can
-    see how a "Pay with Card" flow would feel - no real Stripe account, no
-    network call, no real charge. Only the card's last 4 digits are kept,
-    alongside a fake charge id, next to the usual Mark Paid fields."""
+def project_undo_payment(project_id):
+    """SHOP-16: steps a job's money status back ONE step - Paid -> Invoiced,
+    Invoiced -> Not invoiced. A job with a Wave invoice is left alone (Wave
+    owns that status)."""
     conn = get_db()
-    project = conn.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
+    project = conn.execute("SELECT id, payment_status FROM projects WHERE id = ?", (project_id,)).fetchone()
     if not project:
         conn.close()
         abort(404)
-    card_number = re.sub(r"\D", "", request.form.get("card_number", ""))
-    if len(card_number) < 4:
+    if wave_billing.latest_for(conn, "project", [project_id]).get(project_id):
         conn.close()
-        flash("Enter a card number to simulate the charge.", "danger")
+        flash("This job has a Wave invoice, so its status follows Wave and can't be undone here.", "warning")
         return redirect(request.referrer or url_for("shop_billing"))
-    last4 = card_number[-4:]
-    charge_id = "sim_ch_" + secrets.token_hex(8)
-    conn.execute("""UPDATE projects SET payment_status = 'paid', paid_at = ?, paid_by = ?, paid_method = 'Card',
-                    card_last4 = ?, card_charge_id = ? WHERE id = ?""",
-                 (now_iso(), session.get("user_name"), last4, charge_id, project_id))
+    status = project["payment_status"] or "not_invoiced"
+    if status == "paid":
+        conn.execute("""UPDATE projects SET payment_status = 'invoiced', paid_at = NULL, paid_by = NULL,
+                        paid_method = NULL, card_last4 = NULL, card_charge_id = NULL WHERE id = ?""", (project_id,))
+        msg = "Payment undone - back to Invoiced."
+    elif status == "invoiced":
+        conn.execute("""UPDATE projects SET payment_status = 'not_invoiced', invoiced_at = NULL, invoiced_by = NULL
+                        WHERE id = ?""", (project_id,))
+        msg = "Invoice undone - back to Not invoiced."
+    else:
+        conn.close()
+        flash("Nothing to undo on that job.", "warning")
+        return redirect(request.referrer or url_for("shop_billing"))
     conn.commit()
     conn.close()
-    flash(f"Card charged (simulated) - ending in {last4}, receipt {charge_id}.", "success")
+    flash(msg, "success")
     return redirect(request.referrer or url_for("shop_billing"))
 
 
@@ -6989,7 +7028,8 @@ def shop_stats():
                                   WHERE ls.ended_at IS NOT NULL AND date(ls.started_at) BETWEEN ? AND ?
                                   GROUP BY a.id ORDER BY h DESC""", (start, end)).fetchall()
     projects_worked = len({u["project_id"] for u in usage} | {r["project_id"] for r in conn.execute(
-        "SELECT DISTINCT project_id FROM labor_sessions WHERE date(started_at) BETWEEN ? AND ?", (start, end)).fetchall()})
+        "SELECT DISTINCT project_id FROM labor_sessions WHERE project_id IS NOT NULL "
+        "AND date(started_at) BETWEEN ? AND ?", (start, end)).fetchall()})  # SHOP-12: General Shop isn't a project
     conn.close()
     max_h = max([r["h"] or 0 for r in by_laborer] + [r["h"] or 0 for r in by_aircraft] + [0.0001])
     return render_template("shop_stats.html", labor=labor, parts_sale=parts_sale, parts_cost=parts_cost,
@@ -7046,6 +7086,11 @@ def _tools_due_reminders(conn):
 def tools_list():
     conn = get_db()
     tools = conn.execute("SELECT * FROM shop_tools WHERE deleted_at IS NULL ORDER BY name").fetchall()
+    # SHOP-33: every recorded calibration, newest first, for the History pop-up.
+    history = {}
+    for h in conn.execute("""SELECT tool_id, calibrated_at, cert_file, performed_by, note FROM tool_calibrations
+                             ORDER BY calibrated_at DESC, id DESC""").fetchall():
+        history.setdefault(h["tool_id"], []).append(h)
     conn.close()
     rows = []
     overdue_count = due_soon_count = 0
@@ -7055,7 +7100,7 @@ def tools_list():
             overdue_count += 1
         elif st and st["urgency"] == "due_soon":
             due_soon_count += 1
-        rows.append({"tool": t, "status": st})
+        rows.append({"tool": t, "status": st, "history": history.get(t["id"], [])})
     return render_template("shop_tools.html", rows=rows, overdue_count=overdue_count, due_soon_count=due_soon_count)
 
 

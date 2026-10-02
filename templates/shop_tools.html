@@ -51,6 +51,7 @@
             <button type="button" class="btn btn-sm btn-outline-success mark-calibrated-btn" data-mark-url="{{ url_for('tool_mark_calibrated', tool_id=r.tool.id) }}" data-tool-name="{{ r.tool.name }}">Mark Calibrated</button>
             {% endif %}
             {% endif %}
+            <button type="button" class="btn btn-sm btn-outline-secondary tool-history-btn" data-tool-id="{{ r.tool.id }}" data-tool-name="{{ r.tool.name }}" data-change="SHOP-33"><i class="bi bi-clock-history"></i> History</button>
             {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
             <a href="{{ url_for('tool_edit', tool_id=r.tool.id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
             {% endif %}
@@ -65,6 +66,43 @@
 {% else %}
 <p class="text-muted">No tools added yet.</p>
 {% endif %}
+
+{#- SHOP-33: calibration history - each tool's rows are drawn here (hidden)
+   and copied into one shared pop-up by the History button. #}
+{% for r in rows %}
+<div class="d-none" id="tool-history-{{ r.tool.id }}">
+  {% if r.history %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 table-stack">
+      <thead class="table-light"><tr><th>Date</th><th>By</th><th>Note</th><th>Certificate</th></tr></thead>
+      <tbody>
+        {% for h in r.history %}
+        <tr>
+          <td data-label="Date">{{ h.calibrated_at|usdate }}</td>
+          <td data-label="By">{{ h.performed_by or '-' }}</td>
+          <td data-label="Note" class="stack-full">{{ h.note or '-' }}</td>
+          <td data-label="Certificate">{% if h.cert_file %}<a href="{{ url_for('static', filename='uploads/' + h.cert_file) }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf"></i> View</a>{% else %}<span class="text-muted">none</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted mb-0">No calibrations recorded yet.</p>
+  {% endif %}
+</div>
+{% endfor %}
+<div class="modal fade" id="toolHistoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-clock-history"></i> Calibration history <span class="text-muted fs-6" id="tool-history-name"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="tool-history-body"></div>
+    </div>
+  </div>
+</div>
 
 {#- One shared modal for "Mark Calibrated" - the button that opens it fills
    in the form's action/label via JS, same pattern as Billing's Mark Paid
@@ -109,9 +147,18 @@ document.querySelectorAll('.mark-calibrated-btn').forEach(function (btn) {
   btn.addEventListener('click', function () {
     document.getElementById('mark-calibrated-form').action = btn.dataset.markUrl;
     document.getElementById('mark-calibrated-tool').textContent = btn.dataset.toolName;
+    // SHOP-11: today's date where the shop is (the browser's own clock), not UTC.
     var d = new Date();
-    document.getElementById('mark-calibrated-date').value = d.toISOString().slice(0, 10);
+    document.getElementById('mark-calibrated-date').value = d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     bootstrap.Modal.getOrCreateInstance(document.getElementById('markCalibratedModal')).show();
+  });
+});
+document.querySelectorAll('.tool-history-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.getElementById('tool-history-name').textContent = '- ' + btn.dataset.toolName;
+    document.getElementById('tool-history-body').innerHTML = document.getElementById('tool-history-' + btn.dataset.toolId).innerHTML;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('toolHistoryModal')).show();
   });
 });
 </script>
