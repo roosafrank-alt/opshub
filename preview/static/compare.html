@@ -37,15 +37,12 @@
 <div class="help">Log in once in each side if asked (same username and password). Click around on either side; to follow along on the other, type the page address in the box and press Go.</div>
 <script>
   var q = new URLSearchParams(location.search), path = q.get('path') || '/';
-  var port = null;
-  function beforeOrigin() { return location.protocol + '//' + location.hostname + ':' + port; }
-  function showProblem() {
+  var BEFORE = '/__preview/before';   // this server fetches the before copy itself, so there is no second address or certificate
+  function showProblem(why) {
     var box = document.getElementById('fb-problem');
-    box.innerHTML = '<strong>This side can\'t open yet.</strong><br>Browsers won\'t let you accept a certificate warning inside a split view, so do it once on its own:' +
-      '<ol><li>Tap <a class="btn" target="_blank" rel="noopener" href="' + beforeOrigin() + '/">Open the Before copy</a></li>' +
-      '<li>Click through the warning (Safari: Show Details, then visit this website) and log in if asked.</li>' +
-      '<li>Come back here and tap <button type="button" id="retry">Try again</button></li></ol>' +
-      'If it says it can\'t connect at all, the before copy isn\'t running: on the Pi run <code>sudo systemctl restart opshub-before</code>.';
+    box.innerHTML = '<strong>The Before copy isn\'t answering.</strong><br>' + (why ? '<small>' + why + '</small><br>' : '') +
+      'On the Pi run <code>sudo systemctl restart opshub-before</code>, wait a few seconds, then ' +
+      '<button type="button" id="retry">Try again</button>';
     box.style.display = 'block';
     document.getElementById('retry').onclick = go;
   }
@@ -55,16 +52,14 @@
     if (path.charAt(0) !== '/') path = '/' + path;
     document.getElementById('path').value = path;
     document.getElementById('fa').src = location.origin + path;
-    var box = document.getElementById('fb-problem'); box.style.display = 'none';
-    var target = beforeOrigin() + path;
-    // A certificate the browser hasn't accepted (or a stopped server) makes this request fail; say so instead of showing a blank box.
-    fetch(beforeOrigin() + '/__preview/changes.json', { mode: 'no-cors', cache: 'no-store' })
-      .then(function () { document.getElementById('fb').src = target; })
-      .catch(showProblem);
+    document.getElementById('fb-problem').style.display = 'none';
+    fetch(BEFORE + '/__preview/changes.json', { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); document.getElementById('fb').src = BEFORE + path; })
+      .catch(function (e) { showProblem(String(e && e.message || e)); });
     document.getElementById('back').href = path;
     history.replaceState(null, '', '?path=' + encodeURIComponent(path));
   }
-  fetch('/__preview/changes.json').then(function (r) { return r.json(); }).then(function (d) { port = d.before_port; document.getElementById('path').value = path; go(); });
+  fetch('/__preview/changes.json').then(function (r) { return r.json(); }).then(function (d) { document.getElementById('path').value = path; go(); });
   document.getElementById('go').onclick = go;
   document.getElementById('path').addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
   function mode(phone) { var m = document.getElementById('main'); document.querySelectorAll('.wrap').forEach(function (w) { w.classList.toggle('phone', phone); });
