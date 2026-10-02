@@ -1538,43 +1538,6 @@ def logout():
     return redirect(url_for("home_launcher"))
 
 
-@flight_bp.route("/signup", methods=["GET", "POST"])
-def signup():
-    """CFI (admin) self-signup. Students don't sign up themselves - a CFI
-    creates their profile from the Students page. Creates a master login
-    account (flight_role='cfi') plus the linked CFI profile."""
-    if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
-        rate = _parse_float(request.form.get("rate_per_hour")) or 0
-        if not name or not username or not password:
-            flash("Name, username, and password are all required.", "danger")
-            return render_template("flight/signup.html", name=name, username=username)
-        conn = get_db()
-        existing = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
-        if existing:
-            conn.close()
-            flash(f"Username '{username}' is already taken.", "danger")
-            return render_template("flight/signup.html", name=name, username="")
-        cur = conn.execute(
-            "INSERT INTO users (name, username, password_hash, password_plain, flight_role, active, created_at) "
-            "VALUES (?, ?, ?, ?, 'cfi', 1, ?)",
-            (name, username, generate_password_hash(password, method="pbkdf2:sha256"), password, now_iso()))
-        conn.commit()
-        user_row = conn.execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone()
-        conn.close()
-        log_in_user(user_row)
-        if rate:
-            conn = get_db()
-            conn.execute("UPDATE cfis SET rate_per_hour = ? WHERE user_id = ?", (rate, user_row["id"]))
-            conn.commit()
-            conn.close()
-        flash(f"Welcome, {name}!", "success")
-        return redirect(url_for("flight.dashboard"))
-    return render_template("flight/signup.html", name="", username="")
-
-
 def _plane_maint_warnings(conn):
     """Oil-change and 100-hour status for every Flight School plane, pulled
     from the same maintenance_items the Maintenance tile tracks (category
@@ -5574,6 +5537,7 @@ def weather_cancel():
             return redirect(url_for("flight.weather_cancel", date=day, period=period))
         settings = notify.get_settings(conn)
         texted = 0
+        with_times = 0
         for r in picked:
             conn.execute("UPDATE scheduled_flights SET status = 'cancelled', cancel_reason = ? WHERE id = ?",
                          ("Weather cancellation", r["id"]))
@@ -5609,9 +5573,17 @@ def weather_cancel():
             except Exception:
                 current_app.logger.exception("Weather text/email failed")
             texted += 1
+            if times:
+                with_times += 1
         conn.close()
+        # FLY-28: say what was really offered, so the office knows who still needs a call.
+        if texted:
+            no_times = texted - with_times
+            detail = f" ({with_times} with new times to pick, {no_times} with none open - follow up)"
+        else:
+            detail = ""
         flash(f"Weather cancellation done: {len(picked)} lesson{'s' if len(picked) != 1 else ''} called off, no charge, "
-              f"{texted} student{'s' if texted != 1 else ''} sent 3 new times.", "success")
+              f"{texted} student{'s' if texted != 1 else ''} texted{detail}.", "success")
         return redirect(url_for("flight.schedule_calendar", view="day", date=day))
     conn.close()
     return render_template("flight/weather_cancel.html", day=day, period=period, periods=WEATHER_PERIODS,
