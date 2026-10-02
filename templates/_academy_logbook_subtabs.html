@@ -1,9 +1,13 @@
 {#- Logbook / Progress / Map - related tabs inside the Logbook section of Flight Academy. #}
-{% set _tab = tab if tab is defined else 'logbook' %}
+{#- SCHOOL-35: Totalizer is a fourth sub-tab; ``subtab`` (set by the
+   Totalizer page) wins over ``tab`` for the highlight. #}
+{% set _tab = subtab if subtab is defined else (tab if tab is defined else 'logbook') %}
+{% set _sid = student.id if (staff is defined and staff and student) else None %}
 <ul class="nav nav-pills academy-subtabs mb-3 gap-1">
   <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'logbook' }}" href="{{ url_for('pilotlog.logbook') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
   <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'progress' }}" href="{{ url_for('pilotlog.progress') }}"><i class="bi bi-bar-chart-steps"></i> Progress</a></li>
   <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'map' }}" href="{{ url_for('pilotlog.airport_map') }}"><i class="bi bi-map"></i> Map</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'totalizer' }}" href="{{ url_for('pilotlog.totalizer', student_id=_sid) }}" data-change="SCHOOL-35"><i class="bi bi-calculator"></i> Totalizer</a></li>
 </ul>
 <style>
   .academy-subtabs .nav-link { color: #14213d; border: 1px solid #dee2e6; background: #fff; }

@@ -9,8 +9,9 @@
   .el-badge:hover { box-shadow: 0 0 0 2px rgba(43,63,219,.5); transform: translateY(-1px); }
   .el-badge .bi-chevron-right { font-size: .7em; vertical-align: 1px; opacity: .7; }
 </style>
+{% include "flight/_groundschool_picker.html" %}
 <div class="mb-3">
-  <a href="{{ url_for('groundschool.rating_detail', rating_id=rating.id) }}" class="text-decoration-none small text-light">
+  <a href="{{ gs_url('groundschool.rating_detail', rating_id=rating.id) }}" class="text-decoration-none small text-light">
     <i class="bi bi-arrow-left"></i> {{ rating.name }}
   </a>
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
@@ -23,10 +24,15 @@
         <div class="text-light small opacity-75 mt-1">{{ task_done }} / {{ task_total }} elements complete</div>
       </div>
       {% endif %}
+      {#- SCHOOL-41: the task sign-off and its note, right with the progress. #}
+      {% if viewing_signoff %}
+      <div class="mt-1 small text-light" data-change="SCHOOL-41"><span class="badge bg-success"><i class="bi bi-check-lg"></i> Signed off</span>
+        {{ viewing_signoff.signed_off_at|usdate(true) if viewing_signoff.signed_off_at }}{% if viewing_signoff.cfi_name %} by {{ viewing_signoff.cfi_name }}{% endif %}{% if viewing_signoff.notes %} &middot; <em>{{ viewing_signoff.notes }}</em>{% endif %}</div>
+      {% endif %}
     </div>
     <div class="btn-group">
-      {% if prev_task_id %}<a href="{{ url_for('groundschool.task_detail', task_id=prev_task_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i> Prev</a>{% endif %}
-      {% if next_task_id %}<a href="{{ url_for('groundschool.task_detail', task_id=next_task_id) }}" class="btn btn-outline-secondary btn-sm">Next <i class="bi bi-chevron-right"></i></a>{% endif %}
+      {% if prev_task_id %}<a href="{{ gs_url('groundschool.task_detail', task_id=prev_task_id) }}" class="btn btn-outline-secondary btn-sm" data-change="SCHOOL-08"><i class="bi bi-chevron-left"></i> Prev</a>{% endif %}
+      {% if next_task_id %}<a href="{{ gs_url('groundschool.task_detail', task_id=next_task_id) }}" class="btn btn-outline-secondary btn-sm" data-change="SCHOOL-08">Next <i class="bi bi-chevron-right"></i></a>{% endif %}
     </div>
   </div>
 </div>
@@ -63,17 +69,11 @@
     {#- The CFI's own check-off that they reviewed this knowledge area with
        the student, once the student's checked Mark as Read above - mirrors
        acs_element_completion's self_completed_at/cfi_verified_at pattern. #}
-    <div class="mb-2 border rounded p-2 bg-body-tertiary">
-      <form method="get" class="row g-2 align-items-end mb-1">
-        <div class="col-auto">
-          <label class="form-label small mb-0">Reading Review - Student</label>
-          <select name="student_id" class="form-select form-select-sm" onchange="this.form.submit()">
-            <option value="">Choose...</option>
-            {% for s in students %}<option value="{{ s.id }}" {{ 'selected' if viewing_student_id == s.id }}>{{ s.name }}</option>{% endfor %}
-          </select>
-        </div>
-      </form>
-      {% if viewing_student_id %}
+    <div class="mb-2 border rounded p-2 bg-body-tertiary" data-change="SCHOOL-08">
+      <div class="small fw-bold mb-1">Reading Review</div>
+      {% if not viewing_student_id %}
+      <p class="text-muted small mb-0">Choose a student at the top of the page.</p>
+      {% else %}
         {% if reading_progress and reading_progress.cfi_verified_at %}
         <span class="badge bg-success"><i class="bi bi-check-lg"></i> Reviewed with student</span>
         <span class="text-muted small ms-1">{{ reading_progress.cfi_verified_at|usdate(true) }} - {{ reading_progress.cfi_name or '' }}</span>
@@ -100,7 +100,7 @@
     <ul class="list-unstyled mb-2">
       {% for el in knowledge %}
       <li class="mb-1">
-        <a href="{{ url_for('groundschool.element_detail', element_id=el.id) }}"
+        <a href="{{ gs_url('groundschool.element_detail', element_id=el.id) }}"
            class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
           {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
         </a>
@@ -115,7 +115,7 @@
     <ul class="list-unstyled mb-2">
       {% for el in risk_management %}
       <li class="mb-1">
-        <a href="{{ url_for('groundschool.element_detail', element_id=el.id) }}"
+        <a href="{{ gs_url('groundschool.element_detail', element_id=el.id) }}"
            class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
           {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
         </a>
@@ -130,7 +130,7 @@
     <ul class="list-unstyled mb-0">
       {% for el in skills %}
       <li class="mb-1">
-        <a href="{{ url_for('groundschool.element_detail', element_id=el.id) }}"
+        <a href="{{ gs_url('groundschool.element_detail', element_id=el.id) }}"
            class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
           {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
         </a>
@@ -168,14 +168,11 @@
 <div class="card academy-card mb-3">
   <div class="card-header fw-bold"><i class="bi bi-check2-square"></i> Student Sign-Off</div>
   <div class="card-body">
-    <form method="post" action="{{ url_for('groundschool.signoff_add', task_id=task.id) }}" class="row g-2 align-items-end mb-3">
-      <div class="col-auto">
-        <label class="form-label small mb-0">Student</label>
-        <select name="student_id" class="form-select form-select-sm" required>
-          <option value="">Choose...</option>
-          {% for s in students %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
-        </select>
-      </div>
+    {#- SCHOOL-08: acts on the student chosen at the top of the page.
+       SCHOOL-41: signing off verifies every element of this task too. #}
+    {% if viewing_student_id %}
+    <form method="post" action="{{ url_for('groundschool.signoff_add', task_id=task.id) }}" class="row g-2 align-items-end mb-3" data-change="SCHOOL-08 SCHOOL-41">
+      <input type="hidden" name="student_id" value="{{ viewing_student_id }}">
       <div class="col-auto flex-grow-1">
         <label class="form-label small mb-0">Notes (optional)</label>
         <input type="text" name="notes" class="form-control form-control-sm">
@@ -183,7 +180,11 @@
       <div class="col-auto">
         <button type="submit" class="btn btn-success btn-sm fw-bold"><i class="bi bi-check-lg"></i> Sign Off</button>
       </div>
+      <div class="col-12 form-text mt-0">Signs the chosen student off on this Task and marks all {{ task_total }} of its elements verified.</div>
     </form>
+    {% else %}
+    <p class="text-muted small mb-3">Choose a student at the top of the page to sign them off.</p>
+    {% endif %}
     {% if signoffs %}
     <table class="table table-sm mb-0">
       <thead><tr><th>Student</th><th>Signed off</th><th>By</th><th>Notes</th><th></th></tr></thead>

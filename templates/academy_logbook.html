@@ -16,7 +16,7 @@
       <div class="small text-muted">Each logged flight lands here pre-filled from the flight. Open a pending one, fill in the rest and approve it.</div>
     </div>
     <div class="d-flex gap-2">
-      <a href="{{ url_for('pilotlog.totalizer', student_id=student.id if staff else None) }}" class="btn btn-outline-success btn-sm"><i class="bi bi-calculator"></i> Totalizar</a>
+      <a href="{{ url_for('pilotlog.totalizer', student_id=student.id if staff else None) }}" class="btn btn-outline-success btn-sm" data-change="SCHOOL-35"><i class="bi bi-calculator"></i> Totalizer</a>
       <a href="{{ url_for('pilotlog.export_csv', student_id=student.id if staff else None) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> Export (CSV)</a>
     </div>
   </div>
@@ -42,13 +42,14 @@
   <div class="progress" style="height:10px;">
     <div class="progress-bar bg-success" role="progressbar" style="width:{{ goal_track.pct }}%;" aria-valuenow="{{ goal_track.pct }}" aria-valuemin="0" aria-valuemax="100"></div>
   </div>
-  <a href="{{ url_for('pilotlog.progress', track=goal_track.code) }}" class="small mt-1 d-inline-block">See full requirements &raquo;</a>
+  {#- SCHOOL-34: carries the viewed student (staff), same as Totalizer / Export. #}
+  <a href="{{ url_for('pilotlog.progress', track=goal_track.code, student_id=student.id if staff else None) }}" class="small mt-1 d-inline-block" data-change="SCHOOL-34">See full requirements &raquo;</a>
 </div>
 {% elif student %}
 <div class="card academy-card p-3 mb-3 text-center">
   <div class="fw-bold"><i class="bi bi-stars"></i> What's Next?</div>
   <div class="small text-muted">Pick your next goal on the Progress tab and track it right here.</div>
-  <a href="{{ url_for('pilotlog.progress') }}" class="btn btn-sm btn-outline-primary mt-2">Your Next Goal &raquo;</a>
+  <a href="{{ url_for('pilotlog.progress', student_id=student.id if staff else None) }}" class="btn btn-sm btn-outline-primary mt-2" data-change="SCHOOL-34">Your Next Goal &raquo;</a>
 </div>
 {% endif %}
 

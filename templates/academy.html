@@ -82,17 +82,29 @@
     </div>
   </div>
 
+  {% if staff %}
+  {#- SCHOOL-38: the Academy student picker - filters Log Your Flying and
+     pre-selects its form; "Whole school" shows everyone. #}
+  <form method="get" class="mb-3 d-flex align-items-center gap-2" data-change="SCHOOL-38">
+    <input type="hidden" name="period" value="{{ period }}">
+    <label class="text-light small mb-0">Student</label>
+    <select name="student_id" class="form-select form-select-sm" style="max-width:280px;" onchange="this.form.submit()">
+      <option value="" {{ 'selected' if not picked_student }}>Whole school</option>
+      {% for st in stats.values()|sort(attribute='name') %}<option value="{{ st.id }}" {{ 'selected' if picked_student and st.id == picked_student.id }}>{{ st.name }}</option>{% endfor %}
+    </select>
+  </form>
+  {% endif %}
   {% if me or staff %}
   <div class="card lb-card p-3 mb-3" id="log">
-    <h5 class="mb-1">Log Your Flying</h5>
-    <p class="text-muted small">Things the flight log doesn't track. Hours, solo time and the landings on your logged flights are already counted automatically.</p>
+    <h5 class="mb-1">Log Your Flying{% if staff and picked_student %} <span class="text-muted fs-6">- {{ picked_student.name }}</span>{% endif %}</h5>
+    <p class="text-muted small">Things the flight log doesn't track. Hours, solo time and the landings on your logged flights are already counted automatically. Landings logged here count toward landing currency too.</p>
     <form method="post" action="{{ url_for('academy_entry_add') }}" class="row g-2 align-items-end">
       {% if staff %}
       <div class="col-md-3">
         <label class="form-label small mb-0">Student</label>
-        <select name="student_id" class="form-select form-select-sm" required>
+        <select name="student_id" class="form-select form-select-sm" required data-change="SCHOOL-38">
           <option value="">- pick -</option>
-          {% for st in stats.values()|sort(attribute='name') %}<option value="{{ st.id }}">{{ st.name }}</option>{% endfor %}
+          {% for st in stats.values()|sort(attribute='name') %}<option value="{{ st.id }}" {{ 'selected' if picked_student and st.id == picked_student.id }}>{{ st.name }}</option>{% endfor %}
         </select>
       </div>
       {% endif %}
@@ -120,6 +132,7 @@
     <div class="table-responsive mt-3">
       <table class="table table-sm align-middle mb-0 small">
         <thead class="table-light"><tr><th>Date</th>{% if staff %}<th>Student</th>{% endif %}<th>What</th><th>Amount</th><th>Note</th><th></th></tr></thead>
+        {% if staff %}<caption class="small text-muted" data-change="SCHOOL-38">{% if picked_student %}{{ picked_student.name }}'s last 25 entries.{% else %}Last 25 entries from everyone - pick a student above to see just theirs.{% endif %}</caption>{% endif %}
         <tbody>
           {% for e in entries %}
           {% set k = entry_kind_map.get(e.kind) %}
@@ -139,7 +152,7 @@
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div class="btn-group">
       {% for key, label in [('all', 'All Time'), ('year', 'This Year'), ('month', 'This Month')] %}
-      <a href="{{ url_for('academy_page', period=key) }}" class="btn btn-sm {{ 'btn-light' if period == key else 'btn-outline-light' }}">{{ label }}</a>
+      <a href="{{ url_for('academy_page', period=key, student_id=picked_student.id if picked_student else None) }}" class="btn btn-sm {{ 'btn-light' if period == key else 'btn-outline-light' }}">{{ label }}</a>
       {% endfor %}
     </div>
   </div>

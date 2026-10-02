@@ -2601,7 +2601,12 @@ def student_landing_add(student_id):
 @cfi_required
 def student_landing_delete(student_id, landing_id):
     conn = get_db()
+    row = conn.execute("SELECT academy_entry_id FROM manual_landings WHERE id = ? AND student_id = ?",
+                       (landing_id, student_id)).fetchone()
     conn.execute("DELETE FROM manual_landings WHERE id = ? AND student_id = ?", (landing_id, student_id))
+    if row and row["academy_entry_id"]:
+        # SCHOOL-37: the Academy board entry it came from goes too.
+        conn.execute("DELETE FROM academy_entries WHERE id = ?", (row["academy_entry_id"],))
     conn.commit()
     conn.close()
     flash("Removed.", "success")

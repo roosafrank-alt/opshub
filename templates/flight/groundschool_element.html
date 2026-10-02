@@ -1,8 +1,9 @@
 {% extends "academy_base.html" %}
 {% block title %}{{ el.code }} - {{ rating.name }} - OpsHub{% endblock %}
 {% block content %}
+{% include "flight/_groundschool_picker.html" %}
 <div class="mb-3">
-  <a href="{{ url_for('groundschool.task_detail', task_id=task.id) }}" class="text-decoration-none small text-light">
+  <a href="{{ gs_url('groundschool.task_detail', task_id=task.id) }}" class="text-decoration-none small text-light">
     <i class="bi bi-arrow-left"></i> Task {{ task.code }}. {{ task.title }}
   </a>
   <div class="text-light small opacity-75">{{ rating.name }} &middot; Area {{ area.code }}. {{ area.title }}</div>
@@ -15,10 +16,12 @@
     </div>
     {% if viewing_student_id %}
     <div class="mt-2 small">
-      {% if completion and completion.self_completed_at and completion.cfi_verified_at %}
-      <span class="badge bg-success"><i class="bi bi-check-lg"></i> Complete</span>
+      {#- SCHOOL-07: verified by a CFI = complete; the student's own
+         self-completion is information on the way there. #}
+      {% if completion and completion.cfi_verified_at %}
+      <span class="badge bg-success" data-change="SCHOOL-07"><i class="bi bi-check-lg"></i> Complete</span>
       {% elif completion and completion.self_completed_at %}
-      <span class="badge bg-warning text-dark">Lesson done - awaiting instructor verification</span>
+      <span class="badge bg-warning text-dark" data-change="SCHOOL-07">Lesson done - awaiting instructor verification</span>
       {% else %}
       <span class="badge bg-secondary">Not started</span>
       {% endif %}
@@ -47,7 +50,7 @@
   <div class="card-header fw-bold"><i class="bi bi-easel"></i> Lesson</div>
   <div class="card-body">
     {% if not items %}
-    <p class="text-muted mb-0">No lesson content yet for this element.</p>
+    <p class="text-muted mb-0">No lesson content yet for this element.{% if session.get('student_id') %} Opening it counts as done on your side - your instructor still needs to verify it.{% endif %}</p>
     {% endif %}
     <div id="lesson-items">
       {% for it in items %}
@@ -155,27 +158,20 @@
 <div class="card academy-card mb-3">
   <div class="card-header fw-bold"><i class="bi bi-check2-square"></i> Instructor Verification</div>
   <div class="card-body">
-    <form method="get" class="row g-2 align-items-end mb-2">
-      <div class="col-auto">
-        <label class="form-label small mb-0">Student</label>
-        <select name="student_id" class="form-select form-select-sm" onchange="this.form.submit()">
-          <option value="">Choose...</option>
-          {% for s in students %}<option value="{{ s.id }}" {{ 'selected' if viewing_student_id == s.id }}>{{ s.name }}</option>{% endfor %}
-        </select>
-      </div>
-    </form>
-    {% if viewing_student_id %}
-      {% if completion and completion.self_completed_at %}
-        {% if completion.cfi_verified_at %}
-        <span class="badge bg-success"><i class="bi bi-check-lg"></i> Verified</span>
-        {% else %}
-        <form method="post" action="{{ url_for('groundschool.element_verify', element_id=el.id) }}">
-          <input type="hidden" name="student_id" value="{{ viewing_student_id }}">
-          <button type="submit" class="btn btn-success btn-sm fw-bold"><i class="bi bi-check-lg"></i> Verify Complete</button>
-        </form>
-        {% endif %}
+    {#- SCHOOL-08: acts on the student chosen at the top of the page.
+       SCHOOL-07: Verify Complete is always available; the student's own
+       progress is shown as information, not a gate. #}
+    {% if not viewing_student_id %}
+    <p class="text-muted small mb-0" data-change="SCHOOL-08">Choose a student at the top of the page.</p>
+    {% else %}
+      {% if completion and completion.cfi_verified_at %}
+      <span class="badge bg-success"><i class="bi bi-check-lg"></i> Verified</span>
       {% else %}
-      <p class="text-muted small mb-0">This student hasn't finished the required lesson items yet.</p>
+      <p class="small mb-2" data-change="SCHOOL-07">{% if completion and completion.self_completed_at %}<i class="bi bi-check-circle text-success"></i> The student has finished the lesson items.{% else %}<i class="bi bi-hourglass text-muted"></i> The student hasn't finished the lesson items yet (you can still verify).{% endif %}</p>
+      <form method="post" action="{{ url_for('groundschool.element_verify', element_id=el.id) }}">
+        <input type="hidden" name="student_id" value="{{ viewing_student_id }}">
+        <button type="submit" class="btn btn-success btn-sm fw-bold" data-change="SCHOOL-07"><i class="bi bi-check-lg"></i> Verify Complete</button>
+      </form>
       {% endif %}
     {% endif %}
   </div>

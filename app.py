@@ -429,8 +429,12 @@ def home_launcher():
             flash(LOGIN_BLOCKED_MSG, "danger")
             return render_template("home_launcher.html", user=None, customer=None, username=username)
         login_succeeded(username)
+        login_next = session.pop("login_next", None)
         log_in_combined(user_row, customer_row, remember=remember)
         flash(f"Welcome, {(user_row or customer_row)['name']}!", "success")
+        # SCHOOL-36: back to the Academy page that asked for a sign-in.
+        if user_row and login_next and login_next.startswith("/") and not login_next.startswith("//"):
+            return redirect(login_next)
         if user_row and user_row["shop_role"] == "admin" and not user_row["is_master_admin"]:
             # Idea ux-shop-admin-skip-launcher: a shop admin's login goes
             # straight to the shop home instead of "Choose a program" -
@@ -499,7 +503,18 @@ def academy_page():
     staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
     entry_sql = """SELECT e.*, s.name as student_name FROM academy_entries e
                      JOIN students s ON s.id = e.student_id"""
+    # SCHOOL-38: staff pick one student (the same picker the other Academy
+    # pages use) to filter Log Your Flying and pre-select its form, or
+    # "Whole school" for everyone.
+    picked_id = request.args.get("student_id", type=int) if staff else None
+    picked = None
     if staff:
+        picked = conn.execute("SELECT * FROM students WHERE id = ? AND active = 1", (picked_id,)).fetchone() if picked_id else None
+        picked_id = picked["id"] if picked else None
+    if staff and picked_id:
+        entries = conn.execute(entry_sql + " WHERE e.student_id = ? ORDER BY e.entry_date DESC, e.id DESC LIMIT 25",
+                               (picked_id,)).fetchall()
+    elif staff:
         entries = conn.execute(entry_sql + " ORDER BY e.entry_date DESC, e.id DESC LIMIT 25").fetchall()
     elif my_id:
         entries = conn.execute(entry_sql + " WHERE e.student_id = ? ORDER BY e.entry_date DESC, e.id DESC LIMIT 25",
@@ -509,7 +524,7 @@ def academy_page():
     conn.close()
     return render_template("academy.html", stats=stats, boards=boards, me=me,
                            my_rank=academy.rank_of(stats, my_id) if my_id else None,
-                           entries=entries, staff=staff, period=period,
+                           entries=entries, staff=staff, period=period, picked_student=picked,
                            entry_kinds=academy.ENTRY_KINDS, entry_kind_map=academy.ENTRY_KIND_MAP,
                            leaderboard_defs=academy.LEADERBOARDS, today=date.today().isoformat())
 
@@ -534,15 +549,27 @@ def academy_entry_add():
         flash("Pick what you're logging and enter an amount above zero.", "danger")
         return redirect(url_for("academy_page") + "#log")
     conn = get_db()
-    conn.execute("""INSERT INTO academy_entries (student_id, entry_date, kind, value, note, created_by, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                 (student_id, entry_date, kind, value, (request.form.get("note") or "").strip()[:200] or None,
-                  session.get("user_name"), now_iso()))
+    note = (request.form.get("note") or "").strip()[:200] or None
+    cur = conn.execute("""INSERT INTO academy_entries (student_id, entry_date, kind, value, note, created_by, created_at)
+                          VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                       (student_id, entry_date, kind, value, note, session.get("user_name"), now_iso()))
+    # SCHOOL-37: Landings / Night landings logged here are the same
+    # manual-landing record the student's profile uses for 90-day currency,
+    # so one entry counts for both (linked by academy_entry_id; removing
+    # either side removes the other).
+    if kind in ("landings", "night_landings"):
+        n = int(round(value))
+        conn.execute("""INSERT INTO manual_landings (student_id, landing_date, day_landings, night_landings, note, created_by, academy_entry_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                     (student_id, entry_date, n if kind == "landings" else 0, n if kind == "night_landings" else 0,
+                      note, session.get("user_name"), cur.lastrowid))
     conn.commit()
     conn.close()
     code, label, unit, per = academy.ENTRY_KIND_MAP[kind]
-    flash(f"Logged {value:g} {unit} - that's {value * per:g} points.", "success")
-    return redirect(url_for("academy_page") + "#log")
+    flash(f"Logged {value:g} {unit} - that's {value * per:g} points." +
+          (" It counts toward landing currency too." if kind in ("landings", "night_landings") else ""), "success")
+    back = url_for("academy_page", student_id=student_id if staff else None) + "#log"
+    return redirect(back)
 
 
 @app.route("/academy/entry/<int:entry_id>/delete", methods=["POST"])
@@ -554,6 +581,7 @@ def academy_entry_delete(entry_id):
     e = conn.execute("SELECT * FROM academy_entries WHERE id = ?", (entry_id,)).fetchone()
     if e and (staff or e["student_id"] == session.get("student_id")):
         conn.execute("DELETE FROM academy_entries WHERE id = ?", (entry_id,))
+        conn.execute("DELETE FROM manual_landings WHERE academy_entry_id = ?", (entry_id,))  # SCHOOL-37
         conn.commit()
         flash("Entry removed.", "success")
     conn.close()

@@ -1203,6 +1203,11 @@ def _migrate(conn):
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_manual_landings_student ON manual_landings(student_id, landing_date)")
+    # SCHOOL-37: a landing logged on the Academy board writes one of these
+    # too; this links the two so removing either removes both.
+    ml_cols = [r["name"] for r in conn.execute("PRAGMA table_info(manual_landings)").fetchall()]
+    if "academy_entry_id" not in ml_cols:
+        conn.execute("ALTER TABLE manual_landings ADD COLUMN academy_entry_id INTEGER")
     conn.commit()
 
     # Per-student opt-out for the "confirm your flight" push notification
