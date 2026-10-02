@@ -30,10 +30,10 @@
         <table class="table table-sm mb-0">
           <tr><th style="width:35%;">Date</th><td id="sd-date"></td></tr>
           <tr><th>Time</th><td id="sd-time"></td></tr>
-          <tr><th>Duration</th><td id="sd-duration"></td></tr>
+          <tr><th>Duration</th><td id="sd-duration" data-change="FLY-14"></td></tr>
           <tr id="sd-student-row"><th>Student</th><td id="sd-student"></td></tr>
           <tr id="sd-cfi-row"><th>Instructor</th><td id="sd-cfi"></td></tr>
-          <tr><th>Status</th><td id="sd-status"></td></tr>
+          <tr><th>Status</th><td id="sd-status" data-change="FLY-14"></td></tr>
           <tr id="sd-private-notes-row" class="d-none"><th>General Notes</th><td id="sd-private-notes" class="text-danger-emphasis"></td></tr>
           <tr id="sd-notes-row"><th><i class="bi bi-eye-slash"></i> Private Note</th><td id="sd-notes"></td></tr>
           <tr id="sd-created-row"><th>Scheduled by</th><td id="sd-created_by"></td></tr>
@@ -58,9 +58,9 @@
         <a id="sd-log-link" href="#" class="btn btn-outline-success btn-sm"><i class="bi bi-journal-plus"></i> Log Flight</a>
         <button type="button" id="sd-reschedule-btn" class="btn btn-outline-warning btn-sm"><i class="bi bi-calendar2-week"></i> Reschedule</button>
         <a id="sd-edit-link" href="#" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
-        <form id="sd-cancel-form" method="post" action="#" data-confirm="Cancel this scheduled flight?" data-confirm-style="danger" class="d-inline">
-          <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg"></i> Cancel Flight</button>
-        </form>
+        <span id="sd-cancel-form" class="d-inline">
+          <button type="button" id="sd-cancel-btn" class="btn btn-outline-danger btn-sm" data-change="FLY-03"><i class="bi bi-x-lg"></i> Cancel Flight</button>
+        </span>
         {#- Approve/Deny for a still-pending request, right from the
            calendar - same actions as the Dashboard's Pending Approval
            card, so a CFI never has to leave the Schedule view to act on
@@ -71,6 +71,9 @@
            modal does. #}
         <form id="sd-approve-form" method="post" action="#" class="d-inline d-none" data-confirm="Approve this flight request? It goes onto the calendar as a confirmed booking." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success">
           <button type="submit" id="sd-approve-btn" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Approve</button>
+        </form>
+        <form id="sd-approve-later-form" method="post" action="#" class="d-inline d-none" data-confirm="Approve without an instructor? It goes on the calendar flagged 'No instructor assigned yet' until you assign one." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success">
+          <button type="submit" class="btn btn-outline-success btn-sm" data-change="FLY-16"><i class="bi bi-check-lg"></i> Approve - assign an instructor later</button>
         </form>
         <button type="button" id="sd-propose-times-btn" class="btn btn-outline-warning btn-sm d-none"><i class="bi bi-signpost-split"></i> Deny / Propose Times</button>
         {% endif %}
@@ -83,6 +86,32 @@
     </div>
   </div>
 </div>
+
+{% if session.get('cfi_id') %}
+<!-- CFI/admin: Cancel Flight - asks for a short reason, which the student is
+     told and which shows under Cancelled (last 7 days) on the Dashboard. -->
+<div class="modal fade" id="staffCancelModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-x-lg"></i> Cancel Flight</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" id="staff-cancel-form">
+        <div class="modal-body">
+          <p class="text-muted small mb-2">The student is told their lesson was cancelled and why.</p>
+          <label class="form-label">Why is it being cancelled? *</label>
+          <textarea name="reason" id="staff-cancel-reason" class="form-control" rows="2" required></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Never Mind</button>
+          <button type="submit" class="btn btn-danger fw-bold btn-sm">Cancel Flight</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <!-- Reschedule modal: changes only the date/time, everything else about
      the booking (plane, student, instructor, duration, notes) stays put. -->
@@ -175,7 +204,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Never Mind</button>
-          <button type="submit" id="pt-submit" class="btn btn-warning fw-bold btn-sm">Send to Student</button>
+          <button type="submit" id="pt-submit" class="btn btn-warning fw-bold btn-sm" data-change="FLY-32">Send to Student</button>
         </div>
       </form>
     </div>
@@ -293,7 +322,7 @@ document.addEventListener('click', function (evt) {
     timeText = el.dataset.time + ' - ' + el.dataset.endtime;
   }
   document.getElementById('sd-time').textContent = timeText;
-  document.getElementById('sd-duration').textContent = el.dataset.duration ? (el.dataset.duration + ' hrs') : '(default)';
+  document.getElementById('sd-duration').textContent = el.dataset.duration ? (el.dataset.duration + ' hrs') : '1.5 hrs (default)';
   {#- A student viewer's blocks (see _schedule_live.html) don't carry
      data-student/data-cfi at all, so those rows are hidden here rather
      than showing "undefined" or a guessed (possibly wrong) fallback. #}
@@ -308,6 +337,8 @@ document.addEventListener('click', function (evt) {
   document.getElementById('sd-notes-row').classList.toggle('d-none', !notesKnown);
   if (notesKnown) { document.getElementById('sd-notes').textContent = el.dataset.notes || '—'; }
   var privRow = document.getElementById('sd-private-notes-row');
+  // A pending request's note is the student's own "Note to the school" (FLY-06).
+  privRow.querySelector('th').textContent = el.dataset.status === 'pending_approval' ? 'Note from student' : 'General Notes';
   if (el.dataset.privateNotes) {
     document.getElementById('sd-private-notes').textContent = el.dataset.privateNotes;
     privRow.classList.remove('d-none');
@@ -339,7 +370,7 @@ document.addEventListener('click', function (evt) {
   var createdByKnown = el.dataset.created_by !== undefined;
   document.getElementById('sd-created-row').classList.toggle('d-none', !createdByKnown);
   if (createdByKnown) document.getElementById('sd-created_by').textContent = el.dataset.created_by || '—';
-  var statusLabels = { scheduled: 'Scheduled', in_progress: 'In progress', completed: 'Completed', pending_approval: 'Pending Approval (not yet on the calendar)' };
+  var statusLabels = { scheduled: 'Scheduled', in_progress: 'In progress', completed: 'Completed', pending_approval: 'Pending Approval (not yet on the calendar)', balance_hold: 'Pending - Balance Hold (student owes more than the school\'s limit)' };
   document.getElementById('sd-status').textContent = statusLabels[el.dataset.status] || el.dataset.status;
 
   // Once a flight has started or finished, the scheduling actions (start /
@@ -349,8 +380,18 @@ document.addEventListener('click', function (evt) {
   var isScheduled = el.dataset.status === 'scheduled';
   var editLink = document.getElementById('sd-edit-link');
   if (editLink) { editLink.href = el.dataset.editUrl; editLink.classList.toggle('d-none', !isScheduled); }
+  // Cancel Flight works on a Scheduled or Balance Hold booking (FLY-03).
+  var canCancel = isScheduled || el.dataset.status === 'balance_hold';
   var cancelForm = document.getElementById('sd-cancel-form');
-  if (cancelForm) { cancelForm.action = el.dataset.cancelUrl; cancelForm.classList.toggle('d-none', !isScheduled); }
+  if (cancelForm) {
+    cancelForm.classList.toggle('d-none', !canCancel);
+    document.getElementById('sd-cancel-btn').onclick = function () {
+      document.getElementById('staff-cancel-form').action = el.dataset.cancelUrl;
+      document.getElementById('staff-cancel-reason').value = '';
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('scheduleDetailModal')).hide();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('staffCancelModal')).show();
+    };
+  }
   // A student's own booking - the Schedule calendar hides student identity
   // from a student viewer entirely, so data-student-id only ever matches
   // MY_STUDENT_ID here on the student's own dashboard chips.
@@ -472,10 +513,21 @@ document.addEventListener('click', function (evt) {
   }
 
   var approveForm = document.getElementById('sd-approve-form');
+  var approveLaterForm = document.getElementById('sd-approve-later-form');
   if (approveForm) {
     var isPendingApproval = el.dataset.status === 'pending_approval';
+    // A request with no instructor yet (FLY-16): say that approving books
+    // you, and offer "assign an instructor later" as the other choice.
+    var noCfi = isPendingApproval && namesKnown && !el.dataset.cfi && !el.dataset.solo;
     approveForm.classList.toggle('d-none', !isPendingApproval);
     approveForm.action = el.dataset.approveUrl || '#';
+    approveForm.setAttribute('data-confirm', noCfi ? 'Approve and assign yourself as the instructor?'
+      : 'Approve this flight request? It goes onto the calendar as a confirmed booking.');
+    approveForm.setAttribute('data-confirm-ok', noCfi ? 'Yes, approve and assign me' : 'Yes, approve');
+    if (approveLaterForm) {
+      approveLaterForm.classList.toggle('d-none', !noCfi);
+      approveLaterForm.action = (el.dataset.approveUrl || '#') + '?assign=later';
+    }
   }
 
   var proposeTimesBtn = document.getElementById('sd-propose-times-btn');
@@ -601,7 +653,7 @@ document.getElementById('propose-times-form').addEventListener('submit', functio
   errEl.classList.add('d-none');
   if (ptSelectedTimes.length) {
     document.getElementById('pt-times-json').value = JSON.stringify(ptSelectedTimes);
-    noteEl.value = 'Conflicts with another booking. Times that would work instead: ' + ptSelectedTimes.join(', ') +
+    noteEl.value = 'Times that would work instead: ' + ptSelectedTimes.join(', ') +
       (note ? ' - ' + note : '');
   }
   ptSelectedTimes = [];

@@ -2128,6 +2128,9 @@ def dashboard_live():
     page's scroll position."""
     if request.args.get("next") in ("mine", "school") and session.get("is_master_admin"):
         session["next_scope"] = request.args["next"]
+    # FLY-29: the All / Mine toggle swaps in place the same way.
+    if request.args.get("scope") in ("all", "mine"):
+        session["dash_scope"] = request.args["scope"]
     conn = get_db()
     cfi = current_cfi(conn)
     student = current_student(conn)
@@ -5544,17 +5547,26 @@ def schedule_review_acknowledge(scheduled_id):
     dismissed."""
     conn = get_db()
     sf = conn.execute("SELECT id FROM scheduled_flights WHERE id = ? AND needs_review = 1", (scheduled_id,)).fetchone()
+    ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     if not sf:
         conn.close()
+        if ajax:
+            return jsonify({"ok": False, "message": "That flight is no longer flagged for review.", "category": "warning"})
         flash("That flight is no longer flagged for review.", "warning")
         return redirect(request.referrer or url_for("flight.dashboard"))
     conn.execute("UPDATE scheduled_flights SET needs_review_acknowledged_at = ?, needs_review_acknowledged_by = ? WHERE id = ?",
                  (now_iso(), session.get("user_name"), scheduled_id))
     conn.commit()
     conn.close()
+    msg = "Acknowledged - it stays here in Alerts (and flagged on the Schedule) until it's resolved."
+    if ajax:
+        # FLY-17: the Dashboard's Needs Review banner acts in place; the
+        # floating message carries an Open Alerts link.
+        return jsonify({"ok": True, "message": msg, "category": "success", "link": url_for("flight.alerts_list"),
+                        "link_text": "Open Alerts"})
     # Lands on the Alerts tab (not back on the dashboard) so it's clear
     # where the acknowledged alert went.
-    flash("Acknowledged - it stays here in Alerts (and flagged on the Schedule) until it's resolved.", "success")
+    flash(msg, "success")
     return redirect(url_for("flight.alerts_list"))
 
 
@@ -5862,6 +5874,26 @@ def schedule_change_request_dismiss(scheduled_id):
     conn.commit()
     conn.close()
     return _pending_decision_response(True, "Change request dismissed.", "info")
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/change_request/withdraw", methods=["POST"])
+@login_required
+def schedule_change_request_withdraw(scheduled_id):
+    """A student taking back a change request they sent (FLY-35) - same effect
+    as the school's Handled (clears it off the Change Requests queue) and the
+    school is told."""
+    conn = get_db()
+    sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    if not sched or sched["student_id"] != session.get("student_id") or not sched["change_requested_at"]:
+        conn.close()
+        return _pending_decision_response(False, "That change request isn't there anymore.", "danger",
+                                          redirect_url=url_for("flight.dashboard"))
+    conn.execute("UPDATE scheduled_flights SET change_request_note = NULL, change_requested_at = NULL WHERE id = ?",
+                 (scheduled_id,))
+    conn.commit()
+    _notify_schedule_request(conn, sched, "withdrew the change request for", sched["change_request_note"] or "")
+    conn.close()
+    return _pending_decision_response(True, "Change request withdrawn.", "info", redirect_url=url_for("flight.dashboard"))
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/student_cancel", methods=["POST"])

@@ -114,6 +114,7 @@
           <td data-label="Status">
             {% if m.status == 'pending_approval' %}
             <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split"></i> Awaiting Approval</span>
+            {% if m.private_notes %}<div class="text-muted small mt-1" data-change="FLY-06">Your note to the school: &quot;{{ m.private_notes }}&quot;</div>{% endif %}
             {% elif m.status == 'scheduled' %}
             {#- Booking itself is still confirmed as-is - this row just
                means the change asked for (schedule_request_change) hasn't
@@ -121,6 +122,7 @@
                booking or dismisses the request. #}
             <span class="badge bg-info text-dark"><i class="bi bi-chat-left-text-fill"></i> Change Requested</span>
             {% if m.change_request_note %}<div class="text-muted small mt-1">&quot;{{ m.change_request_note }}&quot;</div>{% endif %}
+            <button type="button" class="btn btn-link btn-sm p-0 mt-1 withdraw-change-btn" data-withdraw-url="{{ url_for('flight.schedule_change_request_withdraw', scheduled_id=m.id) }}" data-confirm="Take back your change request? The school is told you no longer need it." data-confirm-title="Withdraw Request" data-confirm-ok="Yes, withdraw" data-change="FLY-35">Withdraw</button>
             {% else %}
             <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Denied</span>
             {% if m.deny_reason %}<div class="text-muted small mt-1">{{ m.deny_reason }}</div>{% endif %}
@@ -173,13 +175,13 @@
   resets and it reappears here.
 #}
 {% if needs_review_flights %}
-<div class="alert alert-danger border-danger border-2 mb-3">
+<div class="alert alert-danger border-danger border-2 mb-3" id="needs-review-banner">
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <h5 class="alert-heading mb-0"><i class="bi bi-exclamation-triangle-fill"></i> {{ needs_review_flights|length }} Flight{{ 's' if needs_review_flights|length != 1 }} Needs Review</h5>
+    <h5 class="alert-heading mb-0"><i class="bi bi-exclamation-triangle-fill"></i> <span id="needs-review-count">{{ needs_review_flights|length }}</span> Flight{{ 's' if needs_review_flights|length != 1 }} Needs Review</h5>
     <a href="{{ url_for('flight.alerts_list') }}" class="btn btn-outline-danger btn-sm fw-bold">All Alerts</a>
   </div>
   {% for n in needs_review_flights %}
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }} needs-review-row">
     <div>
       <div><strong>{{ n.plane_tag }}</strong> &middot; {{ n.scheduled_date|usdate }}{% if n.time_label %} &middot; {{ n.time_label }}{% endif %} &middot; {{ n.student_name }}</div>
       <div class="small">{{ n.review_reason }}</div>
@@ -187,9 +189,9 @@
     <div class="d-flex gap-1 flex-wrap">
       {% set fix = n.fix_links[0] %}
       <a href="{{ fix.url }}" class="btn btn-outline-danger btn-sm fw-bold" title="{{ fix.hint }}"><i class="bi {{ fix.icon }}"></i> Resolve: {{ fix.label }}</a>
-      <form method="post" action="{{ url_for('flight.schedule_review_acknowledge', scheduled_id=n.id) }}" data-confirm="Acknowledge this flagged flight? It moves to the Alerts tab and stays flagged until it's resolved." data-confirm-title="Acknowledge Flagged Flight">
-        <button class="btn btn-danger btn-sm fw-bold"><i class="bi bi-check-lg"></i> Acknowledge</button>
-      </form>
+      {#- type="button" so the shared confirm dialog's click delegate handles it and
+         dashboard.html's .ack-review-btn handler acts in place (FLY-17). #}
+      <button type="button" class="btn btn-danger btn-sm fw-bold ack-review-btn" data-ack-url="{{ url_for('flight.schedule_review_acknowledge', scheduled_id=n.id) }}" data-confirm="Acknowledge this flagged flight? It moves to the Alerts tab and stays flagged until it's resolved." data-confirm-title="Acknowledge Flagged Flight" data-change="FLY-17"><i class="bi bi-check-lg"></i> Acknowledge</button>
     </div>
   </div>
   {% endfor %}
@@ -260,7 +262,7 @@
   {% endfor %}
   {% endif %}
   {% if recently_cancelled_flights %}
-  <div class="small text-muted fw-bold mb-1{{ ' mt-2' if unconfirmed_flights }}">Cancelled (last 7 days)</div>
+  <div class="small text-muted fw-bold mb-1{{ ' mt-2' if unconfirmed_flights }}" data-change="FLY-03">Cancelled (last 7 days)</div>
   {% for c in recently_cancelled_flights %}
   {#- A cancelled flight no longer shows as a block on the Schedule itself
      (see _SCHEDULE_ROW_SQL), so this just jumps to that day for context
@@ -269,7 +271,7 @@
      class="small py-1 {{ 'border-top' if not loop.first }} d-flex justify-content-between align-items-start flex-wrap gap-1 text-reset text-decoration-none today-row-clickable"
      title="Open this day on the Schedule">
     <span><strong>{{ c.student_name }}</strong> &middot; {{ c.plane_tag }} &middot; {{ c.scheduled_date|usdate }}{% if c.time_label %} &middot; {{ c.time_label }}{% endif %}
-      {% if c.cancel_reason %}<div class="text-muted">"{{ c.cancel_reason }}"</div>{% endif %}</span>
+      {% if c.cancel_reason %}<div class="text-muted">"{{ c.cancel_reason }}"{% if c.cancelled_by %} &mdash; cancelled by {{ c.cancelled_by }}{% if c.cancelled_at %} on {{ c.cancelled_at|usdate }}{% endif %}{% endif %}</div>{% endif %}</span>
   </a>
   {% endfor %}
   {% endif %}
@@ -296,9 +298,14 @@
       <div class="flex-grow-1" style="min-width:0;">
         <div class="fw-bold text-truncate" style="font-size:.92rem;">{{ p.day_label }} &middot; {{ p.time_label or 'Not set' }} &middot; {{ p.plane_tag }}</div>
         <div class="small text-muted text-truncate">{{ p.student_name }} &middot; {% if p.cfi_name %}{{ p.cfi_name }}{% elif p.solo %}solo{% else %}any instructor{% endif %}</div>
+        {% if p.private_notes %}<div class="small fst-italic text-truncate" data-change="FLY-06">&ldquo;{{ p.private_notes }}&rdquo;</div>{% endif %}
       </div>
       <div class="d-flex gap-1 text-nowrap">
-        <button type="button" class="btn btn-success btn-sm pending-decide-btn px-2 py-1" style="font-size:.78rem;" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id) }}" data-confirm="Approve this flight request? It goes onto the calendar as a confirmed booking." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success">Approve</button>
+        {% set any_cfi = not p.cfi_name and not p.solo %}
+        <button type="button" class="btn btn-success btn-sm pending-decide-btn px-2 py-1" style="font-size:.78rem;" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id) }}" data-confirm="{{ 'Approve and assign yourself as the instructor?' if any_cfi else 'Approve this flight request? It goes onto the calendar as a confirmed booking.' }}" data-confirm-title="Approve Request" data-confirm-ok="{{ 'Yes, approve and assign me' if any_cfi else 'Yes, approve' }}" data-confirm-style="success"{% if any_cfi %} data-change="FLY-16"{% endif %}>Approve</button>
+        {% if any_cfi %}
+        <button type="button" class="btn btn-outline-success btn-sm pending-decide-btn px-2 py-1" style="font-size:.78rem;" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id, assign='later') }}" data-confirm="Approve without an instructor? It goes on the calendar flagged 'No instructor assigned yet' until you assign one." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success" title="Approve - assign an instructor later">Later</button>
+        {% endif %}
         <button type="button" class="btn btn-outline-danger btn-sm pending-deny-btn px-2 py-1" style="font-size:.78rem;" data-decide-url="{{ url_for('flight.schedule_deny', scheduled_id=p.id) }}">Deny</button>
       </div>
     </div>
@@ -320,7 +327,7 @@
           <td data-label="Date"><small>{{ p.scheduled_date|usdate }}</small></td>
           <td data-label="Time"><small>{{ p.time_label or 'Not set' }}</small></td>
           <td data-label="Plane">{{ p.plane_tag }}</td>
-          <td data-label="Student">{{ p.student_name }}</td>
+          <td data-label="Student">{{ p.student_name }}{% if p.private_notes %}<div class="small fst-italic text-muted" data-change="FLY-06">Note: &ldquo;{{ p.private_notes }}&rdquo;</div>{% endif %}</td>
           <td data-label="Requested Instructor">{% if p.cfi_name %}{{ p.cfi_name }}{% elif p.solo %}<span class="badge bg-secondary">Solo</span>{% else %}<span class="badge bg-secondary">Any</span>{% endif %}</td>
           <td data-label="" class="text-end text-nowrap">
             {#- type="button" (not submit, no wrapping <form>) so the shared
@@ -331,7 +338,11 @@
                .pending-decide-btn's own listener in dashboard.html can tell
                "just opened the dialog" from "actually confirmed" apart
                cleanly and only fire the in-place approve/deny then. #}
-            <button type="button" class="btn btn-success btn-sm pending-decide-btn" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id) }}" data-confirm="Approve this flight request? It goes onto the calendar as a confirmed booking." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success"><i class="bi bi-check-lg"></i> Approve</button>
+            {% set any_cfi = not p.cfi_name and not p.solo %}
+            <button type="button" class="btn btn-success btn-sm pending-decide-btn" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id) }}" data-confirm="{{ 'Approve and assign yourself as the instructor?' if any_cfi else 'Approve this flight request? It goes onto the calendar as a confirmed booking.' }}" data-confirm-title="Approve Request" data-confirm-ok="{{ 'Yes, approve and assign me' if any_cfi else 'Yes, approve' }}" data-confirm-style="success"{% if any_cfi %} data-change="FLY-16"{% endif %}><i class="bi bi-check-lg"></i> Approve</button>
+            {% if any_cfi %}
+            <button type="button" class="btn btn-outline-success btn-sm pending-decide-btn" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id, assign='later') }}" data-confirm="Approve without an instructor? It goes on the calendar flagged 'No instructor assigned yet' until you assign one." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success" data-change="FLY-16">Approve - assign an instructor later</button>
+            {% endif %}
             {#- Deny needs a typed reason, not just a yes/no - opens
                denyRequestModal (dashboard.html) instead of the generic
                confirm dialog the Approve button above uses. #}
@@ -551,7 +562,7 @@
 </div>
 {% endif %}
 
-{% if next_lesson or log_lesson or session.get('is_master_admin') %}
+{% if next_lesson or log_lesson or session.get('is_master_admin') or (student and not cfi) %}
 <div class="card p-3 mb-3 border-primary">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div class="flex-grow-1{% if next_lesson %} schedule-block{% endif %}"{% if next_lesson %} role="button" style="cursor:pointer;"
@@ -635,6 +646,9 @@
       {% endif %}
       {% elif not log_lesson %}
       <div class="text-muted mt-1">Nothing booked for you coming up.</div>
+      {% if student and not cfi %}
+      <a href="{{ url_for('flight.schedule_new') }}" class="btn btn-primary fw-bold mt-2" data-change="FLY-23"><i class="bi bi-plus-lg"></i> Request a Flight</a>
+      {% endif %}
       {% endif %}
       {% if log_lesson %}
       {#- A lesson that already started today and isn't logged yet: one tap
@@ -857,8 +871,9 @@
   <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
     <span class="small text-muted">{{ 'Showing only your flights' if dash_scope == 'mine' else 'Showing the whole school' }}</span>
     <div class="btn-group btn-group-sm" role="group" aria-label="Whose flights">
-      <a href="{{ url_for('flight.dashboard', scope='all') }}" class="btn {{ 'btn-primary' if dash_scope != 'mine' else 'btn-outline-primary' }}"><i class="bi bi-people"></i> All</a>
-      <a href="{{ url_for('flight.dashboard', scope='mine') }}" class="btn {{ 'btn-primary' if dash_scope == 'mine' else 'btn-outline-primary' }}"><i class="bi bi-person"></i> Mine</a>
+      {#- Buttons (not links) so they swap in place like Personal / School - FLY-29. #}
+      <button type="button" class="btn dash-scope-btn {{ 'btn-primary' if dash_scope != 'mine' else 'btn-outline-primary' }}" data-dash-scope="all" data-change="FLY-29"><i class="bi bi-people"></i> All</button>
+      <button type="button" class="btn dash-scope-btn {{ 'btn-primary' if dash_scope == 'mine' else 'btn-outline-primary' }}" data-dash-scope="mine" data-change="FLY-29"><i class="bi bi-person"></i> Mine</button>
     </div>
   </div>
   {#- Phones: "Today's Schedule (27-09-2026)" squeezed next to the big
@@ -912,7 +927,8 @@
      countdown ("in 1 day") rather than what's actually booked - now counts
      flights instead (QA ux-flight-dash-section-headers). #}
   {% set upcoming_flight_count = upcoming_future_days|map(attribute='flights')|map('length')|sum %}
-  <button type="button" class="dash-collapse-toggle d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0 {{ 'mb-2' if upcoming_future_days else '' }}" data-collapse="upcoming">
+  {% set upcoming_open = student and not cfi %}
+  <button type="button" class="dash-collapse-toggle {{ 'open ' if upcoming_open }}d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0 {{ 'mb-2' if upcoming_future_days else '' }}" data-collapse="upcoming"{% if upcoming_open %} data-change="FLY-23"{% endif %}>
     <h6 class="mb-0"><i class="bi bi-calendar-week"></i> Upcoming</h6>
     <span class="d-flex align-items-center gap-2">
       <span class="badge bg-secondary fs-6">{{ upcoming_flight_count ~ ' flight' ~ ('s' if upcoming_flight_count != 1) if upcoming_flight_count else 'None booked' }}</span>
@@ -923,7 +939,7 @@
      and Recent Flights start closed to keep the dashboard compact on load
      (see the dashboard JS's dashLoadOpen/dashSaveOpen for how a user's own
      open/closed choice is remembered after that). #}
-  <div class="dash-collapse-body" data-collapse-body="upcoming" hidden>
+  <div class="dash-collapse-body" data-collapse-body="upcoming"{% if not upcoming_open %} hidden{% endif %}>
     {% for day in upcoming_future_days %}
     {% if not loop.first %}<hr class="my-3">{% endif %}
     <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
@@ -1008,7 +1024,7 @@
       <thead><tr><th>Date</th><th>Plane</th><th>Student</th>{% if cfi %}<th>Instructor</th>{% endif %}<th>Hobbs</th><th>Notes</th></tr></thead>
       <tbody>
         {% for f in recent_flights %}
-        <tr>
+        <tr class="pending-row-clickable" role="button" data-goto-url="{{ url_for('flight.log_detail', flight_id=f.id) }}" title="Open this flight" data-change="FLY-22">
           <td data-label="Date"><small>{{ f.flight_date|usdate }}</small></td>
           <td data-label="Plane">{{ f.plane_tag }}</td>
           <td data-label="Student">{{ f.student_name }}</td>
@@ -1019,6 +1035,9 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
+  <div class="text-end mt-2" data-change="FLY-22">
+    <a href="{{ url_for('flight.log_history') }}" class="small">Flight History &raquo;</a>
   </div>
   {% else %}
   <p class="text-muted small mb-0">No flights logged yet.</p>
