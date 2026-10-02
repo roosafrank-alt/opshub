@@ -47,15 +47,10 @@
     <span><span class="cfi-sched-seg flight d-inline-block" style="width:.8rem;height:.8rem;border-radius:2px;"></span> Booked</span>
     <span><span class="cfi-sched-seg gap d-inline-block" style="width:.8rem;height:.8rem;border-radius:2px;"></span> Unassigned gap</span>
     <span><span class="cfi-sched-seg off d-inline-block" style="width:.8rem;height:.8rem;border-radius:2px;"></span> Time off</span>
-    <span class="ms-auto">6 AM - 9 PM shown</span>
+    <span class="ms-auto">{{ school_day_label }} shown</span>
   </div>
   <div class="cfi-sched-ruler small text-muted">
-    <span style="left:0%">6a</span>
-    <span style="left:20%">9a</span>
-    <span style="left:40%">noon</span>
-    <span style="left:60%">3p</span>
-    <span style="left:80%">6p</span>
-    <span style="left:100%">9p</span>
+    {% for tick in ruler %}<span style="left:{{ tick.left }}%">{{ tick.label }}</span>{% endfor %}
   </div>
   {% for day in days %}
   <div class="cfi-sched-day py-2 {{ 'is-today' if day.is_today }}">

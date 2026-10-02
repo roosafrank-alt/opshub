@@ -2912,11 +2912,9 @@ def cfi_pay(cfi_id):
                            total_hours=total_hours, total_owed=total_owed, pay_rate=pay_rate)
 
 
-# The My Schedule timeline's window - 6am-9pm covers virtually every real
-# lesson, and clamping to it keeps one early/late outlier from squashing
-# every other day's bar down to a sliver.
-_CFI_SCHEDULE_DAY_START = 6 * 60
-_CFI_SCHEDULE_DAY_END = 21 * 60
+# The My Schedule timeline uses the school-day window (see _school_day_window);
+# clamping to it keeps one early/late outlier from squashing every other day's
+# bar down to a sliver.
 
 
 def _time_off_label(row):
@@ -2931,6 +2929,28 @@ def _time_off_label(row):
         weekday_name = datetime.strptime(row["off_date"], "%Y-%m-%d").strftime("%A")
         label += f" - every {weekday_name}"
     return label
+
+
+def _school_day_label():
+    """'6 AM - 9 PM' for the pages that say what hours they cover."""
+    start, end = _school_day_window()
+    return f"{_hour_label(start // 60)} - {_hour_label(end // 60)}"
+
+
+def _school_day_ruler():
+    """Hour tick labels along My Schedule's day bar: [{'left': %, 'label'}, ...]."""
+    start, end = _school_day_window()
+    span = end - start
+    hours = list(range(start // 60, end // 60 + 1))
+    step = 3 if len(hours) > 9 else 2 if len(hours) > 5 else 1
+    ticks = hours[::step]
+    if hours[-1] not in ticks:
+        ticks.append(hours[-1])
+    out = []
+    for h in ticks:
+        label = "noon" if h == 12 else ("midnight" if h % 24 == 0 else f"{(h - 1) % 12 + 1}{'a' if h % 24 < 12 else 'p'}")
+        out.append({"left": round((h * 60 - start) / span * 100, 2), "label": label})
+    return out
 
 
 def _time_off_overlapping_bookings(conn, cfi_id, off_dates, start_time, end_time, recurs_weekly=False):
@@ -2968,9 +2988,10 @@ def _time_off_overlapping_bookings(conn, cfi_id, off_dates, start_time, end_time
 
 
 def _cfi_schedule_pct(start_min, end_min):
-    span = _CFI_SCHEDULE_DAY_END - _CFI_SCHEDULE_DAY_START
-    left = max(0, min(100, (start_min - _CFI_SCHEDULE_DAY_START) / span * 100))
-    right = max(0, min(100, (end_min - _CFI_SCHEDULE_DAY_START) / span * 100))
+    day_start, day_end = _school_day_window()
+    span = day_end - day_start
+    left = max(0, min(100, (start_min - day_start) / span * 100))
+    right = max(0, min(100, (end_min - day_start) / span * 100))
     return left, max(right - left, 0.5)
 
 
@@ -2978,7 +2999,7 @@ def _cfi_schedule_week(conn, cfi_id, week_dates):
     """One row per day of the week for the My Schedule page: the CFI's own
     booked span (first flight start to last flight end) with a colored
     timeline bar - blue for booked, amber for an unassigned gap between two
-    bookings, red for time off - built from _CFI_SCHEDULE_DAY_START/END.
+    bookings, red for time off - built from the school-day window (_school_day_window).
     Doesn't include flight/student/plane details, just the shape of the
     day."""
     date_strs = [d.strftime("%Y-%m-%d") for d in week_dates]
@@ -3034,7 +3055,7 @@ def _cfi_schedule_week(conn, cfi_id, week_dates):
                     end_h, end_m = (int(x) for x in t["end_time"].split(":"))
                     end_min = end_h * 60 + end_m
                 else:
-                    end_min = _CFI_SCHEDULE_DAY_END
+                    end_min = _school_day_window()[1]
                 left, width = _cfi_schedule_pct(start_h * 60 + start_m, end_min)
                 segments.append({"kind": "off", "left": left, "width": width})
         days.append({
@@ -3173,6 +3194,7 @@ def cfi_schedule():
                            upcoming_time_off=upcoming_time_off, today_str=today.strftime("%Y-%m-%d"),
                            viewing_cfi=viewing_cfi, cfi_id_param=(cfi_id if is_admin_view else None),
                            effective_cfi_id=cfi_id, time_off_warning=time_off_warning,
+                           school_day_label=_school_day_label(), ruler=_school_day_ruler(),
                            time_off_form=request.form if request.method == "POST" else None)
 
 
@@ -3369,6 +3391,13 @@ def school_settings_edit():
             limit = max(0.0, float(request.form.get("limit") or 0))
         except ValueError:
             limit = 0.0
+        # FLY-37: the school-day window every calendar view and Availability use.
+        day_start_h = _parse_int(request.form.get("day_start_hour"))
+        day_end_h = _parse_int(request.form.get("day_end_hour"))
+        if day_start_h is None or day_end_h is None or not (0 <= day_start_h < day_end_h <= 24 and day_end_h - day_start_h >= 4):
+            flash("Calendar hours: pick a start before the end, at least 4 hours apart.", "danger")
+            conn.close()
+            return redirect(url_for("flight.school_settings_edit"))
         if color and color in _used_colors_for_plane(conn):
             flash("That Calendar Color is already taken by an instructor or a plane - pick a different one.", "danger")
             conn.close()
@@ -3387,6 +3416,8 @@ def school_settings_edit():
                      (CANCEL_FEE_AMOUNT_KEY, fee_amount))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
                      (BALANCE_HOLD_LIMIT_KEY, limit))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (SCHOOL_DAY_START_KEY, day_start_h))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (SCHOOL_DAY_END_KEY, day_end_h))
         conn.commit()
         conn.close()
         flash("School Settings updated.", "success")
@@ -3395,10 +3426,12 @@ def school_settings_edit():
     window_hours, fee_amount = _cancel_fee_settings(conn)
     limit = _balance_hold_limit(conn)
     used_colors = _used_colors_for_plane(conn)
+    day_start_h, day_end_h = _school_day_hours(conn)
     conn.close()
     return render_template("flight/school_settings_form.html", cfis=cfis, own_plane_color=own_plane_color,
                            window_hours=window_hours, fee_amount=fee_amount, limit=limit,
-                           used_colors=used_colors, schedule_colors=SCHEDULE_COLORS)
+                           used_colors=used_colors, schedule_colors=SCHEDULE_COLORS,
+                           day_start_hour=day_start_h, day_end_hour=day_end_h, hour_label=_hour_label)
 
 
 _SCHEDULE_ROW_SQL = """SELECT sf.*, a.tag as plane_tag, a.name as plane_name, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
@@ -3687,8 +3720,57 @@ def _build_schedule_month(conn, year, month, plane_id=None, cfi_id=None, plane_o
 # 0.25 px/min matches the ~210px cell height already in use for a normal
 # (non-packed) day, so a typical day looks the same as before; a packed one
 # just grows a bit past that instead of hiding blocks behind "+N more".
-MONTH_TIMELINE_WINDOW_START = 6 * 60
-MONTH_TIMELINE_WINDOW_END = 20 * 60
+# FLY-37: one school-day window (hours, School Settings > Calendar hours) used by
+# the Day/Week timelines, the Month mini-timeline, Availability and My Schedule.
+SCHOOL_DAY_START_KEY = "school_day_start_hour"
+SCHOOL_DAY_END_KEY = "school_day_end_hour"
+DEFAULT_SCHOOL_DAY_START_HOUR = 6
+DEFAULT_SCHOOL_DAY_END_HOUR = 21
+
+
+def _school_day_hours(conn):
+    """(start_hour, end_hour) of the school day from School Settings, 6 and 21
+    (6 AM - 9 PM) unless Frank changed it; bad values fall back to the default."""
+    rows = conn.execute("SELECT key, value FROM app_settings WHERE key IN (?, ?)",
+                        (SCHOOL_DAY_START_KEY, SCHOOL_DAY_END_KEY)).fetchall()
+    vals = {r["key"]: r["value"] for r in rows}
+    try:
+        start = int(float(vals.get(SCHOOL_DAY_START_KEY)))
+        end = int(float(vals.get(SCHOOL_DAY_END_KEY)))
+    except (TypeError, ValueError):
+        return DEFAULT_SCHOOL_DAY_START_HOUR, DEFAULT_SCHOOL_DAY_END_HOUR
+    if not (0 <= start < end <= 24 and end - start >= 4):
+        return DEFAULT_SCHOOL_DAY_START_HOUR, DEFAULT_SCHOOL_DAY_END_HOUR
+    return start, end
+
+
+def _school_day_window(conn=None):
+    """(start_min, end_min) minutes since midnight for the school day; looked up
+    once per request."""
+    cached = g.get("_school_day_window") if has_request_context() else None
+    if cached:
+        return cached
+    own = conn is None
+    if own:
+        conn = get_db()
+    try:
+        start, end = _school_day_hours(conn)
+    finally:
+        if own:
+            conn.close()
+    window = (start * 60, end * 60)
+    if has_request_context():
+        g._school_day_window = window
+    return window
+
+
+def _hour_label(hour):
+    """6 -> '6 AM', 21 -> '9 PM', 24 -> 'midnight'."""
+    if hour % 24 == 0:
+        return "midnight"
+    return f"{(hour - 1) % 12 + 1} {'AM' if hour % 24 < 12 else 'PM'}"
+
+
 MONTH_TIMELINE_PX_PER_MIN = 0.45  # was 0.25 - bigger blocks with room for 3 lines (see MONTH_BLOCK_PX_PER_MIN)
 MONTH_TIMELINE_BLOCK_PX = 30  # approx rendered height of one (2-line) block
 # Month blocks are sized by the booking's length on the same px-per-minute
@@ -3700,7 +3782,7 @@ MONTH_BLOCK_MIN_PX = 22
 
 
 def _layout_month_cell_timeline(flights, plane_order,
-                                 window_start=MONTH_TIMELINE_WINDOW_START, window_end=MONTH_TIMELINE_WINDOW_END,
+                                 window_start=None, window_end=None,
                                  px_per_min=MONTH_TIMELINE_PX_PER_MIN, block_px=MONTH_TIMELINE_BLOCK_PX):
     """Positions one day cell's timed flights on its to-scale mini timeline
     using a fixed lane per plane, not a per-collision cluster.
@@ -3726,6 +3808,8 @@ def _layout_month_cell_timeline(flights, plane_order,
 
     Returns (placements, container_height_px) where placements is a list
     of (flight, {top_px, height_px, left_pct, width_pct})."""
+    if window_start is None or window_end is None:
+        window_start, window_end = _school_day_window()
     base_height = (window_end - window_start) * px_per_min
     if not flights:
         return [], round(base_height + 4, 1)
@@ -3784,13 +3868,10 @@ def _build_schedule_day(conn, date_str, plane_id=None, cfi_id=None):
     return _hide_other_students_past_flights(rows)
 
 
-# The Availability view's window: 8am-8pm sliced into 1.5-hour slots - the
-# same length as a normal booking's default duration (see
-# DEFAULT_SCHEDULE_BLOCK_HOURS above), so a slot lines up with how a
-# booking actually blocks the plane. 720 minutes / 90 = 8 whole slots, no
-# partial slot at the end.
-AVAILABILITY_START_MIN = 8 * 60
-AVAILABILITY_END_MIN = 20 * 60
+# The Availability view slices the school day (see _school_day_window) into
+# 1.5-hour slots - the same length as a normal booking's default duration (see
+# DEFAULT_SCHEDULE_BLOCK_HOURS above), so a slot lines up with how a booking
+# actually blocks the plane.
 AVAILABILITY_SLOT_MIN = int(DEFAULT_SCHEDULE_BLOCK_HOURS * 60)
 
 
@@ -3834,7 +3915,8 @@ def _build_availability_day(conn, date_str, plane_id=None):
     now_min = now.hour * 60 + now.minute
 
     slots = []
-    for start in range(AVAILABILITY_START_MIN, AVAILABILITY_END_MIN, AVAILABILITY_SLOT_MIN):
+    day_start, day_end = _school_day_window(conn)
+    for start in range(day_start, day_end - AVAILABILITY_SLOT_MIN + 1, AVAILABILITY_SLOT_MIN):
         end = start + AVAILABILITY_SLOT_MIN
         label = _format_time_12h(f"{start // 60:02d}:{start % 60:02d}")
         is_past = date_str < today_str or (date_str == today_str and start <= now_min)
@@ -3973,11 +4055,9 @@ def _build_flight_finder(conn, start_date, num_days, day_types, buckets, plane_i
 # school's actual operating hours - the old month-cell mini timeline this
 # was modeled after used the same 6am-8pm reference window; widened an
 # hour here since a dedicated Day view can afford to show a bit more).
-DAY_TIMELINE_START_MIN = 6 * 60
-DAY_TIMELINE_END_MIN = 21 * 60
 
 
-def _layout_day_timeline(flights, window_start=DAY_TIMELINE_START_MIN, window_end=DAY_TIMELINE_END_MIN):
+def _layout_day_timeline(flights, window_start=None, window_end=None):
     """Positions each timed flight on a single vertical hour axis for the
     Day view (see the attached reference screenshot this was modeled
     after): top/height as a percent of the axis so a flight lands at its
@@ -4001,6 +4081,8 @@ def _layout_day_timeline(flights, window_start=DAY_TIMELINE_START_MIN, window_en
        flights gets 3 equal columns, while an unrelated flight elsewhere
        in the day still gets the full width.
     """
+    if window_start is None or window_end is None:
+        window_start, window_end = _school_day_window()
     timed = []
     untimed = []
     windows = []
@@ -4241,7 +4323,7 @@ def _schedule_calendar_context():
 
     return dict(view=view, month_data=month_data, months_data=months_data,
                 day_str=day_str, day_flights=day_flights, day_timeline=day_timeline, day_untimed=day_untimed,
-                day_timeline_start_min=DAY_TIMELINE_START_MIN, day_timeline_end_min=DAY_TIMELINE_END_MIN,
+                day_timeline_start_min=_school_day_window()[0], day_timeline_end_min=_school_day_window()[1],
                 day_prev=day_prev, day_next=day_next,
                 week_days=week_days, week_start_str=week_start_str, week_end_str=week_end_str,
                 week_prev=week_prev, week_next=week_next,
@@ -4259,13 +4341,13 @@ def _schedule_calendar_context():
                 planes=planes, cfis=cfis, plane_id=plane_id, cfi_id=cfi_id,
                 instructor_legend=instructor_legend, plane_legend=plane_legend, highlight_ids=highlight_ids,
                 new_ids=new_ids,
-                month_timeline_start_min=MONTH_TIMELINE_WINDOW_START, month_timeline_end_min=MONTH_TIMELINE_WINDOW_END,
+                month_timeline_start_min=_school_day_window()[0], month_timeline_end_min=_school_day_window()[1],
                 month_timeline_px_per_min=MONTH_TIMELINE_PX_PER_MIN,
                 # Day/Week timeline click-to-schedule (schedule.html): the
                 # same standard block grid Availability uses, so hovering
                 # highlights one real lesson-length slot and clicking snaps
                 # to its start instead of a raw 15-minute position.
-                slot_grid_start_min=AVAILABILITY_START_MIN, slot_grid_min=AVAILABILITY_SLOT_MIN)
+                slot_grid_start_min=_school_day_window()[0], slot_grid_min=AVAILABILITY_SLOT_MIN)
 
 
 @flight_bp.route("/schedule")
@@ -4327,7 +4409,8 @@ def schedule_availability():
         view = "day"
 
     all_planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY schedule_order, tag").fetchall()
-    ctx = dict(day_str=day_str, today=today, all_planes=all_planes, plane_id=plane_id, mode=mode, view=view)
+    ctx = dict(day_str=day_str, today=today, all_planes=all_planes, plane_id=plane_id, mode=mode, view=view,
+               school_day_label=_school_day_label())
 
     if view == "day":
         availability = _build_availability_day(conn, day_str, plane_id or None)
