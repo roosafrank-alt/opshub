@@ -4496,7 +4496,7 @@ def project_labor_codes(project_id):
     project as a whole ("General") and one per area/sub-system that's been
     used on it, so a laborer can scan the specific task they're working."""
     conn = get_db()
-    project = conn.execute("""SELECT projects.*, a.tag AS asset_tag FROM projects
+    project = conn.execute("""SELECT projects.*, a.tag AS plane_tag FROM projects
                               LEFT JOIN assets a ON a.id = projects.asset_id WHERE projects.id = ?""",
                            (project_id,)).fetchone()
     if not project:

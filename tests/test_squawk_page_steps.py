@@ -82,7 +82,7 @@ class SquawkPageStepsTest(OpsHubTestCase):
     def test_dashboard_has_report_a_squawk_button(self):
         c = self.login("shop_admin")
         body = c.get("/shop").get_data(as_text=True)
-        self.assertIn("Report a squawk", body)
+        self.assertIn("Report squawk", body)
         self.assertIn("report=1", body)
 
     def test_plane_todo_list_shows_next_step_button_not_checkbox(self):

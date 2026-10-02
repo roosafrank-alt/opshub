@@ -720,7 +720,7 @@
         <a href="{{ url_for('scan_page', autoscan=project.code) }}" class="btn btn-warning btn-lg fw-bold w-100 mb-2 d-lg-none"><i class="bi bi-upc-scan"></i> Scan a part</a>
         <a href="#" class="small d-none d-md-inline-block mb-2" data-bs-toggle="collapse" data-bs-target="#assign-tip-collapse" role="button">Using a printed code sheet?</a>
         <div class="collapse d-none d-md-block" id="assign-tip-collapse">
-          <p class="text-muted small">Tip: on the <a href="{{ url_for('scan_page') }}">Scan</a> page, scan this project's <a href="{{ url_for('project_label', project_id=project.id) }}">printed code</a> first to select it (no phone dropdown needed), then scan parts to assign them - handy if you're carrying a printed code sheet instead of your phone.</p>
+          <p class="text-muted small">Tip: on the <a href="{{ url_for('scan_page') }}">Scan</a> page, scan this project's {% if can_work %}<a href="{{ url_for('project_label', project_id=project.id) }}">printed code</a>{% else %}printed code{% endif %} first to select it (no phone dropdown needed), then scan parts to assign them - handy if you're carrying a printed code sheet instead of your phone.</p>
         </div>
         <form method="post" action="{{ url_for('project_add_part', project_id=project.id) }}" id="assign-part-form">
           <label class="form-label small">Part</label>
@@ -895,7 +895,7 @@
    owner_notify_preview are built in app.project_detail() from data this
    page already loaded (Sub Areas, this plane's open squawks, logbook
    entries, billing, labor sessions) - see _project_closeout_checklist. #}
-{% if project.status not in ('completed', 'archived') %}
+{% if project.status not in ('completed', 'archived') and can_work and not is_deleted %}
 <div class="modal fade" id="closeoutModal" tabindex="-1" aria-labelledby="closeoutModalTitle" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">

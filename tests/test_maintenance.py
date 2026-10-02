@@ -108,7 +108,7 @@ class NewItemTest(OpsHubTestCase):
         self.login("shop_admin")
         self.post_new()
         iid = self.last()["id"]
-        for role in ("tech", "inspector", "shop_student", "cfi", "flight_student", "no_roles"):
+        for role in ("inspector", "shop_student", "cfi", "flight_student", "no_roles"):
             self.login(role)
             self.post_new(name="Sneaky " + role, interval_hours="10")
             self.client.post(f"/maintenance/{iid}/edit", data=dict(name="Hacked"))
@@ -116,6 +116,19 @@ class NewItemTest(OpsHubTestCase):
             self.assertEqual(self.q1("SELECT COUNT(*) n FROM maintenance_items")["n"], 1, role)
             row = self.q1("SELECT name, active FROM maintenance_items WHERE id=?", (iid,))
             self.assertEqual((row["name"], row["active"]), ("100 hour", 1), role)
+
+    def test_tech_can_add_and_edit_but_not_delete(self):
+        # JOBS-04: a tech can use the Maintenance add and edit pages; delete stays admin only.
+        self.login("shop_admin")
+        self.post_new()
+        iid = self.last()["id"]
+        self.login("tech")
+        self.post_new(name="Tech item", interval_hours="10")
+        self.assertEqual(self.q1("SELECT COUNT(*) n FROM maintenance_items")["n"], 2)
+        self.client.post(f"/maintenance/{iid}/edit", data=dict(name="Renamed", type="hours", interval_hours="100"))
+        self.assertEqual(self.q1("SELECT name FROM maintenance_items WHERE id=?", (iid,))["name"], "Renamed")
+        self.client.post(f"/maintenance/{iid}/delete")
+        self.assertEqual(self.q1("SELECT active FROM maintenance_items WHERE id=?", (iid,))["active"], 1)
 
     def test_nan_negative_and_infinite_intervals_rejected(self):
         self.login("shop_admin")

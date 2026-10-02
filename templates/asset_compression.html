@@ -52,7 +52,7 @@
           </div>
           <div class="col-6">
             <label class="form-label small mb-0">Hours (Tach/Hobbs)</label>
-            <input type="number" step="any" name="hours" class="form-control form-control-sm" value="{{ editing.hours if editing and editing.hours is not none else '' }}">
+            <input type="number" step="any" name="hours" class="form-control form-control-sm" value="{{ '%g'|format(editing.hours) if editing and editing.hours is not none else '' }}">
           </div>
         </div>
         <div class="mt-2">
@@ -71,7 +71,7 @@
           {% for i in range(1, 7) %}
           <div class="col-4 cyl-field" data-cyl="{{ i }}">
             <label class="form-label small mb-0">Cyl {{ i }}</label>
-            <input type="number" step="any" name="cyl{{ i }}" class="form-control form-control-sm" value="{{ editing['cyl' ~ i] if editing and editing['cyl' ~ i] is not none else '' }}">
+            <input type="number" step="any" name="cyl{{ i }}" class="form-control form-control-sm" value="{{ '%g'|format(editing['cyl' ~ i]) if editing and editing['cyl' ~ i] is not none else '' }}">
           </div>
           {% endfor %}
         </div>

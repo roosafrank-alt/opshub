@@ -96,11 +96,16 @@ class EditAircraftTest(OpsHubTestCase):
         self.assertEqual(self.client.post("/assets/999/edit", data=dict(tag="X")).status_code, 404)
         self.assertEqual(self.client.get("/assets/999").status_code, 404)
 
-    def test_tech_cannot_edit(self):
+    def test_tech_can_edit_the_profile_but_inspector_cannot(self):
+        # JOBS-04: a tech creates planes from the New Project dropdown, so a tech
+        # can finish the profile too. Inspectors and everyone else cannot.
         a = self.make_asset("N1")
-        self.login("tech")
+        self.login("inspector")
         self.client.post(f"/assets/{a}/edit", data=dict(tag="N1", make="Hacked"))
         self.assertNotEqual(self.q1("SELECT make FROM assets WHERE id=?", (a,))["make"], "Hacked")
+        self.login("tech")
+        self.client.post(f"/assets/{a}/edit", data=dict(tag="N1", make="Cessna"))
+        self.assertEqual(self.q1("SELECT make FROM assets WHERE id=?", (a,))["make"], "Cessna")
 
 
 class HoursTest(OpsHubTestCase):
