@@ -1,40 +1,416 @@
 [
-{"id": "JOBS-01", "status": "built", "pages": ["/projects/{id}", "/projects/{id}/intake"], "where": "A new job now opens the Intake Check for every shop role (apprentice and inspector no longer get thrown to the dashboard). The job page's Intake check card says who did it and their role. An apprentice's check shows a yellow 'Needs verification' badge and a small Verify button (admin, tech, inspector only); verifying records who and when, shown as 'Verified by ...'. Intake is in the More menu for everyone.", "see_as": "apprentice", "detail": "Per Frank's note, not the report's 'yellow note' version. New columns on projects: intake_by_role, intake_verified_by, intake_verified_at (db.py migration). Only a saved intake done by an apprentice is flagged; a skipped one is recorded with the role but has nothing to verify. Saving the intake again clears an earlier verification. The Verify button sits under the Intake card (visible even when the card is collapsed)."},
-{"id": "JOBS-02", "status": "built", "pages": ["/projects/{id}/intake"], "where": "Intake Check while pending: the top-right Jump to Project button and the P key are gone; next to the big Save button there is a grey 'Skip for now - open project' button. Once saved or skipped the top-right button reads 'Back to project' again.", "see_as": "tech", "detail": ""},
-{"id": "JOBS-03", "status": "built", "pages": ["/projects/{id}", "/projects"], "where": "Job page header buttons and the More menu show only what the role can use: Edit, Mark Completed, status changes, Print Code (admin, tech); Materials CSV, Invoice, Archive, Delete (admin); More still has Labor Codes, Job Sheet and Intake for an apprentice. The plane tag is a link only for admin, tech, inspector. Projects list: New Project (admin, tech), the trash icon and Restore (admin). Inspectors keep Confirm and Send Back on discrepancies and found items. Hidden buttons cannot be outlined.", "see_as": "apprentice", "detail": "Also hid the 'printed code' link in the Assign Parts tip for roles that cannot open it, and the 'Create one' links for roles that cannot create a job."},
-{"id": "JOBS-04", "status": "built", "pages": ["/assets/{id}", "/assets", "/projects/new"], "where": "Took the report's 'better' option: a tech can now use Edit Profile and the Maintenance Add and pencil pages on the aircraft page (routes opened to admin and tech). Delete, the Maintenance trash icon, New Aircraft and the Recently Deleted trash icon on the Aircraft list, and the 'full form' link on New Project stay admin only and are hidden for others.", "see_as": "tech", "detail": "The Incomplete badge tip now says 'use Edit Profile to fill in the rest'."},
-{"id": "JOBS-05", "status": "built", "pages": ["/assets/{id}", "/assets/{id}/compression", "/assets/{id}/oil"], "where": "Inspector on a plane's page: no hours form, no photo add/star/delete, no to-do add/check/delete/assign or Start job link, no Maintenance Add/Complete/edit, no 'Create one' or 'Add to Fleet'. Still there: Confirm, Send Back, I repaired it - sign off, AD controls, Manuals, and read-only Logbooks, Oil and Compression (button reads 'View Checks'; the log form is hidden on that page).", "see_as": "inspector", "detail": "Photo hiding on the aircraft page covers everyone except admin and tech, which is the inspector part of this id; the rest of the photo question is JOBS-37 (not built)."},
-{"id": "JOBS-06", "status": "built", "pages": ["/assets/{id}", "/assets"], "where": "A job in Recently Deleted no longer appears in the plane's Project History, its parts total, or the N projects badge on the Aircraft list.", "see_as": "admin", "detail": ""},
-{"id": "JOBS-07", "status": "built", "pages": ["/projects", "/assets/{id}"], "where": "'Parts cost so far' on every Projects tile and 'Total parts cost across all years' on the plane page now show for admins only (hidden for techs and inspectors, so only the admin view has the outline).", "see_as": "admin", "detail": ""},
-{"id": "JOBS-08", "status": "built", "pages": ["/squawks"], "where": "Squawks > Done table: a small Reopen button on each row (admin, tech, inspector). It asks first, puts the squawk back at New (unassigned, not acknowledged) and shows 'Reopened by <name> on <date>' on the squawk wherever it lists.", "see_as": "inspector", "detail": "New columns reopened_at/reopened_by on plane_squawks and squawk_reopened_at/squawk_reopened_by on flights (db.py). The 'use Reopen' message is unchanged. Reopen is only on the Squawks page Done table, not the plane page's completed table."},
-{"id": "JOBS-09", "status": "built", "pages": ["/squawks", "/assets/{id}", "/shop"], "where": "A squawk that was acknowledged but has nobody assigned (for example after choosing Unassigned) is now New: pills show Reported, and Assign to... / I'll take it appear. Working only shows once someone is assigned and has accepted. It also appears in the New list, the dashboard New box and the plane page's red banner.", "see_as": "admin", "detail": "Changed squawk_step_index, get_open_squawks and the two squawk macros together."},
-{"id": "JOBS-10", "status": "logic", "pages": ["/projects/{id}"], "where": "Add Discrepancy with a name already on the job now shows a red message 'A discrepancy named 'Brakes' is already on this job.' instead of 'added'.", "see_as": "tech", "detail": ""},
-{"id": "JOBS-11", "status": "built", "pages": ["/projects/{id}", "/projects/{id}/labor_codes", "/projects/{id}/logbook"], "where": "'Discrepancy' used everywhere on the job page: tooltips (Rename this discrepancy, Print this discrepancy's QR code), the Assign Parts pop-up (Discrepancy, + Add new discrepancy..., General (no specific discrepancy)), the History and Labor table columns, Labor Codes ('Scan a discrepancy's code'), Logbook Starter ('Discrepancy entries'), the Logbook Templates {work} hint.", "see_as": "tech", "detail": "The Scan page (templates/scan.html) still says Area / Sub-System; that page belongs to the shop part (SHOP-18 is not approved), so I left it."},
-{"id": "JOBS-12", "status": "built", "pages": ["/projects/{id}"], "where": "The box in front of each discrepancy now asks first ('Mark 'Brakes' ready for confirmation? An Inspector or admin will still need to confirm it.') and then shows the green message 'Marked ready - an Inspector or admin needs to confirm it.'; taking it back says 'Back to open.'", "see_as": "tech", "detail": "The old checkbox is now a square icon button like the plane to-do, so the prompt can be cancelled without a stuck tick."},
-{"id": "JOBS-13", "status": "built", "pages": ["/projects/{id}"], "where": "Once a discrepancy is confirmed, a tech sees a locked green tick with a tooltip instead of a live box (the server also refuses). An admin or inspector can reopen it after the prompt 'Undo the sign-off on 'Brakes'?' and the discrepancy then shows 'reopened by <name>, <date>'.", "see_as": "tech", "detail": "Reopening also takes the linked squawk or plane to-do back out of Done. New columns reopened_at/reopened_by on project_sections. Inspectors are allowed on that route only to reopen a confirmed one."},
-{"id": "JOBS-14", "status": "built", "pages": ["/projects/{id}", "/shop", "/customers/{id}"], "where": "On Hold now asks 'Put this job on hold?'. Every status change shows a green message: 'Job 26-014 put on hold.', 'marked active.', 'marked completed.', 'restored.' or 'archived.'. Dismissing a reschedule request says 'Reschedule request for 26-014 cleared.'", "see_as": "admin", "detail": "When Tell the owner is ticked on Mark Completed the existing owner message is kept instead."},
-{"id": "JOBS-15", "status": "partial", "pages": ["/squawks", "/assets", "/my-tasks"], "where": "Behind the scenes for inspectors: the Aircraft list is open to them, My Tasks is open and shows only squawk repairs and plane to-dos waiting for their sign-off, the Squawks badge count is computed for them. Squawks was already open.", "see_as": "inspector", "detail": "LEFT FOR THE CHROME PART: templates/base.html still shows the Aircraft, Squawks (with badge) and My Tasks header links only to admin and tech. It needs 'inspector' added to those two {% if is_master_admin or shop_role in ('admin','tech') %} checks (the Aircraft link, and the Squawks + My Tasks links; Activity can stay admin/tech). Its tour text also still says 'asset' (JOBS-24)."},
-{"id": "JOBS-16", "status": "logic", "pages": ["/logbook", "/assets/{id}/logbook", "/logbook/{id}", "/logbook/{id}/print", "/projects/{id}/logbook"], "where": "Inspectors can open the Logbook search, a plane's logbooks, an entry and its sticker, and the Logbook Starter (it is in their job More menu). Saving stays admin and tech: the Save buttons are hidden for inspectors and the server refuses.", "see_as": "inspector", "detail": ""},
-{"id": "JOBS-17", "status": "built", "pages": ["/manuals", "/manuals/{id}", "/assets/{id}"], "where": "Admin, tech, inspector and apprentice can open the Manuals list and a manual's page. Upload Manual, Edit and Delete show only for admins. On a manual's page, the aircraft it applies to are links only for roles that can open the plane page.", "see_as": "tech", "detail": "Per Frank's note, apprentice included."},
-{"id": "JOBS-18", "status": "built", "pages": ["/projects/{id}/label", "/projects/{id}/labor_codes"], "where": "Print Code and Labor Codes pages now have '« Back to Project' next to Print.", "see_as": "tech", "detail": ""},
-{"id": "JOBS-19", "status": "built", "pages": ["/projects/{id}/edit"], "where": "Edit Project: Quick Type buttons start pressed when their name is already in the Description (Annual Inspection, Oil Change...). Tapping one adds or removes just that phrase instead of rewriting the description. The 'also adds preset Discrepancies' note stays New-only, and the Quick Type caption says what it does on Edit.", "see_as": "admin", "detail": "Matching is by the button's full name, e.g. 'Annual Inspection'."},
-{"id": "JOBS-20", "status": "built", "pages": ["/projects/new", "/projects/{id}/edit"], "where": "Description placeholder is 'e.g. Annual inspection, replace left brake pads'; Aircraft help text says 'Link this job to a plane to get its combined history and hours-based maintenance tracking.' and the label is just 'Aircraft'.", "see_as": "admin", "detail": ""},
-{"id": "JOBS-21", "status": "built", "pages": ["/projects/{id}"], "where": "Mark Completed > Close out this job pop-up: amber line '2 found items still waiting on the owner' with an Open it link (switches to the Found items tab), or a green 'All found items answered' when nothing waits. Shown only when the job has found items.", "see_as": "admin", "detail": ""},
-{"id": "JOBS-22", "status": "built", "pages": ["/assets/{id}"], "where": "Maintenance item 'Completed by' now starts on the logged-in person. On the shared shop login it starts on the last name entered on that device (kept in the browser).", "see_as": "tech", "detail": "How the shared shop login is recognised: an account whose name or username starts with the word 'shop' (for example 'Shop'). There is no setting for it today, so please check that matches your shared account. The remembered name is the same browser value the Scan and Assign Parts pickers already use."},
-{"id": "JOBS-23", "status": "built", "pages": ["/assets/{id}", "/trash"], "where": "Hours card 'Updated 30-09-2026 14:22 by Shop - Frank' and the Recently Deleted 'Deleted' column now use the app date format with time, no seconds.", "see_as": "admin", "detail": "Uses the usdate filter, so the later app-wide date sweep changes it too."},
-{"id": "JOBS-24", "status": "built", "pages": ["/assets", "/assets/{id}", "/trash", "/projects/new", "/projects"], "where": "'aircraft' instead of 'asset' in: the Aircraft list empty state (No aircraft yet), the Delete prompt (Delete this aircraft?), Recently Deleted (No deleted aircraft, the permanent delete prompt), the duplicate message ('An aircraft with tail number 'x' already exists.' on New, Edit and the quick add on New Project), New Project help text and label, Compression and Oil empty states, the Projects search placeholder.", "see_as": "admin", "detail": "The shop tour text in templates/base.html still says asset (chrome part). The Task Templates, Scan and other pages owned by others were not touched."},
-{"id": "JOBS-25", "status": "built", "pages": ["/projects"], "where": "Kept the Deleted pill (the report's first option). Its Restore button now returns to the Deleted view with the green message, and a small line at the top of that view links to Recently Deleted for Delete Forever.", "see_as": "admin", "detail": "The trash icon next to New Project is kept for admins and was not relabelled."},
-{"id": "JOBS-26", "status": "logic", "pages": ["*"], "where": "templates/asset_history.html (an unused page) is deleted.", "see_as": "admin", "detail": ""},
-{"id": "JOBS-27", "status": "built", "pages": ["/assets/{id}/compression"], "where": "Compression History: a small pencil and X on each row (admin and tech). The pencil opens the same form prefilled as 'Correct this Check' with Save Changes and Cancel; the X asks first and removes the check. Inspectors can look but not log or change.", "see_as": "tech", "detail": ""},
-{"id": "JOBS-28", "status": "built", "pages": ["/my-tasks"], "where": "The second card on My Tasks is now 'My To-Dos' (same list-check icon as the plane's To-Do card).", "see_as": "tech", "detail": ""},
-{"id": "JOBS-29", "status": "built", "pages": ["/assets/{id}", "/squawks", "/shop"], "where": "'Report a Squawk' card with a 'Report squawk' button on the plane page, 'Report squawk' on the Squawks page and the phone dashboard button, and the confirmation 'Squawk reported - it's on the Squawks page as New.' everywhere.", "see_as": "admin", "detail": ""},
-{"id": "JOBS-32", "status": "built", "pages": ["/customers"], "where": "Trash prompt on a customer row now reads 'Delete this customer account for good? To just stop them logging in, untick Active on their account instead.' with a red Delete button.", "see_as": "admin", "detail": "Only the prompt wording and button colour; the Customers page layout belongs to JOBS-30 (not mine)."},
-{"id": "JOBS-34", "status": "built", "pages": ["/manuals/{id}"], "where": "'Open PDF' button (new tab) at the top next to Edit. On phones and small screens the embedded PDF frame is replaced by a short note pointing at that button.", "see_as": "tech", "detail": ""},
-{"id": "JOBS-35", "status": "built", "pages": ["/assets/{id}"], "where": "A new (unassigned) squawk shows only in the red New Squawk banner; once assigned it moves to the To-Do card (Assigned, Working, Inspection) and leaves the banner.", "see_as": "admin", "detail": "Uses the JOBS-09 meaning of New (not acknowledged, or nobody assigned)."},
-{"id": "JOBS-36", "status": "built", "pages": ["/assets/{id}"], "where": "To-Do card: the to-do text is plain; a small 'Start job' link at the end of each open to-do opens the prefilled New Project form (admin and tech).", "see_as": "tech", "detail": ""},
-{"id": "JOBS-38", "status": "built", "pages": ["/projects/{id}"], "where": "A job in Recently Deleted shows a grey banner 'This job is in Recently Deleted' with a Restore button for admins (comes back to the job), and Edit, Mark Completed, More, intake, status, discrepancy and photo changes are hidden and refused.", "see_as": "admin", "detail": ""},
-{"id": "JOBS-39", "status": "built", "pages": ["/projects/new", "/projects/{id}/edit", "/manage/task-templates"], "where": "A new job with a start date and no Through date now ends after the job type's time block: Oil Change 1 day (same day), Annual 1 week, anything else 1 day. The Through field fills itself in as you pick the date and type. Manage > Task Templates has a new 'Default time block' card (one days box per Quick Type, saved in the database) above the type cards.", "see_as": "admin", "detail": "Days count the start day, so 1 day ends the same day and 1 week ends 6 days later (Mon to Sun). If several types are picked the longest block wins. Edit with a blank Through uses the type named in the description. The two seeded values (Oil Change 1, Annual 7) are only set when the table is first created; clear a box to go back to 1 day. New table task_template_days (db.py)."},
-{"id": "JOBS-40", "status": "built", "pages": ["/projects/{id}/labor_codes"], "where": "Labor Codes: the plane's N-number under the heading and on the General card, open discrepancies print first, confirmed ones come last in grey marked 'done'.", "see_as": "tech", "detail": "Scanning a confirmed discrepancy's code still starts a timer; the report's 'after' did not ask to change that."},
-{"id": "JOBS-41", "status": "built", "pages": ["/projects/{id}"], "where": "Found items tab: if Parts + Labor hours x Rate come to $0, Send to owner for approval first asks 'Send this with no price? The owner will see $0.00.' (Send / Cancel).", "see_as": "tech", "detail": "The cancel button is the shared pop-up's 'Cancel' rather than 'Go back'."},
-{"id": "JOBS-42", "status": "built", "pages": ["/assets/{id}", "/my-tasks"], "where": "Reopening a completed to-do on the plane page asks 'Reopen this to-do?', and Undo under Awaiting Confirmation on My Tasks asks the same. Both then show 'Back to not done yet.'", "see_as": "tech", "detail": ""}
+ {
+  "id": "JOBS-01",
+  "status": "built",
+  "pages": [
+   "/projects/{id}",
+   "/projects/{id}/intake"
+  ],
+  "where": "A new job now opens the Intake Check for every shop role (apprentice and inspector no longer get thrown to the dashboard). The job page's Intake check card says who did it and their role. An apprentice's check shows a yellow 'Needs verification' badge and a small Verify button (admin, tech, inspector only); verifying records who and when, shown as 'Verified by ...'. Intake is in the More menu for everyone.",
+  "see_as": "apprentice",
+  "detail": "Per Frank's note, not the report's 'yellow note' version. New columns on projects: intake_by_role, intake_verified_by, intake_verified_at (db.py migration). Only a saved intake done by an apprentice is flagged; a skipped one is recorded with the role but has nothing to verify. Saving the intake again clears an earlier verification. The Verify button sits under the Intake card (visible even when the card is collapsed)."
+ },
+ {
+  "id": "JOBS-02",
+  "status": "built",
+  "pages": [
+   "/projects/{id}/intake"
+  ],
+  "where": "Intake Check while pending: the top-right Jump to Project button and the P key are gone; next to the big Save button there is a grey 'Skip for now - open project' button. Once saved or skipped the top-right button reads 'Back to project' again.",
+  "see_as": "tech",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-03",
+  "status": "built",
+  "pages": [
+   "/projects/{id}",
+   "/projects"
+  ],
+  "where": "Job page header buttons and the More menu show only what the role can use: Edit, Mark Completed, status changes, Print Code (admin, tech); Materials CSV, Invoice, Archive, Delete (admin); More still has Labor Codes, Job Sheet and Intake for an apprentice. The plane tag is a link only for admin, tech, inspector. Projects list: New Project (admin, tech), the trash icon and Restore (admin). Inspectors keep Confirm and Send Back on discrepancies and found items. Hidden buttons cannot be outlined.",
+  "see_as": "apprentice",
+  "detail": "Also hid the 'printed code' link in the Assign Parts tip for roles that cannot open it, and the 'Create one' links for roles that cannot create a job."
+ },
+ {
+  "id": "JOBS-04",
+  "status": "built",
+  "pages": [
+   "/assets/{id}",
+   "/assets",
+   "/projects/new"
+  ],
+  "where": "Took the report's 'better' option: a tech can now use Edit Profile and the Maintenance Add and pencil pages on the aircraft page (routes opened to admin and tech). Delete, the Maintenance trash icon, New Aircraft and the Recently Deleted trash icon on the Aircraft list, and the 'full form' link on New Project stay admin only and are hidden for others.",
+  "see_as": "tech",
+  "detail": "The Incomplete badge tip now says 'use Edit Profile to fill in the rest'."
+ },
+ {
+  "id": "JOBS-05",
+  "status": "built",
+  "pages": [
+   "/assets/{id}",
+   "/assets/{id}/compression",
+   "/assets/{id}/oil"
+  ],
+  "where": "Inspector on a plane's page: no hours form, no photo add/star/delete, no to-do add/check/delete/assign or Start job link, no Maintenance Add/Complete/edit, no 'Create one' or 'Add to Fleet'. Still there: Confirm, Send Back, I repaired it - sign off, AD controls, Manuals, and read-only Logbooks, Oil and Compression (button reads 'View Checks'; the log form is hidden on that page).",
+  "see_as": "inspector",
+  "detail": "Photo hiding on the aircraft page covers everyone except admin and tech, which is the inspector part of this id; the rest of the photo question is JOBS-37 (not built)."
+ },
+ {
+  "id": "JOBS-06",
+  "status": "built",
+  "pages": [
+   "/assets/{id}",
+   "/assets"
+  ],
+  "where": "A job in Recently Deleted no longer appears in the plane's Project History, its parts total, or the N projects badge on the Aircraft list.",
+  "see_as": "admin",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-07",
+  "status": "built",
+  "pages": [
+   "/projects",
+   "/assets/{id}"
+  ],
+  "where": "'Parts cost so far' on every Projects tile and 'Total parts cost across all years' on the plane page now show for admins only (hidden for techs and inspectors, so only the admin view has the outline).",
+  "see_as": "admin",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-08",
+  "status": "built",
+  "pages": [
+   "/squawks"
+  ],
+  "where": "Squawks > Done table: a small Reopen button on each row (admin, tech, inspector). It asks first, puts the squawk back at New (unassigned, not acknowledged) and shows 'Reopened by <name> on <date>' on the squawk wherever it lists.",
+  "see_as": "inspector",
+  "detail": "New columns reopened_at/reopened_by on plane_squawks and squawk_reopened_at/squawk_reopened_by on flights (db.py). The 'use Reopen' message is unchanged. Reopen is only on the Squawks page Done table, not the plane page's completed table."
+ },
+ {
+  "id": "JOBS-09",
+  "status": "built",
+  "pages": [
+   "/squawks",
+   "/assets/{id}",
+   "/shop"
+  ],
+  "where": "A squawk that was acknowledged but has nobody assigned (for example after choosing Unassigned) is now New: pills show Reported, and Assign to... / I'll take it appear. Working only shows once someone is assigned and has accepted. It also appears in the New list, the dashboard New box and the plane page's red banner.",
+  "see_as": "admin",
+  "detail": "Changed squawk_step_index, get_open_squawks and the two squawk macros together."
+ },
+ {
+  "id": "JOBS-10",
+  "status": "logic",
+  "pages": [
+   "/projects/{id}"
+  ],
+  "where": "Add Discrepancy with a name already on the job now shows a red message 'A discrepancy named 'Brakes' is already on this job.' instead of 'added'.",
+  "see_as": "tech",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-11",
+  "status": "built",
+  "pages": [
+   "/projects/{id}",
+   "/projects/{id}/labor_codes",
+   "/projects/{id}/logbook"
+  ],
+  "where": "'Discrepancy' used everywhere on the job page: tooltips (Rename this discrepancy, Print this discrepancy's QR code), the Assign Parts pop-up (Discrepancy, + Add new discrepancy..., General (no specific discrepancy)), the History and Labor table columns, Labor Codes ('Scan a discrepancy's code'), Logbook Starter ('Discrepancy entries'), the Logbook Templates {work} hint.",
+  "see_as": "tech",
+  "detail": "Scan page 'Area / Sub-System' now says Discrepancy too."
+ },
+ {
+  "id": "JOBS-12",
+  "status": "built",
+  "pages": [
+   "/projects/{id}"
+  ],
+  "where": "The box in front of each discrepancy now asks first ('Mark 'Brakes' ready for confirmation? An Inspector or admin will still need to confirm it.') and then shows the green message 'Marked ready - an Inspector or admin needs to confirm it.'; taking it back says 'Back to open.'",
+  "see_as": "tech",
+  "detail": "The old checkbox is now a square icon button like the plane to-do, so the prompt can be cancelled without a stuck tick."
+ },
+ {
+  "id": "JOBS-13",
+  "status": "built",
+  "pages": [
+   "/projects/{id}"
+  ],
+  "where": "Once a discrepancy is confirmed, a tech sees a locked green tick with a tooltip instead of a live box (the server also refuses). An admin or inspector can reopen it after the prompt 'Undo the sign-off on 'Brakes'?' and the discrepancy then shows 'reopened by <name>, <date>'.",
+  "see_as": "tech",
+  "detail": "Reopening also takes the linked squawk or plane to-do back out of Done. New columns reopened_at/reopened_by on project_sections. Inspectors are allowed on that route only to reopen a confirmed one."
+ },
+ {
+  "id": "JOBS-14",
+  "status": "built",
+  "pages": [
+   "/projects/{id}",
+   "/shop",
+   "/customers/{id}"
+  ],
+  "where": "On Hold now asks 'Put this job on hold?'. Every status change shows a green message: 'Job 26-014 put on hold.', 'marked active.', 'marked completed.', 'restored.' or 'archived.'. Dismissing a reschedule request says 'Reschedule request for 26-014 cleared.'",
+  "see_as": "admin",
+  "detail": "When Tell the owner is ticked on Mark Completed the existing owner message is kept instead."
+ },
+ {
+  "id": "JOBS-15",
+  "status": "built",
+  "pages": [
+   "/squawks",
+   "/assets",
+   "/my-tasks"
+  ],
+  "where": "Behind the scenes for inspectors: the Aircraft list is open to them, My Tasks is open and shows only squawk repairs and plane to-dos waiting for their sign-off, the Squawks badge count is computed for them. Squawks was already open.",
+  "see_as": "inspector",
+  "detail": "Header links Aircraft, Squawks (with badge) and My Tasks now show for inspectors too; the shop tour text says aircraft."
+ },
+ {
+  "id": "JOBS-16",
+  "status": "logic",
+  "pages": [
+   "/logbook",
+   "/assets/{id}/logbook",
+   "/logbook/{id}",
+   "/logbook/{id}/print",
+   "/projects/{id}/logbook"
+  ],
+  "where": "Inspectors can open the Logbook search, a plane's logbooks, an entry and its sticker, and the Logbook Starter (it is in their job More menu). Saving stays admin and tech: the Save buttons are hidden for inspectors and the server refuses.",
+  "see_as": "inspector",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-17",
+  "status": "built",
+  "pages": [
+   "/manuals",
+   "/manuals/{id}",
+   "/assets/{id}"
+  ],
+  "where": "Admin, tech, inspector and apprentice can open the Manuals list and a manual's page. Upload Manual, Edit and Delete show only for admins. On a manual's page, the aircraft it applies to are links only for roles that can open the plane page.",
+  "see_as": "tech",
+  "detail": "Per Frank's note, apprentice included."
+ },
+ {
+  "id": "JOBS-18",
+  "status": "built",
+  "pages": [
+   "/projects/{id}/label",
+   "/projects/{id}/labor_codes"
+  ],
+  "where": "Print Code and Labor Codes pages now have '\u00ab Back to Project' next to Print.",
+  "see_as": "tech",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-19",
+  "status": "built",
+  "pages": [
+   "/projects/{id}/edit"
+  ],
+  "where": "Edit Project: Quick Type buttons start pressed when their name is already in the Description (Annual Inspection, Oil Change...). Tapping one adds or removes just that phrase instead of rewriting the description. The 'also adds preset Discrepancies' note stays New-only, and the Quick Type caption says what it does on Edit.",
+  "see_as": "admin",
+  "detail": "Matching is by the button's full name, e.g. 'Annual Inspection'."
+ },
+ {
+  "id": "JOBS-20",
+  "status": "built",
+  "pages": [
+   "/projects/new",
+   "/projects/{id}/edit"
+  ],
+  "where": "Description placeholder is 'e.g. Annual inspection, replace left brake pads'; Aircraft help text says 'Link this job to a plane to get its combined history and hours-based maintenance tracking.' and the label is just 'Aircraft'.",
+  "see_as": "admin",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-21",
+  "status": "built",
+  "pages": [
+   "/projects/{id}"
+  ],
+  "where": "Mark Completed > Close out this job pop-up: amber line '2 found items still waiting on the owner' with an Open it link (switches to the Found items tab), or a green 'All found items answered' when nothing waits. Shown only when the job has found items.",
+  "see_as": "admin",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-22",
+  "status": "built",
+  "pages": [
+   "/assets/{id}"
+  ],
+  "where": "Maintenance item 'Completed by' now starts on the logged-in person. On the shared shop login it starts on the last name entered on that device (kept in the browser).",
+  "see_as": "tech",
+  "detail": "How the shared shop login is recognised: an account whose name or username starts with the word 'shop' (for example 'Shop'). There is no setting for it today, so please check that matches your shared account. The remembered name is the same browser value the Scan and Assign Parts pickers already use."
+ },
+ {
+  "id": "JOBS-23",
+  "status": "built",
+  "pages": [
+   "/assets/{id}",
+   "/trash"
+  ],
+  "where": "Hours card 'Updated 30-09-2026 14:22 by Shop - Frank' and the Recently Deleted 'Deleted' column now use the app date format with time, no seconds.",
+  "see_as": "admin",
+  "detail": "Uses the usdate filter, so the later app-wide date sweep changes it too."
+ },
+ {
+  "id": "JOBS-24",
+  "status": "built",
+  "pages": [
+   "/assets",
+   "/assets/{id}",
+   "/trash",
+   "/projects/new",
+   "/projects"
+  ],
+  "where": "'aircraft' instead of 'asset' in: the Aircraft list empty state (No aircraft yet), the Delete prompt (Delete this aircraft?), Recently Deleted (No deleted aircraft, the permanent delete prompt), the duplicate message ('An aircraft with tail number 'x' already exists.' on New, Edit and the quick add on New Project), New Project help text and label, Compression and Oil empty states, the Projects search placeholder.",
+  "see_as": "admin",
+  "detail": "The shop tour text in templates/base.html still says asset (chrome part). The Task Templates, Scan and other pages owned by others were not touched."
+ },
+ {
+  "id": "JOBS-25",
+  "status": "built",
+  "pages": [
+   "/projects"
+  ],
+  "where": "Kept the Deleted pill (the report's first option). Its Restore button now returns to the Deleted view with the green message, and a small line at the top of that view links to Recently Deleted for Delete Forever.",
+  "see_as": "admin",
+  "detail": "The trash icon next to New Project is kept for admins and was not relabelled."
+ },
+ {
+  "id": "JOBS-26",
+  "status": "logic",
+  "pages": [
+   "*"
+  ],
+  "where": "templates/asset_history.html (an unused page) is deleted.",
+  "see_as": "admin",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-27",
+  "status": "built",
+  "pages": [
+   "/assets/{id}/compression"
+  ],
+  "where": "Compression History: a small pencil and X on each row (admin and tech). The pencil opens the same form prefilled as 'Correct this Check' with Save Changes and Cancel; the X asks first and removes the check. Inspectors can look but not log or change.",
+  "see_as": "tech",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-28",
+  "status": "built",
+  "pages": [
+   "/my-tasks"
+  ],
+  "where": "The second card on My Tasks is now 'My To-Dos' (same list-check icon as the plane's To-Do card).",
+  "see_as": "tech",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-29",
+  "status": "built",
+  "pages": [
+   "/assets/{id}",
+   "/squawks",
+   "/shop"
+  ],
+  "where": "'Report a Squawk' card with a 'Report squawk' button on the plane page, 'Report squawk' on the Squawks page and the phone dashboard button, and the confirmation 'Squawk reported - it's on the Squawks page as New.' everywhere.",
+  "see_as": "admin",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-32",
+  "status": "built",
+  "pages": [
+   "/customers"
+  ],
+  "where": "Trash prompt on a customer row now reads 'Delete this customer account for good? To just stop them logging in, untick Active on their account instead.' with a red Delete button.",
+  "see_as": "admin",
+  "detail": "Only the prompt wording and button colour; the Customers page layout belongs to JOBS-30 (not mine)."
+ },
+ {
+  "id": "JOBS-34",
+  "status": "built",
+  "pages": [
+   "/manuals/{id}"
+  ],
+  "where": "'Open PDF' button (new tab) at the top next to Edit. On phones and small screens the embedded PDF frame is replaced by a short note pointing at that button.",
+  "see_as": "tech",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-35",
+  "status": "built",
+  "pages": [
+   "/assets/{id}"
+  ],
+  "where": "A new (unassigned) squawk shows only in the red New Squawk banner; once assigned it moves to the To-Do card (Assigned, Working, Inspection) and leaves the banner.",
+  "see_as": "admin",
+  "detail": "Uses the JOBS-09 meaning of New (not acknowledged, or nobody assigned)."
+ },
+ {
+  "id": "JOBS-36",
+  "status": "built",
+  "pages": [
+   "/assets/{id}"
+  ],
+  "where": "To-Do card: the to-do text is plain; a small 'Start job' link at the end of each open to-do opens the prefilled New Project form (admin and tech).",
+  "see_as": "tech",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-38",
+  "status": "built",
+  "pages": [
+   "/projects/{id}"
+  ],
+  "where": "A job in Recently Deleted shows a grey banner 'This job is in Recently Deleted' with a Restore button for admins (comes back to the job), and Edit, Mark Completed, More, intake, status, discrepancy and photo changes are hidden and refused.",
+  "see_as": "admin",
+  "detail": ""
+ },
+ {
+  "id": "JOBS-39",
+  "status": "built",
+  "pages": [
+   "/projects/new",
+   "/projects/{id}/edit",
+   "/manage/task-templates"
+  ],
+  "where": "A new job with a start date and no Through date now ends after the job type's time block: Oil Change 1 day (same day), Annual 1 week, anything else 1 day. The Through field fills itself in as you pick the date and type. Manage > Task Templates has a new 'Default time block' card (one days box per Quick Type, saved in the database) above the type cards.",
+  "see_as": "admin",
+  "detail": "Days count the start day, so 1 day ends the same day and 1 week ends 6 days later (Mon to Sun). If several types are picked the longest block wins. Edit with a blank Through uses the type named in the description. The two seeded values (Oil Change 1, Annual 7) are only set when the table is first created; clear a box to go back to 1 day. New table task_template_days (db.py)."
+ },
+ {
+  "id": "JOBS-40",
+  "status": "built",
+  "pages": [
+   "/projects/{id}/labor_codes"
+  ],
+  "where": "Labor Codes: the plane's N-number under the heading and on the General card, open discrepancies print first, confirmed ones come last in grey marked 'done'.",
+  "see_as": "tech",
+  "detail": "Scanning a confirmed discrepancy's code still starts a timer; the report's 'after' did not ask to change that."
+ },
+ {
+  "id": "JOBS-41",
+  "status": "built",
+  "pages": [
+   "/projects/{id}"
+  ],
+  "where": "Found items tab: if Parts + Labor hours x Rate come to $0, Send to owner for approval first asks 'Send this with no price? The owner will see $0.00.' (Send / Cancel).",
+  "see_as": "tech",
+  "detail": "The cancel button is the shared pop-up's 'Cancel' rather than 'Go back'."
+ },
+ {
+  "id": "JOBS-42",
+  "status": "built",
+  "pages": [
+   "/assets/{id}",
+   "/my-tasks"
+  ],
+  "where": "Reopening a completed to-do on the plane page asks 'Reopen this to-do?', and Undo under Awaiting Confirmation on My Tasks asks the same. Both then show 'Back to not done yet.'",
+  "see_as": "tech",
+  "detail": ""
+ }
 ]

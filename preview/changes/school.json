@@ -1,45 +1,435 @@
 [
-  {"id": "SCHOOL-01", "status": "built", "pages": ["/flight/billing", "/flight/students/{id}/edit", "/flight/students/{id}/field/account", "/flight/my-account"], "where": "Billing: Mark Paid now opens a how-paid box and records a Payment line on the student's account; Mark Unpaid writes a Payment Reversed line; Edit Student > Account > Add Funds lists the unpaid flights (pre-ticked oldest first up to the amount typed) and pays them from the money added; the ledger on Edit Student / Account page shows Payment / Payment Reversed badges", "see_as": "admin", "detail": "One shared helper, flight_payments.py (record_flight_payment / reverse_flight_payment / apply_funds_to_flights, documented in the module), is used by Billing's Mark Paid/Unpaid, Mark N selected paid, Pay with Card, Add Funds and Wave's 'invoice paid' sync, so balance and unpaid total always agree. Idempotent: an already-paid flight records nothing again; the amount is always what the flight still needs. Mark Unpaid reverses only payment lines tied to that flight (credit applied at End Session is left alone - documented). tests/test_flight_payments.py checks each path against the Billing Cross-Check logic. The 'fly' builder wires FLY-10/FLY-11 to flight_payments.record_flight_payment / reverse_flight_payment after merge; the existing /flight/log/{id}/toggle_paid route already goes through it."},
-  {"id": "SCHOOL-02", "status": "logic", "pages": ["/flight/cfis/new"], "where": "New CFI: the Pay Rate typed is saved and written to the change history", "see_as": "admin", "detail": "The Pay Rate field is outlined on New CFI."},
-  {"id": "SCHOOL-03", "status": "built", "pages": ["/flight/students", "/flight/cfis"], "where": "Add Student and Add CFI buttons now open the in-program New Student / New CFI forms for admins too (they create the login account as well), and land back on Students / CFIs", "see_as": "admin", "detail": "Option (a) from the report."},
-  {"id": "SCHOOL-04", "status": "partial", "pages": ["/flight/students/{id}/edit", "/flight/cfis/{id}/edit"], "where": "Edit Account button on Edit Student is admin-only now (plain CFIs don't see it); the link carries ?next=<this page> for the Admin form", "see_as": "admin", "detail": "Left for the chrome part: app.admin_user_edit (Admin accounts form, chrome-owned) should redirect to the ?next= page after Save instead of the accounts list. Hidden for CFIs, so nothing to outline for them."},
-  {"id": "SCHOOL-06", "status": "built", "pages": ["/flight/groundschool", "/flight/groundschool/*"], "where": "Academy tab row shows only Ground School and Resources (no Board, Logbook, More / How points work) for an account with Ground School but no Flight Academy access", "see_as": "student", "detail": "Seed the student with groundschool_access=1 and academy_access=0 to see it."},
-  {"id": "SCHOOL-07", "status": "built", "pages": ["/flight/groundschool/element/{id}", "/flight/groundschool/task/{id}", "/flight/groundschool/{id}"], "where": "Element page: an element with no required link/video items is self-completed when the student opens it; the CFI's Instructor Verification box always offers Verify Complete, with the student's progress shown as information", "see_as": "cfi", "detail": "Progress bars now count CFI-verified elements (verification is the gate, self-completion is informational)."},
-  {"id": "SCHOOL-08", "status": "built", "pages": ["/flight/groundschool", "/flight/groundschool/*"], "where": "One 'Choose a student...' picker at the top of every Ground School page for CFIs/admins, remembered in the session and carried on Prev / Next, back links and redirects; the Reading Review, Sign-Off and Verification boxes act on that student (their own dropdowns are gone); students see no picker", "see_as": "cfi", "detail": "Per Frank's note students never pick - they always see themselves."},
-  {"id": "SCHOOL-09", "status": "built", "pages": ["/flight/notifications"], "where": "Student Alerts tab: 'Your reports' lists only the reports this student filed, with no status, no reporter name and no Resolved section; the school-wide list stays on the CFI/admin Alerts page", "see_as": "student", "detail": "Per Frank's note, no status is shown to students. The student's Alerts badge no longer counts other people's reports."},
-  {"id": "SCHOOL-10", "status": "built", "pages": ["/flight/my-account"], "where": "Balance line reads '$150.00 owed' (red) or '$50.00 credit' (green), with the explanatory line under it", "see_as": "student"},
-  {"id": "SCHOOL-12", "status": "built", "pages": ["/flight/students/{id}/edit", "/flight/students/new", "/flight/students/{id}/field/plane_rate"], "where": "Edit Student for a plain CFI shows Instructor / Plane / Sim Rate read-only (no input, no 'ask an admin' wording); admins keep the inputs; a CFI's save leaves rates untouched", "see_as": "cfi", "detail": "Per Frank's note: read-only with no 'ask an admin' text."},
-  {"id": "SCHOOL-13", "status": "built", "pages": ["/flight/students/{id}/field/plane_rate"], "where": "Plane Rate detail: 'No plane rate - this student is not charged for the plane' and the box labelled 'blank = plane not charged'; Instructor / Sim Rate keep 'uses the CFI's / simulator's rate'", "see_as": "admin"},
-  {"id": "SCHOOL-14", "status": "built", "pages": ["/flight/students/{id}/edit"], "where": "The Account card on Edit Student has id=account so the Account page's Add Funds button lands on it", "see_as": "admin"},
-  {"id": "SCHOOL-15", "status": "built", "pages": ["/flight/students/new", "/flight/cfis/new"], "where": "New Student / New CFI come back with everything typed and the offending field outlined in red on a taken username or missing field", "see_as": "admin"},
-  {"id": "SCHOOL-16", "status": "built", "pages": ["/flight/settings/school", "/flight/cfis/{id}/edit"], "where": "School Settings and Edit CFI re-show the form with the submitted values on a taken color or negative rate, with the message next to the field", "see_as": "admin"},
-  {"id": "SCHOOL-17", "status": "built", "pages": ["/flight/stats"], "where": "Hours Flown by Day bar labels use the app's usdate format", "see_as": "admin"},
-  {"id": "SCHOOL-18", "status": "built", "pages": ["/flight/stats"], "where": "Planes and Instructors are tap-to-include chips with an All chip; From / To stay visible (greyed until Custom Range)", "see_as": "admin"},
-  {"id": "SCHOOL-19", "status": "built", "pages": ["/flight/stats"], "where": "Revenue Collected, Outstanding and the By Plane / By Instructor revenue columns show cents; 'Hours Billed' is 'Hours Paid - on flights marked paid'", "see_as": "admin"},
-  {"id": "SCHOOL-20", "status": "built", "pages": ["/flight/billing"], "where": "'Mark N selected paid' button next to Export CSV, enabled once rows are ticked; one how-paid box shows the count and total; the old per-student mark-all route is removed", "see_as": "admin"},
-  {"id": "SCHOOL-21", "status": "built", "pages": ["/flight/billing"], "where": "Mark Paid opens the same 'How was it paid?' box as shop Billing; a per-student 'Pay with Card' (simulated) charges the unpaid total; admins see 'Connect Wave to send real invoices' when Wave is off", "see_as": "admin"},
-  {"id": "SCHOOL-22", "status": "logic", "pages": ["/flight/billing", "/flight/log", "/flight/log/{id}"], "where": "After Mark Paid / Mark Unpaid a message says 'Marked 10/02/2026 N123 ($250.00) paid for Jane Doe (Cash)' / '... unpaid for ...'", "see_as": "admin"},
-  {"id": "SCHOOL-23", "status": "built", "pages": ["/flight/cfis/{id}/pay"], "where": "Pay page: This Week / This Month / This Year / Custom range at the top, an Owed section with an admin 'Mark period paid' (with note) and a Paid section; 'No pay rate set - ask an admin' when the rate is blank", "see_as": "admin", "detail": "Paid flights are stamped on the flight (cfi_paid_at/by/note, db migration). Default range is This Month."},
-  {"id": "SCHOOL-25", "status": "built", "pages": ["/flight/planes"], "where": "'Down for maintenance' badge next to the tail number for every CFI and admin; the 100-hr hours-left column is master-admin only now", "see_as": "cfi", "detail": "Per Frank: students can't reach Planes at all; hours-left is admins only (was admins + shop staff)."},
-  {"id": "SCHOOL-26", "status": "built", "pages": ["/flight/planes"], "where": "Each real plane's row has Ground (opens an optional reason box + Ground plane button with the Alerts confirm text) or Return to service, for admins; Alerts shortcuts kept", "see_as": "admin", "detail": "Blank reason is stored as 'grounded by an admin' (the Alerts 100-hour box still records '100-hour inspection')."},
-  {"id": "SCHOOL-27", "status": "built", "pages": ["/flight/planes", "/flight/planes/{id}/edit"], "where": "Planes > Edit opens Fly with Kate!'s own small plane form (tail number, name, make, model, Used by Flight School) that saves the same aircraft record and returns to Planes; links to the Color & solo page and to Winds Aloft for maintenance", "see_as": "admin"},
-  {"id": "SCHOOL-28", "status": "built", "pages": ["/flight/settings/school"], "where": "Cancel returns to the page School Settings was opened from (dashboard if none)", "see_as": "admin"},
-  {"id": "SCHOOL-29", "status": "built", "pages": ["/flight/settings/school", "/flight/cfis/{id}/edit"], "where": "Settings card is 'Student's Own Plane' with 'Instructor rate in a student's own plane ($/hr)'; same label on Edit CFI", "see_as": "admin", "detail": "The booking toggle on Schedule a Flight (schedule_form.html, fly part) still says 'Students Aircraft'."},
-  {"id": "SCHOOL-30", "status": "built", "pages": ["/flight/alerts"], "where": "Not yet, Resolve (reports) and Mark reviewed (Hobbs gaps) ask with the same confirm as Acknowledge; Not yet flashes 'N123 100-hour reminder snoozed until it reaches 0 hrs left'", "see_as": "admin"},
-  {"id": "SCHOOL-31", "status": "built", "pages": ["/flight/alerts"], "where": "A Plane Issue report row shows 'Squawk #N open/repaired' (linked for staff who can open Squawks); a report resolves itself when its squawk is repaired; Resolve offers 'Also close the squawk in Maintenance'", "see_as": "cfi", "detail": "Squawk id stored on the report (db migration). Auto-resolve runs when the Alerts page loads, so app.py's squawk routes were not touched. 'Also close' marks the squawk repaired directly (no inspector sign-off step)."},
-  {"id": "SCHOOL-34", "status": "built", "pages": ["/academy/logbook"], "where": "'See full requirements' and 'Your Next Goal' carry the viewed student for staff", "see_as": "cfi"},
-  {"id": "SCHOOL-35", "status": "built", "pages": ["/academy/logbook", "/academy/totalizer"], "where": "'Totalizer' everywhere (button, heading, title) and a fourth Totalizer sub-tab next to Logbook / Progress / Map", "see_as": "student"},
-  {"id": "SCHOOL-36", "status": "logic", "pages": ["/academy/logbook", "/academy/progress", "/academy/totalizer", "/academy/map"], "where": "Logged out: 'Please sign in to see your logbook.' on the login page, and the login returns to that Academy link", "see_as": "student", "detail": "The return-after-login is three lines in app.home_launcher's login POST (reads session['login_next']); nothing in home_launcher.html changed."},
-  {"id": "SCHOOL-37", "status": "built", "pages": ["/academy", "/flight/students/{id}/edit"], "where": "Academy 'Landings' / 'Night landings' entries also write the manual-landing record used for currency; Edit Student's landing list shows them '(logged by student)'; removing either side removes both", "see_as": "student"},
-  {"id": "SCHOOL-38", "status": "built", "pages": ["/academy"], "where": "Staff get a Student picker (Whole school / one student) above Log Your Flying that filters the table and pre-selects the form's student", "see_as": "cfi"},
-  {"id": "SCHOOL-40", "status": "logic", "pages": ["/flight/groundschool/{id}", "/flight/groundschool/task/{id}", "/flight/groundschool/element/{id}"], "where": "A deleted rating / task / element flashes 'That rating/task/element is no longer here.' and goes to the Ground School list", "see_as": "cfi"},
-  {"id": "SCHOOL-41", "status": "built", "pages": ["/flight/groundschool/task/{id}"], "where": "Sign Off marks every element of the task verified for that student; the sign-off and its note show next to the task progress bar", "see_as": "cfi", "detail": "Per-element Verify stays for partial progress. Removing a sign-off leaves the element verifications in place."},
-  {"id": "SCHOOL-42", "status": "built", "pages": ["/flight/students"], "where": "Active / All buttons (default Active); the count in the title is only what's shown (and follows the search)", "see_as": "cfi"},
-  {"id": "SCHOOL-43", "status": "built", "pages": ["/flight/students/new", "/flight/students/{id}/edit", "/flight/cfis/new", "/flight/cfis/{id}/edit"], "where": "Password fields are masked with Show and Copy buttons; New Student / New CFI start with a generated one-time password; passwords set here are no longer kept readable (Admin > Accounts shows '-' for them)", "see_as": "admin"},
-  {"id": "SCHOOL-44", "status": "logic", "pages": ["/flight/students", "/flight/planes", "/flight/students/*"], "where": "Master admins without a CFI profile get through Students, Planes and the student pages; the menu already hides My CFI Profile / My Schedule / My Pay without one", "see_as": "admin"},
-  {"id": "SCHOOL-46", "status": "logic", "pages": ["*"], "where": "templates flight/admin_cfis.html, flight/admin_cfi_form.html and flight/_groundschool_subnav.html deleted (nothing rendered them; the two redirect routes stay)", "see_as": "admin"},
-  {"id": "SCHOOL-47", "status": "built", "pages": ["/flight/students/{id}/edit"], "where": "A rejected Edit Student save re-renders the whole page (Account card, Lessons & Landings, email/phone) with the message", "see_as": "admin"},
-  {"id": "SCHOOL-48", "status": "built", "pages": ["/flight/students/new", "/flight/students/{id}/edit"], "where": "'How They Usually Pay' sits in the main form next to the rates on both New and Edit Student, visible to whoever can edit the student", "see_as": "cfi"},
-  {"id": "SCHOOL-49", "status": "built", "pages": ["/flight/notifications"], "where": "New badges stay until the item's View is tapped or its x pressed; a 'Mark all read' button above the list", "see_as": "student"},
-  {"id": "SCHOOL-50", "status": "built", "pages": ["/flight/alerts"], "where": "Unaccounted Hobbs Time: note box and Mark reviewed button stack full-width under the gap text at phone width", "see_as": "admin"}
+ {
+  "id": "SCHOOL-01",
+  "status": "built",
+  "pages": [
+   "/flight/billing",
+   "/flight/students/{id}/edit",
+   "/flight/students/{id}/field/account",
+   "/flight/my-account"
+  ],
+  "where": "Billing: Mark Paid now opens a how-paid box and records a Payment line on the student's account; Mark Unpaid writes a Payment Reversed line; Edit Student > Account > Add Funds lists the unpaid flights (pre-ticked oldest first up to the amount typed) and pays them from the money added; the ledger on Edit Student / Account page shows Payment / Payment Reversed badges",
+  "see_as": "admin",
+  "detail": "One shared helper, flight_payments.py (record_flight_payment / reverse_flight_payment / apply_funds_to_flights, documented in the module), is used by Billing's Mark Paid/Unpaid, Mark N selected paid, Pay with Card, Add Funds and Wave's 'invoice paid' sync, so balance and unpaid total always agree. Idempotent: an already-paid flight records nothing again; the amount is always what the flight still needs. Mark Unpaid reverses only payment lines tied to that flight (credit applied at End Session is left alone - documented). tests/test_flight_payments.py checks each path against the Billing Cross-Check logic. The 'fly' builder wires FLY-10/FLY-11 to flight_payments.record_flight_payment / reverse_flight_payment after merge; the existing /flight/log/{id}/toggle_paid route already goes through it."
+ },
+ {
+  "id": "SCHOOL-02",
+  "status": "logic",
+  "pages": [
+   "/flight/cfis/new"
+  ],
+  "where": "New CFI: the Pay Rate typed is saved and written to the change history",
+  "see_as": "admin",
+  "detail": "The Pay Rate field is outlined on New CFI."
+ },
+ {
+  "id": "SCHOOL-03",
+  "status": "built",
+  "pages": [
+   "/flight/students",
+   "/flight/cfis"
+  ],
+  "where": "Add Student and Add CFI buttons now open the in-program New Student / New CFI forms for admins too (they create the login account as well), and land back on Students / CFIs",
+  "see_as": "admin",
+  "detail": "Option (a) from the report."
+ },
+ {
+  "id": "SCHOOL-04",
+  "status": "built",
+  "pages": [
+   "/flight/students/{id}/edit",
+   "/flight/cfis/{id}/edit"
+  ],
+  "where": "Edit Account button on Edit Student is admin-only now (plain CFIs don't see it); the link carries ?next=<this page> for the Admin form",
+  "see_as": "admin",
+  "detail": "Saving the Admin account form returns to the Edit Student / Edit Instructor page it was opened from (?next=)."
+ },
+ {
+  "id": "SCHOOL-06",
+  "status": "built",
+  "pages": [
+   "/flight/groundschool",
+   "/flight/groundschool/*"
+  ],
+  "where": "Academy tab row shows only Ground School and Resources (no Board, Logbook, More / How points work) for an account with Ground School but no Flight Academy access",
+  "see_as": "student",
+  "detail": "Seed the student with groundschool_access=1 and academy_access=0 to see it."
+ },
+ {
+  "id": "SCHOOL-07",
+  "status": "built",
+  "pages": [
+   "/flight/groundschool/element/{id}",
+   "/flight/groundschool/task/{id}",
+   "/flight/groundschool/{id}"
+  ],
+  "where": "Element page: an element with no required link/video items is self-completed when the student opens it; the CFI's Instructor Verification box always offers Verify Complete, with the student's progress shown as information",
+  "see_as": "cfi",
+  "detail": "Progress bars now count CFI-verified elements (verification is the gate, self-completion is informational)."
+ },
+ {
+  "id": "SCHOOL-08",
+  "status": "built",
+  "pages": [
+   "/flight/groundschool",
+   "/flight/groundschool/*"
+  ],
+  "where": "One 'Choose a student...' picker at the top of every Ground School page for CFIs/admins, remembered in the session and carried on Prev / Next, back links and redirects; the Reading Review, Sign-Off and Verification boxes act on that student (their own dropdowns are gone); students see no picker",
+  "see_as": "cfi",
+  "detail": "Per Frank's note students never pick - they always see themselves."
+ },
+ {
+  "id": "SCHOOL-09",
+  "status": "built",
+  "pages": [
+   "/flight/notifications"
+  ],
+  "where": "Student Alerts tab: 'Your reports' lists only the reports this student filed, with no status, no reporter name and no Resolved section; the school-wide list stays on the CFI/admin Alerts page",
+  "see_as": "student",
+  "detail": "Per Frank's note, no status is shown to students. The student's Alerts badge no longer counts other people's reports."
+ },
+ {
+  "id": "SCHOOL-10",
+  "status": "built",
+  "pages": [
+   "/flight/my-account"
+  ],
+  "where": "Balance line reads '$150.00 owed' (red) or '$50.00 credit' (green), with the explanatory line under it",
+  "see_as": "student"
+ },
+ {
+  "id": "SCHOOL-12",
+  "status": "built",
+  "pages": [
+   "/flight/students/{id}/edit",
+   "/flight/students/new",
+   "/flight/students/{id}/field/plane_rate"
+  ],
+  "where": "Edit Student for a plain CFI shows Instructor / Plane / Sim Rate read-only (no input, no 'ask an admin' wording); admins keep the inputs; a CFI's save leaves rates untouched",
+  "see_as": "cfi",
+  "detail": "Per Frank's note: read-only with no 'ask an admin' text."
+ },
+ {
+  "id": "SCHOOL-13",
+  "status": "built",
+  "pages": [
+   "/flight/students/{id}/field/plane_rate"
+  ],
+  "where": "Plane Rate detail: 'No plane rate - this student is not charged for the plane' and the box labelled 'blank = plane not charged'; Instructor / Sim Rate keep 'uses the CFI's / simulator's rate'",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-14",
+  "status": "built",
+  "pages": [
+   "/flight/students/{id}/edit"
+  ],
+  "where": "The Account card on Edit Student has id=account so the Account page's Add Funds button lands on it",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-15",
+  "status": "built",
+  "pages": [
+   "/flight/students/new",
+   "/flight/cfis/new"
+  ],
+  "where": "New Student / New CFI come back with everything typed and the offending field outlined in red on a taken username or missing field",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-16",
+  "status": "built",
+  "pages": [
+   "/flight/settings/school",
+   "/flight/cfis/{id}/edit"
+  ],
+  "where": "School Settings and Edit CFI re-show the form with the submitted values on a taken color or negative rate, with the message next to the field",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-17",
+  "status": "built",
+  "pages": [
+   "/flight/stats"
+  ],
+  "where": "Hours Flown by Day bar labels use the app's usdate format",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-18",
+  "status": "built",
+  "pages": [
+   "/flight/stats"
+  ],
+  "where": "Planes and Instructors are tap-to-include chips with an All chip; From / To stay visible (greyed until Custom Range)",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-19",
+  "status": "built",
+  "pages": [
+   "/flight/stats"
+  ],
+  "where": "Revenue Collected, Outstanding and the By Plane / By Instructor revenue columns show cents; 'Hours Billed' is 'Hours Paid - on flights marked paid'",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-20",
+  "status": "built",
+  "pages": [
+   "/flight/billing"
+  ],
+  "where": "'Mark N selected paid' button next to Export CSV, enabled once rows are ticked; one how-paid box shows the count and total; the old per-student mark-all route is removed",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-21",
+  "status": "built",
+  "pages": [
+   "/flight/billing"
+  ],
+  "where": "Mark Paid opens the same 'How was it paid?' box as shop Billing; a per-student 'Pay with Card' (simulated) charges the unpaid total; admins see 'Connect Wave to send real invoices' when Wave is off",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-22",
+  "status": "logic",
+  "pages": [
+   "/flight/billing",
+   "/flight/log",
+   "/flight/log/{id}"
+  ],
+  "where": "After Mark Paid / Mark Unpaid a message says 'Marked 10/02/2026 N123 ($250.00) paid for Jane Doe (Cash)' / '... unpaid for ...'",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-23",
+  "status": "built",
+  "pages": [
+   "/flight/cfis/{id}/pay"
+  ],
+  "where": "Pay page: This Week / This Month / This Year / Custom range at the top, an Owed section with an admin 'Mark period paid' (with note) and a Paid section; 'No pay rate set - ask an admin' when the rate is blank",
+  "see_as": "admin",
+  "detail": "Paid flights are stamped on the flight (cfi_paid_at/by/note, db migration). Default range is This Month."
+ },
+ {
+  "id": "SCHOOL-25",
+  "status": "built",
+  "pages": [
+   "/flight/planes"
+  ],
+  "where": "'Down for maintenance' badge next to the tail number for every CFI and admin; the 100-hr hours-left column is master-admin only now",
+  "see_as": "cfi",
+  "detail": "Per Frank: students can't reach Planes at all; hours-left is admins only (was admins + shop staff)."
+ },
+ {
+  "id": "SCHOOL-26",
+  "status": "built",
+  "pages": [
+   "/flight/planes"
+  ],
+  "where": "Each real plane's row has Ground (opens an optional reason box + Ground plane button with the Alerts confirm text) or Return to service, for admins; Alerts shortcuts kept",
+  "see_as": "admin",
+  "detail": "Blank reason is stored as 'grounded by an admin' (the Alerts 100-hour box still records '100-hour inspection')."
+ },
+ {
+  "id": "SCHOOL-27",
+  "status": "built",
+  "pages": [
+   "/flight/planes",
+   "/flight/planes/{id}/edit"
+  ],
+  "where": "Planes > Edit opens Fly with Kate!'s own small plane form (tail number, name, make, model, Used by Flight School) that saves the same aircraft record and returns to Planes; links to the Color & solo page and to Winds Aloft for maintenance",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-28",
+  "status": "built",
+  "pages": [
+   "/flight/settings/school"
+  ],
+  "where": "Cancel returns to the page School Settings was opened from (dashboard if none)",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-29",
+  "status": "built",
+  "pages": [
+   "/flight/settings/school",
+   "/flight/cfis/{id}/edit"
+  ],
+  "where": "Settings card is 'Student's Own Plane' with 'Instructor rate in a student's own plane ($/hr)'; same label on Edit CFI",
+  "see_as": "admin",
+  "detail": "The booking toggle on Schedule a Flight (schedule_form.html, fly part) still says 'Students Aircraft'."
+ },
+ {
+  "id": "SCHOOL-30",
+  "status": "built",
+  "pages": [
+   "/flight/alerts"
+  ],
+  "where": "Not yet, Resolve (reports) and Mark reviewed (Hobbs gaps) ask with the same confirm as Acknowledge; Not yet flashes 'N123 100-hour reminder snoozed until it reaches 0 hrs left'",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-31",
+  "status": "built",
+  "pages": [
+   "/flight/alerts"
+  ],
+  "where": "A Plane Issue report row shows 'Squawk #N open/repaired' (linked for staff who can open Squawks); a report resolves itself when its squawk is repaired; Resolve offers 'Also close the squawk in Maintenance'",
+  "see_as": "cfi",
+  "detail": "Squawk id stored on the report (db migration). Auto-resolve runs when the Alerts page loads, so app.py's squawk routes were not touched. 'Also close' marks the squawk repaired directly (no inspector sign-off step)."
+ },
+ {
+  "id": "SCHOOL-34",
+  "status": "built",
+  "pages": [
+   "/academy/logbook"
+  ],
+  "where": "'See full requirements' and 'Your Next Goal' carry the viewed student for staff",
+  "see_as": "cfi"
+ },
+ {
+  "id": "SCHOOL-35",
+  "status": "built",
+  "pages": [
+   "/academy/logbook",
+   "/academy/totalizer"
+  ],
+  "where": "'Totalizer' everywhere (button, heading, title) and a fourth Totalizer sub-tab next to Logbook / Progress / Map",
+  "see_as": "student"
+ },
+ {
+  "id": "SCHOOL-36",
+  "status": "logic",
+  "pages": [
+   "/academy/logbook",
+   "/academy/progress",
+   "/academy/totalizer",
+   "/academy/map"
+  ],
+  "where": "Logged out: 'Please sign in to see your logbook.' on the login page, and the login returns to that Academy link",
+  "see_as": "student",
+  "detail": "The return-after-login is three lines in app.home_launcher's login POST (reads session['login_next']); nothing in home_launcher.html changed."
+ },
+ {
+  "id": "SCHOOL-37",
+  "status": "built",
+  "pages": [
+   "/academy",
+   "/flight/students/{id}/edit"
+  ],
+  "where": "Academy 'Landings' / 'Night landings' entries also write the manual-landing record used for currency; Edit Student's landing list shows them '(logged by student)'; removing either side removes both",
+  "see_as": "student"
+ },
+ {
+  "id": "SCHOOL-38",
+  "status": "built",
+  "pages": [
+   "/academy"
+  ],
+  "where": "Staff get a Student picker (Whole school / one student) above Log Your Flying that filters the table and pre-selects the form's student",
+  "see_as": "cfi"
+ },
+ {
+  "id": "SCHOOL-40",
+  "status": "logic",
+  "pages": [
+   "/flight/groundschool/{id}",
+   "/flight/groundschool/task/{id}",
+   "/flight/groundschool/element/{id}"
+  ],
+  "where": "A deleted rating / task / element flashes 'That rating/task/element is no longer here.' and goes to the Ground School list",
+  "see_as": "cfi"
+ },
+ {
+  "id": "SCHOOL-41",
+  "status": "built",
+  "pages": [
+   "/flight/groundschool/task/{id}"
+  ],
+  "where": "Sign Off marks every element of the task verified for that student; the sign-off and its note show next to the task progress bar",
+  "see_as": "cfi",
+  "detail": "Per-element Verify stays for partial progress. Removing a sign-off leaves the element verifications in place."
+ },
+ {
+  "id": "SCHOOL-42",
+  "status": "built",
+  "pages": [
+   "/flight/students"
+  ],
+  "where": "Active / All buttons (default Active); the count in the title is only what's shown (and follows the search)",
+  "see_as": "cfi"
+ },
+ {
+  "id": "SCHOOL-43",
+  "status": "built",
+  "pages": [
+   "/flight/students/new",
+   "/flight/students/{id}/edit",
+   "/flight/cfis/new",
+   "/flight/cfis/{id}/edit"
+  ],
+  "where": "Password fields are masked with Show and Copy buttons; New Student / New CFI start with a generated one-time password; passwords set here are no longer kept readable (Admin > Accounts shows '-' for them)",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-44",
+  "status": "logic",
+  "pages": [
+   "/flight/students",
+   "/flight/planes",
+   "/flight/students/*"
+  ],
+  "where": "Master admins without a CFI profile get through Students, Planes and the student pages; the menu already hides My CFI Profile / My Schedule / My Pay without one",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-46",
+  "status": "logic",
+  "pages": [
+   "*"
+  ],
+  "where": "templates flight/admin_cfis.html, flight/admin_cfi_form.html and flight/_groundschool_subnav.html deleted (nothing rendered them; the two redirect routes stay)",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-47",
+  "status": "built",
+  "pages": [
+   "/flight/students/{id}/edit"
+  ],
+  "where": "A rejected Edit Student save re-renders the whole page (Account card, Lessons & Landings, email/phone) with the message",
+  "see_as": "admin"
+ },
+ {
+  "id": "SCHOOL-48",
+  "status": "built",
+  "pages": [
+   "/flight/students/new",
+   "/flight/students/{id}/edit"
+  ],
+  "where": "'How They Usually Pay' sits in the main form next to the rates on both New and Edit Student, visible to whoever can edit the student",
+  "see_as": "cfi"
+ },
+ {
+  "id": "SCHOOL-49",
+  "status": "built",
+  "pages": [
+   "/flight/notifications"
+  ],
+  "where": "New badges stay until the item's View is tapped or its x pressed; a 'Mark all read' button above the list",
+  "see_as": "student"
+ },
+ {
+  "id": "SCHOOL-50",
+  "status": "built",
+  "pages": [
+   "/flight/alerts"
+  ],
+  "where": "Unaccounted Hobbs Time: note box and Mark reviewed button stack full-width under the gap text at phone width",
+  "see_as": "admin"
+ }
 ]

@@ -69,16 +69,18 @@
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'parts' }}" id="tour-nav-parts" href="{{ url_for('parts_list') }}"><i class="bi bi-box-seam"></i> <span class="nav-label">Parts</span></a></li>
         {% endif %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'projects' }}" id="tour-nav-projects" href="{{ url_for('projects_list') }}"><i class="bi bi-clipboard-check"></i> <span class="nav-label">Projects</span></a></li>
-        {% if is_master_admin or shop_role in ('admin', 'tech') %}
+        {% if is_master_admin or shop_role in ('admin', 'tech', 'inspector') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'aircraft' }}" id="tour-nav-aircraft" href="{{ url_for('assets_list') }}"><i class="bi bi-airplane"></i> <span class="nav-label">Aircraft</span></a></li>
         {% endif %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'calendar' }}" id="tour-nav-calendar" href="{{ url_for('calendar_page') }}"><i class="bi bi-calendar3"></i> <span class="nav-label">Calendar</span></a></li>
         {% if is_master_admin or shop_role == 'admin' %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'orders' }}" href="{{ url_for('orders_list') }}"><i class="bi bi-truck"></i> <span class="nav-label">Orders</span></a></li>
         {% endif %}
-        {% if is_master_admin or shop_role in ('admin', 'tech') %}
-        <li class="nav-item"><a class="nav-link {{ 'fw-bold text-danger' if open_squawk_count }} {{ 'active' if sec == 'squawks' }}" id="tour-nav-squawks" href="{{ url_for('squawks_list') }}"><i class="bi bi-exclamation-triangle{{ '-fill' if open_squawk_count }}"></i> <span class="nav-label">Squawks</span>{% if open_squawk_count %} <span class="badge bg-danger">{{ open_squawk_count }}</span>{% endif %}</a></li>
+        {% if is_master_admin or shop_role in ('admin', 'tech', 'inspector') %}
+        <li class="nav-item"><a class="nav-link {{ 'fw-bold text-danger' if open_squawk_count }} {{ 'active' if sec == 'squawks' }}" id="tour-nav-squawks" href="{{ url_for('squawks_list') }}" data-change="JOBS-15"><i class="bi bi-exclamation-triangle{{ '-fill' if open_squawk_count }}"></i> <span class="nav-label">Squawks</span>{% if open_squawk_count %} <span class="badge bg-danger">{{ open_squawk_count }}</span>{% endif %}</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'my-tasks' }}" href="{{ url_for('tech_spot') }}"><i class="bi bi-person-workspace"></i> <span class="nav-label">My Tasks</span></a></li>
+        {% endif %}
+        {% if is_master_admin or shop_role in ('admin', 'tech') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'activity' }}" href="{{ url_for('activity_log') }}"><i class="bi bi-clock-history"></i> <span class="nav-label">Activity</span></a></li>
         {% endif %}
       </ul>
@@ -102,6 +104,7 @@
           <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/stats') }}" href="{{ url_for('shop_stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
           <li><hr class="dropdown-divider"></li>
           <li><a class="dropdown-item {{ 'active' if _p.startswith('/logbook') }}" href="{{ url_for('logbook.logbook_list') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/trash') }}" href="{{ url_for('trash_page') }}" data-change="SHOP-36"><i class="bi bi-trash3"></i> Recently Deleted</a></li>
           {% else %}
           <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
           {% if shop_role in ('tech', 'inspector') %}
@@ -128,11 +131,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   OpsHubTour.start([
-    { selector: '#tour-nav-maintenance', title: 'Winds Aloft', text: 'Home base for the shop side - due/overdue maintenance across every asset, at a glance.' },
+    { selector: '#tour-nav-maintenance', title: 'Winds Aloft', text: 'Home base for the shop side - due/overdue maintenance across every aircraft, at a glance.' },
     { selector: '#tour-nav-scan', title: 'Scan', text: 'Scan a barcode to check parts in or out fast, right from your phone.' },
     { selector: '#tour-nav-parts', title: 'Parts', text: 'The full parts catalog - stock levels, costs, and where everything lives.' },
     { selector: '#tour-nav-projects', title: 'Projects', text: 'Track parts and labor used on a specific job or project.' },
-    { selector: '#tour-nav-aircraft', title: 'Aircraft', text: 'Every asset\'s maintenance history, meters, and due items live here.' },
+    { selector: '#tour-nav-aircraft', title: 'Aircraft', text: 'Every aircraft\'s maintenance history, meters, and due items live here.' },
     { selector: '#tour-nav-calendar', title: 'Calendar', text: 'A month view of everything scheduled or due.' },
     { selector: '#tour-nav-squawks', title: 'Squawks', text: 'Open issues that need attention show up here, with a red badge when something\'s outstanding.' },
     { selector: '#user-menu-toggle-mobile, #user-menu-toggle-desktop', title: 'Your Account', text: 'Update your contact info and password, and you can replay this tour any time from here.' }

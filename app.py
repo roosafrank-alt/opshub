@@ -8169,6 +8169,10 @@ def admin_user_edit(user_id):
         # SHOP-41: opened from the Workers page (?back=workers) -> go back there.
         if request.args.get("back") == "workers":
             return redirect(url_for("laborers_list"))
+        # SCHOOL-04: opened from Edit Student / Edit Instructor (?next=) -> go back there.
+        back_to = safe_next(request.args.get("next"))
+        if back_to:
+            return redirect(back_to)
         return redirect(url_for("admin_users_list"))
     pay_ctx = _pay_link_context(conn, user_row)
     conn.close()

@@ -62,7 +62,9 @@
         var r = el.getBoundingClientRect(); if (!r.width || !r.height) return;
         var ids = (el.getAttribute('data-change') || '').split(/\s+/).filter(Boolean);
         var b = document.createElement('button'); b.className = 'pv-chip'; b.textContent = ids.join(' ');
-        b.style.left = (r.left + window.scrollX) + 'px'; b.style.top = (r.top + window.scrollY - 1) + 'px';
+        var barEl = document.getElementById('pv-bar'), barH = barEl ? barEl.offsetHeight : 0, topY = r.top + window.scrollY;
+        b.style.left = (r.left + window.scrollX) + 'px'; b.style.top = (topY - 1) + 'px';
+        if (topY < barH + 14) { b.style.top = (topY + 1) + 'px'; b.style.transform = 'none'; b.style.borderRadius = '0 0 6px 0'; }   /* near the top bar: tuck the chip inside the outline */
         b.onclick = function (ev) { ev.preventDefault(); ev.stopPropagation(); showBubble(ids[0]); };
         layer.appendChild(b);
       });

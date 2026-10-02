@@ -94,28 +94,28 @@
  },
  {
   "id": "FLY-10",
-  "status": "partial",
+  "status": "built",
   "pages": [
    "/flight/log/{id}/edit"
   ],
   "where": "Edit Logged Flight: Already paid, Amount Collected and How Paid are gone; a line shows the Paid/Unpaid badge and 'To record a payment use Billing.' Saving no longer touches the paid flag.",
   "see_as": "cfi",
-  "detail": "Simplest version per the build instructions. After merge, point any payment recording at the shared flight_payments helper from SCHOOL-01 (this part only needed the fields removed, so little should change)."
+  "detail": "Payments are recorded only through the shared flight_payments helper (SCHOOL-01); Edit Flight only shows the paid badge."
  },
  {
   "id": "FLY-11",
-  "status": "partial",
+  "status": "built",
   "pages": [
    "/flight/log",
    "/flight/log/{id}"
   ],
   "where": "Mark paid on Flight History and Flight Detail opens a small box with the amount (pre-filled with the flight total) and how paid, adds that payment to the student's account and says e.g. 'Marked paid - $123.40 Cash payment added to Sam's account.' Mark unpaid takes the payment back off and says so.",
   "see_as": "admin",
-  "detail": "Built behind record_flight_payment(conn, flight_id, amount, method, created_by) and reverse_flight_payment(conn, flight_id) in flight.py. After merge these should call the shared flight_payments helper from SCHOOL-01. The Billing page's own Mark paid form still posts to the same route and works (it records the full total as 'Other'); the school builder owns that page."
+  "detail": "Mark paid asks amount and how paid, then records through the shared flight_payments helper; Mark unpaid reverses only that flight's payment (a reversal line keeps the history). A flight's charge is put on the account first if it was not yet, so the balance is charge minus payment."
  },
  {
   "id": "FLY-13",
-  "status": "partial",
+  "status": "built",
   "pages": [
    "/flight/dashboard",
    "/flight/schedule/new",
@@ -124,7 +124,7 @@
   ],
   "where": "One name, 'session': Dashboard tile 'Log a Past Session', switch 'Log a past session instead of booking', heading 'Log a Past Session', save button 'Log Session', Active Flight empty-state link and the past-date error text. 'Session Complete' stays only for ending a live session.",
   "see_as": "cfi",
-  "detail": "Tour text NOT changed: it lives in templates/flight/base_flight.html (chrome builder's file). The Schedule tour step still says 'check \"Session Already Complete?\"' and needs to become: 'To log a session that already happened, use Log a Past Session.' Also the date label on that form is now 'Session Date'."
+  "detail": "Schedule tour step now says to turn on 'Log a past session instead of booking'. Date label on that form is 'Session Date'."
  },
  {
   "id": "FLY-14",
