@@ -81,3 +81,16 @@ Claude Doc, **Access codes**: https://claude.ai/code/artifact/2aafcc06-f186-4745
 - When an access code comes up in a chat, add it to that doc (what it is, the code, the
   date, how to get it again). If it changed, replace the old row.
 - Codes go only in that doc, never in this repo, a commit, a routine prompt or a page.
+
+## Keep app names the same on the Forge dashboard and the Idea Queue
+
+The Forge start page tiles (`System/start-page/site/index.html`) and the Idea Queue's
+project list (the `projects` collection in the Idea Queue artifact,
+https://claude.ai/artifact/2oet1983QipXASSdbkEBfS) are two separate lists with nothing
+linking them, so a rename in one never reaches the other. Whenever you rename an app in
+either place, rename it in the other in the same session (update the project's `name`
+with ArtifactData, pinned to its version). Tile id -> Idea Queue project id:
+`trader` -> paper-trader, `realestate` -> realestate, `maintenance` -> equipment-maintenance,
+`sellfinder` -> sell-finder, `marketface` -> marketface, `dinner` -> whats-for-dinner,
+`jobsheet` -> up-to-you (shown as "Jobsheet" since Oct 2, 2026), `cleareddirect` -> none yet.
+Add a row here when a new app gets a tile. Frank asked for this on Oct 2, 2026.
