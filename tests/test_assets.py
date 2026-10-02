@@ -10,7 +10,6 @@ import db
 
 
 class NewAircraftTest(OpsHubTestCase):
-    @open_finding("qa-asset-new-crash")
     def test_admin_can_add_an_aircraft(self):
         self.login("shop_admin")
         r = self.client.post("/assets/new", data=dict(tag="N777", make="Cessna", hobbs_hours="10.5"))
@@ -175,7 +174,6 @@ class TrashRestorePurgeTest(OpsHubTestCase):
         self.assertIsNone(self.q1("SELECT id FROM assets WHERE id=?", (a,)))
         self.assertIsNone(self.q1("SELECT asset_id FROM projects WHERE id=?", (p,))["asset_id"])
 
-    @open_finding("qa-asset-purge-crash")
     def test_purge_aircraft_with_squawk_or_flight_history(self):
         for kind in ("squawk", "flight"):
             a = self.make_asset("N-" + kind)

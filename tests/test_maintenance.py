@@ -117,7 +117,6 @@ class NewItemTest(OpsHubTestCase):
             row = self.q1("SELECT name, active FROM maintenance_items WHERE id=?", (iid,))
             self.assertEqual((row["name"], row["active"]), ("100 hour", 1), role)
 
-    @open_finding("qa-maint-bad-numbers")
     def test_nan_negative_and_infinite_intervals_rejected(self):
         self.login("shop_admin")
         for bad in ("nan", "inf", "-100", "1e999"):
@@ -129,7 +128,6 @@ class NewItemTest(OpsHubTestCase):
                 v = row[col]
                 self.assertTrue(v is None or (math.isfinite(v) and v >= 0), f"{bad!r} stored in {col} as {v!r}")
 
-    @open_finding("qa-maint-bad-numbers")
     def test_zero_or_negative_day_interval_rejected(self):
         self.login("shop_admin")
         for bad in ("-30", "0"):
@@ -178,7 +176,6 @@ class EditDeleteTest(OpsHubTestCase):
         body = self.client.get(f"/assets/{self.a}").get_data(as_text=True)
         self.assertNotIn(">Oil<", body)
 
-    @open_finding("qa-maint-deleted-item-still-editable")
     def test_removed_item_cannot_be_completed_or_edited(self):
         self.login("shop_admin")
         self.client.post(f"/maintenance/{self.iid}/delete")
@@ -252,7 +249,6 @@ class CompleteTest(OpsHubTestCase):
         self.complete(self.hrs, performed_by="Frank")
         self.assertEqual(self.row(self.hrs)["last_done_hours"], 120)
 
-    @open_finding("qa-maint-bad-numbers")
     def test_nan_or_negative_completion_reading_rejected(self):
         self.login("tech")
         for bad in ("nan", "inf", "-5"):

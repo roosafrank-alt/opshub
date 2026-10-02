@@ -71,7 +71,6 @@ class ReportTest(SquawkBase):
             self.client.post(f"/assets/{self.asset}/squawk", data=dict(notes="x"))
             self.assertEqual(self.q1("SELECT COUNT(*) n FROM plane_squawks")["n"], before, role)
 
-    @open_finding("qa-squawk-trashed-plane")
     def test_cannot_report_against_a_trashed_plane(self):
         self.exec("UPDATE assets SET deleted_at=? WHERE id=?", (db.now_iso(), self.asset))
         self.login("tech")
@@ -189,7 +188,6 @@ class WorkflowTest(SquawkBase):
         self.post("flight", "acknowledge")
         self.assertIsNone(self.sq("flight")["acknowledged_at"])
 
-    @open_finding("qa-squawk-assign-anyone")
     def test_can_only_assign_to_an_active_shop_worker(self):
         self.login("shop_admin")
         bad = [str(self.users["flight_student"]["id"]), str(self.users["cfi"]["id"]), "99999"]
@@ -201,7 +199,6 @@ class WorkflowTest(SquawkBase):
             self.post("flight", "acknowledge", assigned_to=who)
             self.assertIsNone(self.sq("flight")["assigned_to"], who)
 
-    @open_finding("qa-squawk-confirm-unrequested")
     def test_inspector_cannot_confirm_a_repair_nobody_marked_done(self):
         self.login("inspector")
         self.post("quick", "repair_confirm")
@@ -209,7 +206,6 @@ class WorkflowTest(SquawkBase):
         self.assertIsNone(self.sq()["repaired_at"])
         self.assertIsNone(self.sq("flight")["repaired_at"])
 
-    @open_finding("qa-squawk-confirm-unrequested")
     def test_second_confirm_does_not_rewrite_who_signed_off(self):
         self.login("tech")
         self.post("quick", "repair")
@@ -221,7 +217,6 @@ class WorkflowTest(SquawkBase):
         self.assertEqual(self.sq()["repaired_by"], first["repaired_by"])
         self.assertEqual(self.sq()["repaired_at"], first["repaired_at"])
 
-    @open_finding("qa-squawk-repair-after-done")
     def test_mark_repaired_on_a_finished_squawk_is_ignored(self):
         self.login("tech")
         self.post("quick", "repair")
