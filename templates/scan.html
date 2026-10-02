@@ -166,7 +166,9 @@ function applyDefaultOperator(names) {
   try { localStorage.setItem('shopinv_operator', savedOperator); } catch (e) { /* ignore */ }
 }
 
-fetch('/api/operators').then(r => r.json()).then(names => {
+// SHOP-39: kept as a promise so a scan that arrives with the page (?autoscan=, from
+// the dashboard's Scan In) can wait for "Scanning as" to be filled in first.
+const operatorsReady = fetch('/api/operators').then(r => r.json()).then(names => {
   names.forEach(n => addOperatorOption(n, operatorSelect));
   applyDefaultOperator(names);
 }).catch(() => {
@@ -663,9 +665,10 @@ window.addEventListener('load', () => {
   const auto = params.get('autoscan');
   if (auto) {
     history.replaceState({}, '', window.location.pathname);
-    // Give the "Scanning as" default (set from the /api/operators fetch
-    // above) a moment to land before checking it.
-    setTimeout(function () { processScan(auto, false); }, 250);
+    // Wait for the "Scanning as" default (set when the /api/operators fetch
+    // above finishes) before checking it - a fixed delay was too short on a
+    // slow connection and showed "Select who's scanning" with the name filled in.
+    operatorsReady.then(function () { processScan(auto, false); });
   }
 });
 

@@ -40,3 +40,13 @@ class DashboardShortcutsTest(OpsHubTestCase):
 
     def test_flight_history_has_the_log_a_past_session_button_for_instructors(self):
         self.assertIn("Log a Past Session", self.login("cfi").get("/flight/log").get_data(as_text=True))
+
+
+class AutoscanWaitsForScanningAsTest(OpsHubTestCase):
+    def test_shop_39_autoscan_waits_for_the_scanning_as_name(self):
+        """The dashboard's Scan In opens /scan?autoscan=<code>. A fixed 250 ms wait ran before the
+        'Scanning as' name was filled in on a slow connection (red 'Select who's scanning')."""
+        html = self.login("master").get("/scan").get_data(as_text=True)
+        self.assertIn("const operatorsReady = fetch('/api/operators')", html)
+        self.assertIn("operatorsReady.then(function () { processScan(auto, false); })", html)
+        self.assertNotIn("setTimeout(function () { processScan(auto, false); }, 250)", html)
