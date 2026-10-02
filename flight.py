@@ -8627,6 +8627,12 @@ def waitlist_page():
                                  JOIN assets a ON a.id = o.asset_id LEFT JOIN cfis c ON c.id = o.cfi_id
                                  WHERE o.student_id = ? AND o.scheduled_date >= ? ORDER BY o.created_at DESC LIMIT 5""",
                               (session.get("student_id"), date.today().isoformat())).fetchall()
+        # FLY-34: once the student has requested (or booked) that slot, the
+        # offer is no longer listed - the request is waiting on a CFI.
+        offers = [o for o in offers if not conn.execute(
+            """SELECT 1 FROM scheduled_flights WHERE student_id = ? AND asset_id = ? AND scheduled_date = ?
+               AND scheduled_time = ? AND status IN ('pending_approval', 'scheduled', 'balance_hold', 'in_progress', 'completed')""",
+            (session.get("student_id"), o["asset_id"], o["scheduled_date"], o["scheduled_time"])).fetchone()]
     month_start = date.today().replace(day=1).isoformat()
     filled = _waitlist_filled_count(conn, month_start) if staff else None
     planes = conn.execute("SELECT id, tag FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY schedule_order, tag").fetchall()
