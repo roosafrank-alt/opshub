@@ -6,11 +6,10 @@
 <div class="row justify-content-center">
 <div class="col-lg-6">
 
-{% if came_from %}
-<a href="{{ came_from.url }}" class="btn btn-outline-secondary btn-sm mb-3"><i class="bi bi-arrow-left"></i> Back to {{ came_from.label }}</a>
-{% endif %}
-
-<div class="card p-4 mb-3">
+{#- HUB-38: no "Back to ..." button here - the header's Back does that,
+   and Cancel at the bottom of the form. The program list lives in the
+   header's Programs button; this card is the roles. #}
+<div class="card p-4 mb-3" data-change="HUB-38">
   <h5 class="mb-1"><i class="bi bi-grid-3x3-gap"></i> Your Programs</h5>
   <p class="text-muted small mb-3">One login and one account for everything in OpsHub. These are the programs you can use and your role in each. To change access, ask an admin.</p>
   {% if programs %}
@@ -33,12 +32,15 @@
 <div class="card p-4 mb-3">
   <h5 class="mb-2"><i class="bi bi-signpost-2"></i> Need a refresher?</h5>
   <p class="text-muted small mb-3">Replay the pop-up walkthrough that points out where everything is.</p>
-  <div class="d-flex flex-wrap gap-2">
+  <div class="d-flex flex-wrap gap-2" data-change="HUB-39 SEAM-19 SEAM-3">
     {% if has_shop %}
-    <a href="{{ url_for('dashboard', tour=1) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-tools"></i> Shop Inventory Tour</a>
+    <a href="{{ url_for('dashboard', tour=1) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-tools"></i> Winds Aloft walkthrough</a>
     {% endif %}
     {% if has_flight %}
-    <a href="{{ url_for('flight.dashboard', tour=1) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-airplane-engines"></i> Flight School Tour</a>
+    <a href="{{ url_for('flight.dashboard', tour=1) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-airplane-engines"></i> Fly with Kate! walkthrough</a>
+    {% endif %}
+    {% if user.is_master_admin or user.academy_access %}
+    <a href="{{ url_for('academy_page', tour=1) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-mortarboard"></i> Flight Academy walkthrough</a>
     {% endif %}
   </div>
 </div>
@@ -60,16 +62,7 @@
 
     <hr class="my-3">
     <h6 class="mb-2"><i class="bi bi-key"></i> Change Password <span class="text-muted small fw-normal">(leave blank to keep your current password)</span></h6>
-    <div class="row">
-      <div class="col-6 mb-3">
-        <label class="form-label">New Password</label>
-        <input type="text" name="password" class="form-control">
-      </div>
-      <div class="col-6 mb-3">
-        <label class="form-label">Confirm New Password</label>
-        <input type="text" name="password_confirm" class="form-control">
-      </div>
-    </div>
+    {% include "_password_boxes.html" %}
 
     <hr class="my-3">
     <h6 class="mb-2"><i class="bi bi-bell"></i> Reminders</h6>
@@ -97,9 +90,9 @@
         </div>
       </div>
     </div>
-    <div class="form-text mb-2">Which of the above, sent for whichever categories are checked below:</div>
+    <div class="form-text mb-2" data-change="HUB-39">Choose how you want reminders (email, text) and which reminders you want:</div>
     {% if has_shop %}
-    <div class="small fw-bold mt-2 mb-1"><i class="bi bi-tools"></i> Maintenance</div>
+    <div class="small fw-bold mt-2 mb-1" data-change="SEAM-3"><i class="bi bi-tools"></i> Winds Aloft</div>
     <div class="form-check">
       <input type="checkbox" class="form-check-input" name="notify_low_stock" id="notify-low-stock-check" {% if user.notify_low_stock %}checked{% endif %}>
       <label class="form-check-label" for="notify-low-stock-check">Low parts stock</label>
@@ -110,7 +103,7 @@
     </div>
     {% endif %}
     {% if has_flight %}
-    <div class="small fw-bold mt-3 mb-1"><i class="bi bi-airplane-engines"></i> Flight School</div>
+    <div class="small fw-bold mt-3 mb-1" data-change="SEAM-3"><i class="bi bi-airplane-engines"></i> Fly with Kate!</div>
     <div class="form-check">
       <input type="checkbox" class="form-check-input" name="notify_flight_reminders" id="notify-flight-check" {% if user.notify_flight_reminders %}checked{% endif %}>
       <label class="form-check-label" for="notify-flight-check">Upcoming scheduled flights (your own bookings), including a heads-up if a late flight may delay yours</label>
@@ -136,13 +129,18 @@
     {% if user.is_master_admin or user.flight_role %}
     <hr class="my-3">
     <h6 class="mb-2"><i class="bi bi-phone"></i> Phone Alerts (this device)</h6>
-    <p class="form-text mb-2">
-      The checkbox above is <em>what</em> you want alerts for; this button turns them <em>on for this phone/browser</em> - do it on each device you want pinged. Email/text delivery for these same alerts is planned for later; phone push is the first channel.
+    <p class="form-text mb-2" data-change="HUB-39">
+      The checkboxes above are <em>what</em> you want alerts for; this button turns them <em>on for this phone/browser</em> - do it on each device you want pinged.
     </p>
     <div id="push-status" class="small text-muted mb-2">Checking this device's status&hellip;</div>
     <button type="button" id="push-enable-btn" class="btn btn-outline-primary btn-sm d-none"><i class="bi bi-bell"></i> Enable on this device</button>
     <button type="button" id="push-disable-btn" class="btn btn-outline-secondary btn-sm d-none"><i class="bi bi-bell-slash"></i> Turn off on this device</button>
     <button type="submit" form="push-test-form" class="btn btn-outline-success btn-sm"><i class="bi bi-send"></i> Send me a test alert</button>
+    {% elif has_shop %}
+    <hr class="my-3">
+    <h6 class="mb-2"><i class="bi bi-phone"></i> Phone Alerts</h6>
+    {#- HUB-33: say plainly why there is no phone-alert section here. #}
+    <p class="form-text mb-2" data-change="HUB-33">Phone alerts are for Fly with Kate! flying sessions only. Winds Aloft reminders go by email or text, using the settings above.</p>
     {% endif %}
 
     <div class="d-flex justify-content-between mt-3">

@@ -1,0 +1,87 @@
+{#- SEAM-1: the one header recipe every program uses (Winds Aloft, Fly with
+   Kate!, Admin, Flight Academy, My Aircraft, My Account). Each base template
+   calls it with just its colour, logo/icon, name, home address and the nav
+   buttons that belong to that program; Back, the Programs button (SEAM-2 /
+   SEAM-12), the hamburger, the phone account icon (SEAM-17) and the shared
+   account menu (SEAM-7) all come from here, so they look and sit the same
+   everywhere. Import with:
+     {% from "_app_header.html" import app_header with context %}
+   and call it with the nav items as the body:
+     {% call app_header(program='shop', ...) %} <ul class="navbar-nav ...">...</ul> {% endcall %}
+   Arguments:
+     program      'shop' | 'flight' | 'admin' | 'academy' | 'owner' | 'account'
+                  (marks the current program in the Programs menu; 'customers'
+                  pages pass 'shop' since they live under Winds Aloft, SEAM-9)
+     brand_name   the words next to the logo
+     brand_url    where the logo/name goes
+     back_fallback  where Back goes when there is no page to go back to
+     navbar_class  colour class(es) for the <nav>, e.g. 'bg-dark', 'admin-nav'
+     navbar_style  optional inline style for the <nav> (gradients)
+     logo         image url for the brand (or None to use `icon`)
+     icon         bootstrap icon class used when there is no logo image
+     logo_style   extra inline style for the logo image
+     brand_id     id for the brand link (the guided tours spotlight it)
+     account_from which program My Account is opened from ('shop', 'flight',
+                  'academy', 'admin', 'owner')
+     chips_program  'shop' | 'flight' to show the Switch role chips, else None
+     boxed_class  the program's outlined-button class for the account menu
+     has_nav      False when the header has no nav buttons (no hamburger then)
+     program_key  the key the Programs menu highlights (defaults to program)
+#}
+{% macro app_header(program, brand_name, brand_url, back_fallback, navbar_class, navbar_style='', logo=None, icon='bi-grid-3x3-gap-fill', logo_style='', brand_id=None, account_from=None, chips_program=None, boxed_class='', has_nav=True, program_key=None, brand_change='') %}
+{% set signed_in = session.get('user_id') or session.get('customer_id') %}
+{% set logout_url = url_for('logout') %}
+<nav class="navbar navbar-expand-lg navbar-dark sticky-top opshub-hdr {{ navbar_class }}"{% if navbar_style %} style="{{ navbar_style }}"{% endif %} data-change="SEAM-1">
+  <div class="container-fluid">
+    {% if signed_in %}{% include "_back_button.html" %}{% endif %}
+    {% if signed_in and not single_program_account and header_programs %}
+    <div class="dropdown opshub-programs" data-change="SEAM-2 SEAM-12">
+      <a class="navbar-brand opshub-programs-btn p-1 me-1" href="#" id="programs-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Programs"><i class="bi bi-grid-3x3-gap-fill"></i> <span class="nav-label">Programs</span></a>
+      <ul class="dropdown-menu" aria-labelledby="programs-menu-toggle">
+        {% for p in header_programs %}
+        <li><a class="dropdown-item {{ 'active' if p.key == (program_key or program) }}" href="{{ p.url }}"><i class="bi {{ p.icon }}"></i> {{ p.name }}</a></li>
+        {% endfor %}
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="{{ url_for('home_launcher') }}"><i class="bi bi-grid-3x3-gap"></i> All programs</a></li>
+      </ul>
+    </div>
+    {% endif %}
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2"{% if brand_id %} id="{{ brand_id }}"{% endif %} href="{{ brand_url }}" title="{{ brand_name }}"{% if brand_change %} data-change="{{ brand_change }}"{% endif %}>
+      {% if logo %}<img src="{{ logo }}" class="opshub-hdr-logo" style="width:28px;height:28px;border-radius:7px;{{ logo_style }}" alt="{{ brand_name }}">{% else %}<i class="bi {{ icon }}"></i>{% endif %}
+      <span class="opshub-hdr-name">{{ brand_name }}</span>
+    </a>
+    <div class="opshub-hdr-right d-flex align-items-center">
+      {% if has_nav %}
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-label="Menu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      {% endif %}
+      {#- On a phone (below lg) the account menu opens straight from here
+         instead of from inside the hamburger panel (SEAM-17). #}
+      {% if signed_in %}
+      {% set menu_id_suffix = 'mobile' %}
+      {% set wrapper_classes = 'd-lg-none ms-1' %}
+      {% set show_name = false %}
+      {% include "_account_menu.html" %}
+      {% endif %}
+    </div>
+    <div class="collapse navbar-collapse" id="nav">
+      {{ caller() }}
+      {% if signed_in %}
+      <div class="d-flex align-items-center gap-3 ms-auto {{ boxed_class }}">
+        <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+          {% if chips_program %}{% set view_as_program = chips_program %}{% include "_view_as_chips.html" %}{% endif %}
+          {#- Same account menu as the phone icon above - this copy shows
+             once the nav is expanded (lg+), inline with the name. #}
+          {% set menu_id_suffix = 'desktop' %}
+          {% set wrapper_classes = 'd-none d-lg-block' %}
+          {% set show_name = true %}
+          {% include "_account_menu.html" %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+{% include "_view_as_banner.html" %}
+{% endmacro %}

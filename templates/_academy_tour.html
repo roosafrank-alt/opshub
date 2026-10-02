@@ -1,0 +1,18 @@
+{#- SEAM-19: a three-stop walkthrough for Flight Academy, shown once on
+   first visit and replayable from My Account (?tour=1). #}
+<script src="{{ url_for('static', filename='js/tour.js') }}"></script>
+{% if session.get('user_id') and (request.args.get('tour') == '1' or not tour_seen_academy) %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  OpsHubTour.start([
+    { selector: '#tour-academy-brand', title: 'Flight Academy', text: 'Points, achievements and leaderboards for everyone who flies here. Tap the name any time to come back to the board.' },
+    { selector: '.academy-tabs-row', title: 'Board, Logbook, Ground School', text: 'The board ranks everyone, Logbook is your own flying and progress, and Ground School holds the lessons and resources.' },
+    { selector: '#user-menu-toggle-mobile, #user-menu-toggle-desktop', title: 'Your Account', text: 'Your contact details and password live under here, and you can replay this walkthrough from My Account.' }
+  ], {
+    onFinish: function () {
+      fetch("{{ url_for('tour_seen') }}", { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'side=academy' });
+    }
+  });
+});
+</script>
+{% endif %}

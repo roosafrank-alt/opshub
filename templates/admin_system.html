@@ -31,7 +31,7 @@
     Restarts just the OpsHub program itself (a few seconds of downtime). Try this first if something in
     the app seems stuck or misbehaving - it's much faster and lighter than a full reboot below.
   </p>
-  <form method="post" action="{{ url_for('admin_system_restart_app') }}" data-confirm="Restart the OpsHub app? It will be briefly unreachable (a few seconds) while it comes back up." data-confirm-style="danger">
+  <form method="post" action="{{ url_for('admin_system_restart_app') }}" data-confirm="OpsHub will be unreachable for a few seconds while it comes back up. This page will wait and reload itself." data-confirm-title="Restart the app?" data-confirm-ok="Restart" data-confirm-style="primary" data-change="HUB-30">
     <button class="btn btn-outline-primary fw-bold">Restart App</button>
   </form>
 </div>
@@ -43,7 +43,7 @@
     like SSH or the network itself seems hung. Everyone using OpsHub will be disconnected for roughly
     30-60 seconds while it comes back up.
   </p>
-  <form method="post" action="{{ url_for('admin_system_reboot') }}" data-confirm="Reboot the Pi? Everyone will be disconnected for about 30-60 seconds while it restarts. Continue?" data-confirm-style="danger">
+  <form method="post" action="{{ url_for('admin_system_reboot') }}" data-confirm="Everyone will be disconnected for about 30-60 seconds while it restarts. This page will wait and reload itself." data-confirm-title="Reboot the Pi?" data-confirm-ok="Reboot" data-confirm-style="danger" data-change="HUB-30">
     <button class="btn btn-outline-danger fw-bold">Reboot Pi</button>
   </form>
 </div>
@@ -66,7 +66,7 @@
     Pi. Unplug the power cable and plug it back in (on a Raspberry Pi 5 you can instead press its small
     power button once). OpsHub comes back up by itself in about a minute; just reload this page.
   </p>
-  <form method="post" action="{{ url_for('admin_system_shutdown') }}" data-confirm="Shut down the Pi? OpsHub will go OFFLINE for everyone and stay off until someone unplugs and replugs the Pi's power. Continue?" data-confirm-style="danger">
+  <form method="post" action="{{ url_for('admin_system_shutdown') }}" data-confirm="OpsHub will go OFFLINE for everyone and stay off until someone unplugs and replugs the Pi's power." data-confirm-title="Shut down the Pi?" data-confirm-ok="Shut down" data-confirm-style="danger" data-change="HUB-30">
     <button class="btn btn-danger fw-bold"><i class="bi bi-power"></i> Shut Down Pi</button>
   </form>
 </div>

@@ -1,11 +1,18 @@
+{#- My Aircraft - the owner portal. Shared header recipe (SEAM-1) in its
+   own teal (SEAM-11), with Back (SEAM-6) and the shared account menu
+   (SEAM-7); loads the app's shared stylesheet (SEAM-18); Winds Aloft
+   home-screen identity (SEAM-13). #}
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>{% block title %}My Aircraft{% endblock %} - Winds Aloft</title>
+{% set app_identity = 'windsaloft' %}{% include "_app_identity.html" %}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+<script defer src="{{ url_for('static', filename='js/nav-fit.js') }}"></script>
 <style>
   body { background: #f4f5f7; }
   .card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
@@ -15,32 +22,38 @@
 </style>
 </head>
 <body>
-<nav class="navbar navbar-dark bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{{ url_for('customer.customer_dashboard') }}">
-      <i class="bi bi-airplane"></i> My Aircraft
-    </a>
-    <div class="d-flex align-items-center gap-3">
-      <span class="text-light small d-none d-sm-inline">{{ customer.name }}</span>
-      {% if session.get('user_id') %}<a href="{{ url_for('home_launcher') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-grid-3x3-gap"></i> Hub</a>{% endif %}
-      <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right"></i> Log Out</a>
-    </div>
-  </div>
-</nav>
-{% include "_view_as_banner.html" %}
+{% from "_app_header.html" import app_header with context %}
+{% set back_change = 'SEAM-6' %}
+{% call app_header(program='owner', brand_name='My Aircraft', brand_url=url_for('customer.customer_dashboard'),
+                   back_fallback=url_for('customer.customer_dashboard'), navbar_class='owner-nav',
+                   logo=url_for('static', filename='icons/windsaloft/icon-192.png'),
+                   brand_id='tour-owner-brand', account_from='owner', has_nav=False,
+                   brand_change='SEAM-11 SEAM-13') %}
+{% endcall %}
 <div class="container py-3">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+  {% include "_flash_messages.html" %}
   {% block content %}{% endblock %}
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% include "_confirm_modal.html" %}
+<script src="{{ url_for('static', filename='js/tour.js') }}"></script>
+{#- SEAM-19: a three-stop walkthrough for the owner portal, shown once and
+   replayable from My Account (?tour=1). #}
+{% if customer and (request.args.get('tour') == '1' or not customer.tour_seen) %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  OpsHubTour.start([
+    { selector: '#tour-owner-brand', title: 'My Aircraft', text: 'Your plane\'s maintenance reminders, appointments and job costs, all in one place. Tap the name any time to come back here.' },
+    { selector: '#tour-owner-reminders', title: 'Reminders & appointments', text: 'Anything due or overdue on your plane shows here, with a button to ask the shop for a booking. Appointments the shop sets wait for your Confirm.' },
+    { selector: '#user-menu-toggle-mobile, #user-menu-toggle-desktop', title: 'Your Account', text: 'Change your email, phone or password under here, and replay this walkthrough from My Account.' }
+  ], {
+    onFinish: function () {
+      fetch("{{ url_for('customer.customer_tour_seen') }}", { method: 'POST' });
+    }
+  });
+});
+</script>
+{% endif %}
+{% block scripts %}{% endblock %}
 </body>
 </html>

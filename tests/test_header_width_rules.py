@@ -1,5 +1,6 @@
 """QA fix ux-header-width-rules: every header (Winds Aloft, Fly with Kate!,
-Admin, My Account) follows the same rule - words next to the icons whenever
+Admin, My Account - all built by the shared _app_header.html recipe since
+the preview build, SEAM-1) follows the same rule - words next to the icons whenever
 the whole row fits on one line, icon-only otherwise, and the same ~992px
 hamburger breakpoint everywhere. The actual fit check runs in the browser
 (static/js/nav-fit.js, which compares each button's own height with and
@@ -42,22 +43,22 @@ class HeaderWidthRulesTest(OpsHubTestCase):
         c = self.login("master")
         body = c.get("/admin").get_data(as_text=True)
         self._assert_header_contract(body, "admin-nav")
-        # "Program Picker" must never wrap onto a second line.
-        self.assertIn("admin-program-picker", body)
-        # The account button sits in the same boxed scope as the other
+        # SEAM-2: the Programs button replaced the "Program Picker" text link.
+        self.assertNotIn("admin-program-picker", body)
+        self.assertIn('id="programs-menu-toggle"', body)
+        # The account menu sits in the same boxed scope as the other
         # buttons, so it's the same height as them (not the plain, shorter
         # Bootstrap .nav-link default).
-        self.assertIn('class="dropdown admin-nav-boxed"', body)
+        self.assertIn('class="d-flex align-items-center gap-3 ms-auto admin-nav-boxed"', body)
 
     def test_account_header_follows_the_shared_rule(self):
         c = self.login("master")
         body = c.get("/account").get_data(as_text=True)
         self._assert_header_contract(body, "account-nav")
-        # The account button matches the .btn-program buttons' sizing
-        # (same btn/btn-sm classes) instead of the shorter plain .nav-link.
-        self.assertIn('class="btn btn-outline-light btn-sm dropdown-toggle"', body)
-        # The program buttons no longer wrap onto a second row.
-        self.assertNotIn("d-flex flex-wrap align-items-center gap-2", body)
+        # SEAM-1 / HUB-38: the same shared account menu as every header, and
+        # the program list lives in the Programs button, not a row of buttons.
+        self.assertIn('id="user-menu-toggle-desktop"', body)
+        self.assertNotIn("btn-program", body)
 
     def test_style_css_hides_labels_by_default_until_the_fit_check_runs(self):
         # Icon-only is the safe default (never a label caught mid-wrap

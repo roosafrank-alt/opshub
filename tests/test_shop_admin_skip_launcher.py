@@ -54,7 +54,7 @@ class ShopAdminSkipLauncherTest(OpsHubTestCase):
         self.assertIn("Choose a program", body)
         self.assertIn("Winds Aloft", body)
         self.assertIn("Fly with Kate!", body)
-        self.assertIn("My Aircraft", body)
+        self.assertIn(">Customers<", body)  # SEAM-9: the admin tile is Customers
 
     def test_master_admin_login_still_lands_on_the_picker(self):
         c, r = self._login_for_real("master")

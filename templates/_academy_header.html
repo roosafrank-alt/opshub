@@ -1,0 +1,12 @@
+{#- The Flight Academy header (HUB-21 / SEAM-10): the shared recipe with
+   the mortarboard, the name Flight Academy linking to the Academy board,
+   Back and the Programs button beside it. Shared by academy_base.html and
+   the Board page (academy.html), which has its own page layout. The tab
+   row (Board / Logbook / Ground School / ...) stays in the page below. #}
+{% from "_app_header.html" import app_header with context %}
+{% call app_header(program='academy', brand_name='Flight Academy', brand_url=url_for('academy_page'),
+                   back_fallback=url_for('academy_page'), navbar_class='academy-nav',
+                   navbar_style='background:#14213d;', icon='bi-mortarboard-fill',
+                   brand_id='tour-academy-brand', account_from='academy', has_nav=False,
+                   brand_change='HUB-21 SEAM-10') %}
+{% endcall %}

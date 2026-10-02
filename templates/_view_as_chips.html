@@ -1,17 +1,17 @@
-{#- Small "View as" chip row, shown right next to the account button in the
-   header (same line, just to its left - see ux-header-viewas-inline)
-   instead of buried in its dropdown - and scoped to `view_as_program`
-   ('shop' or 'flight', set by whichever base template includes this) so the
-   options offered always make sense for the program that header belongs to.
-   A master admin gets every level; an account with several roles in this
-   program (e.g. Admin + Inspector) gets just its own. Switching isn't
-   read-only - it's using the app as that role - and the chip for your
-   normal role (Admin for a master admin) takes you straight back to your
-   normal view. See auth.view_as_chips. #}
+{#- HUB-03: the "Switch role" chip row, shown right next to the account
+   button in the header (same line, just to its left) and scoped to
+   `view_as_program` ('shop' or 'flight', set by whichever base template
+   includes this) so the roles offered always make sense for the program
+   that header belongs to. A master admin gets every level; an account with
+   several roles in this program (e.g. Admin + Inspector) gets just its
+   own. Switching isn't read-only - it's using the app as that role - and
+   the chip for your normal role (Admin for a master admin) takes you
+   straight back to your normal view. See auth.view_as_chips. This is the
+   only way to look at the app as someone else. #}
 {% set chips = view_as_chip_rows.get(view_as_program, []) if view_as_chip_rows else [] %}
 {% if chips %}
-<div class="view-as-chips d-flex align-items-center flex-nowrap gap-1 text-nowrap" style="font-size:.68rem;">
-  <span class="text-white-50">View as:</span>
+<div class="view-as-chips d-flex align-items-center flex-nowrap gap-1 text-nowrap" style="font-size:.68rem;" data-change="HUB-03">
+  <span class="text-white-50">Switch role:</span>
   {% for chip in chips %}
   {% if chip.action == 'current' %}
   <span class="btn btn-light py-0 px-2 fw-bold disabled" aria-current="true" style="font-size:.68rem; line-height:1.5; opacity:1;">{{ chip.label }}</span>

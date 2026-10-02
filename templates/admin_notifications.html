@@ -71,6 +71,7 @@
   <button type="submit" class="btn btn-primary fw-bold mb-4">Save Notification Settings</button>
 </form>
 
+<p class="small text-muted mb-2" data-change="HUB-34"><i class="bi bi-info-circle"></i> The test buttons use the saved settings - save first after changing anything above.</p>
 <div class="row">
   <div class="col-md-6 mb-3">
     <form method="post" action="{{ url_for('admin_notifications_test_email') }}" class="d-flex gap-2">
@@ -91,8 +92,9 @@
 
 <div class="card p-4 mb-4" id="push-test">
   <h5 class="mb-2"><i class="bi bi-phone-vibrate"></i> Test Phone Alerts</h5>
-  <p class="text-muted small mb-3">
-    Sends a test phone alert right now, so you can check that someone's phone is actually getting them.
+  <p class="text-muted small mb-3" data-change="HUB-33">
+    Phone alerts are for Fly with Kate! flying sessions only - Winds Aloft reminders go by email or text, so only accounts
+    with a Fly with Kate! role are listed here. Sends a test phone alert right now, so you can check that someone's phone is actually getting them.
     A person only shows a device count once they've tapped <strong>Enable on this device</strong> in My Account on that phone.
   </p>
   <form method="post" action="{{ url_for('admin_notifications_test_push') }}">
@@ -117,7 +119,7 @@
         </label>
       </div>
       {% else %}
-      <p class="text-muted small mb-0">No flight school accounts yet.</p>
+      <p class="text-muted small mb-0" data-change="HUB-33">No Fly with Kate! accounts yet - phone alerts are for Fly with Kate! flying sessions only.</p>
       {% endfor %}
     </div>
     <div class="mb-3">

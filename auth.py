@@ -70,6 +70,10 @@ def log_in_user(user_row, remember=True):
         student = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_row["id"],)).fetchone()
         if student:
             session["student_id"] = student["id"]
+    elif user_row["shop_role"] == "admin" or user_row["is_master_admin"]:
+        cfi = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
+        if cfi:
+            session["cfi_id"] = cfi["id"]
     conn.close()
 
 
@@ -84,30 +88,31 @@ def current_user(conn):
     return conn.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
 
 
+LOGIN_NEEDED_MSG = "Please log in to continue."
+
+
+def login_next_url():
+    """The page a signed-out person was trying to open, carried along to the
+    login page as ?next= so they land back on it after logging in (SEAM-4 /
+    SEAM-16). Only a GET to a page is worth coming back to."""
+    if request.method != "GET":
+        return None
+    path = request.full_path.rstrip("?") if request.query_string else request.path
+    return path if path and path != "/" else None
+
+
+def safe_next(target):
+    """Only a path inside this app (never another site) may be returned to."""
+    target = (target or "").strip()
+    if target.startswith("/") and not target.startswith("//") and "\\" not in target:
+        return target
+    return None
+
+
 def _no_access_redirect():
-    flash("Log in to do that.", "danger")
-    return redirect(url_for("home_launcher"))
-
-
-def _owner_preview_blocked():
-    """True while a master admin is previewing 'My Aircraft' as a real
-    owner (start_view_as(conn, 'owner', ...)). That preview exists to show
-    exactly what a real customer portal login would show, so it must never
-    reach a staff page - not even ones only gated on "is someone logged
-    in?" - regardless of whatever shop_role/flight_role/cfi_id/student_id
-    the previewing admin's own real account happens to carry (those aren't
-    reset for an owner preview the way they are for a shop/flight one,
-    since My Aircraft has no role of its own to swap in). Every staff-facing
-    decorator below checks this first and fails closed, rather than relying
-    on each of those fields separately staying "off" (QA "view": a stale
-    shop_role/flight_role/cfi_id let an owner preview reach other tabs and
-    programs it was never supposed to)."""
-    return session.get("_view_as_program") == "owner" and bool(session.get("_view_as_real"))
-
-
-def _owner_preview_redirect():
-    flash("Exit the owner preview to use staff pages.", "info")
-    return redirect(url_for("customer.customer_dashboard"))
+    flash(LOGIN_NEEDED_MSG, "danger")
+    nxt = login_next_url()
+    return redirect(url_for("home_launcher", **({"next": nxt} if nxt else {})))
 
 
 def refresh_or_expire_session():
@@ -124,17 +129,13 @@ def refresh_or_expire_session():
     refreshes the session's mirrored role fields from the fresh row and
     returns None ("carry on").
 
-    Only touches the CURRENTLY ACTIVE session's mirrored fields (whatever
-    `session.get(...)` returns right now) - during "View as a person"
-    (_PERSON_VIEW_KEY) that's the person being viewed, which is exactly
-    right: it's their access that must never go stale. It deliberately
-    does NOT touch the live role fields while a role/owner preview
-    (_view_as_real, start_view_as) is active, since those are
-    intentionally showing a DIFFERENT role than the account's real one -
-    overwriting them here would silently cancel the preview on every
-    request. Instead it refreshes the _view_as_real snapshot itself, so
-    exiting the preview lands on up-to-date real roles instead of ones
-    frozen from whenever the preview started."""
+    It deliberately does NOT touch the live role fields while a role switch
+    (_view_as_real, start_view_as) is active, since those are intentionally
+    showing a DIFFERENT role than the account's real one - overwriting them
+    here would silently cancel the switch on every request. Instead it
+    refreshes the _view_as_real snapshot itself, so exiting the switch lands
+    on up-to-date real roles instead of ones frozen from whenever it
+    started."""
     uid = session.get("user_id")
     if not uid:
         return None
@@ -166,8 +167,6 @@ def login_required(f):
         expired = refresh_or_expire_session()
         if expired:
             return expired
-        if _owner_preview_blocked():
-            return _owner_preview_redirect()
         return f(*args, **kwargs)
     return wrapper
 
@@ -180,8 +179,6 @@ def master_admin_required(f):
         expired = refresh_or_expire_session()
         if expired:
             return expired
-        if _owner_preview_blocked():
-            return _owner_preview_redirect()
         if not session.get("is_master_admin"):
             flash("That's for admins only.", "danger")
             return redirect(url_for("home_launcher"))
@@ -210,14 +207,12 @@ def shop_role_required(*roles):
             expired = refresh_or_expire_session()
             if expired:
                 return expired
-            if _owner_preview_blocked():
-                return _owner_preview_redirect()
             if session.get("is_master_admin") or session.get("shop_role") in roles:
                 return f(*args, **kwargs)
             if not session.get("shop_role"):
-                flash("You don't have access to the shop side of OpsHub.", "danger")
+                flash("You don't have access to Winds Aloft.", "danger")
                 return redirect(url_for("flight.dashboard"))
-            flash("You don't have access to that part of Shop Inventory.", "danger")
+            flash("You don't have access to that part of Winds Aloft.", "danger")
             return redirect(url_for("dashboard"))
         return wrapper
     return decorator
@@ -238,8 +233,8 @@ def can_manage_billing():
 
 
 # ---------------------------------------------------------------------------
-# "View as" - lets a master admin temporarily browse a program as a lower
-# access level sees it, without logging out of their own account. Which
+# "Switch role" (the header chips) - lets a master admin temporarily use a
+# program as a lower access level, without logging out of their own account. Which
 # levels make sense depends on the program: Shop Inventory's Admin/Tech/
 # Student are pure role flags (shop_role_required/can_see_shop_costs), so
 # faking one is just a session swap. Flight School's CFI/Student views are
@@ -248,21 +243,21 @@ def can_manage_billing():
 # students row - see _pick_view_as_flight_profile - rather than just a role
 # label, or pages that expect one would break. Either way the real session
 # fields are stashed under _view_as_real to restore on exit - captured once,
-# on the very first preview, so switching straight from one preview to
-# another (e.g. CFI to Student, without exiting back to the real admin
-# view first - idea "view change") always restores the true admin session,
-# not whichever preview was active just before the switch. _view_as_program
-# separately tracks which preview is active right now, for the "View as"
-# chips to grey out/show Exit on the right program.
+# on the very first switch, so switching straight from one role to another
+# (e.g. CFI to Student, without exiting back to the real admin view first)
+# always restores the true admin session. _view_as_program separately tracks
+# which program's switch is active right now, for the chips to show the
+# current role and the way back on the right program. This is the ONLY
+# look-as-someone feature (HUB-03): the old look-only "View as someone" and
+# the owner preview are gone.
 # ---------------------------------------------------------------------------
 
 SHOP_VIEW_AS_LEVELS = {"admin": "Admin", "tech": "Tech", "apprentice": "Apprentice", "inspector": "Inspector"}
 FLIGHT_VIEW_AS_LEVELS = {"cfi": "CFI", "student": "Student"}
-# Every session field any preview (shop, flight or owner) can touch - the
-# full baseline snapshotted on first entry, so exiting always restores
-# everything regardless of which programs were previewed along the way.
-_VIEW_AS_SNAPSHOT_KEYS = ("is_master_admin", "shop_role", "flight_role", "cfi_id", "student_id",
-                          "can_bill", "customer_id", "customer_name")
+# Every session field a role switch (shop or flight) can touch - the full
+# baseline snapshotted on first entry, so exiting always restores everything
+# regardless of which programs were switched along the way.
+_VIEW_AS_SNAPSHOT_KEYS = ("is_master_admin", "shop_role", "flight_role", "cfi_id", "student_id", "can_bill")
 
 
 # Idea "view as for multi-role accounts": someone who holds more than one
@@ -359,35 +354,20 @@ def _pick_view_as_flight_profile(conn, level):
 
 
 def start_view_as(conn, program, level):
-    """A master admin (any level, any program, or a specific owner), or an
-    account with several roles in a program (just its own roles) - either
-    one already previewing can switch straight to a different preview
-    without exiting first (idea "view change"). program is 'shop', 'flight'
-    or 'owner'; level is one of that program's own *_VIEW_AS_LEVELS keys
-    (or, for 'owner', a customer id). Returns (ok, error_message_or_None)."""
-    if program == "shop" or program == "flight":
-        if level not in allowed_view_as_levels(conn, program):
-            return False, None
+    """A master admin (any level, either program), or an account with
+    several roles in a program (just its own roles) - either one already
+    switched can switch straight to a different role without exiting first.
+    program is 'shop' or 'flight'; level is one of that program's own
+    *_VIEW_AS_LEVELS keys. Returns (ok, error_message_or_None)."""
+    if program not in ("shop", "flight"):
+        return False, None
+    if level not in allowed_view_as_levels(conn, program):
+        return False, None
+    person_id = person_name = None
     if program == "flight":
         person_id, person_name = _pick_view_as_flight_profile(conn, level)
         if not person_id:
-            return False, f"There's no active {FLIGHT_VIEW_AS_LEVELS[level].lower()} on file yet to preview as."
-    elif program == "owner":
-        if not real_is_master_admin():
-            return False, None
-        # level is a customers.id (as a string, from the URL) rather than a
-        # role name - My Aircraft has no roles, just "this real owner's
-        # view", picked from customers_list rather than a fixed level set.
-        try:
-            customer_id = int(level)
-        except ValueError:
-            return False, None
-        customer = conn.execute("SELECT id, name FROM customers WHERE id = ? AND active = 1",
-                                (customer_id,)).fetchone()
-        if not customer:
-            return False, "That customer account isn't active."
-    elif program != "shop":
-        return False, None
+            return False, f"There's no active {FLIGHT_VIEW_AS_LEVELS[level].lower()} on file yet to switch to."
 
     # Baseline snapshot, captured once on the very first preview this
     # session. Every switch after that - same program at a different
@@ -411,9 +391,6 @@ def start_view_as(conn, program, level):
         session["cfi_id"] = person_id if level == "cfi" else None
         session["student_id"] = person_id if level == "student" else None
         session["_view_as_person_name"] = person_name
-    elif program == "owner":
-        session["customer_id"] = customer["id"]
-        session["customer_name"] = customer["name"]
     session["_view_as_program"] = program
     return True, None
 
@@ -430,13 +407,9 @@ def exit_view_as():
 
 
 def viewing_as_label():
-    if person_view_active() and not session.get("_view_as_real"):
-        return f"{person_view_name()} (view only)"
     if not session.get("_view_as_real"):
         return None
     program = session.get("_view_as_program")
-    if program == "owner":
-        return f"Owner ({session.get('customer_name')})"
     if program == "shop":
         return SHOP_VIEW_AS_LEVELS.get(session.get("shop_role"))
     role_label = FLIGHT_VIEW_AS_LEVELS.get(session.get("flight_role"))
@@ -449,8 +422,8 @@ def viewing_as_label():
 
 
 def view_as_active_program():
-    """'shop' | 'flight' | 'owner' | None - which program's preview is
-    active right now."""
+    """'shop' | 'flight' | None - which program's role switch is active
+    right now."""
     if not session.get("_view_as_real"):
         return None
     return session.get("_view_as_program")
@@ -487,8 +460,7 @@ def owner_user_id(conn=None):
 
 
 def is_owner(conn=None):
-    """True only for the REAL signed-in account (see real_user_id) - a
-    master admin "viewing as" the owner is not treated as the owner."""
+    """True only for the REAL signed-in account (see real_user_id)."""
     uid = real_user_id()
     return bool(uid) and uid == owner_user_id(conn)
 
@@ -551,7 +523,7 @@ def log_in_combined(user_row, customer_row, remember=True):
 
 def _fill_session(user_row, customer_row):
     """Everything log_in_combined puts in the session for these accounts -
-    shared with "view as a person" (start_view_as_person), which builds the
+    (was also used by the old "view as a person" feature, now gone), building the
     exact same session a real login by that person would get."""
     if user_row:
         session["user_id"] = user_row["id"]
@@ -574,9 +546,10 @@ def _fill_session(user_row, customer_row):
             student = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_row["id"],)).fetchone()
             if student:
                 session["student_id"] = student["id"]
-        elif user_row["shop_role"] == "admin" and not user_row["is_master_admin"]:
+        elif user_row["shop_role"] == "admin" or user_row["is_master_admin"]:
             # The unbilled, never-bookable cfis row ensure_flight_profile
-            # just made sure exists for them (idea "shop admin skip launcher").
+            # just made sure exists for them (idea "shop admin skip launcher";
+            # HUB-01 gives a master admin with no Fly with Kate! role the same).
             cfi = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
             if cfi:
                 session["cfi_id"] = cfi["id"]
@@ -593,9 +566,33 @@ def current_customer(conn):
     return conn.execute("SELECT * FROM customers WHERE id = ?", (cid,)).fetchone()
 
 
+def session_programs():
+    """Every program this session can open, in picker order, for the
+    header's Programs button (SEAM-2 / SEAM-12) and the picker itself: a
+    list of dicts with key, name, icon (bootstrap icon class) and endpoint.
+    Mirrors home_launcher.html's own tile conditions, same as
+    account_program_count() below."""
+    is_master_admin = session.get("is_master_admin")
+    is_admin_like = bool(is_master_admin or session.get("shop_role") == "admin")
+    progs = []
+    if is_master_admin or session.get("shop_role"):
+        progs.append(dict(key="shop", name="Winds Aloft", icon="bi-tools", endpoint="dashboard"))
+    if is_master_admin or session.get("flight_role") or is_admin_like:
+        progs.append(dict(key="flight", name="Fly with Kate!", icon="bi-airplane-engines", endpoint="flight.index"))
+    if is_master_admin or session.get("academy_access"):
+        progs.append(dict(key="academy", name="Flight Academy", icon="bi-mortarboard", endpoint="academy_page"))
+    if is_admin_like:
+        progs.append(dict(key="customers", name="Customers", icon="bi-people", endpoint="customers_list"))
+    if session.get("customer_id"):
+        progs.append(dict(key="owner", name="My Aircraft", icon="bi-airplane", endpoint="customer.customer_dashboard"))
+    if is_master_admin:
+        progs.append(dict(key="admin", name="Admin", icon="bi-shield-lock-fill", endpoint="admin_home"))
+    return progs
+
+
 def account_program_count():
     """How many of the program tiles (Fly with Kate!, Winds Aloft, Flight
-    Academy, My Aircraft) this session's account can see - mirrors
+    Academy, Customers, My Aircraft) this session's account can see - mirrors
     home_launcher.html's own tile conditions (QA ux-launcher-single-program).
     A master admin always sees all four, so this is never 1 for them. A
     shop admin also counts Fly with Kate! now (ux-shop-admin-skip-launcher),
@@ -609,8 +606,10 @@ def account_program_count():
         count += 1
     if is_master_admin or session.get("academy_access"):
         count += 1
-    if is_admin_like or session.get("customer_id"):
-        count += 1
+    if is_admin_like:
+        count += 1  # Customers (SEAM-9)
+    if session.get("customer_id"):
+        count += 1  # My Aircraft
     return count
 
 
@@ -628,8 +627,10 @@ def single_program_endpoint():
         return "dashboard"
     if is_master_admin or session.get("academy_access"):
         return "academy_page"
-    if is_admin_like or session.get("customer_id"):
-        return "customers_list" if is_admin_like else "customer.customer_dashboard"
+    if is_admin_like:
+        return "customers_list"
+    if session.get("customer_id"):
+        return "customer.customer_dashboard"
     return None
 
 
@@ -648,7 +649,7 @@ def _refresh_or_expire_customer_session():
     if not row or not row["active"]:
         session.clear()
         flash("You've been signed out because this account is no longer active.", "danger")
-        return redirect(url_for("customer.customer_login"))
+        return redirect(url_for("home_launcher"))
     return None
 
 
@@ -656,8 +657,7 @@ def customer_login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not session.get("customer_id"):
-            flash("Log in to see your aircraft.", "danger")
-            return redirect(url_for("customer.customer_login"))
+            return _no_access_redirect()
         expired = _refresh_or_expire_customer_session()
         if expired:
             return expired
@@ -666,121 +666,30 @@ def customer_login_required(f):
 
 
 
-# ---------------------------------------------------------------------------
-# "View as a person" (idea: an admin sees anybody's exact app without
-# logging out and typing their password). Picked from the account menu.
-# Unlike the role chips above - which keep the admin's own account and just
-# swap a role in - this builds the session a real login by that person
-# would get (_fill_session, the same code log_in_combined uses), so every
-# page shows their own data: their dashboard, their students, their
-# account. The admin's whole session is kept under _person_view_real and
-# put back on exit.
-#
-# It's VIEW ONLY: while active, app.block_writes_in_person_view refuses
-# every request that would change something (anything but GET/HEAD/OPTIONS),
-# apart from going back to your own view or picking someone else. Otherwise
-# an admin could change someone's password, or have payroll, charges and
-# sign-offs recorded under that person's name.
-# ---------------------------------------------------------------------------
-
-_PERSON_VIEW_KEY = "_person_view_real"
-
-
 def person_view_active():
-    return bool(session.get(_PERSON_VIEW_KEY))
-
-
-def person_view_name():
-    return session.get("_person_view_name") if person_view_active() else None
-
-
-def can_view_as_person():
-    """Only a real master admin - checked against their own saved session
-    while a person view is active (the session then belongs to the person
-    being viewed) and ignoring any role preview (_view_as_real)."""
-    real = session.get(_PERSON_VIEW_KEY)
-    if real:
-        base = real.get("_view_as_real") or real
-        return bool(base.get("is_master_admin"))
-    return real_is_master_admin()
+    """The look-only "View as someone" feature was removed (HUB-03: the
+    Switch role chips are the only way to look at the app as someone else).
+    Kept as a stub so the couple of places that still ask (flight.py's
+    alerts page and phone-alert pickup) keep working unchanged: it is never
+    active now."""
+    return False
 
 
 def real_user_id():
-    """The real signed-in account's own users.id - even mid preview, whether
-    that's a role preview (_view_as_real, session['user_id'] itself is never
-    part of that snapshot so this only matters if that ever changes), viewing
-    as another person (_PERSON_VIEW_KEY swaps session['user_id'] to the
-    viewed person's own id), or both at once. Needed anywhere that must know
-    who is really at the keyboard, such as the owner-account lock in
-    Admin > Accounts - see owner_user_id/is_owner below."""
-    base = session.get(_PERSON_VIEW_KEY) or session
-    real = base.get("_view_as_real")
+    """The real signed-in account's own users.id - even mid role switch
+    (session['user_id'] itself is never part of the _view_as_real snapshot,
+    so this only matters if that ever changes). Needed anywhere that must
+    know who is really at the keyboard, such as the owner-account lock in
+    Admin > Accounts - see owner_user_id/is_owner above."""
+    real = session.get("_view_as_real")
     if real and "user_id" in real:
         return real.get("user_id")
-    return base.get("user_id")
-
-
-def _admin_session():
-    """The admin's own session to return to: the saved one while a person
-    view is active, else the current one - without any role preview."""
-    base = dict(session.get(_PERSON_VIEW_KEY) or session)
-    for k in ("_flashes", _PERSON_VIEW_KEY, "_person_view_name"):
-        base.pop(k, None)
-    real = base.pop("_view_as_real", None)
-    base.pop("_view_as_program", None)
-    base.pop("_view_as_person_name", None)
-    if real:
-        base.update(real)
-    return base
-
-
-def start_view_as_person(conn, user_id):
-    """Returns (ok, error_message_or_None). Viewing yourself just goes back
-    to your own view."""
-    if not can_view_as_person():
-        return False, None
-    admin = _admin_session()
-    if user_id == admin.get("user_id"):
-        stop_view_as_person()
-        return True, None
-    user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-    if not user or not user["active"]:
-        return False, "That account isn't active."
-    # Same match log_in_combined makes at the login form: a customer
-    # account under the same email/username is that person's My Aircraft.
-    customer = conn.execute("SELECT * FROM customers WHERE lower(email) = lower(?) AND active = 1",
-                            (user["username"],)).fetchone()
-    flashes = session.get("_flashes")
-    permanent = session.permanent
-    session.clear()
-    session.permanent = permanent
-    if flashes:
-        session["_flashes"] = flashes
-    _fill_session(user, customer)
-    session[_PERSON_VIEW_KEY] = admin
-    session["_person_view_name"] = user["name"]
-    return True, None
-
-
-def stop_view_as_person():
-    """Back to the admin's own view (with no role preview). Returns False
-    if no person view was active."""
-    if not person_view_active():
-        return False
-    admin = _admin_session()
-    flashes = session.get("_flashes")
-    permanent = session.permanent
-    session.clear()
-    session.permanent = permanent
-    session.update(admin)
-    if flashes:
-        session["_flashes"] = flashes
-    return True
+    return session.get("user_id")
 
 
 # ---------------------------------------------------------------------------
-# Login lockout. All three login forms (hub, /flight/login, customer portal)
-# call login_allowed() before checking a password, login_failed() after a
+# Login lockout. The login form (and the old /flight/login address) call
+# login_allowed() before checking a password, login_failed() after a
 # wrong one and login_succeeded() after a right one. Never permanent: 5 wrong
 # passwords in a row lock that account name for 15 min, then 1 hr, 4 hr, 16 hr,
 # capped at 24 hr. Unknown names are tracked the same way, so the behaviour

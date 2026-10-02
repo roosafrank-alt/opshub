@@ -13,27 +13,32 @@
     <a href="{{ url_for('admin_user_new') }}" class="btn btn-primary fw-bold text-nowrap flex-shrink-0"><i class="bi bi-plus-lg"></i> New Account</a>
   </div>
 </div>
-<p class="text-muted small">One login works for both Maintenance and Flight School - together, OpsHub. What each person sees depends on the roles set here. The <strong>Owner</strong> account can only be changed by the owner; the owner can change everyone else's, including other master admins.</p>
+<p class="text-muted small" data-change="SEAM-3">One login works for Winds Aloft, Fly with Kate! and Flight Academy - together, OpsHub. What each person sees depends on the roles set here. The <strong>Owner</strong> account can only be changed by the owner; the owner can change everyone else's, including other master admins. Passwords are on each account's Edit page.</p>
 <div class="card">
   <div class="table-responsive">
-    <table class="table table-hover align-middle mb-0" id="users-table">
-      <thead class="table-light"><tr><th>Name</th><th>Username</th><th>Password</th><th>Shop Role</th><th>Flight Role</th><th>Admin</th><th>Billing</th><th>Status</th><th></th></tr></thead>
+    {#- HUB-25: stacks into cards on a phone (table-stack), Edit sits
+       beside the name, no password column, inactive accounts dimmed. #}
+    <table class="table table-hover align-middle mb-0 table-stack" id="users-table" data-change="HUB-25">
+      <thead class="table-light"><tr><th>Name</th><th>Username</th><th>Winds Aloft</th><th>Fly with Kate!</th><th>Admin</th><th>Billing</th><th>Status</th></tr></thead>
       <tbody>
         {% set shop_role_colors = {'admin': 'bg-dark', 'tech': 'bg-primary', 'inspector': 'bg-info text-dark', 'apprentice': 'bg-success'} %}
         {% for u in users %}
-        <tr data-search="{{ (u.name ~ ' ' ~ u.username)|lower }}">
-          <td>{{ u.name }}</td>
-          <td><code>{{ u.username }}</code></td>
-          <td>{% if u.id == owner_id and not viewer_is_owner %}<span class="text-muted small"><i class="bi bi-lock"></i> hidden</span>{% else %}<code>{{ u.password_plain or '-' }}</code>{% endif %}</td>
-          <td>{% for r in user_shop_roles(u) %}<span class="badge {{ shop_role_colors.get(r, 'bg-secondary') }} me-1">{{ r|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endfor %}</td>
-          <td>{% for r in user_flight_roles(u) %}<span class="badge bg-primary me-1">{{ 'CFI' if r == 'cfi' else r|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endfor %}</td>
-          <td>{% if u.id == owner_id %}<span class="badge bg-dark" title="Only this person can change this account"><i class="bi bi-lock-fill"></i> Owner</span> {% endif %}{% if u.is_master_admin %}<span class="badge bg-warning text-dark">Master Admin</span>{% endif %}</td>
-          <td>{% if u.is_master_admin or u.can_bill %}<span class="badge bg-info text-dark">Billing</span>{% endif %}</td>
-          <td>{% if u.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
-          <td>{% if u.id == owner_id and not viewer_is_owner %}<span class="btn btn-outline-secondary btn-sm disabled text-nowrap" title="Only the owner can change this account"><i class="bi bi-lock"></i> Locked</span>{% else %}<a href="{{ url_for('admin_user_edit', user_id=u.id) }}" class="btn btn-outline-secondary btn-sm text-nowrap"><i class="bi bi-pencil"></i> Edit</a>{% endif %}</td>
+        <tr data-search="{{ (u.name ~ ' ' ~ u.username)|lower }}" class="{{ 'opacity-50' if not u.active }}">
+          <td class="stack-full" data-label="Name">
+            <div class="d-flex justify-content-between align-items-center gap-2">
+              <span class="fw-semibold">{{ u.name }}</span>
+              {% if u.id == owner_id and not viewer_is_owner %}<span class="btn btn-outline-secondary btn-sm disabled text-nowrap" title="Only the owner can change this account"><i class="bi bi-lock"></i> Locked</span>{% else %}<a href="{{ url_for('admin_user_edit', user_id=u.id) }}" class="btn btn-outline-secondary btn-sm text-nowrap"><i class="bi bi-pencil"></i> Edit</a>{% endif %}
+            </div>
+          </td>
+          <td data-label="Username"><code>{{ u.username }}</code></td>
+          <td data-label="Winds Aloft">{% for r in user_shop_roles(u) %}<span class="badge {{ shop_role_colors.get(r, 'bg-secondary') }} me-1">{{ r|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endfor %}</td>
+          <td data-label="Fly with Kate!">{% for r in user_flight_roles(u) %}<span class="badge bg-primary me-1">{{ 'CFI' if r == 'cfi' else r|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endfor %}</td>
+          <td data-label="Admin">{% if u.id == owner_id %}<span class="badge bg-dark" title="Only this person can change this account"><i class="bi bi-lock-fill"></i> Owner</span> {% endif %}{% if u.is_master_admin %}<span class="badge bg-warning text-dark">Master Admin</span>{% endif %}</td>
+          <td data-label="Billing">{% if u.is_master_admin or u.can_bill %}<span class="badge bg-info text-dark">Billing</span>{% endif %}</td>
+          <td data-label="Status">{% if u.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
         </tr>
         {% else %}
-        <tr><td colspan="9" class="text-muted text-center py-3">No accounts yet.</td></tr>
+        <tr><td colspan="7" class="text-muted text-center py-3">No accounts yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

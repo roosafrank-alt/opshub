@@ -40,7 +40,9 @@ class HoursUpdatedByTest(OpsHubTestCase):
     def test_who_and_when_shown_on_the_portal_page(self):
         self.login("customer").post(f"/portal/aircraft/{self.asset}/hours", data=dict(tach_hours="55.5"))
         html = self.login("customer").get(f"/portal/aircraft/{self.asset}").get_data(as_text=True)
-        self.assertIn("Owner - Owner Customer", html)
+        # HUB-13: the owner sees their own name without the "Owner - " prefix.
+        self.assertIn("by Owner Customer", html)
+        self.assertNotIn("Owner - Owner Customer", html)
 
     def test_updating_tach_immediately_changes_a_maintenance_items_status(self):
         self.exec("""INSERT INTO maintenance_items (asset_id, name, interval_hours, last_done_hours, created_at)

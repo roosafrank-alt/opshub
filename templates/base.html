@@ -9,12 +9,7 @@
 {% if embedded %}<base target="_top">{% endif %}
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>{% block title %}OpsHub{% endblock %}</title>
-<link rel="manifest" href="{{ url_for('static', filename='manifest-windsaloft.json') }}">
-<link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/windsaloft/apple-touch-icon.png') }}">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Winds Aloft">
-<meta name="theme-color" content="#14161a">
+{% set app_identity = 'windsaloft' %}{% include "_app_identity.html" %}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
@@ -48,45 +43,26 @@
 </head>
 <body>
 {% if not embedded %}
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-  <div class="container-fluid">
-    {% set back_fallback = url_for('dashboard') %}{% include "_back_button.html" %}
-    {% if not single_program_account %}
-    <a class="navbar-brand p-1 me-1" href="{{ url_for('home_launcher') }}" title="All Programs"><i class="bi bi-grid-3x3-gap-fill"></i></a>
-    {% endif %}
-    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" id="tour-nav-maintenance" href="{{ url_for('dashboard') }}" title="Maintenance Dashboard">
-      <img src="{{ url_for('static', filename='icons/windsaloft/icon-192.png') }}" class="opshub-hdr-logo" style="width:28px;height:28px;border-radius:7px;" alt="Winds Aloft">
-      <span class="opshub-hdr-name">Winds Aloft</span>
-    </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    {#- Idea "Drop down menu": on a phone (below lg, where the nav collapses
-       into the hamburger), the account menu opens straight from here
-       instead of needing the hamburger menu open first - that was a
-       dropdown nested inside a dropdown. The full-width one with the name
-       still shows inline once the nav is expanded (lg+) below. #}
-    {% set account_from = 'shop' %}
-    {% set logout_url = url_for('logout') %}
-    {% set menu_id_suffix = 'mobile' %}
-    {% set wrapper_classes = 'd-lg-none ms-1' %}
-    {% set show_name = false %}
-    {% include "_account_menu.html" %}
-    {#- Which section is open, from the URL - highlights that nav button
-       (.nav-link.active above). #}
-    {% set _p = request.path %}
-    {% set sec = 'scan' if (_p.startswith('/scan') or _p == '/labor')
-       else 'parts' if (_p.startswith('/parts') or _p.startswith('/labels'))
-       else 'projects' if _p.startswith('/projects')
-       else 'aircraft' if (_p.startswith('/assets') or _p.startswith('/maintenance'))
-       else 'calendar' if _p.startswith('/calendar')
-       else 'orders' if _p.startswith('/orders')
-       else 'squawks' if _p.startswith('/squawks')
-       else 'activity' if _p.startswith('/activity')
-       else 'my-tasks' if _p.startswith('/my-tasks')
-       else 'manage' if (_p.startswith('/laborers') or _p.startswith('/shop/') or _p.startswith('/logbook'))
-       else '' %}
-    <div class="collapse navbar-collapse" id="nav">
+{% from "_app_header.html" import app_header with context %}
+{#- Which section is open, from the URL - highlights that nav button
+   (.nav-link.active above). #}
+{% set _p = request.path %}
+{% set sec = 'scan' if (_p.startswith('/scan') or _p == '/labor')
+   else 'parts' if (_p.startswith('/parts') or _p.startswith('/labels'))
+   else 'projects' if _p.startswith('/projects')
+   else 'aircraft' if (_p.startswith('/assets') or _p.startswith('/maintenance'))
+   else 'calendar' if _p.startswith('/calendar')
+   else 'orders' if _p.startswith('/orders')
+   else 'squawks' if _p.startswith('/squawks')
+   else 'activity' if _p.startswith('/activity')
+   else 'my-tasks' if _p.startswith('/my-tasks')
+   else 'manage' if (_p.startswith('/laborers') or _p.startswith('/shop/') or _p.startswith('/logbook') or _p.startswith('/customers') or _p.startswith('/manuals') or _p.startswith('/manage/'))
+   else '' %}
+{% call app_header(program='shop', brand_name='Winds Aloft', brand_url=url_for('dashboard'),
+                   back_fallback=url_for('dashboard'), navbar_class='bg-dark',
+                   logo=url_for('static', filename='icons/windsaloft/icon-192.png'),
+                   brand_id='tour-nav-maintenance', account_from='shop', chips_program='shop',
+                   boxed_class='shop-nav-boxed') %}
       <ul class="navbar-nav me-auto mb-2 mb-lg-0 shop-nav-boxed">
         <li class="nav-item d-none d-lg-block"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'scan' }}" id="tour-nav-scan" href="{{ url_for('scan_page') }}"><i class="bi bi-upc-scan"></i> <span class="nav-label">Scan</span></a></li>
         {% if is_master_admin or shop_role in ('admin', 'tech') %}
@@ -105,84 +81,44 @@
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'my-tasks' }}" href="{{ url_for('tech_spot') }}"><i class="bi bi-person-workspace"></i> <span class="nav-label">My Tasks</span></a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'activity' }}" href="{{ url_for('activity_log') }}"><i class="bi bi-clock-history"></i> <span class="nav-label">Activity</span></a></li>
         {% endif %}
-        {% if shop_role == 'admin' and not is_master_admin and session.get('cfi_id') %}
-        {#- Idea ux-shop-admin-skip-launcher: a shop admin gets Flight School
-           too (see auth.log_in_combined/db.ensure_flight_profile) - this is
-           how they reach it day to day without going back through the
-           program picker every time. #}
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('flight.index') }}"><i class="bi bi-airplane-engines"></i> <span class="nav-label">Fly with Kate!</span></a></li>
-        {% endif %}
       </ul>
-      <div class="d-flex align-items-center gap-3 shop-nav-boxed">
-        {#- QA ux-header-viewas-inline: the "View as" chips sit on the same
-           line as the Manage/account row, just to its left, whenever there's
-           room (flex-wrap lets them still drop to their own line in the
-           narrow icons-only band, same as the phone dropdown panel). #}
-        <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
-          {% set view_as_program = 'shop' %}
-          {% include "_view_as_chips.html" %}
-          <div class="d-flex align-items-center gap-2">
-            {#- Manage menu - same idea as the Fly with Kate! header's Manage:
-               Laborers, Labor Pay, Billing, Stats. Anyone logged in gets Labor
-               Pay (their own hours/pay); the rest is shop admins. #}
-            <div class="dropdown">
-              <a class="nav-link dropdown-toggle text-light {{ 'active' if sec == 'manage' }}" href="#" id="shop-manage-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-gear"></i> <span class="nav-label">Manage</span>
-              </a>
-              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shop-manage-toggle">
-                {% if is_master_admin or shop_role == 'admin' %}
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/laborers') or _p.startswith('/labor/badges') or _p.startswith('/labor/general-code') }}" href="{{ url_for('laborers_list') }}"><i class="bi bi-person-badge"></i> Workers</a></li>
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> Labor Pay</a></li>
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/customers') }}" href="{{ url_for('customers_list') }}"><i class="bi bi-people"></i> Customers</a></li>
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/manuals') }}" href="{{ url_for('manuals.manuals_list') }}"><i class="bi bi-file-earmark-pdf"></i> Manuals</a></li>
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/manage/task-templates') }}" href="{{ url_for('task_templates') }}"><i class="bi bi-list-check"></i> Task Templates</a></li>
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/tools') }}" href="{{ url_for('tools_list') }}"><i class="bi bi-wrench-adjustable"></i> Calibrated Tools</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/billing') }}" href="{{ url_for('shop_billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/stats') }}" href="{{ url_for('shop_stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/logbook') }}" href="{{ url_for('logbook.logbook_list') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
-                {% else %}
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
-                {% if shop_role in ('tech', 'inspector') %}
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/tools') }}" href="{{ url_for('tools_list') }}"><i class="bi bi-wrench-adjustable"></i> Calibrated Tools</a></li>
-                {% endif %}
-                {% if shop_role == 'tech' %}
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/badges') }}" href="{{ url_for('laborer_badges') }}"><i class="bi bi-printer"></i> Print Worker Badges</a></li>
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/general-code') }}" href="{{ url_for('general_shop_code_page') }}"><i class="bi bi-qr-code"></i> General Shop Code</a></li>
-                <li><a class="dropdown-item {{ 'active' if _p.startswith('/logbook') }}" href="{{ url_for('logbook.logbook_list') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
-                {% endif %}
-                {% endif %}
-              </ul>
-            </div>
-            {#- Same account menu as the icon next to the hamburger above -
-               this copy only shows once the nav is expanded (lg+), where it
-               sits inline instead of inside a hamburger panel. #}
-            {% set account_from = 'shop' %}
-            {% set logout_url = url_for('logout') %}
-            {% set menu_id_suffix = 'desktop' %}
-            {% set wrapper_classes = 'd-none d-lg-block' %}
-            {% set show_name = true %}
-            {% include "_account_menu.html" %}
-          </div>
-        </div>
+      {#- Manage menu - same idea as the Fly with Kate! header's Manage:
+         Workers, Labor Pay, Customers, Billing, Stats. Anyone logged in
+         gets Labor Pay (their own hours/pay); the rest is shop admins. #}
+      <div class="dropdown shop-nav-boxed">
+        <a class="nav-link dropdown-toggle text-light {{ 'active' if sec == 'manage' }}" href="#" id="shop-manage-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-gear"></i> <span class="nav-label">Manage</span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shop-manage-toggle">
+          {% if is_master_admin or shop_role == 'admin' %}
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/laborers') or _p.startswith('/labor/badges') or _p.startswith('/labor/general-code') }}" href="{{ url_for('laborers_list') }}"><i class="bi bi-person-badge"></i> Workers</a></li>
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> Labor Pay</a></li>
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/customers') }}" href="{{ url_for('customers_list') }}"><i class="bi bi-people"></i> Customers</a></li>
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/manuals') }}" href="{{ url_for('manuals.manuals_list') }}"><i class="bi bi-file-earmark-pdf"></i> Manuals</a></li>
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/manage/task-templates') }}" href="{{ url_for('task_templates') }}"><i class="bi bi-list-check"></i> Task Templates</a></li>
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/tools') }}" href="{{ url_for('tools_list') }}"><i class="bi bi-wrench-adjustable"></i> Calibrated Tools</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/billing') }}" href="{{ url_for('shop_billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/stats') }}" href="{{ url_for('shop_stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/logbook') }}" href="{{ url_for('logbook.logbook_list') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
+          {% else %}
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
+          {% if shop_role in ('tech', 'inspector') %}
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/tools') }}" href="{{ url_for('tools_list') }}"><i class="bi bi-wrench-adjustable"></i> Calibrated Tools</a></li>
+          {% endif %}
+          {% if shop_role == 'tech' %}
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/badges') }}" href="{{ url_for('laborer_badges') }}"><i class="bi bi-printer"></i> Print Worker Badges</a></li>
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/general-code') }}" href="{{ url_for('general_shop_code_page') }}"><i class="bi bi-qr-code"></i> General Shop Code</a></li>
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/logbook') }}" href="{{ url_for('logbook.logbook_list') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
+          {% endif %}
+          {% endif %}
+        </ul>
       </div>
-    </div>
-  </div>
-</nav>
-{% include "_view_as_banner.html" %}
+{% endcall %}
 {% endif %}
 <div class="container-fluid py-3">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+  {% include "_flash_messages.html" %}
   {% block content %}{% endblock %}
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -192,7 +128,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   OpsHubTour.start([
-    { selector: '#tour-nav-maintenance', title: 'Maintenance', text: 'Home base for the shop side - due/overdue maintenance across every asset, at a glance.' },
+    { selector: '#tour-nav-maintenance', title: 'Winds Aloft', text: 'Home base for the shop side - due/overdue maintenance across every asset, at a glance.' },
     { selector: '#tour-nav-scan', title: 'Scan', text: 'Scan a barcode to check parts in or out fast, right from your phone.' },
     { selector: '#tour-nav-parts', title: 'Parts', text: 'The full parts catalog - stock levels, costs, and where everything lives.' },
     { selector: '#tour-nav-projects', title: 'Projects', text: 'Track parts and labor used on a specific job or project.' },

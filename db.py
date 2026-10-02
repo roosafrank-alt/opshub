@@ -2301,6 +2301,21 @@ def _migrate(conn):
         conn.execute("ALTER TABLE plane_squawks ADD COLUMN sent_back_note TEXT")
         conn.commit()
 
+    # Preview build (chrome part): JOBS-31 records when a customer's login
+    # details were sent; SEAM-19 remembers the owner portal's and Flight
+    # Academy's three-stop walkthroughs once seen.
+    customer_cols_login = [r["name"] for r in conn.execute("PRAGMA table_info(customers)").fetchall()]
+    if "login_sent_at" not in customer_cols_login:
+        conn.execute("ALTER TABLE customers ADD COLUMN login_sent_at TEXT")
+        conn.commit()
+    if "tour_seen" not in customer_cols_login:
+        conn.execute("ALTER TABLE customers ADD COLUMN tour_seen INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+    user_cols_academy_tour = [r["name"] for r in conn.execute("PRAGMA table_info(users)").fetchall()]
+    if "tour_seen_academy" not in user_cols_academy_tour:
+        conn.execute("ALTER TABLE users ADD COLUMN tour_seen_academy INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+
 
 def _carry_over_project_photos_to_assets(conn):
     """One-time: an aircraft/asset with no photo of its own gets a COPY of
@@ -2429,13 +2444,14 @@ def ensure_flight_profile(conn, user_row):
     profile row to hold their rate info, creating an empty one if needed
     (e.g. an admin just granted someone CFI access from the accounts page).
 
-    Idea "shop admin skip launcher": a shop admin (not master) with no
-    Flight School Role of their own also gets a cfis row - is_station=1
-    (never offered as a bookable instructor, no pay-rate or listing
-    anywhere real CFIs show up) and no pay rate, the same "instructor
-    without billing" view any unbilled CFI gets. Setting a real Flight
-    School Role for them on the accounts page overrides this, same as
-    for anyone else."""
+    Idea "shop admin skip launcher": a shop admin with no Fly with Kate!
+    role of their own also gets a cfis row - is_station=1 (never offered
+    as a bookable instructor, no pay-rate or listing anywhere real CFIs
+    show up) and no pay rate, the same "instructor without billing" view
+    any unbilled CFI gets. HUB-01 gives a master admin with no Fly with
+    Kate! role the same hidden profile, so every Fly with Kate! page opens
+    for them instead of bouncing to the picker. Setting a real Fly with
+    Kate! role on the accounts page overrides this, same as for anyone."""
     flight_roles = user_flight_roles(user_row)
     if "cfi" in flight_roles:
         row = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
@@ -2455,7 +2471,7 @@ def ensure_flight_profile(conn, user_row):
                 (user_row["name"], user_row["username"], user_row["password_hash"], user_row["active"],
                  user_row["id"], now_iso()))
             conn.commit()
-    if not flight_roles and user_row["shop_role"] == "admin" and not user_row["is_master_admin"]:
+    if not flight_roles and (user_row["shop_role"] == "admin" or user_row["is_master_admin"]):
         row = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
         if not row:
             conn.execute(

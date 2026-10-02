@@ -504,3 +504,36 @@ body { background: #f4f5f7; }
   .navbar .navbar-collapse { flex-wrap: nowrap; }
   .navbar .nav-link > i, .navbar .btn > i { font-size: 1rem; flex-shrink: 0; }
 }
+
+/* Preview build (chrome part) ------------------------------------------- */
+/* SEAM-14: the "alert resolved" confirmation reads as a banner (moved here
+   from the Fly with Kate! header's own <style> so the one shared flash
+   include can use it anywhere). */
+.alert-flight-resolved {
+  font-size: 1.1rem;
+  font-weight: 700;
+  border: 2px solid #146c43;
+  box-shadow: 0 .25rem .75rem rgba(25,135,84,.25);
+}
+/* SEAM-1: the shared header (_app_header.html). The Programs button is a
+   brand-sized dropdown toggle; on the narrowest phones only its icon shows. */
+.opshub-hdr .opshub-programs-btn { color: rgba(255,255,255,.85); }
+.opshub-hdr .opshub-programs-btn:hover { color: #fff; }
+.opshub-hdr .opshub-programs-btn .nav-label { font-size: .85rem; font-weight: 500; }
+@media (max-width: 575.98px) {
+  .opshub-hdr .opshub-programs-btn .nav-label { display: none; }
+}
+.opshub-hdr .opshub-hdr-right { gap: .25rem; }
+/* The collapsed phone panel's colour for the headers that have no Bootstrap
+   bg-* class of their own (see the "Mobile view drop downs" rules above). */
+.academy-nav #nav.navbar-collapse { background: #14213d; }
+.owner-nav #nav.navbar-collapse { background: var(--owner-teal-dk, #0a4f4f); }
+/* SEAM-11: My Aircraft (the owner portal header, the Customers cards and
+   buttons) takes its own teal, distinct from Admin's plum. */
+:root { --owner-teal: #0f6e6e; --owner-teal-dk: #0a4f4f; --owner-teal-accent: #2aa9a9; }
+.owner-nav { background: linear-gradient(90deg, var(--owner-teal-dk), var(--owner-teal)); }
+.card.owner-card-accent { border-top: 3px solid var(--owner-teal-accent); }
+.btn-owner { background: var(--owner-teal); border-color: var(--owner-teal); color: #fff; }
+.btn-owner:hover, .btn-owner:focus { background: var(--owner-teal-dk); border-color: var(--owner-teal-dk); color: #fff; }
+.btn-outline-owner { color: var(--owner-teal); border-color: var(--owner-teal); }
+.btn-outline-owner:hover { background: var(--owner-teal); border-color: var(--owner-teal); color: #fff; }
