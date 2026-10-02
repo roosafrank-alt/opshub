@@ -23,6 +23,7 @@ from flight import flight_bp, _flight_hours, check_session_alerts, run_balance_h
 from logbook import logbook_bp
 from pilotlog import pilotlog_bp
 from customer import customer_bp, _owned_asset_ids, _project_bill
+from password_reset import pwreset_bp
 from manuals import manuals_bp, manuals_for_asset
 from groundschool import groundschool_bp
 from payroll import payroll_bp
@@ -79,6 +80,7 @@ app.register_blueprint(flight_bp)
 app.register_blueprint(logbook_bp)
 app.register_blueprint(pilotlog_bp)
 app.register_blueprint(customer_bp)
+app.register_blueprint(pwreset_bp)
 app.register_blueprint(manuals_bp)
 app.register_blueprint(groundschool_bp)
 app.register_blueprint(payroll_bp)
@@ -7875,7 +7877,7 @@ def api_labor_stop(session_id):
 # Master account management (Shop Inventory + Flight School roles together)
 # ---------------------------------------------------------------------------
 
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from db import ensure_flight_profile
 
 
@@ -8264,6 +8266,18 @@ def password_problem(new_password, confirm_password, shown=False):
     return None
 
 
+def current_password_problem(account_name, password_hash, typed):
+    """PW-1: whoever changes their own password must type the one they have
+    now. Wrong guesses count toward the same lockout as the login form, so a
+    phone left unlocked can't be used to guess it. Returns a sentence or None."""
+    if not login_allowed(account_name):
+        return "Too many wrong tries. Please try again later."
+    if not typed or not check_password_hash(password_hash, typed):
+        login_failed(account_name)
+        return "Your current password isn't right, so the password was not changed."
+    return None
+
+
 def _render_account(user_row, came_from):
     back = None
     if came_from and came_from in ACCOUNT_FROM_PROGRAMS:
@@ -8338,15 +8352,22 @@ def account_page():
             conn.close()
             return _render_account(user_row, came_from)
         if new_password:
+            # PW-1: changing your own password needs the one you have now.
+            cur_problem = current_password_problem(user_row["username"], user_row["password_hash"],
+                                                   request.form.get("current_password", ""))
+            if cur_problem:
+                flash(cur_problem, "danger")
+                conn.close()
+                return _render_account(user_row, came_from)
             pw_hash = generate_password_hash(new_password, method="pbkdf2:sha256")
             conn.execute(
                 "UPDATE users SET name=?, email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, "
                 "notify_maintenance=?, notify_flight_reminders=?, notify_push_session_alerts=?, "
                 "notify_push_30min=?, notify_push_timeup=?, notify_push_late=?, "
-                "password_hash=?, password_plain=? WHERE id=?",
+                "password_hash=?, password_plain=NULL WHERE id=?",   # PW-2: no readable copy of a password you chose
                 (name, email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance,
                  notify_flight_reminders, notify_push_session_alerts,
-                 notify_push_30min, notify_push_timeup, notify_push_late, pw_hash, new_password, session["user_id"]))
+                 notify_push_30min, notify_push_timeup, notify_push_late, pw_hash, session["user_id"]))
             conn.execute("UPDATE cfis SET password_hash=? WHERE user_id=?", (pw_hash, session["user_id"]))
             conn.execute("UPDATE students SET password_hash=? WHERE user_id=?", (pw_hash, session["user_id"]))
         else:

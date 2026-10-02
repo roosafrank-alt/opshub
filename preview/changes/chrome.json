@@ -559,5 +559,47 @@
   "where": "App-wide sweep: Page titles follow Page, Program. Not in this preview yet; it touches every page, so it is done as its own pass after you have looked at the rest.",
   "see_as": "admin",
   "detail": "Approved, still to do."
+ },
+ {
+  "id": "PW-1",
+  "status": "built",
+  "pages": [
+   "/account",
+   "/portal/account"
+  ],
+  "where": "My Account > Change Password: a Current Password box above the new password boxes (staff and owners).",
+  "see_as": "admin",
+  "detail": "Required only when a new password is typed. A wrong one says so and counts toward the login lockout (5 wrong = locked, same as login)."
+ },
+ {
+  "id": "PW-2",
+  "status": "built",
+  "pages": [
+   "/customers/{id}"
+  ],
+  "where": "Behind the scenes: changing your own password or using a reset link wipes the readable copy. On a customer who chose their own password, Send login details is greyed out with a hint.",
+  "see_as": "admin",
+  "detail": "Admin-set starting passwords (New Customer, Edit Account) still keep a readable copy because that is what Send login details emails; it is wiped as soon as the person chooses their own."
+ },
+ {
+  "id": "PW-3",
+  "status": "built",
+  "pages": [
+   "/",
+   "/forgot-password",
+   "/reset-password/*"
+  ],
+  "where": "Login page link 'Forgot your password?', the request page and the choose-a-password page. In the preview the email is blocked: open All changes > Blocked sends to read the message and its link.",
+  "see_as": "none",
+  "detail": "Link works once for 1 hour; 3 links per account per hour. If the same email is both a staff and an owner login with the same password, both change together. Needs an email on the account and email set up under Admin > Notifications."
+ },
+ {
+  "id": "UI-1",
+  "status": "built",
+  "pages": [
+   "*"
+  ],
+  "where": "Back button in every header: arrow only, no word.",
+  "see_as": "admin"
  }
 ]

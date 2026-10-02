@@ -13,7 +13,7 @@
        starting password) and remember when it went out. #}
     <form method="post" action="{{ url_for('customer_send_login', customer_id=customer.id) }}" class="m-0 d-flex align-items-center gap-2" data-change="JOBS-31"
           data-confirm="Email{% if customer.phone %} and text{% endif %} {{ customer.name }} the My Aircraft address and their current password ({{ customer.password_plain or 'not set' }})?" data-confirm-title="Send login details" data-confirm-ok="Send">
-      <button class="btn btn-owner btn-sm" {{ 'disabled' if not customer.password_plain }}><i class="bi bi-send"></i> Send login details</button>
+      <button class="btn btn-owner btn-sm" {% if not customer.password_plain %}disabled title="They have chosen their own password, so there is nothing to send. They can use Forgot your password? on the login page." data-change="PW-2"{% endif %}><i class="bi bi-send"></i> Send login details</button>
       {% if customer.login_sent_at %}<span class="small text-muted">Login sent on {{ customer.login_sent_at|usdate }}</span>{% endif %}
     </form>
     <a href="{{ url_for('customer_edit', customer_id=customer.id) }}" class="btn btn-outline-owner btn-sm"><i class="bi bi-pencil"></i> Edit Account</a>

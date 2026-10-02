@@ -157,10 +157,10 @@ class PasswordRulesTest(OpsHubTestCase):
         """HUB-27."""
         c = self.login("tech")
         before = self.q1("SELECT password_hash FROM users WHERE id = ?", (self.users["tech"]["id"],))["password_hash"]
-        r = c.post("/account", data={"name": "Tech", "password": "short", "password_confirm": "short"})
+        r = c.post("/account", data={"name": "Tech", "current_password": PASSWORD, "password": "short", "password_confirm": "short"})
         self.assertIn("at least 8 characters", r.get_data(as_text=True))
         self.assertEqual(self.q1("SELECT password_hash FROM users WHERE id = ?", (self.users["tech"]["id"],))["password_hash"], before)
-        c.post("/account", data={"name": "Tech", "password": "longenough1", "password_confirm": "longenough1"})
+        c.post("/account", data={"name": "Tech", "current_password": PASSWORD, "password": "longenough1", "password_confirm": "longenough1"})
         self.assertNotEqual(self.q1("SELECT password_hash FROM users WHERE id = ?", (self.users["tech"]["id"],))["password_hash"], before)
         html = c.get("/account").get_data(as_text=True)
         self.assertIn('type="password" name="password"', html)
@@ -168,7 +168,7 @@ class PasswordRulesTest(OpsHubTestCase):
 
     def test_with_show_on_there_is_no_confirm_box(self):
         c = self.login("tech")
-        r = c.post("/account", data={"name": "Tech", "password": "longenough1", "password_shown": "1"})
+        r = c.post("/account", data={"name": "Tech", "current_password": PASSWORD, "password": "longenough1", "password_shown": "1"})
         self.assertEqual(r.status_code, 302)
 
     def test_admin_set_starting_password_is_exempt(self):
@@ -182,13 +182,13 @@ class PasswordRulesTest(OpsHubTestCase):
         c = self.login("customer")
         self.assertEqual(c.get("/portal/account").status_code, 200)
         r = c.post("/portal/account", data={"name": "Owner Customer", "email": "owner@example.com", "phone": "555",
-                                            "password": "tiny", "password_confirm": "tiny"})
+                                            "current_password": PASSWORD, "password": "tiny", "password_confirm": "tiny"})
         self.assertIn("at least 8 characters", r.get_data(as_text=True))
         r = c.post("/portal/account", data={"name": "Owner C.", "email": "owner@example.com", "phone": "555",
-                                            "password": "newpass123", "password_confirm": "newpass123"})
+                                            "current_password": PASSWORD, "password": "newpass123", "password_confirm": "newpass123"})
         self.assertEqual(r.status_code, 302)
         row = self.q1("SELECT * FROM customers WHERE id = ?", (self.customer_id,))
-        self.assertEqual((row["name"], row["phone"], row["password_plain"]), ("Owner C.", "555", "newpass123"))
+        self.assertEqual((row["name"], row["phone"], row["password_plain"]), ("Owner C.", "555", None))   # PW-2: nothing readable kept
 
 
 class CustomerLoginDetailsTest(OpsHubTestCase):

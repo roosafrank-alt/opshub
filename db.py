@@ -2253,6 +2253,18 @@ def _migrate(conn):
         kind TEXT NOT NULL
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_login_attempts_source ON login_attempts(source, at)")
+    # PW-3: emailed "forgot password" links. Only a hash of the token is kept; each
+    # link works once and expires (see password_reset.py). kind is 'user' or 'customer'.
+    conn.execute("""CREATE TABLE IF NOT EXISTS password_resets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind TEXT NOT NULL,
+        account_id INTEGER NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        used_at TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_password_resets_account ON password_resets(kind, account_id, created_at)")
     # Each package can be marked received or cancelled on its own (NULL = still open).
     ship_cols = [r["name"] for r in conn.execute("PRAGMA table_info(order_shipments)").fetchall()]
     if "status" not in ship_cols:

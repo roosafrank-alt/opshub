@@ -4,16 +4,16 @@
   program's home URL. Tapping it goes to the previous page in this browser
   tab; if there isn't one inside OpsHub (e.g. the page was opened from the
   home-screen app icon or a notification), it goes to the program's home
-  instead. On the program's own home page with nowhere to go back to, it
+  instead. Just the arrow symbol, no word (title/aria-label still say Back). On the program's own home page with nowhere to go back to, it
   hides itself. The program picker (home_launcher.html) has no header, so it
   never shows this.
 #}
 <a href="{{ back_fallback }}" class="opshub-back-btn" id="opshub-back-btn" title="Back" aria-label="Back"
-   data-fallback="{{ back_fallback }}"{% if back_change %} data-change="{{ back_change }}"{% endif %}><i class="bi bi-chevron-left"></i><span class="d-none d-sm-inline">Back</span></a>
+   data-fallback="{{ back_fallback }}"{% if back_change %} data-change="{{ back_change }}"{% endif %}><i class="bi bi-chevron-left"></i></a>
 <style>
   .opshub-back-btn {
     display: inline-flex; align-items: center; justify-content: center; gap: .15rem;
-    min-width: 40px; height: 40px; padding: 0 .55rem 0 .35rem; margin-right: .35rem;
+    min-width: 40px; height: 40px; padding: 0 .4rem; margin-right: .35rem;
     border: 1px solid rgba(255,255,255,.35); border-radius: 8px;
     background: rgba(255,255,255,.08); color: #fff !important;
     font-weight: 600; font-size: .95rem; text-decoration: none; line-height: 1;

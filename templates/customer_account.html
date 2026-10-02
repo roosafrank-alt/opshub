@@ -25,7 +25,7 @@
     </div>
     <hr class="my-3">
     <h6 class="mb-2"><i class="bi bi-key"></i> Change Password <span class="text-muted small fw-normal">(leave blank to keep your current password)</span></h6>
-    {% include "_password_boxes.html" %}
+    {% set ask_current = true %}{% include "_password_boxes.html" %}
     <div class="d-flex justify-content-between mt-3">
       <a href="{{ url_for('customer.customer_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
       <button type="submit" class="btn btn-primary fw-bold">Save Changes</button>

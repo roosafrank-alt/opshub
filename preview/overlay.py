@@ -87,7 +87,10 @@ def init(app, label="preview", before_port=5052, preview_port=5051):
 
     @app.route("/__preview/outbox")
     def pv_outbox():
-        rows = "".join("<tr><td>%s</td><td><code>%s</code></td></tr>" % (re.sub("<", "&lt;", k), re.sub("<", "&lt;", d))
+        def _show(text):   # escape, then make web links tappable (so a reset link can be opened)
+            text = re.sub("<", "&lt;", text).replace(">", "&gt;")
+            return re.sub(r"(https?://[^\s&]+)", r"<a href='\1'>\1</a>", text).replace("\n", "<br>")
+        rows = "".join("<tr><td>%s</td><td><code style='white-space:normal'>%s</code></td></tr>" % (re.sub("<", "&lt;", k), _show(d))
                        for k, d in reversed(safety.OUTBOX)) or "<tr><td colspan=2>Nothing has been blocked yet.</td></tr>"
         return Response("<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
                         "<title>Blocked sends</title><body style='font:15px system-ui;margin:16px'>"

@@ -132,14 +132,17 @@ def customer_account():
             error = "That email is already used by another account."
         else:
             error = password_problem(new_password, confirm, shown)
+        if not error and new_password:
+            from app import current_password_problem  # PW-1: ask for the password they have now
+            error = current_password_problem(cust["email"], cust["password_hash"], request.form.get("current_password", ""))
         if error:
             flash(error, "danger")
             conn.close()
             return render_template("customer_account.html", customer=cust, name=name, email=email, phone=phone or "")
         if new_password:
-            conn.execute("UPDATE customers SET name=?, email=?, phone=?, password_hash=?, password_plain=? WHERE id=?",
+            conn.execute("UPDATE customers SET name=?, email=?, phone=?, password_hash=?, password_plain=NULL WHERE id=?",
                          (name, email, phone, generate_password_hash(new_password, method="pbkdf2:sha256"),
-                          new_password, cust["id"]))
+                          cust["id"]))   # PW-2: no readable copy of a password they chose
         else:
             conn.execute("UPDATE customers SET name=?, email=?, phone=? WHERE id=?", (name, email, phone, cust["id"]))
         conn.commit()

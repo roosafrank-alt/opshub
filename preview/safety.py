@@ -20,8 +20,8 @@ class Blocked(Exception):
     pass
 
 
-def _record(kind, detail):
-    OUTBOX.append((kind, str(detail)[:300]))
+def _record(kind, detail, limit=300):
+    OUTBOX.append((kind, str(detail)[:limit]))
     del OUTBOX[:-200]
 
 
@@ -47,6 +47,16 @@ def neutralize():
 
     smtplib.SMTP = _NoSMTP
     smtplib.SMTP_SSL = _NoSMTP
+
+    try:   # keep the whole message (so a "forgot password" link can be opened from the Blocked sends page)
+        import notify
+
+        def blocked_email(settings, to_addr, subject, body, brand=getattr(notify, "DEFAULT_BRAND", "")):
+            _record("email blocked", f"To {to_addr} | {subject} | {body}", limit=1500)
+            return False, "email is switched off in preview"
+        notify.send_email = blocked_email
+    except Exception:
+        pass
 
     def _empty(args, kwargs):
         text = bool(kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding"))
