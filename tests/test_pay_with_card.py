@@ -1,13 +1,11 @@
-"""Idea "Credit card": a simulated Stripe-style "Pay with Card" button next
-to Mark Paid on Billing - no real Stripe account, no network call, just a
-fake charge id and the card's last 4 digits kept alongside the usual paid
-fields.
-"""
+"""SHOP-01: the simulated "Pay with Card" button and its pop-up are gone from
+Billing (it marked jobs Paid with a pretend charge). A job that was already
+marked paid that way stays readable, labelled as simulated."""
 from harness import OpsHubTestCase, seed_row
 import db
 
 
-class PayWithCardTest(OpsHubTestCase):
+class PayWithCardRemovedTest(OpsHubTestCase):
     def setUp(self):
         super().setUp()
         conn = db.get_db()
@@ -22,40 +20,23 @@ class PayWithCardTest(OpsHubTestCase):
         self.exec("UPDATE projects SET payment_status = 'invoiced', invoiced_at = ? WHERE id = ?",
                   (db.now_iso(), self.project))
 
-    def project_row(self):
-        return self.q1("SELECT * FROM projects WHERE id = ?", (self.project,))
+    def test_billing_page_has_no_pay_with_card(self):
+        html = self.login("shop_admin").get("/shop/billing?period=all").get_data(as_text=True)
+        self.assertNotIn("Pay with Card", html)
+        self.assertNotIn("Charge Card", html)
+        self.assertNotIn("pay-card", html)
+        self.assertIn("Mark Paid", html)
 
-    def test_pay_with_card_marks_paid_and_keeps_only_last4(self):
+    def test_the_pay_with_card_route_is_gone(self):
         c = self.login("shop_admin")
-        c.post(f"/shop/billing/{self.project}/pay-card",
-               data={"card_number": "4242 4242 4242 4242", "card_expiry": "12/30", "card_cvc": "123"},
-               follow_redirects=True)
-        row = self.project_row()
-        self.assertEqual(row["payment_status"], "paid")
-        self.assertEqual(row["paid_method"], "Card")
-        self.assertEqual(row["card_last4"], "4242")
-        self.assertTrue(row["card_charge_id"].startswith("sim_ch_"))
-        self.assertTrue(row["paid_at"])
-        self.assertEqual(row["paid_by"], "Shop Admin")
+        r = c.post(f"/shop/billing/{self.project}/pay-card", data={"card_number": "4242424242424242"})
+        self.assertEqual(r.status_code, 404)
+        row = self.q1("SELECT payment_status FROM projects WHERE id = ?", (self.project,))
+        self.assertEqual(row["payment_status"], "invoiced")
 
-    def test_billing_page_shows_pay_with_card_button_and_receipt(self):
-        c = self.login("shop_admin")
-        html = c.get("/shop/billing?period=all").get_data(as_text=True)
-        self.assertIn("Pay with Card", html)
-        c.post(f"/shop/billing/{self.project}/pay-card", data={"card_number": "4111111111111111"}, follow_redirects=True)
-        html = c.get("/shop/billing?period=all").get_data(as_text=True)
-        self.assertIn("****1111", html)
-        # No action left on this row once it's paid (the modal itself always
-        # mentions "Pay with Card" in its title/button, so check the row's
-        # own trigger is gone, not the phrase anywhere on the page).
-        self.assertNotIn(f"/shop/billing/{self.project}/pay-card", html)
-
-    def test_blank_card_number_is_refused(self):
-        c = self.login("shop_admin")
-        c.post(f"/shop/billing/{self.project}/pay-card", data={"card_number": ""}, follow_redirects=True)
-        self.assertEqual(self.project_row()["payment_status"], "invoiced")
-
-    def test_a_tech_cannot_pay_with_card(self):
-        c = self.login("tech")
-        c.post(f"/shop/billing/{self.project}/pay-card", data={"card_number": "4242424242424242"}, follow_redirects=True)
-        self.assertEqual(self.project_row()["payment_status"], "invoiced")
+    def test_an_old_simulated_card_payment_stays_readable_and_is_labelled(self):
+        self.exec("""UPDATE projects SET payment_status = 'paid', paid_at = ?, paid_by = 'Shop Admin',
+                     paid_method = 'Card', card_last4 = '4242', card_charge_id = 'sim_ch_x' WHERE id = ?""",
+                  (db.now_iso(), self.project))
+        html = self.login("shop_admin").get("/shop/billing?period=all").get_data(as_text=True)
+        self.assertIn("(simulated) ****4242", html)

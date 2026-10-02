@@ -40,7 +40,7 @@
     <div class="mb-3">
       <label class="form-label">Barcode</label>
       <input type="text" class="form-control" value="{{ part.barcode }}" disabled>
-      <div class="form-text">Barcode can't be changed after creation. <a href="{{ url_for('labels', ids=part.id) }}">Print label</a></div>
+      <div class="form-text">Barcode can't be changed after creation. <a href="{{ url_for('labels', ids=part.id) }}" data-change="SHOP-35">Print page (regular printer)</a></div>
     </div>
     {% endif %}
 
@@ -97,7 +97,10 @@
 
     <div class="mb-3">
       <label class="form-label">Supplier</label>
-      <input type="text" name="supplier" class="form-control" value="{{ form.get('supplier','') if form else '' }}">
+      <input type="text" name="supplier" list="supplier-list" class="form-control" autocomplete="off" data-change="SHOP-45" value="{{ form.get('supplier','') if form else '' }}">
+      <datalist id="supplier-list">
+        {% for sn in supplier_names() %}<option value="{{ sn }}">{% endfor %}
+      </datalist>
     </div>
 
     <div class="form-check mb-3">

@@ -4,7 +4,7 @@
 <div class="row justify-content-center">
   <div class="col-lg-8">
 
-    <p class="text-muted small mb-2 {{ 'd-none' if embedded }}">One scanner for everything. Just scan - a part, a project code, or someone's laborer badge, in any order. It figures out what the code is and asks anything it still needs afterward.</p>
+    <p class="text-muted small mb-2 {{ 'd-none' if embedded }}">One scanner for everything. Just scan - a part, a project code, or someone's worker badge, in any order. It figures out what the code is and asks anything it still needs afterward.</p>
 
     <div class="card p-3 mb-3">
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
@@ -253,7 +253,7 @@ function updatePairingUI() {
   } else if (pendingLaborer) {
     pairingCard.style.display = 'block';
     pairingLeft.textContent = pendingLaborer.name;
-    pairingLeftSub.textContent = 'Laborer badge';
+    pairingLeftSub.textContent = 'Worker badge';
   } else {
     pairingCard.style.display = 'none';
   }
@@ -375,7 +375,7 @@ function handleGeneralShopScan(fromCamera) {
   markLaborContext();
   projectSelect.value = '';
   updateProjectStatus();
-  showResult('<i class="bi bi-clipboard-check"></i> <strong>General Shop</strong> selected - now scan a laborer badge to clock in/out.', 'scan-flash-in');
+  showResult('<i class="bi bi-clipboard-check"></i> <strong>General Shop</strong> selected - now scan a worker badge to clock in/out.', 'scan-flash-in');
   vibrate([40, 60, 40]);
   maybeFirePendingLaborer();
   if (fromCamera && cameraRunning && html5QrCode) {
@@ -402,7 +402,7 @@ function handleProjectCodeScan(code, fromCamera) {
         selectProjectInUI(data);
         markLaborContext();
         showResult('<i class="bi bi-clipboard-check"></i> Project selected: <strong>' + data.code + ' - ' + data.name +
-          '</strong><br><small>Now scan a part or a laborer badge.</small>', 'scan-flash-in');
+          '</strong><br><small>Now scan a part or a worker badge.</small>', 'scan-flash-in');
         vibrate([40, 60, 40]);
       } else {
         showResult('No project found with code <strong>' + code + '</strong>.', 'scan-flash-error');
@@ -437,7 +437,7 @@ function handleTaskCodeScan(code, fromCamera) {
       markLaborContext();
       showResult('<i class="bi bi-clipboard-check"></i> Task selected: <strong>' + data.project_code +
         (data.section ? ' &middot; ' + data.section : '') + '</strong>.' +
-        (pendingLaborer ? '' : ' Now scan a part or a laborer badge.'), 'scan-flash-in');
+        (pendingLaborer ? '' : ' Now scan a part or a worker badge.'), 'scan-flash-in');
       vibrate([40, 60, 40]);
     } else {
       showResult('No task found for that code.', 'scan-flash-error');
@@ -482,7 +482,7 @@ function handleLaborScan(code, note) {
   }).then(r => r.json()).then(function (data) {
     if (!data.ok) {
       let msg = 'Scan failed.';
-      if (data.error === 'unknown_laborer') msg = 'No laborer found for that code.';
+      if (data.error === 'unknown_laborer') msg = 'No worker found for that code.';
       else if (data.error === 'inactive_laborer') msg = data.name + ' is marked inactive.';
       else if (data.error === 'note_required') {
         showGeneralNotePrompt(code, data.laborer);
@@ -492,7 +492,7 @@ function handleLaborScan(code, note) {
         // See handlePartLookupResult's comment above: replaces, never
         // joins, whatever was already pending.
         pendingPart = null;
-        pendingLaborer = { code: code, name: data.name || 'Laborer' };
+        pendingLaborer = { code: code, name: data.name || 'Worker' };
         updatePairingUI();
         showResult('<i class="bi bi-hourglass-split"></i> <strong>' + pendingLaborer.name +
           '</strong> scanned - now scan a project code (or "' + GENERAL_SHOP_CODE + '") to start their timer.', 'scan-flash-in');
@@ -750,9 +750,9 @@ function showPartConfirm(barcode, data, fromCamera) {
   if (!data.found) {
     vibrate([80, 60, 80, 60, 80]);
     body.innerHTML = `
-      <div class="alert alert-warning mb-2"><strong>Unrecognized code:</strong> ${barcode}<br>Not a part, project, or laborer code we recognize.</div>
+      <div class="alert alert-warning mb-2"><strong>Unrecognized code:</strong> ${barcode}<br>Not a part, project, or worker code we recognize.</div>
       <div class="d-flex gap-2">
-        <a href="/parts/new?barcode=${encodeURIComponent(barcode)}" class="btn btn-primary flex-fill">Add as new part</a>
+        ${addPartHtml(barcode, 'btn btn-primary flex-fill')}
         <button class="btn btn-outline-secondary flex-fill" onclick="cancelPartConfirm()">Dismiss</button>
       </div>`;
     return;
@@ -920,6 +920,53 @@ function showScanNextButton() {
   body.appendChild(btn);
 }
 
+// SHOP-07: only admins can add a part; everyone else is told what to do next.
+const CAN_ADD_PART = {{ 'true' if (session.get('is_master_admin') or session.get('shop_role') == 'admin') else 'false' }};
+function addPartHtml(barcode, cls) {
+  if (CAN_ADD_PART) {
+    return '<a href="/parts/new?barcode=' + encodeURIComponent(barcode) + '" class="' + cls + '">Add as new part</a>';
+  }
+  return '<div class="small mt-2" data-change="SHOP-07"><strong>Not in inventory yet</strong> - ask an admin to add it (code ' +
+    String(barcode).replace(/[<>&"]/g, '') + ').</div>';
+}
+
+// SHOP-40: 30-second Undo on the green result of a part scan.
+let undoTimer = null;
+function attachUndo(data) {
+  if (undoTimer) { clearInterval(undoTimer); undoTimer = null; }
+  if (!data || !data.transaction_id) return;
+  const body = document.getElementById('result-body');
+  const wrap = document.createElement('div');
+  wrap.className = 'mt-2 small';
+  wrap.setAttribute('data-change', 'SHOP-40');
+  wrap.innerHTML = '<a href="#" id="scan-undo-link" class="fw-bold"><i class="bi bi-arrow-counterclockwise"></i> Undo this scan</a> <span class="text-muted" id="scan-undo-left"></span><div class="text-danger" id="scan-undo-err"></div>';
+  body.appendChild(wrap);
+  let left = 30;
+  const leftEl = wrap.querySelector('#scan-undo-left');
+  leftEl.textContent = '(' + left + 's)';
+  undoTimer = setInterval(function () {
+    left -= 1;
+    if (left <= 0) { clearInterval(undoTimer); undoTimer = null; wrap.remove(); return; }
+    leftEl.textContent = '(' + left + 's)';
+  }, 1000);
+  wrap.querySelector('#scan-undo-link').addEventListener('click', function (e) {
+    e.preventDefault();
+    fetch('/api/scan/undo/' + data.transaction_id, { method: 'POST' })
+      .then(r => r.json()).then(function (d) {
+        if (d.ok) {
+          clearInterval(undoTimer); undoTimer = null;
+          const card = document.getElementById('result-card');
+          card.classList.remove('scan-flash-in', 'scan-flash-out', 'scan-flash-error');
+          body.innerHTML = '<div class="alert alert-secondary mb-0"><i class="bi bi-arrow-counterclockwise"></i> Undone: <strong>' +
+            d.name + '</strong> is back to ' + fmtNum(d.qty_on_hand) + ' ' + d.unit + ' on hand.</div>';
+          addRecent(d.barcode, d.name + ' (undone)', 'error');
+        } else {
+          wrap.querySelector('#scan-undo-err').textContent = d.error || 'Could not undo.';
+        }
+      }).catch(function () { wrap.querySelector('#scan-undo-err').textContent = 'Could not undo. Check the connection.'; });
+  });
+}
+
 function showScanResult(barcode, action, data) {
   const card = document.getElementById('result-card');
   const body = document.getElementById('result-body');
@@ -935,7 +982,7 @@ function showScanResult(barcode, action, data) {
     body.innerHTML = `<div class="alert alert-warning mb-0">
       <strong>Unrecognized barcode:</strong> ${barcode}<br>
       This part isn't in inventory yet.
-      <a href="/parts/new?barcode=${encodeURIComponent(barcode)}" class="btn btn-sm btn-primary mt-2">Add as new part</a>
+      ${addPartHtml(barcode, 'btn btn-sm btn-primary mt-2')}
     </div>`;
     addRecent(barcode, 'Unknown', 'error');
     return;
@@ -966,6 +1013,7 @@ function showScanResult(barcode, action, data) {
     </div>
   </div>`;
   addRecent(barcode, data.name, action);
+  attachUndo(data);
 }
 
 function fmtNum(n) {

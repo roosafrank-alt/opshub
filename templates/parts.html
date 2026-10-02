@@ -5,7 +5,7 @@
 
 {% macro parts_table(plist, part_covers, show_retired=False, can_reorder=False) %}
 <div class="table-responsive">
-  <table class="table table-hover mb-0 align-middle">
+  <table class="table table-hover mb-0 align-middle table-stack" data-change="SHOP-21">
     <thead class="table-light">
       <tr>
         <th style="width:2rem"><input type="checkbox" onclick="toggleAllIn(this)"></th>
@@ -21,8 +21,8 @@
     <tbody>
       {% for p in plist %}
       <tr class="{{ 'low-stock-row' if p.qty_on_hand <= p.reorder_point else '' }}" data-search="{{ (p.name ~ ' ' ~ (p.short_name or '') ~ ' ' ~ p.barcode ~ ' ' ~ (p.category or '') ~ ' ' ~ (p.location or ''))|lower }}" onclick="if(event.target.type!=='checkbox' && event.target.tagName!=='BUTTON') window.location='{{ url_for('part_detail', part_id=p.id) }}'">
-        <td><input type="checkbox" name="part_check" value="{{ p.id }}" onclick="event.stopPropagation()"></td>
-        <td>
+        <td data-label="" class="order-last order-sm-0"><input type="checkbox" name="part_check" value="{{ p.id }}" onclick="event.stopPropagation()"> <span class="d-sm-none small ms-1">Select for labels</span></td>
+        <td data-label="" class="d-none d-sm-table-cell">
           {% if part_covers.get(p.id) %}
           <img src="{{ url_for('static', filename='uploads/' + part_covers.get(p.id)) }}" class="rounded" style="width:36px; height:36px; object-fit:cover;">
           {% else %}
@@ -30,17 +30,17 @@
           {% endif %}
         </td>
         {% set _exp = part_expiry(p) %}
-        <td>{{ p.name }}{% if p.short_name %}<br><small class="text-muted">aka {{ p.short_name }}</small>{% endif %}{% if p.qty_on_hand <= p.reorder_point %} <i class="bi bi-exclamation-triangle text-danger" title="Low stock"></i>{% endif %}
+        <td data-label="" class="fw-semibold">{% if part_covers.get(p.id) %}<img src="{{ url_for('static', filename='uploads/' + part_covers.get(p.id)) }}" class="rounded d-sm-none me-2 align-middle" style="width:36px; height:36px; object-fit:cover;">{% endif %}{{ p.name }}{% if p.short_name %}<br><small class="text-muted">aka {{ p.short_name }}</small>{% endif %}{% if p.qty_on_hand <= p.reorder_point %} <i class="bi bi-exclamation-triangle text-danger" title="Low stock"></i>{% endif %}
           {% if _exp %}<br><small class="text-muted">Exp {{ _exp.date|usdate }}</small>{% if _exp.level == 'expired' %} <span class="badge bg-danger">Expired</span>{% elif _exp.level == 'soon' %} <span class="badge bg-warning text-dark">Expires soon</span>{% endif %}{% endif %}</td>
-        <td><code>{{ p.barcode }}</code></td>
-        <td>{{ p.location or '-' }}</td>
-        <td>{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
-        {% if can_see_shop_costs %}<td>${{ "%.2f"|format(p.unit_cost) }}</td>{% endif %}
+        <td data-label="Barcode"><code>{{ p.barcode }}</code></td>
+        <td data-label="Location">{{ p.location or '-' }}</td>
+        <td data-label="On hand">{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
+        {% if can_see_shop_costs %}<td data-label="Cost">${{ "%.2f"|format(p.unit_cost) }}</td>{% endif %}
         {% if can_reorder %}
-        <td class="text-nowrap" onclick="event.stopPropagation()"><a href="{{ url_for('order_new', part_id=p.id) }}" class="btn btn-warning btn-sm">Reorder</a></td>
+        <td data-label="" class="text-nowrap order-last" onclick="event.stopPropagation()"><a href="{{ url_for('order_new', part_id=p.id) }}" class="btn btn-warning btn-sm">Reorder</a></td>
         {% endif %}
         {% if show_retired %}
-        <td onclick="event.stopPropagation()">
+        <td data-label="" class="order-last" onclick="event.stopPropagation()">
           <form method="post" action="{{ url_for('part_unretire', part_id=p.id) }}">
             <button class="btn btn-outline-success btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Un-retire</button>
           </form>
@@ -93,14 +93,17 @@
      order-md-* classes put everything back in its original left-to-right
      order once there's room for one line again (see .list-toolbar-search
      in style.css). #}
+  {% if is_master_admin or shop_role == 'admin' %}
   <a href="{{ url_for('parts_export_csv') }}" class="btn btn-outline-secondary text-nowrap order-md-3"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</a>
   <a href="{{ url_for('part_new') }}" class="btn btn-warning fw-bold text-nowrap order-md-4"><i class="bi bi-plus-lg"></i> Add Part</a>
+  {% endif %}
   <form method="get" class="list-toolbar-search order-md-2" style="width:340px;max-width:100%;">
     <input type="text" name="q" value="{{ q }}" id="parts-live-search" class="form-control" placeholder="Search parts: name, barcode, category, location..." autocomplete="off" enterkeyhint="search">
   </form>
   {% else %}
   <a href="{{ url_for('parts_list') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-arrow-left"></i> Back to Parts</a>
   {% endif %}
+  <button type="button" id="print-labels-btn" class="btn btn-outline-secondary text-nowrap order-md-5" onclick="submitLabels()" disabled data-change="SHOP-46"><i class="bi bi-printer"></i> Print Labels (<span id="print-labels-count">0</span>)</button>
 </div>
 
 {% if not show_retired and not show_low_stock and retired_count %}
@@ -142,13 +145,10 @@
     </div>
   </div>
   {% else %}
-  <p class="text-muted">No parts yet. <a href="{{ url_for('part_new') }}">Add your first part</a>.</p>
+  <p class="text-muted">No parts yet.{% if is_master_admin or shop_role == 'admin' %} <a href="{{ url_for('part_new') }}">Add your first part</a>.{% endif %}</p>
   {% endfor %}
 {% endif %}
 
-<div class="mt-2">
-  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="submitLabels()"><i class="bi bi-printer"></i> Print Labels for Selected</button>
-</div>
 </form>
 
 <script>
@@ -161,9 +161,17 @@ function toggleAllIn(cb) {
     }
   });
 }
+function updateLabelCount() {
+  const n = document.querySelectorAll('input[name="part_check"]:checked').length;
+  document.getElementById('print-labels-count').textContent = n;
+  document.getElementById('print-labels-btn').disabled = n === 0;
+}
+document.addEventListener('change', function (e) {
+  if (e.target && (e.target.name === 'part_check' || e.target.matches('thead input[type="checkbox"]'))) updateLabelCount();
+});
 function submitLabels() {
   const ids = Array.from(document.querySelectorAll('input[name="part_check"]:checked')).map(el => el.value);
-  if (ids.length === 0) { alert('Select at least one part.'); return; }
+  if (ids.length === 0) return;
   window.location = "{{ url_for('labels') }}?ids=" + ids.join(',');
 }
 function toggleCategory(idx) {

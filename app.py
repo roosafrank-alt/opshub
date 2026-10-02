@@ -594,7 +594,7 @@ def get_part_by_barcode(conn, barcode):
 
 def get_low_stock(conn):
     return conn.execute(
-        "SELECT * FROM parts WHERE qty_on_hand <= reorder_point ORDER BY name"
+        "SELECT * FROM parts WHERE qty_on_hand <= reorder_point AND retired_at IS NULL ORDER BY name"
     ).fetchall()
 
 
@@ -736,7 +736,7 @@ def dashboard():
         SELECT ls.*, l.name as laborer_name, p.code as project_code, p.name as project_name
         FROM labor_sessions ls
         JOIN laborers l ON l.id = ls.laborer_id
-        JOIN projects p ON p.id = ls.project_id
+        LEFT JOIN projects p ON p.id = ls.project_id
         WHERE ls.ended_at IS NULL
         ORDER BY ls.started_at
     """).fetchall()
@@ -760,7 +760,7 @@ def dashboard():
         SELECT ls.*, l.name as laborer_name, p.code as project_code, p.name as project_name
         FROM labor_sessions ls
         JOIN laborers l ON l.id = ls.laborer_id
-        JOIN projects p ON p.id = ls.project_id
+        LEFT JOIN projects p ON p.id = ls.project_id
         WHERE ls.ended_at IS NOT NULL AND date(ls.ended_at) = ?
         ORDER BY ls.ended_at DESC
         LIMIT 9
@@ -1563,33 +1563,49 @@ ACTIVITY_SORT_COLUMNS = {
 }
 
 
+ACTIVITY_PAGE_SIZE = 200
+
+
 @app.route("/activity")
 @shop_role_required('admin', 'tech')
 def activity_log():
     conn = get_db()
     q = request.args.get("q", "").strip()
     sort = request.args.get("sort", "date")
+    # SHOP-03: techs don't see dollar costs, so they can't sort by them either.
+    if sort == "cost" and not can_see_shop_costs():
+        sort = "date"
     direction = request.args.get("dir", "desc")
     sort_col = ACTIVITY_SORT_COLUMNS.get(sort, "t.created_at")
     direction_sql = "ASC" if direction == "asc" else "DESC"
+    # SHOP-24: newest 200 first; "Show more" asks for 200 more at a time.
+    try:
+        limit = int(request.args.get("limit", ACTIVITY_PAGE_SIZE))
+    except ValueError:
+        limit = ACTIVITY_PAGE_SIZE
+    limit = min(max(limit, ACTIVITY_PAGE_SIZE), 100000)
 
-    query = """
-        SELECT t.*, p.name as part_name, p.barcode as part_barcode, p.unit_cost,
-               pr.name as project_name, (t.qty * p.unit_cost) as cost
+    where = " WHERE 1=1"
+    params = []
+    if q:
+        where += " AND (p.name LIKE ? OR pr.name LIKE ? OR t.performed_by LIKE ? OR t.note LIKE ? OR t.section LIKE ?)"
+        like = f"%{q}%"
+        params += [like, like, like, like, like]
+    base = """
         FROM transactions t
         JOIN parts p ON p.id = t.part_id
         LEFT JOIN projects pr ON pr.id = t.project_id
-        WHERE 1=1
     """
-    params = []
-    if q:
-        query += " AND (p.name LIKE ? OR pr.name LIKE ? OR t.performed_by LIKE ? OR t.note LIKE ? OR t.section LIKE ?)"
-        like = f"%{q}%"
-        params += [like, like, like, like, like]
-    query += f" ORDER BY {sort_col} {direction_sql}, t.id {direction_sql}"
-    tx = conn.execute(query, params).fetchall()
+    total = conn.execute("SELECT COUNT(*) c " + base + where, params).fetchone()["c"]
+    query = """
+        SELECT t.*, p.name as part_name, p.barcode as part_barcode, p.unit_cost,
+               pr.name as project_name, (t.qty * p.unit_cost) as cost
+    """ + base + where
+    query += f" ORDER BY {sort_col} {direction_sql}, t.id {direction_sql} LIMIT ?"
+    tx = conn.execute(query, params + [limit]).fetchall()
     conn.close()
-    return render_template("activity.html", tx=tx, sort=sort, direction=direction, q=q)
+    return render_template("activity.html", tx=tx, sort=sort, direction=direction, q=q,
+                           total=total, limit=limit, page_size=ACTIVITY_PAGE_SIZE)
 
 
 # ---------------------------------------------------------------------------
@@ -1980,6 +1996,10 @@ def project_section_confirm(project_id, section_id):
         flash("Confirmed complete.", "success")
     conn.commit()
     conn.close()
+    # SHOP-48: the dashboard's Awaiting Confirmation box sends return_to so
+    # the next one can be done right away.
+    if request.form.get("return_to") == "dashboard":
+        return redirect(url_for("dashboard"))
     return redirect(url_for("project_detail", project_id=project_id))
 
 
@@ -2104,14 +2124,71 @@ def api_scan():
     delta = qty if action == "in" else -qty
     conn.execute("UPDATE parts SET qty_on_hand = qty_on_hand + ?, updated_at = ? WHERE id = ?",
                  (delta, now_iso(), part["id"]))
-    conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, performed_by, section, source, created_at)
+    tx_cur = conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, performed_by, section, source, created_at)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                  (part["id"], project_id if action == "out" else None, action, qty, note, performed_by,
                   section if action == "out" else None, source, now_iso()))
+    tx_id = tx_cur.lastrowid
     conn.commit()
     updated = conn.execute("SELECT * FROM parts WHERE id = ?", (part["id"],)).fetchone()
     conn.close()
 
+    # SHOP-40: remember this scan in the person's own login session so the
+    # 30-second Undo link on the Scan result works for them (and no one else).
+    recent = [i for i in (session.get("scan_undo") or []) if isinstance(i, int)][-4:]
+    recent.append(tx_id)
+    session["scan_undo"] = recent
+
+    d = part_to_dict(updated, include_cost=can_see_shop_costs())
+    d["ok"] = True
+    d["transaction_id"] = tx_id
+    return jsonify(d)
+
+
+SCAN_UNDO_SECONDS = 45  # the page shows the link for 30 seconds; a little slack for slow phones
+
+
+@app.route("/api/scan/undo/<int:tx_id>", methods=["POST"])
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
+def api_scan_undo(tx_id):
+    """SHOP-40: take back ONE just-made scan - puts the quantity back and
+    removes the job line. Only for the login that made the scan, only within
+    a minute, and only if nothing else has touched that part since."""
+    if tx_id not in (session.get("scan_undo") or []):
+        return jsonify({"ok": False, "error": "You can only undo a scan you just made."}), 403
+    conn = get_db()
+    tx = conn.execute("SELECT * FROM transactions WHERE id = ?", (tx_id,)).fetchone()
+    if not tx:
+        conn.close()
+        return jsonify({"ok": False, "error": "That scan was already undone."}), 404
+    try:
+        age = (datetime.now() - datetime.strptime(tx["created_at"], "%Y-%m-%d %H:%M:%S")).total_seconds()
+    except (TypeError, ValueError):
+        age = 10 ** 6
+    if age > SCAN_UNDO_SECONDS or tx["type"] not in ("in", "out"):
+        conn.close()
+        return jsonify({"ok": False, "error": "Too late to undo - ask an admin to fix the count."}), 409
+    newer = conn.execute("SELECT 1 FROM transactions WHERE part_id = ? AND id > ?", (tx["part_id"], tx_id)).fetchone()
+    if newer:
+        conn.close()
+        return jsonify({"ok": False, "error": "This part changed since - ask an admin to fix the count."}), 409
+    if tx["project_id"]:
+        proj = conn.execute("SELECT status, deleted_at FROM projects WHERE id = ?", (tx["project_id"],)).fetchone()
+        if not proj or proj["deleted_at"] or proj["status"] in ("completed", "archived"):
+            conn.close()
+            return jsonify({"ok": False, "error": "That job is closed - ask an admin to fix it."}), 409
+    part = conn.execute("SELECT * FROM parts WHERE id = ?", (tx["part_id"],)).fetchone()
+    delta = -tx["qty"] if tx["type"] == "in" else tx["qty"]
+    if not part or part["qty_on_hand"] + delta < 0:
+        conn.close()
+        return jsonify({"ok": False, "error": "Not enough on hand to undo that - ask an admin to fix the count."}), 409
+    conn.execute("UPDATE parts SET qty_on_hand = qty_on_hand + ?, updated_at = ? WHERE id = ?",
+                 (delta, now_iso(), tx["part_id"]))
+    conn.execute("DELETE FROM transactions WHERE id = ?", (tx_id,))
+    conn.commit()
+    updated = conn.execute("SELECT * FROM parts WHERE id = ?", (tx["part_id"],)).fetchone()
+    conn.close()
+    session["scan_undo"] = [i for i in (session.get("scan_undo") or []) if i != tx_id]
     d = part_to_dict(updated, include_cost=can_see_shop_costs())
     d["ok"] = True
     return jsonify(d)
@@ -2202,12 +2279,13 @@ def part_expiration_update(part_id):
         if err or not exp:
             conn.close()
             flash(err or "Pick the new expiration date, or press Skip.", "danger")
-            return redirect(url_for("part_expiration_update", part_id=part_id))
+            return redirect(url_for("part_expiration_update", part_id=part_id,
+                                    status=request.values.get("status"), view=request.values.get("view")))
         conn.execute("UPDATE parts SET expiration_date = ?, updated_at = ? WHERE id = ?", (exp, now_iso(), part_id))
         conn.commit()
         conn.close()
         flash(f"{part['name']} now expires {usdate(exp)}.", "success")
-        return redirect(url_for("orders_list"))
+        return redirect(_orders_back())
     conn.close()
     return render_template("part_expiration_update.html", part=part)
 
@@ -2379,8 +2457,13 @@ def part_detail(part_id):
                        (part_id,)).fetchall()
     photos = conn.execute("SELECT * FROM photos WHERE part_id = ? ORDER BY is_cover DESC, created_at DESC",
                            (part_id,)).fetchall()
+    # SHOP-30: Delete is refused for a part that's been on a job, so the page
+    # offers only Retire for it (and says why).
+    job_count = conn.execute(
+        "SELECT COUNT(DISTINCT project_id) c FROM transactions WHERE part_id = ? AND project_id IS NOT NULL",
+        (part_id,)).fetchone()["c"]
     conn.close()
-    return render_template("part_detail.html", part=part, tx=tx, photos=photos)
+    return render_template("part_detail.html", part=part, tx=tx, photos=photos, job_count=job_count)
 
 
 @app.route("/parts/<int:part_id>/print-label", methods=["POST"])
@@ -2457,7 +2540,7 @@ def part_adjust(part_id):
         abort(404)
     performed_by = request.form.get("performed_by", "").strip() or None
     if not performed_by:
-        flash("Select who's making this adjustment (\"Scanning as\") first.", "danger")
+        flash("Select who counted this stock first.", "danger")
         conn.close()
         return redirect(url_for("part_detail", part_id=part_id))
     new_qty = _parse_qty(request.form.get("new_qty"), allow_zero=True)
@@ -5466,6 +5549,21 @@ def photo_set_cover(photo_id):
 # Pending orders
 # ---------------------------------------------------------------------------
 
+def _orders_back(status=None):
+    """SHOP-14: where to land after an order action - the tab (and By Vendor /
+    By Part view) the person was on. The Orders page puts them in each button's
+    form (hidden status/view fields); a brand-new order passes status='pending'.
+    With nothing to go on it is just the plain Orders page, as before."""
+    kw = {}
+    st = status or request.values.get("status")
+    if st in ("to_order", "pending", "received", "cancelled", "all"):
+        kw["status"] = st
+    vw = request.values.get("view")
+    if vw in ("vendor", "part"):
+        kw["view"] = vw
+    return url_for("orders_list", **kw)
+
+
 @app.route("/orders")
 @shop_role_required('admin')
 def orders_list():
@@ -5562,7 +5660,7 @@ def orders_list():
         WHERE w.status = 'open'
         ORDER BY CASE w.urgency WHEN 'rush' THEN 0 WHEN 'needed_now' THEN 1 ELSE 2 END, w.created_at
     """).fetchall()
-    parts_for_wishlist = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
+    parts_for_wishlist = conn.execute("SELECT * FROM parts WHERE retired_at IS NULL ORDER BY name").fetchall()
     conn.close()
 
     cores_conn = get_db()
@@ -5821,8 +5919,31 @@ def _project_for_order_form(conn, form):
     return cur.lastrowid, None
 
 
-def _order_form_lists(conn):
-    parts = conn.execute("SELECT * FROM parts ORDER BY name").fetchall()
+def _supplier_names():
+    """SHOP-45: every supplier name already used on an order or a part, for
+    the type-ahead on the Supplier boxes. One entry per spelling-ignoring-case
+    (the first spelling wins), sorted."""
+    conn = get_db()
+    rows = conn.execute("""SELECT supplier FROM orders WHERE TRIM(COALESCE(supplier, '')) != ''
+                           UNION ALL
+                           SELECT supplier FROM parts WHERE TRIM(COALESCE(supplier, '')) != ''""").fetchall()
+    conn.close()
+    seen = {}
+    for r in rows:
+        name = r["supplier"].strip()
+        seen.setdefault(name.lower(), name)
+    return sorted(seen.values(), key=str.lower)
+
+
+app.jinja_env.globals["supplier_names"] = _supplier_names
+
+
+def _order_form_lists(conn, keep_part_id=None):
+    # SHOP-29: a retired part can't be ordered (receiving would put stock on a
+    # part that is hidden from the shelf). When editing an order that already
+    # points at one, that one stays in the list so saving doesn't unlink it.
+    parts = conn.execute("SELECT * FROM parts WHERE retired_at IS NULL OR id = ? ORDER BY name",
+                         (keep_part_id or 0,)).fetchall()
     projects = conn.execute("SELECT * FROM projects WHERE status='active' AND deleted_at IS NULL ORDER BY name").fetchall()
     assets = conn.execute("SELECT id, tag FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 "
                           "AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
@@ -5892,7 +6013,7 @@ def order_new():
             flash(f"Order for '{lines[0]['description']}' added.", "success")
         else:
             flash(f"Order added: {len(lines)} items{' from ' + supplier if supplier else ''}.", "success")
-        return redirect(url_for("orders_list"))
+        return redirect(_orders_back("pending"))
     lists = _order_form_lists(conn)
     prefill = {}
     wishlist_id = request.args.get("wishlist_id")
@@ -5940,7 +6061,7 @@ def order_edit(order_id):
         conn.close()
         flash(f"Order #{order_id} is already {order['status']} and can't be edited.", "warning")
         return redirect(url_for("orders_list"))
-    lists = _order_form_lists(conn)
+    lists = _order_form_lists(conn, keep_part_id=order["part_id"])
     batch_count = conn.execute("SELECT COUNT(*) c FROM orders WHERE COALESCE(batch_id, 'o' || id) = ?",
                                (order["batch_key"],)).fetchone()["c"]
     ships = [dict(r) for r in _batch_shipments(conn, [order["batch_key"]]).get(order["batch_key"], [])]
@@ -5982,7 +6103,7 @@ def order_edit(order_id):
         conn.commit()
         conn.close()
         flash(f"Order for '{description}' updated.", "success")
-        return redirect(url_for("orders_list"))
+        return redirect(_orders_back())
     conn.close()
     return render_template("order_form.html", form=None, order=order, ships=ships, batch_count=batch_count, **lists)
 
@@ -6047,7 +6168,7 @@ def order_receive(order_id):
         conn.close()
         flash(f"Order #{order_id} has a quantity of {order['qty_ordered']} - edit it to a number above 0 "
               f"before receiving. Stock was not changed.", "danger")
-        return redirect(url_for("orders_list"))
+        return redirect(_orders_back())
     # Claim the order atomically: only the request that actually flips it to
     # 'received' adds stock. Stops a double-click / Back-button resubmit / two
     # people receiving the same box from adding the quantity twice, and stops
@@ -6058,7 +6179,7 @@ def order_receive(order_id):
     if not claimed:
         conn.close()
         flash(f"Order #{order_id} is already {order['status']} - stock was not changed.", "warning")
-        return redirect(url_for("orders_list"))
+        return redirect(_orders_back())
 
     part_id = order["part_id"]
     new_part_created = False
@@ -6105,8 +6226,9 @@ def order_receive(order_id):
     conn_exp.close()
     if dated and dated["expiration_date"]:
         # A shelf-life part: ask for the new stock's date (Skip keeps the old one).
-        return redirect(url_for("part_expiration_update", part_id=part_id))
-    return redirect(url_for("orders_list"))
+        return redirect(url_for("part_expiration_update", part_id=part_id,
+                                status=request.values.get("status"), view=request.values.get("view")))
+    return redirect(_orders_back())
 
 
 @app.route("/orders/<int:order_id>/core-shipped", methods=["POST"])
@@ -6132,7 +6254,7 @@ def order_core_shipped(order_id):
     conn.commit()
     conn.close()
     flash("Core marked shipped. Press Credit received once the supplier credits it.", "success")
-    return redirect(url_for("orders_list") + "#cores-owed")
+    return redirect(_orders_back() + "#cores-owed")
 
 
 @app.route("/orders/<int:order_id>/core-credited", methods=["POST"])
@@ -6148,7 +6270,7 @@ def order_core_credited(order_id):
     conn.commit()
     conn.close()
     flash("Core credit received - that one's closed out.", "success")
-    return redirect(url_for("orders_list") + "#cores-owed")
+    return redirect(_orders_back() + "#cores-owed")
 
 
 def _cores_owed(conn):
@@ -6193,9 +6315,9 @@ def order_cancel(order_id):
     if not changed:
         flash("That order was already received, so it can't be cancelled. Adjust the part's count instead if needed.",
               "warning")
-        return redirect(url_for("orders_list"))
+        return redirect(_orders_back())
     flash("Order cancelled.", "success")
-    return redirect(url_for("orders_list"))
+    return redirect(_orders_back())
 
 
 @app.route("/orders/shipments/<int:shipment_id>/<action>", methods=["POST"])
@@ -6215,7 +6337,7 @@ def order_shipment_mark(shipment_id, action):
         abort(404)
     flash({"receive": "Package marked received.", "cancel": "Package cancelled.",
            "reopen": "Package put back as open."}[action], "success")
-    return redirect(url_for("orders_list"))
+    return redirect(_orders_back())
 
 
 # ---------------------------------------------------------------------------
@@ -6256,10 +6378,14 @@ def task_templates():
             else:
                 next_order = conn.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM task_template_areas WHERE quick_type = ?",
                                           (quick_type,)).fetchone()["n"]
-                conn.execute("INSERT OR IGNORE INTO task_template_areas (quick_type, name, sort_order, is_optional, created_at) VALUES (?, ?, ?, ?, ?)",
-                             (quick_type, name, next_order, is_optional, now_iso()))
+                added = conn.execute("INSERT OR IGNORE INTO task_template_areas (quick_type, name, sort_order, is_optional, created_at) VALUES (?, ?, ?, ?, ?)",
+                                     (quick_type, name, next_order, is_optional, now_iso())).rowcount
                 conn.commit()
-                flash(f"Added '{name}' to {quick_type}{' (optional)' if is_optional else ''}.", "success")
+                if added:
+                    flash(f"Added '{name}' to {quick_type}{' (optional)' if is_optional else ''}.", "success")
+                else:
+                    # SHOP-13: it was already there - say so instead of "Added".
+                    flash(f"'{name}' is already on {quick_type}.", "danger")
         conn.close()
         return redirect(url_for("task_templates"))
     quick_types = _all_quick_types(conn)
@@ -6366,7 +6492,7 @@ def laborer_new():
         new_id = cur.lastrowid
         conn.commit()
         conn.close()
-        flash(f"Laborer '{name}' added. Print their code so they can scan in/out.", "success")
+        flash(f"Worker '{name}' added. Print their code so they can scan in/out.", "success")
         return redirect(url_for("laborer_label", laborer_id=new_id))
     return render_template("laborer_form.html", laborer=None)
 
@@ -6395,7 +6521,7 @@ def laborer_edit(laborer_id):
                      (name, rate, active, now_iso(), laborer_id))
         conn.commit()
         conn.close()
-        flash("Laborer updated.", "success")
+        flash("Worker updated.", "success")
         return redirect(url_for("laborers_list"))
     conn.close()
     return render_template("laborer_form.html", laborer=laborer)
@@ -6427,7 +6553,8 @@ def laborer_print_label(laborer_id):
     except Exception as e:
         flash(f"Couldn't print label: {e}", "danger")
     is_admin = bool(session.get("is_master_admin") or session.get("shop_role") == "admin")
-    if is_admin:
+    # SHOP-49: the badge sheet sends back=badges so everyone stays on the sheet.
+    if is_admin and request.form.get("back") != "badges":
         return redirect(url_for("laborer_label", laborer_id=laborer_id))
     return redirect(url_for("laborer_badges"))
 
@@ -6525,8 +6652,16 @@ def shop_pay():
         laborer_row = conn.execute("SELECT name FROM laborers WHERE id = ?", (laborer_id,)).fetchone()
         laborer_name = laborer_row["name"] if laborer_row else None
     elif not admin_view:
-        sql += " AND lower(trim(l.name)) = lower(trim(?))"
-        params.append(session.get("user_name") or "")
+        # SHOP-10: every worker badge linked to this login; only when none is
+        # linked does it fall back to a badge spelled like the login name.
+        linked_ids = [r["id"] for r in conn.execute("SELECT id FROM laborers WHERE user_id = ?",
+                                                    (session.get("user_id"),)).fetchall()] if session.get("user_id") else []
+        if linked_ids:
+            sql += " AND l.id IN (%s)" % ",".join("?" * len(linked_ids))
+            params.extend(linked_ids)
+        else:
+            sql += " AND lower(trim(l.name)) = lower(trim(?))"
+            params.append(session.get("user_name") or "")
     sql += " ORDER BY l.name, ls.started_at"
     rows = conn.execute(sql, params).fetchall()
     conn.close()
@@ -6581,7 +6716,10 @@ def shop_pay():
         g.pop("_days", None)
         g.pop("_tasks", None)
         g["tasks"].sort(key=lambda t: -t["cost"])
+    # SHOP-42: "All workers" link = this same page and period without the worker filter.
+    all_workers_args = {k: v for k, v in request.args.items() if k != "laborer_id"}
     return render_template("shop_pay.html", laborers_pay=laborers_pay, admin_view=admin_view,
+                           all_workers_args=all_workers_args,
                            total_hours=sum(g["hours"] for g in laborers_pay),
                            total_pay=sum(g["pay"] for g in laborers_pay),
                            periods=SHOP_PERIODS, period=period, period_label=label, start=start, end=end,
@@ -6617,7 +6755,8 @@ def shop_billing():
     def proj(pid):
         if pid not in projects:
             p = conn.execute("""SELECT pr.id, pr.code, pr.name, pr.status, pr.payment_status,
-                                       pr.invoiced_at, pr.paid_at, pr.paid_method, pr.card_last4, a.tag as asset_tag
+                                       pr.invoiced_at, pr.paid_at, pr.paid_method, pr.card_last4,
+                                       pr.invoiced_by, pr.paid_by, a.tag as asset_tag
                                 FROM projects pr LEFT JOIN assets a ON a.id = pr.asset_id WHERE pr.id = ?""",
                              (pid,)).fetchone()
             projects[pid] = {"id": pid, "code": p["code"] if p else "?", "name": p["name"] if p else "(deleted)",
@@ -6625,6 +6764,7 @@ def shop_billing():
                              "payment_status": (p["payment_status"] if p else None) or "not_invoiced",
                              "invoiced_at": p["invoiced_at"] if p else None, "paid_at": p["paid_at"] if p else None,
                              "paid_method": p["paid_method"] if p else None, "card_last4": p["card_last4"] if p else None,
+                             "invoiced_by": p["invoiced_by"] if p else None, "paid_by": p["paid_by"] if p else None,
                              "labor_hours": 0.0, "labor": 0.0, "parts": 0.0, "parts_cost": 0.0, "parts_count": 0}
         return projects[pid]
 
@@ -6700,31 +6840,37 @@ def project_mark_paid(project_id):
     return redirect(request.referrer or url_for("shop_billing"))
 
 
-@app.route("/shop/billing/<int:project_id>/pay-card", methods=["POST"])
+@app.route("/shop/billing/<int:project_id>/undo-payment", methods=["POST"])
 @shop_role_required('admin')
-def project_pay_card(project_id):
-    """Idea "Credit card": a simulated Stripe-style card charge so Frank can
-    see how a "Pay with Card" flow would feel - no real Stripe account, no
-    network call, no real charge. Only the card's last 4 digits are kept,
-    alongside a fake charge id, next to the usual Mark Paid fields."""
+def project_undo_payment(project_id):
+    """SHOP-16: steps a job's money status back ONE step - Paid -> Invoiced,
+    Invoiced -> Not invoiced. A job with a Wave invoice is left alone (Wave
+    owns that status)."""
     conn = get_db()
-    project = conn.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
+    project = conn.execute("SELECT id, payment_status FROM projects WHERE id = ?", (project_id,)).fetchone()
     if not project:
         conn.close()
         abort(404)
-    card_number = re.sub(r"\D", "", request.form.get("card_number", ""))
-    if len(card_number) < 4:
+    if wave_billing.latest_for(conn, "project", [project_id]).get(project_id):
         conn.close()
-        flash("Enter a card number to simulate the charge.", "danger")
+        flash("This job has a Wave invoice, so its status follows Wave and can't be undone here.", "warning")
         return redirect(request.referrer or url_for("shop_billing"))
-    last4 = card_number[-4:]
-    charge_id = "sim_ch_" + secrets.token_hex(8)
-    conn.execute("""UPDATE projects SET payment_status = 'paid', paid_at = ?, paid_by = ?, paid_method = 'Card',
-                    card_last4 = ?, card_charge_id = ? WHERE id = ?""",
-                 (now_iso(), session.get("user_name"), last4, charge_id, project_id))
+    status = project["payment_status"] or "not_invoiced"
+    if status == "paid":
+        conn.execute("""UPDATE projects SET payment_status = 'invoiced', paid_at = NULL, paid_by = NULL,
+                        paid_method = NULL, card_last4 = NULL, card_charge_id = NULL WHERE id = ?""", (project_id,))
+        msg = "Payment undone - back to Invoiced."
+    elif status == "invoiced":
+        conn.execute("""UPDATE projects SET payment_status = 'not_invoiced', invoiced_at = NULL, invoiced_by = NULL
+                        WHERE id = ?""", (project_id,))
+        msg = "Invoice undone - back to Not invoiced."
+    else:
+        conn.close()
+        flash("Nothing to undo on that job.", "warning")
+        return redirect(request.referrer or url_for("shop_billing"))
     conn.commit()
     conn.close()
-    flash(f"Card charged (simulated) - ending in {last4}, receipt {charge_id}.", "success")
+    flash(msg, "success")
     return redirect(request.referrer or url_for("shop_billing"))
 
 
@@ -6882,7 +7028,8 @@ def shop_stats():
                                   WHERE ls.ended_at IS NOT NULL AND date(ls.started_at) BETWEEN ? AND ?
                                   GROUP BY a.id ORDER BY h DESC""", (start, end)).fetchall()
     projects_worked = len({u["project_id"] for u in usage} | {r["project_id"] for r in conn.execute(
-        "SELECT DISTINCT project_id FROM labor_sessions WHERE date(started_at) BETWEEN ? AND ?", (start, end)).fetchall()})
+        "SELECT DISTINCT project_id FROM labor_sessions WHERE project_id IS NOT NULL "
+        "AND date(started_at) BETWEEN ? AND ?", (start, end)).fetchall()})  # SHOP-12: General Shop isn't a project
     conn.close()
     max_h = max([r["h"] or 0 for r in by_laborer] + [r["h"] or 0 for r in by_aircraft] + [0.0001])
     return render_template("shop_stats.html", labor=labor, parts_sale=parts_sale, parts_cost=parts_cost,
@@ -6939,6 +7086,11 @@ def _tools_due_reminders(conn):
 def tools_list():
     conn = get_db()
     tools = conn.execute("SELECT * FROM shop_tools WHERE deleted_at IS NULL ORDER BY name").fetchall()
+    # SHOP-33: every recorded calibration, newest first, for the History pop-up.
+    history = {}
+    for h in conn.execute("""SELECT tool_id, calibrated_at, cert_file, performed_by, note FROM tool_calibrations
+                             ORDER BY calibrated_at DESC, id DESC""").fetchall():
+        history.setdefault(h["tool_id"], []).append(h)
     conn.close()
     rows = []
     overdue_count = due_soon_count = 0
@@ -6948,7 +7100,7 @@ def tools_list():
             overdue_count += 1
         elif st and st["urgency"] == "due_soon":
             due_soon_count += 1
-        rows.append({"tool": t, "status": st})
+        rows.append({"tool": t, "status": st, "history": history.get(t["id"], [])})
     return render_template("shop_tools.html", rows=rows, overdue_count=overdue_count, due_soon_count=due_soon_count)
 
 
@@ -7348,8 +7500,13 @@ def api_labor_stop(session_id):
     started = datetime.strptime(session_row["started_at"], "%Y-%m-%d %H:%M:%S")
     hours = max((datetime.now() - started).total_seconds() / 3600.0, 0)
     cost = hours * (session_row["rate"] or 0)
-    conn.execute("UPDATE labor_sessions SET ended_at = ?, hours = ?, cost = ? WHERE id = ?",
-                 (now_iso(), hours, cost, session_id))
+    # SHOP-15: the Clock out box asks for a General Shop note; keep it.
+    body = request.get_json(silent=True)
+    note = None
+    if isinstance(body, dict) and isinstance(body.get("note"), str):
+        note = body["note"].strip()[:200] or None
+    conn.execute("UPDATE labor_sessions SET ended_at = ?, hours = ?, cost = ?, note = COALESCE(?, note) WHERE id = ?",
+                 (now_iso(), hours, cost, note, session_id))
     conn.commit()
     conn.close()
     return jsonify({"ok": True, "hours": round(hours, 2), "cost": round(cost, 2)})
@@ -7699,6 +7856,9 @@ def admin_user_edit(user_id):
         _apply_pay_links(conn, user_row, request.form)
         conn.close()
         flash("Account updated.", "success")
+        # SHOP-41: opened from the Workers page (?back=workers) -> go back there.
+        if request.args.get("back") == "workers":
+            return redirect(url_for("laborers_list"))
         return redirect(url_for("admin_users_list"))
     pay_ctx = _pay_link_context(conn, user_row)
     conn.close()

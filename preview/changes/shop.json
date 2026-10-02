@@ -1,0 +1,414 @@
+[
+ {
+  "id": "SHOP-01",
+  "status": "built",
+  "pages": [
+   "/shop/billing"
+  ],
+  "where": "Billing: the blue Pay with Card button and its pop-up are gone (and the pay-card address is removed). A job already marked paid with a simulated card still reads Paid, now labelled (simulated) ****1234.",
+  "see_as": "admin",
+  "detail": "Removed rather than hidden behind a demo switch, the simplest of the two options in the report."
+ },
+ {
+  "id": "SHOP-02",
+  "status": "built",
+  "pages": [
+   "/shop"
+  ],
+  "where": "Dashboard, Currently Clocked In: a worker on General Shop now appears (project column says General Shop); today's finished General Shop sessions also appear in Recent Activity.",
+  "see_as": "admin",
+  "detail": "Only the Currently Clocked In cell is outlined; the Recent Activity rows are not marked."
+ },
+ {
+  "id": "SHOP-03",
+  "status": "logic",
+  "pages": [
+   "/activity"
+  ],
+  "where": "Activity Log: the Cost column and its sort link are not shown to techs (only admins see them). A tech who types sort=cost in the address just gets the date sort.",
+  "see_as": "tech"
+ },
+ {
+  "id": "SHOP-04",
+  "status": "logic",
+  "pages": [
+   "/shop",
+   "/parts"
+  ],
+  "where": "Dashboard Low Stock card and count, and the Low Stock Items page: retired parts are no longer listed or counted.",
+  "see_as": "admin",
+  "detail": "Did not add the optional 'reorder point above 0' rule, so a part with reorder point 0 and 0 on hand still counts as low."
+ },
+ {
+  "id": "SHOP-05",
+  "status": "built",
+  "pages": [
+   "/parts"
+  ],
+  "where": "Parts page header: Add Part and Export CSV (and the 'Add your first part' link) are gone for techs.",
+  "see_as": "tech"
+ },
+ {
+  "id": "SHOP-07",
+  "status": "built",
+  "pages": [
+   "/scan"
+  ],
+  "where": "Scan page, Unrecognized code panel and red Unrecognized barcode result: non-admins see 'Not in inventory yet - ask an admin to add it (code ...)' instead of Add as new part.",
+  "see_as": "tech",
+  "detail": "Needs an unknown code scanned to show."
+ },
+ {
+  "id": "SHOP-09",
+  "status": "built",
+  "pages": [
+   "/shop"
+  ],
+  "where": "Dashboard Pi Health Alert box: the System Page button is shown only to master admins; shop admins keep Acknowledge.",
+  "see_as": "admin",
+  "detail": "Needs a Pi Health alert to exist."
+ },
+ {
+  "id": "SHOP-10",
+  "status": "logic",
+  "pages": [
+   "/shop/pay"
+  ],
+  "where": "My Pay shows every worker badge linked to the logged-in account; only when none is linked does it match by name. Empty state now says to ask an admin to link the badge.",
+  "see_as": "tech"
+ },
+ {
+  "id": "SHOP-11",
+  "status": "logic",
+  "pages": [
+   "/shop/tools"
+  ],
+  "where": "Mark Calibrated pop-up: 'Calibrated on' is filled with today's local date instead of the UTC date.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-12",
+  "status": "logic",
+  "pages": [
+   "/shop/stats"
+  ],
+  "where": "Stats, Projects Worked box: General Shop time is no longer counted as a project.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-13",
+  "status": "logic",
+  "pages": [
+   "/manage/task-templates"
+  ],
+  "where": "Adding an area that already exists under a Quick Type now shows a red '<area> is already on <Quick Type>.' message instead of green Added.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-14",
+  "status": "logic",
+  "pages": [
+   "/orders",
+   "/orders/{id}/edit",
+   "/orders/new"
+  ],
+  "where": "After Received, Cancel, package Receive/Cancel/Undo, core buttons, Edit save and the expiration prompt, you land back on the same tab and By Vendor/By Part view. A brand-new order lands on Pending.",
+  "see_as": "admin",
+  "detail": "The Orders buttons now send the current tab/view with them."
+ },
+ {
+  "id": "SHOP-15",
+  "status": "built",
+  "pages": [
+   "/shop",
+   "*"
+  ],
+  "where": "Dashboard Currently Clocked In, Stop button (and the floating clock-out icon): both open the same app-style 'Clock out Joe?' box; a General Shop timer also asks what they worked on (saved as the note). A failure shows a message in the box. Stop is hidden on the dashboard for apprentices and inspectors.",
+  "see_as": "admin",
+  "detail": "'Consider limiting Stop to Admin/Tech' done only by hiding the button on the dashboard; the server still accepts it from every shop role so the badge scan and floating widget keep working."
+ },
+ {
+  "id": "SHOP-16",
+  "status": "built",
+  "pages": [
+   "/shop/billing"
+  ],
+  "where": "Billing: Mark Invoiced now asks first; an Undo link next to the Invoiced / Paid badge steps the job back one state; hover on the badge shows who marked it.",
+  "see_as": "admin",
+  "detail": "Undo is hidden (and refused) for a job that has a Wave invoice, because Wave controls that status."
+ },
+ {
+  "id": "SHOP-17",
+  "status": "built",
+  "pages": [
+   "/laborers",
+   "/laborers/new",
+   "/laborers/{id}/edit",
+   "/laborers/{id}/label",
+   "/shop",
+   "/shop/stats",
+   "/scan"
+  ],
+  "where": "Worker wording: New Worker, Edit Worker, Add Worker, Worker Code, 'Worker 'Joe' added', dashboard Worker column, Hours by Worker, '2 workers', Scan page worker badge messages.",
+  "see_as": "admin",
+  "detail": "Database and URL names unchanged. Not touched (other builders' pages): the Laborer column heading on a project's labor table, the project export CSV header, the Flight CFI page sentence."
+ },
+ {
+  "id": "SHOP-21",
+  "status": "built",
+  "pages": [
+   "/parts"
+  ],
+  "where": "Parts list on a phone: each part is a stacked card (photo and name, then Barcode, Location, On hand, Cost, then the checkbox and Reorder).",
+  "see_as": "tech",
+  "detail": "Uses the existing table-stack style. The select-all checkbox is in the table header, which is hidden on phones."
+ },
+ {
+  "id": "SHOP-22",
+  "status": "built",
+  "pages": [
+   "/orders"
+  ],
+  "where": "Orders By Vendor now has a header row (Item, Qty, Project, Expected, Cost); By Vendor, By Part and To order tables stack on a phone with the buttons on their own line.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-23",
+  "status": "built",
+  "pages": [
+   "/laborers"
+  ],
+  "where": "Workers: header has search, a Print menu (Worker Badges, General Shop Code) and New Worker; the Labor button is gone; the table stacks on a phone.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-24",
+  "status": "built",
+  "pages": [
+   "/activity"
+  ],
+  "where": "Activity Log shows the newest 200 with a Show more button (200 at a time); typing filters what is on screen, Enter searches the whole log; the table stacks on a phone.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-25",
+  "status": "built",
+  "pages": [
+   "/parts/{id}"
+  ],
+  "where": "Part detail, Transaction History: stacked on a phone (When and type with quantity first, then Project, Area, By, Added via, Note).",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-27",
+  "status": "built",
+  "pages": [
+   "/orders"
+  ],
+  "where": "Orders header: the New Project button is gone.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-28",
+  "status": "built",
+  "pages": [
+   "/orders/new"
+  ],
+  "where": "New Order page: heading is New Order and the save button is Save Order.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-29",
+  "status": "logic",
+  "pages": [
+   "/orders/new",
+   "/orders"
+  ],
+  "where": "Retired parts are left out of the Existing part dropdown on New Order and the To order dropdown (an existing order that already points at a retired part keeps it when edited).",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-30",
+  "status": "built",
+  "pages": [
+   "/parts/{id}"
+  ],
+  "where": "Part detail: Retire and Delete use the app's confirmation box. A part that has been on a job shows no Delete button, only Retire, with a line saying it is on N jobs.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-31",
+  "status": "built",
+  "pages": [
+   "/parts/{id}"
+  ],
+  "where": "Adjust Stock Count: label is 'Counted by', the logged-in user is pre-selected, and a blank choice shows a red message under the dropdown instead of a browser alert.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-32",
+  "status": "built",
+  "pages": [
+   "/parts/{id}"
+  ],
+  "where": "Part detail: an admin-only Order more button opens New Order pre-filled, like Reorder.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-33",
+  "status": "built",
+  "pages": [
+   "/shop/tools"
+  ],
+  "where": "Calibrated Tools: a History button per tool opens a pop-up list of every calibration (date, by, note, certificate link).",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-35",
+  "status": "built",
+  "pages": [
+   "/labor/general-code",
+   "/laborers/{id}/label",
+   "/labor/badges",
+   "/parts/{id}",
+   "/parts/{id}/edit",
+   "/labels"
+  ],
+  "where": "Print buttons named by destination: 'Print on label printer' and 'Print page (regular printer)' on the General Shop Code, Worker Code, Worker Badges, part detail, part edit and Print Labels pages.",
+  "see_as": "admin",
+  "detail": "Job label pages (project_label, project_section_label, project_labor_codes) belong to another part and keep their old words."
+ },
+ {
+  "id": "SHOP-36",
+  "status": "partial",
+  "pages": [
+   "/trash"
+  ],
+  "where": "Recently Deleted: dates now use the app date style and the aircraft wording replaces 'asset' in the confirmation and empty state.",
+  "see_as": "admin",
+  "detail": "Not done: the Manage menu item after Logbook. That is in templates/base.html (chrome part owns it); it needs a Recently Deleted link next to the two Logbook entries there, pointing at the trash_page route."
+ },
+ {
+  "id": "SHOP-37",
+  "status": "built",
+  "pages": [
+   "/shop/billing"
+  ],
+  "where": "Billing: the green Invoice button is renamed Download CSV.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-38",
+  "status": "built",
+  "pages": [
+   "/shop"
+  ],
+  "where": "Dashboard: Upcoming Schedule opens by default on wide screens, and the open/closed choice is remembered on that device.",
+  "see_as": "admin",
+  "detail": "'Desktop' means a screen at least 992 px wide; phones stay closed unless opened once."
+ },
+ {
+  "id": "SHOP-39",
+  "status": "built",
+  "pages": [
+   "/shop"
+  ],
+  "where": "Dashboard Low Stock: Scan In opens Scan with that part already looked up, so the Stock IN / quantity panel is ready.",
+  "see_as": "admin",
+  "detail": "Needs a low-stock part."
+ },
+ {
+  "id": "SHOP-40",
+  "status": "built",
+  "pages": [
+   "/scan"
+  ],
+  "where": "Scan: after a part scan, the green result shows an Undo link for 30 seconds that puts the quantity back and removes the job line.",
+  "see_as": "tech",
+  "detail": "Refused if it is not your own scan (this login), older than 45 seconds, anything else was scanned for that part since, the job has been closed, or taking it back would leave negative stock."
+ },
+ {
+  "id": "SHOP-41",
+  "status": "logic",
+  "pages": [
+   "/laborers",
+   "/admin/users/{id}/edit"
+  ],
+  "where": "Workers page: a master admin's Edit (or the account-name link) on a linked worker opens the account with ?back=workers, and Save returns to Workers.",
+  "see_as": "master"
+ },
+ {
+  "id": "SHOP-42",
+  "status": "built",
+  "pages": [
+   "/shop/pay"
+  ],
+  "where": "One worker's pay page: an admin-only All workers button next to the heading drops the worker filter (keeps the period).",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-43",
+  "status": "built",
+  "pages": [
+   "/orders"
+  ],
+  "where": "Orders, pending rows: the pencil button now reads Edit.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-44",
+  "status": "built",
+  "pages": [
+   "/manage/task-templates"
+  ],
+  "where": "Task Templates header: the Projects back button is gone.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-45",
+  "status": "built",
+  "pages": [
+   "/orders/new",
+   "/parts/new",
+   "/parts/{id}/edit"
+  ],
+  "where": "Supplier boxes on New Order, Edit Order and the part form suggest supplier names already used on orders or parts (spelling variants by case count once).",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-46",
+  "status": "built",
+  "pages": [
+   "/parts"
+  ],
+  "where": "Parts: Print Labels (N) moved into the header toolbar, shows the live count of ticked parts and is disabled at 0 (no alert box).",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-47",
+  "status": "logic",
+  "pages": [
+   "*"
+  ],
+  "where": "templates/labor.html (unused old Labor page) deleted.",
+  "see_as": "admin"
+ },
+ {
+  "id": "SHOP-48",
+  "status": "logic",
+  "pages": [
+   "/shop"
+  ],
+  "where": "Dashboard Discrepancies Awaiting Confirmation: Confirm and Send Back return to the dashboard instead of the project page.",
+  "see_as": "inspector"
+ },
+ {
+  "id": "SHOP-49",
+  "status": "logic",
+  "pages": [
+   "/labor/badges"
+  ],
+  "where": "Print Worker Badges: Print on label printer under a badge keeps an admin on the badge sheet (like techs).",
+  "see_as": "admin"
+ }
+]

@@ -19,7 +19,7 @@ class LaborerBadgesQrTest(OpsHubTestCase):
         self.assertIn("LABOR-AAAA1111", html)
         self.assertIn("Sam Wrench", html)
         self.assertIn("data-code=\"LABOR-AAAA1111\"", html)
-        self.assertIn("Print All", html)
+        self.assertIn("Print page (regular printer)", html)  # SHOP-35: named by destination
 
     def test_inactive_laborers_are_not_listed(self):
         lid = self.make_laborer("Retired Person", "LABOR-CCCC3333")

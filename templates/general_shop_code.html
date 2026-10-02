@@ -5,10 +5,10 @@
   <h4 class="mb-0">General Shop Code</h4>
   <div class="d-flex gap-2">
     {% if is_master_admin or shop_role == 'admin' %}<a href="{{ url_for('laborers_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Workers</a>{% endif %}
-    <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+    <button class="btn btn-warning fw-bold" onclick="window.print()" data-change="SHOP-35"><i class="bi bi-printer"></i> Print page (regular printer)</button>
   </div>
 </div>
-<p class="text-muted no-print">One shared code for non-project shop time - cleanup, meetings, general overhead. Scan it plus a laborer badge, in either order, on the <a href="{{ url_for('scan_page') }}">Scan</a> page. Clocking out of it asks for a quick note on what was worked on.</p>
+<p class="text-muted no-print">One shared code for non-project shop time - cleanup, meetings, general overhead. Scan it plus a worker badge, in either order, on the <a href="{{ url_for('scan_page') }}">Scan</a> page. Clocking out of it asks for a quick note on what was worked on.</p>
 
 <div class="d-flex justify-content-center">
   <div class="label-card" style="width: 260px; padding: 20px;">
@@ -20,7 +20,7 @@
 
 <div class="d-flex justify-content-center mt-3 no-print">
   <form method="post" action="{{ url_for('general_shop_code_print_label') }}">
-    <button type="submit" class="btn btn-outline-secondary"><i class="bi bi-printer"></i> Print Label</button>
+    <button type="submit" class="btn btn-outline-secondary" data-change="SHOP-35"><i class="bi bi-printer"></i> Print on label printer</button>
   </form>
 </div>
 {% endblock %}

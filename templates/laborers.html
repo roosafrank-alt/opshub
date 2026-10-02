@@ -3,32 +3,36 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0">Workers ({{ laborers|length }})</h4>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
     <form class="d-flex" method="get">
       <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search name...">
       <button class="btn btn-outline-secondary ms-1"><i class="bi bi-search"></i></button>
     </form>
-    <a href="{{ url_for('labor_page') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-arrow-left"></i> Labor</a>
-    <a href="{{ url_for('laborer_badges') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-printer"></i> Print Badges</a>
-    <a href="{{ url_for('general_shop_code_page') }}" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-qr-code"></i> Shop Code</a>
-    <a href="{{ url_for('admin_user_new', shop_role='tech', badge='new') if is_master_admin else url_for('laborer_new') }}" class="btn btn-warning fw-bold text-nowrap"><i class="bi bi-plus-lg"></i> New Laborer</a>
+    <div class="dropdown" data-change="SHOP-23">
+      <button class="btn btn-outline-secondary dropdown-toggle text-nowrap" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-printer"></i> Print</button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{{ url_for('laborer_badges') }}">Worker Badges</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('general_shop_code_page') }}">General Shop Code</a></li>
+      </ul>
+    </div>
+    <a href="{{ url_for('admin_user_new', shop_role='tech', badge='new') if is_master_admin else url_for('laborer_new') }}" class="btn btn-warning fw-bold text-nowrap" data-change="SHOP-17"><i class="bi bi-plus-lg"></i> New Worker</a>
   </div>
 </div>
 
 {% if laborers %}
 <div class="table-responsive">
-  <table class="table table-sm align-middle">
+  <table class="table table-sm align-middle table-stack" data-change="SHOP-23">
     <thead><tr><th>Name</th><th>Rate</th><th>Code</th><th>Status</th><th></th></tr></thead>
     <tbody>
       {% for l in laborers %}
       <tr class="{{ '' if l.active else 'text-muted' }}">
-        <td>{{ l.name }}{% if l.account_name %}<div class="small text-muted"><i class="bi bi-link-45deg"></i> {% if is_master_admin %}<a href="{{ url_for('admin_user_edit', user_id=l.account_id) }}" class="text-muted">{{ l.account_name }}</a>{% else %}{{ l.account_name }}{% endif %}</div>{% endif %}</td>
-        <td>${{ "%.2f"|format(l.rate) }}/hr</td>
-        <td><code class="small">{{ l.code }}</code></td>
-        <td>{% if l.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
-        <td class="text-end text-nowrap">
+        <td data-label="" class="fw-semibold">{{ l.name }}{% if l.account_name %}<div class="small text-muted fw-normal"><i class="bi bi-link-45deg"></i> {% if is_master_admin %}<a href="{{ url_for('admin_user_edit', user_id=l.account_id, back='workers') }}" class="text-muted">{{ l.account_name }}</a>{% else %}{{ l.account_name }}{% endif %}</div>{% endif %}</td>
+        <td data-label="Rate">${{ "%.2f"|format(l.rate) }}/hr</td>
+        <td data-label="Code"><code class="small">{{ l.code }}</code></td>
+        <td data-label="Status">{% if l.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
+        <td data-label="" class="text-end text-nowrap">
           <a href="{{ url_for('laborer_label', laborer_id=l.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-qr-code"></i> Code</a>
-          <a href="{{ url_for('admin_user_edit', user_id=l.account_id) if (is_master_admin and l.account_id) else url_for('laborer_edit', laborer_id=l.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i> Edit</a>
+          <a href="{{ url_for('admin_user_edit', user_id=l.account_id, back='workers') if (is_master_admin and l.account_id) else url_for('laborer_edit', laborer_id=l.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i> Edit</a>
           <a href="{{ url_for('shop_pay', laborer_id=l.id) }}" class="btn btn-sm btn-outline-success"><i class="bi bi-cash-stack"></i> Pay</a>
         </td>
       </tr>
@@ -37,6 +41,6 @@
   </table>
 </div>
 {% else %}
-<p class="text-muted">No laborers yet. <a href="{{ url_for('laborer_new') }}">Add your first one</a>.</p>
+<p class="text-muted">No workers yet. <a href="{{ url_for('laborer_new') }}">Add your first one</a>.</p>
 {% endif %}
 {% endblock %}

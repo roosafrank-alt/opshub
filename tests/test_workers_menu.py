@@ -9,15 +9,17 @@ class WorkersMenuTest(OpsHubTestCase):
         html = self.login("shop_admin").get("/laborers").get_data(as_text=True)
         self.assertIn("</i> Workers</a>", html)
         self.assertNotIn("</i> Laborers</a>", html)
-        self.assertNotIn("</i> Print Worker Badges</a>", html.split("Print Badges")[0])
+        self.assertNotIn("</i> Print Worker Badges</a>", html.split("Worker Badges")[0])
         self.assertNotIn("</i> General Shop Code</a>", html)
 
     def test_workers_page_has_badge_and_code_buttons(self):
         html = self.login("shop_admin").get("/laborers").get_data(as_text=True)
         self.assertIn("/labor/badges", html)
         self.assertIn("/labor/general-code", html)
-        self.assertIn("Print Badges</a>", html)
-        self.assertIn("Shop Code</a>", html)
+        # SHOP-23: both live in a Print dropdown now.
+        self.assertIn("Worker Badges</a>", html)
+        self.assertIn("General Shop Code</a>", html)
+        self.assertIn("New Worker", html)
 
     def test_badge_and_code_pages_go_back_to_workers(self):
         c = self.login("shop_admin")

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Edit Laborer' if laborer else 'New Laborer' }} - OpsHub{% endblock %}
+{% block title %}{{ 'Edit Worker' if laborer else 'New Worker' }} - OpsHub{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-6">
 <div class="card p-4">
-  <h4>{{ 'Edit Laborer' if laborer else 'New Laborer' }}</h4>
+  <h4 data-change="SHOP-17">{{ 'Edit Worker' if laborer else 'New Worker' }}</h4>
   <form method="post">
     <div class="mb-3">
       <label class="form-label">Name *</label>
@@ -26,7 +26,7 @@
     {% endif %}
     <div class="d-flex justify-content-between">
       <a href="{{ url_for('laborers_list') }}" class="btn btn-outline-secondary">Cancel</a>
-      <button type="submit" class="btn btn-warning fw-bold">{{ 'Save Changes' if laborer else 'Add Laborer' }}</button>
+      <button type="submit" class="btn btn-warning fw-bold">{{ 'Save Changes' if laborer else 'Add Worker' }}</button>
     </div>
   </form>
 </div>

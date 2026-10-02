@@ -13,7 +13,7 @@
       <input type="date" id="new-exp" name="expiration_date" class="form-control" required>
     </div>
     <button class="btn btn-warning fw-bold">Save date</button>
-    <a href="{{ url_for('orders_list') }}" class="btn btn-outline-secondary">Skip (keep {{ part.expiration_date|usdate }})</a>
+    <a href="{{ url_for('orders_list', status=request.args.get('status'), view=request.args.get('view')) }}" class="btn btn-outline-secondary">Skip (keep {{ part.expiration_date|usdate }})</a>
   </form>
 </div>
 </div>
