@@ -1119,6 +1119,9 @@ def _alert_fix_links(reason, scheduled_id, student_id):
             links.append(dict(label="Check currency", icon="bi-person-lines-fill",
                               url=url_for("flight.student_edit", student_id=student_id),
                               hint="The student's solo currency and recent flights"))
+    if "time off" in reason:
+        links.append(dict(label="Move this lesson", icon="bi-calendar2-week", url=edit_url,
+                          hint="Pick a new time or instructor for this lesson"))
     if not any(l["url"] == edit_url for l in links):
         links.append(dict(label="Assign CFI" if not links else "Open booking", icon="bi-person-plus" if not links else "bi-pencil",
                           url=edit_url, hint="Edit the booking"))
@@ -2930,6 +2933,40 @@ def _time_off_label(row):
     return label
 
 
+def _time_off_overlapping_bookings(conn, cfi_id, off_dates, start_time, end_time, recurs_weekly=False):
+    """FLY-18: this CFI's upcoming confirmed bookings that a new time-off entry
+    would sit on top of (same rule as _cfi_time_off_conflict: no times = the
+    whole day; a weekly entry covers every matching weekday from its date on)."""
+    today_str = date.today().strftime("%Y-%m-%d")
+    if start_time:
+        sh, sm = (int(x) for x in start_time.split(":"))
+        if end_time:
+            eh, em = (int(x) for x in end_time.split(":"))
+            end_min = eh * 60 + em
+        else:
+            end_min = 24 * 60
+        off_window = (sh * 60 + sm, end_min)
+    else:
+        off_window = None
+    anchor = off_dates[0]
+    anchor_wd = datetime.strptime(anchor, "%Y-%m-%d").weekday()
+    rows = conn.execute("""SELECT sf.*, a.tag as plane_tag, s.name as student_name FROM scheduled_flights sf
+                           JOIN assets a ON a.id = sf.asset_id JOIN students s ON s.id = sf.student_id
+                           WHERE sf.cfi_id = ? AND sf.status IN ('scheduled', 'balance_hold') AND sf.scheduled_date >= ?
+                           ORDER BY sf.scheduled_date, sf.scheduled_time""", (cfi_id, today_str)).fetchall()
+    out = []
+    for r in rows:
+        if recurs_weekly:
+            if r["scheduled_date"] < anchor or datetime.strptime(r["scheduled_date"], "%Y-%m-%d").weekday() != anchor_wd:
+                continue
+        elif r["scheduled_date"] not in off_dates:
+            continue
+        if not _windows_overlap(_time_window(r["scheduled_time"], r["duration_hours"]), off_window):
+            continue
+        out.append(dict(r, when_label=f"{_us_date(r['scheduled_date'])} {_format_time_12h(r['scheduled_time']) or '(no time)'}"))
+    return out
+
+
 def _cfi_schedule_pct(start_min, end_min):
     span = _CFI_SCHEDULE_DAY_END - _CFI_SCHEDULE_DAY_START
     left = max(0, min(100, (start_min - _CFI_SCHEDULE_DAY_START) / span * 100))
@@ -3022,6 +3059,13 @@ def cfi_schedule():
     An admin can also open/manage this same page for any CFI (?cfi_id=,
     see the Schedule link on the CFI roster) to add a break on their
     behalf - e.g. a CFI who's out and can't enter it themselves."""
+    # FLY-38: the same standard login check as every other page (an expired or
+    # deactivated login is sent to the sign-in page).
+    expired = refresh_or_expire_session()
+    if expired:
+        return expired
+    if _owner_preview_blocked():
+        return _owner_preview_redirect()
     raw_cfi_id = ((request.form.get("cfi_id") if request.method == "POST" else request.args.get("cfi_id")) or "").strip()
     is_admin_view = bool(session.get("is_master_admin")) and raw_cfi_id.isdigit()
     if not session.get("cfi_id") and not is_admin_view:
@@ -3044,6 +3088,8 @@ def cfi_schedule():
         note = request.form.get("note", "").strip()
         recurs_weekly = 1 if request.form.get("recurs_weekly") else 0
         anchor_date = request.form.get("view_date", "").strip()
+        time_off_warning = None
+        do_insert = False
         if not off_date:
             flash("Pick a date for the time off.", "danger")
         elif start_time and end_time and end_time <= start_time:
@@ -3063,10 +3109,25 @@ def cfi_schedule():
                 recurs_weekly = 0
             else:
                 off_dates = [off_date]
+            overlaps = _time_off_overlapping_bookings(conn, cfi_id, off_dates, start_time, end_time, recurs_weekly)
+            if overlaps and not request.form.get("confirm_overlap"):
+                # FLY-18: say which lessons are already booked then, and let
+                # the CFI add the time off anyway or back out.
+                time_off_warning = overlaps
+            else:
+                do_insert = True
+        if do_insert:
             for d in off_dates:
                 conn.execute("INSERT INTO cfi_time_off (cfi_id, off_date, start_time, end_time, note, recurs_weekly) "
                             "VALUES (?, ?, ?, ?, ?, ?)",
                             (cfi_id, d, start_time or None, end_time or None, note or None, recurs_weekly))
+            # Lessons already booked in that time get the review triangle
+            # (Dashboard > Needs Review) until they're moved.
+            who_off = (viewing_cfi["name"] if viewing_cfi else session.get("user_name")) or "The instructor"
+            for b in overlaps:
+                conn.execute("""UPDATE scheduled_flights SET needs_review = 1, review_reason = ?,
+                                 needs_review_acknowledged_at = NULL, needs_review_acknowledged_by = NULL WHERE id = ?""",
+                             (f"{who_off} has time off over this lesson - move it to a new time or instructor.", b["id"]))
             conn.commit()
             if len(off_dates) > 1:
                 msg = f"Time off added for {off_dates[0]} through {off_dates[-1]} - it now blocks new bookings for you over that span."
@@ -3075,10 +3136,14 @@ def cfi_schedule():
                 msg = f"Time off added for every {weekday_name} - it now blocks new bookings for you on that day going forward."
             else:
                 msg = "Time off added - it now blocks new bookings for you over that time."
-            flash(msg, "success")
-        conn.close()
-        return redirect(url_for("flight.cfi_schedule", date=anchor_date or off_date,
-                                cfi_id=cfi_id if is_admin_view else None))
+            if overlaps:
+                msg += (f" {len(overlaps)} lesson{'s' if len(overlaps) != 1 else ''} already booked then "
+                        f"{'are' if len(overlaps) != 1 else 'is'} flagged on the Dashboard until moved.")
+            flash(msg, "success" if not overlaps else "warning")
+        if time_off_warning is None:
+            conn.close()
+            return redirect(url_for("flight.cfi_schedule", date=anchor_date or off_date,
+                                    cfi_id=cfi_id if is_admin_view else None))
 
     today = date.today()
     day_str = request.args.get("date", "").strip() or today.strftime("%Y-%m-%d")
@@ -3090,6 +3155,8 @@ def cfi_schedule():
     week_start = day_date - timedelta(days=day_date.weekday())
     week_dates = [week_start + timedelta(days=i) for i in range(7)]
 
+    if request.method != "POST":
+        time_off_warning = None
     days = _cfi_schedule_week(conn, cfi_id, week_dates)
     # A recurring entry stays "upcoming" forever (its anchor off_date can be
     # long past while it still blocks every future occurrence of that
@@ -3105,7 +3172,8 @@ def cfi_schedule():
                            week_next=(week_start + timedelta(days=7)).strftime("%Y-%m-%d"),
                            upcoming_time_off=upcoming_time_off, today_str=today.strftime("%Y-%m-%d"),
                            viewing_cfi=viewing_cfi, cfi_id_param=(cfi_id if is_admin_view else None),
-                           effective_cfi_id=cfi_id)
+                           effective_cfi_id=cfi_id, time_off_warning=time_off_warning,
+                           time_off_form=request.form if request.method == "POST" else None)
 
 
 @flight_bp.route("/cfis/schedule/time-off/<int:off_id>/delete", methods=["POST"])
@@ -3113,6 +3181,11 @@ def cfi_time_off_delete(off_id):
     """Removes one of a CFI's time-off/break entries - a CFI can delete
     their own, and an admin can delete any (managing it on that CFI's
     behalf, same as adding one - see cfi_schedule)."""
+    expired = refresh_or_expire_session()  # FLY-38: same login check as every other page
+    if expired:
+        return expired
+    if _owner_preview_blocked():
+        return _owner_preview_redirect()
     if not session.get("cfi_id") and not session.get("is_master_admin"):
         flash("Log in as a CFI to do that.", "danger")
         return redirect(url_for("home_launcher"))

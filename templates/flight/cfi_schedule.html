@@ -99,6 +99,23 @@
   {% endfor %}
 </div>
 
+{% if time_off_warning %}
+<div class="alert alert-warning mb-3" data-change="FLY-18">
+  <h6 class="alert-heading mb-1"><i class="bi bi-exclamation-triangle-fill"></i> {{ time_off_warning|length }} lesson{{ 's are' if time_off_warning|length != 1 else ' is' }} already booked then</h6>
+  <ul class="mb-2">
+    {% for b in time_off_warning %}<li>{{ b.when_label }} &middot; {{ b.student_name }} &middot; {{ b.plane_tag }}</li>{% endfor %}
+  </ul>
+  <form method="post" class="d-flex gap-2 flex-wrap">
+    {% for k in ('view_date', 'cfi_id', 'off_date', 'off_end_date', 'start_time', 'end_time', 'note', 'recurs_weekly') %}
+    {% if time_off_form.get(k) %}<input type="hidden" name="{{ k }}" value="{{ time_off_form.get(k) }}">{% endif %}
+    {% endfor %}
+    <input type="hidden" name="confirm_overlap" value="1">
+    <button class="btn btn-warning fw-bold btn-sm">Add time off anyway (I'll move them)</button>
+    <a href="{{ url_for('flight.cfi_schedule', date=time_off_form.get('view_date') or None, cfi_id=cfi_id_param) }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+  </form>
+  <div class="small mt-2">Those lessons get the review triangle on the Dashboard until they're moved.</div>
+</div>
+{% endif %}
 <div class="card p-3">
   <h6 class="mb-2"><i class="bi bi-calendar-x"></i> Add time off / a break <span class="text-muted small fw-normal">(blocks new bookings {{ 'for them' if viewing_cfi else 'for you' }} over this time)</span></h6>
   <form method="post" class="row g-2 align-items-end">
