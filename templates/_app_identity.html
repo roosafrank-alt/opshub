@@ -1,0 +1,20 @@
+{#- SEAM-13 (Frank): every page declares one of the two real app identities
+   for the phone's home screen - Winds Aloft on shop, Admin, Customers and
+   My Aircraft pages, Fly with Kate! on flight and Flight Academy pages -
+   never a neutral OpsHub icon. Set `app_identity` to 'windsaloft' or
+   'flywithkate' before including this in <head>. #}
+{% if app_identity == 'flywithkate' %}
+<link rel="manifest" href="{{ url_for('static', filename='manifest-flywithkate.json') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/flywithkate/apple-touch-icon.png') }}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fly with Kate">
+<meta name="theme-color" content="#0d1b2a">
+{% else %}
+<link rel="manifest" href="{{ url_for('static', filename='manifest-windsaloft.json') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/windsaloft/apple-touch-icon.png') }}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Winds Aloft">
+<meta name="theme-color" content="#14161a">
+{% endif %}

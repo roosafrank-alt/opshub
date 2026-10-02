@@ -9,7 +9,8 @@ class PayrollInAdminTest(OpsHubTestCase):
         self.assertEqual(r.status_code, 200)
         html = r.get_data(as_text=True)
         self.assertIn("Payroll", html)
-        self.assertIn("bi-shield-lock-fill\"></i> Admin", html)  # Admin header, not Winds Aloft
+        self.assertIn("admin-nav", html)  # Admin header, not Winds Aloft
+        self.assertIn('<span class="opshub-hdr-name">Admin</span>', html)
         self.assertIn("/admin/payroll", c.get("/admin").get_data(as_text=True))
 
     def test_old_address_still_works(self):

@@ -9,10 +9,11 @@
   </h4>
   {#- On/off switch - off hides every Invoice in Wave button and pauses the
      payment check, but keeps all of the settings below. #}
-  <form method="post" action="{{ url_for('admin_wave_toggle') }}" class="d-flex align-items-center">
+  <form method="post" action="{{ url_for('admin_wave_toggle') }}" class="d-flex align-items-center" id="wave-toggle-form" data-change="HUB-35"
+        {% if enabled %}data-confirm="Billing pages lose their Invoice in Wave button until it's back on. Settings and invoices are kept." data-confirm-title="Turn Wave invoicing off?" data-confirm-ok="Turn off" data-confirm-style="danger"{% endif %}>
     <input type="hidden" name="enabled" value="{{ '0' if enabled else '1' }}">
     <div class="form-check form-switch mb-0">
-      <input class="form-check-input" type="checkbox" role="switch" id="wave-enabled" {{ 'checked' if enabled }} onchange="this.form.submit()">
+      <input class="form-check-input" type="checkbox" role="switch" id="wave-enabled" {{ 'checked' if enabled }}>
       <label class="form-check-label fw-bold" for="wave-enabled">Wave invoicing {{ 'on' if enabled else 'off' }}</label>
     </div>
   </form>
@@ -165,6 +166,17 @@
 
 {% block scripts %}
 <script>
+// HUB-35: the on/off switch asks first when turning Wave off (the form's
+// data-confirm); requestSubmit() (not submit()) is what lets the shared
+// confirm box see the submit. If the box is cancelled, the switch goes back.
+(function () {
+  var form = document.getElementById('wave-toggle-form'), box = document.getElementById('wave-enabled');
+  if (!form || !box) return;
+  var initial = box.checked;
+  box.addEventListener('change', function () { if (form.requestSubmit) form.requestSubmit(); else form.submit(); });
+  var modal = document.getElementById('confirmActionModal');
+  if (modal) modal.addEventListener('hidden.bs.modal', function () { if (form.dataset.confirmed !== '1') box.checked = initial; });
+})();
 document.querySelectorAll('.wave-token-from').forEach(function (sel) {
   sel.addEventListener('change', function () {
     var box = document.querySelector('.wave-own-token[data-account="' + sel.dataset.account + '"]');

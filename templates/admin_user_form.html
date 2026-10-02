@@ -5,7 +5,7 @@
 <div class="col-lg-7">
 <div class="card p-4">
   <h4>{{ 'Edit Account: ' + user.name if user else 'New Account' }}</h4>
-  <p class="text-muted small mb-3">One login works for both Maintenance and Flight School. Every account is set up the same way, in the sections below.</p>
+  <p class="text-muted small mb-3" data-change="SEAM-3">One login works for Winds Aloft, Fly with Kate! and Flight Academy. Every account is set up the same way, in the sections below.</p>
   <form method="post">
 
     {#- ===================== Login ===================== #}
@@ -18,24 +18,32 @@
     <div class="mb-3">
       <label class="form-label">Username *</label>
       <input type="text" name="username" class="form-control" value="{{ username or '' }}" required>
+      {#- HUB-28: how a staff login and a My Aircraft owner account link up. #}
+      <div class="form-text" data-change="HUB-28">If this person also has a My Aircraft owner account, use the same email address as their username and the same password - they'll then see every program with one login.</div>
     </div>
     <div class="mb-3">
       <label class="form-label">Starting Password *</label>
-      <input type="text" name="password" class="form-control" required>
-      <div class="form-text">Give this to them - they can log in with it right away, from the homepage.</div>
+      <input type="text" name="password" class="form-control" required value="{{ typed_password or '' }}">
+      <div class="form-text">Give this to them - they can log in with it right away, from the login page.</div>
     </div>
     {% else %}
     <div class="mb-3">
       <label class="form-label">Username</label>
       <div><code>{{ user.username }}</code></div>
+      <div class="form-text" data-change="HUB-28">If this person also has a My Aircraft owner account, their username here should be the same email address as that account, with the same password - they'll then see every program with one login.</div>
     </div>
     <div class="mb-3">
       <label class="form-label">Current Password <span class="text-muted small">(visible to admins only)</span></label>
-      <div><code>{{ user.password_plain or 'Not available - set below to enable this' }}</code></div>
+      {#- HUB-25: the password only shows behind a Show tap, here on the
+         Edit page - never on the Accounts list. #}
+      <div data-change="HUB-25">
+        <code id="current-pw" class="d-none">{{ user.password_plain or 'Not available - set below to enable this' }}</code>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="current-pw-toggle"><i class="bi bi-eye"></i> Show</button>
+      </div>
     </div>
     <div class="mb-3">
       <label class="form-label">Reset Password <span class="text-muted small">(leave blank to keep current)</span></label>
-      <input type="text" name="password" class="form-control">
+      <input type="text" name="password" class="form-control" value="{{ typed_password or '' }}">
     </div>
     {% endif %}
 
@@ -50,7 +58,7 @@
     {% set _pre_flight = preset.flight_roles if preset else (user_flight_roles(user) if user else []) %}
     <div class="row">
       <div class="col-6 mb-3">
-        <label class="form-label d-block">Maintenance Roles</label>
+        <label class="form-label d-block" data-change="SEAM-3">Winds Aloft Roles</label>
         {% for value, label, hint in [
             ('admin', 'Admin', 'full Maintenance access'),
             ('tech', 'Tech', 'scan, labor, no costs/settings'),
@@ -61,27 +69,27 @@
           <label class="form-check-label" for="shop-role-{{ value }}">{{ label }} <span class="text-muted small">({{ hint }})</span></label>
         </div>
         {% endfor %}
-        <div class="form-text">None ticked = no Maintenance access. This is the Maintenance/shop side only - it doesn't give Flight School admin powers like ending someone else's flight. For that, check "Master Admin" below.</div>
+        <div class="form-text">None ticked = no Winds Aloft access. This is the shop side only - it doesn't give Fly with Kate! admin powers like ending someone else's flight. For that, check "Master Admin" below.</div>
       </div>
       <div class="col-6 mb-3">
-        <label class="form-label d-block">Flight School Roles</label>
+        <label class="form-label d-block" data-change="SEAM-3">Fly with Kate! Roles</label>
         {% for value, label in [('cfi', 'CFI / Instructor'), ('student', 'Student')] %}
         <div class="form-check">
           <input type="checkbox" class="form-check-input" name="flight_roles" value="{{ value }}" id="flight-role-{{ value }}" {% if value in _pre_flight %}checked{% endif %}>
           <label class="form-check-label" for="flight-role-{{ value }}">{{ label }}</label>
         </div>
         {% endfor %}
-        <div class="form-text">None ticked = no Flight School access.</div>
+        <div class="form-text">None ticked = no Fly with Kate! access.</div>
       </div>
     </div>
-    <div class="form-text mb-3">More than one role ticked? The first ticked role is what they see when they log in. The "View as" chips at the top of the page switch to any of their other roles, and everything works as it does for that role.</div>
+    <div class="form-text mb-3">More than one role ticked? The first ticked role is what they see when they log in. The "Switch role" chips at the top of the page switch to any of their other roles, and everything works as it does for that role.</div>
     <div class="form-check mb-2">
       <input type="checkbox" class="form-check-input" name="is_master_admin" id="master-admin-check" {% if user and user.is_master_admin %}checked{% endif %}>
       <label class="form-check-label" for="master-admin-check">Master Admin <span class="text-muted small">(full access to everything in both programs, including this page)</span></label>
     </div>
     <div class="form-check mb-2">
       <input type="checkbox" class="form-check-input" name="can_bill" id="can-bill-check" {% if user and user.can_bill %}checked{% endif %}>
-      <label class="form-check-label" for="can-bill-check">Can Manage Billing <span class="text-muted small">(Flight School: sees $ totals / outstanding balances and the Billing page - most instructors shouldn't)</span></label>
+      <label class="form-check-label" for="can-bill-check">Can Manage Billing <span class="text-muted small">(Fly with Kate!: sees $ totals / outstanding balances and the Billing page - most instructors shouldn't)</span></label>
     </div>
     <div class="form-check mb-2">
       <input type="checkbox" class="form-check-input" name="academy_access" id="academy-access-check" {% if user and user.academy_access %}checked{% endif %}>
@@ -194,7 +202,7 @@
         </div>
       </div>
     </div>
-    <div class="form-text mb-2">Which of the above, sent for whichever categories are checked below:</div>
+    <div class="form-text mb-2">Choose how they get reminders (email, text) and which reminders they get:</div>
     <div class="form-check">
       <input type="checkbox" class="form-check-input" name="notify_low_stock" id="notify-low-stock-check" {% if user and user.notify_low_stock %}checked{% endif %}>
       <label class="form-check-label" for="notify-low-stock-check">Low parts stock</label>
@@ -224,6 +232,14 @@
   var wrap = document.getElementById('badge-rate-wrap');
   function sync() { wrap.style.display = sel.value === 'new' ? '' : 'none'; }
   if (sel && wrap) { sel.addEventListener('change', sync); sync(); }
+  var pwBtn = document.getElementById('current-pw-toggle'), pw = document.getElementById('current-pw');
+  if (pwBtn && pw) {
+    pwBtn.addEventListener('click', function () {
+      var show = pw.classList.contains('d-none');
+      pw.classList.toggle('d-none', !show);
+      pwBtn.innerHTML = show ? '<i class="bi bi-eye-slash"></i> Hide' : '<i class="bi bi-eye"></i> Show';
+    });
+  }
 })();
 </script>
 {% endblock %}

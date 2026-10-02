@@ -18,7 +18,7 @@ class ViewAsSwitchWithoutExitTest(OpsHubTestCase):
             self.assertIsNotNone(first_cfi_id)
         r = c.post("/view-as/flight/student")
         self.assertEqual(r.status_code, 302)
-        self.assertNotIn("Can&#39;t view as that", c.get(r.headers["Location"]).get_data(as_text=True))
+        self.assertNotIn("Can&#39;t switch to that role", c.get(r.headers["Location"]).get_data(as_text=True))
         with c.session_transaction() as s:
             self.assertEqual(s["flight_role"], "student")
             self.assertIsNone(s.get("cfi_id"))
@@ -69,4 +69,4 @@ class ViewAsSwitchWithoutExitTest(OpsHubTestCase):
     def test_a_non_master_admin_still_cannot_start_a_preview(self):
         c = self.login("shop_admin")
         r = c.post("/view-as/shop/tech", follow_redirects=True)
-        self.assertIn("Can&#39;t view as that", r.get_data(as_text=True))
+        self.assertIn("Can&#39;t switch to that role", r.get_data(as_text=True))

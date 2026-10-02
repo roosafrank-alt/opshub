@@ -33,7 +33,7 @@ class ScheduleResetWithWaitlistOfferTest(OpsHubTestCase):
         c = self.login("master")
         html = c.post("/admin/reset/schedule", follow_redirects=True).get_data(as_text=True)
         self.assertNotIn("FOREIGN KEY constraint failed", html)
-        self.assertIn("Schedule cleared", html)
+        self.assertIn("Deleted 1 booking", html)
         self.assertIsNone(self.q1("SELECT id FROM scheduled_flights WHERE id = ?", (self.booking,)))
 
     def test_waitlist_offer_kept_but_unlinked(self):
@@ -84,7 +84,9 @@ class OtherResetsWithWaitlistTest(OpsHubTestCase):
             (self.wl, self.student, self.asset, self.cfi, date.today().isoformat(), "09:00", db.now_iso()))
 
     def _reset(self, what):
-        html = self.login("master").post(f"/admin/reset/{what}", follow_redirects=True).get_data(as_text=True)
+        # HUB-29: the big resets need RESET typed in the box next to the button.
+        html = self.login("master").post(f"/admin/reset/{what}", data={"confirm_text": "RESET"},
+                                         follow_redirects=True).get_data(as_text=True)
         self.assertNotIn("FOREIGN KEY constraint failed", html)
         self.assertNotIn("Reset didn't run", html)
 

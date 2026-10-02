@@ -2,7 +2,7 @@
 Inspector. Roles in Admin > Accounts are now separate checkboxes, so one
 account can hold several per program (users.shop_roles/flight_roles, main
 role in shop_role/flight_role - see db.user_shop_roles). Anyone with more
-than one role in a program gets "View as" chips for just their own roles,
+than one role in a program gets "Switch role" chips for just their own roles,
 and switching isn't view-only - it's using the app as that role. Clicking
 your normal role's chip (Admin, for a master admin) goes straight back to
 your normal view instead of needing "Back to admin"."""
@@ -61,7 +61,7 @@ class ViewAsMultiRoleTest(OpsHubTestCase):
 
     def test_single_role_account_gets_no_chips(self):
         html = self.login("tech").get("/shop").get_data(as_text=True)
-        self.assertNotIn("View as:", html)
+        self.assertNotIn("Switch role:", html)
 
     def test_multi_role_account_can_switch_and_use_the_other_role(self):
         self._add_roles("tech", shop_roles="tech,inspector")
@@ -73,7 +73,7 @@ class ViewAsMultiRoleTest(OpsHubTestCase):
         # Inspector-only page (admin + inspector) now opens for real.
         self.assertEqual(c.get("/squawks").status_code in (200, 302), True)
         body = c.get("/shop").get_data(as_text=True)
-        self.assertIn("Viewing as Inspector", body)
+        self.assertIn("Switched role: Inspector", body)
         self.assertNotIn("not yours", body)
 
     def test_multi_role_account_cannot_switch_to_a_role_it_does_not_have(self):
@@ -81,14 +81,10 @@ class ViewAsMultiRoleTest(OpsHubTestCase):
         c = self.login("tech")
         c.post("/view-as/shop/inspector")
         r = c.post("/view-as/shop/admin", follow_redirects=True)
-        self.assertIn("Can&#39;t view as that", r.get_data(as_text=True))
+        self.assertIn("Can&#39;t switch to that role", r.get_data(as_text=True))
         with c.session_transaction() as s:
             self.assertEqual(s["shop_role"], "inspector")
             self.assertFalse(s["is_master_admin"])
-        # And no owner previews either - that's master admins only.
-        c.post(f"/view-as/owner/{self.customer_id}")
-        with c.session_transaction() as s:
-            self.assertIsNone(s.get("customer_id"))
 
     def test_clicking_your_own_main_role_goes_back_to_normal(self):
         self._add_roles("tech", shop_roles="tech,inspector")
@@ -135,6 +131,6 @@ class ViewAsMultiRoleTest(OpsHubTestCase):
         c = self.login("master")
         c.post("/view-as/shop/inspector")
         body = c.get("/shop").get_data(as_text=True)
-        self.assertIn("Viewing as Inspector", body)
+        self.assertIn("Switched role: Inspector", body)
         self.assertNotIn("not yours", body)
         self.assertIn("Back to your normal view", body)

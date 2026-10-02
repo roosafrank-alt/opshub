@@ -18,7 +18,7 @@ import csv
 import io
 from datetime import date, datetime, timedelta
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, Response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, Response, current_app
 
 from auth import master_admin_required
 from db import get_db, now_iso
@@ -197,11 +197,19 @@ def payroll_page():
                            baseline_weeks=BASELINE_WEEKS)
 
 
-def _person_ok(conn, person_type, person_id):
+def _person_name(conn, person_type, person_id):
+    """The person's name, or None when there's no such shop worker / CFI."""
     table = {"laborer": "laborers", "cfi": "cfis"}.get(person_type)
     if not table or person_id is None:
-        return False
-    return conn.execute(f"SELECT id FROM {table} WHERE id = ?", (person_id,)).fetchone() is not None
+        return None
+    row = conn.execute(f"SELECT name FROM {table} WHERE id = ?", (person_id,)).fetchone()
+    return row["name"] if row else None
+
+
+def _week_label(week):
+    """'the week of 29-09-2026' - through the app's usdate filter so the
+    date format stays whatever the app uses everywhere (HUB-36)."""
+    return "the week of " + current_app.jinja_env.filters["usdate"](week.isoformat())
 
 
 @payroll_bp.route("/payroll/mark-paid", methods=["POST"])
@@ -215,7 +223,8 @@ def payroll_mark_paid():
         person_id = None
     note = (request.form.get("note") or "").strip()[:200] or None
     conn = get_db()
-    if not _person_ok(conn, person_type, person_id):
+    name = _person_name(conn, person_type, person_id)
+    if not name:
         conn.close()
         flash("That person wasn't found.", "danger")
         return redirect(url_for("payroll.payroll_page", week=week.isoformat()))
@@ -229,9 +238,9 @@ def payroll_mark_paid():
     conn.commit()
     conn.close()
     if cur.rowcount:
-        flash(f"Marked paid: ${this['amount']:,.2f}.", "success")
+        flash(f"Marked {name} paid ${this['amount']:,.2f} for {_week_label(week)}.", "success")
     else:
-        flash("Already marked paid for that week.", "warning")
+        flash(f"{name} was already marked paid for {_week_label(week)}.", "warning")
     return redirect(url_for("payroll.payroll_page", week=week.isoformat()))
 
 
@@ -245,11 +254,13 @@ def payroll_unmark_paid():
     except ValueError:
         person_id = None
     conn = get_db()
+    name = _person_name(conn, person_type, person_id) or "that person"
     n = conn.execute("DELETE FROM payroll_payments WHERE person_type = ? AND person_id = ? AND week_start = ?",
                      (person_type, person_id, week.isoformat())).rowcount
     conn.commit()
     conn.close()
-    flash("Marked as not paid." if n else "That week wasn't marked paid.", "success" if n else "warning")
+    flash(f"Marked {name} as not paid for {_week_label(week)}." if n else
+          f"{name} wasn't marked paid for {_week_label(week)}.", "success" if n else "warning")
     return redirect(url_for("payroll.payroll_page", week=week.isoformat()))
 
 

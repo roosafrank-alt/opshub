@@ -37,8 +37,7 @@ from auth import (authenticate, log_in_user, log_out_user, current_user, login_r
                    real_is_master_admin, view_as_chips, home_view_as_level,
                    account_program_count, single_program_endpoint,
                    login_allowed, login_failed, login_succeeded, unlock_account, LOGIN_BLOCKED_MSG,
-                   person_view_active, person_view_name, can_view_as_person,
-                   start_view_as_person, stop_view_as_person, real_user_id)
+                   real_user_id, session_programs, safe_next)
 import notify
 import wave_billing
 from urllib.parse import urlparse
@@ -363,6 +362,7 @@ def inject_auth_context():
         "open_squawk_count": open_squawk_count,
         "tour_seen_shop": session.get("tour_seen_shop"),
         "tour_seen_flight": session.get("tour_seen_flight"),
+        "tour_seen_academy": session.get("tour_seen_academy"),
         "maint_category_colors": CATEGORY_COLORS,
         "maint_category_labels": CATEGORY_LABELS,
         "viewing_as": viewing_as_label(),
@@ -370,29 +370,10 @@ def inject_auth_context():
         "view_as_chip_rows": _view_as_chip_rows(),
         "view_as_active_program": view_as_active_program(),
         "single_program_account": account_program_count() == 1,
-        "person_view_name": person_view_name(),
-        "can_view_as_person": can_view_as_person(),
+        # SEAM-2 / SEAM-12: the header's Programs button - every program
+        # this account can open, with its address.
+        "header_programs": [dict(p, url=url_for(p["endpoint"])) for p in session_programs()],
     }
-
-
-# Viewing as a person (auth.start_view_as_person) is look-only: refuse
-# anything that would change data while it's on. Going back to your own
-# view, picking someone else, the role chips and logging out still work.
-_PERSON_VIEW_ALLOWED = {"view_as_person_start", "view_as_person_exit", "view_as_start", "view_as_exit"}
-
-
-@app.before_request
-def block_writes_in_person_view():
-    if not person_view_active() or request.method in ("GET", "HEAD", "OPTIONS"):
-        return None
-    if request.endpoint in _PERSON_VIEW_ALLOWED:
-        return None
-    msg = (f"You're only looking at {person_view_name()}'s account, so nothing can be changed. "
-           "Use Back to my view to make changes.")
-    if request.is_json or request.path.startswith("/api/") or request.accept_mimetypes.best == "application/json":
-        return jsonify(ok=False, error=msg), 403
-    flash(msg, "warning")
-    return redirect(request.referrer or url_for("home_launcher"))
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -417,9 +398,10 @@ def home_launcher():
         # closes instead of staying signed in for the next person. A
         # checkbox only appears in form data at all when it's checked.
         remember = "remember" in request.form
+        nxt = safe_next(request.form.get("next"))
         if not login_allowed(username):
             flash(LOGIN_BLOCKED_MSG, "danger")
-            return render_template("home_launcher.html", user=None, customer=None, username=username)
+            return render_template("home_launcher.html", user=None, customer=None, username=username, next_url=nxt)
         user_row = authenticate(username, password)
         # Customers log in by email - the hub's "Username" field doubles as
         # that when it doesn't match a staff username.
@@ -427,11 +409,14 @@ def home_launcher():
         if not user_row and not customer_row:
             login_failed(username)
             flash(LOGIN_BLOCKED_MSG, "danger")
-            return render_template("home_launcher.html", user=None, customer=None, username=username)
+            return render_template("home_launcher.html", user=None, customer=None, username=username, next_url=nxt)
         login_succeeded(username)
         login_next = session.pop("login_next", None)
         log_in_combined(user_row, customer_row, remember=remember)
         flash(f"Welcome, {(user_row or customer_row)['name']}!", "success")
+        if nxt:
+            # SEAM-4 / SEAM-16: back to the page they were trying to open.
+            return redirect(nxt)
         # SCHOOL-36: back to the Academy page that asked for a sign-in.
         if user_row and login_next and login_next.startswith("/") and not login_next.startswith("//"):
             return redirect(login_next)
@@ -451,7 +436,15 @@ def home_launcher():
     user = current_user(conn)
     customer = current_customer(conn)
     conn.close()
-    return render_template("home_launcher.html", user=user, customer=customer)
+    return render_template("home_launcher.html", user=user, customer=customer,
+                           next_url=safe_next(request.args.get("next")))
+
+
+@app.route("/login")
+def login_page():
+    """The one login page lives at '/'. Old bookmarks of /login, /portal/login
+    and /flight/login all end up here (SEAM-4)."""
+    return redirect(url_for("home_launcher", **({"next": request.args["next"]} if request.args.get("next") else {})))
 
 
 @app.route("/tour/seen", methods=["POST"])
@@ -460,10 +453,10 @@ def tour_seen():
     """Fired once by the guided-tour JS when someone finishes or skips it,
     so it doesn't pop up again on their next login. ?side=shop|flight."""
     side = request.form.get("side", "").strip()
-    if side not in ("shop", "flight"):
+    if side not in ("shop", "flight", "academy"):
         return ("", 400)
     conn = get_db()
-    col = "tour_seen_shop" if side == "shop" else "tour_seen_flight"
+    col = {"shop": "tour_seen_shop", "flight": "tour_seen_flight", "academy": "tour_seen_academy"}[side]
     conn.execute(f"UPDATE users SET {col} = 1 WHERE id = ?", (session["user_id"],))
     conn.commit()
     conn.close()
@@ -7904,94 +7897,32 @@ def admin_home():
 
 @app.route("/view-as/<program>/<level>", methods=["POST"])
 def view_as_start(program, level):
-    """Switches to another role from the "View as" chips in the header -
-    any Shop or Flight School level for a master admin, or one of their own
-    other roles for an account that holds several (Admin + Inspector, CFI +
-    Student, ...). It isn't read-only: everything works as it would for that
-    role. Clicking your normal role's chip (Admin for a master admin) goes
-    straight back to your normal view. A master admin can also view My
-    Aircraft as one specific real owner, picked on Admin > Customers (see
-    auth.start_view_as for how each is backed)."""
-    if program not in ("shop", "flight", "owner"):
+    """Switches to another role from the "Switch role" chips in the header -
+    any Winds Aloft or Fly with Kate! level for a master admin, or one of
+    their own other roles for an account that holds several (Admin +
+    Inspector, CFI + Student, ...). It isn't read-only: everything works as
+    it would for that role. Clicking your normal role's chip (Admin for a
+    master admin) goes straight back to your normal view. This is the only
+    look-as-someone feature (HUB-03)."""
+    if program not in ("shop", "flight"):
         abort(404)
-    if program != "owner" and level == home_view_as_level(program):
+    if level == home_view_as_level(program):
         return view_as_exit()
     conn = get_db()
     ok, error = start_view_as(conn, program, level)
     conn.close()
     if not ok:
-        flash(error or "Can't view as that.", "danger")
+        flash(error or "Can't switch to that role.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
-    if program == "owner":
-        flash(f"Viewing as {session.get('customer_name')} (owner). Nothing you do here affects real data any differently than it would for that owner.", "info")
-        return redirect(url_for("customer.customer_dashboard"))
     levels = SHOP_VIEW_AS_LEVELS if program == "shop" else FLIGHT_VIEW_AS_LEVELS
-    flash(f"Viewing as {levels[level]} - you can use everything a{'n' if levels[level][0] in 'AEIOU' else ''} {levels[level]} can.", "info")
+    flash(f"Switched to {levels[level]} - you can use everything a{'n' if levels[level][0] in 'AEIOU' else ''} {levels[level]} can.", "info")
     return redirect(url_for("dashboard") if program == "shop" else url_for("flight.dashboard"))
-
-
-@app.route("/view-as/people")
-def view_as_people():
-    """Admins only: everyone who can log in, to see the app exactly as that
-    person does (view only) - opened from "View as someone" in the account
-    menu. Your own row is first: it's your normal view."""
-    if not can_view_as_person():
-        flash("That's for admins only.", "danger")
-        return redirect(url_for("home_launcher"))
-    conn = get_db()
-    users = conn.execute("SELECT * FROM users WHERE active = 1 ORDER BY name COLLATE NOCASE").fetchall()
-    user_emails = {str(u["username"] or "").lower() for u in users}
-    owners = [c for c in conn.execute("SELECT id, name, email FROM customers WHERE active = 1 ORDER BY name COLLATE NOCASE").fetchall()
-              if str(c["email"] or "").lower() not in user_emails]
-    conn.close()
-    me = (session.get("_person_view_real") or session).get("user_id")
-    people = []
-    for u in users:
-        roles = ["Admin"] if u["is_master_admin"] else []
-        roles += [SHOP_VIEW_AS_LEVELS.get(r, r.title()) for r in user_shop_roles(u)]
-        roles += [FLIGHT_VIEW_AS_LEVELS.get(r, r.title()) for r in user_flight_roles(u)]
-        if u["academy_access"] and not u["is_master_admin"]:
-            roles.append("Academy")
-        people.append(dict(id=u["id"], name=u["name"], username=u["username"], roles=list(dict.fromkeys(roles)),
-                           me=u["id"] == me))
-    people.sort(key=lambda p: not p["me"])
-    return render_template("view_as_people.html", people=people, owners=owners,
-                           current_person=person_view_name())
-
-
-@app.route("/view-as/person/<int:user_id>", methods=["POST"])
-def view_as_person_start(user_id):
-    conn = get_db()
-    ok, error = start_view_as_person(conn, user_id)
-    conn.close()
-    if not ok:
-        flash(error or "Can't view as that person.", "danger")
-        return redirect(request.referrer or url_for("home_launcher"))
-    if person_view_active():
-        flash(f"Viewing {person_view_name()}'s app exactly as they see it. It's view only: nothing can be changed until you go back to your own view.", "info")
-    else:
-        flash("Back to your own view.", "info")
-    return redirect(url_for("home_launcher"))
-
-
-@app.route("/view-as/person/exit", methods=["POST"])
-def view_as_person_exit():
-    if stop_view_as_person():
-        flash("Back to your own view.", "info")
-    return redirect(url_for("home_launcher"))
 
 
 @app.route("/view-as/exit", methods=["POST"])
 def view_as_exit():
-    was_owner = view_as_active_program() == "owner"
     if exit_view_as():
         flash("Back to your normal view.", "info")
-    # Exiting an owner preview clears session['customer_id'], so the portal
-    # page we were just on (referrer) would immediately bounce to the
-    # customer login screen - send an admin back to Admin > Customers
-    # instead, same place the preview was started from.
-    if was_owner:
-        return redirect(url_for("customers_list"))
     return redirect(request.referrer or url_for("dashboard"))
 
 
@@ -8174,24 +8105,37 @@ def admin_user_edit(user_id):
         notify_flight_reminders = 1 if request.form.get("notify_flight_reminders") else 0
         academy_access = 1 if request.form.get("academy_access") else 0
         groundschool_access = 1 if request.form.get("groundschool_access") else 0
+        # HUB-24: when the save is refused, re-draw the form with what was
+        # typed (roles, email, flags...) and the full Pay/Profiles sections,
+        # instead of reloading the saved record and losing the changes.
+        def _typed_form():
+            typed = dict(user_row)
+            typed.update(name=name, shop_role=shop_role, flight_role=flight_role, shop_roles=shop_roles,
+                         flight_roles=flight_roles, is_master_admin=is_master_admin, can_bill=can_bill,
+                         active=active, email=email, phone=phone, notify_email=notify_email, notify_sms=notify_sms,
+                         notify_low_stock=notify_low_stock, notify_maintenance=notify_maintenance,
+                         notify_flight_reminders=notify_flight_reminders, academy_access=academy_access,
+                         groundschool_access=groundschool_access)
+            pay_ctx = _pay_link_context(conn, user_row)
+            conn.close()
+            preset = _role_preset(shop_roles, flight_roles, badge=request.form.get("badge", ""),
+                                  badge_rate=request.form.get("badge_rate", ""),
+                                  cfi_pay_rate=request.form.get("cfi_pay_rate", ""))
+            return render_template("admin_user_form.html", user=typed, preset=preset,
+                                   typed_password=new_password, **pay_ctx)
         if not name:
             flash("Name is required.", "danger")
-            conn.close()
-            return render_template("admin_user_form.html", user=user_row)
+            return _typed_form()
         if user_id == session.get("user_id") and not is_master_admin:
             flash("You can't remove your own admin access.", "danger")
-            conn.close()
-            return render_template("admin_user_form.html", user=user_row)
+            return _typed_form()
         if user_id == session.get("user_id") and not active:
             flash("You can't deactivate your own account.", "danger")
-            conn.close()
-            return render_template("admin_user_form.html", user=user_row)
+            return _typed_form()
         if (request.form.get("badge") == "new" and _parse_rate(request.form.get("badge_rate")) is None) or \
                 ((request.form.get("cfi_pay_rate") or "").strip() and _parse_rate(request.form.get("cfi_pay_rate")) is None):
             flash("Pay rates must be a number, 0 or more.", "danger")
-            pay_ctx = _pay_link_context(conn, user_row)
-            conn.close()
-            return render_template("admin_user_form.html", user=user_row, **pay_ctx)
+            return _typed_form()
         if new_password:
             conn.execute(
                 "UPDATE users SET name=?, shop_role=?, flight_role=?, shop_roles=?, flight_roles=?, is_master_admin=?, can_bill=?, active=?, password_hash=?, password_plain=?, "
@@ -8235,11 +8179,16 @@ def admin_user_edit(user_id):
 # offer a way straight back to that program (instead of always landing on
 # the Maintenance side). Each program's navbar links with ?from=<key>.
 ACCOUNT_FROM_PROGRAMS = {
-    "shop": ("Maintenance", "bi-tools", "dashboard"),
-    "flight": ("Flight School", "bi-airplane-engines", "flight.dashboard"),
+    "shop": ("Winds Aloft", "bi-tools", "dashboard"),
+    "flight": ("Fly with Kate!", "bi-airplane-engines", "flight.dashboard"),
     "academy": ("Flight Academy", "bi-mortarboard", "academy_page"),
     "admin": ("Admin", "bi-shield-lock-fill", "admin_home"),
+    "owner": ("My Aircraft", "bi-airplane", "customer.customer_dashboard"),
 }
+# SEAM-13: which app identity (home-screen icon/name) My Account shows,
+# by the program it was opened from. Never a neutral OpsHub icon.
+ACCOUNT_FROM_IDENTITY = {"shop": "windsaloft", "admin": "windsaloft", "owner": "windsaloft",
+                         "flight": "flywithkate", "academy": "flywithkate"}
 
 
 def _account_programs(user_row):
@@ -8251,11 +8200,11 @@ def _account_programs(user_row):
     flight_labels = {"cfi": "Instructor (CFI)", "student": "Student"}
     progs = []
     if is_admin or user_row["shop_role"]:
-        progs.append(dict(key="shop", name="Winds Aloft - Maintenance", icon="bi-tools",
+        progs.append(dict(key="shop", name="Winds Aloft", icon="bi-tools",
                           url=url_for("dashboard"),
                           role="Master admin" if is_admin else " + ".join(shop_labels.get(r, r.title()) for r in user_shop_roles(user_row))))
     if is_admin or user_row["flight_role"]:
-        progs.append(dict(key="flight", name="Fly with Kate! - Flight School", icon="bi-airplane-engines",
+        progs.append(dict(key="flight", name="Fly with Kate!", icon="bi-airplane-engines",
                           url=url_for("flight.dashboard"),
                           role="Master admin" if is_admin else " + ".join(flight_labels.get(r, r.title()) for r in user_flight_roles(user_row))))
     if is_admin or user_row["academy_access"]:
@@ -8286,10 +8235,29 @@ def _account_came_from():
                 key = "academy"
             elif path.startswith("/admin"):
                 key = "admin"
+            elif path.startswith("/portal"):
+                key = "owner"
             elif path != "/":
                 key = "shop"
     session["account_from"] = key
     return key
+
+
+PASSWORD_MIN = 8
+
+
+def password_problem(new_password, confirm_password, shown=False):
+    """HUB-27: a password someone picks for themselves needs 8+ characters,
+    and must match the confirm box while the boxes are hidden (with Show on,
+    there is no confirm box). Returns an error sentence or None. Admin-set
+    starting passwords don't go through this - they're exempt."""
+    if not new_password:
+        return None
+    if len(new_password) < PASSWORD_MIN:
+        return f"Your new password needs at least {PASSWORD_MIN} characters."
+    if not shown and new_password != confirm_password:
+        return "The two new password fields don't match."
+    return None
 
 
 def _render_account(user_row, came_from):
@@ -8297,8 +8265,12 @@ def _render_account(user_row, came_from):
     if came_from and came_from in ACCOUNT_FROM_PROGRAMS:
         label, icon, endpoint = ACCOUNT_FROM_PROGRAMS[came_from]
         back = dict(key=came_from, label=label, icon=icon, url=url_for(endpoint))
+    identity = ACCOUNT_FROM_IDENTITY.get(came_from)
+    if not identity:
+        flight_only = bool(user_row["flight_role"]) and not (user_row["shop_role"] or user_row["is_master_admin"])
+        identity = "flywithkate" if flight_only else "windsaloft"
     return render_template("account.html", user=user_row, programs=_account_programs(user_row),
-                           came_from=back)
+                           came_from=back, app_identity=identity)
 
 
 @app.route("/account", methods=["GET", "POST"])
@@ -8356,8 +8328,9 @@ def account_page():
             flash("Name is required.", "danger")
             conn.close()
             return _render_account(user_row, came_from)
-        if new_password and new_password != confirm_password:
-            flash("The two new password fields don't match.", "danger")
+        pw_error = password_problem(new_password, confirm_password, request.form.get("password_shown") == "1")
+        if pw_error:
+            flash(pw_error, "danger")
             conn.close()
             return _render_account(user_row, came_from)
         if new_password:
@@ -8465,7 +8438,7 @@ def customer_new():
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip()
         phone = request.form.get("phone", "").strip()
-        password = request.form.get("password", "")
+        password = request.form.get("password", "") or default_customer_password(name)
         asset_ids = [int(x) for x in request.form.getlist("asset_ids") if x.isdigit()]
         if not name or not email or not password:
             flash("Name, email, and a starting password are all required.", "danger")
@@ -8488,11 +8461,70 @@ def customer_new():
                          (customer_id, aid))
         conn.commit()
         conn.close()
-        flash(f"Customer account created for {name}.", "success")
-        return redirect(url_for("customers_list"))
+        flash(f"Customer account created for {name}. Their starting password is {password} - "
+              "use Send login details to email or text it to them.", "success")
+        return redirect(url_for("customer_detail", customer_id=customer_id))
     conn.close()
     return render_template("customer_form.html", customer=None, assets=assets, linked_ids=set(),
                             name="", email="", phone="")
+
+
+def default_customer_password(name):
+    """JOBS-31 (Frank): a new customer's starting password is the capital
+    first letter of their first name + their last name in lowercase + #1,
+    e.g. Jane Doe -> Jdoe#1. A one-word name is just that word, capitalised,
+    + #1 (Cher -> Cher#1)."""
+    parts = [p for p in (name or "").replace("-", " ").split() if p.strip()]
+    if not parts:
+        return ""
+    if len(parts) == 1:
+        return parts[0][0].upper() + parts[0][1:].lower() + "#1"
+    return parts[0][0].upper() + parts[-1].lower() + "#1"
+
+
+@app.route("/customers/<int:customer_id>/send-login", methods=["POST"])
+@shop_role_required('admin')
+def customer_send_login(customer_id):
+    """JOBS-31: emails and/or texts the owner their login (the portal
+    address and their current starting password) and records when it was
+    sent, so the customer page can say "Login sent on <date>"."""
+    conn = get_db()
+    customer = conn.execute("SELECT * FROM customers WHERE id = ?", (customer_id,)).fetchone()
+    if not customer:
+        conn.close()
+        abort(404)
+    if not customer["password_plain"]:
+        conn.close()
+        flash("Set a starting password on Edit Account first, then send the login details.", "danger")
+        return redirect(url_for("customer_detail", customer_id=customer_id))
+    settings = notify.get_settings(conn)
+    address = request.url_root.rstrip("/") + url_for("home_launcher")
+    body = (f"Hi {customer['name']},\n\nYour My Aircraft login for Winds Aloft is ready.\n\n"
+            f"Log in at: {address}\nEmail: {customer['email']}\nPassword: {customer['password_plain']}\n\n"
+            "You can change the password under My Account once you're in.")
+    sent_by = []
+    errors = []
+    ok, err = notify.send_email(settings, customer["email"], "Your My Aircraft login", body, brand="Winds Aloft")
+    if ok:
+        sent_by.append("email")
+    elif notify.email_configured(settings):
+        errors.append(f"email: {err}")
+    if customer["phone"]:
+        ok, err = notify.send_sms(settings, customer["phone"], body)
+        if ok:
+            sent_by.append("text")
+        elif notify.sms_configured(settings):
+            errors.append(f"text: {err}")
+    if sent_by:
+        conn.execute("UPDATE customers SET login_sent_at = ? WHERE id = ?", (now_iso(), customer_id))
+        conn.commit()
+        flash(f"Login details sent to {customer['name']} by {' and '.join(sent_by)}.", "success")
+    elif errors:
+        flash("Couldn't send the login details - " + "; ".join(errors), "danger")
+    else:
+        flash("Couldn't send the login details: email and text messages aren't set up yet (Admin > Notifications).", "danger")
+    conn.close()
+    return redirect(url_for("customer_detail", customer_id=customer_id))
 
 
 @app.route("/customers/<int:customer_id>")
@@ -8754,9 +8786,10 @@ def admin_wave_test(n):
     name = wave_billing.account_config(wave_billing.get_settings(conn), n)["name"]
     conn.close()
     ok = all(r[0] for r in results)
-    flash(f"{name} test: " + ("everything checks out." if ok else "something needs fixing."), "success" if ok else "warning")
-    for good, msg in results:
-        flash(("\u2713 " if good else "\u2717 ") + msg, "success" if good else "danger")
+    # HUB-35: one message with a bullet list, not a stack of separate boxes.
+    lines = [f"{name} test: " + ("everything checks out." if ok else "something needs fixing.")]
+    lines += [("\u2022 \u2713 " if good else "\u2022 \u2717 ") + msg for good, msg in results]
+    flash("\n".join(lines), "success" if ok else "warning")
     return redirect(url_for("admin_wave"))
 
 
@@ -8958,8 +8991,9 @@ def _read_pi_temp_c():
 def admin_login_attempts():
     """Recent failed logins and lockouts, with an Unlock button per locked account."""
     if request.method == "POST":
-        unlock_account(request.form.get("account", ""))
-        flash("Unlocked.", "success")
+        account = request.form.get("account", "").strip()
+        unlock_account(account)
+        flash(f"Unlocked {account} - they can log in again now.", "success")
         return redirect(url_for("admin_login_attempts"))
     conn = get_db()
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -8967,7 +9001,22 @@ def admin_login_attempts():
                           "ORDER BY locked_until DESC", (now,)).fetchall()
     attempts = conn.execute("SELECT * FROM login_attempts ORDER BY id DESC LIMIT 100").fetchall()
     conn.close()
+    # HUB-32: these are stored in UTC; show them in local time like every
+    # other page (usdate in the template does the day-month-year part).
+    locked = [dict(r, locked_until_local=utc_to_local(r["locked_until"])) for r in locked]
+    attempts = [dict(r, at_local=utc_to_local(r["at"])) for r in attempts]
     return render_template("admin_login_attempts.html", locked=locked, attempts=attempts)
+
+
+def utc_to_local(value):
+    """'2026-10-02T14:03:00Z' (UTC) -> '2026-10-02 10:03:00' in the Pi's own
+    local time, ready for the usdate filter. Anything unparsable passes
+    through unchanged."""
+    try:
+        dt = datetime.strptime(str(value).strip(), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return value
+    return dt.astimezone().strftime("%Y-%m-%d %H:%M:%S")
 
 
 @app.route("/admin/system")
@@ -8986,17 +9035,15 @@ def _run_delayed_command(args, delay=2.0):
 @app.route("/admin/system/restart_app", methods=["POST"])
 @master_admin_required
 def admin_system_restart_app():
-    flash("Restarting the app now - this page will be unreachable for a few seconds.", "success")
     _run_delayed_command(["sudo", "systemctl", "restart", "opshub"])
-    return redirect(url_for("admin_system"))
+    return redirect(url_for("admin_system_wait", what="restart"))
 
 
 @app.route("/admin/system/reboot", methods=["POST"])
 @master_admin_required
 def admin_system_reboot():
-    flash("Rebooting the Pi now - everything will be unreachable for 30-60 seconds.", "success")
     _run_delayed_command(["sudo", "reboot"])
-    return redirect(url_for("admin_system"))
+    return redirect(url_for("admin_system_wait", what="reboot"))
 
 
 @app.route("/admin/system/shutdown", methods=["POST"])
@@ -9004,11 +9051,22 @@ def admin_system_reboot():
 def admin_system_shutdown():
     # A clean power-off before unplugging the Pi (so the SD card and the
     # database aren't mid-write when the power goes). Nothing remote can turn
-    # it back on afterwards - see admin_system.html for how to power it up.
-    flash("Shutting the Pi down now. Wait until its green light stops blinking (about 20-30 seconds) "
-          "before unplugging it. To turn it back on, plug the power back in.", "success")
+    # it back on afterwards - see admin_system_wait.html for how to power it up.
     _run_delayed_command(["sudo", "shutdown", "-h", "now"])
-    return redirect(url_for("admin_system"))
+    return redirect(url_for("admin_system_wait", what="shutdown"))
+
+
+@app.route("/admin/system/wait")
+@master_admin_required
+def admin_system_wait():
+    """HUB-30: the page shown right after Restart App / Reboot Pi / Shut Down
+    Pi. For a restart or reboot it checks every few seconds whether OpsHub
+    is back and reloads itself; for a shutdown it shows the green-light
+    steps instead of a connection error."""
+    what = request.args.get("what", "restart")
+    if what not in ("restart", "reboot", "shutdown"):
+        what = "restart"
+    return render_template("admin_system_wait.html", what=what)
 
 
 @app.route("/admin/system/log")
@@ -9079,14 +9137,28 @@ def _delete_photo_files(conn, where_clause, params):
             os.remove(file_path)
 
 
+def _plural(n, word, plural=None):
+    return f"{n} {word if n == 1 else (plural or word + 's')}"
+
+
+def _reset_typed():
+    """HUB-29: the resets that delete records need RESET typed in the box
+    next to the button, same as Reset All Fly with Kate! Data. Returns a
+    redirect to send back when it wasn't, else None."""
+    if request.form.get("confirm_text", "").strip().upper() == "RESET":
+        return None
+    flash("Type RESET in the box next to the button to confirm.", "danger")
+    return redirect(url_for("admin_reset"))
+
+
 @app.route("/admin/reset/activity_log", methods=["POST"])
 @master_admin_required
 def admin_reset_activity_log():
     conn = get_db()
-    conn.execute("DELETE FROM transactions")
+    n = conn.execute("DELETE FROM transactions").rowcount
     conn.commit()
     conn.close()
-    flash("Activity log cleared.", "success")
+    flash(f"Deleted {_plural(n, 'activity log entry', 'activity log entries')}. Stock counts were not changed.", "success")
     return redirect(url_for("admin_reset"))
 
 
@@ -9094,10 +9166,10 @@ def admin_reset_activity_log():
 @master_admin_required
 def admin_reset_orders():
     conn = get_db()
-    conn.execute("DELETE FROM orders")
+    n = conn.execute("DELETE FROM orders").rowcount
     conn.commit()
     conn.close()
-    flash("Orders cleared.", "success")
+    flash(f"Deleted {_plural(n, 'order')}. Parts and stock levels were not changed.", "success")
     return redirect(url_for("admin_reset"))
 
 
@@ -9108,19 +9180,19 @@ def admin_reset_squawks():
     Quick squawks (not tied to a flight) have no entry to keep, so those
     rows are deleted outright."""
     conn = get_db()
-    conn.execute("""UPDATE flights SET squawk = 0, squawk_acknowledged_at = NULL, squawk_acknowledged_by = NULL,
-                     squawk_repaired_at = NULL, squawk_repaired_by = NULL WHERE squawk = 1""")
-    conn.execute("DELETE FROM plane_squawks")
+    n = conn.execute("""UPDATE flights SET squawk = 0, squawk_acknowledged_at = NULL, squawk_acknowledged_by = NULL,
+                     squawk_repaired_at = NULL, squawk_repaired_by = NULL WHERE squawk = 1""").rowcount
+    n += conn.execute("DELETE FROM plane_squawks").rowcount
     conn.commit()
     conn.close()
-    flash("Squawks cleared.", "success")
+    flash(f"Cleared {_plural(n, 'squawk')}. The flight log entries themselves were kept.", "success")
     return redirect(url_for("admin_reset"))
 
 
 @app.route("/admin/reset/flights", methods=["POST"])
 @master_admin_required
 def admin_reset_flights():
-    return _run_reset(_wipe_flight_log, "Flight log cleared.")
+    return _run_reset(_wipe_flight_log, lambda n: f"Deleted {_plural(n, 'logged flight')}. Planes, students, instructors and bookings were kept.")
 
 
 @app.route("/admin/reset/projects", methods=["POST"])
@@ -9132,6 +9204,9 @@ def admin_reset_projects():
     to 001 for the current year. Transactions and orders that were tied
     to a project are kept (part/order history), just un-linked from the
     project that no longer exists."""
+    denied = _reset_typed()
+    if denied:
+        return denied
     conn = get_db()
     _delete_photo_files(conn, "project_id IS NOT NULL", ())
     conn.execute("DELETE FROM photos WHERE project_id IS NOT NULL")
@@ -9140,19 +9215,21 @@ def admin_reset_projects():
     conn.execute("UPDATE maintenance_log SET project_id = NULL WHERE project_id IS NOT NULL")
     conn.execute("UPDATE transactions SET project_id = NULL WHERE project_id IS NOT NULL")
     conn.execute("UPDATE orders SET project_id = NULL WHERE project_id IS NOT NULL")
-    conn.execute("DELETE FROM projects")
+    n = conn.execute("DELETE FROM projects").rowcount
     conn.commit()
     conn.close()
-    flash("Projects cleared and project numbering reset.", "success")
+    flash(f"Deleted {_plural(n, 'project')} (and their sections, labor and photos). "
+          "Project numbering starts again at 001.", "success")
     return redirect(url_for("admin_reset"))
 
 
 @app.route("/admin/reset/planes", methods=["POST"])
 @master_admin_required
 def admin_reset_planes():
-    """Wipes every Flight School plane (assets with is_flight_asset=1) and
+    """Wipes every Fly with Kate! plane (assets with is_flight_asset=1) and
     everything that hangs off one - see _wipe_planes()."""
-    return _run_reset(_wipe_planes, "Flight School planes cleared.")
+    return _reset_typed() or _run_reset(
+        _wipe_planes, lambda n: f"Deleted {_plural(n, 'Fly with Kate! plane')} (and their flights and maintenance records).")
 
 
 # ---- Flight School resets -------------------------------------------------
@@ -9221,8 +9298,9 @@ def _wipe_schedule(conn, where="1=1", params=()):
 
 def _wipe_billing(conn):
     """Clears every student's account history and sets all balances to $0."""
-    conn.execute("DELETE FROM student_ledger")
+    n = conn.execute("DELETE FROM student_ledger").rowcount
     conn.execute("UPDATE students SET balance = 0")
+    return n
 
 
 def _wipe_students(conn):
@@ -9303,12 +9381,13 @@ def _wipe_planes(conn):
 
 def _run_reset(fn, message):
     """Runs one reset helper in a single transaction - all or nothing - and
-    reports back on the Reset Data page."""
+    reports back on the Reset Data page. message is a sentence, or a
+    function of how many records the helper deleted (HUB-31)."""
     conn = get_db()
     try:
-        fn(conn)
+        n = fn(conn)
         conn.commit()
-        flash(message, "success")
+        flash(message(n or 0) if callable(message) else message, "success")
     except Exception as e:  # keep the page usable and say what went wrong
         conn.rollback()
         app.logger.exception("Reset failed")
@@ -9321,25 +9400,28 @@ def _run_reset(fn, message):
 @app.route("/admin/reset/schedule", methods=["POST"])
 @master_admin_required
 def admin_reset_schedule():
-    return _run_reset(_wipe_schedule, "Schedule cleared - all bookings and requests deleted.")
+    return _run_reset(_wipe_schedule, lambda n: f"Deleted {_plural(n, 'booking')} (including requests, denied and cancelled ones).")
 
 
 @app.route("/admin/reset/billing", methods=["POST"])
 @master_admin_required
 def admin_reset_billing():
-    return _run_reset(_wipe_billing, "Student account history cleared and every balance set to $0.")
+    return _reset_typed() or _run_reset(
+        _wipe_billing, lambda n: f"Deleted {_plural(n, 'account entry', 'account entries')} and set every student balance to $0.")
 
 
 @app.route("/admin/reset/students", methods=["POST"])
 @master_admin_required
 def admin_reset_students():
-    return _run_reset(_wipe_students, "Students cleared, with their flights, bookings and account history.")
+    return _reset_typed() or _run_reset(
+        _wipe_students, lambda n: f"Deleted {_plural(n, 'student')}, with their flights, bookings and account history.")
 
 
 @app.route("/admin/reset/instructors", methods=["POST"])
 @master_admin_required
 def admin_reset_instructors():
-    return _run_reset(_wipe_instructors, "Instructors cleared (master admins' own instructor profiles were kept).")
+    return _reset_typed() or _run_reset(
+        _wipe_instructors, lambda n: f"Deleted {_plural(n, 'instructor profile')} (master admins' own were kept).")
 
 
 @app.route("/admin/reset/flight_school", methods=["POST"])
@@ -9348,7 +9430,7 @@ def admin_reset_flight_school():
     """The big one: every Flight School slice above in one go. Needs RESET
     typed into the box as well as the pop-up, since it can't be undone."""
     if request.form.get("confirm_text", "").strip().upper() != "RESET":
-        flash('Type RESET in the box to confirm resetting all Flight School data.', "danger")
+        flash('Type RESET in the box to confirm resetting all Fly with Kate! data.', "danger")
         return redirect(url_for("admin_reset") + "#flight-school")
 
     def _everything(conn):
@@ -9361,7 +9443,7 @@ def admin_reset_flight_school():
         conn.execute("DELETE FROM push_pending")
         conn.execute("DELETE FROM adsb_track_points")
         conn.execute("DELETE FROM notification_log WHERE category = 'flight_reminder'")
-    return _run_reset(_everything, "All Flight School data reset. Shop data and master admin logins were not touched.")
+    return _run_reset(_everything, "All Fly with Kate! data reset. Winds Aloft data and master admin logins were not touched.")
 
 
 def _start_session_alert_loop(debug_mode):

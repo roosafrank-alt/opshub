@@ -1,0 +1,48 @@
+{#- SEAM-14: the one flash-message look for every program - full width,
+   with a close button. A message with line breaks (e.g. the Wave test's
+   bullet list, HUB-35) keeps them. The two extras after the message only
+   ever come from Fly with Kate!'s log_history ("Session ended and logged"
+   with next_lesson / wave_invoice), so they never show elsewhere. #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="opshub-flashes" data-change="SEAM-14">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show{{ ' alert-flight-resolved' if message.startswith('✓ Alert resolved') }}" role="alert">
+      <span style="white-space: pre-line;">{{ message }}</span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      {% if next_lesson and message.startswith('Session ended and logged') %}
+      <div class="d-flex gap-2 mt-2">
+        <form method="post" action="{{ url_for('flight.schedule_new') }}" class="flex-fill mb-0">
+          <input type="hidden" name="student_id" value="{{ next_lesson.student_id }}">
+          {% if next_lesson.solo %}
+          <input type="hidden" name="solo" value="1">
+          {% elif next_lesson.cfi_id %}
+          <input type="hidden" name="cfi_id" value="{{ next_lesson.cfi_id }}">
+          {% endif %}
+          {% if next_lesson.own_plane %}
+          <input type="hidden" name="own_plane" value="1">
+          {% else %}
+          <input type="hidden" name="asset_id" value="{{ next_lesson.asset_id }}">
+          {% endif %}
+          <input type="hidden" name="scheduled_date" value="{{ next_lesson.date }}">
+          <input type="hidden" name="scheduled_time" value="{{ next_lesson.time }}">
+          {% if next_lesson.duration_hours is not none %}
+          <input type="hidden" name="duration_hours" value="{{ next_lesson.duration_hours }}">
+          {% endif %}
+          <button type="submit" class="btn btn-success fw-bold w-100 text-start"><i class="bi bi-calendar-plus"></i> Book <strong>{{ next_lesson.label }}</strong></button>
+        </form>
+        <a href="{{ next_lesson.edit_url }}" class="btn btn-outline-success flex-shrink-0" title="Pick a different date or time before booking"><i class="bi bi-pencil"></i></a>
+      </div>
+      {% endif %}
+      {% if wave_invoice and message.startswith('Session ended and logged') %}
+      <div class="mt-2">
+        <a href="{{ wave_invoice.view_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm w-100 fw-bold">
+          <i class="bi bi-send"></i> Open Wave invoice{% if wave_invoice.invoice_number %} #{{ wave_invoice.invoice_number }}{% endif %} - ${{ '%.2f'|format(wave_invoice.total or 0) }}
+        </a>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}

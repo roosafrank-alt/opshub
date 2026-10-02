@@ -15,12 +15,11 @@ Admin manages customer accounts and which aircraft they're linked to from
 the regular Manage menu (see /customers routes in app.py).
 """
 from datetime import date, timedelta
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, session
+from werkzeug.security import generate_password_hash
 
 from db import get_db, now_iso, gen_project_code, asset_meter, maintenance_status, found_item_messages, allowed_image, save_upload
-import auth
-from auth import (authenticate_customer, log_in_customer, log_out_customer,
-                   current_customer, customer_login_required)
+from auth import log_out_user, current_customer, customer_login_required
 
 customer_bp = Blueprint("customer", __name__, url_prefix="/portal")
 
@@ -93,27 +92,76 @@ def _project_discrepancy_descriptions(conn, project_id):
 
 @customer_bp.route("/login", methods=["GET", "POST"])
 def customer_login():
-    if request.method == "POST":
-        email = request.form.get("email", "")
-        password = request.form.get("password", "")
-        if not auth.login_allowed(email):
-            flash(auth.LOGIN_BLOCKED_MSG, "danger")
-            return render_template("customer_login.html", email=email)
-        row = authenticate_customer(email, password)
-        if not row:
-            auth.login_failed(email)
-            flash(auth.LOGIN_BLOCKED_MSG, "danger")
-            return render_template("customer_login.html", email=email)
-        auth.login_succeeded(email)
-        log_in_customer(row)
-        return redirect(url_for("customer.customer_dashboard"))
-    return render_template("customer_login.html", email="")
+    """SEAM-4: there is one login page, at '/'. The old My Aircraft login
+    address just sends people there (owners log in with their email)."""
+    return redirect(url_for("home_launcher"))
 
 
 @customer_bp.route("/logout")
 def customer_logout():
-    log_out_customer()
-    return redirect(url_for("customer.customer_login"))
+    """SEAM-5: one Log Out everywhere - says Logged out. and lands on the
+    one login page, same as the staff logout."""
+    log_out_user()
+    flash("Logged out.", "success")
+    return redirect(url_for("home_launcher"))
+
+
+@customer_bp.route("/account", methods=["GET", "POST"])
+@customer_login_required
+def customer_account():
+    """SEAM-7: a small My Account page for aircraft owners - name, email,
+    phone and a new password (8+ characters, HUB-27). Someone who also has
+    a staff login changes those on the shared My Account page instead."""
+    if session.get("user_id"):
+        return redirect(url_for("account_page", **{"from": "owner"}))
+    conn = get_db()
+    cust = current_customer(conn)
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip() or None
+        new_password = request.form.get("password", "")
+        confirm = request.form.get("password_confirm", "")
+        shown = request.form.get("password_shown") == "1"
+        from app import password_problem  # late import: app registers this blueprint
+        error = None
+        if not name or not email:
+            error = "Name and email are both required."
+        elif conn.execute("SELECT id FROM customers WHERE lower(email) = ? AND id != ?",
+                          (email.lower(), cust["id"])).fetchone():
+            error = "That email is already used by another account."
+        else:
+            error = password_problem(new_password, confirm, shown)
+        if error:
+            flash(error, "danger")
+            conn.close()
+            return render_template("customer_account.html", customer=cust, name=name, email=email, phone=phone or "")
+        if new_password:
+            conn.execute("UPDATE customers SET name=?, email=?, phone=?, password_hash=?, password_plain=? WHERE id=?",
+                         (name, email, phone, generate_password_hash(new_password, method="pbkdf2:sha256"),
+                          new_password, cust["id"]))
+        else:
+            conn.execute("UPDATE customers SET name=?, email=?, phone=? WHERE id=?", (name, email, phone, cust["id"]))
+        conn.commit()
+        conn.close()
+        session["customer_name"] = name
+        flash("Your account has been updated.", "success")
+        return redirect(url_for("customer.customer_account"))
+    conn.close()
+    return render_template("customer_account.html", customer=cust, name=cust["name"], email=cust["email"],
+                           phone=cust["phone"] or "")
+
+
+@customer_bp.route("/tour/seen", methods=["POST"])
+@customer_login_required
+def customer_tour_seen():
+    """SEAM-19: the owner portal's three-stop walkthrough, remembered per
+    customer account once finished or skipped."""
+    conn = get_db()
+    conn.execute("UPDATE customers SET tour_seen = 1 WHERE id = ?", (session["customer_id"],))
+    conn.commit()
+    conn.close()
+    return ("", 204)
 
 
 @customer_bp.route("/")
@@ -123,7 +171,7 @@ def customer_dashboard():
     cust = current_customer(conn)
     if not cust:
         conn.close()
-        return redirect(url_for("customer.customer_login"))
+        return redirect(url_for("home_launcher"))
     asset_ids = _owned_asset_ids(conn, cust["id"])
     assets = []
     if asset_ids:
@@ -370,6 +418,13 @@ def customer_found_item_decide(item_id):
                               section_name = ? WHERE id = ? AND status IN ('waiting', 'declined')""",
                            ("approved" if decision == "approve" else "declined", now_iso(), cust["name"], note,
                             section, item_id)).rowcount
+    if claimed and decision == "approve":
+        # HUB-43 (Frank): the approval is final and is logged, time-stamped,
+        # on the job - as a note in the item's thread, which the shop sees
+        # on the project page alongside decided_at/decided_by above.
+        conn.execute("""INSERT INTO found_item_messages (found_item_id, author_type, author_name, body, created_at)
+                        VALUES (?, 'owner', ?, ?, ?)""",
+                     (item_id, cust["name"], f"Approved this work (about ${(item['est_total'] or 0):,.2f}).", now_iso()))
     conn.commit()
     conn.close()
     if claimed:

@@ -67,7 +67,7 @@
         <tr class="{{ 'table-danger' if r.flag and not r.payment }}">
           <td class="stack-full" data-label="Name">
             {% if multi %}<span class="text-muted ms-2">&#8627;</span>{% endif %}
-            {% if r.type == 'cfi' %}<a href="{{ url_for('flight.cfi_pay', cfi_id=r.id) }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}
+            {% if r.type == 'cfi' %}<a href="{{ url_for('flight.cfi_pay', cfi_id=r.id) }}">{{ r.name }}</a>{% else %}<a href="{{ url_for('shop_pay', laborer_id=r.id) }}" data-change="HUB-36">{{ r.name }}</a>{% endif %}
             {% if not multi and r.person_name and r.person_name != r.name %}<span class="text-muted small">({{ r.person_name }})</span>{% endif %}
             {% if not r.active %}<span class="badge bg-light text-muted border ms-1">inactive</span>{% endif %}
             {% if r.flag %}<div><small class="text-danger"><i class="bi bi-exclamation-triangle"></i> {{ r.flag }}</small></div>{% endif %}
@@ -88,7 +88,7 @@
           </td>
           <td data-label="" class="text-end">
             {% if r.payment %}
-            <form method="post" action="{{ url_for('payroll.payroll_unmark_paid') }}" class="d-inline" data-confirm="Mark {{ r.name }} as NOT paid for this week?" data-confirm-style="danger">
+            <form method="post" action="{{ url_for('payroll.payroll_unmark_paid') }}" class="d-inline" data-confirm="Mark {{ r.name }} as not paid for the week of {{ week.isoformat()|usdate }}?" data-confirm-title="Undo paid" data-confirm-ok="Mark not paid" data-confirm-style="danger" data-change="HUB-36">
               <input type="hidden" name="week" value="{{ week.isoformat() }}">
               <input type="hidden" name="person_type" value="{{ r.type }}">
               <input type="hidden" name="person_id" value="{{ r.id }}">
@@ -100,7 +100,7 @@
               <input type="hidden" name="person_type" value="{{ r.type }}">
               <input type="hidden" name="person_id" value="{{ r.id }}">
               <input type="text" name="note" class="form-control form-control-sm" placeholder="Note (check #, Venmo...)" style="max-width:170px;">
-              <button class="btn btn-success btn-sm text-nowrap"><i class="bi bi-check2"></i> Mark paid</button>
+              <button class="btn btn-success btn-sm text-nowrap" data-change="HUB-36"><i class="bi bi-check2"></i> Mark paid</button>
             </form>
             {% endif %}
           </td>

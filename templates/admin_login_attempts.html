@@ -16,7 +16,7 @@
   <h6>Locked right now</h6>
   {% for l in locked %}
   <form method="post" class="d-flex justify-content-between align-items-center border-top py-2">
-    <span><strong>{{ l.account }}</strong> <span class="text-muted small">until {{ l.locked_until }} UTC</span></span>
+    <span><strong>{{ l.account }}</strong> <span class="text-muted small" data-change="HUB-32">until {{ l.locked_until_local|usdate(true) }}</span></span>
     <input type="hidden" name="account" value="{{ l.account }}">
     <button class="btn btn-sm btn-outline-primary">Unlock</button>
   </form>
@@ -29,10 +29,10 @@
   <h6>Recent failed attempts</h6>
   <div class="table-responsive">
   <table class="table table-sm mb-0">
-    <thead><tr><th>Time (UTC)</th><th>Username tried</th><th>Source</th><th></th></tr></thead>
+    <thead><tr><th data-change="HUB-32">Time</th><th>Username tried</th><th>Source</th><th></th></tr></thead>
     <tbody>
     {% for a in attempts %}
-    <tr><td>{{ a.at }}</td><td>{{ a.username }}</td><td>{{ a.source }}</td>
+    <tr><td>{{ a.at_local|usdate(true) }}</td><td>{{ a.username }}</td><td>{{ a.source }}</td>
         <td>{% if a.kind == 'locked' %}<span class="badge bg-danger">Locked</span>{% endif %}</td></tr>
     {% else %}
     <tr><td colspan="4" class="text-muted">None yet.</td></tr>

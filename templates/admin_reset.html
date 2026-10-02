@@ -1,136 +1,111 @@
 {% extends "admin_base.html" %}
 {% block title %}Reset Data - OpsHub{% endblock %}
 {% block content %}
+{#- HUB-29: every pop-up is titled with the action and its OK button says
+   the verb; the resets that delete records (Projects, Students,
+   Instructors, Planes, Balances, and all Fly with Kate! data) also need
+   RESET typed in the box next to the button. Squawks sits under Winds
+   Aloft, where it belongs. HUB-31: the result says how much was deleted
+   (see the admin_reset_* routes). #}
+{% macro reset_card(title, icon, text, action, confirm, confirm_title, ok, count, label, typed=False, change='HUB-29') %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card p-3 h-100 d-flex flex-column">
+      <h6><i class="bi {{ icon }}"></i> {{ title }}</h6>
+      <p class="text-muted small flex-grow-1">{{ text }}{% if typed %} Type <strong>RESET</strong> in the box to turn the button on.{% endif %}</p>
+      <form method="post" action="{{ action }}" class="d-flex flex-wrap gap-2 align-items-center reset-form" data-confirm="{{ confirm }}" data-confirm-title="{{ confirm_title }}" data-confirm-ok="{{ ok }}" data-confirm-style="danger" data-change="{{ change }}">
+        {% if typed %}
+        <input type="text" name="confirm_text" class="form-control form-control-sm reset-typed" style="max-width: 8rem;" placeholder="Type RESET" autocomplete="off" {{ 'disabled' if not count }}>
+        <button class="btn btn-outline-danger btn-sm flex-grow-1 reset-typed-btn" disabled>{{ label }}</button>
+        {% else %}
+        <button class="btn btn-outline-danger btn-sm w-100" {{ 'disabled' if not count }}>{{ label }}</button>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+{% endmacro %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-arrow-counterclockwise"></i> Reset Data</h4>
 </div>
 <p class="text-muted small">Master-admin only. Each button below permanently deletes the data it names &mdash; there's no undo, so double-check before confirming. Everything else in the app is left alone.</p>
 
-<h5 class="mt-2 mb-2"><i class="bi bi-tools"></i> Shop</h5>
+<h5 class="mt-2 mb-2" data-change="SEAM-3"><i class="bi bi-tools"></i> Winds Aloft</h5>
 <div class="row g-3">
-  <div class="col-md-6 col-lg-4">
-    <div class="card p-3 h-100 d-flex flex-column">
-      <h6><i class="bi bi-clock-history"></i> Activity Log</h6>
-      <p class="text-muted small flex-grow-1">Clears the scan/transaction history ({{ counts.activity_log }} entries). Current stock counts are not affected &mdash; this only wipes the log of how they got there.</p>
-      <form method="post" action="{{ url_for('admin_reset_activity_log') }}" data-confirm="Permanently delete all {{ counts.activity_log }} activity log entries? This cannot be undone." data-confirm-style="danger">
-        <button class="btn btn-outline-danger btn-sm w-100" {{ 'disabled' if not counts.activity_log }}>Reset Activity Log</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="col-md-6 col-lg-4">
-    <div class="card p-3 h-100 d-flex flex-column">
-      <h6><i class="bi bi-truck"></i> Orders</h6>
-      <p class="text-muted small flex-grow-1">Deletes all pending/received/cancelled orders ({{ counts.orders }} orders). Parts and stock levels are not affected.</p>
-      <form method="post" action="{{ url_for('admin_reset_orders') }}" data-confirm="Permanently delete all {{ counts.orders }} orders? This cannot be undone." data-confirm-style="danger">
-        <button class="btn btn-outline-danger btn-sm w-100" {{ 'disabled' if not counts.orders }}>Reset Orders</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="col-md-6 col-lg-4">
-    <div class="card p-3 h-100 d-flex flex-column">
-      <h6><i class="bi bi-kanban"></i> Projects &amp; Numbering</h6>
-      <p class="text-muted small flex-grow-1">Deletes all projects ({{ counts.projects }}), their sections, labor sessions, and photos. This also resets project numbering back to 001 for the current year, since the next number is based on the highest one in use. Part transaction/order history is kept, just un-linked from the deleted project.</p>
-      <form method="post" action="{{ url_for('admin_reset_projects') }}" data-confirm="Permanently delete all {{ counts.projects }} projects (and their sections, labor sessions, and photos)? This also resets project numbering. This cannot be undone." data-confirm-style="danger">
-        <button class="btn btn-outline-danger btn-sm w-100" {{ 'disabled' if not counts.projects }}>Reset Projects</button>
-      </form>
-    </div>
-  </div>
+  {{ reset_card('Activity Log', 'bi-clock-history',
+       'Clears the scan/transaction history (' ~ counts.activity_log ~ ' entries). Current stock counts are not affected - this only wipes the log of how they got there.',
+       url_for('admin_reset_activity_log'),
+       'Permanently delete all ' ~ counts.activity_log ~ ' activity log entries? This cannot be undone.',
+       'Delete ' ~ counts.activity_log ~ ' activity log entries', 'Delete activity log', counts.activity_log, 'Reset Activity Log') }}
+  {{ reset_card('Orders', 'bi-truck',
+       'Deletes all pending/received/cancelled orders (' ~ counts.orders ~ ' orders). Parts and stock levels are not affected.',
+       url_for('admin_reset_orders'),
+       'Permanently delete all ' ~ counts.orders ~ ' orders? This cannot be undone.',
+       'Delete ' ~ counts.orders ~ ' orders', 'Delete orders', counts.orders, 'Reset Orders') }}
+  {{ reset_card('Projects & Numbering', 'bi-kanban',
+       'Deletes all projects (' ~ counts.projects ~ '), their sections, labor sessions, and photos. This also resets project numbering back to 001 for the current year, since the next number is based on the highest one in use. Part transaction/order history is kept, just un-linked from the deleted project.',
+       url_for('admin_reset_projects'),
+       'Permanently delete all ' ~ counts.projects ~ ' projects (and their sections, labor sessions, and photos)? This also resets project numbering. This cannot be undone.',
+       'Delete ' ~ counts.projects ~ ' projects', 'Delete projects', counts.projects, 'Reset Projects', typed=True) }}
+  {{ reset_card('Squawks', 'bi-exclamation-triangle',
+       'Clears the squawk flag on ' ~ counts.squawks ~ ' flight(s) currently flagged, and deletes quick squawks. The flight log entries themselves are kept - only the "needs shop attention" flag is cleared.',
+       url_for('admin_reset_squawks'),
+       'Clear the squawk flag on all ' ~ counts.squawks ~ ' flagged flight(s) and delete quick squawks?',
+       'Clear ' ~ counts.squawks ~ ' squawks', 'Clear squawks', counts.squawks, 'Clear Squawks') }}
 </div>
 
-<h5 class="mt-4 mb-2" id="flight-school"><i class="bi bi-airplane"></i> Flight School</h5>
+<h5 class="mt-4 mb-2" id="flight-school" data-change="SEAM-3"><i class="bi bi-airplane"></i> Fly with Kate!</h5>
 <div class="row g-3">
-  <div class="col-md-6 col-lg-4">
-    <div class="card p-3 h-100 d-flex flex-column">
-      <h6><i class="bi bi-airplane-engines"></i> Flight Log</h6>
-      <p class="text-muted small flex-grow-1">Deletes all logged flights ({{ counts.flights }}) for every plane. Planes, students, instructors and bookings are kept, and student balances don't change.</p>
-      <form method="post" action="{{ url_for('admin_reset_flights') }}" data-confirm="Permanently delete all {{ counts.flights }} logged flights? This cannot be undone." data-confirm-style="danger">
-        <button class="btn btn-outline-danger btn-sm w-100" {{ 'disabled' if not counts.flights }}>Reset Flight Log</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="col-md-6 col-lg-4">
-    <div class="card p-3 h-100 d-flex flex-column">
-      <h6><i class="bi bi-calendar3"></i> Schedule</h6>
-      <p class="text-muted small flex-grow-1">Deletes every booking on the schedule ({{ counts.schedule }}), including pending requests, denied and cancelled ones. Flights already logged are kept.</p>
-      <form method="post" action="{{ url_for('admin_reset_schedule') }}" data-confirm="Permanently delete all {{ counts.schedule }} bookings on the schedule? This cannot be undone." data-confirm-style="danger">
-        <button class="btn btn-outline-danger btn-sm w-100" {{ 'disabled' if not counts.schedule }}>Reset Schedule</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="col-md-6 col-lg-4">
-    <div class="card p-3 h-100 d-flex flex-column">
-      <h6><i class="bi bi-exclamation-triangle"></i> Squawks</h6>
-      <p class="text-muted small flex-grow-1">Clears the squawk flag on {{ counts.squawks }} flight(s) currently flagged. The flight log entries themselves are kept &mdash; only the "needs shop attention" flag is cleared.</p>
-      <form method="post" action="{{ url_for('admin_reset_squawks') }}" data-confirm="Clear the squawk flag on all {{ counts.squawks }} flagged flight(s)?" data-confirm-style="danger">
-        <button class="btn btn-outline-danger btn-sm w-100" {{ 'disabled' if not counts.squawks }}>Clear Squawks</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="col-md-6 col-lg-4">
-    <div class="card p-3 h-100 d-flex flex-column">
-      <h6><i class="bi bi-cash-coin"></i> Student Accounts &amp; Balances</h6>
-      <p class="text-muted small flex-grow-1">Clears every student's account history ({{ counts.ledger }} entries: funds added, flight charges, adjustments) and sets every balance back to $0. Students and flights are kept.</p>
-      <form method="post" action="{{ url_for('admin_reset_billing') }}" data-confirm="Permanently delete all {{ counts.ledger }} account entries and set every student balance to $0? This cannot be undone." data-confirm-style="danger">
-        <button class="btn btn-outline-danger btn-sm w-100" {{ 'disabled' if not counts.ledger }}>Reset Balances</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="col-md-6 col-lg-4">
-    <div class="card p-3 h-100 d-flex flex-column">
-      <h6><i class="bi bi-people"></i> Students</h6>
-      <p class="text-muted small flex-grow-1">Deletes all students ({{ counts.students }}) with their logged flights, bookings and account history. Logins that were only for a student are removed too; logins that also have shop access are kept. Station accounts (like "Shop") are kept.</p>
-      <form method="post" action="{{ url_for('admin_reset_students') }}" data-confirm="Permanently delete all {{ counts.students }} students, with their flights, bookings and account history? This cannot be undone." data-confirm-style="danger">
-        <button class="btn btn-outline-danger btn-sm w-100" {{ 'disabled' if not counts.students }}>Reset Students</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="col-md-6 col-lg-4">
-    <div class="card p-3 h-100 d-flex flex-column">
-      <h6><i class="bi bi-person-badge"></i> Instructors</h6>
-      <p class="text-muted small flex-grow-1">Deletes all instructor profiles ({{ counts.instructors }}) except master admins' own. Their logged flights are kept with no instructor listed, and their upcoming bookings are kept but flagged "needs review" so you can pick a new instructor.</p>
-      <form method="post" action="{{ url_for('admin_reset_instructors') }}" data-confirm="Permanently delete {{ counts.instructors }} instructor profile(s)? This cannot be undone." data-confirm-style="danger">
-        <button class="btn btn-outline-danger btn-sm w-100" {{ 'disabled' if not counts.instructors }}>Reset Instructors</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="col-md-6 col-lg-4">
-    <div class="card p-3 h-100 d-flex flex-column">
-      <h6><i class="bi bi-airplane"></i> Flight School Planes</h6>
-      <p class="text-muted small flex-grow-1">Deletes all Flight School planes ({{ counts.planes }}), along with their flights, bookings, maintenance items/log, to-dos, compression checks and plane photos. Any shop project that referenced one of these planes is kept, just un-linked.</p>
-      <form method="post" action="{{ url_for('admin_reset_planes') }}" data-confirm="Permanently delete all {{ counts.planes }} Flight School planes (and their flights and maintenance records)? This cannot be undone." data-confirm-style="danger">
-        <button class="btn btn-outline-danger btn-sm w-100" {{ 'disabled' if not counts.planes }}>Reset Planes</button>
-      </form>
-    </div>
-  </div>
+  {{ reset_card('Flight Log', 'bi-airplane-engines',
+       'Deletes all logged flights (' ~ counts.flights ~ ') for every plane. Planes, students, instructors and bookings are kept, and student balances don\'t change.',
+       url_for('admin_reset_flights'),
+       'Permanently delete all ' ~ counts.flights ~ ' logged flights? This cannot be undone.',
+       'Delete ' ~ counts.flights ~ ' logged flights', 'Delete flight log', counts.flights, 'Reset Flight Log') }}
+  {{ reset_card('Schedule', 'bi-calendar3',
+       'Deletes every booking on the schedule (' ~ counts.schedule ~ '), including pending requests, denied and cancelled ones. Flights already logged are kept.',
+       url_for('admin_reset_schedule'),
+       'Permanently delete all ' ~ counts.schedule ~ ' bookings on the schedule? This cannot be undone.',
+       'Delete ' ~ counts.schedule ~ ' bookings', 'Delete bookings', counts.schedule, 'Reset Schedule') }}
+  {{ reset_card('Student Accounts & Balances', 'bi-cash-coin',
+       'Clears every student\'s account history (' ~ counts.ledger ~ ' entries: funds added, flight charges, adjustments) and sets every balance back to $0. Students and flights are kept.',
+       url_for('admin_reset_billing'),
+       'Permanently delete all ' ~ counts.ledger ~ ' account entries and set every student balance to $0? This cannot be undone.',
+       'Delete ' ~ counts.ledger ~ ' account entries', 'Delete balances', counts.ledger, 'Reset Balances', typed=True) }}
+  {{ reset_card('Students', 'bi-people',
+       'Deletes all students (' ~ counts.students ~ ') with their logged flights, bookings and account history. Logins that were only for a student are removed too; logins that also have shop access are kept. Station accounts (like "Shop") are kept.',
+       url_for('admin_reset_students'),
+       'Permanently delete all ' ~ counts.students ~ ' students, with their flights, bookings and account history? This cannot be undone.',
+       'Delete ' ~ counts.students ~ ' students', 'Delete students', counts.students, 'Reset Students', typed=True) }}
+  {{ reset_card('Instructors', 'bi-person-badge',
+       'Deletes all instructor profiles (' ~ counts.instructors ~ ') except master admins\' own. Their logged flights are kept with no instructor listed, and their upcoming bookings are kept but flagged "needs review" so you can pick a new instructor.',
+       url_for('admin_reset_instructors'),
+       'Permanently delete ' ~ counts.instructors ~ ' instructor profile(s)? This cannot be undone.',
+       'Delete ' ~ counts.instructors ~ ' instructors', 'Delete instructors', counts.instructors, 'Reset Instructors', typed=True) }}
+  {{ reset_card('Fly with Kate! Planes', 'bi-airplane',
+       'Deletes all Fly with Kate! planes (' ~ counts.planes ~ '), along with their flights, bookings, maintenance items/log, to-dos, compression checks and plane photos. Any shop project that referenced one of these planes is kept, just un-linked.',
+       url_for('admin_reset_planes'),
+       'Permanently delete all ' ~ counts.planes ~ ' Fly with Kate! planes (and their flights and maintenance records)? This cannot be undone.',
+       'Delete ' ~ counts.planes ~ ' planes', 'Delete planes', counts.planes, 'Reset Planes', typed=True) }}
 
   <div class="col-12">
     <div class="card p-3 border-danger">
-      <h6 class="text-danger"><i class="bi bi-exclamation-octagon"></i> Reset All Flight School Data</h6>
-      <p class="text-muted small">Does every Flight School reset above in one go: schedule, flight log, account balances, students, instructors (except master admins' own) and planes, plus queued phone alerts and the live-map trail. Shop data (parts, orders, projects, shop aircraft) and master admin logins are not touched. Type <strong>RESET</strong> in the box to turn the button on.</p>
-      <form method="post" action="{{ url_for('admin_reset_flight_school') }}" class="d-flex flex-wrap gap-2 align-items-center"
-            data-confirm="Permanently delete ALL Flight School data (schedule, flights, balances, students, instructors and planes)? This cannot be undone."
-            data-confirm-title="Reset all Flight School data" data-confirm-ok="Yes, reset everything" data-confirm-style="danger">
-        <input type="text" name="confirm_text" class="form-control form-control-sm" style="max-width: 10rem;" placeholder="Type RESET"
+      <h6 class="text-danger"><i class="bi bi-exclamation-octagon"></i> Reset All Fly with Kate! Data</h6>
+      <p class="text-muted small">Does every Fly with Kate! reset above in one go: schedule, flight log, account balances, students, instructors (except master admins' own) and planes, plus queued phone alerts and the live-map trail. Winds Aloft data (parts, orders, projects, shop aircraft) and master admin logins are not touched. Type <strong>RESET</strong> in the box to turn the button on.</p>
+      <form method="post" action="{{ url_for('admin_reset_flight_school') }}" class="d-flex flex-wrap gap-2 align-items-center reset-form"
+            data-confirm="Permanently delete ALL Fly with Kate! data (schedule, flights, balances, students, instructors and planes)? This cannot be undone."
+            data-confirm-title="Reset all Fly with Kate! data" data-confirm-ok="Yes, reset everything" data-confirm-style="danger">
+        <input type="text" name="confirm_text" class="form-control form-control-sm reset-typed" style="max-width: 10rem;" placeholder="Type RESET"
                autocomplete="off" required pattern="[Rr][Ee][Ss][Ee][Tt]" id="reset-all-confirm">
-        <button class="btn btn-danger btn-sm" id="reset-all-btn" disabled>Reset All Flight School Data</button>
+        <button class="btn btn-danger btn-sm reset-typed-btn" id="reset-all-btn" disabled>Reset All Fly with Kate! Data</button>
       </form>
     </div>
   </div>
 </div>
 <script>
 (function () {
-  var box = document.getElementById('reset-all-confirm');
-  var btn = document.getElementById('reset-all-btn');
-  if (!box || !btn) return;
-  box.addEventListener('input', function () { btn.disabled = box.value.trim().toUpperCase() !== 'RESET'; });
+  document.querySelectorAll('.reset-form').forEach(function (form) {
+    var box = form.querySelector('.reset-typed'), btn = form.querySelector('.reset-typed-btn');
+    if (!box || !btn) return;
+    box.addEventListener('input', function () { btn.disabled = box.value.trim().toUpperCase() !== 'RESET'; });
+  });
 })();
 </script>
 {% endblock %}

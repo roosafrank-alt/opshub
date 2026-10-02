@@ -38,10 +38,10 @@
     </div>
     {% endif %}
     {% if it.status == 'waiting' %}
-    <form method="post" action="{{ url_for('customer.customer_found_item_decide', item_id=it.id) }}" class="mt-2 found-decide-form">
+    <form method="post" action="{{ url_for('customer.customer_found_item_decide', item_id=it.id) }}" class="mt-2 found-decide-form" data-approve-amount="{{ '{:,.2f}'.format(it.est_total) }}">
       <input type="text" name="note" class="form-control mb-2 found-decide-note" placeholder="Note for the shop (required to decline)" aria-label="Note for the shop">
       <div class="d-flex gap-2">
-        <button name="decision" value="approve" class="btn btn-success fw-bold flex-fill"><i class="bi bi-check-lg"></i> Approve</button>
+        <button name="decision" value="approve" class="btn btn-success fw-bold flex-fill found-approve-btn" data-change="HUB-43"><i class="bi bi-check-lg"></i> Approve</button>
         <button name="decision" value="decline" class="btn btn-outline-danger flex-fill found-decline-btn"><i class="bi bi-x-lg"></i> Decline</button>
       </div>
     </form>
@@ -51,10 +51,10 @@
     <div class="mt-2"><span class="badge bg-secondary">Declined</span> <small class="text-muted">by {{ it.decided_by }} {{ it.decided_at|usdate(true) }}{% if it.decision_note %} &middot; "{{ it.decision_note }}"{% endif %}</small></div>
     <details class="mt-2">
       <summary class="small text-primary" style="cursor:pointer;">Changed your mind? Reconsider this item</summary>
-      <form method="post" action="{{ url_for('customer.customer_found_item_decide', item_id=it.id) }}" class="mt-2 found-decide-form">
+      <form method="post" action="{{ url_for('customer.customer_found_item_decide', item_id=it.id) }}" class="mt-2 found-decide-form" data-approve-amount="{{ '{:,.2f}'.format(it.est_total) }}">
         <input type="text" name="note" class="form-control mb-2 found-decide-note" placeholder="Note for the shop (required to decline again)" aria-label="Note for the shop">
         <div class="d-flex gap-2">
-          <button name="decision" value="approve" class="btn btn-success fw-bold flex-fill"><i class="bi bi-check-lg"></i> Approve now</button>
+          <button name="decision" value="approve" class="btn btn-success fw-bold flex-fill found-approve-btn" data-change="HUB-43"><i class="bi bi-check-lg"></i> Approve now</button>
           <button name="decision" value="decline" class="btn btn-outline-danger flex-fill found-decline-btn"><i class="bi bi-x-lg"></i> Still declining</button>
         </div>
       </form>
@@ -80,12 +80,14 @@
       {% endfor %}
     </div>
     {% endif %}
-    <form method="post" action="{{ url_for('customer.customer_found_item_message', item_id=it.id) }}" enctype="multipart/form-data" class="mt-1">
+    <form method="post" action="{{ url_for('customer.customer_found_item_message', item_id=it.id) }}" enctype="multipart/form-data" class="mt-1 found-note-form" data-change="HUB-17">
       <div class="input-group input-group-sm">
         <input type="text" name="body" class="form-control" placeholder="Ask a question or add a note..." required>
-        <input type="file" name="photos" accept="image/*" class="form-control" style="max-width:9rem;">
-        <button class="btn btn-outline-primary"><i class="bi bi-send"></i></button>
+        <label class="btn btn-outline-secondary mb-0" title="Add a photo"><i class="bi bi-camera"></i>
+          <input type="file" name="photos" accept="image/*" class="d-none found-note-photo"></label>
+        <button class="btn btn-outline-primary" title="Send"><i class="bi bi-send"></i></button>
       </div>
+      <div class="small text-muted found-note-filename mt-1" style="display:none;"></div>
     </form>
   </div>
   {% endfor %}
@@ -96,7 +98,7 @@
   <div class="col-lg-7">
 
     {# --- Maintenance reminders --- #}
-    <div class="card p-3 mb-3">
+    <div class="card p-3 mb-3" id="tour-owner-reminders">
       <h5><i class="bi bi-calendar-check"></i> Maintenance Reminders</h5>
       {% if reminders %}
       {% for r in reminders %}
@@ -130,8 +132,9 @@
     </div>
 
     {# --- Appointments --- #}
-    <div class="card p-3 mb-3">
-      <h5><i class="bi bi-calendar-event"></i> Appointments</h5>
+    {% set awaiting = appointments|selectattr('scheduled_date')|rejectattr('customer_confirmed_at')|rejectattr('customer_reschedule_requested_at')|list %}
+    <div class="card p-3 mb-3 {{ 'border-warning border-2' if awaiting }}" data-change="HUB-16">
+      <h5><i class="bi bi-calendar-event"></i> Appointments{% if awaiting %} <span class="badge bg-warning text-dark ms-1">{{ awaiting|length }} to confirm</span>{% endif %}</h5>
       {% if appointments %}
       {% for p in appointments %}
       <div class="py-2 {{ 'border-top' if not loop.first }}">
@@ -151,7 +154,7 @@
             {% elif p.customer_reschedule_requested_at %}
               <span class="badge bg-warning text-dark">Reschedule Requested</span>
             {% else %}
-              <span class="badge bg-secondary">Awaiting Your Response</span>
+              <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle"></i> Please confirm</span>
             {% endif %}
           </div>
         </div>
@@ -193,11 +196,15 @@
         Hobbs: {{ '%.1f'|format(asset.hobbs_hours) if asset.hobbs_hours is not none else '-' }}
         &middot; Tach: {{ '%.1f'|format(asset.tach_hours) if asset.tach_hours is not none else '-' }}
       </div>
-      <div class="small text-muted mb-2">
-        {% if asset.hobbs_updated_at %}Hobbs updated {{ asset.hobbs_updated_at }}{% if asset.hobbs_updated_by %} by {{ asset.hobbs_updated_by }}{% endif %}<br>{% endif %}
-        {% if asset.tach_updated_at %}Tach updated {{ asset.tach_updated_at }}{% if asset.tach_updated_by %} by {{ asset.tach_updated_by }}{% endif %}{% endif %}
+      {% set me_prefix = 'Owner - ' ~ customer.name %}
+      <div class="small text-muted mb-2" data-change="HUB-13">
+        {% if asset.hobbs_updated_at %}Hobbs updated {{ asset.hobbs_updated_at|usdate(true) }}{% if asset.hobbs_updated_by %} by {{ customer.name if asset.hobbs_updated_by == me_prefix else asset.hobbs_updated_by }}{% endif %}<br>{% endif %}
+        {% if asset.tach_updated_at %}Tach updated {{ asset.tach_updated_at|usdate(true) }}{% if asset.tach_updated_by %} by {{ customer.name if asset.tach_updated_by == me_prefix else asset.tach_updated_by }}{% endif %}{% endif %}
       </div>
-      <form method="post" action="{{ url_for('customer.customer_update_hours', asset_id=asset.id) }}" class="row g-2">
+      {#- HUB-14: at least one box is needed, and a reading lower than the
+         last one is asked about before it's saved (see the script below). #}
+      <form method="post" action="{{ url_for('customer.customer_update_hours', asset_id=asset.id) }}" class="row g-2" id="hours-form"
+            data-hobbs="{{ asset.hobbs_hours if asset.hobbs_hours is not none else '' }}" data-tach="{{ asset.tach_hours if asset.tach_hours is not none else '' }}" data-change="HUB-14">
         <div class="col-6">
           <label class="form-label small mb-0">Hobbs</label>
           <input type="number" step="0.1" name="hobbs_hours" class="form-control form-control-sm">
@@ -207,6 +214,7 @@
           <input type="number" step="0.1" name="tach_hours" class="form-control form-control-sm">
         </div>
         <div class="col-12">
+          <div class="small text-danger mb-1" id="hours-error" style="display:none;">Enter a Hobbs and/or Tach reading.</div>
           <button class="btn btn-dark btn-sm w-100 mt-1">Log Reading</button>
         </div>
       </form>
@@ -217,10 +225,10 @@
       <h5><i class="bi bi-receipt"></i> Job Costs</h5>
       {% if bills %}
       {% for b in bills %}
-      <div class="py-2 {{ 'border-top' if not loop.first }}">
+      <div class="py-2 {{ 'border-top' if not loop.first }}" data-change="HUB-12">
         <div class="d-flex justify-content-between">
           <div class="fw-bold">{{ b.project.name }}</div>
-          <div class="fw-bold">${{ '%.2f'|format(b.total) }}</div>
+          <div class="fw-bold">${{ '{:,.2f}'.format(b.total) }}</div>
         </div>
         <div class="text-muted small">{{ b.project.status|capitalize }}{% if b.project.completed_at %} &middot; completed {{ b.project.completed_at|usdate }}{% endif %}</div>
         {% if b.discrepancies %}
@@ -229,6 +237,24 @@
           <div class="small"><strong>{{ d.name }}:</strong> <span class="text-muted">{{ d.description }}</span></div>
           {% endfor %}
         </div>
+        {% endif %}
+        {% if b.grouped or b.labor %}
+        <details class="mt-1 small">
+          <summary class="text-primary" style="cursor:pointer;">Details</summary>
+          {% for section, rows in b.grouped.items() %}
+          <div class="fw-semibold mt-2">{{ section }}</div>
+          {% for u in rows %}
+          <div class="d-flex justify-content-between"><span>{{ u.name }} &times; {{ '%g'|format(u.qty_used) }}{% if u.unit %} {{ u.unit }}{% endif %}</span><span>${{ '{:,.2f}'.format((u.qty_used or 0) * (u.sell_price or 0)) }}</span></div>
+          {% endfor %}
+          {% endfor %}
+          {% if b.labor %}
+          <div class="fw-semibold mt-2">Labor</div>
+          {% for s in b.labor %}
+          <div class="d-flex justify-content-between"><span>{{ s.laborer_name }} &middot; {{ '%.2f'|format(s.hours or 0) }} hr</span><span>${{ '{:,.2f}'.format(s.cost or 0) }}</span></div>
+          {% endfor %}
+          {% endif %}
+          <div class="d-flex justify-content-between border-top mt-2 pt-1 fw-bold"><span>Total</span><span>${{ '{:,.2f}'.format(b.total) }}</span></div>
+        </details>
         {% endif %}
       </div>
       {% endfor %}
@@ -240,20 +266,64 @@
   </div>
 </div>
 <script>
+// These run as document-level capture listeners, registered before the
+// shared confirm box's own (_confirm_modal.html comes later in the page),
+// so a data-confirm they put on a form is seen by that box for the same
+// submit.
 // Decline requires a note (the server enforces this too) - catch it here
 // so the owner isn't sent back a whole page load just to find that out.
-document.querySelectorAll('.found-decide-form').forEach(function (form) {
-  form.addEventListener('submit', function (e) {
-    var clicked = e.submitter;
-    if (clicked && clicked.classList.contains('found-decline-btn')) {
-      var note = form.querySelector('.found-decide-note');
-      if (note && !note.value.trim()) {
-        e.preventDefault();
-        note.focus();
-        note.classList.add('is-invalid');
-        note.placeholder = 'Let the shop know why - required to decline';
-      }
+// HUB-43: approving is final, so it asks first.
+document.addEventListener('submit', function (e) {
+  var form = e.target;
+  if (!form.classList || !form.classList.contains('found-decide-form')) return;
+  var clicked = e.submitter;
+  if (clicked && clicked.classList.contains('found-decline-btn')) {
+    form.removeAttribute('data-confirm');
+    var note = form.querySelector('.found-decide-note');
+    if (note && !note.value.trim()) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      note.focus();
+      note.classList.add('is-invalid');
+      note.placeholder = 'Let the shop know why - required to decline';
     }
+  } else if (clicked && clicked.classList.contains('found-approve-btn')) {
+    form.setAttribute('data-confirm', 'Approve this work for about $' + form.getAttribute('data-approve-amount') + '? The shop will go ahead, and this can\'t be taken back.');
+    form.setAttribute('data-confirm-title', 'Approve this work?');
+    form.setAttribute('data-confirm-ok', 'Approve');
+    form.setAttribute('data-confirm-style', 'success');
+  }
+}, true);
+// HUB-14: a reading needs at least one box, and a lower-than-last reading
+// is asked about before it's saved (same confirm box as above).
+document.addEventListener('submit', function (e) {
+  var form = e.target;
+  if (!form.id || form.id !== 'hours-form') return;
+  var hobbs = form.hobbs_hours.value.trim(), tach = form.tach_hours.value.trim();
+  var err = document.getElementById('hours-error');
+  if (!hobbs && !tach) { e.preventDefault(); e.stopImmediatePropagation(); err.style.display = ''; return; }
+  err.style.display = 'none';
+  var lower = [];
+  var curH = parseFloat(form.getAttribute('data-hobbs')), curT = parseFloat(form.getAttribute('data-tach'));
+  if (hobbs && !isNaN(curH) && parseFloat(hobbs) < curH) lower.push('Hobbs ' + hobbs + ' is lower than the last reading ' + curH);
+  if (tach && !isNaN(curT) && parseFloat(tach) < curT) lower.push('Tach ' + tach + ' is lower than the last reading ' + curT);
+  if (lower.length) {
+    form.setAttribute('data-confirm', lower.join('. ') + ' - save anyway?');
+    form.setAttribute('data-confirm-title', 'Lower reading');
+    form.setAttribute('data-confirm-ok', 'Save anyway');
+    form.setAttribute('data-confirm-style', 'warning');
+  } else {
+    form.removeAttribute('data-confirm');
+  }
+}, true);
+// HUB-17: the camera button shows the chosen file name underneath.
+document.querySelectorAll('.found-note-form').forEach(function (form) {
+  var file = form.querySelector('.found-note-photo'), label = form.querySelector('.found-note-filename');
+  if (!file || !label) return;
+  file.addEventListener('change', function () {
+    var name = file.files && file.files[0] ? file.files[0].name : '';
+    label.textContent = name ? 'Photo: ' + name : '';
+    label.style.display = name ? '' : 'none';
   });
 });
 </script>

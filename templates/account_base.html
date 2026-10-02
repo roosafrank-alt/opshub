@@ -1,10 +1,11 @@
 {#
-  Neutral OpsHub layout for the centralized My Account page - not tied to
-  Maintenance (base.html), Flight School (flight/base_flight.html) or Admin,
-  since the account covers all of them. The navbar shows a button back to
-  whichever program My Account was opened from (came_from, set in
-  app.py's account_page), plus quick links to every program this account
-  can use.
+  Layout for the centralized My Account page. Not tied to one program's
+  nav (the account covers all of them), but it uses the shared header
+  recipe (SEAM-1) and carries the home-screen identity of the program My
+  Account was opened from (SEAM-13: Winds Aloft or Fly with Kate!, never a
+  neutral icon - app_identity is set in app.py's _render_account). The
+  Programs button in the header is the one place the program list lives
+  (HUB-38); the page's own card shows each program's role.
 #}
 <!doctype html>
 <html lang="en">
@@ -12,6 +13,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>{% block title %}My Account - OpsHub{% endblock %}</title>
+{% include "_app_identity.html" %}
 <meta name="theme-color" content="#1f2937">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -19,54 +21,17 @@
 <script defer src="{{ url_for('static', filename='js/nav-fit.js') }}"></script>
 <style>
   .account-nav { background: linear-gradient(90deg, #111827, #1f2937); }
-  .account-nav .btn-program { border-color: rgba(255,255,255,.35); }
-  .account-nav .btn-program.active { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.6); }
 </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark sticky-top account-nav">
-  <div class="container-fluid">
-    {% set back_fallback = came_from.url if came_from else url_for('home_launcher') %}{% include "_back_button.html" %}
-    <a class="navbar-brand p-1 me-1" href="{{ url_for('home_launcher') }}" title="All Programs"><i class="bi bi-grid-3x3-gap-fill"></i></a>
-    <span class="navbar-brand fw-bold mb-0"><i class="bi bi-person-gear"></i> My Account <span class="fw-normal text-white-50 small opshub-hdr-subtag">OpsHub</span></span>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="nav">
-      <div class="d-flex flex-nowrap align-items-center gap-2 ms-lg-auto py-2 py-lg-0">
-        {% for p in programs or [] %}
-        <a href="{{ p.url }}" class="btn btn-outline-light btn-sm btn-program {{ 'active' if came_from and came_from.key == p.key }}"><i class="bi {{ p.icon }}"></i> <span class="nav-label">{{ p.name.split(' - ')[-1] }}</span></a>
-        {% endfor %}
-        <div class="dropdown">
-          {#- QA ux-header-width-rules: matches the .btn-program buttons
-             (same btn/btn-sm sizing) so every button in this header is the
-             same height, instead of the plain (shorter) .nav-link style. #}
-          <a class="btn btn-outline-light btn-sm dropdown-toggle" href="#" id="user-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="bi bi-person-circle"></i> {{ logged_in_user_name or session.get('user_name') }}
-          </a>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu-toggle">
-            <li><a class="dropdown-item" href="{{ url_for('home_launcher') }}"><i class="bi bi-grid-3x3-gap"></i> All Programs</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="{{ url_for('logout') }}" onclick="return confirm('Log out?')"><i class="bi bi-box-arrow-right"></i> Log Out</a></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
-</nav>
+{% from "_app_header.html" import app_header with context %}
+{% call app_header(program='account', program_key=(came_from.key if came_from else ''), brand_name='My Account',
+                   brand_url=url_for('account_page'), back_fallback=(came_from.url if came_from else url_for('home_launcher')),
+                   navbar_class='account-nav', icon='bi-person-gear',
+                   account_from=(came_from.key if came_from else None), has_nav=False) %}
+{% endcall %}
 <div class="container-fluid py-3">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="row justify-content-center mb-3"><div class="col-lg-6">
-      {% for category, message in messages %}
-      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      </div>
-      {% endfor %}
-    </div></div>
-    {% endif %}
-  {% endwith %}
+  {% include "_flash_messages.html" %}
   {% block content %}{% endblock %}
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
