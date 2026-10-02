@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>All changes - OpsHub preview</title>
+<style>
+  :root{--bg:#f3f4f6;--ink:#16202e;--line:#d1d5db;--card:#fff;--mut:#5b6676}
+  @media (prefers-color-scheme:dark){:root{--bg:#11161e;--ink:#eef2f7;--line:#2d3848;--card:#1a2230;--mut:#9aa6b6}}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif;padding:12px 16px 40px;max-width:760px;margin-inline:auto}
+  h1{font-size:20px} .sum{color:var(--mut);margin-bottom:10px}
+  .f{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .f button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:5px 11px;font:inherit;font-size:13px;cursor:pointer}
+  .f button.on{background:#a0125f;color:#fff;border-color:#a0125f}
+  .it{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0}
+  .it b{font-size:15px} .it small{color:var(--mut)} .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+  .built{background:#16a34a}.logic{background:#2563eb}.partial{background:#d97706}.skipped{background:#9ca3af}.pending{background:#fff;border:2px solid #9ca3af}
+  .it p{margin:4px 0 0} .lnk a{color:#a0125f;margin-right:10px;font-size:13px}
+</style></head><body>
+<p><a href="javascript:history.back()">Back</a></p>
+<h1>Everything in this build</h1><div class="sum" id="sum"></div><div class="f" id="f"></div><div id="list"></div>
+<script>
+  var all = [], filter = 'all';
+  var names = {all:'All', built:'Visible', logic:'Behind the scenes', partial:'Partly done', skipped:'Not built', pending:'Not marked yet'};
+  function draw() {
+    var counts = {}; all.forEach(function (c) { counts[c.status] = (counts[c.status] || 0) + 1; });
+    document.getElementById('sum').textContent = all.length + ' approved changes. ' + Object.keys(counts).map(function (k) { return counts[k] + ' ' + (names[k] || k).toLowerCase(); }).join(', ') + '.';
+    document.getElementById('f').innerHTML = Object.keys(names).filter(function (k) { return k === 'all' || counts[k]; }).map(function (k) { return '<button data-k="' + k + '" class="' + (filter === k ? 'on' : '') + '">' + names[k] + '</button>'; }).join('');
+    document.querySelectorAll('#f button').forEach(function (b) { b.onclick = function () { filter = b.getAttribute('data-k'); draw(); }; });
+    var rows = all.filter(function (c) { return filter === 'all' || c.status === filter; });
+    document.getElementById('list').innerHTML = rows.map(function (c) {
+      var links = (c.pages || []).filter(function (p) { return p.indexOf('*') < 0 && p.indexOf('{') < 0; }).slice(0, 3).map(function (p) { return '<a href="' + p + '">' + p + '</a>'; }).join('');
+      return '<div class="it"><span class="dot ' + c.status + '"></span><b>' + c.title + '</b> <small>' + c.id + '</small>' +
+        '<p>' + (c.note || c.after) + '</p>' + (c.where ? '<p><small>Where: ' + c.where + '</small></p>' : '') + (c.see_as ? '<p><small>Log in as: ' + c.see_as + '</small></p>' : '') +
+        (links ? '<div class="lnk">' + links + '</div>' : '') + '</div>'; }).join('');
+  }
+  fetch('/__preview/changes.json').then(function (r) { return r.json(); }).then(function (d) { all = d.changes; draw(); });
+</script></body></html>

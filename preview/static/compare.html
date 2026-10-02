@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Side by side - OpsHub preview</title>
+<style>
+  :root{--bg:#f3f4f6;--ink:#16202e;--line:#d1d5db;--card:#fff}
+  @media (prefers-color-scheme:dark){:root{--bg:#11161e;--ink:#eef2f7;--line:#2d3848;--card:#1a2230}}
+  *{box-sizing:border-box} html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--ink);font:14px/1.3 system-ui,sans-serif;display:flex;flex-direction:column}
+  header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;background:#a0125f;color:#fff}
+  header input{flex:1;min-width:160px;padding:6px 8px;border-radius:8px;border:0;font-size:16px}
+  header button,header a{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:6px 12px;font:600 13px system-ui;text-decoration:none;cursor:pointer}
+  header button.on{background:#fff;color:#a0125f}
+  main{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px;min-height:0}
+  main.stack{grid-template-columns:1fr;grid-auto-rows:minmax(0,1fr)}
+  .col{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .col h2{margin:0;padding:6px 10px;font-size:13px;background:#374151;color:#fff}
+  .col.after h2{background:#15803d}
+  .col .wrap{flex:1;min-height:0;overflow:auto;background:#fff;display:flex;justify-content:center}
+  iframe{border:0;width:100%;height:100%;background:#fff}
+  .phone iframe{width:390px;flex:none}
+  .help{padding:8px 12px;font-size:13px;background:var(--card);border-top:1px solid var(--line)}
+</style></head><body>
+<header>
+  <strong>Side by side</strong>
+  <input id="path" aria-label="Page address" value="/">
+  <button id="go">Go</button>
+  <button id="w-desktop" class="on">Desktop</button><button id="w-phone">Phone width</button><button id="stack">Stack</button>
+  <a id="back" href="/">Back to preview</a>
+</header>
+<main id="main">
+  <section class="col before"><h2>BEFORE: today's live code (copy of the data)</h2><div class="wrap"><iframe id="fb" title="Before"></iframe></div></section>
+  <section class="col after"><h2>AFTER: the preview, changes outlined in pink</h2><div class="wrap"><iframe id="fa" title="After"></iframe></div></section>
+</main>
+<div class="help">Log in once in each side if asked (same username and password). Click around on either side; to follow along on the other, type the page address in the box and press Go.</div>
+<script>
+  var q = new URLSearchParams(location.search), path = q.get('path') || '/';
+  var port = null;
+  function go() {
+    path = document.getElementById('path').value || '/';
+    document.getElementById('fa').src = location.origin + path;
+    document.getElementById('fb').src = location.protocol + '//' + location.hostname + ':' + port + path;
+    document.getElementById('back').href = path;
+    history.replaceState(null, '', '?path=' + encodeURIComponent(path));
+  }
+  fetch('/__preview/changes.json').then(function (r) { return r.json(); }).then(function (d) { port = d.before_port; document.getElementById('path').value = path; go(); });
+  document.getElementById('go').onclick = go;
+  document.getElementById('path').addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+  function mode(phone) { var m = document.getElementById('main'); document.querySelectorAll('.wrap').forEach(function (w) { w.classList.toggle('phone', phone); });
+    document.getElementById('w-phone').classList.toggle('on', phone); document.getElementById('w-desktop').classList.toggle('on', !phone); }
+  document.getElementById('w-phone').onclick = function () { mode(true); };
+  document.getElementById('w-desktop').onclick = function () { mode(false); };
+  document.getElementById('stack').onclick = function () { document.getElementById('main').classList.toggle('stack'); };
+  if (matchMedia('(max-width:700px)').matches) { document.getElementById('main').classList.add('stack'); }
+</script></body></html>

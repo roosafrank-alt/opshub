@@ -1,0 +1,2142 @@
+{
+ "SCHOOL-13": {
+  "title": "Plane Rate detail claims a default that doesn't exist",
+  "before": "With no Plane Rate set, the detail page says Using the default rate and blank = use default. Edit Student says the opposite: blank means the plane isn't charged.",
+  "after": "On the Plane Rate detail say No plane rate - this student is not charged for the plane, and label the box blank = plane not charged.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-14": {
+  "title": "Add Funds link on the Account page scrolls nowhere",
+  "before": "The Add Funds button on a student's Account page opens Edit Student at the top; the #account anchor points at nothing, so on a phone the card is screens down.",
+  "after": "Give the Account card on Edit Student the id account so the link lands on it, or put the Add Funds form directly on the Account page.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-03": {
+  "title": "Techs see dollar costs on the Activity Log",
+  "before": "Only Admins see prices on Parts, Part detail and the dashboard, but the Activity Log's Cost column shows the dollar value of every part transaction to Techs, sortable too.",
+  "after": "Show the Cost column and its sort link only to Admins, the same way the Parts page hides Unit Cost.",
+  "group": "Winds Aloft: daily work",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-28": {
+  "title": "Linking staff login to owner account is unexplained",
+  "before": "One person gets both staff and owner tiles only if their staff Username exactly equals their customer Email and passwords match. Neither form says so, so admins create two logins.",
+  "after": "Under Username on the account form and the customer form, explain to use the same email and password so the person sees every program with one login.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-49": {
+  "title": "Print Badge on badge sheet moves admin elsewhere",
+  "before": "On Print Worker Badges, a Tech pressing Print Badge stays on the sheet, but an Admin is taken to that worker's Laborer Code page. Five workers means five round trips.",
+  "after": "Return to the badge sheet for everyone.",
+  "group": "Winds Aloft: daily work",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-09": {
+  "title": "Clearing a squawk's assignment makes it look Working",
+  "before": "In the Assigned step, picking Unassigned in Reassign removes the worker, but the squawk jumps to Working with a green Mark as Repaired button even though nobody is on it.",
+  "after": "Treat an acknowledged squawk with no worker as New, with the Assign to and I'll take it controls, and show Working only when someone is assigned.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-41": {
+  "title": "Found item can go to owner as $0 quote",
+  "before": "Parts, Labor hours and Rate on the Found items tab all start at 0 and accept 0, so Send to owner for approval can send $0.00 est. unwarned.",
+  "after": "If the estimate totals $0, ask once: Send this with no price? The owner will see $0.00, with Send and Go back.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-11": {
+  "title": "Flight History Mark paid flips badge, records nothing",
+  "before": "After confirming Mark this flight as PAID?, the badge changes and nothing else: no message, the student's balance and Billing total don't move, and cross-check reports a mismatch.",
+  "after": "When marking Paid, ask for amount pre-filled with the total and how paid, add that payment to the student's account, and flash what was added. Unpaid removes it.",
+  "group": "Fly with Kate!: flying",
+  "type": "Inconsistent",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-16": {
+  "title": "Access bounces land in different places",
+  "before": "A logged-out person gets Log in to do that. on shop pages and Log in to see your aircraft. on portal pages, landing on different login pages. After logging in you land on the picker, not the page you wanted.",
+  "after": "One sentence for every bounce, one login page, and you return to the page you wanted after logging in.",
+  "group": "Seams between programs",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-01": {
+  "title": "Anyone can create an instructor account at signup",
+  "before": "Typing /flight/signup with no login shows New CFI Account. Pressing Create Account makes a real instructor, logs the person in and gives full CFI access to students and bookings.",
+  "after": "Remove the sign-up page and its address entirely; instructors are made under Manage CFIs or Admin Accounts. Any future self sign-up must create an inactive account.",
+  "group": "Fly with Kate!: flying",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-47": {
+  "title": "Edit Student loses Account card when save is rejected",
+  "before": "If Name is required fires on Edit Student, the page returns without the Account card, without the Lessons & Landings summary, and with blank Email and Phone until reloaded.",
+  "after": "Re-render the edit page with everything it normally shows plus the message.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-28": {
+  "title": "School Settings Cancel goes to the Planes list",
+  "before": "Cancel on School Settings opens Manage Planes, which has nothing to do with the settings just abandoned; left over from when settings lived under Planes.",
+  "after": "Cancel returns to the Fly with Kate! dashboard, or just the previous page.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "edit",
+  "note": "Cancel returns to the previous page."
+ },
+ "SHOP-40": {
+  "title": "A mis-scanned part can't be undone from Scan",
+  "before": "With a project set, scanning a part removes 1 from stock and charges the project. A wrong or double scan has no Undo; only an Admin can fix it later.",
+  "after": "Show an Undo link on the green result for 30 seconds that reverses that one transaction, restoring quantity and removing the job line, for the person who made it.",
+  "group": "Winds Aloft: daily work",
+  "type": "Missing feature",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-27": {
+  "title": "No password rules; new password shown in clear",
+  "before": "A one-character password is accepted everywhere. On My Account the New Password and Confirm boxes are plain text, so what you type is visible yet you must confirm it.",
+  "after": "Require at least 8 characters and say so, show the boxes hidden with a Show toggle, and keep the confirm box only while hidden.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-31": {
+  "title": "Cancel on booking and log forms doesn't go back",
+  "before": "Cancel on Schedule a Flight always goes to the Schedule for staff; Cancel on Log a Flight always goes to the Dashboard, even when opened from Flight History.",
+  "after": "Cancel goes back to the page the form was opened from, using the same logic as the top-left back arrow, with today's defaults as fallback.",
+  "group": "Fly with Kate!: flying",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-21": {
+  "title": "Parts list does not stack on a phone",
+  "before": "Each Parts category table has 7 or 8 columns. On a phone it scrolls sideways, the name is cut off and On Hand is off-screen. Billing and Tools already stack.",
+  "after": "Use the same stacking table style: name and photo full width, then Barcode, Location, On Hand and Cost as labelled lines, checkbox and Reorder at the end.",
+  "group": "Winds Aloft: daily work",
+  "type": "Polish",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-17": {
+  "title": "Statistics date labels are day-month-year",
+  "before": "The Hours Flown by Day chart labels bars as 02-10-2026 while the range line above it and the whole flight app show 10/02/2026.",
+  "after": "Label the bars 10/02 or Oct 2 using the same US date style.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-05": {
+  "title": "Techs see Add Part and Export CSV, both refused",
+  "before": "A Tech sees the yellow Add Part and Export CSV buttons on Parts. Tapping either bounces to the dashboard with You don't have access to that part of Shop Inventory.",
+  "after": "Show those two buttons and the Add your first part link only to Admins, using the same check the Reorder buttons already use.",
+  "group": "Winds Aloft: daily work",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-33": {
+  "title": "Editing or rescheduling lands on month view, nothing highlighted",
+  "before": "After Save Changes or Save New Time the calendar opens the Month view with Scheduled flight updated. The moved block isn't pointed out and Day or Week view is lost.",
+  "after": "Return to the view the CFI was using, on the booking's new day, with the same green spotlight on the moved booking.",
+  "group": "Fly with Kate!: flying",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-03": {
+  "title": "CFI Cancel Flight cancels bookings already flying or flown",
+  "before": "Cancel Flight in the booking popup doesn't check status. A booking just started on another phone is still flipped to Cancelled while its flight runs. Nothing records who or why.",
+  "after": "Only cancel bookings still Scheduled or on Balance Hold, otherwise say end it from Active Flight. Ask for a reason, store who and when, show it under Cancelled.",
+  "group": "Fly with Kate!: flying",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-17": {
+  "title": "Found-item note row squeezes text box on phone",
+  "before": "The found-item note row holds a text box, a file picker about 9rem wide and a send button. On a 375px phone the text box shows three or four words.",
+  "after": "Make the photo picker a small camera icon button with the chosen file name underneath so the text box takes the width, or stack the row on phones.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-24": {
+  "title": "Asset, aircraft and plane mixed on the same screens",
+  "before": "The menu and page titles say Aircraft, but the empty state says No assets yet, Delete asks Delete this asset?, and trash says No deleted assets.",
+  "after": "Use aircraft in every label, prompt, message and empty state, such as No aircraft yet and Delete this aircraft?; never asset.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-43": {
+  "title": "Approving extra work has no confirmation",
+  "before": "One tap on the green Approve button commits the owner to the estimate, for example $1,250.00, and cannot be reversed. Declining requires a note; approving requires nothing.",
+  "after": "Ask Approve this work for about $1,250.00? The shop will go ahead, with an Approve button, since it is final.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "edit",
+  "note": "Ask Approve this work for about $1,250.00? The shop will go ahead, with an Approve button, since it is final. make sure owner can not take back and approval is logged and time stamped to project or invoice"
+ },
+ "FLY-10": {
+  "title": "Edit Logged Flight payment fields are silently dropped",
+  "before": "Edit Flight shows Already paid, Amount Collected and How Paid. Ticking paid with $150 Cash then Save Changes says Flight updated, but only the badge changes; no payment is recorded.",
+  "after": "Either hide Amount Collected and How Paid on edit with a note To record a payment use Billing, or save them properly as End Session does, reversing on Unpaid.",
+  "group": "Fly with Kate!: flying",
+  "type": "Bug",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-21": {
+  "title": "Flight Billing lacks card payment and Connect Wave hint",
+  "before": "Winds Aloft Billing offers Mark Paid with a how-paid box, Pay with Card and a Connect Wave link. Fly with Kate! Billing has only a bare Mark Paid.",
+  "after": "Match the shop: Mark Paid opens the how-was-it-paid box, add a Pay with Card button per student, and show the Connect Wave link to admins when Wave is off.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Inconsistent",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-34": {
+  "title": "Waitlist Grab it promises a slot, gives pending request",
+  "before": "The waitlist says the first to tap and book gets the slot. For a student, Grab it opens Request a Flight and ends as Pending Approval; the offer stays listed.",
+  "after": "Either book the grabbed slot straight away and tell the others Taken, or reword to the first request a CFI approves gets the slot and hide the offer once requested.",
+  "group": "Fly with Kate!: flying",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "edit",
+  "note": "reword to the first request a CFI approves gets the slot and hide the offer once requested."
+ },
+ "SEAM-2": {
+  "title": "One word and icon for back to the picker",
+  "before": "Grid icon titled All Programs in three headers, a Program Picker text link in Admin (hidden on phones), Home in Academy, Hub in My Aircraft.",
+  "after": "The same grid icon with the word Programs in every header, left of the logo, hidden for single-program accounts everywhere.",
+  "group": "Seams between programs",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-35": {
+  "title": "Wave test stacks messages; on/off switch asks nothing",
+  "before": "Test connection returns a summary flash plus one flash per check, so four or five boxes stack up. The Wave invoicing switch submits instantly, removing Invoice in Wave buttons everywhere.",
+  "after": "Show the test results as one box with a bullet list, and ask Turn Wave invoicing off? Billing pages lose their Invoice in Wave button before switching off.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-14": {
+  "title": "Log Reading accepts a lower reading silently",
+  "before": "Owner types a Hobbs typo like 123.5 instead of 1234.5 and taps Log Reading. The lower number overwrites the meter with no warning, so every reminder shows wrong hours.",
+  "after": "If a new reading is lower than the current one, ask Hobbs 123.5 is lower than 1234.5, save anyway? Require at least one box on the page.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Missing feature",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-45": {
+  "title": "Supplier is free text with no suggestions",
+  "before": "Supplier is typed from scratch on every order and part, so By Vendor splits Aircraft Spruce and aircraft spruce into two vendors and the per-vendor export misses half.",
+  "after": "Offer previously used supplier names as you type, built from existing orders and parts, the same way Category already works on the part form.",
+  "group": "Winds Aloft: daily work",
+  "type": "Missing feature",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-21": {
+  "title": "Flight Academy header is labelled Home",
+  "before": "The Academy header's brand reads Home with a house icon that goes to the picker. Nothing in the bar says Flight Academy; only the browser tab does.",
+  "after": "Brand it Flight Academy with the mortarboard icon linking to the Academy home, and put the grid icon for the picker beside Back like the others.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-05": {
+  "title": "Inspector sees a dozen Aircraft controls that refuse them",
+  "before": "An Inspector can open a plane page, but logging hours, photos, Oil and Compression, to-dos, logbook buttons, Manuals and Maintenance Complete all answer You don't have access.",
+  "after": "Keep Confirm, Send Back, sign-off and AD controls for Inspectors, give read access to logbooks, Compression and Oil, and hide the rest.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Bug",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-22": {
+  "title": "Orders By Vendor has no headings, doesn't stack",
+  "before": "In By Vendor each row reads Brake pad 2 26-004 05-10-2026 $84.00 with no header, so qty, date and cost are unlabelled. On a phone Received and Cancel hide off-screen.",
+  "after": "Add the header row By Part uses (Item, Qty, Project, Expected, Cost) and switch both order tables and To-order to the stacking style with buttons on their own line.",
+  "group": "Winds Aloft: daily work",
+  "type": "Confusing",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-23": {
+  "title": "Student dashboard hides flights and offers no next step",
+  "before": "A student's dashboard has no Today's Schedule; bookings sit under a collapsed Upcoming header. The Next Lesson card says Nothing booked for you coming up with no button.",
+  "after": "For students start Upcoming open, and put a Request a Flight button inside the empty Next Lesson card.",
+  "group": "Fly with Kate!: flying",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-04": {
+  "title": "Aircraft page offers a Tech admin-only buttons",
+  "before": "A Tech sees Edit Profile, Delete, Maintenance Add and the pencil icons, all admin only, so each tap bounces. A Tech can create an Incomplete plane but can't finish it.",
+  "after": "Let a Tech use Edit Profile and the Maintenance add and edit pages, keeping Delete for admins, or hide the buttons and change the Incomplete tip.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-31": {
+  "title": "No way to give a new customer their login",
+  "before": "An admin types a starting password, saves, and sees Customer account created for Pat. The owner is never told the address or password; the admin texts it by hand.",
+  "after": "After saving, show a Send login details button on the customer page that emails or texts the portal address and starting password, and record Login sent on date.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Missing feature",
+  "effort": "M",
+  "decision": "edit",
+  "note": "After saving, show a Send login details button on the customer page that emails or texts the portal address and starting password, and record Login sent on date. set defauly password to capital letter of first name lower case last name #1. e.g. Jdoe#1. lets add ability for user to reset their own password everywhere"
+ },
+ "DESIGN-9": {
+  "title": "One page-title pattern",
+  "before": "Titles are h4 on most pages and h5 on 41, with or without an icon; list-page toolbars (title, search, Add) are hand-built per page.",
+  "after": "One shared toolbar for list pages (title left, search middle, Add right, stacking on phones) and one title style for detail pages.",
+  "group": "Design rules",
+  "type": "Polish",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-44": {
+  "title": "Task Templates has a Projects back button",
+  "before": "The Task Templates header button says Projects with a back arrow, but the page is opened from Manage, and the header already has the Back button.",
+  "after": "Remove the Projects button, or make it Open New Project without the back arrow since that's where templates are used.",
+  "group": "Winds Aloft: daily work",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-10": {
+  "title": "Student's My Account shows $-150.00 owed",
+  "before": "When a student owes money, the balance line prints the raw negative number as $-150.00 owed. Below, the Unpaid section shows 3 flights - $450.00, which may not match.",
+  "after": "Print $150.00 owed in red or $50.00 credit in green, like the staff badge, and until SCHOOL-01 is done add a line explaining why the two totals differ.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-16": {
+  "title": "Approving an Any instructor request books the approver",
+  "before": "The confirm says Approve this flight request? For a request with instructor Any, pressing Approve silently assigns the approving CFI, so the morning admin ends up booked on every lesson.",
+  "after": "When the request has no instructor, ask Approve and assign yourself as the instructor? with a second choice Approve - assign an instructor later.",
+  "group": "Fly with Kate!: flying",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-16": {
+  "title": "Awaiting Your Response is the quietest badge",
+  "before": "In Appointments, Confirmed is green, Reschedule Requested yellow, Requested blue, but Awaiting Your Response, the one state needing the owner to act, is grey.",
+  "after": "Make it yellow with an exclamation icon reading Please confirm, and give the card the same yellow border the found-items box gets when something is waiting.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-25": {
+  "title": "Flight History footer promises an unbuilt feature",
+  "before": "The footnote under the Flight History table says Oil-consumption analytics are coming in a later phase, then points to the plane's Maintenance profile.",
+  "after": "Drop the first sentence; keep the pointer to the plane's Maintenance profile.",
+  "group": "Fly with Kate!: flying",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "edit",
+  "note": "Drop tthe entire wording"
+ },
+ "HUB-01": {
+  "title": "Master admin without Flight School role bounced silently",
+  "before": "A login with only Master Admin ticked taps the Fly with Kate! tile and lands back on Choose a program with no message. Admin's Flight School links do the same.",
+  "after": "Give such admins the same hidden instructor profile shop admins get, so every Fly with Kate! page opens, and show a message instead of a silent bounce.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Bug",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-09": {
+  "title": "No way to discard a session started by mistake",
+  "before": "If Start Session hit the wrong booking, the only way off Active Flight is End Session, which logs a 0.0-hour flight, bills time, completes the booking and emails a receipt.",
+  "after": "Add a Discard session - started by mistake link on the Active Flight card with a confirm that removes the record, resets the booking to Scheduled and charges nothing.",
+  "group": "Fly with Kate!: flying",
+  "type": "Missing feature",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-41": {
+  "title": "Staff opening /portal get an owner login refusing them",
+  "before": "A signed-in tech or student tapping an old /portal link sees Log in to see your aircraft and the My Aircraft form. Their staff password fails; there's no way out.",
+  "after": "If a staff login is active, say Your login isn't linked to an aircraft owner account with a link to the picker, and add a Staff? Log in here link.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-33": {
+  "title": "Calibration history is recorded but never shown",
+  "before": "Every Mark Calibrated is saved with date, certificate, who and note, but no page lists them. The Tools table shows only the latest date and one certificate icon.",
+  "after": "Add a History link per tool that opens a small list with date, by, note and certificate link, on the Edit Tool page or in a pop-up.",
+  "group": "Winds Aloft: daily work",
+  "type": "Missing feature",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-46": {
+  "title": "Print Labels for Selected sits below all categories",
+  "before": "The Print Labels for Selected button is at the very bottom of Parts under every category. Nothing shows how many are ticked, and with none ticked a browser alert appears.",
+  "after": "Move it into the header toolbar and show Print Labels (3) with the live count, disabled at 0.",
+  "group": "Winds Aloft: daily work",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-40": {
+  "title": "Labor Codes prints done discrepancies, omits the plane",
+  "before": "The Labor Codes page prints a code card for every discrepancy, done or not, and nothing names the job's plane. Scanning a confirmed one still starts a timer.",
+  "after": "Print open discrepancies first, mark completed ones done in grey or leave them out, and show the plane's N-number under the job name.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "DESIGN-4": {
+  "title": "One set of delete words",
+  "before": "Buttons say Delete, Delete Forever, Remove, Trash and sometimes Cancel for similar actions; the word does not say whether the thing is recoverable.",
+  "after": "Remove detaches something re-addable. Move to Trash is recoverable. Delete Forever is permanent and always red.",
+  "group": "Design rules",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-19": {
+  "title": "Guided tours exist for two of six programs",
+  "before": "First-login tours exist for Winds Aloft and Fly with Kate!, replayable from My Account as Shop Inventory Tour and Flight School Tour. Admin, Academy and My Aircraft have none.",
+  "after": "Rename the two buttons to the brand names. Add a three-stop tour for the owner portal and for Academy. Admin can wait.",
+  "group": "Seams between programs",
+  "type": "Missing feature",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-08": {
+  "title": "Active Flight shows students a map that never works",
+  "before": "Students see the Live Aircraft Map card on Active Flight with live tracking unavailable, retrying every 15 seconds, because the position feed is instructors only. Show map does nothing.",
+  "after": "Either hide the map card for students, or let students see the school-planes-only feed with no All traffic option so the card works.",
+  "group": "Fly with Kate!: flying",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-03": {
+  "title": "View as means two things; owner preview not view-only",
+  "before": "Header chips View as: Tech switch your role for real. View as someone says view only, yet its owner View as button lets admin Approve and Confirm as the owner.",
+  "after": "Make the owner preview look-only with the same blocked-save message, rename the header chips Switch role, and make the owner pop-up say It's view only.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Bug",
+  "effort": "M",
+  "decision": "edit",
+  "note": "rename to switch role and make that the only option, drop the view as"
+ },
+ "SCHOOL-46": {
+  "title": "Dead templates and partial left in the tree",
+  "before": "flight/admin_cfis.html and admin_cfi_form.html are never rendered, their routes redirect to Admin Accounts, and _groundschool_subnav.html is never included. Reviewers keep re-reading them.",
+  "after": "Delete the two admin CFI templates; either wire the sub-nav into the Ground School pages or delete it.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-04": {
+  "title": "Retired parts count as Low Stock",
+  "before": "A part retired at 0 on hand still shows in the dashboard Low Stock card with Scan In and Reorder buttons and inflates the red Low Stock Items count.",
+  "after": "Leave retired parts out of the low-stock list and count. Optionally only flag parts whose reorder point is above 0.",
+  "group": "Winds Aloft: daily work",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-27": {
+  "title": "Planes Edit sends admin to Winds Aloft, no return",
+  "before": "Edit on a real plane opens the Maintenance aircraft form in the Winds Aloft header; Save lands on the Winds Aloft aircraft page. Only simulators get an in-program form.",
+  "after": "Carry a back to Planes return on that link so Save comes back to Fly with Kate! Planes, or give Fly with Kate! its own small plane form.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "edit",
+  "note": "give Fly with Kate! its own small plane form."
+ },
+ "JOBS-14": {
+  "title": "Status changes give no feedback; only some ask",
+  "before": "On Hold, Mark Active and Restore change the job with no prompt and no message. Mark Completed on an ordinary job shows nothing. Customer dismiss just says Dismissed.",
+  "after": "Show a message for every status change, add a prompt to On Hold, and change Dismissed to Reschedule request for 26-014 cleared.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-02": {
+  "title": "Jump to Project on new intake just reloads",
+  "before": "On a job with pending intake, Jump to Project (or the P key) opens the job page, which forwards back to the intake. The page reloads; only tiny Skip works.",
+  "after": "While intake is pending, hide Jump to Project and the P key, and make Skip a normal grey button next to Save labelled Skip for now - open project.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-02": {
+  "title": "Weather cancellation calls off the day with no confirmation",
+  "before": "The Weather cancellation page opens with every lesson ticked and one big red button. Pressing it instantly cancels them all and texts every student, with no Are you sure.",
+  "after": "Show the usual confirm first: Call off 6 lessons on 02-10-2026 and text 6 students? This can't be undone. Tone down the toolbar button to outlined red.",
+  "group": "Fly with Kate!: flying",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "edit",
+  "note": "Show the usual confirm first: make the user 'select all\" to Call off 6 lessons on 02-10-2026 and text 6 students? This can't be undone. Tone down the toolbar button to outlined red. someimes you only have to cancel a few lessons, not the entire day"
+ },
+ "HUB-02": {
+  "title": "Picker lacks Viewing as bar; Log Out is real",
+  "before": "After View as someone, the picker shows that person's tiles and a plain Log Out link. No yellow Viewing as bar, and Log Out signs the admin out for real.",
+  "after": "Show the yellow Viewing as bar with Back to my view on the picker, My Aircraft and Customers headers; during a view replace Log Out with Back to my view.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-20": {
+  "title": "Leftover non-aviation wording on New Project",
+  "before": "The Description example on New Project is Conveyor belt #3 rebuild, and the Aircraft help text talks about an asset profile. Everywhere else says aircraft and plane.",
+  "after": "Placeholder e.g. Annual inspection, replace left brake pads, and help text Link this job to a plane to get its combined history and hours-based maintenance tracking.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-15": {
+  "title": "Browser tab titles follow no pattern",
+  "before": "Two pages are titled Dashboard - OpsHub, Stats and Statistics are different pages, the Academy totalizer says Totalizar, My Aircraft pages have no program suffix.",
+  "after": "Every page is Page name, then Program name, for example Schedule, Fly with Kate!. Fix the Totalizar typo.",
+  "group": "Seams between programs",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-41": {
+  "title": "Editing a linked worker leaves Winds Aloft for good",
+  "before": "For a worker badge linked to a login, a master admin's Edit button opens the Admin account page. Saving there lands on Admin Accounts, not Workers.",
+  "after": "After saving an account opened from Workers, return to Workers, or allow editing rate and active flag on the Winds Aloft Edit page even when linked.",
+  "group": "Winds Aloft: daily work",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-35": {
+  "title": "New squawks appear twice on the plane page",
+  "before": "A new squawk shows in the red New Squawk banner with Assign to and I'll take it, and again inside the To-Do card with the same controls.",
+  "after": "Keep the red banner for unassigned squawks and leave them out of the To-Do card until assigned; the card then shows Assigned, Working and Inspection ones.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-30": {
+  "title": "Alerts Not yet and Resolve act silently; Acknowledge asks",
+  "before": "Not yet on a 100-hour alert silently hides it with no flash. Resolve on a report acts immediately. Acknowledge on a flagged booking asks first. Mark reviewed does not ask.",
+  "after": "Make the one-way actions Resolve, Not yet and Mark reviewed use the same small confirm Acknowledge uses, and flash what happened.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-43": {
+  "title": "Pending order's Edit button is an unlabelled pencil",
+  "before": "Each pending order row shows a small grey pencil icon with no text and no hover title, next to Received and Cancel which have words.",
+  "after": "Label it Edit like Workers and Tools do.",
+  "group": "Winds Aloft: daily work",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-28": {
+  "title": "My Tasks page contains a My Tasks card",
+  "before": "The My Tasks page's second card is also titled My Tasks; it actually holds plane to-dos, which the plane page calls To-Do.",
+  "after": "Rename the card My To-Dos and give it the same list-check icon the plane's To-Do card uses.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-15": {
+  "title": "Inspectors have no menu link to Squawks or Aircraft",
+  "before": "Squawks is open to inspectors but the header shows Squawks, My Tasks, Aircraft and Activity only to admins and techs. An inspector reaches Squawks only via the dashboard box.",
+  "after": "Show the Squawks link with its badge and the Aircraft link to inspectors, and give them My Tasks limited to items they can act on.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-01": {
+  "title": "Pay with Card marks job Paid with pretend charge",
+  "before": "Every invoiced job on Billing has a blue Pay with Card button. Charge Card with any digits marks the job Paid with a fake receipt, looking like a real payment.",
+  "after": "Before launch remove Pay with Card and its pop-up from Billing, or hide it behind a master-admin demo switch, and label any kept badge Card (simulated).",
+  "group": "Winds Aloft: daily work",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-04": {
+  "title": "Edit Account button bounces plain CFI to the picker",
+  "before": "Every CFI sees Edit Account at the top of Edit Student. Tapping it shows That's for admins only and dumps them on the program picker, outside Fly with Kate!.",
+  "after": "Show Edit Account only to admins, and after saving on the Admin form return to the student's Edit page instead of the Admin accounts list.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-09": {
+  "title": "Pi Health alert's System Page bounces shop admins",
+  "before": "The red Pi Health Alert box shows every shop Admin a System Page button. That page is master-admin only, so a shop Admin is bounced to the picker.",
+  "after": "Show System Page only to master admins; shop admins keep Acknowledge.",
+  "group": "Winds Aloft: daily work",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-37": {
+  "title": "Three different day windows across calendar and Availability",
+  "before": "Day and Week run 6 AM-9 PM, the Month mini-timeline 6 AM-8 PM, and Availability only 8 AM-8 PM, so a 6:30 AM booking never shows there.",
+  "after": "One school-day window, say 6 AM to 9 PM, used by every view and Availability, stored as a School Settings value Frank can change in one place.",
+  "group": "Fly with Kate!: flying",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-37": {
+  "title": "Admin overview and tile descriptions are out of date",
+  "before": "Picker's Admin tile lists four things but Admin also has Payroll and Wave. Jump into a program offers Maintenance, Flight School, Flight Billing and Students; nothing for Academy or Customers.",
+  "after": "Tile text Accounts, payroll, notifications, Wave, system & reset. Shortcuts: Winds Aloft, Fly with Kate!, Flight Academy, Aircraft Owners, and Billing for each program.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-12": {
+  "title": "CFIs can edit rates; detail page says admin only",
+  "before": "On Edit Student every CFI can edit the three rate boxes and save. Tapping the same rate on Students opens a detail page saying Only an admin can change this.",
+  "after": "Make rates admin-only in both places: show them read-only with ask an admin on the CFI's Edit Student form, as Solo Currency Interval already does.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "edit",
+  "note": "Make rates admin-only in both places: show them read-only. no ask an admin"
+ },
+ "SCHOOL-29": {
+  "title": "Students Aircraft is called four different things",
+  "before": "The same idea appears as Students Aircraft on the settings card, Instructor Rate in a Students Aircraft, Students Aircraft Rate on the CFI form, and Student's own plane on booking.",
+  "after": "Use Student's Own Plane everywhere: card title, Instructor rate in a student's own plane, and on the CFI form.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-32": {
+  "title": "No Order this part from a part's own page",
+  "before": "The dashboard and Low Stock page have a Reorder button that opens New Order pre-filled, but a part's own page has no way to order it.",
+  "after": "Add an admin-only Order more button to the part page that opens New Order pre-filled, exactly like Reorder does.",
+  "group": "Winds Aloft: daily work",
+  "type": "Missing feature",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-22": {
+  "title": "Mark Paid on Billing gives no confirmation message",
+  "before": "After confirming Mark this flight as PAID?, Billing reloads with no message; the flight just disappears from the Unpaid list, easy to miss on a long page. Mark Unpaid likewise.",
+  "after": "Flash Marked 10/02/2026 N123 ($250.00) paid for Jane Doe, or unpaid.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-30": {
+  "title": "Reboot and Shut Down pop-ups are generic; page dies",
+  "before": "Reboot Pi, Shut Down Pi and Restart App all show Please confirm, Yes continue. After tapping, the page says Rebooting, then a connection error; nothing says when it's back.",
+  "after": "Name each pop-up and button per action. After Restart or Reboot show a page that checks every few seconds and reloads itself; after Shut Down show the green-light steps.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-24": {
+  "title": "Account edit errors throw away what was typed",
+  "before": "On Save Changes, an error like Name is required reloads the form from the saved record. Roles, email and password changes vanish, and the Profiles and Pay sections disappear.",
+  "after": "Re-draw the form with the typed values and full Pay and Profiles sections, or check the self-edit rules on the page before submitting.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-12": {
+  "title": "Stats Projects Worked counts General Shop as a project",
+  "before": "Any General Shop hours in the period add 1 to the Projects Worked box on Stats. With two real jobs and some sweeping time, the box says 3.",
+  "after": "Count only real projects in Projects Worked.",
+  "group": "Winds Aloft: daily work",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-31": {
+  "title": "Plane Issue report and its squawk live separate lives",
+  "before": "Filing a Plane Issue also creates a Winds Aloft squawk, but resolving the report on Alerts doesn't touch the squawk and repairing the squawk doesn't resolve the report.",
+  "after": "Store the squawk id on the report, show Squawk #N open or repaired with a link on Alerts, auto-resolve when repaired, and ask Also close the squawk? on Resolve.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Confusing",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-32": {
+  "title": "Deny / Propose Times invents a reason",
+  "before": "If the CFI picks times but leaves the reason blank, the student is told the request was denied: Conflicts with another booking, which may not be true.",
+  "after": "Send Times that would work instead plus whatever the CFI typed, and nothing else; still require either a reason or times.",
+  "group": "Fly with Kate!: flying",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-4": {
+  "title": "One login page, one look",
+  "before": "Three login pages. The main one is branded entirely Fly with Kate! even for shop staff and owners. My Aircraft has its own at /portal/login. An old flight login template is dead code.",
+  "after": "One OpsHub login with both logos and Username or Email. Portal and flight login addresses redirect to it. After a bounce you return to the page you wanted.",
+  "group": "Seams between programs",
+  "type": "Confusing",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-25": {
+  "title": "Part detail transaction history doesn't stack",
+  "before": "Transaction History has eight columns in a sideways-scrolling table on a phone; the Note column is never visible without scrolling.",
+  "after": "Stacking style: When, IN/OUT badge and Qty on the first line, then Project, Area, By and Note as labelled lines.",
+  "group": "Winds Aloft: daily work",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-10": {
+  "title": "My Pay matches workers by name spelling, not badge",
+  "before": "My Pay ignores the linked badge and only matches a badge spelled exactly like the login name. Mike with badge Michael R. sees No labor clocked under your name.",
+  "after": "On My Pay show every badge linked to the logged-in account, fall back to name match only when none is linked, and reword the empty state to mention linking.",
+  "group": "Winds Aloft: daily work",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-9": {
+  "title": "Manage > Customers jumps into a different program",
+  "before": "From Winds Aloft, Manage > Customers opens plum My Aircraft Admin pages with no Winds Aloft nav, no Back, only Hub and Log Out. The admin's picker tile says My Aircraft but opens Customers.",
+  "after": "Render the customer pages inside the Winds Aloft header, plum accent on cards only. The admin's picker tile becomes Customers. The owner portal is unchanged.",
+  "group": "Seams between programs",
+  "type": "Dead end",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-20": {
+  "title": "Billing Select All only exports; no pay by selection",
+  "before": "Billing has row checkboxes, a 0 selected counter and Select All, but only Export CSV uses the selection. Paying is one flight at a time with a confirm each.",
+  "after": "Add a Mark N selected paid button next to Export CSV with one confirm showing count and total, recording the payment per SCHOOL-01. Remove the unused per-student route.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Missing feature",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-36": {
+  "title": "Tapping a to-do's text starts a New Project",
+  "before": "In the To-Do card the to-do text looks plain but links to a prefilled New Project form. Tapping to read a long to-do on a phone opens that form.",
+  "after": "Make the text plain and add a small Start job link at the end of each to-do that does the same thing.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-36": {
+  "title": "Recently Deleted hard to find, shows raw dates",
+  "before": "Recently Deleted is reached only by an unlabelled trash icon on Projects and Aircraft, not from Manage. Its Deleted column shows raw timestamps and it says asset instead of aircraft.",
+  "after": "Add Recently Deleted to the Manage menu after Logbook, format the dates like everywhere else, and say aircraft in the confirmation and empty state.",
+  "group": "Winds Aloft: daily work",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-34": {
+  "title": "Logbook goal links open the wrong student's Progress",
+  "before": "When a CFI views a student's logbook, See full requirements and Your Next Goal carry the track but not the student, so Progress opens for the first student alphabetically.",
+  "after": "Add the viewed student to those two links, the same way Totalizer and Export already do.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-35": {
+  "title": "A student can't withdraw a change request",
+  "before": "After Send Request, the Your Requests row shows Change Requested with the note. There is no way to take it back; only the school's Handled clears it.",
+  "after": "Add a small Withdraw link on that row that clears the request, same effect as Handled, and tells the school.",
+  "group": "Fly with Kate!: flying",
+  "type": "Missing feature",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-16": {
+  "title": "School Settings and Edit CFI lose edits on errors",
+  "before": "School Settings: a taken Calendar Color or negative rate reloads with old values, losing every typed rate. Edit CFI: a taken color loses the new password, medical and credentials.",
+  "after": "On every validation error show the form again with the submitted values and the message next to the field.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-40": {
+  "title": "Logging a booked flight doesn't offer Book next lesson",
+  "before": "After End Session the message carries the green Book next lesson button. Logging the same booking with Log Flight or Session Complete just says Flight logged with no button.",
+  "after": "Show the same Book-next box after Log Flight and Session Complete, based on the flight's date and the booking's time.",
+  "group": "Fly with Kate!: flying",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-38": {
+  "title": "Edit, Intake and status changes work on deleted jobs",
+  "before": "A deleted job's page, reachable from the plane's history or an old link, still allows Edit, Intake, Mark Completed, On Hold and Archive as if it were live.",
+  "after": "On a deleted job show a grey banner This job is in Recently Deleted with an admin Restore button, and hide the other actions.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-02": {
+  "title": "New CFI form's Pay Rate is silently thrown away",
+  "before": "New CFI shows Pay Rate ($/hr). Filling it in and pressing Add CFI saves the instructor without the rate, so their Pay page shows $0.00/hr until Edit CFI is used.",
+  "after": "Save the Pay Rate on create, the same as Edit CFI does, and write the first value into the change history.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-38": {
+  "title": "Upcoming Schedule is collapsed by default",
+  "before": "The dashboard's Upcoming Schedule card loads closed; the next six scheduled projects only appear after tapping the small chevron, and the state isn't remembered.",
+  "after": "Open it by default on desktop and remember the user's choice on the device, as the floating widget does.",
+  "group": "Winds Aloft: daily work",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-30": {
+  "title": "Retire and Delete use browser pop-up; Delete wording wrong",
+  "before": "Deleting a photo uses the app's styled confirmation, but Retire and Delete use the browser's grey pop-up. Delete warns about erasing history, yet the server refuses if used.",
+  "after": "Use the app confirmation for both. When the part has job history show only Retire, explaining Delete isn't available because it's on N jobs.",
+  "group": "Winds Aloft: daily work",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "DESIGN-1": {
+  "title": "One Save button",
+  "before": "Shop forms save with a yellow button, flight forms with a blue one. Yellow also means Print, Reorder, the calendar view switch and Confirm.",
+  "after": "Save is the program's accent colour. Yellow is kept for attention actions only. The Month, Week, Day, List switch becomes a grey segmented control.",
+  "group": "Design rules",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-07": {
+  "title": "Ground School element with only text can never complete",
+  "before": "An element only counts as done when the student clicks a Link or finishes a Video. Elements with only Text or no items stay Not started; progress never reaches 100%.",
+  "after": "Treat an element with no required link or video items as self-completed when opened, and always let a CFI press Verify Complete regardless.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Bug",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-42": {
+  "title": "One worker's pay page has no All workers link",
+  "before": "From Workers, Pay lands on Joe's Pay. The period buttons keep Joe selected but there's no All workers or Back to Workers link, only browser Back.",
+  "after": "Add an admin-only All workers link next to the heading that drops the worker filter.",
+  "group": "Winds Aloft: daily work",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-08": {
+  "title": "Repaired squawk can't be reopened; app says use Reopen",
+  "before": "A signed-off squawk sits in the Done table with no buttons. Tapping Mark as Repaired again says If it came back, use Reopen, but there is no Reopen anywhere.",
+  "after": "Add a small Reopen button on each Done row for admin, tech and inspector that puts the squawk back at New with a note Reopened by name on date.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Dead end",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-24": {
+  "title": "Flight History stops at the latest 100 flights",
+  "before": "Flight History (100) shows only the latest 100 and the search box filters just those. Older flights can only be reached by typing their address.",
+  "after": "Add Show older flights at the bottom and a date-range filter, or make the search ask the server so it finds any flight.",
+  "group": "Fly with Kate!: flying",
+  "type": "Missing feature",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-07": {
+  "title": "Add as new part after unknown scan: Admin only",
+  "before": "When a Tech scans an unknown code, the Unrecognized code panel offers Add as new part. Tapping it opens the dashboard with an access error and the code is lost.",
+  "after": "For non-admins replace the button with text like Not in inventory yet - ask an admin to add it, with the code. Keep the button for Admins.",
+  "group": "Winds Aloft: daily work",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-12": {
+  "title": "One date format everywhere",
+  "before": "The app's standard is day-first (02-10-2026) and the flying pages alone use six formats. A US shop reads 03-09-2026 as March 9.",
+  "after": "One spelled-month format everywhere: Thu, Oct 2, 2026, and Oct 2 where space is tight. Settles JOBS-43, SCHOOL-17, HUB-13, HUB-32, JOBS-23, FLY-26.",
+  "group": "Design rules",
+  "type": "Inconsistent",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-35": {
+  "title": "Print, Print Label and Print label mean different things",
+  "before": "The General Shop Code page has yellow Print (browser) and grey Print Label (label printer), unexplained. A part's Edit page Print label opens the browser; its detail page prints labels.",
+  "after": "Name them by destination everywhere: Print on label printer and Print page (regular printer).",
+  "group": "Winds Aloft: daily work",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-42": {
+  "title": "Owners cannot choose don't remember me",
+  "before": "The main login has Remember me on this device, ticked by default. The My Aircraft login has no such box and always remembers the login for 180 days.",
+  "after": "Add the same Remember me checkbox to the owner login, if /portal/login is kept.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-28": {
+  "title": "New-order page is called three different things",
+  "before": "The Orders button says New Order, the browser tab says New Order, the page heading says Order Parts and the save button says Add Order.",
+  "after": "Heading New Order, save button Save Order.",
+  "group": "Winds Aloft: daily work",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-31": {
+  "title": "Scanning as on Adjust Stock Count, plus browser alert",
+  "before": "The Adjust Stock Count form asks for Scanning as even though nothing is scanned, and if left blank a browser alert box pops up saying Select who's making this adjustment.",
+  "after": "Label it Counted by, show the red inline error under the dropdown as Scan does, and pre-select the logged-in user like Scan does.",
+  "group": "Winds Aloft: daily work",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-38": {
+  "title": "My Account: three back controls, duplicate program list",
+  "before": "The My Account header has Back, the page starts with Back to Maintenance, the form ends with Cancel. The header's program buttons are repeated in the first card.",
+  "after": "Keep the header Back and the bottom Cancel, drop Back to Maintenance, and keep the program list in only one of the two places.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-17": {
+  "title": "Worker and Laborer used for the same person",
+  "before": "The Manage menu says Workers and Print Worker Badges, but the button says New Laborer, the form Edit Laborer, the code page Laborer Code, the dashboard column Laborer.",
+  "after": "Use Worker everywhere a person sees it: New Worker, Edit Worker, Worker badge, Worker Joe added, Hours by Worker. Database and URL names can stay.",
+  "group": "Winds Aloft: daily work",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-25": {
+  "title": "Accounts list on phone: nine columns, passwords visible",
+  "before": "The Accounts table has nine columns and scrolls sideways on a phone with Edit off-screen. The Password column prints everyone's password in clear; inactive accounts look like active ones.",
+  "after": "On phones stack each account as a card with Edit beside the name, show passwords only on the Edit page behind Show, and dim or group inactive accounts.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-8": {
+  "title": "Two pages called My Account for a student",
+  "before": "A student's nav tab My Account shows their balance. Their account menu says My Settings and opens the shared account page, whose title says My Account.",
+  "after": "Rename the tab My Balance with a wallet icon. The menu item says My Account for everyone.",
+  "group": "Seams between programs",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-49": {
+  "title": "Student Alerts marks everything read on open",
+  "before": "Opening the Alerts tab marks every notification read at once; New badges show for that one visit only. Nothing can be kept unread or dismissed one at a time.",
+  "after": "Keep the New badge until the item is tapped or its x is pressed, like the dashboard's per-item dismiss, and add Mark all read.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-44": {
+  "title": "Exiting owner preview lands on Customers, not origin",
+  "before": "Exiting a Tech or CFI role preview returns to the page you were on. After an owner preview, Back to my view goes to Customers, even from View as someone.",
+  "after": "Remember where the preview started and return there, either the View as someone page or Customers.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-26": {
+  "title": "Orphan page asset_history.html",
+  "before": "The template asset_history.html exists but no route renders it; the plane page shows the same history. It prints costs with no role check if ever wired up.",
+  "after": "Delete the file.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-6": {
+  "title": "No Back button in My Aircraft",
+  "before": "Both My Aircraft headers (owner and admin) have no Back button. An owner opening a plane from a text link has only the browser's back control.",
+  "after": "The same Back button as every other header, falling back to the owner dashboard or the customer list.",
+  "group": "Seams between programs",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-41": {
+  "title": "Task Sign-Off and element Verify Complete are parallel systems",
+  "before": "A CFI can Sign Off a task, but progress bars come only from per-element Verify Complete. A signed-off task can show 0% and a 100% task Not yet signed off.",
+  "after": "Make task sign-off mark every element of that task verified for that student and show the note on the task; keep per-element verify for partial progress.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Confusing",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-06": {
+  "title": "Academy tabs shown to Ground School-only accounts",
+  "before": "An account with Ground School but no Academy access sees the Academy tab row. Tapping Board or Logbook says You don't have access to Flight Academy yet and bounces out.",
+  "after": "Hide Board, Logbook and How points work when the account has no Academy access, showing only Ground School and Resources, or bounce back to Ground School.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-16": {
+  "title": "No way to undo Mark Invoiced or Mark Paid",
+  "before": "Mark Invoiced fires with no confirmation and becomes Mark Paid. A mis-tap on either leaves the job Invoiced or Paid for good, with no Undo and nothing saying who.",
+  "after": "Add an admin-only Undo link next to the Paid or Invoiced badge that steps back one state, show by Frank in the hover text, and confirm Mark Invoiced.",
+  "group": "Winds Aloft: daily work",
+  "type": "Missing feature",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-05": {
+  "title": "Any CFI can start another's booking, not end it",
+  "before": "Start Session is offered to every CFI for every booking. If Kate starts Bob's lesson, her Active Flight card says View only; she can't pause, fix Hobbs or end it.",
+  "after": "Pick one rule: either only the assigned instructor or admin can Start, or whoever started the flight can also pause and end it. Option two matches how lessons are covered.",
+  "group": "Fly with Kate!: flying",
+  "type": "Bug",
+  "effort": "M",
+  "decision": "edit",
+  "note": "Option two matches how lessons are covered. with a admin override if needed"
+ },
+ "JOBS-11": {
+  "title": "Discrepancy, Area, Sub-System and Task mean one thing",
+  "before": "A job's folders are Discrepancies in the list, Area / Sub-System in Assign Parts, area in rename and history, task on Labor Codes, sub areas on Logbook Starter.",
+  "after": "Use Discrepancy everywhere: Add Discrepancy, Discrepancy in Assign Parts, column Discrepancy on History and Labor, Scan a discrepancy's code, Discrepancy entries.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Inconsistent",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-36": {
+  "title": "Schedule Key explains a +N more link that's gone",
+  "before": "The Key says busy days show a +N more link, which Month view no longer does. It omits the dashed pending box, orange may-start-late outline, question mark and pause icons.",
+  "after": "Rewrite the Key with one line per marking: triangle, dashed pending box, orange outline, question and check icons, pause icon, grey Past; drop the +N more sentence.",
+  "group": "Fly with Kate!: flying",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "DESIGN-8": {
+  "title": "One form footer",
+  "before": "Some forms end with Save and Cancel side by side, some put Cancel on the right, some offer only Back to Aircraft at the top.",
+  "after": "Every form: Save then Cancel, left-aligned at the bottom; Cancel returns where you came from. Back to X lives only at the top.",
+  "group": "Design rules",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-33": {
+  "title": "Phone alerts are Fly with Kate! only, unexplained",
+  "before": "A tech with only Winds Aloft roles sees no Phone Alerts section on My Account and is missing from Admin Test Phone Alerts, which says No flight school accounts yet.",
+  "after": "Either offer phone alerts to shop staff too and call tests OpsHub test alert, or say plainly on both pages that phone alerts are for Fly with Kate! only.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Confusing",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-01": {
+  "title": "Marking a flight paid never touches the student's balance",
+  "before": "Billing's Mark Paid only flips the flight's paid flag; the student's balance is a separate ledger. After three flights are marked paid the student still shows $450.00 owed everywhere.",
+  "after": "Make one action do both: Mark Paid records a payment on the ledger, Add Funds offers to apply the money to unpaid flights, and Mark Unpaid reverses its own line.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Bug",
+  "effort": "L",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-5": {
+  "title": "Log Out behaves four ways",
+  "before": "Five menus ask Log out? in a browser box; both My Aircraft headers log out instantly. Only the main logout says Logged out. The portal logout lands on a different page.",
+  "after": "One logout route: the app's confirm dialog, always Logged out., always landing on the one login page.",
+  "group": "Seams between programs",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-16": {
+  "title": "The Inspector cannot open any Logbook page",
+  "before": "Every logbook page is admin and tech only. An inspector tapping Airframe, Engine or Prop on a plane gets You don't have access, and Logbook Starter is hidden from them.",
+  "after": "Let inspectors open the Logbook search, a plane's logbooks, an entry and its sticker, and the Logbook Starter. Keep saving to admin and tech if preferred.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-34": {
+  "title": "Notification Send Test uses saved settings, not screen",
+  "before": "Change the SMTP host, tap Send Test without saving, and the test uses the old host, so the failure misleads. The Wave page warns about this; Notifications doesn't.",
+  "after": "Add the same save first note next to the test boxes, or make the test forms submit the unsaved values.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-03": {
+  "title": "Job page offers buttons that refuse Apprentices and Inspectors",
+  "before": "An Apprentice or Inspector sees Edit, Mark Completed, Invoice, Archive, Delete, New Project and the trash icon like an admin. Each tap ends with an access error on the dashboard.",
+  "after": "Show each button only to roles that can use it, keep More with just Labor Codes and Job Sheet if empty, and keep Confirm and Send Back for Inspectors.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-11": {
+  "title": "Mark Calibrated defaults to tomorrow's date in evening",
+  "before": "The Mark Calibrated pop-up fills Calibrated on with today's date in UTC. In Eastern time, from about 8 pm the field shows tomorrow and next-due comes out a day late.",
+  "after": "Fill the field with the local date, or leave it blank and let the server use today, which it already does when empty.",
+  "group": "Winds Aloft: daily work",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-17": {
+  "title": "Acknowledge on Needs Review jumps to the Alerts page",
+  "before": "Pressing Acknowledge on the dashboard's Needs Review banner leaves the Dashboard and lands on Alerts. Every other dashboard queue button acts in place.",
+  "after": "Stay on the Dashboard: remove that row from the banner in place and show the floating message with an Open Alerts link.",
+  "group": "Fly with Kate!: flying",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-17": {
+  "title": "Phone account icon missing from Admin and My Account",
+  "before": "On a phone, Winds Aloft and Fly with Kate! show the account icon next to the hamburger. In Admin and My Account the account menu is inside the hamburger panel: two taps, different place.",
+  "after": "Same phone header everywhere (falls out of SEAM-1).",
+  "group": "Seams between programs",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-29": {
+  "title": "Reset buttons: only the big one needs RESET typed",
+  "before": "Every Reset button opens the generic Please confirm, Yes continue box. Reset Projects, Students, Planes and Balances are permanent but only Reset All Flight School Data needs RESET typed.",
+  "after": "Title each pop-up with the action, make the OK button say the verb, require typing RESET for Projects, Students, Instructors, Planes and Balances, move Squawks under Winds Aloft.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-01": {
+  "title": "Apprentice and Inspector cannot open a new job",
+  "before": "A new job's page forwards to the Intake Check, which is admin and tech only. An Apprentice or Inspector tapping the job gets You don't have access and the dashboard.",
+  "after": "Only forward to Intake Check for admins and techs. Other roles see the job page with a yellow note: Intake check not done yet.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "edit",
+  "note": "allow all to do the intake check but denote who it was done by, just require, anything done by apprecntice to be verified"
+ },
+ "FLY-14": {
+  "title": "Details popup shows the raw word balance_hold",
+  "before": "The calendar says Pending - Balance Hold but the popup's Status row prints balance_hold. Duration prints (default) instead of the 1.5 hrs the schedule assumes.",
+  "after": "Status Pending - Balance Hold (student owes more than the school's limit); Duration 1.5 hrs (default).",
+  "group": "Fly with Kate!: flying",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-23": {
+  "title": "Workers page toolbar and table don't fit a phone",
+  "before": "The Workers header holds search, Labor, Print Badges, Shop Code and New Laborer, wrapping to three lines on a phone. The table with four columns and three buttons scrolls sideways.",
+  "after": "Keep search and New Worker in the header, move Print Badges and Shop Code into a Print dropdown, drop Labor, and use the stacking table style.",
+  "group": "Winds Aloft: daily work",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-11": {
+  "title": "Admin and My Aircraft are the same plum",
+  "before": "The Admin tile, Admin header, My Aircraft tile and My Aircraft Admin header all use the same plum, so a glance cannot tell which program you are in.",
+  "after": "My Aircraft (tile, owner header, admin header) takes a distinct teal. Admin keeps plum.",
+  "group": "Seams between programs",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-06": {
+  "title": "Deleted jobs still show in a plane's Project History",
+  "before": "A job in Recently Deleted vanishes from Projects but still appears in the plane's Project History with a working link, and counts in the parts total and projects badge.",
+  "after": "Leave jobs in Recently Deleted out of the plane's Project History, its total and the list badge, as the Projects page already does.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-14": {
+  "title": "Order actions land you on the wrong tab",
+  "before": "On the Pending tab, press Received on an order and the page returns on the To order tab. Same after Cancel, package actions and edits; you re-tap Pending each time.",
+  "after": "After every order action return to the tab and By Vendor or By Part view the user was on; a brand-new order can land on Pending.",
+  "group": "Winds Aloft: daily work",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-31": {
+  "title": "Reset results do not say how much was deleted",
+  "before": "The pop-up says Permanently delete all 42 projects? but the result only says Projects cleared and project numbering reset, or Orders cleared, with no count.",
+  "after": "Say Deleted 42 projects (and their sections, labor and photos). Project numbering starts again at 001.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-29": {
+  "title": "Report an Issue vs Report a squawk",
+  "before": "The plane page card says Report an Issue, the Squawks page button says Report a squawk, and both confirmations say Issue reported. The list it lands on is Squawks.",
+  "after": "Call it a squawk everywhere: card Report a Squawk, button Report squawk, message Squawk reported - it's on the Squawks page as New.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-02": {
+  "title": "Dashboard never shows General Shop timers",
+  "before": "A worker clocked into General Shop shows in the floating N clocked in pill but not in the dashboard's Currently Clocked In card, which may say Nobody clocked in.",
+  "after": "Include timers and finished sessions with no project in both dashboard lists, showing General Shop in the project column like the floating widget does.",
+  "group": "Winds Aloft: daily work",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-17": {
+  "title": "Manuals linked for Techs but manual pages refuse them",
+  "before": "The plane page shows a Manuals card with links for everyone, but manual pages are admin only. A Tech tapping Cessna 172 IPC gets You don't have access.",
+  "after": "Let admin, tech and inspector open the Manuals list and a manual's page. Keep Upload, Edit and Delete for admins and hide those buttons for others.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "edit",
+  "note": "Let admin, tech and inspector open the Manuals list and a manual's page. Keep Upload, Edit and Delete for admins and hide those buttons for others.include apprentice too"
+ },
+ "JOBS-23": {
+  "title": "Raw timestamps on plane page and Recently Deleted",
+  "before": "The Hours card prints Updated 2026-09-30 14:22:11 by Shop - Frank, and the trash page's Deleted column prints raw timestamps with seconds, unlike dates everywhere else.",
+  "after": "Format them like other dates with time, for example Updated 30-09-2026 14:22 by Shop - Frank.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-40": {
+  "title": "Ground School shows a bare Not Found page",
+  "before": "Opening a link to a deleted rating, task or element gives the browser's plain 404 page with no header or way back, unlike other pages which redirect with a message.",
+  "after": "Flash That rating or task is no longer here and redirect to the Ground School list.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-50": {
+  "title": "Hobbs gap Mark reviewed box too small on phone",
+  "before": "Each Unaccounted Hobbs Time row squeezes a 220px note input and a button beside the text; on a phone the input wraps at half width and the button sits alone.",
+  "after": "Stack the note and button full-width under the gap text at phone width, the same pattern the alert rows use for their Resolve buttons.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-04": {
+  "title": "Tour pops up every page while viewing as someone",
+  "before": "While viewing as a new tech or student, the first-login walkthrough starts on every page. Got it cannot be saved during a view, so it returns, leaving a stray warning.",
+  "after": "Do not auto-start the walkthrough while a person-view is active. The Replay tour buttons on My Account can still start it on purpose.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-03": {
+  "title": "Admin's Add Student and Add CFI leave the program",
+  "before": "For an admin, Add Student and Add CFI open the Admin New account form, which has no rates or medical fields. After Create it lands on the Admin accounts list.",
+  "after": "Keep admins inside the program: use the in-program New Student and New CFI forms, or return to the new person's Edit page with a flash to finish rates and medical.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Dead end",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-14": {
+  "title": "Flash messages look different per program",
+  "before": "Shop and flight messages are full width with a close button; Admin and My Account centre them narrow; Academy has no close button; My Aircraft is full width.",
+  "after": "One shared flash-message include with one look.",
+  "group": "Seams between programs",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-35": {
+  "title": "Totalizar button for a page called Totalizer, no tab",
+  "before": "The button, page heading and browser title say Totalizar, the Spanish spelling. On that page the Logbook sub-tab is highlighted and there is no Totalizer tab.",
+  "after": "Call it Totals & ETA or Totalizer everywhere and add it as a fourth sub-tab next to Logbook, Progress and Map.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "edit",
+  "note": "Call it Totalizer everywhere and add it as a fourth sub-tab next to Logbook, Progress and Map."
+ },
+ "FLY-18": {
+  "title": "Adding time off doesn't warn about booked lessons",
+  "before": "A CFI adds Saturday all day vacation in My Schedule and gets Time off added. Existing Saturday bookings stay, nobody is told, and the week bar still shows them.",
+  "after": "Before saving, list overlapping bookings with choices Add time off anyway or Cancel, and flag overlapped bookings with the review triangle on the Dashboard until moved.",
+  "group": "Fly with Kate!: flying",
+  "type": "Missing feature",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-19": {
+  "title": "Stats rounds money to dollars, calls paid hours Billed",
+  "before": "Revenue Collected, Outstanding and the By Plane and By Instructor columns show $1,234 while Billing shows cents. Hours Billed really means hours on flights marked paid.",
+  "after": "Show cents everywhere money appears, and rename Hours Billed to Hours Paid with the sub-label on flights marked paid.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-18": {
+  "title": "Statistics filters need ctrl-click, which phones lack",
+  "before": "The Planes and Instructors boxes on Stats are multi-select lists saying ctrl/cmd-click to compare a few. On a phone they're fiddly, and Custom Range hides From and To.",
+  "after": "Replace the list boxes with a row of toggle chips plus an All chip, like the schedule filters, and keep the dates visible once Custom Range is chosen.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-10": {
+  "title": "Duplicate discrepancy name says added but adds nothing",
+  "before": "Type a name already on the job, such as Brakes, in Add Discrepancy and press Add. The message says Discrepancy Brakes added but the list is unchanged.",
+  "after": "Check first and say A discrepancy named Brakes is already on this job in red, the same wording Rename already uses.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-37": {
+  "title": "Landings can be logged in two unrelated places",
+  "before": "A CFI records outside landings on Edit Student for currency. The student logs Landings on the Academy board for points. Neither feeds the other, so one stays wrong.",
+  "after": "Make the Academy Landings and Night landings entries write the same manual-landing record the student profile uses, and show them on Edit Student as logged by student.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Confusing",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-45": {
+  "title": "Picker's My Account and Log Out are tiny links",
+  "before": "Signed in as Frank, My Account and Log Out are small grey text links crowded top-right beside the Choose a program heading, easy to miss or mis-tap on a phone.",
+  "after": "Put the shared account menu with the person icon top-right, same dropdown as the headers, and the Signed in as line under the heading.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-26": {
+  "title": "Flight Detail shows raw timestamps, booking not a link",
+  "before": "Flight Detail prints Started 2026-10-02 14:03:17, Ended and Logged the same way, and From Schedule: Booking #142 as plain text.",
+  "after": "Show 02-10-2026 2:03 PM style times, show Elapsed as 1 hr 38 min (1.63 hrs), and make the booking line open that day on the Schedule.",
+  "group": "Fly with Kate!: flying",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-38": {
+  "title": "Academy Log Your Flying mixes every student for staff",
+  "before": "A CFI or admin on the Academy board sees the last 25 entries of every student in one table, and the entry form's student dropdown starts at pick each time.",
+  "after": "Reuse the Academy student picker: filter the table and pre-select the form to the chosen student, keeping a whole school option.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-19": {
+  "title": "Quick Type on Edit Project erases the description",
+  "before": "On Edit Project no Quick Type shows as pressed even for an Annual. Tapping one replaces the whole Description with Annual Inspection, throwing away what was typed.",
+  "after": "On Edit, pre-press buttons whose names appear in the description, make a tap add or remove just that phrase, and hide or fix the preset discrepancies note.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-7": {
+  "title": "Four versions of the account menu",
+  "before": "Admin and Academy menus lack View as someone; Academy lacks Admin; My Account has its own; My Aircraft has none, so owners cannot change their password anywhere.",
+  "after": "Every header includes the one shared menu. Owners get a small My Account page (name, email, phone, password) from it.",
+  "group": "Seams between programs",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-15": {
+  "title": "Dashboard Stop timer has no confirmation or note",
+  "before": "The dashboard Stop button ends a worker's timer instantly with no are you sure. The floating widget asks Clock out Joe? Neither asks for the General Shop note.",
+  "after": "Use the same app-style confirmation on dashboard Stop, show a message on failure, ask for the General Shop note in that confirmation, and consider limiting Stop to Admin and Tech.",
+  "group": "Winds Aloft: daily work",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-22": {
+  "title": "Dashboard Recent Flights rows can't be opened",
+  "before": "Flight History and Billing open a flight when tapped, but the dashboard's Recent Flights rows are plain text. To fix a Hobbs typo you go to Flight History and search.",
+  "after": "Make each row open that flight's detail page like Flight History, with a Flight History link at the bottom like the Full Calendar one.",
+  "group": "Fly with Kate!: flying",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-07": {
+  "title": "Parts cost shown to roles that shouldn't see costs",
+  "before": "Every tile on Projects prints Parts cost so far for everyone, and the plane page header prints the all-years parts total, while costs are hidden from Techs everywhere else.",
+  "after": "Hide both figures unless the viewer is an admin, matching the rest of the app.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-12": {
+  "title": "Program shortcuts are one-way and differ by role",
+  "before": "A shop admin gets a Fly with Kate! button in the Winds Aloft nav but no way back. The Admin header has Maintenance and Flight School buttons. Nobody else gets any shortcut.",
+  "after": "The Programs button opens a short dropdown listing every program this account can open, plus All programs. Same control in every header; the one-off links go.",
+  "group": "Seams between programs",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-29": {
+  "title": "All/Mine reloads the page; Personal/School swaps in place",
+  "before": "Personal and School on the Next Lesson card update in place. All and Mine right below reload the whole Dashboard and scroll to the top.",
+  "after": "Make All and Mine update in place the same way, using the same fetch as the live refresh.",
+  "group": "Fly with Kate!: flying",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-36": {
+  "title": "Logged-out Academy visitors told to ask an admin",
+  "before": "Opening an Academy logbook link after the session expired shows You don't have access to Flight Academy yet. Ask an admin on the login screen.",
+  "after": "When nobody is signed in, go to the login page with the normal please sign in message and return to the logbook link after login.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-12": {
+  "title": "Ticking a discrepancy box submits instantly, no message",
+  "before": "Tapping the checkbox beside a discrepancy immediately marks it ready for confirmation and reloads with no message. Plane to-dos and squawks ask first; on a phone it's easy to brush.",
+  "after": "Use the to-do confirmation, Mark Brakes ready for confirmation? An Inspector or admin will still need to confirm it, then show the green message; unticking says Back to open.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-42": {
+  "title": "Undo and reopen actions on to-dos are silent",
+  "before": "Undo under Awaiting Confirmation on My Tasks, and Mark not done on a completed plane to-do, reload with no message and no prompt, unlike every other to-do action.",
+  "after": "Add the same prompt, Reopen this to-do?, and a message, Back to not done yet.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-22": {
+  "title": "Completed by does not default to the logged-in person",
+  "before": "The maintenance item's Completed by dropdown starts on Select, or whoever the phone last used, so on a shared tablet it's easy to sign off under someone else's name.",
+  "after": "Pre-select the logged-in user's name, still changeable, exactly like the Assign Parts pop-up does.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "edit",
+  "note": "Pre-select the logged-in user's name, still changeable, exactly like the Assign Parts pop-up does. except when on the shop log in, then default to the last user input manually on that account"
+ },
+ "SHOP-39": {
+  "title": "Low Stock Scan In opens a blank scanner",
+  "before": "Scan In next to a low-stock part on the dashboard just opens the Scan page; you still have to find and scan the part. The name suggests more.",
+  "after": "Open Scan with that part already looked up so the Stock IN and quantity panel is ready, or rename the button Scan.",
+  "group": "Winds Aloft: daily work",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-25": {
+  "title": "Two deleted views on Projects; Restore lands elsewhere",
+  "before": "The Deleted pill shows deleted jobs as tiles with Restore; the unlabelled trash icon opens Recently Deleted. Restore from the pill lands you on Recently Deleted, not back on Projects.",
+  "after": "Keep the Deleted pill, make its Restore return there with a message and add a Recently Deleted link; or drop the pill and label the trash icon.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "DESIGN-5": {
+  "title": "Stack the remaining tables on phones",
+  "before": "Thirty-one pages (Activity, Workers, Customers, Squawks, Trash, Accounts, Parts, Part detail, Aircraft detail, Flight stats and more) still show a wide table that scrolls sideways on a phone.",
+  "after": "Apply the existing card-stacking treatment to all of them. Genuinely wide stats tables get a scroll box with a swipe hint.",
+  "group": "Design rules",
+  "type": "Polish",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-27": {
+  "title": "New Project button on the Orders page",
+  "before": "The Orders header has New Project next to New Order. New Project has nothing to do with ordering, and the New Order form already offers New project inside its picker.",
+  "after": "Remove New Project from the Orders header.",
+  "group": "Winds Aloft: daily work",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "DESIGN-3": {
+  "title": "Finish moving confirmations to the app dialog",
+  "before": "Twelve actions still pop the browser's plain grey box: Log Out in four headers, Ground School deletes, time-off removal, an Academy entry. Everything else uses the app's styled dialog.",
+  "after": "All twelve use the app dialog. Deletes use the red style and say what will be lost.",
+  "group": "Design rules",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-3": {
+  "title": "One set of program names",
+  "before": "Winds Aloft is called Maintenance, Shop Inventory and Shop on Admin, My Account, the tour and error messages. Fly with Kate! is called Flight School in the same places.",
+  "after": "Everywhere a person reads a program name it says Winds Aloft or Fly with Kate!. Generic words survive only as tile subtitles.",
+  "group": "Seams between programs",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-10": {
+  "title": "Flight Academy has two homes and two headers",
+  "before": "The Academy tile opens a navy header with its own Home link. The Academy and Ground School tabs inside Fly with Kate! open the same pages, so the blue header is swapped mid-click and Back goes to the Academy board.",
+  "after": "Academy and Ground School pages render under the Fly with Kate! header with the Academy tab row beneath it. The picker tile stays as a shortcut. The navy header goes away.",
+  "group": "Seams between programs",
+  "type": "Confusing",
+  "effort": "M",
+  "decision": "edit",
+  "note": "not sure i know what you mean. the academy/groundschool/logbook/ is a opt in service so want seperate from flight school. leaderboard will be available to all probably to ensourage competition which means moee buisness"
+ },
+ "SCHOOL-42": {
+  "title": "Students list mixes active and inactive, no filter",
+  "before": "Students (14) counts inactive and station accounts; inactive rows sit grey at the bottom with no way to hide them, and the only filter is the name search.",
+  "after": "Add Active and All toggle buttons like Billing's Unpaid, Paid, All, default Active, and count only what is shown.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-26": {
+  "title": "Grounding a plane only possible from the 100-hour box",
+  "before": "Ground plane appears only inside the 100-Hour Inspection Due box on Alerts, and only while it shows. A plane with a flat tire cannot be grounded from Planes.",
+  "after": "Put Ground with a reason box and Return to service on each Planes row for admins, using the same confirm text, and keep the Alerts shortcuts.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Missing feature",
+  "effort": "S",
+  "decision": "edit",
+  "note": "Put Ground with a reason box and Return to service on each Planes row for admins, using the same confirm text, and keep the Alerts shortcuts. but make reason box optional"
+ },
+ "SHOP-48": {
+  "title": "Confirming a sub area from dashboard jumps to project",
+  "before": "An Inspector presses Confirm in the dashboard's Discrepancies Awaiting Confirmation box and lands on the project page. Every other dashboard action returns to the dashboard.",
+  "after": "Return to the dashboard after Confirm and Send Back, as the squawk buttons do.",
+  "group": "Winds Aloft: daily work",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-1": {
+  "title": "One header recipe for every program",
+  "before": "Seven hand-built headers. Only Winds Aloft and Fly with Kate! share Back, the grid icon, the account menu and the phone account icon.",
+  "after": "One shared header for every program. Each sets only its colour, logo, name and nav buttons; Back, Programs, hamburger and account menu come from the shared piece.",
+  "group": "Seams between programs",
+  "type": "Inconsistent",
+  "effort": "L",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-34": {
+  "title": "Manual PDF in embedded frame many phones can't scroll",
+  "before": "The manual's PDF is embedded in a 75%-height frame. On iPhones the frame often shows only the first page and cannot be scrolled.",
+  "after": "Add an Open PDF button in a new tab at the top next to Edit, and on small screens show just that button instead of the frame.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-06": {
+  "title": "Student's Private Note is hidden from approving CFI",
+  "before": "Request a Flight gives the student a box labelled Private Note. It becomes the instructor-only note, so a CFI approving an Any instructor request from Pending Approval never sees it.",
+  "after": "Label the student's box Note to the school (optional), show it in Pending Approval, in the popup while pending, and back to the student; keep the CFI's Private Note separate.",
+  "group": "Fly with Kate!: flying",
+  "type": "Confusing",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-28": {
+  "title": "Weather cancellation always claims 3 new times were sent",
+  "before": "After cancelling, the green message says 3 students sent 3 new times even when a student's plane or instructor are only free once or never in the next two weeks.",
+  "after": "Count what was offered: 3 students texted (2 with new times to pick, 1 with none open - follow up).",
+  "group": "Fly with Kate!: flying",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-21": {
+  "title": "Close-out pop-up ignores found items awaiting owner",
+  "before": "The Close out this job pop-up lists open discrepancies, squawks, logbook, bill and timers, but nothing about found items the owner hasn't answered, so a $900 quote can hang.",
+  "after": "Add an amber line 2 found items still waiting on the owner with an Open it link, and a green All found items answered when none wait.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Missing feature",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-24": {
+  "title": "Activity Log loads everything and doesn't stack",
+  "before": "The Activity Log loads every transaction ever in one 10-column table. On a phone it scrolls sideways, and on the Pi it gets slower every month since nothing is paged.",
+  "after": "Show the newest 200 with a Show more button, keep search on the server across everything, and stack columns on phones with When and Part first.",
+  "group": "Winds Aloft: daily work",
+  "type": "Polish",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-39": {
+  "title": "Through date silently becomes a week when blank",
+  "before": "Leave Through blank and the job is saved as a 7-day block, so a one-day oil change shows as a week on the calendar and in the owner's portal.",
+  "after": "Default Through to the same day as the start, or ask once on New Project with two chips: One day or About a week.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "edit",
+  "note": "default to oil changes 1 day, annuals one week, make it so in the templates section you can input the default time block for each task added there"
+ },
+ "JOBS-32": {
+  "title": "Removing a customer is permanent; prompt doesn't say so",
+  "before": "The trash prompt says Remove this customer account? They'll no longer be able to log in, which reads like deactivation, but the account and plane links are deleted outright.",
+  "after": "Reword to Delete this customer account for good? To just stop them logging in, untick Active instead, and make the Delete button red.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-07": {
+  "title": "Solo student ending a flight is asked for payment",
+  "before": "After a solo student presses End Session, the form asks Payment Paid or Unpaid, Amount Collected, How Paid, Use Credit, and Email a receipt to the student.",
+  "after": "When the student ends their own flight, hide the payment block, always log Unpaid for the school to settle on Billing, and reword the switch to Email me a receipt.",
+  "group": "Fly with Kate!: flying",
+  "type": "Bug",
+  "effort": "M",
+  "decision": "edit",
+  "note": "When the student ends their own flight, hide the payment block, always log Unpaid for the school to settle on Billing, and reword the switch to Email me a receipt. i agree, just a thought and i dont know of wave allows this but auto draft the card on file so the invpice is forwarded to the user(s) in charge of billing for review"
+ },
+ "SCHOOL-09": {
+  "title": "Student Alerts shows every report filed by anyone",
+  "before": "A student's Alerts tab lists all open and resolved reports from every student and CFI, including Concerning Issue and Suggestion items filed by other people, with names.",
+  "after": "On the student's Alerts tab show only reports that student filed with their status, and keep the school-wide list on the CFI and admin Alerts page.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "edit",
+  "note": "On the student's Alerts tab show only reports that student filed with their status, and keep the school-wide list on the CFI and admin Alerts page. yes but dont show students the status"
+ },
+ "HUB-12": {
+  "title": "Job Costs shows a total only, no breakdown",
+  "before": "Each job in the Job Costs box shows name, a dollar total, status and write-ups. Parts and labor are worked out behind the scenes but never displayed to the owner.",
+  "after": "Make each job row expandable with Details listing parts by section (name, qty, price) and labor (who, hours, amount), with the total and thousands separators.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Missing feature",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-13": {
+  "title": "Duplicate Task Template area says Added but adds nothing",
+  "before": "Type an area that already exists under a Quick Type, such as Brakes twice, and press Add. The green message says Added Brakes to Annual but the list doesn't change.",
+  "after": "Say Brakes is already on Annual in red instead.",
+  "group": "Winds Aloft: daily work",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-39": {
+  "title": "Approve or Deny from calendar throws CFI to Dashboard",
+  "before": "Opening a pending request on the Month view and pressing Approve or Send to Student lands on the Dashboard. The same actions on the Dashboard card act in place.",
+  "after": "After Approve or Deny from the calendar, return to the same calendar view and day with the approved booking spotlighted green.",
+  "group": "Fly with Kate!: flying",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-23": {
+  "title": "CFI Pay is all-time only with no paid-out record",
+  "before": "CFI Pay totals every dual flight into Total Owed, with no date range and no way to mark a period paid. A CFI with no rate sees Total Owed $0.00.",
+  "after": "Add This Week, This Month and Custom ranges, an admin Mark period paid that moves flights to a Paid section, and show No pay rate set when blank.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Missing feature",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-47": {
+  "title": "Unused Labor page template still in the code",
+  "before": "templates/labor.html, the old 420-line two-step labor scanner, is never shown but still sits next to live pages with old wording like Discrepancy and Laborer.",
+  "after": "Delete the file.",
+  "group": "Winds Aloft: daily work",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-04": {
+  "title": "Students never told when school cancels or moves booking",
+  "before": "When a CFI cancels a confirmed lesson, reschedules it, or edits its date, time, plane or instructor, nothing is sent. The lesson just disappears or moves on the calendar.",
+  "after": "On a staff cancel, reschedule or edit that changes date, time, plane or instructor, send the student an Alerts banner and push naming the change and who made it.",
+  "group": "Fly with Kate!: flying",
+  "type": "Missing feature",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-20": {
+  "title": "Schedule toolbar on a phone has eleven buttons",
+  "before": "On a phone the Schedule toolbar stacks six view buttons, two dropdowns, Schedule Flight, Availability, Waitlist, solid red Weather cancellation and Flight Finder. Red reads as the main action.",
+  "after": "Keep Schedule Flight and Availability visible, fold Waitlist, Weather cancellation and Flight Finder into a More dropdown with outlined red, and hide Year and Range on phones.",
+  "group": "Fly with Kate!: flying",
+  "type": "Polish",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-39": {
+  "title": "My Account has internal notes and awkward wording",
+  "before": "Reminders says Which of the above, sent for whichever categories are checked below. Phone Alerts includes a planning note about future email delivery. Tour buttons say Shop Inventory Tour.",
+  "after": "Say Choose how you want reminders (email, text) and which reminders you want, drop the planning sentence, rename the buttons Winds Aloft walkthrough and Fly with Kate! walkthrough.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-37": {
+  "title": "Three Invoice buttons on Billing",
+  "before": "Each Billing row can show Invoice in Wave (real invoice), Mark Invoiced (flips status) and a green Invoice (downloads a CSV). Only the hover text explains the green one.",
+  "after": "Rename the green button Download CSV and keep Mark Invoiced and Invoice in Wave as they are.",
+  "group": "Winds Aloft: daily work",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-13": {
+  "title": "Home-screen icon depends on where you installed from",
+  "before": "Installing from the picker or a flight page gives a Fly with Kate icon; from a shop page Winds Aloft; from Admin, Academy, My Account or My Aircraft a generic browser tab.",
+  "after": "Every page declares an app identity: Winds Aloft on shop pages, Fly with Kate! on flight and Academy pages, a neutral OpsHub icon on the rest.",
+  "group": "Seams between programs",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "edit",
+  "note": "Every page declares an app identity: Winds Aloft on shop pages, Fly with Kate! on flight and Academy pages. never a neutral OpsHub icon on the rest."
+ },
+ "FLY-13": {
+  "title": "Log a Flight has five different names",
+  "before": "The Dashboard tile says Log a Flight; the page is headed Log a Completed Session with switch Already flown? and button Session Complete. Help text says Session Already Complete?",
+  "after": "One name everywhere: tile Log a Past Flight, switch Log a past flight instead of booking, heading Log a Past Flight, button Log Flight; update empty-state, error and tour.",
+  "group": "Fly with Kate!: flying",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "edit",
+  "note": "One name everywhere: use session in stead of flight"
+ },
+ "HUB-36": {
+  "title": "Payroll Mark paid does not name the person",
+  "before": "Mark paid saves instantly and says Marked paid: $123.45 with no name. Undo asks Mark Sam as NOT paid for this week? Shop names are plain text; CFI names link.",
+  "after": "Say Marked Sam paid $123.45 for the week of 29-09-2026, link shop worker names to their Labor Pay page, and make the two messages match in detail.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-08": {
+  "title": "Ground School has three different pick-a-student controls",
+  "before": "Ratings list's Student dropdown has no blank option, so one looks selected but nothing shows. The task page has two more pickers, the element page a third; links reset them.",
+  "after": "One student picker at the top of every Ground School page with a Choose a student blank option, remembered in the session and carried on every link and redirect.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Confusing",
+  "effort": "M",
+  "decision": "edit",
+  "note": "students shouldnt have to pick their name. just default to their own. no reason to switch"
+ },
+ "SCHOOL-15": {
+  "title": "New Student and CFI forms wipe typing on error",
+  "before": "Submit New Student with a taken username or missing email and the page returns with red message but every field blank: name, password, rates, medical. New CFI does the same.",
+  "after": "Re-render the form with what was typed, as the Admin New account form does for name and username, and mark the offending field.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-13": {
+  "title": "Raw timestamps on the owner's plane page",
+  "before": "The Log Current Hours box prints Hobbs updated 2026-09-30 14:22:11 by Owner - Frank. Everywhere else dates show as DD-MM-YYYY with HH:MM.",
+  "after": "Show Hobbs updated 30-09-2026 14:22 by Frank in the app's normal date format, and drop the Owner prefix when the viewer is that owner.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-27": {
+  "title": "A compression check cannot be corrected or removed",
+  "before": "Mis-type a cylinder reading or date in Log Check and it stays in the Compression history and chart forever; there is no edit or delete.",
+  "after": "Add a small pencil and X on each history row for admin and tech that opens the form prefilled, or at least an admin-only Delete with a prompt.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Missing feature",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-44": {
+  "title": "Students page bounces a master admin without CFI role",
+  "before": "The header shows Students and Manage to every master admin, but Students, Planes and My Schedule need a CFI profile, so they say Log in as a CFI and bounce.",
+  "after": "Let master admins through those pages as Alerts already does, and hide My CFI Profile, My Schedule and My Pay when the admin has no instructor profile.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-25": {
+  "title": "Planes page hides Down for maintenance from plain CFIs",
+  "before": "The Down for maintenance badge lives in the 100-hr (staff) column only admins and staff see. A CFI sees a grounded plane as a normal row until a booking fails.",
+  "after": "Show a Down for maintenance badge next to the tail number for everyone, keeping the 100-hr hours-left number staff only.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "edit",
+  "note": "Show a Down for maintenance badge next to the tail number for everyone, keeping the 100-hr hours-left number staff only. ok just make sure students cant see and admins inly for hours left"
+ },
+ "HUB-32": {
+  "title": "Login Attempts shows UTC timestamps",
+  "before": "Locked right now shows until 2026-10-02T14:03:00Z UTC and a Time (UTC) column, while every other page shows local DD-MM-YYYY HH:MM. Unlock just says Unlocked.",
+  "after": "Show local time in the app's format, for example until 02-10-2026 10:03, and say Unlocked frank - they can log in again now.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-48": {
+  "title": "Pay preference lives in two spots, new vs existing",
+  "before": "On New Student, How They Usually Pay sits in the main form; on Edit Student it moves into the Account card for billing users only, so CFIs can't change it.",
+  "after": "Keep it in one place for both, the main form near the rates, visible to whoever may set it.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-38": {
+  "title": "My Schedule time off skips the login-expiry check",
+  "before": "Add and delete time off in My Schedule only check for a CFI id in the session, so a deactivated instructor with an old session can keep changing time off.",
+  "after": "Put the same standard login check on these two actions as on every other page.",
+  "group": "Fly with Kate!: flying",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-13": {
+  "title": "A tech can quietly undo an inspector's sign-off",
+  "before": "After an inspector confirms a discrepancy, its checkbox is still live for any tech. Unticking wipes the confirmation and reopens the linked squawk with no prompt and no message.",
+  "after": "Once confirmed, disable or hide the checkbox for techs; let only an admin or inspector reopen it, with a prompt and a reopened by note.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-18": {
+  "title": "Print Code and Labor Codes pages lack Back",
+  "before": "Discrepancy Code and Job Sheet have a Back to Project button; Print Code and Labor Codes do not. After printing you use browser back or find the job again.",
+  "after": "Add the same Back to Project button next to Print on both pages.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-29": {
+  "title": "Retired parts can still be ordered",
+  "before": "The Existing part dropdown on New Order and the To order dropdown list every part including retired ones, so a retired part can be re-ordered and received while hidden.",
+  "after": "Leave retired parts out of both dropdowns, or label them retired and un-retire on receive.",
+  "group": "Winds Aloft: daily work",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SEAM-18": {
+  "title": "My Aircraft pages skip the shared stylesheet",
+  "before": "The owner portal and the customer admin pages do not load the app's shared stylesheet, so none of the phone fixes made elsewhere apply there.",
+  "after": "Load the shared stylesheet on those pages.",
+  "group": "Seams between programs",
+  "type": "Bug",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-43": {
+  "title": "Starting password shown in clear and kept readable",
+  "before": "Starting Password and Reset Password on the student and CFI forms are plain text fields, and the typed password is stored readable so an admin can read it back later.",
+  "after": "Mask the field with a show toggle, and generate a one-time starting password with a Copy button instead of keeping it readable.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ }
+}
