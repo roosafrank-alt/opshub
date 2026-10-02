@@ -7404,7 +7404,8 @@ def log_new():
     students = conn.execute("SELECT * FROM students WHERE active = 1 ORDER BY name").fetchall()
     cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
-                        today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session["cfi_id"])
+                        today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session["cfi_id"],
+                        return_to=_form_return_to())
     if request.method == "POST":
         error = _save_logged_flight(conn, request.form)
         if error:
@@ -7481,7 +7482,8 @@ def log_edit(flight_id):
     students = conn.execute("SELECT * FROM students WHERE active = 1 OR id = ? ORDER BY name", (f["student_id"],)).fetchall()
     cfis = conn.execute("SELECT * FROM cfis WHERE active = 1 AND is_station = 0 OR id = ? ORDER BY name", (f["cfi_id"],)).fetchall()
     form_kwargs = dict(planes=planes, students=students, cfis=cfis,
-                        today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session.get("cfi_id"))
+                        today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session.get("cfi_id"),
+                        return_to=_form_return_to(), edit_paid=bool(f["paid"]))
 
     if request.method == "POST":
         student_id = request.form.get("student_id") or None
@@ -7540,7 +7542,9 @@ def log_edit(flight_id):
         # stay plain notes instead of a New Squawk (a simulator still goes
         # to Squawks) - see _save_logged_flight for the same rule.
         squawk = 1 if notes and not is_own_plane else 0
-        paid = 1 if request.form.get("paid") else 0
+        # FLY-10: payments aren't taken on this form (Mark Paid / Billing record
+        # them), so the paid flag stays exactly as it was.
+        paid = f["paid"]
 
         if not asset_id or not student_id:
             flash("Select a plane and a student.", "danger")
