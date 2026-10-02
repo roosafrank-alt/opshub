@@ -210,11 +210,12 @@ class PaymentTest(FlyBase):
         self.assertEqual((f["paid"], f["payment_method"], f["payment_amount"]), (1, "Cash", 50.0))
         led = self.q("SELECT * FROM student_ledger WHERE entry_type = 'payment' AND flight_id = ?", (fid,))
         self.assertEqual([r["amount"] for r in led], [50.0])
-        self.assertEqual(self.q1("SELECT balance FROM students WHERE id = ?", (self.student,))["balance"], 50.0)
+        self.assertEqual(self.q1("SELECT balance FROM students WHERE id = ?", (self.student,))["balance"], -50.0)   # $100 flight charge - $50 paid
         c.post(f"/flight/log/{fid}/toggle_paid")
         self.assertEqual(self.q1("SELECT paid FROM flights WHERE id = ?", (fid,))["paid"], 0)
-        self.assertEqual(self.q("SELECT id FROM student_ledger WHERE entry_type = 'payment'"), [])
-        self.assertEqual(self.q1("SELECT balance FROM students WHERE id = ?", (self.student,))["balance"], 0)
+        net = self.q1("SELECT COALESCE(SUM(amount), 0) AS n FROM student_ledger WHERE entry_type IN ('payment', 'payment_reversal') AND flight_id = ?", (fid,))["n"]
+        self.assertEqual(net, 0)   # the reversal line cancels the payment but history is kept
+        self.assertEqual(self.q1("SELECT balance FROM students WHERE id = ?", (self.student,))["balance"], -100.0)   # only the payment is taken back; the charge stays
 
     def test_mark_paid_defaults_to_the_flight_total(self):  # FLY-11
         self.exec("UPDATE students SET plane_rate_override = 100 WHERE id = ?", (self.student,))
