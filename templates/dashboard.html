@@ -13,7 +13,7 @@
 <div class="alert alert-danger border-danger border-2 mb-3">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="alert-heading mb-0"><i class="bi bi-thermometer-high"></i> {{ system_alerts|length }} Pi Health Alert{{ 's' if system_alerts|length != 1 }}</h5>
-    <a href="{{ url_for('admin_system') }}" class="btn btn-outline-danger btn-sm fw-bold">System Page</a>
+    {% if session.get('is_master_admin') %}<a href="{{ url_for('admin_system') }}" class="btn btn-outline-danger btn-sm fw-bold">System Page</a>{% endif %}
   </div>
   {% for a in system_alerts %}
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
@@ -54,11 +54,12 @@
       <div class="small text-muted">Marked ready by {{ s.confirm_requested_by or 'someone' }}, {{ s.confirm_requested_at|usdate(true) }}</div>
     </div>
     <div class="d-flex gap-2 flex-shrink-0">
-      <form method="post" action="{{ url_for('project_section_confirm', project_id=s.project_id, section_id=s.id) }}" data-confirm="Confirm '{{ s.name }}' on {{ s.project_code }} as complete?" data-confirm-title="Confirm Complete" data-confirm-style="success">
+      <form method="post" action="{{ url_for('project_section_confirm', project_id=s.project_id, section_id=s.id) }}" data-change="SHOP-48" data-confirm="Confirm '{{ s.name }}' on {{ s.project_code }} as complete?" data-confirm-title="Confirm Complete" data-confirm-style="success">
+        <input type="hidden" name="return_to" value="dashboard">
         <button class="btn btn-info btn-sm fw-bold"><i class="bi bi-check-lg"></i> Confirm</button>
       </form>
       <form method="post" action="{{ url_for('project_section_confirm', project_id=s.project_id, section_id=s.id) }}" data-confirm="Send '{{ s.name }}' back as not yet done?" data-confirm-title="Send Back">
-        <input type="hidden" name="action" value="send_back">
+        <input type="hidden" name="action" value="send_back"><input type="hidden" name="return_to" value="dashboard">
         <button class="btn btn-outline-secondary btn-sm">Send Back</button>
       </form>
     </div>
@@ -356,7 +357,7 @@
 
 <div class="card p-3 mb-3">
   <div class="d-flex justify-content-between align-items-center">
-    <button type="button" class="dash-collapse-btn btn btn-link p-0 text-decoration-none text-reset d-flex align-items-center gap-2" data-bs-toggle="collapse" data-bs-target="#upcoming-schedule-body" aria-expanded="false" aria-controls="upcoming-schedule-body">
+    <button type="button" class="dash-collapse-btn btn btn-link p-0 text-decoration-none text-reset d-flex align-items-center gap-2" data-bs-toggle="collapse" data-bs-target="#upcoming-schedule-body" aria-expanded="false" aria-controls="upcoming-schedule-body" id="upcoming-schedule-btn" data-change="SHOP-38">
       <h5 class="mb-0 text-nowrap"><i class="bi bi-calendar3 text-primary"></i> Upcoming Schedule</h5>
       <i class="bi bi-chevron-right"></i>
     </button>
@@ -404,14 +405,14 @@
   </div>
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0" id="open-sessions-table">
-      <thead><tr><th>Laborer</th><th>Task</th><th>Elapsed</th><th></th></tr></thead>
+      <thead><tr><th>Worker</th><th>Task</th><th>Elapsed</th><th></th></tr></thead>
       <tbody>
         {% for s in open_sessions %}
         <tr data-session-id="{{ s.id }}" data-started="{{ s.started_at }}">
           <td>{{ s.laborer_name }}</td>
-          <td>{{ s.project_code or 'General Shop' }} {% if s.section %}&middot; {{ s.section }}{% endif %}</td>
+          <td{% if not s.project_id %} data-change="SHOP-02"{% endif %}>{{ s.project_code or 'General Shop' }} {% if s.section %}&middot; {{ s.section }}{% endif %}</td>
           <td class="elapsed-cell">-</td>
-          <td><button class="btn btn-sm btn-outline-danger manual-stop-btn" data-id="{{ s.id }}">Stop</button></td>
+          <td>{% if not is_limited_role %}<button class="btn btn-sm btn-outline-danger manual-stop-btn" data-id="{{ s.id }}" data-name="{{ s.laborer_name }}" data-general="{{ '1' if not s.project_id else '' }}" data-change="SHOP-15">Stop</button>{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -441,7 +442,7 @@
             <small class="text-muted d-block text-truncate"><b class="text-danger">{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</b> left &middot; reorder at {{ '%g'|format(p.reorder_point) }} {{ p.unit }}</small>
           </div>
           <div class="text-nowrap">
-            <a href="{{ url_for('scan_page') }}" class="btn btn-sm btn-outline-primary text-nowrap">Scan In</a>
+            <a href="{{ url_for('scan_page', autoscan=p.barcode) }}" class="btn btn-sm btn-outline-primary text-nowrap" data-change="SHOP-39">Scan In</a>
             {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}<a href="{{ url_for('order_new', part_id=p.id) }}" class="btn btn-sm btn-warning text-nowrap">Reorder</a>{% endif %}
           </div>
         </div>
@@ -456,7 +457,7 @@
               <td><a href="{{ url_for('part_detail', part_id=p.id) }}">{{ p.name }}</a><br><small class="text-muted">{{ p.barcode }}</small></td>
               <td>{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
               <td>{{ '%g'|format(p.reorder_point) }} {{ p.unit }}</td>
-              <td class="text-nowrap"><a href="{{ url_for('scan_page') }}" class="btn btn-sm btn-outline-primary text-nowrap">Scan In</a>
+              <td class="text-nowrap"><a href="{{ url_for('scan_page', autoscan=p.barcode) }}" class="btn btn-sm btn-outline-primary text-nowrap" data-change="SHOP-39">Scan In</a>
                 {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}<a href="{{ url_for('order_new', part_id=p.id) }}" class="btn btn-sm btn-warning text-nowrap">Reorder</a>{% endif %}</td>
             </tr>
             {% endfor %}
@@ -557,11 +558,30 @@
   document.querySelectorAll('.manual-stop-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var id = btn.getAttribute('data-id');
-      fetch('/api/labor/stop/' + id, { method: 'POST' }).then(function (r) { return r.json(); }).then(function (data) {
-        if (data.ok) removeOpenSessionRow(id);
+      window.OpsHubStopTimer(id, btn.getAttribute('data-name') || 'this worker', !!btn.getAttribute('data-general'), function () {
+        removeOpenSessionRow(id);
+        window.dispatchEvent(new Event('opshub:labor-changed'));
       });
     });
   });
+
+  // SHOP-38: Upcoming Schedule opens by default on desktop, and the choice
+  // made on this device is remembered.
+  (function () {
+    var body = document.getElementById('upcoming-schedule-body');
+    var btn = document.getElementById('upcoming-schedule-btn');
+    if (!body || !btn || !window.bootstrap) return;
+    var KEY = 'opshub-dash-upcoming-open';
+    var saved = null;
+    try { saved = localStorage.getItem(KEY); } catch (e) {}
+    var open = saved === null ? window.matchMedia('(min-width: 992px)').matches : saved === '1';
+    if (open) {
+      body.classList.add('show');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+    body.addEventListener('shown.bs.collapse', function () { try { localStorage.setItem(KEY, '1'); } catch (e) {} });
+    body.addEventListener('hidden.bs.collapse', function () { try { localStorage.setItem(KEY, '0'); } catch (e) {} });
+  })();
 
   function pad(n) { return String(n).padStart(2, '0'); }
   function tickElapsed() {
