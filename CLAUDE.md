@@ -25,6 +25,35 @@ running fine. That happened on Sep 27, 2026.
   `https+insecure://127.0.0.1:5050`. Don't change the port or switch the app to
   plain HTTP.
 
+## How code reaches the Pi
+
+Since Oct 3, 2026 the Pi installs **main** from GitHub by itself. Nothing is rsynced
+from the Mac any more, and `~/Desktop/shopinv_v10` is no longer the source of anything.
+
+- `pi-scripts/opshub-pull.sh` runs from frank's crontab every 2 minutes. When main has
+  moved it checks out that commit in `~/shopinv`, pip-installs into `vendor/` if
+  `requirements.txt` changed, runs `tools/predeploy_check.py`, restarts the `opshub`
+  service and waits for the login page on port 5050. If the check fails or the app
+  doesn't come up within a minute, it puts the previous commit back, restarts again and
+  sends Frank one ntfy alert (same topic as `pi_health.py`, from `~/.opshub-ntfy-url`).
+  A commit that failed is remembered in `~/.opshub-pull/bad-sha` and not retried until
+  main moves again.
+- So **main is production**: a push or a merged PR to main is live within 2 minutes.
+  The Idea Queue's Deploy to Pi, Roll back and Undo buttons work by pushing to main and
+  rely on this. Reviewers push only to `qa-tests`; the runner's work waits on
+  `idea-queue` until Frank presses Deploy.
+- **Never edit files in `~/shopinv` on the Pi** and never rsync into it. The puller
+  replaces tracked files with main within 2 minutes (it saves a `.diff` of the edits in
+  `~/shopinv-backups` first). `instance/`, `vendor/`, `cert.pem` and `key.pem` are
+  gitignored, so pulls never touch the database, the secret key, the error logs or the
+  certificate.
+- The script needs three things on the Pi, all set up by Frank by hand: `~/shopinv` is a
+  git checkout of main with `origin` = https://github.com/roosafrank-alt/opshub; frank
+  may run exactly `systemctl restart opshub` with sudo and no password (a one-line file
+  in `/etc/sudoers.d/`, nothing broader); and the cron line from the top of
+  `opshub-pull.sh`. The repo is public, so no token is needed to fetch.
+- Log: `~/.opshub-pull.log` on the Pi. What is live: `cd ~/shopinv && git log -1 --oneline`.
+
 ## Frank's Pi cheat sheet
 
 Frank asked for these to be kept here because he forgets them. When he asks how to
@@ -43,6 +72,13 @@ get onto the Pi or run the tests, give him these exact commands.
   It takes about 3 minutes and should end with `OK`.
 - The app lives in `~/shopinv` on the Pi (not `~/opshub`) and runs as the
   `opshub` systemd service.
+- **See what is live on the Pi** (the commit the Pi is running, which should match
+  main on GitHub within 2 minutes of a deploy):
+  `cd ~/shopinv && git log -1 --oneline`
+- **See what the puller did or why a deploy didn't land**:
+  `tail -20 ~/.opshub-pull.log`
+  A line starting `FAILED` means the Pi went back to the previous commit; press Roll
+  back or Have Claude fix it in the Idea Queue.
 
 ## Keep the Idea Queue runner copies in step
 

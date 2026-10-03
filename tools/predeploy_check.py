@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Pre-deploy sanity check for the shopinv/OpsHub staging folder.
 
-Run this against ~/Desktop/shopinv_v10 (the folder that gets rsynced to
-the Pi) right before every deploy - especially useful when more than one
-Claude session is editing that same folder independently (see the broken
+Run this on any checkout right before it is pushed to main (the Pi installs
+main from GitHub within about 2 minutes, see CLAUDE.md), and the Pi runs it
+again itself before restarting the app (pi-scripts/opshub-pull.sh). It is
+especially useful when more than one session is editing the same code
+independently (see the broken
 "Alerts" nav link from 2026-09-23: a template referenced a route that was
 never actually built, and it broke every Flight School page site-wide).
 Nothing here is specific to who made the change; it just checks that the
@@ -28,7 +30,7 @@ Catches, cheaply and in well under a second:
      crash on the Pi.
 
 Usage:
-    cd ~/Desktop/shopinv_v10   (or wherever this checkout lives)
+    cd <your checkout of the repo>
     python3 tools/predeploy_check.py
 
 Exits 0 and prints "OK" if everything checks out; exits 1 and prints every

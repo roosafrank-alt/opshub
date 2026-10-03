@@ -77,3 +77,12 @@ on the shop PC works either way.
 Everything lives in `instance/shopinv.db`. Copy that one file to back up or move your
 data to another machine.
 Pipeline test Oct 1, 2026: idea to deploy with no Allow prompts.
+
+## Deploying to the Pi
+
+The live OpsHub on the Raspberry Pi installs the `main` branch of this repo by itself,
+within about 2 minutes of every push (`pi-scripts/opshub-pull.sh`, run from cron). So
+nothing is copied to the Pi by hand: push to a branch, get it onto `main` (the Idea
+Queue's Deploy to Pi button does this), and the Pi follows. Run
+`python3 tools/predeploy_check.py` before pushing; the Pi runs it again and refuses a
+commit that fails it. Details in `CLAUDE.md`, "How code reaches the Pi".
