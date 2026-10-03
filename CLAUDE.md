@@ -72,8 +72,8 @@ uncommitted.
   morning: the Pi (`~/shopinv-backups`, 3:00 AM), the USB drive (`/mnt/backupdrive`,
   3:00 and 3:15 AM) and Backblaze B2 (offsite, 3:00 AM).
 - **Not in git or in those nightly backups:** `cert.pem` and `key.pem` (a lost Pi just
-  needs new ones), `~/.opshub-ntfy-url` and the config files in `~/pi-scripts`'s
-  neighbours. Their values belong in the Access codes doc.
+  needs new ones), `~/.opshub-ntfy-url`, `~/.opshub-uptime-url` and
+  `~/.backup-watchdog.conf`. Their values belong in the Access codes doc.
 
 ## Frank's Pi cheat sheet
 
