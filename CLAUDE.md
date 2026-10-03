@@ -59,6 +59,22 @@ from the Mac any more, and `~/Desktop/shopinv_v10` is no longer the source of an
   deleted, so it can be turned back on if the new script ever misbehaves. Don't run both:
   they would restart the app twice for every deploy.
 
+## Where backups are (nothing depends on the Mac)
+
+Since Oct 3, 2026 the Mac holds no copy that matters. `~/Desktop/shopinv_v10` is an old
+snapshot nobody updates; it can be deleted once Frank has checked it holds nothing
+uncommitted.
+
+- **Code:** GitHub (https://github.com/roosafrank-alt/opshub) holds the full history, and
+  the Pi's `~/shopinv` is a complete checkout. To restore, clone the repo.
+- **Data** (`instance/`: database, secret key, error logs) is not in git. It is backed up
+  every night in three places, and `pi-scripts/backup-watchdog.sh` checks all three each
+  morning: the Pi (`~/shopinv-backups`, 3:00 AM), the USB drive (`/mnt/backupdrive`,
+  3:00 and 3:15 AM) and Backblaze B2 (offsite, 3:00 AM).
+- **Not in git or in those nightly backups:** `cert.pem` and `key.pem` (a lost Pi just
+  needs new ones), `~/.opshub-ntfy-url`, `~/.opshub-uptime-url` and
+  `~/.backup-watchdog.conf`. Their values belong in the Access codes doc.
+
 ## Frank's Pi cheat sheet
 
 Frank asked for these to be kept here because he forgets them. When he asks how to
