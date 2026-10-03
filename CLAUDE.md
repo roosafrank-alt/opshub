@@ -53,6 +53,11 @@ from the Mac any more, and `~/Desktop/shopinv_v10` is no longer the source of an
   in `/etc/sudoers.d/`, nothing broader); and the cron line from the top of
   `opshub-pull.sh`. The repo is public, so no token is needed to fetch.
 - Log: `~/.opshub-pull.log` on the Pi. What is live: `cd ~/shopinv && git log -1 --oneline`.
+- Before Oct 3, 2026 the same job was done by `~/opshub-deploy.sh` on the Pi (its own
+  checkout in `~/opshub-git`, rsynced into `~/shopinv`, log in `~/opshub-deploy.log`, ten
+  code snapshots in `~/opshub-deploy-backups`). Its cron line is commented out, not
+  deleted, so it can be turned back on if the new script ever misbehaves. Don't run both:
+  they would restart the app twice for every deploy.
 
 ## Frank's Pi cheat sheet
 
