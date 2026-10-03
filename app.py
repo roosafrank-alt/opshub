@@ -49,8 +49,8 @@ def _load_or_create_secret_key():
     valid login for any account, including a master admin, so it can't be a
     fixed value checked into the code. Generated once (32 random bytes) and
     kept in instance/secret_key - the same place as the database, which
-    means it's excluded from every deploy rsync (--exclude=instance/) and
-    never gets pushed out or overwritten. Reusing the same key across
+    means git ignores it (.gitignore), so the Pi's pull from GitHub never
+    touches it and it never gets pushed out or overwritten. Reusing the same key across
     restarts is what keeps existing logins valid instead of signing
     everyone out every time the service restarts; a fresh Pi (or anyone
     restoring from a backup without instance/) just gets a new key and a
@@ -105,8 +105,8 @@ def _parse_qty(raw, allow_zero=False):
 # ---------------------------------------------------------------------------
 # Error log - instead of one big growing file, every unhandled exception is
 # saved as its OWN file in instance/error_logs/, named by the timestamp it
-# happened at (survives deploys since instance/ is excluded from the rsync
-# push, same as the database). Viewable from Admin -> System (admin_system_log
+# happened at (survives deploys since instance/ is gitignored, so the Pi's
+# pull from GitHub never touches it, same as the database). Viewable from Admin -> System (admin_system_log
 # below) so an error can be diagnosed and sent to Claude without needing SSH
 # access to the Pi at all. `got_request_exception` fires regardless of debug
 # mode - unlike Flask's own log_exception, which is skipped when DEBUG is on
