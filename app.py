@@ -231,8 +231,11 @@ def usdate(value, show_time=False):
     parts = date_part.split("-")
     if len(parts) != 3 or len(parts[0]) != 4:
         return value
-    y, m, d = parts
-    out = f"{d}-{m}-{y}"
+    try:
+        dt = datetime.strptime(date_part, "%Y-%m-%d")
+    except ValueError:
+        return value
+    out = f"{dt.strftime('%a')}, {dt.strftime('%b')} {dt.day}, {dt.year}"
     if show_time:
         rest = s[10:].replace("T", " ").strip()
         if rest:
@@ -241,6 +244,21 @@ def usdate(value, show_time=False):
 
 
 app.jinja_env.filters["usdate"] = usdate
+
+
+def usdate_short(value):
+    """TEMP STUB of the shared builder's helper: 'Oct 2' for tight spots."""
+    if not value:
+        return value
+    s = str(value).strip()
+    try:
+        dt = datetime.strptime(s[:10], "%Y-%m-%d")
+    except ValueError:
+        return value
+    return f"{dt.strftime('%b')} {dt.day}"
+
+
+app.jinja_env.filters["usdate_short"] = usdate_short
 
 
 def shortwhen(value):
