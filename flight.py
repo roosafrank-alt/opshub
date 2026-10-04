@@ -4705,7 +4705,7 @@ def schedule_availability():
         date_strs = [d.strftime("%Y-%m-%d") for d in week_dates]
         counts = _build_availability_counts(conn, date_strs, plane_id or None)
         today_str = today.strftime("%Y-%m-%d")
-        week_days = [{"date": ds, "date_label": _us_date_short(ds),
+        week_days = [{"date": ds, "date_label": f"{d.strftime('%a')}, {_us_date_short(ds)}",
                       "count": counts[ds], "is_today": ds == today_str}
                      for ds, d in zip(date_strs, week_dates)]
         ctx.update(week_days=week_days, week_label=f"Week of {_us_date_short(week_dates[0].strftime('%Y-%m-%d'))}",

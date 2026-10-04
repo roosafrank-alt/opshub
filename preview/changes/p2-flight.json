@@ -1,0 +1,133 @@
+[
+ {
+  "id": "FLY-27",
+  "status": "built",
+  "pages": [
+   "/flight/schedule/find"
+  ],
+  "where": "Flight Finder: every result pill (for example 9:30a - N20267S with Kate) now opens Schedule a Flight with date, time, plane and instructor filled in",
+  "see_as": "admin",
+  "detail": "The first listed plane and the first listed instructor are passed (so exactly one of each, or the first when several). A solo result passes no instructor, the form still lets the admin change plane and instructor. The form already accepted asset_id and cfi_id, only the link changed."
+ },
+ {
+  "id": "SCHOOL-24",
+  "status": "built",
+  "pages": [
+   "/flight/planes",
+   "/flight/planes/{id}/rate",
+   "/flight/planes/{id}/edit"
+  ],
+  "where": "Planes row: the Color button is now Schedule & Solo settings; the page heading is Schedule & Solo settings: N123 (was Edit Plane: N123)",
+  "see_as": "admin",
+  "detail": "Took the rename option, not the split. Routes unchanged. The saved message now says what changed: 'N123: colors updated.', 'N123: solo flights now allowed.' / 'no longer allowed.', both together, or 'N123: nothing changed.' (was always Color updated for N123). The link on the Edit Plane page is renamed to match."
+ },
+ {
+  "id": "DESIGN-1",
+  "status": "built",
+  "pages": [
+   "/flight/schedule",
+   "/flight/schedule/availability",
+   "/flight/dashboard",
+   "/flight/log/active",
+   "/flight/schedule/{id}/*",
+   "/academy/logbook/{id}"
+  ],
+  "where": "Yellow is now only for attention actions. Schedule and Availability Day/Week/Month/List/Calendar switches are grey segmented controls (active one filled grey). Request/Send Request, Send to Student, Confirm this flight, Move to now & start, Set ETA, Submit (Report an issue), Session Complete, the Active Flight note Save and the Logbook entry Save use the Fly with Kate!/Academy blue; View / End Flights and Open Active Flight moved from black to blue.",
+  "see_as": "admin",
+  "detail": "Left yellow on purpose (attention): Report an issue, +15/30/45 min late ETA, Add time off anyway, TSA Verification Complete, the early-start Start button state and the paused clock. Green (Approve, Start, Mark paid, Add Funds, Sign Off) is unchanged: it was not part of the rule. There is no Print button in the flying pages."
+ },
+ {
+  "id": "DESIGN-2",
+  "status": "built",
+  "pages": [
+   "/flight/students/new",
+   "/flight/cfis/new",
+   "/flight/planes"
+  ],
+  "where": "Add Student and Add CFI form headings and browser titles (were New Student/New CFI); Planes: Add Simulator is now the solid blue top-right button",
+  "see_as": "admin",
+  "detail": "The Students and CFIs list buttons already said Add. There is no Add Plane button (planes are linked from the aircraft profile in Winds Aloft). Schedule Flight / Request a Flight keep their verbs."
+ },
+ {
+  "id": "DESIGN-3",
+  "status": "built",
+  "pages": [
+   "/flight/cfis/schedule",
+   "/flight/groundschool",
+   "/flight/groundschool/resources",
+   "/flight/groundschool/task/{id}",
+   "/academy"
+  ],
+  "where": "The seven browser grey-box confirms are the app dialog: time off remove (two places), Ground School delete rating, delete resource, remove sign-off, remove lesson item, Academy entry",
+  "see_as": "cfi",
+  "detail": "Deletes use the red style and say what is lost. The Log Out confirms live in the shared headers (_app_header.html), not here. No confirm() remains in templates/flight or the academy templates."
+ },
+ {
+  "id": "DESIGN-4",
+  "status": "built",
+  "pages": [
+   "/flight/log",
+   "/flight/log/{id}",
+   "/flight/students/{id}/edit",
+   "/flight/groundschool/*",
+   "/academy"
+  ],
+  "where": "Delete Forever (red button, red dialog) for: Delete Flight (history and detail), Ground School resource and rating, a student's manual landing entry, an Academy entry. Remove for: time off, sign-off, lesson item (can be added again).",
+  "see_as": "admin",
+  "detail": "Flash messages now say deleted forever (flight, resource, rating, landing entry, Academy entry). Left as is: Discard session - started by mistake (Frank's FLY-09 wording) and Cancel Flight (a cancellation, not a delete). The Academy entry and manual landing are treated as permanent deletes."
+ },
+ {
+  "id": "DESIGN-5",
+  "status": "built",
+  "pages": [
+   "/flight/stats",
+   "/flight/groundschool/resources",
+   "/flight/groundschool/*",
+   "/academy",
+   "/academy/logbook"
+  ],
+  "where": "Stats By Plane and By Instructor, Ground School resources, lesson items, task sign-offs and the Academy Log Your Flying list now stack as cards on a phone. The Academy Logbook (13 columns) keeps its scroll box and gets a Swipe sideways hint on phones",
+  "see_as": "student",
+  "detail": "All other flying tables already stacked. The Availability grid is already fitted to the screen (no sideways scroll). The two-column key/value tables (Flight Detail, schedule popup) do not need it."
+ },
+ {
+  "id": "DESIGN-8",
+  "status": "built",
+  "pages": [
+   "/flight/students/new",
+   "/flight/cfis/new",
+   "/flight/planes/{id}/edit",
+   "/flight/planes/{id}/rate",
+   "/flight/planes/simulator/new",
+   "/flight/settings/school",
+   "/flight/schedule/new",
+   "/flight/log/new",
+   "/flight/cfi/me",
+   "/academy/logbook/{id}"
+  ],
+  "where": "Footers read Save then Cancel, side by side, left-aligned; Cancel goes back to the page the form was opened from (kept through a failed save). Same for the form dialogs (Mark paid, Save New Time, Send to Student, Send Request, Charge Card, Create Invoice, Upload & Parse/Index). The Logbook entry's bottom Back to logbook link is now Cancel.",
+  "see_as": "admin",
+  "detail": "New template helper form_back(default) in flight.py (blueprint context processor) reuses the existing return_to mechanism. Destructive dialogs (Cancel Flight, Deny Request) keep Never Mind then the red button. Inline one-line forms (Add landing, Add time off, waitlist, filters) are not form pages and are unchanged."
+ },
+ {
+  "id": "FLY-12",
+  "status": "built",
+  "pages": [
+   "*"
+  ],
+  "where": "Every date on the flying and Academy pages: Thu, Oct 2, 2026; Oct 2 on phone rows, the Today/weekday headers and Stats chart bars; flash, push and receipt text; raw 2026-10-02 14:03 timestamps (student hold notes, balance history, change history) are now date plus 12-hour time",
+  "see_as": "admin",
+  "detail": "flight.py _us_date now returns the same format as usdate and there is a new _us_date_short; Week-of, finder day cards, Availability week cards, the early-start and not-yet messages, booking-confirm push, recurring-booking message and the waitlist offer text use them. Settles SCHOOL-17 (Stats bars: Oct 2) and FLY-26 (Flight Detail times). NEEDS THE SHARED BUILDER'S usdate and a usdate_short filter: this branch carries a temporary stub in app.py (first commit) to be dropped when merging. Also: usdate(show_time=True) prints 24-hour HH:MM; if the shared builder wants 12-hour there, the pages that call usdate(true) follow automatically."
+ },
+ {
+  "id": "SEAM-15",
+  "status": "built",
+  "pages": [
+   "/flight/*",
+   "/academy/*"
+  ],
+  "where": "Browser tab titles: Page name \u00b7 Fly with Kate! for every flying page, Page name \u00b7 Flight Academy for the Leaderboard, Logbook, Progress, Airport Map, Totalizer, Ground School and Resources. The old - OpsHub suffix is gone.",
+  "see_as": "admin",
+  "detail": "Statistics is now Stats (tab title and page heading). The Academy Totalizer was already spelled correctly. Two Dashboards: this one is Dashboard \u00b7 Fly with Kate! (the shop one is the shop builder's). The Flight Detail title also used to swallow the Mark paid dialog inside the <title>: the dialog is now included in the page body."
+ }
+]
