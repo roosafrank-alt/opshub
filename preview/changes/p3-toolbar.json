@@ -1,0 +1,36 @@
+[
+ {
+  "id": "DESIGN-9",
+  "status": "built",
+  "pages": [
+   "/parts",
+   "/projects",
+   "/assets",
+   "/orders",
+   "/laborers",
+   "/shop/tools",
+   "/manage/task-templates",
+   "/manuals",
+   "/squawks",
+   "/customers",
+   "/admin/users",
+   "/flight/students",
+   "/flight/cfis",
+   "/flight/planes",
+   "/activity",
+   "/labels",
+   "/parts/expiring",
+   "/projects/parts-used",
+   "/logbook",
+   "/trash",
+   "/parts/{id}",
+   "/parts/{id}/expiration",
+   "/forgot-password",
+   "/reset-password/{token}",
+   "/flight/groundschool/element/{id}"
+  ],
+  "where": "ONE shared toolbar (templates/_list_toolbar.html, CSS block .list-toolbar in style.css, pink outline on the whole bar): title with count on the left, search in the middle, extra filters/buttons, the Add button on the right in the program's accent colour; on a phone it stacks (title, full-width search, then the buttons with Add last). GOT THE TOOLBAR - Winds Aloft: Parts, Projects, Aircraft, Orders, Workers, Calibrated Tools, Task Templates (title only, nothing to add), Manuals, Squawks (title + Report squawk), Parts by Expiration Date, Parts Used on Projects, Print Labels, Activity Log, Logbook, Recently Deleted. Customers (Winds Aloft staff). Admin: Manage Accounts. Fly with Kate!: Students, CFIs, Planes. Page titles: every page title is one h4. The h5 page titles that were left are now h4 (marked): Forgot your password, Choose a new password / link expired, part detail name, New stock received (expiration), Ground School element. LEFT ALONE ON PURPOSE - Flight History (separate phone and desktop headers with their own search boxes and filter chips, driven by one filter script and pinned by its own phone test), Schedule / Calendar / Availability / Scan (calendar and tool screens, not lists), Shop Dashboard, Fly dashboard and Academy pages incl. the leaderboard (dashboards with their own tab headers), Billing, Payroll, Stats and the Admin system / log / login-attempts pages (reports with a Back link, not lists), Waitlist and Alerts (forms plus a list), project / aircraft / customer detail pages (already one h4). h5 stays only for card and section headings (alerts on the dashboards, cards on detail pages, project and aircraft tiles) - not touched.",
+  "see_as": "admin",
+  "detail": "Slots: title (optional count), search, extra (filters/buttons) and add. Every search box keeps its id and script (parts-live-search, orders-search, users-search, students-search, cfis-search, planes-search, activity-filter, labels-search, pu-search); the 'q' search forms (Parts, Projects, Aircraft, Workers) still submit as before. The old ux-phone-list-toolbars CSS (.list-toolbar-search with order-md-* utilities) was replaced by the new block. Small choices: the Calibrated Tools sub-line moved from inside the title to a small grey line under the toolbar; Orders' By Vendor/By Part and Export moved up into the toolbar; Students' Active/All switch sits between search and Add. The brief guessed about 41 pages still had an h5 page title; phase 1 and 2 had already changed most, so 5 remained and were scripted with a diff review. Needed from the chrome area: none (style.css block added by this part)."
+ }
+]

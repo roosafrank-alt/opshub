@@ -489,25 +489,35 @@ body { background: #f4f5f7; }
   .squawk-step-pills .badge { font-size: .62rem; padding: .17rem .26rem; }
 }
 
-/* QA fix ux-phone-list-toolbars: on the Parts/Projects/Orders list pages,
-   the toolbar's search box (a lone input or a small `<form>`) needs to
-   drop to its own full-width line below the title/buttons on phones, but
-   sit back at its normal inline size next to those buttons on desktop.
-   Bootstrap's utilities don't include a responsive width toggle, so this
-   is the one small rule for it - pair it with `order-md-*` on the other
-   toolbar items to restore their exact original left-to-right order once
-   this box goes back to being just another inline item at md+. */
-.list-toolbar-search {
-  flex: 1 1 100%;
+/* DESIGN-9: the one shared list-page toolbar (templates/_list_toolbar.html).
+   Desktop: title on the left, the search box in the middle (it takes the
+   spare room), extra filters/buttons, and the Add button on the right.
+   Phone: it stacks - the title on its own row, the search full width under
+   it, then the buttons (Add last, stretching to fill the row). Search text
+   stays 16px so iPhones do not zoom in when it is tapped. */
+.list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: 1rem;
 }
+.list-toolbar-title { flex: 1 1 100%; min-width: 0; }
+.list-toolbar-search { flex: 1 1 100%; min-width: 0; }
+.list-toolbar-search form { display: flex; gap: .25rem; width: 100%; margin: 0; }
+.list-toolbar-search .form-control { width: 100%; min-width: 0; font-size: 16px; }
+.list-toolbar-actions { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.list-toolbar-extra { display: contents; }
+.list-toolbar-add { display: contents; }
+.list-toolbar-add > .btn { flex: 1 1 auto; white-space: nowrap; }
 @media (min-width: 768px) {
-  .list-toolbar-search {
-    flex: 0 1 auto;
-  }
-}
-.list-toolbar-search,
-.list-toolbar-search input {
-  font-size: 16px;
+  .list-toolbar-title { flex: 1 1 0; }
+  .list-toolbar-search { flex: 0 1 28rem; }
+  .list-toolbar-search .form-control { font-size: inherit; }
+  .list-toolbar-actions { flex: 1 1 0; justify-content: flex-end; }
+  .list-toolbar-add > .btn { flex: 0 0 auto; }
+  /* only a title and buttons (no search): the title still takes the left */
+  .list-toolbar-title:has(+ .list-toolbar-actions) { flex: 1 1 auto; }
 }
 
 /* Idea "View": above the hamburger breakpoint every header tile keeps one

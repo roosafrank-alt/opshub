@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Workers · Winds Aloft{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="mb-0">Workers ({{ laborers|length }})</h4>
-  <div class="d-flex gap-2 flex-wrap">
-    <form class="d-flex" method="get">
+{% from "_list_toolbar.html" import list_toolbar %}
+{% call(slot) list_toolbar('Workers', count=laborers|length) %}
+  {%- if slot == 'search' -%}
+    <form method="get">
       <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search name...">
-      <button class="btn btn-outline-secondary ms-1"><i class="bi bi-search"></i></button>
+      <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
     </form>
+  {%- elif slot == 'extra' -%}
     <div class="dropdown" data-change="SHOP-23">
       <button class="btn btn-outline-secondary dropdown-toggle text-nowrap" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-printer"></i> Print</button>
       <ul class="dropdown-menu dropdown-menu-end">
@@ -15,9 +16,10 @@
         <li><a class="dropdown-item" href="{{ url_for('general_shop_code_page') }}">General Shop Code</a></li>
       </ul>
     </div>
+  {%- elif slot == 'add' -%}
     <a href="{{ url_for('admin_user_new', shop_role='tech', badge='new') if is_master_admin else url_for('laborer_new') }}" class="btn btn-dark fw-bold text-nowrap" data-change="SHOP-17 DESIGN-2 DESIGN-1"><i class="bi bi-plus-lg"></i> Add Worker</a>
-  </div>
-</div>
+  {%- endif -%}
+{% endcall %}
 
 {% if laborers %}
 <div class="table-responsive">
