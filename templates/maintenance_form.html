@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Edit Maintenance Item' if item else 'New Maintenance Item' }} - OpsHub{% endblock %}
+{% block title %}{{ 'Edit Maintenance Item' if item else 'Add Maintenance Item' }} · Winds Aloft{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-7">
 <div class="card p-4">
-  <h4>{{ 'Edit Maintenance Item' if item else 'New Maintenance Item' }}</h4>
+  <h4>{{ 'Edit Maintenance Item' if item else 'Add Maintenance Item' }}</h4>
   <p class="text-muted small mb-3"><i class="bi bi-airplane"></i> {{ asset.tag }}{% if asset.name and asset.name != asset.tag %} &middot; {{ asset.name }}{% endif %}</p>
   <form method="post">
     <div class="mb-3">
@@ -78,9 +78,9 @@
       <label class="form-label">Notes</label>
       <textarea name="notes" class="form-control" rows="2">{{ item.notes if item else '' }}</textarea>
     </div>
-    <div class="d-flex justify-content-between">
-      <a href="{{ url_for('asset_detail', asset_id=asset.id) }}" class="btn btn-outline-secondary">Cancel</a>
-      <button type="submit" class="btn btn-warning fw-bold">{{ 'Save Changes' if item else 'Add Item' }}</button>
+    <div class="d-flex gap-2" data-change="DESIGN-8">
+      <button type="submit" class="btn btn-dark fw-bold" data-change="DESIGN-1">{{ 'Save Changes' if item else 'Add Item' }}</button>
+      <a href="{{ url_for('asset_detail', asset_id=asset.id) }}" class="btn btn-outline-secondary" onclick="var r = document.referrer; if (r && r.indexOf(location.origin) === 0 && r !== location.href && history.length > 1) { history.back(); return false; }">Cancel</a>
     </div>
   </form>
 </div>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Labor Codes - {{ project.name }}{% endblock %}
+{% block title %}Labor Codes - {{ project.name }} · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 no-print">
   <div>
@@ -9,10 +9,10 @@
   </div>
   <div class="d-flex gap-2">
     <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-secondary" data-change="JOBS-18">&laquo; Back to Project</a>
-    <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Print All</button>
+    <button class="btn btn-outline-secondary fw-bold" onclick="window.print()" data-change="DESIGN-1"><i class="bi bi-printer"></i> Print All</button>
   </div>
 </div>
-<p class="text-muted no-print">Scan a discrepancy's code on the <a href="{{ url_for('labor_page') }}">Labor</a> page to select it, then scan a laborer's code to start their timer.</p>
+<p class="text-muted no-print">Scan a discrepancy's code on the <a href="{{ url_for('scan_page') }}" data-change="SHOP-20">Scan</a> page to select it, then scan a laborer's code to start their timer.</p>
 
 <div class="d-flex flex-wrap gap-3 justify-content-center">
   <div class="label-card" style="width: 240px; padding: 16px;">

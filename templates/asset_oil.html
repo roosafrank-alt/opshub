@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Oil - {{ asset.tag }}{% endblock %}
+{% block title %}Oil - {{ asset.tag }} · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-droplet-half"></i> Oil Consumption - {{ asset.tag }}{% if asset.name and asset.name != asset.tag %} <span class="text-muted fs-6">({{ asset.name }})</span>{% endif %}</h4>
@@ -50,16 +50,16 @@
 <div class="card p-3">
   <h6 class="text-muted mb-2">Top-off History</h6>
   <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0">
+    <table class="table table-sm align-middle mb-0 table-stack" data-change="DESIGN-5">
       <thead><tr><th>Date</th><th>Added</th><th>By</th><th>Hours Since Last Top-off</th><th>Running Total</th></tr></thead>
       <tbody>
         {% for e in events_detail %}
         <tr>
-          <td>{{ e.flight_date|usdate }}</td>
-          <td>{{ '%g'|format(e.qty) }} qt</td>
-          <td>{{ e.added_by or '-' }}</td>
-          <td>{{ '%.1f'|format(e.hours_since_last) }} hrs</td>
-          <td>{{ '%g'|format(e.cumulative_qt) }} qt</td>
+          <td data-label="Date">{{ e.flight_date|usdate }}</td>
+          <td data-label="Added">{{ '%g'|format(e.qty) }} qt</td>
+          <td data-label="By">{{ e.added_by or '-' }}</td>
+          <td data-label="Hours Since Last Top-off">{{ '%.1f'|format(e.hours_since_last) }} hrs</td>
+          <td data-label="Running Total">{{ '%g'|format(e.cumulative_qt) }} qt</td>
         </tr>
         {% endfor %}
       </tbody>

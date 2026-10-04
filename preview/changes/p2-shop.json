@@ -1,0 +1,206 @@
+[
+ {
+  "id": "SHOP-06",
+  "status": "built",
+  "pages": [
+   "/parts/{id}"
+  ],
+  "where": "Part page: a Tech no longer sees Edit, Retire/Un-retire, Delete Forever or the red X on photos. The Adjust Stock Count card stays for Techs (outlined) and the server now lets a Tech save a count correction (it records who counted). Retire, Delete and photo delete stay admin only on the server.",
+  "see_as": "tech",
+  "detail": "Used Frank's note (hide Edit, Retire, Delete and the photo X; let Techs correct a count). Only the Adjust Stock card is outlined; the hidden buttons cannot be."
+ },
+ {
+  "id": "SHOP-08",
+  "status": "partial",
+  "pages": [
+   "/calendar",
+   "/scan",
+   "/shop"
+  ],
+  "where": "Calendar (Add Project button), Scan (Create one under the project picker) and the dashboard (Schedule a project) now show only for Admin and Tech; an Apprentice or Inspector sees 'Ask an admin to create one' instead.",
+  "see_as": "apprentice",
+  "detail": "Three links done. NOT done: Frank's extra sentence 'apprentices should only see their tasks and not see specific school/business information'. It is too open to guess safely (it could mean hiding the Calendar, Aircraft, customer names, prices and Parts from apprentices, or showing only jobs assigned to them, and today a job has no 'assigned to' field for an apprentice). QUESTION FOR FRANK: which pages should an apprentice be able to open, and which details (customer names and contacts, prices, the school/Flight Academy pages) must stay hidden? Should they see only the jobs and tasks assigned to them, or every active job as today? Today an apprentice already gets the trimmed dashboard (Active Projects list only) and cannot open Parts, Orders, Squawks or Activity."
+ },
+ {
+  "id": "SHOP-20",
+  "status": "built",
+  "pages": [
+   "/laborers/{id}/label",
+   "/projects/{id}",
+   "/projects/{id}/labor_codes"
+  ],
+  "where": "The three sentences now say 'on the Scan page' (the two in project pages link to Scan).",
+  "see_as": "admin",
+  "detail": "The Labor button on Workers was already gone (SHOP-23 rebuilt that header in the first build), so there was nothing left to remove there."
+ },
+ {
+  "id": "SHOP-26",
+  "status": "built",
+  "pages": [
+   "/calendar"
+  ],
+  "where": "Calendar: on a phone it opens as List (a short script, only when the address has no view yet; tapping Month keeps Month). Desktop still opens Month. The phone toolbar shows only the Month/List switch with Back, Today and Forward; Add Project and Archived sit on their own line below. Year stays on desktop.",
+  "see_as": "admin",
+  "detail": "The old Year view is still reachable on desktop and by address. Back/Forward are the existing previous/next arrows."
+ },
+ {
+  "id": "JOBS-37",
+  "status": "built",
+  "pages": [
+   "/projects/{id}",
+   "/assets/{id}"
+  ],
+  "where": "Project Photos tab: Add Photo(s) and the star only for Admin and Tech, the red X only for Admin; Aircraft photos card: the red X is now Admin only (it was Admin and Tech). After a delete the page says 'Photo deleted.'",
+  "see_as": "tech",
+  "detail": "The server already refused photo delete for non-admins; it now also flashes 'Photo deleted.'. The delete dialog now says Delete Forever (DESIGN-4)."
+ },
+ {
+  "id": "DESIGN-1",
+  "status": "built",
+  "pages": [
+   "/parts",
+   "/parts/{id}",
+   "/parts/new",
+   "/parts/{id}/edit",
+   "/projects",
+   "/projects/{id}",
+   "/projects/new",
+   "/projects/{id}/edit",
+   "/projects/{id}/intake",
+   "/assets",
+   "/assets/{id}",
+   "/assets/new",
+   "/orders",
+   "/orders/new",
+   "/calendar",
+   "/scan",
+   "/laborers",
+   "/laborers/new",
+   "/shop/tools",
+   "/shop/tools/new",
+   "/manuals",
+   "/manuals/{id}",
+   "/logbook/*",
+   "/shop",
+   "/shop/billing",
+   "/labels",
+   "print pages"
+  ],
+  "where": "Winds Aloft pages: main save, add and confirm buttons are now the dark accent (btn-dark) instead of yellow or blue; Print buttons are grey outline; the Calendar view switch and the Orders By Vendor / By Part switch are grey segmented controls. Yellow stays only on Reorder / Order more. Inline Add buttons next to name pickers are dark too.",
+  "see_as": "admin",
+  "detail": "Done with a script over the shop templates (each changed button carries data-change DESIGN-1). Left as they were on purpose: green completion buttons (Mark Completed, Complete, Received, Mark Calibrated, Mark Paid), blue outline secondary buttons (Edit, Sticker...), Stock IN green. Underscore partials (_asset_ads, _squawk_macros, _shop_period, _labor_timer_widget, _add_photos_picker) belong to the shared builder and were not touched. The confirm dialog's own OK colour (_confirm_modal.html) is shared too."
+ },
+ {
+  "id": "DESIGN-2",
+  "status": "built",
+  "pages": [
+   "/projects",
+   "/assets",
+   "/orders",
+   "/laborers",
+   "/manuals",
+   "/assets/{id}",
+   "/calendar",
+   "/projects/new",
+   "/assets/new",
+   "/orders/new",
+   "/laborers/new",
+   "/maintenance/new"
+  ],
+  "where": "Create buttons say Add Project, Add Aircraft, Add Order, Add Worker, Add Manual (was Upload Manual), Add Project for This Aircraft, and the Calendar button; their form headings and tab titles say Add too, and the Create Project / Create Aircraft submit buttons now say Add Project / Add Aircraft. Add Part and Add Tool already did.",
+  "see_as": "admin",
+  "detail": "Routes not renamed. Text elsewhere that mentioned New Project (Task Templates) updated."
+ },
+ {
+  "id": "DESIGN-3",
+  "status": "built",
+  "pages": [
+   "/scan",
+   "/projects/{id}"
+  ],
+  "where": "The two real browser confirm boxes in the shop pages (expired part on Scan, expired part in the Assign Parts form on a project) now use the app dialog ('Expired part' / Yes, use it anyway).",
+  "see_as": "tech",
+  "detail": "Everything else in the shop pages already used data-confirm. Two fallbacks that only run if Bootstrap itself fails to load remain (the zero-price owner estimate in project_detail and the Clock out box in _labor_timer_widget); they mirror the shared dialog's own fallback. Dialog titles and OK labels were also added to the delete confirmations. No data-change marker (dialogs only open on action) except the delete forms."
+ },
+ {
+  "id": "DESIGN-4",
+  "status": "built",
+  "pages": [
+   "/parts/{id}",
+   "/projects/{id}",
+   "/assets/{id}",
+   "/trash",
+   "/manuals",
+   "/logbook/entry/{id}",
+   "/shop/tools/{id}/edit"
+  ],
+  "where": "Move to Trash (recoverable): project and aircraft menus/buttons and their messages. Delete Forever (permanent, solid red): part, photo, found item, to-do, compression check, manual, logbook entry, Recently Deleted rows and Empty Trash. Remove (can be added again): maintenance item, order-list line, tool, AD, Quick Type/area. Flash messages follow the same words.",
+  "see_as": "admin",
+  "detail": "Judgement calls: a logbook entry, found item, to-do and compression check are permanent from the user's side (no way to bring them back), so they say Delete Forever. Tool Delete button is now Remove. Retire/Un-retire is left as its own idea. The Admin reset page messages (app.py reset routes) are the shared builder's."
+ },
+ {
+  "id": "DESIGN-5",
+  "status": "built",
+  "pages": [
+   "/projects/{id}",
+   "/assets/{id}",
+   "/assets/{id}/oil",
+   "/squawks",
+   "/manuals",
+   "/trash",
+   "/assets/{id}/compression",
+   "/projects/parts-used"
+  ],
+  "where": "Labor and Activity tables on a project, aircraft squawk history, Oil, Squawks done list, Manuals and Recently Deleted now stack as cards on a phone (table-stack with labels). The genuinely wide Compression checks table and Parts Used on Projects keep a scroll box and show a small 'Swipe sideways to see every column' line on phones.",
+  "see_as": "admin",
+  "detail": "Tables that already stacked (Parts, Orders, Workers, Tools, Logbook, Activity, Billing, Pay) and tables already hidden on phones were left alone. Narrow 3 to 4 column dashboard tables were left as they are."
+ },
+ {
+  "id": "DESIGN-8",
+  "status": "built",
+  "pages": [
+   "/parts/new",
+   "/parts/{id}/edit",
+   "/projects/new",
+   "/projects/{id}/edit",
+   "/assets/new",
+   "/assets/{id}/edit",
+   "/orders/new",
+   "/laborers/new",
+   "/maintenance/new",
+   "/shop/tools/new",
+   "/manuals/{id}/edit",
+   "/projects/renumber",
+   "trash and billing pop-ups"
+  ],
+  "where": "Form pages end with Save (dark) then Cancel (grey outline), side by side and left-aligned; Cancel goes back to the page you came from (falls back to the list). The Remove button on Edit Tool sits at the far right. Pop-up forms (Mark Completed, Mark Calibrated, Add Manual, Delete Forever options, Mark Paid, Create Invoice) also put the action first and Cancel after, left-aligned.",
+  "see_as": "admin",
+  "detail": "Small inline add forms (an AD, a worker name, a compression check) have no Cancel and were left. The Clock out and confirm dialogs keep the shared Cancel / OK layout."
+ },
+ {
+  "id": "FLY-12",
+  "status": "built",
+  "pages": [
+   "/calendar",
+   "/projects",
+   "/parts",
+   "/shop",
+   "/shop/billing",
+   "/orders",
+   "/assets/{id}"
+  ],
+  "where": "Dates in tight spots (calendar list rows, project tile chips, Exp under a part, Paid / Invoiced / Shipped / Received badges, Upcoming Schedule rows, order tracking badges) use the short form (Oct 2); everything else uses usdate (Thu, Oct 2, 2026). The Orders tracking script and the period label (custom dates) no longer build their own DD-MM-YYYY text.",
+  "see_as": "admin",
+  "detail": "Settles JOBS-23 and JOBS-43 for shop pages. Needs the shared builder's usdate / usdate_short; app.py has a small stand-in usdate_short only used if that is missing (the lead can delete the 'if usdate_short not in globals()' block in app.py after merging). The one test that asserted 30-09-2026 (test_jobs_preview) now builds its expected text with usdate()."
+ },
+ {
+  "id": "SEAM-15",
+  "status": "built",
+  "pages": [
+   "*"
+  ],
+  "where": "Every Winds Aloft shop page title is Page name \u00b7 Winds Aloft (Dashboard \u00b7 Winds Aloft, Stats \u00b7 Winds Aloft...). The ' - OpsHub' ending is gone.",
+  "see_as": "admin",
+  "detail": "No data-change marker (the tab title cannot be outlined). The two pages called Dashboard are told apart by the program name; shop Stats is already called Stats. Print pages (job sheet, labels, badges) follow the same pattern."
+ }
+]

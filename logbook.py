@@ -524,7 +524,7 @@ def entry_delete(entry_id):
     conn.execute("UPDATE logbook_entries SET deleted_at = ? WHERE id = ?", (now_iso(), entry_id))
     conn.commit()
     conn.close()
-    flash("Logbook entry deleted.", "success")
+    flash("Logbook entry deleted forever.", "success")
     if e["asset_id"]:
         return redirect(url_for("logbook.asset_logbook", asset_id=e["asset_id"], log=e["log_type"]))
     return redirect(url_for("logbook.logbook_list"))

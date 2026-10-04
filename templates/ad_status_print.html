@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}AD Status - {{ asset.tag }}{% endblock %}
+{% block title %}AD Status - {{ asset.tag }} · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 no-print">
   <h4 class="mb-0">AD Status</h4>
   <div class="d-flex gap-2">
     <a href="{{ url_for('asset_detail', asset_id=asset.id) }}#ads" class="btn btn-outline-secondary">&laquo; Back to Aircraft</a>
-    <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+    <button class="btn btn-outline-secondary fw-bold" onclick="window.print()" data-change="DESIGN-1"><i class="bi bi-printer"></i> Print</button>
   </div>
 </div>
 <div class="mx-auto" style="max-width:900px; background:#fff; border:1px solid #dee2e6; padding:2rem;">

@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Recently Deleted - OpsHub{% endblock %}
+{% block title %}Recently Deleted · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-trash3"></i> Recently Deleted</h4>
   {% if deleted_projects or deleted_assets %}
     {% if any_parts_in_trash or any_hours_in_trash %}
-    <button type="button" class="btn btn-outline-danger btn-sm" id="empty-trash-open-btn"><i class="bi bi-trash3"></i> Empty Trash</button>
+    <button type="button" class="btn btn-danger btn-sm" id="empty-trash-open-btn" data-change="DESIGN-4"><i class="bi bi-trash3"></i> Empty Trash</button>
     {% else %}
-    <form method="post" action="{{ url_for('trash_empty') }}" data-confirm="Permanently delete everything in Recently Deleted? This cannot be undone." data-confirm-style="danger">
-      <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash3"></i> Empty Trash</button>
+    <form method="post" action="{{ url_for('trash_empty') }}" data-confirm="Delete everything in Recently Deleted forever? This cannot be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger" data-change="DESIGN-4">
+      <button class="btn btn-danger btn-sm"><i class="bi bi-trash3"></i> Empty Trash</button>
     </form>
     {% endif %}
   {% endif %}
@@ -18,24 +18,24 @@
   <h6>Projects ({{ deleted_projects|length }})</h6>
   {% if deleted_projects %}
   <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0">
+    <table class="table table-sm align-middle mb-0 table-stack" data-change="DESIGN-5">
       <thead><tr><th>Code</th><th>Name</th><th>Deleted</th><th></th></tr></thead>
       <tbody>
         {% for p in deleted_projects %}
         {% set preview = purge_previews[p.id] %}
         <tr>
-          <td><code class="text-primary">{{ p.code }}</code></td>
-          <td>{{ p.name }}</td>
-          <td><small class="text-muted" data-change="SHOP-36 JOBS-23">{{ p.deleted_at|usdate(true) }}</small></td>
-          <td class="text-end text-nowrap">
+          <td data-label="Code"><code class="text-primary">{{ p.code }}</code></td>
+          <td data-label="Name">{{ p.name }}</td>
+          <td data-label="Deleted"><small class="text-muted" data-change="SHOP-36 JOBS-23">{{ p.deleted_at|usdate(true) }}</small></td>
+          <td data-label="" class="text-end text-nowrap">
             <form method="post" action="{{ url_for('project_restore', project_id=p.id) }}" class="d-inline">
               <button class="btn btn-sm btn-outline-success">Restore</button>
             </form>
             {% if preview.parts or preview.hours %}
-            <button type="button" class="btn btn-sm btn-outline-danger purge-info-open-btn" data-project-id="{{ p.id }}">Delete Forever</button>
+            <button type="button" class="btn btn-sm btn-danger purge-info-open-btn" data-project-id="{{ p.id }}" data-change="DESIGN-4">Delete Forever</button>
             {% else %}
-            <form method="post" action="{{ url_for('project_purge', project_id=p.id) }}" class="d-inline" data-confirm="Permanently delete this project and all its history? This cannot be undone." data-confirm-style="danger">
-              <button class="btn btn-sm btn-outline-danger">Delete Forever</button>
+            <form method="post" action="{{ url_for('project_purge', project_id=p.id) }}" class="d-inline" data-confirm="Delete this project forever, with all its history? This cannot be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
+              <button class="btn btn-sm btn-danger" data-change="DESIGN-4">Delete Forever</button>
             </form>
             {% endif %}
           </td>
@@ -53,20 +53,20 @@
   <h6>Aircraft ({{ deleted_assets|length }})</h6>
   {% if deleted_assets %}
   <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0">
+    <table class="table table-sm align-middle mb-0 table-stack" data-change="DESIGN-5">
       <thead><tr><th>Tag</th><th>Name</th><th>Deleted</th><th></th></tr></thead>
       <tbody>
         {% for a in deleted_assets %}
         <tr>
-          <td>{{ a.tag }}</td>
-          <td>{{ a.name or '-' }}</td>
-          <td><small class="text-muted" data-change="SHOP-36 JOBS-23">{{ a.deleted_at|usdate(true) }}</small></td>
-          <td class="text-end text-nowrap">
+          <td data-label="Tag">{{ a.tag }}</td>
+          <td data-label="Name">{{ a.name or '-' }}</td>
+          <td data-label="Deleted"><small class="text-muted" data-change="SHOP-36 JOBS-23">{{ a.deleted_at|usdate(true) }}</small></td>
+          <td data-label="" class="text-end text-nowrap">
             <form method="post" action="{{ url_for('asset_restore', asset_id=a.id) }}" class="d-inline">
               <button class="btn btn-sm btn-outline-success">Restore</button>
             </form>
-            <form method="post" action="{{ url_for('asset_purge', asset_id=a.id) }}" class="d-inline" data-change="SHOP-36" data-confirm="Permanently delete this aircraft and its maintenance history? Linked projects are kept, just unlinked. This cannot be undone." data-confirm-style="danger">
-              <button class="btn btn-sm btn-outline-danger">Delete Forever</button>
+            <form method="post" action="{{ url_for('asset_purge', asset_id=a.id) }}" class="d-inline" data-change="SHOP-36" data-confirm="Delete this aircraft forever, with its maintenance history? Linked projects are kept, just unlinked. This cannot be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
+              <button class="btn btn-sm btn-danger" data-change="DESIGN-4">Delete Forever</button>
             </form>
           </td>
         </tr>
@@ -120,9 +120,9 @@
           </div>
           <div class="text-muted small">This cannot be undone.</div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <div class="modal-footer justify-content-start" data-change="DESIGN-8">
           <button type="submit" class="btn btn-danger fw-bold btn-sm" id="pi-submit-btn" disabled>Delete Forever</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
         </div>
       </form>
     </div>
@@ -141,7 +141,7 @@
       </div>
       <form method="post" action="{{ url_for('trash_empty') }}" id="empty-trash-form">
         <div class="modal-body">
-          <p>Some jobs in Recently Deleted still have parts taken or hours clocked. Choose what happens to them before everything is permanently deleted.</p>
+          <p>Some jobs in Recently Deleted still have parts taken or hours clocked. Choose what happens to them before everything is deleted forever.</p>
           {% if any_parts_in_trash %}
           <div class="card p-2 mb-2">
             <div class="fw-bold small"><i class="bi bi-box-seam"></i> Parts taken</div>
@@ -170,9 +170,9 @@
           {% endif %}
           <div class="text-muted small">This applies to every job being emptied, and cannot be undone.</div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <div class="modal-footer justify-content-start" data-change="DESIGN-8">
           <button type="submit" class="btn btn-danger fw-bold btn-sm" id="et-submit-btn" disabled>Empty Trash</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
         </div>
       </form>
     </div>

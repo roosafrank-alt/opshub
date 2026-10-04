@@ -1,24 +1,44 @@
 {% extends "base.html" %}
-{% block title %}Calendar - OpsHub{% endblock %}
+{% block title %}Calendar · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-calendar3"></i>
     {% if view == 'month' %}{{ month_name }} {{ year }}
     {% else %}{{ year }}{% endif %}
   </h4>
-  <div class="d-flex gap-2 align-items-center flex-wrap">
-    <div class="btn-group btn-group-sm" role="group">
-      <a href="{{ url_for('calendar_page', view='month', year=year, month=month) }}" class="btn {{ 'btn-warning' if view == 'month' else 'btn-outline-secondary' }}">Month</a>
-      <a href="{{ url_for('calendar_page', view='year', year=year, month=month) }}" class="btn {{ 'btn-warning' if view == 'year' else 'btn-outline-secondary' }}">Year</a>
-      <a href="{{ url_for('calendar_page', view='list', year=year, month=month) }}" class="btn {{ 'btn-warning' if view == 'list' else 'btn-outline-secondary' }}">List</a>
+  <div class="d-flex gap-2 align-items-center flex-wrap cal-toolbar">
+    <div class="btn-group btn-group-sm" role="group" aria-label="Calendar view" data-change="DESIGN-1 SHOP-26">
+      <a href="{{ url_for('calendar_page', view='month', year=year, month=month) }}" class="btn {{ 'btn-secondary' if view == 'month' else 'btn-outline-secondary' }}">Month</a>
+      <a href="{{ url_for('calendar_page', view='year', year=year, month=month) }}" class="btn d-none d-md-inline-block {{ 'btn-secondary' if view == 'year' else 'btn-outline-secondary' }}">Year</a>
+      <a href="{{ url_for('calendar_page', view='list', year=year, month=month) }}" class="btn {{ 'btn-secondary' if view == 'list' else 'btn-outline-secondary' }}">List</a>
     </div>
-    <a href="{{ url_for('calendar_page', view=view, year=prev_year, month=prev_month) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+    <a href="{{ url_for('calendar_page', view=view, year=prev_year, month=prev_month) }}" class="btn btn-outline-secondary btn-sm" aria-label="Back"><i class="bi bi-chevron-left"></i></a>
     <a href="{{ url_for('calendar_page', view=view) }}" class="btn btn-outline-secondary btn-sm">Today</a>
-    <a href="{{ url_for('calendar_page', view=view, year=next_year, month=next_month) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
-    <a href="{{ url_for('project_new') }}" class="btn btn-warning fw-bold btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> New Project</a>
-    <a href="{{ url_for('projects_list', status='archived') }}" class="btn btn-outline-secondary btn-sm text-nowrap" title="Archived projects (past history)"><i class="bi bi-archive"></i> Archived</a>
+    <a href="{{ url_for('calendar_page', view=view, year=next_year, month=next_month) }}" class="btn btn-outline-secondary btn-sm" aria-label="Forward"><i class="bi bi-chevron-right"></i></a>
+    <div class="col-12 col-md-auto d-flex gap-2 align-items-center">
+      {% if shop_can_create %}
+      <a href="{{ url_for('project_new') }}" class="btn btn-dark fw-bold btn-sm text-nowrap" data-change="DESIGN-2 DESIGN-1"><i class="bi bi-plus-lg"></i> Add Project</a>
+      {% else %}
+      <span class="text-muted small" data-change="SHOP-08">Ask an admin to create one</span>
+      {% endif %}
+      <a href="{{ url_for('projects_list', status='archived') }}" class="btn btn-outline-secondary btn-sm text-nowrap" title="Archived projects (past history)"><i class="bi bi-archive"></i> Archived</a>
+    </div>
   </div>
 </div>
+<script>
+// SHOP-26: on a phone the calendar opens as a List (a month grid is too
+// narrow to read); a person who taps Month still gets Month, because the
+// address then says view=month.
+(function () {
+  try {
+    if (!new URLSearchParams(location.search).has('view') && window.matchMedia('(max-width: 767.98px)').matches) {
+      var u = new URL(location.href);
+      u.searchParams.set('view', 'list');
+      location.replace(u.toString());
+    }
+  } catch (e) { /* stay on the month grid */ }
+})();
+</script>
 
 {% macro month_grid(md, mini) %}
 <div class="table-responsive{% if mini %} mb-3{% endif %}">
@@ -91,7 +111,7 @@
             <td style="width:8px; background:{{ p.display_color }};" class="p-0"></td>
             <td>{% if p.asset_is_flight_asset %}<i class="bi bi-airplane-engines-fill text-muted" title="Flight School plane"></i> {% endif %}<a href="{{ url_for('project_detail', project_id=p.id) }}" class="text-decoration-none">{{ p.name }}</a>
               {% if p.asset_display_tag %}<span class="text-muted small"> &middot; {{ p.asset_display_tag }}</span>{% endif %}</td>
-            <td class="text-muted small">{{ p.date_label }}</td>
+            <td class="text-muted small" data-change="FLY-12">{{ p.date_label }}</td>
             <td><span class="badge {{ 'bg-success-subtle text-dark' if p.status == 'active' else 'bg-secondary-subtle text-dark' }}">{{ p.status }}</span></td>
           </tr>
           {% endfor %}

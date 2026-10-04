@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Job Sheet - {{ project.name }}{% endblock %}
+{% block title %}Job Sheet - {{ project.name }} · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 no-print">
   <h4 class="mb-0">Job Sheet</h4>
   <div class="d-flex gap-2">
     <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-secondary">&laquo; Back to Project</a>
-    <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+    <button class="btn btn-outline-secondary fw-bold" onclick="window.print()" data-change="DESIGN-1"><i class="bi bi-printer"></i> Print</button>
   </div>
 </div>
 

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Orders - OpsHub{% endblock %}
+{% block title %}Orders · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0">Orders{% if status_filter != 'to_order' %} ({{ order_count }}){% endif %}</h4>
   <div class="d-flex gap-2">
-    <a href="{{ url_for('order_new') }}" class="btn btn-warning fw-bold"><i class="bi bi-plus-lg"></i> New Order</a>
+    <a href="{{ url_for('order_new') }}" class="btn btn-dark fw-bold" data-change="DESIGN-2 DESIGN-1"><i class="bi bi-plus-lg"></i> Add Order</a>
   </div>
 </div>
 
@@ -51,7 +51,7 @@
           <td data-label="Job / aircraft">{% if c.project_code %}<a href="{{ url_for('project_detail', project_id=c.project_id) }}">{{ c.project_code }}</a>{% if c.asset_tag %} &middot; {{ c.asset_tag }}{% endif %}{% else %}-{% endif %}</td>
           <td data-label="Supplier">{{ c.supplier or '-' }}</td>
           <td data-label="Due">
-            {% if c.urgency == 'shipped' %}<span class="badge bg-info text-dark">Shipped {{ c.core_shipped_at|usdate }}</span>{% if c.shipments %}{{ tracking_cell(c.shipments) }}{% elif c.core_tracking %}<div class="small text-muted">{{ c.core_tracking }}</div>{% endif %}
+            {% if c.urgency == 'shipped' %}<span class="badge bg-info text-dark">Shipped {{ c.core_shipped_at|usdate_short }}</span>{% if c.shipments %}{{ tracking_cell(c.shipments) }}{% elif c.core_tracking %}<div class="small text-muted">{{ c.core_tracking }}</div>{% endif %}
             {% elif c.core_due_date %}{{ c.core_due_date|usdate }}
               <div class="small fw-bold {{ 'text-danger' if c.urgency == 'overdue' else ('text-warning-emphasis' if c.urgency == 'soon' else 'text-muted') }}">
                 {% if c.days_left < 0 %}{{ -c.days_left }} day{{ 's' if c.days_left != -1 }} overdue{% elif c.days_left == 0 %}Due today{% else %}{{ c.days_left }} day{{ 's' if c.days_left != 1 }} left{% endif %}</div>
@@ -101,7 +101,7 @@
       </select>
     </div>
     <div class="col-md-2">
-      <button type="submit" class="btn btn-warning btn-sm fw-bold w-100"><i class="bi bi-plus-lg"></i> Add</button>
+      <button type="submit" class="btn btn-dark btn-sm fw-bold w-100" data-change="DESIGN-1"><i class="bi bi-plus-lg"></i> Add</button>
     </div>
   </form>
 
@@ -118,7 +118,7 @@
           <td data-label="Requested by"><small class="text-muted">{{ w.requested_by or '' }}</small></td>
           <td class="text-end text-nowrap" data-label="">
             <a href="{{ url_for('order_new', wishlist_id=w.id) }}" class="btn btn-outline-success btn-sm"><i class="bi bi-cart-plus"></i> Start Order</a>
-            <form method="post" action="{{ url_for('order_wishlist_dismiss', wishlist_id=w.id) }}" class="d-inline" data-confirm="Remove this from the order list?" data-confirm-style="danger">
+            <form method="post" action="{{ url_for('order_wishlist_dismiss', wishlist_id=w.id) }}" class="d-inline" data-confirm="Remove this from the order list?" data-confirm-title="Remove" data-confirm-ok="Remove" data-confirm-style="danger">
               <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i></button>
             </form>
           </td>
@@ -154,9 +154,9 @@
      The search box (already the one flexible item here) gives up the room
      instead - see the smaller min-width below. #}
   <div class="d-flex flex-wrap gap-2 align-items-center">
-    <div class="btn-group btn-group-sm order-md-1 flex-shrink-0" role="group">
-      <a href="{{ url_for('orders_list', status=status_filter, view='vendor') }}" class="btn text-nowrap {{ 'btn-warning' if view == 'vendor' else 'btn-outline-secondary' }}">By Vendor</a>
-      <a href="{{ url_for('orders_list', status=status_filter, view='part') }}" class="btn text-nowrap {{ 'btn-warning' if view == 'part' else 'btn-outline-secondary' }}">By Part</a>
+    <div class="btn-group btn-group-sm order-md-1 flex-shrink-0" role="group" data-change="DESIGN-1">
+      <a href="{{ url_for('orders_list', status=status_filter, view='vendor') }}" class="btn text-nowrap {{ 'btn-secondary' if view == 'vendor' else 'btn-outline-secondary' }}">By Vendor</a>
+      <a href="{{ url_for('orders_list', status=status_filter, view='part') }}" class="btn text-nowrap {{ 'btn-secondary' if view == 'part' else 'btn-outline-secondary' }}">By Part</a>
     </div>
     <a href="{{ url_for('orders_export', status=status_filter) }}" class="btn btn-outline-secondary btn-sm text-nowrap flex-shrink-0 order-md-3 ms-auto ms-md-0"><i class="bi bi-download"></i> Export All (CSV)</a>
     <input type="text" id="orders-search" class="form-control form-control-sm list-toolbar-search order-md-2" placeholder="Search item, vendor, project..." style="min-width:160px;">
@@ -178,7 +178,7 @@
   <button class="btn btn-outline-danger btn-sm">Cancel</button>
 </form>
 {% elif o.status == 'received' %}
-<span class="badge bg-success">Received {{ o.received_date|usdate if o.received_date else '' }}</span>
+<span class="badge bg-success">Received {{ o.received_date|usdate_short if o.received_date else '' }}</span>
 {% else %}
 <span class="badge bg-secondary">Cancelled</span>
 {% endif %}
@@ -275,7 +275,7 @@
   var COLORS = { DELIVERED: 'bg-success', TRANSIT: 'bg-primary', PRE_TRANSIT: 'bg-secondary',
                  RETURNED: 'bg-danger', FAILURE: 'bg-danger', UNKNOWN: 'bg-light text-dark border' };
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
-  function usd(iso) { if (!iso || iso.length < 10) return iso || ''; var p = iso.slice(0, 10).split('-'); return p[2] + '-' + p[1] + '-' + p[0]; }
+  function usd(iso) { if (!iso || iso.length < 10) return iso || ''; var p = iso.slice(0, 10).split('-'); var mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(p[1], 10) - 1]; return mon ? mon + ' ' + parseInt(p[2], 10) : iso; }  // FLY-12: Oct 2
   function draw(el, t) {
     var badge = el.querySelector('.tracking-badge');
     var html;

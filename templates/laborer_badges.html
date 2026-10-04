@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Print Worker Badges - OpsHub{% endblock %}
+{% block title %}Print Worker Badges · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 no-print">
   <h4 class="mb-0">Print Worker Badges</h4>
   <div class="d-flex gap-2">
     {% if is_master_admin or shop_role == 'admin' %}<a href="{{ url_for('laborers_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Workers</a>{% endif %}
-    {% if laborers %}<button class="btn btn-warning fw-bold" onclick="window.print()" data-change="SHOP-35"><i class="bi bi-printer"></i> Print page (regular printer)</button>{% endif %}
+    {% if laborers %}<button class="btn btn-outline-secondary fw-bold" onclick="window.print()" data-change="SHOP-35 DESIGN-1"><i class="bi bi-printer"></i> Print page (regular printer)</button>{% endif %}
   </div>
 </div>
 <p class="text-muted small no-print">Print page (regular printer) prints every badge at once. Print on label printer, under a badge, prints just that one on the shop's label printer. Everyone scans their own badge on the <a href="{{ url_for('scan_page') }}">Scan</a> page to clock in/out.</p>

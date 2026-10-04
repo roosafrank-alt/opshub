@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Billing - OpsHub{% endblock %}
+{% block title %}Billing · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-receipt"></i> Billing <span class="text-muted fs-6">- {{ period_label }}, by project</span></h4>
@@ -47,10 +47,10 @@
           <td data-label="Status"><span class="badge {{ 'bg-success' if p.status == 'completed' else ('bg-primary' if p.status == 'active' else 'bg-secondary') }}">{{ (p.status or '-')|replace('_', ' ')|title }}</span></td>
           <td data-label="Payment">
             {% if p.payment_status == 'paid' %}
-            <span class="badge bg-success" data-change="SHOP-16"{% if p.paid_by %} title="Marked paid by {{ p.paid_by }}"{% endif %}><i class="bi bi-check-lg"></i> Paid {{ p.paid_at|usdate }}{% if p.paid_method %} &middot; {{ p.paid_method }}{% if p.card_last4 %} (simulated) ****{{ p.card_last4 }}{% endif %}{% endif %}</span>
+            <span class="badge bg-success" data-change="SHOP-16"{% if p.paid_by %} title="Marked paid by {{ p.paid_by }}"{% endif %}><i class="bi bi-check-lg"></i> Paid {{ p.paid_at|usdate_short }}{% if p.paid_method %} &middot; {{ p.paid_method }}{% if p.card_last4 %} (simulated) ****{{ p.card_last4 }}{% endif %}{% endif %}</span>
             {% if not p.wave %}<form method="post" action="{{ url_for('project_undo_payment', project_id=p.id) }}" class="d-inline" data-confirm="Put {{ p.code }} back to Invoiced (not paid)?" data-confirm-title="Undo payment" data-confirm-ok="Yes, undo"><button class="btn btn-link btn-sm p-0 ms-1 align-baseline" data-change="SHOP-16">Undo</button></form>{% endif %}
             {% elif p.payment_status == 'invoiced' %}
-            <span class="badge {{ 'bg-danger' if (p.invoiced_days_ago or 0) > 30 else 'bg-warning text-dark' }}" data-change="SHOP-16"{% if p.invoiced_by %} title="Marked invoiced by {{ p.invoiced_by }}"{% endif %}>Invoiced {{ p.invoiced_at|usdate }} &middot; {{ p.invoiced_days_ago }} day{{ 's' if p.invoiced_days_ago != 1 }}</span>
+            <span class="badge {{ 'bg-danger' if (p.invoiced_days_ago or 0) > 30 else 'bg-warning text-dark' }}" data-change="SHOP-16"{% if p.invoiced_by %} title="Marked invoiced by {{ p.invoiced_by }}"{% endif %}>Invoiced {{ p.invoiced_at|usdate_short }} &middot; {{ p.invoiced_days_ago }} day{{ 's' if p.invoiced_days_ago != 1 }}</span>
             {% if not p.wave %}<form method="post" action="{{ url_for('project_undo_payment', project_id=p.id) }}" class="d-inline" data-confirm="Put {{ p.code }} back to Not invoiced?" data-confirm-title="Undo invoice" data-confirm-ok="Yes, undo"><button class="btn btn-link btn-sm p-0 ms-1 align-baseline" data-change="SHOP-16">Undo</button></form>{% endif %}
             {% else %}
             <span class="badge bg-light text-dark border">Not invoiced</span>
@@ -68,9 +68,9 @@
           <td data-label="Total"><strong>${{ '%.2f'|format(p.total) }}</strong></td>
           <td class="text-end text-nowrap">
             {% if wave_connected and not p.wave and p.payment_status != 'paid' and p.total > 0 %}
-            <button type="button" class="btn btn-sm btn-primary wave-invoice-btn"
+            <button type="button" class="btn btn-sm btn-dark wave-invoice-btn"
                     data-wave-url="{{ url_for('project_wave_invoice', project_id=p.id) }}" data-project-label="{{ p.code }} &middot; {{ p.name }}"
-                    data-customer-name="{{ p.customer_name or '' }}" data-customer-email="{{ p.customer_email or '' }}"><i class="bi bi-send"></i> Invoice in Wave</button>
+                    data-customer-name="{{ p.customer_name or '' }}" data-customer-email="{{ p.customer_email or '' }}" data-change="DESIGN-1"><i class="bi bi-send"></i> Invoice in Wave</button>
             {% endif %}
             {% if p.wave and p.wave.pdf_url %}
             <a href="{{ p.wave.pdf_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Wave invoice PDF"><i class="bi bi-file-earmark-pdf"></i></a>
@@ -118,9 +118,9 @@
             {% endfor %}
           </select>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <div class="modal-footer justify-content-start" data-change="DESIGN-8">
           <button type="submit" class="btn btn-success fw-bold btn-sm"><i class="bi bi-check-lg"></i> Mark Paid</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
         </div>
       </form>
     </div>
@@ -168,9 +168,9 @@
             <label class="form-check-label" for="wave-send">Email it to them from Wave now</label>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary fw-bold btn-sm"><i class="bi bi-send"></i> Create Invoice</button>
+        <div class="modal-footer justify-content-start" data-change="DESIGN-8">
+          <button type="submit" class="btn btn-dark fw-bold btn-sm" data-change="DESIGN-1"><i class="bi bi-send"></i> Create Invoice</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
         </div>
       </form>
     </div>
