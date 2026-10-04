@@ -33,7 +33,7 @@ class ScheduleResetWithWaitlistOfferTest(OpsHubTestCase):
         c = self.login("master")
         html = c.post("/admin/reset/schedule", follow_redirects=True).get_data(as_text=True)
         self.assertNotIn("FOREIGN KEY constraint failed", html)
-        self.assertIn("Deleted 1 booking", html)
+        self.assertIn("Deleted forever: 1 booking", html)
         self.assertIsNone(self.q1("SELECT id FROM scheduled_flights WHERE id = ?", (self.booking,)))
 
     def test_waitlist_offer_kept_but_unlinked(self):

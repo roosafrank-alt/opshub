@@ -308,11 +308,11 @@ class AdminPagesTest(OpsHubTestCase):
         self.assertIn("Type RESET", r.get_data(as_text=True))
         self.assertEqual(len(self.q("SELECT id FROM projects")), 2)
         r = c.post("/admin/reset/projects", data={"confirm_text": "RESET"}, follow_redirects=True)
-        self.assertIn("Deleted 2 projects", r.get_data(as_text=True))
+        self.assertIn("Deleted forever: 2 projects", r.get_data(as_text=True))
         self.assertIn("starts again at 001", r.get_data(as_text=True))
         self.assertEqual(self.q("SELECT id FROM projects"), [])
         html = c.get("/admin/reset").get_data(as_text=True)
-        self.assertIn('data-confirm-ok="Delete students"', html)
+        self.assertIn('data-confirm-ok="Delete Forever"', html)  # DESIGN-4: permanent = Delete Forever
         self.assertIn("Winds Aloft", html.split("Clear Squawks")[0])
 
     def test_login_attempts_show_local_time_and_named_unlock(self):

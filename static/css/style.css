@@ -110,6 +110,25 @@ body { background: #f4f5f7; }
   h4.mb-3, h4 { font-size: 1.15rem; }
 }
 
+/* DESIGN-5: genuinely wide tables (stats, many numeric columns) that would
+   not read well as stacked cards. Wrap the existing scroll box in
+   <div class="swipe-box"> ... <div class="table-responsive"><table>...</table></div></div>
+   and, on a phone, a small "Swipe sideways" hint shows above it while the
+   table scrolls inside its own box (the page itself never scrolls sideways).
+   Everything else uses table-stack above. */
+.swipe-box > .table-responsive { -webkit-overflow-scrolling: touch; }
+@media (max-width: 575.98px) {
+  .swipe-box::before {
+    content: "Swipe sideways to see more \2192";
+    display: block;
+    text-align: right;
+    font-size: .72rem;
+    color: #6c757d;
+    margin-bottom: .25rem;
+  }
+  .swipe-box > .table-responsive { overflow-x: auto; }
+}
+
 /* Flight chips: a compact, clickable box per flight used on the flight
    dashboard's per-day schedule (_dashboard_live.html) and the Schedule
    calendar's List view (_schedule_live.html). Status is carried by the

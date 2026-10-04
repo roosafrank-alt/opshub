@@ -8,7 +8,7 @@
 {% set embedded = request.path == '/scan' and request.args.get('embedded') == '1' %}
 {% if embedded %}<base target="_top">{% endif %}
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>{% block title %}OpsHub{% endblock %}</title>
+<title>{% block title %}Winds Aloft{% endblock %}</title>
 {% set app_identity = 'windsaloft' %}{% include "_app_identity.html" %}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 {% endif %}
 {% if not embedded %}{% include "_labor_timer_widget.html" %}{% endif %}
-{% include "_confirm_modal.html" %}
+{% set confirm_accent = 'dark' %}{% include "_confirm_modal.html" %}
 {% include "_add_photos_picker.html" %}
 {% if session.get('user_id') and (session.get('is_master_admin') or session.get('shop_role')) and not embedded %}
 <div id="global-scan-toasts" class="no-print" aria-live="polite"></div>

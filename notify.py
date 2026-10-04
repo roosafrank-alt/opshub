@@ -244,8 +244,9 @@ def check_flight_reminders(conn, settings):
         if already_notified_today(conn, "flight_reminder", f["id"]):
             continue
         time_str = f" at {f['scheduled_time']}" if f["scheduled_time"] else ""
-        subject = f"Flight reminder: {tomorrow}"
-        body = f"You have a flight scheduled tomorrow ({tomorrow}){time_str} in {f['asset_tag']}."
+        from app import usdate  # late import: app imports this module (FLY-12 date format)
+        subject = f"Flight reminder: {usdate(tomorrow)}"
+        body = f"You have a flight scheduled tomorrow ({usdate(tomorrow)}){time_str} in {f['asset_tag']}."
         any_sent = False
         for uid in (f["student_user_id"], f["cfi_user_id"]):
             if not uid:
@@ -282,10 +283,11 @@ def check_cores_due(conn, settings):
                         (o["id"], key)).fetchone():
             continue
         item = o["part_name"] or o["description"]
+        from app import usdate  # late import: app imports this module (FLY-12 date format)
         charge = f" or be billed a ${o['core_charge']:,.2f} core charge" if o["core_charge"] else ""
         subject = f"Core {'OVERDUE' if overdue else 'due soon'}: {item}"
         body = (f"The core for {item} (order #{o['id']}, {o['supplier'] or 'supplier'}) "
-                f"{'was due' if overdue else 'is due'} back {o['core_due_date']}. Ship it{charge}, "
+                f"{'was due' if overdue else 'is due'} back {usdate(o['core_due_date'])}. Ship it{charge}, "
                 f"then press Core shipped on the Orders page.")
         if any(notify_user(settings, u, subject, body, brand="Winds Aloft") for u in recipients):
             log_notification(conn, "core_due", o["id"], key)

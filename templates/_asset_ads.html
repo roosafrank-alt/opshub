@@ -7,7 +7,7 @@
     <h6 class="mb-0"><i class="bi bi-shield-check"></i> ADs <span class="text-muted small fw-normal">(Airworthiness Directives)</span></h6>
     <div class="d-flex gap-2">
       <a href="{{ url_for('ads.ad_status_print', asset_id=asset.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer"></i> AD Status sheet</a>
-      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#ad-new-form"><i class="bi bi-plus-lg"></i> Add AD</button>
+      <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="collapse" data-bs-target="#ad-new-form" data-change="DESIGN-1"><i class="bi bi-plus-lg"></i> Add AD</button>
     </div>
   </div>
   <form method="post" action="{{ url_for('ads.ad_new', asset_id=asset.id) }}" id="ad-new-form" class="collapse border rounded p-2 mb-2">
@@ -28,7 +28,7 @@
       <div class="col-sm-8 d-none" id="ad-na"><label class="form-label small mb-0" for="ad-na-reason">Why it doesn't apply</label>
         <input id="ad-na-reason" name="na_reason" class="form-control" placeholder="e.g. Serial number not affected"></div>
     </div>
-    <button class="btn btn-primary btn-sm mt-2">Add AD</button>
+    <button class="btn btn-dark btn-sm mt-2" data-change="DESIGN-1">Add AD</button>
   </form>
   {% if asset_ads %}
   {% for a in asset_ads %}
@@ -62,7 +62,7 @@
         <div class="col-sm-6"><label class="form-label small mb-0" for="adc-photo-{{ a.id }}">Logbook entry photo</label>
           <input id="adc-photo-{{ a.id }}" type="file" name="photo" accept="image/*" class="form-control"></div>
       </div>
-      <button class="btn btn-success btn-sm mt-2">Save compliance</button>
+      <button class="btn btn-dark btn-sm mt-2" data-change="DESIGN-1">Save compliance</button>
     </form>
   </div>
   {% endfor %}

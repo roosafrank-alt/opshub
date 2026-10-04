@@ -74,7 +74,7 @@
 {% macro squawk_my_actions(sq, size='btn-sm', can_confirm=False) %}
 {%- if not sq.worker_acknowledged_at %}
 <form method="post" action="{{ url_for('squawk_worker_ack', kind=sq.kind, squawk_id=sq.squawk_id) }}">
-  <button class="btn btn-warning {{ size }} squawk-btn fw-bold"><i class="bi bi-play-fill"></i> Accepted</button>
+  <button class="btn btn-dark {{ size }} squawk-btn fw-bold" data-change="DESIGN-1"><i class="bi bi-play-fill"></i> Accepted</button>
 </form>
 {%- elif sq.repair_confirm_requested_at and can_confirm %}
 {#- The viewer is the one who signs off (admin/inspector), so their own
@@ -143,8 +143,8 @@
    send to inspector"). See squawk_repair_confirm in app.py. #}
 {% macro squawk_confirm_actions(sq, confirm_label='Sign off', send_back_label='Send back', size='btn-sm') %}
 <div class="d-flex gap-1 flex-wrap align-items-center">
-  <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Confirm this squawk as repaired?" data-confirm-title="Confirm Repair" data-confirm-style="success">
-    <button class="btn btn-success {{ size }} squawk-btn fw-bold"><i class="bi bi-check-lg"></i> {{ confirm_label }}</button>
+  <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Confirm this squawk as repaired?" data-confirm-title="Confirm Repair">
+    <button class="btn btn-dark {{ size }} squawk-btn fw-bold" data-change="DESIGN-1"><i class="bi bi-check-lg"></i> {{ confirm_label }}</button>
   </form>
   <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex gap-1">
     <input type="hidden" name="action" value="send_back">

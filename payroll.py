@@ -207,7 +207,7 @@ def _person_name(conn, person_type, person_id):
 
 
 def _week_label(week):
-    """'the week of 29-09-2026' - through the app's usdate filter so the
+    """'the week of Mon, Sep 28, 2026' - through the app's usdate filter so the
     date format stays whatever the app uses everywhere (HUB-36)."""
     return "the week of " + current_app.jinja_env.filters["usdate"](week.isoformat())
 

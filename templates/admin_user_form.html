@@ -1,10 +1,10 @@
 {% extends "admin_base.html" %}
-{% block title %}{{ 'Edit Account' if user else 'New Account' }} - OpsHub{% endblock %}
+{% block title %}{{ 'Edit Account' if user else 'Add Account' }} · Admin{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-7">
 <div class="card p-4">
-  <h4>{{ 'Edit Account: ' + user.name if user else 'New Account' }}</h4>
+  <h4>{{ 'Edit Account: ' + user.name if user else 'Add Account' }}</h4>
   <p class="text-muted small mb-3" data-change="SEAM-3">One login works for Winds Aloft, Fly with Kate! and Flight Academy. Every account is set up the same way, in the sections below.</p>
   <form method="post">
 
@@ -216,9 +216,10 @@
       <label class="form-check-label" for="notify-flight-check">Upcoming scheduled flights (for this person's own bookings)</label>
     </div>
 
-    <div class="d-flex justify-content-between">
-      <a href="{{ url_for('admin_users_list') }}" class="btn btn-outline-secondary">Cancel</a>
+    {#- DESIGN-8: Save, then Cancel, left-aligned. #}
+    <div class="d-flex gap-2" data-change="DESIGN-8">
       <button type="submit" class="btn btn-primary fw-bold">{{ 'Save Changes' if user else 'Create Account' }}</button>
+      <a href="{{ url_for('admin_users_list') }}" class="btn btn-outline-secondary">Cancel</a>
     </div>
   </form>
 </div>

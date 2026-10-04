@@ -266,10 +266,10 @@ class AircraftPageRolesTest(OpsHubTestCase):
 
     def test_jobs_23_timestamps_use_the_app_date_format(self):
         body = get(self.login("shop_admin"), f"/assets/{self.asset}")
-        self.assertIn("Updated 30-09-2026 14:22 by Shop - Frank", body)
+        self.assertIn("Updated Wed, Sep 30, 2026 14:22 by Shop - Frank", body)  # FLY-12 date format
         self.exec("UPDATE assets SET deleted_at='2026-09-30 14:22:11' WHERE id=?", (self.asset,))
         trash = get(self.login("shop_admin"), "/trash")
-        self.assertIn("30-09-2026 14:22", trash)
+        self.assertIn("Wed, Sep 30, 2026 14:22", trash)
         self.assertNotIn("14:22:11", trash)
 
     def test_jobs_24_never_says_asset(self):
@@ -611,5 +611,5 @@ class PrintAndTodoTest(OpsHubTestCase):
     def test_jobs_32_deleting_a_customer_says_it_is_for_good(self):
         self.exec("INSERT INTO customers (name, email, password_hash, active) VALUES ('Pat', 'pat@example.com', 'x', 1)")
         body = get(self.login("shop_admin"), "/customers")
-        self.assertIn("Delete this customer account for good? To just stop them logging in, untick Active", body)
+        self.assertIn("Delete Pat forever? Their login and the list of aircraft they can see are lost. To just stop them logging in, untick Active", body)  # DESIGN-4
         self.assertIn('data-confirm-style="danger"', body)

@@ -29,9 +29,9 @@
           {% if next_lesson.duration_hours is not none %}
           <input type="hidden" name="duration_hours" value="{{ next_lesson.duration_hours }}">
           {% endif %}
-          <button type="submit" class="btn btn-success fw-bold w-100 text-start"><i class="bi bi-calendar-plus"></i> Book <strong>{{ next_lesson.label }}</strong></button>
+          <button type="submit" class="btn btn-primary fw-bold w-100 text-start" data-change="DESIGN-1"><i class="bi bi-calendar-plus"></i> Book <strong>{{ next_lesson.label }}</strong></button>
         </form>
-        <a href="{{ next_lesson.edit_url }}" class="btn btn-outline-success flex-shrink-0" title="Pick a different date or time before booking"><i class="bi bi-pencil"></i></a>
+        <a href="{{ next_lesson.edit_url }}" class="btn btn-outline-primary flex-shrink-0" data-change="DESIGN-1" title="Pick a different date or time before booking"><i class="bi bi-pencil"></i></a>
       </div>
       {% endif %}
       {% if wave_invoice and message.startswith('Session ended and logged') %}

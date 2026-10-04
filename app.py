@@ -216,36 +216,71 @@ def _parse_error_log_entry(name, text):
             "message": message, "text": text}
 
 
-def usdate(value, show_time=False):
-    """Formats an ISO date/datetime string ('YYYY-MM-DD' or
-    'YYYY-MM-DD HH:MM:SS'/'YYYY-MM-DDTHH:MM:SS') as DD-MM-YYYY, the display
-    format used everywhere in this app (storage/sorting stays ISO under the
-    hood). Anything that doesn't look like an ISO date passes through
-    unchanged. With show_time, appends HH:MM after the date."""
+_WEEKDAY_ABBR = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+_MONTH_ABBR = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def _iso_date_parts(value):
+    """(date, rest-of-string) for an ISO 'YYYY-MM-DD[ T]HH:MM[:SS]' value, or
+    None when the value doesn't start with a real ISO date."""
     if not value:
-        return value
+        return None
     s = str(value).strip()
     if len(s) < 10:
-        return value
-    date_part = s[:10]
-    parts = date_part.split("-")
+        return None
+    parts = s[:10].split("-")
     if len(parts) != 3 or len(parts[0]) != 4:
+        return None
+    try:
+        d = date(int(parts[0]), int(parts[1]), int(parts[2]))
+    except ValueError:
+        return None
+    return d, s[10:]
+
+
+def usdate(value, show_time=False):
+    """The app's one date format (FLY-12), for templates and message text:
+      {{ x|usdate }}        'Thu, Oct 2, 2026'   (the default, full date)
+      {{ x|usdate_short }}  'Oct 2'             (where space is tight: phone
+                            rows, calendar cells, chips - no weekday, no year)
+    Both take an ISO 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS' / 'T' string
+    (storage and sorting stay ISO under the hood); anything that doesn't
+    look like an ISO date passes through unchanged. With show_time, HH:MM
+    (24-hour, as stored) is appended: 'Thu, Oct 2, 2026 14:05'. In Python
+    code call usdate(...) / usdate_short(...) directly."""
+    got = _iso_date_parts(value)
+    if not got:
         return value
-    y, m, d = parts
-    out = f"{d}-{m}-{y}"
+    d, rest = got
+    out = f"{_WEEKDAY_ABBR[d.weekday()]}, {_MONTH_ABBR[d.month - 1]} {d.day}, {d.year}"
     if show_time:
-        rest = s[10:].replace("T", " ").strip()
+        rest = rest.replace("T", " ").strip()
+        if rest:
+            out += " " + rest[:5]
+    return out
+
+
+def usdate_short(value, show_time=False):
+    """Short variant of usdate for tight spots: 'Oct 2'. See usdate's note."""
+    got = _iso_date_parts(value)
+    if not got:
+        return value
+    d, rest = got
+    out = f"{_MONTH_ABBR[d.month - 1]} {d.day}"
+    if show_time:
+        rest = rest.replace("T", " ").strip()
         if rest:
             out += " " + rest[:5]
     return out
 
 
 app.jinja_env.filters["usdate"] = usdate
+app.jinja_env.filters["usdate_short"] = usdate_short
 
 
 def shortwhen(value):
     """'Today 7:56 PM' for today's ISO datetimes, otherwise the usdate date
-    (DD-MM-YYYY). Anything unparsable passes through via usdate()."""
+    ('Thu, Oct 2, 2026'). Anything unparsable passes through via usdate()."""
     if not value:
         return value
     s = str(value).strip().replace("T", " ")
@@ -277,21 +312,10 @@ app.jinja_env.filters["time12"] = time12
 
 
 def shortdate(value):
-    """'YYYY-MM-DD' -> 'MM-DD' - the compact month-day date for the phone
-    dashboard's Today/Upcoming headers (QA ux-flight-dash-section-headers).
-    Deliberately month-day, not this app's usual day-month (usdate above) -
-    Frank asked for that order specifically for this one spot."""
-    if not value:
-        return value
-    s = str(value).strip()
-    if len(s) < 10:
-        return value
-    date_part = s[:10]
-    parts = date_part.split("-")
-    if len(parts) != 3 or len(parts[0]) != 4:
-        return value
-    _, m, d = parts
-    return f"{m}-{d}"
+    """'YYYY-MM-DD' -> 'Oct 2' - the compact date for the phone dashboard's
+    Today/Upcoming headers. Same as usdate_short (FLY-12: one spelled-month
+    format everywhere); the name is kept so existing templates keep working."""
+    return usdate_short(value)
 
 
 app.jinja_env.filters["shortdate"] = shortdate
@@ -8662,7 +8686,7 @@ def customer_delete(customer_id):
     conn.execute("DELETE FROM customers WHERE id = ?", (customer_id,))
     conn.commit()
     conn.close()
-    flash("Customer account removed.", "success")
+    flash("Customer account deleted forever.", "success")
     return redirect(url_for("customers_list"))
 
 
@@ -9190,7 +9214,7 @@ def admin_reset_activity_log():
     n = conn.execute("DELETE FROM transactions").rowcount
     conn.commit()
     conn.close()
-    flash(f"Deleted {_plural(n, 'activity log entry', 'activity log entries')}. Stock counts were not changed.", "success")
+    flash(f"Deleted forever: {_plural(n, 'activity log entry', 'activity log entries')}. Stock counts were not changed.", "success")
     return redirect(url_for("admin_reset"))
 
 
@@ -9201,7 +9225,7 @@ def admin_reset_orders():
     n = conn.execute("DELETE FROM orders").rowcount
     conn.commit()
     conn.close()
-    flash(f"Deleted {_plural(n, 'order')}. Parts and stock levels were not changed.", "success")
+    flash(f"Deleted forever: {_plural(n, 'order')}. Parts and stock levels were not changed.", "success")
     return redirect(url_for("admin_reset"))
 
 
@@ -9224,7 +9248,7 @@ def admin_reset_squawks():
 @app.route("/admin/reset/flights", methods=["POST"])
 @master_admin_required
 def admin_reset_flights():
-    return _run_reset(_wipe_flight_log, lambda n: f"Deleted {_plural(n, 'logged flight')}. Planes, students, instructors and bookings were kept.")
+    return _run_reset(_wipe_flight_log, lambda n: f"Deleted forever: {_plural(n, 'logged flight')}. Planes, students, instructors and bookings were kept.")
 
 
 @app.route("/admin/reset/projects", methods=["POST"])
@@ -9250,7 +9274,7 @@ def admin_reset_projects():
     n = conn.execute("DELETE FROM projects").rowcount
     conn.commit()
     conn.close()
-    flash(f"Deleted {_plural(n, 'project')} (and their sections, labor and photos). "
+    flash(f"Deleted forever: {_plural(n, 'project')} (and their sections, labor and photos). "
           "Project numbering starts again at 001.", "success")
     return redirect(url_for("admin_reset"))
 
@@ -9261,7 +9285,7 @@ def admin_reset_planes():
     """Wipes every Fly with Kate! plane (assets with is_flight_asset=1) and
     everything that hangs off one - see _wipe_planes()."""
     return _reset_typed() or _run_reset(
-        _wipe_planes, lambda n: f"Deleted {_plural(n, 'Fly with Kate! plane')} (and their flights and maintenance records).")
+        _wipe_planes, lambda n: f"Deleted forever: {_plural(n, 'Fly with Kate! plane')} (and their flights and maintenance records).")
 
 
 # ---- Flight School resets -------------------------------------------------
@@ -9432,28 +9456,28 @@ def _run_reset(fn, message):
 @app.route("/admin/reset/schedule", methods=["POST"])
 @master_admin_required
 def admin_reset_schedule():
-    return _run_reset(_wipe_schedule, lambda n: f"Deleted {_plural(n, 'booking')} (including requests, denied and cancelled ones).")
+    return _run_reset(_wipe_schedule, lambda n: f"Deleted forever: {_plural(n, 'booking')} (including requests, denied and cancelled ones).")
 
 
 @app.route("/admin/reset/billing", methods=["POST"])
 @master_admin_required
 def admin_reset_billing():
     return _reset_typed() or _run_reset(
-        _wipe_billing, lambda n: f"Deleted {_plural(n, 'account entry', 'account entries')} and set every student balance to $0.")
+        _wipe_billing, lambda n: f"Deleted forever: {_plural(n, 'account entry', 'account entries')} and set every student balance to $0.")
 
 
 @app.route("/admin/reset/students", methods=["POST"])
 @master_admin_required
 def admin_reset_students():
     return _reset_typed() or _run_reset(
-        _wipe_students, lambda n: f"Deleted {_plural(n, 'student')}, with their flights, bookings and account history.")
+        _wipe_students, lambda n: f"Deleted forever: {_plural(n, 'student')}, with their flights, bookings and account history.")
 
 
 @app.route("/admin/reset/instructors", methods=["POST"])
 @master_admin_required
 def admin_reset_instructors():
     return _reset_typed() or _run_reset(
-        _wipe_instructors, lambda n: f"Deleted {_plural(n, 'instructor profile')} (master admins' own were kept).")
+        _wipe_instructors, lambda n: f"Deleted forever: {_plural(n, 'instructor profile')} (master admins' own were kept).")
 
 
 @app.route("/admin/reset/flight_school", methods=["POST"])
