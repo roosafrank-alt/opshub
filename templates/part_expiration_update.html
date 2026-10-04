@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}New stock expiration - OpsHub{% endblock %}
+{% block title %}Stock Expiration · Winds Aloft{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-6">
@@ -12,7 +12,7 @@
       <label class="form-label small mb-0" for="new-exp">Expiration date</label>
       <input type="date" id="new-exp" name="expiration_date" class="form-control" required>
     </div>
-    <button class="btn btn-warning fw-bold">Save date</button>
+    <button class="btn btn-dark fw-bold" data-change="DESIGN-1">Save date</button>
     <a href="{{ url_for('orders_list', status=request.args.get('status'), view=request.args.get('view')) }}" class="btn btn-outline-secondary">Skip (keep {{ part.expiration_date|usdate }})</a>
   </form>
 </div>

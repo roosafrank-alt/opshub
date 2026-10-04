@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Parts - OpsHub{% endblock %}
+{% block title %}Parts · Winds Aloft{% endblock %}
 
 
 
@@ -31,7 +31,7 @@
         </td>
         {% set _exp = part_expiry(p) %}
         <td data-label="" class="fw-semibold">{% if part_covers.get(p.id) %}<img src="{{ url_for('static', filename='uploads/' + part_covers.get(p.id)) }}" class="rounded d-sm-none me-2 align-middle" style="width:36px; height:36px; object-fit:cover;">{% endif %}{{ p.name }}{% if p.short_name %}<br><small class="text-muted">aka {{ p.short_name }}</small>{% endif %}{% if p.qty_on_hand <= p.reorder_point %} <i class="bi bi-exclamation-triangle text-danger" title="Low stock"></i>{% endif %}
-          {% if _exp %}<br><small class="text-muted">Exp {{ _exp.date|usdate }}</small>{% if _exp.level == 'expired' %} <span class="badge bg-danger">Expired</span>{% elif _exp.level == 'soon' %} <span class="badge bg-warning text-dark">Expires soon</span>{% endif %}{% endif %}</td>
+          {% if _exp %}<br><small class="text-muted">Exp {{ _exp.date|usdate_short }}</small>{% if _exp.level == 'expired' %} <span class="badge bg-danger">Expired</span>{% elif _exp.level == 'soon' %} <span class="badge bg-warning text-dark">Expires soon</span>{% endif %}{% endif %}</td>
         <td data-label="Barcode"><code>{{ p.barcode }}</code></td>
         <td data-label="Location">{{ p.location or '-' }}</td>
         <td data-label="On hand">{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
@@ -76,7 +76,7 @@
     <div class="card stat-card p-3 h-100 {{ 'border-danger' if expiry_stats.expired }}">
       <div class="text-muted small"><i class="bi bi-hourglass-split"></i> Expiration Dates</div>
       <div class="display-6 {{ 'text-warning' if expiry_stats.expired or expiry_stats.soon else '' }}">{{ expiry_stats.count }}</div>
-      <div class="small">{% if expiry_stats.expired %}<span class="text-danger fw-bold">{{ expiry_stats.expired }} expired</span> &middot; {% endif %}{% if expiry_stats.next %}next: {{ expiry_stats.next|usdate }}{% else %}none upcoming{% endif %} <i class="bi bi-chevron-right"></i></div>
+      <div class="small">{% if expiry_stats.expired %}<span class="text-danger fw-bold">{{ expiry_stats.expired }} expired</span> &middot; {% endif %}{% if expiry_stats.next %}next: {{ expiry_stats.next|usdate_short }}{% else %}none upcoming{% endif %} <i class="bi bi-chevron-right"></i></div>
     </div>
     </a>
   </div>
@@ -95,7 +95,7 @@
      in style.css). #}
   {% if is_master_admin or shop_role == 'admin' %}
   <a href="{{ url_for('parts_export_csv') }}" class="btn btn-outline-secondary text-nowrap order-md-3"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</a>
-  <a href="{{ url_for('part_new') }}" class="btn btn-warning fw-bold text-nowrap order-md-4"><i class="bi bi-plus-lg"></i> Add Part</a>
+  <a href="{{ url_for('part_new') }}" class="btn btn-dark fw-bold text-nowrap order-md-4" data-change="DESIGN-1"><i class="bi bi-plus-lg"></i> Add Part</a>
   {% endif %}
   <form method="get" class="list-toolbar-search order-md-2" style="width:340px;max-width:100%;">
     <input type="text" name="q" value="{{ q }}" id="parts-live-search" class="form-control" placeholder="Search parts: name, barcode, category, location..." autocomplete="off" enterkeyhint="search">

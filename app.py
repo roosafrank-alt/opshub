@@ -1593,9 +1593,9 @@ def _build_year_list(conn, year):
         start = p["scheduled_date"]
         end = p["scheduled_end_date"]
         if end and end != start:
-            p["date_label"] = f"{usdate(start)} - {usdate(end)}"
+            p["date_label"] = f"{usdate_short(start)} - {usdate_short(end)}"  # FLY-12
         else:
-            p["date_label"] = usdate(start)
+            p["date_label"] = usdate_short(start)
         month = int(start[5:7])
         by_month.setdefault(month, []).append(p)
     return [{"month": m, "month_name": calendar_mod.month_name[m], "projects": by_month.get(m, [])}
@@ -2620,6 +2620,17 @@ def part_new():
                            notify_low_stock_checked=True)
 
 
+@app.context_processor
+def inject_shop_role_flags():
+    """SHOP-06 / SHOP-08 / JOBS-37: what the signed-in person may do in the
+    shop, so pages show only buttons that work for them."""
+    admin = bool(session.get("is_master_admin") or session.get("shop_role") == "admin")
+    return {
+        "shop_is_admin": admin,
+        "shop_can_create": bool(admin or session.get("shop_role") == "tech"),
+    }
+
+
 @app.route("/parts/<int:part_id>")
 @shop_role_required('admin', 'tech')
 def part_detail(part_id):
@@ -2708,7 +2719,7 @@ def part_edit(part_id):
 
 
 @app.route("/parts/<int:part_id>/adjust", methods=["POST"])
-@shop_role_required('admin')
+@shop_role_required('admin', 'tech')  # SHOP-06: a Tech may correct a count
 def part_adjust(part_id):
     conn = get_db()
     part = conn.execute("SELECT * FROM parts WHERE id = ?", (part_id,)).fetchone()
@@ -2784,7 +2795,7 @@ def part_delete(part_id):
     conn.execute("DELETE FROM parts WHERE id = ?", (part_id,))
     conn.commit()
     conn.close()
-    flash("Part deleted.", "success")
+    flash("Part deleted forever.", "success")
     return redirect(url_for("parts_list"))
 
 
@@ -3506,7 +3517,7 @@ def found_item_delete(item_id):
     conn.execute("DELETE FROM found_items WHERE id = ?", (item_id,))
     conn.commit()
     conn.close()
-    flash("Found item removed.", "success")
+    flash("Found item deleted forever.", "success")
     return redirect(url_for("project_detail", project_id=item["project_id"]) + "#found-items")
 
 
@@ -4290,7 +4301,7 @@ def project_trash(project_id):
     parsed = _parse_project_code(project["code"])
     after = _projects_after(conn, *parsed) if parsed else []
     conn.close()
-    flash(f"Project '{project['name']}' moved to Recently Deleted.", "success")
+    flash(f"Project '{project['name']}' moved to the trash. Find it in Recently Deleted.", "success")
     if after:
         return redirect(url_for("project_renumber_confirm", yy=parsed[0], num=parsed[1]))
     return redirect(url_for("projects_list"))
@@ -4496,7 +4507,7 @@ def _purge_summary_clause(summary):
 
 def _purge_summary_message(name, summary):
     clause = _purge_summary_clause(summary)
-    return f"Job '{name}' deleted. {clause}." if clause else f"Project '{name}' permanently deleted. Its logbook entries and owner-approved items were kept on the plane's record."
+    return f"Job '{name}' deleted forever. {clause}." if clause else f"Project '{name}' deleted forever. Its logbook entries and owner-approved items were kept on the plane's record."
 
 
 @app.route("/projects/<int:project_id>/purge", methods=["POST"])
@@ -5075,7 +5086,7 @@ def plane_todo_delete(asset_id, todo_id):
     conn.execute("DELETE FROM plane_todos WHERE id = ? AND asset_id = ?", (todo_id, asset_id))
     conn.commit()
     conn.close()
-    flash("To-do removed.", "success")
+    flash("To-do deleted forever.", "success")
     return redirect(url_for("asset_detail", asset_id=asset_id))
 
 
@@ -5290,7 +5301,7 @@ def asset_compression_delete(asset_id, check_id):
     conn.execute("DELETE FROM compression_checks WHERE id = ?", (check_id,))
     conn.commit()
     conn.close()
-    flash("Compression check removed.", "success")
+    flash("Compression check deleted forever.", "success")
     return redirect(url_for("asset_compression", asset_id=asset_id))
 
 
@@ -5393,7 +5404,7 @@ def asset_trash(asset_id):
     conn.execute("UPDATE assets SET deleted_at = ? WHERE id = ?", (now_iso(), asset_id))
     conn.commit()
     conn.close()
-    flash(f"Aircraft '{asset['tag']}' moved to Recently Deleted.", "success")
+    flash(f"Aircraft '{asset['tag']}' moved to the trash. Find it in Recently Deleted.", "success")
     return redirect(url_for("assets_list"))
 
 
@@ -5467,7 +5478,7 @@ def asset_purge(asset_id):
     _purge_asset(conn, asset_id)
     conn.commit()
     conn.close()
-    flash(f"Aircraft '{asset['tag']}' permanently deleted. Linked projects were kept (just unlinked), and its flight and squawk history was kept.", "success")
+    flash(f"Aircraft '{asset['tag']}' deleted forever. Linked projects were kept (just unlinked), and its flight and squawk history was kept.", "success")
     return redirect(url_for("trash_page"))
 
 
@@ -5886,6 +5897,7 @@ def photo_delete(photo_id):
     conn.execute("DELETE FROM photos WHERE id = ?", (photo_id,))
     conn.commit()
     conn.close()
+    flash("Photo deleted.", "success")  # JOBS-37
     return _photo_owner_redirect(photo)
 
 
@@ -6975,7 +6987,7 @@ def _shop_period(default="this_month"):
             end = datetime.strptime(d_to, "%Y-%m-%d").date() if d_to else today
             if end < start:
                 start, end = end, start
-            return start.isoformat(), end.isoformat(), "custom", f"{start.strftime('%d-%m-%Y')} to {end.strftime('%d-%m-%Y')}"
+            return start.isoformat(), end.isoformat(), "custom", f"{usdate(start.isoformat())} to {usdate(end.isoformat())}"
         except ValueError:
             pass
     period = request.args.get("period", default)

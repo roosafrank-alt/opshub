@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Aircraft - OpsHub{% endblock %}
+{% block title %}Aircraft · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0">Aircraft ({{ assets|length }})</h4>
@@ -8,9 +8,9 @@
       <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search tag, name, make, model, owner...">
       <button class="btn btn-outline-secondary ms-1"><i class="bi bi-search"></i></button>
     </form>
-    {#- JOBS-04: New Aircraft and the Recently Deleted trash are admin only. #}
+    {#- JOBS-04: Add Aircraft and the Recently Deleted trash are admin only. #}
     {% if is_master_admin or shop_role == 'admin' %}
-    <a href="{{ url_for('asset_new') }}" class="btn btn-warning fw-bold text-nowrap"><i class="bi bi-plus-lg"></i> New Aircraft</a>
+    <a href="{{ url_for('asset_new') }}" class="btn btn-dark fw-bold text-nowrap" data-change="DESIGN-2 DESIGN-1"><i class="bi bi-plus-lg"></i> Add Aircraft</a>
     <a href="{{ url_for('trash_page') }}" class="btn btn-outline-secondary btn-sm text-nowrap" title="Recently Deleted"><i class="bi bi-trash3"></i></a>
     {% endif %}
   </div>

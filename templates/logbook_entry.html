@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Logbook Entry - OpsHub{% endblock %}
+{% block title %}Logbook Entry · Winds Aloft{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-8">
@@ -12,7 +12,7 @@
       saved by {{ e.created_by or '?' }} {{ e.created_at|usdate(True) }}{% if e.updated_at != e.created_at %}, edited {{ e.updated_at|usdate(True) }}{% endif %}
     </p>
   </div>
-  <a class="btn btn-primary btn-sm" target="_blank" href="{{ url_for('logbook.entry_print', entry_id=e.id) }}"><i class="bi bi-printer"></i> Print Sticker</a>
+  <a class="btn btn-outline-secondary btn-sm" target="_blank" href="{{ url_for('logbook.entry_print', entry_id=e.id) }}" data-change="DESIGN-1"><i class="bi bi-printer"></i> Print Sticker</a>
 </div>
 
 <form method="post" class="card p-3">
@@ -52,13 +52,13 @@
   </fieldset>
   {% if can_edit %}
   <div class="d-flex justify-content-between mt-3">
-    <button class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Save changes</button>
+    <button class="btn btn-dark btn-sm" data-change="DESIGN-1"><i class="bi bi-check-lg"></i> Save changes</button>
   </div>
   {% endif %}
 </form>
 {% if is_admin %}
-<form method="post" action="{{ url_for('logbook.entry_delete', entry_id=e.id) }}" class="mt-2 text-end" data-confirm="Delete this logbook entry?" data-confirm-style="danger" data-confirm-ok="Yes, delete">
-  <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash3"></i> Delete entry</button>
+<form method="post" action="{{ url_for('logbook.entry_delete', entry_id=e.id) }}" class="mt-2 text-end" data-change="DESIGN-4" data-confirm="Delete this logbook entry forever?" data-confirm-title="Delete Forever" data-confirm-style="danger" data-confirm-ok="Delete Forever">
+  <button class="btn btn-danger btn-sm"><i class="bi bi-trash3"></i> Delete Forever</button>
 </form>
 {% endif %}
 </div>

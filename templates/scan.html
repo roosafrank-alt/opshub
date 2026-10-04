@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Scan - OpsHub{% endblock %}
+{% block title %}Scan · Winds Aloft{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-lg-8">
@@ -16,7 +16,7 @@
           </select>
           <div id="operator-new-row" class="input-group input-group-sm mt-1" style="max-width:260px; display:none;">
             <input type="text" id="operator-new-input" class="form-control" placeholder="e.g. Frank, Shop PC, Tablet 1">
-            <button type="button" id="operator-new-add" class="btn btn-primary">Add</button>
+            <button type="button" id="operator-new-add" class="btn btn-dark" data-change="DESIGN-1">Add</button>
           </div>
         </div>
         <div class="text-end">
@@ -33,7 +33,7 @@
           <option value="{{ pr.id }}" data-code="{{ pr.code }}">{{ pr.code }} - {{ pr.name }}</option>
           {% endfor %}
         </select>
-        <div class="form-text mb-2">No active projects? <a href="{{ url_for('project_new') }}">Create one</a>.</div>
+        <div class="form-text mb-2" data-change="SHOP-08">No active projects? {% if shop_can_create %}<a href="{{ url_for('project_new') }}">Create one</a>.{% else %}Ask an admin to create one.{% endif %}</div>
         <label class="form-label small mb-0">Discrepancy <span class="text-muted">(optional, e.g. Brakes, Engine)</span></label>
         <select id="section-select" class="form-select form-select-sm">
           <option value="">-- General (no specific area) --</option>
@@ -41,7 +41,7 @@
         </select>
         <div id="section-new-row" class="input-group input-group-sm mt-1" style="display:none;">
           <input type="text" id="section-new-input" class="form-control" placeholder="e.g. Brakes, Engine, Avionics">
-          <button type="button" id="section-new-add" class="btn btn-primary">Add</button>
+          <button type="button" id="section-new-add" class="btn btn-dark" data-change="DESIGN-1">Add</button>
         </div>
       </div>
     </div>
@@ -555,7 +555,7 @@ function showGeneralNotePrompt(code, laborerName) {
     <div class="mb-2"><strong>${laborerName}</strong> - what did you work on during this General Shop time?</div>
     <textarea id="general-note-input" class="form-control mb-2" rows="2" placeholder="e.g. Swept and organized the parts room"></textarea>
     <div class="d-flex gap-2">
-      <button class="btn btn-warning fw-bold flex-fill" id="general-note-submit">Submit &amp; Clock Out</button>
+      <button class="btn btn-dark fw-bold flex-fill" id="general-note-submit" data-change="DESIGN-1">Submit &amp; Clock Out</button>
       <button class="btn btn-outline-secondary" id="general-note-cancel">Not now</button>
     </div>`;
   const input = document.getElementById('general-note-input');
@@ -755,7 +755,7 @@ function showPartConfirm(barcode, data, fromCamera) {
     body.innerHTML = `
       <div class="alert alert-warning mb-2"><strong>Unrecognized code:</strong> ${barcode}<br>Not a part, project, or worker code we recognize.</div>
       <div class="d-flex gap-2">
-        ${addPartHtml(barcode, 'btn btn-primary flex-fill')}
+        ${addPartHtml(barcode, 'btn btn-dark flex-fill')}
         <button class="btn btn-outline-secondary flex-fill" onclick="cancelPartConfirm()">Dismiss</button>
       </div>`;
     return;
@@ -788,7 +788,7 @@ function showPartConfirm(barcode, data, fromCamera) {
     <label class="form-label small">Quantity</label>
     <input type="number" id="confirm-qty" class="form-control form-control-lg mb-2" value="1" min="0.01" step="any">
     <div class="d-flex gap-2">
-      <button class="btn btn-primary flex-fill fw-bold" id="confirm-go-btn" disabled>Pick Stock IN or OUT above</button>
+      <button class="btn btn-dark flex-fill fw-bold" id="confirm-go-btn" disabled data-change="DESIGN-1">Pick Stock IN or OUT above</button>
       <button class="btn btn-outline-secondary" onclick="cancelPartConfirm()">Cancel</button>
     </div>`;
 
@@ -811,7 +811,7 @@ function showPartConfirm(barcode, data, fromCamera) {
       const projectOk = projectSelect.value || confirmProjectSelect.value;
       goBtn.disabled = !projectOk;
       goBtn.textContent = projectOk ? 'Confirm Stock OUT' : 'Select a project first';
-      goBtn.className = 'btn btn-primary flex-fill fw-bold';
+      goBtn.className = 'btn btn-dark flex-fill fw-bold';
     }
   }
 
@@ -891,9 +891,16 @@ function submitScan(barcode, qty, action, fromCamera, confirmExpired) {
     // Expired shelf-life part: the tech must confirm before it's used.
     if (!data.ok && data.error === 'expired') {
       vibrate([200, 100, 200]);
-      if (window.confirm((data.name || 'This part') + ' expired on ' + data.expired_on + '. Use anyway?')) {
-        submitScan(barcode, qty, action, fromCamera, true);
-        return;
+      // DESIGN-3: ask with the app's own dialog. The result below says "Not
+      // used" until the person says yes, which scans it again as confirmed.
+      var expiredName = data.name || 'This part';
+      if (window.OpsHubConfirm) {
+        var q = document.createElement('div');
+        q.setAttribute('data-confirm', expiredName + ' expired on ' + data.expired_on + '. Use it anyway?');
+        q.setAttribute('data-confirm-title', 'Expired part');
+        q.setAttribute('data-confirm-ok', 'Yes, use it anyway');
+        q.setAttribute('data-confirm-style', 'warning');
+        window.OpsHubConfirm(q, null, function () { submitScan(barcode, qty, action, fromCamera, true); });
       }
       data = { ok: false, error: 'Not used - ' + (data.name || 'the part') + ' expired on ' + data.expired_on + '.' };
     }
@@ -985,7 +992,7 @@ function showScanResult(barcode, action, data) {
     body.innerHTML = `<div class="alert alert-warning mb-0">
       <strong>Unrecognized barcode:</strong> ${barcode}<br>
       This part isn't in inventory yet.
-      ${addPartHtml(barcode, 'btn btn-sm btn-primary mt-2')}
+      ${addPartHtml(barcode, 'btn btn-sm btn-dark mt-2')}
     </div>`;
     addRecent(barcode, 'Unknown', 'error');
     return;

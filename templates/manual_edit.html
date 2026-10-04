@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Edit {{ manual.title }} - OpsHub{% endblock %}
+{% block title %}Edit {{ manual.title }} · Winds Aloft{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-6">
@@ -52,9 +52,9 @@
       <input type="file" name="manual_file" accept="application/pdf" class="form-control">
       <div class="form-text">Uploading a new file here re-indexes it from scratch, same as a fresh upload.</div>
     </div>
-    <div class="d-flex justify-content-between">
-      <a href="{{ url_for('manuals.manual_detail', manual_id=manual.id) }}" class="btn btn-outline-secondary">Cancel</a>
-      <button type="submit" class="btn btn-primary fw-bold">Save Changes</button>
+    <div class="d-flex gap-2" data-change="DESIGN-8">
+      <button type="submit" class="btn btn-dark fw-bold" data-change="DESIGN-1">Save Changes</button>
+      <a href="{{ url_for('manuals.manual_detail', manual_id=manual.id) }}" class="btn btn-outline-secondary" onclick="var r = document.referrer; if (r && r.indexOf(location.origin) === 0 && r !== location.href && history.length > 1) { history.back(); return false; }">Cancel</a>
     </div>
   </form>
 </div>

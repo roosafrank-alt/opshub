@@ -19,7 +19,7 @@ class WorkersMenuTest(OpsHubTestCase):
         # SHOP-23: both live in a Print dropdown now.
         self.assertIn("Worker Badges</a>", html)
         self.assertIn("General Shop Code</a>", html)
-        self.assertIn("New Worker", html)
+        self.assertIn("Add Worker", html)
 
     def test_badge_and_code_pages_go_back_to_workers(self):
         c = self.login("shop_admin")

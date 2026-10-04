@@ -180,7 +180,7 @@ class ShopPreviewFixesTest(OpsHubTestCase):
     def test_worker_wording(self):
         c = self.login("shop_admin")
         html = c.get("/laborers/new").get_data(as_text=True)
-        self.assertIn("New Worker", html)
+        self.assertIn("Add Worker", html)
         self.assertNotIn("Laborer", html.split("<main")[-1] if "<main" in html else html.split("<h4")[1])
         r = c.post("/laborers/new", data={"name": "Sam", "rate": "20"}, follow_redirects=True)
         self.assertIn("Worker &#39;Sam&#39; added", r.get_data(as_text=True))
@@ -201,7 +201,7 @@ class ShopPreviewFixesTest(OpsHubTestCase):
         self.make_part()  # supplier "Aircraft Spruce"
         html = self.login("shop_admin").get("/orders/new").get_data(as_text=True)
         self.assertIn("<h4", html)
-        self.assertIn("New Order</h4>", html)
+        self.assertIn("Add Order</h4>", html)
         self.assertIn("Save Order", html)
         self.assertIn('<option value="Aircraft Spruce">', html)
 
@@ -215,14 +215,14 @@ class ShopPreviewFixesTest(OpsHubTestCase):
         pid = self.make_part()
         c = self.login("shop_admin")
         html = c.get(f"/parts/{pid}").get_data(as_text=True)
-        self.assertIn("Delete</button>", html)
+        self.assertIn("Delete Forever</button>", html)
         self.assertIn("Order more", html)
         self.assertNotIn("Order more", self.login("tech").get(f"/parts/{pid}").get_data(as_text=True))
         job = self.make_project()
         self.exec("INSERT INTO transactions (part_id, project_id, type, qty, performed_by, created_at) VALUES (?,?,'out',1,'F',?)",
                   (pid, job, db.now_iso()))
         html = self.login("shop_admin").get(f"/parts/{pid}").get_data(as_text=True)
-        self.assertNotIn("Delete</button>", html)
+        self.assertNotIn("Delete Forever</button>", html)
         self.assertIn("is on 1 job", html)
 
     # ---- SHOP-31

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Calibrated Tools - OpsHub{% endblock %}
+{% block title %}Calibrated Tools · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-wrench-adjustable"></i> Calibrated Tools <span class="text-muted fs-6">- due dates for torque wrenches, gauges and testers</span></h4>
   {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
-  <a href="{{ url_for('tool_new') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Add Tool</a>
+  <a href="{{ url_for('tool_new') }}" class="btn btn-dark" data-change="DESIGN-1"><i class="bi bi-plus-lg"></i> Add Tool</a>
   {% endif %}
 </div>
 
@@ -131,9 +131,9 @@
             <input type="text" name="note" class="form-control">
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <div class="modal-footer justify-content-start" data-change="DESIGN-8">
           <button type="submit" class="btn btn-success fw-bold btn-sm"><i class="bi bi-check-lg"></i> Mark Calibrated</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
         </div>
       </form>
     </div>

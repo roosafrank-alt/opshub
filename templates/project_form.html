@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Edit Project' if project else 'New Project' }} - OpsHub{% endblock %}
+{% block title %}{{ 'Edit Project' if project else 'Add Project' }} · Winds Aloft{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-6">
 <div class="card p-4">
-  <h4>{{ 'Edit Project' if project else 'New Project' }}</h4>
+  <h4>{{ 'Edit Project' if project else 'Add Project' }}</h4>
   {% if project %}<p class="text-muted small mb-3"><code class="text-primary">{{ project.code }}</code> - the project code doesn't change.</p>{% endif %}
   <script type="application/json" id="quick-type-days-json">{{ (quick_type_days or {})|tojson }}</script>
   <form method="post" id="project-form" data-preselect-quick-type="{{ preselect_quick_type or '' }}" data-editing="{{ '1' if project else '' }}">
@@ -23,7 +23,7 @@
       </div>
       <div id="quick-desc-other-row" class="input-group input-group-sm mt-1" style="display:none;">
         <input type="text" id="quick-desc-other-input" class="form-control" placeholder="Type what this project is...">
-        <button type="button" id="quick-desc-other-add" class="btn btn-primary">Set</button>
+        <button type="button" id="quick-desc-other-add" class="btn btn-dark" data-change="DESIGN-1">Set</button>
       </div>
       {% if not project %}
       <input type="hidden" name="quick_types" id="quick-types-input" value="">
@@ -52,7 +52,7 @@
       <div class="form-text" data-change="JOBS-20 JOBS-24">Link this job to a plane to get its combined history and hours-based maintenance tracking. Picking one fills in the project name with its tail number. Pick "+ Add New..." above for just a tail number, right here{% if is_master_admin or shop_role == 'admin' %}, or use <a href="{{ url_for('asset_new') }}" target="_blank">the full form</a>{% endif %}.</div>
       <div id="asset-quick-add-row" class="input-group input-group-sm mt-1" style="display:none;">
         <input type="text" id="asset-quick-add-input" class="form-control" placeholder="Tail / serial number">
-        <button type="button" id="asset-quick-add-btn" class="btn btn-primary">Add</button>
+        <button type="button" id="asset-quick-add-btn" class="btn btn-dark" data-change="DESIGN-1">Add</button>
       </div>
       <div id="asset-quick-add-error" class="text-danger small mt-1" style="display:none;"></div>
     </div>
@@ -96,9 +96,9 @@
       <label class="form-label">Standard Items Performed <span class="text-muted small">(optional - steps typically done on this kind of job, one per line)</span></label>
       <textarea name="standard_items" class="form-control" rows="4" placeholder="e.g.&#10;Drain and replace oil/filter&#10;Inspect brakes&#10;Lubricate control surfaces">{{ project.standard_items if project and project.standard_items else '' }}</textarea>
     </div>
-    <div class="d-flex justify-content-between">
-      <a href="{{ url_for('project_detail', project_id=project.id) if project else url_for('projects_list') }}" class="btn btn-outline-secondary">Cancel</a>
-      <button type="submit" class="btn btn-warning fw-bold">{{ 'Save Changes' if project else 'Create Project' }}</button>
+    <div class="d-flex gap-2" data-change="DESIGN-8">
+      <button type="submit" class="btn btn-dark fw-bold" data-change="DESIGN-1">{{ 'Save Changes' if project else 'Add Project' }}</button>
+      <a href="{{ url_for('project_detail', project_id=project.id) if project else url_for('projects_list') }}" class="btn btn-outline-secondary" onclick="var r = document.referrer; if (r && r.indexOf(location.origin) === 0 && r !== location.href && history.length > 1) { history.back(); return false; }">Cancel</a>
     </div>
   </form>
 </div>

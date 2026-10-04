@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_squawk_macros.html" import squawk_step_pills, squawk_step_action, squawk_assigned_line, squawk_reopened_line %}
-{% block title %}Squawks - OpsHub{% endblock %}
+{% block title %}Squawks · Winds Aloft{% endblock %}
 {% block content %}
 {% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
 {% set can_confirm_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector') %}
@@ -52,18 +52,18 @@
   {% if current_step == 'done' %}
   <div class="card">
     <div class="table-responsive">
-      <table class="table table-sm align-middle mb-0">
+      <table class="table table-sm align-middle mb-0 table-stack" data-change="DESIGN-5">
         <thead class="table-light"><tr><th>Plane</th><th>Date</th><th>Reported by</th><th>Notes</th><th>Repaired</th>{% if can_reopen_squawks %}<th></th>{% endif %}</tr></thead>
         <tbody>
           {% for sq in squawks_for_step %}
           <tr>
-            <td><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></td>
-            <td><small>{{ sq.event_date|usdate }}</small></td>
-            <td>{{ sq.reported_by if sq.kind == 'quick' else sq.student_name }}</td>
-            <td><small>{{ sq.notes or '-' }}</small>{{ squawk_reopened_line(sq) }}</td>
-            <td><small>{{ sq.repaired_by or '-' }}<br>{{ sq.repaired_at|usdate(true) if sq.repaired_at else '' }}</small></td>
+            <td data-label="Plane"><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></td>
+            <td data-label="Date"><small>{{ sq.event_date|usdate }}</small></td>
+            <td data-label="Reported by" class="stack-full">{{ sq.reported_by if sq.kind == 'quick' else sq.student_name }}</td>
+            <td data-label="Notes" class="stack-full"><small>{{ sq.notes or '-' }}</small>{{ squawk_reopened_line(sq) }}</td>
+            <td data-label="Repaired" class="stack-full"><small>{{ sq.repaired_by or '-' }}<br>{{ sq.repaired_at|usdate(true) if sq.repaired_at else '' }}</small></td>
             {% if can_reopen_squawks %}
-            <td class="text-end">
+            <td data-label="" class="text-end">
               <form method="post" action="{{ url_for('squawk_reopen', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Reopen this squawk? It goes back to New." data-confirm-title="Reopen Squawk" data-confirm-ok="Reopen" data-confirm-style="warning" data-change="JOBS-08">
                 <button class="btn btn-outline-secondary btn-sm py-0">Reopen</button>
               </form>

@@ -316,6 +316,6 @@ def manual_delete(manual_id):
             os.remove(os.path.join(UPLOAD_DIR, manual["filename"]))
         except OSError:
             pass
-        flash(f"Deleted '{manual['title']}'.", "success")
+        flash(f"'{manual['title']}' deleted forever.", "success")
     conn.close()
     return redirect(url_for("manuals.manuals_list"))

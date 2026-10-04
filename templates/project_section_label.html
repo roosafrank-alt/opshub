@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Discrepancy Code - {{ section.name }}{% endblock %}
+{% block title %}Discrepancy Code - {{ section.name }} · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 no-print">
   <h4 class="mb-0">Discrepancy Code</h4>
   <div class="d-flex gap-2">
     <a href="{{ url_for('project_detail', project_id=section.project_id) }}" class="btn btn-outline-secondary">&laquo; Back to Project</a>
-    <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+    <button class="btn btn-outline-secondary fw-bold" onclick="window.print()" data-change="DESIGN-1"><i class="bi bi-printer"></i> Print</button>
   </div>
 </div>
 <p class="text-muted no-print">Scan it on the Scan page to pick this job and discrepancy for parts or labor.</p>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Projects - OpsHub{% endblock %}
+{% block title %}Projects · Winds Aloft{% endblock %}
 
 {% macro project_tiles(plist, deleted=false) %}
 <div class="row g-3">
@@ -10,7 +10,7 @@
       <div class="d-flex justify-content-between gap-2">
         <div class="flex-grow-1">
           <h5><code class="text-primary small">{{ p.code }}</code> {{ p.name }}</h5>
-          <span class="badge bg-secondary">Deleted {{ p.deleted_at.split('T')[0] if p.deleted_at else '' }}</span>
+          <span class="badge bg-secondary">Deleted {{ p.deleted_at|usdate_short if p.deleted_at else '' }}</span>
         </div>
         {% if proj_cover.get(p.id) %}
         <img src="{{ url_for('static', filename='uploads/' + proj_cover.get(p.id)) }}" class="rounded flex-shrink-0" style="width:56px; height:56px; object-fit:cover;">
@@ -39,7 +39,7 @@
           {% endif %}
         </div>
         {% set t = proj_tags.get(p.id) %}
-        {% if t %}<div class="small mb-1 promised-tag"><i class="bi bi-calendar-check"></i> <span class="badge bg-{{ t[2] }}{{ ' text-dark' if t[2] in ('warning', 'light') }}{{ ' border' if t[2] == 'light' }}">{{ t[1] }}</span>{% if p.promised_date %} <span class="text-muted">Promised {{ p.promised_date|usdate }}</span>{% endif %}</div>{% endif %}
+        {% if t %}<div class="small mb-1 promised-tag"><i class="bi bi-calendar-check"></i> <span class="badge bg-{{ t[2] }}{{ ' text-dark' if t[2] in ('warning', 'light') }}{{ ' border' if t[2] == 'light' }}">{{ t[1] }}</span>{% if p.promised_date %} <span class="text-muted">Promised {{ p.promised_date|usdate_short }}</span>{% endif %}</div>{% endif %}
         <p class="text-muted small mb-1">{{ p.description or 'No description' }}</p>
         {% if can_see_shop_costs %}
         <div data-change="JOBS-07">
@@ -70,14 +70,14 @@
   <h4 class="mb-0 me-auto">Projects</h4>
   {#- Idea ux-phone-list-toolbars: on a phone, "Parts Used" shrinks to an
      icon-only button (its label just hides, same trick as the navbar's
-     .nav-label), it stays on the title's line with New Project and the
+     .nav-label), it stays on the title's line with Add Project and the
      trash icon, and the search form drops to its own full-width line
      below (last in the markup so it wraps onto its own line on a phone;
      order-md-* puts it back in its original spot, first, at md+ - see
      .list-toolbar-search in style.css). #}
   <a href="{{ url_for('projects_parts_used') }}" class="btn btn-outline-primary text-nowrap order-md-2"><i class="bi bi-box-seam"></i> <span class="d-none d-md-inline">Parts Used</span></a>
   {% if is_master_admin or shop_role in ('admin', 'tech') %}
-  <a href="{{ url_for('project_new') }}" class="btn btn-warning fw-bold text-nowrap order-md-3"><i class="bi bi-plus-lg"></i> New Project</a>
+  <a href="{{ url_for('project_new') }}" class="btn btn-dark fw-bold text-nowrap order-md-3" data-change="DESIGN-2 DESIGN-1"><i class="bi bi-plus-lg"></i> Add Project</a>
   {% endif %}
   {% if is_master_admin or shop_role == 'admin' %}
   <a href="{{ url_for('trash_page') }}" class="btn btn-outline-secondary btn-sm text-nowrap order-md-4" title="Recently Deleted"><i class="bi bi-trash3"></i></a>

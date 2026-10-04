@@ -117,9 +117,9 @@ class JobPageButtonsTest(OpsHubTestCase):
             self.assertIn(here, body, here)
 
     def test_jobs_03_projects_list_buttons_follow_the_role(self):
-        self.assertIn("New Project", get(self.login("tech"), "/projects"))
+        self.assertIn("Add Project", get(self.login("tech"), "/projects"))
         body = get(self.login("shop_student"), "/projects")
-        self.assertNotIn("New Project", body)
+        self.assertNotIn("Add Project", body)
         self.assertNotIn("/trash", body)
         self.assertNotIn(f'href="/assets/{self.asset}"', body)
 
@@ -199,8 +199,8 @@ class AircraftPageRolesTest(OpsHubTestCase):
         self.assertIn("asset-trash-form", get(self.login("shop_admin"), f"/assets/{self.asset}"))
 
     def test_jobs_04_aircraft_list_new_button_is_admin_only(self):
-        self.assertNotIn("New Aircraft", get(self.login("tech"), "/assets"))
-        self.assertIn("New Aircraft", get(self.login("shop_admin"), "/assets"))
+        self.assertNotIn("Add Aircraft", get(self.login("tech"), "/assets"))
+        self.assertIn("Add Aircraft", get(self.login("shop_admin"), "/assets"))
 
     def test_jobs_05_inspector_page_has_no_buttons_that_refuse_them(self):
         self.exec("INSERT INTO plane_todos (asset_id, description, created_at) VALUES (?, 'Fix seat', ?)",
@@ -246,7 +246,7 @@ class AircraftPageRolesTest(OpsHubTestCase):
             self.assertIn("Open PDF", page, role)
             self.assertNotIn(f"/manuals/{mid}/edit", page, role)
         c = self.login("shop_admin")
-        self.assertIn("Upload Manual", get(c, "/manuals"))
+        self.assertIn("Add Manual", get(c, "/manuals"))
         self.assertIn(f"/manuals/{mid}/edit", get(c, f"/manuals/{mid}"))
         c = self.login("tech")
         c.post(f"/manuals/{mid}/delete")
@@ -265,11 +265,12 @@ class AircraftPageRolesTest(OpsHubTestCase):
         self.assertIn("var sharedShopLogin = true", body)
 
     def test_jobs_23_timestamps_use_the_app_date_format(self):
+        from app import usdate  # whatever the app-wide format is (FLY-12)
         body = get(self.login("shop_admin"), f"/assets/{self.asset}")
-        self.assertIn("Updated Wed, Sep 30, 2026 14:22 by Shop - Frank", body)  # FLY-12 date format
+        self.assertIn("Updated " + usdate("2026-09-30 14:22", True) + " by Shop - Frank", body)
         self.exec("UPDATE assets SET deleted_at='2026-09-30 14:22:11' WHERE id=?", (self.asset,))
         trash = get(self.login("shop_admin"), "/trash")
-        self.assertIn("Wed, Sep 30, 2026 14:22", trash)
+        self.assertIn(usdate("2026-09-30 14:22", True), trash)
         self.assertNotIn("14:22:11", trash)
 
     def test_jobs_24_never_says_asset(self):
@@ -279,7 +280,7 @@ class AircraftPageRolesTest(OpsHubTestCase):
         self.assertIn("No aircraft yet", get(c, "/assets"))
         self.assertIn("No deleted aircraft", get(c, "/trash"))
         a = self.make_asset("N9")
-        self.assertIn("Delete this aircraft?", get(c, f"/assets/{a}"))
+        self.assertIn("Move this aircraft to the trash?", get(c, f"/assets/{a}"))
         r = c.post("/assets/new", data={"tag": "N9"})
         self.assertIn("An aircraft with tail number &#39;N9&#39; already exists.", r.get_data(as_text=True))
         form = get(c, "/projects/new")

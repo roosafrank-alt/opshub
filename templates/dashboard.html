@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - OpsHub{% endblock %}
+{% block title %}Dashboard · Winds Aloft{% endblock %}
 {% block content %}
 <style>
   .dash-collapse-btn[aria-expanded="true"] .bi-chevron-right { transform: rotate(90deg); }
@@ -56,7 +56,7 @@
     <div class="d-flex gap-2 flex-shrink-0">
       <form method="post" action="{{ url_for('project_section_confirm', project_id=s.project_id, section_id=s.id) }}" data-change="SHOP-48" data-confirm="Confirm '{{ s.name }}' on {{ s.project_code }} as complete?" data-confirm-title="Confirm Complete" data-confirm-style="success">
         <input type="hidden" name="return_to" value="dashboard">
-        <button class="btn btn-info btn-sm fw-bold"><i class="bi bi-check-lg"></i> Confirm</button>
+        <button class="btn btn-dark btn-sm fw-bold" data-change="DESIGN-1"><i class="bi bi-check-lg"></i> Confirm</button>
       </form>
       <form method="post" action="{{ url_for('project_section_confirm', project_id=s.project_id, section_id=s.id) }}" data-confirm="Send '{{ s.name }}' back as not yet done?" data-confirm-title="Send Back">
         <input type="hidden" name="action" value="send_back"><input type="hidden" name="return_to" value="dashboard">
@@ -216,7 +216,7 @@
       <div><strong><a href="{{ url_for('project_detail', project_id=p.id) }}" class="alert-link">{{ p.asset_display_tag }}</a></strong> &middot; {{ p.name }}</div>
       <div class="small">Wants the week of {{ p.customer_requested_week|usdate }}</div>
     </div>
-    <a href="{{ url_for('project_edit', project_id=p.id) }}" class="btn btn-primary btn-sm fw-bold flex-shrink-0">Set date</a>
+    <a href="{{ url_for('project_edit', project_id=p.id) }}" class="btn btn-dark btn-sm fw-bold flex-shrink-0" data-change="DESIGN-1">Set date</a>
   </div>
   {% endfor %}
 </div>
@@ -237,7 +237,7 @@
     <div class="d-flex gap-2 flex-shrink-0">
       <a href="{{ url_for('project_edit', project_id=p.id) }}" class="btn btn-outline-warning btn-sm fw-bold">Reschedule</a>
       <form method="post" action="{{ url_for('project_reschedule_dismiss', project_id=p.id) }}">
-        <button class="btn btn-warning btn-sm fw-bold"><i class="bi bi-check-lg"></i> Dismiss</button>
+        <button class="btn btn-dark btn-sm fw-bold" data-change="DESIGN-1"><i class="bi bi-check-lg"></i> Dismiss</button>
       </form>
     </div>
   </div>
@@ -371,7 +371,7 @@
         <tbody>
           {% for p in upcoming_projects %}
           <tr>
-            <td><small>{{ p.scheduled_date|usdate }}</small></td>
+            <td><small>{{ p.scheduled_date|usdate_short }}</small></td>
             <td><a href="{{ url_for('project_detail', project_id=p.id) }}">{{ p.name }}</a></td>
             <td>{{ p.asset_display_tag or '-' }}</td>
             <td>{% if p.status == 'active' %}<span class="badge bg-success">Active</span>{% elif p.status == 'on_hold' %}<span class="badge bg-warning text-dark">On Hold</span>{% endif %}</td>
@@ -381,7 +381,7 @@
       </table>
     </div>
     {% else %}
-    <p class="text-muted mb-0 mt-2">Nothing scheduled yet. <a href="{{ url_for('project_new') }}">Schedule a project</a>.</p>
+    <p class="text-muted mb-0 mt-2" data-change="SHOP-08">Nothing scheduled yet. {% if shop_can_create %}<a href="{{ url_for('project_new') }}">Schedule a project</a>.{% else %}Ask an admin to create one.{% endif %}</p>
     {% endif %}
   </div>
 </div>
@@ -390,7 +390,7 @@
    mobile-scan-fab), so this only shows on larger screens (no duplicate on
    mobile). #}
 <div class="d-none d-md-grid mb-3">
-  <a href="{{ url_for('scan_page') }}" class="btn btn-warning btn-lg fw-bold py-3">
+  <a href="{{ url_for('scan_page') }}" class="btn btn-dark btn-lg fw-bold py-3" data-change="DESIGN-1">
     <i class="bi bi-upc-scan"></i> Go to Scan In / Out
   </a>
 </div>

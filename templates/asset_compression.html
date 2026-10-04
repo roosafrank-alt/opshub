@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Compression - {{ asset.tag }}{% endblock %}
+{% block title %}Compression - {{ asset.tag }} · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-speedometer"></i> Cylinder Compression - {{ asset.tag }}{% if asset.name and asset.name != asset.tag %} <span class="text-muted fs-6">({{ asset.name }})</span>{% endif %}</h4>
@@ -83,7 +83,7 @@
           <label class="form-label small mb-0">Notes</label>
           <input type="text" name="notes" class="form-control form-control-sm" placeholder="optional" value="{{ (editing.notes or '') if editing else '' }}">
         </div>
-        <button class="btn btn-primary btn-sm w-100 mt-2 fw-bold">{{ 'Save Changes' if editing else 'Log Check' }}</button>
+        <button class="btn btn-dark btn-sm w-100 mt-2 fw-bold" data-change="DESIGN-1">{{ 'Save Changes' if editing else 'Log Check' }}</button>
         {% if editing %}<a href="{{ url_for('asset_compression', asset_id=asset.id) }}" class="btn btn-outline-secondary btn-sm w-100 mt-1">Cancel</a>{% endif %}
       </form>
       {% else %}
@@ -97,7 +97,8 @@
 {% if checks %}
 <div class="card p-3">
   <h6 class="text-muted mb-2">History</h6>
-  <div class="table-responsive">
+  <div class="small text-muted d-sm-none mb-1" data-change="DESIGN-5"><i class="bi bi-arrow-left-right"></i> Swipe sideways to see every column</div>
+<div class="table-responsive">
     <table class="table table-sm align-middle mb-0">
       <thead><tr><th>Date</th><th>Hours</th><th>Master</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>By</th><th>Notes</th>{% if can_edit_checks %}<th></th>{% endif %}</tr></thead>
       <tbody>
@@ -114,8 +115,8 @@
           {% if can_edit_checks %}
           <td class="text-nowrap text-end" data-change="JOBS-27">
             <a href="{{ url_for('asset_compression', asset_id=asset.id, edit=c.id) }}" class="btn btn-sm btn-outline-secondary py-0 px-1" title="Correct this check"><i class="bi bi-pencil"></i></a>
-            <form method="post" action="{{ url_for('asset_compression_delete', asset_id=asset.id, check_id=c.id) }}" class="d-inline" data-confirm="Remove the {{ c.checked_date|usdate }} compression check?" data-confirm-style="danger">
-              <button class="btn btn-sm btn-outline-danger py-0 px-1" title="Remove this check"><i class="bi bi-x"></i></button>
+            <form method="post" action="{{ url_for('asset_compression_delete', asset_id=asset.id, check_id=c.id) }}" class="d-inline" data-change="DESIGN-4" data-confirm="Delete the {{ c.checked_date|usdate }} compression check forever?" data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
+              <button class="btn btn-sm btn-outline-danger py-0 px-1" title="Delete this check forever"><i class="bi bi-x"></i></button>
             </form>
           </td>
           {% endif %}
