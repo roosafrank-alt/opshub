@@ -1,5 +1,5 @@
 {% extends "customer_base.html" %}
-{% block title %}My Account{% endblock %}
+{% block title %}My Account · My Aircraft{% endblock %}
 {% block content %}
 {#- SEAM-7: an aircraft owner's small My Account page - name, email,
    phone and a new password (HUB-27 rules), opened from the account menu. #}
@@ -26,16 +26,17 @@
     <hr class="my-3">
     <h6 class="mb-2"><i class="bi bi-key"></i> Change Password <span class="text-muted small fw-normal">(leave blank to keep your current password)</span></h6>
     {% set ask_current = true %}{% include "_password_boxes.html" %}
-    <div class="d-flex justify-content-between mt-3">
+    {#- DESIGN-8: Save, then Cancel, left-aligned. DESIGN-1: owner teal. #}
+    <div class="d-flex gap-2 mt-3" data-change="DESIGN-8">
+      <button type="submit" class="btn btn-owner fw-bold" data-change="DESIGN-1">Save Changes</button>
       <a href="{{ url_for('customer.customer_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
-      <button type="submit" class="btn btn-primary fw-bold">Save Changes</button>
     </div>
   </form>
 </div>
 <div class="card p-4 mt-3">
   <h5 class="mb-2"><i class="bi bi-signpost-2"></i> Need a refresher?</h5>
   <p class="text-muted small mb-3">Replay the pop-up walkthrough that points out where everything is.</p>
-  <a href="{{ url_for('customer.customer_dashboard', tour=1) }}" class="btn btn-outline-primary btn-sm" data-change="SEAM-19"><i class="bi bi-airplane"></i> My Aircraft walkthrough</a>
+  <a href="{{ url_for('customer.customer_dashboard', tour=1) }}" class="btn btn-outline-owner btn-sm" data-change="SEAM-19 DESIGN-1"><i class="bi bi-airplane"></i> My Aircraft walkthrough</a>
 </div>
 </div>
 </div>

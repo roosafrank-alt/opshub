@@ -1,5 +1,5 @@
 {% extends "admin_base.html" %}
-{% block title %}Error Log - OpsHub{% endblock %}
+{% block title %}Error Log · Admin{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-10">
@@ -8,7 +8,7 @@
   <div class="d-flex gap-2">
     <a href="{{ url_for('admin_system') }}" class="btn btn-outline-secondary btn-sm">&laquo; System</a>
     <button type="button" class="btn btn-outline-primary btn-sm" onclick="location.reload()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-    <form method="post" action="{{ url_for('admin_system_log_clear') }}" data-confirm="Clear the error log? This cannot be undone." data-confirm-style="danger" class="d-inline">
+    <form method="post" action="{{ url_for('admin_system_log_clear') }}" data-confirm="Delete every entry in the error log forever? This cannot be undone." data-confirm-title="Clear the error log" data-confirm-ok="Delete Forever" data-confirm-style="danger" class="d-inline" data-change="DESIGN-4">
       <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Clear</button>
     </form>
   </div>

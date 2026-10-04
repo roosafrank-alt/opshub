@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>{% block title %}Admin - OpsHub{% endblock %}</title>
+<title>{% block title %}Admin{% endblock %}</title>
 {#- SEAM-13: Admin pages carry the Winds Aloft identity on the home screen. #}
 {% set app_identity = 'windsaloft' %}{% include "_app_identity.html" %}
 <meta name="theme-color" content="#2f2b45">
@@ -60,7 +60,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='js/combo.js') }}"></script>
 {% include "_labor_timer_widget.html" %}
-{% include "_confirm_modal.html" %}
+{% set confirm_accent = 'primary' %}{% include "_confirm_modal.html" %}
 {% block scripts %}{% endblock %}
 </body>
 </html>

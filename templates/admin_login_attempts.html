@@ -1,5 +1,5 @@
 {% extends "admin_base.html" %}
-{% block title %}Login Attempts - OpsHub{% endblock %}
+{% block title %}Login Attempts · Admin{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-9">
@@ -28,14 +28,14 @@
 <div class="card p-3">
   <h6>Recent failed attempts</h6>
   <div class="table-responsive">
-  <table class="table table-sm mb-0">
+  <table class="table table-sm mb-0 table-stack" data-change="DESIGN-5">
     <thead><tr><th data-change="HUB-32">Time</th><th>Username tried</th><th>Source</th><th></th></tr></thead>
     <tbody>
     {% for a in attempts %}
-    <tr><td>{{ a.at_local|usdate(true) }}</td><td>{{ a.username }}</td><td>{{ a.source }}</td>
-        <td>{% if a.kind == 'locked' %}<span class="badge bg-danger">Locked</span>{% endif %}</td></tr>
+    <tr><td data-label="Time">{{ a.at_local|usdate_short(true) }}</td><td data-label="Username tried">{{ a.username }}</td><td data-label="Source">{{ a.source }}</td>
+        <td data-label="">{% if a.kind == 'locked' %}<span class="badge bg-danger">Locked</span>{% endif %}</td></tr>
     {% else %}
-    <tr><td colspan="4" class="text-muted">None yet.</td></tr>
+    <tr><td colspan="4" class="text-muted" data-label="">None yet.</td></tr>
     {% endfor %}
     </tbody>
   </table>

@@ -1,0 +1,114 @@
+[
+ {
+  "id": "HUB-15",
+  "status": "built",
+  "pages": [
+   "/portal/"
+  ],
+  "where": "My Aircraft list (owner with two or more planes): a plane with found items waiting shows an amber \"N need your OK\" badge (\"1 needs your OK\" for one, same wording as the plane page). \"All caught up\" only shows when nothing is due, nothing needs a reply AND nothing is waiting.",
+  "see_as": "owner",
+  "detail": "Counts found items with status 'waiting' on the plane's jobs (same rule as the plane page badge). A single-plane owner still goes straight to the plane."
+ },
+ {
+  "id": "DESIGN-1",
+  "status": "built",
+  "pages": [
+   "/customers",
+   "/customers/new",
+   "/customers/{id}",
+   "/customers/{id}/edit",
+   "/portal/aircraft/{id}",
+   "/portal/account",
+   "/assets/{id}",
+   "/squawks",
+   "/projects/{id}",
+   "/admin/*",
+   "/account"
+  ],
+  "where": "Shared pieces use the program's accent: Customers (staff) pages btn-dark (Add Customer, Save, Send login details); owner portal btn-owner (Book it, Confirm, Send, Log Reading, Save Changes, message send); the AD box on the aircraft page (Add AD, Save compliance) and the squawk Accepted and Confirm buttons are btn-dark; the Book next lesson button in the flash banner is btn-primary. Admin and My Account already used btn-primary. The app's confirm dialog's go-ahead button now follows the program: dark in Winds Aloft and Customers, blue in Fly with Kate!, Flight Academy, Admin and My Account, teal in My Aircraft (a base template sets confirm_accent).",
+  "see_as": "admin",
+  "detail": "Left as they are on purpose: green Approve / Mark as Repaired / Mark paid (a decision or a completion, not a save), red Decline and I'll take it, the yellow scan button on phones in the Winds Aloft header (shop chrome), the yellow Back to normal chip on Switch role (attention), and the navy login-page buttons. Shop and flight builders register their own pages for this sweep."
+ },
+ {
+  "id": "DESIGN-2",
+  "status": "built",
+  "pages": [
+   "/admin/users",
+   "/admin/users/new",
+   "/customers",
+   "/customers/new"
+  ],
+  "where": "Add Account (Manage Accounts list, top right, was New Account) and Add Customer (Customers list, was New Customer); the matching form headings and page titles say Add too. Routes are unchanged.",
+  "see_as": "admin",
+  "detail": "Shop and flight builders do the Add wording on their own lists."
+ },
+ {
+  "id": "DESIGN-3",
+  "status": "built",
+  "pages": [
+   "*"
+  ],
+  "where": "Every confirmation in the shared files already uses the app dialog (Log Out was done earlier in the shared account menu). No browser confirm() is left in the shared templates or static scripts; the only one is the built-in fallback inside the dialog itself (used only if Bootstrap failed to load). The Customers delete and the reset buttons now use the dialog's red style with words that say what is lost.",
+  "see_as": "admin",
+  "detail": "The twelve remaining native boxes are in flight templates (Ground School deletes, time-off removal, Academy entry) and shop templates (project_detail.html, scan.html: zero-price and expired-part checks) - for the flight and shop builders."
+ },
+ {
+  "id": "DESIGN-4",
+  "status": "built",
+  "pages": [
+   "/customers",
+   "/admin/reset",
+   "/admin/system/log"
+  ],
+  "where": "Delete Forever (red) for permanent deletes: the Customers delete button, its dialog and its message (\"Customer account deleted forever\"); every Reset Data dialog's go-ahead says Delete Forever and their messages start \"Deleted forever:\"; the error-log Clear dialog says Delete Forever. AD Remove stays Remove (it can be added again).",
+  "see_as": "admin",
+  "detail": "Shop and flight builders cover their own Delete/Remove/Trash wording."
+ },
+ {
+  "id": "DESIGN-5",
+  "status": "built",
+  "pages": [
+   "/admin/login-attempts"
+  ],
+  "where": "Login Attempts table now stacks into cards on a phone (table-stack with data-labels). The other shared tables (Manage Accounts, Customers, Payroll, Error log) already stacked. New CSS for genuinely wide tables: wrap the existing table-responsive box in <div class=\"swipe-box\"> to get a small \"Swipe sideways\" hint on phones (static/css/style.css).",
+  "see_as": "admin",
+  "detail": "The existing table-stack class and data-label cells are the stacking treatment; no class was renamed."
+ },
+ {
+  "id": "DESIGN-8",
+  "status": "built",
+  "pages": [
+   "/admin/users/new",
+   "/admin/users/{id}/edit",
+   "/account",
+   "/portal/account",
+   "/admin/notifications",
+   "/admin/wave",
+   "/forgot-password",
+   "/reset-password/{token}"
+  ],
+  "where": "Save then Cancel side by side, left-aligned at the bottom (Account form, Edit Account, My Account, owner My Account, Notification Settings and Wave settings got a Cancel; Forgot password and Choose a new password too). \"Back to log in\" moved to the top of the Forgot password page.",
+  "see_as": "admin",
+  "detail": "Cancel goes to the page the form belongs to (Admin home for the two settings pages) or the page you came from where the app already tracked it (My Account). Customers form already had Save then Cancel."
+ },
+ {
+  "id": "FLY-12",
+  "status": "built",
+  "pages": [
+   "*"
+  ],
+  "where": "One date format: Fri, Oct 2, 2026 (usdate filter) and Oct 2 (new usdate_short filter, also used by shortdate). The reminder emails/texts for flights and exchange cores, Payroll history rows, Login Attempts rows, appointment ranges and owner messages use it. Dates are still stored as ISO.",
+  "see_as": "admin",
+  "detail": "Settles JOBS-43, SCHOOL-17, HUB-13, HUB-32, JOBS-23, FLY-26 for every page that goes through the filter (the shared filter also changed what flight and shop pages show). Times still show as HH:MM when asked for (usdate(true)), unchanged. Note: Oct 2, 2026 is a Friday (the brief's example said Thu). Flight/shop builders still own hand-made date strings in their own templates and Python (flight.py _us_date, shop period label '%d-%m-%Y' in app.py _period range)."
+ },
+ {
+  "id": "SEAM-15",
+  "status": "built",
+  "pages": [
+   "*"
+  ],
+  "where": "Browser tab titles read Page name \u00b7 Program name on every shared page: Admin pages \"... \u00b7 Admin\" (the home page is Overview \u00b7 Admin), My Account \"Profile \u00b7 My Account\", Customers pages \"... \u00b7 Winds Aloft\", owner portal \"Your Aircraft \u00b7 My Aircraft\", \"N123 \u00b7 My Aircraft\", \"My Account \u00b7 My Aircraft\" (was missing the program name), the login/forgot/reset pages \"... \u00b7 OpsHub\". The old - OpsHub suffix is gone from them.",
+  "see_as": "admin",
+  "detail": "Each page's own title block now holds the whole title; the base templates (base.html, admin_base.html, account_base.html, customer_base.html, _public_page.html) only hold the default program name, so shop and flight pages write Page \u00b7 Program in their own title block. Login and picker pages use OpsHub as the program name because they belong to no single program - Frank may prefer Winds Aloft there."
+ }
+]

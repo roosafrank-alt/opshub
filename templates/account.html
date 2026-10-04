@@ -1,5 +1,5 @@
 {% extends "account_base.html" %}
-{% block title %}My Account - OpsHub{% endblock %}
+{% block title %}Profile · My Account{% endblock %}
 {% block content %}
 {% set has_shop = user.is_master_admin or user.shop_role %}
 {% set has_flight = user.is_master_admin or user.flight_role %}
@@ -143,9 +143,10 @@
     <p class="form-text mb-2" data-change="HUB-33">Phone alerts are for Fly with Kate! flying sessions only. Winds Aloft reminders go by email or text, using the settings above.</p>
     {% endif %}
 
-    <div class="d-flex justify-content-between mt-3">
-      <a href="{{ came_from.url if came_from else url_for('home_launcher') }}" class="btn btn-outline-secondary">Cancel</a>
+    {#- DESIGN-8: Save, then Cancel, left-aligned. #}
+    <div class="d-flex gap-2 mt-3" data-change="DESIGN-8">
       <button type="submit" class="btn btn-primary fw-bold">Save Changes</button>
+      <a href="{{ came_from.url if came_from else url_for('home_launcher') }}" class="btn btn-outline-secondary">Cancel</a>
     </div>
   </form>
 </div>

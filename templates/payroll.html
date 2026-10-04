@@ -1,5 +1,5 @@
 {% extends "admin_base.html" %}
-{% block title %}Payroll - OpsHub{% endblock %}
+{% block title %}Payroll · Admin{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-wallet2"></i> Payroll <span class="text-muted fs-6">- week of {{ week.isoformat()|usdate }} to {{ week_end.isoformat()|usdate }}</span></h4>
@@ -128,7 +128,7 @@
       <tbody>
         {% for h in history %}
         <tr class="{{ 'table-active' if h.week == week }}">
-          <td class="stack-full" data-label="Week"><a href="{{ url_for('payroll.payroll_page', week=h.week.isoformat()) }}">{{ h.week.isoformat()|usdate }} to {{ h.end.isoformat()|usdate }}</a></td>
+          <td class="stack-full" data-label="Week"><a href="{{ url_for('payroll.payroll_page', week=h.week.isoformat()) }}">{{ h.week.isoformat()|usdate_short }} to {{ h.end.isoformat()|usdate_short }}</a></td>
           <td data-label="Owed">${{ '{:,.2f}'.format(h.owed) }}</td>
           <td data-label="Paid">${{ '{:,.2f}'.format(h.paid) }}</td>
           <td data-label="Unpaid">{% if h.unpaid_people %}<span class="badge bg-warning text-dark">{{ h.unpaid_people }}</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>

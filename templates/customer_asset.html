@@ -1,5 +1,5 @@
 {% extends "customer_base.html" %}
-{% block title %}{{ asset.tag }}{% endblock %}
+{% block title %}{{ asset.tag }} · My Aircraft{% endblock %}
 {% block content %}
 {% if multi_plane %}
 <a href="{{ url_for('customer.customer_dashboard') }}" class="btn btn-outline-secondary btn-sm mb-3"><i class="bi bi-arrow-left"></i> All Aircraft</a>
@@ -68,7 +68,7 @@
       {% for m in it.messages %}
       <div class="small mb-2 {{ 'text-end' if m.author_type == 'owner' }}">
         <div class="d-inline-block p-2 rounded {{ 'bg-primary text-white' if m.author_type == 'owner' else 'bg-light border' }}" style="max-width:85%; text-align:left;">
-          <div class="fw-bold">{{ m.author_name or ('You' if m.author_type == 'owner' else 'The shop') }} <span class="fw-normal {{ 'text-white-50' if m.author_type == 'owner' else 'text-muted' }}">{{ m.created_at|usdate(true) }}</span></div>
+          <div class="fw-bold">{{ m.author_name or ('You' if m.author_type == 'owner' else 'The shop') }} <span class="fw-normal {{ 'text-white-50' if m.author_type == 'owner' else 'text-muted' }}">{{ m.created_at|usdate_short(true) }}</span></div>
           <div style="white-space:pre-wrap;">{{ m.body }}</div>
           {% if m.photos %}
           <div class="d-flex flex-wrap gap-1 mt-1">
@@ -85,7 +85,7 @@
         <input type="text" name="body" class="form-control" placeholder="Ask a question or add a note..." required>
         <label class="btn btn-outline-secondary mb-0" title="Add a photo"><i class="bi bi-camera"></i>
           <input type="file" name="photos" accept="image/*" class="d-none found-note-photo"></label>
-        <button class="btn btn-outline-primary" title="Send"><i class="bi bi-send"></i></button>
+        <button class="btn btn-owner" title="Send" data-change="DESIGN-1"><i class="bi bi-send"></i></button>
       </div>
       <div class="small text-muted found-note-filename mt-1" style="display:none;"></div>
     </form>
@@ -120,7 +120,7 @@
             <select name="week" class="form-select form-select-sm" aria-label="Preferred week">
               {% for w, lbl in week_options %}<option value="{{ w }}">{{ lbl }}</option>{% endfor %}
             </select>
-            <button class="btn btn-primary btn-sm text-nowrap fw-bold"><i class="bi bi-calendar-plus"></i> Book it</button>
+            <button class="btn btn-owner btn-sm text-nowrap fw-bold" data-change="DESIGN-1"><i class="bi bi-calendar-plus"></i> Book it</button>
           </form>
           {% endif %}
         {% endif %}
@@ -142,7 +142,7 @@
           <div>
             <div class="fw-bold">{{ p.name }}</div>
             {% if not p.scheduled_date %}<div class="text-muted small">{{ p.customer_requested_week|usdate }} week requested</div>
-            {% else %}<div class="text-muted small">{{ p.scheduled_date|usdate }}{% if p.scheduled_end_date and p.scheduled_end_date != p.scheduled_date %} &ndash; {{ p.scheduled_end_date|usdate }}{% endif %}</div>{% endif %}
+            {% else %}<div class="text-muted small">{% if p.scheduled_end_date and p.scheduled_end_date != p.scheduled_date %}{{ p.scheduled_date|usdate_short }} &ndash; {{ p.scheduled_end_date|usdate_short }}{% else %}{{ p.scheduled_date|usdate }}{% endif %}</div>{% endif %}
             {% if p.description %}<div class="small mt-1">{{ p.description }}</div>{% endif %}
             {% if p.promised_show_owner and p.promised_date %}<div class="small mt-1"><i class="bi bi-calendar-check"></i> Promised back: {{ p.promised_date|usdate }} &ndash; we'll let you know if that changes</div>{% endif %}
           </div>
@@ -165,7 +165,7 @@
         {% else %}
         <div class="d-flex gap-2 mt-2">
           <form method="post" action="{{ url_for('customer.customer_confirm_appointment', project_id=p.id) }}">
-            <button class="btn btn-success btn-sm {{ 'disabled' if p.customer_confirmed_at }}"><i class="bi bi-check-lg"></i> Confirm</button>
+            <button class="btn btn-owner btn-sm {{ 'disabled' if p.customer_confirmed_at }}" data-change="DESIGN-1"><i class="bi bi-check-lg"></i> Confirm</button>
           </form>
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#resched-{{ p.id }}">
             <i class="bi bi-calendar-x"></i> Can't Make It
@@ -174,7 +174,7 @@
         <div class="collapse mt-2" id="resched-{{ p.id }}">
           <form method="post" action="{{ url_for('customer.customer_request_reschedule', project_id=p.id) }}" class="d-flex gap-2">
             <input type="text" name="note" class="form-control form-control-sm" placeholder="What works better, or why you need to reschedule" required>
-            <button class="btn btn-warning btn-sm text-nowrap">Send</button>
+            <button class="btn btn-owner btn-sm text-nowrap" data-change="DESIGN-1">Send</button>
           </form>
         </div>
         {% endif %}
@@ -215,7 +215,7 @@
         </div>
         <div class="col-12">
           <div class="small text-danger mb-1" id="hours-error" style="display:none;">Enter a Hobbs and/or Tach reading.</div>
-          <button class="btn btn-dark btn-sm w-100 mt-1">Log Reading</button>
+          <button class="btn btn-owner btn-sm w-100 mt-1" data-change="DESIGN-1">Log Reading</button>
         </div>
       </form>
     </div>

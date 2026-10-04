@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Edit' if customer else 'New' }} Customer - Winds Aloft{% endblock %}
+{% block title %}{{ 'Edit Customer' if customer else 'Add Customer' }} · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex align-items-center gap-2 mb-3" data-change="SEAM-9">
-  <h4 class="mb-0">{{ 'Edit Customer' if customer else 'New Customer' }}</h4>
+  <h4 class="mb-0">{{ 'Edit Customer' if customer else 'Add Customer' }}</h4>
 </div>
 <form method="post" class="card owner-card-accent p-3" style="max-width: 640px;">
   <div class="row g-3">
@@ -54,7 +54,7 @@
     </div>
   </div>
   <div class="mt-3">
-    <button class="btn btn-owner fw-bold">{{ 'Save' if customer else 'Create Account' }}</button>
+    <button class="btn btn-dark fw-bold" data-change="DESIGN-1">{{ 'Save' if customer else 'Create Account' }}</button>
     <a href="{{ url_for('customers_list') }}" class="btn btn-outline-secondary">Cancel</a>
   </div>
 </form>

@@ -1,11 +1,12 @@
 """QA fix ux-flight-dash-section-headers: on phones, "Today's Schedule
-(27-09-2026)" wrapped into three lines next to the completion badge,
-splitting the date in half. Now reads "Today 09-27" (month-day) with a
+(Sun, Sep 27, 2026)" wrapped into three lines next to the completion badge,
+splitting the date in half. Now reads "Today Sep 27" (short date) with a
 shorter "X of Y done" badge, and the Upcoming badge counts flights instead
-of days. Desktop keeps the full wording and the app's usual day-month date.
+of days. Desktop keeps the full wording and the app's full date (FLY-12).
 """
 from datetime import date, timedelta
 from harness import OpsHubTestCase, seed_row
+import app as app_module
 import db
 
 
@@ -29,10 +30,10 @@ class DashSectionHeadersTest(OpsHubTestCase):
         conn.close()
         html = self.login("cfi").get("/flight/dashboard").get_data(as_text=True)
         today = date.today()
-        mmdd = today.strftime("%m-%d")
-        ddmmyyyy = today.strftime("%d-%m-%Y")
-        self.assertIn(mmdd, html)
-        self.assertIn(f"({ddmmyyyy})", html)
+        short = app_module.usdate_short(today.isoformat())  # FLY-12: "Oct 4"
+        full = app_module.usdate(today.isoformat())         # "Sun, Oct 4, 2026"
+        self.assertIn(short, html)
+        self.assertIn(f"({full})", html)
         self.assertIn("done</span>", html)
         self.assertIn("flight complete</span>", html)
 

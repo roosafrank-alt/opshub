@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>{% if not user and not customer %}Log in - OpsHub{% else %}Programs - OpsHub{% endif %}</title>
+<title>{% if not user and not customer %}Log in · OpsHub{% else %}Programs · OpsHub{% endif %}</title>
 {#- SEAM-13 (Frank): never a neutral OpsHub home-screen icon. The login
    page and the program picker carry the Winds Aloft identity (the shop is
    the front door); each program keeps its own identity once inside. #}
@@ -220,6 +220,6 @@
   {% endif %}
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-{% if user or customer %}{% include "_confirm_modal.html" %}{% endif %}
+{% if user or customer %}{% set confirm_accent = 'primary' %}{% include "_confirm_modal.html" %}{% endif %}
 </body>
 </html>

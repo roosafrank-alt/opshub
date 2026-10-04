@@ -31,7 +31,7 @@ class FlightLogResetKeepsPilotLogbookTest(OpsHubTestCase):
         r = c.post("/admin/reset/flights", follow_redirects=True)
         html = r.get_data(as_text=True)
         self.assertNotIn("FOREIGN KEY constraint failed", html)
-        self.assertIn("Deleted 1 logged flight", html)
+        self.assertIn("Deleted forever: 1 logged flight", html)
         self.assertIsNone(self.q1("SELECT id FROM flights WHERE id = ?", (self.flight_id,)))
 
     def test_pilot_logbook_entry_survives_unlinked_not_deleted(self):

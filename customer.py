@@ -194,7 +194,13 @@ def customer_dashboard():
                 AND scheduled_date IS NOT NULL AND status NOT IN ('completed', 'archived')
                 AND customer_confirmed_at IS NULL AND customer_reschedule_requested_at IS NULL
         """, (a["id"],)).fetchone()["c"]
-        summaries.append({"asset": a, "due_count": due_count, "needs_response_count": upcoming_count})
+        # HUB-15: found items waiting for the owner's OK (same count as the plane page's badge)
+        found_waiting = conn.execute("""
+            SELECT COUNT(*) c FROM found_items fi JOIN projects p ON p.id = fi.project_id
+            WHERE p.asset_id = ? AND p.deleted_at IS NULL AND fi.status = 'waiting'
+        """, (a["id"],)).fetchone()["c"]
+        summaries.append({"asset": a, "due_count": due_count, "needs_response_count": upcoming_count,
+                          "found_waiting_count": found_waiting})
     conn.close()
     # A single-plane owner is dropped straight into their plane instead of
     # a list-of-one; anyone with more than one plane picks first.
