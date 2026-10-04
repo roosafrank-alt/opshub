@@ -3434,7 +3434,7 @@ def plane_edit(asset_id):
     make/model, "used by Flight School") - saves the same aircraft record
     the Maintenance side edits, but Save comes back to Planes instead of
     leaving the admin in Winds Aloft. Color and solo rules stay on the
-    Color page (plane_rate_edit). Simulators keep their own form."""
+    Schedule & Solo settings page (plane_rate_edit). Simulators keep their own form."""
     conn = get_db()
     plane = conn.execute("SELECT * FROM assets WHERE id = ? AND deleted_at IS NULL", (asset_id,)).fetchone()
     if not plane:
@@ -3542,8 +3542,8 @@ def simulator_edit(asset_id):
 @flight_bp.route("/planes/<int:asset_id>/rate", methods=["GET", "POST"])
 @admin_required
 def plane_rate_edit(asset_id):
-    """A plane's Schedule color, set here by an admin on the Flight School
-    side. Planes no longer have a rental rate - what a student pays for the
+    """A plane's Schedule & Solo settings (schedule color, solo color, solo
+    flights allowed), set here by an admin on the Flight School side. Planes no longer have a rental rate - what a student pays for the
     plane is their own Plane Rate on the Students page."""
     conn = get_db()
     plane = conn.execute(
@@ -3569,11 +3569,23 @@ def plane_rate_edit(asset_id):
             conn.close()
             return redirect(url_for("flight.plane_rate_edit", asset_id=asset_id))
         solo_allowed = 1 if request.form.get("solo_allowed") else 0
+        # SCHOOL-24: the message says what actually changed (colour and/or
+        # the solo setting) instead of always "Color updated".
+        colors_changed = (color != (plane["schedule_color"] or None)) or (solo_color != (plane["solo_color"] or None))
+        solo_changed = bool(solo_allowed) != bool(plane["solo_allowed"])
         conn.execute("UPDATE assets SET schedule_color = ?, solo_color = ?, solo_allowed = ?, updated_at = ? WHERE id = ?",
                      (color, solo_color, solo_allowed, now_iso(), asset_id))
         conn.commit()
         conn.close()
-        flash(f"Color updated for {plane['tag']}.", "success")
+        parts = []
+        if colors_changed:
+            parts.append("colors updated")
+        if solo_changed:
+            parts.append("solo flights now allowed" if solo_allowed else "solo flights no longer allowed")
+        if parts:
+            flash(f"{plane['tag']}: " + " and ".join(parts) + ".", "success")
+        else:
+            flash(f"{plane['tag']}: nothing changed.", "info")
         return redirect(url_for("flight.planes_list"))
     used_colors = _used_colors_for_plane(conn, asset_id)
     used_solo_colors = _used_solo_colors_for_plane(conn, asset_id)

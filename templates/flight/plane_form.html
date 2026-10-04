@@ -3,7 +3,7 @@
 {% block content %}
 {#- SCHOOL-27: Fly with Kate!'s own small plane form. Saves the same
    aircraft record Winds Aloft's Maintenance form edits, but Save brings
-   the admin back to Planes. Color and solo rules live on the Color page. #}
+   the admin back to Planes. Color and solo rules live on the Schedule &amp; Solo settings page. #}
 {% set F = form %}
 <div class="row justify-content-center">
 <div class="col-lg-5">
@@ -33,7 +33,7 @@
       <input type="checkbox" class="form-check-input" name="is_flight_asset" id="is-flight-asset" {{ 'checked' if (F.get('is_flight_asset') if F is not none else plane.is_flight_asset) }}>
       <label class="form-check-label" for="is-flight-asset">Used by Flight School <span class="text-muted small">(untick to take it off the Planes list and the Schedule)</span></label>
     </div>
-    <p class="small text-muted">Schedule color and solo rules: <a href="{{ url_for('flight.plane_rate_edit', asset_id=plane.id) }}">Color &amp; solo settings</a>.
+    <p class="small text-muted">Schedule color and solo rules: <a href="{{ url_for('flight.plane_rate_edit', asset_id=plane.id) }}">Schedule &amp; Solo settings</a>.
       {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}Maintenance: <a href="{{ url_for('asset_detail', asset_id=plane.id) }}">open in Winds Aloft</a>.{% endif %}</p>
     <div class="d-flex justify-content-between">
       <a href="{{ url_for('flight.planes_list') }}" class="btn btn-outline-secondary">Cancel</a>
