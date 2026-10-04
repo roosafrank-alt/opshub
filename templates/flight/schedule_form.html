@@ -1,5 +1,5 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}{{ 'Edit Scheduled Flight' if sched else 'Schedule a Flight' }} - OpsHub{% endblock %}
+{% block title %}{{ 'Edit Scheduled Flight' if sched else 'Schedule a Flight' }} · Fly with Kate!{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-6">
@@ -1152,7 +1152,7 @@
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateBox.value || '');
     if (m) {
       var d = new Date(+m[1], +m[2] - 1, +m[3]);
-      var label = DAYS[d.getDay()] + ', ' + MONS[d.getMonth()] + ' ' + d.getDate();
+      var label = DAYS[d.getDay()] + ', ' + MONS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
       var txt = document.getElementById('date-summary-text');
       txt.textContent = '';
       if (dateBox.value === todayStr) {

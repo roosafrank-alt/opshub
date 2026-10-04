@@ -603,7 +603,7 @@ def academy_entry_delete(entry_id):
         conn.execute("DELETE FROM academy_entries WHERE id = ?", (entry_id,))
         conn.execute("DELETE FROM manual_landings WHERE academy_entry_id = ?", (entry_id,))  # SCHOOL-37
         conn.commit()
-        flash("Entry removed.", "success")
+        flash("Entry deleted forever.", "success")
     conn.close()
     return redirect(url_for("academy_page") + "#log")
 

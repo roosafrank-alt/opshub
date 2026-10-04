@@ -534,17 +534,17 @@
   </div>
 </div>
 <div class="sch-views">
-    <div class="btn-group btn-group-sm" role="group">
-      <a href="{{ url_for('flight.schedule_calendar', view='day', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'day' else 'btn-outline-secondary' }}">Day</a>
-      <a href="{{ url_for('flight.schedule_calendar', view='week', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'week' else 'btn-outline-secondary' }}">Week</a>
-      <a href="{{ url_for('flight.schedule_calendar', view='month', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'month' else 'btn-outline-secondary' }}">Month</a>
-      <a href="{{ url_for('flight.schedule_calendar', view='year', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn d-none d-sm-inline-block {{ 'btn-warning' if view == 'year' else 'btn-outline-secondary' }}">Year</a>
-      <a href="{{ url_for('flight.schedule_calendar', view='list', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-warning' if view == 'list' else 'btn-outline-secondary' }}">List</a>
+    <div class="btn-group btn-group-sm" role="group" data-change="DESIGN-1">
+      <a href="{{ url_for('flight.schedule_calendar', view='day', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-secondary' if view == 'day' else 'btn-outline-secondary' }}">Day</a>
+      <a href="{{ url_for('flight.schedule_calendar', view='week', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-secondary' if view == 'week' else 'btn-outline-secondary' }}">Week</a>
+      <a href="{{ url_for('flight.schedule_calendar', view='month', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-secondary' if view == 'month' else 'btn-outline-secondary' }}">Month</a>
+      <a href="{{ url_for('flight.schedule_calendar', view='year', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn d-none d-sm-inline-block {{ 'btn-secondary' if view == 'year' else 'btn-outline-secondary' }}">Year</a>
+      <a href="{{ url_for('flight.schedule_calendar', view='list', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-secondary' if view == 'list' else 'btn-outline-secondary' }}">List</a>
       {#- "Custom Range" wraps or gets cut off on a phone-width row of six
          buttons, so it reads as just "Range" under the sm breakpoint
          (576px) - tablets and desktop keep the full "Custom Range". Same
          link/behavior either way, just shorter text on the small screen. #}
-      <a href="{{ url_for('flight.schedule_calendar', view='custom', start=custom_start, end=custom_end, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn d-none d-sm-inline-block {{ 'btn-warning' if view == 'custom' else 'btn-outline-secondary' }}">Custom Range</a>
+      <a href="{{ url_for('flight.schedule_calendar', view='custom', start=custom_start, end=custom_end, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn d-none d-sm-inline-block {{ 'btn-secondary' if view == 'custom' else 'btn-outline-secondary' }}">Custom Range</a>
     </div>
 </div>
 <form method="get" class="row g-2 align-items-end mb-0 sch-filters">

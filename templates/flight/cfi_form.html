@@ -1,11 +1,11 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}{{ 'Edit CFI' if cfi else 'New CFI' }} - OpsHub{% endblock %}
+{% block title %}{{ 'Edit CFI' if cfi else 'Add CFI' }} · Fly with Kate!{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-6">
 <div class="card p-4">
   <div class="d-flex justify-content-between align-items-start mb-2">
-    <h4 class="mb-0">{{ 'Edit CFI' if cfi else 'New CFI' }}</h4>
+    <h4 class="mb-0"{% if not cfi %} data-change="DESIGN-2"{% endif %}>{{ 'Edit CFI' if cfi else 'Add CFI' }}</h4>
     {#- SCHOOL-04: ?next= asks the Admin account form to come back here
        after Save (that form is the chrome part's). Edit CFI is admin-only
        already, so the button never shows to a plain CFI. #}

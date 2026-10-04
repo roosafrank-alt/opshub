@@ -204,7 +204,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Never Mind</button>
-          <button type="submit" id="pt-submit" class="btn btn-warning fw-bold btn-sm" data-change="FLY-32">Send to Student</button>
+          <button type="submit" id="pt-submit" class="btn btn-primary fw-bold btn-sm" data-change="FLY-32 DESIGN-1">Send to Student</button>
         </div>
       </form>
     </div>
@@ -246,7 +246,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Never Mind</button>
-          <button type="submit" class="btn btn-warning fw-bold btn-sm">Send Request</button>
+          <button type="submit" class="btn btn-primary fw-bold btn-sm" data-change="DESIGN-1">Send Request</button>
         </div>
       </form>
     </div>
@@ -479,7 +479,7 @@ document.addEventListener('click', function (evt) {
         var today = new Date();
         var dayLbl = function (d) {
           return d.toDateString() === today.toDateString() ? 'today'
-            : d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
+            : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
         };
         var opensLbl = dayLbl(opens) + ' at ' + timeLbl;
         document.getElementById('sd-start-opens').textContent = opensLbl;

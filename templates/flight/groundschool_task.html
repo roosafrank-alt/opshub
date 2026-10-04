@@ -1,5 +1,5 @@
 {% extends "academy_base.html" %}
-{% block title %}Task {{ task.code }} - {{ task.title }} - OpsHub{% endblock %}
+{% block title %}Task {{ task.code }}: {{ task.title }} · Flight Academy{% endblock %}
 {% block content %}
 <style>
   .pg-bar { position: relative; height: .6rem; border-radius: 999px; background: #e9ecef; overflow: hidden; }
@@ -197,7 +197,7 @@
           <td>{{ so.notes or '' }}</td>
           <td class="text-end">
             <form method="post" action="{{ url_for('groundschool.signoff_remove', task_id=task.id, signoff_id=so.id) }}"
-                  onsubmit="return confirm('Remove this sign-off?');">
+                  data-change="DESIGN-3 DESIGN-4" data-confirm="Remove this sign-off? It can be signed off again later." data-confirm-title="Remove Sign-Off" data-confirm-ok="Remove" data-confirm-style="warning">
               <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg"></i></button>
             </form>
           </td>

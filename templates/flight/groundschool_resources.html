@@ -1,5 +1,5 @@
 {% extends "academy_base.html" %}
-{% block title %}Resources - Ground School - OpsHub{% endblock %}
+{% block title %}Resources · Flight Academy{% endblock %}
 {% block content %}
 <style>
   .resource-row { cursor: pointer; }
@@ -39,9 +39,9 @@
           <td class="text-primary small fw-bold text-nowrap">Open <i class="bi bi-box-arrow-up-right"></i></td>
           <td class="text-end" onclick="event.stopPropagation()">
             {% if session.get('is_master_admin') %}
-            <form method="post" action="{{ url_for('groundschool.resources_delete', resource_id=r.id) }}" class="d-inline"
-                  onsubmit="return confirm('Delete {{ r.title }}? References linking to it will stop auto-linking.');">
-              <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+            <form method="post" action="{{ url_for('groundschool.resources_delete', resource_id=r.id) }}" class="d-inline" data-change="DESIGN-3 DESIGN-4"
+                  data-confirm="Delete {{ r.title }} forever? References linking to it will stop auto-linking. This can't be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
+              <button type="submit" class="btn btn-danger btn-sm" title="Delete Forever"><i class="bi bi-trash"></i></button>
             </form>
             {% endif %}
           </td>

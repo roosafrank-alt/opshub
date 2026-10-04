@@ -1,5 +1,5 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}Flight History - OpsHub{% endblock %}
+{% block title %}Flight History · Fly with Kate!{% endblock %}
 {% block content %}
 {% set book = logged_next %}{% include "flight/_book_next_box.html" %}
 <style>
@@ -78,7 +78,7 @@
   {% for f in flights %}
   <div class="flight-compact-row" data-search="{{ (f.plane_tag ~ ' ' ~ (f.plane_name or '') ~ ' ' ~ (f.cfi_name or 'solo') ~ ' ' ~ f.student_name)|lower }}" data-href="{{ url_for('flight.log_detail', flight_id=f.id) }}">
     <div class="d-flex justify-content-between align-items-baseline">
-      <span class="fw-bold text-truncate">{{ f.flight_date|usdate }} {{ f.plane_tag }}</span>
+      <span class="fw-bold text-truncate" data-change="FLY-12">{{ f.flight_date|usdate_short }} {{ f.plane_tag }}</span>
       <span class="d-flex align-items-center gap-1 flex-shrink-0 ms-2">
         {% if f.hobbs_start is not none and f.hobbs_end is not none %}<span class="fw-bold">{{ '%.1f'|format(f.hobbs_end - f.hobbs_start) }} hr</span>{% elif f.asset_is_simulator and f.recorded_hours is not none %}<span class="fw-bold">{{ '%.1f'|format(f.recorded_hours) }} hr</span> <span class="text-muted small">sim</span>{% endif %}
         <i class="bi bi-chevron-right text-muted"></i>
@@ -144,8 +144,8 @@
             <a href="{{ url_for('flight.log_edit', flight_id=f.id) }}" class="btn btn-outline-primary btn-sm" title="Edit this flight" onclick="event.stopPropagation();"><i class="bi bi-pencil"></i></a>
             {% endif %}
             {% if session.get('is_master_admin') %}
-            <form method="post" action="{{ url_for('flight.log_delete', flight_id=f.id) }}" class="d-inline" data-confirm="Permanently delete this flight ({{ f.flight_date|usdate }}, {{ f.plane_tag }}, {{ f.student_name }})? Its ${{ '%.2f'|format(f.total) }} charge comes off the student's account. This can't be undone." data-confirm-title="Delete Flight" data-confirm-ok="Yes, delete it" data-confirm-style="danger">
-              <button class="btn btn-outline-danger btn-sm" title="Delete this flight (admin)"><i class="bi bi-trash"></i></button>
+            <form method="post" action="{{ url_for('flight.log_delete', flight_id=f.id) }}" class="d-inline" data-change="DESIGN-3 DESIGN-4" data-confirm="Delete this flight forever ({{ f.flight_date|usdate }}, {{ f.plane_tag }}, {{ f.student_name }})? Its ${{ '%.2f'|format(f.total) }} charge comes off the student's account. This can't be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
+              <button class="btn btn-danger btn-sm" title="Delete Forever (admin)"><i class="bi bi-trash"></i></button>
             </form>
             {% endif %}
           </td>

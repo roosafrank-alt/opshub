@@ -1,5 +1,5 @@
 {% extends "academy_base.html" %}
-{% block title %}Logbook Entry{% endblock %}
+{% block title %}Logbook Entry · Flight Academy{% endblock %}
 {% block content %}
 <div class="card academy-card p-3">
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
@@ -47,7 +47,7 @@
 
     <div class="d-flex gap-2 flex-wrap mt-3">
       {% if e.status == 'pending' or staff %}
-      <button class="btn btn-outline-primary btn-sm" name="action" value="save"><i class="bi bi-save"></i> Save</button>
+      <button class="btn btn-primary btn-sm" name="action" value="save" data-change="DESIGN-1"><i class="bi bi-save"></i> Save</button>
       <button class="btn btn-success btn-sm" name="action" value="approve"><i class="bi bi-check2-circle"></i> {{ 'Approve - this entry is correct' if e.status == 'pending' else 'Save & keep approved' }}</button>
       {% endif %}
       {% if e.status == 'complete' %}

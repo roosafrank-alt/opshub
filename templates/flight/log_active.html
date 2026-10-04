@@ -1,5 +1,5 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}Active Flight - OpsHub{% endblock %}
+{% block title %}Active Flight · Fly with Kate!{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
@@ -185,7 +185,7 @@
         {% endif %}
       </div>
       <div class="col-12">
-        <button type="submit" class="btn btn-outline-secondary btn-sm">Save</button>
+        <button type="submit" class="btn btn-primary btn-sm" data-change="DESIGN-1">Save</button>
       </div>
     </form>
   </details>
@@ -229,7 +229,7 @@
       <button type="submit" name="eta_minutes" value="45" class="btn btn-sm btn-warning fw-bold">+45 min</button>
       <span class="small text-muted ms-1">or</span>
       <input type="time" name="eta_time" class="form-control form-control-sm" style="width:auto;" aria-label="ETA time">
-      <button type="submit" class="btn btn-sm btn-dark">Set ETA</button>
+      <button type="submit" class="btn btn-sm btn-primary" data-change="DESIGN-1">Set ETA</button>
     </form>
     {% if f.eta_affected %}
     <div class="small mt-2">
@@ -451,7 +451,7 @@
       <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="{{ 'any note here is saved with the flight' if f.asset_is_owner_placeholder else 'any note here is flagged as a squawk for the shop' }}">{{ f.notes or '' }}</textarea>
     </div>
     <div class="form-text mt-1">The instructor's billed time is the elapsed time shown above (from Start to when End Session was pressed, minus any paused time), not just Hobbs hours.</div>
-    <button type="submit" class="btn btn-success fw-bold mt-2 w-100"><i class="bi bi-journal-check"></i> Session Complete</button>
+    <button type="submit" class="btn btn-primary fw-bold mt-2 w-100" data-change="DESIGN-1"><i class="bi bi-journal-check"></i> Session Complete</button>
   </form>
   {% elif not f.can_end %}
   <div class="alert alert-secondary small mb-0 py-2">

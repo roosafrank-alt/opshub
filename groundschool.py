@@ -513,7 +513,7 @@ def rating_delete(rating_id):
             os.remove(os.path.join(UPLOAD_DIR, rating["pdf_filename"]))
         except OSError:
             pass
-        flash(f"Deleted '{rating['name']}'.", "success")
+        flash(f"Deleted '{rating['name']}' forever.", "success")
     conn.close()
     return redirect(url_for("groundschool.rating_list"))
 
@@ -769,7 +769,7 @@ def resources_delete(resource_id):
             os.remove(os.path.join(UPLOAD_DIR, r["filename"]))
         except OSError:
             pass
-        flash(f"Deleted '{r['title']}'.", "success")
+        flash(f"Deleted '{r['title']}' forever.", "success")
     conn.close()
     return redirect(url_for("groundschool.resources_list"))
 

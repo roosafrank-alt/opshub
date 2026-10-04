@@ -78,7 +78,7 @@
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 py-1 {{ 'border-top' if not loop.first }}">
     <div><strong>{{ u.scheduled_date|usdate }}</strong>{% if u.time_label %} at {{ u.time_label }}{% endif %} &middot; {{ u.plane_tag }}{% if u.cfi_name %} with {{ u.cfi_name }}{% endif %}</div>
     <form method="post" action="{{ url_for('flight.schedule_confirm_booking', scheduled_id=u.id) }}" class="d-inline">
-      <button class="btn btn-warning btn-sm fw-bold"><i class="bi bi-check-lg"></i> Confirm this flight</button>
+      <button class="btn btn-primary btn-sm fw-bold" data-change="DESIGN-1"><i class="bi bi-check-lg"></i> Confirm this flight</button>
     </form>
   </div>
   {% endfor %}
@@ -412,7 +412,7 @@
     <strong>{{ active_flights|length }} flight{{ 's' if active_flights|length != 1 }} in progress</strong>
     {% for af in active_flights %} - {{ af.plane_tag }} {% if af.solo %}({{ af.student_name }}, solo){% else %}with {{ af.student_name }}{% if af.cfi_name %} &amp; {{ af.cfi_name.split(' ')[0] }}{% endif %}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}
   </div>
-  <a href="{{ url_for('flight.log_active') }}" class="btn btn-dark btn-sm fw-bold">View / End Flights</a>
+  <a href="{{ url_for('flight.log_active') }}" class="btn btn-primary btn-sm fw-bold" data-change="DESIGN-1">View / End Flights</a>
 </div>
 {% endif %}
 
@@ -796,7 +796,7 @@
     <div class="small text-muted flight-chip-forecast" data-forecast-date="{{ f.scheduled_date }}" data-forecast-time="{{ f.scheduled_time or '' }}"></div>
     {% endif %}
     {% if status == 'in_progress' and f.get('flight_id') %}
-    <a href="{{ url_for('flight.log_active') }}#active-flight-{{ f.flight_id }}" class="btn btn-dark btn-sm mt-1">Open Active Flight</a>
+    <a href="{{ url_for('flight.log_active') }}#active-flight-{{ f.flight_id }}" class="btn btn-primary btn-sm mt-1" data-change="DESIGN-1">Open Active Flight</a>
     {{ flight_chip_details_btn(f, 'mt-1') }}
     {% elif status == 'scheduled' and cfi %}
     {#- Idea ux-next-lesson-start-log: Start and Log only join Details in
@@ -830,7 +830,7 @@
     {#- A CFI/admin booked this one - the student's own OK, right from
        their dashboard (see schedule_confirm_booking in flight.py). #}
     <form method="post" action="{{ url_for('flight.schedule_confirm_booking', scheduled_id=f.id) }}" class="d-inline mt-1">
-      <button class="btn btn-warning btn-sm"><i class="bi bi-patch-question-fill"></i> Confirm this flight</button>
+      <button class="btn btn-primary btn-sm" data-change="DESIGN-1"><i class="bi bi-patch-question-fill"></i> Confirm this flight</button>
     </form>
     {{ flight_chip_details_btn(f, 'mt-1') }}
     {% else %}
@@ -885,7 +885,7 @@
     <h6 class="mb-0">
       <i class="bi bi-calendar-day"></i>
       <span class="d-none d-sm-inline">Today's Schedule <span class="text-muted small fw-normal">({{ today_str|usdate }})</span></span>
-      <span class="d-sm-none">Today <span class="text-muted small fw-normal">{{ today_str|shortdate }}</span></span>
+      <span class="d-sm-none">Today <span class="text-muted small fw-normal">{{ today_str|usdate_short }}</span></span>
     </h6>
     <span class="d-flex align-items-center gap-2">
       {% if today_flights_total %}
@@ -946,7 +946,7 @@
       <h6 class="mb-0">
         <i class="bi bi-calendar-day"></i>
         <span class="d-none d-sm-inline">{{ day.weekday }}'s Schedule <span class="text-muted small fw-normal">({{ day.date|usdate }})</span></span>
-        <span class="d-sm-none">{{ day.weekday }} <span class="text-muted small fw-normal">{{ day.date|shortdate }}</span></span>
+        <span class="d-sm-none">{{ day.weekday }} <span class="text-muted small fw-normal">{{ day.date|usdate_short }}</span></span>
       </h6>
       <span class="badge bg-secondary fs-6">{{ day.flights|length }} flight{{ 's' if day.flights|length != 1 }} booked</span>
     </div>
