@@ -50,3 +50,10 @@ class AutoscanWaitsForScanningAsTest(OpsHubTestCase):
         self.assertIn("const operatorsReady = fetch('/api/operators')", html)
         self.assertIn("operatorsReady.then(function () { processScan(auto, false); })", html)
         self.assertNotIn("setTimeout(function () { processScan(auto, false); }, 250)", html)
+
+
+class FlyBounceMessageTest(OpsHubTestCase):
+    def test_hub_01_account_without_a_fly_role_is_told_why(self):
+        c = self.login("tech")   # a shop-only account
+        r = c.get("/flight/dashboard", follow_redirects=True)
+        self.assertIn("Fly with Kate! role yet", r.get_data(as_text=True))

@@ -1469,6 +1469,9 @@ def login_required(f):
         if _owner_preview_blocked():
             return _owner_preview_redirect()
         if not session.get("cfi_id") and not session.get("student_id"):
+            if session.get("user_id"):
+                # HUB-01: signed in but no Fly with Kate! role - say so instead of a silent bounce.
+                flash("Your account doesn't have a Fly with Kate! role yet. Ask an admin to add one.", "danger")
             return redirect(url_for("home_launcher"))
         return f(*args, **kwargs)
     return wrapper
