@@ -5,8 +5,8 @@ viewport meta on purpose (it's what stops a tapped input field from
 jumping the whole page - see the QA fix that made phone inputs 16px), which
 also blocks a finger-pinch from enlarging anything. The Schedule page now
 overrides that one meta tag (see the `viewport` block in base_flight.html)
-so a pinch/zoom can make its tiles bigger; every other flight page keeps
-the original guard."""
+so a pinch/zoom can make its tiles bigger. DESIGN-10 later allowed zoom on
+every page (maximum-scale=5); the 16px phone inputs below keep taps steady."""
 import re
 
 from harness import OpsHubTestCase
@@ -25,9 +25,11 @@ class SchedulePinchZoomTest(OpsHubTestCase):
             self.assertIsNotNone(meta)
             self.assertNotIn("maximum-scale=1", meta)
 
-    def test_other_flight_pages_still_block_zoom(self):
+    def test_every_other_page_allows_zooming_in_too(self):
+        """DESIGN-10 (Frank): pinch-zoom is allowed everywhere; phone inputs stay 16px so a tap does not jump the page."""
         c = self.login("cfi")
         for path in ("/flight/dashboard", "/flight/schedule/availability"):
             meta = _viewport_meta(c.get(path).get_data(as_text=True))
             self.assertIsNotNone(meta)
-            self.assertIn("maximum-scale=1", meta)
+            self.assertNotIn("maximum-scale=1", meta)
+            self.assertIn("maximum-scale=5", meta)

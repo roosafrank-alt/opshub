@@ -578,3 +578,28 @@ body { background: #f4f5f7; }
   .btn-sm { --bs-btn-padding-y: .2rem; }
   .dash-tile-lg { padding: .6rem .4rem; }
 }
+
+/* DESIGN-10 (Frank): pinch-zoom is allowed on every page (viewport maximum-scale=5). Phone text
+   fields stay at 16px so iOS does not zoom the page when one is tapped. */
+@media (max-width: 767.98px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select, textarea,
+  .form-control, .form-control-sm, .form-select, .form-select-sm {
+    font-size: 16px;
+  }
+}
+
+/* DESIGN-7 (Frank): bigger tap targets on phones. Small buttons are at least 38px tall and the
+   gaps in button rows are at least 6px, so a thumb doesn't hit the neighbour. Desktop unchanged. */
+@media (max-width: 575.98px) {
+  .btn-sm, .btn-group-sm > .btn {
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .gap-1 { gap: .375rem !important; }
+  .btn-group-sm > .btn { padding-left: .65rem; padding-right: .65rem; }
+  .pagination-sm .page-link { min-height: 38px; display: inline-flex; align-items: center; }
+  .dropdown-menu .dropdown-item { min-height: 38px; display: flex; align-items: center; }
+}
