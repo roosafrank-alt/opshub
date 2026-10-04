@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Logbook · Winds Aloft{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="mb-0"><i class="bi bi-journal-text"></i> Logbook <span class="text-muted fs-6">- {{ entries|length }} entr{{ 'y' if entries|length == 1 else 'ies' }}{{ ' found' if filtered }}</span></h4>
-  {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
-  <a href="{{ url_for('logbook.logbook_templates') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-text"></i> Templates</a>
-  {% endif %}
-</div>
+{% from "_list_toolbar.html" import list_toolbar %}
+{% call(slot) list_toolbar(icon='journal-text') %}
+  {%- if slot == 'title' -%}
+    Logbook <span class="text-muted fs-6">- {{ entries|length }} entr{{ 'y' if entries|length == 1 else 'ies' }}{{ ' found' if filtered }}</span>
+  {%- elif slot == 'extra' and (session.get('is_master_admin') or session.get('shop_role') == 'admin') -%}
+    <a href="{{ url_for('logbook.logbook_templates') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-text"></i> Templates</a>
+  {%- endif -%}
+{% endcall %}
 
 <form method="get" class="card p-3 mb-3">
   <div class="row g-2 align-items-end">

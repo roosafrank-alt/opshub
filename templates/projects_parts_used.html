@@ -7,23 +7,23 @@
   .pu tr.pu-row { cursor: pointer; }
   .pu mark { padding: 0; background: #ffe58f; }
 </style>
-<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-  <h4 class="mb-0"><i class="bi bi-box-seam"></i> Parts Used on Projects</h4>
-  <a href="{{ url_for('projects_list') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Projects</a>
-</div>
+{% from "_list_toolbar.html" import list_toolbar %}
+{% call(slot) list_toolbar('Parts Used on Projects', icon='box-seam') %}
+  {%- if slot == 'search' -%}
+    <input type="search" id="pu-search" class="form-control" placeholder="Search part, barcode, project, plane, area..." value="{{ q }}" autocomplete="off" autofocus>
+  {%- elif slot == 'extra' -%}
+    <form method="get" class="d-flex gap-1 mb-0">
+      <input type="hidden" name="q" value="{{ q }}" id="pu-q-keep">
+      <select name="status" class="form-select" data-no-combo onchange="document.getElementById('pu-q-keep').value = document.getElementById('pu-search').value; this.form.submit()" aria-label="Project status">
+        {% for v, l in [('all','All projects'),('active','Active'),('on_hold','On Hold'),('completed','Completed'),('archived','Archived')] %}
+        <option value="{{ v }}" {{ 'selected' if status == v }}>{{ l }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    <a href="{{ url_for('projects_list') }}" class="btn btn-outline-secondary btn-sm text-nowrap"><i class="bi bi-arrow-left"></i> Projects</a>
+  {%- endif -%}
+{% endcall %}
 <p class="text-muted small mb-2">Every part scanned or assigned to a project (returns taken off), one line per project, part and Discrepancy. Type to narrow it down - any word matches part, barcode, project, plane or area.</p>
-
-<div class="d-flex gap-2 flex-wrap mb-2">
-  <input type="search" id="pu-search" class="form-control" style="max-width:420px;" placeholder="Search part, barcode, project, plane, area..." value="{{ q }}" autocomplete="off" autofocus>
-  <form method="get" class="d-flex gap-1 mb-0">
-    <input type="hidden" name="q" value="{{ q }}" id="pu-q-keep">
-    <select name="status" class="form-select" data-no-combo onchange="document.getElementById('pu-q-keep').value = document.getElementById('pu-search').value; this.form.submit()" aria-label="Project status">
-      {% for v, l in [('all','All projects'),('active','Active'),('on_hold','On Hold'),('completed','Completed'),('archived','Archived')] %}
-      <option value="{{ v }}" {{ 'selected' if status == v }}>{{ l }}</option>
-      {% endfor %}
-    </select>
-  </form>
-</div>
 <div class="small text-muted mb-2" id="pu-count">{{ items|length }} line{{ 's' if items|length != 1 }}</div>
 
 <div class="card">

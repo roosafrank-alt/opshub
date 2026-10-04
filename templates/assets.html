@@ -1,20 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Aircraft · Winds Aloft{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="mb-0">Aircraft ({{ assets|length }})</h4>
-  <div class="d-flex gap-2">
-    <form class="d-flex" method="get">
+{% from "_list_toolbar.html" import list_toolbar %}
+{% call(slot) list_toolbar('Aircraft', count=assets|length) %}
+  {%- if slot == 'search' -%}
+    <form method="get">
       <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search tag, name, make, model, owner...">
-      <button class="btn btn-outline-secondary ms-1"><i class="bi bi-search"></i></button>
+      <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
     </form>
-    {#- JOBS-04: Add Aircraft and the Recently Deleted trash are admin only. #}
-    {% if is_master_admin or shop_role == 'admin' %}
-    <a href="{{ url_for('asset_new') }}" class="btn btn-dark fw-bold text-nowrap" data-change="DESIGN-2 DESIGN-1"><i class="bi bi-plus-lg"></i> Add Aircraft</a>
+  {%- elif slot == 'extra' and (is_master_admin or shop_role == 'admin') -%}
+    {#- JOBS-04: the Recently Deleted trash is admin only. #}
     <a href="{{ url_for('trash_page') }}" class="btn btn-outline-secondary btn-sm text-nowrap" title="Recently Deleted"><i class="bi bi-trash3"></i></a>
-    {% endif %}
-  </div>
-</div>
+  {%- elif slot == 'add' and (is_master_admin or shop_role == 'admin') -%}
+    {#- JOBS-04: Add Aircraft is admin only. #}
+    <a href="{{ url_for('asset_new') }}" class="btn btn-dark fw-bold text-nowrap" data-change="DESIGN-2 DESIGN-1"><i class="bi bi-plus-lg"></i> Add Aircraft</a>
+  {%- endif -%}
+{% endcall %}
 
 <div class="row g-3">
   {% for a in assets %}

@@ -7,7 +7,7 @@
       {% if photos %}
       <img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-2" style="max-height:220px; width:100%; object-fit:cover;">
       {% endif %}
-      <h5>{{ part.name }}{% if part.short_name %} <span class="text-muted small fw-normal">(aka {{ part.short_name }})</span>{% endif %}</h5>
+      <h4 data-change="DESIGN-9">{{ part.name }}{% if part.short_name %} <span class="text-muted small fw-normal">(aka {{ part.short_name }})</span>{% endif %}</h4>
       <div id="code-visual" class="d-flex justify-content-center my-2"></div>
       <div><code>{{ part.barcode }}</code></div>
       <form method="post" action="{{ url_for('part_print_label', part_id=part.id) }}" class="mt-2">

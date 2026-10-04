@@ -1,18 +1,14 @@
 {% extends "admin_base.html" %}
 {% block title %}Manage Accounts · Admin{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="mb-0"><i class="bi bi-shield-lock"></i> Manage Accounts ({{ users|length }})</h4>
-  <div class="d-flex align-items-center gap-2">
-    {#- Idea ux-button-text-wrap: Add Account is a flex item next to the
-       search box, so without text-nowrap/flex-shrink-0 it gets squeezed
-       below "Add Account"'s width and wraps to 2 lines; the search box
-       (already the flexible one here) narrows instead - see the smaller
-       min-width below. #}
-    <input type="text" id="users-search" class="form-control form-control-sm" placeholder="Search by name or username..." style="min-width:160px;">
-    <a href="{{ url_for('admin_user_new') }}" class="btn btn-primary fw-bold text-nowrap flex-shrink-0" data-change="DESIGN-2"><i class="bi bi-plus-lg"></i> Add Account</a>
-  </div>
-</div>
+{% from "_list_toolbar.html" import list_toolbar %}
+{% call(slot) list_toolbar('Manage Accounts', count=users|length, icon='shield-lock') %}
+  {%- if slot == 'search' -%}
+    <input type="text" id="users-search" class="form-control" placeholder="Search by name or username...">
+  {%- elif slot == 'add' -%}
+    <a href="{{ url_for('admin_user_new') }}" class="btn btn-primary fw-bold text-nowrap" data-change="DESIGN-2"><i class="bi bi-plus-lg"></i> Add Account</a>
+  {%- endif -%}
+{% endcall %}
 <p class="text-muted small" data-change="SEAM-3">One login works for Winds Aloft, Fly with Kate! and Flight Academy - together, OpsHub. What each person sees depends on the roles set here. The <strong>Owner</strong> account can only be changed by the owner; the owner can change everyone else's, including other master admins. Passwords are on each account's Edit page.</p>
 <div class="card">
   <div class="table-responsive">

@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Print Labels · Winds Aloft{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3 no-print flex-wrap gap-2">
-  <h4 class="mb-0">Print Labels (<span id="label-count">{{ parts|length }}</span>)</h4>
-  <div class="d-flex gap-2">
-    <input type="text" id="labels-search" class="form-control" placeholder="Filter labels, as you type..." style="max-width:260px;">
+{% from "_list_toolbar.html" import list_toolbar %}
+{% call(slot) list_toolbar('Print Labels', count=parts|length, count_id='label-count', cls='no-print') %}
+  {%- if slot == 'search' -%}
+    <input type="text" id="labels-search" class="form-control" placeholder="Filter labels, as you type...">
+  {%- elif slot == 'add' -%}
     <button class="btn btn-outline-secondary fw-bold text-nowrap" onclick="window.print()" data-change="SHOP-35 DESIGN-1"><i class="bi bi-printer"></i> Print page (regular printer)</button>
-  </div>
-</div>
+  {%- endif -%}
+{% endcall %}
 
 <div class="label-sheet">
   {% for p in parts %}

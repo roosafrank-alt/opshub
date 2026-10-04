@@ -1,0 +1,40 @@
+{#- DESIGN-9: the one toolbar every list page shares.
+    Title (with an optional count) on the left, an optional search box in the
+    middle, extra filters/buttons, and the Add button on the right in the
+    program's accent colour. On a phone it stacks: title row, full-width
+    search, then the buttons. Look in static/css/style.css (.list-toolbar).
+
+    Use it like this (every slot is optional):
+
+      {% from "_list_toolbar.html" import list_toolbar %}
+      {% call(slot) list_toolbar('Parts', count=parts|length, icon='wrench') %}
+        {% if slot == 'search' %}<input id="parts-search" class="form-control" ...>
+        {% elif slot == 'extra' %}<a class="btn btn-outline-secondary">Export</a>
+        {% elif slot == 'add' %}<a class="btn btn-dark fw-bold">Add Part</a>
+        {% endif %}
+      {% endcall %}
+
+    count_id puts an id on the count's <span> for pages whose script updates it
+    (cls adds extra classes such as no-print; count_change adds a data-change marker to that span, change adds one to
+    the toolbar itself).
+    A 'title' slot can replace the plain title text (for a title that changes
+    with the view). A 'below' slot is not provided on purpose: anything under
+    the toolbar belongs to the page. -#}
+{% macro list_toolbar(title='', count=None, icon=None, count_id=None, count_change='', change='', cls='') %}
+{%- set title_slot = caller('title')|trim -%}
+{%- set search_slot = caller('search')|trim -%}
+{%- set extra_slot = caller('extra')|trim -%}
+{%- set add_slot = caller('add')|trim -%}
+<div class="list-toolbar{{ " " ~ cls if cls }}" data-change="DESIGN-9{{ ' ' ~ change if change }}">
+  <h4 class="list-toolbar-title mb-0">
+    {%- if icon %}<i class="bi bi-{{ icon }}"></i> {% endif -%}
+    {%- if title_slot %}{{ title_slot }}{% else %}{{ title }}{% endif -%}
+    {%- if count is not none %} (<span{% if count_id %} id="{{ count_id }}"{% endif %}{% if count_change %} data-change="{{ count_change }}"{% endif %}>{{ count }}</span>){% endif -%}
+  </h4>
+  {% if search_slot %}<div class="list-toolbar-search">{{ search_slot }}</div>{% endif %}
+  {% if extra_slot or add_slot %}<div class="list-toolbar-actions">
+    {%- if extra_slot %}<div class="list-toolbar-extra">{{ extra_slot }}</div>{% endif %}
+    {%- if add_slot %}<div class="list-toolbar-add">{{ add_slot }}</div>{% endif %}
+  </div>{% endif %}
+</div>
+{%- endmacro %}

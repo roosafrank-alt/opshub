@@ -12,15 +12,19 @@
 {% endmacro %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="mb-0">Activity Log (<span id="activity-count">{{ tx|length }}</span>{% if total > tx|length %} of {{ total }}{% endif %})</h4>
-  {#- Typing narrows what is on screen; Enter searches the whole log on the server. #}
-  <form method="get" class="input-group" style="max-width:340px;">
-    <span class="input-group-text"><i class="bi bi-search"></i></span>
-    <input type="text" id="activity-filter" name="q" value="{{ q }}" class="form-control" placeholder="Search part, project, name, note..." autocomplete="off" enterkeyhint="search">
-    {% if sort != 'date' %}<input type="hidden" name="sort" value="{{ sort }}"><input type="hidden" name="dir" value="{{ direction }}">{% endif %}
-  </form>
-</div>
+{% from "_list_toolbar.html" import list_toolbar %}
+{% call(slot) list_toolbar() %}
+  {%- if slot == 'title' -%}
+    Activity Log (<span id="activity-count">{{ tx|length }}</span>{% if total > tx|length %} of {{ total }}{% endif %})
+  {%- elif slot == 'search' -%}
+    {#- Typing narrows what is on screen; Enter searches the whole log on the server. #}
+    <form method="get" class="input-group">
+      <span class="input-group-text"><i class="bi bi-search"></i></span>
+      <input type="text" id="activity-filter" name="q" value="{{ q }}" class="form-control" placeholder="Search part, project, name, note..." autocomplete="off" enterkeyhint="search">
+      {% if sort != 'date' %}<input type="hidden" name="sort" value="{{ sort }}"><input type="hidden" name="dir" value="{{ direction }}">{% endif %}
+    </form>
+  {%- endif -%}
+{% endcall %}
 
 <div class="card">
   <div class="table-responsive">

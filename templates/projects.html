@@ -66,28 +66,24 @@
 {% endmacro %}
 
 {% block content %}
-<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-  <h4 class="mb-0 me-auto">Projects</h4>
-  {#- Idea ux-phone-list-toolbars: on a phone, "Parts Used" shrinks to an
-     icon-only button (its label just hides, same trick as the navbar's
-     .nav-label), it stays on the title's line with Add Project and the
-     trash icon, and the search form drops to its own full-width line
-     below (last in the markup so it wraps onto its own line on a phone;
-     order-md-* puts it back in its original spot, first, at md+ - see
-     .list-toolbar-search in style.css). #}
-  <a href="{{ url_for('projects_parts_used') }}" class="btn btn-outline-primary text-nowrap order-md-2"><i class="bi bi-box-seam"></i> <span class="d-none d-md-inline">Parts Used</span></a>
-  {% if is_master_admin or shop_role in ('admin', 'tech') %}
-  <a href="{{ url_for('project_new') }}" class="btn btn-dark fw-bold text-nowrap order-md-3" data-change="DESIGN-2 DESIGN-1"><i class="bi bi-plus-lg"></i> Add Project</a>
-  {% endif %}
-  {% if is_master_admin or shop_role == 'admin' %}
-  <a href="{{ url_for('trash_page') }}" class="btn btn-outline-secondary btn-sm text-nowrap order-md-4" title="Recently Deleted"><i class="bi bi-trash3"></i></a>
-  {% endif %}
-  <form class="d-flex gap-2 list-toolbar-search order-md-1" method="get">
-    {% if request.args.get('status') %}<input type="hidden" name="status" value="{{ request.args.get('status') }}">{% endif %}
-    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search name, code, description, aircraft...">
-    <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
-  </form>
-</div>
+{% from "_list_toolbar.html" import list_toolbar %}
+{% call(slot) list_toolbar('Projects') %}
+  {%- if slot == 'search' -%}
+    <form method="get">
+      {% if request.args.get('status') %}<input type="hidden" name="status" value="{{ request.args.get('status') }}">{% endif %}
+      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search name, code, description, aircraft...">
+      <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
+    </form>
+  {%- elif slot == 'extra' -%}
+    {#- On a phone "Parts Used" shrinks to an icon (its label hides, like the navbar's .nav-label). #}
+    <a href="{{ url_for('projects_parts_used') }}" class="btn btn-outline-primary text-nowrap"><i class="bi bi-box-seam"></i> <span class="d-none d-md-inline">Parts Used</span></a>
+    {% if is_master_admin or shop_role == 'admin' %}
+    <a href="{{ url_for('trash_page') }}" class="btn btn-outline-secondary btn-sm text-nowrap" title="Recently Deleted"><i class="bi bi-trash3"></i></a>
+    {% endif %}
+  {%- elif slot == 'add' and (is_master_admin or shop_role in ('admin', 'tech')) -%}
+    <a href="{{ url_for('project_new') }}" class="btn btn-dark fw-bold text-nowrap" data-change="DESIGN-2 DESIGN-1"><i class="bi bi-plus-lg"></i> Add Project</a>
+  {%- endif -%}
+{% endcall %}
 
 <ul class="nav nav-pills mb-3">
   <li class="nav-item"><a class="nav-link {{ 'active' if not request.args.get('status') }}" href="{{ url_for('projects_list', q=q) }}">All</a></li>
