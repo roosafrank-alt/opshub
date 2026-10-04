@@ -2208,5 +2208,135 @@
   "effort": "S",
   "decision": "yes",
   "note": "Added at Frank's request."
+ },
+ "DESIGN-2": {
+  "title": "Add everywhere, not New",
+  "before": "List pages say New Project, New Order, New Laborer, New Aircraft, New Account in some places and Add Part, Add Tool, Add Student, Add CFI in others.",
+  "after": "Add X on every list page, same button colour, same top-right position.",
+  "group": "Design rules",
+  "type": "Inconsistent",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "DESIGN-7": {
+  "title": "Bigger tap targets on phones",
+  "before": "Most action buttons are the small size, about 31 px tall, and sit in rows where a thumb hits the neighbour.",
+  "after": "One stylesheet rule: on phones, small buttons are at least 38 px tall with 6 px between them. Desktop unchanged.",
+  "group": "Design rules",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "DESIGN-10": {
+  "title": "Let people pinch-zoom",
+  "before": "Every page except the Schedule blocks pinch-to-zoom. iPhones ignore the setting anyway; Android users with weaker eyesight cannot zoom.",
+  "after": "Allow zoom everywhere. Inputs stay at 16 px text so the page does not jump when tapped.",
+  "group": "Design rules",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "DESIGN-11": {
+  "title": "Move repeated looks into the stylesheet",
+  "before": "About 300 inline style attributes and 20 per-page style blocks re-declare the same chips and pills, so one look change means editing many files.",
+  "after": "Repeated looks move into the shared stylesheet as named classes. No visible change; later fixes become one-line changes.",
+  "group": "Design rules",
+  "type": "Polish",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
+ },
+ "FLY-27": {
+  "title": "Flight Finder results only pre-fill date and time",
+  "before": "Tapping a Finder result like 9:30a - N20267S with Kate opens Schedule a Flight with only the date and time set; Plane and Instructor are blank.",
+  "after": "Pass the plane and instructor when the result has exactly one of each; when several, pass the first and let the admin change it.",
+  "group": "Fly with Kate!: flying",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-15": {
+  "title": "Multi-plane list ignores items waiting for owner's OK",
+  "before": "Each plane card shows N reminders due and N appointments to review, or All caught up. A plane with found items awaiting the owner's approval still says All caught up.",
+  "after": "Add an N need your OK badge using the plane page's wording, and never show All caught up while any found items are waiting.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "HUB-26": {
+  "title": "No View as button on an account row",
+  "before": "View as someone lives only in the Winds Aloft and Fly with Kate! account menu. On the Accounts list, after changing someone's roles, there is no View as button.",
+  "after": "Add a View as button on each account row and the Edit page that starts the look-only view, plus View as someone in the Admin account menu.",
+  "group": "Picker, My Aircraft, Admin, My Account",
+  "type": "Missing feature",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "JOBS-37": {
+  "title": "Photo buttons offered to roles that can't use them",
+  "before": "Add Photo(s), the star and the red X show for every role on the Photos tab, though they are admin or tech only. Deleting a photo reloads with no message.",
+  "after": "Show Add and star for admin and tech, X for admin only, and show Photo deleted after a delete.",
+  "group": "Winds Aloft: jobs and aircraft",
+  "type": "Polish",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SCHOOL-24": {
+  "title": "Planes Color button opens Edit Plane with solo rules",
+  "before": "The Planes button is Color, the page heading is Edit Plane: N123, the address says rate, and it contains Solo flights allowed. Saving always flashes Color updated.",
+  "after": "Rename the button and heading Schedule & Solo settings, or split Color and a Solo allowed toggle on the Planes row, and flash what actually changed.",
+  "group": "Fly with Kate!: people, money, learning",
+  "type": "Confusing",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-06": {
+  "title": "Techs get Edit, Retire, Delete, Adjust Stock on parts",
+  "before": "A Tech opening a part sees Edit, Retire, Delete, the Adjust Stock Count form and a red X on photos. Each asks Are you sure? then bounces with an error.",
+  "after": "Hide Edit, Retire, Delete, Adjust Stock Count and the photo X for non-admins, or let Techs correct a count on the server too.",
+  "group": "Winds Aloft: daily work",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "edit",
+  "note": "Hide Edit, Retire, Delete, and the photo X for non-admins, but let Techs correct a count on the server too."
+ },
+ "SHOP-08": {
+  "title": "Apprentices offered New Project links they can't use",
+  "before": "An Apprentice or Inspector sees New Project on Calendar, Create one on Scan, and Schedule a project on the dashboard. Each lands on the dashboard with an access error.",
+  "after": "Show these three links only to Admin and Tech; for the others say Ask an admin to create one.",
+  "group": "Winds Aloft: daily work",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "edit",
+  "note": "Show these three links only to Admin and Tech; for the others say Ask an admin to create one. apprentice should only be able to see their tasks and not see specific school, buisness, information"
+ },
+ "SHOP-20": {
+  "title": "Stale Labor page links and wording",
+  "before": "The Labor page was merged into Scan. Workers still has a back-arrow button labelled Labor, and three pages say scan this on the Labor page, which no menu lists.",
+  "after": "Remove the Labor button from Workers since the header has Back, and change the three sentences to on the Scan page.",
+  "group": "Winds Aloft: daily work",
+  "type": "Dead end",
+  "effort": "S",
+  "decision": "yes",
+  "note": ""
+ },
+ "SHOP-26": {
+  "title": "Calendar month grid unreadable on phone, toolbar crowded",
+  "before": "On a phone the Month view draws seven 45px columns, so every name is two letters and dots. The toolbar's eight controls wrap to three lines. List view isn't default.",
+  "after": "Default to List view on phones, keep Month on desktop, show only Month/List and back, Today, forward in the phone toolbar, with New Project and Archived below.",
+  "group": "Winds Aloft: daily work",
+  "type": "Polish",
+  "effort": "M",
+  "decision": "yes",
+  "note": ""
  }
 }
