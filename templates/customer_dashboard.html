@@ -1,5 +1,5 @@
 {% extends "customer_base.html" %}
-{% block title %}My Aircraft{% endblock %}
+{% block title %}Your Aircraft · My Aircraft{% endblock %}
 {% block content %}
 <h4 class="mb-3">Your Aircraft</h4>
 {% if summaries %}
@@ -18,7 +18,8 @@
         <div class="mt-2 d-flex gap-2 flex-wrap">
           {% if s.due_count %}<span class="badge bg-warning text-dark">{{ s.due_count }} reminder{{ 's' if s.due_count != 1 }} due</span>{% endif %}
           {% if s.needs_response_count %}<span class="badge bg-primary">{{ s.needs_response_count }} appointment{{ 's' if s.needs_response_count != 1 }} to review</span>{% endif %}
-          {% if not s.due_count and not s.needs_response_count %}<span class="badge bg-success">All caught up</span>{% endif %}
+          {% if s.found_waiting_count %}<span class="badge bg-warning text-dark" data-change="HUB-15">{{ s.found_waiting_count }} need{{ 's' if s.found_waiting_count == 1 }} your OK</span>{% endif %}
+          {% if not s.due_count and not s.needs_response_count and not s.found_waiting_count %}<span class="badge bg-success">All caught up</span>{% endif %}
         </div>
       </div>
     </a>
