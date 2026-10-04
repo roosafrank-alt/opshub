@@ -45,15 +45,17 @@
       {% endfor %}
     </div>
 
-    <div class="d-flex gap-2 flex-wrap mt-3">
+    <div class="d-flex gap-2 flex-wrap mt-3" data-change="DESIGN-8">
       {% if e.status == 'pending' or staff %}
       <button class="btn btn-primary btn-sm" name="action" value="save" data-change="DESIGN-1"><i class="bi bi-save"></i> Save</button>
-      <button class="btn btn-success btn-sm" name="action" value="approve"><i class="bi bi-check2-circle"></i> {{ 'Approve - this entry is correct' if e.status == 'pending' else 'Save & keep approved' }}</button>
+      {% endif %}
+      <a href="{{ url_for('pilotlog.logbook', student_id=e.student_id if staff else None) }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+      {% if e.status == 'pending' or staff %}
+      <button class="btn btn-success btn-sm ms-sm-3" name="action" value="approve"><i class="bi bi-check2-circle"></i> {{ 'Approve - this entry is correct' if e.status == 'pending' else 'Save & keep approved' }}</button>
       {% endif %}
       {% if e.status == 'complete' %}
       <button class="btn btn-outline-secondary btn-sm" name="action" value="reopen"><i class="bi bi-unlock"></i> Reopen</button>
       {% endif %}
-      <a href="{{ url_for('pilotlog.logbook', student_id=e.student_id if staff else None) }}" class="btn btn-link btn-sm">Back to logbook</a>
     </div>
   </form>
 </div>

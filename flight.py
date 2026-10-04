@@ -5122,6 +5122,16 @@ def _form_return_to():
     return ref
 
 
+@flight_bp.context_processor
+def _inject_form_back():
+    """DESIGN-8: form_back(default_url) gives a form's Cancel button the page the
+    form was opened from (kept through a failed save by a hidden return_to
+    field), or default_url when that isn't known."""
+    def form_back(default_url):
+        return _form_return_to() or default_url
+    return {"form_back": form_back}
+
+
 def _schedule_page_args():
     """Query args of the Schedule calendar page this request came from, or None
     when it came from anywhere else (the Dashboard, a form, ...)."""

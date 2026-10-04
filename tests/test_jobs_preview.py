@@ -266,10 +266,10 @@ class AircraftPageRolesTest(OpsHubTestCase):
 
     def test_jobs_23_timestamps_use_the_app_date_format(self):
         body = get(self.login("shop_admin"), f"/assets/{self.asset}")
-        self.assertIn("Updated 30-09-2026 14:22 by Shop - Frank", body)
+        self.assertRegex(body, r"Updated \w{3}, Sep 30, 2026 (14:22|2:22 PM) by Shop - Frank")  # FLY-12 format
         self.exec("UPDATE assets SET deleted_at='2026-09-30 14:22:11' WHERE id=?", (self.asset,))
         trash = get(self.login("shop_admin"), "/trash")
-        self.assertIn("30-09-2026 14:22", trash)
+        self.assertRegex(trash, r"Sep 30, 2026 (14:22|2:22 PM)")  # FLY-12 format
         self.assertNotIn("14:22:11", trash)
 
     def test_jobs_24_never_says_asset(self):

@@ -127,11 +127,11 @@
       <h6 class="text-muted mb-2">By Plane</h6>
       {% if plane_rows %}
       <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
+        <table class="table table-sm align-middle mb-0 table-stack" data-change="DESIGN-5">
           <thead><tr><th>Plane</th><th>Hours</th><th>Revenue</th></tr></thead>
           <tbody>
             {% for r in plane_rows %}
-            <tr><td>{{ r.plane }}</td><td>{{ '%.1f'|format(r.hours) }}</td><td data-change="SCHOOL-19">${{ '{:,.2f}'.format(r.revenue) }}</td></tr>
+            <tr><td data-label="Plane">{{ r.plane }}</td><td data-label="Hours">{{ '%.1f'|format(r.hours) }}</td><td data-label="Revenue" data-change="SCHOOL-19">${{ '{:,.2f}'.format(r.revenue) }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -146,11 +146,11 @@
       <h6 class="text-muted mb-2">By Instructor</h6>
       {% if instructor_rows %}
       <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
+        <table class="table table-sm align-middle mb-0 table-stack" data-change="DESIGN-5">
           <thead><tr><th>Instructor</th><th>Hours</th><th>Revenue</th></tr></thead>
           <tbody>
             {% for r in instructor_rows %}
-            <tr><td>{{ r.instructor }}</td><td>{{ '%.1f'|format(r.hours) }}</td><td data-change="SCHOOL-19">${{ '{:,.2f}'.format(r.revenue) }}</td></tr>
+            <tr><td data-label="Instructor">{{ r.instructor }}</td><td data-label="Hours">{{ '%.1f'|format(r.hours) }}</td><td data-label="Revenue" data-change="SCHOOL-19">${{ '{:,.2f}'.format(r.revenue) }}</td></tr>
             {% endfor %}
           </tbody>
         </table>

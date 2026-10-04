@@ -450,9 +450,9 @@
       }
     </style>
     <script>document.body.classList.add('flight-complete-sticky');</script>
-    <div class="d-flex justify-content-between" id="sched-form-footer">
-      <a href="{{ return_to or (url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar')) }}" class="btn btn-outline-secondary" data-change="FLY-31">Cancel</a>
+    <div class="d-flex gap-2" id="sched-form-footer" data-change="DESIGN-8">
       <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Log Session' if is_complete else 'Schedule Flight')) }}</button>
+      <a href="{{ return_to or (url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar')) }}" class="btn btn-outline-secondary" data-change="FLY-31">Cancel</a>
     </div>
   </form>
 </div>

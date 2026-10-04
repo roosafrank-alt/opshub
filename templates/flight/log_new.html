@@ -249,9 +249,9 @@
       }
     </style>
     {% endif %}
-    <div class="d-flex justify-content-between" id="log-form-footer">
-      <a href="{{ return_to or (url_for('flight.log_detail', flight_id=edit_flight_id) if edit_flight_id else url_for('flight.dashboard')) }}" class="btn btn-outline-secondary" data-change="FLY-31">Cancel</a>
+    <div class="d-flex gap-2" id="log-form-footer" data-change="DESIGN-8">
       <button type="submit" class="btn btn-primary fw-bold">{% if edit_flight_id %}Save Changes{% else %}Log Session{% endif %}</button>
+      <a href="{{ return_to or (url_for('flight.log_detail', flight_id=edit_flight_id) if edit_flight_id else url_for('flight.dashboard')) }}" class="btn btn-outline-secondary" data-change="FLY-31">Cancel</a>
     </div>
   </form>
 </div>

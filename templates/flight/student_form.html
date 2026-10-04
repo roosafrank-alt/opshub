@@ -368,9 +368,10 @@
       <label class="form-check-label" for="active-check">Active</label>
     </div>
     {% endif %}
-    <div class="d-flex justify-content-between">
-      <a href="{{ url_for('flight.students_list') }}" class="btn btn-outline-secondary">Cancel</a>
+    <input type="hidden" name="return_to" value="{{ form_back(url_for('flight.students_list')) }}">
+    <div class="d-flex gap-2" data-change="DESIGN-8">
       <button type="submit" class="btn btn-primary fw-bold">{{ 'Save Changes' if student else 'Add Student' }}</button>
+      <a href="{{ form_back(url_for('flight.students_list')) }}" class="btn btn-outline-secondary">Cancel</a>
     </div>
   </form>
 </div>
@@ -470,7 +471,7 @@
       <tbody>
         {% for entry in ledger %}
         <tr>
-          <td class="small" data-label="Date">{{ entry.created_at[:16] }}</td>
+          <td class="small" data-label="Date">{{ entry.created_at|usdate }} {{ entry.created_at|time12 }}</td>
           <td class="small" data-label="Type">
             {% if entry.entry_type == 'funds_added' %}<span class="badge bg-success">Funds Added</span>
             {% elif entry.entry_type == 'flight_deduction' %}<span class="badge bg-secondary">Flight</span>

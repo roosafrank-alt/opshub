@@ -35,9 +35,10 @@
     </div>
     <p class="small text-muted">Schedule color and solo rules: <a href="{{ url_for('flight.plane_rate_edit', asset_id=plane.id) }}">Schedule &amp; Solo settings</a>.
       {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}Maintenance: <a href="{{ url_for('asset_detail', asset_id=plane.id) }}">open in Winds Aloft</a>.{% endif %}</p>
-    <div class="d-flex justify-content-between">
-      <a href="{{ url_for('flight.planes_list') }}" class="btn btn-outline-secondary">Cancel</a>
+    <input type="hidden" name="return_to" value="{{ form_back(url_for('flight.planes_list')) }}">
+    <div class="d-flex gap-2" data-change="DESIGN-8">
       <button type="submit" class="btn btn-primary fw-bold">Save</button>
+      <a href="{{ form_back(url_for('flight.planes_list')) }}" class="btn btn-outline-secondary">Cancel</a>
     </div>
   </form>
 </div>

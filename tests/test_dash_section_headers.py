@@ -29,10 +29,10 @@ class DashSectionHeadersTest(OpsHubTestCase):
         conn.close()
         html = self.login("cfi").get("/flight/dashboard").get_data(as_text=True)
         today = date.today()
-        mmdd = today.strftime("%m-%d")
-        ddmmyyyy = today.strftime("%d-%m-%Y")
-        self.assertIn(mmdd, html)
-        self.assertIn(f"({ddmmyyyy})", html)
+        short = f"{today.strftime('%b')} {today.day}"  # FLY-12: Oct 4 on a phone
+        full = f"{today.strftime('%a')}, {today.strftime('%b')} {today.day}, {today.year}"  # Sun, Oct 4, 2026
+        self.assertIn(short, html)
+        self.assertIn(f"({full})", html)
         self.assertIn("done</span>", html)
         self.assertIn("flight complete</span>", html)
 

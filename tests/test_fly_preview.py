@@ -383,7 +383,7 @@ class WordingTest(FlyBase):
         fid = self.running_flight(scheduled_flight_id=sid, started_at="2026-10-02 14:03:17",
                                   ended_at="2026-10-02 15:41:02", instructor_clock_hours=1.63)
         html = self.login("cfi").get(f"/flight/log/{fid}").get_data(as_text=True)
-        self.assertIn("02-10-2026 2:03 PM", html)
+        self.assertIn("Fri, Oct 2, 2026 2:03 PM", html)  # FLY-12
         self.assertIn("1 hr 38 min (1.63 hrs)", html)
         self.assertIn("view=day", html)
         self.assertNotIn("2026-10-02 14:03:17", html)
@@ -462,7 +462,7 @@ class BookNextAfterLoggingTest(FlyBase):
         html = c.get(r.headers["Location"]).get_data(as_text=True)
         nxt = date.today() + timedelta(days=7)
         self.assertIn("Book <strong>", html)
-        self.assertIn(nxt.strftime("%d-%m-%Y") + " 2:00 PM", html)
+        self.assertIn(f"{nxt.strftime('%a')}, {nxt.strftime('%b')} {nxt.day}, {nxt.year} 2:00 PM", html)  # FLY-12
 
 
 class FormCancelTest(FlyBase):

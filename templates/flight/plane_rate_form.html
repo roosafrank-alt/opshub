@@ -54,9 +54,10 @@
       </div>
       <div class="form-text">What solo bookings for {{ plane.tag }} show instead of the block color above. Leave unset to keep the automatic neon version. Grayed-out colors are already used by another plane's Solo Color.</div>
     </div>
-    <div class="d-flex justify-content-between">
-      <a href="{{ url_for('flight.planes_list') }}" class="btn btn-outline-secondary">Cancel</a>
+    <input type="hidden" name="return_to" value="{{ form_back(url_for('flight.planes_list')) }}">
+    <div class="d-flex gap-2" data-change="DESIGN-8">
       <button type="submit" class="btn btn-primary fw-bold">Save</button>
+      <a href="{{ form_back(url_for('flight.planes_list')) }}" class="btn btn-outline-secondary">Cancel</a>
     </div>
   </form>
 </div>

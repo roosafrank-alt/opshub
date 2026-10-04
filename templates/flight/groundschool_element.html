@@ -132,15 +132,15 @@
     </script>
     {% if items %}
     <hr>
-    <table class="table table-sm mb-0">
+    <table class="table table-sm mb-0 table-stack" data-change="DESIGN-5">
       <thead><tr><th>Kind</th><th>Title</th><th>Required</th><th></th></tr></thead>
       <tbody>
         {% for it in items %}
         <tr>
-          <td class="text-muted small">{{ it.kind }}</td>
-          <td class="small">{{ it.title or '-' }}</td>
-          <td class="small">{{ 'yes' if it.required else 'no' }}</td>
-          <td class="text-end">
+          <td class="text-muted small" data-label="Kind">{{ it.kind }}</td>
+          <td class="small" data-label="Title">{{ it.title or '-' }}</td>
+          <td class="small" data-label="Required">{{ 'yes' if it.required else 'no' }}</td>
+          <td class="text-end" data-label="">
             <form method="post" action="{{ url_for('groundschool.element_item_delete', element_id=el.id, item_id=it.id) }}" data-change="DESIGN-3 DESIGN-4" data-confirm="Remove this lesson item? It can be added again later." data-confirm-title="Remove Lesson Item" data-confirm-ok="Remove" data-confirm-style="warning">
               <button type="submit" class="btn btn-outline-danger btn-sm" title="Remove"><i class="bi bi-x-lg"></i></button>
             </form>

@@ -186,16 +186,16 @@
     <p class="text-muted small mb-3">Choose a student at the top of the page to sign them off.</p>
     {% endif %}
     {% if signoffs %}
-    <table class="table table-sm mb-0">
+    <table class="table table-sm mb-0 table-stack" data-change="DESIGN-5">
       <thead><tr><th>Student</th><th>Signed off</th><th>By</th><th>Notes</th><th></th></tr></thead>
       <tbody>
         {% for so in signoffs %}
         <tr>
-          <td>{{ so.student_name }}</td>
-          <td>{{ so.signed_off_at|usdate(true) if so.signed_off_at else so.signed_off_at }}</td>
-          <td>{{ so.cfi_name or '-' }}</td>
-          <td>{{ so.notes or '' }}</td>
-          <td class="text-end">
+          <td data-label="Student">{{ so.student_name }}</td>
+          <td data-label="Signed off">{{ so.signed_off_at|usdate }} {{ so.signed_off_at|time12 if so.signed_off_at }}</td>
+          <td data-label="By">{{ so.cfi_name or '-' }}</td>
+          <td class="stack-full" data-label="Notes">{{ so.notes or '' }}</td>
+          <td class="text-end" data-label="">
             <form method="post" action="{{ url_for('groundschool.signoff_remove', task_id=task.id, signoff_id=so.id) }}"
                   data-change="DESIGN-3 DESIGN-4" data-confirm="Remove this sign-off? It can be signed off again later." data-confirm-title="Remove Sign-Off" data-confirm-ok="Remove" data-confirm-style="warning">
               <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg"></i></button>
