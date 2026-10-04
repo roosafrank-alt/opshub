@@ -1,5 +1,5 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}Availability - OpsHub{% endblock %}
+{% block title %}Availability · Fly with Kate!{% endblock %}
 {% block content %}
 {#
   Plane Availability: which planes are open when. Reached from an
@@ -128,15 +128,15 @@
     {%- elif view == 'week' %} - {{ week_label }}
     {%- else %} - {{ month_name }} {{ year }}{% endif %}</h4>
   <div class="d-flex gap-2 align-items-center flex-wrap">
-    <div class="btn-group btn-group-sm" role="group">
-      <a href="{{ url_for('flight.schedule_availability', view='day', date=day_str, plane_id=plane_id, mode=mode) }}" class="btn {{ 'btn-warning' if view == 'day' else 'btn-outline-secondary' }}">Day</a>
-      <a href="{{ url_for('flight.schedule_availability', view='week', date=day_str, plane_id=plane_id) }}" class="btn {{ 'btn-warning' if view == 'week' else 'btn-outline-secondary' }}">Week</a>
-      <a href="{{ url_for('flight.schedule_availability', view='month', date=day_str, plane_id=plane_id) }}" class="btn {{ 'btn-warning' if view == 'month' else 'btn-outline-secondary' }}">Month</a>
+    <div class="btn-group btn-group-sm" role="group" data-change="DESIGN-1">
+      <a href="{{ url_for('flight.schedule_availability', view='day', date=day_str, plane_id=plane_id, mode=mode) }}" class="btn {{ 'btn-secondary' if view == 'day' else 'btn-outline-secondary' }}">Day</a>
+      <a href="{{ url_for('flight.schedule_availability', view='week', date=day_str, plane_id=plane_id) }}" class="btn {{ 'btn-secondary' if view == 'week' else 'btn-outline-secondary' }}">Week</a>
+      <a href="{{ url_for('flight.schedule_availability', view='month', date=day_str, plane_id=plane_id) }}" class="btn {{ 'btn-secondary' if view == 'month' else 'btn-outline-secondary' }}">Month</a>
     </div>
     {% if view == 'day' %}
-    <div class="btn-group btn-group-sm" role="group">
-      <a href="{{ url_for('flight.schedule_availability', view='day', date=day_str, plane_id=plane_id, mode='calendar') }}" class="btn {{ 'btn-warning' if mode == 'calendar' else 'btn-outline-secondary' }}">Calendar</a>
-      <a href="{{ url_for('flight.schedule_availability', view='day', date=day_str, plane_id=plane_id, mode='list') }}" class="btn {{ 'btn-warning' if mode == 'list' else 'btn-outline-secondary' }}">List</a>
+    <div class="btn-group btn-group-sm" role="group" data-change="DESIGN-1">
+      <a href="{{ url_for('flight.schedule_availability', view='day', date=day_str, plane_id=plane_id, mode='calendar') }}" class="btn {{ 'btn-secondary' if mode == 'calendar' else 'btn-outline-secondary' }}">Calendar</a>
+      <a href="{{ url_for('flight.schedule_availability', view='day', date=day_str, plane_id=plane_id, mode='list') }}" class="btn {{ 'btn-secondary' if mode == 'list' else 'btn-outline-secondary' }}">List</a>
     </div>
     <a href="{{ url_for('flight.schedule_availability', view='day', date=day_prev, plane_id=plane_id, mode=mode) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
     <a href="{{ url_for('flight.schedule_availability', view='day', plane_id=plane_id, mode=mode) }}" class="btn btn-outline-secondary btn-sm">Today</a>

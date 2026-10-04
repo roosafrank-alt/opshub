@@ -1,5 +1,5 @@
 {% extends "academy_base.html" %}
-{% block title %}Ground School - OpsHub{% endblock %}
+{% block title %}Ground School · Flight Academy{% endblock %}
 {% block content %}
 <style>
   .pg-bar { position: relative; height: .6rem; border-radius: 999px; background: #e9ecef; overflow: hidden; }
@@ -69,8 +69,8 @@
             </li>
             <li>
               <form method="post" action="{{ url_for('groundschool.rating_delete', rating_id=r.id) }}"
-                    onsubmit="return confirm('Delete {{ r.name }}? This removes all its Areas/Tasks, lesson content, and sign-offs.');">
-                <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash"></i> Delete</button>
+                    data-change="DESIGN-3 DESIGN-4" data-confirm="Delete {{ r.name }} forever? All its Areas/Tasks, lesson content, and sign-offs are lost. This can't be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
+                <button type="submit" class="dropdown-item text-danger fw-bold"><i class="bi bi-trash"></i> Delete Forever</button>
               </form>
             </li>
           </ul>
@@ -104,9 +104,9 @@
           works for documents that follow the standard FAA ACS layout (References/Objective/Knowledge/Risk
           Management/Skills, each with a reference code) - other layouts may parse incompletely.</p>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+      <div class="modal-footer justify-content-start" data-change="DESIGN-8">
         <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-upload"></i> Upload &amp; Parse</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
       </div>
     </form>
   </div>

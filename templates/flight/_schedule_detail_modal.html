@@ -148,9 +148,9 @@
             <input type="time" name="scheduled_time" id="rs-time" class="form-control">
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <div class="modal-footer justify-content-start" data-change="DESIGN-8">
           <button type="submit" class="btn btn-primary fw-bold btn-sm">Save New Time</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
         </div>
       </form>
     </div>
@@ -202,9 +202,9 @@
           <input type="hidden" name="proposed_times" id="pt-times-json">
           <div id="pt-error" class="alert alert-danger d-none py-2 px-3 mb-0 small"></div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Never Mind</button>
-          <button type="submit" id="pt-submit" class="btn btn-warning fw-bold btn-sm" data-change="FLY-32">Send to Student</button>
+        <div class="modal-footer justify-content-start" data-change="DESIGN-8">
+          <button type="submit" id="pt-submit" class="btn btn-primary fw-bold btn-sm" data-change="FLY-32 DESIGN-1">Send to Student</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Never Mind</button>
         </div>
       </form>
     </div>
@@ -244,9 +244,9 @@
             <textarea name="note" id="student-change-note" class="form-control" rows="3" placeholder="e.g. Saturday mornings, or any weekday after 4pm"></textarea>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Never Mind</button>
-          <button type="submit" class="btn btn-warning fw-bold btn-sm">Send Request</button>
+        <div class="modal-footer justify-content-start" data-change="DESIGN-8">
+          <button type="submit" class="btn btn-primary fw-bold btn-sm" data-change="DESIGN-1">Send Request</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Never Mind</button>
         </div>
       </form>
     </div>
@@ -479,7 +479,7 @@ document.addEventListener('click', function (evt) {
         var today = new Date();
         var dayLbl = function (d) {
           return d.toDateString() === today.toDateString() ? 'today'
-            : d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
+            : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
         };
         var opensLbl = dayLbl(opens) + ' at ' + timeLbl;
         document.getElementById('sd-start-opens').textContent = opensLbl;

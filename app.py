@@ -278,6 +278,21 @@ app.jinja_env.filters["usdate"] = usdate
 app.jinja_env.filters["usdate_short"] = usdate_short
 
 
+def usdate_short(value):
+    """TEMP STUB of the shared builder's helper: 'Oct 2' for tight spots."""
+    if not value:
+        return value
+    s = str(value).strip()
+    try:
+        dt = datetime.strptime(s[:10], "%Y-%m-%d")
+    except ValueError:
+        return value
+    return f"{dt.strftime('%b')} {dt.day}"
+
+
+app.jinja_env.filters["usdate_short"] = usdate_short
+
+
 def shortwhen(value):
     """'Today 7:56 PM' for today's ISO datetimes, otherwise the usdate date
     ('Thu, Oct 2, 2026'). Anything unparsable passes through via usdate()."""
@@ -609,7 +624,7 @@ def academy_entry_delete(entry_id):
         conn.execute("DELETE FROM academy_entries WHERE id = ?", (entry_id,))
         conn.execute("DELETE FROM manual_landings WHERE academy_entry_id = ?", (entry_id,))  # SCHOOL-37
         conn.commit()
-        flash("Entry removed.", "success")
+        flash("Entry deleted forever.", "success")
     conn.close()
     return redirect(url_for("academy_page") + "#log")
 

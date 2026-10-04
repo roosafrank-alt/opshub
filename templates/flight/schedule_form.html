@@ -1,5 +1,5 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}{{ 'Edit Scheduled Flight' if sched else 'Schedule a Flight' }} - OpsHub{% endblock %}
+{% block title %}{{ 'Edit Scheduled Flight' if sched else 'Schedule a Flight' }} · Fly with Kate!{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-6">
@@ -450,9 +450,9 @@
       }
     </style>
     <script>document.body.classList.add('flight-complete-sticky');</script>
-    <div class="d-flex justify-content-between" id="sched-form-footer">
-      <a href="{{ return_to or (url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar')) }}" class="btn btn-outline-secondary" data-change="FLY-31">Cancel</a>
+    <div class="d-flex gap-2" id="sched-form-footer" data-change="DESIGN-8">
       <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Log Session' if is_complete else 'Schedule Flight')) }}</button>
+      <a href="{{ return_to or (url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar')) }}" class="btn btn-outline-secondary" data-change="FLY-31">Cancel</a>
     </div>
   </form>
 </div>
@@ -1152,7 +1152,7 @@
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateBox.value || '');
     if (m) {
       var d = new Date(+m[1], +m[2] - 1, +m[3]);
-      var label = DAYS[d.getDay()] + ', ' + MONS[d.getMonth()] + ' ' + d.getDate();
+      var label = DAYS[d.getDay()] + ', ' + MONS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
       var txt = document.getElementById('date-summary-text');
       txt.textContent = '';
       if (dateBox.value === todayStr) {

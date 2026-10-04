@@ -1,11 +1,11 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}{{ 'Edit CFI' if cfi else 'New CFI' }} - OpsHub{% endblock %}
+{% block title %}{{ 'Edit CFI' if cfi else 'Add CFI' }} · Fly with Kate!{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-6">
 <div class="card p-4">
   <div class="d-flex justify-content-between align-items-start mb-2">
-    <h4 class="mb-0">{{ 'Edit CFI' if cfi else 'New CFI' }}</h4>
+    <h4 class="mb-0"{% if not cfi %} data-change="DESIGN-2"{% endif %}>{{ 'Edit CFI' if cfi else 'Add CFI' }}</h4>
     {#- SCHOOL-04: ?next= asks the Admin account form to come back here
        after Save (that form is the chrome part's). Edit CFI is admin-only
        already, so the button never shows to a plain CFI. #}
@@ -172,9 +172,10 @@
       <label class="form-check-label" for="is-station-check">Generic station account <span class="text-muted small">(e.g. "Shop") - grants CFI-level access to whoever logs in with it, but isn't a real instructor: hidden from every Instructor picker, filter, and legend so it can't be scheduled to fly a lesson.</span></label>
     </div>
     {% endif %}
-    <div class="d-flex justify-content-between">
-      <a href="{{ url_for('flight.cfis_list') }}" class="btn btn-outline-secondary">Cancel</a>
+    <input type="hidden" name="return_to" value="{{ form_back(url_for('flight.cfis_list')) }}">
+    <div class="d-flex gap-2" data-change="DESIGN-8">
       <button type="submit" class="btn btn-primary fw-bold">{{ 'Save Changes' if cfi else 'Add CFI' }}</button>
+      <a href="{{ form_back(url_for('flight.cfis_list')) }}" class="btn btn-outline-secondary">Cancel</a>
     </div>
   </form>
 </div>

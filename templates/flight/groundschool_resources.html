@@ -1,5 +1,5 @@
 {% extends "academy_base.html" %}
-{% block title %}Resources - Ground School - OpsHub{% endblock %}
+{% block title %}Resources · Flight Academy{% endblock %}
 {% block content %}
 <style>
   .resource-row { cursor: pointer; }
@@ -28,20 +28,20 @@
 {% else %}
 <div class="card academy-card">
   <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0">
+    <table class="table table-sm align-middle mb-0 table-stack" data-change="DESIGN-5">
       <thead><tr><th>Title</th><th>Type</th><th>Pages indexed</th><th></th><th></th></tr></thead>
       <tbody>
         {% for r in resources %}
         <tr class="resource-row" onclick="window.open('{{ url_for('groundschool.resource_file', resource_id=r.id) }}', '_blank')">
-          <td><span class="fw-bold"><i class="bi bi-file-earmark-pdf text-danger"></i> {{ r.title }}</span></td>
-          <td class="text-muted small">{{ r.doc_type or '-' }}</td>
-          <td class="text-muted small">{{ r.page_count }}</td>
-          <td class="text-primary small fw-bold text-nowrap">Open <i class="bi bi-box-arrow-up-right"></i></td>
-          <td class="text-end" onclick="event.stopPropagation()">
+          <td class="stack-full" data-label=""><span class="fw-bold"><i class="bi bi-file-earmark-pdf text-danger"></i> {{ r.title }}</span></td>
+          <td class="text-muted small" data-label="Type">{{ r.doc_type or '-' }}</td>
+          <td class="text-muted small" data-label="Pages indexed">{{ r.page_count }}</td>
+          <td class="text-primary small fw-bold text-nowrap" data-label="">Open <i class="bi bi-box-arrow-up-right"></i></td>
+          <td class="text-end" data-label="" onclick="event.stopPropagation()">
             {% if session.get('is_master_admin') %}
-            <form method="post" action="{{ url_for('groundschool.resources_delete', resource_id=r.id) }}" class="d-inline"
-                  onsubmit="return confirm('Delete {{ r.title }}? References linking to it will stop auto-linking.');">
-              <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+            <form method="post" action="{{ url_for('groundschool.resources_delete', resource_id=r.id) }}" class="d-inline" data-change="DESIGN-3 DESIGN-4"
+                  data-confirm="Delete {{ r.title }} forever? References linking to it will stop auto-linking. This can't be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
+              <button type="submit" class="btn btn-danger btn-sm" title="Delete Forever"><i class="bi bi-trash"></i></button>
             </form>
             {% endif %}
           </td>
@@ -83,9 +83,9 @@
         <p class="small text-muted mb-0">Every page is scanned so citations like "61.83" or "AC 61-65" can be
           auto-linked to the page they appear on. Large documents may take a minute to index.</p>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+      <div class="modal-footer justify-content-start" data-change="DESIGN-8">
         <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-upload"></i> Upload &amp; Index</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
       </div>
     </form>
   </div>

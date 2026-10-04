@@ -1,5 +1,5 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}{{ label }} - {{ student.name }} - OpsHub{% endblock %}
+{% block title %}{{ label }}: {{ student.name }} · Fly with Kate!{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-6">
@@ -30,9 +30,9 @@
   {% if held_flights %}
   <p class="small mb-2">
     Owes <strong>${{ '%.2f'|format(student_owed) }}</strong>{% if hold_limit %}, over the school's ${{ '%.2f'|format(hold_limit) }} limit{% endif %}
-    {% if held_flights[0].hold_started_at %} - on hold since {{ held_flights[0].hold_started_at[:16] }}{% endif %}.
+    {% if held_flights[0].hold_started_at %} - on hold since {{ held_flights[0].hold_started_at|usdate }} {{ held_flights[0].hold_started_at|time12 }}{% endif %}.
     {% if last_hold_notice %}
-      {% if last_hold_notice.read_at %}Seen by student {{ last_hold_notice.read_at[:16] }}.{% else %}<span class="text-warning fw-bold">Not seen yet.</span>{% endif %}
+      {% if last_hold_notice.read_at %}Seen by student {{ last_hold_notice.read_at|usdate }} {{ last_hold_notice.read_at|time12 }}.{% else %}<span class="text-warning fw-bold">Not seen yet.</span>{% endif %}
     {% endif %}
   </p>
   <div class="table-responsive">
@@ -63,7 +63,7 @@
       <tbody>
         {% for entry in ledger %}
         <tr>
-          <td class="small" data-label="Date">{{ entry.created_at[:16] }}</td>
+          <td class="small" data-label="Date">{{ entry.created_at|usdate }} {{ entry.created_at|time12 }}</td>
           <td class="small" data-label="Type">
             {% if entry.entry_type == 'funds_added' %}<span class="badge bg-success">Funds Added</span>
             {% elif entry.entry_type == 'flight_deduction' %}<span class="badge bg-secondary">Flight</span>
@@ -106,7 +106,11 @@
       <input type="number" step="any" name="value" class="form-control form-control-sm" value="{{ current_value if current_value is not none else '' }}" style="width:160px;">
     </div>
     <div class="col-auto">
-      <button type="submit" class="btn btn-primary btn-sm fw-bold">Save</button>
+      <input type="hidden" name="return_to" value="{{ form_back(url_for('flight.student_edit', student_id=student.id)) }}">
+      <div class="d-flex gap-2" data-change="DESIGN-8">
+        <button type="submit" class="btn btn-primary btn-sm fw-bold">Save</button>
+        <a href="{{ form_back(url_for('flight.student_edit', student_id=student.id)) }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+      </div>
     </div>
   </form>
   {% else %}
@@ -122,7 +126,7 @@
       <tbody>
         {% for h in history %}
         <tr>
-          <td class="small" data-label="Date">{{ h.changed_at[:16] }}</td>
+          <td class="small" data-label="Date">{{ h.changed_at|usdate }} {{ h.changed_at|time12 }}</td>
           <td class="small" data-label="From">{{ h.old_value or '(default)' }}</td>
           <td class="small" data-label="To">{{ h.new_value or '(default)' }}</td>
           <td class="small text-muted" data-label="Changed By">{{ h.changed_by or '-' }}</td>

@@ -1,5 +1,5 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}{{ (viewing_cfi.name ~ "'s Schedule") if viewing_cfi else "My Schedule" }} - OpsHub{% endblock %}
+{% block title %}{{ (viewing_cfi.name ~ "'s Schedule") if viewing_cfi else "My Schedule" }} · Fly with Kate!{% endblock %}
 {% block content %}
 {#
   A CFI's own work-schedule view (flight.cfi_schedule): a week-at-a-glance
@@ -80,7 +80,7 @@
         <i class="bi bi-slash-circle"></i>
         {{ t.when_label }}
         {% if t.note %}<span class="text-muted">- {{ t.note }}</span>{% endif %}
-        <form method="post" action="{{ url_for('flight.cfi_time_off_delete', off_id=t.id) }}" class="ms-auto" onsubmit="return confirm('Remove this time off?')">
+        <form method="post" action="{{ url_for('flight.cfi_time_off_delete', off_id=t.id) }}" class="ms-auto" data-change="DESIGN-3 DESIGN-4" data-confirm="Remove this time off? You can add it again later." data-confirm-title="Remove Time Off" data-confirm-ok="Remove" data-confirm-style="warning">
           <input type="hidden" name="view_date" value="{{ day_str }}">
           {% if cfi_id_param %}<input type="hidden" name="cfi_id" value="{{ cfi_id_param }}">{% endif %}
           <button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-x-circle"></i></button>
@@ -157,7 +157,7 @@
       <span>{{ t.off_date|usdate }}</span>
       <span>{{ t.when_label }}</span>
       {% if t.note %}<span class="text-muted">- {{ t.note }}</span>{% endif %}
-      <form method="post" action="{{ url_for('flight.cfi_time_off_delete', off_id=t.id) }}" class="ms-auto" onsubmit="return confirm('Remove this time off?')">
+      <form method="post" action="{{ url_for('flight.cfi_time_off_delete', off_id=t.id) }}" class="ms-auto" data-change="DESIGN-3 DESIGN-4" data-confirm="Remove this time off? You can add it again later." data-confirm-title="Remove Time Off" data-confirm-ok="Remove" data-confirm-style="warning">
         <input type="hidden" name="view_date" value="{{ day_str }}">
         {% if cfi_id_param %}<input type="hidden" name="cfi_id" value="{{ cfi_id_param }}">{% endif %}
         <button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button>

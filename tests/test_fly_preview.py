@@ -462,7 +462,7 @@ class BookNextAfterLoggingTest(FlyBase):
         html = c.get(r.headers["Location"]).get_data(as_text=True)
         nxt = date.today() + timedelta(days=7)
         self.assertIn("Book <strong>", html)
-        self.assertIn(nxt.strftime("%d-%m-%Y") + " 2:00 PM", html)
+        self.assertIn(f"{nxt.strftime('%a')}, {nxt.strftime('%b')} {nxt.day}, {nxt.year} 2:00 PM", html)  # FLY-12
 
 
 class FormCancelTest(FlyBase):

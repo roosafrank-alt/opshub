@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Flight Academy - OpsHub</title>
+<title>Leaderboard · Flight Academy</title>
 {% set app_identity = 'flywithkate' %}{% include "_app_identity.html" %}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -103,16 +103,16 @@
     </form>
     {% if entries %}
     <div class="table-responsive mt-3">
-      <table class="table table-sm align-middle mb-0 small">
+      <table class="table table-sm align-middle mb-0 small table-stack" data-change="DESIGN-5">
         <thead class="table-light"><tr><th>Date</th>{% if staff %}<th>Student</th>{% endif %}<th>What</th><th>Amount</th><th>Note</th><th></th></tr></thead>
         {% if staff %}<caption class="small text-muted" data-change="SCHOOL-38">{% if picked_student %}{{ picked_student.name }}'s last 25 entries.{% else %}Last 25 entries from everyone - pick a student above to see just theirs.{% endif %}</caption>{% endif %}
         <tbody>
           {% for e in entries %}
           {% set k = entry_kind_map.get(e.kind) %}
           <tr>
-            <td>{{ e.entry_date|usdate }}</td>{% if staff %}<td>{{ e.student_name }}</td>{% endif %}
-            <td>{{ k[1] if k else e.kind }}</td><td>{{ '%g'|format(e.value) }} {{ k[2] if k else '' }}</td><td>{{ e.note or '' }}</td>
-            <td class="text-end"><form method="post" action="{{ url_for('academy_entry_delete', entry_id=e.id) }}" class="mb-0" onsubmit="return confirm('Remove this entry?');"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-x-lg"></i></button></form></td>
+            <td data-label="Date">{{ e.entry_date|usdate }}</td>{% if staff %}<td data-label="Student">{{ e.student_name }}</td>{% endif %}
+            <td data-label="What">{{ k[1] if k else e.kind }}</td><td data-label="Amount">{{ '%g'|format(e.value) }} {{ k[2] if k else '' }}</td><td class="stack-full" data-label="Note">{{ e.note or '' }}</td>
+            <td class="text-end" data-label=""><form method="post" action="{{ url_for('academy_entry_delete', entry_id=e.id) }}" class="mb-0" data-change="DESIGN-3 DESIGN-4" data-confirm="Delete this entry forever? Its points come off the leaderboard (a landing also comes off the student's landing currency). This can't be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger"><button class="btn btn-danger btn-sm" title="Delete Forever"><i class="bi bi-trash"></i></button></form></td>
           </tr>
           {% endfor %}
         </tbody>

@@ -1,5 +1,5 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}{% if edit_flight_id %}Edit Flight{% else %}Log a Past Session{% endif %} - OpsHub{% endblock %}
+{% block title %}{% if edit_flight_id %}Edit Flight{% else %}Log a Past Session{% endif %} · Fly with Kate!{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-7">
@@ -249,9 +249,9 @@
       }
     </style>
     {% endif %}
-    <div class="d-flex justify-content-between" id="log-form-footer">
-      <a href="{{ return_to or (url_for('flight.log_detail', flight_id=edit_flight_id) if edit_flight_id else url_for('flight.dashboard')) }}" class="btn btn-outline-secondary" data-change="FLY-31">Cancel</a>
+    <div class="d-flex gap-2" id="log-form-footer" data-change="DESIGN-8">
       <button type="submit" class="btn btn-primary fw-bold">{% if edit_flight_id %}Save Changes{% else %}Log Session{% endif %}</button>
+      <a href="{{ return_to or (url_for('flight.log_detail', flight_id=edit_flight_id) if edit_flight_id else url_for('flight.dashboard')) }}" class="btn btn-outline-secondary" data-change="FLY-31">Cancel</a>
     </div>
   </form>
 </div>

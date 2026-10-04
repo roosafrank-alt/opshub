@@ -1,8 +1,8 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}Statistics - OpsHub{% endblock %}
+{% block title %}Stats · Fly with Kate!{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h4 class="mb-0"><i class="bi bi-bar-chart-line"></i> Flight School Statistics</h4>
+  <h4 class="mb-0"><i class="bi bi-bar-chart-line"></i> Flight School Stats</h4>
 </div>
 
 <div class="card p-3 mb-3">
@@ -127,11 +127,11 @@
       <h6 class="text-muted mb-2">By Plane</h6>
       {% if plane_rows %}
       <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
+        <table class="table table-sm align-middle mb-0 table-stack" data-change="DESIGN-5">
           <thead><tr><th>Plane</th><th>Hours</th><th>Revenue</th></tr></thead>
           <tbody>
             {% for r in plane_rows %}
-            <tr><td>{{ r.plane }}</td><td>{{ '%.1f'|format(r.hours) }}</td><td data-change="SCHOOL-19">${{ '{:,.2f}'.format(r.revenue) }}</td></tr>
+            <tr><td data-label="Plane">{{ r.plane }}</td><td data-label="Hours">{{ '%.1f'|format(r.hours) }}</td><td data-label="Revenue" data-change="SCHOOL-19">${{ '{:,.2f}'.format(r.revenue) }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -146,11 +146,11 @@
       <h6 class="text-muted mb-2">By Instructor</h6>
       {% if instructor_rows %}
       <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
+        <table class="table table-sm align-middle mb-0 table-stack" data-change="DESIGN-5">
           <thead><tr><th>Instructor</th><th>Hours</th><th>Revenue</th></tr></thead>
           <tbody>
             {% for r in instructor_rows %}
-            <tr><td>{{ r.instructor }}</td><td>{{ '%.1f'|format(r.hours) }}</td><td data-change="SCHOOL-19">${{ '{:,.2f}'.format(r.revenue) }}</td></tr>
+            <tr><td data-label="Instructor">{{ r.instructor }}</td><td data-label="Hours">{{ '%.1f'|format(r.hours) }}</td><td data-label="Revenue" data-change="SCHOOL-19">${{ '{:,.2f}'.format(r.revenue) }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -190,7 +190,7 @@ new Chart(document.getElementById('stats-chart'), {
   data: {
     {#- SCHOOL-17: same US date style as the rest of the app (the usdate
        filter), not day-month-year. #}
-    labels: {{ chart_labels|map('usdate')|list|tojson }},
+    labels: {{ chart_labels|map('usdate_short')|list|tojson }},
     datasets: [{ label: 'Hours', data: {{ chart_hours|tojson }}, backgroundColor: '#0d6efd' }]
   },
   options: {

@@ -207,24 +207,24 @@ def _ready_for_quick_actions(scheduled_date, scheduled_time):
 
 
 def _slot_label(scheduled_date, scheduled_time):
-    """'Thu 9/24 at 2:00 PM' (or 'today at 2:00 PM') for a booking's slot -
+    """'Thu, Oct 2, 2026 at 2:00 PM' (or 'today at 2:00 PM') for a booking's slot -
     what the early-start prompt tells the instructor it's booked for."""
     try:
         d = datetime.strptime(scheduled_date, "%Y-%m-%d").date()
     except (TypeError, ValueError):
         return scheduled_date or ""
-    day = "today" if d == date.today() else f"{d.strftime('%a')} {d.month}/{d.day}"
+    day = "today" if d == date.today() else _us_date(scheduled_date)
     return f"{day} at {_format_time_12h(scheduled_time)}" if scheduled_time else day
 
 
 def _opens_label(opens_at):
-    """'Tue 9/29 at 9:00 AM' (or 'today at 9:00 AM') for the not-yet message."""
+    """'Tue, Sep 29, 2026 at 9:00 AM' (or 'today at 9:00 AM') for the not-yet message."""
     if not opens_at:
         return ""
     time_part = _format_time_12h(opens_at.strftime("%H:%M"))
     if opens_at.date() == date.today():
         return f"today at {time_part}"
-    return f"{opens_at.strftime('%a')} {opens_at.month}/{opens_at.day} at {time_part}"
+    return f"{_us_date(opens_at.strftime('%Y-%m-%d'))} at {time_part}"
 
 
 def _countdown_label(scheduled_date_str):
@@ -368,7 +368,7 @@ def _notify_booking_confirm(conn, student_user_id, scheduled_id, plane_tag, sche
     when = _format_time_12h(scheduled_time) if scheduled_time else "a time to be set"
     try:
         push.queue_and_push(conn, student_user_id, "Confirm your flight",
-                            f"You're booked in {plane_tag} on {scheduled_date} at {when}. Open OpsHub to confirm.",
+                            f"You're booked in {plane_tag} on {_us_date(scheduled_date)} at {when}. Open OpsHub to confirm.",
                             tag=f"confirm-{scheduled_id}", url=url_for("flight.dashboard"))
     except Exception:
         current_app.logger.exception("Booking-confirm push failed")
@@ -788,12 +788,19 @@ SOLO_SIGNOFF_VALID_DAYS = 90  # a student pilot's solo endorsement is good for 9
 
 
 def _us_date(iso):
-    """YYYY-MM-DD -> DD-MM-YYYY (same display format as the usdate
-    template filter in app.py) for dates baked into flash/review text."""
+    """FLY-12: YYYY-MM-DD -> 'Thu, Oct 2, 2026' (same display format as the
+    usdate template filter in app.py) for dates baked into flash/review text."""
     try:
-        y, m, d = str(iso)[:10].split("-")
-        return f"{d}-{m}-{y}"
-    except ValueError:
+        return datetime.strptime(str(iso)[:10], "%Y-%m-%d").strftime("%a, %b {d}, %Y").replace("{d}", str(int(str(iso)[8:10])))
+    except (ValueError, TypeError):
+        return iso
+
+
+def _us_date_short(iso):
+    """FLY-12: YYYY-MM-DD -> 'Oct 2', for tight spots (phone rows, chips)."""
+    try:
+        return datetime.strptime(str(iso)[:10], "%Y-%m-%d").strftime("%b {d}").replace("{d}", str(int(str(iso)[8:10])))
+    except (ValueError, TypeError):
         return iso
 
 
@@ -2269,7 +2276,7 @@ def _solo_signoff_from_form(form):
 
 
 def _new_starting_password():
-    """SCHOOL-43: a one-time starting password offered on New Student / New
+    """SCHOOL-43: a one-time starting password offered on Add Student / Add
     CFI (shown masked, with Show and Copy) instead of asking the admin to
     make one up and keeping it readable on file. Letters and digits only,
     no look-alikes (0/O, 1/l/I)."""
@@ -2579,7 +2586,7 @@ def student_landing_delete(student_id, landing_id):
         conn.execute("DELETE FROM academy_entries WHERE id = ?", (row["academy_entry_id"],))
     conn.commit()
     conn.close()
-    flash("Removed.", "success")
+    flash("Landing entry deleted forever.", "success")
     return redirect(url_for("flight.student_edit", student_id=student_id))
 
 
@@ -3242,7 +3249,7 @@ def _cfi_schedule_week(conn, cfi_id, week_dates):
                 left, width = _cfi_schedule_pct(start_h * 60 + start_m, end_min)
                 segments.append({"kind": "off", "left": left, "width": width})
         days.append({
-            "date": ds, "date_label": f"{d.strftime('%a')} {d.month}/{d.day}",
+            "date": ds, "date_label": _us_date(ds),
             "is_today": ds == today_str,
             "on_label": (f"{_format_time_12h(f'{on_start // 60:02d}:{on_start % 60:02d}')} - "
                         f"{_format_time_12h(f'{on_end // 60:02d}:{on_end % 60:02d}')}") if on_start is not None else None,
@@ -3334,7 +3341,7 @@ def cfi_schedule():
                              (f"{who_off} has time off over this lesson - move it to a new time or instructor.", b["id"]))
             conn.commit()
             if len(off_dates) > 1:
-                msg = f"Time off added for {off_dates[0]} through {off_dates[-1]} - it now blocks new bookings for you over that span."
+                msg = f"Time off added for {_us_date(off_dates[0])} through {_us_date(off_dates[-1])} - it now blocks new bookings for you over that span."
             elif recurs_weekly:
                 weekday_name = datetime.strptime(off_date, "%Y-%m-%d").strftime("%A")
                 msg = f"Time off added for every {weekday_name} - it now blocks new bookings for you on that day going forward."
@@ -3371,7 +3378,7 @@ def cfi_schedule():
         (cfi_id, today.strftime("%Y-%m-%d"))).fetchall()]
     conn.close()
     return render_template("flight/cfi_schedule.html", days=days, day_str=day_str,
-                           week_label=f"Week of {week_dates[0].month}/{week_dates[0].day}",
+                           week_label=f"Week of {_us_date_short(week_dates[0].strftime('%Y-%m-%d'))}",
                            week_prev=(week_start - timedelta(days=7)).strftime("%Y-%m-%d"),
                            week_next=(week_start + timedelta(days=7)).strftime("%Y-%m-%d"),
                            upcoming_time_off=upcoming_time_off, today_str=today.strftime("%Y-%m-%d"),
@@ -3434,7 +3441,7 @@ def plane_edit(asset_id):
     make/model, "used by Flight School") - saves the same aircraft record
     the Maintenance side edits, but Save comes back to Planes instead of
     leaving the admin in Winds Aloft. Color and solo rules stay on the
-    Color page (plane_rate_edit). Simulators keep their own form."""
+    Schedule & Solo settings page (plane_rate_edit). Simulators keep their own form."""
     conn = get_db()
     plane = conn.execute("SELECT * FROM assets WHERE id = ? AND deleted_at IS NULL", (asset_id,)).fetchone()
     if not plane:
@@ -3542,8 +3549,8 @@ def simulator_edit(asset_id):
 @flight_bp.route("/planes/<int:asset_id>/rate", methods=["GET", "POST"])
 @admin_required
 def plane_rate_edit(asset_id):
-    """A plane's Schedule color, set here by an admin on the Flight School
-    side. Planes no longer have a rental rate - what a student pays for the
+    """A plane's Schedule & Solo settings (schedule color, solo color, solo
+    flights allowed), set here by an admin on the Flight School side. Planes no longer have a rental rate - what a student pays for the
     plane is their own Plane Rate on the Students page."""
     conn = get_db()
     plane = conn.execute(
@@ -3569,11 +3576,23 @@ def plane_rate_edit(asset_id):
             conn.close()
             return redirect(url_for("flight.plane_rate_edit", asset_id=asset_id))
         solo_allowed = 1 if request.form.get("solo_allowed") else 0
+        # SCHOOL-24: the message says what actually changed (colour and/or
+        # the solo setting) instead of always "Color updated".
+        colors_changed = (color != (plane["schedule_color"] or None)) or (solo_color != (plane["solo_color"] or None))
+        solo_changed = bool(solo_allowed) != bool(plane["solo_allowed"])
         conn.execute("UPDATE assets SET schedule_color = ?, solo_color = ?, solo_allowed = ?, updated_at = ? WHERE id = ?",
                      (color, solo_color, solo_allowed, now_iso(), asset_id))
         conn.commit()
         conn.close()
-        flash(f"Color updated for {plane['tag']}.", "success")
+        parts = []
+        if colors_changed:
+            parts.append("colors updated")
+        if solo_changed:
+            parts.append("solo flights now allowed" if solo_allowed else "solo flights no longer allowed")
+        if parts:
+            flash(f"{plane['tag']}: " + " and ".join(parts) + ".", "success")
+        else:
+            flash(f"{plane['tag']}: nothing changed.", "info")
         return redirect(url_for("flight.planes_list"))
     used_colors = _used_colors_for_plane(conn, asset_id)
     used_solo_colors = _used_solo_colors_for_plane(conn, asset_id)
@@ -4308,7 +4327,7 @@ def _build_flight_finder(conn, start_date, num_days, day_types, buckets, plane_i
                 slots.append({"start_min": start, "label": _format_time_12h(f"{start // 60:02d}:{start % 60:02d}"),
                               "planes": open_planes, "cfis": open_cfis})
         if slots:
-            days_out.append({"date": date_str, "date_label": f"{d.strftime('%a')} {d.month}/{d.day}", "slots": slots})
+            days_out.append({"date": date_str, "date_label": _us_date(date_str), "slots": slots})
         d += timedelta(days=1)
     return days_out
 
@@ -4686,10 +4705,10 @@ def schedule_availability():
         date_strs = [d.strftime("%Y-%m-%d") for d in week_dates]
         counts = _build_availability_counts(conn, date_strs, plane_id or None)
         today_str = today.strftime("%Y-%m-%d")
-        week_days = [{"date": ds, "date_label": f"{d.strftime('%a')} {d.month}/{d.day}",
+        week_days = [{"date": ds, "date_label": f"{d.strftime('%a')}, {_us_date_short(ds)}",
                       "count": counts[ds], "is_today": ds == today_str}
                      for ds, d in zip(date_strs, week_dates)]
-        ctx.update(week_days=week_days, week_label=f"Week of {week_dates[0].month}/{week_dates[0].day}",
+        ctx.update(week_days=week_days, week_label=f"Week of {_us_date_short(week_dates[0].strftime('%Y-%m-%d'))}",
                    week_prev=(week_start - timedelta(days=7)).strftime("%Y-%m-%d"),
                    week_next=(week_start + timedelta(days=7)).strftime("%Y-%m-%d"))
     else:  # month
@@ -5035,20 +5054,20 @@ def schedule_new():
             try:
                 push.queue_and_push(conn, notify_user_id, "Confirm your flights",
                                     f"{created_count} new {plane_tag} flights were booked for you, starting "
-                                    f"{occurrence_dates[0]}. Open OpsHub to confirm them.",
+                                    f"{_us_date(occurrence_dates[0])}. Open OpsHub to confirm them.",
                                     tag=f"confirm-series-{created_ids[0]}", url=url_for("flight.dashboard"))
             except Exception:
                 current_app.logger.exception("Booking-confirm push failed")
         conn.close()
 
         if created_count:
-            msg = f"Scheduled {created_count} flight{'s' if created_count != 1 else ''} ({occurrence_dates[0]} through {occurrence_dates[-1]})."
+            msg = f"Scheduled {created_count} flight{'s' if created_count != 1 else ''} ({_us_date(occurrence_dates[0])} through {_us_date(occurrence_dates[-1])})."
             if review_count:
                 msg += f" {review_count} flagged for review."
             flash(msg, "success" if not review_count else "warning")
         if skipped:
             flash(f"Skipped {len(skipped)} date{'s' if len(skipped) != 1 else ''} due to a conflict: " +
-                  ", ".join(f"{d} ({c['message']})" for d, c in skipped[:8]) + (", ..." if len(skipped) > 8 else ""), "danger")
+                  ", ".join(f"{_us_date(d)} ({c['message']})" for d, c in skipped[:8]) + (", ..." if len(skipped) > 8 else ""), "danger")
         if not created_count:
             flash("No flights were scheduled - every date in the range conflicted.", "danger")
             return redirect(url_for("flight.schedule_new"))
@@ -5103,6 +5122,16 @@ def _form_return_to():
     return ref
 
 
+@flight_bp.context_processor
+def _inject_form_back():
+    """DESIGN-8: form_back(default_url) gives a form's Cancel button the page the
+    form was opened from (kept through a failed save by a hidden return_to
+    field), or default_url when that isn't known."""
+    def form_back(default_url):
+        return _form_return_to() or default_url
+    return {"form_back": form_back}
+
+
 def _schedule_page_args():
     """Query args of the Schedule calendar page this request came from, or None
     when it came from anywhere else (the Dashboard, a form, ...)."""
@@ -5153,11 +5182,8 @@ def _calendar_stay_url(day_str, spotlight=None):
 
 
 def _booking_when(scheduled_date, scheduled_time):
-    """'Thu 02-10-2026 2:00 PM' for a booking's slot, for student messages."""
-    try:
-        day = datetime.strptime(scheduled_date, "%Y-%m-%d").strftime("%a") + " " + _us_date(scheduled_date)
-    except (TypeError, ValueError):
-        day = scheduled_date or ""
+    """'Thu, Oct 2, 2026 2:00 PM' for a booking's slot, for student messages."""
+    day = _us_date(scheduled_date) if scheduled_date else ""
     return f"{day} {_format_time_12h(scheduled_time)}" if scheduled_time else day
 
 
@@ -7631,7 +7657,7 @@ def _send_flight_receipt_email(conn, ended_row, cost, paid, payment_method, paym
         lines.append("Status: Paid in full")
     else:
         lines.append(f"Status: Unpaid - ${cost['total'] - credit_applied:.2f} owed")
-    body = f"Thanks for flying with us! Here's a receipt for your {ended_row['flight_date']} flight.\n\n" + "\n".join(lines)
+    body = f"Thanks for flying with us! Here's a receipt for your {_us_date(ended_row['flight_date'])} flight.\n\n" + "\n".join(lines)
     settings = notify.get_settings(conn)
 
     def _send(settings=settings, email=email, body=body):
@@ -8201,10 +8227,8 @@ def _next_lesson_preview(flight_id):
     next_dt = started + timedelta(days=7)
     next_date = next_dt.strftime("%Y-%m-%d")
     next_time = next_dt.strftime("%H:%M")
-    # DD-MM-YYYY is this app's own display format everywhere (see usdate in
-    # app.py) - the weekday abbreviation in front is the one addition, so
-    # the button reads like a date instead of a bare number.
-    label = f"{next_dt.strftime('%a')}, {next_dt.strftime('%d-%m-%Y')} {_format_time_12h(next_time)}"
+    # FLY-12: the app's one date format (usdate in app.py), weekday included.
+    label = f"{_us_date(next_date)} {_format_time_12h(next_time)}"
     is_own_plane = bool(f["asset_is_owner_placeholder"])
     is_solo = bool(f["solo"])
     edit_params = {"date": next_date, "time": next_time, "student_id": f["student_id"]}
@@ -8340,7 +8364,7 @@ def log_delete(flight_id):
     conn.execute("DELETE FROM flights WHERE id = ?", (flight_id,))
     conn.commit()
     conn.close()
-    flash(f"Flight deleted: {summary}. Its charge was taken off {f['student_name']}'s account.", "success")
+    flash(f"Flight deleted forever: {summary}. Its charge was taken off {f['student_name']}'s account.", "success")
     return redirect(url_for("flight.log_history"))
 
 
@@ -8920,7 +8944,7 @@ def waitlist_offer_cancelled_slot(conn, scheduled_id):
         offered = 0
         when = _format_time_12h(sched["scheduled_time"])
         day_label = "today" if slot_dt.date() == date.today() else (
-            "tomorrow" if slot_dt.date() == date.today() + timedelta(days=1) else slot_dt.strftime("%a %b %-d"))
+            "tomorrow" if slot_dt.date() == date.today() + timedelta(days=1) else _us_date_short(slot_dt.strftime("%Y-%m-%d")))
         settings = notify.get_settings(conn)
         seen_students = set()
         for w in matches:
@@ -9089,7 +9113,7 @@ def waitlist_offer(offer_id):
     conn.close()
     if gone:
         flash(f"Sorry - the {_format_time_12h(offer['scheduled_time'])} slot in {offer['plane_tag']} on "
-              f"{offer['scheduled_date']} was already taken. You're still on the waitlist for the next one.", "warning")
+              f"{_us_date(offer['scheduled_date'])} was already taken. You're still on the waitlist for the next one.", "warning")
         return redirect(url_for("flight.waitlist_page"))
     return redirect(url_for("flight.schedule_new", date=offer["scheduled_date"], time=offer["scheduled_time"],
                             asset_id=offer["asset_id"], cfi_id=offer["cfi_id"] or "", waitlist_offer=offer_id))

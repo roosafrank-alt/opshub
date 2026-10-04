@@ -1,5 +1,5 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}Flight Finder - OpsHub{% endblock %}
+{% block title %}Flight Finder · Fly with Kate!{% endblock %}
 {% block content %}
 {#
   Flight Finder: enter desired parameters (date window, weekday/weekend,
@@ -106,7 +106,8 @@
       <div class="card-body py-2">
         <div class="d-flex flex-column gap-2">
           {% for slot in day.slots %}
-          <a class="btn btn-sm btn-outline-success finder-slot-pill" href="{{ url_for('flight.schedule_new', date=day.date, time='%02d:%02d'|format(slot.start_min // 60, slot.start_min % 60)) }}">
+          {#- FLY-27: the result opens Schedule a Flight with the plane and the instructor filled in too (the first one when several are open; the form lets the admin change either). #}
+          <a class="btn btn-sm btn-outline-success finder-slot-pill" data-change="FLY-27" href="{{ url_for('flight.schedule_new', date=day.date, time='%02d:%02d'|format(slot.start_min // 60, slot.start_min % 60), asset_id=slot.planes[0].id, cfi_id=(slot.cfis[0].id if slot.cfis else none)) }}">
             <strong>{{ slot.label }}</strong> &mdash;
             {{ slot.planes|map(attribute='tag')|join(', ') }}
             {% if slot.cfis is not none %}
