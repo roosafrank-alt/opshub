@@ -82,7 +82,7 @@ Shop / inventory
 Accounts / admin
 - [x] Login form, wrong password, deactivated account
 - [x] Customer portal only shows the customer's own aircraft
-- [ ] Admin users: create, edit, deactivate, role changes take effect on next request
+- [x] Admin users: create, edit, deactivate, role changes take effect on next request (all fine except open: qa-user-password-stored-readable; plan said "next request" - verified for role, admin rights and deactivation)
 - [ ] View As (master admin impersonation): enter, exit, can't escalate
 - [ ] Admin reset pages: each reset touches only what it says
 
