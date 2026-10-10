@@ -44,6 +44,13 @@ if args.db:
 import app as opshub  # noqa: E402
 preview.neutralize()                # again: label_printer etc. now exist
 opshub.init_db()                    # safe: IF NOT EXISTS, runs the version's own migrations on the COPY
+# The previews must never share a login with the LIVE app: cookies are shared across ports on the same host
+# (the live site and the public preview address are both opshub.taila1bcc5.ts.net), and the live key was copied
+# into this folder. So the previews sign their logins with a key DERIVED from it (the before and after copies
+# derive the same one, so one login still works on both sides) and use their own cookie name.
+import hashlib  # noqa: E402
+opshub.app.secret_key = hashlib.sha256((str(opshub.app.secret_key) + "|opshub-preview-copy").encode()).hexdigest()
+opshub.app.config["SESSION_COOKIE_NAME"] = "opshub_preview"
 preview.init(opshub.app, label=args.label, before_port=args.before_port, preview_port=args.preview_port)
 
 cert, key = os.path.join(tree, "cert.pem"), os.path.join(tree, "key.pem")
