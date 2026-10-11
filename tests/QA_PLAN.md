@@ -84,7 +84,7 @@ Accounts / admin
 - [x] Customer portal only shows the customer's own aircraft
 - [x] Admin users: create, edit, deactivate, role changes take effect on next request (all fine except open: qa-user-password-stored-readable; plan said "next request" - verified for role, admin rights and deactivation)
 - [ ] View As (master admin impersonation): enter, exit, can't escalate
-- [ ] Admin reset pages: each reset touches only what it says
+- [x] Admin reset pages: each reset touches only what it says (all fine, no findings)
 
 Flight school
 - [ ] Scheduling: new, edit, conflicts, recurring, CFI time off
