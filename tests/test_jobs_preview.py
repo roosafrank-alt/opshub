@@ -18,6 +18,9 @@ class IntakeTest(OpsHubTestCase):
     def new_job(self):
         pid = self.make_project()
         self.exec("UPDATE projects SET intake_status='pending' WHERE id=?", (pid,))
+        # SHOP-08: an Apprentice only reaches a job that has a task assigned to them.
+        self.exec("INSERT INTO project_sections (project_id, name, created_at, assigned_to) VALUES (?,?,?,?)",
+                  (pid, "Brakes", db.now_iso(), self.users["shop_student"]["id"]))
         return pid
 
     def intake_form(self):
@@ -42,13 +45,13 @@ class IntakeTest(OpsHubTestCase):
         self.assertEqual(r.status_code, 302)
         row = self.q1("SELECT * FROM projects WHERE id=?", (pid,))
         self.assertEqual((row["intake_status"], row["intake_by_role"]), ("done", "apprentice"))
-        body = get(c, f"/projects/{pid}")
-        self.assertIn("Needs verification", body)
-        self.assertNotIn(f"/projects/{pid}/intake/verify", body)  # an apprentice cannot verify
+        # (SHOP-08: an Apprentice's project page is the small one; the tech sees the flag below.)
+        self.assertNotIn(f"/projects/{pid}/intake/verify", get(c, f"/projects/{pid}"))  # an apprentice cannot verify
         c.post(f"/projects/{pid}/intake/verify")
         self.assertIsNone(self.q1("SELECT intake_verified_at a FROM projects WHERE id=?", (pid,))["a"])
         c = self.login("tech")
         body = get(c, f"/projects/{pid}")
+        self.assertIn("Needs verification", body)
         self.assertIn(f"/projects/{pid}/intake/verify", body)
         c.post(f"/projects/{pid}/intake/verify")
         row = self.q1("SELECT * FROM projects WHERE id=?", (pid,))
@@ -95,13 +98,16 @@ class JobPageButtonsTest(OpsHubTestCase):
         self.exec("UPDATE projects SET intake_status='done' WHERE id=?", (self.pid,))
 
     def test_jobs_03_apprentice_sees_no_buttons_that_would_refuse_them(self):
+        self.exec("INSERT INTO project_sections (project_id, name, created_at, assigned_to) VALUES (?,?,?,?)",
+                  (self.pid, "Brakes", db.now_iso(), self.users["shop_student"]["id"]))
         body = get(self.login("shop_student"), f"/projects/{self.pid}")
         for gone in (f"/projects/{self.pid}/edit", "Mark Completed", "Materials CSV", "Invoice", "Archive",
-                     "trash-form", f"/projects/{self.pid}/label", "/assets/"):
+                     "trash-form", f"/projects/{self.pid}/label"):
             self.assertNotIn(gone, body, gone)
-        self.assertIn("Labor Codes", body)
-        self.assertIn("Job Sheet", body)
-        self.assertIn("Intake", body)
+        # SHOP-08: the Apprentice's small page has only their tasks and a Scan button.
+        self.assertIn("Brakes", body)
+        self.assertIn("Scan", body)
+        self.assertIn(f"/assets/{self.asset}", body)  # their own aircraft, the trimmed page
 
     def test_jobs_03_inspector_keeps_the_plane_link_and_confirm_controls(self):
         self.exec("INSERT INTO project_sections (project_id, name, created_at, confirm_requested_at, confirm_requested_by) "

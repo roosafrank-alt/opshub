@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}My Tasks · Winds Aloft{% endblock %}
+{% block content %}
+{#- SHOP-08: an Apprentice's My Tasks - only the tasks given to them, grouped by job. #}
+<h4 class="mb-3"><i class="bi bi-person-workspace"></i> My Tasks</h4>
+{% if groups %}
+{% for g in groups %}
+<div class="card mb-3" data-change="SHOP-08">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>{{ g.project_name }}</strong>
+    <a href="{{ url_for('project_detail', project_id=g.project_id) }}" class="btn btn-outline-secondary btn-sm">Open job</a>
+  </div>
+  <ul class="list-group list-group-flush">
+    {% for t in g.tasks %}
+    <li class="list-group-item">
+      <div class="fw-bold"><i class="bi bi-folder2-open"></i> {{ t.section_name }}
+        {% if t.completed_at %}<span class="badge text-bg-success">Confirmed</span>{% elif t.confirm_requested_at %}<span class="badge text-bg-warning">Waiting for confirmation</span>{% endif %}</div>
+      {% if t.parts %}
+      <ul class="small mb-0 mt-1">
+        {% for p in t.parts %}<li>{{ p.name }} &times; {{ '%g'|format(p.qty_used) }} {{ p.unit }}</li>{% endfor %}
+      </ul>
+      {% else %}
+      <div class="text-muted small">No parts on this task yet.</div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endfor %}
+{% else %}
+<div class="card p-3 text-muted" data-change="SHOP-08">Nothing is assigned to you yet. Ask an admin to give you a task.</div>
+{% endif %}
+{% endblock %}

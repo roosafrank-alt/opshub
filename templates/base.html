@@ -68,7 +68,9 @@
         {% if is_master_admin or shop_role in ('admin', 'tech') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'parts' }}" id="tour-nav-parts" href="{{ url_for('parts_list') }}"><i class="bi bi-box-seam"></i> <span class="nav-label">Parts</span></a></li>
         {% endif %}
+        {% if not apprentice_limited %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'projects' }}" id="tour-nav-projects" href="{{ url_for('projects_list') }}"><i class="bi bi-clipboard-check"></i> <span class="nav-label">Projects</span></a></li>
+        {% endif %}
         {% if is_master_admin or shop_role in ('admin', 'tech', 'inspector') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'aircraft' }}" id="tour-nav-aircraft" href="{{ url_for('assets_list') }}"><i class="bi bi-airplane"></i> <span class="nav-label">Aircraft</span></a></li>
         {% endif %}
@@ -80,6 +82,9 @@
         <li class="nav-item"><a class="nav-link {{ 'fw-bold text-danger' if open_squawk_count }} {{ 'active' if sec == 'squawks' }}" id="tour-nav-squawks" href="{{ url_for('squawks_list') }}" data-change="JOBS-15"><i class="bi bi-exclamation-triangle{{ '-fill' if open_squawk_count }}"></i> <span class="nav-label">Squawks</span>{% if open_squawk_count %} <span class="badge bg-danger">{{ open_squawk_count }}</span>{% endif %}</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'my-tasks' }}" href="{{ url_for('tech_spot') }}"><i class="bi bi-person-workspace"></i> <span class="nav-label">My Tasks</span></a></li>
         {% endif %}
+        {% if apprentice_limited %}
+        <li class="nav-item" data-change="SHOP-08"><a class="nav-link {{ 'active' if sec == 'my-tasks' }}" href="{{ url_for('tech_spot') }}"><i class="bi bi-person-workspace"></i> <span class="nav-label">My Tasks</span></a></li>
+        {% endif %}
         {% if is_master_admin or shop_role in ('admin', 'tech') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'activity' }}" href="{{ url_for('activity_log') }}"><i class="bi bi-clock-history"></i> <span class="nav-label">Activity</span></a></li>
         {% endif %}
@@ -87,6 +92,7 @@
       {#- Manage menu - same idea as the Fly with Kate! header's Manage:
          Workers, Labor Pay, Customers, Billing, Stats. Anyone logged in
          gets Labor Pay (their own hours/pay); the rest is shop admins. #}
+      {% if not apprentice_limited %}
       <div class="dropdown shop-nav-boxed">
         <a class="nav-link dropdown-toggle text-light {{ 'active' if sec == 'manage' }}" href="#" id="shop-manage-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           <i class="bi bi-gear"></i> <span class="nav-label">Manage</span>
@@ -118,6 +124,7 @@
           {% endif %}
         </ul>
       </div>
+      {% endif %}
 {% endcall %}
 {% endif %}
 <div class="container-fluid py-3">

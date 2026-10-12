@@ -628,6 +628,9 @@ def part_to_dict(row, include_cost=True):
     if not include_cost:
         d.pop("unit_cost", None)
         d.pop("sell_price", None)
+    if is_apprentice_limited():
+        # SHOP-08: an Apprentice's scan flow needs only the name, code and count.
+        d = {k: d.get(k) for k in ("id", "name", "barcode", "unit", "qty_on_hand")}
     return d
 
 
@@ -677,6 +680,68 @@ def _fleet_maintenance_reminders(conn):
     reminders.sort(key=lambda r: (0 if r["status"]["urgency"] == "overdue" else 1,
                                    r["status"]["remaining"] if r["status"]["remaining"] is not None else 0))
     return reminders
+
+
+# ---------------------------------------------------------------------------
+# SHOP-08: an Apprentice only sees the tasks (Discrepancies) given to them.
+# A task is a project_sections row; project_sections.assigned_to is the person.
+# ---------------------------------------------------------------------------
+
+def is_apprentice_limited():
+    """True for a signed-in account whose Winds Aloft role is Apprentice (a
+    master admin never is). The session's shop_role already follows a
+    "Switch role" preview, so this does too."""
+    return bool(session.get("user_id") and not session.get("is_master_admin")
+                and session.get("shop_role") == "apprentice")
+
+
+def apprentice_tasks(conn, user_id=None):
+    """Every task assigned to this person on a job that is not deleted,
+    newest job first: one row per task with its job and aircraft."""
+    return conn.execute("""
+        SELECT ps.id AS section_id, ps.name AS section_name, ps.completed_at, ps.confirm_requested_at,
+               p.id AS project_id, p.name AS project_name, p.code AS project_code, p.status AS project_status,
+               p.scheduled_date, a.id AS asset_id, a.tag AS asset_tag
+        FROM project_sections ps
+        JOIN projects p ON p.id = ps.project_id
+        LEFT JOIN assets a ON a.id = p.asset_id AND a.deleted_at IS NULL
+        WHERE ps.assigned_to = ? AND p.deleted_at IS NULL
+        ORDER BY p.created_at DESC, p.id DESC, ps.name
+    """, (user_id or session.get("user_id"),)).fetchall()
+
+
+def apprentice_project_ids(conn, user_id=None):
+    return {r["project_id"] for r in apprentice_tasks(conn, user_id)}
+
+
+def apprentice_asset_ids(conn, user_id=None):
+    return {r["asset_id"] for r in apprentice_tasks(conn, user_id) if r["asset_id"]}
+
+
+def apprentice_blocked_from_project(conn, project_id):
+    """True when the signed-in Apprentice has no task on this job (anyone
+    else: always False)."""
+    if not is_apprentice_limited():
+        return False
+    try:
+        return int(project_id) not in apprentice_project_ids(conn)
+    except (TypeError, ValueError):
+        return True
+
+
+def apprentice_task_parts(conn, project_id, section_name):
+    """Parts put on one task: name, unit and net quantity (no costs)."""
+    return conn.execute("""
+        SELECT p.name, p.unit, SUM(CASE WHEN t.type='out' THEN t.qty ELSE -t.qty END) AS qty_used
+        FROM transactions t JOIN parts p ON p.id = t.part_id
+        WHERE t.project_id = ? AND t.section = ?
+        GROUP BY p.id HAVING qty_used > 0 ORDER BY p.name
+    """, (project_id, section_name)).fetchall()
+
+
+def _apprentice_no_task_redirect():
+    flash("Nothing is assigned to you there. Ask an admin to give you a task.", "warning")
+    return redirect(url_for("tech_spot"))
 
 
 @app.route("/shop")
@@ -731,6 +796,16 @@ def dashboard():
             WHERE projects.status = 'active' AND projects.deleted_at IS NULL
             ORDER BY projects.created_at DESC
         """).fetchall()
+    if is_apprentice_limited():
+        # SHOP-08: an Apprentice's shop home lists only the jobs they have a task on.
+        mine = apprentice_project_ids(conn)
+        active_projects = [r for r in conn.execute("""
+            SELECT projects.*, a.tag as asset_display_tag
+            FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
+            WHERE projects.status = 'active' AND projects.deleted_at IS NULL
+            ORDER BY projects.created_at DESC""").fetchall() if r["id"] in mine]
+        upcoming_projects = [r for r in upcoming_projects if r["id"] in mine]
+        upcoming_count = len(upcoming_projects)
     open_squawks = get_open_squawks(conn)
     assignable_workers = get_assignable_workers(conn)
     # Assigned-squawk alerts: this account's own work list (every squawk
@@ -794,6 +869,9 @@ def dashboard():
         WHERE ls.ended_at IS NULL
         ORDER BY ls.started_at
     """).fetchall()
+    if is_apprentice_limited():
+        open_sessions = [r for r in open_sessions if r["project_id"] in mine]
+        reschedule_requests, owner_requests = [], []
 
     # Sub areas marked ready but not yet confirmed - an Inspector's queue,
     # also shown to admins since they can confirm too. See
@@ -1640,6 +1718,28 @@ def calendar_page():
         months_data = [_build_month_data(conn, year, m) for m in range(1, 13)]
         prev_month, prev_year = month, year - 1
         next_month, next_year = month, year + 1
+    if is_apprentice_limited():
+        # SHOP-08: server-side calendar limits for an Apprentice. The setting is
+        # on their account: 'limited' = only jobs with a task for them; 'basic' =
+        # every job but no link into the ones that are not theirs. Fleet
+        # maintenance chips (they open aircraft pages) are not shown either way.
+        row = conn.execute("SELECT apprentice_calendar FROM users WHERE id = ?", (session.get("user_id"),)).fetchone()
+        basic = bool(row and row["apprentice_calendar"] == "basic")
+        mine = apprentice_project_ids(conn)
+
+        def _trim(projects):
+            keep = []
+            for p in projects:
+                if basic or p["id"] in mine:
+                    p["link_ok"] = p["id"] in mine
+                    keep.append(p)
+            return keep
+        for md in months_data:
+            for d in md["by_day"].values():
+                d["projects"] = _trim(d["projects"])
+                d["maint"] = []
+        for block in (year_list or []):
+            block["projects"] = _trim(block["projects"])
     conn.close()
 
     # Backward-compat single-month convenience vars, used by the month view template.
@@ -1728,6 +1828,9 @@ def scan_page():
     projects = conn.execute(
         "SELECT * FROM projects WHERE status='active' AND deleted_at IS NULL ORDER BY name"
     ).fetchall()
+    if is_apprentice_limited():
+        mine = apprentice_project_ids(conn)  # SHOP-08: only jobs with a task for them
+        projects = [p for p in projects if p["id"] in mine]
     # Who's currently clocked in, and recent scan/labor activity, both now
     # live on the Dashboard instead of here.
     conn.close()
@@ -1793,8 +1896,12 @@ def api_project_lookup(code):
     project = conn.execute(
         "SELECT * FROM projects WHERE code = ? COLLATE NOCASE AND deleted_at IS NULL", (code.strip(),)
     ).fetchone()
-    conn.close()
     if not project:
+        conn.close()
+        return jsonify({"found": False, "code": code})
+    blocked = apprentice_blocked_from_project(conn, project["id"])
+    conn.close()
+    if blocked:
         return jsonify({"found": False, "code": code})
     d = dict(project)
     d["found"] = True
@@ -1828,6 +1935,9 @@ def api_sections(project_id):
     Add Sub Area) and sections that have simply been used on a transaction
     or labor session before, most-recently-used first."""
     conn = get_db()
+    if apprentice_blocked_from_project(conn, project_id):
+        conn.close()
+        return jsonify([])
     rows = conn.execute("""
         SELECT section as name, MAX(last_used) as last_used FROM (
             SELECT name as section, created_at as last_used FROM project_sections WHERE project_id = ?
@@ -2174,6 +2284,42 @@ def project_section_confirm(project_id, section_id):
     return redirect(url_for("project_detail", project_id=project_id))
 
 
+@app.route("/projects/<int:project_id>/sections/<int:section_id>/assign", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_section_assign(project_id, section_id):
+    """SHOP-08: give a task (Discrepancy) to one person, or to nobody. The
+    person must be an active account with a Winds Aloft role."""
+    conn = get_db()
+    section = conn.execute("""SELECT ps.id, ps.name, p.deleted_at FROM project_sections ps
+                              JOIN projects p ON p.id = ps.project_id
+                              WHERE ps.id = ? AND ps.project_id = ?""", (section_id, project_id)).fetchone()
+    if not section:
+        conn.close()
+        abort(404)
+    if section["deleted_at"]:
+        conn.close()
+        flash("That job is in Recently Deleted. Restore it first to change anything.", "warning")
+        return redirect(url_for("project_detail", project_id=project_id))
+    raw = (request.form.get("assigned_to") or "").strip()
+    person = None
+    if raw:
+        person = conn.execute("SELECT id, name FROM users WHERE id = ? AND active = 1 "
+                              "AND shop_role IS NOT NULL AND shop_role != ''",
+                              (int(raw) if raw.isdigit() else -1,)).fetchone()
+        if not person:
+            conn.close()
+            flash("Pick a person from the list.", "danger")
+            return redirect(url_for("project_detail", project_id=project_id))
+    conn.execute("UPDATE project_sections SET assigned_to = ? WHERE id = ?", (person["id"] if person else None, section_id))
+    conn.commit()
+    conn.close()
+    if person:
+        flash(f"'{section['name']}' is now assigned to {person['name']}.", "success")
+    else:
+        flash(f"'{section['name']}' is not assigned to anyone now.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 @app.route("/projects/<int:project_id>/sections/<int:section_id>/rename", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def project_section_rename(project_id, section_id):
@@ -2276,6 +2422,9 @@ def api_scan():
         conn.close()
         return jsonify({"ok": False, "error": "unknown_barcode", "barcode": barcode}), 404
 
+    if project_id and apprentice_blocked_from_project(conn, project_id):
+        conn.close()
+        return jsonify({"ok": False, "error": "unknown_project"}), 403
     if action == "out" and project_id:
         proj = conn.execute("SELECT id, status FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
         if not proj:
@@ -2554,7 +2703,7 @@ def parts_export_csv():
 
 
 @app.route("/parts/new", methods=["GET", "POST"])
-@shop_role_required('admin')
+@shop_role_required('admin', 'apprentice')
 def part_new():
     conn = get_db()
     if request.method == "POST":
@@ -2578,41 +2727,53 @@ def part_new():
             conn.close()
             return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
                                    form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
+        # SHOP-08: an Apprentice may add a part but never sets prices, supplier, reorder
+        # point, expiry or notes - whatever they send for those is ignored.
+        limited = is_apprentice_limited()
         qty = _parse_qty(request.form.get("qty_on_hand") or 0, allow_zero=True)
-        reorder = _parse_qty(request.form.get("reorder_point") or 0, allow_zero=True)
-        cost = _parse_qty(request.form.get("unit_cost") or 0, allow_zero=True)
-        sell_price = _parse_qty(request.form.get("sell_price") or 0, allow_zero=True)
+        reorder = 0 if limited else _parse_qty(request.form.get("reorder_point") or 0, allow_zero=True)
+        cost = 0 if limited else _parse_qty(request.form.get("unit_cost") or 0, allow_zero=True)
+        sell_price = 0 if limited else _parse_qty(request.form.get("sell_price") or 0, allow_zero=True)
         if None in (qty, reorder, cost, sell_price):
             flash("Quantity, reorder point, cost, and sell price must be numbers (0 or more).", "danger")
             conn.close()
             return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
                                    form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
-        expiration_date, exp_err = _parse_expiration(request.form)
+        expiration_date, exp_err = (None, None) if limited else _parse_expiration(request.form)
         if exp_err:
             flash(exp_err, "danger")
             conn.close()
             return render_template("part_form.html", part=None, categories=CATEGORIES_DEFAULT,
                                    form=request.form, notify_low_stock_checked=bool(request.form.get("notify_low_stock")))
 
-        notify_low_stock = 1 if request.form.get("notify_low_stock") else 0
+        notify_low_stock = 1 if (limited or request.form.get("notify_low_stock")) else 0
+        if limited:
+            def _only(k, default=""):
+                return default if k not in ("category", "location", "unit") else request.form.get(k, default)
+        else:
+            def _only(k, default=""):
+                return request.form.get(k, default)
         cur = conn.execute("""INSERT INTO parts (barcode, name, short_name, part_number, description, category, location, unit,
                                qty_on_hand, reorder_point, unit_cost, sell_price, supplier, notify_low_stock, created_at, updated_at)
                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                            (barcode, name, request.form.get("short_name", "").strip() or None,
-                             request.form.get("part_number", "").strip() or None,
-                             request.form.get("description", "").strip(),
-                             request.form.get("category", "").strip(), request.form.get("location", "").strip(),
-                             request.form.get("unit", "ea").strip() or "ea", qty, reorder, cost, sell_price,
-                             request.form.get("supplier", "").strip(), notify_low_stock, now_iso(), now_iso()))
+                            (barcode, name, _only("short_name").strip() or None,
+                             _only("part_number").strip() or None,
+                             _only("description").strip(),
+                             _only("category").strip(), _only("location").strip(),
+                             _only("unit", "ea").strip() or "ea", qty, reorder, cost, sell_price,
+                             _only("supplier").strip(), notify_low_stock, now_iso(), now_iso()))
         new_id = cur.lastrowid
         if expiration_date:
             conn.execute("UPDATE parts SET expiration_date = ? WHERE id = ?", (expiration_date, new_id))
         if qty > 0:
-            conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, source, created_at)
-                             VALUES (?, NULL, 'in', ?, 'Initial stock', 'assigned', ?)""", (new_id, qty, now_iso()))
+            conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, performed_by, source, created_at)
+                             VALUES (?, NULL, 'in', ?, 'Initial stock', ?, 'assigned', ?)""",
+                         (new_id, qty, session.get("user_name") if limited else None, now_iso()))
         conn.commit()
         conn.close()
         flash(f"Part '{name}' added with barcode {barcode}.", "success")
+        if limited:
+            return redirect(url_for("scan_page"))  # SHOP-08: back to Scan, not a prices page
         return redirect(url_for("part_detail", part_id=new_id))
 
     conn.close()
@@ -2628,6 +2789,7 @@ def inject_shop_role_flags():
     return {
         "shop_is_admin": admin,
         "shop_can_create": bool(admin or session.get("shop_role") == "tech"),
+        "apprentice_limited": is_apprentice_limited(),
     }
 
 
@@ -2857,7 +3019,7 @@ def labels():
 # ---------------------------------------------------------------------------
 
 @app.route("/projects/parts-used")
-@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
+@shop_role_required('admin', 'tech', 'inspector')  # SHOP-08: not for an Apprentice
 def projects_parts_used():
     """Master list of every part used on every project (net of returns),
     one row per project + part + Sub Area, searchable as you type."""
@@ -2923,7 +3085,7 @@ def promised_tag(p, today=None):
     return ("ok", "On track", "success")
 
 @app.route("/projects")
-@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
+@shop_role_required('admin', 'tech', 'inspector')  # SHOP-08: an Apprentice opens a job from My Tasks
 def projects_list():
     conn = get_db()
     status_filter = request.args.get("status", "")
@@ -3550,6 +3712,9 @@ def project_part_request(project_id):
     if not project:
         conn.close()
         abort(404)
+    if apprentice_blocked_from_project(conn, project_id):
+        conn.close()
+        return _apprentice_no_task_redirect()
     description = request.form.get("description", "").strip()[:200]
     urgency = request.form.get("urgency") or "needed_now"
     if urgency not in ("rush", "needed_now", "no_rush"):
@@ -3594,6 +3759,20 @@ def project_detail(project_id):
     if not project:
         conn.close()
         abort(404)
+    if is_apprentice_limited():
+        # SHOP-08: an Apprentice gets a small page with only their own tasks, and
+        # only on a job where one is assigned to them. Checked here on the server.
+        if project["deleted_at"] or project_id not in apprentice_project_ids(conn):
+            conn.close()
+            return _apprentice_no_task_redirect()
+        if project["intake_status"] == "pending":  # JOBS-01: the intake check still comes first
+            conn.close()
+            return redirect(url_for("project_intake", project_id=project_id))
+        mine = [dict(t) for t in apprentice_tasks(conn) if t["project_id"] == project_id]
+        for t in mine:
+            t["parts"] = apprentice_task_parts(conn, project_id, t["section_name"])
+        conn.close()
+        return render_template("project_apprentice.html", project=project, tasks=mine)
     # A new project's intake check comes first (Skip for now is on that page).
     # JOBS-01: every shop role can do the intake check, so everyone is sent
     # there (an apprentice's is then flagged "needs verification").
@@ -3650,7 +3829,8 @@ def project_detail(project_id):
     section_meta = {r["name"]: dict(r) for r in conn.execute(
         """SELECT id, name, completed_at, completed_by, confirm_requested_at, confirm_requested_by,
                   sent_back_at, sent_back_by, reopened_at, reopened_by, notes, description,
-                  linked_squawk_kind, linked_squawk_id, linked_todo_id
+                  linked_squawk_kind, linked_squawk_id, linked_todo_id, assigned_to,
+                  (SELECT name FROM users WHERE users.id = project_sections.assigned_to) AS assigned_name
            FROM project_sections WHERE project_id = ?""", (project_id,)).fetchall()}
     for name, section_data in usage_by_section.items():
         meta = section_meta.get(name)
@@ -3664,6 +3844,8 @@ def project_detail(project_id):
         section_data["reopened_at"] = meta["reopened_at"] if meta else None
         section_data["reopened_by"] = meta["reopened_by"] if meta else None
         section_data["notes"] = meta["notes"] if meta else None
+        section_data["assigned_to"] = meta["assigned_to"] if meta else None
+        section_data["assigned_name"] = meta["assigned_name"] if meta else None
         section_data["description"] = meta["description"] if meta else None
         # A Discrepancy that came from "Fix on this job"/"Do on this job"
         # keeps the squawk's/to-do's own Reported/Assigned/Working/
@@ -3768,8 +3950,12 @@ def project_detail(project_id):
         owner_notify_preview = (f'Email + text to {who}: "{tag} is ready for pickup. '
                                 f'Total ${_project_all_time_total(conn, project_id):.2f}. '
                                 f'See the work done in your portal."')
+    task_people = conn.execute(
+        "SELECT id, name, shop_role FROM users WHERE active = 1 AND shop_role IS NOT NULL AND shop_role != '' ORDER BY name"
+    ).fetchall()
     conn.close()
     return render_template("project_detail.html", project=project, usage_by_section=usage_by_section,
+                           task_people=task_people,
                            total_cost=total_cost, tx=tx, all_parts=all_parts, photos=photos, open_orders=open_orders,
                            part_requests=part_requests, waiting_on_parts=waiting_on_parts,
                            labor_sessions=labor_sessions, labor_total_cost=labor_total_cost,
@@ -3864,6 +4050,9 @@ def project_intake(project_id):
     if not project:
         conn.close()
         abort(404)
+    if apprentice_blocked_from_project(conn, project_id):  # SHOP-08
+        conn.close()
+        return _apprentice_no_task_redirect()
     if project["deleted_at"]:
         # JOBS-38: a job in Recently Deleted can't have its intake changed.
         conn.close()
@@ -4543,6 +4732,9 @@ def project_checklist_print(project_id):
     list, as checkboxes, in a professional format ready to print and clip to
     the job or hand to the customer."""
     conn = get_db()
+    if is_apprentice_limited():  # SHOP-08: a customer-facing sheet, not for an Apprentice
+        conn.close()
+        return _apprentice_no_task_redirect()
     project = conn.execute("""SELECT projects.*, a.tag as asset_tag, a.name as asset_name
                                FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
                                WHERE projects.id = ?""", (project_id,)).fetchone()
@@ -4644,6 +4836,9 @@ def project_labor_codes(project_id):
     project as a whole ("General") and one per area/sub-system that's been
     used on it, so a laborer can scan the specific task they're working."""
     conn = get_db()
+    if apprentice_blocked_from_project(conn, project_id):
+        conn.close()
+        return _apprentice_no_task_redirect()
     project = conn.execute("""SELECT projects.*, a.tag AS plane_tag FROM projects
                               LEFT JOIN assets a ON a.id = projects.asset_id WHERE projects.id = ?""",
                            (project_id,)).fetchone()
@@ -4815,7 +5010,7 @@ def is_shared_shop_login():
 
 
 @app.route("/assets/<int:asset_id>")
-@shop_role_required('admin', 'tech', 'inspector')
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def asset_detail(asset_id):
     """Profile page for one plane/asset: its saved data plus combined history
     across every project ever tagged to it (each year gets its own project
@@ -4825,6 +5020,18 @@ def asset_detail(asset_id):
     if not asset:
         conn.close()
         abort(404)
+    if is_apprentice_limited():
+        # SHOP-08: only an aircraft on a job where a task is assigned to them, and
+        # then only a trimmed page (no owner, no costs).
+        if asset_id not in apprentice_asset_ids(conn):
+            conn.close()
+            return _apprentice_no_task_redirect()
+        rows = conn.execute("SELECT * FROM maintenance_items WHERE asset_id = ? AND active = 1 ORDER BY name",
+                            (asset_id,)).fetchall()
+        items = [{"item": m, "status": maintenance_status(m, asset_meter(asset, m["hour_type"]))} for m in rows]
+        my_jobs = [t for t in apprentice_tasks(conn) if t["asset_id"] == asset_id]
+        conn.close()
+        return render_template("asset_apprentice.html", asset=asset, items=items, my_jobs=my_jobs)
     # JOBS-06: jobs in Recently Deleted stay out of the history and the total.
     projects = conn.execute(
         "SELECT * FROM projects WHERE asset_id = ? AND deleted_at IS NULL ORDER BY created_at DESC", (asset_id,)
@@ -5091,13 +5298,22 @@ def plane_todo_delete(asset_id, todo_id):
 
 
 @app.route("/my-tasks")
-@shop_role_required('admin', 'tech', 'inspector')
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def tech_spot():
     """A laborer's own work list: squawks handed to them, plane to-dos
     handed to them, and every fleet maintenance item that's due/overdue
     (not assigned to anyone in particular - any tech can pick one up) - all
     in one spot instead of hunting across Squawks and each plane's page."""
     conn = get_db()
+    if is_apprentice_limited():
+        # SHOP-08: an Apprentice sees only the tasks given to them, grouped by job.
+        groups = {}
+        for t in apprentice_tasks(conn):
+            g = groups.setdefault(t["project_id"], {"project_id": t["project_id"], "project_name": t["project_name"],
+                                                    "project_code": t["project_code"], "tasks": []})
+            g["tasks"].append(dict(t, parts=apprentice_task_parts(conn, t["project_id"], t["section_name"])))
+        conn.close()
+        return render_template("tech_spot_apprentice.html", groups=list(groups.values()))
     # JOBS-15: an inspector's My Tasks is just what they can act on - squawk
     # repairs and plane to-dos waiting for a sign-off, for everyone.
     if session.get("shop_role") == "inspector" and not session.get("is_master_admin"):
@@ -7639,6 +7855,8 @@ def api_labor_task_lookup():
     conn = get_db()
     project = conn.execute("SELECT * FROM projects WHERE code = ? COLLATE NOCASE AND deleted_at IS NULL",
                            (project_code,)).fetchone()
+    if project and apprentice_blocked_from_project(conn, project["id"]):
+        project = None
     if project and section:
         # Same Caps Lock case: "bRAKES" should still land on the "Brakes" area.
         known = conn.execute("SELECT name FROM project_sections WHERE project_id = ? AND name = ? COLLATE NOCASE",
@@ -7684,6 +7902,12 @@ def api_labor_scan():
             project_id = int(project_id)
         except ValueError:
             project_id = -1  # text that isn't a job id: matches no job -> "unknown_project" below
+    if project_id is not None and is_apprentice_limited():
+        _gate = get_db()
+        _blocked = apprentice_blocked_from_project(_gate, project_id)
+        _gate.close()
+        if _blocked:
+            return jsonify({"ok": False, "error": "unknown_project"}), 403
     code = (data.get("code") or "").strip()
     section = (data.get("section") or "").strip() or None
     general = data.get("general") is True
@@ -7854,7 +8078,7 @@ def api_labor_clocked_in():
     than an error so the widget just stays hidden. elapsed_seconds is
     worked out here (not from started_at in the browser) so the phone's
     clock/time zone can't skew it."""
-    if not (session.get("is_master_admin") or session.get("shop_role")):
+    if not (session.get("is_master_admin") or session.get("shop_role")) or is_apprentice_limited():
         return jsonify({"ok": True, "workers": []})
     conn = get_db()
     rows = conn.execute("""
@@ -8150,6 +8374,10 @@ def admin_user_edit(user_id):
         notify_flight_reminders = 1 if request.form.get("notify_flight_reminders") else 0
         academy_access = 1 if request.form.get("academy_access") else 0
         groundschool_access = 1 if request.form.get("groundschool_access") else 0
+        # SHOP-08: the Apprentice calendar setting; anything else keeps what is saved.
+        apprentice_calendar = request.form.get("apprentice_calendar")
+        if apprentice_calendar not in ("limited", "basic"):
+            apprentice_calendar = user_row["apprentice_calendar"] or "limited"
         # HUB-24: when the save is refused, re-draw the form with what was
         # typed (roles, email, flags...) and the full Pay/Profiles sections,
         # instead of reloading the saved record and losing the changes.
@@ -8160,7 +8388,7 @@ def admin_user_edit(user_id):
                          active=active, email=email, phone=phone, notify_email=notify_email, notify_sms=notify_sms,
                          notify_low_stock=notify_low_stock, notify_maintenance=notify_maintenance,
                          notify_flight_reminders=notify_flight_reminders, academy_access=academy_access,
-                         groundschool_access=groundschool_access)
+                         groundschool_access=groundschool_access, apprentice_calendar=apprentice_calendar)
             pay_ctx = _pay_link_context(conn, user_row)
             conn.close()
             preset = _role_preset(shop_roles, flight_roles, badge=request.form.get("badge", ""),
@@ -8194,6 +8422,7 @@ def admin_user_edit(user_id):
                 "email=?, phone=?, notify_email=?, notify_sms=?, notify_low_stock=?, notify_maintenance=?, notify_flight_reminders=?, academy_access=?, groundschool_access=? WHERE id=?",
                 (name, shop_role, flight_role, shop_roles, flight_roles, is_master_admin, can_bill, active,
                  email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, user_id))
+        conn.execute("UPDATE users SET apprentice_calendar = ? WHERE id = ?", (apprentice_calendar, user_id))
         conn.commit()
         user_row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
         ensure_flight_profile(conn, user_row)

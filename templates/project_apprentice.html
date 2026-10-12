@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} · Winds Aloft{% endblock %}
+{% block content %}
+{#- SHOP-08: what an Apprentice sees of a job - its name and only the tasks given to them. #}
+<div data-change="SHOP-08">
+  <h4 class="mb-0">{{ project.name }}</h4>
+  <div class="text-muted small mb-3">{{ project.code }}
+    {% if project.asset_display_tag and tasks and tasks[0].asset_id %} &middot; <a href="{{ url_for('asset_detail', asset_id=tasks[0].asset_id) }}">{{ project.asset_display_tag }}</a>{% endif %}</div>
+  <h6 class="mb-2">Your tasks on this job</h6>
+  {% for t in tasks %}
+  <div class="card mb-2">
+    <div class="card-body py-2">
+      <div class="fw-bold"><i class="bi bi-folder2-open"></i> {{ t.section_name }}
+        {% if t.completed_at %}<span class="badge text-bg-success">Confirmed</span>{% elif t.confirm_requested_at %}<span class="badge text-bg-warning">Waiting for confirmation</span>{% endif %}</div>
+      {% if t.parts %}
+      <table class="table table-sm mb-0 mt-1">
+        <thead><tr><th>Part</th><th>Quantity</th></tr></thead>
+        <tbody>{% for p in t.parts %}<tr><td>{{ p.name }}</td><td>{{ '%g'|format(p.qty_used) }} {{ p.unit }}</td></tr>{% endfor %}</tbody>
+      </table>
+      {% else %}
+      <div class="text-muted small">No parts on this task yet.</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  <a href="{{ url_for('scan_page') }}" class="btn btn-dark mt-2"><i class="bi bi-upc-scan"></i> Scan parts or clock in</a>
+  <a href="{{ url_for('tech_spot') }}" class="btn btn-outline-secondary mt-2">Back to My Tasks</a>
+</div>
+{% endblock %}

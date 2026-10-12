@@ -21,7 +21,7 @@
       {% else %}
       <span class="text-muted small" data-change="SHOP-08">Ask an admin to create one</span>
       {% endif %}
-      <a href="{{ url_for('projects_list', status='archived') }}" class="btn btn-outline-secondary btn-sm text-nowrap" title="Archived projects (past history)"><i class="bi bi-archive"></i> Archived</a>
+      {% if not apprentice_limited %}<a href="{{ url_for('projects_list', status='archived') }}" class="btn btn-outline-secondary btn-sm text-nowrap" title="Archived projects (past history)"><i class="bi bi-archive"></i> Archived</a>{% endif %}
     </div>
   </div>
 </div>
@@ -66,7 +66,7 @@
           {% set entry = md.by_day.get(day) %}
           {% if entry and not mini %}
             {% for p in entry.projects %}
-            <a href="{{ url_for('project_detail', project_id=p.id) }}" class="d-block small text-truncate text-decoration-none mb-1 px-1 rounded text-white" style="background:{{ p.display_color }};" title="{{ p.name }}{% if p.asset_is_flight_asset %} (Flight School plane){% endif %}">
+            <a href="{{ url_for('project_detail', project_id=p.id) if p.get('link_ok', True) else '#' }}" class="d-block small text-truncate text-decoration-none mb-1 px-1 rounded text-white" style="background:{{ p.display_color }};" title="{{ p.name }}{% if p.asset_is_flight_asset %} (Flight School plane){% endif %}">
               {% if p.asset_is_flight_asset %}<i class="bi bi-airplane-engines-fill"></i>{% else %}<i class="bi bi-clipboard-check"></i>{% endif %} {{ p.name }}
             </a>
             {% endfor %}
@@ -79,7 +79,7 @@
           {% elif entry and mini and (entry.projects or entry.maint) %}
             <div class="d-flex flex-wrap gap-1">
               {% for p in entry.projects %}
-              <a href="{{ url_for('project_detail', project_id=p.id) }}" title="{{ p.name }}{% if p.asset_is_flight_asset %} (Flight School plane){% endif %}" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:{{ p.display_color }};{% if p.asset_is_flight_asset %}outline:1px solid #333;{% endif %}"></a>
+              <a href="{{ url_for('project_detail', project_id=p.id) if p.get('link_ok', True) else '#' }}" title="{{ p.name }}{% if p.asset_is_flight_asset %} (Flight School plane){% endif %}" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:{{ p.display_color }};{% if p.asset_is_flight_asset %}outline:1px solid #333;{% endif %}"></a>
               {% endfor %}
               {% for m in entry.maint %}
               <a href="{{ url_for('asset_detail', asset_id=m.item.asset_id) }}" title="{{ m.item.asset_tag }}: {{ m.item.name }} ({{ category_labels.get(m.category, 'Scheduled Maintenance') }})" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:{{ m.display_color }};{% if m.status.urgency == 'overdue' %}outline:1px solid #dc3545;{% elif m.status.urgency == 'due_soon' %}outline:1px solid #fd7e14;{% endif %}"></a>
@@ -109,7 +109,7 @@
           {% for p in m.projects %}
           <tr>
             <td style="width:8px; background:{{ p.display_color }};" class="p-0"></td>
-            <td>{% if p.asset_is_flight_asset %}<i class="bi bi-airplane-engines-fill text-muted" title="Flight School plane"></i> {% endif %}<a href="{{ url_for('project_detail', project_id=p.id) }}" class="text-decoration-none">{{ p.name }}</a>
+            <td>{% if p.asset_is_flight_asset %}<i class="bi bi-airplane-engines-fill text-muted" title="Flight School plane"></i> {% endif %}<a href="{{ url_for('project_detail', project_id=p.id) if p.get('link_ok', True) else '#' }}" class="text-decoration-none">{{ p.name }}</a>
               {% if p.asset_display_tag %}<span class="text-muted small"> &middot; {{ p.asset_display_tag }}</span>{% endif %}</td>
             <td class="text-muted small" data-change="FLY-12">{{ p.date_label }}</td>
             <td><span class="badge {{ 'bg-success-subtle text-dark' if p.status == 'active' else 'bg-secondary-subtle text-dark' }}">{{ p.status }}</span></td>
@@ -142,6 +142,6 @@
     <span><i class="bi bi-exclamation-circle-fill text-warning"></i> Due soon</span>
     <span><i class="bi bi-exclamation-triangle-fill text-danger"></i> Overdue</span>
   </div>
-  <p class="text-muted small mb-0 mt-2">Browse back with the arrows to see past scheduled work, or check <a href="{{ url_for('projects_list', status='archived') }}">Archived</a> for finished jobs.</p>
+  <p class="text-muted small mb-0 mt-2">Browse back with the arrows to see past scheduled work{% if not apprentice_limited %}, or check <a href="{{ url_for('projects_list', status='archived') }}">Archived</a> for finished jobs{% endif %}.</p>
 </div>
 {% endblock %}

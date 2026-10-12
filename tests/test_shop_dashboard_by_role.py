@@ -16,6 +16,9 @@ class ShopDashboardByRoleTest(OpsHubTestCase):
         self.project_id = self.make_project(name="Annual - N999TT", asset_id=self.asset_id)
 
     def test_apprentice_sees_active_projects_list(self):
+        # SHOP-08: only jobs with a task assigned to them are listed.
+        self.exec("INSERT INTO project_sections (project_id, name, created_at, assigned_to) VALUES (?,?,?,?)",
+                  (self.project_id, "Task", db.now_iso(), self.users["shop_student"]["id"]))
         c = self.login("shop_student")  # ROLES maps shop_student -> shop_role='apprentice'
         body = c.get("/shop").get_data(as_text=True)
         self.assertIn("Active Projects", body)

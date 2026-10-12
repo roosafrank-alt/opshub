@@ -245,6 +245,7 @@
                 {% endif %}
                 {% endif %}
                 <strong class="{{ 'text-decoration-line-through text-muted' if data.completed_at }}">{% if section != 'General' %}<i class="bi bi-folder2-open"></i> {% endif %}{{ section }}</strong>
+                {% if data.assigned_name %}<span class="badge text-bg-light border" data-change="SHOP-08"><i class="bi bi-person"></i> {{ data.assigned_name }}</span>{% endif %}
                 {% if section != 'General' and data.id %}
                 {#- Idea "project sheet": the description used to be hidden until
                    you expanded the area AND opened its own Notes & Description
@@ -308,6 +309,17 @@
             {% endif %}
           </div>
           <div id="sec-{{ loop.index }}" style="display:{{ 'block' if loop.first else 'none' }};">
+            {% if section != 'General' and data.id and (shop_is_admin or shop_can_create) and not is_deleted %}
+            <form method="post" action="{{ url_for('project_section_assign', project_id=project.id, section_id=data.id) }}" class="d-flex align-items-center gap-2 flex-wrap p-2 border-bottom" data-change="SHOP-08">
+              <label class="small text-muted mb-0" for="assign-to-{{ loop.index }}">Assigned to</label>
+              <select name="assigned_to" id="assign-to-{{ loop.index }}" class="form-select form-select-sm w-auto">
+                <option value="">Nobody</option>
+                {% for u in task_people %}<option value="{{ u.id }}" {% if data.assigned_to == u.id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}
+                {% if data.assigned_to and data.assigned_to not in task_people|map(attribute='id') %}<option value="{{ data.assigned_to }}" selected>{{ data.assigned_name }} (not active)</option>{% endif %}
+              </select>
+              <button type="submit" class="btn btn-dark btn-sm">Save</button>
+            </form>
+            {% endif %}
             {% if data.rows %}
             <table class="table table-sm mb-0">
               <thead><tr><th>Part</th><th>Qty Used</th>{% if can_see_shop_costs %}<th>Cost</th>{% endif %}</tr></thead>

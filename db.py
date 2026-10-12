@@ -2383,6 +2383,18 @@ def _migrate(conn):
             conn.execute(_ddl)
             conn.commit()
 
+    # SHOP-08 (apprentice): a job task (Discrepancy) can be given to one person,
+    # and each apprentice account has a Calendar setting ('limited' = only their
+    # own jobs, 'basic' = the whole shop calendar without notes or private items).
+    for _tbl, _col, _ddl in (
+            ("project_sections", "assigned_to",
+             "ALTER TABLE project_sections ADD COLUMN assigned_to INTEGER REFERENCES users(id)"),
+            ("users", "apprentice_calendar",
+             "ALTER TABLE users ADD COLUMN apprentice_calendar TEXT NOT NULL DEFAULT 'limited'")):
+        if _col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({_tbl})").fetchall()]:
+            conn.execute(_ddl)
+            conn.commit()
+
     # Preview build (chrome part): JOBS-31 records when a customer's login
     # details were sent; SEAM-19 remembers the owner portal's and Flight
     # Academy's three-stop walkthroughs once seen.

@@ -931,7 +931,7 @@ function showScanNextButton() {
 }
 
 // SHOP-07: only admins can add a part; everyone else is told what to do next.
-const CAN_ADD_PART = {{ 'true' if (session.get('is_master_admin') or session.get('shop_role') == 'admin') else 'false' }};
+const CAN_ADD_PART = {{ 'true' if (session.get('is_master_admin') or session.get('shop_role') in ('admin', 'apprentice')) else 'false' }};
 function addPartHtml(barcode, cls) {
   if (CAN_ADD_PART) {
     return '<a href="/parts/new?barcode=' + encodeURIComponent(barcode) + '" class="' + cls + '">Add as new part</a>';

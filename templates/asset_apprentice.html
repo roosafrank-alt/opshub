@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ asset.tag }} · Winds Aloft{% endblock %}
+{% block content %}
+{#- SHOP-08: the trimmed aircraft page an Apprentice gets - no owner, no costs. #}
+<div data-change="SHOP-08">
+  <h4 class="mb-0">{{ asset.tag }}</h4>
+  {% if asset.name %}<div class="text-muted mb-3">{{ asset.name }}</div>{% endif %}
+  <h6>Your jobs on this aircraft</h6>
+  <ul>
+    {% for j in my_jobs %}<li><a href="{{ url_for('project_detail', project_id=j.project_id) }}">{{ j.project_name }}</a> - {{ j.section_name }}</li>{% endfor %}
+  </ul>
+  <h6 class="mt-3">Maintenance items</h6>
+  {% if items %}
+  <ul class="list-group mb-3">
+    {% for mi in items %}
+    <li class="list-group-item d-flex justify-content-between"><span>{{ mi.item.name }}</span><span class="text-muted small">{{ mi.status.label }}</span></li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="text-muted">No maintenance items on this aircraft.</p>{% endif %}
+  <a href="javascript:history.back()" class="btn btn-outline-secondary">Back</a>
+</div>
+{% endblock %}
