@@ -30,7 +30,7 @@ from payroll import payroll_bp
 import tracking
 from ads import ads_bp, ads_for_asset, add_ads_to_annual_project, AD_KINDS, AD_METHODS
 import academy
-from auth import (student_course_grants, academy_grants_only, groundschool_restricted, authenticate, log_in_user, log_out_user, current_user, login_required,
+from auth import (holds_role, student_course_grants, academy_grants_only, groundschool_restricted, authenticate, log_in_user, log_out_user, current_user, login_required,
                    master_admin_required, shop_role_required, can_see_shop_costs,
                    owner_user_id, owner_locked, authenticate_customer, log_in_combined,
                    current_customer, start_view_as, exit_view_as, viewing_as_label,
@@ -340,6 +340,7 @@ app.jinja_env.filters["first_name"] = first_name
 app.jinja_env.globals["tracking_carrier_choices"] = tracking.CARRIER_CHOICES
 app.jinja_env.globals["user_shop_roles"] = user_shop_roles
 app.jinja_env.globals["user_flight_roles"] = user_flight_roles
+app.jinja_env.globals["holds_role"] = holds_role
 app.jinja_env.globals["tracking_info"] = tracking.to_json
 app.jinja_env.globals["student_course_grants"] = student_course_grants
 app.jinja_env.globals["groundschool_restricted"] = groundschool_restricted
@@ -7359,7 +7360,7 @@ def shop_pay():
     A shop admin can also jump straight to one laborer's pay (laborer_id),
     same idea as a CFI's own Pay page."""
     start, end, period, label = _shop_period("this_week")
-    admin_view = bool(session.get("is_master_admin") or session.get("shop_role") == "admin")
+    admin_view = bool(session.get("is_master_admin") or session.get("shop_role") == "admin") and not request.args.get("mine")
     laborer_id = request.args.get("laborer_id", type=int) if admin_view else None
     laborer_name = None
     conn = get_db()

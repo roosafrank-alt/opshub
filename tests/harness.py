@@ -183,6 +183,7 @@ ROLES = {
     "flight_student": dict(flight_role="student"),
     "flight_admin":  dict(flight_role="admin", flight_roles="admin"),
     "flight_admin_cfi": dict(flight_role="admin", flight_roles="admin,cfi"),
+    "shop_admin_tech": dict(shop_role="admin", shop_roles="admin,tech"),
     "no_roles":      dict(),
 }
 

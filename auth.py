@@ -75,6 +75,21 @@ def is_flight_admin():
     return bool(session.get("is_master_admin") or session.get("flight_role") == "admin")
 
 
+def holds_role(program, role):
+    """True when the signed-in account itself holds this role ('shop' or
+    'flight'), whichever role is its main one - used to show My Pay to an
+    admin who is also a CFI / tech / inspector / apprentice."""
+    uid = session.get("user_id")
+    if not uid or session.get("_view_as_real") is not None:
+        return False
+    conn = get_db()
+    row = conn.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
+    conn.close()
+    if not row:
+        return False
+    return role in (user_shop_roles(row) if program == "shop" else user_flight_roles(row))
+
+
 def _flight_admin_for(user_row):
     """Flight Admin-ness of this account RIGHT NOW: the account's own roles
     normally, the level being viewed while a role switch is active."""
