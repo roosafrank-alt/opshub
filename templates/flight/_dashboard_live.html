@@ -562,7 +562,7 @@
 </div>
 {% endif %}
 
-{% if next_lesson or log_lesson or session.get('is_master_admin') or (student and not cfi) %}
+{% if next_lesson or log_lesson or flight_admin or (student and not cfi) %}
 <div class="card p-3 mb-3 border-primary">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div class="flex-grow-1{% if next_lesson %} schedule-block{% endif %}"{% if next_lesson %} role="button" style="cursor:pointer;"
@@ -574,7 +574,7 @@
          data-duration="{{ next_lesson.duration_hours if next_lesson.duration_hours is not none else '' }}"
          {% if next_lesson.notes_visible %}data-notes="{{ next_lesson.notes or '' }}"{% endif %}
          {% if next_lesson.private_notes_visible %}data-private-notes="{{ next_lesson.private_notes or '' }}"{% endif %}
-         {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ next_lesson.created_by or '' }}"
+         {% if session.get('cfi_id') or flight_admin %}data-created_by="{{ next_lesson.created_by or '' }}"
          data-change-request-note="{{ next_lesson.change_request_note or '' }}"{% endif %}
          data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=next_lesson.id) }}"
          data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=next_lesson.id) }}"
@@ -604,7 +604,7 @@
       {% if next_lesson.student_owed %}
       {#- Idea "header": same fix as the flight-chip badge below - a
          student sees their own Next Lesson owed amount linked to Account. #}
-      {% set _nl_owed_href = url_for('flight.student_field_detail', student_id=next_lesson.student_id, field_key='account') if cfi or session.get('is_master_admin')
+      {% set _nl_owed_href = url_for('flight.student_field_detail', student_id=next_lesson.student_id, field_key='account') if cfi or flight_admin
          else url_for('account_page', from='flight') if session.get('student_id') == next_lesson.student_id else none %}
       <a href="{{ _nl_owed_href or '#' }}"
          class="badge bg-danger mt-1 text-decoration-none" onclick="event.stopPropagation();"
@@ -670,7 +670,7 @@
       </div>
       {% endif %}
     </div>
-    {% if session.get('is_master_admin') %}
+    {% if flight_admin %}
     <div class="d-flex flex-column align-items-end gap-2">
       {#- Buttons, not links: a plain <a> navigated to a fresh /dashboard
          page load, which reset scroll to the top (QA "your next lesson
@@ -722,7 +722,7 @@
     data-duration="{{ f.duration_hours if f.duration_hours is not none else '' }}"
     {% if f.notes_visible %}data-notes="{{ f.notes or '' }}"{% endif %}
     {% if f.private_notes_visible %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
-    {% if session.get('cfi_id') or session.get('is_master_admin') %}data-created_by="{{ f.created_by or '' }}"
+    {% if session.get('cfi_id') or flight_admin %}data-created_by="{{ f.created_by or '' }}"
     data-change-request-note="{{ f.change_request_note or '' }}"{% endif %} data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
     data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=f.id) }}"
     data-cancel-url="{{ url_for('flight.schedule_cancel', scheduled_id=f.id) }}"
@@ -767,7 +767,7 @@
        balance-hold banner above. A CFI/admin still goes to that student's
        Account tab; anyone else viewing (neither staff nor that student)
        gets a plain, unclickable badge, same as before. #}
-    {% set _owed_href = url_for('flight.student_field_detail', student_id=f.student_id, field_key='account') if cfi or session.get('is_master_admin')
+    {% set _owed_href = url_for('flight.student_field_detail', student_id=f.student_id, field_key='account') if cfi or flight_admin
        else url_for('account_page', from='flight') if session.get('student_id') == f.student_id else none %}
     <a href="{{ _owed_href or '#' }}"
        class="badge bg-danger text-decoration-none" onclick="event.stopPropagation();"

@@ -494,7 +494,7 @@
   // break on that other CFI's behalf, so the link stays hidden for them.
   var addBreakLink = document.getElementById('add-break-link');
   if (addBreakLink) {
-    var IS_MASTER_ADMIN = {{ session.get('is_master_admin', false)|tojson }};
+    var IS_MASTER_ADMIN = {{ flight_admin|tojson }};
     var CURRENT_CFI_ID = {{ (current_cfi_id or '')|string|tojson }};
     var updateAddBreakLink = function () {
       var picked = cfiSelect.value;

@@ -145,7 +145,7 @@
 {% set issues = intake.checks|selectattr('status', 'equalto', 'issue')|list %}
 <details class="card p-3 mb-3 {{ 'border-danger' if issues or intake.squawks or intake.damage else 'border-success' }}" {{ 'open' if issues or intake.squawks or intake.damage }}>
   <summary class="fw-bold"><i class="bi bi-clipboard-check"></i> Intake check
-    <span class="fw-normal small text-muted" data-change="JOBS-01">- done by {{ project.intake_by or 'someone' }}{% if project.intake_by_role %} ({{ project.intake_by_role|capitalize }}){% endif %}{% if project.intake_at %}, {{ project.intake_at|usdate(true) }}{% endif %}</span>
+    <span class="fw-normal small text-muted" data-change="JOBS-01">- done by {{ project.intake_by or 'someone' }}{% if project.intake_by_role %} ({{ project.intake_by_role|shop_role_name }}){% endif %}{% if project.intake_at %}, {{ project.intake_at|usdate(true) }}{% endif %}</span>
     {#- JOBS-01: an apprentice's intake check needs an admin, tech or inspector to verify it. #}
     {% if project.intake_by_role == 'apprentice' %}
     {% if project.intake_verified_at %}<span class="badge bg-success ms-1" data-change="JOBS-01"><i class="bi bi-patch-check"></i> Verified by {{ project.intake_verified_by or 'someone' }}, {{ project.intake_verified_at|usdate(true) }}</span>

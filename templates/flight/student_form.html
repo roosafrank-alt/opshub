@@ -120,7 +120,7 @@
     {#- SCHOOL-04: only admins can open the Admin account form, so only
        admins see the button. ?next= asks the Admin form to come back here
        after Save (the Admin form itself is the chrome part's). #}
-    {% if student and student.user_id and session.get('is_master_admin') %}
+    {% if student and student.user_id and is_master_admin %}
     <a href="{{ url_for('admin_user_edit', user_id=student.user_id, next=request.path) }}" class="btn btn-outline-secondary btn-sm" data-change="SCHOOL-04"><i class="bi bi-shield-lock"></i> Edit Account</a>
     {% endif %}
   </div>
@@ -348,7 +348,7 @@
       })();
     </script>
 
-    {% if session.get('is_master_admin') %}
+    {% if flight_admin %}
     <div class="mb-3">
       <label class="form-label">Solo Currency Interval (days) <span class="text-muted small">(optional - overrides the {{ default_solo_currency_days }}-day default)</span></label>
       <input type="number" step="1" min="1" name="solo_currency_days" class="form-control" value="{{ fv('solo_currency_days', student.solo_currency_days if student else '') }}" placeholder="{{ default_solo_currency_days }}">

@@ -60,7 +60,7 @@
   }
 </style>
 {#- FLY-08: the position feed is instructors-only, so students don't get the Live Aircraft Map card. #}
-{% set show_map = session.get('cfi_id') or session.get('is_master_admin') %}
+{% set show_map = session.get('cfi_id') or flight_admin %}
 <div class="row g-3">
   <div class="col-lg-{{ 5 if show_map else 8 }}" id="active-flights-col">
     {% if flights %}
@@ -73,7 +73,7 @@
      name itself still only shows when can_see_names is true - including
      for the student on their OWN solo flight, so it's obvious which card
      is theirs instead of it reading exactly like everyone else's "Solo". #}
-  {% set can_see_names = session.get('cfi_id') or session.get('is_master_admin') or (session.get('student_id') and f.student_id == session.get('student_id')) %}
+  {% set can_see_names = session.get('cfi_id') or flight_admin or (session.get('student_id') and f.student_id == session.get('student_id')) %}
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
     <div>
       <h5 class="mb-0">{{ 'Students Aircraft' if f.asset_is_owner_placeholder else f.plane_tag }} {% if f.asset_is_simulator %}<span class="badge bg-info text-dark">Sim session</span> {% endif %}{% if f.solo %}<span class="badge bg-secondary">Solo</span> {% endif %}{% if can_see_names %}with {{ f.student_name }}{% endif %} {% if f.paused_at %}<span class="badge bg-warning text-dark"><i class="bi bi-pause-fill"></i> Paused</span>{% endif %} {% if not f.can_end %}<span class="badge bg-light text-muted border" title="Only {% if f.solo %}the student flying solo{% else %}the assigned instructor{% endif %}, or a master admin, can pause or end this flight"><i class="bi bi-lock-fill"></i> View only</span>{% endif %}</h5>
@@ -358,7 +358,7 @@
       </div>
       {% endif %}
     </div>
-{% set student_ending = session.get('student_id') and not session.get('cfi_id') and not session.get('is_master_admin') %}
+{% set student_ending = session.get('student_id') and not session.get('cfi_id') and not flight_admin %}
     {% if student_ending %}
     {#- FLY-07: a student ending their own flight takes no payment - it always logs Unpaid and the school settles it on Billing. #}
     <input type="hidden" name="paid" value="0">

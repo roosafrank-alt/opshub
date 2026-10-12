@@ -10,7 +10,7 @@
 {% include "flight/_groundschool_picker.html" %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0 text-light"><i class="bi bi-mortarboard"></i> Ground School</h4>
-  {% if session.get('is_master_admin') %}
+  {% if flight_admin %}
   <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#uploadAcsModal">
     <i class="bi bi-plus-lg"></i> Add Rating
   </button>
@@ -22,7 +22,7 @@
   <div class="card-body text-center text-muted py-5">
     <i class="bi bi-journal-bookmark" style="font-size:2rem;"></i>
     <p class="mt-2 mb-0">No ratings yet.</p>
-    {% if session.get('is_master_admin') %}
+    {% if flight_admin %}
     <p class="small">Upload the FAA ACS PDF for a rating (e.g. Private Pilot) to get started.</p>
     {% endif %}
   </div>
@@ -57,7 +57,7 @@
         </a>
         {% endif %}
       </div>
-      {% if session.get('is_master_admin') %}
+      {% if flight_admin %}
       <div class="position-absolute top-0 end-0 p-2" style="z-index:2;">
         <div class="dropdown">
           <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
@@ -83,7 +83,7 @@
 </div>
 {% endif %}
 
-{% if session.get('is_master_admin') %}
+{% if flight_admin %}
 <div class="modal fade" id="uploadAcsModal" tabindex="-1">
   <div class="modal-dialog">
     <form method="post" action="{{ url_for('groundschool.upload') }}" enctype="multipart/form-data" class="modal-content">

@@ -3,8 +3,9 @@ program" with just Winds Aloft and My Aircraft (really just Customers,
 already on the shop's own Manage menu) every time they logged in - an
 extra tap for nearly no real choice. Logging in as a shop admin now goes
 straight to the shop home; the grid button still opens the real picker,
-which now also offers Fly with Kate! for them, viewed as an unbilled,
-never-bookable instructor (see db.ensure_flight_profile/auth.log_in_combined).
+offers Winds Aloft and Customers. (Flight Admin role: a Shop Admin no
+longer gets Fly with Kate! at all - no tile, no hidden instructor profile,
+no pages - because each admin acts only in their own program.)
 Master admins are unaffected - they still land on the picker with all four
 tiles."""
 from harness import OpsHubTestCase, PASSWORD
@@ -21,39 +22,31 @@ class ShopAdminSkipLauncherTest(OpsHubTestCase):
         self.assertEqual(r.status_code, 302)
         self.assertIn("/shop", r.headers["Location"])
 
-    def test_shop_admin_login_gets_a_station_cfi_profile(self):
+    def test_shop_admin_login_gets_no_flight_profile(self):
         c, r = self._login_for_real("shop_admin")
         user_id = self.users["shop_admin"]["id"]
-        cfi = self.q1("SELECT * FROM cfis WHERE user_id = ?", (user_id,))
-        self.assertIsNotNone(cfi)
-        self.assertEqual(cfi["is_station"], 1)
-        self.assertEqual(cfi["rate_per_hour"], 0)
+        self.assertIsNone(self.q1("SELECT * FROM cfis WHERE user_id = ?", (user_id,)))
         with c.session_transaction() as s:
-            self.assertEqual(s["cfi_id"], cfi["id"])
+            self.assertNotIn("cfi_id", s)
 
-    def test_shop_admin_can_now_reach_flight_school(self):
+    def test_shop_admin_cannot_reach_flight_school(self):
         c, r = self._login_for_real("shop_admin")
-        body = c.get("/flight/dashboard").get_data(as_text=True)
-        self.assertIn("Welcome", body)
+        r2 = c.get("/flight/dashboard")
+        self.assertEqual(r2.status_code, 302)
+        r3 = c.get("/flight/schedule/new")
+        self.assertEqual(r3.status_code, 302)
 
     def test_shop_admin_still_has_no_billing_access(self):
         c, r = self._login_for_real("shop_admin")
         r2 = c.get("/flight/billing")
         self.assertEqual(r2.status_code, 302)
 
-    def test_shop_admins_station_cfi_is_never_offered_when_booking(self):
-        c, r = self._login_for_real("shop_admin")
-        body = c.get("/flight/schedule/new").get_data(as_text=True)
-        start = body.index('name="cfi_id"')
-        end = body.index("</select>", start)
-        self.assertNotIn("Shop Admin", body[start:end])
-
-    def test_grid_button_still_opens_the_picker_with_three_tiles(self):
+    def test_grid_button_still_opens_the_picker_with_two_tiles(self):
         c, r = self._login_for_real("shop_admin")
         body = c.get("/").get_data(as_text=True)
         self.assertIn("Choose a program", body)
         self.assertIn("Winds Aloft", body)
-        self.assertIn("Fly with Kate!", body)
+        self.assertNotIn("Fly with Kate!</div>", body)
         self.assertIn(">Customers<", body)  # SEAM-9: the admin tile is Customers
 
     def test_master_admin_login_still_lands_on_the_picker(self):

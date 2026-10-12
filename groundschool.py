@@ -22,7 +22,7 @@ from markupsafe import Markup, escape
 
 from db import get_db, now_iso, UPLOAD_DIR
 from flight import login_required, cfi_required, admin_required
-from auth import student_course_grants, groundschool_restricted
+from auth import student_course_grants, groundschool_restricted, is_flight_admin
 from acs_parser import parse_acs
 
 groundschool_bp = Blueprint("groundschool", __name__, url_prefix="/flight/groundschool")
@@ -332,7 +332,7 @@ def _resolve_viewing_student(conn):
     picker) sets it; ?student_id=0 clears it."""
     if session.get("student_id"):
         return session["student_id"], []
-    if session.get("cfi_id") or session.get("is_master_admin"):
+    if session.get("cfi_id") or is_flight_admin():
         students = conn.execute("SELECT id, name FROM students WHERE active = 1 AND COALESCE(is_station, 0) = 0 ORDER BY name").fetchall()
         if "student_id" in request.args:
             sid = request.args.get("student_id", type=int) or None
@@ -404,7 +404,7 @@ def _require_groundschool_access():
     already has, same as academy_page() in app.py."""
     if not session.get("user_id"):
         return None
-    if not (session.get("is_master_admin") or session.get("groundschool_access") or student_course_grants()):
+    if not (is_flight_admin() or session.get("groundschool_access") or student_course_grants()):
         flash("You don't have access to Ground School yet. Ask an admin.", "danger")
         return redirect(url_for("flight.dashboard"))
     if groundschool_restricted():

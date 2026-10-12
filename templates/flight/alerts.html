@@ -41,7 +41,7 @@
 </div>
 {{ rp.report_modal(report_categories, report_planes) }}
 
-{% if session.get('is_master_admin') and (hundred_due or hundred_grounded) %}
+{% if flight_admin and (hundred_due or hundred_grounded) %}
 {#- 100-hour countdown (flight.hundred_hr_admin_rows) - admins only. Nothing
    grounds itself: the admin picks Ground plane, plans the 100-hr, or Not yet. #}
 <h5 class="fw-bold" id="hundred-hr"><i class="bi bi-wrench"></i> 100-Hour Inspection Due ({{ hundred_due|length }}) <span class="badge bg-secondary fw-normal">admins only</span></h5>
@@ -100,7 +100,7 @@
     .hobbs-gap-form button { width: 100%; }
   }
 </style>
-{% if session.get('is_master_admin') %}
+{% if flight_admin %}
 {#- Unaccounted Hobbs time (flight._hobbs_gaps) - admins only. #}
 <h5 id="hobbs-gaps" class="fw-bold"><i class="bi bi-speedometer2"></i> Unaccounted Hobbs Time ({{ hobbs_gaps|length }}) <span class="badge bg-secondary fw-normal">admins only</span></h5>
 {% if hobbs_gaps %}

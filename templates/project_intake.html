@@ -35,7 +35,7 @@
 </form>
 {% endif %}
 {% if project.intake_status == 'done' and project.intake_by %}
-<div class="small text-muted mb-1" data-change="JOBS-01">Last saved by {{ project.intake_by }}{% if project.intake_by_role %} ({{ project.intake_by_role|capitalize }}){% endif %}{% if project.intake_at %}, {{ project.intake_at|usdate(true) }}{% endif %}.</div>
+<div class="small text-muted mb-1" data-change="JOBS-01">Last saved by {{ project.intake_by }}{% if project.intake_by_role %} ({{ project.intake_by_role|shop_role_name }}){% endif %}{% if project.intake_at %}, {{ project.intake_at|usdate(true) }}{% endif %}.</div>
 {% endif %}
 <p class="text-muted small">Check these before anyone touches the plane. Anything marked <strong>Issue</strong> (and any squawk or damage) can get its own Discrepancy on this project - tick "Address in this project".</p>
 

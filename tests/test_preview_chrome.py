@@ -30,7 +30,7 @@ class SharedHeaderTest(OpsHubTestCase):
         self.assertNotIn('id="programs-menu-toggle"', body)
         body = self.login("shop_admin").get("/shop").get_data(as_text=True)
         self.assertIn('id="programs-menu-toggle"', body)
-        self.assertIn('href="/flight/"', body)
+        self.assertNotIn('href="/flight/"', body)  # a Shop Admin has no Fly with Kate!
         self.assertIn('href="/customers"', body)
         self.assertNotIn('href="/admin"', body)
         self.assertNotIn('href="/academy"', body)

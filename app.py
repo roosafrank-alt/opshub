@@ -38,7 +38,7 @@ from auth import (student_course_grants, academy_grants_only, groundschool_restr
                    real_is_master_admin, view_as_chips, home_view_as_level,
                    account_program_count, single_program_endpoint,
                    login_allowed, login_failed, login_succeeded, unlock_account, LOGIN_BLOCKED_MSG,
-                   real_user_id, session_programs, safe_next)
+                   real_user_id, session_programs, safe_next, is_flight_admin)
 import notify
 import wave_billing
 from urllib.parse import urlparse
@@ -275,6 +275,15 @@ def usdate_short(value, show_time=False):
 
 
 app.jinja_env.filters["usdate"] = usdate
+
+
+def shop_role_name(role):
+    """A stored Winds Aloft role code as people read it: the 'admin' code is
+    shown as Shop Admin (Flight Admin is its Fly with Kate! counterpart)."""
+    return "Shop Admin" if role == "admin" else (role or "").capitalize()
+
+
+app.jinja_env.filters["shop_role_name"] = shop_role_name
 app.jinja_env.filters["usdate_short"] = usdate_short
 
 
@@ -386,6 +395,7 @@ def inject_auth_context():
         "can_see_shop_costs": can_see_shop_costs(),
         "shop_role": session.get("shop_role"),
         "is_master_admin": session.get("is_master_admin"),
+        "flight_admin": is_flight_admin(),
         "logged_in_user_name": session.get("user_name"),
         "open_squawk_count": open_squawk_count,
         "tour_seen_shop": session.get("tour_seen_shop"),
@@ -508,7 +518,7 @@ def academy_page():
     academy_access to (master admins always have it) - the tile on the
     program picker is hidden for everyone else, and this route double-checks
     it server-side too."""
-    if not (session.get("is_master_admin") or session.get("academy_access")):
+    if not (is_flight_admin() or session.get("academy_access")):
         if student_course_grants():
             # A student with granted courses only: Ground School tab only.
             return redirect(url_for("groundschool.rating_list"))
@@ -530,7 +540,7 @@ def academy_page():
         level = academy.level_of(me["student"]) if me else "all"
     board_stats = academy.only_level(stats, level)
     boards = academy.leaderboards(board_stats)
-    staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
+    staff = bool(is_flight_admin() or session.get("cfi_id"))
     entry_sql = """SELECT e.*, s.name as student_name FROM academy_entries e
                      JOIN students s ON s.id = e.student_id"""
     # SCHOOL-38: staff pick one student (the same picker the other Academy
@@ -566,9 +576,9 @@ def academy_entry_add():
     """A student logs flying for the leaderboard (distance, landings,
     cross-countries, night/instrument time). Students log for themselves;
     a CFI/admin can log for any student."""
-    if not (session.get("is_master_admin") or session.get("academy_access")):
+    if not (is_flight_admin() or session.get("academy_access")):
         return redirect(url_for("home_launcher"))
-    staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
+    staff = bool(is_flight_admin() or session.get("cfi_id"))
     student_id = request.form.get("student_id", type=int) if staff else session.get("student_id")
     kind = request.form.get("kind")
     try:
@@ -607,7 +617,7 @@ def academy_entry_add():
 @login_required
 def academy_entry_delete(entry_id):
     """Remove a leaderboard entry - your own, or any if you're a CFI/admin."""
-    staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
+    staff = bool(is_flight_admin() or session.get("cfi_id"))
     conn = get_db()
     e = conn.execute("SELECT * FROM academy_entries WHERE id = ?", (entry_id,)).fetchone()
     if e and (staff or e["student_id"] == session.get("student_id")):
@@ -8430,6 +8440,10 @@ def admin_user_new():
     # "Add CFI" / "New Laborer" elsewhere in the app land here with the
     # role picked already (?flight_role=cfi, ?shop_role=tech&badge=new).
     shop_roles, _, flight_roles, _ = _form_roles(request.args)
+    # A link can pre-tick a role, but never an admin role: Shop Admin and
+    # Flight Admin start unticked and are only ever ticked by hand.
+    shop_roles = ",".join(r for r in (shop_roles or "").split(",") if r and r != "admin") or None
+    flight_roles = ",".join(r for r in (flight_roles or "").split(",") if r and r != "admin") or None
     preset = _role_preset(shop_roles, flight_roles, badge=request.args.get("badge", ""), badge_rate="", cfi_pay_rate="")
     conn = get_db()
     pay_ctx = _pay_link_context(conn)
@@ -8568,8 +8582,8 @@ def _account_programs(user_row):
     shown on the centralized My Account page. Read-only: access is still
     changed by an admin in Admin > Accounts."""
     is_admin = bool(user_row["is_master_admin"])
-    shop_labels = {"admin": "Admin", "tech": "Tech", "inspector": "Inspector", "apprentice": "Apprentice"}
-    flight_labels = {"cfi": "Instructor (CFI)", "student": "Student"}
+    shop_labels = {"admin": "Shop Admin", "tech": "Tech", "inspector": "Inspector", "apprentice": "Apprentice"}
+    flight_labels = {"admin": "Flight Admin", "cfi": "Instructor (CFI)", "student": "Student"}
     progs = []
     if is_admin or user_row["shop_role"]:
         progs.append(dict(key="shop", name="Winds Aloft", icon="bi-tools",
@@ -8579,9 +8593,11 @@ def _account_programs(user_row):
         progs.append(dict(key="flight", name="Fly with Kate!", icon="bi-airplane-engines",
                           url=url_for("flight.dashboard"),
                           role="Master admin" if is_admin else " + ".join(flight_labels.get(r, r.title()) for r in user_flight_roles(user_row))))
-    if is_admin or user_row["academy_access"]:
+    flight_admin = "admin" in user_flight_roles(user_row)
+    if is_admin or user_row["academy_access"] or flight_admin:
         progs.append(dict(key="academy", name="Flight Academy", icon="bi-mortarboard",
-                          url=url_for("academy_page"), role="Master admin" if is_admin else "Access granted"))
+                          url=url_for("academy_page"),
+                          role="Master admin" if is_admin else ("Flight Admin" if flight_admin else "Access granted")))
     if is_admin:
         progs.append(dict(key="admin", name="Admin", icon="bi-shield-lock-fill",
                           url=url_for("admin_home"), role="Owner" if user_row["id"] == owner_user_id() else "Master admin"))
@@ -9639,13 +9655,15 @@ def _remove_flight_logins(conn, user_ids, role):
     that also has shop access, another flight profile, or is a master
     admin is kept and just loses the flight role."""
     for uid in {u for u in user_ids if u}:
-        user = conn.execute("SELECT id, is_master_admin, shop_role, flight_role FROM users WHERE id = ?",
+        user = conn.execute("SELECT id, is_master_admin, shop_role, flight_role, flight_roles FROM users WHERE id = ?",
                             (uid,)).fetchone()
         if not user:
             continue
         still_linked = conn.execute("""SELECT (SELECT COUNT(*) FROM cfis WHERE user_id = ?)
                                              + (SELECT COUNT(*) FROM students WHERE user_id = ?) AS n""",
                                     (uid, uid)).fetchone()["n"]
+        if "admin" in user_flight_roles(user):
+            continue  # a Flight Admin login is never deleted by a data reset
         if not user["is_master_admin"] and not (user["shop_role"] or "").strip() and not still_linked:
             conn.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (uid,))
             conn.execute("DELETE FROM push_pending WHERE user_id = ?", (uid,))

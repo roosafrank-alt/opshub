@@ -145,7 +145,7 @@
 <div class="card academy-card mb-3">
   <div class="card-header fw-bold"><i class="bi bi-easel"></i> Lesson Content</div>
   <div class="card-body">
-    {% if session.get('is_master_admin') %}
+    {% if flight_admin %}
     <form method="post" action="{{ url_for('groundschool.lesson_save', task_id=task.id) }}">
       <textarea name="content" class="form-control mb-2" rows="8"
                 placeholder="Talking points, materials, sample questions, links...">{{ lesson.content if lesson else '' }}</textarea>
