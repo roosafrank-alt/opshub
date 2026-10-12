@@ -12,6 +12,7 @@
       <div class="form-text">Make this the specific/full description - e.g. "Bolt 1/4-20 x 1in Grade 8", not just "Bolt". You can have many parts that share a common term (see Also Known As below); what makes each one unique is its own barcode plus this full name, category, and location.</div>
     </div>
 
+{% if not apprentice_limited %}
     <div class="mb-3">
       <label class="form-label">Also Known As <span class="text-muted small">(optional)</span></label>
       <input type="text" name="short_name" class="form-control" maxlength="40" placeholder="e.g. Bolt" value="{{ form.get('short_name','') if form else '' }}">
@@ -23,6 +24,7 @@
       <input type="text" name="part_number" class="form-control" maxlength="60" placeholder="e.g. LW-13387" value="{{ form.get('part_number','') or '' if form else '' }}">
       <div class="form-text">The manufacturer's P/N - used in logbook entries. Leave blank if the barcode already is the part number.</div>
     </div>
+{% endif %}
 
     {% if not part %}
     <div class="mb-3">
@@ -58,10 +60,12 @@
       </div>
     </div>
 
+{% if not apprentice_limited %}
     <div class="mb-3">
       <label class="form-label">Description</label>
       <textarea name="description" class="form-control" rows="2">{{ form.get('description','') if form else '' }}</textarea>
     </div>
+{% endif %}
 
     <div class="row">
       {% if not part %}
@@ -74,6 +78,7 @@
         <label class="form-label">Unit</label>
         <input type="text" name="unit" class="form-control" value="{{ form.get('unit','ea') if form else 'ea' }}" placeholder="ea, ft, box">
       </div>
+{% if not apprentice_limited %}
       <div class="col-md-3 mb-3">
         <label class="form-label">Reorder Point</label>
         <input type="number" step="any" name="reorder_point" class="form-control" value="{{ form.get('reorder_point', 0) if form else 0 }}">
@@ -86,8 +91,10 @@
         <label class="form-label">Sell Price ($) <span class="text-muted small">(what you charge)</span></label>
         <input type="number" step="any" name="sell_price" class="form-control" value="{{ form.get('sell_price', 0) if form else 0 }}">
       </div>
+{% endif %}
     </div>
 
+{% if not apprentice_limited %}
     <div class="mb-3">
       <label class="form-label" for="expiration-date">Expiration Date <span class="text-muted small">(optional)</span></label>
       <input type="date" id="expiration-date" name="expiration_date" class="form-control" style="max-width:220px;"
@@ -108,9 +115,10 @@
       <label class="form-check-label" for="notify-low-stock-check">Send low-stock reminders for this part <span class="text-muted small">(when it opted-in staff/admins have email/text reminders on) - turn off to silence a noisy or low-priority part without disabling low-stock alerts overall</span></label>
     </div>
 
+{% endif %}
     <div class="d-flex gap-2" data-change="DESIGN-8">
       <button type="submit" class="btn btn-dark fw-bold" data-change="DESIGN-1">{{ 'Save Changes' if part else 'Add Part' }}</button>
-      <a href="{{ url_for('parts_list') }}" class="btn btn-outline-secondary" onclick="var r = document.referrer; if (r && r.indexOf(location.origin) === 0 && r !== location.href && history.length > 1) { history.back(); return false; }">Cancel</a>
+      <a href="{{ url_for('scan_page') if apprentice_limited else url_for('parts_list') }}" class="btn btn-outline-secondary" onclick="var r = document.referrer; if (r && r.indexOf(location.origin) === 0 && r !== location.href && history.length > 1) { history.back(); return false; }">Cancel</a>
     </div>
   </form>
 </div>

@@ -18,13 +18,17 @@ class LaborTimerWidgetTest(OpsHubTestCase):
         conn.close()
 
     def test_shop_roles_see_everyone_clocked_in_with_project_and_sub_area(self):
-        for role in ("tech", "shop_admin", "master", "inspector", "shop_student"):
+        for role in ("tech", "shop_admin", "master", "inspector"):
             with self.subTest(role=role):
                 d = self.login(role).get("/api/labor/clocked-in").get_json()
                 by_name = {w["name"]: w for w in d["workers"]}
                 self.assertEqual(set(by_name), {"Joe Tech", "Ann Wrench"})
                 self.assertEqual(by_name["Joe Tech"]["section"], "Plugs")
                 self.assertTrue(by_name["Ann Wrench"]["general"])
+
+    def test_apprentice_gets_nobody(self):
+        # SHOP-08: the shop-wide "who is working" list is not for an Apprentice.
+        self.assertEqual(self.login("shop_student").get("/api/labor/clocked-in").get_json()["workers"], [])
 
     def test_flight_only_accounts_get_nobody(self):
         for role in ("cfi", "flight_student", "no_roles"):

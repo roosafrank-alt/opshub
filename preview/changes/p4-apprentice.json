@@ -1,0 +1,19 @@
+[
+ {
+  "id": "SHOP-08",
+  "status": "built",
+  "pages": [
+   "/projects/{id}",
+   "/my-tasks",
+   "/assets/{id}",
+   "/calendar",
+   "/scan",
+   "/parts/new",
+   "/admin/users/{id}/edit",
+   "/shop"
+  ],
+  "where": "Project page: each Discrepancy has an 'Assigned to' dropdown (admin, tech) and shows who has it. Admin > Edit Account (when Apprentice is ticked): 'Calendar for this apprentice' Limited / Basic. An Apprentice sees a small project page (project name plus only their tasks and the parts on them), My Tasks grouped by job, a trimmed aircraft page, and a header with only Scan, My Tasks and Calendar. Add Part for an Apprentice shows only name, barcode, category, location, unit and starting quantity.",
+  "see_as": "apprentice",
+  "detail": "Built per Frank's words. Server-enforced: /projects/<id>, aircraft page, labor codes, checklist, intake, part requests, scan project picker and the scan/labor APIs refuse a job with no task for the Apprentice; Projects list, Parts list, part pages, Aircraft list, Orders, Squawks, Activity, Customers, Manage are closed to them. Stock IN works for existing parts (logged under their name; the scan answer carries only name, barcode, unit and quantity, never prices, supplier or reorder data) and Stock OUT only onto a job where a task is theirs. Per Frank's later change an Apprentice may add a brand-new part (Add Part, also from an unknown scanned barcode); price, cost, supplier, reorder point, expiry and notes are not shown and are ignored on the server; after saving they return to Scan; Edit, Retire, Delete, Adjust Stock and Export stay closed. Calendar: Limited (default) shows only jobs with a task for them; Basic shows every job (dates and names only, no notes) but links only into their own jobs; fleet maintenance chips are not shown to an Apprentice in either mode because they open aircraft pages. The calendar has no notes or 'private' marker today, so nothing else needed hiding. Aircraft page shows tail number and ALL active maintenance items of that aircraft (not filtered per task: there is no link between a task and a maintenance item). An account whose only role is Apprentice already opens only Winds Aloft (verified by test, nothing leaked). Today's labor 'who is working' widget is empty for Apprentices. New columns: project_sections.assigned_to, users.apprentice_calendar (startup migrations). QUESTION FOR FRANK: should the aircraft page show only maintenance items connected to the task? Today there is no such link, so it shows all of that aircraft's items."
+ }
+]

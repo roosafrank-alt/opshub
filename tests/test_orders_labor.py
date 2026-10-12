@@ -415,6 +415,9 @@ class LaborFlowTest(OpsHubTestCase):
     def test_shop_roles_can_clock_labor(self):
         for role in ("tech", "shop_admin", "shop_student", "inspector", "master"):
             with self.subTest(role=role):
+                if role == "shop_student":  # SHOP-08: an Apprentice clocks onto a job where a task is theirs
+                    self.exec("INSERT OR IGNORE INTO project_sections (project_id, name, created_at, assigned_to) VALUES (?,?,?,?)",
+                              (self.project, "Task", db.now_iso(), self.users["shop_student"]["id"]))
                 self.login(role)
                 self.assertEqual(self.labor(project_id=self.project).status_code, 200)
                 self.assertEqual(self.labor(project_id=self.project).status_code, 200)

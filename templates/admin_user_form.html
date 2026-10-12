@@ -82,6 +82,28 @@
         <div class="form-text">None ticked = no Fly with Kate! access.</div>
       </div>
     </div>
+    {% if user %}
+    {#- SHOP-08: how much of the shop calendar an Apprentice gets. Only shown while the Apprentice box is ticked. #}
+    {% set _cal = user['apprentice_calendar'] if user['apprentice_calendar'] in ('limited', 'basic') else 'limited' %}
+    <div class="border rounded p-2 mb-3" id="apprentice-calendar-box" style="{{ '' if 'apprentice' in _pre_shop else 'display:none;' }}" data-change="SHOP-08">
+      <label class="form-label fw-bold mb-1">Calendar for this apprentice</label>
+      <div class="form-check">
+        <input type="radio" class="form-check-input" name="apprentice_calendar" value="limited" id="app-cal-limited" {% if _cal == 'limited' %}checked{% endif %}>
+        <label class="form-check-label" for="app-cal-limited"><strong>Limited</strong> <span class="text-muted small">- they only see their own items: the projects where a task is assigned to them.</span></label>
+      </div>
+      <div class="form-check">
+        <input type="radio" class="form-check-input" name="apprentice_calendar" value="basic" id="app-cal-basic" {% if _cal == 'basic' %}checked{% endif %}>
+        <label class="form-check-label" for="app-cal-basic"><strong>Basic</strong> <span class="text-muted small">- they see the whole shop calendar, but no notes and no private items.</span></label>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var box = document.getElementById('apprentice-calendar-box');
+        var tick = document.getElementById('shop-role-apprentice');
+        if (box && tick) tick.addEventListener('change', function () { box.style.display = tick.checked ? '' : 'none'; });
+      })();
+    </script>
+    {% endif %}
     <div class="form-text mb-3">More than one role ticked? The first ticked role is what they see when they log in. The "Switch role" chips at the top of the page switch to any of their other roles, and everything works as it does for that role.</div>
     <div class="form-check mb-2">
       <input type="checkbox" class="form-check-input" name="is_master_admin" id="master-admin-check" {% if user and user.is_master_admin %}checked{% endif %}>
