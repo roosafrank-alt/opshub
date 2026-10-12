@@ -24,6 +24,14 @@
       {% endif %}
     </li>
     {% endfor %}
+    {% if g.general_parts %}
+    <li class="list-group-item">
+      <div class="fw-bold"><i class="bi bi-box-seam"></i> General parts on this job</div>
+      <ul class="small mb-0 mt-1">
+        {% for p in g.general_parts %}<li>{{ p.name }} &times; {{ '%g'|format(p.qty_used) }} {{ p.unit }}</li>{% endfor %}
+      </ul>
+    </li>
+    {% endif %}
   </ul>
 </div>
 {% endfor %}

@@ -739,6 +739,16 @@ def apprentice_task_parts(conn, project_id, section_name):
     """, (project_id, section_name)).fetchall()
 
 
+def apprentice_general_parts(conn, project_id):
+    """Parts put on the job as a whole (not on a particular task): name, unit and net quantity (no costs)."""
+    return conn.execute("""
+        SELECT p.name, p.unit, SUM(CASE WHEN t.type='out' THEN t.qty ELSE -t.qty END) AS qty_used
+        FROM transactions t JOIN parts p ON p.id = t.part_id
+        WHERE t.project_id = ? AND (t.section IS NULL OR TRIM(t.section) = '' OR t.section = 'General')
+        GROUP BY p.id HAVING qty_used > 0 ORDER BY p.name
+    """, (project_id,)).fetchall()
+
+
 def _apprentice_no_task_redirect():
     flash("Nothing is assigned to you there. Ask an admin to give you a task.", "warning")
     return redirect(url_for("tech_spot"))
@@ -3771,8 +3781,9 @@ def project_detail(project_id):
         mine = [dict(t) for t in apprentice_tasks(conn) if t["project_id"] == project_id]
         for t in mine:
             t["parts"] = apprentice_task_parts(conn, project_id, t["section_name"])
+        general_parts = apprentice_general_parts(conn, project_id)   # job-wide parts, no prices
         conn.close()
-        return render_template("project_apprentice.html", project=project, tasks=mine)
+        return render_template("project_apprentice.html", project=project, tasks=mine, general_parts=general_parts)
     # A new project's intake check comes first (Skip for now is on that page).
     # JOBS-01: every shop role can do the intake check, so everyone is sent
     # there (an apprentice's is then flagged "needs verification").
@@ -5312,6 +5323,8 @@ def tech_spot():
             g = groups.setdefault(t["project_id"], {"project_id": t["project_id"], "project_name": t["project_name"],
                                                     "project_code": t["project_code"], "tasks": []})
             g["tasks"].append(dict(t, parts=apprentice_task_parts(conn, t["project_id"], t["section_name"])))
+        for g in groups.values():
+            g["general_parts"] = apprentice_general_parts(conn, g["project_id"])
         conn.close()
         return render_template("tech_spot_apprentice.html", groups=list(groups.values()))
     # JOBS-15: an inspector's My Tasks is just what they can act on - squawk

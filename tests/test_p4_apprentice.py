@@ -289,3 +289,28 @@ class OnlyWindsAloftTests(ApprenticeBase):
         r = c.get("/flight/")
         self.assertEqual(r.status_code, 302)
         self.assertNotIn("/shop", r.headers["Location"])
+
+
+class GeneralPartsTests(ApprenticeBase):
+    """Frank: an apprentice also sees the parts put on the job as a whole (General), name and quantity only."""
+    def setUp(self):
+        super().setUp()
+        self.part3 = self.make_part("Safety Wire", "SW-1", qty=10, unit_cost=12.34)
+        self.exec("INSERT INTO transactions (part_id,project_id,type,qty,note,performed_by,section,source,created_at) "
+                  "VALUES (?,?, 'out', 3, 'x','Frank',NULL, 'assigned', ?)", (self.part3, self.mine, db.now_iso()))
+
+    def test_project_page_shows_general_parts_without_prices(self):
+        body = self.login("shop_student").get(f"/projects/{self.mine}").get_data(as_text=True)
+        self.assertIn("General parts on this job", body)
+        self.assertIn("Safety Wire", body)
+        self.assertNotIn("12.34", body)
+        self.assertNotIn("Spark Plug", body)   # still only their own task's parts besides General
+
+    def test_my_tasks_shows_general_parts_for_their_jobs_only(self):
+        body = self.login("shop_student").get("/my-tasks").get_data(as_text=True)
+        self.assertIn("General parts on this job", body)
+        self.assertIn("Safety Wire", body)
+        self.exec("INSERT INTO transactions (part_id,project_id,type,qty,note,performed_by,section,source,created_at) "
+                  "VALUES (?,?, 'out', 1, 'x','Frank',NULL, 'assigned', ?)", (self.part2, self.theirs, db.now_iso()))
+        body = self.login("shop_student").get("/my-tasks").get_data(as_text=True)
+        self.assertNotIn("Spark Plug", body)   # a job with no task for them is never listed

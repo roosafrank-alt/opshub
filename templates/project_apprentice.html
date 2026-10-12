@@ -23,6 +23,20 @@
     </div>
   </div>
   {% endfor %}
+  {#- The parts on the job as a whole (not on one task): name and quantity only. #}
+  <h6 class="mb-2 mt-3">General parts on this job</h6>
+  <div class="card mb-2">
+    <div class="card-body py-2">
+      {% if general_parts %}
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Part</th><th>Quantity</th></tr></thead>
+        <tbody>{% for p in general_parts %}<tr><td>{{ p.name }}</td><td>{{ '%g'|format(p.qty_used) }} {{ p.unit }}</td></tr>{% endfor %}</tbody>
+      </table>
+      {% else %}
+      <div class="text-muted small">No general parts on this job.</div>
+      {% endif %}
+    </div>
+  </div>
   <a href="{{ url_for('scan_page') }}" class="btn btn-dark mt-2"><i class="bi bi-upc-scan"></i> Scan parts or clock in</a>
   <a href="{{ url_for('tech_spot') }}" class="btn btn-outline-secondary mt-2">Back to My Tasks</a>
 </div>
