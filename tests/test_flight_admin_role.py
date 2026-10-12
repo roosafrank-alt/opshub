@@ -108,7 +108,8 @@ class FlightAdminRoleTest(OpsHubTestCase):
 
     def test_flight_admin_cannot_use_master_only_flight_pages(self):
         cfi_id = self.q1("SELECT id FROM cfis WHERE user_id = ?", (self.users["cfi"]["id"],))["id"]
-        for url in ("/flight/cfis", "/flight/cfis/new", f"/flight/cfis/{cfi_id}/edit", f"/flight/cfis/{cfi_id}/pay"):
+        for url in ("/flight/cfis/new", f"/flight/cfis/{cfi_id}/edit", f"/flight/cfis/{cfi_id}/pay",
+                    f"/flight/cfis/{self.q1('SELECT id FROM cfis WHERE user_id=?', (self.users['flight_admin']['id'],))['id']}/pay"):
             self.refused("flight_admin", url)
         r = self.login("flight_admin").post(f"/flight/cfis/{cfi_id}/pay/mark-paid",
                                             data={"start": "2026-01-01", "end": "2026-01-31"})
@@ -287,3 +288,44 @@ class FlightAdminRoleTest(OpsHubTestCase):
         self.assertEqual(tuple(row), (None, None, None, None))
         # nothing in the migration promoted an existing account
         self.assertEqual(self.q("SELECT COUNT(*) c FROM users WHERE flight_role='admin' OR flight_roles LIKE '%admin%'")[0]["c"], 2)
+
+    # ----- CFI roster without pay; alert recipients --------------------------
+    def test_flight_admin_sees_cfi_roster_without_pay_or_rates(self):
+        self.exec("UPDATE cfis SET rate_per_hour=123.45 WHERE user_id=?", (self.users["cfi"]["id"],))
+        body = self.login("flight_admin").get("/flight/cfis").get_data(as_text=True)
+        self.assertIn("Cfi", body)
+        for gone in ("123.45", "/pay", ">Rate<", "Billing Access", "/edit", "Add CFI"):
+            self.assertNotIn(gone, body)
+        master = self.login("master").get("/flight/cfis").get_data(as_text=True)
+        self.assertIn("123.45", master)
+        self.assertIn("/pay", master)
+
+    def test_cfi_roster_still_refused_to_cfi_and_shop_admin(self):
+        for who in ("cfi", "shop_admin", "flight_student"):
+            self.refused(who, "/flight/cfis")
+
+    def test_alert_recipient_sql_includes_flight_admin_not_cfi_or_student(self):
+        import flight, inspect
+        src = inspect.getsource(flight)
+        self.assertEqual(src.count("flight_role = 'admin'"), 3)
+        conn = db.get_db()
+        where = "active = 1 AND (is_master_admin = 1 OR flight_role = 'admin' OR ',' || COALESCE(flight_roles, '') || ',' LIKE '%,admin,%')"
+        names = {r["username"] for r in conn.execute(f"SELECT username FROM users WHERE {where}")}
+        conn.close()
+        self.assertIn("flight_admin", names)
+        self.assertIn("flight_admin_cfi", names)
+        self.assertIn("master", names)
+        self.assertNotIn("cfi", names)
+        self.assertNotIn("flight_student", names)
+        self.assertNotIn("shop_admin", names)
+
+    def test_hundred_hour_email_goes_to_flight_admin_once(self):
+        self.exec("UPDATE users SET notify_email=1, email='fa@example.com' WHERE username IN ('flight_admin','cfi')")
+        conn = db.get_db()
+        rows = conn.execute("SELECT * FROM users WHERE active = 1 AND (is_master_admin = 1 OR flight_role = 'admin' "
+                            "OR ',' || COALESCE(flight_roles, '') || ',' LIKE '%,admin,%') AND (notify_email = 1 OR notify_sms = 1)").fetchall()
+        conn.close()
+        names = [r["username"] for r in rows]
+        self.assertIn("flight_admin", names)
+        self.assertNotIn("cfi", names)
+        self.assertEqual(len(names), len(set(names)))

@@ -429,7 +429,7 @@ def _notify_schedule_request(conn, sched, verb, note):
         cfi = conn.execute("SELECT user_id FROM cfis WHERE id = ?", (sched["cfi_id"],)).fetchone()
         if cfi and cfi["user_id"]:
             recipients.add(cfi["user_id"])
-    admins = conn.execute("SELECT id FROM users WHERE active = 1 AND is_master_admin = 1").fetchall()
+    admins = conn.execute("SELECT id FROM users WHERE active = 1 AND (is_master_admin = 1 OR flight_role = 'admin' OR ',' || COALESCE(flight_roles, '') || ',' LIKE '%,admin,%')").fetchall()
     recipients.update(a["id"] for a in admins)
     for uid in recipients:
         try:
@@ -2790,7 +2790,7 @@ def student_field_detail(student_id, field_key):
 
 
 @flight_bp.route("/cfis")
-@master_admin_only
+@admin_required
 def cfis_list():
     """Admin-only CFI roster - the flight-school equivalent of the shop
     side's Laborers page: each instructor's rate and active status, kept
@@ -3100,7 +3100,7 @@ def cfi_pay(cfi_id):
         flash("CFI not found.", "danger")
         return redirect(url_for("flight.dashboard"))
     is_self = session.get("cfi_id") == cfi_id
-    if not (session.get("is_master_admin") or is_self):
+    if not (session.get("is_master_admin") or (is_self and not cfi_row["is_station"])):
         conn.close()
         flash("You can only view your own pay.", "danger")
         return redirect(url_for("flight.dashboard"))
@@ -6833,7 +6833,7 @@ def check_session_alerts():
                     overdue_recipients.append(cfi_row["user_id"])
                 elif f["solo"]:
                     admins = conn.execute(
-                        "SELECT id FROM users WHERE active = 1 AND is_master_admin = 1 AND notify_push_late = 1"
+                        "SELECT id FROM users WHERE active = 1 AND (is_master_admin = 1 OR flight_role = 'admin' OR ',' || COALESCE(flight_roles, '') || ',' LIKE '%,admin,%') AND notify_push_late = 1"
                     ).fetchall()
                     overdue_recipients.extend(a["id"] for a in admins)
                 for uid in overdue_recipients:
@@ -9469,7 +9469,7 @@ def check_hundred_hr_alerts(conn):
     grounded. Keyed on the last-100-hr tach, so the next cycle alerts again.
     Best effort - never breaks the flight save that triggered it."""
     try:
-        admins = conn.execute("SELECT * FROM users WHERE active = 1 AND is_master_admin = 1 "
+        admins = conn.execute("SELECT * FROM users WHERE active = 1 AND (is_master_admin = 1 OR flight_role = 'admin' OR ',' || COALESCE(flight_roles, '') || ',' LIKE '%,admin,%') "
                               "AND (notify_email = 1 OR notify_sms = 1)").fetchall()
         settings = notify.get_settings(conn)
         for a in _school_planes(conn):
