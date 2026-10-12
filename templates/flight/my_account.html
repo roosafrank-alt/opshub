@@ -22,6 +22,29 @@
 <p class="text-muted small mb-3" data-change="SCHOOL-10">Balance includes payments you've made; the flights below are what the school hasn't marked paid yet.</p>
 <h6 class="text-warning-emphasis"><span class="badge bg-warning text-dark">Unpaid</span> {{ unpaid|length }} flight{{ 's' if unpaid|length != 1 }} - ${{ '%.2f'|format(unpaid_total) }}</h6>
 {{ flight_rows(unpaid) }}
+{% set card_flights = unpaid|selectattr('can_request_card')|list + unpaid|selectattr('card_request')|rejectattr('can_request_card')|list %}
+{% if card_flights %}
+<div class="card mb-3" data-change="FLY-07"><div class="card-body py-2">
+  <div class="fw-bold small mb-1"><i class="bi bi-credit-card"></i> Pay by card through Wave</div>
+  {% for f in card_flights %}
+  <div class="border-top py-2 small">
+    <div>{{ f.flight_date|usdate_short }} {{ f.plane_tag }} - ${{ '%.2f'|format(f.total or 0) }}</div>
+    {% if f.can_request_card %}
+    {% if f.card_request and f.card_request.status == 'declined' %}<div class="text-danger">The school declined your last request: {{ f.card_request.decline_reason }}</div>{% endif %}
+    {% if f.card_request and f.card_request.status == 'failed' %}<div class="text-danger">Your last request couldn't be billed. You can ask again.</div>{% endif %}
+    <form method="post" action="{{ url_for('flight.charge_request_create', flight_id=f.id) }}">
+      <div class="text-muted">After the school approves, Wave emails you an invoice. On Wave's secure page you can pay with a card Wave already has for you or enter a new card.</div>
+      <div class="form-check"><input class="form-check-input" type="checkbox" name="consent" id="consent-{{ f.id }}" value="1" required>
+        <label class="form-check-label" for="consent-{{ f.id }}">I'd like an invoice for this flight to pay by card through Wave, once the school approves it.</label></div>
+      <button class="btn btn-sm btn-outline-primary mt-1" type="submit">Pay this flight by card through Wave</button>
+    </form>
+    {% else %}
+    <div class="text-muted">Card request sent. Waiting for the school to approve it.</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div></div>
+{% endif %}
 <h6><span class="badge bg-success">Paid</span> {{ paid|length }} flight{{ 's' if paid|length != 1 }}</h6>
 {{ flight_rows(paid) }}
 {% endblock %}

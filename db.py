@@ -932,6 +932,26 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_field_change_log_entity ON field_change_log(entity_type, entity_id, field_name)")
     conn.commit()
 
+    # FLY-07: a student asks to pay a flight by card through Wave; a master
+    # admin / Flight Admin approves it (which is when the Wave invoice is made).
+    conn.execute("""CREATE TABLE IF NOT EXISTS flight_charge_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        flight_id INTEGER NOT NULL REFERENCES flights(id),
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        amount_cents INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending', -- pending | approved | declined | failed
+        consent_text TEXT,
+        consent_at TEXT,
+        created_at TEXT NOT NULL,
+        decided_by TEXT,
+        decided_at TEXT,
+        decline_reason TEXT,
+        wave_local_invoice_id INTEGER,
+        failure_message TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_charge_requests_flight ON flight_charge_requests(flight_id, status)")
+    conn.commit()
+
     # Phone push notifications for flying sessions (30 min left / time's up /
     # overdue) - opt-in per user (notify_push_session_alerts), one row per
     # subscribed browser/device in push_subscriptions (Web Push, RFC 8030),

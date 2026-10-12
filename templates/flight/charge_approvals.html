@@ -1,0 +1,65 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Card Requests · Fly with Kate!{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-credit-card"></i> Card payment requests</h4>
+  <a href="{{ url_for('flight.billing') }}" class="btn btn-sm btn-outline-secondary">Back to Billing</a>
+</div>
+<p class="text-muted small">A student asked to pay a flight by card through Wave. Check the hours and the total, then tap <strong>Accept &amp; bill</strong>: Wave makes the invoice and emails it to them. They pay on Wave's own secure page. Nothing is charged here.</p>
+{% for r in pending %}
+{% set c = r.cost %}
+<div class="card mb-3" id="request-{{ r.id }}">
+  <div class="card-body">
+    <div class="d-flex justify-content-between flex-wrap gap-2">
+      <div>
+        <div class="fw-bold">{{ r.student_name }}</div>
+        <div class="small text-muted">{{ r.flight_date|usdate }} &middot; {{ r.plane_tag or 'Plane' }} &middot; asked {{ r.created_at|usdate }}</div>
+      </div>
+      <div class="text-end">
+        <div class="fs-4 fw-bold">${{ '{:,.2f}'.format(r.due_now) if r.due_now is not none else '0.00' }}</div>
+        {% if r.due_now is not none and (r.due_now * 100)|round|int != r.amount_cents %}
+        <div class="small text-warning-emphasis">was ${{ '{:,.2f}'.format(r.amount_cents / 100) }} when asked</div>
+        {% endif %}
+      </div>
+    </div>
+    {% if c %}
+    <table class="table table-sm mt-2 mb-2">
+      <tbody>
+        <tr><td>Aircraft time</td><td>{{ '%.1f'|format(c.hours) }} hr{% if c.plane_rate %} @ ${{ '%.2f'|format(c.plane_rate) }}/hr{% endif %}</td><td class="text-end">${{ '%.2f'|format(c.plane_cost) }}</td></tr>
+        {% if c.instructor_cost > 0 %}<tr><td>Instructor time</td><td>{{ '%.1f'|format(c.instructor_hours) }} hr @ ${{ '%.2f'|format(c.instructor_rate) }}/hr</td><td class="text-end">${{ '%.2f'|format(c.instructor_cost) }}</td></tr>{% endif %}
+        {% if c.ground_cost > 0 %}<tr><td>Ground time</td><td>{{ '%.1f'|format(c.ground_hours) }} hr</td><td class="text-end">${{ '%.2f'|format(c.ground_cost) }}</td></tr>{% endif %}
+        <tr class="fw-bold"><td colspan="2">Flight total</td><td class="text-end">${{ '%.2f'|format(c.total) }}</td></tr>
+      </tbody>
+    </table>
+    {% if r.due_now is not none and (r.due_now - c.total)|abs > 0.005 %}<div class="small text-muted mb-2">Already paid or covered by credit: ${{ '%.2f'|format(c.total - r.due_now) }}. Only the amount due above is billed.</div>{% endif %}
+    {% endif %}
+    <a class="small" href="{{ url_for('flight.log_detail', flight_id=r.flight_id) }}">View flight</a> <span class="text-muted small">(fix anything there first if the hours look wrong)</span>
+    <div class="d-flex flex-wrap gap-2 align-items-start mt-2">
+      <form method="post" action="{{ url_for('flight.charge_approve', req_id=r.id) }}">
+        <button type="submit" class="btn btn-success fw-bold"><i class="bi bi-check-circle"></i> Accept &amp; bill</button>
+      </form>
+      <form method="post" action="{{ url_for('flight.charge_decline', req_id=r.id) }}" class="d-flex gap-2 flex-grow-1">
+        <input type="text" name="reason" class="form-control form-control-sm" maxlength="300" placeholder="Reason (the student sees this)" required>
+        <button type="submit" class="btn btn-outline-secondary btn-sm">Decline</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-secondary">No requests waiting.</div>
+{% endfor %}
+{% if decided %}
+<h6 class="mt-4">Recently handled</h6>
+<div class="list-group">
+  {% for r in decided %}
+  <div class="list-group-item small">
+    <strong>{{ r.student_name }}</strong> &middot; {{ r.flight_date|usdate }} {{ r.plane_tag or '' }} &middot; ${{ '{:,.2f}'.format(r.amount_cents / 100) }} &middot;
+    {% if r.status == 'approved' %}<span class="badge bg-success">Billed</span>{% if r.invoice_number %} Wave #{{ r.invoice_number }}{% endif %}
+    {% elif r.status == 'declined' %}<span class="badge bg-secondary">Declined</span> {{ r.decline_reason }}
+    {% else %}<span class="badge bg-danger">Failed</span> {{ r.failure_message }}{% endif %}
+    <span class="text-muted">by {{ r.decided_by }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

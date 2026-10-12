@@ -5935,10 +5935,19 @@ def my_account():
         return redirect(url_for("flight.dashboard"))
     rows = conn.execute(_LOG_ROW_SQL + " WHERE f.student_id = ? ORDER BY f.flight_date DESC, f.id DESC LIMIT 200",
                         (student["id"],)).fetchall()
+    wave_ok = _wave_flight_connected(conn)
+    requests_by_flight = {}
+    for r in conn.execute("SELECT * FROM flight_charge_requests WHERE student_id = ? ORDER BY id", (student["id"],)).fetchall():
+        requests_by_flight[r["flight_id"]] = dict(r)  # newest wins
     conn.close()
     flights = [_row_with_cost(r) for r in rows]
     unpaid = [f for f in flights if not f["paid"]]
     paid = [f for f in flights if f["paid"]]
+    for f in unpaid:
+        f["card_request"] = requests_by_flight.get(f["id"])
+        f["can_request_card"] = bool(wave_ok and (f["ended_at"] or not f["started_at"]) and not f["wave_invoice_id"] and f["total"] > 0.005
+                                     and not (f.get("guest_name") or "").strip()
+                                     and not (f["card_request"] and f["card_request"]["status"] in ("pending", "approved")))
     return render_template("flight/my_account.html", unpaid=unpaid, paid=paid,
                            unpaid_total=round(sum(f["total"] or 0 for f in unpaid), 2),
                            balance=student["balance"] or 0.0)
@@ -7493,6 +7502,14 @@ def log_end(flight_id):
         conn.close()
         flash("Pick Paid or Unpaid to log the flight.", "danger")
         return redirect(back)
+    # FLY-07: a student may ask to pay this flight by card through Wave (only
+    # when Wave is connected). Needs the consent box; the request itself is
+    # made after the flight is saved, and makes no Wave call.
+    wants_card = bool(student_ending and request.form.get("charge_choice") == "wave" and _wave_flight_connected(conn))
+    if wants_card and not request.form.get("consent"):
+        conn.close()
+        flash("Tick the box to confirm you'd like a Wave invoice for this flight, or pick \"I'll settle with the school\".", "danger")
+        return redirect(back)
     payment_method = None if student_ending else ((request.form.get("payment_method") or "").strip()[:40] or None)
     payment_amount = 0.0 if student_ending else max(0.0, _parse_float(request.form.get("payment_amount")) or 0.0)
     credit_requested = 0.0 if student_ending else max(0.0, _parse_float(request.form.get("credit_applied")) or 0.0)
@@ -7649,12 +7666,23 @@ def log_end(flight_id):
         except wave_billing.WaveError as e:
             wave_invoice_ok = False
             wave_invoice_msg = f"Logged as Unpaid, but the Wave invoice wasn't made: {e}"
+    card_req_msg = None
+    if wants_card and cost is not None:
+        req_id, problem = _create_charge_request(conn, flight_id, ended_row["student_id"], session.get("user_name"))
+        if req_id:
+            conn.commit()
+            _notify_charge_request(conn, req_id)
+            card_req_msg = "Your request to pay by card through Wave was sent. Once the school approves it, Wave will email you an invoice."
+        else:
+            card_req_msg = f"Session logged, but the card request wasn't made: {problem}"
     check_hundred_hr_alerts(conn)  # 100-hour countdown alerts (admins)
     conn.close()
     if squawk:
         flash("Session ended and logged. The squawk you flagged will show up on the Maintenance side until it's acknowledged.", "success")
     else:
         flash("Session ended and logged.", "success")
+    if card_req_msg:
+        flash(card_req_msg, "success" if card_req_msg.startswith("Your request") else "warning")
     if wave_invoice_msg:
         flash(wave_invoice_msg, "success" if wave_invoice_ok else "warning")
     if wave_local_id:
@@ -8426,6 +8454,7 @@ def log_delete(flight_id):
     summary = (f"{_us_date(f['flight_date'])} {f['plane_tag']} - {f['student_name']}"
                f"{' with ' + f['cfi_name'] if f['cfi_name'] else ' (solo)'}, {f['hours']:.1f} hr, ${f['total']:.2f}")
     _log_field_change(conn, "flight", flight_id, "deleted", summary, "", who)
+    conn.execute("DELETE FROM flight_charge_requests WHERE flight_id = ?", (flight_id,))
     pilotlog.remove_for_flight(conn, flight_id)
     conn.execute("DELETE FROM flights WHERE id = ?", (flight_id,))
     conn.commit()
@@ -8676,6 +8705,304 @@ def billing_wave_sync():
           + (f" - {paid} newly paid." if paid else " - no new payments."), "success")
     for e in errors[:3]:
         flash("Wave " + e, "warning")
+    return redirect(back)
+
+
+# ---------------------------------------------------------------------------
+# FLY-07: "Pay by card through Wave" - student asks, the school approves
+# ---------------------------------------------------------------------------
+# Wave can't charge a stored card from outside, so the card step happens on
+# Wave's own secure "Pay now" page. OpsHub never sees or stores card data.
+# A student's request is just a row in flight_charge_requests; the Wave
+# invoice is only made (and emailed by Wave) when a master admin or Flight
+# Admin approves it. The existing wave_billing sync flips the flight to Paid
+# once Wave reports the invoice paid.
+
+FLIGHT_CARD_CONSENT = ("I'd like an invoice for this flight to pay by card through Wave, "
+                       "once the school approves it.")
+_FLIGHT_ADMIN_USERS_SQL = ("SELECT * FROM users WHERE active = 1 AND (is_master_admin = 1 OR flight_role IN ('admin') "
+                           "OR ',' || COALESCE(flight_roles, '') || ',' LIKE '%,admin,%')")
+
+
+def _wave_flight_connected(conn):
+    return bool(wave_billing.program_accounts(conn, "flight")[0])
+
+
+def _in_background(fn):
+    threading.Thread(target=fn, daemon=True).start()
+
+
+def _charge_request_problem(conn, f):
+    """Why a request can't be made for this flight (plain words), or None.
+    f is a dict from flight_payments.load_flight."""
+    if not f or (f["started_at"] and not f["ended_at"]):
+        return "That flight hasn't ended yet."
+    if (f.get("guest_name") or "").strip():
+        return "Guest flights can't be paid this way."
+    if f["paid"]:
+        return "That flight is already paid."
+    if f["wave_invoice_id"]:
+        return "That flight is already on a Wave invoice - use its Pay now link."
+    if flight_payments.amount_due(conn, f) <= 0.005:
+        return "Nothing is due on that flight."
+    if conn.execute("SELECT 1 FROM flight_charge_requests WHERE flight_id = ? AND status IN ('pending', 'approved')",
+                    (f["id"],)).fetchone():
+        return "That flight already has a card request."
+    return None
+
+
+def _create_charge_request(conn, flight_id, student_id, who):
+    """Records the request (no Wave call, flight stays Unpaid) and logs it.
+    Returns (request_id, None) or (None, reason). Doesn't commit."""
+    f = flight_payments.load_flight(conn, flight_id)
+    if f and f["student_id"] != student_id:
+        return None, "That's not your flight."
+    problem = _charge_request_problem(conn, f)
+    if problem:
+        return None, problem
+    cents = int(round(flight_payments.amount_due(conn, f) * 100))
+    cur = conn.execute("""INSERT INTO flight_charge_requests
+                          (flight_id, student_id, amount_cents, status, consent_text, consent_at, created_at)
+                          VALUES (?, ?, ?, 'pending', ?, ?, ?)""",
+                       (flight_id, student_id, cents, FLIGHT_CARD_CONSENT, now_iso(), now_iso()))
+    _log_field_change(conn, "flight_charge_request", cur.lastrowid, "status", "", "requested", who)
+    return cur.lastrowid, None
+
+
+def _notify_charge_request(conn, req_id):
+    """Tells master admins and Flight Admins a card request is waiting
+    (push, plus email/text for whoever turned those on). Best effort."""
+    f = conn.execute("""SELECT r.amount_cents, s.name AS student_name, a.tag FROM flight_charge_requests r
+                        JOIN students s ON s.id = r.student_id JOIN flights fl ON fl.id = r.flight_id
+                        LEFT JOIN assets a ON a.id = fl.asset_id WHERE r.id = ?""", (req_id,)).fetchone()
+    if not f:
+        return
+    body = (f"{f['student_name']} asked to pay for a flight in {f['tag'] or 'a plane'} by card through Wave "
+            f"(${f['amount_cents'] / 100:,.2f}). Approve or decline it under Billing.")
+    users = conn.execute(_FLIGHT_ADMIN_USERS_SQL).fetchall()
+    for u in users:
+        try:
+            push.queue_and_push(conn, u["id"], "Card payment request", body, tag=f"charge-request-{req_id}",
+                                url=url_for("flight.charge_approvals"))
+        except Exception:
+            current_app.logger.exception("Charge-request push failed")
+    settings = notify.get_settings(conn)
+
+    def _send(users=users, settings=settings):
+        for u in users:
+            try:
+                notify.notify_user(settings, u, "Card payment request", body, brand="Fly with Kate!")
+            except Exception:
+                pass
+    _in_background(_send)
+
+
+def _tell_student_of_decision(conn, student_id, subject, body):
+    """In-app notice plus an email (if they have one and email is set up)."""
+    _notify_student(conn, student_id, "charge_request", body, url_for("flight.my_account"))
+    row = conn.execute("SELECT u.email FROM students s JOIN users u ON u.id = s.user_id WHERE s.id = ?",
+                       (student_id,)).fetchone()
+    if row and row["email"]:
+        settings, email = notify.get_settings(conn), row["email"]
+        _in_background(lambda: notify.send_email(settings, email, subject, body, brand="Fly with Kate!"))
+
+
+def _pending_charge_count(conn):
+    return conn.execute("SELECT COUNT(*) AS c FROM flight_charge_requests WHERE status = 'pending'").fetchone()["c"]
+
+
+@flight_bp.context_processor
+def _inject_charge_request_badge():
+    """Pending-request count for the Billing menu, only for people who can approve."""
+    if not session.get("user_id") or not is_flight_admin():
+        return {}
+    try:
+        conn = get_db()
+        try:
+            return {"charge_pending_count": _pending_charge_count(conn)}
+        finally:
+            conn.close()
+    except Exception:
+        return {}
+
+
+@flight_bp.route("/billing/approvals")
+@admin_required
+def charge_approvals():
+    """The card-request queue: pending ones first, then the recent decisions."""
+    conn = get_db()
+    rows = conn.execute("""SELECT r.*, s.name AS student_name, fl.flight_date, a.tag AS plane_tag, fl.paid AS flight_paid,
+                                  wi.invoice_number, wi.view_url
+                           FROM flight_charge_requests r
+                           JOIN students s ON s.id = r.student_id
+                           JOIN flights fl ON fl.id = r.flight_id
+                           LEFT JOIN assets a ON a.id = fl.asset_id
+                           LEFT JOIN wave_invoices wi ON wi.id = r.wave_local_invoice_id
+                           ORDER BY r.id DESC LIMIT 200""").fetchall()
+    items = []
+    for r in rows:
+        d = dict(r)
+        f = flight_payments.load_flight(conn, r["flight_id"]) if r["status"] == "pending" else None
+        d["due_now"] = flight_payments.amount_due(conn, f) if f else None
+        d["cost"] = f
+        items.append(d)
+    conn.close()
+    return render_template("flight/charge_approvals.html",
+                           pending=[i for i in items if i["status"] == "pending"][::-1],
+                           decided=[i for i in items if i["status"] != "pending"][:30])
+
+
+@flight_bp.route("/billing/approvals/<int:req_id>/approve", methods=["POST"])
+@admin_required
+def charge_approve(req_id):
+    """Makes and sends the Wave invoice for what is due on the flight right
+    now. The request is claimed with one atomic UPDATE first, so pressing
+    Approve twice (or two admins at once) can never make two invoices."""
+    back = url_for("flight.charge_approvals")
+    who = session.get("user_name")
+    conn = get_db()
+    req = conn.execute("SELECT * FROM flight_charge_requests WHERE id = ?", (req_id,)).fetchone()
+    if not req or req["status"] != "pending":
+        conn.close()
+        flash("That request was already handled.", "warning")
+        return redirect(back)
+    f = flight_payments.load_flight(conn, req["flight_id"])
+    if not f or f["paid"]:
+        conn.close()
+        flash("That flight is already paid - nothing to invoice. You can decline the request to clear it.", "warning")
+        return redirect(back)
+    due = flight_payments.amount_due(conn, f)
+    if due <= 0.005:
+        conn.close()
+        flash("Nothing is due on that flight any more. You can decline the request to clear it.", "warning")
+        return redirect(back)
+    if f["wave_invoice_id"]:
+        conn.close()
+        flash("That flight is already on a Wave invoice. Decline the request, or use that invoice's Pay now link.", "warning")
+        return redirect(back)
+    cur = conn.execute("UPDATE flight_charge_requests SET status = 'approved', decided_by = ?, decided_at = ? "
+                       "WHERE id = ? AND status = 'pending'", (who, now_iso(), req_id))
+    conn.commit()
+    if cur.rowcount != 1:
+        conn.close()
+        flash("That request was already handled.", "warning")
+        return redirect(back)
+
+    def fail(msg):
+        conn.execute("UPDATE flight_charge_requests SET status = 'failed', failure_message = ? WHERE id = ?", (msg, req_id))
+        _log_field_change(conn, "flight_charge_request", req_id, "status", "approved", "failed: " + msg, who)
+        conn.commit()
+        conn.close()
+        flash(f"Wave didn't make the invoice, so nothing was charged and the flight is still unpaid: {msg} "
+              f"Nothing will be retried on its own.", "danger")
+        return redirect(back)
+
+    try:
+        cfg = wave_billing.choose_account(conn, "flight")
+        name, email = _student_billing_contact(conn, req["student_id"])
+        if abs(due - f["total"]) < 0.005:
+            lines = wave_billing.flight_lines(cfg, [f])
+        else:  # part already paid or covered by credit: bill just what is left
+            lines = [wave_billing._line(cfg["flight_product"],
+                                        f"{_us_date(f['flight_date'])} {f['plane_tag']} - balance due on flight", due)]
+            if not cfg["flight_product"]:
+                raise wave_billing.WaveError(f"Pick the Wave product for flight training on {cfg['name']} under Admin > Wave first.")
+        inv = wave_billing.create_invoice(conn, cfg, name, email, lines, memo="Flight training")
+    except wave_billing.WaveError as e:
+        return fail(str(e))
+    sent = False
+    if email:
+        try:
+            wave_billing.send_invoice(cfg, inv["id"], email)
+            sent = True
+        except wave_billing.WaveError:
+            pass  # the invoice exists in Wave; the Billing page still has its link
+    local_id = wave_billing.record_invoice(conn, "student", req["student_id"], inv, name, email, who, cfg, sent=sent)
+    conn.execute("UPDATE flights SET wave_invoice_id = ? WHERE id = ?", (local_id, req["flight_id"]))
+    conn.execute("UPDATE flight_charge_requests SET wave_local_invoice_id = ?, amount_cents = ? WHERE id = ?",
+                 (local_id, int(round(due * 100)), req_id))
+    _log_field_change(conn, "flight_charge_request", req_id, "status", "pending",
+                      f"approved, Wave invoice #{inv.get('invoiceNumber') or ''}", who)
+    _tell_student_of_decision(
+        conn, req["student_id"], "Your card payment request was approved",
+        f"The school approved your request to pay for your {_us_date(f['flight_date'])} flight by card. "
+        + ("Wave has emailed you the invoice - open it and use Wave's secure page to pay with a card Wave already has "
+           "for you or enter a new one." if sent else "Your invoice is ready in Wave; the school will send it to you."))
+    conn.commit()
+    conn.close()
+    flash(f"Approved. Wave invoice #{inv.get('invoiceNumber') or ''} for ${wave_billing.money(inv.get('total')):.2f}"
+          + (f" was emailed to {email}." if sent else " was made but not emailed - send it from Billing."), "success")
+    _in_background(lambda: _quick_wave_check_later(local_id))
+    return redirect(back)
+
+
+def _quick_wave_check_later(local_id):
+    """One look at Wave a little after approval; the regular 30-minute check does the rest."""
+    time.sleep(60)
+    conn = get_db()
+    try:
+        wave_billing.sync_open_invoices(conn, wave_billing.apply_paid, only_id=local_id)
+    except Exception:
+        pass
+    finally:
+        conn.close()
+
+
+@flight_bp.route("/billing/approvals/<int:req_id>/decline", methods=["POST"])
+@admin_required
+def charge_decline(req_id):
+    back = url_for("flight.charge_approvals")
+    reason = (request.form.get("reason") or "").strip()[:300]
+    if not reason:
+        flash("Type a short reason so the student knows why.", "danger")
+        return redirect(back)
+    who = session.get("user_name")
+    conn = get_db()
+    req = conn.execute("SELECT * FROM flight_charge_requests WHERE id = ?", (req_id,)).fetchone()
+    cur = conn.execute("UPDATE flight_charge_requests SET status = 'declined', decided_by = ?, decided_at = ?, decline_reason = ? "
+                       "WHERE id = ? AND status = 'pending'", (who, now_iso(), reason, req_id))
+    if cur.rowcount != 1:
+        conn.commit()
+        conn.close()
+        flash("That request was already handled.", "warning")
+        return redirect(back)
+    _log_field_change(conn, "flight_charge_request", req_id, "status", "pending", "declined: " + reason, who)
+    _tell_student_of_decision(conn, req["student_id"], "Your card payment request was declined",
+                              f"The school declined your request to pay a flight by card through Wave. Reason: {reason}")
+    conn.commit()
+    conn.close()
+    flash("Declined. The student has been told why.", "success")
+    return redirect(back)
+
+
+@flight_bp.route("/my-account/flight/<int:flight_id>/card-request", methods=["POST"])
+@login_required
+def charge_request_create(flight_id):
+    """A student asks, from My Account, to pay one ended unpaid flight by card through Wave."""
+    back = url_for("flight.my_account")
+    conn = get_db()
+    student = current_student(conn)
+    if not student:
+        conn.close()
+        flash("Only students can ask to pay this way.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    if not _wave_flight_connected(conn):
+        conn.close()
+        flash("Paying by card through Wave isn't set up yet.", "warning")
+        return redirect(back)
+    if not request.form.get("consent"):
+        conn.close()
+        flash("Tick the box to confirm you'd like a Wave invoice for this flight.", "danger")
+        return redirect(back)
+    req_id, problem = _create_charge_request(conn, flight_id, student["id"], session.get("user_name"))
+    if problem:
+        conn.close()
+        flash(problem, "warning")
+        return redirect(back)
+    conn.commit()
+    _notify_charge_request(conn, req_id)
+    conn.close()
+    flash("Request sent. Once the school approves it, Wave will email you an invoice to pay by card.", "success")
     return redirect(back)
 
 
