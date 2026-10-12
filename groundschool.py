@@ -419,7 +419,7 @@ def _require_groundschool_access():
 
 _GRANTED_STUDENT_ENDPOINTS = {
     "rating_list", "rating_detail", "task_detail", "element_detail", "task_reference_click",
-    "task_mark_read", "element_item_interact", "resource_file", "resource_excerpt",
+    "task_mark_read", "element_item_interact", "resource_file", "resource_excerpt", "resources_list",
 }
 
 
@@ -843,7 +843,7 @@ def resources_delete(resource_id):
 def resource_file(resource_id):
     conn = get_db()
     r = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (resource_id,)).fetchone()
-    allowed = (not groundschool_restricted()) or resource_id in _granted_resource_ids(conn)
+    allowed = True  # anyone with Flight Academy access gets the Resources library
     conn.close()
     if not r:
         abort(404)
@@ -861,7 +861,7 @@ def resource_excerpt(resource_id):
     handbook is."""
     conn = get_db()
     r = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (resource_id,)).fetchone()
-    allowed = (not groundschool_restricted()) or resource_id in _granted_resource_ids(conn)
+    allowed = True  # anyone with Flight Academy access gets the Resources library
     conn.close()
     if not r:
         abort(404)
