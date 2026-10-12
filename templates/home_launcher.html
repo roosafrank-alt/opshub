@@ -132,7 +132,7 @@
       </a>
     </div>
     {% endif %}
-    {% if user.is_master_admin or user.academy_access %}
+    {% if user.is_master_admin or user.academy_access or student_course_grants() %}
     <div class="col-md-5">
       <a href="{{ url_for('academy_page') }}" class="launcher-tile tile-academy">
         <i class="bi bi-mortarboard-fill" style="color: #e3a857; font-size: 3.5rem;"></i>
@@ -164,7 +164,7 @@
       </a>
     </div>
     {% endif %}
-    {% if not (is_admin_like or customer) and not (user.is_master_admin or user.shop_role) and not (user.is_master_admin or user.flight_role or is_admin_like) and not (user.is_master_admin or user.academy_access) %}
+    {% if not (is_admin_like or customer) and not (user.is_master_admin or user.shop_role) and not (user.is_master_admin or user.flight_role or is_admin_like) and not (user.is_master_admin or user.academy_access or student_course_grants()) %}
     <div class="col-md-6 text-center picker-empty">
       Your account doesn't have access to any programs yet. Ask an admin to set that up.
     </div>

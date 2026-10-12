@@ -2316,6 +2316,10 @@ def _student_form_context(conn, student, **extra):
                                               (student_id,)).fetchall()
         # SCHOOL-01: Add Funds offers to apply the money to these.
         ctx["unpaid_flights"] = flight_payments.unpaid_flights_for_student(conn, student_id) if ctx["can_bill"] else []
+        if ctx["is_admin"] and not student["is_station"]:
+            ctx["grant_courses"] = conn.execute("SELECT id, name FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall()
+            ctx["granted_ids"] = {r["rating_id"] for r in conn.execute(
+                "SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (student_id,)).fetchall()}
     else:
         ctx["starting_password"] = _new_starting_password()
     ctx.update(extra)
@@ -2429,6 +2433,42 @@ def student_tsa_verify(student_id):
     conn.commit()
     conn.close()
     return jsonify({"ok": True, "tsa_verified_date": verified_date})
+
+
+@flight_bp.route("/students/<int:student_id>/course-grants", methods=["POST"])
+@admin_required
+def student_course_grants_save(student_id):
+    """Admin only: which whole Ground School courses this student can read
+    under Flight Academy. The checkboxes shown are the full list, so
+    unchecked means removed."""
+    conn = get_db()
+    student = conn.execute("SELECT * FROM students WHERE id = ?", (student_id,)).fetchone()
+    if not student:
+        conn.close()
+        flash("Student not found.", "danger")
+        return redirect(url_for("flight.students_list"))
+    courses = conn.execute("SELECT id, name FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall()
+    wanted = {int(x) for x in request.form.getlist("rating_id") if x.isdigit()}
+    have = {r["rating_id"] for r in conn.execute(
+        "SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (student_id,)).fetchall()}
+    added, removed = [], []
+    for c in courses:
+        if c["id"] in wanted and c["id"] not in have:
+            conn.execute("INSERT INTO academy_course_grants (student_id, rating_id, granted_by, granted_at) VALUES (?,?,?,?)",
+                         (student_id, c["id"], session.get("user_name"), now_iso()))
+            added.append(c["name"])
+        elif c["id"] not in wanted and c["id"] in have:
+            conn.execute("DELETE FROM academy_course_grants WHERE student_id = ? AND rating_id = ?", (student_id, c["id"]))
+            removed.append(c["name"])
+    conn.commit()
+    conn.close()
+    parts = []
+    if added:
+        parts.append("Granted: " + ", ".join(added))
+    if removed:
+        parts.append("Removed: " + ", ".join(removed))
+    flash(f"{student['name']} - " + ("; ".join(parts) + "." if parts else "no change to Flight Academy courses."), "success")
+    return redirect(url_for("flight.student_edit", student_id=student_id) + "#courses")
 
 
 @flight_bp.route("/students/<int:student_id>/edit", methods=["GET", "POST"])

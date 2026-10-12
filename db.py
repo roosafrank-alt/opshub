@@ -1147,6 +1147,15 @@ def _migrate(conn):
         done_at TEXT NOT NULL,
         PRIMARY KEY (student_id, item_id)
     )""")
+    # An admin grants a student a whole Ground School course (one acs_ratings
+    # row): the student then sees it read-only under Flight Academy.
+    conn.execute("""CREATE TABLE IF NOT EXISTS academy_course_grants (
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        rating_id INTEGER NOT NULL REFERENCES acs_ratings(id),
+        granted_by TEXT,
+        granted_at TEXT NOT NULL,
+        PRIMARY KEY (student_id, rating_id)
+    )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS acs_element_completion (
         student_id INTEGER NOT NULL REFERENCES students(id),
         element_id INTEGER NOT NULL REFERENCES acs_task_elements(id),

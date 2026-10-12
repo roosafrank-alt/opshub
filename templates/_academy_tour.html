@@ -1,7 +1,7 @@
 {#- SEAM-19: a three-stop walkthrough for Flight Academy, shown once on
    first visit and replayable from My Account (?tour=1). #}
 <script src="{{ url_for('static', filename='js/tour.js') }}"></script>
-{% if session.get('user_id') and (request.args.get('tour') == '1' or not tour_seen_academy) %}
+{% if session.get('user_id') and not groundschool_restricted() and (request.args.get('tour') == '1' or not tour_seen_academy) %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   OpsHubTour.start([

@@ -30,7 +30,7 @@ from payroll import payroll_bp
 import tracking
 from ads import ads_bp, ads_for_asset, add_ads_to_annual_project, AD_KINDS, AD_METHODS
 import academy
-from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
+from auth import (student_course_grants, academy_grants_only, groundschool_restricted, authenticate, log_in_user, log_out_user, current_user, login_required,
                    master_admin_required, shop_role_required, can_see_shop_costs,
                    owner_user_id, owner_locked, authenticate_customer, log_in_combined,
                    current_customer, start_view_as, exit_view_as, viewing_as_label,
@@ -332,6 +332,8 @@ app.jinja_env.globals["tracking_carrier_choices"] = tracking.CARRIER_CHOICES
 app.jinja_env.globals["user_shop_roles"] = user_shop_roles
 app.jinja_env.globals["user_flight_roles"] = user_flight_roles
 app.jinja_env.globals["tracking_info"] = tracking.to_json
+app.jinja_env.globals["student_course_grants"] = student_course_grants
+app.jinja_env.globals["groundschool_restricted"] = groundschool_restricted
 app.jinja_env.globals["academy_point_rules"] = academy.POINT_RULES
 app.jinja_env.globals["academy_entry_kinds"] = academy.ENTRY_KINDS
 app.jinja_env.globals["academy_achievements"] = academy.ACHIEVEMENTS
@@ -507,6 +509,9 @@ def academy_page():
     program picker is hidden for everyone else, and this route double-checks
     it server-side too."""
     if not (session.get("is_master_admin") or session.get("academy_access")):
+        if student_course_grants():
+            # A student with granted courses only: Ground School tab only.
+            return redirect(url_for("groundschool.rating_list"))
         flash("You don't have access to Flight Academy yet. Ask an admin.", "danger")
         return redirect(url_for("home_launcher"))
     # Leaderboard (see academy.py): points, achievements and rankings for

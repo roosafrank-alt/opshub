@@ -22,6 +22,7 @@ from markupsafe import Markup, escape
 
 from db import get_db, now_iso, UPLOAD_DIR
 from flight import login_required, cfi_required, admin_required
+from auth import student_course_grants, groundschool_restricted
 from acs_parser import parse_acs
 
 groundschool_bp = Blueprint("groundschool", __name__, url_prefix="/flight/groundschool")
@@ -403,10 +404,65 @@ def _require_groundschool_access():
     already has, same as academy_page() in app.py."""
     if not session.get("user_id"):
         return None
-    if not (session.get("is_master_admin") or session.get("groundschool_access")):
+    if not (session.get("is_master_admin") or session.get("groundschool_access") or student_course_grants()):
         flash("You don't have access to Ground School yet. Ask an admin.", "danger")
         return redirect(url_for("flight.dashboard"))
+    if groundschool_restricted():
+        # A student who only has granted courses can read those and use the
+        # reading-progress actions - nothing else, whatever the route's own
+        # decorator would say.
+        endpoint = (request.endpoint or "").split(".")[-1]
+        if endpoint not in _GRANTED_STUDENT_ENDPOINTS:
+            return _not_granted()
     return None
+
+
+_GRANTED_STUDENT_ENDPOINTS = {
+    "rating_list", "rating_detail", "task_detail", "element_detail", "task_reference_click",
+    "task_mark_read", "element_item_interact", "resource_file", "resource_excerpt",
+}
+
+
+def _not_granted():
+    flash("That course isn't one of your Flight Academy courses. Ask an admin.", "danger")
+    return redirect(url_for("groundschool.rating_list"))
+
+
+def _course_blocked(rating_id):
+    """True when the signed-in student may not open this course (granted
+    courses only apply to a student limited to them; everyone else is never
+    blocked here)."""
+    return groundschool_restricted() and rating_id not in student_course_grants()
+
+
+def _rating_id_of_task(conn, task_id):
+    row = conn.execute("SELECT a.rating_id FROM acs_tasks t JOIN acs_areas a ON a.id = t.area_id "
+                       "WHERE t.id = ?", (task_id,)).fetchone()
+    return row["rating_id"] if row else None
+
+
+def _rating_id_of_element(conn, element_id):
+    row = conn.execute("SELECT a.rating_id FROM acs_task_elements e JOIN acs_tasks t ON t.id = e.task_id "
+                       "JOIN acs_areas a ON a.id = t.area_id WHERE e.id = ?", (element_id,)).fetchone()
+    return row["rating_id"] if row else None
+
+
+def _granted_resource_ids(conn):
+    """Resources a granted course cites in its tasks' References."""
+    ids = set()
+    seen = set()
+    for rating_id in student_course_grants():
+        for t in conn.execute("SELECT t.acs_references FROM acs_tasks t JOIN acs_areas a ON a.id = t.area_id "
+                              "WHERE a.rating_id = ?", (rating_id,)).fetchall():
+            for m in _REF_TOKEN_RE.finditer(t["acs_references"] or ""):
+                token = m.group(0)
+                if token in seen:
+                    continue
+                seen.add(token)
+                hit = _find_resource_page(conn, token)
+                if hit:
+                    ids.add(hit[0])
+    return ids
 
 
 @groundschool_bp.route("")
@@ -414,6 +470,9 @@ def _require_groundschool_access():
 def rating_list():
     conn = get_db()
     ratings = conn.execute("SELECT * FROM acs_ratings ORDER BY name").fetchall()
+    if groundschool_restricted():
+        granted = student_course_grants()
+        ratings = [r for r in ratings if r["id"] in granted]
     viewing_student_id, students = _resolve_viewing_student(conn)
     progress_by_rating = {}
     if viewing_student_id:
@@ -521,6 +580,8 @@ def rating_delete(rating_id):
 @groundschool_bp.route("/<int:rating_id>")
 @login_required
 def rating_detail(rating_id):
+    if _course_blocked(rating_id):
+        return _not_granted()
     conn = get_db()
     rating = conn.execute("SELECT * FROM acs_ratings WHERE id = ?", (rating_id,)).fetchone()
     if not rating:
@@ -568,6 +629,9 @@ def task_detail(task_id):
         conn.close()
         return _gone("task")
     area = conn.execute("SELECT * FROM acs_areas WHERE id = ?", (task["area_id"],)).fetchone()
+    if _course_blocked(area["rating_id"]):
+        conn.close()
+        return _not_granted()
     rating = conn.execute("SELECT * FROM acs_ratings WHERE id = ?", (area["rating_id"],)).fetchone()
     notes = conn.execute("SELECT * FROM acs_task_notes WHERE task_id = ? ORDER BY order_index",
                           (task_id,)).fetchall()
@@ -779,9 +843,12 @@ def resources_delete(resource_id):
 def resource_file(resource_id):
     conn = get_db()
     r = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (resource_id,)).fetchone()
+    allowed = (not groundschool_restricted()) or resource_id in _granted_resource_ids(conn)
     conn.close()
     if not r:
         abort(404)
+    if not allowed:
+        return _not_granted()
     return send_file(os.path.join(UPLOAD_DIR, r["filename"]), mimetype="application/pdf")
 
 
@@ -794,9 +861,12 @@ def resource_excerpt(resource_id):
     handbook is."""
     conn = get_db()
     r = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (resource_id,)).fetchone()
+    allowed = (not groundschool_restricted()) or resource_id in _granted_resource_ids(conn)
     conn.close()
     if not r:
         abort(404)
+    if not allowed:
+        return _not_granted()
     raw = request.args.get("pages", "")
     try:
         pages = sorted({int(p) for p in raw.split(",") if p.strip()})
@@ -828,6 +898,9 @@ def element_detail(element_id):
         return _gone("element")
     task = conn.execute("SELECT * FROM acs_tasks WHERE id = ?", (el["task_id"],)).fetchone()
     area = conn.execute("SELECT * FROM acs_areas WHERE id = ?", (task["area_id"],)).fetchone()
+    if _course_blocked(area["rating_id"]):
+        conn.close()
+        return _not_granted()
     rating = conn.execute("SELECT * FROM acs_ratings WHERE id = ?", (area["rating_id"],)).fetchone()
     items = conn.execute("SELECT * FROM acs_element_lesson_items WHERE element_id = ? ORDER BY order_index",
                           (element_id,)).fetchall()
@@ -908,6 +981,10 @@ def task_reference_click(task_id):
     if not student_id:
         return {"ok": False, "error": "Only a student's own reading progress is tracked."}, 403
     conn = get_db()
+    rid = _rating_id_of_task(conn, task_id)
+    if rid is None or _course_blocked(rid):
+        conn.close()
+        return {"ok": False, "error": "not found"}, 404
     existing = conn.execute("SELECT 1 FROM acs_task_reading_progress WHERE student_id = ? AND task_id = ?",
                              (student_id, task_id)).fetchone()
     if existing:
@@ -933,6 +1010,10 @@ def task_mark_read(task_id):
         flash("Only a student can mark their own reading as done.", "danger")
         return redirect(url_for("groundschool.task_detail", task_id=task_id))
     conn = get_db()
+    rid = _rating_id_of_task(conn, task_id)
+    if rid is not None and _course_blocked(rid):
+        conn.close()
+        return _not_granted()
     progress = conn.execute("SELECT * FROM acs_task_reading_progress WHERE student_id = ? AND task_id = ?",
                              (student_id, task_id)).fetchone()
     if not progress or not progress["reference_opened_at"]:
@@ -983,6 +1064,10 @@ def element_item_interact(element_id, item_id):
     if not student_id:
         return {"ok": False, "error": "Only a student's own lesson progress is tracked."}, 403
     conn = get_db()
+    rid = _rating_id_of_element(conn, element_id)
+    if rid is None or _course_blocked(rid):
+        conn.close()
+        return {"ok": False, "error": "not found"}, 404
     item = conn.execute("SELECT * FROM acs_element_lesson_items WHERE id = ? AND element_id = ?",
                          (item_id, element_id)).fetchone()
     if not item:

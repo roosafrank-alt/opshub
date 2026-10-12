@@ -19,7 +19,7 @@ from functools import wraps
 
 from datetime import datetime, timedelta, timezone
 
-from flask import session, redirect, url_for, flash, request
+from flask import session, redirect, url_for, flash, request, g
 from werkzeug.security import check_password_hash
 
 from db import get_db, ensure_flight_profile, user_shop_roles, user_flight_roles
@@ -566,6 +566,43 @@ def current_customer(conn):
     return conn.execute("SELECT * FROM customers WHERE id = ?", (cid,)).fetchone()
 
 
+def student_course_grants():
+    """Set of Ground School course (acs_ratings) ids an admin has granted to
+    the signed-in student (academy_course_grants), ready courses only. Empty
+    for anyone who is not a student with a students row. Read from the
+    database on first use in a request, so a grant or removal takes effect
+    on the very next page."""
+    cached = getattr(g, "_course_grants", None)
+    if cached is not None and g.get("_course_grants_for") == session.get("student_id"):
+        return cached
+    ids = set()
+    sid = session.get("student_id")
+    if sid and session.get("flight_role") == "student":
+        conn = get_db()
+        ids = {r["rating_id"] for r in conn.execute(
+            "SELECT gr.rating_id FROM academy_course_grants gr JOIN acs_ratings r ON r.id = gr.rating_id "
+            "WHERE gr.student_id = ? AND r.status = 'parsed'", (sid,)).fetchall()}
+        conn.close()
+    g._course_grants = ids
+    g._course_grants_for = sid
+    return ids
+
+
+def academy_grants_only():
+    """A student whose only Flight Academy access is granted courses: no
+    academy_access of their own, so just the Ground School tab."""
+    return bool(not (session.get("is_master_admin") or session.get("academy_access"))
+                and student_course_grants())
+
+
+def groundschool_restricted():
+    """True when Ground School is limited to the student's granted courses.
+    Accounts with groundschool_access/academy_access (or master admins) keep
+    seeing everything, exactly as before."""
+    return bool(not (session.get("is_master_admin") or session.get("groundschool_access"))
+                and student_course_grants())
+
+
 def session_programs():
     """Every program this session can open, in picker order, for the
     header's Programs button (SEAM-2 / SEAM-12) and the picker itself: a
@@ -579,7 +616,7 @@ def session_programs():
         progs.append(dict(key="shop", name="Winds Aloft", icon="bi-tools", endpoint="dashboard"))
     if is_master_admin or session.get("flight_role") or is_admin_like:
         progs.append(dict(key="flight", name="Fly with Kate!", icon="bi-airplane-engines", endpoint="flight.index"))
-    if is_master_admin or session.get("academy_access"):
+    if is_master_admin or session.get("academy_access") or student_course_grants():
         progs.append(dict(key="academy", name="Flight Academy", icon="bi-mortarboard", endpoint="academy_page"))
     if is_admin_like:
         progs.append(dict(key="customers", name="Customers", icon="bi-people", endpoint="customers_list"))
@@ -604,7 +641,7 @@ def account_program_count():
         count += 1
     if is_master_admin or session.get("shop_role"):
         count += 1
-    if is_master_admin or session.get("academy_access"):
+    if is_master_admin or session.get("academy_access") or student_course_grants():
         count += 1
     if is_admin_like:
         count += 1  # Customers (SEAM-9)
@@ -625,7 +662,7 @@ def single_program_endpoint():
         return "flight.index"
     if is_master_admin or session.get("shop_role"):
         return "dashboard"
-    if is_master_admin or session.get("academy_access"):
+    if is_master_admin or session.get("academy_access") or student_course_grants():
         return "academy_page"
     if is_admin_like:
         return "customers_list"
