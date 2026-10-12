@@ -6,7 +6,7 @@
 {#- SCHOOL-06: an account with Ground School but no Flight Academy access
    only gets the tabs it can open (Ground School, Resources) - Board,
    Logbook and How points work would just bounce it out. #}
-{% set _academy_ok = session.get('is_master_admin') or session.get('academy_access') %}
+{% set _academy_ok = flight_admin or session.get('academy_access') %}
 <div class="academy-tabs-row{{ ' academy-tabs-gs-only' if not _academy_ok }}" data-change="SCHOOL-06">
   {% if _academy_ok %}
   <a class="academy-tab {{ 'active' if _tab == 'leaderboard' }}" href="{{ url_for('academy_page') }}">

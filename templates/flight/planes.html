@@ -5,7 +5,7 @@
 {% call(slot) list_toolbar('Planes', count=planes|length) %}
   {%- if slot == 'search' -%}
     <input type="text" id="planes-search" class="form-control" placeholder="Search by tail # or name...">
-  {%- elif slot == 'add' and session.get('is_master_admin') -%}
+  {%- elif slot == 'add' and flight_admin -%}
     <a href="{{ url_for('flight.simulator_new') }}" class="btn btn-primary fw-bold text-nowrap" data-change="DESIGN-2"><i class="bi bi-plus-lg"></i> Add Simulator</a>
   {%- endif -%}
 {% endcall %}
@@ -28,10 +28,10 @@
             {% else %}<span class="text-muted small" title="Add a 100-Hour Inspection maintenance item (with its last-done tach) on the aircraft page">-</span>{% endif %}</td>
           {% endif %}
           <td data-label="" class="text-nowrap">
-            {% if not p.is_simulator and (session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech')) %}
+            {% if not p.is_simulator and (flight_admin or session.get('shop_role') in ('admin', 'tech')) %}
             <a href="{{ url_for('asset_detail', asset_id=p.id) }}" class="btn btn-outline-secondary btn-sm" title="Oil and compression reports live here now"><i class="bi bi-tools"></i> View in Maintenance</a>
             {% endif %}
-            {% if session.get('is_master_admin') %}
+            {% if flight_admin %}
             {% if p.is_simulator %}
             <a href="{{ url_for('flight.simulator_edit', asset_id=p.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
             {% else %}

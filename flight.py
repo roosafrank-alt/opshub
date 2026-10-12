@@ -27,7 +27,7 @@ from werkzeug.security import generate_password_hash
 
 from db import get_db, now_iso, asset_meter, maintenance_status
 import auth
-from auth import (authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked,
+from auth import (authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked, is_flight_admin,
                    view_as_active_program, refresh_or_expire_session, person_view_active)
 from pilotlog import NEXT_TRACK, TRACK_MAP
 import weather
@@ -429,7 +429,7 @@ def _notify_schedule_request(conn, sched, verb, note):
         cfi = conn.execute("SELECT user_id FROM cfis WHERE id = ?", (sched["cfi_id"],)).fetchone()
         if cfi and cfi["user_id"]:
             recipients.add(cfi["user_id"])
-    admins = conn.execute("SELECT id FROM users WHERE active = 1 AND is_master_admin = 1").fetchall()
+    admins = conn.execute("SELECT id FROM users WHERE active = 1 AND (is_master_admin = 1 OR flight_role = 'admin' OR ',' || COALESCE(flight_roles, '') || ',' LIKE '%,admin,%')").fetchall()
     recipients.update(a["id"] for a in admins)
     for uid in recipients:
         try:
@@ -1431,7 +1431,7 @@ def cfi_required(f):
             return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
-        if not (session.get("cfi_id") or session.get("is_master_admin")):
+        if not (session.get("cfi_id") or is_flight_admin()):
             flash("Log in as a CFI to do that.", "danger")
             return redirect(url_for("home_launcher"))
         return f(*args, **kwargs)
@@ -1447,7 +1447,7 @@ def cfi_or_admin_required(f):
             return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
-        if not (session.get("cfi_id") or session.get("is_master_admin")):
+        if not (session.get("cfi_id") or is_flight_admin()):
             flash("Log in as a CFI to do that.", "danger")
             return redirect(url_for("home_launcher"))
         return f(*args, **kwargs)
@@ -1478,9 +1478,32 @@ def login_required(f):
 
 
 def admin_required(f):
-    """Master admins only - see auth.py. Kept here (rather than importing
-    auth.master_admin_required directly) so it redirects back into Flight
-    School instead of the shop dashboard."""
+    """Flight Admin and master admins - the people who run Fly with Kate!
+    (planes, students, schedule overrides, the program's settings) and
+    Flight Academy. A Shop Admin, CFI or student is turned away. Kept here
+    (rather than importing auth.master_admin_required directly) so it
+    redirects back into Flight School instead of the shop dashboard."""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not session.get("user_id"):
+            return redirect(url_for("home_launcher"))
+        expired = refresh_or_expire_session()
+        if expired:
+            return expired
+        if _owner_preview_blocked():
+            return _owner_preview_redirect()
+        if not is_flight_admin():
+            flash("That's for the Flight Admin only.", "danger")
+            return redirect(url_for("flight.dashboard") if (session.get("cfi_id") or session.get("student_id")) else url_for("home_launcher"))
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def master_admin_only(f):
+    """Master admins only, even inside Fly with Kate!: the instructor roster,
+    adding/editing an instructor's login and pay rate, and paying instructors.
+    These are staff-account and payroll administration, which belong to the
+    whole system, not to one program, so a Flight Admin does not get them."""
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
@@ -1491,8 +1514,8 @@ def admin_required(f):
         if _owner_preview_blocked():
             return _owner_preview_redirect()
         if not session.get("is_master_admin"):
-            flash("That's admin-only.", "danger")
-            return redirect(url_for("flight.dashboard"))
+            flash("That's for the master admin only.", "danger")
+            return redirect(url_for("flight.dashboard") if (session.get("cfi_id") or session.get("student_id")) else url_for("home_launcher"))
         return f(*args, **kwargs)
     return wrapper
 
@@ -1688,7 +1711,7 @@ def _dashboard_context(conn, cfi, student):
     plane_maint = _plane_maint_warnings(conn)
     # 100-hr hours-left badges - master admins only.
     hundred_badges = []
-    if session.get("is_master_admin"):
+    if is_flight_admin():
         for a in _school_planes(conn):
             st = hundred_hr_status(conn, a)
             if st or a["grounded_at"]:
@@ -1837,7 +1860,7 @@ def _dashboard_context(conn, cfi, student):
         # or Upcoming once cancelled.
         unconfirmed_flights = []
         recently_cancelled_flights = []
-        if session.get("is_master_admin"):
+        if is_flight_admin():
             unconfirmed_flights = conn.execute("""
                 SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name
                 FROM scheduled_flights sf
@@ -1964,7 +1987,7 @@ def _dashboard_context(conn, cfi, student):
     # own next lesson, a student theirs. Master admins can flip it to the
     # whole school's next block (?next=school / ?next=mine, remembered for
     # this login - see dashboard()).
-    next_scope = "school" if (session.get("is_master_admin") and session.get("next_scope") == "school") else "mine"
+    next_scope = "school" if (is_flight_admin() and session.get("next_scope") == "school") else "mine"
     next_lesson = None
     now_dt = datetime.now()
     today_s = now_dt.strftime("%Y-%m-%d")
@@ -2120,7 +2143,7 @@ def dashboard():
     if request.args.get("scope") in ("all", "mine"):
         session["dash_scope"] = request.args["scope"]
     # ?next=mine|school - master admins' toggle for the Next Lesson countdown.
-    if request.args.get("next") in ("mine", "school") and session.get("is_master_admin"):
+    if request.args.get("next") in ("mine", "school") and is_flight_admin():
         session["next_scope"] = request.args["next"]
     conn = get_db()
     cfi = current_cfi(conn)
@@ -2146,7 +2169,7 @@ def dashboard_live():
     flipping it is an in-place fetch instead of a full navigation - see the
     next-scope-btn click handler in dashboard.html - and doesn't reset the
     page's scroll position."""
-    if request.args.get("next") in ("mine", "school") and session.get("is_master_admin"):
+    if request.args.get("next") in ("mine", "school") and is_flight_admin():
         session["next_scope"] = request.args["next"]
     # FLY-29: the All / Mine toggle swaps in place the same way.
     if request.args.get("scope") in ("all", "mine"):
@@ -2295,7 +2318,7 @@ def _student_form_context(conn, student, **extra):
     (the submitted values, SCHOOL-15) and ``error_field``."""
     ctx = dict(student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES,
                pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES,
-               can_bill=can_manage_billing(), is_admin=bool(session.get("is_master_admin")),
+               can_bill=can_manage_billing(), is_admin=bool(is_flight_admin()),
                today=date.today().isoformat(), form=None, error_field=None)
     if student:
         student_id = student["id"]
@@ -2340,7 +2363,7 @@ def student_new():
         password = request.form.get("password", "")
         # SCHOOL-12: rates are money - admin-only, on this form and on the
         # rate detail pages alike. A CFI's form shows them read-only.
-        is_admin = bool(session.get("is_master_admin"))
+        is_admin = bool(is_flight_admin())
         rate_override = _parse_float(request.form.get("rate_override")) if is_admin else None
         plane_rate_override = _parse_float(request.form.get("plane_rate_override")) if is_admin else None
         sim_rate_override = _parse_float(request.form.get("sim_rate_override")) if is_admin else None
@@ -2486,7 +2509,7 @@ def student_edit(student_id):
         return redirect(url_for("flight.students_list"))
     if request.method == "POST":
         name = request.form.get("name", "").strip()
-        is_admin = bool(session.get("is_master_admin"))
+        is_admin = bool(is_flight_admin())
         # SCHOOL-12: rates are admin-only - a CFI's save leaves them as they
         # were (their form shows them read-only).
         if is_admin:
@@ -2746,7 +2769,7 @@ def student_field_detail(student_id, field_key):
         return redirect(url_for("flight.student_edit", student_id=student_id))
 
     if request.method == "POST":
-        if not session.get("is_master_admin"):
+        if not is_flight_admin():
             flash("Only an admin can change this.", "danger")
             conn.close()
             return redirect(url_for("flight.student_field_detail", student_id=student_id, field_key=field_key))
@@ -2848,7 +2871,7 @@ def _cfi_form_context(conn, cfi_row, **extra):
 
 
 @flight_bp.route("/cfis/new", methods=["GET", "POST"])
-@admin_required
+@master_admin_only
 def cfi_new():
     conn = get_db()
     if request.method == "POST":
@@ -2924,7 +2947,7 @@ def cfi_new():
 
 
 @flight_bp.route("/cfis/<int:cfi_id>/edit", methods=["GET", "POST"])
-@admin_required
+@master_admin_only
 def cfi_edit(cfi_id):
     conn = get_db()
     cfi_row = conn.execute("SELECT * FROM cfis WHERE id = ?", (cfi_id,)).fetchone()
@@ -3077,7 +3100,7 @@ def cfi_pay(cfi_id):
         flash("CFI not found.", "danger")
         return redirect(url_for("flight.dashboard"))
     is_self = session.get("cfi_id") == cfi_id
-    if not (session.get("is_master_admin") or is_self):
+    if not (session.get("is_master_admin") or (is_self and not cfi_row["is_station"])):
         conn.close()
         flash("You can only view your own pay.", "danger")
         return redirect(url_for("flight.dashboard"))
@@ -3101,7 +3124,7 @@ def cfi_pay(cfi_id):
 
 
 @flight_bp.route("/cfis/<int:cfi_id>/pay/mark-paid", methods=["POST"])
-@admin_required
+@master_admin_only
 def cfi_pay_mark_paid(cfi_id):
     """SCHOOL-23: admin "Mark period paid" - every still-owed dual flight in
     the range shown (``start``/``end`` from the form) is stamped paid to the
@@ -3321,7 +3344,7 @@ def cfi_schedule():
     if _owner_preview_blocked():
         return _owner_preview_redirect()
     raw_cfi_id = ((request.form.get("cfi_id") if request.method == "POST" else request.args.get("cfi_id")) or "").strip()
-    is_admin_view = bool(session.get("is_master_admin")) and raw_cfi_id.isdigit()
+    is_admin_view = bool(is_flight_admin()) and raw_cfi_id.isdigit()
     if not session.get("cfi_id") and not is_admin_view:
         flash("Log in as a CFI to do that.", "danger")
         return redirect(url_for("home_launcher"))
@@ -3441,12 +3464,12 @@ def cfi_time_off_delete(off_id):
         return expired
     if _owner_preview_blocked():
         return _owner_preview_redirect()
-    if not session.get("cfi_id") and not session.get("is_master_admin"):
+    if not session.get("cfi_id") and not is_flight_admin():
         flash("Log in as a CFI to do that.", "danger")
         return redirect(url_for("home_launcher"))
     conn = get_db()
     row = conn.execute("SELECT * FROM cfi_time_off WHERE id = ?", (off_id,)).fetchone()
-    if not row or (row["cfi_id"] != session.get("cfi_id") and not session.get("is_master_admin")):
+    if not row or (row["cfi_id"] != session.get("cfi_id") and not is_flight_admin()):
         conn.close()
         flash("Time off not found.", "danger")
         return redirect(url_for("flight.cfi_schedule"))
@@ -3471,7 +3494,7 @@ def planes_list():
     # "admins only for hours left"); the Down for maintenance badge itself
     # shows next to the tail number for every CFI and admin on this page.
     hundred = {}
-    if session.get("is_master_admin"):
+    if is_flight_admin():
         hundred = {p["id"]: hundred_hr_status(conn, p) for p in planes}
     conn.close()
     return render_template("flight/planes.html", planes=planes, hundred=hundred)
@@ -3779,7 +3802,7 @@ def _note_visibility(r):
     private_notes still shows to every CFI and admin same as before, plus
     now also the specific student on this booking (never a different
     student)."""
-    is_admin = bool(session.get("is_master_admin"))
+    is_admin = bool(is_flight_admin())
     my_cfi_id = session.get("cfi_id")
     my_student_id = session.get("student_id")
     notes_visible = is_admin or bool(my_cfi_id and my_cfi_id == r["cfi_id"])
@@ -3965,7 +3988,7 @@ def _hide_other_students_past_flights(rows):
     if not has_request_context():
         return rows
     my_student_id = session.get("student_id")
-    if not my_student_id or session.get("cfi_id") or session.get("is_master_admin"):
+    if not my_student_id or session.get("cfi_id") or is_flight_admin():
         return rows
     today_str = date.today().strftime("%Y-%m-%d")
     return [r for r in rows if r["scheduled_date"] >= today_str or r.get("student_id") == my_student_id]
@@ -5684,7 +5707,7 @@ def _hobbs_gaps(conn):
 def hobbs_gap_review():
     """Master admin marks an unaccounted-Hobbs gap as looked into (with an
     optional note - ferry flight, maintenance run-up, meter misread...)."""
-    if not session.get("is_master_admin"):
+    if not is_flight_admin():
         flash("Only an admin can review Hobbs gaps.", "danger")
         return redirect(url_for("flight.alerts_list"))
     from_id = request.form.get("from_flight_id", type=int)
@@ -5732,7 +5755,7 @@ def _flight_active_nav_count():
 def _alert_nav_counts():
     """Open-alert counts for the Alerts nav badge (CFIs/admins only). Open
     reports (flight_reports) count too, since they live on the Alerts page."""
-    if not (session.get("cfi_id") or session.get("is_master_admin")):
+    if not (session.get("cfi_id") or is_flight_admin()):
         return {}
     try:
         conn = get_db()
@@ -5741,7 +5764,7 @@ def _alert_nav_counts():
                                          SUM(CASE WHEN needs_review_acknowledged_at IS NULL THEN 1 ELSE 0 END) AS unacked
                                   FROM scheduled_flights WHERE status = 'scheduled' AND needs_review = 1""").fetchone()
             # Unaccounted Hobbs time counts too - master admins only.
-            gaps = len(_hobbs_gaps(conn)) if session.get("is_master_admin") else 0
+            gaps = len(_hobbs_gaps(conn)) if is_flight_admin() else 0
             reports = conn.execute("SELECT COUNT(*) c FROM flight_reports WHERE resolved_at IS NULL").fetchone()["c"]
         finally:
             conn.close()
@@ -5955,13 +5978,13 @@ def alerts_list():
     resolved = conn.execute(base_sql + " WHERE fa.resolved_at IS NOT NULL ORDER BY fa.resolved_at DESC"
                             + ("" if show_all else " LIMIT 50")).fetchall()
     # Unaccounted Hobbs time - master admins only (see _hobbs_gaps).
-    hobbs_gaps = _hobbs_gaps(conn) if session.get("is_master_admin") else []
+    hobbs_gaps = _hobbs_gaps(conn) if is_flight_admin() else []
     # 100-hour countdown box - master admins only.
-    hundred_rows = hundred_hr_admin_rows(conn) if session.get("is_master_admin") else []
+    hundred_rows = hundred_hr_admin_rows(conn) if is_flight_admin() else []
     hobbs_reviewed = conn.execute("""SELECT r.*, a.tag as plane_tag FROM hobbs_gap_reviews r
                                      LEFT JOIN assets a ON a.id = r.asset_id
                                      ORDER BY r.reviewed_at DESC LIMIT 10""").fetchall() \
-        if session.get("is_master_admin") else []
+        if is_flight_admin() else []
     reports_ctx = _reports_context(conn, show_all)
     conn.close()
 
@@ -6031,7 +6054,7 @@ def _reports_context(conn, show_all=False, only_user_id=None, only_name=None):
 
 def _alerts_home_url():
     """Where the merged Alerts tab lives for this login."""
-    if session.get("cfi_id") or session.get("is_master_admin"):
+    if session.get("cfi_id") or is_flight_admin():
         return url_for("flight.alerts_list")
     return url_for("flight.my_alerts")
 
@@ -6239,7 +6262,7 @@ def _weather_period_match(period, hhmm):
 
 
 def _weather_staff_only():
-    if not (session.get("cfi_id") or session.get("is_master_admin")):
+    if not (session.get("cfi_id") or is_flight_admin()):
         flash("Log in as a CFI or admin to do that.", "danger")
         return redirect(url_for("flight.schedule_calendar"))
     return None
@@ -6355,7 +6378,7 @@ def weather_rebook(scheduled_id):
     old = conn.execute("""SELECT sf.*, a.tag as plane_tag FROM scheduled_flights sf JOIN assets a ON a.id = sf.asset_id
                           WHERE sf.id = ? AND sf.status = 'cancelled' AND sf.cancel_reason = 'Weather cancellation'""",
                        (scheduled_id,)).fetchone()
-    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    staff = bool(session.get("cfi_id") or is_flight_admin())
     if not old or not (staff or old["student_id"] == session.get("student_id")):
         conn.close()
         abort(404)
@@ -6534,7 +6557,7 @@ def schedule_start(scheduled_id):
         conn.close()
         flash("That booking is no longer available to start (already started, flown, or cancelled).", "danger")
         return redirect(url_for("flight.schedule_calendar"))
-    if not (session.get("cfi_id") or session.get("is_master_admin")
+    if not (session.get("cfi_id") or is_flight_admin()
             or (sched["solo"] and session.get("student_id") == sched["student_id"])):
         conn.close()
         flash("Only a CFI, an admin, or the student (on a solo flight) can start this flight.", "danger")
@@ -6604,7 +6627,7 @@ def _can_end_flight(flight_row):
     flight - the student flying it. Everyone logged in can now SEE the Active Flight board (it's
     school-wide), but ending someone else's flight for them is limited to
     the people who'd actually know how it went."""
-    if session.get("is_master_admin"):
+    if is_flight_admin():
         return True
     my_cfi_id = session.get("cfi_id")
     if my_cfi_id and flight_row["cfi_id"] == my_cfi_id:
@@ -6810,7 +6833,7 @@ def check_session_alerts():
                     overdue_recipients.append(cfi_row["user_id"])
                 elif f["solo"]:
                     admins = conn.execute(
-                        "SELECT id FROM users WHERE active = 1 AND is_master_admin = 1 AND notify_push_late = 1"
+                        "SELECT id FROM users WHERE active = 1 AND (is_master_admin = 1 OR flight_role = 'admin' OR ',' || COALESCE(flight_roles, '') || ',' LIKE '%,admin,%') AND notify_push_late = 1"
                     ).fetchall()
                     overdue_recipients.extend(a["id"] for a in admins)
                 for uid in overdue_recipients:
@@ -7464,7 +7487,7 @@ def log_end(flight_id):
             return redirect(back)
     # FLY-07: a student ending their own solo flight never takes payment - it
     # always logs Unpaid for the school to settle on Billing.
-    student_ending = bool(session.get("student_id") and not session.get("cfi_id") and not session.get("is_master_admin"))
+    student_ending = bool(session.get("student_id") and not session.get("cfi_id") and not is_flight_admin())
     paid_choice = "0" if student_ending else request.form.get("paid")
     if paid_choice not in ("0", "1"):
         conn.close()
@@ -8021,7 +8044,7 @@ def _can_edit_logged_flight():
     """Editing an already-logged flight (correcting Hobbs/Tach, notes,
     landings, etc. after the fact) is admin-or-any-CFI only - not students,
     even on their own solo flight."""
-    return bool(session.get("is_master_admin") or session.get("cfi_id"))
+    return bool(is_flight_admin() or session.get("cfi_id"))
 
 
 @flight_bp.route("/log/<int:flight_id>/edit", methods=["GET", "POST"])
@@ -8247,14 +8270,14 @@ def _next_lesson_preview(flight_id):
     CFI/admin only - a solo student ending their own flight doesn't see it,
     and only the instructor who actually flew it (or a master admin) can
     one-tap rebook it, not just anyone who happens to load this URL."""
-    if not flight_id or not (session.get("cfi_id") or session.get("is_master_admin")):
+    if not flight_id or not (session.get("cfi_id") or is_flight_admin()):
         return None
     conn = get_db()
     f = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (flight_id,)).fetchone()
     conn.close()
     if not f:
         return None
-    if not session.get("is_master_admin") and f["cfi_id"] != session.get("cfi_id"):
+    if not is_flight_admin() and f["cfi_id"] != session.get("cfi_id"):
         return None
     if f["ended_at"] and f["started_at"]:
         try:
@@ -8900,13 +8923,13 @@ def stats():
 # ---------------------------------------------------------------------------
 
 @flight_bp.route("/admin/cfis")
-@admin_required
+@master_admin_only
 def admin_cfis_list():
     return redirect(url_for("admin_users_list"))
 
 
 @flight_bp.route("/admin/cfis/<int:cfi_id>/edit", methods=["GET", "POST"])
-@admin_required
+@master_admin_only
 def admin_cfi_edit(cfi_id):
     conn = get_db()
     cfi_row = conn.execute("SELECT user_id FROM cfis WHERE id = ?", (cfi_id,)).fetchone()
@@ -9038,7 +9061,7 @@ def _waitlist_filled_count(conn, since):
 @login_required
 def waitlist_page():
     conn = get_db()
-    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    staff = bool(session.get("cfi_id") or is_flight_admin())
     sql = """SELECT w.*, s.name as student_name, a.tag as plane_tag, c.name as cfi_name FROM flight_waitlist w
              JOIN students s ON s.id = w.student_id LEFT JOIN assets a ON a.id = w.asset_id
              LEFT JOIN cfis c ON c.id = w.cfi_id
@@ -9080,7 +9103,7 @@ def waitlist_page():
 @login_required
 def waitlist_join():
     conn = get_db()
-    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    staff = bool(session.get("cfi_id") or is_flight_admin())
     if staff:
         try:
             student_id = int(request.form.get("student_id") or "")
@@ -9123,7 +9146,7 @@ def waitlist_join():
 def waitlist_remove(entry_id):
     conn = get_db()
     entry = conn.execute("SELECT * FROM flight_waitlist WHERE id = ?", (entry_id,)).fetchone()
-    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    staff = bool(session.get("cfi_id") or is_flight_admin())
     if not entry or not (staff or entry["student_id"] == session.get("student_id")):
         conn.close()
         abort(404)
@@ -9143,7 +9166,7 @@ def waitlist_offer(offer_id):
     conn = get_db()
     offer = conn.execute("""SELECT o.*, a.tag as plane_tag FROM waitlist_offers o JOIN assets a ON a.id = o.asset_id
                             WHERE o.id = ?""", (offer_id,)).fetchone()
-    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    staff = bool(session.get("cfi_id") or is_flight_admin())
     if not offer or not (staff or offer["student_id"] == session.get("student_id")):
         conn.close()
         abort(404)
@@ -9446,7 +9469,7 @@ def check_hundred_hr_alerts(conn):
     grounded. Keyed on the last-100-hr tach, so the next cycle alerts again.
     Best effort - never breaks the flight save that triggered it."""
     try:
-        admins = conn.execute("SELECT * FROM users WHERE active = 1 AND is_master_admin = 1 "
+        admins = conn.execute("SELECT * FROM users WHERE active = 1 AND (is_master_admin = 1 OR flight_role = 'admin' OR ',' || COALESCE(flight_roles, '') || ',' LIKE '%,admin,%') "
                               "AND (notify_email = 1 OR notify_sms = 1)").fetchall()
         settings = notify.get_settings(conn)
         for a in _school_planes(conn):

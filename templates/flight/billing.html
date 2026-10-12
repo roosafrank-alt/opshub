@@ -21,7 +21,7 @@
   <form method="post" action="{{ url_for('flight.billing_wave_sync') }}" class="d-inline">
     <button class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-repeat"></i> Check Wave for payments</button>
   </form>
-  {% elif session.get('is_master_admin') %}
+  {% elif is_master_admin %}
   <a href="{{ url_for('admin_wave') }}" class="btn btn-sm btn-outline-secondary" data-change="SCHOOL-21"><i class="bi bi-plug"></i> Connect Wave to send real invoices</a>
   {% endif %}
 </div>

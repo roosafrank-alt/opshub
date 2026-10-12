@@ -8,7 +8,7 @@
 </style>
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0 text-light"><i class="bi bi-folder2-open"></i> Resources</h4>
-  {% if session.get('is_master_admin') %}
+  {% if flight_admin %}
   <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#uploadResourceModal">
     <i class="bi bi-plus-lg"></i> Add Resource
   </button>
@@ -38,7 +38,7 @@
           <td class="text-muted small" data-label="Pages indexed">{{ r.page_count }}</td>
           <td class="text-primary small fw-bold text-nowrap" data-label="">Open <i class="bi bi-box-arrow-up-right"></i></td>
           <td class="text-end" data-label="" onclick="event.stopPropagation()">
-            {% if session.get('is_master_admin') %}
+            {% if flight_admin %}
             <form method="post" action="{{ url_for('groundschool.resources_delete', resource_id=r.id) }}" class="d-inline" data-change="DESIGN-3 DESIGN-4"
                   data-confirm="Delete {{ r.title }} forever? References linking to it will stop auto-linking. This can't be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
               <button type="submit" class="btn btn-danger btn-sm" title="Delete Forever"><i class="bi bi-trash"></i></button>
@@ -53,7 +53,7 @@
 </div>
 {% endif %}
 
-{% if session.get('is_master_admin') %}
+{% if flight_admin %}
 <div class="modal fade" id="uploadResourceModal" tabindex="-1">
   <div class="modal-dialog">
     <form method="post" action="{{ url_for('groundschool.resources_upload') }}" enctype="multipart/form-data" class="modal-content">

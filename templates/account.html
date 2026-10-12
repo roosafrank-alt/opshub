@@ -39,7 +39,7 @@
     {% if has_flight %}
     <a href="{{ url_for('flight.dashboard', tour=1) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-airplane-engines"></i> Fly with Kate! walkthrough</a>
     {% endif %}
-    {% if user.is_master_admin or user.academy_access %}
+    {% if user.is_master_admin or user.academy_access or 'admin' in user_flight_roles(user) %}
     <a href="{{ url_for('academy_page', tour=1) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-mortarboard"></i> Flight Academy walkthrough</a>
     {% endif %}
   </div>

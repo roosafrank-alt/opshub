@@ -299,7 +299,7 @@ var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(0) }};
 // dashboard's flight chips and Next Lesson tile; the Schedule calendar
 // doesn't set it for a student viewer at all, since that page hides whose
 // booking is whose from them).
-var IS_CFI_OR_ADMIN = {{ (session.get('cfi_id') or session.get('is_master_admin'))|tojson }};
+var IS_CFI_OR_ADMIN = {{ (session.get('cfi_id') or flight_admin)|tojson }};
 var MY_STUDENT_ID = {{ session.get('student_id')|tojson }};
 // The school's late-cancellation policy (see flight.school_settings_edit) -
 // only meaningful for a student viewer, who's the only one who sees the

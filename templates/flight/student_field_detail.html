@@ -99,7 +99,7 @@
     {% elif field_key == 'instructor_rate' %}<span class="text-muted fs-6" data-change="SCHOOL-13">Not set - uses the CFI's rate</span>
     {% else %}<span class="text-muted fs-6" data-change="SCHOOL-13">Not set - uses the simulator's rate</span>{% endif %}
   </div>
-  {% if session.get('is_master_admin') %}
+  {% if flight_admin %}
   <form method="post" class="row g-2 align-items-end">
     <div class="col-auto">
       <label class="form-label small mb-0">New Value ($/hr, {% if field_key == 'plane_rate' %}<span data-change="SCHOOL-13">blank = plane not charged</span>{% elif field_key == 'instructor_rate' %}blank = CFI's rate{% else %}blank = simulator's rate{% endif %})</label>

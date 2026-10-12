@@ -2517,7 +2517,7 @@ def _migrate_flight_accounts_to_users(conn):
 # the session to that role for real (not read-only).
 # ---------------------------------------------------------------------------
 SHOP_ROLE_ORDER = ("admin", "tech", "inspector", "apprentice")
-FLIGHT_ROLE_ORDER = ("cfi", "student")
+FLIGHT_ROLE_ORDER = ("admin", "cfi", "student")
 
 
 def _row_get(row, key):
@@ -2555,14 +2555,15 @@ def ensure_flight_profile(conn, user_row):
     profile row to hold their rate info, creating an empty one if needed
     (e.g. an admin just granted someone CFI access from the accounts page).
 
-    Idea "shop admin skip launcher": a shop admin with no Fly with Kate!
-    role of their own also gets a cfis row - is_station=1 (never offered
-    as a bookable instructor, no pay-rate or listing anywhere real CFIs
-    show up) and no pay rate, the same "instructor without billing" view
-    any unbilled CFI gets. HUB-01 gives a master admin with no Fly with
-    Kate! role the same hidden profile, so every Fly with Kate! page opens
-    for them instead of bouncing to the picker. Setting a real Fly with
-    Kate! role on the accounts page overrides this, same as for anyone."""
+    A Flight Admin (or a master admin) with no instructor profile of their
+    own gets a cfis row - is_station=1 (never offered as a bookable
+    instructor, no pay-rate or listing anywhere real CFIs show up) and no
+    pay rate, the same "instructor without billing" view any unbilled CFI
+    gets - so every Fly with Kate! page opens for them instead of bouncing
+    to the picker (HUB-01). A Shop Admin does not get one: Winds Aloft's
+    admin has no Fly with Kate! access of their own. Setting a real Fly
+    with Kate! role on the accounts page overrides this, same as for
+    anyone."""
     flight_roles = user_flight_roles(user_row)
     if "cfi" in flight_roles:
         row = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
@@ -2582,7 +2583,12 @@ def ensure_flight_profile(conn, user_row):
                 (user_row["name"], user_row["username"], user_row["password_hash"], user_row["active"],
                  user_row["id"], now_iso()))
             conn.commit()
-    if not flight_roles and (user_row["shop_role"] == "admin" or user_row["is_master_admin"]):
+    # A Flight Admin with no instructor/student profile of their own (and a
+    # master admin with no Fly with Kate! role) gets the hidden profile so
+    # every Fly with Kate! page opens. A Shop Admin does NOT: Winds Aloft's
+    # admin has no Fly with Kate! access of their own.
+    if "cfi" not in flight_roles and (
+            "admin" in flight_roles or (user_row["is_master_admin"] and "student" not in flight_roles)):
         row = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
         if not row:
             conn.execute(

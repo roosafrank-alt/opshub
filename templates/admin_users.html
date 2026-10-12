@@ -27,8 +27,8 @@
             </div>
           </td>
           <td data-label="Username"><code>{{ u.username }}</code></td>
-          <td data-label="Winds Aloft">{% for r in user_shop_roles(u) %}<span class="badge {{ shop_role_colors.get(r, 'bg-secondary') }} me-1">{{ r|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endfor %}</td>
-          <td data-label="Fly with Kate!">{% for r in user_flight_roles(u) %}<span class="badge bg-primary me-1">{{ 'CFI' if r == 'cfi' else r|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endfor %}</td>
+          <td data-label="Winds Aloft">{% for r in user_shop_roles(u) %}<span class="badge {{ shop_role_colors.get(r, 'bg-secondary') }} me-1">{{ 'Shop Admin' if r == 'admin' else r|capitalize }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endfor %}</td>
+          <td data-label="Fly with Kate!">{% for r in user_flight_roles(u) %}<span class="badge bg-primary me-1">{{ 'CFI' if r == 'cfi' else ('Flight Admin' if r == 'admin' else r|capitalize) }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endfor %}</td>
           <td data-label="Admin">{% if u.id == owner_id %}<span class="badge bg-dark" title="Only this person can change this account"><i class="bi bi-lock-fill"></i> Owner</span> {% endif %}{% if u.is_master_admin %}<span class="badge bg-warning text-dark">Master Admin</span>{% endif %}</td>
           <td data-label="Billing">{% if u.is_master_admin or u.can_bill %}<span class="badge bg-info text-dark">Billing</span>{% endif %}</td>
           <td data-label="Status">{% if u.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>

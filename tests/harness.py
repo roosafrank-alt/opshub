@@ -181,6 +181,9 @@ ROLES = {
     "cfi":           dict(flight_role="cfi"),
     "cfi_billing":   dict(flight_role="cfi", can_bill=1),
     "flight_student": dict(flight_role="student"),
+    "flight_admin":  dict(flight_role="admin", flight_roles="admin"),
+    "flight_admin_cfi": dict(flight_role="admin", flight_roles="admin,cfi"),
+    "shop_admin_tech": dict(shop_role="admin", shop_roles="admin,tech"),
     "no_roles":      dict(),
 }
 
@@ -245,11 +248,12 @@ class OpsHubTestCase(unittest.TestCase):
             s["shop_role"] = u["shop_role"]
             s["flight_role"] = u["flight_role"]
             s["can_bill"] = bool(u["can_bill"])
-            s["academy_access"] = bool(u["academy_access"])
-            s["groundschool_access"] = bool(u["groundschool_access"] or u["academy_access"])
+            fa = "admin" in db.user_flight_roles(u)   # Flight Admin gets Academy / Ground School automatically
+            s["academy_access"] = bool(u["academy_access"] or fa)
+            s["groundschool_access"] = bool(u["groundschool_access"] or u["academy_access"] or fa)
             s["tour_seen_shop"] = True
             s["tour_seen_flight"] = True
-            if u["flight_role"] == "cfi" and cfi:
+            if u["flight_role"] in ("cfi", "admin") and cfi:
                 s["cfi_id"] = cfi["id"]
             if u["flight_role"] == "student" and stu:
                 s["student_id"] = stu["id"]

@@ -121,7 +121,7 @@ class ViewAsMultiRoleTest(OpsHubTestCase):
         c = self.login("master")
         c.post("/view-as/flight/student")
         html = c.get("/flight/dashboard").get_data(as_text=True)
-        self.assertIn('title="Back to your normal view">Admin</button>', html)
+        self.assertIn('title="Back to your normal view">Flight Admin</button>', html)
         c.post("/view-as/flight/admin")
         with c.session_transaction() as s:
             self.assertTrue(s["is_master_admin"])
