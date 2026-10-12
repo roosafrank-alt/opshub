@@ -81,3 +81,10 @@ class SquawkAssignFromDashboardTest(OpsHubTestCase):
         body = c.get(f"/assets/{self.asset_id}").get_data(as_text=True)
         self.assertIn("Pick Who Fixes Them", body)
         self.assertIn("I'll take it", body)
+
+    def test_new_squawk_assigned_pill_is_the_picker_shortcut(self):
+        self.make_quick_squawk()
+        c = self.login("shop_admin")
+        body = c.get("/shop").get_data(as_text=True)
+        self.assertIn("data-assign-pill", body)
+        self.assertIn('aria-label="Assign to"', body)

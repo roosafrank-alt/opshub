@@ -27,7 +27,7 @@
 {%- endif -%}
 <div class="d-flex gap-1 squawk-step-pills">
   {%- for label in steps %}
-  <span class="badge rounded-pill {{ 'bg-primary text-white' if loop.index0 == current else 'bg-white text-muted border' }}">{% if loop.index0 < current %}<i class="bi bi-check-lg"></i> {% endif %}{{ label }}</span>
+  <span class="badge rounded-pill {{ 'bg-primary text-white' if loop.index0 == current else 'bg-white text-muted border' }}"{% if current == 0 and loop.index0 == 1 %} data-assign-pill title="Tap to pick who fixes it"{% endif %}>{% if loop.index0 < current %}<i class="bi bi-check-lg"></i> {% endif %}{{ label }}</span>
   {%- endfor %}
 </div>
 {%- endmacro %}
@@ -195,7 +195,7 @@
 {%- endif -%}
 <div class="d-flex gap-1 flex-wrap">
   {%- for label in steps %}
-  <span class="badge rounded-pill {{ 'bg-primary text-white' if loop.index0 == current else 'bg-white text-muted border' }}">{% if loop.index0 < current %}<i class="bi bi-check-lg"></i> {% endif %}{{ label }}</span>
+  <span class="badge rounded-pill {{ 'bg-primary text-white' if loop.index0 == current else 'bg-white text-muted border' }}"{% if current == 0 and loop.index0 == 1 %} data-assign-pill title="Tap to pick who fixes it"{% endif %}>{% if loop.index0 < current %}<i class="bi bi-check-lg"></i> {% endif %}{{ label }}</span>
   {%- endfor %}
 </div>
 {%- endmacro %}

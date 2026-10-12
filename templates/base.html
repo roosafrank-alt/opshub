@@ -196,6 +196,26 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 })();
 </script>
+<script>
+// A New squawk's "Assigned" pill opens the same "Assign to..." picker that
+// sits next to the pills (see squawk_step_pills / squawk_new_actions).
+(function () {
+  function picker(pill) {
+    var row = pill.closest('.squawk-row-actions');
+    return row && row.querySelector('select[aria-label="Assign to"]');
+  }
+  document.querySelectorAll('[data-assign-pill]').forEach(function (pill) {
+    if (picker(pill)) pill.style.cursor = 'pointer';
+  });
+  document.addEventListener('click', function (e) {
+    var pill = e.target.closest('[data-assign-pill]');
+    var sel = pill && picker(pill);
+    if (!sel) return;
+    sel.focus();
+    if (sel.showPicker) { try { sel.showPicker(); } catch (err) {} }
+  });
+})();
+</script>
 <style>
   #global-scan-toasts { position: fixed; top: .75rem; left: 50%; transform: translateX(-50%); z-index: 1085;
     width: min(32rem, calc(100vw - 1.5rem)); }
