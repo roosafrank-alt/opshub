@@ -1989,6 +1989,19 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_payroll_payments_week ON payroll_payments(week_start)")
     conn.commit()
 
+    # Superseded parts: old_part_id was replaced by new_part_id (a part can be
+    # replaced by several, and chains A -> B -> C are followed to the end by
+    # app.py). Quantities are never combined; this is only a link for looking up.
+    conn.execute("""CREATE TABLE IF NOT EXISTS part_supersessions (
+        old_part_id INTEGER NOT NULL REFERENCES parts(id),
+        new_part_id INTEGER NOT NULL REFERENCES parts(id),
+        created_by TEXT,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (old_part_id, new_part_id)
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_part_supersessions_new ON part_supersessions(new_part_id)")
+    conn.commit()
+
     # Found items / owner approvals (see found_item_* routes in app.py and
     # customer.customer_found_item_decide): something extra a tech found on
     # a job, priced, sent to the plane's owner on the customer portal to

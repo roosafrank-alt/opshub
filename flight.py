@@ -8347,12 +8347,32 @@ def log_history():
     cfi = current_cfi(conn)
     # FLY-24: the latest 100 flights, with "Show older flights" adding 100 more each time.
     limit = max(100, min(request.args.get("limit", 100, type=int) or 100, 5000))
-    if cfi:
-        rows = conn.execute(_LOG_ROW_SQL + " ORDER BY f.flight_date DESC, f.id DESC LIMIT ?", (limit + 1,)).fetchall()
-    else:
+    # FLY-24: optional From / To dates, answered by the database itself so a flight
+    # older than the latest 100 is still found. Anything that isn't a real date is ignored.
+    def _iso_arg(name):
+        raw = (request.args.get(name) or "").strip()
+        try:
+            return datetime.strptime(raw, "%Y-%m-%d").strftime("%Y-%m-%d") if raw else ""
+        except ValueError:
+            return ""
+    date_from, date_to = _iso_arg("date_from"), _iso_arg("date_to")
+    if date_from and date_to and date_from > date_to:
+        date_from, date_to = date_to, date_from
+        flash("The From date was after the To date, so they were swapped.", "info")
+    where, params = [], []
+    if not cfi:
         student = current_student(conn)
-        rows = conn.execute(_LOG_ROW_SQL + " WHERE f.student_id = ? ORDER BY f.flight_date DESC, f.id DESC LIMIT ?",
-                             (student["id"], limit + 1)).fetchall()
+        where.append("f.student_id = ?")
+        params.append(student["id"])
+    if date_from:
+        where.append("substr(f.flight_date, 1, 10) >= ?")
+        params.append(date_from)
+    if date_to:
+        where.append("substr(f.flight_date, 1, 10) <= ?")
+        params.append(date_to)
+    sql = _LOG_ROW_SQL + (" WHERE " + " AND ".join(where) if where else "") + \
+        " ORDER BY f.flight_date DESC, f.id DESC LIMIT ?"
+    rows = conn.execute(sql, params + [limit + 1]).fetchall()
     conn.close()
     has_older = len(rows) > limit
     flights = [_row_with_cost(r) for r in rows[:limit]]
@@ -8363,7 +8383,7 @@ def log_history():
     logged_next = _next_lesson_preview(request.args.get("logged_flight_id", type=int))
     return render_template("flight/log_history.html", flights=flights, cfi=cfi, can_bill=can_manage_billing(),
                            next_lesson=next_lesson, wave_invoice=wave_invoice, logged_next=logged_next,
-                           has_older=has_older, limit=limit)
+                           has_older=has_older, limit=limit, date_from=date_from, date_to=date_to)
 
 
 @flight_bp.route("/log/<int:flight_id>")
