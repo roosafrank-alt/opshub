@@ -1897,6 +1897,16 @@ def _migrate(conn):
         conn.execute("ALTER TABLE plane_squawks ADD COLUMN worker_acknowledged_by TEXT")
         conn.commit()
 
+    # Idea "adding estimate price area": a squawk's editable estimate (hours
+    # and cost), set from the Squawks page and updated as the job goes on.
+    for tbl in ("flights", "plane_squawks"):
+        pre = "squawk_" if tbl == "flights" else ""
+        cols_est = [r["name"] for r in conn.execute(f"PRAGMA table_info({tbl})").fetchall()]
+        if pre + "est_hours" not in cols_est:
+            conn.execute(f"ALTER TABLE {tbl} ADD COLUMN {pre}est_hours REAL")
+            conn.execute(f"ALTER TABLE {tbl} ADD COLUMN {pre}est_cost REAL")
+            conn.commit()
+
     # Marking a squawk repaired now goes through the same request/confirm
     # two-step as a project sub area (see project_section_complete/_confirm
     # in app.py): squawk_repair only requests confirmation, and an Inspector

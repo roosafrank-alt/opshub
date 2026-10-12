@@ -965,7 +965,8 @@ _FLIGHT_SQUAWK_COLS = """'flight' as kind, f.id as squawk_id, a.id as asset_id, 
                f.squawk_repair_confirm_requested_at as repair_confirm_requested_at,
                f.squawk_repair_confirm_requested_by as repair_confirm_requested_by,
                f.squawk_sent_back_note as sent_back_note,
-               f.squawk_reopened_at as reopened_at, f.squawk_reopened_by as reopened_by"""
+               f.squawk_reopened_at as reopened_at, f.squawk_reopened_by as reopened_by,
+               f.squawk_est_hours as est_hours, f.squawk_est_cost as est_cost"""
 _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.tag as asset_tag,
                a.name as asset_name, q.reported_at as event_date, NULL as student_name,
                NULL as cfi_name, q.reported_by as reported_by, q.notes as notes,
@@ -977,7 +978,8 @@ _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.
                q.repair_confirm_requested_at as repair_confirm_requested_at,
                q.repair_confirm_requested_by as repair_confirm_requested_by,
                q.sent_back_note as sent_back_note,
-               q.reopened_at as reopened_at, q.reopened_by as reopened_by"""
+               q.reopened_at as reopened_at, q.reopened_by as reopened_by,
+               q.est_hours as est_hours, q.est_cost as est_cost"""
 
 # Reported -> Assigned -> Working -> Inspection -> Done - the same five
 # steps and order the step pills show everywhere a squawk appears (see
@@ -1393,6 +1395,40 @@ def squawk_assign(kind, squawk_id):
     conn.commit()
     conn.close()
     flash("Assigned." if assigned_to else "Assignment cleared.", "success")
+    return redirect(request.referrer or url_for("squawks_list"))
+
+
+@app.route("/squawks/<kind>/<int:squawk_id>/estimate", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def squawk_estimate(kind, squawk_id):
+    """Sets or updates a squawk's estimate (hours and cost). Leave the cost
+    blank and it's worked out from the hours at the shop's usual labor rate."""
+    if kind not in ("flight", "quick"):
+        abort(404)
+    hours_raw = (request.form.get("est_hours") or "").strip()
+    cost_raw = (request.form.get("est_cost") or "").strip().lstrip("$").replace(",", "")
+    hours = _parse_qty(hours_raw, allow_zero=True) if hours_raw else None
+    cost = _parse_qty(cost_raw, allow_zero=True) if cost_raw else None
+    if (hours_raw and hours is None) or (cost_raw and cost is None):
+        flash("Enter the estimate as numbers.", "danger")
+        return redirect(request.referrer or url_for("squawks_list"))
+    conn = get_db()
+    if cost is None and hours:
+        rate = _found_default_labor_rate(conn)
+        if rate:
+            cost = round(hours * rate, 2)
+    if kind == "flight":
+        cur = conn.execute("UPDATE flights SET squawk_est_hours = ?, squawk_est_cost = ? WHERE id = ? AND squawk = 1",
+                           (hours, cost, squawk_id))
+    else:
+        cur = conn.execute("UPDATE plane_squawks SET est_hours = ?, est_cost = ? WHERE id = ?",
+                           (hours, cost, squawk_id))
+    conn.commit()
+    conn.close()
+    if not cur.rowcount:
+        flash("Squawk not found.", "danger")
+    else:
+        flash("Estimate saved.", "success")
     return redirect(request.referrer or url_for("squawks_list"))
 
 

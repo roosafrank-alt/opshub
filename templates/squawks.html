@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_squawk_macros.html" import squawk_step_pills, squawk_step_action, squawk_assigned_line, squawk_reopened_line %}
+{% from "_squawk_macros.html" import squawk_step_pills, squawk_step_action, squawk_assigned_line, squawk_reopened_line, squawk_estimate %}
 {% block title %}Squawks · Winds Aloft{% endblock %}
 {% block content %}
 {% set can_assign_squawks = session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
@@ -86,6 +86,7 @@
       <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
       {{ squawk_reopened_line(sq) }}
       {{ squawk_assigned_line(sq) }}
+      {{ squawk_estimate(sq, can_assign_squawks) }}
       <div class="squawk-row-actions">
         {{ squawk_step_pills(sq) }}
         {{ squawk_step_action(sq, assignable_workers, session.get('user_id'), can_assign_squawks, can_confirm_squawks) }}
