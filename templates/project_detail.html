@@ -320,6 +320,23 @@
               <button type="submit" class="btn btn-dark btn-sm">Save</button>
             </form>
             {% endif %}
+            {% if section != 'General' and data.id and (shop_is_admin or shop_can_create) and not is_deleted and project_maint_items %}
+            <form method="post" action="{{ url_for('project_section_maint_items', project_id=project.id, section_id=data.id) }}" class="p-2 border-bottom" data-change="SHOP-08">
+              <details>
+                <summary class="small text-muted">Related maintenance items{% if data.maint_items %}: {{ data.maint_items|map(attribute='name')|join(', ') }}{% else %} (none){% endif %}</summary>
+                <div class="mt-2">
+                  {% set linked_ids = data.maint_items|map(attribute='id')|list %}
+                  {% for mi in project_maint_items %}
+                  <div class="form-check"><input class="form-check-input" type="checkbox" name="maint_item_id" value="{{ mi.id }}" id="mi-{{ data.id }}-{{ mi.id }}" {% if mi.id in linked_ids %}checked{% endif %}>
+                    <label class="form-check-label" for="mi-{{ data.id }}-{{ mi.id }}">{{ mi.name }}</label></div>
+                  {% endfor %}
+                  <button type="submit" class="btn btn-dark btn-sm mt-2">Save</button>
+                </div>
+              </details>
+            </form>
+            {% elif data.maint_items %}
+            <div class="small text-muted p-2 border-bottom">Related maintenance items: {{ data.maint_items|map(attribute='name')|join(', ') }}</div>
+            {% endif %}
             {% if data.rows %}
             <table class="table table-sm mb-0">
               <thead><tr><th>Part</th><th>Qty Used</th>{% if can_see_shop_costs %}<th>Cost</th>{% endif %}</tr></thead>

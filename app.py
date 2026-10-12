@@ -749,6 +749,20 @@ def apprentice_general_parts(conn, project_id):
     """, (project_id,)).fetchall()
 
 
+def task_maint_items_map(conn, section_ids):
+    """{task id: [{"id", "name"}, ...]} of the active maintenance items linked to each task."""
+    ids = [int(i) for i in section_ids if i]
+    out = {i: [] for i in ids}
+    if not ids:
+        return out
+    marks = ",".join("?" * len(ids))
+    for r in conn.execute(f"""SELECT l.section_id, m.id, m.name FROM project_section_maint_items l
+                              JOIN maintenance_items m ON m.id = l.maint_item_id
+                              WHERE l.section_id IN ({marks}) AND m.active = 1 ORDER BY m.name""", ids).fetchall():
+        out[r["section_id"]].append({"id": r["id"], "name": r["name"]})
+    return out
+
+
 def _apprentice_no_task_redirect():
     flash("Nothing is assigned to you there. Ask an admin to give you a task.", "warning")
     return redirect(url_for("tech_spot"))
@@ -2330,6 +2344,43 @@ def project_section_assign(project_id, section_id):
     return redirect(url_for("project_detail", project_id=project_id))
 
 
+@app.route("/projects/<int:project_id>/sections/<int:section_id>/maint-items", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_section_maint_items(project_id, section_id):
+    """Connect a task to the maintenance items of the job's aircraft it covers
+    (an Apprentice then sees just those on the aircraft page)."""
+    conn = get_db()
+    section = conn.execute("""SELECT ps.id, ps.name, p.deleted_at, p.asset_id FROM project_sections ps
+                              JOIN projects p ON p.id = ps.project_id
+                              WHERE ps.id = ? AND ps.project_id = ?""", (section_id, project_id)).fetchone()
+    if not section:
+        conn.close()
+        abort(404)
+    if section["deleted_at"]:
+        conn.close()
+        flash("That job is in Recently Deleted. Restore it first to change anything.", "warning")
+        return redirect(url_for("project_detail", project_id=project_id))
+    wanted = {int(x) for x in request.form.getlist("maint_item_id") if x.strip().isdigit()}
+    valid = set()
+    if section["asset_id"]:
+        valid = {r["id"] for r in conn.execute(
+            "SELECT id FROM maintenance_items WHERE asset_id = ? AND active = 1", (section["asset_id"],)).fetchall()}
+    if wanted - valid:
+        conn.close()
+        flash("Pick maintenance items from this job's aircraft only.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id))
+    conn.execute("DELETE FROM project_section_maint_items WHERE section_id = ?", (section_id,))
+    for mid in sorted(wanted):
+        conn.execute("INSERT INTO project_section_maint_items (section_id, maint_item_id) VALUES (?, ?)", (section_id, mid))
+    conn.commit()
+    conn.close()
+    if wanted:
+        flash(f"'{section['name']}' is now linked to {len(wanted)} maintenance item{'s' if len(wanted) != 1 else ''}.", "success")
+    else:
+        flash(f"'{section['name']}' is not linked to any maintenance items now.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 @app.route("/projects/<int:project_id>/sections/<int:section_id>/rename", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def project_section_rename(project_id, section_id):
@@ -3781,6 +3832,9 @@ def project_detail(project_id):
         mine = [dict(t) for t in apprentice_tasks(conn) if t["project_id"] == project_id]
         for t in mine:
             t["parts"] = apprentice_task_parts(conn, project_id, t["section_name"])
+        _links = task_maint_items_map(conn, [t["section_id"] for t in mine])
+        for t in mine:
+            t["maint_items"] = _links.get(t["section_id"], [])
         general_parts = apprentice_general_parts(conn, project_id)   # job-wide parts, no prices
         conn.close()
         return render_template("project_apprentice.html", project=project, tasks=mine, general_parts=general_parts)
@@ -3843,6 +3897,7 @@ def project_detail(project_id):
                   linked_squawk_kind, linked_squawk_id, linked_todo_id, assigned_to,
                   (SELECT name FROM users WHERE users.id = project_sections.assigned_to) AS assigned_name
            FROM project_sections WHERE project_id = ?""", (project_id,)).fetchall()}
+    _task_links = task_maint_items_map(conn, [m["id"] for m in section_meta.values()])
     for name, section_data in usage_by_section.items():
         meta = section_meta.get(name)
         section_data["id"] = meta["id"] if meta else None
@@ -3857,6 +3912,7 @@ def project_detail(project_id):
         section_data["notes"] = meta["notes"] if meta else None
         section_data["assigned_to"] = meta["assigned_to"] if meta else None
         section_data["assigned_name"] = meta["assigned_name"] if meta else None
+        section_data["maint_items"] = _task_links.get(meta["id"], []) if meta else []
         section_data["description"] = meta["description"] if meta else None
         # A Discrepancy that came from "Fix on this job"/"Do on this job"
         # keeps the squawk's/to-do's own Reported/Assigned/Working/
@@ -3964,9 +4020,14 @@ def project_detail(project_id):
     task_people = conn.execute(
         "SELECT id, name, shop_role FROM users WHERE active = 1 AND shop_role IS NOT NULL AND shop_role != '' ORDER BY name"
     ).fetchall()
+    project_maint_items = []
+    if project["asset_id"]:
+        project_maint_items = conn.execute(
+            "SELECT id, name FROM maintenance_items WHERE asset_id = ? AND active = 1 ORDER BY name",
+            (project["asset_id"],)).fetchall()
     conn.close()
     return render_template("project_detail.html", project=project, usage_by_section=usage_by_section,
-                           task_people=task_people,
+                           task_people=task_people, project_maint_items=project_maint_items,
                            total_cost=total_cost, tx=tx, all_parts=all_parts, photos=photos, open_orders=open_orders,
                            part_requests=part_requests, waiting_on_parts=waiting_on_parts,
                            labor_sessions=labor_sessions, labor_total_cost=labor_total_cost,
@@ -5037,8 +5098,14 @@ def asset_detail(asset_id):
         if asset_id not in apprentice_asset_ids(conn):
             conn.close()
             return _apprentice_no_task_redirect()
-        rows = conn.execute("SELECT * FROM maintenance_items WHERE asset_id = ? AND active = 1 ORDER BY name",
-                            (asset_id,)).fetchall()
+        # Only the maintenance items linked to a task assigned to this person on a job for this aircraft.
+        rows = conn.execute("""SELECT DISTINCT m.* FROM maintenance_items m
+                               JOIN project_section_maint_items l ON l.maint_item_id = m.id
+                               JOIN project_sections ps ON ps.id = l.section_id
+                               JOIN projects p ON p.id = ps.project_id
+                               WHERE m.asset_id = ? AND m.active = 1 AND ps.assigned_to = ?
+                                 AND p.asset_id = ? AND p.deleted_at IS NULL
+                               ORDER BY m.name""", (asset_id, session.get("user_id"), asset_id)).fetchall()
         items = [{"item": m, "status": maintenance_status(m, asset_meter(asset, m["hour_type"]))} for m in rows]
         my_jobs = [t for t in apprentice_tasks(conn) if t["asset_id"] == asset_id]
         conn.close()
@@ -5319,10 +5386,13 @@ def tech_spot():
     if is_apprentice_limited():
         # SHOP-08: an Apprentice sees only the tasks given to them, grouped by job.
         groups = {}
-        for t in apprentice_tasks(conn):
+        _my = apprentice_tasks(conn)
+        _links = task_maint_items_map(conn, [t["section_id"] for t in _my])
+        for t in _my:
             g = groups.setdefault(t["project_id"], {"project_id": t["project_id"], "project_name": t["project_name"],
                                                     "project_code": t["project_code"], "tasks": []})
-            g["tasks"].append(dict(t, parts=apprentice_task_parts(conn, t["project_id"], t["section_name"])))
+            g["tasks"].append(dict(t, parts=apprentice_task_parts(conn, t["project_id"], t["section_name"]),
+                                   maint_items=_links.get(t["section_id"], [])))
         for g in groups.values():
             g["general_parts"] = apprentice_general_parts(conn, g["project_id"])
         conn.close()

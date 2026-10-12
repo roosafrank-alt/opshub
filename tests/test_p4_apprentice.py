@@ -138,8 +138,10 @@ class AircraftTests(ApprenticeBase):
     def setUp(self):
         super().setUp()
         self.exec("UPDATE assets SET owner='Owner Person Name' WHERE id=?", (self.asset,))
-        self.exec("INSERT INTO maintenance_items (asset_id,name,type,interval_days,active) VALUES (?,?,?,?,1)",
-                  (self.asset, "Annual inspection", "calendar", 365))
+        mid = self.exec("INSERT INTO maintenance_items (asset_id,name,type,interval_days,active) VALUES (?,?,?,?,1)",
+                        (self.asset, "Annual inspection", "calendar", 365))
+        # An Apprentice sees only the items linked to their own task.
+        self.exec("INSERT INTO project_section_maint_items (section_id, maint_item_id) VALUES (?,?)", (self.sec_mine, mid))
 
     def test_trimmed_page_for_my_aircraft(self):
         body = self.login("shop_student").get(f"/assets/{self.asset}").get_data(as_text=True)

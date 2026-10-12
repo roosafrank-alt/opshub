@@ -15,6 +15,7 @@
     <li class="list-group-item">
       <div class="fw-bold"><i class="bi bi-folder2-open"></i> {{ t.section_name }}
         {% if t.completed_at %}<span class="badge text-bg-success">Confirmed</span>{% elif t.confirm_requested_at %}<span class="badge text-bg-warning">Waiting for confirmation</span>{% endif %}</div>
+      {% if t.maint_items %}<div class="small mt-1"><i class="bi bi-wrench"></i> Maintenance items: {{ t.maint_items|map(attribute='name')|join(', ') }}</div>{% endif %}
       {% if t.parts %}
       <ul class="small mb-0 mt-1">
         {% for p in t.parts %}<li>{{ p.name }} &times; {{ '%g'|format(p.qty_used) }} {{ p.unit }}</li>{% endfor %}

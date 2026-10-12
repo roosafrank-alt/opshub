@@ -492,6 +492,14 @@ def _migrate(conn):
         conn.execute("ALTER TABLE project_sections ADD COLUMN linked_squawk_id INTEGER")
         conn.execute("ALTER TABLE project_sections ADD COLUMN linked_todo_id INTEGER REFERENCES plane_todos(id)")
         conn.commit()
+    # Which maintenance items a task (project_sections row) is connected to, so an
+    # Apprentice's aircraft page can show just those. Safe on an existing database.
+    conn.execute("""CREATE TABLE IF NOT EXISTS project_section_maint_items (
+        section_id INTEGER NOT NULL REFERENCES project_sections(id),
+        maint_item_id INTEGER NOT NULL REFERENCES maintenance_items(id),
+        PRIMARY KEY (section_id, maint_item_id)
+    )""")
+    conn.commit()
     if "completed_by" not in [r["name"] for r in conn.execute("PRAGMA table_info(projects)").fetchall()]:
         conn.execute("ALTER TABLE projects ADD COLUMN completed_by TEXT")
         conn.commit()
