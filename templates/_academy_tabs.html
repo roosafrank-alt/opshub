@@ -7,7 +7,7 @@
    only gets the tabs it can open (Ground School, Resources) - Board,
    Logbook and How points work would just bounce it out. #}
 {% set _academy_ok = session.get('is_master_admin') or session.get('academy_access') %}
-<div class="academy-tabs-row{{ ' academy-tabs-gs-only' if not _academy_ok }}{{ ' academy-tabs-one' if groundschool_restricted() }}" data-change="SCHOOL-06">
+<div class="academy-tabs-row{{ ' academy-tabs-gs-only' if not _academy_ok }}" data-change="SCHOOL-06">
   {% if _academy_ok %}
   <a class="academy-tab {{ 'active' if _tab == 'leaderboard' }}" href="{{ url_for('academy_page') }}">
     <i class="bi bi-trophy"></i><span>Board</span>
@@ -19,7 +19,7 @@
   <a class="academy-tab {{ 'active' if _tab == 'groundschool' }}" href="{{ url_for('groundschool.rating_list') }}">
     <i class="bi bi-mortarboard"></i><span>Ground School</span>
   </a>
-  {% if not groundschool_restricted() %}
+  {% if true %}
   <a class="academy-tab academy-tab-resources {{ 'active' if _tab == 'resources' }}" href="{{ url_for('groundschool.resources_list') }}">
     <i class="bi bi-folder2-open"></i><span>Resources</span>
   </a>

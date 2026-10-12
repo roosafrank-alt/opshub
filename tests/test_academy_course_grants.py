@@ -97,8 +97,9 @@ class AcademyCourseGrantsTest(OpsHubTestCase):
         self.assertIn("Private Pilot", body)
         self.assertNotIn("Instrument", body)
         self.assertNotIn("Leaderboard", body)
-        self.assertNotIn("Resources", body)
+        self.assertIn("Resources", body)
         self.assertNotIn("Logbook", body)
+        self.assertEqual(c.get(f"{GS}/resources").status_code, 200)
         self.assertEqual(c.get(f"{GS}/{self.course['ppl']['rating']}").status_code, 200)
         self.assertEqual(c.get(f"{GS}/task/{self.course['ppl']['task']}").status_code, 200)
         self.assertEqual(c.get(f"{GS}/element/{self.course['ppl']['el']}").status_code, 200)
@@ -148,17 +149,20 @@ class AcademyCourseGrantsTest(OpsHubTestCase):
         self.assertEqual(self.q("SELECT COUNT(*) AS c FROM acs_lesson_content")[0]["c"], 0)
         self.assertEqual(self.q("SELECT COUNT(*) AS c FROM acs_ratings")[0]["c"], 3)
         self.assertEqual(self.q("SELECT COUNT(*) AS c FROM acs_element_completion")[0]["c"], 0)
-        r = c.get(f"{GS}/resources")
-        self.assertEqual(r.status_code, 302)
-        self.assertTrue(r.headers["Location"].endswith(GS))
+        # The Resources library is open to anyone with Flight Academy access,
+        # but the upload / delete actions above stay refused.
+        self.assertEqual(c.get(f"{GS}/resources").status_code, 200)
+        self.assertEqual(self.q("SELECT COUNT(*) AS c FROM acs_resources")[0]["c"], 0)
 
-    def test_resource_not_cited_by_granted_course_refused(self):
+    def test_granted_student_sees_resources_library_but_cannot_delete(self):
         self.grant()
-        self.exec("INSERT INTO acs_resources (title, filename, doc_type, uploaded_at) VALUES ('Other', 'x.pdf', 'handbook', ?)",
+        self.exec("INSERT INTO acs_resources (title, filename, doc_type, uploaded_at) VALUES ('Other Handbook', 'x.pdf', 'handbook', ?)",
                   (db.now_iso(),))
         rid = self.q1("SELECT id FROM acs_resources")["id"]
-        r = self.login("flight_student").get(f"{GS}/resources/{rid}/file")
-        self.assertEqual(r.status_code, 302)
+        c = self.login("flight_student")
+        self.assertIn("Other Handbook", c.get(f"{GS}/resources").get_data(as_text=True))
+        c.post(f"{GS}/resources/{rid}/delete")
+        self.assertEqual(self.q("SELECT COUNT(*) AS c FROM acs_resources")[0]["c"], 1)
 
     def test_removing_grant_takes_effect_immediately(self):
         self.grant()
