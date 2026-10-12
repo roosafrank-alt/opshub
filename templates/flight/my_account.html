@@ -6,7 +6,7 @@
   {% for f in items %}
   <a href="{{ url_for('flight.log_detail', flight_id=f.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
     <span class="text-truncate"><span class="fw-bold" data-change="FLY-12">{{ f.flight_date|usdate_short }}</span> {{ f.plane_tag }} <span class="text-muted small">{{ f.cfi_name or 'Solo' }}</span></span>
-    <span class="fw-bold flex-shrink-0 ms-2">{% if f.awaiting %}<span class="badge bg-info text-dark fw-normal" data-change="CASH-CONFIRM" title="The school received your {{ f.awaiting.method }}; a Flight Admin still has to confirm it. No need to pay again.">Received - awaiting confirmation</span> {% endif %}${{ '%.2f'|format(f.total or 0) }}</span>
+    <span class="fw-bold flex-shrink-0 ms-2">${{ '%.2f'|format(f.total or 0) }}</span>
   </a>
   {% else %}
   <div class="list-group-item text-muted small">None.</div>
@@ -25,7 +25,7 @@
 {% set card_flights = unpaid|selectattr('can_request_card')|list + unpaid|selectattr('card_request')|rejectattr('can_request_card')|list %}
 {% if card_flights %}
 <div class="card mb-3" data-change="FLY-07"><div class="card-body py-2">
-  <div class="fw-bold small mb-1"><i class="bi bi-credit-card"></i> Pay by card through Wave</div>
+  <div class="fw-bold small mb-1"><i class="bi bi-credit-card"></i> Pay by card or saved card through Wave</div>
   {% for f in card_flights %}
   <div class="border-top py-2 small">
     <div>{{ f.flight_date|usdate_short }} {{ f.plane_tag }} - ${{ '%.2f'|format(f.total or 0) }}</div>
@@ -35,8 +35,8 @@
     <form method="post" action="{{ url_for('flight.charge_request_create', flight_id=f.id) }}">
       <div class="text-muted">After the school approves, Wave emails you an invoice. On Wave's secure page you can pay with a card Wave already has for you or enter a new card.</div>
       <div class="form-check"><input class="form-check-input" type="checkbox" name="consent" id="consent-{{ f.id }}" value="1" required>
-        <label class="form-check-label" for="consent-{{ f.id }}">I'd like an invoice for this flight to pay by card through Wave, once the school approves it.</label></div>
-      <button class="btn btn-sm btn-outline-primary mt-1" type="submit">Pay this flight by card through Wave</button>
+        <label class="form-check-label" for="consent-{{ f.id }}">I'd like an invoice for this flight to pay by card or saved card through Wave, once the school approves it.</label></div>
+      <button class="btn btn-sm btn-outline-primary mt-1" type="submit">Pay this flight by card or saved card through Wave</button>
     </form>
     {% else %}
     <div class="text-muted">Card request sent. Waiting for the school to approve it.</div>

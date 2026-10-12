@@ -86,9 +86,9 @@
     </div>
     <div class="d-flex justify-content-between align-items-start mt-1">
       <small class="text-muted flight-compact-summary">{% if not (is_own_history and f.student_id == is_own_history) %}{{ f.student_name }} &middot; {% endif %}{% if f.solo %}Solo{% else %}with {{ f.cfi_name or '-' }}{% endif %}{% if f.notes %} &middot; {{ f.notes }}{% endif %}</small>
-      {% if (can_bill and not f.paid) or (can_bill and f.awaiting) or f.oil_added_qt or (f.squawk and not f.squawk_acknowledged_at) %}
+      {% if (can_bill and not f.paid) or (can_bill and f.paid and f.office) or f.oil_added_qt or (f.squawk and not f.squawk_acknowledged_at) %}
       <span class="d-flex flex-wrap gap-1 justify-content-end flex-shrink-0 ms-2 flight-compact-tags">
-        {% if can_bill and not f.paid %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}{% if can_bill and f.awaiting %} <span class="badge bg-info text-dark" data-change="CASH-CONFIRM" title="{{ f.awaiting.method }} ${{ '%.2f'|format(f.awaiting.amount) }} taken by {{ f.awaiting.recorded_by }}, waiting for a Flight Admin to confirm - do not collect again">Received - awaiting confirmation</span>{% endif %}
+        {% if can_bill and not f.paid %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}{% if can_bill and f.paid and f.office %} <span class="badge {{ 'bg-success' if f.office == 'verified' else ('bg-danger' if f.office == 'missing' else 'bg-secondary') }}" data-change="CASH-VERIFY" title="Cash/check cross-check by the office">{{ 'Office verified' if f.office == 'verified' else ('Not received at office' if f.office == 'missing' else 'Not yet verified') }}</span>{% endif %}
         {% if f.oil_added_qt %}<span class="badge bg-light text-dark border">+{{ '%g'|format(f.oil_added_qt) }} qt oil</span>{% endif %}
         {% if f.squawk and not f.squawk_acknowledged_at %}<span class="badge bg-danger">Squawk</span>{% endif %}
       </span>
@@ -124,12 +124,11 @@
           {% if can_bill %}
           <td data-label="Cost"><small>${{ '%.2f'|format(f.total) }}{% if f.ground_hours %}<br>(incl. {{ '%g'|format(f.ground_hours) }} hr ground){% endif %}{% if f.instructor_clock_hours is not none %}<br><span class="badge bg-info text-dark">Clocked {{ '%.1f'|format(f.instructor_clock_hours) }} hr instructor time</span>{% endif %}</small></td>
           <td data-label="Paid">
-            {% if f.paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}{% if f.awaiting %} <span class="badge bg-info text-dark" data-change="CASH-CONFIRM" title="{{ f.awaiting.method }} ${{ '%.2f'|format(f.awaiting.amount) }} taken by {{ f.awaiting.recorded_by }}, waiting for a Flight Admin to confirm - do not collect again">Received - awaiting confirmation</span>{% endif %}
+            {% if f.paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}{% if f.paid and f.office %} <span class="badge {{ 'bg-success' if f.office == 'verified' else ('bg-danger' if f.office == 'missing' else 'bg-secondary') }}" data-change="CASH-VERIFY" title="Cash/check cross-check by the office">{{ 'Office verified' if f.office == 'verified' else ('Not received at office' if f.office == 'missing' else 'Not yet verified') }}</span>{% endif %}
             {% if f.paid %}
             <form method="post" action="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" class="d-inline" data-confirm="Mark this flight as UNPAID? The payment recorded for it comes back off the student's account and it shows as owed again." data-confirm-title="Mark Unpaid" data-confirm-ok="Yes, mark unpaid" data-confirm-style="warning">
               <button class="btn btn-link btn-sm p-0 ms-1">Mark unpaid</button>
             </form>
-            {% elif f.awaiting %}
             {% else %}
             <button type="button" class="btn btn-link btn-sm p-0 ms-1 mark-paid-btn" data-url="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" data-total="{{ '%.2f'|format(f.total) }}" data-who="{{ f.student_name }}" data-change="FLY-11">Mark paid</button>
             {% endif %}

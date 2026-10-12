@@ -952,9 +952,11 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_charge_requests_flight ON flight_charge_requests(flight_id, status)")
     conn.commit()
 
-    # Cash / check taken by someone who is not a master admin or Flight Admin
-    # is only "Received - awaiting confirmation": the flight stays Unpaid until
-    # an admin confirms it (flight_payments.record_pending_confirmation).
+    # Cash / check collected by someone who is not a master admin or Flight
+    # Admin posts as Paid right away; this row is the office cross-check log
+    # (flight_payments.log_collected). status: pending (not yet verified) |
+    # verified (Received at office) | missing (flagged Not received; reject_reason
+    # holds the note). Nothing here ever posts or reverses a payment.
     conn.execute("""CREATE TABLE IF NOT EXISTS flight_payment_confirmations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         flight_id INTEGER NOT NULL REFERENCES flights(id),
@@ -964,7 +966,7 @@ def _migrate(conn):
         recorded_by TEXT,
         recorded_by_user_id INTEGER,
         recorded_at TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending', -- pending | confirmed | rejected
+        status TEXT NOT NULL DEFAULT 'pending', -- pending | verified | missing
         decided_by TEXT,
         decided_at TEXT,
         reject_reason TEXT,

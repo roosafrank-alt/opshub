@@ -1,20 +1,20 @@
-"""Cash / check taken by someone who is not a master admin or Flight Admin is
-"Received - awaiting confirmation": the flight stays Unpaid, nothing posts, and
-an admin confirms (one tap) or rejects (with a reason). Admins recording
-cash/check, and other methods, behave as before."""
+"""Cash / check collected by a non-admin (CFI with billing) posts as Paid right
+away, exactly as before, and is also logged for the office to cross-check:
+Admin > Cash/check collected ("Received at office" / "Not received"). Verifying
+or flagging never posts or reverses a payment. Admin-entered cash/check needs
+no log row."""
 from datetime import date
 from unittest import mock
 
 import db
 import flight
-import flight_payments
 from harness import seed_row
 from test_wave_invoicing import WaveTestBase
 
-AWAIT = "Received - awaiting confirmation"
+NEW_PAGE = "/flight/billing/cash-check"
 
 
-class CashCheckConfirmTest(WaveTestBase):
+class _Base(WaveTestBase):
     def setUp(self):
         super().setUp()
         p = mock.patch.object(flight, "_in_background", lambda fn: None)
@@ -29,13 +29,18 @@ class CashCheckConfirmTest(WaveTestBase):
         self.asset = self.make_asset("N321CC")
         self.exec("UPDATE assets SET is_flight_asset = 1 WHERE id = ?", (self.asset,))
 
-    def ended(self):
+    def running(self, role="master"):
+        row = self.q1("SELECT id FROM cfis WHERE user_id = ?", (self.users[role]["id"],))
         conn = db.get_db()
-        fid = seed_row(conn, "flights", student_id=self.student, asset_id=self.asset, flight_date=date.today().isoformat(),
-                       solo=1, started_at="2026-09-28 09:00:00", stopped_at="2026-09-28 10:00:00",
-                       hobbs_start=100.0, tach_start=90.0)
+        fid = seed_row(conn, "flights", cfi_id=row["id"] if row else None, student_id=self.student, asset_id=self.asset,
+                       flight_date=date.today().isoformat(), solo=1, started_at="2026-09-28 09:00:00",
+                       stopped_at="2026-09-28 10:00:00", hobbs_start=100.0, tach_start=90.0)
         conn.commit()
         conn.close()
+        return fid
+
+    def ended(self):
+        fid = self.running()
         self.login("flight_student").post(f"/flight/log/{fid}/end", data=dict(hobbs_end="101.0", tach_end="90.8"))
         return fid
 
@@ -50,116 +55,111 @@ class CashCheckConfirmTest(WaveTestBase):
         data.update(extra)
         return self.login(role).post(f"/flight/log/{fid}/toggle_paid", data=data)
 
-    def pending(self):
+    def rows(self):
         return self.q("SELECT * FROM flight_payment_confirmations ORDER BY id")
 
-    # ----- who is held -----------------------------------------------------
-    def test_cfi_billing_cash_is_held_not_paid(self):
+    def payments(self, fid):
+        return self.q("SELECT * FROM student_ledger WHERE flight_id = ? AND entry_type = 'payment'", (fid,))
+
+
+class CashCheckLogTest(_Base):
+    # ----- recording is immediate, plus a log row ---------------------------
+    def test_cfi_cash_posts_immediately_and_is_logged(self):
         fid = self.ended()
         bal = self.balance()
-        ledger = len(self.q("SELECT id FROM student_ledger"))
         self.pay("cfi_billing", fid, "Cash")
-        self.assertEqual(self.paid(fid), 0)
-        self.assertEqual(self.balance(), bal)
-        self.assertEqual(len(self.q("SELECT id FROM student_ledger")), ledger)
-        (row,) = self.pending()
+        self.assertEqual(self.paid(fid), 1)
+        self.assertEqual(len(self.payments(fid)), 1)
+        self.assertAlmostEqual(self.balance(), bal + 150.0, places=2)
+        (row,) = self.rows()
         self.assertEqual((row["status"], row["method"], row["note"], row["flight_id"]), ("pending", "Cash", "n1", fid))
         self.assertEqual(row["recorded_by"], "Cfi Billing")
         self.assertAlmostEqual(row["amount"], 150.0, places=2)
+        self.assertTrue(row["recorded_at"])
         self.assertTrue(self.q("SELECT 1 FROM field_change_log WHERE entity_type = 'flight_payment_confirmation'"))
 
-    def test_check_is_held_and_method_match_ignores_case(self):
+    def test_check_logged_case_insensitive(self):
         fid = self.ended()
         self.pay("cfi_billing", fid, "check")
-        self.assertEqual(self.paid(fid), 0)
-        self.assertEqual(len(self.pending()), 1)
+        self.assertEqual(self.paid(fid), 1)
+        self.assertEqual(len(self.rows()), 1)
 
-    def test_other_methods_still_paid_immediately(self):
-        for method in ("Card", "Wave", "Venmo/Zelle", "Other", ""):
-            fid = self.ended()
-            self.pay("cfi_billing", fid, method)
-            self.assertEqual(self.paid(fid), 1, method)
-        self.assertEqual(self.pending(), [])
-
-    def test_admins_cash_and_check_paid_immediately(self):
-        for role, method in (("master", "Cash"), ("flight_admin", "Check"), ("flight_admin_cfi", "Cash")):
+    def test_other_methods_and_admins_make_no_row(self):
+        for role, method in (("cfi_billing", "Card"), ("cfi_billing", "Wave"), ("cfi_billing", "Venmo/Zelle"),
+                             ("cfi_billing", ""), ("master", "Cash"), ("flight_admin", "Check"),
+                             ("flight_admin_cfi", "Cash")):
             fid = self.ended()
             self.pay(role, fid, method)
-            self.assertEqual(self.paid(fid), 1, role)
-        self.assertEqual(self.pending(), [])
+            self.assertEqual(self.paid(fid), 1, (role, method))
+        self.assertEqual(self.rows(), [])
 
-    def test_second_pending_on_same_flight_refused(self):
+    def test_mark_paid_button_not_hidden_and_no_awaiting_state(self):
         fid = self.ended()
         self.pay("cfi_billing", fid, "Cash")
-        self.pay("cfi_billing", fid, "Check")
-        self.assertEqual(len(self.pending()), 1)
-
-    # ----- batch -----------------------------------------------------------
-    def test_batch_reports_paid_vs_held(self):
-        a, b = self.ended(), self.ended()
         c = self.login("cfi_billing")
-        r = c.post("/flight/billing/mark-selected-paid", data=dict(ids=f"{a},{b}", paid_method="Cash"), follow_redirects=True)
-        html = r.get_data(as_text=True)
-        self.assertEqual((self.paid(a), self.paid(b)), (0, 0))
-        self.assertIn("2 flights", html)
-        self.assertIn("awaiting confirmation", html)
-        self.assertEqual(len(self.pending()), 2)
-        # second try: already awaiting, left alone
-        r = c.post("/flight/billing/mark-selected-paid", data=dict(ids=f"{a}", paid_method="Cash"), follow_redirects=True)
-        self.assertEqual(len(self.pending()), 2)
+        for url in ("/flight/billing?status=all", f"/flight/log/{fid}", "/flight/log"):
+            self.assertNotIn("awaiting confirmation", c.get(url).get_data(as_text=True), url)
+        self.assertNotIn("awaiting confirmation", self.login("flight_student").get("/flight/my-account").get_data(as_text=True))
 
-    def test_batch_card_pays_and_cash_mix_per_flight(self):
+    # ----- batch / add funds -------------------------------------------------
+    def test_batch_pays_all_and_logs_each(self):
         a, b = self.ended(), self.ended()
-        self.pay("cfi_billing", b, "Cash")  # b already awaiting
-        c = self.login("cfi_billing")
-        c.post("/flight/billing/mark-selected-paid", data=dict(ids=f"{a},{b}", paid_method="Card"))
-        self.assertEqual((self.paid(a), self.paid(b)), (1, 1))  # Card is not a held method
-        c = self.login("master")
-        a2, b2 = self.ended(), self.ended()
-        r = c.post("/flight/billing/mark-selected-paid", data=dict(ids=f"{a2},{b2}", paid_method="Cash"), follow_redirects=True)
-        self.assertEqual((self.paid(a2), self.paid(b2)), (1, 1))
+        r = self.login("cfi_billing").post("/flight/billing/mark-selected-paid", data=dict(ids=f"{a},{b}", paid_method="Cash"),
+                                           follow_redirects=True)
+        self.assertEqual((self.paid(a), self.paid(b)), (1, 1))
         self.assertIn("Marked 2 flights", r.get_data(as_text=True))
+        self.assertEqual(len(self.rows()), 2)
 
-    # ----- add funds -------------------------------------------------------
-    def test_add_funds_apply_cash_held_for_non_admin(self):
+    def test_batch_by_admin_makes_no_rows(self):
+        a = self.ended()
+        self.login("master").post("/flight/billing/mark-selected-paid", data=dict(ids=str(a), paid_method="Cash"))
+        self.assertEqual(self.paid(a), 1)
+        self.assertEqual(self.rows(), [])
+
+    def test_add_funds_with_flights_pays_and_logs(self):
         fid = self.ended()
         bal = self.balance()
         self.login("cfi_billing").post(f"/flight/students/{self.student}/add_funds",
                                        data=dict(amount="200", paid_method="Cash", apply_flight_ids=[str(fid)]))
-        self.assertEqual(self.paid(fid), 0)
-        self.assertEqual(len(self.pending()), 1)
-        self.assertAlmostEqual(self.balance(), bal + 50.0, places=2)  # only the leftover posts as funds
+        self.assertEqual(self.paid(fid), 1)
+        self.assertAlmostEqual(self.balance(), bal + 200.0, places=2)
+        (row,) = self.rows()
+        self.assertAlmostEqual(row["amount"], 150.0, places=2)
 
-    def test_add_funds_apply_cash_paid_for_admin(self):
+    def test_add_funds_by_admin_no_row(self):
         fid = self.ended()
         self.login("flight_admin").post(f"/flight/students/{self.student}/add_funds",
                                         data=dict(amount="150", paid_method="Cash", apply_flight_ids=[str(fid)]))
         self.assertEqual(self.paid(fid), 1)
-        self.assertEqual(self.pending(), [])
+        self.assertEqual(self.rows(), [])
 
-    # ----- queue page and permissions --------------------------------------
-    def test_only_admins_see_queue_and_badge(self):
+    # ----- admin page and permissions --------------------------------------
+    def test_only_admins_see_page_and_badge(self):
         fid = self.ended()
         self.pay("cfi_billing", fid, "Cash")
-        cid = self.pending()[0]["id"]
+        cid = self.rows()[0]["id"]
         for role in ("cfi", "cfi_billing", "shop_admin", "flight_student"):
             c = self.login(role)
-            self.assertEqual(c.get("/flight/billing/cash-check").status_code, 302, role)
-            c.post(f"/flight/billing/cash-check/{cid}/confirm")
-            c.post(f"/flight/billing/cash-check/{cid}/reject", data=dict(reason="x"))
-        self.assertEqual(self.pending()[0]["status"], "pending")
-        self.assertEqual(self.paid(fid), 0)
+            self.assertEqual(c.get(NEW_PAGE).status_code, 302, role)
+            c.post(f"{NEW_PAGE}/{cid}/verify")
+            c.post(f"{NEW_PAGE}/{cid}/flag", data=dict(reason="x"))
+        self.assertEqual(self.rows()[0]["status"], "pending")
         for role in ("master", "flight_admin"):
-            html = self.login(role).get("/flight/billing/cash-check").get_data(as_text=True)
-            self.assertIn("Student", html)
-            self.assertIn("$150.00", html)
-            self.assertIn("Cfi Billing", html)
-            self.assertIn("Confirm", html)
-            dash = self.login(role).get("/flight/dashboard").get_data(as_text=True)
-            self.assertIn("Cash/check to confirm", dash)
-        self.assertNotIn("Cash/check to confirm", self.login("cfi_billing").get("/flight/dashboard").get_data(as_text=True))
+            html = self.login(role).get(NEW_PAGE).get_data(as_text=True)
+            for want in ("Cash/check collected", "Student", "$150.00", "Cfi Billing", "Received at office", "Not received"):
+                self.assertIn(want, html, (role, want))
+            self.assertIn("Cash/check collected", self.login(role).get("/flight/dashboard").get_data(as_text=True))
+        self.assertNotIn("Cash/check collected", self.login("cfi_billing").get("/flight/dashboard").get_data(as_text=True))
 
-    def test_admins_notified(self):
+    def test_running_total_per_collector_and_sort(self):
+        for _ in range(2):
+            self.pay("cfi_billing", self.ended(), "Cash")
+        html = self.login("master").get(NEW_PAGE).get_data(as_text=True)
+        self.assertIn("$300.00", html)
+        html = self.login("master").get(NEW_PAGE + "?sort=date").get_data(as_text=True)
+        self.assertIn("$300.00", html)
+
+    def test_admins_notified_on_new_entry_not_for_admin_entry(self):
         fid = self.ended()
         with mock.patch.object(flight.push, "queue_and_push") as qp:
             self.pay("cfi_billing", fid, "Cash")
@@ -167,82 +167,123 @@ class CashCheckConfirmTest(WaveTestBase):
         self.assertIn(self.users["master"]["id"], ids)
         self.assertIn(self.users["flight_admin"]["id"], ids)
         self.assertNotIn(self.users["cfi"]["id"], ids)
+        fid2 = self.ended()
+        with mock.patch.object(flight.push, "queue_and_push") as qp:
+            self.pay("master", fid2, "Cash")
+        self.assertEqual(qp.call_count, 0)
 
-    # ----- confirm / reject --------------------------------------------------
-    def test_confirm_marks_paid_and_posts_once(self):
+    # ----- verify / flag -----------------------------------------------------
+    def test_verify_marks_verified_and_posts_nothing(self):
         fid = self.ended()
-        bal = self.balance()
         self.pay("cfi_billing", fid, "Cash")
-        cid = self.pending()[0]["id"]
+        cid = self.rows()[0]["id"]
+        bal, ledger = self.balance(), len(self.q("SELECT id FROM student_ledger"))
         c = self.login("flight_admin")
-        c.post(f"/flight/billing/cash-check/{cid}/confirm")
-        c.post(f"/flight/billing/cash-check/{cid}/confirm")  # double tap
-        row = self.pending()[0]
-        self.assertEqual((row["status"], row["decided_by"]), ("confirmed", "Flight Admin"))
-        f = self.q1("SELECT paid, payment_method FROM flights WHERE id = ?", (fid,))
-        self.assertEqual((f["paid"], f["payment_method"]), (1, "Cash"))
-        pays = self.q("SELECT * FROM student_ledger WHERE flight_id = ? AND entry_type = 'payment'", (fid,))
-        self.assertEqual(len(pays), 1)
-        self.assertEqual(pays[0]["created_by"], "Flight Admin")
-        self.assertIn("n1", pays[0]["note"])
-        self.assertAlmostEqual(self.balance(), bal + 150.0, places=2)
-        self.assertGreaterEqual(len(self.q("SELECT 1 FROM field_change_log WHERE entity_type = 'flight_payment_confirmation'")), 2)
-        html = c.get("/flight/billing/cash-check").get_data(as_text=True)
-        self.assertIn("Recently handled", html)
-        self.assertIn("Confirmed", html)
+        c.post(f"{NEW_PAGE}/{cid}/verify")
+        c.post(f"{NEW_PAGE}/{cid}/verify")
+        row = self.rows()[0]
+        self.assertEqual((row["status"], row["decided_by"]), ("verified", "Flight Admin"))
+        self.assertTrue(row["decided_at"])
+        self.assertEqual(len(self.q("SELECT id FROM student_ledger")), ledger)
+        self.assertAlmostEqual(self.balance(), bal, places=2)
+        self.assertEqual(self.paid(fid), 1)
+        self.assertIn("Office verified", c.get(NEW_PAGE).get_data(as_text=True))
+        self.assertEqual(len(self.payments(fid)), 1)
 
-    def test_reject_needs_reason_keeps_unpaid_and_tells_recorder(self):
+    def test_flag_needs_note_keeps_payment_and_lists_in_flagged(self):
         fid = self.ended()
         self.pay("cfi_billing", fid, "Check")
-        cid = self.pending()[0]["id"]
+        cid = self.rows()[0]["id"]
         c = self.login("master")
-        c.post(f"/flight/billing/cash-check/{cid}/reject", data=dict(reason=" "))
-        self.assertEqual(self.pending()[0]["status"], "pending")
+        c.post(f"{NEW_PAGE}/{cid}/flag", data=dict(reason=" "))
+        self.assertEqual(self.rows()[0]["status"], "pending")
         with mock.patch.object(flight.push, "queue_and_push") as qp:
-            c.post(f"/flight/billing/cash-check/{cid}/reject", data=dict(reason="Check bounced"))
-        row = self.pending()[0]
-        self.assertEqual((row["status"], row["reject_reason"]), ("rejected", "Check bounced"))
-        self.assertEqual(self.paid(fid), 0)
-        self.assertIn(self.users["cfi_billing"]["id"], {x.args[1] for x in qp.call_args_list})
-        rec = self.login("cfi_billing")
-        html = rec.get("/flight/dashboard").get_data(as_text=True)
-        self.assertIn("Check bounced", html)
-        rec.post("/flight/billing/cash-check/seen")
-        self.assertNotIn("Check bounced", rec.get("/flight/dashboard").get_data(as_text=True))
-        # after a rejection a new entry can be recorded
-        self.pay("cfi_billing", fid, "Cash")
-        self.assertEqual(len(self.pending()), 2)
+            c.post(f"{NEW_PAGE}/{cid}/flag", data=dict(reason="Check never arrived"))
+        row = self.rows()[0]
+        self.assertEqual((row["status"], row["reject_reason"]), ("missing", "Check never arrived"))
+        self.assertEqual(self.paid(fid), 1)  # not reversed
+        self.assertEqual(len(self.payments(fid)), 1)
+        self.assertIn(self.users["flight_admin"]["id"], {x.args[1] for x in qp.call_args_list})
+        html = c.get(NEW_PAGE).get_data(as_text=True)
+        self.assertIn("Flagged - not received", html)
+        self.assertIn("Check never arrived", html)
+        # no longer counted in the red unverified number, and can later be verified
+        conn = db.get_db()
+        self.assertEqual(flight.flight_payments.pending_confirmation_count(conn), 0)
+        conn.close()
+        c.post(f"{NEW_PAGE}/{cid}/verify")
+        self.assertEqual(self.rows()[0]["status"], "verified")
 
-    def test_confirm_when_flight_paid_another_way_posts_nothing_extra(self):
+    # ----- badge for billers only ---------------------------------------------
+    def test_office_badge_for_billers_not_students(self):
         fid = self.ended()
         self.pay("cfi_billing", fid, "Cash")
-        self.pay("master", fid, "Card")
-        before = len(self.q("SELECT id FROM student_ledger"))
-        self.login("master").post(f"/flight/billing/cash-check/{self.pending()[0]['id']}/confirm")
-        self.assertEqual(len(self.q("SELECT id FROM student_ledger")), before)
-
-    # ----- badges ------------------------------------------------------------
-    def test_badge_shown_to_billers_and_student(self):
-        fid = self.ended()
-        self.pay("cfi_billing", fid, "Cash")
-        for url in ("/flight/billing", f"/flight/log/{fid}", "/flight/log"):
-            html = self.login("cfi_billing").get(url).get_data(as_text=True)
-            self.assertIn(AWAIT, html, url)
-        html = self.login("flight_student").get("/flight/my-account").get_data(as_text=True)
-        self.assertIn(AWAIT, html)
-        self.assertIn("$150.00", html)  # still owed
-        # gone once confirmed
-        self.login("master").post(f"/flight/billing/cash-check/{self.pending()[0]['id']}/confirm")
-        self.assertNotIn(AWAIT, self.login("cfi_billing").get("/flight/billing?status=all").get_data(as_text=True))
+        c = self.login("cfi_billing")
+        for url in ("/flight/billing?status=all", f"/flight/log/{fid}", "/flight/log"):
+            self.assertIn("Not yet verified", c.get(url).get_data(as_text=True), url)
+        for url in ("/flight/my-account", f"/flight/log/{fid}", "/flight/log"):
+            html = self.login("flight_student").get(url).get_data(as_text=True)
+            self.assertNotIn("Not yet verified", html, url)
+            self.assertNotIn("Office verified", html, url)
+        self.login("master").post(f"{NEW_PAGE}/{self.rows()[0]['id']}/verify")
+        self.assertIn("Office verified", c.get("/flight/billing?status=all").get_data(as_text=True))
 
     # ----- delete / reset ----------------------------------------------------
-    def test_flight_delete_and_reset_remove_pending_rows(self):
+    def test_flight_delete_and_reset_remove_rows(self):
         a, b = self.ended(), self.ended()
         self.pay("cfi_billing", a, "Cash")
         self.pay("cfi_billing", b, "Cash")
         r = self.login("master").post(f"/flight/log/{a}/delete", follow_redirects=True)
         self.assertNotIn("FOREIGN KEY", r.get_data(as_text=True))
-        self.assertIsNone(self.q1("SELECT id FROM flights WHERE id = ?", (a,)))
         r = self.login("master").post("/admin/reset/flights", follow_redirects=True)
         self.assertNotIn("FOREIGN KEY", r.get_data(as_text=True))
-        self.assertEqual(self.pending(), [])
+        self.assertEqual(self.rows(), [])
+
+
+class CashCheckAtFlightTest(_Base):
+    """End Session and Log a Past Session post as before and log cash/check from non-admins."""
+
+    def end_as(self, role, method, amount="150", **extra):
+        fid = self.running(role)
+        data = dict(hobbs_end="101.0", tach_end="90.8", paid="1", payment_method=method, payment_amount=amount)
+        data.update(extra)
+        self.login(role).post(f"/flight/log/{fid}/end", data=data)
+        return fid
+
+    def test_end_session_cash_by_cfi_paid_and_logged(self):
+        for role in ("cfi_billing", "cfi"):
+            fid = self.end_as(role, "Cash")
+            f = self.q1("SELECT paid, ended_at FROM flights WHERE id = ?", (fid,))
+            self.assertTrue(f["ended_at"], role)
+            self.assertEqual(f["paid"], 1, role)
+            self.assertEqual(len(self.payments(fid)), 1, role)
+            row = self.q1("SELECT * FROM flight_payment_confirmations WHERE flight_id = ?", (fid,))
+            self.assertEqual((row["status"], row["method"]), ("pending", "Cash"))
+            self.assertAlmostEqual(row["amount"], 150.0, places=2)
+
+    def test_end_session_admin_card_credit_make_no_row(self):
+        self.assertEqual(self.paid(self.end_as("master", "Cash")), 1)
+        self.assertEqual(self.paid(self.end_as("cfi_billing", "Card", card_number="4242424242424242")), 1)
+        self.assertEqual(self.rows(), [])
+
+    def test_end_session_short_cash_still_refused(self):
+        fid = self.end_as("cfi_billing", "Cash", amount="10")
+        self.assertIsNone(self.q1("SELECT ended_at FROM flights WHERE id = ?", (fid,))["ended_at"])
+        self.assertEqual(self.rows(), [])
+
+    def test_past_session_cash_paid_and_logged_admin_not(self):
+        cfi_id = self.q1("SELECT id FROM cfis WHERE user_id = ?", (self.users["cfi_billing"]["id"],))["id"]
+        form = dict(asset_id=self.asset, student_id=self.student, cfi_id=cfi_id, flight_date=date.today().isoformat(),
+                    hobbs_end="101.0", tach_end="90.8", paid="1", payment_method="Cash", payment_amount="150")
+        self.exec("UPDATE assets SET hobbs_hours = 100, tach_hours = 90 WHERE id = ?", (self.asset,))
+        self.login("cfi_billing").post("/flight/log/new", data=form)
+        fid = self.q1("SELECT id FROM flights ORDER BY id DESC")["id"]
+        self.assertEqual(self.paid(fid), 1)
+        self.assertEqual(len(self.payments(fid)), 1)
+        self.assertEqual(self.q1("SELECT status FROM flight_payment_confirmations WHERE flight_id = ?", (fid,))["status"], "pending")
+        self.exec("UPDATE assets SET hobbs_hours = 100, tach_hours = 90 WHERE id = ?", (self.asset,))
+        self.login("master").post("/flight/log/new", data=form)
+        fid2 = self.q1("SELECT id FROM flights ORDER BY id DESC")["id"]
+        self.assertNotEqual(fid, fid2)
+        self.assertEqual(self.paid(fid2), 1)
+        self.assertEqual(len(self.rows()), 1)

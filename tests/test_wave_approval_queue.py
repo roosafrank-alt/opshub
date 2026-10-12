@@ -52,7 +52,7 @@ class WaveApprovalQueueTest(WaveTestBase):
     def test_no_choice_when_wave_not_connected(self):
         fid = self.running()
         html = self.login("flight_student").get("/flight/log/active").get_data(as_text=True)
-        self.assertNotIn("Pay by card through Wave", html)
+        self.assertNotIn("Pay by card or saved card through Wave", html)
         self.assertIn("Email me a receipt", html)
         self.end(fid, charge_choice="wave", consent="1")
         self.assertEqual(self.q("SELECT id FROM flight_charge_requests"), [])
@@ -61,11 +61,11 @@ class WaveApprovalQueueTest(WaveTestBase):
         self.connect_wave()
         self.running()
         html = self.login("flight_student").get("/flight/log/active").get_data(as_text=True)
-        self.assertIn("Pay by card through Wave", html)
+        self.assertIn("Pay by card or saved card through Wave", html)
         self.assertIn("I'll settle with the school", html)
         self.assertIn("Email me a receipt", html)
         html = self.login("master").get("/flight/log/active").get_data(as_text=True)
-        self.assertNotIn("Pay by card through Wave", html)
+        self.assertNotIn("Pay by card or saved card through Wave", html)
 
     def test_request_needs_consent(self):
         self.connect_wave()
@@ -98,7 +98,7 @@ class WaveApprovalQueueTest(WaveTestBase):
         self.end(fid)
         c = self.login("flight_student")
         html = c.get("/flight/my-account").get_data(as_text=True)
-        self.assertIn("Pay this flight by card through Wave", html)
+        self.assertIn("Pay this flight by card or saved card through Wave", html)
         c.post(f"/flight/my-account/flight/{fid}/card-request", data={})
         self.assertEqual(self.q("SELECT id FROM flight_charge_requests"), [])  # no consent
         c.post(f"/flight/my-account/flight/{fid}/card-request", data={"consent": "1"})

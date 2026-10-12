@@ -135,7 +135,7 @@
             {% endif %}
             {% if flight_admin %}
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing/approvals') }}" href="{{ url_for('flight.charge_approvals') }}"><i class="bi bi-credit-card"></i> Card requests{% if charge_pending_count %} <span class="badge bg-danger">{{ charge_pending_count }}</span>{% endif %}</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing/cash-check') }}" href="{{ url_for('flight.cash_check_confirm') }}"><i class="bi bi-cash-coin"></i> Cash/check to confirm{% if cash_check_pending_count %} <span class="badge bg-danger">{{ cash_check_pending_count }}</span>{% endif %}</a></li>
+            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing/cash-check') }}" href="{{ url_for('flight.cash_check_confirm') }}"><i class="bi bi-cash-coin"></i> Cash/check collected{% if cash_check_pending_count %} <span class="badge bg-danger">{{ cash_check_pending_count }}</span>{% endif %}</a></li>
             {% endif %}
             {% if is_master_admin or session.get('can_bill') %}
             <li><hr class="dropdown-divider"></li>
@@ -150,13 +150,6 @@
 {% endcall %}
 <div class="container-fluid py-3">
   {% include "_flash_messages.html" %}
-  {% if cash_check_rejections %}
-  <div class="alert alert-warning" data-change="CASH-CONFIRM">
-    <strong>Cash/check not confirmed:</strong>
-    <ul class="mb-1">{% for c in cash_check_rejections %}<li>{{ c.student_name }} &middot; {{ c.method or 'payment' }} ${{ '%.2f'|format(c.amount) }} - {{ c.reject_reason }} <span class="text-muted">(by {{ c.decided_by }})</span></li>{% endfor %}</ul>
-    <form method="post" action="{{ url_for('flight.cash_check_seen') }}"><button class="btn btn-sm btn-outline-secondary">Got it</button></form>
-  </div>
-  {% endif %}
   {% block content %}{% endblock %}
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

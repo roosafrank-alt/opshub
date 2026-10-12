@@ -2707,12 +2707,10 @@ def student_add_funds(student_id):
         flash(r["error"], "danger")
         return redirect(url_for("flight.student_edit", student_id=student_id) + "#account")
     conn.commit()
-    for cid in r.get("held_ids", []):
+    for cid in r.get("logged_ids", []):
         _notify_cash_check_pending(conn, cid)
     conn.close()
     msg = f"Added ${amount:,.2f} to {student['name']}'s account."
-    if r["held"]:
-        msg += (f" Received - awaiting confirmation (still unpaid until a Flight Admin confirms): {', '.join(r['held'])}.")
     if r["paid"]:
         msg += f" Marked paid: {', '.join(r['paid'])}."
         if r["remainder"] > 0.005:
@@ -5941,7 +5939,6 @@ def my_account():
     rows = conn.execute(_LOG_ROW_SQL + " WHERE f.student_id = ? ORDER BY f.flight_date DESC, f.id DESC LIMIT 200",
                         (student["id"],)).fetchall()
     wave_ok = _wave_flight_connected(conn)
-    awaiting = flight_payments.pending_confirmation_map(conn)
     requests_by_flight = {}
     for r in conn.execute("SELECT * FROM flight_charge_requests WHERE student_id = ? ORDER BY id", (student["id"],)).fetchall():
         requests_by_flight[r["flight_id"]] = dict(r)  # newest wins
@@ -5950,7 +5947,6 @@ def my_account():
     unpaid = [f for f in flights if not f["paid"]]
     paid = [f for f in flights if f["paid"]]
     for f in unpaid:
-        f["awaiting"] = awaiting.get(f["id"])
         f["card_request"] = requests_by_flight.get(f["id"])
         f["can_request_card"] = bool(wave_ok and (f["ended_at"] or not f["started_at"]) and not f["wave_invoice_id"] and f["total"] > 0.005
                                      and not (f.get("guest_name") or "").strip()
@@ -7593,6 +7589,7 @@ def log_end(flight_id):
     ended_row = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (flight_id,)).fetchone()
     cost = _row_with_cost(ended_row) if ended_row else None
     credit_applied = 0.0
+    logged_conf_id = None
     if paid_choice == "1" and cost is not None:
         # Paid has to actually be accounted for: the flight's cost covered
         # either by credit already on the student's account (their existing
@@ -7631,11 +7628,16 @@ def log_end(flight_id):
                 note += f" - simulated charge ending in {card_last4}"
             _ledger_entry(conn, ended_row["student_id"], "payment", payment_amount, note=note,
                           flight_id=flight_id, created_by=session.get("user_name"))
+            if flight_payments.needs_confirmation(payment_method, bool(is_flight_admin())):
+                logged_conf_id = flight_payments.log_collected(conn, flight_id, payment_method, payment_amount,
+                                                               collected_by=session.get("user_name"), user_id=session.get("user_id"))
     # The student's pilot logbook gets a pending, pre-filled entry.
     pilotlog.ensure_entry(conn, flight_id)
     if request.form.get("send_receipt_email") and cost is not None:
         _send_flight_receipt_email(conn, ended_row, cost, paid_choice == "1", payment_method, payment_amount, credit_applied)
     conn.commit()
+    if logged_conf_id:
+        _notify_cash_check_pending(conn, logged_conf_id)
     # Idea "billing": ending Unpaid used to just log the flight owed, with no
     # way to actually get paid short of the separate Billing page's "Invoice
     # in Wave" button later. When the CFI/admin ticks "Invoice through Wave
@@ -7975,6 +7977,7 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
         conn.execute("UPDATE flights SET guest_name = ? WHERE id = ?", (guest_name, new_flight_id))
     new_row = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (new_flight_id,)).fetchone()
     cost = _row_with_cost(new_row) if new_row else None
+    logged_conf_id = None
     if paid and cost is not None:
         # Same "Paid has to actually be accounted for" check as ending a
         # flight from the Active Flight clock (log_end) - this form used to
@@ -7999,9 +8002,14 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
             note = f"Paid at flight ({payment_method})" if payment_method else "Paid at flight"
             _ledger_entry(conn, new_row["student_id"], "payment", payment_amount, note=note,
                           flight_id=new_flight_id, created_by=session.get("user_name"))
+            if flight_payments.needs_confirmation(payment_method, bool(is_flight_admin())):
+                logged_conf_id = flight_payments.log_collected(conn, new_flight_id, payment_method, payment_amount,
+                                                               collected_by=session.get("user_name"), user_id=session.get("user_id"))
     # The student's pilot logbook gets a pending, pre-filled entry.
     pilotlog.ensure_entry(conn, new_flight_id)
     conn.commit()
+    if logged_conf_id:
+        _notify_cash_check_pending(conn, logged_conf_id)
     check_hundred_hr_alerts(conn)  # 100-hour countdown alerts (admins)
     g.logged_flight_id = new_flight_id  # lets the caller show Book next lesson (FLY-40)
     if squawk:
@@ -8388,12 +8396,12 @@ def log_history():
         student = current_student(conn)
         rows = conn.execute(_LOG_ROW_SQL + " WHERE f.student_id = ? ORDER BY f.flight_date DESC, f.id DESC LIMIT ?",
                              (student["id"], limit + 1)).fetchall()
-    awaiting = flight_payments.pending_confirmation_map(conn)
+    office = flight_payments.verification_map(conn) if can_manage_billing() else {}
     conn.close()
     has_older = len(rows) > limit
     flights = [_row_with_cost(r) for r in rows[:limit]]
     for f in flights:
-        f["awaiting"] = awaiting.get(f["id"])
+        f["office"] = office.get(f["id"])
     ended_flight_id = request.args.get("ended_flight_id", type=int)
     next_lesson = _next_lesson_preview(ended_flight_id)
     wave_invoice = _ended_flight_wave_invoice(ended_flight_id)
@@ -8424,7 +8432,7 @@ def log_detail(flight_id):
         flash("That's not your flight.", "danger")
         return redirect(url_for("flight.log_history"))
     f = _row_with_cost(row)
-    f["awaiting"] = flight_payments.pending_confirmation(conn, flight_id)
+    f["office"] = flight_payments.verification_map(conn).get(flight_id) if can_manage_billing() else None
     booking = (conn.execute("SELECT scheduled_date, scheduled_time FROM scheduled_flights WHERE id = ?",
                             (f["scheduled_flight_id"],)).fetchone() if f.get("scheduled_flight_id") else None)
     conn.close()
@@ -8491,6 +8499,7 @@ def log_toggle_paid(flight_id):
         flash("Flight not found.", "danger")
         return redirect(url_for("flight.log_history"))
     who = session.get("user_name")
+    conf_id = None
     if f["paid"]:
         r = flight_payments.reverse_flight_payment(conn, flight_id, created_by=who)
         flash(f"Marked {r['label']} unpaid for {r['student_name']}.", "warning")
@@ -8500,17 +8509,13 @@ def log_toggle_paid(flight_id):
         method = (request.form.get("paid_method") or request.form.get("payment_method") or "").strip()[:40] or None
         note = (request.form.get("note") or "").strip()[:120] or None
         amount = _parse_float(request.form.get("payment_amount"))
-        r = flight_payments.record_or_hold(conn, flight_id, method=method, note=note, created_by=who, amount=amount,
+        r = flight_payments.record_and_log(conn, flight_id, method=method, note=note, created_by=who, amount=amount,
                                            can_confirm=bool(is_flight_admin()), user_id=session.get("user_id"))
-        if r["error"]:
-            flash(r["error"], "warning")
-        elif r["pending"]:
-            flash(f"Received - awaiting confirmation: {method} for {r['label']} ({r['student_name']}). It stays unpaid "
-                  f"until a Flight Admin confirms it.", "info")
-            _notify_cash_check_pending(conn, r["confirmation_id"])
-        else:
-            flash(f"Marked {r['label']} paid for {r['student_name']}" + (f" ({method})" if method else "") + ".", "success")
+        flash(f"Marked {r['label']} paid for {r['student_name']}" + (f" ({method})" if method else "") + ".", "success")
+        conf_id = r["confirmation_id"]
     conn.commit()
+    if conf_id:
+        _notify_cash_check_pending(conn, conf_id)
     conn.close()
     return redirect(request.referrer or url_for("flight.log_history"))
 
@@ -8534,34 +8539,25 @@ def billing_mark_selected_paid():
     who = session.get("user_name")
     can_confirm = bool(is_flight_admin())
     conn = get_db()
-    done, total, skipped, held, held_total, held_ids = 0, 0.0, 0, 0, 0.0, []
+    done, total, skipped, logged = 0, 0.0, 0, []
     for fid in ids:
-        r = flight_payments.record_or_hold(conn, fid, method=method, created_by=who, can_confirm=can_confirm,
+        r = flight_payments.record_and_log(conn, fid, method=method, created_by=who, can_confirm=can_confirm,
                                            user_id=session.get("user_id"))
         if not r["ok"] or r["already_paid"]:
             skipped += 1
             continue
-        if r["pending"]:
-            held += 1
-            held_total += r["flight"]["total"]
-            held_ids.append(r["confirmation_id"])
-            continue
         done += 1
         total += r["flight"]["total"]
+        if r["confirmation_id"]:
+            logged.append(r["confirmation_id"])
     conn.commit()
-    for cid in held_ids:
+    for cid in logged:
         _notify_cash_check_pending(conn, cid)
     conn.close()
-    parts = []
-    if done:
-        parts.append(f"Marked {done} flight{'s' if done != 1 else ''} (${total:,.2f}) paid" + (f" ({method})" if method else ""))
-    if held:
-        parts.append(f"{held} flight{'s' if held != 1 else ''} (${held_total:,.2f}) received - awaiting confirmation "
-                     f"by a Flight Admin (still unpaid until then)")
-    msg = ("; ".join(parts) + ".") if parts else "Nothing was marked paid."
+    msg = f"Marked {done} flight{'s' if done != 1 else ''} (${total:,.2f}) paid" + (f" ({method})" if method else "") + "."
     if skipped:
-        msg += f" {skipped} already paid or already awaiting confirmation - left alone."
-    flash(msg, "success" if done else ("info" if held else "warning"))
+        msg += f" {skipped} already paid - left alone."
+    flash(msg, "success" if done else "warning")
     return redirect(back)
 
 
@@ -8625,9 +8621,9 @@ def billing():
     sql += " ORDER BY f.student_id, f.flight_date, f.id"
     rows = conn.execute(sql).fetchall()
     flights = [_row_with_cost(r) for r in rows]
-    awaiting = flight_payments.pending_confirmation_map(conn)
+    office = flight_payments.verification_map(conn)
     for f in flights:
-        f["awaiting"] = awaiting.get(f["id"])
+        f["office"] = office.get(f["id"])
     wave_invoices = {r["id"]: dict(r) for r in conn.execute("SELECT * FROM wave_invoices WHERE kind = 'student'").fetchall()}
     wave_accounts, wave_default = wave_billing.program_accounts(conn, "flight")
     groups = {}
@@ -9052,11 +9048,12 @@ def charge_request_create(flight_id):
 
 
 # ---------------------------------------------------------------------------
-# Cash / check "Received - awaiting confirmation"
+# Cash / check collected by staff - office verification log
 # ---------------------------------------------------------------------------
-# Cash or a check taken by someone who is not a master admin or Flight Admin
-# is stored as a pending entry (flight_payment_confirmations) and the flight
-# stays Unpaid. An admin confirms it here (one tap) or rejects it with a reason.
+# Cash or a check collected by someone who is not a master admin or Flight
+# Admin posts as Paid right away and is also logged (flight_payment_confirmations)
+# so an admin can cross-check that the office received it ("Received at
+# office") or flag it ("Not received" - the payment is not reversed).
 
 def _notify_cash_check_pending(conn, conf_id):
     """Tells master admins and Flight Admins a cash/check entry is waiting. Best effort."""
@@ -9065,12 +9062,12 @@ def _notify_cash_check_pending(conn, conf_id):
                         WHERE c.id = ?""", (conf_id,)).fetchone()
     if not c:
         return
-    body = (f"{c['recorded_by'] or 'Someone'} received {c['method'] or 'a payment'} (${c['amount']:,.2f}) from "
-            f"{c['student_name']}. Confirm it under Cash/check to confirm.")
+    body = (f"{c['recorded_by'] or 'Someone'} collected {c['method'] or 'a payment'} (${c['amount']:,.2f}) from "
+            f"{c['student_name']}. Please check the office received it (Cash/check collected).")
     users = conn.execute(_FLIGHT_ADMIN_USERS_SQL).fetchall()
     for u in users:
         try:
-            push.queue_and_push(conn, u["id"], "Cash/check to confirm", body, tag=f"cash-check-{conf_id}",
+            push.queue_and_push(conn, u["id"], "Cash/check collected", body, tag=f"cash-check-{conf_id}",
                                 url=url_for("flight.cash_check_confirm"))
         except Exception:
             current_app.logger.exception("Cash/check push failed")
@@ -9079,95 +9076,80 @@ def _notify_cash_check_pending(conn, conf_id):
     def _send(users=users, settings=settings):
         for u in users:
             try:
-                notify.notify_user(settings, u, "Cash/check to confirm", body, brand="Fly with Kate!")
+                notify.notify_user(settings, u, "Cash/check collected", body, brand="Fly with Kate!")
             except Exception:
                 pass
     _in_background(_send)
 
 
-@flight_bp.context_processor
-def _inject_cash_check_rejections():
-    """Rejected cash/check entries the signed-in recorder hasn't seen yet (shown as a notice)."""
-    if not session.get("user_id") or session.get("student_id") and not session.get("cfi_id"):
-        return {}
-    try:
-        conn = get_db()
-        try:
-            rows = conn.execute("""SELECT c.id, c.amount, c.method, c.reject_reason, c.decided_by, s.name AS student_name
-                                   FROM flight_payment_confirmations c JOIN flights fl ON fl.id = c.flight_id
-                                   JOIN students s ON s.id = fl.student_id
-                                   WHERE c.status = 'rejected' AND c.recorded_by_user_id = ? AND c.recorder_seen_at IS NULL
-                                   ORDER BY c.id""", (session["user_id"],)).fetchall()
-            return {"cash_check_rejections": [dict(r) for r in rows]}
-        finally:
-            conn.close()
-    except Exception:
-        return {}
-
-
-@flight_bp.route("/billing/cash-check/seen", methods=["POST"])
-@login_required
-def cash_check_seen():
-    conn = get_db()
-    conn.execute("UPDATE flight_payment_confirmations SET recorder_seen_at = ? WHERE recorded_by_user_id = ? "
-                 "AND status = 'rejected' AND recorder_seen_at IS NULL", (now_iso(), session["user_id"]))
-    conn.commit()
-    conn.close()
-    return redirect(request.referrer or url_for("flight.dashboard"))
-
-
 @flight_bp.route("/billing/cash-check")
 @admin_required
 def cash_check_confirm():
+    """Cash/check collected by staff: unverified entries (with a running total per
+    collector), flagged "Not received" ones, and the recently verified."""
     conn = get_db()
     rows = conn.execute("""SELECT c.*, s.name AS student_name, fl.flight_date, a.tag AS plane_tag
                            FROM flight_payment_confirmations c
                            JOIN flights fl ON fl.id = c.flight_id JOIN students s ON s.id = fl.student_id
                            LEFT JOIN assets a ON a.id = fl.asset_id
-                           ORDER BY c.id DESC LIMIT 200""").fetchall()
+                           ORDER BY c.id DESC LIMIT 500""").fetchall()
     conn.close()
     items = [dict(r) for r in rows]
-    return render_template("flight/cash_check_confirm.html",
-                           pending=[i for i in items if i["status"] == "pending"][::-1],
-                           decided=[i for i in items if i["status"] != "pending"][:30])
+    sort = request.args.get("sort", "collector")
+    pending = [i for i in items if i["status"] == "pending"][::-1]
+    groups = {}
+    for i in pending:
+        g = groups.setdefault(i["recorded_by"] or "Unknown", {"name": i["recorded_by"] or "Unknown", "items": [], "total": 0.0})
+        g["items"].append(i)
+        g["total"] += i["amount"]
+    return render_template("flight/cash_check_confirm.html", sort=sort,
+                           pending=pending, groups=sorted(groups.values(), key=lambda g: g["name"].lower()),
+                           pending_total=sum(i["amount"] for i in pending),
+                           flagged=[i for i in items if i["status"] == "missing"][::-1],
+                           decided=[i for i in items if i["status"] == "verified"][:30])
 
 
-@flight_bp.route("/billing/cash-check/<int:conf_id>/confirm", methods=["POST"])
+@flight_bp.route("/billing/cash-check/<int:conf_id>/verify", methods=["POST"])
 @admin_required
-def cash_check_do_confirm(conf_id):
+def cash_check_verify(conf_id):
     conn = get_db()
-    r = flight_payments.confirm_pending(conn, conf_id, session.get("user_name"))
+    ok = flight_payments.verify_received(conn, conf_id, session.get("user_name"))
     conn.commit()
     conn.close()
-    flash(r["message"], "success" if r["ok"] else "warning")
+    flash("Marked received at the office." if ok else "That one was already handled.", "success" if ok else "warning")
     return redirect(url_for("flight.cash_check_confirm"))
 
 
-@flight_bp.route("/billing/cash-check/<int:conf_id>/reject", methods=["POST"])
+@flight_bp.route("/billing/cash-check/<int:conf_id>/flag", methods=["POST"])
 @admin_required
-def cash_check_do_reject(conf_id):
+def cash_check_flag(conf_id):
+    """"Not received": flags the entry and tells the admins. The payment is NOT reversed."""
     back = url_for("flight.cash_check_confirm")
-    reason = (request.form.get("reason") or "").strip()[:300]
-    if not reason:
-        flash("Type a short reason so the person who took the money knows why.", "danger")
+    note = (request.form.get("reason") or "").strip()[:300]
+    if not note:
+        flash("Type a short note about what is missing.", "danger")
         return redirect(back)
     conn = get_db()
-    row = flight_payments.reject_pending(conn, conf_id, session.get("user_name"), reason)
+    row = flight_payments.flag_missing(conn, conf_id, session.get("user_name"), note)
     if not row:
         conn.commit()
         conn.close()
         flash("That one was already handled.", "warning")
         return redirect(back)
-    if row["recorded_by_user_id"]:
+    info = conn.execute("""SELECT s.name AS student_name FROM flights fl JOIN students s ON s.id = fl.student_id
+                           WHERE fl.id = ?""", (row["flight_id"],)).fetchone()
+    body = (f"{row['method'] or 'Payment'} ${row['amount']:,.2f} collected by {row['recorded_by'] or 'staff'} from "
+            f"{info['student_name'] if info else 'a student'} was NOT received at the office: {note}. "
+            f"The flight is still marked paid - mark it unpaid by hand if needed.")
+    for u in conn.execute(_FLIGHT_ADMIN_USERS_SQL).fetchall():
         try:
-            push.queue_and_push(conn, row["recorded_by_user_id"], "Cash/check not confirmed",
-                                f"${row['amount']:,.2f} {row['method'] or ''} was not confirmed: {reason}",
-                                tag=f"cash-check-rej-{conf_id}", url=url_for("flight.billing"))
+            push.queue_and_push(conn, u["id"], "Cash/check not received", body, tag=f"cash-check-miss-{conf_id}",
+                                url=url_for("flight.cash_check_confirm"))
         except Exception:
-            current_app.logger.exception("Cash/check reject push failed")
+            current_app.logger.exception("Cash/check flag push failed")
     conn.commit()
     conn.close()
-    flash("Rejected. The flight stays unpaid and the person who recorded it will see why.", "success")
+    flash("Flagged as not received. The payment is still posted - mark the flight unpaid yourself if needed.", "success")
     return redirect(back)
 
 

@@ -183,13 +183,11 @@ def apply_funds_to_flights(conn, student_id, amount, flight_ids, method=None, no
     plain Funds Added line. The ledger therefore rises by exactly
     ``amount`` - never more.
 
-    When ``can_confirm`` is False and ``method`` is Cash or Check, the
-    ticked flights are NOT paid: each becomes a "Received - awaiting
-    confirmation" entry (see hold_for_confirmation) and only the leftover
-    goes on as a plain Funds Added line.
+    Cash/check taken by someone who is not a master admin / Flight Admin
+    (``can_confirm`` False) is paid as usual and also logged for office
+    verification (``logged_ids``).
 
     Returns {"ok": bool, "error": str or None, "paid": [labels...],
-    "held": [labels sent for confirmation...],
     "applied": dollars put on flights, "remainder": dollars left as funds}.
     Refuses (ok=False, nothing written) when the ticked flights need more
     than ``amount``, or one of them is not this student's unpaid flight.
@@ -200,142 +198,114 @@ def apply_funds_to_flights(conn, student_id, amount, flight_ids, method=None, no
     for fid in flight_ids:
         f = load_flight(conn, fid)
         if not f or f["student_id"] != student_id:
-            return {"ok": False, "error": "One of the ticked flights isn't this student's.", "paid": [], "held": [], "applied": 0.0, "remainder": 0.0}
+            return {"ok": False, "error": "One of the ticked flights isn't this student's.", "paid": [], "applied": 0.0, "remainder": 0.0}
         if f["paid"]:
             continue  # already paid meanwhile - nothing to apply
-        if pending_confirmation(conn, fid):
-            return {"ok": False, "error": f"{flight_label(f)} already has cash/check awaiting confirmation.",
-                    "paid": [], "held": [], "applied": 0.0, "remainder": 0.0}
         f["due"] = amount_due(conn, f)
         wanted.append(f)
     needed = round(sum(f["due"] for f in wanted), 2)
     if needed > amount + 0.005:
         return {"ok": False,
                 "error": f"The flights you ticked come to ${needed:,.2f} but you're adding ${amount:,.2f} - untick some or add more.",
-                "paid": [], "held": [], "applied": 0.0, "remainder": 0.0}
-    labels, held, held_ids = [], [], []
+                "paid": [], "applied": 0.0, "remainder": 0.0}
+    labels, logged_ids = [], []
     for f in wanted:
-        r = record_or_hold(conn, f["id"], method=method, note=note, created_by=created_by,
+        r = record_and_log(conn, f["id"], method=method, note=note, created_by=created_by,
                            can_confirm=can_confirm, user_id=user_id)
-        (held if r.get("pending") else labels).append(r["label"])
-        if r.get("pending"):
-            held_ids.append(r["confirmation_id"])
+        labels.append(r["label"])
+        if r.get("confirmation_id"):
+            logged_ids.append(r["confirmation_id"])
     remainder = round(amount - needed, 2)
     if remainder > 0.005:
         fl._ledger_entry(conn, student_id, "funds_added", remainder, note=note, created_by=created_by)
-    return {"ok": True, "error": None, "paid": labels, "held": held, "held_ids": held_ids, "applied": needed, "remainder": remainder}
+    return {"ok": True, "error": None, "paid": labels, "logged_ids": logged_ids, "applied": needed, "remainder": remainder}
 
 
 # ---------------------------------------------------------------------------
-# Cash / check "Received - awaiting confirmation"
+# Cash / check collected by staff: a verification log
 # ---------------------------------------------------------------------------
-# Cash and checks are easy to lose track of, so when someone who is not a
-# master admin or Flight Admin takes one, the flight is NOT marked paid and
-# nothing posts to the ledger. A flight_payment_confirmations row waits for an
-# admin to Confirm (which calls record_flight_payment, exactly as if the
-# admin had taken the money) or Reject (flight stays unpaid).
+# A CFI (anyone who is not a master admin / Flight Admin) can mark a flight
+# Paid right away when they collect cash or a check - it posts exactly as
+# any other payment. Each such payment also gets a row in
+# flight_payment_confirmations so an admin can cross-check that the office
+# really received the money. status: 'pending' = collected, not yet verified
+# at the office; 'verified' = "Received at office"; 'missing' = flagged "Not
+# received" (the payment is NOT reversed - the admin decides what to do).
+# Nothing here ever posts or reverses a payment.
 
 CONFIRM_METHODS = ("cash", "check")
 
 
 def needs_confirmation(method, can_confirm):
-    """True when this payment must wait for an admin: Cash or Check taken by
-    someone who is not a master admin / Flight Admin."""
+    """True when this payment should be logged for office verification:
+    Cash or Check recorded by someone who is not a master admin / Flight Admin."""
     return (not can_confirm) and (method or "").strip().lower() in CONFIRM_METHODS
 
 
-def pending_confirmation(conn, flight_id):
-    row = conn.execute("SELECT * FROM flight_payment_confirmations WHERE flight_id = ? AND status = 'pending' "
-                       "ORDER BY id DESC", (flight_id,)).fetchone()
-    return dict(row) if row else None
-
-
-def pending_confirmation_map(conn):
-    """{flight_id: pending row} - for the 'Received - awaiting confirmation' badge."""
-    return {r["flight_id"]: dict(r) for r in conn.execute(
-        "SELECT * FROM flight_payment_confirmations WHERE status = 'pending' ORDER BY id").fetchall()}
-
-
-def pending_confirmation_count(conn):
-    return conn.execute("SELECT COUNT(*) AS c FROM flight_payment_confirmations WHERE status = 'pending'").fetchone()["c"]
-
-
-def hold_for_confirmation(conn, flight_id, method=None, note=None, recorded_by=None, user_id=None, amount=None):
-    """Stores a 'Received - awaiting confirmation' entry. Nothing is marked
-    paid and nothing is posted. Returns the record_flight_payment-shaped
-    dict plus ``pending`` (True when an entry was stored), ``error`` and
-    ``confirmation_id``. Doesn't commit."""
+def log_collected(conn, flight_id, method, amount, note=None, collected_by=None, user_id=None):
+    """Adds the verification row (status 'pending') for money just collected.
+    Returns its id, or None when nothing was collected. Doesn't commit."""
     fl = _flight()
-    f = load_flight(conn, flight_id)
-    if not f:
-        return {"ok": False, "pending": False, "already_paid": False, "flight": None, "recorded": 0.0,
-                "label": "", "student_name": "", "error": "Flight not found.", "confirmation_id": None}
-    res = {"ok": True, "pending": False, "already_paid": bool(f["paid"]), "flight": f, "recorded": 0.0,
-           "label": flight_label(f), "student_name": f["student_name"], "error": None, "confirmation_id": None}
-    if f["paid"]:
-        return res
-    if pending_confirmation(conn, flight_id):
-        res["ok"] = False
-        res["error"] = "That flight already has cash/check awaiting confirmation."
-        return res
-    due = amount_due(conn, f)
-    pay = due if amount is None else round(max(0.0, min(float(amount), due)), 2)
+    amount = round(float(amount or 0), 2)
+    if amount <= 0.005:
+        return None
     cur = conn.execute("""INSERT INTO flight_payment_confirmations
                           (flight_id, amount, method, note, recorded_by, recorded_by_user_id, recorded_at, status)
                           VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')""",
-                       (flight_id, pay, method, note, recorded_by, user_id, fl.now_iso()))
-    res["pending"] = True
-    res["confirmation_id"] = cur.lastrowid
+                       (flight_id, amount, method, note, collected_by, user_id, fl.now_iso()))
     fl._log_field_change(conn, "flight_payment_confirmation", cur.lastrowid, "status", "",
-                         f"received - awaiting confirmation (${pay:,.2f}{' ' + method if method else ''})", recorded_by)
-    return res
+                         f"collected, not yet verified (${amount:,.2f}{' ' + method if method else ''})", collected_by)
+    return cur.lastrowid
 
 
-def record_or_hold(conn, flight_id, method=None, note=None, created_by=None, amount=None, can_confirm=True, user_id=None):
-    """The one entry point for 'someone recorded a payment': cash/check from a
-    non-admin is held for confirmation, everything else is recorded as paid
-    right away. Result always has ``pending`` (bool) and ``error``."""
-    if needs_confirmation(method, can_confirm):
-        return hold_for_confirmation(conn, flight_id, method=method, note=note, recorded_by=created_by,
-                                     user_id=user_id, amount=amount)
+def verification_map(conn):
+    """{flight_id: 'missing' | 'pending' | 'verified'} for the small badge shown to admins/billers."""
+    out = {}
+    rank = {"verified": 1, "pending": 2, "missing": 3}
+    for r in conn.execute("SELECT flight_id, status FROM flight_payment_confirmations").fetchall():
+        if rank.get(r["status"], 0) > rank.get(out.get(r["flight_id"]), 0):
+            out[r["flight_id"]] = r["status"]
+    return out
+
+
+def pending_confirmation_count(conn):
+    """Collected but not yet verified at the office (the red count)."""
+    return conn.execute("SELECT COUNT(*) AS c FROM flight_payment_confirmations WHERE status = 'pending'").fetchone()["c"]
+
+
+def record_and_log(conn, flight_id, method=None, note=None, created_by=None, amount=None, can_confirm=True, user_id=None):
+    """record_flight_payment, plus a verification row when a non-admin took
+    cash/check. The flight is Paid immediately either way. The result gets
+    ``confirmation_id`` (the new row's id or None) and ``error`` (None)."""
     r = record_flight_payment(conn, flight_id, method=method, note=note, created_by=created_by, amount=amount)
-    r["pending"] = False
     r["error"] = None
+    r["confirmation_id"] = None
+    if r["ok"] and not r["already_paid"] and needs_confirmation(method, can_confirm):
+        r["confirmation_id"] = log_collected(conn, flight_id, method, r["recorded"], note, created_by, user_id)
     return r
 
 
-def confirm_pending(conn, conf_id, who):
-    """Admin taps Confirm: the payment is recorded exactly as if the admin
-    had taken it. Returns {"ok", "message", "result"}. Doesn't commit."""
+def verify_received(conn, conf_id, who):
+    """Admin taps "Received at office". Marks the entry verified (also clears a
+    'missing' flag). Never posts a payment. Returns True if it changed."""
     fl = _flight()
-    claimed = conn.execute("UPDATE flight_payment_confirmations SET status = 'confirmed', decided_by = ?, decided_at = ? "
-                           "WHERE id = ? AND status = 'pending'", (who, fl.now_iso(), conf_id)).rowcount
-    if claimed != 1:
-        return {"ok": False, "message": "That one was already handled.", "result": None}
-    c = conn.execute("SELECT * FROM flight_payment_confirmations WHERE id = ?", (conf_id,)).fetchone()
-    fl._log_field_change(conn, "flight_payment_confirmation", conf_id, "status", "pending", "confirmed", who)
-    note = c["note"] or ""
-    extra = f"received by {c['recorded_by'] or 'staff'}, confirmed by {who}"
-    note = f"{note} - {extra}" if note else extra
-    r = record_flight_payment(conn, c["flight_id"], method=c["method"], note=note, created_by=who, amount=c["amount"])
-    if not r["ok"]:
-        return {"ok": False, "message": "Flight not found.", "result": r}
-    if r["already_paid"]:
-        return {"ok": True, "result": r,
-                "message": f"{r['label']} was already paid another way, so nothing was posted. "
-                           f"If this {c['method'] or 'money'} was really collected, adjust the student's account by hand."}
-    return {"ok": True, "result": r, "message": f"Confirmed - {r['label']} is now paid for {r['student_name']}."}
+    old = conn.execute("SELECT status FROM flight_payment_confirmations WHERE id = ?", (conf_id,)).fetchone()
+    n = conn.execute("UPDATE flight_payment_confirmations SET status = 'verified', decided_by = ?, decided_at = ? "
+                     "WHERE id = ? AND status IN ('pending', 'missing')", (who, fl.now_iso(), conf_id)).rowcount
+    if n == 1:
+        fl._log_field_change(conn, "flight_payment_confirmation", conf_id, "status", old["status"], "verified", who)
+    return n == 1
 
 
-def reject_pending(conn, conf_id, who, reason):
-    """Admin taps Reject (with a reason): the flight stays unpaid. Returns the
-    row dict or None if it was already handled. Doesn't commit."""
+def flag_missing(conn, conf_id, who, note):
+    """Admin taps "Not received" (with a note): flags the entry. The payment
+    stays posted. Returns the row dict, or None if it was already handled."""
     fl = _flight()
-    n = conn.execute("UPDATE flight_payment_confirmations SET status = 'rejected', decided_by = ?, decided_at = ?, "
-                     "reject_reason = ? WHERE id = ? AND status = 'pending'", (who, fl.now_iso(), reason, conf_id)).rowcount
+    n = conn.execute("UPDATE flight_payment_confirmations SET status = 'missing', decided_by = ?, decided_at = ?, "
+                     "reject_reason = ? WHERE id = ? AND status = 'pending'", (who, fl.now_iso(), note, conf_id)).rowcount
     if n != 1:
         return None
-    fl._log_field_change(conn, "flight_payment_confirmation", conf_id, "status", "pending", "rejected: " + reason, who)
+    fl._log_field_change(conn, "flight_payment_confirmation", conf_id, "status", "pending", "missing: " + note, who)
     return dict(conn.execute("SELECT * FROM flight_payment_confirmations WHERE id = ?", (conf_id,)).fetchone())
 
 
