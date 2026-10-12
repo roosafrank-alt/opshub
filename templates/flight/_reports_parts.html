@@ -52,7 +52,7 @@
 <div class="card p-3 mb-4">
   {% for r in rows %}
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
-    <div class="flex-grow-1" style="min-width:220px;">
+    <div class="flex-grow-1 min-col-220">
       <div><span class="badge {{ report_style[r.category][1] }}"><i class="bi {{ report_style[r.category][0] }}"></i> {{ categories.get(r.category, r.category) }}</span>
         {% if r.plane_tag %}<strong>{{ r.plane_tag }}</strong> &middot; {% endif %}{{ r.notes }}</div>
       <small class="text-muted">{% if not mine %}{{ r.reported_by or 'Someone' }}, {% endif %}{{ r.reported_at|usdate(true) }}</small>

@@ -68,7 +68,7 @@
       </tr></thead>
       <tbody>
       {% for e in entries %}
-        <tr class="{{ 'pending' if e.status == 'pending' }}" style="cursor:pointer" onclick="location.href='{{ url_for('pilotlog.entry', entry_id=e.id) }}'">
+        <tr class="{{ 'pending' if e.status == 'pending' }} pointer-cursor" onclick="location.href='{{ url_for('pilotlog.entry', entry_id=e.id) }}'">
           <td>{{ e.entry_date|usdate }}</td>
           <td>{{ e.tail }} <small class="text-muted">{{ e.make_model or '' }}</small></td>
           <td>{{ [e.route_from, e.route_to]|select|join(' - ') or '-' }}</td>

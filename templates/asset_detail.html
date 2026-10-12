@@ -9,10 +9,10 @@
    and the AD controls and can read the rest. Delete is admin only. #}
 {% set is_admin_role = session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
 {% if photos %}
-<img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;">
+<img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-3 photo-banner">
 {% elif project_cover %}
 {# No aircraft photo yet - borrow the newest project's photo until one is added here. #}
-<img src="{{ url_for('static', filename='uploads/' + project_cover.filename) }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;" title="Photo from project {{ project_cover.project_name }}">
+<img src="{{ url_for('static', filename='uploads/' + project_cover.filename) }}" class="img-fluid rounded mb-3 photo-banner" title="Photo from project {{ project_cover.project_name }}">
 {% endif %}
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
   <div>
@@ -51,7 +51,7 @@
     <div><strong>{{ sq.event_date|usdate }}</strong> &middot;
       {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
       {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
-    <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+    <div class="pre-wrap-text">{{ sq.notes or '(no details given)' }}</div>
     <div class="squawk-row-actions">
       {{ squawk_step_pills(sq) }}
       {% if can_assign_squawks %}
@@ -107,7 +107,7 @@
         <div class="col-4">
           <div class="position-relative">
             <a href="{{ url_for('static', filename='uploads/' + photo.filename) }}" target="_blank">
-              <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="img-fluid rounded" style="aspect-ratio:1; object-fit:cover; width:100%;">
+              <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="img-fluid rounded photo-square">
             </a>
             {% if photo.is_cover %}
             <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-1"><i class="bi bi-star-fill"></i> Cover</span>
@@ -170,7 +170,7 @@
     {% if asset.notes %}
     <div class="card p-3 mt-3">
       <h6>Notes</h6>
-      <p class="mb-0" style="white-space:pre-wrap;">{{ asset.notes }}</p>
+      <p class="mb-0 pre-wrap-text">{{ asset.notes }}</p>
     </div>
     {% endif %}
 
@@ -412,7 +412,7 @@
               {% else %}
               {% if can_assign_squawks %}
               <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1" data-confirm="Mark this task done? An Inspector or admin will still need to confirm it.">
-                <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark done">
+                <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent icon-btn-tight" title="Mark done">
                   <i class="bi bi-square fs-5"></i>
                 </button>
                 {#- JOBS-36: the to-do text is plain text now. Starting a project
@@ -475,7 +475,7 @@
             <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
               {% if can_assign_squawks %}
               <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=asset.id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1" data-confirm="Reopen this to-do?" data-confirm-title="Reopen To-Do" data-confirm-ok="Reopen" data-confirm-style="warning" data-change="JOBS-42">
-                <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark not done">
+                <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent icon-btn-tight" title="Mark not done">
                   <i class="bi bi-check-square-fill text-success fs-5"></i>
                 </button>
                 <span class="text-decoration-line-through text-muted">{{ t.description }}</span>

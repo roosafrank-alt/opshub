@@ -73,7 +73,7 @@
       <thead class="table-light"><tr><th><input type="checkbox" class="form-check-input billing-select-group" data-group="{{ g.student_id }}"></th><th>Date</th><th>Plane</th><th>Instructor</th><th>Flight Hrs</th><th>Ground Hrs</th><th>Plane $</th><th>Instructor $</th><th>Ground $</th><th>Total</th>{% if status == 'all' %}<th>Status</th>{% endif %}<th></th></tr></thead>
       <tbody>
         {% for f in g.flights %}
-        <tr class="billing-row" style="cursor:pointer;" data-href="{{ url_for('flight.log_detail', flight_id=f.id) }}">
+        <tr class="billing-row pointer-cursor" data-href="{{ url_for('flight.log_detail', flight_id=f.id) }}">
           <td data-label="Select"><input type="checkbox" class="form-check-input billing-select-row" data-group="{{ g.student_id }}" value="{{ f.id }}" data-total="{{ '%.2f'|format(f.total) }}" {{ 'disabled' if f.paid and status == 'all' }}></td>
           <td data-label="Date"><small>{{ f.flight_date|usdate }}</small></td>
           <td data-label="Plane">{{ f.plane_tag }}</td>

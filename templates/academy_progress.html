@@ -2,15 +2,13 @@
 {% block title %}Progress · Flight Academy{% endblock %}
 {% block content %}
 <style>
-  .pg-bar { position: relative; height: 1.1rem; border-radius: 999px; background: #e9ecef; overflow: hidden; }
-  .pg-fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #2b3fdb, #4dabf7); overflow: hidden; }
-  .pg-fill.done { background: linear-gradient(90deg, #2f9e44, #69db7c); }
+  .pg-bar { height: 1.1rem; }
+  .pg-fill { overflow: hidden; }
   .pg-fill::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
     background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); animation: pg-shimmer 2.2s infinite; }
   @keyframes pg-shimmer { 100% { transform: translateX(100%); } }
   @media (prefers-reduced-motion: reduce) { .pg-fill::after { animation: none; } }
   .pg-big { height: 1.6rem; }
-  .pg-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 800; color: #14213d; }
   .req { display: flex; gap: .6rem; align-items: flex-start; padding: .45rem 0; border-top: 1px solid #eef0f3; }
   .req:first-child { border-top: 0; }
   .req-check { font-size: 1.25rem; line-height: 1; }
@@ -63,7 +61,7 @@
               <input type="hidden" name="student_id" value="{{ student.id }}"><input type="hidden" name="track" value="{{ t.code }}"><input type="hidden" name="item" value="{{ it.code }}">
               {% if not it.done %}
               <input type="date" name="done_date" class="form-control form-control-sm" style="max-width:150px;">
-              <input type="text" name="note" placeholder="note (optional)" class="form-control form-control-sm" style="max-width:220px;">
+              <input type="text" name="note" placeholder="note (optional)" class="form-control form-control-sm narrow-field">
               <button class="btn btn-outline-success btn-sm"><i class="bi bi-check2"></i> Check off</button>
               {% else %}
               <button class="btn btn-link btn-sm p-0 text-muted">Undo</button>

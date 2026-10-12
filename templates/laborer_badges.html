@@ -16,7 +16,7 @@
 <div class="d-flex flex-wrap gap-3 justify-content-center">
   {% for l in laborers %}
   <div class="label-card" style="width: 220px; padding: 16px;">
-    <div style="font-weight:700;">{{ l.name }}</div>
+    <div class="bold-text">{{ l.name }}</div>
     <div class="laborer-qr d-flex justify-content-center my-2" data-code="{{ l.code }}"></div>
     <div style="font-size:0.85rem; font-weight:700; letter-spacing:1px;">{{ l.code }}</div>
     <form method="post" action="{{ url_for('laborer_print_label', laborer_id=l.id) }}" class="no-print mt-2">

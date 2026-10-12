@@ -21,7 +21,7 @@
 </div>
 {% endif %}
 {% if photos %}
-<img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;">
+<img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-3 photo-banner">
 {% endif %}
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
   <div>
@@ -223,7 +223,7 @@
            project_section_confirm (actually completes it, or sends it
            back). #}
         <div class="card mb-2 {{ 'border-success' if data.completed_at else ('border-warning' if data.confirm_requested_at) }}">
-          <div class="card-header" style="cursor:pointer" onclick="toggleSection('{{ loop.index }}')">
+          <div class="card-header pointer-cursor" onclick="toggleSection('{{ loop.index }}')">
             <div class="d-flex justify-content-between align-items-center {{ 'bg-success-subtle' if data.completed_at else ('bg-warning-subtle' if data.confirm_requested_at) }}">
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 {% if section != 'General' and data.id and not is_deleted %}
@@ -238,7 +238,7 @@
                       data-confirm-title="{{ 'Undo Sign-off' if data.completed_at else ('Back to Open' if data.confirm_requested_at else 'Ready for Confirmation') }}"
                       data-confirm-style="{{ 'warning' if (data.completed_at or data.confirm_requested_at) else 'primary' }}" data-change="JOBS-12">
                   <input type="hidden" name="completed" value="{{ '0' if (data.completed_at or data.confirm_requested_at) else '1' }}">
-                  <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="{{ 'Mark not ready' if (data.completed_at or data.confirm_requested_at) else 'Mark ready for confirmation' }}">
+                  <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent icon-btn-tight" title="{{ 'Mark not ready' if (data.completed_at or data.confirm_requested_at) else 'Mark ready for confirmation' }}">
                     <i class="bi {{ 'bi-check-square-fill text-success' if data.completed_at else ('bi-check-square-fill text-warning' if data.confirm_requested_at else 'bi-square') }} fs-5"></i>
                   </button>
                 </form>
@@ -254,7 +254,7 @@
                    below expands the area and opens the notes form in one click,
                    instead of dropdown-then-notes-toggle). #}
                 {% if data.description or data.notes %}
-                <span class="text-muted small text-truncate" style="max-width:220px;" title="{{ data.description or data.notes }}">{{ data.description or data.notes }}</span>
+                <span class="text-muted small text-truncate narrow-field" title="{{ data.description or data.notes }}">{{ data.description or data.notes }}</span>
                 {% endif %}
                 <button type="button" class="btn btn-link btn-sm p-0" onclick="event.stopPropagation(); openSectionNotes('{{ loop.index }}');" title="Edit description/notes"><i class="bi bi-pencil-square"></i></button>
                 {% endif %}
@@ -470,7 +470,7 @@
       <div class="py-2 {{ 'border-top' if not loop.first }}">
         <div class="d-flex justify-content-between align-items-start gap-2">
           <div>
-            <div class="fw-bold" style="white-space:pre-wrap;">{{ it.description }}</div>
+            <div class="fw-bold pre-wrap-text">{{ it.description }}</div>
             <div class="small text-muted">${{ '{:,.2f}'.format(it.est_total) }} est. &middot; added by {{ it.created_by or 'staff' }} {{ it.created_at|usdate }}</div>
           </div>
           {% if it.status == 'waiting' %}<span class="badge bg-warning text-dark">Waiting</span>
@@ -479,7 +479,7 @@
         </div>
         {% if it.photos %}
         <div class="d-flex flex-wrap gap-1 mt-1">
-          {% for fn in it.photos %}<a href="{{ url_for('static', filename='uploads/' + fn) }}" target="_blank" rel="noopener"><img src="{{ url_for('static', filename='uploads/' + fn) }}" alt="Found item photo" class="rounded border" style="width:56px;height:56px;object-fit:cover;"></a>{% endfor %}
+          {% for fn in it.photos %}<a href="{{ url_for('static', filename='uploads/' + fn) }}" target="_blank" rel="noopener"><img src="{{ url_for('static', filename='uploads/' + fn) }}" alt="Found item photo" class="rounded border photo-thumb"></a>{% endfor %}
         </div>
         {% endif %}
         {% if it.status != 'waiting' %}
@@ -504,10 +504,10 @@
           <div class="small mb-2 {{ 'text-end' if m.author_type == 'shop' }}">
             <div class="d-inline-block p-2 rounded {{ 'bg-primary text-white' if m.author_type == 'shop' else 'bg-light border' }}" style="max-width:85%; text-align:left;">
               <div class="fw-bold">{{ m.author_name or ('The owner' if m.author_type == 'owner' else 'Staff') }} <span class="fw-normal {{ 'text-white-50' if m.author_type == 'shop' else 'text-muted' }}">{{ m.created_at|usdate(true) }}</span></div>
-              <div style="white-space:pre-wrap;">{{ m.body }}</div>
+              <div class="pre-wrap-text">{{ m.body }}</div>
               {% if m.photos %}
               <div class="d-flex flex-wrap gap-1 mt-1">
-                {% for fn in m.photos %}<a href="{{ url_for('static', filename='uploads/' + fn) }}" target="_blank" rel="noopener"><img src="{{ url_for('static', filename='uploads/' + fn) }}" alt="Photo" class="rounded border" style="width:56px;height:56px;object-fit:cover;"></a>{% endfor %}
+                {% for fn in m.photos %}<a href="{{ url_for('static', filename='uploads/' + fn) }}" target="_blank" rel="noopener"><img src="{{ url_for('static', filename='uploads/' + fn) }}" alt="Photo" class="rounded border photo-thumb"></a>{% endfor %}
               </div>
               {% endif %}
             </div>
@@ -565,7 +565,7 @@
         <div class="col-4 col-md-3">
           <div class="position-relative">
             <a href="{{ url_for('static', filename='uploads/' + photo.filename) }}" target="_blank">
-              <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="img-fluid rounded" style="aspect-ratio:1; object-fit:cover; width:100%;">
+              <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="img-fluid rounded photo-square">
             </a>
             {% if photo.is_cover %}
             <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-1"><i class="bi bi-star-fill"></i> Cover</span>
@@ -669,7 +669,7 @@
       <div class="text-uppercase text-muted small fw-bold mb-1">Squawks</div>
       {% for sq in plane_squawks %}
       <div id="squawk-{{ sq.kind }}-{{ sq.squawk_id }}" class="d-flex flex-column gap-1 py-2 squawk-item {{ 'border-top' if not loop.first }}">
-        <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+        <div class="pre-wrap-text">{{ sq.notes or '(no details given)' }}</div>
         {{ squawk_assigned_line(sq) }}
         <div class="squawk-row-actions">
           {{ squawk_step_pills(sq) }}
