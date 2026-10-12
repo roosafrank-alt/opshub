@@ -653,9 +653,45 @@ def _refresh_or_expire_customer_session():
     return None
 
 
+def _can_view_as_customer():
+    """HUB-46: only a real Winds Aloft admin (master admin or shop admin, not in the middle of
+    a Switch role preview) may look at a customer's portal."""
+    return bool(session.get("user_id") and not session.get("_view_as_real")
+                and (session.get("is_master_admin") or session.get("shop_role") == "admin"))
+
+
+def viewing_customer_id():
+    """The customers.id an admin is currently looking at (look only), or None."""
+    cid = session.get("customer_view_id")
+    return cid if cid and _can_view_as_customer() else None
+
+
+def portal_customer(conn):
+    """The customer whose portal is on screen: the one an admin is looking at (HUB-46), else the
+    signed-in customer. The home screen and program tiles keep using current_customer()."""
+    cid = viewing_customer_id() or session.get("customer_id")
+    if not cid:
+        return None
+    return conn.execute("SELECT * FROM customers WHERE id = ?", (cid,)).fetchone()
+
+
 def customer_login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
+        vid = viewing_customer_id()
+        if vid:
+            # HUB-46: an admin looking at a customer's portal. Look only: nothing can be changed.
+            expired = refresh_or_expire_session()
+            if expired:
+                return expired
+            if request.method not in ("GET", "HEAD"):
+                if request.endpoint == "customer.customer_tour_seen":
+                    return ("", 204)
+                flash("You're only looking at this customer's portal, so nothing was changed.", "warning")
+                ref = request.referrer or ""
+                host = request.host_url.rstrip("/")
+                return redirect(ref[len(host):] if ref.startswith(host + "/") else url_for("customer.customer_dashboard"))
+            return f(*args, **kwargs)
         if not session.get("customer_id"):
             return _no_access_redirect()
         expired = _refresh_or_expire_customer_session()

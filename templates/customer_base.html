@@ -30,6 +30,17 @@
                    brand_id='tour-owner-brand', account_from='owner', has_nav=False,
                    brand_change='SEAM-11 SEAM-13') %}
 {% endcall %}
+{% if portal_viewing %}
+{#- HUB-46: an admin looking at this customer's portal. Look only. #}
+<div class="bg-warning-subtle border-bottom border-warning py-2" data-change="HUB-46">
+  <div class="container d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div><i class="bi bi-eye"></i> <strong>Looking at {{ portal_viewing.name }}'s portal.</strong> Look only: nothing here can be changed.</div>
+    <form method="post" action="{{ url_for('customer.portal_view_exit') }}" class="m-0">
+      <button class="btn btn-dark btn-sm fw-bold" type="submit">Exit</button>
+    </form>
+  </div>
+</div>
+{% endif %}
 <div class="container py-3">
   {% include "_flash_messages.html" %}
   {% block content %}{% endblock %}
@@ -39,7 +50,7 @@
 <script src="{{ url_for('static', filename='js/tour.js') }}"></script>
 {#- SEAM-19: a three-stop walkthrough for the owner portal, shown once and
    replayable from My Account (?tour=1). #}
-{% if customer and (request.args.get('tour') == '1' or not customer.tour_seen) %}
+{% if customer and not portal_viewing and (request.args.get('tour') == '1' or not customer.tour_seen) %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   OpsHubTour.start([

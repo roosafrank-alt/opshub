@@ -9,7 +9,8 @@
    straight back to your normal view. See auth.view_as_chips. This is the
    only way to look at the app as someone else. #}
 {% set chips = view_as_chip_rows.get(view_as_program, []) if view_as_chip_rows else [] %}
-{% if chips %}
+{% set can_look_at_customers = view_as_program == 'shop' and session.get('user_id') and not session.get('_view_as_real') and (session.get('is_master_admin') or session.get('shop_role') == 'admin') %}
+{% if chips or can_look_at_customers %}
 <div class="view-as-chips d-flex align-items-center flex-nowrap gap-1 text-nowrap" style="font-size:.68rem;" data-change="HUB-03">
   <span class="text-white-50">Switch role:</span>
   {% for chip in chips %}
@@ -21,5 +22,9 @@
   </form>
   {% endif %}
   {% endfor %}
+  {% if can_look_at_customers %}
+  {#- HUB-46: the Customer view - look at a customer's My Aircraft portal, look only. #}
+  <a href="{{ url_for('customer.portal_view_picker') }}" class="btn btn-outline-light py-0 px-2" style="font-size:.68rem; line-height:1.5;" title="Look at a customer's portal" data-change="HUB-46">Customer</a>
+  {% endif %}
 </div>
 {% endif %}

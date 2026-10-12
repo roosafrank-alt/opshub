@@ -8,7 +8,7 @@ flight._next_lesson_preview (built in log_history, off log_end's
 ?ended_flight_id= redirect) and the box itself in base_flight.html's flash
 loop."""
 import re
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import db
 import flight
@@ -33,13 +33,15 @@ class BookNextLessonTest(OpsHubTestCase):
         self.asset = self.exec(
             "INSERT INTO assets (tag, name, is_flight_asset, hobbs_hours, tach_hours, created_at, updated_at) "
             "VALUES (?,?,1,?,?,?,?)", ("N81PA", "Piper Archer", 500.0, 480.0, db.now_iso(), db.now_iso()))
-        self.started_at = "2026-09-28 09:00:00"
+        # relative to today so the booked "week later" slot is always in the future (a fixed date goes stale)
+        self._day = date.today() - timedelta(days=2)
+        self.started_at = self._day.strftime("%Y-%m-%d") + " 09:00:00"
 
     def _running_flight(self, **kw):
         kw.setdefault("cfi_id", self.cfi)
         kw.setdefault("student_id", self.student)
         kw.setdefault("asset_id", self.asset)
-        kw.setdefault("flight_date", "2026-09-28")
+        kw.setdefault("flight_date", self._day.strftime("%Y-%m-%d"))
         kw.setdefault("solo", 0)
         kw.setdefault("started_at", self.started_at)
         kw.setdefault("hobbs_start", 500.0)
@@ -92,7 +94,7 @@ class BookNextLessonTest(OpsHubTestCase):
                        (self.asset, self.student))
         self.assertIsNotNone(row)
         self.assertEqual(row["cfi_id"], self.cfi)
-        self.assertEqual(row["scheduled_date"], "2026-10-05")
+        self.assertEqual(row["scheduled_date"], (self._day + timedelta(days=7)).strftime("%Y-%m-%d"))
         self.assertEqual(row["scheduled_time"], "09:00")
         self.assertEqual(row["status"], "scheduled")
 
@@ -108,7 +110,7 @@ class BookNextLessonTest(OpsHubTestCase):
         self.assertIsNotNone(asset_option)
         self.assertIn("selected", asset_option.group(0))
         self.assertIn(f'value="{self.cfi}"', form_html)
-        self.assertIn('value="2026-10-05"', form_html)
+        self.assertIn('value="%s"' % (self._day + timedelta(days=7)).strftime("%Y-%m-%d"), form_html)
         # The hidden <select> that actually submits has the right student
         # marked selected (the visible combo box reads its label from this
         # on page load - see the student-combo script).

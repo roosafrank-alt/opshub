@@ -19,7 +19,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from werkzeug.security import generate_password_hash
 
 from db import get_db, now_iso, gen_project_code, asset_meter, maintenance_status, found_item_messages, allowed_image, save_upload
-from auth import log_out_user, current_customer, customer_login_required
+from auth import log_out_user, current_customer, customer_login_required, portal_customer, viewing_customer_id, shop_role_required
 
 customer_bp = Blueprint("customer", __name__, url_prefix="/portal")
 
@@ -112,10 +112,10 @@ def customer_account():
     """SEAM-7: a small My Account page for aircraft owners - name, email,
     phone and a new password (8+ characters, HUB-27). Someone who also has
     a staff login changes those on the shared My Account page instead."""
-    if session.get("user_id"):
+    if session.get("user_id") and not viewing_customer_id():
         return redirect(url_for("account_page", **{"from": "owner"}))
     conn = get_db()
-    cust = current_customer(conn)
+    cust = portal_customer(conn)
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip()
@@ -161,7 +161,7 @@ def customer_tour_seen():
     """SEAM-19: the owner portal's three-stop walkthrough, remembered per
     customer account once finished or skipped."""
     conn = get_db()
-    conn.execute("UPDATE customers SET tour_seen = 1 WHERE id = ?", (session["customer_id"],))
+    conn.execute("UPDATE customers SET tour_seen = 1 WHERE id = ?", (session["customer_id"],))   # (never reached while an admin is only looking: HUB-46)
     conn.commit()
     conn.close()
     return ("", 204)
@@ -171,7 +171,7 @@ def customer_tour_seen():
 @customer_login_required
 def customer_dashboard():
     conn = get_db()
-    cust = current_customer(conn)
+    cust = portal_customer(conn)
     if not cust:
         conn.close()
         return redirect(url_for("home_launcher"))
@@ -213,7 +213,7 @@ def customer_dashboard():
 @customer_login_required
 def customer_asset(asset_id):
     conn = get_db()
-    cust = current_customer(conn)
+    cust = portal_customer(conn)
     asset = _require_owned_asset(conn, cust["id"], asset_id)
     multi_plane = len(_owned_asset_ids(conn, cust["id"])) > 1
 
@@ -267,7 +267,7 @@ def customer_book_item(asset_id, item_id):
     plane (no date yet) carrying the week they'd like. The shop sets the date;
     until then it shows under Appointments as Requested."""
     conn = get_db()
-    cust = current_customer(conn)
+    cust = portal_customer(conn)
     asset = _require_owned_asset(conn, cust["id"], asset_id)
     item = conn.execute("SELECT * FROM maintenance_items WHERE id = ? AND asset_id = ? AND active = 1",
                         (item_id, asset_id)).fetchone()
@@ -319,7 +319,7 @@ def _found_items_for_asset(conn, asset_id):
 @customer_login_required
 def customer_update_hours(asset_id):
     conn = get_db()
-    cust = current_customer(conn)
+    cust = portal_customer(conn)
     _require_owned_asset(conn, cust["id"], asset_id)
     def _parse_float(v):
         try:
@@ -349,7 +349,7 @@ def customer_update_hours(asset_id):
 @customer_login_required
 def customer_confirm_appointment(project_id):
     conn = get_db()
-    cust = current_customer(conn)
+    cust = portal_customer(conn)
     project = conn.execute("SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
     if not project or project["asset_id"] not in _owned_asset_ids(conn, cust["id"]):
         conn.close()
@@ -367,7 +367,7 @@ def customer_confirm_appointment(project_id):
 @customer_login_required
 def customer_request_reschedule(project_id):
     conn = get_db()
-    cust = current_customer(conn)
+    cust = portal_customer(conn)
     project = conn.execute("SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
     if not project or project["asset_id"] not in _owned_asset_ids(conn, cust["id"]):
         conn.close()
@@ -394,7 +394,7 @@ def customer_found_item_decide(item_id):
     job so the work and parts land there; either way the answer, who gave
     it and when are kept on the record."""
     conn = get_db()
-    cust = current_customer(conn)
+    cust = portal_customer(conn)
     item = conn.execute("""SELECT fi.*, p.asset_id FROM found_items fi JOIN projects p ON p.id = fi.project_id
                            WHERE fi.id = ? AND p.deleted_at IS NULL""", (item_id,)).fetchone()
     if not item or item["asset_id"] not in _owned_asset_ids(conn, cust["id"]):
@@ -450,7 +450,7 @@ def customer_found_item_message(item_id):
     the shop on the project page. Works whatever the item's status is, so
     an owner can ask a question or explain a decline even after answering."""
     conn = get_db()
-    cust = current_customer(conn)
+    cust = portal_customer(conn)
     item = conn.execute("""SELECT fi.*, p.asset_id FROM found_items fi JOIN projects p ON p.id = fi.project_id
                            WHERE fi.id = ? AND p.deleted_at IS NULL""", (item_id,)).fetchone()
     if not item or item["asset_id"] not in _owned_asset_ids(conn, cust["id"]):
@@ -480,3 +480,50 @@ def customer_found_item_message(item_id):
     conn.close()
     flash("Note sent.", "success")
     return redirect(url_for("customer.customer_asset", asset_id=item["asset_id"]) + "#found-items")
+
+
+# ---------------------------------------------------------------------------
+# HUB-46: a Winds Aloft admin looks at a customer's portal (look only)
+# ---------------------------------------------------------------------------
+@customer_bp.app_context_processor
+def _portal_view_context():
+    vid = viewing_customer_id()
+    if not vid:
+        return {"portal_viewing": None}
+    conn = get_db()
+    row = conn.execute("SELECT id, name FROM customers WHERE id = ?", (vid,)).fetchone()
+    conn.close()
+    return {"portal_viewing": dict(row) if row else None}
+
+
+@customer_bp.route("/view-as")
+@shop_role_required('admin')
+def portal_view_picker():
+    """Pick which customer's portal to look at."""
+    conn = get_db()
+    customers = conn.execute("SELECT * FROM customers WHERE active = 1 ORDER BY lower(name)").fetchall()
+    planes = {}
+    for r in conn.execute("""SELECT ca.customer_id, a.tag FROM customer_assets ca JOIN assets a ON a.id = ca.asset_id
+                             WHERE a.deleted_at IS NULL ORDER BY a.tag""").fetchall():
+        planes.setdefault(r["customer_id"], []).append(r["tag"])
+    conn.close()
+    return render_template("customer_view_picker.html", customers=customers, planes=planes)
+
+
+@customer_bp.route("/view-as/<int:customer_id>", methods=["POST"])
+@shop_role_required('admin')
+def portal_view_start(customer_id):
+    conn = get_db()
+    row = conn.execute("SELECT id FROM customers WHERE id = ? AND active = 1", (customer_id,)).fetchone()
+    conn.close()
+    if not row:
+        flash("That customer account isn't active.", "danger")
+        return redirect(url_for("customer.portal_view_picker"))
+    session["customer_view_id"] = customer_id
+    return redirect(url_for("customer.customer_dashboard"))
+
+
+@customer_bp.route("/view-as/exit", methods=["POST"])
+def portal_view_exit():
+    session.pop("customer_view_id", None)
+    return redirect(url_for("customer.portal_view_picker") if session.get("user_id") else url_for("home_launcher"))

@@ -10,6 +10,8 @@ role - actions go through and hit the real database, and a role the
 preview doesn't have access to is refused exactly like a real account in
 that role would be. These tests lock that behavior in so it can't quietly
 regress."""
+from datetime import date, timedelta
+
 from harness import OpsHubTestCase
 import db
 
@@ -47,7 +49,7 @@ class ViewAsInteractiveTest(OpsHubTestCase):
         student_id = self.q1("SELECT id FROM students WHERE username = 'flight_student'")["id"]
         r = c.post("/flight/schedule/new", data={
             "asset_id": self.asset_id, "student_id": student_id, "cfi_id": cfi_id,
-            "scheduled_date": "2026-10-05", "scheduled_time": "10:00", "duration_hours": "1.5",
+            "scheduled_date": (date.today() + timedelta(days=5)).isoformat(), "scheduled_time": "10:00", "duration_hours": "1.5",
         })
         self.assertEqual(r.status_code, 302)
         row = self.q1("SELECT * FROM scheduled_flights WHERE asset_id = ?", (self.asset_id,))
