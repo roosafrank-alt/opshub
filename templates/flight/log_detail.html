@@ -80,12 +80,14 @@
           {% endif %}
         </td></tr>
         <tr class="table-light"><th>Total</th><td class="fs-5"><strong>${{ '%.2f'|format(f.total) }}</strong></td></tr>
-        <tr><th>Status</th><td>{% if f.paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}</td></tr>
+        <tr><th>Status</th><td>{% if f.paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}{% if f.awaiting %} <span class="badge bg-info text-dark" data-change="CASH-CONFIRM" title="{{ f.awaiting.method }} ${{ '%.2f'|format(f.awaiting.amount) }} taken by {{ f.awaiting.recorded_by }}, waiting for a Flight Admin to confirm - do not collect again">Received - awaiting confirmation</span>{% endif %}</td></tr>
       </table>
       {% if f.paid %}
       <form method="post" action="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" class="mt-2" data-confirm="Mark this flight as UNPAID? The payment recorded for it comes back off the student's account and it shows as owed again." data-confirm-title="Mark Unpaid" data-confirm-ok="Yes, mark unpaid" data-confirm-style="warning" data-change="FLY-11">
         <button class="btn btn-sm btn-outline-secondary">Mark Unpaid</button>
       </form>
+      {% elif f.awaiting %}
+      <div class="small text-muted mt-2">{{ f.awaiting.method }} ${{ '%.2f'|format(f.awaiting.amount) }} was received by {{ f.awaiting.recorded_by }} and is waiting for a Flight Admin to confirm. Don't collect it again.</div>
       {% else %}
       <button type="button" class="btn btn-sm btn-outline-success mt-2 mark-paid-btn" data-url="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" data-total="{{ '%.2f'|format(f.total) }}" data-who="{{ f.student_name }}" data-change="FLY-11">Mark Paid</button>
       {% endif %}

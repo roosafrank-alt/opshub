@@ -238,3 +238,82 @@ class WaveApprovalQueueTest(WaveTestBase):
         flight.wave_billing.sync_open_invoices(conn, flight.wave_billing.apply_paid, program="flight")
         conn.close()
         self.assertEqual(self.q1("SELECT paid FROM flights WHERE id = ?", (fid,))["paid"], 1)
+
+
+class ChargeRequestAutoClearTest(WaveApprovalQueueTest):
+    """A pending card request clears itself when it is no longer needed."""
+
+    def row(self):
+        return self.q1("SELECT * FROM flight_charge_requests")
+
+    def assert_cleared(self, why):
+        r = self.row()
+        self.assertEqual(r["status"], "not_needed")
+        self.assertIn(why, r["decline_reason"])
+        self.assertTrue(self.q("SELECT 1 FROM field_change_log WHERE entity_type = 'flight_charge_request' "
+                               "AND new_value LIKE 'not_needed%'"))
+
+    def test_paid_another_way_clears_on_queue_view_and_shows_in_recent(self):
+        fid, req = self.ended_with_request()
+        self.exec("UPDATE flights SET paid = 1 WHERE id = ?", (fid,))
+        html = self.login("master").get("/flight/billing/approvals").get_data(as_text=True)
+        self.assert_cleared("paid another way")
+        self.assertIn("No requests waiting", html)
+        self.assertIn("Not needed", html)
+        self.assertIn("Flight was paid another way", html)
+
+    def test_badge_and_count_drop_it(self):
+        fid, req = self.ended_with_request()
+        self.assertIn("badge bg-danger", self.login("flight_admin").get("/flight/dashboard").get_data(as_text=True))
+        self.exec("UPDATE flights SET paid = 1 WHERE id = ?", (fid,))
+        conn = db.get_db()
+        self.assertEqual(flight._pending_charge_count(conn), 0)
+        conn.commit()
+        conn.close()
+        self.assertEqual(self.row()["status"], "not_needed")
+
+    def test_clears_right_after_manual_payment(self):
+        fid, req = self.ended_with_request()
+        self.login("master").post(f"/flight/log/{fid}/toggle_paid", data=dict(paid_method="Cash"))
+        self.assert_cleared("paid another way")
+
+    def test_clears_after_wave_sync_marks_paid(self):
+        fid, req = self.ended_with_request()
+        # the flight gets onto some other Wave invoice and is then paid by Wave
+        inv = flight.wave_billing  # noqa: F841
+        conn = db.get_db()
+        lid = seed_row(conn, "wave_invoices", kind="student", ref_id=self.student, wave_invoice_id="INVX", status="SENT")
+        conn.execute("UPDATE flights SET wave_invoice_id = ? WHERE id = ?", (lid, fid))
+        conn.commit()
+        flight.wave_billing.apply_paid(conn, dict(conn.execute("SELECT * FROM wave_invoices WHERE id = ?", (lid,)).fetchone()))
+        conn.commit()
+        conn.close()
+        self.assertEqual(self.q1("SELECT paid FROM flights WHERE id = ?", (fid,))["paid"], 1)
+        self.assert_cleared("paid another way")
+
+    def test_already_on_wave_invoice_clears(self):
+        fid, req = self.ended_with_request()
+        conn = db.get_db()
+        lid = seed_row(conn, "wave_invoices", kind="student", ref_id=self.student, wave_invoice_id="INVY", status="SENT")
+        conn.execute("UPDATE flights SET wave_invoice_id = ? WHERE id = ?", (lid, fid))
+        conn.commit()
+        conn.close()
+        self.login("master").get("/flight/billing/approvals")
+        self.assert_cleared("Wave invoice")
+
+    def test_nothing_due_clears(self):
+        fid, req = self.ended_with_request()
+        self.exec("UPDATE flights SET credit_applied = 99999 WHERE id = ?", (fid,))
+        self.login("master").get("/flight/billing/approvals")
+        self.assert_cleared("Nothing is due")
+
+    def test_still_due_stays_pending(self):
+        fid, req = self.ended_with_request()
+        self.login("master").get("/flight/billing/approvals")
+        self.assertEqual(self.row()["status"], "pending")
+
+    def test_student_can_ask_again_after_clear(self):
+        fid, req = self.ended_with_request()
+        self.exec("UPDATE flights SET paid = 1 WHERE id = ?", (fid,))
+        self.login("master").get("/flight/billing/approvals")
+        self.login("flight_student").get("/flight/my-account")  # no crash on not_needed status

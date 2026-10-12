@@ -204,7 +204,7 @@ class PaymentTest(FlyBase):
     def test_mark_paid_adds_payment_and_unpaid_removes_it(self):  # FLY-11
         self.exec("UPDATE students SET plane_rate_override = 100 WHERE id = ?", (self.student,))
         fid = self.logged_flight()
-        c = self.login("cfi_billing")
+        c = self.login("master")  # cash/check from a non-admin now waits for confirmation (test_cash_check_confirm.py)
         c.post(f"/flight/log/{fid}/toggle_paid", data={"payment_amount": "50.00", "payment_method": "Cash"})
         f = self.q1("SELECT * FROM flights WHERE id = ?", (fid,))
         self.assertEqual((f["paid"], f["payment_method"], f["payment_amount"]), (1, "Cash", 50.0))

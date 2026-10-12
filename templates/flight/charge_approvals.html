@@ -55,6 +55,7 @@
   <div class="list-group-item small">
     <strong>{{ r.student_name }}</strong> &middot; {{ r.flight_date|usdate }} {{ r.plane_tag or '' }} &middot; ${{ '{:,.2f}'.format(r.amount_cents / 100) }} &middot;
     {% if r.status == 'approved' %}<span class="badge bg-success">Billed</span>{% if r.invoice_number %} Wave #{{ r.invoice_number }}{% endif %}
+    {% elif r.status == 'not_needed' %}<span class="badge bg-secondary">Not needed</span> {{ r.decline_reason }}
     {% elif r.status == 'declined' %}<span class="badge bg-secondary">Declined</span> {{ r.decline_reason }}
     {% else %}<span class="badge bg-danger">Failed</span> {{ r.failure_message }}{% endif %}
     <span class="text-muted">by {{ r.decided_by }}</span>

@@ -1,0 +1,51 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Cash/check to confirm · Fly with Kate!{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-cash-coin"></i> Cash/check to confirm</h4>
+  <a href="{{ url_for('flight.billing') }}" class="btn btn-sm btn-outline-secondary">Back to Billing</a>
+</div>
+<p class="text-muted small">Someone took cash or a check and recorded it. The flight stays <strong>unpaid</strong> and nothing is posted to the student's account until you tap <strong>Confirm</strong>. If the money never arrived, tap <strong>Reject</strong> with a short reason.</p>
+{% for c in pending %}
+<div class="card mb-3" id="confirm-{{ c.id }}">
+  <div class="card-body">
+    <div class="d-flex justify-content-between flex-wrap gap-2">
+      <div>
+        <div class="fw-bold">{{ c.student_name }}</div>
+        <div class="small text-muted">Flight {{ c.flight_date|usdate }} &middot; {{ c.plane_tag or 'Plane' }}</div>
+        <div class="small text-muted">Taken by {{ c.recorded_by or 'unknown' }} &middot; {{ c.recorded_at|usdate }}</div>
+        {% if c.note %}<div class="small">Note: {{ c.note }}</div>{% endif %}
+      </div>
+      <div class="text-end">
+        <div class="fs-4 fw-bold">${{ '{:,.2f}'.format(c.amount) }}</div>
+        <span class="badge bg-info text-dark">{{ c.method or 'Payment' }}</span>
+      </div>
+    </div>
+    <a class="small" href="{{ url_for('flight.log_detail', flight_id=c.flight_id) }}">View flight</a>
+    <div class="d-flex flex-wrap gap-2 align-items-start mt-2">
+      <form method="post" action="{{ url_for('flight.cash_check_do_confirm', conf_id=c.id) }}">
+        <button type="submit" class="btn btn-success fw-bold"><i class="bi bi-check-circle"></i> Confirm</button>
+      </form>
+      <form method="post" action="{{ url_for('flight.cash_check_do_reject', conf_id=c.id) }}" class="d-flex gap-2 flex-grow-1">
+        <input type="text" name="reason" class="form-control form-control-sm" maxlength="300" placeholder="Reason (the person who took it sees this)" required>
+        <button type="submit" class="btn btn-outline-secondary btn-sm">Reject</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-secondary">Nothing waiting to be confirmed.</div>
+{% endfor %}
+{% if decided %}
+<h6 class="mt-4">Recently handled</h6>
+<div class="list-group">
+  {% for c in decided %}
+  <div class="list-group-item small">
+    <strong>{{ c.student_name }}</strong> &middot; {{ c.flight_date|usdate }} {{ c.plane_tag or '' }} &middot; {{ c.method or '' }} ${{ '{:,.2f}'.format(c.amount) }} &middot;
+    {% if c.status == 'confirmed' %}<span class="badge bg-success">Confirmed</span>{% else %}<span class="badge bg-secondary">Rejected</span> {{ c.reject_reason }}{% endif %}
+    <span class="text-muted">by {{ c.decided_by }} (taken by {{ c.recorded_by }})</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

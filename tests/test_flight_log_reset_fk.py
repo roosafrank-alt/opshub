@@ -49,7 +49,8 @@ class FlightLogResetCoversEveryForeignKeyTest(OpsHubTestCase):
     the first time that table has a row. pilot_logbook was missed exactly
     once and cost three crashes on the Pi before anyone saw why."""
     HANDLED = {("student_ledger", "flight_id"), ("pilot_logbook", "flight_id"),
-               ("flight_charge_requests", "flight_id")}
+               ("flight_charge_requests", "flight_id"),
+               ("flight_payment_confirmations", "flight_id")}
 
     def test_all_foreign_keys_to_flights_are_handled(self):
         conn = db.get_db()

@@ -952,6 +952,27 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_charge_requests_flight ON flight_charge_requests(flight_id, status)")
     conn.commit()
 
+    # Cash / check taken by someone who is not a master admin or Flight Admin
+    # is only "Received - awaiting confirmation": the flight stays Unpaid until
+    # an admin confirms it (flight_payments.record_pending_confirmation).
+    conn.execute("""CREATE TABLE IF NOT EXISTS flight_payment_confirmations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        flight_id INTEGER NOT NULL REFERENCES flights(id),
+        amount REAL NOT NULL,
+        method TEXT,
+        note TEXT,
+        recorded_by TEXT,
+        recorded_by_user_id INTEGER,
+        recorded_at TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending', -- pending | confirmed | rejected
+        decided_by TEXT,
+        decided_at TEXT,
+        reject_reason TEXT,
+        recorder_seen_at TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_payment_confirmations_flight ON flight_payment_confirmations(flight_id, status)")
+    conn.commit()
+
     # Phone push notifications for flying sessions (30 min left / time's up /
     # overdue) - opt-in per user (notify_push_session_alerts), one row per
     # subscribed browser/device in push_subscriptions (Web Push, RFC 8030),
