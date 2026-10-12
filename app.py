@@ -1756,6 +1756,12 @@ def calendar_page():
             for p in projects:
                 if basic or p["id"] in mine:
                     p["link_ok"] = p["id"] in mine
+                    if not p["link_ok"]:
+                        # Basic calendar (Frank): on someone else's job an apprentice sees the title
+                        # (and the dates it sits on) and nothing else - no aircraft, status or plane type.
+                        p["asset_display_tag"] = None
+                        p["asset_is_flight_asset"] = 0
+                        p["status"] = ""
                     keep.append(p)
             return keep
         for md in months_data:

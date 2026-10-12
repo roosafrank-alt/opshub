@@ -112,7 +112,7 @@
             <td>{% if p.asset_is_flight_asset %}<i class="bi bi-airplane-engines-fill text-muted" title="Flight School plane"></i> {% endif %}<a href="{{ url_for('project_detail', project_id=p.id) if p.get('link_ok', True) else '#' }}" class="text-decoration-none">{{ p.name }}</a>
               {% if p.asset_display_tag %}<span class="text-muted small"> &middot; {{ p.asset_display_tag }}</span>{% endif %}</td>
             <td class="text-muted small" data-change="FLY-12">{{ p.date_label }}</td>
-            <td><span class="badge {{ 'bg-success-subtle text-dark' if p.status == 'active' else 'bg-secondary-subtle text-dark' }}">{{ p.status }}</span></td>
+            <td>{% if p.status %}<span class="badge {{ 'bg-success-subtle text-dark' if p.status == 'active' else 'bg-secondary-subtle text-dark' }}">{{ p.status }}</span>{% endif %}</td>
           </tr>
           {% endfor %}
         </tbody>
