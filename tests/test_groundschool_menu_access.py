@@ -28,7 +28,8 @@ class GroundschoolMenuAccessTest(OpsHubTestCase):
     def test_granting_access_unlocks_both_the_page_and_the_menu_button(self):
         self.exec("UPDATE users SET groundschool_access = 1 WHERE username = 'flight_student'")
         c = self.login("flight_student")
-        self.assertIn("Ground School", c.get("/flight/dashboard").get_data(as_text=True))
+        # Students reach Ground School through the Flight Academy tile, not the Fly header.
+        self.assertNotIn("Ground School", c.get("/flight/dashboard").get_data(as_text=True))
         r = c.get("/flight/groundschool")
         self.assertEqual(r.status_code, 200)
 
@@ -36,11 +37,11 @@ class GroundschoolMenuAccessTest(OpsHubTestCase):
         self.exec("UPDATE users SET academy_access = 1 WHERE username = 'cfi'")
         c = self.login("cfi")
         body = c.get("/flight/dashboard").get_data(as_text=True)
-        self.assertIn("Ground School", body)
-        self.assertIn("Academy", body)
+        self.assertNotIn('nav-label">Ground School', body)
+        self.assertNotIn('nav-label">Academy', body)
         self.assertEqual(c.get("/flight/groundschool").status_code, 200)
 
     def test_master_admin_always_has_ground_school(self):
         c = self.login("master")
-        self.assertIn("Ground School", c.get("/flight/dashboard").get_data(as_text=True))
+        self.assertNotIn('nav-label">Ground School', c.get("/flight/dashboard").get_data(as_text=True))
         self.assertEqual(c.get("/flight/groundschool").status_code, 200)

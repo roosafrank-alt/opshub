@@ -95,12 +95,6 @@
         <li class="nav-item"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'schedule' }}" id="tour-nav-flight-schedule" href="{{ url_for('flight.schedule_calendar') }}"><i class="bi bi-calendar3"></i> <span class="nav-label">Schedule</span></a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'active' else ('flight-nav-flying' if flight_active_nav_count) }}" id="tour-nav-flight-active" href="{{ url_for('flight.log_active') }}"><i class="bi bi-stopwatch"></i> <span class="nav-label">Active Flight</span>{% if flight_active_nav_count %} <span class="badge bg-dark" title="{{ flight_active_nav_count }} flight{{ 's' if flight_active_nav_count != 1 }} in the air">{{ flight_active_nav_count }}</span>{% endif %}</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'history' }}" id="tour-nav-flight-history" href="{{ url_for('flight.log_history') }}"><i class="bi bi-clock-history"></i> <span class="nav-label">Flight History</span></a></li>
-        {% if flight_admin or session.get('groundschool_access') or student_course_grants() %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'groundschool' }}" href="{{ url_for('groundschool.rating_list') }}"><i class="bi bi-mortarboard"></i> <span class="nav-label">Ground School</span></a></li>
-        {% endif %}
-        {% if flight_admin or session.get('academy_access') %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'academy' }}" href="{{ url_for('academy_page') }}"><i class="bi bi-trophy"></i> <span class="nav-label">Academy</span></a></li>
-        {% endif %}
         {% if session.get('cfi_id') or flight_admin %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'students' }}" id="tour-nav-flight-students" href="{{ url_for('flight.students_list') }}"><i class="bi bi-people"></i> <span class="nav-label">Students</span></a></li>
         {% endif %}
