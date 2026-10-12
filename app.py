@@ -673,6 +673,91 @@ def get_low_stock(conn):
 
 
 # ---------------------------------------------------------------------------
+# Superseded parts: "old part -> the part that replaced it" links. A part can
+# be replaced by several parts and a replacement can itself be replaced, so a
+# lookup follows the links all the way to the end. Stock is never combined or
+# moved; this only lets the screens say "not here, but its replacement is".
+# ---------------------------------------------------------------------------
+
+def _supersession_edges(conn):
+    """{old_part_id: [new_part_id, ...]} for every link."""
+    edges = {}
+    for r in conn.execute("SELECT old_part_id, new_part_id FROM part_supersessions ORDER BY created_at, new_part_id").fetchall():
+        edges.setdefault(r["old_part_id"], []).append(r["new_part_id"])
+    return edges
+
+
+def _chain_ids(edges, start_id):
+    """Every part reached by following 'superseded by' links from start_id,
+    nearest first, each once (a loop in old data can't hang this)."""
+    seen = {start_id}
+    order = []
+    frontier = [start_id]
+    while frontier:
+        nxt = []
+        for pid in frontier:
+            for n in edges.get(pid, []):
+                if n not in seen:
+                    seen.add(n)
+                    order.append(n)
+                    nxt.append(n)
+        frontier = nxt
+    return order
+
+
+def part_chain(conn, part_id):
+    """The full 'superseded by' chain after part_id as part rows (nearest
+    first), whatever their stock or retired state."""
+    ids = _chain_ids(_supersession_edges(conn), part_id)
+    if not ids:
+        return []
+    marks = ",".join("?" * len(ids))
+    by_id = {r["id"]: r for r in conn.execute(f"SELECT * FROM parts WHERE id IN ({marks})", ids).fetchall()}
+    return [by_id[i] for i in ids if i in by_id]
+
+
+def replacement_hints(conn, part_ids):
+    """{part_id: [replacement, ...]} for each given part that has been
+    superseded. Each replacement is {"id","barcode","name","qty","unit"}: every
+    direct replacement (even with 0 on hand) plus any part further along the
+    chain that has stock. Retired replacements are skipped (they can't be
+    used). Apprentices never get anything: they must not see superseded parts."""
+    from flask import has_request_context
+    if has_request_context() and is_apprentice_limited():
+        return {}
+    part_ids = list(part_ids)
+    if not part_ids:
+        return {}
+    edges = _supersession_edges(conn)
+    if not edges:
+        return {}
+    chains = {pid: _chain_ids(edges, pid) for pid in part_ids if pid in edges}
+    wanted = {i for ids in chains.values() for i in ids}
+    if not wanted:
+        return {}
+    marks = ",".join("?" * len(wanted))
+    info = {r["id"]: r for r in conn.execute(
+        f"SELECT * FROM parts WHERE id IN ({marks}) AND retired_at IS NULL", list(wanted)).fetchall()}
+    out = {}
+    for pid, ids in chains.items():
+        direct = set(edges.get(pid, []))
+        rows = [info[i] for i in ids if i in info and (i in direct or info[i]["qty_on_hand"] > 0)]
+        if rows:
+            out[pid] = [{"id": r["id"], "barcode": r["barcode"], "name": r["name"],
+                         "qty": r["qty_on_hand"], "unit": r["unit"] or ""} for r in rows]
+    return out
+
+
+def replacement_lines(items):
+    """['Superseded by N-123 (Brake pad, new) - 5 ea on hand', ...], one line per replacement."""
+    return [f"Superseded by {h['barcode']} ({h['name']}) - {h['qty']:g} {h['unit']} on hand".replace("  ", " ")
+            for h in (items or [])]
+
+
+app.jinja_env.globals["replacement_lines"] = replacement_lines
+
+
+# ---------------------------------------------------------------------------
 # Dashboard
 # ---------------------------------------------------------------------------
 
@@ -795,6 +880,7 @@ def dashboard():
         "SELECT COUNT(*) c FROM orders WHERE status='pending'"
     ).fetchone()["c"]
     low_stock = get_low_stock(conn)
+    low_repl = replacement_hints(conn, [p["id"] for p in low_stock])
     recent_tx = conn.execute("""
         SELECT t.*, p.name as part_name, p.barcode as part_barcode, pr.name as project_name
         FROM transactions t
@@ -959,7 +1045,7 @@ def dashboard():
 
     return render_template("dashboard.html", project_count=project_count,
                            pending_orders_count=pending_orders_count, upcoming_count=upcoming_count,
-                           low_stock=low_stock, recent_activity=recent_activity,
+                           low_stock=low_stock, low_repl=low_repl, recent_activity=recent_activity,
                            reminders=reminders, upcoming_projects=upcoming_projects,
                            reschedule_requests=reschedule_requests,
                            owner_requests=owner_requests,
@@ -1925,11 +2011,17 @@ def general_shop_code_print_label():
 def api_lookup(barcode):
     conn = get_db()
     part = get_part_by_barcode(conn, barcode)
+    hint = replacement_hints(conn, [part["id"]]).get(part["id"]) if part and part["qty_on_hand"] <= 0 else None  # {} for apprentices
     conn.close()
     if not part:
         return jsonify({"found": False, "barcode": barcode})
     d = part_to_dict(part, include_cost=can_see_shop_costs())
     d["found"] = True
+    # A part that is out of stock but was replaced by one that's on the shelf:
+    # a short plain hint (names and counts only, no prices).
+    # (Apprentices get no supersession data at all, not even an empty key.)
+    if not is_apprentice_limited():
+        d["replacement_hint"] = "\n".join(replacement_lines(hint)) if hint else None
     return jsonify(d)
 
 
@@ -2713,36 +2805,40 @@ def parts_list():
     if show_retired:
         parts = conn.execute("SELECT * FROM parts WHERE retired_at IS NOT NULL ORDER BY name").fetchall()
         part_covers = _part_covers(conn, parts)
+        repl_hints = replacement_hints(conn, [p["id"] for p in parts if p["qty_on_hand"] <= 0 or p["retired_at"] or show_low_stock])
         conn.close()
         return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=True,
                                show_low_stock=False,
                                part_count=part_count, total_value=total_value, part_covers=part_covers,
-                               retired_count=retired_count, expiry_stats=expiry_stats)
+                               retired_count=retired_count, expiry_stats=expiry_stats, repl_hints=repl_hints)
     if show_low_stock:
         # Dashboard's Low Stock Items box links here (QA finding
         # ux-shop-stat-boxes-by-role) - same rows get_low_stock() already
         # flags on the shop dashboard, just as a real filtered list.
         parts = get_low_stock(conn)
         part_covers = _part_covers(conn, parts)
+        repl_hints = replacement_hints(conn, [p["id"] for p in parts if p["qty_on_hand"] <= 0 or p["retired_at"] or show_low_stock])
         conn.close()
         return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=False,
                                show_low_stock=True,
                                part_count=part_count, total_value=total_value, part_covers=part_covers,
-                               retired_count=retired_count, expiry_stats=expiry_stats)
+                               retired_count=retired_count, expiry_stats=expiry_stats, repl_hints=repl_hints)
     if q:
         like = f"%{q}%"
         parts = conn.execute("""SELECT * FROM parts
                                  WHERE retired_at IS NULL AND (name LIKE ? OR barcode LIKE ? OR category LIKE ? OR location LIKE ?)
                                  ORDER BY name""", (like, like, like, like)).fetchall()
         part_covers = _part_covers(conn, parts)
+        repl_hints = replacement_hints(conn, [p["id"] for p in parts if p["qty_on_hand"] <= 0 or p["retired_at"] or show_low_stock])
         conn.close()
         return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=False,
                                show_low_stock=False,
                                part_count=part_count, total_value=total_value, part_covers=part_covers,
-                               retired_count=retired_count, expiry_stats=expiry_stats)
+                               retired_count=retired_count, expiry_stats=expiry_stats, repl_hints=repl_hints)
 
     parts = conn.execute("SELECT * FROM parts WHERE retired_at IS NULL ORDER BY category, name").fetchall()
     part_covers = _part_covers(conn, parts)
+    repl_hints = replacement_hints(conn, [p["id"] for p in parts if p["qty_on_hand"] <= 0])
     conn.close()
     # Group into categories for the click-to-expand browse view.
     by_category = {}
@@ -2752,7 +2848,7 @@ def parts_list():
     return render_template("parts.html", parts=parts, q=q, by_category=by_category, show_retired=False,
                            show_low_stock=False,
                            part_count=part_count, total_value=total_value, part_covers=part_covers,
-                           retired_count=retired_count, expiry_stats=expiry_stats)
+                           retired_count=retired_count, expiry_stats=expiry_stats, repl_hints=repl_hints)
 
 
 def _part_covers(conn, parts):
@@ -2895,8 +2991,98 @@ def part_detail(part_id):
     job_count = conn.execute(
         "SELECT COUNT(DISTINCT project_id) c FROM transactions WHERE part_id = ? AND project_id IS NOT NULL",
         (part_id,)).fetchone()["c"]
+    # Superseded-by links: direct ones (removable), the whole chain after this
+    # part, and the parts this one replaces.
+    direct_new = conn.execute(
+        """SELECT p.* FROM part_supersessions ps JOIN parts p ON p.id = ps.new_part_id
+            WHERE ps.old_part_id = ? ORDER BY p.name""", (part_id,)).fetchall()
+    direct_ids = {r["id"] for r in direct_new}
+    further = [r for r in part_chain(conn, part_id) if r["id"] not in direct_ids]
+    replaces = conn.execute(
+        """SELECT p.* FROM part_supersessions ps JOIN parts p ON p.id = ps.old_part_id
+            WHERE ps.new_part_id = ? ORDER BY p.name""", (part_id,)).fetchall()
+    repl_hint = None
+    if part["qty_on_hand"] <= 0 or part["retired_at"]:
+        repl_hint = replacement_hints(conn, [part_id]).get(part_id)
+    link_choices = []
+    if session.get("is_master_admin") or session.get("shop_role") in ("admin", "tech"):
+        link_choices = conn.execute(
+            "SELECT id, barcode, name, retired_at FROM parts WHERE id != ? ORDER BY name", (part_id,)).fetchall()
     conn.close()
-    return render_template("part_detail.html", part=part, tx=tx, photos=photos, job_count=job_count)
+    return render_template("part_detail.html", part=part, tx=tx, photos=photos, job_count=job_count,
+                           direct_new=direct_new, further=further, replaces=replaces, repl_hint=repl_hint,
+                           link_choices=link_choices)
+
+
+def _find_part_by_ref(conn, ref):
+    """A part picked in the 'superseded by' box: the text is 'BARCODE - Name'
+    (from the list), or just a barcode or just a name."""
+    ref = (ref or "").strip()
+    if not ref:
+        return None
+    code = ref.split(" - ", 1)[0].strip()
+    row = conn.execute("SELECT * FROM parts WHERE barcode = ? COLLATE NOCASE", (code,)).fetchone()
+    if row:
+        return row
+    rows = conn.execute("SELECT * FROM parts WHERE name = ? COLLATE NOCASE OR barcode = ? COLLATE NOCASE LIMIT 2",
+                        (ref, ref)).fetchall()
+    return rows[0] if len(rows) == 1 else None
+
+
+@app.route("/parts/<int:part_id>/supersede", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def part_supersede_add(part_id):
+    """Record that this part is superseded by another one."""
+    conn = get_db()
+    part = conn.execute("SELECT * FROM parts WHERE id = ?", (part_id,)).fetchone()
+    if not part:
+        conn.close()
+        abort(404)
+    new = _find_part_by_ref(conn, request.form.get("new_part"))
+    back = redirect(url_for("part_detail", part_id=part_id) + "#superseded")
+    if not new:
+        conn.close()
+        flash("Pick a part from the list to link it.", "danger")
+        return back
+    if new["id"] == part_id:
+        conn.close()
+        flash("A part cannot be superseded by itself.", "danger")
+        return back
+    if conn.execute("SELECT 1 FROM part_supersessions WHERE old_part_id = ? AND new_part_id = ?",
+                    (part_id, new["id"])).fetchone():
+        conn.close()
+        flash(f"{part['name']} is already linked to {new['name']}.", "warning")
+        return back
+    # A loop: the part picked already (directly or further along) comes from this one.
+    if part_id in _chain_ids(_supersession_edges(conn), new["id"]):
+        conn.close()
+        flash(f"Can't link these: {new['name']} is already superseded by {part['name']} (directly or through other "
+              f"parts), so linking them back would go in a circle.", "danger")
+        return back
+    conn.execute("INSERT INTO part_supersessions (old_part_id, new_part_id, created_by, created_at) VALUES (?,?,?,?)",
+                 (part_id, new["id"], session.get("user_name"), now_iso()))
+    conn.commit()
+    conn.close()
+    flash(f"Linked: {part['name']} is superseded by {new['name']}.", "success")
+    return back
+
+
+@app.route("/parts/<int:part_id>/supersede/remove", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def part_supersede_remove(part_id):
+    """Remove one link (either side of it can be opened from this part's page)."""
+    old_id = request.form.get("old_part_id", type=int)
+    new_id = request.form.get("new_part_id", type=int)
+    conn = get_db()
+    if not conn.execute("SELECT 1 FROM parts WHERE id = ?", (part_id,)).fetchone():
+        conn.close()
+        abort(404)
+    cur = conn.execute("DELETE FROM part_supersessions WHERE old_part_id = ? AND new_part_id = ? "
+                       "AND (old_part_id = ? OR new_part_id = ?)", (old_id, new_id, part_id, part_id))
+    conn.commit()
+    conn.close()
+    flash("Link removed." if cur.rowcount else "That link was already gone.", "success" if cur.rowcount else "warning")
+    return redirect(url_for("part_detail", part_id=part_id) + "#superseded")
 
 
 @app.route("/parts/<int:part_id>/print-label", methods=["POST"])
@@ -3036,6 +3222,7 @@ def part_delete(part_id):
     conn.execute("UPDATE orders SET part_id = NULL WHERE part_id = ?", (part_id,))
     conn.execute("UPDATE order_wishlist SET part_id = NULL WHERE part_id = ?", (part_id,))
     conn.execute("UPDATE photos SET part_id = NULL WHERE part_id = ?", (part_id,))
+    conn.execute("DELETE FROM part_supersessions WHERE old_part_id = ? OR new_part_id = ?", (part_id, part_id))
     conn.execute("DELETE FROM transactions WHERE part_id = ?", (part_id,))
     conn.execute("DELETE FROM parts WHERE id = ?", (part_id,))
     conn.commit()

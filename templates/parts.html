@@ -3,7 +3,7 @@
 
 
 
-{% macro parts_table(plist, part_covers, show_retired=False, can_reorder=False) %}
+{% macro parts_table(plist, part_covers, show_retired=False, can_reorder=False, repl_hints={}, low_view=False) %}
 <div class="table-responsive">
   <table class="table table-hover mb-0 align-middle table-stack" data-change="SHOP-21">
     <thead class="table-light">
@@ -20,7 +20,7 @@
     </thead>
     <tbody>
       {% for p in plist %}
-      <tr class="{{ 'low-stock-row' if p.qty_on_hand <= p.reorder_point else '' }}" data-search="{{ (p.name ~ ' ' ~ (p.short_name or '') ~ ' ' ~ p.barcode ~ ' ' ~ (p.category or '') ~ ' ' ~ (p.location or ''))|lower }}" onclick="if(event.target.type!=='checkbox' && event.target.tagName!=='BUTTON') window.location='{{ url_for('part_detail', part_id=p.id) }}'">
+      <tr class="{{ 'low-stock-row' if p.qty_on_hand <= p.reorder_point and not p.retired_at else '' }}" data-search="{{ (p.name ~ ' ' ~ (p.short_name or '') ~ ' ' ~ p.barcode ~ ' ' ~ (p.category or '') ~ ' ' ~ (p.location or ''))|lower }}" onclick="if(event.target.type!=='checkbox' && event.target.tagName!=='BUTTON') window.location='{{ url_for('part_detail', part_id=p.id) }}'">
         <td data-label="" class="order-last order-sm-0"><input type="checkbox" name="part_check" value="{{ p.id }}" onclick="event.stopPropagation()"> <span class="d-sm-none small ms-1">Select for labels</span></td>
         <td data-label="" class="d-none d-sm-table-cell">
           {% if part_covers.get(p.id) %}
@@ -30,7 +30,8 @@
           {% endif %}
         </td>
         {% set _exp = part_expiry(p) %}
-        <td data-label="" class="fw-semibold">{% if part_covers.get(p.id) %}<img src="{{ url_for('static', filename='uploads/' + part_covers.get(p.id)) }}" class="rounded d-sm-none me-2 align-middle" style="width:36px; height:36px; object-fit:cover;">{% endif %}{{ p.name }}{% if p.short_name %}<br><small class="text-muted">aka {{ p.short_name }}</small>{% endif %}{% if p.qty_on_hand <= p.reorder_point %} <i class="bi bi-exclamation-triangle text-danger" title="Low stock"></i>{% endif %}
+        <td data-label="" class="fw-semibold">{% if part_covers.get(p.id) %}<img src="{{ url_for('static', filename='uploads/' + part_covers.get(p.id)) }}" class="rounded d-sm-none me-2 align-middle" style="width:36px; height:36px; object-fit:cover;">{% endif %}{{ p.name }}{% if p.short_name %}<br><small class="text-muted">aka {{ p.short_name }}</small>{% endif %}{% if p.qty_on_hand <= p.reorder_point and not p.retired_at %} <i class="bi bi-exclamation-triangle text-danger" title="Low stock"></i>{% endif %}
+          {% for ln in replacement_lines(repl_hints.get(p.id)) %}<br><small class="text-info-emphasis"><i class="bi bi-arrow-right-circle"></i> {{ ln }}</small>{% endfor %}
           {% if _exp %}<br><small class="text-muted">Exp {{ _exp.date|usdate_short }}</small>{% if _exp.level == 'expired' %} <span class="badge bg-danger">Expired</span>{% elif _exp.level == 'soon' %} <span class="badge bg-warning text-dark">Expires soon</span>{% endif %}{% endif %}</td>
         <td data-label="Barcode"><code>{{ p.barcode }}</code></td>
         <td data-label="Location">{{ p.location or '-' }}</td>
@@ -112,7 +113,7 @@
 {% if show_retired %}
   {% if parts %}
   <div class="card">
-    {{ parts_table(parts, part_covers, show_retired=True) }}
+    {{ parts_table(parts, part_covers, show_retired=True, repl_hints=repl_hints) }}
   </div>
   {% else %}
   <p class="text-muted">No retired parts.</p>
@@ -120,7 +121,7 @@
 {% elif by_category is none %}
   <!-- Search results: flat list -->
   <div class="card">
-    {{ parts_table(parts, part_covers, can_reorder=show_low_stock and (session.get('is_master_admin') or session.get('shop_role') == 'admin')) }}
+    {{ parts_table(parts, part_covers, can_reorder=show_low_stock and (session.get('is_master_admin') or session.get('shop_role') == 'admin'), repl_hints=repl_hints, low_view=show_low_stock) }}
   </div>
 {% else %}
   <!-- Browse view: click a category to expand it -->
@@ -138,7 +139,7 @@
       <span class="text-muted small">{{ plist|length }} part{{ 's' if plist|length != 1 }} <i class="bi bi-chevron-down" id="chev-{{ loop.index }}"></i></span>
     </div>
     <div id="cat-{{ loop.index }}" style="display:none;">
-      {{ parts_table(plist, part_covers) }}
+      {{ parts_table(plist, part_covers, repl_hints=repl_hints) }}
     </div>
   </div>
   {% else %}

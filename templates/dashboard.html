@@ -440,6 +440,7 @@
           <div class="flex-grow-1 min-w-0 shrinkable">
             <a href="{{ url_for('part_detail', part_id=p.id) }}" class="d-block text-truncate">{{ p.name }}</a>
             <small class="text-muted d-block text-truncate"><b class="text-danger">{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</b> left &middot; reorder at {{ '%g'|format(p.reorder_point) }} {{ p.unit }}</small>
+            {% for ln in replacement_lines(low_repl.get(p.id)) %}<small class="text-info-emphasis d-block"><i class="bi bi-arrow-right-circle"></i> {{ ln }}</small>{% endfor %}
           </div>
           <div class="text-nowrap">
             <a href="{{ url_for('scan_page', autoscan=p.barcode) }}" class="btn btn-sm btn-outline-primary text-nowrap" data-change="SHOP-39">Scan In</a>
@@ -454,7 +455,8 @@
           <tbody>
             {% for p in low_stock %}
             <tr class="low-stock-row">
-              <td><a href="{{ url_for('part_detail', part_id=p.id) }}">{{ p.name }}</a><br><small class="text-muted">{{ p.barcode }}</small></td>
+              <td><a href="{{ url_for('part_detail', part_id=p.id) }}">{{ p.name }}</a><br><small class="text-muted">{{ p.barcode }}</small>
+                {% for ln in replacement_lines(low_repl.get(p.id)) %}<br><small class="text-info-emphasis"><i class="bi bi-arrow-right-circle"></i> {{ ln }}</small>{% endfor %}</td>
               <td>{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
               <td>{{ '%g'|format(p.reorder_point) }} {{ p.unit }}</td>
               <td class="text-nowrap"><a href="{{ url_for('scan_page', autoscan=p.barcode) }}" class="btn btn-sm btn-outline-primary text-nowrap" data-change="SHOP-39">Scan In</a>

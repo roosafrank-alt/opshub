@@ -177,7 +177,8 @@ def check_low_stock(conn, settings):
         return 0
     sent_count = 0
     low_parts = conn.execute(
-        "SELECT * FROM parts WHERE qty_on_hand <= reorder_point AND notify_low_stock = 1 ORDER BY name"
+        "SELECT * FROM parts WHERE qty_on_hand <= reorder_point AND notify_low_stock = 1 "
+        "AND retired_at IS NULL ORDER BY name"  # SHOP-04: a retired part never sends a reorder alert
     ).fetchall()
     for p in low_parts:
         if already_notified_today(conn, "low_stock", p["id"]):
