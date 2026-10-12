@@ -2,9 +2,6 @@
 {% block title %}Ground School · Flight Academy{% endblock %}
 {% block content %}
 <style>
-  .pg-bar { position: relative; height: .6rem; border-radius: 999px; background: #e9ecef; overflow: hidden; }
-  .pg-fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #2b3fdb, #4dabf7); }
-  .pg-fill.done { background: linear-gradient(90deg, #2f9e44, #69db7c); }
   .gs-card-link:hover { box-shadow: 0 0 0 2px rgba(255,255,255,.35); }
 </style>
 {% include "flight/_groundschool_picker.html" %}
@@ -20,7 +17,7 @@
 {% if not ratings %}
 <div class="card academy-card">
   <div class="card-body text-center text-muted py-5">
-    <i class="bi bi-journal-bookmark" style="font-size:2rem;"></i>
+    <i class="bi bi-journal-bookmark icon-lg"></i>
     <p class="mt-2 mb-0">No ratings yet.</p>
     {% if session.get('is_master_admin') %}
     <p class="small">Upload the FAA ACS PDF for a rating (e.g. Private Pilot) to get started.</p>

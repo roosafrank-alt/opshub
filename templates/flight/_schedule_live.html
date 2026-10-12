@@ -304,12 +304,12 @@
           <div class="calendar-day-head">
           {% if session.get('cfi_id') or session.get('student_id') %}
           <a href="{{ url_for('flight.schedule_new', date=cell_date) }}" class="small fw-bold d-flex align-items-center gap-1 text-decoration-none calendar-day-add {{ 'text-primary' if is_today else 'text-body' }}" title="{{ 'Schedule a flight' if session.get('cfi_id') else 'Request a flight' }} on {{ cell_date|usdate }}">
-            {{ day }}{% if is_today %}<span class="badge bg-warning text-dark d-none d-sm-inline-block" style="font-size:.6rem;">TODAY</span>{% endif %}
+            {{ day }}{% if is_today %}<span class="badge bg-warning text-dark d-none d-sm-inline-block badge-micro">TODAY</span>{% endif %}
             {% if not compact %}<i class="bi bi-plus-circle calendar-day-add-icon"></i>{% endif %}
           </a>
           {% else %}
           <div class="small fw-bold d-flex align-items-center gap-1 {{ 'text-primary' if is_today }}">
-            {{ day }}{% if is_today %}<span class="badge bg-warning text-dark d-none d-sm-inline-block" style="font-size:.6rem;">TODAY</span>{% endif %}
+            {{ day }}{% if is_today %}<span class="badge bg-warning text-dark d-none d-sm-inline-block badge-micro">TODAY</span>{% endif %}
           </div>
           {% endif %}
           </div>
@@ -728,7 +728,7 @@
       <div class="week-timeline-day-col">
         <a href="{{ url_for('flight.schedule_calendar', view='day', date=wd.date_str, plane_id=plane_id, cfi_id=cfi_id) }}"
            class="week-timeline-day-head text-decoration-none {{ 'week-timeline-day-head-today' if wd.is_today }}">
-          {{ wd.weekday }} {{ wd.day_num }}{% if wd.is_today %} <span class="badge bg-warning text-dark" style="font-size:.6rem;">TODAY</span>{% endif %}
+          {{ wd.weekday }} {{ wd.day_num }}{% if wd.is_today %} <span class="badge bg-warning text-dark badge-micro">TODAY</span>{% endif %}
         </a>
         <div class="day-timeline-track{% if session.get('cfi_id') or session.get('student_id') %} day-timeline-track-clickable{% endif %}"
              data-track-date="{{ wd.date_str }}" data-start-min="{{ day_timeline_start_min }}" data-end-min="{{ day_timeline_end_min }}">

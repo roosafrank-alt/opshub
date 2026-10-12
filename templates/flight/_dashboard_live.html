@@ -295,18 +295,18 @@
   <div class="d-sm-none">
     {% for p in pending_requests %}
     <div class="d-flex justify-content-between align-items-center gap-1 py-2 pending-row-clickable {{ 'border-top' if not loop.first }}" data-goto-url="{{ url_for('flight.schedule_calendar', view='month', year=p.scheduled_date[:4]|int, month=p.scheduled_date[5:7]|int, highlight=p.id) }}" title="Open this flight's spot on the Schedule">
-      <div class="flex-grow-1" style="min-width:0;">
+      <div class="flex-grow-1 shrinkable">
         <div class="fw-bold text-truncate" style="font-size:.92rem;">{{ p.day_label }} &middot; {{ p.time_label or 'Not set' }} &middot; {{ p.plane_tag }}</div>
         <div class="small text-muted text-truncate">{{ p.student_name }} &middot; {% if p.cfi_name %}{{ p.cfi_name }}{% elif p.solo %}solo{% else %}any instructor{% endif %}</div>
         {% if p.private_notes %}<div class="small fst-italic text-truncate" data-change="FLY-06">&ldquo;{{ p.private_notes }}&rdquo;</div>{% endif %}
       </div>
       <div class="d-flex gap-1 text-nowrap">
         {% set any_cfi = not p.cfi_name and not p.solo %}
-        <button type="button" class="btn btn-success btn-sm pending-decide-btn px-2 py-1" style="font-size:.78rem;" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id) }}" data-confirm="{{ 'Approve and assign yourself as the instructor?' if any_cfi else 'Approve this flight request? It goes onto the calendar as a confirmed booking.' }}" data-confirm-title="Approve Request" data-confirm-ok="{{ 'Yes, approve and assign me' if any_cfi else 'Yes, approve' }}" data-confirm-style="success"{% if any_cfi %} data-change="FLY-16"{% endif %}>Approve</button>
+        <button type="button" class="btn btn-success btn-sm pending-decide-btn px-2 py-1 btn-text-sm" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id) }}" data-confirm="{{ 'Approve and assign yourself as the instructor?' if any_cfi else 'Approve this flight request? It goes onto the calendar as a confirmed booking.' }}" data-confirm-title="Approve Request" data-confirm-ok="{{ 'Yes, approve and assign me' if any_cfi else 'Yes, approve' }}" data-confirm-style="success"{% if any_cfi %} data-change="FLY-16"{% endif %}>Approve</button>
         {% if any_cfi %}
-        <button type="button" class="btn btn-outline-success btn-sm pending-decide-btn px-2 py-1" style="font-size:.78rem;" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id, assign='later') }}" data-confirm="Approve without an instructor? It goes on the calendar flagged 'No instructor assigned yet' until you assign one." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success" title="Approve - assign an instructor later">Later</button>
+        <button type="button" class="btn btn-outline-success btn-sm pending-decide-btn px-2 py-1 btn-text-sm" data-decide-url="{{ url_for('flight.schedule_approve', scheduled_id=p.id, assign='later') }}" data-confirm="Approve without an instructor? It goes on the calendar flagged 'No instructor assigned yet' until you assign one." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success" title="Approve - assign an instructor later">Later</button>
         {% endif %}
-        <button type="button" class="btn btn-outline-danger btn-sm pending-deny-btn px-2 py-1" style="font-size:.78rem;" data-decide-url="{{ url_for('flight.schedule_deny', scheduled_id=p.id) }}">Deny</button>
+        <button type="button" class="btn btn-outline-danger btn-sm pending-deny-btn px-2 py-1 btn-text-sm" data-decide-url="{{ url_for('flight.schedule_deny', scheduled_id=p.id) }}">Deny</button>
       </div>
     </div>
     {% endfor %}

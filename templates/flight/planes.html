@@ -49,7 +49,7 @@
             {% else %}
             <button type="button" class="btn btn-outline-danger btn-sm ground-toggle" data-change="SCHOOL-26" data-target="ground-form-{{ p.id }}"><i class="bi bi-slash-circle"></i> Ground</button>
             <form method="post" action="{{ url_for('flight.plane_ground', asset_id=p.id) }}" class="d-none mt-1 d-flex gap-1 align-items-center ground-form" id="ground-form-{{ p.id }}" data-confirm="Ground {{ p.tag }}? It shows as Down for maintenance, new bookings are blocked and its upcoming bookings get flagged to move." data-confirm-title="Ground plane" data-confirm-ok="Yes, ground it" data-confirm-style="danger">
-              <input type="text" name="reason" class="form-control form-control-sm" placeholder="Reason (optional)" maxlength="120" style="max-width:220px;">
+              <input type="text" name="reason" class="form-control form-control-sm narrow-field" placeholder="Reason (optional)" maxlength="120">
               <button class="btn btn-danger btn-sm fw-bold text-nowrap">Ground plane</button>
             </form>
             {% endif %}

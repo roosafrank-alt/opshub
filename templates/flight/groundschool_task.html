@@ -2,12 +2,6 @@
 {% block title %}Task {{ task.code }}: {{ task.title }} · Flight Academy{% endblock %}
 {% block content %}
 <style>
-  .pg-bar { position: relative; height: .6rem; border-radius: 999px; background: #e9ecef; overflow: hidden; }
-  .pg-fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #2b3fdb, #4dabf7); }
-  .pg-fill.done { background: linear-gradient(90deg, #2f9e44, #69db7c); }
-  .el-badge { transition: box-shadow .1s, transform .1s; }
-  .el-badge:hover { box-shadow: 0 0 0 2px rgba(43,63,219,.5); transform: translateY(-1px); }
-  .el-badge .bi-chevron-right { font-size: .7em; vertical-align: 1px; opacity: .7; }
 </style>
 {% include "flight/_groundschool_picker.html" %}
 <div class="mb-3">
@@ -19,7 +13,7 @@
       <h4 class="mb-0 text-light">Task {{ task.code }}. {{ task.title }}</h4>
       <div class="text-light small opacity-75">Area {{ area.code }}. {{ area.title }}</div>
       {% if viewing_student_id and task_total %}
-      <div class="mt-1" style="max-width:220px;">
+      <div class="mt-1 narrow-field">
         <div class="pg-bar"><div class="pg-fill {{ 'done' if task_done == task_total }}" style="width: {{ (100 * task_done / task_total)|round|int }}%;"></div></div>
         <div class="text-light small opacity-75 mt-1">{{ task_done }} / {{ task_total }} elements complete</div>
       </div>
@@ -156,7 +150,7 @@
     </form>
     {% else %}
       {% if lesson and lesson.content %}
-        <div style="white-space: pre-wrap;">{{ lesson.content }}</div>
+        <div class="pre-wrap-text">{{ lesson.content }}</div>
       {% else %}
         <p class="text-muted mb-0">No lesson content yet.</p>
       {% endif %}

@@ -21,7 +21,7 @@
     <div class="card p-3 mb-3">
       <h6 class="text-muted mb-2">Flight</h6>
       <table class="table table-sm mb-0">
-        <tr><th style="width:35%;">Date</th><td>{{ f.flight_date|usdate }}</td></tr>
+        <tr><th class="col-35">Date</th><td>{{ f.flight_date|usdate }}</td></tr>
         <tr><th>Plane</th><td>{{ f.plane_tag }}{% if f.plane_name and f.plane_name != f.plane_tag %} <span class="text-muted">({{ f.plane_name }})</span>{% endif %}</td></tr>
         <tr><th>Student</th><td>{{ f.student_name }}</td></tr>
         <tr><th>Instructor</th><td>{% if f.solo %}<span class="badge bg-secondary">Solo (no instructor)</span>{% else %}{{ f.cfi_name or '-' }}{% endif %}</td></tr>
@@ -53,7 +53,7 @@
     <div class="card p-3 mb-3">
       <h6 class="text-muted mb-2"><i class="bi bi-stopwatch"></i> Start/Stop Clock</h6>
       <table class="table table-sm mb-0">
-        <tr><th style="width:35%;">Started</th><td data-change="FLY-26">{{ f.started_at|usdate }} {{ f.started_at|time12 }}</td></tr>
+        <tr><th class="col-35">Started</th><td data-change="FLY-26">{{ f.started_at|usdate }} {{ f.started_at|time12 }}</td></tr>
         <tr><th>Ended</th><td>{% if f.ended_at %}{{ f.ended_at|usdate }} {{ f.ended_at|time12 }}{% else %}(still running){% endif %}</td></tr>
         <tr><th>Elapsed</th><td data-change="FLY-26">{% if f.instructor_clock_hours is not none %}{% set el_min = (f.instructor_clock_hours * 60)|round|int %}{% if el_min >= 60 %}{{ el_min // 60 }} hr {{ el_min % 60 }} min{% else %}{{ el_min }} min{% endif %} ({{ '%.2f'|format(f.instructor_clock_hours) }} hrs){% else %}-{% endif %}</td></tr>
       </table>

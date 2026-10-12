@@ -116,7 +116,7 @@
   {% for sq in squawks_awaiting_confirm %}
   <div class="d-flex flex-column gap-1 py-2 squawk-item {{ 'border-top' if not loop.first }}">
     <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; done by {{ sq.repair_confirm_requested_by or '-' }}, {{ sq.repair_confirm_requested_at|usdate(true) if sq.repair_confirm_requested_at else '' }}</div>
-    <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+    <div class="pre-wrap-text">{{ sq.notes or '(no details given)' }}</div>
     <div class="squawk-row-actions">
       {{ squawk_step_pills(sq) }}
       {{ squawk_confirm_actions(sq) }}
@@ -143,7 +143,7 @@
     <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.event_date|usdate }} &middot;
       {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
       {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
-    <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+    <div class="pre-wrap-text">{{ sq.notes or '(no details given)' }}</div>
     <div class="squawk-row-actions">
       {{ squawk_step_pills(sq) }}
       {% if can_assign_squawks %}
@@ -180,7 +180,7 @@
   {% for sq in my_squawks %}
   <div class="d-flex flex-column gap-1 py-2 squawk-item {{ 'border-top' if not loop.first }}">
     <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.event_date|usdate }}</div>
-    <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+    <div class="pre-wrap-text">{{ sq.notes or '(no details given)' }}</div>
     <div class="squawk-row-actions">
       {{ squawk_step_pills(sq) }}
       {{ squawk_my_actions(sq, can_confirm=(session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector'))) }}
@@ -232,7 +232,7 @@
     <div>
       <div><strong><a href="{{ url_for('project_detail', project_id=p.id) }}" class="alert-link">{{ p.asset_display_tag }}</a></strong> &middot; {{ p.name }}
         {% if p.scheduled_date %} &middot; was scheduled {{ p.scheduled_date|usdate }}{% endif %}</div>
-      <div style="white-space:pre-wrap;">{{ p.customer_reschedule_note }}</div>
+      <div class="pre-wrap-text">{{ p.customer_reschedule_note }}</div>
     </div>
     <div class="d-flex gap-2 flex-shrink-0">
       <a href="{{ url_for('project_edit', project_id=p.id) }}" class="btn btn-outline-warning btn-sm fw-bold">Reschedule</a>
@@ -437,7 +437,7 @@
       <div class="d-md-none low-stock-phone">
         {% for p in low_stock %}
         <div class="d-flex align-items-center gap-2 py-2 border-bottom">
-          <div class="flex-grow-1 min-w-0" style="min-width:0">
+          <div class="flex-grow-1 min-w-0 shrinkable">
             <a href="{{ url_for('part_detail', part_id=p.id) }}" class="d-block text-truncate">{{ p.name }}</a>
             <small class="text-muted d-block text-truncate"><b class="text-danger">{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</b> left &middot; reorder at {{ '%g'|format(p.reorder_point) }} {{ p.unit }}</small>
           </div>
@@ -481,7 +481,7 @@
         <div class="py-2 border-bottom">
           <div class="d-flex justify-content-between align-items-baseline gap-2">
             {% if a.kind == 'part' %}
-            <div class="min-w-0 text-truncate" style="min-width:0">
+            <div class="min-w-0 text-truncate shrinkable">
               <a href="{{ url_for('part_detail', part_id=a.part_id) }}" class="text-decoration-none">{{ a.part_name }}</a>
               {% if a.tx_type == 'in' %}<span class="badge bg-success">IN</span>
               {% elif a.tx_type == 'out' %}<span class="badge bg-primary">OUT</span>
@@ -489,7 +489,7 @@
               {{ '%g'|format(a.qty) }}
             </div>
             {% else %}
-            <div class="min-w-0 text-truncate" style="min-width:0">
+            <div class="min-w-0 text-truncate shrinkable">
               {{ a.laborer_name }} <span class="badge bg-info text-dark">LABOR</span> {{ '%.2f'|format(a.hours or 0) }} hrs
             </div>
             {% endif %}

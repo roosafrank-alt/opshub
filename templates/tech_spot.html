@@ -20,7 +20,7 @@
     {% for sq in awaiting_squawks %}
     <div class="list-group-item px-0 d-flex flex-column gap-1 squawk-item">
       <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.event_date|usdate }}</div>
-      <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+      <div class="pre-wrap-text">{{ sq.notes or '(no details given)' }}</div>
       <div class="squawk-row-actions">
         {{ squawk_step_pills(sq) }}
         {{ squawk_confirm_actions(sq, confirm_label='Sign off', send_back_label='Send back') }}
@@ -40,7 +40,7 @@
     {% for sq in my_squawks %}
     <div class="list-group-item px-0 d-flex flex-column gap-1 squawk-item">
       <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.event_date|usdate }}</div>
-      <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+      <div class="pre-wrap-text">{{ sq.notes or '(no details given)' }}</div>
       <div class="squawk-row-actions">
         {{ squawk_step_pills(sq) }}
         {{ squawk_my_actions(sq, can_confirm=can_confirm) }}
@@ -67,7 +67,7 @@
     {% for t in my_todos %}
     <li class="list-group-item px-0 d-flex align-items-start gap-2">
       <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=t.asset_id, todo_id=t.id) }}" class="d-flex align-items-start gap-2 flex-grow-1" data-confirm="Mark this task done? An Inspector or admin will still need to confirm it.">
-        <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Mark done">
+        <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent icon-btn-tight" title="Mark done">
           <i class="bi bi-square fs-5"></i>
         </button>
         <span><a href="{{ url_for('asset_detail', asset_id=t.asset_id) }}" class="text-muted small">{{ t.asset_tag }}</a> - {{ t.description }}</span>
@@ -91,7 +91,7 @@
       <i class="bi bi-square fs-5 text-warning"></i>
       {% else %}
       <form method="post" action="{{ url_for('plane_todo_toggle', asset_id=t.asset_id, todo_id=t.id) }}" data-confirm="Reopen this to-do?" data-confirm-title="Reopen To-Do" data-confirm-ok="Reopen" data-confirm-style="warning" data-change="JOBS-42">
-        <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="Undo">
+        <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent icon-btn-tight" title="Undo">
           <i class="bi bi-square fs-5 text-warning"></i>
         </button>
       </form>
