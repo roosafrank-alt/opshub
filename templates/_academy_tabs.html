@@ -19,9 +19,11 @@
   <a class="academy-tab {{ 'active' if _tab == 'groundschool' }}" href="{{ url_for('groundschool.rating_list') }}">
     <i class="bi bi-mortarboard"></i><span>Ground School</span>
   </a>
+  {% if true %}
   <a class="academy-tab academy-tab-resources {{ 'active' if _tab == 'resources' }}" href="{{ url_for('groundschool.resources_list') }}">
     <i class="bi bi-folder2-open"></i><span>Resources</span>
   </a>
+  {% endif %}
   {% if _academy_ok %}
   <div class="dropdown academy-tab-more">
     <button type="button" class="academy-tab" data-bs-toggle="dropdown" aria-expanded="false">
@@ -45,10 +47,12 @@
   .academy-tab.active { background: #fff; color: #14213d; font-weight: 700; border-color: #fff; }
   .academy-tab-resources { display: none; }
   .academy-tabs-gs-only { grid-template-columns: repeat(2, 1fr); }
+  .academy-tabs-row.academy-tabs-one { grid-template-columns: 1fr; }
   .academy-tabs-gs-only .academy-tab-resources { display: flex; }
   @media (min-width: 768px) {
     .academy-tabs-row { grid-template-columns: repeat(5, 1fr); }
     .academy-tabs-gs-only { grid-template-columns: repeat(2, 1fr); }
+    .academy-tabs-row.academy-tabs-one { grid-template-columns: 1fr; }
     .academy-tab-resources { display: flex; }
     .academy-tab-resources-item { display: none; }
   }

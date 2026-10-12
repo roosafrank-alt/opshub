@@ -376,6 +376,24 @@
   </form>
 </div>
 
+{% if student and is_admin and grant_courses is defined %}
+<div class="card p-4 mt-3" id="courses" style="scroll-margin-top:80px;">
+  <h5 class="mb-1"><i class="bi bi-mortarboard"></i> Flight Academy courses</h5>
+  <p class="small text-muted">The student sees the checked courses (lesson plans and ground school) under Flight Academy, read only.</p>
+  <form method="post" action="{{ url_for('flight.student_course_grants_save', student_id=student.id) }}">
+    {% for c in grant_courses %}
+    <div class="form-check mb-1">
+      <input class="form-check-input" type="checkbox" name="rating_id" value="{{ c.id }}" id="grant-{{ c.id }}"{{ ' checked' if c.id in granted_ids }}>
+      <label class="form-check-label" for="grant-{{ c.id }}">{{ c.name }}</label>
+    </div>
+    {% else %}
+    <p class="mb-2">No courses are ready yet. Add one under Ground School first.</p>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary btn-sm mt-2">Save courses</button>
+  </form>
+</div>
+{% endif %}
+
 {% if student and can_bill %}
 {#- SCHOOL-14: id="account" so the Account page's Add Funds link lands here. #}
 <div class="card p-4 mt-3 anchor-offset" id="account" data-change="SCHOOL-14">
