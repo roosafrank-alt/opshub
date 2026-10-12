@@ -4,7 +4,7 @@
 {% if repl_hint %}
 <div class="alert alert-info d-flex gap-2 align-items-start" id="replacement-banner">
   <i class="bi bi-arrow-right-circle fs-5"></i>
-  <div>{{ replacement_sentence(repl_hint) }} <a href="{{ url_for('part_detail', part_id=repl_hint.id) }}" class="alert-link">Open it</a></div>
+  <div>{% for h in repl_hint %}<div>{{ replacement_lines([h])[0] }} <a href="{{ url_for('part_detail', part_id=h.id) }}" class="alert-link">Open it</a></div>{% endfor %}</div>
 </div>
 {% endif %}
 <div class="row g-3">

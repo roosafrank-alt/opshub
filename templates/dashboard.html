@@ -440,7 +440,7 @@
           <div class="flex-grow-1 min-w-0" style="min-width:0">
             <a href="{{ url_for('part_detail', part_id=p.id) }}" class="d-block text-truncate">{{ p.name }}</a>
             <small class="text-muted d-block text-truncate"><b class="text-danger">{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</b> left &middot; reorder at {{ '%g'|format(p.reorder_point) }} {{ p.unit }}</small>
-            {% if low_repl.get(p.id) %}<small class="text-info-emphasis d-block"><i class="bi bi-arrow-right-circle"></i> Superseded - replacement has {{ '%g'|format(low_repl[p.id].qty) }} on hand</small>{% endif %}
+            {% for ln in replacement_lines(low_repl.get(p.id)) %}<small class="text-info-emphasis d-block"><i class="bi bi-arrow-right-circle"></i> {{ ln }}</small>{% endfor %}
           </div>
           <div class="text-nowrap">
             <a href="{{ url_for('scan_page', autoscan=p.barcode) }}" class="btn btn-sm btn-outline-primary text-nowrap" data-change="SHOP-39">Scan In</a>
@@ -456,7 +456,7 @@
             {% for p in low_stock %}
             <tr class="low-stock-row">
               <td><a href="{{ url_for('part_detail', part_id=p.id) }}">{{ p.name }}</a><br><small class="text-muted">{{ p.barcode }}</small>
-                {% if low_repl.get(p.id) %}<br><small class="text-info-emphasis"><i class="bi bi-arrow-right-circle"></i> Superseded - replacement has {{ '%g'|format(low_repl[p.id].qty) }} on hand</small>{% endif %}</td>
+                {% for ln in replacement_lines(low_repl.get(p.id)) %}<br><small class="text-info-emphasis"><i class="bi bi-arrow-right-circle"></i> {{ ln }}</small>{% endfor %}</td>
               <td>{{ '%g'|format(p.qty_on_hand) }} {{ p.unit }}</td>
               <td>{{ '%g'|format(p.reorder_point) }} {{ p.unit }}</td>
               <td class="text-nowrap"><a href="{{ url_for('scan_page', autoscan=p.barcode) }}" class="btn btn-sm btn-outline-primary text-nowrap" data-change="SHOP-39">Scan In</a>

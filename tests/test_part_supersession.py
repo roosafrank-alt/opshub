@@ -141,8 +141,8 @@ class ChainAndHintTest(SupersessionBase):
         self.assertEqual([r["barcode"] for r in opshub_app.part_chain(conn, self.a)], ["B-200", "C-300"])
         hints = opshub_app.replacement_hints(conn, [self.a, self.b, self.c_])
         conn.close()
-        self.assertEqual(hints[self.a]["barcode"], "C-300")
-        self.assertEqual(hints[self.b]["qty"], 5)
+        self.assertEqual([h["barcode"] for h in hints[self.a]], ["B-200", "C-300"])
+        self.assertEqual([h["qty"] for h in hints[self.b]], [5])
         self.assertNotIn(self.c_, hints)
 
     def test_branches_are_all_followed(self):
@@ -153,58 +153,73 @@ class ChainAndHintTest(SupersessionBase):
         conn = db.get_db()
         h = opshub_app.replacement_hints(conn, [self.a])[self.a]
         conn.close()
-        self.assertEqual(h["more"], 2)
+        # B (direct, 0 on hand) is shown, plus every further part that has stock
+        self.assertEqual(sorted(x["barcode"] for x in h), ["B-200", "C-300", "D-400", "E-500"])
 
     def test_banner_on_zero_stock_part(self):
         html = self.login("shop_admin").get(f"/parts/{self.a}").get_data(as_text=True)
-        self.assertIn("Not available here, but its replacement C-300 (New Filter) has 5 on hand.", html)
-        # the chain is listed with quantities
+        self.assertIn("Superseded by B-200 (Mid Filter) - 0 ea on hand", html)   # 0 on hand is not hidden
+        self.assertIn("Superseded by C-300 (New Filter) - 5 ea on hand", html)   # further replacement on its own line
         self.assertIn("B-200 - Mid Filter", html)
-        self.assertIn("C-300 - New Filter", html)
+
+    def test_real_unit_is_used(self):
+        self.exec("UPDATE parts SET unit = 'ft' WHERE id = ?", (self.c_,))
+        html = self.login("shop_admin").get(f"/parts/{self.a}").get_data(as_text=True)
+        self.assertIn("Superseded by C-300 (New Filter) - 5 ft on hand", html)
 
     def test_banner_on_retired_part_with_stock(self):
         self.exec("UPDATE parts SET qty_on_hand = 4, retired_at = ? WHERE id = ?", (db.now_iso(), self.a))
         html = self.login("shop_admin").get(f"/parts/{self.a}").get_data(as_text=True)
-        self.assertIn("Not available here, but its replacement C-300", html)
+        self.assertIn("Superseded by C-300 (New Filter) - 5 ea on hand", html)
 
-    def test_no_banner_when_nothing_in_stock(self):
+    def test_zero_stock_replacement_still_shown(self):
         self.exec("UPDATE parts SET qty_on_hand = 0 WHERE id = ?", (self.c_,))
         html = self.login("shop_admin").get(f"/parts/{self.a}").get_data(as_text=True)
-        self.assertNotIn("Not available here", html)
+        self.assertIn("Superseded by B-200 (Mid Filter) - 0 ea on hand", html)
+        self.assertNotIn("Superseded by C-300", html)  # C is not a direct replacement and has no stock
 
     def test_no_banner_when_part_itself_has_stock(self):
         self.exec("UPDATE parts SET qty_on_hand = 3 WHERE id = ?", (self.a,))
         html = self.login("shop_admin").get(f"/parts/{self.a}").get_data(as_text=True)
-        self.assertNotIn("Not available here", html)
+        self.assertNotIn('id="replacement-banner"', html)
 
-    def test_retired_replacement_stock_does_not_count(self):
+    def test_retired_replacement_is_not_offered(self):
         self.exec("UPDATE parts SET retired_at = ? WHERE id = ?", (db.now_iso(), self.c_))
         html = self.login("shop_admin").get(f"/parts/{self.a}").get_data(as_text=True)
-        self.assertNotIn("Not available here", html)
+        self.assertNotIn("Superseded by C-300", html)
 
     def test_parts_list_row_hint(self):
         html = self.login("tech").get("/parts?q=Filter").get_data(as_text=True)
-        self.assertIn("Not available here, but its replacement C-300 (New Filter) has 5 on hand.", html)
+        self.assertIn("Superseded by C-300 (New Filter) - 5 ea on hand", html)
 
     def test_scan_lookup_hint(self):
         j = self.login("tech").get("/api/lookup/A-100").get_json()
-        self.assertIn("C-300 (New Filter) has 5", j["replacement_hint"])
+        self.assertIn("Superseded by C-300 (New Filter) - 5 ea on hand", j["replacement_hint"])
         j = self.login("tech").get("/api/lookup/C-300").get_json()
         self.assertIsNone(j["replacement_hint"])
 
-    def test_scan_lookup_hint_for_apprentice_without_prices(self):
-        j = self.login("shop_student").get("/api/lookup/A-100").get_json()
-        self.assertIn("C-300 (New Filter) has 5", j["replacement_hint"])
+    def test_apprentice_sees_nothing_anywhere(self):
+        self.exec("UPDATE parts SET reorder_point = 2 WHERE id = ?", (self.a,))
+        c = self.login("shop_student")
+        j = c.get("/api/lookup/A-100").get_json()
+        self.assertNotIn("replacement_hint", j)
+        self.assertNotIn("Superseded", str(j))
         self.assertNotIn("unit_cost", j)
-        self.assertNotIn("sell_price", j)
+        self.assertNotIn("Superseded", c.get("/shop").get_data(as_text=True))
+        for url in ("/parts", f"/parts/{self.a}", "/parts?low_stock=1"):
+            self.assertNotIn("Superseded by", c.get(url, follow_redirects=True).get_data(as_text=True))
+
+    def test_inspector_scan_lookup_keeps_hint(self):
+        j = self.login("inspector").get("/api/lookup/A-100").get_json()
+        self.assertIn("Superseded by C-300", j["replacement_hint"])
 
     def test_low_stock_hint_on_dashboard_and_page_without_changing_counts(self):
         self.exec("UPDATE parts SET reorder_point = 2 WHERE id = ?", (self.a,))
         c = self.login("shop_admin")
         dash = c.get("/shop").get_data(as_text=True)
-        self.assertIn("Superseded - replacement has 5 on hand", dash)
+        self.assertIn("Superseded by C-300 (New Filter) - 5 ea on hand", dash)
         page = c.get("/parts?low_stock=1").get_data(as_text=True)
-        self.assertIn("Superseded - replacement has 5 on hand", page)
+        self.assertIn("Superseded by C-300 (New Filter) - 5 ea on hand", page)
         conn = db.get_db()
         low = [r["barcode"] for r in opshub_app.get_low_stock(conn)]
         conn.close()

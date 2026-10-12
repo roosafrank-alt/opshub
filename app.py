@@ -716,11 +716,14 @@ def part_chain(conn, part_id):
 
 
 def replacement_hints(conn, part_ids):
-    """{part_id: {"barcode","name","qty","unit","more"}} for each given part
-    that has a part somewhere in its superseded-by chain with stock on hand
-    (retired replacements don't count: they can't be used). "more" is how
-    many other chain parts also have stock. Parts with no such replacement
-    are left out."""
+    """{part_id: [replacement, ...]} for each given part that has been
+    superseded. Each replacement is {"id","barcode","name","qty","unit"}: every
+    direct replacement (even with 0 on hand) plus any part further along the
+    chain that has stock. Retired replacements are skipped (they can't be
+    used). Apprentices never get anything: they must not see superseded parts."""
+    from flask import has_request_context
+    if has_request_context() and is_apprentice_limited():
+        return {}
     part_ids = list(part_ids)
     if not part_ids:
         return {}
@@ -733,31 +736,24 @@ def replacement_hints(conn, part_ids):
         return {}
     marks = ",".join("?" * len(wanted))
     info = {r["id"]: r for r in conn.execute(
-        f"SELECT * FROM parts WHERE id IN ({marks}) AND retired_at IS NULL AND qty_on_hand > 0", list(wanted)).fetchall()}
+        f"SELECT * FROM parts WHERE id IN ({marks}) AND retired_at IS NULL", list(wanted)).fetchall()}
     out = {}
     for pid, ids in chains.items():
-        stocked = [info[i] for i in ids if i in info]
-        if stocked:
-            first = stocked[0]
-            out[pid] = {"barcode": first["barcode"], "name": first["name"], "qty": first["qty_on_hand"],
-                        "unit": first["unit"] or "", "more": len(stocked) - 1, "id": first["id"]}
+        direct = set(edges.get(pid, []))
+        rows = [info[i] for i in ids if i in info and (i in direct or info[i]["qty_on_hand"] > 0)]
+        if rows:
+            out[pid] = [{"id": r["id"], "barcode": r["barcode"], "name": r["name"],
+                         "qty": r["qty_on_hand"], "unit": r["unit"] or ""} for r in rows]
     return out
 
 
-def _fmt_qty(q):
-    return f"{q:g}"
+def replacement_lines(items):
+    """['Superseded by N-123 (Brake pad, new) - 5 ea on hand', ...], one line per replacement."""
+    return [f"Superseded by {h['barcode']} ({h['name']}) - {h['qty']:g} {h['unit']} on hand".replace("  ", " ")
+            for h in (items or [])]
 
 
-def replacement_sentence(h):
-    """'Not available here, but its replacement N-123 (Name) has 5 on hand.'"""
-    s = (f"Not available here, but its replacement {h['barcode']} ({h['name']}) has "
-         f"{_fmt_qty(h['qty'])} on hand.")
-    if h["more"]:
-        s += f" {h['more']} other replacement{'s' if h['more'] != 1 else ''} also in stock."
-    return s
-
-
-app.jinja_env.globals["replacement_sentence"] = replacement_sentence
+app.jinja_env.globals["replacement_lines"] = replacement_lines
 
 
 # ---------------------------------------------------------------------------
@@ -2014,7 +2010,7 @@ def general_shop_code_print_label():
 def api_lookup(barcode):
     conn = get_db()
     part = get_part_by_barcode(conn, barcode)
-    hint = replacement_hints(conn, [part["id"]]).get(part["id"]) if part and part["qty_on_hand"] <= 0 else None
+    hint = replacement_hints(conn, [part["id"]]).get(part["id"]) if part and part["qty_on_hand"] <= 0 else None  # {} for apprentices
     conn.close()
     if not part:
         return jsonify({"found": False, "barcode": barcode})
@@ -2022,7 +2018,9 @@ def api_lookup(barcode):
     d["found"] = True
     # A part that is out of stock but was replaced by one that's on the shelf:
     # a short plain hint (names and counts only, no prices).
-    d["replacement_hint"] = replacement_sentence(hint) if hint else None
+    # (Apprentices get no supersession data at all, not even an empty key.)
+    if not is_apprentice_limited():
+        d["replacement_hint"] = "\n".join(replacement_lines(hint)) if hint else None
     return jsonify(d)
 
 

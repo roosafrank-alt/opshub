@@ -31,7 +31,7 @@
         </td>
         {% set _exp = part_expiry(p) %}
         <td data-label="" class="fw-semibold">{% if part_covers.get(p.id) %}<img src="{{ url_for('static', filename='uploads/' + part_covers.get(p.id)) }}" class="rounded d-sm-none me-2 align-middle" style="width:36px; height:36px; object-fit:cover;">{% endif %}{{ p.name }}{% if p.short_name %}<br><small class="text-muted">aka {{ p.short_name }}</small>{% endif %}{% if p.qty_on_hand <= p.reorder_point and not p.retired_at %} <i class="bi bi-exclamation-triangle text-danger" title="Low stock"></i>{% endif %}
-          {% if repl_hints.get(p.id) %}<br><small class="text-info-emphasis"><i class="bi bi-arrow-right-circle"></i> {% if low_view %}Superseded - replacement has {{ '%g'|format(repl_hints[p.id].qty) }} on hand{% else %}{{ replacement_sentence(repl_hints[p.id]) }}{% endif %}</small>{% endif %}
+          {% for ln in replacement_lines(repl_hints.get(p.id)) %}<br><small class="text-info-emphasis"><i class="bi bi-arrow-right-circle"></i> {{ ln }}</small>{% endfor %}
           {% if _exp %}<br><small class="text-muted">Exp {{ _exp.date|usdate_short }}</small>{% if _exp.level == 'expired' %} <span class="badge bg-danger">Expired</span>{% elif _exp.level == 'soon' %} <span class="badge bg-warning text-dark">Expires soon</span>{% endif %}{% endif %}</td>
         <td data-label="Barcode"><code>{{ p.barcode }}</code></td>
         <td data-label="Location">{{ p.location or '-' }}</td>
