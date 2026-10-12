@@ -932,6 +932,49 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_field_change_log_entity ON field_change_log(entity_type, entity_id, field_name)")
     conn.commit()
 
+    # FLY-07: a student asks to pay a flight by card through Wave; a master
+    # admin / Flight Admin approves it (which is when the Wave invoice is made).
+    conn.execute("""CREATE TABLE IF NOT EXISTS flight_charge_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        flight_id INTEGER NOT NULL REFERENCES flights(id),
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        amount_cents INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending', -- pending | approved | declined | failed
+        consent_text TEXT,
+        consent_at TEXT,
+        created_at TEXT NOT NULL,
+        decided_by TEXT,
+        decided_at TEXT,
+        decline_reason TEXT,
+        wave_local_invoice_id INTEGER,
+        failure_message TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_charge_requests_flight ON flight_charge_requests(flight_id, status)")
+    conn.commit()
+
+    # Cash / check collected by someone who is not a master admin or Flight
+    # Admin posts as Paid right away; this row is the office cross-check log
+    # (flight_payments.log_collected). status: pending (not yet verified) |
+    # verified (Received at office) | missing (flagged Not received; reject_reason
+    # holds the note). Nothing here ever posts or reverses a payment.
+    conn.execute("""CREATE TABLE IF NOT EXISTS flight_payment_confirmations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        flight_id INTEGER NOT NULL REFERENCES flights(id),
+        amount REAL NOT NULL,
+        method TEXT,
+        note TEXT,
+        recorded_by TEXT,
+        recorded_by_user_id INTEGER,
+        recorded_at TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending', -- pending | verified | missing
+        decided_by TEXT,
+        decided_at TEXT,
+        reject_reason TEXT,
+        recorder_seen_at TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_payment_confirmations_flight ON flight_payment_confirmations(flight_id, status)")
+    conn.commit()
+
     # Phone push notifications for flying sessions (30 min left / time's up /
     # overdue) - opt-in per user (notify_push_session_alerts), one row per
     # subscribed browser/device in push_subscriptions (Web Push, RFC 8030),

@@ -80,7 +80,7 @@
           {% endif %}
         </td></tr>
         <tr class="table-light"><th>Total</th><td class="fs-5"><strong>${{ '%.2f'|format(f.total) }}</strong></td></tr>
-        <tr><th>Status</th><td>{% if f.paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}</td></tr>
+        <tr><th>Status</th><td>{% if f.paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}{% if f.paid and f.office %} <span class="badge {{ 'bg-success' if f.office == 'verified' else ('bg-danger' if f.office == 'missing' else 'bg-secondary') }}" data-change="CASH-VERIFY" title="Cash/check cross-check by the office">{{ 'Office verified' if f.office == 'verified' else ('Not received at office' if f.office == 'missing' else 'Not yet verified') }}</span>{% endif %}</td></tr>
       </table>
       {% if f.paid %}
       <form method="post" action="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" class="mt-2" data-confirm="Mark this flight as UNPAID? The payment recorded for it comes back off the student's account and it shows as owed again." data-confirm-title="Mark Unpaid" data-confirm-ok="Yes, mark unpaid" data-confirm-style="warning" data-change="FLY-11">

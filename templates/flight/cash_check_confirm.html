@@ -1,0 +1,69 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Cash/check collected · Fly with Kate!{% endblock %}
+{% macro entry(c, flagged=False) %}
+<div class="border-top py-2" id="entry-{{ c.id }}">
+  <div class="d-flex justify-content-between flex-wrap gap-2">
+    <div>
+      <div class="fw-bold">{{ c.student_name }} <span class="badge bg-info text-dark">{{ c.method or 'Payment' }}</span></div>
+      <div class="small text-muted">Flight {{ c.flight_date|usdate }} &middot; {{ c.plane_tag or 'Plane' }} &middot; collected by {{ c.recorded_by or 'unknown' }} &middot; {{ c.recorded_at|usdate }}</div>
+      {% if c.note %}<div class="small">Note: {{ c.note }}</div>{% endif %}
+      {% if flagged %}<div class="small text-danger">Not received - {{ c.reject_reason }} <span class="text-muted">(flagged by {{ c.decided_by }})</span></div>{% endif %}
+      <a class="small" href="{{ url_for('flight.log_detail', flight_id=c.flight_id) }}">View flight</a>
+    </div>
+    <div class="fs-5 fw-bold">${{ '{:,.2f}'.format(c.amount) }}</div>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-start mt-2">
+    <form method="post" action="{{ url_for('flight.cash_check_verify', conf_id=c.id) }}">
+      <button type="submit" class="btn btn-success btn-sm fw-bold"><i class="bi bi-check-circle"></i> Received at office</button>
+    </form>
+    {% if not flagged %}
+    <form method="post" action="{{ url_for('flight.cash_check_flag', conf_id=c.id) }}" class="d-flex gap-2 flex-grow-1">
+      <input type="text" name="reason" class="form-control form-control-sm" maxlength="300" placeholder="Note (what is missing)" required>
+      <button type="submit" class="btn btn-outline-danger btn-sm">Not received</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-cash-coin"></i> Cash/check collected</h4>
+  <a href="{{ url_for('flight.billing') }}" class="btn btn-sm btn-outline-secondary">Back to Billing</a>
+</div>
+<p class="text-muted small">Instructors mark flights paid as soon as they collect cash or a check. This list is for cross-checking that the office really received it. Tap <strong>Received at office</strong> when it has, or <strong>Not received</strong> with a note. Flagging does not change the payment - mark the flight unpaid yourself if needed.</p>
+<div class="mb-2 small">Sort:
+  <a href="{{ url_for('flight.cash_check_confirm', sort='collector') }}" class="{{ 'fw-bold' if sort != 'date' }}">by collector</a> &middot;
+  <a href="{{ url_for('flight.cash_check_confirm', sort='date') }}" class="{{ 'fw-bold' if sort == 'date' }}">by date</a></div>
+<h6>Not yet verified ({{ pending|length }}) &middot; ${{ '{:,.2f}'.format(pending_total) }}</h6>
+{% if sort == 'date' %}
+<div class="card mb-3"><div class="card-body py-1">
+  {% for c in pending|sort(attribute='recorded_at') %}{{ entry(c) }}{% else %}<div class="text-muted py-2">Nothing waiting to be verified.</div>{% endfor %}
+</div></div>
+{% else %}
+{% for g in groups %}
+<div class="card mb-3"><div class="card-body py-2">
+  <div class="d-flex justify-content-between"><strong>{{ g.name }}</strong><span class="fw-bold">${{ '{:,.2f}'.format(g.total) }} <span class="text-muted small fw-normal">({{ g['items']|length }})</span></span></div>
+  {% for c in g['items'] %}{{ entry(c) }}{% endfor %}
+</div></div>
+{% else %}
+<div class="alert alert-secondary">Nothing waiting to be verified.</div>
+{% endfor %}
+{% endif %}
+{% if flagged %}
+<h6 class="mt-4 text-danger">Flagged - not received ({{ flagged|length }})</h6>
+<div class="card mb-3 border-danger"><div class="card-body py-1">
+  {% for c in flagged %}{{ entry(c, True) }}{% endfor %}
+</div></div>
+{% endif %}
+{% if decided %}
+<h6 class="mt-4">Recently verified</h6>
+<div class="list-group">
+  {% for c in decided %}
+  <div class="list-group-item small">
+    <strong>{{ c.student_name }}</strong> &middot; {{ c.flight_date|usdate }} {{ c.plane_tag or '' }} &middot; {{ c.method or '' }} ${{ '{:,.2f}'.format(c.amount) }} &middot;
+    <span class="badge bg-success">Office verified</span> <span class="text-muted">by {{ c.decided_by }} (collected by {{ c.recorded_by }})</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

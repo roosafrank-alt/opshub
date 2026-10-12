@@ -9872,6 +9872,8 @@ def _wipe_flight_log(conn, where="1=1", params=()):
         ph = _ids_placeholders(ids)
         conn.execute(f"UPDATE student_ledger SET flight_id = NULL WHERE flight_id IN ({ph})", ids)
         conn.execute(f"UPDATE pilot_logbook SET flight_id = NULL WHERE flight_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM flight_charge_requests WHERE flight_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM flight_payment_confirmations WHERE flight_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM flights WHERE id IN ({ph})", ids)
     return len(ids)
 
