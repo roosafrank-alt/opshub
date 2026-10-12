@@ -66,9 +66,24 @@
     nav.classList.toggle('hdr-words', fits);
   }
 
+  // Hover text for header tiles: every tile that has a word label also gets
+  // it as its tooltip, so it still reads when the bar shows icons only.
+  function addTooltips(nav) {
+    var labels = nav.querySelectorAll('.nav-label');
+    for (var i = 0; i < labels.length; i++) {
+      var host = hostFor(labels[i]);
+      var text = (labels[i].textContent || '').trim();
+      if (host && text && !host.getAttribute('title')) host.setAttribute('title', text);
+    }
+    var acct = nav.querySelectorAll('[id^="user-menu-toggle-"]');
+    for (var j = 0; j < acct.length; j++) {
+      if (!acct[j].getAttribute('title')) acct[j].setAttribute('title', 'Account menu');
+    }
+  }
+
   function scan() {
     var navs = document.querySelectorAll('nav.navbar');
-    for (var i = 0; i < navs.length; i++) updateNav(navs[i]);
+    for (var i = 0; i < navs.length; i++) { addTooltips(navs[i]); updateNav(navs[i]); }
   }
 
   var t = null;
