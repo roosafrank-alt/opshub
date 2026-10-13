@@ -2363,6 +2363,36 @@ def project_add_section(project_id):
     return redirect(url_for("project_detail", project_id=project_id))
 
 
+@app.route("/projects/<int:project_id>/add_quick_type", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_add_quick_type(project_id):
+    """Add a Quick Type's required preset discrepancies (Manage > Task
+    Templates) to a job that already exists - same list the project intake
+    form uses when the type is picked."""
+    conn = get_db()
+    project = conn.execute("SELECT id FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    quick_type = request.form.get("quick_type", "")
+    if quick_type not in _all_quick_types(conn):
+        conn.close()
+        flash("Pick a Quick Type from the list.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id))
+    added = 0
+    for r in conn.execute("SELECT name FROM task_template_areas WHERE quick_type = ? AND is_optional = 0 ORDER BY sort_order, name",
+                          (quick_type,)).fetchall():
+        added += conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
+                              (project_id, r["name"], now_iso())).rowcount
+    conn.commit()
+    conn.close()
+    if added:
+        flash(f"Added {added} discrepanc{'y' if added == 1 else 'ies'} from {quick_type}.", "success")
+    else:
+        flash(f"Nothing new to add: {quick_type} has no discrepancies that aren't already on this job.", "info")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 @app.route("/projects/<int:project_id>/sections/<int:section_id>/complete", methods=["POST"])
 @shop_role_required('admin', 'tech', 'inspector')
 def project_section_complete(project_id, section_id):
@@ -4270,8 +4300,9 @@ def project_detail(project_id):
         project_maint_items = conn.execute(
             "SELECT id, name FROM maintenance_items WHERE asset_id = ? AND active = 1 ORDER BY name",
             (project["asset_id"],)).fetchall()
+    quick_types = _all_quick_types(conn)
     conn.close()
-    return render_template("project_detail.html", project=project, usage_by_section=usage_by_section,
+    return render_template("project_detail.html", project=project, usage_by_section=usage_by_section, quick_types=quick_types,
                            task_people=task_people, project_maint_items=project_maint_items,
                            total_cost=total_cost, tx=tx, all_parts=all_parts, photos=photos, open_orders=open_orders,
                            part_requests=part_requests, waiting_on_parts=waiting_on_parts,
