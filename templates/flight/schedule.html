@@ -458,6 +458,31 @@ var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(0) }};
     var blocks = document.querySelectorAll('.schedule-block-new');
     if (!blocks.length) { stripParam(); return; }
     blocks[0].scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
+    // Centering can leave the day's date header above the screen (tall
+    // month cells, week columns). Nudge the page so the header sits just
+    // under the pinned toolbar with the booking still below it.
+    (function () {
+      var b0 = blocks[0];
+      var cell = b0.closest('td.calendar-day-cell') || b0.closest('.week-timeline-day-col');
+      var head = cell && cell.querySelector('.calendar-day-head, .week-timeline-day-head');
+      if (!head) return;
+      var top = 0;
+      ['.sch-head', '.schedule-toolbar'].forEach(function (sel) {
+        var t = document.querySelector(sel);
+        if (t && t.offsetHeight) top = Math.max(top, t.getBoundingClientRect().bottom);
+      });
+      var hr = head.getBoundingClientRect(), br = b0.getBoundingClientRect();
+      var want = hr.top - top - 8;
+      if (want >= 0) {
+        // Header already visible; only move if the booking would be cut off.
+        return;
+      }
+      // Header is hidden above: scroll up just enough to show it, but never
+      // so far that the booking drops off the bottom of the screen.
+      var up = -want, room = window.innerHeight - 8 - br.bottom;
+      if (room > 0) up = Math.min(up, room);
+      window.scrollBy(0, -up);
+    })();
     overlay = document.createElement('div');
     overlay.className = 'schedule-new-spotlight';
     label = document.createElement('div');
