@@ -5865,16 +5865,25 @@ def asset_compression(asset_id):
         checked_date = request.form.get("checked_date", "").strip() or date.today().strftime("%Y-%m-%d")
         cyls = [_parse_float(request.form.get(f"cyl{i}")) for i in range(1, 7)]
         check_id = request.form.get("check_id", type=int)
+        # Tach and Hobbs are each optional, but at least one is required.
+        tach = _parse_float(request.form.get("tach_hours"))
+        hobbs = _parse_float(request.form.get("hobbs_hours"))
+        if tach is None and hobbs is None:
+            conn.close()
+            flash("Enter a Tach and/or Hobbs time for this check.", "danger")
+            if check_id:
+                return redirect(url_for("asset_compression", asset_id=asset_id, edit=check_id))
+            return redirect(url_for("asset_compression", asset_id=asset_id))
         if check_id:
             existing = conn.execute("SELECT id FROM compression_checks WHERE id = ? AND asset_id = ?",
                                     (check_id, asset_id)).fetchone()
             if not existing:
                 conn.close()
                 abort(404)
-            conn.execute("""UPDATE compression_checks SET checked_date = ?, hours = ?, master_orifice = ?,
+            conn.execute("""UPDATE compression_checks SET checked_date = ?, tach_hours = ?, hobbs_hours = ?, master_orifice = ?,
                              cyl1 = ?, cyl2 = ?, cyl3 = ?, cyl4 = ?, cyl5 = ?, cyl6 = ?, performed_by = ?, notes = ?
                              WHERE id = ?""",
-                         (checked_date, _parse_float(request.form.get("hours")),
+                         (checked_date, tach, hobbs,
                           _parse_float(request.form.get("master_orifice")),
                           cyls[0], cyls[1], cyls[2], cyls[3], cyls[4], cyls[5],
                           request.form.get("performed_by", "").strip() or session.get("user_name"),
@@ -5883,10 +5892,10 @@ def asset_compression(asset_id):
             conn.close()
             flash("Compression check updated.", "success")
             return redirect(url_for("asset_compression", asset_id=asset_id))
-        conn.execute("""INSERT INTO compression_checks (asset_id, checked_date, hours, master_orifice,
+        conn.execute("""INSERT INTO compression_checks (asset_id, checked_date, tach_hours, hobbs_hours, master_orifice,
                          cyl1, cyl2, cyl3, cyl4, cyl5, cyl6, performed_by, notes, created_at)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                     (asset_id, checked_date, _parse_float(request.form.get("hours")),
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                     (asset_id, checked_date, tach, hobbs,
                       _parse_float(request.form.get("master_orifice")),
                       cyls[0], cyls[1], cyls[2], cyls[3], cyls[4], cyls[5],
                       request.form.get("performed_by", "").strip() or session.get("user_name"),
@@ -5926,8 +5935,12 @@ def asset_compression(asset_id):
     tech_names = [r["name"] for r in conn.execute(
         "SELECT name FROM users WHERE active = 1 AND shop_role IN ('admin', 'tech') ORDER BY name").fetchall()]
     conn.close()
-    # Hours start out as the last hours entered; still editable.
-    last_hours = next((c["hours"] for c in reversed(checks) if c["hours"] is not None), None)
+    # Tach and Hobbs start out as the aircraft's last recorded readings (falling
+    # back to the last check's numbers); both stay editable.
+    last_tach = asset["tach_hours"] if asset["tach_hours"] is not None else next(
+        (c["tach_hours"] for c in reversed(checks) if c["tach_hours"] is not None), None)
+    last_hobbs = asset["hobbs_hours"] if asset["hobbs_hours"] is not None else next(
+        (c["hobbs_hours"] for c in reversed(checks) if c["hobbs_hours"] is not None), None)
 
     editing = None
     edit_id = request.args.get("edit", type=int)
@@ -5941,7 +5954,7 @@ def asset_compression(asset_id):
     return render_template("asset_compression.html", asset=asset, checks=history, latest=latest,
                            chart_labels=chart_labels, cyl_series=cyl_series, default_num_cylinders=default_num_cylinders,
                            today=date.today().strftime("%Y-%m-%d"), can_edit_checks=can_edit_checks, editing=editing,
-                           tech_names=tech_names, last_hours=last_hours)
+                           tech_names=tech_names, last_tach=last_tach, last_hobbs=last_hobbs)
 
 
 @app.route("/assets/<int:asset_id>/compression/<int:check_id>/delete", methods=["POST"])

@@ -530,7 +530,7 @@ class CompressionTest(OpsHubTestCase):
         self.assertIn('name="check_id"', body)
         self.assertIn('value="70"', body)
         c.post(f"/assets/{self.asset}/compression", data={"check_id": self.cid, "checked_date": "2026-09-02",
-                                                         "cyl1": "75", "cyl2": "71"})
+                                                         "tach_hours": "100", "cyl1": "75", "cyl2": "71"})
         row = self.q1("SELECT * FROM compression_checks WHERE id=?", (self.cid,))
         self.assertEqual((row["cyl1"], row["checked_date"]), (75, "2026-09-02"))
         self.assertEqual(self.q1("SELECT COUNT(*) n FROM compression_checks")["n"], 1)
