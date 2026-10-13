@@ -364,3 +364,211 @@ class BigAndAlertSourcesTest(ScanFlowTest):
         self.assertEqual(rs.parse_date("October 2, 2025"), "2025-10-02")
         self.assertIsNone(rs.parse_date("Rev B"))
         self.assertEqual(rs.parse_aim_page(AIM_HTML.decode()), {"effective": "2025-04-03", "change": "Change 2"})
+
+
+def make_pdf(lines):
+    """A small real PDF (one paragraph per line) so the preview can read its text back."""
+    import io
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Paragraph
+    from reportlab.lib.styles import getSampleStyleSheet
+    buf = io.BytesIO()
+    SimpleDocTemplate(buf, pagesize=letter).build([Paragraph(x, getSampleStyleSheet()["BodyText"]) for x in lines])
+    return buf.getvalue()
+
+
+AIM_URL = "https://www.faa.gov/air_traffic/publications/atpubs/aim_html/"
+AIM_PAGE = (b"<html><body><h1>AIM</h1><p>Change 2. Effective: April 3, 2025</p>"
+            b'<a href="/docs/AIM_full.pdf">Download the AIM</a></body></html>')
+AIM_OLD = [(1, "5-1-1 Preflight\nCheck the weather before every flight.\n5-1-2 Flight plans\nFile one.\n5-1-7 Alternates\nPlan an alternate."),]
+AIM_NEW_LINES = ["5-1-1 Preflight", "Check the weather and NOTAMs before every flight.", "5-1-2 Flight plans", "File one.",
+                 "5-1-8 Diversions", "Tell ATC at once."]
+ECFR_XML = (b'<?xml version="1.0"?><ECFR><DIV5 TYPE="PART" N="91"><DIV8 TYPE="SECTION" N="91.103"><HEAD>&#xA7; 91.103 Preflight action</HEAD>'
+            b'<P>Each pilot must become familiar with all available information and runway lengths.</P></DIV8>'
+            b'<DIV8 TYPE="SECTION" N="91.105"><HEAD>&#xA7; 91.105 Flight crewmembers at stations</HEAD><P>Crew stay at stations.</P></DIV8>'
+            b'<DIV8 TYPE="SECTION" N="91.109"><HEAD>&#xA7; 91.109 Flight instruction</HEAD><P>New rule text here.</P></DIV8></DIV5></ECFR>')
+
+
+class PreviewUpdateTest(OpsHubTestCase):
+    """Preview update (AIM and combined eCFR alerts): fetch, change view, Update, Cancel, permissions."""
+
+    def setUp(self):
+        super().setUp()
+        self.q_dir = tempfile.mkdtemp()
+        self.exec("INSERT INTO acs_resources (title, designation, filename, uploaded_at, doc_date, revision, effectivity) "
+                  "VALUES ('Rules', '14 CFR Part 91', 'old.pdf', ?, '2025-01-02', 'Change 1', '2025-02-01')", (db.now_iso(),))
+        self.rid = self.q1("SELECT id FROM acs_resources")["id"]
+        self.pages = OLD
+        for n, t in OLD:
+            self.exec("INSERT INTO acs_resource_pages VALUES (?,?,?)", (self.rid, n, t))
+        gs.SCAN_ASYNC = False
+        gs.PREVIEW_ASYNC = False
+        self.addCleanup(setattr, gs, "SCAN_ASYNC", True)
+        self.addCleanup(setattr, gs, "PREVIEW_ASYNC", True)
+        self.fetched = []
+        self.answers = {}
+        orig_q, orig_make = rs.quarantine_dir, rs.make_preview
+        rs.quarantine_dir = lambda d=self.q_dir: d
+        rs.make_preview = lambda conn, src, res, upd, **k: orig_make(conn, src, res, upd, fetch=self.fetch, qdir=self.q_dir,
+                                                                      sleep=lambda s: None)
+        self.addCleanup(setattr, rs, "quarantine_dir", orig_q)
+        self.addCleanup(setattr, rs, "make_preview", orig_make)
+        self.orig_extract = rs.extract_pages
+
+    def fetch(self, url, max_bytes=None, method="GET"):
+        rs.check_host(url)                       # the real allow-list applies to every call
+        self.fetched.append(url)
+        a = self.answers[url]
+        if isinstance(a, Exception):
+            raise a
+        return 200, {}, a
+
+    def alert(self, source, answers):
+        self.answers.update(answers)
+        self.exec("INSERT INTO resource_sources (resource_id, source_url, source_kind, last_seen_version) VALUES (?,?,?,?)",
+                  (self.rid, source, rs.detect_kind(source), "x"))
+        conn = db.get_db()
+        rs.run_scan(conn, "t", fetch=self.fetch, sleep=lambda s: None, qdir=self.q_dir)
+        conn.close()
+        return self.q1("SELECT * FROM resource_updates")
+
+    def aim_alert(self, pdf=None, old=None):
+        self.exec("DELETE FROM acs_resource_pages")
+        self.exec("INSERT INTO acs_resource_pages VALUES (?,1,?)", (self.rid, old or AIM_OLD[0][1]))
+        return self.alert(AIM_URL, {AIM_URL: AIM_PAGE, "https://www.faa.gov/docs/AIM_full.pdf": pdf or make_pdf(AIM_NEW_LINES)})
+
+    def multi_alert(self):
+        v = rs.ecfr_api_url("https://www.ecfr.gov/current/title-14/part-91")
+        return self.alert("14: 91", {v: ecfr_json("2026-09-12"),
+                                     "https://www.ecfr.gov/api/versioner/v1/full/2026-09-12/title-14.xml?part=91": ECFR_XML})
+
+    def test_diff_marks(self):
+        b, a = rs.diff_html("pay the fee now", "pay the <b>fee</b> soon")
+        self.assertEqual(str(b), "pay the <del>fee now</del>")
+        self.assertEqual(str(a), "pay the <ins>&lt;b&gt;fee&lt;/b&gt; soon</ins>")
+        ch = {c["key"]: c for c in rs.list_changes(OLD, NEW)}
+        self.assertEqual({k: v["kind"] for k, v in ch.items()}, {"91.103": "changed", "91.107": "removed", "91.109": "added"})
+        self.assertEqual(ch["91.103"]["group"], "Part 91")
+        self.assertEqual(rs.list_changes([(1, "5-1-7 A\nx\n5-1-8 B\ny\n5-2-1 C\nz")], [(1, "5-1-7 A\nx\n5-1-8 B\ny\n5-2-1 C\nz")]), [])
+        self.assertEqual(rs._chapter("5-1-7"), "Chapter 5")
+
+    def test_aim_preview_update_and_previous_version(self):
+        u = self.aim_alert()
+        self.assertIsNone(u["new_filename"])
+        c = self.login("master")
+        body = c.get(f"{GS}/resources").get_data(as_text=True)
+        self.assertIn("Preview update", body)
+        self.assertIn("Open source", body)
+        resp = c.post(f"{GS}/resources/updates/{u['id']}/preview")
+        self.assertIn(f"/updates/{u['id']}/changes", resp.headers["Location"])
+        u = self.q1("SELECT * FROM resource_updates")
+        self.assertEqual((u["preview_state"], u["new_revision"], u["new_effectivity"]), ("ready", "Change 2", "2025-04-03"))
+        self.assertTrue(os.path.isfile(os.path.join(self.q_dir, u["new_filename"])))
+        self.assertEqual(self.q1("SELECT filename FROM acs_resources")["filename"], "old.pdf")     # nothing live yet
+        self.assertEqual(self.fetched[-2:], [AIM_URL, "https://www.faa.gov/docs/AIM_full.pdf"])
+        view = c.get(f"{GS}/resources/updates/{u['id']}/changes").get_data(as_text=True)
+        self.assertIn("Change 1", view)
+        self.assertIn("Change 2", view)
+        self.assertIn("1 section changed, 1 added, 1 removed", view)
+        self.assertIn("<ins>and NOTAMs</ins>", view)
+        self.assertIn("Chapter 5", view)
+        self.assertIn("5-1-8", view)
+        self.assertIn(">Update<", view)
+        self.assertIn("Cancel", view)
+        only = c.get(f"{GS}/resources/updates/{u['id']}/changes?show=added").get_data(as_text=True)
+        self.assertIn("5-1-8", only)
+        self.assertNotIn("data-change-item=\"removed\"", only)
+        self.assertNotIn("NOTAMs", only)
+        found = c.get(f"{GS}/resources/updates/{u['id']}/changes?q=alternate").get_data(as_text=True)
+        self.assertIn("5-1-7", found)
+        self.assertNotIn("5-1-8", found)
+        resp = c.post(f"{GS}/resources/updates/{u['id']}/approve")
+        self.assertIn(f"/resources/updates/{u['id']}/send", resp.headers["Location"])
+        r = self.q1("SELECT * FROM acs_resources")
+        self.assertEqual((r["prev_filename"], r["revision"], r["effectivity"]), ("old.pdf", "Change 2", "2025-04-03"))
+        self.assertNotEqual(r["filename"], "old.pdf")
+        self.assertTrue(r["new_until"])
+        self.assertIn("NOTAMs", self.q1("SELECT text FROM acs_resource_pages")["text"])
+        self.assertEqual(self.q1("SELECT status FROM resource_updates")["status"], "approved")
+        body = c.get(f"{GS}/resources").get_data(as_text=True)
+        self.assertNotIn("waiting for approval", body)
+        self.assertIn(">NEW<", body)
+
+    def test_cancel_keeps_old_and_alert(self):
+        u = self.aim_alert()
+        before = u["summary"]
+        c = self.login("master")
+        c.post(f"{GS}/resources/updates/{u['id']}/preview")
+        c.post(f"{GS}/resources/updates/{u['id']}/cancel")
+        u2 = self.q1("SELECT * FROM resource_updates")
+        self.assertEqual((u2["status"], u2["new_filename"], u2["summary"]), ("pending", None, before))
+        self.assertEqual(os.listdir(self.q_dir), [])
+        self.assertEqual(self.q1("SELECT COUNT(*) n FROM resource_update_pages")["n"], 0)
+        self.assertEqual(self.q1("SELECT filename FROM acs_resources")["filename"], "old.pdf")
+        self.assertIn("Preview update", c.get(f"{GS}/resources").get_data(as_text=True))
+
+    def test_combined_cfr_preview_builds_pdf_from_listed_parts(self):
+        u = self.multi_alert()
+        c = self.login("master")
+        c.post(f"{GS}/resources/updates/{u['id']}/preview")
+        u = self.q1("SELECT * FROM resource_updates")
+        self.assertEqual((u["preview_state"], u["new_doc_date"]), ("ready", "2026-09-12"))
+        self.assertTrue(u["new_filename"].endswith(".pdf"))
+        with open(os.path.join(self.q_dir, u["new_filename"]), "rb") as f:
+            self.assertTrue(rs.validate_pdf(f.read())[0])
+        self.assertTrue(all(x.startswith("https://www.ecfr.gov/") for x in self.fetched))
+        view = c.get(f"{GS}/resources/updates/{u['id']}/changes").get_data(as_text=True)
+        self.assertIn("eCFR amendment dates: 14 CFR 91: 2026-09-12", view)
+        self.assertIn("1 section changed, 1 added, 1 removed", view)
+        self.assertIn("<ins>information and runway lengths.</ins>", view)
+        self.assertIn("Part 91", view)
+        self.assertIn("91.109", view)
+        c.post(f"{GS}/resources/updates/{u['id']}/approve")
+        self.assertEqual(self.q1("SELECT doc_date FROM acs_resources")["doc_date"], "2026-09-12")
+        self.assertEqual(self.q1("SELECT prev_filename FROM acs_resources")["prev_filename"], "old.pdf")
+
+    def test_big_diff_shows_biggest_first_with_paging(self):
+        u = self.aim_alert(old="\n".join(f"{i}.{i} Rule {i}\nold text {i}" for i in range(1, 90)),
+                           pdf=make_pdf([f"{i}.{i} Rule {i}" if j == 0 else ("new words " * (i if i != 50 else 60))
+                                     for i in range(1, 90) for j in (0, 1)]))
+        c = self.login("master")
+        c.post(f"{GS}/resources/updates/{u['id']}/preview")
+        view = c.get(f"{GS}/resources/updates/{u['id']}/changes").get_data(as_text=True)
+        self.assertIn("showing the biggest changes first", view)
+        self.assertIn("Section 89.89", view)
+        self.assertNotIn("Section 1.1<", view)
+        self.assertIn("Page 1 of 5", view)
+        self.assertIn("Page 2 of 5", c.get(f"{GS}/resources/updates/{u['id']}/changes?page=2").get_data(as_text=True))
+
+    def test_non_admins_cannot_preview_or_update(self):
+        u = self.aim_alert()
+        for who in ("flight_student", "cfi"):
+            c = self.login(who)
+            for path, post in (("preview", True), ("cancel", True), ("approve", True), ("changes", False)):
+                url = f"{GS}/resources/updates/{u['id']}/{path}"
+                resp = c.post(url) if post else c.get(url)
+                self.assertEqual(resp.status_code, 302, (who, path))
+        self.assertIn(self.q1("SELECT preview_state FROM resource_updates")["preview_state"], (None, ""))
+        self.assertEqual(self.fetched.count("https://www.faa.gov/docs/AIM_full.pdf"), 0)
+        self.assertNotIn("Preview update", self.login("flight_student").get(f"{GS}/resources").get_data(as_text=True))
+
+    def test_host_allow_list_and_unsafe_pdf_still_enforced(self):
+        # a PDF link on a host that isn't allowed is never followed
+        page = b'<html>Change 2. Effective: April 3, 2025 <a href="https://evil.example.com/a.pdf">x</a></html>'
+        u = self.alert(AIM_URL, {AIM_URL: page})
+        c = self.login("master")
+        c.post(f"{GS}/resources/updates/{u['id']}/preview")
+        u = self.q1("SELECT * FROM resource_updates")
+        self.assertTrue(u["preview_state"].startswith("failed"), u["preview_state"])
+        self.assertIsNone(u["new_filename"])
+        self.assertNotIn("evil.example.com", "".join(self.fetched))
+        self.assertIn("Preview update", c.get(f"{GS}/resources").get_data(as_text=True))   # can try again
+        # a PDF with active content is refused and nothing stays in quarantine
+        self.answers.update({AIM_URL: AIM_PAGE, "https://www.faa.gov/docs/AIM_full.pdf": b"%PDF-1.4 /JavaScript (x)"})
+        c.post(f"{GS}/resources/updates/{u['id']}/preview")
+        u = self.q1("SELECT * FROM resource_updates")
+        self.assertIn("safety check", u["preview_state"])
+        self.assertEqual(os.listdir(self.q_dir), [])
+        # a blocked eCFR host: the real check_host refuses before any request
+        with self.assertRaises(rs.BlockedHost):
+            rs.default_fetch("https://evil.example.com/api/versioner/v1/full/x.xml")

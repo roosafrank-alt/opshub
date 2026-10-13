@@ -81,13 +81,20 @@
     {% if u.new_filename %}
     <a class="btn btn-outline-primary btn-sm" href="{{ url_for('groundschool.resource_update_file', update_id=u.id) }}" target="_blank" rel="noopener">Open new PDF</a>
     <form method="post" action="{{ url_for('groundschool.resource_update_approve', update_id=u.id) }}" data-confirm="Publish the new version of {{ u.r_title }}? The old file is kept as Previous version.{% if u.r_acs_rating_id %} The Ground School course and its lesson plans are updated to match; no lesson text is deleted.{% endif %}" data-confirm-title="Approve &amp; Publish" data-confirm-ok="Approve &amp; Publish"><button class="btn btn-success btn-sm fw-bold" type="submit">Approve &amp; Publish</button></form>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('groundschool.resource_update_changes', update_id=u.id) }}">See changes</a>
     {% elif sources.get(u.resource_id) %}
     <a class="btn btn-outline-primary btn-sm" href="{{ source_href(sources[u.resource_id]) }}" target="_blank" rel="noopener noreferrer">Open source</a>
+    {% if sources[u.resource_id].source_kind in ('faa_alert', 'ecfr_multi') %}
+    {% if u.preview_state == 'working' %}<span class="small text-muted align-self-center" data-preview-working><i class="bi bi-hourglass-split"></i> Getting the new version...</span>
+    {% else %}<form method="post" action="{{ url_for('groundschool.resource_update_preview', update_id=u.id) }}"><button class="btn btn-primary btn-sm fw-bold" type="submit">Preview update</button></form>
+    {% if u.preview_state and u.preview_state.startswith('failed') %}<span class="small text-danger align-self-center">{{ u.preview_state }}</span>{% endif %}{% endif %}
+    {% endif %}
     {% endif %}
     <form method="post" action="{{ url_for('groundschool.resource_update_reject', update_id=u.id) }}"><button class="btn btn-outline-danger btn-sm" type="submit">{{ 'Reject' if u.new_filename else 'Dismiss' }}</button></form>
   </div>
 </div></div>
 {% endfor %}
+{% if pending|selectattr('preview_state', 'equalto', 'working')|list %}<script>setTimeout(function () { location.reload(); }, 10000);</script>{% endif %}
 {% endif %}
 <div class="card academy-card mb-3"><div class="card-body py-2">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -223,7 +230,7 @@
         </div>
         <div class="mb-3"><label class="form-label">Source link <span class="text-muted small">(optional)</span></label>
           <input type="text" name="source_url" class="form-control" placeholder="https://www.faa.gov/... or https://www.ecfr.gov/...  (or eCFR parts: 14: 1, 91; 49: 830)" autocapitalize="off" spellcheck="false">
-          <div class="form-text">The official page it comes from. A link here puts it under the 2-week update check (faa.gov, ecfr.gov, govinfo.gov only). For one file made of several eCFR parts, type them like <code>14: 1, 91; 49: 830</code>: you get an alert, never a file swap.</div></div>
+          <div class="form-text">The official page it comes from. A link here puts it under the 2-week update check (faa.gov, ecfr.gov, govinfo.gov only). For one file made of several eCFR parts, type them like <code>14: 1, 91; 49: 830</code>: you get an alert, and Preview update shows what changed before anything is replaced.</div></div>
         <div class="mb-2">
           <label class="form-label">PDF file</label>
           <input type="file" name="resource_file" accept="application/pdf" class="form-control" required>
@@ -265,7 +272,7 @@
         </div>
         <div class="mb-3"><label class="form-label">Source link <span class="text-muted small">(optional)</span></label>
           <input type="text" name="source_url" class="form-control" placeholder="https://www.faa.gov/... or https://www.ecfr.gov/...  (or eCFR parts: 14: 1, 91; 49: 830)" autocapitalize="off" spellcheck="false">
-          <div class="form-text">The official page it comes from. A link here puts it under the 2-week update check (faa.gov, ecfr.gov, govinfo.gov only). For one file made of several eCFR parts, type them like <code>14: 1, 91; 49: 830</code>: you get an alert, never a file swap.</div></div>
+          <div class="form-text">The official page it comes from. A link here puts it under the 2-week update check (faa.gov, ecfr.gov, govinfo.gov only). For one file made of several eCFR parts, type them like <code>14: 1, 91; 49: 830</code>: you get an alert, and Preview update shows what changed before anything is replaced.</div></div>
         <p class="small text-muted mb-0">Only the labels change. The PDF and its page index stay as they are.</p>
       </div>
       <div class="modal-footer justify-content-start">

@@ -1077,6 +1077,116 @@ def resource_update_file(update_id):
     return send_file(path, mimetype="application/pdf")
 
 
+PREVIEW_KINDS = ("faa_alert", "ecfr_multi")
+CHANGES_PER_PAGE = 20
+PREVIEW_ASYNC = True  # tests switch this off so the preview is ready when the page reloads
+
+
+def _preview_job(update_id):
+    c = get_db()
+    try:
+        u = c.execute("SELECT * FROM resource_updates WHERE id = ?", (update_id,)).fetchone()
+        src = c.execute("SELECT * FROM resource_sources WHERE id = ?", (u["source_id"],)).fetchone()
+        res = c.execute("SELECT * FROM acs_resources WHERE id = ?", (u["resource_id"],)).fetchone()
+        resource_scan.make_preview(c, src, res, u)
+        c.execute("UPDATE resource_updates SET preview_state = 'ready' WHERE id = ?", (update_id,))
+    except resource_scan.BlockedHost:
+        c.rollback()
+        c.execute("UPDATE resource_updates SET preview_state = 'failed: not an allowed site' WHERE id = ?", (update_id,))
+    except Exception as e:
+        c.rollback()
+        c.execute("UPDATE resource_updates SET preview_state = ? WHERE id = ?", (f"failed: {str(e)[:150]}", update_id))
+    finally:
+        c.commit()
+        c.close()
+
+
+@groundschool_bp.route("/resources/updates/<int:update_id>/preview", methods=["POST"])
+@admin_required
+def resource_update_preview(update_id):
+    """Fetches the new AIM / combined eCFR file into quarantine and opens the change view. Nothing goes live."""
+    conn = get_db()
+    u = _update_or_404(conn, update_id)
+    src = conn.execute("SELECT * FROM resource_sources WHERE id = ?", (u["source_id"],)).fetchone()
+    fresh = (datetime.now(timezone.utc) - timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if u["status"] != "pending" or u["new_filename"] or not src or src["source_kind"] not in PREVIEW_KINDS:
+        conn.close()
+        flash("That update has no preview.", "warning")
+        return redirect(url_for("groundschool.resources_list"))
+    if u["preview_state"] == "working" and (u["preview_at"] or "") > fresh:
+        flash("The preview is still being prepared. Refresh in a minute.", "info")
+    else:
+        conn.execute("UPDATE resource_updates SET preview_state = 'working', preview_at = ? WHERE id = ?",
+                     (now_iso(), update_id))
+        conn.commit()
+        if PREVIEW_ASYNC:
+            threading.Thread(target=_preview_job, args=(update_id,), daemon=True).start()
+            flash("Getting the new version. This can take a few minutes; the card updates when it is ready.", "success")
+        else:
+            _preview_job(update_id)
+            return redirect(url_for("groundschool.resource_update_changes", update_id=update_id))
+    conn.close()
+    return redirect(url_for("groundschool.resources_list"))
+
+
+@groundschool_bp.route("/resources/updates/<int:update_id>/cancel", methods=["POST"])
+@admin_required
+def resource_update_cancel(update_id):
+    """Throws away the quarantined copy; the alert and the live version stay."""
+    conn = get_db()
+    u = _update_or_404(conn, update_id)
+    src = conn.execute("SELECT source_kind FROM resource_sources WHERE id = ?", (u["source_id"],)).fetchone()
+    if u["status"] == "pending" and u["new_filename"] and src and src["source_kind"] in PREVIEW_KINDS:
+        conn.execute("UPDATE resource_updates SET new_filename = NULL, preview_state = NULL, new_revision = NULL, "
+                     "new_effectivity = NULL, summary = COALESCE(alert_text, summary) WHERE id = ?", (update_id,))
+        conn.execute("DELETE FROM resource_update_pages WHERE update_id = ?", (update_id,))
+        conn.commit()
+        try:
+            os.remove(os.path.join(resource_scan.quarantine_dir(), u["new_filename"]))
+        except OSError:
+            pass
+        flash("Cancelled. The current version stays and the alert is still there.", "success")
+    conn.close()
+    return redirect(url_for("groundschool.resources_list"))
+
+
+@groundschool_bp.route("/resources/updates/<int:update_id>/changes")
+@admin_required
+def resource_update_changes(update_id):
+    """Before / after view of a pending update, grouped by chapter or part, biggest first when there are many."""
+    conn = get_db()
+    u = _update_or_404(conn, update_id)
+    r = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (u["resource_id"],)).fetchone()
+    old = [(x["page_num"], x["text"]) for x in conn.execute(
+        "SELECT page_num, text FROM acs_resource_pages WHERE resource_id = ? ORDER BY page_num", (u["resource_id"],))]
+    new = [(x["page_num"], x["text"]) for x in conn.execute(
+        "SELECT page_num, text FROM resource_update_pages WHERE update_id = ? ORDER BY page_num", (update_id,))]
+    src = conn.execute("SELECT source_kind FROM resource_sources WHERE id = ?", (u["source_id"],)).fetchone()
+    conn.close()
+    if u["status"] != "pending" or not new:
+        flash("There is nothing to compare for that update.", "warning")
+        return redirect(url_for("groundschool.resources_list"))
+    changes = resource_scan.list_changes(old, new)
+    counts = {k: sum(1 for c in changes if c["kind"] == k) for k in ("changed", "added", "removed")}
+    show = request.args.get("show", "all")
+    q = (request.args.get("q") or "").strip().lower()
+    shown = [c for c in changes if (show == "all" or c["kind"] == show)
+             and (not q or q in c["key"].lower() or q in c["old"].lower() or q in c["new"].lower())]
+    big = len(shown) > 60
+    if big:
+        shown.sort(key=lambda c: -c["size"])
+    page = max(1, request.args.get("page", 1, type=int))
+    pages_n = max(1, -(-len(shown) // CHANGES_PER_PAGE))
+    page = min(page, pages_n)
+    items = []
+    for c in shown[(page - 1) * CHANGES_PER_PAGE: page * CHANGES_PER_PAGE]:
+        before, after = resource_scan.diff_html(c["old"], c["new"])
+        items.append(dict(c, before=before, after=after))
+    return render_template("flight/groundschool_resource_changes.html", tab="resources", u=u, r=r, counts=counts,
+                           items=items, total=len(shown), can_cancel=bool(src and src["source_kind"] in PREVIEW_KINDS), big=big, show=show, q=request.args.get("q", ""),
+                           page=page, pages_n=pages_n, summary_head=(u["summary"] or "").split("\n")[0])
+
+
 def _approve_acs(conn, rating, res, update_id, stored, areas, error):
     """The ACS half of approving an update: the course now points at the new PDF, and its Tasks and
     elements are merged in place. If the new file can't be merged the file is still published and the

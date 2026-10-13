@@ -1245,6 +1245,9 @@ def _migrate(conn):
             conn.execute(f"ALTER TABLE resource_updates ADD COLUMN {col} TEXT")
     if "acs_report" not in ru_cols:
         conn.execute("ALTER TABLE resource_updates ADD COLUMN acs_report TEXT")
+    for col in ("preview_state", "preview_at", "alert_text"):   # "Preview update" on alert-only sources: working / failed: why
+        if col not in ru_cols:
+            conn.execute(f"ALTER TABLE resource_updates ADD COLUMN {col} TEXT")
     # ACS-RESOURCES: an approved ACS update is merged into the course in place (same task and
     # element ids, so lessons, sign-offs and reading progress survive). Items the new ACS dropped
     # but that have student work on them are kept and marked retired_at instead of deleted.

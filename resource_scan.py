@@ -241,7 +241,7 @@ def split_units(pages):
                 if cur not in units:
                     units[cur] = [num, []]
                     order.append(cur)
-                units[cur][1].append(line.strip())
+                units[cur][1].append(re.sub(r"^§\s*", "", line.strip()))   # "§ 91.103" and "91.103" are the same section
             elif cur:
                 units[cur][1].append(line.strip())
     if len(units) < 3:
@@ -415,6 +415,175 @@ def _look_aim(src, fetch, res):
                          "replaced. Get the new AIM from the source link, update both AIM parts, then dismiss this.")
         seen["alert_key"] = version
     return seen
+
+
+# ---------------------------------------------------------------------------
+# Preview of an alert-only update (AIM, combined eCFR file): fetch, quarantine, compare
+# ---------------------------------------------------------------------------
+
+MAX_XML_BYTES = 40 * 1024 * 1024    # one eCFR title/part as XML
+
+
+def _read(path):
+    with open(path, "rb") as fh:
+        return fh.read()
+
+
+def _pdf_text(s):
+    return (s or "").encode("cp1252", "replace").decode("cp1252")
+
+
+def _ecfr_sections(xml_bytes):
+    """[(heading, [paragraph, ...])] for each section in an eCFR XML answer."""
+    import xml.etree.ElementTree as ET
+    if b"<!DOCTYPE" in xml_bytes[:2000].upper() or b"<!ENTITY" in xml_bytes.upper():
+        raise ValueError("unexpected eCFR answer")
+    root = ET.fromstring(xml_bytes)
+    out = []
+    for el in root.iter():
+        if el.attrib.get("TYPE") == "SECTION":
+            head = re.sub(r"\s+", " ", "".join(el.find("HEAD").itertext())).strip() if el.find("HEAD") is not None else ""
+            paras = [re.sub(r"\s+", " ", "".join(p.itertext())).strip() for p in el if p.tag in ("P", "FP", "EXTRACT")]
+            out.append((head, [x for x in paras if x]))
+    return out
+
+
+def build_ecfr_pdf(parts, fetch, path, sleep=time.sleep, pause=PAUSE):
+    """Builds one combined PDF at `path` from the current eCFR text of each (title, part), in the order
+    given. Returns {(title, part): amendment date}. Only ecfr.gov is contacted (through `fetch`)."""
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak
+    from xml.sax.saxutils import escape as xesc
+    st = getSampleStyleSheet()
+    flow, dates = [], {}
+    for i, (title, part) in enumerate(parts):
+        if i:
+            sleep(pause)
+        _s, _h, body = fetch(f"https://www.ecfr.gov/api/versioner/v1/versions/title-{title}.json?part={part}")
+        dates[(title, part)] = parse_ecfr_versions(body)
+        sleep(pause)
+        _s, _h, xml = fetch(f"https://www.ecfr.gov/api/versioner/v1/full/{dates[(title, part)]}/title-{title}.xml?part={part}",
+                            MAX_XML_BYTES)
+        secs = _ecfr_sections(xml)
+        if not secs:
+            raise ValueError(f"no sections found for {title} CFR Part {part}")
+        if flow:
+            flow.append(PageBreak())
+        flow.append(Paragraph(xesc(f"{title} CFR Part {part}  (current through {dates[(title, part)]})"), st["Title"]))
+        for head, paras in secs:
+            flow.append(Paragraph(xesc(_pdf_text(head)), st["Heading4"]))
+            flow += [Paragraph(xesc(_pdf_text(x)), st["BodyText"]) for x in paras]
+    SimpleDocTemplate(path, pagesize=letter, title="eCFR parts").build(flow)
+    return dates
+
+
+def make_preview(conn, src, res, update, fetch=default_fetch, extract=extract_pages, qdir=None,
+                 sleep=time.sleep, pause=PAUSE):
+    """Fetches the new version of an alert-only source into quarantine and fills the pending update
+    with its file, page text, new labels and a plain-words summary. Nothing live is touched.
+    Raises ValueError (message for the admin) or BlockedHost."""
+    qdir = qdir or quarantine_dir()
+    os.makedirs(qdir, exist_ok=True)
+    kind = src["source_kind"]
+    name = f"upd_{src['id']}_{int(time.time())}.pdf"
+    path = os.path.join(qdir, name)
+    facts, doc_date, rev, eff = [], None, None, None
+    try:
+        if kind == "faa_alert":
+            _s, _h, body = fetch(src["source_url"])
+            html = body.decode("utf-8", "replace")
+            info, page = parse_aim_page(html), parse_faa_page(html, src["source_url"])
+            if not page["pdf_url"]:
+                raise ValueError("Couldn't find the AIM PDF link on the FAA page. Use Open source instead.")
+            data = fetch(page["pdf_url"], MAX_PDF_BYTES)[2]
+            ok, why = validate_pdf(data)
+            if not ok:
+                raise ValueError(f"The AIM file failed the safety check ({why}). Nothing was saved.")
+            with open(path, "wb") as fh:
+                fh.write(data)
+            doc_date, rev, eff = info["effective"], info["change"], info["effective"]
+            facts.append(f"AIM: {res['revision'] or 'no change number'}, effective {res['effectivity'] or 'date not shown'}"
+                         f" -> {rev or 'no change number'}, effective {eff or 'date not shown'}.")
+        elif kind == "ecfr_multi":
+            dates = build_ecfr_pdf(parse_ecfr_multi(src["source_url"]), fetch, path, sleep, pause)
+            ok, why = validate_pdf(_read(path))
+            if not ok:
+                raise ValueError(f"The built file failed the safety check ({why}). Nothing was saved.")
+            doc_date = max(dates.values())
+            facts.append("eCFR amendment dates: " + "; ".join(f"{t} CFR {p}: {d}" for (t, p), d in dates.items()) + ".")
+        else:
+            raise ValueError("This kind of source has no preview.")
+        pages = extract(path)
+    except Exception:
+        if os.path.exists(path):
+            os.remove(path)
+        raise
+    old = [(r["page_num"], r["text"]) for r in conn.execute(
+        "SELECT page_num, text FROM acs_resource_pages WHERE resource_id = ? ORDER BY page_num", (res["id"],))]
+    summary = "\n".join(facts + [build_summary(old, pages) if old and pages else
+                                 "The new PDF is ready. There is no earlier page text to compare it with."])
+    conn.execute("DELETE FROM resource_update_pages WHERE update_id = ?", (update["id"],))
+    conn.executemany("INSERT INTO resource_update_pages (update_id, page_num, text) VALUES (?,?,?)",
+                     [(update["id"], n, t) for n, t in pages])
+    conn.execute("UPDATE resource_updates SET new_filename = ?, new_doc_date = ?, new_revision = ?, new_effectivity = ?, "
+                 "summary = ?, alert_text = COALESCE(alert_text, ?) WHERE id = ?",
+                 (name, doc_date, rev, eff, summary, update["summary"], update["id"]))
+    return name
+
+
+def _chapter(key):
+    if key.startswith("Page "):
+        return key
+    if "-" in key and "." not in key:
+        return f"Chapter {key.split('-')[0]}"
+    return f"Part {re.split(r'[.-]', key)[0]}"
+
+
+def _delta(a, b):
+    """Rough size of a change: how many words differ (cheap, for ordering only)."""
+    from collections import Counter
+    ca, cb = Counter(a.split()), Counter(b.split())
+    return sum(((ca - cb) + (cb - ca)).values())
+
+
+def list_changes(old_pages, new_pages):
+    """[{key, kind 'changed'|'added'|'removed', old, new, old_page, new_page, size, group}] in document
+    order (new file first, then removed ones)."""
+    old, new = split_units(old_pages), split_units(new_pages)
+    out = []
+    for k, (txt, pg) in new.items():
+        if k not in old:
+            out.append({"key": k, "kind": "added", "old": "", "new": txt, "old_page": None, "new_page": pg, "size": len(txt.split())})
+        elif old[k][0] != txt:
+            out.append({"key": k, "kind": "changed", "old": old[k][0], "new": txt, "old_page": old[k][1], "new_page": pg,
+                        "size": _delta(old[k][0], txt)})
+    for k, (txt, pg) in old.items():
+        if k not in new:
+            out.append({"key": k, "kind": "removed", "old": txt, "new": "", "old_page": pg, "new_page": None, "size": len(txt.split())})
+    for c in out:
+        c["label"] = _label(c["key"])
+        c["group"] = _chapter(c["key"])
+    return out
+
+
+def diff_html(old, new):
+    """(before_html, after_html): the two texts with removed words in <del> and added words in <ins>."""
+    from markupsafe import Markup, escape
+    a, b = old.split(), new.split()
+    sm = difflib.SequenceMatcher(None, a, b, autojunk=len(a) + len(b) > 4000)
+    before, after = [], []
+    for op, i1, i2, j1, j2 in sm.get_opcodes():
+        x, y = escape(" ".join(a[i1:i2])), escape(" ".join(b[j1:j2]))
+        if op == "equal":
+            before.append(x)
+            after.append(y)
+        else:
+            if x:
+                before.append(Markup("<del>%s</del>") % x)
+            if y:
+                after.append(Markup("<ins>%s</ins>") % y)
+    return Markup(" ").join(before), Markup(" ").join(after)
 
 
 def acs_standards_summary(conn, rating_id, pdf_path):

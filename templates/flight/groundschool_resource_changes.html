@@ -1,0 +1,57 @@
+{% extends "academy_base.html" %}
+{% block title %}Changes · Resources{% endblock %}
+{% block content %}
+<style>
+  .chg-grid { display: grid; grid-template-columns: 1fr; gap: .5rem; }
+  @media (min-width: 768px) { .chg-grid { grid-template-columns: 1fr 1fr; } }
+  .chg-box { font-size: .85rem; border: 1px solid rgba(128,128,128,.35); border-radius: .4rem; padding: .4rem .55rem; overflow-wrap: anywhere; }
+  .chg-box del { color: #c62828; background: rgba(198,40,40,.12); text-decoration: line-through; }
+  .chg-box ins { color: #1b7f3b; background: rgba(27,127,59,.14); text-decoration: none; }
+  .chg-lab { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
+</style>
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="mb-0 text-light"><i class="bi bi-file-diff"></i> {{ r.designation or r.title }}: what changes</h4>
+  <a class="btn btn-outline-light btn-sm" href="{{ url_for('groundschool.resources_list') }}">Back</a>
+</div>
+<div class="card academy-card mb-2"><div class="card-body py-2 small">
+  <div><span class="text-muted">Now live:</span> {{ r.doc_date or '-' }}{% if r.revision %} · {{ r.revision }}{% endif %}{% if r.effectivity %} · eff. {{ r.effectivity }}{% endif %}</div>
+  <div><span class="text-muted">New:</span> {{ u.new_doc_date or '-' }}{% if u.new_revision %} · {{ u.new_revision }}{% endif %}{% if u.new_effectivity %} · eff. {{ u.new_effectivity }}{% endif %}</div>
+  {% if summary_head and not summary_head[0].isdigit() %}<div class="text-muted">{{ summary_head }}</div>{% endif %}
+  <div class="fw-bold mt-1" data-counts>{{ counts.changed }} section{{ '' if counts.changed == 1 else 's' }} changed, {{ counts.added }} added, {{ counts.removed }} removed</div>
+  <div class="d-flex gap-2 flex-wrap mt-2">
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('groundschool.resource_update_file', update_id=u.id) }}" target="_blank" rel="noopener">Open new PDF</a>
+    <form method="post" action="{{ url_for('groundschool.resource_update_approve', update_id=u.id) }}" data-confirm="Make this the live {{ r.title }}? The old file is kept as Previous version." data-confirm-title="Update" data-confirm-ok="Update"><button class="btn btn-success btn-sm fw-bold" type="submit">Update</button></form>
+    {% if can_cancel %}<form method="post" action="{{ url_for('groundschool.resource_update_cancel', update_id=u.id) }}"><button class="btn btn-outline-secondary btn-sm" type="submit">Cancel</button></form>{% endif %}
+  </div>
+</div></div>
+<form method="get" class="d-flex gap-2 flex-wrap mb-2">
+  <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm" style="max-width:16rem" placeholder="Search a number or word" aria-label="Search changes">
+  <select name="show" class="form-select form-select-sm" style="max-width:11rem" aria-label="Show">
+    {% for v, l in [('all','All changes'),('changed','Only changed'),('added','Only added'),('removed','Only removed')] %}<option value="{{ v }}" {{ 'selected' if show == v }}>{{ l }}</option>{% endfor %}
+  </select>
+  <button class="btn btn-outline-light btn-sm" type="submit">Show</button>
+</form>
+{% if big %}<div class="small text-warning mb-2">{{ total }} items: showing the biggest changes first, {{ items|length }} per page.</div>{% endif %}
+{% set ns = namespace(group=None) %}
+{% for c in items %}
+  {% if not big and c.group != ns.group %}{% set ns.group = c.group %}<div class="fw-bold text-light mt-2 mb-1">{{ c.group }}</div>{% endif %}
+  <div class="card academy-card mb-2" data-change-item="{{ c.kind }}"><div class="card-body py-2">
+    <div class="small mb-1"><strong>{{ c.label }}</strong>
+      <span class="badge {{ {'changed': 'bg-warning text-dark', 'added': 'bg-success', 'removed': 'bg-danger'}[c.kind] }}">{{ c.kind }}</span>
+      <span class="text-muted">{% if c.old_page %}was page {{ c.old_page }}{% endif %}{% if c.old_page and c.new_page %} · {% endif %}{% if c.new_page %}now page {{ c.new_page }}{% endif %}</span></div>
+    <div class="chg-grid">
+      <div><div class="chg-lab">Before</div><div class="chg-box">{{ c.before if c.old else '(not in the current version)' }}</div></div>
+      <div><div class="chg-lab">After</div><div class="chg-box">{{ c.after if c.new else '(removed in the new version)' }}</div></div>
+    </div>
+  </div></div>
+{% else %}
+  <div class="text-muted small">Nothing matches.</div>
+{% endfor %}
+{% if pages_n > 1 %}
+<div class="d-flex gap-2 align-items-center mb-3 small text-light">
+  {% if page > 1 %}<a class="btn btn-outline-light btn-sm" href="{{ url_for('groundschool.resource_update_changes', update_id=u.id, q=q, show=show, page=page - 1) }}">Previous</a>{% endif %}
+  <span>Page {{ page }} of {{ pages_n }}</span>
+  {% if page < pages_n %}<a class="btn btn-outline-light btn-sm" href="{{ url_for('groundschool.resource_update_changes', update_id=u.id, q=q, show=show, page=page + 1) }}">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}
