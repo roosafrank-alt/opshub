@@ -6906,6 +6906,13 @@ def log_active():
         # JS can total the price live as Hobbs/ground/solo are typed,
         # instead of only finding out the total once Log Flight is pressed.
         row_cost = _row_with_cost(r)
+        # The timer bills the instructor (log_end stores the same figure as
+        # instructor_clock_hours), so once End Session has stopped the clock
+        # the live total must price the instructor on it too, not on Hobbs.
+        if r["stopped_at"] and row_cost.get("instructor_clock_hours") is None:
+            clock_seconds = _sim_elapsed_seconds(r)
+            if clock_seconds is not None:
+                row_cost["instructor_clock_hours"] = clock_seconds / 3600.0
         # A simulator's clock is what fills in Sim Time on the End Session
         # form (see _sim_elapsed_hours) - computed here, before the form is
         # even submitted, so it can show up already filled in rather than
