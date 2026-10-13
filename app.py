@@ -7811,10 +7811,14 @@ def project_mark_invoiced(project_id):
 @shop_role_required('admin')
 def project_mark_paid(project_id):
     conn = get_db()
-    project = conn.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
+    project = conn.execute("SELECT id, payment_status FROM projects WHERE id = ?", (project_id,)).fetchone()
     if not project:
         conn.close()
         abort(404)
+    if project["payment_status"] == "paid":
+        conn.close()
+        flash("Already marked paid. To change it, use Undo payment first.", "warning")
+        return redirect(request.referrer or url_for("shop_billing"))
     method = request.form.get("paid_method", "").strip()
     if method not in PAYMENT_METHODS:
         conn.close()
