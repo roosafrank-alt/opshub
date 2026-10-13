@@ -7549,6 +7549,7 @@ def log_end(flight_id):
     else:
         oil_added_by = session.get("user_name")
     ground_time_hours = _parse_float(request.form.get("ground_time_hours"))
+    flight_notes = request.form.get("flight_notes", "").strip() or None
     notes = request.form.get("notes", "").strip()
     # A student's own plane isn't looked after by the shop and can't be
     # opened in Maintenance, so its notes stay plain notes instead of
@@ -7573,10 +7574,10 @@ def log_end(flight_id):
     elapsed_seconds = max(0.0, (ended - started).total_seconds() - paused_seconds)
     instructor_clock_hours = elapsed_seconds / 3600.0
 
-    conn.execute("""UPDATE flights SET hobbs_start=?, hobbs_end=?, tach_start=?, tach_end=?, recorded_hours=?, oil_added_qt=?, oil_added_by=?, ground_time_hours=?, notes=?,
+    conn.execute("""UPDATE flights SET hobbs_start=?, hobbs_end=?, tach_start=?, tach_end=?, recorded_hours=?, oil_added_qt=?, oil_added_by=?, ground_time_hours=?, notes=?, flight_notes=?,
                      squawk=?, ended_at=?, instructor_clock_hours=?, paused_at=NULL, paused_seconds=?,
                      day_landings_fs=?, day_landings_tg=?, night_landings_fs=?, night_landings_tg=?, paid=? WHERE id=?""",
-                 (hobbs_start, hobbs_end, tach_start, tach_end, recorded_hours, oil_added_qt, oil_added_by, ground_time_hours, notes, squawk,
+                 (hobbs_start, hobbs_end, tach_start, tach_end, recorded_hours, oil_added_qt, oil_added_by, ground_time_hours, notes, flight_notes, squawk,
                   ended_at, instructor_clock_hours, paused_seconds,
                   day_landings_fs, day_landings_tg, night_landings_fs, night_landings_tg, int(paid_choice), flight_id))
     # A student's own plane has no real Hobbs/Tach for the shop to track -

@@ -39,7 +39,8 @@
           {% else %}<span class="text-muted">Not logged</span>{% endif %}
         </td></tr>
         <tr><th>Ground Time</th><td>{% if f.ground_time_hours %}{{ '%.1f'|format(f.ground_time_hours) }} hrs{% else %}-{% endif %}</td></tr>
-        <tr><th>Notes</th><td>{{ f.notes or '-' }}</td></tr>
+        {% if f.flight_notes %}<tr><th>Flight notes</th><td>{{ f.flight_notes }}</td></tr>{% endif %}
+        <tr><th>Shop notes</th><td>{{ f.notes or '-' }}</td></tr>
         <tr><th>Squawk</th><td>
           {% if not f.squawk %}<span class="text-muted">None</span>
           {% elif f.squawk_repaired_at %}<span class="badge bg-success">Repaired</span>

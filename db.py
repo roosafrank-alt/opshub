@@ -2459,6 +2459,11 @@ def _migrate(conn):
     if "squawk_sent_back_note" not in flight_cols_sent_back:
         conn.execute("ALTER TABLE flights ADD COLUMN squawk_sent_back_note TEXT")
         conn.commit()
+    # Flight notes: what happened on the flight, typed on the check-out screen.
+    # (The old Notes box is now "Shop notes" and still flags a squawk.)
+    if "flight_notes" not in flight_cols_sent_back:
+        conn.execute("ALTER TABLE flights ADD COLUMN flight_notes TEXT")
+        conn.commit()
     quick_cols_sent_back = [r["name"] for r in conn.execute("PRAGMA table_info(plane_squawks)").fetchall()]
     if "sent_back_note" not in quick_cols_sent_back:
         conn.execute("ALTER TABLE plane_squawks ADD COLUMN sent_back_note TEXT")
