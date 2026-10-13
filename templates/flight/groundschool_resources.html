@@ -4,28 +4,37 @@
 <style>
   .resource-row { cursor: pointer; }
   .resource-row:hover { background: rgba(43,63,219,.08); }
-  .resource-row td { vertical-align: middle; overflow-wrap: anywhere; }
+  .resources-table { table-layout: fixed; width: 100%; }
+  .resources-table td, .resources-table th { padding-top: .25rem; padding-bottom: .25rem; }
+  .resources-table td { vertical-align: middle; }
+  .resources-table .c-fpn { width: 11rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .resources-table .c-type { width: 9rem; } .resources-table .c-date { width: 6.5rem; white-space: nowrap; }
+  .resources-table .c-rev { width: 8rem; } .resources-table .c-eff { width: 7.5rem; white-space: nowrap; }
+  .resources-table .c-pg { width: 4.5rem; } .resources-table .c-act { width: 5.4rem; white-space: nowrap; text-align: right; }
+  .resources-table .c-type, .resources-table .c-rev { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .resources-table .c-title { overflow-wrap: anywhere; }
   .resource-title { color: inherit; text-decoration: none; }
   .resource-title:hover { text-decoration: underline; }
-  /* Stack rows as cards up to 900px (a half-screen browser is ~700px) so the
-     table never scrolls sideways. Generic: any extra cell just joins the grid;
-     a cell with data-label="" or .stack-full spans the full card. */
+  .res-act { display: inline-flex; gap: .25rem; justify-content: flex-end; }
+  .res-act form { margin: 0; }
+  .res-act .btn { width: 1.9rem; height: 1.9rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+  .resources-table .pfx, .resources-table .sfx { display: none; }
+  /* Under 900px each row becomes a compact card: number + icons, title, one muted line. */
   @media (max-width: 900px) {
     .resources-table thead { display: none; }
     .resources-table, .resources-table tbody { display: block; width: 100%; }
     .resources-table tbody tr {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-      gap: .1rem .75rem; border: 1px solid #dee2e6; border-radius: .4rem;
-      margin-bottom: .4rem; padding: .5rem .6rem; background: #fff;
+      display: flex; flex-wrap: wrap; align-items: center; column-gap: 0; border: 1px solid #dee2e6;
+      border-radius: .4rem; margin-bottom: .35rem; padding: .3rem .6rem; background: #fff;
     }
-    .resources-table tbody tr:last-child { margin-bottom: 0; }
-    .resources-table td { display: block; min-width: 0; border: none !important; padding: .15rem 0 !important;
-      white-space: normal !important; text-align: left !important; }
+    .resources-table td { display: block; width: auto !important; border: none !important; padding: 0 !important; }
     .resources-table td:empty { display: none; }
-    .resources-table td[data-label]:not([data-label=""])::before {
-      content: attr(data-label); display: block; font-size: .62rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .02em; color: #6c757d; line-height: 1.2; }
-    .resources-table td[data-label=""], .resources-table td.stack-full { grid-column: 1 / -1; }
+    .resources-table .c-fpn { order: 1; flex: 1 1 0; min-width: 0; }
+    .resources-table .c-act { order: 2; }
+    .resources-table .c-title { order: 3; flex: 1 0 100%; line-height: 1.25; }
+    .resources-table .meta { order: 4; font-size: .75rem; white-space: nowrap; }
+    .resources-table .meta:not(:empty) ~ .meta:not(:empty)::before { content: "|"; margin: 0 .35rem; opacity: .6; }
+    .resources-table .pfx, .resources-table .sfx { display: inline; }
   }
 </style>
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -63,37 +72,32 @@
   <button type="button" class="btn text-start fw-bold d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#resSec{{ loop.index }}" aria-expanded="true">
     <span>{{ name }}</span><span class="badge bg-secondary res-count">{{ rows|length }}</span></button>
   <div class="collapse show res-body" id="resSec{{ loop.index }}">
-  <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0 table-stack resources-table" data-change="DESIGN-5">
-      <thead><tr><th>Title</th><th>Type</th><th>Date</th><th>Revision</th><th>Effectivity</th><th>Pages indexed</th><th></th><th></th></tr></thead>
+    <table class="table table-sm align-middle mb-0 resources-table" data-change="DESIGN-5">
+      <thead><tr><th class="c-fpn">FAA No.</th><th class="c-title">Title</th><th class="c-type">Type</th><th class="c-date">Date</th><th class="c-rev">Revision</th><th class="c-eff">Effectivity</th><th class="c-pg">Pages</th><th class="c-act"></th></tr></thead>
       <tbody>
         {% for r in rows %}
-        <tr class="resource-row" data-type="{{ r.doc_type or '' }}" data-cats="{{ (r.categories or 'Other / General') }}" data-search="{{ ((r.designation or '') ~ ' ' ~ r.title ~ ' ' ~ (r.doc_type or ''))|lower }}" onclick="if(!event.target.closest('a'))window.open('{{ url_for('groundschool.resource_file', resource_id=r.id) }}', '_blank')">
-          <td class="stack-full" data-label=""><a class="fw-bold resource-title" href="{{ url_for('groundschool.resource_file', resource_id=r.id) }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf text-danger"></i> {{ (r.designation ~ ' - ' ~ r.title) if r.designation else r.title }}</a></td>
-          <td class="text-muted small" data-label="Type">{{ r.doc_type or '-' }}</td>
-          <td class="text-muted small" data-label="Date">{{ r.doc_date or '-' }}</td>
-          <td class="text-muted small" data-label="Revision">{{ r.revision or '-' }}</td>
-          <td class="text-muted small" data-label="Effectivity">{{ r.effectivity or '-' }}</td>
-          <td class="text-muted small" data-label="Pages indexed">{{ r.page_count }}</td>
-          <td class="text-primary small fw-bold text-nowrap" data-label="">Open <i class="bi bi-box-arrow-up-right"></i></td>
-          <td class="text-end" data-label="" onclick="event.stopPropagation()">
-            {% if flight_admin %}
-            <button type="button" class="btn btn-outline-primary btn-sm resource-edit-btn" title="Edit"
+        {% set href = url_for('groundschool.resource_file', resource_id=r.id) %}
+        <tr class="resource-row" data-type="{{ r.doc_type or '' }}" data-cats="{{ (r.categories or 'Other / General') }}" data-search="{{ ((r.designation or '') ~ ' ' ~ r.title ~ ' ' ~ (r.doc_type or ''))|lower }}" onclick="if(!event.target.closest('a'))window.open('{{ href }}', '_blank')">
+          <td class="c-fpn"><a class="fw-bold resource-title" href="{{ href }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf text-danger"></i> {{ r.designation or r.title }}</a></td>
+          <td class="c-title">{{ r.title if r.designation else '' }}</td>
+          <td class="c-type meta text-muted small">{{ r.doc_type or '' }}</td>
+          <td class="c-date meta text-muted small">{{ r.doc_date or '' }}</td>
+          <td class="c-rev meta text-muted small">{{ r.revision or '' }}</td>
+          <td class="c-eff meta text-muted small">{% if r.effectivity %}<span class="pfx">eff.&nbsp;</span>{{ r.effectivity }}{% endif %}</td>
+          <td class="c-pg meta text-muted small">{% if r.page_count %}{{ r.page_count }}<span class="sfx">&nbsp;pp</span>{% endif %}</td>
+          <td class="c-act" onclick="event.stopPropagation()">{% if flight_admin %}<div class="res-act">
+            <button type="button" class="btn btn-outline-primary btn-sm resource-edit-btn" title="Edit" aria-label="Edit"
                     data-action="{{ url_for('groundschool.resources_edit', resource_id=r.id) }}"
                     data-title="{{ r.title }}" data-designation="{{ r.designation or '' }}" data-doc-date="{{ r.doc_date or '' }}"
-                    data-revision="{{ r.revision or '' }}" data-effectivity="{{ r.effectivity or '' }}" data-doc-type="{{ r.doc_type or '' }}" data-categories="{{ r.categories or '' }}">
-              <i class="bi bi-pencil"></i> Edit</button>
-            <form method="post" action="{{ url_for('groundschool.resources_delete', resource_id=r.id) }}" class="d-inline" data-change="DESIGN-3 DESIGN-4"
+                    data-revision="{{ r.revision or '' }}" data-effectivity="{{ r.effectivity or '' }}" data-doc-type="{{ r.doc_type or '' }}" data-categories="{{ r.categories or '' }}"><i class="bi bi-pencil"></i></button>
+            <form method="post" action="{{ url_for('groundschool.resources_delete', resource_id=r.id) }}" data-change="DESIGN-3 DESIGN-4"
                   data-confirm="Delete {{ r.title }} forever? References linking to it will stop auto-linking. This can't be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
-              <button type="submit" class="btn btn-danger btn-sm" title="Delete Forever"><i class="bi bi-trash"></i></button>
-            </form>
-            {% endif %}
-          </td>
+              <button type="submit" class="btn btn-danger btn-sm" title="Delete Forever" aria-label="Delete"><i class="bi bi-trash"></i></button>
+            </form></div>{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-  </div>
   </div>
 </div>
 {% endfor %}
