@@ -65,3 +65,17 @@ class AdminAccountCourseGrantTest(OpsHubTestCase):
         self.assertIn("Private Pilot", body)
         self.assertIn('id="courses-list"', body)
         self.assertNotIn('id="courses-list" class="d-none"', body)
+
+    def test_enroll_buttons_and_academy_note_are_in_the_page(self):
+        body = self.login("master").get(f"/admin/users/{self.uid}/edit").get_data(as_text=True)
+        self.assertIn("js-enroll", body)
+        self.assertIn("Tick <strong>Flight Academy Access</strong>", body)
+        self.assertNotIn("sees every ground school whatever", body)
+
+    def test_academy_access_student_sees_only_enrolled_courses(self):
+        self.exec("UPDATE users SET academy_access = 1 WHERE id = ?", (self.uid,))
+        self.exec("INSERT INTO academy_course_grants (student_id, rating_id, granted_by, granted_at) VALUES (?,?,?,?)",
+                  (self.sid, self.r["ppl"], "test", db.now_iso()))
+        body = self.login("flight_student").get("/flight/groundschool").get_data(as_text=True)
+        self.assertIn("Private Pilot", body)
+        self.assertNotIn("Instrument", body)
