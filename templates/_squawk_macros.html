@@ -221,15 +221,23 @@
 {#- Idea "adding estimate price area": an editable hours/cost estimate on a
    squawk, saved on change; leave the cost blank to price the hours at the
    shop's usual labor rate. Read-only text for anyone who can't assign. #}
-{% macro squawk_estimate(sq, can_edit) %}
+{% macro estimate_form(action, e, can_edit) %}
 {%- if can_edit %}
-<form method="post" action="{{ url_for('squawk_estimate', kind=sq.kind, squawk_id=sq.squawk_id) }}" class="d-flex gap-1 align-items-center flex-wrap squawk-estimate" data-change="SQ-EST">
+<form method="post" action="{{ action }}" class="d-flex gap-1 align-items-center flex-wrap squawk-estimate" data-change="SQ-EST">
   <label class="small text-muted mb-0">Est.</label>
-  <input type="number" step="0.1" min="0" name="est_hours" value="{{ sq.est_hours if sq.est_hours is not none else '' }}" class="form-control form-control-sm" style="width:5.5rem;" placeholder="hours" aria-label="Estimated hours">
-  <input type="number" step="0.01" min="0" name="est_cost" value="{{ '%.2f'|format(sq.est_cost) if sq.est_cost is not none else '' }}" class="form-control form-control-sm" style="width:6.5rem;" placeholder="$ (auto)" aria-label="Estimated cost">
+  <input type="number" step="0.1" min="0" name="est_hours" value="{{ e.est_hours if e.est_hours is not none else '' }}" class="form-control form-control-sm" style="width:5rem;" placeholder="hours" aria-label="Estimated hours">
+  <span class="small text-muted">&times;</span>
+  <input type="number" step="0.01" min="0" name="est_rate" value="{{ '%.2f'|format(e.shop_rate) if e.shop_rate else '' }}" class="form-control form-control-sm" style="width:5.5rem;" placeholder="$/h rate" aria-label="Shop rate for this aircraft, dollars per hour">
+  <span class="small text-muted">+</span>
+  <input type="number" step="0.01" min="0" name="est_parts" value="{{ '%.2f'|format(e.est_parts) if e.est_parts is not none else '' }}" class="form-control form-control-sm" style="width:5.5rem;" placeholder="$ parts" aria-label="Parts estimate">
+  <button type="button" class="btn btn-outline-primary btn-sm py-0" onclick="var f=this.form;f.est_cost.value=(((parseFloat(f.est_hours.value)||0)*(parseFloat(f.est_rate.value)||0))+(parseFloat(f.est_parts.value)||0)).toFixed(2)">Total</button>
+  <input type="number" step="0.01" min="0" name="est_cost" value="{{ '%.2f'|format(e.est_cost) if e.est_cost is not none else '' }}" class="form-control form-control-sm" style="width:6rem;" placeholder="$ total" aria-label="Estimated total cost">
   <button class="btn btn-outline-secondary btn-sm py-0">Save</button>
 </form>
-{%- elif sq.est_hours is not none or sq.est_cost is not none %}
-<small class="text-muted d-block">Est. {{ sq.est_hours or 0 }} h{% if sq.est_cost is not none %} &middot; ${{ '%.2f'|format(sq.est_cost) }}{% endif %}</small>
+{%- elif e.est_hours is not none or e.est_cost is not none or e.est_parts is not none %}
+<small class="text-muted d-block">Est. {{ e.est_hours or 0 }} h{% if e.est_parts is not none %} &middot; parts ${{ '%.2f'|format(e.est_parts) }}{% endif %}{% if e.est_cost is not none %} &middot; total ${{ '%.2f'|format(e.est_cost) }}{% endif %}</small>
 {%- endif %}
+{%- endmacro %}
+{% macro squawk_estimate(sq, can_edit) %}
+{{- estimate_form(url_for('squawk_estimate', kind=sq.kind, squawk_id=sq.squawk_id), sq, can_edit) -}}
 {%- endmacro %}

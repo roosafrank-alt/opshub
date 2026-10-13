@@ -1093,7 +1093,8 @@ _FLIGHT_SQUAWK_COLS = """'flight' as kind, f.id as squawk_id, a.id as asset_id, 
                f.squawk_repair_confirm_requested_by as repair_confirm_requested_by,
                f.squawk_sent_back_note as sent_back_note,
                f.squawk_reopened_at as reopened_at, f.squawk_reopened_by as reopened_by,
-               f.squawk_est_hours as est_hours, f.squawk_est_cost as est_cost"""
+               f.squawk_est_hours as est_hours, f.squawk_est_cost as est_cost,
+               f.squawk_est_parts as est_parts, a.shop_rate as shop_rate"""
 _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.tag as asset_tag,
                a.name as asset_name, q.reported_at as event_date, NULL as student_name,
                NULL as cfi_name, q.reported_by as reported_by, q.notes as notes,
@@ -1106,7 +1107,8 @@ _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.
                q.repair_confirm_requested_by as repair_confirm_requested_by,
                q.sent_back_note as sent_back_note,
                q.reopened_at as reopened_at, q.reopened_by as reopened_by,
-               q.est_hours as est_hours, q.est_cost as est_cost"""
+               q.est_hours as est_hours, q.est_cost as est_cost,
+               q.est_parts as est_parts, a.shop_rate as shop_rate"""
 
 # Reported -> Assigned -> Working -> Inspection -> Done - the same five
 # steps and order the step pills show everywhere a squawk appears (see
@@ -1525,31 +1527,52 @@ def squawk_assign(kind, squawk_id):
     return redirect(request.referrer or url_for("squawks_list"))
 
 
+def _estimate_from_form(conn, asset_id):
+    """Reads the estimate boxes (hours, shop rate, parts, cost) from the form.
+    The rate is the aircraft's own shop rate and is saved on it when typed;
+    a blank cost becomes hours x rate + parts. Returns (hours, parts, cost),
+    or None when a box isn't a number."""
+    raw = {k: (request.form.get(k) or "").strip().lstrip("$").replace(",", "")
+           for k in ("est_hours", "est_rate", "est_parts", "est_cost")}
+    val = {k: (_parse_qty(v, allow_zero=True) if v else None) for k, v in raw.items()}
+    if any(raw[k] and val[k] is None for k in raw):
+        return None
+    rate = val["est_rate"]
+    if asset_id and rate is not None:
+        conn.execute("UPDATE assets SET shop_rate = ? WHERE id = ?", (rate or None, asset_id))
+    elif asset_id:
+        row = conn.execute("SELECT shop_rate FROM assets WHERE id = ?", (asset_id,)).fetchone()
+        rate = row["shop_rate"] if row else None
+    if rate is None:
+        rate = _found_default_labor_rate(conn)
+    cost = val["est_cost"]
+    if cost is None and (val["est_hours"] or val["est_parts"]):
+        cost = round((val["est_hours"] or 0) * (rate or 0) + (val["est_parts"] or 0), 2)
+    return val["est_hours"], val["est_parts"], cost
+
+
 @app.route("/squawks/<kind>/<int:squawk_id>/estimate", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def squawk_estimate(kind, squawk_id):
-    """Sets or updates a squawk's estimate (hours and cost). Leave the cost
-    blank and it's worked out from the hours at the shop's usual labor rate."""
+    """Sets or updates a squawk's estimate (hours, parts and cost). Leave the
+    cost blank and it's worked out as hours x the aircraft's shop rate + parts."""
     if kind not in ("flight", "quick"):
         abort(404)
-    hours_raw = (request.form.get("est_hours") or "").strip()
-    cost_raw = (request.form.get("est_cost") or "").strip().lstrip("$").replace(",", "")
-    hours = _parse_qty(hours_raw, allow_zero=True) if hours_raw else None
-    cost = _parse_qty(cost_raw, allow_zero=True) if cost_raw else None
-    if (hours_raw and hours is None) or (cost_raw and cost is None):
+    conn = get_db()
+    tbl = "flights" if kind == "flight" else "plane_squawks"
+    row = conn.execute(f"SELECT asset_id FROM {tbl} WHERE id = ?", (squawk_id,)).fetchone()
+    est = _estimate_from_form(conn, row["asset_id"] if row else None)
+    if est is None:
+        conn.close()
         flash("Enter the estimate as numbers.", "danger")
         return redirect(request.referrer or url_for("squawks_list"))
-    conn = get_db()
-    if cost is None and hours:
-        rate = _found_default_labor_rate(conn)
-        if rate:
-            cost = round(hours * rate, 2)
+    hours, parts, cost = est
     if kind == "flight":
-        cur = conn.execute("UPDATE flights SET squawk_est_hours = ?, squawk_est_cost = ? WHERE id = ? AND squawk = 1",
-                           (hours, cost, squawk_id))
+        cur = conn.execute("UPDATE flights SET squawk_est_hours = ?, squawk_est_parts = ?, squawk_est_cost = ? WHERE id = ? AND squawk = 1",
+                           (hours, parts, cost, squawk_id))
     else:
-        cur = conn.execute("UPDATE plane_squawks SET est_hours = ?, est_cost = ? WHERE id = ?",
-                           (hours, cost, squawk_id))
+        cur = conn.execute("UPDATE plane_squawks SET est_hours = ?, est_parts = ?, est_cost = ? WHERE id = ?",
+                           (hours, parts, cost, squawk_id))
     conn.commit()
     conn.close()
     if not cur.rowcount:
@@ -1563,7 +1586,7 @@ def squawk_estimate(kind, squawk_id):
 @shop_role_required('admin', 'tech')
 def project_section_estimate(project_id, section_id):
     """Idea "adding estimate price area": the same editable estimate as a
-    squawk's, on a job Discrepancy. Blank cost is priced from the hours."""
+    squawk's, on a job Discrepancy."""
     conn = get_db()
     blocked = _deleted_job_block(conn, project_id)
     if blocked:
@@ -1573,19 +1596,15 @@ def project_section_estimate(project_id, section_id):
     if not section:
         conn.close()
         abort(404)
-    hours_raw = (request.form.get("est_hours") or "").strip()
-    cost_raw = (request.form.get("est_cost") or "").strip().lstrip("$").replace(",", "")
-    hours = _parse_qty(hours_raw, allow_zero=True) if hours_raw else None
-    cost = _parse_qty(cost_raw, allow_zero=True) if cost_raw else None
-    if (hours_raw and hours is None) or (cost_raw and cost is None):
+    proj = conn.execute("SELECT asset_id FROM projects WHERE id = ?", (project_id,)).fetchone()
+    est = _estimate_from_form(conn, proj["asset_id"] if proj else None)
+    if est is None:
         conn.close()
         flash("Enter the estimate as numbers.", "danger")
         return redirect(url_for("project_detail", project_id=project_id))
-    if cost is None and hours:
-        rate = _found_default_labor_rate(conn)
-        if rate:
-            cost = round(hours * rate, 2)
-    conn.execute("UPDATE project_sections SET est_hours = ?, est_cost = ? WHERE id = ?", (hours, cost, section_id))
+    hours, parts, cost = est
+    conn.execute("UPDATE project_sections SET est_hours = ?, est_parts = ?, est_cost = ? WHERE id = ?",
+                 (hours, parts, cost, section_id))
     conn.commit()
     conn.close()
     flash("Estimate saved.", "success")
@@ -4135,7 +4154,7 @@ def project_detail(project_id):
     project = conn.execute("""SELECT projects.*, a.id as asset_display_id, a.tag as asset_display_tag,
                                a.name as asset_display_name, a.maint_oil_type as asset_maint_oil_type,
                                a.maint_tire_nose as asset_maint_tire_nose, a.maint_tire_mains as asset_maint_tire_mains,
-                               a.maint_other as asset_maint_other
+                               a.maint_other as asset_maint_other, a.shop_rate as shop_rate
                                FROM projects LEFT JOIN assets a ON a.id = projects.asset_id
                                WHERE projects.id = ?""", (project_id,)).fetchone()
     if not project:
@@ -4214,7 +4233,7 @@ def project_detail(project_id):
     conn.commit()
     section_meta = {r["name"]: dict(r) for r in conn.execute(
         """SELECT id, name, completed_at, completed_by, confirm_requested_at, confirm_requested_by,
-                  sent_back_at, sent_back_by, reopened_at, reopened_by, notes, description, est_hours, est_cost,
+                  sent_back_at, sent_back_by, reopened_at, reopened_by, notes, description, est_hours, est_parts, est_cost,
                   linked_squawk_kind, linked_squawk_id, linked_todo_id, assigned_to,
                   (SELECT name FROM users WHERE users.id = project_sections.assigned_to) AS assigned_name
            FROM project_sections WHERE project_id = ?""", (project_id,)).fetchall()}
@@ -4236,7 +4255,9 @@ def project_detail(project_id):
         section_data["maint_items"] = _task_links.get(meta["id"], []) if meta else []
         section_data["description"] = meta["description"] if meta else None
         section_data["est_hours"] = meta["est_hours"] if meta else None
+        section_data["est_parts"] = meta["est_parts"] if meta else None
         section_data["est_cost"] = meta["est_cost"] if meta else None
+        section_data["shop_rate"] = project["shop_rate"]
         # A Discrepancy that came from "Fix on this job"/"Do on this job"
         # keeps the squawk's/to-do's own Reported/Assigned/Working/
         # Inspection/Done pills and assigned tech showing here too, instead

@@ -1972,6 +1972,17 @@ def _migrate(conn):
             conn.execute(f"ALTER TABLE {tbl} ADD COLUMN {pre}est_cost REAL")
             conn.commit()
 
+    # Shop rate per aircraft and a parts estimate: the estimate's cost is
+    # hours x the aircraft's shop rate + parts.
+    cols_a = [r["name"] for r in conn.execute("PRAGMA table_info(assets)").fetchall()]
+    if "shop_rate" not in cols_a:
+        conn.execute("ALTER TABLE assets ADD COLUMN shop_rate REAL")
+        conn.commit()
+    for tbl, col in (("flights", "squawk_est_parts"), ("plane_squawks", "est_parts"), ("project_sections", "est_parts")):
+        if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({tbl})").fetchall()]:
+            conn.execute(f"ALTER TABLE {tbl} ADD COLUMN {col} REAL")
+            conn.commit()
+
     # Same estimate on a job Discrepancy (project_sections). One that stands in
     # for a squawk uses the squawk's own estimate instead; see project_detail.
     cols_ps = [r["name"] for r in conn.execute("PRAGMA table_info(project_sections)").fetchall()]

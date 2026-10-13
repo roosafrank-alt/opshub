@@ -42,3 +42,29 @@ class DiscrepancyEstimateTest(OpsHubTestCase):
         body = self.login("shop_admin").get(f"/projects/{self.project_id}").get_data(as_text=True)
         self.assertIn(f"/squawks/quick/{sq}/estimate", body)
         self.assertIn("360.00", body)
+
+
+class ShopRateEstimateTest(DiscrepancyEstimateTest):
+    def test_rate_hours_parts_total(self):
+        c = self.login("shop_admin")
+        c.post(self.url, data={"est_hours": "3", "est_rate": "110", "est_parts": "75.50"})
+        r = self.q1("SELECT est_hours, est_parts, est_cost FROM project_sections WHERE id = ?", (self.section_id,))
+        self.assertEqual((r["est_hours"], r["est_parts"], r["est_cost"]), (3.0, 75.5, 405.5))
+        self.assertEqual(self.q1("SELECT shop_rate FROM assets WHERE id = ?", (self.asset_id,))["shop_rate"], 110.0)
+        # The rate sticks to the aircraft: a later save without it reuses it.
+        c.post(self.url, data={"est_hours": "2", "est_parts": ""})
+        self.assertEqual(self.row()["est_cost"], 220.0)
+        body = c.get(f"/projects/{self.project_id}").get_data(as_text=True)
+        self.assertIn('name="est_rate"', body)
+        self.assertIn(">Total</button>", body)
+
+    def test_squawk_uses_aircraft_rate(self):
+        from harness import seed_row
+        conn = db.get_db()
+        sq = seed_row(conn, "plane_squawks", asset_id=self.asset_id, notes="Soft brake")
+        conn.commit()
+        conn.close()
+        self.login("shop_admin").post(f"/squawks/quick/{sq}/estimate",
+                                      data={"est_hours": "2", "est_rate": "100", "est_parts": "50"})
+        r = self.q1("SELECT est_hours, est_parts, est_cost FROM plane_squawks WHERE id = ?", (sq,))
+        self.assertEqual((r["est_hours"], r["est_parts"], r["est_cost"]), (2.0, 50.0, 250.0))

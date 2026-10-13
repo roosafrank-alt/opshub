@@ -229,7 +229,7 @@
            "Do on this job" keeps showing the squawk's/to-do's own step pills
            and assigned tech here, not just this area's own open/awaiting/
            completed state. #}
-        {% from "_squawk_macros.html" import squawk_step_pills, squawk_assigned_line, todo_step_pills, squawk_estimate %}
+        {% from "_squawk_macros.html" import squawk_step_pills, squawk_assigned_line, todo_step_pills, squawk_estimate, estimate_form %}
         {% for section, data in usage_by_section.items() %}
         {#- Three states: open (checkbox unticked), awaiting confirmation
            (ticked but confirm_requested_at set, completed_at still NULL -
@@ -340,15 +340,8 @@
             <div class="p-2 border-bottom" data-change="SQ-EST">
               {% if data.linked_squawk %}
               {{ squawk_estimate(data.linked_squawk, shop_is_admin or shop_can_create) }}
-              {% elif shop_is_admin or shop_can_create %}
-              <form method="post" action="{{ url_for('project_section_estimate', project_id=project.id, section_id=data.id) }}" class="d-flex gap-1 align-items-center flex-wrap squawk-estimate">
-                <label class="small text-muted mb-0">Est.</label>
-                <input type="number" step="0.1" min="0" name="est_hours" value="{{ data.est_hours if data.est_hours is not none else '' }}" class="form-control form-control-sm" style="width:5.5rem;" placeholder="hours" aria-label="Estimated hours">
-                <input type="number" step="0.01" min="0" name="est_cost" value="{{ '%.2f'|format(data.est_cost) if data.est_cost is not none else '' }}" class="form-control form-control-sm" style="width:6.5rem;" placeholder="$ (auto)" aria-label="Estimated cost">
-                <button class="btn btn-outline-secondary btn-sm py-0">Save</button>
-              </form>
-              {% elif data.est_hours is not none or data.est_cost is not none %}
-              <small class="text-muted d-block">Est. {{ data.est_hours or 0 }} h{% if data.est_cost is not none %} &middot; ${{ '%.2f'|format(data.est_cost) }}{% endif %}</small>
+              {% else %}
+              {{ estimate_form(url_for('project_section_estimate', project_id=project.id, section_id=data.id), data, shop_is_admin or shop_can_create) }}
               {% endif %}
             </div>
             {% endif %}
