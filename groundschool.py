@@ -816,7 +816,7 @@ def resources_list():
     conn.close()
     return render_template("flight/groundschool_resources.html", resources=resources, tab="resources",
                            sections=group_resources(resources), categories=RESOURCE_CATEGORIES,
-                           new_ids=new_ids, kind_labels=resource_scan.KIND_LABELS,
+                           new_ids=new_ids, kind_labels=resource_scan.KIND_LABELS, source_href=resource_scan.source_href,
                            doc_types=sorted({r["doc_type"] for r in resources if r["doc_type"]}), **extra)
 
 
@@ -894,6 +894,8 @@ def _save_source(conn, resource_id, url):
         return True
     try:
         kind = resource_scan.detect_kind(url)
+        if kind == "ecfr_multi":
+            url = resource_scan.normalize_ecfr_multi(url)
     except resource_scan.BlockedHost as e:
         flash(f"Source link not saved. {e}", "warning")
         return False

@@ -225,3 +225,142 @@ class ScanFlowTest(OpsHubTestCase):
         self.assertNotIn("Update checks", sb)
         self.assertEqual(stu.post(f"{GS}/resources/scan").status_code, 302)
         self.assertEqual(self.q1("SELECT COUNT(*) n FROM resource_scan_runs")["n"], 1)
+
+
+def ecfr_json(date):
+    return json.dumps({"content_versions": [{"amendment_date": date}]}).encode()
+
+
+AIM_HTML = b"<html><body><h1>Aeronautical Information Manual</h1><p>Basic with Change 2. Effective: April 3, 2025</p></body></html>"
+MULTI = "14: 1, 91; 49: 830"
+
+
+class BigAndAlertSourcesTest(ScanFlowTest):
+    """Big PDFs checked by headers, one file made of several eCFR parts, and the alert-only AIM."""
+
+    def scan(self, answers, heads=None):
+        calls = []
+
+        def fetch(url, max_bytes=None, method="GET"):
+            calls.append((method, url))
+            a = (heads or {})[url] if method == "HEAD" else answers[url]
+            if isinstance(a, Exception):
+                raise a
+            return 200, ({} if method == "GET" else a), (b"" if method == "HEAD" else a)
+        conn = db.get_db()
+        out = rs.run_scan(conn, "test", fetch=fetch, extract=lambda p: self.pages["v"], sleep=lambda s: None,
+                          qdir=self.q_dir)
+        conn.close()
+        return out, calls
+
+    def test_limit_and_kinds(self):
+        self.assertEqual(rs.MAX_PDF_BYTES, 200 * 1024 * 1024)
+        self.assertEqual(rs.detect_kind(MULTI), "ecfr_multi")
+        self.assertEqual(rs.detect_kind("https://www.faa.gov/air_traffic/publications/atpubs/aim_html/"), "faa_alert")
+        self.assertEqual(rs.normalize_ecfr_multi("14:1,91 ;49:830;"), MULTI)
+        for bad in ("14: x", "evil", "14:"):
+            with self.assertRaises((ValueError, rs.BlockedHost)):
+                rs.normalize_ecfr_multi(bad) if bad != "evil" else rs.detect_kind(bad)
+
+    def test_unchanged_big_pdf_is_never_downloaded(self):
+        url = "https://www.faa.gov/docs/big.pdf"
+        self.add_source(url)
+        heads = {url: {"etag": '"a1"', "content-length": "80000000", "last-modified": "Mon, 01 Sep 2025"}}
+        out, calls = self.scan({}, heads)
+        self.assertEqual(calls, [("HEAD", url)])               # baseline from headers alone
+        out, calls = self.scan({}, heads)
+        self.assertEqual((out["found"], calls), (0, [("HEAD", url)]))
+        self.assertEqual(self.q1("SELECT last_message FROM resource_sources")["last_message"], "Up to date")
+
+    def test_changed_big_pdf_is_downloaded_to_quarantine(self):
+        url = "https://www.faa.gov/docs/big.pdf"
+        self.add_source(url)
+        self.scan({}, {url: {"etag": '"a1"'}})
+        out, calls = self.scan({url: GOOD_PDF}, {url: {"etag": '"a2"'}})
+        self.assertEqual(out["found"], 1)
+        self.assertEqual(calls, [("HEAD", url), ("GET", url)])
+        u = self.q1("SELECT * FROM resource_updates")
+        self.assertTrue(os.path.isfile(os.path.join(self.q_dir, u["new_filename"])))
+
+    def test_old_hash_baseline_does_not_cause_a_false_update(self):
+        url = "https://www.faa.gov/docs/big.pdf"
+        self.exec("INSERT INTO resource_sources (resource_id, source_url, source_kind, last_seen_version) VALUES (?,?,?,?)",
+                  (self.rid, url, "pdf_link", "0123456789abcdef"))
+        out, _ = self.scan({}, {url: {"etag": '"a1"'}})
+        self.assertEqual((out["found"], out["failed"]), (0, 0))
+        self.assertEqual(self.q1("SELECT last_seen_version FROM resource_sources")["last_seen_version"], 'hdr:"a1"||')
+
+    def test_head_trouble_falls_back_to_a_full_look(self):
+        url = "https://www.faa.gov/docs/big.pdf"
+        self.add_source(url)
+        out, calls = self.scan({url: GOOD_PDF}, {url: OSError("405")})
+        self.assertEqual(calls, [("HEAD", url), ("GET", url)])
+        self.assertEqual(out["failed"], 0)
+
+    def test_multi_part_file_alerts_with_parts_and_dates(self):
+        c = self.add_source(MULTI)
+        self.assertEqual(self.q1("SELECT source_kind, source_url FROM resource_sources")["source_kind"], "ecfr_multi")
+        api = lambda t, p: rs.ecfr_api_url(f"https://www.ecfr.gov/current/title-{t}/part-{p}")
+        old = {api(14, 1): ecfr_json("2024-05-01"), api(14, 91): ecfr_json("2025-01-02"), api(49, 830): ecfr_json("2020-01-01")}
+        out, calls = self.scan(old)                                  # doc_date is 2025-01-02: nothing newer
+        self.assertEqual((out["found"], len(calls)), (0, 3))
+        new = dict(old, **{api(14, 91): ecfr_json("2026-09-12"), api(49, 830): ecfr_json("2026-02-02")})
+        out, _ = self.scan(new)
+        self.assertEqual(out["found"], 1)
+        u = self.q1("SELECT * FROM resource_updates")
+        self.assertIsNone(u["new_filename"])
+        self.assertIn("2 of the 3 eCFR parts", u["summary"])
+        self.assertIn("14 CFR Part 91 (amended 2026-09-12)", u["summary"])
+        self.assertIn("49 CFR Part 830 (amended 2026-02-02)", u["summary"])
+        self.assertNotIn("Part 1 (", u["summary"])
+        self.assertEqual(os.listdir(self.q_dir), [])                  # nothing built or fetched
+        out, _ = self.scan(new)                                       # same state: no second alert
+        self.assertEqual((out["found"], self.q1("SELECT COUNT(*) n FROM resource_updates")["n"]), (0, 1))
+        body = c.get(f"{GS}/resources").get_data(as_text=True)
+        self.assertIn("eCFR, several parts (alert only)", body)
+        self.assertIn("14: 1, 91; 49: 830", body)
+        self.assertIn("Dismiss", body)
+        self.assertNotIn("Approve &amp; Publish", body)
+        self.assertIn('href="https://www.ecfr.gov/"', body)
+
+    def test_aim_alert_only_one_notice_for_both_parts(self):
+        url = "https://www.faa.gov/air_traffic/publications/atpubs/aim_html/"
+        self.exec("UPDATE acs_resources SET revision = 'Change 1', effectivity = 'February 1, 2025' WHERE id = ?", (self.rid,))
+        self.exec("INSERT INTO acs_resources (title, revision, effectivity, filename, uploaded_at) VALUES ('AIM 2', 'Change 1', "
+                  "'2025-02-01', 'a2.pdf', ?)", (db.now_iso(),))
+        rid2 = self.q("SELECT id FROM acs_resources ORDER BY id")[1]["id"]
+        for r in (self.rid, rid2):
+            self.exec("INSERT INTO resource_sources (resource_id, source_url, source_kind) VALUES (?,?,?)",
+                      (r, url, "faa_alert"))
+        out, calls = self.scan({url: AIM_HTML})
+        self.assertEqual(out["found"], 1)
+        self.assertEqual(self.q1("SELECT COUNT(*) n FROM resource_updates")["n"], 1)
+        u = self.q1("SELECT * FROM resource_updates")
+        self.assertIsNone(u["new_filename"])
+        self.assertIn("Change 2", u["summary"])
+        self.assertIn("2025-04-03", u["summary"])
+        msgs = [r["last_message"] for r in self.q("SELECT last_message FROM resource_sources ORDER BY id")]
+        self.assertEqual(msgs, ["Update found", "Update found (already in the list)"])
+        out, _ = self.scan({url: AIM_HTML})
+        self.assertEqual((out["found"], self.q1("SELECT COUNT(*) n FROM resource_updates")["n"]), (0, 1))
+
+    def test_aim_matching_the_row_is_up_to_date(self):
+        url = "https://www.faa.gov/air_traffic/publications/atpubs/aim_html/"
+        self.exec("UPDATE acs_resources SET revision = 'Change 2', effectivity = '2025-04-03' WHERE id = ?", (self.rid,))
+        self.exec("INSERT INTO resource_sources (resource_id, source_url, source_kind) VALUES (?,?,?)",
+                  (self.rid, url, "faa_alert"))
+        out, _ = self.scan({url: AIM_HTML})
+        self.assertEqual((out["found"], out["failed"], self.q1("SELECT COUNT(*) n FROM resource_updates")["n"]), (0, 0, 0))
+
+    def test_aim_page_without_dates_fails_quietly_for_others(self):
+        url = "https://www.faa.gov/air_traffic/publications/atpubs/aim_html/"
+        self.exec("INSERT INTO resource_sources (resource_id, source_url, source_kind) VALUES (?,?,?)",
+                  (self.rid, url, "faa_alert"))
+        out, _ = self.scan({url: b"<html>nothing useful</html>"})
+        self.assertEqual(out["failed"], 1)
+
+    def test_parse_helpers(self):
+        self.assertEqual(rs.parse_date("Oct 2, 2025"), "2025-10-02")
+        self.assertEqual(rs.parse_date("October 2, 2025"), "2025-10-02")
+        self.assertIsNone(rs.parse_date("Rev B"))
+        self.assertEqual(rs.parse_aim_page(AIM_HTML.decode()), {"effective": "2025-04-03", "change": "Change 2"})

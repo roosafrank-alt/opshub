@@ -34,11 +34,15 @@ USER_AGENT = "OpsHub-FlightAcademy-ResourceCheck/1.0 (private flight school refe
 TIMEOUT = 30                     # seconds per request
 PAUSE = 3.0                      # seconds between requests
 MAX_PAGE_BYTES = 2 * 1024 * 1024         # a web page or API answer
-MAX_PDF_BYTES = 60 * 1024 * 1024         # a PDF
+MAX_PDF_BYTES = 200 * 1024 * 1024        # a PDF (the PHAK and Instrument Handbook are 60-80 MB)
 MAX_SUMMARY_ITEMS = 25
 FORBIDDEN_PDF_TOKENS = (b"/JavaScript", b"/JS", b"/Launch", b"/OpenAction", b"/EmbeddedFile")
 
-KIND_LABELS = {"ecfr": "eCFR", "faa_page": "FAA page", "pdf_link": "PDF link"}
+KIND_LABELS = {"ecfr": "eCFR", "faa_page": "FAA page", "pdf_link": "PDF link",
+               "ecfr_multi": "eCFR, several parts (alert only)", "faa_alert": "FAA page (alert only)"}
+
+# A source for a file made of several eCFR parts is typed as "14: 1, 23, 91; 49: 830" (title: parts; ...).
+_MULTI_RE = re.compile(r"^\s*\d{1,2}\s*:\s*\d+(?:\s*,\s*\d+)*(?:\s*;\s*\d{1,2}\s*:\s*\d+(?:\s*,\s*\d+)*)*\s*;?\s*$")
 
 
 class BlockedHost(Exception):
@@ -66,14 +70,45 @@ def check_host(url):
     return url.strip()
 
 
+def parse_ecfr_multi(text):
+    """[(title, part), ...] from "14: 1, 23, 91; 49: 830". Raises ValueError when it isn't that form."""
+    if not _MULTI_RE.match(text or ""):
+        raise ValueError("expected eCFR parts like 14: 1, 23, 91; 49: 830")
+    out = []
+    for chunk in text.split(";"):
+        if chunk.strip():
+            title, parts = chunk.split(":")
+            out += [(int(title), int(x)) for x in parts.split(",")]
+    return out
+
+
+def normalize_ecfr_multi(text):
+    by_title = {}
+    for t, p in parse_ecfr_multi(text):
+        by_title.setdefault(t, [])
+        if p not in by_title[t]:
+            by_title[t].append(p)
+    return "; ".join(f"{t}: {', '.join(str(p) for p in ps)}" for t, ps in by_title.items())
+
+
+def source_href(src):
+    """Where the Source link of a resource should point (a typed list of parts links to eCFR itself)."""
+    url = src["source_url"]
+    return url if url.startswith("https://") else "https://www.ecfr.gov/"
+
+
 def detect_kind(url):
-    """'ecfr', 'pdf_link' or 'faa_page' for an allowed link; raises BlockedHost otherwise."""
+    """'ecfr', 'ecfr_multi', 'faa_alert', 'pdf_link' or 'faa_page' for an allowed link; raises BlockedHost otherwise."""
+    if _MULTI_RE.match(url or ""):
+        return "ecfr_multi"
     check_host(url)
     p = urllib.parse.urlparse(url.strip())
     if p.hostname.lower() in ("ecfr.gov", "www.ecfr.gov"):
         return "ecfr"
     if p.path.lower().endswith(".pdf"):
         return "pdf_link"
+    if "/aim_html" in p.path.lower():
+        return "faa_alert"
     return "faa_page" if p.hostname.lower().endswith("faa.gov") else "pdf_link"
 
 
@@ -83,13 +118,14 @@ class _CheckedRedirects(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
-def default_fetch(url, max_bytes=MAX_PAGE_BYTES):
-    """(status, lower-cased headers, body bytes). Refuses other hosts and oversize answers."""
+def default_fetch(url, max_bytes=MAX_PAGE_BYTES, method="GET"):
+    """(status, lower-cased headers, body bytes). Refuses other hosts and oversize answers.
+    method "HEAD" reads only the headers (no body), so a big PDF can be checked without downloading it."""
     check_host(url)
     opener = urllib.request.build_opener(_CheckedRedirects)
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "*/*"})
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "*/*"}, method=method)
     with opener.open(req, timeout=TIMEOUT) as resp:
-        body = resp.read(max_bytes + 1)
+        body = resp.read(max_bytes + 1) if method != "HEAD" else b""
         if len(body) > max_bytes:
             raise ValueError("answer is larger than the size limit")
         return resp.status, {k.lower(): v for k, v in resp.headers.items()}, body
@@ -141,6 +177,29 @@ def parse_faa_page(html, base_url):
     rev = re.search(r"\b(?:Change|Chg\.?)\s*\d+\b|\b(?:Edition|Revision)\s*[A-Z0-9]{1,4}\b", plain, re.I)
     date = _DATE_RE.search(plain)
     return {"pdf_url": pdf_url, "revision": rev.group(0) if rev else None, "date": date.group(0) if date else None}
+
+
+def parse_date(text):
+    """'YYYY-MM-DD' from 'October 2, 2025', 'Oct 2, 2025' or '2025-10-02'; None when it isn't a date."""
+    t = (text or "").strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", t):
+        return t
+    m = re.fullmatch(r"([A-Za-z]{3,9})\.?\s+(\d{1,2}),\s+(\d{4})", t)
+    if m:
+        word = m.group(1).lower()
+        for i, name in enumerate(_MONTHS.split("|"), 1):
+            if word in (name.lower(), name.lower()[:3]):
+                return f"{m.group(3)}-{i:02d}-{int(m.group(2)):02d}"
+    return None
+
+
+def parse_aim_page(html):
+    """{'effective': 'YYYY-MM-DD' or None, 'change': 'Change N' or None} from the FAA's AIM start page."""
+    text = re.sub(r"<(script|style)\b.*?</\1>", " ", html, flags=re.S | re.I)
+    plain = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", text))
+    eff = re.search(rf"Effective(?:\s+Date)?\s*:?\s*((?:{_MONTHS})\s+\d{{1,2}},\s+\d{{4}}|\d{{4}}-\d{{2}}-\d{{2}})", plain, re.I)
+    chg = re.search(r"\bChange\s+(\d+)\b", plain, re.I)
+    return {"effective": parse_date(eff.group(1)) if eff else None, "change": f"Change {chg.group(1)}" if chg else None}
 
 
 def validate_pdf(data):
@@ -260,13 +319,24 @@ def extract_pages(pdf_path):
 # The scan itself
 # ---------------------------------------------------------------------------
 
-def _look(src, fetch):
-    """What the source shows now: {'version', 'date', 'revision', 'pdf' (bytes or None), 'pdf_url'}."""
+def _pdf_fingerprint(headers):
+    """'hdr:...' from a PDF's size, ETag and Last-Modified headers, or None when the site gives none."""
+    parts = [headers.get(k, "").strip() for k in ("etag", "content-length", "last-modified")]
+    return "hdr:" + "|".join(parts) if any(parts) else None
+
+
+def _look(src, fetch, res=None, sleep=time.sleep, pause=PAUSE):
+    """What the source shows now: {'version', 'date', 'revision', 'pdf' (bytes or None), 'pdf_url',
+    'alert' (text for an alert-only source, else None)}."""
     kind, url = src["source_kind"], src["source_url"]
     if kind == "ecfr":
         _s, _h, body = fetch(ecfr_api_url(url))
         d = parse_ecfr_versions(body)
         return {"version": d, "date": d, "revision": None, "pdf": None, "pdf_url": None}
+    if kind == "ecfr_multi":
+        return _look_ecfr_multi(src, fetch, res, sleep, pause)
+    if kind == "faa_alert":
+        return _look_aim(src, fetch, res)
     if kind == "faa_page":
         _s, _h, body = fetch(url)
         info = parse_faa_page(body.decode("utf-8", "replace"), url)
@@ -275,14 +345,89 @@ def _look(src, fetch):
         key = "|".join(str(info[k] or "") for k in ("pdf_url", "revision", "date"))
         return {"version": key, "date": info["date"], "revision": info["revision"], "pdf": None,
                 "pdf_url": info["pdf_url"]}
+    # A direct PDF link: ask for the headers first, so an unchanged big PDF is never downloaded.
+    try:
+        _s, h, _b = fetch(url, MAX_PAGE_BYTES, method="HEAD")
+        fp = _pdf_fingerprint(h or {})
+    except BlockedHost:
+        raise
+    except Exception:
+        fp = None
+    if fp:
+        return {"version": fp, "date": None, "revision": None, "pdf": None, "pdf_url": url}
     _s, _h, body = fetch(url, MAX_PDF_BYTES)
     return {"version": hashlib.sha256(body).hexdigest()[:16], "date": None, "revision": None, "pdf": body,
             "pdf_url": url}
 
 
+def _look_ecfr_multi(src, fetch, res, sleep, pause):
+    """Latest amendment date of each listed eCFR part. An alert only: no PDF is built or fetched."""
+    parts = parse_ecfr_multi(src["source_url"])
+    dates = {}
+    for i, (title, part) in enumerate(parts):
+        if i:
+            sleep(pause)
+        _s, _h, body = fetch(f"https://www.ecfr.gov/api/versioner/v1/versions/title-{title}.json?part={part}")
+        dates[(title, part)] = parse_ecfr_versions(body)
+    version = "|".join(f"{t}-{p}:{d}" for (t, p), d in dates.items())
+    doc_date = parse_date(res["doc_date"]) if res else None
+    if doc_date:
+        changed = {k: d for k, d in dates.items() if d > doc_date}
+    else:  # no usable date on the resource: compare with what the last check saw
+        last = dict(x.split(":", 1) for x in (src["last_seen_version"] or "").split("|") if ":" in x)
+        changed = {k: d for k, d in dates.items() if last and last.get(f"{k[0]}-{k[1]}") not in (None, d)}
+    seen = {"version": version, "date": max(dates.values()), "revision": None, "pdf": None, "pdf_url": None,
+            "alert": None, "alert_key": None}
+    if changed:
+        names = ", ".join(f"{t} CFR Part {p} (amended {d})" for (t, p), d in changed.items())
+        base = f"the file's date {doc_date}" if doc_date else "the last check"
+        seen["alert"] = (f"{len(changed)} of the {len(parts)} eCFR parts in this file changed since {base}: {names}. "
+                         "Nothing was downloaded or replaced. Rebuild the combined PDF from the current eCFR text "
+                         "and upload it with Edit, then dismiss this.")
+        seen["alert_key"] = "|".join(f"{t}-{p}:{d}" for (t, p), d in changed.items())
+        seen["date"] = max(changed.values())
+    return seen
+
+
+def _look_aim(src, fetch, res):
+    """The AIM start page's 'Effective' date and 'Change N'. An alert only: no file swap is offered."""
+    _s, _h, body = fetch(src["source_url"])
+    info = parse_aim_page(body.decode("utf-8", "replace"))
+    if not (info["effective"] or info["change"]):
+        raise ValueError("couldn't find an Effective date or Change number on the page")
+    version = f"{info['effective'] or ''}|{info['change'] or ''}"
+    differs = None  # compare with what the resource row says, wherever that can be read
+    if res:
+        m = re.search(r"\d+", res["revision"] or "")
+        if info["change"] and m:
+            differs = int(m.group(0)) != int(info["change"].split()[1])
+        eff = parse_date(res["effectivity"])
+        if info["effective"] and eff and not differs:
+            differs = eff != info["effective"]
+    seen = {"version": version, "date": info["effective"], "revision": info["change"], "pdf": None,
+            "pdf_url": None, "alert": None, "alert_key": None, "differs": differs}
+    if differs is None and src["last_seen_version"]:
+        differs = src["last_seen_version"] != version   # nothing on the row to compare: use the last check
+    if differs:
+        seen["alert"] = (f"The FAA's AIM page now shows {info['change'] or 'no change number'}, effective "
+                         f"{info['effective'] or 'date not shown'}; this file says {res['revision'] or 'no revision'}"
+                         f", effective {res['effectivity'] or 'date not shown'}. Nothing was downloaded or "
+                         "replaced. Get the new AIM from the source link, update both AIM parts, then dismiss this.")
+        seen["alert_key"] = version
+    return seen
+
+
 def _file_update(conn, src, res, seen, fetch, extract, qdir):
     """Quarantine the new PDF (if there is one), index it and file the pending update."""
     data, blocked = seen["pdf"], ""
+    if seen.get("alert"):
+        cur = conn.execute(
+            "INSERT INTO resource_updates (resource_id, source_id, version_key, new_filename, new_designation, "
+            "new_doc_date, new_revision, new_effectivity, summary, blocked_reason, status, created_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,'pending',?)",
+            (res["id"], src["id"], seen["alert_key"], None, res["designation"], seen["date"], seen["revision"],
+             None, seen["alert"], None, now_iso()))
+        return cur.lastrowid
     if data is None and seen["pdf_url"]:
         data = fetch(seen["pdf_url"], MAX_PDF_BYTES)[2]
     new_file, new_pages = None, []
@@ -329,14 +474,34 @@ def _file_update(conn, src, res, seen, fetch, extract, qdir):
     return uid
 
 
-def scan_source(conn, src, fetch=default_fetch, extract=extract_pages, qdir=None):
+def _legacy_pdf_baseline(src, seen):
+    """A PDF link last seen by its hash (before big PDFs were checked by headers) or the other way round:
+    the two kinds of version can't be compared, so the new one just becomes the baseline."""
+    last, cur = src["last_seen_version"] or "", seen["version"]
+    return src["source_kind"] == "pdf_link" and last.startswith("hdr:") != cur.startswith("hdr:")
+
+
+def scan_source(conn, src, fetch=default_fetch, extract=extract_pages, qdir=None, sleep=time.sleep, pause=PAUSE):
     """Checks one source. Returns 'update', 'ok' or 'baseline'. Raises on a problem."""
     res = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (src["resource_id"],)).fetchone()
     if not res:
         return "ok"
-    seen = _look(src, fetch)
-    state = "ok"
-    if not src["last_seen_version"]:
+    seen = _look(src, fetch, res, sleep, pause)
+    state, msg = "ok", None
+    if seen.get("alert"):
+        key = seen["alert_key"]
+        # one notice per source address (both AIM rows share one), and never the same version twice
+        dup = conn.execute("SELECT u.status FROM resource_updates u JOIN resource_sources s ON s.id = u.source_id "
+                           "WHERE s.source_url = ? AND u.version_key = ?", (src["source_url"], key)).fetchone()
+        if dup:
+            msg = ("Update found (already in the list)" if dup["status"] == "pending"
+                   else "Up to date (this change was already dealt with)")
+        else:
+            _file_update(conn, src, res, seen, fetch, extract, qdir or quarantine_dir())
+            state = "update"
+    elif src["source_kind"] in ("ecfr_multi", "faa_alert"):
+        state = "ok" if src["last_seen_version"] else "baseline"
+    elif not src["last_seen_version"] or _legacy_pdf_baseline(src, seen):
         state = "baseline"
     elif is_new_version(src["last_seen_version"], seen["version"]):
         dup = conn.execute("SELECT 1 FROM resource_updates WHERE source_id = ? AND version_key = ?",
@@ -344,10 +509,11 @@ def scan_source(conn, src, fetch=default_fetch, extract=extract_pages, qdir=None
         if not dup:
             _file_update(conn, src, res, seen, fetch, extract, qdir or quarantine_dir())
             state = "update"
-    msg = {"ok": "Up to date", "baseline": "Up to date (now watching)", "update": "Update found"}[state]
+    msg = msg or {"ok": "Up to date", "baseline": "Up to date (now watching)", "update": "Update found"}[state]
     conn.execute("UPDATE resource_sources SET last_checked_at = ?, last_seen_version = ?, last_seen_date = ?, "
                  "status = ?, last_message = ? WHERE id = ?",
-                 (now_iso(), seen["version"], seen["date"] or src["last_seen_date"], state, msg, src["id"]))
+                 (now_iso(), seen["version"], seen["date"] or src["last_seen_date"],
+                  "update" if msg.startswith("Update found") else state, msg, src["id"]))
     conn.commit()
     return state
 
@@ -367,7 +533,7 @@ def run_scan(conn, trigger="cron", fetch=default_fetch, extract=extract_pages, s
             sleep(pause)
         checked += 1
         try:
-            if scan_source(conn, src, fetch, extract, qdir) == "update":
+            if scan_source(conn, src, fetch, extract, qdir, sleep, pause) == "update":
                 found += 1
         except BlockedHost:
             failed += 1

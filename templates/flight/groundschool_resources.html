@@ -82,7 +82,7 @@
     <a class="btn btn-outline-primary btn-sm" href="{{ url_for('groundschool.resource_update_file', update_id=u.id) }}" target="_blank" rel="noopener">Open new PDF</a>
     <form method="post" action="{{ url_for('groundschool.resource_update_approve', update_id=u.id) }}" data-confirm="Publish the new version of {{ u.r_title }}? The old file is kept as Previous version." data-confirm-title="Approve &amp; Publish" data-confirm-ok="Approve &amp; Publish"><button class="btn btn-success btn-sm fw-bold" type="submit">Approve &amp; Publish</button></form>
     {% elif sources.get(u.resource_id) %}
-    <a class="btn btn-outline-primary btn-sm" href="{{ sources[u.resource_id].source_url }}" target="_blank" rel="noopener noreferrer">Open source</a>
+    <a class="btn btn-outline-primary btn-sm" href="{{ source_href(sources[u.resource_id]) }}" target="_blank" rel="noopener noreferrer">Open source</a>
     {% endif %}
     <form method="post" action="{{ url_for('groundschool.resource_update_reject', update_id=u.id) }}"><button class="btn btn-outline-danger btn-sm" type="submit">{{ 'Reject' if u.new_filename else 'Dismiss' }}</button></form>
   </div>
@@ -99,7 +99,7 @@
   <details class="mt-1"><summary class="small text-muted">{{ sources|length }} source{{ '' if sources|length == 1 else 's' }} watched</summary>
     <table class="table table-sm small mb-0 mt-1">
       {% for r in resources if r.id in sources %}{% set src = sources[r.id] %}
-      <tr><td>{{ r.designation or r.title }}</td><td class="text-muted">{{ kind_labels.get(src.source_kind, src.source_kind) }}</td>
+      <tr><td>{{ r.designation or r.title }}</td><td class="text-muted">{{ kind_labels.get(src.source_kind, src.source_kind) }}{% if not src.source_url.startswith('https://') %}<div>{{ src.source_url }}</div>{% endif %}</td>
         <td class="{{ 'text-danger' if src.status == 'failed' else ('text-success fw-bold' if src.status == 'update' else '') }}">{{ src.last_message or 'Not checked yet' }}</td></tr>
       {% endfor %}
     </table></details>
@@ -136,7 +136,7 @@
         {% set href = url_for('groundschool.resource_file', resource_id=r.id) %}
         <tr class="resource-row{{ ' res-new' if r.id in new_ids else '' }}" data-type="{{ r.doc_type or '' }}" data-cats="{{ (r.categories or 'Other / General') }}" data-search="{{ ((r.designation or '') ~ ' ' ~ r.title ~ ' ' ~ (r.doc_type or ''))|lower }}" onclick="if(!event.target.closest('a'))window.open('{{ href }}', '_blank')">
           <td class="c-fpn"><a class="fw-bold resource-title" href="{{ href }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf text-danger"></i> {{ r.designation or r.title }}</a>{% if r.id in new_ids %} <span class="badge bg-success">NEW</span>{% endif %}</td>
-          <td class="c-title">{{ r.title if r.designation else '' }}{% if r.prev_filename or (flight_admin and sources.get(r.id)) %} <span class="res-links">{% if r.prev_filename %}<a href="{{ url_for('groundschool.resource_previous', resource_id=r.id) }}" target="_blank" rel="noopener">Previous version</a>{% endif %}{% if flight_admin and sources.get(r.id) %}<a href="{{ sources[r.id].source_url }}" target="_blank" rel="noopener noreferrer">Source</a>{% endif %}</span>{% endif %}</td>
+          <td class="c-title">{{ r.title if r.designation else '' }}{% if r.prev_filename or (flight_admin and sources.get(r.id)) %} <span class="res-links">{% if r.prev_filename %}<a href="{{ url_for('groundschool.resource_previous', resource_id=r.id) }}" target="_blank" rel="noopener">Previous version</a>{% endif %}{% if flight_admin and sources.get(r.id) %}<a href="{{ source_href(sources[r.id]) }}" target="_blank" rel="noopener noreferrer">Source</a>{% endif %}</span>{% endif %}</td>
           <td class="c-type meta text-muted small">{{ r.doc_type or '' }}</td>
           <td class="c-date meta text-muted small">{{ r.doc_date or '' }}</td>
           <td class="c-rev meta text-muted small">{{ r.revision or '' }}</td>
@@ -222,8 +222,8 @@
           {% for c in categories %}<div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="categories" value="{{ c }}" id="upcat{{ loop.index }}"><label class="form-check-label" for="upcat{{ loop.index }}">{{ c }}</label></div>{% endfor %}
         </div>
         <div class="mb-3"><label class="form-label">Source link <span class="text-muted small">(optional)</span></label>
-          <input type="url" name="source_url" class="form-control" placeholder="https://www.faa.gov/... or https://www.ecfr.gov/...">
-          <div class="form-text">The official page it comes from. A link here puts it under the 2-week update check (faa.gov, ecfr.gov, govinfo.gov only).</div></div>
+          <input type="text" name="source_url" class="form-control" placeholder="https://www.faa.gov/... or https://www.ecfr.gov/...  (or eCFR parts: 14: 1, 91; 49: 830)" autocapitalize="off" spellcheck="false">
+          <div class="form-text">The official page it comes from. A link here puts it under the 2-week update check (faa.gov, ecfr.gov, govinfo.gov only). For one file made of several eCFR parts, type them like <code>14: 1, 91; 49: 830</code>: you get an alert, never a file swap.</div></div>
         <div class="mb-2">
           <label class="form-label">PDF file</label>
           <input type="file" name="resource_file" accept="application/pdf" class="form-control" required>
@@ -264,8 +264,8 @@
           {% for c in categories %}<div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="categories" value="{{ c }}" id="edcat{{ loop.index }}"><label class="form-check-label" for="edcat{{ loop.index }}">{{ c }}</label></div>{% endfor %}
         </div>
         <div class="mb-3"><label class="form-label">Source link <span class="text-muted small">(optional)</span></label>
-          <input type="url" name="source_url" class="form-control" placeholder="https://www.faa.gov/... or https://www.ecfr.gov/...">
-          <div class="form-text">The official page it comes from. A link here puts it under the 2-week update check (faa.gov, ecfr.gov, govinfo.gov only).</div></div>
+          <input type="text" name="source_url" class="form-control" placeholder="https://www.faa.gov/... or https://www.ecfr.gov/...  (or eCFR parts: 14: 1, 91; 49: 830)" autocapitalize="off" spellcheck="false">
+          <div class="form-text">The official page it comes from. A link here puts it under the 2-week update check (faa.gov, ecfr.gov, govinfo.gov only). For one file made of several eCFR parts, type them like <code>14: 1, 91; 49: 830</code>: you get an alert, never a file swap.</div></div>
         <p class="small text-muted mb-0">Only the labels change. The PDF and its page index stay as they are.</p>
       </div>
       <div class="modal-footer justify-content-start">
