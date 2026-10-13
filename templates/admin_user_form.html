@@ -120,7 +120,7 @@
     {% if user and grant_student %}
     <div class="ms-4 mb-3" id="courses" style="scroll-margin-top:80px;">
       <div id="courses-all-note" class="alert alert-info py-2 small d-none"><i class="bi bi-info-circle"></i> Master Admin sees every ground school, so enrolling changes nothing for this account.</div>
-      <div id="courses-need-academy" class="alert alert-warning py-2 small d-none"><i class="bi bi-exclamation-triangle"></i> Ground school sits inside Flight Academy. Tick <strong>Flight Academy Access</strong> above (and save) before enrolling.</div>
+      <div id="courses-need-academy" class="alert alert-warning py-2 small d-none"><i class="bi bi-exclamation-triangle"></i> Ground school sits inside Flight Academy. Tick <strong>Flight Academy Access</strong> above and save to enroll this account in individual ground schools.</div>
       <div id="courses-list">
         <div class="small fw-bold mb-1"><i class="bi bi-mortarboard"></i> Enroll in individual ground schools</div>
         <div class="form-text mb-2">Flight Academy Access doesn't open ground school by itself: {{ user.name }} sees only the courses they're enrolled in, read only. Each change asks you to confirm and saves right away.</div>
@@ -289,12 +289,14 @@
 (function () {
   var masterBox = document.getElementById('master-admin-check'), academyBox = document.getElementById('academy-access-check');
   var courseNote = document.getElementById('courses-all-note'), needAcademy = document.getElementById('courses-need-academy');
+  var courseList = document.getElementById('courses-list');
   function syncCourses() {
     if (!courseNote || !needAcademy) return;
     var master = !!(masterBox && masterBox.checked), academy = !!(academyBox && academyBox.checked);
     courseNote.classList.toggle('d-none', !master);
     needAcademy.classList.toggle('d-none', master || academy);
-    document.querySelectorAll('.js-enroll').forEach(function (b) { b.disabled = !(academy || master); });
+    // The enroll options only appear once Flight Academy Access is ticked.
+    if (courseList) courseList.classList.toggle('d-none', master || !academy);
   }
   [masterBox, academyBox].forEach(function (b) { if (b) b.addEventListener('change', syncCourses); });
   syncCourses();
