@@ -5840,6 +5840,56 @@ def asset_oil(asset_id):
                            chart_labels=chart_labels, chart_cumulative=chart_cumulative)
 
 
+def _compression_status(checks):
+    """Status of each cylinder in the latest compression check, measured
+    against the reading at the previous check (80 reference; scaled in
+    proportion when the check used another master orifice). Red below 65
+    (64 and under), yellow 65-70 when it dropped since last time, else OK.
+    Returns (per_cyl, note) - per_cyl maps 'cylN' to {level, text}, note is
+    None or {level, text} for the banner above the boxes."""
+    if not checks:
+        return {}, None
+    latest = checks[-1]
+    ref = latest["master_orifice"] or 80
+    k = ref / 80.0
+    per, lows, watches = {}, [], []
+    for i in range(1, 7):
+        key = f"cyl{i}"
+        v = latest[key]
+        if v is None:
+            continue
+        prev = next((c for c in reversed(checks[:-1]) if c[key] is not None), None)
+        drop = None
+        if prev is not None:
+            pk = (prev["master_orifice"] or 80) / 80.0
+            drop = round(prev[key] / pk * k - v, 1)
+            if drop <= 0:
+                drop = None
+        since = f" \u00b7 -{drop:g} since last" if drop else ""
+        if v < 65 * k:
+            per[key] = {"level": "low", "text": "LOW" + since}
+            when = ""
+            if prev is not None:
+                try:
+                    d = datetime.strptime(prev["checked_date"], "%Y-%m-%d")
+                    when = f" since {d.strftime('%b')} {d.day}"
+                except (ValueError, TypeError):
+                    when = ""
+            down = f", down {drop:g}{when}" if drop else ""
+            lows.append(f"Cyl {i} is low: {v:g}/{ref:g}{down}")
+        elif v <= 70 * k and drop:
+            per[key] = {"level": "watch", "text": "Watch" + since}
+            watches.append(f"Cyl {i} is on watch ({v:g})")
+        else:
+            per[key] = {"level": "ok", "text": "OK"}
+    if lows:
+        return per, {"level": "low", "text": "; ".join(lows + watches)}
+    if watches:
+        names = ", ".join(w.split(" is on")[0] for w in watches)
+        return per, {"level": "watch", "text": "Monitor " + names + ": " + "; ".join(watches)}
+    return per, None
+
+
 @app.route("/assets/<int:asset_id>/compression", methods=["GET", "POST"])
 @shop_role_required('admin', 'tech', 'inspector')
 def asset_compression(asset_id):
@@ -5920,6 +5970,7 @@ def asset_compression(asset_id):
 
     latest = checks[-1] if checks else None
     history = list(reversed(checks))
+    cyl_status, cyl_note = _compression_status(checks)
 
     # Pre-select the cylinder count in the log-a-check form from however
     # many the last check actually used (most engines don't change), so
@@ -5954,7 +6005,34 @@ def asset_compression(asset_id):
     return render_template("asset_compression.html", asset=asset, checks=history, latest=latest,
                            chart_labels=chart_labels, cyl_series=cyl_series, default_num_cylinders=default_num_cylinders,
                            today=date.today().strftime("%Y-%m-%d"), can_edit_checks=can_edit_checks, editing=editing,
-                           tech_names=tech_names, last_tach=last_tach, last_hobbs=last_hobbs)
+                           tech_names=tech_names, last_tach=last_tach, last_hobbs=last_hobbs,
+                           cyl_status=cyl_status, cyl_note=cyl_note)
+
+
+@app.route("/assets/<int:asset_id>/compression/discrepancy", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def asset_compression_discrepancy(asset_id):
+    """One tap from the red low-cylinder note: adds a discrepancy (squawk) to
+    this plane's open list with the note text already filled in. The text is
+    rebuilt here from the saved checks, never taken from the form."""
+    conn = get_db()
+    asset = conn.execute("SELECT id FROM assets WHERE id = ? AND deleted_at IS NULL", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+    checks = conn.execute(
+        "SELECT * FROM compression_checks WHERE asset_id = ? ORDER BY checked_date, id", (asset_id,)).fetchall()
+    _per, note = _compression_status(checks)
+    if not note or note["level"] != "low":
+        conn.close()
+        flash("No cylinder is low on the latest check.", "info")
+        return redirect(url_for("asset_compression", asset_id=asset_id))
+    conn.execute("INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at) VALUES (?, ?, ?, ?)",
+                 (asset_id, "Compression: " + note["text"], session.get("user_name"), now_iso()))
+    conn.commit()
+    conn.close()
+    flash("Added to this plane's discrepancies - it's on the Squawks page as New.", "success")
+    return redirect(url_for("asset_compression", asset_id=asset_id))
 
 
 @app.route("/assets/<int:asset_id>/compression/<int:check_id>/delete", methods=["POST"])
