@@ -71,7 +71,7 @@
         <dt>Last lesson</dt>
         <dd>{% if act and act.last_lesson %}{% set l = act.last_lesson %}<a href="{{ url_for('flight.log_detail', flight_id=l.id) }}">{{ l.flight_date|usdate }}</a> &middot; {{ l.plane_tag }} &middot; {% if l.cfi_name %}{{ l.cfi_name }}{% else %}solo{% endif %}{% if l.days_ago is not none %} &middot; {{ 'today' if l.days_ago == 0 else l.days_ago ~ ' days ago' }}{% endif %}{% else %}<span class="text-muted">None yet</span>{% endif %}</dd>
         <dt>Last landing</dt>
-        <dd>{% if not s.first_solo_date and not s.is_station %}<span class="text-muted">Pre-solo - shows after first solo</span>{% elif act and act.last_landing %}{% set l = act.last_landing %}<a href="{{ url_for('flight.log_detail', flight_id=l.id) }}">{{ l.flight_date|usdate }}</a> &middot; {{ l.landings_total }} landing{{ 's' if l.landings_total != 1 }}{% if (l.night_landings_fs or 0) + (l.night_landings_tg or 0) %} ({{ (l.night_landings_fs or 0) + (l.night_landings_tg or 0) }} night){% endif %} &middot; {{ act.landings_90 }} in 90 days{% else %}<span class="text-muted">None logged</span>{% endif %}</dd>
+        <dd>{% if not s.first_solo_date and not s.is_station %}<span class="text-muted">Pre-solo - shows after first solo</span>{% elif act and act.last_landing %}{% set l = act.last_landing %}{% if l.id %}<a href="{{ url_for('flight.log_detail', flight_id=l.id) }}">{{ l.flight_date|usdate }}</a>{% else %}{{ l.flight_date|usdate }}{% endif %} &middot; {{ l.landings_total }} landing{{ 's' if l.landings_total != 1 }}{% if (l.night_landings_fs or 0) + (l.night_landings_tg or 0) %} ({{ (l.night_landings_fs or 0) + (l.night_landings_tg or 0) }} night){% endif %} &middot; {{ act.landings_90 }} in 90 days{% else %}<span class="text-muted">None logged</span>{% endif %}</dd>
         {% if not s.is_station and cur %}
         <dt>Solo</dt>
         <dd>{% if cur.ok %}<span class="badge bg-success">Current</span> {{ cur.interval_days - cur.days_since }} days left (last dual {{ cur.last_dual_date|usdate }})
@@ -122,7 +122,7 @@
           <td data-label="Last Landing">
             {% if not s.first_solo_date and not s.is_station %}<span class="text-muted small" title="Landing currency shows once first solo is marked complete on the student's profile">Pre-solo</span>
             {% elif act and act.last_landing %}{% set l = act.last_landing %}
-            <a href="{{ url_for('flight.log_detail', flight_id=l.id) }}" class="text-decoration-none" title="Open this flight">{{ l.flight_date|usdate }}</a>
+            {% if l.id %}<a href="{{ url_for('flight.log_detail', flight_id=l.id) }}" class="text-decoration-none" title="Open this flight">{{ l.flight_date|usdate }}</a>{% else %}{{ l.flight_date|usdate }}{% endif %}
             <div class="small text-muted">{{ l.landings_total }} ldg{% if (l.night_landings_fs or 0) + (l.night_landings_tg or 0) %} ({{ (l.night_landings_fs or 0) + (l.night_landings_tg or 0) }} night){% endif %} &middot; {{ act.landings_90 }} in 90d</div>
             {% else %}<span class="text-muted small">None logged</span>{% endif %}
           </td>

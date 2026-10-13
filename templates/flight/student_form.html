@@ -20,7 +20,7 @@
     <div class="col-6 col-md-3">
       <div class="text-muted text-uppercase fw-bold label-micro">Last landing</div>
       {% if activity and activity.last_landing %}{% set l = activity.last_landing %}
-      <a href="{{ url_for('flight.log_detail', flight_id=l.id) }}" class="fw-bold text-decoration-none">{{ l.flight_date|usdate }}</a>
+      {% if l.id %}<a href="{{ url_for('flight.log_detail', flight_id=l.id) }}" class="fw-bold text-decoration-none">{{ l.flight_date|usdate }}</a>{% else %}<span class="fw-bold">{{ l.flight_date|usdate }}</span>{% endif %}
       <div class="text-muted">{{ l.landings_total }} landing{{ 's' if l.landings_total != 1 }}{% if l.days_ago is not none %} &middot; {{ 'today' if l.days_ago == 0 else l.days_ago ~ 'd ago' }}{% endif %}</div>
       {% else %}<div class="text-muted">None logged</div>{% endif %}
     </div>

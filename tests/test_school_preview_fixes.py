@@ -272,6 +272,11 @@ class AcademyTest(OpsHubTestCase):
         self.assertIsNotNone(ml["academy_entry_id"])
         html = self.login("master").get(f"/flight/students/{sid}/edit").get_data(as_text=True)
         self.assertIn("(logged by student)", html)
+        # Last landing on the profile also shows hand-entered landings (no flight to link to).
+        self.exec("UPDATE students SET first_solo_date = '2026-01-01' WHERE id = ?", (sid,))
+        html = self.login("master").get(f"/flight/students/{sid}/edit").get_data(as_text=True)
+        last = html.split("Last landing</div>")[1].split("Last 90 days")[0]
+        self.assertIn("3 landings", last)
         s.post(f"/academy/entry/{ml['academy_entry_id']}/delete")
         self.assertIsNone(self.q1("SELECT id FROM manual_landings WHERE student_id = ?", (sid,)))
 

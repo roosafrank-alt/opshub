@@ -2193,7 +2193,7 @@ def _student_activity(conn, student_id=None):
     """Last lesson, last landing, and 90-day landing counts per student, for
     the Students list and the student's own page. A "lesson" is any finished
     flight on record (dual or solo); a "landing" is the most recent finished
-    flight with any landings entered. Returns {student_id: {...}}."""
+    flight, or hand-entered landing (manual_landings), with any landings. Returns {student_id: {...}}."""
     sql = f"""SELECT f.id, f.student_id, f.flight_date, f.solo, f.cfi_id, c.name as cfi_name, a.tag as plane_tag,
                      f.day_landings_fs, f.day_landings_tg, f.night_landings_fs, f.night_landings_tg
               FROM flights f JOIN assets a ON a.id = f.asset_id LEFT JOIN cfis c ON c.id = f.cfi_id
@@ -2225,9 +2225,14 @@ def _student_activity(conn, student_id=None):
         ml_sql += " WHERE student_id = ?"
         ml_params.append(student_id)
     for m in conn.execute(ml_sql, ml_params).fetchall():
+        a = out.setdefault(m["student_id"], {"last_lesson": None, "last_landing": None,
+                                             "landings_90": 0, "night_fs_90": 0})
+        m_total = (m["day_landings"] or 0) + (m["night_landings"] or 0)
+        if m_total and (a["last_landing"] is None or m["landing_date"] > a["last_landing"]["flight_date"]):
+            a["last_landing"] = {"id": None, "flight_date": m["landing_date"], "landings_total": m_total,
+                                 "night_landings_fs": m["night_landings"] or 0, "night_landings_tg": 0,
+                                 "plane_tag": "", "cfi_name": None, "manual": True}
         if m["landing_date"] >= cutoff:
-            a = out.setdefault(m["student_id"], {"last_lesson": None, "last_landing": None,
-                                                 "landings_90": 0, "night_fs_90": 0})
             a["landings_90"] += (m["day_landings"] or 0) + (m["night_landings"] or 0)
             a["night_fs_90"] += (m["night_landings"] or 0)
     for sid, a in out.items():
