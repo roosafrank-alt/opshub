@@ -27,7 +27,7 @@
   <h6 class="mb-2">Pick a target</h6>
   <form method="get" class="d-flex gap-2 flex-wrap align-items-center">
     {% if staff and student %}<input type="hidden" name="student_id" value="{{ student.id }}">{% endif %}
-    <select name="target" class="form-select form-select-sm" style="width:100%;max-width:640px;" onchange="this.form.submit()">
+    <select name="target" class="form-select form-select-sm" style="width:auto;max-width:100%;" onchange="this.form.submit()">
       {% for t in tracks %}
       <option value="{{ t.code }}" {{ 'selected' if t.code == target_code }}>{{ t.name }} ({{ t.pct }}%)</option>
       {% endfor %}
