@@ -119,7 +119,7 @@
     </div>
     {% if user and grant_student %}
     <div class="ms-4 mb-3" id="courses" style="scroll-margin-top:80px;">
-      <div id="courses-all-note" class="small text-muted d-none"><i class="bi bi-check-circle"></i> This account already sees every ground school (Master Admin or Flight Academy Access above). Untick those to enroll it in individual courses.</div>
+      <div id="courses-all-note" class="alert alert-info py-2 small d-none"><i class="bi bi-info-circle"></i> Master Admin or Flight Academy Access is ticked above, so this account sees every ground school whatever is enrolled below. Untick it to limit them to enrolled courses.</div>
       <div id="courses-list">
         <div class="small fw-bold mb-1"><i class="bi bi-mortarboard"></i> Enroll in individual ground schools</div>
         <div class="form-text mb-2">{{ user.name }} sees only the courses they're enrolled in, read only. Each change asks you to confirm and saves right away.</div>
@@ -291,7 +291,6 @@
   function syncCourses() {
     if (!courseList || !courseNote) return;
     var all = allBoxes.some(function (b) { return b.checked; });
-    courseList.classList.toggle('d-none', all);
     courseNote.classList.toggle('d-none', !all);
   }
   allBoxes.forEach(function (b) { b.addEventListener('change', syncCourses); });
