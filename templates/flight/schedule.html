@@ -462,7 +462,24 @@ var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(0) }};
     overlay.className = 'schedule-new-spotlight';
     label = document.createElement('div');
     label.className = 'schedule-new-spotlight-label';
+    // The label is pinned to the screen, so put the booked day in it:
+    // the date cell can be off-screen above a tall month row, and
+    // otherwise you scroll up just to check it landed on the right day.
+    var when = '';
+    if (blocks.length === 1) {
+      var ds = blocks[0].getAttribute('data-date') || '', m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ds);
+      if (m) {
+        when = new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        var tm = blocks[0].getAttribute('data-time');
+        if (tm) when += ' &middot; ' + tm.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      }
+    } else {
+      var days = {};
+      blocks.forEach(function (b) { days[b.getAttribute('data-date')] = 1; });
+      when = Object.keys(days).length + ' days';
+    }
     label.innerHTML = '<i class="bi bi-stars"></i> ' + (blocks.length > 1 ? 'Your new bookings' : 'Your new booking') +
+                      (when ? ' <strong>' + when + '</strong>' : '') +
                       ' <span class="opacity-75">&middot; tap anywhere to continue</span>';
     document.body.appendChild(overlay);
     document.body.appendChild(label);
