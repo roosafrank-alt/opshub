@@ -8731,33 +8731,70 @@ def _local_path(raw):
     return raw if raw.startswith("/") and not raw.startswith("//") and "\\" not in raw else ""
 
 
-@app.route("/view-as/flight/student", methods=["GET"])
-@login_required
-def view_as_student_picker():
-    """Pick which student to look at Flight Academy as (Switch role > Student).
-    Flight Admins and master admins only; look only, like the customer view."""
+def _view_as_picker(kind):
+    """Pick which student or CFI to look at Fly with Kate! / Flight Academy as
+    (Switch role > Student or CFI). Flight Admins and master admins only; look
+    only, like the customer view."""
     if not can_pick_student() or session.get("_view_as_real") and session.get("_view_as_program") != "flight":
         abort(403)
     conn = get_db()
-    students = conn.execute("""SELECT id, name, pilot_certificate FROM students
-                               WHERE active = 1 AND COALESCE(is_station, 0) = 0 ORDER BY lower(name)""").fetchall()
+    if kind == "student":
+        people = conn.execute("""SELECT id, name FROM students
+                                 WHERE active = 1 AND COALESCE(is_station, 0) = 0 ORDER BY lower(name)""").fetchall()
+    else:
+        people = conn.execute("""SELECT id, name FROM cfis
+                                 WHERE active = 1 AND COALESCE(is_station, 0) = 0 ORDER BY lower(name)""").fetchall()
     conn.close()
-    return render_template("view_as_student_picker.html", students=students,
-                           back=_local_path(request.args.get("next")) or url_for("academy_page"))
+    return render_template("view_as_student_picker.html", people=people, kind=kind,
+                           start_endpoint="view_as_student_start" if kind == "student" else "view_as_cfi_start",
+                           back=_local_path(request.args.get("next")) or url_for("academy_page" if kind == "student" else "flight.dashboard"))
+
+
+def _view_as_landing(next_path):
+    """Where to land after picking someone: Flight Academy when the chip was
+    tapped there, otherwise the Fly with Kate! dashboard."""
+    return url_for("academy_page") if next_path.startswith("/academy") or not next_path else url_for("flight.dashboard")
+
+
+def _view_as_person_start(kind, person_id):
+    conn = get_db()
+    if kind == "student":
+        ok, error = start_view_as(conn, "flight", "student", student_id=person_id)
+    else:
+        ok, error = start_view_as(conn, "flight", "cfi", cfi_id=person_id)
+    conn.close()
+    nxt = _local_path(request.form.get("next"))
+    if not ok:
+        flash(error or "Can't switch to that person.", "danger")
+        return redirect(nxt or url_for("flight.dashboard"))
+    session["_view_as_return"] = nxt or url_for("academy_page" if kind == "student" else "flight.dashboard")
+    return redirect(_view_as_landing(nxt))
+
+
+@app.route("/view-as/flight/student", methods=["GET"])
+@login_required
+def view_as_student_picker():
+    return _view_as_picker("student")
+
+
+@app.route("/view-as/flight/cfi", methods=["GET"])
+@login_required
+def view_as_cfi_picker():
+    return _view_as_picker("cfi")
 
 
 @app.route("/view-as/flight/student/<int:student_id>", methods=["POST"])
 @login_required
 def view_as_student_start(student_id):
-    """Start looking at Flight Academy as one particular student."""
-    conn = get_db()
-    ok, error = start_view_as(conn, "flight", "student", student_id=student_id)
-    conn.close()
-    if not ok:
-        flash(error or "Can't switch to that student.", "danger")
-        return redirect(url_for("academy_page"))
-    session["_view_as_return"] = _local_path(request.form.get("next")) or url_for("academy_page")
-    return redirect(url_for("academy_page"))
+    """Start looking at Fly with Kate! / Flight Academy as one particular student."""
+    return _view_as_person_start("student", student_id)
+
+
+@app.route("/view-as/flight/cfi/<int:cfi_id>", methods=["POST"])
+@login_required
+def view_as_cfi_start(cfi_id):
+    """Start looking at Fly with Kate! as one particular CFI."""
+    return _view_as_person_start("cfi", cfi_id)
 
 
 @app.route("/view-as/exit", methods=["POST"])
@@ -8772,12 +8809,12 @@ def view_as_exit():
 
 @app.before_request
 def _view_as_student_is_look_only():
-    """While a Flight Admin is looking at the app as one picked student,
+    """While a Flight Admin is looking at the app as one picked student or CFI,
     nothing can be changed (same rule as the customer portal view). Only the
     Switch role buttons, logout and the tour flag still go through."""
     if request.method in ("GET", "HEAD", "OPTIONS") or not session.get("_view_as_readonly"):
         return None
-    if request.endpoint in ("view_as_exit", "view_as_start", "view_as_student_start", "tour_seen", "logout"):
+    if request.endpoint in ("view_as_exit", "view_as_start", "view_as_student_start", "view_as_cfi_start", "tour_seen", "logout"):
         return None
     if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
         return ("", 403)

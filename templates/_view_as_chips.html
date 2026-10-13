@@ -17,7 +17,7 @@
   {% if chip.action == 'current' %}
   <span class="btn btn-light py-0 px-2 fw-bold disabled" aria-current="true" style="font-size:.68rem; line-height:1.5; opacity:1;">{{ chip.label }}</span>
   {% elif chip.pick %}
-  <a href="{{ url_for('view_as_student_picker', next=request.path) }}" class="btn btn-outline-light py-0 px-2" style="font-size:.68rem; line-height:1.5;" title="Pick a student to look at">{{ chip.label }}</a>
+  <a href="{{ url_for('view_as_cfi_picker' if chip.level == 'cfi' else 'view_as_student_picker', next=request.path) }}" class="btn btn-outline-light py-0 px-2" style="font-size:.68rem; line-height:1.5;" title="Pick a {{ 'CFI' if chip.level == 'cfi' else 'student' }} to look at">{{ chip.label }}</a>
   {% else %}
   <form action="{{ url_for('view_as_exit') if chip.action == 'exit' else url_for('view_as_start', program=view_as_program, level=chip.level) }}" method="post" class="d-inline m-0">
     <button type="submit" class="btn {{ 'btn-warning fw-bold' if chip.action == 'exit' else 'btn-outline-light' }} py-0 px-2" style="font-size:.68rem; line-height:1.5;"{% if chip.action == 'exit' %} title="Back to your normal view"{% endif %}>{{ chip.label }}</button>
