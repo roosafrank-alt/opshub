@@ -1,0 +1,96 @@
+{#- GS-LESSONS: the lesson plan for this ACS Task (ground_lessons/<code>.json).
+   Flow: Prepare > Learn > Apply > Checkride > Quick check > Wrap-up. #}
+{% import "flight/_gsl_macros.html" as gsl %}
+{% set L = gs_lesson %}
+{% set el_ids = gs_el_ids %}
+{% set code = L.task_code %}
+<link href="{{ url_for('static', filename='css/ground-lesson.css') }}" rel="stylesheet">
+<div class="gsl" id="gsl" data-code="{{ code }}" data-change="GS-LESSONS">
+  <div class="gsl-head">
+    <div class="gsl-eyebrow"><i class="bi bi-mortarboard"></i> Lesson plan</div>
+    <div class="gsl-meta">
+      <span>About {{ L.minutes }} min</span><span>{{ L.chunks|length }} short lessons</span>
+      <span>{{ (L.quiz or [])|length }} quiz questions</span>
+    </div>
+    <ol class="gsl-flow">
+      <li><a href="#gsl-prepare">Prepare</a></li><li><a href="#gsl-learn">Learn</a></li>
+      <li><a href="#gsl-apply">Apply</a></li><li><a href="#gsl-checkride">Checkride</a></li>
+      <li><a href="#gsl-quiz">Quick check</a></li><li><a href="#gsl-wrap">Wrap-up</a></li>
+    </ol>
+  </div>
+
+  <section class="gsl-step" id="gsl-prepare">
+    <h5 class="gsl-h"><span class="gsl-n">01</span> Prepare</h5>
+    <div class="gsl-panel">
+      <p class="gsl-objective">{{ gs_rich(L.objective) }}</p>
+      <p class="gsl-why">{{ gs_rich(L.why) }}</p>
+    </div>
+    <div class="gsl-panel">
+      <h6>Pre-reading</h6>
+      <ol class="gsl-list">
+        {% for p in L.prereading or [] %}
+        <li><a href="{{ gs_cite_url(p.res, p.pages[0]) }}" target="_blank" rel="noopener"><b>{{ p.label }}</b></a><br>{{ gs_rich(p.what) }}</li>
+        {% endfor %}
+      </ol>
+    </div>
+    {% if L.key_terms %}
+    <div class="gsl-panel">
+      <h6>Key terms</h6>
+      <dl class="gsl-terms">
+        {% for t in L.key_terms %}<div><dt>{{ t.term }}</dt><dd>{{ gs_rich(t.def) }}</dd></div>{% endfor %}
+      </dl>
+    </div>
+    {% endif %}
+    {% if L.warmup %}<div class="gsl-warmup"><b>Think first</b>{{ gs_rich(L.warmup) }}</div>{% endif %}
+  </section>
+
+  <section class="gsl-step" id="gsl-learn">
+    <h5 class="gsl-h"><span class="gsl-n">02</span> Learn</h5>
+    <p class="gsl-hint">Tap an element code to open just that part of the lesson and mark it done.</p>
+    {% for c in L.chunks %}{{ gsl.chunk(c, loop.index, L, el_ids, element_done, element_self) }}{% endfor %}
+  </section>
+
+  {% if L.scenario %}
+  <section class="gsl-step" id="gsl-apply">
+    <h5 class="gsl-h"><span class="gsl-n">03</span> Apply: {{ L.scenario.title }}</h5>
+    {{ gsl.scenario(L.scenario, el_ids, element_done, element_self) }}
+  </section>
+  {% endif %}
+
+  {% if L.skills %}
+  <section class="gsl-step" id="gsl-checkride">
+    <h5 class="gsl-h"><span class="gsl-n">04</span> On the checkride</h5>
+    {{ gsl.skills(L.skills, el_ids, element_done, element_self) }}
+  </section>
+  {% endif %}
+
+  {% if L.quiz %}
+  <section class="gsl-step" id="gsl-quiz">
+    <h5 class="gsl-h"><span class="gsl-n">05</span> Quick check</h5>
+    <div class="gsl-panel gsl-quiz">
+      {% for q in L.quiz %}
+      <div class="gsl-q" data-answer="{{ q.answer }}">
+        <div class="gsl-stem">{{ loop.index }}. {{ gs_rich(q.q) }}</div>
+        <div class="gsl-opts">{% for o in q.options %}<button type="button" data-j="{{ loop.index0 }}">{{ gs_rich(o) }}</button>{% endfor %}</div>
+        <div class="gsl-qwhy" hidden>{{ gs_rich(q.why) }}</div>
+      </div>
+      {% endfor %}
+      <div class="gsl-score" id="gsl-score"></div>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="gsl-step" id="gsl-wrap">
+    <h5 class="gsl-h"><span class="gsl-n">06</span> Wrap-up</h5>
+    <div class="gsl-panel"><h6>Take these with you</h6><ul class="gsl-takeaways">{% for t in L.takeaways or [] %}<li>{{ gs_rich(t) }}</li>{% endfor %}</ul></div>
+    {% if L.cfi_notes and (session.get('cfi_id') or flight_admin) %}
+    <div class="gsl-panel gsl-cfi"><h6>For the CFI</h6><ul>{% for t in L.cfi_notes %}<li>{{ gs_rich(t) }}</li>{% endfor %}</ul></div>
+    {% endif %}
+    <div class="gsl-panel">
+      <h6>References used</h6>
+      <ul class="gsl-refs">{% for label, href in gs_refs(L) %}<li><a href="{{ href }}" target="_blank" rel="noopener">{{ label }}</a></li>{% endfor %}</ul>
+      {% if L.gaps %}<p class="gsl-gaps"><b>Not in the uploaded resources:</b> {{ L.gaps|join(' · ') }}</p>{% endif %}
+    </div>
+  </section>
+</div>
+<script src="{{ url_for('static', filename='js/ground-lesson.js') }}" defer></script>

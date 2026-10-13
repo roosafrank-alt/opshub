@@ -1,0 +1,50 @@
+{#- GS-LESSONS: shared pieces of a Ground School lesson plan (Task page and element page). #}
+{% macro chip(cd, el_ids, done, selfdone) -%}
+  {%- set eid = el_ids.get(cd) if el_ids else None -%}
+  {%- set state = ' gsl-chip-done' if (eid and done.get(eid)) else (' gsl-chip-self' if (eid and eid in selfdone) else '') -%}
+  {%- if eid -%}<a href="{{ gs_url('groundschool.element_detail', element_id=eid) }}" class="gsl-chip gsl-{{ gs_kind(cd) }}{{ state }}">{% if state %}<i class="bi bi-check-lg"></i> {% endif %}{{ cd }}</a>
+  {%- else -%}<span class="gsl-chip gsl-{{ gs_kind(cd) }}">{{ cd }}</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro chunk(c, n, L, el_ids={}, done={}, selfdone=()) %}
+<article class="gsl-chunk gsl-{{ c.kind }}">
+  <div class="gsl-chunk-top">
+    <div class="gsl-chips">{% for cd in c.codes %}{{ chip(cd, el_ids, done, selfdone) }}{% endfor %}</div>
+    <span class="gsl-mins">{{ c.minutes }} min</span>
+  </div>
+  <h6 class="gsl-chunk-title">{{ n }}. {{ c.title }}</h6>
+  {% for b in c.body %}
+    {% if b.p %}<p>{{ gs_rich(b.p) }}</p>
+    {% elif b.bullets %}<ul>{% for x in b.bullets %}<li>{{ gs_rich(x) }}</li>{% endfor %}</ul>
+    {% elif b.table %}
+      <div class="gsl-table"><table><thead><tr>{% for hd in b.table.head %}<th>{{ gs_rich(hd) }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for row in b.table.rows %}<tr>{% for cell in row %}<td>{{ gs_rich(cell) }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+    {% elif b.callout %}
+      {% set ct = b.callout.type or 'tip' %}
+      <div class="gsl-callout gsl-c-{{ ct }}"><span class="gsl-tag">{{ {'tip':'Tip','warn':'Watch out','reg':'The rule','memory':'Remember'}.get(ct, ct) }}</span><div>{{ gs_rich(b.callout.text) }}</div></div>
+    {% elif b.figure and L.figures and L.figures.get(b.figure) %}
+      {% set f = L.figures[b.figure] %}
+      <figure class="gsl-fig"><img src="{{ url_for('static', filename='lessons/' ~ f.file) }}" alt="{{ f.alt or f.caption }}" loading="lazy">
+        <figcaption>{{ f.caption }} · <a href="{{ gs_cite_url(f.res, f.page) }}" target="_blank" rel="noopener">{{ f.source }}</a></figcaption></figure>
+    {% endif %}
+  {% endfor %}
+  {% if c.check %}<details class="gsl-check"><summary>Check yourself: {{ gs_rich(c.check.q) }}</summary><div>{{ gs_rich(c.check.a) }}</div></details>{% endif %}
+</article>
+{% endmacro %}
+
+{% macro scenario(S, el_ids={}, done={}, selfdone=()) %}
+<div class="gsl-scenario">
+  <div class="gsl-chips">{% for cd in S.codes or [] %}{{ chip(cd, el_ids, done, selfdone) }}{% endfor %}</div>
+  <p class="gsl-setup">{{ gs_rich(S.setup) }}</p>
+  {% for q in S.questions or [] %}<details class="gsl-check"><summary>{{ gs_rich(q.q) }}</summary><div>{{ gs_rich(q.a) }}</div></details>{% endfor %}
+</div>
+{% endmacro %}
+
+{% macro skills(list, el_ids={}, done={}, selfdone=()) %}
+<div class="gsl-panel">
+  {% for s in list %}
+  <div class="gsl-skill">{{ chip(s.code, el_ids, done, selfdone) }}
+    <div><b>You'll be asked to:</b> {{ gs_rich(s.do) }}<br><b>Practice:</b> {{ gs_rich(s.practice) }}</div></div>
+  {% endfor %}
+</div>
+{% endmacro %}

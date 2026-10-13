@@ -20,11 +20,13 @@ import shutil
 import threading
 from datetime import date, datetime, timedelta, timezone
 
+import acs_sync
 import resource_scan
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, session, send_file
 from markupsafe import Markup, escape
 
 from db import get_db, now_iso, UPLOAD_DIR
+import ground_lessons
 from flight import login_required, cfi_required, admin_required
 from auth import student_course_grants, groundschool_restricted, is_flight_admin
 from acs_parser import parse_acs
@@ -290,7 +292,7 @@ def _rating_progress(conn, rating_id, student_id):
         JOIN acs_tasks t ON t.area_id = a.id
         JOIN acs_task_elements e ON e.task_id = t.id
         LEFT JOIN acs_element_completion c ON c.element_id = e.id AND c.student_id = ?
-        WHERE a.rating_id = ?
+        WHERE a.rating_id = ? AND t.retired_at IS NULL AND e.retired_at IS NULL
     """, (student_id, rating_id)).fetchall()
     areas = {}
     total = done = 0
@@ -319,9 +321,21 @@ def _element_done_map(conn, rating_id, student_id):
         JOIN acs_tasks t ON t.area_id = a.id
         JOIN acs_task_elements e ON e.task_id = t.id
         LEFT JOIN acs_element_completion c ON c.element_id = e.id AND c.student_id = ?
-        WHERE a.rating_id = ?
+        WHERE a.rating_id = ? AND t.retired_at IS NULL AND e.retired_at IS NULL
     """, (student_id, rating_id)).fetchall()
     return {r["element_id"]: bool(r["done"]) for r in rows}
+
+
+def _element_self_done(conn, student_id, element_ids):
+    """GS-LESSONS: elements the student finished but a CFI hasn't verified yet (shown as a
+    green outline with a check; CFI-verified stays solid green)."""
+    if not student_id or not element_ids:
+        return set()
+    ids = list(element_ids)
+    ph = ",".join("?" * len(ids))
+    return {r["element_id"] for r in conn.execute(
+        f"SELECT element_id FROM acs_element_completion WHERE student_id = ? AND element_id IN ({ph}) "
+        f"AND self_completed_at IS NOT NULL AND cfi_verified_at IS NULL", [student_id] + ids).fetchall()}
 
 
 GS_STUDENT_KEY = "gs_student_id"
@@ -357,6 +371,11 @@ def _student_url(endpoint, **values):
 
 
 groundschool_bp.add_app_template_global(_student_url, "gs_url")
+# GS-LESSONS: lesson plan helpers for templates/flight/_ground_lesson.html
+groundschool_bp.add_app_template_global(ground_lessons.rich, "gs_rich")
+groundschool_bp.add_app_template_global(ground_lessons.cite_url, "gs_cite_url")
+groundschool_bp.add_app_template_global(ground_lessons.references, "gs_refs")
+groundschool_bp.add_app_template_global(ground_lessons.element_kind, "gs_kind")
 
 
 def _gone(what):
@@ -423,7 +442,7 @@ def _require_groundschool_access():
 
 _GRANTED_STUDENT_ENDPOINTS = {
     "rating_list", "rating_detail", "task_detail", "element_detail", "task_reference_click",
-    "task_mark_read", "element_item_interact", "resource_file", "resource_excerpt", "resources_list", "resource_previous",
+    "task_mark_read", "element_item_interact", "element_lesson_done", "resource_file", "resource_excerpt", "resources_list", "resource_previous",
 }
 
 
@@ -467,6 +486,59 @@ def _granted_resource_ids(conn):
                 if hit:
                     ids.add(hit[0])
     return ids
+
+
+def _sync_acs_resources(conn):
+    """ACS-RESOURCES: every ACS course also has a row in Resources (same PDF file), with the FAA's own
+    address as its source when we know it, so the normal update check watches it. Safe to call often:
+    it only adds what is missing. Page text is indexed in the background (it is slow on the Pi)."""
+    added = []
+    for rt in conn.execute("SELECT * FROM acs_ratings WHERE pdf_filename IS NOT NULL").fetchall():
+        res = conn.execute("SELECT * FROM acs_resources WHERE acs_rating_id = ?", (rt["id"],)).fetchone()
+        if not res:
+            rid = conn.execute(
+                "INSERT INTO acs_resources (title, doc_type, filename, uploaded_by, uploaded_at, designation, "
+                "categories, acs_rating_id) VALUES (?, 'ACS', ?, ?, ?, ?, ?, ?)",
+                (rt["name"], rt["pdf_filename"], rt["uploaded_by"], rt["uploaded_at"] or now_iso(),
+                 rt["doc_number"], acs_sync.categories_for(rt["name"]), rt["id"])).lastrowid
+            added.append((rid, rt["pdf_filename"]))
+        else:
+            rid = res["id"]
+        if not conn.execute("SELECT 1 FROM resource_sources WHERE resource_id = ?", (rid,)).fetchone():
+            url = acs_sync.default_source_url(rt["name"], rt["doc_number"])
+            if url:
+                conn.execute("INSERT INTO resource_sources (resource_id, source_url, source_kind) VALUES (?, ?, ?)",
+                             (rid, url, resource_scan.detect_kind(url)))
+    conn.commit()
+    todo = list(added) + [(r["id"], r["filename"]) for r in conn.execute(
+        "SELECT r.id, r.filename FROM acs_resources r WHERE r.acs_rating_id IS NOT NULL AND NOT EXISTS "
+        "(SELECT 1 FROM acs_resource_pages p WHERE p.resource_id = r.id)").fetchall() if (r["id"], r["filename"]) not in added]
+    todo = [(rid, fn) for rid, fn in todo
+            if os.path.isfile(os.path.join(UPLOAD_DIR, fn)) and rid not in _INDEXING]
+    if todo:
+        _INDEXING.update(rid for rid, _fn in todo)
+        if SCAN_ASYNC:
+            threading.Thread(target=_index_acs_resources, args=(todo,), daemon=True).start()
+        else:
+            _index_acs_resources(todo)
+    return len(added)
+
+
+_INDEXING = set()   # Resources rows whose page text is being indexed right now
+
+
+def _index_acs_resources(todo):
+    conn = get_db()
+    try:
+        for rid, filename in todo:
+            try:
+                _index_resource_pages(conn, rid, os.path.join(UPLOAD_DIR, filename))
+            except Exception as e:
+                print(f"ACS page indexing failed for resource {rid}: {e}")
+            finally:
+                _INDEXING.discard(rid)
+    finally:
+        conn.close()
 
 
 @groundschool_bp.route("")
@@ -516,8 +588,10 @@ def upload():
         conn.execute("UPDATE acs_ratings SET status = 'parsed', parsed_at = ?, parse_error = NULL WHERE id = ?",
                      (now_iso(), rating_id))
         conn.commit()
+        _sync_acs_resources(conn)
         flash(f"Uploaded '{name}' - found {n_areas} Areas of Operation, {n_tasks} Tasks, "
-              f"{n_elements} Knowledge/Risk Management/Skills elements.", "success")
+              f"{n_elements} Knowledge/Risk Management/Skills elements. It is also in Resources now, "
+              "where new FAA versions will be queued for you.", "success")
     except Exception as e:
         conn.execute("UPDATE acs_ratings SET status = 'error', parse_error = ? WHERE id = ?",
                      (str(e), rating_id))
@@ -537,18 +611,21 @@ def reparse(rating_id):
         abort(404)
     pdf_path = os.path.join(UPLOAD_DIR, rating["pdf_filename"])
     try:
-        n_areas, n_tasks, n_elements = _parse_and_store(conn, rating_id, pdf_path)
+        # ACS-RESOURCES: merge in place (same ids), so lessons and sign-offs are kept.
+        areas = acs_sync.parse_pdf(pdf_path)
+        report = acs_sync.apply_acs(conn, rating_id, areas)
         conn.execute("UPDATE acs_ratings SET status = 'parsed', parsed_at = ?, parse_error = NULL WHERE id = ?",
                      (now_iso(), rating_id))
         conn.commit()
-        flash(f"Re-parsed '{rating['name']}' - {n_areas} Areas, {n_tasks} Tasks, {n_elements} elements. "
-              "Note: any lesson content or student sign-offs on this rating's Tasks were cleared by the re-parse.",
-              "warning")
+        n_changed = len(report["tasks"]) + len(report["added_tasks"]) + len(report["removed_tasks"])
+        flash(f"Re-read '{rating['name']}'. {n_changed} Task{'s' if n_changed != 1 else ''} changed. "
+              "Lesson content and sign-offs were kept.", "success")
     except Exception as e:
-        conn.execute("UPDATE acs_ratings SET status = 'error', parse_error = ? WHERE id = ?",
-                     (str(e), rating_id))
+        conn.rollback()
+        # The course keeps working as it was; only the note is saved.
+        conn.execute("UPDATE acs_ratings SET parse_error = ? WHERE id = ?", (str(e), rating_id))
         conn.commit()
-        flash(f"Re-parse failed: {e}", "danger")
+        flash(f"Re-read failed, nothing was changed: {e}", "danger")
     conn.close()
     return redirect(url_for("groundschool.rating_detail", rating_id=rating_id))
 
@@ -562,14 +639,17 @@ def rating_delete(rating_id):
         task_ids = [r["id"] for r in conn.execute(
             "SELECT t.id FROM acs_tasks t JOIN acs_areas a ON a.id = t.area_id WHERE a.rating_id = ?",
             (rating_id,)).fetchall()]
-        for tid in task_ids:
-            conn.execute("DELETE FROM acs_task_signoff WHERE task_id = ?", (tid,))
-            conn.execute("DELETE FROM acs_lesson_content WHERE task_id = ?", (tid,))
-            conn.execute("DELETE FROM acs_task_elements WHERE task_id = ?", (tid,))
-            conn.execute("DELETE FROM acs_task_notes WHERE task_id = ?", (tid,))
-        conn.execute("DELETE FROM acs_tasks WHERE area_id IN (SELECT id FROM acs_areas WHERE rating_id = ?)",
-                     (rating_id,))
+        acs_sync.purge_tasks(conn, task_ids)
+        conn.execute("DELETE FROM academy_course_grants WHERE rating_id = ?", (rating_id,))
         conn.execute("DELETE FROM acs_areas WHERE rating_id = ?", (rating_id,))
+        conn.execute("DELETE FROM acs_task_changes WHERE rating_id = ?", (rating_id,))
+        for res in conn.execute("SELECT id FROM acs_resources WHERE acs_rating_id = ?", (rating_id,)).fetchall():
+            conn.execute("DELETE FROM acs_resource_pages WHERE resource_id = ?", (res["id"],))
+            conn.execute("DELETE FROM resource_update_pages WHERE update_id IN "
+                         "(SELECT id FROM resource_updates WHERE resource_id = ?)", (res["id"],))
+            for t in ("resource_updates", "resource_sources", "resource_seen"):
+                conn.execute(f"DELETE FROM {t} WHERE resource_id = ?", (res["id"],))
+            conn.execute("DELETE FROM acs_resources WHERE id = ?", (res["id"],))
         conn.execute("DELETE FROM acs_ratings WHERE id = ?", (rating_id,))
         conn.commit()
         try:
@@ -613,15 +693,20 @@ def rating_detail(rating_id):
                     (task["id"],)).fetchall(),
             }
             references_html_by_task[task["id"]] = linked_references_html(conn, task["acs_references"], task_id=task["id"])
+    changes_by_task = {r["task_id"]: r["n"] for r in conn.execute(
+        "SELECT task_id, COUNT(*) AS n FROM acs_task_changes WHERE rating_id = ? AND resolved_at IS NULL "
+        "GROUP BY task_id", (rating_id,)).fetchall()} if is_flight_admin() else {}
     viewing_student_id, students = _resolve_viewing_student(conn)
     progress = _rating_progress(conn, rating_id, viewing_student_id) if viewing_student_id else None
     element_done = _element_done_map(conn, rating_id, viewing_student_id) if viewing_student_id else {}
+    element_self = _element_self_done(conn, viewing_student_id, element_done.keys())
     conn.close()
     return render_template("flight/groundschool_rating.html", rating=rating, areas=areas,
                             tasks_by_area=tasks_by_area, elements_by_task=elements_by_task,
                             references_html_by_task=references_html_by_task, tab="groundschool",
+                            changes_by_task=changes_by_task,
                             gs_students=students, viewing_student_id=viewing_student_id,
-                            progress=progress, element_done=element_done)
+                            progress=progress, element_done=element_done, element_self=element_self)
 
 
 @groundschool_bp.route("/task/<int:task_id>")
@@ -649,6 +734,8 @@ def task_detail(task_id):
         "SELECT * FROM acs_task_elements WHERE task_id = ? AND kind = 'skills' ORDER BY order_index",
         (task_id,)).fetchall()
     lesson = conn.execute("SELECT * FROM acs_lesson_content WHERE task_id = ?", (task_id,)).fetchone()
+    acs_changes = conn.execute("SELECT * FROM acs_task_changes WHERE task_id = ? AND resolved_at IS NULL "
+                               "ORDER BY id", (task_id,)).fetchall() if is_flight_admin() else []
     signoffs = conn.execute("""
         SELECT acs_task_signoff.*, students.name AS student_name, cfis.name AS cfi_name
         FROM acs_task_signoff
@@ -678,6 +765,7 @@ def task_detail(task_id):
             [viewing_student_id] + element_ids).fetchall()
         element_done = {r["element_id"]: bool(r["cfi_verified_at"]) for r in rows}
     task_done = sum(1 for v in element_done.values() if v)
+    element_self = _element_self_done(conn, viewing_student_id, element_ids)
     task_total = len(element_ids)
     if viewing_student_id:
         viewing_signoff = next((so for so in signoffs if so["student_id"] == viewing_student_id), None)
@@ -696,17 +784,21 @@ def task_detail(task_id):
                                (task["area_id"],)).fetchall()
     conn.close()
     ids = [t["id"] for t in area_tasks]
+    gs_lesson = ground_lessons.load(ground_lessons.task_code(
+        [e["code"] for e in list(knowledge) + list(risk_management) + list(skills)]))
     idx = ids.index(task_id) if task_id in ids else -1
     prev_task_id = ids[idx - 1] if idx > 0 else None
     next_task_id = ids[idx + 1] if 0 <= idx < len(ids) - 1 else None
     return render_template("flight/groundschool_task.html", task=task, area=area, rating=rating,
                             notes=notes, knowledge=knowledge, risk_management=risk_management,
-                            skills=skills, lesson=lesson, signoffs=signoffs, my_signoff=my_signoff,
+                            skills=skills, lesson=lesson, acs_changes=acs_changes, signoffs=signoffs, my_signoff=my_signoff,
                             gs_students=students, prev_task_id=prev_task_id, next_task_id=next_task_id,
                             tab="groundschool", references_html=references_html,
                             element_done=element_done, task_done=task_done, task_total=task_total,
                             reading_progress=reading_progress, viewing_student_id=viewing_student_id,
-                            viewing_signoff=viewing_signoff)
+                            viewing_signoff=viewing_signoff, gs_lesson=gs_lesson,
+                            element_self=element_self,
+                            gs_el_ids={e["code"]: e["id"] for e in list(knowledge) + list(risk_management) + list(skills)})
 
 
 @groundschool_bp.route("/task/<int:task_id>/lesson", methods=["POST"])
@@ -728,6 +820,20 @@ def lesson_save(task_id):
     conn.commit()
     conn.close()
     flash("Lesson content saved.", "success")
+    return redirect(url_for("groundschool.task_detail", task_id=task_id))
+
+
+@groundschool_bp.route("/task/<int:task_id>/changes/resolve", methods=["POST"])
+@admin_required
+def task_changes_resolve(task_id):
+    """ACS-RESOURCES: the admin has refreshed this Task's lesson plan for the ACS change."""
+    conn = get_db()
+    if conn.execute("SELECT 1 FROM acs_tasks WHERE id = ?", (task_id,)).fetchone():
+        conn.execute("UPDATE acs_task_changes SET resolved_at = ?, resolved_by = ? "
+                     "WHERE task_id = ? AND resolved_at IS NULL", (now_iso(), session.get("user_id"), task_id))
+        conn.commit()
+        flash("Marked as refreshed.", "success")
+    conn.close()
     return redirect(url_for("groundschool.task_detail", task_id=task_id))
 
 
@@ -787,6 +893,7 @@ def signoff_remove(task_id, signoff_id):
 @login_required
 def resources_list():
     conn = get_db()
+    _sync_acs_resources(conn)
     resources = conn.execute(
         "SELECT r.*, (SELECT COUNT(*) FROM acs_resource_pages p WHERE p.resource_id = r.id) AS page_count "
         "FROM acs_resources r").fetchall()
@@ -801,6 +908,7 @@ def resources_list():
             "SELECT * FROM resource_sources ORDER BY id DESC").fetchall()}
         extra["pending"] = conn.execute(
             "SELECT u.*, r.title AS r_title, r.designation AS r_designation, r.doc_date AS r_doc_date, "
+            "r.acs_rating_id AS r_acs_rating_id, "
             "r.revision AS r_revision, r.effectivity AS r_effectivity FROM resource_updates u "
             "JOIN acs_resources r ON r.id = u.resource_id WHERE u.status = 'pending' ORDER BY u.id").fetchall()
         extra["last_run"] = conn.execute("SELECT * FROM resource_scan_runs ORDER BY id DESC LIMIT 1").fetchone()
@@ -969,6 +1077,40 @@ def resource_update_file(update_id):
     return send_file(path, mimetype="application/pdf")
 
 
+def _approve_acs(conn, rating, res, update_id, stored, areas, error):
+    """The ACS half of approving an update: the course now points at the new PDF, and its Tasks and
+    elements are merged in place. If the new file can't be merged the file is still published and the
+    lessons are left exactly as they were. Writes (no commit); returns a short message for the admin."""
+    doc_number = _detect_doc_number(os.path.join(UPLOAD_DIR, stored)) or rating["doc_number"]
+    conn.execute("UPDATE acs_ratings SET pdf_filename = ?, doc_number = ? WHERE id = ?",
+                 (stored, doc_number, rating["id"]))
+    conn.execute("UPDATE acs_resources SET designation = COALESCE(?, designation) WHERE id = ?",
+                 (doc_number, res["id"]))
+    keys = acs_sync.lesson_task_keys(conn, rating["id"])
+    report_text, note = None, None
+    if error is None:
+        conn.execute("SAVEPOINT acs_merge")
+        try:
+            report = acs_sync.apply_acs(conn, rating["id"], areas, update_id)
+            conn.execute("RELEASE acs_merge")
+            conn.execute("UPDATE acs_ratings SET status = 'parsed', parsed_at = ?, parse_error = NULL WHERE id = ?",
+                         (now_iso(), rating["id"]))
+            report_text = acs_sync.format_report(report, keys)
+            n = len(report["lessons"])
+            note = (f"{n} lesson plan{'s' if n != 1 else ''} need a refresh. They are flagged in the course."
+                    if n else "The course is up to date. No built lesson plan was affected.")
+        except Exception as e:
+            conn.execute("ROLLBACK TO acs_merge")
+            conn.execute("RELEASE acs_merge")
+            error = str(e)
+    if error is not None:
+        report_text = ("ACS standards: the new file was published, but its Tasks could not be merged into the "
+                       f"course ({error[:150]}). The lessons were left as they were.")
+        note = "The new ACS file is published, but it could not be merged into the lessons. They were left as they were."
+    conn.execute("UPDATE resource_updates SET acs_report = ? WHERE id = ?", (report_text, update_id))
+    return note
+
+
 @groundschool_bp.route("/resources/updates/<int:update_id>/approve", methods=["POST"])
 @admin_required
 def resource_update_approve(update_id):
@@ -984,6 +1126,15 @@ def resource_update_approve(update_id):
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     stored = f"resource_{''.join(random.choices(string.ascii_lowercase + string.digits, k=12))}.pdf"
     shutil.copyfile(qpath, os.path.join(UPLOAD_DIR, stored))
+    # ACS-RESOURCES: read the new ACS first (slow), so no write is held open while it runs.
+    acs_areas, acs_error = None, None
+    rating = (conn.execute("SELECT * FROM acs_ratings WHERE id = ?", (r["acs_rating_id"],)).fetchone()
+              if r["acs_rating_id"] else None)
+    if rating:
+        try:
+            acs_areas = acs_sync.parse_pdf(os.path.join(UPLOAD_DIR, stored))
+        except Exception as e:
+            acs_error = str(e)
     pages = conn.execute("SELECT page_num, text FROM resource_update_pages WHERE update_id = ?", (update_id,)).fetchall()
     now = now_iso()
     conn.execute("UPDATE resource_updates SET old_doc_date = ?, old_revision = ?, old_effectivity = ? WHERE id = ?",
@@ -1000,6 +1151,9 @@ def resource_update_approve(update_id):
     conn.execute("UPDATE resource_updates SET status = 'approved', decided_by = ?, decided_at = ? WHERE id = ?",
                  (session.get("user_id"), now, update_id))
     conn.execute("DELETE FROM resource_update_pages WHERE update_id = ?", (update_id,))
+    acs_note = None
+    if rating:
+        acs_note = _approve_acs(conn, rating, r, update_id, stored, acs_areas, acs_error)
     conn.commit()
     conn.close()
     try:
@@ -1007,6 +1161,8 @@ def resource_update_approve(update_id):
     except OSError:
         pass
     flash(f"Published the new '{r['title']}'. The old file is kept as Previous version.", "success")
+    if acs_note:
+        flash(acs_note, "info")
     return redirect(url_for("groundschool.resource_update_send", update_id=update_id))
 
 
@@ -1079,6 +1235,10 @@ def resources_upload():
 def resources_delete(resource_id):
     conn = get_db()
     r = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (resource_id,)).fetchone()
+    if r and r["acs_rating_id"]:
+        conn.close()
+        flash("That is an ACS course. Delete it from Ground School instead, and it leaves Resources too.", "warning")
+        return redirect(url_for("groundschool.resources_list"))
     if r:
         conn.execute("DELETE FROM acs_resource_pages WHERE resource_id = ?", (resource_id,))
         conn.execute("DELETE FROM resource_update_pages WHERE update_id IN "
@@ -1170,7 +1330,13 @@ def element_detail(element_id):
     # SCHOOL-07: an element with nothing required to click or watch is
     # self-completed the moment the student opens it (the visit is the
     # lesson) - otherwise text-only and empty elements could never finish.
-    if session.get("student_id") and not any(it["required"] for it in items):
+    # GS-LESSONS: when a lesson plan covers this element, the student marks it done
+    # with "I've finished this lesson" instead of the visit counting.
+    task_codes = [r["code"] for r in conn.execute(
+        "SELECT code FROM acs_task_elements WHERE task_id = ?", (task["id"],)).fetchall()]
+    task_lesson = ground_lessons.load(ground_lessons.task_code(task_codes))
+    el_lesson = ground_lessons.for_element(task_lesson, el["code"])
+    if session.get("student_id") and not any(it["required"] for it in items) and not el_lesson:
         _check_self_complete(conn, session["student_id"], element_id)
     done_item_ids = set()
     completion = None
@@ -1186,12 +1352,59 @@ def element_detail(element_id):
     required_ids = [it["id"] for it in items if it["required"]]
     all_required_done = all(i in done_item_ids for i in required_ids) if required_ids else True
     related_pages = _find_element_pages(conn, task, el)
+    gs_el_ids, el_done_map, el_self = {}, {}, set()
+    if el_lesson:
+        task_els = conn.execute("SELECT id, code FROM acs_task_elements WHERE task_id = ?", (task["id"],)).fetchall()
+        gs_el_ids = {r["code"]: r["id"] for r in task_els}
+        if viewing_student_id:
+            ph = ",".join("?" * len(task_els))
+            el_done_map = {r["element_id"]: bool(r["cfi_verified_at"]) for r in conn.execute(
+                f"SELECT element_id, cfi_verified_at FROM acs_element_completion WHERE student_id = ? "
+                f"AND element_id IN ({ph})", [viewing_student_id] + [r["id"] for r in task_els]).fetchall()}
+            el_self = _element_self_done(conn, viewing_student_id, gs_el_ids.values())
     conn.close()
     return render_template("flight/groundschool_element.html", el=el, task=task, area=area, rating=rating,
                             items=items, done_item_ids=done_item_ids, completion=completion,
                             gs_students=students, viewing_student_id=viewing_student_id,
                             all_required_done=all_required_done, related_pages=related_pages,
-                            tab="groundschool")
+                            tab="groundschool", el_lesson=el_lesson, gs_lesson=task_lesson,
+                            gs_el_ids=gs_el_ids, element_done=el_done_map, element_self=el_self)
+
+
+@groundschool_bp.route("/element/<int:element_id>/lesson-done", methods=["POST"])
+@login_required
+def element_lesson_done(element_id):
+    """GS-LESSONS: the student marks an element's lesson finished (green check); a CFI
+    still verifies it. Posting again with undo=1 takes it back."""
+    student_id = session.get("student_id")
+    if not student_id:
+        abort(403)
+    conn = get_db()
+    rid = _rating_id_of_element(conn, element_id)
+    if rid is None or _course_blocked(rid):
+        conn.close()
+        abort(404)
+    existing = conn.execute("SELECT * FROM acs_element_completion WHERE student_id = ? AND element_id = ?",
+                             (student_id, element_id)).fetchone()
+    undo = request.form.get("undo") == "1"
+    if undo:
+        if existing and not existing["cfi_verified_at"]:
+            conn.execute("UPDATE acs_element_completion SET self_completed_at = NULL "
+                         "WHERE student_id = ? AND element_id = ?", (student_id, element_id))
+    elif existing:
+        if not existing["self_completed_at"]:
+            conn.execute("UPDATE acs_element_completion SET self_completed_at = ? "
+                         "WHERE student_id = ? AND element_id = ?", (now_iso(), student_id, element_id))
+    else:
+        conn.execute("INSERT INTO acs_element_completion (student_id, element_id, self_completed_at) "
+                     "VALUES (?, ?, ?)", (student_id, element_id, now_iso()))
+    conn.commit()
+    task_id = conn.execute("SELECT task_id FROM acs_task_elements WHERE id = ?", (element_id,)).fetchone()["task_id"]
+    conn.close()
+    if undo:
+        return redirect(url_for("groundschool.element_detail", element_id=element_id))
+    flash("Marked complete. Your instructor will verify it.", "success")
+    return redirect(url_for("groundschool.task_detail", task_id=task_id))
 
 
 @groundschool_bp.route("/element/<int:element_id>/item/add", methods=["POST"])

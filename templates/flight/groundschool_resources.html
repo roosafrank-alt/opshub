@@ -71,7 +71,7 @@
 {% for u in pending %}
 <div class="card academy-card mb-2"><div class="card-body py-2">
   <div class="d-flex justify-content-between flex-wrap gap-1">
-    <strong>{{ u.r_designation or u.r_title }}</strong>
+    <strong>{{ u.r_designation or u.r_title }}{% if u.r_acs_rating_id %} <span class="badge bg-info text-dark" data-change="ACS-RESOURCES">ACS: also updates the lessons</span>{% endif %}</strong>
     <span class="small text-muted">found {{ u.created_at[:10] }}</span>
   </div>
   <div class="small mb-1"><span class="text-muted">Now live:</span> {{ u.r_doc_date or '-' }}{% if u.r_revision %} · {{ u.r_revision }}{% endif %}{% if u.r_effectivity %} · eff. {{ u.r_effectivity }}{% endif %}
@@ -80,7 +80,7 @@
   <div class="d-flex gap-2 flex-wrap">
     {% if u.new_filename %}
     <a class="btn btn-outline-primary btn-sm" href="{{ url_for('groundschool.resource_update_file', update_id=u.id) }}" target="_blank" rel="noopener">Open new PDF</a>
-    <form method="post" action="{{ url_for('groundschool.resource_update_approve', update_id=u.id) }}" data-confirm="Publish the new version of {{ u.r_title }}? The old file is kept as Previous version." data-confirm-title="Approve &amp; Publish" data-confirm-ok="Approve &amp; Publish"><button class="btn btn-success btn-sm fw-bold" type="submit">Approve &amp; Publish</button></form>
+    <form method="post" action="{{ url_for('groundschool.resource_update_approve', update_id=u.id) }}" data-confirm="Publish the new version of {{ u.r_title }}? The old file is kept as Previous version.{% if u.r_acs_rating_id %} The Ground School course and its lesson plans are updated to match; no lesson text is deleted.{% endif %}" data-confirm-title="Approve &amp; Publish" data-confirm-ok="Approve &amp; Publish"><button class="btn btn-success btn-sm fw-bold" type="submit">Approve &amp; Publish</button></form>
     {% elif sources.get(u.resource_id) %}
     <a class="btn btn-outline-primary btn-sm" href="{{ source_href(sources[u.resource_id]) }}" target="_blank" rel="noopener noreferrer">Open source</a>
     {% endif %}
@@ -147,10 +147,10 @@
                     data-action="{{ url_for('groundschool.resources_edit', resource_id=r.id) }}"
                     data-title="{{ r.title }}" data-designation="{{ r.designation or '' }}" data-doc-date="{{ r.doc_date or '' }}"
                     data-revision="{{ r.revision or '' }}" data-effectivity="{{ r.effectivity or '' }}" data-doc-type="{{ r.doc_type or '' }}" data-categories="{{ r.categories or '' }}" data-source="{{ sources[r.id].source_url if sources.get(r.id) else '' }}"><i class="bi bi-pencil"></i></button>
-            <form method="post" action="{{ url_for('groundschool.resources_delete', resource_id=r.id) }}" data-change="DESIGN-3 DESIGN-4"
+            {% if not r.acs_rating_id %}<form method="post" action="{{ url_for('groundschool.resources_delete', resource_id=r.id) }}" data-change="DESIGN-3 DESIGN-4"
                   data-confirm="Delete {{ r.title }} forever? References linking to it will stop auto-linking. This can't be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
               <button type="submit" class="btn btn-danger btn-sm" title="Delete Forever" aria-label="Delete"><i class="bi bi-trash"></i></button>
-            </form></div>{% endif %}</td>
+            </form>{% endif %}</div>{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>

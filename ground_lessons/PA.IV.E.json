@@ -1,0 +1,913 @@
+{
+ "task_code": "PA.IV.E",
+ "task_title": "Short-Field Takeoff and Maximum Performance Climb (ASEL, AMEL)",
+ "area": "Area IV. Takeoffs, Landings, and Go-Arounds",
+ "minutes": 60,
+ "objective": "By the end of this lesson you can explain VX, VY and what air, weight, wind and runway do to takeoff performance, and fly a short-field takeoff and maximum performance climb to ACS standards, with a plan if it goes wrong.",
+ "why": "Short runways and trees or wires at the end leave no room for error: the airplane must use its shortest ground roll and steepest climb [[24:143|AFH 6-11]]. About 20 percent of yearly GA accidents happen in takeoff and departure climb [[24:133|AFH 6-1]].",
+ "prereading": [
+  {
+   "res": "24",
+   "pages": [
+    133,
+    146
+   ],
+   "printed": "AFH Ch 6, 6-1 to 6-14",
+   "what": "Takeoff basics, crosswind takeoff, ground effect, VX/VY, the short-field takeoff and its common errors, rejected takeoff, engine failure, noise abatement.",
+   "label": "AFH Ch 6, 6-1 to 6-14"
+  },
+  {
+   "res": "1",
+   "pages": [
+    263,
+    265
+   ],
+   "printed": "PHAK Ch 11, 11-7 to 11-9",
+   "what": "Angle of climb vs rate of climb, and how weight and altitude change climb performance.",
+   "label": "PHAK Ch 11, 11-7 to 11-9"
+  },
+  {
+   "res": "1",
+   "pages": [
+    268,
+    272
+   ],
+   "printed": "PHAK Ch 11, 11-12 to 11-16",
+   "what": "Runway surface and slope, weight, wind and density altitude effects on takeoff distance.",
+   "label": "PHAK Ch 11, 11-12 to 11-16"
+  },
+  {
+   "res": "1",
+   "pages": [
+    277,
+    278
+   ],
+   "printed": "PHAK Ch 11, 11-21 to 11-22",
+   "what": "Sample Problem 3: reading a short-field takeoff distance table.",
+   "label": "PHAK Ch 11, 11-21 to 11-22"
+  }
+ ],
+ "warmup": "The runway is short and there are tall trees just past the end. Would you rather climb at the speed that gains the most height per minute, or the most height per foot of ground covered? Why?",
+ "key_terms": [
+  {
+   "term": "Short-field takeoff",
+   "def": "A takeoff flown at the limit of the airplane's performance to get the shortest ground roll and steepest climb [[24:143|AFH 6-11]]."
+  },
+  {
+   "term": "VX",
+   "def": "Best angle of climb speed: most altitude for a given distance over the ground [[24:142|AFH 6-10]]."
+  },
+  {
+   "term": "VY",
+   "def": "Best rate of climb speed: most altitude per unit of time [[24:142|AFH 6-10]]."
+  },
+  {
+   "term": "Ground effect",
+   "def": "Better performance close to the ground, normally up to about one wingspan high, because induced drag drops [[24:142|AFH 6-10]]."
+  },
+  {
+   "term": "Premature lift-off",
+   "def": "Pulling the airplane off before VX. Drag goes up, the climb stays flat, and it may settle back [[24:144|AFH 6-12]]."
+  },
+  {
+   "term": "Wheelbarrowing",
+   "def": "Too much weight on the nosewheel from holding the airplane on the ground with forward elevator pressure [[24:144|AFH 6-12]]."
+  },
+  {
+   "term": "Density altitude",
+   "def": "The altitude the airplane performs as if it were at, found from pressure altitude corrected for temperature [[1:260|PHAK 11-4]]."
+  },
+  {
+   "term": "Rejected takeoff",
+   "def": "Stopping a takeoff while still on the runway because something is wrong [[24:146|AFH 6-14]]."
+  },
+  {
+   "term": "Microburst",
+   "def": "The most severe low-level windshear: a strong downdraft spreading out near the ground [[1:295|PHAK 12-11]]."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "What makes it a short-field takeoff",
+   "kind": "knowledge",
+   "codes": [
+    "PA.IV.E.K3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Use a short-field takeoff when the runway is short or obstacles block the departure. You fly the airplane at its maximum takeoff performance: shortest ground roll, steepest climb [[24:143|AFH 6-11]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "The configuration, from the AFH [[24:143|AFH 6-11]] [[24:144|AFH 6-12]]:"
+    },
+    {
+     "bullets": [
+      "Start at the very beginning of the takeoff area, lined up with the takeoff path.",
+      "Flaps: set before the roll, only if the manufacturer recommends them. This frees your attention for the takeoff.",
+      "Roll with full weight on the main wheels in a low-drag attitude. In a nosewheel airplane that needs little elevator.",
+      "Gear and flaps stay in takeoff position until you are clear of obstacles (or as the manufacturer says) and VY is established.",
+      "Then raise flaps in steps, so the airplane doesn't lose lift and settle."
+     ]
+    },
+    {
+     "p": "Trim matters too. Not trimming before takeoff is a listed common error [[24:144|AFH 6-12]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Power, flap setting, speeds and procedure come from your airplane's AFM/POH performance section [[24:143|AFH 6-11]]. If the AFH and the POH differ, the POH wins [[24:133|AFH 6-1]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "When do you set the flaps for a short-field takeoff, and why then?",
+    "a": "Before starting the roll, if the manufacturer recommends flaps, so you can give full attention to technique and performance during the takeoff [[24:143|AFH 6-11]]."
+   }
+  },
+  {
+   "title": "VX and VY: angle vs rate",
+   "kind": "knowledge",
+   "codes": [
+    "PA.IV.E.K2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Speed",
+       "What it gives you",
+       "Use it for"
+      ],
+      "rows": [
+       [
+        "VX - best angle",
+        "Most altitude per distance over the ground [[24:142|AFH 6-10]]",
+        "Clearing obstacles right after a short-field takeoff [[1:263|PHAK 11-7]]"
+       ],
+       [
+        "VY - best rate",
+        "Most altitude per unit of time [[24:142|AFH 6-10]]",
+        "Climbing after obstacles are cleared, to a safe altitude [[24:144|AFH 6-12]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "VX is usually a little slower than VY. Your airplane's speeds are in the AFM/POH [[24:142|AFH 6-10]]."
+    },
+    {
+     "p": "PHAK example: at max angle, one airplane takes 30 seconds to reach 1,000 feet AGL but covers only 3,000 feet of ground. At max rate it climbs to 1,500 feet in 30 seconds but covers 6,000 feet [[1:263|PHAK 11-7]] [[1:264|PHAK 11-8]]. Rate wins on height per minute; angle wins on height per foot of ground."
+    },
+    {
+     "p": "The speeds change with altitude. As you go higher, VX and VY move toward each other and meet at the absolute ceiling, where there is no excess power [[1:264|PHAK 11-8]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "More weight, more altitude, gear down or flaps down all cut excess power and thrust, so both best angle and best rate get worse [[1:264|PHAK 11-8]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "In some airplanes, just 5 knots off the recommended speed can cut climb performance a lot. Fly the number precisely [[24:142|AFH 6-10]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "X = eXtra steep (angle, obstacles). Y = Yes, more feet per minute (rate)."
+     }
+    }
+   ],
+   "check": {
+    "q": "There are trees 1,000 feet past the runway end. Which speed do you climb at until they are cleared?",
+    "a": "VX, which gives the most altitude for distance over the ground [[24:142|AFH 6-10]] [[24:144|AFH 6-12]]."
+   }
+  },
+  {
+   "title": "Air, weight, wind and runway: will it fit?",
+   "kind": "knowledge",
+   "codes": [
+    "PA.IV.E.K1",
+    "PA.IV.E.R1",
+    "PA.IV.E.R2c",
+    "PA.IV.E.R2e"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Before going to the airplane, check the POH performance charts and decide if a safe takeoff and climb is possible here, today [[24:133|AFH 6-1]]. You must predict takeoff distance from the POH no matter how long the runway is [[1:272|PHAK 11-16]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Factor",
+       "Effect on takeoff"
+      ],
+      "rows": [
+       [
+        "High density altitude (high, hot, humid)",
+        "Less engine and propeller performance, longer roll, weaker climb [[24:133|AFH 6-1]]. Same indicated airspeed at lift-off but higher true airspeed [[1:272|PHAK 11-16]]."
+       ],
+       [
+        "More weight",
+        "10 percent more weight: about 5 percent higher takeoff speed, at least 9 percent less acceleration, at least 21 percent more distance [[1:271|PHAK 11-15]]."
+       ],
+       [
+        "Headwind",
+        "10 percent of takeoff speed cuts distance about 19 percent [[1:271|PHAK 11-15]]."
+       ],
+       [
+        "Tailwind",
+        "10 percent of takeoff speed adds about 21 percent [[1:271|PHAK 11-15]]."
+       ],
+       [
+        "Upslope runway",
+        "Slower acceleration, longer ground run [[1:269|PHAK 11-13]]."
+       ],
+       [
+        "Grass, soft, mud, snow, standing water",
+        "Longer ground roll; charts assume paved, level, smooth, dry [[1:268|PHAK 11-12]]."
+       ],
+       [
+        "Too fast at lift-off",
+        "10 percent extra speed adds about 21 percent distance [[1:272|PHAK 11-16]]."
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "Density altitude example: at 5,000 feet pressure altitude a POH ground run of 790 feet becomes closer to 1,000 feet when it is 20 °C above standard [[1:260|PHAK 11-4]]."
+    },
+    {
+     "p": "Try the PHAK sample short-field table (not your airplane): 2,400 pounds, 3,000 feet pressure altitude, 30 °C gives a 1,325-foot ground roll and 2,480 feet to clear a 50-foot obstacle [[1:277|PHAK 11-21]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "p": "Now add an 18-knot headwind. The chart note says cut distances 10 percent for each 9 knots, so 20 percent: ground roll 1,060 feet, total over the obstacle 1,984 feet [[1:277|PHAK 11-21]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Same sample table: a tailwind up to 10 knots adds 10 percent for each 2 knots, and dry grass adds 15 percent of the ground roll figure [[1:278|PHAK 11-22]]. A small tailwind eats margin fast."
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "At high density altitude, high temperature and/or max gross weight, some airplanes can lift off but not climb out of ground effect. Many cannot safely take off at max weight at some altitudes and temperatures [[24:143|AFH 6-11]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "In the PHAK sample table (2,400 lb, 3,000 ft, 30 °C), what is the total distance over a 50-foot obstacle with an 18-knot headwind?",
+    "a": "1,984 feet (2,480 minus 20 percent) [[1:277|PHAK 11-21]]."
+   }
+  },
+  {
+   "title": "Ground effect and the premature lift-off trap",
+   "kind": "knowledge",
+   "codes": [
+    "PA.IV.E.K1",
+    "PA.IV.E.K2",
+    "PA.IV.E.R5"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Near the ground, induced drag drops: about 25 percent at a height of 1/4 wingspan, about 50 percent at 1/10 wingspan [[24:142|AFH 6-10]]. So the airplane may seem able to fly below the recommended speed [[24:143|AFH 6-11]]."
+    },
+    {
+     "p": "The trap: climb out of ground effect below VX and the climb is much weaker [[24:143|AFH 6-11]]. Pull it off too early or climb too steeply and it may settle back to the runway or hit obstacles. Even if it stays up, the climb stays flat until you reach VX [[24:144|AFH 6-12]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "Goal: rotate to the VX attitude at (or near) VX [[24:144|AFH 6-12]]."
+    },
+    {
+     "p": "Some airplanes want to lift off well before VX. Let it lift off, then lower the pitch to level with the wheels just clear of the runway until it reaches VX. Don't pin it on the runway with forward elevator: that loads the nosewheel, can cause wheelbarrowing and slows acceleration [[24:144|AFH 6-12]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Leaving ground effect: more AOA needed, more drag, nose pitches up, indicated airspeed goes up [[24:142|AFH 6-10]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your airplane starts flying 5 knots before VX. What do you do?",
+    "a": "Let it lift off in ground effect, then level off with the wheels just clear of the runway until it accelerates to VX, then climb [[24:144|AFH 6-12]]."
+   }
+  },
+  {
+   "title": "Fly it step by step (and the ACS tolerances)",
+   "kind": "skills",
+   "codes": [
+    "PA.IV.E.S1",
+    "PA.IV.E.S6",
+    "PA.IV.E.S7",
+    "PA.IV.E.S8",
+    "PA.IV.E.S9",
+    "PA.IV.E.S10",
+    "PA.IV.E.S11",
+    "PA.IV.E.S12",
+    "PA.IV.E.S13"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "bullets": [
+      "1. Complete the run-up and before-takeoff checklist before taxiing onto the runway. Check engine instruments and that controls move full, free and correct [[24:133|AFH 6-1]] [[24:36|AFH 1-15]].",
+      "2. Set flaps as the POH recommends, before the roll [[24:143|AFH 6-11]].",
+      "3. Clear the area, taxi to the very beginning of the takeoff area and line up on the centerline [[24:143|AFH 6-11]].",
+      "4. Hold the brakes and apply takeoff power. Confirm takeoff power before releasing the brakes (ACS PA.IV.E.S7, S8).",
+      "5. Release the brakes. Keep power smooth and full, with full weight on the mains in a low-drag attitude. Check engine instruments and airspeed during the roll [[24:143|AFH 6-11]] [[24:135|AFH 6-3]].",
+      "6. As VX approaches, apply back pressure to the VX attitude for a smooth, firm lift-off [[24:144|AFH 6-12]].",
+      "7. After lift-off it accelerates fast, so add back pressure to hold VX. Climb wings-level at VX until obstacles are cleared, or to at least 50 feet if there are none [[24:144|AFH 6-12]].",
+      "8. Lower the pitch slightly and climb at VY [[24:144|AFH 6-12]].",
+      "9. Stabilized at VY and clear of obstacles: retract gear (if retractable) and flaps, flaps in steps [[24:144|AFH 6-12]].",
+      "10. Reduce to normal climb power or as the manufacturer recommends. Hold VY to a safe maneuvering altitude [[24:144|AFH 6-12]]."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "ACS item",
+       "Tolerance"
+      ],
+      "rows": [
+       [
+        "Lift off and accelerate to recommended obstacle clearance speed or VX",
+        "+10/-5 knots (ACS PA.IV.E.S9)"
+       ],
+       [
+        "Hold that speed until obstacle cleared or 50 ft above the surface",
+        "+10/-5 knots (ACS PA.IV.E.S10)"
+       ],
+       [
+        "Pitch for VY after the obstacle (or at 50 ft AGL if simulated)",
+        "VY +10/-5 knots (ACS PA.IV.E.S11)"
+       ],
+       [
+        "Climb to a safe maneuvering altitude",
+        "VY +10/-5 knots (ACS PA.IV.E.S13)"
+       ],
+       [
+        "Configure airplane",
+        "Per manufacturer, after a positive rate of climb is verified (ACS PA.IV.E.S12)"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Holding the brakes to full rpm is not proven to shorten the run in all light singles [[24:143|AFH 6-11]], but the ACS asks for it (S7), and the PHAK sample chart is based on full throttle before brake release [[1:278|PHAK 11-22]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Fly attitude, then glance at airspeed. Fixating on the airspeed indicator during the initial climb is a common error [[24:144|AFH 6-12]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "No real obstacle on your checkride. When do you change from VX to VY?",
+    "a": "At 50 feet above the surface when simulating an obstacle (ACS PA.IV.E.S10, S11); the AFH says climb at VX to at least 50 feet when no obstacles are present [[24:144|AFH 6-12]]."
+   }
+  },
+  {
+   "title": "Wind: find it, set the controls, track straight",
+   "kind": "skills",
+   "codes": [
+    "PA.IV.E.S4",
+    "PA.IV.E.S5",
+    "PA.IV.E.S14",
+    "PA.IV.E.R2a"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Find the wind. At a towered airport ATC tells you. Look at the wind indicators anyway, even when someone gives the wind on CTAF, because that report may not be accurate [[1:354|PHAK 14-20]]."
+    },
+    {
+     "bullets": [
+      "Wind sock / wind cone and wind tee: the big end points into the wind [[33:244|AIM 4-3-4]].",
+      "A wind sock stands out straighter in strong wind and swings back and forth in gusts [[1:354|PHAK 14-20]].",
+      "Tetrahedron: landing direction only. Don't use it for wind direction [[33:244|AIM 4-3-4]].",
+      "No indicator? Use smoke from houses or factories, dust, brush fires, wind farms, or patterns on nearby water [[24:199|AFH 9-28]]. Smoke drifting shows wind direction in light air [[34:227|AIM TBL 10-2-3]]."
+     ]
+    },
+    {
+     "p": "Crosswind roll: start with full aileron into the wind, use rudder to stay straight, and ease the aileron as it becomes effective [[24:138|AFH 6-6]] [[24:139|AFH 6-7]]. Once airborne, crab into the wind and stay over the runway centerline extended [[24:140|AFH 6-8]]."
+    },
+    {
+     "p": "Crosswind costs performance: deflected ailerons and rudder add drag, so expect less takeoff performance until you are wings-level and coordinated in the climb [[24:138|AFH 6-6]]. Know your airplane's max crosswind and don't go beyond it [[24:190|AFH 9-19]]."
+    },
+    {
+     "p": "Pick two points lined up ahead of the runway. If they stay lined up, you are on track [[24:138|AFH 6-6]]."
+    }
+   ],
+   "check": {
+    "q": "Why does a crosswind make a short-field takeoff longer?",
+    "a": "Deflected aileron and rudder add drag, so less takeoff performance should be expected until wings-level and coordinated in the climb [[24:138|AFH 6-6]]."
+   }
+  },
+  {
+   "title": "Risk: windshear and wake turbulence",
+   "kind": "risk",
+   "codes": [
+    "PA.IV.E.R2",
+    "PA.IV.E.R2b",
+    "PA.IV.E.R2d"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Windshear is a sudden change in wind speed or direction. A headwind turning into a tailwind cuts airspeed and performance. Low-level windshear comes with fronts, thunderstorms, inversions and strong upper winds (over 25 knots) [[1:295|PHAK 12-11]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "A microburst on takeoff: first a helpful headwind, then downdrafts, then a growing tailwind that can put you into the ground [[1:295|PHAK 12-11]]. On the runway the only sign may be slower-than-normal airspeed buildup [[28:270|AWH 22-15]]. You may have only 5 to 15 seconds to recognize and respond [[28:269|AWH 22-14]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Short-field + windshear is a bad mix: there is no extra runway or climb margin. If thunderstorms are near, wait."
+     }
+    },
+    {
+     "p": "Wake turbulence: taking off right behind a large, heavy airplane risks loss of control [[24:133|AFH 6-1]]. If you must depart behind one [[34:152|AIM 7-4-6]]:"
+    },
+    {
+     "bullets": [
+      "Note its rotation point and rotate before it.",
+      "Climb above its climb path until turning clear of its wake.",
+      "Avoid headings that cross below and behind it.",
+      "After a larger airplane's low approach, missed approach or touch-and-go, wait at least 2 minutes."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Short-field catch: a larger airplane may rotate well before you can. Then you can't rotate before its rotation point, so wait. The pilot must avoid wake whether or not ATC warns [[34:152|AIM 7-4-6]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "A larger twin just did a touch-and-go on your runway. How long should you wait before taking off?",
+    "a": "At least 2 minutes [[34:152|AIM 7-4-6]]."
+   }
+  },
+  {
+   "title": "Risk: abort point, engine failure, stall and spin",
+   "kind": "risk",
+   "codes": [
+    "PA.IV.E.R3",
+    "PA.IV.E.R3a",
+    "PA.IV.E.R3b",
+    "PA.IV.E.R5"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Plan the abort before you roll. Pick a point on the runway where you should be airborne. Not airborne there? Stop the takeoff right away [[24:146|AFH 6-14]]. POH takeoff and landing ground rolls added together give a good estimate of the runway needed to accelerate and stop [[24:146|AFH 6-14]]."
+    },
+    {
+     "bullets": [
+      "Reject for engine trouble, poor acceleration, a runway incursion or a traffic conflict [[24:146|AFH 6-14]].",
+      "How: power to idle, maximum braking, keep directional control. Engine fire: mixture to idle cutoff, magnetos off. Always follow the POH emergency procedure [[24:146|AFH 6-14]]."
+     ]
+    },
+    {
+     "p": "Engine failure on climb-out: at climb pitch with no power you are at or near a stall. Lower the nose right away, use rudder to stay coordinated, and glide to a landing area, preferably straight ahead [[24:146|AFH 6-14]]. At VX the nose is extra high, so this must be fast."
+    },
+    {
+     "p": "Straight ahead or a slight turn is usually the safest choice [[24:356|AFH 18-7]]. Turning back at low altitude is an unacceptable risk for student pilots [[24:357|AFH 18-8]]."
+    },
+    {
+     "p": "Stall/spin: a high pitch, high power, low speed short-field takeoff is a classic setup. P-factor yaws the nose left; too little or too much rudder makes you uncoordinated, and a stall then can become a spin [[13:12|AC 61-67C para 109]]. Power-on stall/spin accidents have involved nose-high trim or premature flap retraction, and short-field takeoffs are named as a factor [[13:11|AC 61-67C 104b]]."
+    },
+    {
+     "p": "CFIT and obstacles: high density altitude and flying too low are CFIT factors [[30:22|RMH 3-4]]. The airplane may not climb out of ground effect or clear obstacles when it is hot, high or heavy [[24:143|AFH 6-11]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Before every takeoff say it out loud: \"Airborne by ___ or I abort. Engine quits: nose down, land ahead.\""
+     }
+    }
+   ],
+   "check": {
+    "q": "The engine quits at 200 feet while climbing at VX. First action?",
+    "a": "Lower the nose immediately to avoid a stall, coordinate with rudder, and glide to a landing area, preferably straight ahead [[24:146|AFH 6-14]]."
+   }
+  },
+  {
+   "title": "Risk: eyes outside - traffic, right runway, radios, noise",
+   "kind": "risk",
+   "codes": [
+    "PA.IV.E.R4",
+    "PA.IV.E.R6",
+    "PA.IV.E.S2",
+    "PA.IV.E.S3",
+    "PA.IV.E.S15"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Collision hazards: before taxiing onto the runway, scan the approach area for landing traffic [[1:362|PHAK 14-28]]. Departing pilots should watch for arrivals from the opposite direction [[33:209|AIM 4-1-9]]. In the climb, adjust pitch now and then to see over the nose [[16:13|AC 90-48E 12.1]]."
+    },
+    {
+     "p": "Using all the runway may mean a back-taxi. At non-towered airports the FAA discourages back-taxi because it raises the risk of colliding with landing traffic [[17:13|AC 90-66C 10.4.2]]. If you do it, announce it and keep looking."
+    },
+    {
+     "p": "Radio calls: at a non-towered airport, monitor CTAF from startup and after departure [[17:13|AC 90-66C 10.4.2]]. Say the airport name at the start and end, and use the runway number, not \"active runway\" [[33:209|AIM 4-1-9]]. Example: \"(Airport) traffic, (aircraft), departing runway two six, departing the pattern to the (direction), (airport)\" [[33:210|AIM 4-1-9]]. At a towered airport you need an ATC clearance before taxiing onto the runway [[35:364|14 CFR 91.129(i)]]: a takeoff clearance, or \"line up and wait\", which is NOT a takeoff clearance [[33:344|AIM 5-2-5]]."
+    },
+    {
+     "p": "Right runway: set the heading bug to the runway heading and make one last check that heading and runway match before adding power [[1:366|PHAK 14-32]]."
+    },
+    {
+     "p": "Distractions: until all obstacles are cleared, keep your eyes outside. Don't reach for gear or flaps or look inside for any reason [[24:144|AFH 6-12]]. Do checklists early so there is time for traffic [[1:63|PHAK 2-24]]. A small problem like a wrong gauge can pull attention away from flying [[1:63|PHAK 2-24]]."
+    },
+    {
+     "p": "Noise abatement: find the airport's procedures in the Chart Supplement, local publications or from the tower. Watch for reminder signs at the hold position [[24:146|AFH 6-14]]."
+    }
+   ],
+   "check": {
+    "q": "You are climbing at VX over trees and notice the flaps are still down. When do you raise them?",
+    "a": "Not yet. Keep eyes outside; raise flaps, in steps, only after clear of obstacles and stabilized at VY [[24:144|AFH 6-12]]."
+   }
+  },
+  {
+   "title": "Common errors",
+   "kind": "skills",
+   "codes": [
+    "PA.IV.E.S9",
+    "PA.IV.E.S10",
+    "PA.IV.E.S12",
+    "PA.IV.E.S14"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "p": "AFH list for short-field takeoffs [[24:144|AFH 6-12]]:"
+    },
+    {
+     "table": {
+      "head": [
+       "Error",
+       "Fix"
+      ],
+      "rows": [
+       [
+        "Not reviewing POH performance charts",
+        "Compute distance every time, including wind and surface."
+       ],
+       [
+        "Not clearing the area",
+        "Scan the approach and departure paths before lining up."
+       ],
+       [
+        "Not using all the runway",
+        "Start from the very beginning of the takeoff area [[24:143|AFH 6-11]]."
+       ],
+       [
+        "Not trimmed for takeoff",
+        "Set trim on the before-takeoff checklist."
+       ],
+       [
+        "Premature lift-off (high drag)",
+        "Rotate at (or near) VX."
+       ],
+       [
+        "Holding it on with forward elevator",
+        "Let it fly, level off in ground effect to VX."
+       ],
+       [
+        "Too little rotation (speed too high after lift-off)",
+        "Raise the nose to the VX attitude; add back pressure as it accelerates."
+       ],
+       [
+        "Can't hold VX",
+        "Attitude first, then glance at airspeed."
+       ],
+       [
+        "Fixating on the airspeed indicator",
+        "Look outside at the horizon; use airspeed only as a check."
+       ],
+       [
+        "Retracting gear or flaps too early",
+        "Wait: clear of obstacles and stable at VY."
+       ]
+      ]
+     }
+    }
+   ],
+   "check": {
+    "q": "Why is raising the flaps all at once a bad idea right after a short-field takeoff?",
+    "a": "It can cause a sudden loss of lift and settling; raise them in increments once at VY and clear of obstacles [[24:144|AFH 6-12]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "PA.IV.E-1.jpg",
+   "res": "24",
+   "page": 143,
+   "caption": "Figure 6-8. Short-field takeoff.",
+   "alt": "A high-wing airplane rolls on a short runway, rotates at approximately VX, climbs at VX over a stand of trees, then climbs at VY and retracts gear and flaps.",
+   "source": "AFH, PDF p. 143"
+  },
+  "f2": {
+   "file": "PA.IV.E-2.jpg",
+   "res": "24",
+   "page": 144,
+   "caption": "Figure 6-9. Effect of premature lift-off.",
+   "alt": "Five airplanes along a runway: premature rotation increases drag and takeoff distance, the airplane lifts off at low airspeed, flies in a shallow climb below VX, and may settle back to the ground.",
+   "source": "AFH, PDF p. 144"
+  },
+  "f3": {
+   "file": "PA.IV.E-3.jpg",
+   "res": "1",
+   "page": 265,
+   "caption": "Figure 11-10. Absolute and service ceiling.",
+   "alt": "Graph of altitude versus indicated airspeed: the best angle of climb line (VX) rises from about 93 knots and the best rate line (VY) falls from about 115 knots until they meet near 100 knots at the absolute ceiling, just above the service ceiling.",
+   "source": "PHAK, PDF p. 265"
+  },
+  "f4": {
+   "file": "PA.IV.E-4.jpg",
+   "res": "1",
+   "page": 278,
+   "caption": "Figure 11-24. Takeoff distance short field charts.",
+   "alt": "Sample short-field takeoff distance table for 2,400, 2,200 and 2,000 pounds with lift-off and 50-foot speeds, ground roll and total distance to clear a 50-foot obstacle by pressure altitude and temperature; the 3,000-foot, 30 degree C row shows 1,325 and 2,480 feet highlighted.",
+   "source": "PHAK, PDF p. 278"
+  },
+  "f5": {
+   "file": "PA.IV.E-5.jpg",
+   "res": "1",
+   "page": 271,
+   "caption": "Figure 11-19. Effect of wind on takeoff and landing.",
+   "alt": "Graph: a tailwind line rises steeply showing percent increase in takeoff distance, and a headwind curve falls showing percent decrease, versus ratio of wind to takeoff speed.",
+   "source": "PHAK, PDF p. 271"
+  },
+  "f6": {
+   "file": "PA.IV.E-6.jpg",
+   "res": "1",
+   "page": 295,
+   "caption": "Figure 12-17. Effects of a microburst wind.",
+   "alt": "An airplane departs a runway into a microburst: increasing headwind lifts it (1), the strong downdraft pushes it down (2), increasing tailwind drops it below the intended path (3, 4) close to the ground.",
+   "source": "PHAK, PDF p. 295"
+  }
+ },
+ "scenario": {
+  "title": "Hot afternoon, short runway, trees at the end",
+  "codes": [
+   "PA.IV.E.R1",
+   "PA.IV.E.R2",
+   "PA.IV.E.R2c",
+   "PA.IV.E.R2b",
+   "PA.IV.E.R2d",
+   "PA.IV.E.R3a",
+   "PA.IV.E.R3b",
+   "PA.IV.E.R5",
+   "PA.IV.E.R6"
+  ],
+  "setup": "You plan to leave a 3,000-foot pressure altitude airport at 30 °C, at 2,400 pounds, in an airplane that uses the PHAK sample short-field table. The runway is 2,800 feet with 50-foot trees just past the end. The sock shows a light tailwind of about 4 knots on the runway you taxied to; the other end has a headwind but a longer taxi. A larger twin just did a touch-and-go, and there are building storms to the west.",
+  "questions": [
+   {
+    "q": "Zero wind, what does the table say, and does it fit?",
+    "a": "Ground roll 1,325 feet and 2,480 feet to clear 50 feet [[1:277|PHAK 11-21]]. It fits the 2,800-foot runway, but with only about 320 feet of margin."
+   },
+   {
+    "q": "What does the 4-knot tailwind do?",
+    "a": "The sample note adds 10 percent for each 2 knots of tailwind, so 20 percent [[1:278|PHAK 11-22]]: about 2,976 feet to clear 50 feet. That is longer than the runway. Take the longer taxi and use the headwind runway."
+   },
+   {
+    "q": "The twin just did a touch-and-go. Now what?",
+    "a": "Wait at least 2 minutes; the vortices can settle and drift along the runway, especially in light quartering wind [[34:152|AIM 7-4-6]]."
+   },
+   {
+    "q": "Storms are building west. What would warn you of windshear on the roll?",
+    "a": "A slower-than-normal airspeed buildup may be the only sign [[28:270|AWH 22-15]]. Microbursts can bring a headwind, then downdraft, then tailwind [[1:295|PHAK 12-11]]. With little margin and storms near, waiting is the safe choice."
+   },
+   {
+    "q": "What is your abort and engine-failure plan?",
+    "a": "Pick a point where you must be airborne; if not airborne there, idle and max braking [[24:146|AFH 6-14]]. If the engine quits on climb-out, lower the nose at once and land ahead, no turn back [[24:146|AFH 6-14]] [[24:357|AFH 18-8]]."
+   },
+   {
+    "q": "The passenger starts talking just as you rotate over the trees. How do you handle it?",
+    "a": "Brief before takeoff: no talking until the climb is stable. Keep eyes outside until obstacles are cleared [[24:144|AFH 6-12]] and prioritize flying the airplane [[1:63|PHAK 2-24]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "PA.IV.E.S1",
+   "do": "Use the before-takeoff and after-takeoff checklists.",
+   "practice": "Read the written checklist every flight; do it before taxiing onto the runway [[24:133|AFH 6-1]] [[24:36|AFH 1-15]]."
+  },
+  {
+   "code": "PA.IV.E.S2",
+   "do": "Make CTAF or tower calls for taxi and departure.",
+   "practice": "Script your departure call with the airport name at start and end and the runway number [[33:209|AIM 4-1-9]] [[33:210|AIM 4-1-9]]."
+  },
+  {
+   "code": "PA.IV.E.S3",
+   "do": "Verify you are on the assigned/correct runway.",
+   "practice": "Set the heading bug to the runway heading and cross-check before adding power [[1:366|PHAK 14-32]]."
+  },
+  {
+   "code": "PA.IV.E.S4",
+   "do": "Tell the examiner the wind direction, with or without a wind sock.",
+   "practice": "On every flight, read the sock and look for smoke, dust or water patterns [[24:199|AFH 9-28]]."
+  },
+  {
+   "code": "PA.IV.E.S5",
+   "do": "Hold the controls for the wind.",
+   "practice": "Start the roll with full aileron into any crosswind and ease it as speed builds [[24:138|AFH 6-6]] [[24:139|AFH 6-7]]."
+  },
+  {
+   "code": "PA.IV.E.S6",
+   "do": "Clear the area and line up on the centerline at the very start of the usable runway.",
+   "practice": "Look at final, then roll forward so you waste no runway behind you [[24:143|AFH 6-11]] [[1:362|PHAK 14-28]]."
+  },
+  {
+   "code": "PA.IV.E.S7",
+   "do": "Hold the brakes while setting takeoff power.",
+   "practice": "Hold brakes firmly, bring power up smoothly, watch the airplane doesn't creep."
+  },
+  {
+   "code": "PA.IV.E.S8",
+   "do": "Confirm takeoff power before brake release and check engine and flight instruments before rotation.",
+   "practice": "Check the engine instruments for signs of trouble during the roll [[24:135|AFH 6-3]]. A short callout (for example \"rpm good, gauges green, airspeed alive\") builds the habit."
+  },
+  {
+   "code": "PA.IV.E.S9",
+   "do": "Rotate and lift off at the recommended speed and reach obstacle clearance speed or VX, +10/-5 knots.",
+   "practice": "Learn the VX picture against the horizon so you can set it without staring at the airspeed indicator [[24:144|AFH 6-12]]."
+  },
+  {
+   "code": "PA.IV.E.S10",
+   "do": "Hold VX (or obstacle clearance speed), +10/-5 knots, until the obstacle is cleared or 50 feet above the surface.",
+   "practice": "Pick a real or imagined obstacle; add back pressure as the airplane accelerates after lift-off [[24:144|AFH 6-12]]."
+  },
+  {
+   "code": "PA.IV.E.S11",
+   "do": "Pitch for VY and accelerate to VY +10/-5 knots after the obstacle or at 50 feet AGL.",
+   "practice": "Lower the nose slightly, hold the new attitude, then check airspeed [[24:144|AFH 6-12]] [[24:137|AFH 6-5]]."
+  },
+  {
+   "code": "PA.IV.E.S12",
+   "do": "Configure the airplane per the manufacturer after a positive rate of climb.",
+   "practice": "Positive rate, clear of obstacles, stable at VY, then flaps up in steps [[24:144|AFH 6-12]]."
+  },
+  {
+   "code": "PA.IV.E.S13",
+   "do": "Hold VY +10/-5 knots to a safe maneuvering altitude.",
+   "practice": "Trim to relieve pressure once at climb power, keep cross-checking the horizon [[24:137|AFH 6-5]]."
+  },
+  {
+   "code": "PA.IV.E.S14",
+   "do": "Keep directional control and wind-drift correction throughout.",
+   "practice": "Track two points lined up ahead of the runway; crab as needed after lift-off [[24:138|AFH 6-6]] [[24:140|AFH 6-8]]."
+  },
+  {
+   "code": "PA.IV.E.S15",
+   "do": "Follow noise abatement procedures when they apply.",
+   "practice": "Check the Chart Supplement and local signs before you fly; ask the tower if unsure [[24:146|AFH 6-14]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "What is VX?",
+   "options": [
+    "Speed for the most altitude per unit of time",
+    "Speed for the most altitude per distance over the ground",
+    "Speed for the best glide",
+    "Rotation speed for a normal takeoff"
+   ],
+   "answer": 1,
+   "why": "VX gives the greatest gain in altitude for a given distance over the ground; VY is per unit of time [[24:142|AFH 6-10]]."
+  },
+  {
+   "q": "After lift-off on a short-field takeoff with no obstacles, how long do you hold VX?",
+   "options": [
+    "Until 500 feet AGL",
+    "Until the flaps are up",
+    "Until at least 50 feet above the takeoff surface",
+    "Only until the wheels leave the ground"
+   ],
+   "answer": 2,
+   "why": "Climb at VX until obstacles are cleared, or with no obstacles to at least 50 feet, then lower the nose slightly to VY [[24:144|AFH 6-12]]."
+  },
+  {
+   "q": "According to the AFH, when should flaps be retracted after a short-field takeoff?",
+   "options": [
+    "Right after lift-off",
+    "As soon as a positive rate shows on the VSI",
+    "When clear of obstacles and stabilized at VY, in increments",
+    "At pattern altitude, all at once"
+   ],
+   "answer": 2,
+   "why": "Gear and flaps stay in takeoff position until clear of obstacles and VY is established; raise flaps in increments to avoid settling [[24:144|AFH 6-12]]."
+  },
+  {
+   "q": "A tailwind of 10 percent of the takeoff airspeed increases takeoff distance about how much?",
+   "options": [
+    "5 percent",
+    "10 percent",
+    "21 percent",
+    "50 percent"
+   ],
+   "answer": 2,
+   "why": "About 21 percent; a 10 percent headwind cuts it about 19 percent [[1:271|PHAK 11-15]]."
+  },
+  {
+   "q": "PHAK sample table: 2,400 lb, 3,000 ft pressure altitude, 30 °C, 18-knot headwind. Total distance over a 50-foot obstacle?",
+   "options": [
+    "2,480 feet",
+    "1,984 feet",
+    "1,325 feet",
+    "1,060 feet"
+   ],
+   "answer": 1,
+   "why": "2,480 feet minus 10 percent per 9 knots of headwind (20 percent) = 1,984 feet; 1,060 is the ground roll [[1:277|PHAK 11-21]]."
+  },
+  {
+   "q": "What happens if you pull the airplane off before VX?",
+   "options": [
+    "It climbs steeper",
+    "Drag goes up, the climb stays flat, and it may settle back or hit obstacles",
+    "Nothing, ground effect protects you",
+    "Takeoff distance gets shorter"
+   ],
+   "answer": 1,
+   "why": "Premature lift-off or climbing too steeply may cause settling or obstacle contact, and the climb stays flat until VX [[24:144|AFH 6-12]]."
+  },
+  {
+   "q": "Departing behind a larger airplane, where should you rotate?",
+   "options": [
+    "At its touchdown point",
+    "Past its rotation point",
+    "Before its rotation point, then climb above its path",
+    "It doesn't matter in daylight"
+   ],
+   "answer": 2,
+   "why": "Rotate prior to the larger aircraft's rotation point and stay above its climb path until turning clear of its wake [[34:152|AIM 7-4-6]]."
+  },
+  {
+   "q": "The engine fails at 300 feet while climbing at VX. Best first action?",
+   "options": [
+    "Turn back to the runway",
+    "Hold the climb attitude to keep altitude",
+    "Lower the nose immediately and land ahead",
+    "Retract the flaps"
+   ],
+   "answer": 2,
+   "why": "At climb pitch without power the airplane is at or near a stall: lower the nose, coordinate, and glide to a landing area, preferably straight ahead [[24:146|AFH 6-14]]."
+  }
+ ],
+ "takeaways": [
+  "Compute takeoff and 50-foot obstacle distance from the POH every time; wind, weight, heat and surface change it a lot.",
+  "Start at the very beginning of the runway, flaps as the POH says, full power, full weight on the mains.",
+  "Rotate at (or near) VX, hold VX until clear (or 50 feet), then VY; ACS is +10/-5 knots.",
+  "Gear and flaps stay put until clear of obstacles and stable at VY; flaps up in steps.",
+  "Know your abort point; engine failure means nose down and land ahead.",
+  "Eyes outside until the obstacles are behind you."
+ ],
+ "cfi_notes": [
+  "Have the student work the PHAK Figure 11-24 example, then the same problem in your airplane's POH with today's weather.",
+  "Common: students rotate early and hang on the prop below VX. Demonstrate the VX attitude picture at altitude first.",
+  "Students often skip adding back pressure after lift-off and let speed run past VX + 10.",
+  "Watch for reaching for flaps over the obstacle; make 'hands off the flap lever until VY and clear' a callout.",
+  "Examiners probe: VX vs VY, how VX/VY change with altitude, abort point, engine failure plan, why not turn back, effect of tailwind, wake avoidance on departure.",
+  "Point out that the AFH says holding brakes is not proven to shorten the run in every airplane, but the ACS (S7) wants it done.",
+  "Brief that a lighter solo airplane lifts off earlier and climbs faster, so the pitch picture changes [[24:138|AFH 6-6]]."
+ ],
+ "gaps": [
+  "Airplane-specific numbers (VX, VY, rotation/obstacle speeds, flap setting, power, takeoff distance charts, max demonstrated crosswind) come from the POH/AFM; the lesson uses a PHAK sample chart only as an example.",
+  "No resource gives a number for 'safe maneuvering altitude'; the AFH (normal takeoff) only recommends takeoff power to at least 500 ft above terrain or obstacles [[24:137|AFH 6-5]].",
+  "Windshear escape technique for small airplanes is in AC 00-54, which is not in the resource set; AWH windshear-on-takeoff material is written for transport airplanes.",
+  "AFH gives only general rejected-takeoff guidance; no source gives a short-field specific accelerate-stop method for light singles.",
+  "AFH 6-11 says holding brakes to full rpm is not proven to shorten the run in all light singles, while ACS S7 requires it; the lesson teaches the ACS item and notes the difference.",
+  "Airport-specific noise abatement procedures come from the Chart Supplement and local publications, which are not in the resources.",
+  "CFIT during departure is covered only generally (RMH 3-4 causes, AFH obstacle and ground-effect warnings); no departure-specific CFIT section was found."
+ ]
+}

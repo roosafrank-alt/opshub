@@ -5,6 +5,12 @@
   <h4 class="mb-0 text-light"><i class="bi bi-send"></i> Send this update to...</h4>
   <a class="btn btn-outline-light btn-sm" href="{{ url_for('groundschool.resources_list') }}">Skip</a>
 </div>
+{% if u.acs_report %}
+<div class="card academy-card mb-3" data-change="ACS-RESOURCES"><div class="card-body">
+  <div class="fw-bold small mb-1"><i class="bi bi-mortarboard"></i> What this did to the Ground School course</div>
+  <div class="upd-summary">{{ u.acs_report }}</div>
+</div></div>
+{% endif %}
 <div class="card academy-card mb-3"><div class="card-body">
   {% if again %}
   <div class="alert alert-warning py-2"><strong>Send again?</strong> {{ again }}

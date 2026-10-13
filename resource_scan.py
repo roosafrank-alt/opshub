@@ -417,6 +417,23 @@ def _look_aim(src, fetch, res):
     return seen
 
 
+def acs_standards_summary(conn, rating_id, pdf_path):
+    """For an ACS resource: what the new file changes in the Ground School course, in plain words
+    (read-only; nothing is merged until an admin approves)."""
+    import acs_sync
+    try:
+        areas = acs_sync.parse_pdf(pdf_path)
+        report = acs_sync.diff_acs(conn, rating_id, areas)
+    except Exception as e:
+        return ("ACS standards: couldn't read the Tasks in the new file "
+                f"({str(e)[:100]}). Approving will replace the file but leave the lessons as they are.")
+    if acs_sync.looks_unreadable(report):
+        return ("ACS standards: the new file showed too few of the course's Tasks to trust. Approving will "
+                "replace the file but leave the lessons as they are.")
+    text = acs_sync.format_report(report, acs_sync.lesson_task_keys(conn, rating_id))
+    return text + "\nApproving also updates the Ground School course and flags the lesson plans that need a refresh."
+
+
 def _file_update(conn, src, res, seen, fetch, extract, qdir):
     """Quarantine the new PDF (if there is one), index it and file the pending update."""
     data, blocked = seen["pdf"], ""
@@ -462,6 +479,8 @@ def _file_update(conn, src, res, seen, fetch, extract, qdir):
     else:
         summary = " ".join(facts + ["No PDF could be fetched automatically. Open the source link, then upload the "
                                     "new PDF with Add Resource if you want it in the library."])
+    if new_file and res["acs_rating_id"]:
+        summary = "\n".join([summary, acs_standards_summary(conn, res["acs_rating_id"], os.path.join(qdir, new_file))])
     cur = conn.execute(
         "INSERT INTO resource_updates (resource_id, source_id, version_key, new_filename, new_designation, "
         "new_doc_date, new_revision, new_effectivity, summary, blocked_reason, status, created_at) "

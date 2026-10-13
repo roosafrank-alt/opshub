@@ -8923,7 +8923,7 @@ def admin_user_new():
         notify_maintenance = 1 if request.form.get("notify_maintenance") else 0
         notify_flight_reminders = 1 if request.form.get("notify_flight_reminders") else 0
         academy_access = 1 if request.form.get("academy_access") else 0
-        groundschool_access = 1 if request.form.get("groundschool_access") else 0
+        groundschool_access = 0
         conn = get_db()
         pay_ctx = _pay_link_context(conn)
         preset = _role_preset(shop_roles, flight_roles, badge=request.form.get("badge", ""),
@@ -9006,7 +9006,7 @@ def admin_user_edit(user_id):
         notify_maintenance = 1 if request.form.get("notify_maintenance") else 0
         notify_flight_reminders = 1 if request.form.get("notify_flight_reminders") else 0
         academy_access = 1 if request.form.get("academy_access") else 0
-        groundschool_access = 1 if request.form.get("groundschool_access") else 0
+        groundschool_access = user_row["groundschool_access"]  # no checkbox any more: courses are enrolled one by one; an older all-access value is left alone until an admin switches it off
         # SHOP-08: the Apprentice calendar setting; anything else keeps what is saved.
         apprentice_calendar = request.form.get("apprentice_calendar")
         if apprentice_calendar not in ("limited", "basic"):
@@ -9115,6 +9115,12 @@ def admin_user_course_grant(user_id):
         conn.close()
         flash(f"{user_row['name']}'s account is the owner account - only {user_row['name']} can change it.", "warning")
         return redirect(url_for("admin_users_list"))
+    if request.form.get("action") == "clear_full":
+        conn.execute("UPDATE users SET groundschool_access = 0 WHERE id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+        flash(f"{user_row['name']} now sees only the ground schools they're enrolled in.", "success")
+        return redirect(url_for("admin_user_edit", user_id=user_id) + "#courses")
     st = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_id,)).fetchone()
     rating_id = request.form.get("rating_id", "")
     course = conn.execute("SELECT id, name FROM acs_ratings WHERE id = ? AND status = 'parsed'",
