@@ -1168,7 +1168,9 @@ function getFlightBreakdown(fId) {
   var planeCost = hours * planeRate;
   var instructorCost = isSolo ? 0 : instructorHours * instructorRate;
   var groundCost = isSolo ? 0 : groundHours * instructorRate;
-  return { total: planeCost + instructorCost + groundCost, hobbsHours: hours, groundHours: groundHours };
+  return { total: planeCost + instructorCost + groundCost, hobbsHours: hours, groundHours: groundHours,
+           instructorHours: instructorHours, instructorCost: instructorCost, planeCost: planeCost,
+           planeRate: planeRate, instructorRate: instructorRate, groundCost: groundCost, solo: isSolo };
 }
 function getFlightTotal(fId) {
   var b = getFlightBreakdown(fId);
@@ -1190,19 +1192,19 @@ function computeFlightTotal(fId) {
     var form = document.getElementById('end-form-' + fId);
     var isSim = form && form.dataset.sim === '1';
     var isOwnPlane = !!document.getElementById('recorded-hours-' + fId);
-    var parts;
-    if (isSim) {
-      // Spells out the rate too (and that the instructor's part comes from
-      // the clock, not this box) since Sim Time isn't a meter reading like
-      // Hobbs - there's nothing else on screen tying the number to the price.
-      var simRate = form ? (parseFloat(form.dataset.planeRate) || 0) : 0;
-      var rateLabel = simRate ? ' x $' + (simRate % 1 === 0 ? simRate.toFixed(0) : simRate.toFixed(2)) + '/hr' : '';
-      parts = [b.hobbsHours.toFixed(1) + ' sim hr' + (b.hobbsHours === 1 ? '' : 's') + rateLabel + ' (+ instructor time from the clock)'];
-    } else {
-      parts = [b.hobbsHours.toFixed(1) + (isOwnPlane ? ' recorded hr' : ' Hobbs hr') + (b.hobbsHours === 1 ? '' : 's')];
-    }
-    if (b.groundHours > 0) parts.push(b.groundHours.toFixed(1) + ' ground hr' + (b.groundHours === 1 ? '' : 's'));
-    breakdownEl.textContent = parts.join(' + ');
+    // One line per charge, then the total above: the instructor on the
+    // timer's elapsed time at their rate, the plane on the Hobbs difference
+    // at the student's plane rate.
+    function money(n) { return '$' + n.toFixed(2); }
+    function rate(r) { return '$' + (r % 1 === 0 ? r.toFixed(0) : r.toFixed(2)) + '/hr'; }
+    function hrs(h, label) { return h.toFixed(1) + ' ' + label + (h === 1 ? '' : 's'); }
+    var lines = [];
+    if (!b.solo) lines.push('Instructor: ' + hrs(b.instructorHours, 'timer hr') + ' x ' + rate(b.instructorRate) + ' = ' + money(b.instructorCost));
+    lines.push((isSim ? 'Sim: ' + hrs(b.hobbsHours, 'sim hr') : isOwnPlane ? 'Plane: ' + hrs(b.hobbsHours, 'recorded hr') : 'Plane: ' + hrs(b.hobbsHours, 'Hobbs hr'))
+      + ' x ' + rate(b.planeRate) + ' = ' + money(b.planeCost));
+    if (b.groundHours > 0) lines.push('Ground: ' + hrs(b.groundHours, 'hr') + ' x ' + rate(b.instructorRate) + ' = ' + money(b.groundCost));
+    breakdownEl.innerHTML = '';
+    lines.forEach(function (t) { var d = document.createElement('div'); d.textContent = t; breakdownEl.appendChild(d); });
   }
 }
 document.querySelectorAll('[name="ground_time_hours"], [name="solo_hours"]').forEach(function (input) {
