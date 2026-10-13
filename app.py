@@ -9066,7 +9066,7 @@ def _course_grant_context(conn, user_id):
 @app.route("/admin/users/<int:user_id>/course-grant", methods=["POST"])
 @master_admin_required
 def admin_user_course_grant(user_id):
-    """Grant or remove ONE Ground School course for this account's student profile."""
+    """Enroll or unenroll in ONE Ground School course for this account's student profile."""
     conn = get_db()
     user_row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
     if not user_row:
@@ -9082,17 +9082,17 @@ def admin_user_course_grant(user_id):
     course = conn.execute("SELECT id, name FROM acs_ratings WHERE id = ? AND status = 'parsed'",
                           (int(rating_id) if rating_id.isdigit() else -1,)).fetchone()
     action = request.form.get("action")
-    if not st or not course or action not in ("grant", "remove"):
+    if not st or not course or action not in ("enroll", "unenroll"):
         conn.close()
         flash("Couldn't change that course.", "danger")
         return redirect(url_for("admin_user_edit", user_id=user_id) + "#courses")
     conn.execute("DELETE FROM academy_course_grants WHERE student_id = ? AND rating_id = ?", (st["id"], course["id"]))
-    if action == "grant":
+    if action == "enroll":
         conn.execute("INSERT INTO academy_course_grants (student_id, rating_id, granted_by, granted_at) VALUES (?,?,?,?)",
                      (st["id"], course["id"], session.get("user_name"), now_iso()))
     conn.commit()
     conn.close()
-    flash(("Granted " if action == "grant" else "Removed ") + course["name"] + (" for " if action == "grant" else " from ") + user_row["name"] + ".", "success")
+    flash(("Enrolled " + user_row["name"] + " in " if action == "enroll" else "Unenrolled " + user_row["name"] + " from ") + course["name"] + ".", "success")
     return redirect(url_for("admin_user_edit", user_id=user_id) + "#courses")
 
 
