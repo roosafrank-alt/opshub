@@ -117,16 +117,18 @@
       <input type="checkbox" class="form-check-input" name="academy_access" id="academy-access-check" {% if user and user.academy_access %}checked{% endif %}>
       <label class="form-check-label" for="academy-access-check">Flight Academy Access <span class="text-muted small">(the "Flight Academy" tile on the program picker - student progress, ratings &amp; lesson plans; master admins always have it)</span></label>
     </div>
-    <div class="form-check mb-2">
-      <input type="checkbox" class="form-check-input" name="groundschool_access" id="groundschool-access-check" {% if user and user.groundschool_access %}checked{% endif %}>
-      <label class="form-check-label" for="groundschool-access-check">Ground School Access <span class="text-muted small">(the Ground School button in the Fly with Kate! menu - lesson plans &amp; resources; Flight Academy accounts and master admins always have it)</span></label>
-    </div>
     {% if user and grant_student %}
     <div class="ms-4 mb-3" id="courses" style="scroll-margin-top:80px;">
-      <div id="courses-all-note" class="small text-muted d-none"><i class="bi bi-check-circle"></i> This account already sees every ground school. Untick the access boxes above to enroll in individual courses.</div>
+      <div id="courses-all-note" class="small text-muted d-none"><i class="bi bi-check-circle"></i> This account already sees every ground school (Master Admin or Flight Academy Access above). Untick those to enroll it in individual courses.</div>
       <div id="courses-list">
         <div class="small fw-bold mb-1"><i class="bi bi-mortarboard"></i> Enroll in individual ground schools</div>
-        <div class="form-text mb-2">Without the access boxes above, {{ user.name }} sees only the courses they're enrolled in, read only. Each change asks you to confirm and saves right away.</div>
+        <div class="form-text mb-2">{{ user.name }} sees only the courses they're enrolled in, read only. Each change asks you to confirm and saves right away.</div>
+        {% if user.groundschool_access %}
+        <div class="alert alert-warning py-2 small d-flex align-items-center justify-content-between gap-2">
+          <span>An older setting still gives this account <strong>every</strong> ground school, so enrolling does nothing yet.</span>
+          <button type="submit" form="cg-legacy" class="btn btn-outline-danger btn-sm text-nowrap">Switch to enrollment</button>
+        </div>
+        {% endif %}
         {% for c in grant_courses %}
         <div class="d-flex align-items-center justify-content-between gap-2 py-1 border-bottom">
           <span>{{ c.name }}{% if c.id in granted_ids %} <span class="badge text-bg-success ms-1">Enrolled</span>{% endif %}</span>
@@ -267,6 +269,9 @@
   </form>
 </div>
 {% if user and grant_student %}
+<form id="cg-legacy" method="post" action="{{ url_for('admin_user_course_grant', user_id=user.id) }}" data-confirm="Remove {{ user.name }}'s older all-ground-schools setting? They will then see only the courses you enroll them in." data-confirm-title="Switch to enrollment" data-confirm-ok="Switch" data-confirm-style="danger">
+  <input type="hidden" name="action" value="clear_full">
+</form>
 {#- One small form per course, outside the main form (forms can't nest); the Enroll / Unenroll buttons up in the Ground School Access section point at these with form="cg-ID". #}
 {% for c in grant_courses %}
 <form id="cg-{{ c.id }}" method="post" action="{{ url_for('admin_user_course_grant', user_id=user.id) }}" data-confirm="{{ ('Unenroll ' ~ user.name ~ ' from ' ~ c.name ~ '? They will no longer see this ground school.') if c.id in granted_ids else ('Enroll ' ~ user.name ~ ' in ' ~ c.name ~ '? They will be able to see this ground school.') }}" data-confirm-title="{{ 'Unenroll' if c.id in granted_ids else 'Enroll' }}" data-confirm-ok="{{ 'Unenroll' if c.id in granted_ids else 'Enroll' }}"{% if c.id in granted_ids %} data-confirm-style="danger"{% endif %}>
@@ -281,7 +286,7 @@
 {% block scripts %}
 <script>
 (function () {
-  var allBoxes = ['master-admin-check', 'academy-access-check', 'groundschool-access-check'].map(function (i) { return document.getElementById(i); }).filter(Boolean);
+  var allBoxes = ['master-admin-check', 'academy-access-check'].map(function (i) { return document.getElementById(i); }).filter(Boolean);
   var courseList = document.getElementById('courses-list'), courseNote = document.getElementById('courses-all-note');
   function syncCourses() {
     if (!courseList || !courseNote) return;
