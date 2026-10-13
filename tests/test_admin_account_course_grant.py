@@ -77,5 +77,5 @@ class AdminAccountCourseGrantTest(OpsHubTestCase):
         self.exec("INSERT INTO academy_course_grants (student_id, rating_id, granted_by, granted_at) VALUES (?,?,?,?)",
                   (self.sid, self.r["ppl"], "test", db.now_iso()))
         body = self.login("flight_student").get("/flight/groundschool").get_data(as_text=True)
-        self.assertIn("Private Pilot", body)
-        self.assertNotIn("Instrument", body)
+        self.assertIn(f'/flight/groundschool/{self.r["ppl"]}"', body)
+        self.assertNotIn(f'/flight/groundschool/{self.r["ifr"]}"', body)
