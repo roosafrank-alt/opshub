@@ -5819,6 +5819,9 @@ def asset_compression(asset_id):
         if used:
             default_num_cylinders = used
 
+    # Hours start out as the last hours entered; still editable.
+    last_hours = next((c["hours"] for c in reversed(checks) if c["hours"] is not None), None)
+
     editing = None
     edit_id = request.args.get("edit", type=int)
     if edit_id and can_edit_checks:
@@ -5830,7 +5833,8 @@ def asset_compression(asset_id):
 
     return render_template("asset_compression.html", asset=asset, checks=history, latest=latest,
                            chart_labels=chart_labels, cyl_series=cyl_series, default_num_cylinders=default_num_cylinders,
-                           today=date.today().strftime("%Y-%m-%d"), can_edit_checks=can_edit_checks, editing=editing)
+                           today=date.today().strftime("%Y-%m-%d"), can_edit_checks=can_edit_checks, editing=editing,
+                           last_hours=last_hours)
 
 
 @app.route("/assets/<int:asset_id>/compression/<int:check_id>/delete", methods=["POST"])
