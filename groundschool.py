@@ -428,6 +428,8 @@ def _require_groundschool_access():
     if not session.get("user_id"):
         return None
     if not (is_flight_admin() or session.get("groundschool_access") or student_course_grants()):
+        if session.get("academy_access") and (request.endpoint or "").split(".")[-1] in _RESOURCE_VIEW_ENDPOINTS:
+            return None  # Flight Academy accounts keep the Resources library
         flash("You don't have access to Ground School yet. Ask an admin.", "danger")
         return redirect(url_for("flight.dashboard"))
     if groundschool_restricted():
@@ -439,6 +441,8 @@ def _require_groundschool_access():
             return _not_granted()
     return None
 
+
+_RESOURCE_VIEW_ENDPOINTS = {"resources_list", "resource_file", "resource_excerpt", "resource_previous"}
 
 _GRANTED_STUDENT_ENDPOINTS = {
     "rating_list", "rating_detail", "task_detail", "element_detail", "task_reference_click",

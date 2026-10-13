@@ -16,9 +16,11 @@
     <i class="bi bi-journal-text"></i><span>Logbook{% if _pend %} <span class="badge bg-warning text-dark">{{ _pend }}</span>{% endif %}</span>
   </a>
   {% endif %}
+  {% if flight_admin or session.get('groundschool_access') or student_course_grants() %}
   <a class="academy-tab {{ 'active' if _tab == 'groundschool' }}" href="{{ url_for('groundschool.rating_list') }}">
     <i class="bi bi-mortarboard"></i><span>Ground School</span>
   </a>
+  {% endif %}
   {% if true %}
   <a class="academy-tab academy-tab-resources {{ 'active' if _tab == 'resources' }}" href="{{ url_for('groundschool.resources_list') }}">
     <i class="bi bi-folder2-open"></i><span>Resources{% if resource_unread_count() %} <span class="badge rounded-pill bg-danger" title="New in Resources" style="font-size:.5rem;">&nbsp;</span>{% endif %}</span>
