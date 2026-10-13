@@ -437,6 +437,9 @@
           </select>
         </div>
       </div>
+      <div class="mt-2 {{ '' if f.student_pay_preference == 'Other' else 'd-none' }}" id="payment-detail-wrap-{{ f.id }}">
+        <input type="text" name="payment_detail" maxlength="200" class="form-control form-control-sm" placeholder="How did they pay? (details)" aria-label="How they paid, details">
+      </div>
       <div class="small text-success mt-1 d-none" id="payment-amount-note-{{ f.id }}"><i class="bi bi-check-lg"></i> Filled in from the flight total - change it only if they paid a different amount.</div>
       {#- Idea "Credit card" (revision): a simulated Stripe-style charge,
          same idea as Manage > Billing's Pay with Card - shown only once
@@ -1028,6 +1031,10 @@ document.querySelectorAll('.payment-choice-radio').forEach(function (radio) {
 // once Card is actually picked as How Paid.
 document.querySelectorAll('select[id^="payment-method-"]').forEach(function (select) {
   var fId = select.id.replace('payment-method-', '');
+  var detailWrap = document.getElementById('payment-detail-wrap-' + fId);
+  if (detailWrap) select.addEventListener('change', function () {
+    detailWrap.classList.toggle('d-none', select.value !== 'Other');
+  });
   var wrap = document.getElementById('card-number-wrap-' + fId);
   if (!wrap) return;
   select.addEventListener('change', function () {

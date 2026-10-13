@@ -1773,6 +1773,7 @@ def _migrate(conn):
         ("payment_method", "ALTER TABLE flights ADD COLUMN payment_method TEXT"),
         ("payment_amount", "ALTER TABLE flights ADD COLUMN payment_amount REAL"),
         ("credit_applied", "ALTER TABLE flights ADD COLUMN credit_applied REAL"),
+        ("payment_detail", "ALTER TABLE flights ADD COLUMN payment_detail TEXT"),
     ):
         if col not in flight_cols_pay:
             conn.execute(ddl)

@@ -7525,6 +7525,7 @@ def log_end(flight_id):
         return redirect(back)
     payment_method = None if student_ending else ((request.form.get("payment_method") or "").strip()[:40] or None)
     payment_amount = 0.0 if student_ending else max(0.0, _parse_float(request.form.get("payment_amount")) or 0.0)
+    payment_detail = ((request.form.get("payment_detail") or "").strip()[:200] or None) if payment_method == "Other" else None
     credit_requested = 0.0 if student_ending else max(0.0, _parse_float(request.form.get("credit_applied")) or 0.0)
     card_last4 = card_charge_id = None
     if payment_method == "Card" and payment_amount > 0.005:
@@ -7624,8 +7625,8 @@ def log_end(flight_id):
                   f"enter the remaining ${short:.2f} as a payment (or apply more credit) to log it as Paid.", "danger")
             return redirect(back)
         conn.execute("UPDATE flights SET payment_method=?, payment_amount=?, credit_applied=?, "
-                     "card_last4=?, card_charge_id=? WHERE id=?",
-                     (payment_method, payment_amount, credit_applied, card_last4, card_charge_id, flight_id))
+                     "card_last4=?, card_charge_id=?, payment_detail=? WHERE id=?",
+                     (payment_method, payment_amount, credit_applied, card_last4, card_charge_id, payment_detail, flight_id))
     if cost is not None:
         _deduct_flight_cost(conn, cost, created_by=session.get("user_name"))
         if paid_choice == "1" and payment_amount > 0.005:
@@ -7635,6 +7636,8 @@ def log_end(flight_id):
             # existing credit) - this ledger entry is the actual new money
             # collected right now, bringing the balance back up by that much.
             note = f"Paid at flight ({payment_method})" if payment_method else "Paid at flight"
+            if payment_detail:
+                note += f" - {payment_detail}"
             if card_last4:
                 note += f" - simulated charge ending in {card_last4}"
             _ledger_entry(conn, ended_row["student_id"], "payment", payment_amount, note=note,
@@ -7645,7 +7648,7 @@ def log_end(flight_id):
     # The student's pilot logbook gets a pending, pre-filled entry.
     pilotlog.ensure_entry(conn, flight_id)
     if request.form.get("send_receipt_email") and cost is not None:
-        _send_flight_receipt_email(conn, ended_row, cost, paid_choice == "1", payment_method, payment_amount, credit_applied)
+        _send_flight_receipt_email(conn, ended_row, cost, paid_choice == "1", payment_method, payment_amount, credit_applied, payment_detail)
     conn.commit()
     if logged_conf_id:
         _notify_cash_check_pending(conn, logged_conf_id)
@@ -7741,7 +7744,7 @@ def _quick_wave_check(local_id):
             conn.close()
 
 
-def _send_flight_receipt_email(conn, ended_row, cost, paid, payment_method, payment_amount, credit_applied):
+def _send_flight_receipt_email(conn, ended_row, cost, paid, payment_method, payment_amount, credit_applied, payment_detail=None):
     """Emails the student a receipt for a just-ended flight, if they have an
     email on file - opt-out toggle on End Session (send_receipt_email),
     default on. Looked up and composed here (while conn is still open) but
@@ -7767,7 +7770,7 @@ def _send_flight_receipt_email(conn, ended_row, cost, paid, payment_method, paym
         lines.append(f"Credit applied: ${credit_applied:.2f}")
     if paid:
         if payment_amount > 0.005:
-            lines.append(f"Paid: ${payment_amount:.2f}" + (f" ({payment_method})" if payment_method else ""))
+            lines.append(f"Paid: ${payment_amount:.2f}" + (f" ({payment_method}{': ' + payment_detail if payment_detail else ''})" if payment_method else ""))
         lines.append("Status: Paid in full")
     else:
         lines.append(f"Status: Unpaid - ${cost['total'] - credit_applied:.2f} owed")
