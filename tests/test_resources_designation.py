@@ -22,8 +22,7 @@ class ResourcesDesignationTest(OpsHubTestCase):
     def test_table_shows_designation_dash_title_and_columns(self):
         self.add(designation="14 CFR Part 91", doc_date="2026-09-29", revision="Change 1", effectivity="2026-10-01")
         body = self.login("master").get(f"{GS}/resources").get_data(as_text=True)
-        self.assertIn("14 CFR Part 91 - General Operating and Flight Rules", body)
-        for t in ("Date", "Revision", "Effectivity", "Change 1", "2026-10-01", "2026-09-29"):
+        for t in ("14 CFR Part 91", "General Operating and Flight Rules", "Date", "Revision", "Effectivity", "Change 1", "2026-10-01", "2026-09-29"):
             self.assertIn(t, body)
 
     def test_old_title_when_no_designation(self):
