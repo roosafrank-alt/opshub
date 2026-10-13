@@ -785,9 +785,47 @@ def resources_list():
     conn = get_db()
     resources = conn.execute(
         "SELECT r.*, (SELECT COUNT(*) FROM acs_resource_pages p WHERE p.resource_id = r.id) AS page_count "
-        "FROM acs_resources r ORDER BY r.doc_type, r.title").fetchall()
+        "FROM acs_resources r").fetchall()
     conn.close()
-    return render_template("flight/groundschool_resources.html", resources=resources, tab="resources")
+    return render_template("flight/groundschool_resources.html", resources=resources, tab="resources",
+                           sections=group_resources(resources), categories=RESOURCE_CATEGORIES,
+                           doc_types=sorted({r["doc_type"] for r in resources if r["doc_type"]}))
+
+
+RESOURCE_CATEGORIES = ["Sport", "Private", "Instrument", "Commercial", "High Performance", "Complex", "CFI", "CFII"]
+OTHER_CATEGORY = "Other / General"
+
+
+def natural_key(text):
+    """Alphabetical, but digit runs compare by value: 'Part 7' < 'Part 61' < 'Part 91'."""
+    return [(0, int(t), "") if t.isdigit() else (1, 0, t.lower())
+            for t in re.split(r"(\d+)", text or "") if t != ""]
+
+
+def resource_label(r):
+    return r["designation"] or r["title"] or ""
+
+
+def resource_categories(r):
+    """The known categories a resource is tagged with, in display order."""
+    tags = {c.strip().lower() for c in (r["categories"] or "").split(",")}
+    return [c for c in RESOURCE_CATEGORIES if c.lower() in tags]
+
+
+def group_resources(resources):
+    """[(section name, [resources])] in display order; a resource shows under each of its
+    categories, untagged ones under Other / General; each section is naturally sorted."""
+    buckets = {}
+    for r in resources:
+        for c in resource_categories(r) or [OTHER_CATEGORY]:
+            buckets.setdefault(c, []).append(r)
+    return [(c, sorted(buckets[c], key=lambda r: (natural_key(resource_label(r)), natural_key(r["title"]))))
+            for c in RESOURCE_CATEGORIES + [OTHER_CATEGORY] if c in buckets]
+
+
+def _form_categories():
+    picked = set(request.form.getlist("categories"))
+    return ",".join(c for c in RESOURCE_CATEGORIES if c in picked) or None
 
 
 _RESOURCE_META = ("designation", "doc_date", "revision", "effectivity")
@@ -806,7 +844,8 @@ def resources_edit(resource_id):
     doc_type = request.form.get("doc_type", "").strip() or r["doc_type"]
     meta = tuple(request.form.get(k, "").strip() or None for k in _RESOURCE_META)
     conn.execute("UPDATE acs_resources SET title = ?, doc_type = ?, designation = ?, doc_date = ?, "
-                 "revision = ?, effectivity = ? WHERE id = ?", (title, doc_type) + meta + (resource_id,))
+                 "revision = ?, effectivity = ?, categories = ? WHERE id = ?",
+                 (title, doc_type) + meta + (_form_categories(), resource_id))
     conn.commit()
     conn.close()
     flash(f"Saved '{title}'.", "success")
@@ -830,8 +869,8 @@ def resources_upload():
     conn = get_db()
     cur = conn.execute(
         "INSERT INTO acs_resources (title, doc_type, filename, uploaded_by, uploaded_at, "
-        "designation, doc_date, revision, effectivity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (title, doc_type, stored_name, session.get("cfi_id"), now_iso()) + meta)
+        "designation, doc_date, revision, effectivity, categories) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (title, doc_type, stored_name, session.get("cfi_id"), now_iso()) + meta + (_form_categories(),))
     resource_id = cur.lastrowid
     conn.commit()
     try:

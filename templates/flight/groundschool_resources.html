@@ -48,13 +48,27 @@
   </div>
 </div>
 {% else %}
-<div class="card academy-card">
+<div class="card academy-card mb-3"><div class="card-body py-2 row g-2 align-items-center">
+  <div class="col-12 col-md-5"><input type="search" id="resSearch" class="form-control form-control-sm" placeholder="Search name, designation or type"></div>
+  <div class="col-6 col-md-2"><select id="resCat" class="form-select form-select-sm"><option value="">All categories</option>
+    {% for c in categories + ['Other / General'] %}<option>{{ c }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><select id="resType" class="form-select form-select-sm"><option value="">All types</option>
+    {% for t in doc_types %}<option>{{ t }}</option>{% endfor %}</select></div>
+  <div class="col-12 col-md-3 text-md-end">
+    <button type="button" class="btn btn-outline-primary btn-sm" id="resExpand">Expand all</button>
+    <button type="button" class="btn btn-outline-primary btn-sm" id="resCollapse">Collapse all</button></div>
+</div></div>
+{% for name, rows in sections %}
+<div class="card academy-card mb-2 res-section" data-section="{{ name }}">
+  <button type="button" class="btn text-start fw-bold d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#resSec{{ loop.index }}" aria-expanded="true">
+    <span>{{ name }}</span><span class="badge bg-secondary res-count">{{ rows|length }}</span></button>
+  <div class="collapse show res-body" id="resSec{{ loop.index }}">
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0 table-stack resources-table" data-change="DESIGN-5">
       <thead><tr><th>Title</th><th>Type</th><th>Date</th><th>Revision</th><th>Effectivity</th><th>Pages indexed</th><th></th><th></th></tr></thead>
       <tbody>
-        {% for r in resources %}
-        <tr class="resource-row" onclick="if(!event.target.closest('a'))window.open('{{ url_for('groundschool.resource_file', resource_id=r.id) }}', '_blank')">
+        {% for r in rows %}
+        <tr class="resource-row" data-type="{{ r.doc_type or '' }}" data-cats="{{ (r.categories or 'Other / General') }}" data-search="{{ ((r.designation or '') ~ ' ' ~ r.title ~ ' ' ~ (r.doc_type or ''))|lower }}" onclick="if(!event.target.closest('a'))window.open('{{ url_for('groundschool.resource_file', resource_id=r.id) }}', '_blank')">
           <td class="stack-full" data-label=""><a class="fw-bold resource-title" href="{{ url_for('groundschool.resource_file', resource_id=r.id) }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf text-danger"></i> {{ (r.designation ~ ' - ' ~ r.title) if r.designation else r.title }}</a></td>
           <td class="text-muted small" data-label="Type">{{ r.doc_type or '-' }}</td>
           <td class="text-muted small" data-label="Date">{{ r.doc_date or '-' }}</td>
@@ -67,7 +81,7 @@
             <button type="button" class="btn btn-outline-primary btn-sm resource-edit-btn" title="Edit"
                     data-action="{{ url_for('groundschool.resources_edit', resource_id=r.id) }}"
                     data-title="{{ r.title }}" data-designation="{{ r.designation or '' }}" data-doc-date="{{ r.doc_date or '' }}"
-                    data-revision="{{ r.revision or '' }}" data-effectivity="{{ r.effectivity or '' }}" data-doc-type="{{ r.doc_type or '' }}">
+                    data-revision="{{ r.revision or '' }}" data-effectivity="{{ r.effectivity or '' }}" data-doc-type="{{ r.doc_type or '' }}" data-categories="{{ r.categories or '' }}">
               <i class="bi bi-pencil"></i> Edit</button>
             <form method="post" action="{{ url_for('groundschool.resources_delete', resource_id=r.id) }}" class="d-inline" data-change="DESIGN-3 DESIGN-4"
                   data-confirm="Delete {{ r.title }} forever? References linking to it will stop auto-linking. This can't be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
@@ -80,7 +94,34 @@
       </tbody>
     </table>
   </div>
+  </div>
 </div>
+{% endfor %}
+<p class="text-light text-center d-none" id="resNone">No matches</p>
+<script>
+(function () {
+  var q = document.getElementById('resSearch'), cat = document.getElementById('resCat'), typ = document.getElementById('resType');
+  function apply() {
+    var t = q.value.trim().toLowerCase(), shown = 0;
+    document.querySelectorAll('.res-section').forEach(function (sec) {
+      var n = 0;
+      sec.querySelectorAll('.resource-row').forEach(function (r) {
+        var ok = (!t || r.dataset.search.indexOf(t) >= 0) && (!typ.value || r.dataset.type === typ.value) &&
+                 (!cat.value || r.dataset.cats.split(',').indexOf(cat.value) >= 0);
+        r.style.display = ok ? '' : 'none'; if (ok) n++;
+      });
+      sec.querySelector('.res-count').textContent = n;
+      sec.style.display = n ? '' : 'none'; shown += n;
+    });
+    document.getElementById('resNone').classList.toggle('d-none', shown > 0);
+  }
+  [q, cat, typ].forEach(function (e) { e.addEventListener('input', apply); });
+  function all(open) { document.querySelectorAll('.res-body').forEach(function (b) {
+    bootstrap.Collapse.getOrCreateInstance(b, {toggle: false})[open ? 'show' : 'hide'](); }); }
+  document.getElementById('resExpand').onclick = function () { all(true); };
+  document.getElementById('resCollapse').onclick = function () { all(false); };
+})();
+</script>
 {% endif %}
 
 {% if flight_admin %}
@@ -115,6 +156,9 @@
             <input type="text" name="revision" class="form-control" placeholder="e.g. Change 1"></div>
           <div class="col-12 col-sm-6"><label class="form-label">Effectivity</label>
             <input type="text" name="effectivity" class="form-control" placeholder="e.g. 2026-10-01"></div>
+        </div>
+        <div class="mb-3"><label class="form-label d-block">Categories</label>
+          {% for c in categories %}<div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="categories" value="{{ c }}" id="upcat{{ loop.index }}"><label class="form-check-label" for="upcat{{ loop.index }}">{{ c }}</label></div>{% endfor %}
         </div>
         <div class="mb-2">
           <label class="form-label">PDF file</label>
@@ -152,6 +196,9 @@
           <div class="col-12 col-sm-6"><label class="form-label">Effectivity</label>
             <input type="text" name="effectivity" class="form-control" placeholder="e.g. 2026-10-01"></div>
         </div>
+        <div class="mb-3"><label class="form-label d-block">Categories</label>
+          {% for c in categories %}<div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="categories" value="{{ c }}" id="edcat{{ loop.index }}"><label class="form-check-label" for="edcat{{ loop.index }}">{{ c }}</label></div>{% endfor %}
+        </div>
         <p class="small text-muted mb-0">Only the labels change. The PDF and its page index stay as they are.</p>
       </div>
       <div class="modal-footer justify-content-start">
@@ -168,6 +215,8 @@ document.querySelectorAll('.resource-edit-btn').forEach(function (b) {
     f.action = d.action;
     f.title.value = d.title; f.designation.value = d.designation; f.doc_date.value = d.docDate;
     f.revision.value = d.revision; f.effectivity.value = d.effectivity; f.doc_type.value = d.docType;
+    var cs = (d.categories || '').split(',');
+    f.querySelectorAll('[name=categories]').forEach(function (x) { x.checked = cs.indexOf(x.value) >= 0; });
     bootstrap.Modal.getOrCreateInstance(document.getElementById('editResourceModal')).show();
   });
 });
