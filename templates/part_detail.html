@@ -1,15 +1,28 @@
 {% extends "base.html" %}
 {% block title %}{{ part.name }} · Winds Aloft{% endblock %}
 {% block content %}
+{% macro part_line(r) %}
+        <a href="{{ url_for('part_detail', part_id=r.id) }}">{{ r.barcode }} - {{ r.name }}</a>
+        <span class="text-muted">&middot; <strong>{{ '%g'|format(r.qty_on_hand) }} {{ r.unit }}</strong> on hand</span>
+        {% if r.retired_at %}<span class="badge bg-secondary">Retired</span>{% endif %}
+      {% endmacro %}
 {% if repl_hint %}
 <div class="alert alert-info d-flex gap-2 align-items-start" id="replacement-banner">
   <i class="bi bi-arrow-right-circle fs-5"></i>
   <div>{% for h in repl_hint %}<div>{{ replacement_lines([h])[0] }} <a href="{{ url_for('part_detail', part_id=h.id) }}" class="alert-link">Open it</a></div>{% endfor %}</div>
 </div>
 {% endif %}
+<style>
+  /* Phone: let the two columns' cards sit in one list so History comes right under the stock details. */
+  @media (max-width: 991.98px) {
+    .pd-side, .pd-main { display: contents; }
+    .pd-side > .card, .pd-main > .card { width: calc(100% - var(--bs-gutter-x)); margin-left: calc(var(--bs-gutter-x) * .5); margin-top: 1rem; margin-bottom: 0 !important; }
+  }
+  .pd-o0 { order: 0; } .pd-o1 { order: 1; } .pd-o2 { order: 2; } .pd-o3 { order: 3; } .pd-o4 { order: 4; } .pd-o5 { order: 5; } .pd-o6 { order: 6; }
+</style>
 <div class="row g-3">
-  <div class="col-lg-4">
-    <div class="card p-3 text-center">
+  <div class="col-lg-4 pd-side">
+    <div class="card p-3 text-center pd-o1">
       {% if photos %}
       <img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-2" style="max-height:220px; width:100%; object-fit:cover;">
       {% endif %}
@@ -21,7 +34,8 @@
       </form>
     </div>
 
-    <div class="card p-3 mt-3">
+
+    <div class="card p-3 mt-3 pd-o2">
       <div class="d-flex justify-content-between">
         <span class="text-muted">On Hand</span>
         <strong class="{{ 'text-danger' if part.qty_on_hand <= part.reorder_point and not part.retired_at else '' }}">{{ '%g'|format(part.qty_on_hand) }} {{ part.unit }}</strong>
@@ -86,7 +100,10 @@
       {% endif %}
     </div>
 
-    <div class="card p-3 mt-3">
+
+<div class="card p-3 mt-3 pd-o4">
+      <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#recount-form" aria-expanded="false" aria-controls="recount-form"><i class="bi bi-clipboard-check"></i> Recount stock</button>
+      <div class="collapse mt-3" id="recount-form">
       <h6>Adjust Stock Count</h6>
       <form method="post" action="{{ url_for('part_adjust', part_id=part.id) }}" id="adjust-form">
         <label class="form-label small">Set actual counted quantity</label>
@@ -174,9 +191,11 @@
           });
         })();
       </script>
+      </div>
     </div>
 
-    <div class="card p-3 mt-3">
+
+    <div class="card p-3 mt-3 pd-o5">
       <h6>Photos</h6>
       {% if photos %}
       <div class="row g-2 mb-2">
@@ -212,15 +231,12 @@
     </div>
   </div>
 
-  <div class="col-lg-8">
+  <div class="col-lg-8 pd-main">
     {% set can_link = is_master_admin or shop_role in ('admin', 'tech') %}
-    <div class="card p-3 mb-3" id="superseded">
+    {% set is_linked = direct_new or further or replaces %}
+    {% if is_linked %}
+    <div class="card p-3 mb-3 pd-o0" id="superseded">
       <h5>Superseded by / Replaces</h5>
-      {% macro part_line(r) %}
-        <a href="{{ url_for('part_detail', part_id=r.id) }}">{{ r.barcode }} - {{ r.name }}</a>
-        <span class="text-muted">&middot; <strong>{{ '%g'|format(r.qty_on_hand) }} {{ r.unit }}</strong> on hand</span>
-        {% if r.retired_at %}<span class="badge bg-secondary">Retired</span>{% endif %}
-      {% endmacro %}
       <div class="fw-semibold small text-uppercase text-muted">This part is superseded by</div>
       {% if direct_new %}
       <ul class="list-group list-group-flush mb-2">
@@ -275,7 +291,9 @@
       </form>
       {% endif %}
     </div>
-    <div class="card p-3">
+    {% endif %}
+
+    <div class="card p-3 pd-o3">
       <h5>Transaction History</h5>
       {% if tx %}
       <div class="table-responsive">
@@ -311,7 +329,29 @@
       <p class="text-muted">No transactions yet.</p>
       {% endif %}
     </div>
+    
+    {% if not is_linked %}
+    <div class="card p-3 mt-3 pd-o6" id="superseded">
+      <div class="small">Superseded by: nothing{% if can_link %} &middot; <a href="#supersede-form" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="supersede-form">Link a replacement</a>{% endif %}</div>
+      {% if can_link %}
+      <div class="collapse" id="supersede-form">
+      <form method="post" action="{{ url_for('part_supersede_add', part_id=part.id) }}" class="mt-2">
+        <label class="form-label small mb-1" for="supersede-pick">This part is superseded by...</label>
+        <div class="input-group">
+          <input type="text" id="supersede-pick" name="new_part" list="supersede-parts" class="form-control" placeholder="Type a part name or barcode" autocomplete="off" required>
+          <button class="btn btn-primary">Link</button>
+        </div>
+        <datalist id="supersede-parts">
+          {% for c in link_choices %}<option value="{{ c.barcode }} - {{ c.name }}{% if c.retired_at %} (retired){% endif %}">{% endfor %}
+        </datalist>
+        <div class="form-text">Stock counts are never combined or moved. This only lets you see that a replacement exists.</div>
+      </form>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
+</div>
 </div>
 {% endblock %}
 

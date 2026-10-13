@@ -116,7 +116,8 @@ class LinkingTest(SupersessionBase):
     def test_part_page_shows_link_form_for_admin_and_tech(self):
         for role in ("shop_admin", "tech"):
             html = self.login(role).get(f"/parts/{self.a}").get_data(as_text=True)
-            self.assertIn("Superseded by / Replaces", html)
+            self.assertIn("Superseded by: nothing", html)
+            self.assertIn("Link a replacement", html)
             self.assertIn("This part is superseded by...", html)
             self.assertIn('value="B-200 - Mid Filter"', html)
 
