@@ -593,7 +593,9 @@ CREATE TABLE IF NOT EXISTS compression_checks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     asset_id INTEGER NOT NULL REFERENCES assets(id),
     checked_date TEXT NOT NULL,
-    hours REAL, -- tach/hobbs hours at time of check, for the x-axis of the trend chart
+    hours REAL, -- legacy single tach/hobbs field; new checks use tach_hours / hobbs_hours
+    tach_hours REAL, -- tach at time of check (at least one of tach/hobbs is required)
+    hobbs_hours REAL, -- hobbs at time of check
     master_orifice REAL, -- master orifice / reference reading, e.g. 80
     cyl1 REAL, cyl2 REAL, cyl3 REAL, cyl4 REAL, cyl5 REAL, cyl6 REAL,
     performed_by TEXT,
