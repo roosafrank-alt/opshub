@@ -245,6 +245,25 @@
     </div>
   </form>
 </div>
+{% if user and grant_student %}
+<div class="card p-4 mt-3" id="courses" style="scroll-margin-top:80px;">
+  <h5 class="mb-1"><i class="bi bi-mortarboard"></i> Ground school courses</h5>
+  <p class="small text-muted">Give {{ user.name }} access to one ground school at a time. They see only the courses marked Granted, read only. Accounts with Flight Academy or Ground School Access above, and master admins, already see everything.</p>
+  {% for c in grant_courses %}
+  <form method="post" action="{{ url_for('admin_user_course_grant', user_id=user.id) }}" class="d-flex align-items-center justify-content-between gap-2 py-2 border-bottom">
+    <input type="hidden" name="rating_id" value="{{ c.id }}">
+    <span>{{ c.name }}{% if c.id in granted_ids %} <span class="badge text-bg-success ms-1">Granted</span>{% endif %}</span>
+    {% if c.id in granted_ids %}
+    <button type="submit" name="action" value="remove" class="btn btn-outline-danger btn-sm">Remove</button>
+    {% else %}
+    <button type="submit" name="action" value="grant" class="btn btn-primary btn-sm">Grant</button>
+    {% endif %}
+  </form>
+  {% else %}
+  <p class="mb-0">No courses are ready yet. Add one under Ground School first.</p>
+  {% endfor %}
+</div>
+{% endif %}
 </div>
 </div>
 {% endblock %}
