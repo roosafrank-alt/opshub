@@ -44,3 +44,17 @@ class AdminAccountCourseGrantTest(OpsHubTestCase):
     def test_non_admin_refused(self):
         self.login("cfi").post(f"/admin/users/{self.uid}/course-grant", data={"rating_id": self.r["ppl"], "action": "enroll"})
         self.assertEqual(self.granted(), set())
+
+    def test_no_all_access_checkbox_and_legacy_flag_kept_then_cleared(self):
+        self.exec("UPDATE users SET groundschool_access = 1 WHERE id = ?", (self.uid,))
+        c = self.login("master")
+        body = c.get(f"/admin/users/{self.uid}/edit").get_data(as_text=True)
+        self.assertNotIn('name="groundschool_access"', body)
+        self.assertIn("Switch to enrollment", body)
+        # saving the form must not wipe the older flag
+        u = self.q1("SELECT * FROM users WHERE id = ?", (self.uid,))
+        c.post(f"/admin/users/{self.uid}/edit", data={"name": u["name"], "username": u["username"], "active": "on",
+                                                     "flight_roles": "student"})
+        self.assertEqual(self.q1("SELECT groundschool_access AS g FROM users WHERE id = ?", (self.uid,))["g"], 1)
+        c.post(f"/admin/users/{self.uid}/course-grant", data={"action": "clear_full"})
+        self.assertEqual(self.q1("SELECT groundschool_access AS g FROM users WHERE id = ?", (self.uid,))["g"], 0)
