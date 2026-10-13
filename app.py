@@ -9130,6 +9130,10 @@ def admin_user_course_grant(user_id):
         conn.close()
         flash("Couldn't change that course.", "danger")
         return redirect(url_for("admin_user_edit", user_id=user_id) + "#courses")
+    if action == "enroll" and not (user_row["academy_access"] or user_row["is_master_admin"]):
+        conn.close()
+        flash("Tick Flight Academy Access for this account and save first - ground school sits inside Flight Academy.", "warning")
+        return redirect(url_for("admin_user_edit", user_id=user_id) + "#courses")
     conn.execute("DELETE FROM academy_course_grants WHERE student_id = ? AND rating_id = ?", (st["id"], course["id"]))
     if action == "enroll":
         conn.execute("INSERT INTO academy_course_grants (student_id, rating_id, granted_by, granted_at) VALUES (?,?,?,?)",

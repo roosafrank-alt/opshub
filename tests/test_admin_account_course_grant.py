@@ -7,6 +7,7 @@ class AdminAccountCourseGrantTest(OpsHubTestCase):
     def setUp(self):
         super().setUp()
         self.uid = self.users["flight_student"]["id"]
+        self.exec("UPDATE users SET academy_access = 1 WHERE id = ?", (self.uid,))
         self.sid = self.q1("SELECT id FROM students WHERE user_id = ?", (self.uid,))["id"]
         conn = db.get_db()
         self.r = {}
@@ -79,3 +80,8 @@ class AdminAccountCourseGrantTest(OpsHubTestCase):
         body = self.login("flight_student").get("/flight/groundschool").get_data(as_text=True)
         self.assertIn(f'/flight/groundschool/{self.r["ppl"]}"', body)
         self.assertNotIn(f'/flight/groundschool/{self.r["ifr"]}"', body)
+
+    def test_cannot_enroll_without_flight_academy_access(self):
+        self.exec("UPDATE users SET academy_access = 0 WHERE id = ?", (self.uid,))
+        self.login("master").post(f"/admin/users/{self.uid}/course-grant", data={"rating_id": self.r["ppl"], "action": "enroll"})
+        self.assertEqual(self.granted(), set())
