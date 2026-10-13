@@ -57,7 +57,7 @@
       <ul class="list-group list-group-flush mb-2">
         {% for a in areas_by_type[t] %}
         <li class="list-group-item d-flex align-items-center flex-wrap gap-1 px-0 py-2">
-          <form method="post" action="{{ url_for('task_template_area_edit', area_id=a.id) }}" class="d-flex align-items-center flex-wrap gap-1 flex-grow-1" style="min-width:0;">
+          <form method="post" action="{{ url_for('task_template_area_edit', area_id=a.id) }}" class="d-flex align-items-center flex-wrap gap-1 flex-grow-1 shrinkable">
             <input type="text" name="name" value="{{ a.name }}" class="form-control form-control-sm" style="min-width:70px; flex:1 1 90px;" required>
             <div class="form-check form-check-inline m-0 text-nowrap">
               <input type="checkbox" class="form-check-input" name="is_optional" value="1" id="opt-edit-{{ a.id }}" {% if a.is_optional %}checked{% endif %}>

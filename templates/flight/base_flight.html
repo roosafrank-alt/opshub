@@ -95,16 +95,10 @@
         <li class="nav-item"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'schedule' }}" id="tour-nav-flight-schedule" href="{{ url_for('flight.schedule_calendar') }}"><i class="bi bi-calendar3"></i> <span class="nav-label">Schedule</span></a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'active' else ('flight-nav-flying' if flight_active_nav_count) }}" id="tour-nav-flight-active" href="{{ url_for('flight.log_active') }}"><i class="bi bi-stopwatch"></i> <span class="nav-label">Active Flight</span>{% if flight_active_nav_count %} <span class="badge bg-dark" title="{{ flight_active_nav_count }} flight{{ 's' if flight_active_nav_count != 1 }} in the air">{{ flight_active_nav_count }}</span>{% endif %}</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'history' }}" id="tour-nav-flight-history" href="{{ url_for('flight.log_history') }}"><i class="bi bi-clock-history"></i> <span class="nav-label">Flight History</span></a></li>
-        {% if session.get('is_master_admin') or session.get('groundschool_access') %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'groundschool' }}" href="{{ url_for('groundschool.rating_list') }}"><i class="bi bi-mortarboard"></i> <span class="nav-label">Ground School</span></a></li>
-        {% endif %}
-        {% if session.get('is_master_admin') or session.get('academy_access') %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'academy' }}" href="{{ url_for('academy_page') }}"><i class="bi bi-trophy"></i> <span class="nav-label">Academy</span></a></li>
-        {% endif %}
-        {% if session.get('cfi_id') or session.get('is_master_admin') %}
+        {% if session.get('cfi_id') or flight_admin %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'students' }}" id="tour-nav-flight-students" href="{{ url_for('flight.students_list') }}"><i class="bi bi-people"></i> <span class="nav-label">Students</span></a></li>
         {% endif %}
-        {% if session.get('cfi_id') or session.get('is_master_admin') %}
+        {% if session.get('cfi_id') or flight_admin %}
         {% set fac = flight_alert_counts or {} %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'alerts' }}" id="tour-nav-flight-alerts" href="{{ url_for('flight.alerts_list') }}"><i class="bi bi-exclamation-triangle"></i> <span class="nav-label">Alerts</span>{% if fac.get('open') %} <span class="badge {{ 'bg-danger' if fac.get('unacked') else 'bg-warning text-dark' }}" title="{{ fac.get("unacked") }} new, {{ fac.get("open") }} open (alerts and reports)">{{ fac.get('open') }}</span>{% endif %}</a></li>
         {% elif session.get('student_id') %}
@@ -114,7 +108,7 @@
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'myaccount' }}" id="tour-nav-flight-myaccount" href="{{ url_for('flight.my_account') }}" data-change="SEAM-8"><i class="bi bi-wallet2"></i> <span class="nav-label">My Balance</span></a></li>
         {% endif %}
       </ul>
-      {% if session.get('cfi_id') or session.get('is_master_admin') %}
+      {% if session.get('cfi_id') or flight_admin %}
       <ul class="navbar-nav flight-nav-boxed">
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle {{ 'active' if sec == 'manage' }}" href="#" id="manage-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -122,18 +116,24 @@
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="manage-menu-toggle">
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/planes') }}" href="{{ url_for('flight.planes_list') }}"><i class="bi bi-airplane"></i> Planes</a></li>
-            {% if session.get('is_master_admin') %}
+            {% if flight_admin %}
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/cfis') and not _p.endswith('/pay') and _p not in ('/flight/cfis/me', '/flight/cfis/schedule') }}" href="{{ url_for('flight.cfis_list') }}"><i class="bi bi-person-badge"></i> CFIs</a></li>
+            {% endif %}
+            {% if flight_admin %}
             <li><a class="dropdown-item {{ 'active' if _p == '/flight/settings/school' }}" href="{{ url_for('flight.school_settings_edit') }}"><i class="bi bi-sliders"></i> School Settings</a></li>
             {% endif %}
             {% if session.get('cfi_id') %}
             <li><a class="dropdown-item {{ 'active' if _p == '/flight/cfis/me' }}" href="{{ url_for('flight.cfi_me') }}"><i class="bi bi-person-vcard"></i> My CFI Profile</a></li>
             <li><a class="dropdown-item {{ 'active' if _p == '/flight/cfis/schedule' }}" href="{{ url_for('flight.cfi_schedule') }}"><i class="bi bi-calendar-week"></i> My Schedule</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p.endswith('/pay') }}" href="{{ url_for('flight.cfi_pay', cfi_id=session['cfi_id']) }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
+            {% if is_master_admin or session.get('flight_role') != 'admin' or holds_role('flight', 'cfi') %}<li><a class="dropdown-item {{ 'active' if _p.endswith('/pay') }}" href="{{ url_for('flight.cfi_pay', cfi_id=session['cfi_id']) }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>{% endif %}
             {% endif %}
-            {% if session.get('is_master_admin') or session.get('can_bill') %}
+            {% if flight_admin %}
+            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing/approvals') }}" href="{{ url_for('flight.charge_approvals') }}"><i class="bi bi-credit-card"></i> Card requests{% if charge_pending_count %} <span class="badge bg-danger">{{ charge_pending_count }}</span>{% endif %}</a></li>
+            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing/cash-check') }}" href="{{ url_for('flight.cash_check_confirm') }}"><i class="bi bi-cash-coin"></i> Cash/check collected{% if cash_check_pending_count %} <span class="badge bg-danger">{{ cash_check_pending_count }}</span>{% endif %}</a></li>
+            {% endif %}
+            {% if is_master_admin or session.get('can_bill') %}
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing') }}" href="{{ url_for('flight.billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
+            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing') }}" href="{{ url_for('flight.billing') }}"><i class="bi bi-receipt"></i> Billing{% set _bp = (charge_pending_count or 0) + (cash_check_pending_count or 0) %}{% if _bp %} <span class="badge bg-danger">{{ _bp }}</span>{% endif %}</a></li>
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/stats') }}" href="{{ url_for('flight.stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
             {% endif %}
           </ul>

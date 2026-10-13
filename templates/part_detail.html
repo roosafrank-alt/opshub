@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block title %}{{ part.name }} · Winds Aloft{% endblock %}
 {% block content %}
+{% if repl_hint %}
+<div class="alert alert-info d-flex gap-2 align-items-start" id="replacement-banner">
+  <i class="bi bi-arrow-right-circle fs-5"></i>
+  <div>{% for h in repl_hint %}<div>{{ replacement_lines([h])[0] }} <a href="{{ url_for('part_detail', part_id=h.id) }}" class="alert-link">Open it</a></div>{% endfor %}</div>
+</div>
+{% endif %}
 <div class="row g-3">
   <div class="col-lg-4">
     <div class="card p-3 text-center">
@@ -18,7 +24,7 @@
     <div class="card p-3 mt-3">
       <div class="d-flex justify-content-between">
         <span class="text-muted">On Hand</span>
-        <strong class="{{ 'text-danger' if part.qty_on_hand <= part.reorder_point else '' }}">{{ '%g'|format(part.qty_on_hand) }} {{ part.unit }}</strong>
+        <strong class="{{ 'text-danger' if part.qty_on_hand <= part.reorder_point and not part.retired_at else '' }}">{{ '%g'|format(part.qty_on_hand) }} {{ part.unit }}</strong>
       </div>
       <div class="d-flex justify-content-between">
         <span class="text-muted">Reorder Point</span><span>{{ '%g'|format(part.reorder_point) }} {{ part.unit }}</span>
@@ -178,7 +184,7 @@
         <div class="col-4">
           <div class="position-relative">
             <a href="{{ url_for('static', filename='uploads/' + photo.filename) }}" target="_blank">
-              <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="img-fluid rounded" style="aspect-ratio:1; object-fit:cover; width:100%;">
+              <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="img-fluid rounded photo-square">
             </a>
             {% if photo.is_cover %}
             <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-1"><i class="bi bi-star-fill"></i> Cover</span>
@@ -207,6 +213,68 @@
   </div>
 
   <div class="col-lg-8">
+    {% set can_link = is_master_admin or shop_role in ('admin', 'tech') %}
+    <div class="card p-3 mb-3" id="superseded">
+      <h5>Superseded by / Replaces</h5>
+      {% macro part_line(r) %}
+        <a href="{{ url_for('part_detail', part_id=r.id) }}">{{ r.barcode }} - {{ r.name }}</a>
+        <span class="text-muted">&middot; <strong>{{ '%g'|format(r.qty_on_hand) }} {{ r.unit }}</strong> on hand</span>
+        {% if r.retired_at %}<span class="badge bg-secondary">Retired</span>{% endif %}
+      {% endmacro %}
+      <div class="fw-semibold small text-uppercase text-muted">This part is superseded by</div>
+      {% if direct_new %}
+      <ul class="list-group list-group-flush mb-2">
+        {% for r in direct_new %}
+        <li class="list-group-item px-0 d-flex justify-content-between align-items-center gap-2">
+          <div>{{ part_line(r) }}</div>
+          {% if can_link %}
+          <form method="post" action="{{ url_for('part_supersede_remove', part_id=part.id) }}" class="flex-shrink-0">
+            <input type="hidden" name="old_part_id" value="{{ part.id }}"><input type="hidden" name="new_part_id" value="{{ r.id }}">
+            <button class="btn btn-outline-secondary btn-sm" title="Remove this link">Remove link</button>
+          </form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-muted small mb-2">Not superseded by anything.</p>
+      {% endif %}
+      {% if further %}
+      <div class="fw-semibold small text-uppercase text-muted">And further along the chain</div>
+      <ul class="list-unstyled mb-2">
+        {% for r in further %}<li class="py-1">{{ part_line(r) }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+      {% if replaces %}
+      <div class="fw-semibold small text-uppercase text-muted">This part replaces</div>
+      <ul class="list-group list-group-flush mb-2">
+        {% for r in replaces %}
+        <li class="list-group-item px-0 d-flex justify-content-between align-items-center gap-2">
+          <div>{{ part_line(r) }}</div>
+          {% if can_link %}
+          <form method="post" action="{{ url_for('part_supersede_remove', part_id=part.id) }}" class="flex-shrink-0">
+            <input type="hidden" name="old_part_id" value="{{ r.id }}"><input type="hidden" name="new_part_id" value="{{ part.id }}">
+            <button class="btn btn-outline-secondary btn-sm" title="Remove this link">Remove link</button>
+          </form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if can_link %}
+      <form method="post" action="{{ url_for('part_supersede_add', part_id=part.id) }}" class="mt-2">
+        <label class="form-label small mb-1" for="supersede-pick">This part is superseded by...</label>
+        <div class="input-group">
+          <input type="text" id="supersede-pick" name="new_part" list="supersede-parts" class="form-control" placeholder="Type a part name or barcode" autocomplete="off" required>
+          <button class="btn btn-primary">Link</button>
+        </div>
+        <datalist id="supersede-parts">
+          {% for c in link_choices %}<option value="{{ c.barcode }} - {{ c.name }}{% if c.retired_at %} (retired){% endif %}">{% endfor %}
+        </datalist>
+        <div class="form-text">Stock counts are never combined or moved. This only lets you see that a replacement exists.</div>
+      </form>
+      {% endif %}
+    </div>
     <div class="card p-3">
       <h5>Transaction History</h5>
       {% if tx %}

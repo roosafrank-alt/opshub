@@ -101,6 +101,9 @@
           {% if is_master_admin or shop_role == 'admin' %}
           <li><a class="dropdown-item {{ 'active' if _p.startswith('/laborers') or _p.startswith('/labor/badges') or _p.startswith('/labor/general-code') }}" href="{{ url_for('laborers_list') }}"><i class="bi bi-person-badge"></i> Workers</a></li>
           <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> Labor Pay</a></li>
+          {% if not is_master_admin and (holds_role('shop','tech') or holds_role('shop','inspector') or holds_role('shop','apprentice')) %}
+          <li><a class="dropdown-item" href="{{ url_for('shop_pay', mine=1) }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>
+          {% endif %}
           <li><a class="dropdown-item {{ 'active' if _p.startswith('/customers') }}" href="{{ url_for('customers_list') }}"><i class="bi bi-people"></i> Customers</a></li>
           <li><a class="dropdown-item {{ 'active' if _p.startswith('/manuals') }}" href="{{ url_for('manuals.manuals_list') }}"><i class="bi bi-file-earmark-pdf"></i> Manuals</a></li>
           <li><a class="dropdown-item {{ 'active' if _p.startswith('/manage/task-templates') }}" href="{{ url_for('task_templates') }}"><i class="bi bi-list-check"></i> Task Templates</a></li>

@@ -30,7 +30,7 @@ from payroll import payroll_bp
 import tracking
 from ads import ads_bp, ads_for_asset, add_ads_to_annual_project, AD_KINDS, AD_METHODS
 import academy
-from auth import (authenticate, log_in_user, log_out_user, current_user, login_required,
+from auth import (holds_role, student_course_grants, academy_grants_only, groundschool_restricted, authenticate, log_in_user, log_out_user, current_user, login_required,
                    master_admin_required, shop_role_required, can_see_shop_costs,
                    owner_user_id, owner_locked, authenticate_customer, log_in_combined,
                    current_customer, start_view_as, exit_view_as, viewing_as_label,
@@ -38,7 +38,7 @@ from auth import (authenticate, log_in_user, log_out_user, current_user, login_r
                    real_is_master_admin, view_as_chips, home_view_as_level,
                    account_program_count, single_program_endpoint,
                    login_allowed, login_failed, login_succeeded, unlock_account, LOGIN_BLOCKED_MSG,
-                   real_user_id, session_programs, safe_next)
+                   real_user_id, session_programs, safe_next, is_flight_admin)
 import notify
 import wave_billing
 from urllib.parse import urlparse
@@ -275,6 +275,15 @@ def usdate_short(value, show_time=False):
 
 
 app.jinja_env.filters["usdate"] = usdate
+
+
+def shop_role_name(role):
+    """A stored Winds Aloft role code as people read it: the 'admin' code is
+    shown as Shop Admin (Flight Admin is its Fly with Kate! counterpart)."""
+    return "Shop Admin" if role == "admin" else (role or "").capitalize()
+
+
+app.jinja_env.filters["shop_role_name"] = shop_role_name
 app.jinja_env.filters["usdate_short"] = usdate_short
 
 
@@ -331,7 +340,10 @@ app.jinja_env.filters["first_name"] = first_name
 app.jinja_env.globals["tracking_carrier_choices"] = tracking.CARRIER_CHOICES
 app.jinja_env.globals["user_shop_roles"] = user_shop_roles
 app.jinja_env.globals["user_flight_roles"] = user_flight_roles
+app.jinja_env.globals["holds_role"] = holds_role
 app.jinja_env.globals["tracking_info"] = tracking.to_json
+app.jinja_env.globals["student_course_grants"] = student_course_grants
+app.jinja_env.globals["groundschool_restricted"] = groundschool_restricted
 app.jinja_env.globals["academy_point_rules"] = academy.POINT_RULES
 app.jinja_env.globals["academy_entry_kinds"] = academy.ENTRY_KINDS
 app.jinja_env.globals["academy_achievements"] = academy.ACHIEVEMENTS
@@ -384,6 +396,7 @@ def inject_auth_context():
         "can_see_shop_costs": can_see_shop_costs(),
         "shop_role": session.get("shop_role"),
         "is_master_admin": session.get("is_master_admin"),
+        "flight_admin": is_flight_admin(),
         "logged_in_user_name": session.get("user_name"),
         "open_squawk_count": open_squawk_count,
         "tour_seen_shop": session.get("tour_seen_shop"),
@@ -506,7 +519,10 @@ def academy_page():
     academy_access to (master admins always have it) - the tile on the
     program picker is hidden for everyone else, and this route double-checks
     it server-side too."""
-    if not (session.get("is_master_admin") or session.get("academy_access")):
+    if not (is_flight_admin() or session.get("academy_access")):
+        if student_course_grants():
+            # A student with granted courses only: Ground School tab only.
+            return redirect(url_for("groundschool.rating_list"))
         flash("You don't have access to Flight Academy yet. Ask an admin.", "danger")
         return redirect(url_for("home_launcher"))
     # Leaderboard (see academy.py): points, achievements and rankings for
@@ -525,7 +541,7 @@ def academy_page():
         level = academy.level_of(me["student"]) if me else "all"
     board_stats = academy.only_level(stats, level)
     boards = academy.leaderboards(board_stats)
-    staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
+    staff = bool(is_flight_admin() or session.get("cfi_id"))
     entry_sql = """SELECT e.*, s.name as student_name FROM academy_entries e
                      JOIN students s ON s.id = e.student_id"""
     # SCHOOL-38: staff pick one student (the same picker the other Academy
@@ -561,9 +577,9 @@ def academy_entry_add():
     """A student logs flying for the leaderboard (distance, landings,
     cross-countries, night/instrument time). Students log for themselves;
     a CFI/admin can log for any student."""
-    if not (session.get("is_master_admin") or session.get("academy_access")):
+    if not (is_flight_admin() or session.get("academy_access")):
         return redirect(url_for("home_launcher"))
-    staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
+    staff = bool(is_flight_admin() or session.get("cfi_id"))
     student_id = request.form.get("student_id", type=int) if staff else session.get("student_id")
     kind = request.form.get("kind")
     try:
@@ -602,7 +618,7 @@ def academy_entry_add():
 @login_required
 def academy_entry_delete(entry_id):
     """Remove a leaderboard entry - your own, or any if you're a CFI/admin."""
-    staff = bool(session.get("is_master_admin") or session.get("cfi_id"))
+    staff = bool(is_flight_admin() or session.get("cfi_id"))
     conn = get_db()
     e = conn.execute("SELECT * FROM academy_entries WHERE id = ?", (entry_id,)).fetchone()
     if e and (staff or e["student_id"] == session.get("student_id")):
@@ -654,6 +670,91 @@ def get_low_stock(conn):
         "SELECT * FROM parts WHERE qty_on_hand <= reorder_point AND retired_at IS NULL ORDER BY name"
     ).fetchall()
 
+
+
+# ---------------------------------------------------------------------------
+# Superseded parts: "old part -> the part that replaced it" links. A part can
+# be replaced by several parts and a replacement can itself be replaced, so a
+# lookup follows the links all the way to the end. Stock is never combined or
+# moved; this only lets the screens say "not here, but its replacement is".
+# ---------------------------------------------------------------------------
+
+def _supersession_edges(conn):
+    """{old_part_id: [new_part_id, ...]} for every link."""
+    edges = {}
+    for r in conn.execute("SELECT old_part_id, new_part_id FROM part_supersessions ORDER BY created_at, new_part_id").fetchall():
+        edges.setdefault(r["old_part_id"], []).append(r["new_part_id"])
+    return edges
+
+
+def _chain_ids(edges, start_id):
+    """Every part reached by following 'superseded by' links from start_id,
+    nearest first, each once (a loop in old data can't hang this)."""
+    seen = {start_id}
+    order = []
+    frontier = [start_id]
+    while frontier:
+        nxt = []
+        for pid in frontier:
+            for n in edges.get(pid, []):
+                if n not in seen:
+                    seen.add(n)
+                    order.append(n)
+                    nxt.append(n)
+        frontier = nxt
+    return order
+
+
+def part_chain(conn, part_id):
+    """The full 'superseded by' chain after part_id as part rows (nearest
+    first), whatever their stock or retired state."""
+    ids = _chain_ids(_supersession_edges(conn), part_id)
+    if not ids:
+        return []
+    marks = ",".join("?" * len(ids))
+    by_id = {r["id"]: r for r in conn.execute(f"SELECT * FROM parts WHERE id IN ({marks})", ids).fetchall()}
+    return [by_id[i] for i in ids if i in by_id]
+
+
+def replacement_hints(conn, part_ids):
+    """{part_id: [replacement, ...]} for each given part that has been
+    superseded. Each replacement is {"id","barcode","name","qty","unit"}: every
+    direct replacement (even with 0 on hand) plus any part further along the
+    chain that has stock. Retired replacements are skipped (they can't be
+    used). Apprentices never get anything: they must not see superseded parts."""
+    from flask import has_request_context
+    if has_request_context() and is_apprentice_limited():
+        return {}
+    part_ids = list(part_ids)
+    if not part_ids:
+        return {}
+    edges = _supersession_edges(conn)
+    if not edges:
+        return {}
+    chains = {pid: _chain_ids(edges, pid) for pid in part_ids if pid in edges}
+    wanted = {i for ids in chains.values() for i in ids}
+    if not wanted:
+        return {}
+    marks = ",".join("?" * len(wanted))
+    info = {r["id"]: r for r in conn.execute(
+        f"SELECT * FROM parts WHERE id IN ({marks}) AND retired_at IS NULL", list(wanted)).fetchall()}
+    out = {}
+    for pid, ids in chains.items():
+        direct = set(edges.get(pid, []))
+        rows = [info[i] for i in ids if i in info and (i in direct or info[i]["qty_on_hand"] > 0)]
+        if rows:
+            out[pid] = [{"id": r["id"], "barcode": r["barcode"], "name": r["name"],
+                         "qty": r["qty_on_hand"], "unit": r["unit"] or ""} for r in rows]
+    return out
+
+
+def replacement_lines(items):
+    """['Superseded by N-123 (Brake pad, new) - 5 ea on hand', ...], one line per replacement."""
+    return [f"Superseded by {h['barcode']} ({h['name']}) - {h['qty']:g} {h['unit']} on hand".replace("  ", " ")
+            for h in (items or [])]
+
+
+app.jinja_env.globals["replacement_lines"] = replacement_lines
 
 
 # ---------------------------------------------------------------------------
@@ -749,6 +850,20 @@ def apprentice_general_parts(conn, project_id):
     """, (project_id,)).fetchall()
 
 
+def task_maint_items_map(conn, section_ids):
+    """{task id: [{"id", "name"}, ...]} of the active maintenance items linked to each task."""
+    ids = [int(i) for i in section_ids if i]
+    out = {i: [] for i in ids}
+    if not ids:
+        return out
+    marks = ",".join("?" * len(ids))
+    for r in conn.execute(f"""SELECT l.section_id, m.id, m.name FROM project_section_maint_items l
+                              JOIN maintenance_items m ON m.id = l.maint_item_id
+                              WHERE l.section_id IN ({marks}) AND m.active = 1 ORDER BY m.name""", ids).fetchall():
+        out[r["section_id"]].append({"id": r["id"], "name": r["name"]})
+    return out
+
+
 def _apprentice_no_task_redirect():
     flash("Nothing is assigned to you there. Ask an admin to give you a task.", "warning")
     return redirect(url_for("tech_spot"))
@@ -765,6 +880,7 @@ def dashboard():
         "SELECT COUNT(*) c FROM orders WHERE status='pending'"
     ).fetchone()["c"]
     low_stock = get_low_stock(conn)
+    low_repl = replacement_hints(conn, [p["id"] for p in low_stock])
     recent_tx = conn.execute("""
         SELECT t.*, p.name as part_name, p.barcode as part_barcode, pr.name as project_name
         FROM transactions t
@@ -929,7 +1045,7 @@ def dashboard():
 
     return render_template("dashboard.html", project_count=project_count,
                            pending_orders_count=pending_orders_count, upcoming_count=upcoming_count,
-                           low_stock=low_stock, recent_activity=recent_activity,
+                           low_stock=low_stock, low_repl=low_repl, recent_activity=recent_activity,
                            reminders=reminders, upcoming_projects=upcoming_projects,
                            reschedule_requests=reschedule_requests,
                            owner_requests=owner_requests,
@@ -1778,6 +1894,12 @@ def calendar_page():
             for p in projects:
                 if basic or p["id"] in mine:
                     p["link_ok"] = p["id"] in mine
+                    if not p["link_ok"]:
+                        # Basic calendar (Frank): on someone else's job an apprentice sees the title
+                        # (and the dates it sits on) and nothing else - no aircraft, status or plane type.
+                        p["asset_display_tag"] = None
+                        p["asset_is_flight_asset"] = 0
+                        p["status"] = ""
                     keep.append(p)
             return keep
         for md in months_data:
@@ -1925,11 +2047,17 @@ def general_shop_code_print_label():
 def api_lookup(barcode):
     conn = get_db()
     part = get_part_by_barcode(conn, barcode)
+    hint = replacement_hints(conn, [part["id"]]).get(part["id"]) if part and part["qty_on_hand"] <= 0 else None  # {} for apprentices
     conn.close()
     if not part:
         return jsonify({"found": False, "barcode": barcode})
     d = part_to_dict(part, include_cost=can_see_shop_costs())
     d["found"] = True
+    # A part that is out of stock but was replaced by one that's on the shelf:
+    # a short plain hint (names and counts only, no prices).
+    # (Apprentices get no supersession data at all, not even an empty key.)
+    if not is_apprentice_limited():
+        d["replacement_hint"] = "\n".join(replacement_lines(hint)) if hint else None
     return jsonify(d)
 
 
@@ -2366,6 +2494,43 @@ def project_section_assign(project_id, section_id):
     return redirect(url_for("project_detail", project_id=project_id))
 
 
+@app.route("/projects/<int:project_id>/sections/<int:section_id>/maint-items", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_section_maint_items(project_id, section_id):
+    """Connect a task to the maintenance items of the job's aircraft it covers
+    (an Apprentice then sees just those on the aircraft page)."""
+    conn = get_db()
+    section = conn.execute("""SELECT ps.id, ps.name, p.deleted_at, p.asset_id FROM project_sections ps
+                              JOIN projects p ON p.id = ps.project_id
+                              WHERE ps.id = ? AND ps.project_id = ?""", (section_id, project_id)).fetchone()
+    if not section:
+        conn.close()
+        abort(404)
+    if section["deleted_at"]:
+        conn.close()
+        flash("That job is in Recently Deleted. Restore it first to change anything.", "warning")
+        return redirect(url_for("project_detail", project_id=project_id))
+    wanted = {int(x) for x in request.form.getlist("maint_item_id") if x.strip().isdigit()}
+    valid = set()
+    if section["asset_id"]:
+        valid = {r["id"] for r in conn.execute(
+            "SELECT id FROM maintenance_items WHERE asset_id = ? AND active = 1", (section["asset_id"],)).fetchall()}
+    if wanted - valid:
+        conn.close()
+        flash("Pick maintenance items from this job's aircraft only.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id))
+    conn.execute("DELETE FROM project_section_maint_items WHERE section_id = ?", (section_id,))
+    for mid in sorted(wanted):
+        conn.execute("INSERT INTO project_section_maint_items (section_id, maint_item_id) VALUES (?, ?)", (section_id, mid))
+    conn.commit()
+    conn.close()
+    if wanted:
+        flash(f"'{section['name']}' is now linked to {len(wanted)} maintenance item{'s' if len(wanted) != 1 else ''}.", "success")
+    else:
+        flash(f"'{section['name']}' is not linked to any maintenance items now.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 @app.route("/projects/<int:project_id>/sections/<int:section_id>/rename", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def project_section_rename(project_id, section_id):
@@ -2676,36 +2841,40 @@ def parts_list():
     if show_retired:
         parts = conn.execute("SELECT * FROM parts WHERE retired_at IS NOT NULL ORDER BY name").fetchall()
         part_covers = _part_covers(conn, parts)
+        repl_hints = replacement_hints(conn, [p["id"] for p in parts if p["qty_on_hand"] <= 0 or p["retired_at"] or show_low_stock])
         conn.close()
         return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=True,
                                show_low_stock=False,
                                part_count=part_count, total_value=total_value, part_covers=part_covers,
-                               retired_count=retired_count, expiry_stats=expiry_stats)
+                               retired_count=retired_count, expiry_stats=expiry_stats, repl_hints=repl_hints)
     if show_low_stock:
         # Dashboard's Low Stock Items box links here (QA finding
         # ux-shop-stat-boxes-by-role) - same rows get_low_stock() already
         # flags on the shop dashboard, just as a real filtered list.
         parts = get_low_stock(conn)
         part_covers = _part_covers(conn, parts)
+        repl_hints = replacement_hints(conn, [p["id"] for p in parts if p["qty_on_hand"] <= 0 or p["retired_at"] or show_low_stock])
         conn.close()
         return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=False,
                                show_low_stock=True,
                                part_count=part_count, total_value=total_value, part_covers=part_covers,
-                               retired_count=retired_count, expiry_stats=expiry_stats)
+                               retired_count=retired_count, expiry_stats=expiry_stats, repl_hints=repl_hints)
     if q:
         like = f"%{q}%"
         parts = conn.execute("""SELECT * FROM parts
                                  WHERE retired_at IS NULL AND (name LIKE ? OR barcode LIKE ? OR category LIKE ? OR location LIKE ?)
                                  ORDER BY name""", (like, like, like, like)).fetchall()
         part_covers = _part_covers(conn, parts)
+        repl_hints = replacement_hints(conn, [p["id"] for p in parts if p["qty_on_hand"] <= 0 or p["retired_at"] or show_low_stock])
         conn.close()
         return render_template("parts.html", parts=parts, q=q, by_category=None, show_retired=False,
                                show_low_stock=False,
                                part_count=part_count, total_value=total_value, part_covers=part_covers,
-                               retired_count=retired_count, expiry_stats=expiry_stats)
+                               retired_count=retired_count, expiry_stats=expiry_stats, repl_hints=repl_hints)
 
     parts = conn.execute("SELECT * FROM parts WHERE retired_at IS NULL ORDER BY category, name").fetchall()
     part_covers = _part_covers(conn, parts)
+    repl_hints = replacement_hints(conn, [p["id"] for p in parts if p["qty_on_hand"] <= 0])
     conn.close()
     # Group into categories for the click-to-expand browse view.
     by_category = {}
@@ -2715,7 +2884,7 @@ def parts_list():
     return render_template("parts.html", parts=parts, q=q, by_category=by_category, show_retired=False,
                            show_low_stock=False,
                            part_count=part_count, total_value=total_value, part_covers=part_covers,
-                           retired_count=retired_count, expiry_stats=expiry_stats)
+                           retired_count=retired_count, expiry_stats=expiry_stats, repl_hints=repl_hints)
 
 
 def _part_covers(conn, parts):
@@ -2858,8 +3027,98 @@ def part_detail(part_id):
     job_count = conn.execute(
         "SELECT COUNT(DISTINCT project_id) c FROM transactions WHERE part_id = ? AND project_id IS NOT NULL",
         (part_id,)).fetchone()["c"]
+    # Superseded-by links: direct ones (removable), the whole chain after this
+    # part, and the parts this one replaces.
+    direct_new = conn.execute(
+        """SELECT p.* FROM part_supersessions ps JOIN parts p ON p.id = ps.new_part_id
+            WHERE ps.old_part_id = ? ORDER BY p.name""", (part_id,)).fetchall()
+    direct_ids = {r["id"] for r in direct_new}
+    further = [r for r in part_chain(conn, part_id) if r["id"] not in direct_ids]
+    replaces = conn.execute(
+        """SELECT p.* FROM part_supersessions ps JOIN parts p ON p.id = ps.old_part_id
+            WHERE ps.new_part_id = ? ORDER BY p.name""", (part_id,)).fetchall()
+    repl_hint = None
+    if part["qty_on_hand"] <= 0 or part["retired_at"]:
+        repl_hint = replacement_hints(conn, [part_id]).get(part_id)
+    link_choices = []
+    if session.get("is_master_admin") or session.get("shop_role") in ("admin", "tech"):
+        link_choices = conn.execute(
+            "SELECT id, barcode, name, retired_at FROM parts WHERE id != ? ORDER BY name", (part_id,)).fetchall()
     conn.close()
-    return render_template("part_detail.html", part=part, tx=tx, photos=photos, job_count=job_count)
+    return render_template("part_detail.html", part=part, tx=tx, photos=photos, job_count=job_count,
+                           direct_new=direct_new, further=further, replaces=replaces, repl_hint=repl_hint,
+                           link_choices=link_choices)
+
+
+def _find_part_by_ref(conn, ref):
+    """A part picked in the 'superseded by' box: the text is 'BARCODE - Name'
+    (from the list), or just a barcode or just a name."""
+    ref = (ref or "").strip()
+    if not ref:
+        return None
+    code = ref.split(" - ", 1)[0].strip()
+    row = conn.execute("SELECT * FROM parts WHERE barcode = ? COLLATE NOCASE", (code,)).fetchone()
+    if row:
+        return row
+    rows = conn.execute("SELECT * FROM parts WHERE name = ? COLLATE NOCASE OR barcode = ? COLLATE NOCASE LIMIT 2",
+                        (ref, ref)).fetchall()
+    return rows[0] if len(rows) == 1 else None
+
+
+@app.route("/parts/<int:part_id>/supersede", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def part_supersede_add(part_id):
+    """Record that this part is superseded by another one."""
+    conn = get_db()
+    part = conn.execute("SELECT * FROM parts WHERE id = ?", (part_id,)).fetchone()
+    if not part:
+        conn.close()
+        abort(404)
+    new = _find_part_by_ref(conn, request.form.get("new_part"))
+    back = redirect(url_for("part_detail", part_id=part_id) + "#superseded")
+    if not new:
+        conn.close()
+        flash("Pick a part from the list to link it.", "danger")
+        return back
+    if new["id"] == part_id:
+        conn.close()
+        flash("A part cannot be superseded by itself.", "danger")
+        return back
+    if conn.execute("SELECT 1 FROM part_supersessions WHERE old_part_id = ? AND new_part_id = ?",
+                    (part_id, new["id"])).fetchone():
+        conn.close()
+        flash(f"{part['name']} is already linked to {new['name']}.", "warning")
+        return back
+    # A loop: the part picked already (directly or further along) comes from this one.
+    if part_id in _chain_ids(_supersession_edges(conn), new["id"]):
+        conn.close()
+        flash(f"Can't link these: {new['name']} is already superseded by {part['name']} (directly or through other "
+              f"parts), so linking them back would go in a circle.", "danger")
+        return back
+    conn.execute("INSERT INTO part_supersessions (old_part_id, new_part_id, created_by, created_at) VALUES (?,?,?,?)",
+                 (part_id, new["id"], session.get("user_name"), now_iso()))
+    conn.commit()
+    conn.close()
+    flash(f"Linked: {part['name']} is superseded by {new['name']}.", "success")
+    return back
+
+
+@app.route("/parts/<int:part_id>/supersede/remove", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def part_supersede_remove(part_id):
+    """Remove one link (either side of it can be opened from this part's page)."""
+    old_id = request.form.get("old_part_id", type=int)
+    new_id = request.form.get("new_part_id", type=int)
+    conn = get_db()
+    if not conn.execute("SELECT 1 FROM parts WHERE id = ?", (part_id,)).fetchone():
+        conn.close()
+        abort(404)
+    cur = conn.execute("DELETE FROM part_supersessions WHERE old_part_id = ? AND new_part_id = ? "
+                       "AND (old_part_id = ? OR new_part_id = ?)", (old_id, new_id, part_id, part_id))
+    conn.commit()
+    conn.close()
+    flash("Link removed." if cur.rowcount else "That link was already gone.", "success" if cur.rowcount else "warning")
+    return redirect(url_for("part_detail", part_id=part_id) + "#superseded")
 
 
 @app.route("/parts/<int:part_id>/print-label", methods=["POST"])
@@ -2999,6 +3258,7 @@ def part_delete(part_id):
     conn.execute("UPDATE orders SET part_id = NULL WHERE part_id = ?", (part_id,))
     conn.execute("UPDATE order_wishlist SET part_id = NULL WHERE part_id = ?", (part_id,))
     conn.execute("UPDATE photos SET part_id = NULL WHERE part_id = ?", (part_id,))
+    conn.execute("DELETE FROM part_supersessions WHERE old_part_id = ? OR new_part_id = ?", (part_id, part_id))
     conn.execute("DELETE FROM transactions WHERE part_id = ?", (part_id,))
     conn.execute("DELETE FROM parts WHERE id = ?", (part_id,))
     conn.commit()
@@ -3817,6 +4077,9 @@ def project_detail(project_id):
         mine = [dict(t) for t in apprentice_tasks(conn) if t["project_id"] == project_id]
         for t in mine:
             t["parts"] = apprentice_task_parts(conn, project_id, t["section_name"])
+        _links = task_maint_items_map(conn, [t["section_id"] for t in mine])
+        for t in mine:
+            t["maint_items"] = _links.get(t["section_id"], [])
         general_parts = apprentice_general_parts(conn, project_id)   # job-wide parts, no prices
         conn.close()
         return render_template("project_apprentice.html", project=project, tasks=mine, general_parts=general_parts)
@@ -3879,6 +4142,7 @@ def project_detail(project_id):
                   linked_squawk_kind, linked_squawk_id, linked_todo_id, assigned_to,
                   (SELECT name FROM users WHERE users.id = project_sections.assigned_to) AS assigned_name
            FROM project_sections WHERE project_id = ?""", (project_id,)).fetchall()}
+    _task_links = task_maint_items_map(conn, [m["id"] for m in section_meta.values()])
     for name, section_data in usage_by_section.items():
         meta = section_meta.get(name)
         section_data["id"] = meta["id"] if meta else None
@@ -3893,6 +4157,7 @@ def project_detail(project_id):
         section_data["notes"] = meta["notes"] if meta else None
         section_data["assigned_to"] = meta["assigned_to"] if meta else None
         section_data["assigned_name"] = meta["assigned_name"] if meta else None
+        section_data["maint_items"] = _task_links.get(meta["id"], []) if meta else []
         section_data["description"] = meta["description"] if meta else None
         # A Discrepancy that came from "Fix on this job"/"Do on this job"
         # keeps the squawk's/to-do's own Reported/Assigned/Working/
@@ -4000,9 +4265,14 @@ def project_detail(project_id):
     task_people = conn.execute(
         "SELECT id, name, shop_role FROM users WHERE active = 1 AND shop_role IS NOT NULL AND shop_role != '' ORDER BY name"
     ).fetchall()
+    project_maint_items = []
+    if project["asset_id"]:
+        project_maint_items = conn.execute(
+            "SELECT id, name FROM maintenance_items WHERE asset_id = ? AND active = 1 ORDER BY name",
+            (project["asset_id"],)).fetchall()
     conn.close()
     return render_template("project_detail.html", project=project, usage_by_section=usage_by_section,
-                           task_people=task_people,
+                           task_people=task_people, project_maint_items=project_maint_items,
                            total_cost=total_cost, tx=tx, all_parts=all_parts, photos=photos, open_orders=open_orders,
                            part_requests=part_requests, waiting_on_parts=waiting_on_parts,
                            labor_sessions=labor_sessions, labor_total_cost=labor_total_cost,
@@ -5073,8 +5343,14 @@ def asset_detail(asset_id):
         if asset_id not in apprentice_asset_ids(conn):
             conn.close()
             return _apprentice_no_task_redirect()
-        rows = conn.execute("SELECT * FROM maintenance_items WHERE asset_id = ? AND active = 1 ORDER BY name",
-                            (asset_id,)).fetchall()
+        # Only the maintenance items linked to a task assigned to this person on a job for this aircraft.
+        rows = conn.execute("""SELECT DISTINCT m.* FROM maintenance_items m
+                               JOIN project_section_maint_items l ON l.maint_item_id = m.id
+                               JOIN project_sections ps ON ps.id = l.section_id
+                               JOIN projects p ON p.id = ps.project_id
+                               WHERE m.asset_id = ? AND m.active = 1 AND ps.assigned_to = ?
+                                 AND p.asset_id = ? AND p.deleted_at IS NULL
+                               ORDER BY m.name""", (asset_id, session.get("user_id"), asset_id)).fetchall()
         items = [{"item": m, "status": maintenance_status(m, asset_meter(asset, m["hour_type"]))} for m in rows]
         my_jobs = [t for t in apprentice_tasks(conn) if t["asset_id"] == asset_id]
         conn.close()
@@ -5355,10 +5631,13 @@ def tech_spot():
     if is_apprentice_limited():
         # SHOP-08: an Apprentice sees only the tasks given to them, grouped by job.
         groups = {}
-        for t in apprentice_tasks(conn):
+        _my = apprentice_tasks(conn)
+        _links = task_maint_items_map(conn, [t["section_id"] for t in _my])
+        for t in _my:
             g = groups.setdefault(t["project_id"], {"project_id": t["project_id"], "project_name": t["project_name"],
                                                     "project_code": t["project_code"], "tasks": []})
-            g["tasks"].append(dict(t, parts=apprentice_task_parts(conn, t["project_id"], t["section_name"])))
+            g["tasks"].append(dict(t, parts=apprentice_task_parts(conn, t["project_id"], t["section_name"]),
+                                   maint_items=_links.get(t["section_id"], [])))
         for g in groups.values():
             g["general_parts"] = apprentice_general_parts(conn, g["project_id"])
         conn.close()
@@ -7304,7 +7583,7 @@ def shop_pay():
     A shop admin can also jump straight to one laborer's pay (laborer_id),
     same idea as a CFI's own Pay page."""
     start, end, period, label = _shop_period("this_week")
-    admin_view = bool(session.get("is_master_admin") or session.get("shop_role") == "admin")
+    admin_view = bool(session.get("is_master_admin") or session.get("shop_role") == "admin") and not request.args.get("mine")
     laborer_id = request.args.get("laborer_id", type=int) if admin_view else None
     laborer_name = None
     conn = get_db()
@@ -8385,6 +8664,10 @@ def admin_user_new():
     # "Add CFI" / "New Laborer" elsewhere in the app land here with the
     # role picked already (?flight_role=cfi, ?shop_role=tech&badge=new).
     shop_roles, _, flight_roles, _ = _form_roles(request.args)
+    # A link can pre-tick a role, but never an admin role: Shop Admin and
+    # Flight Admin start unticked and are only ever ticked by hand.
+    shop_roles = ",".join(r for r in (shop_roles or "").split(",") if r and r != "admin") or None
+    flight_roles = ",".join(r for r in (flight_roles or "").split(",") if r and r != "admin") or None
     preset = _role_preset(shop_roles, flight_roles, badge=request.args.get("badge", ""), badge_rate="", cfi_pay_rate="")
     conn = get_db()
     pay_ctx = _pay_link_context(conn)
@@ -8523,8 +8806,8 @@ def _account_programs(user_row):
     shown on the centralized My Account page. Read-only: access is still
     changed by an admin in Admin > Accounts."""
     is_admin = bool(user_row["is_master_admin"])
-    shop_labels = {"admin": "Admin", "tech": "Tech", "inspector": "Inspector", "apprentice": "Apprentice"}
-    flight_labels = {"cfi": "Instructor (CFI)", "student": "Student"}
+    shop_labels = {"admin": "Shop Admin", "tech": "Tech", "inspector": "Inspector", "apprentice": "Apprentice"}
+    flight_labels = {"admin": "Flight Admin", "cfi": "Instructor (CFI)", "student": "Student"}
     progs = []
     if is_admin or user_row["shop_role"]:
         progs.append(dict(key="shop", name="Winds Aloft", icon="bi-tools",
@@ -8534,9 +8817,11 @@ def _account_programs(user_row):
         progs.append(dict(key="flight", name="Fly with Kate!", icon="bi-airplane-engines",
                           url=url_for("flight.dashboard"),
                           role="Master admin" if is_admin else " + ".join(flight_labels.get(r, r.title()) for r in user_flight_roles(user_row))))
-    if is_admin or user_row["academy_access"]:
+    flight_admin = "admin" in user_flight_roles(user_row)
+    if is_admin or user_row["academy_access"] or flight_admin:
         progs.append(dict(key="academy", name="Flight Academy", icon="bi-mortarboard",
-                          url=url_for("academy_page"), role="Master admin" if is_admin else "Access granted"))
+                          url=url_for("academy_page"),
+                          role="Master admin" if is_admin else ("Flight Admin" if flight_admin else "Access granted")))
     if is_admin:
         progs.append(dict(key="admin", name="Admin", icon="bi-shield-lock-fill",
                           url=url_for("admin_home"), role="Owner" if user_row["id"] == owner_user_id() else "Master admin"))
@@ -9594,13 +9879,15 @@ def _remove_flight_logins(conn, user_ids, role):
     that also has shop access, another flight profile, or is a master
     admin is kept and just loses the flight role."""
     for uid in {u for u in user_ids if u}:
-        user = conn.execute("SELECT id, is_master_admin, shop_role, flight_role FROM users WHERE id = ?",
+        user = conn.execute("SELECT id, is_master_admin, shop_role, flight_role, flight_roles FROM users WHERE id = ?",
                             (uid,)).fetchone()
         if not user:
             continue
         still_linked = conn.execute("""SELECT (SELECT COUNT(*) FROM cfis WHERE user_id = ?)
                                              + (SELECT COUNT(*) FROM students WHERE user_id = ?) AS n""",
                                     (uid, uid)).fetchone()["n"]
+        if "admin" in user_flight_roles(user):
+            continue  # a Flight Admin login is never deleted by a data reset
         if not user["is_master_admin"] and not (user["shop_role"] or "").strip() and not still_linked:
             conn.execute("DELETE FROM push_subscriptions WHERE user_id = ?", (uid,))
             conn.execute("DELETE FROM push_pending WHERE user_id = ?", (uid,))
@@ -9621,6 +9908,8 @@ def _wipe_flight_log(conn, where="1=1", params=()):
         ph = _ids_placeholders(ids)
         conn.execute(f"UPDATE student_ledger SET flight_id = NULL WHERE flight_id IN ({ph})", ids)
         conn.execute(f"UPDATE pilot_logbook SET flight_id = NULL WHERE flight_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM flight_charge_requests WHERE flight_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM flight_payment_confirmations WHERE flight_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM flights WHERE id IN ({ph})", ids)
     return len(ids)
 

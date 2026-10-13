@@ -492,6 +492,14 @@ def _migrate(conn):
         conn.execute("ALTER TABLE project_sections ADD COLUMN linked_squawk_id INTEGER")
         conn.execute("ALTER TABLE project_sections ADD COLUMN linked_todo_id INTEGER REFERENCES plane_todos(id)")
         conn.commit()
+    # Which maintenance items a task (project_sections row) is connected to, so an
+    # Apprentice's aircraft page can show just those. Safe on an existing database.
+    conn.execute("""CREATE TABLE IF NOT EXISTS project_section_maint_items (
+        section_id INTEGER NOT NULL REFERENCES project_sections(id),
+        maint_item_id INTEGER NOT NULL REFERENCES maintenance_items(id),
+        PRIMARY KEY (section_id, maint_item_id)
+    )""")
+    conn.commit()
     if "completed_by" not in [r["name"] for r in conn.execute("PRAGMA table_info(projects)").fetchall()]:
         conn.execute("ALTER TABLE projects ADD COLUMN completed_by TEXT")
         conn.commit()
@@ -924,6 +932,49 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_field_change_log_entity ON field_change_log(entity_type, entity_id, field_name)")
     conn.commit()
 
+    # FLY-07: a student asks to pay a flight by card through Wave; a master
+    # admin / Flight Admin approves it (which is when the Wave invoice is made).
+    conn.execute("""CREATE TABLE IF NOT EXISTS flight_charge_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        flight_id INTEGER NOT NULL REFERENCES flights(id),
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        amount_cents INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending', -- pending | approved | declined | failed
+        consent_text TEXT,
+        consent_at TEXT,
+        created_at TEXT NOT NULL,
+        decided_by TEXT,
+        decided_at TEXT,
+        decline_reason TEXT,
+        wave_local_invoice_id INTEGER,
+        failure_message TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_charge_requests_flight ON flight_charge_requests(flight_id, status)")
+    conn.commit()
+
+    # Cash / check collected by someone who is not a master admin or Flight
+    # Admin posts as Paid right away; this row is the office cross-check log
+    # (flight_payments.log_collected). status: pending (not yet verified) |
+    # verified (Received at office) | missing (flagged Not received; reject_reason
+    # holds the note). Nothing here ever posts or reverses a payment.
+    conn.execute("""CREATE TABLE IF NOT EXISTS flight_payment_confirmations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        flight_id INTEGER NOT NULL REFERENCES flights(id),
+        amount REAL NOT NULL,
+        method TEXT,
+        note TEXT,
+        recorded_by TEXT,
+        recorded_by_user_id INTEGER,
+        recorded_at TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending', -- pending | verified | missing
+        decided_by TEXT,
+        decided_at TEXT,
+        reject_reason TEXT,
+        recorder_seen_at TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_flight_payment_confirmations_flight ON flight_payment_confirmations(flight_id, status)")
+    conn.commit()
+
     # Phone push notifications for flying sessions (30 min left / time's up /
     # overdue) - opt-in per user (notify_push_session_alerts), one row per
     # subscribed browser/device in push_subscriptions (Web Push, RFC 8030),
@@ -1138,6 +1189,15 @@ def _migrate(conn):
         item_id INTEGER NOT NULL REFERENCES acs_element_lesson_items(id),
         done_at TEXT NOT NULL,
         PRIMARY KEY (student_id, item_id)
+    )""")
+    # An admin grants a student a whole Ground School course (one acs_ratings
+    # row): the student then sees it read-only under Flight Academy.
+    conn.execute("""CREATE TABLE IF NOT EXISTS academy_course_grants (
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        rating_id INTEGER NOT NULL REFERENCES acs_ratings(id),
+        granted_by TEXT,
+        granted_at TEXT NOT NULL,
+        PRIMARY KEY (student_id, rating_id)
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS acs_element_completion (
         student_id INTEGER NOT NULL REFERENCES students(id),
@@ -1982,6 +2042,19 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_payroll_payments_week ON payroll_payments(week_start)")
     conn.commit()
 
+    # Superseded parts: old_part_id was replaced by new_part_id (a part can be
+    # replaced by several, and chains A -> B -> C are followed to the end by
+    # app.py). Quantities are never combined; this is only a link for looking up.
+    conn.execute("""CREATE TABLE IF NOT EXISTS part_supersessions (
+        old_part_id INTEGER NOT NULL REFERENCES parts(id),
+        new_part_id INTEGER NOT NULL REFERENCES parts(id),
+        created_by TEXT,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (old_part_id, new_part_id)
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_part_supersessions_new ON part_supersessions(new_part_id)")
+    conn.commit()
+
     # Found items / owner approvals (see found_item_* routes in app.py and
     # customer.customer_found_item_decide): something extra a tech found on
     # a job, priced, sent to the plane's owner on the customer portal to
@@ -2510,7 +2583,7 @@ def _migrate_flight_accounts_to_users(conn):
 # the session to that role for real (not read-only).
 # ---------------------------------------------------------------------------
 SHOP_ROLE_ORDER = ("admin", "tech", "inspector", "apprentice")
-FLIGHT_ROLE_ORDER = ("cfi", "student")
+FLIGHT_ROLE_ORDER = ("admin", "cfi", "student")
 
 
 def _row_get(row, key):
@@ -2548,14 +2621,15 @@ def ensure_flight_profile(conn, user_row):
     profile row to hold their rate info, creating an empty one if needed
     (e.g. an admin just granted someone CFI access from the accounts page).
 
-    Idea "shop admin skip launcher": a shop admin with no Fly with Kate!
-    role of their own also gets a cfis row - is_station=1 (never offered
-    as a bookable instructor, no pay-rate or listing anywhere real CFIs
-    show up) and no pay rate, the same "instructor without billing" view
-    any unbilled CFI gets. HUB-01 gives a master admin with no Fly with
-    Kate! role the same hidden profile, so every Fly with Kate! page opens
-    for them instead of bouncing to the picker. Setting a real Fly with
-    Kate! role on the accounts page overrides this, same as for anyone."""
+    A Flight Admin (or a master admin) with no instructor profile of their
+    own gets a cfis row - is_station=1 (never offered as a bookable
+    instructor, no pay-rate or listing anywhere real CFIs show up) and no
+    pay rate, the same "instructor without billing" view any unbilled CFI
+    gets - so every Fly with Kate! page opens for them instead of bouncing
+    to the picker (HUB-01). A Shop Admin does not get one: Winds Aloft's
+    admin has no Fly with Kate! access of their own. Setting a real Fly
+    with Kate! role on the accounts page overrides this, same as for
+    anyone."""
     flight_roles = user_flight_roles(user_row)
     if "cfi" in flight_roles:
         row = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
@@ -2575,7 +2649,12 @@ def ensure_flight_profile(conn, user_row):
                 (user_row["name"], user_row["username"], user_row["password_hash"], user_row["active"],
                  user_row["id"], now_iso()))
             conn.commit()
-    if not flight_roles and (user_row["shop_role"] == "admin" or user_row["is_master_admin"]):
+    # A Flight Admin with no instructor/student profile of their own (and a
+    # master admin with no Fly with Kate! role) gets the hidden profile so
+    # every Fly with Kate! page opens. A Shop Admin does NOT: Winds Aloft's
+    # admin has no Fly with Kate! access of their own.
+    if "cfi" not in flight_roles and (
+            "admin" in flight_roles or (user_row["is_master_admin"] and "student" not in flight_roles)):
         row = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
         if not row:
             conn.execute(

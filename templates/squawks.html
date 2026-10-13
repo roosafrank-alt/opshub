@@ -83,7 +83,7 @@
       <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.event_date|usdate }} &middot;
         {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
         {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
-      <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+      <div class="pre-wrap-text">{{ sq.notes or '(no details given)' }}</div>
       {{ squawk_reopened_line(sq) }}
       {{ squawk_assigned_line(sq) }}
       {{ squawk_estimate(sq, can_assign_squawks) }}

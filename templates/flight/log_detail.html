@@ -4,10 +4,10 @@
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-journal-text"></i> Flight Detail</h4>
   <div class="d-flex gap-2">
-    {% if session.get('is_master_admin') or session.get('cfi_id') %}
+    {% if flight_admin or session.get('cfi_id') %}
     <a href="{{ url_for('flight.log_edit', flight_id=f.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit Flight</a>
     {% endif %}
-    {% if session.get('is_master_admin') %}
+    {% if flight_admin %}
     <form method="post" action="{{ url_for('flight.log_delete', flight_id=f.id) }}" class="mb-0" data-change="DESIGN-3 DESIGN-4" data-confirm="Delete this flight forever ({{ f.flight_date|usdate }}, {{ f.plane_tag }}, {{ f.student_name }})? Its ${{ '%.2f'|format(f.total) }} charge comes off the student's account. This can't be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
       <button class="btn btn-danger btn-sm"><i class="bi bi-trash"></i> Delete Forever</button>
     </form>
@@ -21,7 +21,7 @@
     <div class="card p-3 mb-3">
       <h6 class="text-muted mb-2">Flight</h6>
       <table class="table table-sm mb-0">
-        <tr><th style="width:35%;">Date</th><td>{{ f.flight_date|usdate }}</td></tr>
+        <tr><th class="col-35">Date</th><td>{{ f.flight_date|usdate }}</td></tr>
         <tr><th>Plane</th><td>{{ f.plane_tag }}{% if f.plane_name and f.plane_name != f.plane_tag %} <span class="text-muted">({{ f.plane_name }})</span>{% endif %}</td></tr>
         <tr><th>Student</th><td>{{ f.student_name }}</td></tr>
         <tr><th>Instructor</th><td>{% if f.solo %}<span class="badge bg-secondary">Solo (no instructor)</span>{% else %}{{ f.cfi_name or '-' }}{% endif %}</td></tr>
@@ -53,7 +53,7 @@
     <div class="card p-3 mb-3">
       <h6 class="text-muted mb-2"><i class="bi bi-stopwatch"></i> Start/Stop Clock</h6>
       <table class="table table-sm mb-0">
-        <tr><th style="width:35%;">Started</th><td data-change="FLY-26">{{ f.started_at|usdate }} {{ f.started_at|time12 }}</td></tr>
+        <tr><th class="col-35">Started</th><td data-change="FLY-26">{{ f.started_at|usdate }} {{ f.started_at|time12 }}</td></tr>
         <tr><th>Ended</th><td>{% if f.ended_at %}{{ f.ended_at|usdate }} {{ f.ended_at|time12 }}{% else %}(still running){% endif %}</td></tr>
         <tr><th>Elapsed</th><td data-change="FLY-26">{% if f.instructor_clock_hours is not none %}{% set el_min = (f.instructor_clock_hours * 60)|round|int %}{% if el_min >= 60 %}{{ el_min // 60 }} hr {{ el_min % 60 }} min{% else %}{{ el_min }} min{% endif %} ({{ '%.2f'|format(f.instructor_clock_hours) }} hrs){% else %}-{% endif %}</td></tr>
       </table>
@@ -80,7 +80,7 @@
           {% endif %}
         </td></tr>
         <tr class="table-light"><th>Total</th><td class="fs-5"><strong>${{ '%.2f'|format(f.total) }}</strong></td></tr>
-        <tr><th>Status</th><td>{% if f.paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}</td></tr>
+        <tr><th>Status</th><td>{% if f.paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Unpaid</span>{% endif %}{% if f.paid and f.office %} <span class="badge {{ 'bg-success' if f.office == 'verified' else ('bg-danger' if f.office == 'missing' else 'bg-secondary') }}" data-change="CASH-VERIFY" title="Cash/check cross-check by the office">{{ 'Office verified' if f.office == 'verified' else ('Not received at office' if f.office == 'missing' else 'Not yet verified') }}</span>{% endif %}</td></tr>
       </table>
       {% if f.paid %}
       <form method="post" action="{{ url_for('flight.log_toggle_paid', flight_id=f.id) }}" class="mt-2" data-confirm="Mark this flight as UNPAID? The payment recorded for it comes back off the student's account and it shows as owed again." data-confirm-title="Mark Unpaid" data-confirm-ok="Yes, mark unpaid" data-confirm-style="warning" data-change="FLY-11">

@@ -27,7 +27,7 @@ from werkzeug.security import generate_password_hash
 
 from db import get_db, now_iso, asset_meter, maintenance_status
 import auth
-from auth import (authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked,
+from auth import (authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked, is_flight_admin,
                    view_as_active_program, refresh_or_expire_session, person_view_active)
 from pilotlog import NEXT_TRACK, TRACK_MAP
 import weather
@@ -429,7 +429,7 @@ def _notify_schedule_request(conn, sched, verb, note):
         cfi = conn.execute("SELECT user_id FROM cfis WHERE id = ?", (sched["cfi_id"],)).fetchone()
         if cfi and cfi["user_id"]:
             recipients.add(cfi["user_id"])
-    admins = conn.execute("SELECT id FROM users WHERE active = 1 AND is_master_admin = 1").fetchall()
+    admins = conn.execute("SELECT id FROM users WHERE active = 1 AND (is_master_admin = 1 OR flight_role = 'admin' OR ',' || COALESCE(flight_roles, '') || ',' LIKE '%,admin,%')").fetchall()
     recipients.update(a["id"] for a in admins)
     for uid in recipients:
         try:
@@ -1431,7 +1431,7 @@ def cfi_required(f):
             return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
-        if not (session.get("cfi_id") or session.get("is_master_admin")):
+        if not (session.get("cfi_id") or is_flight_admin()):
             flash("Log in as a CFI to do that.", "danger")
             return redirect(url_for("home_launcher"))
         return f(*args, **kwargs)
@@ -1447,7 +1447,7 @@ def cfi_or_admin_required(f):
             return expired
         if _owner_preview_blocked():
             return _owner_preview_redirect()
-        if not (session.get("cfi_id") or session.get("is_master_admin")):
+        if not (session.get("cfi_id") or is_flight_admin()):
             flash("Log in as a CFI to do that.", "danger")
             return redirect(url_for("home_launcher"))
         return f(*args, **kwargs)
@@ -1478,9 +1478,32 @@ def login_required(f):
 
 
 def admin_required(f):
-    """Master admins only - see auth.py. Kept here (rather than importing
-    auth.master_admin_required directly) so it redirects back into Flight
-    School instead of the shop dashboard."""
+    """Flight Admin and master admins - the people who run Fly with Kate!
+    (planes, students, schedule overrides, the program's settings) and
+    Flight Academy. A Shop Admin, CFI or student is turned away. Kept here
+    (rather than importing auth.master_admin_required directly) so it
+    redirects back into Flight School instead of the shop dashboard."""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not session.get("user_id"):
+            return redirect(url_for("home_launcher"))
+        expired = refresh_or_expire_session()
+        if expired:
+            return expired
+        if _owner_preview_blocked():
+            return _owner_preview_redirect()
+        if not is_flight_admin():
+            flash("That's for the Flight Admin only.", "danger")
+            return redirect(url_for("flight.dashboard") if (session.get("cfi_id") or session.get("student_id")) else url_for("home_launcher"))
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def master_admin_only(f):
+    """Master admins only, even inside Fly with Kate!: the instructor roster,
+    adding/editing an instructor's login and pay rate, and paying instructors.
+    These are staff-account and payroll administration, which belong to the
+    whole system, not to one program, so a Flight Admin does not get them."""
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
@@ -1491,8 +1514,8 @@ def admin_required(f):
         if _owner_preview_blocked():
             return _owner_preview_redirect()
         if not session.get("is_master_admin"):
-            flash("That's admin-only.", "danger")
-            return redirect(url_for("flight.dashboard"))
+            flash("That's for the master admin only.", "danger")
+            return redirect(url_for("flight.dashboard") if (session.get("cfi_id") or session.get("student_id")) else url_for("home_launcher"))
         return f(*args, **kwargs)
     return wrapper
 
@@ -1688,7 +1711,7 @@ def _dashboard_context(conn, cfi, student):
     plane_maint = _plane_maint_warnings(conn)
     # 100-hr hours-left badges - master admins only.
     hundred_badges = []
-    if session.get("is_master_admin"):
+    if is_flight_admin():
         for a in _school_planes(conn):
             st = hundred_hr_status(conn, a)
             if st or a["grounded_at"]:
@@ -1837,7 +1860,7 @@ def _dashboard_context(conn, cfi, student):
         # or Upcoming once cancelled.
         unconfirmed_flights = []
         recently_cancelled_flights = []
-        if session.get("is_master_admin"):
+        if is_flight_admin():
             unconfirmed_flights = conn.execute("""
                 SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name, c.name as cfi_name
                 FROM scheduled_flights sf
@@ -1964,7 +1987,7 @@ def _dashboard_context(conn, cfi, student):
     # own next lesson, a student theirs. Master admins can flip it to the
     # whole school's next block (?next=school / ?next=mine, remembered for
     # this login - see dashboard()).
-    next_scope = "school" if (session.get("is_master_admin") and session.get("next_scope") == "school") else "mine"
+    next_scope = "school" if (is_flight_admin() and session.get("next_scope") == "school") else "mine"
     next_lesson = None
     now_dt = datetime.now()
     today_s = now_dt.strftime("%Y-%m-%d")
@@ -2120,7 +2143,7 @@ def dashboard():
     if request.args.get("scope") in ("all", "mine"):
         session["dash_scope"] = request.args["scope"]
     # ?next=mine|school - master admins' toggle for the Next Lesson countdown.
-    if request.args.get("next") in ("mine", "school") and session.get("is_master_admin"):
+    if request.args.get("next") in ("mine", "school") and is_flight_admin():
         session["next_scope"] = request.args["next"]
     conn = get_db()
     cfi = current_cfi(conn)
@@ -2146,7 +2169,7 @@ def dashboard_live():
     flipping it is an in-place fetch instead of a full navigation - see the
     next-scope-btn click handler in dashboard.html - and doesn't reset the
     page's scroll position."""
-    if request.args.get("next") in ("mine", "school") and session.get("is_master_admin"):
+    if request.args.get("next") in ("mine", "school") and is_flight_admin():
         session["next_scope"] = request.args["next"]
     # FLY-29: the All / Mine toggle swaps in place the same way.
     if request.args.get("scope") in ("all", "mine"):
@@ -2295,7 +2318,7 @@ def _student_form_context(conn, student, **extra):
     (the submitted values, SCHOOL-15) and ``error_field``."""
     ctx = dict(student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES,
                pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES,
-               can_bill=can_manage_billing(), is_admin=bool(session.get("is_master_admin")),
+               can_bill=can_manage_billing(), is_admin=bool(is_flight_admin()),
                today=date.today().isoformat(), form=None, error_field=None)
     if student:
         student_id = student["id"]
@@ -2316,6 +2339,10 @@ def _student_form_context(conn, student, **extra):
                                               (student_id,)).fetchall()
         # SCHOOL-01: Add Funds offers to apply the money to these.
         ctx["unpaid_flights"] = flight_payments.unpaid_flights_for_student(conn, student_id) if ctx["can_bill"] else []
+        if ctx["is_admin"] and not student["is_station"]:
+            ctx["grant_courses"] = conn.execute("SELECT id, name FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall()
+            ctx["granted_ids"] = {r["rating_id"] for r in conn.execute(
+                "SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (student_id,)).fetchall()}
     else:
         ctx["starting_password"] = _new_starting_password()
     ctx.update(extra)
@@ -2336,7 +2363,7 @@ def student_new():
         password = request.form.get("password", "")
         # SCHOOL-12: rates are money - admin-only, on this form and on the
         # rate detail pages alike. A CFI's form shows them read-only.
-        is_admin = bool(session.get("is_master_admin"))
+        is_admin = bool(is_flight_admin())
         rate_override = _parse_float(request.form.get("rate_override")) if is_admin else None
         plane_rate_override = _parse_float(request.form.get("plane_rate_override")) if is_admin else None
         sim_rate_override = _parse_float(request.form.get("sim_rate_override")) if is_admin else None
@@ -2431,6 +2458,42 @@ def student_tsa_verify(student_id):
     return jsonify({"ok": True, "tsa_verified_date": verified_date})
 
 
+@flight_bp.route("/students/<int:student_id>/course-grants", methods=["POST"])
+@admin_required
+def student_course_grants_save(student_id):
+    """Admin only: which whole Ground School courses this student can read
+    under Flight Academy. The checkboxes shown are the full list, so
+    unchecked means removed."""
+    conn = get_db()
+    student = conn.execute("SELECT * FROM students WHERE id = ?", (student_id,)).fetchone()
+    if not student:
+        conn.close()
+        flash("Student not found.", "danger")
+        return redirect(url_for("flight.students_list"))
+    courses = conn.execute("SELECT id, name FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall()
+    wanted = {int(x) for x in request.form.getlist("rating_id") if x.isdigit()}
+    have = {r["rating_id"] for r in conn.execute(
+        "SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (student_id,)).fetchall()}
+    added, removed = [], []
+    for c in courses:
+        if c["id"] in wanted and c["id"] not in have:
+            conn.execute("INSERT INTO academy_course_grants (student_id, rating_id, granted_by, granted_at) VALUES (?,?,?,?)",
+                         (student_id, c["id"], session.get("user_name"), now_iso()))
+            added.append(c["name"])
+        elif c["id"] not in wanted and c["id"] in have:
+            conn.execute("DELETE FROM academy_course_grants WHERE student_id = ? AND rating_id = ?", (student_id, c["id"]))
+            removed.append(c["name"])
+    conn.commit()
+    conn.close()
+    parts = []
+    if added:
+        parts.append("Granted: " + ", ".join(added))
+    if removed:
+        parts.append("Removed: " + ", ".join(removed))
+    flash(f"{student['name']} - " + ("; ".join(parts) + "." if parts else "no change to Flight Academy courses."), "success")
+    return redirect(url_for("flight.student_edit", student_id=student_id) + "#courses")
+
+
 @flight_bp.route("/students/<int:student_id>/edit", methods=["GET", "POST"])
 @cfi_required
 def student_edit(student_id):
@@ -2446,7 +2509,7 @@ def student_edit(student_id):
         return redirect(url_for("flight.students_list"))
     if request.method == "POST":
         name = request.form.get("name", "").strip()
-        is_admin = bool(session.get("is_master_admin"))
+        is_admin = bool(is_flight_admin())
         # SCHOOL-12: rates are admin-only - a CFI's save leaves them as they
         # were (their form shows them read-only).
         if is_admin:
@@ -2636,13 +2699,16 @@ def student_add_funds(student_id):
             pass
     method = (request.form.get("paid_method") or "").strip()[:40] or ("Card" if request.form.get("paid_by_card") == "1" else None)
     r = flight_payments.apply_funds_to_flights(conn, student_id, amount, apply_ids, method=method, note=note,
-                                               created_by=session.get("user_name"))
+                                               created_by=session.get("user_name"), can_confirm=bool(is_flight_admin()),
+                                               user_id=session.get("user_id"))
     if not r["ok"]:
         conn.rollback()
         conn.close()
         flash(r["error"], "danger")
         return redirect(url_for("flight.student_edit", student_id=student_id) + "#account")
     conn.commit()
+    for cid in r.get("logged_ids", []):
+        _notify_cash_check_pending(conn, cid)
     conn.close()
     msg = f"Added ${amount:,.2f} to {student['name']}'s account."
     if r["paid"]:
@@ -2706,7 +2772,7 @@ def student_field_detail(student_id, field_key):
         return redirect(url_for("flight.student_edit", student_id=student_id))
 
     if request.method == "POST":
-        if not session.get("is_master_admin"):
+        if not is_flight_admin():
             flash("Only an admin can change this.", "danger")
             conn.close()
             return redirect(url_for("flight.student_field_detail", student_id=student_id, field_key=field_key))
@@ -2808,7 +2874,7 @@ def _cfi_form_context(conn, cfi_row, **extra):
 
 
 @flight_bp.route("/cfis/new", methods=["GET", "POST"])
-@admin_required
+@master_admin_only
 def cfi_new():
     conn = get_db()
     if request.method == "POST":
@@ -2884,7 +2950,7 @@ def cfi_new():
 
 
 @flight_bp.route("/cfis/<int:cfi_id>/edit", methods=["GET", "POST"])
-@admin_required
+@master_admin_only
 def cfi_edit(cfi_id):
     conn = get_db()
     cfi_row = conn.execute("SELECT * FROM cfis WHERE id = ?", (cfi_id,)).fetchone()
@@ -3037,7 +3103,7 @@ def cfi_pay(cfi_id):
         flash("CFI not found.", "danger")
         return redirect(url_for("flight.dashboard"))
     is_self = session.get("cfi_id") == cfi_id
-    if not (session.get("is_master_admin") or is_self):
+    if not (session.get("is_master_admin") or (is_self and not cfi_row["is_station"])):
         conn.close()
         flash("You can only view your own pay.", "danger")
         return redirect(url_for("flight.dashboard"))
@@ -3061,7 +3127,7 @@ def cfi_pay(cfi_id):
 
 
 @flight_bp.route("/cfis/<int:cfi_id>/pay/mark-paid", methods=["POST"])
-@admin_required
+@master_admin_only
 def cfi_pay_mark_paid(cfi_id):
     """SCHOOL-23: admin "Mark period paid" - every still-owed dual flight in
     the range shown (``start``/``end`` from the form) is stamped paid to the
@@ -3281,7 +3347,7 @@ def cfi_schedule():
     if _owner_preview_blocked():
         return _owner_preview_redirect()
     raw_cfi_id = ((request.form.get("cfi_id") if request.method == "POST" else request.args.get("cfi_id")) or "").strip()
-    is_admin_view = bool(session.get("is_master_admin")) and raw_cfi_id.isdigit()
+    is_admin_view = bool(is_flight_admin()) and raw_cfi_id.isdigit()
     if not session.get("cfi_id") and not is_admin_view:
         flash("Log in as a CFI to do that.", "danger")
         return redirect(url_for("home_launcher"))
@@ -3401,12 +3467,12 @@ def cfi_time_off_delete(off_id):
         return expired
     if _owner_preview_blocked():
         return _owner_preview_redirect()
-    if not session.get("cfi_id") and not session.get("is_master_admin"):
+    if not session.get("cfi_id") and not is_flight_admin():
         flash("Log in as a CFI to do that.", "danger")
         return redirect(url_for("home_launcher"))
     conn = get_db()
     row = conn.execute("SELECT * FROM cfi_time_off WHERE id = ?", (off_id,)).fetchone()
-    if not row or (row["cfi_id"] != session.get("cfi_id") and not session.get("is_master_admin")):
+    if not row or (row["cfi_id"] != session.get("cfi_id") and not is_flight_admin()):
         conn.close()
         flash("Time off not found.", "danger")
         return redirect(url_for("flight.cfi_schedule"))
@@ -3431,7 +3497,7 @@ def planes_list():
     # "admins only for hours left"); the Down for maintenance badge itself
     # shows next to the tail number for every CFI and admin on this page.
     hundred = {}
-    if session.get("is_master_admin"):
+    if is_flight_admin():
         hundred = {p["id"]: hundred_hr_status(conn, p) for p in planes}
     conn.close()
     return render_template("flight/planes.html", planes=planes, hundred=hundred)
@@ -3739,7 +3805,7 @@ def _note_visibility(r):
     private_notes still shows to every CFI and admin same as before, plus
     now also the specific student on this booking (never a different
     student)."""
-    is_admin = bool(session.get("is_master_admin"))
+    is_admin = bool(is_flight_admin())
     my_cfi_id = session.get("cfi_id")
     my_student_id = session.get("student_id")
     notes_visible = is_admin or bool(my_cfi_id and my_cfi_id == r["cfi_id"])
@@ -3925,7 +3991,7 @@ def _hide_other_students_past_flights(rows):
     if not has_request_context():
         return rows
     my_student_id = session.get("student_id")
-    if not my_student_id or session.get("cfi_id") or session.get("is_master_admin"):
+    if not my_student_id or session.get("cfi_id") or is_flight_admin():
         return rows
     today_str = date.today().strftime("%Y-%m-%d")
     return [r for r in rows if r["scheduled_date"] >= today_str or r.get("student_id") == my_student_id]
@@ -5644,7 +5710,7 @@ def _hobbs_gaps(conn):
 def hobbs_gap_review():
     """Master admin marks an unaccounted-Hobbs gap as looked into (with an
     optional note - ferry flight, maintenance run-up, meter misread...)."""
-    if not session.get("is_master_admin"):
+    if not is_flight_admin():
         flash("Only an admin can review Hobbs gaps.", "danger")
         return redirect(url_for("flight.alerts_list"))
     from_id = request.form.get("from_flight_id", type=int)
@@ -5692,7 +5758,7 @@ def _flight_active_nav_count():
 def _alert_nav_counts():
     """Open-alert counts for the Alerts nav badge (CFIs/admins only). Open
     reports (flight_reports) count too, since they live on the Alerts page."""
-    if not (session.get("cfi_id") or session.get("is_master_admin")):
+    if not (session.get("cfi_id") or is_flight_admin()):
         return {}
     try:
         conn = get_db()
@@ -5701,7 +5767,7 @@ def _alert_nav_counts():
                                          SUM(CASE WHEN needs_review_acknowledged_at IS NULL THEN 1 ELSE 0 END) AS unacked
                                   FROM scheduled_flights WHERE status = 'scheduled' AND needs_review = 1""").fetchone()
             # Unaccounted Hobbs time counts too - master admins only.
-            gaps = len(_hobbs_gaps(conn)) if session.get("is_master_admin") else 0
+            gaps = len(_hobbs_gaps(conn)) if is_flight_admin() else 0
             reports = conn.execute("SELECT COUNT(*) c FROM flight_reports WHERE resolved_at IS NULL").fetchone()["c"]
         finally:
             conn.close()
@@ -5872,10 +5938,19 @@ def my_account():
         return redirect(url_for("flight.dashboard"))
     rows = conn.execute(_LOG_ROW_SQL + " WHERE f.student_id = ? ORDER BY f.flight_date DESC, f.id DESC LIMIT 200",
                         (student["id"],)).fetchall()
+    wave_ok = _wave_flight_connected(conn)
+    requests_by_flight = {}
+    for r in conn.execute("SELECT * FROM flight_charge_requests WHERE student_id = ? ORDER BY id", (student["id"],)).fetchall():
+        requests_by_flight[r["flight_id"]] = dict(r)  # newest wins
     conn.close()
     flights = [_row_with_cost(r) for r in rows]
     unpaid = [f for f in flights if not f["paid"]]
     paid = [f for f in flights if f["paid"]]
+    for f in unpaid:
+        f["card_request"] = requests_by_flight.get(f["id"])
+        f["can_request_card"] = bool(wave_ok and (f["ended_at"] or not f["started_at"]) and not f["wave_invoice_id"] and f["total"] > 0.005
+                                     and not (f.get("guest_name") or "").strip()
+                                     and not (f["card_request"] and f["card_request"]["status"] in ("pending", "approved")))
     return render_template("flight/my_account.html", unpaid=unpaid, paid=paid,
                            unpaid_total=round(sum(f["total"] or 0 for f in unpaid), 2),
                            balance=student["balance"] or 0.0)
@@ -5915,13 +5990,13 @@ def alerts_list():
     resolved = conn.execute(base_sql + " WHERE fa.resolved_at IS NOT NULL ORDER BY fa.resolved_at DESC"
                             + ("" if show_all else " LIMIT 50")).fetchall()
     # Unaccounted Hobbs time - master admins only (see _hobbs_gaps).
-    hobbs_gaps = _hobbs_gaps(conn) if session.get("is_master_admin") else []
+    hobbs_gaps = _hobbs_gaps(conn) if is_flight_admin() else []
     # 100-hour countdown box - master admins only.
-    hundred_rows = hundred_hr_admin_rows(conn) if session.get("is_master_admin") else []
+    hundred_rows = hundred_hr_admin_rows(conn) if is_flight_admin() else []
     hobbs_reviewed = conn.execute("""SELECT r.*, a.tag as plane_tag FROM hobbs_gap_reviews r
                                      LEFT JOIN assets a ON a.id = r.asset_id
                                      ORDER BY r.reviewed_at DESC LIMIT 10""").fetchall() \
-        if session.get("is_master_admin") else []
+        if is_flight_admin() else []
     reports_ctx = _reports_context(conn, show_all)
     conn.close()
 
@@ -5991,7 +6066,7 @@ def _reports_context(conn, show_all=False, only_user_id=None, only_name=None):
 
 def _alerts_home_url():
     """Where the merged Alerts tab lives for this login."""
-    if session.get("cfi_id") or session.get("is_master_admin"):
+    if session.get("cfi_id") or is_flight_admin():
         return url_for("flight.alerts_list")
     return url_for("flight.my_alerts")
 
@@ -6199,7 +6274,7 @@ def _weather_period_match(period, hhmm):
 
 
 def _weather_staff_only():
-    if not (session.get("cfi_id") or session.get("is_master_admin")):
+    if not (session.get("cfi_id") or is_flight_admin()):
         flash("Log in as a CFI or admin to do that.", "danger")
         return redirect(url_for("flight.schedule_calendar"))
     return None
@@ -6315,7 +6390,7 @@ def weather_rebook(scheduled_id):
     old = conn.execute("""SELECT sf.*, a.tag as plane_tag FROM scheduled_flights sf JOIN assets a ON a.id = sf.asset_id
                           WHERE sf.id = ? AND sf.status = 'cancelled' AND sf.cancel_reason = 'Weather cancellation'""",
                        (scheduled_id,)).fetchone()
-    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    staff = bool(session.get("cfi_id") or is_flight_admin())
     if not old or not (staff or old["student_id"] == session.get("student_id")):
         conn.close()
         abort(404)
@@ -6494,7 +6569,7 @@ def schedule_start(scheduled_id):
         conn.close()
         flash("That booking is no longer available to start (already started, flown, or cancelled).", "danger")
         return redirect(url_for("flight.schedule_calendar"))
-    if not (session.get("cfi_id") or session.get("is_master_admin")
+    if not (session.get("cfi_id") or is_flight_admin()
             or (sched["solo"] and session.get("student_id") == sched["student_id"])):
         conn.close()
         flash("Only a CFI, an admin, or the student (on a solo flight) can start this flight.", "danger")
@@ -6564,7 +6639,7 @@ def _can_end_flight(flight_row):
     flight - the student flying it. Everyone logged in can now SEE the Active Flight board (it's
     school-wide), but ending someone else's flight for them is limited to
     the people who'd actually know how it went."""
-    if session.get("is_master_admin"):
+    if is_flight_admin():
         return True
     my_cfi_id = session.get("cfi_id")
     if my_cfi_id and flight_row["cfi_id"] == my_cfi_id:
@@ -6770,7 +6845,7 @@ def check_session_alerts():
                     overdue_recipients.append(cfi_row["user_id"])
                 elif f["solo"]:
                     admins = conn.execute(
-                        "SELECT id FROM users WHERE active = 1 AND is_master_admin = 1 AND notify_push_late = 1"
+                        "SELECT id FROM users WHERE active = 1 AND (is_master_admin = 1 OR flight_role = 'admin' OR ',' || COALESCE(flight_roles, '') || ',' LIKE '%,admin,%') AND notify_push_late = 1"
                     ).fetchall()
                     overdue_recipients.extend(a["id"] for a in admins)
                 for uid in overdue_recipients:
@@ -7424,11 +7499,19 @@ def log_end(flight_id):
             return redirect(back)
     # FLY-07: a student ending their own solo flight never takes payment - it
     # always logs Unpaid for the school to settle on Billing.
-    student_ending = bool(session.get("student_id") and not session.get("cfi_id") and not session.get("is_master_admin"))
+    student_ending = bool(session.get("student_id") and not session.get("cfi_id") and not is_flight_admin())
     paid_choice = "0" if student_ending else request.form.get("paid")
     if paid_choice not in ("0", "1"):
         conn.close()
         flash("Pick Paid or Unpaid to log the flight.", "danger")
+        return redirect(back)
+    # FLY-07: a student may ask to pay this flight by card through Wave (only
+    # when Wave is connected). Needs the consent box; the request itself is
+    # made after the flight is saved, and makes no Wave call.
+    wants_card = bool(student_ending and request.form.get("charge_choice") == "wave" and _wave_flight_connected(conn))
+    if wants_card and not request.form.get("consent"):
+        conn.close()
+        flash("Tick the box to confirm you'd like a Wave invoice for this flight, or pick \"I'll settle with the school\".", "danger")
         return redirect(back)
     payment_method = None if student_ending else ((request.form.get("payment_method") or "").strip()[:40] or None)
     payment_amount = 0.0 if student_ending else max(0.0, _parse_float(request.form.get("payment_amount")) or 0.0)
@@ -7506,6 +7589,7 @@ def log_end(flight_id):
     ended_row = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (flight_id,)).fetchone()
     cost = _row_with_cost(ended_row) if ended_row else None
     credit_applied = 0.0
+    logged_conf_id = None
     if paid_choice == "1" and cost is not None:
         # Paid has to actually be accounted for: the flight's cost covered
         # either by credit already on the student's account (their existing
@@ -7544,11 +7628,16 @@ def log_end(flight_id):
                 note += f" - simulated charge ending in {card_last4}"
             _ledger_entry(conn, ended_row["student_id"], "payment", payment_amount, note=note,
                           flight_id=flight_id, created_by=session.get("user_name"))
+            if flight_payments.needs_confirmation(payment_method, bool(is_flight_admin())):
+                logged_conf_id = flight_payments.log_collected(conn, flight_id, payment_method, payment_amount,
+                                                               collected_by=session.get("user_name"), user_id=session.get("user_id"))
     # The student's pilot logbook gets a pending, pre-filled entry.
     pilotlog.ensure_entry(conn, flight_id)
     if request.form.get("send_receipt_email") and cost is not None:
         _send_flight_receipt_email(conn, ended_row, cost, paid_choice == "1", payment_method, payment_amount, credit_applied)
     conn.commit()
+    if logged_conf_id:
+        _notify_cash_check_pending(conn, logged_conf_id)
     # Idea "billing": ending Unpaid used to just log the flight owed, with no
     # way to actually get paid short of the separate Billing page's "Invoice
     # in Wave" button later. When the CFI/admin ticks "Invoice through Wave
@@ -7586,12 +7675,23 @@ def log_end(flight_id):
         except wave_billing.WaveError as e:
             wave_invoice_ok = False
             wave_invoice_msg = f"Logged as Unpaid, but the Wave invoice wasn't made: {e}"
+    card_req_msg = None
+    if wants_card and cost is not None:
+        req_id, problem = _create_charge_request(conn, flight_id, ended_row["student_id"], session.get("user_name"))
+        if req_id:
+            conn.commit()
+            _notify_charge_request(conn, req_id)
+            card_req_msg = "Your request to pay by card through Wave was sent. Once the school approves it, Wave will email you an invoice."
+        else:
+            card_req_msg = f"Session logged, but the card request wasn't made: {problem}"
     check_hundred_hr_alerts(conn)  # 100-hour countdown alerts (admins)
     conn.close()
     if squawk:
         flash("Session ended and logged. The squawk you flagged will show up on the Maintenance side until it's acknowledged.", "success")
     else:
         flash("Session ended and logged.", "success")
+    if card_req_msg:
+        flash(card_req_msg, "success" if card_req_msg.startswith("Your request") else "warning")
     if wave_invoice_msg:
         flash(wave_invoice_msg, "success" if wave_invoice_ok else "warning")
     if wave_local_id:
@@ -7877,6 +7977,7 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
         conn.execute("UPDATE flights SET guest_name = ? WHERE id = ?", (guest_name, new_flight_id))
     new_row = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (new_flight_id,)).fetchone()
     cost = _row_with_cost(new_row) if new_row else None
+    logged_conf_id = None
     if paid and cost is not None:
         # Same "Paid has to actually be accounted for" check as ending a
         # flight from the Active Flight clock (log_end) - this form used to
@@ -7901,9 +8002,14 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
             note = f"Paid at flight ({payment_method})" if payment_method else "Paid at flight"
             _ledger_entry(conn, new_row["student_id"], "payment", payment_amount, note=note,
                           flight_id=new_flight_id, created_by=session.get("user_name"))
+            if flight_payments.needs_confirmation(payment_method, bool(is_flight_admin())):
+                logged_conf_id = flight_payments.log_collected(conn, new_flight_id, payment_method, payment_amount,
+                                                               collected_by=session.get("user_name"), user_id=session.get("user_id"))
     # The student's pilot logbook gets a pending, pre-filled entry.
     pilotlog.ensure_entry(conn, new_flight_id)
     conn.commit()
+    if logged_conf_id:
+        _notify_cash_check_pending(conn, logged_conf_id)
     check_hundred_hr_alerts(conn)  # 100-hour countdown alerts (admins)
     g.logged_flight_id = new_flight_id  # lets the caller show Book next lesson (FLY-40)
     if squawk:
@@ -7981,7 +8087,7 @@ def _can_edit_logged_flight():
     """Editing an already-logged flight (correcting Hobbs/Tach, notes,
     landings, etc. after the fact) is admin-or-any-CFI only - not students,
     even on their own solo flight."""
-    return bool(session.get("is_master_admin") or session.get("cfi_id"))
+    return bool(is_flight_admin() or session.get("cfi_id"))
 
 
 @flight_bp.route("/log/<int:flight_id>/edit", methods=["GET", "POST"])
@@ -8207,14 +8313,14 @@ def _next_lesson_preview(flight_id):
     CFI/admin only - a solo student ending their own flight doesn't see it,
     and only the instructor who actually flew it (or a master admin) can
     one-tap rebook it, not just anyone who happens to load this URL."""
-    if not flight_id or not (session.get("cfi_id") or session.get("is_master_admin")):
+    if not flight_id or not (session.get("cfi_id") or is_flight_admin()):
         return None
     conn = get_db()
     f = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (flight_id,)).fetchone()
     conn.close()
     if not f:
         return None
-    if not session.get("is_master_admin") and f["cfi_id"] != session.get("cfi_id"):
+    if not is_flight_admin() and f["cfi_id"] != session.get("cfi_id"):
         return None
     if f["ended_at"] and f["started_at"]:
         try:
@@ -8284,15 +8390,38 @@ def log_history():
     cfi = current_cfi(conn)
     # FLY-24: the latest 100 flights, with "Show older flights" adding 100 more each time.
     limit = max(100, min(request.args.get("limit", 100, type=int) or 100, 5000))
-    if cfi:
-        rows = conn.execute(_LOG_ROW_SQL + " ORDER BY f.flight_date DESC, f.id DESC LIMIT ?", (limit + 1,)).fetchall()
-    else:
+    # FLY-24: optional From / To dates, answered by the database itself so a flight
+    # older than the latest 100 is still found. Anything that isn't a real date is ignored.
+    def _iso_arg(name):
+        raw = (request.args.get(name) or "").strip()
+        try:
+            return datetime.strptime(raw, "%Y-%m-%d").strftime("%Y-%m-%d") if raw else ""
+        except ValueError:
+            return ""
+    date_from, date_to = _iso_arg("date_from"), _iso_arg("date_to")
+    if date_from and date_to and date_from > date_to:
+        date_from, date_to = date_to, date_from
+        flash("The From date was after the To date, so they were swapped.", "info")
+    where, params = [], []
+    if not cfi:
         student = current_student(conn)
-        rows = conn.execute(_LOG_ROW_SQL + " WHERE f.student_id = ? ORDER BY f.flight_date DESC, f.id DESC LIMIT ?",
-                             (student["id"], limit + 1)).fetchall()
+        where.append("f.student_id = ?")
+        params.append(student["id"])
+    if date_from:
+        where.append("substr(f.flight_date, 1, 10) >= ?")
+        params.append(date_from)
+    if date_to:
+        where.append("substr(f.flight_date, 1, 10) <= ?")
+        params.append(date_to)
+    sql = _LOG_ROW_SQL + (" WHERE " + " AND ".join(where) if where else "") + \
+        " ORDER BY f.flight_date DESC, f.id DESC LIMIT ?"
+    rows = conn.execute(sql, params + [limit + 1]).fetchall()
+    office = flight_payments.verification_map(conn) if can_manage_billing() else {}
     conn.close()
     has_older = len(rows) > limit
     flights = [_row_with_cost(r) for r in rows[:limit]]
+    for f in flights:
+        f["office"] = office.get(f["id"])
     ended_flight_id = request.args.get("ended_flight_id", type=int)
     next_lesson = _next_lesson_preview(ended_flight_id)
     wave_invoice = _ended_flight_wave_invoice(ended_flight_id)
@@ -8300,7 +8429,7 @@ def log_history():
     logged_next = _next_lesson_preview(request.args.get("logged_flight_id", type=int))
     return render_template("flight/log_history.html", flights=flights, cfi=cfi, can_bill=can_manage_billing(),
                            next_lesson=next_lesson, wave_invoice=wave_invoice, logged_next=logged_next,
-                           has_older=has_older, limit=limit)
+                           has_older=has_older, limit=limit, date_from=date_from, date_to=date_to)
 
 
 @flight_bp.route("/log/<int:flight_id>")
@@ -8323,6 +8452,7 @@ def log_detail(flight_id):
         flash("That's not your flight.", "danger")
         return redirect(url_for("flight.log_history"))
     f = _row_with_cost(row)
+    f["office"] = flight_payments.verification_map(conn).get(flight_id) if can_manage_billing() else None
     booking = (conn.execute("SELECT scheduled_date, scheduled_time FROM scheduled_flights WHERE id = ?",
                             (f["scheduled_flight_id"],)).fetchone() if f.get("scheduled_flight_id") else None)
     conn.close()
@@ -8363,6 +8493,8 @@ def log_delete(flight_id):
     summary = (f"{_us_date(f['flight_date'])} {f['plane_tag']} - {f['student_name']}"
                f"{' with ' + f['cfi_name'] if f['cfi_name'] else ' (solo)'}, {f['hours']:.1f} hr, ${f['total']:.2f}")
     _log_field_change(conn, "flight", flight_id, "deleted", summary, "", who)
+    conn.execute("DELETE FROM flight_charge_requests WHERE flight_id = ?", (flight_id,))
+    conn.execute("DELETE FROM flight_payment_confirmations WHERE flight_id = ?", (flight_id,))
     pilotlog.remove_for_flight(conn, flight_id)
     conn.execute("DELETE FROM flights WHERE id = ?", (flight_id,))
     conn.commit()
@@ -8387,6 +8519,7 @@ def log_toggle_paid(flight_id):
         flash("Flight not found.", "danger")
         return redirect(url_for("flight.log_history"))
     who = session.get("user_name")
+    conf_id = None
     if f["paid"]:
         r = flight_payments.reverse_flight_payment(conn, flight_id, created_by=who)
         flash(f"Marked {r['label']} unpaid for {r['student_name']}.", "warning")
@@ -8396,9 +8529,13 @@ def log_toggle_paid(flight_id):
         method = (request.form.get("paid_method") or request.form.get("payment_method") or "").strip()[:40] or None
         note = (request.form.get("note") or "").strip()[:120] or None
         amount = _parse_float(request.form.get("payment_amount"))
-        r = flight_payments.record_flight_payment(conn, flight_id, method=method, note=note, created_by=who, amount=amount)
+        r = flight_payments.record_and_log(conn, flight_id, method=method, note=note, created_by=who, amount=amount,
+                                           can_confirm=bool(is_flight_admin()), user_id=session.get("user_id"))
         flash(f"Marked {r['label']} paid for {r['student_name']}" + (f" ({method})" if method else "") + ".", "success")
+        conf_id = r["confirmation_id"]
     conn.commit()
+    if conf_id:
+        _notify_cash_check_pending(conn, conf_id)
     conn.close()
     return redirect(request.referrer or url_for("flight.log_history"))
 
@@ -8420,16 +8557,22 @@ def billing_mark_selected_paid():
         return redirect(back)
     method = (request.form.get("paid_method") or "").strip()[:40] or None
     who = session.get("user_name")
+    can_confirm = bool(is_flight_admin())
     conn = get_db()
-    done, total, skipped = 0, 0.0, 0
+    done, total, skipped, logged = 0, 0.0, 0, []
     for fid in ids:
-        r = flight_payments.record_flight_payment(conn, fid, method=method, created_by=who)
+        r = flight_payments.record_and_log(conn, fid, method=method, created_by=who, can_confirm=can_confirm,
+                                           user_id=session.get("user_id"))
         if not r["ok"] or r["already_paid"]:
             skipped += 1
             continue
         done += 1
         total += r["flight"]["total"]
+        if r["confirmation_id"]:
+            logged.append(r["confirmation_id"])
     conn.commit()
+    for cid in logged:
+        _notify_cash_check_pending(conn, cid)
     conn.close()
     msg = f"Marked {done} flight{'s' if done != 1 else ''} (${total:,.2f}) paid" + (f" ({method})" if method else "") + "."
     if skipped:
@@ -8498,6 +8641,9 @@ def billing():
     sql += " ORDER BY f.student_id, f.flight_date, f.id"
     rows = conn.execute(sql).fetchall()
     flights = [_row_with_cost(r) for r in rows]
+    office = flight_payments.verification_map(conn)
+    for f in flights:
+        f["office"] = office.get(f["id"])
     wave_invoices = {r["id"]: dict(r) for r in conn.execute("SELECT * FROM wave_invoices WHERE kind = 'student'").fetchall()}
     wave_accounts, wave_default = wave_billing.program_accounts(conn, "flight")
     groups = {}
@@ -8613,6 +8759,417 @@ def billing_wave_sync():
           + (f" - {paid} newly paid." if paid else " - no new payments."), "success")
     for e in errors[:3]:
         flash("Wave " + e, "warning")
+    return redirect(back)
+
+
+# ---------------------------------------------------------------------------
+# FLY-07: "Pay by card through Wave" - student asks, the school approves
+# ---------------------------------------------------------------------------
+# Wave can't charge a stored card from outside, so the card step happens on
+# Wave's own secure "Pay now" page. OpsHub never sees or stores card data.
+# A student's request is just a row in flight_charge_requests; the Wave
+# invoice is only made (and emailed by Wave) when a master admin or Flight
+# Admin approves it. The existing wave_billing sync flips the flight to Paid
+# once Wave reports the invoice paid.
+
+FLIGHT_CARD_CONSENT = ("I'd like an invoice for this flight to pay by card through Wave, "
+                       "once the school approves it.")
+_FLIGHT_ADMIN_USERS_SQL = ("SELECT * FROM users WHERE active = 1 AND (is_master_admin = 1 OR flight_role IN ('admin') "
+                           "OR ',' || COALESCE(flight_roles, '') || ',' LIKE '%,admin,%')")
+
+
+def _wave_flight_connected(conn):
+    return bool(wave_billing.program_accounts(conn, "flight")[0])
+
+
+def _in_background(fn):
+    threading.Thread(target=fn, daemon=True).start()
+
+
+def _charge_request_problem(conn, f):
+    """Why a request can't be made for this flight (plain words), or None.
+    f is a dict from flight_payments.load_flight."""
+    if not f or (f["started_at"] and not f["ended_at"]):
+        return "That flight hasn't ended yet."
+    if (f.get("guest_name") or "").strip():
+        return "Guest flights can't be paid this way."
+    if f["paid"]:
+        return "That flight is already paid."
+    if f["wave_invoice_id"]:
+        return "That flight is already on a Wave invoice - use its Pay now link."
+    if flight_payments.amount_due(conn, f) <= 0.005:
+        return "Nothing is due on that flight."
+    if conn.execute("SELECT 1 FROM flight_charge_requests WHERE flight_id = ? AND status IN ('pending', 'approved')",
+                    (f["id"],)).fetchone():
+        return "That flight already has a card request."
+    return None
+
+
+def _create_charge_request(conn, flight_id, student_id, who):
+    """Records the request (no Wave call, flight stays Unpaid) and logs it.
+    Returns (request_id, None) or (None, reason). Doesn't commit."""
+    f = flight_payments.load_flight(conn, flight_id)
+    if f and f["student_id"] != student_id:
+        return None, "That's not your flight."
+    problem = _charge_request_problem(conn, f)
+    if problem:
+        return None, problem
+    cents = int(round(flight_payments.amount_due(conn, f) * 100))
+    cur = conn.execute("""INSERT INTO flight_charge_requests
+                          (flight_id, student_id, amount_cents, status, consent_text, consent_at, created_at)
+                          VALUES (?, ?, ?, 'pending', ?, ?, ?)""",
+                       (flight_id, student_id, cents, FLIGHT_CARD_CONSENT, now_iso(), now_iso()))
+    _log_field_change(conn, "flight_charge_request", cur.lastrowid, "status", "", "requested", who)
+    return cur.lastrowid, None
+
+
+def _notify_charge_request(conn, req_id):
+    """Tells master admins and Flight Admins a card request is waiting
+    (push, plus email/text for whoever turned those on). Best effort."""
+    f = conn.execute("""SELECT r.amount_cents, s.name AS student_name, a.tag FROM flight_charge_requests r
+                        JOIN students s ON s.id = r.student_id JOIN flights fl ON fl.id = r.flight_id
+                        LEFT JOIN assets a ON a.id = fl.asset_id WHERE r.id = ?""", (req_id,)).fetchone()
+    if not f:
+        return
+    body = (f"{f['student_name']} asked to pay for a flight in {f['tag'] or 'a plane'} by card through Wave "
+            f"(${f['amount_cents'] / 100:,.2f}). Approve or decline it under Billing.")
+    users = conn.execute(_FLIGHT_ADMIN_USERS_SQL).fetchall()
+    for u in users:
+        try:
+            push.queue_and_push(conn, u["id"], "Card payment request", body, tag=f"charge-request-{req_id}",
+                                url=url_for("flight.charge_approvals"))
+        except Exception:
+            current_app.logger.exception("Charge-request push failed")
+    settings = notify.get_settings(conn)
+
+    def _send(users=users, settings=settings):
+        for u in users:
+            try:
+                notify.notify_user(settings, u, "Card payment request", body, brand="Fly with Kate!")
+            except Exception:
+                pass
+    _in_background(_send)
+
+
+def _tell_student_of_decision(conn, student_id, subject, body):
+    """In-app notice plus an email (if they have one and email is set up)."""
+    _notify_student(conn, student_id, "charge_request", body, url_for("flight.my_account"))
+    row = conn.execute("SELECT u.email FROM students s JOIN users u ON u.id = s.user_id WHERE s.id = ?",
+                       (student_id,)).fetchone()
+    if row and row["email"]:
+        settings, email = notify.get_settings(conn), row["email"]
+        _in_background(lambda: notify.send_email(settings, email, subject, body, brand="Fly with Kate!"))
+
+
+def _pending_charge_count(conn):
+    """Pending card requests. First lets any that no longer need doing (flight
+    paid another way, nothing due, already on a Wave invoice) clear themselves."""
+    if flight_payments.clear_unneeded_charge_requests(conn):
+        conn.commit()
+    return conn.execute("SELECT COUNT(*) AS c FROM flight_charge_requests WHERE status = 'pending'").fetchone()["c"]
+
+
+@flight_bp.context_processor
+def _inject_charge_request_badge():
+    """Pending-request count for the Billing menu, only for people who can approve."""
+    if not session.get("user_id") or not is_flight_admin():
+        return {}
+    try:
+        conn = get_db()
+        try:
+            return {"charge_pending_count": _pending_charge_count(conn),
+                    "cash_check_pending_count": flight_payments.pending_confirmation_count(conn)}
+        finally:
+            conn.close()
+    except Exception:
+        return {}
+
+
+@flight_bp.route("/billing/approvals")
+@admin_required
+def charge_approvals():
+    """The card-request queue: pending ones first, then the recent decisions."""
+    conn = get_db()
+    if flight_payments.clear_unneeded_charge_requests(conn):
+        conn.commit()
+    rows = conn.execute("""SELECT r.*, s.name AS student_name, fl.flight_date, a.tag AS plane_tag, fl.paid AS flight_paid,
+                                  wi.invoice_number, wi.view_url
+                           FROM flight_charge_requests r
+                           JOIN students s ON s.id = r.student_id
+                           JOIN flights fl ON fl.id = r.flight_id
+                           LEFT JOIN assets a ON a.id = fl.asset_id
+                           LEFT JOIN wave_invoices wi ON wi.id = r.wave_local_invoice_id
+                           ORDER BY r.id DESC LIMIT 200""").fetchall()
+    items = []
+    for r in rows:
+        d = dict(r)
+        f = flight_payments.load_flight(conn, r["flight_id"]) if r["status"] == "pending" else None
+        d["due_now"] = flight_payments.amount_due(conn, f) if f else None
+        d["cost"] = f
+        items.append(d)
+    conn.close()
+    return render_template("flight/charge_approvals.html",
+                           pending=[i for i in items if i["status"] == "pending"][::-1],
+                           decided=[i for i in items if i["status"] != "pending"][:30])
+
+
+@flight_bp.route("/billing/approvals/<int:req_id>/approve", methods=["POST"])
+@admin_required
+def charge_approve(req_id):
+    """Makes and sends the Wave invoice for what is due on the flight right
+    now. The request is claimed with one atomic UPDATE first, so pressing
+    Approve twice (or two admins at once) can never make two invoices."""
+    back = url_for("flight.charge_approvals")
+    who = session.get("user_name")
+    conn = get_db()
+    req = conn.execute("SELECT * FROM flight_charge_requests WHERE id = ?", (req_id,)).fetchone()
+    if not req or req["status"] != "pending":
+        conn.close()
+        flash("That request was already handled.", "warning")
+        return redirect(back)
+    f = flight_payments.load_flight(conn, req["flight_id"])
+    if not f or f["paid"]:
+        conn.close()
+        flash("That flight is already paid - nothing to invoice. You can decline the request to clear it.", "warning")
+        return redirect(back)
+    due = flight_payments.amount_due(conn, f)
+    if due <= 0.005:
+        conn.close()
+        flash("Nothing is due on that flight any more. You can decline the request to clear it.", "warning")
+        return redirect(back)
+    if f["wave_invoice_id"]:
+        conn.close()
+        flash("That flight is already on a Wave invoice. Decline the request, or use that invoice's Pay now link.", "warning")
+        return redirect(back)
+    cur = conn.execute("UPDATE flight_charge_requests SET status = 'approved', decided_by = ?, decided_at = ? "
+                       "WHERE id = ? AND status = 'pending'", (who, now_iso(), req_id))
+    conn.commit()
+    if cur.rowcount != 1:
+        conn.close()
+        flash("That request was already handled.", "warning")
+        return redirect(back)
+
+    def fail(msg):
+        conn.execute("UPDATE flight_charge_requests SET status = 'failed', failure_message = ? WHERE id = ?", (msg, req_id))
+        _log_field_change(conn, "flight_charge_request", req_id, "status", "approved", "failed: " + msg, who)
+        conn.commit()
+        conn.close()
+        flash(f"Wave didn't make the invoice, so nothing was charged and the flight is still unpaid: {msg} "
+              f"Nothing will be retried on its own.", "danger")
+        return redirect(back)
+
+    try:
+        cfg = wave_billing.choose_account(conn, "flight")
+        name, email = _student_billing_contact(conn, req["student_id"])
+        if abs(due - f["total"]) < 0.005:
+            lines = wave_billing.flight_lines(cfg, [f])
+        else:  # part already paid or covered by credit: bill just what is left
+            lines = [wave_billing._line(cfg["flight_product"],
+                                        f"{_us_date(f['flight_date'])} {f['plane_tag']} - balance due on flight", due)]
+            if not cfg["flight_product"]:
+                raise wave_billing.WaveError(f"Pick the Wave product for flight training on {cfg['name']} under Admin > Wave first.")
+        inv = wave_billing.create_invoice(conn, cfg, name, email, lines, memo="Flight training")
+    except wave_billing.WaveError as e:
+        return fail(str(e))
+    sent = False
+    if email:
+        try:
+            wave_billing.send_invoice(cfg, inv["id"], email)
+            sent = True
+        except wave_billing.WaveError:
+            pass  # the invoice exists in Wave; the Billing page still has its link
+    local_id = wave_billing.record_invoice(conn, "student", req["student_id"], inv, name, email, who, cfg, sent=sent)
+    conn.execute("UPDATE flights SET wave_invoice_id = ? WHERE id = ?", (local_id, req["flight_id"]))
+    conn.execute("UPDATE flight_charge_requests SET wave_local_invoice_id = ?, amount_cents = ? WHERE id = ?",
+                 (local_id, int(round(due * 100)), req_id))
+    _log_field_change(conn, "flight_charge_request", req_id, "status", "pending",
+                      f"approved, Wave invoice #{inv.get('invoiceNumber') or ''}", who)
+    _tell_student_of_decision(
+        conn, req["student_id"], "Your card payment request was approved",
+        f"The school approved your request to pay for your {_us_date(f['flight_date'])} flight by card. "
+        + ("Wave has emailed you the invoice - open it and use Wave's secure page to pay with a card Wave already has "
+           "for you or enter a new one." if sent else "Your invoice is ready in Wave; the school will send it to you."))
+    conn.commit()
+    conn.close()
+    flash(f"Approved. Wave invoice #{inv.get('invoiceNumber') or ''} for ${wave_billing.money(inv.get('total')):.2f}"
+          + (f" was emailed to {email}." if sent else " was made but not emailed - send it from Billing."), "success")
+    _in_background(lambda: _quick_wave_check_later(local_id))
+    return redirect(back)
+
+
+def _quick_wave_check_later(local_id):
+    """One look at Wave a little after approval; the regular 30-minute check does the rest."""
+    time.sleep(60)
+    conn = get_db()
+    try:
+        wave_billing.sync_open_invoices(conn, wave_billing.apply_paid, only_id=local_id)
+    except Exception:
+        pass
+    finally:
+        conn.close()
+
+
+@flight_bp.route("/billing/approvals/<int:req_id>/decline", methods=["POST"])
+@admin_required
+def charge_decline(req_id):
+    back = url_for("flight.charge_approvals")
+    reason = (request.form.get("reason") or "").strip()[:300]
+    if not reason:
+        flash("Type a short reason so the student knows why.", "danger")
+        return redirect(back)
+    who = session.get("user_name")
+    conn = get_db()
+    req = conn.execute("SELECT * FROM flight_charge_requests WHERE id = ?", (req_id,)).fetchone()
+    cur = conn.execute("UPDATE flight_charge_requests SET status = 'declined', decided_by = ?, decided_at = ?, decline_reason = ? "
+                       "WHERE id = ? AND status = 'pending'", (who, now_iso(), reason, req_id))
+    if cur.rowcount != 1:
+        conn.commit()
+        conn.close()
+        flash("That request was already handled.", "warning")
+        return redirect(back)
+    _log_field_change(conn, "flight_charge_request", req_id, "status", "pending", "declined: " + reason, who)
+    _tell_student_of_decision(conn, req["student_id"], "Your card payment request was declined",
+                              f"The school declined your request to pay a flight by card through Wave. Reason: {reason}")
+    conn.commit()
+    conn.close()
+    flash("Declined. The student has been told why.", "success")
+    return redirect(back)
+
+
+@flight_bp.route("/my-account/flight/<int:flight_id>/card-request", methods=["POST"])
+@login_required
+def charge_request_create(flight_id):
+    """A student asks, from My Account, to pay one ended unpaid flight by card through Wave."""
+    back = url_for("flight.my_account")
+    conn = get_db()
+    student = current_student(conn)
+    if not student:
+        conn.close()
+        flash("Only students can ask to pay this way.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    if not _wave_flight_connected(conn):
+        conn.close()
+        flash("Paying by card through Wave isn't set up yet.", "warning")
+        return redirect(back)
+    if not request.form.get("consent"):
+        conn.close()
+        flash("Tick the box to confirm you'd like a Wave invoice for this flight.", "danger")
+        return redirect(back)
+    req_id, problem = _create_charge_request(conn, flight_id, student["id"], session.get("user_name"))
+    if problem:
+        conn.close()
+        flash(problem, "warning")
+        return redirect(back)
+    conn.commit()
+    _notify_charge_request(conn, req_id)
+    conn.close()
+    flash("Request sent. Once the school approves it, Wave will email you an invoice to pay by card.", "success")
+    return redirect(back)
+
+
+# ---------------------------------------------------------------------------
+# Cash / check collected by staff - office verification log
+# ---------------------------------------------------------------------------
+# Cash or a check collected by someone who is not a master admin or Flight
+# Admin posts as Paid right away and is also logged (flight_payment_confirmations)
+# so an admin can cross-check that the office received it ("Received at
+# office") or flag it ("Not received" - the payment is not reversed).
+
+def _notify_cash_check_pending(conn, conf_id):
+    """Tells master admins and Flight Admins a cash/check entry is waiting. Best effort."""
+    c = conn.execute("""SELECT c.amount, c.method, c.recorded_by, s.name AS student_name FROM flight_payment_confirmations c
+                        JOIN flights fl ON fl.id = c.flight_id JOIN students s ON s.id = fl.student_id
+                        WHERE c.id = ?""", (conf_id,)).fetchone()
+    if not c:
+        return
+    body = (f"{c['recorded_by'] or 'Someone'} collected {c['method'] or 'a payment'} (${c['amount']:,.2f}) from "
+            f"{c['student_name']}. Please check the office received it (Cash/check collected).")
+    users = conn.execute(_FLIGHT_ADMIN_USERS_SQL).fetchall()
+    for u in users:
+        try:
+            push.queue_and_push(conn, u["id"], "Cash/check collected", body, tag=f"cash-check-{conf_id}",
+                                url=url_for("flight.cash_check_confirm"))
+        except Exception:
+            current_app.logger.exception("Cash/check push failed")
+    settings = notify.get_settings(conn)
+
+    def _send(users=users, settings=settings):
+        for u in users:
+            try:
+                notify.notify_user(settings, u, "Cash/check collected", body, brand="Fly with Kate!")
+            except Exception:
+                pass
+    _in_background(_send)
+
+
+@flight_bp.route("/billing/cash-check")
+@admin_required
+def cash_check_confirm():
+    """Cash/check collected by staff: unverified entries (with a running total per
+    collector), flagged "Not received" ones, and the recently verified."""
+    conn = get_db()
+    rows = conn.execute("""SELECT c.*, s.name AS student_name, fl.flight_date, a.tag AS plane_tag
+                           FROM flight_payment_confirmations c
+                           JOIN flights fl ON fl.id = c.flight_id JOIN students s ON s.id = fl.student_id
+                           LEFT JOIN assets a ON a.id = fl.asset_id
+                           ORDER BY c.id DESC LIMIT 500""").fetchall()
+    conn.close()
+    items = [dict(r) for r in rows]
+    sort = request.args.get("sort", "collector")
+    pending = [i for i in items if i["status"] == "pending"][::-1]
+    groups = {}
+    for i in pending:
+        g = groups.setdefault(i["recorded_by"] or "Unknown", {"name": i["recorded_by"] or "Unknown", "items": [], "total": 0.0})
+        g["items"].append(i)
+        g["total"] += i["amount"]
+    return render_template("flight/cash_check_confirm.html", sort=sort,
+                           pending=pending, groups=sorted(groups.values(), key=lambda g: g["name"].lower()),
+                           pending_total=sum(i["amount"] for i in pending),
+                           flagged=[i for i in items if i["status"] == "missing"][::-1],
+                           decided=[i for i in items if i["status"] == "verified"][:30])
+
+
+@flight_bp.route("/billing/cash-check/<int:conf_id>/verify", methods=["POST"])
+@admin_required
+def cash_check_verify(conf_id):
+    conn = get_db()
+    ok = flight_payments.verify_received(conn, conf_id, session.get("user_name"))
+    conn.commit()
+    conn.close()
+    flash("Marked received at the office." if ok else "That one was already handled.", "success" if ok else "warning")
+    return redirect(url_for("flight.cash_check_confirm"))
+
+
+@flight_bp.route("/billing/cash-check/<int:conf_id>/flag", methods=["POST"])
+@admin_required
+def cash_check_flag(conf_id):
+    """"Not received": flags the entry and tells the admins. The payment is NOT reversed."""
+    back = url_for("flight.cash_check_confirm")
+    note = (request.form.get("reason") or "").strip()[:300]
+    if not note:
+        flash("Type a short note about what is missing.", "danger")
+        return redirect(back)
+    conn = get_db()
+    row = flight_payments.flag_missing(conn, conf_id, session.get("user_name"), note)
+    if not row:
+        conn.commit()
+        conn.close()
+        flash("That one was already handled.", "warning")
+        return redirect(back)
+    info = conn.execute("""SELECT s.name AS student_name FROM flights fl JOIN students s ON s.id = fl.student_id
+                           WHERE fl.id = ?""", (row["flight_id"],)).fetchone()
+    body = (f"{row['method'] or 'Payment'} ${row['amount']:,.2f} collected by {row['recorded_by'] or 'staff'} from "
+            f"{info['student_name'] if info else 'a student'} was NOT received at the office: {note}. "
+            f"The flight is still marked paid - mark it unpaid by hand if needed.")
+    for u in conn.execute(_FLIGHT_ADMIN_USERS_SQL).fetchall():
+        try:
+            push.queue_and_push(conn, u["id"], "Cash/check not received", body, tag=f"cash-check-miss-{conf_id}",
+                                url=url_for("flight.cash_check_confirm"))
+        except Exception:
+            current_app.logger.exception("Cash/check flag push failed")
+    conn.commit()
+    conn.close()
+    flash("Flagged as not received. The payment is still posted - mark the flight unpaid yourself if needed.", "success")
     return redirect(back)
 
 
@@ -8860,13 +9417,13 @@ def stats():
 # ---------------------------------------------------------------------------
 
 @flight_bp.route("/admin/cfis")
-@admin_required
+@master_admin_only
 def admin_cfis_list():
     return redirect(url_for("admin_users_list"))
 
 
 @flight_bp.route("/admin/cfis/<int:cfi_id>/edit", methods=["GET", "POST"])
-@admin_required
+@master_admin_only
 def admin_cfi_edit(cfi_id):
     conn = get_db()
     cfi_row = conn.execute("SELECT user_id FROM cfis WHERE id = ?", (cfi_id,)).fetchone()
@@ -8998,7 +9555,7 @@ def _waitlist_filled_count(conn, since):
 @login_required
 def waitlist_page():
     conn = get_db()
-    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    staff = bool(session.get("cfi_id") or is_flight_admin())
     sql = """SELECT w.*, s.name as student_name, a.tag as plane_tag, c.name as cfi_name FROM flight_waitlist w
              JOIN students s ON s.id = w.student_id LEFT JOIN assets a ON a.id = w.asset_id
              LEFT JOIN cfis c ON c.id = w.cfi_id
@@ -9040,7 +9597,7 @@ def waitlist_page():
 @login_required
 def waitlist_join():
     conn = get_db()
-    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    staff = bool(session.get("cfi_id") or is_flight_admin())
     if staff:
         try:
             student_id = int(request.form.get("student_id") or "")
@@ -9083,7 +9640,7 @@ def waitlist_join():
 def waitlist_remove(entry_id):
     conn = get_db()
     entry = conn.execute("SELECT * FROM flight_waitlist WHERE id = ?", (entry_id,)).fetchone()
-    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    staff = bool(session.get("cfi_id") or is_flight_admin())
     if not entry or not (staff or entry["student_id"] == session.get("student_id")):
         conn.close()
         abort(404)
@@ -9103,7 +9660,7 @@ def waitlist_offer(offer_id):
     conn = get_db()
     offer = conn.execute("""SELECT o.*, a.tag as plane_tag FROM waitlist_offers o JOIN assets a ON a.id = o.asset_id
                             WHERE o.id = ?""", (offer_id,)).fetchone()
-    staff = bool(session.get("cfi_id") or session.get("is_master_admin"))
+    staff = bool(session.get("cfi_id") or is_flight_admin())
     if not offer or not (staff or offer["student_id"] == session.get("student_id")):
         conn.close()
         abort(404)
@@ -9406,7 +9963,7 @@ def check_hundred_hr_alerts(conn):
     grounded. Keyed on the last-100-hr tach, so the next cycle alerts again.
     Best effort - never breaks the flight save that triggered it."""
     try:
-        admins = conn.execute("SELECT * FROM users WHERE active = 1 AND is_master_admin = 1 "
+        admins = conn.execute("SELECT * FROM users WHERE active = 1 AND (is_master_admin = 1 OR flight_role = 'admin' OR ',' || COALESCE(flight_roles, '') || ',' LIKE '%,admin,%') "
                               "AND (notify_email = 1 OR notify_sms = 1)").fetchall()
         settings = notify.get_settings(conn)
         for a in _school_planes(conn):

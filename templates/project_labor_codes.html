@@ -16,7 +16,7 @@
 
 <div class="d-flex flex-wrap gap-3 justify-content-center">
   <div class="label-card" style="width: 240px; padding: 16px;">
-    <div style="font-weight:700;">{{ project.name }}</div>
+    <div class="bold-text">{{ project.name }}</div>
     {% if project.plane_tag %}<div class="text-muted small">{{ project.plane_tag }}</div>{% endif %}
     <div class="text-muted small mb-1">General (whole project)</div>
     <div class="task-qr d-flex justify-content-center my-2" data-code="TASK-{{ project.code }}"></div>
@@ -27,7 +27,7 @@
   {% for sec in sections %}
   {% set s = sec.name %}
   <div class="label-card" style="width: 240px; padding: 16px;{{ ' opacity:.55;' if sec.done }}"{% if sec.done %} data-change="JOBS-40"{% endif %}>
-    <div style="font-weight:700;">{{ project.name }}</div>
+    <div class="bold-text">{{ project.name }}</div>
     <div class="text-muted small mb-1">{{ s }}{% if sec.done %} <span class="badge bg-secondary">done</span>{% endif %}</div>
     <div class="task-qr d-flex justify-content-center my-2" data-code="TASK-{{ project.code }}::{{ s }}"></div>
     <div style="font-size:0.85rem; font-weight:700;">{{ project.code }} &middot; {{ s }}</div>

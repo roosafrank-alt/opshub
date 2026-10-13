@@ -19,7 +19,7 @@ from functools import wraps
 
 from datetime import datetime, timedelta, timezone
 
-from flask import session, redirect, url_for, flash, request
+from flask import session, redirect, url_for, flash, request, g
 from werkzeug.security import check_password_hash
 
 from db import get_db, ensure_flight_profile, user_shop_roles, user_flight_roles
@@ -55,26 +55,80 @@ def log_in_user(user_row, remember=True):
     session["shop_role"] = user_row["shop_role"]
     session["flight_role"] = user_row["flight_role"]
     session["can_bill"] = bool(user_row["can_bill"])
-    session["academy_access"] = bool(user_row["academy_access"])
-    session["groundschool_access"] = bool(user_row["groundschool_access"] or user_row["academy_access"])
+    _set_academy_flags(user_row)
     session["tour_seen_shop"] = bool(user_row["tour_seen_shop"])
     session["tour_seen_flight"] = bool(user_row["tour_seen_flight"])
 
     conn = get_db()
-    ensure_flight_profile(conn, user_row)
-    if user_row["flight_role"] == "cfi":
-        cfi = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
-        if cfi:
-            session["cfi_id"] = cfi["id"]
-    elif user_row["flight_role"] == "student":
-        student = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_row["id"],)).fetchone()
-        if student:
-            session["student_id"] = student["id"]
-    elif user_row["shop_role"] == "admin" or user_row["is_master_admin"]:
-        cfi = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
-        if cfi:
-            session["cfi_id"] = cfi["id"]
+    sync_flight_ids(conn, user_row)
     conn.close()
+
+
+def is_flight_admin():
+    """True for a master admin or a Flight Admin (flight_role 'admin', which
+    is the account's main Fly with Kate! role whenever Flight Admin is
+    ticked - see db.FLIGHT_ROLE_ORDER). Flight Admin runs Fly with Kate! and
+    Flight Academy and nothing in Winds Aloft; the checks in flight.py,
+    groundschool.py and app.py's academy routes all go through here.
+    Mid role switch, flight_role is the level being viewed, so previewing
+    as CFI/Student drops the admin powers exactly as it should."""
+    return bool(session.get("is_master_admin") or session.get("flight_role") == "admin")
+
+
+def holds_role(program, role):
+    """True when the signed-in account itself holds this role ('shop' or
+    'flight'), whichever role is its main one - used to show My Pay to an
+    admin who is also a CFI / tech / inspector / apprentice."""
+    uid = session.get("user_id")
+    if not uid or session.get("_view_as_real") is not None:
+        return False
+    conn = get_db()
+    row = conn.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
+    conn.close()
+    if not row:
+        return False
+    return role in (user_shop_roles(row) if program == "shop" else user_flight_roles(row))
+
+
+def _flight_admin_for(user_row):
+    """Flight Admin-ness of this account RIGHT NOW: the account's own roles
+    normally, the level being viewed while a role switch is active."""
+    if session.get("_view_as_real") is not None:
+        return session.get("flight_role") == "admin"
+    return "admin" in user_flight_roles(user_row)
+
+
+def _set_academy_flags(user_row):
+    """Flight Academy / Ground School access: the admin-assigned flags, plus
+    automatically for a Flight Admin (no separate academy_access needed)."""
+    fa = _flight_admin_for(user_row)
+    session["academy_access"] = bool(user_row["academy_access"] or fa)
+    session["groundschool_access"] = bool(user_row["groundschool_access"] or user_row["academy_access"] or fa)
+
+
+def sync_flight_ids(conn, user_row):
+    """Points session cfi_id / student_id at the account's Fly with Kate!
+    profiles - only the ones its roles entitle it to (a CFI, a Flight Admin's
+    hidden non-bookable instructor profile, a master admin's, a student).
+    A Shop Admin gets none: Winds Aloft's admin has no Fly with Kate! access.
+    Never touches a role switch in progress (those ids are set by it)."""
+    if session.get("_view_as_real") is not None:
+        return
+    ensure_flight_profile(conn, user_row)
+    roles = user_flight_roles(user_row)
+    main = roles[0] if roles else None   # admin, then cfi, then student
+    # Same as always: the main role decides which profile a login points at
+    # (a CFI+Student account switches with the chips). Nobody gets a profile
+    # their roles do not entitle them to.
+    want_cfi = main in ("cfi", "admin") or (main is None and bool(user_row["is_master_admin"]))
+    want_student = main == "student"
+    cfi = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone() if want_cfi else None
+    student = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_row["id"],)).fetchone() if want_student else None
+    for key, row in (("cfi_id", cfi), ("student_id", student)):
+        if row:
+            session[key] = row["id"]
+        else:
+            session.pop(key, None)
 
 
 def log_out_user():
@@ -154,8 +208,17 @@ def refresh_or_expire_session():
         session["_view_as_real"] = preview
     else:
         session.update(fresh)
-    session["academy_access"] = bool(row["academy_access"])
-    session["groundschool_access"] = bool(row["groundschool_access"] or row["academy_access"])
+    _set_academy_flags(row)
+    if preview is None:
+        # Roles may have changed since login (QA qa-session-keeps-old-access):
+        # keep the Fly with Kate! profile ids in step with them too, so a
+        # newly made Flight Admin opens pages at once and a removed role
+        # stops working at once.
+        conn = get_db()
+        try:
+            sync_flight_ids(conn, row)
+        finally:
+            conn.close()
     return None
 
 
@@ -252,8 +315,8 @@ def can_manage_billing():
 # the owner preview are gone.
 # ---------------------------------------------------------------------------
 
-SHOP_VIEW_AS_LEVELS = {"admin": "Admin", "tech": "Tech", "apprentice": "Apprentice", "inspector": "Inspector"}
-FLIGHT_VIEW_AS_LEVELS = {"cfi": "CFI", "student": "Student"}
+SHOP_VIEW_AS_LEVELS = {"admin": "Shop Admin", "tech": "Tech", "apprentice": "Apprentice", "inspector": "Inspector"}
+FLIGHT_VIEW_AS_LEVELS = {"admin": "Flight Admin", "cfi": "CFI", "student": "Student"}
 # Every session field a role switch (shop or flight) can touch - the full
 # baseline snapshotted on first entry, so exiting always restores everything
 # regardless of which programs were switched along the way.
@@ -324,7 +387,7 @@ def view_as_chips(conn, program):
     if home not in levels:
         # A master admin on Flight School: CFI/Student are previews, and
         # "Admin" is the way back.
-        chips.append(dict(level=home, label="Admin", action="exit" if previewing else "current"))
+        chips.append(dict(level=home, label="Master Admin", action="exit" if previewing else "current"))
     for level, label in levels.items():
         if level == home:
             action = "exit" if previewing else "current"
@@ -341,7 +404,7 @@ def _pick_view_as_flight_profile(conn, level):
     account's own linked profile at that level if they have one, else (for a
     master admin only) the first active one alphabetically. Returns
     (id, name), or (None, None) if there's nobody to preview as."""
-    table = "cfis" if level == "cfi" else "students"
+    table = "cfis" if level in ("cfi", "admin") else "students"
     own_user_id = session.get("user_id")
     if own_user_id:
         own = conn.execute(f"SELECT id, name FROM {table} WHERE user_id = ? AND active = 1", (own_user_id,)).fetchone()
@@ -388,7 +451,7 @@ def start_view_as(conn, program, level):
     elif program == "flight":
         session["flight_role"] = level
         session["can_bill"] = False
-        session["cfi_id"] = person_id if level == "cfi" else None
+        session["cfi_id"] = person_id if level in ("cfi", "admin") else None
         session["student_id"] = person_id if level == "student" else None
         session["_view_as_person_name"] = person_name
     session["_view_as_program"] = program
@@ -532,27 +595,11 @@ def _fill_session(user_row, customer_row):
         session["shop_role"] = user_row["shop_role"]
         session["flight_role"] = user_row["flight_role"]
         session["can_bill"] = bool(user_row["can_bill"])
-        session["academy_access"] = bool(user_row["academy_access"])
-        session["groundschool_access"] = bool(user_row["groundschool_access"] or user_row["academy_access"])
+        _set_academy_flags(user_row)
         session["tour_seen_shop"] = bool(user_row["tour_seen_shop"])
         session["tour_seen_flight"] = bool(user_row["tour_seen_flight"])
         conn = get_db()
-        ensure_flight_profile(conn, user_row)
-        if user_row["flight_role"] == "cfi":
-            cfi = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
-            if cfi:
-                session["cfi_id"] = cfi["id"]
-        elif user_row["flight_role"] == "student":
-            student = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_row["id"],)).fetchone()
-            if student:
-                session["student_id"] = student["id"]
-        elif user_row["shop_role"] == "admin" or user_row["is_master_admin"]:
-            # The unbilled, never-bookable cfis row ensure_flight_profile
-            # just made sure exists for them (idea "shop admin skip launcher";
-            # HUB-01 gives a master admin with no Fly with Kate! role the same).
-            cfi = conn.execute("SELECT id FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone()
-            if cfi:
-                session["cfi_id"] = cfi["id"]
+        sync_flight_ids(conn, user_row)
         conn.close()
     if customer_row:
         session["customer_id"] = customer_row["id"]
@@ -566,26 +613,74 @@ def current_customer(conn):
     return conn.execute("SELECT * FROM customers WHERE id = ?", (cid,)).fetchone()
 
 
+def student_course_grants():
+    """Set of Ground School course (acs_ratings) ids an admin has granted to
+    the signed-in student (academy_course_grants), ready courses only. Empty
+    for anyone who is not a student with a students row. Read from the
+    database on first use in a request, so a grant or removal takes effect
+    on the very next page."""
+    cached = getattr(g, "_course_grants", None)
+    if cached is not None and g.get("_course_grants_for") == session.get("student_id"):
+        return cached
+    ids = set()
+    sid = session.get("student_id")
+    if sid and session.get("flight_role") == "student":
+        conn = get_db()
+        ids = {r["rating_id"] for r in conn.execute(
+            "SELECT gr.rating_id FROM academy_course_grants gr JOIN acs_ratings r ON r.id = gr.rating_id "
+            "WHERE gr.student_id = ? AND r.status = 'parsed'", (sid,)).fetchall()}
+        conn.close()
+    g._course_grants = ids
+    g._course_grants_for = sid
+    return ids
+
+
+def academy_grants_only():
+    """A student whose only Flight Academy access is granted courses: no
+    academy_access of their own, so just the Ground School tab."""
+    return bool(not (session.get("is_master_admin") or session.get("academy_access"))
+                and student_course_grants())
+
+
+def groundschool_restricted():
+    """True when Ground School is limited to the student's granted courses.
+    Accounts with groundschool_access/academy_access (or master admins) keep
+    seeing everything, exactly as before."""
+    return bool(not (session.get("is_master_admin") or session.get("groundschool_access"))
+                and student_course_grants())
+
+
+def _program_flags():
+    """(master, shop_admin, shows_flight, shows_academy, shows_shop) for the
+    program picker. Fly with Kate! is for CFIs, students, Flight Admins and
+    master admins; a Shop Admin gets Winds Aloft and Customers only."""
+    master = bool(session.get("is_master_admin"))
+    shows_shop = bool(master or session.get("shop_role"))
+    shows_flight = bool(master or session.get("flight_role"))
+    shows_academy = bool(master or session.get("academy_access") or student_course_grants())
+    return master, shows_shop, shows_flight, shows_academy
+
+
 def session_programs():
     """Every program this session can open, in picker order, for the
     header's Programs button (SEAM-2 / SEAM-12) and the picker itself: a
     list of dicts with key, name, icon (bootstrap icon class) and endpoint.
     Mirrors home_launcher.html's own tile conditions, same as
     account_program_count() below."""
-    is_master_admin = session.get("is_master_admin")
-    is_admin_like = bool(is_master_admin or session.get("shop_role") == "admin")
+    master, shows_shop, shows_flight, shows_academy = _program_flags()
+    is_shop_admin = bool(master or session.get("shop_role") == "admin")
     progs = []
-    if is_master_admin or session.get("shop_role"):
+    if shows_shop:
         progs.append(dict(key="shop", name="Winds Aloft", icon="bi-tools", endpoint="dashboard"))
-    if is_master_admin or session.get("flight_role") or is_admin_like:
+    if shows_flight:
         progs.append(dict(key="flight", name="Fly with Kate!", icon="bi-airplane-engines", endpoint="flight.index"))
-    if is_master_admin or session.get("academy_access"):
+    if shows_academy:
         progs.append(dict(key="academy", name="Flight Academy", icon="bi-mortarboard", endpoint="academy_page"))
-    if is_admin_like:
+    if is_shop_admin:
         progs.append(dict(key="customers", name="Customers", icon="bi-people", endpoint="customers_list"))
     if session.get("customer_id"):
         progs.append(dict(key="owner", name="My Aircraft", icon="bi-airplane", endpoint="customer.customer_dashboard"))
-    if is_master_admin:
+    if master:
         progs.append(dict(key="admin", name="Admin", icon="bi-shield-lock-fill", endpoint="admin_home"))
     return progs
 
@@ -594,19 +689,12 @@ def account_program_count():
     """How many of the program tiles (Fly with Kate!, Winds Aloft, Flight
     Academy, Customers, My Aircraft) this session's account can see - mirrors
     home_launcher.html's own tile conditions (QA ux-launcher-single-program).
-    A master admin always sees all four, so this is never 1 for them. A
-    shop admin also counts Fly with Kate! now (ux-shop-admin-skip-launcher),
-    same as the picker's own tile condition."""
-    is_master_admin = session.get("is_master_admin")
-    is_admin_like = bool(is_master_admin or session.get("shop_role") == "admin")
-    count = 0
-    if is_master_admin or session.get("flight_role") or is_admin_like:
-        count += 1
-    if is_master_admin or session.get("shop_role"):
-        count += 1
-    if is_master_admin or session.get("academy_access"):
-        count += 1
-    if is_admin_like:
+    A master admin always sees all of them, so this is never 1 for them. A
+    Shop Admin sees Winds Aloft and Customers; a Flight Admin sees Fly with
+    Kate! and Flight Academy."""
+    master, shows_shop, shows_flight, shows_academy = _program_flags()
+    count = sum(1 for x in (shows_flight, shows_shop, shows_academy) if x)
+    if master or session.get("shop_role") == "admin":
         count += 1  # Customers (SEAM-9)
     if session.get("customer_id"):
         count += 1  # My Aircraft
@@ -619,15 +707,14 @@ def single_program_endpoint():
     account with zero (no access yet) or two-plus (a real choice to make)."""
     if account_program_count() != 1:
         return None
-    is_master_admin = session.get("is_master_admin")
-    is_admin_like = bool(is_master_admin or session.get("shop_role") == "admin")
-    if is_master_admin or session.get("flight_role"):
+    master, shows_shop, shows_flight, shows_academy = _program_flags()
+    if shows_flight:
         return "flight.index"
-    if is_master_admin or session.get("shop_role"):
+    if shows_shop:
         return "dashboard"
-    if is_master_admin or session.get("academy_access"):
+    if shows_academy:
         return "academy_page"
-    if is_admin_like:
+    if master or session.get("shop_role") == "admin":
         return "customers_list"
     if session.get("customer_id"):
         return "customer.customer_dashboard"

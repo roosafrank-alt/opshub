@@ -16,7 +16,7 @@
       <tbody>
         {% for p in parts %}
         {% set e = part_expiry(p) %}
-        <tr class="{{ 'table-danger' if e.level == 'expired' }}" style="cursor:pointer;" onclick="window.location='{{ url_for('part_detail', part_id=p.id) }}'">
+        <tr class="{{ 'table-danger' if e.level == 'expired' }} pointer-cursor" onclick="window.location='{{ url_for('part_detail', part_id=p.id) }}'">
           <td data-label="Expires" class="{{ 'fw-bold' if e.level != 'ok' }}">{{ e.date|usdate }}</td>
           <td class="stack-full" data-label="Part"><a href="{{ url_for('part_detail', part_id=p.id) }}" class="text-body text-decoration-none">{{ p.name }}</a></td>
           <td data-label="Location">{{ p.location or '-' }}</td>

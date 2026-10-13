@@ -21,7 +21,7 @@
 </div>
 {% endif %}
 {% if photos %}
-<img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;">
+<img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-3 photo-banner">
 {% endif %}
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
   <div>
@@ -145,7 +145,7 @@
 {% set issues = intake.checks|selectattr('status', 'equalto', 'issue')|list %}
 <details class="card p-3 mb-3 {{ 'border-danger' if issues or intake.squawks or intake.damage else 'border-success' }}" {{ 'open' if issues or intake.squawks or intake.damage }}>
   <summary class="fw-bold"><i class="bi bi-clipboard-check"></i> Intake check
-    <span class="fw-normal small text-muted" data-change="JOBS-01">- done by {{ project.intake_by or 'someone' }}{% if project.intake_by_role %} ({{ project.intake_by_role|capitalize }}){% endif %}{% if project.intake_at %}, {{ project.intake_at|usdate(true) }}{% endif %}</span>
+    <span class="fw-normal small text-muted" data-change="JOBS-01">- done by {{ project.intake_by or 'someone' }}{% if project.intake_by_role %} ({{ project.intake_by_role|shop_role_name }}){% endif %}{% if project.intake_at %}, {{ project.intake_at|usdate(true) }}{% endif %}</span>
     {#- JOBS-01: an apprentice's intake check needs an admin, tech or inspector to verify it. #}
     {% if project.intake_by_role == 'apprentice' %}
     {% if project.intake_verified_at %}<span class="badge bg-success ms-1" data-change="JOBS-01"><i class="bi bi-patch-check"></i> Verified by {{ project.intake_verified_by or 'someone' }}, {{ project.intake_verified_at|usdate(true) }}</span>
@@ -223,7 +223,7 @@
            project_section_confirm (actually completes it, or sends it
            back). #}
         <div class="card mb-2 {{ 'border-success' if data.completed_at else ('border-warning' if data.confirm_requested_at) }}">
-          <div class="card-header" style="cursor:pointer" onclick="toggleSection('{{ loop.index }}')">
+          <div class="card-header pointer-cursor" onclick="toggleSection('{{ loop.index }}')">
             <div class="d-flex justify-content-between align-items-center {{ 'bg-success-subtle' if data.completed_at else ('bg-warning-subtle' if data.confirm_requested_at) }}">
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 {% if section != 'General' and data.id and not is_deleted %}
@@ -238,7 +238,7 @@
                       data-confirm-title="{{ 'Undo Sign-off' if data.completed_at else ('Back to Open' if data.confirm_requested_at else 'Ready for Confirmation') }}"
                       data-confirm-style="{{ 'warning' if (data.completed_at or data.confirm_requested_at) else 'primary' }}" data-change="JOBS-12">
                   <input type="hidden" name="completed" value="{{ '0' if (data.completed_at or data.confirm_requested_at) else '1' }}">
-                  <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" style="line-height:1;" title="{{ 'Mark not ready' if (data.completed_at or data.confirm_requested_at) else 'Mark ready for confirmation' }}">
+                  <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent icon-btn-tight" title="{{ 'Mark not ready' if (data.completed_at or data.confirm_requested_at) else 'Mark ready for confirmation' }}">
                     <i class="bi {{ 'bi-check-square-fill text-success' if data.completed_at else ('bi-check-square-fill text-warning' if data.confirm_requested_at else 'bi-square') }} fs-5"></i>
                   </button>
                 </form>
@@ -254,7 +254,7 @@
                    below expands the area and opens the notes form in one click,
                    instead of dropdown-then-notes-toggle). #}
                 {% if data.description or data.notes %}
-                <span class="text-muted small text-truncate" style="max-width:220px;" title="{{ data.description or data.notes }}">{{ data.description or data.notes }}</span>
+                <span class="text-muted small text-truncate narrow-field" title="{{ data.description or data.notes }}">{{ data.description or data.notes }}</span>
                 {% endif %}
                 <button type="button" class="btn btn-link btn-sm p-0" onclick="event.stopPropagation(); openSectionNotes('{{ loop.index }}');" title="Edit description/notes"><i class="bi bi-pencil-square"></i></button>
                 {% endif %}
@@ -319,6 +319,23 @@
               </select>
               <button type="submit" class="btn btn-dark btn-sm">Save</button>
             </form>
+            {% endif %}
+            {% if section != 'General' and data.id and (shop_is_admin or shop_can_create) and not is_deleted and project_maint_items %}
+            <form method="post" action="{{ url_for('project_section_maint_items', project_id=project.id, section_id=data.id) }}" class="p-2 border-bottom" data-change="SHOP-08">
+              <details>
+                <summary class="small text-muted">Related maintenance items{% if data.maint_items %}: {{ data.maint_items|map(attribute='name')|join(', ') }}{% else %} (none){% endif %}</summary>
+                <div class="mt-2">
+                  {% set linked_ids = data.maint_items|map(attribute='id')|list %}
+                  {% for mi in project_maint_items %}
+                  <div class="form-check"><input class="form-check-input" type="checkbox" name="maint_item_id" value="{{ mi.id }}" id="mi-{{ data.id }}-{{ mi.id }}" {% if mi.id in linked_ids %}checked{% endif %}>
+                    <label class="form-check-label" for="mi-{{ data.id }}-{{ mi.id }}">{{ mi.name }}</label></div>
+                  {% endfor %}
+                  <button type="submit" class="btn btn-dark btn-sm mt-2">Save</button>
+                </div>
+              </details>
+            </form>
+            {% elif data.maint_items %}
+            <div class="small text-muted p-2 border-bottom">Related maintenance items: {{ data.maint_items|map(attribute='name')|join(', ') }}</div>
             {% endif %}
             {% if data.rows %}
             <table class="table table-sm mb-0">
@@ -453,7 +470,7 @@
       <div class="py-2 {{ 'border-top' if not loop.first }}">
         <div class="d-flex justify-content-between align-items-start gap-2">
           <div>
-            <div class="fw-bold" style="white-space:pre-wrap;">{{ it.description }}</div>
+            <div class="fw-bold pre-wrap-text">{{ it.description }}</div>
             <div class="small text-muted">${{ '{:,.2f}'.format(it.est_total) }} est. &middot; added by {{ it.created_by or 'staff' }} {{ it.created_at|usdate }}</div>
           </div>
           {% if it.status == 'waiting' %}<span class="badge bg-warning text-dark">Waiting</span>
@@ -462,7 +479,7 @@
         </div>
         {% if it.photos %}
         <div class="d-flex flex-wrap gap-1 mt-1">
-          {% for fn in it.photos %}<a href="{{ url_for('static', filename='uploads/' + fn) }}" target="_blank" rel="noopener"><img src="{{ url_for('static', filename='uploads/' + fn) }}" alt="Found item photo" class="rounded border" style="width:56px;height:56px;object-fit:cover;"></a>{% endfor %}
+          {% for fn in it.photos %}<a href="{{ url_for('static', filename='uploads/' + fn) }}" target="_blank" rel="noopener"><img src="{{ url_for('static', filename='uploads/' + fn) }}" alt="Found item photo" class="rounded border photo-thumb"></a>{% endfor %}
         </div>
         {% endif %}
         {% if it.status != 'waiting' %}
@@ -487,10 +504,10 @@
           <div class="small mb-2 {{ 'text-end' if m.author_type == 'shop' }}">
             <div class="d-inline-block p-2 rounded {{ 'bg-primary text-white' if m.author_type == 'shop' else 'bg-light border' }}" style="max-width:85%; text-align:left;">
               <div class="fw-bold">{{ m.author_name or ('The owner' if m.author_type == 'owner' else 'Staff') }} <span class="fw-normal {{ 'text-white-50' if m.author_type == 'shop' else 'text-muted' }}">{{ m.created_at|usdate(true) }}</span></div>
-              <div style="white-space:pre-wrap;">{{ m.body }}</div>
+              <div class="pre-wrap-text">{{ m.body }}</div>
               {% if m.photos %}
               <div class="d-flex flex-wrap gap-1 mt-1">
-                {% for fn in m.photos %}<a href="{{ url_for('static', filename='uploads/' + fn) }}" target="_blank" rel="noopener"><img src="{{ url_for('static', filename='uploads/' + fn) }}" alt="Photo" class="rounded border" style="width:56px;height:56px;object-fit:cover;"></a>{% endfor %}
+                {% for fn in m.photos %}<a href="{{ url_for('static', filename='uploads/' + fn) }}" target="_blank" rel="noopener"><img src="{{ url_for('static', filename='uploads/' + fn) }}" alt="Photo" class="rounded border photo-thumb"></a>{% endfor %}
               </div>
               {% endif %}
             </div>
@@ -548,7 +565,7 @@
         <div class="col-4 col-md-3">
           <div class="position-relative">
             <a href="{{ url_for('static', filename='uploads/' + photo.filename) }}" target="_blank">
-              <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="img-fluid rounded" style="aspect-ratio:1; object-fit:cover; width:100%;">
+              <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="img-fluid rounded photo-square">
             </a>
             {% if photo.is_cover %}
             <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-1"><i class="bi bi-star-fill"></i> Cover</span>
@@ -652,7 +669,7 @@
       <div class="text-uppercase text-muted small fw-bold mb-1">Squawks</div>
       {% for sq in plane_squawks %}
       <div id="squawk-{{ sq.kind }}-{{ sq.squawk_id }}" class="d-flex flex-column gap-1 py-2 squawk-item {{ 'border-top' if not loop.first }}">
-        <div style="white-space:pre-wrap;">{{ sq.notes or '(no details given)' }}</div>
+        <div class="pre-wrap-text">{{ sq.notes or '(no details given)' }}</div>
         {{ squawk_assigned_line(sq) }}
         <div class="squawk-row-actions">
           {{ squawk_step_pills(sq) }}

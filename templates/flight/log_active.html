@@ -60,7 +60,7 @@
   }
 </style>
 {#- FLY-08: the position feed is instructors-only, so students don't get the Live Aircraft Map card. #}
-{% set show_map = session.get('cfi_id') or session.get('is_master_admin') %}
+{% set show_map = session.get('cfi_id') or flight_admin %}
 <div class="row g-3">
   <div class="col-lg-{{ 5 if show_map else 8 }}" id="active-flights-col">
     {% if flights %}
@@ -73,7 +73,7 @@
      name itself still only shows when can_see_names is true - including
      for the student on their OWN solo flight, so it's obvious which card
      is theirs instead of it reading exactly like everyone else's "Solo". #}
-  {% set can_see_names = session.get('cfi_id') or session.get('is_master_admin') or (session.get('student_id') and f.student_id == session.get('student_id')) %}
+  {% set can_see_names = session.get('cfi_id') or flight_admin or (session.get('student_id') and f.student_id == session.get('student_id')) %}
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
     <div>
       <h5 class="mb-0">{{ 'Students Aircraft' if f.asset_is_owner_placeholder else f.plane_tag }} {% if f.asset_is_simulator %}<span class="badge bg-info text-dark">Sim session</span> {% endif %}{% if f.solo %}<span class="badge bg-secondary">Solo</span> {% endif %}{% if can_see_names %}with {{ f.student_name }}{% endif %} {% if f.paused_at %}<span class="badge bg-warning text-dark"><i class="bi bi-pause-fill"></i> Paused</span>{% endif %} {% if not f.can_end %}<span class="badge bg-light text-muted border" title="Only {% if f.solo %}the student flying solo{% else %}the assigned instructor{% endif %}, or a master admin, can pause or end this flight"><i class="bi bi-lock-fill"></i> View only</span>{% endif %}</h5>
@@ -228,7 +228,7 @@
       <button type="submit" name="eta_minutes" value="30" class="btn btn-sm btn-warning fw-bold">+30 min</button>
       <button type="submit" name="eta_minutes" value="45" class="btn btn-sm btn-warning fw-bold">+45 min</button>
       <span class="small text-muted ms-1">or</span>
-      <input type="time" name="eta_time" class="form-control form-control-sm" style="width:auto;" aria-label="ETA time">
+      <input type="time" name="eta_time" class="form-control form-control-sm fit-width" aria-label="ETA time">
       <button type="submit" class="btn btn-sm btn-primary" data-change="DESIGN-1">Set ETA</button>
     </form>
     {% if f.eta_affected %}
@@ -358,10 +358,28 @@
       </div>
       {% endif %}
     </div>
-{% set student_ending = session.get('student_id') and not session.get('cfi_id') and not session.get('is_master_admin') %}
+{% set student_ending = session.get('student_id') and not session.get('cfi_id') and not flight_admin %}
     {% if student_ending %}
     {#- FLY-07: a student ending their own flight takes no payment - it always logs Unpaid and the school settles it on Billing. #}
     <input type="hidden" name="paid" value="0">
+    {% if wave_connected %}
+    <div class="mt-2" data-change="FLY-07">
+      <div class="form-label small mb-1 fw-bold">How will you pay for this flight?</div>
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="charge_choice" id="choice-school-{{ f.id }}" value="school" checked>
+        <label class="form-check-label" for="choice-school-{{ f.id }}">I'll settle with the school</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="charge_choice" id="choice-wave-{{ f.id }}" value="wave">
+        <label class="form-check-label" for="choice-wave-{{ f.id }}">Pay by card or saved card through Wave</label>
+      </div>
+      <div class="ms-4 small text-muted">After the school approves, Wave emails you an invoice. On Wave's secure page you can pay with a card Wave already has for you or enter a new card.</div>
+      <div class="form-check ms-4 mt-1">
+        <input class="form-check-input" type="checkbox" name="consent" id="consent-{{ f.id }}" value="1">
+        <label class="form-check-label small" for="consent-{{ f.id }}">I'd like an invoice for this flight to pay by card or saved card through Wave, once the school approves it.</label>
+      </div>
+    </div>
+    {% endif %}
     {% else %}
     <input type="hidden" name="credit_applied" id="credit-applied-{{ f.id }}" value="0">
     {#- The actual dollar total, computed live as Hobbs/ground/solo are

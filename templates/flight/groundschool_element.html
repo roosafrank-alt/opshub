@@ -57,7 +57,7 @@
       <div class="lesson-item mb-3 pb-3 border-bottom" data-item-id="{{ it.id }}">
         {% if it.title %}<div class="fw-bold mb-1">{{ it.title }}{% if it.required %} <span class="badge bg-light text-dark border small">required</span>{% endif %}</div>{% endif %}
         {% if it.kind == 'text' %}
-        <div style="white-space: pre-wrap;">{{ it.body or '' }}</div>
+        <div class="pre-wrap-text">{{ it.body or '' }}</div>
 
         {% elif it.kind == 'link' %}
         {% if it.body %}<div class="mb-1 text-muted small">{{ it.body }}</div>{% endif %}
@@ -89,7 +89,7 @@
   </div>
 </div>
 
-{% if session.get('is_master_admin') %}
+{% if flight_admin %}
 <div class="card academy-card mb-3">
   <div class="card-header fw-bold"><i class="bi bi-plus-lg"></i> Add Lesson Item (admin)</div>
   <div class="card-body">

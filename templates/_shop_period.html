@@ -19,9 +19,9 @@
     {% endif %}
   </div>
   <form method="get" class="d-flex align-items-center gap-1 flex-wrap">
-    <input type="date" name="from" class="form-control form-control-sm" style="width:auto;" value="{{ start if period == 'custom' else '' }}" aria-label="From">
+    <input type="date" name="from" class="form-control form-control-sm fit-width" value="{{ start if period == 'custom' else '' }}" aria-label="From">
     <span class="small text-muted">to</span>
-    <input type="date" name="to" class="form-control form-control-sm" style="width:auto;" value="{{ end if period == 'custom' else '' }}" aria-label="To">
+    <input type="date" name="to" class="form-control form-control-sm fit-width" value="{{ end if period == 'custom' else '' }}" aria-label="To">
     {% if unpaid_only is defined and unpaid_only %}<input type="hidden" name="unpaid" value="1">{% endif %}
     {% if laborer_id is defined and laborer_id %}<input type="hidden" name="laborer_id" value="{{ laborer_id }}">{% endif %}
     <button class="btn btn-sm {{ 'btn-dark' if period == 'custom' else 'btn-outline-dark' }}">Go</button>
