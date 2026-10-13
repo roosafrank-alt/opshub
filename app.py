@@ -562,8 +562,19 @@ def academy_page():
                                (my_id,)).fetchall()
     else:
         entries = []
+    # Flights waiting for the logbook details: shown as date + "Log your flight".
+    pend_sql = """SELECT l.id, l.entry_date, l.tail, s.name as student_name FROM pilot_logbook l
+                    JOIN students s ON s.id = l.student_id WHERE l.status = 'pending'"""
+    if staff and picked_id:
+        pending_flights = conn.execute(pend_sql + " AND l.student_id = ? ORDER BY l.entry_date DESC, l.id DESC LIMIT 10", (picked_id,)).fetchall()
+    elif staff:
+        pending_flights = conn.execute(pend_sql + " ORDER BY l.entry_date DESC, l.id DESC LIMIT 10").fetchall()
+    elif my_id:
+        pending_flights = conn.execute(pend_sql + " AND l.student_id = ? ORDER BY l.entry_date DESC, l.id DESC LIMIT 10", (my_id,)).fetchall()
+    else:
+        pending_flights = []
     conn.close()
-    return render_template("academy.html", stats=stats, boards=boards, me=me,
+    return render_template("academy.html", pending_flights=pending_flights, stats=stats, boards=boards, me=me,
                            my_rank=academy.rank_of(board_stats, my_id) if my_id else None,
                            level=level, levels=academy.LEVELS,
                            entries=entries, staff=staff, period=period, picked_student=picked,
