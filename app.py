@@ -566,11 +566,11 @@ def academy_page():
     pend_sql = """SELECT l.id, l.entry_date, l.tail, s.name as student_name FROM pilot_logbook l
                     JOIN students s ON s.id = l.student_id WHERE l.status = 'pending'"""
     if staff and picked_id:
-        pending_flights = conn.execute(pend_sql + " AND l.student_id = ? ORDER BY l.entry_date DESC, l.id DESC LIMIT 10", (picked_id,)).fetchall()
+        pending_flights = conn.execute(pend_sql + " AND l.student_id = ? ORDER BY l.entry_date DESC, l.id DESC LIMIT 3", (picked_id,)).fetchall()
     elif staff:
-        pending_flights = conn.execute(pend_sql + " ORDER BY l.entry_date DESC, l.id DESC LIMIT 10").fetchall()
+        pending_flights = conn.execute(pend_sql + " ORDER BY l.entry_date DESC, l.id DESC LIMIT 3").fetchall()
     elif my_id:
-        pending_flights = conn.execute(pend_sql + " AND l.student_id = ? ORDER BY l.entry_date DESC, l.id DESC LIMIT 10", (my_id,)).fetchall()
+        pending_flights = conn.execute(pend_sql + " AND l.student_id = ? ORDER BY l.entry_date DESC, l.id DESC LIMIT 3", (my_id,)).fetchall()
     else:
         pending_flights = []
     conn.close()

@@ -73,12 +73,15 @@
     <p class="text-muted small">Things the flight log doesn't track. Hours, solo time and the landings on your logged flights are already counted automatically. Landings logged here count toward landing currency too.</p>
     {% if pending_flights %}
     <div class="mb-3" data-change="IDEA-z1b1z4eazzbulrsvbeuc">
-      {% for f in pending_flights %}
+      {% for f in pending_flights[:2] %}
       <div class="d-flex align-items-center justify-content-between gap-2 py-1 border-bottom">
         <span><strong>{{ f.entry_date|usdate }}</strong>{% if staff and not picked_student %} <span class="text-muted small">{{ f.student_name }}</span>{% endif %}</span>
         <a href="{{ url_for('pilotlog.entry', entry_id=f.id) }}" class="btn btn-primary btn-sm">Log your flight</a>
       </div>
       {% endfor %}
+      {% if pending_flights|length > 2 %}
+      <div class="text-end pt-1"><a href="{{ url_for('pilotlog.logbook', student_id=picked_student.id) if staff and picked_student else url_for('pilotlog.logbook') }}" id="more-flights" class="btn btn-outline-secondary btn-sm">More</a></div>
+      {% endif %}
     </div>
     {% endif %}
     <form method="post" action="{{ url_for('academy_entry_add') }}" class="row g-2 align-items-end">
