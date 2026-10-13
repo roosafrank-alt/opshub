@@ -205,7 +205,7 @@
          Intro/Lesson preset buttons overlapping the time picker) - see
          Duration's own full-width row below. #}
       <div class="col-md-8 mb-3 sched-only">
-        <label class="form-label">Time</label>
+        <label class="form-label">Start Time</label>
         {#- Shown when a picked student has a usual time (from their last
            lessons): "Same time as usual" is pre-picked, "Different time"
            just leaves the pickers below to change. #}
@@ -214,6 +214,7 @@
           <button type="button" class="btn btn-sm btn-outline-secondary" id="usual-time-diff">Different time</button>
         </div>
         <input type="hidden" id="time-input" name="scheduled_time" value="{{ form.get('scheduled_time') if form else (sched.scheduled_time if sched and sched.scheduled_time else (prefill_time or '')) }}">
+        <div class="d-flex flex-wrap align-items-start gap-4" id="time-pair">
         <div id="time-picker" class="d-flex align-items-stretch gap-2">
           <div class="text-center">
             <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="hour-up"><i class="bi bi-caret-up-fill"></i></button>
@@ -231,6 +232,28 @@
             <input type="text" autocomplete="off" maxlength="2" class="form-control text-center fw-bold fs-5 py-1 px-0 time-type" id="ampm-display" style="width:3.6rem;" aria-label="AM or PM (type a or p)">
             <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="ampm-down"><i class="bi bi-caret-down-fill"></i></button>
           </div>
+        </div>
+        <div>
+                    <div id="end-picker" class="d-flex align-items-stretch gap-2">
+            <div class="align-self-center me-1 small fw-semibold">End time</div>
+            <div class="text-center">
+              <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="end-hour-up"><i class="bi bi-caret-up-fill"></i></button>
+              <input type="text" inputmode="numeric" autocomplete="off" maxlength="2" class="form-control text-center fw-bold fs-5 py-1 px-0" id="end-hour-display" style="width:3.2rem;" aria-label="End hour">
+              <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="end-hour-down"><i class="bi bi-caret-down-fill"></i></button>
+            </div>
+            <div class="fs-5 fw-bold align-self-center">:</div>
+            <div class="text-center">
+              <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="end-min-up"><i class="bi bi-caret-up-fill"></i></button>
+              <input type="text" inputmode="numeric" autocomplete="off" maxlength="2" class="form-control text-center fw-bold fs-5 py-1 px-0" id="end-min-display" style="width:3.2rem;" aria-label="End minutes">
+              <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="end-min-down"><i class="bi bi-caret-down-fill"></i></button>
+            </div>
+            <div class="text-center">
+              <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="end-ampm-up"><i class="bi bi-caret-up-fill"></i></button>
+              <input type="text" autocomplete="off" maxlength="2" class="form-control text-center fw-bold fs-5 py-1 px-0" id="end-ampm-display" style="width:3.6rem;" aria-label="End AM or PM (type a or p)">
+              <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="end-ampm-down"><i class="bi bi-caret-down-fill"></i></button>
+            </div>
+          </div>
+        </div>
         </div>
         <div class="form-check mt-1">
           <input type="checkbox" class="form-check-input" id="no-time-check">
@@ -559,6 +582,7 @@
     hidden.value = (hour24 < 10 ? '0' : '') + hour24 + ':' + (minute < 10 ? '0' : '') + minute;
     // quickBtns is set further down; skip until then (first render on load).
     if (quickBtns) markActiveQuickBtn();
+    if (window.__syncEnd) window.__syncEnd();
   }
 
   // Typing: each box takes its own part (hour 1-12, minutes 0-59, a/p);
@@ -672,7 +696,7 @@
       minute = parseInt(btn.dataset.minute, 10);
       setNoTime(false);
       render();
-      if (durationInput) { durationInput.value = btn.dataset.duration || '1.5'; }
+      if (durationInput) { durationInput.value = btn.dataset.duration || '1.5'; durationInput.dispatchEvent(new Event('input')); }
       markActiveQuickBtn();
     });
   });
@@ -684,6 +708,104 @@
     hour24 = parseInt(p[0], 10); minute = parseInt(p[1], 10);
     setNoTime(false); render(); markActiveQuickBtn();
   };
+})();
+
+(function () {
+  // End time: sits next to Start Time. Start + Duration always give the end
+  // (1.5 hr unless changed); changing the end time changes the Duration.
+  var startHidden = document.getElementById('time-input');
+  var noTime = document.getElementById('no-time-check');
+  var dur = document.querySelector('input[name="duration_hours"]');
+  var pick = document.getElementById('end-picker');
+  var hBox = document.getElementById('end-hour-display');
+  var mBox = document.getElementById('end-min-display');
+  var aBox = document.getElementById('end-ampm-display');
+  if (!pick || !dur) return;
+  var endMin = null;   // minutes since midnight of the start day (can pass 1440)
+  function startMin() {
+    var v = startHidden.value;
+    if (!/^\d{1,2}:\d{2}$/.test(v)) return null;
+    var p = v.split(':');
+    return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+  }
+  function show(skip) {
+    if (endMin === null) { hBox.value = ''; mBox.value = ''; aBox.value = ''; return; }
+    var mm = ((endMin % 1440) + 1440) % 1440, h = Math.floor(mm / 60), m = mm % 60;
+    if (skip !== hBox) hBox.value = h % 12 || 12;
+    if (skip !== mBox) mBox.value = (m < 10 ? '0' : '') + m;
+    if (skip !== aBox) aBox.value = h < 12 ? 'AM' : 'PM';
+  }
+  function fromDuration() {
+    var s = startMin();
+    if (s === null) { endMin = null; show(); return; }
+    var d = parseFloat(dur.value);
+    if (!(d > 0)) { d = 1.5; dur.value = '1.5'; }
+    endMin = s + Math.round(d * 60);
+    show();
+  }
+  function toDuration() {
+    var s = startMin();
+    if (s === null || endMin === null) return;
+    var diff = endMin - s;
+    if (diff > 0) dur.value = String(+(diff / 60).toFixed(2));
+  }
+  function setEnd(h, m) {   // h 0-23, m 0-59
+    endMin = h * 60 + m;
+  }
+  function parts() {
+    var mm = ((endMin % 1440) + 1440) % 1440;
+    return { h: Math.floor(mm / 60), m: mm % 60 };
+  }
+  function step(dh, dm) {
+    if (endMin === null) return;
+    endMin += dh * 60 + dm;
+    show(); toDuration();
+  }
+  document.getElementById('end-hour-up').addEventListener('click', function () { step(1, 0); });
+  document.getElementById('end-hour-down').addEventListener('click', function () { step(-1, 0); });
+  document.getElementById('end-ampm-up').addEventListener('click', function () { step(12, 0); });
+  document.getElementById('end-ampm-down').addEventListener('click', function () { step(-12, 0); });
+  document.getElementById('end-min-up').addEventListener('click', function () {
+    if (endMin === null) return;
+    var q = (Math.floor((endMin % 60) / 15) + 1) * 15; step(0, q - (endMin % 60));
+  });
+  document.getElementById('end-min-down').addEventListener('click', function () {
+    if (endMin === null) return;
+    var q = (Math.ceil((endMin % 60) / 15) - 1) * 15; step(0, q - (endMin % 60));
+  });
+  hBox.addEventListener('input', function () {
+    var n = parseInt(hBox.value, 10);
+    if (endMin === null || isNaN(n)) return;
+    var p = parts(), pm = p.h >= 12;
+    var h = (n >= 13 && n <= 23) ? n : (n >= 1 && n <= 12 ? n % 12 + (pm ? 12 : 0) : null);
+    if (h === null) return;
+    setEnd(h, p.m); show(hBox); toDuration();
+  });
+  mBox.addEventListener('input', function () {
+    var n = parseInt(mBox.value, 10);
+    if (endMin === null || isNaN(n) || n > 59) return;
+    setEnd(parts().h, n); show(mBox); toDuration();
+  });
+  aBox.addEventListener('input', function () {
+    if (endMin === null) return;
+    var c = aBox.value.trim().toLowerCase()[0], p = parts();
+    if (c === 'a' && p.h >= 12) setEnd(p.h - 12, p.m);
+    else if (c === 'p' && p.h < 12) setEnd(p.h + 12, p.m);
+    show(aBox); toDuration();
+  });
+  [hBox, mBox, aBox].forEach(function (box) {
+    box.addEventListener('focus', function () { box.select(); });
+    box.addEventListener('blur', function () { show(); });
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); box.blur(); }
+    });
+  });
+  dur.addEventListener('input', fromDuration);
+  dur.addEventListener('change', fromDuration);
+  function dim() { pick.style.opacity = noTime.checked ? '0.4' : '1'; pick.style.pointerEvents = noTime.checked ? 'none' : 'auto'; }
+  noTime.addEventListener('change', dim);
+  window.__syncEnd = function () { fromDuration(); dim(); };
+  window.__syncEnd();
 })();
 
 (function () {
@@ -729,7 +851,7 @@
       if (cs.selectedIndex > 0) bits.push('<strong>' + cs.options[cs.selectedIndex].text + '</strong>');
     } else if (u.solo) { bits.push('<strong>Solo</strong>'); }
     var dur = document.querySelector('input[name="duration_hours"]');
-    if (dur && u.hours) { dur.value = u.hours; bits.push('<strong>' + u.hours + ' hr</strong>'); }
+    if (dur && u.hours) { dur.value = u.hours; dur.dispatchEvent(new Event('input')); bits.push('<strong>' + u.hours + ' hr</strong>'); }
     if (bits.length) {
       note.innerHTML = '<i class="bi bi-magic"></i> Filled in from ' + opt.text.replace(/[<&]/g, '') + "'s usual lesson: " + bits.join(' &middot; ') + '. Change anything you like.';
       note.classList.remove('d-none');
@@ -1073,7 +1195,7 @@
   function isIntroNotes() { return notes && notes.value.trim().toLowerCase().indexOf(INTRO.toLowerCase()) === 0; }
   presets.forEach(function (b) {
     b.addEventListener('click', function () {
-      if (duration) { duration.value = b.dataset.duration; }
+      if (duration) { duration.value = b.dataset.duration; duration.dispatchEvent(new Event('input')); }
       // Intro flights are usually someone with no profile yet: default the
       // student to Guest / Intro (only if no student has been picked).
       var ss = document.getElementById('student-select');
