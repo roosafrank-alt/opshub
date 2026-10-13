@@ -25,6 +25,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from markupsafe import Markup, escape
 
 from db import get_db, now_iso, UPLOAD_DIR
+import ground_lessons
 from flight import login_required, cfi_required, admin_required
 from auth import student_course_grants, groundschool_restricted, is_flight_admin
 from acs_parser import parse_acs
@@ -357,6 +358,11 @@ def _student_url(endpoint, **values):
 
 
 groundschool_bp.add_app_template_global(_student_url, "gs_url")
+# GS-LESSONS: lesson plan helpers for templates/flight/_ground_lesson.html
+groundschool_bp.add_app_template_global(ground_lessons.rich, "gs_rich")
+groundschool_bp.add_app_template_global(ground_lessons.cite_url, "gs_cite_url")
+groundschool_bp.add_app_template_global(ground_lessons.references, "gs_refs")
+groundschool_bp.add_app_template_global(ground_lessons.element_kind, "gs_kind")
 
 
 def _gone(what):
@@ -696,6 +702,8 @@ def task_detail(task_id):
                                (task["area_id"],)).fetchall()
     conn.close()
     ids = [t["id"] for t in area_tasks]
+    gs_lesson = ground_lessons.load(ground_lessons.task_code(
+        [e["code"] for e in list(knowledge) + list(risk_management) + list(skills)]))
     idx = ids.index(task_id) if task_id in ids else -1
     prev_task_id = ids[idx - 1] if idx > 0 else None
     next_task_id = ids[idx + 1] if 0 <= idx < len(ids) - 1 else None
@@ -706,7 +714,7 @@ def task_detail(task_id):
                             tab="groundschool", references_html=references_html,
                             element_done=element_done, task_done=task_done, task_total=task_total,
                             reading_progress=reading_progress, viewing_student_id=viewing_student_id,
-                            viewing_signoff=viewing_signoff)
+                            viewing_signoff=viewing_signoff, gs_lesson=gs_lesson)
 
 
 @groundschool_bp.route("/task/<int:task_id>/lesson", methods=["POST"])

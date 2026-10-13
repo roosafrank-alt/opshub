@@ -1,0 +1,1250 @@
+{
+ "task_code": "PA.I.D",
+ "task_title": "Cross-Country Flight Planning",
+ "area": "Area I. Preflight Preparation",
+ "minutes": 80,
+ "objective": "By the end of this lesson you can plan a VFR cross-country to the first fuel stop: pick a safe, legal route and altitude, work out headings, times, ETA in UTC and fuel with reserve, fill out and file a VFR flight plan, and explain the risks.",
+ "why": "The regs make the pilot in command learn all available information before a flight away from the home airport, including fuel, weather and alternates. A good plan is what keeps you found, legal and out of fuel trouble.",
+ "prereading": [
+  {
+   "res": "1",
+   "pages": [
+    388,
+    409
+   ],
+   "printed": "PHAK Ch 16, 16-1 to 16-22",
+   "what": "Charts, time zones/UTC, variation and deviation, wind triangle, basic calculations, the Chickasha-to-Guthrie planning example and filing a VFR flight plan.",
+   "label": "PHAK Ch 16, 16-1 to 16-22"
+  },
+  {
+   "res": "1",
+   "pages": [
+    420,
+    422
+   ],
+   "printed": "PHAK 16-33 to 16-35",
+   "what": "GPS tips for VFR, lost procedures and diversions.",
+   "label": "PHAK 16-33 to 16-35"
+  },
+  {
+   "res": "33",
+   "pages": [
+    331,
+    332
+   ],
+   "printed": "AIM 5-1-5",
+   "what": "VFR flight plan rules: which form, activating, assumed departure time.",
+   "label": "AIM 5-1-5"
+  },
+  {
+   "res": "34",
+   "pages": [
+    20,
+    24
+   ],
+   "printed": "AIM 5-6-13 and 5-6-14",
+   "what": "What to do if intercepted, and the intercept signals.",
+   "label": "AIM 5-6-13 and 5-6-14"
+  },
+  {
+   "res": "30",
+   "pages": [
+    10,
+    12
+   ],
+   "printed": "RMH Ch 1, 1-1 to 1-3",
+   "what": "The PAVE checklist.",
+   "label": "RMH Ch 1, 1-1 to 1-3"
+  }
+ ],
+ "warmup": "Your cross-country leg is 53 NM and the airplane cruises at 115 knots. With a north wind, will the trip take more or less than 28 minutes? What else do you need to know to answer?",
+ "key_terms": [
+  {
+   "term": "True course (TC)",
+   "def": "Direction of your course line on the chart, measured clockwise from true north."
+  },
+  {
+   "term": "Wind correction angle (WCA)",
+   "def": "How many degrees you point the nose into the wind so your track stays on the course."
+  },
+  {
+   "term": "True heading (TH)",
+   "def": "TC with the WCA applied."
+  },
+  {
+   "term": "Variation",
+   "def": "Angle between true north and magnetic north. Read it from the isogonic lines on the chart."
+  },
+  {
+   "term": "Deviation",
+   "def": "Compass error caused by the airplane itself. Read it from the compass deviation card."
+  },
+  {
+   "term": "Compass heading (CH)",
+   "def": "The number you actually fly on the compass: TC ± WCA = TH ± V = MH ± D = CH."
+  },
+  {
+   "term": "Groundspeed (GS)",
+   "def": "Your speed over the ground. Use it, not airspeed, for time and fuel."
+  },
+  {
+   "term": "Pilotage / dead reckoning",
+   "def": "Pilotage = navigating by landmarks. Dead reckoning = navigating by computed heading, speed and time."
+  },
+  {
+   "term": "UTC (Zulu)",
+   "def": "The world time standard used for flight plans and ETAs."
+  },
+  {
+   "term": "ETE / ETA",
+   "def": "Estimated time en route / estimated time of arrival."
+  },
+  {
+   "term": "MEF",
+   "def": "Maximum Elevation Figure: highest terrain or obstacle in a chart quadrant, rounded up."
+  },
+  {
+   "term": "EFB",
+   "def": "Electronic flight bag: a tablet or installed display used in place of paper charts, POH and calculators."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "What the plan must cover",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K1"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "p": "Before any flight, the pilot in command must become familiar with all available information about that flight [[35:350|14 CFR 91.103]]."
+    },
+    {
+     "bullets": [
+      "Away from the airport: weather reports and forecasts, fuel needs, alternatives if you can't finish, and known ATC delays.",
+      "Every flight: runway lengths and takeoff/landing distance data for each airport you plan to use."
+     ]
+    },
+    {
+     "p": "The PHAK planning steps, in order [[1:388|PHAK 16-1]] [[1:404|PHAK 16-17]]:"
+    },
+    {
+     "bullets": [
+      "Check weather first. Is the flight feasible, and which route is best?",
+      "Gather current sectional (and adjoining charts), plotter, flight computer.",
+      "Read the Chart Supplement and NOTAMs for every airport where you plan to land.",
+      "Check weight and balance, takeoff/landing distances and fuel burn in the AFM/POH.",
+      "Chart the course, pick checkpoints, check airspace and terrain, pick an altitude.",
+      "Compute headings, groundspeed, times and fuel. Fill out the nav log. File a flight plan."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Use the Chart Supplement over the info on the back of the chart if they differ. A sectional may be up to 6 months old, so check for changes [[1:404|PHAK 16-17]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Name the four items 91.103 requires for a flight not in the vicinity of an airport.",
+    "a": "Weather reports and forecasts, fuel requirements, alternatives if the flight can't be completed, and known ATC traffic delays [[35:350|14 CFR 91.103(a)]]."
+   }
+  },
+  {
+   "title": "Draw the route: checkpoints, airspace, SUA",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K1"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Draw a line from the center of the departure airport to the center of the destination. A direct route is one straight line. A route through a VOR or other point is two or more straight segments [[1:405|PHAK 16-18]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "Pick checkpoints that are easy to spot: large towns (yellow splashes), big lakes and rivers, towns with an airport or with highways and railroads. Skip towns shown as a small circle; they may be just a few houses [[1:405|PHAK 16-18]]. Use roads, rivers or railroads on each side as brackets to keep from drifting [[1:399|PHAK 16-12]]."
+    },
+    {
+     "p": "Check the course and both sides for airspace. In the PHAK example the line crosses Class C (floor 2,500 ft MSL, ceiling 5,300 ft MSL) and passes Class D (surface to 3,800 ft MSL) [[1:405|PHAK 16-18]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Special use airspace",
+       "Chart label",
+       "What it means for you"
+      ],
+      "rows": [
+       [
+        "Prohibited",
+        "P-40",
+        "No flight allowed [[1:378|PHAK 15-3]]."
+       ],
+       [
+        "Restricted",
+        "R-4401",
+        "Hazards like artillery or missiles. Don't enter without approval from the using/controlling agency [[1:378|PHAK 15-3]]."
+       ],
+       [
+        "Warning",
+        "W-237",
+        "Like restricted, but from 3 NM off the coast outward [[1:379|PHAK 15-4]]."
+       ],
+       [
+        "MOA",
+        "name, e.g. Camden Ridge MOA",
+        "Military training. Times and altitudes on the back of the chart [[1:379|PHAK 15-4]]."
+       ],
+       [
+        "Alert",
+        "A-211",
+        "Lots of training or unusual activity. Be careful; everyone shares collision avoidance [[1:379|PHAK 15-4]]."
+       ],
+       [
+        "Controlled firing area",
+        "not charted",
+        "Activity stops when an aircraft approaches [[2:17|Chart Users' Guide p.17]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "TFRs are issued by NOTAM. Only national-security TFRs are drawn on the chart, so you must check NOTAMs for the rest [[2:18|Chart Users' Guide p.18]] [[1:381|PHAK 15-6]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Chart symbols: Class C floor/ceiling numbers in magenta, Class D = blue dashed line, Class E surface = magenta dashed line [[2:16|Chart Users' Guide p.16]] [[2:17|Chart Users' Guide p.17]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why can't you rely on the sectional alone to find TFRs?",
+    "a": "Only TFRs relating to national security are charted; the rest are only in NOTAMs [[2:18|Chart Users' Guide p.18]]."
+   }
+  },
+  {
+   "title": "Nav and comm tools, and using an EFB",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K1",
+    "PA.I.D.K1a"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "VFR navigation uses pilotage, dead reckoning and radio navigation [[1:388|PHAK 16-1]]. The three radio systems for VFR are VOR, NDB and GPS. Beginners should use radio nav to back up pilotage, not replace it [[1:409|PHAK 16-22]]."
+    },
+    {
+     "bullets": [
+      "VOR signals are line-of-sight. At 1,000 ft AGL range is about 40 to 45 miles, more as you climb [[1:409|PHAK 16-22]].",
+      "Note frequencies for towers, approach control (e.g. the Class C note 'CTC Oklahoma City APP within 20 NM on 124.6' on the PHAK chart excerpt [[1:406|PHAK Figure 16-25]]) and FSS on your log.",
+      "Check NOTAMs that the NAVAIDs you need are in service [[33:325|AIM 5-1-3]]."
+     ]
+    },
+    {
+     "p": "GPS tips from the PHAK [[1:420|PHAK 16-33]]:"
+    },
+    {
+     "bullets": [
+      "Check the database is current. If expired and you can't update it, don't use its moving-map airspace for critical decisions.",
+      "Enter waypoints before takeoff, not in flight. Check them against a current chart.",
+      "Hand-held units can lose signal with no warning. Keep head-down time short."
+     ]
+    },
+    {
+     "p": "An EFB is a display used on the flight deck that can show charts, checklists and the POH, and do W&B, performance and fuel calculations [[42:2|AC 91-78A para 7.1]]. Under part 91 it can replace paper when [[42:3|AC 91-78A para 9.1]]:"
+    },
+    {
+     "bullets": [
+      "It doesn't replace any equipment required by part 91.",
+      "It shows info functionally equal to the paper it replaces.",
+      "The data is current, up to date and valid, as verified by the pilot.",
+      "It meets 91.21 (no interference with aircraft systems)."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Plan for EFB failure, shutdown, screen glare and an unsecured tablet. Practice preflight checks and cross-check what you type in against what it computes [[42:4|AC 91-78A para 11]]. Don't rely only on the moving map [[1:65|PHAK 2-26]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your EFB chart database expired last week. Can you use it in place of paper?",
+    "a": "No. AC 91-78A says an EFB can replace paper only when its data is current, up to date and valid, as verified by the pilot [[42:3|AC 91-78A para 9.1]]."
+   }
+  },
+  {
+   "title": "Pick a safe, legal altitude",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Study terrain and obstacles along the route: find the highest and lowest elevation and the highest obstruction. TV towers can stand over 1,500 ft above the ground [[1:405|PHAK 16-18]]. Never pass over antennas less than 500 ft above the tallest one; guy wires are nearly invisible [[1:399|PHAK 16-12]]."
+    },
+    {
+     "p": "The MEF in each chart quadrant is the highest terrain or obstacle there, rounded up to the nearest 100 ft. '28' means 2,800 ft [[2:12|Chart Users' Guide p.12]]. Charts typically show obstacles over 200 ft AGL [[2:11|Chart Users' Guide p.11]]."
+    },
+    {
+     "p": "Minimum safe altitudes [[35:359|14 CFR 91.119]]:"
+    },
+    {
+     "bullets": [
+      "Anywhere: high enough to make an emergency landing without undue hazard if the engine quits.",
+      "Congested areas: 1,000 ft above the highest obstacle within 2,000 ft horizontally.",
+      "Other areas: 500 ft above the surface; over open water or sparse areas, no closer than 500 ft to any person, vessel, vehicle or structure."
+     ]
+    },
+    {
+     "p": "Glide: more height gives more glide distance. Best glide speed gives the most distance for the altitude lost. A tailwind lengthens the glide, a headwind shortens it [[24:83|AFH 3-22]] [[24:84|AFH 3-23]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Magnetic course",
+       "VFR cruising altitude (more than 3,000 ft AGL, below 18,000 MSL)"
+      ],
+      "rows": [
+       [
+        "0° to 179°",
+        "Odd thousand + 500 (3,500, 5,500, 7,500) [[35:377|14 CFR 91.159(a)(1)]]"
+       ],
+       [
+        "180° to 359°",
+        "Even thousand + 500 (4,500, 6,500, 8,500) [[35:378|14 CFR 91.159(a)(2)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "East is odd, West is even (plus 500). Use MAGNETIC course, not true course, not heading."
+     }
+    },
+    {
+     "p": "Wind matters too: the winds aloft at your planned altitude set your groundspeed, and a headwind at one altitude may be lighter at another. In the PHAK example the wind was no factor, so 5,500 ft was picked: above the Class C and D, clear of the 2,749 ft MSL towers and 2,900 ft MSL high ground, and legal for a magnetic course of 0-179° [[1:407|PHAK 16-20]]."
+    }
+   ],
+   "check": {
+    "q": "TC 031°, variation 7° E. Which VFR altitudes fit above 3,000 ft AGL?",
+    "a": "Magnetic course is 031 - 7 = 024°, so odd thousands + 500 MSL, such as 5,500 or 7,500. (The rule applies only when more than 3,000 ft above the surface, so 3,500 MSL over this terrain, about 1,000 ft or higher, would not count.) [[35:377|14 CFR 91.159(a)(1)]]."
+   }
+  },
+  {
+   "title": "From true course to compass heading",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K3",
+    "PA.I.D.K3a"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Measure the true course with a plotter at a meridian near the middle of the course line [[1:392|PHAK 16-5]]. Measure distance with the chart scale or plotter. On a sectional, 1 inch = 6.86 NM (about 8 SM) [[1:389|PHAK 16-2]]."
+    },
+    {
+     "p": "Then apply the formula [[1:407|PHAK 16-20]]:"
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "TC ± WCA = TH ± V = MH ± D = CH. Wind from the right: add WCA. Wind from the left: subtract [[1:402|PHAK 16-15]]. Variation: 'East is least (subtract), West is best (add)' [[1:395|PHAK 16-8]]."
+     }
+    },
+    {
+     "bullets": [
+      "Variation comes from the magenta dashed isogonic lines on the chart [[1:393|PHAK 16-6]].",
+      "Deviation comes from the compass card near the compass [[1:395|PHAK 16-8]].",
+      "Example: 9° E variation, TC 360° gives a magnetic heading of 351° (no wind) [[1:394|PHAK 16-7]]."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "Step",
+       "PHAK Chickasha to Guthrie"
+      ],
+      "rows": [
+       [
+        "TC (plotter)",
+        "031°"
+       ],
+       [
+        "WCA (wind 360° at 10 kt, from the left)",
+        "3° L, so TH = 028°"
+       ],
+       [
+        "Variation 6°30' E, rounded to 7° E",
+        "MH = 021°"
+       ],
+       [
+        "Deviation +2°",
+        "CH = 023°"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Source for every number in the table: [[1:407|PHAK 16-20]]."
+    }
+   ],
+   "check": {
+    "q": "TH 076°, variation 5° W, deviation -2°. What is the compass heading?",
+    "a": "MH = 076 + 5 = 081° (west is best, add). CH = 081 - 2 = 079° [[1:395|PHAK 16-8]] [[1:396|PHAK 16-9]]."
+   }
+  },
+  {
+   "title": "Wind triangle: heading and groundspeed",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K3a"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Heading is where the nose points. Track is your real path over the ground. Wind makes them differ. The wind triangle solves for the heading and groundspeed that keep your track on the course [[1:397|PHAK 16-10]] [[1:401|PHAK 16-14]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "PHAK example, E to P: TC 090°, wind from 045° at 40 knots, TAS 120 knots [[1:402|PHAK 16-15]]."
+    },
+    {
+     "bullets": [
+      "Draw the TC line from E.",
+      "Draw the wind line from E downwind (toward 225°), 40 units long, and mark W.",
+      "From W, swing a 120-unit airspeed line until it hits the TC line. Mark P.",
+      "E to P = GS 88 knots. Angle between TC and airspeed line = WCA 14°. Wind is from the left, so TH = 090 - 14 = 076°."
+     ]
+    },
+    {
+     "p": "Time and fuel: 220 NM ÷ 88 knots = 2.5 hours (2:30). At 8 gal/hr, 8 × 2.5 = about 20 gallons [[1:402|PHAK 16-15]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "In practice you'll use the wind side of an E6B or an electronic flight computer to get the same answer [[1:399|PHAK 16-12]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "In the E-to-P example, why is the groundspeed (88 kt) so much lower than the TAS (120 kt)?",
+    "a": "The 40-knot wind from 045° has a big headwind component on a 090° course, and part of the airspeed is used to correct for drift [[1:402|PHAK 16-15]]."
+   }
+  },
+  {
+   "title": "Time, speed, distance, climb and descent",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K3a"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Find",
+       "Formula",
+       "PHAK example"
+      ],
+      "rows": [
+       [
+        "Time",
+        "T = D ÷ GS",
+        "210 NM ÷ 140 kt = 1.5 hr = 1:30 [[1:398|PHAK 16-11]]"
+       ],
+       [
+        "Distance",
+        "D = GS × T",
+        "120 kt × 1.75 hr = 210 NM [[1:398|PHAK 16-11]]"
+       ],
+       [
+        "Groundspeed",
+        "GS = D ÷ T",
+        "270 NM ÷ 3 hr = 90 kt [[1:398|PHAK 16-11]]"
+       ],
+       [
+        "Fuel",
+        "Time × gal/hr",
+        "4 hr × 5 gal/hr = 20 gal [[1:399|PHAK 16-12]]"
+       ]
+      ]
+     }
+    },
+    {
+     "bullets": [
+      "Minutes to hours: divide by 60 (30 min = 0.5 hr). Hours to minutes: multiply by 60 [[1:398|PHAK 16-11]].",
+      "Knots to mph: multiply by 1.15 (20 kt = 23 mph) [[1:398|PHAK 16-11]]."
+     ]
+    },
+    {
+     "p": "Climb: use the POH climb chart. In the PHAK sample table (3,400 lb), climbing from sea level to 8,000 ft takes 10 min, 21 lb of fuel and 20 NM. The rate of climb drops from 810 fpm at sea level to 735 fpm at 8,000 ft. At 22 °C (7° above standard) add 10%: 11 min, 23.1 lb (3.85 gal at 6 lb/gal), 22 NM. Distances are no-wind [[1:279|PHAK 11-23]] [[1:280|PHAK 11-24]]."
+    },
+    {
+     "p": "Groundspeed is lower in a climb than in cruise at the same airspeed, and fuel burn is higher, so plan for it [[1:399|PHAK 16-12]]. The PHAK trip simply adds 5 minutes for the climb [[1:408|PHAK 16-21]]."
+    },
+    {
+     "p": "Descent: time = altitude to lose ÷ descent rate. Distance = GS × time. Example with an assumed 500 fpm descent: losing 3,000 ft takes 3,000 ÷ 500 = 6 min. At 106 kt GS that is 106 × 6/60 = about 10.6 NM. The AFH rule of thumb (from its jet chapter) is about 3 NM per 1,000 ft, or 9 NM here [[24:327|AFH 16-18]]."
+    }
+   ],
+   "check": {
+    "q": "How long to fly 45 NM at a groundspeed of 90 knots?",
+    "a": "45 ÷ 90 = 0.5 hr = 30 minutes (T = D ÷ GS) [[1:398|PHAK 16-11]]."
+   }
+  },
+  {
+   "title": "Worked example: the PHAK nav log",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K3a",
+    "PA.I.D.K3c"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Trip data: Chickasha direct Guthrie, TAS 115 kt, winds aloft 360° at 10 kt, usable fuel 38 gal, fuel rate 8 GPH, deviation +2° [[1:405|PHAK 16-18]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "table": {
+      "head": [
+       "Leg",
+       "Distance",
+       "Time at 106 kt GS"
+      ],
+      "rows": [
+       [
+        "Chickasha to CP 1",
+        "11 NM",
+        "6 min (+5 min climb)"
+       ],
+       [
+        "CP 1 to CP 2",
+        "10 NM",
+        "6 min"
+       ],
+       [
+        "CP 2 to CP 3",
+        "10.5 NM",
+        "6 min"
+       ],
+       [
+        "CP 3 to CP 4",
+        "13 NM",
+        "7 min"
+       ],
+       [
+        "CP 4 to Guthrie",
+        "8.5 NM",
+        "5 min"
+       ],
+       [
+        "Total",
+        "53 NM",
+        "30 min + 5 = 35 min"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Numbers from the PHAK flight log [[1:407|PHAK 16-20]]. Check them yourself: 53 ÷ 106 = 0.5 hr = 30 min. Add 5 min for climb = 35 min ETE. Fuel = 35/60 × 8 = 4.67, about 4.7 gal [[1:408|PHAK 16-21]]."
+    },
+    {
+     "p": "Check one leg: 13 NM ÷ 106 kt = 0.123 hr × 60 = 7.4, about 7 min. Matches the log."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "In flight, write actual times at each checkpoint. If the real GS differs, update the ETA and fuel right away [[1:408|PHAK 16-21]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "If the GS in this example dropped to 90 knots, what would the ETE be (keep the 5-minute climb allowance)?",
+    "a": "53 ÷ 90 = 0.59 hr ≈ 35 min, plus 5 = about 40 min (T = D ÷ GS) [[1:398|PHAK 16-11]]."
+   }
+  },
+  {
+   "title": "ETA and UTC conversion",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K3b"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Aviation uses the 24-hour clock: 9 a.m. = 0900, 1 p.m. = 1300, 10 p.m. = 2200. UTC (Zulu) is the time at the 0° line through Greenwich, England [[1:392|PHAK 16-5]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "table": {
+      "head": [
+       "Local standard time",
+       "To get UTC"
+      ],
+      "rows": [
+       [
+        "Eastern (EST)",
+        "Add 5 hours"
+       ],
+       [
+        "Central (CST)",
+        "Add 6 hours"
+       ],
+       [
+        "Mountain (MST)",
+        "Add 7 hours"
+       ],
+       [
+        "Pacific (PST)",
+        "Add 8 hours"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "During Daylight Saving Time, subtract 1 hour from those results [[1:392|PHAK 16-5]]. DST is generally from the second Sunday in March to the first Sunday in November [[1:391|PHAK 16-4]]."
+    },
+    {
+     "p": "Worked example (PHAK trip, Oklahoma is in the Central zone): say the planned departure is 0900 CDT. 0900 + 6 = 1500, minus 1 for DST = 1400Z. That matches the 1400 departure time on the PHAK flight plan [[1:408|PHAK 16-21]]. ETA = 1400Z + 0:35 ETE = 1435Z, which is 0935 CDT."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Flying east you 'lose' an hour per time zone. Check sunset at the destination when planning an eastbound trip [[1:391|PHAK 16-4]] [[1:392|PHAK 16-5]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You plan to depart at 1615 EST in January. What time goes on the flight plan?",
+    "a": "1615 + 5 = 2115Z (no DST in January) [[1:392|PHAK 16-5]]."
+   }
+  },
+  {
+   "title": "Fuel: the legal minimum and a real reserve",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K3c",
+    "PA.I.D.R6",
+    "PA.I.D.S4"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "VFR airplane rule: considering wind and forecast weather, you must have enough fuel to reach the first point of intended landing and then fly, at normal cruise [[35:374|14 CFR 91.151]]:"
+    },
+    {
+     "table": {
+      "head": [
+       "When",
+       "Reserve after reaching first landing point"
+      ],
+      "rows": [
+       [
+        "Day",
+        "At least 30 minutes"
+       ],
+       [
+        "Night",
+        "At least 45 minutes"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Fuel needed = time × burn rate, using groundspeed, plus startup, taxi, and the higher burn in the climb, plus a reserve [[1:399|PHAK 16-12]]."
+    },
+    {
+     "p": "Worked example (PHAK trip, 8 GPH):"
+    },
+    {
+     "bullets": [
+      "Trip fuel: 4.7 gal [[1:408|PHAK 16-21]].",
+      "Day reserve: 30 min × 8 GPH = 4.0 gal. Legal minimum = 4.7 + 4.0 = 8.7 gal.",
+      "Night reserve: 45 min × 8 GPH = 6.0 gal. Legal minimum = 4.7 + 6.0 = 10.7 gal.",
+      "Endurance with 38 gal usable: 38 ÷ 8 = 4.75 hr = 4 hr 45 min. The PHAK flight plan lists fuel on board as 4:45 [[1:408|PHAK 16-21]] [[1:409|PHAK 16-22]]."
+     ]
+    },
+    {
+     "p": "Recalculate when things change (the examiner will ask). Say winds aloft are now 360° at 30 kt. Working the triangle the same way gives a WCA of about 8° L and a GS of about 88 kt. Time = 53 ÷ 88 = 0.60 hr = 36 min, plus 5 for climb = 41 min. Fuel = 41/60 × 8 = 5.5 gal. Day minimum = 5.5 + 4.0 = 9.5 gal."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Always plan to be on the ground before you reach the flight time your fuel allows, or before the gauge shows low fuel [[1:399|PHAK 16-12]]. The legal reserve is a minimum, not a target. Carrying enough fuel with a good reserve, or adding a fuel stop, cuts the risk of a forced landing [[30:39|RMH 5-1]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Trip fuel is 6.0 gal at 8 GPH and you have 10 gal usable. Can you legally depart at night?",
+    "a": "No. Night needs 45 min reserve = 6.0 gal, so 6.0 + 6.0 = 12.0 gal is required [[35:374|14 CFR 91.151(a)(2)]]."
+   }
+  },
+  {
+   "title": "What goes on a VFR flight plan",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K4"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "14 CFR 91.153(a) lists what a VFR flight plan must include [[35:374|14 CFR 91.153]]: aircraft ID; aircraft type; PIC name and address; departure point and proposed time; route, cruising altitude and TAS; first intended landing point and estimated elapsed time; fuel on board (in hours); number of persons aboard; anything else needed for ATC."
+    },
+    {
+     "p": "Civil pilots now file VFR plans on FAA Form 7233-4 (International Flight Plan) or by electronic means [[33:331|AIM 5-1-5]]. The PHAK still shows the older domestic form, but the items are the same idea."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "table": {
+      "head": [
+       "Form 7233-4 item",
+       "What to enter",
+       "PHAK trip example"
+      ],
+      "rows": [
+       [
+        "7 Aircraft ID",
+        "Registration, max 7 characters [[34:271|AIM App 4]]",
+        "N123DB"
+       ],
+       [
+        "8 Flight rules",
+        "V for VFR [[34:272|AIM App 4]]",
+        "V"
+       ],
+       [
+        "9 Type / wake cat.",
+        "Type designator; L = 15,500 lb or less [[34:285|AIM App 4]] [[34:286|AIM App 4]]",
+        "C150 / L"
+       ],
+       [
+        "10 Equipment",
+        "Codes for nav/com and transponder [[34:272|AIM App 4]]",
+        "per AIM TBL 4-2, 4-3"
+       ],
+       [
+        "13 Departure + time",
+        "Airport (four-letter identifier preferred) and time in UTC, 4 digits [[34:287|AIM App 4]]",
+        "KCHK 1400"
+       ],
+       [
+        "15 Speed / level / route",
+        "TAS as N + 4 digits; altitude as A + hundreds of feet; DCT = direct [[34:287|AIM App 4]] [[34:288|AIM App 4]]",
+        "N0115 A055 DCT"
+       ],
+       [
+        "16 Destination + total EET",
+        "Airport; total time en route HHMM [[34:288|AIM App 4]] [[34:289|AIM App 4]]",
+        "KGOK 0035"
+       ],
+       [
+        "19 E/ P/ A/ C/",
+        "Endurance, persons on board, aircraft color, PIC name and phone [[34:289|AIM App 4]] [[34:290|AIM App 4]]",
+        "E/0445, P/ number aboard, A/ Red White, C/ name + phone"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Item 19 minimum for a domestic flight: endurance, persons on board, pilot name and contact info, and aircraft color. Item 19 stays with Flight Service for search and rescue; it is not sent to ATC [[34:289|AIM App 4]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "How do you enter 5,500 ft and 115 knots TAS in Item 15?",
+    "a": "Speed N0115, altitude A055 (A + hundreds of feet) [[34:287|AIM App 4]] [[34:288|AIM App 4]]."
+   }
+  },
+  {
+   "title": "File, activate, close",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K5"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "A VFR flight plan is not normally required inside the continental U.S., but it is strongly recommended. It is required for VFR flight into an ADIZ (DVFR plan) or to an international destination [[33:331|AIM 5-1-5]]. Its value: search and rescue [[1:408|PHAK 16-21]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Step",
+       "What to do"
+      ],
+      "rows": [
+       [
+        "File",
+        "With Flight Service or another filing service, by phone or electronically. For a trip with stops, file a separate plan for each leg [[33:331|AIM 5-1-5]]."
+       ],
+       [
+        "Activate",
+        "YOU must activate it with Flight Service, by radio or electronically. Towers do not activate VFR plans. Unactivated proposals are normally kept 2 hours after proposed departure time. You may use an assumed departure time, but then search will be based on that time [[33:331|AIM 5-1-5]]."
+       ],
+       [
+        "Update",
+        "If your ETE changes by 30 minutes or more, give the FSS a new ETA [[34:34|AIM 6-2-6]]."
+       ],
+       [
+        "Close",
+        "Close it with the FSS (or ask any ATC facility to relay). Towers don't close VFR plans. If you don't close within 1/2 hour after your ETA, search and rescue starts [[33:339|AIM 5-1-14]] [[35:374|14 CFR 91.153(b)]]."
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "For best protection, file only to your first intended landing and refile for each leg. Otherwise no one may look for you until 30 minutes after the ETA at your final destination [[34:34|AIM 6-2-6]]."
+     }
+    },
+    {
+     "p": "ATC doesn't know whether you have a VFR flight plan. Opening and closing it is the pilot's job [[34:272|AIM App 4]]."
+    }
+   ],
+   "check": {
+    "q": "You land at Guthrie at 1440Z on a plan with ETA 1435Z and forget to close it. When does search and rescue start?",
+    "a": "If you haven't reported or canceled within 1/2 hour after the ETA (by about 1505Z), SAR procedures start [[33:339|AIM 5-1-14]]."
+   }
+  },
+  {
+   "title": "If you are intercepted",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K6"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Military aircraft may intercept you to identify, track, inspect, divert or talk to you. Keep a listening watch on 121.5 (or 243.0) MHz [[34:20|AIM 5-6-13]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "If intercepted, without delay [[34:22|AIM 5-6-13]]:"
+    },
+    {
+     "bullets": [
+      "Follow the interceptor's visual signals and radio instructions.",
+      "Call on 121.5 (or 243.0): give your identity, position and nature of flight.",
+      "Squawk 7700 unless ATC tells you otherwise.",
+      "Keep complying until positively released. If ATC and the interceptor conflict, ask for clarification at once."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "Interceptor does",
+       "Meaning",
+       "You do (airplane)"
+      ],
+      "rows": [
+       [
+        "Rocks wings ahead and to the left, then slow level turn (night: also flashes nav lights)",
+        "You have been intercepted. Follow me.",
+        "Rock wings and follow [[34:23|AIM TBL 5-6-1]]"
+       ],
+       [
+        "Abrupt climbing turn of 90° or more away, not crossing your path",
+        "You may proceed.",
+        "Rock wings [[34:23|AIM TBL 5-6-1]]"
+       ],
+       [
+        "Circles airport, lowers gear, overflies runway",
+        "Land at this airport.",
+        "Lower gear (if able), follow, land if safe [[34:23|AIM TBL 5-6-1]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Your signals back: flash all lights in a regular on/off pattern = 'cannot comply'. Irregular flashing of all lights = 'in distress' [[34:24|AIM TBL 5-6-2]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Not complying may result in the use of force [[34:20|AIM 5-6-13]]. A helicopter interceptor usually sits off your left wing; don't fall in directly behind it [[34:21|AIM 5-6-13]] [[34:22|AIM 5-6-13]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "An interceptor rocks its wings ahead and to your left, then turns slowly left. What does it mean and what do you do?",
+    "a": "'You have been intercepted. Follow me.' Rock your wings and follow [[34:23|AIM TBL 5-6-1]]."
+   }
+  },
+  {
+   "title": "Risk: PAVE, ATC limits, fuel and EFB",
+   "kind": "risk",
+   "codes": [
+    "PA.I.D.R1",
+    "PA.I.D.R2",
+    "PA.I.D.R3",
+    "PA.I.D.R4",
+    "PA.I.D.R5",
+    "PA.I.D.R6",
+    "PA.I.D.R7"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Use PAVE to find hazards before a cross-country [[30:11|RMH 1-2]]:"
+    },
+    {
+     "table": {
+      "head": [
+       "PAVE",
+       "Cross-country hazards",
+       "Mitigation"
+      ],
+      "rows": [
+       [
+        "Pilot",
+        "Fatigue, illness, low experience on the route",
+        "IMSAFE; personal minimums; take an instructor or mentor if in doubt [[30:39|RMH 5-1]]"
+       ],
+       [
+        "Aircraft",
+        "Performance, equipment, airworthiness, fuel load",
+        "Margins on performance data; good preflight; enough fuel with a reserve or a fuel stop [[30:39|RMH 5-1]]"
+       ],
+       [
+        "EnVironment",
+        "Weather, ATC, NAVAIDs, terrain, airports, obstacles",
+        "Go around or above/below it, change departure time, or cancel [[30:40|RMH 5-2]]"
+       ],
+       [
+        "External pressures",
+        "Someone waiting, schedule, 'get there'",
+        "Tell people ahead of time the flight may be canceled; have a backup way to travel [[30:40|RMH 5-2]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "ATC limits (R5): radar traffic info is given only if workload, radar limits and frequency congestion allow. It never replaces your see-and-avoid duty, and radar shows no altitude unless the target has Mode C [[33:214|AIM 4-1-15]]. VFR radar vectors are also workload-permitting [[33:218|AIM 4-1-18]]. ATC doesn't know about your VFR flight plan [[34:272|AIM App 4]]."
+    },
+    {
+     "p": "Fuel (R6): the RMH tells of a ferry pilot who found he'd land with only 10 minutes of fuel. He added a fuel stop instead of stretching the fuel into marginal weather [[30:11|RMH 1-2]]."
+    },
+    {
+     "p": "EFB (R7): plan for battery or app failure, glare and an unsecured tablet; keep a backup and verify data is current [[42:4|AC 91-78A para 11]] [[42:3|AC 91-78A para 9.1]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Before every cross-country, mark airports and landing areas along the route for a diversion. In an emergency, turn toward the alternate first, then figure the numbers [[1:421|PHAK 16-34]] [[1:422|PHAK 16-35]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Flight following is giving you traffic calls. Can you relax your scan?",
+    "a": "No. Radar traffic information does not relieve you of see-and-avoid, and the controller may not see or call every target [[33:214|AIM 4-1-15]]."
+   }
+  },
+  {
+   "title": "Checkride: present your plan",
+   "kind": "skills",
+   "codes": [
+    "PA.I.D.S1",
+    "PA.I.D.S2",
+    "PA.I.D.S3",
+    "PA.I.D.S4",
+    "PA.I.D.S5"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The examiner assigns a cross-country. You plan it to the first fuel stop and explain it, including a risk check using real-time weather. A computer-generated plan is fine if you can explain every number."
+    },
+    {
+     "bullets": [
+      "Current sectional and Chart Supplement entries for each airport: runways, lighting, frequencies, fuel [[1:404|PHAK 16-17]].",
+      "NOTAMs for airport, runway and taxiway closures, e.g. 'RWY 18/36 CLSD' [[33:327|AIM TBL 5-1-1]]. NOTAM (D)s cover taxiway closures and airport conditions [[33:325|AIM 5-1-3]].",
+      "Nav log: TC, WCA, TH, MH, CH, distances, GS, times, fuel, checkpoints, frequencies [[1:407|PHAK 16-20]].",
+      "A flight plan you could file, with times in UTC [[34:287|AIM App 4]].",
+      "A fuel answer for any 'what if' (stronger wind, less fuel, diversion) [[35:374|14 CFR 91.151]].",
+      "If you use an EFB: show its data is current and say what you'll do if it fails [[42:3|AC 91-78A para 9.1]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Examiners often ask 'where did this number come from?' Know the POH page for TAS and fuel flow, and the source of your winds aloft."
+     }
+    }
+   ],
+   "check": {
+    "q": "Where do you look for a runway closure at your destination?",
+    "a": "NOTAMs (keyword RWY, e.g. 'RWY 18/36 CLSD') [[33:327|AIM TBL 5-1-1]]; also check the Chart Supplement for the airport [[1:404|PHAK 16-17]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "PA.I.D-1.jpg",
+   "res": "1",
+   "page": 402,
+   "caption": "Figure 16-21. Steps in drawing the wind triangle.",
+   "alt": "Green background showing a protractor on a north-south line, the TC 090 line, a yellow wind arrow from E to W, and a ruler from W marked Airspeed 120 knots meeting the course line at P with GS 88.",
+   "source": "PHAK, PDF p. 402"
+  },
+  "f2": {
+   "file": "PA.I.D-2.jpg",
+   "res": "1",
+   "page": 406,
+   "caption": "Figure 16-25. Sectional chart excerpt.",
+   "alt": "Sectional chart around Oklahoma City with a red course line from Chickasha (A) to Guthrie (F), four red checkpoint tags, blue tags for Class C, Class D, tallest obstruction and highest elevation, and a box of trip data.",
+   "source": "PHAK, PDF p. 406"
+  },
+  "f3": {
+   "file": "PA.I.D-3.jpg",
+   "res": "1",
+   "page": 407,
+   "caption": "Figure 16-26. Pilot's planning sheet and visual flight log.",
+   "alt": "Colored planning sheet showing TC 031, wind 360 at 10, WCA 3 L, TH 28, variation 7 E, MH 21, deviation +2, CH 23, 53 miles, GS 106 kts, 35 min, 8 GPH, with a flight log listing four checkpoints and distances.",
+   "source": "PHAK, PDF p. 407"
+  },
+  "f4": {
+   "file": "PA.I.D-4.jpg",
+   "res": "1",
+   "page": 392,
+   "caption": "Figure 16-5. Time zones in the conterminous United States.",
+   "alt": "Map of the lower 48 states colored by Pacific, Mountain, Central and Eastern time zones with clocks reading 10:00 AM, 11:00 AM, 12:00 PM and 1:00 PM and the 120, 105, 90 and 75 degree meridians.",
+   "source": "PHAK, PDF p. 392"
+  },
+  "f5": {
+   "file": "PA.I.D-5.jpg",
+   "res": "34",
+   "page": 292,
+   "caption": "AIM Appendix 4, FIG 4-1. FAA Form 7233-4, International Flight Plan (sample).",
+   "alt": "Blank FAA Form 7233-4 marked SAMPLE showing items 7 aircraft identification, 8 flight rules, 9 type and wake category, 10 equipment, 13 departure, 15 speed, level and route, 16 destination and total EET, 18 other information and 19 supplementary information.",
+   "source": "AIM, PDF p. 292"
+  },
+  "f6": {
+   "file": "PA.I.D-6.jpg",
+   "res": "34",
+   "page": 21,
+   "caption": "AIM FIG 5-6-1. Intercept Procedures.",
+   "alt": "Three panels: fighters approaching an airliner from behind for identification, a fighter crossing ahead with flares for a diversion, and the airliner turning to comply.",
+   "source": "AIM, PDF p. 21"
+  }
+ },
+ "scenario": {
+  "title": "Saturday afternoon solo cross-country",
+  "codes": [
+   "PA.I.D.R1",
+   "PA.I.D.R2",
+   "PA.I.D.R3",
+   "PA.I.D.R4",
+   "PA.I.D.R5",
+   "PA.I.D.R6",
+   "PA.I.D.R7"
+  ],
+  "setup": "You plan the PHAK trip, Chickasha to Guthrie (53 NM, TAS 115 kt, 8 GPH), as a daytime solo. You worked a long shift and slept 5 hours. A friend is waiting at Guthrie for lunch. At the airplane you find only 10 gallons usable; the fuel truck is 45 minutes away. The new winds aloft are 360° at 30 kt, not 10. Your tablet is at 20% and its chart app says the database expired. You plan to get flight following through the Oklahoma City Class C and figure ATC will keep you clear of the towers and traffic.",
+  "questions": [
+   {
+    "q": "Is the flight legal on fuel? Is it smart?",
+    "a": "With the new wind, ETE is about 41 min and trip fuel about 5.5 gal; plus 4.0 gal day reserve = 9.5 gal, so 10 gal is barely legal [[35:374|14 CFR 91.151]]. It leaves only 0.5 gal of margin with no allowance for taxi, a missed checkpoint or a diversion [[1:399|PHAK 16-12]]. Wait for fuel or add a stop [[30:39|RMH 5-1]]."
+   },
+   {
+    "q": "What pilot and external-pressure hazards do you see?",
+    "a": "Fatigue (P) and a friend waiting (E). Run IMSAFE and your personal minimums [[30:39|RMH 5-1]]. Tell your friend early that you may be late or cancel, so there's no pressure to rush [[30:40|RMH 5-2]]."
+   },
+   {
+    "q": "Can you use the tablet as your only chart?",
+    "a": "No. The data must be current and verified by the pilot to replace paper [[42:3|AC 91-78A para 9.1]], and with 20% battery you must plan for EFB failure [[42:4|AC 91-78A para 11]]. Get a current chart or update and charge the device."
+   },
+   {
+    "q": "Will flight following keep you clear of traffic and towers?",
+    "a": "No. Traffic advisories depend on radar limits and controller workload and never replace see-and-avoid [[33:214|AIM 4-1-15]]. Obstacle clearance is your job: plan an altitude well above the 2,749 ft MSL towers, such as 5,500 [[1:407|PHAK 16-20]] [[35:359|14 CFR 91.119]]."
+   },
+   {
+    "q": "What environment items must you check before going?",
+    "a": "Real-time weather, the Class C and D along the route, the towers and high ground, NOTAMs and TFRs, and the Chart Supplement for both airports [[1:405|PHAK 16-18]] [[1:404|PHAK 16-17]] [[1:381|PHAK 15-6]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "PA.I.D.S1",
+   "do": "Prepare, present and explain a cross-country plan to the first fuel stop assigned by the examiner, with a PAVE risk check based on real-time weather.",
+   "practice": "Plan 3 real trips from your home airport using live weather. Brief each to your CFI out loud in 10 minutes, ending with a go/no-go and why."
+  },
+  {
+   "code": "PA.I.D.S2",
+   "do": "Use the current sectional, Chart Supplement and NOTAMs (airport, runway and taxiway closures) and explain how they change your plan.",
+   "practice": "For each practice trip, pull the NOTAMs and Chart Supplement entries for every airport and highlight anything that affects you (closed runway, frequency, fuel)."
+  },
+  {
+   "code": "PA.I.D.S3",
+   "do": "Build a nav log (TC through CH, GS, times, fuel, checkpoints) and simulate filing a VFR flight plan with UTC times.",
+   "practice": "Fill in a blank nav log by hand with a plotter and E6B, then compare to an app. Fill out a Form 7233-4 for the same trip and read it to your CFI as if calling Flight Service."
+  },
+  {
+   "code": "PA.I.D.S4",
+   "do": "Recalculate fuel and reserve when the examiner changes a condition (stronger wind, less fuel, night, diversion).",
+   "practice": "Have your CFI give you 3 'what ifs' per trip. Redo GS, time and fuel, and compare to the 30/45-minute rule in 91.151."
+  },
+  {
+   "code": "PA.I.D.S5",
+   "do": "If you use an EFB, show its data is current, use it to plan, and explain your backup if it fails.",
+   "practice": "Do one full plan on the EFB and one on paper. Practice finding the database date and running the trip with the tablet off."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Your magnetic course is 024° and you'll cruise more than 3,000 ft AGL under VFR. Which altitude fits?",
+   "options": [
+    "4,500 ft",
+    "5,500 ft",
+    "5,000 ft",
+    "6,500 ft"
+   ],
+   "answer": 1,
+   "why": "Magnetic course 0-179° uses odd thousands + 500 [[35:377|14 CFR 91.159(a)(1)]]."
+  },
+  {
+   "q": "Minimum fuel reserve for a day VFR flight in an airplane?",
+   "options": [
+    "20 minutes",
+    "30 minutes",
+    "45 minutes",
+    "1 hour"
+   ],
+   "answer": 1,
+   "why": "Enough to reach the first point of intended landing and then fly at least 30 minutes by day (45 at night) [[35:374|14 CFR 91.151]]."
+  },
+  {
+   "q": "You'll depart at 0900 CDT (summer). What time goes on the flight plan?",
+   "options": [
+    "1500Z",
+    "1400Z",
+    "0300Z",
+    "1300Z"
+   ],
+   "answer": 1,
+   "why": "Central: add 6 hours, then subtract 1 for Daylight Saving Time: 1400Z [[1:392|PHAK 16-5]]."
+  },
+  {
+   "q": "TC 090°, wind from the left, WCA 14°. What is the true heading?",
+   "options": [
+    "104°",
+    "090°",
+    "076°",
+    "045°"
+   ],
+   "answer": 2,
+   "why": "Wind from the left: subtract WCA. 090 - 14 = 076° [[1:402|PHAK 16-15]]."
+  },
+  {
+   "q": "The trip is 53 NM at a 106-knot groundspeed and you add 5 minutes for the climb. What is the ETE?",
+   "options": [
+    "30 min",
+    "35 min",
+    "28 min",
+    "45 min"
+   ],
+   "answer": 1,
+   "why": "53 ÷ 106 = 0.5 hr = 30 min, plus 5 = 35 min [[1:408|PHAK 16-21]]."
+  },
+  {
+   "q": "Variation is 7° E. True heading is 028°. What is the magnetic heading?",
+   "options": [
+    "035°",
+    "021°",
+    "028°",
+    "023°"
+   ],
+   "answer": 1,
+   "why": "East is least: subtract. 028 - 7 = 021° [[1:407|PHAK 16-20]] [[1:395|PHAK 16-8]]."
+  },
+  {
+   "q": "If you don't close your VFR flight plan, when does search and rescue start?",
+   "options": [
+    "At your ETA",
+    "15 minutes after ETA",
+    "1/2 hour after ETA",
+    "2 hours after ETA"
+   ],
+   "answer": 2,
+   "why": "If you fail to report or cancel within 1/2 hour after your ETA, SAR starts [[33:339|AIM 5-1-14]]."
+  },
+  {
+   "q": "Who activates your VFR flight plan after takeoff from a towered airport?",
+   "options": [
+    "The tower, automatically",
+    "Approach control",
+    "You, with Flight Service",
+    "Nobody; it activates when filed"
+   ],
+   "answer": 2,
+   "why": "Pilots are responsible for activating with Flight Service. Towers do not automatically activate VFR plans [[33:331|AIM 5-1-5]]."
+  },
+  {
+   "q": "If intercepted, what should you do on the radio and transponder?",
+   "options": [
+    "Squawk 7600 and stay silent",
+    "Call on 121.5 (or 243.0) and squawk 7700 unless ATC says otherwise",
+    "Squawk 1200 and call Flight Service",
+    "Squawk 7500 and climb"
+   ],
+   "answer": 1,
+   "why": "Call on guard giving identity, position and nature of flight, and select 7700 unless instructed otherwise [[34:22|AIM 5-6-13]]."
+  },
+  {
+   "q": "An interceptor makes an abrupt climbing turn of 90° or more without crossing your path. It means:",
+   "options": [
+    "Follow me",
+    "Land at this airport",
+    "You may proceed",
+    "You are in distress"
+   ],
+   "answer": 2,
+   "why": "Series 2 signal: 'You may proceed.' Rock your wings [[34:23|AIM TBL 5-6-1]]."
+  }
+ ],
+ "takeaways": [
+  "91.103: know weather, fuel, alternatives and delays before any trip away from the airport.",
+  "TC ± WCA = TH ± V = MH ± D = CH. East is least, west is best.",
+  "Use groundspeed for time and fuel: T = D ÷ GS; fuel = time × burn rate.",
+  "VFR above 3,000 AGL: magnetic course 0-179° odd + 500, 180-359° even + 500.",
+  "Fuel reserve: 30 min day, 45 min night, as a minimum. Recompute when anything changes.",
+  "File on Form 7233-4, activate it with Flight Service, and close it right after landing; SAR starts if it is not closed within 30 minutes after ETA."
+ ],
+ "cfi_notes": [
+  "Common errors: using true course instead of magnetic course for cruising altitude; adding east variation; using TAS instead of GS for fuel.",
+  "PHAK Figure 16-26 shows 8000 in the altitude block while the text picks 5,500 ft. Use it as a 'spot the error' exercise.",
+  "PHAK 16-21 still shows the domestic form and says plans are held 1 hour; the current AIM 5-1-5 says civil pilots use Form 7233-4 and proposals are normally kept 2 hours. Teach the AIM.",
+  "Have the student hand-compute at least one leg; examiners often ask how the app got a number.",
+  "Probe S4 with simple changes: stronger headwind, fewer gallons, night arrival, diversion. Make the student compare to 91.151 out loud.",
+  "Tie altitude choice to glide distance and 91.119(a): higher gives more options if the engine quits."
+ ],
+ "gaps": [
+  "Airplane-specific numbers (TAS, fuel flow, climb and descent performance, best glide speed and ratio) must come from the training airplane's POH; sources give only sample charts.",
+  "Real-time weather, current NOTAMs and Chart Supplement entries for the examiner's route must be obtained live; not in these files.",
+  "No piston-airplane descent-planning guidance in these sources; the AFH 3-NM-per-1,000-ft rule comes from its jet chapter and the 500 fpm rate in the example is an assumption.",
+  "Form 7233-4 equipment codes (AIM TBL 4-2/4-3) are not detailed here; check the AIM or filing service for your airplane's codes.",
+  "Operation of a specific EFB app is not covered; AC 91-78A gives only general guidance.",
+  "The 360°/30 kt fuel recalculation was worked with the PHAK wind-triangle method by this lesson, not taken from a source page."
+ ]
+}
