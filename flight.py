@@ -2475,8 +2475,18 @@ def student_course_grants_save(student_id):
         conn.close()
         flash("Student not found.", "danger")
         return redirect(url_for("flight.students_list"))
+    msg = apply_course_grants(conn, student_id, request.form.getlist("rating_id"))
+    conn.close()
+    flash(f"{student['name']} - {msg}", "success")
+    return redirect(url_for("flight.student_edit", student_id=student_id) + "#courses")
+
+
+def apply_course_grants(conn, student_id, rating_ids):
+    """Make the student's granted Ground School courses exactly `rating_ids`
+    (ready courses only; unlisted means removed). Shared by the student page
+    and the Account admin page. Returns a short message about what changed."""
     courses = conn.execute("SELECT id, name FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall()
-    wanted = {int(x) for x in request.form.getlist("rating_id") if x.isdigit()}
+    wanted = {int(x) for x in rating_ids if str(x).isdigit()}
     have = {r["rating_id"] for r in conn.execute(
         "SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (student_id,)).fetchall()}
     added, removed = [], []
@@ -2489,14 +2499,12 @@ def student_course_grants_save(student_id):
             conn.execute("DELETE FROM academy_course_grants WHERE student_id = ? AND rating_id = ?", (student_id, c["id"]))
             removed.append(c["name"])
     conn.commit()
-    conn.close()
     parts = []
     if added:
         parts.append("Granted: " + ", ".join(added))
     if removed:
         parts.append("Removed: " + ", ".join(removed))
-    flash(f"{student['name']} - " + ("; ".join(parts) + "." if parts else "no change to Flight Academy courses."), "success")
-    return redirect(url_for("flight.student_edit", student_id=student_id) + "#courses")
+    return "; ".join(parts) + "." if parts else "no change to Flight Academy courses."
 
 
 @flight_bp.route("/students/<int:student_id>/edit", methods=["GET", "POST"])

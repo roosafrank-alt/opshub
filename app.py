@@ -19,7 +19,7 @@ from db import (get_db, init_db, user_shop_roles, user_flight_roles, clean_roles
                  close_request_conns, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
                  allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
                  MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS, found_item_messages)
-from flight import flight_bp, _flight_hours, check_session_alerts, run_balance_hold_release_check, hundred_hr_status
+from flight import flight_bp, _flight_hours, check_session_alerts, run_balance_hold_release_check, hundred_hr_status, apply_course_grants
 from logbook import logbook_bp
 from pilotlog import pilotlog_bp
 from customer import customer_bp, _owned_asset_ids, _project_bill
@@ -8986,12 +8986,13 @@ def admin_user_edit(user_id):
                          notify_flight_reminders=notify_flight_reminders, academy_access=academy_access,
                          groundschool_access=groundschool_access, apprentice_calendar=apprentice_calendar)
             pay_ctx = _pay_link_context(conn, user_row)
+            grant_ctx = _course_grant_context(conn, user_id)
             conn.close()
             preset = _role_preset(shop_roles, flight_roles, badge=request.form.get("badge", ""),
                                   badge_rate=request.form.get("badge_rate", ""),
                                   cfi_pay_rate=request.form.get("cfi_pay_rate", ""))
             return render_template("admin_user_form.html", user=typed, preset=preset,
-                                   typed_password=new_password, **pay_ctx)
+                                   typed_password=new_password, **pay_ctx, **grant_ctx)
         if not name:
             flash("Name is required.", "danger")
             return _typed_form()
@@ -9045,8 +9046,44 @@ def admin_user_edit(user_id):
             return redirect(back_to)
         return redirect(url_for("admin_users_list"))
     pay_ctx = _pay_link_context(conn, user_row)
+    grant_ctx = _course_grant_context(conn, user_id)
     conn.close()
-    return render_template("admin_user_form.html", user=user_row, **pay_ctx)
+    return render_template("admin_user_form.html", user=user_row, **pay_ctx, **grant_ctx)
+
+
+def _course_grant_context(conn, user_id):
+    """Ground School courses this account's student profile can be given
+    (ready courses only) and the ones already given. grant_student_id is
+    None when the account has no student profile yet."""
+    student = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_id,)).fetchone()
+    courses = conn.execute("SELECT id, name FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall()
+    granted = set()
+    if student:
+        granted = {r["rating_id"] for r in conn.execute(
+            "SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (student["id"],)).fetchall()}
+    return {"grant_student_id": student["id"] if student else None, "grant_courses": courses, "granted_ids": granted}
+
+
+@app.route("/admin/users/<int:user_id>/course-grants", methods=["POST"])
+@master_admin_required
+def admin_user_course_grants(user_id):
+    """Account page: which whole Ground School courses this student account
+    can read. The checkboxes shown are the full list, so unchecked = removed."""
+    conn = get_db()
+    user_row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    student = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_id,)).fetchone()
+    if not user_row or not student:
+        conn.close()
+        flash("That account has no student profile. Give it the Student role first.", "danger")
+        return redirect(url_for("admin_users_list"))
+    if owner_locked(user_id, conn):
+        conn.close()
+        flash(f"{user_row['name']}'s account is the owner account - only {user_row['name']} can change it.", "warning")
+        return redirect(url_for("admin_users_list"))
+    msg = apply_course_grants(conn, student["id"], request.form.getlist("rating_id"))
+    conn.close()
+    flash(f"{user_row['name']} - {msg}", "success")
+    return redirect(url_for("admin_user_edit", user_id=user_id) + "#courses")
 
 
 # Where "My Account" was opened from, so the centralized account page can

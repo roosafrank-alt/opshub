@@ -245,6 +245,28 @@
     </div>
   </form>
 </div>
+
+{% if user and grant_courses is defined %}
+<div class="card p-4 mt-3" id="courses" style="scroll-margin-top:80px;">
+  <h5 class="mb-1"><i class="bi bi-mortarboard"></i> Ground School courses</h5>
+  {% if grant_student_id %}
+  <p class="small text-muted">This student sees only the checked courses (lesson plans and ground school), read only. Accounts with Ground School Access or Flight Academy Access above still see everything.</p>
+  <form method="post" action="{{ url_for('admin_user_course_grants', user_id=user.id) }}">
+    {% for c in grant_courses %}
+    <div class="form-check mb-1">
+      <input class="form-check-input" type="checkbox" name="rating_id" value="{{ c.id }}" id="grant-{{ c.id }}"{{ ' checked' if c.id in granted_ids }}>
+      <label class="form-check-label" for="grant-{{ c.id }}">{{ c.name }}</label>
+    </div>
+    {% else %}
+    <p class="mb-2">No courses are ready yet. Add one under Ground School first.</p>
+    {% endfor %}
+    {% if grant_courses %}<button type="submit" class="btn btn-primary btn-sm mt-2">Save courses</button>{% endif %}
+  </form>
+  {% else %}
+  <p class="small text-muted mb-0">This account has no student profile. Give it the Student role (above), save, then pick its courses here.</p>
+  {% endif %}
+</div>
+{% endif %}
 </div>
 </div>
 {% endblock %}
