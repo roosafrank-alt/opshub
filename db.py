@@ -215,6 +215,14 @@ def _migrate(conn):
                          WHERE current_hours IS NOT NULL AND tach_hours IS NULL""")
         conn.commit()
 
+    # Compression checks: separate Tach and Hobbs readings (the old single
+    # "hours" column stays so earlier checks keep their number).
+    cc_cols = [r["name"] for r in conn.execute("PRAGMA table_info(compression_checks)").fetchall()]
+    for col in ("tach_hours", "hobbs_hours"):
+        if cc_cols and col not in cc_cols:
+            conn.execute(f"ALTER TABLE compression_checks ADD COLUMN {col} REAL")
+            conn.commit()
+
     # Maintenance items: which meter (tach or hobbs) an hours-based item tracks.
     mi_cols = [r["name"] for r in conn.execute("PRAGMA table_info(maintenance_items)").fetchall()]
     if "hour_type" not in mi_cols:
