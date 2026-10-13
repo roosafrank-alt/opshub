@@ -4223,6 +4223,8 @@ def _build_schedule_day(conn, date_str, plane_id=None, cfi_id=None):
 # DEFAULT_SCHEDULE_BLOCK_HOURS above), so a slot lines up with how a booking
 # actually blocks the plane.
 AVAILABILITY_SLOT_MIN = int(DEFAULT_SCHEDULE_BLOCK_HOURS * 60)
+AVAILABILITY_DAY_START_MIN = 6 * 60 + 30
+AVAILABILITY_DAY_LAST_START_MIN = 20 * 60
 
 
 def _build_availability_day(conn, date_str, plane_id=None):
@@ -4265,8 +4267,9 @@ def _build_availability_day(conn, date_str, plane_id=None):
     now_min = now.hour * 60 + now.minute
 
     slots = []
-    day_start, day_end = _school_day_window(conn)
-    for start in range(day_start, day_end - AVAILABILITY_SLOT_MIN + 1, AVAILABILITY_SLOT_MIN):
+    # The Availability grid starts at 6:30 am and steps every 1.5 hours
+    # (6:30, 8:00, 9:30, ... 8:00 pm), whatever the school day's hours are.
+    for start in range(AVAILABILITY_DAY_START_MIN, AVAILABILITY_DAY_LAST_START_MIN + 1, AVAILABILITY_SLOT_MIN):
         end = start + AVAILABILITY_SLOT_MIN
         label = _format_time_12h(f"{start // 60:02d}:{start % 60:02d}")
         is_past = date_str < today_str or (date_str == today_str and start <= now_min)

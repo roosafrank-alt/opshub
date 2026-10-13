@@ -480,7 +480,7 @@ class SchoolDayTest(FlyBase):
         c = self.login("master")
         html = c.get("/flight/schedule/availability").get_data(as_text=True)
         self.assertIn("6 AM - 9 PM", html)
-        self.assertIn("6:00 AM", html)
+        self.assertIn("6:30 AM", html)
         r = c.post("/flight/settings/school", data=dict(day_start_hour="7", day_end_hour="19", window_hours="24",
                                                         fee_amount="0", limit="0"))
         self.assertEqual(r.status_code, 302)
