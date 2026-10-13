@@ -16,6 +16,6 @@ class AddQuickType(OpsHubTestCase):
         r = c.post(f"/projects/{pid}/add_quick_type", data={"quick_type": "Annual Inspection"})
         self.assertEqual(r.status_code, 302)
         names = [x["name"] for x in self.q("SELECT name FROM project_sections WHERE project_id = ?", (pid,))]
-        self.assertEqual(names, ["Brakes"])
+        self.assertEqual(sorted(names), ["Annual Inspection", "Brakes"])
         c.post(f"/projects/{pid}/add_quick_type", data={"quick_type": "Annual Inspection"})
-        self.assertEqual(len(self.q("SELECT 1 FROM project_sections WHERE project_id = ?", (pid,))), 1)
+        self.assertEqual(len(self.q("SELECT 1 FROM project_sections WHERE project_id = ?", (pid,))), 2)

@@ -2412,7 +2412,9 @@ def project_add_quick_type(project_id):
         conn.close()
         flash("Pick a Quick Type from the list.", "danger")
         return redirect(url_for("project_detail", project_id=project_id))
-    added = 0
+    # The Quick Type itself goes on the list as an item, then its preset ones.
+    added = conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
+                         (project_id, quick_type, now_iso())).rowcount
     for r in conn.execute("SELECT name FROM task_template_areas WHERE quick_type = ? AND is_optional = 0 ORDER BY sort_order, name",
                           (quick_type,)).fetchall():
         added += conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
