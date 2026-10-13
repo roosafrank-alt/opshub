@@ -121,6 +121,27 @@
       <input type="checkbox" class="form-check-input" name="groundschool_access" id="groundschool-access-check" {% if user and user.groundschool_access %}checked{% endif %}>
       <label class="form-check-label" for="groundschool-access-check">Ground School Access <span class="text-muted small">(the Ground School button in the Fly with Kate! menu - lesson plans &amp; resources; Flight Academy accounts and master admins always have it)</span></label>
     </div>
+    {% if user and grant_student %}
+    <div class="ms-4 mb-3" id="courses" style="scroll-margin-top:80px;">
+      <div id="courses-all-note" class="small text-muted d-none"><i class="bi bi-check-circle"></i> This account already sees every ground school. Untick the access boxes above to enroll in individual courses.</div>
+      <div id="courses-list">
+        <div class="small fw-bold mb-1"><i class="bi bi-mortarboard"></i> Enroll in individual ground schools</div>
+        <div class="form-text mb-2">Without the access boxes above, {{ user.name }} sees only the courses they're enrolled in, read only. Each change asks you to confirm and saves right away.</div>
+        {% for c in grant_courses %}
+        <div class="d-flex align-items-center justify-content-between gap-2 py-1 border-bottom">
+          <span>{{ c.name }}{% if c.id in granted_ids %} <span class="badge text-bg-success ms-1">Enrolled</span>{% endif %}</span>
+          {% if c.id in granted_ids %}
+          <button type="submit" form="cg-{{ c.id }}" class="btn btn-outline-danger btn-sm">Unenroll</button>
+          {% else %}
+          <button type="submit" form="cg-{{ c.id }}" class="btn btn-primary btn-sm">Enroll</button>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="small">No courses are ready yet. Add one under Ground School first.</div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
     {% if user %}
     <div class="form-check mb-3">
       <input type="checkbox" class="form-check-input" name="active" id="active-check" {% if user.active %}checked{% endif %}>
@@ -246,23 +267,13 @@
   </form>
 </div>
 {% if user and grant_student %}
-<div class="card p-4 mt-3" id="courses" style="scroll-margin-top:80px;">
-  <h5 class="mb-1"><i class="bi bi-mortarboard"></i> Ground school courses</h5>
-  <p class="small text-muted">Give {{ user.name }} access to one ground school at a time. They see only the courses marked Granted, read only. Accounts with Flight Academy or Ground School Access above, and master admins, already see everything.</p>
-  {% for c in grant_courses %}
-  <form method="post" action="{{ url_for('admin_user_course_grant', user_id=user.id) }}" class="d-flex align-items-center justify-content-between gap-2 py-2 border-bottom">
-    <input type="hidden" name="rating_id" value="{{ c.id }}">
-    <span>{{ c.name }}{% if c.id in granted_ids %} <span class="badge text-bg-success ms-1">Granted</span>{% endif %}</span>
-    {% if c.id in granted_ids %}
-    <button type="submit" name="action" value="remove" class="btn btn-outline-danger btn-sm">Remove</button>
-    {% else %}
-    <button type="submit" name="action" value="grant" class="btn btn-primary btn-sm">Grant</button>
-    {% endif %}
-  </form>
-  {% else %}
-  <p class="mb-0">No courses are ready yet. Add one under Ground School first.</p>
-  {% endfor %}
-</div>
+{#- One small form per course, outside the main form (forms can't nest); the Enroll / Unenroll buttons up in the Ground School Access section point at these with form="cg-ID". #}
+{% for c in grant_courses %}
+<form id="cg-{{ c.id }}" method="post" action="{{ url_for('admin_user_course_grant', user_id=user.id) }}" data-confirm="{{ ('Unenroll ' ~ user.name ~ ' from ' ~ c.name ~ '? They will no longer see this ground school.') if c.id in granted_ids else ('Enroll ' ~ user.name ~ ' in ' ~ c.name ~ '? They will be able to see this ground school.') }}" data-confirm-title="{{ 'Unenroll' if c.id in granted_ids else 'Enroll' }}" data-confirm-ok="{{ 'Unenroll' if c.id in granted_ids else 'Enroll' }}"{% if c.id in granted_ids %} data-confirm-style="danger"{% endif %}>
+  <input type="hidden" name="rating_id" value="{{ c.id }}">
+  <input type="hidden" name="action" value="{{ 'unenroll' if c.id in granted_ids else 'enroll' }}">
+</form>
+{% endfor %}
 {% endif %}
 </div>
 </div>
@@ -270,6 +281,16 @@
 {% block scripts %}
 <script>
 (function () {
+  var allBoxes = ['master-admin-check', 'academy-access-check', 'groundschool-access-check'].map(function (i) { return document.getElementById(i); }).filter(Boolean);
+  var courseList = document.getElementById('courses-list'), courseNote = document.getElementById('courses-all-note');
+  function syncCourses() {
+    if (!courseList || !courseNote) return;
+    var all = allBoxes.some(function (b) { return b.checked; });
+    courseList.classList.toggle('d-none', all);
+    courseNote.classList.toggle('d-none', !all);
+  }
+  allBoxes.forEach(function (b) { b.addEventListener('change', syncCourses); });
+  syncCourses();
   var sel = document.getElementById('badge-select');
   var wrap = document.getElementById('badge-rate-wrap');
   function sync() { wrap.style.display = sel.value === 'new' ? '' : 'none'; }

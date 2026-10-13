@@ -1,4 +1,4 @@
-"""Account admin page: grant or remove ONE Ground School course at a time."""
+"""Account admin page: enroll or unenroll ONE Ground School course at a time."""
 from harness import OpsHubTestCase
 import db
 
@@ -22,23 +22,25 @@ class AdminAccountCourseGrantTest(OpsHubTestCase):
 
     def test_card_lists_only_ready_courses(self):
         body = self.login("master").get(f"/admin/users/{self.uid}/edit").get_data(as_text=True)
-        self.assertIn("Ground school courses", body)
+        self.assertIn("Enroll in individual ground schools", body)
+        self.assertLess(body.index("Enroll in individual ground schools"), body.index("Profiles") if "Profiles" in body else 10**9)
+        self.assertIn('data-confirm="Enroll', body)
         self.assertIn("Private Pilot", body)
         self.assertNotIn("Unparsed Thing", body)
 
     def test_grant_one_then_remove(self):
         c = self.login("master")
-        c.post(f"/admin/users/{self.uid}/course-grant", data={"rating_id": self.r["ppl"], "action": "grant"})
+        c.post(f"/admin/users/{self.uid}/course-grant", data={"rating_id": self.r["ppl"], "action": "enroll"})
         self.assertEqual(self.granted(), {self.r["ppl"]})
-        c.post(f"/admin/users/{self.uid}/course-grant", data={"rating_id": self.r["ifr"], "action": "grant"})
+        c.post(f"/admin/users/{self.uid}/course-grant", data={"rating_id": self.r["ifr"], "action": "enroll"})
         self.assertEqual(self.granted(), {self.r["ppl"], self.r["ifr"]})
-        c.post(f"/admin/users/{self.uid}/course-grant", data={"rating_id": self.r["ppl"], "action": "remove"})
+        c.post(f"/admin/users/{self.uid}/course-grant", data={"rating_id": self.r["ppl"], "action": "unenroll"})
         self.assertEqual(self.granted(), {self.r["ifr"]})
 
     def test_unready_course_refused(self):
-        self.login("master").post(f"/admin/users/{self.uid}/course-grant", data={"rating_id": self.r["raw"], "action": "grant"})
+        self.login("master").post(f"/admin/users/{self.uid}/course-grant", data={"rating_id": self.r["raw"], "action": "enroll"})
         self.assertEqual(self.granted(), set())
 
     def test_non_admin_refused(self):
-        self.login("cfi").post(f"/admin/users/{self.uid}/course-grant", data={"rating_id": self.r["ppl"], "action": "grant"})
+        self.login("cfi").post(f"/admin/users/{self.uid}/course-grant", data={"rating_id": self.r["ppl"], "action": "enroll"})
         self.assertEqual(self.granted(), set())
