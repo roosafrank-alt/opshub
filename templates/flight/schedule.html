@@ -365,6 +365,8 @@
     .week-timeline-wrap .day-timeline-hours,
     .week-timeline-wrap .day-timeline-track { height: 420px; }
   }
+  /* Fit to screen (Day / Week): the hour grid is sized by script to the visible height. */
+  .sch-fit .day-timeline-hours, .sch-fit .day-timeline-track { height: var(--sch-fit-h, 560px) !important; }
 </style>
 
 <div id="schedule-live-region" data-live-url="{{ url_for('flight.schedule_live') }}">
@@ -376,6 +378,30 @@
 
 {% block scripts %}
 <script>
+// Fit to screen (Day / Week views): shrinks the hour grid so the whole day shows
+// without scrolling. Remembered in localStorage.
+(function () {
+  function on() { try { return localStorage.getItem('schFit') === '1'; } catch (e) { return false; } }
+  window.schFit = function () {
+    var de = document.documentElement, btn = document.getElementById('sch-fit-btn');
+    var fit = on() && !!document.querySelector('.day-timeline-track');
+    de.classList.remove('sch-fit');
+    if (fit) {
+      var t = document.querySelector('.day-timeline-track');
+      var top = t.getBoundingClientRect().top + window.scrollY;
+      de.style.setProperty('--sch-fit-h', Math.max(240, window.innerHeight - top - 24) + 'px');
+      de.classList.add('sch-fit');
+    }
+    if (btn) { btn.classList.toggle('active', on()); btn.setAttribute('aria-pressed', on() ? 'true' : 'false'); }
+  };
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('#sch-fit-btn')) return;
+    try { localStorage.setItem('schFit', on() ? '0' : '1'); } catch (x) {}
+    window.schFit();
+  });
+  window.addEventListener('resize', window.schFit);
+  window.schFit();
+})();
 // Keeps the sticky schedule toolbar tucked right under the navbar (whose
 // height varies - wrapped items, open phone menu), and adds a shadow once
 // the toolbar is actually floating over scrolled content.
@@ -601,7 +627,7 @@ document.addEventListener('click', function (evt) {
     inFlight = true;
     fetch(url + window.location.search, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
       .then(function (resp) { return resp.ok ? resp.text() : null; })
-      .then(function (html) { if (html !== null) region.innerHTML = html; })
+      .then(function (html) { if (html !== null) { region.innerHTML = html; if (window.schFit) window.schFit(); } })
       .catch(function () { /* network hiccup - just try again next tick */ })
       .finally(function () { inFlight = false; });
   }
