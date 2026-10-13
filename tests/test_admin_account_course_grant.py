@@ -58,3 +58,10 @@ class AdminAccountCourseGrantTest(OpsHubTestCase):
         self.assertEqual(self.q1("SELECT groundschool_access AS g FROM users WHERE id = ?", (self.uid,))["g"], 1)
         c.post(f"/admin/users/{self.uid}/course-grant", data={"action": "clear_full"})
         self.assertEqual(self.q1("SELECT groundschool_access AS g FROM users WHERE id = ?", (self.uid,))["g"], 0)
+
+    def test_enroll_list_visible_even_with_academy_access(self):
+        self.exec("UPDATE users SET academy_access = 1 WHERE id = ?", (self.uid,))
+        body = self.login("master").get(f"/admin/users/{self.uid}/edit").get_data(as_text=True)
+        self.assertIn("Private Pilot", body)
+        self.assertIn('id="courses-list"', body)
+        self.assertNotIn('id="courses-list" class="d-none"', body)
