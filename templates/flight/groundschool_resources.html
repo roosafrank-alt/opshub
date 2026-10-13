@@ -4,7 +4,29 @@
 <style>
   .resource-row { cursor: pointer; }
   .resource-row:hover { background: rgba(43,63,219,.08); }
-  .resource-row td { vertical-align: middle; }
+  .resource-row td { vertical-align: middle; overflow-wrap: anywhere; }
+  .resource-title { color: inherit; text-decoration: none; }
+  .resource-title:hover { text-decoration: underline; }
+  /* Stack rows as cards up to 900px (a half-screen browser is ~700px) so the
+     table never scrolls sideways. Generic: any extra cell just joins the grid;
+     a cell with data-label="" or .stack-full spans the full card. */
+  @media (max-width: 900px) {
+    .resources-table thead { display: none; }
+    .resources-table, .resources-table tbody { display: block; width: 100%; }
+    .resources-table tbody tr {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+      gap: .1rem .75rem; border: 1px solid #dee2e6; border-radius: .4rem;
+      margin-bottom: .4rem; padding: .5rem .6rem; background: #fff;
+    }
+    .resources-table tbody tr:last-child { margin-bottom: 0; }
+    .resources-table td { display: block; min-width: 0; border: none !important; padding: .15rem 0 !important;
+      white-space: normal !important; text-align: left !important; }
+    .resources-table td:empty { display: none; }
+    .resources-table td[data-label]:not([data-label=""])::before {
+      content: attr(data-label); display: block; font-size: .62rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .02em; color: #6c757d; line-height: 1.2; }
+    .resources-table td[data-label=""], .resources-table td.stack-full { grid-column: 1 / -1; }
+  }
 </style>
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0 text-light"><i class="bi bi-folder2-open"></i> Resources</h4>
@@ -28,12 +50,12 @@
 {% else %}
 <div class="card academy-card">
   <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0 table-stack" data-change="DESIGN-5">
+    <table class="table table-sm align-middle mb-0 table-stack resources-table" data-change="DESIGN-5">
       <thead><tr><th>Title</th><th>Type</th><th>Date</th><th>Revision</th><th>Effectivity</th><th>Pages indexed</th><th></th><th></th></tr></thead>
       <tbody>
         {% for r in resources %}
-        <tr class="resource-row" onclick="window.open('{{ url_for('groundschool.resource_file', resource_id=r.id) }}', '_blank')">
-          <td class="stack-full" data-label=""><span class="fw-bold"><i class="bi bi-file-earmark-pdf text-danger"></i> {{ (r.designation ~ ' - ' ~ r.title) if r.designation else r.title }}</span></td>
+        <tr class="resource-row" onclick="if(!event.target.closest('a'))window.open('{{ url_for('groundschool.resource_file', resource_id=r.id) }}', '_blank')">
+          <td class="stack-full" data-label=""><a class="fw-bold resource-title" href="{{ url_for('groundschool.resource_file', resource_id=r.id) }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf text-danger"></i> {{ (r.designation ~ ' - ' ~ r.title) if r.designation else r.title }}</a></td>
           <td class="text-muted small" data-label="Type">{{ r.doc_type or '-' }}</td>
           <td class="text-muted small" data-label="Date">{{ r.doc_date or '-' }}</td>
           <td class="text-muted small" data-label="Revision">{{ r.revision or '-' }}</td>
