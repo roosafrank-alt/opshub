@@ -9045,8 +9045,55 @@ def admin_user_edit(user_id):
             return redirect(back_to)
         return redirect(url_for("admin_users_list"))
     pay_ctx = _pay_link_context(conn, user_row)
+    grant_ctx = _course_grant_context(conn, user_id)
     conn.close()
-    return render_template("admin_user_form.html", user=user_row, **pay_ctx)
+    return render_template("admin_user_form.html", user=user_row, **pay_ctx, **grant_ctx)
+
+
+def _course_grant_context(conn, user_id):
+    """Per-course Ground School grants for the student profile linked to this account."""
+    st = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_id,)).fetchone()
+    if not st:
+        return {"grant_student": None}
+    return {
+        "grant_student": st["id"],
+        "grant_courses": conn.execute("SELECT id, name FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall(),
+        "granted_ids": {r["rating_id"] for r in conn.execute(
+            "SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (st["id"],)).fetchall()},
+    }
+
+
+@app.route("/admin/users/<int:user_id>/course-grant", methods=["POST"])
+@master_admin_required
+def admin_user_course_grant(user_id):
+    """Grant or remove ONE Ground School course for this account's student profile."""
+    conn = get_db()
+    user_row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not user_row:
+        conn.close()
+        flash("Account not found.", "danger")
+        return redirect(url_for("admin_users_list"))
+    if owner_locked(user_id, conn):
+        conn.close()
+        flash(f"{user_row['name']}'s account is the owner account - only {user_row['name']} can change it.", "warning")
+        return redirect(url_for("admin_users_list"))
+    st = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_id,)).fetchone()
+    rating_id = request.form.get("rating_id", "")
+    course = conn.execute("SELECT id, name FROM acs_ratings WHERE id = ? AND status = 'parsed'",
+                          (int(rating_id) if rating_id.isdigit() else -1,)).fetchone()
+    action = request.form.get("action")
+    if not st or not course or action not in ("grant", "remove"):
+        conn.close()
+        flash("Couldn't change that course.", "danger")
+        return redirect(url_for("admin_user_edit", user_id=user_id) + "#courses")
+    conn.execute("DELETE FROM academy_course_grants WHERE student_id = ? AND rating_id = ?", (st["id"], course["id"]))
+    if action == "grant":
+        conn.execute("INSERT INTO academy_course_grants (student_id, rating_id, granted_by, granted_at) VALUES (?,?,?,?)",
+                     (st["id"], course["id"], session.get("user_name"), now_iso()))
+    conn.commit()
+    conn.close()
+    flash(("Granted " if action == "grant" else "Removed ") + course["name"] + (" for " if action == "grant" else " from ") + user_row["name"] + ".", "success")
+    return redirect(url_for("admin_user_edit", user_id=user_id) + "#courses")
 
 
 # Where "My Account" was opened from, so the centralized account page can
