@@ -98,7 +98,7 @@
            class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
           {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
         </a>
-        {{ el.text }}
+        {{ el.text }}{% if el.retired_at %} <span class="badge bg-secondary" title="The current ACS no longer has this element. It is kept because it has lesson or student work.">Removed from ACS</span>{% endif %}
       </li>
       {% endfor %}
     </ul>
@@ -113,7 +113,7 @@
            class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
           {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
         </a>
-        {{ el.text }}
+        {{ el.text }}{% if el.retired_at %} <span class="badge bg-secondary" title="The current ACS no longer has this element. It is kept because it has lesson or student work.">Removed from ACS</span>{% endif %}
       </li>
       {% endfor %}
     </ul>
@@ -128,13 +128,28 @@
            class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
           {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
         </a>
-        {{ el.text }}
+        {{ el.text }}{% if el.retired_at %} <span class="badge bg-secondary" title="The current ACS no longer has this element. It is kept because it has lesson or student work.">Removed from ACS</span>{% endif %}
       </li>
       {% endfor %}
     </ul>
     {% endif %}
   </div>
 </div>
+
+{% if task.retired_at %}
+<div class="alert alert-secondary py-2" data-change="ACS-RESOURCES"><i class="bi bi-archive"></i> This Task is no longer in the current ACS. It is kept because it has lesson content or student records.</div>
+{% endif %}
+{% if flight_admin and acs_changes %}
+<div class="alert alert-warning mb-3" data-change="ACS-RESOURCES">
+  <div class="fw-bold mb-1"><i class="bi bi-arrow-repeat"></i> The ACS changed for this Task. Refresh this lesson plan.</div>
+  <ul class="small mb-2">
+    {% for c in acs_changes %}<li>{{ c.detail }} <span class="text-muted">({{ c.created_at[:10] }})</span></li>{% endfor %}
+  </ul>
+  <form method="post" action="{{ url_for('groundschool.task_changes_resolve', task_id=task.id) }}">
+    <button class="btn btn-success btn-sm fw-bold" type="submit"><i class="bi bi-check-lg"></i> Lesson refreshed</button>
+  </form>
+</div>
+{% endif %}
 
 {% if gs_lesson %}{% include "flight/_ground_lesson.html" %}{% endif %}
 <div class="card academy-card mb-3">

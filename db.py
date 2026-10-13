@@ -1180,6 +1180,10 @@ def _migrate(conn):
                 "prev_filename", "new_until"):
         if col not in res_cols:
             conn.execute(f"ALTER TABLE acs_resources ADD COLUMN {col} TEXT")
+    # ACS-RESOURCES: an ACS shows in Resources too. This ties that Resources row to its
+    # Ground School course (acs_ratings) so an approved update also refreshes the lessons.
+    if "acs_rating_id" not in res_cols:
+        conn.execute("ALTER TABLE acs_resources ADD COLUMN acs_rating_id INTEGER")
     conn.execute("""CREATE TABLE IF NOT EXISTS acs_resource_pages (
         resource_id INTEGER NOT NULL REFERENCES acs_resources(id),
         page_num INTEGER NOT NULL,
@@ -1239,6 +1243,29 @@ def _migrate(conn):
     for col in ("old_doc_date", "old_revision", "old_effectivity"):
         if col not in ru_cols:
             conn.execute(f"ALTER TABLE resource_updates ADD COLUMN {col} TEXT")
+    if "acs_report" not in ru_cols:
+        conn.execute("ALTER TABLE resource_updates ADD COLUMN acs_report TEXT")
+    # ACS-RESOURCES: an approved ACS update is merged into the course in place (same task and
+    # element ids, so lessons, sign-offs and reading progress survive). Items the new ACS dropped
+    # but that have student work on them are kept and marked retired_at instead of deleted.
+    for tbl in ("acs_tasks", "acs_task_elements"):
+        cols = [r["name"] for r in conn.execute(f"PRAGMA table_info({tbl})").fetchall()]
+        if "retired_at" not in cols:
+            conn.execute(f"ALTER TABLE {tbl} ADD COLUMN retired_at TEXT")
+    conn.execute("""CREATE TABLE IF NOT EXISTS acs_task_changes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        update_id INTEGER,
+        rating_id INTEGER NOT NULL,
+        task_id INTEGER NOT NULL,
+        kind TEXT NOT NULL,
+        code TEXT,
+        detail TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        resolved_at TEXT,
+        resolved_by INTEGER
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_acs_task_changes_task ON acs_task_changes(task_id, resolved_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_acs_task_changes_update ON acs_task_changes(update_id)")
     conn.execute("""CREATE TABLE IF NOT EXISTS resource_update_notices (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         update_id INTEGER NOT NULL,

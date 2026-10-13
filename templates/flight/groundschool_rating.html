@@ -57,6 +57,8 @@
         <span class="flex-grow-1">
           <i class="bi bi-chevron-right text-muted me-1"></i>
           <span class="text-muted">Task {{ task.code }}.</span> {{ task.title }}
+          {% if flight_admin and changes_by_task.get(task.id) %}<span class="badge bg-warning text-dark ms-1" data-change="ACS-RESOURCES" title="The ACS changed for this Task. Open it to refresh the lesson plan.">Lesson needs refresh</span>{% endif %}
+          {% if task.retired_at %}<span class="badge bg-secondary ms-1" data-change="ACS-RESOURCES">Removed from ACS</span>{% endif %}
           {% if tp %}<span class="small text-muted ms-2">({{ tp.done }}/{{ tp.total }} &middot; {{ tp.pct }}%)</span>{% endif %}
         </span>
         <a href="{{ gs_url('groundschool.task_detail', task_id=task.id) }}" class="small text-decoration-none flex-shrink-0"
@@ -82,7 +84,7 @@
                  class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
                 {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
               </a>
-              {{ el.text }}
+              {{ el.text }}{% if el.retired_at %} <span class="badge bg-secondary" title="The current ACS no longer has this element. It is kept because it has lesson or student work.">Removed from ACS</span>{% endif %}
             </li>
             {% endfor %}
           </ul>
@@ -97,7 +99,7 @@
                  class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
                 {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
               </a>
-              {{ el.text }}
+              {{ el.text }}{% if el.retired_at %} <span class="badge bg-secondary" title="The current ACS no longer has this element. It is kept because it has lesson or student work.">Removed from ACS</span>{% endif %}
             </li>
             {% endfor %}
           </ul>
@@ -112,7 +114,7 @@
                  class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
                 {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
               </a>
-              {{ el.text }}
+              {{ el.text }}{% if el.retired_at %} <span class="badge bg-secondary" title="The current ACS no longer has this element. It is kept because it has lesson or student work.">Removed from ACS</span>{% endif %}
             </li>
             {% endfor %}
           </ul>
