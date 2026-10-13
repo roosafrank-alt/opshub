@@ -1167,6 +1167,10 @@ def _migrate(conn):
         uploaded_by INTEGER,
         uploaded_at TEXT NOT NULL
     )""")
+    res_cols = [r["name"] for r in conn.execute("PRAGMA table_info(acs_resources)").fetchall()]
+    for col in ("designation", "doc_date", "revision", "effectivity"):
+        if col not in res_cols:
+            conn.execute(f"ALTER TABLE acs_resources ADD COLUMN {col} TEXT")
     conn.execute("""CREATE TABLE IF NOT EXISTS acs_resource_pages (
         resource_id INTEGER NOT NULL REFERENCES acs_resources(id),
         page_num INTEGER NOT NULL,

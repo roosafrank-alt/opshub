@@ -790,6 +790,29 @@ def resources_list():
     return render_template("flight/groundschool_resources.html", resources=resources, tab="resources")
 
 
+_RESOURCE_META = ("designation", "doc_date", "revision", "effectivity")
+
+
+@groundschool_bp.route("/resources/<int:resource_id>/edit", methods=["POST"])
+@admin_required
+def resources_edit(resource_id):
+    """Correct a resource's labels only: the PDF and its page index are untouched."""
+    conn = get_db()
+    r = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (resource_id,)).fetchone()
+    if not r:
+        conn.close()
+        abort(404)
+    title = request.form.get("title", "").strip() or r["title"]
+    doc_type = request.form.get("doc_type", "").strip() or r["doc_type"]
+    meta = tuple(request.form.get(k, "").strip() or None for k in _RESOURCE_META)
+    conn.execute("UPDATE acs_resources SET title = ?, doc_type = ?, designation = ?, doc_date = ?, "
+                 "revision = ?, effectivity = ? WHERE id = ?", (title, doc_type) + meta + (resource_id,))
+    conn.commit()
+    conn.close()
+    flash(f"Saved '{title}'.", "success")
+    return redirect(url_for("groundschool.resources_list"))
+
+
 @groundschool_bp.route("/resources/upload", methods=["POST"])
 @admin_required
 def resources_upload():
@@ -801,12 +824,14 @@ def resources_upload():
         return redirect(url_for("groundschool.resources_list"))
     if not title:
         title = f.filename.rsplit(".", 1)[0]
+    meta = tuple(request.form.get(k, "").strip() or None for k in _RESOURCE_META)
     stored_name = _save_resource_pdf(f)
     pdf_path = os.path.join(UPLOAD_DIR, stored_name)
     conn = get_db()
     cur = conn.execute(
-        "INSERT INTO acs_resources (title, doc_type, filename, uploaded_by, uploaded_at) VALUES (?, ?, ?, ?, ?)",
-        (title, doc_type, stored_name, session.get("cfi_id"), now_iso()))
+        "INSERT INTO acs_resources (title, doc_type, filename, uploaded_by, uploaded_at, "
+        "designation, doc_date, revision, effectivity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (title, doc_type, stored_name, session.get("cfi_id"), now_iso()) + meta)
     resource_id = cur.lastrowid
     conn.commit()
     try:

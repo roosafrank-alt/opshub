@@ -29,16 +29,24 @@
 <div class="card academy-card">
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0 table-stack" data-change="DESIGN-5">
-      <thead><tr><th>Title</th><th>Type</th><th>Pages indexed</th><th></th><th></th></tr></thead>
+      <thead><tr><th>Title</th><th>Type</th><th>Date</th><th>Revision</th><th>Effectivity</th><th>Pages indexed</th><th></th><th></th></tr></thead>
       <tbody>
         {% for r in resources %}
         <tr class="resource-row" onclick="window.open('{{ url_for('groundschool.resource_file', resource_id=r.id) }}', '_blank')">
-          <td class="stack-full" data-label=""><span class="fw-bold"><i class="bi bi-file-earmark-pdf text-danger"></i> {{ r.title }}</span></td>
+          <td class="stack-full" data-label=""><span class="fw-bold"><i class="bi bi-file-earmark-pdf text-danger"></i> {{ (r.designation ~ ' - ' ~ r.title) if r.designation else r.title }}</span></td>
           <td class="text-muted small" data-label="Type">{{ r.doc_type or '-' }}</td>
+          <td class="text-muted small" data-label="Date">{{ r.doc_date or '-' }}</td>
+          <td class="text-muted small" data-label="Revision">{{ r.revision or '-' }}</td>
+          <td class="text-muted small" data-label="Effectivity">{{ r.effectivity or '-' }}</td>
           <td class="text-muted small" data-label="Pages indexed">{{ r.page_count }}</td>
           <td class="text-primary small fw-bold text-nowrap" data-label="">Open <i class="bi bi-box-arrow-up-right"></i></td>
           <td class="text-end" data-label="" onclick="event.stopPropagation()">
             {% if flight_admin %}
+            <button type="button" class="btn btn-outline-primary btn-sm resource-edit-btn" title="Edit"
+                    data-action="{{ url_for('groundschool.resources_edit', resource_id=r.id) }}"
+                    data-title="{{ r.title }}" data-designation="{{ r.designation or '' }}" data-doc-date="{{ r.doc_date or '' }}"
+                    data-revision="{{ r.revision or '' }}" data-effectivity="{{ r.effectivity or '' }}" data-doc-type="{{ r.doc_type or '' }}">
+              <i class="bi bi-pencil"></i> Edit</button>
             <form method="post" action="{{ url_for('groundschool.resources_delete', resource_id=r.id) }}" class="d-inline" data-change="DESIGN-3 DESIGN-4"
                   data-confirm="Delete {{ r.title }} forever? References linking to it will stop auto-linking. This can't be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
               <button type="submit" class="btn btn-danger btn-sm" title="Delete Forever"><i class="bi bi-trash"></i></button>
@@ -76,6 +84,16 @@
             <option value="Other">Other</option>
           </select>
         </div>
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-sm-6"><label class="form-label">Designation</label>
+            <input type="text" name="designation" class="form-control" placeholder="e.g. 14 CFR Part 91"></div>
+          <div class="col-12 col-sm-6"><label class="form-label">Date</label>
+            <input type="text" name="doc_date" class="form-control" placeholder="e.g. 2026-09-29"></div>
+          <div class="col-12 col-sm-6"><label class="form-label">Revision</label>
+            <input type="text" name="revision" class="form-control" placeholder="e.g. Change 1"></div>
+          <div class="col-12 col-sm-6"><label class="form-label">Effectivity</label>
+            <input type="text" name="effectivity" class="form-control" placeholder="e.g. 2026-10-01"></div>
+        </div>
         <div class="mb-2">
           <label class="form-label">PDF file</label>
           <input type="file" name="resource_file" accept="application/pdf" class="form-control" required>
@@ -90,5 +108,47 @@
     </form>
   </div>
 </div>
+
+<div class="modal fade" id="editResourceModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" id="editResourceForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Resource</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="doc_type">
+        <div class="mb-3"><label class="form-label">Title</label>
+          <input type="text" name="title" class="form-control" required></div>
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-sm-6"><label class="form-label">Designation</label>
+            <input type="text" name="designation" class="form-control" placeholder="e.g. 14 CFR Part 91"></div>
+          <div class="col-12 col-sm-6"><label class="form-label">Date</label>
+            <input type="text" name="doc_date" class="form-control" placeholder="e.g. 2026-09-29"></div>
+          <div class="col-12 col-sm-6"><label class="form-label">Revision</label>
+            <input type="text" name="revision" class="form-control" placeholder="e.g. Change 1"></div>
+          <div class="col-12 col-sm-6"><label class="form-label">Effectivity</label>
+            <input type="text" name="effectivity" class="form-control" placeholder="e.g. 2026-10-01"></div>
+        </div>
+        <p class="small text-muted mb-0">Only the labels change. The PDF and its page index stay as they are.</p>
+      </div>
+      <div class="modal-footer justify-content-start">
+        <button type="submit" class="btn btn-primary fw-bold">Save</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+document.querySelectorAll('.resource-edit-btn').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var f = document.getElementById('editResourceForm'), d = b.dataset;
+    f.action = d.action;
+    f.title.value = d.title; f.designation.value = d.designation; f.doc_date.value = d.docDate;
+    f.revision.value = d.revision; f.effectivity.value = d.effectivity; f.doc_type.value = d.docType;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('editResourceModal')).show();
+  });
+});
+</script>
 {% endif %}
 {% endblock %}
