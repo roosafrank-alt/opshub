@@ -16,7 +16,11 @@ import os
 import re
 import string
 import random
+import shutil
+import threading
+from datetime import date, datetime, timedelta, timezone
 
+import resource_scan
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, session, send_file
 from markupsafe import Markup, escape
 
@@ -419,7 +423,7 @@ def _require_groundschool_access():
 
 _GRANTED_STUDENT_ENDPOINTS = {
     "rating_list", "rating_detail", "task_detail", "element_detail", "task_reference_click",
-    "task_mark_read", "element_item_interact", "resource_file", "resource_excerpt", "resources_list",
+    "task_mark_read", "element_item_interact", "resource_file", "resource_excerpt", "resources_list", "resource_previous",
 }
 
 
@@ -786,10 +790,26 @@ def resources_list():
     resources = conn.execute(
         "SELECT r.*, (SELECT COUNT(*) FROM acs_resource_pages p WHERE p.resource_id = r.id) AS page_count "
         "FROM acs_resources r").fetchall()
+    uid = session.get("user_id")
+    seen = {x["resource_id"] for x in conn.execute(
+        "SELECT resource_id FROM resource_seen WHERE user_id = ?", (uid,)).fetchall()}
+    today = date.today().isoformat()
+    new_ids = {r["id"] for r in resources if r["new_until"] and r["new_until"] >= today and r["id"] not in seen}
+    extra = {"sources": {}, "pending": [], "last_run": None, "scanning": False}
+    if is_flight_admin():
+        extra["sources"] = {s["resource_id"]: s for s in conn.execute(
+            "SELECT * FROM resource_sources ORDER BY id DESC").fetchall()}
+        extra["pending"] = conn.execute(
+            "SELECT u.*, r.title AS r_title, r.designation AS r_designation, r.doc_date AS r_doc_date, "
+            "r.revision AS r_revision, r.effectivity AS r_effectivity FROM resource_updates u "
+            "JOIN acs_resources r ON r.id = u.resource_id WHERE u.status = 'pending' ORDER BY u.id").fetchall()
+        extra["last_run"] = conn.execute("SELECT * FROM resource_scan_runs ORDER BY id DESC LIMIT 1").fetchone()
+        extra["scanning"] = _scan_running(conn)
     conn.close()
     return render_template("flight/groundschool_resources.html", resources=resources, tab="resources",
                            sections=group_resources(resources), categories=RESOURCE_CATEGORIES,
-                           doc_types=sorted({r["doc_type"] for r in resources if r["doc_type"]}))
+                           new_ids=new_ids, kind_labels=resource_scan.KIND_LABELS,
+                           doc_types=sorted({r["doc_type"] for r in resources if r["doc_type"]}), **extra)
 
 
 RESOURCE_CATEGORIES = ["Sport", "Private", "Instrument", "Commercial", "High Performance", "Complex", "CFI", "CFII"]
@@ -846,10 +866,167 @@ def resources_edit(resource_id):
     conn.execute("UPDATE acs_resources SET title = ?, doc_type = ?, designation = ?, doc_date = ?, "
                  "revision = ?, effectivity = ?, categories = ? WHERE id = ?",
                  (title, doc_type) + meta + (_form_categories(), resource_id))
+    if "source_url" in request.form:
+        _save_source(conn, resource_id, request.form.get("source_url"))
     conn.commit()
     conn.close()
     flash(f"Saved '{title}'.", "success")
     return redirect(url_for("groundschool.resources_list"))
+
+
+def _save_source(conn, resource_id, url):
+    """Sets (or with a blank link, removes) the resource's source link. A link that isn't on the
+    allow-list is refused with a message and the old one is kept. Returns True when nothing was refused."""
+    url = (url or "").strip()
+    cur = conn.execute("SELECT * FROM resource_sources WHERE resource_id = ? ORDER BY id DESC LIMIT 1",
+                       (resource_id,)).fetchone()
+    if not url:
+        if cur:
+            conn.execute("DELETE FROM resource_sources WHERE resource_id = ?", (resource_id,))
+        return True
+    try:
+        kind = resource_scan.detect_kind(url)
+    except resource_scan.BlockedHost as e:
+        flash(f"Source link not saved. {e}", "warning")
+        return False
+    if cur and cur["source_url"] == url:
+        return True
+    conn.execute("DELETE FROM resource_sources WHERE resource_id = ?", (resource_id,))
+    conn.execute("INSERT INTO resource_sources (resource_id, source_url, source_kind) VALUES (?, ?, ?)",
+                 (resource_id, url, kind))
+    return True
+
+
+SCAN_ASYNC = True  # tests switch this off so "Check now" finishes before the page reloads
+
+
+def _scan_running(conn):
+    row = conn.execute("SELECT 1 FROM resource_scan_runs WHERE finished_at IS NULL AND started_at > ?",
+                       ((datetime.now(timezone.utc) - timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),)).fetchone()
+    return bool(row)
+
+
+def _scan_job(run_id):
+    c = get_db()
+    try:
+        resource_scan.run_scan(c, "check now", run_id=run_id)
+    except Exception:
+        c.execute("UPDATE resource_scan_runs SET finished_at = ? WHERE id = ?", (resource_scan.now_iso(), run_id))
+        c.commit()
+    finally:
+        c.close()
+
+
+@groundschool_bp.route("/resources/scan", methods=["POST"])
+@admin_required
+def resources_scan():
+    conn = get_db()
+    if _scan_running(conn):
+        flash("A check is already running. Refresh in a minute.", "info")
+    elif not conn.execute("SELECT 1 FROM resource_sources").fetchone():
+        flash("No source links yet. Add a Source link to a resource first.", "info")
+    else:
+        run_id = conn.execute("INSERT INTO resource_scan_runs (started_at, trigger) VALUES (?, 'check now')",
+                              (resource_scan.now_iso(),)).lastrowid
+        conn.commit()
+        if SCAN_ASYNC:
+            threading.Thread(target=_scan_job, args=(run_id,), daemon=True).start()
+            flash("Checking the sources now. Refresh in a minute or two to see the results.", "success")
+        else:
+            _scan_job(run_id)
+            flash("Check finished.", "success")
+    conn.close()
+    return redirect(url_for("groundschool.resources_list"))
+
+
+def _update_or_404(conn, update_id):
+    u = conn.execute("SELECT * FROM resource_updates WHERE id = ?", (update_id,)).fetchone()
+    if not u:
+        conn.close()
+        abort(404)
+    return u
+
+
+@groundschool_bp.route("/resources/updates/<int:update_id>/file")
+@admin_required
+def resource_update_file(update_id):
+    conn = get_db()
+    u = _update_or_404(conn, update_id)
+    conn.close()
+    path = os.path.join(resource_scan.quarantine_dir(), u["new_filename"] or "")
+    if not u["new_filename"] or not os.path.isfile(path):
+        abort(404)
+    return send_file(path, mimetype="application/pdf")
+
+
+@groundschool_bp.route("/resources/updates/<int:update_id>/approve", methods=["POST"])
+@admin_required
+def resource_update_approve(update_id):
+    """The only place a resource's file is ever swapped, and only when an admin taps it."""
+    conn = get_db()
+    u = _update_or_404(conn, update_id)
+    r = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (u["resource_id"],)).fetchone()
+    qpath = os.path.join(resource_scan.quarantine_dir(), u["new_filename"] or "")
+    if u["status"] != "pending" or not r or not u["new_filename"] or not os.path.isfile(qpath):
+        conn.close()
+        flash("That update can't be published. Dismiss it instead.", "warning")
+        return redirect(url_for("groundschool.resources_list"))
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    stored = f"resource_{''.join(random.choices(string.ascii_lowercase + string.digits, k=12))}.pdf"
+    shutil.copyfile(qpath, os.path.join(UPLOAD_DIR, stored))
+    pages = conn.execute("SELECT page_num, text FROM resource_update_pages WHERE update_id = ?", (update_id,)).fetchall()
+    now = now_iso()
+    conn.execute("UPDATE acs_resources SET prev_filename = filename, filename = ?, designation = COALESCE(?, designation), "
+                 "doc_date = COALESCE(?, doc_date), revision = COALESCE(?, revision), "
+                 "effectivity = COALESCE(?, effectivity), new_until = ? WHERE id = ?",
+                 (stored, u["new_designation"], u["new_doc_date"], u["new_revision"], u["new_effectivity"],
+                  (date.today() + timedelta(days=14)).isoformat(), r["id"]))
+    conn.execute("DELETE FROM acs_resource_pages WHERE resource_id = ?", (r["id"],))
+    conn.executemany("INSERT INTO acs_resource_pages (resource_id, page_num, text) VALUES (?, ?, ?)",
+                     [(r["id"], p["page_num"], p["text"]) for p in pages])
+    conn.execute("DELETE FROM resource_seen WHERE resource_id = ?", (r["id"],))
+    conn.execute("UPDATE resource_updates SET status = 'approved', decided_by = ?, decided_at = ? WHERE id = ?",
+                 (session.get("user_id"), now, update_id))
+    conn.execute("DELETE FROM resource_update_pages WHERE update_id = ?", (update_id,))
+    conn.commit()
+    conn.close()
+    try:
+        os.remove(qpath)
+    except OSError:
+        pass
+    flash(f"Published the new '{r['title']}'. The old file is kept as Previous version.", "success")
+    return redirect(url_for("groundschool.resources_list"))
+
+
+@groundschool_bp.route("/resources/updates/<int:update_id>/reject", methods=["POST"])
+@admin_required
+def resource_update_reject(update_id):
+    conn = get_db()
+    u = _update_or_404(conn, update_id)
+    if u["status"] == "pending":
+        conn.execute("UPDATE resource_updates SET status = 'rejected', decided_by = ?, decided_at = ? WHERE id = ?",
+                     (session.get("user_id"), now_iso(), update_id))
+        conn.execute("DELETE FROM resource_update_pages WHERE update_id = ?", (update_id,))
+        conn.commit()
+        if u["new_filename"]:
+            try:
+                os.remove(os.path.join(resource_scan.quarantine_dir(), u["new_filename"]))
+            except OSError:
+                pass
+        flash("Update rejected. The current version stays, and this version won't be shown again.", "success")
+    conn.close()
+    return redirect(url_for("groundschool.resources_list"))
+
+
+@groundschool_bp.route("/resources/<int:resource_id>/previous")
+@login_required
+def resource_previous(resource_id):
+    conn = get_db()
+    r = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (resource_id,)).fetchone()
+    conn.close()
+    if not r or not r["prev_filename"]:
+        abort(404)
+    return send_file(os.path.join(UPLOAD_DIR, r["prev_filename"]), mimetype="application/pdf")
 
 
 @groundschool_bp.route("/resources/upload", methods=["POST"])
@@ -872,6 +1049,7 @@ def resources_upload():
         "designation, doc_date, revision, effectivity, categories) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (title, doc_type, stored_name, session.get("cfi_id"), now_iso()) + meta + (_form_categories(),))
     resource_id = cur.lastrowid
+    _save_source(conn, resource_id, request.form.get("source_url"))
     conn.commit()
     try:
         n_pages = _index_resource_pages(conn, resource_id, pdf_path)
@@ -891,6 +1069,10 @@ def resources_delete(resource_id):
     r = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (resource_id,)).fetchone()
     if r:
         conn.execute("DELETE FROM acs_resource_pages WHERE resource_id = ?", (resource_id,))
+        conn.execute("DELETE FROM resource_update_pages WHERE update_id IN "
+                     "(SELECT id FROM resource_updates WHERE resource_id = ?)", (resource_id,))
+        for t in ("resource_updates", "resource_sources", "resource_seen"):
+            conn.execute(f"DELETE FROM {t} WHERE resource_id = ?", (resource_id,))
         conn.execute("DELETE FROM acs_resources WHERE id = ?", (resource_id,))
         conn.commit()
         try:
@@ -908,6 +1090,10 @@ def resource_file(resource_id):
     conn = get_db()
     r = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (resource_id,)).fetchone()
     allowed = True  # anyone with Flight Academy access gets the Resources library
+    if r and session.get("user_id"):
+        conn.execute("INSERT OR IGNORE INTO resource_seen (user_id, resource_id) VALUES (?, ?)",
+                     (session["user_id"], resource_id))  # opening it clears this viewer's NEW badge
+        conn.commit()
     conn.close()
     if not r:
         abort(404)

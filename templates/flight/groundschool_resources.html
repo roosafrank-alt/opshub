@@ -13,6 +13,10 @@
   .resources-table .c-pg { width: 4.5rem; } .resources-table .c-act { width: 5.4rem; white-space: nowrap; text-align: right; }
   .resources-table .c-type, .resources-table .c-rev { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .resources-table .c-title { overflow-wrap: anywhere; }
+  .resource-row.res-new { box-shadow: inset 4px 0 0 #198754; background: rgba(25,135,84,.08); }
+  .res-links { font-size: .75rem; white-space: nowrap; }
+  .res-links a { text-decoration: none; margin-right: .5rem; }
+  .upd-summary { white-space: pre-line; font-size: .85rem; max-height: 14rem; overflow: auto; }
   .resource-title { color: inherit; text-decoration: none; }
   .resource-title:hover { text-decoration: underline; }
   .res-act { display: inline-flex; gap: .25rem; justify-content: flex-end; }
@@ -49,6 +53,50 @@
   References point to (14 CFR Parts, ACs, FAA-H-8083 handbooks). Once uploaded, matching citations in a Task's
   References auto-link to the page they were found on.</p>
 
+{% if flight_admin %}
+{% if pending %}
+<div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-2" id="updates">
+  <i class="bi bi-arrow-repeat"></i>
+  <strong>{{ pending|length }} update{{ '' if pending|length == 1 else 's' }} waiting for approval</strong>
+</div>
+{% for u in pending %}
+<div class="card academy-card mb-2"><div class="card-body py-2">
+  <div class="d-flex justify-content-between flex-wrap gap-1">
+    <strong>{{ u.r_designation or u.r_title }}</strong>
+    <span class="small text-muted">found {{ u.created_at[:10] }}</span>
+  </div>
+  <div class="small mb-1"><span class="text-muted">Now live:</span> {{ u.r_doc_date or '-' }}{% if u.r_revision %} · {{ u.r_revision }}{% endif %}{% if u.r_effectivity %} · eff. {{ u.r_effectivity }}{% endif %}
+    <br><span class="text-muted">New:</span> {{ u.new_doc_date or '-' }}{% if u.new_revision %} · {{ u.new_revision }}{% endif %}{% if u.new_effectivity %} · eff. {{ u.new_effectivity }}{% endif %}</div>
+  <details class="mb-2"><summary class="small">What changed</summary><div class="upd-summary mt-1">{{ u.summary }}</div></details>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if u.new_filename %}
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('groundschool.resource_update_file', update_id=u.id) }}" target="_blank" rel="noopener">Open new PDF</a>
+    <form method="post" action="{{ url_for('groundschool.resource_update_approve', update_id=u.id) }}" data-confirm="Publish the new version of {{ u.r_title }}? The old file is kept as Previous version." data-confirm-title="Approve &amp; Publish" data-confirm-ok="Approve &amp; Publish"><button class="btn btn-success btn-sm fw-bold" type="submit">Approve &amp; Publish</button></form>
+    {% elif sources.get(u.resource_id) %}
+    <a class="btn btn-outline-primary btn-sm" href="{{ sources[u.resource_id].source_url }}" target="_blank" rel="noopener noreferrer">Open source</a>
+    {% endif %}
+    <form method="post" action="{{ url_for('groundschool.resource_update_reject', update_id=u.id) }}"><button class="btn btn-outline-danger btn-sm" type="submit">{{ 'Reject' if u.new_filename else 'Dismiss' }}</button></form>
+  </div>
+</div></div>
+{% endfor %}
+{% endif %}
+<div class="card academy-card mb-3"><div class="card-body py-2">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span class="small"><i class="bi bi-arrow-repeat"></i> <strong>Update checks</strong> every 2 weeks ·
+      {% if scanning %}checking now...{% elif last_run %}last run {{ last_run.finished_at or last_run.started_at }}{% else %}not run yet{% endif %}</span>
+    <form method="post" action="{{ url_for('groundschool.resources_scan') }}" class="m-0"><button class="btn btn-outline-primary btn-sm" type="submit">Check now</button></form>
+  </div>
+  {% if sources %}
+  <details class="mt-1"><summary class="small text-muted">{{ sources|length }} source{{ '' if sources|length == 1 else 's' }} watched</summary>
+    <table class="table table-sm small mb-0 mt-1">
+      {% for r in resources if r.id in sources %}{% set src = sources[r.id] %}
+      <tr><td>{{ r.designation or r.title }}</td><td class="text-muted">{{ kind_labels.get(src.source_kind, src.source_kind) }}</td>
+        <td class="{{ 'text-danger' if src.status == 'failed' else ('text-success fw-bold' if src.status == 'update' else '') }}">{{ src.last_message or 'Not checked yet' }}</td></tr>
+      {% endfor %}
+    </table></details>
+  {% else %}<div class="small text-muted">Add a Source link to a resource and it is checked automatically.</div>{% endif %}
+</div></div>
+{% endif %}
 {% if not resources %}
 <div class="card academy-card">
   <div class="card-body text-center text-muted py-5">
@@ -77,9 +125,9 @@
       <tbody>
         {% for r in rows %}
         {% set href = url_for('groundschool.resource_file', resource_id=r.id) %}
-        <tr class="resource-row" data-type="{{ r.doc_type or '' }}" data-cats="{{ (r.categories or 'Other / General') }}" data-search="{{ ((r.designation or '') ~ ' ' ~ r.title ~ ' ' ~ (r.doc_type or ''))|lower }}" onclick="if(!event.target.closest('a'))window.open('{{ href }}', '_blank')">
-          <td class="c-fpn"><a class="fw-bold resource-title" href="{{ href }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf text-danger"></i> {{ r.designation or r.title }}</a></td>
-          <td class="c-title">{{ r.title if r.designation else '' }}</td>
+        <tr class="resource-row{{ ' res-new' if r.id in new_ids else '' }}" data-type="{{ r.doc_type or '' }}" data-cats="{{ (r.categories or 'Other / General') }}" data-search="{{ ((r.designation or '') ~ ' ' ~ r.title ~ ' ' ~ (r.doc_type or ''))|lower }}" onclick="if(!event.target.closest('a'))window.open('{{ href }}', '_blank')">
+          <td class="c-fpn"><a class="fw-bold resource-title" href="{{ href }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf text-danger"></i> {{ r.designation or r.title }}</a>{% if r.id in new_ids %} <span class="badge bg-success">NEW</span>{% endif %}</td>
+          <td class="c-title">{{ r.title if r.designation else '' }}{% if r.prev_filename or (flight_admin and sources.get(r.id)) %} <span class="res-links">{% if r.prev_filename %}<a href="{{ url_for('groundschool.resource_previous', resource_id=r.id) }}" target="_blank" rel="noopener">Previous version</a>{% endif %}{% if flight_admin and sources.get(r.id) %}<a href="{{ sources[r.id].source_url }}" target="_blank" rel="noopener noreferrer">Source</a>{% endif %}</span>{% endif %}</td>
           <td class="c-type meta text-muted small">{{ r.doc_type or '' }}</td>
           <td class="c-date meta text-muted small">{{ r.doc_date or '' }}</td>
           <td class="c-rev meta text-muted small">{{ r.revision or '' }}</td>
@@ -89,7 +137,7 @@
             <button type="button" class="btn btn-outline-primary btn-sm resource-edit-btn" title="Edit" aria-label="Edit"
                     data-action="{{ url_for('groundschool.resources_edit', resource_id=r.id) }}"
                     data-title="{{ r.title }}" data-designation="{{ r.designation or '' }}" data-doc-date="{{ r.doc_date or '' }}"
-                    data-revision="{{ r.revision or '' }}" data-effectivity="{{ r.effectivity or '' }}" data-doc-type="{{ r.doc_type or '' }}" data-categories="{{ r.categories or '' }}"><i class="bi bi-pencil"></i></button>
+                    data-revision="{{ r.revision or '' }}" data-effectivity="{{ r.effectivity or '' }}" data-doc-type="{{ r.doc_type or '' }}" data-categories="{{ r.categories or '' }}" data-source="{{ sources[r.id].source_url if sources.get(r.id) else '' }}"><i class="bi bi-pencil"></i></button>
             <form method="post" action="{{ url_for('groundschool.resources_delete', resource_id=r.id) }}" data-change="DESIGN-3 DESIGN-4"
                   data-confirm="Delete {{ r.title }} forever? References linking to it will stop auto-linking. This can't be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger">
               <button type="submit" class="btn btn-danger btn-sm" title="Delete Forever" aria-label="Delete"><i class="bi bi-trash"></i></button>
@@ -164,6 +212,9 @@
         <div class="mb-3"><label class="form-label d-block">Categories</label>
           {% for c in categories %}<div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="categories" value="{{ c }}" id="upcat{{ loop.index }}"><label class="form-check-label" for="upcat{{ loop.index }}">{{ c }}</label></div>{% endfor %}
         </div>
+        <div class="mb-3"><label class="form-label">Source link <span class="text-muted small">(optional)</span></label>
+          <input type="url" name="source_url" class="form-control" placeholder="https://www.faa.gov/... or https://www.ecfr.gov/...">
+          <div class="form-text">The official page it comes from. A link here puts it under the 2-week update check (faa.gov, ecfr.gov, govinfo.gov only).</div></div>
         <div class="mb-2">
           <label class="form-label">PDF file</label>
           <input type="file" name="resource_file" accept="application/pdf" class="form-control" required>
@@ -203,6 +254,9 @@
         <div class="mb-3"><label class="form-label d-block">Categories</label>
           {% for c in categories %}<div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="categories" value="{{ c }}" id="edcat{{ loop.index }}"><label class="form-check-label" for="edcat{{ loop.index }}">{{ c }}</label></div>{% endfor %}
         </div>
+        <div class="mb-3"><label class="form-label">Source link <span class="text-muted small">(optional)</span></label>
+          <input type="url" name="source_url" class="form-control" placeholder="https://www.faa.gov/... or https://www.ecfr.gov/...">
+          <div class="form-text">The official page it comes from. A link here puts it under the 2-week update check (faa.gov, ecfr.gov, govinfo.gov only).</div></div>
         <p class="small text-muted mb-0">Only the labels change. The PDF and its page index stay as they are.</p>
       </div>
       <div class="modal-footer justify-content-start">
@@ -218,7 +272,7 @@ document.querySelectorAll('.resource-edit-btn').forEach(function (b) {
     var f = document.getElementById('editResourceForm'), d = b.dataset;
     f.action = d.action;
     f.title.value = d.title; f.designation.value = d.designation; f.doc_date.value = d.docDate;
-    f.revision.value = d.revision; f.effectivity.value = d.effectivity; f.doc_type.value = d.docType;
+    f.source_url.value = d.source || ''; f.revision.value = d.revision; f.effectivity.value = d.effectivity; f.doc_type.value = d.docType;
     var cs = (d.categories || '').split(',');
     f.querySelectorAll('[name=categories]').forEach(function (x) { x.checked = cs.indexOf(x.value) >= 0; });
     bootstrap.Modal.getOrCreateInstance(document.getElementById('editResourceModal')).show();

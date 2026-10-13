@@ -1176,7 +1176,8 @@ def _migrate(conn):
         uploaded_at TEXT NOT NULL
     )""")
     res_cols = [r["name"] for r in conn.execute("PRAGMA table_info(acs_resources)").fetchall()]
-    for col in ("designation", "doc_date", "revision", "effectivity", "categories"):
+    for col in ("designation", "doc_date", "revision", "effectivity", "categories",
+                "prev_filename", "new_until"):
         if col not in res_cols:
             conn.execute(f"ALTER TABLE acs_resources ADD COLUMN {col} TEXT")
     conn.execute("""CREATE TABLE IF NOT EXISTS acs_resource_pages (
@@ -1184,6 +1185,58 @@ def _migrate(conn):
         page_num INTEGER NOT NULL,
         text TEXT NOT NULL DEFAULT '',
         PRIMARY KEY (resource_id, page_num)
+    )""")
+    # Resource update scanner (resource_scan.py): where each resource's current
+    # official version lives, what the last check saw, and the updates waiting
+    # for an admin to approve. Nothing here replaces a resource by itself.
+    conn.execute("""CREATE TABLE IF NOT EXISTS resource_sources (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        resource_id INTEGER NOT NULL,
+        source_url TEXT NOT NULL,
+        source_kind TEXT NOT NULL,
+        last_checked_at TEXT,
+        last_seen_version TEXT,
+        last_seen_date TEXT,
+        status TEXT,
+        last_message TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_resource_sources_res ON resource_sources(resource_id)")
+    conn.execute("""CREATE TABLE IF NOT EXISTS resource_updates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        resource_id INTEGER NOT NULL,
+        source_id INTEGER,
+        version_key TEXT,
+        new_filename TEXT,
+        new_designation TEXT,
+        new_doc_date TEXT,
+        new_revision TEXT,
+        new_effectivity TEXT,
+        summary TEXT,
+        blocked_reason TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at TEXT NOT NULL,
+        decided_by INTEGER,
+        decided_at TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS resource_update_pages (
+        update_id INTEGER NOT NULL,
+        page_num INTEGER NOT NULL,
+        text TEXT NOT NULL DEFAULT '',
+        PRIMARY KEY (update_id, page_num)
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS resource_scan_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        started_at TEXT NOT NULL,
+        finished_at TEXT,
+        trigger TEXT,
+        checked INTEGER NOT NULL DEFAULT 0,
+        found INTEGER NOT NULL DEFAULT 0,
+        failed INTEGER NOT NULL DEFAULT 0
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS resource_seen (
+        user_id INTEGER NOT NULL,
+        resource_id INTEGER NOT NULL,
+        PRIMARY KEY (user_id, resource_id)
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS acs_element_lesson_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
