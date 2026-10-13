@@ -77,7 +77,7 @@ Shop / inventory
 - [x] Logbook entries: create, edit, print, starter templates (open: qa-logbook-bad-hours; Photos and the rest still to do)
 - [x] Photos: upload (bad file types), set cover, delete (all fine; no size limit on uploads, not reported: nothing to compare against)
 - [x] Trash page: empty trash, restore, purge (open: qa-purge-live-project; a deleted aircraft's tag stays reserved, no crash)
-- [ ] Shop billing, shop pay, and stats totals match the underlying transactions and labor
+- [x] Shop billing, shop pay, and stats totals match the underlying transactions and labor (open: qa-double-paid-overwrites; totals, returns, periods, owed, permissions all fine)
 
 Accounts / admin
 - [x] Login form, wrong password, deactivated account
