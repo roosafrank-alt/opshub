@@ -108,3 +108,17 @@ class WaitlistTest(OpsHubTestCase):
         wid = self.q1("SELECT id FROM flight_waitlist")["id"]
         self.login("flight_student").post(f"/flight/waitlist/{wid}/remove")
         self.assertEqual(self.q1("SELECT active FROM flight_waitlist")["active"], 0)
+
+    def test_several_planes_and_cfis_match_and_show_on_calendar(self):
+        other_plane = self.make_asset("N456")
+        self.exec("UPDATE assets SET is_flight_asset = 1 WHERE id = ?", (other_plane,))
+        self.join(asset_id=[str(self.plane), str(other_plane)], cfi_id=[str(self.cfi)])
+        w = self.q1("SELECT * FROM flight_waitlist")
+        self.assertEqual(w["asset_ids"], f"{self.plane},{other_plane}")
+        self.assertEqual(w["cfi_ids"], str(self.cfi))
+        sid = self.book()
+        self.login("cfi").post(f"/flight/schedule/{sid}/cancel", data={"reason": "test"})
+        self.assertEqual(len(self.offers()), 1)
+        html = self.login("cfi").get(f"/flight/schedule?view=day&date={self.day.isoformat()}").get_data(as_text=True)
+        self.assertIn("wl-chips", html)
+        self.assertIn(f"student_id={self.student}", html)

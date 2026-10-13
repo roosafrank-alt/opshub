@@ -2208,6 +2208,15 @@ def _migrate(conn):
         created_at TEXT NOT NULL
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_waitlist_offers_student ON waitlist_offers(student_id)")
+    # Waitlist can pick several planes / instructors: comma lists of ids. Older
+    # single-plane/CFI rows are copied in once; empty = any.
+    wl_cols = {r[1] for r in conn.execute("PRAGMA table_info(flight_waitlist)").fetchall()}
+    if "asset_ids" not in wl_cols:
+        conn.execute("ALTER TABLE flight_waitlist ADD COLUMN asset_ids TEXT")
+        conn.execute("UPDATE flight_waitlist SET asset_ids = CAST(asset_id AS TEXT) WHERE asset_id IS NOT NULL")
+    if "cfi_ids" not in wl_cols:
+        conn.execute("ALTER TABLE flight_waitlist ADD COLUMN cfi_ids TEXT")
+        conn.execute("UPDATE flight_waitlist SET cfi_ids = CAST(cfi_id AS TEXT) WHERE cfi_id IS NOT NULL")
     # Weather cancellation: the 3 new times offered to a student whose lesson was
     # called off for weather (flight.weather_cancel). One tap books one of them.
     conn.execute("""CREATE TABLE IF NOT EXISTS weather_offers (

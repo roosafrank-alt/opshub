@@ -37,21 +37,19 @@
           <label class="btn btn-outline-primary" for="wl-period-{{ val }}">{{ label }}</label>
           {% endfor %}
         </div>
-        <div class="row g-2">
-          <div class="col-6">
-            <label class="form-label small mb-1" for="wl-plane">Plane</label>
-            <select id="wl-plane" name="asset_id" class="form-select">
-              <option value="">Any plane</option>
-              {% for p in planes %}<option value="{{ p.id }}">{{ p.tag }}</option>{% endfor %}
-            </select>
-          </div>
-          <div class="col-6">
-            <label class="form-label small mb-1" for="wl-cfi">Instructor</label>
-            <select id="wl-cfi" name="cfi_id" class="form-select">
-              <option value="">Any instructor</option>
-              {% for c in cfis %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
-            </select>
-          </div>
+        <div class="form-label small mb-1">Planes <span class="text-muted">(none picked = any)</span></div>
+        <div class="d-flex flex-wrap gap-1 mb-2">
+          {% for p in planes %}
+          <input type="checkbox" class="btn-check" name="asset_id" value="{{ p.id }}" id="wl-plane-{{ p.id }}" autocomplete="off">
+          <label class="btn btn-outline-primary btn-sm" for="wl-plane-{{ p.id }}">{{ p.tag }}</label>
+          {% endfor %}
+        </div>
+        <div class="form-label small mb-1">Instructors <span class="text-muted">(none picked = any)</span></div>
+        <div class="d-flex flex-wrap gap-1 mb-2">
+          {% for c in cfis %}
+          <input type="checkbox" class="btn-check" name="cfi_id" value="{{ c.id }}" id="wl-cfi-{{ c.id }}" autocomplete="off">
+          <label class="btn btn-outline-primary btn-sm" for="wl-cfi-{{ c.id }}">{{ c.name }}</label>
+          {% endfor %}
         </div>
         <label class="form-label small mb-1 mt-2" for="wl-until">Until (optional)</label>
         <input id="wl-until" type="date" name="until_date" class="form-control mb-3" min="{{ today }}">
