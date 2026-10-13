@@ -80,3 +80,26 @@ def references(lesson):
 def element_kind(code):
     m = re.search(r"\.(K|R|S)\d", code or "")
     return m.group(1) if m else "K"
+
+
+def _code_matches(c, el_code):
+    """Same element, or one is the other's sub-element (K1 <-> K1a)."""
+    if not c or not el_code:
+        return False
+    return c == el_code or (c.startswith(el_code) and c[len(el_code):].isalpha()) or \
+        (el_code.startswith(c) and el_code[len(c):].isalpha())
+
+
+def for_element(lesson, el_code):
+    """The parts of a Task lesson that teach one ACS element: its chunks (numbered as in the
+    full lesson), the scenario and checkride skills that list it. None if nothing matches."""
+    if not lesson or not el_code:
+        return None
+    chunks = [(i + 1, c) for i, c in enumerate(lesson.get("chunks") or [])
+              if any(_code_matches(cd, el_code) for cd in c.get("codes") or [])]
+    sc = lesson.get("scenario")
+    scenario = sc if sc and any(_code_matches(cd, el_code) for cd in sc.get("codes") or []) else None
+    skills = [s for s in lesson.get("skills") or [] if _code_matches(s.get("code"), el_code)]
+    if not (chunks or scenario or skills):
+        return None
+    return {"chunks": chunks, "scenario": scenario, "skills": skills, "minutes": sum(c.get("minutes") or 0 for _, c in chunks)}

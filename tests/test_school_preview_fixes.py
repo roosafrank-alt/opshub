@@ -195,7 +195,12 @@ class GroundSchoolTest(OpsHubTestCase):
 
     def test_text_only_element_self_completes_on_open_and_cfi_can_verify_anyway(self):  # SCHOOL-07
         s = self.login("flight_student")
-        s.get(f"/flight/groundschool/element/{self.el1}")
+        # GS-LESSONS: an element covered by a lesson plan is marked done with a button
+        # instead, so this checks the plain case with no lesson plan.
+        from unittest import mock
+        import ground_lessons
+        with mock.patch.object(ground_lessons, "load", return_value=None):
+            s.get(f"/flight/groundschool/element/{self.el1}")
         row = self.q1("SELECT self_completed_at FROM acs_element_completion WHERE student_id = ? AND element_id = ?",
                       (self.student_id, self.el1))
         self.assertIsNotNone(row["self_completed_at"])

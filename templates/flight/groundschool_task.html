@@ -95,8 +95,8 @@
       {% for el in knowledge %}
       <li class="mb-1">
         <a href="{{ gs_url('groundschool.element_detail', element_id=el.id) }}"
-           class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
-          {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
+           class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else ('el-self' if el.id in element_self else 'bg-light text-dark border') }} font-monospace text-decoration-none"{% if el.id in element_self %} title="You finished this lesson. Waiting for your instructor to verify."{% endif %}>
+          {% if element_done.get(el.id) or el.id in element_self %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
         </a>
         {{ el.text }}{% if el.retired_at %} <span class="badge bg-secondary" title="The current ACS no longer has this element. It is kept because it has lesson or student work.">Removed from ACS</span>{% endif %}
       </li>
@@ -110,8 +110,8 @@
       {% for el in risk_management %}
       <li class="mb-1">
         <a href="{{ gs_url('groundschool.element_detail', element_id=el.id) }}"
-           class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
-          {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
+           class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else ('el-self' if el.id in element_self else 'bg-light text-dark border') }} font-monospace text-decoration-none"{% if el.id in element_self %} title="You finished this lesson. Waiting for your instructor to verify."{% endif %}>
+          {% if element_done.get(el.id) or el.id in element_self %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
         </a>
         {{ el.text }}{% if el.retired_at %} <span class="badge bg-secondary" title="The current ACS no longer has this element. It is kept because it has lesson or student work.">Removed from ACS</span>{% endif %}
       </li>
@@ -125,8 +125,8 @@
       {% for el in skills %}
       <li class="mb-1">
         <a href="{{ gs_url('groundschool.element_detail', element_id=el.id) }}"
-           class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else 'bg-light text-dark border' }} font-monospace text-decoration-none">
-          {% if element_done.get(el.id) %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
+           class="badge el-badge {{ 'bg-success' if element_done.get(el.id) else ('el-self' if el.id in element_self else 'bg-light text-dark border') }} font-monospace text-decoration-none"{% if el.id in element_self %} title="You finished this lesson. Waiting for your instructor to verify."{% endif %}>
+          {% if element_done.get(el.id) or el.id in element_self %}<i class="bi bi-check-lg"></i>{% endif %} {{ el.code }} <i class="bi bi-chevron-right"></i>
         </a>
         {{ el.text }}{% if el.retired_at %} <span class="badge bg-secondary" title="The current ACS no longer has this element. It is kept because it has lesson or student work.">Removed from ACS</span>{% endif %}
       </li>

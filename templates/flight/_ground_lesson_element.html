@@ -1,0 +1,39 @@
+{#- GS-LESSONS: the part of the Task's lesson plan that teaches this one element,
+   with the student's "I've finished this lesson" button (turns the code green). #}
+{% import "flight/_gsl_macros.html" as gsl %}
+{% set L = gs_lesson %}
+<link href="{{ url_for('static', filename='css/ground-lesson.css') }}" rel="stylesheet">
+<div class="gsl" data-change="GS-LESSONS">
+  <div class="gsl-head">
+    <div class="gsl-eyebrow"><i class="bi bi-mortarboard"></i> Lesson for {{ el.code }}</div>
+    <div class="gsl-meta"><span>About {{ el_lesson.minutes or 5 }} min</span>
+      <a href="{{ gs_url('groundschool.task_detail', task_id=task.id) }}#gsl" class="gsl-full">Full lesson for Task {{ task.code }} →</a></div>
+  </div>
+  {% for n, c in el_lesson.chunks %}{{ gsl.chunk(c, n, L, gs_el_ids, element_done, element_self) }}{% endfor %}
+  {% if el_lesson.scenario %}
+  <h5 class="gsl-h">Apply: {{ el_lesson.scenario.title }}</h5>
+  {{ gsl.scenario(el_lesson.scenario, gs_el_ids, element_done, element_self) }}
+  {% endif %}
+  {% if el_lesson.skills %}
+  <h5 class="gsl-h">On the checkride</h5>
+  {{ gsl.skills(el_lesson.skills, gs_el_ids, element_done, element_self) }}
+  {% endif %}
+
+  {% if session.get('student_id') %}
+  <div class="gsl-finish" id="gsl-finish">
+    {% if completion and completion.cfi_verified_at %}
+      <div class="gsl-finished gsl-verified"><i class="bi bi-check-circle-fill"></i> Complete · verified by your instructor</div>
+    {% elif completion and completion.self_completed_at %}
+      <div class="gsl-finished"><i class="bi bi-check-circle-fill"></i> You finished this lesson. Your instructor will verify it.</div>
+      <form method="post" action="{{ url_for('groundschool.element_lesson_done', element_id=el.id) }}">
+        <input type="hidden" name="undo" value="1">
+        <button type="submit" class="btn btn-link btn-sm text-light p-0">Not done yet? Undo</button>
+      </form>
+    {% else %}
+      <form method="post" action="{{ url_for('groundschool.element_lesson_done', element_id=el.id) }}">
+        <button type="submit" class="btn btn-success btn-lg fw-bold w-100"><i class="bi bi-check-lg"></i> I've finished this lesson</button>
+      </form>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>

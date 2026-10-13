@@ -30,6 +30,8 @@
   </div>
 </div>
 
+{% if el_lesson %}{% include "flight/_ground_lesson_element.html" %}{% endif %}
+
 {% if related_pages %}
 <div class="card academy-card mb-3">
   <div class="card-header fw-bold"><i class="bi bi-bookmark-star"></i> Related Reading</div>
@@ -46,8 +48,9 @@
 </div>
 {% endif %}
 
+{% if items or flight_admin or not el_lesson %}
 <div class="card academy-card mb-3">
-  <div class="card-header fw-bold"><i class="bi bi-easel"></i> Lesson</div>
+  <div class="card-header fw-bold"><i class="bi bi-easel"></i> {{ 'Extra lesson items' if el_lesson else 'Lesson' }}</div>
   <div class="card-body">
     {% if not items %}
     <p class="text-muted mb-0">No lesson content yet for this element.{% if session.get('student_id') %} Opening it counts as done on your side - your instructor still needs to verify it.{% endif %}</p>
@@ -88,6 +91,8 @@
     {% endif %}
   </div>
 </div>
+
+{% endif %}
 
 {% if flight_admin %}
 <div class="card academy-card mb-3">

@@ -326,6 +326,18 @@ def _element_done_map(conn, rating_id, student_id):
     return {r["element_id"]: bool(r["done"]) for r in rows}
 
 
+def _element_self_done(conn, student_id, element_ids):
+    """GS-LESSONS: elements the student finished but a CFI hasn't verified yet (shown as a
+    green outline with a check; CFI-verified stays solid green)."""
+    if not student_id or not element_ids:
+        return set()
+    ids = list(element_ids)
+    ph = ",".join("?" * len(ids))
+    return {r["element_id"] for r in conn.execute(
+        f"SELECT element_id FROM acs_element_completion WHERE student_id = ? AND element_id IN ({ph}) "
+        f"AND self_completed_at IS NOT NULL AND cfi_verified_at IS NULL", [student_id] + ids).fetchall()}
+
+
 GS_STUDENT_KEY = "gs_student_id"
 
 
@@ -430,7 +442,7 @@ def _require_groundschool_access():
 
 _GRANTED_STUDENT_ENDPOINTS = {
     "rating_list", "rating_detail", "task_detail", "element_detail", "task_reference_click",
-    "task_mark_read", "element_item_interact", "resource_file", "resource_excerpt", "resources_list", "resource_previous",
+    "task_mark_read", "element_item_interact", "element_lesson_done", "resource_file", "resource_excerpt", "resources_list", "resource_previous",
 }
 
 
@@ -687,13 +699,14 @@ def rating_detail(rating_id):
     viewing_student_id, students = _resolve_viewing_student(conn)
     progress = _rating_progress(conn, rating_id, viewing_student_id) if viewing_student_id else None
     element_done = _element_done_map(conn, rating_id, viewing_student_id) if viewing_student_id else {}
+    element_self = _element_self_done(conn, viewing_student_id, element_done.keys())
     conn.close()
     return render_template("flight/groundschool_rating.html", rating=rating, areas=areas,
                             tasks_by_area=tasks_by_area, elements_by_task=elements_by_task,
                             references_html_by_task=references_html_by_task, tab="groundschool",
                             changes_by_task=changes_by_task,
                             gs_students=students, viewing_student_id=viewing_student_id,
-                            progress=progress, element_done=element_done)
+                            progress=progress, element_done=element_done, element_self=element_self)
 
 
 @groundschool_bp.route("/task/<int:task_id>")
@@ -752,6 +765,7 @@ def task_detail(task_id):
             [viewing_student_id] + element_ids).fetchall()
         element_done = {r["element_id"]: bool(r["cfi_verified_at"]) for r in rows}
     task_done = sum(1 for v in element_done.values() if v)
+    element_self = _element_self_done(conn, viewing_student_id, element_ids)
     task_total = len(element_ids)
     if viewing_student_id:
         viewing_signoff = next((so for so in signoffs if so["student_id"] == viewing_student_id), None)
@@ -782,7 +796,9 @@ def task_detail(task_id):
                             tab="groundschool", references_html=references_html,
                             element_done=element_done, task_done=task_done, task_total=task_total,
                             reading_progress=reading_progress, viewing_student_id=viewing_student_id,
-                            viewing_signoff=viewing_signoff, gs_lesson=gs_lesson)
+                            viewing_signoff=viewing_signoff, gs_lesson=gs_lesson,
+                            element_self=element_self,
+                            gs_el_ids={e["code"]: e["id"] for e in list(knowledge) + list(risk_management) + list(skills)})
 
 
 @groundschool_bp.route("/task/<int:task_id>/lesson", methods=["POST"])
@@ -1314,7 +1330,13 @@ def element_detail(element_id):
     # SCHOOL-07: an element with nothing required to click or watch is
     # self-completed the moment the student opens it (the visit is the
     # lesson) - otherwise text-only and empty elements could never finish.
-    if session.get("student_id") and not any(it["required"] for it in items):
+    # GS-LESSONS: when a lesson plan covers this element, the student marks it done
+    # with "I've finished this lesson" instead of the visit counting.
+    task_codes = [r["code"] for r in conn.execute(
+        "SELECT code FROM acs_task_elements WHERE task_id = ?", (task["id"],)).fetchall()]
+    task_lesson = ground_lessons.load(ground_lessons.task_code(task_codes))
+    el_lesson = ground_lessons.for_element(task_lesson, el["code"])
+    if session.get("student_id") and not any(it["required"] for it in items) and not el_lesson:
         _check_self_complete(conn, session["student_id"], element_id)
     done_item_ids = set()
     completion = None
@@ -1330,12 +1352,59 @@ def element_detail(element_id):
     required_ids = [it["id"] for it in items if it["required"]]
     all_required_done = all(i in done_item_ids for i in required_ids) if required_ids else True
     related_pages = _find_element_pages(conn, task, el)
+    gs_el_ids, el_done_map, el_self = {}, {}, set()
+    if el_lesson:
+        task_els = conn.execute("SELECT id, code FROM acs_task_elements WHERE task_id = ?", (task["id"],)).fetchall()
+        gs_el_ids = {r["code"]: r["id"] for r in task_els}
+        if viewing_student_id:
+            ph = ",".join("?" * len(task_els))
+            el_done_map = {r["element_id"]: bool(r["cfi_verified_at"]) for r in conn.execute(
+                f"SELECT element_id, cfi_verified_at FROM acs_element_completion WHERE student_id = ? "
+                f"AND element_id IN ({ph})", [viewing_student_id] + [r["id"] for r in task_els]).fetchall()}
+            el_self = _element_self_done(conn, viewing_student_id, gs_el_ids.values())
     conn.close()
     return render_template("flight/groundschool_element.html", el=el, task=task, area=area, rating=rating,
                             items=items, done_item_ids=done_item_ids, completion=completion,
                             gs_students=students, viewing_student_id=viewing_student_id,
                             all_required_done=all_required_done, related_pages=related_pages,
-                            tab="groundschool")
+                            tab="groundschool", el_lesson=el_lesson, gs_lesson=task_lesson,
+                            gs_el_ids=gs_el_ids, element_done=el_done_map, element_self=el_self)
+
+
+@groundschool_bp.route("/element/<int:element_id>/lesson-done", methods=["POST"])
+@login_required
+def element_lesson_done(element_id):
+    """GS-LESSONS: the student marks an element's lesson finished (green check); a CFI
+    still verifies it. Posting again with undo=1 takes it back."""
+    student_id = session.get("student_id")
+    if not student_id:
+        abort(403)
+    conn = get_db()
+    rid = _rating_id_of_element(conn, element_id)
+    if rid is None or _course_blocked(rid):
+        conn.close()
+        abort(404)
+    existing = conn.execute("SELECT * FROM acs_element_completion WHERE student_id = ? AND element_id = ?",
+                             (student_id, element_id)).fetchone()
+    undo = request.form.get("undo") == "1"
+    if undo:
+        if existing and not existing["cfi_verified_at"]:
+            conn.execute("UPDATE acs_element_completion SET self_completed_at = NULL "
+                         "WHERE student_id = ? AND element_id = ?", (student_id, element_id))
+    elif existing:
+        if not existing["self_completed_at"]:
+            conn.execute("UPDATE acs_element_completion SET self_completed_at = ? "
+                         "WHERE student_id = ? AND element_id = ?", (now_iso(), student_id, element_id))
+    else:
+        conn.execute("INSERT INTO acs_element_completion (student_id, element_id, self_completed_at) "
+                     "VALUES (?, ?, ?)", (student_id, element_id, now_iso()))
+    conn.commit()
+    task_id = conn.execute("SELECT task_id FROM acs_task_elements WHERE id = ?", (element_id,)).fetchone()["task_id"]
+    conn.close()
+    if undo:
+        return redirect(url_for("groundschool.element_detail", element_id=element_id))
+    flash("Marked complete. Your instructor will verify it.", "success")
+    return redirect(url_for("groundschool.task_detail", task_id=task_id))
 
 
 @groundschool_bp.route("/element/<int:element_id>/item/add", methods=["POST"])

@@ -1,6 +1,8 @@
 {#- GS-LESSONS: the lesson plan for this ACS Task (ground_lessons/<code>.json).
    Flow: Prepare > Learn > Apply > Checkride > Quick check > Wrap-up. #}
+{% import "flight/_gsl_macros.html" as gsl %}
 {% set L = gs_lesson %}
+{% set el_ids = gs_el_ids %}
 {% set code = L.task_code %}
 <link href="{{ url_for('static', filename='css/ground-lesson.css') }}" rel="stylesheet">
 <div class="gsl" id="gsl" data-code="{{ code }}" data-change="GS-LESSONS">
@@ -8,7 +10,7 @@
     <div class="gsl-eyebrow"><i class="bi bi-mortarboard"></i> Lesson plan</div>
     <div class="gsl-meta">
       <span>About {{ L.minutes }} min</span><span>{{ L.chunks|length }} short lessons</span>
-      <span>{{ (L.quiz or [])|length }} quiz questions</span><span class="gsl-progress" id="gsl-progress"></span>
+      <span>{{ (L.quiz or [])|length }} quiz questions</span>
     </div>
     <ol class="gsl-flow">
       <li><a href="#gsl-prepare">Prepare</a></li><li><a href="#gsl-learn">Learn</a></li>
@@ -44,54 +46,21 @@
 
   <section class="gsl-step" id="gsl-learn">
     <h5 class="gsl-h"><span class="gsl-n">02</span> Learn</h5>
-    {% for c in L.chunks %}
-    <article class="gsl-chunk gsl-{{ c.kind }}">
-      <div class="gsl-chunk-top">
-        <div class="gsl-chips">{% for cd in c.codes %}<span class="gsl-chip gsl-{{ gs_kind(cd) }}">{{ cd }}</span>{% endfor %}</div>
-        <span class="gsl-mins">{{ c.minutes }} min</span>
-      </div>
-      <h6 class="gsl-chunk-title">{{ loop.index }}. {{ c.title }}</h6>
-      {% for b in c.body %}
-        {% if b.p %}<p>{{ gs_rich(b.p) }}</p>
-        {% elif b.bullets %}<ul>{% for x in b.bullets %}<li>{{ gs_rich(x) }}</li>{% endfor %}</ul>
-        {% elif b.table %}
-          <div class="gsl-table"><table><thead><tr>{% for hd in b.table.head %}<th>{{ gs_rich(hd) }}</th>{% endfor %}</tr></thead>
-          <tbody>{% for row in b.table.rows %}<tr>{% for cell in row %}<td>{{ gs_rich(cell) }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
-        {% elif b.callout %}
-          {% set ct = b.callout.type or 'tip' %}
-          <div class="gsl-callout gsl-c-{{ ct }}"><span class="gsl-tag">{{ {'tip':'Tip','warn':'Watch out','reg':'The rule','memory':'Remember'}.get(ct, ct) }}</span><div>{{ gs_rich(b.callout.text) }}</div></div>
-        {% elif b.figure and L.figures and L.figures.get(b.figure) %}
-          {% set f = L.figures[b.figure] %}
-          <figure class="gsl-fig"><img src="{{ url_for('static', filename='lessons/' ~ f.file) }}" alt="{{ f.alt or f.caption }}" loading="lazy">
-            <figcaption>{{ f.caption }} · <a href="{{ gs_cite_url(f.res, f.page) }}" target="_blank" rel="noopener">{{ f.source }}</a></figcaption></figure>
-        {% endif %}
-      {% endfor %}
-      {% if c.check %}<details class="gsl-check"><summary>Check yourself: {{ gs_rich(c.check.q) }}</summary><div>{{ gs_rich(c.check.a) }}</div></details>{% endif %}
-      <label class="gsl-done"><input type="checkbox" class="form-check-input" data-i="{{ loop.index0 }}"> I've got this</label>
-    </article>
-    {% endfor %}
+    <p class="gsl-hint">Tap an element code to open just that part of the lesson and mark it done.</p>
+    {% for c in L.chunks %}{{ gsl.chunk(c, loop.index, L, el_ids, element_done, element_self) }}{% endfor %}
   </section>
 
   {% if L.scenario %}
   <section class="gsl-step" id="gsl-apply">
     <h5 class="gsl-h"><span class="gsl-n">03</span> Apply: {{ L.scenario.title }}</h5>
-    <div class="gsl-scenario">
-      <div class="gsl-chips">{% for cd in L.scenario.codes or [] %}<span class="gsl-chip gsl-{{ gs_kind(cd) }}">{{ cd }}</span>{% endfor %}</div>
-      <p class="gsl-setup">{{ gs_rich(L.scenario.setup) }}</p>
-      {% for q in L.scenario.questions or [] %}<details class="gsl-check"><summary>{{ gs_rich(q.q) }}</summary><div>{{ gs_rich(q.a) }}</div></details>{% endfor %}
-    </div>
+    {{ gsl.scenario(L.scenario, el_ids, element_done, element_self) }}
   </section>
   {% endif %}
 
   {% if L.skills %}
   <section class="gsl-step" id="gsl-checkride">
     <h5 class="gsl-h"><span class="gsl-n">04</span> On the checkride</h5>
-    <div class="gsl-panel">
-      {% for s in L.skills %}
-      <div class="gsl-skill"><span class="gsl-chip gsl-S">{{ s.code }}</span>
-        <div><b>You'll be asked to:</b> {{ gs_rich(s.do) }}<br><b>Practice:</b> {{ gs_rich(s.practice) }}</div></div>
-      {% endfor %}
-    </div>
+    {{ gsl.skills(L.skills, el_ids, element_done, element_self) }}
   </section>
   {% endif %}
 
