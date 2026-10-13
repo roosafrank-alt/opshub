@@ -9052,37 +9052,48 @@ def admin_user_edit(user_id):
 
 
 def _course_grant_context(conn, user_id):
-    """Ground School courses this account's student profile can be given
-    (ready courses only) and the ones already given. grant_student_id is
-    None when the account has no student profile yet."""
-    student = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_id,)).fetchone()
-    courses = conn.execute("SELECT id, name FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall()
-    granted = set()
-    if student:
-        granted = {r["rating_id"] for r in conn.execute(
-            "SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (student["id"],)).fetchall()}
-    return {"grant_student_id": student["id"] if student else None, "grant_courses": courses, "granted_ids": granted}
+    """Per-course Ground School grants for the student profile linked to this account."""
+    st = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_id,)).fetchone()
+    if not st:
+        return {"grant_student": None}
+    return {
+        "grant_student": st["id"],
+        "grant_courses": conn.execute("SELECT id, name FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall(),
+        "granted_ids": {r["rating_id"] for r in conn.execute(
+            "SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (st["id"],)).fetchall()},
+    }
 
 
-@app.route("/admin/users/<int:user_id>/course-grants", methods=["POST"])
+@app.route("/admin/users/<int:user_id>/course-grant", methods=["POST"])
 @master_admin_required
-def admin_user_course_grants(user_id):
-    """Account page: which whole Ground School courses this student account
-    can read. The checkboxes shown are the full list, so unchecked = removed."""
+def admin_user_course_grant(user_id):
+    """Enroll or unenroll in ONE Ground School course for this account's student profile."""
     conn = get_db()
     user_row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-    student = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_id,)).fetchone()
-    if not user_row or not student:
+    if not user_row:
         conn.close()
-        flash("That account has no student profile. Give it the Student role first.", "danger")
+        flash("Account not found.", "danger")
         return redirect(url_for("admin_users_list"))
     if owner_locked(user_id, conn):
         conn.close()
         flash(f"{user_row['name']}'s account is the owner account - only {user_row['name']} can change it.", "warning")
         return redirect(url_for("admin_users_list"))
-    msg = apply_course_grants(conn, student["id"], request.form.getlist("rating_id"))
+    st = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_id,)).fetchone()
+    rating_id = request.form.get("rating_id", "")
+    course = conn.execute("SELECT id, name FROM acs_ratings WHERE id = ? AND status = 'parsed'",
+                          (int(rating_id) if rating_id.isdigit() else -1,)).fetchone()
+    action = request.form.get("action")
+    if not st or not course or action not in ("enroll", "unenroll"):
+        conn.close()
+        flash("Couldn't change that course.", "danger")
+        return redirect(url_for("admin_user_edit", user_id=user_id) + "#courses")
+    conn.execute("DELETE FROM academy_course_grants WHERE student_id = ? AND rating_id = ?", (st["id"], course["id"]))
+    if action == "enroll":
+        conn.execute("INSERT INTO academy_course_grants (student_id, rating_id, granted_by, granted_at) VALUES (?,?,?,?)",
+                     (st["id"], course["id"], session.get("user_name"), now_iso()))
+    conn.commit()
     conn.close()
-    flash(f"{user_row['name']} - {msg}", "success")
+    flash(("Enrolled " + user_row["name"] + " in " if action == "enroll" else "Unenrolled " + user_row["name"] + " from ") + course["name"] + ".", "success")
     return redirect(url_for("admin_user_edit", user_id=user_id) + "#courses")
 
 
