@@ -5819,6 +5819,11 @@ def asset_compression(asset_id):
         if used:
             default_num_cylinders = used
 
+    # Performed By is a pick list of the shop's techs (admins and techs).
+    conn = get_db()
+    tech_names = [r["name"] for r in conn.execute(
+        "SELECT name FROM users WHERE active = 1 AND shop_role IN ('admin', 'tech') ORDER BY name").fetchall()]
+    conn.close()
     # Hours start out as the last hours entered; still editable.
     last_hours = next((c["hours"] for c in reversed(checks) if c["hours"] is not None), None)
 
@@ -5834,7 +5839,7 @@ def asset_compression(asset_id):
     return render_template("asset_compression.html", asset=asset, checks=history, latest=latest,
                            chart_labels=chart_labels, cyl_series=cyl_series, default_num_cylinders=default_num_cylinders,
                            today=date.today().strftime("%Y-%m-%d"), can_edit_checks=can_edit_checks, editing=editing,
-                           last_hours=last_hours)
+                           tech_names=tech_names, last_hours=last_hours)
 
 
 @app.route("/assets/<int:asset_id>/compression/<int:check_id>/delete", methods=["POST"])

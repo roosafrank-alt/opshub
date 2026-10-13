@@ -77,18 +77,6 @@
         </div>
         <div class="mt-2">
           <label class="form-label small mb-0">Performed By</label>
-          <input type="text" name="performed_by" class="form-control form-control-sm" placeholder="optional" value="{{ (editing.performed_by or '') if editing else '' }}">
-        </div>
-        <div class="row g-2 mt-1">
-          {% for i in range(1, 7) %}
-          <div class="col-4 cyl-field" data-cyl="{{ i }}">
-            <label class="form-label small mb-0">Cyl {{ i }}</label>
-            <input type="number" step="any" name="cyl{{ i }}" class="form-control form-control-sm" value="{{ '%g'|format(editing['cyl' ~ i]) if editing and editing['cyl' ~ i] is not none else '' }}">
-          </div>
-          {% endfor %}
-        </div>
-        <div class="mt-2">
-          <label class="form-label small mb-0">Performed By</label>
           {% set cur = (editing.performed_by or '') if editing else (session.get('user_name') or '') %}
           <select name="performed_by" class="form-select form-select-sm">
             <option value="">(optional)</option>

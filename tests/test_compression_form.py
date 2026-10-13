@@ -10,6 +10,8 @@ class CompressionForm(OpsHubTestCase):
         self.exec("INSERT INTO compression_checks (asset_id, checked_date, hours, created_at) VALUES (?, '2026-01-01', 1234.5, ?)",
                   (aid, db.now_iso()))
         html = self.login("tech").get(f"/assets/{aid}/compression").get_data(as_text=True)
+        self.assertIn('<select name="performed_by"', html)
+        self.assertIn(f'<option value="{self.users["tech"]["name"]}" selected>', html)
         self.assertIn('name="hours" class="form-control form-control-sm" value="1234.5"', html)
 
     def test_first_check_has_empty_hours(self):
