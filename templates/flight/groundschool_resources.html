@@ -53,6 +53,15 @@
   References point to (14 CFR Parts, ACs, FAA-H-8083 handbooks). Once uploaded, matching citations in a Task's
   References auto-link to the page they were found on.</p>
 
+{% if whats_new %}
+<div class="card academy-card mb-3" id="whatsNew"><div class="card-body py-2">
+  <strong class="small"><i class="bi bi-bell"></i> What's new in Resources</strong>
+  {% for n in whats_new %}
+  <details class="small mt-1" {{ 'open' if not n.read_at }}><summary>{% if not n.read_at %}<span class="badge bg-success">NEW</span> {% endif %}{{ n.text.split('\n')[0] }} <span class="text-muted">· {{ n.sent_at[:10] }}</span></summary>
+    <div class="upd-summary mt-1">{{ n.text.split('\n', 1)[1] if '\n' in n.text else '' }}</div></details>
+  {% endfor %}
+</div></div>
+{% endif %}
 {% if flight_admin %}
 {% if pending %}
 <div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-2" id="updates">
@@ -84,7 +93,7 @@
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
     <span class="small"><i class="bi bi-arrow-repeat"></i> <strong>Update checks</strong> every 2 weeks ·
       {% if scanning %}checking now...{% elif last_run %}last run {{ last_run.finished_at or last_run.started_at }}{% else %}not run yet{% endif %}</span>
-    <form method="post" action="{{ url_for('groundschool.resources_scan') }}" class="m-0"><button class="btn btn-outline-primary btn-sm" type="submit">Check now</button></form>
+    <span class="d-flex gap-2 align-items-center"><a class="small" href="{{ url_for('groundschool.resource_notices_log') }}">Sent notices</a><form method="post" action="{{ url_for('groundschool.resources_scan') }}" class="m-0"><button class="btn btn-outline-primary btn-sm" type="submit">Check now</button></form></span>
   </div>
   {% if sources %}
   <details class="mt-1"><summary class="small text-muted">{{ sources|length }} source{{ '' if sources|length == 1 else 's' }} watched</summary>

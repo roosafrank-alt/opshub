@@ -1233,6 +1233,29 @@ def _migrate(conn):
         found INTEGER NOT NULL DEFAULT 0,
         failed INTEGER NOT NULL DEFAULT 0
     )""")
+    # What the live resource said before an approved update replaced it (for the "what changed"
+    # notice), and the notices an admin sent about an approved update (groundschool.py).
+    ru_cols = [r["name"] for r in conn.execute("PRAGMA table_info(resource_updates)").fetchall()]
+    for col in ("old_doc_date", "old_revision", "old_effectivity"):
+        if col not in ru_cols:
+            conn.execute(f"ALTER TABLE resource_updates ADD COLUMN {col} TEXT")
+    conn.execute("""CREATE TABLE IF NOT EXISTS resource_update_notices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        update_id INTEGER NOT NULL,
+        resource_id INTEGER NOT NULL,
+        audience TEXT NOT NULL,
+        audience_label TEXT NOT NULL,
+        sent_by INTEGER,
+        sent_at TEXT NOT NULL,
+        text TEXT NOT NULL,
+        recipient_count INTEGER NOT NULL DEFAULT 0
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS resource_notice_recipients (
+        notice_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        read_at TEXT,
+        PRIMARY KEY (notice_id, user_id)
+    )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS resource_seen (
         user_id INTEGER NOT NULL,
         resource_id INTEGER NOT NULL,

@@ -21,7 +21,7 @@
   </a>
   {% if true %}
   <a class="academy-tab academy-tab-resources {{ 'active' if _tab == 'resources' }}" href="{{ url_for('groundschool.resources_list') }}">
-    <i class="bi bi-folder2-open"></i><span>Resources</span>
+    <i class="bi bi-folder2-open"></i><span>Resources{% if resource_unread_count() %} <span class="badge rounded-pill bg-danger" title="New in Resources" style="font-size:.5rem;">&nbsp;</span>{% endif %}</span>
   </a>
   {% endif %}
   {% if _academy_ok %}
@@ -30,7 +30,7 @@
       <i class="bi bi-three-dots"></i><span>More</span>
     </button>
     <ul class="dropdown-menu dropdown-menu-end">
-      <li class="academy-tab-resources-item"><a class="dropdown-item {{ 'active' if _tab == 'resources' }}" href="{{ url_for('groundschool.resources_list') }}"><i class="bi bi-folder2-open"></i> Resources</a></li>
+      <li class="academy-tab-resources-item"><a class="dropdown-item {{ 'active' if _tab == 'resources' }}" href="{{ url_for('groundschool.resources_list') }}"><i class="bi bi-folder2-open"></i> Resources{% if resource_unread_count() %} <span class="badge rounded-pill bg-danger" style="font-size:.5rem;">&nbsp;</span>{% endif %}</a></li>
       <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#howPointsModal"><i class="bi bi-info-circle"></i> How points work</button></li>
     </ul>
   </div>

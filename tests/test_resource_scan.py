@@ -141,7 +141,8 @@ class ScanFlowTest(OpsHubTestCase):
         # approving needs the quarantine folder the app uses
         import resource_scan
         resource_scan.quarantine_dir = lambda d=self.q_dir: d
-        c.post(f"{GS}/resources/updates/{u['id']}/approve")
+        resp = c.post(f"{GS}/resources/updates/{u['id']}/approve")
+        self.assertIn(f"/resources/updates/{u['id']}/send", resp.headers["Location"])   # the "Send this update to..." step
         r = self.q1("SELECT * FROM acs_resources")
         self.assertEqual(r["prev_filename"], "old.pdf")
         self.assertNotEqual(r["filename"], "old.pdf")

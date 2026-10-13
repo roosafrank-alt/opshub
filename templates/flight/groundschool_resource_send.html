@@ -1,0 +1,62 @@
+{% extends "academy_base.html" %}
+{% block title %}Send update · Resources{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="mb-0 text-light"><i class="bi bi-send"></i> Send this update to...</h4>
+  <a class="btn btn-outline-light btn-sm" href="{{ url_for('groundschool.resources_list') }}">Skip</a>
+</div>
+<div class="card academy-card mb-3"><div class="card-body">
+  {% if again %}
+  <div class="alert alert-warning py-2"><strong>Send again?</strong> {{ again }}
+    Press "Send again" to send it anyway.</div>
+  {% endif %}
+  <form method="post" id="sendForm">
+    <label class="form-label fw-bold small" for="noticeText">Notice (you can edit it)</label>
+    <textarea class="form-control mb-3" id="noticeText" name="text" rows="11">{{ text }}</textarea>
+    <div class="fw-bold small mb-1">Who gets it</div>
+    {% set mode = form.get('audience', 'all') %}
+    <div class="row g-2 mb-2">
+      {% for val, lab in [('all','Everyone'),('cfis','All CFIs'),('students','All students'),('cats','A rating / category'),('people','Specific people')] %}
+      <div class="col-6 col-md-auto"><label class="form-check-label"><input class="form-check-input me-1" type="radio" name="audience" value="{{ val }}" {{ 'checked' if mode == val }}>{{ lab }}</label></div>
+      {% endfor %}
+    </div>
+    <div id="pickCats" class="mb-2" style="display:none">
+      {% for c in categories %}<label class="me-3 small"><input type="checkbox" name="cats" value="{{ c }}" {{ 'checked' if c in picked_cats }}> {{ c }}</label>{% endfor %}
+    </div>
+    <div id="pickPeople" class="mb-2" style="display:none">
+      <select name="people" multiple size="8" class="form-select form-select-sm">
+        {% for p in people %}<option value="{{ p.id }}" {{ 'selected' if p.id|string in picked_people }}>{{ p.name }}</option>{% endfor %}
+      </select>
+      <div class="small text-muted">Hold Ctrl / Cmd (or tap) to pick several.</div>
+    </div>
+    <p class="small text-muted mb-2">Everyone chosen sees it under "What's new" on the Resources page (with a dot on the tab until they open it),
+      and gets a phone alert or email if they have those turned on.</p>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if again %}<input type="hidden" name="again" value="1">{% endif %}
+      <button class="btn btn-primary fw-bold" type="submit">{{ 'Send again' if again else 'Send' }}</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('groundschool.resources_list') }}">Skip</a>
+    </div>
+  </form>
+</div></div>
+{% if sent %}
+<div class="card academy-card mb-3"><div class="card-body py-2 small">
+  <strong>Already sent for this update</strong>
+  <ul class="mb-0">{% for n in sent %}<li>{{ n.sent_at[:16].replace('T',' ') }} · {{ n.audience_label }} · {{ n.recipient_count }} people</li>{% endfor %}</ul>
+</div></div>
+{% endif %}
+<a class="small text-light" href="{{ url_for('groundschool.resource_notices_log') }}">See everything that was sent</a>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var f = document.getElementById('sendForm');
+  function sync() {
+    var m = f.querySelector('input[name=audience]:checked').value;
+    document.getElementById('pickCats').style.display = m === 'cats' ? '' : 'none';
+    document.getElementById('pickPeople').style.display = m === 'people' ? '' : 'none';
+  }
+  f.querySelectorAll('input[name=audience]').forEach(function (r) { r.addEventListener('change', sync); });
+  sync();
+})();
+</script>
+{% endblock %}

@@ -805,6 +805,14 @@ def resources_list():
             "JOIN acs_resources r ON r.id = u.resource_id WHERE u.status = 'pending' ORDER BY u.id").fetchall()
         extra["last_run"] = conn.execute("SELECT * FROM resource_scan_runs ORDER BY id DESC LIMIT 1").fetchone()
         extra["scanning"] = _scan_running(conn)
+    whats_new = conn.execute(
+        "SELECT n.id, n.sent_at, n.text, n.resource_id, rc.read_at FROM resource_notice_recipients rc "
+        "JOIN resource_update_notices n ON n.id = rc.notice_id WHERE rc.user_id = ? "
+        "ORDER BY n.id DESC LIMIT 10", (uid,)).fetchall()
+    conn.execute("UPDATE resource_notice_recipients SET read_at = ? WHERE user_id = ? AND read_at IS NULL",
+                 (now_iso(), uid))  # opening Resources marks them read (this page still shows them as new)
+    conn.commit()
+    extra["whats_new"] = whats_new
     conn.close()
     return render_template("flight/groundschool_resources.html", resources=resources, tab="resources",
                            sections=group_resources(resources), categories=RESOURCE_CATEGORIES,
@@ -976,6 +984,8 @@ def resource_update_approve(update_id):
     shutil.copyfile(qpath, os.path.join(UPLOAD_DIR, stored))
     pages = conn.execute("SELECT page_num, text FROM resource_update_pages WHERE update_id = ?", (update_id,)).fetchall()
     now = now_iso()
+    conn.execute("UPDATE resource_updates SET old_doc_date = ?, old_revision = ?, old_effectivity = ? WHERE id = ?",
+                 (r["doc_date"], r["revision"], r["effectivity"], update_id))
     conn.execute("UPDATE acs_resources SET prev_filename = filename, filename = ?, designation = COALESCE(?, designation), "
                  "doc_date = COALESCE(?, doc_date), revision = COALESCE(?, revision), "
                  "effectivity = COALESCE(?, effectivity), new_until = ? WHERE id = ?",
@@ -995,7 +1005,7 @@ def resource_update_approve(update_id):
     except OSError:
         pass
     flash(f"Published the new '{r['title']}'. The old file is kept as Previous version.", "success")
-    return redirect(url_for("groundschool.resources_list"))
+    return redirect(url_for("groundschool.resource_update_send", update_id=update_id))
 
 
 @groundschool_bp.route("/resources/updates/<int:update_id>/reject", methods=["POST"])
@@ -1370,3 +1380,196 @@ def element_verify(element_id):
     conn.close()
     flash(f"Verified {student['name']} on this element.", "success")
     return redirect(url_for("groundschool.element_detail", element_id=element_id, student_id=student_id))
+
+
+# ---------------------------------------------------------------------------
+# "Send this update to..." - the notice after an admin approves a Resource update.
+# Reuses what already exists: push_pending/push_subscriptions (push.queue_and_push) and the
+# SMTP email in notify.py. The log is resource_update_notices; who got it, and whether they
+# have read it, is resource_notice_recipients (that is also what the "What's new" list reads).
+# ---------------------------------------------------------------------------
+
+@groundschool_bp.app_template_global()
+def resource_unread_count():
+    """Unread 'What's new in Resources' notices for the signed-in user (dot on the Resources tab)."""
+    uid = session.get("user_id")
+    if not uid:
+        return 0
+    conn = get_db()
+    try:
+        return conn.execute("SELECT COUNT(*) c FROM resource_notice_recipients WHERE user_id = ? AND read_at IS NULL",
+                            (uid,)).fetchone()["c"]
+    except Exception:
+        return 0
+    finally:
+        conn.close()
+
+
+_CATEGORY_RATING = {"Instrument": "instrument", "Complex": "complex", "High Performance": "high_performance",
+                    "CFI": "cfi", "CFII": "cfii"}
+_CATEGORY_CERT = {"Sport": "sport", "Private": "private", "Commercial": "commercial"}
+_CATEGORY_CRED = {"CFI": "cred_cfi", "CFII": "cred_cfii", "Complex": "cred_complex",
+                  "High Performance": "cred_high_performance"}
+
+
+def notice_people(conn):
+    """Everyone with Flight Academy / Ground School access: [{id, name, roles, cats}], where cats is the
+    set of Resource categories that person is enrolled in or certified for (student certificate and
+    ratings, granted courses, CFI credentials). Uses only what the app already stores."""
+    from db import user_flight_roles
+    grants = {}
+    for g in conn.execute("SELECT gr.student_id, r.name FROM academy_course_grants gr "
+                          "JOIN acs_ratings r ON r.id = gr.rating_id").fetchall():
+        grants.setdefault(g["student_id"], []).append((g["name"] or "").lower())
+    students = {r["user_id"]: r for r in conn.execute("SELECT * FROM students WHERE user_id IS NOT NULL").fetchall()}
+    cfis = {r["user_id"]: r for r in conn.execute("SELECT * FROM cfis WHERE user_id IS NOT NULL").fetchall()}
+    out = []
+    for u in conn.execute("SELECT * FROM users WHERE active = 1 ORDER BY name COLLATE NOCASE").fetchall():
+        roles = set(user_flight_roles(u))
+        st = students.get(u["id"]) if "student" in roles else None
+        cf = cfis.get(u["id"]) if "cfi" in roles else None
+        has_access = (u["is_master_admin"] or u["academy_access"] or u["groundschool_access"] or "admin" in roles
+                      or (st is not None and st["id"] in grants))
+        if not has_access:
+            continue
+        cats = set()
+        if st is not None:
+            have = {x for x in (st["pilot_ratings"] or "").split(",") if x}
+            courses = " ".join(grants.get(st["id"], []))
+            for c in RESOURCE_CATEGORIES:
+                if (_CATEGORY_CERT.get(c) and st["pilot_certificate"] == _CATEGORY_CERT[c]) \
+                        or (_CATEGORY_RATING.get(c) in have) or c.lower() in courses:
+                    cats.add(c)
+        if cf is not None:
+            for c, col in _CATEGORY_CRED.items():
+                if cf[col]:
+                    cats.add(c)
+        out.append({"id": u["id"], "name": u["name"], "email": u["email"], "notify_email": bool(u["notify_email"]),
+                    "is_cfi": "cfi" in roles, "is_student": "student" in roles, "cats": cats})
+    return out
+
+
+def pick_audience(people, mode, cats=(), person_ids=()):
+    """(audience key, label, [user ids]) for a choice on the send form. mode: all | cfis | students |
+    cats | people."""
+    if mode == "cfis":
+        return "cfis", "All CFIs / instructors", [p["id"] for p in people if p["is_cfi"]]
+    if mode == "students":
+        return "students", "All students", [p["id"] for p in people if p["is_student"]]
+    if mode == "cats":
+        cats = [c for c in RESOURCE_CATEGORIES if c in set(cats)]
+        return ("cats:" + ",".join(cats), "Category: " + ", ".join(cats),
+                [p["id"] for p in people if p["cats"] & set(cats)])
+    if mode == "people":
+        want = sorted({int(i) for i in person_ids if str(i).isdigit()})
+        ids = [p["id"] for p in people if p["id"] in want]
+        return "people:" + ",".join(str(i) for i in sorted(ids)), f"{len(ids)} chosen {'person' if len(ids) == 1 else 'people'}", ids
+    return "all", "Everyone with Flight Academy access", [p["id"] for p in people]
+
+
+def notice_text(conn, u):
+    """The editable 'What changed' notice for an approved update row."""
+    r = conn.execute("SELECT * FROM acs_resources WHERE id = ?", (u["resource_id"],)).fetchone()
+
+    def ver(d, rev, eff):
+        bits = [d or "", rev or "", ("eff. " + eff) if eff else ""]
+        return " | ".join(b for b in bits if b) or "-"
+    link = url_for("groundschool.resource_file", resource_id=u["resource_id"], _external=True)
+    return (f"Resources update: {r['title']}\n"
+            f"FAA number: {r['designation'] or '-'}\n"
+            f"Old: {ver(u['old_doc_date'], u['old_revision'], u['old_effectivity'])}\n"
+            f"New: {ver(r['doc_date'], r['revision'], r['effectivity'])}\n\n"
+            f"What changed:\n{(u['summary'] or 'See the new PDF.').strip()}\n\n"
+            f"New PDF: {link}")
+
+
+def deliver_notice(conn, notice_id, user_ids, text, people):
+    """Push (and email where the person opted in and email is set up) - the existing paths. Never raises."""
+    import push
+    import notify
+    title = text.split("\n", 1)[0][:120]
+    body = "Open Resources to read what changed."
+    settings = notify.get_settings(conn)
+    by_id = {p["id"]: p for p in people}
+    for uid in user_ids:
+        try:
+            push.queue_and_push(conn, uid, title, body, tag=f"resource-notice-{notice_id}",
+                                url=url_for("groundschool.resources_list"))
+        except Exception:
+            pass
+        p = by_id.get(uid)
+        if p and p["notify_email"] and p["email"] and notify.email_configured(settings):
+            try:
+                notify.send_email(settings, p["email"], title, text)
+            except Exception:
+                pass
+
+
+def _approved_update_or_404(conn, update_id):
+    u = _update_or_404(conn, update_id)
+    if u["status"] != "approved":
+        conn.close()
+        abort(404)
+    return u
+
+
+@groundschool_bp.route("/resources/updates/<int:update_id>/send", methods=["GET", "POST"])
+@admin_required
+def resource_update_send(update_id):
+    conn = get_db()
+    u = _approved_update_or_404(conn, update_id)
+    people = notice_people(conn)
+    again = None
+    if request.method == "POST":
+        text = (request.form.get("text") or "").strip()
+        mode = request.form.get("audience", "all")
+        key, label, ids = pick_audience(people, mode, request.form.getlist("cats"), request.form.getlist("people"))
+        if mode == "cats" and not request.form.getlist("cats"):
+            flash("Pick at least one category.", "warning")
+        elif not text:
+            flash("The notice is empty.", "warning")
+        elif not ids:
+            flash("Nobody matches that choice, so nothing was sent.", "warning")
+        else:
+            prior = conn.execute("SELECT sent_at FROM resource_update_notices WHERE update_id = ? AND audience = ? "
+                                 "ORDER BY id DESC LIMIT 1", (update_id, key)).fetchone()
+            if prior and not request.form.get("again"):
+                again = f"This update was already sent to {label} on {prior['sent_at'][:16].replace('T', ' ')}."
+            else:
+                nid = conn.execute(
+                    "INSERT INTO resource_update_notices (update_id, resource_id, audience, audience_label, sent_by, "
+                    "sent_at, text, recipient_count) VALUES (?,?,?,?,?,?,?,?)",
+                    (update_id, u["resource_id"], key, label, session.get("user_id"), now_iso(), text, len(ids))).lastrowid
+                conn.executemany("INSERT INTO resource_notice_recipients (notice_id, user_id) VALUES (?, ?)",
+                                 [(nid, i) for i in ids])
+                conn.commit()
+                deliver_notice(conn, nid, ids, text, people)
+                conn.close()
+                flash(f"Sent to {len(ids)} {'person' if len(ids) == 1 else 'people'} ({label}).", "success")
+                return redirect(url_for("groundschool.resources_list"))
+    form = request.form if request.method == "POST" else {}
+    text = form.get("text") or notice_text(conn, u)
+    sent = conn.execute("SELECT * FROM resource_update_notices WHERE update_id = ? ORDER BY id DESC", (update_id,)).fetchall()
+    conn.close()
+    return render_template("flight/groundschool_resource_send.html", tab="resources", u=u, text=text, people=people,
+                           categories=RESOURCE_CATEGORIES, sent=sent, again=again, form=form,
+                           picked_cats=form.getlist("cats") if request.method == "POST" else [],
+                           picked_people={str(i) for i in (form.getlist("people") if request.method == "POST" else [])})
+
+
+@groundschool_bp.route("/resources/notices")
+@admin_required
+def resource_notices_log():
+    """What was sent, to whom, by whom."""
+    conn = get_db()
+    notices = conn.execute(
+        "SELECT n.*, r.title AS r_title, s.name AS sender FROM resource_update_notices n "
+        "LEFT JOIN acs_resources r ON r.id = n.resource_id LEFT JOIN users s ON s.id = n.sent_by "
+        "ORDER BY n.id DESC LIMIT 100").fetchall()
+    names = {}
+    for n in notices:
+        names[n["id"]] = conn.execute(
+            "SELECT u.name, rc.read_at FROM resource_notice_recipients rc JOIN users u ON u.id = rc.user_id "
+            "WHERE rc.notice_id = ? ORDER BY u.name COLLATE NOCASE", (n["id"],)).fetchall()
+    conn.close()
+    return render_template("flight/groundschool_resource_notices.html", tab="resources", notices=notices, names=names)
