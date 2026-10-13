@@ -2450,12 +2450,14 @@ def project_add_quick_type(project_id):
         added += conn.execute("INSERT OR IGNORE INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
                               (project_id, r["name"], now_iso())).rowcount
     conn.commit()
+    item = conn.execute("SELECT id FROM project_sections WHERE project_id = ? AND name = ?", (project_id, quick_type)).fetchone()
     conn.close()
     if added:
         flash(f"Added {added} discrepanc{'y' if added == 1 else 'ies'} from {quick_type}.", "success")
     else:
         flash(f"Nothing new to add: {quick_type} has no discrepancies that aren't already on this job.", "info")
-    return redirect(url_for("project_detail", project_id=project_id))
+    # Land on the Quick Type's item instead of the top of the page.
+    return redirect(url_for("project_detail", project_id=project_id, _anchor=f"section-{item['id']}" if item else None))
 
 
 @app.route("/projects/<int:project_id>/sections/<int:section_id>/complete", methods=["POST"])

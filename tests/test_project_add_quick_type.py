@@ -19,3 +19,11 @@ class AddQuickType(OpsHubTestCase):
         self.assertEqual(sorted(names), ["Annual Inspection", "Brakes"])
         c.post(f"/projects/{pid}/add_quick_type", data={"quick_type": "Annual Inspection"})
         self.assertEqual(len(self.q("SELECT 1 FROM project_sections WHERE project_id = ?", (pid,))), 2)
+
+    def test_redirect_stays_on_added_item(self):
+        pid = self.make_project()
+        c = self.login("tech")
+        r = c.post(f"/projects/{pid}/add_quick_type", data={"quick_type": "Annual Inspection"})
+        sid = self.q("SELECT id FROM project_sections WHERE project_id = ? AND name = 'Annual Inspection'", (pid,))[0]["id"]
+        self.assertTrue(r.headers["Location"].endswith(f"#section-{sid}"))
+        self.assertIn(f'id="section-{sid}"', c.get(f"/projects/{pid}").get_data(as_text=True))

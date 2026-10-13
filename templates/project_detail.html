@@ -237,7 +237,7 @@
            See project_section_complete (requests confirmation) and
            project_section_confirm (actually completes it, or sends it
            back). #}
-        <div class="card mb-2 {{ 'border-success' if data.completed_at else ('border-warning' if data.confirm_requested_at) }}">
+        <div {% if data.id %}id="section-{{ data.id }}" {% endif %}class="card mb-2 {{ 'border-success' if data.completed_at else ('border-warning' if data.confirm_requested_at) }}">
           <div class="card-header pointer-cursor" onclick="toggleSection('{{ loop.index }}')">
             <div class="d-flex justify-content-between align-items-center {{ 'bg-success-subtle' if data.completed_at else ('bg-warning-subtle' if data.confirm_requested_at) }}">
               <div class="d-flex align-items-center gap-2 flex-wrap">
