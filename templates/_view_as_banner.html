@@ -3,7 +3,7 @@
    on the program picker. #}
 {% if viewing_as %}
 <div class="bg-warning text-dark text-center py-1 small fw-bold opshub-role-banner" data-change="HUB-03">
-  <i class="bi bi-person-badge"></i> Switched role: {{ viewing_as }}
+  <i class="bi bi-person-badge"></i> {{ 'Viewing as' if session.get('_view_as_readonly') else 'Switched role:' }} {{ viewing_as }}
   <form method="post" action="{{ url_for('view_as_exit') }}" class="d-inline m-0 ms-2">
     <button type="submit" class="btn btn-dark btn-sm py-0 px-2" style="font-size:.75rem;">Back to my normal view</button>
   </form>

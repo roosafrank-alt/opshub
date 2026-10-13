@@ -35,7 +35,7 @@ from auth import (holds_role, student_course_grants, academy_grants_only, ground
                    owner_user_id, owner_locked, authenticate_customer, log_in_combined,
                    current_customer, start_view_as, exit_view_as, viewing_as_label,
                    view_as_active_program, SHOP_VIEW_AS_LEVELS, FLIGHT_VIEW_AS_LEVELS,
-                   real_is_master_admin, view_as_chips, home_view_as_level,
+                   real_is_master_admin, view_as_chips, home_view_as_level, can_pick_student,
                    account_program_count, single_program_endpoint,
                    login_allowed, login_failed, login_succeeded, unlock_account, LOGIN_BLOCKED_MSG,
                    real_user_id, session_programs, safe_next, is_flight_admin)
@@ -8725,11 +8725,66 @@ def view_as_start(program, level):
     return redirect(url_for("dashboard") if program == "shop" else url_for("flight.dashboard"))
 
 
+def _local_path(raw):
+    """A same-site path (for redirects), or '' for anything else."""
+    raw = (raw or "").strip()
+    return raw if raw.startswith("/") and not raw.startswith("//") and "\\" not in raw else ""
+
+
+@app.route("/view-as/flight/student", methods=["GET"])
+@login_required
+def view_as_student_picker():
+    """Pick which student to look at Flight Academy as (Switch role > Student).
+    Flight Admins and master admins only; look only, like the customer view."""
+    if not can_pick_student() or session.get("_view_as_real") and session.get("_view_as_program") != "flight":
+        abort(403)
+    conn = get_db()
+    students = conn.execute("""SELECT id, name, pilot_certificate FROM students
+                               WHERE active = 1 AND COALESCE(is_station, 0) = 0 ORDER BY lower(name)""").fetchall()
+    conn.close()
+    return render_template("view_as_student_picker.html", students=students,
+                           back=_local_path(request.args.get("next")) or url_for("academy_page"))
+
+
+@app.route("/view-as/flight/student/<int:student_id>", methods=["POST"])
+@login_required
+def view_as_student_start(student_id):
+    """Start looking at Flight Academy as one particular student."""
+    conn = get_db()
+    ok, error = start_view_as(conn, "flight", "student", student_id=student_id)
+    conn.close()
+    if not ok:
+        flash(error or "Can't switch to that student.", "danger")
+        return redirect(url_for("academy_page"))
+    session["_view_as_return"] = _local_path(request.form.get("next")) or url_for("academy_page")
+    return redirect(url_for("academy_page"))
+
+
 @app.route("/view-as/exit", methods=["POST"])
 def view_as_exit():
+    back = _local_path(session.pop("_view_as_return", None))
     if exit_view_as():
         flash("Back to your normal view.", "info")
+        if back:
+            return redirect(back)
     return redirect(request.referrer or url_for("dashboard"))
+
+
+@app.before_request
+def _view_as_student_is_look_only():
+    """While a Flight Admin is looking at the app as one picked student,
+    nothing can be changed (same rule as the customer portal view). Only the
+    Switch role buttons, logout and the tour flag still go through."""
+    if request.method in ("GET", "HEAD", "OPTIONS") or not session.get("_view_as_readonly"):
+        return None
+    if request.endpoint in ("view_as_exit", "view_as_start", "view_as_student_start", "tour_seen", "logout"):
+        return None
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+        return ("", 403)
+    flash("You're only looking at this student's view, so nothing was changed.", "warning")
+    ref = request.referrer or ""
+    host = request.host_url.rstrip("/")
+    return redirect(ref[len(host):] if ref.startswith(host + "/") else url_for("academy_page"))
 
 
 @app.route("/admin/users")

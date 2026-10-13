@@ -102,8 +102,11 @@ def _set_academy_flags(user_row):
     """Flight Academy / Ground School access: the admin-assigned flags, plus
     automatically for a Flight Admin (no separate academy_access needed)."""
     fa = _flight_admin_for(user_row)
-    session["academy_access"] = bool(user_row["academy_access"] or fa)
-    session["groundschool_access"] = bool(user_row["groundschool_access"] or user_row["academy_access"] or fa)
+    # Looking at Flight Academy as one picked student (look only): the admin
+    # behind it already had Academy, so it opens for the student view too.
+    looking = bool(session.get("_view_as_readonly"))
+    session["academy_access"] = bool(user_row["academy_access"] or fa or looking)
+    session["groundschool_access"] = bool(user_row["groundschool_access"] or user_row["academy_access"] or fa or looking)
 
 
 def sync_flight_ids(conn, user_row):
@@ -320,7 +323,8 @@ FLIGHT_VIEW_AS_LEVELS = {"admin": "Flight Admin", "cfi": "CFI", "student": "Stud
 # Every session field a role switch (shop or flight) can touch - the full
 # baseline snapshotted on first entry, so exiting always restores everything
 # regardless of which programs were switched along the way.
-_VIEW_AS_SNAPSHOT_KEYS = ("is_master_admin", "shop_role", "flight_role", "cfi_id", "student_id", "can_bill")
+_VIEW_AS_SNAPSHOT_KEYS = ("is_master_admin", "shop_role", "flight_role", "cfi_id", "student_id", "can_bill",
+                          "academy_access", "groundschool_access")
 
 
 # Idea "view as for multi-role accounts": someone who holds more than one
@@ -366,10 +370,23 @@ def allowed_view_as_levels(conn, program):
     levels = SHOP_VIEW_AS_LEVELS if program == "shop" else FLIGHT_VIEW_AS_LEVELS
     if real_is_master_admin():
         return dict(levels)
+    if program == "flight" and can_pick_student():
+        # A Flight Admin may look at Flight School / Flight Academy as one
+        # student; nothing else (a CFI view is not offered to them).
+        own = set(_own_roles(conn, program))
+        return {k: v for k, v in levels.items() if k in ("admin", "student") or k in own}
     own = [r for r in _own_roles(conn, program) if r in levels]
     if len(own) < 2:
         return {}
     return {r: levels[r] for r in own}
+
+
+def can_pick_student():
+    """True for the real signed-in master admin or Flight Admin: they may
+    pick one particular student to look at Flight Academy as (the student
+    picker). Never true for a CFI or a student, and never changes mid-switch
+    because it looks at the real account's own roles."""
+    return bool(real_is_master_admin() or _real("flight_role") == "admin")
 
 
 def view_as_chips(conn, program):
@@ -395,7 +412,10 @@ def view_as_chips(conn, program):
             action = "current"
         else:
             action = "start"
-        chips.append(dict(level=level, label=label, action=action))
+        # The Student chip of a Flight Admin / master admin opens the student
+        # picker instead of switching straight away.
+        chips.append(dict(level=level, label=label, action=action,
+                          pick=bool(program == "flight" and level == "student" and can_pick_student())))
     return chips
 
 
@@ -416,7 +436,7 @@ def _pick_view_as_flight_profile(conn, level):
     return (first["id"], first["name"]) if first else (None, None)
 
 
-def start_view_as(conn, program, level):
+def start_view_as(conn, program, level, student_id=None):
     """A master admin (any level, either program), or an account with
     several roles in a program (just its own roles) - either one already
     switched can switch straight to a different role without exiting first.
@@ -427,7 +447,17 @@ def start_view_as(conn, program, level):
     if level not in allowed_view_as_levels(conn, program):
         return False, None
     person_id = person_name = None
-    if program == "flight":
+    if student_id is not None:
+        # Looking at one particular student (the picker): only a Flight Admin
+        # or master admin, only a real, active, non-station student.
+        if program != "flight" or level != "student" or not can_pick_student():
+            return False, None
+        row = conn.execute("SELECT id, name FROM students WHERE id = ? AND active = 1 AND COALESCE(is_station, 0) = 0",
+                           (student_id,)).fetchone()
+        if not row:
+            return False, "That student isn't active, so there's nothing to look at."
+        person_id, person_name = row["id"], row["name"]
+    elif program == "flight":
         person_id, person_name = _pick_view_as_flight_profile(conn, level)
         if not person_id:
             return False, f"There's no active {FLIGHT_VIEW_AS_LEVELS[level].lower()} on file yet to switch to."
@@ -443,6 +473,7 @@ def start_view_as(conn, program, level):
     for k, v in session["_view_as_real"].items():
         session[k] = v
     session.pop("_view_as_person_name", None)
+    session.pop("_view_as_readonly", None)
 
     session["is_master_admin"] = False
     if program == "shop":
@@ -454,6 +485,12 @@ def start_view_as(conn, program, level):
         session["cfi_id"] = person_id if level in ("cfi", "admin") else None
         session["student_id"] = person_id if level == "student" else None
         session["_view_as_person_name"] = person_name
+        if student_id is not None:
+            # A picked student is look only (like the customer portal view),
+            # and Flight Academy opens for them the way the admin could.
+            session["_view_as_readonly"] = True
+            session["academy_access"] = True
+            session["groundschool_access"] = True
     session["_view_as_program"] = program
     return True, None
 
@@ -462,6 +499,7 @@ def exit_view_as():
     real = session.pop("_view_as_real", None)
     session.pop("_view_as_person_name", None)
     session.pop("_view_as_program", None)
+    session.pop("_view_as_readonly", None)
     if not real:
         return False
     for key, value in real.items():
