@@ -1548,6 +1548,39 @@ def squawk_estimate(kind, squawk_id):
     return redirect(request.referrer or url_for("squawks_list"))
 
 
+@app.route("/projects/<int:project_id>/sections/<int:section_id>/estimate", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_section_estimate(project_id, section_id):
+    """Idea "adding estimate price area": the same editable estimate as a
+    squawk's, on a job Discrepancy. Blank cost is priced from the hours."""
+    conn = get_db()
+    blocked = _deleted_job_block(conn, project_id)
+    if blocked:
+        return blocked
+    section = conn.execute("SELECT id FROM project_sections WHERE id = ? AND project_id = ?",
+                           (section_id, project_id)).fetchone()
+    if not section:
+        conn.close()
+        abort(404)
+    hours_raw = (request.form.get("est_hours") or "").strip()
+    cost_raw = (request.form.get("est_cost") or "").strip().lstrip("$").replace(",", "")
+    hours = _parse_qty(hours_raw, allow_zero=True) if hours_raw else None
+    cost = _parse_qty(cost_raw, allow_zero=True) if cost_raw else None
+    if (hours_raw and hours is None) or (cost_raw and cost is None):
+        conn.close()
+        flash("Enter the estimate as numbers.", "danger")
+        return redirect(url_for("project_detail", project_id=project_id))
+    if cost is None and hours:
+        rate = _found_default_labor_rate(conn)
+        if rate:
+            cost = round(hours * rate, 2)
+    conn.execute("UPDATE project_sections SET est_hours = ?, est_cost = ? WHERE id = ?", (hours, cost, section_id))
+    conn.commit()
+    conn.close()
+    flash("Estimate saved.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 @app.route("/squawks/<kind>/<int:squawk_id>/worker_ack", methods=["POST"])
 @shop_role_required('admin', 'tech')
 def squawk_worker_ack(kind, squawk_id):
@@ -4168,7 +4201,7 @@ def project_detail(project_id):
     conn.commit()
     section_meta = {r["name"]: dict(r) for r in conn.execute(
         """SELECT id, name, completed_at, completed_by, confirm_requested_at, confirm_requested_by,
-                  sent_back_at, sent_back_by, reopened_at, reopened_by, notes, description,
+                  sent_back_at, sent_back_by, reopened_at, reopened_by, notes, description, est_hours, est_cost,
                   linked_squawk_kind, linked_squawk_id, linked_todo_id, assigned_to,
                   (SELECT name FROM users WHERE users.id = project_sections.assigned_to) AS assigned_name
            FROM project_sections WHERE project_id = ?""", (project_id,)).fetchall()}
@@ -4189,6 +4222,8 @@ def project_detail(project_id):
         section_data["assigned_name"] = meta["assigned_name"] if meta else None
         section_data["maint_items"] = _task_links.get(meta["id"], []) if meta else []
         section_data["description"] = meta["description"] if meta else None
+        section_data["est_hours"] = meta["est_hours"] if meta else None
+        section_data["est_cost"] = meta["est_cost"] if meta else None
         # A Discrepancy that came from "Fix on this job"/"Do on this job"
         # keeps the squawk's/to-do's own Reported/Assigned/Working/
         # Inspection/Done pills and assigned tech showing here too, instead

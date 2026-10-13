@@ -1967,6 +1967,14 @@ def _migrate(conn):
             conn.execute(f"ALTER TABLE {tbl} ADD COLUMN {pre}est_cost REAL")
             conn.commit()
 
+    # Same estimate on a job Discrepancy (project_sections). One that stands in
+    # for a squawk uses the squawk's own estimate instead; see project_detail.
+    cols_ps = [r["name"] for r in conn.execute("PRAGMA table_info(project_sections)").fetchall()]
+    if "est_hours" not in cols_ps:
+        conn.execute("ALTER TABLE project_sections ADD COLUMN est_hours REAL")
+        conn.execute("ALTER TABLE project_sections ADD COLUMN est_cost REAL")
+        conn.commit()
+
     # Marking a squawk repaired now goes through the same request/confirm
     # two-step as a project sub area (see project_section_complete/_confirm
     # in app.py): squawk_repair only requests confirmation, and an Inspector
