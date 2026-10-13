@@ -74,9 +74,17 @@
           </div>
           <div class="col-12 text-muted small">Either one is optional, but at least one is required.</div>
         </div>
+        {% set one_line = latest and not editing %}
+        {% if one_line %}
+        <div class="alert alert-light border small py-2 mt-2 mb-0 d-flex justify-content-between align-items-center gap-2" id="cc-setup-line">
+          <span><i class="bi bi-gear"></i> Master {{ '%g'|format(last_master if last_master is not none else 80) }} &middot; <span id="cc-setup-n">{{ default_num_cylinders }}</span> cylinders <span class="text-muted">(same as last check)</span></span>
+          <a href="#" id="cc-setup-change">Change</a>
+        </div>
+        {% endif %}
+        <div id="cc-setup"{% if one_line %} class="d-none"{% endif %}>
         <div class="mt-2">
           <label class="form-label small mb-0">Master Orifice <span class="text-muted">(reference, e.g. 80)</span></label>
-          <input type="number" step="any" name="master_orifice" class="form-control form-control-sm" value="{{ ('%g'|format(editing.master_orifice) if editing.master_orifice is not none else '') if editing else 80 }}">
+          <input type="number" step="any" name="master_orifice" class="form-control form-control-sm" value="{{ ('%g'|format(editing.master_orifice) if editing.master_orifice is not none else '') if editing else ('%g'|format(last_master) if last_master is not none else 80) }}">
         </div>
         <div class="mt-2">
           <label class="form-label small mb-0">Number of Cylinders</label>
@@ -85,6 +93,7 @@
             <option value="{{ n }}" {% if n == default_num_cylinders %}selected{% endif %}>{{ n }}</option>
             {% endfor %}
           </select>
+        </div>
         </div>
         <div class="row g-2 mt-1">
           {% for i in range(1, 7) %}
@@ -173,6 +182,14 @@
   if (select) {
     select.addEventListener('change', apply);
     apply();
+  }
+  var change = document.getElementById('cc-setup-change');
+  if (change) {
+    change.addEventListener('click', function (e) {
+      e.preventDefault();
+      document.getElementById('cc-setup').classList.remove('d-none');
+      document.getElementById('cc-setup-line').classList.add('d-none');
+    });
   }
 
   // Tach and Hobbs: either may be blank, but not both.

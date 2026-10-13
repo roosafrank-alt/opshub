@@ -49,3 +49,33 @@ class CompressionForm(OpsHubTestCase):
         c = self.login("tech")
         c.post(f"/assets/{aid}/compression", data={"cyl1": "70", "tach_hours": "", "hobbs_hours": ""})
         self.assertEqual(self.q1("SELECT COUNT(*) n FROM compression_checks")["n"], 0)
+
+
+class CompressionSetupOneLine(OpsHubTestCase):
+    def _check(self, aid, master, cyls):
+        self.exec("INSERT INTO compression_checks (asset_id, checked_date, tach_hours, master_orifice, cyl1, cyl2, created_at) "
+                  "VALUES (?, '2026-01-01', 10, ?, ?, ?, ?)", (aid, master, cyls[0], cyls[1], db.now_iso()))
+
+    def test_first_check_shows_boxes(self):
+        aid = self.make_asset()
+        html = self.login("tech").get(f"/assets/{aid}/compression").get_data(as_text=True)
+        self.assertNotIn('id="cc-setup-line"', html)
+        self.assertNotIn('id="cc-setup" class="d-none"', html)
+        self.assertIn('name="master_orifice" class="form-control form-control-sm" value="80"', html)
+
+    def test_later_check_shows_one_line_with_last_master(self):
+        aid = self.make_asset()
+        self._check(aid, 100, (90, 91))
+        html = self.login("tech").get(f"/assets/{aid}/compression").get_data(as_text=True)
+        self.assertIn("Master 100", html)
+        self.assertIn("same as last check", html)
+        self.assertIn('id="cc-setup" class="d-none"', html)
+        self.assertIn('name="master_orifice" class="form-control form-control-sm" value="100"', html)
+        self.assertIn('<option value="2" selected>', html)
+
+    def test_editing_shows_boxes(self):
+        aid = self.make_asset()
+        self._check(aid, 100, (90, 91))
+        cid = self.q1("SELECT id FROM compression_checks")["id"]
+        html = self.login("tech").get(f"/assets/{aid}/compression?edit={cid}").get_data(as_text=True)
+        self.assertNotIn('id="cc-setup-line"', html)

@@ -5993,6 +5993,9 @@ def asset_compression(asset_id):
     last_hobbs = asset["hobbs_hours"] if asset["hobbs_hours"] is not None else next(
         (c["hobbs_hours"] for c in reversed(checks) if c["hobbs_hours"] is not None), None)
 
+    # The reference number carries over from the last check that had one.
+    last_master = next((c["master_orifice"] for c in reversed(checks) if c["master_orifice"] is not None), None)
+
     editing = None
     edit_id = request.args.get("edit", type=int)
     if edit_id and can_edit_checks:
@@ -6006,7 +6009,7 @@ def asset_compression(asset_id):
                            chart_labels=chart_labels, cyl_series=cyl_series, default_num_cylinders=default_num_cylinders,
                            today=date.today().strftime("%Y-%m-%d"), can_edit_checks=can_edit_checks, editing=editing,
                            tech_names=tech_names, last_tach=last_tach, last_hobbs=last_hobbs,
-                           cyl_status=cyl_status, cyl_note=cyl_note)
+                           cyl_status=cyl_status, cyl_note=cyl_note, last_master=last_master)
 
 
 @app.route("/assets/<int:asset_id>/compression/discrepancy", methods=["POST"])
