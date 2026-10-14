@@ -55,8 +55,12 @@
 {% endmacro %}
 
 {% block content %}
+<style>
+/* Phone: Print Labels only shows once a part is ticked (button is disabled until then). */
+@media (max-width: 767.98px) { #print-labels-btn:disabled { display: none; } }
+</style>
 <div class="row g-3 mb-3">
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-3 d-none d-md-block" data-change="IDEA-parts-phone-top">
     <div class="card stat-card p-3">
       <div class="text-muted small">Total Parts</div>
       <div class="display-6">{{ part_count }}</div>
@@ -125,7 +129,7 @@
   </div>
 {% else %}
   <!-- Browse view: click a category to expand it -->
-  <div class="d-flex flex-wrap gap-2 mb-3">
+  <div class="d-none d-md-flex flex-wrap gap-2 mb-3">
     {% for cat, plist in by_category.items() %}
     <button type="button" class="btn btn-outline-primary btn-sm" onclick="toggleCategory('{{ loop.index }}')">
       {{ cat }} <span class="badge bg-primary ms-1">{{ plist|length }}</span>
