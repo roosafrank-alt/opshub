@@ -86,11 +86,16 @@
     {% if L.cfi_notes and (session.get('cfi_id') or flight_admin) %}
     <div class="gsl-panel gsl-cfi"><h6>For the CFI</h6><ul>{% for t in L.cfi_notes %}<li>{{ gs_rich(t) }}</li>{% endfor %}</ul></div>
     {% endif %}
-    <div class="gsl-panel">
-      <h6>References used</h6>
-      <ul class="gsl-refs">{% for label, href in gs_refs(L) %}<li><a href="{{ href }}" target="_blank" rel="noopener">{{ label }}</a></li>{% endfor %}</ul>
-      {% if L.gaps %}<p class="gsl-gaps"><b>Not in the uploaded resources:</b> {{ L.gaps|join(' · ') }}</p>{% endif %}
-    </div>
+    {% set gs_ref_list = gs_refs(L) %}
+    {% if L.gaps and (session.get('cfi_id') or flight_admin) %}
+    <div class="gsl-panel gsl-cfi"><h6>Not in the uploaded resources</h6><p class="gsl-gaps mb-0">{{ L.gaps|join(' · ') }}</p></div>
+    {% endif %}
+    {% if gs_ref_list %}
+    <details class="gsl-panel gsl-refs-fold">
+      <summary>References used ({{ gs_ref_list|length }})</summary>
+      <ul class="gsl-refs">{% for label, href in gs_ref_list %}<li><a href="{{ href }}" target="_blank" rel="noopener">{{ label }}</a></li>{% endfor %}</ul>
+    </details>
+    {% endif %}
   </section>
 </div>
 <script src="{{ url_for('static', filename='js/ground-lesson.js') }}" defer></script>

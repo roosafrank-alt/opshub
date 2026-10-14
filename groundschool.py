@@ -784,7 +784,7 @@ def task_detail(task_id):
     # Sibling tasks in this area, for Prev/Next - and the next task overall
     # (rolling into the next area) so browsing doesn't dead-end at an area
     # boundary.
-    area_tasks = conn.execute("SELECT id FROM acs_tasks WHERE area_id = ? ORDER BY order_index",
+    area_tasks = conn.execute("SELECT id, code, title FROM acs_tasks WHERE area_id = ? ORDER BY order_index",
                                (task["area_id"],)).fetchall()
     conn.close()
     ids = [t["id"] for t in area_tasks]
@@ -793,7 +793,8 @@ def task_detail(task_id):
     idx = ids.index(task_id) if task_id in ids else -1
     prev_task_id = ids[idx - 1] if idx > 0 else None
     next_task_id = ids[idx + 1] if 0 <= idx < len(ids) - 1 else None
-    return render_template("flight/groundschool_task.html", task=task, area=area, rating=rating,
+    next_task = area_tasks[idx + 1] if next_task_id else None
+    return render_template("flight/groundschool_task.html", task=task, next_task=next_task, area=area, rating=rating,
                             notes=notes, knowledge=knowledge, risk_management=risk_management,
                             skills=skills, lesson=lesson, acs_changes=acs_changes, signoffs=signoffs, my_signoff=my_signoff,
                             gs_students=students, prev_task_id=prev_task_id, next_task_id=next_task_id,
