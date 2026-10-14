@@ -2337,6 +2337,12 @@ def _student_form_context(conn, student, **extra):
         ctx["solo_currency"] = None if student["is_station"] else _solo_currency_status(conn, student_id)
         ctx["solo_signoff"] = None if student["is_station"] else _solo_signoff_status(conn, student_id)
         ctx["medical"] = None if student["is_station"] else _medical_status(student)
+        if not student["is_station"]:
+            # "Write endorsement" pop-up: the planes to name, and the CFI whose
+            # certificate number and expiry go into the wording.
+            ctx["endorse_planes"] = conn.execute(
+                "SELECT tag, make, model FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY schedule_order, tag").fetchall()
+            ctx["endorse_cfi"] = current_cfi(conn)
         user_row = conn.execute("SELECT email, phone FROM users WHERE id = ?", (student["user_id"],)).fetchone() if student["user_id"] else None
         ctx["student_email"] = user_row["email"] if user_row else None
         ctx["student_phone"] = user_row["phone"] if user_row else None
@@ -2623,6 +2629,28 @@ def student_edit(student_id):
     ctx = _student_form_context(conn, student)
     conn.close()
     return render_template("flight/student_form.html", **ctx)
+
+
+@flight_bp.route("/students/<int:student_id>/solo-signoff/save", methods=["POST"])
+@cfi_required
+def student_solo_signoff_save(student_id):
+    """The 'Write endorsement' pop-up saves the solo sign-off date (today,
+    expiry 90 days on) in the same step as copying or printing a solo
+    endorsement. Returns JSON for the pop-up."""
+    conn = get_db()
+    student = conn.execute("SELECT id, is_station, user_id FROM students WHERE id = ?", (student_id,)).fetchone()
+    if not student or student["is_station"]:
+        conn.close()
+        return jsonify(ok=False), 404
+    if owner_locked(student["user_id"], conn):
+        conn.close()
+        return jsonify(ok=False, error="owner account"), 403
+    today = date.today().isoformat()
+    expires = _solo_signoff_expiry_default(today)
+    conn.execute("UPDATE students SET solo_signoff_date = ?, solo_signoff_expires = ? WHERE id = ?", (today, expires, student_id))
+    conn.commit()
+    conn.close()
+    return jsonify(ok=True, date=today, expires=expires)
 
 
 @flight_bp.route("/students/<int:student_id>/landings/add", methods=["POST"])

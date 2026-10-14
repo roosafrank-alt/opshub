@@ -52,6 +52,7 @@
       {% if solo_signoff and solo_signoff.ok %}<span class="badge {{ 'bg-warning text-dark' if solo_signoff.days_left <= 14 else 'bg-success' }}">Good to {{ solo_signoff.expires|usdate }}</span><div class="text-muted">{{ solo_signoff.days_left }}d left</div>
       {% elif solo_signoff and solo_signoff.ok is false %}<span class="badge bg-danger">Expired {{ solo_signoff.expires|usdate }}</span><div class="text-muted">needs a new sign-off</div>
       {% else %}<span class="badge bg-secondary">None on file</span>{% endif %}
+      {% if student and not student.is_station and endorse_planes is defined %}<div class="mt-1"><button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#endorse-modal"><i class="bi bi-pencil-square"></i> Write endorsement</button></div>{% endif %}
     </div>
   </div>
   {#- Landings that happened outside a logged flight (another school, a
@@ -516,4 +517,84 @@
 
 </div>
 </div>
+{% if student and not student.is_station and endorse_planes is defined %}
+<div class="modal fade" id="endorse-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Write endorsement</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+      <div class="modal-body">
+        <label class="form-label small mb-0" for="endorse-kind">Endorsement</label>
+        <select id="endorse-kind" class="form-select mb-2">
+          <option value="pre_knowledge">Pre-solo aeronautical knowledge - 61.87(b)</option>
+          <option value="pre_training">Pre-solo flight training - 61.87(c)</option>
+          <option value="solo" data-save="1">Solo flight (90 days) - 61.87(n)</option>
+          <option value="solo_renew" data-save="1">Solo flight, renewed (90 days) - 61.87(p)</option>
+          <option value="knowledge_test">Knowledge test - 61.35(a)(1)</option>
+          <option value="practical_test">Practical test - 61.107(b)</option>
+        </select>
+        <label class="form-label small mb-0" for="endorse-plane">Plane</label>
+        <select id="endorse-plane" class="form-select mb-2">
+          {% for p in endorse_planes %}<option value="{{ ((p.make or '') ~ ' ' ~ (p.model or ''))|trim or p.tag }}">{{ p.tag }} - {{ ((p.make or '') ~ ' ' ~ (p.model or ''))|trim or 'make/model not set' }}</option>{% endfor %}
+        </select>
+        <div class="row g-2 mb-2">
+          <div class="col-6"><label class="form-label small mb-0" for="endorse-cert">CFI certificate no.</label><input id="endorse-cert" class="form-control" value="{{ endorse_cfi.cfi_cert_number if endorse_cfi and endorse_cfi.cfi_cert_number else '' }}"></div>
+          <div class="col-6"><label class="form-label small mb-0" for="endorse-exp">Expires</label><input id="endorse-exp" type="date" class="form-control" value="{{ endorse_cfi.cfi_cert_expires if endorse_cfi and endorse_cfi.cfi_cert_expires else '' }}"></div>
+        </div>
+        <label class="form-label small mb-0" for="endorse-text">Wording to write in the logbook</label>
+        <textarea id="endorse-text" class="form-control" rows="8" readonly></textarea>
+        <div class="form-text" id="endorse-note">Wording follows AC 61-65; check it against the current edition.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" id="endorse-print"><i class="bi bi-printer"></i> Print</button>
+        <button type="button" class="btn btn-primary" id="endorse-copy"><i class="bi bi-clipboard"></i> Copy</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var NAME = {{ student.name|tojson }}, CFI = {{ ((endorse_cfi.name if endorse_cfi else session.get('user_name')) or '')|tojson }};
+  var TODAY = {{ today|tojson }}, SAVE_URL = {{ url_for('flight.student_solo_signoff_save', student_id=student.id)|tojson }};
+  var saved = false;
+  function us(iso) { var m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(iso || ''); return m ? m[2] + '/' + m[3] + '/' + m[1] : (iso || '____'); }
+  var TEXT = {
+    pre_knowledge: 'I certify that {n} has satisfactorily completed the pre-solo aeronautical knowledge requirements of 14 CFR 61.87(b) for a {a}.',
+    pre_training: 'I certify that {n} has received the required pre-solo training in accordance with 14 CFR 61.87(d) in a {a}. I have determined that he/she has demonstrated the proficiency of 14 CFR 61.87(m) and is proficient to practice solo takeoffs and landings.',
+    solo: 'I certify that {n} has received the required training to qualify for solo flying. I have determined that he/she meets the applicable requirements of 14 CFR 61.87(n) and is proficient to make solo flights in a {a}.',
+    solo_renew: 'I certify that {n} has received the required training to qualify for solo flying and has been reviewed in a {a} within the preceding 90 days. I have determined that he/she remains proficient to make solo flights, 14 CFR 61.87(p).',
+    knowledge_test: 'I certify that {n} has received the required training of 14 CFR 61.105. I have determined that he/she is prepared for the knowledge test.',
+    practical_test: 'I certify that {n} has received and logged training time within 2 calendar months preceding the month of application in preparation for the practical test and has satisfactorily completed the required training of 14 CFR 61.107(b). I have determined that he/she is prepared for the practical test.'
+  };
+  function build() {
+    var k = $('endorse-kind').value, plane = $('endorse-plane').value || '(make and model)';
+    var body = TEXT[k].replace('{n}', NAME).replace('{a}', plane);
+    $('endorse-text').value = body + '\n\n' + us(TODAY) + '\n' + CFI + '\nCFI ' + ($('endorse-cert').value || '____') + '   Exp. ' + us($('endorse-exp').value);
+    var opt = $('endorse-kind').selectedOptions[0];
+    $('endorse-note').textContent = opt.dataset.save ? 'Copy or Print also saves today as the solo sign-off date (good for 90 days).' : 'Wording follows AC 61-65; check it against the current edition.';
+  }
+  function save() {
+    var opt = $('endorse-kind').selectedOptions[0];
+    if (!opt.dataset.save) return;
+    fetch(SAVE_URL, { method: 'POST', credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.ok) { saved = true; $('endorse-note').textContent = 'Solo sign-off date saved: ' + us(d.date) + ', good to ' + us(d.expires) + '.'; }
+    });
+  }
+  ['endorse-kind', 'endorse-plane'].forEach(function (id) { $(id).addEventListener('change', build); });
+  ['endorse-cert', 'endorse-exp'].forEach(function (id) { $(id).addEventListener('input', build); });
+  $('endorse-modal').addEventListener('show.bs.modal', build);
+  $('endorse-modal').addEventListener('hidden.bs.modal', function () { if (saved) location.reload(); });
+  $('endorse-copy').addEventListener('click', function () {
+    var t = $('endorse-text'); t.select();
+    (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.resolve(document.execCommand('copy'))).catch(function () {});
+    $('endorse-copy').textContent = 'Copied'; save();
+  });
+  $('endorse-print').addEventListener('click', function () {
+    var w = window.open('', '_blank'); if (!w) return;
+    w.document.write('<pre style="font:16px/1.5 sans-serif;white-space:pre-wrap">' + $('endorse-text').value.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</pre>');
+    w.document.close(); w.print(); save();
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}
