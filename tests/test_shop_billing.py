@@ -243,7 +243,6 @@ class PaymentStatusTest(BillingBase):
         self.client.post(f"/shop/billing/{self.project}/mark-paid", data=dict(paid_method="Cash"))
         self.assertNotIn("Owed to the shop", self.page("/shop/billing"))
 
-    @open_finding("qa-double-paid-overwrites")
     def test_paying_twice_keeps_the_first_payment_record(self):
         self.client.post(f"/shop/billing/{self.project}/mark-paid", data=dict(paid_method="Cash"))
         first = self.status()
