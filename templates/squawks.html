@@ -16,14 +16,14 @@
 {% call(slot) list_toolbar(icon='exclamation-triangle-fill text-danger') %}
   {%- if slot == 'title' -%}Squawks
   {%- elif slot == 'add' and can_assign_squawks -%}
-  <button type="button" class="btn btn-outline-danger btn-sm fw-bold" data-bs-toggle="collapse" data-bs-target="#report-squawk-form" data-change="JOBS-29"><i class="bi bi-flag"></i> Report squawk</button>
+  <button type="button" id="report-squawk-toggle" class="btn btn-sm fw-bold {{ 'btn-outline-secondary' if show_report_form else 'btn-outline-danger' }}" data-bs-toggle="collapse" data-bs-target="#report-squawk-form" data-change="JOBS-29">{% if show_report_form %}<i class="bi bi-x-lg"></i> Close{% else %}<i class="bi bi-flag"></i> Report squawk{% endif %}</button>
   {%- endif -%}
 {% endcall %}
 
 {% if can_assign_squawks %}
 <form method="post" action="{{ url_for('squawk_quick_new') }}" id="report-squawk-form" class="collapse{{ ' show' if show_report_form }} card p-3 mb-3 row g-2 align-items-start">
   <div class="col-12 col-md-3">
-    <select name="asset_id" class="form-select form-select-sm" required>
+    <select name="asset_id" class="form-select form-select-sm" aria-label="Plane" required>
       <option value="" disabled selected>Plane...</option>
       {% for a in assets %}
       <option value="{{ a.id }}">{{ a.tag }}</option>
@@ -31,12 +31,24 @@
     </select>
   </div>
   <div class="col-12 col-md-7">
-    <input type="text" name="notes" class="form-control form-control-sm" placeholder="What's wrong with it?" required>
+    <input type="text" name="notes" class="form-control form-control-sm" placeholder="What's wrong?" aria-label="What's wrong?" required>
   </div>
   <div class="col-12 col-md-2">
-    <button class="btn btn-outline-danger btn-sm fw-bold w-100" data-change="JOBS-29"><i class="bi bi-flag"></i> Report squawk</button>
+    <button class="btn btn-danger btn-sm fw-bold w-100" data-change="JOBS-29"><i class="bi bi-send-fill"></i> Send squawk</button>
   </div>
 </form>
+<script>
+(function () {
+  var f = document.getElementById('report-squawk-form'), b = document.getElementById('report-squawk-toggle');
+  if (!f || !b) return;
+  function set(open) {
+    b.className = 'btn btn-sm fw-bold ' + (open ? 'btn-outline-secondary' : 'btn-outline-danger');
+    b.innerHTML = open ? '<i class="bi bi-x-lg"></i> Close' : '<i class="bi bi-flag"></i> Report squawk';
+  }
+  f.addEventListener('show.bs.collapse', function () { set(true); });
+  f.addEventListener('hide.bs.collapse', function () { set(false); });
+})();
+</script>
 {% endif %}
 
 {#- Step filters: one list at a time instead of 3 stacked lists that each

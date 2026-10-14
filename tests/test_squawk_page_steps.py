@@ -79,6 +79,15 @@ class SquawkPageStepsTest(OpsHubTestCase):
         body = c.get("/squawks?report=1").get_data(as_text=True)
         self.assertIn('id="report-squawk-form" class="collapse show card', body)
 
+    def test_open_form_has_close_on_top_and_send_squawk_button(self):
+        c = self.login("shop_admin")
+        body = c.get("/squawks?report=1").get_data(as_text=True)
+        self.assertIn("Close</button>", body)
+        self.assertIn("Send squawk", body)
+        self.assertIn("What's wrong?", body)
+        closed = c.get("/squawks").get_data(as_text=True)
+        self.assertIn("Report squawk</button>", closed)
+
     def test_dashboard_has_report_a_squawk_button(self):
         c = self.login("shop_admin")
         body = c.get("/shop").get_data(as_text=True)
