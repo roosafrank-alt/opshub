@@ -7885,16 +7885,14 @@ def _cfi_cert_from_form(form):
 
 
 def _first_solo_from_form(form):
-    """students.first_solo_date from the student form's "Has completed
-    first solo" box (+ optional date; today if left blank). None = not yet,
+    """students.first_solo_date from the student form's Milestones
+    row (a date means done, blank = not yet),
     which keeps landing currency off their profile and the Students list."""
-    if not form.get("first_solo_done"):
-        return None
     d = (form.get("first_solo_date") or "").strip()[:10]
     try:
         datetime.strptime(d, "%Y-%m-%d")
     except ValueError:
-        d = date.today().isoformat()
+        return None
     return d
 
 
@@ -7906,15 +7904,13 @@ def _pay_preference_from_form(form):
 
 
 def _tsa_verified_from_form(form):
-    """students.tsa_verified_date from the student form's "TSA Verified"
-    box (+ optional date; today if left blank). None = not verified yet."""
-    if not form.get("tsa_verified_done"):
-        return None
+    """students.tsa_verified_date from the student form's Milestones
+    row (a date means verified, blank = not yet)."""
     d = (form.get("tsa_verified_date") or "").strip()[:10]
     try:
         datetime.strptime(d, "%Y-%m-%d")
     except ValueError:
-        d = date.today().isoformat()
+        return None
     return d
 
 

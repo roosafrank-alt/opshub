@@ -52,6 +52,8 @@
       {% if solo_signoff and solo_signoff.ok %}<span class="badge {{ 'bg-warning text-dark' if solo_signoff.days_left <= 14 else 'bg-success' }}">Good to {{ solo_signoff.expires|usdate }}</span><div class="text-muted">{{ solo_signoff.days_left }}d left</div>
       {% elif solo_signoff and solo_signoff.ok is false %}<span class="badge bg-danger">Expired {{ solo_signoff.expires|usdate }}</span><div class="text-muted">needs a new sign-off</div>
       {% else %}<span class="badge bg-secondary">None on file</span>{% endif %}
+      {% if student and not student.is_station %}<div class="small"><a href="#" class="text-decoration-none" onclick="document.getElementById('solo-signoff-expires').classList.toggle('d-none'); return false;">change expiry</a></div>
+      <input type="date" form="student-form" name="solo_signoff_expires" id="solo-signoff-expires" class="form-control form-control-sm d-none mt-1" value="{{ (form.get('solo_signoff_expires', '') if form is not none else (student.solo_signoff_expires or '')) }}" aria-label="Solo sign-off expiry date">{% endif %}
       {% if student and not student.is_station and endorse_planes is defined %}<div class="mt-1"><button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#endorse-modal"><i class="bi bi-pencil-square"></i> Write endorsement</button></div>{% endif %}
     </div>
   </div>
@@ -293,47 +295,22 @@
     </div>
     <p class="text-muted small mt-n2 mb-3">With an expired medical a student can still fly dual, but a solo gets flagged for review (and shows on the Alerts tab) until an instructor is added or the medical is updated. Leave it blank if you don't track it.</p>
 
-    <div class="row align-items-end anchor-offset" id="first-solo">
-      <div class="col-md-6 mb-3">
-        <div class="form-check">
-          <input type="checkbox" class="form-check-input" name="first_solo_done" id="first-solo-check" {{ fchecked('first_solo_done', student and student.first_solo_date) }}
-                 onchange="document.getElementById('first-solo-date').disabled = !this.checked;">
-          <label class="form-check-label" for="first-solo-check"><strong>Has completed first solo</strong></label>
+    <div class="mb-3" id="milestones" data-change="milestones-block">
+      <label class="form-label fw-bold mb-1">Milestones</label>
+      {% for mid, mname, mfield, mcur in [('first-solo', 'First solo', 'first_solo_date', student.first_solo_date if student else ''), ('tsa-verified', 'TSA verified', 'tsa_verified_date', student.tsa_verified_date if student else ''), ('solo-signoff', 'Solo sign-off', 'solo_signoff_date', student.solo_signoff_date if student else '')] %}
+      <div class="row g-2 align-items-center mb-2 anchor-offset" id="{{ mid }}">
+        <div class="col-4 col-md-3">{{ mname }}</div>
+        <div class="col-8 col-md-9">
+          <div class="input-group">
+            <input type="date" name="{{ mfield }}" id="{{ mid }}-date" class="form-control" value="{{ fv(mfield, mcur) }}" aria-label="{{ mname }} date">
+            <button type="button" class="btn btn-outline-primary" onclick="var i=document.getElementById('{{ mid }}-date'); i.value='{{ today }}'; i.dispatchEvent(new Event('change',{bubbles:true}));">Today</button>
+          </div>
         </div>
       </div>
-      <div class="col-md-6 mb-3">
-        <label class="form-label">First Solo Date</label>
-        <input type="date" name="first_solo_date" id="first-solo-date" class="form-control" value="{{ fv('first_solo_date', student.first_solo_date if student else '') }}" {% if not (F.get('first_solo_done') if F is not none else (student and student.first_solo_date)) %}disabled{% endif %}>
-      </div>
+      {% endfor %}
+      <div class="form-text">A date means done; leave it blank for not yet. Landing currency starts once First solo has a date, and solo sign-off is good for 90 days.</div>
     </div>
-    <p class="text-muted small mt-n2 mb-3">Landing currency (last landing, landings in the last 90 days) only shows on this profile and the Students list once this is checked. Leave the date blank for today.</p>
-
-    <div class="row align-items-end anchor-offset" id="tsa-verified">
-      <div class="col-md-6 mb-3">
-        <div class="form-check">
-          <input type="checkbox" class="form-check-input" name="tsa_verified_done" id="tsa-verified-check" {{ fchecked('tsa_verified_done', student and student.tsa_verified_date) }}
-                 onchange="document.getElementById('tsa-verified-date').disabled = !this.checked;">
-          <label class="form-check-label" for="tsa-verified-check"><strong>TSA Verified</strong></label>
-        </div>
-      </div>
-      <div class="col-md-6 mb-3">
-        <label class="form-label">TSA Verification Date</label>
-        <input type="date" name="tsa_verified_date" id="tsa-verified-date" class="form-control" value="{{ fv('tsa_verified_date', student.tsa_verified_date if student else '') }}" {% if not (F.get('tsa_verified_done') if F is not none else (student and student.tsa_verified_date)) %}disabled{% endif %}>
-      </div>
-    </div>
-    <p class="text-muted small mt-n2 mb-3">Leave the date blank for today.</p>
-
-    <div class="row anchor-offset" id="solo-signoff">
-      <div class="col-md-6 mb-3">
-        <label class="form-label">Solo Sign-off Date <span class="text-muted small">(CFI solo endorsement)</span></label>
-        <input type="date" name="solo_signoff_date" id="solo-signoff-date" class="form-control" value="{{ fv('solo_signoff_date', student.solo_signoff_date if student else '') }}">
-      </div>
-      <div class="col-md-6 mb-3">
-        <label class="form-label">Solo Sign-off Expires <span class="text-muted small">(90 days - fills in by itself)</span></label>
-        <input type="date" name="solo_signoff_expires" id="solo-signoff-expires" class="form-control" value="{{ fv('solo_signoff_expires', student.solo_signoff_expires if student else '') }}">
-      </div>
-    </div>
-    <p class="text-muted small mt-n2 mb-3">Solo flights booked after the expiry date are flagged for review on the dashboard, the same as an over-currency solo. Leave the expiry blank and it's set to 90 days after the sign-off.</p>
+    {% if not (student and not student.is_station) %}<input type="hidden" name="solo_signoff_expires" id="solo-signoff-expires" value="{{ fv('solo_signoff_expires', student.solo_signoff_expires if student else '') }}">{% endif %}
     <script>
       (function () {
         var s = document.getElementById('solo-signoff-date'), e = document.getElementById('solo-signoff-expires');
