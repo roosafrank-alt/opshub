@@ -28,9 +28,11 @@ class PromisedBackDateTest(OpsHubTestCase):
             self.exec("UPDATE projects SET promised_date = ? WHERE id = ?", (_iso(days), pid))
         c = self.login("shop_admin")
         html = c.get("/projects").get_data(as_text=True)
-        for t in ("3 days late", "Due tomorrow", "On track", "No date set", "Late / due soon"):
+        for t in ("3 days late", "Due tomorrow", "On track", "Late / due soon"):
             self.assertIn(t, html)
         self.assertEqual(html.count("3 days late"), 1)  # completed job shows no tag
+        self.assertNotIn("No date set", html)  # nothing to say, so no placeholder chip
+        self.assertNotIn("No description", html)
         late = c.get("/projects?status=late").get_data(as_text=True)
         self.assertIn("Late job", late)
         self.assertIn("Soon job", late)

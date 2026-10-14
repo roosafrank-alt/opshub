@@ -16,7 +16,7 @@
         <img src="{{ url_for('static', filename='uploads/' + proj_cover.get(p.id)) }}" class="rounded flex-shrink-0 photo-thumb">
         {% endif %}
       </div>
-      <p class="text-muted small mb-1">{{ p.description or 'No description' }}</p>
+      {% if p.description %}<p class="text-muted small mb-1">{{ p.description }}</p>{% endif %}
       {% if is_master_admin or shop_role == 'admin' %}
       {#- JOBS-25: Restore from here comes back to this Deleted view with a message. #}
       <form method="post" action="{{ url_for('project_restore', project_id=p.id) }}" class="mt-1" data-change="JOBS-25">
@@ -25,37 +25,38 @@
       </form>
       {% endif %}
       {% else %}
-      <a href="{{ url_for('project_detail', project_id=p.id) }}" class="text-decoration-none text-dark">
+      {#- Whole card opens the job (stretched-link); the plane link sits above it. #}
+      <div class="text-dark">
         <div class="d-flex justify-content-between gap-2">
           <div class="flex-grow-1">
-            <h5><code class="text-primary small">{{ p.code }}</code> {{ p.name }}</h5>
+            <h5><a href="{{ url_for('project_detail', project_id=p.id) }}" class="text-decoration-none text-dark stretched-link"><code class="text-primary small">{{ p.code }}</code> {{ p.name }}</a></h5>
             {% if p.status == 'active' %}<span class="badge bg-success">Active</span>
             {% elif p.status == 'on_hold' %}<span class="badge bg-warning text-dark">On Hold</span>
             {% elif p.status == 'archived' %}<span class="badge bg-dark">Archived</span>
             {% else %}<span class="badge bg-secondary">Completed</span>{% endif %}
+            {% if p.asset_display_id %}
+            {#- JOBS-03: the plane's page is for admin, tech and inspector; others just see the tail number. #}
+            {% if is_master_admin or shop_role in ('admin', 'tech', 'inspector') %}
+            <a href="{{ url_for('asset_detail', asset_id=p.asset_display_id) }}" class="small ms-1 position-relative" style="z-index:2"><i class="bi bi-airplane"></i> {{ p.asset_display_tag }}</a>
+            {% else %}
+            <span class="small ms-1 text-muted"><i class="bi bi-airplane"></i> {{ p.asset_display_tag }}</span>
+            {% endif %}
+            {% endif %}
           </div>
           {% if proj_cover.get(p.id) %}
           <img src="{{ url_for('static', filename='uploads/' + proj_cover.get(p.id)) }}" class="rounded flex-shrink-0 photo-thumb">
           {% endif %}
         </div>
         {% set t = proj_tags.get(p.id) %}
-        {% if t %}<div class="small mb-1 promised-tag"><i class="bi bi-calendar-check"></i> <span class="badge bg-{{ t[2] }}{{ ' text-dark' if t[2] in ('warning', 'light') }}{{ ' border' if t[2] == 'light' }}">{{ t[1] }}</span>{% if p.promised_date %} <span class="text-muted">Promised {{ p.promised_date|usdate_short }}</span>{% endif %}</div>{% endif %}
-        <p class="text-muted small mb-1">{{ p.description or 'No description' }}</p>
+        {% if t and t[0] != 'none' %}<div class="small mb-1 promised-tag"><i class="bi bi-calendar-check"></i> <span class="badge bg-{{ t[2] }}{{ ' text-dark' if t[2] in ('warning', 'light') }}{{ ' border' if t[2] == 'light' }}">{{ t[1] }}</span>{% if p.promised_date %} <span class="text-muted">Promised {{ p.promised_date|usdate_short }}</span>{% endif %}</div>{% endif %}
+        {% if p.description %}<p class="text-muted small mb-1">{{ p.description }}</p>{% endif %}
         {% if can_see_shop_costs %}
         <div data-change="JOBS-07">
           <span class="text-muted small">Parts cost so far:</span>
           <strong>${{ "%.2f"|format(proj_costs.get(p.id, 0)) }}</strong>
         </div>
         {% endif %}
-      </a>
-      {% if p.asset_display_id %}
-      {#- JOBS-03: the plane's page is for admin, tech and inspector; others just see the tail number. #}
-      {% if is_master_admin or shop_role in ('admin', 'tech', 'inspector') %}
-      <a href="{{ url_for('asset_detail', asset_id=p.asset_display_id) }}" class="small mt-1"><i class="bi bi-airplane"></i> {{ p.asset_display_tag }}</a>
-      {% else %}
-      <span class="small mt-1 text-muted"><i class="bi bi-airplane"></i> {{ p.asset_display_tag }}</span>
-      {% endif %}
-      {% endif %}
+      </div>
       {% endif %}
     </div>
   </div>
@@ -85,14 +86,14 @@
   {%- endif -%}
 {% endcall %}
 
-<ul class="nav nav-pills mb-3">
-  <li class="nav-item"><a class="nav-link {{ 'active' if not request.args.get('status') }}" href="{{ url_for('projects_list', q=q) }}">All</a></li>
-  <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='active' }}" href="{{ url_for('projects_list', status='active', q=q) }}">Active</a></li>
-  <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='on_hold' }}" href="{{ url_for('projects_list', status='on_hold', q=q) }}">On Hold</a></li>
-  <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='completed' }}" href="{{ url_for('projects_list', status='completed', q=q) }}">Completed</a></li>
-  <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='archived' }}" href="{{ url_for('projects_list', status='archived', q=q) }}">Archived</a></li>
-  <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='deleted' }}" href="{{ url_for('projects_list', status='deleted', q=q) }}"><i class="bi bi-trash3"></i> Deleted</a></li>
-  <li class="nav-item"><a class="nav-link {{ 'active' if request.args.get('status')=='late' }} text-danger fw-bold" href="{{ url_for('projects_list', status='late', q=q) }}"><i class="bi bi-exclamation-triangle"></i> Late / due soon{% if late_count %} <span class="badge bg-danger">{{ late_count }}</span>{% endif %}</a></li>
+<ul class="nav nav-pills mb-3 flex-nowrap overflow-x-auto pb-1 status-pills">
+  <li class="nav-item flex-shrink-0 text-nowrap"><a class="nav-link {{ 'active' if not request.args.get('status') }}" href="{{ url_for('projects_list', q=q) }}">All</a></li>
+  <li class="nav-item flex-shrink-0 text-nowrap"><a class="nav-link {{ 'active' if request.args.get('status')=='active' }}" href="{{ url_for('projects_list', status='active', q=q) }}">Active</a></li>
+  <li class="nav-item flex-shrink-0 text-nowrap"><a class="nav-link {{ 'active' if request.args.get('status')=='on_hold' }}" href="{{ url_for('projects_list', status='on_hold', q=q) }}">On Hold</a></li>
+  <li class="nav-item flex-shrink-0 text-nowrap"><a class="nav-link {{ 'active' if request.args.get('status')=='completed' }}" href="{{ url_for('projects_list', status='completed', q=q) }}">Completed</a></li>
+  <li class="nav-item flex-shrink-0 text-nowrap"><a class="nav-link {{ 'active' if request.args.get('status')=='archived' }}" href="{{ url_for('projects_list', status='archived', q=q) }}">Archived</a></li>
+  <li class="nav-item flex-shrink-0 text-nowrap"><a class="nav-link {{ 'active' if request.args.get('status')=='deleted' }}" href="{{ url_for('projects_list', status='deleted', q=q) }}"><i class="bi bi-trash3"></i> Deleted</a></li>
+  <li class="nav-item flex-shrink-0 text-nowrap"><a class="nav-link {{ 'active' if request.args.get('status')=='late' }} text-danger fw-bold" href="{{ url_for('projects_list', status='late', q=q) }}"><i class="bi bi-exclamation-triangle"></i> Late / due soon{% if late_count %} <span class="badge bg-danger">{{ late_count }}</span>{% endif %}</a></li>
 </ul>
 
 {% if status_filter == 'deleted' %}
@@ -106,13 +107,13 @@
   {{ project_tiles(projects) }}
 {% else %}
   <!-- Browse view: click a year to expand it -->
-  <div class="d-flex flex-wrap gap-2 mb-3">
+  {% if by_year|length > 1 %}<div class="d-flex flex-wrap gap-2 mb-3">
     {% for year, plist in by_year.items() %}
     <button type="button" class="btn btn-outline-primary btn-sm" onclick="toggleYear('{{ loop.index }}')">
       {{ year }} <span class="badge bg-primary ms-1">{{ plist|length }}</span>
     </button>
     {% endfor %}
-  </div>
+  </div>{% endif %}
   {% for year, plist in by_year.items() %}
   <div class="card mb-2">
     <div class="card-header d-flex justify-content-between align-items-center pointer-cursor" onclick="toggleYear('{{ loop.index }}')">
