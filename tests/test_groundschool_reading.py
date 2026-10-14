@@ -73,3 +73,14 @@ class GroundschoolReadingTest(OpsHubTestCase):
             f"/flight/groundschool/task/{self.task_id}?student_id={self.student_id}").get_data(as_text=True)
         self.assertIn("Reading Review", cfi_html)
         self.assertIn("verify-reading-checkbox", cfi_html)
+
+
+    def test_course_page_task_row_links_straight_to_lesson(self):
+        c = self.login("flight_student")
+        rid = self.q1("SELECT id FROM acs_ratings WHERE slug = 'ppl'")["id"]
+        r = c.get(f"/flight/groundschool/{rid}")
+        html = r.get_data(as_text=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(f'href="/flight/groundschool/task/{self.task_id}"', html)
+        self.assertNotIn("Full page", html)
+        self.assertNotIn('data-bs-toggle="collapse"', html)

@@ -105,7 +105,7 @@ class ElementLessonTest(OpsHubTestCase):
         row = self.q1("SELECT * FROM acs_element_completion WHERE element_id = ? AND student_id = ?", (self.k1, self.sid))
         self.assertTrue(row["self_completed_at"])
         page = c.get(f"{GS}/{self.rid}").get_data(as_text=True)
-        self.assertIn("el-self", page)                      # green outline + check on the course page
+        self.assertIn("/task/", page)                       # course page rows open the lesson page (codes live there)
         c.post(f"{GS}/element/{self.k1}/lesson-done", data={"undo": "1"})
         self.assertIsNone(self.q1("SELECT self_completed_at FROM acs_element_completion WHERE element_id = ?",
                                   (self.k1,))["self_completed_at"])
