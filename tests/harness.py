@@ -96,6 +96,8 @@ urllib.request.urlopen = _fake_urlopen
 # The dashboard's weather/NOTAM refresh thread must not run during tests (see dashboard_cache.py).
 import dashboard_cache  # noqa: E402
 dashboard_cache.BACKGROUND = False
+import request_timing  # noqa: E402
+request_timing.LOG_PATH = os.path.join(_TMP_ROOT, "slow_requests.log")  # never the real log
 smtplib.SMTP = _FakeSMTP
 smtplib.SMTP_SSL = _FakeSMTP
 subprocess.run = _fake_run

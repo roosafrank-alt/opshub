@@ -21,6 +21,7 @@ from db import (get_db, init_db, user_shop_roles, user_flight_roles, clean_roles
                  allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
                  MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS, found_item_messages)
 import dashboard_cache
+import request_timing
 from flight import flight_bp, _flight_hours, check_session_alerts, run_balance_hold_release_check, hundred_hr_status, apply_course_grants
 from logbook import logbook_bp
 from pilotlog import pilotlog_bp
@@ -88,6 +89,7 @@ app.register_blueprint(groundschool_bp)
 app.register_blueprint(payroll_bp)
 app.register_blueprint(ads_bp)
 app.teardown_request(close_request_conns)
+request_timing.init_app(app)  # logs slow pages - see request_timing.py
 
 
 # --- Speed: static caching and gzip -----------------------------------------
@@ -10084,7 +10086,7 @@ def utc_to_local(value):
 @app.route("/admin/system")
 @master_admin_required
 def admin_system():
-    return render_template("admin_system.html", pi_temp_c=_read_pi_temp_c())
+    return render_template("admin_system.html", pi_temp_c=_read_pi_temp_c(), slow=request_timing.summary())
 
 
 def _run_delayed_command(args, delay=2.0):
