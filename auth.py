@@ -106,7 +106,11 @@ def _set_academy_flags(user_row):
     # behind it already had Academy, so it opens for the student view too.
     looking = bool(session.get("_view_as_readonly"))
     session["academy_access"] = bool(user_row["academy_access"] or fa or looking)
-    session["groundschool_access"] = bool(user_row["groundschool_access"] or user_row["academy_access"] or fa or looking)
+    # Ground School is separate from Flight Academy: Flight Academy Access alone
+    # no longer opens every course. Everything is open only to a Flight Admin /
+    # master admin (and an account still on the older all-ground-schools flag);
+    # everyone else sees just the courses they are enrolled in.
+    session["groundschool_access"] = bool(user_row["groundschool_access"] or fa)
 
 
 def sync_flight_ids(conn, user_row):
@@ -500,15 +504,15 @@ def start_view_as(conn, program, level, student_id=None, cfi_id=None):
             # and Flight Academy opens for them the way the admin could.
             session["_view_as_readonly"] = True
             session["academy_access"] = True
-            session["groundschool_access"] = True
+            session["groundschool_access"] = False  # show exactly the courses this student is enrolled in
         elif cfi_id is not None:
-            # A picked CFI is look only too. Academy/Ground School show only
-            # if that CFI's own account has them.
+            # A picked CFI is look only too. Academy shows only if that CFI's own
+            # account has it; ground school only on the older all-ground-schools flag.
             flags = conn.execute("SELECT academy_access, groundschool_access FROM users WHERE id = ?",
                                  (row["user_id"],)).fetchone() if row["user_id"] else None
             session["_view_as_readonly"] = True
             session["academy_access"] = bool(flags and flags["academy_access"])
-            session["groundschool_access"] = bool(flags and (flags["groundschool_access"] or flags["academy_access"]))
+            session["groundschool_access"] = bool(flags and flags["groundschool_access"])
     session["_view_as_program"] = program
     return True, None
 
@@ -699,11 +703,11 @@ def academy_grants_only():
 
 
 def groundschool_restricted():
-    """True when Ground School is limited to the student's granted courses.
-    Accounts with groundschool_access/academy_access (or master admins) keep
-    seeing everything, exactly as before."""
-    return bool(not (session.get("is_master_admin") or session.get("groundschool_access"))
-                and student_course_grants())
+    """True when Ground School is limited to the courses the account is
+    enrolled in. Only master admins, Flight Admins and accounts still on the
+    older all-ground-schools flag see everything; Flight Academy Access does
+    not open ground school by itself."""
+    return bool(not (session.get("is_master_admin") or session.get("groundschool_access")))
 
 
 def _program_flags():

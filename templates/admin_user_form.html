@@ -119,10 +119,11 @@
     </div>
     {% if user and grant_student %}
     <div class="ms-4 mb-3" id="courses" style="scroll-margin-top:80px;">
-      <div id="courses-all-note" class="alert alert-info py-2 small d-none"><i class="bi bi-info-circle"></i> Master Admin or Flight Academy Access is ticked above, so this account sees every ground school whatever is enrolled below. Untick it to limit them to enrolled courses.</div>
+      <div id="courses-all-note" class="alert alert-info py-2 small d-none"><i class="bi bi-info-circle"></i> Master Admin sees every ground school, so enrolling changes nothing for this account.</div>
+      <div id="courses-need-academy" class="alert alert-warning py-2 small d-none"><i class="bi bi-exclamation-triangle"></i> Ground school sits inside Flight Academy. Tick <strong>Flight Academy Access</strong> above and save to enroll this account in individual ground schools.</div>
       <div id="courses-list">
         <div class="small fw-bold mb-1"><i class="bi bi-mortarboard"></i> Enroll in individual ground schools</div>
-        <div class="form-text mb-2">{{ user.name }} sees only the courses they're enrolled in, read only. Each change asks you to confirm and saves right away.</div>
+        <div class="form-text mb-2">Flight Academy Access doesn't open ground school by itself: {{ user.name }} sees only the courses they're enrolled in, read only. Each change asks you to confirm and saves right away.</div>
         {% if user.groundschool_access %}
         <div class="alert alert-warning py-2 small d-flex align-items-center justify-content-between gap-2">
           <span>An older setting still gives this account <strong>every</strong> ground school, so enrolling does nothing yet.</span>
@@ -135,7 +136,7 @@
           {% if c.id in granted_ids %}
           <button type="submit" form="cg-{{ c.id }}" class="btn btn-outline-danger btn-sm">Unenroll</button>
           {% else %}
-          <button type="submit" form="cg-{{ c.id }}" class="btn btn-primary btn-sm">Enroll</button>
+          <button type="submit" form="cg-{{ c.id }}" class="btn btn-primary btn-sm js-enroll">Enroll</button>
           {% endif %}
         </div>
         {% else %}
@@ -286,14 +287,18 @@
 {% block scripts %}
 <script>
 (function () {
-  var allBoxes = ['master-admin-check', 'academy-access-check'].map(function (i) { return document.getElementById(i); }).filter(Boolean);
-  var courseList = document.getElementById('courses-list'), courseNote = document.getElementById('courses-all-note');
+  var masterBox = document.getElementById('master-admin-check'), academyBox = document.getElementById('academy-access-check');
+  var courseNote = document.getElementById('courses-all-note'), needAcademy = document.getElementById('courses-need-academy');
+  var courseList = document.getElementById('courses-list');
   function syncCourses() {
-    if (!courseList || !courseNote) return;
-    var all = allBoxes.some(function (b) { return b.checked; });
-    courseNote.classList.toggle('d-none', !all);
+    if (!courseNote || !needAcademy) return;
+    var master = !!(masterBox && masterBox.checked), academy = !!(academyBox && academyBox.checked);
+    courseNote.classList.toggle('d-none', !master);
+    needAcademy.classList.toggle('d-none', master || academy);
+    // The enroll options only appear once Flight Academy Access is ticked.
+    if (courseList) courseList.classList.toggle('d-none', master || !academy);
   }
-  allBoxes.forEach(function (b) { b.addEventListener('change', syncCourses); });
+  [masterBox, academyBox].forEach(function (b) { if (b) b.addEventListener('change', syncCourses); });
   syncCourses();
   var sel = document.getElementById('badge-select');
   var wrap = document.getElementById('badge-rate-wrap');

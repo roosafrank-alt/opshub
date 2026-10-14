@@ -33,13 +33,16 @@ class GroundschoolMenuAccessTest(OpsHubTestCase):
         r = c.get("/flight/groundschool")
         self.assertEqual(r.status_code, 200)
 
-    def test_flight_academy_access_implies_ground_school_access(self):
+    def test_flight_academy_access_does_not_open_ground_school_by_itself(self):
+        # Ground School is separate from Flight Academy: Academy Access alone
+        # gives no courses (only the Resources library); enrollment gives courses.
         self.exec("UPDATE users SET academy_access = 1 WHERE username = 'cfi'")
         c = self.login("cfi")
         body = c.get("/flight/dashboard").get_data(as_text=True)
         self.assertNotIn('nav-label">Ground School', body)
         self.assertNotIn('nav-label">Academy', body)
-        self.assertEqual(c.get("/flight/groundschool").status_code, 200)
+        self.assertEqual(c.get("/flight/groundschool").status_code, 302)
+        self.assertEqual(c.get("/flight/groundschool/resources").status_code, 200)
 
     def test_master_admin_always_has_ground_school(self):
         c = self.login("master")
