@@ -49,7 +49,7 @@ class GroundLessonsTest(OpsHubTestCase):
         body = self.login("master").get(f"{GS}/task/{self.task}").get_data(as_text=True)
         self.assertIn('id="gsl"', body)
         self.assertIn("Pre-reading", body)
-        self.assertIn(f"{GS}/resources/35/excerpt?pages=", body)
+        self.assertIn(f"{GS}/resources/60/excerpt?pages=", body)
         self.assertIn("Lesson Content", body)          # the editable box is still there
 
     def test_rich_escapes_html(self):
