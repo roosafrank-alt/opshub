@@ -832,7 +832,7 @@
   if (!ss || !note || !tog || {{ 'true' if sched else 'false' }}) return;
   var same = document.getElementById('usual-time-same');
   var diff = document.getElementById('usual-time-diff');
-  var usualTime = '';
+  var usualTime = '', autoPlane = '';
   function label(hhmm) {
     var p = hhmm.split(':'), h = parseInt(p[0], 10);
     return ((h + 11) % 12 + 1) + ':' + p[1] + (h < 12 ? 'a' : 'p');
@@ -857,7 +857,13 @@
       if (solo && !solo.checked) { solo.checked = true; solo.dispatchEvent(new Event('change')); }
     }
     var pb = u.asset_id && document.querySelector('#plane-buttons [data-value="' + u.asset_id + '"]');
-    if (pb) { pb.click(); bits.push('<strong>' + pb.textContent.split(' - ')[0] + '</strong>'); }
+    var planeSel = document.getElementById('plane-select'), keptPlane = null;
+    if (pb && planeSel && planeSel.value && planeSel.value !== autoPlane && planeSel.value !== String(u.asset_id)) {
+      // A plane is already picked (by hand or from the link): keep it and
+      // just offer the usual one.
+      var kept = document.querySelector('#plane-buttons [data-value="' + planeSel.value + '"]');
+      keptPlane = {kept: kept ? kept.textContent.split(' - ')[0] : 'that plane', usual: pb};
+    } else if (pb) { pb.click(); autoPlane = String(u.asset_id); bits.push('<strong>' + pb.textContent.split(' - ')[0] + '</strong>'); }
     var cs = document.getElementById('cfi-select');
     if (cs && u.cfi_id && !u.solo) {
       cs.value = String(u.cfi_id); cs.dispatchEvent(new Event('change'));
@@ -868,6 +874,15 @@
     if (bits.length) {
       note.innerHTML = '<i class="bi bi-magic"></i> Filled in from ' + opt.text.replace(/[<&]/g, '') + "'s usual lesson: " + bits.join(' &middot; ') + '. Change anything you like.';
       note.classList.remove('d-none');
+    }
+    if (keptPlane) {
+      var usualName = keptPlane.usual.textContent.split(' - ')[0];
+      note.innerHTML += (bits.length ? '<br>' : '<i class="bi bi-magic"></i> ') + 'Kept <strong>' + keptPlane.kept.replace(/[<&]/g, '') + '</strong>, the plane you picked (usually <strong>' + usualName.replace(/[<&]/g, '') + '</strong>, <a href="#" id="use-usual-plane">use it</a>).';
+      note.classList.remove('d-none');
+      document.getElementById('use-usual-plane').addEventListener('click', function (e) {
+        e.preventDefault(); keptPlane.usual.click(); autoPlane = keptPlane.usual.dataset.value;
+        note.innerHTML = '<i class="bi bi-magic"></i> Switched to <strong>' + usualName.replace(/[<&]/g, '') + '</strong>, the usual plane.';
+      });
     }
     if (u.time) {
       usualTime = u.time;
