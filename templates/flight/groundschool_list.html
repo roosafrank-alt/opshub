@@ -49,9 +49,18 @@
         </div>
         {% endif %}
         {% if r.status == 'parsed' %}
+        {% set nx = next_by_rating.get(r.id) %}
+        {% if nx and not nx.finished %}
+        <a href="{{ gs_url('groundschool.task_detail', task_id=nx.task_id) }}" class="btn btn-primary fw-bold mt-auto position-relative" style="z-index:2;">
+          Continue <i class="bi bi-arrow-right-short"></i>
+        </a>
+        <div class="small text-muted mt-1">next up: {{ nx.next_up }}</div>
+        <a href="{{ gs_url('groundschool.rating_detail', rating_id=r.id) }}" class="stretched-link small text-decoration-none mt-2">All tasks</a>
+        {% else %}
         <a href="{{ gs_url('groundschool.rating_detail', rating_id=r.id) }}" class="stretched-link text-decoration-none fw-bold mt-auto">
           <i class="bi bi-journal-text"></i> Enter course <i class="bi bi-arrow-right-short"></i>
         </a>
+        {% endif %}
         {% endif %}
       </div>
       {% if flight_admin %}

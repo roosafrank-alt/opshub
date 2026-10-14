@@ -1700,6 +1700,18 @@ def _dashboard_context(conn, cfi, student):
     """Gathers every piece of data the dashboard template needs. Shared by
     the full-page dashboard() route and the live-refresh fragment route
     (dashboard_live()) below, so the two never drift out of sync."""
+    gs_continue = None
+    if student:
+        import groundschool
+        from auth import student_course_grants
+        try:
+            for rid in sorted(student_course_grants()):
+                nx = groundschool.next_lesson(conn, rid, student["id"])
+                if nx:
+                    gs_continue = nx
+                    break
+        except Exception:
+            gs_continue = None
     active_flights = []
     upcoming = []
     pending_requests = []
@@ -2115,7 +2127,7 @@ def _dashboard_context(conn, cfi, student):
         "SELECT tag, color, schedule_color FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY schedule_order, tag").fetchall()
     plane_color = {r["tag"]: _plane_display_color(r["tag"], r["color"], r["schedule_color"]) for r in fleet}
 
-    return dict(cfi=cfi, student=student, recent_flights=recent_flights,
+    return dict(gs_continue=gs_continue, cfi=cfi, student=student, recent_flights=recent_flights,
                 active_flights=active_flights, upcoming=upcoming, plane_maint=plane_maint, hundred_badges=hundred_badges,
                 pending_requests=pending_requests, change_requests=change_requests,
                 my_requests=my_requests, my_notifications=my_notifications,

@@ -465,6 +465,13 @@ def home_launcher():
             # the grid button (same url_for('home_launcher') link) still
             # opens the real picker any time they want to switch programs.
             return redirect(url_for("dashboard"))
+        if (user_row and user_row["flight_role"] == "student" and not user_row["shop_role"]
+                and not user_row["is_master_admin"] and not customer_row):
+            # Idea ux-gs-continue-lesson: a plain student lands on the Fly
+            # with Kate! dashboard even once enrolled in a Ground School
+            # course (which adds a second program); the grid button still
+            # opens the picker to switch to Flight Academy.
+            return redirect(url_for("flight.dashboard"))
         return redirect(url_for("home_launcher"))
 
     only_program = single_program_endpoint()

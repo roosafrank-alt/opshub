@@ -338,6 +338,45 @@ def _element_self_done(conn, student_id, element_ids):
         f"AND self_completed_at IS NOT NULL AND cfi_verified_at IS NULL", [student_id] + ids).fetchall()}
 
 
+def next_lesson(conn, rating_id, student_id):
+    """Where a student picks up again in a course: the first task (in course
+    order) with an element they have not finished (CFI-verified or marked done
+    by themselves). Returns None when the course has no tasks, else a dict with
+    task_id, label ("Task A. Pilot Qualifications"), next_up (first unfinished
+    element, "PA.I.A.K4, Documents you must have"), done/total tasks, pct and
+    finished (every task done; then task_id is the course's first task)."""
+    rows = conn.execute("""
+        SELECT t.id AS task_id, t.code AS task_code, t.title AS task_title,
+               e.code AS el_code, e.text AS el_text,
+               CASE WHEN c.cfi_verified_at IS NOT NULL OR c.self_completed_at IS NOT NULL THEN 1 ELSE 0 END AS done
+        FROM acs_areas a
+        JOIN acs_tasks t ON t.area_id = a.id
+        JOIN acs_task_elements e ON e.task_id = t.id
+        LEFT JOIN acs_element_completion c ON c.element_id = e.id AND c.student_id = ?
+        WHERE a.rating_id = ? AND t.retired_at IS NULL AND e.retired_at IS NULL
+        ORDER BY a.order_index, t.order_index, e.kind, e.order_index
+    """, (student_id, rating_id)).fetchall()
+    tasks = {}
+    for r in rows:
+        t = tasks.setdefault(r["task_id"], {"row": r, "open": None})
+        if not r["done"] and t["open"] is None:
+            t["open"] = r
+    if not tasks:
+        return None
+    done = sum(1 for t in tasks.values() if t["open"] is None)
+    pick = next((t for t in tasks.values() if t["open"] is not None), None)
+    first = pick or next(iter(tasks.values()))
+    r = first["row"]
+    el = pick["open"] if pick else None
+    text = (el["el_text"] or "").strip().split("\n")[0] if el else ""
+    if len(text) > 60:
+        text = text[:57].rstrip() + "..."
+    total = len(tasks)
+    return {"task_id": r["task_id"], "label": f"Task {r['task_code']}. {r['task_title']}",
+            "next_up": (f"{el['el_code']}, {text}" if text else el["el_code"]) if el else "",
+            "done": done, "total": total, "pct": round(100 * done / total), "finished": pick is None}
+
+
 GS_STUDENT_KEY = "gs_student_id"
 
 
@@ -555,13 +594,15 @@ def rating_list():
         ratings = [r for r in ratings if r["id"] in granted]
     viewing_student_id, students = _resolve_viewing_student(conn)
     progress_by_rating = {}
+    next_by_rating = {}
     if viewing_student_id:
         for r in ratings:
             if r["status"] == "parsed":
                 progress_by_rating[r["id"]] = _rating_progress(conn, r["id"], viewing_student_id)
+                next_by_rating[r["id"]] = next_lesson(conn, r["id"], viewing_student_id)
     conn.close()
     return render_template("flight/groundschool_list.html", ratings=ratings, tab="groundschool",
-                            progress_by_rating=progress_by_rating, gs_students=students,
+                            progress_by_rating=progress_by_rating, next_by_rating=next_by_rating, gs_students=students,
                             viewing_student_id=viewing_student_id)
 
 
