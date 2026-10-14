@@ -191,10 +191,20 @@
          stacked boxes (most of them empty most of the time) - each tab
          shows a count so you can tell at a glance if there's anything in
          it without opening it. #}
-      <ul class="nav nav-pills flex-wrap gap-1 mb-3" role="tablist">
+      <style>
+        @media (max-width: 575.98px) {
+          .job-tabs { overflow-x: auto; scrollbar-width: none; }
+          .job-tabs::-webkit-scrollbar { display: none; }
+          .job-tabs .nav-link { font-size: .8rem; padding: .4rem .55rem; white-space: nowrap; }
+          .job-tabs .badge { font-size: .65rem; }
+          .job-add-btns { width: 100%; }
+          .job-add-btns > .btn, .job-add-btns > .dropdown { flex: 1 1 0; }
+        }
+      </style>
+      <ul class="nav nav-pills flex-nowrap gap-1 mb-3 job-tabs" role="tablist">
         <li class="nav-item" role="presentation"><button class="nav-link active" id="tab-parts-btn" data-bs-toggle="pill" data-bs-target="#tab-parts" type="button" role="tab">Parts <span class="badge rounded-pill bg-secondary">{{ total_parts }}</span></button></li>
         <li class="nav-item" role="presentation"><button class="nav-link" id="tab-labor-btn" data-bs-toggle="pill" data-bs-target="#tab-labor" type="button" role="tab">Labor <span class="badge rounded-pill bg-secondary">{{ '%g'|format(labor_total_hours) }}h</span></button></li>
-        <li class="nav-item" role="presentation"><button class="nav-link" id="tab-found-btn" data-bs-toggle="pill" data-bs-target="#tab-found" type="button" role="tab">Found items <span class="badge rounded-pill {{ 'bg-warning text-dark' if waiting_found else 'bg-secondary' }}">{{ found_items|length }}</span></button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" id="tab-found-btn" data-bs-toggle="pill" data-bs-target="#tab-found" type="button" role="tab">Found<span class="d-none d-sm-inline"> items</span> <span class="badge rounded-pill {{ 'bg-warning text-dark' if waiting_found else 'bg-secondary' }}">{{ found_items|length }}</span></button></li>
         <li class="nav-item" role="presentation"><button class="nav-link" id="tab-photos-btn" data-bs-toggle="pill" data-bs-target="#tab-photos" type="button" role="tab">Photos <span class="badge rounded-pill bg-secondary">{{ photos|length }}</span></button></li>
         <li class="nav-item" role="presentation"><button class="nav-link" id="tab-history-btn" data-bs-toggle="pill" data-bs-target="#tab-history" type="button" role="tab">History</button></li>
       </ul>
@@ -202,11 +212,11 @@
       <div class="tab-pane fade show active" id="tab-parts" role="tabpanel">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
         <h5 class="mb-0">Discrepancy List {#- Idea "project": Assign Parts moved here from under the plane's squawks/to-dos card, as an icon-only button right next to the total it affects. #}<button type="button" id="assign-parts-btn" class="btn btn-outline-primary btn-sm py-0 px-1 align-middle ms-2 me-1" data-bs-toggle="modal" data-bs-target="#assignPartsModal" title="Assign a part to this project"><i class="bi bi-wrench"></i></button> {% if can_see_shop_costs %}<span id="discrepancy-total" class="text-muted fs-6">(total ${{ "%.2f"|format(total_cost) }})</span>{% endif %}</h5>
-        <div class="d-flex gap-1">
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="var f=document.getElementById('add-section-row'); f.style.display = f.style.display==='none' ? 'flex' : 'none';"><i class="bi bi-folder-plus"></i> Add<span class="d-none d-sm-inline"> Discrepancy</span></button>
+        <div class="d-flex gap-1 job-add-btns">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="var f=document.getElementById('add-section-row'); f.style.display = f.style.display==='none' ? 'flex' : 'none';"><i class="bi bi-folder-plus"></i> Add Discrepancy</button>
         {% if quick_types and not is_deleted %}
         <div class="dropdown">
-          <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-lightning"></i> Add<span class="d-none d-sm-inline"> Quick Type</span></button>
+          <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-lightning"></i> Quick Type</button>
           <ul class="dropdown-menu dropdown-menu-end">
             {% for qt in quick_types %}
             <li><form method="post" action="{{ url_for('project_add_quick_type', project_id=project.id) }}" class="m-0">
