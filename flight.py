@@ -31,6 +31,7 @@ from auth import (authenticate, log_in_user, log_out_user, can_manage_billing, o
                    view_as_active_program, refresh_or_expire_session, person_view_active)
 from pilotlog import NEXT_TRACK, TRACK_MAP
 import weather
+import dashboard_cache
 import adsb
 import notams
 import sun
@@ -1551,7 +1552,15 @@ def current_student(conn):
 
 @flight_bp.route("/")
 def index():
-    if session.get("cfi_id") or session.get("student_id"):
+    # The launcher shows the Fly with Kate! tile whenever the account has a
+    # flight role (or is a master admin). The profile ids (cfi_id/student_id)
+    # are only filled in by the session check that every Flight School page
+    # runs, so a session without them yet used to bounce straight back to the
+    # launcher and the tile "did nothing" until another page had been opened.
+    # The dashboard runs that check itself, so send anyone the tile is for
+    # there. A shop-only account (no flight role) still goes to the launcher.
+    if (session.get("user_id") and (session.get("is_master_admin") or session.get("flight_role"))) \
+            or session.get("cfi_id") or session.get("student_id"):
         return redirect(url_for("flight.dashboard"))
     return redirect(url_for("home_launcher"))
 
@@ -1984,12 +1993,12 @@ def _dashboard_context(conn, cfi, student):
     # weather.py/notams.py), and never allowed to break the dashboard if
     # every outside API is unreachable.
     try:
-        dashboard_wx = weather.get_dashboard_weather(conn)
+        dashboard_wx = dashboard_cache.cached_weather(conn)
     except Exception:
         dashboard_wx = None
         current_app.logger.exception("Dashboard weather fetch failed")
     try:
-        dashboard_notams = notams.get_dashboard_notams(conn)
+        dashboard_notams = dashboard_cache.cached_notams(conn)
     except Exception:
         dashboard_notams = None
         current_app.logger.exception("Dashboard NOTAM fetch failed")

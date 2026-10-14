@@ -20,6 +20,7 @@ from db import (get_db, init_db, user_shop_roles, user_flight_roles, clean_roles
                  close_request_conns, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
                  allowed_image, save_upload, UPLOAD_DIR, asset_meter, maintenance_status,
                  MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS, found_item_messages)
+import dashboard_cache
 from flight import flight_bp, _flight_hours, check_session_alerts, run_balance_hold_release_check, hundred_hr_status, apply_course_grants
 from logbook import logbook_bp
 from pilotlog import pilotlog_bp
@@ -10546,6 +10547,13 @@ def _start_session_alert_loop(debug_mode):
                 run_wave_payment_check()
             except Exception:
                 app.logger.exception("Wave payment check failed")
+            try:
+                # Keeps the Flight School dashboard's weather/NOTAM copy fresh
+                # (in its own thread), so opening the dashboard never waits on
+                # outside services - see dashboard_cache.py.
+                dashboard_cache.refresh_if_stale()
+            except Exception:
+                app.logger.exception("Dashboard cache refresh failed")
             time.sleep(60)
 
     threading.Thread(target=_loop, daemon=True).start()
