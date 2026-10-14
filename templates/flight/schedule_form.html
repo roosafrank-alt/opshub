@@ -205,7 +205,34 @@
          Intro/Lesson preset buttons overlapping the time picker) - see
          Duration's own full-width row below. #}
       <div class="col-md-8 mb-3 sched-only">
-        <label class="form-label">Start Time</label>
+        <label class="form-label">Time</label>
+        <div class="mb-2">
+        <div class="d-flex flex-wrap gap-1" id="flight-presets">
+          <button type="button" class="btn btn-outline-secondary preset-btn" data-preset="lesson" data-duration="1.5"><i class="bi bi-airplane"></i> Lesson <span class="opacity-75">1.5 hr</span></button>
+          <button type="button" class="btn btn-outline-secondary preset-btn" data-preset="intro" data-duration="1"><i class="bi bi-stars"></i> Intro Flight <span class="opacity-75">1 hr</span></button>
+        </div>
+        </div>
+        <div class="mb-2" id="quick-time-buttons">
+          <div class="form-text mb-1">Quick pick <span class="text-muted" id="quick-pick-label">(1.5-hr blocks)</span></div>
+          {#- Intro flights are 1-hr blocks, so their quick picks are on the hour
+             (shown instead of the 1.5-hr grid while the Intro Flight preset is on). #}
+          <div class="d-flex flex-wrap gap-1 d-none" id="quick-times-intro">
+            {% for h in range(8, 20) %}
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1" data-hour24="{{ h }}" data-minute="0">{{ (h - 1) % 12 + 1 }}:00{{ 'a' if h < 12 else 'p' }}</button>
+            {% endfor %}
+          </div>
+          <div class="d-flex flex-wrap gap-1" id="quick-times-lesson">
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="8" data-minute="0">8:00a</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="9" data-minute="30">9:30a</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="11" data-minute="0">11:00a</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="12" data-minute="30">12:30p</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="14" data-minute="0">2:00p</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="15" data-minute="30">3:30p</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="17" data-minute="0">5:00p</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="18" data-minute="30">6:30p</button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="20" data-minute="0">8:00p</button>
+          </div>
+        </div>
         {#- Shown when a picked student has a usual time (from their last
            lessons): "Same time as usual" is pre-picked, "Different time"
            just leaves the pickers below to change. #}
@@ -217,10 +244,12 @@
         <style>
           #time-pair .tp-label{font-size:.8rem;font-weight:600;margin-bottom:.15rem}
           @media (max-width:575.98px){
-            #time-pair{gap:.5rem !important}
-            #time-pair .form-control{width:2.5rem !important;font-size:1.05rem !important}
-            #time-pair #ampm-display,#time-pair #end-ampm-display{width:2.8rem !important}
-            #time-pair .btn-sm{padding:.15rem .1rem}
+            #time-pair{gap:.2rem !important}
+            #time-pair .form-control{width:2.1rem !important;font-size:1rem !important}
+            #time-pair #len-mid .form-control{width:3.6rem !important}
+            #time-pair #len-mid{padding:0 !important;font-size:.8rem}
+            #time-pair #ampm-display,#time-pair #end-ampm-display{width:2.5rem !important}
+            #time-pair .btn-sm{padding:0 .1rem;line-height:1.1;font-size:.75rem}
             #time-pair .d-flex.gap-2{gap:.25rem !important}
           }
         </style>
@@ -245,6 +274,10 @@
             <button type="button" class="btn btn-outline-secondary btn-sm d-block w-100" id="ampm-down"><i class="bi bi-caret-down-fill"></i></button>
           </div>
         </div>
+        </div>
+        <div class="text-center align-self-center px-1" id="len-mid">
+          <div class="fw-bold text-muted" id="len-text" style="white-space:nowrap">&rarr; 1.5 hr</div>
+          <input type="number" step="any" name="duration_hours" class="form-control form-control-sm text-center d-none" style="width:4.2rem" aria-label="Length in hours" placeholder="e.g. 1.5" value="{% if form %}{{ form.get('duration_hours') }}{% elif sched and sched.duration_hours is not none %}{{ sched.duration_hours }}{% elif not sched %}1.5{% endif %}">
         </div>
         <div>
           <div class="tp-label">End</div>
@@ -271,44 +304,6 @@
         <div class="form-check mt-1">
           <input type="checkbox" class="form-check-input" id="no-time-check">
           <label class="form-check-label small" for="no-time-check">No specific time</label>
-        </div>
-        <div class="mt-2" id="quick-time-buttons">
-          <div class="form-text mb-1">Quick pick <span class="text-muted" id="quick-pick-label">(1.5-hr blocks)</span></div>
-          {#- Intro flights are 1-hr blocks, so their quick picks are on the hour
-             (shown instead of the 1.5-hr grid while the Intro Flight preset is on). #}
-          <div class="d-flex flex-wrap gap-1 d-none" id="quick-times-intro">
-            {% for h in range(8, 20) %}
-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1" data-hour24="{{ h }}" data-minute="0">{{ (h - 1) % 12 + 1 }}:00{{ 'a' if h < 12 else 'p' }}</button>
-            {% endfor %}
-          </div>
-          <div class="d-flex flex-wrap gap-1" id="quick-times-lesson">
-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="8" data-minute="0">8:00a</button>
-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="9" data-minute="30">9:30a</button>
-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="11" data-minute="0">11:00a</button>
-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="12" data-minute="30">12:30p</button>
-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="14" data-minute="0">2:00p</button>
-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="15" data-minute="30">3:30p</button>
-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="17" data-minute="0">5:00p</button>
-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="18" data-minute="30">6:30p</button>
-            <button type="button" class="btn btn-outline-primary btn-sm quick-time-btn" data-duration="1.5" data-hour24="20" data-minute="0">8:00p</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-md-4 mb-3 sched-only">
-        <label class="form-label">Duration (hrs)</label>
-        <input type="number" step="any" name="duration_hours" class="form-control" placeholder="e.g. 1.5" value="{% if form %}{{ form.get('duration_hours') }}{% elif sched and sched.duration_hours is not none %}{{ sched.duration_hours }}{% elif not sched %}1.5{% endif %}">
-      </div>
-      {#- Preset gets its own column, wide enough that the Lesson/Intro
-         Flight buttons never have to overflow or wrap into anything else -
-         they used to share a cramped third of the row with the time
-         picker, which is what overlapped them at tablet widths. #}
-      <div class="col-md-8 mb-3 sched-only">
-        <label class="form-label">Preset</label>
-        <div class="d-flex flex-wrap gap-1" id="flight-presets">
-          <button type="button" class="btn btn-outline-secondary preset-btn" data-preset="lesson" data-duration="1.5"><i class="bi bi-airplane"></i> Lesson <span class="opacity-75">1.5 hr</span></button>
-          <button type="button" class="btn btn-outline-secondary preset-btn" data-preset="intro" data-duration="1"><i class="bi bi-stars"></i> Intro Flight <span class="opacity-75">1 hr</span></button>
         </div>
       </div>
     </div>
@@ -748,7 +743,13 @@
     if (skip !== mBox) mBox.value = (m < 10 ? '0' : '') + m;
     if (skip !== aBox) aBox.value = h < 12 ? 'AM' : 'PM';
   }
+  var lenText = document.getElementById('len-text');
+  function updLen() {
+    var d = parseFloat(dur.value);
+    if (lenText) lenText.innerHTML = '&rarr; ' + (d > 0 ? +d.toFixed(2) + ' hr' : '?');
+  }
   function fromDuration() {
+    updLen();
     var s = startMin();
     if (s === null) { endMin = null; show(); return; }
     var d = parseFloat(dur.value);
@@ -760,7 +761,7 @@
     var s = startMin();
     if (s === null || endMin === null) return;
     var diff = endMin - s;
-    if (diff > 0) dur.value = String(+(diff / 60).toFixed(2));
+    if (diff > 0) { dur.value = String(+(diff / 60).toFixed(2)); updLen(); }
   }
   function setEnd(h, m) {   // h 0-23, m 0-59
     endMin = h * 60 + m;
@@ -815,7 +816,7 @@
   });
   dur.addEventListener('input', fromDuration);
   dur.addEventListener('change', fromDuration);
-  function dim() { pick.style.opacity = noTime.checked ? '0.4' : '1'; pick.style.pointerEvents = noTime.checked ? 'none' : 'auto'; }
+  function dim() { dur.classList.toggle('d-none', !noTime.checked); if (lenText) lenText.classList.toggle('d-none', noTime.checked); pick.style.opacity = noTime.checked ? '0.4' : '1'; pick.style.pointerEvents = noTime.checked ? 'none' : 'auto'; }
   noTime.addEventListener('change', dim);
   window.__syncEnd = function () { fromDuration(); dim(); };
   window.__syncEnd();
