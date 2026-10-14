@@ -8,12 +8,13 @@ import secrets
 import sqlite3
 import subprocess
 import threading
+import gzip
 import time
 import logging
 import math
 from datetime import date, datetime, timedelta, timezone
 from flask import (Flask, render_template, request, redirect, url_for, jsonify, flash, abort,
-                    Response, session, got_request_exception)
+                    Response, session, got_request_exception, g as flask_g)
 
 from db import (get_db, init_db, user_shop_roles, user_flight_roles, clean_roles, SHOP_ROLE_ORDER, FLIGHT_ROLE_ORDER,
                  close_request_conns, gen_internal_barcode, gen_project_code, gen_labor_code, now_iso,
@@ -86,6 +87,64 @@ app.register_blueprint(groundschool_bp)
 app.register_blueprint(payroll_bp)
 app.register_blueprint(ads_bp)
 app.teardown_request(close_request_conns)
+
+
+# --- Speed: static caching and gzip -----------------------------------------
+# Static files whose address carries ?v=<file stamp> (added automatically by
+# url_for below) are cached for a year; the stamp changes whenever the file
+# does, so an update still shows up at once. A static file asked for without
+# the stamp keeps the old always-recheck behaviour.
+STATIC_CACHE_SECONDS = 365 * 24 * 3600
+
+
+def _static_max_age(self, filename):
+    if request and request.args.get("v"):
+        return STATIC_CACHE_SECONDS
+    return None
+
+
+app.get_send_file_max_age = _static_max_age.__get__(app, type(app))
+
+
+@app.url_defaults
+def _stamp_static_urls(endpoint, values):
+    """Adds ?v=<file modified time> to every url_for('static', ...) link."""
+    if endpoint != "static" or "v" in values:
+        return
+    name = values.get("filename")
+    if not name:
+        return
+    try:
+        values["v"] = int(os.path.getmtime(os.path.join(app.static_folder, name)))
+    except (OSError, TypeError, ValueError):
+        pass
+
+
+_GZIP_TYPES = ("text/html", "text/css", "text/plain", "text/csv", "application/json",
+               "application/javascript", "text/javascript", "image/svg+xml")
+
+
+@app.after_request
+def _gzip_response(resp):
+    """Compresses pages and data (not files, PDFs or images) for browsers that
+    accept it. Pages are mostly repeated markup, so this cuts them to about a
+    fifth, which matters most for phones on cell signal."""
+    try:
+        if (resp.status_code != 200 or resp.direct_passthrough or resp.is_streamed
+                or "Content-Encoding" in resp.headers or "Content-Range" in resp.headers
+                or "gzip" not in request.headers.get("Accept-Encoding", "").lower()
+                or (resp.mimetype or "") not in _GZIP_TYPES or resp.headers.get("ETag")):
+            return resp
+        data = resp.get_data()
+        if len(data) < 600:
+            return resp
+        resp.set_data(gzip.compress(data, compresslevel=5, mtime=0))
+        resp.headers["Content-Encoding"] = "gzip"
+        resp.headers["Content-Length"] = str(len(resp.get_data()))
+        resp.vary.add("Accept-Encoding")
+    except Exception:
+        app.logger.exception("gzip skipped")
+    return resp
 
 
 def _parse_qty(raw, allow_zero=False):
@@ -376,22 +435,27 @@ def _view_as_chip_rows():
     auth.view_as_chips."""
     if not session.get("user_id"):
         return {}
-    conn = get_db()
-    try:
-        return {p: view_as_chips(conn, p) for p in ("shop", "flight")}
-    finally:
-        conn.close()
+    conn = _page_read_conn()
+    return {p: view_as_chips(conn, p) for p in ("shop", "flight")}
+
+
+def _page_read_conn():
+    """One connection the page's header lookups share (it used to open one
+    for each). It is closed with the request - see db.close_request_conns."""
+    conn = flask_g.get("_page_read_conn")
+    if conn is None:
+        conn = flask_g._page_read_conn = get_db()
+    return conn
 
 
 @app.context_processor
 def inject_auth_context():
     open_squawk_count = 0
     if session.get("is_master_admin") or session.get("shop_role") in ("admin", "tech", "inspector"):
-        conn = get_db()
+        conn = _page_read_conn()
         open_squawk_count = conn.execute(
             "SELECT COUNT(*) c FROM flights WHERE squawk = 1 AND squawk_acknowledged_at IS NULL"
-        ).fetchone()["c"]
-        conn.close()
+        ).fetchall()[0]["c"]
     return {
         "can_see_shop_costs": can_see_shop_costs(),
         "shop_role": session.get("shop_role"),

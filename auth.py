@@ -201,31 +201,30 @@ def refresh_or_expire_session():
     if not uid:
         return None
     conn = get_db()
-    row = conn.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
-    conn.close()
-    if not row or not row["active"]:
-        session.clear()
-        flash("You've been signed out because this account is no longer active.", "danger")
-        return redirect(url_for("home_launcher"))
-    fresh = dict(is_master_admin=bool(row["is_master_admin"]), shop_role=row["shop_role"],
-                flight_role=row["flight_role"], can_bill=bool(row["can_bill"]))
-    preview = session.get("_view_as_real")
-    if preview is not None:
-        preview.update(fresh)
-        session["_view_as_real"] = preview
-    else:
-        session.update(fresh)
-    _set_academy_flags(row)
-    if preview is None:
-        # Roles may have changed since login (QA qa-session-keeps-old-access):
-        # keep the Fly with Kate! profile ids in step with them too, so a
-        # newly made Flight Admin opens pages at once and a removed role
-        # stops working at once.
-        conn = get_db()
-        try:
+    try:
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
+        if not row or not row["active"]:
+            session.clear()
+            flash("You've been signed out because this account is no longer active.", "danger")
+            return redirect(url_for("home_launcher"))
+        fresh = dict(is_master_admin=bool(row["is_master_admin"]), shop_role=row["shop_role"],
+                    flight_role=row["flight_role"], can_bill=bool(row["can_bill"]))
+        preview = session.get("_view_as_real")
+        if preview is not None:
+            preview.update(fresh)
+            session["_view_as_real"] = preview
+        else:
+            session.update(fresh)
+        _set_academy_flags(row)
+        if preview is None:
+            # Roles may have changed since login (QA qa-session-keeps-old-access):
+            # keep the Fly with Kate! profile ids in step with them too, so a
+            # newly made Flight Admin opens pages at once and a removed role
+            # stops working at once. (Uses the same connection as the lookup
+            # above - it used to open a second one.)
             sync_flight_ids(conn, row)
-        finally:
-            conn.close()
+    finally:
+        conn.close()
     return None
 
 
