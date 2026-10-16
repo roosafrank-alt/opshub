@@ -267,6 +267,14 @@
         <option value="{{ code }}" {{ 'selected' if cert_now == code }}>{{ label }}</option>
         {% endfor %}
       </select>
+      {% set goal_now = (F.get('training_goal') if F is not none else (student.training_goal if student else '')) %}
+      <label class="form-label mb-1">Training toward <span class="text-muted small">(the rating they are working on; Resources opens on it)</span></label>
+      <select name="training_goal" class="form-select mb-2" data-change="RES-DEFAULT">
+        <option value="">- Not set (follows their certificate) -</option>
+        {% for code, label, cat in training_goals %}
+        <option value="{{ code }}" {{ 'selected' if goal_now == code }}>{{ label }}</option>
+        {% endfor %}
+      </select>
       <label class="form-label d-block mb-1">Ratings &amp; Endorsements <span class="text-muted small">(each adds a star)</span></label>
       <div class="d-flex flex-wrap gap-3">
         {% for code, label in pilot_ratings %}

@@ -1023,6 +1023,7 @@ def resources_list():
                  (now_iso(), uid))  # opening Resources marks them read (this page still shows them as new)
     conn.commit()
     extra["whats_new"] = whats_new
+    extra["default_cat"] = default_resource_category(conn, uid, resources)
     conn.close()
     return render_template("flight/groundschool_resources.html", resources=resources, tab="resources",
                            sections=group_resources(resources), categories=RESOURCE_CATEGORIES,
@@ -1032,6 +1033,30 @@ def resources_list():
 
 RESOURCE_CATEGORIES = ["Sport", "Private", "Instrument", "Commercial", "High Performance", "Complex", "CFI", "CFII"]
 OTHER_CATEGORY = "Other / General"
+# Resources category for the next course a student with this certificate works on
+# (mirrors pilotlog.NEXT_TRACK, which is keyed by track code).
+_TRACK_CATEGORY = {"private": "Private", "instrument": "Instrument", "cfi": "CFI", "atp": "Commercial"}
+
+
+def default_resource_category(conn, user_id, resources):
+    """The category the Resources page opens on for a student: the rating they are training toward
+    (student account), else a granted course named like a category, else the next rating after their
+    certificate. None for everyone else (admins, CFIs) and when nothing is tagged with it. Only the
+    opening filter: the whole library stays one tap away under 'All categories'."""
+    from flight import TRAINING_GOALS
+    from pilotlog import NEXT_TRACK
+    st = conn.execute("SELECT * FROM students WHERE user_id = ? AND COALESCE(is_station, 0) = 0", (user_id,)).fetchone()
+    if st is None or is_flight_admin():
+        return None
+    cat = {g[0]: g[2] for g in TRAINING_GOALS}.get(st["training_goal"])
+    if not cat:
+        names = " ".join((g["name"] or "").lower() for g in conn.execute(
+            "SELECT r.name FROM academy_course_grants gr JOIN acs_ratings r ON r.id = gr.rating_id "
+            "WHERE gr.student_id = ?", (st["id"],)).fetchall())
+        cat = next((c for c in RESOURCE_CATEGORIES if c.lower() in names), None)
+    if not cat:
+        cat = _TRACK_CATEGORY.get(NEXT_TRACK.get(st["pilot_certificate"], "private"))
+    return cat if cat and any(cat in resource_categories(r) for r in resources) else None
 
 
 def natural_key(text):

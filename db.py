@@ -743,7 +743,9 @@ def _migrate(conn):
     # commercial | atp) and add-on ratings (comma-separated codes, e.g.
     # "instrument,tailwheel,cfi") - drive the badge on the Students list.
     student_cols4 = [r["name"] for r in conn.execute("PRAGMA table_info(students)").fetchall()]
-    for col in ("pilot_certificate", "pilot_ratings"):
+    # training_goal: the rating the student is working toward (code from
+    # flight.TRAINING_GOALS); it picks the Resources page's default category.
+    for col in ("pilot_certificate", "pilot_ratings", "training_goal"):
         if col not in student_cols4:
             conn.execute(f"ALTER TABLE students ADD COLUMN {col} TEXT")
             conn.commit()
