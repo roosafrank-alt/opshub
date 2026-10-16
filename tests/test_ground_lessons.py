@@ -259,7 +259,7 @@ class LessonGradesTest(ElementLessonTest):
         wrong, right = (q["answer"] + 1) % len(q["options"]), q["answer"]
         c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 1, "j": wrong, "final": True})
         c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 1, "j": right, "final": True})
-        row = self._row("fq1")
+        row = self._row(ground_lessons.final_prefix(L) + "1")
         self.assertEqual((row["kind"], row["first_correct"], row["attempts"]), ("final", 0, 2))
         self.assertIsNone(self._row("q1"))                          # quick checks are separate
         c.post(f"{GS}/task/{self.task}/game-done", json={"key": "fa1", "tries": 2})

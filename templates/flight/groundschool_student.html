@@ -96,4 +96,26 @@
   <div class="small text-muted mt-2">Initial grade counts only first tries. * = not all questions answered yet. Tap a lesson for question-by-question detail.</div>
   {% else %}<div class="text-muted small">No lessons opened yet.</div>{% endif %}
 </div>
+<div class="card academy-card p-3 mb-3" data-change="GS-AREA-REVIEW">
+  <h6 class="mb-2"><i class="bi bi-trophy"></i> Area reviews</h6>
+  {% if area_rows %}
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0 small">
+    <thead class="table-light"><tr><th>Area review</th><th class="text-end">Time</th><th class="text-center">First-try grade</th><th class="text-center">Answered</th><th class="text-center">Corrected</th><th class="text-center">Tries</th><th>Last in review</th></tr></thead>
+    <tbody>
+    {% for x in area_rows %}{% set i = x.info %}{% set t = x.st %}
+    <tr>
+      <td><a href="{{ url_for('groundschool.area_review', area_id=i.id, student_id=st.id) }}#gsl-activity"><b>Area {{ i.code }}</b> {{ i.title }}</a><div class="text-muted">{{ i.rname }}</div></td>
+      <td class="text-end">{{ (t.seconds // 60)|int }} min</td>
+      <td class="text-center">{{ grade(t.pct if t.pct is not none else t.pct_so_far) }}{% if t.pct is none and t.pct_so_far is not none %}<span class="text-muted">*</span>{% endif %}</td>
+      <td class="text-center">{{ t.answered }} / {{ t.total }}</td>
+      <td class="text-center">{{ t.corrected }} / {{ t.total }}</td>
+      <td class="text-center">{{ t.tries }}</td>
+      <td>{{ t.last_seen_at|usdate(true) if t.last_seen_at else '–' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <div class="small text-muted mt-2">Grade counts only first tries. * = not all questions answered yet. Tap a review for question-by-question detail.</div>
+  {% else %}<div class="text-muted small">No Area reviews started yet.</div>{% endif %}
+</div>
 {% endblock %}

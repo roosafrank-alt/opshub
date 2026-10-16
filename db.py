@@ -1412,6 +1412,27 @@ def _migrate(conn):
         last_at TEXT,
         PRIMARY KEY (student_id, task_id, item_key)
     )""")
+    # GS-AREA-REVIEW: answers to the review quiz at the end of each Area of Operation (same columns
+    # as gs_lesson_results: the first try is the grade, every try is counted), and time on it.
+    conn.execute("""CREATE TABLE IF NOT EXISTS gs_area_results (
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        area_id INTEGER NOT NULL REFERENCES acs_areas(id),
+        item_key TEXT NOT NULL,
+        first_correct INTEGER,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        completed_at TEXT,
+        first_at TEXT,
+        last_at TEXT,
+        PRIMARY KEY (student_id, area_id, item_key)
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS gs_area_time (
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        area_id INTEGER NOT NULL REFERENCES acs_areas(id),
+        seconds INTEGER NOT NULL DEFAULT 0,
+        first_started_at TEXT,
+        last_seen_at TEXT,
+        PRIMARY KEY (student_id, area_id)
+    )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS acs_task_reading_progress (
         student_id INTEGER NOT NULL REFERENCES students(id),
         task_id INTEGER NOT NULL REFERENCES acs_tasks(id),

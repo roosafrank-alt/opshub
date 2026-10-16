@@ -119,9 +119,20 @@ def activities(lesson):
         out.append({"type": "match", "title": "Match the term",
                     "intro": "Tap a term on the left, then its meaning on the right.",
                     "pairs": [{"l": t["term"], "r": t["def"]} for t in terms[:6]]})
+    # GS-PRACTICE: a hand-written game may carry its own fixed key (h1, h2, ...). Those don't take
+    # an "a" number, so adding hand-written games never shifts the keys (a0, a1, ...) of the games
+    # numbered here, and a student's saved progress on them stays attached to the same game.
+    n = 0
     for i, a in enumerate(out):
-        out[i] = dict(a, key="a%d" % i)
+        if isinstance(a.get("key"), str) and _OWN_KEY_RE.fullmatch(a["key"]):
+            out[i] = dict(a)
+        else:
+            out[i] = dict(a, key="a%d" % n)
+            n += 1
     return out
+
+
+_OWN_KEY_RE = re.compile(r"h\d{1,2}")
 
 
 def play_plan(lesson, group=3):
@@ -159,10 +170,84 @@ def play_plan(lesson, group=3):
     return {"flash": flash, "by_chunk": by_chunk}
 
 
+def final_questions(lesson):
+    """The Final check's multiple-choice questions: the lesson's own `final_quiz`, or its quick checks."""
+    return (lesson or {}).get("final_quiz") or (lesson or {}).get("quiz") or []
+
+
+def final_prefix(lesson):
+    """Saved-answer key prefix for the Final check. A lesson with its own `final_quiz` saves under
+    'fz' (fz1, fz2, ...), so answers given earlier to the old Final check (its quick-check questions
+    asked again, saved as fq1, fq2, ...) are never counted against different questions."""
+    return "fz" if (lesson or {}).get("final_quiz") else "fq"
+
+
+def with_figures(qs, figures_of):
+    """[(n, q)] with q["fig"] set to the figure a question shows (its "figure" key, looked up with
+    figures_of(key) -> figure dict or None)."""
+    out = []
+    for n, q in qs:
+        f = figures_of(q.get("figure")) if q.get("figure") else None
+        out.append((n, dict(q, fig=f) if f else q))
+    return out
+
+
 def final_plan(lesson):
     """The end-of-Task final check: every multiple-choice question (the lesson's own `final_quiz`
     when it has one, otherwise its quick-check questions) plus its match, sort, order and
     true/false games played again, in one graded round."""
-    qs = list(enumerate(lesson.get("final_quiz") or lesson.get("quiz") or [], 1))
+    figs = lesson.get("figures") or {}
+    qs = with_figures(list(enumerate(final_questions(lesson), 1)), figs.get)
     acts = [dict(a, key="f" + a["key"]) for a in activities(lesson) if a["type"] in ("match", "sort", "order", "tf")]
-    return {"qs": qs, "acts": acts}
+    return {"qs": qs, "acts": acts, "prefix": final_prefix(lesson)}
+
+
+# ---------------------------------------------------------------- GS-AREA-REVIEW
+AREA_DIR = os.path.join(LESSON_DIR, "areas")
+_AREA_CACHE = {}
+
+
+def area_code(task_codes):
+    """'PA.I' from Task codes like 'PA.I.A' (the first one that parses)."""
+    for c in task_codes:
+        m = re.fullmatch(r"([A-Z]{2,3}\.[IVXL]+)\.[A-Z]+", c or "")
+        if m:
+            return m.group(1)
+    return None
+
+
+def load_area(code):
+    """The Area review dict (ground_lessons/areas/<code>.json, e.g. PA.I) or None."""
+    if not code or not re.fullmatch(r"[A-Z]{2,3}\.[IVXL]+", code):
+        return None
+    path = os.path.join(AREA_DIR, code + ".json")
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        return None
+    hit = _AREA_CACHE.get(code)
+    if hit and hit[0] == mtime:
+        return hit[1]
+    try:
+        with open(path, encoding="utf-8") as f:
+            review = json.load(f)
+    except (OSError, ValueError):
+        return None
+    _AREA_CACHE[code] = (mtime, review)
+    return review
+
+
+def area_figure(ref):
+    """A figure named 'PA.I.B:f2' in an Area review question: that Task lesson's figure f2."""
+    m = re.fullmatch(r"([A-Z]{2,3}\.[IVXL]+\.[A-Z]+):(\w+)", ref or "")
+    if not m:
+        return None
+    lesson = load(m.group(1))
+    return ((lesson or {}).get("figures") or {}).get(m.group(2))
+
+
+def area_plan(review, group=5):
+    """The Area review's questions in parts of about `group`, numbered through: [{"label", "qs"}]."""
+    qs = with_figures(list(enumerate((review or {}).get("questions") or [], 1)), area_figure)
+    parts = [qs[i:i + group] for i in range(0, len(qs), group)]
+    return [{"label": "Part %d of %d" % (i + 1, len(parts)), "qs": p} for i, p in enumerate(parts)]

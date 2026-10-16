@@ -830,5 +830,278 @@
   "The ACS Skills elements for this Task give no numeric tolerances.",
   "No source used here lists which specific facilities offer DF service today; check the Chart Supplement or ask ATC.",
   "Aircraft-specific items (fuel burn, endurance, best climb speed, avionics operation) come from the POH/AFM and avionics guides."
+ ],
+ "activities": [
+  {
+   "type": "tf",
+   "key": "h1",
+   "after": 2,
+   "title": "True or false: staying found",
+   "cards": [
+    {
+     "s": "Pilotage is usually used together with dead reckoning and radio navigation.",
+     "a": true,
+     "why": "Yes. Pilotage can be used alone, but it is more commonly used with dead reckoning and VFR radio navigation [[1:399|PHAK 16-12]]."
+    },
+    {
+     "s": "If a checkpoint doesn't show up, circle until you find it.",
+     "a": false,
+     "why": "No. Look for the next checkpoint while you keep the heading. Turning away from the heading makes it easy to get lost [[1:399|PHAK 16-12]]."
+    },
+    {
+     "s": "One clear checkpoint is enough to be sure of your position.",
+     "a": false,
+     "why": "No. Never rely completely on any single checkpoint. Choose plenty, and pick ones you can confirm with other features [[1:399|PHAK 16-12]]."
+    },
+    {
+     "s": "A landmark 1 inch from your course line on a sectional is about 8 statute miles off course on the ground.",
+     "a": true,
+     "why": "Yes. The sectional scale is 1 inch = 8 SM or 6.86 NM [[1:399|PHAK 16-12]]."
+    },
+    {
+     "s": "In dead reckoning, your groundspeed tells you when you should reach each checkpoint.",
+     "a": true,
+     "why": "Yes. The GS sets the time to arrive at each checkpoint and the destination [[1:400|PHAK 16-13]]."
+    },
+    {
+     "s": "Every road and building you see from the air is shown on a current sectional.",
+     "a": false,
+     "why": "No. In busy areas some smaller features are left off, and new roads and structures may not appear until the next chart [[1:399|PHAK 16-12]]."
+    }
+   ]
+  },
+  {
+   "type": "match",
+   "key": "h2",
+   "after": 5,
+   "title": "What is your panel telling you?",
+   "intro": "Tap a clue, then tap what it means.",
+   "pairs": [
+    {
+     "l": "NAV warning flag shows",
+     "r": "No reliable signal: too far or too low"
+    },
+    {
+     "l": "Needle centered, FROM flag",
+     "r": "The OBS shows the radial you are on"
+    },
+    {
+     "l": "Radials from two VORs",
+     "r": "Where they cross is your position"
+    },
+    {
+     "l": "Signal comes in, but no Morse ID",
+     "r": "Station may be out of service; don't use it"
+    },
+    {
+     "l": "GPS without RAIM disagrees",
+     "r": "Be suspicious of the GPS position"
+    },
+    {
+     "l": "Expired GPS database",
+     "r": "Waypoints may have moved or no longer exist"
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h3",
+   "after": 7,
+   "title": "Build the lost-aircraft call",
+   "intro": "Use the arrows to put the parts of the call in the order the AIM prefers, then tap Check.",
+   "steps": [
+    "PAN-PAN, PAN-PAN, PAN-PAN",
+    "Name of the station you are calling",
+    "Your call sign and aircraft type",
+    "The problem: you are lost",
+    "Your intentions and request",
+    "Last known position, time, and heading since",
+    "Altitude",
+    "Fuel remaining in minutes"
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h4",
+   "after": 9,
+   "title": "Urgency or distress?",
+   "intro": "Tap a clue, then tap where it belongs.",
+   "buckets": [
+    "Urgency (PAN-PAN)",
+    "Distress (MAYDAY)"
+   ],
+   "items": [
+    {
+     "t": "You need help soon, but not right this second",
+     "b": 0
+    },
+    {
+     "t": "A potential distress condition",
+     "b": 0
+    },
+    {
+     "t": "Has priority over every call but one kind",
+     "b": 0
+    },
+    {
+     "t": "Serious or imminent danger; you need help now",
+     "b": 1
+    },
+    {
+     "t": "The call commands radio silence on the frequency",
+     "b": 1
+    },
+    {
+     "t": "Not instrument rated, and VFR flight is no longer possible",
+     "b": 1
+    }
+   ]
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "You logged a highway bridge at 0950. You have held heading 180 at a groundspeed of about 120 knots. It is now 1005. About where are you?",
+   "options": [
+    "About 15 NM south of the bridge",
+    "About 30 NM south of the bridge",
+    "About 30 NM north of the bridge",
+    "About 60 NM south of the bridge"
+   ],
+   "answer": 1,
+   "why": "15 minutes at 120 knots is 30 NM (distance = GS x time) [[1:398|PHAK 16-11]]. Heading 180 is south. Time, speed and direction from a known point is dead reckoning [[1:400|PHAK 16-13]]."
+  },
+  {
+   "q": "A lake you plan to use as a checkpoint is 1.5 inches from your course line on the sectional. About how far from your course is it on the ground?",
+   "options": [
+    "About 8 SM",
+    "About 6.9 NM",
+    "About 15 SM",
+    "About 12 SM (about 10.3 NM)"
+   ],
+   "answer": 3,
+   "why": "The sectional scale is 1 inch = 8 SM or 6.86 NM [[1:399|PHAK 16-12]]. 1.5 x 8 = 12 SM, and 1.5 x 6.86 = about 10.3 NM. 8 SM and 6.9 NM would be only 1 inch."
+  },
+  {
+   "q": "Your course runs between an interstate highway about 5 miles north and a large river about 6 miles south. How do these features help you stay found?",
+   "options": [
+    "As long as you don't cross either one, you can't drift far off course",
+    "They replace the need for checkpoints along the route",
+    "They tell you your exact groundspeed",
+    "They show you where the nearest airport is"
+   ],
+   "answer": 0,
+   "why": "Features on each side of the course work as brackets. By not crossing them, you keep from drifting too far off course [[1:399|PHAK 16-12]]. You still need plenty of checkpoints."
+  },
+  {
+   "q": "Look at the figure. You are lost, flying low between VOR A and VOR B, and the NAV flag shows for both stations. What change would most likely let you get a fix from both?",
+   "options": [
+    "Descend so the signals can reach you",
+    "Retune both nav radios to 121.5 MHz",
+    "Climb, staying clear of clouds, until both signals come in",
+    "Turn away from both stations"
+   ],
+   "answer": 2,
+   "figure": "f1",
+   "why": "VOR signals are line-of-sight, so reception range grows with altitude [[1:409|PHAK 16-22]]. The flag means you are too far or too low [[1:410|PHAK 16-23]]. Climbing, while watching traffic and weather, increases navigation reception range [[1:421|PHAK 16-34]]."
+  },
+  {
+   "q": "Lost, you tune and identify a VOR. You turn the OBS until the needle centers with 270 at the top and a FROM flag. What do you draw on the chart?",
+   "options": [
+    "A line from the station out to the west, along its 270 radial",
+    "A line from the station out to the east, along its 090 radial",
+    "A line along your heading from where you think you are",
+    "A circle 27 miles around the station"
+   ],
+   "answer": 0,
+   "why": "With the needle centered and FROM showing, the OBS shows the radial, the magnetic course from the station [[1:411|PHAK 16-24]]. The 270 radial runs west from the station. A radial from a second station crosses it at your position [[1:421|PHAK 16-34]]."
+  },
+  {
+   "q": "Your portable GPS has no RAIM. It shows you 8 miles east of where your VOR cross-fix and a town name on a water tower both put you. What should you do?",
+   "options": [
+    "Trust the GPS; it is always more accurate",
+    "Split the difference between the two positions",
+    "Turn off the VOR so it stops confusing you",
+    "Be suspicious of the GPS and go with the position the other sources agree on"
+   ],
+   "answer": 3,
+   "why": "Without RAIM, be suspicious of a GPS position that disagrees with radio navigation, pilotage or dead reckoning [[1:420|PHAK 16-33]]. GPS is just one tool; only the pilot can navigate."
+  },
+  {
+   "q": "You call approach control for help finding your position. The controller says traffic is too heavy to give you vectors right now. What is true?",
+   "options": [
+    "They must give vectors to any VFR pilot who asks",
+    "Controllers decide if they can give the service, so try another facility, such as Flight Service",
+    "You should squawk 7600 and leave the frequency",
+    "You should stop asking for help and keep searching on your own"
+   ],
+   "answer": 1,
+   "why": "Traffic volume and workload can keep a controller from giving vectors, and that decision is up to the controller [[33:218|AIM 4-1-17e]]. Flight Service stations also help lost aircraft [[33:204|AIM 4-1-3]], so keep asking."
+  },
+  {
+   "q": "Your airplane has no transponder, and you are outside radar coverage. You reach a facility by radio. Which kind of help can still find your position?",
+   "options": [
+    "Radar vectors from approach control",
+    "Squawking 7700 so radar sees you",
+    "Direction finding: you hold the mic button while they locate you",
+    "Traffic advisories from a radar facility"
+   ],
+   "answer": 2,
+   "why": "For DF help, the controller has you hold the transmit button a few seconds, maybe after a few turns, then plots your position from the transmissions [[1:421|PHAK 16-34]]. Radar vectors need radar coverage and radar identification [[33:217|AIM 4-1-17]]."
+  },
+  {
+   "q": "You are getting VFR flight following on code 4521 when you realize you are unsure of your position. What should your transponder show?",
+   "options": [
+    "Keep 4521 with Mode C unless ATC tells you otherwise",
+    "Change to 7700 right away",
+    "Change to 7600",
+    "Change to 1200"
+   ],
+   "answer": 0,
+   "why": "When you are already in radio contact with ATC, keep your assigned code and Mode C unless told otherwise. Squawk 7700 when you can't establish communications right away [[34:46|AIM 6-3-2]]."
+  },
+  {
+   "q": "You are lost and not talking to anyone. You call the Center on 121.5 MHz and get no answer. What does the AIM suggest next?",
+   "options": [
+    "Wait 30 minutes and try again",
+    "Turn off the radio to save the battery",
+    "Squawk 7500",
+    "Call the nearest tower"
+   ],
+   "answer": 3,
+   "why": "Center's emergency frequency coverage normally doesn't reach as far as its radar. If a center doesn't answer on 121.5 MHz, call the nearest tower [[34:45|AIM 6-3-1]]."
+  },
+  {
+   "q": "You are hunting for a frequency on the chart, tuning a radio, and zooming the GPS. Your heading has drifted 30 degrees and you have lost 300 feet. What is happening, and what fixes it?",
+   "options": [
+    "Normal workload; keep going and it will settle down",
+    "Hypoxia; descend right away",
+    "Task saturation; stop, think, slow down, and prioritize, flying the airplane first",
+    "A VOR failure; turn off all the radios"
+   ],
+   "answer": 2,
+   "why": "As workload rises, a pilot focuses on one item and loses awareness of the rest. The fix is to stop, think, slow down, and prioritize [[1:63|PHAK 2-24]]. Flying the airplane always comes first."
+  },
+  {
+   "q": "You are lost with about 20 minutes of fuel left. No airport is in sight, nobody answers your calls, and below you is a large, smooth field in good weather. What does the AFH point to?",
+   "options": [
+    "Keep searching; something will turn up",
+    "Plan a precautionary landing in the field while you still have power and time",
+    "Climb as high as possible and glide when the fuel runs out",
+    "Wait until the engine quits, then pick a field"
+   ],
+   "answer": 1,
+   "why": "Being lost and fuel shortage are both reasons for a precautionary landing, which is less hazardous than a forced landing because you have time and power [[24:350|AFH 18-1]]. Wishful thinking turns these into forced landings."
+  },
+  {
+   "q": "With help from ATC you find your position, and you decide to divert to an airport 12 miles away because fuel is getting low. What does the PHAK advise?",
+   "options": [
+    "Plot the full course and work out heading, GS, and fuel before turning",
+    "Fly back to your last checkpoint first, then turn",
+    "Turn toward the airport promptly, then note the time and work out heading, GS, arrival time, and fuel",
+    "Hold your old heading until you can get a weather briefing"
+   ],
+   "answer": 2,
+   "why": "In an emergency, divert promptly. Trying to finish all plotting and math first can make things worse. Once on course, note the time and figure heading, GS, arrival time, and fuel [[1:422|PHAK 16-35]]."
+  }
  ]
 }

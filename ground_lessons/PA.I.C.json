@@ -1556,5 +1556,283 @@
   "Specific EFB/avionics weather displays (symbols, menus, legends) are equipment-specific; use the avionics manual or app guide (AIM 7-1-9 says to).",
   "Aircraft icing limitations and carb heat procedures are POH-specific.",
   "'Expected climate' for the student's local area is not in these sources beyond general seasonal notes (e.g., mountain wave late autumn to early spring, valley fog in autumn and spring); the CFI should supply local knowledge."
+ ],
+ "activities": [
+  {
+   "type": "order",
+   "key": "h1",
+   "after": 1,
+   "title": "Standard briefing: what comes first?",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Adverse conditions, VFR not recommended, and synopsis",
+    "Current conditions along the route",
+    "En route forecast",
+    "Destination forecast for your arrival time",
+    "Winds and temperatures aloft",
+    "NOTAMs, ATC delays and other information"
+   ]
+  },
+  {
+   "type": "match",
+   "key": "h2",
+   "after": 4,
+   "title": "Crack the METAR and TAF codes",
+   "intro": "Tap a code, then tap what it means.",
+   "pairs": [
+    {
+     "l": "P6SM",
+     "r": "Visibility more than 6 statute miles"
+    },
+    {
+     "l": "VCTS",
+     "r": "Thunderstorms 5 to 10 SM from the airport"
+    },
+    {
+     "l": "FM161500",
+     "r": "A whole new forecast starts at 1500Z on the 16th"
+    },
+    {
+     "l": "TEMPO",
+     "r": "Brief changes, each lasting 1 hour or less"
+    },
+    {
+     "l": "PROB30",
+     "r": "30% chance of a thunderstorm or precipitation"
+    },
+    {
+     "l": "WS020/27055KT",
+     "r": "Wind shear up to 2,000 ft AGL; 270° at 55 kt on top"
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h3",
+   "after": 8,
+   "title": "Stable or unstable air?",
+   "intro": "Tap a clue, then tap where it belongs.",
+   "buckets": [
+    "Stable air",
+    "Unstable air"
+   ],
+   "items": [
+    {
+     "t": "Air mass cooled from below by a colder surface",
+     "b": 0
+    },
+    {
+     "t": "Air mass warmed from below by a warmer surface",
+     "b": 1
+    },
+    {
+     "t": "Low stratus clouds and fog",
+     "b": 0
+    },
+    {
+     "t": "Cumulus clouds and rain showers",
+     "b": 1
+    },
+    {
+     "t": "Smoke and dust trapped near the ground",
+     "b": 0
+    },
+    {
+     "t": "Good surface visibility",
+     "b": 1
+    },
+    {
+     "t": "A temperature inversion near the ground",
+     "b": 0
+    },
+    {
+     "t": "Warm, moist summer air in the tropics",
+     "b": 1
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h4",
+   "after": 12,
+   "title": "True or false: storms and ice",
+   "cards": [
+    {
+     "s": "A thunderstorm needs moisture, unstable air and something to lift the air.",
+     "a": true,
+     "why": "Yes. Those are the three ingredients. Lift can come from fronts, terrain, converging winds or a sea breeze [[28:257|AWH 22-2]]."
+    },
+    {
+     "s": "A storm's mature stage begins when the anvil top forms.",
+     "a": false,
+     "why": "No. The mature stage begins when precipitation reaches the ground [[28:258|AWH 22-3]]."
+    },
+    {
+     "s": "If a storm looks harmless from outside, it probably has no hail or bad turbulence.",
+     "a": false,
+     "why": "No. You cannot tell by looking which hazards a storm holds [[28:262|AWH 22-7]]."
+    },
+    {
+     "s": "Clear ice is more likely at -5 °C than at -20 °C.",
+     "a": true,
+     "why": "Yes. Clear ice tends to form warmer than about -10 °C. Rime tends to form colder than -15 °C [[28:245|AWH 20-3]]."
+    },
+    {
+     "s": "Frost no rougher than coarse sandpaper is too thin to matter for takeoff.",
+     "a": false,
+     "why": "No. It can cut lift by 30% and raise drag up to 40%. Remove all frost before flight [[28:249|AWH 20-7]] [[1:299|PHAK 12-15]]."
+    },
+    {
+     "s": "Ice pellets at the surface mean there is icing in the air above you.",
+     "a": true,
+     "why": "Yes. Rain from a warm layer aloft freezes on the way down, so supercooled water is above you [[28:247|AWH 20-5]]."
+    }
+   ]
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "You got a standard briefing at 0700 for an 0800 departure. A maintenance problem delays you until 1000. What should you get before you go?",
+   "options": [
+    "An outlook briefing",
+    "An abbreviated briefing to update the first one",
+    "Nothing; the 0700 briefing is still good",
+    "Only a quick look at the destination METAR"
+   ],
+   "answer": 1,
+   "why": "An abbreviated briefing updates an earlier briefing or covers a delayed departure [[28:27|AWH 3-4]]. Get one just before takeoff when your standard briefing is 1 hour or more old [[37:14|AC 91-92 para 8.1]]."
+  },
+  {
+   "q": "METAR KABC 161753Z 18009KT 4SM -RA BR SCT006 BKN012 OVC020 11/10 A2996. What color would a METAR map show for this airport?",
+   "options": [
+    "Purple (LIFR)",
+    "Red (IFR)",
+    "Blue (MVFR)",
+    "Green (VFR)"
+   ],
+   "answer": 2,
+   "why": "Scattered is not a ceiling, so the ceiling is BKN012, 1,200 ft AGL [[28:300|AWH 24-16]]. A 1,200 ft ceiling and 4 SM are both in the MVFR range (1,000 to 3,000 ft, 3 to 5 SM) [[28:51|AWH 3-28]]. Red would be the answer only if you took SCT006 as the ceiling."
+  },
+  {
+   "q": "Online, a METAR shows wind 30012KT. On the radio, the same airport's ASOS says wind 290 at 12. Why can the directions differ?",
+   "options": [
+    "The online METAR uses true north; the radio broadcast uses magnetic",
+    "The online METAR uses magnetic north; the radio broadcast uses true",
+    "The radio rounds every wind down by 10°",
+    "One of the two reports must be wrong"
+   ],
+   "answer": 0,
+   "why": "Wind sent out nationally (internet, Flight Service, FIS-B) is in true degrees. Local radio and telephone broadcasts are in magnetic degrees [[28:287|AWH 24-3]]."
+  },
+  {
+   "q": "Which of these pilot reports would go out as an urgent PIREP (UUA)?",
+   "options": [
+    "Moderate turbulence at 6,000 ft",
+    "Light rime icing near the cloud tops",
+    "Cloud tops at 8,500 ft MSL",
+    "Wind shear at 800 ft AGL with a 15 kt airspeed loss"
+   ],
+   "answer": 3,
+   "why": "Low-level wind shear within 2,000 ft of the surface with airspeed changes of 10 kt or more makes a PIREP urgent. So do severe turbulence, severe icing, hail, tornadoes and volcanic ash [[28:311|AWH 24-27]]."
+  },
+  {
+   "q": "A TAF's first line ends with 'WS015/24040KT'. What does that group mean?",
+   "options": [
+    "40 kt of wind shear at 1,500 ft MSL",
+    "Surface wind 240° at 40 kt",
+    "Wind shear from the surface to 1,500 ft AGL, with wind at 1,500 ft from 240° at 40 kt",
+    "Wind shear starting 15 minutes after the hour"
+   ],
+   "answer": 2,
+   "why": "WS gives the top of the shear layer in hundreds of feet AGL, then the wind at that height. The wind is not the amount of shear [[28:416|AWH 27-15]]."
+  },
+  {
+   "q": "Winds aloft (FB) for your area: 3000 '2310', 6000 '2415+04', 9000 '2620-02', 12000 '2725-08'. About where is the freezing level?",
+   "options": [
+    "Below 3,000 ft",
+    "Between 6,000 and 9,000 ft",
+    "Between 3,000 and 6,000 ft",
+    "Above 12,000 ft"
+   ],
+   "answer": 1,
+   "why": "The temperature is +4 °C at 6,000 ft and -2 °C at 9,000 ft, so it crosses 0 °C between them, near 8,000 ft. FB temperatures are in °C [[28:405|AWH 27-4]], and they help you find the approximate freezing level [[38:37|AC 91-74B para 4-1]]."
+  },
+  {
+   "q": "A SIGMET (not a Convective SIGMET) is in effect along your route. Which hazard could it be warning about?",
+   "options": [
+    "Moderate icing",
+    "Ceilings below 1,000 ft",
+    "Sustained surface winds of 30 kt or more",
+    "Severe icing"
+   ],
+   "answer": 3,
+   "why": "SIGMETs cover severe or greater turbulence, severe icing, widespread dust or sandstorms and volcanic ash [[28:372|AWH 26-5]]. The other three are AIRMET items (Zulu, Sierra, Tango) [[28:383|AWH 26-16]]."
+  },
+  {
+   "q": "The surface temperature is 80 °F and the dew point is 58 °F. About how high will the bases of cumulus clouds form?",
+   "options": [
+    "About 5,000 ft AGL",
+    "About 2,200 ft AGL",
+    "About 4,400 ft AGL",
+    "About 8,800 ft AGL"
+   ],
+   "answer": 0,
+   "why": "The spread is 22 °F. Divide by 4.4 to get 5, then multiply by 1,000: about 5,000 ft AGL [[1:298|PHAK 12-14]]."
+  },
+  {
+   "q": "A strong cold front will pass your airport this afternoon. What weather should you expect as it passes?",
+   "options": [
+    "A wide band of low stratus, drizzle and fog lasting a day or two",
+    "Smooth air with haze trapped under an inversion",
+    "Showers or thunderstorms, gusty winds and turbulence, then clearing behind it",
+    "Steady light rain with no wind shift"
+   ],
+   "answer": 2,
+   "why": "Cold fronts bring sudden storms, gusty winds and turbulence, and skies clear fast after they pass. Low ceilings and long periods of rain and poor visibility are warm-front weather [[1:304|PHAK 12-20]] [[1:305|PHAK 12-21]]."
+  },
+  {
+   "q": "On short final near a heavy rain shaft, your airspeed suddenly jumps 15 kt as the headwind grows. If this is a microburst, what comes next?",
+   "options": [
+    "A steady headwind all the way to the runway",
+    "A downdraft, then a growing tailwind and loss of airspeed",
+    "A strong updraft that makes you land long",
+    "Nothing more; the airspeed gain means it is over"
+   ],
+   "answer": 1,
+   "why": "A microburst gives a headwind first, then a downdraft, then a growing tailwind. On approach this can force the airplane down short of the runway [[1:295|PHAK 12-11]]."
+  },
+  {
+   "q": "Ice starts building on your airplane while you are in visible moisture. What should you do first?",
+   "options": [
+    "Get out of the visible moisture: descend below the bases, climb above the tops, or turn around",
+    "Keep going at the same altitude; the ice will blow off",
+    "Slow down so less ice sticks to the wings",
+    "Hold your heading and wait for the ice to stop forming"
+   ],
+   "answer": 0,
+   "why": "The first move is to leave the visible moisture. If you can't, go to an altitude where the temperature is above freezing [[28:249|AWH 20-7]]."
+  },
+  {
+   "q": "A coastal airport is clear at noon. Moist ocean air is now moving inland over cooler land on a 10 kt breeze. What kind of fog is most likely?",
+   "options": [
+    "Radiation fog",
+    "Steam fog",
+    "Upslope fog",
+    "Advection fog"
+   ],
+   "answer": 3,
+   "why": "Advection fog forms when moist air moves over a colder surface. It is common on coasts and gets deeper with wind up to about 15 kt [[28:224|AWH 18-4]] [[1:299|PHAK 12-15]]."
+  },
+  {
+   "q": "Your baseline personal minimums are a 3,000 ft ceiling, 5 miles visibility and 15 kt wind. Tomorrow you will fly a rental with avionics you haven't used. Which adjusted set follows the RMH guidance?",
+   "options": [
+    "2,500 ft ceiling, 4 1/2 miles, 20 kt wind",
+    "3,200 ft ceiling, 5 miles, 15 kt wind",
+    "3,500 ft ceiling, 5 1/2 miles, 10 kt wind",
+    "Keep 3,000 ft, 5 miles and 15 kt; the baseline already covers it"
+   ],
+   "answer": 2,
+   "why": "For extra risk such as unfamiliar avionics, add at least 500 ft to the ceiling and at least 1/2 mile to visibility, and subtract at least 5 kt from wind limits [[30:17|RMH Figure 2-9]]. Never lower your minimums to make a flight happen [[30:17|RMH 2-5]]."
+  }
  ]
 }
