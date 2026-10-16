@@ -55,11 +55,17 @@
           Continue <i class="bi bi-arrow-right-short"></i>
         </a>
         <div class="small text-muted mt-1">next up: {{ nx.next_up }}</div>
+        {% set rs = resume_by_rating.get(r.id) %}
+        {% if rs %}<a href="{{ gs_url('groundschool.task_detail', task_id=rs.task_id) }}#{{ rs.anchor }}" class="btn btn-success fw-bold mt-2 position-relative" style="z-index:2;" title="{{ rs.task_label }}"><i class="bi bi-play-fill"></i> Resume course</a>{% endif %}
         <a href="{{ gs_url('groundschool.rating_detail', rating_id=r.id) }}" class="stretched-link small text-decoration-none mt-2">All tasks</a>
         {% else %}
-        <a href="{{ gs_url('groundschool.rating_detail', rating_id=r.id) }}" class="stretched-link text-decoration-none fw-bold mt-auto">
-          <i class="bi bi-journal-text"></i> Enter course <i class="bi bi-arrow-right-short"></i>
-        </a>
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-auto">
+          <a href="{{ gs_url('groundschool.rating_detail', rating_id=r.id) }}" class="stretched-link text-decoration-none fw-bold">
+            <i class="bi bi-journal-text"></i> Enter course <i class="bi bi-arrow-right-short"></i>
+          </a>
+          {% set rs = resume_by_rating.get(r.id) %}
+          {% if rs %}<a href="{{ gs_url('groundschool.task_detail', task_id=rs.task_id) }}#{{ rs.anchor }}" class="btn btn-success btn-sm fw-bold position-relative ms-auto" style="z-index:2;" title="{{ rs.task_label }}"><i class="bi bi-play-fill"></i> Resume course</a>{% endif %}
+        </div>
         {% endif %}
         {% endif %}
       </div>

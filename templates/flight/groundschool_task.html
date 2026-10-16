@@ -32,8 +32,73 @@
 </div>
 
 {% if gs_lesson %}
-<a href="#gsl" class="gsl-start"><i class="bi bi-play-circle-fill"></i> Start the lesson</a>
+{% set GL = gs_lesson %}
+<div class="gsl-hero">
+  <div class="gsl-hero-text">
+    <div class="gsl-hero-title"><i class="bi bi-mortarboard-fill"></i> Lesson: {{ task.title }}</div>
+    <div class="gsl-hero-sub">About {{ GL.minutes }} min &middot; {{ GL.chunks|length }} short lessons &middot; games and quick checks along the way</div>
+    {% if gs_stats and gs_stats.seconds %}<div class="gsl-hero-sub">You have spent {{ (gs_stats.seconds / 60)|round|int }} min on this lesson so far.</div>{% endif %}
+  </div>
+  <div class="gsl-hero-btns">
+    {% if gs_resume %}
+    <a href="#{{ gs_resume.anchor }}" class="gsl-hero-btn" id="gsl-resume-btn"><i class="bi bi-play-fill"></i> Resume lesson</a>
+    <a href="#gsl-prepare" class="gsl-hero-alt">Start from the beginning</a>
+    {% else %}
+    <a href="#gsl-prepare" class="gsl-hero-btn"><i class="bi bi-play-fill"></i> Start lesson</a>
+    {% endif %}
+  </div>
+</div>
 {% include "flight/_ground_lesson.html" %}
+{% if gs_stats and (session.get('cfi_id') or flight_admin) %}
+{% set st = gs_stats %}
+<div class="card academy-card mb-3" id="gsl-activity" data-change="GS-GRADES">
+  <div class="card-header fw-bold"><i class="bi bi-clipboard-data"></i> Student activity on this lesson</div>
+  <div class="card-body">
+    <div class="row g-3 mb-2 text-center">
+      <div class="col-6 col-md-3"><div class="fs-4 fw-bold">{{ (st.seconds / 60)|round|int }} min</div><div class="small text-muted">time in the lesson</div></div>
+      <div class="col-6 col-md-3"><div class="fs-4 fw-bold">{% if st.initial_pct is not none %}{{ st.initial_pct }}%{% elif st.initial_pct_so_far is not none %}{{ st.initial_pct_so_far }}%*{% else %}&ndash;{% endif %}</div><div class="small text-muted">initial quiz grade (first tries){% if st.initial_pct is none and st.quiz_answered %}<br>*{{ st.quiz_answered }} of {{ st.quiz_total }} answered{% endif %}</div></div>
+      <div class="col-6 col-md-3"><div class="fs-4 fw-bold">{{ st.tries_total }}</div><div class="small text-muted">quiz tries in all</div></div>
+      <div class="col-6 col-md-3"><div class="fs-6 fw-bold">{{ st.last_seen_at|usdate(true) if st.last_seen_at else '–' }}</div><div class="small text-muted">last in the lesson</div></div>
+    </div>
+    {% if st.quiz_rows %}
+    <details {% if st.quiz_answered %}open{% endif %}><summary class="fw-bold small">Quiz questions: first try and tries taken</summary>
+      <div class="table-responsive mt-2"><table class="table table-sm align-middle mb-2">
+        <thead><tr><th>#</th><th>Question</th><th class="text-center">First try</th><th class="text-center">Tries</th><th class="text-center">Corrected</th></tr></thead>
+        <tbody>{% for r in st.quiz_rows %}<tr>
+          <td>{{ r.n }}</td><td>{{ gs_rich(r.q) }}</td>
+          <td class="text-center">{% if not r.answered %}<span class="text-muted">&ndash;</span>{% elif r.first_correct %}<span class="text-success fw-bold"><i class="bi bi-check-lg"></i> right</span>{% else %}<span class="text-danger fw-bold"><i class="bi bi-x-lg"></i> missed</span>{% endif %}</td>
+          <td class="text-center">{{ r.attempts if r.answered else '–' }}</td>
+          <td class="text-center">{% if r.done %}<i class="bi bi-check-circle-fill text-success"></i>{% elif r.answered %}<span class="text-muted small">not yet</span>{% else %}&ndash;{% endif %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </details>
+    {% endif %}
+    {% if st.final_total %}
+    <div class="row g-3 my-1 text-center border-top pt-2">
+      <div class="col-6"><div class="fs-4 fw-bold">{% if st.final_pct is not none %}{{ st.final_pct }}%{% elif st.final_pct_so_far is not none %}{{ st.final_pct_so_far }}%*{% else %}&ndash;{% endif %}</div><div class="small text-muted">initial FINAL CHECK grade (first tries){% if st.final_pct is none and st.final_answered %}<br>*{{ st.final_answered }} of {{ st.final_total }} answered{% endif %}</div></div>
+      <div class="col-6"><div class="fs-4 fw-bold">{{ st.final_tries }}</div><div class="small text-muted">final check tries in all</div></div>
+    </div>
+    {% if st.final_answered %}
+    <details><summary class="fw-bold small">Final check: first try and tries taken</summary>
+      <div class="table-responsive mt-2"><table class="table table-sm align-middle mb-2">
+        <thead><tr><th>#</th><th>Question</th><th class="text-center">First try</th><th class="text-center">Tries</th><th class="text-center">Corrected</th></tr></thead>
+        <tbody>{% for r in st.final_rows %}<tr>
+          <td>{{ r.n }}</td><td>{{ gs_rich(r.q) }}</td>
+          <td class="text-center">{% if not r.answered %}<span class="text-muted">&ndash;</span>{% elif r.first_correct %}<span class="text-success fw-bold"><i class="bi bi-check-lg"></i> right</span>{% else %}<span class="text-danger fw-bold"><i class="bi bi-x-lg"></i> missed</span>{% endif %}</td>
+          <td class="text-center">{{ r.attempts if r.answered else '–' }}</td>
+          <td class="text-center">{% if r.done %}<i class="bi bi-check-circle-fill text-success"></i>{% elif r.answered %}<span class="text-muted small">not yet</span>{% else %}&ndash;{% endif %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      {% if st.final_games %}<ul class="small mb-2">{% for g in st.final_games %}<li>{{ g.title }}: {% if g.done %}finished{% if g.attempts > 1 %} after {{ g.attempts - 1 }} mistake{{ 's' if g.attempts > 2 }}{% else %} with no mistakes{% endif %}{% else %}<span class="text-muted">not played</span>{% endif %}</li>{% endfor %}</ul>{% endif %}
+    </details>
+    {% endif %}
+    {% endif %}
+    {% if st.games %}
+    <details><summary class="fw-bold small">Games: finished and mistakes</summary>
+      <ul class="mt-2 mb-0 small">{% for g in st.games %}<li>{{ g.title }}: {% if g.done %}finished{% if g.attempts > 1 %} after {{ g.attempts - 1 }} mistake{{ 's' if g.attempts > 2 }}{% else %} with no mistakes{% endif %}{% else %}<span class="text-muted">not played</span>{% endif %}</li>{% endfor %}</ul>
+    </details>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
 <h5 class="text-light mt-4 mb-2"><i class="bi bi-file-text"></i> The ACS standard for this Task</h5>
 <p class="text-light small opacity-75">What the examiner tests. The lesson above teaches all of it. Tap a code to open just that part.</p>
 {% endif %}
