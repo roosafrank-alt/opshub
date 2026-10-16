@@ -113,6 +113,18 @@ def _set_academy_flags(user_row):
     session["groundschool_access"] = bool(user_row["groundschool_access"] or fa)
 
 
+def own_cfi(conn, real_only=False):
+    """The signed-in account's OWN CFI profile (cfis.user_id = the real login),
+    never one picked, previewed or switched to. Signatures and signature
+    blocks only ever come from this: nobody, master admin included, signs as
+    another CFI. real_only=True skips an admin's hidden is_station profile."""
+    uid = session.get("user_id")
+    if not uid:
+        return None
+    q = "SELECT * FROM cfis WHERE user_id = ?" + (" AND COALESCE(is_station, 0) = 0" if real_only else "")
+    return conn.execute(q, (uid,)).fetchone()
+
+
 def sync_flight_ids(conn, user_row):
     """Points session cfi_id / student_id at the account's Fly with Kate!
     profiles - only the ones its roles entitle it to (a CFI, a Flight Admin's

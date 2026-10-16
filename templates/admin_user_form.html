@@ -1,64 +1,310 @@
 {% extends "admin_base.html" %}
 {% block title %}{{ 'Edit Account' if user else 'Add Account' }} · Admin{% endblock %}
 {% block content %}
+<style>
+  .acct-tabs { gap: .35rem; }
+  .acct-tabs .nav-link { white-space: nowrap; border: 1px solid var(--bs-border-color, #dee2e6); padding: .4rem .7rem; }
+  .acct-tabs .nav-link.active { border-color: transparent; }
+  .acct-tabs .acct-dot { display: inline-block; width: .5rem; height: .5rem; border-radius: 50%; margin-left: .35rem; vertical-align: middle; background: #adb5bd; }
+  .acct-tabs .acct-dot.on { background: #198754; }
+  .acct-grant { background: var(--bs-tertiary-bg, #f8f9fa); border-radius: .5rem; padding: .6rem .8rem .6rem 2.4rem; }
+  .acct-grant .form-check-label { font-weight: 600; }
+  .acct-sub { border-top: 1px solid var(--bs-border-color, #dee2e6); padding-top: .8rem; margin-top: .8rem; }
+</style>
+{#- Admin > Accounts: the one place an admin sets a person up for everything.
+   Tabs: Login | Flight School | Flight Academy | Shop | Customer. Each program
+   tab starts with one "Grant access" box; the tab's options only show once it
+   is ticked, and unticking it removes that program on Save. One form, one Save.
+   (Frank, 2026-10-16: "I want to be able to do everything from the admin
+   account page.") #}
+{% set _pre_shop = preset.shop_roles if preset else (user_shop_roles(user) if user else []) %}
+{% set _pre_flight = preset.flight_roles if preset else (user_flight_roles(user) if user else []) %}
+{% set _pre_shop = _pre_shop|select|list %}
+{% set _pre_flight = _pre_flight|select|list %}
+{% set g_flight = _pre_flight|length > 0 %}
+{% set g_shop = _pre_shop|length > 0 %}
+{% set g_academy = (user and user.academy_access) %}
+{% set g_customer = (linked_customer is defined and linked_customer and linked_customer.active) %}
+{% set is_master = user and user.is_master_admin %}
 <div class="row justify-content-center">
-<div class="col-lg-7">
-<div class="card p-4">
-  <h4>{{ 'Edit Account: ' + user.name if user else 'Add Account' }}</h4>
-  <p class="text-muted small mb-3" data-change="SEAM-3">One login works for Winds Aloft, Fly with Kate! and Flight Academy. Every account is set up the same way, in the sections below.</p>
-  <form method="post">
+<div class="col-lg-8">
+<div class="card p-3 p-md-4">
+  <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-1">
+    <h4 class="mb-0">{{ 'Edit Account: ' + user.name if user else 'Add Account' }}</h4>
+    {% if user and not user.active %}<span class="badge text-bg-secondary">Inactive</span>{% endif %}
+  </div>
+  <p class="text-muted small mb-3" data-change="SEAM-3">One login works for Winds Aloft, Fly with Kate! and Flight Academy. Set up everything for this person here, one tab per program.</p>
+
+  <ul class="nav nav-pills acct-tabs mb-3" id="acct-tabs" role="tablist">
+    <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-tab="login"><i class="bi bi-key"></i> Login</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-tab="flight"><i class="bi bi-airplane"></i> Flight School<span class="acct-dot{{ ' on' if g_flight }}" data-dot="flight"></span></button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-tab="academy"><i class="bi bi-mortarboard"></i> Flight Academy<span class="acct-dot{{ ' on' if g_academy }}" data-dot="academy"></span></button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-tab="shop"><i class="bi bi-wrench-adjustable"></i> Shop<span class="acct-dot{{ ' on' if g_shop }}" data-dot="shop"></span></button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-tab="customer"><i class="bi bi-person-badge"></i> Customer<span class="acct-dot{{ ' on' if g_customer }}" data-dot="customer"></span></button></li>
+  </ul>
+
+  <form method="post" id="acct-form">
+    <input type="hidden" name="access_tabs" value="1">
+    <input type="hidden" name="tab" id="acct-tab-field" value="{{ tab or 'login' }}">
 
     {#- ===================== Login ===================== #}
-    <h6 class="mb-2"><i class="bi bi-key"></i> Login</h6>
-    <div class="mb-3">
-      <label class="form-label">Full Name *</label>
-      <input type="text" name="name" class="form-control" value="{{ user.name if user else (name or '') }}" required autofocus>
+    <div class="acct-pane" data-pane="login">
+      <div class="mb-3">
+        <label class="form-label">Full Name *</label>
+        <input type="text" name="name" class="form-control" value="{{ user.name if user else (name or '') }}" required>
+      </div>
+      {% if not user %}
+      <div class="mb-3">
+        <label class="form-label">Username *</label>
+        <input type="text" name="username" class="form-control" value="{{ username or '' }}" required>
+        {#- HUB-28: how a staff login and a My Aircraft owner account link up. #}
+        <div class="form-text" data-change="HUB-28">Use their email address. If they're also an aircraft owner, the Customer tab then uses the same login.</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Starting Password *</label>
+        <input type="text" name="password" class="form-control" required value="{{ typed_password or '' }}">
+        <div class="form-text">Give this to them - they can log in with it right away, from the login page.</div>
+      </div>
+      {% else %}
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <div><code>{{ user.username }}</code></div>
+        <div class="form-text" data-change="HUB-28">If this person is also an aircraft owner, the Customer tab uses this same login.</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Current Password <span class="text-muted small">(visible to admins only)</span></label>
+        {#- HUB-25: the password only shows behind a Show tap, here on the
+           Edit page - never on the Accounts list. #}
+        <div data-change="HUB-25">
+          <code id="current-pw" class="d-none">{{ user.password_plain or 'Not available - set below to enable this' }}</code>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="current-pw-toggle"><i class="bi bi-eye"></i> Show</button>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Reset Password <span class="text-muted small">(leave blank to keep current)</span></label>
+        <input type="text" name="password" class="form-control" value="{{ typed_password or '' }}">
+      </div>
+      {% endif %}
+      <div class="row">
+        <div class="col-sm-6 mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control" value="{{ user.email if user and user.email else '' }}" placeholder="name@example.com">
+        </div>
+        <div class="col-sm-6 mb-3">
+          <label class="form-label">Mobile Phone <span class="text-muted small">(for texts)</span></label>
+          <input type="tel" name="phone" class="form-control" value="{{ user.phone if user and user.phone else '' }}" placeholder="+15551234567">
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-3 mb-1">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="notify_email" id="notify-email-check" {% if user and user.notify_email %}checked{% endif %}>
+          <label class="form-check-label" for="notify-email-check">Send email reminders</label>
+        </div>
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="notify_sms" id="notify-sms-check" {% if user and user.notify_sms %}checked{% endif %}>
+          <label class="form-check-label" for="notify-sms-check">Send text reminders</label>
+        </div>
+      </div>
+      <div class="form-text mb-3">Which reminders they get is set on each program's tab.</div>
+      <div class="form-check mb-2">
+        <input type="checkbox" class="form-check-input" name="is_master_admin" id="master-admin-check" {% if is_master %}checked{% endif %}>
+        <label class="form-check-label" for="master-admin-check">Master Admin <span class="text-muted small">(<strong>Master admin:</strong> can work in every program, including Admin and this page)</span></label>
+      </div>
+      {% if user %}
+      <div class="form-check mb-2">
+        <input type="checkbox" class="form-check-input" name="active" id="active-check" {% if user.active %}checked{% endif %}>
+        <label class="form-check-label" for="active-check">Active <span class="text-muted small">(unticked = can't log in to anything)</span></label>
+      </div>
+      {% endif %}
+      <div class="form-text">More than one role? The first ticked role is what they see when they log in. The "Switch role" chips at the top of the page switch to any of their other roles.</div>
     </div>
-    {% if not user %}
-    <div class="mb-3">
-      <label class="form-label">Username *</label>
-      <input type="text" name="username" class="form-control" value="{{ username or '' }}" required>
-      {#- HUB-28: how a staff login and a My Aircraft owner account link up. #}
-      <div class="form-text" data-change="HUB-28">If this person also has a My Aircraft owner account, use the same email address as their username and the same password - they'll then see every program with one login.</div>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Starting Password *</label>
-      <input type="text" name="password" class="form-control" required value="{{ typed_password or '' }}">
-      <div class="form-text">Give this to them - they can log in with it right away, from the login page.</div>
-    </div>
-    {% else %}
-    <div class="mb-3">
-      <label class="form-label">Username</label>
-      <div><code>{{ user.username }}</code></div>
-      <div class="form-text" data-change="HUB-28">If this person also has a My Aircraft owner account, their username here should be the same email address as that account, with the same password - they'll then see every program with one login.</div>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Current Password <span class="text-muted small">(visible to admins only)</span></label>
-      {#- HUB-25: the password only shows behind a Show tap, here on the
-         Edit page - never on the Accounts list. #}
-      <div data-change="HUB-25">
-        <code id="current-pw" class="d-none">{{ user.password_plain or 'Not available - set below to enable this' }}</code>
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="current-pw-toggle"><i class="bi bi-eye"></i> Show</button>
+
+    {#- ===================== Flight School (Fly with Kate!) ===================== #}
+    <div class="acct-pane" data-pane="flight" hidden>
+      <div class="acct-grant form-check mb-2">
+        <input type="checkbox" class="form-check-input" name="grant_flight" id="grant-flight" data-grant="flight" {{ 'checked' if g_flight }}>
+        <label class="form-check-label" for="grant-flight">Grant Flight School access <span class="text-muted small fw-normal">(Fly with Kate!)</span></label>
+      </div>
+      <div class="acct-master-note form-text mb-2"{% if not is_master %} hidden{% endif %}>Master Admin already reaches Flight School. Roles here only matter if they should also show up as a CFI or student.</div>
+      <div data-grant-body="flight"{% if not g_flight %} hidden{% endif %}>
+        <label class="form-label d-block fw-semibold mb-1" data-change="SEAM-3">Fly with Kate! Roles</label>
+        {% for value, label in [('admin', 'Flight Admin'), ('cfi', 'CFI / Instructor'), ('student', 'Student')] %}
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" data-role="{{ value }}" name="flight_roles" value="{{ value }}" id="flight-role-{{ value }}" {% if value in _pre_flight %}checked{% endif %}>
+          <label class="form-check-label" for="flight-role-{{ value }}">{{ label }}</label>
+        </div>
+        {% endfor %}
+        <div class="form-text"><strong>Flight Admin:</strong> runs Fly with Kate! and Flight Academy.</div>
+        <div class="form-check mt-2">
+          <input type="checkbox" class="form-check-input" name="can_bill" id="can-bill-check" {% if user and user.can_bill %}checked{% endif %}>
+          <label class="form-check-label" for="can-bill-check">Can Manage Billing <span class="text-muted small">(sees $ totals, balances and the Billing page - most instructors shouldn't)</span></label>
+        </div>
+        <div class="form-check mb-2">
+          <input type="checkbox" class="form-check-input" name="notify_flight_reminders" id="notify-flight-check" {% if user and user.notify_flight_reminders %}checked{% endif %}>
+          <label class="form-check-label" for="notify-flight-check">Reminders for their upcoming flights</label>
+        </div>
+
+        <div class="mb-2" style="max-width:28rem;">
+          <label class="form-label small mb-0" for="type-ratings">Type ratings <span class="text-muted">(aircraft types they're rated in, comma between each)</span></label>
+          <input type="text" name="type_ratings" id="type-ratings" class="form-control" maxlength="400" value="{{ user.type_ratings if user and user.type_ratings else '' }}" placeholder="e.g. CE-525S, B-737">
+        </div>
+
+        {#- ---------- CFI details ---------- #}
+        <div class="acct-sub" data-role-body="cfi"{% if 'cfi' not in _pre_flight %} hidden{% endif %}>
+          <h6 class="mb-2"><i class="bi bi-person-workspace"></i> CFI details</h6>
+          {% if cfi_row and not cfi_row.is_station %}
+          <input type="hidden" name="cfi_fields" value="1">
+          <div class="row g-2 mb-2">
+            <div class="col-6"><label class="form-label small mb-0">Instructor Rate ($/hr) <span class="text-muted">(billed)</span></label>
+              <input type="number" step="any" name="cfi_rate_per_hour" class="form-control" value="{{ cfi_row.rate_per_hour if cfi_row.rate_per_hour is not none else '' }}"></div>
+            <div class="col-6"><label class="form-label small mb-0">Pay Rate ($/hr) <span class="text-muted">(what you pay them)</span></label>
+              <input type="number" step="0.01" min="0" name="cfi_pay_rate" class="form-control" value="{{ '%.2f'|format(cfi_row.pay_rate_per_hour) if cfi_row.pay_rate_per_hour is not none else '' }}" placeholder="0.00"></div>
+          </div>
+          <label class="form-label small mb-1 d-block">Credentials &amp; aircraft endorsements</label>
+          <div class="d-flex flex-wrap gap-3 mb-2">
+            {% for code, label in cfi_credentials %}
+            <div class="form-check"><input type="checkbox" class="form-check-input" name="cfi_{{ code }}" id="acct-{{ code }}" {{ 'checked' if cfi_row[code] }}><label class="form-check-label" for="acct-{{ code }}">{{ label }}</label></div>
+            {% endfor %}
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-md-4"><label class="form-label small mb-0">Gender <span class="text-muted">(woman-instructor filter)</span></label>
+              <select name="cfi_gender" class="form-select"><option value="">- Not specified -</option>
+                <option value="F" {{ 'selected' if cfi_row.gender == 'F' }}>Female</option><option value="M" {{ 'selected' if cfi_row.gender == 'M' }}>Male</option></select></div>
+            <div class="col-6 col-md-4"><label class="form-label small mb-0">Medical Class</label>
+              <select name="cfi_medical_class" class="form-select"><option value="">- Not tracked -</option>
+                {% for code, label in cfi_medical_classes %}<option value="{{ code }}" {{ 'selected' if cfi_row.medical_class == code }}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="col-6 col-md-4"><label class="form-label small mb-0">Medical Expires</label>
+              <input type="date" name="cfi_medical_expires" class="form-control" value="{{ cfi_row.medical_expires or '' }}"></div>
+            <div class="col-6"><label class="form-label small mb-0">CFI Certificate #</label>
+              <input type="text" name="cfi_cfi_cert_number" maxlength="40" class="form-control" value="{{ cfi_row.cfi_cert_number or '' }}"></div>
+            <div class="col-6"><label class="form-label small mb-0">CFI Certificate Expires</label>
+              <input type="date" name="cfi_cfi_cert_expires" class="form-control" value="{{ cfi_row.cfi_cert_expires or '' }}"></div>
+          </div>
+          <label class="form-label small mb-1 d-block">Schedule Color</label>
+          <input type="hidden" name="cfi_color" id="acct-color" value="{{ cfi_row.color or '' }}">
+          <div class="d-flex flex-wrap gap-2 mb-2" id="acct-swatches">
+            {% for c in instructor_colors %}{% set taken = c in (used_colors or []) %}
+            <button type="button" class="acct-swatch" data-color="{{ c }}" {{ 'disabled' if taken }} title="{{ 'Already in use' if taken else c }}"
+                    style="width:30px;height:30px;border-radius:6px;background:{{ c }};opacity:{{ '0.25' if taken else '1' }};border:3px solid {{ '#212529' if cfi_row.color == c else 'transparent' }};"></button>
+            {% endfor %}
+            <button type="button" class="acct-swatch" data-color="" title="No color (use default)" style="width:30px;height:30px;border-radius:6px;background:#fff;border:3px dashed {{ '#212529' if not cfi_row.color else '#adb5bd' }};font-size:.7rem;color:#6c757d;">&times;</button>
+          </div>
+          <label class="form-label small mb-1 d-block">Signature</label>
+          {% if cfi_row.signature %}
+          <img src="{{ cfi_row.signature }}" alt="Saved signature" style="max-width:260px; background:#fff; border:1px solid #dee2e6; border-radius:8px;" class="d-block mb-1">
+          {% if user and cfi_row.user_id != session.get('user_id') %}
+          <div class="form-check"><input type="checkbox" class="form-check-input" name="cfi_clear_signature" value="1" id="acct-clear-sig"><label class="form-check-label small" for="acct-clear-sig">Remove this signature</label></div>
+          {% endif %}
+          {% else %}<div class="small text-muted">None on file.</div>{% endif %}
+          <div class="form-text"><i class="bi bi-lock"></i> Only {{ cfi_row.name }} can sign, on their own My CFI Profile. Nobody signs for another CFI.</div>
+          <div class="d-flex flex-wrap gap-2 mt-2">
+            <a href="{{ url_for('flight.cfi_pay', cfi_id=cfi_row.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-cash-stack"></i> Pay owed</a>
+            <a href="{{ url_for('endorse.given', cfi_id=cfi_row.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pen"></i> Endorsements they signed</a>
+          </div>
+          {% else %}
+          <div class="mb-2">
+            <label class="form-label small mb-0">CFI pay rate <span class="text-muted">($ per instructed hour)</span></label>
+            <input type="number" step="0.01" min="0" name="cfi_pay_rate" class="form-control" style="max-width:12rem;" value="{{ preset.cfi_pay_rate if preset else '' }}" placeholder="0.00">
+          </div>
+          <div class="form-text">Save to set up the rest of their CFI details (rates, credentials, medical, certificate, schedule color).</div>
+          {% endif %}
+        </div>
+
+        {#- ---------- Student details ---------- #}
+        <div class="acct-sub" data-role-body="student"{% if 'student' not in _pre_flight %} hidden{% endif %}>
+          <h6 class="mb-2"><i class="bi bi-person-video3"></i> Student details</h6>
+          {% if grant_student and stu is defined and not stu_station %}
+          <input type="hidden" name="student_fields" value="1">
+          <div class="row g-2 mb-2" id="student-details" data-change="RES-DEFAULT">
+            <div class="col-md-6"><label class="form-label small mb-0">Pilot Certificate</label>
+              <select name="pilot_certificate" class="form-select"><option value="">- None yet -</option>
+                {% for code, label, short, color, icon in pilot_certificates %}<option value="{{ code }}" {{ 'selected' if stu.pilot_certificate == code }}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="col-md-6"><label class="form-label small mb-0" for="training-goal-select">Training toward <span class="text-muted">(Resources opens on it)</span></label>
+              <select name="training_goal" id="training-goal-select" class="form-select"><option value="">- Not set (follows their certificate) -</option>
+                {% for code, label, cat in training_goals %}<option value="{{ code }}" {{ 'selected' if (stu.training_goal or '') == code }}>{{ label }}</option>{% endfor %}</select></div>
+          </div>
+          <label class="form-label small mb-1">Ratings &amp; Endorsements</label>
+          <div class="d-flex flex-wrap gap-3 mb-2">
+            {% for code, label in pilot_ratings %}<div class="form-check"><input type="checkbox" class="form-check-input" name="rating_{{ code }}" id="adm-rating-{{ code }}" {{ 'checked' if code in (stu.pilot_ratings or '').split(',') }}><label class="form-check-label" for="adm-rating-{{ code }}">{{ label }}</label></div>{% endfor %}
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6"><label class="form-label small mb-0">Medical Class</label>
+              <select name="medical_class" class="form-select"><option value="">- Not tracked -</option>
+                {% for code, label in medical_classes %}<option value="{{ code }}" {{ 'selected' if stu.medical_class == code }}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="col-6"><label class="form-label small mb-0">Medical Expires</label>
+              <input type="date" name="medical_expires" class="form-control" value="{{ stu.medical_expires or '' }}"></div>
+            <div class="col-6"><label class="form-label small mb-0">First solo</label><input type="date" name="first_solo_date" class="form-control" value="{{ stu.first_solo_date or '' }}"></div>
+            <div class="col-6"><label class="form-label small mb-0">TSA verified</label><input type="date" name="tsa_verified_date" class="form-control" value="{{ stu.tsa_verified_date or '' }}"></div>
+            <div class="col-6"><label class="form-label small mb-0">Solo sign-off</label><input type="date" name="solo_signoff_date" class="form-control" value="{{ stu.solo_signoff_date or '' }}"></div>
+            <div class="col-6"><label class="form-label small mb-0">Solo sign-off expires</label><input type="date" name="solo_signoff_expires" class="form-control" value="{{ stu.solo_signoff_expires or '' }}"></div>
+            <div class="col-4"><label class="form-label small mb-0">Instructor ($/hr)</label><input type="number" step="any" name="rate_override" class="form-control" value="{{ stu.rate_override if stu.rate_override is not none else '' }}"></div>
+            <div class="col-4"><label class="form-label small mb-0">Plane ($/hr)</label><input type="number" step="any" name="plane_rate_override" class="form-control" value="{{ stu.plane_rate_override if stu.plane_rate_override is not none else '' }}"></div>
+            <div class="col-4"><label class="form-label small mb-0">Sim ($/hr)</label><input type="number" step="any" name="sim_rate_override" class="form-control" value="{{ stu.sim_rate_override if stu.sim_rate_override is not none else '' }}"></div>
+            <div class="col-6"><label class="form-label small mb-0">Solo currency (days)</label><input type="number" step="1" min="1" name="solo_currency_days" class="form-control" value="{{ stu.solo_currency_days or '' }}" placeholder="{{ default_solo_currency_days }}"></div>
+            <div class="col-6"><label class="form-label small mb-0">How they usually pay</label>
+              <select name="pay_preference" class="form-select"><option value="">- Not set -</option>{% for m in pay_preferences %}<option value="{{ m }}" {{ 'selected' if stu.pay_preference == m }}>{{ m }}</option>{% endfor %}</select></div>
+          </div>
+          <div class="form-text mb-1">Blank rates use the school's normal rates.</div>
+          <div class="form-check mb-2"><input type="checkbox" class="form-check-input" name="notify_booking_confirm" id="adm-notify-booking" {{ 'checked' if stu.notify_booking_confirm }}><label class="form-check-label" for="adm-notify-booking">Push notification when a flight is booked for them</label></div>
+          <a href="{{ url_for('flight.student_edit', student_id=stu.id) }}#account" class="btn btn-outline-secondary btn-sm"><i class="bi bi-journal-text"></i> Lessons, landings, funds &amp; endorsements</a>
+          {% elif stu is defined and stu_station %}
+          <div class="form-text">This is a shared station / guest profile, so it has no student details.</div>
+          {% else %}
+          <div class="form-text">Save to set up the rest of their student details (certificate, medical, rates, solo sign-off).</div>
+          {% endif %}
+        </div>
       </div>
     </div>
-    <div class="mb-3">
-      <label class="form-label">Reset Password <span class="text-muted small">(leave blank to keep current)</span></label>
-      <input type="text" name="password" class="form-control" value="{{ typed_password or '' }}">
-    </div>
-    {% endif %}
 
-    {#- ===================== Access ===================== #}
-    <hr class="my-3">
-    <h6 class="mb-2"><i class="bi bi-shield-lock"></i> Access</h6>
-    {#- Every role is its own checkbox, so one person can hold several
-       (e.g. Admin AND Inspector, or CFI AND Student). The first ticked one
-       in each list is their normal role; they switch to the others with the
-       "View as" chips in the header, and can use the app fully as that role. #}
-    {% set _pre_shop = preset.shop_roles if preset else (user_shop_roles(user) if user else []) %}
-    {% set _pre_flight = preset.flight_roles if preset else (user_flight_roles(user) if user else []) %}
-    <div class="row">
-      <div class="col-6 mb-3">
-        <label class="form-label d-block" data-change="SEAM-3">Winds Aloft Roles</label>
+    {#- ===================== Flight Academy ===================== #}
+    <div class="acct-pane" data-pane="academy" hidden>
+      <div class="acct-grant form-check mb-2">
+        <input type="checkbox" class="form-check-input" name="academy_access" id="academy-access-check" data-grant="academy" {{ 'checked' if g_academy }}>
+        <label class="form-check-label" for="academy-access-check">Grant Flight Academy access <span class="text-muted small fw-normal">(ground school, progress, logbook)</span></label>
+      </div>
+      <div id="courses-all-note" class="alert alert-info py-2 small d-none"><i class="bi bi-info-circle"></i> Master Admin sees every ground school, so enrolling changes nothing for this account.</div>
+      <div data-grant-body="academy"{% if not g_academy %} hidden{% endif %}>
+        {% if user and grant_student %}
+        <div id="courses" style="scroll-margin-top:80px;">
+          <div id="courses-need-academy" class="alert alert-warning py-2 small d-none"><i class="bi bi-exclamation-triangle"></i> Ground school sits inside Flight Academy. Tick <strong>Flight Academy Access</strong> above and save to enroll this account in individual ground schools.</div>
+          <div id="courses-list">
+            <div class="small fw-bold mb-1"><i class="bi bi-mortarboard"></i> Enroll in individual ground schools</div>
+            <div class="form-text mb-2">They see only the courses they're enrolled in. Each change asks you to confirm and saves right away.</div>
+            {% if user.groundschool_access %}
+            <div class="alert alert-warning py-2 small d-flex align-items-center justify-content-between gap-2">
+              <span>An older setting still gives this account <strong>every</strong> ground school, so enrolling does nothing yet.</span>
+              <button type="submit" form="cg-legacy" class="btn btn-outline-danger btn-sm text-nowrap">Switch to enrollment</button>
+            </div>
+            {% endif %}
+            {% for c in grant_courses %}
+            <div class="d-flex align-items-center justify-content-between gap-2 py-1 border-bottom">
+              <span>{{ c.name }}{% if c.id in granted_ids %} <span class="badge text-bg-success ms-1">Enrolled</span>{% endif %}</span>
+              {% if c.id in granted_ids %}
+              <button type="submit" form="cg-{{ c.id }}" class="btn btn-outline-danger btn-sm">Unenroll</button>
+              {% else %}
+              <button type="submit" form="cg-{{ c.id }}" class="btn btn-primary btn-sm js-enroll">Enroll</button>
+              {% endif %}
+            </div>
+            {% else %}
+            <div class="small">No courses are ready yet. Add one under Ground School first.</div>
+            {% endfor %}
+          </div>
+        </div>
+        {% else %}
+        <div class="form-text">Ground school courses are enrolled per student. Tick <strong>Student</strong> on the Flight School tab and save, then enroll them here.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {#- ===================== Shop (Winds Aloft) ===================== #}
+    <div class="acct-pane" data-pane="shop" hidden>
+      <div class="acct-grant form-check mb-2">
+        <input type="checkbox" class="form-check-input" name="grant_shop" id="grant-shop" data-grant="shop" {{ 'checked' if g_shop }}>
+        <label class="form-check-label" for="grant-shop">Grant Shop access <span class="text-muted small fw-normal">(Winds Aloft)</span></label>
+      </div>
+      <div class="acct-master-note form-text mb-2"{% if not is_master %} hidden{% endif %}>Master Admin already reaches the shop. Roles here only matter for what they see after switching role.</div>
+      <div data-grant-body="shop"{% if not g_shop %} hidden{% endif %}>
+        <label class="form-label d-block fw-semibold mb-1" data-change="SEAM-3">Winds Aloft Roles</label>
         {% for value, label, hint in [
             ('admin', 'Shop Admin', 'full Winds Aloft access'),
             ('tech', 'Tech', 'scan, labor, no costs/settings'),
@@ -69,241 +315,109 @@
           <label class="form-check-label" for="shop-role-{{ value }}">{{ label }} <span class="text-muted small">({{ hint }})</span></label>
         </div>
         {% endfor %}
-        <div class="form-text">None ticked = no Winds Aloft access.<br><strong>Shop Admin:</strong> runs Winds Aloft and manages Customers and My Aircraft.</div>
-      </div>
-      <div class="col-6 mb-3">
-        <label class="form-label d-block" data-change="SEAM-3">Fly with Kate! Roles</label>
-        {% for value, label in [('admin', 'Flight Admin'), ('cfi', 'CFI / Instructor'), ('student', 'Student')] %}
-        <div class="form-check">
-          <input type="checkbox" class="form-check-input" name="flight_roles" value="{{ value }}" id="flight-role-{{ value }}" {% if value in _pre_flight %}checked{% endif %}>
-          <label class="form-check-label" for="flight-role-{{ value }}">{{ label }}</label>
-        </div>
-        {% endfor %}
-        <div class="form-text">None ticked = no Fly with Kate! access.<br><strong>Flight Admin:</strong> runs Fly with Kate! and Flight Academy.</div>
-      </div>
-    </div>
-    {% if user %}
-    {#- SHOP-08: how much of the shop calendar an Apprentice gets. Only shown while the Apprentice box is ticked. #}
-    {% set _cal = user['apprentice_calendar'] if user['apprentice_calendar'] in ('limited', 'basic') else 'limited' %}
-    <div class="border rounded p-2 mb-3" id="apprentice-calendar-box" style="{{ '' if 'apprentice' in _pre_shop else 'display:none;' }}" data-change="SHOP-08">
-      <label class="form-label fw-bold mb-1">Calendar for this apprentice</label>
-      <div class="form-check">
-        <input type="radio" class="form-check-input" name="apprentice_calendar" value="limited" id="app-cal-limited" {% if _cal == 'limited' %}checked{% endif %}>
-        <label class="form-check-label" for="app-cal-limited"><strong>Limited</strong> <span class="text-muted small">- they only see their own items: the projects where a task is assigned to them.</span></label>
-      </div>
-      <div class="form-check">
-        <input type="radio" class="form-check-input" name="apprentice_calendar" value="basic" id="app-cal-basic" {% if _cal == 'basic' %}checked{% endif %}>
-        <label class="form-check-label" for="app-cal-basic"><strong>Basic</strong> <span class="text-muted small">- they see the whole shop calendar, but no notes and no private items.</span></label>
-      </div>
-    </div>
-    <script>
-      (function () {
-        var box = document.getElementById('apprentice-calendar-box');
-        var tick = document.getElementById('shop-role-apprentice');
-        if (box && tick) tick.addEventListener('change', function () { box.style.display = tick.checked ? '' : 'none'; });
-      })();
-    </script>
-    {% endif %}
-    <div class="form-text mb-3">More than one role ticked? The first ticked role is what they see when they log in. The "Switch role" chips at the top of the page switch to any of their other roles, and everything works as it does for that role.</div>
-    <div class="form-check mb-2">
-      <input type="checkbox" class="form-check-input" name="is_master_admin" id="master-admin-check" {% if user and user.is_master_admin %}checked{% endif %}>
-      <label class="form-check-label" for="master-admin-check">Master Admin <span class="text-muted small">(<strong>Master admin:</strong> can work in every program, including Admin and this page)</span></label>
-    </div>
-    <div class="form-check mb-2">
-      <input type="checkbox" class="form-check-input" name="can_bill" id="can-bill-check" {% if user and user.can_bill %}checked{% endif %}>
-      <label class="form-check-label" for="can-bill-check">Can Manage Billing <span class="text-muted small">(Fly with Kate!: sees $ totals / outstanding balances and the Billing page - most instructors shouldn't)</span></label>
-    </div>
-    <div class="form-check mb-2">
-      <input type="checkbox" class="form-check-input" name="academy_access" id="academy-access-check" {% if user and user.academy_access %}checked{% endif %}>
-      <label class="form-check-label" for="academy-access-check">Flight Academy Access <span class="text-muted small">(the "Flight Academy" tile on the program picker - student progress, ratings &amp; lesson plans; master admins always have it)</span></label>
-    </div>
-    {% if user and grant_student %}
-    <div class="ms-4 mb-3" id="courses" style="scroll-margin-top:80px;">
-      <div id="courses-all-note" class="alert alert-info py-2 small d-none"><i class="bi bi-info-circle"></i> Master Admin sees every ground school, so enrolling changes nothing for this account.</div>
-      <div id="courses-need-academy" class="alert alert-warning py-2 small d-none"><i class="bi bi-exclamation-triangle"></i> Ground school sits inside Flight Academy. Tick <strong>Flight Academy Access</strong> above and save to enroll this account in individual ground schools.</div>
-      <div id="courses-list">
-        <div class="small fw-bold mb-1"><i class="bi bi-mortarboard"></i> Enroll in individual ground schools</div>
-        <div class="form-text mb-2">Flight Academy Access doesn't open ground school by itself: {{ user.name }} sees only the courses they're enrolled in, read only. Each change asks you to confirm and saves right away.</div>
-        {% if user.groundschool_access %}
-        <div class="alert alert-warning py-2 small d-flex align-items-center justify-content-between gap-2">
-          <span>An older setting still gives this account <strong>every</strong> ground school, so enrolling does nothing yet.</span>
-          <button type="submit" form="cg-legacy" class="btn btn-outline-danger btn-sm text-nowrap">Switch to enrollment</button>
+        <div class="form-text mb-2"><strong>Shop Admin:</strong> runs Winds Aloft and manages Customers and My Aircraft.</div>
+        {% if user %}
+        {#- SHOP-08: how much of the shop calendar an Apprentice gets. Only shown while the Apprentice box is ticked. #}
+        {% set _cal = user['apprentice_calendar'] if user['apprentice_calendar'] in ('limited', 'basic') else 'limited' %}
+        <div class="border rounded p-2 mb-2" id="apprentice-calendar-box" style="{{ '' if 'apprentice' in _pre_shop else 'display:none;' }}" data-change="SHOP-08">
+          <label class="form-label fw-bold mb-1">Calendar for this apprentice</label>
+          <div class="form-check">
+            <input type="radio" class="form-check-input" name="apprentice_calendar" value="limited" id="app-cal-limited" {% if _cal == 'limited' %}checked{% endif %}>
+            <label class="form-check-label" for="app-cal-limited"><strong>Limited</strong> <span class="text-muted small">- only their own items: projects with a task assigned to them.</span></label>
+          </div>
+          <div class="form-check">
+            <input type="radio" class="form-check-input" name="apprentice_calendar" value="basic" id="app-cal-basic" {% if _cal == 'basic' %}checked{% endif %}>
+            <label class="form-check-label" for="app-cal-basic"><strong>Basic</strong> <span class="text-muted small">- the whole shop calendar, but no notes and no private items.</span></label>
+          </div>
         </div>
         {% endif %}
-        {% for c in grant_courses %}
-        <div class="d-flex align-items-center justify-content-between gap-2 py-1 border-bottom">
-          <span>{{ c.name }}{% if c.id in granted_ids %} <span class="badge text-bg-success ms-1">Enrolled</span>{% endif %}</span>
-          {% if c.id in granted_ids %}
-          <button type="submit" form="cg-{{ c.id }}" class="btn btn-outline-danger btn-sm">Unenroll</button>
-          {% else %}
-          <button type="submit" form="cg-{{ c.id }}" class="btn btn-primary btn-sm js-enroll">Enroll</button>
-          {% endif %}
+
+        <div class="acct-sub">
+          {#- One person, every role: their shop badge clocks labor at its own
+             rate, and Payroll adds it to their CFI pay as one person. #}
+          {% set _linked = linked_laborers|default([]) %}
+          {% set _unlinked = unlinked_laborers|default([]) %}
+          <h6 class="mb-1"><i class="bi bi-person-badge"></i> Worker badge <span class="text-muted small fw-normal">(scans in/out for labor hours)</span></h6>
+          {% for l in _linked %}
+          <input type="hidden" name="badge_{{ l.id }}_shown" value="1">
+          <div class="row g-2 align-items-end mb-2 border-bottom pb-2">
+            <div class="col-12 small fw-semibold">{{ l.name }} <span class="text-muted fw-normal">&middot; code {{ l.code }}</span></div>
+            <div class="col-5 col-sm-4"><label class="form-label small mb-0">Hourly rate ($)</label>
+              <input type="number" step="0.01" min="0" name="badge_{{ l.id }}_rate" class="form-control" value="{{ '%.2f'|format(l.rate or 0) }}"></div>
+            <div class="col-auto"><div class="form-check mb-1"><input type="checkbox" class="form-check-input" name="badge_{{ l.id }}_active" id="badge-active-{{ l.id }}" {{ 'checked' if l.active }}><label class="form-check-label small" for="badge-active-{{ l.id }}">Active</label></div></div>
+            <div class="col-auto"><div class="form-check mb-1"><input class="form-check-input" type="checkbox" name="unlink_badge" value="{{ l.id }}" id="unlink-{{ l.id }}"><label class="form-check-label small text-muted" for="unlink-{{ l.id }}">Unlink</label></div></div>
+            <div class="col-auto"><a href="{{ url_for('laborer_label', laborer_id=l.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer"></i> Badge</a></div>
+          </div>
+          {% endfor %}
+          {% set _pre_badge = preset.badge if preset else '' %}
+          <div class="row g-2 align-items-end">
+            <div class="col-sm-7">
+              <select name="badge" class="form-select" id="badge-select">
+                <option value="">{{ 'Keep as is' if _linked else 'No shop badge' }}</option>
+                <option value="new" {% if _pre_badge == 'new' %}selected{% endif %}>Make a new badge for them</option>
+                {% if _unlinked %}
+                <optgroup label="Link an existing badge (same person)">
+                  {% for l in _unlinked %}
+                  <option value="{{ l.id }}" {% if _pre_badge == l.id|string %}selected{% endif %}>{{ l.name }} (${{ '%.2f'|format(l.rate or 0) }}/hr){% if not l.active %} - inactive{% endif %}</option>
+                  {% endfor %}
+                </optgroup>
+                {% endif %}
+              </select>
+            </div>
+            <div class="col-sm-5" id="badge-rate-wrap">
+              <label class="form-label small mb-0">Shop hourly rate ($)</label>
+              <input type="number" step="0.01" min="0" name="badge_rate" class="form-control" value="{{ preset.badge_rate if preset else '' }}" placeholder="0.00">
+            </div>
+          </div>
+        </div>
+
+        <div class="acct-sub">
+          <h6 class="mb-1"><i class="bi bi-bell"></i> Shop reminders</h6>
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" name="notify_low_stock" id="notify-low-stock-check" {% if user and user.notify_low_stock %}checked{% endif %}>
+            <label class="form-check-label" for="notify-low-stock-check">Low parts stock</label>
+          </div>
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" name="notify_maintenance" id="notify-maintenance-check" {% if user and user.notify_maintenance %}checked{% endif %}>
+            <label class="form-check-label" for="notify-maintenance-check">Maintenance/inspection due</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {#- ===================== Customer (My Aircraft owner) ===================== #}
+    <div class="acct-pane" data-pane="customer" hidden>
+      <div class="acct-grant form-check mb-2">
+        <input type="hidden" name="customer_tab" value="1">
+        <input type="checkbox" class="form-check-input" name="grant_customer" id="grant-customer" data-grant="customer" {{ 'checked' if g_customer }}>
+        <label class="form-check-label" for="grant-customer">Grant Customer access <span class="text-muted small fw-normal">(My Aircraft owner portal)</span></label>
+      </div>
+      <div data-grant-body="customer"{% if not g_customer %} hidden{% endif %}>
+        {% if linked_customer is defined and linked_customer %}
+        <div class="small text-muted mb-2">Customer login: <code>{{ linked_customer.email }}</code> - same password as their login here.</div>
+        <div class="mb-2" style="max-width:16rem;">
+          <label class="form-label small mb-0">Customer phone</label>
+          <input type="text" name="customer_phone" class="form-control" value="{{ linked_customer.phone or '' }}">
         </div>
         {% else %}
-        <div class="small">No courses are ready yet. Add one under Ground School first.</div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-    {% if user %}
-    <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" name="active" id="active-check" {% if user.active %}checked{% endif %}>
-      <label class="form-check-label" for="active-check">Active</label>
-    </div>
-    {% endif %}
-
-    {#- ===================== Profiles ===================== #}
-    {% if user and (cfi_profile or student_profile or linked_laborers) %}
-    <hr class="my-3">
-    <h6 class="mb-2"><i class="bi bi-person-vcard"></i> Profiles</h6>
-    <div class="form-text mb-2">Program-specific details (certs, ratings, medical, billing overrides) live on that program's own profile page, linked to this account.</div>
-    {% if grant_student and stu is defined and not stu_station %}
-    <div class="card card-body mb-3" id="student-details" data-change="RES-DEFAULT">
-      <input type="hidden" name="student_fields" value="1">
-      <div class="small fw-bold mb-2"><i class="bi bi-mortarboard"></i> Student details <span class="text-muted fw-normal">(the same as the student's Edit page; saves with Save Changes)</span></div>
-      <div class="row g-2 mb-2">
-        <div class="col-md-6"><label class="form-label small mb-0">Pilot Certificate</label>
-          <select name="pilot_certificate" class="form-select"><option value="">- None yet -</option>
-            {% for code, label, short, color, icon in pilot_certificates %}<option value="{{ code }}" {{ 'selected' if stu.pilot_certificate == code }}>{{ label }}</option>{% endfor %}</select></div>
-        <div class="col-md-6"><label class="form-label small mb-0" for="training-goal-select">Training toward <span class="text-muted">(Resources opens on it)</span></label>
-          <select name="training_goal" id="training-goal-select" class="form-select"><option value="">- Not set (follows their certificate) -</option>
-            {% for code, label, cat in training_goals %}<option value="{{ code }}" {{ 'selected' if (stu.training_goal or '') == code }}>{{ label }}</option>{% endfor %}</select></div>
-      </div>
-      <label class="form-label small mb-1">Ratings &amp; Endorsements</label>
-      <div class="d-flex flex-wrap gap-3 mb-2">
-        {% for code, label in pilot_ratings %}<div class="form-check"><input type="checkbox" class="form-check-input" name="rating_{{ code }}" id="adm-rating-{{ code }}" {{ 'checked' if code in (stu.pilot_ratings or '').split(',') }}><label class="form-check-label" for="adm-rating-{{ code }}">{{ label }}</label></div>{% endfor %}
-      </div>
-      <div class="row g-2 mb-2">
-        <div class="col-md-6"><label class="form-label small mb-0">Medical Class</label>
-          <select name="medical_class" class="form-select"><option value="">- Not tracked -</option>
-            {% for code, label in medical_classes %}<option value="{{ code }}" {{ 'selected' if stu.medical_class == code }}>{{ label }}</option>{% endfor %}</select></div>
-        <div class="col-md-6"><label class="form-label small mb-0">Medical Expires</label>
-          <input type="date" name="medical_expires" class="form-control" value="{{ stu.medical_expires or '' }}"></div>
-      </div>
-      <div class="row g-2 mb-2">
-        <div class="col-md-6"><label class="form-label small mb-0">First solo</label><input type="date" name="first_solo_date" class="form-control" value="{{ stu.first_solo_date or '' }}"></div>
-        <div class="col-md-6"><label class="form-label small mb-0">TSA verified</label><input type="date" name="tsa_verified_date" class="form-control" value="{{ stu.tsa_verified_date or '' }}"></div>
-        <div class="col-md-6"><label class="form-label small mb-0">Solo sign-off</label><input type="date" name="solo_signoff_date" class="form-control" value="{{ stu.solo_signoff_date or '' }}"></div>
-        <div class="col-md-6"><label class="form-label small mb-0">Solo sign-off expires</label><input type="date" name="solo_signoff_expires" class="form-control" value="{{ stu.solo_signoff_expires or '' }}"></div>
-      </div>
-      <div class="row g-2 mb-2">
-        <div class="col-md-4"><label class="form-label small mb-0">Instructor Rate ($/hr)</label><input type="number" step="any" name="rate_override" class="form-control" value="{{ stu.rate_override if stu.rate_override is not none else '' }}"></div>
-        <div class="col-md-4"><label class="form-label small mb-0">Plane Rate ($/hr)</label><input type="number" step="any" name="plane_rate_override" class="form-control" value="{{ stu.plane_rate_override if stu.plane_rate_override is not none else '' }}"></div>
-        <div class="col-md-4"><label class="form-label small mb-0">Sim Rate ($/hr)</label><input type="number" step="any" name="sim_rate_override" class="form-control" value="{{ stu.sim_rate_override if stu.sim_rate_override is not none else '' }}"></div>
-        <div class="col-md-6"><label class="form-label small mb-0">Solo Currency Interval (days)</label><input type="number" step="1" min="1" name="solo_currency_days" class="form-control" value="{{ stu.solo_currency_days or '' }}" placeholder="{{ default_solo_currency_days }}"></div>
-        <div class="col-md-6"><label class="form-label small mb-0">How They Usually Pay</label>
-          <select name="pay_preference" class="form-select"><option value="">- Not set -</option>{% for m in pay_preferences %}<option value="{{ m }}" {{ 'selected' if stu.pay_preference == m }}>{{ m }}</option>{% endfor %}</select></div>
-      </div>
-      <div class="form-check"><input type="checkbox" class="form-check-input" name="notify_booking_confirm" id="adm-notify-booking" {{ 'checked' if stu.notify_booking_confirm }}><label class="form-check-label" for="adm-notify-booking">Push notification when a flight is booked for them</label></div>
-    </div>
-    {% endif %}
-    <div class="d-flex flex-wrap gap-2 mb-3">
-      {% if cfi_profile %}
-      <a href="{{ url_for('flight.cfi_edit', cfi_id=cfi_profile.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-airplane-engines"></i> CFI Profile</a>
-      {% endif %}
-      {% if student_profile %}
-      <a href="{{ url_for('flight.student_edit', student_id=student_profile.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-mortarboard"></i> Student Profile</a>
-      {% endif %}
-      {% for l in linked_laborers %}
-      <a href="{{ url_for('laborer_label', laborer_id=l.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-person-badge"></i> Shop Badge{% if linked_laborers|length > 1 %} ({{ l.name }}){% endif %}</a>
-      {% endfor %}
-    </div>
-    {% endif %}
-
-    {#- ===================== Pay ===================== #}
-    {#- One person, every role. A shop worker badge (clocks labor at
-       its own hourly rate) and a CFI profile (paid per instructed hour)
-       both hang off this one account, so Payroll adds them up as one
-       person even though each role has its own rate. #}
-    {% set _linked = linked_laborers|default([]) %}
-    {% set _unlinked = unlinked_laborers|default([]) %}
-    <hr class="my-3">
-    <h6 class="mb-1"><i class="bi bi-cash-stack"></i> Pay</h6>
-    <div class="form-text mb-2">One account per person. Their shop badge and CFI profile each keep their own rate, and Payroll shows their pay together.</div>
-    <div class="mb-3">
-      <label class="form-label">Shop worker badge <span class="text-muted small">(scans in/out for labor hours)</span></label>
-      {% for l in _linked %}
-      <div class="d-flex align-items-center gap-2 mb-1">
-        <span class="badge bg-light text-dark border"><i class="bi bi-person-badge"></i> {{ l.name }} &middot; ${{ '%.2f'|format(l.rate or 0) }}/hr{% if not l.active %} &middot; inactive{% endif %}</span>
-        <a href="{{ url_for('laborer_edit', laborer_id=l.id) }}" class="small">Edit rate</a>
-        <div class="form-check mb-0 ms-2">
-          <input class="form-check-input" type="checkbox" name="unlink_badge" value="{{ l.id }}" id="unlink-{{ l.id }}">
-          <label class="form-check-label small text-muted" for="unlink-{{ l.id }}">Unlink</label>
+        <div class="form-text mb-2">Saving creates their customer login with {{ 'their username' if (user and '@' in user.username) else 'their email from the Login tab' }} and the same password, so one login opens everything.</div>
+        {% endif %}
+        <label class="form-label small mb-1 d-block">Their aircraft <span class="text-muted">(what they see in My Aircraft)</span></label>
+        <div class="d-flex flex-wrap gap-3 mb-2">
+          {% for a in customer_assets|default([]) %}
+          <div class="form-check"><input type="checkbox" class="form-check-input" name="customer_asset_ids" value="{{ a.id }}" id="cust-asset-{{ a.id }}" {{ 'checked' if a.id in (customer_linked_ids or []) }}><label class="form-check-label" for="cust-asset-{{ a.id }}">{{ a.tag }}{% if a.make or a.model %} <span class="text-muted small">{{ a.make or '' }} {{ a.model or '' }}</span>{% endif %}</label></div>
+          {% else %}
+          <div class="small text-muted">No aircraft on file yet.</div>
+          {% endfor %}
         </div>
+        {% if linked_customer is defined and linked_customer %}
+        <a href="{{ url_for('customer_detail', customer_id=linked_customer.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-airplane"></i> Customer page</a>
+        {% endif %}
       </div>
-      {% endfor %}
-      {% set _pre_badge = preset.badge if preset else '' %}
-      <div class="row g-2 align-items-end">
-        <div class="col-sm-7">
-          <select name="badge" class="form-select" id="badge-select">
-            <option value="">{{ 'Keep as is' if _linked else 'No shop badge' }}</option>
-            <option value="new" {% if _pre_badge == 'new' %}selected{% endif %}>Make a new badge for them</option>
-            {% if _unlinked %}
-            <optgroup label="Link an existing badge (same person)">
-              {% for l in _unlinked %}
-              <option value="{{ l.id }}" {% if _pre_badge == l.id|string %}selected{% endif %}>{{ l.name }} (${{ '%.2f'|format(l.rate or 0) }}/hr){% if not l.active %} - inactive{% endif %}</option>
-              {% endfor %}
-            </optgroup>
-            {% endif %}
-          </select>
-        </div>
-        <div class="col-sm-5" id="badge-rate-wrap">
-          <label class="form-label small mb-0">Shop hourly rate ($)</label>
-          <input type="number" step="0.01" min="0" name="badge_rate" class="form-control" value="{{ preset.badge_rate if preset else '' }}" placeholder="0.00">
-        </div>
-      </div>
-    </div>
-    {% if cfi_profile or not user %}
-    <div class="mb-3" id="cfi-pay-wrap">
-      <label class="form-label">CFI pay rate <span class="text-muted small">($ per instructed hour{% if not user %} - used when Flight School Role is CFI{% endif %})</span></label>
-      <input type="number" step="0.01" min="0" name="cfi_pay_rate" class="form-control" style="max-width:12rem;"
-             value="{{ ('%.2f'|format(cfi_profile.pay_rate_per_hour) if cfi_profile and cfi_profile.pay_rate_per_hour is not none else '') if user else (preset.cfi_pay_rate if preset else '') }}" placeholder="0.00">
-    </div>
-    {% endif %}
-
-    {#- ===================== Contact & reminders ===================== #}
-    <hr class="my-3">
-    <h6 class="mb-2"><i class="bi bi-bell"></i> Contact &amp; reminders</h6>
-    <div class="row">
-      <div class="col-6 mb-3">
-        <label class="form-label">Email</label>
-        <input type="email" name="email" class="form-control" value="{{ user.email if user else '' }}" placeholder="name@example.com">
-      </div>
-      <div class="col-6 mb-3">
-        <label class="form-label">Mobile Phone <span class="text-muted small">(for texts)</span></label>
-        <input type="tel" name="phone" class="form-control" value="{{ user.phone if user else '' }}" placeholder="+15551234567">
-      </div>
-    </div>
-    <div class="row mb-2">
-      <div class="col-6">
-        <div class="form-check">
-          <input type="checkbox" class="form-check-input" name="notify_email" id="notify-email-check" {% if user and user.notify_email %}checked{% endif %}>
-          <label class="form-check-label" for="notify-email-check">Send email reminders</label>
-        </div>
-      </div>
-      <div class="col-6">
-        <div class="form-check">
-          <input type="checkbox" class="form-check-input" name="notify_sms" id="notify-sms-check" {% if user and user.notify_sms %}checked{% endif %}>
-          <label class="form-check-label" for="notify-sms-check">Send text reminders</label>
-        </div>
-      </div>
-    </div>
-    <div class="form-text mb-2">Choose how they get reminders (email, text) and which reminders they get:</div>
-    <div class="form-check">
-      <input type="checkbox" class="form-check-input" name="notify_low_stock" id="notify-low-stock-check" {% if user and user.notify_low_stock %}checked{% endif %}>
-      <label class="form-check-label" for="notify-low-stock-check">Low parts stock</label>
-    </div>
-    <div class="form-check">
-      <input type="checkbox" class="form-check-input" name="notify_maintenance" id="notify-maintenance-check" {% if user and user.notify_maintenance %}checked{% endif %}>
-      <label class="form-check-label" for="notify-maintenance-check">Maintenance/inspection due</label>
-    </div>
-    <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" name="notify_flight_reminders" id="notify-flight-check" {% if user and user.notify_flight_reminders %}checked{% endif %}>
-      <label class="form-check-label" for="notify-flight-check">Upcoming scheduled flights (for this person's own bookings)</label>
     </div>
 
     {#- DESIGN-8: Save, then Cancel, left-aligned. #}
-    <div class="d-flex gap-2" data-change="DESIGN-8">
+    <div class="d-flex gap-2 mt-4 pt-3 border-top" data-change="DESIGN-8">
       <button type="submit" class="btn btn-primary fw-bold">{{ 'Save Changes' if user else 'Create Account' }}</button>
       <a href="{{ url_for('admin_users_list') }}" class="btn btn-outline-secondary">Cancel</a>
     </div>
@@ -313,7 +427,7 @@
 <form id="cg-legacy" method="post" action="{{ url_for('admin_user_course_grant', user_id=user.id) }}" data-confirm="Remove {{ user.name }}'s older all-ground-schools setting? They will then see only the courses you enroll them in." data-confirm-title="Switch to enrollment" data-confirm-ok="Switch" data-confirm-style="danger">
   <input type="hidden" name="action" value="clear_full">
 </form>
-{#- One small form per course, outside the main form (forms can't nest); the Enroll / Unenroll buttons up in the Ground School Access section point at these with form="cg-ID". #}
+{#- One small form per course, outside the main form (forms can't nest); the Enroll / Unenroll buttons in the Flight Academy tab point at these with form="cg-ID". #}
 {% for c in grant_courses %}
 <form id="cg-{{ c.id }}" method="post" action="{{ url_for('admin_user_course_grant', user_id=user.id) }}" data-confirm="{{ ('Unenroll ' ~ user.name ~ ' from ' ~ c.name ~ '? They will no longer see this ground school.') if c.id in granted_ids else ('Enroll ' ~ user.name ~ ' in ' ~ c.name ~ '? They will be able to see this ground school.') }}" data-confirm-title="{{ 'Unenroll' if c.id in granted_ids else 'Enroll' }}" data-confirm-ok="{{ 'Unenroll' if c.id in granted_ids else 'Enroll' }}"{% if c.id in granted_ids %} data-confirm-style="danger"{% endif %}>
   <input type="hidden" name="rating_id" value="{{ c.id }}">
@@ -327,29 +441,93 @@
 {% block scripts %}
 <script>
 (function () {
-  var masterBox = document.getElementById('master-admin-check'), academyBox = document.getElementById('academy-access-check');
-  var courseNote = document.getElementById('courses-all-note'), needAcademy = document.getElementById('courses-need-academy');
-  var courseList = document.getElementById('courses-list');
-  function syncCourses() {
-    if (!courseNote || !needAcademy) return;
-    var master = !!(masterBox && masterBox.checked), academy = !!(academyBox && academyBox.checked);
-    courseNote.classList.toggle('d-none', !master);
-    needAcademy.classList.toggle('d-none', master || academy);
-    // The enroll options only appear once Flight Academy Access is ticked.
-    if (courseList) courseList.classList.toggle('d-none', master || !academy);
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
+  var tabField = $('#acct-tab-field');
+
+  // ---- tabs (remembered in the URL so Save and refresh land back here)
+  function show(name) {
+    if (!$('[data-pane="' + name + '"]')) name = 'login';
+    $$('.acct-pane').forEach(function (p) { p.hidden = p.getAttribute('data-pane') !== name; });
+    $$('#acct-tabs .nav-link').forEach(function (b) {
+      var on = b.getAttribute('data-tab') === name;
+      b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    tabField.value = name;
+    try { var u = new URL(location.href); u.searchParams.set('tab', name); history.replaceState(null, '', u); } catch (e) {}
   }
-  [masterBox, academyBox].forEach(function (b) { if (b) b.addEventListener('change', syncCourses); });
+  $$('#acct-tabs .nav-link').forEach(function (b) { b.addEventListener('click', function () { show(b.getAttribute('data-tab')); }); });
+  var start = (new URLSearchParams(location.search)).get('tab') || (location.hash || '').replace('#', '') || tabField.value;
+  if (start === 'courses') start = 'academy';
+  if (start === 'student-details') start = 'flight';
+  show(start);
+
+  // ---- a field the browser flags as invalid in a hidden tab: open that tab first
+  $('#acct-form').addEventListener('invalid', function (e) {
+    var pane = e.target.closest('.acct-pane');
+    if (pane && pane.hidden) show(pane.getAttribute('data-pane'));
+  }, true);
+
+  // ---- Grant access boxes: the tab's options show only while ticked
+  $$('[data-grant]').forEach(function (box) {
+    var key = box.getAttribute('data-grant'), body = $('[data-grant-body="' + key + '"]'), dot = $('[data-dot="' + key + '"]');
+    function sync() { if (body) body.hidden = !box.checked; if (dot) dot.classList.toggle('on', box.checked); syncCourses(); }
+    box.addEventListener('change', function () {
+      // Ticking Flight School / Shop with no role ticked yet: start them on the plainest one.
+      if (box.checked && key === 'flight' && !$$('input[name="flight_roles"]:checked').length) $('#flight-role-student').checked = true;
+      if (box.checked && key === 'shop' && !$$('input[name="shop_roles"]:checked').length) $('#shop-role-tech').checked = true;
+      $$('[data-role]').forEach(function (r) { r.dispatchEvent(new Event('change')); });
+      sync();
+    });
+    sync();
+  });
+  // CFI / Student sections follow their role boxes
+  $$('[data-role]').forEach(function (r) {
+    var body = $('[data-role-body="' + r.getAttribute('data-role') + '"]');
+    if (!body) return;
+    r.addEventListener('change', function () { body.hidden = !r.checked; });
+  });
+  var appBox = $('#apprentice-calendar-box'), appTick = $('#shop-role-apprentice');
+  if (appBox && appTick) appTick.addEventListener('change', function () { appBox.style.display = appTick.checked ? '' : 'none'; });
+
+  // ---- Master Admin notes and ground-school enrollment hints
+  var masterBox = $('#master-admin-check'), academyBox = $('#academy-access-check');
+  function syncCourses() {
+    var master = !!(masterBox && masterBox.checked), academy = !!(academyBox && academyBox.checked);
+    $$('.acct-master-note').forEach(function (n) { n.hidden = !master; });
+    var note = $('#courses-all-note'), need = $('#courses-need-academy'), list = $('#courses-list');
+    if (note) note.classList.toggle('d-none', !master);
+    if (need) need.classList.toggle('d-none', master || academy);
+    if (list) list.classList.toggle('d-none', master || !academy);
+  }
+  if (masterBox) masterBox.addEventListener('change', syncCourses);
   syncCourses();
-  var sel = document.getElementById('badge-select');
-  var wrap = document.getElementById('badge-rate-wrap');
-  function sync() { wrap.style.display = sel.value === 'new' ? '' : 'none'; }
-  if (sel && wrap) { sel.addEventListener('change', sync); sync(); }
-  var pwBtn = document.getElementById('current-pw-toggle'), pw = document.getElementById('current-pw');
+
+  // ---- shop badge: rate box only for a new badge
+  var sel = $('#badge-select'), wrap = $('#badge-rate-wrap');
+  function syncBadge() { wrap.style.display = sel.value === 'new' ? '' : 'none'; }
+  if (sel && wrap) { sel.addEventListener('change', syncBadge); syncBadge(); }
+
+  // ---- CFI schedule color swatches
+  var colorIn = $('#acct-color');
+  $$('.acct-swatch').forEach(function (s) {
+    s.addEventListener('click', function () {
+      if (s.disabled) return;
+      colorIn.value = s.getAttribute('data-color');
+      $$('.acct-swatch').forEach(function (o) {
+        var mine = o === s, empty = !o.getAttribute('data-color');
+        o.style.borderColor = mine ? '#212529' : (empty ? '#adb5bd' : 'transparent');
+      });
+    });
+  });
+
+  // ---- password show/hide
+  var pwBtn = $('#current-pw-toggle'), pw = $('#current-pw');
   if (pwBtn && pw) {
     pwBtn.addEventListener('click', function () {
-      var show = pw.classList.contains('d-none');
-      pw.classList.toggle('d-none', !show);
-      pwBtn.innerHTML = show ? '<i class="bi bi-eye-slash"></i> Hide' : '<i class="bi bi-eye"></i> Show';
+      var showing = pw.classList.contains('d-none');
+      pw.classList.toggle('d-none', !showing);
+      pwBtn.innerHTML = showing ? '<i class="bi bi-eye-slash"></i> Hide' : '<i class="bi bi-eye"></i> Show';
     });
   }
 })();

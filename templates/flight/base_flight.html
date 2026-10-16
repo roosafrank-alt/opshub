@@ -124,9 +124,7 @@
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="manage-menu-toggle">
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/planes') }}" href="{{ url_for('flight.planes_list') }}"><i class="bi bi-airplane"></i> Planes</a></li>
-            {% if flight_admin %}
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/cfis') and not _p.endswith('/pay') and _p not in ('/flight/cfis/me', '/flight/cfis/schedule') }}" href="{{ url_for('flight.cfis_list') }}"><i class="bi bi-person-badge"></i> CFIs</a></li>
-            {% endif %}
+            {#- Frank 2026-10-16: no CFIs button - instructors are set up in Admin > Accounts (Flight School tab). #}
             {% if flight_admin %}
             <li><a class="dropdown-item {{ 'active' if _p == '/flight/settings/school' }}" href="{{ url_for('flight.school_settings_edit') }}"><i class="bi bi-sliders"></i> School Settings</a></li>
             {% endif %}

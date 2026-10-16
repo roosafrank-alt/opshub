@@ -26,10 +26,40 @@
         {{ viewing_signoff.signed_off_at|usdate(true) if viewing_signoff.signed_off_at }}{% if viewing_signoff.cfi_name %} by {{ viewing_signoff.cfi_name }}{% endif %}{% if viewing_signoff.notes %} &middot; <em>{{ viewing_signoff.notes }}</em>{% endif %}</div>
       {% endif %}
     </div>
+    <div class="d-flex gap-2 flex-wrap align-items-start">
+    <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="offcanvas" data-bs-target="#gs-outline"><i class="bi bi-list-ul"></i> All lessons</button>
     <div class="btn-group">
       {% if prev_task_id %}<a href="{{ gs_url('groundschool.task_detail', task_id=prev_task_id) }}" class="btn btn-outline-secondary btn-sm" data-change="SCHOOL-08"><i class="bi bi-chevron-left"></i> Prev</a>{% endif %}
       {% if next_task_id %}<a href="{{ gs_url('groundschool.task_detail', task_id=next_task_id) }}" class="btn btn-outline-secondary btn-sm" data-change="SCHOOL-08">Next <i class="bi bi-chevron-right"></i></a>{% endif %}
     </div>
+    </div>
+  </div>
+  {% if my_assignment %}
+  <div class="alert alert-warning py-2 mt-2 mb-0 small" data-change="GS-HOMEWORK"><i class="bi bi-flag-fill"></i> <b>Assigned{% if my_assignment.assigned_by_name %} by {{ my_assignment.assigned_by_name }}{% endif %}</b>{% if my_assignment.due_on %} &middot; due {{ my_assignment.due_on|usdate }}{% endif %}{% if my_assignment.note %} &middot; {{ my_assignment.note }}{% endif %}</div>
+  {% elif viewing_student_id and not session.get('student_id') %}
+  <form method="post" action="{{ url_for('groundschool.assign_homework') }}" class="mt-2 d-flex gap-2 flex-wrap align-items-center" data-change="GS-HOMEWORK">
+    <input type="hidden" name="student_id" value="{{ viewing_student_id }}"><input type="hidden" name="task_id" value="{{ task.id }}"><input type="hidden" name="next" value="{{ request.path }}">
+    <input type="text" name="note" class="form-control form-control-sm" style="max-width:260px;" maxlength="500" placeholder="Note (optional)">
+    <input type="date" name="due_on" class="form-control form-control-sm" style="max-width:150px;" aria-label="Due date (optional)">
+    <button class="btn btn-warning btn-sm fw-bold"><i class="bi bi-flag"></i> Assign as homework</button>
+  </form>
+  {% endif %}
+</div>
+<div class="offcanvas offcanvas-start" tabindex="-1" id="gs-outline" aria-labelledby="gs-outline-t">
+  <div class="offcanvas-header"><h5 class="offcanvas-title" id="gs-outline-t">{{ rating.name }}</h5><button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button></div>
+  <div class="offcanvas-body pt-0">
+    {% for ar in outline %}
+    <div class="fw-bold small text-uppercase text-muted mt-3">Area {{ ar.code }}. {{ ar.title }}</div>
+    <div class="list-group list-group-flush">
+      {% for t in ar.tasks %}
+      <a href="{{ gs_url('groundschool.task_detail', task_id=t.id) }}" class="list-group-item list-group-item-action d-flex align-items-center gap-2 px-1 {{ 'active' if t.id == task.id }}">
+        <span class="flex-grow-1">{{ t.code }}. {{ t.title }}</span>
+        {% if t.assigned %}<i class="bi bi-flag-fill text-warning" title="Assigned"></i>{% endif %}
+        {% if t.pct is not none %}<span class="small {{ 'text-success' if t.pct >= 100 else 'text-muted' }}">{% if t.pct >= 100 %}<i class="bi bi-check-circle-fill"></i>{% else %}{{ t.pct }}%{% endif %}</span>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    {% endfor %}
   </div>
 </div>
 

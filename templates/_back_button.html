@@ -66,7 +66,10 @@
   var cameFromApp = false;
   try { cameFromApp = !!ref && new URL(ref).origin === window.location.origin && ref !== window.location.href; } catch (e) {}
   var onModuleHome = window.location.pathname.replace(/\/+$/, '') === (new URL(fallback, window.location.href).pathname.replace(/\/+$/, ''));
-  if (onModuleHome && !cameFromApp) { btn.style.display = 'none'; return; }
+  // On the program's own home (e.g. after tapping the header title - Winds
+  // Aloft, Fly with Kate!, Flight Academy) Back is always hidden, even when
+  // arriving from another OpsHub page (Frank, 2026-10-16).
+  if (onModuleHome) { btn.style.display = 'none'; return; }
   btn.addEventListener('click', function (e) {
     if (!cameFromApp || window.history.length < 2) return; // plain link to the module home
     e.preventDefault();

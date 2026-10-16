@@ -140,6 +140,33 @@ TRACKS = [
         {"code": "proficiency", "label": "Endorsement on the flight proficiency areas of operation", "ref": "61.183(g)", "kind": "manual"},
         {"code": "spins", "label": "Spin training endorsement (stall awareness, spin entry, spins, recovery)", "ref": "61.183(i)", "kind": "manual"},
     ]},
+    {"code": "tailwheel", "name": "Tailwheel Endorsement", "ref": "14 CFR 61.31(i)", "icon": "bi-record-circle", "items": [
+        {"code": "normal_xwind", "label": "Flight training in a tailwheel airplane on normal and crosswind takeoffs and landings", "ref": "61.31(i)(1)(i)", "kind": "manual"},
+        {"code": "wheel_landings", "label": "Wheel landings (unless the manufacturer recommends against them)", "ref": "61.31(i)(1)(ii)", "kind": "manual"},
+        {"code": "go_around", "label": "Go-around procedures", "ref": "61.31(i)(1)(iii)", "kind": "manual"},
+        {"code": "endorse", "label": "One-time tailwheel endorsement in your logbook", "ref": "61.31(i)(1)", "kind": "manual"},
+    ]},
+    {"code": "complex", "name": "Complex Endorsement", "ref": "14 CFR 61.31(e)", "icon": "bi-gear-wide-connected", "items": [
+        {"code": "training", "label": "Ground and flight training in a complex airplane (or sim/FTD)", "ref": "61.31(e)(1)(i)", "kind": "manual"},
+        {"code": "endorse", "label": "One-time complex endorsement in your logbook", "ref": "61.31(e)(1)(ii)", "kind": "manual"},
+    ]},
+    {"code": "high_performance", "name": "High Performance Endorsement", "ref": "14 CFR 61.31(f)", "icon": "bi-speedometer2", "items": [
+        {"code": "training", "label": "Ground and flight training in a high-performance airplane (or sim/FTD)", "ref": "61.31(f)(1)(i)", "kind": "manual"},
+        {"code": "endorse", "label": "One-time high-performance endorsement in your logbook", "ref": "61.31(f)(1)(ii)", "kind": "manual"},
+    ]},
+    {"code": "cfii", "name": "Instrument Instructor (CFII)", "ref": "14 CFR 61.183", "icon": "bi-cloud-check", "items": [
+        {"code": "cfi", "label": "Flight instructor certificate", "ref": "61.183", "kind": "cert", "rating": "cfi"},
+        {"code": "instrument", "label": "Instrument rating", "ref": "61.183(c)", "kind": "cert", "rating": "instrument"},
+        {"code": "knowledge", "label": "Instrument instructor knowledge test passed", "ref": "61.183(f)", "kind": "manual"},
+        {"code": "endorse", "label": "Endorsement for the practical test", "ref": "61.183(g)", "kind": "manual"},
+        {"code": "checkride", "label": "Practical test passed", "ref": "61.183(h)", "kind": "manual"},
+    ]},
+    {"code": "mei", "name": "Multi-Engine Instructor (MEI)", "ref": "14 CFR 61.183", "icon": "bi-people", "items": [
+        {"code": "cfi", "label": "Flight instructor certificate", "ref": "61.183", "kind": "cert", "rating": "cfi"},
+        {"code": "multi", "label": "Multi-engine rating", "ref": "61.183(c)", "kind": "cert", "rating": "multi_engine"},
+        {"code": "endorse", "label": "Endorsement for the practical test", "ref": "61.183(g)", "kind": "manual"},
+        {"code": "checkride", "label": "Practical test passed", "ref": "61.183(h)", "kind": "manual"},
+    ]},
     {"code": "atp", "name": "Airline Transport Pilot", "ref": "14 CFR 61.159(a)", "icon": "bi-trophy", "items": [
         {"code": "total", "label": "1,500 hours of total time as a pilot", "ref": "61.159(a)", "kind": "hours", "col": "total", "need": 1500},
         {"code": "xc", "label": "500 hours of cross-country time", "ref": "61.159(a)(1)", "kind": "hours", "col": "xc", "need": 500},
@@ -155,6 +182,43 @@ TRACK_MAP = {t["code"]: t for t in TRACKS}
 # Which track to open first for a student holding this certificate.
 NEXT_TRACK = {None: "private", "": "private", "student": "private", "sport": "private", "recreational": "private",
               "private": "instrument", "commercial": "cfi", "atp": "atp"}
+# Profile "Training toward" (flight.TRAINING_GOALS code) -> track code.
+GOAL_TRACK = {"multi_engine": "multi"}
+_CERT_ORDER = ["student", "sport", "recreational", "private", "commercial", "atp"]
+
+
+def _row_get(row, key):
+    try:
+        return row[key] if key in row.keys() else None
+    except Exception:
+        return None
+
+
+def goal_track_code(student):
+    """The track this student is working toward. The "Training toward" goal on
+    their profile wins (e.g. Tailwheel); without one it's the next step after
+    their certificate. Never a certificate or rating they already hold, and
+    None for an ATP holder with no goal set (nothing left to work toward)."""
+    if student is None:
+        return "private"
+    cert = _row_get(student, "pilot_certificate") or ""
+    ratings = {r.strip() for r in (_row_get(student, "pilot_ratings") or "").split(",") if r.strip()}
+    held = set(ratings)
+    if cert in _CERT_ORDER:
+        held.update(_CERT_ORDER[:_CERT_ORDER.index(cert) + 1])
+    goal = _row_get(student, "training_goal")
+    if goal and goal not in held:
+        code = GOAL_TRACK.get(goal, goal)
+        if code in TRACK_MAP:
+            return code
+    code = NEXT_TRACK.get(cert or None, "private")
+    if code == "instrument" and "instrument" in held:
+        code = "commercial"
+    if code == "cfi" and "cfi" in held:
+        code = "atp"
+    if code == "atp" and cert == "atp":
+        return None
+    return code
 
 
 # ---------------------------------------------------------------- helpers
@@ -341,7 +405,9 @@ def active_goal_track(conn, student):
     to show (no student picked, or that track is already fully done)."""
     if not student:
         return None
-    code = NEXT_TRACK.get(student["pilot_certificate"], "private")
+    code = goal_track_code(student)
+    if not code:
+        return None
     tracks = build_progress(conn, student)
     track = next((t for t in tracks if t["code"] == code), None)
     if not track or track["pct"] >= 100:
@@ -539,7 +605,7 @@ def progress():
     pending_count = conn.execute("SELECT COUNT(*) c FROM pilot_logbook WHERE student_id = ? AND status = 'pending'",
                                  (student["id"],)).fetchone()["c"] if student else 0
     conn.close()
-    open_track = request.args.get("track") or NEXT_TRACK.get(student["pilot_certificate"] if student else None, "private")
+    open_track = request.args.get("track") or goal_track_code(student)
     return render_template("academy_progress.html", student=student, students=students, tracks=tracks,
                            open_track=open_track, staff=_is_staff(), pending_count=pending_count,
                            window_start=_two_cal_months_start(), tab="progress")
@@ -589,7 +655,7 @@ def totalizer():
                            (student["id"],)).fetchall() if student else []
     tracks = build_progress(conn, student) if student else []
     conn.close()
-    target_code = request.args.get("target") or (NEXT_TRACK.get(student["pilot_certificate"], "private") if student else "private")
+    target_code = request.args.get("target") or goal_track_code(student) or "atp"
     target = next((t for t in tracks if t["code"] == target_code), None)
     eta = target_eta(entries, target) if target else None
     # SCHOOL-35: tab stays "logbook" (the Academy tab row and the sub-tab

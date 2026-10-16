@@ -134,3 +134,55 @@ class ReviewFixesTest(SignAndViewTest):
         self.assertIn("Commercial Pilot", d["values"])
         self.assertEqual(c.get(f"/academy/endorsements/defaults?e=A.34&student_id={self.sid}").get_json()["expires"],
                          date.today().isoformat())                     # good for the one solo flight named
+
+
+class NobodySignsForAnotherCfiTest(SignAndViewTest):
+    """Frank, 2026-10-16: nobody can sign another CFI's endorsement signature block,
+    whatever their login level - master admin and Flight Admin included."""
+    PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+
+    def setUp(self):
+        super().setUp()
+        self.cfi = self.q1("SELECT * FROM cfis WHERE user_id = ?", (self.users["cfi"]["id"],))
+
+    def test_master_admin_picking_another_cfi_still_signs_as_themselves(self):
+        c = self.login("master")
+        e = en.get("A.36")
+        data = {"catalog_id": "A.36", "student_id": self.sid, "cfi_id": self.cfi["id"]}
+        data.update({"b%d" % i: "x" for i in range(len(e["blanks"]))})
+        c.post("/academy/endorsements/new", data=data)
+        row = self.q1("SELECT * FROM student_endorsements WHERE student_id = ?", (self.sid,))
+        mine = self.q1("SELECT * FROM cfis WHERE user_id = ?", (self.users["master"]["id"],))
+        self.assertEqual(row["cfi_id"], mine["id"])
+        self.assertNotIn(self.cfi["name"], row["signature_line"])
+        self.assertNotIn('name="cfi_id"', c.get(f"/academy/endorsements/new?student_id={self.sid}").get_data(as_text=True))
+
+    def test_flight_admin_without_own_cfi_profile_cannot_sign_a_cfi_endorsement(self):
+        c = self.login("flight_admin")
+        e = en.get("A.36")
+        data = {"catalog_id": "A.36", "student_id": self.sid, "cfi_id": self.cfi["id"]}
+        data.update({"b%d" % i: "x" for i in range(len(e["blanks"]))})
+        c.post("/academy/endorsements/new", data=data)
+        self.assertIsNone(self.q1("SELECT id FROM student_endorsements WHERE student_id = ?", (self.sid,)))
+        # ...but can still record one issued by an examiner
+        e = en.get("A.63")
+        data = {"catalog_id": "A.63", "student_id": self.sid, "issuer_name": "Dee Pe", "issuer_cert": "123"}
+        data.update({"b%d" % i: "x" for i in range(len(e["blanks"]))})
+        c.post("/academy/endorsements/new", data=data)
+        self.assertIsNotNone(self.q1("SELECT id FROM student_endorsements WHERE student_id = ? AND catalog_id = 'A.63'", (self.sid,)))
+
+    def test_admin_cannot_draw_another_cfis_signature_but_can_remove_it(self):
+        c = self.login("master")
+        c.post(f"/flight/cfis/{self.cfi['id']}/edit", data={"name": self.cfi["name"], "rate_per_hour": "50",
+                                                           "signature_data": self.PNG})
+        self.assertIsNone(self.q1("SELECT signature FROM cfis WHERE id = ?", (self.cfi["id"],))["signature"])
+        self.assertNotIn("sig-pad", c.get(f"/flight/cfis/{self.cfi['id']}/edit").get_data(as_text=True))
+        self.exec("UPDATE cfis SET signature = ? WHERE id = ?", (self.PNG, self.cfi["id"]))
+        c.post(f"/flight/cfis/{self.cfi['id']}/edit", data={"name": self.cfi["name"], "rate_per_hour": "50",
+                                                           "clear_signature": "1"})
+        self.assertIsNone(self.q1("SELECT signature FROM cfis WHERE id = ?", (self.cfi["id"],))["signature"])
+
+    def test_cfi_still_signs_their_own(self):
+        c = self.login("cfi")
+        c.post("/flight/cfis/me", data={"signature_data": self.PNG})
+        self.assertEqual(self.q1("SELECT signature FROM cfis WHERE id = ?", (self.cfi["id"],))["signature"], self.PNG)

@@ -31,6 +31,24 @@
   .ach-on { background: linear-gradient(135deg, #fff3bf, #ffe066); color: #5c4400; }
   .ach-off { background: #f1f3f5; color: #868e96; }
   .academy-hero .stat { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+  /* Podium + charts + map */
+  .podium { display: flex; align-items: flex-end; justify-content: center; gap: .75rem; }
+  .podium-spot { flex: 1 1 0; max-width: 200px; text-align: center; color: #fff; }
+  .podium-avatar { width: 3.4rem; height: 3.4rem; border-radius: 50%; margin: 0 auto .35rem; display: flex;
+    align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; color: #14213d;
+    border: 3px solid rgba(255,255,255,.85); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  .podium-block { border-radius: 12px 12px 4px 4px; padding: .6rem .4rem; font-weight: 800; }
+  .podium-1 .podium-avatar { background: #ffd43b; width: 4.2rem; height: 4.2rem; font-size: 1.5rem; }
+  .podium-2 .podium-avatar { background: #dee2e6; } .podium-3 .podium-avatar { background: #e8a46b; }
+  .podium-1 .podium-block { background: linear-gradient(180deg, #f5b700, #b8860b); height: 8.5rem; }
+  .podium-2 .podium-block { background: linear-gradient(180deg, #adb5bd, #6c757d); height: 6.5rem; }
+  .podium-3 .podium-block { background: linear-gradient(180deg, #d9822b, #8f4b1a); height: 5rem; }
+  .podium-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .podium-crown { color: #ffd43b; font-size: 1.6rem; display: block; animation: bob 2.4s ease-in-out infinite; }
+  @keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+  @media (prefers-reduced-motion: reduce) { .podium-crown { animation: none; } }
+  .chart-box { position: relative; height: 260px; }
+  #lb-map { height: 260px; border-radius: 10px; background: #e8e4d8; }
 </style>
 <div class="container py-4">
   {% include "_flash_messages.html" %}
@@ -66,6 +84,60 @@
       {% for key, label, _certs in levels %}
       <a href="{{ url_for('academy_page', period=period, level=key, student_id=picked_student.id if picked_student else None) }}" class="btn btn-sm {{ 'btn-light' if level == key else 'btn-outline-light' }}">{{ label }}</a>
       {% endfor %}
+    </div>
+  </div>
+
+  {#- Podium: the top three on points (for the period and level picked). #}
+  {% set top3 = boards['points'][:3] %}
+  {% if top3 %}
+  <div class="academy-hero p-3 mb-3" style="background: linear-gradient(135deg, #0b132b, #1c2541 60%, #3a506b);">
+    <h5 class="text-white text-center mb-3"><i class="bi bi-trophy-fill text-warning"></i> Top of the Board</h5>
+    <div class="podium">
+      {% for pos in [2, 1, 3] %}{% if top3|length >= pos %}{% set rank, st = top3[pos - 1] %}
+      <div class="podium-spot podium-{{ pos }}">
+        {% if pos == 1 %}<i class="bi bi-award-fill podium-crown"></i>{% endif %}
+        <div class="podium-avatar">{{ ((st.name or '?').split()|map('first')|join('')|upper)[:2] }}</div>
+        <div class="podium-name">{{ st.name }}</div>
+        <div class="small opacity-75 mb-1">{{ st.points }} pts</div>
+        <div class="podium-block">{{ pos }}</div>
+      </div>
+      {% endif %}{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mb-3">
+    <div class="col-lg-7">
+      <div class="card lb-card p-3 h-100">
+        <h6 class="mb-2"><i class="bi bi-bar-chart-fill"></i> Points race</h6>
+        {% if race %}<div class="chart-box"><canvas id="raceChart" aria-label="Points by pilot"></canvas></div>
+        {% else %}<p class="text-muted small mb-0">Nobody has points yet for this period.</p>{% endif %}
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card lb-card p-3 h-100">
+        {% if me and me.breakdown %}
+        <h6 class="mb-2"><i class="bi bi-pie-chart-fill"></i> Where my points come from</h6>
+        <div class="chart-box"><canvas id="mixChart" aria-label="My points by source"></canvas></div>
+        {% else %}
+        <h6 class="mb-2"><i class="bi bi-lightning-charge-fill"></i> Fastest climbers</h6>
+        {% for rank, st in boards['hours'][:5] %}
+        <div class="lb-row"><span class="lb-rank lb-rank-{{ rank }}">{{ rank }}</span><span class="flex-grow-1 text-truncate">{{ st.name }}</span><strong>{{ '%.1f'|format(st.hours) }}</strong><span class="small text-muted">hrs</span></div>
+        {% else %}<p class="text-muted small mb-0">No flying logged yet for this period.</p>{% endfor %}
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card lb-card p-3 h-100">
+        <h6 class="mb-2"><i class="bi bi-graph-up-arrow"></i> Hours flown, last 12 months</h6>
+        <div class="chart-box"><canvas id="trendChart" aria-label="Hours flown per month"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card lb-card p-3 h-100">
+        <h6 class="mb-2"><i class="bi bi-geo-alt-fill"></i> Where we've landed <span class="small text-muted fw-normal">({{ map_airports|length }} airport{{ 's' if map_airports|length != 1 }}{% if me %} &middot; <span style="color:#f59f00">&#9679;</span> yours{% endif %})</span></h6>
+        <div id="lb-map"></div>
+      </div>
     </div>
   </div>
 
@@ -110,6 +182,72 @@
   </div>
 
 </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function () {
+  var race = {{ race|tojson }};
+  var mix = {{ (me.breakdown if me else [])|tojson }};
+  var trend = { labels: {{ trend_labels|tojson }}, school: {{ trend_school|tojson }}, me: {{ trend_me|tojson }} };
+  var hasMe = {{ 'true' if me else 'false' }};
+  var airports = {{ map_airports|tojson }};
+  var BLUE = '#2b3fdb', GOLD = '#f59f00';
+  var MIX = ['#2b3fdb', '#f59f00', '#12b886', '#e64980', '#7950f2', '#fd7e14', '#15aabf', '#82c91e', '#868e96'];
+  if (window.Chart) {
+    Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+    var rc = document.getElementById('raceChart');
+    if (rc && race.length) {
+      new Chart(rc, {
+        type: 'bar',
+        data: { labels: race.map(function (r) { return r.name; }),
+          datasets: [{ data: race.map(function (r) { return r.points; }), borderRadius: 6,
+            backgroundColor: race.map(function (r, i) { return r.me ? GOLD : (i === 0 ? '#b8860b' : BLUE); }) }] },
+        options: { indexAxis: 'y', maintainAspectRatio: false, animation: { duration: 1400, easing: 'easeOutQuart' },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c) { return c.raw + ' pts'; } } } },
+          scales: { x: { beginAtZero: true, grid: { color: '#eef0f3' } }, y: { grid: { display: false } } } }
+      });
+    }
+    var mc = document.getElementById('mixChart');
+    if (mc && mix.length) {
+      new Chart(mc, {
+        type: 'doughnut',
+        data: { labels: mix.map(function (m) { return m[0]; }),
+          datasets: [{ data: mix.map(function (m) { return Math.round(m[1]); }), backgroundColor: MIX, borderWidth: 2 }] },
+        options: { maintainAspectRatio: false, cutout: '58%', animation: { animateRotate: true, duration: 1400 },
+          plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+      });
+    }
+    var tc = document.getElementById('trendChart');
+    if (tc) {
+      var sets = [{ type: 'bar', label: 'Whole board', data: trend.school, backgroundColor: 'rgba(43,63,219,.75)', borderRadius: 5, order: 2 }];
+      if (hasMe) { sets.push({ type: 'line', label: 'Me', data: trend.me, borderColor: GOLD, backgroundColor: GOLD,
+        tension: .35, pointRadius: 4, borderWidth: 3, order: 1 }); }
+      new Chart(tc, { data: { labels: trend.labels, datasets: sets },
+        options: { maintainAspectRatio: false, animation: { duration: 1200 },
+          plugins: { legend: { display: hasMe, labels: { boxWidth: 12 } },
+            tooltip: { callbacks: { label: function (c) { return c.dataset.label + ': ' + c.raw + ' hrs'; } } } },
+          scales: { y: { beginAtZero: true, title: { display: true, text: 'hours' }, grid: { color: '#eef0f3' } }, x: { grid: { display: false } } } }
+      });
+    }
+  }
+  var el = document.getElementById('lb-map');
+  if (!el) { return; }
+  if (typeof L === 'undefined') { el.innerHTML = '<div class="p-3 text-muted small">The map could not load.</div>'; return; }
+  var map = L.map(el, { scrollWheelZoom: false, minZoom: 5 }).setView([41.72778, -74.37722], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 14, attribution: '&copy; OpenStreetMap' }).addTo(map);
+  function esc(t) { return String(t || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var bounds = [];
+  airports.forEach(function (a) {
+    var r = Math.min(6 + a.pilots * 2, 16), col = a.mine ? GOLD : (a.home ? '#8a1c7c' : BLUE);
+    L.circleMarker([a.lat, a.lon], { radius: r, color: '#fff', weight: 2, fillColor: col, fillOpacity: .9 }).addTo(map)
+      .bindTooltip(esc(a.code), { direction: 'top' })
+      .bindPopup('<strong>' + esc(a.code) + '</strong> ' + esc(a.name) + '<br>' + a.pilots + ' pilot' + (a.pilots === 1 ? '' : 's') + ' landed here' + (a.mine ? '<br><b>You\'ve been here</b>' : ''));
+    bounds.push([a.lat, a.lon]);
+  });
+  if (bounds.length > 1) { map.fitBounds(bounds, { padding: [25, 25], maxZoom: 10 }); }
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='js/combo.js') }}"></script>
 {% include "_confirm_modal.html" %}

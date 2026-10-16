@@ -65,14 +65,10 @@
       </div>
       <div class="col-md-6" id="en-signer-box">
         <div class="row g-2">
-          {% if cfis %}
-          <div class="col-12">
-            <label class="form-label small mb-0" for="en-cfi">Signing CFI</label>
-            <select name="cfi_id" id="en-cfi" class="form-select">
-              {% for c in cfis %}<option value="{{ c.id }}" data-name="{{ c.name }}" data-cert="{{ c.cfi_cert_number or '' }}" data-date="{{ c.cfi_cert_expires or '' }}" {{ 'selected' if signer and c.id == signer.id }}>{{ c.name }}</option>{% endfor %}
-            </select>
+          <div class="col-12 small">
+            {% if signer %}<i class="bi bi-pen"></i> Signing as <strong>{{ signer.name }}</strong> <span class="text-muted">(you can only sign as yourself)</span>
+            {% else %}<div class="alert alert-warning py-2 mb-0"><i class="bi bi-lock"></i> Only the CFI themselves can sign this. Your login has no CFI profile, so you can only record endorsements issued by someone else (an examiner, an FAA inspector).</div>{% endif %}
           </div>
-          {% endif %}
           <div class="col-5"><label class="form-label small mb-0" for="en-cert">CFI cert no.</label><input name="cfi_cert" id="en-cert" class="form-control" value="{{ signer.cfi_cert_number if signer and signer.cfi_cert_number else '' }}"></div>
           <div class="col-3"><label class="form-label small mb-0" for="en-kind">Type</label>
             <select name="cert_kind" id="en-kind" class="form-select"><option value="re">RE</option><option value="exp">Exp.</option></select></div>
@@ -182,7 +178,7 @@
   stu.addEventListener('change', function () { [].slice.call(document.querySelectorAll('[id^="en-b"]')).forEach(function (el) { delete el.dataset.touched; }); fillDefaults(); });
   $('en-date').addEventListener('change', fillDefaults);
   ['en-cert', 'en-certdate', 'en-kind', 'en-iname', 'en-icert'].forEach(function (id) { $(id).addEventListener('input', preview); $(id).addEventListener('change', preview); });
-  if ($('en-cfi')) $('en-cfi').addEventListener('change', function () {
+  if ($('en-cfi')) $('en-cfi').addEventListener('change', function () {   // picker removed; kept harmless
     var o = $('en-cfi').selectedOptions[0]; $('en-cert').value = o.getAttribute('data-cert'); $('en-certdate').value = o.getAttribute('data-date'); preview();
   });
   $('en-search').addEventListener('input', function () {
