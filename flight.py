@@ -3590,6 +3590,9 @@ def planes_list():
     hundred = {}
     if is_flight_admin():
         hundred = {p["id"]: hundred_hr_status(conn, p) for p in planes}
+        for p in planes:
+            if hundred[p["id"]] and not p["is_simulator"]:
+                hundred[p["id"]]["due"] = hundred_hr_projection(conn, p, hundred[p["id"]])
     conn.close()
     return render_template("flight/planes.html", planes=planes, hundred=hundred)
 
@@ -10139,6 +10142,32 @@ def hundred_hr_status(conn, asset):
             "current": current, "level": level, "item_id": item["id"]}
 
 
+def hundred_hr_projection(conn, asset, st):
+    """Which booked lesson takes a plane to its 100-hour: adds up the planned
+    lengths (1.5 when a booking has none) of its upcoming scheduled lessons
+    in date/time order until the hours left run out. None when there is no
+    countdown, it's already past, or the bookings don't reach it. Planned
+    time stands in for tach time, so the day is a forecast."""
+    if not st or st["left"] <= 0:
+        return None
+    total = 0.0
+    rows = conn.execute("""SELECT sf.scheduled_date, sf.scheduled_time, sf.duration_hours,
+                                  COALESCE(NULLIF(sf.guest_name, ''), s.name) AS who
+                           FROM scheduled_flights sf LEFT JOIN students s ON s.id = sf.student_id
+                           WHERE sf.asset_id = ? AND sf.status = 'scheduled' AND sf.scheduled_date >= ?
+                           ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time""",
+                        (asset["id"], date.today().isoformat())).fetchall()
+    for r in rows:
+        dur = r["duration_hours"] or DEFAULT_SCHEDULE_BLOCK_HOURS
+        total += dur
+        if total >= st["left"]:
+            d = datetime.strptime(r["scheduled_date"], "%Y-%m-%d")
+            return {"date": r["scheduled_date"], "day_label": f"{d.strftime('%a %b')} {d.day}", "short": f"{d.strftime('%b')} {d.day}",
+                    "time": _format_time_12h(r["scheduled_time"]), "who": (r["who"] or "").split(" ")[0],
+                    "duration": dur}
+    return None
+
+
 def _school_planes(conn):
     return conn.execute("""SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1
                            AND is_owner_placeholder = 0 AND COALESCE(is_simulator, 0) = 0 ORDER BY schedule_order, tag""").fetchall()
@@ -10211,7 +10240,7 @@ def hundred_hr_admin_rows(conn):
         booked = conn.execute("""SELECT COUNT(*) c FROM scheduled_flights WHERE asset_id = ? AND status = 'scheduled'
                                  AND scheduled_date BETWEEN ? AND ?""",
                               (a["id"], date.today().isoformat(), (date.today() + timedelta(days=7)).isoformat())).fetchone()["c"]
-        rows.append({"asset": a, "st": st, "grounded": bool(a["grounded_at"]), "booked_7d": booked, "notified_at": notified_at,
+        rows.append({"asset": a, "st": st, "due": hundred_hr_projection(conn, a, st), "grounded": bool(a["grounded_at"]), "booked_7d": booked, "notified_at": notified_at,
                      "needs_action": bool(st and st["level"] != "ok" and not a["grounded_at"] and not dismissed)})
     return rows
 

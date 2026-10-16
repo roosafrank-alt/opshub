@@ -3805,11 +3805,14 @@ def project_new():
     # by definition) instead of the form opening with no type picked.
     preselect_name = request.args.get("name", "").strip()
     preselect_quick_type = request.args.get("quick_type", "").strip()
+    preselect_date = request.args.get("scheduled_date", "").strip()
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", preselect_date):
+        preselect_date = ""
     if preselect_quick_type not in quick_types:
         preselect_quick_type = ""
     return render_template("project_form.html", project=None, assets=assets, preselect_asset_id=preselect_asset_id,
                            preselect_asset_tag=preselect_asset_tag, preselect_name=preselect_name,
-                           preselect_quick_type=preselect_quick_type, quick_types=quick_types,
+                           preselect_quick_type=preselect_quick_type, preselect_date=preselect_date, quick_types=quick_types,
                            optional_areas_by_type=optional_areas_by_type, quick_type_days=quick_type_days)
 
 

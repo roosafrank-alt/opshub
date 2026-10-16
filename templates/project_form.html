@@ -59,7 +59,7 @@
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Scheduled Date <span class="text-muted small">(optional - shows this project on the calendar)</span></label>
-        <input type="date" name="scheduled_date" id="project-scheduled-date-input" class="form-control" value="{{ project.scheduled_date if project and project.scheduled_date else '' }}">
+        <input type="date" name="scheduled_date" id="project-scheduled-date-input" class="form-control" value="{{ project.scheduled_date if project and project.scheduled_date else (preselect_date or '') }}">
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Through <span class="text-muted small">(left blank, it's filled in from the job type: Oil Change 1 day, Annual 1 week)</span></label>

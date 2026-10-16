@@ -58,6 +58,7 @@
       <div><strong>{{ r.asset.tag }}</strong> &middot;
         {% if r.st.level == 'overdue' %}<span class="text-danger fw-bold">{{ '%.1f'|format(-r.st.left) }} hrs past</span> its 100-hour inspection
         {% else %}<span class="text-warning-emphasis fw-bold">{{ '%.1f'|format(r.st.left) }} hrs left</span> before its 100-hour inspection{% endif %}</div>
+      {% if r.due %}<div class="small fw-bold"><i class="bi bi-calendar-event"></i> Due about {{ r.due.day_label }} <span class="fw-normal text-muted">&middot; the {{ r.due.time ~ ' ' if r.due.time }}lesson ({{ r.due.who ~ ', ' if r.due.who }}{{ '%g'|format(r.due.duration) }}) reaches it</span></div>{% endif %}
       <div class="small">Tach {{ '%.1f'|format(r.st.current) }} &middot; last 100-hr at {{ '%.1f'|format(r.st.last_at) }} &middot; {{ r.booked_7d }} flight{{ 's' if r.booked_7d != 1 }} booked in the next 7 days</div>
       <div class="small text-muted">{% if r.notified_at %}Sent to admins by text/email {{ r.notified_at|usdate(true) }}{% else %}No text/email sent yet (admins need notifications turned on in their account){% endif %}</div>
     </div>
@@ -66,7 +67,7 @@
         <input type="hidden" name="from_100hr" value="1">
         <button class="btn btn-danger btn-sm fw-bold"><i class="bi bi-slash-circle"></i> Ground plane</button>
       </form>
-      <a href="{{ url_for('project_new', asset_id=r.asset.id, name='100hr Inspection - ' ~ r.asset.tag, quick_type='100hr Inspection') }}" class="btn btn-outline-primary btn-sm fw-bold"><i class="bi bi-tools"></i> Create 100-hr project</a>
+      <a href="{{ url_for('project_new', asset_id=r.asset.id, name='100hr Inspection - ' ~ r.asset.tag, quick_type='100hr Inspection', scheduled_date=(r.due.date if r.due else none)) }}" class="btn btn-outline-primary btn-sm fw-bold"><i class="bi bi-tools"></i> {{ 'Book 100-hr for ' ~ r.due.short if r.due else 'Create 100-hr project' }}</a>
       <form method="post" action="{{ url_for('flight.plane_hundred_hr_not_yet', asset_id=r.asset.id) }}" data-confirm="Snooze this reminder for {{ r.asset.tag }}? It comes back when the plane reaches 0 hrs left (or on its next 100-hour cycle)." data-confirm-title="Not Yet" data-confirm-ok="Yes, snooze it" data-confirm-style="warning">
         <button class="btn btn-outline-secondary btn-sm" data-change="SCHOOL-30">Not yet</button>
       </form>

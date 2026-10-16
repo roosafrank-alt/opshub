@@ -25,6 +25,9 @@
           {% if hundred %}
           {% set h = hundred.get(p.id) %}
           <td data-label="100-hr">{% if h %}<span class="badge {{ 'bg-danger' if h.level == 'overdue' else ('bg-warning text-dark' if h.level == 'soon' else 'bg-success') }}" title="Last 100-hr at tach {{ '%.1f'|format(h.last_at) }}">{{ '%.1f'|format(h.left) }} left</span>
+            {% if h.due %}<div class="small fw-bold mt-1"><i class="bi bi-calendar-event"></i> Due about {{ h.due.day_label }}</div>
+            <div class="small text-muted">the {{ h.due.time ~ ' ' if h.due.time }}lesson ({{ h.due.who ~ ', ' if h.due.who }}{{ '%g'|format(h.due.duration) }}) reaches it</div>
+            <a href="{{ url_for('project_new', asset_id=p.id, name='100hr Inspection - ' ~ p.tag, quick_type='100hr Inspection', scheduled_date=h.due.date) }}" class="btn btn-outline-primary btn-sm py-0 mt-1"><i class="bi bi-tools"></i> Book 100-hr for {{ h.due.short }}</a>{% endif %}
             {% else %}<span class="text-muted small" title="Add a 100-Hour Inspection maintenance item (with its last-done tach) on the aircraft page">-</span>{% endif %}</td>
           {% endif %}
           <td data-label="" class="text-nowrap">
