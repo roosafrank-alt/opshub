@@ -9270,12 +9270,16 @@ def admin_user_edit(user_id):
         else:
             conn.execute("UPDATE cfis SET active=? WHERE user_id=?", (active, user_id))
             conn.execute("UPDATE students SET active=? WHERE user_id=?", (active, user_id))
-        if "training_goal" in request.form:
-            from flight import _training_goal_from_form
-            conn.execute("UPDATE students SET training_goal = ? WHERE user_id = ?",
-                         (_training_goal_from_form(request.form), user_id))
         conn.commit()
         _apply_pay_links(conn, user_row, request.form)
+        if request.form.get("student_fields"):
+            from flight import apply_student_profile_fields
+            stu = conn.execute("SELECT * FROM students WHERE user_id = ?", (user_id,)).fetchone()
+            if stu is not None and not stu["is_station"]:
+                flagged = apply_student_profile_fields(conn, stu, request.form, True, session.get("user_name"))
+                if flagged:
+                    flash(f"{flagged} upcoming solo flight{'s' if flagged != 1 else ''} for this student "
+                          f"{'are' if flagged != 1 else 'is'} now flagged for review - past the solo sign-off or medical expiry.", "warning")
         conn.close()
         flash("Account updated.", "success")
         # SHOP-41: opened from the Workers page (?back=workers) -> go back there.
@@ -9294,14 +9298,17 @@ def admin_user_edit(user_id):
 
 def _course_grant_context(conn, user_id):
     """Per-course Ground School grants for the student profile linked to this account."""
-    from flight import TRAINING_GOALS
-    st = conn.execute("SELECT id, training_goal FROM students WHERE user_id = ?", (user_id,)).fetchone()
+    import flight as _fl
+    st = conn.execute("SELECT * FROM students WHERE user_id = ?", (user_id,)).fetchone()
     if not st:
         return {"grant_student": None}
     return {
         "grant_student": st["id"],
-        "training_goals": TRAINING_GOALS,
-        "training_goal_now": st["training_goal"] or "",
+        "stu": st, "stu_station": bool(st["is_station"]),
+        "training_goals": _fl.TRAINING_GOALS, "pilot_certificates": _fl.PILOT_CERTIFICATES,
+        "pilot_ratings": _fl.PILOT_RATINGS, "medical_classes": _fl.MEDICAL_CLASSES,
+        "pay_preferences": _fl.PAY_PREFERENCES, "default_solo_currency_days": _fl.DEFAULT_SOLO_CURRENCY_DAYS,
+        "today_iso": date.today().isoformat(),
         "grant_courses": conn.execute("SELECT id, name FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall(),
         "granted_ids": {r["rating_id"] for r in conn.execute(
             "SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (st["id"],)).fetchall()},

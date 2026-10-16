@@ -64,17 +64,37 @@ class ResourcesDefaultCategoryTest(OpsHubTestCase):
 
 
 class AdminAccountTrainingGoalTest(OpsHubTestCase):
-    def test_admin_account_page_shows_and_saves_training_goal(self):
+    def test_admin_account_page_edits_every_student_detail(self):
         uid = self.users["flight_student"]["id"]
         sid = self.q1("SELECT id FROM students WHERE user_id = ?", (uid,))["id"]
         c = self.login("master")
         body = c.get(f"/admin/users/{uid}/edit").get_data(as_text=True)
-        self.assertIn('name="training_goal"', body)
-        self.assertIn("Sport Pilot", body)
+        for t in ('name="training_goal"', "Sport Pilot", 'name="pilot_certificate"', 'name="rating_instrument"',
+                  'name="medical_class"', 'name="first_solo_date"', 'name="rate_override"', 'name="pay_preference"',
+                  'name="solo_currency_days"', 'name="notify_booking_confirm"'):
+            self.assertIn(t, body)
         user = self.q1("SELECT * FROM users WHERE id = ?", (uid,))
-        data = {"name": user["name"], "training_goal": "sport", "active": "on",
-                "flight_roles": user["flight_roles"] or "student"}
+        data = {"name": user["name"], "active": "on", "flight_roles": user["flight_roles"] or "student",
+                "student_fields": "1", "training_goal": "sport", "pilot_certificate": "sport",
+                "rating_instrument": "on", "medical_class": "third", "medical_expires": "2030-01-01",
+                "first_solo_date": "2026-05-01", "rate_override": "55", "plane_rate_override": "130",
+                "pay_preference": "Card", "solo_currency_days": "45", "notify_booking_confirm": "on"}
         c.post(f"/admin/users/{uid}/edit", data=data)
-        self.assertEqual(self.q1("SELECT training_goal FROM students WHERE id = ?", (sid,))["training_goal"], "sport")
-        c.post(f"/admin/users/{uid}/edit", data={**data, "training_goal": ""})
-        self.assertIsNone(self.q1("SELECT training_goal FROM students WHERE id = ?", (sid,))["training_goal"])
+        r = self.q1("SELECT * FROM students WHERE id = ?", (sid,))
+        self.assertEqual((r["training_goal"], r["pilot_certificate"], r["pilot_ratings"], r["medical_class"],
+                          r["first_solo_date"], r["rate_override"], r["plane_rate_override"], r["pay_preference"],
+                          r["solo_currency_days"], r["notify_booking_confirm"]),
+                         ("sport", "sport", "instrument", "third", "2026-05-01", 55.0, 130.0, "Card", 45, 1))
+        c.post(f"/admin/users/{uid}/edit", data={**data, "training_goal": "", "rating_instrument": ""})
+        r = self.q1("SELECT * FROM students WHERE id = ?", (sid,))
+        self.assertIsNone(r["training_goal"])
+        self.assertIsNone(r["pilot_ratings"])
+
+    def test_saving_without_the_section_leaves_student_alone(self):
+        uid = self.users["flight_student"]["id"]
+        sid = self.q1("SELECT id FROM students WHERE user_id = ?", (uid,))["id"]
+        self.exec("UPDATE students SET training_goal = 'private' WHERE id = ?", (sid,))
+        user = self.q1("SELECT * FROM users WHERE id = ?", (uid,))
+        self.login("master").post(f"/admin/users/{uid}/edit", data={"name": user["name"], "active": "on",
+                                  "flight_roles": user["flight_roles"] or "student"})
+        self.assertEqual(self.q1("SELECT training_goal FROM students WHERE id = ?", (sid,))["training_goal"], "private")

@@ -157,14 +157,44 @@
     <hr class="my-3">
     <h6 class="mb-2"><i class="bi bi-person-vcard"></i> Profiles</h6>
     <div class="form-text mb-2">Program-specific details (certs, ratings, medical, billing overrides) live on that program's own profile page, linked to this account.</div>
-    {% if grant_student and training_goals is defined %}
-    <div class="mb-3" data-change="RES-DEFAULT">
-      <label class="form-label small fw-bold mb-1" for="training-goal-select"><i class="bi bi-bullseye"></i> Training toward</label>
-      <select name="training_goal" id="training-goal-select" class="form-select">
-        <option value="">- Not set (follows their certificate) -</option>
-        {% for code, label, cat in training_goals %}<option value="{{ code }}" {{ 'selected' if training_goal_now == code }}>{{ label }}</option>{% endfor %}
-      </select>
-      <div class="form-text">The rating this student is working on. Flight Academy Resources opens on it (they can still see everything). Saves with Save Changes.</div>
+    {% if grant_student and stu is defined and not stu_station %}
+    <div class="card card-body mb-3" id="student-details" data-change="RES-DEFAULT">
+      <input type="hidden" name="student_fields" value="1">
+      <div class="small fw-bold mb-2"><i class="bi bi-mortarboard"></i> Student details <span class="text-muted fw-normal">(the same as the student's Edit page; saves with Save Changes)</span></div>
+      <div class="row g-2 mb-2">
+        <div class="col-md-6"><label class="form-label small mb-0">Pilot Certificate</label>
+          <select name="pilot_certificate" class="form-select"><option value="">- None yet -</option>
+            {% for code, label, short, color, icon in pilot_certificates %}<option value="{{ code }}" {{ 'selected' if stu.pilot_certificate == code }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-6"><label class="form-label small mb-0" for="training-goal-select">Training toward <span class="text-muted">(Resources opens on it)</span></label>
+          <select name="training_goal" id="training-goal-select" class="form-select"><option value="">- Not set (follows their certificate) -</option>
+            {% for code, label, cat in training_goals %}<option value="{{ code }}" {{ 'selected' if (stu.training_goal or '') == code }}>{{ label }}</option>{% endfor %}</select></div>
+      </div>
+      <label class="form-label small mb-1">Ratings &amp; Endorsements</label>
+      <div class="d-flex flex-wrap gap-3 mb-2">
+        {% for code, label in pilot_ratings %}<div class="form-check"><input type="checkbox" class="form-check-input" name="rating_{{ code }}" id="adm-rating-{{ code }}" {{ 'checked' if code in (stu.pilot_ratings or '').split(',') }}><label class="form-check-label" for="adm-rating-{{ code }}">{{ label }}</label></div>{% endfor %}
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-md-6"><label class="form-label small mb-0">Medical Class</label>
+          <select name="medical_class" class="form-select"><option value="">- Not tracked -</option>
+            {% for code, label in medical_classes %}<option value="{{ code }}" {{ 'selected' if stu.medical_class == code }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-6"><label class="form-label small mb-0">Medical Expires</label>
+          <input type="date" name="medical_expires" class="form-control" value="{{ stu.medical_expires or '' }}"></div>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-md-6"><label class="form-label small mb-0">First solo</label><input type="date" name="first_solo_date" class="form-control" value="{{ stu.first_solo_date or '' }}"></div>
+        <div class="col-md-6"><label class="form-label small mb-0">TSA verified</label><input type="date" name="tsa_verified_date" class="form-control" value="{{ stu.tsa_verified_date or '' }}"></div>
+        <div class="col-md-6"><label class="form-label small mb-0">Solo sign-off</label><input type="date" name="solo_signoff_date" class="form-control" value="{{ stu.solo_signoff_date or '' }}"></div>
+        <div class="col-md-6"><label class="form-label small mb-0">Solo sign-off expires</label><input type="date" name="solo_signoff_expires" class="form-control" value="{{ stu.solo_signoff_expires or '' }}"></div>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-md-4"><label class="form-label small mb-0">Instructor Rate ($/hr)</label><input type="number" step="any" name="rate_override" class="form-control" value="{{ stu.rate_override if stu.rate_override is not none else '' }}"></div>
+        <div class="col-md-4"><label class="form-label small mb-0">Plane Rate ($/hr)</label><input type="number" step="any" name="plane_rate_override" class="form-control" value="{{ stu.plane_rate_override if stu.plane_rate_override is not none else '' }}"></div>
+        <div class="col-md-4"><label class="form-label small mb-0">Sim Rate ($/hr)</label><input type="number" step="any" name="sim_rate_override" class="form-control" value="{{ stu.sim_rate_override if stu.sim_rate_override is not none else '' }}"></div>
+        <div class="col-md-6"><label class="form-label small mb-0">Solo Currency Interval (days)</label><input type="number" step="1" min="1" name="solo_currency_days" class="form-control" value="{{ stu.solo_currency_days or '' }}" placeholder="{{ default_solo_currency_days }}"></div>
+        <div class="col-md-6"><label class="form-label small mb-0">How They Usually Pay</label>
+          <select name="pay_preference" class="form-select"><option value="">- Not set -</option>{% for m in pay_preferences %}<option value="{{ m }}" {{ 'selected' if stu.pay_preference == m }}>{{ m }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="form-check"><input type="checkbox" class="form-check-input" name="notify_booking_confirm" id="adm-notify-booking" {{ 'checked' if stu.notify_booking_confirm }}><label class="form-check-label" for="adm-notify-booking">Push notification when a flight is booked for them</label></div>
     </div>
     {% endif %}
     <div class="d-flex flex-wrap gap-2 mb-3">
