@@ -115,6 +115,17 @@ class FlightSwitchRole(OpsHubTestCase):
         c.post(f"/flight/schedule/{sid}/confirm")
         self.assertIsNone(self.q1("SELECT confirmed_at FROM scheduled_flights WHERE id = ?", (sid,))["confirmed_at"])
 
+    def test_chip_row_is_compact_on_phones(self):
+        """Phones: a switch icon instead of the words, and Flight Admin also
+        carries a short 'Admin' label (CSS shows it only on the narrowest
+        phones). Desktop keeps the words. Every chip still has its full label."""
+        html = self.login("flight_admin").get("/flight/dashboard").get_data(as_text=True)
+        self.assertIn("bi-arrow-left-right", html)
+        self.assertIn("Switch role:", html)                       # still there for desktop
+        self.assertIn('<span class="chip-full">Flight Admin</span><span class="chip-short">Admin</span>', html)
+        self.assertIn(">CFI</a>", html)                           # short == full: no doubled label
+        self.assertNotIn('chip-short">CFI', html)
+
     def test_the_write_check_is_real_when_not_switched(self):
         c = self.login("master")
         before = self.q1("SELECT COUNT(*) n FROM student_ledger")["n"]

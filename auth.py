@@ -420,6 +420,10 @@ def view_as_chips(conn, program):
         # straight away.
         chips.append(dict(level=level, label=label, action=action,
                           pick=bool(program == "flight" and level in ("student", "cfi") and can_pick_student())))
+    # Narrow phones: "Flight Admin" / "Shop Admin" show as just "Admin" (the
+    # header already says which program you're in) so the row fits one line.
+    for chip in chips:
+        chip["short"] = "Admin" if chip["label"] in ("Flight Admin", "Shop Admin") else chip["label"]
     return chips
 
 

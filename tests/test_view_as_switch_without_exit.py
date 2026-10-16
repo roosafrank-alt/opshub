@@ -64,7 +64,7 @@ class ViewAsSwitchWithoutExitTest(OpsHubTestCase):
         # The Admin chip is the way back now (idea "view as for
         # multi-role accounts") - it posts to the exit route.
         self.assertIn('action="/view-as/exit"', body)
-        self.assertIn('title="Back to your normal view">Shop Admin</button>', body)
+        self.assertIn('title="Back to your normal view"><span class="chip-full">Shop Admin</span><span class="chip-short">Admin</span></button>', body)
 
     def test_a_non_master_admin_still_cannot_start_a_preview(self):
         c = self.login("shop_admin")
