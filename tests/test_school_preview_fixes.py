@@ -309,6 +309,25 @@ class GroundSchoolTest(OpsHubTestCase):
         self.assertNotIn('id="homework"', m.get(f"/flight/groundschool/student/{self.student_id}").get_data(as_text=True))
         self.assertNotIn('title="Homework assigned"', s.get("/flight/groundschool").get_data(as_text=True))
 
+    def test_covered_toggles_and_untick_unassigns(self):
+        m = self.login("master")
+        m.post("/flight/groundschool/assign", data={"student_id": self.student_id, "task_id": [self.task_id]})
+        aid = self.q1("SELECT id FROM gs_assignments WHERE student_id = ? AND cancelled_at IS NULL", (self.student_id,))["id"]
+        # Covered is an instructor on/off button
+        m.post(f"/flight/groundschool/assignment/{aid}/reviewed")
+        page = m.get(f"/flight/groundschool/student/{self.student_id}").get_data(as_text=True)
+        self.assertIn('aria-pressed="true"', page)
+        self.assertIn("Unassign", page)
+        m.post(f"/flight/groundschool/assignment/{aid}/unreviewed")
+        self.assertIsNone(self.q1("SELECT reviewed_at FROM gs_assignments WHERE id = ?", (aid,))["reviewed_at"])
+        # a student cannot set it
+        s = self.login("flight_student")
+        self.assertNotEqual(s.post(f"/flight/groundschool/assignment/{aid}/reviewed").status_code, 302)
+        # unticking an assigned lesson on the course page and saving takes it off
+        m = self.login("master")
+        m.post("/flight/groundschool/assign", data={"student_id": self.student_id, "was_assigned": [self.task_id]})
+        self.assertIsNone(self.q1("SELECT id FROM gs_assignments WHERE student_id = ? AND cancelled_at IS NULL", (self.student_id,)))
+
     def test_no_future_box_when_nothing_is_assigned(self):
         self._second_course("Recreational Pilot", "rec", finished=True)
         html = self.login("cfi").get(f"/flight/groundschool?student_id={self.student_id}").get_data(as_text=True)
