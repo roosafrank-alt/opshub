@@ -19,7 +19,7 @@
   <section class="gsl-step" id="gsl-review">
     <div class="gsl-panel">
       {% if review.intro %}<p class="mb-2">{{ gs_rich(review.intro) }}</p>{% endif %}
-      <p class="gsl-hint mb-1">{{ review.questions|length }} questions mixing every Task in this Area. Your first try is saved as your score. A wrong answer can be fixed until you reach 100%.</p>
+      <p class="small text-muted mb-1">{{ review.questions|length }} questions mixing every Task in this Area. Your first try is saved as your score. A wrong answer can be fixed until you reach 100%.</p>
       <div class="small text-muted">Covers: {% for t in tasks %}<a href="{{ gs_url('groundschool.task_detail', task_id=t.id) }}">{{ t.code }}. {{ t.title }}</a>{{ ' · ' if not loop.last }}{% endfor %}</div>
     </div>
     {% for p in parts %}{{ gsl.qgroup(p.qs, 'Area review: ' ~ p.label, False, 'gsl-final-q', 'r', True) }}{% endfor %}
