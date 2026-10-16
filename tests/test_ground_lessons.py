@@ -326,6 +326,7 @@ class StudentSummaryTest(LessonGradesTest.__bases__[0]):
         m = self.login("master")
         body = m.get(f"{GS}/student/{self.sid}").get_data(as_text=True)
         self.assertIn('id="ss-course"', body)
+        self.assertIn('id="ss-back"', body)
         self.assertIn("Last studying", body)
         self.assertIn("Needs attention", body)
         self.assertIn("Time by section", body)
