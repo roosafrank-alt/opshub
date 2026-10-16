@@ -271,3 +271,12 @@ class LessonGradesTest(ElementLessonTest):
         self.assertIn('data-key="a0" data-done="1"', body)
         staff = self.login("master").get(f"{GS}/task/{self.task}?student_id={self.sid}").get_data(as_text=True)
         self.assertIn("initial FINAL CHECK grade", staff)
+
+
+class GroundSchoolChartsTest(OpsHubTestCase):
+    def test_list_page_shows_progress_charts_for_a_student(self):
+        c = self.login("master")
+        c.post("/view-as/flight/student/me")
+        body = c.get("/flight/groundschool").get_data(as_text=True)
+        self.assertIn("Your progress", body)
+        self.assertIn("gsd-grid", body)
