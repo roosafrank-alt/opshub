@@ -80,3 +80,15 @@ class DenyPendingLogbookEntryTest(OpsHubTestCase):
         self.assertIn("denied (not counted)", body)
         c.post(f"/academy/logbook/{eid}", data={"action": "reopen"})
         self.assertEqual(self.q1("SELECT status FROM pilot_logbook WHERE id = ?", (eid,))["status"], "pending")
+
+
+class AdminAsOwnStudentTest(OpsHubTestCase):
+    def test_admin_can_take_courses_as_themselves_and_progress_saves(self):
+        c = self.login("master")
+        self.assertIn("Be a student myself", c.get("/view-as/flight/student").get_data(as_text=True))
+        r = c.post("/view-as/flight/student/me")
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(c.get("/flight/groundschool").status_code, 200)
+        # not look-only: a JSON POST is not refused
+        r = c.post("/flight/groundschool/task/1/lesson-time", json={"seconds": 5})
+        self.assertNotEqual(r.status_code, 403)

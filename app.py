@@ -8864,6 +8864,38 @@ def view_as_student_start(student_id):
     return _view_as_person_start("student", student_id)
 
 
+@app.route("/view-as/flight/student/me", methods=["POST"])
+@login_required
+def view_as_student_me():
+    """An admin takes the courses as themselves: switches to their OWN student
+    profile (created the first time) with nothing look-only, so quizzes, games,
+    time and resume are all saved under their name, and every ground school is open."""
+    if not can_pick_student():
+        abort(403)
+    conn = get_db()
+    u = conn.execute("SELECT id, name, username, password_hash, active FROM users WHERE id = ?",
+                     (session.get("user_id"),)).fetchone()
+    if not u:
+        conn.close()
+        abort(404)
+    row = conn.execute("SELECT id FROM students WHERE user_id = ?", (u["id"],)).fetchone()
+    if not row:
+        conn.execute("INSERT INTO students (name, username, password_hash, active, user_id, created_at) VALUES (?, ?, ?, 1, ?, ?)",
+                     (u["name"], u["username"], u["password_hash"], u["id"], now_iso()))
+        conn.commit()
+        row = conn.execute("SELECT id FROM students WHERE user_id = ?", (u["id"],)).fetchone()
+    ok, error = start_view_as(conn, "flight", "student", student_id=row["id"])
+    conn.close()
+    if not ok:
+        flash(error or "Can't switch to your student profile.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    session.pop("_view_as_readonly", None)          # this one is really you: everything is saved
+    session["groundschool_access"] = True           # every course is open to you
+    session["_view_as_return"] = _local_path(request.form.get("next")) or url_for("academy_page")
+    flash("You're now a student - courses, quizzes and time are saved under your own name. Use Back to my normal view when done.", "info")
+    return redirect(url_for("groundschool.rating_list"))
+
+
 @app.route("/view-as/flight/cfi/<int:cfi_id>", methods=["POST"])
 @login_required
 def view_as_cfi_start(cfi_id):
