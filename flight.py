@@ -4552,7 +4552,26 @@ def _build_availability_day(conn, date_str, plane_id=None):
                                   "requests_only": slot["requests_only"]})
         grid.append({"plane": p, "cells": cells})
 
+    # Instructor buttons (Availability page): which active instructors are
+    # free in each slot - no flight of theirs, no break, medical current.
+    # Plane-only callers (counts) never use these keys.
+    cfis = conn.execute("SELECT id, name FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall()
+    cfi_busy = {}
+    for f in _schedule_rows(conn, date_str, date_str, None, None, include_time_off=True):
+        if f["cfi_id"]:
+            cfi_busy.setdefault(f["cfi_id"], []).append(f)
+    cfi_free = {}
+    for c in cfis:
+        med_bad = bool(_cfi_medical_problem(conn, c["id"], date_str))
+        for slot in slots:
+            window = (slot["start_min"], slot["end_min"])
+            free = not med_bad and not any(
+                _windows_overlap(window, _time_window(f["scheduled_time"], f["duration_hours"]))
+                for f in cfi_busy.get(c["id"], []))
+            if free:
+                cfi_free.setdefault(slot["start_min"], []).append(c["id"])
     return {"planes": planes, "slots": slots, "grid": grid, "open_list": open_list,
+            "cfis": [{"id": c["id"], "name": c["name"]} for c in cfis], "cfi_free": cfi_free,
             "has_requests_only": normal is not None and any(sl["requests_only"] for sl in slots)}
 
 

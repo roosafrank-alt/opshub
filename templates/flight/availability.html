@@ -81,6 +81,13 @@
   .avail-slot-req { background: #e9ecef; color: #6c757d; cursor: pointer; text-align: center; font-size: .72rem; padding: .4rem .3rem; border: 2px dashed #ced4da; border-radius: 4px; }
   .avail-grid-v td.avail-slot-req { --bs-table-bg: #e9ecef; --bs-table-color: #6c757d; background: #e9ecef; }
   .avail-grid-v td.avail-slot-req:hover { background: #dee2e6; }
+  .avail-with-cfis { display: flex; gap: .5rem; align-items: flex-start; }
+  .avail-with-cfis .avail-fit { flex: 1 1 auto; min-width: 0; }
+  .avail-cfi-side { flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; max-width: 6.5rem; }
+  .avail-cfi-side .btn { font-size: .72rem; padding: .2rem .4rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .avail-cfi-chips { display: block; font-size: .6rem; font-weight: 600; line-height: 1.2; color: #0a3d1f; white-space: normal; }
+  .avail-cfi-chips:empty { display: none; }
+  .avail-cfi-chips.none { color: #a61e4d; }
   @media (max-width: 575.98px) {
     .avail-grid th, .avail-grid td { font-size: .68rem; padding: .3rem .2rem; }
   }
@@ -173,7 +180,7 @@
 </div>
 
 {% if view == 'day' %}
-<p class="text-muted small">Plane availability only - a slot shown here just means that plane is free then; it doesn't check whether an instructor is also available. Times are {{ school_day_label }} in 1.5-hour slots (the same length as a normal booking).</p>
+<p class="text-muted small">Plane availability only - a slot shown here means that plane is free then. Tap instructor names on the right to see who is free in each slot. Times are {{ school_day_label }} in 1.5-hour slots (the same length as a normal booking).</p>
 {% else %}
 <p class="text-muted small">Each day shows how many open (plane, time-slot) pairs it has, {{ school_day_label }} in 1.5-hour slots - click a day to see the full breakdown.</p>
 {% endif %}
@@ -224,6 +231,7 @@
    and down, never sideways (Frank's request). The time label sits on the
    left of every row, so each box only needs to say Open/Booked. #}
 {% set is_student_viewer = session.get('student_id') and not session.get('cfi_id') %}
+<div class="avail-with-cfis">
 <div class="avail-fit">
   <table class="table table-bordered avail-grid avail-grid-v mb-0">
     <thead>
@@ -266,6 +274,7 @@
             onclick="window.location.href='{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60), asset_id=row.plane.id) }}'"
             title="{{ row.plane.tag }} open {{ cell.label }} - click to schedule a flight{{ ' (requests only: not confirmed until an instructor confirms it)' if cell.requests_only }}">
           {{ 'Requests only' if cell.requests_only else 'Open' }}
+          <span class="avail-cfi-chips" data-slot="{{ cell.start_min }}"></span>
         </td>
         {% endif %}
         {% endfor %}
@@ -274,6 +283,41 @@
     </tbody>
   </table>
 </div>
+{% if cfis %}
+<div class="avail-cfi-side" id="availCfiSide" aria-label="Instructors">
+  {% for c in cfis %}
+  <button type="button" class="btn btn-outline-primary" data-cfi="{{ c.id }}" aria-pressed="false" title="Show when {{ c.name }} is free">{{ c.name.split()[0] }}</button>
+  {% endfor %}
+</div>
+{% endif %}
+</div>
+{% if cfis %}
+<script>
+(function () {
+  var free = {{ cfi_free|tojson }};
+  var names = {{ cfis|tojson }};
+  var nm = {}; names.forEach(function (c) { nm[c.id] = c.name.split(' ')[0]; });
+  var sel = {};
+  function render() {
+    var ids = Object.keys(sel);
+    document.querySelectorAll('.avail-cfi-chips').forEach(function (el) {
+      if (!ids.length) { el.textContent = ''; el.classList.remove('none'); return; }
+      var ok = ids.filter(function (i) { return (free[el.dataset.slot] || []).indexOf(+i) >= 0; });
+      el.classList.toggle('none', !ok.length);
+      el.textContent = ok.length ? ok.map(function (i) { return nm[i]; }).join(', ') : 'no instructor';
+    });
+  }
+  document.querySelectorAll('#availCfiSide [data-cfi]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var id = b.dataset.cfi, on = !sel[id];
+      if (on) sel[id] = 1; else delete sel[id];
+      b.classList.toggle('btn-primary', on); b.classList.toggle('btn-outline-primary', !on);
+      b.setAttribute('aria-pressed', on); render();
+    });
+  });
+})();
+</script>
+{% endif %}
 {% else %}
 {#- List sub-view: every open (plane, slot) pair, grouped by plane so it
    reads like a simple "here's what's free today" sheet rather than a wall
