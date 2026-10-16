@@ -7326,8 +7326,8 @@ def log_running_late(flight_id):
         return redirect(back)
     note = (request.form.get("late_note") or "").strip()[:500]
     eta = (_late_base(f) + timedelta(minutes=minutes)).replace(second=0, microsecond=0)
-    conn.execute("UPDATE flights SET eta_at = ?, eta_set_by = ?, overdue_acknowledged_at = ? WHERE id = ?",
-                 (eta.strftime("%Y-%m-%d %H:%M:%S"), session.get("user_name"), now_iso(), flight_id))
+    conn.execute("UPDATE flights SET eta_at = ?, eta_set_by = ?, overdue_acknowledged_at = ?, late_minutes = ?, late_note = ? WHERE id = ?",
+                 (eta.strftime("%Y-%m-%d %H:%M:%S"), session.get("user_name"), now_iso(), minutes, note, flight_id))
     eta_label = _format_time_12h(eta.strftime("%H:%M"))
     nxt = _next_booking_on_plane(conn, f)
     told = 0
@@ -7416,7 +7416,7 @@ def log_set_eta(flight_id):
         except ValueError:
             eta = None
     if request.form.get("clear"):
-        conn.execute("UPDATE flights SET eta_at = NULL, eta_set_by = NULL WHERE id = ?", (flight_id,))
+        conn.execute("UPDATE flights SET eta_at = NULL, eta_set_by = NULL, late_minutes = NULL, late_note = NULL WHERE id = ?", (flight_id,))
         conn.commit()
         conn.close()
         flash("Updated ETA cleared.", "success")
@@ -7426,7 +7426,7 @@ def log_set_eta(flight_id):
         flash("Pick an ETA later than now.", "danger")
         return redirect(back)
     eta = eta.replace(second=0, microsecond=0)
-    conn.execute("UPDATE flights SET eta_at = ?, eta_set_by = ?, overdue_acknowledged_at = ? WHERE id = ?",
+    conn.execute("UPDATE flights SET eta_at = ?, eta_set_by = ?, overdue_acknowledged_at = ?, late_minutes = NULL, late_note = NULL WHERE id = ?",
                  (eta.strftime("%Y-%m-%d %H:%M:%S"), session.get("user_name"), now_iso(), flight_id))
     conn.commit()
 

@@ -1026,6 +1026,10 @@ def _migrate(conn):
         # stored on them, so the flag clears itself when the flight ends.
         ("eta_at", "ALTER TABLE flights ADD COLUMN eta_at TEXT"),
         ("eta_set_by", "ALTER TABLE flights ADD COLUMN eta_set_by TEXT"),
+        # What the Running late box last sent (minutes + the instructor-only
+        # note), kept so the sender still sees it after pressing the button.
+        ("late_minutes", "ALTER TABLE flights ADD COLUMN late_minutes INTEGER"),
+        ("late_note", "ALTER TABLE flights ADD COLUMN late_note TEXT"),
     ]:
         if col not in flight_cols3:
             conn.execute(ddl)

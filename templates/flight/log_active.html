@@ -200,8 +200,11 @@
   <div class="alert alert-success py-1 px-2 small mb-2"><i class="bi bi-check-circle-fill"></i> Acknowledged - the running-late alert is quiet for 15 min.</div>
   {% endif %}
   {% if f.can_ack and not f.stopped_at %}
-  <details class="running-late-box border rounded p-2 mb-2">
+  <details class="running-late-box border rounded p-2 mb-2"{% if f.late_minutes and f.eta_label %} open{% endif %}>
     <summary class="small fw-bold"><i class="bi bi-clock-history text-warning"></i> Running late</summary>
+    {% if f.late_minutes and f.eta_label %}
+    <div class="running-late-sent alert alert-success py-1 px-2 small mt-2 mb-0"><i class="bi bi-check-circle-fill"></i> Sent: {{ f.late_minutes }} min late, new ETA {{ f.eta_label }}.{% if f.late_note %} <span class="d-block">Note to next instructor: {{ f.late_note }}</span>{% endif %}</div>
+    {% endif %}
     <form method="post" action="{{ url_for('flight.log_running_late', flight_id=f.id) }}" class="mt-2 mb-0" data-late-base="{{ f.late_base }}">
       <div class="d-flex flex-wrap align-items-center gap-2">
         <input type="number" name="late_minutes" min="1" max="600" inputmode="numeric" required class="form-control form-control-sm" style="width:5.5rem" placeholder="Minutes" aria-label="Minutes late">

@@ -47,6 +47,13 @@ class RunningLateTest(OpsHubTestCase):
         self.assertNotIn("Fuel stop", feed[0]["message"])
         self.assertIsNotNone(self.q1("SELECT eta_at FROM flights WHERE id = ?", (self.fid,))["eta_at"])
 
+    def test_sender_still_sees_note(self):
+        c = self.login("cfi")
+        c.post(f"/flight/log/{self.fid}/running_late", data={"late_minutes": "20", "late_note": "Fuel stop, sorry"})
+        html = c.get("/flight/log/active").get_data(as_text=True)
+        self.assertIn("running-late-sent", html)
+        self.assertIn("Note to next instructor: Fuel stop, sorry", html)
+
     def test_needs_minutes(self):
         self.login("cfi").post(f"/flight/log/{self.fid}/running_late", data={"late_minutes": ""})
         self.assertEqual(self.pushes("cfi_billing"), [])
