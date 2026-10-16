@@ -59,7 +59,11 @@ def now_iso():
 def parse_pdf(path):
     """Parsed Areas/Tasks/elements of an ACS PDF (acs_parser.parse_acs). One place so tests can swap it."""
     from acs_parser import parse_acs
-    return parse_acs(path)
+    from pts_parser import parse_pts
+    areas = parse_acs(path)
+    if not areas or not any(a["tasks"] for a in areas):
+        areas = parse_pts(path)  # older FAA Practical Test Standards layout
+    return areas
 
 
 def default_source_url(name, doc_number):
