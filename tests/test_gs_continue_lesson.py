@@ -52,4 +52,4 @@ class GsContinueLessonTest(OpsHubTestCase):
         body = c.get("/flight/groundschool").get_data(as_text=True)
         self.assertIn("Continue", body)
         self.assertIn("next up: PA.I.A.K1, Element A", body)
-        self.assertIn("All tasks", body)
+        self.assertIn("Choose a different lesson", body)
