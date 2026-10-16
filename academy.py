@@ -84,6 +84,19 @@ def level_of(student_row):
     return "student"
 
 
+def without_staff(conn, stats):
+    """The stats minus admins and instructors (accounts holding a Flight Admin or CFI role, a master
+    admin, or a student profile sharing a CFI's name): the leaderboard ranks students only."""
+    from db import user_flight_roles
+    staff_ids = set()
+    for u in conn.execute("""SELECT s.id AS sid, u.* FROM students s JOIN users u ON u.id = s.user_id""").fetchall():
+        if u["is_master_admin"] or set(user_flight_roles(u)) & {"admin", "cfi"}:
+            staff_ids.add(u["sid"])
+    cfi_names = {(r["name"] or "").strip().lower() for r in conn.execute("SELECT name FROM cfis").fetchall()} - {""}
+    return {sid: st for sid, st in stats.items()
+            if sid not in staff_ids and (st["name"] or "").strip().lower() not in cfi_names}
+
+
 def only_level(stats, level):
     """The stats of just the students at that level ('all' keeps everybody)."""
     if level == "all":

@@ -625,7 +625,7 @@ def academy_page():
     level = request.args.get("level", "")
     if level not in academy.LEVEL_KEYS:
         level = academy.level_of(me["student"]) if me else "all"
-    board_stats = academy.only_level(stats, level)
+    board_stats = academy.only_level(academy.without_staff(conn, stats), level)
     boards = academy.leaderboards(board_stats)
     staff = bool(is_flight_admin() or session.get("cfi_id"))
     entry_sql = """SELECT e.*, s.name as student_name FROM academy_entries e

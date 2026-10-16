@@ -72,3 +72,24 @@ class LevelFilterTest(OpsHubTestCase):
         self.assertNotIn("Sam Student", default)
         everyone = self.on_boards(c.get("/academy?level=all").get_data(as_text=True))
         self.assertIn("Cal Commercial", everyone)
+
+
+class StaffOffBoardTest(OpsHubTestCase):
+    """Admins and instructors are not ranked on the leaderboard."""
+    def test_staff_removed_students_kept(self):
+        conn = db.get_db()
+        ids = {}
+        for name in ("Sam Student", "Ann Admin", "Carl Cfi", "Nina Namesake"):
+            ids[name] = seed_row(conn, "students", name=name, username=name.lower().replace(" ", "_"), active=1)
+        u_admin = seed_row(conn, "users", name="Ann Admin", username="ann_admin", password_hash="x", active=1, flight_role="admin")
+        u_cfi = seed_row(conn, "users", name="Carl Cfi", username="carl_cfi", password_hash="x", active=1, flight_role="cfi")
+        conn.execute("UPDATE students SET user_id = ? WHERE id = ?", (u_admin, ids["Ann Admin"]))
+        conn.execute("UPDATE students SET user_id = ? WHERE id = ?", (u_cfi, ids["Carl Cfi"]))
+        seed_row(conn, "cfis", name="Nina Namesake", username="nina_n", active=1)
+        conn.commit()
+        stats = academy.student_stats(conn)
+        kept = {st["name"] for st in academy.without_staff(conn, stats).values()}
+        conn.close()
+        self.assertIn("Sam Student", kept)
+        for n in ("Ann Admin", "Carl Cfi", "Nina Namesake"):
+            self.assertNotIn(n, kept)
