@@ -271,3 +271,21 @@ class LessonGradesTest(ElementLessonTest):
         self.assertIn('data-key="a0" data-done="1"', body)
         staff = self.login("master").get(f"{GS}/task/{self.task}?student_id={self.sid}").get_data(as_text=True)
         self.assertIn("initial FINAL CHECK grade", staff)
+
+
+class SectionReadMarksTest(LessonGradesTest.__bases__[0]):
+    """GS-READ: time per reading section is saved; a read section gets a check mark, and the
+    instructor sees the time on each."""
+    def test_section_time_marks_read_and_shows_for_instructor(self):
+        c = self.login("flight_student")
+        c.post(f"{GS}/task/{self.task}/lesson-time", json={"seconds": 20, "anchor": "gsl-c1", "chunks": {"1": 40, "2": 3}})
+        c.post(f"{GS}/task/{self.task}/lesson-time", json={"seconds": 20, "chunks": {"1": 40}})
+        rows = {r["chunk_n"]: r["seconds"] for r in self.q("SELECT chunk_n, seconds FROM gs_chunk_time WHERE student_id = ?", (self.sid,))}
+        self.assertEqual(rows[1], 80)
+        self.assertEqual(rows[2], 3)
+        mine = c.get(f"{GS}/task/{self.task}").get_data(as_text=True)
+        self.assertIn('id="gsl-c1" data-need=', mine)
+        self.assertIn("gsl-read", mine)
+        staff = self.login("master").get(f"{GS}/task/{self.task}?student_id={self.sid}").get_data(as_text=True)
+        self.assertIn("Reading sections:", staff)
+        self.assertIn("1 min 20 s", staff)

@@ -7,12 +7,13 @@
 {%- endmacro %}
 
 {% macro chunk(c, n, L, el_ids={}, done={}, selfdone=()) %}
-<article class="gsl-chunk gsl-{{ c.kind }}" id="gsl-c{{ n }}">
+{% set _need = gs_need(c) if gs_need else 12 %}{% set _secs = (gs_chunk_secs or {}).get(n, 0) %}
+<article class="gsl-chunk gsl-{{ c.kind }}{{ ' gsl-read' if _secs >= _need }}" id="gsl-c{{ n }}" data-need="{{ _need }}" data-secs="{{ _secs }}">
   <div class="gsl-chunk-top">
     <div class="gsl-chips">{% for cd in c.codes %}{{ chip(cd, el_ids, done, selfdone) }}{% endfor %}</div>
     <span class="gsl-mins">{{ c.minutes }} min</span>
   </div>
-  <h6 class="gsl-chunk-title">{{ n }}. {{ c.title }}</h6>
+  <h6 class="gsl-chunk-title">{{ n }}. {{ c.title }}<span class="gsl-readmark" title="Read"><i class="bi bi-check-circle-fill"></i> Read</span></h6>
   {% for b in c.body %}
     {% if b.p %}<p>{{ gs_rich(b.p) }}</p>
     {% elif b.bullets %}<ul>{% for x in b.bullets %}<li>{{ gs_rich(x) }}</li>{% endfor %}</ul>

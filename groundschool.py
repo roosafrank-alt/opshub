@@ -843,9 +843,11 @@ def task_detail(task_id):
         [e["code"] for e in list(knowledge) + list(risk_management) + list(skills)]))
     gs_stats = gs_resume = None
     gs_results = {}
+    gs_chunk_secs = {}
     if session.get("student_id") and gs_lesson:
         conn = get_db()
         gs_results = lesson_results_map(conn, session["student_id"], task_id)
+        gs_chunk_secs = chunk_secs_map(conn, session["student_id"], task_id)
         conn.close()
     if viewing_student_id and gs_lesson:
         conn = get_db()
@@ -856,7 +858,7 @@ def task_detail(task_id):
     prev_task_id = ids[idx - 1] if idx > 0 else None
     next_task_id = ids[idx + 1] if 0 <= idx < len(ids) - 1 else None
     next_task = area_tasks[idx + 1] if next_task_id else None
-    return render_template("flight/groundschool_task.html", task_id_for_finish=task_id, gs_results=gs_results, gs_stats=gs_stats, gs_resume=gs_resume, task=task, next_task=next_task, area=area, rating=rating,
+    return render_template("flight/groundschool_task.html", task_id_for_finish=task_id, gs_chunk_secs=gs_chunk_secs, gs_need=chunk_need, gs_results=gs_results, gs_stats=gs_stats, gs_resume=gs_resume, task=task, next_task=next_task, area=area, rating=rating,
                             notes=notes, knowledge=knowledge, risk_management=risk_management,
                             skills=skills, lesson=lesson, acs_changes=acs_changes, signoffs=signoffs, my_signoff=my_signoff,
                             gs_students=students, prev_task_id=prev_task_id, next_task_id=next_task_id,
@@ -1657,6 +1659,17 @@ def lesson_time(task_id):
     else:
         conn.execute("INSERT INTO gs_lesson_time (student_id, task_id, seconds, last_anchor, first_started_at, last_seen_at) "
                      "VALUES (?, ?, ?, NULLIF(?, ''), ?, ?)", (student_id, task_id, secs, anchor, now, now))
+    chunks = data.get("chunks")
+    if isinstance(chunks, dict):
+        for k, v in list(chunks.items())[:60]:
+            try:
+                n, sec = int(k), max(0, min(int(v), 40))
+            except (TypeError, ValueError):
+                continue
+            if 1 <= n <= 99 and sec:
+                conn.execute("""INSERT INTO gs_chunk_time (student_id, task_id, chunk_n, seconds) VALUES (?, ?, ?, ?)
+                                ON CONFLICT(student_id, task_id, chunk_n) DO UPDATE SET seconds = seconds + excluded.seconds""",
+                             (student_id, task_id, n, sec))
     conn.commit()
     conn.close()
     return {"ok": True, "recorded": True}
@@ -1774,7 +1787,11 @@ def lesson_stats(conn, student_id, task_id, lesson):
         r = res.get(a["key"])
         fgames.append({"title": a["title"], "done": bool(r), "attempts": r["attempts"] if r else 0})
     f_first = sum(1 for x in fans if x["first_correct"])
+    csecs = chunk_secs_map(conn, student_id, task_id)
+    sections = [{"n": i, "title": c["title"], "secs": csecs.get(i, 0), "read": csecs.get(i, 0) >= chunk_need(c)}
+                for i, c in enumerate((lesson or {}).get("chunks") or [], 1)]
     return {
+        "sections": sections, "sections_read": sum(1 for x in sections if x["read"]),
         "final_rows": frows, "final_games": fgames, "final_answered": len(fans), "final_total": len(frows), "final_first": f_first,
         "final_pct": round(100 * f_first / len(frows)) if frows and len(fans) == len(frows) else None,
         "final_pct_so_far": round(100 * f_first / len(fans)) if fans else None,
@@ -1789,6 +1806,17 @@ def lesson_stats(conn, student_id, task_id, lesson):
         "tries_total": sum(x["attempts"] for x in rows),
         "games": games,
     }
+
+
+def chunk_need(c):
+    """Seconds on a reading section before it counts as read: a quarter of its stated reading
+    time, between 8 and 45 seconds."""
+    return int(min(45, max(8, (c.get("minutes") or 1) * 15)))
+
+
+def chunk_secs_map(conn, student_id, task_id):
+    return {r["chunk_n"]: r["seconds"] for r in conn.execute(
+        "SELECT chunk_n, seconds FROM gs_chunk_time WHERE student_id = ? AND task_id = ?", (student_id, task_id)).fetchall()}
 
 
 def resume_spot(conn, student_id, rating_id=None, task_id=None):

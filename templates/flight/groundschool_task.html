@@ -39,7 +39,7 @@
   <div class="gsl-hero-text">
     <div class="gsl-hero-title"><i class="bi bi-mortarboard-fill"></i> Lesson: {{ task.title }}</div>
     <div class="gsl-hero-sub">About {{ GL.minutes }} min &middot; {{ GL.chunks|length }} short lessons &middot; games and quick checks along the way</div>
-    {% if gs_stats and gs_stats.seconds %}<div class="gsl-hero-sub">You have spent {{ (gs_stats.seconds / 60)|round|int }} min on this lesson so far.</div>{% endif %}
+    {% if gs_stats and gs_stats.seconds %}<div class="gsl-hero-sub">You have spent {{ (gs_stats.seconds / 60)|round|int }} min on this lesson so far{% if gs_stats.sections %} &middot; {{ gs_stats.sections_read }} of {{ gs_stats.sections|length }} sections read{% endif %}.</div>{% endif %}
   </div>
   <div class="gsl-hero-btns">
     {% if gs_resume %}
@@ -62,6 +62,16 @@
       <div class="col-6 col-md-3"><div class="fs-4 fw-bold">{{ st.tries_total }}</div><div class="small text-muted">quiz tries in all</div></div>
       <div class="col-6 col-md-3"><div class="fs-6 fw-bold">{{ st.last_seen_at|usdate(true) if st.last_seen_at else '–' }}</div><div class="small text-muted">last in the lesson</div></div>
     </div>
+    {% if st.sections %}
+    <details class="mb-2"><summary class="fw-bold small">Reading sections: {{ st.sections_read }} of {{ st.sections|length }} read, and time on each</summary>
+      <div class="table-responsive mt-2"><table class="table table-sm align-middle mb-2">
+        <thead><tr><th>#</th><th>Section</th><th class="text-center">Time</th><th class="text-center">Read</th></tr></thead>
+        <tbody>{% for x in st.sections %}<tr><td>{{ x.n }}</td><td>{{ x.title }}</td>
+          <td class="text-center">{% if x.secs >= 60 %}{{ (x.secs // 60) }} min {{ x.secs % 60 }} s{% elif x.secs %}{{ x.secs }} s{% else %}&ndash;{% endif %}</td>
+          <td class="text-center">{% if x.read %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<span class="text-muted small">not yet</span>{% endif %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </details>
+    {% endif %}
     {% if st.quiz_rows %}
     <details {% if st.quiz_answered %}open{% endif %}><summary class="fw-bold small">Quiz questions: first try and tries taken</summary>
       <div class="table-responsive mt-2"><table class="table table-sm align-middle mb-2">

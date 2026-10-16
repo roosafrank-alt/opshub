@@ -283,13 +283,34 @@
     ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(function (ev) {
       window.addEventListener(ev, function () { lastInput = Date.now(); }, { passive: true });
     });
+    var chunkEls = [].slice.call(root.querySelectorAll('article.gsl-chunk[id^="gsl-c"]'));
+    var chunkSecs = {}, chunkMs = {};
+    function chunkInView() {                         // the reading section across the middle of the screen
+      var mid = window.innerHeight * 0.45;
+      for (var i = 0; i < chunkEls.length; i++) {
+        var r = chunkEls[i].getBoundingClientRect();
+        if (r.top <= mid && r.bottom >= mid) return chunkEls[i];
+      }
+      return null;
+    }
     setInterval(function () {                       // count a second only while visible and recently used
       var now = Date.now(), dt = Math.min(now - lastTick, 2000); lastTick = now;
-      if (document.visibilityState === 'visible' && now - lastInput < IDLE) active += dt;
+      if (document.visibilityState === 'visible' && now - lastInput < IDLE) {
+        active += dt;
+        var el = chunkInView();
+        if (el) {
+          var n = el.id.slice(5);
+          chunkMs[n] = (chunkMs[n] || 0) + dt;
+          var whole = Math.floor(chunkMs[n] / 1000);
+          if (whole > 0) { chunkMs[n] -= whole * 1000; chunkSecs[n] = (chunkSecs[n] || 0) + whole;
+            el.setAttribute('data-secs', (+el.getAttribute('data-secs') || 0) + whole);
+            if ((+el.getAttribute('data-secs')) >= (+el.getAttribute('data-need'))) el.classList.add('gsl-read'); }
+        }
+      }
     }, 1000);
     function beat(useBeacon) {
       var secs = Math.round(active / 1000); active -= secs * 1000;
-      var body = JSON.stringify({ seconds: secs, anchor: currentAnchor() });
+      var body = JSON.stringify({ seconds: secs, anchor: currentAnchor(), chunks: chunkSecs }); chunkSecs = {};
       if (useBeacon && navigator.sendBeacon) navigator.sendBeacon(base + '/lesson-time', new Blob([body], { type: 'application/json' }));
       else fetch(base + '/lesson-time', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: body }).catch(function () {});
     }
