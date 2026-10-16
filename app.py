@@ -8927,7 +8927,7 @@ def view_as_student_start(student_id):
 @app.route("/view-as/flight/student/me", methods=["POST"])
 @login_required
 def view_as_student_me():
-    """An admin takes the courses as themselves: switches to their OWN student
+    """An admin uses everything (booking, logbook, courses) as themselves: switches to their OWN student
     profile (created the first time) with nothing look-only, so quizzes, games,
     time and resume are all saved under their name, and every ground school is open."""
     if not can_pick_student():
@@ -8961,8 +8961,8 @@ def view_as_student_me():
     session.pop("_view_as_readonly", None)          # this one is really you: everything is saved
     session["groundschool_access"] = True           # every course is open to you
     session["_view_as_return"] = _local_path(request.form.get("next")) or url_for("academy_page")
-    flash("You're now a student - courses, quizzes and time are saved under your own name. Use Back to my normal view when done.", "info")
-    return redirect(url_for("groundschool.rating_list"))
+    flash("You're using everything as a student, under your own name. Use Back to my normal view when done.", "info")
+    return redirect(url_for("flight.dashboard"))
 
 
 @app.route("/view-as/flight/cfi/<int:cfi_id>", methods=["POST"])

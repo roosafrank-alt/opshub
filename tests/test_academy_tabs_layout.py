@@ -85,7 +85,7 @@ class DenyPendingLogbookEntryTest(OpsHubTestCase):
 class AdminAsOwnStudentTest(OpsHubTestCase):
     def test_admin_can_take_courses_as_themselves_and_progress_saves(self):
         c = self.login("master")
-        self.assertIn("Be a student myself", c.get("/view-as/flight/student").get_data(as_text=True))
+        self.assertIn("Use it as a student myself", c.get("/view-as/flight/student").get_data(as_text=True))
         r = c.post("/view-as/flight/student/me")
         self.assertEqual(r.status_code, 302)
         self.assertEqual(c.get("/flight/groundschool").status_code, 200)
