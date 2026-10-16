@@ -235,8 +235,16 @@
   root.querySelectorAll('[data-drag]').forEach(function (src) {
     src.addEventListener('pointerdown', function (e) {
       if (src.disabled || (e.pointerType === 'mouse' && e.button !== 0)) return;
-      if (e.pointerType !== 'mouse' && !e.target.closest('.gsl-grip')) return;   // on a phone, drag by the grip so the page can still scroll
+      // On a phone: the grip picks a tile up at once; anywhere else needs a short press-and-hold
+      // (a quick swipe still scrolls the page).
+      var touch = e.pointerType !== 'mouse', viaGrip = !!e.target.closest('.gsl-grip');
+      var armed = !touch || viaGrip, holdT = null;
       var sx = e.clientX, sy = e.clientY, ghost = null, hot = null, act = src.closest('.gsl-act');
+      function stopScroll(te) { if (armed || ghost) te.preventDefault(); }
+      if (touch && !armed) {
+        holdT = setTimeout(function () { armed = true; if (navigator.vibrate) { try { navigator.vibrate(15); } catch (x) {} } src.classList.add('gsl-held'); }, 170);
+      }
+      if (touch) document.addEventListener('touchmove', stopScroll, { passive: false });
       function targetAt(x, y) {
         var el = document.elementFromPoint(x, y);
         var t = el && el.closest('[data-k],.gsl-bucket');
@@ -244,7 +252,9 @@
       }
       function move(ev) {
         if (!ghost) {
-          if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 10) return;
+          var moved = Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy);
+          if (!armed) { if (moved > 8) cleanup(); return; }       // moved before the hold finished: it is a scroll
+          if (moved < 10) return;
           ghost = src.cloneNode(true); ghost.removeAttribute('data-k'); ghost.className += ' gsl-ghost';
           ghost.style.width = src.offsetWidth + 'px'; document.body.appendChild(ghost); src.classList.add('gsl-dragging');
         }
@@ -255,9 +265,14 @@
         if (t) t.classList.add('gsl-drop');
         hot = t;
       }
-      function up(ev) {
+      function cleanup() {
+        clearTimeout(holdT); src.classList.remove('gsl-held');
+        document.removeEventListener('touchmove', stopScroll);
         document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up);
         document.removeEventListener('pointercancel', up);
+      }
+      function up(ev) {
+        cleanup();
         if (!ghost) return;                         // it was a plain tap; let the click happen
         var t = targetAt(ev.clientX, ev.clientY);
         ghost.remove(); src.classList.remove('gsl-dragging'); if (hot) hot.classList.remove('gsl-drop');

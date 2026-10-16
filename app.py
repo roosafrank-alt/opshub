@@ -86,6 +86,8 @@ app.register_blueprint(customer_bp)
 app.register_blueprint(pwreset_bp)
 app.register_blueprint(manuals_bp)
 app.register_blueprint(groundschool_bp)
+from endorsements import endorse_bp, run_expiry_check as run_endorsement_expiry_check  # ENDORSE
+app.register_blueprint(endorse_bp)
 app.register_blueprint(payroll_bp)
 app.register_blueprint(ads_bp)
 app.teardown_request(close_request_conns)
@@ -664,7 +666,7 @@ def academy_entry_add():
     a CFI/admin can log for any student."""
     if not (is_flight_admin() or session.get("academy_access")):
         return redirect(url_for("home_launcher"))
-    staff = bool(is_flight_admin() or session.get("cfi_id"))
+    staff = bool(is_flight_admin())     # an instructor can not log flying for a student
     student_id = request.form.get("student_id", type=int) if staff else session.get("student_id")
     kind = request.form.get("kind")
     try:
@@ -702,8 +704,8 @@ def academy_entry_add():
 @app.route("/academy/entry/<int:entry_id>/delete", methods=["POST"])
 @login_required
 def academy_entry_delete(entry_id):
-    """Remove a leaderboard entry - your own, or any if you're a CFI/admin."""
-    staff = bool(is_flight_admin() or session.get("cfi_id"))
+    """Remove a leaderboard entry - your own, or any if you're a Flight Admin (not an instructor)."""
+    staff = bool(is_flight_admin())
     conn = get_db()
     e = conn.execute("SELECT * FROM academy_entries WHERE id = ?", (entry_id,)).fetchone()
     if e and (staff or e["student_id"] == session.get("student_id")):
@@ -8835,6 +8837,27 @@ def admin_home():
     return render_template("admin_home.html", user_count=user_count, error_log_count=error_log_count)
 
 
+def _stay_on_page(fallback):
+    """After switching role, stay on the page you were on if the new role may open it
+    (checked by really asking for it with the new session); otherwise go to `fallback`."""
+    from urllib.parse import urlparse
+    raw = request.form.get("next") or request.referrer or ""
+    path = urlparse(raw).path if raw.startswith("http") else raw
+    path = _local_path(path)
+    if not path or path.startswith(("/view-as", "/login", "/logout")):
+        return fallback
+    full = path + (("?" + urlparse(raw).query) if raw.startswith("http") and urlparse(raw).query else "")
+    try:
+        with app.test_client() as tc:
+            with tc.session_transaction() as sess:
+                sess.update(dict(session))
+            if tc.get(full).status_code == 200:
+                return full
+    except Exception:
+        pass
+    return fallback
+
+
 @app.route("/view-as/<program>/<level>", methods=["POST"])
 def view_as_start(program, level):
     """Switches to another role from the "Switch role" chips in the header -
@@ -8856,7 +8879,7 @@ def view_as_start(program, level):
         return redirect(request.referrer or url_for("dashboard"))
     levels = SHOP_VIEW_AS_LEVELS if program == "shop" else FLIGHT_VIEW_AS_LEVELS
     flash(f"Switched to {levels[level]} - you can use everything a{'n' if levels[level][0] in 'AEIOU' else ''} {levels[level]} can.", "info")
-    return redirect(url_for("dashboard") if program == "shop" else url_for("flight.dashboard"))
+    return redirect(_stay_on_page(url_for("dashboard") if program == "shop" else url_for("flight.dashboard")))
 
 
 def _local_path(raw):
@@ -8927,7 +8950,7 @@ def view_as_student_start(student_id):
 @app.route("/view-as/flight/student/me", methods=["POST"])
 @login_required
 def view_as_student_me():
-    """An admin takes the courses as themselves: switches to their OWN student
+    """An admin uses everything (booking, logbook, courses) as themselves: switches to their OWN student
     profile (created the first time) with nothing look-only, so quizzes, games,
     time and resume are all saved under their name, and every ground school is open."""
     if not can_pick_student():
@@ -8939,6 +8962,15 @@ def view_as_student_me():
         conn.close()
         abort(404)
     row = conn.execute("SELECT id FROM students WHERE user_id = ?", (u["id"],)).fetchone()
+    if not row:
+        # You may already be a real flight student with an unlinked profile of the same name:
+        # link that one (keeps your flights, logbook and hours) instead of making a second.
+        same = conn.execute("""SELECT id FROM students WHERE user_id IS NULL AND active = 1 AND COALESCE(is_station, 0) = 0
+                               AND lower(trim(name)) = lower(trim(?))""", (u["name"],)).fetchall()
+        if len(same) == 1:
+            conn.execute("UPDATE students SET user_id = ? WHERE id = ?", (u["id"], same[0]["id"]))
+            conn.commit()
+            row = same[0]
     if not row:
         conn.execute("INSERT INTO students (name, username, password_hash, active, user_id, created_at) VALUES (?, ?, ?, 1, ?, ?)",
                      (u["name"], u["username"], u["password_hash"], u["id"], now_iso()))
@@ -8952,8 +8984,8 @@ def view_as_student_me():
     session.pop("_view_as_readonly", None)          # this one is really you: everything is saved
     session["groundschool_access"] = True           # every course is open to you
     session["_view_as_return"] = _local_path(request.form.get("next")) or url_for("academy_page")
-    flash("You're now a student - courses, quizzes and time are saved under your own name. Use Back to my normal view when done.", "info")
-    return redirect(url_for("groundschool.rating_list"))
+    flash("You're using everything as a student, under your own name. Use Back to my normal view when done.", "info")
+    return redirect(_stay_on_page(url_for("flight.dashboard")))
 
 
 @app.route("/view-as/flight/cfi/<int:cfi_id>", methods=["POST"])
@@ -9242,6 +9274,14 @@ def admin_user_edit(user_id):
             conn.execute("UPDATE students SET active=? WHERE user_id=?", (active, user_id))
         conn.commit()
         _apply_pay_links(conn, user_row, request.form)
+        if request.form.get("student_fields"):
+            from flight import apply_student_profile_fields
+            stu = conn.execute("SELECT * FROM students WHERE user_id = ?", (user_id,)).fetchone()
+            if stu is not None and not stu["is_station"]:
+                flagged = apply_student_profile_fields(conn, stu, request.form, True, session.get("user_name"))
+                if flagged:
+                    flash(f"{flagged} upcoming solo flight{'s' if flagged != 1 else ''} for this student "
+                          f"{'are' if flagged != 1 else 'is'} now flagged for review - past the solo sign-off or medical expiry.", "warning")
         conn.close()
         flash("Account updated.", "success")
         # SHOP-41: opened from the Workers page (?back=workers) -> go back there.
@@ -9260,11 +9300,17 @@ def admin_user_edit(user_id):
 
 def _course_grant_context(conn, user_id):
     """Per-course Ground School grants for the student profile linked to this account."""
-    st = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_id,)).fetchone()
+    import flight as _fl
+    st = conn.execute("SELECT * FROM students WHERE user_id = ?", (user_id,)).fetchone()
     if not st:
         return {"grant_student": None}
     return {
         "grant_student": st["id"],
+        "stu": st, "stu_station": bool(st["is_station"]),
+        "training_goals": _fl.TRAINING_GOALS, "pilot_certificates": _fl.PILOT_CERTIFICATES,
+        "pilot_ratings": _fl.PILOT_RATINGS, "medical_classes": _fl.MEDICAL_CLASSES,
+        "pay_preferences": _fl.PAY_PREFERENCES, "default_solo_currency_days": _fl.DEFAULT_SOLO_CURRENCY_DAYS,
+        "today_iso": date.today().isoformat(),
         "grant_courses": conn.execute("SELECT id, name FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall(),
         "granted_ids": {r["rating_id"] for r in conn.execute(
             "SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (st["id"],)).fetchall()},
@@ -10641,6 +10687,10 @@ def _start_session_alert_loop(debug_mode):
                 run_balance_hold_release_check()
             except Exception:
                 app.logger.exception("Balance hold release check failed")
+            try:
+                run_endorsement_expiry_check()      # ENDORSE: at most once an hour
+            except Exception:
+                app.logger.exception("Endorsement expiry check failed")
             try:
                 run_wave_payment_check()
             except Exception:

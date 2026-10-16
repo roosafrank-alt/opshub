@@ -12,15 +12,17 @@
 {% set can_look_at_customers = view_as_program == 'shop' and session.get('user_id') and not session.get('_view_as_real') and (session.get('is_master_admin') or session.get('shop_role') == 'admin') %}
 {% if chips or can_look_at_customers %}
 <div class="view-as-chips d-flex align-items-center flex-nowrap gap-1 text-nowrap" style="font-size:.68rem;" data-change="HUB-03">
-  <span class="text-white-50">Switch role:</span>
+  {#- Phones: just a switch icon (the words ate ~70px of a ~230px menu); the
+     words come back from the lg breakpoint up, where there's room. #}
+  <span class="text-white-50 view-as-chips-label" title="Switch role" aria-label="Switch role"><i class="bi bi-arrow-left-right d-lg-none"></i><span class="d-none d-lg-inline">Switch role:</span></span>
   {% for chip in chips %}
   {% if chip.action == 'current' %}
-  <span class="btn btn-light py-0 px-2 fw-bold disabled" aria-current="true" style="font-size:.68rem; line-height:1.5; opacity:1;">{{ chip.label }}</span>
+  <span class="btn btn-light py-0 px-2 fw-bold disabled" aria-current="true" style="font-size:.68rem; line-height:1.5; opacity:1;">{% if chip.short and chip.short != chip.label %}<span class="chip-full">{{ chip.label }}</span><span class="chip-short">{{ chip.short }}</span>{% else %}{{ chip.label }}{% endif %}</span>
   {% elif chip.pick %}
-  <a href="{{ url_for('view_as_cfi_picker' if chip.level == 'cfi' else 'view_as_student_picker', next=request.path) }}" class="btn btn-outline-light py-0 px-2" style="font-size:.68rem; line-height:1.5;" title="Pick a {{ 'CFI' if chip.level == 'cfi' else 'student' }} to look at">{{ chip.label }}</a>
+  <a href="{{ url_for('view_as_cfi_picker' if chip.level == 'cfi' else 'view_as_student_picker', next=request.path) }}" class="btn btn-outline-light py-0 px-2" style="font-size:.68rem; line-height:1.5;" title="Pick a {{ 'CFI' if chip.level == 'cfi' else 'student' }} to look at">{% if chip.short and chip.short != chip.label %}<span class="chip-full">{{ chip.label }}</span><span class="chip-short">{{ chip.short }}</span>{% else %}{{ chip.label }}{% endif %}</a>
   {% else %}
   <form action="{{ url_for('view_as_exit') if chip.action == 'exit' else url_for('view_as_start', program=view_as_program, level=chip.level) }}" method="post" class="d-inline m-0">
-    <button type="submit" class="btn {{ 'btn-warning fw-bold' if chip.action == 'exit' else 'btn-outline-light' }} py-0 px-2" style="font-size:.68rem; line-height:1.5;"{% if chip.action == 'exit' %} title="Back to your normal view"{% endif %}>{{ chip.label }}</button>
+    <button type="submit" class="btn {{ 'btn-warning fw-bold' if chip.action == 'exit' else 'btn-outline-light' }} py-0 px-2" style="font-size:.68rem; line-height:1.5;"{% if chip.action == 'exit' %} title="Back to your normal view"{% endif %}>{% if chip.short and chip.short != chip.label %}<span class="chip-full">{{ chip.label }}</span><span class="chip-short">{{ chip.short }}</span>{% else %}{{ chip.label }}{% endif %}</button>
   </form>
   {% endif %}
   {% endfor %}

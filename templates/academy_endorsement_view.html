@@ -1,0 +1,51 @@
+{% extends "academy_base.html" %}
+{% block title %}{{ it.num }} {{ it.full_title }} · Endorsement{% endblock %}
+{% block content %}
+{#- ENDORSE: one endorsement - the full wording to copy or print, its expiry, and Remove for a mistake. #}
+<div class="card academy-card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+    <div>
+      <h4 class="mb-0">{{ it.num }} {{ it.full_title }}</h4>
+      <div class="small text-muted">{{ it.student_name }} &middot; signed {{ us_date(it.signed_on) }}{% if it.cfi_name %} by {{ it.cfi_name }}{% endif %}{% if it.entry %} &middot; {{ it.entry.reg }}{% endif %}</div>
+    </div>
+    <div>
+      {% if it.voided %}<span class="badge bg-secondary fs-6">Removed{% if e.void_reason %}: {{ e.void_reason }}{% endif %}</span>
+      {% elif it.flight_specific and it.expired %}<span class="badge bg-secondary fs-6">For the flight on {{ us_date(it.expires) }}</span>
+      {% elif it.expired %}<span class="badge bg-danger fs-6">Expired {{ us_date(it.expires) }}</span>
+      {% elif it.expires %}<span class="badge bg-success fs-6">Good until {{ us_date(it.expires) }}</span>
+      {% else %}<span class="badge bg-light text-dark border fs-6">No expiry</span>{% endif %}
+    </div>
+  </div>
+  <pre id="en-text" class="mb-2" style="white-space:pre-wrap;font-family:Georgia,'Times New Roman',serif;font-size:1rem;background:#fffdf5;border:1px solid #eadfb8;border-radius:8px;padding:.9rem 1rem;">{{ e.body }}</pre>
+  {% if signature %}<div class="small text-muted mb-2">Signature on file: <img src="{{ signature }}" alt="CFI signature" style="max-height:48px;vertical-align:middle;"></div>{% endif %}
+  {% if it.entry and it.entry.expiry_src and not it.voided %}<div class="small text-muted mb-2"><i class="bi bi-clock-history"></i> {{ it.entry.expiry_src }}</div>{% endif %}
+  <div class="d-flex gap-2 flex-wrap">
+    <button type="button" class="btn btn-primary btn-sm" id="en-copy"><i class="bi bi-clipboard"></i> Copy</button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="en-print"><i class="bi bi-printer"></i> Print</button>
+    <a href="{{ url_for('endorse.student_tab', student_id=e.student_id) }}" class="btn btn-outline-secondary btn-sm">Back to endorsements</a>
+    {% if can_void and not it.voided %}
+    <form method="post" action="{{ url_for('endorse.void', endorsement_id=e.id) }}" class="d-flex gap-1 ms-auto"
+          data-confirm="Remove this endorsement? It stops counting (a solo endorsement also stops counting for solo booking). It stays on record as removed." data-confirm-title="Remove endorsement" data-confirm-ok="Remove" data-confirm-style="danger">
+      <input name="reason" class="form-control form-control-sm" placeholder="Why (e.g. typo)" style="max-width:180px;">
+      <button class="btn btn-outline-danger btn-sm"><i class="bi bi-x-octagon"></i> Remove</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+<script>
+(function () {
+  var t = document.getElementById('en-text').textContent;
+  document.getElementById('en-copy').addEventListener('click', function () {
+    var b = this;
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { b.textContent = 'Copied'; }).catch(function () {
+      var r = document.createRange(); r.selectNodeContents(document.getElementById('en-text')); var s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    });
+  });
+  document.getElementById('en-print').addEventListener('click', function () {
+    var w = window.open('', '_blank'); if (!w) return;
+    w.document.write('<pre style="font:16px/1.5 Georgia,serif;white-space:pre-wrap">' + t.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</pre>');
+    w.document.close(); w.focus(); w.print();
+  });
+})();
+</script>
+{% endblock %}

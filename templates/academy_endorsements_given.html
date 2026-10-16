@@ -1,0 +1,44 @@
+{% extends "academy_base.html" %}
+{% block title %}Endorsements given · Flight Academy{% endblock %}
+{% block content %}
+{#- ENDORSE: a CFI's record of every endorsement they gave; a Flight Admin can pick any CFI. #}
+<style>
+  .en-row { display: flex; align-items: center; gap: .6rem; padding: .5rem .2rem; border-top: 1px solid #eef0f3; text-decoration: none; color: inherit; }
+  .en-row:first-child { border-top: 0; } .en-row:hover { background: #f8f9fa; }
+  .en-num { flex: 0 0 3.2rem; text-align: center; font-weight: 800; font-size: .75rem; background: #e7f1ff; color: #0b4fa8; border-radius: 6px; padding: .15rem .4rem; }
+  .en-sub { font-size: .75rem; color: #6c757d; } .en-exp { font-size: .75rem; font-weight: 700; text-align: right; white-space: nowrap; }
+</style>
+{% macro row(it) %}
+<a class="en-row" href="{{ url_for('endorse.view', endorsement_id=it.id) }}">
+  <span class="en-num">{{ it.num or 'Note' }}</span>
+  <span class="flex-grow-1"><b>{{ it.student_name }}</b> &middot; {{ it.title }}<span class="en-sub d-block">Signed {{ us_date(it.signed_on) }}</span></span>
+  <span class="en-exp">{% if it.voided %}<span class="text-secondary">Removed</span>{% elif it.superseded %}<span class="text-secondary">Replaced</span>{% elif it.flight_specific and it.expired %}<span class="text-secondary">Flight {{ us_date(it.expires) }}</span>{% elif it.expired %}<span class="text-danger">Expired {{ us_date(it.expires) }}</span>{% elif it.expires %}<span class="text-success">Good until {{ us_date(it.expires) }}</span>{% else %}<span class="text-muted fw-normal">No expiry</span>{% endif %}</span>
+</a>
+{% endmacro %}
+<div class="card academy-card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h4 class="mb-0"><i class="bi bi-person-badge"></i> Endorsements given{% if cfi %} by {{ cfi.name }}{% endif %}</h4>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if cfis %}
+      <form method="get"><select name="cfi_id" class="form-select form-select-sm" onchange="this.form.submit()">
+        {% if not cfi %}<option value="">- pick a CFI -</option>{% endif %}
+        {% for c in cfis %}<option value="{{ c.id }}" {{ 'selected' if cfi and c.id == cfi.id }}>{{ c.name }}</option>{% endfor %}
+      </select></form>
+      {% endif %}
+      <a href="{{ url_for('endorse.new') }}" class="btn btn-primary btn-sm fw-bold"><i class="bi bi-plus-lg"></i> New endorsement</a>
+    </div>
+  </div>
+</div>
+<div class="card academy-card p-3 mb-3">
+  <h6 class="mb-1">Current <span class="text-muted small fw-normal">({{ current|length }})</span></h6>
+  {% for it in current %}{{ row(it) }}{% else %}<div class="text-muted small py-2">None yet.</div>{% endfor %}
+  {% if expired %}
+  <details class="mt-2"><summary class="small text-primary">View {{ expired|length }} expired or no longer needed</summary>
+    <div class="mt-1">{% for it in expired %}{{ row(it) }}{% endfor %}</div></details>
+  {% endif %}
+  {% if voided %}
+  <details class="mt-2"><summary class="small text-secondary">View {{ voided|length }} removed</summary>
+    <div class="mt-1">{% for it in voided %}{{ row(it) }}{% endfor %}</div></details>
+  {% endif %}
+</div>
+{% endblock %}

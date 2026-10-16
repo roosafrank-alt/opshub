@@ -85,10 +85,40 @@ class DenyPendingLogbookEntryTest(OpsHubTestCase):
 class AdminAsOwnStudentTest(OpsHubTestCase):
     def test_admin_can_take_courses_as_themselves_and_progress_saves(self):
         c = self.login("master")
-        self.assertIn("Be a student myself", c.get("/view-as/flight/student").get_data(as_text=True))
+        self.assertIn("Use it as a student myself", c.get("/view-as/flight/student").get_data(as_text=True))
         r = c.post("/view-as/flight/student/me")
         self.assertEqual(r.status_code, 302)
         self.assertEqual(c.get("/flight/groundschool").status_code, 200)
         # not look-only: a JSON POST is not refused
         r = c.post("/flight/groundschool/task/1/lesson-time", json={"seconds": 5})
         self.assertNotEqual(r.status_code, 403)
+
+
+class SwitchRoleStaysOnPageTest(OpsHubTestCase):
+    def test_switching_role_keeps_you_on_the_same_page_when_allowed(self):
+        c = self.login("master")
+        r = c.post("/view-as/shop/tech", headers={"Referer": "http://localhost/admin/users"})
+        # Admin pages are closed to a Shop Tech, so it falls back to the dashboard...
+        self.assertNotIn("/admin/users", r.headers["Location"])
+        c.post("/view-as/exit")
+        # ...but a page the new role may open is kept.
+        r = c.post("/view-as/shop/tech", headers={"Referer": "http://localhost/shop"})
+        self.assertTrue(r.headers["Location"].endswith("/shop"), r.headers["Location"])
+
+
+class CfiCannotEditStudentLogbookTest(OpsHubTestCase):
+    def test_cfi_reads_but_cannot_change_and_student_can(self):
+        sid = self.q1("SELECT id FROM students WHERE user_id = ?", (self.users["flight_student"]["id"],))["id"]
+        self.exec("""INSERT INTO pilot_logbook (student_id, entry_date, tail, total, status, created_at, updated_at)
+                     VALUES (?, '2026-10-01', 'N1', 1.5, 'pending', 'x', 'x')""", (sid,))
+        eid = self.q1("SELECT id FROM pilot_logbook WHERE student_id = ?", (sid,))["id"]
+        self.exec("UPDATE users SET academy_access = 1 WHERE username IN ('flight_student', 'cfi')")
+        cfi = self.login("cfi")
+        self.assertEqual(cfi.get(f"/academy/logbook/{eid}").status_code, 200)
+        cfi.post(f"/academy/logbook/{eid}", data={"action": "approve"})
+        self.assertEqual(self.q1("SELECT status FROM pilot_logbook WHERE id = ?", (eid,))["status"], "pending")
+        cfi.post("/academy/entry", data={"student_id": sid, "kind": "landings", "value": "2"})
+        self.assertIsNone(self.q1("SELECT id FROM academy_entries WHERE student_id = ?", (sid,)))
+        stu = self.login("flight_student")
+        stu.post(f"/academy/logbook/{eid}", data={"action": "approve"})
+        self.assertEqual(self.q1("SELECT status FROM pilot_logbook WHERE id = ?", (eid,))["status"], "complete")
