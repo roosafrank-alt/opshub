@@ -8940,6 +8940,15 @@ def view_as_student_me():
         abort(404)
     row = conn.execute("SELECT id FROM students WHERE user_id = ?", (u["id"],)).fetchone()
     if not row:
+        # You may already be a real flight student with an unlinked profile of the same name:
+        # link that one (keeps your flights, logbook and hours) instead of making a second.
+        same = conn.execute("""SELECT id FROM students WHERE user_id IS NULL AND active = 1 AND COALESCE(is_station, 0) = 0
+                               AND lower(trim(name)) = lower(trim(?))""", (u["name"],)).fetchall()
+        if len(same) == 1:
+            conn.execute("UPDATE students SET user_id = ? WHERE id = ?", (u["id"], same[0]["id"]))
+            conn.commit()
+            row = same[0]
+    if not row:
         conn.execute("INSERT INTO students (name, username, password_hash, active, user_id, created_at) VALUES (?, ?, ?, 1, ?, ?)",
                      (u["name"], u["username"], u["password_hash"], u["id"], now_iso()))
         conn.commit()
