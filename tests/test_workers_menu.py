@@ -6,11 +6,12 @@ from harness import OpsHubTestCase
 
 class WorkersMenuTest(OpsHubTestCase):
     def test_admin_menu_has_one_workers_item(self):
+        # Frank 2026-10-16: no Workers button (set up in Admin > Accounts); badges and the shop code stay.
         html = self.login("shop_admin").get("/laborers").get_data(as_text=True)
-        self.assertIn("</i> Workers</a>", html)
+        self.assertNotIn("</i> Workers</a>", html.split("</nav>")[0])
         self.assertNotIn("</i> Laborers</a>", html)
-        self.assertNotIn("</i> Print Worker Badges</a>", html.split("Worker Badges")[0])
-        self.assertNotIn("</i> General Shop Code</a>", html)
+        self.assertIn("</i> Print Worker Badges</a>", html)
+        self.assertIn("</i> General Shop Code</a>", html)
 
     def test_workers_page_has_badge_and_code_buttons(self):
         html = self.login("shop_admin").get("/laborers").get_data(as_text=True)
