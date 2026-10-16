@@ -400,6 +400,46 @@ def _cancel_fee_settings(conn):
     return window_hours, fee_amount
 
 
+CANCEL_FEE_WINDOW2_KEY = "cancel_fee_window2_hours"
+CANCEL_FEE_AMOUNT2_KEY = "cancel_fee_amount2"
+
+
+def _cancel_fee_second_tier(conn):
+    """The optional second late-cancel tier (window_hours, fee_amount); both
+    0 when it is off. Usually the closer window has the bigger fee."""
+    rows = conn.execute("SELECT key, value FROM app_settings WHERE key IN (?, ?)",
+                        (CANCEL_FEE_WINDOW2_KEY, CANCEL_FEE_AMOUNT2_KEY)).fetchall()
+    values = {r["key"]: r["value"] for r in rows}
+    try:
+        w = float(values.get(CANCEL_FEE_WINDOW2_KEY) or 0)
+        f = float(values.get(CANCEL_FEE_AMOUNT2_KEY) or 0)
+    except (TypeError, ValueError):
+        return 0.0, 0.0
+    return (w, f) if w > 0 and f > 0 else (0.0, 0.0)
+
+
+def _cancel_fee_tiers(conn):
+    """Every active tier as (window_hours, fee_amount); tier 1 is the
+    original window/fee, tier 2 is off when blank/0."""
+    w1, f1 = _cancel_fee_settings(conn)
+    tiers = [(w1, f1)]
+    w2, f2 = _cancel_fee_second_tier(conn)
+    if w2 > 0 and f2 > 0:
+        tiers.append((w2, f2))
+    return tiers
+
+
+def _cancel_fee_for(conn, scheduled_date, scheduled_time):
+    """(fee, window_hours) a student's own cancel costs now: the tightest
+    tier whose window the slot is inside. (0, None) when free."""
+    hit = [(w, f) for w, f in _cancel_fee_tiers(conn)
+           if f > 0 and _within_cancel_fee_window(scheduled_date, scheduled_time, w)]
+    if not hit:
+        return 0, None
+    w, f = min(hit, key=lambda t: t[0])
+    return f, w
+
+
 def _within_cancel_fee_window(scheduled_date, scheduled_time, window_hours):
     """Whether a booking's slot is less than window_hours away (or already
     passed) - used to decide whether a student's own Cancel gets the
@@ -3860,6 +3900,14 @@ def school_settings_edit():
         except ValueError:
             fee_amount = 0.0
         try:
+            window2_hours = max(0.0, float(request.form.get("window2_hours") or 0))
+        except ValueError:
+            window2_hours = 0.0
+        try:
+            fee_amount2 = max(0.0, float(request.form.get("fee_amount2") or 0))
+        except ValueError:
+            fee_amount2 = 0.0
+        try:
             limit = max(0.0, float(request.form.get("limit") or 0))
         except ValueError:
             limit = 0.0
@@ -3875,6 +3923,7 @@ def school_settings_edit():
             flash(message, "danger")
             typed = [dict(c, external_rate=rates[c["id"]]) for c in cfis]
             ctx = dict(cfis=typed, own_plane_color=color, window_hours=window_hours, fee_amount=fee_amount,
+                       window2_hours=window2_hours, fee_amount2=fee_amount2,
                        limit=limit, used_colors=_used_colors_for_plane(conn), schedule_colors=SCHEDULE_COLORS,
                        error_field=field, error_cfi=rate_error_cfi, back=back, form=request.form,
                        day_start_hour=day_start_h if day_start_h is not None else _saved_start,
@@ -3900,6 +3949,10 @@ def school_settings_edit():
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
                      (CANCEL_FEE_AMOUNT_KEY, fee_amount))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
+                     (CANCEL_FEE_WINDOW2_KEY, window2_hours))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
+                     (CANCEL_FEE_AMOUNT2_KEY, fee_amount2))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
                      (BALANCE_HOLD_LIMIT_KEY, limit))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (SCHOOL_DAY_START_KEY, day_start_h))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (SCHOOL_DAY_END_KEY, day_end_h))
@@ -3909,12 +3962,14 @@ def school_settings_edit():
         return redirect(url_for("flight.school_settings_edit"))
     own_plane_color = _own_plane_schedule_color(conn)
     window_hours, fee_amount = _cancel_fee_settings(conn)
+    window2_hours, fee_amount2 = _cancel_fee_second_tier(conn)
     limit = _balance_hold_limit(conn)
     used_colors = _used_colors_for_plane(conn)
     day_start_h, day_end_h = _school_day_hours(conn)
     conn.close()
     return render_template("flight/school_settings_form.html", cfis=cfis, own_plane_color=own_plane_color,
                            window_hours=window_hours, fee_amount=fee_amount, limit=limit,
+                           window2_hours=window2_hours, fee_amount2=fee_amount2,
                            used_colors=used_colors, schedule_colors=SCHEDULE_COLORS, back=back,
                            day_start_hour=day_start_h, day_end_hour=day_end_h, hour_label=_hour_label)
 
@@ -5998,10 +6053,10 @@ def _cancel_fee_widget_settings():
     try:
         conn = get_db()
         try:
-            window_hours, fee_amount = _cancel_fee_settings(conn)
+            tiers = _cancel_fee_tiers(conn)
         finally:
             conn.close()
-        return {"cancel_fee_window_hours": window_hours, "cancel_fee_amount": fee_amount}
+        return {"cancel_fee_tiers": [{"hours": w, "fee": f} for w, f in tiers]}
     except Exception:
         return {}
 
@@ -6718,8 +6773,8 @@ def schedule_student_cancel(scheduled_id):
         flash("Add a quick reason for the cancellation.", "danger")
         conn.close()
         return redirect(url_for("flight.dashboard"))
-    window_hours, fee_amount = _cancel_fee_settings(conn)
-    late = _within_cancel_fee_window(sched["scheduled_date"], sched["scheduled_time"], window_hours)
+    fee_amount, window_hours = _cancel_fee_for(conn, sched["scheduled_date"], sched["scheduled_time"])
+    late = bool(fee_amount)
     if late and fee_amount and request.form.get("ack_fee") != "on":
         flash(f"This flight is within {window_hours:g} hours - check the box confirming you understand the "
               f"${fee_amount:,.2f} cancellation charge before cancelling.", "danger")
