@@ -128,12 +128,11 @@
             {% if is_master_admin or session.get('flight_role') != 'admin' or holds_role('flight', 'cfi') %}<li><a class="dropdown-item {{ 'active' if _p.endswith('/pay') }}" href="{{ url_for('flight.cfi_pay', cfi_id=session['cfi_id']) }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>{% endif %}
             {% endif %}
             {% if flight_admin %}
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing/approvals') }}" href="{{ url_for('flight.charge_approvals') }}"><i class="bi bi-credit-card"></i> Card requests{% if charge_pending_count %} <span class="badge bg-danger">{{ charge_pending_count }}</span>{% endif %}</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing/cash-check') }}" href="{{ url_for('flight.cash_check_confirm') }}"><i class="bi bi-cash-coin"></i> Cash/check collected{% if cash_check_pending_count %} <span class="badge bg-danger">{{ cash_check_pending_count }}</span>{% endif %}</a></li>
+            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing/to-confirm') }}" href="{{ url_for('flight.payments_to_confirm') }}"><i class="bi bi-check2-square"></i> Payments to confirm{% if payments_to_confirm_count %} <span class="badge bg-danger">{{ payments_to_confirm_count }}</span>{% endif %}</a></li>
             {% endif %}
             {% if is_master_admin or session.get('can_bill') %}
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing') }}" href="{{ url_for('flight.billing') }}"><i class="bi bi-receipt"></i> Billing{% set _bp = (charge_pending_count or 0) + (cash_check_pending_count or 0) %}{% if _bp %} <span class="badge bg-danger">{{ _bp }}</span>{% endif %}</a></li>
+            <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing') }}" href="{{ url_for('flight.billing') }}"><i class="bi bi-receipt"></i> Billing</a></li>
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/stats') }}" href="{{ url_for('flight.stats') }}"><i class="bi bi-bar-chart-line"></i> Stats</a></li>
             {% endif %}
           </ul>

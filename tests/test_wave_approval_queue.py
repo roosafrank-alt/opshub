@@ -125,12 +125,12 @@ class WaveApprovalQueueTest(WaveTestBase):
         self.assertEqual(self.q1("SELECT status FROM flight_charge_requests")["status"], "pending")
         self.assertEqual(self.wave.calls, [])
         for role in ("master", "flight_admin"):
-            self.assertEqual(self.login(role).get("/flight/billing/approvals").status_code, 200)
+            self.assertEqual(self.login(role).get("/flight/billing/approvals", follow_redirects=True).status_code, 200)
 
     # ----- the queue row and one-tap approve ------------------------------------
     def test_row_shows_hours_and_total_and_accept_is_one_post(self):
         fid, req = self.ended_with_request()
-        html = self.login("flight_admin").get("/flight/billing/approvals").get_data(as_text=True)
+        html = self.login("flight_admin").get("/flight/billing/approvals", follow_redirects=True).get_data(as_text=True)
         due = req["amount_cents"] / 100
         self.assertIn("Accept &amp; bill", html)
         self.assertIn("1.5 hr", html)
@@ -165,7 +165,7 @@ class WaveApprovalQueueTest(WaveTestBase):
     def test_changed_amount_is_shown_and_billed(self):
         fid, req = self.ended_with_request()
         self.exec("UPDATE flights SET hobbs_end = 102.5 WHERE id = ?", (fid,))
-        html = self.login("master").get("/flight/billing/approvals").get_data(as_text=True)
+        html = self.login("master").get("/flight/billing/approvals", follow_redirects=True).get_data(as_text=True)
         self.assertIn("was $", html)
         self.login("master").post(f"/flight/billing/approvals/{req['id']}/approve")
         new_cents = self.q1("SELECT amount_cents FROM flight_charge_requests")["amount_cents"]
@@ -226,8 +226,8 @@ class WaveApprovalQueueTest(WaveTestBase):
         self.ended_with_request()
         html = self.login("flight_admin").get("/flight/").get_data(as_text=True)
         html = self.login("flight_admin").get("/flight/dashboard").get_data(as_text=True)
-        self.assertIn("Card requests", html)
-        self.assertNotIn("Card requests", self.login("cfi_billing").get("/flight/dashboard").get_data(as_text=True))
+        self.assertIn("Payments to confirm", html)
+        self.assertNotIn("Payments to confirm", self.login("cfi_billing").get("/flight/dashboard").get_data(as_text=True))
 
     def test_flips_to_paid_through_existing_sync(self):
         fid, req = self.ended_with_request()
@@ -256,7 +256,7 @@ class ChargeRequestAutoClearTest(WaveApprovalQueueTest):
     def test_paid_another_way_clears_on_queue_view_and_shows_in_recent(self):
         fid, req = self.ended_with_request()
         self.exec("UPDATE flights SET paid = 1 WHERE id = ?", (fid,))
-        html = self.login("master").get("/flight/billing/approvals").get_data(as_text=True)
+        html = self.login("master").get("/flight/billing/approvals", follow_redirects=True).get_data(as_text=True)
         self.assert_cleared("paid another way")
         self.assertIn("No requests waiting", html)
         self.assertIn("Not needed", html)
@@ -298,22 +298,22 @@ class ChargeRequestAutoClearTest(WaveApprovalQueueTest):
         conn.execute("UPDATE flights SET wave_invoice_id = ? WHERE id = ?", (lid, fid))
         conn.commit()
         conn.close()
-        self.login("master").get("/flight/billing/approvals")
+        self.login("master").get("/flight/billing/approvals", follow_redirects=True)
         self.assert_cleared("Wave invoice")
 
     def test_nothing_due_clears(self):
         fid, req = self.ended_with_request()
         self.exec("UPDATE flights SET credit_applied = 99999 WHERE id = ?", (fid,))
-        self.login("master").get("/flight/billing/approvals")
+        self.login("master").get("/flight/billing/approvals", follow_redirects=True)
         self.assert_cleared("Nothing is due")
 
     def test_still_due_stays_pending(self):
         fid, req = self.ended_with_request()
-        self.login("master").get("/flight/billing/approvals")
+        self.login("master").get("/flight/billing/approvals", follow_redirects=True)
         self.assertEqual(self.row()["status"], "pending")
 
     def test_student_can_ask_again_after_clear(self):
         fid, req = self.ended_with_request()
         self.exec("UPDATE flights SET paid = 1 WHERE id = ?", (fid,))
-        self.login("master").get("/flight/billing/approvals")
+        self.login("master").get("/flight/billing/approvals", follow_redirects=True)
         self.login("flight_student").get("/flight/my-account")  # no crash on not_needed status

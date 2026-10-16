@@ -1,0 +1,10 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Payments to confirm · Fly with Kate!{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-check2-square"></i> Payments to confirm</h4>
+  <a href="{{ url_for('flight.billing') }}" class="btn btn-sm btn-outline-secondary">Back to Billing</a>
+</div>
+{% include "flight/_payments_cards.html" %}
+{% include "flight/_payments_cash.html" %}
+{% endblock %}

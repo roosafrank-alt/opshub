@@ -145,18 +145,18 @@ class CashCheckLogTest(_Base):
             c.post(f"{NEW_PAGE}/{cid}/flag", data=dict(reason="x"))
         self.assertEqual(self.rows()[0]["status"], "pending")
         for role in ("master", "flight_admin"):
-            html = self.login(role).get(NEW_PAGE).get_data(as_text=True)
+            html = self.login(role).get(NEW_PAGE, follow_redirects=True).get_data(as_text=True)
             for want in ("Cash/check collected", "Student", "$150.00", "Cfi Billing", "Received at office", "Not received"):
                 self.assertIn(want, html, (role, want))
-            self.assertIn("Cash/check collected", self.login(role).get("/flight/dashboard").get_data(as_text=True))
-        self.assertNotIn("Cash/check collected", self.login("cfi_billing").get("/flight/dashboard").get_data(as_text=True))
+            self.assertIn("Payments to confirm", self.login(role).get("/flight/dashboard").get_data(as_text=True))
+        self.assertNotIn("Payments to confirm", self.login("cfi_billing").get("/flight/dashboard").get_data(as_text=True))
 
     def test_running_total_per_collector_and_sort(self):
         for _ in range(2):
             self.pay("cfi_billing", self.ended(), "Cash")
-        html = self.login("master").get(NEW_PAGE).get_data(as_text=True)
+        html = self.login("master").get(NEW_PAGE, follow_redirects=True).get_data(as_text=True)
         self.assertIn("$300.00", html)
-        html = self.login("master").get(NEW_PAGE + "?sort=date").get_data(as_text=True)
+        html = self.login("master").get(NEW_PAGE + "?sort=date", follow_redirects=True).get_data(as_text=True)
         self.assertIn("$300.00", html)
 
     def test_admins_notified_on_new_entry_not_for_admin_entry(self):
@@ -187,7 +187,7 @@ class CashCheckLogTest(_Base):
         self.assertEqual(len(self.q("SELECT id FROM student_ledger")), ledger)
         self.assertAlmostEqual(self.balance(), bal, places=2)
         self.assertEqual(self.paid(fid), 1)
-        self.assertIn("Office verified", c.get(NEW_PAGE).get_data(as_text=True))
+        self.assertIn("Office verified", c.get(NEW_PAGE, follow_redirects=True).get_data(as_text=True))
         self.assertEqual(len(self.payments(fid)), 1)
 
     def test_flag_needs_note_keeps_payment_and_lists_in_flagged(self):
@@ -204,7 +204,7 @@ class CashCheckLogTest(_Base):
         self.assertEqual(self.paid(fid), 1)  # not reversed
         self.assertEqual(len(self.payments(fid)), 1)
         self.assertIn(self.users["flight_admin"]["id"], {x.args[1] for x in qp.call_args_list})
-        html = c.get(NEW_PAGE).get_data(as_text=True)
+        html = c.get(NEW_PAGE, follow_redirects=True).get_data(as_text=True)
         self.assertIn("Flagged - not received", html)
         self.assertIn("Check never arrived", html)
         # no longer counted in the red unverified number, and can later be verified

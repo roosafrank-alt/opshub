@@ -20,8 +20,7 @@
     <a href="{{ url_for('flight.billing', status='all') }}" class="btn btn-sm {{ 'btn-primary' if status == 'all' else 'btn-outline-primary' }}">All</a>
   </div>
   {% if flight_admin %}
-  <a href="{{ url_for('flight.charge_approvals') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-credit-card"></i> Card requests{% if charge_pending_count %} <span class="badge bg-danger">{{ charge_pending_count }}</span>{% endif %}</a>
-  <a href="{{ url_for('flight.cash_check_confirm') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-cash-coin"></i> Cash/check collected{% if cash_check_pending_count %} <span class="badge bg-danger">{{ cash_check_pending_count }}</span>{% endif %}</a>
+  <a href="{{ url_for('flight.payments_to_confirm') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-check2-square"></i> Payments to confirm{% if payments_to_confirm_count %} <span class="badge bg-danger">{{ payments_to_confirm_count }}</span>{% endif %}</a>
   {% endif %}
   <a href="{{ url_for('flight.billing_cross_check') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-shield-check"></i> Billing Cross-Check</a>
   {#- Wave invoicing (wave_billing.py) - checked in the background every

@@ -8986,7 +8986,7 @@ def _notify_charge_request(conn, req_id):
     for u in users:
         try:
             push.queue_and_push(conn, u["id"], "Card payment request", body, tag=f"charge-request-{req_id}",
-                                url=url_for("flight.charge_approvals"))
+                                url=url_for("flight.payments_to_confirm") + "#cards")
         except Exception:
             current_app.logger.exception("Charge-request push failed")
     settings = notify.get_settings(conn)
@@ -9026,19 +9026,17 @@ def _inject_charge_request_badge():
     try:
         conn = get_db()
         try:
-            return {"charge_pending_count": _pending_charge_count(conn),
-                    "cash_check_pending_count": flight_payments.pending_confirmation_count(conn)}
+            cards, cash = _pending_charge_count(conn), flight_payments.pending_confirmation_count(conn)
+            return {"charge_pending_count": cards, "cash_check_pending_count": cash,
+                    "payments_to_confirm_count": cards + cash}
         finally:
             conn.close()
     except Exception:
         return {}
 
 
-@flight_bp.route("/billing/approvals")
-@admin_required
-def charge_approvals():
+def _card_requests_context(conn):
     """The card-request queue: pending ones first, then the recent decisions."""
-    conn = get_db()
     if flight_payments.clear_unneeded_charge_requests(conn):
         conn.commit()
     rows = conn.execute("""SELECT r.*, s.name AS student_name, fl.flight_date, a.tag AS plane_tag, fl.paid AS flight_paid,
@@ -9056,10 +9054,50 @@ def charge_approvals():
         d["due_now"] = flight_payments.amount_due(conn, f) if f else None
         d["cost"] = f
         items.append(d)
+    return {"card_pending": [i for i in items if i["status"] == "pending"][::-1],
+            "card_decided": [i for i in items if i["status"] != "pending"][:30]}
+
+
+def _cash_check_context(conn):
+    """Cash/check collected by staff: unverified entries (with a running total per
+    collector), flagged "Not received" ones, and the recently verified."""
+    rows = conn.execute("""SELECT c.*, s.name AS student_name, fl.flight_date, a.tag AS plane_tag
+                           FROM flight_payment_confirmations c
+                           JOIN flights fl ON fl.id = c.flight_id JOIN students s ON s.id = fl.student_id
+                           LEFT JOIN assets a ON a.id = fl.asset_id
+                           ORDER BY c.id DESC LIMIT 500""").fetchall()
+    items = [dict(r) for r in rows]
+    sort = request.args.get("sort", "collector")
+    pending = [i for i in items if i["status"] == "pending"][::-1]
+    groups = {}
+    for i in pending:
+        g = groups.setdefault(i["recorded_by"] or "Unknown", {"name": i["recorded_by"] or "Unknown", "items": [], "total": 0.0})
+        g["items"].append(i)
+        g["total"] += i["amount"]
+    return {"sort": sort, "pending": pending,
+            "groups": sorted(groups.values(), key=lambda g: g["name"].lower()),
+            "pending_total": sum(i["amount"] for i in pending),
+            "flagged": [i for i in items if i["status"] == "missing"][::-1],
+            "decided": [i for i in items if i["status"] == "verified"][:30]}
+
+
+@flight_bp.route("/billing/to-confirm")
+@admin_required
+def payments_to_confirm():
+    """One page for every payment waiting on an admin: card requests first,
+    then cash/check collected."""
+    conn = get_db()
+    ctx = _card_requests_context(conn)
+    ctx.update(_cash_check_context(conn))
     conn.close()
-    return render_template("flight/charge_approvals.html",
-                           pending=[i for i in items if i["status"] == "pending"][::-1],
-                           decided=[i for i in items if i["status"] != "pending"][:30])
+    return render_template("flight/payments_to_confirm.html", **ctx)
+
+
+@flight_bp.route("/billing/approvals")
+@admin_required
+def charge_approvals():
+    """Old link: lands on the card-requests section of the combined page."""
+    return redirect(url_for("flight.payments_to_confirm") + "#cards")
 
 
 @flight_bp.route("/billing/approvals/<int:req_id>/approve", methods=["POST"])
@@ -9068,7 +9106,7 @@ def charge_approve(req_id):
     """Makes and sends the Wave invoice for what is due on the flight right
     now. The request is claimed with one atomic UPDATE first, so pressing
     Approve twice (or two admins at once) can never make two invoices."""
-    back = url_for("flight.charge_approvals")
+    back = url_for("flight.payments_to_confirm") + "#cards"
     who = session.get("user_name")
     conn = get_db()
     req = conn.execute("SELECT * FROM flight_charge_requests WHERE id = ?", (req_id,)).fetchone()
@@ -9161,7 +9199,7 @@ def _quick_wave_check_later(local_id):
 @flight_bp.route("/billing/approvals/<int:req_id>/decline", methods=["POST"])
 @admin_required
 def charge_decline(req_id):
-    back = url_for("flight.charge_approvals")
+    back = url_for("flight.payments_to_confirm") + "#cards"
     reason = (request.form.get("reason") or "").strip()[:300]
     if not reason:
         flash("Type a short reason so the student knows why.", "danger")
@@ -9237,7 +9275,7 @@ def _notify_cash_check_pending(conn, conf_id):
     for u in users:
         try:
             push.queue_and_push(conn, u["id"], "Cash/check collected", body, tag=f"cash-check-{conf_id}",
-                                url=url_for("flight.cash_check_confirm"))
+                                url=url_for("flight.payments_to_confirm") + "#cash")
         except Exception:
             current_app.logger.exception("Cash/check push failed")
     settings = notify.get_settings(conn)
@@ -9254,28 +9292,9 @@ def _notify_cash_check_pending(conn, conf_id):
 @flight_bp.route("/billing/cash-check")
 @admin_required
 def cash_check_confirm():
-    """Cash/check collected by staff: unverified entries (with a running total per
-    collector), flagged "Not received" ones, and the recently verified."""
-    conn = get_db()
-    rows = conn.execute("""SELECT c.*, s.name AS student_name, fl.flight_date, a.tag AS plane_tag
-                           FROM flight_payment_confirmations c
-                           JOIN flights fl ON fl.id = c.flight_id JOIN students s ON s.id = fl.student_id
-                           LEFT JOIN assets a ON a.id = fl.asset_id
-                           ORDER BY c.id DESC LIMIT 500""").fetchall()
-    conn.close()
-    items = [dict(r) for r in rows]
-    sort = request.args.get("sort", "collector")
-    pending = [i for i in items if i["status"] == "pending"][::-1]
-    groups = {}
-    for i in pending:
-        g = groups.setdefault(i["recorded_by"] or "Unknown", {"name": i["recorded_by"] or "Unknown", "items": [], "total": 0.0})
-        g["items"].append(i)
-        g["total"] += i["amount"]
-    return render_template("flight/cash_check_confirm.html", sort=sort,
-                           pending=pending, groups=sorted(groups.values(), key=lambda g: g["name"].lower()),
-                           pending_total=sum(i["amount"] for i in pending),
-                           flagged=[i for i in items if i["status"] == "missing"][::-1],
-                           decided=[i for i in items if i["status"] == "verified"][:30])
+    """Old link: lands on the cash/check section of the combined page."""
+    sort = request.args.get("sort")
+    return redirect(url_for("flight.payments_to_confirm", sort=sort if sort == "date" else None) + "#cash")
 
 
 @flight_bp.route("/billing/cash-check/<int:conf_id>/verify", methods=["POST"])
@@ -9286,14 +9305,14 @@ def cash_check_verify(conf_id):
     conn.commit()
     conn.close()
     flash("Marked received at the office." if ok else "That one was already handled.", "success" if ok else "warning")
-    return redirect(url_for("flight.cash_check_confirm"))
+    return redirect(url_for("flight.payments_to_confirm") + "#cash")
 
 
 @flight_bp.route("/billing/cash-check/<int:conf_id>/flag", methods=["POST"])
 @admin_required
 def cash_check_flag(conf_id):
     """"Not received": flags the entry and tells the admins. The payment is NOT reversed."""
-    back = url_for("flight.cash_check_confirm")
+    back = url_for("flight.payments_to_confirm") + "#cash"
     note = (request.form.get("reason") or "").strip()[:300]
     if not note:
         flash("Type a short note about what is missing.", "danger")
@@ -9313,7 +9332,7 @@ def cash_check_flag(conf_id):
     for u in conn.execute(_FLIGHT_ADMIN_USERS_SQL).fetchall():
         try:
             push.queue_and_push(conn, u["id"], "Cash/check not received", body, tag=f"cash-check-miss-{conf_id}",
-                                url=url_for("flight.cash_check_confirm"))
+                                url=url_for("flight.payments_to_confirm") + "#cash")
         except Exception:
             current_app.logger.exception("Cash/check flag push failed")
     conn.commit()
