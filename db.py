@@ -1606,6 +1606,9 @@ def _migrate(conn):
         # same idea as plane_rate_override but specific to simulator time -
         # a student can be charged differently for the sim than for a plane.
         ("students", "sim_rate_override", "ALTER TABLE students ADD COLUMN sim_rate_override REAL"),
+        # Idea "Balance Hold": a student's own Balance Hold limit. NULL = the
+        # school's limit; a number = theirs; 0 = never put on hold.
+        ("students", "balance_hold_limit", "ALTER TABLE students ADD COLUMN balance_hold_limit REAL"),
         # A CFI's time off can now repeat weekly (e.g. "every Saturday off")
         # instead of being one specific date - off_date is then the anchor
         # date (any date that falls on the repeated weekday), matched by
@@ -2429,6 +2432,8 @@ def _migrate(conn):
     if "cfi_ids" not in wl_cols:
         conn.execute("ALTER TABLE flight_waitlist ADD COLUMN cfi_ids TEXT")
         conn.execute("UPDATE flight_waitlist SET cfi_ids = CAST(cfi_id AS TEXT) WHERE cfi_id IS NOT NULL")
+    if "note" not in wl_cols:
+        conn.execute("ALTER TABLE flight_waitlist ADD COLUMN note TEXT")
     # Weather cancellation: the 3 new times offered to a student whose lesson was
     # called off for weather (flight.weather_cancel). One tap books one of them.
     conn.execute("""CREATE TABLE IF NOT EXISTS weather_offers (

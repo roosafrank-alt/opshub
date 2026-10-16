@@ -217,6 +217,11 @@
         <label class="form-label">Sim Rate ($/hr) <span class="text-muted small">(optional - overrides the simulator's own rate)</span></label>
         <input type="number" step="any" name="sim_rate_override" class="form-control" value="{{ fv('sim_rate_override', student.sim_rate_override if student else '') }}">
       </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Balance Hold limit ($) <span class="text-muted small">(optional - this student only)</span></label>
+        <input type="number" step="any" min="0" name="balance_hold_limit" class="form-control" placeholder="School limit" value="{{ fv('balance_hold_limit', student.balance_hold_limit if student else '') }}">
+        <div class="form-text">Blank = the school's limit. A number = flights go on hold only past that amount owed. 0 = never put on hold.</div>
+      </div>
     </div>
     <p class="text-muted small mt-n2 mb-3">The Plane Rate is what this student pays per hour for any plane (planes don't have their own rate) - leave it blank and the plane isn't charged. Leave the Instructor Rate blank to use the CFI's rate. Leave the Sim Rate blank to use the simulator's own rate (set on its own profile).</p>
     {% else %}
@@ -232,6 +237,10 @@
       <div class="col-md-4 mb-3">
         <label class="form-label">Sim Rate</label>
         <div>{% if student and student.sim_rate_override is not none %}${{ '%.2f'|format(student.sim_rate_override) }}/hr{% else %}<span class="text-muted">Simulator's rate</span>{% endif %}</div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Balance Hold limit</label>
+        <div>{% if student and student.balance_hold_limit is not none %}{% if student.balance_hold_limit > 0 %}${{ '%.2f'|format(student.balance_hold_limit) }}{% else %}Never held{% endif %}{% else %}<span class="text-muted">School limit</span>{% endif %}</div>
       </div>
     </div>
     {% endif %}
@@ -531,6 +540,7 @@
         <div class="form-text" id="endorse-note">Wording follows AC 61-65; check it against the current edition.</div>
       </div>
       <div class="modal-footer">
+        <button type="button" class="btn btn-success" id="endorse-save"><i class="bi bi-person-check"></i> Save to profile</button>
         <button type="button" class="btn btn-outline-secondary" id="endorse-print"><i class="bi bi-printer"></i> Print</button>
         <button type="button" class="btn btn-primary" id="endorse-copy"><i class="bi bi-clipboard"></i> Copy</button>
       </div>
@@ -557,7 +567,8 @@
     var body = TEXT[k].replace('{n}', NAME).replace('{a}', plane);
     $('endorse-text').value = body + '\n\n' + us(TODAY) + '\n' + CFI + '\nCFI ' + ($('endorse-cert').value || '____') + '   Exp. ' + us($('endorse-exp').value);
     var opt = $('endorse-kind').selectedOptions[0];
-    $('endorse-note').textContent = (opt.dataset.save ? 'Copy or Print also saves today as the solo sign-off date (good for 90 days) and ' : 'Copy or Print ') + 'keeps a copy on the student\'s and your profile. Wording follows AC 61-65; check it against the current edition.';
+    $('endorse-save').innerHTML = '<i class="bi bi-person-check"></i> Save to profile';
+    $('endorse-note').textContent = (opt.dataset.save ? 'Save to profile, Copy or Print also saves today as the solo sign-off date (good for 90 days) and ' : 'Save to profile, Copy or Print ') + 'keeps a copy on the student\'s and your profile. Wording follows AC 61-65; check it against the current edition.';
   }
   var kept = {};
   function save() {
@@ -580,6 +591,9 @@
     var t = $('endorse-text'); t.select();
     (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.resolve(document.execCommand('copy'))).catch(function () {});
     $('endorse-copy').textContent = 'Copied'; save();
+  });
+  $('endorse-save').addEventListener('click', function () {
+    save(); $('endorse-save').innerHTML = '<i class="bi bi-check-lg"></i> Saved to profile';
   });
   $('endorse-print').addEventListener('click', function () {
     var w = window.open('', '_blank'); if (!w) return;

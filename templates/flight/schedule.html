@@ -285,8 +285,11 @@
     height: 680px;
   }
   .day-timeline-hour-line { position: absolute; left: 0; right: 0; height: 0; }
+  /* Centered on its hour line (translateY), not a fixed -7px nudge, so the
+     label's middle sits exactly on the dashed line to its right. The line's
+     exact height is set by schFit() below from the real track grid line. */
   .day-timeline-hour-label {
-    position: absolute; right: 6px; top: -7px;
+    position: absolute; right: 6px; top: 0; transform: translateY(-50%);
     font-size: .68rem; line-height: 1; color: #495057; white-space: nowrap;
   }
   .day-timeline-track {
@@ -366,6 +369,9 @@
     .week-timeline-wrap .day-timeline-track { height: 380px; }
   }
   /* Fit to screen (Day / Week): the hour grid is sized by script to the visible height. */
+  /* Fit to screen (Month): script zooms the grid; scrolling snaps one week at a time. */
+  .sch-fit-month { scroll-snap-type: y proximity; }
+  .sch-fit-month .calendar-table tbody tr { scroll-snap-align: start; scroll-margin-top: 4px; }
   .sch-fit .day-timeline-hours, .sch-fit .day-timeline-track { height: var(--sch-fit-h, 560px) !important; }
 </style>
 
@@ -378,12 +384,33 @@
 
 {% block scripts %}
 <script>
-// Fit to screen (Day / Week views): shrinks the hour grid so the whole day shows
-// without scrolling. Remembered in localStorage.
+// Fit to screen: Day / Week shrink the hour grid so the whole day shows without
+// scrolling; Month shrinks the grid so one whole week fits on the screen, and
+// scrolling snaps week by week. Remembered in localStorage.
 (function () {
   function on() { try { return localStorage.getItem('schFit') === '1'; } catch (e) { return false; } }
+  var de = document.documentElement;
+  function fitMonth(fit) {
+    var tbl = document.querySelector('.calendar-table');
+    if (!tbl || tbl.closest('.row')) return;  // not the big month grid
+    var rows = tbl.querySelectorAll('tbody tr');
+    de.classList.remove('sch-fit-month');
+    tbl.style.zoom = ''; tbl.style.width = '';
+    if (!fit || !rows.length) return;
+    // Week at the top of the screen right now, to keep it in view after the resize.
+    var cur = rows[0], i;
+    for (i = 0; i < rows.length; i++) { if (rows[i].getBoundingClientRect().bottom > 120) { cur = rows[i]; break; } }
+    var tall = 0;
+    for (i = 0; i < rows.length; i++) tall = Math.max(tall, rows[i].offsetHeight);
+    var head = tbl.querySelector('thead'), top = tbl.getBoundingClientRect().top + window.scrollY;
+    var avail = window.innerHeight - 90 - (head ? head.offsetHeight : 0) - Math.min(top, 160);
+    var z = Math.max(0.3, Math.min(1, avail / tall));
+    if (z < 1) { tbl.style.zoom = z; tbl.style.width = (100 / z) + '%'; }
+    de.classList.add('sch-fit-month');
+    cur.scrollIntoView({ behavior: 'instant', block: 'start' });
+  }
   window.schFit = function () {
-    var de = document.documentElement, btn = document.getElementById('sch-fit-btn');
+    var btn = document.getElementById('sch-fit-btn');
     var fit = on() && !!document.querySelector('.day-timeline-track');
     de.classList.remove('sch-fit');
     // Week view: the hour labels must start level with the tracks. Each day
@@ -405,6 +432,19 @@
       de.style.setProperty('--sch-fit-h', Math.max(240, window.innerHeight - top - 24) + 'px');
       de.classList.add('sch-fit');
     }
+    // Day / Week: put each hour label at the exact height of its dashed line
+    // in the (first) track, measured on screen, so the label lines up with
+    // the line no matter the track's border, header, waitlist chips or Fit.
+    document.querySelectorAll('.day-timeline-wrap, .week-timeline-wrap').forEach(function (w) {
+      var hrs = w.querySelector('.day-timeline-hours'), trk = w.querySelector('.day-timeline-track');
+      if (!hrs || !trk) return;
+      var marks = hrs.querySelectorAll('.day-timeline-hour-line'), lines = trk.querySelectorAll('.day-timeline-grid-line');
+      var base = hrs.getBoundingClientRect().top;
+      marks.forEach(function (m, i) {
+        if (lines[i]) m.style.top = (lines[i].getBoundingClientRect().top - base + 0.5) + 'px';
+      });
+    });
+    fitMonth(on());
     if (btn) { btn.classList.toggle('active', on()); btn.setAttribute('aria-pressed', on() ? 'true' : 'false'); }
   };
   document.addEventListener('click', function (e) {
@@ -414,6 +454,9 @@
   });
   window.addEventListener('resize', window.schFit);
   window.schFit();
+  // Fonts and icons can change header/chip heights after first paint - line up again.
+  window.addEventListener('load', window.schFit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(window.schFit);
 })();
 // Keeps the sticky schedule toolbar tucked right under the navbar (whose
 // height varies - wrapped items, open phone menu), and adds a shadow once

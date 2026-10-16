@@ -69,6 +69,29 @@ class BalanceHoldHoldAndReleaseTest(OpsHubTestCase):
         self.assertEqual(row["hold_previous_status"], "scheduled")
         self.assertEqual(row["held_release_date"], (date.today() + timedelta(days=5)).isoformat())
 
+    def test_student_own_limit_overrides_school_limit(self):
+        sched = self._book(date.today() + timedelta(days=10))
+        self.exec("UPDATE students SET balance_hold_limit = 500 WHERE id = ?", (self.student_id,))
+        self._owe(150)
+        self.assertEqual(self.q1("SELECT status FROM scheduled_flights WHERE id = ?", (sched,))["status"], "scheduled")
+        self.exec("UPDATE students SET balance_hold_limit = 20 WHERE id = ?", (self.student_id,))
+        self._owe(10)
+        self.assertEqual(self.q1("SELECT status FROM scheduled_flights WHERE id = ?", (sched,))["status"], "balance_hold")
+
+    def test_student_limit_zero_never_holds_and_blank_uses_school(self):
+        conn = db.get_db()
+        self.exec("UPDATE students SET balance_hold_limit = 0 WHERE id = ?", (self.student_id,))
+        st = conn.execute("SELECT * FROM students WHERE id = ?", (self.student_id,)).fetchone()
+        self.assertIsNone(flight._balance_hold_limit(conn, st))
+        self.exec("UPDATE students SET balance_hold_limit = NULL WHERE id = ?", (self.student_id,))
+        st = conn.execute("SELECT * FROM students WHERE id = ?", (self.student_id,)).fetchone()
+        self.assertEqual(flight._balance_hold_limit(conn, st), 100.0)
+
+    def test_admin_saves_limit_from_student_form(self):
+        c = self.login("master")
+        c.post(f"/flight/students/{self.student_id}/edit", data={"name": "Stu", "email": "s@example.com", "phone": "5551234567", "active": "1", "balance_hold_limit": "250"})
+        self.assertEqual(self.q1("SELECT balance_hold_limit FROM students WHERE id = ?", (self.student_id,))[0], 250.0)
+
     def test_paying_back_down_releases_the_hold(self):
         sched = self._book(date.today() + timedelta(days=10))
         self._owe(150)

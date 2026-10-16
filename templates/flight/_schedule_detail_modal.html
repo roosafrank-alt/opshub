@@ -304,8 +304,7 @@ var MY_STUDENT_ID = {{ session.get('student_id')|tojson }};
 // The school's late-cancellation policy (see flight.school_settings_edit) -
 // only meaningful for a student viewer, who's the only one who sees the
 // student-cancel modal below.
-var CANCEL_FEE_WINDOW_HOURS = {{ cancel_fee_window_hours|default(24) }};
-var CANCEL_FEE_AMOUNT = {{ cancel_fee_amount|default(0) }};
+var CANCEL_FEE_TIERS = {{ (cancel_fee_tiers|default([]))|tojson }};
 // Delegated on document (not the individual blocks/chips) so this keeps
 // working after live-refresh polling elsewhere on the page replaces DOM
 // nodes wholesale - a plain per-element addEventListener would silently
@@ -418,7 +417,7 @@ document.addEventListener('click', function (evt) {
       // Within the school's cancel-fee window, require the fee
       // acknowledgement checkbox before Cancel Flight is enabled (server
       // re-checks this too, and is what actually charges the fee).
-      var late = false;
+      var late = false, tier = null;
       if (el.dataset.date) {
         var p = el.dataset.date.split('-');
         var slot;
@@ -428,15 +427,19 @@ document.addEventListener('click', function (evt) {
         } else {
           slot = new Date(+p[0], +p[1] - 1, +p[2]);
         }
-        late = !isNaN(slot) && (slot.getTime() - Date.now()) <= CANCEL_FEE_WINDOW_HOURS * 60 * 60000;
+        var hoursAway = (slot.getTime() - Date.now()) / 3600000;
+        CANCEL_FEE_TIERS.forEach(function (t) {
+          if (t.fee > 0 && !isNaN(hoursAway) && hoursAway <= t.hours && (!tier || t.hours < tier.hours)) tier = t;
+        });
+        late = !!tier;
       }
-      var chargeable = late && CANCEL_FEE_AMOUNT > 0;
+      var chargeable = late;
       var feeAlert = document.getElementById('student-cancel-fee-alert');
       var feeAckRow = document.getElementById('student-cancel-fee-ack-row');
       var feeAckBox = document.getElementById('student-cancel-fee-ack');
-      var feeAmountStr = '$' + CANCEL_FEE_AMOUNT.toFixed(2);
+      var feeAmountStr = tier ? '$' + tier.fee.toFixed(2) : '';
       document.getElementById('student-cancel-fee-alert-text').textContent =
-        'This flight is within ' + CANCEL_FEE_WINDOW_HOURS + ' hours - cancelling now adds a ' + feeAmountStr + ' cancellation charge to your account.';
+        'This flight is within ' + (tier ? tier.hours : 0) + ' hours - cancelling now adds a ' + feeAmountStr + ' cancellation charge to your account.';
       document.getElementById('student-cancel-fee-ack-label').textContent =
         'I understand this cancellation adds a ' + feeAmountStr + ' charge.';
       feeAlert.classList.toggle('d-none', !chargeable);

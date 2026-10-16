@@ -61,7 +61,7 @@
   {% if a.type == 'match' %}
     <div class="gsl-pairing gsl-match-cols" data-total="{{ a.pairs|length }}">
       <div class="gsl-col">{% for p in a.pairs %}<button type="button" class="gsl-tile" data-drag="1" data-side="l" data-k="{{ loop.index0 }}"><span class="gsl-grip" aria-hidden="true"><i class="bi bi-grip-vertical"></i></span><span class="gsl-tile-t">{{ gs_rich(p.l) }}</span></button>{% endfor %}</div>
-      <div class="gsl-col" data-shuffle="1">{% for p in a.pairs %}<button type="button" class="gsl-tile" data-side="r" data-k="{{ loop.index0 }}">{{ gs_rich(p.r) }}</button>{% endfor %}</div>
+      <div class="gsl-col" data-shuffle="1">{% for p in a.pairs %}<button type="button" class="gsl-tile" data-drag="1" data-side="r" data-k="{{ loop.index0 }}">{{ gs_rich(p.r) }}</button>{% endfor %}</div>
     </div>
 
   {% elif a.type == 'label' and L.figures and L.figures.get(a.figure) %}

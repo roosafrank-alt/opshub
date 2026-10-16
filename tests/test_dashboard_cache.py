@@ -73,3 +73,59 @@ class DashboardCacheTest(OpsHubTestCase):
     def test_start_refresh_respects_background_flag_and_gap(self):
         dc._start_refresh = self._orig
         self.assertFalse(dc._start_refresh())      # BACKGROUND is off in tests
+
+
+class WeatherFailureTest(OpsHubTestCase):
+    """A weather timeout must not blank the saved copy or be saved itself."""
+
+    def setUp(self):
+        super().setUp()
+        self._saved = (weather._get_json, weather.time.sleep)
+        weather.time.sleep = lambda s: None
+        self.calls = []
+
+    def tearDown(self):
+        weather._get_json, weather.time.sleep = self._saved
+        super().tearDown()
+
+    def down(self, url, timeout=0):
+        self.calls.append(url)
+        raise OSError("timed out")
+
+    def test_zip_lookup_makes_no_call(self):
+        weather._get_json = self.down
+        self.assertEqual(weather._zip_to_latlon("12458"), (weather.FALLBACK_LAT, weather.FALLBACK_LON))
+        self.assertEqual(self.calls, [])
+
+    def test_open_meteo_retried_once(self):
+        def flaky(url, timeout=0):
+            self.calls.append(url)
+            if len(self.calls) == 1:
+                raise OSError("timed out")
+            return {"current": {"temperature_2m": 50, "weather_code": 0}}
+        weather._get_json = flaky
+        self.assertEqual(weather._fetch_conditions(1, 2)["temp_f"], 50)
+        self.assertEqual(len(self.calls), 2)
+
+    def test_failed_fetch_keeps_last_good_dashboard_copy(self):
+        good = {"zip": "12458", "conditions": {"temp_f": 61}, "error": None}
+        self.exec("INSERT OR REPLACE INTO weather_cache (cache_key, payload, fetched_at) VALUES (?,?,?)",
+                  (f"dashboard_wx_{weather.ZIP_CODE}", json.dumps(good), "2020-01-01 00:00:00"))
+        weather._get_json = self.down
+        c = db.get_db()
+        out = weather.get_dashboard_weather(c, force=True)
+        row = c.execute("SELECT payload, fetched_at FROM weather_cache WHERE cache_key = ?",
+                        (f"dashboard_wx_{weather.ZIP_CODE}",)).fetchone()
+        c.close()
+        self.assertEqual(out["conditions"], {"temp_f": 61})
+        self.assertEqual(json.loads(row["payload"])["conditions"], {"temp_f": 61})
+        self.assertEqual(row["fetched_at"], "2020-01-01 00:00:00")
+
+    def test_failed_lesson_forecast_is_not_saved(self):
+        weather._get_json = self.down
+        c = db.get_db()
+        out = weather.get_forecast_for(c, "2030-01-01", "10:00")
+        n = c.execute("SELECT COUNT(*) AS n FROM weather_cache WHERE cache_key LIKE 'lesson_wx_%'").fetchone()["n"]
+        c.close()
+        self.assertIn("Couldn't reach", out["error"])
+        self.assertEqual(n, 0)

@@ -13,6 +13,7 @@ dashboard doesn't make a live API call on every page load.
 """
 
 import json
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -41,10 +42,8 @@ ZIP_CODE = "12458"
 N89_STATION = "N89"  # Joseph Y. Resnick Airport, Ellenville NY - the "bonus" aviation station
 REQUEST_TIMEOUT = 8
 
-# Fallback coordinates for ZIP 12458 (Palenville, NY / Catskill area), used
-# only if the live ZIP lookup can't be reached - keeps the widget useful
-# even on a flaky connection, at the cost of possibly-stale-if-ZIP-is-wrong
-# coordinates.
+# Coordinates for ZIP 12458 (Palenville, NY / Catskill area). The ZIP never
+# changes, so these are used directly with no lookup call.
 FALLBACK_LAT = 42.19
 FALLBACK_LON = -74.02
 
@@ -68,14 +67,23 @@ def _get_json(url, timeout=REQUEST_TIMEOUT):
         return json.loads(resp.read().decode("utf-8"))
 
 
-def _zip_to_latlon(zip_code):
-    """Zippopotam.us (free, no key) resolves a US ZIP to a lat/lon centroid."""
+RETRY_WAIT_SECONDS = 1.5
+
+
+def _get_json_retry(url):
+    """Open-Meteo times out now and then; one more try after a short wait
+    saves most of those before the caller has to give up."""
     try:
-        data = _get_json(f"https://api.zippopotam.us/us/{urllib.parse.quote(zip_code)}")
-        place = data["places"][0]
-        return float(place["latitude"]), float(place["longitude"])
+        return _get_json(url)
     except Exception:
-        return FALLBACK_LAT, FALLBACK_LON
+        time.sleep(RETRY_WAIT_SECONDS)
+        return _get_json(url)
+
+
+def _zip_to_latlon(zip_code):
+    """The ZIP is fixed, so use its saved coordinates instead of calling a
+    lookup service (an extra call that could also time out) every time."""
+    return FALLBACK_LAT, FALLBACK_LON
 
 
 def _wx_category(code, cloud_cover_pct):
@@ -112,7 +120,7 @@ def _fetch_conditions(lat, lon):
         "precipitation_unit": "inch", "timezone": "auto",
     }
     url = "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode(params)
-    data = _get_json(url)
+    data = _get_json_retry(url)
     cur = data.get("current", {})
     code = cur.get("weather_code")
     cloud_cover_pct = cur.get("cloud_cover")
@@ -250,7 +258,7 @@ def _fetch_hourly_forecast(lat, lon, date_str):
         "timezone": "auto", "start_date": date_str, "end_date": date_str,
     }
     url = "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode(params)
-    data = _get_json(url)
+    data = _get_json_retry(url)
     return data.get("hourly", {})
 
 
@@ -286,6 +294,7 @@ def get_forecast_for(conn, date_str, time_str=None, force=False):
 
     lat, lon = _zip_to_latlon(ZIP_CODE)
     payload = {"date": date_str, "hour": hour, "forecast": None, "error": None}
+    reached = True
     try:
         hourly = _fetch_hourly_forecast(lat, lon, date_str)
         times = hourly.get("time", [])
@@ -308,7 +317,11 @@ def get_forecast_for(conn, date_str, time_str=None, force=False):
                 "weather_label": WMO_WEATHER_LABELS.get(code, "-"),
             }
     except Exception as e:
+        reached = False
         payload["error"] = f"Couldn't reach the weather service ({e.__class__.__name__})."
+
+    if not reached:
+        return payload  # never save a failure: the next click tries again
 
     try:
         conn.execute(
@@ -361,6 +374,19 @@ def get_dashboard_weather(conn, force=False):
         payload["forecast"] = _fetch_dashboard_forecast(lat, lon)
     except Exception:
         payload["forecast"] = []
+
+    if payload.get("conditions") is None:
+        # The fetch failed: keep showing the last good saved copy (it just gets
+        # older; dashboard_cache hides it after 2 hours) instead of saving
+        # this failure over it.
+        try:
+            row = conn.execute("SELECT payload FROM weather_cache WHERE cache_key = ?", (cache_key,)).fetchone()
+            old = json.loads(row["payload"]) if row else None
+            if old and old.get("conditions"):
+                return old
+        except Exception:
+            pass
+        return payload
 
     try:
         conn.execute(

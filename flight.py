@@ -400,6 +400,46 @@ def _cancel_fee_settings(conn):
     return window_hours, fee_amount
 
 
+CANCEL_FEE_WINDOW2_KEY = "cancel_fee_window2_hours"
+CANCEL_FEE_AMOUNT2_KEY = "cancel_fee_amount2"
+
+
+def _cancel_fee_second_tier(conn):
+    """The optional second late-cancel tier (window_hours, fee_amount); both
+    0 when it is off. Usually the closer window has the bigger fee."""
+    rows = conn.execute("SELECT key, value FROM app_settings WHERE key IN (?, ?)",
+                        (CANCEL_FEE_WINDOW2_KEY, CANCEL_FEE_AMOUNT2_KEY)).fetchall()
+    values = {r["key"]: r["value"] for r in rows}
+    try:
+        w = float(values.get(CANCEL_FEE_WINDOW2_KEY) or 0)
+        f = float(values.get(CANCEL_FEE_AMOUNT2_KEY) or 0)
+    except (TypeError, ValueError):
+        return 0.0, 0.0
+    return (w, f) if w > 0 and f > 0 else (0.0, 0.0)
+
+
+def _cancel_fee_tiers(conn):
+    """Every active tier as (window_hours, fee_amount); tier 1 is the
+    original window/fee, tier 2 is off when blank/0."""
+    w1, f1 = _cancel_fee_settings(conn)
+    tiers = [(w1, f1)]
+    w2, f2 = _cancel_fee_second_tier(conn)
+    if w2 > 0 and f2 > 0:
+        tiers.append((w2, f2))
+    return tiers
+
+
+def _cancel_fee_for(conn, scheduled_date, scheduled_time):
+    """(fee, window_hours) a student's own cancel costs now: the tightest
+    tier whose window the slot is inside. (0, None) when free."""
+    hit = [(w, f) for w, f in _cancel_fee_tiers(conn)
+           if f > 0 and _within_cancel_fee_window(scheduled_date, scheduled_time, w)]
+    if not hit:
+        return 0, None
+    w, f = min(hit, key=lambda t: t[0])
+    return f, w
+
+
 def _within_cancel_fee_window(scheduled_date, scheduled_time, window_hours):
     """Whether a booking's slot is less than window_hours away (or already
     passed) - used to decide whether a student's own Cancel gets the
@@ -1992,7 +2032,7 @@ def _dashboard_context(conn, cfi, student):
         my_balance_hold = None
         held = [u for u in upcoming if u["status"] == "balance_hold"]
         if held:
-            limit = _balance_hold_limit(conn)
+            limit = _balance_hold_limit(conn, student)
             soonest = held[0]
             days_left = None
             if soonest["held_release_date"]:
@@ -2418,6 +2458,7 @@ def student_new():
         rate_override = _parse_float(request.form.get("rate_override")) if is_admin else None
         plane_rate_override = _parse_float(request.form.get("plane_rate_override")) if is_admin else None
         sim_rate_override = _parse_float(request.form.get("sim_rate_override")) if is_admin else None
+        balance_hold_limit = _parse_float(request.form.get("balance_hold_limit")) if is_admin else None
         is_station = 1 if request.form.get("is_station") else 0
         email = request.form.get("email", "").strip()
         phone = request.form.get("phone", "").strip()
@@ -2481,7 +2522,8 @@ def student_new():
                      (_pay_preference_from_form(request.form), user_id))
         conn.execute("UPDATE students SET notify_booking_confirm = ? WHERE user_id = ?",
                      (1 if request.form.get("notify_booking_confirm") else 0, user_id))
-        conn.execute("UPDATE students SET sim_rate_override = ? WHERE user_id = ?", (sim_rate_override, user_id))
+        conn.execute("UPDATE students SET sim_rate_override = ?, balance_hold_limit = ? WHERE user_id = ?",
+                     (sim_rate_override, balance_hold_limit, user_id))
         conn.commit()
         conn.close()
         flash(f"Student '{name}' added. Give them their username and starting password to log in.", "success")
@@ -2612,10 +2654,12 @@ def student_edit(student_id):
             rate_override = _parse_float(request.form.get("rate_override"))
             plane_rate_override = _parse_float(request.form.get("plane_rate_override"))
             sim_rate_override = _parse_float(request.form.get("sim_rate_override"))
+            balance_hold_limit = _parse_float(request.form.get("balance_hold_limit"))
         else:
             rate_override = student["rate_override"]
             plane_rate_override = student["plane_rate_override"]
             sim_rate_override = student["sim_rate_override"]
+            balance_hold_limit = student["balance_hold_limit"]
         # Admin-only field (see student_new) - a non-admin CFI editing other
         # fields on this student leaves the existing interval untouched
         # rather than having it silently wiped back to the default.
@@ -2681,6 +2725,8 @@ def student_edit(student_id):
         _log_field_change(conn, "student", student_id, "pay_preference", student["pay_preference"], pay_preference, who)
         conn.execute("UPDATE students SET sim_rate_override = ? WHERE id = ?", (sim_rate_override, student_id))
         _log_field_change(conn, "student", student_id, "sim_rate_override", student["sim_rate_override"], sim_rate_override, who)
+        conn.execute("UPDATE students SET balance_hold_limit = ? WHERE id = ?", (balance_hold_limit, student_id))
+        _log_field_change(conn, "student", student_id, "balance_hold_limit", student["balance_hold_limit"], balance_hold_limit, who)
         notify_booking_confirm = 1 if request.form.get("notify_booking_confirm") else 0
         conn.execute("UPDATE students SET notify_booking_confirm = ? WHERE id = ?", (notify_booking_confirm, student_id))
         if student["user_id"]:
@@ -2895,7 +2941,7 @@ def student_field_detail(student_id, field_key):
         last_hold_notice = conn.execute("""SELECT * FROM student_notifications WHERE student_id = ?
                                            AND category = 'balance_hold' ORDER BY created_at DESC LIMIT 1""",
                                         (student_id,)).fetchone()
-        hold_limit = _balance_hold_limit(conn)
+        hold_limit = _balance_hold_limit(conn, student)
         conn.close()
         return render_template("flight/student_field_detail.html", student=student, field_key=field_key,
                                label="Account", ledger=ledger, can_bill=can_manage_billing(),
@@ -3860,6 +3906,14 @@ def school_settings_edit():
         except ValueError:
             fee_amount = 0.0
         try:
+            window2_hours = max(0.0, float(request.form.get("window2_hours") or 0))
+        except ValueError:
+            window2_hours = 0.0
+        try:
+            fee_amount2 = max(0.0, float(request.form.get("fee_amount2") or 0))
+        except ValueError:
+            fee_amount2 = 0.0
+        try:
             limit = max(0.0, float(request.form.get("limit") or 0))
         except ValueError:
             limit = 0.0
@@ -3875,6 +3929,7 @@ def school_settings_edit():
             flash(message, "danger")
             typed = [dict(c, external_rate=rates[c["id"]]) for c in cfis]
             ctx = dict(cfis=typed, own_plane_color=color, window_hours=window_hours, fee_amount=fee_amount,
+                       window2_hours=window2_hours, fee_amount2=fee_amount2,
                        limit=limit, used_colors=_used_colors_for_plane(conn), schedule_colors=SCHEDULE_COLORS,
                        error_field=field, error_cfi=rate_error_cfi, back=back, form=request.form,
                        day_start_hour=day_start_h if day_start_h is not None else _saved_start,
@@ -3900,6 +3955,10 @@ def school_settings_edit():
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
                      (CANCEL_FEE_AMOUNT_KEY, fee_amount))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
+                     (CANCEL_FEE_WINDOW2_KEY, window2_hours))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
+                     (CANCEL_FEE_AMOUNT2_KEY, fee_amount2))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
                      (BALANCE_HOLD_LIMIT_KEY, limit))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (SCHOOL_DAY_START_KEY, day_start_h))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (SCHOOL_DAY_END_KEY, day_end_h))
@@ -3909,12 +3968,14 @@ def school_settings_edit():
         return redirect(url_for("flight.school_settings_edit"))
     own_plane_color = _own_plane_schedule_color(conn)
     window_hours, fee_amount = _cancel_fee_settings(conn)
+    window2_hours, fee_amount2 = _cancel_fee_second_tier(conn)
     limit = _balance_hold_limit(conn)
     used_colors = _used_colors_for_plane(conn)
     day_start_h, day_end_h = _school_day_hours(conn)
     conn.close()
     return render_template("flight/school_settings_form.html", cfis=cfis, own_plane_color=own_plane_color,
                            window_hours=window_hours, fee_amount=fee_amount, limit=limit,
+                           window2_hours=window2_hours, fee_amount2=fee_amount2,
                            used_colors=used_colors, schedule_colors=SCHEDULE_COLORS, back=back,
                            day_start_hour=day_start_h, day_end_hour=day_end_h, hour_label=_hour_label)
 
@@ -5998,10 +6059,10 @@ def _cancel_fee_widget_settings():
     try:
         conn = get_db()
         try:
-            window_hours, fee_amount = _cancel_fee_settings(conn)
+            tiers = _cancel_fee_tiers(conn)
         finally:
             conn.close()
-        return {"cancel_fee_window_hours": window_hours, "cancel_fee_amount": fee_amount}
+        return {"cancel_fee_tiers": [{"hours": w, "fee": f} for w, f in tiers]}
     except Exception:
         return {}
 
@@ -6718,8 +6779,8 @@ def schedule_student_cancel(scheduled_id):
         flash("Add a quick reason for the cancellation.", "danger")
         conn.close()
         return redirect(url_for("flight.dashboard"))
-    window_hours, fee_amount = _cancel_fee_settings(conn)
-    late = _within_cancel_fee_window(sched["scheduled_date"], sched["scheduled_time"], window_hours)
+    fee_amount, window_hours = _cancel_fee_for(conn, sched["scheduled_date"], sched["scheduled_time"])
+    late = bool(fee_amount)
     if late and fee_amount and request.form.get("ack_fee") != "on":
         flash(f"This flight is within {window_hours:g} hours - check the box confirming you understand the "
               f"${fee_amount:,.2f} cancellation charge before cancelling.", "danger")
@@ -7114,6 +7175,7 @@ def log_active():
         sim_elapsed_label = _sim_elapsed_label(r) if is_sim_row else None
         flights.append(dict(row_cost, can_end=_can_end_flight(r), can_ack=_can_ack_overdue(r),
                             session_status=_session_status(r), eta_label=eta_label,
+                            late_base=_late_base(r).strftime("%Y-%m-%dT%H:%M:%S"),
                             eta_affected=affected.get(r["id"], []), sim_elapsed_hours=sim_elapsed_hours,
                             sim_elapsed_label=sim_elapsed_label))
     # Still-flying flights above ones whose clock has already been stopped
@@ -7138,6 +7200,90 @@ def log_active():
                            acked_id=request.args.get("acked", type=int),
                            eta_saved_id=request.args.get("eta_saved", type=int),
                            can_bill=can_manage_billing(), wave_connected=bool(wave_accounts))
+
+
+def _late_base(f):
+    """When a running flight is due to end (scheduled start + block), or right
+    now if that has passed or there is no scheduled block. The Running late
+    box adds its minutes to this to get the new ETA."""
+    now = datetime.strptime(now_iso(), "%Y-%m-%d %H:%M:%S")
+    try:
+        start = datetime.strptime(f"{f['late_sched_date']} {f['late_sched_time']}", "%Y-%m-%d %H:%M")
+        end = start + timedelta(hours=f["scheduled_duration_hours"] or 0) if f["scheduled_duration_hours"] else None
+    except (TypeError, ValueError, KeyError):
+        end = None
+    return end if end and end > now else now
+
+
+def _next_booking_on_plane(conn, f):
+    """The next still-booked flight on this flight's plane, later the same day."""
+    try:
+        start = datetime.strptime(f"{f['late_sched_date']} {f['late_sched_time']}", "%Y-%m-%d %H:%M")
+    except (TypeError, ValueError, KeyError):
+        start = datetime.strptime(f["started_at"], "%Y-%m-%d %H:%M:%S")
+    return conn.execute("""SELECT * FROM scheduled_flights
+                           WHERE status = 'scheduled' AND asset_id = ? AND scheduled_date = ? AND scheduled_time > ?
+                             AND id IS NOT ?
+                           ORDER BY scheduled_time LIMIT 1""",
+                        (f["asset_id"], start.strftime("%Y-%m-%d"), start.strftime("%H:%M"),
+                         f["scheduled_flight_id"])).fetchone()
+
+
+@flight_bp.route("/log/<int:flight_id>/running_late", methods=["POST"])
+@login_required
+def log_running_late(flight_id):
+    """Running late: the CFI (or admin, or solo student) enters how many minutes
+    late. The flight's ETA becomes its scheduled end + those minutes, and the
+    NEXT booking on the same plane is told (student: alert + push; instructor:
+    push) the plane is N min late with the new ETA. The optional note goes only
+    to that booking's instructor, never the student."""
+    conn = get_db()
+    f = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (flight_id,)).fetchone()
+    back = url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}"
+    if not f or not f["started_at"] or f["ended_at"]:
+        conn.close()
+        flash("That flight isn't currently running.", "danger")
+        return redirect(url_for("flight.log_active"))
+    if not _can_ack_overdue(f):
+        conn.close()
+        flash("Only a CFI, an admin, or the student (on a solo flight) can report running late.", "danger")
+        return redirect(back)
+    minutes = _parse_int(request.form.get("late_minutes"))
+    if not minutes or minutes < 1 or minutes > 600:
+        conn.close()
+        flash("Enter how many minutes late (1-600).", "danger")
+        return redirect(back)
+    note = (request.form.get("late_note") or "").strip()[:500]
+    eta = (_late_base(f) + timedelta(minutes=minutes)).replace(second=0, microsecond=0)
+    conn.execute("UPDATE flights SET eta_at = ?, eta_set_by = ?, overdue_acknowledged_at = ? WHERE id = ?",
+                 (eta.strftime("%Y-%m-%d %H:%M:%S"), session.get("user_name"), now_iso(), flight_id))
+    eta_label = _format_time_12h(eta.strftime("%H:%M"))
+    nxt = _next_booking_on_plane(conn, f)
+    told = 0
+    if nxt:
+        plane = f["plane_tag"]
+        body = f"{plane} is {minutes} minutes late. New ETA {eta_label}."
+        url = url_for("flight.schedule_calendar", view="day")
+        if nxt["student_id"]:
+            _notify_student(conn, nxt["student_id"], "running_late", body, link=url, scheduled_flight_id=nxt["id"])
+            su = conn.execute("SELECT user_id FROM students WHERE id = ?", (nxt["student_id"],)).fetchone()
+            if su and su["user_id"]:
+                push.queue_and_push(conn, su["user_id"], "Plane running late", body, tag=f"late-{nxt['id']}", url=url)
+                told += 1
+        if nxt["cfi_id"]:
+            cu = conn.execute("SELECT user_id FROM cfis WHERE id = ?", (nxt["cfi_id"],)).fetchone()
+            if cu and cu["user_id"]:
+                push.queue_and_push(conn, cu["user_id"], "Plane running late",
+                                    body + (f" Note from {session.get('user_name')}: {note}" if note else ""),
+                                    tag=f"late-{nxt['id']}", url=url)
+                told += 1
+    conn.commit()
+    conn.close()
+    if nxt:
+        flash(f"Next booking on {f['plane_tag']} ({_format_time_12h(nxt['scheduled_time'])}) told: {minutes} min late, new ETA {eta_label}.", "success")
+    else:
+        flash(f"ETA set to {eta_label}. No later booking on {f['plane_tag']} today.", "success")
+    return redirect(back)
 
 
 @flight_bp.route("/log/<int:flight_id>/ack_overdue", methods=["POST"])
@@ -8448,7 +8594,8 @@ _LOG_ROW_SQL = """
            a.is_owner_placeholder as asset_is_owner_placeholder,
            s.balance as student_balance, s.pay_preference as student_pay_preference,
            c.rate_per_hour as cfi_rate_per_hour, c.external_rate as cfi_external_rate,
-           sf.duration_hours as scheduled_duration_hours, sf.part_solo as scheduled_part_solo
+           sf.duration_hours as scheduled_duration_hours, sf.part_solo as scheduled_part_solo,
+           sf.scheduled_date as late_sched_date, sf.scheduled_time as late_sched_time
     FROM flights f
     JOIN students s ON s.id = f.student_id
     JOIN assets a ON a.id = f.asset_id
@@ -9745,7 +9892,7 @@ def _waitlist_calendar_days(conn):
                 kw["asset_id"] = a[0]
             if len(c) == 1:
                 kw["cfi_id"] = c[0]
-            out.append({"name": w["student_name"], "url": url_for("flight.schedule_new", **kw)})
+            out.append({"name": w["student_name"], "note": w["note"] or "", "url": url_for("flight.schedule_new", **kw)})
         cache[day] = out
         return out
     return wl_for
@@ -9906,11 +10053,11 @@ def waitlist_join():
         return ok
     asset_ids, cfi_ids = _id_list("asset_id", "assets"), _id_list("cfi_id", "cfis")
     conn.execute("""INSERT INTO flight_waitlist (student_id, days, periods, asset_id, cfi_id, asset_ids, cfi_ids,
-                     until_date, active, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)""",
+                     until_date, note, active, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)""",
                  (student["id"], ",".join(days), ",".join(periods),
                   asset_ids[0] if len(asset_ids) == 1 else None, cfi_ids[0] if len(cfi_ids) == 1 else None,
                   ",".join(map(str, asset_ids)) or None, ",".join(map(str, cfi_ids)) or None,
-                  until, now_iso(), session.get("user_name")))
+                  until, (request.form.get("note") or "").strip()[:300] or None, now_iso(), session.get("user_name")))
     conn.commit()
     conn.close()
     flash("On the waitlist - you'll get a text/notification the moment a matching slot opens." if not staff
@@ -9989,10 +10136,19 @@ BALANCE_HOLD_LIMIT_KEY = "balance_hold_limit"
 BALANCE_HOLD_RELEASE_DAYS = 5
 
 
-def _balance_hold_limit(conn):
+def _balance_hold_limit(conn, student=None):
     """The dollar amount a student can owe before their flights go on hold
     (Settings > Balance Hold), or None if the school hasn't turned it on
-    (blank/0 = off, same convention as the cancellation fee amount)."""
+    (blank/0 = off, same convention as the cancellation fee amount).
+    Pass the student row to honor their own override (students.balance_hold_limit):
+    blank = the school's limit, a number = their own limit, 0 = never held."""
+    if student is not None:
+        try:
+            own = student["balance_hold_limit"]
+        except (KeyError, IndexError):
+            own = None
+        if own is not None:
+            return own if own > 0 else None
     row = conn.execute("SELECT value FROM app_settings WHERE key = ?", (BALANCE_HOLD_LIMIT_KEY,)).fetchone()
     try:
         limit = float(row["value"]) if row and row["value"] not in (None, "") else None
@@ -10032,10 +10188,10 @@ def check_balance_hold(conn, student_id):
     try:
         if not student_id:
             return
-        limit = _balance_hold_limit(conn)
         student = conn.execute("SELECT * FROM students WHERE id = ?", (student_id,)).fetchone()
         if not student or student["is_station"]:
             return
+        limit = _balance_hold_limit(conn, student)
         owed = student_owed(student)
         held = conn.execute("SELECT * FROM scheduled_flights WHERE student_id = ? AND status = 'balance_hold'",
                             (student_id,)).fetchall()
@@ -10109,16 +10265,14 @@ def check_balance_hold_releases(conn):
     offers to the cancellation waitlist) any held lesson whose 5-day mark
     has arrived and is still unpaid. Best effort - never breaks the loop."""
     try:
-        limit = _balance_hold_limit(conn)
-        if limit is None:
-            return
         today = date.today().isoformat()
         tomorrow = (date.today() + timedelta(days=1)).isoformat()
         held = conn.execute("""SELECT * FROM scheduled_flights WHERE status = 'balance_hold'
                                AND held_release_date IS NOT NULL""").fetchall()
         for sf in held:
             student = conn.execute("SELECT * FROM students WHERE id = ?", (sf["student_id"],)).fetchone()
-            if not student or student_owed(student) <= limit:
+            limit = _balance_hold_limit(conn, student) if student else None
+            if not student or limit is None or student_owed(student) <= limit:
                 continue  # paid down since - check_balance_hold already released it, but be safe
             if sf["held_release_date"] == tomorrow:
                 key = f"remind:{sf['held_release_date']}"

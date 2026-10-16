@@ -107,7 +107,7 @@
 <div class="card students-desktop">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0 table-stack" id="students-table">
-      <thead class="table-light"><tr><th>Name</th><th>Last Lesson</th><th>Last Landing</th><th>Solo</th><th>Username</th><th>Instructor Rate</th><th>Plane Rate</th><th>Sim Rate</th><th>Account</th><th>Status</th><th></th></tr></thead>
+      <thead class="table-light"><tr><th>Name</th><th>Last Lesson</th><th>Days Since Flew</th><th>Last Landing</th><th>Solo</th><th>Username</th><th>Instructor Rate</th><th>Plane Rate</th><th>Sim Rate</th><th>Account</th><th>Status</th><th></th></tr></thead>
       <tbody>
         {% for s in students %}
         <tr data-search="{{ s.name|lower }}">
@@ -118,6 +118,11 @@
             <a href="{{ url_for('flight.log_detail', flight_id=l.id) }}" class="text-decoration-none" title="Open this flight">{{ l.flight_date|usdate }}</a>
             <div class="small text-muted">{{ l.plane_tag }} &middot; {% if l.cfi_name %}{{ l.cfi_name }}{% else %}solo{% endif %}{% if l.days_ago is not none %} &middot; {{ 'today' if l.days_ago == 0 else l.days_ago ~ 'd ago' }}{% endif %}</div>
             {% else %}<span class="text-muted small">None yet</span>{% endif %}
+          </td>
+          <td data-label="Days Since Flew">
+            {% set dsf = act.last_lesson.days_ago if act and act.last_lesson else none %}
+            {% if dsf is none %}<span class="text-muted small">-</span>
+            {% else %}<span class="fw-bold{% if dsf >= 30 %} text-danger{% elif dsf >= 14 %} text-warning{% endif %}" data-days="{{ dsf }}">{{ 'Today' if dsf == 0 else dsf }}</span>{% if dsf > 0 %} <span class="small text-muted">day{{ 's' if dsf != 1 }}</span>{% endif %}{% endif %}
           </td>
           <td data-label="Last Landing">
             {% if not s.first_solo_date and not s.is_station %}<span class="text-muted small" title="Landing currency shows once first solo is marked complete on the student's profile">Pre-solo</span>
@@ -154,7 +159,7 @@
           <td data-label=""><a href="{{ url_for('flight.student_edit', student_id=s.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Edit</a></td>
         </tr>
         {% else %}
-        <tr><td colspan="10" class="text-muted text-center py-3">No students yet.</td></tr>
+        <tr><td colspan="12" class="text-muted text-center py-3">No students yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

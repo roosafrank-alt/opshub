@@ -82,3 +82,40 @@ class StudentCancelFeeTest(OpsHubTestCase):
         c.post(f"/flight/schedule/{sched}/student_cancel", data={"reason": "sick"}, follow_redirects=True)
         self.assertEqual(self.q1("SELECT status FROM scheduled_flights WHERE id = ?", (sched,))["status"], "cancelled")
         self.assertIsNone(self.q1("SELECT * FROM student_ledger WHERE student_id = ?", (self.student_id,)))
+
+
+class SecondTierCancelFeeTest(StudentCancelFeeTest):
+    test_late_cancel_charges_the_fee_and_lands_in_the_ledger = None
+    test_late_cancel_without_ack_is_rejected_and_not_charged = None
+    test_early_cancel_is_free = None
+    test_fee_set_to_zero_never_charges_even_when_late = None
+
+    """Second window/fee: the tightest matching tier is the one charged."""
+    def setUp(self):
+        super().setUp()
+        self.login("master").post("/flight/settings/school", data={
+            "window_hours": "24", "fee_amount": "50", "window2_hours": "6", "fee_amount2": "100"})
+
+    def _fee(self, hours):
+        sched = self._book(datetime.now() + timedelta(hours=hours))
+        self.login("flight_student").post(f"/flight/schedule/{sched}/student_cancel",
+                                          data={"reason": "sick", "ack_fee": "on"})
+        e = self.q1("SELECT amount FROM student_ledger WHERE student_id = ? AND entry_type = 'cancellation_fee'",
+                    (self.student_id,))
+        return e["amount"] if e else None
+
+    def test_settings_page_shows_second_tier(self):
+        html = self.login("master").get("/flight/settings/school").get_data(as_text=True)
+        self.assertIn('name="window2_hours"', html)
+        self.assertIn('value="100.00"', html)
+
+    def test_inside_second_window_charges_second_fee(self):
+        self.assertEqual(self._fee(2), -100.0)
+
+    def test_between_windows_charges_first_fee(self):
+        self.assertEqual(self._fee(12), -50.0)
+
+    def test_second_tier_blank_is_off(self):
+        self.login("master").post("/flight/settings/school", data={
+            "window_hours": "24", "fee_amount": "50", "window2_hours": "", "fee_amount2": ""})
+        self.assertEqual(self._fee(2), -50.0)

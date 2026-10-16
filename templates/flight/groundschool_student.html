@@ -8,7 +8,10 @@
 </style>
 {% macro grade(v) %}{% if v is none %}<span class="text-muted">&ndash;</span>{% else %}<span class="ss-grade {{ 'ss-good' if v >= 85 else ('ss-mid' if v >= 70 else 'ss-low') }}">{{ v }}%</span>{% endif %}{% endmacro %}
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-  <h4 class="mb-0 text-light"><i class="bi bi-person-lines-fill"></i> {{ st.name }}</h4>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('groundschool.student_search') }}" class="btn btn-light btn-sm fw-bold" id="ss-back" onclick="if (history.length > 1 && document.referrer) { history.back(); return false; }"><i class="bi bi-arrow-left"></i> Back</a>
+    <h4 class="mb-0 text-light"><i class="bi bi-person-lines-fill"></i> {{ st.name }}</h4>
+  </div>
   <div class="d-flex gap-2 flex-wrap">
     <a href="{{ url_for('groundschool.student_search') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-search"></i> All students</a>
     <a href="{{ url_for('pilotlog.logbook', student_id=st.id) }}" class="btn btn-outline-light btn-sm"><i class="bi bi-journal-text"></i> Logbook</a>
@@ -34,11 +37,39 @@
     <div class="col-6 col-md-3"><div class="ss-stat">{{ grade(avg_init) }}</div><div class="small text-muted">average initial quiz grade</div></div>
     <div class="col-6 col-md-3"><div class="ss-stat">{{ grade(avg_final) }}</div><div class="small text-muted">average final-check grade</div></div>
   </div>
-  {% for c in courses %}
-  <div class="small fw-bold mt-2">{{ c.name }} <span class="text-muted fw-normal">&middot; {{ c.p.done }} of {{ c.p.total }} elements verified ({{ c.p.pct }}%)</span></div>
-  <div class="ss-bar"><span style="width:{{ c.p.pct }}%"></span></div>
-  {% endfor %}
+  {% if courses %}
+  <form method="get" class="d-flex align-items-center gap-2 flex-wrap mb-2">
+    <label class="small fw-bold mb-0" for="ss-course">Course</label>
+    <select name="course" id="ss-course" class="form-select form-select-sm" style="width:auto;max-width:100%;" onchange="this.form.submit()">
+      {% for c in courses %}<option value="{{ c.id }}" {{ 'selected' if course and c.id == course.id }}>{{ c.name }}{% if c.current %} (working toward){% elif c.done %} (completed){% else %} (past){% endif %}</option>{% endfor %}
+    </select>
+  </form>
+  {% if course %}
+  <div class="small fw-bold">{{ course.name }} <span class="text-muted fw-normal">&middot; {{ course.p.done }} of {{ course.p.total }} elements verified ({{ course.p.pct }}%)</span></div>
+  <div class="ss-bar"><span style="width:{{ course.p.pct }}%"></span></div>
+  {% endif %}
+  {% else %}<div class="text-muted small">No ground school activity yet.</div>{% endif %}
 </div>
+
+{% if now_on %}
+<div class="card academy-card p-3 mb-3">
+  <h6 class="mb-1"><i class="bi bi-geo-alt"></i> Last studying</h6>
+  <div><a href="{{ url_for('groundschool.task_detail', task_id=now_on.task_id, student_id=st.id) }}"><b>{{ now_on.label }}</b></a>
+    {% if now_on.sec %}<span class="text-muted">&middot; section {{ now_on.sec.n }}{% if now_on.sec.title %}: {{ now_on.sec.title }}{% endif %}</span>{% endif %}</div>
+  <div class="small text-muted">{{ now_on.mins }} min in this lesson{% if now_on.when %} &middot; last in it {{ now_on.when|usdate(true) }}{% endif %}</div>
+</div>
+{% endif %}
+{% if weak or missed or skipped %}
+<div class="card academy-card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-exclamation-triangle"></i> Needs attention</h6>
+  {% if weak %}<div class="small fw-bold">Lessons under 85% on the first try</div>
+  <ul class="small mb-2">{% for w in weak %}<li><a href="{{ url_for('groundschool.task_detail', task_id=w.info.id, student_id=st.id) }}#gsl-activity"><b>{{ w.info.acode }}.{{ w.info.code }}</b> {{ w.info.title }}</a> &middot; {{ w.kind }} {{ grade(w.pct) }}</li>{% endfor %}</ul>{% endif %}
+  {% if missed %}<div class="small fw-bold">Questions missed on the first try (most tries first)</div>
+  <ul class="small mb-2">{% for m in missed %}<li>{{ m.q }} <span class="text-muted">&middot; {{ m.info.acode }}.{{ m.info.code }} {{ m.kind }} &middot; {{ m.attempts }} tr{{ 'y' if m.attempts == 1 else 'ies' }}</span></li>{% endfor %}</ul>{% endif %}
+  {% if skipped %}<div class="small fw-bold">Reading sections not finished</div>
+  <ul class="small mb-0">{% for k in skipped %}<li><a href="{{ url_for('groundschool.task_detail', task_id=k.info.id, student_id=st.id) }}"><b>{{ k.info.acode }}.{{ k.info.code }}</b> {{ k.info.title }}</a> &middot; {{ k.n }} section{{ 's' if k.n != 1 }} left</li>{% endfor %}</ul>{% endif %}
+</div>
+{% endif %}
 
 <div class="card academy-card p-3 mb-3">
   <h6 class="mb-2"><i class="bi bi-table"></i> Lesson by lesson</h6>
@@ -48,7 +79,8 @@
     <tbody>
     {% for x in lessons %}{% set i = x.info %}{% set t = x.st %}
     <tr>
-      <td><a href="{{ url_for('groundschool.task_detail', task_id=i.id, student_id=st.id) }}#gsl-activity"><b>{{ i.acode }}.{{ i.code }}</b> {{ i.title }}</a><div class="text-muted">{{ i.rname }}</div></td>
+      <td><a href="{{ url_for('groundschool.task_detail', task_id=i.id, student_id=st.id) }}#gsl-activity"><b>{{ i.acode }}.{{ i.code }}</b> {{ i.title }}</a>{% if t.sections %}<details class="mt-1"><summary class="text-primary" style="cursor:pointer">Time by section</summary>
+        <div class="text-muted">{% for sc in t.sections %}<div>{{ sc.n }}. {{ sc.title }} &middot; <b>{{ '%.1f'|format(sc.secs / 60) }} min</b>{% if sc.read %} <i class="bi bi-check2 text-success"></i>{% else %} <span class="text-danger">not read</span>{% endif %}</div>{% endfor %}</div></details>{% endif %}</td>
       <td class="text-end">{{ (t.seconds // 60)|int }} min</td>
       <td class="text-center">{% if t.sections %}{{ t.sections_read }} / {{ t.sections|length }}{% else %}&ndash;{% endif %}</td>
       <td class="text-center">{{ grade(t.initial_pct if t.initial_pct is not none else t.initial_pct_so_far) }}{% if t.initial_pct is none and t.initial_pct_so_far is not none %}<span class="text-muted">*</span>{% endif %}</td>

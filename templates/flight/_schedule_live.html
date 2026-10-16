@@ -1,7 +1,7 @@
 {#- Waitlist chips: students waiting for this date; click = Schedule Flight pre-filled. #}
-{% macro wl_chips(day_str) %}{% if wl_for is defined %}{% set wl = wl_for(day_str|string) %}{% if wl %}<div class="d-flex flex-wrap gap-1 wl-chips">{% for w in wl %}<a href="{{ w.url }}" class="badge bg-info text-dark text-decoration-none" title="{{ w.name }} is on the waitlist for this day - click to schedule a lesson"><i class="bi bi-hourglass-split"></i> {{ w.name.split(' ')[0] }}</a>{% endfor %}</div>{% endif %}{% endif %}{% endmacro %}
+{% macro wl_chips(day_str) %}{% if wl_for is defined %}{% set wl = wl_for(day_str|string) %}{% if wl %}<div class="d-flex flex-wrap gap-1 wl-chips">{% for w in wl %}<a href="{{ w.url }}" class="badge bg-info text-dark text-decoration-none" title="{{ w.name }} is on the waitlist for this day{% if w.note %}: {{ w.note }}{% endif %} - click to schedule a lesson"><i class="bi bi-hourglass-split"></i> {{ w.name.split(' ')[0] }}</a>{% endfor %}</div>{% endif %}{% endif %}{% endmacro %}
 {#- Waitlist chips: students waiting for this date; click = Schedule Flight pre-filled. #}
-{% macro wl_chips(day_str) %}{% if wl_for is defined %}{% set wl = wl_for(day_str|string) %}{% if wl %}<div class="d-flex flex-wrap gap-1 wl-chips">{% for w in wl %}<a href="{{ w.url }}" class="badge bg-info text-dark text-decoration-none" title="{{ w.name }} is on the waitlist for this day - click to schedule a lesson"><i class="bi bi-hourglass-split"></i> {{ w.name.split(' ')[0] }}</a>{% endfor %}</div>{% endif %}{% endif %}{% endmacro %}
+{% macro wl_chips(day_str) %}{% if wl_for is defined %}{% set wl = wl_for(day_str|string) %}{% if wl %}<div class="d-flex flex-wrap gap-1 wl-chips">{% for w in wl %}<a href="{{ w.url }}" class="badge bg-info text-dark text-decoration-none" title="{{ w.name }} is on the waitlist for this day{% if w.note %}: {{ w.note }}{% endif %} - click to schedule a lesson"><i class="bi bi-hourglass-split"></i> {{ w.name.split(' ')[0] }}</a>{% endfor %}</div>{% endif %}{% endif %}{% endmacro %}
 {#
   The schedule page's actual calendar/list content: title, view toolbar,
   Plane/Instructor filter form, the view itself (month grid / day list /
@@ -539,7 +539,7 @@
   </div>
 </div>
 <div class="sch-views">
-    {% if view in ('day', 'week') %}<button type="button" id="sch-fit-btn" class="btn btn-sm btn-outline-secondary float-end ms-2" title="Shrink the hours so the whole day fits on the screen" aria-pressed="false"><i class="bi bi-arrows-collapse"></i> Fit to screen</button>{% endif %}
+    {% if view in ('day', 'week', 'month') %}<button type="button" id="sch-fit-btn" class="btn btn-sm btn-outline-secondary float-end ms-2" title="{{ 'Shrink each week so a whole week fits on the screen' if view == 'month' else 'Shrink the hours so the whole day fits on the screen' }}" aria-pressed="false"><i class="bi bi-arrows-collapse"></i> Fit to screen</button>{% endif %}
     <div class="btn-group btn-group-sm" role="group" data-change="DESIGN-1">
       <a href="{{ url_for('flight.schedule_calendar', view='day', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-secondary' if view == 'day' else 'btn-outline-secondary' }}">Day</a>
       <a href="{{ url_for('flight.schedule_calendar', view='week', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-secondary' if view == 'week' else 'btn-outline-secondary' }}">Week</a>

@@ -122,3 +122,20 @@ class WaitlistTest(OpsHubTestCase):
         html = self.login("cfi").get(f"/flight/schedule?view=day&date={self.day.isoformat()}").get_data(as_text=True)
         self.assertIn("wl-chips", html)
         self.assertIn(f"student_id={self.student}", html)
+
+
+class WaitlistNoteTest(WaitlistTest):
+    def test_note_is_saved_shown_and_on_calendar_chip(self):
+        self.join(note="Free 1-4pm, need to leave by 5")
+        w = self.q1("SELECT * FROM flight_waitlist")
+        self.assertEqual(w["note"], "Free 1-4pm, need to leave by 5")
+        html = self.login("flight_student").get("/flight/waitlist").get_data(as_text=True)
+        self.assertIn("Free 1-4pm, need to leave by 5", html)
+        cfi = self.login("cfi").get(f"/flight/schedule?view=day&date={self.day.isoformat()}").get_data(as_text=True)
+        self.assertIn("need to leave by 5", cfi)
+
+    def test_note_is_optional_and_trimmed(self):
+        self.join()
+        self.assertIsNone(self.q1("SELECT note FROM flight_waitlist")["note"])
+        self.join(note="x" * 500)
+        self.assertEqual(len(self.q("SELECT note FROM flight_waitlist ORDER BY id")[1]["note"]), 300)
