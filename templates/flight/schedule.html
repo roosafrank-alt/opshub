@@ -298,10 +298,16 @@
     border: 1px solid rgba(0,0,0,.1); border-radius: 4px;
     background: #fff;
   }
+  /* Drawn ON TOP of the flight blocks (z-index above the blocks' 4-5) so an
+     hour mark is never hidden under a booking; clicks pass straight through.
+     Dark dashes plus a faint light edge so the line shows on light and dark
+     block colors alike. */
   .day-timeline-grid-line {
     position: absolute; left: 0; right: 0; height: 0;
-    border-top: 1px dashed rgba(0,0,0,.22);
+    border-top: 1px dashed rgba(0,0,0,.35);
+    box-shadow: 0 1px 0 rgba(255,255,255,.45);
     pointer-events: none;
+    z-index: 6;
   }
   /* Past-day graying (Day/Week timelines): a wholly past day is 100% gray,
      today is grayed up to the current time - see day_past_pct/wd_past_pct
