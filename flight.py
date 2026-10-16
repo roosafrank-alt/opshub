@@ -5071,6 +5071,12 @@ def schedule_new():
             flash("Select a plane, a student, and a date.", "danger")
             conn.close()
             return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
+        input_error = _booking_input_error(conn, asset_id, student_id, cfi_id, scheduled_date,
+                                           request.form.get("duration_hours"), duration_hours)
+        if input_error:
+            flash(input_error, "danger")
+            conn.close()
+            return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
         if solo:
             plane_row = conn.execute("SELECT tag, solo_allowed FROM assets WHERE id = ?", (asset_id,)).fetchone()
             if plane_row and not plane_row["solo_allowed"]:
@@ -5220,6 +5226,31 @@ def schedule_new():
                                 new=",".join(str(i) for i in created_ids)))
     conn.close()
     return render_template("flight/schedule_form.html", form=None, **form_kwargs)
+
+
+def _booking_input_error(conn, asset_id, student_id, cfi_id, scheduled_date, duration_raw, duration_hours):
+    """A plain-English message when the booking form was sent something that
+    can't be booked (a garbled date or length, or a plane, student or
+    instructor that no longer exists - e.g. from a page left open while the
+    plane was deleted), else None. Keeps the person on the form instead of
+    falling over with the generic error page."""
+    try:
+        datetime.strptime(scheduled_date, "%Y-%m-%d")
+    except ValueError:
+        return "That date isn't valid. Pick the date again."
+    if duration_raw not in (None, ""):
+        if duration_hours is None or not math.isfinite(duration_hours) or duration_hours <= 0:
+            return "That flight length isn't valid. Enter the number of hours, like 1.5."
+    if _parse_int(asset_id) is None or not conn.execute(
+            "SELECT 1 FROM assets WHERE id = ? AND deleted_at IS NULL", (_parse_int(asset_id),)).fetchone():
+        return "That plane is no longer available. Pick another plane."
+    if _parse_int(student_id) is None or not conn.execute(
+            "SELECT 1 FROM students WHERE id = ?", (_parse_int(student_id),)).fetchone():
+        return "That student is no longer available. Pick the student again."
+    if cfi_id and (_parse_int(cfi_id) is None or not conn.execute(
+            "SELECT 1 FROM cfis WHERE id = ?", (_parse_int(cfi_id),)).fetchone()):
+        return "That instructor is no longer available. Pick another instructor."
+    return None
 
 
 def _referrer_url():
