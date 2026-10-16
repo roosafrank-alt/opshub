@@ -6793,11 +6793,21 @@ def orders_list():
     else:
         rows = conn.execute(base_sql + " ORDER BY o.ordered_date DESC").fetchall()
     ship_rows = _batch_shipments(conn, [r["batch_id"] or f"o{r['id']}" for r in rows])
+    today_iso = date.today().isoformat()
+    late_count = conn.execute("SELECT COUNT(*) c FROM orders WHERE status = 'pending' AND expected_date IS NOT NULL "
+                              "AND expected_date != '' AND substr(expected_date, 1, 10) < ?", (today_iso,)).fetchone()["c"]
     conn.close()
 
     orders = []
     for r in rows:
         o = dict(r)
+        # Past its expected date and still not in: shown red with "N days late".
+        o["days_late"] = 0
+        if o["status"] == "pending" and o["expected_date"]:
+            try:
+                o["days_late"] = max(0, (date.today() - date.fromisoformat(o["expected_date"][:10])).days)
+            except ValueError:
+                pass
         o["item_name"] = o["part_name"] or o["description"]
         o["vendor_name"] = o["supplier"] or "No Vendor Specified"
         o["batch_key"] = o.get("batch_id") or f"o{o['id']}"
@@ -6821,7 +6831,9 @@ def orders_list():
                 vendor_order.append(v)
             batch_date = (o["ordered_date"] or "")[:10]
             by_vendor[v].setdefault(batch_date, []).append(o)
-        for v in sorted(vendor_order, key=lambda x: x.lower()):
+        def _late_n(v):
+            return sum(1 for d in by_vendor[v].values() for ln in d if ln["days_late"])
+        for v in sorted(vendor_order, key=lambda x: (not _late_n(x), x.lower())):
             batches = []
             for d in sorted(by_vendor[v].keys(), reverse=True):
                 lines = by_vendor[v][d]
@@ -6838,7 +6850,7 @@ def orders_list():
                                  "subtotal": sum((i["unit_cost"] or 0) * (i["qty_ordered"] or 0) for i in lines)})
             groups.append({"label": v, "batches": batches,
                             "total": sum(b["subtotal"] for b in batches),
-                            "count": sum(len(b["lines"]) for b in batches)})
+                            "count": sum(len(b["lines"]) for b in batches), "late": _late_n(v)})
     else:
         by_part = {}
         part_order = []
@@ -6848,9 +6860,9 @@ def orders_list():
                 by_part[k] = []
                 part_order.append(k)
             by_part[k].append(o)
-        for k in sorted(part_order, key=lambda x: x.lower()):
+        for k in sorted(part_order, key=lambda x: (not any(ln["days_late"] for ln in by_part[x]), x.lower())):
             lines = by_part[k]
-            groups.append({"label": k, "lines": lines,
+            groups.append({"label": k, "lines": lines, "late": sum(1 for ln in lines if ln["days_late"]),
                             "total": sum((i["unit_cost"] or 0) * (i["qty_ordered"] or 0) for i in lines),
                             "count": len(lines)})
 
@@ -6870,7 +6882,7 @@ def orders_list():
     cores_conn.close()
     return render_template("orders.html", groups=groups, view=view, status_filter=status_filter, cores_owed=cores_owed,
                            order_count=len(orders), wishlist_items=wishlist_items, parts_for_wishlist=parts_for_wishlist,
-                           wish_count=wish_count)
+                           wish_count=wish_count, late_count=late_count)
 
 
 @app.route("/orders/wishlist/new", methods=["POST"])
