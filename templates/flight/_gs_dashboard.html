@@ -1,0 +1,49 @@
+{#- Ground School charts: progress rings, study time by Area, quiz accuracy. Needs `dash`. #}
+{% macro ring(pct, label, sub, color) %}
+<div class="gsd-tile">
+  <svg viewBox="0 0 42 42" class="gsd-ring" role="img" aria-label="{{ label }} {{ pct if pct is not none else 0 }} percent">
+    <circle cx="21" cy="21" r="15.9" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="4"/>
+    <circle cx="21" cy="21" r="15.9" fill="none" stroke="{{ color }}" stroke-width="4" stroke-linecap="round"
+            stroke-dasharray="{{ pct or 0 }} {{ 100 - (pct or 0) }}" transform="rotate(-90 21 21)"/>
+    <text x="21" y="23.5" text-anchor="middle" class="gsd-ring-t">{{ (pct ~ '%') if pct is not none else '–' }}</text>
+  </svg>
+  <div class="gsd-lab">{{ label }}</div><div class="gsd-sub">{{ sub }}</div>
+</div>
+{% endmacro %}
+<style>
+  .gsd { background: linear-gradient(135deg, #14213d, #1d2f66); border-radius: 16px; padding: 1rem; margin-bottom: 1rem; color: #fff; }
+  .gsd h5 { font-size: 1rem; margin: 0 0 .75rem; }
+  .gsd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .75rem; align-items: start; }
+  .gsd-tile { text-align: center; }
+  .gsd-ring { width: 92px; height: 92px; }
+  .gsd-ring-t { fill: #fff; font-size: 8px; font-weight: 800; }
+  .gsd-lab { font-weight: 700; font-size: .85rem; }
+  .gsd-sub { font-size: .72rem; opacity: .7; }
+  .gsd-num { font-size: 2rem; font-weight: 800; line-height: 1; color: #ffd43b; }
+  .gsd-bars { margin-top: 1rem; }
+  .gsd-bar-row { display: flex; align-items: center; gap: .5rem; font-size: .78rem; margin: .3rem 0; }
+  .gsd-bar-row .nm { flex: 0 0 38%; max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gsd-bar { flex: 1; background: rgba(255,255,255,.12); border-radius: 99px; height: 10px; overflow: hidden; }
+  .gsd-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #4dabf7, #69db7c); border-radius: 99px; }
+</style>
+<div class="gsd" data-change="GS-CHARTS">
+  <h5><i class="bi bi-bar-chart-line-fill"></i> Your progress</h5>
+  {% if dash.empty and not dash.courses %}
+  <div class="small opacity-75">Open a lesson and this fills in: time studied, quiz scores and games won.</div>
+  {% else %}
+  <div class="gsd-grid">
+    {% for c in dash.courses[:3] %}{{ ring(c.pct, c.name|truncate(22, True, '…'), c.done ~ ' / ' ~ c.total ~ ' elements', '#69db7c') }}{% endfor %}
+    {{ ring(dash.first_try, 'Right first try', (dash.questions ~ ' questions') if dash.questions else 'no quizzes yet', '#ffd43b') }}
+    <div class="gsd-tile"><div class="gsd-num">{{ dash.minutes }}</div><div class="gsd-lab">minutes studied</div><div class="gsd-sub">{{ dash.lessons }} lesson{{ 's' if dash.lessons != 1 }} opened</div></div>
+    <div class="gsd-tile"><div class="gsd-num">{{ dash.games }}</div><div class="gsd-lab">games finished</div><div class="gsd-sub">{{ dash.finals }} final-check item{{ 's' if dash.finals != 1 }}</div></div>
+  </div>
+  {% if dash.areas %}
+  <div class="gsd-bars">
+    <div class="small fw-bold mb-1">Time by Area of Operation</div>
+    {% for a in dash.areas %}
+    <div class="gsd-bar-row"><span class="nm" title="{{ a.code }} {{ a.title }}">{{ a.code }} {{ a.title }}</span><span class="gsd-bar"><span style="width:{{ a.pct }}%"></span></span><span>{{ a.minutes }} min</span></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endif %}
+</div>

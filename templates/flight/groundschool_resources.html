@@ -124,12 +124,13 @@
 <div class="card academy-card mb-3"><div class="card-body py-2 row g-2 align-items-center">
   <div class="col-12 col-md-5"><input type="search" id="resSearch" class="form-control form-control-sm" placeholder="Search name, designation or type"></div>
   <div class="col-6 col-md-2"><select id="resCat" class="form-select form-select-sm"><option value="">All categories</option>
-    {% for c in categories + ['Other / General'] %}<option>{{ c }}</option>{% endfor %}</select></div>
+    {% for c in categories + ['Other / General'] %}<option{{ ' selected' if c == default_cat }}>{{ c }}</option>{% endfor %}</select></div>
   <div class="col-6 col-md-2"><select id="resType" class="form-select form-select-sm"><option value="">All types</option>
     {% for t in doc_types %}<option>{{ t }}</option>{% endfor %}</select></div>
   <div class="col-12 col-md-3 text-md-end">
     <button type="button" class="btn btn-outline-primary btn-sm" id="resExpand">Expand all</button>
     <button type="button" class="btn btn-outline-primary btn-sm" id="resCollapse">Collapse all</button></div>
+{% if default_cat %}<div class="col-12 small text-muted" id="resDefaultNote" data-cat="{{ default_cat }}" data-change="RES-DEFAULT">Showing {{ default_cat }} resources, the rating you are working on. Choose <strong>All categories</strong> to see the whole library.</div>{% endif %}
 </div></div>
 {% for name, rows in sections %}
 <div class="card academy-card mb-2 res-section" data-section="{{ name }}">
@@ -169,25 +170,41 @@
 <script>
 (function () {
   var q = document.getElementById('resSearch'), cat = document.getElementById('resCat'), typ = document.getElementById('resType');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('.resource-row'));
+  function textOk(r) { var t = q.value.trim().toLowerCase(); return !t || r.dataset.search.indexOf(t) >= 0; }
+  function typeOk(r) { return !typ.value || r.dataset.type === typ.value; }
+  function catOk(r) { return !cat.value || r.dataset.cats.split(',').indexOf(cat.value) >= 0; }
+  // A dropdown only offers choices that still leave something to show under the other filters.
+  function narrow(sel, test, valueOf) {
+    Array.prototype.slice.call(sel.options).forEach(function (o) {
+      if (!o.value) return;
+      var has = o.value === sel.value || rows.some(function (r) { return test(r) && valueOf(r).indexOf(o.value) >= 0; });
+      o.hidden = !has; o.disabled = !has;
+    });
+  }
   function apply() {
-    var t = q.value.trim().toLowerCase(), shown = 0;
+    var shown = 0;
     document.querySelectorAll('.res-section').forEach(function (sec) {
-      var n = 0;
+      var n = 0, own = !cat.value || sec.dataset.section === cat.value;   // a picked category shows only its own section
       sec.querySelectorAll('.resource-row').forEach(function (r) {
-        var ok = (!t || r.dataset.search.indexOf(t) >= 0) && (!typ.value || r.dataset.type === typ.value) &&
-                 (!cat.value || r.dataset.cats.split(',').indexOf(cat.value) >= 0);
+        var ok = own && textOk(r) && typeOk(r) && catOk(r);
         r.style.display = ok ? '' : 'none'; if (ok) n++;
       });
       sec.querySelector('.res-count').textContent = n;
       sec.style.display = n ? '' : 'none'; shown += n;
     });
+    narrow(cat, function (r) { return textOk(r) && typeOk(r); }, function (r) { return r.dataset.cats.split(','); });
+    narrow(typ, function (r) { return textOk(r) && catOk(r); }, function (r) { return [r.dataset.type]; });
     document.getElementById('resNone').classList.toggle('d-none', shown > 0);
+    var note = document.getElementById('resDefaultNote');
+    if (note) note.classList.toggle('d-none', cat.value !== note.dataset.cat);
   }
   [q, cat, typ].forEach(function (e) { e.addEventListener('input', apply); });
   function all(open) { document.querySelectorAll('.res-body').forEach(function (b) {
     bootstrap.Collapse.getOrCreateInstance(b, {toggle: false})[open ? 'show' : 'hide'](); }); }
   document.getElementById('resExpand').onclick = function () { all(true); };
   document.getElementById('resCollapse').onclick = function () { all(false); };
+  apply();
 })();
 </script>
 {% endif %}

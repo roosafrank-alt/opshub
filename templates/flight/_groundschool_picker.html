@@ -10,5 +10,7 @@
     <option value="0" {{ 'selected' if not viewing_student_id }}>Choose a student...</option>
     {% for s in gs_students %}<option value="{{ s.id }}" {{ 'selected' if viewing_student_id == s.id }}>{{ s.name }}</option>{% endfor %}
   </select>
+  {% if viewing_student_id %}<a href="{{ url_for('groundschool.student_summary', student_id=viewing_student_id) }}" class="btn btn-sm btn-light fw-bold"><i class="bi bi-person-lines-fill"></i> Full summary</a>{% endif %}
+  <a href="{{ url_for('groundschool.student_search') }}" class="btn btn-sm btn-outline-light"><i class="bi bi-search"></i> Search students</a>
 </form>
 {% endif %}

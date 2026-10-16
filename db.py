@@ -743,7 +743,9 @@ def _migrate(conn):
     # commercial | atp) and add-on ratings (comma-separated codes, e.g.
     # "instrument,tailwheel,cfi") - drive the badge on the Students list.
     student_cols4 = [r["name"] for r in conn.execute("PRAGMA table_info(students)").fetchall()]
-    for col in ("pilot_certificate", "pilot_ratings"):
+    # training_goal: the rating the student is working toward (code from
+    # flight.TRAINING_GOALS); it picks the Resources page's default category.
+    for col in ("pilot_certificate", "pilot_ratings", "training_goal"):
         if col not in student_cols4:
             conn.execute(f"ALTER TABLE students ADD COLUMN {col} TEXT")
             conn.commit()
@@ -1103,6 +1105,15 @@ def _migrate(conn):
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_student_endorsements_student ON student_endorsements(student_id, id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_student_endorsements_cfi ON student_endorsements(cfi_id, id)")
+    # ENDORSE: endorsements signed from the AC 61-65K catalog (endorsements.py): which catalog
+    # entry, when it stops being good, the blanks as filled in, the CFI certificate and signature
+    # line used, and a "removed" mark (a mistake is removed, never deleted).
+    _se_cols = [r["name"] for r in conn.execute("PRAGMA table_info(student_endorsements)").fetchall()]
+    for _c in ("catalog_id", "expires_on", "fields_json", "cfi_cert", "signature_line", "created_by",
+               "voided_at", "voided_by", "void_reason"):
+        if _c not in _se_cols:
+            conn.execute(f"ALTER TABLE student_endorsements ADD COLUMN {_c} TEXT")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_student_endorsements_expires ON student_endorsements(expires_on)")
     conn.commit()
 
     # Ground School: each row is one FAA Airman Certification Standards (ACS)
@@ -1363,6 +1374,15 @@ def _migrate(conn):
         first_started_at TEXT,
         last_seen_at TEXT,
         PRIMARY KEY (student_id, task_id)
+    )""")
+    # Seconds on each reading section of a lesson (the check mark beside a section, and the
+    # per-section time the instructor sees).
+    conn.execute("""CREATE TABLE IF NOT EXISTS gs_chunk_time (
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        task_id INTEGER NOT NULL REFERENCES acs_tasks(id),
+        chunk_n INTEGER NOT NULL,
+        seconds INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (student_id, task_id, chunk_n)
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS gs_lesson_results (
         student_id INTEGER NOT NULL REFERENCES students(id),

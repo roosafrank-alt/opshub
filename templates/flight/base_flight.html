@@ -67,6 +67,14 @@
      the script at the bottom. A mouse wheel / remote keys still scroll. */
   html.tv-mode { scrollbar-width: none; }
   html.tv-mode::-webkit-scrollbar { display: none; }
+  /* The account menu's TV item reads "TV mode on" or "TV mode off" to match
+     the current state (both spans are in the menu; the html class picks one). */
+  .tv-label-on { display: none; }
+  html.tv-mode .tv-label-on { display: inline; }
+  html.tv-mode .tv-label-off { display: none; }
+  /* The Students roster tab is hidden on the shop computer (the TV browser,
+     where TV mode is on) - it stays on everyone's own devices. */
+  html.tv-mode .flight-nav-students { display: none; }
 </style>
 </head>
 <body>
@@ -96,7 +104,7 @@
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'active' else ('flight-nav-flying' if flight_active_nav_count) }}" id="tour-nav-flight-active" href="{{ url_for('flight.log_active') }}"><i class="bi bi-stopwatch"></i> <span class="nav-label">Active Flight</span>{% if flight_active_nav_count %} <span class="badge bg-dark" title="{{ flight_active_nav_count }} flight{{ 's' if flight_active_nav_count != 1 }} in the air">{{ flight_active_nav_count }}</span>{% endif %}</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'history' }}" id="tour-nav-flight-history" href="{{ url_for('flight.log_history') }}"><i class="bi bi-clock-history"></i> <span class="nav-label">Flight History</span></a></li>
         {% if session.get('cfi_id') or flight_admin %}
-        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'students' }}" id="tour-nav-flight-students" href="{{ url_for('flight.students_list') }}"><i class="bi bi-people"></i> <span class="nav-label">Students</span></a></li>
+        <li class="nav-item flight-nav-students"><a class="nav-link {{ 'active' if sec == 'students' }}" id="tour-nav-flight-students" href="{{ url_for('flight.students_list') }}"><i class="bi bi-people"></i> <span class="nav-label">Students</span></a></li>
         {% endif %}
         {% if session.get('cfi_id') or flight_admin %}
         {% set fac = flight_alert_counts or {} %}

@@ -409,6 +409,25 @@ body { background: #f4f5f7; }
   width: auto !important;
   margin: 0 !important;
 }
+/* Short chip labels ("Admin" for "Flight Admin" / "Shop Admin"): only on the
+   narrowest phones, where even the icon-only row would not fit one line. */
+.view-as-chips .chip-short { display: none; }
+@media (max-width: 400px) {
+  .view-as-chips .chip-full { display: none; }
+  .view-as-chips .chip-short { display: inline; }
+}
+/* Phones/tablets: the chip row has Bootstrap's flex-nowrap (!important) on it,
+   which beat the flex-wrap above, so "Switch role: Flight Admin CFI Student..."
+   ran off the right edge of the dropdown panel and the last chips were cut
+   off. In the collapsed menu let it wrap onto more lines instead. Desktop
+   (inline in the header) keeps its single line, which nav-fit.js measures. */
+@media (max-width: 991.98px) {
+  .navbar-collapse .view-as-chips {
+    flex-wrap: wrap !important;
+    row-gap: .25rem;
+    max-width: 100%;
+  }
+}
 
 /* Idea "Squalk view": a squawk's step pills (squawk_step_pills in
    _squawk_macros.html - dashboard's New/Awaiting-confirm/My Squawks boxes,

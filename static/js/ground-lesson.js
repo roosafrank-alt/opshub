@@ -280,8 +280,16 @@
   root.querySelectorAll('[data-drag]').forEach(function (src) {
     src.addEventListener('pointerdown', function (e) {
       if (src.disabled || (e.pointerType === 'mouse' && e.button !== 0)) return;
-      if (e.pointerType !== 'mouse' && !e.target.closest('.gsl-grip')) return;   // on a phone, drag by the grip so the page can still scroll
+      // On a phone: the grip picks a tile up at once; anywhere else needs a short press-and-hold
+      // (a quick swipe still scrolls the page).
+      var touch = e.pointerType !== 'mouse', viaGrip = !!e.target.closest('.gsl-grip');
+      var armed = !touch || viaGrip, holdT = null;
       var sx = e.clientX, sy = e.clientY, ghost = null, hot = null, act = src.closest('.gsl-act');
+      function stopScroll(te) { if (armed || ghost) te.preventDefault(); }
+      if (touch && !armed) {
+        holdT = setTimeout(function () { armed = true; if (navigator.vibrate) { try { navigator.vibrate(15); } catch (x) {} } src.classList.add('gsl-held'); }, 170);
+      }
+      if (touch) document.addEventListener('touchmove', stopScroll, { passive: false });
       function targetAt(x, y) {
         var el = document.elementFromPoint(x, y);
         var t = el && el.closest('[data-k],.gsl-bucket');
@@ -289,7 +297,9 @@
       }
       function move(ev) {
         if (!ghost) {
-          if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 10) return;
+          var moved = Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy);
+          if (!armed) { if (moved > 8) cleanup(); return; }       // moved before the hold finished: it is a scroll
+          if (moved < 10) return;
           ghost = src.cloneNode(true); ghost.removeAttribute('data-k'); ghost.className += ' gsl-ghost';
           ghost.style.width = src.offsetWidth + 'px'; document.body.appendChild(ghost); src.classList.add('gsl-dragging');
         }
@@ -300,9 +310,14 @@
         if (t) t.classList.add('gsl-drop');
         hot = t;
       }
-      function up(ev) {
+      function cleanup() {
+        clearTimeout(holdT); src.classList.remove('gsl-held');
+        document.removeEventListener('touchmove', stopScroll);
         document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up);
         document.removeEventListener('pointercancel', up);
+      }
+      function up(ev) {
+        cleanup();
         if (!ghost) return;                         // it was a plain tap; let the click happen
         var t = targetAt(ev.clientX, ev.clientY);
         ghost.remove(); src.classList.remove('gsl-dragging'); if (hot) hot.classList.remove('gsl-drop');
@@ -330,13 +345,34 @@
     ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(function (ev) {
       window.addEventListener(ev, function () { lastInput = Date.now(); }, { passive: true });
     });
+    var chunkEls = [].slice.call(root.querySelectorAll('article.gsl-chunk[id^="gsl-c"]'));
+    var chunkSecs = {}, chunkMs = {};
+    function chunkInView() {                         // the reading section across the middle of the screen
+      var mid = window.innerHeight * 0.45;
+      for (var i = 0; i < chunkEls.length; i++) {
+        var r = chunkEls[i].getBoundingClientRect();
+        if (r.top <= mid && r.bottom >= mid) return chunkEls[i];
+      }
+      return null;
+    }
     setInterval(function () {                       // count a second only while visible and recently used
       var now = Date.now(), dt = Math.min(now - lastTick, 2000); lastTick = now;
-      if (document.visibilityState === 'visible' && now - lastInput < IDLE) active += dt;
+      if (document.visibilityState === 'visible' && now - lastInput < IDLE) {
+        active += dt;
+        var el = chunkInView();
+        if (el) {
+          var n = el.id.slice(5);
+          chunkMs[n] = (chunkMs[n] || 0) + dt;
+          var whole = Math.floor(chunkMs[n] / 1000);
+          if (whole > 0) { chunkMs[n] -= whole * 1000; chunkSecs[n] = (chunkSecs[n] || 0) + whole;
+            el.setAttribute('data-secs', (+el.getAttribute('data-secs') || 0) + whole);
+            if ((+el.getAttribute('data-secs')) >= (+el.getAttribute('data-need'))) el.classList.add('gsl-read'); }
+        }
+      }
     }, 1000);
     function beat(useBeacon) {
       var secs = Math.round(active / 1000); active -= secs * 1000;
-      var body = JSON.stringify({ seconds: secs, anchor: currentAnchor() });
+      var body = JSON.stringify({ seconds: secs, anchor: currentAnchor(), chunks: chunkSecs }); chunkSecs = {};
       if (useBeacon && navigator.sendBeacon) navigator.sendBeacon(base + '/lesson-time', new Blob([body], { type: 'application/json' }));
       else fetch(base + '/lesson-time', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: body }).catch(function () {});
     }

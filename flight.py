@@ -978,6 +978,17 @@ PILOT_RATINGS = [
     ("cfi", "CFI"), ("cfii", "CFII"), ("mei", "MEI"),
 ]
 INSTRUCTOR_RATINGS = ("cfi", "cfii", "mei")
+# The rating a student is training for (student account "Training toward"):
+# (code, label, Flight Academy Resources category it opens on, or None).
+TRAINING_GOALS = [
+    ("sport", "Sport Pilot", "Sport"), ("recreational", "Recreational Pilot", "Private"),
+    ("private", "Private Pilot", "Private"), ("instrument", "Instrument Rating", "Instrument"),
+    ("commercial", "Commercial Pilot", "Commercial"), ("complex", "Complex Endorsement", "Complex"),
+    ("high_performance", "High Performance Endorsement", "High Performance"),
+    ("tailwheel", "Tailwheel Endorsement", None), ("multi_engine", "Multi-Engine Rating", "Commercial"),
+    ("cfi", "Flight Instructor (CFI)", "CFI"), ("cfii", "Instrument Instructor (CFII)", "CFII"),
+    ("mei", "Multi-Engine Instructor (MEI)", "CFI"), ("atp", "Airline Transport Pilot", "Commercial"),
+]
 # Each rating's own badge: (short text, icon, color). Instructor ratings
 # share a purple so they read as a set.
 RATING_BADGES = {
@@ -1085,6 +1096,12 @@ def student_training_info(row):
     track = TRACK_MAP.get(NEXT_TRACK.get(cert, "private"))
     soloed = bool(row["first_solo_date"]) if "first_solo_date" in row.keys() else False
     return {"working_towards": track["name"] if track else None, "soloed": soloed}
+
+
+def _training_goal_from_form(form):
+    """training_goal from the student form (blank = not set)."""
+    goal = (form.get("training_goal") or "").strip()
+    return goal if goal in {g[0] for g in TRAINING_GOALS} else None
 
 
 def _pilot_from_form(form):
@@ -2343,7 +2360,7 @@ def _student_form_context(conn, student, **extra):
     the stored row (None on New Student); ``extra`` can carry ``form``
     (the submitted values, SCHOOL-15) and ``error_field``."""
     ctx = dict(student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES,
-               pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES,
+               pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, training_goals=TRAINING_GOALS, pay_preferences=PAY_PREFERENCES,
                can_bill=can_manage_billing(), is_admin=bool(is_flight_admin()),
                today=date.today().isoformat(), form=None, error_field=None)
     if student:
@@ -2454,8 +2471,8 @@ def student_new():
                       session.get("cfi_id"), user_id, now_iso()))
         medical_class, medical_expires = _medical_from_form(request.form)
         pilot_certificate, pilot_ratings = _pilot_from_form(request.form)
-        conn.execute("UPDATE students SET medical_class = ?, medical_expires = ?, pilot_certificate = ?, pilot_ratings = ? WHERE user_id = ?",
-                     (medical_class, medical_expires, pilot_certificate, pilot_ratings, user_id))
+        conn.execute("UPDATE students SET medical_class = ?, medical_expires = ?, pilot_certificate = ?, pilot_ratings = ?, training_goal = ? WHERE user_id = ?",
+                     (medical_class, medical_expires, pilot_certificate, pilot_ratings, _training_goal_from_form(request.form), user_id))
         conn.execute("UPDATE students SET first_solo_date = ? WHERE user_id = ?",
                      (_first_solo_from_form(request.form), user_id))
         conn.execute("UPDATE students SET tsa_verified_date = ? WHERE user_id = ?",
@@ -2536,6 +2553,43 @@ def apply_course_grants(conn, student_id, rating_ids):
     return "; ".join(parts) + "." if parts else "no change to Flight Academy courses."
 
 
+def apply_student_profile_fields(conn, student, form, is_admin, who):
+    """Saves a student's pilot details from a submitted form: rates, solo currency, solo sign-off, medical,
+    certificate, ratings, training goal, milestones, pay preference and booking notice. The same fields the
+    Edit Student page saves (kept in step by hand), used by the Admin account page so both pages edit one
+    record. Name, active, password, email and phone are the caller's. Returns the number of upcoming solo
+    flights newly flagged for review."""
+    sid = student["id"]
+    if is_admin:
+        rate_override = _parse_float(form.get("rate_override"))
+        plane_rate_override = _parse_float(form.get("plane_rate_override"))
+        sim_rate_override = _parse_float(form.get("sim_rate_override"))
+        solo_currency_days = _parse_int(form.get("solo_currency_days"))
+    else:
+        rate_override, plane_rate_override = student["rate_override"], student["plane_rate_override"]
+        sim_rate_override, solo_currency_days = student["sim_rate_override"], student["solo_currency_days"]
+    solo_signoff_date, solo_signoff_expires = _solo_signoff_from_form(form)
+    medical_class, medical_expires = _medical_from_form(form)
+    pilot_certificate, pilot_ratings = _pilot_from_form(form)
+    new = {"rate_override": rate_override, "plane_rate_override": plane_rate_override,
+           "sim_rate_override": sim_rate_override, "solo_currency_days": solo_currency_days,
+           "solo_signoff_date": solo_signoff_date, "solo_signoff_expires": solo_signoff_expires,
+           "medical_class": medical_class, "medical_expires": medical_expires,
+           "pilot_certificate": pilot_certificate, "pilot_ratings": pilot_ratings,
+           "training_goal": _training_goal_from_form(form), "first_solo_date": _first_solo_from_form(form),
+           "tsa_verified_date": _tsa_verified_from_form(form), "pay_preference": _pay_preference_from_form(form),
+           "notify_booking_confirm": 1 if form.get("notify_booking_confirm") else 0}
+    for col, val in new.items():
+        conn.execute(f"UPDATE students SET {col} = ? WHERE id = ?", (val, sid))
+        if col != "notify_booking_confirm":
+            _log_field_change(conn, "student", sid, col, student[col] if col in student.keys() else None, val, who)
+    conn.commit()
+    if ((solo_signoff_date, solo_signoff_expires) != (student["solo_signoff_date"], student["solo_signoff_expires"])
+            or (medical_class, medical_expires) != (student["medical_class"], student["medical_expires"])):
+        return _refresh_solo_review_flags(conn, sid)
+    return 0
+
+
 @flight_bp.route("/students/<int:student_id>/edit", methods=["GET", "POST"])
 @cfi_required
 def student_edit(student_id):
@@ -2611,6 +2665,9 @@ def student_edit(student_id):
         pilot_certificate, pilot_ratings = _pilot_from_form(request.form)
         conn.execute("UPDATE students SET pilot_certificate = ?, pilot_ratings = ? WHERE id = ?",
                      (pilot_certificate, pilot_ratings, student_id))
+        training_goal = _training_goal_from_form(request.form)
+        conn.execute("UPDATE students SET training_goal = ? WHERE id = ?", (training_goal, student_id))
+        _log_field_change(conn, "student", student_id, "training_goal", student["training_goal"] if "training_goal" in student.keys() else None, training_goal, who)
         _log_field_change(conn, "student", student_id, "pilot_certificate", student["pilot_certificate"], pilot_certificate, who)
         _log_field_change(conn, "student", student_id, "pilot_ratings", student["pilot_ratings"], pilot_ratings, who)
         first_solo_date = _first_solo_from_form(request.form)

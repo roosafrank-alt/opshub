@@ -54,7 +54,7 @@
       {% else %}<span class="badge bg-secondary">None on file</span>{% endif %}
       {% if student and not student.is_station %}<div class="small"><a href="#" class="text-decoration-none" onclick="document.getElementById('solo-signoff-expires').classList.toggle('d-none'); return false;">change expiry</a></div>
       <input type="date" form="student-form" name="solo_signoff_expires" id="solo-signoff-expires" class="form-control form-control-sm d-none mt-1" value="{{ (form.get('solo_signoff_expires', '') if form is not none else (student.solo_signoff_expires or '')) }}" aria-label="Solo sign-off expiry date">{% endif %}
-      {% if student and not student.is_station and endorse_planes is defined %}<div class="mt-1"><button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#endorse-modal"><i class="bi bi-pencil-square"></i> Write endorsement</button></div>{% endif %}
+      {% if student and not student.is_station and endorse_planes is defined %}<div class="mt-1"><a href="{{ url_for('endorse.new', student_id=student.id) }}" class="btn btn-outline-primary btn-sm" data-change="ENDORSE"><i class="bi bi-pencil-square"></i> Write endorsement</a> <a href="{{ url_for('endorse.student_tab', student_id=student.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-patch-check"></i> Endorsements</a></div>{% endif %}
     </div>
   </div>
   {#- Landings that happened outside a logged flight (another school, a
@@ -265,6 +265,14 @@
         <option value="">- None yet -</option>
         {% for code, label, short, color, icon in pilot_certificates %}
         <option value="{{ code }}" {{ 'selected' if cert_now == code }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% set goal_now = (F.get('training_goal') if F is not none else (student.training_goal if student else '')) %}
+      <label class="form-label mb-1">Training toward <span class="text-muted small">(the rating they are working on; Resources opens on it)</span></label>
+      <select name="training_goal" class="form-select mb-2" data-change="RES-DEFAULT">
+        <option value="">- Not set (follows their certificate) -</option>
+        {% for code, label, cat in training_goals %}
+        <option value="{{ code }}" {{ 'selected' if goal_now == code }}>{{ label }}</option>
         {% endfor %}
       </select>
       <label class="form-label d-block mb-1">Ratings &amp; Endorsements <span class="text-muted small">(each adds a star)</span></label>
