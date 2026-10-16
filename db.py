@@ -1585,6 +1585,9 @@ def _migrate(conn):
         # same idea as plane_rate_override but specific to simulator time -
         # a student can be charged differently for the sim than for a plane.
         ("students", "sim_rate_override", "ALTER TABLE students ADD COLUMN sim_rate_override REAL"),
+        # Idea "Balance Hold": a student's own Balance Hold limit. NULL = the
+        # school's limit; a number = theirs; 0 = never put on hold.
+        ("students", "balance_hold_limit", "ALTER TABLE students ADD COLUMN balance_hold_limit REAL"),
         # A CFI's time off can now repeat weekly (e.g. "every Saturday off")
         # instead of being one specific date - off_date is then the anchor
         # date (any date that falls on the repeated weekday), matched by

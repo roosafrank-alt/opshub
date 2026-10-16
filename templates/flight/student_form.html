@@ -217,6 +217,11 @@
         <label class="form-label">Sim Rate ($/hr) <span class="text-muted small">(optional - overrides the simulator's own rate)</span></label>
         <input type="number" step="any" name="sim_rate_override" class="form-control" value="{{ fv('sim_rate_override', student.sim_rate_override if student else '') }}">
       </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Balance Hold limit ($) <span class="text-muted small">(optional - this student only)</span></label>
+        <input type="number" step="any" min="0" name="balance_hold_limit" class="form-control" placeholder="School limit" value="{{ fv('balance_hold_limit', student.balance_hold_limit if student else '') }}">
+        <div class="form-text">Blank = the school's limit. A number = flights go on hold only past that amount owed. 0 = never put on hold.</div>
+      </div>
     </div>
     <p class="text-muted small mt-n2 mb-3">The Plane Rate is what this student pays per hour for any plane (planes don't have their own rate) - leave it blank and the plane isn't charged. Leave the Instructor Rate blank to use the CFI's rate. Leave the Sim Rate blank to use the simulator's own rate (set on its own profile).</p>
     {% else %}
@@ -232,6 +237,10 @@
       <div class="col-md-4 mb-3">
         <label class="form-label">Sim Rate</label>
         <div>{% if student and student.sim_rate_override is not none %}${{ '%.2f'|format(student.sim_rate_override) }}/hr{% else %}<span class="text-muted">Simulator's rate</span>{% endif %}</div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Balance Hold limit</label>
+        <div>{% if student and student.balance_hold_limit is not none %}{% if student.balance_hold_limit > 0 %}${{ '%.2f'|format(student.balance_hold_limit) }}{% else %}Never held{% endif %}{% else %}<span class="text-muted">School limit</span>{% endif %}</div>
       </div>
     </div>
     {% endif %}

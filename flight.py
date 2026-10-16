@@ -2032,7 +2032,7 @@ def _dashboard_context(conn, cfi, student):
         my_balance_hold = None
         held = [u for u in upcoming if u["status"] == "balance_hold"]
         if held:
-            limit = _balance_hold_limit(conn)
+            limit = _balance_hold_limit(conn, student)
             soonest = held[0]
             days_left = None
             if soonest["held_release_date"]:
@@ -2458,6 +2458,7 @@ def student_new():
         rate_override = _parse_float(request.form.get("rate_override")) if is_admin else None
         plane_rate_override = _parse_float(request.form.get("plane_rate_override")) if is_admin else None
         sim_rate_override = _parse_float(request.form.get("sim_rate_override")) if is_admin else None
+        balance_hold_limit = _parse_float(request.form.get("balance_hold_limit")) if is_admin else None
         is_station = 1 if request.form.get("is_station") else 0
         email = request.form.get("email", "").strip()
         phone = request.form.get("phone", "").strip()
@@ -2521,7 +2522,8 @@ def student_new():
                      (_pay_preference_from_form(request.form), user_id))
         conn.execute("UPDATE students SET notify_booking_confirm = ? WHERE user_id = ?",
                      (1 if request.form.get("notify_booking_confirm") else 0, user_id))
-        conn.execute("UPDATE students SET sim_rate_override = ? WHERE user_id = ?", (sim_rate_override, user_id))
+        conn.execute("UPDATE students SET sim_rate_override = ?, balance_hold_limit = ? WHERE user_id = ?",
+                     (sim_rate_override, balance_hold_limit, user_id))
         conn.commit()
         conn.close()
         flash(f"Student '{name}' added. Give them their username and starting password to log in.", "success")
@@ -2652,10 +2654,12 @@ def student_edit(student_id):
             rate_override = _parse_float(request.form.get("rate_override"))
             plane_rate_override = _parse_float(request.form.get("plane_rate_override"))
             sim_rate_override = _parse_float(request.form.get("sim_rate_override"))
+            balance_hold_limit = _parse_float(request.form.get("balance_hold_limit"))
         else:
             rate_override = student["rate_override"]
             plane_rate_override = student["plane_rate_override"]
             sim_rate_override = student["sim_rate_override"]
+            balance_hold_limit = student["balance_hold_limit"]
         # Admin-only field (see student_new) - a non-admin CFI editing other
         # fields on this student leaves the existing interval untouched
         # rather than having it silently wiped back to the default.
@@ -2721,6 +2725,8 @@ def student_edit(student_id):
         _log_field_change(conn, "student", student_id, "pay_preference", student["pay_preference"], pay_preference, who)
         conn.execute("UPDATE students SET sim_rate_override = ? WHERE id = ?", (sim_rate_override, student_id))
         _log_field_change(conn, "student", student_id, "sim_rate_override", student["sim_rate_override"], sim_rate_override, who)
+        conn.execute("UPDATE students SET balance_hold_limit = ? WHERE id = ?", (balance_hold_limit, student_id))
+        _log_field_change(conn, "student", student_id, "balance_hold_limit", student["balance_hold_limit"], balance_hold_limit, who)
         notify_booking_confirm = 1 if request.form.get("notify_booking_confirm") else 0
         conn.execute("UPDATE students SET notify_booking_confirm = ? WHERE id = ?", (notify_booking_confirm, student_id))
         if student["user_id"]:
@@ -2935,7 +2941,7 @@ def student_field_detail(student_id, field_key):
         last_hold_notice = conn.execute("""SELECT * FROM student_notifications WHERE student_id = ?
                                            AND category = 'balance_hold' ORDER BY created_at DESC LIMIT 1""",
                                         (student_id,)).fetchone()
-        hold_limit = _balance_hold_limit(conn)
+        hold_limit = _balance_hold_limit(conn, student)
         conn.close()
         return render_template("flight/student_field_detail.html", student=student, field_key=field_key,
                                label="Account", ledger=ledger, can_bill=can_manage_billing(),
@@ -10044,10 +10050,19 @@ BALANCE_HOLD_LIMIT_KEY = "balance_hold_limit"
 BALANCE_HOLD_RELEASE_DAYS = 5
 
 
-def _balance_hold_limit(conn):
+def _balance_hold_limit(conn, student=None):
     """The dollar amount a student can owe before their flights go on hold
     (Settings > Balance Hold), or None if the school hasn't turned it on
-    (blank/0 = off, same convention as the cancellation fee amount)."""
+    (blank/0 = off, same convention as the cancellation fee amount).
+    Pass the student row to honor their own override (students.balance_hold_limit):
+    blank = the school's limit, a number = their own limit, 0 = never held."""
+    if student is not None:
+        try:
+            own = student["balance_hold_limit"]
+        except (KeyError, IndexError):
+            own = None
+        if own is not None:
+            return own if own > 0 else None
     row = conn.execute("SELECT value FROM app_settings WHERE key = ?", (BALANCE_HOLD_LIMIT_KEY,)).fetchone()
     try:
         limit = float(row["value"]) if row and row["value"] not in (None, "") else None
@@ -10087,10 +10102,10 @@ def check_balance_hold(conn, student_id):
     try:
         if not student_id:
             return
-        limit = _balance_hold_limit(conn)
         student = conn.execute("SELECT * FROM students WHERE id = ?", (student_id,)).fetchone()
         if not student or student["is_station"]:
             return
+        limit = _balance_hold_limit(conn, student)
         owed = student_owed(student)
         held = conn.execute("SELECT * FROM scheduled_flights WHERE student_id = ? AND status = 'balance_hold'",
                             (student_id,)).fetchall()
@@ -10164,16 +10179,14 @@ def check_balance_hold_releases(conn):
     offers to the cancellation waitlist) any held lesson whose 5-day mark
     has arrived and is still unpaid. Best effort - never breaks the loop."""
     try:
-        limit = _balance_hold_limit(conn)
-        if limit is None:
-            return
         today = date.today().isoformat()
         tomorrow = (date.today() + timedelta(days=1)).isoformat()
         held = conn.execute("""SELECT * FROM scheduled_flights WHERE status = 'balance_hold'
                                AND held_release_date IS NOT NULL""").fetchall()
         for sf in held:
             student = conn.execute("SELECT * FROM students WHERE id = ?", (sf["student_id"],)).fetchone()
-            if not student or student_owed(student) <= limit:
+            limit = _balance_hold_limit(conn, student) if student else None
+            if not student or limit is None or student_owed(student) <= limit:
                 continue  # paid down since - check_balance_hold already released it, but be safe
             if sf["held_release_date"] == tomorrow:
                 key = f"remind:{sf['held_release_date']}"
