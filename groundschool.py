@@ -609,24 +609,74 @@ def rating_list():
                 progress_by_rating[r["id"]] = _rating_progress(conn, r["id"], viewing_student_id)
                 next_by_rating[r["id"]] = next_lesson(conn, r["id"], viewing_student_id)
                 resume_by_rating[r["id"]] = resume_spot(conn, viewing_student_id, rating_id=r["id"])
-    dash = gs_dashboard(conn, viewing_student_id, ratings, progress_by_rating) if viewing_student_id else None
+    groups = course_groups(conn, viewing_student_id, ratings, progress_by_rating)
+    try:
+        pick = int(request.args.get("course", ""))
+    except ValueError:
+        pick = None
+    dash_ids = [r["id"] for r in groups["current"] + groups["past"] + groups["future"]]
+    dash_course = pick if pick in dash_ids or pick == 0 else groups["default_id"]
+    dash = gs_dashboard(conn, viewing_student_id, ratings, progress_by_rating, rating_id=dash_course or None) if viewing_student_id else None
+    if dash:
+        dash["options"] = [{"id": r["id"], "name": r["name"], "tag": tag} for tag, rs in
+                           (("enrolled", groups["current"]), ("past", groups["past"]), ("future", groups["future"])) for r in rs
+                           if r["status"] == "parsed"]
+        dash["picked"] = dash_course
     conn.close()
-    return render_template("flight/groundschool_list.html", dash=dash, ratings=ratings, tab="groundschool", resume_by_rating=resume_by_rating,
+    return render_template("flight/groundschool_list.html", dash=dash, groups=groups, ratings=ratings, tab="groundschool", resume_by_rating=resume_by_rating,
                             progress_by_rating=progress_by_rating, next_by_rating=next_by_rating, gs_students=students,
                             viewing_student_id=viewing_student_id)
 
 
-def gs_dashboard(conn, student_id, ratings, progress_by_rating):
-    """Numbers for the charts at the top of the Ground School page (one student)."""
-    secs = conn.execute("SELECT COALESCE(SUM(seconds),0) s, COUNT(*) n FROM gs_lesson_time WHERE student_id = ? AND seconds > 0",
-                        (student_id,)).fetchone()
+def course_groups(conn, student_id, ratings, progress_by_rating):
+    """Sorts the courses a student can see into Currently enrolled / Past / Future for the Ground
+    School home page. Current = the course they are working toward or have started and not
+    finished; past = finished (plus any untouched leftovers); future = a course an admin has
+    assigned them that they have not started (only shown when one exists)."""
+    cur, past, future, rest = [], [], [], []
+    st = conn.execute("SELECT * FROM students WHERE id = ?", (student_id,)).fetchone() if student_id else None
+    if not st:
+        return {"current": list(ratings), "past": [], "future": [], "default_id": ratings[0]["id"] if ratings else None}
+    target = _target_rating_id(st, [r for r in ratings if r["status"] == "parsed"])
+    spent = {x["rid"]: x["s"] for x in conn.execute(
+        """SELECT a.rating_id AS rid, SUM(lt.seconds) AS s FROM gs_lesson_time lt JOIN acs_tasks t ON t.id = lt.task_id
+           JOIN acs_areas a ON a.id = t.area_id WHERE lt.student_id = ? GROUP BY a.rating_id""", (student_id,)).fetchall()}
+    granted = {x["rating_id"] for x in conn.execute("SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (student_id,)).fetchall()}
+    for r in ratings:
+        p = progress_by_rating.get(r["id"])
+        if r["status"] != "parsed" or not p:
+            cur.append(r)
+            continue
+        done = bool(p["total"] and p["done"] >= p["total"])
+        started = bool(spent.get(r["id"]) or p["done"])
+        if done and r["id"] != target:
+            past.append(r)
+        elif r["id"] == target or started:
+            cur.append(r)
+        else:
+            rest.append(r)
+    if not cur:
+        cur, rest = rest, []
+    for r in rest:
+        (future if r["id"] in granted else past).append(r)
+    default = next((r["id"] for r in cur if r["status"] == "parsed"), None)
+    return {"current": cur, "past": past, "future": future, "default_id": default}
+
+
+def gs_dashboard(conn, student_id, ratings, progress_by_rating, rating_id=None):
+    """Numbers for the charts at the top of the Ground School page (one student). rating_id limits
+    every number to that course; None adds up all of them."""
+    rf = " AND t.id IN (SELECT t2.id FROM acs_tasks t2 JOIN acs_areas a2 ON a2.id = t2.area_id WHERE a2.rating_id = %d)" % int(rating_id) if rating_id else ""
+    secs = conn.execute("""SELECT COALESCE(SUM(lt.seconds),0) s, COUNT(*) n FROM gs_lesson_time lt JOIN acs_tasks t ON t.id = lt.task_id
+                           WHERE lt.student_id = ? AND lt.seconds > 0""" + rf, (student_id,)).fetchone()
     by_area = conn.execute("""SELECT a.code AS code, a.title AS title, r.name AS rating, SUM(lt.seconds) AS s
                               FROM gs_lesson_time lt JOIN acs_tasks t ON t.id = lt.task_id
                               JOIN acs_areas a ON a.id = t.area_id JOIN acs_ratings r ON r.id = a.rating_id
-                              WHERE lt.student_id = ? AND lt.seconds > 0 GROUP BY a.id ORDER BY s DESC LIMIT 6""",
+                              WHERE lt.student_id = ? AND lt.seconds > 0""" + rf + """ GROUP BY a.id ORDER BY s DESC LIMIT 6""",
                            (student_id,)).fetchall()
     res = conn.execute("""SELECT kind, COUNT(*) n, SUM(first_correct) fc, SUM(attempts) att
-                          FROM gs_lesson_results WHERE student_id = ? GROUP BY kind""", (student_id,)).fetchall()
+                          FROM gs_lesson_results lt JOIN acs_tasks t ON t.id = lt.task_id
+                          WHERE lt.student_id = ?""" + rf + """ GROUP BY kind""", (student_id,)).fetchall()
     kinds = {r["kind"]: r for r in res}
     qn = sum((kinds[k]["n"] for k in ("quiz", "final") if k in kinds), 0)
     qfc = sum((kinds[k]["fc"] or 0 for k in ("quiz", "final") if k in kinds), 0)
@@ -635,7 +685,7 @@ def gs_dashboard(conn, student_id, ratings, progress_by_rating):
     courses = []
     for r in ratings:
         p = progress_by_rating.get(r["id"])
-        if p:
+        if p and (not rating_id or r["id"] == rating_id):
             courses.append({"name": r["name"], "pct": p["pct"], "done": p["done"], "total": p["total"]})
     return {
         "minutes": int(secs["s"] // 60), "lessons": secs["n"],
