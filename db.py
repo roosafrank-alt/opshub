@@ -1526,6 +1526,8 @@ def _migrate(conn):
     # part solo" bookings.
     for table, col, ddl in (
         ("cfis", "cfi_cert_number", "ALTER TABLE cfis ADD COLUMN cfi_cert_number TEXT"),
+        # Aircraft type ratings a person holds (Admin > Accounts > Flight School), e.g. "CE-525S, B-737".
+        ("users", "type_ratings", "ALTER TABLE users ADD COLUMN type_ratings TEXT"),
         ("cfis", "cfi_cert_expires", "ALTER TABLE cfis ADD COLUMN cfi_cert_expires TEXT"),
         # Drawn signature (PNG data URL) the CFI makes on My CFI Profile -
         # copied onto each logbook entry they're the instructor on.

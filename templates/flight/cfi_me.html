@@ -16,6 +16,7 @@
     <dt class="col-5">Your pay rate</dt><dd class="col-7">{% if cfi.pay_rate_per_hour is not none %}${{ '%.2f'|format(cfi.pay_rate_per_hour) }}/hr{% else %}<span class="text-muted">Not set</span>{% endif %}</dd>
     <dt class="col-5">Credentials</dt>
     <dd class="col-7">{% set held = [] %}{% for code, label in credentials if cfi[code] %}{% set _ = held.append(label) %}{% endfor %}{{ held|join(', ') if held else '-' }}</dd>
+    <dt class="col-5">Type ratings</dt><dd class="col-7">{{ type_ratings or '-' }}</dd>
     <dt class="col-5">Medical</dt>
     <dd class="col-7">{% if cfi.medical_class %}{{ medical_labels.get(cfi.medical_class, cfi.medical_class) }}{% if cfi.medical_expires %} &middot; expires {{ cfi.medical_expires|usdate }}{% endif %}{% else %}<span class="text-muted">Not tracked</span>{% endif %}</dd>
     <dt class="col-5">Schedule color</dt>

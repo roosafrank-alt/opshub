@@ -362,7 +362,7 @@
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h5 class="mb-0"><i class="bi bi-stopwatch"></i> Currently Clocked In</h5>
     {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
-    <a href="{{ url_for('laborers_list') }}" class="small manage-workers-link">Manage Workers</a>
+    {% if session.get('is_master_admin') %}<a href="{{ url_for('admin_users_list') }}" class="small manage-workers-link">Manage Workers</a>{% endif %}
     {% endif %}
   </div>
   <div class="table-responsive">
@@ -385,7 +385,7 @@
 <div class="d-flex justify-content-between align-items-center bg-light rounded px-3 py-2 mb-3 small text-muted" id="no-open-sessions">
   <span><i class="bi bi-stopwatch"></i> Nobody clocked in right now</span>
   {% if session.get('is_master_admin') or session.get('shop_role') == 'admin' %}
-  <a href="{{ url_for('laborers_list') }}" class="small manage-workers-link">Manage Workers</a>
+  {% if session.get('is_master_admin') %}<a href="{{ url_for('admin_users_list') }}" class="small manage-workers-link">Manage Workers</a>{% endif %}
   {% endif %}
 </div>
 {% endif %}

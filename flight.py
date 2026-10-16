@@ -2632,6 +2632,52 @@ def apply_student_profile_fields(conn, student, form, is_admin, who):
     return 0
 
 
+class _PrefixedForm:
+    """A submitted form seen through a name prefix ("cfi_medical_class" -> "medical_class"), so the Admin
+    account page can hold a person's CFI and student fields side by side without the names clashing."""
+    def __init__(self, form, prefix):
+        self._f, self._p = form, prefix
+
+    def get(self, key, default=None, type=None):
+        if type is not None:
+            return self._f.get(self._p + key, default, type=type)
+        return self._f.get(self._p + key, default)
+
+    def getlist(self, key):
+        return self._f.getlist(self._p + key)
+
+
+def apply_cfi_profile_fields(conn, cfi_row, form, who):
+    """Saves a CFI's instructor details from the Admin account page (fields named cfi_<field>): billed rate,
+    credentials, gender, medical, certificate and schedule color, plus removing a saved signature. Never
+    draws one - only the CFI signs (My CFI Profile). Pay rate is saved by the page's pay links. Kept in step
+    by hand with Edit CFI. Returns an error message (nothing saved) or None."""
+    f = _PrefixedForm(form, "cfi_")
+    cid = cfi_row["id"]
+    color = (f.get("color") or "").strip() or None
+    if color and color not in SCHEDULE_COLORS:
+        color = None
+    if color and color in _used_cfi_colors(conn, exclude_cfi_id=cid):
+        return "That schedule color is already taken by another instructor or a plane - pick a different one."
+    gender = (f.get("gender") or "").strip() or None
+    if gender not in ("M", "F", None):
+        gender = None
+    rate = _parse_float(f.get("rate_per_hour"))
+    medical_class, medical_expires = _medical_from_form(f)
+    cert_number, cert_expires = _cfi_cert_from_form(f)
+    new = {"rate_per_hour": rate if rate is not None else (cfi_row["rate_per_hour"] or 0), "color": color,
+           "gender": gender, "medical_class": medical_class, "medical_expires": medical_expires,
+           "cfi_cert_number": cert_number, "cfi_cert_expires": cert_expires, **_cfi_creds_from_form(f)}
+    conn.execute(f"UPDATE cfis SET {', '.join(k + ' = ?' for k in new)} WHERE id = ?", [*new.values(), cid])
+    for col in ("rate_per_hour", "medical_expires", "cfi_cert_number", "cfi_cert_expires"):
+        _log_field_change(conn, "cfi", cid, col, cfi_row[col], new[col], who)
+    if f.get("clear_signature") and cfi_row["signature"]:
+        _save_cfi_signature(conn, cid, None)
+        _log_field_change(conn, "cfi", cid, "signature", "on file", "", who)
+    conn.commit()
+    return None
+
+
 @flight_bp.route("/students/<int:student_id>/edit", methods=["GET", "POST"])
 @cfi_required
 def student_edit(student_id):
@@ -3275,8 +3321,9 @@ def cfi_me():
               ("Signature removed." if sig_changed else "Certificate details saved."), "success")
         return redirect(url_for("flight.cfi_me"))
     endorsements = _cfi_endorsements(conn, cfi_row["id"])
+    _u = conn.execute("SELECT type_ratings FROM users WHERE id = ?", (cfi_row["user_id"],)).fetchone() if cfi_row["user_id"] else None
     conn.close()
-    return render_template("flight/cfi_me.html", cfi=cfi_row, credentials=CFI_CREDENTIALS,
+    return render_template("flight/cfi_me.html", cfi=cfi_row, credentials=CFI_CREDENTIALS, type_ratings=_u["type_ratings"] if _u else None,
                            medical_labels=dict(MEDICAL_CLASSES), endorsements=endorsements)
 
 
