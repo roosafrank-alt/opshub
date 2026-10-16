@@ -415,6 +415,7 @@ groundschool_bp.add_app_template_global(ground_lessons.rich, "gs_rich")
 groundschool_bp.add_app_template_global(ground_lessons.cite_url, "gs_cite_url")
 groundschool_bp.add_app_template_global(ground_lessons.references, "gs_refs")
 groundschool_bp.add_app_template_global(ground_lessons.element_kind, "gs_kind")
+groundschool_bp.add_app_template_global(ground_lessons.activities, "gs_activities")
 
 
 def _gone(what):
