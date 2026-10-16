@@ -806,5 +806,280 @@
   "Specific checklists, memory items, limits and system details (alternator reset, emergency gear extension, trim disconnect, oxygen, deice) are POH/AFM specific.",
   "The handbooks do not give a procedure for a jammed or inoperative (non-runaway) trim; only runaway electric trim (AFH 17-14) and using trim after elevator failure (AFH 18-11) are covered.",
   "Turbine-engine power loss causes are not taught here; the Task is written for the airplane used on the practical test."
+ ],
+ "activities": [
+  {
+   "type": "match",
+   "key": "h1",
+   "after": 1,
+   "title": "Read the engine gauges",
+   "intro": "Tap a gauge clue, then its most likely cause.",
+   "pairs": [
+    {
+     "l": "RPM drops in cruise",
+     "r": "Carburetor or induction ice, or a clogged air filter"
+    },
+    {
+     "l": "High cylinder head temperature",
+     "r": "Detonation or preignition"
+    },
+    {
+     "l": "Ammeter shows a discharge",
+     "r": "Alternator or generator failure"
+    },
+    {
+     "l": "Fuel pressure drops",
+     "r": "Engine-driven fuel pump failure, or no fuel"
+    },
+    {
+     "l": "Oil pressure drops",
+     "r": "Not enough oil, or a broken pressure relief valve"
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h2",
+   "after": 4,
+   "title": "Pitot or static?",
+   "intro": "Tap a clue, then tap where it belongs.",
+   "buckets": [
+    "Pitot tube blocked",
+    "Static port blocked"
+   ],
+   "items": [
+    {
+     "t": "Airspeed drops to zero, but the drain hole is open",
+     "b": 0
+    },
+    {
+     "t": "Airspeed acts like an altimeter, rising as you climb",
+     "b": 0
+    },
+    {
+     "t": "Altimeter and VSI still work normally",
+     "b": 0
+    },
+    {
+     "t": "Turn on pitot heat in visible moisture",
+     "b": 0
+    },
+    {
+     "t": "Altimeter freezes at one altitude",
+     "b": 1
+    },
+    {
+     "t": "VSI stays at zero",
+     "b": 1
+    },
+    {
+     "t": "Airspeed reads too low as you climb",
+     "b": 1
+    },
+    {
+     "t": "Open the alternate static source",
+     "b": 1
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h3",
+   "after": 6,
+   "title": "Electrical fire: put the steps in order",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Smell burning insulation? Check breakers, avionics and lights for the bad circuit",
+    "Can't find it? Turn the battery master and alternator OFF",
+    "Power truly needed? Turn all individual electrical switches OFF",
+    "Turn the master switch back ON",
+    "Turn needed switches ON one at a time, pausing to check for smoke or smell",
+    "Land as soon as possible"
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h4",
+   "after": 7,
+   "title": "True or false: oxygen, ice and doors",
+   "cards": [
+    {
+     "s": "A light airplane with only pitot heat may stay in light icing if the ice builds slowly.",
+     "a": false,
+     "why": "No. Most light airplanes are not certified for icing and must exit icing conditions right away [[1:200|PHAK 7-40]]."
+    },
+    {
+     "s": "Above 15,000 ft cabin altitude, every person on board must be provided with oxygen.",
+     "a": true,
+     "why": "Yes. Above 15,000 ft MSL each occupant must be provided with supplemental oxygen [[60:491|14 CFR 91.211(a)(3)]]."
+    },
+    {
+     "s": "Oil and grease near oxygen equipment can catch fire.",
+     "a": true,
+     "why": "Yes. Oils and greases may ignite if exposed to oxygen, so keep them away from the system [[1:197|PHAK 7-37]]."
+    },
+    {
+     "s": "If a door pops open on climbout, unbuckle and pull it shut before it opens wider.",
+     "a": false,
+     "why": "No. Keep your seat belt and harness on and leave the door alone. Close it once you are on the ground [[24:366|AFH 18-17]]."
+    },
+    {
+     "s": "A cabin door that opens in flight seldom stops the airplane from flying.",
+     "a": true,
+     "why": "Yes. Handling effects are usually small. The real danger is the pilot getting distracted [[24:366|AFH 18-17]]."
+    },
+    {
+     "s": "Electric windshield heat has no effect on the magnetic compass.",
+     "a": false,
+     "why": "No. Its electrical current can cause compass errors of as much as 40° [[1:201|PHAK 7-41]]."
+    }
+   ]
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Look at the carburetor icing chart. On which day is the risk of carburetor ice highest?",
+   "options": [
+    "90 °F with 85 percent humidity",
+    "40 °F with 60 percent humidity",
+    "80 °F with 55 percent humidity",
+    "55 °F with 90 percent humidity"
+   ],
+   "answer": 3,
+   "figure": "f2",
+   "why": "Carb ice is most likely below 70 °F with humidity above 80 percent, the shaded box on the chart [[1:169|PHAK 7-9]]. The other days are in the \"possible\" area, so ice can still form there [[1:170|PHAK 7-10]]."
+  },
+  {
+   "q": "Fixed-pitch prop, cruise. You pull full carburetor heat. The rpm drops, then slowly rises as the engine smooths out. What does this tell you?",
+   "options": [
+    "Carburetor ice was present and is melting",
+    "There was no ice, so turn the heat off",
+    "The carb heat valve is stuck closed",
+    "The mixture is now too lean"
+   ],
+   "answer": 0,
+   "why": "With ice present, rpm drops and then gradually rises as the ice melts. With no ice, rpm drops and then stays the same [[1:170|PHAK 7-10]]. Leave full heat on until normal power returns."
+  },
+  {
+   "q": "Which of these is most likely to cause detonation?",
+   "options": [
+    "Cruising at low power with a rich mixture",
+    "A long, steep climb at high power with the mixture leaned too far",
+    "Using the fuel grade the manufacturer specifies",
+    "A power-off descent with carburetor heat on"
+   ],
+   "answer": 1,
+   "why": "Common causes include high power with a too-lean mixture and long, steep climbs that reduce cylinder cooling [[1:179|PHAK 7-19]]. Detonation shows up as high cylinder head temperature."
+  },
+  {
+   "q": "In cruise the ammeter needle swings all the way to the plus side and stays there. What does this most likely mean?",
+   "options": [
+    "The alternator has failed",
+    "The battery is being drained",
+    "The voltage regulator is not working right",
+    "The electrical system is normal"
+   ],
+   "answer": 2,
+   "why": "A full-scale plus reading points to a regulator problem. A full-scale minus reading points to an alternator or generator failure [[1:191|PHAK 7-31]]. Check the POH for what to do."
+  },
+  {
+   "q": "Day VFR. The suction gauge reads 2 \"Hg. The attitude indicator shows a right bank, but the turn coordinator shows wings level and the altimeter is steady. What should you do?",
+   "options": [
+    "Roll left until the attitude indicator shows level",
+    "Trust the attitude indicator, since it is the main instrument",
+    "Turn the master switch off and on to reset the gyros",
+    "Fly by the turn coordinator, altimeter and VSI, and cover the attitude and heading indicators"
+   ],
+   "answer": 3,
+   "why": "Normal suction is about 4.5 to 5.5 \"Hg, and low suction makes the vacuum gyros unreliable [[1:218|PHAK 8-16]]. Keep control with the working instruments and cover the failed ones [[23:332|IFH 11-7]]."
+  },
+  {
+   "q": "You fly through rain near freezing. Power and pitch are unchanged, and the altimeter and VSI act normally, but the airspeed quickly falls to zero. What is the likely cause and fix?",
+   "options": [
+    "Ice blocked the pitot tube; turn on pitot heat",
+    "The static port is blocked; open the alternate static source",
+    "The vacuum pump failed; cover the gyros",
+    "Carburetor ice; apply full carb heat"
+   ],
+   "answer": 0,
+   "why": "A blocked pitot tube with an open drain hole makes the airspeed read zero, while the altimeter and VSI are not affected [[1:212|PHAK 8-10]]. Pitot heat is for flight in visible moisture [[1:213|PHAK 8-11]]."
+  },
+  {
+   "q": "A partly blocked static system went unnoticed in the climb and cruise. Now you start down. What will the instruments tell you?",
+   "options": [
+    "You are too low, too slow, and descending too fast",
+    "You are too high, too fast, and descending too slowly",
+    "The airspeed reads zero, but the altimeter is correct",
+    "Nothing is wrong until you level off"
+   ],
+   "answer": 1,
+   "why": "A partial static blockage often shows nothing until a descent. Then the instruments say too high, too fast, and descending at a lower rate than real [[24:363|AFH 18-14]] [[24:364|AFH 18-15]]."
+  },
+  {
+   "q": "On base you get a split flap: the right flap went down, the left stayed up. Runway A has a crosswind from the right. Runway B has a crosswind from the left. What is the best plan?",
+   "options": [
+    "Runway A, and flare hard to slow down",
+    "Runway A, at a slower than normal speed",
+    "Runway B, faster than normal, and fly it onto the runway",
+    "Runway B, and lower the rest of the flaps on short final"
+   ],
+   "answer": 2,
+   "why": "Don't land with a crosswind from the side of the deployed flap; you may run out of roll control. Fly a faster approach and fly it onto the runway instead of flaring hard [[24:360|AFH 18-11]]."
+  },
+  {
+   "q": "Your normal landing distance is 1,200 ft. Your flaps won't extend. How much distance should you plan for?",
+   "options": [
+    "1,200 ft",
+    "1,500 ft",
+    "1,800 ft",
+    "2,400 ft"
+   ],
+   "answer": 2,
+   "why": "A no-flap landing can need as much as 50 percent more runway [[24:359|AFH 18-10]]. 1,200 ft plus 600 ft is 1,800 ft."
+  },
+  {
+   "q": "You have an engine compartment fire. The fire is not electrical and you are not about to crash-land. Why might you leave the master switch ON?",
+   "options": [
+    "The ignition needs the master on to burn off fuel",
+    "It keeps your radios and transponder working so you can get help",
+    "The master switch powers the fuel shutoff valve",
+    "Turning it off would make the fire spread"
+   ],
+   "answer": 1,
+   "why": "Turning the master off kills the radios and makes ATC lose your transponder return [[24:358|AFH 18-9]]. The magnetos work without the master, because they make their own current [[1:175|PHAK 7-15]]."
+  },
+  {
+   "q": "You climb to a cabin altitude of 14,500 ft and stay there for 20 minutes. What does the rule require of the required crew?",
+   "options": [
+    "Use oxygen the whole 20 minutes at that altitude",
+    "Nothing, since the time is under 30 minutes",
+    "Use oxygen only after the first 30 minutes",
+    "Only passengers must be given oxygen"
+   ],
+   "answer": 0,
+   "why": "Above 14,000 ft cabin altitude, required crew must use oxygen the entire time at those altitudes. The 30-minute allowance is only for above 12,500 ft up to 14,000 ft [[60:491|14 CFR 91.211(a)]]."
+  },
+  {
+   "q": "After an alternator failure you feel overloaded: flying, talking to ATC, and finding the checklist. Which choice reduces your workload safely?",
+   "options": [
+    "Skip the checklist and work from memory",
+    "Speed up so you land sooner",
+    "Stop answering ATC until you finish",
+    "Ask your passenger to read the checklist aloud while you fly"
+   ],
+   "answer": 3,
+   "why": "A passenger can help by reading a checklist [[30:46|RMH 6-3]]. Slowing down and asking ATC for more time also help [[30:47|RMH 6-4]]. Pilots who rely only on memory make errors [[24:36|AFH 1-15]]."
+  },
+  {
+   "q": "Which training best prepares you to handle startle when something fails without warning?",
+   "options": [
+    "Having your CFI always announce a failure before giving it",
+    "Scenario-based training with realistic distractions",
+    "Practicing recoveries with your eyes closed",
+    "Letting the autopilot fly whenever something goes wrong"
+   ],
+   "answer": 1,
+   "why": "Scenario-based training with realistic distractions protects against startle and surprise [[24:108|AFH 5-3]]. When your eyes are closed in training, the element of surprise disappears [[24:107|AFH 5-2]]."
+  }
  ]
 }
