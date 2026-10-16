@@ -67,6 +67,16 @@
     <div>
       <h5 class="mb-0">{{ 'Students Aircraft' if f.asset_is_owner_placeholder else f.plane_tag }} {% if f.asset_is_simulator %}<span class="badge bg-info text-dark">Sim session</span> {% endif %}{% if f.solo %}<span class="badge bg-secondary">Solo</span> {% endif %}{% if can_see_names %}with {{ f.student_name }}{% endif %} {% if f.paused_at %}<span class="badge bg-warning text-dark"><i class="bi bi-pause-fill"></i> Paused</span>{% endif %} {% if not f.can_end %}<span class="badge bg-light text-muted border" title="Only {% if f.solo %}the student flying solo{% else %}the assigned instructor{% endif %}, or a master admin, can pause or end this flight"><i class="bi bi-lock-fill"></i> View only</span>{% endif %}</h5>
       <div class="text-muted small">{% if can_see_names and f.cfi_name %}{{ 'Supervising instructor' if f.solo else 'Instructor' }}: {{ f.cfi_name }} &middot; {% endif %}Started {{ f.started_at|time12 }}</div>
+      {#- Idea "when a flight is started": the instructor/admin sees right away
+         whether the student has credit on file or owes money, and the same
+         line comes back in the End Session form so payment isn't forgotten. #}
+      {% if (session.get('cfi_id') or flight_admin) and not f.guest_name %}
+      {% if f.student_balance and f.student_balance > 0.005 %}
+      <div class="small text-success"><i class="bi bi-piggy-bank"></i> Credit on file: <strong>${{ '%.2f'|format(f.student_balance) }}</strong></div>
+      {% elif f.student_balance and f.student_balance < -0.005 %}
+      <div class="small text-danger"><i class="bi bi-exclamation-circle"></i> Owes: <strong>${{ '%.2f'|format(-f.student_balance) }}</strong></div>
+      {% endif %}
+      {% endif %}
     </div>
     <div class="text-end">
       {#- A simulator runs on a stopwatch, not meters - "Session clock" says
@@ -436,6 +446,9 @@
       <button type="button" class="btn btn-outline-success btn-sm use-credit-btn" data-credit="{{ '%.2f'|format(f.student_balance) }}" data-target="credit-applied-{{ f.id }}" data-note-target="credit-note-{{ f.id }}" data-flight-id="{{ f.id }}" disabled title="Enter Hobbs End first so there's a total to apply it to">Use Credit</button>
     </div>
     <div class="small text-success mb-2 d-none" id="credit-note-{{ f.id }}"></div>
+    {% endif %}
+    {% if f.student_balance and f.student_balance < -0.005 and not f.guest_name %}
+    <div class="alert alert-danger py-2 px-3 small mb-2 mt-2"><i class="bi bi-exclamation-circle"></i> Owes from before: <strong>${{ '%.2f'|format(-f.student_balance) }}</strong> - collect it with this payment if you can.</div>
     {% endif %}
     <div class="mt-2 payment-details" id="payment-details-{{ f.id }}" hidden>
       <div class="row g-2">

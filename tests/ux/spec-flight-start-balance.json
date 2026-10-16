@@ -1,0 +1,10 @@
+{"checks":[
+{"role":"cfi","size":"phone",
+"sql":["UPDATE assets SET is_flight_asset = 1, hobbs_hours = 500.0, tach_hours = 480.0 WHERE id = {asset}",
+"UPDATE students SET balance = -85.00 WHERE id = {student}",
+"INSERT INTO scheduled_flights (asset_id, student_id, cfi_id, scheduled_date, scheduled_time, duration_hours, status) VALUES ({asset}, {student}, {cfi}, date('now','localtime'), strftime('%H:%M', 'now','localtime'), 1.0, 'scheduled')"],
+"steps":[["start","/flight/dashboard"],["tap","Start Session"],["see","Session started"],["see","Owes"],
+["shot",{"caption":"Right after Start the instructor sees the student owes money","focus":"[id^='active-flight-']","changed":[{"sel":"[id^='active-flight-'] .text-danger","note":"New: Owes line"}]}],
+["tap","End Session"],["see","Owes from before"],
+["shot",{"caption":"The same balance comes back in the End Session form","focus":"[id^='end-form-']","changed":[{"sel":".alert-danger","note":"New: Owes from before"}]}]]}
+]}
