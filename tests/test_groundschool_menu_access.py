@@ -34,14 +34,20 @@ class GroundschoolMenuAccessTest(OpsHubTestCase):
         self.assertEqual(r.status_code, 200)
 
     def test_flight_academy_access_does_not_open_ground_school_by_itself(self):
-        # Ground School is separate from Flight Academy: Academy Access alone
-        # gives no courses (only the Resources library); enrollment gives courses.
+        # Ground School is separate from Flight Academy: Academy Access alone gives a STUDENT no
+        # courses (only the Resources library); enrollment gives courses.
+        self.exec("INSERT INTO acs_ratings (name, slug, uploaded_at, status) VALUES ('Hidden Course', 'hid', '2026-01-01', 'parsed')")
+        self.exec("UPDATE users SET academy_access = 1 WHERE username = 'flight_student'")
+        c = self.login("flight_student")
+        self.assertNotIn("Hidden Course", c.get("/flight/groundschool").get_data(as_text=True))
+        self.assertEqual(c.get("/flight/groundschool/resources").status_code, 200)
+
+    def test_instructor_with_academy_access_opens_every_ground_school(self):
+        # A CFI teaches the courses, so Academy Access is enough: no student profile / enrollment needed.
+        self.exec("INSERT INTO acs_ratings (name, slug, uploaded_at, status) VALUES ('Hidden Course', 'hid', '2026-01-01', 'parsed')")
         self.exec("UPDATE users SET academy_access = 1 WHERE username = 'cfi'")
         c = self.login("cfi")
-        body = c.get("/flight/dashboard").get_data(as_text=True)
-        self.assertNotIn('nav-label">Ground School', body)
-        self.assertNotIn('nav-label">Academy', body)
-        self.assertEqual(c.get("/flight/groundschool").status_code, 302)
+        self.assertIn("Hidden Course", c.get("/flight/groundschool").get_data(as_text=True))
         self.assertEqual(c.get("/flight/groundschool/resources").status_code, 200)
 
     def test_master_admin_always_has_ground_school(self):

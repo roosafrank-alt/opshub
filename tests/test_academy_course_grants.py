@@ -47,6 +47,16 @@ class AcademyCourseGrantsTest(OpsHubTestCase):
         self.assertNotIn("Unparsed Thing", body)
         self.assertIn("read only", body)
 
+    def test_cfi_with_academy_access_sees_every_course_without_a_student_profile(self):
+        self.exec("UPDATE users SET academy_access = 1 WHERE username = 'cfi'")
+        body = self.login("cfi").get(GS).get_data(as_text=True)
+        self.assertIn("Private Pilot", body)
+        self.assertIn("Instrument", body)
+        # without Academy Access a CFI still gets nothing here
+        self.exec("UPDATE users SET academy_access = 0 WHERE username = 'cfi'")
+        r = self.login("cfi").get(GS)
+        self.assertNotIn("Instrument", r.get_data(as_text=True))
+
     def test_cfi_does_not_see_section(self):
         body = self.login("cfi").get(f"/flight/students/{self.sid}/edit").get_data(as_text=True)
         self.assertNotIn("Flight Academy courses", body)
