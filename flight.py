@@ -9869,6 +9869,9 @@ def _waitlist_calendar_days(conn):
         args.append(session.get("student_id") or -1)
     rows = conn.execute(sql + " ORDER BY w.created_at", args).fetchall()
     cache = {}
+    period_names = {k: v.split(" ")[0] for k, v in WAITLIST_PERIODS}
+    plane_tags = {str(r["id"]): r["tag"] for r in conn.execute("SELECT id, tag FROM assets").fetchall()}
+    cfi_names = {str(r["id"]): r["name"] for r in conn.execute("SELECT id, name FROM cfis").fetchall()}
 
     def wl_for(day):
         if day in cache:
@@ -9892,7 +9895,13 @@ def _waitlist_calendar_days(conn):
                 kw["asset_id"] = a[0]
             if len(c) == 1:
                 kw["cfi_id"] = c[0]
-            out.append({"name": w["student_name"], "note": w["note"] or "", "url": url_for("flight.schedule_new", **kw)})
+            when = ", ".join(period_names[p] for p in (w["periods"] or "").split(",") if p in period_names)
+            planes = ", ".join(plane_tags[i] for i in a if i in plane_tags) or "Any"
+            cfis = ", ".join(cfi_names[i] for i in c if i in cfi_names) or "Any"
+            tip = "%s - waitlist\nTime: %s\nPlane: %s\nInstructor: %s" % (w["student_name"], when or "Any", planes, cfis)
+            if w["note"]:
+                tip += "\nNote: " + w["note"]
+            out.append({"name": w["student_name"], "note": w["note"] or "", "tip": tip, "url": url_for("flight.schedule_new", **kw)})
         cache[day] = out
         return out
     return wl_for

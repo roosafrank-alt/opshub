@@ -122,6 +122,9 @@ class WaitlistTest(OpsHubTestCase):
         html = self.login("cfi").get(f"/flight/schedule?view=day&date={self.day.isoformat()}").get_data(as_text=True)
         self.assertIn("wl-chips", html)
         self.assertIn(f"student_id={self.student}", html)
+        self.assertIn("Time: Afternoon", html)  # hover shows the time they want
+        self.assertIn("Plane: ", html)
+        self.assertNotIn("Plane: Any", html)
 
 
 class WaitlistNoteTest(WaitlistTest):
