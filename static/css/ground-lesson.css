@@ -165,8 +165,10 @@ a.gsl-chip:hover{outline:2px solid currentColor;outline-offset:1px}
 .gsl-hero-wide{background:#1d7f4f;color:#fff!important;max-width:none;flex-wrap:wrap}
 .gsl-hero-sub-inline{font-size:.85rem;font-weight:600;opacity:.9}
 [data-drag]{cursor:grab;-webkit-user-select:none;user-select:none}
-[data-drag="1"]{touch-action:pan-y}
-[data-drag="v"]{touch-action:none}
+.gsl-tile[data-drag]{display:flex;align-items:center;gap:8px}
+.gsl-tile-t{flex:1}
+/* the grip is the drag handle on touch screens (the rest of the tile still scrolls the page) */
+.gsl-grip{touch-action:none;display:grid;place-items:center;flex:0 0 36px;align-self:stretch;margin:-10px 0 -10px -12px;padding:0 4px 0 8px;color:var(--sky);font-size:1.3rem;cursor:grab}
 .gsl-ghost{position:fixed;z-index:9999;pointer-events:none;opacity:.9;transform:rotate(-2deg);box-shadow:0 8px 20px rgba(0,0,0,.35);max-width:260px}
 .gsl-dragging{opacity:.4}
 .gsl-drop{outline:3px solid var(--sky);outline-offset:2px;background:var(--sky-soft)}
@@ -176,3 +178,10 @@ a.gsl-chip:hover{outline:2px solid currentColor;outline-offset:1px}
 .gsl-donebar .bi{color:var(--s);margin-right:4px}
 .gsl-retake{background:#fff;color:var(--sky);min-height:40px}
 .gsl-final-q{border-left-color:var(--warn)}
+
+/* GS-FLOW: obvious way back to the course */
+.gsl-back{display:inline-flex;align-items:center;gap:10px;background:#fff;color:#14212e!important;font-weight:800;border-radius:12px;padding:10px 16px;text-decoration:none;box-shadow:0 2px 0 rgba(0,0,0,.25);margin-bottom:8px;max-width:100%}
+.gsl-back .bi{font-size:1.5rem;color:var(--sky)}
+.gsl-back small{display:block;font-weight:600;color:#566676;font-size:.78rem;line-height:1.1}
+.gsl-back-fab{position:fixed;left:12px;bottom:14px;z-index:1030;display:inline-flex;align-items:center;gap:6px;background:#fff;color:#14212e!important;font-weight:800;border-radius:999px;padding:11px 16px;text-decoration:none;box-shadow:0 3px 12px rgba(0,0,0,.45)}
+.gsl-back-fab .bi{color:var(--sky);font-size:1.2rem}

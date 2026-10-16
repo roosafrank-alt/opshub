@@ -1637,7 +1637,7 @@ def _gs_json_task(task_id):
 def lesson_time(task_id):
     """Heartbeat from the open lesson: add the active seconds and remember the spot (resume)."""
     student_id = session.get("student_id")
-    if not student_id:
+    if not student_id or session.get("_view_as_readonly"):      # looking at a student's view saves nothing
         return {"ok": True, "recorded": False}
     conn, err = _gs_json_task(task_id)
     if err:
@@ -1686,7 +1686,7 @@ def quiz_answer(task_id):
     q = quiz[n - 1]
     correct = (j == q["answer"])
     student_id = session.get("student_id")
-    if student_id:
+    if student_id and not session.get("_view_as_readonly"):
         key = ("fq%d" if final else "q%d") % n
         now = now_iso()
         row = conn.execute("SELECT * FROM gs_lesson_results WHERE student_id = ? AND task_id = ? AND item_key = ?",
@@ -1712,7 +1712,7 @@ def quiz_answer(task_id):
 def game_done(task_id):
     """A student finished a game. attempts = 1 + the mistakes made (1 means a perfect run)."""
     student_id = session.get("student_id")
-    if not student_id:
+    if not student_id or session.get("_view_as_readonly"):
         return {"ok": True, "recorded": False}
     conn, err = _gs_json_task(task_id)
     if err:

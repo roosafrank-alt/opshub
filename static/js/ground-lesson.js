@@ -147,7 +147,7 @@
         b.addEventListener('click', function () {
           if (!ssel) { status(act, 'Tap or drag an item to a bucket.'); return; }
           if (ssel.getAttribute('data-b') === b.getAttribute('data-b')) {
-            var chip = document.createElement('span'); chip.className = 'gsl-placed'; chip.innerHTML = ssel.innerHTML;
+            var chip = document.createElement('span'); chip.className = 'gsl-placed'; chip.innerHTML = (ssel.querySelector('.gsl-tile-t') || ssel).innerHTML;
             b.querySelector('.gsl-bucket-items').appendChild(chip);
             ssel.remove(); ssel = null; sdone++;
             if (sdone === stotal) { status(act, 'All sorted' + (smiss ? ' (' + smiss + ' miss' + (smiss > 1 ? 'es' : '') + ')' : ' with no misses') + '!'); finished(act, 1 + smiss); }
@@ -235,6 +235,7 @@
   root.querySelectorAll('[data-drag]').forEach(function (src) {
     src.addEventListener('pointerdown', function (e) {
       if (src.disabled || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      if (e.pointerType !== 'mouse' && !e.target.closest('.gsl-grip')) return;   // on a phone, drag by the grip so the page can still scroll
       var sx = e.clientX, sy = e.clientY, ghost = null, hot = null, act = src.closest('.gsl-act');
       function targetAt(x, y) {
         var el = document.elementFromPoint(x, y);

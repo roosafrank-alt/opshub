@@ -5,9 +5,11 @@
 </style>
 {% include "flight/_groundschool_picker.html" %}
 <div class="mb-3">
-  <a href="{{ gs_url('groundschool.rating_detail', rating_id=rating.id) }}" class="text-decoration-none small text-light">
-    <i class="bi bi-arrow-left"></i> {{ rating.name }}
+  <link href="{{ url_for('static', filename='css/ground-lesson.css') }}" rel="stylesheet">
+  <a href="{{ gs_url('groundschool.rating_detail', rating_id=rating.id) }}" class="gsl-back">
+    <i class="bi bi-arrow-left-circle-fill"></i><span><small>Back to the course</small>{{ rating.name }}</span>
   </a>
+  <a href="{{ gs_url('groundschool.rating_detail', rating_id=rating.id) }}" class="gsl-back-fab" aria-label="Back to the course"><i class="bi bi-arrow-left-circle-fill"></i> Course</a>
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
       <h4 class="mb-0 text-light">Task {{ task.code }}. {{ task.title }}</h4>

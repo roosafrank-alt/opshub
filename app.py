@@ -8890,6 +8890,10 @@ def _view_as_student_is_look_only():
         return None
     if request.endpoint in ("view_as_exit", "view_as_start", "view_as_student_start", "view_as_cfi_start", "tour_seen", "logout"):
         return None
+    # GS-GRADES: quiz and game checks still answer while looking at a student's view; the
+    # handlers record nothing in that mode.
+    if request.endpoint in ("groundschool.quiz_answer", "groundschool.game_done", "groundschool.lesson_time"):
+        return None
     if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
         return ("", 403)
     flash("You're only looking at this student's view, so nothing was changed.", "warning")
