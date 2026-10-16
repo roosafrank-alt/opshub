@@ -9,7 +9,9 @@
 {% if cyl_note %}
 <div class="alert alert-{{ 'danger' if cyl_note.level == 'low' else 'warning' }} d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 mb-3" id="cc-note">
   <div><i class="bi bi-exclamation-triangle-fill"></i> {{ cyl_note.text }}</div>
-  {% if cyl_note.level == 'low' and can_edit_checks %}
+  {% if cyl_note.level == 'low' and cyl_filed %}
+  <div class="small fw-bold text-success" id="cc-filed"><i class="bi bi-check-circle-fill"></i> Already added to discrepancies{% if cyl_filed.reported_by %} by {{ cyl_filed.reported_by }}{% endif %}{% if cyl_filed.reported_at %} on {{ cyl_filed.reported_at[:10] }}{% endif %}</div>
+  {% elif cyl_note.level == 'low' and can_edit_checks %}
   <form method="post" action="{{ url_for('asset_compression_discrepancy', asset_id=asset.id) }}" class="mb-0">
     <button class="btn btn-danger btn-sm">Add to discrepancy</button>
   </form>

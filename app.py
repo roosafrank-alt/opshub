@@ -6045,6 +6045,13 @@ def asset_compression(asset_id):
     latest = checks[-1] if checks else None
     history = list(reversed(checks))
     cyl_status, cyl_note = _compression_status(checks)
+    cyl_filed = None
+    if cyl_note and cyl_note["level"] == "low":
+        conn = get_db()
+        cyl_filed = conn.execute(
+            "SELECT reported_by, reported_at FROM plane_squawks WHERE asset_id = ? AND notes = ? ORDER BY id DESC LIMIT 1",
+            (asset_id, "Compression: " + cyl_note["text"])).fetchone()
+        conn.close()
 
     # Pre-select the cylinder count in the log-a-check form from however
     # many the last check actually used (most engines don't change), so
@@ -6083,7 +6090,7 @@ def asset_compression(asset_id):
                            chart_labels=chart_labels, cyl_series=cyl_series, default_num_cylinders=default_num_cylinders,
                            today=date.today().strftime("%Y-%m-%d"), can_edit_checks=can_edit_checks, editing=editing,
                            tech_names=tech_names, last_tach=last_tach, last_hobbs=last_hobbs,
-                           cyl_status=cyl_status, cyl_note=cyl_note, last_master=last_master)
+                           cyl_status=cyl_status, cyl_note=cyl_note, cyl_filed=cyl_filed, last_master=last_master)
 
 
 @app.route("/assets/<int:asset_id>/compression/discrepancy", methods=["POST"])
@@ -6103,6 +6110,11 @@ def asset_compression_discrepancy(asset_id):
     if not note or note["level"] != "low":
         conn.close()
         flash("No cylinder is low on the latest check.", "info")
+        return redirect(url_for("asset_compression", asset_id=asset_id))
+    if conn.execute("SELECT 1 FROM plane_squawks WHERE asset_id = ? AND notes = ?",
+                    (asset_id, "Compression: " + note["text"])).fetchone():
+        conn.close()
+        flash("Already added to this plane's discrepancies.", "info")
         return redirect(url_for("asset_compression", asset_id=asset_id))
     conn.execute("INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at) VALUES (?, ?, ?, ?)",
                  (asset_id, "Compression: " + note["text"], session.get("user_name"), now_iso()))

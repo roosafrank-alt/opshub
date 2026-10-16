@@ -63,3 +63,16 @@ class CompressionStatus(OpsHubTestCase):
         self._check(aid, "2026-10-01", [76])
         self.login("tech").post(f"/assets/{aid}/compression/discrepancy")
         self.assertEqual(self.q1("SELECT COUNT(*) n FROM plane_squawks")["n"], 0)
+
+    def test_already_added_note_and_no_duplicate(self):
+        aid = self.make_asset()
+        self._check(aid, "2026-06-02", [75])
+        self._check(aid, "2026-10-01", [61])
+        c = self.login("tech")
+        self.assertIn("Add to discrepancy", c.get(f"/assets/{aid}/compression").get_data(as_text=True))
+        c.post(f"/assets/{aid}/compression/discrepancy")
+        c.post(f"/assets/{aid}/compression/discrepancy")
+        self.assertEqual(self.q1("SELECT COUNT(*) n FROM plane_squawks WHERE asset_id = ?", (aid,))["n"], 1)
+        html = c.get(f"/assets/{aid}/compression").get_data(as_text=True)
+        self.assertIn("Already added to discrepancies", html)
+        self.assertNotIn(">Add to discrepancy<", html)
