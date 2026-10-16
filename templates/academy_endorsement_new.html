@@ -1,0 +1,206 @@
+{% extends "academy_base.html" %}
+{% block title %}New endorsement · Flight Academy{% endblock %}
+{% block content %}
+{#- ENDORSE: sign an endorsement from the AC 61-65K catalog. Pick the endorsement and the
+   student; the blanks, the expiry and the CFI's signature line fill in by themselves
+   (/academy/endorsements/defaults). See endorsements.py. #}
+<style>
+  .en-preview { white-space: pre-wrap; font-family: Georgia, 'Times New Roman', serif; font-size: 1rem; line-height: 1.5;
+                background: #fffdf5; border: 1px solid #eadfb8; border-radius: 8px; padding: .9rem 1rem; }
+  .en-preview .blank { background: #ffe066; border-radius: 3px; padding: 0 .15rem; }
+  .en-quick .btn { font-size: .75rem; margin: 0 .25rem .35rem 0; }
+  .en-src { font-size: .75rem; color: #6c757d; }
+</style>
+<form method="post" class="card academy-card p-3 mb-3" id="en-form" autocomplete="off">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h4 class="mb-0"><i class="bi bi-pencil-square"></i> New endorsement</h4>
+    <a href="{{ url_for('endorse.student_tab', student_id=student.id if student else None) }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+  </div>
+
+  <div class="row g-2">
+    <div class="col-md-5">
+      <label class="form-label small mb-0" for="en-student">Student</label>
+      <select name="student_id" id="en-student" class="form-select" required>
+        <option value="">- pick -</option>
+        {% for s in all_students %}<option value="{{ s.id }}" {{ 'selected' if student and s.id == student.id }}>{{ s.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-7">
+      <label class="form-label small mb-0" for="en-search">Endorsement</label>
+      <input type="search" id="en-search" class="form-control mb-1" placeholder="Search, e.g. solo, cross-country, A.37, flight review">
+      <select name="catalog_id" id="en-pick" class="form-select" required size="1">
+        <option value="">- pick -</option>
+        {% for name, ids in quick %}
+        <optgroup label="Common: {{ name }}">{% for i in ids %}{% set e = catalog_json|selectattr('id', 'equalto', i)|first %}<option value="{{ e.id }}">{{ e.id }} {{ e.title }}</option>{% endfor %}</optgroup>
+        {% endfor %}
+        {% for name, entries in groups %}
+        <optgroup label="{{ name }}">{% for e in entries %}<option value="{{ e.id }}">{{ e.id }} {{ e.title }}</option>{% endfor %}</optgroup>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="en-quick mt-2">
+    {% for i in quick_buttons %}{% set e = catalog_json|selectattr('id', 'equalto', i)|first %}<button type="button" class="btn btn-outline-primary" data-pick="{{ e.id }}">{{ e.id }} {{ e.short|truncate(30, True, '…') }}</button>{% endfor %}
+  </div>
+
+  <div id="en-detail" hidden>
+    <hr>
+    <div class="d-flex justify-content-between flex-wrap gap-2">
+      <div><b id="en-title"></b> <span class="text-muted small" id="en-reg"></span></div>
+      <span class="badge bg-warning text-dark" id="en-stuonly" hidden>Student-pilot endorsement</span>
+    </div>
+    <div class="en-src mb-2" id="en-desc"></div>
+    <div class="alert alert-info py-2 small" id="en-issued" hidden></div>
+    <div class="row g-2" id="en-blanks"></div>
+
+    <div class="row g-2 mt-1">
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0" for="en-date">Date signed</label>
+        <input type="date" name="signed_on" id="en-date" class="form-control" value="{{ today }}">
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0" for="en-exp">Good until</label>
+        <input type="date" name="expires_on" id="en-exp" class="form-control">
+        <div class="en-src" id="en-exp-src"></div>
+      </div>
+      <div class="col-md-6" id="en-signer-box">
+        <div class="row g-2">
+          {% if cfis %}
+          <div class="col-12">
+            <label class="form-label small mb-0" for="en-cfi">Signing CFI</label>
+            <select name="cfi_id" id="en-cfi" class="form-select">
+              {% for c in cfis %}<option value="{{ c.id }}" data-name="{{ c.name }}" data-cert="{{ c.cfi_cert_number or '' }}" data-date="{{ c.cfi_cert_expires or '' }}" {{ 'selected' if signer and c.id == signer.id }}>{{ c.name }}</option>{% endfor %}
+            </select>
+          </div>
+          {% endif %}
+          <div class="col-5"><label class="form-label small mb-0" for="en-cert">CFI cert no.</label><input name="cfi_cert" id="en-cert" class="form-control" value="{{ signer.cfi_cert_number if signer and signer.cfi_cert_number else '' }}"></div>
+          <div class="col-3"><label class="form-label small mb-0" for="en-kind">Type</label>
+            <select name="cert_kind" id="en-kind" class="form-select"><option value="re">RE</option><option value="exp">Exp.</option></select></div>
+          <div class="col-4"><label class="form-label small mb-0" for="en-certdate">RE / exp. date</label><input type="date" name="cfi_cert_date" id="en-certdate" class="form-control" value="{{ signer.cfi_cert_expires if signer and signer.cfi_cert_expires else '' }}"></div>
+        </div>
+      </div>
+      <div class="col-md-6" id="en-issuer-box" hidden>
+        <div class="row g-2">
+          <div class="col-7"><label class="form-label small mb-0" for="en-iname">Issued by (name)</label><input name="issuer_name" id="en-iname" class="form-control"></div>
+          <div class="col-5"><label class="form-label small mb-0" for="en-icert">Their cert / designation no.</label><input name="issuer_cert" id="en-icert" class="form-control"></div>
+        </div>
+      </div>
+    </div>
+
+    <label class="form-label small mt-3 mb-1">How it reads</label>
+    <div class="en-preview" id="en-preview"></div>
+    <div class="en-src mt-1">Highlighted parts still need filling in. Write or print it into the logbook and sign it; this keeps the record.</div>
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-check2-circle"></i> Save endorsement</button>
+      <a href="{{ url_for('endorse.student_tab', student_id=student.id if student else None) }}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </div>
+  <datalist id="en-planes">{% for p in planes %}<option value="{{ p }}">{% endfor %}</datalist>
+</form>
+<script>
+(function () {
+  var CAT = {{ catalog_json|tojson }}, BY = {};
+  CAT.forEach(function (e) { BY[e.id] = e; });
+  var SIGNER = {{ ((signer.name if signer else session.get('user_name')) or '')|tojson }};
+  var $ = function (id) { return document.getElementById(id); };
+  var pick = $('en-pick'), stu = $('en-student'), cur = null, CONDS = 'List any applicable conditions or limitations.';
+  var allOpts = [].slice.call(pick.querySelectorAll('option'));
+
+  function usd(iso) { if (!iso) return ''; var p = iso.split('-'); return p.length === 3 ? p[1] + '-' + p[2] + '-' + p[0] : iso; }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function sigName() { var c = $('en-cfi'); return c ? c.selectedOptions[0].getAttribute('data-name') : SIGNER; }
+  function sig() {
+    var d = usd($('en-date').value);
+    if (cur && cur.issued_by) return '/s/ ' + d + ' ' + ($('en-iname').value || '(' + cur.issued_by + ')') + ' ' + $('en-icert').value;
+    var cert = $('en-cert').value.trim(), cd = $('en-certdate').value;
+    return ('/s/ ' + d + ' ' + sigName() + ' ' + (cert ? cert + 'CFI' : '') + (cd ? ($('en-kind').value === 'exp' ? ' Exp. ' : ' RE ') + usd(cd) : '')).replace(/\s+/g, ' ').trim();
+  }
+  function preview() {
+    if (!cur) return;
+    var vals = {};
+    cur.blanks.forEach(function (b, i) { vals[b] = ($('en-b' + i) || {}).value || ''; });
+    var html = esc(cur.text).replace(/\[([^\]]+)\]/g, function (m, k) {
+      var raw = k.replace(/&amp;/g, '&').replace(/&lt;/g, '<'), v = (vals[raw] || '').trim();
+      if (!v) return raw === CONDS ? '' : '<span class="blank">' + m + '</span>';
+      return esc(v);
+    });
+    $('en-preview').innerHTML = html.replace(/[ \t]{2,}/g, ' ') + '\n\n' + esc(sig());
+  }
+  function load() {
+    cur = BY[pick.value] || null;
+    $('en-detail').hidden = !cur;
+    if (!cur) return;
+    $('en-title').textContent = cur.id + ' ' + cur.title;
+    $('en-reg').textContent = cur.reg;
+    $('en-desc').textContent = [cur.desc].concat(cur.notes || []).filter(Boolean).join(' ');
+    $('en-stuonly').hidden = !cur.student_pilot_only;
+    $('en-issued').hidden = !cur.issued_by;
+    $('en-issued').textContent = cur.issued_by ? 'This one is issued by ' + cur.issued_by + ', not the student\'s CFI. Record it here once you have it.' : '';
+    $('en-signer-box').hidden = !!cur.issued_by; $('en-issuer-box').hidden = !cur.issued_by;
+    var box = $('en-blanks'); box.innerHTML = '';
+    cur.blanks.forEach(function (b, i) {
+      var long = b.length > 40 || b === CONDS;
+      var col = document.createElement('div'); col.className = long ? 'col-12' : 'col-md-6';
+      var lab = document.createElement('label'); lab.className = 'form-label small mb-0'; lab.setAttribute('for', 'en-b' + i);
+      lab.textContent = (b === 'date' && cur.expiry && cur.expiry[0] === 'flight_date') ? 'Date of the flight' : b.charAt(0).toUpperCase() + b.slice(1);
+      var inp = document.createElement('input'); inp.className = 'form-control'; inp.name = 'b' + i; inp.id = 'en-b' + i;
+      if (/m\/m|aircraft model/i.test(b)) inp.setAttribute('list', 'en-planes');
+      if (b === CONDS) inp.placeholder = 'None (leave blank)';
+      inp.addEventListener('input', function () {
+        if (b === 'date' && cur.expiry && cur.expiry[0] === 'flight_date') {
+          var m = inp.value.trim().match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+          if (m) $('en-exp').value = m[3] + '-' + ('0' + m[1]).slice(-2) + '-' + ('0' + m[2]).slice(-2);
+        }
+        preview();
+      });
+      col.appendChild(lab); col.appendChild(inp); box.appendChild(col);
+    });
+    $('en-exp-src').textContent = cur.expiry ? cur.expiry_src : 'Does not expire.';
+    fillDefaults();
+  }
+  function fillDefaults() {
+    if (!cur) return;
+    var q = '?e=' + encodeURIComponent(cur.id) + '&student_id=' + encodeURIComponent(stu.value || '') + '&signed_on=' + $('en-date').value + '&track=' + encodeURIComponent({{ track|tojson }});
+    fetch('{{ url_for("endorse.defaults_json") }}' + q, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) return;
+      d.values.forEach(function (v, i) {
+        var el = $('en-b' + i); if (!el || el.dataset.touched) return;
+        var b = cur.blanks[i];
+        if (!v && /airport|class b/i.test(b)) { try { v = localStorage.getItem('en-last:' + b) || ''; } catch (x) {} }
+        el.value = v;
+      });
+      $('en-exp').value = d.expires || '';
+      preview();
+    }).catch(preview);
+  }
+  document.addEventListener('input', function (e) { if (e.target.id && e.target.id.indexOf('en-b') === 0) e.target.dataset.touched = '1'; });
+  pick.addEventListener('change', load);
+  $('en-form').addEventListener('submit', function () {           // remember airport names for next time (this browser only)
+    if (!cur) return;
+    cur.blanks.forEach(function (b, i) { var el = $('en-b' + i); if (el && el.value && /airport|class b/i.test(b)) { try { localStorage.setItem('en-last:' + b, el.value); } catch (x) {} } });
+  });
+  stu.addEventListener('change', function () { [].slice.call(document.querySelectorAll('[id^="en-b"]')).forEach(function (el) { delete el.dataset.touched; }); fillDefaults(); });
+  $('en-date').addEventListener('change', fillDefaults);
+  ['en-cert', 'en-certdate', 'en-kind', 'en-iname', 'en-icert'].forEach(function (id) { $(id).addEventListener('input', preview); $(id).addEventListener('change', preview); });
+  if ($('en-cfi')) $('en-cfi').addEventListener('change', function () {
+    var o = $('en-cfi').selectedOptions[0]; $('en-cert').value = o.getAttribute('data-cert'); $('en-certdate').value = o.getAttribute('data-date'); preview();
+  });
+  $('en-search').addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase(), first = null;
+    allOpts.forEach(function (o) {
+      if (!o.value) return;
+      var e = BY[o.value], hit = !q || (e.id + ' ' + e.title + ' ' + e.group_short + ' ' + e.reg).toLowerCase().indexOf(q) !== -1;
+      o.hidden = !hit; if (hit && !first) first = o;
+    });
+    [].slice.call(pick.querySelectorAll('optgroup')).forEach(function (g) { g.hidden = ![].slice.call(g.children).some(function (o) { return !o.hidden; }); });
+    if (q && first && (!pick.value || pick.selectedOptions[0].hidden)) { pick.value = first.value; load(); }
+  });
+  [].slice.call(document.querySelectorAll('[data-pick]')).forEach(function (b) {
+    b.addEventListener('click', function () { pick.value = b.getAttribute('data-pick'); load(); });
+  });
+  var start = {{ pick|tojson }};
+  if (start) { pick.value = start; }
+  load();
+})();
+</script>
+{% endblock %}

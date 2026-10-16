@@ -2553,6 +2553,43 @@ def apply_course_grants(conn, student_id, rating_ids):
     return "; ".join(parts) + "." if parts else "no change to Flight Academy courses."
 
 
+def apply_student_profile_fields(conn, student, form, is_admin, who):
+    """Saves a student's pilot details from a submitted form: rates, solo currency, solo sign-off, medical,
+    certificate, ratings, training goal, milestones, pay preference and booking notice. The same fields the
+    Edit Student page saves (kept in step by hand), used by the Admin account page so both pages edit one
+    record. Name, active, password, email and phone are the caller's. Returns the number of upcoming solo
+    flights newly flagged for review."""
+    sid = student["id"]
+    if is_admin:
+        rate_override = _parse_float(form.get("rate_override"))
+        plane_rate_override = _parse_float(form.get("plane_rate_override"))
+        sim_rate_override = _parse_float(form.get("sim_rate_override"))
+        solo_currency_days = _parse_int(form.get("solo_currency_days"))
+    else:
+        rate_override, plane_rate_override = student["rate_override"], student["plane_rate_override"]
+        sim_rate_override, solo_currency_days = student["sim_rate_override"], student["solo_currency_days"]
+    solo_signoff_date, solo_signoff_expires = _solo_signoff_from_form(form)
+    medical_class, medical_expires = _medical_from_form(form)
+    pilot_certificate, pilot_ratings = _pilot_from_form(form)
+    new = {"rate_override": rate_override, "plane_rate_override": plane_rate_override,
+           "sim_rate_override": sim_rate_override, "solo_currency_days": solo_currency_days,
+           "solo_signoff_date": solo_signoff_date, "solo_signoff_expires": solo_signoff_expires,
+           "medical_class": medical_class, "medical_expires": medical_expires,
+           "pilot_certificate": pilot_certificate, "pilot_ratings": pilot_ratings,
+           "training_goal": _training_goal_from_form(form), "first_solo_date": _first_solo_from_form(form),
+           "tsa_verified_date": _tsa_verified_from_form(form), "pay_preference": _pay_preference_from_form(form),
+           "notify_booking_confirm": 1 if form.get("notify_booking_confirm") else 0}
+    for col, val in new.items():
+        conn.execute(f"UPDATE students SET {col} = ? WHERE id = ?", (val, sid))
+        if col != "notify_booking_confirm":
+            _log_field_change(conn, "student", sid, col, student[col] if col in student.keys() else None, val, who)
+    conn.commit()
+    if ((solo_signoff_date, solo_signoff_expires) != (student["solo_signoff_date"], student["solo_signoff_expires"])
+            or (medical_class, medical_expires) != (student["medical_class"], student["medical_expires"])):
+        return _refresh_solo_review_flags(conn, sid)
+    return 0
+
+
 @flight_bp.route("/students/<int:student_id>/edit", methods=["GET", "POST"])
 @cfi_required
 def student_edit(student_id):

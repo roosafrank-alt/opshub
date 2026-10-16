@@ -650,6 +650,75 @@ def gs_dashboard(conn, student_id, ratings, progress_by_rating):
     }
 
 
+def _is_staff_viewer():
+    return bool(not session.get("student_id") and (session.get("cfi_id") or is_flight_admin()))
+
+
+@groundschool_bp.route("/students")
+@login_required
+def student_search():
+    """Staff: search every student and open their summary."""
+    if not _is_staff_viewer():
+        abort(403)
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT s.id, s.name,
+               COALESCE((SELECT SUM(seconds) FROM gs_lesson_time WHERE student_id = s.id), 0) AS secs,
+               (SELECT COUNT(*) FROM gs_lesson_time WHERE student_id = s.id AND seconds > 0) AS lessons,
+               (SELECT MAX(last_seen_at) FROM gs_lesson_time WHERE student_id = s.id) AS last_seen
+        FROM students s WHERE s.active = 1 AND COALESCE(s.is_station, 0) = 0 ORDER BY lower(s.name)""").fetchall()
+    conn.close()
+    return render_template("flight/groundschool_students.html", students=rows, tab="groundschool")
+
+
+@groundschool_bp.route("/student/<int:student_id>")
+@login_required
+def student_summary(student_id):
+    """Staff: one student's whole picture - flying, course progress, and every lesson's time and grades."""
+    if not _is_staff_viewer():
+        abort(403)
+    conn = get_db()
+    st = conn.execute("SELECT * FROM students WHERE id = ? AND COALESCE(is_station, 0) = 0", (student_id,)).fetchone()
+    if not st:
+        conn.close()
+        abort(404)
+    ratings = conn.execute("SELECT * FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall()
+    progress = {r["id"]: _rating_progress(conn, r["id"], student_id) for r in ratings}
+    courses = [{"id": r["id"], "name": r["name"], "p": progress[r["id"]]} for r in ratings if progress[r["id"]]]
+    task_ids = [r["task_id"] for r in conn.execute(
+        """SELECT task_id FROM gs_lesson_time WHERE student_id = ?
+           UNION SELECT task_id FROM gs_lesson_results WHERE student_id = ?""", (student_id, student_id)).fetchall()]
+    lessons = []
+    for tid in task_ids:
+        info = conn.execute("""SELECT t.id, t.code, t.title, a.code AS acode, a.title AS atitle, r.name AS rname
+                               FROM acs_tasks t JOIN acs_areas a ON a.id = t.area_id JOIN acs_ratings r ON r.id = a.rating_id
+                               WHERE t.id = ? AND t.retired_at IS NULL""", (tid,)).fetchone()
+        if not info:
+            continue
+        lesson = _lesson_for_task(conn, tid)
+        stt = lesson_stats(conn, student_id, tid, lesson) if lesson else None
+        if not stt:
+            continue
+        lessons.append({"info": info, "st": stt})
+    lessons.sort(key=lambda x: (x["info"]["rname"], x["info"]["acode"], x["info"]["code"]))
+    tot_secs = sum(x["st"]["seconds"] for x in lessons)
+    inits = [x["st"]["initial_pct"] for x in lessons if x["st"]["initial_pct"] is not None]
+    finals = [x["st"]["final_pct"] for x in lessons if x["st"]["final_pct"] is not None]
+    fl = conn.execute("""SELECT COUNT(*) n, COALESCE(SUM(total),0) hrs, COALESCE(SUM(day_ldg),0)+COALESCE(SUM(night_ldg),0) ldg,
+                                MAX(entry_date) last FROM pilot_logbook WHERE student_id = ? AND status != 'denied'""", (student_id,)).fetchone()
+    pending = conn.execute("SELECT COUNT(*) c FROM pilot_logbook WHERE student_id = ? AND status = 'pending'", (student_id,)).fetchone()["c"]
+    try:
+        import academy
+        a_stat = academy.student_stats(conn, academy.period_start("all")).get(student_id)
+    except Exception:
+        a_stat = None
+    conn.close()
+    return render_template("flight/groundschool_student.html", st=st, courses=courses, lessons=lessons, tab="groundschool",
+                           tot_min=int(tot_secs // 60), avg_init=round(sum(inits) / len(inits)) if inits else None,
+                           avg_final=round(sum(finals) / len(finals)) if finals else None,
+                           flying=fl, pending=pending, a_stat=a_stat)
+
+
 @groundschool_bp.route("/upload", methods=["POST"])
 @admin_required
 def upload():
@@ -878,9 +947,11 @@ def task_detail(task_id):
         [e["code"] for e in list(knowledge) + list(risk_management) + list(skills)]))
     gs_stats = gs_resume = None
     gs_results = {}
+    gs_chunk_secs = {}
     if session.get("student_id") and gs_lesson:
         conn = get_db()
         gs_results = lesson_results_map(conn, session["student_id"], task_id)
+        gs_chunk_secs = chunk_secs_map(conn, session["student_id"], task_id)
         conn.close()
     if viewing_student_id and gs_lesson:
         conn = get_db()
@@ -891,7 +962,7 @@ def task_detail(task_id):
     prev_task_id = ids[idx - 1] if idx > 0 else None
     next_task_id = ids[idx + 1] if 0 <= idx < len(ids) - 1 else None
     next_task = area_tasks[idx + 1] if next_task_id else None
-    return render_template("flight/groundschool_task.html", task_id_for_finish=task_id, gs_results=gs_results, gs_stats=gs_stats, gs_resume=gs_resume, task=task, next_task=next_task, area=area, rating=rating,
+    return render_template("flight/groundschool_task.html", task_id_for_finish=task_id, gs_chunk_secs=gs_chunk_secs, gs_need=chunk_need, gs_results=gs_results, gs_stats=gs_stats, gs_resume=gs_resume, task=task, next_task=next_task, area=area, rating=rating,
                             notes=notes, knowledge=knowledge, risk_management=risk_management,
                             skills=skills, lesson=lesson, acs_changes=acs_changes, signoffs=signoffs, my_signoff=my_signoff,
                             gs_students=students, prev_task_id=prev_task_id, next_task_id=next_task_id,
@@ -1717,6 +1788,17 @@ def lesson_time(task_id):
     else:
         conn.execute("INSERT INTO gs_lesson_time (student_id, task_id, seconds, last_anchor, first_started_at, last_seen_at) "
                      "VALUES (?, ?, ?, NULLIF(?, ''), ?, ?)", (student_id, task_id, secs, anchor, now, now))
+    chunks = data.get("chunks")
+    if isinstance(chunks, dict):
+        for k, v in list(chunks.items())[:60]:
+            try:
+                n, sec = int(k), max(0, min(int(v), 40))
+            except (TypeError, ValueError):
+                continue
+            if 1 <= n <= 99 and sec:
+                conn.execute("""INSERT INTO gs_chunk_time (student_id, task_id, chunk_n, seconds) VALUES (?, ?, ?, ?)
+                                ON CONFLICT(student_id, task_id, chunk_n) DO UPDATE SET seconds = seconds + excluded.seconds""",
+                             (student_id, task_id, n, sec))
     conn.commit()
     conn.close()
     return {"ok": True, "recorded": True}
@@ -1834,7 +1916,11 @@ def lesson_stats(conn, student_id, task_id, lesson):
         r = res.get(a["key"])
         fgames.append({"title": a["title"], "done": bool(r), "attempts": r["attempts"] if r else 0})
     f_first = sum(1 for x in fans if x["first_correct"])
+    csecs = chunk_secs_map(conn, student_id, task_id)
+    sections = [{"n": i, "title": c["title"], "secs": csecs.get(i, 0), "read": csecs.get(i, 0) >= chunk_need(c)}
+                for i, c in enumerate((lesson or {}).get("chunks") or [], 1)]
     return {
+        "sections": sections, "sections_read": sum(1 for x in sections if x["read"]),
         "final_rows": frows, "final_games": fgames, "final_answered": len(fans), "final_total": len(frows), "final_first": f_first,
         "final_pct": round(100 * f_first / len(frows)) if frows and len(fans) == len(frows) else None,
         "final_pct_so_far": round(100 * f_first / len(fans)) if fans else None,
@@ -1849,6 +1935,17 @@ def lesson_stats(conn, student_id, task_id, lesson):
         "tries_total": sum(x["attempts"] for x in rows),
         "games": games,
     }
+
+
+def chunk_need(c):
+    """Seconds on a reading section before it counts as read: a quarter of its stated reading
+    time, between 8 and 45 seconds."""
+    return int(min(45, max(8, (c.get("minutes") or 1) * 15)))
+
+
+def chunk_secs_map(conn, student_id, task_id):
+    return {r["chunk_n"]: r["seconds"] for r in conn.execute(
+        "SELECT chunk_n, seconds FROM gs_chunk_time WHERE student_id = ? AND task_id = ?", (student_id, task_id)).fetchall()}
 
 
 def resume_spot(conn, student_id, rating_id=None, task_id=None):

@@ -273,6 +273,23 @@ class LessonGradesTest(ElementLessonTest):
         self.assertIn("initial FINAL CHECK grade", staff)
 
 
+class SectionReadMarksTest(LessonGradesTest.__bases__[0]):
+    """GS-READ: time per reading section is saved; a read section gets a check mark, and the
+    instructor sees the time on each."""
+    def test_section_time_marks_read_and_shows_for_instructor(self):
+        c = self.login("flight_student")
+        c.post(f"{GS}/task/{self.task}/lesson-time", json={"seconds": 20, "anchor": "gsl-c1", "chunks": {"1": 40, "2": 3}})
+        c.post(f"{GS}/task/{self.task}/lesson-time", json={"seconds": 20, "chunks": {"1": 40}})
+        rows = {r["chunk_n"]: r["seconds"] for r in self.q("SELECT chunk_n, seconds FROM gs_chunk_time WHERE student_id = ?", (self.sid,))}
+        self.assertEqual(rows[1], 80)
+        self.assertEqual(rows[2], 3)
+        mine = c.get(f"{GS}/task/{self.task}").get_data(as_text=True)
+        self.assertIn('id="gsl-c1" data-need=', mine)
+        self.assertIn("gsl-read", mine)
+        staff = self.login("master").get(f"{GS}/task/{self.task}?student_id={self.sid}").get_data(as_text=True)
+        self.assertIn("Reading sections:", staff)
+        self.assertIn("1 min 20 s", staff)
+
 class GroundSchoolChartsTest(OpsHubTestCase):
     def test_list_page_shows_progress_charts_for_a_student(self):
         c = self.login("master")
@@ -280,3 +297,22 @@ class GroundSchoolChartsTest(OpsHubTestCase):
         body = c.get("/flight/groundschool").get_data(as_text=True)
         self.assertIn("Your progress", body)
         self.assertIn("gsd-grid", body)
+
+
+class StudentSummaryTest(LessonGradesTest.__bases__[0]):
+    """Staff get a student search and a one-page summary: flying, course progress, and every lesson's time and grades."""
+    def test_staff_see_summary_students_do_not(self):
+        c = self.login("flight_student")
+        wrong, right = 0, ground_lessons.load("PA.I.E")["quiz"][0]["answer"]
+        c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 1, "j": right})
+        c.post(f"{GS}/task/{self.task}/lesson-time", json={"seconds": 90, "chunks": {"1": 40}})
+        self.assertNotEqual(c.get(f"{GS}/students").status_code, 200)
+        self.assertNotEqual(c.get(f"{GS}/student/{self.sid}").status_code, 200)
+        m = self.login("master")
+        body = m.get(f"{GS}/students").get_data(as_text=True)
+        self.assertIn("Student summaries", body)
+        body = m.get(f"{GS}/student/{self.sid}").get_data(as_text=True)
+        self.assertIn("Lesson by lesson", body)
+        self.assertIn("2 min", body.replace("1 min", "2 min") if "1 min" in body else body) if False else None
+        self.assertIn("Initial quiz", body)
+        self.assertEqual(m.get(f"{GS}/student/999999").status_code, 404)

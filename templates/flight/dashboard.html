@@ -325,7 +325,7 @@
    session is not a daily job: it lives on the Schedule form's "Log a past
    session instead of booking" switch and the Flight History page. #}
 {% macro shortcut_tiles(tiles) %}
-<div class="d-sm-none row row-cols-4 g-2 mb-3" data-change="FLY-30">
+<div class="d-sm-none row row-cols-{{ [tiles|length, 4]|min }} g-2 mb-3" data-change="FLY-30">
   {% for t in tiles %}
   <div class="col">
     <a href="{{ t.url }}" class="text-decoration-none">
@@ -337,7 +337,7 @@
   </div>
   {% endfor %}
 </div>
-<div class="d-none d-sm-flex row row-cols-4 g-2 g-lg-3 mb-3" data-change="FLY-30">
+<div class="d-none d-sm-flex row row-cols-{{ [tiles|length, 4]|min }} g-2 g-lg-3 mb-3" data-change="FLY-30">
   {% for t in tiles %}
   <div class="col">
     <a href="{{ t.url }}" class="text-decoration-none">
@@ -355,8 +355,9 @@
   {'url': url_for('flight.schedule_calendar'), 'icon': 'bi-calendar3', 'color': 'text-info', 'label': 'Schedule'},
   {'url': url_for('flight.schedule_availability'), 'icon': 'bi-grid-3x3-gap', 'color': 'text-success', 'label': 'Availability'},
   {'url': url_for('flight.waitlist_page'), 'icon': 'bi-hourglass-split', 'color': 'text-warning', 'label': 'Waitlist'},
+] + ([] if hide_students_tab else [
   {'url': url_for('flight.students_list'), 'icon': 'bi-people', 'color': 'text-primary', 'label': 'Students'},
-]) }}
+])) }}
 {% endif %}
 
 {% if student %}

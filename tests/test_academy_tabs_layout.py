@@ -104,3 +104,21 @@ class SwitchRoleStaysOnPageTest(OpsHubTestCase):
         # ...but a page the new role may open is kept.
         r = c.post("/view-as/shop/tech", headers={"Referer": "http://localhost/shop"})
         self.assertTrue(r.headers["Location"].endswith("/shop"), r.headers["Location"])
+
+
+class CfiCannotEditStudentLogbookTest(OpsHubTestCase):
+    def test_cfi_reads_but_cannot_change_and_student_can(self):
+        sid = self.q1("SELECT id FROM students WHERE user_id = ?", (self.users["flight_student"]["id"],))["id"]
+        self.exec("""INSERT INTO pilot_logbook (student_id, entry_date, tail, total, status, created_at, updated_at)
+                     VALUES (?, '2026-10-01', 'N1', 1.5, 'pending', 'x', 'x')""", (sid,))
+        eid = self.q1("SELECT id FROM pilot_logbook WHERE student_id = ?", (sid,))["id"]
+        self.exec("UPDATE users SET academy_access = 1 WHERE username IN ('flight_student', 'cfi')")
+        cfi = self.login("cfi")
+        self.assertEqual(cfi.get(f"/academy/logbook/{eid}").status_code, 200)
+        cfi.post(f"/academy/logbook/{eid}", data={"action": "approve"})
+        self.assertEqual(self.q1("SELECT status FROM pilot_logbook WHERE id = ?", (eid,))["status"], "pending")
+        cfi.post("/academy/entry", data={"student_id": sid, "kind": "landings", "value": "2"})
+        self.assertIsNone(self.q1("SELECT id FROM academy_entries WHERE student_id = ?", (sid,)))
+        stu = self.login("flight_student")
+        stu.post(f"/academy/logbook/{eid}", data={"action": "approve"})
+        self.assertEqual(self.q1("SELECT status FROM pilot_logbook WHERE id = ?", (eid,))["status"], "complete")

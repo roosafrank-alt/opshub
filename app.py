@@ -86,6 +86,8 @@ app.register_blueprint(customer_bp)
 app.register_blueprint(pwreset_bp)
 app.register_blueprint(manuals_bp)
 app.register_blueprint(groundschool_bp)
+from endorsements import endorse_bp, run_expiry_check as run_endorsement_expiry_check  # ENDORSE
+app.register_blueprint(endorse_bp)
 app.register_blueprint(payroll_bp)
 app.register_blueprint(ads_bp)
 app.teardown_request(close_request_conns)
@@ -451,6 +453,15 @@ def _page_read_conn():
     return conn
 
 
+def _hide_students_for_shop():
+    """True for the shop's shared "Shop" login: the Fly with Kate! Students tab
+    and dashboard tile are not shown there, since that account sits on the shop
+    computer/TV and the roster is not for it. (Not keyed on cfis.is_station:
+    every admin without an instructor profile gets a hidden station row too,
+    and they must keep Students.)"""
+    return bool(session.get("user_id")) and is_shared_shop_login()
+
+
 @app.context_processor
 def inject_auth_context():
     open_squawk_count = 0
@@ -464,6 +475,7 @@ def inject_auth_context():
         "shop_role": session.get("shop_role"),
         "is_master_admin": session.get("is_master_admin"),
         "flight_admin": is_flight_admin(),
+        "hide_students_tab": _hide_students_for_shop(),
         "logged_in_user_name": session.get("user_name"),
         "open_squawk_count": open_squawk_count,
         "tour_seen_shop": session.get("tour_seen_shop"),
@@ -664,7 +676,7 @@ def academy_entry_add():
     a CFI/admin can log for any student."""
     if not (is_flight_admin() or session.get("academy_access")):
         return redirect(url_for("home_launcher"))
-    staff = bool(is_flight_admin() or session.get("cfi_id"))
+    staff = bool(is_flight_admin())     # an instructor can not log flying for a student
     student_id = request.form.get("student_id", type=int) if staff else session.get("student_id")
     kind = request.form.get("kind")
     try:
@@ -702,8 +714,8 @@ def academy_entry_add():
 @app.route("/academy/entry/<int:entry_id>/delete", methods=["POST"])
 @login_required
 def academy_entry_delete(entry_id):
-    """Remove a leaderboard entry - your own, or any if you're a CFI/admin."""
-    staff = bool(is_flight_admin() or session.get("cfi_id"))
+    """Remove a leaderboard entry - your own, or any if you're a Flight Admin (not an instructor)."""
+    staff = bool(is_flight_admin())
     conn = get_db()
     e = conn.execute("SELECT * FROM academy_entries WHERE id = ?", (entry_id,)).fetchone()
     if e and (staff or e["student_id"] == session.get("student_id")):
@@ -9272,6 +9284,14 @@ def admin_user_edit(user_id):
             conn.execute("UPDATE students SET active=? WHERE user_id=?", (active, user_id))
         conn.commit()
         _apply_pay_links(conn, user_row, request.form)
+        if request.form.get("student_fields"):
+            from flight import apply_student_profile_fields
+            stu = conn.execute("SELECT * FROM students WHERE user_id = ?", (user_id,)).fetchone()
+            if stu is not None and not stu["is_station"]:
+                flagged = apply_student_profile_fields(conn, stu, request.form, True, session.get("user_name"))
+                if flagged:
+                    flash(f"{flagged} upcoming solo flight{'s' if flagged != 1 else ''} for this student "
+                          f"{'are' if flagged != 1 else 'is'} now flagged for review - past the solo sign-off or medical expiry.", "warning")
         conn.close()
         flash("Account updated.", "success")
         # SHOP-41: opened from the Workers page (?back=workers) -> go back there.
@@ -9290,11 +9310,17 @@ def admin_user_edit(user_id):
 
 def _course_grant_context(conn, user_id):
     """Per-course Ground School grants for the student profile linked to this account."""
-    st = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_id,)).fetchone()
+    import flight as _fl
+    st = conn.execute("SELECT * FROM students WHERE user_id = ?", (user_id,)).fetchone()
     if not st:
         return {"grant_student": None}
     return {
         "grant_student": st["id"],
+        "stu": st, "stu_station": bool(st["is_station"]),
+        "training_goals": _fl.TRAINING_GOALS, "pilot_certificates": _fl.PILOT_CERTIFICATES,
+        "pilot_ratings": _fl.PILOT_RATINGS, "medical_classes": _fl.MEDICAL_CLASSES,
+        "pay_preferences": _fl.PAY_PREFERENCES, "default_solo_currency_days": _fl.DEFAULT_SOLO_CURRENCY_DAYS,
+        "today_iso": date.today().isoformat(),
         "grant_courses": conn.execute("SELECT id, name FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall(),
         "granted_ids": {r["rating_id"] for r in conn.execute(
             "SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (st["id"],)).fetchall()},
@@ -10671,6 +10697,10 @@ def _start_session_alert_loop(debug_mode):
                 run_balance_hold_release_check()
             except Exception:
                 app.logger.exception("Balance hold release check failed")
+            try:
+                run_endorsement_expiry_check()      # ENDORSE: at most once an hour
+            except Exception:
+                app.logger.exception("Endorsement expiry check failed")
             try:
                 run_wave_payment_check()
             except Exception:

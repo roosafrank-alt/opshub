@@ -2,13 +2,14 @@
     `endorsements`; `who` = "cfi" shows the student's name, else the CFI's. -#}
 {% if endorsements is defined %}
 <div class="card p-3 mb-3" id="endorsements">
-  <h6 class="mb-2"><i class="bi bi-pencil-square"></i> Endorsements signed <span class="text-muted small fw-normal">({{ endorsements|length }})</span></h6>
+  <h6 class="mb-2"><i class="bi bi-pencil-square"></i> Endorsements signed <span class="text-muted small fw-normal">({{ endorsements|length }})</span>
+    <a class="small fw-normal ms-2" href="{{ url_for('endorse.given', cfi_id=cfi.id) if who == 'cfi' and cfi is defined and cfi else (url_for('endorse.student_tab', student_id=student.id) if student is defined and student else url_for('endorse.given')) }}">Open with expiry dates &raquo;</a></h6>
   {% for e in endorsements %}
   <details class="border-top py-1">
     <summary class="small"><strong>{{ e.label }}</strong> &middot; {{ (e.student_name if who == 'cfi' else e.cfi_name) or '-' }} &middot; {{ e.signed_on|usdate_short }}</summary>
     <pre class="small mb-1 mt-1" style="white-space:pre-wrap;font-family:inherit">{{ e.body }}</pre>
   </details>
-  {% else %}<div class="text-muted small">None yet. They show up here when you press Copy or Print in Write endorsement.</div>
+  {% else %}<div class="text-muted small">None yet. They show up here when one is signed with Write endorsement.</div>
   {% endfor %}
 </div>
 {% endif %}

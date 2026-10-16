@@ -410,6 +410,19 @@
     var btn = document.getElementById('sch-fit-btn');
     var fit = on() && !!document.querySelector('.day-timeline-track');
     de.classList.remove('sch-fit');
+    // Week view: the hour labels must start level with the tracks. Each day
+    // column has a header and (on some days) waiting-list chips above its
+    // track, so line every track up to the tallest one and push the hour
+    // column down by the same amount.
+    var wrap = document.querySelector('.week-timeline-wrap');
+    if (wrap) {
+      var cols = wrap.querySelectorAll('.week-timeline-day-col'), hrs = wrap.querySelector('.day-timeline-hours'), pre = [], max = 0;
+      cols.forEach(function (c) { var k = c.querySelector('.day-timeline-track'); k.style.marginTop = ''; });
+      if (hrs) hrs.style.marginTop = '';
+      cols.forEach(function (c, i) { var k = c.querySelector('.day-timeline-track'); pre[i] = k.offsetTop - c.offsetTop; max = Math.max(max, pre[i]); });
+      cols.forEach(function (c, i) { c.querySelector('.day-timeline-track').style.marginTop = (max - pre[i]) + 'px'; });
+      if (hrs) hrs.style.marginTop = max + 'px';
+    }
     if (fit) {
       var t = document.querySelector('.day-timeline-track');
       var top = t.getBoundingClientRect().top + window.scrollY;
