@@ -1375,6 +1375,15 @@ def _migrate(conn):
         last_seen_at TEXT,
         PRIMARY KEY (student_id, task_id)
     )""")
+    # Seconds on each reading section of a lesson (the check mark beside a section, and the
+    # per-section time the instructor sees).
+    conn.execute("""CREATE TABLE IF NOT EXISTS gs_chunk_time (
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        task_id INTEGER NOT NULL REFERENCES acs_tasks(id),
+        chunk_n INTEGER NOT NULL,
+        seconds INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (student_id, task_id, chunk_n)
+    )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS gs_lesson_results (
         student_id INTEGER NOT NULL REFERENCES students(id),
         task_id INTEGER NOT NULL REFERENCES acs_tasks(id),
