@@ -38,6 +38,49 @@
     el.appendChild(retakeBar(el, text));
   }
 
+  // ---------- gate: a student can't read on past a game or quiz until it is finished.
+  // (Instructors previewing a lesson are not gated.) Finished items stay unlocked.
+  var gateNote = null;
+  function setupGate() {
+    if (root.getAttribute('data-track') !== '1') return;
+    var blocks = [], learn = document.getElementById('gsl-learn');
+    function kids(sec) { [].slice.call(sec.children).forEach(function (k) { if (!k.matches('h5, p.gsl-hint')) blocks.push(k); }); }
+    if (learn) kids(learn);
+    ['gsl-apply', 'gsl-checkride', 'gsl-final', 'gsl-wrap'].forEach(function (id) {
+      var sec = document.getElementById(id); if (sec) [].slice.call(sec.children).forEach(function (k) { blocks.push(k); });
+    });
+    function gateOf(b) {
+      if (!b.classList.contains('gsl-play-item')) return null;
+      return b.classList.contains('gsl-qgroup') ? b : b.querySelector('.gsl-act:not(.gsl-act-flash)');
+    }
+    var gates = blocks.map(gateOf).filter(Boolean);
+    if (!gates.length) return;
+    gateNote = document.createElement('div');
+    gateNote.className = 'gsl-locknote'; gateNote.hidden = true;
+    gateNote.innerHTML = '<i class="bi bi-lock-fill"></i> Finish the game or quiz above to unlock the next part of the lesson.';
+    function update() {
+      var locked = false, placed = false;
+      blocks.forEach(function (b) {
+        b.classList.toggle('gsl-locked', locked);
+        var g = gateOf(b);
+        if (!locked && g && g.getAttribute('data-done') !== '1') {
+          locked = true;
+          if (b.nextSibling !== gateNote) b.parentNode.insertBefore(gateNote, b.nextSibling);
+          placed = true;
+        }
+      });
+      gateNote.hidden = !placed;
+      [].slice.call(root.querySelectorAll('.gsl-step')).forEach(function (sec) {   // hide a section whose parts are all locked
+        var any = [].slice.call(sec.children).some(function (c) { return !c.classList.contains('gsl-locked'); });
+        sec.classList.toggle('gsl-locked', !any && sec.id !== 'gsl-prepare');
+      });
+    }
+    var mo = new MutationObserver(function () { var was = gateNote.hidden; update(); });
+    gates.forEach(function (g) { mo.observe(g, { attributes: true, attributeFilter: ['data-done'] }); });
+    update();
+    window.gslGateUpdate = update;
+  }
+
   // ---------- quick checks
   root.querySelectorAll('.gsl-qgroup').forEach(function (g) {
     var final = g.getAttribute('data-final') === '1';
@@ -71,6 +114,7 @@
               msg.textContent = 'Not quite. Pick another answer.';
             }
             show();
+            if (solved === qs.length) g.setAttribute('data-done', '1');   // unlocks the next part of the lesson
             if (solved === qs.length && !g.querySelector('.gsl-donebar')) g.appendChild(retakeBar(g, 'Completed. First try: ' + first + ' of ' + qs.length + ' right.'));
           }).catch(function () { btn.disabled = false; msg.textContent = 'No connection. Try again.'; });
         });
@@ -90,6 +134,7 @@
   function shake(el) { el.classList.add('gsl-bad'); setTimeout(function () { el.classList.remove('gsl-bad'); }, 450); }
   function finished(act, attempts) {   // attempts = 1 + mistakes
     var key = act.getAttribute('data-key');
+    act.setAttribute('data-done', '1');                  // unlocks the next part of the lesson
     if (!act.querySelector('.gsl-donebar')) act.appendChild(retakeBar(act, attempts > 1 ? 'Finished after ' + (attempts - 1) + ' mistake' + (attempts > 2 ? 's' : '') + '.' : 'Finished with no mistakes.'));
     if (key && !act.getAttribute('data-reported')) {
       act.setAttribute('data-reported', '1');
@@ -285,6 +330,8 @@
     });
   });
 
+  setupGate();
+
   // ---------- time spent + reading spot (students only)
   var anchors = [].slice.call(root.querySelectorAll('[id^="gsl-c"], #gsl-prepare, #gsl-apply, #gsl-checkride, #gsl-wrap'));
   anchors.sort(function (a, b) { return a.offsetTop - b.offsetTop; });
@@ -337,7 +384,7 @@
 
   // ---------- Resume: land on the saved spot once images have settled
   if (/^#gsl-/.test(location.hash)) {
-    var go = function () { var t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); };
+    var go = function () { var t = document.getElementById(location.hash.slice(1)); if (t && t.closest('.gsl-locked') && gateNote && !gateNote.hidden) t = gateNote.previousElementSibling || gateNote; if (t) t.scrollIntoView(); };
     window.addEventListener('load', function () { go(); setTimeout(go, 400); });
   }
 })();

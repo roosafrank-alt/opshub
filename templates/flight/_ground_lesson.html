@@ -49,7 +49,7 @@
 
   <section class="gsl-step" id="gsl-learn">
     <h5 class="gsl-h"><span class="gsl-n">02</span> Learn</h5>
-    <p class="gsl-hint">Read top to bottom. Games and quick checks are mixed in. Finished a part? Tap its code (like PA.I.A.K1) to mark it done.</p>
+    <p class="gsl-hint">Read top to bottom. Games and quick checks are mixed in, and you finish each one to unlock what comes next. Finished a part? Tap its code (like PA.I.A.K1) to mark it done.</p>
     {% for c in L.chunks %}{{ gsl.chunk(c, loop.index, L, el_ids, element_done, element_self) }}
       {% for it in plan.by_chunk.get(loop.index, []) %}{{ gsl.play_item(it, L) }}{% endfor %}
     {% endfor %}
