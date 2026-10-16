@@ -59,6 +59,6 @@ class OwnerBookDueItemTest(OpsHubTestCase):
         self.login("customer")
         self._book()
         self.login("shop_admin")
-        self.assertIn("Owner Booking Request", self.client.get("/shop").get_data(as_text=True))
+        self.assertIn("Owner wants a date", self.client.get("/shop").get_data(as_text=True))
         self.exec("UPDATE projects SET scheduled_date = '2030-01-07' WHERE asset_id = ?", (self.asset,))
-        self.assertNotIn("Owner Booking Request", self.client.get("/shop").get_data(as_text=True))
+        self.assertNotIn("Owner wants a date", self.client.get("/shop").get_data(as_text=True))

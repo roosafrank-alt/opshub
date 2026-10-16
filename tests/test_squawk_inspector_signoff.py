@@ -1,7 +1,7 @@
 """QA finding ux-squawk-inspector-signoff: an Inspector could never reach the
 Confirm button for a squawk repair, because the only pages it lived on
 (Squawks, a plane's page) said "you don't have access". Inspectors can now
-open both pages read-only, and get their own "Repairs To Sign Off" box on
+open both pages read-only, and get their own "Repairs to sign off" line on
 the shop dashboard (see get_squawks_awaiting_confirm in app.py)."""
 from harness import OpsHubTestCase, seed_row
 import db
@@ -45,15 +45,14 @@ class SquawkInspectorSignoffTest(OpsHubTestCase):
         self.make_ready_for_confirm()
         c = self.login("inspector")
         body = c.get("/shop").get_data(as_text=True)
-        self.assertIn("Repair To Sign Off", body)
+        self.assertIn("Repair to sign off", body)
         self.assertIn("Sign off", body)
-        self.assertIn("Send back", body)
 
     def test_tech_does_not_see_sign_off_box(self):
         self.make_ready_for_confirm()
         c = self.login("tech")
         body = c.get("/shop").get_data(as_text=True)
-        self.assertNotIn("Repair To Sign Off", body)
+        self.assertNotIn("Repair to sign off", body)
 
     def test_inspector_sign_off_confirms_the_repair(self):
         squawk_id = self.make_ready_for_confirm()
@@ -70,7 +69,7 @@ class SquawkInspectorSignoffTest(OpsHubTestCase):
         self.make_new_squawk()
         c = self.login("inspector")
         body = c.get("/shop").get_data(as_text=True)
-        self.assertNotIn("New Squawk", body)
+        self.assertNotIn("&middot; New squawk", body)
         self.assertNotIn("I'll take it", body)
 
     def test_inspector_does_not_see_assign_controls_on_squawks_page(self):
@@ -86,4 +85,4 @@ class SquawkInspectorSignoffTest(OpsHubTestCase):
         c = self.login("shop_admin")
         body = c.get("/shop").get_data(as_text=True)
         self.assertIn("I'll take it", body)
-        self.assertIn("Repair To Sign Off", body)
+        self.assertIn("Repair to sign off", body)

@@ -104,54 +104,71 @@
 </div>
 {% endif %}
 
-{#- An Inspector's actual to-do on this dashboard: repairs waiting on their
-   sign-off. Admins can confirm too. See get_squawks_awaiting_confirm and
-   squawk_repair_confirm in app.py. #}
-{% if squawks_awaiting_confirm %}
-<div class="alert alert-success border-success border-2 mb-3 squawk-alert">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <h5 class="alert-heading mb-0"><i class="bi bi-patch-check-fill"></i> {{ squawks_awaiting_confirm|length }} Repair{{ 's' if squawks_awaiting_confirm|length != 1 }} To Sign Off</h5>
-    <a href="{{ url_for('squawks_list') }}" class="btn btn-outline-success btn-sm fw-bold">View All</a>
+{#- One "Needs you" list instead of five coloured boxes (QA finding
+   feat-shop-needs-you-list): repairs to sign off, new squawks, owner
+   booking requests and reschedule requests are one line each with their one
+   next-step button; squawks assigned but not yet accepted are only waiting
+   on someone else, so they get a single footer line. Same visibility rules
+   as the old boxes: repairs for anyone who has them (Inspector included),
+   the rest not for Apprentice/Inspector. Hidden when nothing is waiting. #}
+{% set nu_unack = unacknowledged_assignments if not is_limited_role else [] %}
+{% set nu_open = open_squawks[:5] if (open_squawks and not is_limited_role) else [] %}
+{% set nu_owner = owner_requests if (owner_requests and not is_limited_role) else [] %}
+{% set nu_resched = reschedule_requests if (reschedule_requests and not is_limited_role) else [] %}
+{% set nu_repairs = squawks_awaiting_confirm or [] %}
+{% set nu_count = nu_repairs|length + nu_open|length + nu_owner|length + nu_resched|length %}
+{% if nu_count or nu_unack %}
+<div class="card p-3 mb-3" id="needs-you">
+  <div class="d-flex justify-content-between align-items-center mb-1">
+    <h5 class="mb-0"><i class="bi bi-bell-fill text-danger"></i> Needs you {% if nu_count %}<span class="badge bg-danger align-middle">{{ nu_count }}</span>{% endif %}</h5>
+    <a href="{{ url_for('squawks_list') }}" class="small">See all</a>
   </div>
-  {% for sq in squawks_awaiting_confirm %}
-  <div class="d-flex flex-column gap-1 py-2 squawk-item {{ 'border-top' if not loop.first }}">
-    <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; done by {{ sq.repair_confirm_requested_by or '-' }}, {{ sq.repair_confirm_requested_at|usdate(true) if sq.repair_confirm_requested_at else '' }}</div>
-    <div class="pre-wrap-text">{{ sq.notes or '(no details given)' }}</div>
-    <div class="squawk-row-actions">
-      {{ squawk_step_pills(sq) }}
-      {{ squawk_confirm_actions(sq) }}
+  {% macro nu_row(dot, link, label, sub) %}
+  <div class="d-flex justify-content-between align-items-center gap-2 py-2 border-top nu-row">
+    <span class="rounded-circle flex-shrink-0 bg-{{ dot }}" style="width:10px;height:10px;"></span>
+    <div class="flex-grow-1 min-w-0" style="min-width:0;">
+      <div class="text-truncate"><strong>{{ link }}</strong> &middot; {{ label }}</div>
+      <div class="text-muted small text-truncate">{{ sub }}</div>
     </div>
+    <div class="flex-shrink-0 d-flex gap-1 align-items-center">{{ caller() }}</div>
   </div>
+  {% endmacro %}
+  {% for sq in nu_repairs %}
+  {% call nu_row('success', ('<a href="%s" class="text-reset">%s</a>'|format(url_for('asset_detail', asset_id=sq.asset_id), sq.asset_tag|e))|safe, 'Repair to sign off', (sq.notes or '(no details given)') ~ ' - done by ' ~ (sq.repair_confirm_requested_by or '-')) %}
+    <form method="post" action="{{ url_for('squawk_repair_confirm', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-confirm="Confirm this squawk as repaired?" data-confirm-title="Confirm Repair">
+      <button class="btn btn-success btn-sm fw-bold" data-change="DESIGN-1"><i class="bi bi-check-lg"></i> Sign off</button>
+    </form>
+  {% endcall %}
   {% endfor %}
-</div>
-{% endif %}
-
-{% if open_squawks and not is_limited_role %}
-<div class="alert alert-danger border-danger border-2 mb-3 squawk-alert">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <h5 class="alert-heading mb-0"><i class="bi bi-exclamation-triangle-fill"></i> {{ open_squawks|length }} New Squawk{{ 's' if open_squawks|length != 1 }}{{ ' - Pick Who Fixes Them' if can_assign_squawks else ' (for your info)' }}</h5>
-    {#- Idea ux-button-text-wrap: same wording on phone and desktop now
-       ("See all N", or "View All" when there's nothing more to see) -
-       used to say "View All" on desktop but "See all N" on phones.
-       text-nowrap/flex-shrink-0 keep it on one line next to the heading. #}
-    <a href="{{ url_for('squawks_list') }}" class="btn btn-outline-danger btn-sm fw-bold text-nowrap flex-shrink-0">{{ 'See all ' ~ open_squawks|length if open_squawks|length > 2 else 'View All' }}</a>
-  </div>
-  {% for sq in open_squawks[:5] %}
-  {#- On phones only the 2 newest show, so the stat boxes and recent
-     activity aren't pushed several screens down; "See all N" has the rest. #}
-  <div class="d-flex flex-column gap-1 py-2 squawk-item {{ 'border-top' if not loop.first }}{{ ' d-none d-md-flex' if loop.index > 2 }}">
-    <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; {{ sq.event_date|usdate }} &middot;
-      {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
-      {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
-    <div class="pre-wrap-text">{{ sq.notes or '(no details given)' }}</div>
-    <div class="squawk-row-actions">
-      {{ squawk_step_pills(sq) }}
-      {% if can_assign_squawks %}
-      {{ squawk_new_actions(sq, assignable_workers, session.get('user_id')) }}
-      {% endif %}
-    </div>
-  </div>
+  {% for sq in nu_open %}
+  {% call nu_row('danger', ('<a href="%s" class="text-reset">%s</a>'|format(url_for('asset_detail', asset_id=sq.asset_id), sq.asset_tag|e))|safe, 'New squawk', sq.notes or '(no details given)') %}
+    {% if can_assign_squawks %}
+    <form method="post" action="{{ url_for('squawk_acknowledge', kind=sq.kind, squawk_id=sq.squawk_id) }}" data-change="JOBS-09">
+      <select name="assigned_to" class="form-select form-select-sm squawk-select" style="width:auto;max-width:9rem;" onchange="this.value && this.form.submit()" aria-label="Assign to">
+        <option value="" selected>Assign to...</option>
+        {% if session.get('user_id') %}<option value="{{ session.get('user_id') }}">I'll take it</option>{% endif %}
+        {% for w in assignable_workers %}{% if w.id != session.get('user_id') %}<option value="{{ w.id }}">{{ w.name }}</option>{% endif %}{% endfor %}
+      </select>
+    </form>
+    {% endif %}
+  {% endcall %}
   {% endfor %}
+  {% for p in nu_owner %}
+  {% call nu_row('primary', ('<a href="%s" class="text-reset">%s</a>'|format(url_for('project_detail', project_id=p.id), p.asset_display_tag|e))|safe, 'Owner wants a date', p.name ~ ' - week of ' ~ (p.customer_requested_week|usdate)) %}
+    <a href="{{ url_for('project_edit', project_id=p.id) }}" class="btn btn-dark btn-sm fw-bold" data-change="DESIGN-1">Set date</a>
+  {% endcall %}
+  {% endfor %}
+  {% for p in nu_resched %}
+  {% call nu_row('warning', ('<a href="%s" class="text-reset">%s</a>'|format(url_for('project_detail', project_id=p.id), p.asset_display_tag|e))|safe, 'Owner asks to reschedule', p.customer_reschedule_note or p.name) %}
+    <a href="{{ url_for('project_edit', project_id=p.id) }}" class="btn btn-outline-dark btn-sm fw-bold">Reschedule</a>
+    <form method="post" action="{{ url_for('project_reschedule_dismiss', project_id=p.id) }}">
+      <button class="btn btn-link btn-sm text-muted px-1" title="Dismiss" aria-label="Dismiss" data-change="DESIGN-1"><i class="bi bi-x-lg"></i></button>
+    </form>
+  {% endcall %}
+  {% endfor %}
+  {% if nu_unack %}
+  <div class="text-muted small border-top pt-2 nu-waiting"><i class="bi bi-hourglass-split"></i> Waiting on others: {{ nu_unack|length }} squawk{{ 's' if nu_unack|length != 1 }} not accepted yet ({{ nu_unack|map(attribute='asset_tag')|unique|join(', ') }})</div>
+  {% endif %}
 </div>
 {% endif %}
 
@@ -184,61 +201,6 @@
     <div class="squawk-row-actions">
       {{ squawk_step_pills(sq) }}
       {{ squawk_my_actions(sq, can_confirm=(session.get('is_master_admin') or session.get('shop_role') in ('admin', 'inspector'))) }}
-    </div>
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
-
-{#- Admin's view of who hasn't picked up an assignment yet - the person
-   who assigned it can't tell otherwise since it doesn't show anywhere
-   else once it's out of the main Open Squawks alert above. #}
-{% if unacknowledged_assignments %}
-<div class="alert alert-secondary border-secondary border-2 mb-3">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <h5 class="alert-heading mb-0"><i class="bi bi-person-exclamation"></i> {{ unacknowledged_assignments|length }} Assigned Squawk{{ 's' if unacknowledged_assignments|length != 1 }} Not Yet Accepted</h5>
-    <a href="{{ url_for('squawks_list') }}" class="btn btn-outline-secondary btn-sm fw-bold">View All</a>
-  </div>
-  {% for sq in unacknowledged_assignments %}
-  <div class="py-2 {{ 'border-top' if not loop.first }}">
-    <strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}" class="alert-link">{{ sq.asset_tag }}</a></strong> &middot; assigned to {{ sq.assigned_to_name or '-' }} &middot; {{ sq.event_date|usdate }}
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
-
-{% if owner_requests and not is_limited_role %}
-<div class="alert alert-primary border-primary border-2 mb-3">
-  <h5 class="alert-heading mb-2"><i class="bi bi-calendar-plus-fill"></i> {{ owner_requests|length }} Owner Booking Request{{ 's' if owner_requests|length != 1 }}</h5>
-  {% for p in owner_requests %}
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
-    <div>
-      <div><strong><a href="{{ url_for('project_detail', project_id=p.id) }}" class="alert-link">{{ p.asset_display_tag }}</a></strong> &middot; {{ p.name }}</div>
-      <div class="small">Wants the week of {{ p.customer_requested_week|usdate }}</div>
-    </div>
-    <a href="{{ url_for('project_edit', project_id=p.id) }}" class="btn btn-dark btn-sm fw-bold flex-shrink-0" data-change="DESIGN-1">Set date</a>
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
-
-{% if reschedule_requests and not is_limited_role %}
-<div class="alert alert-warning border-warning border-2 mb-3">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <h5 class="alert-heading mb-0"><i class="bi bi-calendar-x-fill"></i> {{ reschedule_requests|length }} Customer Reschedule Request{{ 's' if reschedule_requests|length != 1 }}</h5>
-  </div>
-  {% for p in reschedule_requests %}
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
-    <div>
-      <div><strong><a href="{{ url_for('project_detail', project_id=p.id) }}" class="alert-link">{{ p.asset_display_tag }}</a></strong> &middot; {{ p.name }}
-        {% if p.scheduled_date %} &middot; was scheduled {{ p.scheduled_date|usdate }}{% endif %}</div>
-      <div class="pre-wrap-text">{{ p.customer_reschedule_note }}</div>
-    </div>
-    <div class="d-flex gap-2 flex-shrink-0">
-      <a href="{{ url_for('project_edit', project_id=p.id) }}" class="btn btn-outline-warning btn-sm fw-bold">Reschedule</a>
-      <form method="post" action="{{ url_for('project_reschedule_dismiss', project_id=p.id) }}">
-        <button class="btn btn-dark btn-sm fw-bold" data-change="DESIGN-1"><i class="bi bi-check-lg"></i> Dismiss</button>
-      </form>
     </div>
   </div>
   {% endfor %}

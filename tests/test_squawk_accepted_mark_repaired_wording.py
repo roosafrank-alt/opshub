@@ -55,5 +55,5 @@ class SquawkAcceptedMarkRepairedWordingTest(OpsHubTestCase):
         self.assertIsNotNone(row["repair_confirm_requested_at"])
         # Shows up on the Inspector's own dashboard, their "task spot", for sign-off.
         body = self.login("inspector").get("/shop").get_data(as_text=True)
-        self.assertIn("Repair To Sign Off", body)
+        self.assertIn("Repair to sign off", body)
         self.assertIn("Sign off", body)
