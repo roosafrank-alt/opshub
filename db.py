@@ -1085,6 +1085,24 @@ def _migrate(conn):
         read_at TEXT
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_student_notifications_lookup ON student_notifications(student_id, read_at, created_at)")
+
+    # Endorsements a CFI wrote with the student profile's "Write endorsement"
+    # pop-up: a copy of the wording, kept on the student's profile and on the
+    # signing CFI's profile.
+    conn.execute("""CREATE TABLE IF NOT EXISTS student_endorsements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL,
+        cfi_id INTEGER,
+        cfi_name TEXT,
+        kind TEXT NOT NULL,
+        label TEXT NOT NULL,
+        plane TEXT,
+        body TEXT NOT NULL,
+        signed_on TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_student_endorsements_student ON student_endorsements(student_id, id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_student_endorsements_cfi ON student_endorsements(cfi_id, id)")
     conn.commit()
 
     # Ground School: each row is one FAA Airman Certification Standards (ACS)

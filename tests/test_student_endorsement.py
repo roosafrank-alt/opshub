@@ -56,3 +56,44 @@ class StudentMilestonesBlockTest(OpsHubTestCase):
         c.post(self.url, data={"name": name, "email": "a@b.co", "phone": "5551234567", "active": "1"})
         r = self.q1("SELECT first_solo_date, tsa_verified_date, solo_signoff_date FROM students WHERE id = ?", (self.sid,))
         self.assertEqual((r["first_solo_date"], r["tsa_verified_date"], r["solo_signoff_date"]), (None, None, None))
+
+
+class EndorsementCopiesTest(OpsHubTestCase):
+    """Round 2: a copy of each endorsement is kept on the student's profile and
+    on the signing CFI's profile."""
+    BODY = "I certify that Test Student has received the required training."
+
+    def setUp(self):
+        super().setUp()
+        self.sid = self.q1("SELECT id FROM students WHERE user_id = ?", (self.users["flight_student"]["id"],))["id"]
+
+    def _post(self, c, **kw):
+        d = dict(kind="pre_knowledge", label="Pre-solo aeronautical knowledge", plane="Cessna 172", body=self.BODY, solo="0")
+        d.update(kw)
+        return c.post(f"/flight/students/{self.sid}/solo-signoff/save", data=d)
+
+    def test_copy_kept_without_touching_solo_date(self):
+        c = self.login("master")
+        self.assertTrue(self._post(c).get_json()["ok"])
+        self.assertTrue(self._post(c).get_json()["ok"])  # Copy then Print: one row
+        n = self.q1("SELECT COUNT(*) AS n FROM student_endorsements WHERE student_id = ?", (self.sid,))["n"]
+        self.assertEqual(n, 1)
+        self.assertIsNone(self.q1("SELECT solo_signoff_date FROM students WHERE id = ?", (self.sid,))["solo_signoff_date"])
+
+    def test_shown_on_student_and_cfi_profiles(self):
+        c = self.login("master")
+        self._post(c)
+        html = c.get(f"/flight/students/{self.sid}/edit").get_data(as_text=True)
+        self.assertIn("Endorsements signed", html)
+        self.assertIn(self.BODY, html)
+        row = self.q1("SELECT cfi_id FROM student_endorsements WHERE student_id = ?", (self.sid,))
+        self.assertTrue(row["cfi_id"])
+        html = c.get(f"/flight/cfis/{row['cfi_id']}/edit").get_data(as_text=True)
+        self.assertIn(self.BODY, html)
+
+    def test_cfi_sees_own_on_profile(self):
+        c = self.login("cfi")
+        self._post(c)
+        html = c.get("/flight/cfis/me").get_data(as_text=True)
+        self.assertIn("Endorsements signed", html)
+        self.assertIn(self.BODY, html)

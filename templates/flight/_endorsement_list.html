@@ -1,0 +1,14 @@
+{#- Copies of the endorsements written with "Write endorsement". Needs
+    `endorsements`; `who` = "cfi" shows the student's name, else the CFI's. -#}
+{% if endorsements is defined %}
+<div class="card p-3 mb-3" id="endorsements">
+  <h6 class="mb-2"><i class="bi bi-pencil-square"></i> Endorsements signed <span class="text-muted small fw-normal">({{ endorsements|length }})</span></h6>
+  {% for e in endorsements %}
+  <details class="border-top py-1">
+    <summary class="small"><strong>{{ e.label }}</strong> &middot; {{ (e.student_name if who == 'cfi' else e.cfi_name) or '-' }} &middot; {{ e.signed_on|usdate_short }}</summary>
+    <pre class="small mb-1 mt-1" style="white-space:pre-wrap;font-family:inherit">{{ e.body }}</pre>
+  </details>
+  {% else %}<div class="text-muted small">None yet. They show up here when you press Copy or Print in Write endorsement.</div>
+  {% endfor %}
+</div>
+{% endif %}

@@ -492,6 +492,7 @@
 </div>
 {% endif %}
 
+{% if student and not student.is_station %}{% set who = 'student' %}{% include "flight/_endorsement_list.html" %}{% endif %}
 </div>
 </div>
 {% if student and not student.is_station and endorse_planes is defined %}
@@ -548,13 +549,19 @@
     var body = TEXT[k].replace('{n}', NAME).replace('{a}', plane);
     $('endorse-text').value = body + '\n\n' + us(TODAY) + '\n' + CFI + '\nCFI ' + ($('endorse-cert').value || '____') + '   Exp. ' + us($('endorse-exp').value);
     var opt = $('endorse-kind').selectedOptions[0];
-    $('endorse-note').textContent = opt.dataset.save ? 'Copy or Print also saves today as the solo sign-off date (good for 90 days).' : 'Wording follows AC 61-65; check it against the current edition.';
+    $('endorse-note').textContent = (opt.dataset.save ? 'Copy or Print also saves today as the solo sign-off date (good for 90 days) and ' : 'Copy or Print ') + 'keeps a copy on the student\'s and your profile. Wording follows AC 61-65; check it against the current edition.';
   }
+  var kept = {};
   function save() {
-    var opt = $('endorse-kind').selectedOptions[0];
-    if (!opt.dataset.save) return;
-    fetch(SAVE_URL, { method: 'POST', credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
-      if (d.ok) { saved = true; $('endorse-note').textContent = 'Solo sign-off date saved: ' + us(d.date) + ', good to ' + us(d.expires) + '.'; }
+    var opt = $('endorse-kind').selectedOptions[0], body = $('endorse-text').value;
+    var key = opt.value + '|' + body;
+    if (kept[key]) return;
+    kept[key] = 1;
+    var fd = new FormData();
+    fd.append('kind', opt.value); fd.append('label', opt.textContent.split(' - ')[0]); fd.append('plane', $('endorse-plane').value);
+    fd.append('body', body); fd.append('solo', opt.dataset.save ? '1' : '0');
+    fetch(SAVE_URL, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.ok) { saved = true; $('endorse-note').textContent = (d.date ? 'Solo sign-off date saved: ' + us(d.date) + ', good to ' + us(d.expires) + '. ' : '') + 'A copy is kept on the student\'s and your profile.'; }
     });
   }
   ['endorse-kind', 'endorse-plane'].forEach(function (id) { $(id).addEventListener('change', build); });

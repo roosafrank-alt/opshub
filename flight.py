@@ -2364,6 +2364,8 @@ def _student_form_context(conn, student, **extra):
             ctx["endorse_planes"] = conn.execute(
                 "SELECT tag, make, model FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY schedule_order, tag").fetchall()
             ctx["endorse_cfi"] = current_cfi(conn)
+            ctx["endorsements"] = conn.execute(
+                "SELECT * FROM student_endorsements WHERE student_id = ? ORDER BY id DESC", (student_id,)).fetchall()
         user_row = conn.execute("SELECT email, phone FROM users WHERE id = ?", (student["user_id"],)).fetchone() if student["user_id"] else None
         ctx["student_email"] = user_row["email"] if user_row else None
         ctx["student_phone"] = user_row["phone"] if user_row else None
@@ -2655,9 +2657,10 @@ def student_edit(student_id):
 @flight_bp.route("/students/<int:student_id>/solo-signoff/save", methods=["POST"])
 @cfi_required
 def student_solo_signoff_save(student_id):
-    """The 'Write endorsement' pop-up saves the solo sign-off date (today,
-    expiry 90 days on) in the same step as copying or printing a solo
-    endorsement. Returns JSON for the pop-up."""
+    """The 'Write endorsement' pop-up posts here when the CFI copies or prints
+    the wording. The wording is kept as a copy on the student's profile and the
+    CFI's profile; a solo endorsement (solo=1) also saves today as the solo
+    sign-off date (expiry 90 days on). Returns JSON for the pop-up."""
     conn = get_db()
     student = conn.execute("SELECT id, is_station, user_id FROM students WHERE id = ?", (student_id,)).fetchone()
     if not student or student["is_station"]:
@@ -2667,11 +2670,27 @@ def student_solo_signoff_save(student_id):
         conn.close()
         return jsonify(ok=False, error="owner account"), 403
     today = date.today().isoformat()
-    expires = _solo_signoff_expiry_default(today)
-    conn.execute("UPDATE students SET solo_signoff_date = ?, solo_signoff_expires = ? WHERE id = ?", (today, expires, student_id))
+    out = {"ok": True}
+    if request.form.get("solo", "1") == "1":
+        expires = _solo_signoff_expiry_default(today)
+        conn.execute("UPDATE students SET solo_signoff_date = ?, solo_signoff_expires = ? WHERE id = ?", (today, expires, student_id))
+        out.update(date=today, expires=expires)
+    body = (request.form.get("body") or "").strip()[:2000]
+    if body:
+        cfi = current_cfi(conn)
+        kind = (request.form.get("kind") or "")[:40]
+        dup = conn.execute("SELECT id FROM student_endorsements WHERE student_id = ? AND kind = ? AND body = ? AND signed_on = ?",
+                           (student_id, kind, body, today)).fetchone()
+        if not dup:
+            conn.execute("""INSERT INTO student_endorsements (student_id, cfi_id, cfi_name, kind, label, plane, body, signed_on, created_at)
+                            VALUES (?,?,?,?,?,?,?,?,?)""",
+                         (student_id, cfi["id"] if cfi else None, (cfi["name"] if cfi else session.get("user_name")),
+                          kind, (request.form.get("label") or kind)[:120], (request.form.get("plane") or "")[:120],
+                          body, today, datetime.now().isoformat(timespec="seconds")))
+        out["kept"] = True
     conn.commit()
     conn.close()
-    return jsonify(ok=True, date=today, expires=expires)
+    return jsonify(**out)
 
 
 @flight_bp.route("/students/<int:student_id>/landings/add", methods=["POST"])
@@ -2929,6 +2948,8 @@ def _cfi_form_context(conn, cfi_row, **extra):
     ctx = dict(medical_classes=MEDICAL_CLASSES, cfi=cfi_row, cfi_user=user_row,
                used_colors=_used_cfi_colors(conn, exclude_cfi_id=cfi_id), instructor_colors=SCHEDULE_COLORS,
                form=None, error_field=None)
+    if cfi_row:
+        ctx["endorsements"] = _cfi_endorsements(conn, cfi_id)
     if not cfi_row:
         ctx["starting_password"] = _new_starting_password()
     ctx.update(extra)
@@ -3111,6 +3132,13 @@ def cfi_edit(cfi_id):
     return render_template("flight/cfi_form.html", **ctx)
 
 
+def _cfi_endorsements(conn, cfi_id):
+    """Endorsements this CFI signed, newest first, with the student's name."""
+    return conn.execute("""SELECT e.*, s.name AS student_name FROM student_endorsements e
+                           LEFT JOIN students s ON s.id = e.student_id
+                           WHERE e.cfi_id = ? ORDER BY e.id DESC""", (cfi_id,)).fetchall()
+
+
 @flight_bp.route("/cfis/me", methods=["GET", "POST"])
 @cfi_required
 def cfi_me():
@@ -3143,9 +3171,10 @@ def cfi_me():
         flash("Signature and certificate details saved." if sig_changed and signature else
               ("Signature removed." if sig_changed else "Certificate details saved."), "success")
         return redirect(url_for("flight.cfi_me"))
+    endorsements = _cfi_endorsements(conn, cfi_row["id"])
     conn.close()
     return render_template("flight/cfi_me.html", cfi=cfi_row, credentials=CFI_CREDENTIALS,
-                           medical_labels=dict(MEDICAL_CLASSES))
+                           medical_labels=dict(MEDICAL_CLASSES), endorsements=endorsements)
 
 
 @flight_bp.route("/cfis/<int:cfi_id>/pay")
