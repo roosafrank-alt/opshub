@@ -3,7 +3,7 @@
    is a real blank; the choice is remembered in the session
    (groundschool._resolve_viewing_student) and carried on every Prev /
    Next / back link (gs_url) and redirect, so it never resets. #}
-{% if gs_students %}
+{% if gs_students and gs_home %}
 <form method="get" class="mb-3 d-flex align-items-center gap-2" data-change="SCHOOL-08">
   <label class="text-light small mb-0">Student</label>
   <select name="student_id" class="form-select form-select-sm" style="max-width:280px;" onchange="this.form.submit()">
@@ -13,4 +13,7 @@
   {% if viewing_student_id %}<a href="{{ url_for('groundschool.student_summary', student_id=viewing_student_id) }}" class="btn btn-sm btn-light fw-bold"><i class="bi bi-person-lines-fill"></i> Full summary</a>{% endif %}
   <a href="{{ url_for('groundschool.student_search') }}" class="btn btn-sm btn-outline-light"><i class="bi bi-search"></i> Search students</a>
 </form>
+{% endif %}
+{% if gs_students and not gs_home and viewing_student_id %}
+<div class="mb-2 small text-light" data-change="SCHOOL-08">Viewing <b>{% for s in gs_students if s.id == viewing_student_id %}{{ s.name }}{% endfor %}</b> &middot; <a href="{{ url_for('groundschool.rating_list') }}" class="text-light">change student</a></div>
 {% endif %}

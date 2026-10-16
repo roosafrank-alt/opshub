@@ -226,12 +226,53 @@ class GroundSchoolTest(OpsHubTestCase):
         c = self.login("cfi")
         c.get(f"/flight/groundschool?student_id={self.student_id}")
         html = c.get(f"/flight/groundschool/task/{self.task_id}").get_data(as_text=True)
-        self.assertEqual(html.count("Choose a student..."), 1)
+        self.assertNotIn("Choose a student...", html)      # the picker lives on the Ground School home only
+        self.assertNotIn("Search students", html)
+        self.assertIn("Viewing <b>", html)
+        self.assertIn("change student", html)
         self.assertNotIn("Reading Review - Student", html)
-        self.assertIn(f'<option value="{self.student_id}" selected>', html)
         self.assertIn(f"/flight/groundschool/element/{self.el1}?student_id={self.student_id}", html)
         s = self.login("flight_student")
         self.assertNotIn("Choose a student...", s.get(f"/flight/groundschool/task/{self.task_id}").get_data(as_text=True))
+
+    def _second_course(self, name, slug, finished=False):
+        conn = db.get_db()
+        rid = conn.execute("INSERT INTO acs_ratings (name, slug, uploaded_at, status) VALUES (?,?,?,?)",
+                           (name, slug, db.now_iso(), "parsed")).lastrowid
+        a = conn.execute("INSERT INTO acs_areas (rating_id, code, title, order_index) VALUES (?,?,?,?)", (rid, "I", "Area", 1)).lastrowid
+        t = conn.execute("INSERT INTO acs_tasks (area_id, code, title, acs_references, order_index) VALUES (?,?,?,?,?)", (a, "A", "Task", "x", 1)).lastrowid
+        e = conn.execute("INSERT INTO acs_task_elements (task_id, kind, code, text, order_index) VALUES (?,?,?,?,?)", (t, "knowledge", "X.I.A.K1", "k", 1)).lastrowid
+        if finished:
+            conn.execute("INSERT INTO acs_element_completion (student_id, element_id, cfi_verified_at) VALUES (?,?,?)", (self.student_id, e, db.now_iso()))
+        conn.commit()
+        conn.close()
+        return rid
+
+    def test_home_groups_current_past_future_and_scopes_the_progress_dropdown(self):
+        done = self._second_course("Recreational Pilot", "rec", finished=True)
+        fut = self._second_course("Instrument Rating", "ifr")
+        self.exec("INSERT INTO academy_course_grants (student_id, rating_id, granted_at) VALUES (?, ?, ?)", (self.student_id, fut, db.now_iso()))
+        c = self.login("cfi")
+        html = c.get(f"/flight/groundschool?student_id={self.student_id}").get_data(as_text=True)
+        self.assertIn("Choose a student...", html)                       # picker + summary + search live on the home page
+        self.assertIn("Search students", html)
+        past_i, fut_i = html.index('id="gs-past"'), html.index('id="gs-future"')
+        self.assertNotIn('id="gs-past" open', html)                      # closed by default
+        self.assertIn("Past courses", html)
+        self.assertIn("Future courses", html)
+        self.assertLess(html.index(">Private Pilot</h5>"), past_i)            # current course sits above the folds
+        self.assertGreater(html.index(">Recreational Pilot</h5>"), past_i)
+        self.assertGreater(html.index(">Instrument Rating</h5>"), fut_i)
+        self.assertIn('id="gsd-course"', html)
+        self.assertRegex(html, r'<option value="%d" selected>Private Pilot' % self.rating_id)   # defaults to the enrolled course
+        html = c.get(f"/flight/groundschool?student_id={self.student_id}&course={done}").get_data(as_text=True)
+        self.assertRegex(html, r'<option value="%d" selected>Recreational Pilot \(past\)' % done)
+
+    def test_no_future_box_when_nothing_is_assigned(self):
+        self._second_course("Recreational Pilot", "rec", finished=True)
+        html = self.login("cfi").get(f"/flight/groundschool?student_id={self.student_id}").get_data(as_text=True)
+        self.assertIn('id="gs-past"', html)
+        self.assertNotIn('id="gs-future"', html)
 
     def test_missing_rating_redirects_with_a_message(self):  # SCHOOL-40
         r = self.login("cfi").get("/flight/groundschool/task/99999", follow_redirects=True)

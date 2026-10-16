@@ -27,7 +27,18 @@
   .gsd-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #4dabf7, #69db7c); border-radius: 99px; }
 </style>
 <div class="gsd" data-change="GS-CHARTS">
-  <h5><i class="bi bi-bar-chart-line-fill"></i> Your progress</h5>
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h5 class="mb-0"><i class="bi bi-bar-chart-line-fill"></i> Your progress</h5>
+    {% if dash.options and dash.options|length > 0 %}
+    <form method="get" class="d-flex align-items-center gap-1 mb-0">
+      <label class="small mb-0 opacity-75" for="gsd-course">Course</label>
+      <select name="course" id="gsd-course" class="form-select form-select-sm" style="width:auto;max-width:240px;" onchange="this.form.submit()">
+        {% for o in dash.options %}<option value="{{ o.id }}" {{ 'selected' if dash.picked == o.id }}>{{ o.name }}{% if o.tag == 'past' %} (past){% elif o.tag == 'future' %} (future){% endif %}</option>{% endfor %}
+        <option value="0" {{ 'selected' if not dash.picked }}>All courses</option>
+      </select>
+    </form>
+    {% endif %}
+  </div>
   {% if dash.empty and not dash.courses %}
   <div class="small opacity-75">Open a lesson and this fills in: time studied, quiz scores and games won.</div>
   {% else %}
