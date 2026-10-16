@@ -92,3 +92,15 @@ class AdminAsOwnStudentTest(OpsHubTestCase):
         # not look-only: a JSON POST is not refused
         r = c.post("/flight/groundschool/task/1/lesson-time", json={"seconds": 5})
         self.assertNotEqual(r.status_code, 403)
+
+
+class SwitchRoleStaysOnPageTest(OpsHubTestCase):
+    def test_switching_role_keeps_you_on_the_same_page_when_allowed(self):
+        c = self.login("master")
+        r = c.post("/view-as/shop/tech", headers={"Referer": "http://localhost/admin/users"})
+        # Admin pages are closed to a Shop Tech, so it falls back to the dashboard...
+        self.assertNotIn("/admin/users", r.headers["Location"])
+        c.post("/view-as/exit")
+        # ...but a page the new role may open is kept.
+        r = c.post("/view-as/shop/tech", headers={"Referer": "http://localhost/shop"})
+        self.assertTrue(r.headers["Location"].endswith("/shop"), r.headers["Location"])

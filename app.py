@@ -8835,6 +8835,27 @@ def admin_home():
     return render_template("admin_home.html", user_count=user_count, error_log_count=error_log_count)
 
 
+def _stay_on_page(fallback):
+    """After switching role, stay on the page you were on if the new role may open it
+    (checked by really asking for it with the new session); otherwise go to `fallback`."""
+    from urllib.parse import urlparse
+    raw = request.form.get("next") or request.referrer or ""
+    path = urlparse(raw).path if raw.startswith("http") else raw
+    path = _local_path(path)
+    if not path or path.startswith(("/view-as", "/login", "/logout")):
+        return fallback
+    full = path + (("?" + urlparse(raw).query) if raw.startswith("http") and urlparse(raw).query else "")
+    try:
+        with app.test_client() as tc:
+            with tc.session_transaction() as sess:
+                sess.update(dict(session))
+            if tc.get(full).status_code == 200:
+                return full
+    except Exception:
+        pass
+    return fallback
+
+
 @app.route("/view-as/<program>/<level>", methods=["POST"])
 def view_as_start(program, level):
     """Switches to another role from the "Switch role" chips in the header -
@@ -8856,7 +8877,7 @@ def view_as_start(program, level):
         return redirect(request.referrer or url_for("dashboard"))
     levels = SHOP_VIEW_AS_LEVELS if program == "shop" else FLIGHT_VIEW_AS_LEVELS
     flash(f"Switched to {levels[level]} - you can use everything a{'n' if levels[level][0] in 'AEIOU' else ''} {levels[level]} can.", "info")
-    return redirect(url_for("dashboard") if program == "shop" else url_for("flight.dashboard"))
+    return redirect(_stay_on_page(url_for("dashboard") if program == "shop" else url_for("flight.dashboard")))
 
 
 def _local_path(raw):
@@ -8962,7 +8983,7 @@ def view_as_student_me():
     session["groundschool_access"] = True           # every course is open to you
     session["_view_as_return"] = _local_path(request.form.get("next")) or url_for("academy_page")
     flash("You're using everything as a student, under your own name. Use Back to my normal view when done.", "info")
-    return redirect(url_for("flight.dashboard"))
+    return redirect(_stay_on_page(url_for("flight.dashboard")))
 
 
 @app.route("/view-as/flight/cfi/<int:cfi_id>", methods=["POST"])
