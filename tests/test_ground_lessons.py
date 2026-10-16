@@ -42,6 +42,15 @@ class GroundLessonsTest(OpsHubTestCase):
             self.assertTrue(L["chunks"])
             for q in L.get("quiz", []):
                 self.assertTrue(0 <= q["answer"] < len(q["options"]), f)
+            for a in L.get("activities", []):
+                self.assertIn(a["type"], ground_lessons.ACTIVITY_TYPES, f)
+                if a["type"] == "match":
+                    self.assertTrue(all(p["l"] and p["r"] for p in a["pairs"]), f)
+                elif a["type"] == "sort":
+                    self.assertTrue(all(0 <= i["b"] < len(a["buckets"]) for i in a["items"]), f)
+                elif a["type"] == "label":
+                    self.assertIn(a["figure"], L["figures"], f)
+                    self.assertTrue(all(0 <= p["x"] <= 100 and 0 <= p["y"] <= 100 for p in a["pins"]), f)
             for fg in L.get("figures", {}).values():
                 self.assertTrue(os.path.exists(os.path.join(static, fg["file"])), fg["file"])
 
@@ -51,6 +60,35 @@ class GroundLessonsTest(OpsHubTestCase):
         self.assertIn("Pre-reading", body)
         self.assertIn(f"{GS}/resources/60/excerpt?pages=", body)
         self.assertIn("Lesson Content", body)          # the editable box is still there
+
+    def test_play_section_shows_games(self):
+        body = self.login("master").get(f"{GS}/task/{self.task}").get_data(as_text=True)
+        self.assertIn('id="gsl-play"', body)
+        for kind in ("match", "sort", "order", "tf", "flash"):
+            self.assertIn(f'data-act="{kind}"', body)
+
+    def test_activities_adds_flashcards_and_term_match_from_key_terms(self):
+        L = {"key_terms": [{"term": f"T{i}", "def": f"D{i}"} for i in range(8)]}
+        acts = ground_lessons.activities(L)
+        self.assertEqual([a["type"] for a in acts], ["flash", "match"])
+        self.assertEqual(len(acts[1]["pairs"]), 6)
+        self.assertEqual(ground_lessons.activities({"key_terms": [{"term": "a", "def": "b"}]}), [])
+
+    def test_activity_macro_renders_every_type_and_escapes(self):
+        L = {"figures": {"f1": {"file": "PA.I.A-1.jpg", "alt": "x", "caption": "c"}}}
+        acts = [
+            {"type": "label", "title": "L", "figure": "f1", "pins": [{"x": 10, "y": 20, "label": "<i>A</i>"}]},
+            {"type": "sort", "title": "S", "buckets": ["B0"], "items": [{"t": "i", "b": 0}]},
+        ]
+        with self.app.test_request_context():
+            from flask import render_template_string
+            html = render_template_string(
+                '{% import "flight/_gsl_macros.html" as g %}{% for a in acts %}{{ g.activity(a, L) }}{% endfor %}',
+                acts=acts, L=L)
+        self.assertIn("gsl-pin", html)
+        self.assertIn("left:10%;top:20%", html)
+        self.assertIn("&lt;i&gt;A&lt;/i&gt;", html)
+        self.assertIn("gsl-bucket", html)
 
     def test_rich_escapes_html(self):
         with self.app.test_request_context():

@@ -103,3 +103,20 @@ def for_element(lesson, el_code):
     if not (chunks or scenario or skills):
         return None
     return {"chunks": chunks, "scenario": scenario, "skills": skills, "minutes": sum(c.get("minutes") or 0 for _, c in chunks)}
+
+
+ACTIVITY_TYPES = ("match", "sort", "order", "tf", "flash", "label")
+
+
+def activities(lesson):
+    """Games for a lesson: its own `activities` list (JSON), then a flashcard deck and a
+    term-matching game built from `key_terms`, so every lesson has something to play."""
+    out = list(lesson.get("activities") or [])
+    terms = [t for t in lesson.get("key_terms") or [] if t.get("term") and t.get("def")]
+    if len(terms) >= 4:
+        out.append({"type": "flash", "title": "Flashcards: key terms",
+                    "cards": [{"front": t["term"], "back": t["def"]} for t in terms]})
+        out.append({"type": "match", "title": "Match the term",
+                    "intro": "Tap a term on the left, then its meaning on the right.",
+                    "pairs": [{"l": t["term"], "r": t["def"]} for t in terms[:6]]})
+    return out

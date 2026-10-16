@@ -48,3 +48,56 @@
   {% endfor %}
 </div>
 {% endmacro %}
+
+{#- GS-INTERACTIVE: one game / activity. a.type is match, sort, order, tf, flash or label.
+   Text goes through gs_rich; the page's JS (ground-lesson.js) shuffles and scores. -#}
+{% macro activity(a, L) %}
+{% set icons = {'match':'bi-link-45deg','sort':'bi-collection','order':'bi-list-ol','tf':'bi-lightning-charge','flash':'bi-card-text','label':'bi-geo-alt'} %}
+<div class="gsl-act gsl-act-{{ a.type }}" data-act="{{ a.type }}">
+  <div class="gsl-act-head"><i class="bi {{ icons.get(a.type, 'bi-controller') }}"></i> <b>{{ a.title }}</b></div>
+  {% if a.intro %}<p class="gsl-act-intro">{{ gs_rich(a.intro) }}</p>{% endif %}
+
+  {% if a.type == 'match' %}
+    <div class="gsl-pairing gsl-match-cols" data-total="{{ a.pairs|length }}">
+      <div class="gsl-col">{% for p in a.pairs %}<button type="button" class="gsl-tile" data-side="l" data-k="{{ loop.index0 }}">{{ gs_rich(p.l) }}</button>{% endfor %}</div>
+      <div class="gsl-col" data-shuffle="1">{% for p in a.pairs %}<button type="button" class="gsl-tile" data-side="r" data-k="{{ loop.index0 }}">{{ gs_rich(p.r) }}</button>{% endfor %}</div>
+    </div>
+
+  {% elif a.type == 'label' and L.figures and L.figures.get(a.figure) %}
+    {% set f = L.figures[a.figure] %}
+    <div class="gsl-pairing gsl-label" data-total="{{ a.pins|length }}">
+      <div class="gsl-label-img"><img src="{{ url_for('static', filename='lessons/' ~ f.file) }}" alt="{{ f.alt or f.caption }}" loading="lazy">
+        {% for p in a.pins %}<button type="button" class="gsl-pin" data-side="l" data-k="{{ loop.index0 }}" style="left:{{ p.x }}%;top:{{ p.y }}%">{{ loop.index }}</button>{% endfor %}</div>
+      <div class="gsl-bank" data-shuffle="1">{% for p in a.pins %}<button type="button" class="gsl-tile" data-side="r" data-k="{{ loop.index0 }}">{{ gs_rich(p.label) }}</button>{% endfor %}</div>
+    </div>
+
+  {% elif a.type == 'sort' %}
+    <div class="gsl-sort" data-total="{{ a['items']|length }}">
+      <div class="gsl-pool" data-shuffle="1">{% for it in a['items'] %}<button type="button" class="gsl-tile gsl-item" data-b="{{ it.b }}">{{ gs_rich(it.t) }}</button>{% endfor %}</div>
+      <div class="gsl-buckets">{% for b in a.buckets %}<button type="button" class="gsl-bucket" data-b="{{ loop.index0 }}"><span class="gsl-bucket-name">{{ gs_rich(b) }}</span><span class="gsl-bucket-items"></span></button>{% endfor %}</div>
+    </div>
+
+  {% elif a.type == 'order' %}
+    <ol class="gsl-order" data-shuffle="1">{% for s in a.steps %}<li data-pos="{{ loop.index0 }}"><span class="gsl-order-t">{{ gs_rich(s) }}</span>
+      <span class="gsl-order-btns"><button type="button" class="gsl-up" aria-label="Move up"><i class="bi bi-chevron-up"></i></button><button type="button" class="gsl-down" aria-label="Move down"><i class="bi bi-chevron-down"></i></button></span></li>{% endfor %}</ol>
+    <button type="button" class="gsl-btn gsl-order-check">Check my order</button>
+
+  {% elif a.type == 'tf' %}
+    <div class="gsl-tf" data-total="{{ a.cards|length }}">
+      {% for c in a.cards %}<div class="gsl-tfcard" data-a="{{ 'true' if c.a else 'false' }}" {% if not loop.first %}hidden{% endif %}>
+        <div class="gsl-tfstmt">{{ gs_rich(c.s) }}</div>
+        <div class="gsl-tfbtns"><button type="button" class="gsl-btn" data-v="true">True</button><button type="button" class="gsl-btn" data-v="false">False</button></div>
+        <div class="gsl-tfwhy" hidden>{{ gs_rich(c.why) }}</div></div>{% endfor %}
+      <button type="button" class="gsl-btn gsl-tfnext" hidden>Next <i class="bi bi-arrow-right-short"></i></button>
+    </div>
+
+  {% elif a.type == 'flash' %}
+    <div class="gsl-flash" data-total="{{ a.cards|length }}">
+      {% for c in a.cards %}<button type="button" class="gsl-fcard" {% if not loop.first %}hidden{% endif %}><span class="gsl-ffront">{{ gs_rich(c.front) }}</span><span class="gsl-fback" hidden>{{ gs_rich(c.back) }}</span></button>{% endfor %}
+      <div class="gsl-fnav"><button type="button" class="gsl-btn gsl-fprev"><i class="bi bi-chevron-left"></i></button><span class="gsl-fcount"></span><button type="button" class="gsl-btn gsl-fnext"><i class="bi bi-chevron-right"></i></button></div>
+      <p class="gsl-act-intro">Tap a card to flip it.</p>
+    </div>
+  {% endif %}
+  <div class="gsl-act-status" aria-live="polite"></div>
+</div>
+{% endmacro %}
