@@ -169,7 +169,7 @@
       <div class="col-12 col-md-6 col-lg-5">
         <label class="form-label small mb-0">Note{% if not f.asset_is_owner_placeholder %} <span class="text-muted">(sent to Maintenance when you Save)</span>{% endif %}</label>
         <div class="input-group input-group-sm">
-          <input type="text" name="notes" class="form-control form-control-sm" style="min-width:16ch" value="{{ f.notes or '' }}">
+          <textarea name="notes" rows="1" class="form-control form-control-sm" style="min-width:16ch;resize:none;overflow:hidden" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onfocus="this.style.height='auto';this.style.height=this.scrollHeight+'px'">{{ f.notes or '' }}</textarea><script>(function(){var t=document.currentScript.previousElementSibling;t.style.height='auto';t.style.height=t.scrollHeight+'px';})();</script>
           {% if not f.asset_is_owner_placeholder %}
           {#- Same save as the Save button below (it already files the note as a squawk); this just makes it a one-tap "send now", before the flight ends. #}
           <button type="submit" name="send_note" value="1" class="btn btn-outline-primary text-nowrap"><i class="bi bi-send"></i> {{ 'Update Maintenance' if (f.squawk and f.notes) else 'Send to Maintenance' }}</button>
