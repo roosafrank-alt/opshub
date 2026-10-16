@@ -293,6 +293,7 @@
       function targetAt(x, y) {
         var el = document.elementFromPoint(x, y);
         var t = el && el.closest('[data-k],.gsl-bucket');
+        if (t && t.getAttribute('data-side') && t.getAttribute('data-side') === src.getAttribute('data-side')) return null;   // a match goes across, never down the same column
         return (t && t !== src && act.contains(t) && !t.disabled) ? t : null;
       }
       function move(ev) {
@@ -302,6 +303,9 @@
           if (moved < 10) return;
           ghost = src.cloneNode(true); ghost.removeAttribute('data-k'); ghost.className += ' gsl-ghost';
           ghost.style.width = src.offsetWidth + 'px'; document.body.appendChild(ghost); src.classList.add('gsl-dragging');
+          act.classList.add('gsl-dragmode');            // dims the tiles you can't drop on, lights up the ones you can
+          var sd = src.getAttribute('data-side');
+          if (sd) act.querySelectorAll('[data-k]').forEach(function (x) { x.classList.add(x.getAttribute('data-side') === sd ? 'gsl-nodrop' : 'gsl-cando'); });
         }
         ev.preventDefault();
         ghost.style.left = (ev.clientX - 20) + 'px'; ghost.style.top = (ev.clientY - 20) + 'px';
@@ -312,6 +316,7 @@
       }
       function cleanup() {
         clearTimeout(holdT); src.classList.remove('gsl-held');
+        if (act) { act.classList.remove('gsl-dragmode'); act.querySelectorAll('.gsl-nodrop,.gsl-cando').forEach(function (x) { x.classList.remove('gsl-nodrop', 'gsl-cando'); }); }
         document.removeEventListener('touchmove', stopScroll);
         document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up);
         document.removeEventListener('pointercancel', up);
