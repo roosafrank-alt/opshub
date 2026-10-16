@@ -718,5 +718,286 @@
   "The AFH has no constant-airspeed descent procedure by instruments; it points to the IFH. The step-by-step is from IFH Ch 7.",
   "Stress is covered in general terms (PHAK 17-12, AC 60-22 par 21e); no source here gives a stress-management method specific to instrument flying.",
   "No source gives specific guidance on emergency off-airport landings while in IMC; the AFH covers precautionary vs forced landings in general."
+ ],
+ "activities": [
+  {
+   "type": "match",
+   "key": "h1",
+   "after": 1,
+   "title": "Which instrument does this job?",
+   "intro": "Tap an instrument, then the job it does in a constant airspeed descent.",
+   "pairs": [
+    {
+     "l": "Attitude indicator",
+     "r": "Only positive attitude reference while the descent settles"
+    },
+    {
+     "l": "Airspeed indicator",
+     "r": "Primary for pitch once the descent is steady"
+    },
+    {
+     "l": "VSI",
+     "r": "Warns you first of an up or down trend"
+    },
+    {
+     "l": "Altimeter",
+     "r": "The only one that gives your exact altitude"
+    },
+    {
+     "l": "Heading indicator",
+     "r": "Primary for bank in straight flight"
+    },
+    {
+     "l": "Tachometer or MP gauge",
+     "r": "Set to a known power value for the descent"
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h2",
+   "after": 2,
+   "title": "Whose error is it?",
+   "intro": "Tap a clue, then tap the instrument it belongs to.",
+   "buckets": [
+    "VSI",
+    "Attitude indicator",
+    "Heading indicator",
+    "Altimeter"
+   ],
+   "items": [
+    {
+     "t": "Lags a few seconds behind the real change",
+     "b": 0
+    },
+    {
+     "t": "In turbulence, read the average of the swings",
+     "b": 0
+    },
+    {
+     "t": "Shows a slight nose-up in a rapid acceleration",
+     "b": 1
+    },
+    {
+     "t": "Small bank error after a 180° turn that fixes itself in a minute or so",
+     "b": 1
+    },
+    {
+     "t": "Not north-seeking, so you set it from the compass",
+     "b": 2
+    },
+    {
+     "t": "Drifts about 15° per hour as the Earth turns",
+     "b": 2
+    },
+    {
+     "t": "Freezes at one reading if the static port is blocked",
+     "b": 3
+    },
+    {
+     "t": "Shows a little higher than actual on the alternate static source",
+     "b": 3
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h3",
+   "after": 4,
+   "title": "Down, then level off at cruise speed",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Still level, slow to your chosen descent airspeed",
+    "Reduce power to a known setting and lower the nose together to hold airspeed",
+    "Trim off the control pressures",
+    "At 500 fpm, 100 to 150 ft above the altitude, add cruise power",
+    "Hold forward pressure to keep the descent going until about 50 ft above",
+    "Smoothly raise the nose to the level flight attitude",
+    "Trim and go back to the straight-and-level cross-check"
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h4",
+   "after": 6,
+   "title": "True or false: smooth control and common errors",
+   "cards": [
+    {
+     "s": "You want a 500 fpm descent and after a correction the VSI shows 750 fpm down. You are overcontrolling.",
+     "a": true,
+     "why": "Yes. A VSI reading more than 200 fpm past the rate you wanted means overcontrolling [[23:139|IFH 6-6]]."
+    },
+    {
+     "s": "The best way to change pitch is with the trim wheel alone.",
+     "a": false,
+     "why": "No. Set the attitude with control pressure first, then trim. Using trim alone to change attitude usually gives erratic control [[23:143|IFH 6-10]]."
+    },
+    {
+     "s": "Once the altimeter reaches your altitude, you can slow down your scan.",
+     "a": false,
+     "why": "No. Keep a fast cross-check until you are firmly established in straight-and-level flight [[23:180|IFH 7-19]]."
+    },
+    {
+     "s": "Ballooning at level-off comes from not holding forward pressure as power comes in.",
+     "a": true,
+     "why": "Yes. As power increases, the nose pitches up unless you hold the descent attitude with forward elevator pressure [[23:180|IFH 7-19]]."
+    },
+    {
+     "s": "If you raise the nose before adding power at level-off, airspeed drops below the target.",
+     "a": true,
+     "why": "Yes. Raising the nose first adds drag and slows the airplane. Change pitch and power together [[23:212|IFH 7-51]]."
+    },
+    {
+     "s": "When the VSI shows a change, make your pitch correction by looking at the VSI.",
+     "a": false,
+     "why": "No. Always make pitch changes on the attitude indicator. Using the VSI to fly pitch leads to chasing it [[23:212|IFH 7-51]] [[23:140|IFH 6-7]]."
+    }
+   ]
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "You are in a steady constant airspeed descent at 90 knots with power set. The airspeed creeps up to 97 knots. What is the right fix?",
+   "options": [
+    "Raise the nose slightly, using the attitude indicator",
+    "Lower the nose slightly to steady the descent rate",
+    "Add a little power",
+    "Roll in some nose-down trim"
+   ],
+   "answer": 0,
+   "why": "In a constant airspeed descent, any airspeed error calls for a pitch change [[23:178|IFH 7-17]]. Airspeed going up means the nose is too low, so raise it a little [[23:139|IFH 6-6]]."
+  },
+  {
+   "q": "Your instructor switches the exercise to a constant RATE descent at 500 fpm. Once the VSI settles near 500 fpm, which instrument is primary for pitch?",
+   "options": [
+    "Airspeed indicator",
+    "Altimeter",
+    "VSI",
+    "Tachometer"
+   ],
+   "answer": 2,
+   "why": "In a constant rate descent, the VSI is primary for pitch and the airspeed indicator is primary for power. Only in a constant airspeed descent is the airspeed indicator primary for pitch [[23:178|IFH 7-17]]."
+  },
+  {
+   "q": "Why does a standard VSI lag a few seconds behind the real change?",
+   "options": [
+    "Its gyro needs time to precess",
+    "Its case vents to static through a small calibrated orifice, so case pressure changes slowly",
+    "It must wait for pitot pressure to build up",
+    "Its needle is damped by fluid, like a compass"
+   ],
+   "answer": 1,
+   "why": "The aneroid and the case both connect to static, but the case is vented through a calibrated orifice, so its pressure changes more slowly. The needle lags a few seconds behind the actual change [[23:103|IFH 5-8]]."
+  },
+  {
+   "q": "The static port ices over at 5,000 ft. The pitot tube stays clear and you keep descending to 3,000 ft. What does the airspeed indicator show?",
+   "options": [
+    "Zero",
+    "The correct airspeed",
+    "Lower than your actual airspeed",
+    "Higher than your actual airspeed"
+   ],
+   "answer": 3,
+   "why": "Below the blockage altitude, the low static pressure trapped in the system makes the airspeed read faster than actual [[23:98|IFH 5-3]]. The altimeter would stay frozen at 5,000 ft."
+  },
+  {
+   "q": "A student keeps scanning, but she trusts the attitude indicator most because she understands it best. She barely uses the others, and her altitude wanders. Which error is this?",
+   "options": [
+    "Fixation",
+    "Omission",
+    "Emphasis",
+    "Spatial disorientation"
+   ],
+   "answer": 2,
+   "why": "Emphasis is relying on the one instrument you understand best. You can hold altitude roughly with the attitude indicator, but not precisely without the altimeter [[23:146|IFH 6-13]]."
+  },
+  {
+   "q": "You are descending at 90 knots and want to level off at 90 knots. About 50 ft above the altitude, what do you do?",
+   "options": [
+    "Raise the nose to the level attitude and add power at the same time",
+    "Add power first, then raise the nose once you reach the altitude",
+    "Raise the nose only and leave the power where it is",
+    "Reduce power a little more, then raise the nose"
+   ],
+   "answer": 0,
+   "why": "To level off at descent airspeed, lead by about 50 ft, adjust pitch to level and add power together to a setting that holds the airspeed. Then trim [[23:178|IFH 7-17]]."
+  },
+  {
+   "q": "On a glass panel, you are descending at 800 fpm toward 4,000 ft and plan to go back to cruise speed. Using the IFH 10 percent rule, when do you start the level-off?",
+   "options": [
+    "About 4,050 ft",
+    "About 4,080 ft",
+    "About 4,160 ft",
+    "About 4,800 ft"
+   ],
+   "answer": 1,
+   "why": "Lead by 10 percent of the descent rate. 10 percent of 800 fpm is 80 ft, so start at about 4,080 ft [[23:211|IFH 7-50]]."
+  },
+  {
+   "q": "On your checkride the examiner assigns 4,000 ft, heading 090 and 100 knots. After the level-off you hold 4,150 ft, heading 115 and 108 knots. What is outside the ACS limits?",
+   "options": [
+    "Altitude",
+    "Heading",
+    "Airspeed",
+    "Altitude and airspeed"
+   ],
+   "answer": 1,
+   "why": "ACS PA.VIII.C.S3 allows ±200 ft, ±20° and ±10 knots. You are 150 ft, 25° and 8 knots off, so only the heading is out. Fix heading errors while they are small: a 1° error is much easier to fix than a 20° one [[23:174|IFH 7-13]]."
+  },
+  {
+   "q": "Your airspeed is a little high and you need to raise the nose. How big should each pitch change on the attitude indicator be?",
+   "options": [
+    "Two bar widths",
+    "About 5° of pitch",
+    "Until the VSI shows 500 fpm up",
+    "No more than half a bar width"
+   ],
+   "answer": 3,
+   "why": "Move the horizon bar no more than one-half bar width at a time, and add another half bar only if needed [[23:138|IFH 6-5]]. Small changes are easy to stop and correct [[23:178|IFH 7-17]]."
+  },
+  {
+   "q": "You have no instrument training and get caught in cloud. You need to descend to clear air below. Which plan follows the AFH?",
+   "options": [
+    "A gentle descending turn toward where it was clear, at about 1,000 fpm",
+    "Power to idle with the nose two bar widths low",
+    "Wings level, power reduced in small steps, 500 fpm or less, nose no more than one bar width low",
+    "Hold altitude and look outside for the ground before changing anything"
+   ],
+   "answer": 2,
+   "why": "Reduce power in steps of 100 rpm or 1 inch MP, keep the descent at 500 fpm or less, wings level, nose no more than one bar width below level [[24:369|AFH 18-20]]. Avoid descending turns if you can [[24:370|AFH 18-21]]."
+  },
+  {
+   "q": "You are not instrument rated and are talking to ATC. The weather ahead means you can't stay VFR. What should you tell the controller?",
+   "options": [
+    "That you are not instrument rated, and declare a distress condition",
+    "Request an IFR clearance and vectors through the clouds",
+    "Nothing yet; wait until you are sure you are in trouble",
+    "Ask for a practice instrument approach"
+   ],
+   "answer": 0,
+   "why": "If you can't continue VFR and have no instrument rating, tell the controller so and declare a distress condition [[34:29|AIM 6-2-1]]. Ask for help early, not after things get worse [[34:28|AIM 6-1-2]]."
+  },
+  {
+   "q": "You want to practice this Task under the hood in a Cessna 172 with a safety pilot. Who meets 14 CFR 91.109?",
+   "options": [
+    "A student pilot with a solo endorsement",
+    "A passenger with good eyesight who will watch for traffic",
+    "A commercial pilot with only a helicopter rating",
+    "A private pilot with an airplane single-engine land rating"
+   ],
+   "answer": 3,
+   "why": "The safety pilot must hold at least a private pilot certificate with category and class ratings for the aircraft being flown [[60:446|14 CFR 91.109(c)(1)]]."
+  },
+  {
+   "q": "ATC is helping you down through haze and gives quick heading and altitude changes. You feel rushed and your scan is falling apart. What should you do?",
+   "options": [
+    "Make each change as fast as you can so ATC isn't kept waiting",
+    "Ask the controller to slow down, and keep each change small and smooth",
+    "Turn off the radio to cut your workload",
+    "Switch to 121.5 MHz and start over"
+   ],
+   "answer": 1,
+   "why": "Don't let the controller's sense of urgency rush you into a maneuver that could cause loss of control. It's reasonable to ask the controller to slow down [[24:370|AFH 18-21]]."
+  }
  ]
 }
