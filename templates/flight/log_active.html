@@ -199,6 +199,19 @@
   {% if acked_id == f.id %}
   <div class="alert alert-success py-1 px-2 small mb-2"><i class="bi bi-check-circle-fill"></i> Acknowledged - the running-late alert is quiet for 15 min.</div>
   {% endif %}
+  {% if f.can_ack and not f.stopped_at %}
+  <details class="running-late-box border rounded p-2 mb-2">
+    <summary class="small fw-bold"><i class="bi bi-clock-history text-warning"></i> Running late</summary>
+    <form method="post" action="{{ url_for('flight.log_running_late', flight_id=f.id) }}" class="mt-2 mb-0" data-late-base="{{ f.late_base }}">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <input type="number" name="late_minutes" min="1" max="600" inputmode="numeric" required class="form-control form-control-sm" style="width:5.5rem" placeholder="Minutes" aria-label="Minutes late">
+        <span class="small">New ETA: <strong class="late-eta-preview">--</strong></span>
+      </div>
+      <input type="text" name="late_note" maxlength="500" class="form-control form-control-sm mt-2" placeholder="Note for the next instructor only (optional)" aria-label="Note for the next instructor only">
+      <button type="submit" class="btn btn-sm btn-warning fw-bold mt-2">Tell next flight</button>
+    </form>
+  </details>
+  {% endif %}
   {#- Updated ETA for a late flight - shows once the scheduled block is up
      (the JS below reveals it live), or whenever an ETA is already set.
      Later bookings sharing the plane, instructor or student that start
@@ -637,6 +650,20 @@
   document.addEventListener('visibilitychange', function () { if (!document.hidden) sync(); });
   setInterval(sync, 10000);
 })();
+
+document.addEventListener('input', function (e) {
+  var form = e.target.closest && e.target.closest('form[data-late-base]');
+  if (!form || e.target.name !== 'late_minutes') return;
+  var base = new Date(form.getAttribute('data-late-base'));
+  var now = new Date();
+  if (base < now) base = now;
+  var m = parseInt(e.target.value, 10);
+  var out = form.querySelector('.late-eta-preview');
+  if (!m || m < 1) { out.textContent = '--'; return; }
+  var d = new Date(base.getTime() + m * 60000);
+  var h = d.getHours(), mm = ('0' + d.getMinutes()).slice(-2);
+  out.textContent = ((h % 12) || 12) + ':' + mm + ' ' + (h < 12 ? 'AM' : 'PM');
+});
 
 // Tap feedback for Acknowledge / ETA: the tapped button shows "Saving..."
 // right away and the form's buttons lock so a second tap can't double-post.

@@ -7175,6 +7175,7 @@ def log_active():
         sim_elapsed_label = _sim_elapsed_label(r) if is_sim_row else None
         flights.append(dict(row_cost, can_end=_can_end_flight(r), can_ack=_can_ack_overdue(r),
                             session_status=_session_status(r), eta_label=eta_label,
+                            late_base=_late_base(r).strftime("%Y-%m-%dT%H:%M:%S"),
                             eta_affected=affected.get(r["id"], []), sim_elapsed_hours=sim_elapsed_hours,
                             sim_elapsed_label=sim_elapsed_label))
     # Still-flying flights above ones whose clock has already been stopped
@@ -7199,6 +7200,90 @@ def log_active():
                            acked_id=request.args.get("acked", type=int),
                            eta_saved_id=request.args.get("eta_saved", type=int),
                            can_bill=can_manage_billing(), wave_connected=bool(wave_accounts))
+
+
+def _late_base(f):
+    """When a running flight is due to end (scheduled start + block), or right
+    now if that has passed or there is no scheduled block. The Running late
+    box adds its minutes to this to get the new ETA."""
+    now = datetime.strptime(now_iso(), "%Y-%m-%d %H:%M:%S")
+    try:
+        start = datetime.strptime(f"{f['late_sched_date']} {f['late_sched_time']}", "%Y-%m-%d %H:%M")
+        end = start + timedelta(hours=f["scheduled_duration_hours"] or 0) if f["scheduled_duration_hours"] else None
+    except (TypeError, ValueError, KeyError):
+        end = None
+    return end if end and end > now else now
+
+
+def _next_booking_on_plane(conn, f):
+    """The next still-booked flight on this flight's plane, later the same day."""
+    try:
+        start = datetime.strptime(f"{f['late_sched_date']} {f['late_sched_time']}", "%Y-%m-%d %H:%M")
+    except (TypeError, ValueError, KeyError):
+        start = datetime.strptime(f["started_at"], "%Y-%m-%d %H:%M:%S")
+    return conn.execute("""SELECT * FROM scheduled_flights
+                           WHERE status = 'scheduled' AND asset_id = ? AND scheduled_date = ? AND scheduled_time > ?
+                             AND id IS NOT ?
+                           ORDER BY scheduled_time LIMIT 1""",
+                        (f["asset_id"], start.strftime("%Y-%m-%d"), start.strftime("%H:%M"),
+                         f["scheduled_flight_id"])).fetchone()
+
+
+@flight_bp.route("/log/<int:flight_id>/running_late", methods=["POST"])
+@login_required
+def log_running_late(flight_id):
+    """Running late: the CFI (or admin, or solo student) enters how many minutes
+    late. The flight's ETA becomes its scheduled end + those minutes, and the
+    NEXT booking on the same plane is told (student: alert + push; instructor:
+    push) the plane is N min late with the new ETA. The optional note goes only
+    to that booking's instructor, never the student."""
+    conn = get_db()
+    f = conn.execute(_LOG_ROW_SQL + " WHERE f.id = ?", (flight_id,)).fetchone()
+    back = url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}"
+    if not f or not f["started_at"] or f["ended_at"]:
+        conn.close()
+        flash("That flight isn't currently running.", "danger")
+        return redirect(url_for("flight.log_active"))
+    if not _can_ack_overdue(f):
+        conn.close()
+        flash("Only a CFI, an admin, or the student (on a solo flight) can report running late.", "danger")
+        return redirect(back)
+    minutes = _parse_int(request.form.get("late_minutes"))
+    if not minutes or minutes < 1 or minutes > 600:
+        conn.close()
+        flash("Enter how many minutes late (1-600).", "danger")
+        return redirect(back)
+    note = (request.form.get("late_note") or "").strip()[:500]
+    eta = (_late_base(f) + timedelta(minutes=minutes)).replace(second=0, microsecond=0)
+    conn.execute("UPDATE flights SET eta_at = ?, eta_set_by = ?, overdue_acknowledged_at = ? WHERE id = ?",
+                 (eta.strftime("%Y-%m-%d %H:%M:%S"), session.get("user_name"), now_iso(), flight_id))
+    eta_label = _format_time_12h(eta.strftime("%H:%M"))
+    nxt = _next_booking_on_plane(conn, f)
+    told = 0
+    if nxt:
+        plane = f["plane_tag"]
+        body = f"{plane} is {minutes} minutes late. New ETA {eta_label}."
+        url = url_for("flight.schedule_calendar", view="day")
+        if nxt["student_id"]:
+            _notify_student(conn, nxt["student_id"], "running_late", body, link=url, scheduled_flight_id=nxt["id"])
+            su = conn.execute("SELECT user_id FROM students WHERE id = ?", (nxt["student_id"],)).fetchone()
+            if su and su["user_id"]:
+                push.queue_and_push(conn, su["user_id"], "Plane running late", body, tag=f"late-{nxt['id']}", url=url)
+                told += 1
+        if nxt["cfi_id"]:
+            cu = conn.execute("SELECT user_id FROM cfis WHERE id = ?", (nxt["cfi_id"],)).fetchone()
+            if cu and cu["user_id"]:
+                push.queue_and_push(conn, cu["user_id"], "Plane running late",
+                                    body + (f" Note from {session.get('user_name')}: {note}" if note else ""),
+                                    tag=f"late-{nxt['id']}", url=url)
+                told += 1
+    conn.commit()
+    conn.close()
+    if nxt:
+        flash(f"Next booking on {f['plane_tag']} ({_format_time_12h(nxt['scheduled_time'])}) told: {minutes} min late, new ETA {eta_label}.", "success")
+    else:
+        flash(f"ETA set to {eta_label}. No later booking on {f['plane_tag']} today.", "success")
+    return redirect(back)
 
 
 @flight_bp.route("/log/<int:flight_id>/ack_overdue", methods=["POST"])
@@ -8509,7 +8594,8 @@ _LOG_ROW_SQL = """
            a.is_owner_placeholder as asset_is_owner_placeholder,
            s.balance as student_balance, s.pay_preference as student_pay_preference,
            c.rate_per_hour as cfi_rate_per_hour, c.external_rate as cfi_external_rate,
-           sf.duration_hours as scheduled_duration_hours, sf.part_solo as scheduled_part_solo
+           sf.duration_hours as scheduled_duration_hours, sf.part_solo as scheduled_part_solo,
+           sf.scheduled_date as late_sched_date, sf.scheduled_time as late_sched_time
     FROM flights f
     JOIN students s ON s.id = f.student_id
     JOIN assets a ON a.id = f.asset_id
