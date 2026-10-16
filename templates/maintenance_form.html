@@ -7,6 +7,7 @@
   <h4>{{ 'Edit Maintenance Item' if item else 'Add Maintenance Item' }}</h4>
   <p class="text-muted small mb-3"><i class="bi bi-airplane"></i> {{ asset.tag }}{% if asset.name and asset.name != asset.tag %} &middot; {{ asset.name }}{% endif %}</p>
   <form method="post">
+{% if item %}
     <div class="mb-3">
       <label class="form-label">Item Name *</label>
       <input type="text" name="name" class="form-control" value="{{ item.name if item else '' }}" required autofocus placeholder="e.g. Oil Change, Annual Inspection">
@@ -78,6 +79,78 @@
       <label class="form-label">Notes</label>
       <textarea name="notes" class="form-control" rows="2">{{ item.notes if item else '' }}</textarea>
     </div>
+{% else %}
+    <div class="mb-3 position-relative">
+      <label class="form-label" for="maint-name">Item (type to search, or add your own) *</label>
+      <input type="text" name="name" id="maint-name" class="form-control" required autofocus autocomplete="off" role="combobox" aria-expanded="false" aria-controls="maint-list" placeholder="e.g. Oil change, Annual">
+      <div id="maint-list" class="list-group position-absolute w-100 shadow-sm" style="display:none;z-index:20;max-height:14rem;overflow-y:auto;" role="listbox"></div>
+    </div>
+    <div class="small text-muted mb-3" id="maint-fills" style="display:none;"></div>
+    <div id="maint-custom" class="row" style="display:none;">
+      <div class="col-6 mb-3">
+        <label class="form-label">Tracked by</label>
+        <select name="type" id="maint-type-select" class="form-select">
+          <option value="hours" selected>Hours</option>
+          <option value="calendar">Calendar</option>
+        </select>
+      </div>
+      <div class="col-6 mb-3" id="maint-int-hours">
+        <label class="form-label">Every (hours)</label>
+        <input type="number" step="any" name="interval_hours" class="form-control" placeholder="e.g. 50">
+      </div>
+      <div class="col-6 mb-3" id="maint-int-days" style="display:none;">
+        <label class="form-label">Every (days)</label>
+        <input type="number" name="interval_days" class="form-control" placeholder="e.g. 365">
+      </div>
+    </div>
+    <div class="mb-3" id="maint-last-hours">
+      <label class="form-label">Last done at (hours) <span class="text-muted small">(optional, defaults to current reading)</span></label>
+      <input type="number" step="any" name="last_done_hours" class="form-control" placeholder="e.g. 4500">
+    </div>
+    <div class="mb-3" id="maint-last-date" style="display:none;">
+      <label class="form-label">Last done <span class="text-muted small">(optional, defaults to today)</span></label>
+      <input type="date" name="last_done_date" class="form-control">
+    </div>
+    <details class="mb-3">
+      <summary class="text-muted small mb-2">More details (meter, reminder lead, category, reference, checklist, notes)</summary>
+      <div class="mb-3">
+        <label class="form-label">Category <span class="text-muted small">(color on the Calendar)</span></label>
+        <select name="category" id="maint-category" class="form-select">
+          <option value="annual">Annual Inspection</option>
+          <option value="100hour">100-Hour Inspection</option>
+          <option value="oil_change">Oil Change</option>
+          <option value="scheduled_maint" selected>Scheduled Maintenance (Other)</option>
+        </select>
+      </div>
+      <div class="mb-3" id="maint-meter">
+        <label class="form-label">Meter</label>
+        <select name="hour_type" class="form-select">
+          <option value="tach" selected>Tach time</option>
+          <option value="hobbs">Hobbs time</option>
+        </select>
+      </div>
+      <div class="mb-3" id="maint-lead-hours">
+        <label class="form-label">Remind me when <span class="text-muted small">(hours before due; blank = 10% of interval)</span></label>
+        <input type="number" step="any" name="remind_lead_hours" class="form-control" placeholder="e.g. 10">
+      </div>
+      <div class="mb-3" id="maint-lead-days" style="display:none;">
+        <label class="form-label">Remind me when <span class="text-muted small">(days before due; blank = 10% of interval)</span></label>
+        <input type="number" step="any" name="remind_lead_days" class="form-control" placeholder="e.g. 14">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Reference Info <span class="text-muted small">(basic info to have on hand for the job)</span></label>
+        <textarea name="reference_info" class="form-control" rows="2" placeholder="e.g. Use 15W-50, torque to 25 ft-lb, filter part #ABC123"></textarea>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Prework Checklist <span class="text-muted small">(one item per line)</span></label>
+        <textarea name="checklist" class="form-control" rows="4" placeholder="Gather oil filter&#10;Drain pan ready&#10;Torque wrench on hand"></textarea>
+      </div>
+      <div>
+        <label class="form-label">Notes</label>
+        <textarea name="notes" class="form-control" rows="2"></textarea>
+      </div>
+    </details>
+{% endif %}
     <div class="d-flex gap-2" data-change="DESIGN-8">
       <button type="submit" class="btn btn-dark fw-bold" data-change="DESIGN-1">{{ 'Save Changes' if item else 'Add Item' }}</button>
       <a href="{{ url_for('asset_detail', asset_id=asset.id) }}" class="btn btn-outline-secondary" onclick="var r = document.referrer; if (r && r.indexOf(location.origin) === 0 && r !== location.href && history.length > 1) { history.back(); return false; }">Cancel</a>
@@ -86,6 +159,7 @@
 </div>
 </div>
 </div>
+{% if item %}
 <script>
   (function () {
     var typeSelect = document.getElementById('maint-type-select');
@@ -97,4 +171,86 @@
     });
   })();
 </script>
+{% else %}
+<script>
+  (function () {
+    var presets = {{ maint_presets|tojson }};
+    var f = document.querySelector('form');
+    var nameIn = document.getElementById('maint-name');
+    var list = document.getElementById('maint-list');
+    var fills = document.getElementById('maint-fills');
+    var custom = document.getElementById('maint-custom');
+    var typeSel = document.getElementById('maint-type-select');
+    var chosen = null, rows = [], active = -1;
+    function $(id) { return document.getElementById(id); }
+    function show(id, on) { $(id).style.display = on ? '' : 'none'; }
+    function applyType() {
+      var h = typeSel.value === 'hours';
+      show('maint-int-hours', h); show('maint-int-days', !h);
+      show('maint-last-hours', h); show('maint-last-date', !h);
+      show('maint-meter', h); show('maint-lead-hours', h); show('maint-lead-days', !h);
+    }
+    function label(p) { return p.t === 'hours' ? p.h + ' hr' : (p.d % 365 === 0 ? (p.d / 365 * 12) : Math.round(p.d / 30.4)) + ' mo'; }
+    function pick(p) {
+      chosen = p; nameIn.value = p.n; typeSel.value = p.t;
+      f.interval_hours.value = p.t === 'hours' ? p.h : '';
+      f.interval_days.value = p.t === 'calendar' ? p.d : '';
+      f.category.value = p.c;
+      applyType(); closeList();
+      custom.style.display = 'none';
+      fills.innerHTML = 'Fills in: <strong></strong> &middot; every ' + label(p).replace(' hr', ' hours').replace(' mo', ' months') + ' &middot; tracked by ' + (p.t === 'hours' ? 'hours' : 'calendar');
+      fills.querySelector('strong').textContent = p.n;
+      fills.style.display = '';
+    }
+    function useNew() {
+      chosen = null; closeList(); fills.style.display = 'none';
+      custom.style.display = nameIn.value.trim() ? '' : 'none';
+      applyType();
+    }
+    function closeList() { list.style.display = 'none'; nameIn.setAttribute('aria-expanded', 'false'); active = -1; }
+    function mark() { rows.forEach(function (r, i) { r.classList.toggle('active', i === active); }); }
+    function render() {
+      var q = nameIn.value.trim().toLowerCase();
+      list.innerHTML = ''; rows = []; active = -1;
+      var exact = false;
+      presets.forEach(function (p) {
+        if (q && p.n.toLowerCase().indexOf(q) < 0) return;
+        if (p.n.toLowerCase() === q) exact = true;
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'list-group-item list-group-item-action';
+        b.appendChild(document.createTextNode(p.n + ' '));
+        var m = document.createElement('span'); m.className = 'text-muted small'; m.textContent = '\u00b7 ' + label(p);
+        b.appendChild(m);
+        b.addEventListener('mousedown', function (e) { e.preventDefault(); pick(p); });
+        rows.push(b); list.appendChild(b);
+      });
+      if (q && !exact) {
+        var a = document.createElement('button');
+        a.type = 'button'; a.className = 'list-group-item list-group-item-action';
+        a.textContent = '+ Add \u201c' + nameIn.value.trim() + '\u201d as a new item';
+        a.addEventListener('mousedown', function (e) { e.preventDefault(); useNew(); });
+        rows.push(a); list.appendChild(a);
+      }
+      list.style.display = rows.length ? '' : 'none';
+      nameIn.setAttribute('aria-expanded', rows.length ? 'true' : 'false');
+    }
+    nameIn.addEventListener('focus', render);
+    nameIn.addEventListener('blur', function () { setTimeout(closeList, 100); if (!chosen) useNew(); });
+    nameIn.addEventListener('input', function () {
+      if (chosen && nameIn.value !== chosen.n) { chosen = null; fills.style.display = 'none'; }
+      if (!chosen) { custom.style.display = nameIn.value.trim() ? '' : 'none'; }
+      render();
+    });
+    nameIn.addEventListener('keydown', function (e) {
+      if (list.style.display === 'none') return;
+      if (e.key === 'ArrowDown') { active = Math.min(active + 1, rows.length - 1); mark(); e.preventDefault(); }
+      else if (e.key === 'ArrowUp') { active = Math.max(active - 1, 0); mark(); e.preventDefault(); }
+      else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); rows[active].dispatchEvent(new MouseEvent('mousedown')); }
+      else if (e.key === 'Escape') { closeList(); }
+    });
+    typeSel.addEventListener('change', applyType);
+    applyType();
+  })();
+</script>
+{% endif %}
 {% endblock %}

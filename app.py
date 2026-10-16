@@ -6459,6 +6459,36 @@ def _maint_form_numbers(form, mtype, need_last_done=True):
     return vals, err
 
 
+_MAINT_PRESETS = [
+    {"n": "Oil change", "t": "hours", "h": 50, "d": None, "c": "oil_change"},
+    {"n": "100-hour", "t": "hours", "h": 100, "d": None, "c": "100hour"},
+    {"n": "Annual", "t": "calendar", "h": None, "d": 365, "c": "annual"},
+    {"n": "Transponder check", "t": "calendar", "h": None, "d": 730, "c": "scheduled_maint"},
+    {"n": "ELT battery", "t": "calendar", "h": None, "d": 365, "c": "scheduled_maint"},
+    {"n": "Pitot-static", "t": "calendar", "h": None, "d": 730, "c": "scheduled_maint"},
+]
+
+
+def _maint_presets(conn):
+    """The usual items plus custom items already used on other planes."""
+    out = [dict(p) for p in _MAINT_PRESETS]
+    seen = {p["n"].lower() for p in out}
+    rows = conn.execute("""SELECT name, type, category, interval_hours, interval_days FROM maintenance_items
+                           WHERE active = 1 ORDER BY id DESC""").fetchall()
+    for r in rows:
+        key = (r["name"] or "").strip().lower()
+        if not key or key in seen or len(out) >= 40:
+            continue
+        if r["type"] == "calendar" and not r["interval_days"]:
+            continue
+        if r["type"] != "calendar" and not r["interval_hours"]:
+            continue
+        seen.add(key)
+        out.append({"n": r["name"].strip(), "t": "calendar" if r["type"] == "calendar" else "hours",
+                    "h": r["interval_hours"], "d": r["interval_days"], "c": r["category"] or "scheduled_maint"})
+    return out
+
+
 @app.route("/assets/<int:asset_id>/maintenance/new", methods=["GET", "POST"])
 @shop_role_required('admin', 'tech')
 def maintenance_new(asset_id):
@@ -6477,16 +6507,18 @@ def maintenance_new(asset_id):
             category = "scheduled_maint"
         if not name:
             flash("Item name is required.", "danger")
+            presets = _maint_presets(conn)
             conn.close()
-            return render_template("maintenance_form.html", asset=asset, item=None)
+            return render_template("maintenance_form.html", asset=asset, item=None, maint_presets=presets)
         hour_type = request.form.get("hour_type", "tach")
         if hour_type not in ("tach", "hobbs"):
             hour_type = "tach"
         nums, num_err = _maint_form_numbers(request.form, mtype)
         if num_err:
             flash(num_err, "danger")
+            presets = _maint_presets(conn)
             conn.close()
-            return render_template("maintenance_form.html", asset=asset, item=None)
+            return render_template("maintenance_form.html", asset=asset, item=None, maint_presets=presets)
         interval_hours = nums["interval_hours"]
         interval_days = nums["interval_days"]
         last_done_hours = nums["last_done_hours"]
@@ -6508,8 +6540,9 @@ def maintenance_new(asset_id):
         conn.close()
         flash(f"Maintenance item '{name}' added.", "success")
         return redirect(url_for("asset_detail", asset_id=asset_id))
+    presets = _maint_presets(conn)
     conn.close()
-    return render_template("maintenance_form.html", asset=asset, item=None)
+    return render_template("maintenance_form.html", asset=asset, item=None, maint_presets=presets)
 
 
 @app.route("/maintenance/<int:item_id>/edit", methods=["GET", "POST"])
