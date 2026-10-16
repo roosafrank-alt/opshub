@@ -453,6 +453,15 @@ def _page_read_conn():
     return conn
 
 
+def _hide_students_for_shop():
+    """True for the shop's shared "Shop" login: the Fly with Kate! Students tab
+    and dashboard tile are not shown there, since that account sits on the shop
+    computer/TV and the roster is not for it. (Not keyed on cfis.is_station:
+    every admin without an instructor profile gets a hidden station row too,
+    and they must keep Students.)"""
+    return bool(session.get("user_id")) and is_shared_shop_login()
+
+
 @app.context_processor
 def inject_auth_context():
     open_squawk_count = 0
@@ -466,6 +475,7 @@ def inject_auth_context():
         "shop_role": session.get("shop_role"),
         "is_master_admin": session.get("is_master_admin"),
         "flight_admin": is_flight_admin(),
+        "hide_students_tab": _hide_students_for_shop(),
         "logged_in_user_name": session.get("user_name"),
         "open_squawk_count": open_squawk_count,
         "tour_seen_shop": session.get("tour_seen_shop"),

@@ -72,9 +72,6 @@
   .tv-label-on { display: none; }
   html.tv-mode .tv-label-on { display: inline; }
   html.tv-mode .tv-label-off { display: none; }
-  /* The Students roster tab is hidden on the shop computer (the TV browser,
-     where TV mode is on) - it stays on everyone's own devices. */
-  html.tv-mode .flight-nav-students { display: none; }
 </style>
 </head>
 <body>
@@ -99,12 +96,14 @@
                    brand_id='tour-nav-flight-dashboard', account_from='flight', chips_program='flight',
                    boxed_class='flight-nav-boxed') %}
       {% if session.get('user_id') %}
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0 flight-nav-boxed">
+      {#- When Manage follows (CFIs/admins) IT takes the leftover space, so it sits
+         right after the tabs instead of floating halfway across the bar. #}
+      <ul class="navbar-nav {{ '' if (session.get('cfi_id') or flight_admin) else 'me-auto' }} mb-2 mb-lg-0 flight-nav-boxed">
         <li class="nav-item"><a class="nav-link fw-bold text-warning {{ 'active' if sec == 'schedule' }}" id="tour-nav-flight-schedule" href="{{ url_for('flight.schedule_calendar') }}"><i class="bi bi-calendar3"></i> <span class="nav-label">Schedule</span></a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'active' else ('flight-nav-flying' if flight_active_nav_count) }}" id="tour-nav-flight-active" href="{{ url_for('flight.log_active') }}"><i class="bi bi-stopwatch"></i> <span class="nav-label">Active Flight</span>{% if flight_active_nav_count %} <span class="badge bg-dark" title="{{ flight_active_nav_count }} flight{{ 's' if flight_active_nav_count != 1 }} in the air">{{ flight_active_nav_count }}</span>{% endif %}</a></li>
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'history' }}" id="tour-nav-flight-history" href="{{ url_for('flight.log_history') }}"><i class="bi bi-clock-history"></i> <span class="nav-label">Flight History</span></a></li>
-        {% if session.get('cfi_id') or flight_admin %}
-        <li class="nav-item flight-nav-students"><a class="nav-link {{ 'active' if sec == 'students' }}" id="tour-nav-flight-students" href="{{ url_for('flight.students_list') }}"><i class="bi bi-people"></i> <span class="nav-label">Students</span></a></li>
+        {% if (session.get('cfi_id') or flight_admin) and not hide_students_tab %}
+        <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'students' }}" id="tour-nav-flight-students" href="{{ url_for('flight.students_list') }}"><i class="bi bi-people"></i> <span class="nav-label">Students</span></a></li>
         {% endif %}
         {% if session.get('cfi_id') or flight_admin %}
         {% set fac = flight_alert_counts or {} %}
@@ -117,7 +116,7 @@
         {% endif %}
       </ul>
       {% if session.get('cfi_id') or flight_admin %}
-      <ul class="navbar-nav flight-nav-boxed">
+      <ul class="navbar-nav me-auto flight-nav-boxed">
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle {{ 'active' if sec == 'manage' }}" href="#" id="manage-menu-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
             <i class="bi bi-gear"></i> <span class="nav-label">Manage</span>
