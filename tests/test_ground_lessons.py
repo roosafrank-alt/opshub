@@ -316,3 +316,20 @@ class StudentSummaryTest(LessonGradesTest.__bases__[0]):
         self.assertIn("2 min", body.replace("1 min", "2 min") if "1 min" in body else body) if False else None
         self.assertIn("Initial quiz", body)
         self.assertEqual(m.get(f"{GS}/student/999999").status_code, 404)
+
+    def test_course_picker_last_studying_and_needs_attention(self):
+        c = self.login("flight_student")
+        q = ground_lessons.load("PA.I.E")["quiz"][0]
+        wrong = (q["answer"] + 1) % len(q["options"])
+        c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 1, "j": wrong})
+        c.post(f"{GS}/task/{self.task}/lesson-time", json={"seconds": 90, "anchor": "gsl-c1", "chunks": {"1": 40}})
+        m = self.login("master")
+        body = m.get(f"{GS}/student/{self.sid}").get_data(as_text=True)
+        self.assertIn('id="ss-course"', body)
+        self.assertIn("Last studying", body)
+        self.assertIn("Needs attention", body)
+        self.assertIn("Time by section", body)
+        self.assertIn("Questions missed on the first try", body)
+        # a bad or unrelated course id falls back to a valid course instead of failing
+        self.assertEqual(m.get(f"{GS}/student/{self.sid}?course=abc").status_code, 200)
+        self.assertEqual(m.get(f"{GS}/student/{self.sid}?course=999999").status_code, 200)
