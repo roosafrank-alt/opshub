@@ -1352,6 +1352,30 @@ def _migrate(conn):
     # groundschool.py). Separate from acs_element_completion, which tracks
     # a Knowledge/Risk/Skills element's own lesson items, not the Task-level
     # reading assignment.
+    # GS-GRADES: time a student spends in a Task's lesson plan, where they were last
+    # (the resume spot), and every quiz question / game they answered - first-try result
+    # (the initial grade the instructor sees), tries taken, and when they got it right.
+    conn.execute("""CREATE TABLE IF NOT EXISTS gs_lesson_time (
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        task_id INTEGER NOT NULL REFERENCES acs_tasks(id),
+        seconds INTEGER NOT NULL DEFAULT 0,
+        last_anchor TEXT,
+        first_started_at TEXT,
+        last_seen_at TEXT,
+        PRIMARY KEY (student_id, task_id)
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS gs_lesson_results (
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        task_id INTEGER NOT NULL REFERENCES acs_tasks(id),
+        item_key TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        first_correct INTEGER,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        completed_at TEXT,
+        first_at TEXT,
+        last_at TEXT,
+        PRIMARY KEY (student_id, task_id, item_key)
+    )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS acs_task_reading_progress (
         student_id INTEGER NOT NULL REFERENCES students(id),
         task_id INTEGER NOT NULL REFERENCES acs_tasks(id),

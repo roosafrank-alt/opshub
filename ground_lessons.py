@@ -119,4 +119,50 @@ def activities(lesson):
         out.append({"type": "match", "title": "Match the term",
                     "intro": "Tap a term on the left, then its meaning on the right.",
                     "pairs": [{"l": t["term"], "r": t["def"]} for t in terms[:6]]})
+    for i, a in enumerate(out):
+        out[i] = dict(a, key="a%d" % i)
     return out
+
+
+def play_plan(lesson, group=3):
+    """Spread the games and quiz questions through the lesson instead of piling them at the end.
+    Returns {"flash": [...], "by_chunk": {chunk_number: [item, ...]}}. An item is
+    {"kind": "act", "a": activity} or {"kind": "quiz", "label": "Quick check 2 of 4", "qs": [(n, q), ...]}.
+    An activity with "after": N (1-based chunk) is pinned there; the rest are spread evenly,
+    alternating game, quiz, game, quiz."""
+    n = len(lesson.get("chunks") or [])
+    acts = activities(lesson)
+    flash = [a for a in acts if a["type"] == "flash"]
+    acts = [a for a in acts if a["type"] != "flash"]
+    by_chunk = {}
+    free = []
+    for a in acts:
+        after = a.get("after")
+        if isinstance(after, int) and 1 <= after <= max(n, 1):
+            by_chunk.setdefault(after, []).append({"kind": "act", "a": a})
+        else:
+            free.append({"kind": "act", "a": a})
+    qs = list(enumerate(lesson.get("quiz") or [], 1))
+    groups = [qs[i:i + group] for i in range(0, len(qs), group)]
+    quizzes = [{"kind": "quiz", "label": "Quick check %d of %d" % (i + 1, len(groups)), "qs": g}
+               for i, g in enumerate(groups)]
+    items = []
+    while free or quizzes:
+        if free:
+            items.append(free.pop(0))
+        if quizzes:
+            items.append(quizzes.pop(0))
+    m = len(items)
+    for k, it in enumerate(items):
+        pos = min(max(1, round((k + 1) * n / (m + 1))), max(n, 1))
+        by_chunk.setdefault(pos, []).append(it)
+    return {"flash": flash, "by_chunk": by_chunk}
+
+
+def final_plan(lesson):
+    """The end-of-Task final check: every multiple-choice question (the lesson's own `final_quiz`
+    when it has one, otherwise its quick-check questions) plus its match, sort, order and
+    true/false games played again, in one graded round."""
+    qs = list(enumerate(lesson.get("final_quiz") or lesson.get("quiz") or [], 1))
+    acts = [dict(a, key="f" + a["key"]) for a in activities(lesson) if a["type"] in ("match", "sort", "order", "tf")]
+    return {"qs": qs, "acts": acts}

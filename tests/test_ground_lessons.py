@@ -61,11 +61,26 @@ class GroundLessonsTest(OpsHubTestCase):
         self.assertIn(f"{GS}/resources/60/excerpt?pages=", body)
         self.assertIn("Lesson Content", body)          # the editable box is still there
 
-    def test_play_section_shows_games(self):
+    def test_games_and_quizzes_sit_between_lessons(self):
         body = self.login("master").get(f"{GS}/task/{self.task}").get_data(as_text=True)
-        self.assertIn('id="gsl-play"', body)
+        self.assertNotIn('id="gsl-quiz"', body)             # no pile of quizzes at the end
+        self.assertGreater(body.count("gsl-play-item"), 6)
         for kind in ("match", "sort", "order", "tf", "flash"):
             self.assertIn(f'data-act="{kind}"', body)
+        self.assertIn("Quick check 1 of", body)
+        # first game appears before the last lesson chunk (they are spread out)
+        self.assertLess(body.index("gsl-play-item"), body.rindex('class="gsl-chunk'))
+        # the lesson comes before the ACS standard card
+        self.assertLess(body.index('id="gsl"'), body.index("ACS Standard"))
+
+    def test_play_plan_spreads_evenly(self):
+        L = {"chunks": [{}] * 10, "quiz": [{"q": str(i)} for i in range(9)],
+             "activities": [{"type": "match"}, {"type": "sort", "after": 2}]}
+        plan = ground_lessons.play_plan(L)
+        spots = sorted(plan["by_chunk"])
+        self.assertGreaterEqual(len(spots), 4)
+        self.assertEqual(sum(len(v) for v in plan["by_chunk"].values()), 2 + 3)   # 2 games + 3 quiz groups
+        self.assertTrue(any(i["kind"] == "act" and i["a"]["type"] == "sort" for i in plan["by_chunk"][2]))
 
     def test_activities_adds_flashcards_and_term_match_from_key_terms(self):
         L = {"key_terms": [{"term": f"T{i}", "def": f"D{i}"} for i in range(8)]}
@@ -151,3 +166,108 @@ class ElementLessonTest(OpsHubTestCase):
     def test_staff_cannot_post_done(self):
         r = self.login("master").post(f"{GS}/element/{self.k1}/lesson-done")
         self.assertEqual(r.status_code, 403)
+
+
+class FinishWholeLessonTest(ElementLessonTest):
+    def test_finish_whole_lesson_marks_every_element_and_staff_cannot(self):
+        c = self.login("flight_student")
+        c.post(f"{GS}/task/{self.task}/lesson-done")
+        rows = self.q1("SELECT COUNT(*) AS n FROM acs_element_completion WHERE student_id = ? AND self_completed_at IS NOT NULL",
+                       (self.sid,))
+        self.assertEqual(rows["n"], 2)
+        self.assertEqual(self.login("master").post(f"{GS}/task/{self.task}/lesson-done").status_code, 403)
+
+
+class LessonGradesTest(ElementLessonTest):
+    """GS-GRADES: quick checks are graded on the server and can be corrected to 100%, the first
+    try is kept as the initial grade, tries and time are recorded, and Resume works."""
+    def _row(self, key):
+        return self.q1("SELECT * FROM gs_lesson_results WHERE student_id = ? AND task_id = ? AND item_key = ?",
+                       (self.sid, self.task, key))
+
+    def _wrong_and_right(self, n=1):
+        q = ground_lessons.load("PA.I.E")["quiz"][n - 1]
+        return (q["answer"] + 1) % len(q["options"]), q["answer"]
+
+    def test_wrong_then_right_keeps_first_try_and_counts_tries(self):
+        c = self.login("flight_student")
+        wrong, right = self._wrong_and_right()
+        r = c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 1, "j": wrong}).get_json()
+        self.assertFalse(r["correct"])
+        self.assertNotIn("why", r)                                  # the explanation waits until it is right
+        r = c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 1, "j": right}).get_json()
+        self.assertTrue(r["correct"])
+        self.assertTrue(r["why"])
+        row = self._row("q1")
+        self.assertEqual((row["first_correct"], row["attempts"]), (0, 2))   # initial grade stays missed
+        self.assertTrue(row["completed_at"])
+        c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 1, "j": wrong})   # reviewing later changes nothing
+        self.assertEqual(self._row("q1")["attempts"], 2)
+
+    def test_first_try_right_is_recorded_as_initial_credit(self):
+        _, right = self._wrong_and_right(2)
+        self.login("flight_student").post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 2, "j": right})
+        row = self._row("q2")
+        self.assertEqual((row["first_correct"], row["attempts"]), (1, 1))
+
+    def test_staff_get_graded_but_nothing_is_recorded_and_bad_input_rejected(self):
+        _, right = self._wrong_and_right()
+        c = self.login("master")
+        self.assertTrue(c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 1, "j": right}).get_json()["correct"])
+        self.assertIsNone(self._row("q1"))
+        self.assertEqual(c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 999, "j": 0}).status_code, 404)
+        self.assertEqual(c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": "x", "j": 0}).status_code, 400)
+
+    def test_time_is_added_capped_and_remembers_the_spot(self):
+        c = self.login("flight_student")
+        c.post(f"{GS}/task/{self.task}/lesson-time", json={"seconds": 25, "anchor": "gsl-c3"})
+        c.post(f"{GS}/task/{self.task}/lesson-time", json={"seconds": 9999, "anchor": "bad anchor!"})
+        row = self.q1("SELECT * FROM gs_lesson_time WHERE student_id = ? AND task_id = ?", (self.sid, self.task))
+        self.assertEqual(row["seconds"], 25 + 40)                  # one heartbeat is capped
+        self.assertEqual(row["last_anchor"], "gsl-c3")             # a bad anchor does not overwrite it
+
+    def test_game_done_records_tries_once(self):
+        c = self.login("flight_student")
+        c.post(f"{GS}/task/{self.task}/game-done", json={"key": "a0", "tries": 3})
+        c.post(f"{GS}/task/{self.task}/game-done", json={"key": "a0", "tries": 1})
+        self.assertEqual(self._row("a0")["attempts"], 3)
+        self.assertEqual(c.post(f"{GS}/task/{self.task}/game-done", json={"key": "../x", "tries": 1}).status_code, 400)
+
+    def test_resume_buttons_and_instructor_panel(self):
+        c = self.login("flight_student")
+        self.assertNotIn("Resume course", c.get(GS).get_data(as_text=True))
+        wrong, right = self._wrong_and_right()
+        c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 1, "j": wrong})
+        c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 1, "j": right})
+        c.post(f"{GS}/task/{self.task}/lesson-time", json={"seconds": 30, "anchor": "gsl-c2"})
+        self.assertIn(f"/task/{self.task}#gsl-c2", c.get(GS).get_data(as_text=True))
+        self.assertIn("Resume course", c.get(f"{GS}/{self.rid}").get_data(as_text=True))
+        page = c.get(f"/flight/groundschool/task/{self.task}").get_data(as_text=True)
+        self.assertIn("Resume lesson", page)
+        self.assertNotIn("Student activity on this lesson", page)    # that panel is for the instructor
+        staff = self.login("master")
+        body = staff.get(f"{GS}/task/{self.task}?student_id={self.sid}").get_data(as_text=True)
+        self.assertIn("Student activity on this lesson", body)
+        self.assertIn("initial quiz grade", body)
+        self.assertIn("missed", body)                                # Q1 was missed on the first try
+
+
+    def test_final_check_is_recorded_apart_and_completed_state_shows_on_return(self):
+        c = self.login("flight_student")
+        L = ground_lessons.load("PA.I.E")
+        q = (L.get("final_quiz") or L["quiz"])[0]
+        wrong, right = (q["answer"] + 1) % len(q["options"]), q["answer"]
+        c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 1, "j": wrong, "final": True})
+        c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 1, "j": right, "final": True})
+        row = self._row("fq1")
+        self.assertEqual((row["kind"], row["first_correct"], row["attempts"]), ("final", 0, 2))
+        self.assertIsNone(self._row("q1"))                          # quick checks are separate
+        c.post(f"{GS}/task/{self.task}/game-done", json={"key": "fa1", "tries": 2})
+        self.assertEqual(self._row("fa1")["kind"], "final")
+        # coming back: finished things are flagged done so the page shows them completed with a Retake
+        c.post(f"{GS}/task/{self.task}/game-done", json={"key": "a0", "tries": 1})
+        body = c.get(f"{GS}/task/{self.task}").get_data(as_text=True)
+        self.assertIn('id="gsl-final"', body)
+        self.assertIn('data-key="a0" data-done="1"', body)
+        staff = self.login("master").get(f"{GS}/task/{self.task}?student_id={self.sid}").get_data(as_text=True)
+        self.assertIn("initial FINAL CHECK grade", staff)

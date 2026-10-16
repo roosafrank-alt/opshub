@@ -7,7 +7,7 @@
 {%- endmacro %}
 
 {% macro chunk(c, n, L, el_ids={}, done={}, selfdone=()) %}
-<article class="gsl-chunk gsl-{{ c.kind }}">
+<article class="gsl-chunk gsl-{{ c.kind }}" id="gsl-c{{ n }}">
   <div class="gsl-chunk-top">
     <div class="gsl-chips">{% for cd in c.codes %}{{ chip(cd, el_ids, done, selfdone) }}{% endfor %}</div>
     <span class="gsl-mins">{{ c.minutes }} min</span>
@@ -53,13 +53,13 @@
    Text goes through gs_rich; the page's JS (ground-lesson.js) shuffles and scores. -#}
 {% macro activity(a, L) %}
 {% set icons = {'match':'bi-link-45deg','sort':'bi-collection','order':'bi-list-ol','tf':'bi-lightning-charge','flash':'bi-card-text','label':'bi-geo-alt'} %}
-<div class="gsl-act gsl-act-{{ a.type }}" data-act="{{ a.type }}">
+<div class="gsl-act gsl-act-{{ a.type }}" data-act="{{ a.type }}" data-key="{{ a.key or '' }}" data-done="{{ 1 if (gs_results and a.key and gs_results.get(a.key) and gs_results[a.key].done) else 0 }}" data-tries="{{ gs_results[a.key].attempts if (gs_results and a.key and gs_results.get(a.key)) else 0 }}">
   <div class="gsl-act-head"><i class="bi {{ icons.get(a.type, 'bi-controller') }}"></i> <b>{{ a.title }}</b></div>
   {% if a.intro %}<p class="gsl-act-intro">{{ gs_rich(a.intro) }}</p>{% endif %}
 
   {% if a.type == 'match' %}
     <div class="gsl-pairing gsl-match-cols" data-total="{{ a.pairs|length }}">
-      <div class="gsl-col">{% for p in a.pairs %}<button type="button" class="gsl-tile" data-side="l" data-k="{{ loop.index0 }}">{{ gs_rich(p.l) }}</button>{% endfor %}</div>
+      <div class="gsl-col">{% for p in a.pairs %}<button type="button" class="gsl-tile" data-drag="1" data-side="l" data-k="{{ loop.index0 }}">{{ gs_rich(p.l) }}</button>{% endfor %}</div>
       <div class="gsl-col" data-shuffle="1">{% for p in a.pairs %}<button type="button" class="gsl-tile" data-side="r" data-k="{{ loop.index0 }}">{{ gs_rich(p.r) }}</button>{% endfor %}</div>
     </div>
 
@@ -68,12 +68,12 @@
     <div class="gsl-pairing gsl-label" data-total="{{ a.pins|length }}">
       <div class="gsl-label-img"><img src="{{ url_for('static', filename='lessons/' ~ f.file) }}" alt="{{ f.alt or f.caption }}" loading="lazy">
         {% for p in a.pins %}<button type="button" class="gsl-pin" data-side="l" data-k="{{ loop.index0 }}" style="left:{{ p.x }}%;top:{{ p.y }}%">{{ loop.index }}</button>{% endfor %}</div>
-      <div class="gsl-bank" data-shuffle="1">{% for p in a.pins %}<button type="button" class="gsl-tile" data-side="r" data-k="{{ loop.index0 }}">{{ gs_rich(p.label) }}</button>{% endfor %}</div>
+      <div class="gsl-bank" data-shuffle="1">{% for p in a.pins %}<button type="button" class="gsl-tile" data-drag="1" data-side="r" data-k="{{ loop.index0 }}">{{ gs_rich(p.label) }}</button>{% endfor %}</div>
     </div>
 
   {% elif a.type == 'sort' %}
     <div class="gsl-sort" data-total="{{ a['items']|length }}">
-      <div class="gsl-pool" data-shuffle="1">{% for it in a['items'] %}<button type="button" class="gsl-tile gsl-item" data-b="{{ it.b }}">{{ gs_rich(it.t) }}</button>{% endfor %}</div>
+      <div class="gsl-pool" data-shuffle="1">{% for it in a['items'] %}<button type="button" class="gsl-tile gsl-item" data-drag="v" data-b="{{ it.b }}">{{ gs_rich(it.t) }}</button>{% endfor %}</div>
       <div class="gsl-buckets">{% for b in a.buckets %}<button type="button" class="gsl-bucket" data-b="{{ loop.index0 }}"><span class="gsl-bucket-name">{{ gs_rich(b) }}</span><span class="gsl-bucket-items"></span></button>{% endfor %}</div>
     </div>
 
@@ -100,4 +100,31 @@
   {% endif %}
   <div class="gsl-act-status" aria-live="polite"></div>
 </div>
+{% endmacro %}
+
+
+{#- A set of graded multiple-choice questions. final=True keeps its results apart (the end-of-Task check). -#}
+{% macro qgroup(qs, label, final=False, extra_class='') %}
+{% set pre = 'fq' if final else 'q' %}
+{% set ns = namespace(done=0, first=0) %}
+{% for n, q in qs %}{% set r = gs_results.get(pre ~ n) if gs_results else None %}{% if r and r.done %}{% set ns.done = ns.done + 1 %}{% if r.first %}{% set ns.first = ns.first + 1 %}{% endif %}{% endif %}{% endfor %}
+<div class="gsl-panel gsl-playpanel gsl-play-item gsl-qgroup {{ extra_class }}" data-final="{{ 1 if final else 0 }}" data-done="{{ 1 if (qs and ns.done == qs|length) else 0 }}" data-first="{{ ns.first }}" data-count="{{ qs|length }}"><span class="gsl-playtag">{{ label }}</span>
+  <div class="gsl-body">
+  {% for n, q in qs %}
+  <div class="gsl-q" data-n="{{ n }}">
+    <div class="gsl-stem">{{ loop.index }}. {{ gs_rich(q.q) }}</div>
+    <div class="gsl-opts">{% for o in q.options %}<button type="button" data-j="{{ loop.index0 }}">{{ gs_rich(o) }}</button>{% endfor %}</div>
+    <div class="gsl-qwhy" hidden>{{ gs_rich(q.why) }}</div>
+  </div>
+  {% endfor %}
+  <div class="gsl-score" aria-live="polite"></div>
+  </div>
+</div>
+{% endmacro %}
+
+{#- A game or a small quiz placed between lessons. -#}
+{% macro play_item(it, L) %}
+{% if it.kind == 'act' %}
+<div class="gsl-panel gsl-playpanel gsl-play-item"><span class="gsl-playtag">Play</span>{{ activity(it.a, L) }}</div>
+{% else %}{{ qgroup(it.qs, it.label) }}{% endif %}
 {% endmacro %}
