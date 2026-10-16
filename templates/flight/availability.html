@@ -78,6 +78,9 @@
     border: 2px dashed #dee2e6;
     border-radius: 4px;
   }
+  .avail-slot-req { background: #e9ecef; color: #6c757d; cursor: pointer; text-align: center; font-size: .72rem; padding: .4rem .3rem; border: 2px dashed #ced4da; border-radius: 4px; }
+  .avail-grid-v td.avail-slot-req { --bs-table-bg: #e9ecef; --bs-table-color: #6c757d; background: #e9ecef; }
+  .avail-grid-v td.avail-slot-req:hover { background: #dee2e6; }
   @media (max-width: 575.98px) {
     .avail-grid th, .avail-grid td { font-size: .68rem; padding: .3rem .2rem; }
   }
@@ -175,6 +178,10 @@
 <p class="text-muted small">Each day shows how many open (plane, time-slot) pairs it has, {{ school_day_label }} in 1.5-hour slots - click a day to see the full breakdown.</p>
 {% endif %}
 
+{% if view == 'day' and has_requests_only %}
+<p class="small mb-2"><span class="badge text-bg-secondary">Requests only</span> Greyed times are outside normal booking hours. Your spot there is not confirmed until an instructor confirms it.</p>
+{% endif %}
+
 {% if view == 'week' %}
 <div class="row row-cols-2 row-cols-md-4 row-cols-lg-7 g-2">
   {% for wd in week_days %}
@@ -255,10 +262,10 @@
         {% else %}
         {#- schedule_new() takes ?time=HH:MM and ?asset_id=..., so this
            slot's start time and plane come pre-filled. #}
-        <td class="avail-slot-open" role="button"
+        <td class="{{ 'avail-slot-req' if cell.requests_only else 'avail-slot-open' }}" role="button"
             onclick="window.location.href='{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60), asset_id=row.plane.id) }}'"
-            title="{{ row.plane.tag }} open {{ cell.label }} - click to schedule a flight">
-          Open
+            title="{{ row.plane.tag }} open {{ cell.label }} - click to schedule a flight{{ ' (requests only: not confirmed until an instructor confirms it)' if cell.requests_only }}">
+          {{ 'Requests only' if cell.requests_only else 'Open' }}
         </td>
         {% endif %}
         {% endfor %}
@@ -292,9 +299,9 @@
           {% if item.is_past %}
           <span class="btn btn-sm btn-outline-secondary disabled" title="{{ item.label }} has already passed">{{ item.label }}</span>
           {% else %}
-          <a class="btn btn-sm btn-outline-success"
+          <a class="btn btn-sm {{ 'btn-outline-secondary' if item.requests_only else 'btn-outline-success' }}"
              href="{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(item.start_min // 60, item.start_min % 60), asset_id=item.plane_id) }}"
-             title="{{ item.plane_tag }} open {{ item.label }} - click to schedule a flight">{{ item.label }}</a>
+             title="{{ item.plane_tag }} open {{ item.label }} - click to schedule a flight{{ ' (requests only: not confirmed until an instructor confirms it)' if item.requests_only }}">{{ item.label }}{% if item.requests_only %} <small>req</small>{% endif %}</a>
           {% endif %}
           {% endfor %}
         </div>

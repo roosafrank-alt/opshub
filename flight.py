@@ -3933,7 +3933,8 @@ def school_settings_edit():
                        limit=limit, used_colors=_used_colors_for_plane(conn), schedule_colors=SCHEDULE_COLORS,
                        error_field=field, error_cfi=rate_error_cfi, back=back, form=request.form,
                        day_start_hour=day_start_h if day_start_h is not None else _saved_start,
-                       day_end_hour=day_end_h if day_end_h is not None else _saved_end, hour_label=_hour_label)
+                       day_end_hour=day_end_h if day_end_h is not None else _saved_end, hour_label=_hour_label,
+                       normal_start_hour=normal_start_h, normal_end_hour=normal_end_h)
             conn.close()
             return render_template("flight/school_settings_form.html", **ctx)
 
@@ -3941,6 +3942,14 @@ def school_settings_edit():
             day_start_h, day_end_h = _saved_start, _saved_end  # form didn't send them: leave as is
         elif day_start_h is None or day_end_h is None or not (0 <= day_start_h < day_end_h <= 24 and day_end_h - day_start_h >= 4):
             return _again("Calendar hours: pick a start before the end, at least 4 hours apart.", "day_hours")
+
+        # Normal booking hours (optional): outside them Availability shows "Requests only".
+        normal_start_h = _parse_int(request.form.get("normal_start_hour"))
+        normal_end_h = _parse_int(request.form.get("normal_end_hour"))
+        if normal_start_h is None and normal_end_h is None:
+            normal_start_h = normal_end_h = None
+        elif normal_start_h is None or normal_end_h is None or not (0 <= normal_start_h < normal_end_h <= 24):
+            return _again("Normal booking hours: pick a start before the end, or leave both on 'Any time'.", "normal_hours")
 
         if color and color in _used_colors_for_plane(conn):
             return _again("That Calendar Color is already taken by an instructor or a plane - pick a different one.", "color")
@@ -3962,6 +3971,11 @@ def school_settings_edit():
                      (BALANCE_HOLD_LIMIT_KEY, limit))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (SCHOOL_DAY_START_KEY, day_start_h))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (SCHOOL_DAY_END_KEY, day_end_h))
+        if normal_start_h is None:
+            conn.execute("DELETE FROM app_settings WHERE key IN (?, ?)", (NORMAL_BOOKING_START_KEY, NORMAL_BOOKING_END_KEY))
+        else:
+            conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (NORMAL_BOOKING_START_KEY, normal_start_h))
+            conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (NORMAL_BOOKING_END_KEY, normal_end_h))
         conn.commit()
         conn.close()
         flash("School Settings updated.", "success")
@@ -3972,12 +3986,14 @@ def school_settings_edit():
     limit = _balance_hold_limit(conn)
     used_colors = _used_colors_for_plane(conn)
     day_start_h, day_end_h = _school_day_hours(conn)
+    normal = _normal_booking_hours(conn) or (None, None)
     conn.close()
     return render_template("flight/school_settings_form.html", cfis=cfis, own_plane_color=own_plane_color,
                            window_hours=window_hours, fee_amount=fee_amount, limit=limit,
                            window2_hours=window2_hours, fee_amount2=fee_amount2,
                            used_colors=used_colors, schedule_colors=SCHEDULE_COLORS, back=back,
-                           day_start_hour=day_start_h, day_end_hour=day_end_h, hour_label=_hour_label)
+                           day_start_hour=day_start_h, day_end_hour=day_end_h, hour_label=_hour_label,
+                           normal_start_hour=normal[0], normal_end_hour=normal[1])
 
 
 def _safe_back_url(referrer):
@@ -4306,6 +4322,34 @@ def _school_day_hours(conn):
     return start, end
 
 
+NORMAL_BOOKING_START_KEY = "normal_booking_start_hour"
+NORMAL_BOOKING_END_KEY = "normal_booking_end_hour"
+
+
+def _normal_booking_hours(conn):
+    """(start_hour, end_hour) of the normal booking hours from School Settings,
+    or None when not set (then every time counts as normal)."""
+    rows = conn.execute("SELECT key, value FROM app_settings WHERE key IN (?, ?)",
+                        (NORMAL_BOOKING_START_KEY, NORMAL_BOOKING_END_KEY)).fetchall()
+    vals = {r["key"]: r["value"] for r in rows}
+    try:
+        start = int(float(vals.get(NORMAL_BOOKING_START_KEY)))
+        end = int(float(vals.get(NORMAL_BOOKING_END_KEY)))
+    except (TypeError, ValueError):
+        return None
+    if not (0 <= start < end <= 24):
+        return None
+    return start, end
+
+
+def _outside_normal_hours(normal, start_min, duration_min):
+    """True when a booking starting at start_min (minutes since midnight) and
+    lasting duration_min is not entirely inside the normal booking hours."""
+    if not normal or start_min is None:
+        return False
+    return start_min < normal[0] * 60 or start_min + duration_min > normal[1] * 60
+
+
 def _school_day_window(conn=None):
     """(start_min, end_min) minutes since midnight for the school day; looked up
     once per request."""
@@ -4478,6 +4522,7 @@ def _build_availability_day(conn, date_str, plane_id=None):
     today_str = now.strftime("%Y-%m-%d")
     now_min = now.hour * 60 + now.minute
 
+    normal = _normal_booking_hours(conn)
     slots = []
     # The Availability grid starts at 6:30 am and steps every 1.5 hours
     # (6:30, 8:00, 9:30, ... 8:00 pm), whatever the school day's hours are.
@@ -4485,7 +4530,8 @@ def _build_availability_day(conn, date_str, plane_id=None):
         end = start + AVAILABILITY_SLOT_MIN
         label = _format_time_12h(f"{start // 60:02d}:{start % 60:02d}")
         is_past = date_str < today_str or (date_str == today_str and start <= now_min)
-        slots.append({"start_min": start, "end_min": end, "label": label, "is_past": is_past})
+        slots.append({"start_min": start, "end_min": end, "label": label, "is_past": is_past,
+                      "requests_only": _outside_normal_hours(normal, start, AVAILABILITY_SLOT_MIN)})
 
     grid = []
     open_list = []
@@ -4499,13 +4545,15 @@ def _build_availability_day(conn, date_str, plane_id=None):
                     booked_flight = f
                     break
             cells.append({"start_min": slot["start_min"], "label": slot["label"], "is_past": slot["is_past"],
-                          "booked": booked_flight is not None, "flight": booked_flight})
+                          "requests_only": slot["requests_only"], "booked": booked_flight is not None, "flight": booked_flight})
             if booked_flight is None:
                 open_list.append({"plane_tag": p["tag"], "plane_id": p["id"],
-                                  "label": slot["label"], "start_min": slot["start_min"], "is_past": slot["is_past"]})
+                                  "label": slot["label"], "start_min": slot["start_min"], "is_past": slot["is_past"],
+                                  "requests_only": slot["requests_only"]})
         grid.append({"plane": p, "cells": cells})
 
-    return {"planes": planes, "slots": slots, "grid": grid, "open_list": open_list}
+    return {"planes": planes, "slots": slots, "grid": grid, "open_list": open_list,
+            "has_requests_only": normal is not None and any(sl["requests_only"] for sl in slots)}
 
 
 def _build_availability_counts(conn, date_strs, plane_id=None):
@@ -5294,10 +5342,14 @@ def schedule_new():
                     plane_row = conn.execute("SELECT tag FROM assets WHERE id = ?", (asset_id,)).fetchone()
                     _notify_booking_confirm(conn, notify_user_id, new_booking.lastrowid,
                                             plane_row["tag"] if plane_row else "the plane", scheduled_date, scheduled_time)
+            _w = _time_window(scheduled_time, duration_hours)
+            outside_normal = bool(_w) and _outside_normal_hours(_normal_booking_hours(conn), _w[0], _w[1] - _w[0])
             conn.close()
             if self_service:
                 if needs_review:
                     flash("Flight requested - heads up, this needs a CFI review before it can be soloed (see the reason on your dashboard).", "warning")
+                elif outside_normal:
+                    flash("Requested outside normal booking hours - your spot is not confirmed until an instructor confirms it.", "warning")
                 else:
                     flash("Flight requested - your instructor will need to approve it before it's confirmed.", "success")
                 return redirect(url_for("flight.dashboard"))

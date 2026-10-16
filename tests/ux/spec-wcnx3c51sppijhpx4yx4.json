@@ -1,0 +1,12 @@
+{"checks":[
+ {"role":"master","size":"desktop","steps":[
+  ["start","/flight/settings/school"],["see","Normal booking hours"],
+  ["shot",{"caption":"School Settings: new Normal booking hours under Calendar Hours","focus":"[data-change='FLY-37']","changed":[{"sel":"select[name='normal_start_hour']","note":"New From/To"}]}]]},
+ {"role":"flight_student","size":"phone","sql":[
+  "UPDATE assets SET is_flight_asset = 1 WHERE id = {asset}",
+  "INSERT OR REPLACE INTO app_settings (key, value) VALUES ('normal_booking_start_hour', 9)",
+  "INSERT OR REPLACE INTO app_settings (key, value) VALUES ('normal_booking_end_hour', 17)"],
+  "steps":[["start","/flight/schedule/availability?view=day&date=2030-01-07&mode=calendar"],
+  ["see","Requests only"],["see","not confirmed until an instructor confirms it"],
+  ["shot",{"caption":"Student's Availability: times outside normal hours are grey, marked Requests only, with the notice","changed":[{"sel":".avail-slot-req","note":"Requests only"}]}]]}
+]}
