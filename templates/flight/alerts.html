@@ -23,8 +23,14 @@
     <small class="text-muted">Flagged {{ al.created_at|usdate(true) }}{% if al.acknowledged_at %} &middot; <i class="bi bi-check2-circle"></i> Acknowledged by {{ al.acknowledged_by or '-' }}, {{ al.acknowledged_at|usdate(true) }}{% endif %}</small>
   </div>
   <div class="d-flex gap-1 flex-wrap">
+    {% if al.move_to %}
+    <form method="post" action="{{ url_for('flight.schedule_move_plane', scheduled_id=al.scheduled_flight_id) }}">
+      <input type="hidden" name="asset_id" value="{{ al.move_to.id }}">
+      <button class="btn btn-primary btn-sm fw-bold" title="Same date, time, student and instructor"><i class="bi bi-arrow-left-right"></i> Move to {{ al.move_to.tag }}</button>
+    </form>
+    {% endif %}
     {% for l in al.fix_links %}
-    <a href="{{ l.url }}" class="btn {{ 'btn-primary' if loop.first else 'btn-outline-primary' }} btn-sm fw-bold" title="{{ l.hint }}"><i class="bi {{ l.icon }}"></i> {% if loop.first %}Resolve: {% endif %}{{ l.label }}</a>
+    <a href="{{ l.url }}" class="btn {{ 'btn-primary' if loop.first and not al.move_to else 'btn-outline-primary' }} btn-sm fw-bold" title="{{ l.hint }}"><i class="bi {{ l.icon }}"></i> {% if loop.first and not al.grounded %}Resolve: {% endif %}{{ l.label }}</a>
     {% endfor %}
     {% if show_ack %}
     <form method="post" action="{{ url_for('flight.schedule_review_acknowledge', scheduled_id=al.scheduled_flight_id) }}" data-confirm="Acknowledge this alert? It stays open here until the issue is fixed." data-confirm-title="Acknowledge Alert">

@@ -6095,12 +6095,21 @@ def alerts_list():
                                      ORDER BY r.reviewed_at DESC LIMIT 10""").fetchall() \
         if is_flight_admin() else []
     reports_ctx = _reports_context(conn, show_all)
+    # A booking flagged because its plane is down gets a one-tap "Move to <free plane>".
+    moves = {r["scheduled_flight_id"]: _free_plane_for_booking(conn, r["scheduled_flight_id"])
+             for r in open_rows if (r["reason"] or "").startswith(GROUNDED_REVIEW_PREFIX) and r["scheduled_flight_id"]}
     conn.close()
 
     def _decorate(r):
         r = dict(r)
         r["time_label"] = _format_time_12h(r["scheduled_time"]) if r.get("scheduled_time") else None
         r["fix_links"] = _alert_fix_links(r["reason"], r["scheduled_flight_id"], r["student_id"])
+        if r["scheduled_flight_id"] in moves:
+            r["grounded"] = True
+            r["move_to"] = moves[r["scheduled_flight_id"]]
+            r["fix_links"] = [dict(l, label="Other time" if l["label"] == "Assign CFI" else l["label"],
+                                   icon="bi-calendar2-week" if l["label"] == "Assign CFI" else l["icon"])
+                              for l in r["fix_links"]]
         return r
     open_rows = [_decorate(r) for r in open_rows]
     unacked = [r for r in open_rows if not r["acknowledged_at"]]
@@ -10204,6 +10213,62 @@ def plane_ground(asset_id):
           (f"{flagged} upcoming booking{'s' if flagged != 1 else ''} flagged in Needs a Look to move." if flagged
            else "No upcoming bookings to move."), "warning")
     return redirect(request.referrer or url_for("flight.alerts_list"))
+
+
+def _free_plane_for_booking(conn, scheduled_id):
+    """First active, ungrounded plane (not the booking's own) that has no
+    conflict at the booking's date/time - checked with _scheduling_conflicts,
+    so the same rules as every other move apply. None if there isn't one."""
+    sf = conn.execute("SELECT * FROM scheduled_flights WHERE id = ? AND status = 'scheduled'", (scheduled_id,)).fetchone()
+    if not sf:
+        return None
+    for p in conn.execute("""SELECT id, tag, solo_allowed FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1
+                             AND is_owner_placeholder = 0 AND is_simulator = 0 AND grounded_at IS NULL AND id != ?
+                             ORDER BY schedule_order, tag""", (sf["asset_id"],)).fetchall():
+        if sf["solo"] and not p["solo_allowed"]:
+            continue
+        if not _scheduling_conflicts(conn, p["id"], sf["cfi_id"], sf["student_id"], sf["scheduled_date"],
+                                     sf["scheduled_time"], sf["duration_hours"], exclude_id=scheduled_id):
+            return {"id": p["id"], "tag": p["tag"]}
+    return None
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/move-plane", methods=["POST"])
+@cfi_or_admin_required
+def schedule_move_plane(scheduled_id):
+    """One-tap rescue of a booking on a grounded plane: same date, time,
+    student and CFI, new plane (must be free then and not down)."""
+    conn = get_db()
+    sf = conn.execute("SELECT * FROM scheduled_flights WHERE id = ? AND status = 'scheduled'", (scheduled_id,)).fetchone()
+    target = conn.execute("SELECT * FROM assets WHERE id = ? AND deleted_at IS NULL AND is_flight_asset = 1 "
+                          "AND is_owner_placeholder = 0 AND is_simulator = 0",
+                          (request.form.get("asset_id", type=int),)).fetchone()
+    if not sf or not target:
+        conn.close()
+        flash("That booking or plane isn't available any more.", "danger")
+        return redirect(url_for("flight.alerts_list"))
+    problems = [c["message"] for c in _scheduling_conflicts(
+        conn, target["id"], sf["cfi_id"], sf["student_id"], sf["scheduled_date"], sf["scheduled_time"],
+        sf["duration_hours"], exclude_id=scheduled_id)]
+    if sf["solo"] and not target["solo_allowed"]:
+        problems.append(f"{target['tag']} isn't approved for solo flights.")
+    if problems:
+        conn.close()
+        flash("Not moved - " + " ".join(problems), "danger")
+        return redirect(url_for("flight.alerts_list"))
+    old = conn.execute("SELECT tag FROM assets WHERE id = ?", (sf["asset_id"],)).fetchone()
+    needs_review, review_reason = _schedule_review_flag(conn, sf["solo"], sf["cfi_id"], sf["student_id"], sf["scheduled_date"])
+    conn.execute("""UPDATE scheduled_flights SET asset_id = ?, needs_review = ?, review_reason = ?,
+                     needs_review_acknowledged_at = NULL, needs_review_acknowledged_by = NULL WHERE id = ?""",
+                 (target["id"], needs_review, review_reason, scheduled_id))
+    _notify_student_booking_change(
+        conn, sf, f"Your {_booking_when(sf['scheduled_date'], sf['scheduled_time'])} lesson was moved from "
+                  f"{old['tag'] if old else 'its plane'} to {target['tag']} by {session.get('user_name') or 'the school'}.")
+    conn.commit()
+    _sync_flight_alerts(conn, session.get("user_name"))
+    conn.close()
+    flash(f"Moved to {target['tag']} - same time, student and instructor.", "success")
+    return redirect(url_for("flight.alerts_list"))
 
 
 def return_plane_to_service(conn, asset_id, who=None):
