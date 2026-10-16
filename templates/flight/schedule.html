@@ -285,8 +285,11 @@
     height: 680px;
   }
   .day-timeline-hour-line { position: absolute; left: 0; right: 0; height: 0; }
+  /* Centered on its hour line (translateY), not a fixed -7px nudge, so the
+     label's middle sits exactly on the dashed line to its right. The line's
+     exact height is set by schFit() below from the real track grid line. */
   .day-timeline-hour-label {
-    position: absolute; right: 6px; top: -7px;
+    position: absolute; right: 6px; top: 0; transform: translateY(-50%);
     font-size: .68rem; line-height: 1; color: #495057; white-space: nowrap;
   }
   .day-timeline-track {
@@ -429,6 +432,18 @@
       de.style.setProperty('--sch-fit-h', Math.max(240, window.innerHeight - top - 24) + 'px');
       de.classList.add('sch-fit');
     }
+    // Day / Week: put each hour label at the exact height of its dashed line
+    // in the (first) track, measured on screen, so the label lines up with
+    // the line no matter the track's border, header, waitlist chips or Fit.
+    document.querySelectorAll('.day-timeline-wrap, .week-timeline-wrap').forEach(function (w) {
+      var hrs = w.querySelector('.day-timeline-hours'), trk = w.querySelector('.day-timeline-track');
+      if (!hrs || !trk) return;
+      var marks = hrs.querySelectorAll('.day-timeline-hour-line'), lines = trk.querySelectorAll('.day-timeline-grid-line');
+      var base = hrs.getBoundingClientRect().top;
+      marks.forEach(function (m, i) {
+        if (lines[i]) m.style.top = (lines[i].getBoundingClientRect().top - base + 0.5) + 'px';
+      });
+    });
     fitMonth(on());
     if (btn) { btn.classList.toggle('active', on()); btn.setAttribute('aria-pressed', on() ? 'true' : 'false'); }
   };
@@ -439,6 +454,9 @@
   });
   window.addEventListener('resize', window.schFit);
   window.schFit();
+  // Fonts and icons can change header/chip heights after first paint - line up again.
+  window.addEventListener('load', window.schFit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(window.schFit);
 })();
 // Keeps the sticky schedule toolbar tucked right under the navbar (whose
 // height varies - wrapped items, open phone menu), and adds a shadow once
