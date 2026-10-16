@@ -61,11 +61,26 @@ class GroundLessonsTest(OpsHubTestCase):
         self.assertIn(f"{GS}/resources/60/excerpt?pages=", body)
         self.assertIn("Lesson Content", body)          # the editable box is still there
 
-    def test_play_section_shows_games(self):
+    def test_games_and_quizzes_sit_between_lessons(self):
         body = self.login("master").get(f"{GS}/task/{self.task}").get_data(as_text=True)
-        self.assertIn('id="gsl-play"', body)
+        self.assertNotIn('id="gsl-quiz"', body)             # no pile of quizzes at the end
+        self.assertGreater(body.count("gsl-play-item"), 6)
         for kind in ("match", "sort", "order", "tf", "flash"):
             self.assertIn(f'data-act="{kind}"', body)
+        self.assertIn("Quick check 1 of", body)
+        # first game appears before the last lesson chunk (they are spread out)
+        self.assertLess(body.index("gsl-play-item"), body.rindex('class="gsl-chunk'))
+        # the lesson comes before the ACS standard card
+        self.assertLess(body.index('id="gsl"'), body.index("ACS Standard"))
+
+    def test_play_plan_spreads_evenly(self):
+        L = {"chunks": [{}] * 10, "quiz": [{"q": str(i)} for i in range(9)],
+             "activities": [{"type": "match"}, {"type": "sort", "after": 2}]}
+        plan = ground_lessons.play_plan(L)
+        spots = sorted(plan["by_chunk"])
+        self.assertGreaterEqual(len(spots), 4)
+        self.assertEqual(sum(len(v) for v in plan["by_chunk"].values()), 2 + 3)   # 2 games + 3 quiz groups
+        self.assertTrue(any(i["kind"] == "act" and i["a"]["type"] == "sort" for i in plan["by_chunk"][2]))
 
     def test_activities_adds_flashcards_and_term_match_from_key_terms(self):
         L = {"key_terms": [{"term": f"T{i}", "def": f"D{i}"} for i in range(8)]}
@@ -151,3 +166,13 @@ class ElementLessonTest(OpsHubTestCase):
     def test_staff_cannot_post_done(self):
         r = self.login("master").post(f"{GS}/element/{self.k1}/lesson-done")
         self.assertEqual(r.status_code, 403)
+
+
+class FinishWholeLessonTest(ElementLessonTest):
+    def test_finish_whole_lesson_marks_every_element_and_staff_cannot(self):
+        c = self.login("flight_student")
+        c.post(f"{GS}/task/{self.task}/lesson-done")
+        rows = self.q1("SELECT COUNT(*) AS n FROM acs_element_completion WHERE student_id = ? AND self_completed_at IS NOT NULL",
+                       (self.sid,))
+        self.assertEqual(rows["n"], 2)
+        self.assertEqual(self.login("master").post(f"{GS}/task/{self.task}/lesson-done").status_code, 403)

@@ -420,6 +420,7 @@ groundschool_bp.add_app_template_global(ground_lessons.cite_url, "gs_cite_url")
 groundschool_bp.add_app_template_global(ground_lessons.references, "gs_refs")
 groundschool_bp.add_app_template_global(ground_lessons.element_kind, "gs_kind")
 groundschool_bp.add_app_template_global(ground_lessons.activities, "gs_activities")
+groundschool_bp.add_app_template_global(ground_lessons.play_plan, "gs_play_plan")
 
 
 def _gone(what):
@@ -490,7 +491,7 @@ _RESOURCE_VIEW_ENDPOINTS = {"resources_list", "resource_file", "resource_excerpt
 
 _GRANTED_STUDENT_ENDPOINTS = {
     "rating_list", "rating_detail", "task_detail", "element_detail", "task_reference_click",
-    "task_mark_read", "element_item_interact", "element_lesson_done", "resource_file", "resource_excerpt", "resources_list", "resource_previous",
+    "task_mark_read", "element_item_interact", "element_lesson_done", "task_lesson_done", "resource_file", "resource_excerpt", "resources_list", "resource_previous",
 }
 
 
@@ -840,7 +841,7 @@ def task_detail(task_id):
     prev_task_id = ids[idx - 1] if idx > 0 else None
     next_task_id = ids[idx + 1] if 0 <= idx < len(ids) - 1 else None
     next_task = area_tasks[idx + 1] if next_task_id else None
-    return render_template("flight/groundschool_task.html", task=task, next_task=next_task, area=area, rating=rating,
+    return render_template("flight/groundschool_task.html", task_id_for_finish=task_id, task=task, next_task=next_task, area=area, rating=rating,
                             notes=notes, knowledge=knowledge, risk_management=risk_management,
                             skills=skills, lesson=lesson, acs_changes=acs_changes, signoffs=signoffs, my_signoff=my_signoff,
                             gs_students=students, prev_task_id=prev_task_id, next_task_id=next_task_id,
@@ -1565,6 +1566,36 @@ def element_lesson_done(element_id):
     if undo:
         return redirect(url_for("groundschool.element_detail", element_id=element_id))
     flash("Marked complete. Your instructor will verify it.", "success")
+    return redirect(url_for("groundschool.task_detail", task_id=task_id))
+
+
+@groundschool_bp.route("/task/<int:task_id>/lesson-done", methods=["POST"])
+def task_lesson_done(task_id):
+    """GS-FLOW: the student finishes a whole Task lesson in one tap. Every current element of
+    the Task gets the same "finished, waiting for your instructor" mark the per-element button
+    gives; ones already marked or verified are left alone."""
+    student_id = session.get("student_id")
+    if not student_id:
+        abort(403)
+    conn = get_db()
+    rid = _rating_id_of_task(conn, task_id)
+    if rid is None or _course_blocked(rid):
+        conn.close()
+        abort(404)
+    stamp = now_iso()
+    for e in conn.execute("SELECT id FROM acs_task_elements WHERE task_id = ? AND retired_at IS NULL",
+                          (task_id,)).fetchall():
+        row = conn.execute("SELECT self_completed_at FROM acs_element_completion WHERE student_id = ? AND element_id = ?",
+                           (student_id, e["id"])).fetchone()
+        if row is None:
+            conn.execute("INSERT INTO acs_element_completion (student_id, element_id, self_completed_at) VALUES (?, ?, ?)",
+                         (student_id, e["id"], stamp))
+        elif not row["self_completed_at"]:
+            conn.execute("UPDATE acs_element_completion SET self_completed_at = ? WHERE student_id = ? AND element_id = ?",
+                         (stamp, student_id, e["id"]))
+    conn.commit()
+    conn.close()
+    flash("Lesson finished. Your instructor will verify it.", "success")
     return redirect(url_for("groundschool.task_detail", task_id=task_id))
 
 
