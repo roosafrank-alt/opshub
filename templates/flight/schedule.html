@@ -15,6 +15,7 @@
    poll instead of needing to be re-added each time. #}
 {% from "flight/_pilot_badge.html" import pilot_badge_css %}{{ pilot_badge_css() }}
 <style>
+  #wlPop { position: fixed; z-index: 2000; display: none; max-width: min(320px, calc(100vw - 16px)); padding: .5rem .7rem; border-radius: .5rem; background: #212529; color: #fff; font-size: .95rem; line-height: 1.35; white-space: pre-line; box-shadow: 0 4px 14px rgba(0,0,0,.35); pointer-events: none; }
   @keyframes schedule-block-pulse {
     0%, 100% { box-shadow: 0 0 4px rgba(255,193,7,0.6); }
     50% { box-shadow: 0 0 10px rgba(255,193,7,1); }
@@ -806,5 +807,30 @@ document.addEventListener('click', function (evt) {
     window.location.href = SCHEDULE_NEW_URL + '?date=' + encodeURIComponent(track.dataset.trackDate) + '&time=' + time;
   });
 })();
+
+  // Waitlist chips: big hover/focus popover with the note, plane, instructor and time of day.
+  (function () {
+    var pop = document.createElement('div');
+    pop.id = 'wlPop';
+    document.body.appendChild(pop);
+    function chip(e) { return e.target.closest ? e.target.closest('[data-wl-tip]') : null; }
+    function show(el) {
+      pop.textContent = el.getAttribute('data-wl-tip') + '\nClick to schedule a lesson';
+      pop.style.display = 'block';
+      var r = el.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+      var left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+      var top = r.bottom + 6;
+      if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+      pop.style.left = left + 'px';
+      pop.style.top = top + 'px';
+    }
+    function hide() { pop.style.display = 'none'; }
+    document.addEventListener('mouseover', function (e) { var c = chip(e); if (c) show(c); });
+    document.addEventListener('mouseout', function (e) { if (chip(e)) hide(); });
+    document.addEventListener('focusin', function (e) { var c = chip(e); if (c) show(c); });
+    document.addEventListener('focusout', function (e) { if (chip(e)) hide(); });
+    document.addEventListener('scroll', hide, true);
+    document.addEventListener('click', hide, true);
+  })();
 </script>
 {% endblock %}

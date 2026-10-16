@@ -1,7 +1,5 @@
 {#- Waitlist chips: students waiting for this date; click = Schedule Flight pre-filled. #}
-{% macro wl_chips(day_str) %}{% if wl_for is defined %}{% set wl = wl_for(day_str|string) %}{% if wl %}<div class="d-flex flex-wrap gap-1 wl-chips">{% for w in wl %}<a href="{{ w.url }}" class="badge bg-info text-dark text-decoration-none" title="{{ w.tip }}&#10;Click to schedule a lesson"><i class="bi bi-hourglass-split"></i> {{ w.name.split(' ')[0] }}</a>{% endfor %}</div>{% endif %}{% endif %}{% endmacro %}
-{#- Waitlist chips: students waiting for this date; click = Schedule Flight pre-filled. #}
-{% macro wl_chips(day_str) %}{% if wl_for is defined %}{% set wl = wl_for(day_str|string) %}{% if wl %}<div class="d-flex flex-wrap gap-1 wl-chips">{% for w in wl %}<a href="{{ w.url }}" class="badge bg-info text-dark text-decoration-none" title="{{ w.tip }}&#10;Click to schedule a lesson"><i class="bi bi-hourglass-split"></i> {{ w.name.split(' ')[0] }}</a>{% endfor %}</div>{% endif %}{% endif %}{% endmacro %}
+{% macro wl_chips(day_str) %}{% if wl_for is defined %}{% set wl = wl_for(day_str|string) %}{% if wl %}<div class="d-flex flex-wrap gap-1 wl-chips">{% for w in wl %}<a href="{{ w.url }}" class="badge bg-info text-dark text-decoration-none" data-wl-tip="{{ w.tip }}"><i class="bi bi-hourglass-split"></i> {{ w.name.split(' ')[0] }}</a>{% endfor %}</div>{% endif %}{% endif %}{% endmacro %}
 {#
   The schedule page's actual calendar/list content: title, view toolbar,
   Plane/Instructor filter form, the view itself (month grid / day list /

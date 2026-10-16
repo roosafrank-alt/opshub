@@ -188,6 +188,14 @@ def child(args):
         def _shot(self, label):  # no picture per step; just remember where it was
             self.log.append(dict(step=label, url=self.page.url.replace(self.base, "")))
 
+        def hover(self, sel):  # mouse over something without clicking it
+            loc = self.page.locator(sel)
+            if not loc.count():
+                raise LookupError(f"couldn't find anything matching '{sel}'")
+            loc.first.scroll_into_view_if_needed()
+            loc.first.hover()
+            self.page.wait_for_timeout(250)
+
     side, results = args.side, []
     with ux._Closing(pw) as p:
         launch = dict(args=["--no-sandbox"])
@@ -228,7 +236,7 @@ def child(args):
                     if verb == "shot":
                         time.sleep(0.2)
                         take(s[1]); pending.pop(0)
-                    elif verb in ("start", "tap", "fill", "see", "scan"):
+                    elif verb in ("start", "tap", "fill", "see", "scan", "hover"):
                         getattr(w, verb)(*rest)
                     else:
                         raise ValueError(f"unknown step '{verb}'")

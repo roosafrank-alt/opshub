@@ -136,6 +136,7 @@ class WaitlistNoteTest(WaitlistTest):
         self.assertIn("Free 1-4pm, need to leave by 5", html)
         cfi = self.login("cfi").get(f"/flight/schedule?view=day&date={self.day.isoformat()}").get_data(as_text=True)
         self.assertIn("need to leave by 5", cfi)
+        self.assertIn("data-wl-tip=", cfi)  # styled hover popover reads this
 
     def test_note_is_optional_and_trimmed(self):
         self.join()
