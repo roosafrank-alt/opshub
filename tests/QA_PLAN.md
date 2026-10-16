@@ -87,7 +87,7 @@ Accounts / admin
 - [x] Admin reset pages: each reset touches only what it says (all fine, no findings)
 
 Flight school
-- [ ] Scheduling: new, edit, conflicts, recurring, CFI time off
+- [x] Scheduling, part 1: new booking, conflicts, bad input, student request, cancel, weekly repeat, time off (open: qa-schedule-bad-input-crash, qa-schedule-deleted-plane; still to do: edit, reschedule, approve/deny, change requests, recurring edge cases)
 - [ ] Flight log: new, early start, active flight, complete, Hobbs/tach gaps
 - [ ] Billing: student ledger balances, CFI pay, plane rates
 - [ ] Ground school / ACS: sign-offs, progress (the crawler needs seed data for these, they currently 404)
@@ -101,3 +101,13 @@ the tests (for example `qa-nan-quantities`) match the card IDs there. A tested
 fix for each of the first night's bugs was already written on branch
 `qa/2026-09-25` (closed PR #1), and the runner may reuse it once a card is
 approved.
+
+## Oct 16 sync (tests caught up with deliberate app changes)
+
+Eleven tests had gone stale against changes made on purpose, so the suite was
+red on `main` and `idea-queue` alike. Tests now match the app: resets need
+RESET typed (HUB-29); a tech may adjust a count, edit aircraft and add/edit
+maintenance items but not delete (SHOP-06); an unticked sub-area that an
+inspector/admin already confirmed can only be reopened by them (JOBS-13);
+apprentices can clock only onto jobs they have a task on; the per-person
+"view as" route is gone (Switch role only).

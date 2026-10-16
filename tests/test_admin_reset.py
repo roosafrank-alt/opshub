@@ -57,7 +57,7 @@ class AdminResetTest(OpsHubTestCase):
         self.assertEqual(self.n("projects"), 1)
 
     def test_projects_reset_keeps_parts_history_and_orders(self):
-        self.login("master").post("/admin/reset/projects")
+        self.login("master").post("/admin/reset/projects", data={"confirm_text": "RESET"})
         self.assertEqual(self.n("projects"), 0)
         self.assertEqual(self.n("parts"), 1)
         self.assertEqual(self.n("transactions"), 1)
@@ -67,18 +67,18 @@ class AdminResetTest(OpsHubTestCase):
         self.assertEqual(self.n("assets"), 1)
 
     def test_projects_reset_restarts_numbering(self):
-        self.login("master").post("/admin/reset/projects")
+        self.login("master").post("/admin/reset/projects", data={"confirm_text": "RESET"})
         pid = self.make_project("After reset")
         self.assertTrue(self.q1("SELECT code FROM projects WHERE id=?", (pid,))["code"].endswith("-001"))
 
     def test_billing_reset_zeroes_balances_but_keeps_students(self):
-        self.login("master").post("/admin/reset/billing")
+        self.login("master").post("/admin/reset/billing", data={"confirm_text": "RESET"})
         self.assertEqual(self.n("student_ledger"), 0)
         self.assertEqual(self.q1("SELECT balance FROM students WHERE id=?", (self.student,))["balance"], 0)
         self.assertEqual(self.n("orders"), 1)
 
     def test_students_reset_removes_students_not_shop_data(self):
-        self.login("master").post("/admin/reset/students")
+        self.login("master").post("/admin/reset/students", data={"confirm_text": "RESET"})
         self.assertIsNone(self.q1("SELECT id FROM students WHERE id=?", (self.student,)))
         self.assertEqual(self.n("student_ledger"), 0)
         self.assertEqual(self.n("projects"), 1)
@@ -87,7 +87,7 @@ class AdminResetTest(OpsHubTestCase):
 
     def test_instructors_reset_keeps_master_admins_own_profile(self):
         master_cfi = self.q1("SELECT id FROM cfis WHERE user_id=?", (self.users["master"]["id"],))
-        self.login("master").post("/admin/reset/instructors")
+        self.login("master").post("/admin/reset/instructors", data={"confirm_text": "RESET"})
         self.assertIsNotNone(self.q1("SELECT id FROM cfis WHERE id=?", (master_cfi["id"],)))
         self.assertIsNone(self.q1("SELECT id FROM cfis WHERE user_id=?", (self.users["cfi"]["id"],)))
         self.assertIsNotNone(self.q1("SELECT id FROM students WHERE id=?", (self.student,)))

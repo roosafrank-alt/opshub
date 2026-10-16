@@ -96,11 +96,16 @@ class EditAircraftTest(OpsHubTestCase):
         self.assertEqual(self.client.post("/assets/999/edit", data=dict(tag="X")).status_code, 404)
         self.assertEqual(self.client.get("/assets/999").status_code, 404)
 
-    def test_tech_cannot_edit(self):
+    def test_only_admin_and_tech_can_edit(self):
+        # Techs may edit aircraft details (the page is admin + tech by design).
         a = self.make_asset("N1")
+        for role in ("inspector", "shop_student", "cfi", "flight_student", "no_roles"):
+            self.login(role)
+            self.client.post(f"/assets/{a}/edit", data=dict(tag="N1", make="Hacked"))
+            self.assertNotEqual(self.q1("SELECT make FROM assets WHERE id=?", (a,))["make"], "Hacked", role)
         self.login("tech")
-        self.client.post(f"/assets/{a}/edit", data=dict(tag="N1", make="Hacked"))
-        self.assertNotEqual(self.q1("SELECT make FROM assets WHERE id=?", (a,))["make"], "Hacked")
+        self.client.post(f"/assets/{a}/edit", data=dict(tag="N1", make="TechEdit"))
+        self.assertEqual(self.q1("SELECT make FROM assets WHERE id=?", (a,))["make"], "TechEdit")
 
 
 class HoursTest(OpsHubTestCase):

@@ -398,6 +398,12 @@ class LaborFlowTest(OpsHubTestCase):
                 r = self.client.post("/api/labor/scan", json=body)
                 self.assertIn(r.status_code, (400, 404))
 
+    def test_apprentice_cannot_clock_onto_a_job_with_no_task_for_them(self):
+        self.login("shop_student")
+        r = self.labor(project_id=self.project)
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(self.sessions(self.laborer), [])
+
     def test_accounts_without_shop_access_cannot_clock_labor(self):
         self.login("tech")
         self.labor(code="LABOR-BBBB0002", project_id=self.project)
@@ -413,7 +419,9 @@ class LaborFlowTest(OpsHubTestCase):
         self.assertIsNone(self.sessions(self.other)[0]["ended_at"])
 
     def test_shop_roles_can_clock_labor(self):
-        for role in ("tech", "shop_admin", "shop_student", "inspector", "master"):
+        # shop_student (apprentice) is limited to jobs they have a task on, so
+        # an unassigned job is refused (403) - see the next test.
+        for role in ("tech", "shop_admin", "inspector", "master"):
             with self.subTest(role=role):
                 self.login(role)
                 self.assertEqual(self.labor(project_id=self.project).status_code, 200)

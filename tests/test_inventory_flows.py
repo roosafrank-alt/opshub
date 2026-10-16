@@ -225,12 +225,14 @@ class PartFlowTest(OpsHubTestCase):
         self.client.post(f"/parts/{pid}/adjust", data=dict(new_qty="3"))
         self.assertEqual(self.qty(pid), 10)
 
-    def test_tech_cannot_adjust_or_delete(self):
+    def test_tech_can_adjust_but_not_delete(self):
+        # SHOP-06: a tech may correct a count; deleting a part is admin only.
         pid = self.make_part(qty=10)
         self.login("tech")
-        self.client.post(f"/parts/{pid}/adjust", data=dict(new_qty="0", performed_by="x"))
         self.client.post(f"/parts/{pid}/delete")
-        self.assertEqual(self.qty(pid), 10)
+        self.assertIsNotNone(self.q1("SELECT id FROM parts WHERE id=?", (pid,)))
+        self.client.post(f"/parts/{pid}/adjust", data=dict(new_qty="4", performed_by="x"))
+        self.assertEqual(self.qty(pid), 4)
 
     def test_deleting_a_part_keeps_project_parts_history(self):
         # NEEDS FRANK'S DECISION: Delete Part also runs

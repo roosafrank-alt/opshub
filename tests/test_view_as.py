@@ -175,20 +175,6 @@ class ViewAsPersonTest(OpsHubTestCase):
         self.assertNotEqual(r.status_code, 500)
         self.assertEqual(self.sess()["user_id"], me)
 
-    def test_person_view_then_exit_returns_to_real_admin(self):
-        self.login("master")
-        me = self.sess()["user_id"]
-        r = self.client.post(f"/view-as/person/{self.users['tech']['id']}")
-        self.assertEqual(r.status_code, 302)
-        s = self.sess()
-        self.assertEqual(s["user_id"], self.users["tech"]["id"])
-        self.assertFalse(s.get("is_master_admin"))
-        self.assertIn(self.client.get("/admin/users").status_code, (302, 403))
-        self.client.post("/view-as/person/exit")
-        s = self.sess()
-        self.assertEqual(s["user_id"], me)
-        self.assertTrue(s["is_master_admin"])
-
     def test_person_view_cannot_start_another_person_view_as_that_person(self):
         self.login("master")
         self.client.post(f"/view-as/person/{self.users['tech']['id']}")

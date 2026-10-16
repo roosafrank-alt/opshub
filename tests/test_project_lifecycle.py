@@ -253,7 +253,12 @@ class SubAreaTest(OpsHubTestCase):
         self.client.post(f"/projects/{self.pid}/sections/{sid}/complete", data=dict(completed="1"))
         self.login("shop_admin")
         self.client.post(f"/projects/{self.pid}/sections/{sid}/confirm")
+        # JOBS-13: once confirmed, a tech can no longer undo it by unticking...
         self.login("tech")
+        self.client.post(f"/projects/{self.pid}/sections/{sid}/complete", data=dict(completed="0"))
+        self.assertTrue(self.sections()[0]["completed_at"])
+        # ...an admin can, and that clears the request and the completion.
+        self.login("shop_admin")
         self.client.post(f"/projects/{self.pid}/sections/{sid}/complete", data=dict(completed="0"))
         s = self.sections()[0]
         self.assertIsNone(s["completed_at"])
