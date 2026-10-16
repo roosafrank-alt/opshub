@@ -51,6 +51,8 @@
           <label class="btn btn-outline-primary btn-sm" for="wl-cfi-{{ c.id }}">{{ c.name }}</label>
           {% endfor %}
         </div>
+        <label class="form-label small mb-1 mt-2" for="wl-note">Note <span class="text-muted">(best time, time you need to leave by, or any other request)</span></label>
+        <textarea id="wl-note" name="note" class="form-control" rows="2" maxlength="300" placeholder="e.g. Free 1-4pm, need to leave by 5"></textarea>
         <label class="form-label small mb-1 mt-2" for="wl-until">Until (optional)</label>
         <input id="wl-until" type="date" name="until_date" class="form-control mb-3" min="{{ today }}">
         <button class="btn btn-primary w-100 fw-bold"><i class="bi bi-plus-lg"></i> {{ 'Add to waitlist' if staff else 'Join waitlist' }}</button>
@@ -77,6 +79,7 @@
         <div>
           {% if staff %}<div class="fw-bold">{{ e.student_name }}</div>{% endif %}
           <div>{{ e.days_label }} &middot; {{ e.periods_label }}</div>
+          {% if e.note %}<div class="small"><i class="bi bi-chat-left-text"></i> {{ e.note }}</div>{% endif %}
           <div class="small text-muted">{{ e.plane_tag or 'Any plane' }} &middot; {{ e.cfi_name or 'any instructor' }}{% if e.until_date %} &middot; until {{ e.until_date|usdate }}{% endif %} &middot; since {{ e.created_at|usdate }}</div>
         </div>
         <form method="post" action="{{ url_for('flight.waitlist_remove', entry_id=e.id) }}">

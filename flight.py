@@ -9688,7 +9688,7 @@ def _waitlist_calendar_days(conn):
                 kw["asset_id"] = a[0]
             if len(c) == 1:
                 kw["cfi_id"] = c[0]
-            out.append({"name": w["student_name"], "url": url_for("flight.schedule_new", **kw)})
+            out.append({"name": w["student_name"], "note": w["note"] or "", "url": url_for("flight.schedule_new", **kw)})
         cache[day] = out
         return out
     return wl_for
@@ -9849,11 +9849,11 @@ def waitlist_join():
         return ok
     asset_ids, cfi_ids = _id_list("asset_id", "assets"), _id_list("cfi_id", "cfis")
     conn.execute("""INSERT INTO flight_waitlist (student_id, days, periods, asset_id, cfi_id, asset_ids, cfi_ids,
-                     until_date, active, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)""",
+                     until_date, note, active, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)""",
                  (student["id"], ",".join(days), ",".join(periods),
                   asset_ids[0] if len(asset_ids) == 1 else None, cfi_ids[0] if len(cfi_ids) == 1 else None,
                   ",".join(map(str, asset_ids)) or None, ",".join(map(str, cfi_ids)) or None,
-                  until, now_iso(), session.get("user_name")))
+                  until, (request.form.get("note") or "").strip()[:300] or None, now_iso(), session.get("user_name")))
     conn.commit()
     conn.close()
     flash("On the waitlist - you'll get a text/notification the moment a matching slot opens." if not staff
