@@ -445,13 +445,13 @@ def _real_cfis(conn):
 
 
 def _signer(conn, cfi_id=None):
-    """The CFI signing: yourself, or (Flight Admin) whichever CFI is picked."""
-    if cfi_id and _is_flight_admin():
-        row = conn.execute("SELECT * FROM cfis WHERE id = ?", (cfi_id,)).fetchone()
-        if row:
-            return row
-    cid = session.get("cfi_id")
-    return conn.execute("SELECT * FROM cfis WHERE id = ?", (cid,)).fetchone() if cid else None
+    """The CFI signing: always the signed-in person's own real CFI profile.
+    Nobody signs another CFI's block, whatever their login level (cfi_id from
+    the page is ignored on purpose). None = this login holds no CFI profile."""
+    if session.get("_view_as_readonly"):
+        return None
+    from auth import own_cfi
+    return own_cfi(conn, real_only=True)
 
 
 def _planes(conn):
@@ -522,7 +522,7 @@ def new():
     student = next((s for s in students if s["id"] == sid), None)
     planes = _planes(conn)
     signer = _signer(conn, request.args.get("cfi_id", type=int))
-    cfis = _real_cfis(conn) if _is_flight_admin() else []
+    cfis = []   # no "Signing CFI" picker: you only ever sign as yourself
     conn.close()
     cat = [{k: e[k] for k in ("id", "num", "title", "short", "reg", "desc", "group", "group_short", "text", "notes", "blanks",
                                "expiry", "expiry_src", "issued_by", "student_pilot_only")} for e in catalog()]
@@ -579,17 +579,22 @@ def _save(conn):
     body = fill(entry["text"], values)
     expires = (_parse_any_date(f.get("expires_on")).isoformat() if _parse_any_date(f.get("expires_on")) else None) \
         if f.get("expires_on") else compute_expiry(entry["id"], signed_on, {"date": values.get("date")})
-    signer = _signer(conn, f.get("cfi_id", type=int))
+    signer = _signer(conn)
+    if not entry["issued_by"] and not signer:
+        conn.close()
+        flash("Only the CFI themselves can sign this. Your login has no CFI profile of its own, "
+              "and nobody can sign another CFI's endorsement.", "danger")
+        return redirect(url_for("endorse.new", student_id=student["id"], e=entry["id"]))
     if entry["issued_by"]:
         cfi_id, cfi_name, cert, cert_kind, cert_date = (signer["id"] if signer else None), (f.get("issuer_name") or "").strip()[:120], \
             (f.get("issuer_cert") or "").strip()[:40], "", ""
         sig = f"/s/ {us_date(signed_on)} {cfi_name} {cert}".strip()
     else:
-        cfi_id = signer["id"] if signer else None
-        cfi_name = (signer["name"] if signer else session.get("user_name")) or ""
-        cert = (f.get("cfi_cert") or (signer["cfi_cert_number"] if signer else "") or "").strip()[:40]
+        cfi_id = signer["id"]
+        cfi_name = signer["name"] or ""
+        cert = (f.get("cfi_cert") or signer["cfi_cert_number"] or "").strip()[:40]
         cert_kind = "exp" if f.get("cert_kind") == "exp" else "re"
-        cert_date = (f.get("cfi_cert_date") or (signer["cfi_cert_expires"] if signer else "") or "").strip()[:10]
+        cert_date = (f.get("cfi_cert_date") or signer["cfi_cert_expires"] or "").strip()[:10]
         sig = sig_line(cfi_name, cert, cert_kind, cert_date, signed_on)
     full = body + "\n\n" + sig
     cur = conn.execute("""INSERT INTO student_endorsements (student_id, cfi_id, cfi_name, kind, label, plane, body, signed_on,

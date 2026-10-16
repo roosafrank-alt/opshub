@@ -2780,7 +2780,8 @@ def student_solo_signoff_save(student_id):
         out.update(date=today, expires=expires)
     body = (request.form.get("body") or "").strip()[:2000]
     if body:
-        cfi = current_cfi(conn)
+        from auth import own_cfi
+        cfi = own_cfi(conn)   # always yourself - never the CFI picked or switched to
         kind = (request.form.get("kind") or "")[:40]
         dup = conn.execute("SELECT id FROM student_endorsements WHERE student_id = ? AND kind = ? AND body = ? AND signed_on = ?",
                            (student_id, kind, body, today)).fetchone()
@@ -3197,10 +3198,14 @@ def cfi_edit(cfi_id):
                      (medical_class, medical_expires, cfi_id))
         conn.execute("UPDATE cfis SET cfi_cert_number = ?, cfi_cert_expires = ? WHERE id = ?",
                      (*_cfi_cert_from_form(request.form), cfi_id))
-        # Signature pad on Edit CFI (the CFI can also sign on My CFI Profile).
+        # Signature: only the CFI draws their own (My CFI Profile, or here on
+        # their own profile). On someone else's profile an admin can only
+        # remove it, never draw one in.
         sig_changed, signature = _signature_from_form(request.form)
         if request.form.get("clear_signature"):
             sig_changed, signature = True, None
+        if signature and cfi_row["user_id"] != session.get("user_id"):
+            sig_changed, signature = False, None
         if sig_changed and (signature or cfi_row["signature"]):
             _save_cfi_signature(conn, cfi_id, signature)
             _log_field_change(conn, "cfi", cfi_id, "signature", "on file" if cfi_row["signature"] else "",
@@ -3261,6 +3266,8 @@ def cfi_me():
         conn.execute("UPDATE cfis SET cfi_cert_number = ?, cfi_cert_expires = ? WHERE id = ?",
                      (number, expires, cfi_row["id"]))
         sig_changed, signature = _signature_from_form(request.form)
+        if cfi_row["user_id"] != session.get("user_id"):
+            sig_changed = False   # a role switch onto another CFI's profile can't sign for them
         if sig_changed:
             _save_cfi_signature(conn, cfi_row["id"], signature)
             _log_field_change(conn, "cfi", cfi_row["id"], "signature", "on file" if cfi_row["signature"] else "",

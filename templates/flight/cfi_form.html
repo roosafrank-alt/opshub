@@ -135,8 +135,15 @@
     {% if cfi %}
     {% from "flight/_signature_pad.html" import signature_pad %}
     <div class="mb-3 anchor-offset" id="signature">
-      <label class="form-label d-block">Signature <span class="text-muted small">(goes on students' logbook entries this CFI instructs - the CFI can also sign on their own My CFI Profile)</span></label>
+      <label class="form-label d-block">Signature <span class="text-muted small">(goes on students' logbook entries and endorsements this CFI signs)</span></label>
+      {% if cfi.user_id and cfi.user_id == session.get('user_id') %}
       {{ signature_pad(cfi.signature) }}
+      {% else %}
+      {% if cfi.signature %}<img src="{{ cfi.signature }}" alt="Saved signature" style="max-width:320px; background:#fff; border:1px solid #dee2e6; border-radius:8px;" class="d-block mb-1">
+      <div class="form-check"><input type="checkbox" class="form-check-input" name="clear_signature" value="1" id="clear-sig"><label class="form-check-label small" for="clear-sig">Remove this signature</label></div>
+      {% else %}<div class="small text-muted">None on file.</div>{% endif %}
+      <div class="form-text"><i class="bi bi-lock"></i> Only {{ cfi.name }} can sign, on their own My CFI Profile. Nobody can sign for another CFI.</div>
+      {% endif %}
     </div>
     {% endif %}
     <div class="form-check mb-3">
