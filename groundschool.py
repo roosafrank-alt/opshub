@@ -671,6 +671,20 @@ def student_search():
     return render_template("flight/groundschool_students.html", students=rows, tab="groundschool")
 
 
+def _target_rating_id(st, ratings):
+    """The course this student is working toward (from their certificate), or None."""
+    try:
+        from pilotlog import NEXT_TRACK
+        code = NEXT_TRACK.get((st["pilot_certificate"] or None) if "pilot_certificate" in st.keys() else None, "private")
+    except Exception:
+        code = "private"
+    word = {"cfi": "instructor", "multi": "multi"}.get(code, code)
+    for r in ratings:
+        if word in (r["name"] or "").lower():
+            return r["id"]
+    return None
+
+
 @groundschool_bp.route("/student/<int:student_id>")
 @login_required
 def student_summary(student_id):
@@ -684,26 +698,73 @@ def student_summary(student_id):
         abort(404)
     ratings = conn.execute("SELECT * FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall()
     progress = {r["id"]: _rating_progress(conn, r["id"], student_id) for r in ratings}
-    courses = [{"id": r["id"], "name": r["name"], "p": progress[r["id"]]} for r in ratings if progress[r["id"]]]
+    # time already spent per course, so the picker can show past courses the student has worked on
+    spent = {r["rid"]: r["s"] for r in conn.execute(
+        """SELECT a.rating_id AS rid, SUM(lt.seconds) AS s FROM gs_lesson_time lt JOIN acs_tasks t ON t.id = lt.task_id
+           JOIN acs_areas a ON a.id = t.area_id WHERE lt.student_id = ? GROUP BY a.rating_id""", (student_id,)).fetchall()}
+    target = _target_rating_id(st, ratings)
+    courses = []
+    for r in ratings:
+        p_ = progress[r["id"]]
+        if r["id"] == target or spent.get(r["id"]) or (p_ and p_["done"]):
+            done = bool(p_ and p_["total"] and p_["done"] >= p_["total"])
+            courses.append({"id": r["id"], "name": r["name"], "p": p_, "current": r["id"] == target, "done": done,
+                            "mins": int((spent.get(r["id"]) or 0) // 60)})
+    try:
+        pick = int(request.args.get("course") or 0)
+    except ValueError:
+        pick = 0
+    ids = [c["id"] for c in courses]
+    rid = pick if pick in ids else (target if target in ids else (ids[0] if ids else None))
+    course = next((c for c in courses if c["id"] == rid), None)
     task_ids = [r["task_id"] for r in conn.execute(
         """SELECT task_id FROM gs_lesson_time WHERE student_id = ?
            UNION SELECT task_id FROM gs_lesson_results WHERE student_id = ?""", (student_id, student_id)).fetchall()]
     lessons = []
     for tid in task_ids:
-        info = conn.execute("""SELECT t.id, t.code, t.title, a.code AS acode, a.title AS atitle, r.name AS rname
+        info = conn.execute("""SELECT t.id, t.code, t.title, a.code AS acode, a.title AS atitle, r.name AS rname, r.id AS rid
                                FROM acs_tasks t JOIN acs_areas a ON a.id = t.area_id JOIN acs_ratings r ON r.id = a.rating_id
                                WHERE t.id = ? AND t.retired_at IS NULL""", (tid,)).fetchone()
-        if not info:
+        if not info or info["rid"] != rid:
             continue
         lesson = _lesson_for_task(conn, tid)
         stt = lesson_stats(conn, student_id, tid, lesson) if lesson else None
         if not stt:
             continue
+        stt["chunk_titles"] = [c["title"] for c in (lesson.get("chunks") or [])]
         lessons.append({"info": info, "st": stt})
     lessons.sort(key=lambda x: (x["info"]["rname"], x["info"]["acode"], x["info"]["code"]))
     tot_secs = sum(x["st"]["seconds"] for x in lessons)
     inits = [x["st"]["initial_pct"] for x in lessons if x["st"]["initial_pct"] is not None]
     finals = [x["st"]["final_pct"] for x in lessons if x["st"]["final_pct"] is not None]
+    # where the student is right now (the lesson they were last in, and which section)
+    now_on = None
+    spot = resume_spot(conn, student_id, rating_id=rid) if rid else None
+    if spot:
+        cur = next((x for x in lessons if x["info"]["id"] == spot["task_id"]), None)
+        sec = None
+        m = re.fullmatch(r"gsl-c(\d+)", spot["anchor"] or "")
+        if cur and m:
+            n = int(m.group(1))
+            titles = cur["st"]["chunk_titles"]
+            sec = {"n": n, "title": titles[n - 1] if 0 < n <= len(titles) else ""}
+        now_on = {"label": spot["task_label"], "task_id": spot["task_id"], "sec": sec,
+                  "when": cur["st"]["last_seen_at"] if cur else None, "mins": int(cur["st"]["seconds"] // 60) if cur else 0}
+    # weak spots: lessons graded under 85%, and the questions missed on the first try (most tries first)
+    weak, missed = [], []
+    for x in lessons:
+        i, t = x["info"], x["st"]
+        for kind, pct, rows in (("Initial quiz", t["initial_pct"] if t["initial_pct"] is not None else t["initial_pct_so_far"], t["quiz_rows"]),
+                                ("Final check", t["final_pct"] if t["final_pct"] is not None else t["final_pct_so_far"], t["final_rows"])):
+            if pct is not None and pct < 85:
+                weak.append({"info": i, "kind": kind, "pct": pct})
+            for q in rows:
+                if q["answered"] and not q["first_correct"]:
+                    missed.append({"info": i, "q": q["q"], "attempts": q["attempts"], "kind": kind})
+    weak.sort(key=lambda w: w["pct"])
+    missed.sort(key=lambda m_: -m_["attempts"])
+    skipped = [{"info": x["info"], "n": len(x["st"]["sections"]) - x["st"]["sections_read"]} for x in lessons
+               if x["st"]["sections"] and x["st"]["sections_read"] < len(x["st"]["sections"]) and x["st"]["seconds"] >= 60]
     fl = conn.execute("""SELECT COUNT(*) n, COALESCE(SUM(total),0) hrs, COALESCE(SUM(day_ldg),0)+COALESCE(SUM(night_ldg),0) ldg,
                                 MAX(entry_date) last FROM pilot_logbook WHERE student_id = ? AND status != 'denied'""", (student_id,)).fetchone()
     pending = conn.execute("SELECT COUNT(*) c FROM pilot_logbook WHERE student_id = ? AND status = 'pending'", (student_id,)).fetchone()["c"]
@@ -716,7 +777,8 @@ def student_summary(student_id):
     return render_template("flight/groundschool_student.html", st=st, courses=courses, lessons=lessons, tab="groundschool",
                            tot_min=int(tot_secs // 60), avg_init=round(sum(inits) / len(inits)) if inits else None,
                            avg_final=round(sum(finals) / len(finals)) if finals else None,
-                           flying=fl, pending=pending, a_stat=a_stat)
+                           flying=fl, pending=pending, a_stat=a_stat, course=course, now_on=now_on,
+                           weak=weak[:8], missed=missed[:8], skipped=skipped[:8])
 
 
 @groundschool_bp.route("/upload", methods=["POST"])
