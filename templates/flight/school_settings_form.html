@@ -53,14 +53,14 @@
   <div class="card p-4 mb-3">
     <h5><i class="bi bi-cash-coin"></i> Late-Cancellation Fee</h5>
     <p class="text-muted small">When a student cancels their own booking this close to (or after) the flight's start time, the fee below is charged automatically to their account. Set the fee to $0 to turn the charge off - cancelling stays free.</p>
-    <div class="row">
-      <div class="col-sm-6 mb-3 mb-sm-0">
-        <label class="form-label">Cancel within this many hours of the flight...</label>
+    <div class="row row-cols-1 row-cols-sm-2 gx-3">
+      <div class="col d-flex flex-column mb-3 mb-sm-0">
+        <label class="form-label mb-auto pb-1">Cancel within this many hours of the flight...</label>
         <input type="number" name="window_hours" class="form-control" min="0" step="1" value="{{ '%g'|format(window_hours) }}" required>
         <div class="form-text">e.g. 24 or 48. A cancellation earlier than this counts as free.</div>
       </div>
-      <div class="col-sm-6">
-        <label class="form-label">...gets charged this fee</label>
+      <div class="col d-flex flex-column">
+        <label class="form-label mb-auto pb-1">...gets charged this fee</label>
         <div class="input-group">
           <span class="input-group-text">$</span>
           <input type="number" name="fee_amount" class="form-control" min="0" step="0.01" value="{{ '%.2f'|format(fee_amount) }}" required>
@@ -68,14 +68,14 @@
         <div class="form-text">Shows in the student's balance history as "Late Cancel".</div>
       </div>
     </div>
-    <div class="row mt-3">
-      <div class="col-sm-6 mb-3 mb-sm-0">
-        <label class="form-label">Second option: cancel within this many hours...</label>
+    <div class="row mt-3 row-cols-1 row-cols-sm-2 gx-3">
+      <div class="col d-flex flex-column mb-3 mb-sm-0">
+        <label class="form-label mb-auto pb-1">Second option: cancel within this many hours...</label>
         <input type="number" name="window2_hours" class="form-control" min="0" step="1" value="{{ '%g'|format(window2_hours) if window2_hours else '' }}" placeholder="Off">
         <div class="form-text">e.g. 6. Usually shorter than the first, with a bigger fee. Blank = off.</div>
       </div>
-      <div class="col-sm-6">
-        <label class="form-label">...gets charged this fee</label>
+      <div class="col d-flex flex-column">
+        <label class="form-label mb-auto pb-1">...gets charged this fee</label>
         <div class="input-group">
           <span class="input-group-text">$</span>
           <input type="number" name="fee_amount2" class="form-control" min="0" step="0.01" value="{{ '%.2f'|format(fee_amount2) if fee_amount2 else '' }}" placeholder="Off">
