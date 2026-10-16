@@ -523,6 +523,7 @@
         <div class="form-text" id="endorse-note">Wording follows AC 61-65; check it against the current edition.</div>
       </div>
       <div class="modal-footer">
+        <button type="button" class="btn btn-success" id="endorse-save"><i class="bi bi-person-check"></i> Save to profile</button>
         <button type="button" class="btn btn-outline-secondary" id="endorse-print"><i class="bi bi-printer"></i> Print</button>
         <button type="button" class="btn btn-primary" id="endorse-copy"><i class="bi bi-clipboard"></i> Copy</button>
       </div>
@@ -549,7 +550,8 @@
     var body = TEXT[k].replace('{n}', NAME).replace('{a}', plane);
     $('endorse-text').value = body + '\n\n' + us(TODAY) + '\n' + CFI + '\nCFI ' + ($('endorse-cert').value || '____') + '   Exp. ' + us($('endorse-exp').value);
     var opt = $('endorse-kind').selectedOptions[0];
-    $('endorse-note').textContent = (opt.dataset.save ? 'Copy or Print also saves today as the solo sign-off date (good for 90 days) and ' : 'Copy or Print ') + 'keeps a copy on the student\'s and your profile. Wording follows AC 61-65; check it against the current edition.';
+    $('endorse-save').innerHTML = '<i class="bi bi-person-check"></i> Save to profile';
+    $('endorse-note').textContent = (opt.dataset.save ? 'Save to profile, Copy or Print also saves today as the solo sign-off date (good for 90 days) and ' : 'Save to profile, Copy or Print ') + 'keeps a copy on the student\'s and your profile. Wording follows AC 61-65; check it against the current edition.';
   }
   var kept = {};
   function save() {
@@ -572,6 +574,9 @@
     var t = $('endorse-text'); t.select();
     (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.resolve(document.execCommand('copy'))).catch(function () {});
     $('endorse-copy').textContent = 'Copied'; save();
+  });
+  $('endorse-save').addEventListener('click', function () {
+    save(); $('endorse-save').innerHTML = '<i class="bi bi-check-lg"></i> Saved to profile';
   });
   $('endorse-print').addEventListener('click', function () {
     var w = window.open('', '_blank'); if (!w) return;
