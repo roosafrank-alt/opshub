@@ -110,6 +110,7 @@
           </div>
           {% if r.status.urgency == 'overdue' %}<span class="badge bg-danger">Overdue</span>
           {% elif r.status.urgency == 'due_soon' %}<span class="badge bg-warning text-dark">Due Soon</span>
+          {% elif r.status.urgency == 'unknown' %}<span class="badge bg-secondary">Hours needed</span>
           {% else %}<span class="badge bg-success">OK</span>{% endif %}
         </div>
         {% if r.status.urgency in ('overdue', 'due_soon') %}
