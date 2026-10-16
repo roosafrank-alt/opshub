@@ -9270,6 +9270,10 @@ def admin_user_edit(user_id):
         else:
             conn.execute("UPDATE cfis SET active=? WHERE user_id=?", (active, user_id))
             conn.execute("UPDATE students SET active=? WHERE user_id=?", (active, user_id))
+        if "training_goal" in request.form:
+            from flight import _training_goal_from_form
+            conn.execute("UPDATE students SET training_goal = ? WHERE user_id = ?",
+                         (_training_goal_from_form(request.form), user_id))
         conn.commit()
         _apply_pay_links(conn, user_row, request.form)
         conn.close()
@@ -9290,11 +9294,14 @@ def admin_user_edit(user_id):
 
 def _course_grant_context(conn, user_id):
     """Per-course Ground School grants for the student profile linked to this account."""
-    st = conn.execute("SELECT id FROM students WHERE user_id = ?", (user_id,)).fetchone()
+    from flight import TRAINING_GOALS
+    st = conn.execute("SELECT id, training_goal FROM students WHERE user_id = ?", (user_id,)).fetchone()
     if not st:
         return {"grant_student": None}
     return {
         "grant_student": st["id"],
+        "training_goals": TRAINING_GOALS,
+        "training_goal_now": st["training_goal"] or "",
         "grant_courses": conn.execute("SELECT id, name FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall(),
         "granted_ids": {r["rating_id"] for r in conn.execute(
             "SELECT rating_id FROM academy_course_grants WHERE student_id = ?", (st["id"],)).fetchall()},

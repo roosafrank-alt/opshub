@@ -61,3 +61,20 @@ class ResourcesDefaultCategoryTest(OpsHubTestCase):
         self.assertEqual(self.q1("SELECT training_goal FROM students WHERE id = ?", (sid,))["training_goal"], "instrument")
         self.login("master").post(f"/flight/students/{sid}/edit", data={"name": "X Student", "email": "a@b.co", "phone": "5", "training_goal": "bogus", "active": "on"})
         self.assertIsNone(self.q1("SELECT training_goal FROM students WHERE id = ?", (sid,))["training_goal"])
+
+
+class AdminAccountTrainingGoalTest(OpsHubTestCase):
+    def test_admin_account_page_shows_and_saves_training_goal(self):
+        uid = self.users["flight_student"]["id"]
+        sid = self.q1("SELECT id FROM students WHERE user_id = ?", (uid,))["id"]
+        c = self.login("master")
+        body = c.get(f"/admin/users/{uid}/edit").get_data(as_text=True)
+        self.assertIn('name="training_goal"', body)
+        self.assertIn("Sport Pilot", body)
+        user = self.q1("SELECT * FROM users WHERE id = ?", (uid,))
+        data = {"name": user["name"], "training_goal": "sport", "active": "on",
+                "flight_roles": user["flight_roles"] or "student"}
+        c.post(f"/admin/users/{uid}/edit", data=data)
+        self.assertEqual(self.q1("SELECT training_goal FROM students WHERE id = ?", (sid,))["training_goal"], "sport")
+        c.post(f"/admin/users/{uid}/edit", data={**data, "training_goal": ""})
+        self.assertIsNone(self.q1("SELECT training_goal FROM students WHERE id = ?", (sid,))["training_goal"])

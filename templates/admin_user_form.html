@@ -157,6 +157,16 @@
     <hr class="my-3">
     <h6 class="mb-2"><i class="bi bi-person-vcard"></i> Profiles</h6>
     <div class="form-text mb-2">Program-specific details (certs, ratings, medical, billing overrides) live on that program's own profile page, linked to this account.</div>
+    {% if grant_student and training_goals is defined %}
+    <div class="mb-3" data-change="RES-DEFAULT">
+      <label class="form-label small fw-bold mb-1" for="training-goal-select"><i class="bi bi-bullseye"></i> Training toward</label>
+      <select name="training_goal" id="training-goal-select" class="form-select">
+        <option value="">- Not set (follows their certificate) -</option>
+        {% for code, label, cat in training_goals %}<option value="{{ code }}" {{ 'selected' if training_goal_now == code }}>{{ label }}</option>{% endfor %}
+      </select>
+      <div class="form-text">The rating this student is working on. Flight Academy Resources opens on it (they can still see everything). Saves with Save Changes.</div>
+    </div>
+    {% endif %}
     <div class="d-flex flex-wrap gap-2 mb-3">
       {% if cfi_profile %}
       <a href="{{ url_for('flight.cfi_edit', cfi_id=cfi_profile.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-airplane-engines"></i> CFI Profile</a>
