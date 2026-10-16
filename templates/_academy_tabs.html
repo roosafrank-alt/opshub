@@ -17,7 +17,7 @@
   {% endif %}
   {% if flight_admin or session.get('groundschool_access') or student_course_grants() %}
   <a class="academy-tab {{ 'active' if _tab == 'groundschool' }}" href="{{ url_for('groundschool.rating_list') }}">
-    <i class="bi bi-mortarboard"></i><span>Ground School</span>
+    <i class="bi bi-mortarboard"></i><span>Ground School{% if session.get('student_id') and open_homework_count() %} <span class="badge bg-warning text-dark" title="Homework assigned">{{ open_homework_count() }}</span>{% endif %}</span>
   </a>
   {% endif %}
   {% if true %}

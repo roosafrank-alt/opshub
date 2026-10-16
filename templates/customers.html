@@ -27,7 +27,7 @@
         <td data-label="Status">{% if c.row.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
         <td class="text-end text-nowrap">
           <a href="{{ url_for('customer_detail', customer_id=c.row.id) }}" class="btn btn-sm btn-outline-secondary" title="Open"><i class="bi bi-eye"></i></a>
-          <a href="{{ url_for('customer_edit', customer_id=c.row.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+          <a href="{{ url_for('admin_user_edit', user_id=c.account_id, tab='customer') if (is_master_admin and c.account_id) else url_for('customer_edit', customer_id=c.row.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
           <form method="post" action="{{ url_for('customer_delete', customer_id=c.row.id) }}" class="d-inline" data-confirm="Delete {{ c.row.name }} forever? Their login and the list of aircraft they can see are lost. To just stop them logging in, untick Active on their account instead." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger" data-change="JOBS-32 DESIGN-4">
             <button class="btn btn-sm btn-outline-danger" title="Delete Forever" aria-label="Delete Forever"><i class="bi bi-trash"></i></button>
           </form>

@@ -659,8 +659,13 @@ def academy_page():
         pending_flights = conn.execute(pend_sql + " AND l.student_id = ? ORDER BY l.entry_date DESC, l.id DESC LIMIT 3", (my_id,)).fetchall()
     else:
         pending_flights = []
+    trend_labels, trend_school, trend_me = academy.monthly_hours(conn, list(board_stats), my_id)
+    map_airports = academy.school_map(conn, board_stats, my_id)
     conn.close()
-    return render_template("academy.html", pending_flights=pending_flights, stats=stats, boards=boards, me=me,
+    race = [{"name": st["name"], "points": st["points"], "me": bool(me and st["id"] == me["id"])}
+            for _r, st in boards.get("points", [])]
+    return render_template("academy.html", race=race, trend_labels=trend_labels, trend_school=trend_school,
+                           trend_me=trend_me, map_airports=map_airports, pending_flights=pending_flights, stats=stats, boards=boards, me=me,
                            my_rank=academy.rank_of(board_stats, my_id) if my_id else None,
                            level=level, levels=academy.LEVELS,
                            entries=entries, staff=staff, period=period, picked_student=picked,
@@ -9124,7 +9129,7 @@ def admin_user_new():
         name = request.form.get("name", "").strip()
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        shop_roles, shop_role, flight_roles, flight_role = _form_roles(request.form)
+        shop_roles, shop_role, flight_roles, flight_role = _tab_roles(request.form, *_form_roles(request.form))
         is_master_admin = 1 if request.form.get("is_master_admin") else 0
         can_bill = 1 if request.form.get("can_bill") else 0
         email = request.form.get("email", "").strip() or None
@@ -9138,8 +9143,15 @@ def admin_user_new():
         groundschool_access = 0
         conn = get_db()
         pay_ctx = _pay_link_context(conn)
+        pay_ctx.update(_account_tabs_context(conn, None))
         preset = _role_preset(shop_roles, flight_roles, badge=request.form.get("badge", ""),
                               badge_rate=request.form.get("badge_rate", ""), cfi_pay_rate=request.form.get("cfi_pay_rate", ""))
+        tab_err = _tab_access_error(request.form, shop_roles, flight_roles)
+        if tab_err:
+            conn.close()
+            flash(tab_err, "danger")
+            return render_template("admin_user_form.html", user=None, name=name, username=username, preset=preset,
+                                   typed_password=password, **pay_ctx)
         if not name or not username or not password:
             conn.close()
             flash("Name, username, and password are all required.", "danger")
@@ -9166,6 +9178,13 @@ def admin_user_new():
         user_row = conn.execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone()
         ensure_flight_profile(conn, user_row)
         _apply_pay_links(conn, user_row, request.form)
+        if request.form.get("access_tabs"):
+            conn.execute("UPDATE users SET type_ratings = ? WHERE id = ?",
+                         (_clean_type_ratings(request.form.get("type_ratings")), user_row["id"]))
+            conn.commit()
+        cust_err = _apply_customer_tab(conn, user_row, request.form)
+        if cust_err:
+            flash(cust_err, "warning")
         new_badge = conn.execute("SELECT id FROM laborers WHERE user_id = ? ORDER BY id DESC LIMIT 1",
                                  (user_row["id"],)).fetchone()
         conn.close()
@@ -9173,6 +9192,10 @@ def admin_user_new():
         if badge == "new" and new_badge:
             flash("Their shop worker badge is ready - print it so they can scan in and out.", "info")
             return redirect(url_for("laborer_label", laborer_id=new_badge["id"]))
+        if request.form.get("access_tabs") and flight_roles:
+            # Their CFI / student details only appear once the profile exists - open that tab now.
+            flash("Fill in the rest of their Flight School details below.", "info")
+            return redirect(url_for("admin_user_edit", user_id=user_row["id"], tab="flight"))
         return redirect(url_for("admin_users_list"))
     # "Add CFI" / "New Laborer" elsewhere in the app land here with the
     # role picked already (?flight_role=cfi, ?shop_role=tech&badge=new).
@@ -9184,6 +9207,7 @@ def admin_user_new():
     preset = _role_preset(shop_roles, flight_roles, badge=request.args.get("badge", ""), badge_rate="", cfi_pay_rate="")
     conn = get_db()
     pay_ctx = _pay_link_context(conn)
+    pay_ctx.update(_account_tabs_context(conn, None))
     conn.close()
     return render_template("admin_user_form.html", user=None, preset=preset, **pay_ctx)
 
@@ -9205,7 +9229,7 @@ def admin_user_edit(user_id):
         return redirect(url_for("admin_users_list"))
     if request.method == "POST":
         name = request.form.get("name", "").strip()
-        shop_roles, shop_role, flight_roles, flight_role = _form_roles(request.form)
+        shop_roles, shop_role, flight_roles, flight_role = _tab_roles(request.form, *_form_roles(request.form))
         is_master_admin = 1 if request.form.get("is_master_admin") else 0
         can_bill = 1 if request.form.get("can_bill") else 0
         active = 1 if request.form.get("active") else 0
@@ -9236,12 +9260,13 @@ def admin_user_edit(user_id):
                          groundschool_access=groundschool_access, apprentice_calendar=apprentice_calendar)
             pay_ctx = _pay_link_context(conn, user_row)
             grant_ctx = _course_grant_context(conn, user_id)
+            tabs_ctx = _account_tabs_context(conn, user_row)
             conn.close()
             preset = _role_preset(shop_roles, flight_roles, badge=request.form.get("badge", ""),
                                   badge_rate=request.form.get("badge_rate", ""),
                                   cfi_pay_rate=request.form.get("cfi_pay_rate", ""))
             return render_template("admin_user_form.html", user=typed, preset=preset,
-                                   typed_password=new_password, **pay_ctx, **grant_ctx)
+                                   typed_password=new_password, **pay_ctx, **grant_ctx, **tabs_ctx)
         if not name:
             flash("Name is required.", "danger")
             return _typed_form()
@@ -9255,6 +9280,18 @@ def admin_user_edit(user_id):
                 ((request.form.get("cfi_pay_rate") or "").strip() and _parse_rate(request.form.get("cfi_pay_rate")) is None):
             flash("Pay rates must be a number, 0 or more.", "danger")
             return _typed_form()
+        tab_err = _tab_access_error(dict(request.form, username=user_row["username"]), shop_roles, flight_roles)
+        if tab_err:
+            flash(tab_err, "danger")
+            return _typed_form()
+        if request.form.get("cfi_fields") and flight_roles and "cfi" in flight_roles.split(","):
+            _cfi = conn.execute("SELECT * FROM cfis WHERE user_id = ?", (user_id,)).fetchone()
+            if _cfi is not None and not _cfi["is_station"]:
+                from flight import apply_cfi_profile_fields
+                cfi_err = apply_cfi_profile_fields(conn, _cfi, request.form, session.get("user_name"))
+                if cfi_err:
+                    flash(cfi_err, "danger")
+                    return _typed_form()
         if new_password:
             conn.execute(
                 "UPDATE users SET name=?, shop_role=?, flight_role=?, shop_roles=?, flight_roles=?, is_master_admin=?, can_bill=?, active=?, password_hash=?, password_plain=?, "
@@ -9269,6 +9306,8 @@ def admin_user_edit(user_id):
                 (name, shop_role, flight_role, shop_roles, flight_roles, is_master_admin, can_bill, active,
                  email, phone, notify_email, notify_sms, notify_low_stock, notify_maintenance, notify_flight_reminders, academy_access, groundschool_access, user_id))
         conn.execute("UPDATE users SET apprentice_calendar = ? WHERE id = ?", (apprentice_calendar, user_id))
+        if request.form.get("access_tabs"):
+            conn.execute("UPDATE users SET type_ratings = ? WHERE id = ?", (_clean_type_ratings(request.form.get("type_ratings")), user_id))
         conn.commit()
         user_row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
         ensure_flight_profile(conn, user_row)
@@ -9284,7 +9323,11 @@ def admin_user_edit(user_id):
             conn.execute("UPDATE students SET active=? WHERE user_id=?", (active, user_id))
         conn.commit()
         _apply_pay_links(conn, user_row, request.form)
-        if request.form.get("student_fields"):
+        _apply_badge_fields(conn, user_row, request.form)
+        cust_err = _apply_customer_tab(conn, user_row, request.form, new_password)
+        if cust_err:
+            flash(cust_err, "warning")
+        if request.form.get("student_fields") and flight_roles and "student" in flight_roles.split(","):
             from flight import apply_student_profile_fields
             stu = conn.execute("SELECT * FROM students WHERE user_id = ?", (user_id,)).fetchone()
             if stu is not None and not stu["is_station"]:
@@ -9294,6 +9337,10 @@ def admin_user_edit(user_id):
                           f"{'are' if flagged != 1 else 'is'} now flagged for review - past the solo sign-off or medical expiry.", "warning")
         conn.close()
         flash("Account updated.", "success")
+        if request.form.get("access_tabs") and request.form.get("tab") and not request.args.get("back") \
+                and not safe_next(request.args.get("next")):
+            # The tabbed page: stay on it, on the tab you were on.
+            return redirect(url_for("admin_user_edit", user_id=user_id, tab=request.form.get("tab")))
         # SHOP-41: opened from the Workers page (?back=workers) -> go back there.
         if request.args.get("back") == "workers":
             return redirect(url_for("laborers_list"))
@@ -9304,8 +9351,123 @@ def admin_user_edit(user_id):
         return redirect(url_for("admin_users_list"))
     pay_ctx = _pay_link_context(conn, user_row)
     grant_ctx = _course_grant_context(conn, user_id)
+    tabs_ctx = _account_tabs_context(conn, user_row)
     conn.close()
-    return render_template("admin_user_form.html", user=user_row, **pay_ctx, **grant_ctx)
+    return render_template("admin_user_form.html", user=user_row, **pay_ctx, **grant_ctx, **tabs_ctx)
+
+
+def _clean_type_ratings(raw):
+    """Type ratings as typed ("CE-525S, B-737") -> one tidy comma list, upper case, no repeats, or None."""
+    seen = []
+    for part in (raw or "").replace(";", ",").replace("\n", ",").split(","):
+        t = " ".join(part.split()).upper()[:30]
+        if t and t not in seen:
+            seen.append(t)
+    return ", ".join(seen[:20]) or None
+
+
+def _linked_customer(conn, user_row):
+    """The My Aircraft customer login that belongs to this staff account: same email (HUB-28 - one person,
+    one login). Matches the account's username first, then its email."""
+    if not user_row:
+        return None
+    for key in (user_row["username"], user_row["email"]):
+        key = (key or "").strip().lower()
+        if "@" in key:
+            row = conn.execute("SELECT * FROM customers WHERE lower(email) = ?", (key,)).fetchone()
+            if row:
+                return row
+    return None
+
+
+def _account_tabs_context(conn, user_row):
+    """What the Flight School (CFI details) and Customer tabs of Admin > Accounts show."""
+    import flight as _fl
+    cfi_row = conn.execute("SELECT * FROM cfis WHERE user_id = ?", (user_row["id"],)).fetchone() if user_row else None
+    cust = _linked_customer(conn, user_row)
+    return dict(
+        cfi_row=cfi_row, cfi_credentials=_fl.CFI_CREDENTIALS, cfi_medical_classes=_fl.MEDICAL_CLASSES,
+        instructor_colors=_fl.SCHEDULE_COLORS,
+        used_colors=_fl._used_cfi_colors(conn, exclude_cfi_id=cfi_row["id"] if cfi_row else None),
+        linked_customer=cust,
+        customer_assets=conn.execute("SELECT id, tag, make, model FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 "
+                                     "AND is_owner_placeholder = 0 ORDER BY tag").fetchall(),
+        customer_linked_ids={r["asset_id"] for r in conn.execute(
+            "SELECT asset_id FROM customer_assets WHERE customer_id = ?", (cust["id"],)).fetchall()} if cust else set(),
+        tab=request.args.get("tab") or request.form.get("tab") or "")
+
+
+def _tab_roles(form, shop_roles, shop_role, flight_roles, flight_role):
+    """Admin > Accounts tabs: an unticked "Grant ... access" box removes that program's roles, whatever
+    role boxes are still ticked underneath it. Older forms (no access_tabs field) are left as they were."""
+    if form.get("access_tabs"):
+        if not form.get("grant_shop"):
+            shop_roles, shop_role = None, None
+        if not form.get("grant_flight"):
+            flight_roles, flight_role = None, None
+    return shop_roles, shop_role, flight_roles, flight_role
+
+
+def _tab_access_error(form, shop_roles, flight_roles):
+    if form.get("access_tabs"):
+        if form.get("grant_shop") and not shop_roles:
+            return "Shop access is ticked but no Shop role is - tick at least one role on the Shop tab."
+        if form.get("grant_flight") and not flight_roles:
+            return "Flight School access is ticked but no role is - tick at least one role on the Flight School tab."
+        if form.get("customer_tab") and form.get("grant_customer"):
+            uname = (form.get("username") or "").strip()
+            email = (form.get("email") or "").strip()
+            if "@" not in uname and "@" not in email:
+                return "Customer access needs an email address - add one on the Login tab."
+    return None
+
+
+def _apply_badge_fields(conn, user_row, form):
+    """Rate and active for each worker badge already linked to this account (Shop tab)."""
+    for l in conn.execute("SELECT * FROM laborers WHERE user_id = ?", (user_row["id"],)).fetchall():
+        if not form.get(f"badge_{l['id']}_shown"):
+            continue
+        rate = _parse_rate(form.get(f"badge_{l['id']}_rate"))
+        active = 1 if form.get(f"badge_{l['id']}_active") else 0
+        conn.execute("UPDATE laborers SET rate = ?, active = ?, updated_at = ? WHERE id = ?",
+                     (l["rate"] if rate is None else rate, active, now_iso(), l["id"]))
+    conn.commit()
+
+
+def _apply_customer_tab(conn, user_row, form, new_password=None):
+    """Customer tab: ticked -> make or reopen their My Aircraft login (same email and password as this
+    account, so one login opens everything) and save its aircraft; unticked -> close it (kept, not deleted).
+    Returns an error message or None."""
+    if not form.get("customer_tab"):
+        return None
+    cust = _linked_customer(conn, user_row)
+    asset_ids = {int(x) for x in form.getlist("customer_asset_ids") if x.isdigit()}
+    if form.get("grant_customer"):
+        if not cust:
+            email = next((k for k in (user_row["username"], user_row["email"]) if k and "@" in k), None)
+            if not email:
+                return "Customer access needs an email address - add one on the Login tab."
+            cur = conn.execute(
+                "INSERT INTO customers (name, email, password_hash, password_plain, phone, active, created_at) "
+                "VALUES (?, ?, ?, ?, ?, 1, ?)",
+                (user_row["name"], email.strip(), user_row["password_hash"], user_row["password_plain"],
+                 (form.get("customer_phone") or user_row["phone"] or "").strip(), now_iso()))
+            cid = cur.lastrowid
+        else:
+            cid = cust["id"]
+            conn.execute("UPDATE customers SET name = ?, active = 1, phone = ? WHERE id = ?",
+                         (user_row["name"], (form.get("customer_phone", cust["phone"]) or "").strip(), cid))
+        conn.execute("DELETE FROM customer_assets WHERE customer_id = ?", (cid,))
+        for aid in asset_ids:
+            conn.execute("INSERT OR IGNORE INTO customer_assets (customer_id, asset_id) VALUES (?, ?)", (cid, aid))
+    elif cust and cust["active"]:
+        conn.execute("UPDATE customers SET active = 0 WHERE id = ?", (cust["id"],))
+    if new_password and cust:
+        # One person, one password: keep their customer login opening with the same one.
+        conn.execute("UPDATE customers SET password_hash = ?, password_plain = ? WHERE id = ?",
+                     (user_row["password_hash"], new_password, cust["id"]))
+    conn.commit()
+    return None
 
 
 def _course_grant_context(conn, user_id):
@@ -9640,7 +9802,9 @@ def customers_list():
             SELECT a.tag FROM customer_assets ca JOIN assets a ON a.id = ca.asset_id
             WHERE ca.customer_id = ? ORDER BY a.tag
         """, (c["id"],)).fetchall()
-        customers.append({"row": c, "planes": [p["tag"] for p in planes]})
+        acct = conn.execute("SELECT id FROM users WHERE lower(username) = lower(?) OR lower(email) = lower(?) ORDER BY id LIMIT 1",
+                            (c["email"], c["email"])).fetchone()
+        customers.append({"row": c, "planes": [p["tag"] for p in planes], "account_id": acct["id"] if acct else None})
     conn.close()
     return render_template("customers.html", customers=customers)
 

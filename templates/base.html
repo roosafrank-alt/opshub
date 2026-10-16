@@ -99,7 +99,9 @@
         </a>
         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shop-manage-toggle">
           {% if is_master_admin or shop_role == 'admin' %}
-          <li><a class="dropdown-item {{ 'active' if _p.startswith('/laborers') or _p.startswith('/labor/badges') or _p.startswith('/labor/general-code') }}" href="{{ url_for('laborers_list') }}"><i class="bi bi-person-badge"></i> Workers</a></li>
+          {#- Frank 2026-10-16: no Workers button - workers are set up in Admin > Accounts (Shop tab). #}
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/badges') }}" href="{{ url_for('laborer_badges') }}"><i class="bi bi-printer"></i> Print Worker Badges</a></li>
+          <li><a class="dropdown-item {{ 'active' if _p.startswith('/labor/general-code') }}" href="{{ url_for('general_shop_code_page') }}"><i class="bi bi-qr-code"></i> General Shop Code</a></li>
           <li><a class="dropdown-item {{ 'active' if _p.startswith('/shop/pay') }}" href="{{ url_for('shop_pay') }}"><i class="bi bi-cash-stack"></i> Labor Pay</a></li>
           {% if not is_master_admin and (holds_role('shop','tech') or holds_role('shop','inspector') or holds_role('shop','apprentice')) %}
           <li><a class="dropdown-item" href="{{ url_for('shop_pay', mine=1) }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>

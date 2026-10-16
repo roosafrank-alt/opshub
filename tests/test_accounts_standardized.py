@@ -10,8 +10,13 @@ class AccountsStandardizedTest(OpsHubTestCase):
     def test_admin_account_form_has_every_standardized_section(self):
         user_id = self.users["cfi"]["id"]
         html = self.login("master").get(f"/admin/users/{user_id}/edit").get_data(as_text=True)
-        for heading in ("Login", "Access", "Profiles", "Pay", "Contact &amp; reminders"):
-            self.assertIn(heading, html)
+        # Frank 2026-10-16: one page, one tab per program, each with one Grant access box.
+        for tab in ('data-tab="login"', 'data-tab="flight"', 'data-tab="academy"', 'data-tab="shop"', 'data-tab="customer"'):
+            self.assertIn(tab, html)
+        for grant in ('name="grant_flight"', 'name="academy_access"', 'name="grant_shop"', 'name="grant_customer"'):
+            self.assertIn(grant, html)
+        self.assertIn("CFI details", html)          # the CFI's own settings are on the Flight School tab
+        self.assertIn("Worker badge", html)
 
     def test_cfi_profile_links_back_to_admin_account_edit(self):
         cfi_id = self.q1("SELECT id, user_id FROM cfis WHERE user_id = ?", (self.users["cfi"]["id"],))

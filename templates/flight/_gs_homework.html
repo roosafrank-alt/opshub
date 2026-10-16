@@ -1,0 +1,28 @@
+{#- Assigned ground lessons (homework). Needs `homework` (groundschool.homework_for rows); `hw_staff` shows the
+   instructor buttons; `hw_next` is where those buttons return to. #}
+{% if homework %}
+<div class="card academy-card p-3 mb-3" id="homework" data-change="GS-HOMEWORK">
+  <h6 class="mb-2"><i class="bi bi-flag-fill text-warning"></i> {{ 'Homework' if hw_staff else 'Homework from your instructor' }} <span class="text-muted small fw-normal">({{ homework|length }})</span></h6>
+  {% for h in homework %}{% set a = h.a %}
+  <div class="d-flex align-items-start gap-2 py-2 border-top">
+    <div class="flex-grow-1 min-w-0">
+      <a href="{{ gs_url('groundschool.task_detail', task_id=a.task_id) }}" class="fw-bold text-decoration-none">Task {{ a.tcode }}. {{ a.ttitle }}</a>
+      <div class="small text-muted">{{ a.rname }} &middot; Area {{ a.acode }} &middot; assigned {{ a.assigned_at|usdate }}{% if a.assigned_by_name %} by {{ a.assigned_by_name }}{% endif %}{% if a.due_on %} &middot; due <b class="{{ 'text-danger' if h.overdue }}">{{ a.due_on|usdate }}</b>{% endif %}</div>
+      {% if a.note %}<div class="small mt-1"><i class="bi bi-chat-left-text"></i> {{ a.note }}</div>{% endif %}
+      {% if a.reviewed_at %}<div class="small text-success"><i class="bi bi-check2"></i> Covered in a brief {{ a.reviewed_at|usdate }}</div>{% endif %}
+    </div>
+    <div class="text-end flex-shrink-0">
+      {% if h.state == 'done' %}<span class="badge bg-success">Done{% if h.final_pct is not none %} &middot; {{ h.final_pct }}%{% endif %}</span>
+      {% elif h.state == 'started' %}<span class="badge bg-warning text-dark">In progress &middot; {{ h.minutes }} min</span>
+      {% else %}<span class="badge bg-secondary">Not started</span>{% endif %}
+      {% if hw_staff %}
+      <div class="d-flex gap-1 justify-content-end mt-1">
+        {% if not a.reviewed_at %}<form method="post" action="{{ url_for('groundschool.assignment_action', aid=a.id, action='reviewed') }}"><input type="hidden" name="next" value="{{ hw_next }}"><button class="btn btn-outline-success btn-sm py-0" title="Went over it in the brief">Covered</button></form>{% endif %}
+        <form method="post" action="{{ url_for('groundschool.assignment_action', aid=a.id, action='cancel') }}" data-confirm="Take this lesson off {{ a.tcode }}'s homework list?" data-confirm-title="Remove homework" data-confirm-ok="Remove"><input type="hidden" name="next" value="{{ hw_next }}"><button class="btn btn-outline-secondary btn-sm py-0" title="Remove">&times;</button></form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

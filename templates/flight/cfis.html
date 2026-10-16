@@ -8,7 +8,7 @@
   {%- elif slot == 'add' -%}
     {#- SCHOOL-03: the in-program New CFI form (it makes the login too),
        so an admin never has to leave Fly with Kate! to add an instructor. #}
-    {% if is_master_admin %}<a href="{{ url_for('flight.cfi_new') }}" class="btn btn-primary fw-bold text-nowrap" data-change="SCHOOL-03"><i class="bi bi-plus-lg"></i> Add CFI</a>{% endif %}
+    {% if is_master_admin %}<a href="{{ url_for('admin_user_new', flight_role='cfi') }}" class="btn btn-primary fw-bold text-nowrap" data-change="SCHOOL-03"><i class="bi bi-plus-lg"></i> Add CFI</a>{% endif %}
   {%- endif -%}
 {% endcall %}
 <div class="card">
@@ -37,7 +37,7 @@
           <td data-label="Billing Access">{% if c.user_id and c.can_bill %}<span class="badge bg-info text-dark">Yes</span>{% else %}<span class="text-muted">No</span>{% endif %}</td>{% endif %}
           <td data-label="Status">{% if c.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
           <td data-label="">
-            {% if is_master_admin %}<a href="{{ url_for('flight.cfi_edit', cfi_id=c.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Edit</a>{% endif %}
+            {% if is_master_admin %}<a href="{{ url_for('admin_user_edit', user_id=c.user_id, tab='flight') if c.user_id else url_for('flight.cfi_edit', cfi_id=c.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Edit</a>{% endif %}
             <a href="{{ url_for('flight.cfi_schedule', cfi_id=c.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar-week"></i> Schedule</a>
             {% if is_master_admin %}<a href="{{ url_for('flight.cfi_pay', cfi_id=c.id) }}" class="btn btn-outline-success btn-sm"><i class="bi bi-cash-stack"></i> Pay</a>{% endif %}
           </td>
