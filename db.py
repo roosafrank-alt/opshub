@@ -1760,6 +1760,10 @@ def _migrate(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_pilot_logbook_student ON pilot_logbook(student_id, entry_date)")
     if "instructor_signature" not in [r["name"] for r in conn.execute("PRAGMA table_info(pilot_logbook)").fetchall()]:
         conn.execute("ALTER TABLE pilot_logbook ADD COLUMN instructor_signature TEXT")
+    _lb_cols = [r["name"] for r in conn.execute("PRAGMA table_info(pilot_logbook)").fetchall()]
+    for _c in ("denied_at", "denied_by", "deny_reason"):    # a pending entry the student/CFI can deny
+        if _c not in _lb_cols:
+            conn.execute(f"ALTER TABLE pilot_logbook ADD COLUMN {_c} TEXT")
     conn.execute("""CREATE TABLE IF NOT EXISTS academy_milestones (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         student_id INTEGER NOT NULL REFERENCES students(id),

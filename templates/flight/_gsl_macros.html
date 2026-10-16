@@ -59,7 +59,7 @@
 
   {% if a.type == 'match' %}
     <div class="gsl-pairing gsl-match-cols" data-total="{{ a.pairs|length }}">
-      <div class="gsl-col">{% for p in a.pairs %}<button type="button" class="gsl-tile" data-drag="1" data-side="l" data-k="{{ loop.index0 }}">{{ gs_rich(p.l) }}</button>{% endfor %}</div>
+      <div class="gsl-col">{% for p in a.pairs %}<button type="button" class="gsl-tile" data-drag="1" data-side="l" data-k="{{ loop.index0 }}"><span class="gsl-grip" aria-hidden="true"><i class="bi bi-grip-vertical"></i></span><span class="gsl-tile-t">{{ gs_rich(p.l) }}</span></button>{% endfor %}</div>
       <div class="gsl-col" data-shuffle="1">{% for p in a.pairs %}<button type="button" class="gsl-tile" data-side="r" data-k="{{ loop.index0 }}">{{ gs_rich(p.r) }}</button>{% endfor %}</div>
     </div>
 
@@ -68,12 +68,12 @@
     <div class="gsl-pairing gsl-label" data-total="{{ a.pins|length }}">
       <div class="gsl-label-img"><img src="{{ url_for('static', filename='lessons/' ~ f.file) }}" alt="{{ f.alt or f.caption }}" loading="lazy">
         {% for p in a.pins %}<button type="button" class="gsl-pin" data-side="l" data-k="{{ loop.index0 }}" style="left:{{ p.x }}%;top:{{ p.y }}%">{{ loop.index }}</button>{% endfor %}</div>
-      <div class="gsl-bank" data-shuffle="1">{% for p in a.pins %}<button type="button" class="gsl-tile" data-drag="1" data-side="r" data-k="{{ loop.index0 }}">{{ gs_rich(p.label) }}</button>{% endfor %}</div>
+      <div class="gsl-bank" data-shuffle="1">{% for p in a.pins %}<button type="button" class="gsl-tile" data-drag="1" data-side="r" data-k="{{ loop.index0 }}"><span class="gsl-grip" aria-hidden="true"><i class="bi bi-grip-vertical"></i></span><span class="gsl-tile-t">{{ gs_rich(p.label) }}</span></button>{% endfor %}</div>
     </div>
 
   {% elif a.type == 'sort' %}
     <div class="gsl-sort" data-total="{{ a['items']|length }}">
-      <div class="gsl-pool" data-shuffle="1">{% for it in a['items'] %}<button type="button" class="gsl-tile gsl-item" data-drag="v" data-b="{{ it.b }}">{{ gs_rich(it.t) }}</button>{% endfor %}</div>
+      <div class="gsl-pool" data-shuffle="1">{% for it in a['items'] %}<button type="button" class="gsl-tile gsl-item" data-drag="v" data-b="{{ it.b }}"><span class="gsl-grip" aria-hidden="true"><i class="bi bi-grip-vertical"></i></span><span class="gsl-tile-t">{{ gs_rich(it.t) }}</span></button>{% endfor %}</div>
       <div class="gsl-buckets">{% for b in a.buckets %}<button type="button" class="gsl-bucket" data-b="{{ loop.index0 }}"><span class="gsl-bucket-name">{{ gs_rich(b) }}</span><span class="gsl-bucket-items"></span></button>{% endfor %}</div>
     </div>
 

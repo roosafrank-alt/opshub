@@ -14,22 +14,21 @@ class AcademyTabsLayoutTest(OpsHubTestCase):
         self.assertIn('class="academy-tabs-row"', body)
         self.assertIn(">Board<", body)
         self.assertIn(">Ground School<", body)
-        self.assertIn(">More<", body)
-        self.assertIn("academy-tab-resources", body)
+        self.assertNotIn(">More<", body)
+        self.assertIn(">Resources<", body)
         # Progress/Map are no longer separate top-level tabs on the Board page.
         self.assertNotIn('href="/academy/progress"', body)
         self.assertNotIn('href="/academy/map"', body)
 
-    def test_log_your_flying_is_right_under_the_banner(self):
+    def test_log_your_flying_is_on_the_logbook_not_the_board(self):
+        c = self.login("master")
+        self.assertNotIn("Log Your Flying", c.get("/academy").get_data(as_text=True))
+        self.assertIn("Log Your Flying", c.get("/academy/logbook").get_data(as_text=True))
+
+    def test_points_board_has_an_info_icon_for_how_points_work(self):
         c = self.login("master")
         body = c.get("/academy").get_data(as_text=True)
-        hero_pos = body.index("Flight Academy")
-        log_pos = body.index("Log Your Flying")
-        filters_pos = body.index("All Time")
-        points_board_pos = body.index("bi-trophy\"></i> Points")
-        self.assertLess(hero_pos, log_pos)
-        self.assertLess(log_pos, filters_pos)
-        self.assertLess(log_pos, points_board_pos)
+        self.assertIn('aria-label="How points work"', body)
 
     def test_how_points_work_is_a_modal_not_a_bottom_list(self):
         c = self.login("master")
@@ -65,3 +64,31 @@ class AcademyTabsLayoutTest(OpsHubTestCase):
         body = c.get("/flight/groundschool/resources").get_data(as_text=True)
         self.assertIn('class="academy-tabs-row"', body)
         self.assertIn('id="howPointsModal"', body)
+
+
+class DenyPendingLogbookEntryTest(OpsHubTestCase):
+    def test_deny_removes_entry_from_totals_and_can_be_reopened(self):
+        sid = self.q1("SELECT id FROM students LIMIT 1")["id"]
+        self.exec("""INSERT INTO pilot_logbook (student_id, entry_date, tail, total, status, created_at, updated_at)
+                     VALUES (?, '2026-10-01', 'N1', 1.5, 'pending', 'x', 'x')""", (sid,))
+        eid = self.q1("SELECT id FROM pilot_logbook WHERE student_id = ?", (sid,))["id"]
+        c = self.login("master")
+        self.assertIn('value="deny"', c.get(f"/academy/logbook/{eid}").get_data(as_text=True))
+        c.post(f"/academy/logbook/{eid}", data={"action": "deny"})
+        self.assertEqual(self.q1("SELECT status FROM pilot_logbook WHERE id = ?", (eid,))["status"], "denied")
+        body = c.get(f"/academy/logbook?student_id={sid}").get_data(as_text=True)
+        self.assertIn("denied (not counted)", body)
+        c.post(f"/academy/logbook/{eid}", data={"action": "reopen"})
+        self.assertEqual(self.q1("SELECT status FROM pilot_logbook WHERE id = ?", (eid,))["status"], "pending")
+
+
+class AdminAsOwnStudentTest(OpsHubTestCase):
+    def test_admin_can_take_courses_as_themselves_and_progress_saves(self):
+        c = self.login("master")
+        self.assertIn("Be a student myself", c.get("/view-as/flight/student").get_data(as_text=True))
+        r = c.post("/view-as/flight/student/me")
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(c.get("/flight/groundschool").status_code, 200)
+        # not look-only: a JSON POST is not refused
+        r = c.post("/flight/groundschool/task/1/lesson-time", json={"seconds": 5})
+        self.assertNotEqual(r.status_code, 403)
