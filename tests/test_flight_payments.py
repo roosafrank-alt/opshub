@@ -174,7 +174,7 @@ class FlightPaymentsTest(OpsHubTestCase):
         self.assertIn("Mark <span id=\"billing-selected-n\">0</span> selected paid", html)
         self.assertIn("Pay with Card", html)
         self.assertIn("How was it paid?", html)
-        self.assertIn("Connect Wave to send real invoices", html)
+        self.assertIn("Connect Wave", html)
         self.assertNotIn("/billing/student/", html.split("pay-card")[0].split("wave-invoice")[0][-0:] or "zzz")
 
     def test_old_per_student_mark_paid_route_is_gone(self):

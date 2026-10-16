@@ -13,9 +13,16 @@
   </div>
 </div>
 
-{% if flight_admin %}<div class="mb-2"><a href="{{ url_for('flight.charge_approvals') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-credit-card"></i> Card requests{% if charge_pending_count %} <span class="badge bg-danger">{{ charge_pending_count }}</span>{% endif %}</a>
-  <a href="{{ url_for('flight.cash_check_confirm') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-cash-coin"></i> Cash/check collected{% if cash_check_pending_count %} <span class="badge bg-danger">{{ cash_check_pending_count }}</span>{% endif %}</a></div>{% endif %}
-<div class="mb-3">
+<div class="d-flex align-items-center mb-3 flex-wrap gap-2">
+  <div class="btn-group" role="group">
+    <a href="{{ url_for('flight.billing', status='unpaid') }}" class="btn btn-sm {{ 'btn-primary' if status == 'unpaid' else 'btn-outline-primary' }}">Unpaid</a>
+    <a href="{{ url_for('flight.billing', status='paid') }}" class="btn btn-sm {{ 'btn-primary' if status == 'paid' else 'btn-outline-primary' }}">Paid</a>
+    <a href="{{ url_for('flight.billing', status='all') }}" class="btn btn-sm {{ 'btn-primary' if status == 'all' else 'btn-outline-primary' }}">All</a>
+  </div>
+  {% if flight_admin %}
+  <a href="{{ url_for('flight.charge_approvals') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-credit-card"></i> Card requests{% if charge_pending_count %} <span class="badge bg-danger">{{ charge_pending_count }}</span>{% endif %}</a>
+  <a href="{{ url_for('flight.cash_check_confirm') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-cash-coin"></i> Cash/check collected{% if cash_check_pending_count %} <span class="badge bg-danger">{{ cash_check_pending_count }}</span>{% endif %}</a>
+  {% endif %}
   <a href="{{ url_for('flight.billing_cross_check') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-shield-check"></i> Billing Cross-Check</a>
   {#- Wave invoicing (wave_billing.py) - checked in the background every
      half hour too; this checks right away. #}
@@ -24,18 +31,10 @@
     <button class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-repeat"></i> Check Wave for payments</button>
   </form>
   {% elif is_master_admin %}
-  <a href="{{ url_for('admin_wave') }}" class="btn btn-sm btn-outline-secondary" data-change="SCHOOL-21"><i class="bi bi-plug"></i> Connect Wave to send real invoices</a>
+  <a href="{{ url_for('admin_wave') }}" class="btn btn-sm btn-outline-secondary" data-change="SCHOOL-21" title="Connect Wave to send real invoices"><i class="bi bi-plug"></i> Connect Wave</a>
   {% endif %}
-</div>
-
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <div class="btn-group" role="group">
-    <a href="{{ url_for('flight.billing', status='unpaid') }}" class="btn btn-sm {{ 'btn-primary' if status == 'unpaid' else 'btn-outline-primary' }}">Unpaid</a>
-    <a href="{{ url_for('flight.billing', status='paid') }}" class="btn btn-sm {{ 'btn-primary' if status == 'paid' else 'btn-outline-primary' }}">Paid</a>
-    <a href="{{ url_for('flight.billing', status='all') }}" class="btn btn-sm {{ 'btn-primary' if status == 'all' else 'btn-outline-primary' }}">All</a>
-  </div>
   {% if students_billing %}
-  <div class="d-flex align-items-center gap-2">
+  <div class="d-flex align-items-center gap-2 ms-auto">
     <span class="text-muted small" id="billing-selected-count">0 selected</span>
     <button type="button" class="btn btn-outline-secondary btn-sm" id="billing-select-all"><i class="bi bi-check2-square"></i> Select All</button>
     {% if status != 'paid' %}
