@@ -13,6 +13,7 @@
   </div>
 
   {% if e.status == 'denied' and e.deny_reason %}<div class="alert alert-danger py-2 small">Reason: {{ e.deny_reason }}</div>{% endif %}
+  {% if not can_edit %}<div class="alert alert-info py-2 small"><i class="bi bi-eye"></i> You can read this logbook, but only the student or a Flight Admin can change it.</div>{% endif %}
   <form method="post">
     {% if e.status == 'pending' %}<input type="hidden" name="deny_reason" id="deny_reason" value="">{% endif %}
     <h6 class="mt-2">From the flight</h6>
@@ -49,17 +50,17 @@
     </div>
 
     <div class="d-flex gap-2 flex-wrap mt-3" data-change="DESIGN-8">
-      {% if e.status == 'pending' or staff %}
+      {% if can_edit and (e.status == 'pending' or staff) %}
       <button class="btn btn-primary btn-sm" name="action" value="save" data-change="DESIGN-1"><i class="bi bi-save"></i> Save</button>
       {% endif %}
       <a href="{{ url_for('pilotlog.logbook', student_id=e.student_id if staff else None) }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
-      {% if e.status == 'pending' or staff %}
+      {% if can_edit and (e.status == 'pending' or staff) %}
       <button class="btn btn-success btn-sm ms-sm-3" name="action" value="approve"><i class="bi bi-check2-circle"></i> {{ 'Approve - this entry is correct' if e.status == 'pending' else 'Save & keep approved' }}</button>
       {% endif %}
-      {% if e.status == 'pending' %}
+      {% if can_edit and e.status == 'pending' %}
       <button class="btn btn-outline-danger btn-sm ms-sm-auto" name="action" value="deny" formnovalidate data-confirm="Deny this entry? It won't count toward your totals or requirements. You can reopen it later." data-confirm-title="Deny entry" data-confirm-ok="Deny entry" data-confirm-style="danger"><i class="bi bi-x-octagon"></i> Deny - not my flight / wrong</button>
       {% endif %}
-      {% if e.status in ('complete', 'denied') %}
+      {% if can_edit and e.status in ('complete', 'denied') %}
       <button class="btn btn-outline-secondary btn-sm" name="action" value="reopen"><i class="bi bi-unlock"></i> Reopen</button>
       {% endif %}
     </div>

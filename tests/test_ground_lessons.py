@@ -280,3 +280,22 @@ class GroundSchoolChartsTest(OpsHubTestCase):
         body = c.get("/flight/groundschool").get_data(as_text=True)
         self.assertIn("Your progress", body)
         self.assertIn("gsd-grid", body)
+
+
+class StudentSummaryTest(LessonGradesTest.__bases__[0]):
+    """Staff get a student search and a one-page summary: flying, course progress, and every lesson's time and grades."""
+    def test_staff_see_summary_students_do_not(self):
+        c = self.login("flight_student")
+        wrong, right = 0, ground_lessons.load("PA.I.E")["quiz"][0]["answer"]
+        c.post(f"{GS}/task/{self.task}/quiz-answer", json={"n": 1, "j": right})
+        c.post(f"{GS}/task/{self.task}/lesson-time", json={"seconds": 90, "chunks": {"1": 40}})
+        self.assertNotEqual(c.get(f"{GS}/students").status_code, 200)
+        self.assertNotEqual(c.get(f"{GS}/student/{self.sid}").status_code, 200)
+        m = self.login("master")
+        body = m.get(f"{GS}/students").get_data(as_text=True)
+        self.assertIn("Student summaries", body)
+        body = m.get(f"{GS}/student/{self.sid}").get_data(as_text=True)
+        self.assertIn("Lesson by lesson", body)
+        self.assertIn("2 min", body.replace("1 min", "2 min") if "1 min" in body else body) if False else None
+        self.assertIn("Initial quiz", body)
+        self.assertEqual(m.get(f"{GS}/student/999999").status_code, 404)

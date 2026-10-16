@@ -1,0 +1,21 @@
+{% extends "academy_base.html" %}
+{% block title %}Students · Ground School{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+  <h4 class="mb-0 text-light"><i class="bi bi-people"></i> Student summaries</h4>
+  <a href="{{ url_for('groundschool.rating_list') }}" class="btn btn-outline-light btn-sm">Ground School</a>
+</div>
+<input type="search" id="stu-search" class="form-control mb-3" placeholder="Search students" autocomplete="off" autofocus>
+<div class="list-group" id="stu-list">
+  {% for s in students %}
+  <a href="{{ url_for('groundschool.student_summary', student_id=s.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-2 stu-row" data-name="{{ s.name|lower }}">
+    <span class="fw-bold">{{ s.name }}</span>
+    <span class="small text-muted text-end">{{ (s.secs // 60)|int }} min &middot; {{ s.lessons }} lesson{{ 's' if s.lessons != 1 }}{% if s.last_seen %} &middot; last {{ s.last_seen|usdate }}{% endif %}</span>
+  </a>
+  {% else %}<div class="list-group-item text-muted">No active students yet.</div>{% endfor %}
+</div>
+<script>
+(function(){var b=document.getElementById('stu-search'),r=document.querySelectorAll('.stu-row');
+b.addEventListener('input',function(){var q=b.value.trim().toLowerCase();r.forEach(function(x){x.style.display=!q||x.dataset.name.indexOf(q)>-1?'':'none';});});})();
+</script>
+{% endblock %}

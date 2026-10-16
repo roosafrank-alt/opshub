@@ -650,6 +650,75 @@ def gs_dashboard(conn, student_id, ratings, progress_by_rating):
     }
 
 
+def _is_staff_viewer():
+    return bool(not session.get("student_id") and (session.get("cfi_id") or is_flight_admin()))
+
+
+@groundschool_bp.route("/students")
+@login_required
+def student_search():
+    """Staff: search every student and open their summary."""
+    if not _is_staff_viewer():
+        abort(403)
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT s.id, s.name,
+               COALESCE((SELECT SUM(seconds) FROM gs_lesson_time WHERE student_id = s.id), 0) AS secs,
+               (SELECT COUNT(*) FROM gs_lesson_time WHERE student_id = s.id AND seconds > 0) AS lessons,
+               (SELECT MAX(last_seen_at) FROM gs_lesson_time WHERE student_id = s.id) AS last_seen
+        FROM students s WHERE s.active = 1 AND COALESCE(s.is_station, 0) = 0 ORDER BY lower(s.name)""").fetchall()
+    conn.close()
+    return render_template("flight/groundschool_students.html", students=rows, tab="groundschool")
+
+
+@groundschool_bp.route("/student/<int:student_id>")
+@login_required
+def student_summary(student_id):
+    """Staff: one student's whole picture - flying, course progress, and every lesson's time and grades."""
+    if not _is_staff_viewer():
+        abort(403)
+    conn = get_db()
+    st = conn.execute("SELECT * FROM students WHERE id = ? AND COALESCE(is_station, 0) = 0", (student_id,)).fetchone()
+    if not st:
+        conn.close()
+        abort(404)
+    ratings = conn.execute("SELECT * FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall()
+    progress = {r["id"]: _rating_progress(conn, r["id"], student_id) for r in ratings}
+    courses = [{"id": r["id"], "name": r["name"], "p": progress[r["id"]]} for r in ratings if progress[r["id"]]]
+    task_ids = [r["task_id"] for r in conn.execute(
+        """SELECT task_id FROM gs_lesson_time WHERE student_id = ?
+           UNION SELECT task_id FROM gs_lesson_results WHERE student_id = ?""", (student_id, student_id)).fetchall()]
+    lessons = []
+    for tid in task_ids:
+        info = conn.execute("""SELECT t.id, t.code, t.title, a.code AS acode, a.title AS atitle, r.name AS rname
+                               FROM acs_tasks t JOIN acs_areas a ON a.id = t.area_id JOIN acs_ratings r ON r.id = a.rating_id
+                               WHERE t.id = ? AND t.retired_at IS NULL""", (tid,)).fetchone()
+        if not info:
+            continue
+        lesson = _lesson_for_task(conn, tid)
+        stt = lesson_stats(conn, student_id, tid, lesson) if lesson else None
+        if not stt:
+            continue
+        lessons.append({"info": info, "st": stt})
+    lessons.sort(key=lambda x: (x["info"]["rname"], x["info"]["acode"], x["info"]["code"]))
+    tot_secs = sum(x["st"]["seconds"] for x in lessons)
+    inits = [x["st"]["initial_pct"] for x in lessons if x["st"]["initial_pct"] is not None]
+    finals = [x["st"]["final_pct"] for x in lessons if x["st"]["final_pct"] is not None]
+    fl = conn.execute("""SELECT COUNT(*) n, COALESCE(SUM(total),0) hrs, COALESCE(SUM(day_ldg),0)+COALESCE(SUM(night_ldg),0) ldg,
+                                MAX(entry_date) last FROM pilot_logbook WHERE student_id = ? AND status != 'denied'""", (student_id,)).fetchone()
+    pending = conn.execute("SELECT COUNT(*) c FROM pilot_logbook WHERE student_id = ? AND status = 'pending'", (student_id,)).fetchone()["c"]
+    try:
+        import academy
+        a_stat = academy.student_stats(conn, academy.period_start("all")).get(student_id)
+    except Exception:
+        a_stat = None
+    conn.close()
+    return render_template("flight/groundschool_student.html", st=st, courses=courses, lessons=lessons, tab="groundschool",
+                           tot_min=int(tot_secs // 60), avg_init=round(sum(inits) / len(inits)) if inits else None,
+                           avg_final=round(sum(finals) / len(finals)) if finals else None,
+                           flying=fl, pending=pending, a_stat=a_stat)
+
+
 @groundschool_bp.route("/upload", methods=["POST"])
 @admin_required
 def upload():
