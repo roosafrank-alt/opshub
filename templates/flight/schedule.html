@@ -401,7 +401,9 @@
 // scrolling; Month shrinks the grid so one whole week fits on the screen, and
 // scrolling snaps week by week. Remembered in localStorage.
 (function () {
-  function on() { try { return localStorage.getItem('schFit') === '1'; } catch (e) { return false; } }
+  // Fit to screen is the default; only an explicit "expand" (stored as 0) turns it off.
+  function on() { try { return localStorage.getItem('schFit') !== '0'; } catch (e) { return true; } }
+  var firstFit = true;
   var de = document.documentElement;
   function fitMonth(fit) {
     var tbl = document.querySelector('.calendar-table');
@@ -413,6 +415,13 @@
     // Week at the top of the screen right now, to keep it in view after the resize.
     var cur = rows[0], i;
     for (i = 0; i < rows.length; i++) { if (rows[i].getBoundingClientRect().bottom > 120) { cur = rows[i]; break; } }
+    // First time on the page: show the week that holds today (or the highlighted flight).
+    if (firstFit) {
+      firstFit = false;
+      var anchor = document.querySelector('.schedule-block-highlight') || document.querySelector('[data-is-today="1"]');
+      var ar = anchor && anchor.closest('tr');
+      if (ar) cur = ar;
+    }
     var tall = 0;
     for (i = 0; i < rows.length; i++) tall = Math.max(tall, rows[i].offsetHeight);
     var head = tbl.querySelector('thead'), top = tbl.getBoundingClientRect().top + window.scrollY;
@@ -458,7 +467,8 @@
       });
     });
     fitMonth(on());
-    if (btn) { btn.classList.toggle('active', on()); btn.setAttribute('aria-pressed', on() ? 'true' : 'false'); }
+    if (btn) { btn.classList.toggle('active', on()); btn.setAttribute('aria-pressed', on() ? 'true' : 'false');
+      btn.innerHTML = on() ? '<i class="bi bi-arrows-expand"></i> Expand' : '<i class="bi bi-arrows-collapse"></i> Fit to screen'; }
   };
   document.addEventListener('click', function (e) {
     if (!e.target.closest('#sch-fit-btn')) return;
@@ -645,7 +655,8 @@ var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(0) }};
   if (document.querySelector('.schedule-block-highlight')) return;
   if (document.documentElement.classList.contains('tv-mode')) return;  // TV: the whole month fits on screen, stay at the top
   var today = document.querySelector('[data-is-today="1"]');
-  if (today) {
+  var fitOn = true; try { fitOn = localStorage.getItem('schFit') !== '0'; } catch (e) {}
+  if (today && !fitOn) {
     setTimeout(function () { today.scrollIntoView({ behavior: 'instant', block: 'center' }); }, 50);
   }
 })();
