@@ -58,6 +58,12 @@
   <a href="{{ url_for('pilotlog.entry', entry_id=pending[-1].id) }}" class="alert-link">Start with the oldest</a>.</div>
 {% endif %}
 
+{% if denied_entries %}
+<div class="alert alert-secondary py-2 small"><i class="bi bi-x-octagon"></i> <strong>{{ denied_entries|length }}</strong> denied (not counted):
+  {% for d in denied_entries %}<a href="{{ url_for('pilotlog.entry', entry_id=d.id) }}" class="alert-link">{{ d.entry_date|usdate }} {{ d.tail }}</a>{{ ', ' if not loop.last }}{% endfor %}</div>
+{% endif %}
+{% include "_academy_log.html" %}
+
 <div class="card academy-card">
   <div class="small text-muted d-sm-none px-2 pt-2" data-change="DESIGN-5"><i class="bi bi-arrow-left-right"></i> Swipe sideways to see every column</div>
   <div class="table-responsive">

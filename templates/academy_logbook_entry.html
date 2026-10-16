@@ -8,10 +8,13 @@
       <div class="small text-muted">{{ e.student_name }}'s logbook &middot; from flight #{{ e.flight_id }}</div>
     </div>
     {% if e.status == 'pending' %}<span class="badge bg-warning text-dark fs-6">Pending - needs your details</span>
+    {% elif e.status == 'denied' %}<span class="badge bg-danger fs-6"><i class="bi bi-x-octagon"></i> Denied{% if e.denied_by %} by {{ e.denied_by }}{% endif %}</span>
     {% else %}<span class="badge bg-success fs-6"><i class="bi bi-check2-circle"></i> Approved {{ e.approved_at|usdate }}{% if e.approved_by %} by {{ e.approved_by }}{% endif %}</span>{% endif %}
   </div>
 
+  {% if e.status == 'denied' and e.deny_reason %}<div class="alert alert-danger py-2 small">Reason: {{ e.deny_reason }}</div>{% endif %}
   <form method="post">
+    {% if e.status == 'pending' %}<input type="hidden" name="deny_reason" id="deny_reason" value="">{% endif %}
     <h6 class="mt-2">From the flight</h6>
     <div class="row g-2 mb-2">
       {% for f, label in [('total','Total (Hobbs)'),('dual','Dual received'),('solo','Solo')] %}
@@ -53,7 +56,10 @@
       {% if e.status == 'pending' or staff %}
       <button class="btn btn-success btn-sm ms-sm-3" name="action" value="approve"><i class="bi bi-check2-circle"></i> {{ 'Approve - this entry is correct' if e.status == 'pending' else 'Save & keep approved' }}</button>
       {% endif %}
-      {% if e.status == 'complete' %}
+      {% if e.status == 'pending' %}
+      <button class="btn btn-outline-danger btn-sm ms-sm-auto" name="action" value="deny" formnovalidate data-confirm="Deny this entry? It won't count toward your totals or requirements. You can reopen it later." data-confirm-title="Deny entry" data-confirm-ok="Deny entry" data-confirm-style="danger"><i class="bi bi-x-octagon"></i> Deny - not my flight / wrong</button>
+      {% endif %}
+      {% if e.status in ('complete', 'denied') %}
       <button class="btn btn-outline-secondary btn-sm" name="action" value="reopen"><i class="bi bi-unlock"></i> Reopen</button>
       {% endif %}
     </div>

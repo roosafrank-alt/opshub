@@ -674,7 +674,7 @@ def academy_entry_add():
     entry_date = (request.form.get("entry_date") or date.today().isoformat()).strip()[:10]
     if not student_id or kind not in academy.ENTRY_KIND_MAP or value <= 0 or value > 100000:
         flash("Pick what you're logging and enter an amount above zero.", "danger")
-        return redirect(url_for("academy_page") + "#log")
+        return redirect(url_for("pilotlog.logbook", student_id=student_id if staff else None) + "#log")
     conn = get_db()
     note = (request.form.get("note") or "").strip()[:200] or None
     cur = conn.execute("""INSERT INTO academy_entries (student_id, entry_date, kind, value, note, created_by, created_at)
@@ -695,7 +695,7 @@ def academy_entry_add():
     code, label, unit, per = academy.ENTRY_KIND_MAP[kind]
     flash(f"Logged {value:g} {unit} - that's {value * per:g} points." +
           (" It counts toward landing currency too." if kind in ("landings", "night_landings") else ""), "success")
-    back = url_for("academy_page", student_id=student_id if staff else None) + "#log"
+    back = url_for("pilotlog.logbook", student_id=student_id if staff else None) + "#log"
     return redirect(back)
 
 
@@ -712,7 +712,7 @@ def academy_entry_delete(entry_id):
         conn.commit()
         flash("Entry deleted forever.", "success")
     conn.close()
-    return redirect(url_for("academy_page") + "#log")
+    return redirect(url_for("pilotlog.logbook", student_id=e["student_id"] if (e and staff) else None) + "#log")
 
 CATEGORIES_DEFAULT = ["Fasteners", "Electrical", "Plumbing", "Bearings/Belts", "Lubricants",
                        "Safety/PPE", "Tools", "HVAC", "Welding", "Hydraulics", "General"]

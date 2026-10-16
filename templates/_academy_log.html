@@ -1,0 +1,47 @@
+{#- Log Your Flying: lives on the Logbook tab (moved off the Board). Needs student, log_entries, log_kinds, log_kind_map, log_today. #}
+  {% if student %}
+  <div class="card academy-card p-3 mb-3" id="log">
+    <h5 class="mb-1">Log Your Flying</h5>
+    <p class="text-muted small">Things the flight log doesn't track. Hours, solo time and the landings on your logged flights are already counted automatically. Landings logged here count toward landing currency too.</p>
+    <form method="post" action="{{ url_for('academy_entry_add') }}" class="row g-2 align-items-end">
+      <input type="hidden" name="student_id" value="{{ student.id }}">
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-0">Date</label>
+        <input type="date" name="entry_date" value="{{ log_today }}" class="form-control form-control-sm">
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0">What</label>
+        <select name="kind" class="form-select form-select-sm" required>
+          {% for code, label, unit, per in log_kinds %}<option value="{{ code }}">{{ label }} ({{ unit }})</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-4 col-md-1">
+        <label class="form-label small mb-0">Amount</label>
+        <input type="number" name="value" step="any" min="0" class="form-control form-control-sm" required>
+      </div>
+      <div class="col-8 col-md-2">
+        <label class="form-label small mb-0">Note</label>
+        <input type="text" name="note" maxlength="200" class="form-control form-control-sm" placeholder="e.g. KMGJ-KPOU">
+      </div>
+      <div class="col-md-1"><button class="btn btn-primary btn-sm w-100 fw-bold">Log</button></div>
+    </form>
+    {% if log_entries %}
+    <div class="table-responsive mt-3">
+      <table class="table table-sm align-middle mb-0 small table-stack" data-change="DESIGN-5">
+        <thead class="table-light"><tr><th>Date</th><th>What</th><th>Amount</th><th>Note</th><th></th></tr></thead>
+        <tbody>
+          {% for e in log_entries %}
+          {% set k = log_kind_map.get(e.kind) %}
+          <tr>
+            <td data-label="Date">{{ e.entry_date|usdate }}</td>
+            <td data-label="What">{{ k[1] if k else e.kind }}</td><td data-label="Amount">{{ '%g'|format(e.value) }} {{ k[2] if k else '' }}</td><td class="stack-full" data-label="Note">{{ e.note or '' }}</td>
+            <td class="text-end" data-label=""><form method="post" action="{{ url_for('academy_entry_delete', entry_id=e.id) }}" class="mb-0" data-change="DESIGN-3 DESIGN-4" data-confirm="Delete this entry forever? Its points come off the leaderboard (a landing also comes off the student's landing currency). This can't be undone." data-confirm-title="Delete Forever" data-confirm-ok="Delete Forever" data-confirm-style="danger"><button class="btn btn-danger btn-sm" title="Delete Forever"><i class="bi bi-trash"></i></button></form></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+

@@ -281,7 +281,7 @@ def _two_cal_months_start(today=None):
 
 
 def build_progress(conn, student):
-    entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? ORDER BY entry_date, id""",
+    entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? AND status != 'denied' ORDER BY entry_date, id""",
                            (student["id"],)).fetchall()
     vals = [(e, _entry_values(e)) for e in entries]
     miles = {(r["track"], r["item"]): r for r in conn.execute(
@@ -403,17 +403,24 @@ def logbook():
         return denied
     conn = get_db()
     student, students = _pick_student(conn)
-    entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ?
+    entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? AND status != 'denied'
+                              ORDER BY entry_date DESC, id DESC""", (student["id"],)).fetchall() if student else []
+    denied_entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? AND status = 'denied'
                               ORDER BY entry_date DESC, id DESC""", (student["id"],)).fetchall() if student else []
     dual_given = None
     if session.get("cfi_id"):
-        r = conn.execute("SELECT SUM(dual) d, COUNT(*) c FROM pilot_logbook WHERE cfi_id = ? AND dual > 0",
+        r = conn.execute("SELECT SUM(dual) d, COUNT(*) c FROM pilot_logbook WHERE cfi_id = ? AND dual > 0 AND status != 'denied'",
                          (session["cfi_id"],)).fetchone()
         dual_given = {"hours": round(r["d"] or 0, 1), "flights": r["c"]}
     goal_track = active_goal_track(conn, student) if student else None
+    # Log Your Flying (things the flight log doesn't track) lives here, under Logbook.
+    log_entries = conn.execute("""SELECT * FROM academy_entries WHERE student_id = ?
+                                  ORDER BY entry_date DESC, id DESC LIMIT 25""", (student["id"],)).fetchall() if student else []
     conn.close()
     pending = [e for e in entries if e["status"] == "pending"]
-    return render_template("academy_logbook.html", student=student, students=students, entries=entries,
+    import academy
+    return render_template("academy_logbook.html", denied_entries=denied_entries, log_entries=log_entries, log_kinds=academy.ENTRY_KINDS,
+                           log_kind_map=academy.ENTRY_KIND_MAP, log_today=date.today().isoformat(), student=student, students=students, entries=entries,
                            pending=pending, totals=_totals(entries), staff=_is_staff(), dual_given=dual_given,
                            goal_track=goal_track, tab="logbook")
 
@@ -430,12 +437,24 @@ def entry(entry_id):
         conn.close()
         abort(404)
     if request.method == "POST":
-        if e["status"] == "complete" and not _is_staff() and request.form.get("action") != "reopen":
+        if e["status"] in ("complete", "denied") and not _is_staff() and request.form.get("action") != "reopen":
             conn.close()
             flash("This entry is already approved. Reopen it to make changes.", "warning")
             return redirect(url_for("pilotlog.entry", entry_id=entry_id))
+        if request.form.get("action") == "deny":
+            if e["status"] != "pending":
+                conn.close()
+                flash("Only a pending entry can be denied.", "warning")
+                return redirect(url_for("pilotlog.entry", entry_id=entry_id))
+            reason = (request.form.get("deny_reason") or "").strip()[:300] or None
+            conn.execute("""UPDATE pilot_logbook SET status='denied', denied_at=?, denied_by=?, deny_reason=?, updated_at=? WHERE id=?""",
+                         (now_iso(), session.get("user_name"), reason, now_iso(), entry_id))
+            conn.commit()
+            conn.close()
+            flash("Entry denied - it won't count toward totals or requirements. You can reopen it any time.", "success")
+            return redirect(url_for("pilotlog.logbook", student_id=e["student_id"] if _is_staff() else None))
         if request.form.get("action") == "reopen":
-            conn.execute("UPDATE pilot_logbook SET status='pending', approved_at=NULL, approved_by=NULL, updated_at=? WHERE id=?",
+            conn.execute("UPDATE pilot_logbook SET status='pending', approved_at=NULL, approved_by=NULL, denied_at=NULL, denied_by=NULL, deny_reason=NULL, updated_at=? WHERE id=?",
                          (now_iso(), entry_id))
             conn.commit()
             conn.close()
@@ -482,7 +501,7 @@ def export_csv():
     if not student:
         conn.close()
         abort(404)
-    entries = conn.execute("SELECT * FROM pilot_logbook WHERE student_id = ? ORDER BY entry_date, id",
+    entries = conn.execute("SELECT * FROM pilot_logbook WHERE student_id = ? AND status != 'denied' ORDER BY entry_date, id",
                            (student["id"],)).fetchall()
     conn.close()
     out = io.StringIO()
@@ -555,7 +574,7 @@ def totalizer():
         return denied
     conn = get_db()
     student, students = _pick_student(conn)
-    entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? ORDER BY entry_date, id""",
+    entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? AND status != 'denied' ORDER BY entry_date, id""",
                            (student["id"],)).fetchall() if student else []
     tracks = build_progress(conn, student) if student else []
     conn.close()
@@ -678,9 +697,9 @@ def airport_map():
     whole_school = _is_staff() and request.args.get("all") == "1"
     if whole_school:
         entries = conn.execute("""SELECT l.*, s.name AS student_name FROM pilot_logbook l
-                                  JOIN students s ON s.id = l.student_id ORDER BY entry_date, l.id""").fetchall()
+                                  JOIN students s ON s.id = l.student_id WHERE l.status != 'denied' ORDER BY entry_date, l.id""").fetchall()
     elif student:
-        entries = conn.execute("""SELECT l.*, NULL AS student_name FROM pilot_logbook l WHERE student_id = ?
+        entries = conn.execute("""SELECT l.*, NULL AS student_name FROM pilot_logbook l WHERE student_id = ? AND status != 'denied'
                                   ORDER BY entry_date, id""", (student["id"],)).fetchall()
     else:
         entries = []
