@@ -278,7 +278,7 @@
              marks as an in-month day (see the layout_full block below),
              just no flight blocks since none are looked up for these
              days. #}
-          <div class="calendar-timeline{{ ' day-timeline-track-clickable' if session.get('cfi_id') or session.get('student_id') }}"
+          <div class="calendar-timeline calendar-timeline-gutter{{ ' day-timeline-track-clickable' if session.get('cfi_id') or session.get('student_id') }}"
                {% if session.get('cfi_id') or session.get('student_id') %}data-track-date="{{ day.date }}" data-start-min="{{ month_timeline_start_min }}" data-end-min="{{ month_timeline_end_min }}"{% endif %}
                style="position:relative; height:{{ ((month_timeline_end_min - month_timeline_start_min) * month_timeline_px_per_min) | round(1) }}px; overflow:visible;">
             {% for h in range(month_timeline_start_min // 60, month_timeline_end_min // 60 + 1) %}
@@ -336,7 +336,7 @@
              a click would create, and clicking jumps to Schedule Flight
              with that date AND time pre-filled, not just the date the
              whole-cell click below falls back to. #}
-          <div class="calendar-timeline{{ ' day-timeline-track-clickable' if session.get('cfi_id') or session.get('student_id') }}"
+          <div class="calendar-timeline calendar-timeline-gutter{{ ' day-timeline-track-clickable' if session.get('cfi_id') or session.get('student_id') }}"
                {% if session.get('cfi_id') or session.get('student_id') %}data-track-date="{{ cell_date }}" data-start-min="{{ month_timeline_start_min }}" data-end-min="{{ month_timeline_end_min }}"{% endif %}
                style="position:relative; height:{{ day_layout.container_h }}px; overflow:visible;">
             {#- Idea "Calendar": one reference mark per hour, same density as
@@ -349,9 +349,13 @@
             {% set hour12 = 12 if hour12 == 0 else hour12 %}
             <div class="calendar-time-line" style="top:{{ ((h * 60 - month_timeline_start_min) * month_timeline_px_per_min) | round(1) }}px;"><span class="calendar-time-label">{{ hour12 }}{{ 'a' if h < 12 else 'p' }}</span></div>
             {% endfor %}
+            {#- Blocks live in their own area to the right of the hour labels
+               (calendar-lanes), so a booking never covers a label. #}
+            <div class="calendar-lanes">
             {% for f, style in day_layout.placements %}
             {{ month_lane_block(f, style) }}
             {% endfor %}
+            </div>
           </div>
           {% endif %}
           {% if day_layout %}
