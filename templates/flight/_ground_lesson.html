@@ -73,7 +73,7 @@
   <section class="gsl-step" id="gsl-final">
     <h5 class="gsl-h"><span class="gsl-n">05</span> Final check</h5>
     <p class="gsl-hint">Everything from this Task in one round: {{ final.qs|length }} questions{% if final.acts %} and {{ final.acts|length }} game{{ 's' if final.acts|length != 1 }}{% endif %}. Your first try is saved as your score. A wrong answer can be fixed until you reach 100%.</p>
-    {{ gsl.qgroup(final.qs, 'Final check: questions', True, 'gsl-final-q') }}
+    {{ gsl.qgroup(final.qs, 'Final check: questions', True, 'gsl-final-q', final.prefix) }}
     {% for a in final.acts %}<div class="gsl-panel gsl-playpanel gsl-play-item"><span class="gsl-playtag">Final check: game</span>{{ gsl.activity(a, L) }}</div>{% endfor %}
   </section>
   {% endif %}

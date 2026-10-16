@@ -104,16 +104,20 @@
 {% endmacro %}
 
 
-{#- A set of graded multiple-choice questions. final=True keeps its results apart (the end-of-Task check). -#}
-{% macro qgroup(qs, label, final=False, extra_class='') %}
-{% set pre = 'fq' if final else 'q' %}
+{#- A set of graded multiple-choice questions. final=True keeps its results apart (the end-of-Task check);
+   prefix is the saved-answer key prefix (Final check: fq or fz, Area review: r). A question with "fig"
+   shows that FAA figure above its answers. -#}
+{% macro qgroup(qs, label, final=False, extra_class='', prefix=None, number_through=False) %}
+{% set pre = prefix or ('fq' if final else 'q') %}
 {% set ns = namespace(done=0, first=0) %}
 {% for n, q in qs %}{% set r = gs_results.get(pre ~ n) if gs_results else None %}{% if r and r.done %}{% set ns.done = ns.done + 1 %}{% if r.first %}{% set ns.first = ns.first + 1 %}{% endif %}{% endif %}{% endfor %}
 <div class="gsl-panel gsl-playpanel gsl-play-item gsl-qgroup {{ extra_class }}" data-final="{{ 1 if final else 0 }}" data-done="{{ 1 if (qs and ns.done == qs|length) else 0 }}" data-first="{{ ns.first }}" data-count="{{ qs|length }}"><span class="gsl-playtag">{{ label }}</span>
   <div class="gsl-body">
   {% for n, q in qs %}
   <div class="gsl-q" data-n="{{ n }}">
-    <div class="gsl-stem">{{ loop.index }}. {{ gs_rich(q.q) }}</div>
+    <div class="gsl-stem">{{ n if number_through else loop.index }}. {{ gs_rich(q.q) }}</div>
+    {% if q.fig %}<figure class="gsl-fig gsl-qfig"><img src="{{ url_for('static', filename='lessons/' ~ q.fig.file) }}" alt="{{ q.fig.alt or q.fig.caption }}" loading="lazy">
+      <figcaption>{{ q.fig.caption }} · <a href="{{ gs_cite_url(q.fig.res, q.fig.page) }}" target="_blank" rel="noopener">{{ q.fig.source }}</a></figcaption></figure>{% endif %}
     <div class="gsl-opts">{% for o in q.options %}<button type="button" data-j="{{ loop.index0 }}">{{ gs_rich(o) }}</button>{% endfor %}</div>
     <div class="gsl-qwhy" hidden>{{ gs_rich(q.why) }}</div>
   </div>

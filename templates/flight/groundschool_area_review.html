@@ -1,0 +1,56 @@
+{% extends "academy_base.html" %}
+{#- GS-AREA-REVIEW: the review quiz at the end of an Area of Operation (ground_lessons/areas/<code>.json).
+   Graded and saved like a Task's Final check: the first try is the grade, wrong answers can be fixed. #}
+{% block title %}Area {{ area.code }} review · Flight Academy{% endblock %}
+{% block content %}
+{% import "flight/_gsl_macros.html" as gsl with context %}
+{% include "flight/_groundschool_picker.html" %}
+<link href="{{ url_for('static', filename='css/ground-lesson.css') }}" rel="stylesheet">
+<div class="mb-3">
+  <a href="{{ gs_url('groundschool.rating_detail', rating_id=rating.id) }}" class="gsl-back">
+    <i class="bi bi-arrow-left-circle-fill"></i><span><small>Back to the course</small>{{ rating.name }}</span>
+  </a>
+  <a href="{{ gs_url('groundschool.rating_detail', rating_id=rating.id) }}" class="gsl-back-fab" aria-label="Back to the course"><i class="bi bi-arrow-left-circle-fill"></i> Course</a>
+  <h4 class="mb-0 text-light">{{ review.title or ('Area ' ~ area.code ~ ' review') }}</h4>
+  <div class="text-light small opacity-75">Area {{ area.code }}. {{ area.title }}</div>
+</div>
+
+<div class="gsl" id="gsl" data-base="{{ url_for('groundschool.area_review', area_id=area.id) }}" data-task-id="" data-track="{{ 1 if session.get('student_id') else 0 }}" data-change="GS-AREA-REVIEW">
+  <section class="gsl-step" id="gsl-review">
+    <div class="gsl-panel">
+      {% if review.intro %}<p class="mb-2">{{ gs_rich(review.intro) }}</p>{% endif %}
+      <p class="gsl-hint mb-1">{{ review.questions|length }} questions mixing every Task in this Area. Your first try is saved as your score. A wrong answer can be fixed until you reach 100%.</p>
+      <div class="small text-muted">Covers: {% for t in tasks %}<a href="{{ gs_url('groundschool.task_detail', task_id=t.id) }}">{{ t.code }}. {{ t.title }}</a>{{ ' · ' if not loop.last }}{% endfor %}</div>
+    </div>
+    {% for p in parts %}{{ gsl.qgroup(p.qs, 'Area review: ' ~ p.label, False, 'gsl-final-q', 'r', True) }}{% endfor %}
+  </section>
+</div>
+
+{% if ar_stats and (session.get('cfi_id') or flight_admin) %}
+{% set st = ar_stats %}
+<div class="card academy-card mb-3" id="gsl-activity" data-change="GS-AREA-REVIEW">
+  <div class="card-header fw-bold"><i class="bi bi-clipboard-data"></i> Student activity on this review</div>
+  <div class="card-body">
+    <div class="row g-3 mb-2 text-center">
+      <div class="col-6 col-md-3"><div class="fs-4 fw-bold">{{ (st.seconds / 60)|round|int }} min</div><div class="small text-muted">time in the review</div></div>
+      <div class="col-6 col-md-3"><div class="fs-4 fw-bold">{% if st.pct is not none %}{{ st.pct }}%{% elif st.pct_so_far is not none %}{{ st.pct_so_far }}%*{% else %}&ndash;{% endif %}</div><div class="small text-muted">initial review grade (first tries){% if st.pct is none and st.answered %}<br>*{{ st.answered }} of {{ st.total }} answered{% endif %}</div></div>
+      <div class="col-6 col-md-3"><div class="fs-4 fw-bold">{{ st.tries }}</div><div class="small text-muted">tries in all</div></div>
+      <div class="col-6 col-md-3"><div class="fs-6 fw-bold">{{ st.last_seen_at|usdate(true) if st.last_seen_at else '–' }}</div><div class="small text-muted">last in the review</div></div>
+    </div>
+    {% if st.answered %}
+    <details open><summary class="fw-bold small">Questions: first try and tries taken</summary>
+      <div class="table-responsive mt-2"><table class="table table-sm align-middle mb-2">
+        <thead><tr><th>#</th><th>Task</th><th>Question</th><th class="text-center">First try</th><th class="text-center">Tries</th><th class="text-center">Corrected</th></tr></thead>
+        <tbody>{% for r in st.rows %}<tr>
+          <td>{{ r.n }}</td><td class="text-nowrap small">{{ r.task or '' }}</td><td>{{ gs_rich(r.q) }}</td>
+          <td class="text-center">{% if not r.answered %}<span class="text-muted">&ndash;</span>{% elif r.first_correct %}<span class="text-success fw-bold"><i class="bi bi-check-lg"></i> right</span>{% else %}<span class="text-danger fw-bold"><i class="bi bi-x-lg"></i> missed</span>{% endif %}</td>
+          <td class="text-center">{{ r.attempts if r.answered else '–' }}</td>
+          <td class="text-center">{% if r.done %}<i class="bi bi-check-circle-fill text-success"></i>{% elif r.answered %}<span class="text-muted small">not yet</span>{% else %}&ndash;{% endif %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </details>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+<script src="{{ url_for('static', filename='js/ground-lesson.js') }}" defer></script>
+{% endblock %}
