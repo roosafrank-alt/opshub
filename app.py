@@ -86,6 +86,8 @@ app.register_blueprint(customer_bp)
 app.register_blueprint(pwreset_bp)
 app.register_blueprint(manuals_bp)
 app.register_blueprint(groundschool_bp)
+from endorsements import endorse_bp, run_expiry_check as run_endorsement_expiry_check  # ENDORSE
+app.register_blueprint(endorse_bp)
 app.register_blueprint(payroll_bp)
 app.register_blueprint(ads_bp)
 app.teardown_request(close_request_conns)
@@ -10685,6 +10687,10 @@ def _start_session_alert_loop(debug_mode):
                 run_balance_hold_release_check()
             except Exception:
                 app.logger.exception("Balance hold release check failed")
+            try:
+                run_endorsement_expiry_check()      # ENDORSE: at most once an hour
+            except Exception:
+                app.logger.exception("Endorsement expiry check failed")
             try:
                 run_wave_payment_check()
             except Exception:

@@ -1105,6 +1105,15 @@ def _migrate(conn):
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_student_endorsements_student ON student_endorsements(student_id, id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_student_endorsements_cfi ON student_endorsements(cfi_id, id)")
+    # ENDORSE: endorsements signed from the AC 61-65K catalog (endorsements.py): which catalog
+    # entry, when it stops being good, the blanks as filled in, the CFI certificate and signature
+    # line used, and a "removed" mark (a mistake is removed, never deleted).
+    _se_cols = [r["name"] for r in conn.execute("PRAGMA table_info(student_endorsements)").fetchall()]
+    for _c in ("catalog_id", "expires_on", "fields_json", "cfi_cert", "signature_line", "created_by",
+               "voided_at", "voided_by", "void_reason"):
+        if _c not in _se_cols:
+            conn.execute(f"ALTER TABLE student_endorsements ADD COLUMN {_c} TEXT")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_student_endorsements_expires ON student_endorsements(expires_on)")
     conn.commit()
 
     # Ground School: each row is one FAA Airman Certification Standards (ACS)

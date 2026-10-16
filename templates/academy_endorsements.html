@@ -1,0 +1,110 @@
+{% extends "academy_base.html" %}
+{% block title %}Endorsements · Flight Academy{% endblock %}
+{% block content %}
+{#- ENDORSE: a student's endorsements - the rating checklist, current ones, and the expired ones
+   behind a small "View N expired" link. See endorsements.py. #}
+<style>
+  .en-row { display: flex; align-items: center; gap: .6rem; padding: .55rem .2rem; border-top: 1px solid #eef0f3; text-decoration: none; color: inherit; }
+  .en-row:first-child { border-top: 0; }
+  .en-row:hover { background: #f8f9fa; }
+  .en-num { flex: 0 0 3.2rem; text-align: center; font-weight: 800; font-size: .75rem; background: #e7f1ff; color: #0b4fa8; border-radius: 6px; padding: .15rem .4rem; }
+  .en-title { flex: 1; min-width: 0; }
+  .en-title b { display: block; }
+  .en-sub { font-size: .75rem; color: #6c757d; }
+  .en-exp { flex: 0 0 auto; font-size: .75rem; font-weight: 700; text-align: right; white-space: nowrap; }
+  .en-ok { color: #2f9e44; } .en-warn { color: #e67700; } .en-bad { color: #c92a2a; } .en-none { color: #6c757d; font-weight: 400; }
+  .en-more { font-size: .8rem; }
+  .en-chk { display: flex; align-items: flex-start; gap: .5rem; padding: .35rem 0; border-top: 1px solid #eef0f3; font-size: .9rem; }
+  .en-chk:first-child { border-top: 0; }
+  .en-chk i { font-size: 1.05rem; margin-top: .05rem; }
+  .en-opt { color: #868e96; }
+  .en-pills .btn { font-size: .75rem; }
+</style>
+{% if not student %}
+<div class="card academy-card p-4">No student profile is linked to your account, so there are no endorsements to show.</div>
+{% else %}
+{% macro row(it, show_exp=True) %}
+<a class="en-row" href="{{ url_for('endorse.view', endorsement_id=it.id) }}">
+  <span class="en-num">{{ it.num or 'Note' }}</span>
+  <span class="en-title"><b>{{ it.title }}</b><span class="en-sub">Signed {{ us_date(it.signed_on) }}{% if it.cfi_name %} by {{ it.cfi_name }}{% endif %}</span></span>
+  {% if show_exp %}<span class="en-exp">
+    {% if it.superseded %}<span class="en-none">Replaced by a newer one</span>
+    {% elif it.flight_specific and it.expired %}<span class="en-none">Flight on {{ us_date(it.expires) }}</span>
+    {% elif it.lapsed %}<span class="en-none">Currency lapsed {{ us_date(it.expires) }}</span>
+    {% elif it.currency and it.expires %}<span class="en-ok">Instrument current<br>through {{ us_date(it.expires) }}</span>
+    {% elif it.expired %}<span class="en-bad">Expired {{ us_date(it.expires) }}</span>
+    {% elif it.expires and it.days_left is not none and it.days_left <= 14 %}<span class="en-warn">Expires in {{ it.days_left }} day{{ 's' if it.days_left != 1 }}<br>{{ us_date(it.expires) }}</span>
+    {% elif it.expires %}<span class="en-ok">Good until<br>{{ us_date(it.expires) }}</span>
+    {% else %}<span class="en-none">No expiry</span>{% endif %}
+  </span>{% endif %}
+</a>
+{% endmacro %}
+
+<div class="card academy-card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0"><i class="bi bi-patch-check"></i> {{ student.name }}'s Endorsements</h4>
+      <div class="small text-muted">Wording from FAA AC 61-65K. {% if can_sign %}Sign one and it lands here with its expiry.{% endif %}</div>
+    </div>
+    {% if can_sign %}
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{{ url_for('endorse.new', student_id=student.id) }}" class="btn btn-primary btn-sm fw-bold"><i class="bi bi-plus-lg"></i> New endorsement</a>
+      <a href="{{ url_for('endorse.given') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-person-badge"></i> Endorsements I gave</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if chk %}
+<div class="card academy-card p-3 mb-3" id="checklist">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h6 class="mb-0"><i class="bi bi-list-check"></i> Needed for {{ chk.name }}: <span class="{{ 'en-ok' if chk.done == chk.total else 'en-warn' }}">{{ chk.done }} of {{ chk.total }}</span></h6>
+    <form method="get" class="d-flex align-items-center gap-1">
+      {% if staff %}<input type="hidden" name="student_id" value="{{ student.id }}">{% endif %}
+      <label class="small text-muted mb-0" for="en-track">Checklist for</label>
+      <select name="track" id="en-track" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+        {% for code, name in tracks.items() %}<option value="{{ code }}" {{ 'selected' if code == track }}>{{ name }}</option>{% endfor %}
+      </select>
+    </form>
+  </div>
+  <div class="progress mb-2" style="height:.5rem;"><div class="progress-bar {{ 'bg-success' if chk.done == chk.total else 'bg-warning' }}" style="width:{{ (100 * chk.done / chk.total)|round|int if chk.total else 0 }}%"></div></div>
+  {% if chk.missing %}<div class="small mb-2"><b>Still missing before the test:</b> {% for r in chk.missing %}{{ r.ids[0] }} {{ r.label }}{{ ' (expired)' if r.state == 'expired' }}{{ ', ' if not loop.last }}{% endfor %}</div>{% endif %}
+  {% for r in chk.rows %}
+  <div class="en-chk {{ 'en-opt' if r.if and r.state != 'done' }}">
+    {% if r.state == 'done' %}<i class="bi bi-check-circle-fill en-ok"></i>
+    {% elif r.state == 'expired' %}<i class="bi bi-exclamation-circle-fill en-bad"></i>
+    {% elif r.if %}<i class="bi bi-dash-circle"></i>
+    {% else %}<i class="bi bi-x-circle en-bad"></i>{% endif %}
+    <div class="flex-grow-1">
+      <b>{{ r.ids|reject('equalto', 'A.86')|join(' / ') }}</b> {{ r.label }}{% if 'A.86' in r.ids %} <span class="en-sub">(or A.86 home-study review)</span>{% endif %}
+      {% if r.need == 'current' %}<span class="badge bg-light text-dark border">must be current</span>{% endif %}
+      <div class="en-sub">
+        {% if r.item %}{{ 'Expired' if r.state == 'expired' else 'Signed' }} {{ us_date(r.item.expires if r.state == 'expired' else r.item.signed_on) }}{% if r.item.cfi_name %} by {{ r.item.cfi_name }}{% endif %}{% endif %}
+        {% if r.if %}{% if r.item %} &middot; {% endif %}Only needed {{ r.if|replace('only ', '') }}{% endif %}
+        {% if r.note %}{% if r.item %} &middot; {% endif %}{{ r.note }}{% endif %}
+      </div>
+    </div>
+    {% if can_sign and r.state != 'done' %}<a href="{{ url_for('endorse.new', student_id=student.id, e=r.ids[-1] if r.state == 'expired' and r.ids[-1] != 'A.86' else r.ids[0], track=track) }}" class="btn btn-outline-primary btn-sm">{{ 'Renew' if r.state == 'expired' else 'Sign' }}</a>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card academy-card p-3 mb-3" id="current">
+  <h6 class="mb-1"><i class="bi bi-patch-check-fill"></i> Current endorsements <span class="text-muted small fw-normal">({{ current|length }})</span></h6>
+  {% for it in current %}{{ row(it) }}{% else %}<div class="text-muted small py-2">None yet.</div>{% endfor %}
+  {% if expired %}
+  <details class="mt-2" id="expired">
+    <summary class="en-more text-primary">View {{ expired|length }} expired endorsement{{ 's' if expired|length != 1 }}</summary>
+    <div class="mt-1">{% for it in expired %}{{ row(it) }}{% endfor %}</div>
+  </details>
+  {% endif %}
+  {% if old %}
+  <details class="mt-2" id="old">
+    <summary class="en-more text-secondary">View {{ old|length }} student-pilot endorsement{{ 's' if old|length != 1 }} no longer needed (holds a {{ (student.pilot_certificate or '')|capitalize }} certificate)</summary>
+    <div class="mt-1">{% for it in old %}{{ row(it, False) }}{% endfor %}</div>
+  </details>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
