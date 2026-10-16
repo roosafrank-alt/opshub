@@ -30,6 +30,7 @@ import ground_lessons
 from flight import login_required, cfi_required, admin_required
 from auth import student_course_grants, groundschool_restricted, is_flight_admin
 from acs_parser import parse_acs
+from pts_parser import parse_pts
 
 groundschool_bp = Blueprint("groundschool", __name__, url_prefix="/flight/groundschool")
 
@@ -247,8 +248,11 @@ def _parse_and_store(conn, rating_id, pdf_path):
 
     areas = parse_acs(pdf_path)
     if not areas or not any(a["tasks"] for a in areas):
+        # Older FAA Practical Test Standards (e.g. Sport Pilot) use a different layout.
+        areas = parse_pts(pdf_path)
+    if not areas or not any(a["tasks"] for a in areas):
         raise ValueError("No Areas of Operation with Tasks were found in this PDF - "
-                          "is it the right document, and does it follow the standard ACS layout?")
+                          "is it the right document, and does it follow the standard ACS or PTS layout?")
     for area_idx, area in enumerate(areas):
         cur = conn.execute(
             "INSERT INTO acs_areas (rating_id, code, title, order_index) VALUES (?, ?, ?, ?)",
