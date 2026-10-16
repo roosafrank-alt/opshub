@@ -480,6 +480,10 @@ def _student_plane(conn, student_id, planes):
 def _track_for(student, requested=None):
     if requested in REQUIREMENTS:
         return requested
+    from pilotlog import goal_track_code
+    code = goal_track_code(student)
+    if code in REQUIREMENTS:
+        return code
     cert = student["pilot_certificate"] if student is not None and "pilot_certificate" in student.keys() else None
     return NEXT_TRACK.get(cert, "private")
 

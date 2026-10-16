@@ -51,6 +51,7 @@ ACHIEVEMENTS = [
     ("xc_1", "Cross-Country", "bi-signpost-split", "Your first cross-country", "xc_flights", 1, 40),
     ("nm_1000", "Road Trip", "bi-geo-alt", "1,000 nm flown", "distance_nm", 1000, 60),
     ("ifr_10", "In the Soup", "bi-cloud-fog2", "10 instrument hours", "instrument_hours", 10, 40),
+    ("apt_5", "Explorer", "bi-compass", "Land at 5 different airports", "airports", 5, 40),
 ]
 
 LEADERBOARDS = [
@@ -59,6 +60,7 @@ LEADERBOARDS = [
     ("all_landings", "Landings", ""),
     ("distance_nm", "Distance", "nm"),
     ("achievement_count", "Achievements", ""),
+    ("airports", "Explorer (airports)", "apts"),
 ]
 
 
@@ -150,7 +152,28 @@ def student_stats(conn, since=None):
         st = stats.get(r["student_id"])
         if st and r["kind"] in ENTRY_KIND_MAP:
             st[r["kind"]] += r["v"] or 0
+    # Explorer: different airports each student has landed at, from the
+    # From / To boxes of their logbook (the same source as the Airport Map).
+    from pilotlog import _airport_codes, _HOME_AIRPORT
+    sql = "SELECT student_id, route_from, route_to FROM pilot_logbook WHERE status != 'denied'"
+    params = []
+    if since:
+        sql += " AND entry_date >= ?"
+        params.append(since)
+    seen = {}
+    for r in conn.execute(sql, params).fetchall():
+        if r["student_id"] not in stats:
+            continue
+        codes = _airport_codes(r["route_from"]) + _airport_codes(r["route_to"])
+        if codes and not _airport_codes(r["route_from"]):
+            codes.insert(0, _HOME_AIRPORT)
+        seen.setdefault(r["student_id"], set()).update(codes)
+    for sid, codes in seen.items():
+        stats[sid]["airports"] = len(codes)
+        stats[sid]["airport_codes"] = codes
     for st in stats.values():
+        st.setdefault("airports", 0)
+        st.setdefault("airport_codes", set())
         st["all_landings"] = int(st["day_landings"] + st["night_landings_log"] + st["landings"] + st["night_landings"])
         st["all_night_landings"] = int(st["night_landings_log"] + st["night_landings"])
         _score(st)
@@ -219,3 +242,61 @@ def rank_of(stats, student_id, key="points"):
     if not me or not me.get(key):
         return None
     return 1 + sum(1 for st in stats.values() if (st.get(key) or 0) > me[key])
+
+
+def monthly_hours(conn, student_ids, my_id=None, months=12):
+    """Hours flown per month for the last `months` months: (labels, school
+    totals, mine). Only the students on the board count toward the school."""
+    today = date.today()
+    keys = []
+    y, m = today.year, today.month
+    for _ in range(months):
+        keys.append(f"{y:04d}-{m:02d}")
+        m -= 1
+        if m == 0:
+            y, m = y - 1, 12
+    keys.reverse()
+    school = {k: 0.0 for k in keys}
+    mine = {k: 0.0 for k in keys}
+    ids = set(student_ids)
+    for f in conn.execute(f"SELECT f.* FROM flights f WHERE {_FINISHED_FLIGHT_SQL} AND f.flight_date >= ?",
+                          (keys[0] + "-01",)).fetchall():
+        k = (f["flight_date"] or "")[:7]
+        if k not in school:
+            continue
+        h = _flight_hours(f)
+        if f["student_id"] in ids:
+            school[k] += h
+        if my_id and f["student_id"] == my_id:
+            mine[k] += h
+    labels = [date(int(k[:4]), int(k[5:]), 1).strftime("%b") for k in keys]
+    return labels, [round(school[k], 1) for k in keys], [round(mine[k], 1) for k in keys]
+
+
+def school_map(conn, stats, my_id=None):
+    """Airports the students on the board have landed at, for the leaderboard
+    map: [{code, name, lat, lon, pilots, mine, home}]. Only airports already
+    looked up (cached by the Airport Map page) are placed - no web lookups."""
+    from pilotlog import _HOME_AIRPORT
+    who = {}
+    for sid, st in stats.items():
+        for c in st.get("airport_codes") or ():
+            who.setdefault(c, set()).add(sid)
+    codes = list(who) or [_HOME_AIRPORT]
+    marks = ",".join("?" * len(codes))
+    try:
+        coords = {r["code"]: r for r in conn.execute(
+            f"SELECT * FROM airport_coords WHERE found = 1 AND lat IS NOT NULL AND code IN ({marks})", codes)}
+    except Exception:
+        coords = {}
+    out = []
+    for c in codes:
+        r = coords.get(c)
+        if r is None and c == _HOME_AIRPORT:
+            r = {"name": "Joseph Y. Resnick (Ellenville)", "lat": 41.72778, "lon": -74.37722}
+        if r is None:
+            continue
+        ids = who.get(c, set())
+        out.append({"code": c, "name": r["name"] or "", "lat": r["lat"], "lon": r["lon"], "pilots": len(ids),
+                    "mine": bool(my_id and my_id in ids), "home": c == _HOME_AIRPORT})
+    return out
