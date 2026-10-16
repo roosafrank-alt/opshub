@@ -31,6 +31,12 @@
   </div>
 </div>
 
+{% if gs_lesson %}
+<a href="#gsl" class="gsl-start"><i class="bi bi-play-circle-fill"></i> Start the lesson</a>
+{% include "flight/_ground_lesson.html" %}
+<h5 class="text-light mt-4 mb-2"><i class="bi bi-file-text"></i> The ACS standard for this Task</h5>
+<p class="text-light small opacity-75">What the examiner tests. The lesson above teaches all of it. Tap a code to open just that part.</p>
+{% endif %}
 <div class="card academy-card mb-3">
   <div class="card-header fw-bold"><i class="bi bi-file-text"></i> ACS Standard</div>
   <div class="card-body">
@@ -151,7 +157,6 @@
 </div>
 {% endif %}
 
-{% if gs_lesson %}{% include "flight/_ground_lesson.html" %}{% endif %}
 {% if flight_admin or (lesson and lesson.content) %}
 <div class="card academy-card mb-3">
   <div class="card-header fw-bold"><i class="bi bi-easel"></i> Lesson Content</div>

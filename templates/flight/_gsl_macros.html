@@ -101,3 +101,22 @@
   <div class="gsl-act-status" aria-live="polite"></div>
 </div>
 {% endmacro %}
+
+
+{#- A game or a small quiz placed between lessons. -#}
+{% macro play_item(it, L) %}
+{% if it.kind == 'act' %}
+<div class="gsl-panel gsl-playpanel gsl-play-item"><span class="gsl-playtag">Play</span>{{ activity(it.a, L) }}</div>
+{% else %}
+<div class="gsl-panel gsl-playpanel gsl-play-item gsl-qgroup"><span class="gsl-playtag">{{ it.label }}</span>
+  {% for n, q in it.qs %}
+  <div class="gsl-q" data-answer="{{ q.answer }}">
+    <div class="gsl-stem">{{ n }}. {{ gs_rich(q.q) }}</div>
+    <div class="gsl-opts">{% for o in q.options %}<button type="button" data-j="{{ loop.index0 }}">{{ gs_rich(o) }}</button>{% endfor %}</div>
+    <div class="gsl-qwhy" hidden>{{ gs_rich(q.why) }}</div>
+  </div>
+  {% endfor %}
+  <div class="gsl-score" aria-live="polite"></div>
+</div>
+{% endif %}
+{% endmacro %}
