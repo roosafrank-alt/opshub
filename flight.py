@@ -29,7 +29,7 @@ from db import get_db, now_iso, asset_meter, maintenance_status
 import auth
 from auth import (authenticate, log_in_user, log_out_user, can_manage_billing, owner_locked, is_flight_admin,
                    view_as_active_program, refresh_or_expire_session, person_view_active)
-from pilotlog import NEXT_TRACK, TRACK_MAP
+from pilotlog import NEXT_TRACK, TRACK_MAP, goal_track_code
 import weather
 import dashboard_cache
 import adsb
@@ -1132,8 +1132,7 @@ def student_training_info(row):
     actual student pilots."""
     if row is None or (row["is_station"] if "is_station" in row.keys() else 0):
         return None
-    cert = row["pilot_certificate"] if "pilot_certificate" in row.keys() else None
-    track = TRACK_MAP.get(NEXT_TRACK.get(cert, "private"))
+    track = TRACK_MAP.get(goal_track_code(row) or "")
     soloed = bool(row["first_solo_date"]) if "first_solo_date" in row.keys() else False
     return {"working_towards": track["name"] if track else None, "soloed": soloed}
 

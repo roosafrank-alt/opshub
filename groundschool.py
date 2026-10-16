@@ -724,10 +724,12 @@ def student_search():
 def _target_rating_id(st, ratings):
     """The course this student is working toward (from their certificate), or None."""
     try:
-        from pilotlog import NEXT_TRACK
-        code = NEXT_TRACK.get((st["pilot_certificate"] or None) if "pilot_certificate" in st.keys() else None, "private")
+        from pilotlog import goal_track_code
+        code = goal_track_code(st)
     except Exception:
         code = "private"
+    if not code:
+        return None
     word = {"cfi": "instructor", "multi": "multi"}.get(code, code)
     for r in ratings:
         if word in (r["name"] or "").lower():
@@ -1238,7 +1240,8 @@ def default_resource_category(conn, user_id, resources):
             "WHERE gr.student_id = ?", (st["id"],)).fetchall())
         cat = next((c for c in RESOURCE_CATEGORIES if c.lower() in names), None)
     if not cat:
-        cat = _TRACK_CATEGORY.get(NEXT_TRACK.get(st["pilot_certificate"], "private"))
+        from pilotlog import goal_track_code
+        cat = _TRACK_CATEGORY.get(goal_track_code(st) or "")
     return cat if cat and any(cat in resource_categories(r) for r in resources) else None
 
 

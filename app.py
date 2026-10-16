@@ -659,8 +659,13 @@ def academy_page():
         pending_flights = conn.execute(pend_sql + " AND l.student_id = ? ORDER BY l.entry_date DESC, l.id DESC LIMIT 3", (my_id,)).fetchall()
     else:
         pending_flights = []
+    trend_labels, trend_school, trend_me = academy.monthly_hours(conn, list(board_stats), my_id)
+    map_airports = academy.school_map(conn, board_stats, my_id)
     conn.close()
-    return render_template("academy.html", pending_flights=pending_flights, stats=stats, boards=boards, me=me,
+    race = [{"name": st["name"], "points": st["points"], "me": bool(me and st["id"] == me["id"])}
+            for _r, st in boards.get("points", [])]
+    return render_template("academy.html", race=race, trend_labels=trend_labels, trend_school=trend_school,
+                           trend_me=trend_me, map_airports=map_airports, pending_flights=pending_flights, stats=stats, boards=boards, me=me,
                            my_rank=academy.rank_of(board_stats, my_id) if my_id else None,
                            level=level, levels=academy.LEVELS,
                            entries=entries, staff=staff, period=period, picked_student=picked,
