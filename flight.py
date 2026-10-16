@@ -978,6 +978,17 @@ PILOT_RATINGS = [
     ("cfi", "CFI"), ("cfii", "CFII"), ("mei", "MEI"),
 ]
 INSTRUCTOR_RATINGS = ("cfi", "cfii", "mei")
+# The rating a student is training for (student account "Training toward"):
+# (code, label, Flight Academy Resources category it opens on, or None).
+TRAINING_GOALS = [
+    ("sport", "Sport Pilot", "Sport"), ("recreational", "Recreational Pilot", "Private"),
+    ("private", "Private Pilot", "Private"), ("instrument", "Instrument Rating", "Instrument"),
+    ("commercial", "Commercial Pilot", "Commercial"), ("complex", "Complex Endorsement", "Complex"),
+    ("high_performance", "High Performance Endorsement", "High Performance"),
+    ("tailwheel", "Tailwheel Endorsement", None), ("multi_engine", "Multi-Engine Rating", "Commercial"),
+    ("cfi", "Flight Instructor (CFI)", "CFI"), ("cfii", "Instrument Instructor (CFII)", "CFII"),
+    ("mei", "Multi-Engine Instructor (MEI)", "CFI"), ("atp", "Airline Transport Pilot", "Commercial"),
+]
 # Each rating's own badge: (short text, icon, color). Instructor ratings
 # share a purple so they read as a set.
 RATING_BADGES = {
@@ -1085,6 +1096,12 @@ def student_training_info(row):
     track = TRACK_MAP.get(NEXT_TRACK.get(cert, "private"))
     soloed = bool(row["first_solo_date"]) if "first_solo_date" in row.keys() else False
     return {"working_towards": track["name"] if track else None, "soloed": soloed}
+
+
+def _training_goal_from_form(form):
+    """training_goal from the student form (blank = not set)."""
+    goal = (form.get("training_goal") or "").strip()
+    return goal if goal in {g[0] for g in TRAINING_GOALS} else None
 
 
 def _pilot_from_form(form):
@@ -2343,7 +2360,7 @@ def _student_form_context(conn, student, **extra):
     the stored row (None on New Student); ``extra`` can carry ``form``
     (the submitted values, SCHOOL-15) and ``error_field``."""
     ctx = dict(student=student, default_solo_currency_days=DEFAULT_SOLO_CURRENCY_DAYS, medical_classes=MEDICAL_CLASSES,
-               pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, pay_preferences=PAY_PREFERENCES,
+               pilot_certificates=PILOT_CERTIFICATES, pilot_ratings=PILOT_RATINGS, training_goals=TRAINING_GOALS, pay_preferences=PAY_PREFERENCES,
                can_bill=can_manage_billing(), is_admin=bool(is_flight_admin()),
                today=date.today().isoformat(), form=None, error_field=None)
     if student:
@@ -2454,8 +2471,8 @@ def student_new():
                       session.get("cfi_id"), user_id, now_iso()))
         medical_class, medical_expires = _medical_from_form(request.form)
         pilot_certificate, pilot_ratings = _pilot_from_form(request.form)
-        conn.execute("UPDATE students SET medical_class = ?, medical_expires = ?, pilot_certificate = ?, pilot_ratings = ? WHERE user_id = ?",
-                     (medical_class, medical_expires, pilot_certificate, pilot_ratings, user_id))
+        conn.execute("UPDATE students SET medical_class = ?, medical_expires = ?, pilot_certificate = ?, pilot_ratings = ?, training_goal = ? WHERE user_id = ?",
+                     (medical_class, medical_expires, pilot_certificate, pilot_ratings, _training_goal_from_form(request.form), user_id))
         conn.execute("UPDATE students SET first_solo_date = ? WHERE user_id = ?",
                      (_first_solo_from_form(request.form), user_id))
         conn.execute("UPDATE students SET tsa_verified_date = ? WHERE user_id = ?",
@@ -2611,6 +2628,9 @@ def student_edit(student_id):
         pilot_certificate, pilot_ratings = _pilot_from_form(request.form)
         conn.execute("UPDATE students SET pilot_certificate = ?, pilot_ratings = ? WHERE id = ?",
                      (pilot_certificate, pilot_ratings, student_id))
+        training_goal = _training_goal_from_form(request.form)
+        conn.execute("UPDATE students SET training_goal = ? WHERE id = ?", (training_goal, student_id))
+        _log_field_change(conn, "student", student_id, "training_goal", student["training_goal"] if "training_goal" in student.keys() else None, training_goal, who)
         _log_field_change(conn, "student", student_id, "pilot_certificate", student["pilot_certificate"], pilot_certificate, who)
         _log_field_change(conn, "student", student_id, "pilot_ratings", student["pilot_ratings"], pilot_ratings, who)
         first_solo_date = _first_solo_from_form(request.form)

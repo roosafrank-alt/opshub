@@ -609,10 +609,45 @@ def rating_list():
                 progress_by_rating[r["id"]] = _rating_progress(conn, r["id"], viewing_student_id)
                 next_by_rating[r["id"]] = next_lesson(conn, r["id"], viewing_student_id)
                 resume_by_rating[r["id"]] = resume_spot(conn, viewing_student_id, rating_id=r["id"])
+    dash = gs_dashboard(conn, viewing_student_id, ratings, progress_by_rating) if viewing_student_id else None
     conn.close()
-    return render_template("flight/groundschool_list.html", ratings=ratings, tab="groundschool", resume_by_rating=resume_by_rating,
+    return render_template("flight/groundschool_list.html", dash=dash, ratings=ratings, tab="groundschool", resume_by_rating=resume_by_rating,
                             progress_by_rating=progress_by_rating, next_by_rating=next_by_rating, gs_students=students,
                             viewing_student_id=viewing_student_id)
+
+
+def gs_dashboard(conn, student_id, ratings, progress_by_rating):
+    """Numbers for the charts at the top of the Ground School page (one student)."""
+    secs = conn.execute("SELECT COALESCE(SUM(seconds),0) s, COUNT(*) n FROM gs_lesson_time WHERE student_id = ? AND seconds > 0",
+                        (student_id,)).fetchone()
+    by_area = conn.execute("""SELECT a.code AS code, a.title AS title, r.name AS rating, SUM(lt.seconds) AS s
+                              FROM gs_lesson_time lt JOIN acs_tasks t ON t.id = lt.task_id
+                              JOIN acs_areas a ON a.id = t.area_id JOIN acs_ratings r ON r.id = a.rating_id
+                              WHERE lt.student_id = ? AND lt.seconds > 0 GROUP BY a.id ORDER BY s DESC LIMIT 6""",
+                           (student_id,)).fetchall()
+    res = conn.execute("""SELECT kind, COUNT(*) n, SUM(first_correct) fc, SUM(attempts) att
+                          FROM gs_lesson_results WHERE student_id = ? GROUP BY kind""", (student_id,)).fetchall()
+    kinds = {r["kind"]: r for r in res}
+    qn = sum((kinds[k]["n"] for k in ("quiz", "final") if k in kinds), 0)
+    qfc = sum((kinds[k]["fc"] or 0 for k in ("quiz", "final") if k in kinds), 0)
+    first_try = round(100 * qfc / qn) if qn else None
+    mx = max([r["s"] for r in by_area], default=0)
+    courses = []
+    for r in ratings:
+        p = progress_by_rating.get(r["id"])
+        if p:
+            courses.append({"name": r["name"], "pct": p["pct"], "done": p["done"], "total": p["total"]})
+    return {
+        "minutes": int(secs["s"] // 60), "lessons": secs["n"],
+        "questions": qn, "first_try": first_try,
+        "tries": sum((kinds[k]["att"] or 0 for k in ("quiz", "final") if k in kinds), 0),
+        "games": kinds["game"]["n"] if "game" in kinds else 0,
+        "finals": kinds["final"]["n"] if "final" in kinds else 0,
+        "areas": [{"code": r["code"], "title": r["title"], "minutes": max(1, int(r["s"] // 60)),
+                   "pct": max(4, round(100 * r["s"] / mx)) if mx else 0} for r in by_area],
+        "courses": courses,
+        "empty": not (secs["n"] or qn or kinds.get("game")),
+    }
 
 
 @groundschool_bp.route("/upload", methods=["POST"])
@@ -988,6 +1023,7 @@ def resources_list():
                  (now_iso(), uid))  # opening Resources marks them read (this page still shows them as new)
     conn.commit()
     extra["whats_new"] = whats_new
+    extra["default_cat"] = default_resource_category(conn, uid, resources)
     conn.close()
     return render_template("flight/groundschool_resources.html", resources=resources, tab="resources",
                            sections=group_resources(resources), categories=RESOURCE_CATEGORIES,
@@ -997,6 +1033,30 @@ def resources_list():
 
 RESOURCE_CATEGORIES = ["Sport", "Private", "Instrument", "Commercial", "High Performance", "Complex", "CFI", "CFII"]
 OTHER_CATEGORY = "Other / General"
+# Resources category for the next course a student with this certificate works on
+# (mirrors pilotlog.NEXT_TRACK, which is keyed by track code).
+_TRACK_CATEGORY = {"private": "Private", "instrument": "Instrument", "cfi": "CFI", "atp": "Commercial"}
+
+
+def default_resource_category(conn, user_id, resources):
+    """The category the Resources page opens on for a student: the rating they are training toward
+    (student account), else a granted course named like a category, else the next rating after their
+    certificate. None for everyone else (admins, CFIs) and when nothing is tagged with it. Only the
+    opening filter: the whole library stays one tap away under 'All categories'."""
+    from flight import TRAINING_GOALS
+    from pilotlog import NEXT_TRACK
+    st = conn.execute("SELECT * FROM students WHERE user_id = ? AND COALESCE(is_station, 0) = 0", (user_id,)).fetchone()
+    if st is None or is_flight_admin():
+        return None
+    cat = {g[0]: g[2] for g in TRAINING_GOALS}.get(st["training_goal"])
+    if not cat:
+        names = " ".join((g["name"] or "").lower() for g in conn.execute(
+            "SELECT r.name FROM academy_course_grants gr JOIN acs_ratings r ON r.id = gr.rating_id "
+            "WHERE gr.student_id = ?", (st["id"],)).fetchall())
+        cat = next((c for c in RESOURCE_CATEGORIES if c.lower() in names), None)
+    if not cat:
+        cat = _TRACK_CATEGORY.get(NEXT_TRACK.get(st["pilot_certificate"], "private"))
+    return cat if cat and any(cat in resource_categories(r) for r in resources) else None
 
 
 def natural_key(text):

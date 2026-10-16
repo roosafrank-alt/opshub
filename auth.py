@@ -420,6 +420,10 @@ def view_as_chips(conn, program):
         # straight away.
         chips.append(dict(level=level, label=label, action=action,
                           pick=bool(program == "flight" and level in ("student", "cfi") and can_pick_student())))
+    # Narrow phones: "Flight Admin" / "Shop Admin" show as just "Admin" (the
+    # header already says which program you're in) so the row fits one line.
+    for chip in chips:
+        chip["short"] = "Admin" if chip["label"] in ("Flight Admin", "Shop Admin") else chip["label"]
     return chips
 
 
@@ -456,11 +460,14 @@ def start_view_as(conn, program, level, student_id=None, cfi_id=None):
         # or master admin, only a real, active, non-station student.
         if program != "flight" or level != "student" or not can_pick_student():
             return False, None
-        row = conn.execute("SELECT id, name FROM students WHERE id = ? AND active = 1 AND COALESCE(is_station, 0) = 0",
+        row = conn.execute("SELECT id, name, user_id FROM students WHERE id = ? AND active = 1 AND COALESCE(is_station, 0) = 0",
                            (student_id,)).fetchone()
         if not row:
             return False, "That student isn't active, so there's nothing to look at."
         person_id, person_name = row["id"], row["name"]
+        # Your OWN student profile is not "someone else": you use it for real
+        # (confirm a flight booked for you, etc.), not look only.
+        own_profile = bool(row["user_id"] and row["user_id"] == session.get("user_id"))
     elif cfi_id is not None:
         # Looking at one particular CFI (the picker): same rules as a student.
         if program != "flight" or level != "cfi" or not can_pick_student():
@@ -500,8 +507,10 @@ def start_view_as(conn, program, level, student_id=None, cfi_id=None):
         session["_view_as_person_name"] = person_name
         if student_id is not None:
             # A picked student is look only (like the customer portal view),
-            # and Flight Academy opens for them the way the admin could.
-            session["_view_as_readonly"] = True
+            # and Flight Academy opens for them the way the admin could -
+            # unless it's the signed-in person's own student profile.
+            if not own_profile:
+                session["_view_as_readonly"] = True
             session["academy_access"] = True
             session["groundschool_access"] = False  # show exactly the courses this student is enrolled in
         elif cfi_id is not None:

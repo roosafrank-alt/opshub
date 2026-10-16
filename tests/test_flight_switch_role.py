@@ -69,6 +69,63 @@ class FlightSwitchRole(OpsHubTestCase):
         self.assertIn(c.get("/flight/students").status_code, (302, 403))
         self.assert_write_blocked(c)
 
+    def test_admin_picking_their_own_student_profile_can_confirm_their_flight(self):
+        """An admin who is also a student (own students row linked to their login)
+        is not 'someone else': picking themselves under Switch role is NOT look
+        only, so they can OK a flight a CFI booked for them."""
+        from datetime import date, timedelta
+        import db
+        from harness import seed_row
+        admin = self.users["flight_admin"]
+        mine = self.exec("INSERT INTO students (name, username, password_hash, active, user_id) VALUES ('Admin As Student', 'adminstu', 'x', 1, ?)",
+                         (admin["id"],))
+        plane = self.make_asset("N555")
+        self.exec("UPDATE assets SET is_flight_asset = 1 WHERE id = ?", (plane,))
+        cfi = self.q1("SELECT id FROM cfis WHERE user_id = ?", (self.users["cfi"]["id"],))["id"]
+        conn = db.get_db()
+        sid = seed_row(conn, "scheduled_flights", asset_id=plane, student_id=mine, cfi_id=cfi,
+                       scheduled_date=(date.today() + timedelta(days=2)).isoformat(), scheduled_time="09:00",
+                       duration_hours="1.0", status="scheduled", confirm_required=1, confirmed_at=None, created_by="CFI")
+        conn.commit()
+        conn.close()
+        c = self.login("flight_admin")
+        c.post(f"/view-as/flight/student/{mine}")
+        s = self._sess(c)
+        self.assertEqual((s["student_id"], s["flight_role"]), (mine, "student"))
+        self.assertNotIn("_view_as_readonly", s)
+        c.post(f"/flight/schedule/{sid}/confirm")
+        self.assertIsNotNone(self.q1("SELECT confirmed_at FROM scheduled_flights WHERE id = ?", (sid,))["confirmed_at"])
+
+    def test_picking_someone_elses_student_profile_still_cannot_confirm(self):
+        from datetime import date, timedelta
+        import db
+        from harness import seed_row
+        plane = self.make_asset("N556")
+        self.exec("UPDATE assets SET is_flight_asset = 1 WHERE id = ?", (plane,))
+        cfi = self.q1("SELECT id FROM cfis WHERE user_id = ?", (self.users["cfi"]["id"],))["id"]
+        conn = db.get_db()
+        sid = seed_row(conn, "scheduled_flights", asset_id=plane, student_id=self.stu, cfi_id=cfi,
+                       scheduled_date=(date.today() + timedelta(days=2)).isoformat(), scheduled_time="10:00",
+                       duration_hours="1.0", status="scheduled", confirm_required=1, confirmed_at=None, created_by="CFI")
+        conn.commit()
+        conn.close()
+        c = self.login("flight_admin")
+        c.post(f"/view-as/flight/student/{self.stu}")
+        self.assertTrue(self._sess(c)["_view_as_readonly"])
+        c.post(f"/flight/schedule/{sid}/confirm")
+        self.assertIsNone(self.q1("SELECT confirmed_at FROM scheduled_flights WHERE id = ?", (sid,))["confirmed_at"])
+
+    def test_chip_row_is_compact_on_phones(self):
+        """Phones: a switch icon instead of the words, and Flight Admin also
+        carries a short 'Admin' label (CSS shows it only on the narrowest
+        phones). Desktop keeps the words. Every chip still has its full label."""
+        html = self.login("flight_admin").get("/flight/dashboard").get_data(as_text=True)
+        self.assertIn("bi-arrow-left-right", html)
+        self.assertIn("Switch role:", html)                       # still there for desktop
+        self.assertIn('<span class="chip-full">Flight Admin</span><span class="chip-short">Admin</span>', html)
+        self.assertIn(">CFI</a>", html)                           # short == full: no doubled label
+        self.assertNotIn('chip-short">CFI', html)
+
     def test_the_write_check_is_real_when_not_switched(self):
         c = self.login("master")
         before = self.q1("SELECT COUNT(*) n FROM student_ledger")["n"]
