@@ -45,3 +45,23 @@ class NoteDuringSessionTest(OpsHubTestCase):
         self.save("Oops wrong plane")
         self.save("")
         self.assertEqual(self.q1("SELECT squawk FROM flights WHERE id = ?", (self.fid,))["squawk"], 0)
+
+    def test_send_button_files_note_once_and_end_does_not_duplicate(self):
+        c = self.login("cfi")
+        body = c.get("/flight/log/active").get_data(as_text=True)
+        self.assertIn("Send to Maintenance", body)
+        c.post(f"/flight/log/{self.fid}/update_progress", data={"notes": "Brake soft", "send_note": "1"})
+        self.assertEqual(self.q1("SELECT squawk FROM flights WHERE id = ?", (self.fid,))["squawk"], 1)
+        body = c.get("/flight/log/active").get_data(as_text=True)
+        self.assertIn("Update Maintenance", body)
+        # sending again just updates the same flight row, never a second squawk
+        c.post(f"/flight/log/{self.fid}/update_progress", data={"notes": "Brake soft", "send_note": "1"})
+        self.assertEqual(self.q1("SELECT COUNT(*) n FROM flights WHERE notes = 'Brake soft'")["n"], 1)
+        sq = self.login("shop_admin").get("/squawks").get_data(as_text=True)
+        self.assertEqual(sq.count("Brake soft"), 1)
+
+    def test_send_with_empty_note_sends_nothing(self):
+        r = self.login("cfi").post(f"/flight/log/{self.fid}/update_progress",
+                                   data={"notes": "", "send_note": "1"}, follow_redirects=True)
+        self.assertIn("Type a note first", r.get_data(as_text=True))
+        self.assertEqual(self.q1("SELECT squawk FROM flights WHERE id = ?", (self.fid,))["squawk"], 0)

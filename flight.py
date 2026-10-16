@@ -7474,6 +7474,10 @@ def log_update_progress(flight_id):
         oil_added_qt = None if is_own_plane else _parse_float(request.form.get("oil_added_qt"))
         oil_added_by = session.get("user_name") if oil_added_qt is not None else None
     notes = request.form.get("notes", "").strip()
+    if request.form.get("send_note") and not notes:
+        conn.close()
+        flash("Type a note first, then tap Send to Maintenance.", "warning")
+        return redirect(url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}")
     # A saved note goes to Maintenance right away (same rule as End Session:
     # not for a student's own plane) instead of waiting for the session to
     # end. Editing it later just changes the text the squawk shows, since the

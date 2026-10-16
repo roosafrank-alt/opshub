@@ -168,7 +168,13 @@
       {% endif %}
       <div class="col-12 col-md-3">
         <label class="form-label small mb-0">Note{% if not f.asset_is_owner_placeholder %} <span class="text-muted">(sent to Maintenance when you Save)</span>{% endif %}</label>
-        <input type="text" name="notes" class="form-control form-control-sm" value="{{ f.notes or '' }}">
+        <div class="input-group input-group-sm">
+          <input type="text" name="notes" class="form-control form-control-sm" value="{{ f.notes or '' }}">
+          {% if not f.asset_is_owner_placeholder %}
+          {#- Same save as the Save button below (it already files the note as a squawk); this just makes it a one-tap "send now", before the flight ends. #}
+          <button type="submit" name="send_note" value="1" class="btn btn-outline-primary text-nowrap"><i class="bi bi-send"></i> {{ 'Update Maintenance' if (f.squawk and f.notes) else 'Send to Maintenance' }}</button>
+          {% endif %}
+        </div>
         {% if f.squawk and f.notes and not f.asset_is_owner_placeholder %}
         <div class="small text-success mt-1"><i class="bi bi-send-check-fill"></i> Note sent to Maintenance. Edit it and Save to update the squawk.</div>
         {% endif %}
