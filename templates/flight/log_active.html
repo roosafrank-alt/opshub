@@ -143,33 +143,33 @@
     <summary class="text-muted small">{{ 'Add a note' if (f.asset_is_owner_placeholder or f.asset_is_simulator) else 'Add starting info (Hobbs/Tach, oil, note)' }}</summary>
     <form method="post" action="{{ url_for('flight.log_update_progress', flight_id=f.id) }}" class="row g-2 mt-1">
       {% if not f.asset_is_owner_placeholder and not f.asset_is_simulator %}
-      <div class="col-6 col-md-3">
+      <div class="col-auto">
         <label class="form-label small mb-0">Hobbs Start</label>
         {% if f.hobbs_start is none %}
-        <input type="number" step="any" name="hobbs_start" class="form-control form-control-sm" placeholder="e.g. 1233.0" inputmode="decimal">
+        <input type="number" step="any" name="hobbs_start" class="form-control form-control-sm" style="width:11ch" placeholder="e.g. 1233.0" inputmode="decimal">
         {% else %}
-        <input type="text" class="form-control form-control-sm" value="{{ '%.1f'|format(f.hobbs_start) }}" disabled>
+        <input type="text" class="form-control form-control-sm" style="width:11ch" value="{{ '%.1f'|format(f.hobbs_start) }}" disabled>
         {% endif %}
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-auto">
         <label class="form-label small mb-0">Tach Start</label>
         {% if f.tach_start is none %}
-        <input type="number" step="any" name="tach_start" class="form-control form-control-sm" placeholder="e.g. 1200.0" inputmode="decimal">
+        <input type="number" step="any" name="tach_start" class="form-control form-control-sm" style="width:11ch" placeholder="e.g. 1200.0" inputmode="decimal">
         {% else %}
-        <input type="text" class="form-control form-control-sm" value="{{ '%.1f'|format(f.tach_start) }}" disabled>
+        <input type="text" class="form-control form-control-sm" style="width:11ch" value="{{ '%.1f'|format(f.tach_start) }}" disabled>
         {% endif %}
       </div>
       {% endif %}
       {% if not f.asset_is_owner_placeholder and not f.asset_is_simulator %}
-      <div class="col-6 col-md-3">
+      <div class="col-auto">
         <label class="form-label small mb-0">Oil Added (qt)</label>
-        <input type="number" step="any" name="oil_added_qt" class="form-control form-control-sm" value="{{ f.oil_added_qt if f.oil_added_qt is not none else '' }}">
+        <input type="number" step="any" name="oil_added_qt" class="form-control form-control-sm" style="width:6ch" value="{{ f.oil_added_qt if f.oil_added_qt is not none else '' }}">
       </div>
       {% endif %}
-      <div class="col-12 col-md-3">
+      <div class="col-12 col-md">
         <label class="form-label small mb-0">Note{% if not f.asset_is_owner_placeholder %} <span class="text-muted">(sent to Maintenance when you Save)</span>{% endif %}</label>
         <div class="input-group input-group-sm">
-          <input type="text" name="notes" class="form-control form-control-sm" value="{{ f.notes or '' }}">
+          <input type="text" name="notes" class="form-control form-control-sm" style="min-width:16ch" value="{{ f.notes or '' }}">
           {% if not f.asset_is_owner_placeholder %}
           {#- Same save as the Save button below (it already files the note as a squawk); this just makes it a one-tap "send now", before the flight ends. #}
           <button type="submit" name="send_note" value="1" class="btn btn-outline-primary text-nowrap"><i class="bi bi-send"></i> {{ 'Update Maintenance' if (f.squawk and f.notes) else 'Send to Maintenance' }}</button>
