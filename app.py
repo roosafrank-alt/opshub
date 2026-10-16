@@ -664,7 +664,7 @@ def academy_entry_add():
     a CFI/admin can log for any student."""
     if not (is_flight_admin() or session.get("academy_access")):
         return redirect(url_for("home_launcher"))
-    staff = bool(is_flight_admin() or session.get("cfi_id"))
+    staff = bool(is_flight_admin())     # an instructor can not log flying for a student
     student_id = request.form.get("student_id", type=int) if staff else session.get("student_id")
     kind = request.form.get("kind")
     try:
@@ -702,8 +702,8 @@ def academy_entry_add():
 @app.route("/academy/entry/<int:entry_id>/delete", methods=["POST"])
 @login_required
 def academy_entry_delete(entry_id):
-    """Remove a leaderboard entry - your own, or any if you're a CFI/admin."""
-    staff = bool(is_flight_admin() or session.get("cfi_id"))
+    """Remove a leaderboard entry - your own, or any if you're a Flight Admin (not an instructor)."""
+    staff = bool(is_flight_admin())
     conn = get_db()
     e = conn.execute("SELECT * FROM academy_entries WHERE id = ?", (entry_id,)).fetchone()
     if e and (staff or e["student_id"] == session.get("student_id")):

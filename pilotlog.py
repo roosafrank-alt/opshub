@@ -167,6 +167,13 @@ def _is_staff():
     return bool(session.get("is_master_admin") or session.get("cfi_id"))
 
 
+def _can_edit(entry):
+    """Only the student who owns the entry, or a Flight Admin, may change a logbook entry.
+    An instructor (CFI) can read their students' logbooks but never edit them."""
+    from auth import is_flight_admin
+    return bool(entry["student_id"] == session.get("student_id") or is_flight_admin())
+
+
 def _require_access(what="your logbook"):
     """SCHOOL-36: the redirect to send back when this page can't be shown,
     or None. Nobody signed in (an old notification link after the session
@@ -437,6 +444,10 @@ def entry(entry_id):
         conn.close()
         abort(404)
     if request.method == "POST":
+        if not _can_edit(e):
+            conn.close()
+            flash("Instructors can read a student's logbook but only the student (or a Flight Admin) can change it.", "warning")
+            return redirect(url_for("pilotlog.entry", entry_id=entry_id))
         if e["status"] in ("complete", "denied") and not _is_staff() and request.form.get("action") != "reopen":
             conn.close()
             flash("This entry is already approved. Reopen it to make changes.", "warning")
@@ -489,7 +500,7 @@ def entry(entry_id):
             return redirect(url_for("pilotlog.logbook", student_id=e["student_id"] if _is_staff() else None))
         return redirect(url_for("pilotlog.entry", entry_id=entry_id))
     conn.close()
-    return render_template("academy_logbook_entry.html", e=e, fields=STUDENT_FIELDS, staff=_is_staff(), tab="logbook")
+    return render_template("academy_logbook_entry.html", e=e, fields=STUDENT_FIELDS, staff=_is_staff(), can_edit=_can_edit(e), tab="logbook")
 
 
 @pilotlog_bp.route("/logbook/export.csv")

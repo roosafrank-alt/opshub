@@ -1,0 +1,65 @@
+{% extends "academy_base.html" %}
+{% block title %}{{ st.name }} · Student summary{% endblock %}
+{% block content %}
+<style>
+  .ss-stat{font-size:1.6rem;font-weight:800;line-height:1}
+  .ss-bar{background:#e9ecef;border-radius:99px;height:10px;overflow:hidden}.ss-bar>span{display:block;height:100%;background:#2f9e44}
+  .ss-grade{font-weight:700}.ss-good{color:#2f9e44}.ss-mid{color:#e67700}.ss-low{color:#c92a2a}
+</style>
+{% macro grade(v) %}{% if v is none %}<span class="text-muted">&ndash;</span>{% else %}<span class="ss-grade {{ 'ss-good' if v >= 85 else ('ss-mid' if v >= 70 else 'ss-low') }}">{{ v }}%</span>{% endif %}{% endmacro %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <h4 class="mb-0 text-light"><i class="bi bi-person-lines-fill"></i> {{ st.name }}</h4>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('groundschool.student_search') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-search"></i> All students</a>
+    <a href="{{ url_for('pilotlog.logbook', student_id=st.id) }}" class="btn btn-outline-light btn-sm"><i class="bi bi-journal-text"></i> Logbook</a>
+    <a href="{{ url_for('groundschool.rating_list', student_id=st.id) }}" class="btn btn-outline-light btn-sm"><i class="bi bi-bar-chart-line"></i> Charts</a>
+  </div>
+</div>
+
+<div class="card academy-card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-airplane"></i> Flying</h6>
+  <div class="row text-center g-2">
+    <div class="col-6 col-md-3"><div class="ss-stat">{{ '%.1f'|format(flying.hrs) }}</div><div class="small text-muted">hours logged</div></div>
+    <div class="col-6 col-md-3"><div class="ss-stat">{{ flying.n }}</div><div class="small text-muted">flights{% if flying.last %} &middot; last {{ flying.last|usdate }}{% endif %}</div></div>
+    <div class="col-6 col-md-3"><div class="ss-stat">{{ flying.ldg|int }}</div><div class="small text-muted">landings</div></div>
+    <div class="col-6 col-md-3"><div class="ss-stat">{{ a_stat.points if a_stat else '–' }}</div><div class="small text-muted">academy points{% if pending %} &middot; {{ pending }} entr{{ 'y' if pending == 1 else 'ies' }} pending{% endif %}</div></div>
+  </div>
+</div>
+
+<div class="card academy-card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-mortarboard"></i> Ground school</h6>
+  <div class="row text-center g-2 mb-2">
+    <div class="col-6 col-md-3"><div class="ss-stat">{{ tot_min }}</div><div class="small text-muted">minutes studied</div></div>
+    <div class="col-6 col-md-3"><div class="ss-stat">{{ lessons|length }}</div><div class="small text-muted">lessons opened</div></div>
+    <div class="col-6 col-md-3"><div class="ss-stat">{{ grade(avg_init) }}</div><div class="small text-muted">average initial quiz grade</div></div>
+    <div class="col-6 col-md-3"><div class="ss-stat">{{ grade(avg_final) }}</div><div class="small text-muted">average final-check grade</div></div>
+  </div>
+  {% for c in courses %}
+  <div class="small fw-bold mt-2">{{ c.name }} <span class="text-muted fw-normal">&middot; {{ c.p.done }} of {{ c.p.total }} elements verified ({{ c.p.pct }}%)</span></div>
+  <div class="ss-bar"><span style="width:{{ c.p.pct }}%"></span></div>
+  {% endfor %}
+</div>
+
+<div class="card academy-card p-3 mb-3">
+  <h6 class="mb-2"><i class="bi bi-table"></i> Lesson by lesson</h6>
+  {% if lessons %}
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0 small">
+    <thead class="table-light"><tr><th>Lesson</th><th class="text-end">Time</th><th class="text-center">Read</th><th class="text-center">Initial quiz</th><th class="text-center">Final check</th><th class="text-center">Tries</th><th>Last in lesson</th></tr></thead>
+    <tbody>
+    {% for x in lessons %}{% set i = x.info %}{% set t = x.st %}
+    <tr>
+      <td><a href="{{ url_for('groundschool.task_detail', task_id=i.id, student_id=st.id) }}#gsl-activity"><b>{{ i.acode }}.{{ i.code }}</b> {{ i.title }}</a><div class="text-muted">{{ i.rname }}</div></td>
+      <td class="text-end">{{ (t.seconds // 60)|int }} min</td>
+      <td class="text-center">{% if t.sections %}{{ t.sections_read }} / {{ t.sections|length }}{% else %}&ndash;{% endif %}</td>
+      <td class="text-center">{{ grade(t.initial_pct if t.initial_pct is not none else t.initial_pct_so_far) }}{% if t.initial_pct is none and t.initial_pct_so_far is not none %}<span class="text-muted">*</span>{% endif %}</td>
+      <td class="text-center">{{ grade(t.final_pct if t.final_pct is not none else t.final_pct_so_far) }}{% if t.final_pct is none and t.final_pct_so_far is not none %}<span class="text-muted">*</span>{% endif %}</td>
+      <td class="text-center">{{ t.tries_total + t.final_tries }}</td>
+      <td>{{ t.last_seen_at|usdate(true) if t.last_seen_at else '–' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <div class="small text-muted mt-2">Initial grade counts only first tries. * = not all questions answered yet. Tap a lesson for question-by-question detail.</div>
+  {% else %}<div class="text-muted small">No lessons opened yet.</div>{% endif %}
+</div>
+{% endblock %}
