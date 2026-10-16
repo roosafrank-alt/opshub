@@ -421,6 +421,7 @@ groundschool_bp.add_app_template_global(ground_lessons.references, "gs_refs")
 groundschool_bp.add_app_template_global(ground_lessons.element_kind, "gs_kind")
 groundschool_bp.add_app_template_global(ground_lessons.activities, "gs_activities")
 groundschool_bp.add_app_template_global(ground_lessons.play_plan, "gs_play_plan")
+groundschool_bp.add_app_template_global(ground_lessons.final_plan, "gs_final_plan")
 
 
 def _gone(what):
@@ -491,7 +492,7 @@ _RESOURCE_VIEW_ENDPOINTS = {"resources_list", "resource_file", "resource_excerpt
 
 _GRANTED_STUDENT_ENDPOINTS = {
     "rating_list", "rating_detail", "task_detail", "element_detail", "task_reference_click",
-    "task_mark_read", "element_item_interact", "element_lesson_done", "task_lesson_done", "resource_file", "resource_excerpt", "resources_list", "resource_previous",
+    "task_mark_read", "element_item_interact", "element_lesson_done", "task_lesson_done", "lesson_time", "quiz_answer", "game_done", "resource_file", "resource_excerpt", "resources_list", "resource_previous",
 }
 
 
@@ -601,13 +602,15 @@ def rating_list():
     viewing_student_id, students = _resolve_viewing_student(conn)
     progress_by_rating = {}
     next_by_rating = {}
+    resume_by_rating = {}
     if viewing_student_id:
         for r in ratings:
             if r["status"] == "parsed":
                 progress_by_rating[r["id"]] = _rating_progress(conn, r["id"], viewing_student_id)
                 next_by_rating[r["id"]] = next_lesson(conn, r["id"], viewing_student_id)
+                resume_by_rating[r["id"]] = resume_spot(conn, viewing_student_id, rating_id=r["id"])
     conn.close()
-    return render_template("flight/groundschool_list.html", ratings=ratings, tab="groundschool",
+    return render_template("flight/groundschool_list.html", ratings=ratings, tab="groundschool", resume_by_rating=resume_by_rating,
                             progress_by_rating=progress_by_rating, next_by_rating=next_by_rating, gs_students=students,
                             viewing_student_id=viewing_student_id)
 
@@ -751,8 +754,9 @@ def rating_detail(rating_id):
     progress = _rating_progress(conn, rating_id, viewing_student_id) if viewing_student_id else None
     element_done = _element_done_map(conn, rating_id, viewing_student_id) if viewing_student_id else {}
     element_self = _element_self_done(conn, viewing_student_id, element_done.keys())
+    resume = resume_spot(conn, viewing_student_id, rating_id=rating_id) if viewing_student_id else None
     conn.close()
-    return render_template("flight/groundschool_rating.html", rating=rating, areas=areas,
+    return render_template("flight/groundschool_rating.html", rating=rating, areas=areas, resume=resume,
                             tasks_by_area=tasks_by_area, elements_by_task=elements_by_task,
                             references_html_by_task=references_html_by_task, tab="groundschool",
                             changes_by_task=changes_by_task,
@@ -837,11 +841,22 @@ def task_detail(task_id):
     ids = [t["id"] for t in area_tasks]
     gs_lesson = ground_lessons.load(ground_lessons.task_code(
         [e["code"] for e in list(knowledge) + list(risk_management) + list(skills)]))
+    gs_stats = gs_resume = None
+    gs_results = {}
+    if session.get("student_id") and gs_lesson:
+        conn = get_db()
+        gs_results = lesson_results_map(conn, session["student_id"], task_id)
+        conn.close()
+    if viewing_student_id and gs_lesson:
+        conn = get_db()
+        gs_stats = lesson_stats(conn, viewing_student_id, task_id, gs_lesson)
+        gs_resume = resume_spot(conn, viewing_student_id, task_id=task_id) if session.get("student_id") else None
+        conn.close()
     idx = ids.index(task_id) if task_id in ids else -1
     prev_task_id = ids[idx - 1] if idx > 0 else None
     next_task_id = ids[idx + 1] if 0 <= idx < len(ids) - 1 else None
     next_task = area_tasks[idx + 1] if next_task_id else None
-    return render_template("flight/groundschool_task.html", task_id_for_finish=task_id, task=task, next_task=next_task, area=area, rating=rating,
+    return render_template("flight/groundschool_task.html", task_id_for_finish=task_id, gs_results=gs_results, gs_stats=gs_stats, gs_resume=gs_resume, task=task, next_task=next_task, area=area, rating=rating,
                             notes=notes, knowledge=knowledge, risk_management=risk_management,
                             skills=skills, lesson=lesson, acs_changes=acs_changes, signoffs=signoffs, my_signoff=my_signoff,
                             gs_students=students, prev_task_id=prev_task_id, next_task_id=next_task_id,
@@ -1597,6 +1612,202 @@ def task_lesson_done(task_id):
     conn.close()
     flash("Lesson finished. Your instructor will verify it.", "success")
     return redirect(url_for("groundschool.task_detail", task_id=task_id))
+
+
+# ---------------------------------------------------------------- GS-GRADES
+def _lesson_for_task(conn, task_id):
+    codes = [r["code"] for r in conn.execute(
+        "SELECT code FROM acs_task_elements WHERE task_id = ? ORDER BY id", (task_id,)).fetchall()]
+    return ground_lessons.load(ground_lessons.task_code(codes))
+
+
+def _gs_json_task(task_id):
+    """(conn, error response) for the lesson tracking endpoints: the task must be in a course
+    this user may open."""
+    conn = get_db()
+    rid = _rating_id_of_task(conn, task_id)
+    if rid is None or _course_blocked(rid):
+        conn.close()
+        return None, ({"ok": False, "error": "not found"}, 404)
+    return conn, None
+
+
+@groundschool_bp.route("/task/<int:task_id>/lesson-time", methods=["POST"])
+@login_required
+def lesson_time(task_id):
+    """Heartbeat from the open lesson: add the active seconds and remember the spot (resume)."""
+    student_id = session.get("student_id")
+    if not student_id:
+        return {"ok": True, "recorded": False}
+    conn, err = _gs_json_task(task_id)
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    secs = max(0, min(int(data.get("seconds") or 0), 40))      # one heartbeat is never more than 40 s
+    anchor = str(data.get("anchor") or "")[:40]
+    if anchor and not re.fullmatch(r"gsl-[a-z0-9-]+", anchor):
+        anchor = ""
+    now = now_iso()
+    row = conn.execute("SELECT 1 FROM gs_lesson_time WHERE student_id = ? AND task_id = ?",
+                       (student_id, task_id)).fetchone()
+    if row:
+        conn.execute("UPDATE gs_lesson_time SET seconds = seconds + ?, last_seen_at = ?, "
+                     "last_anchor = COALESCE(NULLIF(?, ''), last_anchor) WHERE student_id = ? AND task_id = ?",
+                     (secs, now, anchor, student_id, task_id))
+    else:
+        conn.execute("INSERT INTO gs_lesson_time (student_id, task_id, seconds, last_anchor, first_started_at, last_seen_at) "
+                     "VALUES (?, ?, ?, NULLIF(?, ''), ?, ?)", (student_id, task_id, secs, anchor, now, now))
+    conn.commit()
+    conn.close()
+    return {"ok": True, "recorded": True}
+
+
+@groundschool_bp.route("/task/<int:task_id>/quiz-answer", methods=["POST"])
+@login_required
+def quiz_answer(task_id):
+    """Grade one quick-check answer on the server. A wrong answer can be retried until it is
+    right (so every quiz can be corrected to 100%); the FIRST try is what the instructor sees as
+    the initial grade, and every try is counted."""
+    conn, err = _gs_json_task(task_id)
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    lesson = _lesson_for_task(conn, task_id)
+    final = bool(data.get("final"))
+    quiz = ((lesson or {}).get("final_quiz") or (lesson or {}).get("quiz") or []) if final else ((lesson or {}).get("quiz") or [])
+    try:
+        n, j = int(data.get("n")), int(data.get("j"))
+    except (TypeError, ValueError):
+        conn.close()
+        return {"ok": False, "error": "bad request"}, 400
+    if not 1 <= n <= len(quiz):
+        conn.close()
+        return {"ok": False, "error": "no such question"}, 404
+    q = quiz[n - 1]
+    correct = (j == q["answer"])
+    student_id = session.get("student_id")
+    if student_id:
+        key = ("fq%d" if final else "q%d") % n
+        now = now_iso()
+        row = conn.execute("SELECT * FROM gs_lesson_results WHERE student_id = ? AND task_id = ? AND item_key = ?",
+                           (student_id, task_id, key)).fetchone()
+        if row is None:
+            conn.execute("INSERT INTO gs_lesson_results (student_id, task_id, item_key, kind, first_correct, attempts, "
+                         "completed_at, first_at, last_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)",
+                         (student_id, task_id, key, "final" if final else "quiz", 1 if correct else 0, now if correct else None, now, now))
+        elif not row["completed_at"]:           # once it is right, reviewing it again is not counted
+            conn.execute("UPDATE gs_lesson_results SET attempts = attempts + 1, last_at = ?, completed_at = ? "
+                         "WHERE student_id = ? AND task_id = ? AND item_key = ?",
+                         (now, now if correct else None, student_id, task_id, key))
+        conn.commit()
+    conn.close()
+    out = {"ok": True, "correct": correct}
+    if correct:
+        out["why"] = str(ground_lessons.rich(q.get("why") or ""))
+    return out
+
+
+@groundschool_bp.route("/task/<int:task_id>/game-done", methods=["POST"])
+@login_required
+def game_done(task_id):
+    """A student finished a game. attempts = 1 + the mistakes made (1 means a perfect run)."""
+    student_id = session.get("student_id")
+    if not student_id:
+        return {"ok": True, "recorded": False}
+    conn, err = _gs_json_task(task_id)
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    key = str(data.get("key") or "")
+    if not re.fullmatch(r"f?a\d{1,3}", key):
+        conn.close()
+        return {"ok": False, "error": "bad key"}, 400
+    tries = max(1, min(int(data.get("tries") or 1), 99))
+    now = now_iso()
+    if not conn.execute("SELECT 1 FROM gs_lesson_results WHERE student_id = ? AND task_id = ? AND item_key = ?",
+                        (student_id, task_id, key)).fetchone():
+        conn.execute("INSERT INTO gs_lesson_results (student_id, task_id, item_key, kind, first_correct, attempts, "
+                     "completed_at, first_at, last_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                     (student_id, task_id, key, "final" if key.startswith("f") else "game", 1 if tries == 1 else 0, tries, now, now, now))
+        conn.commit()
+    conn.close()
+    return {"ok": True, "recorded": True}
+
+
+def lesson_results_map(conn, student_id, task_id):
+    """{item_key: {done, attempts, first}} for rendering saved progress on the lesson page."""
+    return {r["item_key"]: {"done": bool(r["completed_at"]), "attempts": r["attempts"], "first": r["first_correct"] or 0}
+            for r in conn.execute("SELECT * FROM gs_lesson_results WHERE student_id = ? AND task_id = ?",
+                                  (student_id, task_id)).fetchall()}
+
+
+def lesson_stats(conn, student_id, task_id, lesson):
+    """What the instructor sees for one student on one Task lesson: time, initial quiz grade,
+    tries per question and per game. None when the student has not opened the lesson."""
+    t = conn.execute("SELECT * FROM gs_lesson_time WHERE student_id = ? AND task_id = ?", (student_id, task_id)).fetchone()
+    res = {r["item_key"]: r for r in conn.execute(
+        "SELECT * FROM gs_lesson_results WHERE student_id = ? AND task_id = ?", (student_id, task_id)).fetchall()}
+    if not t and not res:
+        return None
+    quiz = (lesson or {}).get("quiz") or []
+    rows = []
+    for n, q in enumerate(quiz, 1):
+        r = res.get("q%d" % n)
+        rows.append({"n": n, "q": q["q"], "answered": bool(r), "first_correct": bool(r and r["first_correct"]),
+                     "attempts": r["attempts"] if r else 0, "done": bool(r and r["completed_at"])})
+    answered = [x for x in rows if x["answered"]]
+    first_right = sum(1 for x in answered if x["first_correct"])
+    games = []
+    for a in ground_lessons.activities(lesson or {}):
+        r = res.get(a["key"])
+        if a["type"] != "flash":
+            games.append({"title": a["title"], "done": bool(r), "attempts": r["attempts"] if r else 0})
+    fq = (lesson or {}).get("final_quiz") or quiz
+    frows = []
+    for n, q in enumerate(fq, 1):
+        r = res.get("fq%d" % n)
+        frows.append({"n": n, "q": q["q"], "answered": bool(r), "first_correct": bool(r and r["first_correct"]),
+                      "attempts": r["attempts"] if r else 0, "done": bool(r and r["completed_at"])})
+    fans = [x for x in frows if x["answered"]]
+    fgames = []
+    for a in ground_lessons.final_plan(lesson or {})["acts"]:
+        r = res.get(a["key"])
+        fgames.append({"title": a["title"], "done": bool(r), "attempts": r["attempts"] if r else 0})
+    f_first = sum(1 for x in fans if x["first_correct"])
+    return {
+        "final_rows": frows, "final_games": fgames, "final_answered": len(fans), "final_total": len(frows), "final_first": f_first,
+        "final_pct": round(100 * f_first / len(frows)) if frows and len(fans) == len(frows) else None,
+        "final_pct_so_far": round(100 * f_first / len(fans)) if fans else None,
+        "final_tries": sum(x["attempts"] for x in frows),
+        "seconds": t["seconds"] if t else 0,
+        "first_started_at": t["first_started_at"] if t else None,
+        "last_seen_at": t["last_seen_at"] if t else None,
+        "quiz_rows": rows, "quiz_total": len(quiz), "quiz_answered": len(answered),
+        "first_right": first_right,
+        "initial_pct": round(100 * first_right / len(quiz)) if quiz and len(answered) == len(quiz) else None,
+        "initial_pct_so_far": round(100 * first_right / len(answered)) if answered else None,
+        "tries_total": sum(x["attempts"] for x in rows),
+        "games": games,
+    }
+
+
+def resume_spot(conn, student_id, rating_id=None, task_id=None):
+    """Where this student was last in a lesson: {task_id, anchor, task_label} or None."""
+    sql = ("SELECT lt.task_id, lt.last_anchor, t.code AS tcode, t.title AS ttitle FROM gs_lesson_time lt "
+           "JOIN acs_tasks t ON t.id = lt.task_id JOIN acs_areas a ON a.id = t.area_id "
+           "WHERE lt.student_id = ? AND t.retired_at IS NULL")
+    args = [student_id]
+    if rating_id:
+        sql += " AND a.rating_id = ?"
+        args.append(rating_id)
+    if task_id:
+        sql += " AND lt.task_id = ?"
+        args.append(task_id)
+    row = conn.execute(sql + " ORDER BY lt.last_seen_at DESC LIMIT 1", args).fetchone()
+    if not row:
+        return None
+    return {"task_id": row["task_id"], "anchor": row["last_anchor"] or "gsl-prepare",
+            "task_label": "Task %s. %s" % (row["tcode"], row["ttitle"])}
 
 
 @groundschool_bp.route("/element/<int:element_id>/item/add", methods=["POST"])

@@ -119,6 +119,8 @@ def activities(lesson):
         out.append({"type": "match", "title": "Match the term",
                     "intro": "Tap a term on the left, then its meaning on the right.",
                     "pairs": [{"l": t["term"], "r": t["def"]} for t in terms[:6]]})
+    for i, a in enumerate(out):
+        out[i] = dict(a, key="a%d" % i)
     return out
 
 
@@ -155,3 +157,12 @@ def play_plan(lesson, group=3):
         pos = min(max(1, round((k + 1) * n / (m + 1))), max(n, 1))
         by_chunk.setdefault(pos, []).append(it)
     return {"flash": flash, "by_chunk": by_chunk}
+
+
+def final_plan(lesson):
+    """The end-of-Task final check: every multiple-choice question (the lesson's own `final_quiz`
+    when it has one, otherwise its quick-check questions) plus its match, sort, order and
+    true/false games played again, in one graded round."""
+    qs = list(enumerate(lesson.get("final_quiz") or lesson.get("quiz") or [], 1))
+    acts = [dict(a, key="f" + a["key"]) for a in activities(lesson) if a["type"] in ("match", "sort", "order", "tf")]
+    return {"qs": qs, "acts": acts}
