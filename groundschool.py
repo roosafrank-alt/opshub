@@ -609,10 +609,45 @@ def rating_list():
                 progress_by_rating[r["id"]] = _rating_progress(conn, r["id"], viewing_student_id)
                 next_by_rating[r["id"]] = next_lesson(conn, r["id"], viewing_student_id)
                 resume_by_rating[r["id"]] = resume_spot(conn, viewing_student_id, rating_id=r["id"])
+    dash = gs_dashboard(conn, viewing_student_id, ratings, progress_by_rating) if viewing_student_id else None
     conn.close()
-    return render_template("flight/groundschool_list.html", ratings=ratings, tab="groundschool", resume_by_rating=resume_by_rating,
+    return render_template("flight/groundschool_list.html", dash=dash, ratings=ratings, tab="groundschool", resume_by_rating=resume_by_rating,
                             progress_by_rating=progress_by_rating, next_by_rating=next_by_rating, gs_students=students,
                             viewing_student_id=viewing_student_id)
+
+
+def gs_dashboard(conn, student_id, ratings, progress_by_rating):
+    """Numbers for the charts at the top of the Ground School page (one student)."""
+    secs = conn.execute("SELECT COALESCE(SUM(seconds),0) s, COUNT(*) n FROM gs_lesson_time WHERE student_id = ? AND seconds > 0",
+                        (student_id,)).fetchone()
+    by_area = conn.execute("""SELECT a.code AS code, a.title AS title, r.name AS rating, SUM(lt.seconds) AS s
+                              FROM gs_lesson_time lt JOIN acs_tasks t ON t.id = lt.task_id
+                              JOIN acs_areas a ON a.id = t.area_id JOIN acs_ratings r ON r.id = a.rating_id
+                              WHERE lt.student_id = ? AND lt.seconds > 0 GROUP BY a.id ORDER BY s DESC LIMIT 6""",
+                           (student_id,)).fetchall()
+    res = conn.execute("""SELECT kind, COUNT(*) n, SUM(first_correct) fc, SUM(attempts) att
+                          FROM gs_lesson_results WHERE student_id = ? GROUP BY kind""", (student_id,)).fetchall()
+    kinds = {r["kind"]: r for r in res}
+    qn = sum((kinds[k]["n"] for k in ("quiz", "final") if k in kinds), 0)
+    qfc = sum((kinds[k]["fc"] or 0 for k in ("quiz", "final") if k in kinds), 0)
+    first_try = round(100 * qfc / qn) if qn else None
+    mx = max([r["s"] for r in by_area], default=0)
+    courses = []
+    for r in ratings:
+        p = progress_by_rating.get(r["id"])
+        if p:
+            courses.append({"name": r["name"], "pct": p["pct"], "done": p["done"], "total": p["total"]})
+    return {
+        "minutes": int(secs["s"] // 60), "lessons": secs["n"],
+        "questions": qn, "first_try": first_try,
+        "tries": sum((kinds[k]["att"] or 0 for k in ("quiz", "final") if k in kinds), 0),
+        "games": kinds["game"]["n"] if "game" in kinds else 0,
+        "finals": kinds["final"]["n"] if "final" in kinds else 0,
+        "areas": [{"code": r["code"], "title": r["title"], "minutes": max(1, int(r["s"] // 60)),
+                   "pct": max(4, round(100 * r["s"] / mx)) if mx else 0} for r in by_area],
+        "courses": courses,
+        "empty": not (secs["n"] or qn or kinds.get("game")),
+    }
 
 
 @groundschool_bp.route("/upload", methods=["POST"])
