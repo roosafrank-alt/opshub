@@ -8835,6 +8835,27 @@ def admin_home():
     return render_template("admin_home.html", user_count=user_count, error_log_count=error_log_count)
 
 
+def _stay_on_page(fallback):
+    """After switching role, stay on the page you were on if the new role may open it
+    (checked by really asking for it with the new session); otherwise go to `fallback`."""
+    from urllib.parse import urlparse
+    raw = request.form.get("next") or request.referrer or ""
+    path = urlparse(raw).path if raw.startswith("http") else raw
+    path = _local_path(path)
+    if not path or path.startswith(("/view-as", "/login", "/logout")):
+        return fallback
+    full = path + (("?" + urlparse(raw).query) if raw.startswith("http") and urlparse(raw).query else "")
+    try:
+        with app.test_client() as tc:
+            with tc.session_transaction() as sess:
+                sess.update(dict(session))
+            if tc.get(full).status_code == 200:
+                return full
+    except Exception:
+        pass
+    return fallback
+
+
 @app.route("/view-as/<program>/<level>", methods=["POST"])
 def view_as_start(program, level):
     """Switches to another role from the "Switch role" chips in the header -
@@ -8856,7 +8877,7 @@ def view_as_start(program, level):
         return redirect(request.referrer or url_for("dashboard"))
     levels = SHOP_VIEW_AS_LEVELS if program == "shop" else FLIGHT_VIEW_AS_LEVELS
     flash(f"Switched to {levels[level]} - you can use everything a{'n' if levels[level][0] in 'AEIOU' else ''} {levels[level]} can.", "info")
-    return redirect(url_for("dashboard") if program == "shop" else url_for("flight.dashboard"))
+    return redirect(_stay_on_page(url_for("dashboard") if program == "shop" else url_for("flight.dashboard")))
 
 
 def _local_path(raw):
@@ -8927,7 +8948,7 @@ def view_as_student_start(student_id):
 @app.route("/view-as/flight/student/me", methods=["POST"])
 @login_required
 def view_as_student_me():
-    """An admin takes the courses as themselves: switches to their OWN student
+    """An admin uses everything (booking, logbook, courses) as themselves: switches to their OWN student
     profile (created the first time) with nothing look-only, so quizzes, games,
     time and resume are all saved under their name, and every ground school is open."""
     if not can_pick_student():
@@ -8939,6 +8960,15 @@ def view_as_student_me():
         conn.close()
         abort(404)
     row = conn.execute("SELECT id FROM students WHERE user_id = ?", (u["id"],)).fetchone()
+    if not row:
+        # You may already be a real flight student with an unlinked profile of the same name:
+        # link that one (keeps your flights, logbook and hours) instead of making a second.
+        same = conn.execute("""SELECT id FROM students WHERE user_id IS NULL AND active = 1 AND COALESCE(is_station, 0) = 0
+                               AND lower(trim(name)) = lower(trim(?))""", (u["name"],)).fetchall()
+        if len(same) == 1:
+            conn.execute("UPDATE students SET user_id = ? WHERE id = ?", (u["id"], same[0]["id"]))
+            conn.commit()
+            row = same[0]
     if not row:
         conn.execute("INSERT INTO students (name, username, password_hash, active, user_id, created_at) VALUES (?, ?, ?, 1, ?, ?)",
                      (u["name"], u["username"], u["password_hash"], u["id"], now_iso()))
@@ -8952,8 +8982,8 @@ def view_as_student_me():
     session.pop("_view_as_readonly", None)          # this one is really you: everything is saved
     session["groundschool_access"] = True           # every course is open to you
     session["_view_as_return"] = _local_path(request.form.get("next")) or url_for("academy_page")
-    flash("You're now a student - courses, quizzes and time are saved under your own name. Use Back to my normal view when done.", "info")
-    return redirect(url_for("groundschool.rating_list"))
+    flash("You're using everything as a student, under your own name. Use Back to my normal view when done.", "info")
+    return redirect(_stay_on_page(url_for("flight.dashboard")))
 
 
 @app.route("/view-as/flight/cfi/<int:cfi_id>", methods=["POST"])
