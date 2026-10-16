@@ -63,9 +63,35 @@
 </div>
 {% endif %}
 
-<div class="row g-3">
+{#- Phone only (the laptop layout is untouched): the open job and what's due
+    come first, and sections with nothing in them yet fold into one row of
+    small buttons (see .plane-cols in style.css). #}
+{% set active_blocks = project_blocks|selectattr('project.status', 'equalto', 'active')|list %}
+{% for block in active_blocks %}
+<a href="{{ url_for('project_detail', project_id=block.project.id) }}" class="card p-2 px-3 mb-2 d-lg-none text-decoration-none plane-active-job">
+  <div class="d-flex justify-content-between align-items-center gap-2">
+    <span class="text-body"><code class="text-primary">{{ block.project.code }}</code> {{ block.project.name }}</span>
+    <span class="d-flex align-items-center gap-2"><span class="badge bg-success">Active</span><i class="bi bi-chevron-right text-muted"></i></span>
+  </div>
+</a>
+{% endfor %}
+{% set plane_todo_empty = (todos|length == 0 and not todo_squawks) %}
+{% set plane_quick = [] %}
+{% if not photos %}{% set _ = plane_quick.append(('plane-photos', 'bi-camera', 'Photo')) %}{% endif %}
+{% if plane_todo_empty %}{% set _ = plane_quick.append(('plane-todo', 'bi-list-check', 'To-do')) %}{% endif %}
+{% if not asset_ads %}{% set _ = plane_quick.append(('ads', 'bi-shield-check', 'AD')) %}{% endif %}
+{% if not compression_count %}{% set _ = plane_quick.append(('plane-compression', 'bi-speedometer', 'Compression check')) %}{% endif %}
+
+<div class="row g-3 plane-cols">
+  {% if plane_quick %}
+  <div class="plane-quick d-lg-none d-flex flex-wrap gap-2">
+    {% for target, icon, label in plane_quick %}
+    <button type="button" class="btn btn-outline-secondary btn-sm" data-plane-open="{{ target }}"><i class="bi {{ icon }}"></i> {{ label }}</button>
+    {% endfor %}
+  </div>
+  {% endif %}
   <div class="col-lg-4">
-    <div class="card p-3">
+    <div class="card p-3 plane-hours">
       <h6>Hours</h6>
       <div class="d-flex justify-content-between">
         <span class="text-muted">Hobbs</span>
@@ -99,7 +125,7 @@
       {% endif %}
     </div>
 
-    <div class="card p-3 mt-3">
+    <div class="card p-3 mt-3{{ ' plane-empty' if not photos }}" id="plane-photos">
       <h6>Photos</h6>
       {% if photos %}
       <div class="row g-2 mb-2">
@@ -216,7 +242,7 @@
       </div>
     </div>
 
-    <div class="card p-3 mt-3">
+    <div class="card p-3 mt-3{{ ' plane-empty' if not compression_count }}" id="plane-compression">
       <div class="d-flex justify-content-between align-items-center">
         <span class="text-muted"><i class="bi bi-speedometer"></i> Cylinder Compression</span>
         {% if latest_compression %}<span class="badge bg-primary">Last: {{ latest_compression.checked_date|usdate_short }}</span>{% endif %}
@@ -259,7 +285,7 @@
        light info style rather than the danger/warning colors used for
        actual maintenance status below it. #}
     {% if asset.maint_oil_type or asset.maint_tire_nose or asset.maint_tire_mains or asset.maint_other %}
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 plane-prefs">
       {% if asset.maint_oil_type %}
       <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-normal py-2 px-2"><i class="bi bi-droplet-fill"></i> Oil: {{ asset.maint_oil_type }}</span>
       {% endif %}
@@ -277,9 +303,9 @@
     {#- Maintenance and To-Do sit up here (they used to be at the bottom of
         the left column, a long scroll down on a laptop, with this side
         mostly empty). Side by side on wide screens, stacked on phones. #}
-    <div class="row g-3 mb-3">
+    <div class="row g-3 mb-3 plane-mt-row">
       <div class="col-xl-7">
-      <div class="card p-3 h-100">
+      <div class="card p-3 h-100 plane-maint">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h6 class="mb-0"><i class="bi bi-calendar-check"></i> Maintenance</h6>
           {% if can_assign_squawks %}<a href="{{ url_for('maintenance_new', asset_id=asset.id) }}" class="btn btn-sm btn-outline-primary" data-change="JOBS-04"><i class="bi bi-plus-lg"></i> Add</a>{% endif %}
@@ -360,7 +386,7 @@
       </div>
       </div>
       <div class="col-xl-5">
-      <div class="card p-3 h-100">
+      <div class="card p-3 h-100 plane-todo{{ ' plane-empty' if plane_todo_empty }}" id="plane-todo">
         {% set open_todos = todos|selectattr('done', 'equalto', 0)|list %}
         {% set done_todos = todos|selectattr('done', 'equalto', 1)|list %}
         <h6 class="mb-2"><i class="bi bi-list-check"></i> To-Do</h6>
@@ -643,5 +669,16 @@
 
   document.querySelectorAll('.maint-complete-form').forEach(wireOperatorPicker);
 })();
+</script>
+<script>
+// Phone only: a button in the "empty sections" row opens that section in place.
+document.querySelectorAll('[data-plane-open]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var box = document.getElementById(btn.getAttribute('data-plane-open'));
+    if (box) { box.classList.add('plane-open'); btn.remove(); box.scrollIntoView({behavior: 'smooth', block: 'center'}); }
+    var row = document.querySelector('.plane-quick');
+    if (row && !row.querySelector('button')) row.remove();
+  });
+});
 </script>
 {% endblock %}

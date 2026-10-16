@@ -656,3 +656,24 @@ body .legend-swatch { width: .8rem; height: .8rem; border-radius: 2px; }
 .el-badge { transition: box-shadow .1s, transform .1s; }
 .el-badge:hover { box-shadow: 0 0 0 2px rgba(43,63,219,.5); transform: translateY(-1px); }
 .el-badge .bi-chevron-right { font-size: .7em; vertical-align: 1px; opacity: .7; }
+
+/* Aircraft page on a phone (asset_detail.html): the open job and what's due
+   come first and empty sections fold into one row of buttons. The columns
+   dissolve (display: contents) so every card can be ordered on its own;
+   laptop widths keep the normal two-column layout. */
+@media (max-width: 991.98px) {
+  .plane-cols { flex-direction: column; flex-wrap: nowrap; margin: 0; gap: 1rem; }
+  .plane-cols > .col-lg-4, .plane-cols > .col-lg-8,
+  .plane-cols .plane-mt-row, .plane-cols .plane-mt-row > [class*="col-"] { display: contents; }
+  .plane-cols > .plane-quick { padding: 0; }
+  :where(.plane-cols > .col-lg-4 > *, .plane-cols > .col-lg-8 > *,
+         .plane-cols .plane-mt-row > [class*="col-"] > .card) { order: 50; }
+  .plane-cols > .col-lg-4 > *, .plane-cols > .col-lg-8 > *,
+  .plane-cols .plane-mt-row > [class*="col-"] > .card { margin: 0 !important; }
+  .plane-cols [class~="plane-prefs"] { order: 1; }
+  .plane-cols [class~="plane-maint"] { order: 2; }
+  .plane-cols [class~="plane-hours"] { order: 3; }
+  .plane-cols [class~="plane-todo"] { order: 4; }
+  .plane-cols > .plane-quick { order: 5; }
+  .plane-cols .plane-empty:not(.plane-open) { display: none; }
+}

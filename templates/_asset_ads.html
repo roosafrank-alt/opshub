@@ -2,7 +2,7 @@
     compliance history, add/record forms, printable AD Status sheet. #}
 {% set ad_badge = {'overdue': 'bg-danger', 'due_soon': 'bg-warning text-dark', 'open': 'bg-danger-subtle text-danger-emphasis border border-danger-subtle',
                    'ok': 'bg-success', 'unknown': 'bg-secondary', 'complied': 'bg-success', 'terminated': 'bg-secondary', 'na': 'bg-light text-muted border'} %}
-<div class="card p-3 mb-3" id="ads">
+<div class="card p-3 mb-3{{ ' plane-empty' if not asset_ads }}" id="ads">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
     <h6 class="mb-0"><i class="bi bi-shield-check"></i> ADs <span class="text-muted small fw-normal">(Airworthiness Directives)</span></h6>
     <div class="d-flex gap-2">
