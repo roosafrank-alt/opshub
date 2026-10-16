@@ -22,7 +22,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import acs_sync
 import resource_scan
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, session, send_file
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, session, send_file, g as flask_g
 from markupsafe import Markup, escape
 
 from db import get_db, now_iso, UPLOAD_DIR
@@ -609,6 +609,7 @@ def rating_list():
                 progress_by_rating[r["id"]] = _rating_progress(conn, r["id"], viewing_student_id)
                 next_by_rating[r["id"]] = next_lesson(conn, r["id"], viewing_student_id)
                 resume_by_rating[r["id"]] = resume_spot(conn, viewing_student_id, rating_id=r["id"])
+    homework = homework_for(conn, viewing_student_id, open_only=True) if viewing_student_id else []
     groups = course_groups(conn, viewing_student_id, ratings, progress_by_rating)
     try:
         pick = int(request.args.get("course", ""))
@@ -623,7 +624,7 @@ def rating_list():
                            if r["status"] == "parsed"]
         dash["picked"] = dash_course
     conn.close()
-    return render_template("flight/groundschool_list.html", dash=dash, groups=groups, ratings=ratings, tab="groundschool", resume_by_rating=resume_by_rating,
+    return render_template("flight/groundschool_list.html", dash=dash, groups=groups, homework=homework, ratings=ratings, tab="groundschool", resume_by_rating=resume_by_rating,
                             progress_by_rating=progress_by_rating, next_by_rating=next_by_rating, gs_students=students,
                             viewing_student_id=viewing_student_id)
 
@@ -818,6 +819,7 @@ def student_summary(student_id):
     fl = conn.execute("""SELECT COUNT(*) n, COALESCE(SUM(total),0) hrs, COALESCE(SUM(day_ldg),0)+COALESCE(SUM(night_ldg),0) ldg,
                                 MAX(entry_date) last FROM pilot_logbook WHERE student_id = ? AND status != 'denied'""", (student_id,)).fetchone()
     pending = conn.execute("SELECT COUNT(*) c FROM pilot_logbook WHERE student_id = ? AND status = 'pending'", (student_id,)).fetchone()["c"]
+    homework = homework_for(conn, student_id)
     try:
         import academy
         a_stat = academy.student_stats(conn, academy.period_start("all")).get(student_id)
@@ -827,8 +829,171 @@ def student_summary(student_id):
     return render_template("flight/groundschool_student.html", st=st, courses=courses, lessons=lessons, tab="groundschool",
                            tot_min=int(tot_secs // 60), avg_init=round(sum(inits) / len(inits)) if inits else None,
                            avg_final=round(sum(finals) / len(finals)) if finals else None,
-                           flying=fl, pending=pending, a_stat=a_stat, course=course, now_on=now_on,
+                           flying=fl, pending=pending, a_stat=a_stat, course=course, now_on=now_on, homework=homework,
                            weak=weak[:8], missed=missed[:8], skipped=skipped[:8])
+
+
+# ---------------------------------------------------------------- homework (assigned lessons)
+
+def homework_for(conn, student_id, open_only=False):
+    """A student's assigned lessons, newest first, each with where they stand:
+    'new' (not opened), 'started', or 'done' (final check finished, or all the Task's elements
+    verified when the lesson has no final check)."""
+    rows = conn.execute("""SELECT g.*, t.code AS tcode, t.title AS ttitle, a.code AS acode, a.title AS atitle,
+                                  r.id AS rating_id, r.name AS rname
+                           FROM gs_assignments g JOIN acs_tasks t ON t.id = g.task_id
+                           JOIN acs_areas a ON a.id = t.area_id JOIN acs_ratings r ON r.id = a.rating_id
+                           WHERE g.student_id = ? AND g.cancelled_at IS NULL
+                           ORDER BY g.assigned_at DESC, g.id DESC""", (student_id,)).fetchall()
+    out = []
+    for g_ in rows:
+        lesson = _lesson_for_task(conn, g_["task_id"])
+        stt = lesson_stats(conn, student_id, g_["task_id"], lesson) if lesson else None
+        if stt and stt["final_rows"]:
+            done = all(x["done"] for x in stt["final_rows"])
+        else:
+            left = conn.execute("""SELECT COUNT(*) c FROM acs_task_elements e
+                                   LEFT JOIN acs_element_completion c ON c.element_id = e.id AND c.student_id = ?
+                                   WHERE e.task_id = ? AND e.retired_at IS NULL AND c.cfi_verified_at IS NULL""",
+                                (student_id, g_["task_id"])).fetchone()["c"]
+            done = left == 0
+        started = bool(stt and (stt["seconds"] or 0) > 0)
+        state = "done" if done else ("started" if started else "new")
+        if open_only and state == "done":
+            continue
+        out.append({"a": g_, "state": state, "minutes": int((stt["seconds"] if stt else 0) // 60),
+                    "final_pct": stt["final_pct"] if stt else None,
+                    "overdue": bool(g_["due_on"] and state != "done" and g_["due_on"] < date.today().isoformat())})
+    return out
+
+
+def assigned_task_ids(conn, student_id):
+    return {r["task_id"] for r in conn.execute(
+        "SELECT task_id FROM gs_assignments WHERE student_id = ? AND cancelled_at IS NULL", (student_id,)).fetchall()}
+
+
+def open_homework_count():
+    """For the Ground School tab badge: how many assigned lessons the signed-in student has not finished."""
+    sid = session.get("student_id")
+    if not sid:
+        return 0
+    cached = getattr(flask_g, "_hw_count", None)
+    if cached is not None:
+        return cached
+    conn = get_db()
+    try:
+        n = len(homework_for(conn, sid, open_only=True))
+    finally:
+        conn.close()
+    flask_g._hw_count = n
+    return n
+
+
+groundschool_bp.add_app_template_global(open_homework_count, "open_homework_count")
+
+
+def _course_outline(conn, rating_id, student_id):
+    """The whole course as a short list for the lesson picker: Areas and their Tasks, each with the
+    student's progress and whether it is assigned homework."""
+    prog = _rating_progress(conn, rating_id, student_id) if student_id else None
+    assigned = assigned_task_ids(conn, student_id) if student_id else set()
+    out = []
+    for a in conn.execute("SELECT * FROM acs_areas WHERE rating_id = ? ORDER BY order_index", (rating_id,)).fetchall():
+        tasks = []
+        for t in conn.execute("SELECT * FROM acs_tasks WHERE area_id = ? AND retired_at IS NULL ORDER BY order_index", (a["id"],)).fetchall():
+            tp = prog["areas"].get(a["id"], {}).get("tasks", {}).get(t["id"]) if prog else None
+            tasks.append({"id": t["id"], "code": t["code"], "title": t["title"], "pct": tp["pct"] if tp else None,
+                          "assigned": t["id"] in assigned})
+        out.append({"code": a["code"], "title": a["title"], "tasks": tasks})
+    return out
+
+
+@groundschool_bp.route("/assign", methods=["POST"])
+@login_required
+def assign_homework():
+    """Staff: assign one or more lessons to a student as homework. Flags the student (home page card,
+    tab badge, a push alert and an email/text when those are set up)."""
+    if not _is_staff_viewer():
+        abort(403)
+    conn = get_db()
+    try:
+        sid = request.form.get("student_id", type=int)
+        st = conn.execute("SELECT * FROM students WHERE id = ? AND active = 1 AND COALESCE(is_station, 0) = 0", (sid,)).fetchone() if sid else None
+        ids = [int(x) for x in request.form.getlist("task_id") if x.isdigit()]
+        back = request.form.get("next") or url_for("groundschool.rating_list")
+        if not back.startswith("/") or back.startswith("//"):
+            back = url_for("groundschool.rating_list")
+        if not st or not ids:
+            flash("Pick a student and at least one lesson first.", "warning")
+            return redirect(back)
+        due = (request.form.get("due_on") or "").strip()
+        try:
+            due = date.fromisoformat(due).isoformat() if due else None
+        except ValueError:
+            due = None
+        note = (request.form.get("note") or "").strip()[:500] or None
+        who = session.get("user_name") or session.get("name") or "Your instructor"
+        already = assigned_task_ids(conn, sid)
+        made = []
+        for tid in ids:
+            t = conn.execute("""SELECT t.id, t.code, t.title FROM acs_tasks t JOIN acs_areas a ON a.id = t.area_id
+                                WHERE t.id = ? AND t.retired_at IS NULL""", (tid,)).fetchone()
+            if not t or tid in already:
+                continue
+            conn.execute("INSERT INTO gs_assignments (student_id, task_id, note, due_on, assigned_by_user_id, assigned_by_name, assigned_at) "
+                         "VALUES (?, ?, ?, ?, ?, ?, ?)", (sid, tid, note, due, session.get("user_id"), who, now_iso()))
+            made.append("Task %s. %s" % (t["code"], t["title"]))
+        conn.commit()
+        if made:
+            _notify_homework(conn, st, who, made, note, due)
+            flash("Assigned %d lesson%s to %s." % (len(made), "" if len(made) == 1 else "s", st["name"]), "success")
+        else:
+            flash("Those lessons are already assigned to %s." % st["name"], "info")
+        return redirect(back)
+    finally:
+        conn.close()
+
+
+def _notify_homework(conn, st, who, made, note, due):
+    if not st["user_id"]:
+        return
+    try:
+        import notify
+        import push
+        title = "New ground school homework"
+        body = "%s assigned you: %s%s%s" % (who, "; ".join(made[:3]) + (" and %d more" % (len(made) - 3) if len(made) > 3 else ""),
+                                          (" (due %s)" % due) if due else "", (". " + note) if note else "")
+        push.queue_and_push(conn, st["user_id"], title, body, tag="gs-homework-%d" % st["id"], url="/flight/groundschool")
+        user = conn.execute("SELECT * FROM users WHERE id = ?", (st["user_id"],)).fetchone()
+        if user:
+            notify.notify_user(notify.get_settings(conn), user, title, body, brand="Fly with Kate!")
+    except Exception:
+        pass
+
+
+@groundschool_bp.route("/assignment/<int:aid>/<action>", methods=["POST"])
+@login_required
+def assignment_action(aid, action):
+    """Staff: mark an assigned lesson 'covered in the brief', or take the assignment back."""
+    if not _is_staff_viewer() or action not in ("reviewed", "cancel"):
+        abort(403)
+    conn = get_db()
+    try:
+        row = conn.execute("SELECT * FROM gs_assignments WHERE id = ?", (aid,)).fetchone()
+        if not row:
+            abort(404)
+        if action == "reviewed":
+            conn.execute("UPDATE gs_assignments SET reviewed_at = ?, reviewed_by_name = ? WHERE id = ?",
+                         (now_iso(), session.get("user_name") or session.get("name"), aid))
+        else:
+            conn.execute("UPDATE gs_assignments SET cancelled_at = ? WHERE id = ?", (now_iso(), aid))
+        conn.commit()
+        back = request.form.get("next") or url_for("groundschool.student_summary", student_id=row["student_id"])
+        if not back.startswith("/") or back.startswith("//"):
+            back = url_for("groundschool.student_summary", student_id=row["student_id"])
+        return redirect(back)
+    finally:
+        conn.close()
 
 
 @groundschool_bp.route("/upload", methods=["POST"])
@@ -971,8 +1136,9 @@ def rating_detail(rating_id):
     element_done = _element_done_map(conn, rating_id, viewing_student_id) if viewing_student_id else {}
     element_self = _element_self_done(conn, viewing_student_id, element_done.keys())
     resume = resume_spot(conn, viewing_student_id, rating_id=rating_id) if viewing_student_id else None
+    assigned_ids = assigned_task_ids(conn, viewing_student_id) if viewing_student_id else set()
     conn.close()
-    return render_template("flight/groundschool_rating.html", rating=rating, areas=areas, resume=resume,
+    return render_template("flight/groundschool_rating.html", rating=rating, areas=areas, resume=resume, assigned_ids=assigned_ids,
                             tasks_by_area=tasks_by_area, elements_by_task=elements_by_task,
                             references_html_by_task=references_html_by_task, tab="groundschool",
                             changes_by_task=changes_by_task,
@@ -1070,11 +1236,16 @@ def task_detail(task_id):
         gs_stats = lesson_stats(conn, viewing_student_id, task_id, gs_lesson)
         gs_resume = resume_spot(conn, viewing_student_id, task_id=task_id) if session.get("student_id") else None
         conn.close()
+    conn = get_db()
+    outline = _course_outline(conn, rating["id"], viewing_student_id)
+    my_assignment = conn.execute("SELECT * FROM gs_assignments WHERE student_id = ? AND task_id = ? AND cancelled_at IS NULL",
+                                 (viewing_student_id, task_id)).fetchone() if viewing_student_id else None
+    conn.close()
     idx = ids.index(task_id) if task_id in ids else -1
     prev_task_id = ids[idx - 1] if idx > 0 else None
     next_task_id = ids[idx + 1] if 0 <= idx < len(ids) - 1 else None
     next_task = area_tasks[idx + 1] if next_task_id else None
-    return render_template("flight/groundschool_task.html", task_id_for_finish=task_id, gs_chunk_secs=gs_chunk_secs, gs_need=chunk_need, gs_results=gs_results, gs_stats=gs_stats, gs_resume=gs_resume, task=task, next_task=next_task, area=area, rating=rating,
+    return render_template("flight/groundschool_task.html", outline=outline, my_assignment=my_assignment, task_id_for_finish=task_id, gs_chunk_secs=gs_chunk_secs, gs_need=chunk_need, gs_results=gs_results, gs_stats=gs_stats, gs_resume=gs_resume, task=task, next_task=next_task, area=area, rating=rating,
                             notes=notes, knowledge=knowledge, risk_management=risk_management,
                             skills=skills, lesson=lesson, acs_changes=acs_changes, signoffs=signoffs, my_signoff=my_signoff,
                             gs_students=students, prev_task_id=prev_task_id, next_task_id=next_task_id,

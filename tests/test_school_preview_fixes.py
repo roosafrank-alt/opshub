@@ -268,6 +268,47 @@ class GroundSchoolTest(OpsHubTestCase):
         html = c.get(f"/flight/groundschool?student_id={self.student_id}&course={done}").get_data(as_text=True)
         self.assertRegex(html, r'<option value="%d" selected>Recreational Pilot \(past\)' % done)
 
+    def test_assign_homework_flags_the_student_and_shows_everywhere(self):
+        c = self.login("cfi")
+        r = c.post("/flight/groundschool/assign", data={"student_id": self.student_id, "task_id": [self.task_id],
+                                                       "note": "Read the airworthiness section", "due_on": "2099-01-01",
+                                                       "next": f"/flight/groundschool/{self.rating_id}"})
+        self.assertEqual(r.status_code, 302)
+        row = self.q1("SELECT * FROM gs_assignments WHERE student_id = ?", (self.student_id,))
+        self.assertEqual(row["task_id"], self.task_id)
+        self.assertEqual(row["note"], "Read the airworthiness section")
+        # assigning the same lesson twice does not double it
+        c.post("/flight/groundschool/assign", data={"student_id": self.student_id, "task_id": [self.task_id]})
+        self.assertEqual(self.q1("SELECT COUNT(*) c FROM gs_assignments")["c"], 1)
+        # the instructor sees the tick boxes and the flag on the course outline, and an All lessons list in the lesson
+        c.get(f"/flight/groundschool?student_id={self.student_id}")
+        out = c.get(f"/flight/groundschool/{self.rating_id}").get_data(as_text=True)
+        self.assertIn('id="assign-form"', out)
+        self.assertIn("Assigned</span>", out)
+        task = c.get(f"/flight/groundschool/task/{self.task_id}").get_data(as_text=True)
+        self.assertIn('id="gs-outline"', task)
+        self.assertIn("Assigned", task)
+        # the student sees it flagged: home card, tab badge, banner in the lesson
+        s = self.login("flight_student")
+        home = s.get("/flight/groundschool").get_data(as_text=True)
+        self.assertIn("Homework from your instructor", home)
+        self.assertIn("Read the airworthiness section", home)
+        self.assertIn('title="Homework assigned"', home)
+        self.assertIn("Choose a different lesson", home)
+        self.assertIn("Assigned", s.get(f"/flight/groundschool/task/{self.task_id}").get_data(as_text=True))
+        # students cannot assign
+        self.assertNotEqual(s.post("/flight/groundschool/assign", data={"student_id": self.student_id, "task_id": [self.task_id]}).status_code, 200)
+        # the instructor's student page lists it; mark covered, then remove it
+        m = self.login("master")
+        page = m.get(f"/flight/groundschool/student/{self.student_id}").get_data(as_text=True)
+        self.assertIn('id="homework"', page)
+        aid = row["id"]
+        m.post(f"/flight/groundschool/assignment/{aid}/reviewed")
+        self.assertIsNotNone(self.q1("SELECT reviewed_at FROM gs_assignments WHERE id = ?", (aid,))["reviewed_at"])
+        m.post(f"/flight/groundschool/assignment/{aid}/cancel")
+        self.assertNotIn('id="homework"', m.get(f"/flight/groundschool/student/{self.student_id}").get_data(as_text=True))
+        self.assertNotIn('title="Homework assigned"', s.get("/flight/groundschool").get_data(as_text=True))
+
     def test_no_future_box_when_nothing_is_assigned(self):
         self._second_course("Recreational Pilot", "rec", finished=True)
         html = self.login("cfi").get(f"/flight/groundschool?student_id={self.student_id}").get_data(as_text=True)

@@ -1346,6 +1346,22 @@ def _migrate(conn):
         granted_at TEXT NOT NULL,
         PRIMARY KEY (student_id, rating_id)
     )""")
+    # Homework: a CFI/admin assigns a student a ground lesson (Task), usually at the post-flight
+    # brief; the pre-brief then goes over it. reviewed_at = covered in a brief.
+    conn.execute("""CREATE TABLE IF NOT EXISTS gs_assignments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL REFERENCES students(id),
+        task_id INTEGER NOT NULL REFERENCES acs_tasks(id),
+        note TEXT,
+        due_on TEXT,
+        assigned_by_user_id INTEGER,
+        assigned_by_name TEXT,
+        assigned_at TEXT NOT NULL,
+        reviewed_at TEXT,
+        reviewed_by_name TEXT,
+        cancelled_at TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_gs_assign_student ON gs_assignments(student_id, cancelled_at)")
     conn.execute("""CREATE TABLE IF NOT EXISTS acs_element_completion (
         student_id INTEGER NOT NULL REFERENCES students(id),
         element_id INTEGER NOT NULL REFERENCES acs_task_elements(id),
