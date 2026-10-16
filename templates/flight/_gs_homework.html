@@ -17,8 +17,9 @@
       {% else %}<span class="badge bg-secondary">Not started</span>{% endif %}
       {% if hw_staff %}
       <div class="d-flex gap-1 justify-content-end mt-1">
-        {% if not a.reviewed_at %}<form method="post" action="{{ url_for('groundschool.assignment_action', aid=a.id, action='reviewed') }}"><input type="hidden" name="next" value="{{ hw_next }}"><button class="btn btn-outline-success btn-sm py-0" title="Went over it in the brief">Covered</button></form>{% endif %}
-        <form method="post" action="{{ url_for('groundschool.assignment_action', aid=a.id, action='cancel') }}" data-confirm="Take this lesson off {{ a.tcode }}'s homework list?" data-confirm-title="Remove homework" data-confirm-ok="Remove"><input type="hidden" name="next" value="{{ hw_next }}"><button class="btn btn-outline-secondary btn-sm py-0" title="Remove">&times;</button></form>
+        {#- Covered: an on/off button the instructor sets for the student (tap again to undo). #}
+        <form method="post" action="{{ url_for('groundschool.assignment_action', aid=a.id, action='unreviewed' if a.reviewed_at else 'reviewed') }}"><input type="hidden" name="next" value="{{ hw_next }}"><button class="btn btn-sm py-0 {{ 'btn-success' if a.reviewed_at else 'btn-outline-success' }}" aria-pressed="{{ 'true' if a.reviewed_at else 'false' }}" title="{{ 'Covered in the brief - tap to undo' if a.reviewed_at else 'Mark as gone over in the brief' }}">{% if a.reviewed_at %}<i class="bi bi-check2"></i> {% endif %}Covered</button></form>
+        <form method="post" action="{{ url_for('groundschool.assignment_action', aid=a.id, action='cancel') }}" data-confirm="Take Task {{ a.tcode }} off this student's homework?" data-confirm-title="Unassign lesson" data-confirm-ok="Unassign"><input type="hidden" name="next" value="{{ hw_next }}"><button class="btn btn-outline-danger btn-sm py-0" title="Unassign"><i class="bi bi-x-lg"></i> Unassign</button></form>
       </div>
       {% endif %}
     </div>

@@ -925,6 +925,20 @@ def assign_homework():
         back = request.form.get("next") or url_for("groundschool.rating_list")
         if not back.startswith("/") or back.startswith("//"):
             back = url_for("groundschool.rating_list")
+        was = {int(x) for x in request.form.getlist("was_assigned") if x.isdigit()}
+        dropped = []
+        if st:
+            # Unticked on the course page: take those lessons off the homework list.
+            for tid in was - set(ids):
+                cur = conn.execute("UPDATE gs_assignments SET cancelled_at = ? WHERE student_id = ? AND task_id = ? "
+                                   "AND cancelled_at IS NULL", (now_iso(), sid, tid))
+                if cur.rowcount:
+                    dropped.append(tid)
+            conn.commit()
+        ids = [i for i in ids if i not in was]
+        if st and dropped and not ids:
+            flash("Took %d lesson%s off %s's homework." % (len(dropped), "" if len(dropped) == 1 else "s", st["name"]), "success")
+            return redirect(back)
         if not st or not ids:
             flash("Pick a student and at least one lesson first.", "warning")
             return redirect(back)
@@ -948,7 +962,8 @@ def assign_homework():
         conn.commit()
         if made:
             _notify_homework(conn, st, who, made, note, due)
-            flash("Assigned %d lesson%s to %s." % (len(made), "" if len(made) == 1 else "s", st["name"]), "success")
+            flash("Assigned %d lesson%s to %s%s." % (len(made), "" if len(made) == 1 else "s", st["name"],
+                                                     (" and took %d off" % len(dropped)) if dropped else ""), "success")
         else:
             flash("Those lessons are already assigned to %s." % st["name"], "info")
         return redirect(back)
@@ -976,8 +991,8 @@ def _notify_homework(conn, st, who, made, note, due):
 @groundschool_bp.route("/assignment/<int:aid>/<action>", methods=["POST"])
 @login_required
 def assignment_action(aid, action):
-    """Staff: mark an assigned lesson 'covered in the brief', or take the assignment back."""
-    if not _is_staff_viewer() or action not in ("reviewed", "cancel"):
+    """Staff: mark an assigned lesson 'covered in the brief' (or undo that), or take the assignment back."""
+    if not _is_staff_viewer() or action not in ("reviewed", "unreviewed", "cancel"):
         abort(403)
     conn = get_db()
     try:
@@ -987,6 +1002,8 @@ def assignment_action(aid, action):
         if action == "reviewed":
             conn.execute("UPDATE gs_assignments SET reviewed_at = ?, reviewed_by_name = ? WHERE id = ?",
                          (now_iso(), session.get("user_name") or session.get("name"), aid))
+        elif action == "unreviewed":
+            conn.execute("UPDATE gs_assignments SET reviewed_at = NULL, reviewed_by_name = NULL WHERE id = ?", (aid,))
         else:
             conn.execute("UPDATE gs_assignments SET cancelled_at = ? WHERE id = ?", (now_iso(), aid))
         conn.commit()
