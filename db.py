@@ -2129,6 +2129,11 @@ def _migrate(conn):
     if "started_by_cfi_id" not in flight_cols_starter:
         conn.execute("ALTER TABLE flights ADD COLUMN started_by_cfi_id INTEGER")
         conn.commit()
+    # End Flight (log_end_flight): the ACS tasks the instructor picked for the student's next flight,
+    # comma-separated acs_tasks ids.
+    if "next_focus" not in flight_cols_starter:
+        conn.execute("ALTER TABLE flights ADD COLUMN next_focus TEXT")
+        conn.commit()
 
     # An instructor's required reason for denying a student's flight request
     # (flight.schedule_deny) - the student sees this reason directly instead

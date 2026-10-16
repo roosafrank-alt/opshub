@@ -131,7 +131,50 @@
       <button type="submit" class="btn btn-outline-warning fw-bold flex-fill"><i class="bi bi-pause-fill"></i> {{ 'Pause Session' if f.asset_is_simulator else 'Pause Flight' }}</button>
     </form>
     {% endif %}
+    {#- Idea "add end flight button": the flying is over but the clock keeps
+       running for the debrief. Takes the ending Hobbs/Tach, the ACS tasks for
+       the next flight and homework (log_end_flight); End Session still closes it out. #}
+    {% if not f.asset_is_simulator %}
+    <button type="button" class="btn btn-outline-primary fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"><i class="bi bi-airplane"></i> End Flight</button>
+    {% endif %}
   </div>
+  {% if f.next_focus_tasks %}
+  <div class="small mb-2"><i class="bi bi-list-check text-primary"></i> <strong>Next flight:</strong> {{ f.next_focus_tasks|join(' · ') }}</div>
+  {% endif %}
+  {% if not f.asset_is_simulator %}
+  <div class="modal fade" id="end-flight-modal-{{ f.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <form method="post" action="{{ url_for('flight.log_end_flight', flight_id=f.id) }}" class="modal-content">
+        <div class="modal-header py-2"><h6 class="modal-title"><i class="bi bi-airplane"></i> End Flight <span class="text-muted small fw-normal">- the clock keeps running</span></h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+        <div class="modal-body">
+          <div class="row g-2 mb-3">
+            <div class="col-6"><label class="form-label small mb-0 fw-bold">Hobbs End</label>
+              <input type="number" step="any" name="hobbs_end" class="form-control form-control-sm" inputmode="decimal" value="{{ f.hobbs_end if f.hobbs_end is not none else '' }}"{% if f.hobbs_start is not none %} min="{{ f.hobbs_start }}"{% endif %}></div>
+            <div class="col-6"><label class="form-label small mb-0 fw-bold">Tach End</label>
+              <input type="number" step="any" name="tach_end" class="form-control form-control-sm" inputmode="decimal" value="{{ f.tach_end if f.tach_end is not none else '' }}"{% if f.tach_start is not none %} min="{{ f.tach_start }}"{% endif %}></div>
+          </div>
+          {% if f.end_pick %}
+          <div class="small text-muted mb-1">{{ f.end_pick.rating }}: tick what belongs on the <strong>next flight</strong> (Flight) and any lesson to give as <strong>homework</strong> (Home).</div>
+          {% for area in f.end_pick.areas %}
+          <details class="mb-1"><summary class="small fw-bold">{{ area.code }}. {{ area.title }}</summary>
+            {% for t in area.tasks %}
+            <div class="d-flex align-items-center gap-2 small ps-3 py-1 border-top">
+              <label class="mb-0" title="Next flight"><input type="checkbox" name="focus_task" value="{{ t.id }}"{% if (',' ~ (f.next_focus or '') ~ ',').find(',' ~ t.id ~ ',') >= 0 %} checked{% endif %}> Flight</label>
+              <label class="mb-0" title="Homework"><input type="checkbox" name="hw_task" value="{{ t.id }}"{% if t.assigned %} disabled checked{% endif %}> Home</label>
+              <span class="flex-grow-1">{{ t.code }}. {{ t.title }}</span>
+            </div>
+            {% endfor %}
+          </details>
+          {% endfor %}
+          <input type="text" name="hw_note" class="form-control form-control-sm mt-2" maxlength="500" placeholder="Homework note (optional)">
+          {% endif %}
+        </div>
+        <div class="modal-footer py-2"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check2"></i> Save</button></div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
   {% endif %}
 
   {% if f.can_end %}
@@ -338,7 +381,7 @@
       </div>
       <div class="col-6 col-md-3">
         <label class="form-label small mb-0 fw-bold">Hobbs End *</label>
-        <input type="number" step="any" name="hobbs_end" id="hobbs-end-{{ f.id }}" class="form-control form-control-sm hobbs-end-input" data-flight-id="{{ f.id }}" placeholder="e.g. 1234.5" required inputmode="decimal"
+        <input type="number" step="any" name="hobbs_end" id="hobbs-end-{{ f.id }}" class="form-control form-control-sm hobbs-end-input" data-flight-id="{{ f.id }}" placeholder="e.g. 1234.5" required inputmode="decimal"{% if f.hobbs_end is not none %} value="{{ f.hobbs_end }}"{% endif %}
                {% if f.hobbs_start is not none %}min="{{ f.hobbs_start }}"{% endif %}>
       </div>
       <div class="col-6 col-md-3">
@@ -352,7 +395,7 @@
       </div>
       <div class="col-6 col-md-3">
         <label class="form-label small mb-0 fw-bold">Tach End *</label>
-        <input type="number" step="any" name="tach_end" id="tach-end-{{ f.id }}" class="form-control form-control-sm" placeholder="e.g. 1201.4" required inputmode="decimal"
+        <input type="number" step="any" name="tach_end" id="tach-end-{{ f.id }}" class="form-control form-control-sm" placeholder="e.g. 1201.4" required inputmode="decimal"{% if f.tach_end is not none %} value="{{ f.tach_end }}"{% endif %}
                {% if f.tach_start is not none %}min="{{ f.tach_start }}"{% endif %}>
       </div>
     </div>

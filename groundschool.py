@@ -910,6 +910,35 @@ def _course_outline(conn, rating_id, student_id):
     return out
 
 
+def assign_tasks(conn, sid, ids, note, due, who):
+    """Inserts homework rows (skipping lessons already assigned) and returns the "Task X. Title" labels
+    made. Does not commit or notify: the caller does (assign_homework, and the flight page's End Flight)."""
+    already = assigned_task_ids(conn, sid)
+    made = []
+    for tid in ids:
+        t = conn.execute("""SELECT t.id, t.code, t.title FROM acs_tasks t JOIN acs_areas a ON a.id = t.area_id
+                            WHERE t.id = ? AND t.retired_at IS NULL""", (tid,)).fetchone()
+        if not t or tid in already:
+            continue
+        conn.execute("INSERT INTO gs_assignments (student_id, task_id, note, due_on, assigned_by_user_id, assigned_by_name, assigned_at) "
+                     "VALUES (?, ?, ?, ?, ?, ?, ?)", (sid, tid, note, due, session.get("user_id"), who, now_iso()))
+        made.append("Task %s. %s" % (t["code"], t["title"]))
+    return made
+
+
+def end_flight_picker(conn, student):
+    """For the End Flight box: the student's training-goal course (the ACS whose name matches their goal,
+    else the first one) as Areas > Tasks, each with `assigned`, for the next-flight focus and homework."""
+    from flight import TRAINING_GOALS
+    rows = conn.execute("SELECT * FROM acs_ratings WHERE status = 'parsed' ORDER BY name").fetchall()
+    if not rows:
+        return None
+    goal = dict((g[0], g[1]) for g in TRAINING_GOALS).get(student["training_goal"] or "")
+    word = (goal or "").split(" ")[0].lower()
+    pick = next((r for r in rows if word and word in r["name"].lower()), rows[0])
+    return {"rating": pick["name"], "areas": _course_outline(conn, pick["id"], student["id"])}
+
+
 @groundschool_bp.route("/assign", methods=["POST"])
 @login_required
 def assign_homework():
@@ -935,16 +964,7 @@ def assign_homework():
             due = None
         note = (request.form.get("note") or "").strip()[:500] or None
         who = session.get("user_name") or session.get("name") or "Your instructor"
-        already = assigned_task_ids(conn, sid)
-        made = []
-        for tid in ids:
-            t = conn.execute("""SELECT t.id, t.code, t.title FROM acs_tasks t JOIN acs_areas a ON a.id = t.area_id
-                                WHERE t.id = ? AND t.retired_at IS NULL""", (tid,)).fetchone()
-            if not t or tid in already:
-                continue
-            conn.execute("INSERT INTO gs_assignments (student_id, task_id, note, due_on, assigned_by_user_id, assigned_by_name, assigned_at) "
-                         "VALUES (?, ?, ?, ?, ?, ?, ?)", (sid, tid, note, due, session.get("user_id"), who, now_iso()))
-            made.append("Task %s. %s" % (t["code"], t["title"]))
+        made = assign_tasks(conn, sid, ids, note, due, who)
         conn.commit()
         if made:
             _notify_homework(conn, st, who, made, note, due)
