@@ -486,7 +486,7 @@
     </style>
     <script>document.body.classList.add('flight-complete-sticky');</script>
     <div class="d-flex gap-2" id="sched-form-footer" data-change="DESIGN-8">
-      <button type="submit" class="btn btn-primary fw-bold" id="submit-btn">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Log Session' if is_complete else 'Schedule Flight')) }}</button>
+      <button type="submit" class="btn btn-primary fw-bold" id="submit-btn" data-label="">{{ 'Save Changes' if sched else ('Request Flight' if self_service else ('Log Session' if is_complete else 'Schedule Flight')) }}</button>
       <a href="{{ return_to or (url_for('flight.dashboard') if self_service else url_for('flight.schedule_calendar')) }}" class="btn btn-outline-secondary" data-change="FLY-31">Cancel</a>
     </div>
   </form>
@@ -496,6 +496,47 @@
 {% endblock %}
 
 {% block scripts %}
+{% if normal_hours %}
+<div class="modal" id="reqOnlyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content">
+    <div class="modal-body text-center">
+      <div class="fs-5 fw-bold mb-1"><i class="bi bi-exclamation-triangle text-warning"></i> Request only</div>
+      <p class="mb-2">This time is outside normal booking hours ({{ hour_label(normal_hours[0]) }} - {{ hour_label(normal_hours[1]) }}). It is a request and must be accepted by an instructor after booking.</p>
+      <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+    </div>
+  </div></div>
+</div>
+<script>
+(function () {
+  var NS = {{ normal_hours[0] * 60 }}, NE = {{ normal_hours[1] * 60 }};
+  var hidden = document.getElementById('time-input');
+  var dur = document.querySelector('input[name="duration_hours"]');
+  var btn = document.getElementById('submit-btn');
+  var was = false;
+  if (!hidden || !btn) return;
+  var baseLabel = btn.textContent;
+  function outside() {
+    var m = /^(\d{1,2}):(\d{2})$/.exec(hidden.value || '');
+    if (!m) return false;
+    var s = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    var d = Math.round((parseFloat(dur && dur.value) || 0) * 60);
+    return s < NS || s + d > NE;
+  }
+  window.__reqCheck = function () {
+    var o = outside();
+    btn.classList.toggle('btn-primary', !o);
+    btn.classList.toggle('btn-warning', o);
+    btn.textContent = o ? 'Request (needs instructor OK)' : baseLabel;
+    if (o && !was && window.bootstrap) {
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('reqOnlyModal')).show();
+    }
+    was = o;
+  };
+  if (dur) dur.addEventListener('input', window.__reqCheck);
+  window.addEventListener('load', window.__reqCheck);
+})();
+</script>
+{% endif %}
 <script>
 (function () {
   // Solo, "part dual/part solo", and an actually-picked instructor are
@@ -595,6 +636,7 @@
     // quickBtns is set further down; skip until then (first render on load).
     if (quickBtns) markActiveQuickBtn();
     if (window.__syncEnd) window.__syncEnd();
+    if (window.__reqCheck) window.__reqCheck();
   }
 
   // Typing: each box takes its own part (hour 1-12, minutes 0-59, a/p);

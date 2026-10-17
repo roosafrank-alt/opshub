@@ -5399,7 +5399,7 @@ def schedule_new():
     # excluded on purpose - see the query), so it's a checkbox, not a pick.
     prefill_solo = (not self_service) and request.args.get("solo") == "1"
     prefill_own_plane = (not self_service) and request.args.get("own_plane") == "1"
-    form_kwargs = dict(planes=planes, students=students, cfis=cfis,
+    form_kwargs = dict(normal_hours=_normal_booking_hours(conn), hour_label=_hour_label, planes=planes, students=students, cfis=cfis,
                        usual_lessons=({} if self_service else _usual_lessons(conn, planes)),
                        today=prefill_date, prefill_time=prefill_time, prefill_asset_id=prefill_asset_id,
                        prefill_cfi_id=prefill_cfi_id, prefill_student_id=prefill_student_id,
@@ -5974,7 +5974,7 @@ def schedule_edit(scheduled_id):
     sched_own_plane_n_number = None
     if sched_own_plane_asset:
         sched_own_plane_n_number = "" if sched_own_plane_asset["tag"].startswith("OWN-") else sched_own_plane_asset["tag"]
-    form_kwargs = dict(planes=planes, students=students, cfis=cfis,
+    form_kwargs = dict(normal_hours=_normal_booking_hours(conn), hour_label=_hour_label, planes=planes, students=students, cfis=cfis,
                        today=date.today().strftime("%Y-%m-%d"), current_cfi_id=session["cfi_id"], sched=sched,
                        sched_is_own_plane=bool(sched_own_plane_asset), sched_own_plane_n_number=sched_own_plane_n_number,
                        return_to=_form_return_to())
