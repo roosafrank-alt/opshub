@@ -677,7 +677,21 @@ var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(0) }};
   if (document.querySelector('.schedule-block-highlight')) return;
   if (document.documentElement.classList.contains('tv-mode')) return;
   var m = document.querySelector('[data-this-month="1"]');
-  if (m) setTimeout(function () { m.scrollIntoView({ behavior: 'instant', block: 'center' }); }, 50);
+  // Put the month's top edge just under the sticky navbar/toolbar so the whole
+  // month shows (centering cut tall months off); other months are a scroll away.
+  function go() {
+    var pinned = 0;
+    ['nav.navbar.sticky-top', '.sch-head', '.schedule-toolbar'].forEach(function (sel) {
+      var el = document.querySelector(sel);
+      if (el && el.offsetHeight && getComputedStyle(el).position === 'sticky') pinned = Math.max(pinned, el.getBoundingClientRect().bottom);
+    });
+    window.scrollTo(0, window.pageYOffset + m.getBoundingClientRect().top - pinned - 8);
+  }
+  if (m) {
+    go();
+    if (document.readyState === 'complete') { setTimeout(go, 50); }
+    else { window.addEventListener('load', function () { setTimeout(go, 50); }); }
+  }
 })();
 {% endif %}
 {% if view == 'month' %}
