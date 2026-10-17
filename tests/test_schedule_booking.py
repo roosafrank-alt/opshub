@@ -79,7 +79,6 @@ class ScheduleBookingTest(OpsHubTestCase):
             with self.subTest(**kw):
                 self.assertLess(self.book(**kw).status_code, 500)
 
-    @open_finding("qa-schedule-bad-input-crash")
     def test_bad_values_give_a_message_not_an_error_page(self):
         self.login("cfi")
         for kw in (dict(scheduled_date="not-a-date"), dict(duration_hours="nan"), dict(duration_hours="inf"),
@@ -88,7 +87,6 @@ class ScheduleBookingTest(OpsHubTestCase):
             with self.subTest(**kw):
                 self.assertLess(self.book(**kw).status_code, 500)
 
-    @open_finding("qa-schedule-deleted-plane")
     def test_deleted_plane_cannot_be_booked(self):
         self.exec("UPDATE assets SET deleted_at=? WHERE id=?", (db.now_iso(), self.plane))
         self.login("cfi")

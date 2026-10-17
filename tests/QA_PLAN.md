@@ -87,8 +87,8 @@ Accounts / admin
 - [x] Admin reset pages: each reset touches only what it says (all fine, no findings)
 
 Flight school
-- [x] Scheduling, part 1: new booking, conflicts, bad input, student request, cancel, weekly repeat, time off (open: qa-schedule-bad-input-crash, qa-schedule-deleted-plane; still to do: edit, reschedule, approve/deny, change requests, recurring edge cases)
-- [ ] Flight log: new, early start, active flight, complete, Hobbs/tach gaps
+- [x] Scheduling, part 1: new booking, conflicts, bad input, student request, cancel, weekly repeat, time off (qa-schedule-bad-input-crash and qa-schedule-deleted-plane now fixed and live; still to do: edit, reschedule, approve/deny, change requests, recurring edge cases)
+- [x] Flight sessions: start from a booking, early start, double start, stop/restart/pause, end (Hobbs/Tach checks, paid choice), discard, who may do what (open: qa-flight-end-nan-hobbs; still to do: log new/edit after the fact, delete, toggle paid, Hobbs/tach gaps between flights)
 - [ ] Billing: student ledger balances, CFI pay, plane rates
 - [ ] Ground school / ACS: sign-offs, progress (the crawler needs seed data for these, they currently 404)
 - [ ] Pilot logbook, Academy
