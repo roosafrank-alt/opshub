@@ -273,6 +273,18 @@
         <td class="avail-slot-booked" {% if not is_student_viewer %}title="{{ cell.flight.student_name }}{% if cell.flight.cfi_name %} / {{ cell.flight.cfi_name }}{% endif %}"{% endif %}>
           Booked
           {% if not is_student_viewer %}<span class="avail-booked-who">{{ cell.flight.student_name }}</span>{% endif %}
+          {#- A student can join the cancellation waitlist for this exact
+             plane, weekday and part of the day, until this date (the
+             waitlist_join route does the rest). #}
+          {% if is_student_viewer and not cell.is_past %}
+          <form method="post" action="{{ url_for('flight.waitlist_join') }}" class="mt-1">
+            <input type="hidden" name="days" value="{{ day_weekday }}">
+            <input type="hidden" name="periods" value="{{ 'morning' if cell.start_min < 720 else ('afternoon' if cell.start_min < 1020 else 'evening') }}">
+            <input type="hidden" name="asset_id" value="{{ row.plane.id }}">
+            <input type="hidden" name="until_date" value="{{ day_str }}">
+            <button type="submit" class="btn btn-outline-primary btn-sm py-0 px-1" style="font-size:.62rem" title="Get a text/notification if {{ row.plane.tag }} opens up at {{ cell.label }}">Add to waitlist</button>
+          </form>
+          {% endif %}
         </td>
         {% elif cell.is_past %}
         <td class="avail-slot-past" title="{{ cell.label }} has already passed">Past</td>

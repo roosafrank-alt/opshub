@@ -5257,6 +5257,7 @@ def schedule_availability():
                    month_prev=prev_month_date.strftime("%Y-%m-%d"),
                    month_next=next_month_date.strftime("%Y-%m-%d"))
 
+    ctx["day_weekday"] = day_date.weekday()
     conn.close()
     return render_template("flight/availability.html", **ctx)
 
