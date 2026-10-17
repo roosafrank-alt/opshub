@@ -80,7 +80,9 @@ class FlightSessionVerbiageTest(OpsHubTestCase):
              db.now_iso(), db.now_iso()))
         body = c.get("/flight/log/active").get_data(as_text=True)
         self.assertIn("End Session", body)
-        self.assertNotIn("End Flight", body)
+        # Frank asked for an End Flight button next to Pause (idea "add end flight button"): it is the only
+        # place that wording appears, and End Session is still there.
+        self.assertIn("End Flight", body)
         # The page itself (an in-progress list, flight or ground) keeps its name.
         self.assertIn("Active Flight", body)
 

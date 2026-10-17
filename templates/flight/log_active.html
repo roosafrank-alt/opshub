@@ -131,36 +131,71 @@
       <button type="submit" class="btn btn-outline-warning fw-bold flex-fill"><i class="bi bi-pause-fill"></i> {{ 'Pause Session' if f.asset_is_simulator else 'Pause Flight' }}</button>
     </form>
     {% endif %}
-    {#- Idea "add end flight button": the flying is over but the clock keeps
-       running for the debrief. Takes the ending Hobbs/Tach, the ACS tasks for
-       the next flight and homework (log_end_flight); End Session still closes it out. #}
+    {#- Idea "add end flight button": the flying is over but the clock keeps running for the debrief.
+       Three steps in one box (log_end_flight, log_flight_items, log_flight_plan): confirm the ending
+       Hobbs/Tach, score the ACS items done on the flight, then plan the next flight and homework. Once the
+       plan is saved the button becomes "ACS planning". End Session still closes the flight out. #}
     {% if not f.asset_is_simulator %}
-    <button type="button" class="btn btn-outline-primary fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"><i class="bi bi-airplane"></i> End Flight</button>
+    <button type="button" class="btn {{ 'btn-outline-info' if f.acs_planned_at else 'btn-outline-primary' }} fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"><i class="bi {{ 'bi-list-check' if f.acs_planned_at else 'bi-airplane' }}"></i> {{ 'ACS planning' if f.acs_planned_at else 'End Flight' }}</button>
     {% endif %}
   </div>
   {% if f.next_focus_tasks %}
   <div class="small mb-2"><i class="bi bi-list-check text-primary"></i> <strong>Next flight:</strong> {{ f.next_focus_tasks|join(' · ') }}</div>
   {% endif %}
-  {% if not f.asset_is_simulator %}
-  <div class="modal fade" id="end-flight-modal-{{ f.id }}" tabindex="-1" aria-hidden="true">
+  {% if not f.asset_is_simulator and f.end_state %}
+  {% set es = f.end_state %}
+  {% set step = es.step if (f.end_pick or es.step == 'times') else 'times' %}
+  <div class="modal fade end-flight-modal" id="end-flight-modal-{{ f.id }}" tabindex="-1" aria-hidden="true"{% if open_end_id == f.id %} data-auto-open="1"{% endif %}>
     <div class="modal-dialog modal-dialog-scrollable">
+      {% if step == 'times' %}
       <form method="post" action="{{ url_for('flight.log_end_flight', flight_id=f.id) }}" class="modal-content">
         <div class="modal-header py-2"><h6 class="modal-title"><i class="bi bi-airplane"></i> End Flight <span class="text-muted small fw-normal">- the clock keeps running</span></h6>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
         <div class="modal-body">
-          <div class="row g-2 mb-3">
-            <div class="col-6"><label class="form-label small mb-0 fw-bold">Hobbs End</label>
-              <input type="number" step="any" name="hobbs_end" class="form-control form-control-sm" inputmode="decimal" value="{{ f.hobbs_end if f.hobbs_end is not none else '' }}"{% if f.hobbs_start is not none %} min="{{ f.hobbs_start }}"{% endif %}></div>
-            <div class="col-6"><label class="form-label small mb-0 fw-bold">Tach End</label>
-              <input type="number" step="any" name="tach_end" class="form-control form-control-sm" inputmode="decimal" value="{{ f.tach_end if f.tach_end is not none else '' }}"{% if f.tach_start is not none %} min="{{ f.tach_start }}"{% endif %}></div>
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small mb-0 fw-bold">Hobbs End *</label>
+              <input type="number" step="any" name="hobbs_end" class="form-control" inputmode="decimal" required placeholder="e.g. 1234.5" value="{{ f.hobbs_end if f.hobbs_end is not none else '' }}"{% if f.hobbs_start is not none %} min="{{ f.hobbs_start }}"{% endif %}></div>
+            <div class="col-6"><label class="form-label small mb-0 fw-bold">Tach End *</label>
+              <input type="number" step="any" name="tach_end" class="form-control" inputmode="decimal" required placeholder="e.g. 1201.4" value="{{ f.tach_end if f.tach_end is not none else '' }}"{% if f.tach_start is not none %} min="{{ f.tach_start }}"{% endif %}></div>
           </div>
-          {% if f.end_pick %}
-          <div class="small text-muted mb-1">{{ f.end_pick.rating }}: tick what belongs on the <strong>next flight</strong> (Flight) and any lesson to give as <strong>homework</strong> (Home).</div>
+        </div>
+        <div class="modal-footer py-2"><button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Confirm Hobbs and Tach</button></div>
+      </form>
+      {% elif step == 'items' %}
+      <form method="post" action="{{ url_for('flight.log_flight_items', flight_id=f.id) }}" class="modal-content">
+        <div class="modal-header py-2"><h6 class="modal-title"><i class="bi bi-list-check"></i> Items completed on this flight <span class="text-muted small fw-normal">{{ f.end_pick.rating }}</span></h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+        <div class="modal-body">
           {% for area in f.end_pick.areas %}
-          <details class="mb-1"><summary class="small fw-bold">{{ area.code }}. {{ area.title }}</summary>
+          <details class="mb-1"{% if area.tasks|selectattr('id', 'in', es.scores)|list %} open{% endif %}><summary class="small fw-bold">{{ area.code }}. {{ area.title }}</summary>
             {% for t in area.tasks %}
             <div class="d-flex align-items-center gap-2 small ps-3 py-1 border-top">
-              <label class="mb-0" title="Next flight"><input type="checkbox" name="focus_task" value="{{ t.id }}"{% if (',' ~ (f.next_focus or '') ~ ',').find(',' ~ t.id ~ ',') >= 0 %} checked{% endif %}> Flight</label>
+              <input type="checkbox" class="form-check-input mt-0 flight-done-box" name="done_task" value="{{ t.id }}" id="done-{{ f.id }}-{{ t.id }}"{% if t.id in es.scores %} checked{% endif %}>
+              <label class="mb-0 flex-grow-1" for="done-{{ f.id }}-{{ t.id }}">{{ t.code }}. {{ t.title }}</label>
+              <div class="btn-group btn-group-sm" role="group" aria-label="Score">
+                <input type="radio" class="btn-check flight-score" name="score_{{ t.id }}" id="sw-{{ f.id }}-{{ t.id }}" value="working" autocomplete="off"{% if es.scores.get(t.id, 'working') == 'working' %} checked{% endif %}>
+                <label class="btn btn-outline-warning" for="sw-{{ f.id }}-{{ t.id }}">Working</label>
+                <input type="radio" class="btn-check flight-score" name="score_{{ t.id }}" id="ss-{{ f.id }}-{{ t.id }}" value="standards" autocomplete="off"{% if es.scores.get(t.id) == 'standards' %} checked{% endif %}>
+                <label class="btn btn-outline-success" for="ss-{{ f.id }}-{{ t.id }}">At standards</label>
+              </div>
+            </div>
+            {% endfor %}
+          </details>
+          {% endfor %}
+        </div>
+        <div class="modal-footer py-2"><button type="submit" class="btn btn-primary"><i class="bi bi-journal-check"></i> Log</button></div>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('flight.log_flight_plan', flight_id=f.id) }}" class="modal-content">
+        <div class="modal-header py-2"><h6 class="modal-title"><i class="bi bi-list-check"></i> ACS planning <span class="text-muted small fw-normal">{{ f.end_pick.rating }}</span></h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+        <div class="modal-body">
+          <div class="small text-muted mb-1">Ticked <strong>Flight</strong> items are worked on the next flight (carried over from earlier flights); tick or untick as needed, and tick <strong>Home</strong> to give a lesson as homework.</div>
+          {% for area in f.end_pick.areas %}
+          <details class="mb-1"{% if area.tasks|selectattr('id', 'in', es.planned)|list %} open{% endif %}><summary class="small fw-bold">{{ area.code }}. {{ area.title }}</summary>
+            {% for t in area.tasks %}
+            <div class="d-flex align-items-center gap-2 small ps-3 py-1 border-top">
+              <label class="mb-0" title="Next flight"><input type="checkbox" name="focus_task" value="{{ t.id }}"{% if t.id in es.planned %} checked{% endif %}> Flight</label>
               <label class="mb-0" title="Homework"><input type="checkbox" name="hw_task" value="{{ t.id }}"{% if t.assigned %} disabled checked{% endif %}> Home</label>
               <span class="flex-grow-1">{{ t.code }}. {{ t.title }}</span>
             </div>
@@ -168,10 +203,10 @@
           </details>
           {% endfor %}
           <input type="text" name="hw_note" class="form-control form-control-sm mt-2" maxlength="500" placeholder="Homework note (optional)">
-          {% endif %}
         </div>
-        <div class="modal-footer py-2"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check2"></i> Save</button></div>
+        <div class="modal-footer py-2"><button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Save</button></div>
       </form>
+      {% endif %}
     </div>
   </div>
   {% endif %}
@@ -1292,14 +1327,19 @@ function computeFlightTotal(fId) {
     function hrs(h, label) { return h.toFixed(1) + ' ' + label + (h === 1 ? '' : 's'); }
     var lines = [];
     if (!b.solo) lines.push('Instructor: ' + hrs(b.instructorHours, 'timer hr') + ' x ' + rate(b.instructorRate) + ' = ' + money(b.instructorCost));
-    lines.push((isSim ? 'Sim: ' + hrs(b.hobbsHours, 'sim hr') : isOwnPlane ? 'Plane: ' + hrs(b.hobbsHours, 'recorded hr') : 'Plane: ' + hrs(b.hobbsHours, 'Hobbs hr'))
+    // Tach time (End Flight's Tach End minus Tach Start) shown beside the plane's Hobbs hours, so the
+    // instructor can see both the timer and tach figures that make up the total. Billing stays on Hobbs.
+    var tachS = document.getElementById('tach-start-' + fId), tachE = document.getElementById('tach-end-' + fId);
+    var tachHrs = (tachS && tachE) ? (parseFloat(tachE.value) - parseFloat(tachS.value)) : NaN;
+    var tachNote = (!isSim && !isOwnPlane && isFinite(tachHrs) && tachHrs > 0) ? ' (tach ' + tachHrs.toFixed(1) + ')' : '';
+    lines.push((isSim ? 'Sim: ' + hrs(b.hobbsHours, 'sim hr') : isOwnPlane ? 'Plane: ' + hrs(b.hobbsHours, 'recorded hr') : 'Plane: ' + hrs(b.hobbsHours, 'Hobbs hr') + tachNote)
       + ' x ' + rate(b.planeRate) + ' = ' + money(b.planeCost));
     if (b.groundHours > 0) lines.push('Ground: ' + hrs(b.groundHours, 'hr') + ' x ' + rate(b.instructorRate) + ' = ' + money(b.groundCost));
     breakdownEl.innerHTML = '';
     lines.forEach(function (t) { var d = document.createElement('div'); d.textContent = t; breakdownEl.appendChild(d); });
   }
 }
-document.querySelectorAll('[name="ground_time_hours"], [name="solo_hours"]').forEach(function (input) {
+document.querySelectorAll('[name="ground_time_hours"], [name="solo_hours"], [name="tach_end"]').forEach(function (input) {
   var form = input.closest('form');
   if (!form) return;
   input.addEventListener('input', function () { computeFlightTotal(form.id.replace('end-form-', '')); });
@@ -1449,6 +1489,17 @@ document.querySelectorAll('form[id^="end-form-"]').forEach(function (form) {
     if (el) el.addEventListener('input', refreshHobbsTachConfirm);
   });
   refreshHobbsTachConfirm();
+});
+
+// End Flight box: open the step the flight is up to after each save, and picking a score ticks the item.
+document.querySelectorAll('.end-flight-modal[data-auto-open]').forEach(function (el) {
+  if (window.bootstrap) bootstrap.Modal.getOrCreateInstance(el).show();
+});
+document.querySelectorAll('.flight-score').forEach(function (r) {
+  r.addEventListener('change', function () {
+    var box = document.getElementById('done-' + r.id.replace(/^s[ws]-/, ''));
+    if (box) box.checked = true;
+  });
 });
 </script>
 {% endblock %}

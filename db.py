@@ -2163,6 +2163,24 @@ def _migrate(conn):
     if "next_focus" not in flight_cols_starter:
         conn.execute("ALTER TABLE flights ADD COLUMN next_focus TEXT")
         conn.commit()
+    # End Flight steps (flight.log_end_flight / log_flight_items / log_flight_plan): when the ending Hobbs/Tach
+    # were confirmed, when the instructor logged the ACS items done on the flight, and when the next-flight plan
+    # was saved (it then shows as an "ACS planning" button on the card).
+    for col in ("end_confirmed_at", "acs_logged_at", "acs_planned_at"):
+        if col not in flight_cols_starter:
+            conn.execute("ALTER TABLE flights ADD COLUMN %s TEXT" % col)
+            conn.commit()
+    # ACS tasks the instructor marked as done on a flight, scored 'working' or 'standards'. No foreign key on
+    # purpose: discarding a flight deletes its rows by hand (flight.log_discard).
+    conn.execute("""CREATE TABLE IF NOT EXISTS flight_acs_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        flight_id INTEGER NOT NULL,
+        task_id INTEGER NOT NULL,
+        score TEXT NOT NULL DEFAULT 'working',
+        created_at TEXT,
+        UNIQUE(flight_id, task_id)
+    )""")
+    conn.commit()
 
     # An instructor's required reason for denying a student's flight request
     # (flight.schedule_deny) - the student sees this reason directly instead

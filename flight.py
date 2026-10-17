@@ -7414,6 +7414,7 @@ def log_active():
     wave_accounts, _wave_default = wave_billing.program_accounts(conn, "flight")
     # End Flight box: the ACS tasks to pick the next flight's focus / homework from (see log_end_flight).
     end_picks = {}
+    end_states = {}
     for r in rows:
         if r["guest_name"] or r["asset_is_simulator"] or not _can_end_flight(r):
             continue
@@ -7421,6 +7422,7 @@ def log_active():
         if stu:
             import groundschool
             end_picks[r["id"]] = groundschool.end_flight_picker(conn, stu)
+            end_states[r["id"]] = _end_flight_state(r, conn)
     conn.close()
     flights = []
     for r in rows:
@@ -7455,6 +7457,7 @@ def log_active():
                             late_base=_late_base(r).strftime("%Y-%m-%dT%H:%M:%S"),
                             eta_affected=affected.get(r["id"], []), sim_elapsed_hours=sim_elapsed_hours,
                             sim_elapsed_label=sim_elapsed_label, end_pick=end_picks.get(r["id"]),
+                            end_state=end_states.get(r["id"]),
                             next_focus_tasks=_next_focus_tasks(r)))
     # Still-flying flights above ones whose clock has already been stopped
     # and are just waiting on End Session's form to be filled in and
@@ -7476,6 +7479,7 @@ def log_active():
     # redirect scrolls down to the card (see log_ack_overdue / log_set_eta).
     return render_template("flight/log_active.html", flights=flights, eta_turnaround=ETA_TURNAROUND_MIN,
                            acked_id=request.args.get("acked", type=int),
+                           open_end_id=request.args.get("open_end", type=int),
                            eta_saved_id=request.args.get("eta_saved", type=int),
                            can_bill=can_manage_billing(), wave_connected=bool(wave_accounts))
 
@@ -7491,36 +7495,119 @@ def _next_focus_tasks(f):
     return ["%s. %s" % (r["code"], r["title"]) for r in rows]
 
 
+def _end_flight_back(flight_id, open_box=True):
+    """Back to the card; open_box reopens its End Flight box at the step the flight is up to."""
+    url = url_for("flight.log_active", flight_id=flight_id, **({"open_end": flight_id} if open_box else {}))
+    return redirect(url + f"#active-flight-{flight_id}")
+
+
+def _end_flight_state(f, conn):
+    """What the End Flight box on this card shows: step 'times' (confirm Hobbs/Tach), 'items' (ACS items
+    completed on this flight, scored) or 'plan' (what to work on next flight and at home). `plan` is also
+    what the "ACS planning" button reopens. Also returns the picks already made."""
+    if not f["end_confirmed_at"]:
+        step = "times"
+    elif not f["acs_logged_at"]:
+        step = "items"
+    else:
+        step = "plan"
+    scores = {r["task_id"]: r["score"] for r in conn.execute(
+        "SELECT task_id, score FROM flight_acs_items WHERE flight_id = ?", (f["id"],)).fetchall()}
+    # Next-flight boxes start ticked for everything planned on this student's earlier flights (and this one),
+    # except what was just scored At standards: that's done.
+    planned = set()
+    for r in conn.execute("SELECT next_focus FROM flights WHERE student_id = ? AND next_focus IS NOT NULL AND id != ?",
+                          (f["student_id"], f["id"])).fetchall():
+        planned.update(int(x) for x in r["next_focus"].split(",") if x.strip().isdigit())
+    if f["acs_planned_at"]:
+        planned = {int(x) for x in (f["next_focus"] or "").split(",") if x.strip().isdigit()}
+    else:
+        planned.update(int(x) for x in (f["next_focus"] or "").split(",") if x.strip().isdigit())
+        planned -= {t for t, sc in scores.items() if sc == "standards"}
+    return {"step": step, "scores": scores, "planned": planned}
+
+
+def _end_flight_flight(conn, flight_id):
+    """The running flight for an End Flight step, or None (after flashing why) if it can't be done."""
+    f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
+    if not f or not f["started_at"] or f["ended_at"]:
+        flash("That flight isn't currently running.", "danger")
+        return None
+    if not _can_end_flight(f):
+        flash("Only the assigned instructor, the student (on a solo flight), or a master admin can end this flight.", "danger")
+        return None
+    return f
+
+
 @flight_bp.route("/log/<int:flight_id>/end_flight", methods=["POST"])
 @login_required
 def log_end_flight(flight_id):
-    """End Flight (next to Pause): the flying part is over but the clock keeps running for the debrief.
-    Saves the ending Hobbs/Tach (End Session's form is then already filled in), the ACS tasks the instructor
-    wants on the next flight, and any ground-school homework for the student. Does not stop the clock."""
+    """End Flight, step 1 (next to Pause): the flying part is over but the clock keeps running for the debrief.
+    Saves the ending Hobbs and Tach (End Session's form is then already filled in) once both are confirmed,
+    then the card opens the ACS items step. Does not stop the clock."""
     conn = get_db()
-    f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
-    if not f or not f["started_at"] or f["ended_at"]:
+    f = _end_flight_flight(conn, flight_id)
+    if not f:
         conn.close()
-        flash("That flight isn't currently running.", "danger")
-        return redirect(url_for("flight.log_active"))
-    if not _can_end_flight(f):
-        conn.close()
-        flash("Only the assigned instructor, the student (on a solo flight), or a master admin can end this flight.", "danger")
         return redirect(url_for("flight.log_active"))
     hobbs_end = _parse_float(request.form.get("hobbs_end"))
     tach_end = _parse_float(request.form.get("tach_end"))
-    if hobbs_end is not None and f["hobbs_start"] is not None and hobbs_end < f["hobbs_start"]:
+    if hobbs_end is None or tach_end is None:
+        conn.close()
+        flash("Enter both Hobbs End and Tach End, then confirm.", "danger")
+        return _end_flight_back(flight_id)
+    if f["hobbs_start"] is not None and hobbs_end < f["hobbs_start"]:
         conn.close()
         flash("Hobbs End can't be lower than Hobbs Start.", "danger")
-        return redirect(url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}")
-    if tach_end is not None and f["tach_start"] is not None and tach_end < f["tach_start"]:
+        return _end_flight_back(flight_id)
+    if f["tach_start"] is not None and tach_end < f["tach_start"]:
         conn.close()
         flash("Tach End can't be lower than Tach Start.", "danger")
-        return redirect(url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}")
+        return _end_flight_back(flight_id)
+    conn.execute("UPDATE flights SET hobbs_end = ?, tach_end = ?, end_confirmed_at = ? WHERE id = ?",
+                 (hobbs_end, tach_end, now_iso(), flight_id))
+    conn.commit()
+    conn.close()
+    return _end_flight_back(flight_id)
+
+
+@flight_bp.route("/log/<int:flight_id>/end_flight_items", methods=["POST"])
+@login_required
+def log_flight_items(flight_id):
+    """End Flight, step 2 (the Log button): saves the ACS items completed on this flight, each scored
+    'working' or 'standards', then the card opens the planning step."""
+    conn = get_db()
+    f = _end_flight_flight(conn, flight_id)
+    if not f:
+        conn.close()
+        return redirect(url_for("flight.log_active"))
+    done = [int(x) for x in request.form.getlist("done_task") if x.isdigit()]
+    conn.execute("DELETE FROM flight_acs_items WHERE flight_id = ?", (flight_id,))
+    for tid in done:
+        if not conn.execute("SELECT 1 FROM acs_tasks WHERE id = ?", (tid,)).fetchone():
+            continue
+        score = "standards" if request.form.get("score_%d" % tid) == "standards" else "working"
+        conn.execute("INSERT INTO flight_acs_items (flight_id, task_id, score, created_at) VALUES (?, ?, ?, ?)",
+                     (flight_id, tid, score, now_iso()))
+    conn.execute("UPDATE flights SET acs_logged_at = ? WHERE id = ?", (now_iso(), flight_id))
+    conn.commit()
+    conn.close()
+    return _end_flight_back(flight_id)
+
+
+@flight_bp.route("/log/<int:flight_id>/end_flight_plan", methods=["POST"])
+@login_required
+def log_flight_plan(flight_id):
+    """End Flight, step 3 (Save): the ACS tasks for the next flight and any homework from the Flight Academy.
+    Afterwards the box shrinks to an "ACS planning" button on the card."""
+    conn = get_db()
+    f = _end_flight_flight(conn, flight_id)
+    if not f:
+        conn.close()
+        return redirect(url_for("flight.log_active"))
     focus = ",".join(str(int(x)) for x in request.form.getlist("focus_task") if x.isdigit())
-    conn.execute("UPDATE flights SET hobbs_end = COALESCE(?, hobbs_end), tach_end = COALESCE(?, tach_end), next_focus = ? WHERE id = ?",
-                 (hobbs_end, tach_end, focus or None, flight_id))
-    made = []
+    conn.execute("UPDATE flights SET next_focus = ?, acs_planned_at = ? WHERE id = ?", (focus or None, now_iso(), flight_id))
+    made, st, who, note = [], None, None, None
     hw_ids = [int(x) for x in request.form.getlist("hw_task") if x.isdigit()]
     if hw_ids and f["student_id"] and not f["guest_name"]:
         import groundschool
@@ -7532,10 +7619,9 @@ def log_end_flight(flight_id):
     if made and st:
         groundschool._notify_homework(conn, st, who, made, note, None)
     conn.close()
-    flash("Flight ended - clock is still running. Saved the readings%s%s." % (
-        ", next-flight focus" if focus else "", (", and %d homework lesson%s" % (len(made), "" if len(made) == 1 else "s")) if made else ""),
-        "success")
-    return redirect(url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}")
+    flash("Saved the plan for the next flight%s." % ((" and %d homework lesson%s" % (len(made), "" if len(made) == 1 else "s")) if made else ""),
+          "success")
+    return _end_flight_back(flight_id, open_box=False)
 
 
 def _late_base(f):
@@ -8108,6 +8194,7 @@ def log_discard(flight_id):
                      (f["scheduled_flight_id"],))
     _log_field_change(conn, "flight", flight_id, "discarded", "started by mistake", "", session.get("user_name"))
     pilotlog.remove_for_flight(conn, flight_id)
+    conn.execute("DELETE FROM flight_acs_items WHERE flight_id = ?", (flight_id,))
     conn.execute("DELETE FROM flights WHERE id = ?", (flight_id,))
     conn.commit()
     conn.close()
