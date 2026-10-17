@@ -2986,7 +2986,9 @@ def student_add_funds(student_id):
         except (TypeError, ValueError):
             pass
     method = (request.form.get("paid_method") or "").strip()[:40] or ("Card" if request.form.get("paid_by_card") == "1" else None)
-    r = flight_payments.apply_funds_to_flights(conn, student_id, amount, apply_ids, method=method, note=note,
+    # Prepaid credit: a plain top-up's ledger line also names how it was paid.
+    ledger_note = f"{method}: {note}" if (method and note and method != "Card") else (method if (method and not note and method != "Card") else note)
+    r = flight_payments.apply_funds_to_flights(conn, student_id, amount, apply_ids, method=method, note=note, ledger_note=ledger_note,
                                                created_by=session.get("user_name"), can_confirm=bool(is_flight_admin()),
                                                user_id=session.get("user_id"))
     if not r["ok"]:

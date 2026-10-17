@@ -393,7 +393,7 @@
 {#- SCHOOL-14: id="account" so the Account page's Add Funds link lands here. #}
 <div class="card p-4 mt-3 anchor-offset" id="account" data-change="SCHOOL-14">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-    <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Account</h5>
+    <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Account &amp; prepaid credit</h5>
     {% if student.balance > 0.005 %}
     <span class="badge bg-success fs-6">${{ '%.2f'|format(student.balance) }} credit</span>
     {% elif student.balance < -0.005 %}
@@ -402,11 +402,17 @@
     <span class="badge bg-light text-dark border fs-6">$0.00 balance</span>
     {% endif %}
   </div>
-  <p class="text-muted small mb-3">Balance updates automatically when a flight is logged (its cost is deducted) - use this to record a payment or top-up.</p>
-  <form method="post" id="add-funds-form" action="{{ url_for('flight.student_add_funds', student_id=student.id) }}" class="row g-2 align-items-end mb-3" data-confirm="Add $[[amount]] to {{ student.name }}'s balance?" data-confirm-title="Add Funds" data-confirm-ok="Yes, add funds" data-confirm-style="success">
+  <p class="text-muted small mb-3">Balance updates automatically when a flight is logged (its cost is deducted) - use this to add a prepayment to the student's account.</p>
+  <form method="post" id="add-funds-form" action="{{ url_for('flight.student_add_funds', student_id=student.id) }}" class="row g-2 align-items-end mb-3" data-confirm="Add $[[amount]] prepayment to {{ student.name }}'s account?" data-confirm-title="Add prepayment" data-confirm-ok="Yes, add it" data-confirm-style="success">
     <div class="col-auto">
-      <label class="form-label small mb-0">Add Funds ($)</label>
+      <label class="form-label small mb-0">Prepayment ($)</label>
       <input type="number" step="0.01" min="0.01" name="amount" id="add-funds-amount" class="form-control form-control-sm" placeholder="e.g. 500.00" required style="width:140px;">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-0">Method</label>
+      <select name="paid_method" class="form-select form-select-sm" style="width:130px;">
+        <option value="">-</option><option>Cash</option><option>Check</option><option>Venmo/Zelle</option><option>Other</option>
+      </select>
     </div>
     <div class="col-auto">
       <label class="form-label small mb-0">Note <span class="text-muted">(optional)</span></label>
@@ -440,7 +446,7 @@
     </div>
     {% endif %}
     <div class="col-auto">
-      <button type="submit" class="btn btn-success btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Add Funds</button>
+      <button type="submit" class="btn btn-success btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Add prepayment</button>
     </div>
   </form>
   <script>
@@ -486,7 +492,7 @@
         <tr>
           <td class="small" data-label="Date">{{ entry.created_at|usdate }} {{ entry.created_at|time12 }}</td>
           <td class="small" data-label="Type">
-            {% if entry.entry_type == 'funds_added' %}<span class="badge bg-success">Funds Added</span>
+            {% if entry.entry_type == 'funds_added' %}<span class="badge bg-success">Prepayment</span>
             {% elif entry.entry_type == 'flight_deduction' %}<span class="badge bg-secondary">Flight</span>
             {% elif entry.entry_type == 'cancellation_fee' %}<span class="badge bg-danger">Late Cancel</span>
             {% elif entry.entry_type == 'payment' %}<span class="badge bg-success" data-change="SCHOOL-01">Payment</span>

@@ -176,7 +176,7 @@ def unpaid_flights_for_student(conn, student_id):
 
 
 def apply_funds_to_flights(conn, student_id, amount, flight_ids, method=None, note=None, created_by=None,
-                           can_confirm=True, user_id=None):
+                           can_confirm=True, user_id=None, ledger_note=None):
     """Add Funds, applied to flights: ``amount`` dollars came in; the
     flights in ``flight_ids`` (this student's, unpaid) are each marked paid
     with their own payment line, and whatever is left over goes on as a
@@ -217,7 +217,7 @@ def apply_funds_to_flights(conn, student_id, amount, flight_ids, method=None, no
             logged_ids.append(r["confirmation_id"])
     remainder = round(amount - needed, 2)
     if remainder > 0.005:
-        fl._ledger_entry(conn, student_id, "funds_added", remainder, note=note, created_by=created_by)
+        fl._ledger_entry(conn, student_id, "funds_added", remainder, note=ledger_note if ledger_note is not None else note, created_by=created_by)
     return {"ok": True, "error": None, "paid": labels, "logged_ids": logged_ids, "applied": needed, "remainder": remainder}
 
 
