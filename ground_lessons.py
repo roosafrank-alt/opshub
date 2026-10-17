@@ -61,7 +61,7 @@ def rich(text):
     s = str(escape(text or ""))
 
     def link(m):
-        return ('<a href="%s" target="_blank" rel="noopener" class="gsl-cite">%s</a>'
+        return ('<a href="%s" class="gsl-cite">%s</a>'
                 % (cite_url(m.group(1), m.group(2)), m.group(3)))
     s = _CITE_RE.sub(link, s)
     s = _BOLD_RE.sub(r"<b>\1</b>", s)

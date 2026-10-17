@@ -1961,6 +1961,14 @@ def resource_excerpt(resource_id):
     if not pages:
         abort(400)
     pages = pages[:5]
+    if not request.args.get("raw"):
+        # Wrapper page with a Back button: an installed phone app has no browser
+        # chrome, so a bare PDF would leave the lesson with no way back.
+        return render_template("flight/groundschool_excerpt.html", title=r["title"],
+                               pages=pages,
+                               pdf_url=url_for("groundschool.resource_excerpt",
+                                               resource_id=resource_id,
+                                               pages=",".join(map(str, pages)), raw=1))
     pdf_path = os.path.join(UPLOAD_DIR, r["filename"])
     try:
         buf = _excerpt_pdf_bytes(pdf_path, pages)

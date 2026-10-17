@@ -26,7 +26,7 @@
     {% elif b.figure and L.figures and L.figures.get(b.figure) %}
       {% set f = L.figures[b.figure] %}
       <figure class="gsl-fig"><img src="{{ url_for('static', filename='lessons/' ~ f.file) }}" alt="{{ f.alt or f.caption }}" loading="lazy">
-        <figcaption>{{ f.caption }} · <a href="{{ gs_cite_url(f.res, f.page) }}" target="_blank" rel="noopener">{{ f.source }}</a></figcaption></figure>
+        <figcaption>{{ f.caption }} · <a href="{{ gs_cite_url(f.res, f.page) }}">{{ f.source }}</a></figcaption></figure>
     {% endif %}
   {% endfor %}
   {% if c.check %}<details class="gsl-check"><summary>Check yourself: {{ gs_rich(c.check.q) }}</summary><div>{{ gs_rich(c.check.a) }}</div></details>{% endif %}
@@ -117,7 +117,7 @@
   <div class="gsl-q" data-n="{{ n }}">
     <div class="gsl-stem">{{ n if number_through else loop.index }}. {{ gs_rich(q.q) }}</div>
     {% if q.fig %}<figure class="gsl-fig gsl-qfig"><img src="{{ url_for('static', filename='lessons/' ~ q.fig.file) }}" alt="{{ q.fig.alt or q.fig.caption }}" loading="lazy">
-      <figcaption>{{ q.fig.caption }} · <a href="{{ gs_cite_url(q.fig.res, q.fig.page) }}" target="_blank" rel="noopener">{{ q.fig.source }}</a></figcaption></figure>{% endif %}
+      <figcaption>{{ q.fig.caption }} · <a href="{{ gs_cite_url(q.fig.res, q.fig.page) }}">{{ q.fig.source }}</a></figcaption></figure>{% endif %}
     <div class="gsl-opts">{% for o in q.options %}<button type="button" data-j="{{ loop.index0 }}">{{ gs_rich(o) }}</button>{% endfor %}</div>
     <div class="gsl-qwhy" hidden>{{ gs_rich(q.why) }}</div>
   </div>

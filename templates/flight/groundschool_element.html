@@ -40,7 +40,7 @@
       match, not a guaranteed answer key).</p>
     {% for rp in related_pages %}
     <a href="{{ url_for('groundschool.resource_excerpt', resource_id=rp.resource_id, pages=(rp.page_num, rp.page_num + 1)|join(',')) }}"
-       target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm me-2 mb-2">
+       class="btn btn-outline-primary btn-sm me-2 mb-2">
       <i class="bi bi-file-earmark-pdf"></i> {{ rp.title }} - p.{{ rp.page_num }}
     </a>
     {% endfor %}
@@ -64,7 +64,7 @@
 
         {% elif it.kind == 'link' %}
         {% if it.body %}<div class="mb-1 text-muted small">{{ it.body }}</div>{% endif %}
-        <a href="{{ it.url }}" target="_blank" rel="noopener" class="lesson-link-item btn btn-sm {{ 'btn-success' if it.id in done_item_ids else 'btn-outline-primary' }}"
+        <a href="{{ it.url }}" class="lesson-link-item btn btn-sm {{ 'btn-success' if it.id in done_item_ids else 'btn-outline-primary' }}"
            data-interact-url="{{ url_for('groundschool.element_item_interact', element_id=el.id, item_id=it.id) }}"
            {% if session.get('student_id') %}onclick="markLinkClicked(event)"{% endif %}>
           {% if it.id in done_item_ids %}<i class="bi bi-check-lg"></i>{% else %}<i class="bi bi-box-arrow-up-right"></i>{% endif %}

@@ -31,7 +31,7 @@
       <h6>Pre-reading</h6>
       <ol class="gsl-list">
         {% for p in L.prereading or [] %}
-        <li><a href="{{ gs_cite_url(p.res, p.pages[0]) }}" target="_blank" rel="noopener"><b>{{ p.label }}</b></a><br>{{ gs_rich(p.what) }}</li>
+        <li><a href="{{ gs_cite_url(p.res, p.pages[0]) }}"><b>{{ p.label }}</b></a><br>{{ gs_rich(p.what) }}</li>
         {% endfor %}
       </ol>
     </div>
@@ -97,7 +97,7 @@
     {% if gs_ref_list %}
     <details class="gsl-panel gsl-refs-fold">
       <summary>References used ({{ gs_ref_list|length }})</summary>
-      <ul class="gsl-refs">{% for label, href in gs_ref_list %}<li><a href="{{ href }}" target="_blank" rel="noopener">{{ label }}</a></li>{% endfor %}</ul>
+      <ul class="gsl-refs">{% for label, href in gs_ref_list %}<li><a href="{{ href }}">{{ label }}</a></li>{% endfor %}</ul>
     </details>
     {% endif %}
   </section>

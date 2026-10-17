@@ -1,0 +1,54 @@
+{
+ "checks": [
+  {
+   "role": "flight_student",
+   "size": "phone",
+   "sql": [
+    "INSERT INTO acs_ratings (id,name,slug,uploaded_at,status) VALUES (900,'Private Pilot','ppl-x','2026-10-01','parsed')",
+    "INSERT INTO acs_areas (id,rating_id,code,title,order_index) VALUES (900,900,'I','Preflight Preparation',1)",
+    "INSERT INTO acs_tasks (id,area_id,code,title,acs_references,order_index) VALUES (900,900,'A','Pilot Qualifications','',1)",
+    "INSERT INTO acs_task_elements (task_id,kind,code,text,order_index) VALUES (900,'knowledge','PA.I.A.K1','Certification requirements.',1)",
+    "INSERT INTO acs_resources (id,title,doc_type,filename,uploaded_at) VALUES (60,'14 CFR Part 61','regulation','proof-sample.pdf','2026-10-01')",
+    "INSERT INTO academy_course_grants (student_id,rating_id,granted_at) VALUES ({student},900,'2026-10-01')"
+   ],
+   "steps": [
+    [
+     "start",
+     "/flight/groundschool/task/900"
+    ],
+    [
+     "see",
+     "Pre-reading"
+    ],
+    [
+     "tap",
+     "14 CFR 61.113"
+    ],
+    [
+     "see",
+     "Back to lesson"
+    ],
+    [
+     "shot",
+     {
+      "caption": "Opened reading now has a Back to lesson button",
+      "changed": [
+       {
+        "sel": "#back",
+        "note": "Back to lesson"
+       }
+      ]
+     }
+    ],
+    [
+     "tap",
+     "Back to lesson"
+    ],
+    [
+     "see",
+     "Pre-reading"
+    ]
+   ]
+  }
+ ]
+}
