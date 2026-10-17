@@ -1122,6 +1122,26 @@ def pilot_badge_info(row):
 
 
 @flight_bp.app_template_global()
+def schedule_is_instructor(row):
+    """True when the person in a booking's pilot seat is an instructor - a
+    linked, active CFI profile or a CFI/CFII/MEI rating on file. The
+    Schedule shows these as a plain "CFI" badge instead of their
+    certificate tier, so every instructor reads the same there."""
+    if _row_get(row, "student_is_cfi"):
+        return True
+    if any(r in INSTRUCTOR_RATINGS for r in _pilot_ratings_list(row)):
+        return True
+    # A plain students row (not from a schedule query) - look the link up.
+    if row is not None and "student_is_cfi" not in row.keys() and _row_get(row, "user_id"):
+        try:
+            return get_db().execute("SELECT 1 FROM cfis WHERE user_id = ? AND active = 1",
+                                    (row["user_id"],)).fetchone() is not None
+        except Exception:
+            return False
+    return False
+
+
+@flight_bp.app_template_global()
 def rating_badge_items(row):
     """Just the rating badges (works even with no certificate set)."""
     labels = dict(PILOT_RATINGS)
@@ -1913,7 +1933,9 @@ def _dashboard_context(conn, cfi, student):
         # and watches the completed count climb as flights get logged/ended.
         today_flights = conn.execute("""
             SELECT sf.*, a.tag as plane_tag, COALESCE(NULLIF(sf.guest_name, '') || ' (guest)', s.name) as student_name,
-                   s.pilot_certificate as pilot_certificate, s.balance as student_balance, c.name as cfi_name, c.color as cfi_color,
+                   s.pilot_certificate as pilot_certificate, s.pilot_ratings as pilot_ratings, s.first_solo_date as first_solo_date,
+                   (s.user_id IS NOT NULL AND EXISTS (SELECT 1 FROM cfis sc WHERE sc.user_id = s.user_id AND sc.active = 1)) as student_is_cfi,
+                   s.balance as student_balance, c.name as cfi_name, c.color as cfi_color,
                    fl.id as flight_id
             FROM scheduled_flights sf
             JOIN assets a ON a.id = sf.asset_id
@@ -4080,6 +4102,7 @@ _SCHEDULE_ROW_SQL = """SELECT sf.*, a.tag as plane_tag, a.name as plane_name, CO
                      s.is_station as student_is_station, s.pilot_certificate as pilot_certificate,
                      s.pilot_ratings as pilot_ratings, s.first_solo_date as first_solo_date,
                      s.balance as student_balance,
+                     (s.user_id IS NOT NULL AND EXISTS (SELECT 1 FROM cfis sc WHERE sc.user_id = s.user_id AND sc.active = 1)) as student_is_cfi,
                      c.name as cfi_name, c.color as cfi_color,
                      a.schedule_color as plane_color, a.solo_color as plane_solo_color,
                      a.is_owner_placeholder as is_owner_placeholder

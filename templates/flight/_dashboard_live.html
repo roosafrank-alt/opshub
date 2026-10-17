@@ -1,4 +1,4 @@
-{% from "flight/_pilot_badge.html" import pilot_badge %}
+{% from "flight/_pilot_badge.html" import pilot_badge, schedule_pilot_badge %}
 {#
   Fast-changing dashboard sections. Rendered two ways with the exact same
   context (see _dashboard_context() in flight.py):
@@ -785,7 +785,7 @@
       {%- if f.needs_review_flag %}<i class="bi bi-exclamation-triangle-fill {{ 'text-danger' if f.needs_review_active else 'text-warning' }}" title="{{ 'Acknowledged - not resolved yet: ' if not f.needs_review_active }}{{ f.review_reason }}"></i> {% endif -%}
       {%- if f.confirm_required and not f.confirmed_at %}<i class="bi bi-patch-question-fill text-warning" title="Awaiting the student's confirmation"></i> {% elif f.confirm_required %}<i class="bi bi-patch-check-fill text-success" title="Confirmed by the student"></i> {% endif -%}
       {{ f.student_name }}
-      {{- ' ' }}{{ pilot_badge(f) }}
+      {{- ' ' }}{{ schedule_pilot_badge(f) }}
       {%- if f.solo %} <span class="badge bg-secondary">Solo</span>{% endif -%}
       {%- if f.is_balance_hold %} <span class="badge bg-warning text-dark">Pending - Balance Hold</span>{% endif -%}
     </div>

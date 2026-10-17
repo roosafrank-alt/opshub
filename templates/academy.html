@@ -18,7 +18,7 @@
 </head>
 <body>
 {% include "_academy_header.html" %}
-{% from "flight/_pilot_badge.html" import pilot_badge, rating_badges, pilot_badge_css %}{{ pilot_badge_css() }}
+{% from "flight/_pilot_badge.html" import pilot_badge, rating_badges, pilot_badge_css, schedule_pilot_badge %}{{ pilot_badge_css() }}
 <style>
   .lb-card { border-radius: 12px; }
   .lb-row { display: flex; align-items: center; gap: .5rem; padding: .35rem 0; border-top: 1px solid #eef0f3; }
@@ -169,7 +169,7 @@
         {% for rank, st in boards[key] %}
         <div class="lb-row {{ 'lb-me' if me and st.id == me.id }}">
           <span class="lb-rank lb-rank-{{ rank }}">{% if rank <= 3 %}<i class="bi bi-trophy-fill"></i>{% else %}{{ rank }}{% endif %}</span>
-          <span class="flex-grow-1 text-truncate">{{ st.name }} {{ pilot_badge(st.student) }}</span>
+          <span class="flex-grow-1 text-truncate">{{ st.name }} {{ schedule_pilot_badge(st.student) }}</span>
           <strong>{% if key == 'hours' %}{{ '%.1f'|format(st[key]) }}{% elif key == 'distance_nm' %}{{ '{:,.0f}'.format(st[key]) }}{% else %}{{ st[key] }}{% endif %}</strong>
           <span class="small text-muted">{{ unit }}</span>
         </div>

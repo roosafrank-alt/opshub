@@ -17,7 +17,7 @@
   rebuilt on every poll - see the delegated click handler in schedule.html's
   scripts block, which keeps working on freshly-swapped-in blocks/rows.
 #}
-{% from "flight/_pilot_badge.html" import pilot_badge %}
+{% from "flight/_pilot_badge.html" import pilot_badge, schedule_pilot_badge %}
 {% macro schedule_block(f, compact=False, extra_style='', extra_class='') %}
 {% set is_hl = highlight_ids is defined and highlight_ids and f.id in highlight_ids %}
 {% set is_dim = highlight_ids is defined and highlight_ids and not is_hl %}
@@ -85,7 +85,7 @@
     <span class="sb-time">{{ f.short_time or '--' }}</span> {{ f.plane_tag }}
   </div>
   {% if not compact and (session.get('cfi_id') or flight_admin) %}
-  <div class="text-truncate sb-line2">{{ f.student_name }} {{ pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% if f.student_owed %} &middot; <span class="text-danger fw-bold">${{ '%.0f'|format(f.student_owed) }} owed</span>{% endif %}</div>
+  <div class="text-truncate sb-line2">{{ f.student_name }} {{ schedule_pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% if f.student_owed %} &middot; <span class="text-danger fw-bold">${{ '%.0f'|format(f.student_owed) }} owed</span>{% endif %}</div>
   {% endif %}
 </div>
 {% endif %}
@@ -153,7 +153,7 @@
     {%- if f.status == 'in_progress' %}<i class="bi bi-stopwatch" title="In progress"></i> {% elif f.status == 'completed' %}<i class="bi bi-check-circle" title="Completed"></i> {% elif f.status == 'balance_hold' %}<i class="bi bi-pause-circle" title="Pending - Balance Hold"></i> {% endif -%}
     <strong>{{ f.short_time or '--' }}</strong> {{ f.plane_tag }}
   </div>
-  {% if session.get('cfi_id') or flight_admin %}<div class="text-truncate day-timeline-block-line2">{{ f.student_name }} {{ pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% if f.student_owed %} &middot; <span class="text-danger fw-bold">${{ '%.0f'|format(f.student_owed) }} owed</span>{% endif %}</div>{% endif %}
+  {% if session.get('cfi_id') or flight_admin %}<div class="text-truncate day-timeline-block-line2">{{ f.student_name }} {{ schedule_pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% if f.student_owed %} &middot; <span class="text-danger fw-bold">${{ '%.0f'|format(f.student_owed) }} owed</span>{% endif %}</div>{% endif %}
 </div>
 {% endif %}
 {% endmacro %}
@@ -218,7 +218,7 @@
     {%- if f.status == 'in_progress' %}<i class="bi bi-stopwatch" title="In progress"></i> {% elif f.status == 'completed' %}<i class="bi bi-check-circle" title="Completed"></i> {% elif f.status == 'balance_hold' %}<i class="bi bi-pause-circle" title="Pending - Balance Hold"></i> {% endif -%}
     <span class="sb-time">{{ f.short_time or '--' }}</span> {{ f.plane_tag }}
   </div>
-  {% if session.get('cfi_id') or flight_admin %}<div class="text-truncate sb-line2">{{ f.student_name }} {{ pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% if f.student_owed %} &middot; <span class="text-danger fw-bold">${{ '%.0f'|format(f.student_owed) }}</span>{% endif %}</div>{% endif %}
+  {% if session.get('cfi_id') or flight_admin %}<div class="text-truncate sb-line2">{{ f.student_name }} {{ schedule_pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% if f.student_owed %} &middot; <span class="text-danger fw-bold">${{ '%.0f'|format(f.student_owed) }}</span>{% endif %}</div>{% endif %}
   {%- if style.height_px >= 38 %}
   <div class="text-truncate sb-line3">{% if f.end_time_label %}to {{ f.end_time_label }} &middot; {% endif %}{{ '%g'|format(f.duration_hours or 1.5) }} hr</div>
   {%- endif %}
@@ -486,7 +486,7 @@
   {% if show_date %}<td data-label="Date"><small class="{{ 'fw-bold' if new_day }}">{{ f.scheduled_date|usdate }}</small>{% if new_day and is_today %} <span class="badge bg-warning text-dark">Today</span>{% endif %}</td>{% endif %}
   <td data-label="Time"><small>{{ f.time_label or 'Not set' }}</small></td>
   <td data-label="Plane"><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:{{ f.display_color }};vertical-align:-1px;{% if f.cfi_display_color %}border-left:4px solid {{ f.cfi_display_color }};{% endif %}" title="Plane color{{ ' (neon = solo)' if f.solo }}{{ ' / instructor stripe' if f.cfi_display_color }}"></span> {{ f.plane_tag }}</td>
-  <td class="stack-full" data-label="Student / Instructor">{% if session.get('cfi_id') or flight_admin %}{{ f.student_name }} {{ pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}
+  <td class="stack-full" data-label="Student / Instructor">{% if session.get('cfi_id') or flight_admin %}{{ f.student_name }} {{ schedule_pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}
     {% if f.student_owed %}<a href="{{ url_for('flight.student_field_detail', student_id=f.student_id, field_key='account') }}"
        class="badge bg-danger text-decoration-none" onclick="event.stopPropagation();"><i class="bi bi-cash-coin"></i> ${{ '%.0f'|format(f.student_owed) }} owed</a>{% endif %}
     {% endif %}</td>

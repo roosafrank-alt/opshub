@@ -13,6 +13,14 @@
 {%- endif -%}
 {% endmacro %}
 
+{#- Schedule only: an instructor in the pilot seat just says "CFI" (no
+   certificate tier or stars) - see schedule_is_instructor() in flight.py. #}
+{% macro schedule_pilot_badge(row) %}
+{%- if schedule_is_instructor(row) -%}
+<span class="pilot-badge pilot-badge-sm" title="Instructor" style="--pb-color: #1f4e8c;"><i class="bi bi-person-badge"></i> CFI</span>
+{%- else -%}{{ pilot_badge(row) }}{%- endif -%}
+{% endmacro %}
+
 {#- One badge per rating/endorsement (Instrument, Complex, High Performance,
    Tailwheel, Multi-Engine, CFI, CFII, MEI) - see RATING_BADGES in
    flight.py. 'sm' shows short text for lists; 'lg' the full name. #}
