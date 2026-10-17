@@ -2,7 +2,7 @@
 {% block title %}System · Admin{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
-<div class="col-lg-7">
+<div class="col-lg-9">
 <h4 class="mb-3"><i class="bi bi-hdd-rack"></i> System</h4>
 <p class="text-muted small">
   Master-admin only. Use these if the app or the Pi itself gets stuck and you're not physically there to
@@ -10,7 +10,9 @@
   SSH isn't.
 </p>
 
-<div class="card p-4 mb-3">
+<div class="row g-3 mb-3">
+<div class="col-md-6">
+<div class="card p-4 h-100">
   <h6><i class="bi bi-thermometer-half"></i> Pi Temperature</h6>
   <p class="text-muted small mb-0">
     {% if pi_temp_c is not none %}
@@ -25,7 +27,9 @@
   </p>
 </div>
 
-<div class="card p-4 mb-3">
+</div>
+<div class="col-md-6">
+<div class="card p-4 h-100">
   <h6><i class="bi bi-stopwatch"></i> Slow Pages</h6>
   <p class="text-muted small">
     Pages that took the app more than {{ "%.1f"|format(slow.slow_ms / 1000) }} seconds to build, over the last {{ slow.days }} days.
@@ -50,6 +54,29 @@
   {% endif %}
 </div>
 
+</div>
+<div class="col-md-6">
+<div class="card p-4 h-100">
+  <h6><i class="bi bi-file-text"></i> Error Log</h6>
+  <p class="text-muted small mb-2">
+    Every unhandled error the app hits gets logged here with its full traceback, so if something breaks
+    you can pull it up right from your phone (no SSH needed) and hand it to Claude to look at and fix.
+  </p>
+  <a href="{{ url_for('admin_system_log') }}" class="btn btn-outline-secondary fw-bold"><i class="bi bi-file-text"></i> View Error Log</a>
+</div>
+
+</div>
+<div class="col-md-6">
+<div class="card p-4 h-100">
+  <h6><i class="bi bi-shield-lock"></i> Login Attempts</h6>
+  <p class="text-muted small mb-2">Failed logins and lockouts, with an Unlock button for a locked account.</p>
+  <a href="{{ url_for('admin_login_attempts') }}" class="btn btn-outline-secondary fw-bold"><i class="bi bi-shield-lock"></i> View Login Attempts</a>
+</div>
+
+</div>
+</div>
+
+<h6 class="text-muted text-uppercase small mt-4 mb-2">Power - only when something is stuck</h6>
 <div class="card p-4 mb-3">
   <h6><i class="bi bi-arrow-clockwise"></i> Restart the App</h6>
   <p class="text-muted small">
@@ -80,6 +107,9 @@
     SD card or the database. OpsHub will be <strong>offline for everyone</strong> until it's turned back on,
     and the uptime monitor will send its "OpsHub is down" alert while it's off - that's expected.
   </p>
+  <details class="mb-3">
+    <summary class="small fw-bold">How to shut down and turn it back on</summary>
+    <div class="mt-2">
   <ol class="text-muted small mb-3">
     <li>Tap <strong>Shut Down Pi</strong> below.</li>
     <li>Wait until the Pi's green light stops blinking (about 20-30 seconds). The red light may stay on - that's fine.</li>
@@ -91,24 +121,11 @@
     Pi. Unplug the power cable and plug it back in (on a Raspberry Pi 5 you can instead press its small
     power button once). OpsHub comes back up by itself in about a minute; just reload this page.
   </p>
+    </div>
+  </details>
   <form method="post" action="{{ url_for('admin_system_shutdown') }}" data-confirm="OpsHub will go OFFLINE for everyone and stay off until someone unplugs and replugs the Pi's power." data-confirm-title="Shut down the Pi?" data-confirm-ok="Shut down" data-confirm-style="danger" data-change="HUB-30">
     <button class="btn btn-danger fw-bold"><i class="bi bi-power"></i> Shut Down Pi</button>
   </form>
-</div>
-
-<div class="card p-4 mb-3">
-  <h6><i class="bi bi-shield-lock"></i> Login Attempts</h6>
-  <p class="text-muted small mb-2">Failed logins and lockouts, with an Unlock button for a locked account.</p>
-  <a href="{{ url_for('admin_login_attempts') }}" class="btn btn-outline-secondary fw-bold"><i class="bi bi-shield-lock"></i> View Login Attempts</a>
-</div>
-
-<div class="card p-4 mb-3">
-  <h6><i class="bi bi-file-text"></i> Error Log</h6>
-  <p class="text-muted small mb-2">
-    Every unhandled error the app hits gets logged here with its full traceback, so if something breaks
-    you can pull it up right from your phone (no SSH needed) and hand it to Claude to look at and fix.
-  </p>
-  <a href="{{ url_for('admin_system_log') }}" class="btn btn-outline-secondary fw-bold"><i class="bi bi-file-text"></i> View Error Log</a>
 </div>
 
 <div class="card p-4">
