@@ -691,7 +691,7 @@
           <a href="{{ _ll_log_url }}" class="btn btn-success fw-bold"><i class="bi bi-journal-check"></i> Log this lesson</a>
           {#- Student never came: cancels it as "No-show", charges the late-cancel fee, frees the plane. #}
           <form method="post" action="{{ url_for('flight.schedule_no_show', scheduled_id=log_lesson.id) }}"
-                onsubmit="return confirm('Mark {{ log_lesson.student_name|e }} as a no-show? {{ ('$%.2f late-cancel fee will be charged and the plane freed.'|format(log_lesson.no_show_fee)) if log_lesson.no_show_fee else 'The plane will be freed (no late-cancel fee is set).' }}');">
+                data-confirm="Mark {{ log_lesson.student_name|e }} as a no-show? {{ ('$%.2f late-cancel fee will be charged and the plane freed.'|format(log_lesson.no_show_fee)) if log_lesson.no_show_fee else 'The plane will be freed (no late-cancel fee is set).' }}" data-confirm-title="Mark No-show" data-confirm-ok="Yes, mark no-show" data-confirm-style="danger">
             <button class="btn btn-outline-danger fw-bold"><i class="bi bi-person-x"></i> No-show{% if log_lesson.no_show_fee %} &middot; charge ${{ '%.2f'|format(log_lesson.no_show_fee) }}{% endif %}</button>
           </form>
         </div>
