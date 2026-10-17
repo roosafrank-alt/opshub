@@ -274,6 +274,8 @@
         </td>
         {% elif cell.is_past %}
         <td class="avail-slot-past" title="{{ cell.label }} has already passed">Past</td>
+        {% elif cell.down %}
+        <td class="avail-slot-past" title="{{ row.plane.tag }} is down for maintenance ({{ cell.down_reason }}) and can't be booked">Grounded</td>
         {% else %}
         {#- schedule_new() takes ?time=HH:MM and ?asset_id=..., so this
            slot's start time and plane come pre-filled. #}

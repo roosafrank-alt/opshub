@@ -4685,9 +4685,13 @@ def _build_availability_day(conn, date_str, plane_id=None):
                 if _windows_overlap(window, _time_window(f["scheduled_time"], f["duration_hours"])):
                     booked_flight = f
                     break
+            # A grounded tool (plane, simulator or other) can't be booked from
+            # today on, so its open slots show greyed out instead of Open.
+            down = bool(p["grounded_at"]) and date_str >= today_str
             cells.append({"start_min": slot["start_min"], "label": slot["label"], "is_past": slot["is_past"],
-                          "requests_only": slot["requests_only"], "booked": booked_flight is not None, "flight": booked_flight})
-            if booked_flight is None:
+                          "requests_only": slot["requests_only"], "booked": booked_flight is not None, "flight": booked_flight,
+                          "down": down and booked_flight is None, "down_reason": p["grounded_reason"] or "grounded by an admin"})
+            if booked_flight is None and not down:
                 open_list.append({"plane_tag": p["tag"], "plane_id": p["id"],
                                   "label": slot["label"], "start_min": slot["start_min"], "is_past": slot["is_past"],
                                   "requests_only": slot["requests_only"]})

@@ -63,7 +63,7 @@
              wherever their tag happens to fall alphabetically among the
              real planes. #}
           {% for p in planes|sort(attribute='is_simulator') %}
-          <option value="{{ p.id }}" data-hobbs="{{ p.hobbs_hours if p.hobbs_hours is not none else '' }}" data-tach="{{ p.tach_hours if p.tach_hours is not none else '' }}" data-solo-allowed="{{ '1' if p.solo_allowed else '' }}" data-sim="{{ '1' if p.is_simulator else '' }}" {% if (form and form.get('asset_id')|string == p.id|string) or (not form and sched and sched.asset_id == p.id) or (not form and not sched and prefill_asset_id and prefill_asset_id == p.id|string) %}selected{% endif %}>{{ p.tag }}{% if p.name and p.name != p.tag %} - {{ p.name }}{% endif %}</option>
+          <option value="{{ p.id }}" data-hobbs="{{ p.hobbs_hours if p.hobbs_hours is not none else '' }}" data-tach="{{ p.tach_hours if p.tach_hours is not none else '' }}" data-solo-allowed="{{ '1' if p.solo_allowed else '' }}" data-sim="{{ '1' if p.is_simulator else '' }}" data-down="{{ '1' if p.grounded_at else '' }}" {% if (form and form.get('asset_id')|string == p.id|string) or (not form and sched and sched.asset_id == p.id) or (not form and not sched and prefill_asset_id and prefill_asset_id == p.id|string) %}selected{% endif %}>{{ p.tag }}{% if p.name and p.name != p.tag %} - {{ p.name }}{% endif %}{% if p.grounded_at %} (grounded){% endif %}</option>
           {% endfor %}
         </select>
         <div id="plane-buttons" class="d-flex flex-wrap gap-1"></div>
@@ -962,6 +962,7 @@
     btn.className = 'btn btn-outline-primary';
     btn.dataset.value = o.value;
     btn.textContent = o.text;
+    if (o.dataset.down) { btn.classList.add('opacity-50'); btn.title = 'Down for maintenance - it can\'t be booked until an admin returns it to service'; }
     btn.addEventListener('click', function () {
       sel.value = o.value;
       sel.dispatchEvent(new Event('change'));

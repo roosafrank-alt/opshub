@@ -30,3 +30,31 @@ class PlanesAddToolTest(OpsHubTestCase):
         self.make_asset("ZMAINT")
         page = self.client.get("/flight/planes").get_data(as_text=True)
         self.assertNotIn("ZMAINT", page)
+
+
+class GroundAnyToolTest(OpsHubTestCase):
+    def setUp(self):
+        super().setUp()
+        self.login("master")
+        self.client.post("/flight/planes/tool/new", data={"kind": "simulator", "tag": "ZGSIM", "sim_rate": "60"})
+        self.sim = self.q1("SELECT id FROM assets WHERE tag='ZGSIM'")["id"]
+
+    def test_sim_has_ground_button_and_grounds(self):
+        page = self.client.get("/flight/planes").get_data(as_text=True)
+        self.assertIn(f"ground-form-{self.sim}", page)
+        self.client.post(f"/flight/planes/{self.sim}/ground", data={"reason": "screen broken"})
+        self.assertIsNotNone(self.q1("SELECT grounded_at FROM assets WHERE id=?", (self.sim,))["grounded_at"])
+        self.assertIn("Down for maintenance", self.client.get("/flight/planes").get_data(as_text=True))
+
+    def test_grounded_tool_greyed_on_availability_and_booking(self):
+        from datetime import date, timedelta
+        day = (date.today() + timedelta(days=2)).strftime("%Y-%m-%d")
+        url = f"/flight/schedule/availability?view=day&date={day}&mode=calendar"
+        before = self.client.get(url).get_data(as_text=True)
+        self.assertNotIn("Grounded", before)
+        self.client.post(f"/flight/planes/{self.sim}/ground", data={"reason": "screen broken"})
+        after = self.client.get(url).get_data(as_text=True)
+        self.assertIn("Grounded", after)
+        self.assertIn("ZGSIM", after)
+        form = self.client.get(f"/flight/schedule/new?date={day}").get_data(as_text=True)
+        self.assertIn("ZGSIM (grounded)", form)
