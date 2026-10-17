@@ -1788,6 +1788,27 @@ def _with_dashboard_row_fields(rows):
     return out
 
 
+def _late_status_map(conn):
+    """Running-late info for the dashboard: {scheduled_flight_id: {"minutes",
+    "eta_label", "note"}} for every running flight whose Running late box was
+    used (the late flight's own booking) and for the next booking on its plane
+    (the one that was told). The note is kept only when the viewer is a CFI or
+    admin - students never see it."""
+    out = {}
+    can_note = bool(session.get("cfi_id") or session.get("flight_role") == "cfi" or is_flight_admin())
+    rows = conn.execute(_LOG_ROW_SQL + " WHERE f.started_at IS NOT NULL AND f.ended_at IS NULL AND f.stopped_at IS NULL"
+                                       " AND f.late_minutes IS NOT NULL AND f.eta_at IS NOT NULL").fetchall()
+    for f in rows:
+        info = {"minutes": f["late_minutes"], "eta_label": _format_time_12h(f["eta_at"][11:16]),
+                "note": ((f["late_note"] or "") if can_note else "")}
+        if f["scheduled_flight_id"]:
+            out[f["scheduled_flight_id"]] = info
+        nxt = _next_booking_on_plane(conn, f)
+        if nxt:
+            out.setdefault(nxt["id"], info)
+    return out
+
+
 def _dashboard_context(conn, cfi, student):
     """Gathers every piece of data the dashboard template needs. Shared by
     the full-page dashboard() route and the live-refresh fragment route
@@ -1947,6 +1968,9 @@ def _dashboard_context(conn, cfi, student):
             ORDER BY sf.scheduled_time IS NULL, sf.scheduled_time
         """, (date.today().strftime("%Y-%m-%d"), mine_id, mine_id)).fetchall()
         today_flights = _with_dashboard_row_fields(today_flights)
+        _late_map = _late_status_map(conn)
+        for _t in today_flights:
+            _t["late"] = _late_map.get(_t["id"])
         # Same early-start check as `upcoming` above, so a chip's Start on
         # today's board asks before starting a flight that isn't due yet.
         for t in today_flights:
@@ -2138,6 +2162,7 @@ def _dashboard_context(conn, cfi, student):
                                ready_for_quick_actions=_ready_for_quick_actions(row["scheduled_date"], row["scheduled_time"]),
                                can_start=nl_can_start, start_opens_label=_opens_label(nl_opens_at),
                                slot_label=_slot_label(row["scheduled_date"], row["scheduled_time"]))
+            next_lesson["late"] = _late_status_map(conn).get(next_lesson["id"])
 
     # "Log this lesson": a CFI's lesson from today whose start time has
     # passed but that hasn't been started or logged yet - the Next Lesson

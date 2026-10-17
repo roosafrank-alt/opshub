@@ -57,3 +57,17 @@ class RunningLateTest(OpsHubTestCase):
     def test_needs_minutes(self):
         self.login("cfi").post(f"/flight/log/{self.fid}/running_late", data={"late_minutes": ""})
         self.assertEqual(self.pushes("cfi_billing"), [])
+
+    def test_dashboard_shows_late_status(self):
+        c = self.login("cfi")
+        c.post(f"/flight/log/{self.fid}/running_late", data={"late_minutes": "20", "late_note": "Fuel stop, sorry"})
+        html = c.get("/flight/dashboard").get_data(as_text=True)
+        self.assertIn("Running late 20 min", html)
+        self.assertIn("Fuel stop, sorry", html)
+        # the next student sees the minutes but never the note
+        html = self.login("flight_student").get("/flight/dashboard").get_data(as_text=True)
+        self.assertIn("Running late 20 min", html)
+        self.assertNotIn("Fuel stop", html)
+        # the next instructor (CFI) sees the note
+        html = self.login("cfi_billing").get("/flight/dashboard").get_data(as_text=True)
+        self.assertIn("Fuel stop, sorry", html)

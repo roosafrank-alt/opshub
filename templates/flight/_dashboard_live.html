@@ -1,3 +1,11 @@
+{% macro late_badge(late, show_on_time=true) %}
+{%- if late %}
+<span class="badge bg-warning text-dark late-badge"><i class="bi bi-hourglass-split"></i> Running late {{ late.minutes }} min &middot; ETA {{ late.eta_label }}</span>
+{%- if late.note %}<div class="small fst-italic late-note"><i class="bi bi-chat-left-text"></i> {{ late.note }}</div>{% endif %}
+{%- elif show_on_time %}
+<span class="badge bg-success-subtle text-success-emphasis late-badge"><i class="bi bi-check-circle"></i> On time</span>
+{%- endif %}
+{% endmacro %}
 {% from "flight/_pilot_badge.html" import pilot_badge, schedule_pilot_badge %}
 {#
   Fast-changing dashboard sections. Rendered two ways with the exact same
@@ -621,6 +629,7 @@
         {% if cfi or next_scope == 'school' %} &middot; {{ next_lesson.student_name }}{% endif %}
         {% if next_lesson.cfi_name %} &middot; {{ next_lesson.cfi_name }}{% elif next_lesson.solo %}<span class="badge bg-secondary ms-1">Solo</span>{% else %}<span class="badge bg-danger ms-1">Needs Instructor</span>{% endif %}
       </div>
+      <div class="mt-1">{{ late_badge(next_lesson.get('late')) }}</div>
       {% if next_lesson.student_owed %}
       {#- Idea "header": same fix as the flight-chip badge below - a
          student sees their own Next Lesson owed amount linked to Account. #}
@@ -804,6 +813,7 @@
       <i class="bi bi-cash-coin"></i> ${{ '%.0f'|format(f.student_owed) }} owed
     </a>
     {% endif %}
+    {% if status in ('scheduled', 'in_progress') %}<div>{{ late_badge(f.get('late'), 'late' in f) }}</div>{% endif %}
     {% if f.end_time_label %}
     {#- Shows the flight's end time right on the chip (not just inside the
        click-to-expand detail), so a glance at the board tells you when a
