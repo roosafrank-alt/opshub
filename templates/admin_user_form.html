@@ -56,7 +56,7 @@
       {% if not user %}
       <div class="mb-3">
         <label class="form-label">Username *</label>
-        <input type="text" name="username" class="form-control" value="{{ username or '' }}" required>
+        <input type="text" name="username" id="acct-username" class="form-control" value="{{ username or '' }}" required>
         {#- HUB-28: how a staff login and a My Aircraft owner account link up. #}
         <div class="form-text" data-change="HUB-28">Use their email address. If they're also an aircraft owner, the Customer tab then uses the same login.</div>
       </div>
@@ -89,6 +89,7 @@
         <div class="col-sm-6 mb-3">
           <label class="form-label">Email</label>
           <input type="email" name="email" class="form-control" value="{{ user.email if user and user.email else '' }}" placeholder="name@example.com">
+          {% if not user %}<div class="form-text text-success" id="email-filled-note" hidden>Filled in from Username - change it if reminders should go elsewhere</div>{% endif %}
         </div>
         <div class="col-sm-6 mb-3">
           <label class="form-label">Mobile Phone <span class="text-muted small">(for texts)</span></label>
@@ -444,6 +445,21 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
   var tabField = $('#acct-tab-field');
+
+  // ---- Add Account: an email typed as the Username also fills the Email box
+  // (until they edit Email themselves)
+  var unameBox = $('#acct-username'), emailBox = $('input[name="email"]'), emailNote = $('#email-filled-note');
+  if (unameBox && emailBox && emailNote) {
+    var autoEmail = false, touched = !!emailBox.value;
+    emailBox.addEventListener('input', function () { touched = true; autoEmail = false; emailNote.hidden = true; });
+    unameBox.addEventListener('input', function () {
+      if (touched) return;
+      var v = unameBox.value.trim();
+      autoEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+      emailBox.value = autoEmail ? v : '';
+      emailNote.hidden = !autoEmail;
+    });
+  }
 
   // ---- tabs (remembered in the URL so Save and refresh land back here)
   function show(name) {
