@@ -658,7 +658,7 @@
 {% elif view == 'year' %}
 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
   {% for md in months_data %}
-  <div class="col">{{ month_table(md, '46px', true, 2) }}</div>
+  <div class="col"{% if md.year == today.year and md.month == today.month %} data-this-month="1"{% endif %}>{{ month_table(md, '46px', true, 2) }}</div>
   {% endfor %}
 </div>
 

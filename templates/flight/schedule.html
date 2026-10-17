@@ -409,6 +409,8 @@
   function on() { try { return localStorage.getItem('schFit') !== '0'; } catch (e) { return true; } }
   var firstFit = true;
   var de = document.documentElement;
+  // Stay on today's week while the page settles (fonts, icons, resize); the first touch, wheel or key press hands scrolling back to the person.
+  ['wheel', 'touchstart', 'keydown'].forEach(function (n) { window.addEventListener(n, function () { firstFit = false; }, { passive: true, once: true }); });
   function fitMonth(fit) {
     var tbl = document.querySelector('.calendar-table');
     if (!tbl || tbl.closest('.row')) return;  // not the big month grid
@@ -421,7 +423,6 @@
     for (i = 0; i < rows.length; i++) { if (rows[i].getBoundingClientRect().bottom > 120) { cur = rows[i]; break; } }
     // First time on the page: show the week that holds today (or the highlighted flight).
     if (firstFit) {
-      firstFit = false;
       var anchor = document.querySelector('.schedule-block-highlight') || document.querySelector('[data-is-today="1"]');
       var ar = anchor && anchor.closest('tr');
       if (ar) cur = ar;
@@ -654,6 +655,15 @@ var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(0) }};
 // month, same reasoning as the List view above - most of what a busy
 // month grid is used for is today and what's coming, not scrolling past
 // however many past days already happened this month.
+{% if view == 'year' %}
+(function () {
+  // Year view opens with the current month in view, no scrolling needed.
+  if (document.querySelector('.schedule-block-highlight')) return;
+  if (document.documentElement.classList.contains('tv-mode')) return;
+  var m = document.querySelector('[data-this-month="1"]');
+  if (m) setTimeout(function () { m.scrollIntoView({ behavior: 'instant', block: 'center' }); }, 50);
+})();
+{% endif %}
 {% if view == 'month' %}
 (function () {
   if (document.querySelector('.schedule-block-highlight')) return;
