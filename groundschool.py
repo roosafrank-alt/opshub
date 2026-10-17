@@ -1013,7 +1013,13 @@ def _notify_homework(conn, st, who, made, note, due):
         push.queue_and_push(conn, st["user_id"], title, body, tag="gs-homework-%d" % st["id"], url="/flight/groundschool")
         user = conn.execute("SELECT * FROM users WHERE id = ?", (st["user_id"],)).fetchone()
         if user:
-            notify.notify_user(notify.get_settings(conn), user, title, body, brand="Fly with Kate!")
+            # The email/text carries a link straight to the homework list (the push already opens it).
+            try:
+                link = url_for("groundschool.rating_list", _external=True)
+            except Exception:
+                link = ""
+            notify.notify_user(notify.get_settings(conn), user, title,
+                               body + ("\n\nOpen it here: " + link if link else ""), brand="Fly with Kate!")
     except Exception:
         pass
 
