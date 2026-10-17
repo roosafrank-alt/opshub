@@ -2136,8 +2136,12 @@ def _dashboard_context(conn, cfi, student):
             _now_min = now_dt.hour * 60 + now_dt.minute
             # Booked block not over yet: the card keeps Start Session + Log
             # Flight (QA ux-late-lesson-start) instead of only "Log this lesson".
+            # no_show_fee: what the No-show button will charge (the same
+            # late-cancel fee a student cancelling now would pay; 0 = none).
             log_lesson = dict(lrow, time_label=_format_time_12h(lrow["scheduled_time"]),
-                              can_still_start=bool(_w and _now_min < _w[1]))
+                              can_still_start=bool(_w and _now_min < _w[1]),
+                              no_show_fee=0 if lrow["guest_name"] else _cancel_fee_for(
+                                  conn, lrow["scheduled_date"], lrow["scheduled_time"])[0])
 
     # "Time since last flight" tile - student dashboard only.
     last_flight_ago = None
@@ -6643,6 +6647,56 @@ def schedule_cancel(scheduled_id):
     conn.close()
     flash("Scheduled flight cancelled." + (f" Offered the slot to {offered} waitlisted student{'s' if offered != 1 else ''}."
                                            if offered else ""), "success")
+    return redirect(back)
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/no_show", methods=["POST"])
+@cfi_required
+def schedule_no_show(scheduled_id):
+    """Staff close out a lesson the student never came to (QA
+    feat-no-show-button): the booking is cancelled with the reason
+    "No-show" (which frees the plane and instructor, like any cancel) and
+    the school's late-cancel fee is charged to the student's account the
+    same way schedule_student_cancel does it. Only a still-Scheduled
+    booking whose start time has passed can be marked, and a guest
+    booking has no account to charge so it is just closed out."""
+    back = request.referrer or url_for("flight.dashboard")
+    conn = get_db()
+    sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    if not sched or sched["status"] != "scheduled":
+        conn.close()
+        flash("That booking can't be marked no-show - it's already started, flown or cancelled.", "danger")
+        return redirect(back)
+    if not session.get("cfi_id") and not is_flight_admin():
+        conn.close()
+        flash("Log in as a CFI or admin to do that.", "danger")
+        return redirect(back)
+    try:
+        slot = datetime.strptime(f"{sched['scheduled_date']} {sched['scheduled_time'] or '00:00'}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        slot = None
+    if slot is None or slot > datetime.now():
+        conn.close()
+        flash("A lesson can only be marked no-show once its booked time has passed.", "danger")
+        return redirect(back)
+    fee_amount = 0 if sched["guest_name"] else _cancel_fee_for(conn, sched["scheduled_date"], sched["scheduled_time"])[0]
+    who = session.get("user_name") or "the school"
+    conn.execute("""UPDATE scheduled_flights SET status = 'cancelled', cancel_reason = 'No-show', cancelled_by = ?,
+                     cancelled_at = ? WHERE id = ?""", (who, now_iso(), scheduled_id))
+    if fee_amount:
+        _ledger_entry(conn, sched["student_id"], "cancellation_fee", -fee_amount,
+                      note=f"No-show - {_slot_label(sched['scheduled_date'], sched['scheduled_time'])} lesson",
+                      created_by=session.get("user_name"))
+    plane = conn.execute("SELECT tag FROM assets WHERE id = ?", (sched["asset_id"],)).fetchone()
+    _notify_student_booking_change(
+        conn, sched,
+        f"Your {_booking_when(sched['scheduled_date'], sched['scheduled_time'])} lesson"
+        f"{' in ' + plane['tag'] if plane else ''} was marked as a no-show."
+        + (f" A ${fee_amount:,.2f} late-cancellation fee was added to your account." if fee_amount else ""))
+    conn.commit()
+    conn.close()
+    flash("Marked no-show, plane freed." + (f" ${fee_amount:,.2f} fee charged." if fee_amount else " No fee charged (no late-cancel fee is set)."),
+          "warning" if fee_amount else "success")
     return redirect(back)
 
 
