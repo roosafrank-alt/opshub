@@ -5477,6 +5477,8 @@ def asset_new():
                              request.form.get("maint_other", "").strip() or None,
                              now_iso(), now_iso()))
         new_id = cur.lastrowid
+        if is_flight_asset:
+            conn.execute("UPDATE assets SET school_listed = 1 WHERE id = ?", (new_id,))
         conn.commit()
         conn.close()
         flash(f"Aircraft '{tag}' created.", "success")
@@ -6204,6 +6206,8 @@ def asset_edit(asset_id):
                       request.form.get("maint_tire_mains", "").strip() or None,
                       request.form.get("maint_other", "").strip() or None,
                       now_iso(), asset_id))
+        if is_flight_asset:
+            conn.execute("UPDATE assets SET school_listed = 1 WHERE id = ?", (asset_id,))
         conn.commit()
         conn.close()
         flash("Aircraft updated.", "success")

@@ -1,0 +1,58 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Add Tool · Fly with Kate!{% endblock %}
+{% block content %}
+{% set F = form %}
+<div class="row justify-content-center">
+<div class="col-lg-5">
+<div class="card p-4">
+  <h4>Add Tool</h4>
+  <p class="text-muted small">A plane, a simulator or any other item the flight school uses. It goes on the Planes list and the Schedule. If you later untick "Used by Flight School" it stays on this list, greyed out, until it is deleted.</p>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Type</label>
+      {% set K = F.get('kind') if F is not none else 'plane' %}
+      <select name="kind" id="tool-kind" class="form-select">
+        <option value="plane" {{ 'selected' if K == 'plane' }}>Plane</option>
+        <option value="simulator" {{ 'selected' if K == 'simulator' }}>Simulator</option>
+        <option value="other" {{ 'selected' if K == 'other' }}>Other item</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">ID <span class="text-danger">*</span></label>
+      <input type="text" name="tag" class="form-control" placeholder="Tail number, or e.g. SIM1" value="{{ F.get('tag', '') if F is not none else '' }}" required autofocus>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Name <span class="text-muted small">(optional)</span></label>
+      <input type="text" name="name" class="form-control" value="{{ F.get('name', '') if F is not none else '' }}">
+    </div>
+    <div class="row" id="tool-make-model">
+      <div class="col-6 mb-3"><label class="form-label">Make</label><input type="text" name="make" class="form-control" value="{{ F.get('make', '') if F is not none else '' }}"></div>
+      <div class="col-6 mb-3"><label class="form-label">Model</label><input type="text" name="model" class="form-control" value="{{ F.get('model', '') if F is not none else '' }}"></div>
+    </div>
+    <div class="mb-3" id="tool-sim-rate">
+      <label class="form-label">Rate ($/hr)</label>
+      <input type="number" step="any" name="sim_rate" class="form-control" value="{{ F.get('sim_rate', '') if F is not none else '' }}">
+    </div>
+    <input type="hidden" name="return_to" value="{{ form_back(url_for('flight.planes_list')) }}">
+    <div class="d-flex gap-2" data-change="DESIGN-8">
+      <button type="submit" class="btn btn-primary fw-bold">Add Tool</button>
+      <a href="{{ form_back(url_for('flight.planes_list')) }}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var k = document.getElementById('tool-kind');
+  function sync() {
+    document.getElementById('tool-sim-rate').classList.toggle('d-none', k.value !== 'simulator');
+    document.getElementById('tool-make-model').classList.toggle('d-none', k.value === 'simulator');
+  }
+  k.addEventListener('change', sync); sync();
+})();
+</script>
+{% endblock %}

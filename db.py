@@ -323,6 +323,14 @@ def _migrate(conn):
         conn.execute("ALTER TABLE assets ADD COLUMN is_flight_asset INTEGER NOT NULL DEFAULT 0")
         conn.commit()
 
+    # Planes page: a tool that was ever "Used by Flight School" stays on the
+    # list (greyed out) when that box is unticked, so it can be turned back
+    # on later. school_listed remembers it; only deleting removes it.
+    if "school_listed" not in asset_cols:
+        conn.execute("ALTER TABLE assets ADD COLUMN school_listed INTEGER NOT NULL DEFAULT 0")
+        conn.execute("UPDATE assets SET school_listed = 1 WHERE is_flight_asset = 1")
+        conn.commit()
+
     # Flight School tables - all brand new, safe to create with their indexes
     # together even on an existing database.
     conn.execute("""CREATE TABLE IF NOT EXISTS cfis (

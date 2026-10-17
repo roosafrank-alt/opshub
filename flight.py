@@ -3768,7 +3768,9 @@ def cfi_time_off_delete(off_id):
 @cfi_required
 def planes_list():
     conn = get_db()
-    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0 ORDER BY schedule_order, tag").fetchall()
+    # Tools switched off for the school stay listed (greyed out) so they can be
+    # turned back on later; only deleting one removes it.
+    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND (is_flight_asset = 1 OR school_listed = 1) AND is_owner_placeholder = 0 ORDER BY is_flight_asset DESC, schedule_order, tag").fetchall()
     # 100-hr hours left - shown to the same staff who get the "View in
     # Maintenance" link below (master admins and shop admin/tech), not to
     # plain CFIs (QA feat-100hr-countdown-grounding keeps the countdown and
@@ -3778,9 +3780,9 @@ def planes_list():
     # shows next to the tail number for every CFI and admin on this page.
     hundred = {}
     if is_flight_admin():
-        hundred = {p["id"]: hundred_hr_status(conn, p) for p in planes}
+        hundred = {p["id"]: hundred_hr_status(conn, p) for p in planes if p["is_flight_asset"]}
         for p in planes:
-            if hundred[p["id"]] and not p["is_simulator"]:
+            if hundred.get(p["id"]) and not p["is_simulator"]:
                 hundred[p["id"]]["due"] = hundred_hr_projection(conn, p, hundred[p["id"]])
     conn.close()
     return render_template("flight/planes.html", planes=planes, hundred=hundred)
@@ -3818,11 +3820,11 @@ def plane_edit(asset_id):
             flash(f"There is already an aircraft with the tail number {tag}.", "danger")
             conn.close()
             return render_template("flight/plane_form.html", plane=plane, form=request.form)
-        conn.execute("UPDATE assets SET tag = ?, name = ?, make = ?, model = ?, is_flight_asset = ?, updated_at = ? WHERE id = ?",
-                     (tag, name or tag, make, model, is_flight_asset, now_iso(), asset_id))
+        conn.execute("UPDATE assets SET tag = ?, name = ?, make = ?, model = ?, is_flight_asset = ?, school_listed = MAX(school_listed, ?), updated_at = ? WHERE id = ?",
+                     (tag, name or tag, make, model, is_flight_asset, is_flight_asset, now_iso(), asset_id))
         conn.commit()
         conn.close()
-        flash(f"{tag} saved." + ("" if is_flight_asset else f" {tag} is no longer used by the flight school, so it's off the Planes list."), "success")
+        flash(f"{tag} saved." + ("" if is_flight_asset else f" {tag} is no longer used by the flight school (off the Schedule), but stays on the Planes list so you can turn it back on."), "success")
         return redirect(url_for("flight.planes_list"))
     conn.close()
     return render_template("flight/plane_form.html", plane=plane, form=None)
@@ -3851,15 +3853,66 @@ def simulator_new():
             flash(f"An asset with tag '{tag}' already exists.", "danger")
             return render_template("flight/simulator_form.html")
         next_order = conn.execute("SELECT COALESCE(MAX(schedule_order), 0) + 10 AS n FROM assets").fetchone()["n"]
-        conn.execute("""INSERT INTO assets (tag, name, is_flight_asset, is_simulator, sim_rate, schedule_order,
+        conn.execute("""INSERT INTO assets (tag, name, is_flight_asset, school_listed, is_simulator, sim_rate, schedule_order,
                          created_at, updated_at)
-                         VALUES (?, ?, 1, 1, ?, ?, ?, ?)""",
+                         VALUES (?, ?, 1, 1, 1, ?, ?, ?, ?)""",
                      (tag, name or tag, sim_rate, next_order, now_iso(), now_iso()))
         conn.commit()
         conn.close()
         flash(f"Simulator '{tag}' added.", "success")
         return redirect(url_for("flight.planes_list"))
     return render_template("flight/simulator_form.html")
+
+
+@flight_bp.route("/planes/tool/new", methods=["GET", "POST"])
+@admin_required
+def tool_new():
+    """Planes page "Add Tool": one small form for anything the flight school
+    owns that people can book - a plane, a simulator or another item. Saved
+    as the same kind of asset row the older Add Simulator form made, so it
+    shows up on the Schedule right away and stays on the Planes list even
+    if it is later switched off for the school."""
+    if request.method == "POST":
+        kind = request.form.get("kind", "plane")
+        if kind not in ("plane", "simulator", "other"):
+            kind = "plane"
+        tag = request.form.get("tag", "").strip()
+        name = request.form.get("name", "").strip()
+        make = request.form.get("make", "").strip()
+        model = request.form.get("model", "").strip()
+        sim_rate = _parse_float(request.form.get("sim_rate")) if kind == "simulator" else None
+        if not tag:
+            flash("Give the tool an ID (a tail number, or e.g. \"SIM1\").", "danger")
+            return render_template("flight/tool_form.html", form=request.form)
+        conn = get_db()
+        if conn.execute("SELECT id FROM assets WHERE tag = ?", (tag,)).fetchone():
+            conn.close()
+            flash(f"An asset with tag '{tag}' already exists.", "danger")
+            return render_template("flight/tool_form.html", form=request.form)
+        next_order = conn.execute("SELECT COALESCE(MAX(schedule_order), 0) + 10 AS n FROM assets").fetchone()["n"]
+        conn.execute("""INSERT INTO assets (tag, name, make, model, is_flight_asset, school_listed, is_simulator, sim_rate,
+                         schedule_order, created_at, updated_at)
+                         VALUES (?, ?, ?, ?, 1, 1, ?, ?, ?, ?, ?)""",
+                     (tag, name or tag, make, model, 1 if kind == "simulator" else 0, sim_rate, next_order, now_iso(), now_iso()))
+        conn.commit()
+        conn.close()
+        flash(f"'{tag}' added to the Planes list.", "success")
+        return redirect(url_for("flight.planes_list"))
+    return render_template("flight/tool_form.html", form=None)
+
+
+@flight_bp.route("/planes/<int:asset_id>/school-on", methods=["POST"])
+@admin_required
+def plane_school_on(asset_id):
+    """Turns a greyed-out tool back on for the flight school."""
+    conn = get_db()
+    row = conn.execute("SELECT tag FROM assets WHERE id = ? AND deleted_at IS NULL AND school_listed = 1", (asset_id,)).fetchone()
+    if row:
+        conn.execute("UPDATE assets SET is_flight_asset = 1, updated_at = ? WHERE id = ?", (now_iso(), asset_id))
+        conn.commit()
+        flash(f"{row['tag']} is used by the flight school again.", "success")
+    conn.close()
+    return redirect(url_for("flight.planes_list"))
 
 
 @flight_bp.route("/planes/simulator/<int:asset_id>/edit", methods=["GET", "POST"])
@@ -3888,8 +3941,9 @@ def simulator_edit(asset_id):
             conn.close()
             flash(f"An asset with tag '{tag}' already exists.", "danger")
             return render_template("flight/simulator_form.html", sim=sim)
-        conn.execute("UPDATE assets SET tag = ?, name = ?, sim_rate = ?, updated_at = ? WHERE id = ?",
-                     (tag, name or tag, sim_rate, now_iso(), asset_id))
+        is_flight_asset = 1 if request.form.get("is_flight_asset") else 0
+        conn.execute("UPDATE assets SET tag = ?, name = ?, sim_rate = ?, is_flight_asset = ?, school_listed = MAX(school_listed, ?), updated_at = ? WHERE id = ?",
+                     (tag, name or tag, sim_rate, is_flight_asset, is_flight_asset, now_iso(), asset_id))
         conn.commit()
         conn.close()
         flash(f"Simulator '{tag}' updated.", "success")
