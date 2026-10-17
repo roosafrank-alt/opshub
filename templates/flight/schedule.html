@@ -251,11 +251,14 @@
   /* Month view cells: hour labels get their own narrow strip on the left.
      The dashed line starts after the label (never through the number) and
      bookings sit in .calendar-lanes to the right, so they never cover it. */
-  .calendar-timeline-gutter { --cal-gutter: 20px; }
+  {#- Idea "Calander": hour numbers pushed as far left as they go (out into the
+     cell's own padding) and the strip narrowed, so the bookings get the room. #}
+  .calendar-timeline-gutter { --cal-gutter: 14px; margin-left: -.25rem; }
   .calendar-timeline-gutter .calendar-time-line { left: var(--cal-gutter); }
   .calendar-timeline-gutter .calendar-time-label {
-    left: calc(-1 * var(--cal-gutter)); width: calc(var(--cal-gutter) - 3px);
-    top: 0; transform: translateY(-50%); text-align: right;
+    left: calc(-1 * var(--cal-gutter)); width: calc(var(--cal-gutter) - 1px);
+    top: 0; transform: translateY(-50%); text-align: left;
+    font-size: .5rem; letter-spacing: -.02em;
   }
   .calendar-timeline-gutter .calendar-lanes {
     position: absolute; top: 0; bottom: 0; left: var(--cal-gutter); right: 0;
