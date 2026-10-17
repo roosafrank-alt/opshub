@@ -4261,6 +4261,7 @@ def _decorate_schedule_row(r, own_plane_color=None):
     r["student_owed"] = round(max(0.0, -(r["student_balance"] or 0.0)), 2)
     r.setdefault("is_time_off", False)
     r.setdefault("eta_delay", None)
+    r.setdefault("late", None)
     return r
 
 
@@ -4355,11 +4356,14 @@ def _schedule_rows(conn, date_from, date_to, plane_id=None, cfi_id=None, include
     # Bookings a late flight's updated ETA runs into (see _eta_impacts) -
     # an hourglass icon + amber outline on the block.
     delays = _eta_impacts(conn)
+    late_map = _late_status_map(conn)
     own_plane_color = _own_plane_schedule_color(conn)
     out = []
     for r in rows:
         d = _decorate_schedule_row(r, own_plane_color)
         d["eta_delay"] = delays.get(d["id"])
+        # Same running-late info the dashboard shows (minutes, ETA, CFI-only note).
+        d["late"] = late_map.get(d["id"])
         out.append(d)
     # A break has no plane, so plane_id never matches it - filtering by a
     # specific plane rightly shows no breaks, same as it shows no other
