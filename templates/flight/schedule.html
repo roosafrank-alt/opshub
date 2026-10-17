@@ -416,7 +416,7 @@
     if (!tbl || tbl.closest('.row')) return;  // not the big month grid
     var rows = tbl.querySelectorAll('tbody tr');
     de.classList.remove('sch-fit-month');
-    tbl.style.zoom = ''; tbl.style.width = '';
+    tbl.style.zoom = '';
     if (!fit || !rows.length) return;
     // Week at the top of the screen right now, to keep it in view after the resize.
     var cur = rows[0], i;
@@ -430,11 +430,22 @@
     var tall = 0;
     for (i = 0; i < rows.length; i++) tall = Math.max(tall, rows[i].offsetHeight);
     var head = tbl.querySelector('thead'), top = tbl.getBoundingClientRect().top + window.scrollY;
-    var avail = window.innerHeight - 90 - (head ? head.offsetHeight : 0) - Math.min(top, 160);
+    // Pinned bars (navbar + schedule toolbar) cover the top of the screen; a week must fit below them.
+    var pinned = 0;
+    ['nav.navbar.sticky-top', '.sch-head', '.schedule-toolbar'].forEach(function (sel) {
+      var el = document.querySelector(sel);
+      if (el && el.offsetHeight && getComputedStyle(el).position === 'sticky') pinned = Math.max(pinned, el.getBoundingClientRect().bottom);
+    });
+    if (!pinned) pinned = Math.min(top, 160);
+    var avail = window.innerHeight - 16 - pinned;
     var z = Math.max(0.3, Math.min(1, avail / tall));
-    if (z < 1) { tbl.style.zoom = z; tbl.style.width = (100 / z) + '%'; }
+    // Zoom shrinks the table's own width too, so no width change is needed: it keeps filling the screen (all 7 days, no sideways scroll).
+    if (z < 1) tbl.style.zoom = z;
     de.classList.add('sch-fit-month');
     cur.scrollIntoView({ behavior: 'instant', block: 'start' });
+    // Put the week just under the pinned bars so its dates are visible right away.
+    var dy = cur.getBoundingClientRect().top - pinned - 4;
+    if (Math.abs(dy) > 1) window.scrollBy(0, dy);
   }
   window.schFit = function () {
     var btn = document.getElementById('sch-fit-btn');
