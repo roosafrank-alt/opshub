@@ -538,6 +538,19 @@
     <a href="{{ url_for('flight.schedule_calendar', view=view, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm">Today</a>
     <a href="{{ url_for('flight.schedule_calendar', view=view, year=next_year, month=next_month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
     {% endif %}
+    <button type="button" class="btn btn-outline-secondary btn-sm sch-expand-btn" data-sch-expand><i class="bi bi-chevron-down"></i> Views</button>
+  </div>
+  {#- Phone only: the same view buttons, opened from the pinned top line so
+     there is no scrolling back up (open/closed state sits on the live region). #}
+  <div class="sch-expand-panel">
+    <a href="{{ url_for('flight.schedule_calendar', view='day', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-sm {{ 'btn-secondary' if view == 'day' else 'btn-outline-secondary' }}">Day</a>
+    <a href="{{ url_for('flight.schedule_calendar', view='week', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-sm {{ 'btn-secondary' if view == 'week' else 'btn-outline-secondary' }}">Week</a>
+    <a href="{{ url_for('flight.schedule_calendar', view='month', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-sm {{ 'btn-secondary' if view == 'month' else 'btn-outline-secondary' }}">Month</a>
+    <a href="{{ url_for('flight.schedule_calendar', view='year', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-sm {{ 'btn-secondary' if view == 'year' else 'btn-outline-secondary' }}">Year</a>
+    <a href="{{ url_for('flight.schedule_calendar', view='list', year=year, month=month, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-sm {{ 'btn-secondary' if view == 'list' else 'btn-outline-secondary' }}">List</a>
+    <a href="{{ url_for('flight.schedule_calendar', view='custom', start=custom_start, end=custom_end, plane_id=plane_id, cfi_id=cfi_id) }}" class="btn btn-sm {{ 'btn-secondary' if view == 'custom' else 'btn-outline-secondary' }}">Range</a>
+    <a href="{{ url_for('flight.schedule_availability', date=(day_str if view in ('day', 'week') else today.strftime('%Y-%m-%d')), plane_id=plane_id) }}" class="btn btn-sm btn-outline-success">Availability</a>
+    <a href="{{ url_for('flight.waitlist_page') }}" class="btn btn-sm btn-outline-secondary">Waitlist</a>
   </div>
 </div>
 <div class="sch-views">

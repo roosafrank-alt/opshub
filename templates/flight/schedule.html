@@ -200,6 +200,15 @@
     .sch-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .6rem; }
     .sch-actions > .btn { order: 0; padding-left: .5rem; padding-right: .5rem; font-size: .8rem; }
   }
+  /* Expand control: hidden on desktop; on a phone a chevron in the pinned top line opens the view buttons right there. */
+  .sch-expand-btn, .sch-expand-panel { display: none; }
+  @media (max-width: 575.98px) {
+    .sch-head { flex-wrap: wrap; }
+    .sch-expand-btn { display: inline-block; margin-left: .25rem; }
+    .sch-nav > .sch-expand-btn { border-radius: .25rem; }
+    #schedule-live-region.sch-open .sch-expand-panel { display: flex; flex: 0 0 100%; flex-wrap: wrap; gap: .3rem; padding-top: .35rem; }
+    #schedule-live-region.sch-open .sch-expand-btn i { transform: rotate(180deg); }
+  }
   /* Month / year grid: the day number sits in its own header
      strip, and blocks start below it so they never cover the date. Blocks
      are one tidy line (time + plane) plus the people line. */
@@ -731,6 +740,11 @@ document.addEventListener('click', function (evt) {
   if (url) window.location.href = url;
 });
 
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-sch-expand]');
+  var r = document.getElementById('schedule-live-region');
+  if (b && r) { r.classList.toggle('sch-open'); if (window.schMeasure) window.schMeasure(); }
+});
 // Live refresh: re-polls the same view/filters the page is currently on
 // (view, year/month or date/start/end, plane_id, cfi_id, highlight - all
 // carried over via window.location.search) and swaps in the fresh HTML,
