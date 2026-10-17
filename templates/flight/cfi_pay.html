@@ -5,10 +5,9 @@
   <h4 class="mb-0"><i class="bi bi-cash-stack"></i> {{ cfi.name }} &middot; Pay</h4>
   {% if session.get('is_master_admin') %}
   <a href="{{ url_for('admin_user_edit', user_id=cfi.user_id, tab='flight') if (is_master_admin and cfi.user_id) else url_for('flight.cfi_edit', cfi_id=cfi.id) }}" class="btn btn-outline-secondary btn-sm">&laquo; Back to CFI</a>
-  {% elif session.get('cfi_id') == cfi.id %}
-  <a href="{{ url_for('flight.cfi_me') }}" class="btn btn-outline-secondary btn-sm">&laquo; My CFI Profile</a>
   {% endif %}
 </div>
+{% if session.get('cfi_id') == cfi.id %}{% set me_tab = 'pay' %}{% include "flight/_me_tabs.html" %}{% endif %}
 
 {#- SCHOOL-23: the same range control as Statistics. #}
 <div class="card p-3 mb-3" data-change="SCHOOL-23">

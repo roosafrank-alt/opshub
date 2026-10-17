@@ -1,13 +1,13 @@
 {% extends "flight/base_flight.html" %}
 {% from "flight/_signature_pad.html" import signature_pad %}
-{% block title %}My CFI Profile · Fly with Kate!{% endblock %}
+{% block title %}Me · Fly with Kate!{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-7">
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-person-vcard"></i> {{ cfi.name }}</h4>
-  {% if is_master_admin or session.get('flight_role') != 'admin' %}<a href="{{ url_for('flight.cfi_pay', cfi_id=cfi.id) }}" class="btn btn-outline-success btn-sm"><i class="bi bi-cash-stack"></i> My Pay</a>{% endif %}
 </div>
+{% set me_tab = 'profile' %}{% include "flight/_me_tabs.html" %}
 <div class="card p-3 mb-3">
   <h6 class="mb-2">Profile <span class="text-muted small fw-normal">(set by an admin - ask one to change these)</span></h6>
   <dl class="row mb-0 small">

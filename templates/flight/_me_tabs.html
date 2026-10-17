@@ -1,0 +1,8 @@
+{#- "Me" tabs for a CFI's own pages: Profile, My schedule & time off, My pay.
+   Each tab is its own URL (old links keep working and open that tab).
+   Set me_tab = 'profile' | 'schedule' | 'pay' before including. #}
+<ul class="nav nav-tabs mb-3" id="me-tabs">
+  <li class="nav-item"><a class="nav-link {{ 'active' if me_tab == 'profile' }}" href="{{ url_for('flight.cfi_me') }}"><i class="bi bi-person-vcard"></i> Profile</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if me_tab == 'schedule' }}" href="{{ url_for('flight.cfi_schedule') }}"><i class="bi bi-calendar-week"></i> My schedule &amp; time off</a></li>
+  {% if is_master_admin or session.get('flight_role') != 'admin' or holds_role('flight', 'cfi') %}<li class="nav-item"><a class="nav-link {{ 'active' if me_tab == 'pay' }}" href="{{ url_for('flight.cfi_pay', cfi_id=session['cfi_id']) }}"><i class="bi bi-cash-stack"></i> My pay</a></li>{% endif %}
+</ul>

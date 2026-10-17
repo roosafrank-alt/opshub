@@ -129,9 +129,7 @@
             <li><a class="dropdown-item {{ 'active' if _p == '/flight/settings/school' }}" href="{{ url_for('flight.school_settings_edit') }}"><i class="bi bi-sliders"></i> School Settings</a></li>
             {% endif %}
             {% if session.get('cfi_id') %}
-            <li><a class="dropdown-item {{ 'active' if _p == '/flight/cfis/me' }}" href="{{ url_for('flight.cfi_me') }}"><i class="bi bi-person-vcard"></i> My CFI Profile</a></li>
-            <li><a class="dropdown-item {{ 'active' if _p == '/flight/cfis/schedule' }}" href="{{ url_for('flight.cfi_schedule') }}"><i class="bi bi-calendar-week"></i> My Schedule</a></li>
-            {% if is_master_admin or session.get('flight_role') != 'admin' or holds_role('flight', 'cfi') %}<li><a class="dropdown-item {{ 'active' if _p.endswith('/pay') }}" href="{{ url_for('flight.cfi_pay', cfi_id=session['cfi_id']) }}"><i class="bi bi-cash-stack"></i> My Pay</a></li>{% endif %}
+            <li><a class="dropdown-item {{ 'active' if _p in ('/flight/cfis/me', '/flight/cfis/schedule') or _p == '/flight/cfis/%s/pay' % session.get('cfi_id') }}" href="{{ url_for('flight.cfi_me') }}"><i class="bi bi-person-vcard"></i> Me (profile, time off, pay)</a></li>
             {% endif %}
             {% if flight_admin %}
             <li><a class="dropdown-item {{ 'active' if _p.startswith('/flight/billing/to-confirm') }}" href="{{ url_for('flight.payments_to_confirm') }}"><i class="bi bi-check2-square"></i> Payments to confirm{% if payments_to_confirm_count %} <span class="badge bg-danger">{{ payments_to_confirm_count }}</span>{% endif %}</a></li>

@@ -333,7 +333,7 @@ class FlightAdminRoleTest(OpsHubTestCase):
     # ----- My Pay for an admin who is also a worker -------------------------
     def test_my_pay_link_for_dual_role_accounts(self):
         flight_pay = "/pay"
-        self.assertIn(flight_pay, self.login("flight_admin_cfi").get("/flight/dashboard").get_data(as_text=True))
+        self.assertIn(flight_pay, self.login("flight_admin_cfi").get("/flight/cfis/me").get_data(as_text=True))
         self.assertNotIn(flight_pay, self.login("flight_admin").get("/flight/dashboard").get_data(as_text=True))
         body = self.login("shop_admin_tech").get("/shop").get_data(as_text=True)
         self.assertIn("My Pay", body)
