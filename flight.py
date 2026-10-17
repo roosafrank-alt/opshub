@@ -621,9 +621,11 @@ flight_bp.add_app_template_global(tsa_gate_needed)
 
 def _parse_float(val):
     try:
-        return float(val) if val not in (None, "") else None
+        out = float(val) if val not in (None, "") else None
     except (TypeError, ValueError):
         return None
+    # "nan" and "inf" parse as floats but are never a real reading.
+    return out if out is None or math.isfinite(out) else None
 
 
 def _parse_int(val):

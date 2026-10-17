@@ -47,6 +47,29 @@ class FlightSessionVerbiageTest(OpsHubTestCase):
                    follow_redirects=True)
         self.assertIn("Session ended and logged", r.get_data(as_text=True))
 
+    def test_ending_a_session_rejects_nan_and_inf_meter_readings(self):
+        c = self.login("cfi")
+        flight_id = self.exec(
+            """INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, hobbs_start, tach_start, solo,
+               started_at, stopped_at, created_at)
+               VALUES (?,?,?,?,?,?,0,?,?,?)""",
+            (self.cfi_id, self.student_id, self.asset_id, db.now_iso()[:10], 100.0, 200.0,
+             db.now_iso(), db.now_iso(), db.now_iso()))
+        for bad in ("nan", "inf"):
+            r = c.post(f"/flight/log/{flight_id}/end",
+                       data={"hobbs_end": bad, "tach_end": "201.0", "paid": "1", "payment_method": "cash"},
+                       follow_redirects=True)
+            self.assertIn("Enter the ending Hobbs and Tach", r.get_data(as_text=True))
+            r = c.post(f"/flight/log/{flight_id}/end",
+                       data={"hobbs_end": "101.0", "tach_end": bad, "paid": "1", "payment_method": "cash"},
+                       follow_redirects=True)
+            self.assertIn("Enter the ending Hobbs and Tach", r.get_data(as_text=True))
+        conn = db.get_db()
+        f = conn.execute("SELECT ended_at, hobbs_end FROM flights WHERE id = ?", (flight_id,)).fetchone()
+        conn.close()
+        self.assertIsNone(f["ended_at"])
+        self.assertIsNone(f["hobbs_end"])
+
     def test_active_flight_page_still_says_session_not_flight_on_its_buttons(self):
         c = self.login("cfi")
         self.exec(
