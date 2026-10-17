@@ -186,6 +186,8 @@
 </form>
 </div>
 
+<button type="button" id="availNotesBtn" class="btn btn-link btn-sm p-0 mb-1 text-decoration-none" aria-expanded="false" aria-controls="availNotes">Notes &#9656; show</button>
+<div id="availNotes" hidden>
 {% if view == 'day' %}
 <p class="text-muted small">Plane availability only - a slot shown here means that plane is free then. Tap instructor names above the grid to see who is free in each slot. Times are {{ school_day_label }} in 1.5-hour slots (the same length as a normal booking).</p>
 {% else %}
@@ -195,6 +197,11 @@
 {% if view == 'day' and has_requests_only %}
 <p class="small mb-2"><span class="badge text-bg-secondary">Requests only</span> Greyed times are outside normal booking hours. Your spot there is not confirmed until an instructor confirms it.</p>
 {% endif %}
+</div>
+<script>
+(function(){var b=document.getElementById('availNotesBtn'),n=document.getElementById('availNotes');
+b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttribute('aria-expanded',open);b.innerHTML=open?'Notes &#9662; hide':'Notes &#9656; show';});})();
+</script>
 
 {% if view == 'week' %}
 <div class="row row-cols-2 row-cols-md-4 row-cols-lg-7 g-2">
