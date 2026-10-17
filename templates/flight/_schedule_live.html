@@ -624,10 +624,25 @@
 </div>
 </div>
 
-{% if highlight_ids is defined and highlight_ids %}
-<div class="alert alert-danger d-flex align-items-center gap-2">
+{% set _reasons = conflict_reasons if conflict_reasons is defined else [] %}
+{% set _outlined = (highlight_ids | reject('equalto', 0) | list) if highlight_ids is defined and highlight_ids else [] %}
+{% if _reasons %}
+<div class="alert alert-danger d-flex align-items-start gap-2">
   <i class="bi bi-exclamation-octagon-fill fs-5"></i>
-  <div>Showing what's in conflict - the flight{{ 's' if highlight_ids|length > 1 }} outlined in red below, everything else faded out.</div>
+  <div>
+    <strong>Conflict:</strong>
+    {% if _reasons|length == 1 %}{{ _reasons[0] }}
+    {% elif _reasons %}<ul class="mb-0 ps-3">{% for r in _reasons %}<li>{{ r }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if _outlined %}<div class="small mt-1">The flight{{ 's' if _outlined|length > 1 }} in the way {{ 'are' if _outlined|length > 1 else 'is' }} outlined in red below; everything else is faded out.</div>{% endif %}
+  </div>
+</div>
+{% elif _outlined %}
+{#- Alerts / Dashboard links reuse ?highlight= just to point at a flight -
+   that's not a conflict, so don't call it one. #}
+<div class="alert alert-info d-flex align-items-center gap-2">
+  <i class="bi bi-cursor-fill fs-5"></i>
+  <div>Showing the flight{{ 's' if _outlined|length > 1 }} you opened - outlined below, everything else faded out.</div>
 </div>
 {% endif %}
 

@@ -607,7 +607,12 @@ def _conflict_highlight_url(conflicts):
     if not conflicts:
         return None
     ids = ",".join(str(c["id"]) for c in conflicts)
-    return url_for("flight.schedule_calendar", view="day", date=conflicts[0]["date"], highlight=ids)
+    # The reason(s) ride along too, so the red banner on the calendar can say
+    # exactly what's in conflict (a fetch()-based approve never shows its
+    # flash message, and time-off/medical/grounded conflicts have no block
+    # to outline at all).
+    why = [c["message"] for c in conflicts if c.get("message")][:5]
+    return url_for("flight.schedule_calendar", view="day", date=conflicts[0]["date"], highlight=ids, why=why)
 
 flight_bp = Blueprint("flight", __name__, url_prefix="/flight")
 flight_bp.add_app_template_global(guest_student_id)
@@ -4903,6 +4908,7 @@ def _schedule_calendar_context():
         x = x.strip()
         if x.isdigit():
             highlight_ids.add(int(x))
+    conflict_reasons = [w.strip()[:300] for w in request.args.getlist("why") if w.strip()][:5]
     # Just-booked flight(s): after Schedule Flight the page opens on the
     # Month view with the new booking(s) outlined in green (?new=ids). The
     # page's script drops the outline (and the param) on the first click or
@@ -5025,7 +5031,7 @@ def _schedule_calendar_context():
                 today=today, year=year, month=month, prev_year=prev_year, prev_month=prev_month,
                 next_year=next_year, next_month=next_month,
                 planes=planes, cfis=cfis, plane_id=plane_id, cfi_id=cfi_id,
-                instructor_legend=instructor_legend, plane_legend=plane_legend, highlight_ids=highlight_ids,
+                instructor_legend=instructor_legend, plane_legend=plane_legend, highlight_ids=highlight_ids, conflict_reasons=conflict_reasons,
                 new_ids=new_ids, wl_for=wl_for,
                 month_timeline_start_min=_school_day_window()[0], month_timeline_end_min=_school_day_window()[1],
                 month_timeline_px_per_min=MONTH_TIMELINE_PX_PER_MIN,
@@ -5493,8 +5499,9 @@ def schedule_new():
             # everything else on those days faded into the background.
             skip_dates = sorted(d for d, _ in skipped)
             skip_ids = ",".join(str(c["id"]) for _, c in skipped)
+            skip_why = [f"{_us_date(d)}: {c['message']}" for d, c in skipped[:5]]
             return redirect(url_for("flight.schedule_calendar", view="custom", start=skip_dates[0],
-                                    end=skip_dates[-1], highlight=skip_ids))
+                                    end=skip_dates[-1], highlight=skip_ids, why=skip_why))
         first = occurrence_dates[0]
         return redirect(url_for("flight.schedule_calendar", view="month", year=first[:4], month=int(first[5:7]),
                                 new=",".join(str(i) for i in created_ids)))
