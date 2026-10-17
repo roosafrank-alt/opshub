@@ -920,11 +920,18 @@ def _course_outline(conn, rating_id, student_id):
     return out
 
 
+class _MadeList(list):
+    """The "Task X. Title" labels, plus the matching lesson ids (task_ids) so the alert can link to the first one."""
+    def __init__(self):
+        super().__init__()
+        self.task_ids = []
+
+
 def assign_tasks(conn, sid, ids, note, due, who):
     """Inserts homework rows (skipping lessons already assigned) and returns the "Task X. Title" labels
     made. Does not commit or notify: the caller does (assign_homework, and the flight page's End Flight)."""
     already = assigned_task_ids(conn, sid)
-    made = []
+    made = _MadeList()
     for tid in ids:
         t = conn.execute("""SELECT t.id, t.code, t.title FROM acs_tasks t JOIN acs_areas a ON a.id = t.area_id
                             WHERE t.id = ? AND t.retired_at IS NULL""", (tid,)).fetchone()
@@ -933,6 +940,7 @@ def assign_tasks(conn, sid, ids, note, due, who):
         conn.execute("INSERT INTO gs_assignments (student_id, task_id, note, due_on, assigned_by_user_id, assigned_by_name, assigned_at) "
                      "VALUES (?, ?, ?, ?, ?, ?, ?)", (sid, tid, note, due, session.get("user_id"), who, now_iso()))
         made.append("Task %s. %s" % (t["code"], t["title"]))
+        made.task_ids.append(tid)
     return made
 
 
@@ -1010,12 +1018,15 @@ def _notify_homework(conn, st, who, made, note, due):
         title = "New ground school homework"
         body = "%s assigned you: %s%s%s" % (who, "; ".join(made[:3]) + (" and %d more" % (len(made) - 3) if len(made) > 3 else ""),
                                           (" (due %s)" % due) if due else "", (". " + note) if note else "")
-        push.queue_and_push(conn, st["user_id"], title, body, tag="gs-homework-%d" % st["id"], url="/flight/groundschool")
+        first = (getattr(made, "task_ids", None) or [None])[0]
+        path = url_for("groundschool.task_detail", task_id=first) if first else url_for("groundschool.rating_list")
+        push.queue_and_push(conn, st["user_id"], title, body, tag="gs-homework-%d" % st["id"], url=path)
         user = conn.execute("SELECT * FROM users WHERE id = ?", (st["user_id"],)).fetchone()
         if user:
-            # The email/text carries a link straight to the homework list (the push already opens it).
+            # The email/text (and the push) open the first lesson assigned, not the ground school home page.
             try:
-                link = url_for("groundschool.rating_list", _external=True)
+                link = (url_for("groundschool.task_detail", task_id=first, _external=True) if first
+                        else url_for("groundschool.rating_list", _external=True))
             except Exception:
                 link = ""
             notify.notify_user(notify.get_settings(conn), user, title,

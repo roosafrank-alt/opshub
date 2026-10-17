@@ -268,7 +268,7 @@ class GroundSchoolTest(OpsHubTestCase):
         html = c.get(f"/flight/groundschool?student_id={self.student_id}&course={done}").get_data(as_text=True)
         self.assertRegex(html, r'<option value="%d" selected>Recreational Pilot \(past\)' % done)
 
-    def test_homework_email_links_to_the_homework_list(self):
+    def test_homework_email_links_to_the_first_assigned_lesson(self):
         import notify
         sent = []
         orig = notify.notify_user
@@ -279,7 +279,7 @@ class GroundSchoolTest(OpsHubTestCase):
             notify.notify_user = orig
         self.assertTrue(sent, "the student should have been emailed")
         for body in sent:
-            self.assertIn("/flight/groundschool", body)
+            self.assertIn("/flight/groundschool/task/%d" % self.task_id, body)
             self.assertIn("http", body)
 
     def test_assign_homework_flags_the_student_and_shows_everywhere(self):
