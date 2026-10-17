@@ -270,6 +270,20 @@
       flash.querySelector('.gsl-fprev').addEventListener('click', function () { show(fi - 1); });
       flash.querySelector('.gsl-fnext').addEventListener('click', function () { show(fi + 1); });
       count.textContent = '1 / ' + fc.length;
+      // flick left = Next button, flick right = Prev button (mostly-horizontal, 50px+ only).
+      var sx = 0, sy = 0, sOk = false;
+      flash.addEventListener('touchstart', function (e) {
+        var t = e.touches[0], sel = window.getSelection && window.getSelection();
+        sOk = e.touches.length === 1 && !(sel && !sel.isCollapsed) && !e.target.closest('input,textarea,select,[contenteditable]');
+        sx = t.clientX; sy = t.clientY;
+      }, { passive: true });
+      flash.addEventListener('touchend', function (e) {
+        if (!sOk) return; sOk = false;
+        var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+        if (Math.abs(dx) < 50 || Math.abs(dx) < 2 * Math.abs(dy)) return;
+        flash.querySelector(dx < 0 ? '.gsl-fnext' : '.gsl-fprev').click();
+        e.preventDefault();
+      });
     }
   });
 
