@@ -474,6 +474,14 @@ body { background: #f4f5f7; }
   .squawk-select.form-select-sm { padding: .15rem 1.3rem .15rem .4rem; font-size: .72rem; }
 }
 
+/* iPhone Safari zooms the page when a field's text is under 16px. Phones only:
+   the "Assign to..." pickers and the logbook entry boxes get 16px; desktop
+   keeps the small sizes. !important beats the inline font-size on the boxes. */
+@media (max-width: 575.98px) {
+  .squawk-select.form-select-sm { font-size: 16px; }
+  .lb-phone16 { font-size: 16px !important; }
+}
+
 /* Idea "Squalk view", round 2 (reference image: "Done" wrapping to its own
    line under the other 4 step pills, pushing the action button and the
    whole card a row taller). Keeps the same 5 pills - same badge markup,

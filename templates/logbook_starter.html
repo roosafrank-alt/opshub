@@ -30,15 +30,15 @@
     </div>
     <div class="col-6 col-md-3">
       <label class="form-label small mb-1">Entry date</label>
-      <input type="date" name="date" value="{{ entry_date }}" class="form-control form-control-sm">
+      <input type="date" name="date" value="{{ entry_date }}" class="form-control form-control-sm lb-phone16">
     </div>
     <div class="col-3 col-md-2">
       <label class="form-label small mb-1">Tach</label>
-      <input type="number" step="0.1" name="tach" value="{{ '%.1f'|format(tach) if tach is not none else '' }}" class="form-control form-control-sm">
+      <input type="number" step="0.1" name="tach" value="{{ '%.1f'|format(tach) if tach is not none else '' }}" class="form-control form-control-sm lb-phone16">
     </div>
     <div class="col-3 col-md-2">
       <label class="form-label small mb-1">Hobbs</label>
-      <input type="number" step="0.1" name="hobbs" value="{{ '%.1f'|format(hobbs) if hobbs is not none else '' }}" class="form-control form-control-sm">
+      <input type="number" step="0.1" name="hobbs" value="{{ '%.1f'|format(hobbs) if hobbs is not none else '' }}" class="form-control form-control-sm lb-phone16">
     </div>
     <div class="col-12 col-md-1"><button class="btn btn-dark btn-sm w-100" data-change="DESIGN-1">Update</button></div>
   </div>
@@ -58,7 +58,7 @@
       {% for code, label in log_types %}<option value="{{ code }}" {{ 'selected' if code == log_type }}>{{ label }} log</option>{% endfor %}
     </select>
   </div>
-  <textarea name="body" class="form-control lb-text" rows="{{ [body.count('\n') + 2, 14]|min }}">{{ body }}</textarea>
+  <textarea name="body" class="form-control lb-text lb-phone16" rows="{{ [body.count('\n') + 2, 14]|min }}">{{ body }}</textarea>
   <div class="d-flex gap-2 mt-2">
     {% if can_edit %}<button type="submit" class="btn btn-dark btn-sm" data-change="DESIGN-1"><i class="bi bi-journal-plus"></i> Save to logbook</button>{% endif %}
     <button type="button" class="btn btn-outline-secondary btn-sm" onclick="lbCopy(this)"><i class="bi bi-clipboard"></i> Copy</button>
