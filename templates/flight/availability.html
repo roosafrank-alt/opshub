@@ -81,9 +81,9 @@
   .avail-slot-req { background: #e9ecef; color: #6c757d; cursor: pointer; text-align: center; font-size: .72rem; padding: .4rem .3rem; border: 2px dashed #ced4da; border-radius: 4px; }
   .avail-grid-v td.avail-slot-req { --bs-table-bg: #e9ecef; --bs-table-color: #6c757d; background: #e9ecef; }
   .avail-grid-v td.avail-slot-req:hover { background: #dee2e6; }
-  .avail-with-cfis { display: flex; gap: .5rem; align-items: flex-start; }
+  .avail-with-cfis { display: flex; flex-direction: column; gap: .5rem; }
   .avail-with-cfis .avail-fit { flex: 1 1 auto; min-width: 0; }
-  .avail-cfi-side { flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; max-width: 6.5rem; }
+  .avail-cfi-side { display: flex; flex-wrap: wrap; gap: 4px; }
   .avail-cfi-side .btn { font-size: .72rem; padding: .2rem .4rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .avail-cfi-chips { display: block; font-size: .6rem; font-weight: 600; line-height: 1.2; color: #0a3d1f; white-space: normal; }
   .avail-cfi-chips:empty { display: none; }
@@ -180,7 +180,7 @@
 </div>
 
 {% if view == 'day' %}
-<p class="text-muted small">Plane availability only - a slot shown here means that plane is free then. Tap instructor names on the right to see who is free in each slot. Times are {{ school_day_label }} in 1.5-hour slots (the same length as a normal booking).</p>
+<p class="text-muted small">Plane availability only - a slot shown here means that plane is free then. Tap instructor names above the grid to see who is free in each slot. Times are {{ school_day_label }} in 1.5-hour slots (the same length as a normal booking).</p>
 {% else %}
 <p class="text-muted small">Each day shows how many open (plane, time-slot) pairs it has, {{ school_day_label }} in 1.5-hour slots - click a day to see the full breakdown.</p>
 {% endif %}
@@ -232,6 +232,13 @@
    left of every row, so each box only needs to say Open/Booked. #}
 {% set is_student_viewer = session.get('student_id') and not session.get('cfi_id') %}
 <div class="avail-with-cfis">
+{% if cfis %}
+<div class="avail-cfi-side" id="availCfiSide" aria-label="Instructors">
+  {% for c in cfis %}
+  <button type="button" class="btn btn-outline-primary" data-cfi="{{ c.id }}" aria-pressed="false" title="Show when {{ c.name }} is free">{{ c.name.split()[0] }}</button>
+  {% endfor %}
+</div>
+{% endif %}
 <div class="avail-fit">
   <table class="table table-bordered avail-grid avail-grid-v mb-0">
     <thead>
@@ -283,13 +290,6 @@
     </tbody>
   </table>
 </div>
-{% if cfis %}
-<div class="avail-cfi-side" id="availCfiSide" aria-label="Instructors">
-  {% for c in cfis %}
-  <button type="button" class="btn btn-outline-primary" data-cfi="{{ c.id }}" aria-pressed="false" title="Show when {{ c.name }} is free">{{ c.name.split()[0] }}</button>
-  {% endfor %}
-</div>
-{% endif %}
 </div>
 {% if cfis %}
 <script>
