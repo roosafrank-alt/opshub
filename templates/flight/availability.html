@@ -117,6 +117,11 @@
     .avail-grid-v th, .avail-grid-v td { font-size: .75rem; }
     .avail-grid-v .avail-time-col { width: 4.6rem; font-size: .75rem; white-space: nowrap; }
   }
+  .avail-break { display: none; }
+  @media (max-width: 575.98px) {
+    /* Phone: the prev arrow starts its own line under Day/Week/Month + Calendar/List. */
+    .avail-break { display: block; flex-basis: 100%; height: 0; margin-top: -.5rem; }
+  }
   /* The rest of the page wraps instead of pushing past the screen edge. */
   .avail-toolbar .btn-group { flex-wrap: wrap; }
   .avail-week-card, .avail-month-cell {
@@ -155,6 +160,7 @@
       <a href="{{ url_for('flight.schedule_availability', view='day', date=day_str, plane_id=plane_id, mode='calendar') }}" class="btn {{ 'btn-secondary' if mode == 'calendar' else 'btn-outline-secondary' }}">Calendar</a>
       <a href="{{ url_for('flight.schedule_availability', view='day', date=day_str, plane_id=plane_id, mode='list') }}" class="btn {{ 'btn-secondary' if mode == 'list' else 'btn-outline-secondary' }}">List</a>
     </div>
+    <span class="avail-break" aria-hidden="true"></span>
     <a href="{{ url_for('flight.schedule_availability', view='day', date=day_prev, plane_id=plane_id, mode=mode) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
     <a href="{{ url_for('flight.schedule_availability', view='day', plane_id=plane_id, mode=mode) }}" class="btn btn-outline-secondary btn-sm">Today</a>
     <a href="{{ url_for('flight.schedule_availability', view='day', date=day_next, plane_id=plane_id, mode=mode) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
