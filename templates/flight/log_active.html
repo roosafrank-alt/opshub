@@ -152,6 +152,14 @@
         <div class="modal-header py-2"><h6 class="modal-title"><i class="bi bi-airplane"></i> End Flight <span class="text-muted small fw-normal">- the clock keeps running</span></h6>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
         <div class="modal-body">
+          {#- Where the flight started: shown for reference, read-only and not submitted. #}
+          <div class="row g-2 mb-2">
+            <div class="col-6"><label class="form-label small mb-0 text-muted">Hobbs Start</label>
+              <input type="text" class="form-control" value="{{ '%.1f'|format(f.hobbs_start) if f.hobbs_start is not none else '-' }}" disabled></div>
+            <div class="col-6"><label class="form-label small mb-0 text-muted">Tach Start</label>
+              <input type="text" class="form-control" value="{{ '%.1f'|format(f.tach_start) if f.tach_start is not none else '-' }}" disabled></div>
+            <div class="col-12 small text-muted">Flight started {{ f.started_at|time12 }}</div>
+          </div>
           <div class="row g-2">
             <div class="col-6"><label class="form-label small mb-0 fw-bold">Hobbs End *</label>
               <input type="number" step="any" name="hobbs_end" class="form-control" inputmode="decimal" required placeholder="e.g. 1234.5" value="{{ f.hobbs_end if f.hobbs_end is not none else '' }}"{% if f.hobbs_start is not none %} min="{{ f.hobbs_start }}"{% endif %}></div>
