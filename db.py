@@ -2166,7 +2166,7 @@ def _migrate(conn):
     # End Flight steps (flight.log_end_flight / log_flight_items / log_flight_plan): when the ending Hobbs/Tach
     # were confirmed, when the instructor logged the ACS items done on the flight, and when the next-flight plan
     # was saved (it then shows as an "ACS planning" button on the card).
-    for col in ("end_confirmed_at", "acs_logged_at", "acs_planned_at"):
+    for col in ("end_confirmed_at", "acs_logged_at", "acs_planned_at", "end_started_at"):
         if col not in flight_cols_starter:
             conn.execute("ALTER TABLE flights ADD COLUMN %s TEXT" % col)
             conn.commit()

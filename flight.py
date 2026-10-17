@@ -7571,6 +7571,20 @@ def _end_flight_flight(conn, flight_id):
     return f
 
 
+@flight_bp.route("/log/<int:flight_id>/end_flight_started", methods=["POST"])
+@login_required
+def log_end_flight_started(flight_id):
+    """Remember on the server that End Flight was opened, so the same box reopens on any device
+    (computer, then phone) until the ACS planning step is saved."""
+    conn = get_db()
+    f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
+    if f and f["started_at"] and not f["ended_at"] and _can_end_flight(f) and not f["end_started_at"]:
+        conn.execute("UPDATE flights SET end_started_at = ? WHERE id = ?", (now_iso(), flight_id))
+        conn.commit()
+    conn.close()
+    return ("", 204)
+
+
 @flight_bp.route("/log/<int:flight_id>/end_flight", methods=["POST"])
 @login_required
 def log_end_flight(flight_id):

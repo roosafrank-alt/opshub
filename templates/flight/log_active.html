@@ -136,7 +136,7 @@
        Hobbs/Tach, score the ACS items done on the flight, then plan the next flight and homework. Once the
        plan is saved the button becomes "ACS planning". End Session still closes the flight out. #}
     {% if not f.asset_is_simulator %}
-    <button type="button" class="btn {{ 'btn-outline-info' if f.acs_planned_at else 'btn-outline-primary' }} fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"><i class="bi {{ 'bi-list-check' if f.acs_planned_at else 'bi-airplane' }}"></i> {{ 'ACS planning' if f.acs_planned_at else 'End Flight' }}</button>
+    <button type="button" class="btn {{ 'btn-outline-info' if f.acs_planned_at else 'btn-outline-primary' }} fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"{% if not f.acs_planned_at %} onclick="fetch('{{ url_for('flight.log_end_flight_started', flight_id=f.id) }}', {method: 'POST', credentials: 'same-origin'})"{% endif %}><i class="bi {{ 'bi-list-check' if f.acs_planned_at else 'bi-airplane' }}"></i> {{ 'ACS planning' if f.acs_planned_at else 'End Flight' }}</button>
     {% endif %}
   </div>
   {% if f.next_focus_tasks %}
@@ -145,7 +145,7 @@
   {% if not f.asset_is_simulator and f.end_state %}
   {% set es = f.end_state %}
   {% set step = es.step if (f.end_pick or es.step == 'times') else 'times' %}
-  <div class="modal fade end-flight-modal" id="end-flight-modal-{{ f.id }}" tabindex="-1" aria-hidden="true"{% if open_end_id == f.id %} data-auto-open="1"{% endif %}>
+  <div class="modal fade end-flight-modal" id="end-flight-modal-{{ f.id }}" tabindex="-1" aria-hidden="true"{% if open_end_id == f.id or (f.end_started_at and not f.acs_planned_at) %} data-auto-open="1"{% endif %}>
     <div class="modal-dialog modal-dialog-scrollable">
       {% if step == 'times' %}
       <form method="post" action="{{ url_for('flight.log_end_flight', flight_id=f.id) }}" class="modal-content">
