@@ -49,6 +49,14 @@ class ShopAdminSkipLauncherTest(OpsHubTestCase):
         self.assertNotIn("Fly with Kate!</div>", body)
         self.assertIn(">Customers<", body)  # SEAM-9: the admin tile is Customers
 
+    def test_picker_has_phone_row_css_and_keeps_big_tiles(self):
+        # QA ux-launcher-phone-rows: phones get short rows via a media query.
+        c, r = self._login_for_real("master")
+        body = c.get("/").get_data(as_text=True)
+        self.assertIn("@media (max-width: 767.98px)", body)
+        self.assertIn(".tile-accent { display: none; }", body)
+        self.assertIn("launcher-tile tile-shop", body)
+
     def test_master_admin_login_still_lands_on_the_picker(self):
         c, r = self._login_for_real("master")
         self.assertEqual(r.status_code, 302)
