@@ -1,0 +1,4 @@
+{"checks":[{"role":"cfi","size":"desktop",
+"sql":["INSERT INTO flight_waitlist (student_id, days, periods, asset_ids, active, created_at, note) VALUES ({student}, '0,1,2,3,4,5,6', 'afternoon', '{asset}', 1, datetime('now'), 'Free 1-4pm, leave by 5')"],
+"steps":[["start","/flight/schedule?view=day"],["hover","[data-wl-tip]"],["see","Customer:"],["see","Instructor:"],["see","Note:"],
+["shot",{"caption":"Waitlist chip pop-up with labels on the left","changed":[{"sel":"#wlPop","note":"Styled pop-up"}]}]]}]}

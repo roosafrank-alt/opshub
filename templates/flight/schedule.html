@@ -15,7 +15,12 @@
    poll instead of needing to be re-added each time. #}
 {% from "flight/_pilot_badge.html" import pilot_badge_css %}{{ pilot_badge_css() }}
 <style>
-  #wlPop { position: fixed; z-index: 2000; display: none; max-width: min(320px, calc(100vw - 16px)); padding: .5rem .7rem; border-radius: .5rem; background: #212529; color: #fff; font-size: .95rem; line-height: 1.35; white-space: pre-line; box-shadow: 0 4px 14px rgba(0,0,0,.35); pointer-events: none; }
+  #wlPop { position: fixed; z-index: 2000; display: none; width: max-content; max-width: min(320px, calc(100vw - 16px)); padding: .6rem .8rem; border-radius: .6rem; background: #212529; color: #fff; font-size: .9rem; line-height: 1.35; box-shadow: 0 6px 20px rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.12); pointer-events: none; }
+  #wlPop .wl-row { display: flex; gap: .75rem; padding: .15rem 0; }
+  #wlPop .wl-k { flex: 0 0 5.5rem; color: #9ec5fe; font-weight: 600; }
+  #wlPop .wl-v { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  #wlPop .wl-row:first-child .wl-v { font-weight: 700; }
+  #wlPop .wl-hint { margin-top: .4rem; padding-top: .35rem; border-top: 1px solid rgba(255,255,255,.18); font-size: .8rem; color: #adb5bd; }
   @keyframes schedule-block-pulse {
     0%, 100% { box-shadow: 0 0 4px rgba(255,193,7,0.6); }
     50% { box-shadow: 0 0 10px rgba(255,193,7,1); }
@@ -832,14 +837,36 @@ document.addEventListener('click', function (evt) {
   });
 })();
 
-  // Waitlist chips: big hover/focus popover with the note, plane, instructor and time of day.
+  // Waitlist chips: styled pop-up (labels left, values right). Mouse: hover. Touch: first tap opens it, second tap schedules.
   (function () {
     var pop = document.createElement('div');
     pop.id = 'wlPop';
     document.body.appendChild(pop);
+    var touchOnly = window.matchMedia && window.matchMedia('(hover: none)').matches;
+    var current = null;
     function chip(e) { return e.target.closest ? e.target.closest('[data-wl-tip]') : null; }
+    function build(el) {
+      var lines = el.getAttribute('data-wl-tip').split('\n'), html = '';
+      function row(l, v) {
+        var r = document.createElement('div'); r.className = 'wl-row';
+        var a = document.createElement('span'); a.className = 'wl-k'; a.textContent = l;
+        var b = document.createElement('span'); b.className = 'wl-v'; b.textContent = v;
+        r.appendChild(a); r.appendChild(b); pop.appendChild(r);
+      }
+      pop.textContent = '';
+      var name = (lines.shift() || '').replace(/ - waitlist$/, '');
+      row('Customer:', name);
+      lines.forEach(function (ln) {
+        var i = ln.indexOf(': ');
+        if (i > 0) row(ln.slice(0, i + 1), ln.slice(i + 2));
+      });
+      var h = document.createElement('div'); h.className = 'wl-hint';
+      h.textContent = touchOnly ? 'Tap again to schedule a lesson' : 'Click to schedule a lesson';
+      pop.appendChild(h);
+    }
     function show(el) {
-      pop.textContent = el.getAttribute('data-wl-tip') + '\nClick to schedule a lesson';
+      build(el);
+      current = el;
       pop.style.display = 'block';
       var r = el.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
       var left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
@@ -848,13 +875,17 @@ document.addEventListener('click', function (evt) {
       pop.style.left = left + 'px';
       pop.style.top = top + 'px';
     }
-    function hide() { pop.style.display = 'none'; }
-    document.addEventListener('mouseover', function (e) { var c = chip(e); if (c) show(c); });
-    document.addEventListener('mouseout', function (e) { if (chip(e)) hide(); });
-    document.addEventListener('focusin', function (e) { var c = chip(e); if (c) show(c); });
+    function hide() { pop.style.display = 'none'; current = null; }
+    document.addEventListener('mouseover', function (e) { if (touchOnly) return; var c = chip(e); if (c) show(c); });
+    document.addEventListener('mouseout', function (e) { if (touchOnly) return; if (chip(e)) hide(); });
+    document.addEventListener('focusin', function (e) { if (touchOnly) return; var c = chip(e); if (c) show(c); });
     document.addEventListener('focusout', function (e) { if (chip(e)) hide(); });
     document.addEventListener('scroll', hide, true);
-    document.addEventListener('click', hide, true);
+    document.addEventListener('click', function (e) {
+      var c = chip(e);
+      if (touchOnly && c && current !== c) { e.preventDefault(); e.stopPropagation(); show(c); return; }
+      hide();
+    }, true);
   })();
 </script>
 {% endblock %}
