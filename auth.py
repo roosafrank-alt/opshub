@@ -98,6 +98,13 @@ def _flight_admin_for(user_row):
     return "admin" in user_flight_roles(user_row)
 
 
+def _instructor_for(user_row):
+    """True when this account is a CFI right now (own roles, or the level being viewed in a role switch)."""
+    if session.get("_view_as_real") is not None:
+        return session.get("flight_role") in ("cfi", "admin")
+    return bool({"cfi", "admin"} & set(user_flight_roles(user_row)))
+
+
 def _set_academy_flags(user_row):
     """Flight Academy / Ground School access: the admin-assigned flags, plus
     automatically for a Flight Admin (no separate academy_access needed)."""
@@ -109,8 +116,9 @@ def _set_academy_flags(user_row):
     # Ground School is separate from Flight Academy: Flight Academy Access alone
     # no longer opens every course. Everything is open only to a Flight Admin /
     # master admin (and an account still on the older all-ground-schools flag);
-    # everyone else sees just the courses they are enrolled in.
-    session["groundschool_access"] = bool(user_row["groundschool_access"] or fa)
+    # everyone else sees just the courses they are enrolled in. Instructors (CFIs) teach the
+    # courses, so they see every one without needing a student profile to be enrolled on.
+    session["groundschool_access"] = bool(user_row["groundschool_access"] or fa or (_instructor_for(user_row) and session["academy_access"]))
 
 
 def own_cfi(conn, real_only=False):
@@ -528,11 +536,10 @@ def start_view_as(conn, program, level, student_id=None, cfi_id=None):
         elif cfi_id is not None:
             # A picked CFI is look only too. Academy shows only if that CFI's own
             # account has it; ground school only on the older all-ground-schools flag.
-            flags = conn.execute("SELECT academy_access, groundschool_access FROM users WHERE id = ?",
-                                 (row["user_id"],)).fetchone() if row["user_id"] else None
+            flags = conn.execute("SELECT * FROM users WHERE id = ?", (row["user_id"],)).fetchone() if row["user_id"] else None
             session["_view_as_readonly"] = True
             session["academy_access"] = bool(flags and flags["academy_access"])
-            session["groundschool_access"] = bool(flags and flags["groundschool_access"])
+            session["groundschool_access"] = bool(flags and (flags["groundschool_access"] or (flags["academy_access"] and {"cfi", "admin"} & set(user_flight_roles(flags)))))
     session["_view_as_program"] = program
     return True, None
 

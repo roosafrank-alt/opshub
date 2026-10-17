@@ -492,7 +492,8 @@ _RESOURCE_VIEW_ENDPOINTS = {"resources_list", "resource_file", "resource_excerpt
 
 _GRANTED_STUDENT_ENDPOINTS = {
     "rating_list", "rating_detail", "task_detail", "element_detail", "task_reference_click",
-    "task_mark_read", "element_item_interact", "element_lesson_done", "task_lesson_done", "lesson_time", "quiz_answer", "game_done", "resource_file", "resource_excerpt", "resources_list", "resource_previous",
+    "task_mark_read", "element_item_interact", "element_lesson_done", "task_lesson_done", "lesson_time", "quiz_answer", "game_done",
+    "area_review", "area_review_answer", "area_review_time", "resource_file", "resource_excerpt", "resources_list", "resource_previous",
 }
 
 
@@ -818,6 +819,15 @@ def student_summary(student_id):
     missed.sort(key=lambda m_: -m_["attempts"])
     skipped = [{"info": x["info"], "n": len(x["st"]["sections"]) - x["st"]["sections_read"]} for x in lessons
                if x["st"]["sections"] and x["st"]["sections_read"] < len(x["st"]["sections"]) and x["st"]["seconds"] >= 60]
+    area_rows = []
+    for ar in conn.execute("""SELECT a.id, a.code, a.title, r.name AS rname FROM acs_areas a JOIN acs_ratings r ON r.id = a.rating_id
+                              WHERE a.rating_id = ? AND a.id IN (SELECT area_id FROM gs_area_time WHERE student_id = ?
+                                             UNION SELECT area_id FROM gs_area_results WHERE student_id = ?)
+                              ORDER BY r.name, a.order_index""", (rid, student_id, student_id)).fetchall():
+        rv = area_review_for(conn, ar["id"])
+        stt = area_stats(conn, student_id, ar["id"], rv) if rv else None
+        if stt:
+            area_rows.append({"info": ar, "st": stt})
     fl = conn.execute("""SELECT COUNT(*) n, COALESCE(SUM(total),0) hrs, COALESCE(SUM(day_ldg),0)+COALESCE(SUM(night_ldg),0) ldg,
                                 MAX(entry_date) last FROM pilot_logbook WHERE student_id = ? AND status != 'denied'""", (student_id,)).fetchone()
     pending = conn.execute("SELECT COUNT(*) c FROM pilot_logbook WHERE student_id = ? AND status = 'pending'", (student_id,)).fetchone()["c"]
@@ -832,7 +842,7 @@ def student_summary(student_id):
                            tot_min=int(tot_secs // 60), avg_init=round(sum(inits) / len(inits)) if inits else None,
                            avg_final=round(sum(finals) / len(finals)) if finals else None,
                            flying=fl, pending=pending, a_stat=a_stat, course=course, now_on=now_on, homework=homework,
-                           weak=weak[:8], missed=missed[:8], skipped=skipped[:8])
+                           weak=weak[:8], missed=missed[:8], skipped=skipped[:8], area_rows=area_rows)
 
 
 # ---------------------------------------------------------------- homework (assigned lessons)
@@ -954,6 +964,20 @@ def assign_homework():
         back = request.form.get("next") or url_for("groundschool.rating_list")
         if not back.startswith("/") or back.startswith("//"):
             back = url_for("groundschool.rating_list")
+        was = {int(x) for x in request.form.getlist("was_assigned") if x.isdigit()}
+        dropped = []
+        if st:
+            # Unticked on the course page: take those lessons off the homework list.
+            for tid in was - set(ids):
+                cur = conn.execute("UPDATE gs_assignments SET cancelled_at = ? WHERE student_id = ? AND task_id = ? "
+                                   "AND cancelled_at IS NULL", (now_iso(), sid, tid))
+                if cur.rowcount:
+                    dropped.append(tid)
+            conn.commit()
+        ids = [i for i in ids if i not in was]
+        if st and dropped and not ids:
+            flash("Took %d lesson%s off %s's homework." % (len(dropped), "" if len(dropped) == 1 else "s", st["name"]), "success")
+            return redirect(back)
         if not st or not ids:
             flash("Pick a student and at least one lesson first.", "warning")
             return redirect(back)
@@ -968,7 +992,8 @@ def assign_homework():
         conn.commit()
         if made:
             _notify_homework(conn, st, who, made, note, due)
-            flash("Assigned %d lesson%s to %s." % (len(made), "" if len(made) == 1 else "s", st["name"]), "success")
+            flash("Assigned %d lesson%s to %s%s." % (len(made), "" if len(made) == 1 else "s", st["name"],
+                                                     (" and took %d off" % len(dropped)) if dropped else ""), "success")
         else:
             flash("Those lessons are already assigned to %s." % st["name"], "info")
         return redirect(back)
@@ -996,8 +1021,8 @@ def _notify_homework(conn, st, who, made, note, due):
 @groundschool_bp.route("/assignment/<int:aid>/<action>", methods=["POST"])
 @login_required
 def assignment_action(aid, action):
-    """Staff: mark an assigned lesson 'covered in the brief', or take the assignment back."""
-    if not _is_staff_viewer() or action not in ("reviewed", "cancel"):
+    """Staff: mark an assigned lesson 'covered in the brief' (or undo that), or take the assignment back."""
+    if not _is_staff_viewer() or action not in ("reviewed", "unreviewed", "cancel"):
         abort(403)
     conn = get_db()
     try:
@@ -1007,6 +1032,8 @@ def assignment_action(aid, action):
         if action == "reviewed":
             conn.execute("UPDATE gs_assignments SET reviewed_at = ?, reviewed_by_name = ? WHERE id = ?",
                          (now_iso(), session.get("user_name") or session.get("name"), aid))
+        elif action == "unreviewed":
+            conn.execute("UPDATE gs_assignments SET reviewed_at = NULL, reviewed_by_name = NULL WHERE id = ?", (aid,))
         else:
             conn.execute("UPDATE gs_assignments SET cancelled_at = ? WHERE id = ?", (now_iso(), aid))
         conn.commit()
@@ -1158,9 +1185,15 @@ def rating_detail(rating_id):
     element_done = _element_done_map(conn, rating_id, viewing_student_id) if viewing_student_id else {}
     element_self = _element_self_done(conn, viewing_student_id, element_done.keys())
     resume = resume_spot(conn, viewing_student_id, rating_id=rating_id) if viewing_student_id else None
+    reviews = {}
+    for area in areas:
+        rv = area_review_for(conn, area["id"])
+        if rv:
+            reviews[area["id"]] = {"count": len(rv.get("questions") or []),
+                                   "st": area_stats(conn, viewing_student_id, area["id"], rv) if viewing_student_id else None}
     assigned_ids = assigned_task_ids(conn, viewing_student_id) if viewing_student_id else set()
     conn.close()
-    return render_template("flight/groundschool_rating.html", rating=rating, areas=areas, resume=resume, assigned_ids=assigned_ids,
+    return render_template("flight/groundschool_rating.html", rating=rating, areas=areas, resume=resume, reviews=reviews, assigned_ids=assigned_ids,
                             tasks_by_area=tasks_by_area, elements_by_task=elements_by_task,
                             references_html_by_task=references_html_by_task, tab="groundschool",
                             changes_by_task=changes_by_task,
@@ -2122,7 +2155,7 @@ def quiz_answer(task_id):
     data = request.get_json(silent=True) or {}
     lesson = _lesson_for_task(conn, task_id)
     final = bool(data.get("final"))
-    quiz = ((lesson or {}).get("final_quiz") or (lesson or {}).get("quiz") or []) if final else ((lesson or {}).get("quiz") or [])
+    quiz = ground_lessons.final_questions(lesson) if final else ((lesson or {}).get("quiz") or [])
     try:
         n, j = int(data.get("n")), int(data.get("j"))
     except (TypeError, ValueError):
@@ -2135,7 +2168,7 @@ def quiz_answer(task_id):
     correct = (j == q["answer"])
     student_id = session.get("student_id")
     if student_id and not session.get("_view_as_readonly"):
-        key = ("fq%d" if final else "q%d") % n
+        key = (ground_lessons.final_prefix(lesson) if final else "q") + str(n)
         now = now_iso()
         row = conn.execute("SELECT * FROM gs_lesson_results WHERE student_id = ? AND task_id = ? AND item_key = ?",
                            (student_id, task_id, key)).fetchone()
@@ -2167,7 +2200,7 @@ def game_done(task_id):
         return err
     data = request.get_json(silent=True) or {}
     key = str(data.get("key") or "")
-    if not re.fullmatch(r"f?a\d{1,3}", key):
+    if not re.fullmatch(r"f?(a\d{1,3}|h\d{1,2})", key):
         conn.close()
         return {"ok": False, "error": "bad key"}, 400
     tries = max(1, min(int(data.get("tries") or 1), 99))
@@ -2210,10 +2243,11 @@ def lesson_stats(conn, student_id, task_id, lesson):
         r = res.get(a["key"])
         if a["type"] != "flash":
             games.append({"title": a["title"], "done": bool(r), "attempts": r["attempts"] if r else 0})
-    fq = (lesson or {}).get("final_quiz") or quiz
+    fq = ground_lessons.final_questions(lesson)
+    fpre = ground_lessons.final_prefix(lesson)
     frows = []
     for n, q in enumerate(fq, 1):
-        r = res.get("fq%d" % n)
+        r = res.get("%s%d" % (fpre, n))
         frows.append({"n": n, "q": q["q"], "answered": bool(r), "first_correct": bool(r and r["first_correct"]),
                       "attempts": r["attempts"] if r else 0, "done": bool(r and r["completed_at"])})
     fans = [x for x in frows if x["answered"]]
@@ -2241,6 +2275,164 @@ def lesson_stats(conn, student_id, task_id, lesson):
         "tries_total": sum(x["attempts"] for x in rows),
         "games": games,
     }
+
+
+# ---------------------------------------------------------------- GS-AREA-REVIEW
+# A larger review quiz at the end of each Area of Operation (ground_lessons/areas/<PA.I>.json),
+# graded and saved the same way as a Task's Final check: the first try is the grade the instructor
+# sees, a wrong answer can be fixed until 100%, and every try and the time spent are kept.
+def area_review_code(conn, area_id):
+    """'PA.I' for an Area, from its Tasks' element codes (None when no Task has a code)."""
+    rows = conn.execute("SELECT e.code FROM acs_task_elements e JOIN acs_tasks t ON t.id = e.task_id "
+                        "WHERE t.area_id = ? ORDER BY t.order_index, e.id LIMIT 20", (area_id,)).fetchall()
+    return ground_lessons.area_code([ground_lessons.task_code([r["code"]]) for r in rows])
+
+
+def area_review_for(conn, area_id):
+    return ground_lessons.load_area(area_review_code(conn, area_id))
+
+
+def area_results_map(conn, student_id, area_id):
+    return {r["item_key"]: {"done": bool(r["completed_at"]), "attempts": r["attempts"], "first": r["first_correct"] or 0}
+            for r in conn.execute("SELECT * FROM gs_area_results WHERE student_id = ? AND area_id = ?",
+                                  (student_id, area_id)).fetchall()}
+
+
+def area_stats(conn, student_id, area_id, review):
+    """What the instructor sees for one student on one Area review (None if never opened):
+    time, first-try grade, tries per question."""
+    t = conn.execute("SELECT * FROM gs_area_time WHERE student_id = ? AND area_id = ?", (student_id, area_id)).fetchone()
+    res = {r["item_key"]: r for r in conn.execute(
+        "SELECT * FROM gs_area_results WHERE student_id = ? AND area_id = ?", (student_id, area_id)).fetchall()}
+    if not t and not res:
+        return None
+    rows = []
+    for n, q in enumerate((review or {}).get("questions") or [], 1):
+        r = res.get("r%d" % n)
+        rows.append({"n": n, "q": q["q"], "task": q.get("task"), "answered": bool(r),
+                     "first_correct": bool(r and r["first_correct"]), "attempts": r["attempts"] if r else 0,
+                     "done": bool(r and r["completed_at"])})
+    ans = [x for x in rows if x["answered"]]
+    first = sum(1 for x in ans if x["first_correct"])
+    return {
+        "rows": rows, "total": len(rows), "answered": len(ans), "first_right": first,
+        "pct": round(100 * first / len(rows)) if rows and len(ans) == len(rows) else None,
+        "pct_so_far": round(100 * first / len(ans)) if ans else None,
+        "corrected": sum(1 for x in rows if x["done"]),
+        "tries": sum(x["attempts"] for x in rows),
+        "seconds": t["seconds"] if t else 0,
+        "first_started_at": t["first_started_at"] if t else None,
+        "last_seen_at": t["last_seen_at"] if t else None,
+    }
+
+
+def _area_json(area_id):
+    """(conn, area row, review, error response) for the Area review endpoints."""
+    conn = get_db()
+    area = conn.execute("SELECT * FROM acs_areas WHERE id = ?", (area_id,)).fetchone()
+    if not area or _course_blocked(area["rating_id"]):
+        conn.close()
+        return None, None, None, ({"ok": False, "error": "not found"}, 404)
+    review = area_review_for(conn, area_id)
+    if not review:
+        conn.close()
+        return None, None, None, ({"ok": False, "error": "no review"}, 404)
+    return conn, area, review, None
+
+
+@groundschool_bp.route("/area/<int:area_id>/review")
+@login_required
+def area_review(area_id):
+    conn = get_db()
+    area = conn.execute("SELECT * FROM acs_areas WHERE id = ?", (area_id,)).fetchone()
+    if not area:
+        conn.close()
+        return _gone("area")
+    if _course_blocked(area["rating_id"]):
+        conn.close()
+        return _not_granted()
+    review = area_review_for(conn, area_id)
+    if not review:
+        conn.close()
+        abort(404)
+    rating = conn.execute("SELECT * FROM acs_ratings WHERE id = ?", (area["rating_id"],)).fetchone()
+    tasks = conn.execute("SELECT id, code, title FROM acs_tasks WHERE area_id = ? AND retired_at IS NULL "
+                         "ORDER BY order_index", (area_id,)).fetchall()
+    viewing_student_id, students = _resolve_viewing_student(conn)
+    results = area_results_map(conn, session["student_id"], area_id) if session.get("student_id") else {}
+    stats = area_stats(conn, viewing_student_id, area_id, review) if viewing_student_id else None
+    conn.close()
+    return render_template("flight/groundschool_area_review.html", area=area, rating=rating, review=review,
+                           tasks=tasks, parts=ground_lessons.area_plan(review), gs_results=results,
+                           ar_stats=stats, gs_students=students, viewing_student_id=viewing_student_id,
+                           tab="groundschool")
+
+
+@groundschool_bp.route("/area/<int:area_id>/review/quiz-answer", methods=["POST"])
+@login_required
+def area_review_answer(area_id):
+    """Grade one Area review answer on the server (same rules as a Final check answer)."""
+    conn, area, review, err = _area_json(area_id)
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    qs = review.get("questions") or []
+    try:
+        n, j = int(data.get("n")), int(data.get("j"))
+    except (TypeError, ValueError):
+        conn.close()
+        return {"ok": False, "error": "bad request"}, 400
+    if not 1 <= n <= len(qs):
+        conn.close()
+        return {"ok": False, "error": "no such question"}, 404
+    q = qs[n - 1]
+    correct = (j == q["answer"])
+    student_id = session.get("student_id")
+    if student_id and not session.get("_view_as_readonly"):
+        key, now = "r%d" % n, now_iso()
+        row = conn.execute("SELECT * FROM gs_area_results WHERE student_id = ? AND area_id = ? AND item_key = ?",
+                           (student_id, area_id, key)).fetchone()
+        if row is None:
+            conn.execute("INSERT INTO gs_area_results (student_id, area_id, item_key, first_correct, attempts, "
+                         "completed_at, first_at, last_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?)",
+                         (student_id, area_id, key, 1 if correct else 0, now if correct else None, now, now))
+        elif not row["completed_at"]:
+            conn.execute("UPDATE gs_area_results SET attempts = attempts + 1, last_at = ?, completed_at = ? "
+                         "WHERE student_id = ? AND area_id = ? AND item_key = ?",
+                         (now, now if correct else None, student_id, area_id, key))
+        conn.commit()
+    conn.close()
+    out = {"ok": True, "correct": correct}
+    if correct:
+        out["why"] = str(ground_lessons.rich(q.get("why") or ""))
+    return out
+
+
+@groundschool_bp.route("/area/<int:area_id>/review/lesson-time", methods=["POST"])
+@login_required
+def area_review_time(area_id):
+    """Heartbeat from the open Area review: add the active seconds."""
+    student_id = session.get("student_id")
+    if not student_id or session.get("_view_as_readonly"):
+        return {"ok": True, "recorded": False}
+    conn, area, review, err = _area_json(area_id)
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    try:
+        secs = max(0, min(int(data.get("seconds") or 0), 40))
+    except (TypeError, ValueError):
+        secs = 0
+    now = now_iso()
+    if conn.execute("SELECT 1 FROM gs_area_time WHERE student_id = ? AND area_id = ?", (student_id, area_id)).fetchone():
+        conn.execute("UPDATE gs_area_time SET seconds = seconds + ?, last_seen_at = ? WHERE student_id = ? AND area_id = ?",
+                     (secs, now, student_id, area_id))
+    else:
+        conn.execute("INSERT INTO gs_area_time (student_id, area_id, seconds, first_started_at, last_seen_at) "
+                     "VALUES (?, ?, ?, ?, ?)", (student_id, area_id, secs, now, now))
+    conn.commit()
+    conn.close()
+    return {"ok": True, "recorded": True}
 
 
 def chunk_need(c):

@@ -6,7 +6,8 @@
   var root = document.getElementById('gsl');
   if (!root) return;
   var taskId = root.getAttribute('data-task-id');
-  var base = '/flight/groundschool/task/' + taskId;
+  // GS-AREA-REVIEW: the Area review page posts to its own endpoints (data-base); lessons use the Task's.
+  var base = root.getAttribute('data-base') || ('/flight/groundschool/task/' + taskId);
   function post(path, body) {
     return fetch(base + path, {
       method: 'POST', credentials: 'same-origin',
@@ -19,7 +20,7 @@
   function retakeKey(el) {
     var k = el.getAttribute('data-key');
     if (!k) { var q = el.querySelector('.gsl-q'); k = 'qg' + el.getAttribute('data-final') + '-' + (q ? q.getAttribute('data-n') : '0'); }
-    return 'gsl-retake-' + taskId + '-' + k;
+    return 'gsl-retake-' + (root.getAttribute('data-base') || taskId) + '-' + k;
   }
   function retakeBar(el, text) {
     var bar = document.createElement('div'); bar.className = 'gsl-donebar';

@@ -1116,5 +1116,286 @@
   "Fly it step by step: the AFH has no radio-call procedure, so the step-by-step chunk is built from the AIM (4-1-9, 4-1-13, 4-3-14, 4-3-18).",
   "RWSL deployment: PHAK 14-19 gives 2016 status only (14 airports); current RWSL airport list is not in these sources.",
   "No specific ACS tolerances in this Task's Skills elements; the examiner judges standard phraseology and compliance."
+ ],
+ "activities": [
+  {
+   "type": "order",
+   "key": "h1",
+   "after": 3,
+   "title": "Leaving a towered airport: calls in order",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Listen to ATIS and note the letter code",
+    "Call Ground with your position on the airport and the ATIS letter",
+    "Read back the runway and any hold short instruction",
+    "Taxi and do the run-up while staying on Ground",
+    "Switch to Tower and say you are ready for takeoff",
+    "Taxi onto the runway only after Tower clears you"
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h2",
+   "after": 4,
+   "title": "Which squawk?",
+   "intro": "Tap a situation, then tap the code you should squawk.",
+   "buckets": [
+    "1200",
+    "7600",
+    "7700",
+    "Keep ATC's code"
+   ],
+   "items": [
+    {
+     "t": "VFR cross-country, not talking to ATC",
+     "b": 0
+    },
+    {
+     "t": "You just told ATC you are leaving flight following",
+     "b": 0
+    },
+    {
+     "t": "Your radio quits, but the transponder still works",
+     "b": 1
+    },
+    {
+     "t": "You can't transmit or receive on either radio",
+     "b": 1
+    },
+    {
+     "t": "Engine fire, and you can't reach any ATC facility yet",
+     "b": 2
+    },
+    {
+     "t": "Lost and low on fuel, not in contact with anyone",
+     "b": 2
+    },
+    {
+     "t": "On flight following, Approach assigned you code 5231",
+     "b": 3
+    },
+    {
+     "t": "Flying through Class C on the code Approach gave you",
+     "b": 3
+    }
+   ]
+  },
+  {
+   "type": "match",
+   "key": "h3",
+   "after": 5,
+   "title": "Read the light gun",
+   "intro": "Tap a light signal, then what it means.",
+   "pairs": [
+    {
+     "l": "Flashing green, on the ground",
+     "r": "Cleared to taxi"
+    },
+    {
+     "l": "Flashing green, in flight",
+     "r": "Return for landing; a steady green will follow"
+    },
+    {
+     "l": "Steady red, in flight",
+     "r": "Give way to other aircraft and keep circling"
+    },
+    {
+     "l": "Flashing red, on the ground",
+     "r": "Taxi clear of the runway in use"
+    },
+    {
+     "l": "Flashing red, in flight",
+     "r": "Airport unsafe, do not land"
+    },
+    {
+     "l": "Flashing white, on the ground",
+     "r": "Return to your starting point on the airport"
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h4",
+   "after": 9,
+   "title": "True or false: emergencies and lights",
+   "cards": [
+    {
+     "s": "A PAN-PAN call has priority over a MAYDAY call.",
+     "a": false,
+     "why": "No. Urgency (PAN-PAN) calls come before everything except distress. A MAYDAY call always goes first [[34:45|AIM 6-3-1d]]."
+    },
+    {
+     "s": "Saying MAYDAY tells everyone else on the frequency to stay quiet.",
+     "a": true,
+     "why": "Yes. Distress calls have absolute priority, and MAYDAY commands radio silence on the frequency in use [[34:45|AIM 6-3-1d]]."
+    },
+    {
+     "s": "A flight control system failure must be reported to the NTSB right away, even if nothing was damaged.",
+     "a": true,
+     "why": "Yes. It is a listed serious incident that needs immediate notification [[60:882|49 CFR 830.5(a)(1)]]."
+    },
+    {
+     "s": "If the airport beacon is on in daytime, the weather must be below VFR minimums.",
+     "a": false,
+     "why": "No. It often means that, but there is no rule requiring it. Don't rely on the beacon; check the weather [[33:133|AIM 2-1-9d]]."
+    },
+    {
+     "s": "On a runway with centerline lights, all the centerline lights are red in the last 1,000 feet.",
+     "a": true,
+     "why": "Yes. They are white, then alternate red and white for 2,000 feet, then all red for the last 1,000 feet [[33:126|AIM 2-1-5a]]."
+    },
+    {
+     "s": "When red Runway Entrance Lights turn off, you may cross the runway without a clearance.",
+     "a": false,
+     "why": "No. Lights going out is not a clearance. RWSL only confirms a clearance from ATC; it never replaces one [[33:129|AIM 2-1-6d4]]."
+    }
+   ]
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Look at the sample airport data. The tower is part-time and closed tonight, and the airport has no FSS open. Which frequency do you use to self-announce?",
+   "options": [
+    "122.95, the UNICOM",
+    "123.8, the ATIS",
+    "118.3, the tower frequency",
+    "122.9, MULTICOM"
+   ],
+   "answer": 2,
+   "figure": "f3",
+   "why": "The star means the tower is part-time, and the circled C after 118.3 marks it as the CTAF [[2:15|Chart Users' Guide p. 15]]. When the tower is closed, self-announce on the CTAF [[33:209|AIM 4-1-9g2]]."
+  },
+  {
+   "q": "You fly a Piper Cherokee, registration N7284R. How do you say your call sign on first contact with the tower?",
+   "options": [
+    "Cherokee Seven Two Eight Four Romeo",
+    "Eight Four Romeo",
+    "Cherokee Seventy-Two Eighty-Four Romeo",
+    "Cherokee November Seven Two Eight Four Romeo"
+   ],
+   "answer": 0,
+   "why": "Say the type or maker, then the registration digit by digit, and drop the N [[33:230|AIM 4-2-4a3]]. Never shorten your call sign on first contact [[33:229|AIM 4-2-4a1]]."
+  },
+  {
+   "q": "You are VFR on flight following. Approach tells you to climb to 5,500 feet, but a cloud layer at 5,000 feet is in the way. What do you say?",
+   "options": [
+    "\"Wilco\" and climb as best you can",
+    "\"Roger\" and stay where you are",
+    "\"Affirmative\" and climb",
+    "\"Unable\" and tell them about the clouds"
+   ],
+   "answer": 3,
+   "why": "\"Unable\" means you can't comply with an instruction [[34:436|AIM P/C Glossary]]. ATC help never lets you break a rule, and you should keep ATC told about the weather ahead [[33:217|AIM 4-1-17b-c]]. \"Wilco\" would promise to comply [[34:445|AIM P/C Glossary]]."
+  },
+  {
+   "q": "Ground says, \"Cessna Five Two Kilo, Runway 24, taxi via Alpha.\" You reach the end of Alpha at Runway 24. What now?",
+   "options": [
+    "Taxi onto Runway 24; the taxi instruction covers it",
+    "Stop short and get a clearance from Tower before entering the runway",
+    "Line up on Runway 24 if no one is on final",
+    "Say \"taking the active\" and line up"
+   ],
+   "answer": 1,
+   "why": "A taxi route to your departure runway does not let you enter or cross it [[33:260|AIM 4-3-18a6]]. You need a clearance to taxi onto a runway or take off while the tower is open [[33:260|AIM 4-3-18a4]]."
+  },
+  {
+   "q": "You are squawking 4632. ATC tells you to squawk 7213. What is the best way to change the code?",
+   "options": [
+    "Change the first digit to 7 first, then the rest",
+    "Pass through 7700 quickly, then set 7213",
+    "Set 4213 first, then change the first digit to 7",
+    "Pass through 7600 quickly, then set 7213"
+   ],
+   "answer": 2,
+   "why": "Avoid landing on 7500 or any 7600 or 7700 code, even for a moment. Changing the 4 first would give 7632, a 7600-series code that sets off an alarm. Change the other digits first, then the 7 [[33:223|AIM 4-1-20e1]]."
+  },
+  {
+   "q": "You plan to fly VFR at 3,500 feet MSL, 25 miles from the primary airport of a Class B area, staying outside the Class B. What equipment do you need?",
+   "options": [
+    "An operating Mode C transponder and ADS-B Out",
+    "Nothing extra, since you stay outside Class B",
+    "Only a working two-way radio",
+    "A Class B clearance from ATC"
+   ],
+   "answer": 0,
+   "why": "Within 30 miles of a Class B primary airport, below 10,000 feet MSL (the \"Mode C veil\"), you need Mode C and ADS-B Out [[33:223|AIM 4-1-20f2]]."
+  },
+  {
+   "q": "It is night. You are taxiing with a dead radio and the tower shines a flashing white light at you. What does it mean, and how do you answer?",
+   "options": [
+    "Cleared to taxi; blink your landing or nav lights",
+    "Exercise extreme caution; rock your wings",
+    "Return to your starting point; move the ailerons",
+    "Return to your starting point; blink your landing or nav lights"
+   ],
+   "answer": 3,
+   "why": "Flashing white on the ground means return to starting point on the airport [[60:451|14 CFR 91.125]]. At night you acknowledge by blinking the landing or navigation lights; moving the ailerons is for daytime [[33:257|AIM 4-3-13e]]."
+  },
+  {
+   "q": "At the ramp of a towered airport, you find your only radio is dead. What should you do?",
+   "options": [
+    "Take off and squawk 7600 right away",
+    "Get it fixed; if you can't, phone the tower and ask to depart without a radio",
+    "Taxi to the runway and wait for a steady green",
+    "Depart and call the tower on 121.5"
+   ],
+   "answer": 1,
+   "why": "Make every effort to get the radio fixed. If you can't, call the tower by phone and ask for approval to depart without two-way radio [[33:235|AIM 4-2-13b]]."
+  },
+  {
+   "q": "You are VFR on flight following and not instrument rated. Clouds close in ahead and around you, and you can't find any way to stay in VFR conditions. What should you do?",
+   "options": [
+    "Tell ATC you are not instrument rated and declare a distress condition",
+    "Ask for vectors through the clouds without mentioning your rating",
+    "Squawk 7600 and turn toward home",
+    "Wait until you are in the clouds before saying anything"
+   ],
+   "answer": 0,
+   "why": "If you can't continue in VFR conditions, tell the controller you are not instrument rated and declare a distress condition [[34:29|AIM 6-2-1b2]]. Asking early is the key [[34:28|AIM 6-1-2a]]."
+  },
+  {
+   "q": "While taxiing for takeoff with a passenger, your wingtip hits a parked fuel truck. No one is hurt. Your airplane has only a bent wingtip, but the truck repair is estimated at $40,000. What do you do?",
+   "options": [
+    "Nothing; a bent wingtip is not substantial damage",
+    "Notify the NTSB immediately",
+    "File an NTSB report within 10 days, with no call needed",
+    "Tell the airport manager only"
+   ],
+   "answer": 1,
+   "why": "Damage to property other than the aircraft, estimated at more than $25,000 to repair, is a listed serious incident that needs immediate NTSB notification [[60:882|49 CFR 830.5(a)(6)]]. A bent wingtip is not substantial damage, so this is not an accident [[60:882|49 CFR 830.2]], but the truck damage alone makes the call required."
+  },
+  {
+   "q": "You are landing at night on a long instrument runway. Near the far end, the runway edge lights change from white to yellow. What does that tell you?",
+   "options": [
+    "You are near a taxiway exit",
+    "The runway is closed ahead",
+    "You are in the last 2,000 feet, or the last half if that is less",
+    "You are past the touchdown zone and must go around"
+   ],
+   "answer": 2,
+   "why": "On instrument runways, yellow edge lights replace white on the last 2,000 feet or half the runway, whichever is less. They form a caution zone for landings [[33:126|AIM 2-1-4b]]."
+  },
+  {
+   "q": "You fly into an airport that has Runway Status Lights. When should your transponder and ADS-B Out be on?",
+   "options": [
+    "Only once you are airborne",
+    "Only while you are on a runway",
+    "Only when ATC asks for it",
+    "From leaving parking until you shut down at parking"
+   ],
+   "answer": 3,
+   "why": "At RWSL airports, keep the transponder and ADS-B on from the moment you leave the parking area until you shut down there, so the system can see you [[33:129|AIM 2-1-6d1]]."
+  },
+  {
+   "q": "A pilot calls the tower and says, \"have numbers.\" What does that tell the controller?",
+   "options": [
+    "The pilot has wind, runway and altimeter only",
+    "The pilot has the current ATIS",
+    "The pilot has the field in sight",
+    "The pilot knows the traffic pattern altitude"
+   ],
+   "answer": 0,
+   "why": "\"Have numbers\" means only wind, runway and altimeter. It does not mean you have the ATIS; say \"information (letter)\" for that [[33:213|AIM 4-1-13h]]."
+  }
  ]
 }
