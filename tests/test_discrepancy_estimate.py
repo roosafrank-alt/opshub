@@ -56,7 +56,8 @@ class ShopRateEstimateTest(DiscrepancyEstimateTest):
         self.assertEqual(self.row()["est_cost"], 220.0)
         body = c.get(f"/projects/{self.project_id}").get_data(as_text=True)
         self.assertIn('name="est_rate"', body)
-        self.assertIn(">Total</button>", body)
+        self.assertIn("Estimate $", body)
+        self.assertNotIn(">Total</button>", body)
 
     def test_squawk_uses_aircraft_rate(self):
         from harness import seed_row
