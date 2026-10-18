@@ -41,6 +41,14 @@
     outline: 3px dashed #495057 !important;
     outline-offset: -2px;
   }
+  {#- Called off for weather: faded, with a big X across the block. #}
+  .schedule-block-wx { opacity: 0.55; text-decoration: line-through; }
+  .schedule-block-wx:not(tr)::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(to top right, transparent calc(50% - 1px), #dc3545 calc(50% - 1px), #dc3545 calc(50% + 1px), transparent calc(50% + 1px)),
+                linear-gradient(to bottom right, transparent calc(50% - 1px), #dc3545 calc(50% - 1px), #dc3545 calc(50% + 1px), transparent calc(50% + 1px));
+  }
+  .schedule-block-wx:not(tr):not([style*="absolute"]) { position: relative; }
   .schedule-block-highlight, tr.schedule-block-highlight {
     outline: 3px solid #dc3545 !important;
     outline-offset: -2px;

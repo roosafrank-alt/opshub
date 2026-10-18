@@ -414,7 +414,7 @@ class WordingTest(FlyBase):
         html = self.login("cfi").get("/flight/schedule").get_data(as_text=True)
         more = html[html.index("<i class=\"bi bi-three-dots\"></i> More"):]
         self.assertIn("Waitlist", more[:900])
-        self.assertIn("Weather cancellation", more[:1800])
+        self.assertIn("Flight cancellation", more[:1800])
         self.assertIn("border-danger", more[:1800])
 
 

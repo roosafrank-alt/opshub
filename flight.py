@@ -4332,6 +4332,8 @@ def _decorate_schedule_row(r, own_plane_color=None):
     # (see check_balance_hold) - same "not a real confirmed slot right now"
     # treatment as is_pending_approval above, with its own badge/label.
     r["is_balance_hold"] = r["status"] == "balance_hold"
+    # Called off for weather: the calendar views keep the block, drawn with an X over it.
+    r["is_wx_cancelled"] = r["status"] == "cancelled" and r.get("cancel_reason") == "Weather cancellation"
     r.setdefault("student_balance", 0)
     r["student_owed"] = round(max(0.0, -(r["student_balance"] or 0.0)), 2)
     r.setdefault("is_time_off", False)
@@ -4417,7 +4419,8 @@ def _schedule_rows(conn, date_from, date_to, plane_id=None, cfi_id=None, include
     sql = _SCHEDULE_ROW_SQL
     if include_pending:
         sql = sql.replace("WHERE sf.status IN ('scheduled', 'in_progress', 'completed', 'balance_hold')",
-                           "WHERE sf.status IN ('scheduled', 'in_progress', 'completed', 'balance_hold', 'pending_approval')")
+                           "WHERE (sf.status IN ('scheduled', 'in_progress', 'completed', 'balance_hold', 'pending_approval') "
+                           "OR (sf.status = 'cancelled' AND sf.cancel_reason = 'Weather cancellation'))")
     sql += " AND sf.scheduled_date BETWEEN ? AND ?"
     params = [date_from, date_to]
     if plane_id:
@@ -6976,9 +6979,12 @@ def weather_cancel():
         settings = notify.get_settings(conn)
         texted = 0
         with_times = 0
+        is_wx = bool(request.form.get("weather"))
+        label = "Weather cancellation" if is_wx else "Flight cancellation"
+        note = (request.form.get("note") or "").strip()[:500]
         for r in picked:
-            conn.execute("UPDATE scheduled_flights SET status = 'cancelled', cancel_reason = ? WHERE id = ?",
-                         ("Weather cancellation", r["id"]))
+            conn.execute("UPDATE scheduled_flights SET status = 'cancelled', cancel_reason = ?, cancel_note = ? WHERE id = ?",
+                         (label, note or None, r["id"]))
             conn.commit()
             student = conn.execute("SELECT user_id FROM students WHERE id = ?", (r["student_id"],)).fetchone()
             if not student or r["guest_name"]:
@@ -6991,7 +6997,8 @@ def weather_cancel():
             conn.commit()
             link = url_for("flight.weather_rebook", scheduled_id=r["id"], _external=True)
             was = _slot_label(r["scheduled_date"], r["scheduled_time"])
-            body = (f"Weather cancellation: your {was} flight in {r['plane_tag']} is called off. No charge. "
+            body = (f"{label}: your {was} flight in {r['plane_tag']} is called off. No charge."
+                    + (f" Note: {note}." if note else "") + " "
                     + (f"New times: {', '.join(_slot_label(d, r['scheduled_time']) for d in times)}. Tap one: {link}"
                        if times else f"We'll find you a new time. Details: {link}"))
             _notify_student(conn, r["student_id"], "weather", body.split(" Tap one:")[0].split(" Details:")[0],
@@ -7000,14 +7007,14 @@ def weather_cancel():
             if not student["user_id"]:
                 continue
             try:
-                push.queue_and_push(conn, student["user_id"], "Weather cancellation", body,
+                push.queue_and_push(conn, student["user_id"], label, body,
                                     tag=f"weather-{r['id']}", url=link)
             except Exception:
                 current_app.logger.exception("Weather push failed")
             try:
                 user = conn.execute("SELECT * FROM users WHERE id = ?", (student["user_id"],)).fetchone()
                 if user:
-                    notify.notify_user(settings, user, "Weather cancellation", body, brand="Fly with Kate!")
+                    notify.notify_user(settings, user, label, body, brand="Fly with Kate!")
             except Exception:
                 current_app.logger.exception("Weather text/email failed")
             texted += 1
@@ -7020,7 +7027,7 @@ def weather_cancel():
             detail = f" ({with_times} with new times to pick, {no_times} with none open - follow up)"
         else:
             detail = ""
-        flash(f"Weather cancellation done: {len(picked)} lesson{'s' if len(picked) != 1 else ''} called off, no charge, "
+        flash(f"{label} done: {len(picked)} lesson{'s' if len(picked) != 1 else ''} called off, no charge, "
               f"{texted} student{'s' if texted != 1 else ''} texted{detail}.", "success")
         return redirect(url_for("flight.schedule_calendar", view="day", date=day))
     conn.close()
@@ -7036,7 +7043,7 @@ def weather_rebook(scheduled_id):
     instructor and notes)."""
     conn = get_db()
     old = conn.execute("""SELECT sf.*, a.tag as plane_tag FROM scheduled_flights sf JOIN assets a ON a.id = sf.asset_id
-                          WHERE sf.id = ? AND sf.status = 'cancelled' AND sf.cancel_reason = 'Weather cancellation'""",
+                          WHERE sf.id = ? AND sf.status = 'cancelled' AND sf.cancel_reason IN ('Weather cancellation', 'Flight cancellation')""",
                        (scheduled_id,)).fetchone()
     staff = bool(session.get("cfi_id") or is_flight_admin())
     if not old or not (staff or old["student_id"] == session.get("student_id")):

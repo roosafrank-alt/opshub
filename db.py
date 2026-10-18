@@ -2510,6 +2510,10 @@ def _migrate(conn):
         conn.execute("UPDATE flight_waitlist SET cfi_ids = CAST(cfi_id AS TEXT) WHERE cfi_id IS NOT NULL")
     if "note" not in wl_cols:
         conn.execute("ALTER TABLE flight_waitlist ADD COLUMN note TEXT")
+    # Flight cancellation: optional note the student is emailed and sees on their dashboard.
+    if "cancel_note" not in {r[1] for r in conn.execute("PRAGMA table_info(scheduled_flights)").fetchall()}:
+        conn.execute("ALTER TABLE scheduled_flights ADD COLUMN cancel_note TEXT")
+        conn.commit()
     # Weather cancellation: the 3 new times offered to a student whose lesson was
     # called off for weather (flight.weather_cancel). One tap books one of them.
     conn.execute("""CREATE TABLE IF NOT EXISTS weather_offers (

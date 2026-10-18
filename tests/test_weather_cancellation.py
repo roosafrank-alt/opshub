@@ -28,8 +28,8 @@ class WeatherCancellationTest(OpsHubTestCase):
 
     def test_button_and_panel_for_cfi_not_student(self):
         html = self.login("cfi").get("/flight/schedule").get_data(as_text=True)
-        self.assertIn("Weather cancellation", html)
-        self.assertNotIn("Weather cancellation", self.login("flight_student").get("/flight/schedule").get_data(as_text=True))
+        self.assertIn("Flight cancellation", html)
+        self.assertNotIn("Flight cancellation", self.login("flight_student").get("/flight/schedule").get_data(as_text=True))
         r = self.login("flight_student").get("/flight/schedule/weather")
         self.assertEqual(r.status_code, 302)
         panel = self.login("cfi").get(f"/flight/schedule/weather?date={self.day}&period=morning").get_data(as_text=True)
@@ -40,8 +40,13 @@ class WeatherCancellationTest(OpsHubTestCase):
         SIDE_EFFECTS.clear()
         c = self.login("cfi")
         r = c.post("/flight/schedule/weather", data=dict(date=self.day.isoformat(), period="morning",
-                                                         do="cancel", ids=[str(self.am)]))
+                                                         do="cancel", ids=[str(self.am)], weather="1",
+                                                         note="Low ceilings"))
         self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.status(self.am)["cancel_reason"], "Weather cancellation")
+        self.assertIn("Low ceilings", self.q1("SELECT message FROM student_notifications")["message"])
+        cal = self.login("cfi").get(f"/flight/schedule?view=day&date={self.day}").get_data(as_text=True)
+        self.assertIn("schedule-block-wx", cal)
         self.assertEqual(self.status(self.am)["status"], "cancelled")
         self.assertEqual(self.status(self.am)["cancel_reason"], "Weather cancellation")
         self.assertEqual(self.status(self.pm)["status"], "scheduled")
@@ -52,10 +57,14 @@ class WeatherCancellationTest(OpsHubTestCase):
         self.login("cfi").post("/flight/schedule/weather", data=dict(date=self.day.isoformat(), do="cancel", ids=[str(self.am)]))
         o = self.q("SELECT * FROM weather_offers WHERE cancelled_flight_id = ?", (self.am,))
         s = self.login("flight_student")
-        self.assertIn("Weather cancellation", s.get(f"/flight/schedule/weather/{self.am}").get_data(as_text=True))
+        self.assertIn("Flight cancellation", s.get(f"/flight/schedule/weather/{self.am}").get_data(as_text=True))
         s.post(f"/flight/schedule/weather/{self.am}", data=dict(offer_id=str(o[1]["id"])))
         n = self.q("SELECT * FROM scheduled_flights WHERE created_by = 'Weather rebook'")
         self.assertEqual(len(n), 1)
         self.assertEqual((n[0]["scheduled_date"], n[0]["scheduled_time"]), (o[1]["scheduled_date"], "09:00"))
         s.post(f"/flight/schedule/weather/{self.am}", data=dict(offer_id=str(o[0]["id"])))
         self.assertEqual(len(self.q("SELECT id FROM scheduled_flights WHERE created_by = 'Weather rebook'")), 1)
+
+    def test_unchecked_weather_is_plain_flight_cancellation(self):
+        self.login("cfi").post("/flight/schedule/weather", data=dict(date=self.day.isoformat(), do="cancel", ids=[str(self.am)]))
+        self.assertEqual(self.status(self.am)["cancel_reason"], "Flight cancellation")

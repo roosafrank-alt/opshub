@@ -1,8 +1,9 @@
 {% extends "flight/base_flight.html" %}
-{% block title %}Weather cancellation · Fly with Kate!{% endblock %}
+{% block title %}Flight cancellation · Fly with Kate!{% endblock %}
 {% block content %}
-<h4><i class="bi bi-cloud-lightning-rain"></i> Weather cancellation</h4>
-<p>Your {{ label(old.scheduled_date, old.scheduled_time) }} flight in {{ old.plane_tag }} was called off for weather. No charge.</p>
+<h4><i class="bi bi-cloud-lightning-rain"></i> {{ old.cancel_reason }}</h4>
+<p>Your {{ label(old.scheduled_date, old.scheduled_time) }} flight in {{ old.plane_tag }} was called off{{ ' for weather' if old.cancel_reason == 'Weather cancellation' }}. No charge.</p>
+{% if old.cancel_note %}<p class="text-muted">Note: {{ old.cancel_note }}</p>{% endif %}
 {% if offers and mine %}
 <div class="form-label small mb-1">Tap a new time</div>
 <div class="d-grid gap-2" style="max-width:420px">

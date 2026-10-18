@@ -279,7 +279,8 @@
      class="small py-1 {{ 'border-top' if not loop.first }} d-flex justify-content-between align-items-start flex-wrap gap-1 text-reset text-decoration-none today-row-clickable"
      title="Open this day on the Schedule">
     <span><strong>{{ c.student_name }}</strong> &middot; {{ c.plane_tag }} &middot; {{ c.scheduled_date|usdate }}{% if c.time_label %} &middot; {{ c.time_label }}{% endif %}
-      {% if c.cancel_reason %}<div class="text-muted">"{{ c.cancel_reason }}"{% if c.cancelled_by %} &mdash; cancelled by {{ c.cancelled_by }}{% if c.cancelled_at %} on {{ c.cancelled_at|usdate }}{% endif %}{% endif %}</div>{% endif %}</span>
+      {% if c.cancel_reason %}<div class="text-muted">"{{ c.cancel_reason }}"{% if c.cancelled_by %} &mdash; cancelled by {{ c.cancelled_by }}{% if c.cancelled_at %} on {{ c.cancelled_at|usdate }}{% endif %}{% endif %}</div>{% endif %}
+      {% if c.cancel_note %}<div class="text-muted">Note: {{ c.cancel_note }}</div>{% endif %}</span>
   </a>
   {% endfor %}
   {% endif %}
