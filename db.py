@@ -879,6 +879,26 @@ def _migrate(conn):
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_student_ledger_student ON student_ledger(student_id, created_at)")
     conn.commit()
+    # Prepaid credit edits: an admin can correct a prepayment entered in
+    # error. The ledger row keeps who made it (created_by/created_at); every
+    # correction is logged here (who, when, what changed).
+    conn.execute("""CREATE TABLE IF NOT EXISTS student_ledger_edits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ledger_id INTEGER NOT NULL REFERENCES student_ledger(id),
+        student_id INTEGER NOT NULL,
+        edited_by TEXT,
+        edited_at TEXT NOT NULL,
+        old_amount REAL, new_amount REAL,
+        old_method TEXT, new_method TEXT,
+        old_note TEXT, new_note TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_student_ledger_edits_ledger ON student_ledger_edits(ledger_id)")
+    ledger_cols = [r["name"] for r in conn.execute("PRAGMA table_info(student_ledger)").fetchall()]
+    if "method" not in ledger_cols:
+        conn.execute("ALTER TABLE student_ledger ADD COLUMN method TEXT")
+    if "edited_at" not in ledger_cols:
+        conn.execute("ALTER TABLE student_ledger ADD COLUMN edited_at TEXT")
+    conn.commit()
 
     # Landing counts per flight (day/night x full-stop/touch-and-go), for
     # FAA passenger-carrying currency (3 landings/90 days, night = full stop)

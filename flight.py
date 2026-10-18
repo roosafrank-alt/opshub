@@ -2464,6 +2464,10 @@ def _student_form_context(conn, student, **extra):
         student_id = student["id"]
         ctx["ledger"] = conn.execute("SELECT * FROM student_ledger WHERE student_id = ? ORDER BY created_at DESC, id DESC LIMIT 25",
                                      (student_id,)).fetchall()
+        ctx["ledger_parts"] = {r["id"]: _split_ledger_note(r) for r in ctx["ledger"] if r["entry_type"] == "funds_added"}
+        ctx["ledger_edits"] = {}
+        for e in conn.execute("SELECT * FROM student_ledger_edits WHERE student_id = ? ORDER BY id", (student_id,)).fetchall():
+            ctx["ledger_edits"].setdefault(e["ledger_id"], []).append(e)
         ctx["activity"] = _student_activity(conn, student_id).get(student_id)
         ctx["recent_flights"] = conn.execute(f"""SELECT f.*, c.name as cfi_name, a.tag as plane_tag FROM flights f
                                           JOIN assets a ON a.id = f.asset_id LEFT JOIN cfis c ON c.id = f.cfi_id
@@ -3007,6 +3011,77 @@ def student_add_funds(student_id):
             msg += f" ${r['remainder']:,.2f} left as credit."
     flash(msg, "success")
     return redirect(url_for("flight.student_edit", student_id=student_id) + "#account")
+
+
+@flight_bp.route("/students/<int:student_id>/ledger/<int:ledger_id>/edit", methods=["POST"])
+@billing_required
+def student_ledger_edit(student_id, ledger_id):
+    """Admin-only correction of a prepayment entered in error (amount,
+    method, note). The balance moves by the difference, and the change is
+    logged in student_ledger_edits (who, when, old -> new); the original
+    entry keeps its created_by/created_at."""
+    back = url_for("flight.student_edit", student_id=student_id) + "#account"
+    if not is_flight_admin():
+        flash("Only an admin can edit a prepayment.", "danger")
+        return redirect(back)
+    conn = get_db()
+    row = conn.execute("SELECT * FROM student_ledger WHERE id = ? AND student_id = ? AND entry_type = 'funds_added'",
+                       (ledger_id, student_id)).fetchone()
+    if not row:
+        conn.close()
+        flash("Prepayment not found.", "danger")
+        return redirect(back)
+    amount = _parse_float(request.form.get("amount"))
+    if not amount or amount <= 0:
+        conn.close()
+        flash("Enter a positive dollar amount.", "danger")
+        return redirect(back)
+    new_method = (request.form.get("paid_method") or "").strip()[:40] or None
+    new_note = (request.form.get("note") or "").strip() or None
+    old_method, old_note = _split_ledger_note(row)
+    amount = round(amount, 2)
+    if amount == round(row["amount"], 2) and new_method == old_method and new_note == old_note:
+        conn.close()
+        flash("Nothing changed.", "info")
+        return redirect(back)
+    full_note = f"{new_method}: {new_note}" if (new_method and new_note) else (new_method or new_note)
+    now = now_iso()
+    who = session.get("user_name")
+    conn.execute("""INSERT INTO student_ledger_edits (ledger_id, student_id, edited_by, edited_at,
+                    old_amount, new_amount, old_method, new_method, old_note, new_note)
+                    VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                 (ledger_id, student_id, who, now, row["amount"], amount, old_method, new_method, old_note, new_note))
+    conn.execute("UPDATE student_ledger SET amount = ?, method = ?, note = ?, edited_at = ? WHERE id = ?",
+                 (amount, new_method, full_note, now, ledger_id))
+    diff = amount - row["amount"]
+    if abs(diff) > 0.0001:
+        conn.execute("UPDATE students SET balance = balance + ? WHERE id = ?", (diff, student_id))
+        check_balance_hold(conn, student_id)
+    conn.commit()
+    conn.close()
+    flash("Prepayment corrected and logged.", "success")
+    return redirect(back)
+
+
+_LEDGER_METHODS = ("Cash", "Check", "Venmo/Zelle", "Other", "Card")
+
+
+def _split_ledger_note(row):
+    """(method, note) of a funds_added ledger row: the stored method, or for
+    older rows the 'Method: note' / 'Method' prefix of the combined note."""
+    note = row["note"] or None
+    method = row["method"]
+    if method:
+        if note and note.startswith(method + ": "):
+            return method, note[len(method) + 2:] or None
+        return method, (None if note == method else note)
+    if note:
+        for m in _LEDGER_METHODS:
+            if note == m:
+                return m, None
+            if note.startswith(m + ": "):
+                return m, note[len(m) + 2:] or None
+    return None, note
 
 
 _STUDENT_FIELD_INFO = {
