@@ -142,6 +142,28 @@
   {% if f.next_focus_tasks %}
   <div class="small mb-2"><i class="bi bi-list-check text-primary"></i> <strong>Next flight:</strong> {{ f.next_focus_tasks|join(' · ') }}</div>
   {% endif %}
+  {% if f.end_state and f.acs_logged_at and f.end_pick %}
+  {#- Idea "Items completed on this flight": fix the scoring after Log, and look at what is planned for next / future lessons. #}
+  <div class="d-flex gap-2 mb-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary flex-fill" data-bs-toggle="modal" data-bs-target="#acs-covered-modal-{{ f.id }}"><i class="bi bi-journal-check"></i> ACS covered this flight</button>
+    <button type="button" class="btn btn-sm btn-outline-info flex-fill" data-bs-toggle="modal" data-bs-target="#acs-planned-modal-{{ f.id }}"><i class="bi bi-calendar-check"></i> Planning ACS</button>
+  </div>
+  {% set es = f.end_state %}
+  <div class="modal fade" id="acs-covered-modal-{{ f.id }}" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable">
+    {% if es.step == 'items' %}<div class="modal-content"><div class="modal-body small text-muted">Use the End Flight box to log the items.</div></div>{% else %}{% include 'flight/_end_items_form.html' %}{% endif %}
+  </div></div>
+  <div class="modal fade" id="acs-planned-modal-{{ f.id }}" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-header py-2"><h6 class="modal-title"><i class="bi bi-calendar-check"></i> Planning ACS <span class="text-muted small fw-normal">next and future lessons</span></h6>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body small">
+      {% for area in f.end_pick.areas %}{% for t in area.tasks if t.id in es.planned or t.assigned %}
+      <div class="py-1 border-top">{{ t.code }}. {{ t.title }} {% if t.id in es.planned %}<span class="badge text-bg-primary">Flight</span>{% endif %}{% if t.assigned %} <span class="badge text-bg-secondary">Home</span>{% endif %}</div>
+      {% else %}{% endfor %}{% endfor %}
+      {% if not es.planned %}<div class="text-muted">Nothing chosen yet.</div>{% endif %}
+    </div>
+    <div class="modal-footer py-2"><button type="button" class="btn btn-primary" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"><i class="bi bi-pencil"></i> Edit plan</button></div>
+  </div></div></div>
+  {% endif %}
   {% if f.end_state %}
   {% set es = f.end_state %}
   {% set step = es.step if (f.end_pick or es.step == 'times') else 'times' %}
@@ -170,29 +192,7 @@
         <div class="modal-footer py-2"><button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Confirm Hobbs and Tach</button></div>
       </form>
       {% elif step == 'items' %}
-      <form method="post" action="{{ url_for('flight.log_flight_items', flight_id=f.id) }}" class="modal-content">
-        <div class="modal-header py-2"><h6 class="modal-title"><i class="bi bi-list-check"></i> Items completed on this flight <span class="text-muted small fw-normal">{{ f.end_pick.rating }}</span></h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-        <div class="modal-body">
-          {% for area in f.end_pick.areas %}
-          <details class="mb-1"{% if area.tasks|selectattr('id', 'in', es.scores)|list %} open{% endif %}><summary class="small fw-bold">{{ area.code }}. {{ area.title }}</summary>
-            {% for t in area.tasks %}
-            <div class="d-flex align-items-center gap-2 small ps-3 py-1 border-top">
-              <input type="checkbox" class="form-check-input mt-0 flight-done-box" name="done_task" value="{{ t.id }}" id="done-{{ f.id }}-{{ t.id }}"{% if t.id in es.scores %} checked{% endif %}>
-              <label class="mb-0 flex-grow-1" for="done-{{ f.id }}-{{ t.id }}">{{ t.code }}. {{ t.title }}</label>
-              <div class="btn-group btn-group-sm" role="group" aria-label="Score">
-                <input type="radio" class="btn-check flight-score" name="score_{{ t.id }}" id="sw-{{ f.id }}-{{ t.id }}" value="working" autocomplete="off"{% if es.scores.get(t.id, 'working') == 'working' %} checked{% endif %}>
-                <label class="btn btn-outline-warning" for="sw-{{ f.id }}-{{ t.id }}">Working</label>
-                <input type="radio" class="btn-check flight-score" name="score_{{ t.id }}" id="ss-{{ f.id }}-{{ t.id }}" value="standards" autocomplete="off"{% if es.scores.get(t.id) == 'standards' %} checked{% endif %}>
-                <label class="btn btn-outline-success" for="ss-{{ f.id }}-{{ t.id }}">At standards</label>
-              </div>
-            </div>
-            {% endfor %}
-          </details>
-          {% endfor %}
-        </div>
-        <div class="modal-footer py-2"><button type="submit" class="btn btn-primary"><i class="bi bi-journal-check"></i> Log</button></div>
-      </form>
+      {% include 'flight/_end_items_form.html' %}
       {% else %}
       <form method="post" action="{{ url_for('flight.log_flight_plan', flight_id=f.id) }}" class="modal-content">
         <div class="modal-header py-2"><h6 class="modal-title"><i class="bi bi-list-check"></i> ACS planning <span class="text-muted small fw-normal">{{ f.end_pick.rating }}</span></h6>

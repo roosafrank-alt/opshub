@@ -7657,6 +7657,8 @@ def _end_flight_state(f, conn):
     else:
         planned.update(int(x) for x in (f["next_focus"] or "").split(",") if x.strip().isdigit())
         planned -= {t for t, sc in scores.items() if sc == "standards"}
+        # Items scored Working are carried into the next flight's plan automatically.
+        planned.update(t for t, sc in scores.items() if sc == "working")
     return {"step": step, "scores": scores, "planned": planned}
 
 
@@ -7737,9 +7739,20 @@ def log_flight_items(flight_id):
         conn.execute("INSERT INTO flight_acs_items (flight_id, task_id, score, created_at) VALUES (?, ?, ?, ?)",
                      (flight_id, tid, score, now_iso()))
     conn.execute("UPDATE flights SET acs_logged_at = ? WHERE id = ?", (now_iso(), flight_id))
+    if f["acs_planned_at"]:
+        # Scoring corrected after the plan was saved: keep the plan in step (Working added, At standards dropped).
+        plan = {int(x) for x in (f["next_focus"] or "").split(",") if x.strip().isdigit()}
+        for tid in done:
+            if request.form.get("score_%d" % tid) == "standards":
+                plan.discard(tid)
+            else:
+                plan.add(tid)
+        conn.execute("UPDATE flights SET next_focus = ? WHERE id = ?",
+                     (",".join(str(t) for t in sorted(plan)) or None, flight_id))
     conn.commit()
+    planned = bool(f["acs_planned_at"])
     conn.close()
-    return _end_flight_back(flight_id)
+    return _end_flight_back(flight_id, open_box=not planned)
 
 
 @flight_bp.route("/log/<int:flight_id>/end_flight_plan", methods=["POST"])

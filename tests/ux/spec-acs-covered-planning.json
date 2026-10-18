@@ -1,0 +1,134 @@
+{
+ "checks": [
+  {
+   "role": "cfi",
+   "size": "phone",
+   "sql": [
+    "UPDATE assets SET is_flight_asset = 1, is_simulator = 1, sim_rate = 50 WHERE id = {asset}",
+    "UPDATE students SET training_goal = 'private' WHERE id = {student}",
+    "INSERT INTO acs_ratings (name, slug, uploaded_at, status) VALUES ('Private Pilot ACS', 'private-pilot-acs', datetime('now'), 'parsed')",
+    "INSERT INTO acs_areas (rating_id, code, title, order_index) VALUES ((SELECT id FROM acs_ratings WHERE slug='private-pilot-acs'), 'IV', 'Takeoffs, Landings, and Go-Arounds', 1)",
+    "INSERT INTO acs_tasks (area_id, code, title, order_index) VALUES ((SELECT id FROM acs_areas WHERE code='IV'), 'A', 'Normal Takeoff and Climb', 1)",
+    "INSERT INTO acs_tasks (area_id, code, title, order_index) VALUES ((SELECT id FROM acs_areas WHERE code='IV'), 'B', 'Soft-Field Landing', 2)",
+    "INSERT INTO scheduled_flights (asset_id, student_id, cfi_id, scheduled_date, scheduled_time, duration_hours, status) VALUES ({asset}, {student}, {cfi}, date('now','localtime'), strftime('%H:%M', 'now','localtime'), 1.0, 'scheduled')"
+   ],
+   "steps": [
+    [
+     "start",
+     "/flight/dashboard"
+    ],
+    [
+     "tap",
+     "Start Session"
+    ],
+    [
+     "see",
+     "Session started"
+    ],
+    [
+     "tap",
+     "End Flight"
+    ],
+    [
+     "see",
+     "Items completed on this flight"
+    ],
+    [
+     "tap",
+     "Takeoffs, Landings"
+    ],
+    [
+     "tap",
+     "[name='done_task'] >> nth=0"
+    ],
+    [
+     "tap",
+     "[name='done_task'] >> nth=1"
+    ],
+    [
+     "tap",
+     "[for^='ss-'] >> nth=1"
+    ],
+    [
+     "tap",
+     "Log"
+    ],
+    [
+     "see",
+     "ACS planning"
+    ],
+    [
+     "shot",
+     {
+      "caption": "Normal Takeoff (scored Working) is already ticked Flight for the next flight",
+      "focus": "[id^='end-flight-modal-'] .modal-content",
+      "changed": [
+       {
+        "sel": "[id^='end-flight-modal-'] [name='focus_task']:checked",
+        "note": "Working item auto-filled"
+       }
+      ]
+     }
+    ],
+    [
+     "tap",
+     "Save"
+    ],
+    [
+     "see",
+     "ACS covered this flight"
+    ],
+    [
+     "tap",
+     "ACS covered this flight"
+    ],
+    [
+     "see",
+     "Items completed on this flight"
+    ],
+    [
+     "tap",
+     "[for^='sw-'] >> nth=1"
+    ],
+    [
+     "shot",
+     {
+      "caption": "ACS covered this flight: scoring can still be corrected",
+      "focus": "[id^='acs-covered-modal-'] .modal-content",
+      "changed": [
+       {
+        "sel": "[id^='acs-covered-modal-'] .btn-group",
+        "note": "Edit scores after Log"
+       }
+      ]
+     }
+    ],
+    [
+     "tap",
+     "Log"
+    ],
+    [
+     "tap",
+     "Planning ACS"
+    ],
+    [
+     "see",
+     "next and future lessons"
+    ],
+    [
+     "shot",
+     {
+      "caption": "Planning ACS lists the items chosen for next and future lessons",
+      "focus": "[id^='acs-planned-modal-'] .modal-content",
+      "changed": [
+       {
+        "sel": "[id^='acs-planned-modal-'] .modal-body",
+        "note": "New: planned items view"
+       }
+      ]
+     }
+    ]
+   ]
+  }
+ ]
+}

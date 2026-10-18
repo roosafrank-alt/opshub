@@ -1,0 +1,24 @@
+{#- Items completed on this flight (scored Working / At standards). Used by the End Flight box and by the "ACS covered this flight" button. #}
+<form method="post" action="{{ url_for('flight.log_flight_items', flight_id=f.id) }}" class="modal-content">
+  <div class="modal-header py-2"><h6 class="modal-title"><i class="bi bi-list-check"></i> Items completed on this flight <span class="text-muted small fw-normal">{{ f.end_pick.rating }}</span></h6>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+  <div class="modal-body">
+    {% for area in f.end_pick.areas %}
+    <details class="mb-1"{% if area.tasks|selectattr('id', 'in', es.scores)|list %} open{% endif %}><summary class="small fw-bold">{{ area.code }}. {{ area.title }}</summary>
+      {% for t in area.tasks %}
+      <div class="d-flex align-items-center gap-2 small ps-3 py-1 border-top">
+        <input type="checkbox" class="form-check-input mt-0 flight-done-box" name="done_task" value="{{ t.id }}" id="done-{{ f.id }}-{{ t.id }}"{% if t.id in es.scores %} checked{% endif %}>
+        <label class="mb-0 flex-grow-1" for="done-{{ f.id }}-{{ t.id }}">{{ t.code }}. {{ t.title }}</label>
+        <div class="btn-group btn-group-sm" role="group" aria-label="Score">
+          <input type="radio" class="btn-check flight-score" name="score_{{ t.id }}" id="sw-{{ f.id }}-{{ t.id }}" value="working" autocomplete="off"{% if es.scores.get(t.id, 'working') == 'working' %} checked{% endif %}>
+          <label class="btn btn-outline-warning" for="sw-{{ f.id }}-{{ t.id }}">Working</label>
+          <input type="radio" class="btn-check flight-score" name="score_{{ t.id }}" id="ss-{{ f.id }}-{{ t.id }}" value="standards" autocomplete="off"{% if es.scores.get(t.id) == 'standards' %} checked{% endif %}>
+          <label class="btn btn-outline-success" for="ss-{{ f.id }}-{{ t.id }}">At standards</label>
+        </div>
+      </div>
+      {% endfor %}
+    </details>
+    {% endfor %}
+  </div>
+  <div class="modal-footer py-2"><button type="submit" class="btn btn-primary"><i class="bi bi-journal-check"></i> Log</button></div>
+</form>
