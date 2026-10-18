@@ -8719,12 +8719,31 @@ def _send_flight_receipt_email(conn, ended_row, cost, paid, payment_method, paym
         lines.append("Status: Paid in full")
     else:
         lines.append(f"Status: Unpaid - ${cost['total'] - credit_applied:.2f} owed")
-    body = f"Thanks for flying with us! Here's a receipt for your {_us_date(ended_row['flight_date'])} flight.\n\n" + "\n".join(lines)
-    settings = notify.get_settings(conn)
-
-    def _send(settings=settings, email=email, body=body):
+    if not paid:
+        # Where the student settles the bill: My Account lists what's owed and has the pay options.
         try:
-            notify.send_email(settings, email, "Your Fly with Kate! flight receipt", body, brand="Fly with Kate!")
+            lines.append("Pay it here: " + url_for("flight.my_account", _external=True))
+        except Exception:
+            pass
+    # Who to ask about the bill: the flight's instructor if they have a phone/email on file,
+    # otherwise the school's sending address (the only school contact the app stores).
+    settings = notify.get_settings(conn)
+    contact = ""
+    if ended_row["cfi_id"]:
+        ci = conn.execute("SELECT u.phone, u.email FROM cfis c JOIN users u ON u.id = c.user_id WHERE c.id = ?",
+                          (ended_row["cfi_id"],)).fetchone()
+        bits = [b for b in ((ci["phone"] or "").strip(), (ci["email"] or "").strip()) if b] if ci else []
+        if bits:
+            contact = f"Questions about this bill? Contact {ended_row['cfi_name']}: " + " or ".join(bits)
+    if not contact:
+        addr = settings.get("smtp_from") or settings.get("smtp_username") or ""
+        if addr:
+            contact = f"Questions about this bill? Email {addr}."
+    body = f"Thanks for flying with us! Here's a receipt for your {_us_date(ended_row['flight_date'])} flight.\n\n" + "\n".join(lines)
+
+    def _send(settings=settings, email=email, body=body, contact=contact):
+        try:
+            notify.send_email(settings, email, "Your Fly with Kate! flight receipt", body, brand="Fly with Kate!", contact=contact)
         except Exception:
             pass
     threading.Thread(target=_send, daemon=True).start()

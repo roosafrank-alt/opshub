@@ -75,12 +75,12 @@ def sms_configured(settings):
 DEFAULT_BRAND = "Fly with Kate!"
 
 
-def _automated_footer(brand):
+def _automated_footer(brand, contact=""):
     return (f"\n\n---\nThis is an automated message from {brand} - please don't reply to it. "
-            "Questions? Contact us directly.")
+            + (contact if contact else "Questions? Contact us directly."))
 
 
-def send_email(settings, to_addr, subject, body, brand=DEFAULT_BRAND):
+def send_email(settings, to_addr, subject, body, brand=DEFAULT_BRAND, contact=""):
     """Returns (ok: bool, error: str|None)."""
     if not email_configured(settings) or not to_addr:
         return False, "not configured"
@@ -89,7 +89,7 @@ def send_email(settings, to_addr, subject, body, brand=DEFAULT_BRAND):
     except ValueError:
         port = 587
     from_addr = settings["smtp_from"] or settings["smtp_username"]
-    body = body + _automated_footer(brand)
+    body = body + _automated_footer(brand, contact)
     try:
         msg = MIMEText(body)
         msg["Subject"] = subject
