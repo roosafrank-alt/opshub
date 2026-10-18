@@ -2670,11 +2670,15 @@ def project_section_assign(project_id, section_id):
                               (int(raw) if raw.isdigit() else -1,)).fetchone()
         if not person:
             conn.close()
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify(ok=False), 400
             flash("Pick a person from the list.", "danger")
             return redirect(url_for("project_detail", project_id=project_id))
     conn.execute("UPDATE project_sections SET assigned_to = ? WHERE id = ?", (person["id"] if person else None, section_id))
     conn.commit()
     conn.close()
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify(ok=True)
     if person:
         flash(f"'{section['name']}' is now assigned to {person['name']}.", "success")
     else:
