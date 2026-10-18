@@ -88,9 +88,11 @@
   .avail-cfi-side .btn { font-size: .72rem; padding: .2rem .4rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .avail-cfi-note { font-size: .6rem; color: #6c757d; line-height: 1.2; padding: .15rem .1rem 0; }
   @media (min-width: 768px) {
+    /* Desktop: "Instructors" sits right on top of "Time" (same size, no gap) and the names run across. */
     .avail-with-cfis { gap: 0; }
-    .avail-with-cfis .avail-cfi-side { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 3px; width: 6rem; box-sizing: border-box; background: #fff; border: 1px solid #dee2e6; border-bottom: 0; padding: 3px; }
-    .avail-with-cfis .avail-cfi-label { border: 0; padding: .1rem .2rem; }
+    .avail-with-cfis .avail-cfi-side { gap: 3px; align-items: stretch; background: #fff; border: 1px solid #dee2e6; border-bottom: 0; padding: 0 3px 0 0; }
+    .avail-with-cfis .avail-cfi-label { box-sizing: border-box; width: 6rem; flex: none; border: 0; border-right: 1px solid #dee2e6; padding: .5rem; font-size: .78rem; }
+    .avail-with-cfis .avail-cfi-side .btn { align-self: center; }
   }
   .avail-cfi-chips { display: block; font-size: .6rem; font-weight: 600; line-height: 1.2; color: #0a3d1f; white-space: normal; }
   .avail-cfi-chips:empty { display: none; }
