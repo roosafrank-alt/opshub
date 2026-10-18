@@ -872,9 +872,10 @@ document.addEventListener('click', function (e) {
     document.body.appendChild(pop);
     var touchOnly = window.matchMedia && window.matchMedia('(hover: none)').matches;
     var current = null;
-    function chip(e) { return e.target.closest ? e.target.closest('[data-wl-tip]') : null; }
+    function chip(e) { return e.target.closest ? e.target.closest('[data-wl-tip],[data-late-tip]') : null; }
     function build(el) {
-      var lines = el.getAttribute('data-wl-tip').split('\n'), html = '';
+      var late = el.hasAttribute('data-late-tip');
+      var lines = (el.getAttribute('data-late-tip') || el.getAttribute('data-wl-tip')).split('\n'), html = '';
       function row(l, v) {
         var r = document.createElement('div'); r.className = 'wl-row';
         var a = document.createElement('span'); a.className = 'wl-k'; a.textContent = l;
@@ -883,11 +884,13 @@ document.addEventListener('click', function (e) {
       }
       pop.textContent = '';
       var name = (lines.shift() || '').replace(/ - waitlist$/, '');
-      row('Customer:', name);
+      if (!late) row('Customer:', name);
+      else { var t = document.createElement('div'); t.className = 'wl-row'; t.style.fontWeight = '700'; t.innerHTML = '<i class="bi bi-hourglass-split" style="color:#ffc107"></i>&nbsp;'; t.appendChild(document.createTextNode(name)); pop.appendChild(t); }
       lines.forEach(function (ln) {
         var i = ln.indexOf(': ');
         if (i > 0) row(ln.slice(0, i + 1), ln.slice(i + 2));
       });
+      if (late) return;
       var h = document.createElement('div'); h.className = 'wl-hint';
       h.textContent = touchOnly ? 'Tap again to schedule a lesson' : 'Click to schedule a lesson';
       pop.appendChild(h);
@@ -911,7 +914,7 @@ document.addEventListener('click', function (e) {
     document.addEventListener('scroll', hide, true);
     document.addEventListener('click', function (e) {
       var c = chip(e);
-      if (touchOnly && c && current !== c) { e.preventDefault(); e.stopPropagation(); show(c); return; }
+      if (touchOnly && c && !c.hasAttribute('data-late-tip') && current !== c) { e.preventDefault(); e.stopPropagation(); show(c); return; }
       hide();
     }, true);
   })();
