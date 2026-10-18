@@ -112,7 +112,6 @@ class FlightSessionTest(OpsHubTestCase):
                 self.assertLess(r.status_code, 500)
                 self.assertIsNone(self.q1("SELECT ended_at FROM flights WHERE id=?", (fid,))["ended_at"])
 
-    @open_finding("qa-flight-end-nan-hobbs")
     def test_end_rejects_nan_and_infinite_readings(self):
         self.login("cfi")
         fid, _ = self.started_flight()
