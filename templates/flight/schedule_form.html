@@ -3,7 +3,17 @@
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-8 col-xl-6">
-<div class="card p-4">
+<div class="card p-4 position-relative">
+  {% if wl_info %}
+  <div class="small border rounded bg-info bg-opacity-25 px-2 py-1 mb-2 float-md-end ms-md-2" style="max-width:15rem;line-height:1.3" data-wl-info>
+    <div class="fw-bold"><i class="bi bi-hourglass-split"></i> {{ wl_info.name.split(' ')[0] }}'s waitlist</div>
+    <div>{{ wl_info.days }} &middot; {{ wl_info.time }}</div>
+    <div>Plane: {{ wl_info.planes }}</div>
+    <div>Instructor: {{ wl_info.cfis }}</div>
+    {% if wl_info.until %}<div>Until {{ wl_info.until }}</div>{% endif %}
+    {% if wl_info.note %}<div class="fst-italic">{{ wl_info.note }}</div>{% endif %}
+  </div>
+  {% endif %}
   <h4>{{ 'Edit Scheduled Flight' if sched else ('Request a Flight' if self_service else 'Schedule a Flight') }}</h4>
   {% if self_service %}
   <p class="text-muted small">Your instructor will need to approve this before it's confirmed on the calendar.</p>

@@ -138,6 +138,19 @@ class WaitlistNoteTest(WaitlistTest):
         self.assertIn("need to leave by 5", cfi)
         self.assertIn("data-wl-tip=", cfi)  # styled hover popover reads this
 
+    def test_booking_page_shows_waitlist_panel(self):
+        self.join(note="Free 1-4pm")
+        wid = self.q1("SELECT id FROM flight_waitlist")["id"]
+        c = self.login("cfi")
+        html = c.get(f"/flight/schedule?view=day&date={self.day.isoformat()}").get_data(as_text=True)
+        self.assertIn(f"wl={wid}", html)
+        page = c.get(f"/flight/schedule/new?date={self.day.isoformat()}&student_id={self.student}&wl={wid}").get_data(as_text=True)
+        self.assertIn("data-wl-info", page)
+        self.assertIn("Free 1-4pm", page)
+        self.assertIn("Afternoon", page)
+        plain = c.get("/flight/schedule/new").get_data(as_text=True)
+        self.assertNotIn("data-wl-info", plain)
+
     def test_note_is_optional_and_trimmed(self):
         self.join()
         self.assertIsNone(self.q1("SELECT note FROM flight_waitlist")["note"])

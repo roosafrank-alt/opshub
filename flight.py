@@ -5481,7 +5481,24 @@ def schedule_new():
     # excluded on purpose - see the query), so it's a checkbox, not a pick.
     prefill_solo = (not self_service) and request.args.get("solo") == "1"
     prefill_own_plane = (not self_service) and request.args.get("own_plane") == "1"
-    form_kwargs = dict(normal_hours=_normal_booking_hours(conn), hour_label=_hour_label, planes=planes, students=students, cfis=cfis,
+    # ?wl=<id> (a waitlist chip on the schedule): show what that waitlist
+    # entry asked for in a small panel, so the scheduler remembers.
+    wl_info = None
+    wl_arg = request.args.get("wl", "").strip()
+    if wl_arg.isdigit() and not self_service:
+        w = conn.execute("""SELECT w.*, s.name AS student_name FROM flight_waitlist w
+                            JOIN students s ON s.id = w.student_id WHERE w.id = ?""", (int(wl_arg),)).fetchone()
+        if w:
+            a = [i for i in (w["asset_ids"] or "").split(",") if i]
+            c = [i for i in (w["cfi_ids"] or "").split(",") if i]
+            days = ", ".join(WEEKDAY_SHORT[int(i)] for i in (w["days"] or "").split(",") if i.isdigit() and int(i) < 7)
+            pnames = {k: v.split(" ")[0] for k, v in WAITLIST_PERIODS}
+            wl_info = {"name": w["student_name"], "days": days,
+                       "time": ", ".join(pnames[p] for p in (w["periods"] or "").split(",") if p in pnames) or "Any",
+                       "planes": ", ".join(p["tag"] for p in planes if str(p["id"]) in a) or "Any",
+                       "cfis": ", ".join(x["name"] for x in cfis if str(x["id"]) in c) or "Any",
+                       "until": w["until_date"] or "", "note": w["note"] or ""}
+    form_kwargs = dict(wl_info=wl_info, normal_hours=_normal_booking_hours(conn), hour_label=_hour_label, planes=planes, students=students, cfis=cfis,
                        usual_lessons=({} if self_service else _usual_lessons(conn, planes)),
                        today=prefill_date, prefill_time=prefill_time, prefill_asset_id=prefill_asset_id,
                        prefill_cfi_id=prefill_cfi_id, prefill_student_id=prefill_student_id,
@@ -10382,6 +10399,7 @@ def admin_cfi_edit(cfi_id):
 # ---------------------------------------------------------------------------
 
 WAITLIST_DAYS = [(0, "Mon"), (1, "Tue"), (2, "Wed"), (3, "Thu"), (4, "Fri"), (5, "Sat"), (6, "Sun")]
+WEEKDAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 WAITLIST_PERIODS = [("morning", "Morning (before noon)"), ("afternoon", "Afternoon (noon-5)"), ("evening", "Evening (after 5)")]
 
 
@@ -10450,7 +10468,7 @@ def _waitlist_calendar_days(conn):
                 continue
             if w["until_date"] and w["until_date"] < d.isoformat():
                 continue
-            kw = {"date": d.isoformat()}
+            kw = {"date": d.isoformat(), "wl": w["id"]}
             if staff:
                 kw["student_id"] = w["student_id"]
             a = [i for i in (w["asset_ids"] or "").split(",") if i]
