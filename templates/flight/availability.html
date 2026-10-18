@@ -87,6 +87,10 @@
   .avail-cfi-label { background: #fff; border: 1px solid #dee2e6; font-weight: 700; font-size: .78rem; padding: .35rem .5rem; white-space: nowrap; }
   .avail-cfi-side .btn { font-size: .72rem; padding: .2rem .4rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .avail-cfi-note { font-size: .6rem; color: #6c757d; line-height: 1.2; padding: .15rem .1rem 0; }
+  @media (max-width: 767.98px) {
+    /* Phone: the "click a name" note sits on its own line above "Instructors", not under the names. */
+    .avail-cfi-note { order: -1; flex-basis: 100%; padding: 0; }
+  }
   @media (min-width: 768px) {
     /* Desktop: "Instructors" sits right on top of "Time" (same size, no gap) and the names run across. */
     .avail-with-cfis { gap: 0; }
