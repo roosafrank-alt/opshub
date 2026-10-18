@@ -2284,6 +2284,10 @@ def dashboard():
     cfi = current_cfi(conn)
     student = current_student(conn)
     ctx = _dashboard_context(conn, cfi, student)
+    ctx["rebook_offer"] = None
+    rb = request.args.get("rebook", "")
+    if rb.isdigit() and session.get("student_id"):
+        ctx["rebook_offer"] = _student_rebook_offer(conn, session.get("student_id"), int(rb))
     conn.close()
     return render_template("flight/dashboard.html", **ctx)
 
@@ -7035,6 +7039,59 @@ def weather_cancel():
                            lessons=lessons, time12=_format_time_12h)
 
 
+def _rebook_same_lesson(conn, old, new_date, new_time, created_by):
+    """Books a new date for a cancelled lesson as the same lesson (plane,
+    instructor, length, notes). Shared by the Flight cancellation page and
+    the student's own cancel; the caller checks conflicts and commits."""
+    cur = conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date, scheduled_time,
+                    duration_hours, notes, status, created_by, solo, part_solo)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, ?)""",
+                 (old["asset_id"], old["cfi_id"], old["student_id"], new_date, new_time or None,
+                  old["duration_hours"], old["notes"], created_by, old["solo"], old["part_solo"]))
+    return cur.lastrowid
+
+
+def _student_rebook_offer(conn, student_id, cancelled_id):
+    """The "Flight cancelled. Pick a new time?" box on the student's
+    dashboard right after their own cancel: up to 3 days when the same
+    plane, instructor and student are free at the same time of day (the
+    Flight cancellation page's finder). None when that isn't a flight this
+    student cancelled themselves a moment ago."""
+    old = conn.execute("""SELECT sf.*, a.tag AS plane_tag FROM scheduled_flights sf JOIN assets a ON a.id = sf.asset_id
+                          WHERE sf.id = ? AND sf.student_id = ? AND sf.status = 'cancelled'
+                            AND COALESCE(sf.guest_name, '') = ''
+                            AND COALESCE(sf.cancel_reason, '') NOT IN ('Weather cancellation', 'Flight cancellation')""",
+                       (cancelled_id, student_id)).fetchone()
+    if not old or not old["scheduled_time"]:
+        return None
+    times = _weather_suggest_times(conn, old)
+    return {"id": old["id"], "plane_tag": old["plane_tag"], "asset_id": old["asset_id"], "cfi_id": old["cfi_id"],
+            "options": [{"date": d, "label": datetime.strptime(d, "%Y-%m-%d").strftime("%a, %b ") + str(int(d[8:10]))
+                                    + " \u00b7 " + _format_time_12h(old["scheduled_time"])} for d in times]}
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/rebook", methods=["POST"])
+@login_required
+def schedule_student_rebook(scheduled_id):
+    """One tap on the box above: books the picked day as the same lesson and
+    tells the instructor and admins."""
+    conn = get_db()
+    offer = _student_rebook_offer(conn, session.get("student_id"), scheduled_id)
+    day = request.form.get("date", "")
+    if not offer or day not in [o["date"] for o in offer["options"]]:
+        conn.close()
+        flash("That time isn't open any more. Pick another one.", "warning")
+        return redirect(url_for("flight.dashboard", rebook=scheduled_id))
+    old = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    new_id = _rebook_same_lesson(conn, old, day, old["scheduled_time"], session.get("user_name"))
+    conn.commit()
+    new = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (new_id,)).fetchone()
+    _notify_schedule_request(conn, new, "booked a new time for", "rebooked after cancelling")
+    conn.close()
+    flash("Booked: " + _slot_label(day, old["scheduled_time"]) + ".", "success")
+    return redirect(url_for("flight.dashboard"))
+
+
 @flight_bp.route("/schedule/weather/<int:scheduled_id>", methods=["GET", "POST"])
 @login_required
 def weather_rebook(scheduled_id):
@@ -7065,11 +7122,7 @@ def weather_rebook(scheduled_id):
             conn.close()
             flash("Sorry, that time was just taken. Pick another one.", "warning")
             return redirect(url_for("flight.weather_rebook", scheduled_id=scheduled_id))
-        conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date, scheduled_time,
-                        duration_hours, notes, status, created_by, solo, part_solo)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, ?)""",
-                     (old["asset_id"], old["cfi_id"], old["student_id"], offer["scheduled_date"], offer["scheduled_time"] or None,
-                      old["duration_hours"], old["notes"], "Weather rebook", old["solo"], old["part_solo"]))
+        _rebook_same_lesson(conn, old, offer["scheduled_date"], offer["scheduled_time"], "Weather rebook")
         conn.execute("UPDATE weather_offers SET taken_at = ? WHERE id = ?", (now_iso(), offer["id"]))
         conn.commit()
         conn.close()
@@ -7197,9 +7250,8 @@ def schedule_student_cancel(scheduled_id):
     conn.close()
     if late and fee_amount:
         flash(f"Flight cancelled. A ${fee_amount:,.2f} late-cancellation fee was added to your account.", "warning")
-    else:
-        flash("Flight cancelled.", "success")
-    return redirect(url_for("flight.dashboard"))
+    # The dashboard shows "Flight cancelled. Pick a new time?" in place of the plain bar.
+    return redirect(url_for("flight.dashboard", rebook=scheduled_id))
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/start", methods=["POST"])

@@ -1,6 +1,31 @@
 {% extends "flight/base_flight.html" %}
 {% block title %}Dashboard · Fly with Kate!{% endblock %}
 {% block content %}
+{% if rebook_offer %}
+{#- Idea feat-rebook-after-cancel: right after a student's own cancel, offer the next open days for the same plane and instructor. #}
+<div class="card border-primary border-2 mb-3" id="rebook-box" style="max-width:520px">
+  <div class="card-body">
+    <div class="fw-bold fs-5"><i class="bi bi-check-circle text-success"></i> Flight cancelled.{% if rebook_offer.options %} Pick a new time?{% endif %}</div>
+    {% if rebook_offer.options %}
+    <div class="text-muted mb-2">Same plane ({{ rebook_offer.plane_tag }}) and instructor, same time of day</div>
+    <div class="d-grid gap-2 mb-2">
+      {% for o in rebook_offer.options %}
+      <form method="post" action="{{ url_for('flight.schedule_student_rebook', scheduled_id=rebook_offer.id) }}" class="mb-0">
+        <input type="hidden" name="date" value="{{ o.date }}">
+        <button class="btn {{ 'btn-primary' if loop.first else 'btn-outline-primary' }} btn-lg w-100 text-start"><i class="bi bi-calendar-plus"></i> {{ o.label }}</button>
+      </form>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-muted mb-2">Nothing is open with the same plane and instructor in the next 2 weeks.</div>
+    {% endif %}
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('flight.schedule_new', asset_id=rebook_offer.asset_id, cfi_id=rebook_offer.cfi_id or '') }}">Other times</a>
+      <a href="{{ url_for('flight.dashboard') }}" class="text-secondary">No thanks</a>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% from "flight/_pilot_badge.html" import pilot_badge_css %}{{ pilot_badge_css() }}
 <style>
   .today-row-clickable:hover { background-color: rgba(255, 193, 7, 0.12); }
