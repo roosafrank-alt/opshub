@@ -8518,12 +8518,18 @@ def log_end(flight_id):
             flash("Pick how the payment was made (cash, card, etc.) to log this flight as Paid.", "danger")
             return redirect(back)
         if cost["total"] > 0.005 and covered + 0.005 < cost["total"]:
-            conn.rollback()
-            conn.close()
-            short = cost["total"] - covered
-            flash(f"This flight comes to ${cost['total']:.2f}. ${covered:.2f} is accounted for so far - "
-                  f"enter the remaining ${short:.2f} as a payment (or apply more credit) to log it as Paid.", "danger")
-            return redirect(back)
+            if request.form.get("partial_ok") == "1" and covered > 0.005:
+                # The CFI confirmed this is a partial payment: keep what was
+                # collected/credited, log the flight as not fully paid (the
+                # rest stays owed on the student's balance).
+                conn.execute("UPDATE flights SET paid=0 WHERE id=?", (flight_id,))
+            else:
+                conn.rollback()
+                conn.close()
+                short = cost["total"] - covered
+                flash(f"This flight comes to ${cost['total']:.2f}. ${covered:.2f} is accounted for so far - "
+                      f"enter the remaining ${short:.2f} as a payment (or apply more credit) to log it as Paid.", "danger")
+                return redirect(back)
         conn.execute("UPDATE flights SET payment_method=?, payment_amount=?, credit_applied=?, "
                      "card_last4=?, card_charge_id=?, payment_detail=? WHERE id=?",
                      (payment_method, payment_amount, credit_applied, card_last4, card_charge_id, payment_detail, flight_id))

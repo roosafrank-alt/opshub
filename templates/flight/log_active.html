@@ -490,6 +490,7 @@
     {% endif %}
     {% else %}
     <input type="hidden" name="credit_applied" id="credit-applied-{{ f.id }}" value="0">
+    <input type="hidden" name="partial_ok" id="partial-ok-{{ f.id }}" value="0">
     {#- The actual dollar total, computed live as Hobbs/ground/solo are
        typed (see computeFlightTotal() below) - shown before Paid/Amount
        Collected so there's a real number to expect instead of guessing. #}
@@ -530,7 +531,7 @@
     {% if f.student_balance and f.student_balance > 0.005 %}
     <div class="alert alert-success py-2 px-3 small d-flex justify-content-between align-items-center mb-2 mt-2">
       <span><i class="bi bi-piggy-bank"></i> Credit on file: <strong>${{ '%.2f'|format(f.student_balance) }}</strong></span>
-      <button type="button" class="btn btn-outline-success btn-sm use-credit-btn" data-credit="{{ '%.2f'|format(f.student_balance) }}" data-target="credit-applied-{{ f.id }}" data-note-target="credit-note-{{ f.id }}" data-flight-id="{{ f.id }}" disabled title="Enter Hobbs End first so there's a total to apply it to">Use Credit</button>
+      <button type="button" class="btn btn-outline-success btn-sm use-credit-btn" data-credit="{{ '%.2f'|format(f.student_balance) }}" data-target="credit-applied-{{ f.id }}" data-note-target="credit-note-{{ f.id }}" data-flight-id="{{ f.id }}">Use Credit</button>
     </div>
     <div class="small text-success mb-2 d-none" id="credit-note-{{ f.id }}"></div>
     {% endif %}
@@ -573,6 +574,13 @@
       <div class="form-text">Apply credit above first if there is any, then enter whatever else was actually collected and how. The flight's full cost (payment + credit) has to be accounted for before it logs as Paid.</div>
     </div>
     <div class="alert alert-danger py-2 px-3 small d-none mt-2" id="end-payment-error-{{ f.id }}"></div>
+    <div class="alert alert-warning py-2 px-3 small d-none mt-2" id="partial-ask-{{ f.id }}">
+      <div class="fw-bold mb-1" id="partial-ask-text-{{ f.id }}"></div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-warning btn-sm flex-fill" id="partial-yes-{{ f.id }}">Partial payment collected</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm flex-fill" id="partial-no-{{ f.id }}">Entry error - fix it</button>
+      </div>
+    </div>
     {% endif %}
     <div class="form-check form-switch mt-2">
       <input type="checkbox" class="form-check-input" role="switch" name="send_receipt_email" id="send-receipt-{{ f.id }}" value="1" checked>
@@ -1186,26 +1194,27 @@ document.querySelectorAll('select[id^="payment-method-"]').forEach(function (sel
 });
 document.querySelectorAll('.use-credit-btn').forEach(function (btn) {
   btn.addEventListener('click', function () {
+    var fId = btn.dataset.flightId;
     var target = document.getElementById(btn.dataset.target);
     var note = document.getElementById(btn.dataset.noteTarget);
     var balance = parseFloat(btn.dataset.credit) || 0;
-    // Match what the server will actually apply (flight._flight_cost) - the
-    // full balance on file if the flight costs at least that much,
-    // otherwise just enough to cover the flight - so the note's "applied"
-    // and "remains" figures are what really happens, not always the whole
-    // balance regardless of the flight's own total.
-    var total = getFlightTotal(btn.dataset.flightId);
+    // Credit only counts on a Paid flight, so tapping Use Credit picks Paid.
+    var paidRadio = document.getElementById('paid-1-' + fId);
+    if (paidRadio && !paidRadio.checked) { paidRadio.checked = true; paidRadio.dispatchEvent(new Event('change', { bubbles: true })); }
+    // Match what the server will actually apply (flight._flight_cost): the
+    // whole balance, or just enough to cover the flight when it costs less.
+    // With no hours entered yet the total is unknown, so the whole balance is
+    // requested and the server trims it to the real total.
+    var total = getFlightTotal(fId);
     var applied = (total !== null && total < balance) ? total : balance;
     var remaining = Math.max(0, balance - applied);
     if (target) target.value = applied.toFixed(2);
     if (note) {
-      note.textContent = 'Applying $' + applied.toFixed(2) + ' credit toward this flight. $' + remaining.toFixed(2) + ' balance remains.';
+      note.textContent = (total === null ? 'Up to $' : 'Using $') + applied.toFixed(2) + ' credit on this flight. ' +
+        (total === null ? 'Whatever is not needed stays on the account.' : '$' + remaining.toFixed(2) + ' credit left.');
       note.classList.remove('d-none');
     }
-    // Amount Collected already showed the pre-credit total (or whatever the
-    // CFI typed) - once credit is applied, refresh it so it still matches
-    // what's actually left to collect, same as if Paid had just been tapped.
-    refreshPaymentAmount(btn.dataset.flightId);
+    refreshPaymentAmount(fId);
   });
 });
 // Idea "QA fix: end-lesson taps": Amount Collected used to start blank, so
@@ -1262,11 +1271,7 @@ function getEnteredHours(fId) {
 // "Use Credit" stays disabled until there's a real, billable total - same
 // precondition the server needs to price it (see flight._flight_hours).
 function refreshCreditButton(fId) {
-  var creditBtn = document.querySelector('.use-credit-btn[data-flight-id="' + fId + '"]');
-  if (!creditBtn) return;
-  var hasTotal = getEnteredHours(fId) !== null;
-  creditBtn.disabled = !hasTotal;
-  creditBtn.title = hasTotal ? '' : "Enter the flight's hours first so there's a total to apply it to";
+  // Use Credit is always clickable when there is credit; the server trims it to the real total.
 }
 document.querySelectorAll('.hobbs-end-input, .recorded-hours-input').forEach(function (input) {
   input.addEventListener('input', function () { refreshCreditButton(input.dataset.flightId); computeFlightTotal(input.dataset.flightId); });
@@ -1411,6 +1416,7 @@ document.querySelectorAll('form[id^="end-form-"]').forEach(function (form) {
   form.addEventListener('submit', function (e) {
     if (!errorBox) return;
     errorBox.classList.add('d-none');
+    var askBox = document.getElementById('partial-ask-' + fId); if (askBox) askBox.classList.add('d-none');
     var paidInput = form.querySelector('input[name="paid"]:checked');
     if (!paidInput || paidInput.value !== '1') return;
     var total = getFlightTotal(fId);
@@ -1428,9 +1434,26 @@ document.querySelectorAll('form[id^="end-form-"]').forEach(function (form) {
       methodInput.focus();
       return;
     }
-    if (covered + 0.005 < total) {
+    var partialOk = document.getElementById('partial-ok-' + fId);
+    if (covered + 0.005 < total && !(partialOk && partialOk.value === '1')) {
       e.preventDefault();
       var short = total - covered;
+      var ask = document.getElementById('partial-ask-' + fId);
+      if (ask && covered > 0.005) {
+        // Something was entered but it falls short: ask which it is.
+        document.getElementById('partial-ask-text-' + fId).textContent = 'This flight comes to $' + total.toFixed(2) +
+          ' but only $' + covered.toFixed(2) + ' is covered. Was a partial payment collected, or was the amount an entry error?';
+        ask.classList.remove('d-none');
+        document.getElementById('partial-yes-' + fId).onclick = function () {
+          partialOk.value = '1'; ask.classList.add('d-none');
+          if (form.requestSubmit) form.requestSubmit(); else form.submit();
+        };
+        document.getElementById('partial-no-' + fId).onclick = function () {
+          ask.classList.add('d-none');
+          if (amountInput) { amountInput.dataset.autoFilled = 'true'; refreshPaymentAmount(fId); amountInput.focus(); }
+        };
+        return;
+      }
       errorBox.textContent = 'This flight comes to $' + total.toFixed(2) + '. $' + covered.toFixed(2) +
         ' is accounted for so far - enter the remaining $' + short.toFixed(2) + ' as a payment (or apply more credit) to log it as Paid.';
       errorBox.classList.remove('d-none');

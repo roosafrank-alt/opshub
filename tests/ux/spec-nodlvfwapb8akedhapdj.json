@@ -1,0 +1,105 @@
+{
+ "checks": [
+  {
+   "role": "master",
+   "size": "phone",
+   "sql": [
+    "UPDATE assets SET is_flight_asset = 1, hobbs_hours = 500.0, tach_hours = 480.0 WHERE id = {asset}",
+    "UPDATE students SET balance = 80.0, plane_rate_override = 100.0 WHERE id = {student}",
+    "INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, solo, hobbs_start, tach_start, started_at, created_at) VALUES ({cfi}, {student}, {asset}, date('now'), 0, 500.0, 480.0, datetime('now', '-90 minutes'), datetime('now'))"
+   ],
+   "steps": [
+    [
+     "start",
+     "/flight/log/active"
+    ],
+    [
+     "tap",
+     "End Session"
+    ],
+    [
+     "see",
+     "Credit on file"
+    ],
+    [
+     "tap",
+     "Use Credit"
+    ],
+    [
+     "see",
+     "credit"
+    ],
+    [
+     "shot",
+     {
+      "caption": "Use Credit is clickable before hours are typed and shows the credit",
+      "focus": "[id^='credit-note-']",
+      "changed": [
+       {
+        "sel": "[id^='credit-note-']",
+        "note": "Credit use and credit left"
+       }
+      ]
+     }
+    ],
+    [
+     "fill",
+     "hobbs_end",
+     "501.4"
+    ],
+    [
+     "fill",
+     "tach_end",
+     "481.2"
+    ],
+    [
+     "fill",
+     "payment_amount",
+     "5"
+    ],
+    [
+     "fill",
+     "payment_method",
+     "Cash"
+    ],
+    [
+     "tap",
+     "Session Complete"
+    ],
+    [
+     "tap",
+     "Yes, log it"
+    ],
+    [
+     "see",
+     "Partial payment collected"
+    ],
+    [
+     "shot",
+     {
+      "caption": "Amount short of the total asks: partial payment or entry error",
+      "focus": "[id^='partial-ask-']",
+      "changed": [
+       {
+        "sel": "[id^='partial-ask-']",
+        "note": "New question"
+       }
+      ]
+     }
+    ],
+    [
+     "tap",
+     "[id^='partial-yes-']"
+    ],
+    [
+     "tap",
+     "Yes, log it"
+    ],
+    [
+     "see",
+     "Session ended and logged."
+    ]
+   ]
+  }
+ ]
+}
