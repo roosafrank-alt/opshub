@@ -913,6 +913,9 @@ def _migrate(conn):
         ("night_landings_fs", "ALTER TABLE flights ADD COLUMN night_landings_fs INTEGER"),
         ("night_landings_tg", "ALTER TABLE flights ADD COLUMN night_landings_tg INTEGER"),
         ("paused_at", "ALTER TABLE flights ADD COLUMN paused_at TEXT"),
+        ("instructor_time_edited_by", "ALTER TABLE flights ADD COLUMN instructor_time_edited_by TEXT"),
+        ("instructor_time_edited_at", "ALTER TABLE flights ADD COLUMN instructor_time_edited_at TEXT"),
+        ("instructor_time_original_hours", "ALTER TABLE flights ADD COLUMN instructor_time_original_hours REAL"),
         ("paused_seconds", "ALTER TABLE flights ADD COLUMN paused_seconds INTEGER NOT NULL DEFAULT 0"),
     ]:
         if col not in flight_cols2:

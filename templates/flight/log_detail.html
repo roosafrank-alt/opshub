@@ -58,6 +58,7 @@
         <tr><th>Ended</th><td>{% if f.ended_at %}{{ f.ended_at|usdate }} {{ f.ended_at|time12 }}{% else %}(still running){% endif %}</td></tr>
         <tr><th>Elapsed</th><td data-change="FLY-26">{% if f.instructor_clock_hours is not none %}{% set el_min = (f.instructor_clock_hours * 60)|round|int %}{% if el_min >= 60 %}{{ el_min // 60 }} hr {{ el_min % 60 }} min{% else %}{{ el_min }} min{% endif %} ({{ '%.2f'|format(f.instructor_clock_hours) }} hrs){% else %}-{% endif %}</td></tr>
       </table>
+      {% if f.instructor_time_edited_by %}<p class="small mb-0 mt-2"><span class="badge bg-warning text-dark">Time edited</span> by {{ f.instructor_time_edited_by }} on {{ f.instructor_time_edited_at|usdate }} {{ f.instructor_time_edited_at|time12 }} (timer said {{ '%.2f'|format(f.instructor_time_original_hours) }} hrs).</p>{% endif %}
       <p class="text-muted small mb-0 mt-2">The instructor is billed on this clocked time (rounded up), not the Hobbs/Tach hours - it covers the pre/post-flight time with the student, not just time in the air.</p>
     </div>
     {% endif %}

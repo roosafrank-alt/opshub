@@ -586,6 +586,13 @@
       <label class="form-label small mb-0">Shop notes</label>
       <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="{{ 'any note here is saved with the flight' if f.asset_is_owner_placeholder else 'any note here is flagged as a squawk for the shop' }}">{{ f.notes or '' }}</textarea>
     </div>
+    {% if not student_ending and not f.solo and not f.asset_is_simulator and f.instructor_clock_hours is not none %}
+    <div class="mt-2" data-change="CFI-TIME">
+      <label class="form-label small mb-0 fw-bold" for="instructor-minutes-{{ f.id }}">Instructor time (minutes)</label>
+      <input type="number" min="0" step="1" inputmode="numeric" name="instructor_minutes" id="instructor-minutes-{{ f.id }}" class="form-control form-control-sm" value="{{ (f.instructor_clock_hours * 60)|round|int }}" style="max-width:9rem">
+      <div class="form-text">Timer ran over? Fix the minutes here. Your name is saved with the change.</div>
+    </div>
+    {% endif %}
     <div class="form-text mt-1">The instructor's billed time is the elapsed time shown above (from Start to when End Session was pressed, minus any paused time), not just Hobbs hours.</div>
     <button type="submit" class="btn btn-primary fw-bold mt-2 w-100" data-change="DESIGN-1"><i class="bi bi-journal-check"></i> Session Complete</button>
   </form>
@@ -1291,6 +1298,8 @@ function getFlightBreakdown(fId) {
   var instructorRate = parseFloat(form.dataset.instructorRate) || 0;
   var isSolo = form.dataset.solo === '1';
   var clockHoursRaw = form.dataset.instructorClockHours;
+  var instrMinInput = form.querySelector('[name="instructor_minutes"]');
+  if (instrMinInput && instrMinInput.value !== '' && !isNaN(parseFloat(instrMinInput.value))) clockHoursRaw = String(parseFloat(instrMinInput.value) / 60);
   var groundInput = form.querySelector('[name="ground_time_hours"]');
   var soloInput = form.querySelector('[name="solo_hours"]');
   var ground = groundInput ? (parseFloat(groundInput.value) || 0) : 0;
@@ -1348,7 +1357,7 @@ function computeFlightTotal(fId) {
     lines.forEach(function (t) { var d = document.createElement('div'); d.textContent = t; breakdownEl.appendChild(d); });
   }
 }
-document.querySelectorAll('[name="ground_time_hours"], [name="solo_hours"], [name="tach_end"]').forEach(function (input) {
+document.querySelectorAll('[name="ground_time_hours"], [name="solo_hours"], [name="tach_end"], [name="instructor_minutes"]').forEach(function (input) {
   var form = input.closest('form');
   if (!form) return;
   input.addEventListener('input', function () { computeFlightTotal(form.id.replace('end-form-', '')); });

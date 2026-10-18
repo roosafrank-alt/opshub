@@ -8460,6 +8460,17 @@ def log_end(flight_id):
         paused_seconds += max(0, (ended - paused_started).total_seconds())
     elapsed_seconds = max(0.0, (ended - started).total_seconds() - paused_seconds)
     instructor_clock_hours = elapsed_seconds / 3600.0
+    # The instructor may correct the billed time (timer ran over by accident).
+    # Only a change from the timer's own minutes counts as an edit; who made
+    # it, when, and the original figure are kept with the flight.
+    time_edit_by = time_edit_at = time_edit_orig = None
+    edited_minutes = _parse_float(request.form.get("instructor_minutes"))
+    if (edited_minutes is not None and edited_minutes >= 0 and not student_ending
+            and not f["solo"] and abs(edited_minutes - round(elapsed_seconds / 60.0)) >= 1):
+        time_edit_orig = instructor_clock_hours
+        instructor_clock_hours = edited_minutes / 60.0
+        time_edit_by = session.get("user_name") or "Unknown"
+        time_edit_at = now_iso()
 
     conn.execute("""UPDATE flights SET hobbs_start=?, hobbs_end=?, tach_start=?, tach_end=?, recorded_hours=?, oil_added_qt=?, oil_added_by=?, ground_time_hours=?, notes=?, flight_notes=?,
                      squawk=?, ended_at=?, instructor_clock_hours=?, paused_at=NULL, paused_seconds=?,
@@ -8475,6 +8486,9 @@ def log_end(flight_id):
     if tach_end is not None:
         conn.execute("UPDATE assets SET tach_hours = ?, tach_updated_at = ? WHERE id = ?",
                      (tach_end, now_iso(), f["asset_id"]))
+    if time_edit_by:
+        conn.execute("UPDATE flights SET instructor_time_edited_by=?, instructor_time_edited_at=?, instructor_time_original_hours=? WHERE id=?",
+                     (time_edit_by, time_edit_at, time_edit_orig, flight_id))
     if f["scheduled_flight_id"]:
         conn.execute("UPDATE scheduled_flights SET status = 'completed' WHERE id = ?", (f["scheduled_flight_id"],))
     # Auto-deduct now that the flight is actually complete (Hobbs/Tach end,

@@ -339,6 +339,9 @@ CREATE TABLE IF NOT EXISTS flights (
     started_at TEXT, -- clock time the CFI tapped "Start Flight" - set only when logged via the start/stop flow
     ended_at TEXT, -- clock time the CFI tapped "End Flight" - pairs with started_at
     instructor_clock_hours REAL, -- elapsed real time from started_at to ended_at; used to bill the instructor instead of Hobbs/Tach hours when set (covers pre/post-flight time with the student, not just time in the air)
+    instructor_time_edited_by TEXT, -- who corrected the instructor time at End Session (NULL = timer figure used as is)
+    instructor_time_edited_at TEXT,
+    instructor_time_original_hours REAL, -- the timer's figure before the correction
     day_landings_fs INTEGER, -- day full-stop landings this flight
     day_landings_tg INTEGER, -- day touch-and-go landings this flight
     night_landings_fs INTEGER, -- night full-stop landings (counts for night passenger currency)
