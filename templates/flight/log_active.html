@@ -119,9 +119,13 @@
        restart clock" one tap away - so it stops the clock right away
        instead. The floating widget's End button (_active_flight_widget.html)
        works the same way. #}
-    <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-flex flex-fill mb-0">
-      <button type="submit" class="btn btn-danger fw-bold flex-fill"><i class="bi bi-stop-fill"></i> End Session</button>
-    </form>
+    {#- Idea "add end flight button": the flying is over but the clock keeps running for the debrief.
+       Three steps in one box (log_end_flight, log_flight_items, log_flight_plan): confirm the ending
+       Hobbs/Tach, score the ACS items done on the flight, then plan the next flight and homework. Once the
+       plan is saved the button becomes "ACS planning". End Session still closes the flight out. #}
+    {% if not f.asset_is_simulator %}
+    <button type="button" class="btn {{ 'btn-outline-info' if f.acs_planned_at else 'btn-outline-primary' }} fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"{% if not f.acs_planned_at %} onclick="fetch('{{ url_for('flight.log_end_flight_started', flight_id=f.id) }}', {method: 'POST', credentials: 'same-origin'})"{% endif %}><i class="bi {{ 'bi-list-check' if f.acs_planned_at else 'bi-airplane' }}"></i> {{ 'ACS planning' if f.acs_planned_at else 'End Flight' }}</button>
+    {% endif %}
     {% if f.paused_at %}
     <form method="post" action="{{ url_for('flight.log_resume', flight_id=f.id) }}" class="d-flex flex-fill mb-0">
       <button type="submit" class="btn btn-success fw-bold flex-fill"><i class="bi bi-play-fill"></i> {{ 'Resume Session' if f.asset_is_simulator else 'Resume Flight' }}</button>
@@ -131,13 +135,9 @@
       <button type="submit" class="btn btn-outline-warning fw-bold flex-fill"><i class="bi bi-pause-fill"></i> {{ 'Pause Session' if f.asset_is_simulator else 'Pause Flight' }}</button>
     </form>
     {% endif %}
-    {#- Idea "add end flight button": the flying is over but the clock keeps running for the debrief.
-       Three steps in one box (log_end_flight, log_flight_items, log_flight_plan): confirm the ending
-       Hobbs/Tach, score the ACS items done on the flight, then plan the next flight and homework. Once the
-       plan is saved the button becomes "ACS planning". End Session still closes the flight out. #}
-    {% if not f.asset_is_simulator %}
-    <button type="button" class="btn {{ 'btn-outline-info' if f.acs_planned_at else 'btn-outline-primary' }} fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"{% if not f.acs_planned_at %} onclick="fetch('{{ url_for('flight.log_end_flight_started', flight_id=f.id) }}', {method: 'POST', credentials: 'same-origin'})"{% endif %}><i class="bi {{ 'bi-list-check' if f.acs_planned_at else 'bi-airplane' }}"></i> {{ 'ACS planning' if f.acs_planned_at else 'End Flight' }}</button>
-    {% endif %}
+    <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-flex flex-fill mb-0">
+      <button type="submit" class="btn btn-danger fw-bold flex-fill"><i class="bi bi-stop-fill"></i> End Session</button>
+    </form>
   </div>
   {% if f.next_focus_tasks %}
   <div class="small mb-2"><i class="bi bi-list-check text-primary"></i> <strong>Next flight:</strong> {{ f.next_focus_tasks|join(' · ') }}</div>
