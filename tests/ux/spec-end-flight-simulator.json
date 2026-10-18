@@ -1,0 +1,130 @@
+{
+ "checks": [
+  {
+   "role": "cfi",
+   "size": "phone",
+   "sql": [
+    "UPDATE assets SET is_flight_asset = 1, is_simulator = 1, sim_rate = 50 WHERE id = {asset}",
+    "UPDATE students SET training_goal = 'private' WHERE id = {student}",
+    "INSERT INTO acs_ratings (name, slug, uploaded_at, status) VALUES ('Private Pilot ACS', 'private-pilot-acs', datetime('now'), 'parsed')",
+    "INSERT INTO acs_areas (rating_id, code, title, order_index) VALUES ((SELECT id FROM acs_ratings WHERE slug='private-pilot-acs'), 'IV', 'Takeoffs, Landings, and Go-Arounds', 1)",
+    "INSERT INTO acs_tasks (area_id, code, title, order_index) VALUES ((SELECT id FROM acs_areas WHERE code='IV'), 'A', 'Normal Takeoff and Climb', 1)",
+    "INSERT INTO acs_tasks (area_id, code, title, order_index) VALUES ((SELECT id FROM acs_areas WHERE code='IV'), 'B', 'Soft-Field Landing', 2)",
+    "INSERT INTO scheduled_flights (asset_id, student_id, cfi_id, scheduled_date, scheduled_time, duration_hours, status) VALUES ({asset}, {student}, {cfi}, date('now','localtime'), strftime('%H:%M', 'now','localtime'), 1.0, 'scheduled')"
+   ],
+   "steps": [
+    [
+     "start",
+     "/flight/dashboard"
+    ],
+    [
+     "tap",
+     "Start Session"
+    ],
+    [
+     "see",
+     "Session started"
+    ],
+    [
+     "tap",
+     "End Flight"
+    ],
+    [
+     "see",
+     "Items completed on this flight"
+    ],
+    [
+     "see",
+     "Items completed on this flight"
+    ],
+    [
+     "tap",
+     "Takeoffs, Landings"
+    ],
+    [
+     "tap",
+     "[name='done_task'] >> nth=0"
+    ],
+    [
+     "tap",
+     "[for^='ss-'] >> nth=0"
+    ],
+    [
+     "tap",
+     "[name='done_task'] >> nth=1"
+    ],
+    [
+     "shot",
+     {
+      "caption": "Items completed on this flight, each scored Working or At standards",
+      "focus": "[id^='end-flight-modal-'] .modal-content",
+      "changed": [
+       {
+        "sel": "[id^='end-flight-modal-'] .btn-group",
+        "note": "New: score buttons"
+       }
+      ]
+     }
+    ],
+    [
+     "tap",
+     "Log"
+    ],
+    [
+     "see",
+     "ACS planning"
+    ],
+    [
+     "tap",
+     "Takeoffs, Landings"
+    ],
+    [
+     "tap",
+     "[name='focus_task'] >> nth=1"
+    ],
+    [
+     "tap",
+     "[name='hw_task'] >> nth=0"
+    ],
+    [
+     "shot",
+     {
+      "caption": "The same list again: what to work on next flight and at home",
+      "focus": "[id^='end-flight-modal-'] .modal-content",
+      "changed": [
+       {
+        "sel": "[id^='end-flight-modal-'] details",
+        "note": "Next-flight boxes carried over"
+       }
+      ]
+     }
+    ],
+    [
+     "tap",
+     "Save"
+    ],
+    [
+     "see",
+     "Soft-Field Landing"
+    ],
+    [
+     "shot",
+     {
+      "caption": "The box shrinks to an ACS planning button; the clock keeps running",
+      "focus": "[id^='active-flight-']",
+      "changed": [
+       {
+        "sel": "[id^='active-flight-'] .bi-list-check",
+        "note": "New: ACS planning button and next flight list"
+       }
+      ]
+     }
+    ],
+    [
+     "tap",
+     "End Session"
+    ]
+   ]
+  }
+ ]
+}

@@ -7540,7 +7540,7 @@ def log_active():
     end_picks = {}
     end_states = {}
     for r in rows:
-        if r["guest_name"] or r["asset_is_simulator"] or not _can_end_flight(r):
+        if r["guest_name"] or not _can_end_flight(r):
             continue
         stu = conn.execute("SELECT * FROM students WHERE id = ?", (r["student_id"],)).fetchone()
         if stu:
@@ -7629,7 +7629,9 @@ def _end_flight_state(f, conn):
     """What the End Flight box on this card shows: step 'times' (confirm Hobbs/Tach), 'items' (ACS items
     completed on this flight, scored) or 'plan' (what to work on next flight and at home). `plan` is also
     what the "ACS planning" button reopens. Also returns the picks already made."""
-    if not f["end_confirmed_at"]:
+    if not f["end_confirmed_at"] and not conn.execute(
+            "SELECT 1 FROM assets WHERE id = ? AND is_simulator = 1", (f["asset_id"],)).fetchone():
+        # A simulator has no Hobbs/Tach to confirm, so its box starts at the ACS items.
         step = "times"
     elif not f["acs_logged_at"]:
         step = "items"
