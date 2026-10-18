@@ -550,6 +550,7 @@
         </div>
         <div class="col-6">
           <label class="form-label small mb-0">How Paid{% if f.student_pay_preference %} <span class="text-muted fw-normal">(usually {{ f.student_pay_preference }})</span>{% endif %}</label>
+          <div class="input-group input-group-sm">
           <select name="payment_method" id="payment-method-{{ f.id }}" class="form-select form-select-sm">
             <option value="">Select...</option>
             <option value="Cash" {{ 'selected' if f.student_pay_preference == 'Cash' }}>Cash</option>
@@ -558,11 +559,14 @@
             <option value="Venmo/Zelle" {{ 'selected' if f.student_pay_preference == 'Venmo/Zelle' }}>Venmo/Zelle</option>
             <option value="Other" {{ 'selected' if f.student_pay_preference == 'Other' }}>Other</option>
           </select>
+          <button type="button" class="btn btn-outline-primary apply-payment-btn" data-flight-id="{{ f.id }}">Apply</button>
+          </div>
         </div>
       </div>
       <div class="mt-2 {{ '' if f.student_pay_preference == 'Other' else 'd-none' }}" id="payment-detail-wrap-{{ f.id }}">
         <input type="text" name="payment_detail" maxlength="200" class="form-control form-control-sm" placeholder="How did they pay? (details)" aria-label="How they paid, details">
       </div>
+      <div class="small mt-1 d-none" id="payment-apply-note-{{ f.id }}"></div>
       <div class="small text-success mt-1 d-none" id="payment-amount-note-{{ f.id }}"><i class="bi bi-check-lg"></i> Filled in from the flight total - change it only if they paid a different amount.</div>
       {#- Idea "Credit card" (revision): a simulated Stripe-style charge,
          same idea as Manage > Billing's Pay with Card - shown only once
@@ -1198,6 +1202,20 @@ document.querySelectorAll('.use-credit-btn').forEach(function (btn) {
     var target = document.getElementById(btn.dataset.target);
     var note = document.getElementById(btn.dataset.noteTarget);
     var balance = parseFloat(btn.dataset.credit) || 0;
+    // Second tap takes the credit back off (tapped in error).
+    if (btn.dataset.used === '1') {
+      btn.dataset.used = '0';
+      btn.textContent = 'Use Credit';
+      btn.classList.remove('btn-success'); btn.classList.add('btn-outline-success');
+      if (target) target.value = '0';
+      if (note) { note.textContent = ''; note.classList.add('d-none'); }
+      refreshPaymentAmount(fId);
+      var an = document.getElementById('payment-apply-note-' + fId); if (an) an.classList.add('d-none');
+      return;
+    }
+    btn.dataset.used = '1';
+    btn.textContent = 'Un-use Credit';
+    btn.classList.remove('btn-outline-success'); btn.classList.add('btn-success');
     // Credit only counts on a Paid flight, so tapping Use Credit picks Paid.
     var paidRadio = document.getElementById('paid-1-' + fId);
     if (paidRadio && !paidRadio.checked) { paidRadio.checked = true; paidRadio.dispatchEvent(new Event('change', { bubbles: true })); }
@@ -1215,6 +1233,33 @@ document.querySelectorAll('.use-credit-btn').forEach(function (btn) {
       note.classList.remove('d-none');
     }
     refreshPaymentAmount(fId);
+  });
+});
+// Apply (after How Paid): check the payment and show what it adds up to, so
+// it can be verified before End Session. Nothing is saved until Session Complete.
+document.querySelectorAll('.apply-payment-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var fId = btn.dataset.flightId;
+    var out = document.getElementById('payment-apply-note-' + fId);
+    if (!out) return;
+    var total = getFlightTotal(fId);
+    var creditInput = document.getElementById('credit-applied-' + fId);
+    var amountInput = document.getElementById('payment-amount-' + fId);
+    var methodInput = document.getElementById('payment-method-' + fId);
+    var credit = creditInput ? (parseFloat(creditInput.value) || 0) : 0;
+    var amount = amountInput ? (parseFloat(amountInput.value) || 0) : 0;
+    var method = methodInput ? methodInput.value : '';
+    var msg, ok = true;
+    if (amount > 0.005 && !method) { ok = false; msg = 'Pick how the payment was made, then tap Apply.'; }
+    else if (total === null) { msg = 'Payment noted: $' + amount.toFixed(2) + (method ? ' ' + method : '') + (credit > 0 ? ' + $' + credit.toFixed(2) + ' credit' : '') + '. Enter Hobbs End to check it against the flight total.'; }
+    else {
+      var short = total - credit - amount;
+      var parts = (amount > 0.005 ? '$' + amount.toFixed(2) + ' ' + method : '') + (amount > 0.005 && credit > 0.005 ? ' + ' : '') + (credit > 0.005 ? '$' + credit.toFixed(2) + ' credit' : '');
+      if (short > 0.005) { ok = false; msg = 'Applied ' + (parts || '$0.00') + ' of $' + total.toFixed(2) + '. $' + short.toFixed(2) + ' still owed (Session Complete will ask if this is a partial payment).'; }
+      else msg = 'Payment OK: ' + parts + ' covers the $' + total.toFixed(2) + ' flight.';
+    }
+    out.textContent = msg;
+    out.className = 'small mt-1 ' + (ok ? 'text-success' : 'text-danger');
   });
 });
 // Idea "QA fix: end-lesson taps": Amount Collected used to start blank, so
