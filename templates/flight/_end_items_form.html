@@ -9,11 +9,11 @@
       <div class="d-flex align-items-center gap-2 small ps-3 py-1 border-top">
         <input type="checkbox" class="form-check-input mt-0 flight-done-box" name="done_task" value="{{ t.id }}" id="done-{{ f.id }}-{{ t.id }}"{% if t.id in es.scores %} checked{% endif %}>
         <label class="mb-0 flex-grow-1" for="done-{{ f.id }}-{{ t.id }}">{{ t.code }}. {{ t.title }}</label>
-        <div class="btn-group btn-group-sm" role="group" aria-label="Score">
+        <div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="Score" style="width:11.5rem;">
           <input type="radio" class="btn-check flight-score" name="score_{{ t.id }}" id="sw-{{ f.id }}-{{ t.id }}" value="working" autocomplete="off"{% if es.scores.get(t.id, 'working') == 'working' %} checked{% endif %}>
-          <label class="btn btn-outline-warning" for="sw-{{ f.id }}-{{ t.id }}">Working</label>
+          <label class="btn btn-outline-warning flex-fill" for="sw-{{ f.id }}-{{ t.id }}">Working</label>
           <input type="radio" class="btn-check flight-score" name="score_{{ t.id }}" id="ss-{{ f.id }}-{{ t.id }}" value="standards" autocomplete="off"{% if es.scores.get(t.id) == 'standards' %} checked{% endif %}>
-          <label class="btn btn-outline-success" for="ss-{{ f.id }}-{{ t.id }}">At standards</label>
+          <label class="btn btn-outline-success flex-fill" for="ss-{{ f.id }}-{{ t.id }}">At standards</label>
         </div>
       </div>
       {% endfor %}
