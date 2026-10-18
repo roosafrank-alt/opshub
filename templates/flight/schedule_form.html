@@ -879,7 +879,7 @@
   if (!ss || !note || !tog || {{ 'true' if sched else 'false' }}) return;
   var same = document.getElementById('usual-time-same');
   var diff = document.getElementById('usual-time-diff');
-  var usualTime = '', autoPlane = '';
+  var usualTime = '', autoPlane = '', autoTime = '';
   function label(hhmm) {
     var p = hhmm.split(':'), h = parseInt(p[0], 10);
     return ((h + 11) % 12 + 1) + ':' + p[1] + (h < 12 ? 'a' : 'p');
@@ -935,7 +935,11 @@
       usualTime = u.time;
       same.textContent = '\u2713 Same time as usual \u00b7 ' + label(u.time);
       tog.classList.remove('d-none');
-      window.setSchedTime(u.time); mode(true);
+      // A time already picked (from the availability page, or by hand) is
+      // the one they want: keep it and leave "Same time as usual" unchecked.
+      var cur = document.getElementById('time-input');
+      if (cur && cur.value && cur.value !== autoTime) { mode(false); }
+      else { window.setSchedTime(u.time); autoTime = u.time; mode(true); }
     }
   });
 })();
