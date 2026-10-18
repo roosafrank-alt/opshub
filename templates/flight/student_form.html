@@ -557,6 +557,27 @@
   })();
   </script>
   {% endif %}
+  {#- Idea "prepaid credit section" (edit 2): adding or correcting a prepayment reloads the page; keep the same
+     scroll position and show the result message inside this box instead of at the top. #}
+  <script>
+  (function () {
+    var KEY = 'opshubAcctScroll' + {{ student.id|tojson }};
+    function put(v) { try { if (v === null) sessionStorage.removeItem(KEY); else sessionStorage.setItem(KEY, v); } catch (e) {} }
+    ['add-funds-form', 'prepay-edit-form'].forEach(function (id) {
+      var f = document.getElementById(id);
+      if (f) f.addEventListener('submit', function () { put(String(Math.round(window.pageYOffset))); });
+    });
+    var saved = null;
+    try { saved = sessionStorage.getItem(KEY); } catch (e) {}
+    if (saved === null) return;
+    put(null);
+    var box = document.getElementById('account'), fl = document.querySelector('.opshub-flashes');
+    if (box && fl) { var h = box.querySelector('p.text-muted'); box.insertBefore(fl, h || box.firstChild); fl.classList.add('mb-2'); }
+    function go() { window.scrollTo(0, parseInt(saved, 10) || 0); }
+    go();
+    window.addEventListener('load', function () { go(); setTimeout(go, 60); });
+  })();
+  </script>
 </div>
 {% endif %}
 

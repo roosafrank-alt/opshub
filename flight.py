@@ -2966,7 +2966,7 @@ def student_add_funds(student_id):
     if not amount or amount <= 0:
         flash("Enter a positive dollar amount to add.", "danger")
         conn.close()
-        return redirect(url_for("flight.student_edit", student_id=student_id))
+        return redirect(url_for("flight.student_edit", student_id=student_id) + "#account")
     # Idea "Credit card" (revision): same simulated Stripe-style charge as
     # End Session and Manage > Billing, offered here as an alternative to
     # cash/check/etc. - the "Card (simulated)" checkbox just adds a card
@@ -2976,7 +2976,7 @@ def student_add_funds(student_id):
         if not charged:
             conn.close()
             flash("Enter a card number to simulate the charge.", "danger")
-            return redirect(url_for("flight.student_edit", student_id=student_id))
+            return redirect(url_for("flight.student_edit", student_id=student_id) + "#account")
         last4, charge_id = charged
         card_note = f"Card ending in {last4} (simulated, {charge_id})"
         note = f"{note} - {card_note}" if note else card_note
