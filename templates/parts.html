@@ -128,14 +128,7 @@
     {{ parts_table(parts, part_covers, can_reorder=show_low_stock and (session.get('is_master_admin') or session.get('shop_role') == 'admin'), repl_hints=repl_hints, low_view=show_low_stock) }}
   </div>
 {% else %}
-  <!-- Browse view: click a category to expand it -->
-  <div class="d-none d-md-flex flex-wrap gap-2 mb-3">
-    {% for cat, plist in by_category.items() %}
-    <button type="button" class="btn btn-outline-primary btn-sm" onclick="toggleCategory('{{ loop.index }}')">
-      {{ cat }} <span class="badge bg-primary ms-1">{{ plist|length }}</span>
-    </button>
-    {% endfor %}
-  </div>
+  <!-- Browse view: phones click a category to expand it; laptops show every category open -->
   {% for cat, plist in by_category.items() %}
   <div class="card mb-2">
     <div class="card-header d-flex justify-content-between align-items-center pointer-cursor" onclick="toggleCategory('{{ loop.index }}')">
@@ -176,6 +169,17 @@ function submitLabels() {
   if (ids.length === 0) return;
   window.location = "{{ url_for('labels') }}?ids=" + ids.join(',');
 }
+// Laptop/desktop: every category starts open so the whole stock list shows (phones keep the closed headings).
+var wideScreen = window.matchMedia('(min-width: 768px)').matches;
+function openCategoriesOnWide() {
+  if (!wideScreen) return;
+  document.querySelectorAll('[id^="cat-"]').forEach(function (panel) {
+    panel.style.display = 'block';
+    var chev = document.getElementById('chev-' + panel.id.split('-')[1]);
+    if (chev) chev.className = 'bi bi-chevron-up';
+  });
+}
+openCategoriesOnWide();
 function toggleCategory(idx) {
   const panel = document.getElementById('cat-' + idx);
   const chev = document.getElementById('chev-' + idx);
@@ -208,6 +212,7 @@ function toggleCategory(idx) {
         if (chev) chev.className = 'bi bi-chevron-down';
       }
     });
+    if (!q) openCategoriesOnWide();
   });
 })();
 </script>
