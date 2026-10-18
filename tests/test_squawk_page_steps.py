@@ -93,6 +93,8 @@ class SquawkPageStepsTest(OpsHubTestCase):
         body = c.get("/shop").get_data(as_text=True)
         self.assertIn("Report squawk", body)
         self.assertIn("report=1", body)
+        # No #fragment: it scrolled the form up under the sticky top bar.
+        self.assertNotIn("report=1#", body)
 
     def test_plane_todo_list_shows_next_step_button_not_checkbox(self):
         self.make_squawk(assigned_to=self.tech_id, acknowledged_at=db.now_iso(),
