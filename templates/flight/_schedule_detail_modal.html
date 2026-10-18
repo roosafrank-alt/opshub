@@ -10,6 +10,7 @@
   "clicked into" for the full picture (see dashboard.html and
   schedule.html, both of which {% include %} this file).
 #}
+<style>#sd-actions:not(:has(> :not(.d-none))) { display: none !important; }</style>
 <div class="modal fade" id="scheduleDetailModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -18,6 +19,45 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        {#- Idea "pop up when a scheduled flight is clicked on": the action buttons sit at the top, above the date, so nobody scrolls for them. #}
+        <div id="sd-actions" class="d-flex flex-wrap gap-2 mb-2 pb-2 border-bottom">
+          {#- Start Session is its own condition (not CFI-only) - a solo
+             booking has no instructor at all, so the student flying it has
+             to be able to press Start themselves. The JS below (canStart)
+             decides whether to actually show it for whoever's looking, same
+             idea as the Active Flight board's own can_end/can_ack. #}
+          <form id="sd-start-form" method="post" action="#" class="d-inline d-none">
+            <input type="hidden" name="move_to_now" value="0">
+            <button type="submit" id="sd-start-btn" class="btn btn-success btn-sm"><i class="bi bi-play-fill"></i> Start Session</button>
+          </form>
+          {% if session.get('cfi_id') %}
+          <a id="sd-log-link" href="#" class="btn btn-outline-success btn-sm"><i class="bi bi-journal-plus"></i> Log Flight</a>
+          <button type="button" id="sd-reschedule-btn" class="btn btn-outline-warning btn-sm"><i class="bi bi-calendar2-week"></i> Reschedule</button>
+          <a id="sd-edit-link" href="#" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+          <span id="sd-cancel-form" class="d-inline">
+            <button type="button" id="sd-cancel-btn" class="btn btn-outline-danger btn-sm" data-change="FLY-03"><i class="bi bi-x-lg"></i> Cancel Flight</button>
+          </span>
+          {#- Approve/Deny for a still-pending request, right from the
+             calendar - same actions as the Dashboard's Pending Approval
+             card, so a CFI never has to leave the Schedule view to act on
+             one. Approve re-checks conflicts server-side (schedule_approve)
+             and simply fails with a message if it lost the conflict check
+             in the meantime; Deny opens proposeTimesModal, which folds in
+             optional quick-pick times the same way the Dashboard's own deny
+             modal does. #}
+          <form id="sd-approve-form" method="post" action="#" class="d-inline d-none" data-confirm="Approve this flight request? It goes onto the calendar as a confirmed booking." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success">
+            <button type="submit" id="sd-approve-btn" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Approve</button>
+          </form>
+          <form id="sd-approve-later-form" method="post" action="#" class="d-inline d-none" data-confirm="Approve without an instructor? It goes on the calendar flagged 'No instructor assigned yet' until you assign one." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success">
+            <button type="submit" class="btn btn-outline-success btn-sm" data-change="FLY-16"><i class="bi bi-check-lg"></i> Approve - assign an instructor later</button>
+          </form>
+          <button type="button" id="sd-propose-times-btn" class="btn btn-outline-warning btn-sm d-none"><i class="bi bi-signpost-split"></i> Deny / Propose Times</button>
+          {% endif %}
+          {% if session.get('student_id') and not session.get('cfi_id') %}
+          <button type="button" id="sd-student-change-btn" class="btn btn-outline-warning btn-sm d-none"><i class="bi bi-chat-left-text"></i> Request Change</button>
+          <button type="button" id="sd-student-cancel-btn" class="btn btn-outline-danger btn-sm d-none"><i class="bi bi-x-lg"></i> Cancel Flight</button>
+          {% endif %}
+        </div>
         <div id="sd-start-locked" class="alert alert-secondary d-none py-2 px-3 mb-2 small">
           <i class="bi bi-clock"></i> Not time yet - this flight is booked for <strong id="sd-start-opens"></strong>. Leaving now anyway? Press Start and you'll be asked to move the booking to now.
         </div>
@@ -44,43 +84,7 @@
           <span class="text-muted small">Loading forecast...</span>
         </div>
       </div>
-      <div class="modal-footer flex-wrap">
-        {#- Start Session is its own condition (not CFI-only) - a solo
-           booking has no instructor at all, so the student flying it has
-           to be able to press Start themselves. The JS below (canStart)
-           decides whether to actually show it for whoever's looking, same
-           idea as the Active Flight board's own can_end/can_ack. #}
-        <form id="sd-start-form" method="post" action="#" class="d-inline d-none">
-          <input type="hidden" name="move_to_now" value="0">
-          <button type="submit" id="sd-start-btn" class="btn btn-success btn-sm"><i class="bi bi-play-fill"></i> Start Session</button>
-        </form>
-        {% if session.get('cfi_id') %}
-        <a id="sd-log-link" href="#" class="btn btn-outline-success btn-sm"><i class="bi bi-journal-plus"></i> Log Flight</a>
-        <button type="button" id="sd-reschedule-btn" class="btn btn-outline-warning btn-sm"><i class="bi bi-calendar2-week"></i> Reschedule</button>
-        <a id="sd-edit-link" href="#" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
-        <span id="sd-cancel-form" class="d-inline">
-          <button type="button" id="sd-cancel-btn" class="btn btn-outline-danger btn-sm" data-change="FLY-03"><i class="bi bi-x-lg"></i> Cancel Flight</button>
-        </span>
-        {#- Approve/Deny for a still-pending request, right from the
-           calendar - same actions as the Dashboard's Pending Approval
-           card, so a CFI never has to leave the Schedule view to act on
-           one. Approve re-checks conflicts server-side (schedule_approve)
-           and simply fails with a message if it lost the conflict check
-           in the meantime; Deny opens proposeTimesModal, which folds in
-           optional quick-pick times the same way the Dashboard's own deny
-           modal does. #}
-        <form id="sd-approve-form" method="post" action="#" class="d-inline d-none" data-confirm="Approve this flight request? It goes onto the calendar as a confirmed booking." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success">
-          <button type="submit" id="sd-approve-btn" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Approve</button>
-        </form>
-        <form id="sd-approve-later-form" method="post" action="#" class="d-inline d-none" data-confirm="Approve without an instructor? It goes on the calendar flagged 'No instructor assigned yet' until you assign one." data-confirm-title="Approve Request" data-confirm-ok="Yes, approve" data-confirm-style="success">
-          <button type="submit" class="btn btn-outline-success btn-sm" data-change="FLY-16"><i class="bi bi-check-lg"></i> Approve - assign an instructor later</button>
-        </form>
-        <button type="button" id="sd-propose-times-btn" class="btn btn-outline-warning btn-sm d-none"><i class="bi bi-signpost-split"></i> Deny / Propose Times</button>
-        {% endif %}
-        {% if session.get('student_id') and not session.get('cfi_id') %}
-        <button type="button" id="sd-student-change-btn" class="btn btn-outline-warning btn-sm d-none"><i class="bi bi-chat-left-text"></i> Request Change</button>
-        <button type="button" id="sd-student-cancel-btn" class="btn btn-outline-danger btn-sm d-none"><i class="bi bi-x-lg"></i> Cancel Flight</button>
-        {% endif %}
+      <div class="modal-footer">
         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
