@@ -1,0 +1,26 @@
+{
+  "checks": [
+    {
+      "role": "cfi",
+      "size": "phone",
+      "sql": [
+        "UPDATE assets SET is_flight_asset = 1, hobbs_hours = 500.0, tach_hours = 480.0 WHERE id = {asset}",
+        "UPDATE users SET email = 'wrong.addr@example.com' WHERE id = (SELECT user_id FROM students WHERE id = {student})",
+        "INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, solo, hobbs_start, tach_start, started_at, created_at) VALUES ({cfi}, {student}, {asset}, date('now'), 0, 500.0, 480.0, datetime('now', '-90 minutes'), datetime('now'))"
+      ],
+      "steps": [
+        ["start", "/flight/log/active"],
+        ["tap", "End Session"],
+        ["see", "Receipt email on file"],
+        ["fill", "receipt_email", "fixed.addr@example.com"],
+        ["shot", {"caption": "End Session shows the email on file, editable, with a Save button",
+                  "focus": "[id^=receipt-email-wrap]",
+                  "changed": [{"sel": "[id^=receipt-email-wrap]", "note": "New: receipt email on file, editable, with Save"}]}],
+        ["tap", "Save"],
+        ["see", "Saved to the student's profile."],
+        ["shot", {"caption": "After Save the box confirms the profile was updated",
+                  "focus": "[id^=receipt-email-wrap]"}]
+      ]
+    }
+  ]
+}

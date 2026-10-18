@@ -7546,9 +7546,14 @@ def log_active():
     # End Flight box: the ACS tasks to pick the next flight's focus / homework from (see log_end_flight).
     end_picks = {}
     end_states = {}
+    receipt_emails = {}
     for r in rows:
         if r["guest_name"] or not _can_end_flight(r):
             continue
+        ue = conn.execute("SELECT u.id, u.email FROM students s JOIN users u ON u.id = s.user_id WHERE s.id = ?",
+                          (r["student_id"],)).fetchone()
+        if ue:
+            receipt_emails[r["id"]] = ue["email"] or ""
         stu = conn.execute("SELECT * FROM students WHERE id = ?", (r["student_id"],)).fetchone()
         if stu:
             import groundschool
@@ -7589,6 +7594,7 @@ def log_active():
                             eta_affected=affected.get(r["id"], []), sim_elapsed_hours=sim_elapsed_hours,
                             sim_elapsed_label=sim_elapsed_label, end_pick=end_picks.get(r["id"]),
                             end_state=end_states.get(r["id"]),
+                            receipt_email=receipt_emails.get(r["id"]),
                             next_focus_tasks=_next_focus_tasks(r)))
     # Still-flying flights above ones whose clock has already been stopped
     # and are just waiting on End Session's form to be filled in and
@@ -7686,6 +7692,35 @@ def log_end_flight_started(flight_id):
         conn.commit()
     conn.close()
     return ("", 204)
+
+
+def _save_student_email(conn, student_id, email):
+    """Corrects the email on the student's profile (users.email, the same
+    place the student form edits). Returns True when saved."""
+    email = (email or "").strip()
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        return False
+    stu = conn.execute("SELECT user_id FROM students WHERE id = ?", (student_id,)).fetchone()
+    if not stu or not stu["user_id"]:
+        return False
+    conn.execute("UPDATE users SET email = ? WHERE id = ?", (email, stu["user_id"]))
+    return True
+
+
+@flight_bp.route("/log/<int:flight_id>/receipt_email", methods=["POST"])
+@login_required
+def log_save_receipt_email(flight_id):
+    """Save button next to the receipt email box on End Session: re-saves a
+    corrected email to the student's profile without ending the flight."""
+    conn = get_db()
+    f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
+    ok = False
+    if f and f["started_at"] and not f["ended_at"] and not f["guest_name"] and _can_end_flight(f):
+        ok = _save_student_email(conn, f["student_id"], request.form.get("receipt_email"))
+        if ok:
+            conn.commit()
+    conn.close()
+    return jsonify(ok=ok), (200 if ok else 400)
 
 
 @flight_bp.route("/log/<int:flight_id>/end_flight", methods=["POST"])
@@ -8592,6 +8627,9 @@ def log_end(flight_id):
                                                                collected_by=session.get("user_name"), user_id=session.get("user_id"))
     # The student's pilot logbook gets a pending, pre-filled entry.
     pilotlog.ensure_entry(conn, flight_id)
+    receipt_to = (request.form.get("receipt_email") or "").strip()
+    if receipt_to and not ended_row["guest_name"]:
+        _save_student_email(conn, ended_row["student_id"], receipt_to)
     if request.form.get("send_receipt_email") and cost is not None:
         _send_flight_receipt_email(conn, ended_row, cost, paid_choice == "1", payment_method, payment_amount, credit_applied, payment_detail)
     conn.commit()

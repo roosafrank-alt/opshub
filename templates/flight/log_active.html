@@ -590,6 +590,35 @@
       <input type="checkbox" class="form-check-input" role="switch" name="send_receipt_email" id="send-receipt-{{ f.id }}" value="1" checked>
       <label class="form-check-label small" for="send-receipt-{{ f.id }}"{% if student_ending %} data-change="FLY-07"{% endif %}>{% if student_ending %}Email me a receipt <span class="text-muted">(if you have an email on file)</span>{% else %}Email a receipt to the student <span class="text-muted">(if they have an email on file)</span>{% endif %}</label>
     </div>
+    {% if f.receipt_email is not none %}
+    <div class="mt-1" id="receipt-email-wrap-{{ f.id }}">
+      <label class="form-label small mb-0" for="receipt-email-{{ f.id }}">Receipt email on file</label>
+      <div class="input-group input-group-sm">
+        <input type="email" name="receipt_email" id="receipt-email-{{ f.id }}" class="form-control" value="{{ f.receipt_email }}" placeholder="no email on file" autocomplete="off" data-saved="{{ f.receipt_email }}">
+        <button type="button" class="btn btn-outline-primary" id="receipt-email-save-{{ f.id }}" disabled>Save</button>
+      </div>
+      <div class="form-text" id="receipt-email-note-{{ f.id }}">Fix it here if it is wrong: it is saved to the student's profile.</div>
+    </div>
+    <script>
+    (function () {
+      var inp = document.getElementById('receipt-email-{{ f.id }}');
+      var btn = document.getElementById('receipt-email-save-{{ f.id }}');
+      var note = document.getElementById('receipt-email-note-{{ f.id }}');
+      inp.addEventListener('input', function () { btn.disabled = inp.value.trim() === inp.dataset.saved; });
+      btn.addEventListener('click', function () {
+        btn.disabled = true;
+        fetch('{{ url_for("flight.log_save_receipt_email", flight_id=f.id) }}', {
+          method: 'POST', credentials: 'same-origin',
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: 'receipt_email=' + encodeURIComponent(inp.value.trim())
+        }).then(function (r) {
+          if (r.ok) { inp.dataset.saved = inp.value.trim(); note.textContent = 'Saved to the student\'s profile.'; }
+          else { btn.disabled = false; note.textContent = 'That email does not look right.'; }
+        }).catch(function () { btn.disabled = false; note.textContent = 'Could not save, try again.'; });
+      });
+    })();
+    </script>
+    {% endif %}
     <div class="mt-2">
       <label class="form-label small mb-0">Flight notes</label>
       <textarea name="flight_notes" class="form-control form-control-sm" rows="2" placeholder="how the flight went (not sent to the shop)">{{ f.flight_notes or '' }}</textarea>
