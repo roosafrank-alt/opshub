@@ -19,7 +19,10 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        {#- Idea "pop up when a scheduled flight is clicked on": the action buttons sit at the top, above the date, so nobody scrolls for them. #}
+        <div id="sd-start-locked" class="alert alert-secondary d-none py-2 px-3 mb-2 small">
+          <i class="bi bi-clock"></i> Not time yet - this flight is booked for <strong id="sd-start-opens"></strong>. Leaving now anyway? Press Start and you'll be asked to move the booking to now.
+        </div>
+        {#- Idea "pop up when a scheduled flight is clicked on": the action buttons sit at the top, above the date (right after the "Not time yet" note), so nobody scrolls for them. #}
         <div id="sd-actions" class="d-flex flex-wrap gap-2 mb-2 pb-2 border-bottom">
           {#- Start Session is its own condition (not CFI-only) - a solo
              booking has no instructor at all, so the student flying it has
@@ -57,9 +60,6 @@
           <button type="button" id="sd-student-change-btn" class="btn btn-outline-warning btn-sm d-none"><i class="bi bi-chat-left-text"></i> Request Change</button>
           <button type="button" id="sd-student-cancel-btn" class="btn btn-outline-danger btn-sm d-none"><i class="bi bi-x-lg"></i> Cancel Flight</button>
           {% endif %}
-        </div>
-        <div id="sd-start-locked" class="alert alert-secondary d-none py-2 px-3 mb-2 small">
-          <i class="bi bi-clock"></i> Not time yet - this flight is booked for <strong id="sd-start-opens"></strong>. Leaving now anyway? Press Start and you'll be asked to move the booking to now.
         </div>
         <div id="sd-review-alert" class="alert alert-warning d-none py-2 px-3 mb-2">
           <i class="bi bi-exclamation-triangle-fill"></i> <strong>Needs review:</strong> <span id="sd-review-reason"></span>
