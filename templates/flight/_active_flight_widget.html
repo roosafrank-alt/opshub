@@ -67,6 +67,11 @@
     position: fixed; right: 1rem; bottom: 1rem; z-index: 1055;
     touch-action: none; user-select: none;
   }
+  /* Pages with the pinned Schedule/Cancel bar (phone): wait just above it,
+     not on it. Only the starting spot - a dragged position (inline) wins. */
+  @media (max-width: 575.98px) {
+    body.flight-complete-sticky .active-flight-widget { bottom: 5.5rem; }
+  }
   .active-flight-widget-icon {
     width: 3.25rem; height: 3.25rem; padding: 0; border: none; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;

@@ -1,0 +1,6 @@
+{"checks":[{"role":"cfi","size":"phone",
+"sql":["UPDATE assets SET is_flight_asset = 1 WHERE id = {asset}",
+"INSERT INTO scheduled_flights (asset_id, student_id, cfi_id, scheduled_date, scheduled_time, duration_hours, status) VALUES ({asset}, {student}, {cfi}, date('now','localtime'), strftime('%H:%M', 'now','localtime'), 1.0, 'scheduled')"],
+"steps":[["start","/flight/dashboard"],["tap","Start Session"],["see","Session started"],
+["start","/flight/schedule/new"],["see","Schedule Flight"],["see","Cancel"],
+["shot",{"caption":"Timer sits above the bar; Cancel fully visible","focus":"full","changed":[{"sel":"#active-flight-widget","note":"Timer waits above the bar"},{"sel":"#sched-form-footer .btn-outline-secondary","note":"Cancel fully visible"}]}]]}]}
