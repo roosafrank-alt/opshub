@@ -133,7 +133,7 @@
     </form>
     {% endif %}
     {% if f.end_state %}
-    <button type="button" class="btn {{ 'btn-outline-info' if f.acs_planned_at else 'btn-outline-success' }} fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"{% if not f.acs_planned_at %} onclick="fetch('{{ url_for('flight.log_end_flight_started', flight_id=f.id) }}', {method: 'POST', credentials: 'same-origin'})"{% endif %}><i class="bi {{ 'bi-list-check' if f.acs_planned_at else 'bi-airplane' }}"></i> {{ 'ACS planning' if f.acs_planned_at else 'End Flight' }}</button>
+    <button type="button" class="btn {{ 'btn-outline-info' if f.acs_planned_at else 'btn-success' }} fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"{% if not f.acs_planned_at %} onclick="fetch('{{ url_for('flight.log_end_flight_started', flight_id=f.id) }}', {method: 'POST', credentials: 'same-origin'})"{% endif %}><i class="bi {{ 'bi-list-check' if f.acs_planned_at else 'bi-airplane' }}"></i> {{ 'ACS planning' if f.acs_planned_at else 'End Flight' }}</button>
     {% endif %}
     <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-flex flex-fill mb-0">
       <button type="submit" class="btn btn-danger fw-bold flex-fill"><i class="bi bi-stop-fill"></i> End Session</button>
