@@ -228,6 +228,14 @@ def customer_asset(asset_id):
               AND status NOT IN ('completed', 'archived')
         ORDER BY (scheduled_date IS NULL) DESC, scheduled_date
     """, (asset_id,)).fetchall()
+    # A job whose start date has come is in the shop now: it gets one card
+    # (progress, what's left, promised date, cost) instead of an
+    # Appointments row plus a Job Costs row.
+    today_iso = date.today().isoformat()
+    in_shop = [_in_shop_card(conn, p) for p in appointments
+               if p["status"] == "active" and p["scheduled_date"] and p["scheduled_date"] <= today_iso]
+    shop_ids = {c["project"]["id"] for c in in_shop}
+    appointments = [p for p in appointments if p["id"] not in shop_ids]
     # reminders already asked for (waiting on the shop to set a date)
     requested = {a["customer_requested_item_id"]: a["customer_requested_week"] for a in appointments
                  if a["scheduled_date"] is None and a["customer_requested_item_id"]}
@@ -240,6 +248,8 @@ def customer_asset(asset_id):
     """, (asset_id,)).fetchall()
     bills = []
     for j in jobs:
+        if j["id"] in shop_ids:
+            continue
         grouped, labor, total = _project_bill(conn, j["id"])
         discrepancies = _project_discrepancy_descriptions(conn, j["id"])
         if total > 0 or grouped or labor or discrepancies:
@@ -248,8 +258,33 @@ def customer_asset(asset_id):
     found_items = _found_items_for_asset(conn, asset_id)
     conn.close()
     return render_template("customer_asset.html", customer=cust, asset=asset, reminders=reminders,
-                            appointments=appointments, bills=bills, multi_plane=multi_plane,
+                            appointments=appointments, bills=bills, in_shop=in_shop, multi_plane=multi_plane,
                             found_items=found_items, week_options=_week_options())
+
+
+def _in_shop_card(conn, project):
+    """Everything the owner's "In the shop now" card shows for one job:
+    its items with done ticks, whether it is waiting on a part (and when it's
+    due), the promised date (only when the shop chose to show it) and the
+    cost so far."""
+    items = conn.execute(
+        "SELECT name, completed_at FROM project_sections WHERE project_id = ? "
+        "ORDER BY (completed_at IS NOT NULL) DESC, completed_at, id", (project["id"],)).fetchall()
+    done = sum(1 for i in items if i["completed_at"])
+    reqs = conn.execute(
+        "SELECT w.id, (SELECT MAX(o.expected_date) FROM orders o WHERE o.wishlist_id = w.id AND o.status != 'cancelled') AS due "
+        "FROM order_wishlist w WHERE w.project_id = ? AND w.status IN ('open', 'ordered') AND w.arrived_at IS NULL",
+        (project["id"],)).fetchall()
+    orders = conn.execute(
+        "SELECT expected_date FROM orders WHERE project_id = ? AND status = 'pending' AND wishlist_id IS NULL",
+        (project["id"],)).fetchall()
+    due = sorted(d for d in [r["due"] for r in reqs] + [o["expected_date"] for o in orders] if d)
+    waiting = bool(reqs or orders)
+    promised = project["promised_date"] if project["promised_show_owner"] else None
+    late = bool(promised and promised < date.today().isoformat())
+    grouped, labor, total = _project_bill(conn, project["id"])
+    return {"project": project, "tasks": items, "done": done, "waiting": waiting, "due": due[0] if due else None,
+            "promised": promised, "late": late, "total": total, "grouped": grouped, "labor": labor}
 
 
 def _week_options(n=6):

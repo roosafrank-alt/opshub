@@ -132,8 +132,63 @@
       {% endif %}
     </div>
 
+    {# --- In the shop now: the job once, with progress, what's left, promised date and cost --- #}
+    {% for c in in_shop %}
+    {% set p = c.project %}
+    <div class="card p-3 mb-3" id="in-shop-{{ p.id }}">
+      <h5><i class="bi bi-tools"></i> In the shop now</h5>
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <div>
+          <div class="fw-bold">{{ p.name }}</div>
+          <div class="text-muted small">Started {{ p.scheduled_date|usdate }}{% if c.promised %} &middot; <i class="bi bi-calendar-check"></i> Promised back {{ c.promised|usdate }}{% endif %}</div>
+        </div>
+        {% if c.waiting %}<span class="badge bg-warning text-dark text-nowrap">Waiting on part</span>
+        {% elif c.late %}<span class="badge bg-secondary text-nowrap">Past promised date</span>
+        {% else %}<span class="badge bg-success text-nowrap">On track</span>{% endif %}
+      </div>
+      {% if c.tasks %}
+      <div class="small mt-3 fw-bold">{{ c.done }} of {{ c.tasks|length }} done</div>
+      <div class="progress my-1" style="height:10px;" role="progressbar" aria-label="Job progress" aria-valuenow="{{ c.done }}" aria-valuemin="0" aria-valuemax="{{ c.tasks|length }}">
+        <div class="progress-bar bg-success" style="width: {{ (c.done * 100 / c.tasks|length)|round|int }}%"></div>
+      </div>
+      <ul class="list-unstyled mb-0 mt-2">
+        {% for i in c.tasks %}
+        <li class="py-1">{% if i.completed_at %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-circle text-muted"></i>{% endif %} {{ i.name }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-muted small mt-2 mb-0">The shop is working on it.</p>
+      {% endif %}
+      {% if c.waiting %}
+      <div class="small mt-2"><i class="bi bi-hourglass-split text-warning"></i> Waiting on a part{% if c.due %} &middot; due {{ c.due|usdate_short }}{% endif %}</div>
+      {% endif %}
+      <div class="d-flex justify-content-between align-items-baseline border-top mt-3 pt-2">
+        <span class="fw-bold">Cost so far</span>
+        <span class="fw-bold fs-5">${{ '{:,.2f}'.format(c.total) }}</span>
+      </div>
+      {% if c.grouped or c.labor %}
+      <details class="mt-1 small">
+        <summary class="text-primary pointer-cursor">Details</summary>
+        {% for section, rows in c.grouped.items() %}
+        <div class="fw-semibold mt-2">{{ section }}</div>
+        {% for u in rows %}
+        <div class="d-flex justify-content-between"><span>{{ u.name }} &times; {{ '%g'|format(u.qty_used) }}{% if u.unit %} {{ u.unit }}{% endif %}</span><span>${{ '{:,.2f}'.format((u.qty_used or 0) * (u.sell_price or 0)) }}</span></div>
+        {% endfor %}
+        {% endfor %}
+        {% if c.labor %}
+        <div class="fw-semibold mt-2">Labor</div>
+        {% for s in c.labor %}
+        <div class="d-flex justify-content-between"><span>{{ s.laborer_name }} &middot; {{ '%.2f'|format(s.hours or 0) }} hr</span><span>${{ '{:,.2f}'.format(s.cost or 0) }}</span></div>
+        {% endfor %}
+        {% endif %}
+      </details>
+      {% endif %}
+    </div>
+    {% endfor %}
+
     {# --- Appointments --- #}
     {% set awaiting = appointments|selectattr('scheduled_date')|rejectattr('customer_confirmed_at')|rejectattr('customer_reschedule_requested_at')|list %}
+    {% if appointments or not in_shop %}
     <div class="card p-3 mb-3 {{ 'border-warning border-2' if awaiting }}" data-change="HUB-16">
       <h5><i class="bi bi-calendar-event"></i> Appointments{% if awaiting %} <span class="badge bg-warning text-dark ms-1">{{ awaiting|length }} to confirm</span>{% endif %}</h5>
       {% if appointments %}
@@ -185,6 +240,7 @@
       <p class="text-muted small mb-0">Nothing scheduled right now.</p>
       {% endif %}
     </div>
+    {% endif %}
 
   </div>
 
@@ -222,6 +278,7 @@
     </div>
 
     {# --- Bills --- #}
+    {% if bills or not in_shop %}
     <div class="card p-3 mb-3">
       <h5><i class="bi bi-receipt"></i> Job Costs</h5>
       {% if bills %}
@@ -263,6 +320,7 @@
       <p class="text-muted small mb-0">No costs on record yet.</p>
       {% endif %}
     </div>
+    {% endif %}
 
   </div>
 </div>
