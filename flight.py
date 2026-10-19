@@ -7866,6 +7866,11 @@ def log_flight_plan(flight_id):
     conn.execute("UPDATE flights SET next_focus = ?, acs_planned_at = ? WHERE id = ?", (focus or None, now_iso(), flight_id))
     made, st, who, note = [], None, None, None
     hw_ids = [int(x) for x in request.form.getlist("hw_task") if x.isdigit()]
+    # Homework already assigned can be unticked here (planning stage): take those lessons off the list.
+    if f["student_id"] and not f["guest_name"]:
+        for tid in {int(x) for x in request.form.getlist("was_hw") if x.isdigit()} - set(hw_ids):
+            conn.execute("UPDATE gs_assignments SET cancelled_at = ? WHERE student_id = ? AND task_id = ? AND cancelled_at IS NULL",
+                         (now_iso(), f["student_id"], tid))
     if hw_ids and f["student_id"] and not f["guest_name"]:
         import groundschool
         st = conn.execute("SELECT * FROM students WHERE id = ?", (f["student_id"],)).fetchone()
