@@ -91,7 +91,7 @@ Flight school
 - [x] Flight sessions: start from a booking, early start, double start, stop/restart/pause, end (Hobbs/Tach checks, paid choice), discard, who may do what (qa-flight-end-nan-hobbs now fixed and live; still to do: log new/edit after the fact, delete, toggle paid, Hobbs/tach gaps between flights)
 - [x] Billing: student ledger balances, CFI pay, plane rates (34 tests: cost rounding, solo, rate overrides, Add Funds bad amounts and permissions, Mark Paid/Unpaid, double pay, CFI pay page and period pay; all fine, no findings)
 - [ ] Ground school / ACS: sign-offs, progress (the crawler needs seed data for these, they currently 404)
-- [ ] Pilot logbook, Academy
+- [x] Academy: leaderboard page access, Log Your Flying add/delete, landing-currency link, roles (26 tests; open: qa-academy-nan-entry-crash; pilot logbook still to do)
 - [ ] Notifications and push alerts: correct recipients, no duplicate sends
 
 ## Findings
