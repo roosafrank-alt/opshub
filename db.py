@@ -1757,10 +1757,18 @@ def _migrate(conn):
         # owner (email or text) - see app._notify_owner_job_ready.
         ("projects", "ready_notified_at", "ALTER TABLE projects ADD COLUMN ready_notified_at TEXT"),
         ("projects", "ready_notified_by", "ALTER TABLE projects ADD COLUMN ready_notified_by TEXT"),
+        # Idea "pre paid credit": every flight put on the schedule gets a short,
+        # stable flight number (set by the trigger below, backfilled once).
+        ("scheduled_flights", "flight_no", "ALTER TABLE scheduled_flights ADD COLUMN flight_no INTEGER"),
     ):
         if col not in [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]:
             conn.execute(ddl)
             conn.commit()
+    conn.execute("UPDATE scheduled_flights SET flight_no = id WHERE flight_no IS NULL")
+    conn.execute("""CREATE TRIGGER IF NOT EXISTS trg_scheduled_flight_no AFTER INSERT ON scheduled_flights
+                    WHEN NEW.flight_no IS NULL
+                    BEGIN UPDATE scheduled_flights SET flight_no = NEW.id WHERE id = NEW.id; END""")
+    conn.commit()
     # Wave with several accounts (see wave_billing.ACCOUNTS/PROGRAMS): the
     # first version had one Wave connection used by both the Shop and the
     # Flight School. It becomes Account 1, given to (and the default for)

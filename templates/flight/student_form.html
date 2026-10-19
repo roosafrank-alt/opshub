@@ -486,7 +486,7 @@
   {% if ledger %}
   <div class="table-responsive scroll-box-260">
     <table class="table table-sm mb-0 table-stack">
-      <thead class="table-light"><tr><th>Date</th><th>Type</th><th>Amount</th><th>Note</th><th>By</th></tr></thead>
+      <thead class="table-light"><tr><th>Date</th><th>Type</th><th>Amount</th><th>Note</th><th>By</th><th>Balance</th></tr></thead>
       <tbody>
         {% for entry in ledger %}
         {% set edits = ledger_edits.get(entry.id, []) %}
@@ -505,11 +505,12 @@
           <td class="small fw-bold {{ 'text-success' if entry.amount > 0 else ('text-danger' if entry.amount < 0 else '') }}" data-label="Amount">
             {{ '+' if entry.amount > 0 }}${{ '%.2f'|format(entry.amount) }}
           </td>
-          <td class="small text-muted stack-full" data-label="Note">{{ entry.note or '-' }}</td>
+          <td class="small text-muted stack-full" data-label="Note">{% if entry.flight_no and entry.entry_type in ('flight_deduction','payment') %}<strong>Flight #{{ entry.flight_no }}</strong>{% if entry.entry_type == 'flight_deduction' %} credited{% endif %} &middot; {% endif %}{{ entry.note or '-' }}</td>
           <td class="small text-muted" data-label="By">{{ entry.created_by or '-' }}{% if can_fix %} <i class="bi bi-pencil-square"></i>{% endif %}</td>
+          <td class="small fw-bold text-nowrap" data-label="Balance">{{ '-' if entry.running_balance < -0.004 }}${{ '%.2f'|format(entry.running_balance|abs) }}</td>
         </tr>
         {% if edits and entry.entry_type == 'funds_added' %}
-        <tr class="table-light"><td colspan="5" class="small text-muted">
+        <tr class="table-light"><td colspan="6" class="small text-muted">
           Entered by {{ entry.created_by or '-' }} on {{ entry.created_at|usdate }} {{ entry.created_at|time12 }}.
           {% for e in edits %}<div>Edited by {{ e.edited_by or '-' }} {{ e.edited_at|usdate }} {{ e.edited_at|time12 }}:
             {% if e.old_amount != e.new_amount %}amount ${{ '%.2f'|format(e.old_amount) }} &rarr; ${{ '%.2f'|format(e.new_amount) }}; {% endif %}

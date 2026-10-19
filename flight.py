@@ -2466,7 +2466,12 @@ def _student_form_context(conn, student, **extra):
                today=date.today().isoformat(), form=None, error_field=None)
     if student:
         student_id = student["id"]
-        ctx["ledger"] = conn.execute("SELECT * FROM student_ledger WHERE student_id = ? ORDER BY created_at DESC, id DESC LIMIT 25",
+        ctx["ledger"] = conn.execute("""SELECT l.*, sf.flight_no AS flight_no,
+                   (SELECT COALESCE(SUM(amount), 0) FROM student_ledger b WHERE b.student_id = l.student_id
+                    AND (b.created_at < l.created_at OR (b.created_at = l.created_at AND b.id <= l.id))) AS running_balance
+                   FROM student_ledger l LEFT JOIN flights fl ON fl.id = l.flight_id
+                   LEFT JOIN scheduled_flights sf ON sf.id = fl.scheduled_flight_id
+                   WHERE l.student_id = ? ORDER BY l.created_at DESC, l.id DESC LIMIT 25""",
                                      (student_id,)).fetchall()
         ctx["ledger_parts"] = {r["id"]: _split_ledger_note(r) for r in ctx["ledger"] if r["entry_type"] == "funds_added"}
         ctx["ledger_edits"] = {}
@@ -3111,7 +3116,12 @@ def student_field_detail(student_id, field_key):
         return redirect(url_for("flight.students_list"))
 
     if field_key == "account":
-        ledger = conn.execute("SELECT * FROM student_ledger WHERE student_id = ? ORDER BY created_at DESC, id DESC LIMIT 100",
+        ledger = conn.execute("""SELECT l.*, sf.flight_no AS flight_no,
+                   (SELECT COALESCE(SUM(amount), 0) FROM student_ledger b WHERE b.student_id = l.student_id
+                    AND (b.created_at < l.created_at OR (b.created_at = l.created_at AND b.id <= l.id))) AS running_balance
+                   FROM student_ledger l LEFT JOIN flights fl ON fl.id = l.flight_id
+                   LEFT JOIN scheduled_flights sf ON sf.id = fl.scheduled_flight_id
+                   WHERE l.student_id = ? ORDER BY l.created_at DESC, l.id DESC LIMIT 100""",
                               (student_id,)).fetchall()
         # Balance hold status (feat-owed-balance-on-bookings): held flights
         # with their release dates, and whether/when the student has seen
