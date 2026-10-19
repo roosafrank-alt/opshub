@@ -2466,7 +2466,7 @@ def _student_form_context(conn, student, **extra):
                today=date.today().isoformat(), form=None, error_field=None)
     if student:
         student_id = student["id"]
-        ctx["ledger"] = conn.execute("""SELECT l.*, sf.flight_no AS flight_no,
+        ctx["ledger"] = conn.execute("""SELECT l.*, sf.flight_no AS flight_no, fl.instructor_time_edited_by AS time_edited_by,
                    (SELECT COALESCE(SUM(amount), 0) FROM student_ledger b WHERE b.student_id = l.student_id
                     AND (b.created_at < l.created_at OR (b.created_at = l.created_at AND b.id <= l.id))) AS running_balance
                    FROM student_ledger l LEFT JOIN flights fl ON fl.id = l.flight_id
@@ -3116,7 +3116,7 @@ def student_field_detail(student_id, field_key):
         return redirect(url_for("flight.students_list"))
 
     if field_key == "account":
-        ledger = conn.execute("""SELECT l.*, sf.flight_no AS flight_no,
+        ledger = conn.execute("""SELECT l.*, sf.flight_no AS flight_no, fl.instructor_time_edited_by AS time_edited_by,
                    (SELECT COALESCE(SUM(amount), 0) FROM student_ledger b WHERE b.student_id = l.student_id
                     AND (b.created_at < l.created_at OR (b.created_at = l.created_at AND b.id <= l.id))) AS running_balance
                    FROM student_ledger l LEFT JOIN flights fl ON fl.id = l.flight_id

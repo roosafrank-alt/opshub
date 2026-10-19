@@ -76,7 +76,7 @@
           <td class="small fw-bold {{ 'text-success' if entry.amount > 0 else ('text-danger' if entry.amount < 0 else '') }}" data-label="Amount">
             {{ '+' if entry.amount > 0 }}${{ '%.2f'|format(entry.amount) }}
           </td>
-          <td class="small text-muted stack-full" data-label="Note">{% if entry.flight_no and entry.entry_type in ('flight_deduction','payment') %}<strong>Flight #{{ entry.flight_no }}</strong>{% if entry.entry_type == 'flight_deduction' %} credited{% endif %} &middot; {% endif %}{{ entry.note or '-' }}</td>
+          <td class="small text-muted stack-full" data-label="Note">{% if entry.flight_no and entry.entry_type in ('flight_deduction','payment') %}<strong>Flight #{{ entry.flight_no }}</strong>{% if entry.entry_type == 'flight_deduction' %} credited{% endif %} &middot; {% endif %}{{ entry.note or '-' }}{% if entry.time_edited_by and entry.entry_type == 'flight_deduction' %} <span class="badge bg-warning text-dark" title="Instructor time edited by {{ entry.time_edited_by }}">Time edited by {{ entry.time_edited_by }}</span>{% endif %}</td>
           <td class="small text-muted" data-label="By">{{ entry.created_by or '-' }}</td>
           <td class="small fw-bold text-nowrap" data-label="Balance">{{ '-' if entry.running_balance < -0.004 }}${{ '%.2f'|format(entry.running_balance|abs) }}</td>
         </tr>
