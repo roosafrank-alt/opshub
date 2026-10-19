@@ -198,6 +198,8 @@
         <div class="modal-header py-2"><h6 class="modal-title"><i class="bi bi-list-check"></i> ACS planning <span class="text-muted small fw-normal">{{ f.end_pick.rating }}</span></h6>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
         <div class="modal-body">
+          {#- Idea "Items completed on this flight": what was checked on the previous step stays editable from here. #}
+          <button type="button" class="btn btn-sm btn-outline-secondary w-100 mb-2" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#acs-covered-modal-{{ f.id }}"><i class="bi bi-journal-check"></i> Items completed on this flight ({{ es.scores|length }}) - edit</button>
           <div class="small text-muted mb-1">Ticked <strong>Flight</strong> items are worked on the next flight (carried over from earlier flights); tick or untick as needed, and tick <strong>Home</strong> to give a lesson as homework.</div>
           {% for area in f.end_pick.areas %}
           <details class="mb-1"{% if area.tasks|selectattr('id', 'in', es.planned)|list %} open{% endif %}><summary class="small fw-bold">{{ area.code }}. {{ area.title }}</summary>
