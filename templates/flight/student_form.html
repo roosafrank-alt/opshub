@@ -117,6 +117,199 @@
   {% endif %}
 </div>
 {% endif %}
+{% if student and can_bill %}
+{#- SCHOOL-14: id="account" so the Account page's Add Funds link lands here. #}
+<div class="card p-4 mb-3 anchor-offset" id="account" data-change="SCHOOL-14">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Account &amp; prepaid credit</h5>
+    {% if student.balance > 0.005 %}
+    <span class="badge bg-success fs-6">${{ '%.2f'|format(student.balance) }} credit</span>
+    {% elif student.balance < -0.005 %}
+    <span class="badge bg-danger fs-6">${{ '%.2f'|format(-student.balance) }} owed</span>
+    {% else %}
+    <span class="badge bg-light text-dark border fs-6">$0.00 balance</span>
+    {% endif %}
+  </div>
+  <p class="text-muted small mb-3">Balance updates automatically when a flight is logged (its cost is deducted) - use this to add a prepayment to the student's account.</p>
+  <form method="post" id="add-funds-form" action="{{ url_for('flight.student_add_funds', student_id=student.id) }}" class="row g-2 align-items-end mb-3" data-confirm="Add $[[amount]] prepayment to {{ student.name }}'s account?" data-confirm-title="Add prepayment" data-confirm-ok="Yes, add it" data-confirm-style="success">
+    <div class="col-auto">
+      <label class="form-label small mb-0">Prepayment ($)</label>
+      <input type="number" step="0.01" min="0.01" name="amount" id="add-funds-amount" class="form-control form-control-sm" placeholder="e.g. 500.00" required style="width:140px;">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-0">Method</label>
+      <select name="paid_method" class="form-select form-select-sm" style="width:130px;">
+        <option value="">-</option><option>Cash</option><option>Check</option><option>Venmo/Zelle</option><option>Other</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-0">Note <span class="text-muted">(optional)</span></label>
+      <input type="text" name="note" class="form-control form-control-sm" placeholder="e.g. Check #1024" style="width:200px;">
+    </div>
+    {#- Idea "Credit card" (revision): same simulated Stripe-style charge as
+       End Session and Manage > Billing's Pay with Card - no real Stripe
+       account, no network call. #}
+    <div class="col-auto form-check mb-1">
+      <input type="checkbox" class="form-check-input" name="paid_by_card" id="add-funds-card-check" value="1">
+      <label class="form-check-label small" for="add-funds-card-check">Card <span class="badge bg-secondary">Simulated</span></label>
+    </div>
+    <div class="col-auto d-none" id="add-funds-card-wrap">
+      <label class="form-label small mb-0">Card Number</label>
+      <input type="text" name="card_number" class="form-control form-control-sm" inputmode="numeric" placeholder="4242 4242 4242 4242" style="width:200px;">
+    </div>
+    {#- SCHOOL-01: apply the money to the oldest unpaid flights - ticked
+       ones are marked paid out of this amount (each gets its own payment
+       line on the ledger); what's left stays as credit. Pre-ticked,
+       oldest first, as far as the amount typed reaches. #}
+    {% if unpaid_flights %}
+    <div class="col-12" id="add-funds-apply" data-change="SCHOOL-01">
+      <div class="small fw-bold mb-1">Mark these unpaid flights paid with it:</div>
+      {% for f in unpaid_flights %}
+      <div class="form-check small">
+        <input class="form-check-input apply-flight" type="checkbox" name="apply_flight_ids" value="{{ f.id }}" id="apply-flight-{{ f.id }}" data-due="{{ '%.2f'|format(f.due) }}">
+        <label class="form-check-label" for="apply-flight-{{ f.id }}">{{ f.flight_date|usdate }} {{ f.plane_tag }} &middot; {{ f.cfi_name or 'Solo' }} &middot; <strong>${{ '%.2f'|format(f.due) }}</strong></label>
+      </div>
+      {% endfor %}
+      <div class="form-text" id="add-funds-apply-note">Ticked flights: $0.00. Untick any you don't want paid from this money.</div>
+    </div>
+    {% endif %}
+    <div class="col-auto">
+      <button type="submit" class="btn btn-success btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Add prepayment</button>
+    </div>
+  </form>
+  <script>
+  (function () {
+    var check = document.getElementById('add-funds-card-check');
+    var wrap = document.getElementById('add-funds-card-wrap');
+    if (check && wrap) {
+      check.addEventListener('change', function () { wrap.classList.toggle('d-none', !check.checked); });
+    }
+    var amount = document.getElementById('add-funds-amount');
+    var boxes = document.querySelectorAll('.apply-flight');
+    var note = document.getElementById('add-funds-apply-note');
+    if (!amount || !boxes.length) return;
+    function sumTicked() {
+      var t = 0;
+      boxes.forEach(function (b) { if (b.checked) t += parseFloat(b.getAttribute('data-due') || '0'); });
+      return t;
+    }
+    function refreshNote() {
+      var t = sumTicked(), a = parseFloat(amount.value || '0');
+      note.textContent = 'Ticked flights: $' + t.toFixed(2) + (t > a + 0.005 ? ' - more than you are adding, untick some.' : (a - t > 0.005 && a > 0 ? ' - $' + (a - t).toFixed(2) + ' stays as credit.' : ''));
+      note.classList.toggle('text-danger', t > a + 0.005);
+    }
+    amount.addEventListener('input', function () {
+      var left = parseFloat(amount.value || '0');
+      boxes.forEach(function (b) {
+        var due = parseFloat(b.getAttribute('data-due') || '0');
+        b.checked = due <= left + 0.005;
+        if (b.checked) left -= due;
+      });
+      refreshNote();
+    });
+    boxes.forEach(function (b) { b.addEventListener('change', refreshNote); });
+    refreshNote();
+  })();
+  </script>
+  {% if ledger %}
+  <div class="table-responsive scroll-box-260">
+    <table class="table table-sm mb-0 table-stack">
+      <thead class="table-light"><tr><th>Date</th><th>Type</th><th>Amount</th><th>Note</th><th>By</th><th>Balance</th></tr></thead>
+      <tbody>
+        {% for entry in ledger %}
+        {% set edits = ledger_edits.get(entry.id, []) %}
+        {% set can_fix = is_admin and entry.entry_type == 'funds_added' %}
+        <tr{% if can_fix %} class="prepay-row" style="cursor:pointer;" title="Click to correct this prepayment" data-ledger-id="{{ entry.id }}" data-amount="{{ '%.2f'|format(entry.amount) }}" data-method="{{ ledger_parts[entry.id][0] or '' }}" data-note="{{ ledger_parts[entry.id][1] or '' }}"{% endif %}>
+          <td class="small" data-label="Date">{{ entry.created_at|usdate }} {{ entry.created_at|time12 }}</td>
+          <td class="small" data-label="Type">
+            {% if entry.entry_type == 'funds_added' %}<span class="badge bg-success">Prepayment</span>
+            {% elif entry.entry_type == 'flight_deduction' %}<span class="badge bg-secondary">Flight</span>
+            {% elif entry.entry_type == 'cancellation_fee' %}<span class="badge bg-danger">Late Cancel</span>
+            {% elif entry.entry_type == 'payment' %}<span class="badge bg-success" data-change="SCHOOL-01">Payment</span>
+            {% elif entry.entry_type == 'payment_received' %}<span class="badge bg-success">Prepayment received</span>
+            {% elif entry.entry_type == 'payment_reversal' %}<span class="badge bg-warning text-dark" data-change="SCHOOL-01">Payment Reversed</span>
+            {% else %}<span class="badge bg-info text-dark">Adjustment</span>{% endif %}
+          </td>
+          <td class="small fw-bold {{ 'text-success' if entry.amount > 0 else ('text-danger' if entry.amount < 0 else '') }}" data-label="Amount">
+            {{ '+' if entry.amount > 0 }}${{ '%.2f'|format(entry.amount) }}
+          </td>
+          <td class="small text-muted stack-full" data-label="Note">{% if entry.flight_no and entry.entry_type in ('flight_deduction','payment') %}<strong>Flight #{{ entry.flight_no }}</strong>{% if entry.entry_type == 'flight_deduction' %} credited{% endif %} &middot; {% endif %}{{ entry.note or '-' }}{% if entry.time_edited_by and entry.entry_type == 'flight_deduction' %} <span class="badge bg-warning text-dark" title="Instructor time edited by {{ entry.time_edited_by }}">Time edited by {{ entry.time_edited_by }}</span>{% endif %}</td>
+          <td class="small text-muted" data-label="By">{{ entry.created_by or '-' }}{% if can_fix %} <i class="bi bi-pencil-square"></i>{% endif %}</td>
+          <td class="small fw-bold text-nowrap" data-label="Balance">{{ '-' if entry.running_balance < -0.004 }}${{ '%.2f'|format(entry.running_balance|abs) }}</td>
+        </tr>
+        {% if edits and entry.entry_type == 'funds_added' %}
+        <tr class="table-light"><td colspan="6" class="small text-muted">
+          Entered by {{ entry.created_by or '-' }} on {{ entry.created_at|usdate }} {{ entry.created_at|time12 }}.
+          {% for e in edits %}<div>Edited by {{ e.edited_by or '-' }} {{ e.edited_at|usdate }} {{ e.edited_at|time12 }}:
+            {% if e.old_amount != e.new_amount %}amount ${{ '%.2f'|format(e.old_amount) }} &rarr; ${{ '%.2f'|format(e.new_amount) }}; {% endif %}
+            {% if e.old_method != e.new_method %}method {{ e.old_method or '-' }} &rarr; {{ e.new_method or '-' }}; {% endif %}
+            {% if e.old_note != e.new_note %}note "{{ e.old_note or '-' }}" &rarr; "{{ e.new_note or '-' }}"{% endif %}</div>{% endfor %}
+        </td></tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted small mb-0">No balance activity yet.</p>
+  {% endif %}
+  {% if is_admin and ledger %}
+  <div class="modal fade" id="prepay-edit-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><form method="post" id="prepay-edit-form" class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Correct prepayment</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+      <div class="modal-body">
+        <p class="small text-muted">The change and who made it are logged. The balance moves by the difference.</p>
+        <label class="form-label small mb-0">Amount ($)</label>
+        <input type="number" step="0.01" min="0.01" name="amount" id="pe-amount" class="form-control mb-2" required>
+        <label class="form-label small mb-0">Method</label>
+        <select name="paid_method" id="pe-method" class="form-select mb-2"><option value="">-</option><option>Cash</option><option>Check</option><option>Venmo/Zelle</option><option>Other</option><option>Card</option></select>
+        <label class="form-label small mb-0">Note</label>
+        <input type="text" name="note" id="pe-note" class="form-control">
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-success fw-bold">Save correction</button></div>
+    </form></div>
+  </div>
+  <script>
+  (function () {
+    var tpl = {{ url_for('flight.student_ledger_edit', student_id=student.id, ledger_id=0)|tojson }};
+    document.querySelectorAll('tr.prepay-row').forEach(function (tr) {
+      tr.addEventListener('click', function () {
+        var d = tr.dataset, f = document.getElementById('prepay-edit-form');
+        f.action = tpl.replace(/\/0\/edit$/, '/' + d.ledgerId + '/edit');
+        document.getElementById('pe-amount').value = d.amount;
+        document.getElementById('pe-note').value = d.note;
+        var sel = document.getElementById('pe-method');
+        sel.value = d.method;
+        if (sel.value !== d.method) sel.value = '';
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('prepay-edit-modal')).show();
+      });
+    });
+  })();
+  </script>
+  {% endif %}
+  {#- Idea "prepaid credit section" (edit 2): adding or correcting a prepayment reloads the page; keep the same
+     scroll position and show the result message inside this box instead of at the top. #}
+  <script>
+  (function () {
+    var KEY = 'opshubAcctScroll' + {{ student.id|tojson }};
+    function put(v) { try { if (v === null) sessionStorage.removeItem(KEY); else sessionStorage.setItem(KEY, v); } catch (e) {} }
+    ['add-funds-form', 'prepay-edit-form'].forEach(function (id) {
+      var f = document.getElementById(id);
+      if (f) f.addEventListener('submit', function () { put(String(Math.round(window.pageYOffset))); });
+    });
+    var saved = null;
+    try { saved = sessionStorage.getItem(KEY); } catch (e) {}
+    if (saved === null) return;
+    put(null);
+    var box = document.getElementById('account'), fl = document.querySelector('.opshub-flashes');
+    if (box && fl) { var h = box.querySelector('p.text-muted'); box.insertBefore(fl, h || box.firstChild); fl.classList.add('mb-2'); }
+    function go() { window.scrollTo(0, parseInt(saved, 10) || 0); }
+    go();
+    window.addEventListener('load', function () { go(); setTimeout(go, 60); });
+  })();
+  </script>
+</div>
+{% endif %}
 <div class="card p-4">
   <div class="d-flex justify-content-between align-items-start mb-2">
     <h4 class="mb-0"{% if not student %} data-change="DESIGN-2"{% endif %}>{{ 'Edit Student' if student else 'Add Student' }}</h4>
@@ -389,199 +582,6 @@
 </div>
 {% endif %}
 
-{% if student and can_bill %}
-{#- SCHOOL-14: id="account" so the Account page's Add Funds link lands here. #}
-<div class="card p-4 mt-3 anchor-offset" id="account" data-change="SCHOOL-14">
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-    <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Account &amp; prepaid credit</h5>
-    {% if student.balance > 0.005 %}
-    <span class="badge bg-success fs-6">${{ '%.2f'|format(student.balance) }} credit</span>
-    {% elif student.balance < -0.005 %}
-    <span class="badge bg-danger fs-6">${{ '%.2f'|format(-student.balance) }} owed</span>
-    {% else %}
-    <span class="badge bg-light text-dark border fs-6">$0.00 balance</span>
-    {% endif %}
-  </div>
-  <p class="text-muted small mb-3">Balance updates automatically when a flight is logged (its cost is deducted) - use this to add a prepayment to the student's account.</p>
-  <form method="post" id="add-funds-form" action="{{ url_for('flight.student_add_funds', student_id=student.id) }}" class="row g-2 align-items-end mb-3" data-confirm="Add $[[amount]] prepayment to {{ student.name }}'s account?" data-confirm-title="Add prepayment" data-confirm-ok="Yes, add it" data-confirm-style="success">
-    <div class="col-auto">
-      <label class="form-label small mb-0">Prepayment ($)</label>
-      <input type="number" step="0.01" min="0.01" name="amount" id="add-funds-amount" class="form-control form-control-sm" placeholder="e.g. 500.00" required style="width:140px;">
-    </div>
-    <div class="col-auto">
-      <label class="form-label small mb-0">Method</label>
-      <select name="paid_method" class="form-select form-select-sm" style="width:130px;">
-        <option value="">-</option><option>Cash</option><option>Check</option><option>Venmo/Zelle</option><option>Other</option>
-      </select>
-    </div>
-    <div class="col-auto">
-      <label class="form-label small mb-0">Note <span class="text-muted">(optional)</span></label>
-      <input type="text" name="note" class="form-control form-control-sm" placeholder="e.g. Check #1024" style="width:200px;">
-    </div>
-    {#- Idea "Credit card" (revision): same simulated Stripe-style charge as
-       End Session and Manage > Billing's Pay with Card - no real Stripe
-       account, no network call. #}
-    <div class="col-auto form-check mb-1">
-      <input type="checkbox" class="form-check-input" name="paid_by_card" id="add-funds-card-check" value="1">
-      <label class="form-check-label small" for="add-funds-card-check">Card <span class="badge bg-secondary">Simulated</span></label>
-    </div>
-    <div class="col-auto d-none" id="add-funds-card-wrap">
-      <label class="form-label small mb-0">Card Number</label>
-      <input type="text" name="card_number" class="form-control form-control-sm" inputmode="numeric" placeholder="4242 4242 4242 4242" style="width:200px;">
-    </div>
-    {#- SCHOOL-01: apply the money to the oldest unpaid flights - ticked
-       ones are marked paid out of this amount (each gets its own payment
-       line on the ledger); what's left stays as credit. Pre-ticked,
-       oldest first, as far as the amount typed reaches. #}
-    {% if unpaid_flights %}
-    <div class="col-12" id="add-funds-apply" data-change="SCHOOL-01">
-      <div class="small fw-bold mb-1">Mark these unpaid flights paid with it:</div>
-      {% for f in unpaid_flights %}
-      <div class="form-check small">
-        <input class="form-check-input apply-flight" type="checkbox" name="apply_flight_ids" value="{{ f.id }}" id="apply-flight-{{ f.id }}" data-due="{{ '%.2f'|format(f.due) }}">
-        <label class="form-check-label" for="apply-flight-{{ f.id }}">{{ f.flight_date|usdate }} {{ f.plane_tag }} &middot; {{ f.cfi_name or 'Solo' }} &middot; <strong>${{ '%.2f'|format(f.due) }}</strong></label>
-      </div>
-      {% endfor %}
-      <div class="form-text" id="add-funds-apply-note">Ticked flights: $0.00. Untick any you don't want paid from this money.</div>
-    </div>
-    {% endif %}
-    <div class="col-auto">
-      <button type="submit" class="btn btn-success btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Add prepayment</button>
-    </div>
-  </form>
-  <script>
-  (function () {
-    var check = document.getElementById('add-funds-card-check');
-    var wrap = document.getElementById('add-funds-card-wrap');
-    if (check && wrap) {
-      check.addEventListener('change', function () { wrap.classList.toggle('d-none', !check.checked); });
-    }
-    var amount = document.getElementById('add-funds-amount');
-    var boxes = document.querySelectorAll('.apply-flight');
-    var note = document.getElementById('add-funds-apply-note');
-    if (!amount || !boxes.length) return;
-    function sumTicked() {
-      var t = 0;
-      boxes.forEach(function (b) { if (b.checked) t += parseFloat(b.getAttribute('data-due') || '0'); });
-      return t;
-    }
-    function refreshNote() {
-      var t = sumTicked(), a = parseFloat(amount.value || '0');
-      note.textContent = 'Ticked flights: $' + t.toFixed(2) + (t > a + 0.005 ? ' - more than you are adding, untick some.' : (a - t > 0.005 && a > 0 ? ' - $' + (a - t).toFixed(2) + ' stays as credit.' : ''));
-      note.classList.toggle('text-danger', t > a + 0.005);
-    }
-    amount.addEventListener('input', function () {
-      var left = parseFloat(amount.value || '0');
-      boxes.forEach(function (b) {
-        var due = parseFloat(b.getAttribute('data-due') || '0');
-        b.checked = due <= left + 0.005;
-        if (b.checked) left -= due;
-      });
-      refreshNote();
-    });
-    boxes.forEach(function (b) { b.addEventListener('change', refreshNote); });
-    refreshNote();
-  })();
-  </script>
-  {% if ledger %}
-  <div class="table-responsive scroll-box-260">
-    <table class="table table-sm mb-0 table-stack">
-      <thead class="table-light"><tr><th>Date</th><th>Type</th><th>Amount</th><th>Note</th><th>By</th><th>Balance</th></tr></thead>
-      <tbody>
-        {% for entry in ledger %}
-        {% set edits = ledger_edits.get(entry.id, []) %}
-        {% set can_fix = is_admin and entry.entry_type == 'funds_added' %}
-        <tr{% if can_fix %} class="prepay-row" style="cursor:pointer;" title="Click to correct this prepayment" data-ledger-id="{{ entry.id }}" data-amount="{{ '%.2f'|format(entry.amount) }}" data-method="{{ ledger_parts[entry.id][0] or '' }}" data-note="{{ ledger_parts[entry.id][1] or '' }}"{% endif %}>
-          <td class="small" data-label="Date">{{ entry.created_at|usdate }} {{ entry.created_at|time12 }}</td>
-          <td class="small" data-label="Type">
-            {% if entry.entry_type == 'funds_added' %}<span class="badge bg-success">Prepayment</span>
-            {% elif entry.entry_type == 'flight_deduction' %}<span class="badge bg-secondary">Flight</span>
-            {% elif entry.entry_type == 'cancellation_fee' %}<span class="badge bg-danger">Late Cancel</span>
-            {% elif entry.entry_type == 'payment' %}<span class="badge bg-success" data-change="SCHOOL-01">Payment</span>
-            {% elif entry.entry_type == 'payment_received' %}<span class="badge bg-success">Prepayment received</span>
-            {% elif entry.entry_type == 'payment_reversal' %}<span class="badge bg-warning text-dark" data-change="SCHOOL-01">Payment Reversed</span>
-            {% else %}<span class="badge bg-info text-dark">Adjustment</span>{% endif %}
-          </td>
-          <td class="small fw-bold {{ 'text-success' if entry.amount > 0 else ('text-danger' if entry.amount < 0 else '') }}" data-label="Amount">
-            {{ '+' if entry.amount > 0 }}${{ '%.2f'|format(entry.amount) }}
-          </td>
-          <td class="small text-muted stack-full" data-label="Note">{% if entry.flight_no and entry.entry_type in ('flight_deduction','payment') %}<strong>Flight #{{ entry.flight_no }}</strong>{% if entry.entry_type == 'flight_deduction' %} credited{% endif %} &middot; {% endif %}{{ entry.note or '-' }}{% if entry.time_edited_by and entry.entry_type == 'flight_deduction' %} <span class="badge bg-warning text-dark" title="Instructor time edited by {{ entry.time_edited_by }}">Time edited by {{ entry.time_edited_by }}</span>{% endif %}</td>
-          <td class="small text-muted" data-label="By">{{ entry.created_by or '-' }}{% if can_fix %} <i class="bi bi-pencil-square"></i>{% endif %}</td>
-          <td class="small fw-bold text-nowrap" data-label="Balance">{{ '-' if entry.running_balance < -0.004 }}${{ '%.2f'|format(entry.running_balance|abs) }}</td>
-        </tr>
-        {% if edits and entry.entry_type == 'funds_added' %}
-        <tr class="table-light"><td colspan="6" class="small text-muted">
-          Entered by {{ entry.created_by or '-' }} on {{ entry.created_at|usdate }} {{ entry.created_at|time12 }}.
-          {% for e in edits %}<div>Edited by {{ e.edited_by or '-' }} {{ e.edited_at|usdate }} {{ e.edited_at|time12 }}:
-            {% if e.old_amount != e.new_amount %}amount ${{ '%.2f'|format(e.old_amount) }} &rarr; ${{ '%.2f'|format(e.new_amount) }}; {% endif %}
-            {% if e.old_method != e.new_method %}method {{ e.old_method or '-' }} &rarr; {{ e.new_method or '-' }}; {% endif %}
-            {% if e.old_note != e.new_note %}note "{{ e.old_note or '-' }}" &rarr; "{{ e.new_note or '-' }}"{% endif %}</div>{% endfor %}
-        </td></tr>
-        {% endif %}
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <p class="text-muted small mb-0">No balance activity yet.</p>
-  {% endif %}
-  {% if is_admin and ledger %}
-  <div class="modal fade" id="prepay-edit-modal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog"><form method="post" id="prepay-edit-form" class="modal-content">
-      <div class="modal-header"><h5 class="modal-title">Correct prepayment</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-      <div class="modal-body">
-        <p class="small text-muted">The change and who made it are logged. The balance moves by the difference.</p>
-        <label class="form-label small mb-0">Amount ($)</label>
-        <input type="number" step="0.01" min="0.01" name="amount" id="pe-amount" class="form-control mb-2" required>
-        <label class="form-label small mb-0">Method</label>
-        <select name="paid_method" id="pe-method" class="form-select mb-2"><option value="">-</option><option>Cash</option><option>Check</option><option>Venmo/Zelle</option><option>Other</option><option>Card</option></select>
-        <label class="form-label small mb-0">Note</label>
-        <input type="text" name="note" id="pe-note" class="form-control">
-      </div>
-      <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-success fw-bold">Save correction</button></div>
-    </form></div>
-  </div>
-  <script>
-  (function () {
-    var tpl = {{ url_for('flight.student_ledger_edit', student_id=student.id, ledger_id=0)|tojson }};
-    document.querySelectorAll('tr.prepay-row').forEach(function (tr) {
-      tr.addEventListener('click', function () {
-        var d = tr.dataset, f = document.getElementById('prepay-edit-form');
-        f.action = tpl.replace(/\/0\/edit$/, '/' + d.ledgerId + '/edit');
-        document.getElementById('pe-amount').value = d.amount;
-        document.getElementById('pe-note').value = d.note;
-        var sel = document.getElementById('pe-method');
-        sel.value = d.method;
-        if (sel.value !== d.method) sel.value = '';
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('prepay-edit-modal')).show();
-      });
-    });
-  })();
-  </script>
-  {% endif %}
-  {#- Idea "prepaid credit section" (edit 2): adding or correcting a prepayment reloads the page; keep the same
-     scroll position and show the result message inside this box instead of at the top. #}
-  <script>
-  (function () {
-    var KEY = 'opshubAcctScroll' + {{ student.id|tojson }};
-    function put(v) { try { if (v === null) sessionStorage.removeItem(KEY); else sessionStorage.setItem(KEY, v); } catch (e) {} }
-    ['add-funds-form', 'prepay-edit-form'].forEach(function (id) {
-      var f = document.getElementById(id);
-      if (f) f.addEventListener('submit', function () { put(String(Math.round(window.pageYOffset))); });
-    });
-    var saved = null;
-    try { saved = sessionStorage.getItem(KEY); } catch (e) {}
-    if (saved === null) return;
-    put(null);
-    var box = document.getElementById('account'), fl = document.querySelector('.opshub-flashes');
-    if (box && fl) { var h = box.querySelector('p.text-muted'); box.insertBefore(fl, h || box.firstChild); fl.classList.add('mb-2'); }
-    function go() { window.scrollTo(0, parseInt(saved, 10) || 0); }
-    go();
-    window.addEventListener('load', function () { go(); setTimeout(go, 60); });
-  })();
-  </script>
-</div>
-{% endif %}
 
 {% if student and not student.is_station %}{% set who = 'student' %}{% include "flight/_endorsement_list.html" %}{% endif %}
 </div>
