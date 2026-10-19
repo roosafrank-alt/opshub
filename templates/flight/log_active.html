@@ -200,14 +200,15 @@
         <div class="modal-body">
           {#- Idea "Items completed on this flight": what was checked on the previous step stays editable from here. #}
           <button type="button" class="btn btn-sm btn-outline-secondary w-100 mb-2" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#acs-covered-modal-{{ f.id }}"><i class="bi bi-journal-check"></i> Items completed on this flight ({{ es.scores|length }}) - edit</button>
-          <div class="small text-muted mb-1">Ticked <strong>Flight</strong> items are worked on the next flight (carried over from earlier flights); tick or untick as needed, and tick <strong>Home</strong> to give a lesson as homework.</div>
+          <div class="small text-muted mb-1">Grey items were covered this flight; untick any you do not want planned or given as homework. Ticked <strong>Flight</strong> items are worked on the next flight (carried over from earlier flights); tick or untick as needed, and tick <strong>Home</strong> to give a lesson as homework.</div>
           {% for area in f.end_pick.areas %}
-          <details class="mb-1"{% if area.tasks|selectattr('id', 'in', es.planned)|list %} open{% endif %}><summary class="small fw-bold">{{ area.code }}. {{ area.title }}</summary>
+          <details class="mb-1"{% if area.tasks|selectattr('id', 'in', es.planned)|list or area.tasks|selectattr('id', 'in', es.scores)|list %} open{% endif %}><summary class="small fw-bold">{{ area.code }}. {{ area.title }}</summary>
             {% for t in area.tasks %}
-            <div class="d-flex align-items-center gap-2 small ps-3 py-1 border-top">
+            {#- Idea "Items completed on this flight": items covered this flight stay grey, but can be unticked right here. #}
+            <div class="d-flex align-items-center gap-2 small ps-3 py-1 border-top{% if t.id in es.scores %} bg-body-secondary text-muted{% endif %}">
               <label class="mb-0" title="Next flight"><input type="checkbox" name="focus_task" value="{{ t.id }}"{% if t.id in es.planned %} checked{% endif %}> Flight</label>
               <label class="mb-0" title="Homework"><input type="checkbox" name="hw_task" value="{{ t.id }}"{% if t.assigned %} disabled checked{% endif %}> Home</label>
-              <span class="flex-grow-1">{{ t.code }}. {{ t.title }}</span>
+              <span class="flex-grow-1">{{ t.code }}. {{ t.title }}{% if t.id in es.scores %} <span class="badge text-bg-secondary">Covered</span>{% endif %}</span>
             </div>
             {% endfor %}
           </details>
