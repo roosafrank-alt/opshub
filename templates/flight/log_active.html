@@ -1281,7 +1281,27 @@ document.querySelectorAll('.apply-payment-btn').forEach(function (btn) {
     var credit = creditInput ? (parseFloat(creditInput.value) || 0) : 0;
     var amount = amountInput ? (parseFloat(amountInput.value) || 0) : 0;
     var method = methodInput ? methodInput.value : '';
-    var msg, ok = true;
+    var msg, ok = true, trimmed = '';
+    // Credit was used and money was collected too: recalculate how much
+    // credit is really needed so the student is never taken for more than
+    // the flight costs (credit used shrinks to total - amount collected).
+    var cBtn = document.querySelector('.use-credit-btn[data-flight-id="' + fId + '"]');
+    if (cBtn && cBtn.dataset.used === '1' && total !== null && amount > 0.005 && credit > total - amount + 0.005) {
+      var bal = parseFloat(cBtn.dataset.credit) || 0;
+      var needed = Math.max(0, Math.round((total - amount) * 100) / 100);
+      credit = needed;
+      if (creditInput) creditInput.value = needed.toFixed(2);
+      var cNote = document.getElementById(cBtn.dataset.noteTarget);
+      if (needed < 0.005) {
+        cBtn.dataset.used = '0'; cBtn.textContent = 'Use Credit';
+        cBtn.classList.remove('btn-success'); cBtn.classList.add('btn-outline-success');
+        if (cNote) { cNote.textContent = ''; cNote.classList.add('d-none'); }
+        trimmed = ' Amount collected covers the whole flight, so no credit is used ($' + bal.toFixed(2) + ' credit stays on the account).';
+      } else {
+        if (cNote) { cNote.textContent = 'Using $' + needed.toFixed(2) + ' credit on this flight. $' + Math.max(0, bal - needed).toFixed(2) + ' credit left.'; cNote.classList.remove('d-none'); }
+        trimmed = ' Credit used reduced to $' + needed.toFixed(2) + ' so they do not overpay; $' + Math.max(0, bal - needed).toFixed(2) + ' credit left.';
+      }
+    }
     if (amount > 0.005 && !method) { ok = false; msg = 'Pick how the payment was made, then tap Apply.'; }
     else if (total === null) { msg = 'Payment noted: $' + amount.toFixed(2) + (method ? ' ' + method : '') + (credit > 0 ? ' + $' + credit.toFixed(2) + ' credit' : '') + '. Enter Hobbs End to check it against the flight total.'; }
     else {
@@ -1290,7 +1310,7 @@ document.querySelectorAll('.apply-payment-btn').forEach(function (btn) {
       if (short > 0.005) { ok = false; msg = 'Applied ' + (parts || '$0.00') + ' of $' + total.toFixed(2) + '. $' + short.toFixed(2) + ' still owed (Session Complete will ask if this is a partial payment).'; }
       else msg = 'Payment OK: ' + parts + ' covers the $' + total.toFixed(2) + ' flight.';
     }
-    out.textContent = msg;
+    out.textContent = msg + trimmed;
     out.className = 'small mt-1 ' + (ok ? 'text-success' : 'text-danger');
   });
 });
