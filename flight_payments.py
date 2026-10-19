@@ -209,6 +209,16 @@ def apply_funds_to_flights(conn, student_id, amount, flight_ids, method=None, no
                 "error": f"The flights you ticked come to ${needed:,.2f} but you're adding ${amount:,.2f} - untick some or add more.",
                 "paid": [], "applied": 0.0, "remainder": 0.0}
     labels, logged_ids = [], []
+    if wanted:
+        # The whole prepayment gets its own line first ($0.00 change: the money
+        # reaches the balance through the flight payments and the credit left
+        # over below), so the history shows the full amount that was received.
+        how = ledger_note if ledger_note is not None else note
+        summary = f"Prepayment received ${amount:,.2f}" + (f" ({how})" if how else "")
+        summary += f": ${needed:,.2f} paid past-due flights"
+        if amount - needed > 0.005:
+            summary += f", ${amount - needed:,.2f} kept as credit"
+        fl._ledger_entry(conn, student_id, "payment_received", 0.0, note=summary + ".", created_by=created_by)
     for f in wanted:
         r = record_and_log(conn, f["id"], method=method, note=note, created_by=created_by,
                            can_confirm=can_confirm, user_id=user_id)

@@ -139,6 +139,12 @@ class FlightPaymentsTest(OpsHubTestCase):
         self.assertEqual(total, 250.0)
         self.assertEqual(self.q1("SELECT COUNT(*) c FROM student_ledger WHERE entry_type = 'funds_added' AND student_id = ?",
                                  (self.student_id,))["c"], 1)
+        # The history also shows the whole $250 that was received, at $0 change.
+        row = self.q1("SELECT amount, note FROM student_ledger WHERE entry_type = 'payment_received' AND student_id = ?",
+                      (self.student_id,))
+        self.assertEqual(row["amount"], 0.0)
+        self.assertIn("Prepayment received $250.00", row["note"])
+        self.assertIn("$200.00 paid past-due flights, $50.00 kept as credit", row["note"])
 
     def test_add_funds_refuses_when_ticked_flights_need_more_than_added(self):
         f1, f2 = self._flight(100, 101), self._flight(101, 102)
