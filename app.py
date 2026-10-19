@@ -688,6 +688,8 @@ def academy_entry_add():
         value = float(request.form.get("value") or 0)
     except ValueError:
         value = 0
+    if value != value:      # "nan" parses as a float but fails every comparison
+        value = 0
     entry_date = (request.form.get("entry_date") or date.today().isoformat()).strip()[:10]
     if not student_id or kind not in academy.ENTRY_KIND_MAP or value <= 0 or value > 100000:
         flash("Pick what you're logging and enter an amount above zero.", "danger")
