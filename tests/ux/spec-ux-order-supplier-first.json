@@ -1,0 +1,10 @@
+{"checks": [
+ {"role": "shop_admin", "size": "desktop", "steps": [
+   ["start", "/orders/new"],
+   ["see", "Supplier"],
+   ["fill", "Existing part", "Fuel Sump Drain"],
+   ["shot", {"caption": "Add Order: Supplier is at the top and filled in from the part; the carrier box reads Auto-detect", "focus": "full",
+     "changed": [{"sel": "input[name=supplier]", "note": "Supplier first, filled from the part"},
+                 {"sel": "select[name=tracking_carrier]", "note": "Reads Auto-detect"}]}]
+ ]}
+]}

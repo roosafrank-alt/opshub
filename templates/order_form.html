@@ -13,9 +13,19 @@
     {% macro part_options(selected) %}
         <option value="">-- Not in inventory yet / order something new --</option>
         {% for p in parts %}
-        <option value="{{ p.id }}" {% if selected|string == p.id|string %}selected{% endif %}>{{ p.name }} ({{ '%g'|format(p.qty_on_hand) }} {{ p.unit }} on hand)</option>
+        <option value="{{ p.id }}" data-supplier="{{ p.supplier or '' }}" {% if selected|string == p.id|string %}selected{% endif %}>{{ p.name }} ({{ '%g'|format(p.qty_on_hand) }} {{ p.unit }} on hand)</option>
         {% endfor %}
     {% endmacro %}
+    {% macro supplier_box() %}
+    <div class="mb-3">
+      <label class="form-label">Supplier</label>
+      <input type="text" name="supplier" list="supplier-list" class="form-control" autocomplete="off" data-change="SHOP-45" value="{{ form.get('supplier', order.supplier if order else '') if form else (order.supplier if order else '') }}">
+      <datalist id="supplier-list">
+        {% for sn in supplier_names() %}<option value="{{ sn }}">{% endfor %}
+      </datalist>
+    </div>
+    {% endmacro %}
+    {% if not order %}{{ supplier_box() }}{% endif %}
     {% if order %}
     {#- Edit: one item line. #}
     {% if batch_count and batch_count > 1 %}
@@ -91,13 +101,7 @@
     </div>
     <button type="button" id="order-item-add" class="btn btn-outline-secondary btn-sm mb-3"><i class="bi bi-plus-lg"></i> Add another item from this supplier</button>
     {% endif %}
-    <div class="mb-3">
-      <label class="form-label">Supplier</label>
-      <input type="text" name="supplier" list="supplier-list" class="form-control" autocomplete="off" data-change="SHOP-45" value="{{ form.get('supplier', order.supplier if order else '') if form else (order.supplier if order else '') }}">
-      <datalist id="supplier-list">
-        {% for sn in supplier_names() %}<option value="{{ sn }}">{% endfor %}
-      </datalist>
-    </div>
+    {% if order %}{{ supplier_box() }}{% endif %}
     <div class="mb-3">
       <label class="form-label">For project (optional)</label>
       {% set _proj = (form.get('project_id', '') if form else (order.project_id if order and order.project_id else ''))|string %}
@@ -196,6 +200,19 @@
     newProj.classList.toggle('d-none', projSel.value !== '__new__');
     if (projSel.value === '__new__') newProj.querySelector('input').focus();
   });
+
+  // Picking a part that has a supplier on file fills the Supplier box
+  // (until the person types their own).
+  var supBox = document.querySelector('input[name=supplier]');
+  if (supBox) {
+    supBox.addEventListener('input', function () { supBox.dataset.typed = supBox.value ? '1' : ''; });
+    document.addEventListener('change', function (e) {
+      var sel = e.target;
+      if (!sel || sel.name !== 'part_id' || !sel.closest('#order-items')) return;
+      var sup = sel.options[sel.selectedIndex].getAttribute('data-supplier');
+      if (sup && (!supBox.value || !supBox.dataset.typed)) { supBox.value = sup; supBox.dataset.typed = ''; }
+    });
+  }
 
   // Repeating rows: items (New Order only) and tracking numbers.
   function wireItem(row) {

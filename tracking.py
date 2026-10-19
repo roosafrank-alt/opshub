@@ -33,7 +33,7 @@ CARRIERS = {
     "dhl": {"label": "DHL", "shippo": "dhl_express",
             "url": "https://www.dhl.com/us-en/home/tracking/tracking-express.html?submit=1&tracking-id={n}"},
 }
-CARRIER_CHOICES = [("", "Work it out from the number")] + [(k, v["label"]) for k, v in CARRIERS.items()] + \
+CARRIER_CHOICES = [("", "Auto-detect")] + [(k, v["label"]) for k, v in CARRIERS.items()] + \
                   [("other", "Other")]
 
 STATUS_LABELS = {
