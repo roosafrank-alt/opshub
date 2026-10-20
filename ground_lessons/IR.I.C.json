@@ -399,14 +399,14 @@
      "bullets": [
       "An A in a triangle on the approach chart means nonstandard alternate minimums are listed in the front of the TPP. A with NA means the airport cannot be used as an alternate [[29:29|IPH 1-13]].",
       "Common reasons for NA: the NAVAID is unmonitored or there is no weather reporting [[29:30|IPH 1-14]].",
-      "If the alternate's approach needs DME or ADF, you must have that equipment; GPS is not a substitute at an alternate [[29:29|IPH 1-13]]."
+      "With a non-WAAS GPS, a required alternate must have an approach that does not need GPS, and you may not plan to use GPS in place of a DME, ADF or out-of-service VOR there. This limit does not apply to WAAS (TSO-C145 or C146) receivers [[33:118|AIM 1-2-3d]]."
      ]
     },
     {
      "table": {
       "head": ["Your GPS", "Planning a GPS approach at the alternate"],
       "rows": [
-       ["Non-WAAS (TSO-C129 or C196) with fault detection, and a RAIM prediction", "You may plan a GPS approach at the destination or the alternate, not both. At the alternate, plan with LNAV or circling minimums [[33:118|AIM 1-2-3d1]]. Otherwise the alternate needs a non-GPS approach [[33:118|AIM 1-2-3d2]]"],
+       ["Non-WAAS (TSO-C129 or C196) with FDE (fault detection and exclusion), and a RAIM prediction", "You may plan a GPS approach at the destination or the alternate, not both. At the alternate, plan with LNAV or circling minimums [[33:118|AIM 1-2-3d1]]. Otherwise the alternate needs a non-GPS approach [[33:118|AIM 1-2-3d2]]"],
        ["WAAS (TSO-C145 or C146)", "Plan with the LNAV or circling minimums and nonprecision weather rules. On arrival you may use LPV or LNAV/VNAV if available [[33:105|AIM 1-1-18]]"]
       ]
      }
@@ -445,7 +445,7 @@
        ["True airspeed", "Correct calibrated airspeed for altitude and temperature. Rule of thumb: add 2% per 1,000 ft [[1:211|PHAK 8-9]]"],
        ["Time", "Time = distance ÷ groundspeed [[1:398|PHAK 16-11]]. With wind, use groundspeed, not TAS [[1:399|PHAK 16-12]]"],
        ["Climb", "Groundspeed is lower and fuel burn higher in the climb. Add taxi fuel too [[1:399|PHAK 16-12]]"],
-       ["Climb rate for a DP gradient", "Use the TPP rate of climb table: 297 ft/NM at 180 knots needs 892 fpm [[29:34|IPH 1-18]]. Shortcut: ft/NM × groundspeed ÷ 60"],
+       ["Climb rate for a DP gradient", "Use the TPP rate of climb table: 297 ft/NM at 180 knots needs 892 fpm [[29:34|IPH 1-18]]. Shortcut: ft/NM × groundspeed ÷ 60, since groundspeed ÷ 60 is the NM you cover each minute (297 × 3 = 891, the table rounds to 892). A higher groundspeed needs a higher climb rate [[33:450|AIM 5-4-21b]]"],
        ["Descent", "Normal en route descent targets 500 fpm [[24:82|AFH 3-21]]. Losing 4,000 ft takes about 8 minutes"],
        ["ETA in UTC", "Add 5 hours to Eastern, 6 to Central, 7 to Mountain, 8 to Pacific Standard Time. In daylight time, subtract 1 hour from that [[33:234|AIM 4-2-12]]"]
       ]
@@ -454,7 +454,7 @@
     {
      "callout": {
       "type": "reg",
-      "text": "14 CFR 91.167: carry enough fuel, considering weather reports and forecasts, to fly to the first airport of intended landing, then to the alternate, then 45 more minutes at normal cruising speed [[60:468|14 CFR 91.167(a)]] [[60:469|14 CFR 91.167(a)(2)]]. Fuel to the alternate is not needed when the 1-2-3 conditions are met [[60:469|14 CFR 91.167(b)]]."
+      "text": "14 CFR 91.167: carry enough fuel, considering weather reports and forecasts, to fly to the first airport of intended landing, then to the alternate, then 45 more minutes at normal cruising speed [[60:468|14 CFR 91.167(a)]] [[60:469|14 CFR 91.167(a)(2)]]. Fuel to the alternate is not needed when the destination has an instrument approach and the 1-2-3 conditions are met [[60:469|14 CFR 91.167(b)]]."
      }
     },
     {
@@ -482,14 +482,14 @@
      "table": {
       "head": ["Type", "What it covers"],
       "rows": [
-       ["NOTAM (D)", "NAVAIDs, public airports, taxiway closures, people or equipment near runways, and lighting that does not affect approach minimums. Starts with a keyword such as RWY, TWY, APRON, AD, OBST, NAV, COM, SVC or AIRSPACE [[33:325|AIM 5-1-3g1]] [[33:327|AIM TBL 5-1-1]]"],
+       ["NOTAM (D)", "NAVAIDs, public airports, taxiway closures, people or equipment near runways, and lighting aids that do not affect instrument approach criteria, such as VGSI. Starts with a keyword such as RWY, TWY, APRON, AD, OBST, NAV, COM, SVC or AIRSPACE [[33:325|AIM 5-1-3g1]] [[33:327|AIM TBL 5-1-1]]"],
        ["FDC NOTAM", "Regulatory: amendments to approach procedures and charts, TFRs, high barometric pressure warnings, laser activity, ADS-B and FIS-B service, WAAS and GPS, special notices [[33:326|AIM 5-1-3g2]]"],
        ["ARTCC NOTAMs", "For each Center: SUA, TFRs, GPS, FDC route changes, wind turbines, drones [[33:324|AIM 5-1-3c]] [[33:325|AIM 5-1-3c]]"]
       ]
      }
     },
     {
-     "p": "Reading one: !BNA BNA RWY 18/36 CLSD, followed by start and end times, means runway 18/36 at Nashville is closed for that period [[33:327|AIM TBL 5-1-1]]."
+     "p": "Reading one: !BNA BNA RWY 18/36 CLSD, followed by start and end times, means runway 18/36 at BNA is closed for that period [[33:327|AIM TBL 5-1-1]]."
     },
     {
      "callout": {
@@ -498,7 +498,7 @@
      }
     },
     {
-     "p": "In the IFH sample, NOTAMs showed the Gulfport localizer out of service and runway 18/36 closed [[23:319|IFH 10-28]]. The pilot planned the GPS approach to runway 14 and checked landing distance with a 10-knot crosswind [[23:320|IFH 10-29]]. En route, ask ATC or FSS for a destination update, especially for an airport without a tower [[33:325|AIM 5-1-3d]]."
+     "p": "In the IFH sample, NOTAMs showed the Gulfport localizer out of service and runway 18/36 closed [[23:319|IFH 10-28]]. The pilot planned for a straight-in landing on runway 14 and checked landing distance with a 10-knot crosswind [[23:320|IFH 10-29]], then flew the GPS runway 14 approach [[23:324|IFH 10-33]]. En route, ask ATC or FSS for a destination update, especially for an airport without a tower [[33:325|AIM 5-1-3d]]."
     },
     {
      "p": "The Chart Supplement fills in what the chart cannot show: airport hours, fuel, runway widths and lighting codes [[34:199|AIM 9-1-4d2]], declared distances [[29:33|IPH 1-17]], VOR checkpoints, and FSS and Center frequencies [[23:293|IFH 10-2]]."
@@ -525,10 +525,10 @@
      "table": {
       "head": ["Item", "What you enter"],
       "rows": [
-       ["7 Aircraft ID", "Registration, such as N2567GA, up to 7 characters [[34:271|AIM App 4, TBL 4-1]]"],
+       ["7 Aircraft ID", "Registration, such as N2567GA, up to 7 characters [[34:271|AIM App 4 d1]]"],
        ["8 Flight rules", "I for IFR [[34:272|AIM App 4]]"],
        ["10a Radio, nav, approach", "S = VHF radio, VOR and ILS. G = GNSS, with the augmentation in Item 18 (NAV/SBAS for WAAS). D = DME. R = PBN approved [[34:273|AIM TBL 4-2]] [[34:277|AIM App 4]]"],
-       ["10b Surveillance", "C = transponder with Mode C. ADS-B Out: B1 (1090 MHz) or U1 (UAT); B2 or U2 if you also have In. N if none [[34:278|AIM App 4]] [[34:277|AIM App 4]]"],
+       ["10b Surveillance", "C = transponder with Mode C. ADS-B Out: B1 (1090 MHz) or U1 (UAT); B2 or U2 only if In is on the same frequency. Add SUR/A2 in Item 18 with any ADS-B code. N if none [[34:278|AIM App 4]] [[34:277|AIM App 4]]"],
        ["18 PBN/", "Needed with R for RNAV SIDs and STARs (D2 for RNAV 1 with GPS) and T-routes (C2) [[34:280|AIM TBL 4-13]]"],
        ["Route", "Airways with transition fixes, such as BWI V44 SWANN V433 DQO [[33:333|AIM 5-1-6b3]]"]
       ]
@@ -537,7 +537,7 @@
     {
      "callout": {
       "type": "tip",
-      "text": "Example: an airplane with VHF radios, VOR, ILS, a WAAS GPS, a Mode C transponder and UAT ADS-B Out files S and G in Item 10a, C and U1 in Item 10b, and NAV/SBAS in Item 18 [[34:277|AIM App 4]] [[34:278|AIM App 4]]. Items 10a and 10b are written with a slash between them, as in the AIM example ADE3RV/HB2U2V2G1 [[34:274|AIM TBL 4-3]]."
+      "text": "Example: an airplane with VHF radios, VOR, ILS, a WAAS GPS, a Mode C transponder and UAT ADS-B Out files S and G in Item 10a, C and U1 in Item 10b, and NAV/SBAS and SUR/A2 in Item 18 [[34:277|AIM App 4]] [[34:278|AIM App 4]]. Items 10a and 10b are written with a slash between them, as in the AIM example ADE3RV/HB2U2V2G1 [[34:274|AIM TBL 4-3]], so this one reads SG/CU1. To fly T-routes or RNAV SIDs and STARs it would also need R in Item 10a and PBN/C2 or D2 in Item 18 [[34:280|AIM TBL 4-13]]."
      }
     },
     {
@@ -583,7 +583,7 @@
     {
      "bullets": [
       "After you cancel, radar and separation services stop. Ask for VFR advisories if you want them [[33:339|AIM 5-1-15c]].",
-      "Plans never activated are usually deleted 2 hours after the proposed time. Delayed 2 hours or more? Tell ATC [[33:339|AIM 5-1-13]].",
+      "Most Centers delete plans never activated at least 2 hours after the proposed departure time. Delayed 2 hours or more? Tell ATC [[33:339|AIM 5-1-13]].",
       "Tell ATC if your TAS will differ from the filed TAS by 5 percent or 10 knots, whichever is greater [[33:339|AIM 5-1-12a]].",
       "Changes 46 minutes or less before departure go through ATC or FSS [[33:339|AIM 5-1-12b]].",
       "When you cancel or finish the flight, notify FSS or ATC [[60:470|14 CFR 91.169(d)]]."
@@ -916,11 +916,11 @@
  ],
  "cfi_notes": [
   "IFH Chapter 10 is dated. It names DUATS, the A/FD (now the Chart Supplement, AIM 9-1-4d), the NTAP and FAA Form 7233-1, and its sample plan in Figure 10-20 uses the old C182/G suffix [[23:293|IFH 10-2]] [[23:322|IFH 10-31]]. Current AIM: civil domestic IFR flights use Form 7233-4 with Item 10 and 18 codes [[33:322|AIM 5-1-1b]] [[34:270|AIM App 4]].",
-  "IPH 1-14 says an alternate is required if the ceiling is less than 2,000 ft 'and' the visibility is less than 3 SM [[29:30|IPH 1-14]]. Teach the CFR: you skip the alternate only if both are met, so either one short requires an alternate [[60:469|14 CFR 91.169(b)]].",
+  "IPH 1-14 says an alternate is required if the ceiling is less than 2,000 ft 'and' the visibility is less than 3 SM [[29:30|IPH 1-14]]. Teach the CFR: you skip the alternate only if both are met, so either one short requires an alternate [[60:469|14 CFR 91.169(b)]]. IPH 1-13 also says GPS is never a substitute for DME or ADF at an alternate [[29:29|IPH 1-13]]; the current AIM lifts that limit for WAAS receivers [[33:118|AIM 1-2-3d]].",
   "Students mix up the two alternate questions. First: do I need one (1-2-3)? Second: does this airport qualify (600-2, 800-2, published minimums or NA)? Examiners commonly probe the difference.",
   "Drill the 22 NM MOCA rule and the OROCA limit with real chart excerpts. Students often treat the OROCA as an MEA for GPS-direct routes [[29:87|IPH 2-27]].",
   "Have the student build one navigation log and fuel plan by hand before using an app, then compare. This prepares them for the app limits the ACS asks about [[42:4|AC 91-78A 11.2]].",
-  "Have the student code the training airplane's actual equipment for Items 10a, 10b and 18. Many file only G and forget the transponder and ADS-B codes [[34:277|AIM App 4]] [[34:278|AIM App 4]].",
+  "Have the student code the training airplane's actual equipment for Items 10a, 10b and 18. Many file only G and forget the transponder code, the ADS-B code and its SUR/A2 entry in Item 18 [[34:277|AIM App 4]] [[34:278|AIM App 4]].",
   "AC 91-74B (2015) still refers to Flight Watch, TWEB and the Airport/Facility Directory [[38:44|AC 91-74B 5-3]]. Teach the in-flight weather sources named in the current AIM and AC 91-92 instead.",
   "Most training airplanes are not certificated for icing. Make the student say the plan out loud: avoid it, exit at once, declare an emergency [[38:44|AC 91-74B 5-2b]]."
  ],
@@ -928,7 +928,6 @@
   "The Chart Supplement, the TPP and real IFR en route charts are not among the sources. The lesson teaches their content from the AIM, IPH and Chart Users' Guide; students must practice with current published editions.",
   "No source gives a common-errors list for IFR cross-country planning, so this lesson has no Common errors chunk.",
   "TAS, fuel burn, climb performance and weight and balance for the training airplane come from its POH, which is not a source here.",
-  "AIM Appendix 4 lists A2 as the Item 18 SUR/ entry for both 1090 and UAT ADS-B. Confirm current Item 18 ADS-B entries on the FAA flight plan filing page the AIM references before filing.",
   "Ground deicing fluids and holdover times for small airplanes (AC 135-17, referenced in AC 91-74B) are not in the sources.",
   "Winds aloft forecast products used to pick an altitude are not covered in detail here; see the Aviation Weather Handbook lesson for them."
  ],
@@ -1022,7 +1021,7 @@
    "why": "With no published approach, the minimums are those that allow descent from the MEA, approach and landing under basic VFR [[60:470|14 CFR 91.169(c)(2)]]."
   },
   {
-   "q": "Your GPS is non-WAAS (TSO-C129) with fault detection, and you will do a RAIM prediction. The destination and your planned alternate both have only RNAV (GPS) approaches. What does the AIM allow?",
+   "q": "Your GPS is non-WAAS (TSO-C129) with FDE (fault detection and exclusion), and you will do a RAIM prediction. The destination and your planned alternate both have only RNAV (GPS) approaches. What does the AIM allow?",
    "options": ["GPS approaches at both, since RAIM is predicted", "Filing only if the alternate has LPV minimums", "A GPS approach at one of them, not both, so the alternate needs a non-GPS approach", "No GPS approaches at all for IFR planning"],
    "answer": 2,
    "why": "These users may plan a GPS approach at the destination or the alternate, but not both [[33:118|AIM 1-2-3d1]]. Otherwise the alternate needs a non-GPS approach [[33:118|AIM 1-2-3d2]]."
@@ -1031,7 +1030,7 @@
    "q": "A departure procedure requires 300 ft/NM to 3,000 ft. Your climb groundspeed will be about 100 knots. What rate of climb do you need?",
    "options": ["300 fpm", "500 fpm", "600 fpm", "1,000 fpm"],
    "answer": 1,
-   "why": "300 ft/NM × 100 NM per hour ÷ 60 = 500 fpm. The TPP rate of climb table works the same way: 297 ft/NM at 180 knots is 892 fpm [[29:34|IPH 1-18]]."
+   "why": "100 knots ÷ 60 is about 1.67 NM per minute, and 300 ft/NM × 1.67 = 500 fpm. The TPP rate of climb table works the same way: 297 ft/NM at 180 knots is 892 fpm [[29:34|IPH 1-18]]. More groundspeed means a higher climb rate [[33:450|AIM 5-4-21b]]."
   },
   {
    "q": "You fly IFR in uncontrolled airspace below 18,000 ft on a magnetic course of 095°. Which cruising altitude fits the rule?",
