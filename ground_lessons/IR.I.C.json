@@ -1,0 +1,1782 @@
+{
+ "task_code": "IR.I.C",
+ "task_title": "Cross-Country Flight Planning",
+ "area": "Area I. Preflight Preparation",
+ "minutes": 95,
+ "objective": "By the end of this lesson you can plan an IFR cross-country from current charts and publications, choose a legal route, altitude and alternate, work out time and fuel to 14 CFR 91.167, and file, open and close an IFR flight plan.",
+ "why": "Most IFR trouble starts on the ground: an altitude below the MEA, a missing alternate or thin fuel. A solid plan leaves you options when the weather, ATC or the airplane do not cooperate.",
+ "prereading": [
+  {
+   "res": "23",
+   "pages": [
+    292,
+    295
+   ],
+   "printed": "IFH Ch 10, 10-1 to 10-4",
+   "what": "Sources of flight planning information, the IFR flight plan, filing in flight, cancelling IFR flight plans and clearances.",
+   "label": "IFH Ch 10, 10-1 to 10-4"
+  },
+  {
+   "res": "23",
+   "pages": [
+    317,
+    324
+   ],
+   "printed": "IFH 10-26 to 10-33",
+   "what": "A complete sample IFR flight from Birmingham to Gulfport: planning, briefing, navigation log, flight plan and the flight itself.",
+   "label": "IFH 10-26 to 10-33"
+  },
+  {
+   "res": "29",
+   "pages": [
+    95,
+    99
+   ],
+   "printed": "IPH 2-35 to 2-39",
+   "what": "IFR en route altitudes: MEA, MRA, MAA, MOCA, MTA and MCA.",
+   "label": "IPH 2-35 to 2-39"
+  },
+  {
+   "res": "29",
+   "pages": [
+    67,
+    69
+   ],
+   "printed": "IPH 2-7 to 2-9",
+   "what": "Preferred IFR routes, special use airspace planning and substitute routes.",
+   "label": "IPH 2-7 to 2-9"
+  },
+  {
+   "res": "33",
+   "pages": [
+    322,
+    340
+   ],
+   "printed": "AIM 5-1-1 to 5-1-16",
+   "what": "Preflight preparation, the NOTAM system, IFR flight plans, changes, cancelling and RNAV planning.",
+   "label": "AIM 5-1-1 to 5-1-16"
+  },
+  {
+   "res": "2",
+   "pages": [
+    67,
+    71
+   ],
+   "printed": "Chart Users' Guide, IFR Enroute Terms pp 67-71",
+   "what": "How airspace, special use airspace, airways, MEAs, MOCAs and OROCAs are shown on IFR en route charts.",
+   "label": "Chart Users' Guide, IFR Enroute Terms pp 67-71"
+  },
+  {
+   "res": "38",
+   "pages": [
+    45,
+    51
+   ],
+   "printed": "AC 91-74B, 5-4 to 5-10",
+   "what": "Icing operations: preflight, taxi, takeoff and climb, cruise, descent, holding, approach and landing.",
+   "label": "AC 91-74B, 5-4 to 5-10"
+  }
+ ],
+ "warmup": "Your destination is forecast to have a 1,500 ft overcast at your arrival time. Before you even think about fuel, what two airport questions do you need to answer?",
+ "key_terms": [
+  {
+   "term": "MEA",
+   "def": "Minimum en route altitude: lowest published altitude between fixes that gives both navigation signal coverage and obstacle clearance."
+  },
+  {
+   "term": "MOCA",
+   "def": "Minimum obstruction clearance altitude: obstacle clearance for the whole segment, but signal coverage only within 22 NM of the VOR. Charted with an asterisk."
+  },
+  {
+   "term": "OROCA",
+   "def": "Off-route obstruction clearance altitude: 1,000 ft (2,000 ft in mountainous areas) above the highest terrain or obstacle in a chart quadrant. Not checked for signal, radar or radio coverage."
+  },
+  {
+   "term": "MCA",
+   "def": "Minimum crossing altitude: lowest altitude to cross a fix when flying toward a higher MEA."
+  },
+  {
+   "term": "MRA",
+   "def": "Minimum reception altitude: lowest altitude where you can receive the signals that identify a fix."
+  },
+  {
+   "term": "Preferred IFR route",
+   "def": "Published route between busier airports, listed in the Chart Supplement. ATC normally clears flights on it."
+  },
+  {
+   "term": "Alternate airport",
+   "def": "The airport you plan to use if you cannot land at the destination. Required on an IFR flight plan unless the 1-2-3 rule is met."
+  },
+  {
+   "term": "FDC NOTAM",
+   "def": "A regulatory NOTAM, such as an amendment to an approach procedure or chart, or a temporary flight restriction."
+  },
+  {
+   "term": "Item 10 codes",
+   "def": "Equipment letters on FAA Form 7233-4: Item 10a for radio, navigation and approach (S, G, R...), Item 10b for transponder and ADS-B (C, B1, U1...)."
+  },
+  {
+   "term": "Clearance void time",
+   "def": "Time after which an IFR departure clearance from an airport without a tower can no longer be used."
+  },
+  {
+   "term": "UTC (Zulu)",
+   "def": "Coordinated Universal Time, used for all FAA operations. Eastern Standard Time plus 5 hours."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "Your planning library: current charts and publications",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.C.K1e",
+    "IR.I.C.K1f",
+    "IR.I.C.K1h",
+    "IR.I.C.S6"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Before every flight, gather all the information about it, decide if it can be flown safely, and then file a flight plan [[33:322|AIM 5-1-1]]. For an IFR flight the rules name the minimum: weather reports and forecasts, fuel requirements, alternatives if the flight cannot be completed, and any known traffic delays ATC has told you about [[60:440|14 CFR 91.103(a)]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Publication",
+       "What it gives you",
+       "How often it changes"
+      ],
+      "rows": [
+       [
+        "IFR Enroute Low Altitude Chart",
+        "Airways, NAVAIDs, MEAs and MOCAs, airway distances, reporting points, controlled airspace limits and special use airspace, below 18,000 ft MSL [[34:194|AIM 9-1-4b1]]",
+        "Every 56 days [[33:322|AIM 5-1-1d]]"
+       ],
+       [
+        "Terminal Procedures Publication (TPP)",
+        "Approach charts, departure procedures (DPs), arrivals (STARs) and airport diagrams [[34:196|AIM 9-1-4b3]] [[34:197|AIM 9-1-4b3]]. Front pages list nonstandard alternate minimums [[29:29|IPH 1-13]] and a rate of climb table [[29:34|IPH 1-18]]",
+        "56-day cycle, with a change notice at the 28-day midpoint [[33:322|AIM 5-1-1d]]"
+       ],
+       [
+        "Chart Supplement",
+        "Airports, NAVAIDs, radio frequencies, weather sources, special notices, airport hours, fuel, runway widths and lighting [[34:199|AIM 9-1-4d2]]. Also preferred IFR routes [[29:67|IPH 2-7]] and declared distances [[29:33|IPH 1-17]]",
+        "Every 56 days [[34:199|AIM 9-1-4d1]]"
+       ],
+       [
+        "NOTAMs",
+        "Time-critical and temporary information, or changes not yet on the charts [[33:324|AIM 5-1-3a]]",
+        "Any time"
+       ],
+       [
+        "POH/AFM",
+        "Limitations, performance and procedures for your airplane [[23:293|IFH 10-2]]",
+        "With the airplane"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Use only the latest charts. Old ones may hold obsolete or incomplete information [[33:322|AIM 5-1-1d]]. The GPS database must also be current and must hold the procedures for your departure, arrival and alternate airports [[33:340|AIM 5-1-16c]]."
+     }
+    },
+    {
+     "p": "In the IFH sample trip, the pilot gathers en route charts, approach charts, DPs, STARs, the GPS database, the airport directory, navigation logs and the POH. The charts cover the departure, the arrival and any airports needed if the plan falls apart [[23:319|IFH 10-28]]."
+    }
+   ],
+   "check": {
+    "q": "How often are IFR en route charts and approach charts revised?",
+    "a": "Every 56 days. Approach charts also get a change notice at the 28-day midpoint [[33:322|AIM 5-1-1d]]."
+   }
+  },
+  {
+   "title": "Reading the IFR en route chart",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.C.K1e",
+    "IR.I.C.S4"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Low altitude charts show the VOR airway system, from 1,200 ft AGL up to but not including FL 180. Victor airways are black and start with V, such as V12 [[2:68|Chart Users' Guide p 68]]. RNAV T-routes are blue and need IFR-approved GPS [[2:70|Chart Users' Guide p 70]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "table": {
+      "head": [
+       "Altitude",
+       "What it means",
+       "How you spot it"
+      ],
+      "rows": [
+       [
+        "MEA",
+        "Lowest altitude between fixes with both navigation signal coverage and obstacle clearance, across the full width of the airway [[2:69|Chart Users' Guide p 69]]",
+        "Number on the airway. A GPS (GNSS) MEA is blue with a G [[2:69|Chart Users' Guide p 69]]"
+       ],
+       [
+        "MOCA",
+        "Obstacle clearance for the whole segment, but signal coverage only within 22 NM of a VOR [[2:69|Chart Users' Guide p 69]]",
+        "Asterisk in front, low charts only, shown only when lower than the MEA [[2:69|Chart Users' Guide p 69]]"
+       ],
+       [
+        "MRA",
+        "Lowest altitude where you can identify the fix [[2:69|Chart Users' Guide p 69]]",
+        "Flag with an R [[2:83|Chart Users' Guide p 83]]"
+       ],
+       [
+        "MCA",
+        "Lowest altitude to cross a fix when you fly toward a higher MEA [[2:69|Chart Users' Guide p 69]]",
+        "Flag with an X [[2:83|Chart Users' Guide p 83]]"
+       ],
+       [
+        "MAA",
+        "Highest usable altitude on the segment [[2:69|Chart Users' Guide p 69]]",
+        "MAA- and a number [[2:83|Chart Users' Guide p 83]]"
+       ],
+       [
+        "MTA",
+        "Higher altitude needed to turn at certain fixes [[2:69|Chart Users' Guide p 69]]",
+        "Flag with text describing the turn [[2:69|Chart Users' Guide p 69]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Read the example chart. At SABAT on V298 the MCA is 11,100 ft eastbound and the MRA is 10,000 ft. The segments from DBS to SABAT and SABAT to LAMON have a MOCA of 8,100 ft [[2:85|Chart Users' Guide p 85]]. On V465 (number 5) the MEA is 15,000 ft with VOR navigation, 13,300 ft with RNAV, and the MOCA is 13,300 ft [[2:86|Chart Users' Guide p 86]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "bullets": [
+      "Directional MEAs: arrows show which MEA applies in which direction [[2:83|Chart Users' Guide p 83]].",
+      "MEA gap: a gap in navigation signal coverage on that segment [[2:83|Chart Users' Guide p 83]].",
+      "Changeover point: gives the mileage to each NAVAID where you switch. It is not shown when it sits at the midpoint [[2:83|Chart Users' Guide p 83]].",
+      "VOR airways are defined by radials outbound from the NAVAID. All radials are magnetic [[2:69|Chart Users' Guide p 69]] [[2:82|Chart Users' Guide p 82]].",
+      "Unusable segment: do not file or accept a clearance on it. With RNAV you may ask for point-to-point between valid fixes [[2:70|Chart Users' Guide p 70]]."
+     ]
+    }
+   ],
+   "check": {
+    "q": "An airway shows 10000 above *8100. What do the two numbers mean?",
+    "a": "MEA 10,000 ft. MOCA 8,100 ft (the asterisk), which gives signal coverage only within 22 NM of the VOR [[2:69|Chart Users' Guide p 69]]."
+   }
+  },
+  {
+   "title": "Minimum IFR altitudes: MEA, MOCA and OROCA",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.C.K2",
+    "IR.I.C.K1e"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Under IFR you may not fly below the published minimum altitudes, except to take off or land. Where both an MEA and a MOCA are published, you may go below the MEA down to the MOCA if you have the navigation signals. When you navigate by VOR, that is only within 22 NM of the VOR [[60:480|14 CFR 91.177(a)(1)]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "table": {
+      "head": [
+       "No published minimum altitude?",
+       "Fly at least"
+      ],
+      "rows": [
+       [
+        "Designated mountainous area",
+        "2,000 ft above the highest obstacle within 4 NM of the course [[60:480|14 CFR 91.177(a)(2)]]"
+       ],
+       [
+        "Anywhere else",
+        "1,000 ft above the highest obstacle within 4 NM of the course [[60:480|14 CFR 91.177(a)(2)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Climbing to a higher minimum altitude? Start the climb right after passing the point where it begins. Where obstacles are in the way, cross that point at or above the MCA [[60:480|14 CFR 91.177(b)]]."
+    },
+    {
+     "p": "The OROCA is printed in each one-degree quadrant of the low charts. It covers the highest terrain or obstacle in the quadrant plus 4 NM outside it, with 1,000 ft added (2,000 ft in mountainous areas) [[2:71|Chart Users' Guide p 71]]. It is not checked for NAVAID signal, radar or radio coverage. It is for awareness, planning and in-flight contingencies [[2:71|Chart Users' Guide p 71]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "An OROCA is not an acceptable altitude for off-route, random RNAV direct flights. It does not get the same obstacle checks as an MEA or MOCA [[29:87|IPH 2-27]]. On direct segments outside controlled airspace and radar, obstacle clearance is your job, and charted MEAs only apply to the published routes [[33:335|AIM 5-1-6c7]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "MEA = Everything: obstacles, navigation signal and radio needs [[29:95|IPH 2-35]]. MOCA = Obstacles Only, signal within 22 NM. OROCA = Off the route, Only for awareness."
+     }
+    }
+   ],
+   "check": {
+    "q": "You fly a Victor airway 35 NM from the VOR you are using. MEA 7,000, MOCA *5,800. May you descend to 6,000 ft?",
+    "a": "No. Below the MEA down to the MOCA is allowed only within 22 NM of the VOR [[60:480|14 CFR 91.177(a)(1)]]."
+   }
+  },
+  {
+   "title": "Navigation facilities and RNAV routing",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.C.K1a",
+    "IR.I.C.K1g"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Pick a route your equipment can actually fly. Each VOR has a standard service volume (SSV): the space where its signal is protected. ATH means above the transmitter height."
+    },
+    {
+     "table": {
+      "head": [
+       "SSV class",
+       "Protected coverage (AIM TBL 1-1-1)"
+      ],
+      "rows": [
+       [
+        "T (Terminal)",
+        "1,000 to 12,000 ft ATH, out to 25 NM [[33:77|AIM TBL 1-1-1]]"
+       ],
+       [
+        "L (Low)",
+        "1,000 to 18,000 ft ATH, out to 40 NM [[33:77|AIM TBL 1-1-1]]"
+       ],
+       [
+        "VL (VOR Low)",
+        "Out to 40 NM below 5,000 ft ATH, out to 70 NM from 5,000 to below 18,000 ft ATH [[33:77|AIM TBL 1-1-1]]"
+       ],
+       [
+        "H (High)",
+        "40 NM up to 14,500 ft ATH, farther higher up [[33:77|AIM TBL 1-1-1]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Direct routes with VORs.** Off the airways below 18,000 ft MSL, use NAVAIDs no more than 80 NM apart [[33:334|AIM 5-1-6c3]]. The fixes that define a direct route become compulsory reporting points unless ATC says otherwise [[33:334|AIM 5-1-6c1]]."
+    },
+    {
+     "p": "**RNAV routes.** File airport to airport. Begin and end the random part over proper transition fixes or NAVAIDs, define it by waypoints, file at least one waypoint in each Center's airspace, and stay 3 NM from prohibited and restricted areas [[33:335|AIM 5-1-6d2]]. T-routes need IFR-approved GPS [[2:70|Chart Users' Guide p 70]]. Load all the waypoints on the ground [[33:324|AIM 5-1-2a4]]."
+    },
+    {
+     "bullets": [
+      "Confirm the navigation system you need, including non-RNAV backups, will be available for the whole flight [[33:340|AIM 5-1-16a]].",
+      "Check NAVAID NOTAMs. A VOR out of service can stay on the charts for a long time; the NOTAM is the main warning [[33:325|AIM 5-1-3e]].",
+      "Search GPS NOTAMs. UNREL means GPS or WAAS service may not be there, so carry other navigation equipment [[33:325|AIM 5-1-3f]].",
+      "To use the VOR under IFR, it must have been checked within the last 30 days (or maintained under an approved procedure) [[60:470|14 CFR 91.171(a)]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "GPS signals are weak and can be jammed or spoofed. Watch for anomalies and be ready to navigate without GPS [[33:118|AIM 1-2-4]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Below 18,000 ft MSL and off the airways, how far apart may the VORs that define your direct route be?",
+    "a": "No more than 80 NM apart [[33:334|AIM 5-1-6c3]]."
+   }
+  },
+  {
+   "title": "Special use airspace and preferred IFR routes",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.C.K1b",
+    "IR.I.C.K1c",
+    "IR.I.C.K1f"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "En route charts show special use airspace (SUA) with a table listing its type, ID, altitudes, times of use and controlling agency [[2:67|Chart Users' Guide p 67]]. No NOTAM is issued for the permanently listed times of use, so read the table [[2:68|Chart Users' Guide p 68]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Airspace",
+       "What it means for your IFR route"
+      ],
+      "rows": [
+       [
+        "Prohibited area",
+        "Flight is prohibited [[33:190|AIM 3-4-2]]"
+       ],
+       [
+        "Restricted area (joint use)",
+        "Not active and released to the FAA: ATC lets you through. Active: ATC clears you around it [[33:190|AIM 3-4-3b]]"
+       ],
+       [
+        "MOA",
+        "ATC may clear you through if it can keep IFR separation. If not, ATC reroutes or restricts you [[33:191|AIM 3-4-5a]]"
+       ],
+       [
+        "Temporary restricted area or MOA",
+        "Not charted. Check Domestic Notices, the FAA SUA website or ATC [[33:190|AIM 3-4-1]]"
+       ],
+       [
+        "Random RNAV route",
+        "Plan to stay 3 NM from prohibited and restricted areas [[33:335|AIM 5-1-6d2]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Pilots are encouraged to file around SUA when it is scheduled to be active, to avoid surprise reroutes [[29:67|IPH 2-7]]."
+    },
+    {
+     "p": "**Preferred IFR routes** link busier airports. ATC issues clearances on these routes unless severe weather or other factors get in the way. They are listed in the Chart Supplement and on www.fly.faa.gov. If your airport is not listed, you may use the part of a preferred route that fits [[29:67|IPH 2-7]]. Where several routes are listed, they have equal priority [[29:68|IPH 2-8]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Filing a preferred route is to your advantage [[33:333|AIM 5-1-6b5]]. When pilots use them, there are fewer delays for everyone [[29:69|IPH 2-9]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You file direct between two busy airports that have a preferred IFR route. What should you expect?",
+    "a": "A clearance on the preferred route, since ATC issues clearances on these routes unless weather or other factors dictate otherwise [[29:67|IPH 2-7]]."
+   }
+  },
+  {
+   "title": "Picking your altitude",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.C.K2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Start with the minimum IFR altitudes from the last chunk. Then apply the cruising altitude rule. In controlled airspace, fly the altitude ATC assigns. With a VFR-on-top clearance, use the VFR altitudes of 91.159 [[60:480|14 CFR 91.179(a)]]. File airways that are established for the altitude you plan [[33:333|AIM 5-1-6b1]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Uncontrolled airspace, below 18,000 MSL",
+       "IFR cruising altitude"
+      ],
+      "rows": [
+       [
+        "Magnetic course 0° to 179°",
+        "Odd thousands: 3,000, 5,000, 7,000 [[60:481|14 CFR 91.179(b)(1)]]"
+       ],
+       [
+        "Magnetic course 180° to 359°",
+        "Even thousands: 2,000, 4,000, 6,000 [[60:481|14 CFR 91.179(b)(1)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "table": {
+      "head": [
+       "Factor",
+       "What to check"
+      ],
+      "rows": [
+       [
+        "Terrain and obstacles",
+        "MEA, MOCA, or 1,000 ft (2,000 ft mountainous) above obstacles within 4 NM off the airways [[60:480|14 CFR 91.177]]"
+       ],
+       [
+        "Glide distance",
+        "Glide ratio is distance traveled per altitude lost; 10 to 1 means 10,000 ft forward for 1,000 ft down [[24:82|AFH 3-21]]. Best glide speed gives the most distance [[24:83|AFH 3-22]]. More height gives more places to land"
+       ],
+       [
+        "Wind",
+        "Look for tailwinds. Flying west to east, the north side of a high or the south side of a low gives favorable winds [[1:291|PHAK 12-7]]"
+       ],
+       [
+        "Icing",
+        "Plan an exit: can you climb or descend, given terrain, airspace and route minimums? Ice hurts climb performance [[38:45|AC 91-74B 5-4a(2)-(3)]]"
+       ],
+       [
+        "Oxygen",
+        "Most people are impaired at about 10,000 ft, some as low as 5,000 ft [[1:291|PHAK 12-7]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "14 CFR 91.211: above 12,500 ft up to 14,000 ft cabin pressure altitude, the required crew must use oxygen for any time there beyond 30 minutes. Above 14,000 ft the crew uses it the whole time. Above 15,000 ft every occupant must be provided oxygen [[60:491|14 CFR 91.211(a)]]."
+     }
+    },
+    {
+     "p": "Glide example: 8,000 ft above the terrain with a 10:1 glide ratio gives 80,000 ft of distance. With 6,076 ft in a nautical mile [[1:398|PHAK 16-11]], that is about 13 NM."
+    }
+   ],
+   "check": {
+    "q": "IFR in Class G airspace below 18,000 ft, magnetic course 200°. Which fits: 5,000 or 6,000 ft?",
+    "a": "6,000 ft. Courses of 180° to 359° use even thousands [[60:481|14 CFR 91.179(b)(1)]]."
+   }
+  },
+  {
+   "title": "Destination and alternate airports",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.C.K1d",
+    "IR.I.C.K1h"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Your IFR flight plan must list an alternate unless both of these are true: the destination has a published instrument approach, and forecasts for at least 1 hour before to 1 hour after your ETA show a ceiling of at least 2,000 ft above the airport and visibility of at least 3 SM [[60:469|14 CFR 91.169(b)]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "The 1-2-3 rule: 1 hour either side of ETA, 2,000 ft ceiling, 3 SM visibility [[29:30|IPH 1-14]]. Miss any one of them and you need an alternate."
+     }
+    },
+    {
+     "p": "To list an airport as an alternate, the forecast at your ETA there must meet its alternate minimums. Use the minimums published for the approach. If none are published, use the standard ones [[60:470|14 CFR 91.169(c)(1)]]:"
+    },
+    {
+     "table": {
+      "head": [
+       "Alternate has",
+       "Forecast needed at ETA"
+      ],
+      "rows": [
+       [
+        "Precision approach (ILS)",
+        "Ceiling 600 ft, visibility 2 SM [[60:470|14 CFR 91.169(c)(1)]]"
+       ],
+       [
+        "Nonprecision approach (VOR, LOC, LNAV...)",
+        "Ceiling 800 ft, visibility 2 SM [[60:470|14 CFR 91.169(c)(1)]]"
+       ],
+       [
+        "No instrument approach",
+        "Weather that allows descent from the MEA, approach and landing under basic VFR [[60:470|14 CFR 91.169(c)(2)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "bullets": [
+      "An A in a triangle on the approach chart means nonstandard alternate minimums are listed in the front of the TPP. A with NA means the airport cannot be used as an alternate [[29:29|IPH 1-13]].",
+      "Common reasons for NA: the NAVAID is unmonitored or there is no weather reporting [[29:30|IPH 1-14]].",
+      "With a non-WAAS GPS, a required alternate must have an approach that does not need GPS, and you may not plan to use GPS in place of a DME, ADF or out-of-service VOR there. This limit does not apply to WAAS (TSO-C145 or C146) receivers [[33:118|AIM 1-2-3d]]."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "Your GPS",
+       "Planning a GPS approach at the alternate"
+      ],
+      "rows": [
+       [
+        "Non-WAAS (TSO-C129 or C196) with FDE (fault detection and exclusion), and a RAIM prediction",
+        "You may plan a GPS approach at the destination or the alternate, not both. At the alternate, plan with LNAV or circling minimums [[33:118|AIM 1-2-3d1]]. Otherwise the alternate needs a non-GPS approach [[33:118|AIM 1-2-3d2]]"
+       ],
+       [
+        "WAAS (TSO-C145 or C146)",
+        "Plan with the LNAV or circling minimums and nonprecision weather rules. On arrival you may use LPV or LNAV/VNAV if available [[33:105|AIM 1-1-18]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Some mountain airports (Bishop, South Lake Tahoe, Aspen) have all MDAs above 2,000 ft or visibility minimums above 3 miles. Plan an alternate even when the rule does not require one [[33:337|AIM 5-1-10]] [[33:338|AIM 5-1-10]]. In icing, pick an alternate with extra runway for higher approach speeds [[38:46|AC 91-74B 5-4a(4)]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Destination has an ILS. Forecast: 2,500 ft broken and 4 SM at ETA, then 1,800 ft overcast 45 minutes after ETA. Do you need an alternate?",
+    "a": "Yes. The ceiling drops below 2,000 ft within 1 hour after ETA [[60:469|14 CFR 91.169(b)]]."
+   }
+  },
+  {
+   "title": "Time, fuel and the navigation log",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.C.K3a",
+    "IR.I.C.K3b",
+    "IR.I.C.K3c",
+    "IR.I.C.S1",
+    "IR.I.C.S2"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Use the POH to find true airspeed, cruise power and fuel burn for the forecast temperature and cruise pressure altitude. Work out weight and balance and takeoff and landing distances. Then figure time en route and fuel with the winds aloft forecast, including the alternate [[23:320|IFH 10-29]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "In the IFH sample log, the trip is 228 NM. Fuel required is 51 gallons against 87 available. The alternate leg to Pensacola is 91 NM, 35 minutes and 18 gallons [[23:321|IFH 10-30]]."
+    },
+    {
+     "table": {
+      "head": [
+       "To find",
+       "How"
+      ],
+      "rows": [
+       [
+        "True airspeed",
+        "Correct calibrated airspeed for altitude and temperature. Rule of thumb: add 2% per 1,000 ft [[1:211|PHAK 8-9]]"
+       ],
+       [
+        "Time",
+        "Time = distance ÷ groundspeed [[1:398|PHAK 16-11]]. With wind, use groundspeed, not TAS [[1:399|PHAK 16-12]]"
+       ],
+       [
+        "Climb",
+        "Groundspeed is lower and fuel burn higher in the climb. Add taxi fuel too [[1:399|PHAK 16-12]]"
+       ],
+       [
+        "Climb rate for a DP gradient",
+        "Use the TPP rate of climb table: 297 ft/NM at 180 knots needs 892 fpm [[29:34|IPH 1-18]]. Shortcut: ft/NM × groundspeed ÷ 60, since groundspeed ÷ 60 is the NM you cover each minute (297 × 3 = 891, the table rounds to 892). A higher groundspeed needs a higher climb rate [[33:450|AIM 5-4-21b]]"
+       ],
+       [
+        "Descent",
+        "Normal en route descent targets 500 fpm [[24:82|AFH 3-21]]. Losing 4,000 ft takes about 8 minutes"
+       ],
+       [
+        "ETA in UTC",
+        "Add 5 hours to Eastern, 6 to Central, 7 to Mountain, 8 to Pacific Standard Time. In daylight time, subtract 1 hour from that [[33:234|AIM 4-2-12]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "14 CFR 91.167: carry enough fuel, considering weather reports and forecasts, to fly to the first airport of intended landing, then to the alternate, then 45 more minutes at normal cruising speed [[60:468|14 CFR 91.167(a)]] [[60:469|14 CFR 91.167(a)(2)]]. Fuel to the alternate is not needed when the destination has an instrument approach and the 1-2-3 conditions are met [[60:469|14 CFR 91.167(b)]]."
+     }
+    },
+    {
+     "p": "Example: 1:40 to the destination, 0:30 to the alternate and 0:45 reserve add up to 2:55, about 2.92 hours. At 11 GPH that is about 32 gallons, plus taxi and climb fuel."
+    },
+    {
+     "p": "En route, write the actual time at each fix [[23:323|IFH 10-32]]. If your groundspeed or route changes, redo the fuel plan. The go/no-go decision is reevaluated the whole flight [[23:321|IFH 10-30]]."
+    }
+   ],
+   "check": {
+    "q": "You depart at 1345 Eastern Daylight Time with an ETE of 2+10. What is your ETA in UTC?",
+    "a": "1555 EDT. Eastern is +5, minus 1 for daylight time, so +4: 1955Z [[33:234|AIM 4-2-12]]."
+   }
+  },
+  {
+   "title": "NOTAMs and the Chart Supplement",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.C.K1g",
+    "IR.I.C.K1f",
+    "IR.I.C.S6"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "NOTAMs carry time-critical or temporary information, or information that will be on the charts later [[33:324|AIM 5-1-3a]]. 14 CFR 91.103 makes you learn all available information, NOTAMs included. They can affect airports, runways, taxiways and ramps, obstructions, communications, airspace, NAVAIDs and radar [[33:324|AIM 5-1-3b]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Type",
+       "What it covers"
+      ],
+      "rows": [
+       [
+        "NOTAM (D)",
+        "NAVAIDs, public airports, taxiway closures, people or equipment near runways, and lighting aids that do not affect instrument approach criteria, such as VGSI. Starts with a keyword such as RWY, TWY, APRON, AD, OBST, NAV, COM, SVC or AIRSPACE [[33:325|AIM 5-1-3g1]] [[33:327|AIM TBL 5-1-1]]"
+       ],
+       [
+        "FDC NOTAM",
+        "Regulatory: amendments to approach procedures and charts, TFRs, high barometric pressure warnings, laser activity, ADS-B and FIS-B service, WAAS and GPS, special notices [[33:326|AIM 5-1-3g2]]"
+       ],
+       [
+        "ARTCC NOTAMs",
+        "For each Center: SUA, TFRs, GPS, FDC route changes, wind turbines, drones [[33:324|AIM 5-1-3c]] [[33:325|AIM 5-1-3c]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Reading one: !BNA BNA RWY 18/36 CLSD, followed by start and end times, means runway 18/36 at BNA is closed for that period [[33:327|AIM TBL 5-1-1]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "A briefer gives some NOTAMs only if you ask: Domestic and International Notices, airway NOTAMs, procedural NOTAMs and general ones such as flight restrictions and special flight rules areas [[33:322|AIM 5-1-1c]]."
+     }
+    },
+    {
+     "p": "In the IFH sample, NOTAMs showed the Gulfport localizer out of service and runway 18/36 closed [[23:319|IFH 10-28]]. The pilot planned for a straight-in landing on runway 14 and checked landing distance with a 10-knot crosswind [[23:320|IFH 10-29]], then flew the GPS runway 14 approach [[23:324|IFH 10-33]]. En route, ask ATC or FSS for a destination update, especially for an airport without a tower [[33:325|AIM 5-1-3d]]."
+    },
+    {
+     "p": "The Chart Supplement fills in what the chart cannot show: airport hours, fuel, runway widths and lighting codes [[34:199|AIM 9-1-4d2]], declared distances [[29:33|IPH 1-17]], VOR checkpoints, and FSS and Center frequencies [[23:293|IFH 10-2]]."
+    }
+   ],
+   "check": {
+    "q": "Which kind of NOTAM amends a published instrument approach procedure?",
+    "a": "An FDC NOTAM [[33:326|AIM 5-1-3g2]]."
+   }
+  },
+  {
+   "title": "Filling out and filing the IFR flight plan",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.C.K4",
+    "IR.I.C.S3"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "An IFR flight plan holds everything a VFR plan needs, plus an alternate when one is required [[60:469|14 CFR 91.169(a)]]. That is: aircraft ID, aircraft type, PIC name and address, departure point and time, route, cruising altitude, TAS at that altitude, first landing point and estimated time en route, fuel on board in hours, people on board, and anything else ATC needs [[60:464|14 CFR 91.153(a)]]."
+    },
+    {
+     "p": "Civil pilots file domestic IFR flights on FAA Form 7233-4, the international format. Only military users and civilians filing stereo routes use Form 7233-1 [[33:322|AIM 5-1-1b]] [[33:332|AIM 5-1-6a1]]. ATC issues clearances based on the capabilities in Items 10 and 18, so file every capability your airplane and you are certified, able and authorized to use [[33:332|AIM 5-1-6a4]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Item",
+       "What you enter"
+      ],
+      "rows": [
+       [
+        "7 Aircraft ID",
+        "Registration, such as N2567GA, up to 7 characters [[34:271|AIM App 4 d1]]"
+       ],
+       [
+        "8 Flight rules",
+        "I for IFR [[34:272|AIM App 4]]"
+       ],
+       [
+        "10a Radio, nav, approach",
+        "S = VHF radio, VOR and ILS. G = GNSS, with the augmentation in Item 18 (NAV/SBAS for WAAS). D = DME. R = PBN approved [[34:273|AIM TBL 4-2]] [[34:277|AIM App 4]]"
+       ],
+       [
+        "10b Surveillance",
+        "C = transponder with Mode C. ADS-B Out: B1 (1090 MHz) or U1 (UAT); B2 or U2 only if In is on the same frequency. Add SUR/A2 in Item 18 with any ADS-B code. N if none [[34:278|AIM App 4]] [[34:277|AIM App 4]]"
+       ],
+       [
+        "18 PBN/",
+        "Needed with R for RNAV SIDs and STARs (D2 for RNAV 1 with GPS) and T-routes (C2) [[34:280|AIM TBL 4-13]]"
+       ],
+       [
+        "Route",
+        "Airways with transition fixes, such as BWI V44 SWANN V433 DQO [[33:333|AIM 5-1-6b3]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Example: an airplane with VHF radios, VOR, ILS, a WAAS GPS, a Mode C transponder and UAT ADS-B Out files S and G in Item 10a, C and U1 in Item 10b, and NAV/SBAS and SUR/A2 in Item 18 [[34:277|AIM App 4]] [[34:278|AIM App 4]]. Items 10a and 10b are written with a slash between them, as in the AIM example ADE3RV/HB2U2V2G1 [[34:274|AIM TBL 4-3]], so this one reads SG/CU1. To fly T-routes or RNAV SIDs and STARs it would also need R in Item 10a and PBN/C2 or D2 in Item 18 [[34:280|AIM TBL 4-13]]."
+     }
+    },
+    {
+     "bullets": [
+      "File at least 30 minutes before departure to avoid delays [[33:332|AIM 5-1-6a6]].",
+      "Do not file a second plan for the same flight until the first one is removed [[33:333|AIM 5-1-6a11]].",
+      "Changing airways at an unnamed intersection? Name the next NAVAID or named intersection [[33:333|AIM 5-1-6b2]].",
+      "Do not want an RNAV SID or STAR? Enter NAV/RNV A0 and/or D0 in Item 18 [[33:334|AIM 5-1-6b]].",
+      "VFR for part of the trip? File separate VFR and IFR flight plans [[34:272|AIM App 4]] [[33:337|AIM 5-1-9]]."
+     ]
+    }
+   ],
+   "check": {
+    "q": "What does the letter S in Item 10a tell ATC?",
+    "a": "That VHF radio, VOR and ILS for the route are carried and working [[34:277|AIM App 4]]."
+   }
+  },
+  {
+   "title": "Opening and closing the IFR flight plan",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.C.K5"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "You may not fly IFR in controlled airspace without a filed IFR flight plan and an ATC clearance [[60:471|14 CFR 91.173]]. If the weather is below VFR minimums, you need both before departing in, or entering, controlled airspace [[33:332|AIM 5-1-6a5]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Situation",
+       "Opening it",
+       "Closing it"
+      ],
+      "rows": [
+       [
+        "Towered airport",
+        "Call clearance delivery or ground with call sign, location, IFR and destination [[33:347|AIM 5-2-6h2]]. 'As filed' does not include your altitude; ATC states it or tells you when to expect it [[33:346|AIM 5-2-6f]]",
+        "Landing at a towered airport closes it automatically [[33:340|AIM 5-1-15e]]"
+       ],
+       [
+        "Airport without a tower",
+        "ATC gives a release with a void time, or a hold for release [[33:347|AIM 5-2-7a]]. Get the clearance before takeoff when you can talk to ATC [[33:348|AIM 5-2-7b]]",
+        "You must cancel: after landing by radio, FSS or phone, or in the air in VFR if you will lose contact lower down [[33:340|AIM 5-1-15f]]"
+       ],
+       [
+        "Already airborne VFR",
+        "Ask for the IFR clearance well before the fix where IFR begins [[33:347|AIM 5-2-6h5]], or file in flight with FSS or Center [[23:293|IFH 10-2]]",
+        "In VFR conditions outside Class A, say 'Cancel my IFR flight plan' [[33:339|AIM 5-1-15b]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Not off by the void time? Tell ATC your intentions as soon as possible, within the time ATC gives you (never more than 30 minutes), or search and rescue starts [[33:347|AIM 5-2-7a1]]. Taking off at or after the void time gives you no IFR separation and may violate 14 CFR 91.173 [[33:348|AIM 5-2-7a1]]."
+     }
+    },
+    {
+     "bullets": [
+      "After you cancel, radar and separation services stop. Ask for VFR advisories if you want them [[33:339|AIM 5-1-15c]].",
+      "Most Centers delete plans never activated at least 2 hours after the proposed departure time. Delayed 2 hours or more? Tell ATC [[33:339|AIM 5-1-13]].",
+      "Tell ATC if your TAS will differ from the filed TAS by 5 percent or 10 knots, whichever is greater [[33:339|AIM 5-1-12a]].",
+      "Changes 46 minutes or less before departure go through ATC or FSS [[33:339|AIM 5-1-12b]].",
+      "When you cancel or finish the flight, notify FSS or ATC [[60:470|14 CFR 91.169(d)]]."
+     ]
+    }
+   ],
+   "check": {
+    "q": "You land on an IFR flight plan at an airport with no tower and no radio contact on the ground. What must you do?",
+    "a": "Cancel it yourself, by phone or another way after landing, or cancel in the air while still in VFR and in contact [[33:340|AIM 5-1-15f]]."
+   }
+  },
+  {
+   "title": "Airframe icing: spot it, know what it does, act",
+   "kind": "skills",
+   "codes": [
+    "IR.I.C.S5",
+    "IR.I.C.R3"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Icing is one of the greatest hazards to flight. Coping with it starts in preflight planning and with an airplane free of ice and frost before takeoff [[23:90|IFH 4-13]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "A small amount of ice can cut maximum lift by 30 percent and make the wing stall at a lower angle of attack. Drag can double [[23:92|IFH 4-15]]. Even a thin, rough layer on the leading edge raises stall speed [[23:92|IFH 4-15]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Phase",
+       "The danger",
+       "What you do"
+      ],
+      "rows": [
+       [
+        "Before takeoff",
+        "Even very small amounts of frost, snow or ice hurt the wing [[38:46|AC 91-74B 5-4a(9)]]. Wet snow may not blow off and may hide ice [[38:47|AC 91-74B 5-4b(4)]]",
+        "Remove all of it. A heated hangar works, but dry the airplane before it goes out [[38:46|AC 91-74B 5-4a(9)]]. Check the controls move freely, plus pitot heat and stall warning [[38:47|AC 91-74B 5-4b(4)]]"
+       ],
+       [
+        "Takeoff and climb",
+        "Slow speed and high angle of attack let ice form farther back, out of sight [[38:48|AC 91-74B 5-6b]]",
+        "Pitot heat on, airspeed checked [[38:47|AC 91-74B 5-6a]]. Watch airspeed. No vertical speed mode climbs on the autopilot [[38:48|AC 91-74B 5-6c]]"
+       ],
+       [
+        "Cruise",
+        "Drag grows. In many events airspeed fell from cruise to stall in under 3 minutes [[38:48|AC 91-74B 5-7a]]",
+        "Exit by changing altitude or route. Keep at least 50 to 60 percent above stall speed. Treat buffet as a stall about to happen [[38:48|AC 91-74B 5-7]]"
+       ],
+       [
+        "Approach and landing",
+        "Most icing accidents happen here. Flaps can stall an iced tail [[38:51|AC 91-74B 5-10d]] [[23:92|IFH 4-15]]",
+        "Lower flaps in stages and watch the airplane [[38:50|AC 91-74B 5-10a]]. Expect a faster approach and longer landing [[38:46|AC 91-74B 5-4a(4)]] and poor directional control from ice on the gear [[38:51|AC 91-74B 5-10a(3)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Airplane not certificated for icing? Avoid it, and exit right away if you meet it [[38:32|AC 91-74B 3-13b]]. Declare an emergency to ATC and say what you are doing [[38:44|AC 91-74B 5-2b]]. Do not believe that thick GA wings tolerate ice [[38:32|AC 91-74B 3-13b(2)]]."
+     }
+    },
+    {
+     "p": "Your tail collects ice better than the wing because it is thinner [[23:90|IFH 4-13]], and on most airplanes you cannot see it [[23:92|IFH 4-15]]. Small, narrow parts ice up first, so a small part you can see works as an ice evidence probe [[23:90|IFH 4-13]]."
+    }
+   ],
+   "check": {
+    "q": "The examiner points to a thin layer of frost on the upper wing. Can you go if it is only light?",
+    "a": "No. Remove all frost, snow and ice; even very small amounts hurt the wing [[38:46|AC 91-74B 5-4a(9)]]."
+   }
+  },
+  {
+   "title": "Fly it step by step: plan, present and file",
+   "kind": "skills",
+   "codes": [
+    "IR.I.C.S1",
+    "IR.I.C.S2",
+    "IR.I.C.S3",
+    "IR.I.C.S4",
+    "IR.I.C.S6",
+    "IR.I.C.K1"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "**The IFH sequence, adapted to the checkride:**"
+    },
+    {
+     "bullets": [
+      "1. The evening before, look at the forecast and gather current charts, procedures, GPS database, Chart Supplement and POH. Think about your recent experience, proficiency, fitness and personal minimums [[23:319|IFH 10-28]].",
+      "2. Check the Chart Supplement for the airports and any preferred routing. Review the DPs, STARs and approach charts [[23:319|IFH 10-28]].",
+      "3. Review the en route charts, paying close attention to MEAs and MOCAs. Choose route and altitude. IFH example: Birmingham Three Departure to Brookwood, V209 to Kewanee, then direct Gulfport by GPS at 4,000 ft [[23:319|IFH 10-28]].",
+      "4. Get a briefing with NOTAMs and TFRs along the route [[23:319|IFH 10-28]].",
+      "5. Start the navigation log: each fix, distances, frequencies and altitudes [[23:319|IFH 10-28]].",
+      "6. From the POH: TAS, power setting, fuel burn, weight and balance, takeoff and landing distances. Figure time and fuel with the winds and the alternate [[23:320|IFH 10-29]].",
+      "7. Complete the flight plan, get an updated briefing, then file [[23:320|IFH 10-29]].",
+      "8. Check you can meet any DP climb gradient with the rate of climb table [[29:34|IPH 1-18]]. Set up radios for the departure [[23:322|IFH 10-31]].",
+      "9. Present your risk analysis (next chunk) and your go/no-go call.",
+      "10. In flight, log the time at each fix and redo time and fuel as things change [[23:323|IFH 10-32]] [[23:321|IFH 10-30]]."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "Examiner may ask",
+       "Be ready to show"
+      ],
+      "rows": [
+       [
+        "Why this route?",
+        "Preferred route, NAVAID coverage or GPS, SUA, MEAs and terrain [[29:67|IPH 2-7]] [[60:480|14 CFR 91.177]]"
+       ],
+       [
+        "Why this altitude?",
+        "MEA or off-route minimum, winds, icing exit, oxygen [[60:491|14 CFR 91.211]] [[38:45|AC 91-74B 5-4a(3)]]"
+       ],
+       [
+        "Need an alternate? Does it qualify?",
+        "1-2-3 rule, then 600-2 or 800-2 or published minimums [[60:469|14 CFR 91.169(b)]] [[60:470|14 CFR 91.169(c)]]"
+       ],
+       [
+        "New wind or new alternate: still legal?",
+        "Destination + alternate + 45 minutes, recomputed [[60:468|14 CFR 91.167(a)]]"
+       ],
+       [
+        "What do these numbers mean?",
+        "Every MEA, MOCA, MCA and changeover point on your route [[2:83|Chart Users' Guide p 83]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "A computer-generated flight plan is acceptable on the checkride, but you must explain it (ACS IR.I.C note). Check the app's numbers against your own work [[42:4|AC 91-78A 11.2]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "The examiner adds a 20-knot stronger headwind. What do you redo first?",
+    "a": "Groundspeed, time en route and fuel, then check you still have destination plus alternate plus 45 minutes [[1:399|PHAK 16-12]] [[60:468|14 CFR 91.167(a)]]."
+   }
+  },
+  {
+   "title": "Risk: PAVE, ATC and app limits, and fuel",
+   "kind": "risk",
+   "codes": [
+    "IR.I.C.R1",
+    "IR.I.C.R2",
+    "IR.I.C.R3",
+    "IR.I.C.R4",
+    "IR.I.C.R5",
+    "IR.I.C.R6",
+    "IR.I.C.R7"
+   ],
+   "minutes": 9,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "PAVE",
+       "IFR cross-country hazards"
+      ],
+      "rows": [
+       [
+        "Pilot",
+        "Rating, currency and real proficiency: six approaches five months ago may not be enough for low ceilings [[30:22|RMH 3-4]] [[30:23|RMH 3-5]]. Run IMSAFE: illness, medication, stress, alcohol, fatigue, emotion [[30:23|RMH 3-5]]"
+       ],
+       [
+        "Aircraft",
+        "Fuel and range, climb performance, payload, weight and balance [[30:24|RMH 3-6]]. One radio, no autopilot or inoperative equipment in IMC [[30:24|RMH 3-6]] [[30:25|RMH 3-7]]"
+       ],
+       [
+        "Environment",
+        "Thunderstorms, icing, low ceilings, terrain, approach aids and lighting, restricted airspace [[30:25|RMH 3-7]] [[30:26|RMH 3-8]]"
+       ],
+       [
+        "External pressures",
+        "A family event, a meeting, not wanting to let someone down. These make pilots ignore the other three [[30:26|RMH 3-8]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Limits of ATC services.** ATC does not separate you outside controlled airspace, on VFR-on-top, or in VFR conditions from VFR traffic [[23:295|IFH 10-4]]. Radar vectors do not take away your responsibility; question a controller when safety is in doubt [[29:67|IPH 2-7]]. Off-route obstacle clearance outside radar is yours [[33:335|AIM 5-1-6c7]]. Controllers do not know if your airplane can handle ice [[38:44|AC 91-74B 5-2b]]. Busy frequencies may not take a flight plan by radio [[33:333|AIM 5-1-6a9]], and reroutes or holding burn extra fuel [[30:26|RMH 3-8]]."
+    },
+    {
+     "p": "**Limits of apps and electronic planning.** You must verify that the information is current and valid [[42:3|AC 91-78A 9.1]]. Train to cross-check what you type in and what the app computes [[42:4|AC 91-78A 11.2]]. Some weather products leave out icing; check they include what your airplane and route need [[38:45|AC 91-74B 5-3f]]. An app that refiles can leave two flight plans in the system, which is unsafe [[33:333|AIM 5-1-6a11]]."
+    },
+    {
+     "p": "**Fuel planning.** Fuel-related accidents come from poor planning, stretching range and not stopping for fuel [[30:22|RMH 3-4]]. Airplanes often miss book speeds and fuel burn [[30:24|RMH 3-6]]. Icing equipment, ice drag and extra power use more fuel [[38:46|AC 91-74B 5-4a(8)]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "If the weather is below your personal minimums, delaying the departure is a good decision. Use the time to finish the navigation log [[23:320|IFH 10-29]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Name two things ATC will not do for you on an IFR flight plan.",
+    "a": "Separate you from VFR traffic in VFR conditions, and guarantee obstacle clearance on off-route segments outside radar [[23:295|IFH 10-4]] [[33:335|AIM 5-1-6c7]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "IR.I.C-1.jpg",
+   "res": "2",
+   "page": 84,
+   "caption": "Chart Users' Guide: Enroute Chart Examples, Low Enroute Chart.",
+   "alt": "IFR low altitude en route chart excerpt around Dubois, Idaho Falls and Jackson Hole, with Victor airways V298, V520, V330, V465 and V328 in black, RNAV T-route segments in blue, VOR compass roses, MEA and MOCA numbers on the airways, MCA and MTA notes in boxes near DBS and JAC, large tan OROCA numbers in quadrants, and red numbered callouts 1 to 6.",
+   "source": "Chart Guide, PDF p. 84"
+  },
+  "f2": {
+   "file": "IR.I.C-2.jpg",
+   "res": "2",
+   "page": 83,
+   "caption": "Chart Users' Guide: IFR Enroute Symbology, Minimum Enroute Altitude (MEA), MEA Gap, Maximum Authorized Altitude (MAA) and Minimum Obstruction Clearance Altitude (MOCA).",
+   "alt": "Legend table showing MEA numbers in black for VHF, brown for LF/MF and blue with a G for RNAV; a directional MEA example with arrows 13000 and 10000 and *8100; an MEA gap on V465; MAA-00000 labels; and MOCA numbers preceded by an asterisk.",
+   "source": "Chart Guide, PDF p. 83"
+  },
+  "f3": {
+   "file": "IR.I.C-3.jpg",
+   "res": "29",
+   "page": 96,
+   "caption": "Figure 2-58. Minimum obstacle clearance altitude (MOCA).",
+   "alt": "En route chart excerpt of V6 near Reno with 10000 above a highlighted *9500, labeled minimum obstacle clearance altitude, plus the Oakland Center frequency box, NICER and WADDS fixes and V32 with an MEA of 8000.",
+   "source": "IPH, PDF p. 96"
+  },
+  "f4": {
+   "file": "IR.I.C-4.jpg",
+   "res": "29",
+   "page": 68,
+   "caption": "Figure 2-15 Preferred IFR routes.",
+   "alt": "Chart Supplement table titled Preferred IFR Routes listing terminals such as Trenton, Baltimore and Boston Metro Area, route strings of airways and fixes like V14 CEDOR DNY051 for non-turbojet or turbojet aircraft, and effective times in UTC.",
+   "source": "IPH, PDF p. 68"
+  },
+  "f5": {
+   "file": "IR.I.C-5.jpg",
+   "res": "29",
+   "page": 29,
+   "caption": "Figure 1-13. Examples of IFR alternate minimums.",
+   "alt": "Sample IFR Alternate Airport Minimums page from the front of a TPP with a black triangle A symbol, an inset of the Cortez RNAV (GPS) Y RWY 21 chart showing the triangle A, and highlighted callouts for the city and state, the airport and approach, and the other-than-standard alternate minimums such as Category D 900-3.",
+   "source": "IPH, PDF p. 29"
+  },
+  "f6": {
+   "file": "IR.I.C-6.jpg",
+   "res": "23",
+   "page": 321,
+   "caption": "Figure 10-19. Navigation log.",
+   "alt": "Filled-in IFR flight log: takeoff 1600, total distance 228, fuel required 51 gal, available 87 gal; legs to Brookwood, Kewanee, Mindo and the approach with identifiers, frequencies, magnetic courses, leg and remaining distances, ETEs, ETAs, altitude 4000, groundspeeds and fuel per leg; an alternate line to Pensacola 91 NM, 35 minutes, 18 gal; and a blank ATIS section.",
+   "source": "IFH, PDF p. 321"
+  },
+  "f7": {
+   "file": "IR.I.C-7.jpg",
+   "res": "23",
+   "page": 92,
+   "caption": "Figure 4-21. Effect of ice and frost on lift.",
+   "alt": "Two wing sections, one with upper surface frost and one with leading edge ice, above a graph of lift coefficient versus angle of attack: the clean wing reaches the highest CL-max, the wing with frost peaks lower near takeoff CL, and the wing with ice peaks much lower at a smaller angle of attack.",
+   "source": "IFH, PDF p. 92"
+  }
+ },
+ "scenario": {
+  "title": "A direct route, a dinner deadline and a low freezing level",
+  "codes": [
+   "IR.I.C.R1",
+   "IR.I.C.R2",
+   "IR.I.C.R3",
+   "IR.I.C.R4",
+   "IR.I.C.R5",
+   "IR.I.C.R6",
+   "IR.I.C.R7",
+   "IR.I.C.K1d",
+   "IR.I.C.K2",
+   "IR.I.C.K3c",
+   "IR.I.C.K5",
+   "IR.I.C.S5"
+  ],
+  "setup": "You plan a 240 NM IFR trip in a single-engine airplane with a WAAS GPS, one VOR receiver and an autopilot. It is not certificated for flight in icing. Your app drew a GPS-direct route at 5,000 ft, which matches the OROCA, across Class G airspace with no radar. The destination forecast for your ETA is 1,400 ft overcast and 4 SM in mist, improving to 2,500 ft broken two hours later. The freezing level is 6,000 ft and tops are near 7,000 ft. Planned time en route is 1+50 at 11 GPH, with 64 gallons usable. You will depart from an airport without a tower. Your two passengers have a 1700 dinner reservation, and you have been up since 0500.",
+  "questions": [
+   {
+    "q": "Is the app's direct route at 5,000 ft acceptable?",
+    "a": "No. An OROCA is not an acceptable altitude for random RNAV direct flights [[29:87|IPH 2-27]], and off-route obstacle clearance outside radar is your job [[33:335|AIM 5-1-6c7]]. Plan at least 1,000 ft (2,000 ft mountainous) above obstacles within 4 NM [[60:480|14 CFR 91.177(a)(2)]], or file airways or T-routes with published MEAs."
+   },
+   {
+    "q": "Do you need an alternate, and what makes one qualify?",
+    "a": "Yes. The ceiling is below 2,000 ft within an hour of ETA [[60:469|14 CFR 91.169(b)]]. The alternate's ETA forecast must meet its published minimums, or 600-2 for a precision and 800-2 for a nonprecision approach [[60:470|14 CFR 91.169(c)(1)]]. With WAAS, plan on its LNAV or circling minimums [[33:105|AIM 1-1-18]]."
+   },
+   {
+    "q": "Headwinds raise the time en route to 2+15, and the alternate is 35 minutes away. Is 64 gallons enough?",
+    "a": "Required: 2:15 + 0:35 + 0:45 = 3:35, about 3.58 hours, × 11 GPH = about 39.4 gallons plus taxi and climb [[60:468|14 CFR 91.167(a)]]. 64 gallons is legal, but keep the extra for reroutes and holding [[30:26|RMH 3-8]]."
+   },
+   {
+    "q": "How do the freezing level and tops affect your altitude and plan?",
+    "a": "Plan an altitude below the freezing level that still meets minimum altitudes, and an exit plan if you pick up ice [[38:45|AC 91-74B 5-4a(3)]]. In this airplane, avoid icing; if you meet it, exit right away and declare an emergency [[38:32|AC 91-74B 3-13b]] [[38:44|AC 91-74B 5-2b]]."
+   },
+   {
+    "q": "Which PAVE hazards are you carrying before you start the engine?",
+    "a": "Pilot: fatigue from a long day [[30:23|RMH 3-5]]. External pressure: the dinner deadline, which can make you ignore the other hazards [[30:26|RMH 3-8]]. If conditions are below your personal minimums, delay [[23:320|IFH 10-29]]."
+   },
+   {
+    "q": "Center gives you a clearance void if not off by 1430Z. At 1425 you are still fixing a rough magneto. What now?",
+    "a": "Do not depart on that clearance. Tell ATC your intentions as soon as possible and within the time given (30 minutes at most), or search and rescue starts [[33:347|AIM 5-2-7a1]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "IR.I.C.S1",
+   "do": "Prepare, present and explain the cross-country the examiner assigns, with a risk analysis from real-time weather: time en route and fuel from power setting, altitude, wind, fuel reserves, and weight and balance. A computer-generated plan is fine if you can explain it (ACS IR.I.C note).",
+   "practice": "Plan the IFH Birmingham to Gulfport trip yourself and compare with the navigation log [[23:321|IFH 10-30]]. Then plan a real trip from your airport using the POH for TAS, fuel and weight and balance [[23:320|IFH 10-29]]."
+  },
+  {
+   "code": "IR.I.C.S2",
+   "do": "Recalculate fuel reserves when the examiner changes the scenario: stronger wind, a new alternate, holding or a reroute.",
+   "practice": "Add destination time, alternate time and 45 minutes, then multiply by fuel burn [[60:468|14 CFR 91.167(a)]]. Have your instructor change one item at a time and redo it out loud."
+  },
+  {
+   "code": "IR.I.C.S3",
+   "do": "Build a navigation plan and simulate filing an IFR flight plan on FAA Form 7233-4 with a correct route and equipment codes.",
+   "practice": "Write route strings in AIM style [[33:333|AIM 5-1-6b3]]. Work out your training airplane's Item 10 and Item 18 codes from AIM Appendix 4 [[34:277|AIM App 4]] [[34:278|AIM App 4]]."
+  },
+  {
+   "code": "IR.I.C.S4",
+   "do": "Interpret departure, arrival, en route and approach procedures on current charts.",
+   "practice": "Explain every number in the Chart Users' Guide low en route example [[2:85|Chart Users' Guide p 85]] [[2:86|Chart Users' Guide p 86]]. Check a DP climb gradient against your climb rate with the TPP table [[29:34|IPH 1-18]]."
+  },
+  {
+   "code": "IR.I.C.S5",
+   "do": "Recognize simulated wing contamination and explain the effects of airframe icing before takeoff, on takeoff, in cruise and on landing, plus the corrective actions.",
+   "practice": "Walk around the airplane and point to where frost and ice collect, including the tail [[23:92|IFH 4-15]]. Explain each phase from AC 91-74B in your own words [[38:46|AC 91-74B 5-4a(9)]] [[38:48|AC 91-74B 5-7a]] [[38:50|AC 91-74B 5-10a]]."
+  },
+  {
+   "code": "IR.I.C.S6",
+   "do": "Apply current charts, the Chart Supplement, NOTAMs (including airport, runway and taxiway closures) and other publications to your plan.",
+   "practice": "Pull every NOTAM for your route, and ask for airway and procedural NOTAMs if you use a briefer [[33:322|AIM 5-1-1c]]. Decode them with the keyword table [[33:327|AIM TBL 5-1-1]] and change your plan to match."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "You navigate by VOR on an airway with an MEA of 8,000 ft and a MOCA of *6,500 ft. You are 30 NM from the VOR. What is the lowest altitude you may fly?",
+   "options": [
+    "6,500 ft",
+    "8,000 ft",
+    "7,500 ft",
+    "7,000 ft"
+   ],
+   "answer": 1,
+   "why": "Below the MEA down to the MOCA is allowed only within 22 NM of the VOR [[60:480|14 CFR 91.177(a)(1)]]. At 30 NM the MEA applies."
+  },
+  {
+   "q": "In a non-mountainous area, how much clearance does an OROCA give above the highest terrain or obstruction in its quadrant?",
+   "options": [
+    "2,000 ft",
+    "500 ft",
+    "1,500 ft",
+    "1,000 ft"
+   ],
+   "answer": 3,
+   "why": "1,000 ft in non-mountainous areas; 2,000 ft is for designated mountainous areas [[2:71|Chart Users' Guide p 71]]."
+  },
+  {
+   "q": "The destination has an ILS. From 1 hour before to 1 hour after ETA the forecast is ceiling 2,200 ft and visibility 2 SM. Do you need an alternate?",
+   "options": [
+    "No, the ceiling is above 2,000 ft",
+    "Yes, the visibility is below 3 SM",
+    "No, because the airport has an ILS",
+    "Only if the flight is at night"
+   ],
+   "answer": 1,
+   "why": "You skip the alternate only if the ceiling is at least 2,000 ft and the visibility at least 3 SM [[60:469|14 CFR 91.169(b)]]. 2 SM fails the rule."
+  },
+  {
+   "q": "Your planned alternate has only a VOR approach with standard alternate minimums. What forecast do you need there at your ETA?",
+   "options": [
+    "Ceiling 600 ft, visibility 2 SM",
+    "Ceiling 1,000 ft, visibility 3 SM",
+    "Ceiling 800 ft, visibility 2 SM",
+    "Ceiling 2,000 ft, visibility 3 SM"
+   ],
+   "answer": 2,
+   "why": "A VOR approach is nonprecision: 800 ft and 2 SM. 600-2 is for precision approaches [[60:470|14 CFR 91.169(c)(1)]]."
+  },
+  {
+   "q": "After you reach the alternate, how much more fuel does 14 CFR 91.167 require in an airplane?",
+   "options": [
+    "45 minutes at normal cruising speed",
+    "30 minutes at normal cruising speed",
+    "1 hour at normal cruising speed",
+    "45 minutes at best economy power"
+   ],
+   "answer": 0,
+   "why": "45 minutes at normal cruising speed [[60:469|14 CFR 91.167(a)(3)]]. 30 minutes is the day VFR rule."
+  },
+  {
+   "q": "Which single letter in Item 10a means VHF radio, VOR and ILS are carried and working?",
+   "options": [
+    "G",
+    "N",
+    "V",
+    "S"
+   ],
+   "answer": 3,
+   "why": "S means standard equipment: VHF radio, VOR and ILS [[34:277|AIM App 4]]. G is GNSS and N means no equipment [[34:273|AIM TBL 4-2]]."
+  },
+  {
+   "q": "Off the airways below 18,000 ft MSL, how far apart should the VORs that define a direct route be, at most?",
+   "options": [
+    "40 NM",
+    "130 NM",
+    "80 NM",
+    "200 NM"
+   ],
+   "answer": 2,
+   "why": "Use aids no more than 80 NM apart below 18,000 ft MSL off established airways [[33:334|AIM 5-1-6c3]]."
+  },
+  {
+   "q": "You fly IFR to an airport with no operating control tower. Who closes the IFR flight plan?",
+   "options": [
+    "The nearest tower, automatically",
+    "You do, after landing or in the air while in VFR conditions",
+    "Center, when you leave its radar",
+    "Nobody; it closes 30 minutes after your ETA"
+   ],
+   "answer": 1,
+   "why": "At an airport without a tower, the pilot must cancel, after landing or in the air if VFR [[33:340|AIM 5-1-15f]]. Only a towered landing closes it automatically [[33:340|AIM 5-1-15e]]."
+  },
+  {
+   "q": "Which kind of NOTAM would tell you a published ILS approach has been amended?",
+   "options": [
+    "Pointer NOTAM",
+    "NOTAM (D)",
+    "Military NOTAM",
+    "FDC NOTAM"
+   ],
+   "answer": 3,
+   "why": "FDC NOTAMs carry regulatory information, including amendments to published IAPs and charts [[33:326|AIM 5-1-3g2]]."
+  },
+  {
+   "q": "On preflight you find a light layer of frost on top of the wing. What does AC 91-74B say?",
+   "options": [
+    "Remove all of it; even small amounts can hurt the wing's aerodynamics",
+    "Light frost is fine because it blows off on the takeoff roll",
+    "Add 10 knots to rotation speed instead",
+    "Remove it only if you will enter clouds"
+   ],
+   "answer": 0,
+   "why": "Remove all frost, snow and ice; even very small amounts may hurt the wing [[38:46|AC 91-74B 5-4a(9)]]. Do not assume anything blows off [[38:47|AC 91-74B 5-4b(4)]]."
+  }
+ ],
+ "takeaways": [
+  "Plan with current charts, Chart Supplement, TPP and NOTAMs, and ask for the NOTAMs a briefing may skip.",
+  "MEA covers signal and obstacles; MOCA covers obstacles, with signal only within 22 NM; OROCA is for awareness, not random direct routes.",
+  "You need an alternate unless 1-2-3 is met. It qualifies at 600-2 precision or 800-2 nonprecision unless the chart says otherwise.",
+  "IFR fuel: destination, then alternate, then 45 minutes at normal cruise. Redo it whenever something changes.",
+  "File Form 7233-4 at least 30 minutes early with an accurate route and Item 10 and 18 codes.",
+  "A towered landing closes your IFR plan; anywhere else, you cancel. Respect void times.",
+  "Run PAVE. Do not let a deadline, ATC or an app make the decision for you."
+ ],
+ "cfi_notes": [
+  "IFH Chapter 10 is dated. It names DUATS, the A/FD (now the Chart Supplement, AIM 9-1-4d), the NTAP and FAA Form 7233-1, and its sample plan in Figure 10-20 uses the old C182/G suffix [[23:293|IFH 10-2]] [[23:322|IFH 10-31]]. Current AIM: civil domestic IFR flights use Form 7233-4 with Item 10 and 18 codes [[33:322|AIM 5-1-1b]] [[34:270|AIM App 4]].",
+  "IPH 1-14 says an alternate is required if the ceiling is less than 2,000 ft 'and' the visibility is less than 3 SM [[29:30|IPH 1-14]]. Teach the CFR: you skip the alternate only if both are met, so either one short requires an alternate [[60:469|14 CFR 91.169(b)]]. IPH 1-13 also says GPS is never a substitute for DME or ADF at an alternate [[29:29|IPH 1-13]]; the current AIM lifts that limit for WAAS receivers [[33:118|AIM 1-2-3d]].",
+  "Students mix up the two alternate questions. First: do I need one (1-2-3)? Second: does this airport qualify (600-2, 800-2, published minimums or NA)? Examiners commonly probe the difference.",
+  "Drill the 22 NM MOCA rule and the OROCA limit with real chart excerpts. Students often treat the OROCA as an MEA for GPS-direct routes [[29:87|IPH 2-27]].",
+  "Have the student build one navigation log and fuel plan by hand before using an app, then compare. This prepares them for the app limits the ACS asks about [[42:4|AC 91-78A 11.2]].",
+  "Have the student code the training airplane's actual equipment for Items 10a, 10b and 18. Many file only G and forget the transponder code, the ADS-B code and its SUR/A2 entry in Item 18 [[34:277|AIM App 4]] [[34:278|AIM App 4]].",
+  "AC 91-74B (2015) still refers to Flight Watch, TWEB and the Airport/Facility Directory [[38:44|AC 91-74B 5-3]]. Teach the in-flight weather sources named in the current AIM and AC 91-92 instead.",
+  "Most training airplanes are not certificated for icing. Make the student say the plan out loud: avoid it, exit at once, declare an emergency [[38:44|AC 91-74B 5-2b]]."
+ ],
+ "gaps": [
+  "The Chart Supplement, the TPP and real IFR en route charts are not among the sources. The lesson teaches their content from the AIM, IPH and Chart Users' Guide; students must practice with current published editions.",
+  "No source gives a common-errors list for IFR cross-country planning, so this lesson has no Common errors chunk.",
+  "TAS, fuel burn, climb performance and weight and balance for the training airplane come from its POH, which is not a source here.",
+  "Ground deicing fluids and holdover times for small airplanes (AC 135-17, referenced in AC 91-74B) are not in the sources.",
+  "Winds aloft forecast products used to pick an altitude are not covered in detail here; see the Aviation Weather Handbook lesson for them."
+ ],
+ "activities": [
+  {
+   "type": "match",
+   "key": "h1",
+   "after": 2,
+   "title": "Name that en route altitude",
+   "intro": "Tap an altitude, then the meaning that fits it.",
+   "pairs": [
+    {
+     "l": "MEA",
+     "r": "Signal coverage and obstacle clearance between fixes"
+    },
+    {
+     "l": "MOCA",
+     "r": "Obstacle clearance; signal only within 22 NM of the VOR"
+    },
+    {
+     "l": "MRA",
+     "r": "Lowest altitude to identify a fix"
+    },
+    {
+     "l": "MCA",
+     "r": "Lowest altitude to cross a fix toward a higher MEA"
+    },
+    {
+     "l": "MAA",
+     "r": "Highest usable altitude on the segment"
+    },
+    {
+     "l": "MTA",
+     "r": "Altitude needed to turn at certain fixes"
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h2",
+   "after": 3,
+   "title": "Read the en route chart",
+   "figure": "f1",
+   "intro": "Drag each name to its numbered pin. The chart's own small red callout numbers are part of the FAA figure; use the round game pins.",
+   "pins": [
+    {
+     "x": 50.3,
+     "y": 26.0,
+     "label": "MEA"
+    },
+    {
+     "x": 34.5,
+     "y": 23.9,
+     "label": "MOCA"
+    },
+    {
+     "x": 29.3,
+     "y": 75.5,
+     "label": "Changeover point"
+    },
+    {
+     "x": 43.7,
+     "y": 36.9,
+     "label": "Victor airway"
+    },
+    {
+     "x": 36.9,
+     "y": 10.9,
+     "label": "RNAV T-route"
+    },
+    {
+     "x": 63.6,
+     "y": 14.2,
+     "label": "OROCA"
+    }
+   ],
+   "why": "Airway altitudes are printed along the airway; a MOCA has an asterisk in front [[2:69|Chart Users' Guide p 69]]. A changeover point that is not at the midpoint is charted with the mileage to each NAVAID [[2:83|Chart Users' Guide p 83]]. Victor airways are black and start with V [[2:68|Chart Users' Guide p 68]]; T-routes are blue [[2:70|Chart Users' Guide p 70]]. The large OROCA number sits in each one-degree quadrant [[2:71|Chart Users' Guide p 71]]."
+  },
+  {
+   "type": "sort",
+   "key": "h3",
+   "after": 7,
+   "title": "Alternate or no alternate?",
+   "intro": "Tap a clue, then tap where it belongs. Each forecast covers 1 hour before to 1 hour after ETA unless it says otherwise; ceilings are above the airport.",
+   "buckets": [
+    "Alternate required",
+    "No alternate required"
+   ],
+   "items": [
+    {
+     "t": "Ceiling 2,500 ft, visibility 6 SM; ILS at the airport",
+     "b": 1
+    },
+    {
+     "t": "Ceiling 2,500 ft, visibility 6 SM; no instrument approach",
+     "b": 0
+    },
+    {
+     "t": "Ceiling 3,000 ft, visibility 2 SM; RNAV (GPS) approach",
+     "b": 0
+    },
+    {
+     "t": "Ceiling exactly 2,000 ft, visibility exactly 3 SM; VOR approach",
+     "b": 1
+    },
+    {
+     "t": "Ceiling 4,000 ft at ETA, but 1,500 ft forecast 45 minutes after",
+     "b": 0
+    },
+    {
+     "t": "Ceiling 2,100 ft, visibility 4 SM all window; LOC approach",
+     "b": 1
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h4",
+   "after": 8,
+   "title": "Work the numbers: time, fuel and climb",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "Your TAS is 140 knots, but the winds aloft give a 20-knot headwind straight down the course, so your groundspeed is 120 knots. The leg is 150 NM. How many minutes will it take?",
+     "answer": 75,
+     "tol": 1,
+     "unit": "min",
+     "why": "Time = distance ÷ groundspeed: 150 ÷ 120 = 1.25 hours = 75 minutes [[1:398|PHAK 16-11]]. Use groundspeed, not TAS [[1:399|PHAK 16-12]]."
+    },
+    {
+     "q": "Time en route to the destination is 1+25, the alternate is 0+40 beyond it, and you burn 9 GPH. Taxi and climb take 1.5 gallons extra. How many gallons must you have at engine start to meet 14 CFR 91.167?",
+     "answer": 27,
+     "tol": 0.5,
+     "unit": "gal",
+     "why": "1:25 + 0:40 + 0:45 reserve = 2:50, which is 170 minutes. 170 ÷ 60 × 9 = 25.5 gallons, plus 1.5 = 27 gallons [[60:468|14 CFR 91.167(a)]] [[60:469|14 CFR 91.167(a)(3)]]."
+    },
+    {
+     "q": "You have 50 gallons usable and burn 11 GPH. The alternate is 0+30 beyond the destination. Ignoring taxi and climb, what is the longest time en route to the destination, in minutes, that still meets 14 CFR 91.167?",
+     "answer": 198,
+     "tol": 2,
+     "unit": "min",
+     "why": "Endurance: 50 ÷ 11 = 4.55 hours, about 273 minutes. Take off the alternate (30) and the 45-minute reserve: 273 − 75 = about 198 minutes, or 3+18 [[60:468|14 CFR 91.167(a)]] [[60:469|14 CFR 91.167(a)(3)]]."
+    },
+    {
+     "q": "A departure procedure requires 400 ft/NM. Your climb groundspeed is 90 knots. What climb rate do you need?",
+     "answer": 600,
+     "tol": 10,
+     "unit": "fpm",
+     "why": "90 knots ÷ 60 = 1.5 NM per minute. 400 ft/NM × 1.5 = 600 fpm. The TPP rate of climb table makes the same conversion [[29:34|IPH 1-18]]."
+    },
+    {
+     "q": "Same 400 ft/NM departure, but on another day a tailwind makes your climb groundspeed 120 knots. What climb rate do you need now?",
+     "answer": 800,
+     "tol": 10,
+     "unit": "fpm",
+     "why": "120 ÷ 60 = 2 NM per minute. 400 × 2 = 800 fpm. A higher groundspeed raises the climb rate you need [[33:450|AIM 5-4-21b]] [[29:34|IPH 1-18]]."
+    }
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h5",
+   "after": 9,
+   "title": "Plan the trip: route, altitude, alternate, fuel",
+   "intro": "You are planning a 170 NM IFR trip in N123AB, a single-engine airplane with a WAAS GPS, one VOR receiver and no ice protection. Make each planning decision as the picture develops.",
+   "steps": [
+    {
+     "s": "Your planning app offers a GPS-direct route. The Chart Supplement lists a preferred IFR route between your two airports along Victor airways. What do you file?",
+     "options": [
+      "The preferred IFR route from the Chart Supplement",
+      "GPS direct at the OROCA, since it is the shortest",
+      "Anything; ATC will give you the preferred route whatever you file",
+      "Direct, straight across a restricted area that may be active"
+     ],
+     "answer": 0,
+     "why": "IFR clearances are issued on preferred routes unless severe weather or other factors get in the way [[29:67|IPH 2-7]], and filing one is to your advantage [[33:333|AIM 5-1-6b5]]. An OROCA is not an acceptable altitude for random RNAV direct flights [[29:87|IPH 2-27]]."
+    },
+    {
+     "s": "The airways on that route have an MEA of 6,000 ft and no MOCA. The freezing level is forecast at 8,000 ft, with cloud tops near 11,000 ft. What altitude do you plan?",
+     "options": [
+      "5,000 ft, to stay farther below the freezing level",
+      "6,000 ft: legal, and 2,000 ft below the freezing level",
+      "8,000 ft, for more glide distance",
+      "12,000 ft, on top of the clouds"
+     ],
+     "answer": 1,
+     "why": "No one may fly IFR below the minimum altitudes of part 95, such as the MEA; going lower is allowed only down to a charted MOCA, and this route has none [[60:480|14 CFR 91.177(a)(1)]]. The MEA is the lowest published altitude between fixes that assures navigation signal coverage and obstacle clearance [[2:69|Chart Users' Guide p 69]], so 5,000 ft is out. 6,000 ft is the lowest legal altitude and keeps you 2,000 ft below the forecast freezing level; an airplane without ice protection must avoid icing [[38:32|AC 91-74B 3-13b]]."
+    },
+    {
+     "s": "The destination forecast for 1 hour either side of your ETA is ceiling 1,500 ft broken, visibility 5 SM. Which airport do you list as your alternate? Standard alternate minimums apply unless noted.",
+     "options": [
+      "None needed: 1,500 ft and 5 SM is good enough",
+      "Airport B: VOR approach only, forecast 700 ft and 5 SM",
+      "Airport A: ILS and VOR approaches, forecast 900 ft and 3 SM",
+      "Airport C: ILS with alternate minimums NA, forecast 3,000 ft and 6 SM"
+     ],
+     "answer": 2,
+     "why": "A ceiling below 2,000 ft means you need an alternate [[60:469|14 CFR 91.169(b)]]. Airport A meets the 600-2 precision standard; B fails the 800-2 nonprecision standard [[60:470|14 CFR 91.169(c)(1)]]. NA means alternate minimums are not authorized there [[29:29|IPH 1-13]]."
+    },
+    {
+     "s": "Your briefing includes a NOTAM: Airport A's ILS localizer is out of service. Its VOR approach still works, and the forecast there is still 900 ft and 3 SM. What now?",
+     "options": [
+      "Keep A and plan the ILS anyway; NOTAMs are only advice",
+      "Keep A: its VOR approach needs 800-2, and 900-3 meets it",
+      "Switch to Airport B, since it has a VOR approach too",
+      "Cancel the trip; no alternate can work now"
+     ],
+     "answer": 1,
+     "why": "NOTAMs tell you the status of NAVAIDs [[33:324|AIM 5-1-3b]]. Without the ILS, A counts as a nonprecision alternate: 800 ft and 2 SM [[60:470|14 CFR 91.169(c)(1)]]. 900-3 still meets that. B's 700 ft forecast still fails."
+    },
+    {
+     "s": "Planned times: 1+30 to the destination and 0+25 from there to Airport A, at 10 GPH. You have 38 gallons usable and need 1.5 gallons for taxi and climb. What is the fuel picture?",
+     "options": [
+      "Legal: about 21 gallons needed, since filing an alternate replaces the reserve",
+      "Legal: about 28 gallons needed, about 10 gallons extra",
+      "Not legal: about 36 gallons needed, a reserve at each airport",
+      "Legal: about 26 gallons needed, with a 30-minute reserve"
+     ],
+     "answer": 1,
+     "why": "1:30 + 0:25 + 0:45 = 2:40, about 2.67 hours × 10 GPH = 26.7 gallons, plus 1.5 = about 28 [[60:468|14 CFR 91.167(a)]] [[60:469|14 CFR 91.167(a)(3)]]. The 38 gallons leave about 10 extra for reroutes or holding [[30:26|RMH 3-8]]. 30 minutes is the day VFR reserve."
+    },
+    {
+     "s": "Halfway there, a stronger headwind and an ATC reroute leave you with 22 gallons and 1+15 still to go to the destination. Airport A is still 0+25 beyond it, at 10 GPH. What do you do?",
+     "options": [
+      "Keep going; the fuel rule only counts at takeoff",
+      "Drop the alternate from your plan and continue",
+      "Tell ATC and land at an airport along the route for fuel",
+      "Slow down and continue, hoping the wind eases"
+     ],
+     "answer": 2,
+     "why": "You now need 1:15 + 0:25 + 0:45 = 2:25, about 24.2 gallons, but have 22 [[60:468|14 CFR 91.167(a)]]. The go/no-go decision is reevaluated during the flight and may mean landing at an intermediate spot [[23:321|IFH 10-30]]."
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h6",
+   "after": 11,
+   "title": "True or false: filing, opening and closing",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "Civil pilots file domestic IFR flight plans on FAA Form 7233-4 unless they file stereo routes.",
+     "a": true,
+     "why": "True. Only DoD users and civilians filing stereo routes may use Form 7233-1 [[33:322|AIM 5-1-1b]]."
+    },
+    {
+     "s": "'Cleared to the airport as filed' includes the cruise altitude you filed.",
+     "a": false,
+     "why": "False. 'As filed' does not include the en route altitude; ATC states it or tells you when to expect it [[33:346|AIM 5-2-6f]]."
+    },
+    {
+     "s": "An OROCA is a legal, safe altitude for a random RNAV direct route.",
+     "a": false,
+     "why": "False. OROCAs are not acceptable altitudes for off-route random RNAV direct flights [[29:87|IPH 2-27]]."
+    },
+    {
+     "s": "If your TAS will differ from the filed TAS by 5 percent or 10 knots, whichever is greater, you should tell ATC.",
+     "a": true,
+     "why": "True. A speed change that size is a change in flight plan [[33:339|AIM 5-1-12a]]."
+    },
+    {
+     "s": "An IFR flight plan to an airport with a working control tower closes automatically when you land.",
+     "a": true,
+     "why": "True. Only at an airport without a working tower must you cancel it yourself [[33:340|AIM 5-1-15e]]."
+    },
+    {
+     "s": "A filed IFR flight plan that is never activated stays in the system for 24 hours.",
+     "a": false,
+     "why": "False. Most Centers delete it at least 2 hours after the proposed departure time [[33:339|AIM 5-1-13a]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h7",
+   "after": 13,
+   "title": "Plan the IFR trip in order",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Check the forecast and gather current charts, procedures, database and POH",
+    "Check the Chart Supplement for preferred routing; review DPs, STARs and approaches",
+    "Review the en route charts and choose the route and altitude",
+    "Get a briefing with NOTAMs and TFRs",
+    "Start the navigation log: fixes, distances, frequencies, altitudes",
+    "Compute TAS, fuel, weight and balance and performance, with the alternate",
+    "Get an updated briefing, then file the flight plan"
+   ]
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Time en route to the destination is 1+50 and the alternate is 0+35 beyond it. You burn 12 GPH. Ignoring taxi and climb, what is the least fuel 14 CFR 91.167 allows you to start with?",
+   "options": [
+    "About 38 gallons",
+    "About 31 gallons",
+    "About 35 gallons",
+    "About 29 gallons"
+   ],
+   "answer": 0,
+   "why": "1:50 + 0:35 + 0:45 = 3:10, about 3.17 hours × 12 = 38 gallons [[60:468|14 CFR 91.167(a)]]. 35 gallons uses a 30-minute reserve; 31 leaves out the alternate leg."
+  },
+  {
+   "q": "You have 48 gallons usable at 10 GPH. A stronger headwind makes the trip 2+40, and the alternate is 0+50 beyond. Do you still meet 91.167?",
+   "options": [
+    "No, you are about 15 minutes short",
+    "Yes, with exactly the required fuel",
+    "Yes, with about 33 minutes to spare",
+    "No, unless you drop the alternate"
+   ],
+   "answer": 2,
+   "why": "48 ÷ 10 = 4.8 hours = 4:48. Required: 2:40 + 0:50 + 0:45 = 4:15 [[60:468|14 CFR 91.167(a)]]. Spare: 33 minutes."
+  },
+  {
+   "q": "Your planned alternate has an ILS and a VOR approach, both with standard alternate minimums. The forecast there at your ETA is ceiling 700 ft, visibility 3 SM. Which is true?",
+   "options": [
+    "It cannot be listed, because every alternate needs 800-2",
+    "It qualifies based on the ILS (600-2), but the VOR approach alone would not",
+    "It qualifies only if the destination forecast is better than 2,000-3",
+    "It qualifies only with published alternate minimums of 700-3"
+   ],
+   "answer": 1,
+   "why": "Standard minimums are 600-2 for a precision approach and 800-2 for a nonprecision approach [[60:470|14 CFR 91.169(c)(1)]]. 700-3 meets the ILS standard but not the VOR one."
+  },
+  {
+   "q": "You want to list an airport with no instrument approach as your alternate. What weather must be forecast there at your ETA?",
+   "options": [
+    "Nothing; it can never be an alternate",
+    "Ceiling 800 ft and visibility 2 SM",
+    "Ceiling 2,000 ft and visibility 3 SM",
+    "Weather that allows descent from the MEA, approach and landing under basic VFR"
+   ],
+   "answer": 3,
+   "why": "With no published approach, the minimums are those that allow descent from the MEA, approach and landing under basic VFR [[60:470|14 CFR 91.169(c)(2)]]."
+  },
+  {
+   "q": "Your GPS is non-WAAS (TSO-C129) with FDE (fault detection and exclusion), and you will do a RAIM prediction. The destination and your planned alternate both have only RNAV (GPS) approaches. What does the AIM allow?",
+   "options": [
+    "GPS approaches at both, since RAIM is predicted",
+    "Filing only if the alternate has LPV minimums",
+    "A GPS approach at one of them, not both, so the alternate needs a non-GPS approach",
+    "No GPS approaches at all for IFR planning"
+   ],
+   "answer": 2,
+   "why": "These users may plan a GPS approach at the destination or the alternate, but not both [[33:118|AIM 1-2-3d1]]. Otherwise the alternate needs a non-GPS approach [[33:118|AIM 1-2-3d2]]."
+  },
+  {
+   "q": "A departure procedure requires 300 ft/NM to 3,000 ft. Your climb groundspeed will be about 100 knots. What rate of climb do you need?",
+   "options": [
+    "300 fpm",
+    "500 fpm",
+    "600 fpm",
+    "1,000 fpm"
+   ],
+   "answer": 1,
+   "why": "100 knots ÷ 60 is about 1.67 NM per minute, and 300 ft/NM × 1.67 = 500 fpm. The TPP rate of climb table works the same way: 297 ft/NM at 180 knots is 892 fpm [[29:34|IPH 1-18]]. More groundspeed means a higher climb rate [[33:450|AIM 5-4-21b]]."
+  },
+  {
+   "q": "You fly IFR in uncontrolled airspace below 18,000 ft on a magnetic course of 095°. Which cruising altitude fits the rule?",
+   "options": [
+    "5,000 ft MSL",
+    "4,000 ft MSL",
+    "5,500 ft MSL",
+    "6,000 ft MSL"
+   ],
+   "answer": 0,
+   "why": "Courses of 0° to 179° use odd thousands, such as 3,000, 5,000 or 7,000 [[60:481|14 CFR 91.179(b)(1)]]. 5,500 is a VFR altitude."
+  },
+  {
+   "q": "You plan to cruise at a cabin pressure altitude of 13,500 ft for 50 minutes. What does 14 CFR 91.211 require of the required crew?",
+   "options": [
+    "Nothing; oxygen starts above 14,000 ft",
+    "Oxygen for the entire 50 minutes",
+    "Oxygen provided to every passenger",
+    "Oxygen for the 20 minutes beyond the first 30"
+   ],
+   "answer": 3,
+   "why": "Above 12,500 up to 14,000 ft, the crew uses oxygen for the part of the flight there that is more than 30 minutes [[60:491|14 CFR 91.211(a)(1)]]. 50 - 30 = 20 minutes."
+  },
+  {
+   "q": "You depart at 0915 Central Standard Time with a time en route of 2+20. What ETA goes in your log in UTC?",
+   "options": [
+    "1535Z",
+    "1135Z",
+    "1735Z",
+    "1635Z"
+   ],
+   "answer": 2,
+   "why": "0915 + 2:20 = 1135 CST. Central Standard Time + 6 hours = 1735Z [[33:234|AIM 4-2-12]]."
+  },
+  {
+   "q": "At an airport without a tower your clearance is void if not off by 1430Z. At 1428 you are still holding short with a rough magneto. What should you do?",
+   "options": [
+    "Stay on the ground and tell ATC your intentions as soon as possible",
+    "Take off now; the void time has a few minutes of grace",
+    "Depart VFR squawking your IFR code and call Center in the air",
+    "Nothing; the IFR flight plan cancels itself"
+   ],
+   "answer": 0,
+   "why": "If you do not depart before the void time, advise ATC as soon as possible, within the time ATC gives (30 minutes at most) [[33:347|AIM 5-2-7a1]]. Do not depart VFR on the old IFR code [[33:348|AIM 5-2-7a1]]."
+  },
+  {
+   "q": "Your airplane has VHF radios, a VOR, an ILS receiver, a WAAS GPS and a Mode C transponder, but no ADS-B. How do you code it?",
+   "options": [
+    "Item 10a: G only; Item 10b: S",
+    "Item 10a: S and G; Item 10b: C; Item 18: NAV/SBAS",
+    "Item 10a: S, G and L; Item 10b: B1",
+    "Item 10a: N; Item 10b: C"
+   ],
+   "answer": 1,
+   "why": "S covers VHF radio, VOR and ILS; G is GNSS, with NAV/SBAS in Item 18 for WAAS; C is a Mode C transponder [[34:277|AIM App 4]] [[34:278|AIM App 4]]. B1 would claim ADS-B you do not have."
+  },
+  {
+   "q": "Your departure airport is not listed in the Chart Supplement's preferred IFR routes, but a nearby listed airport has one to your destination. What does the IPH say?",
+   "options": [
+    "Preferred routes cannot be used from unlisted airports",
+    "You must file direct to avoid conflicts",
+    "Ask FSS to create a new preferred route",
+    "You may use the part of the preferred route that fits your departure point"
+   ],
+   "answer": 3,
+   "why": "If the departure or arrival point is not listed, you may use the part of a preferred IFR route that is appropriate for it [[29:67|IPH 2-7]]."
+  },
+  {
+   "q": "On approach after picking up some ice in cruise, the airplane behaves oddly as you lower the first notch of flaps. What does AC 91-74B advise?",
+   "options": [
+    "Always retract all flaps at once; that cures it",
+    "Add full flaps so you can land slower",
+    "Do not add more flap, and change configuration only as the manufacturer advises",
+    "Engage the autopilot in vertical speed mode to hold the path"
+   ],
+   "answer": 2,
+   "why": "If anomalies occur it may be best not to add flaps; for some airplanes retracting could cause a stall, so follow the manufacturer's guidance [[38:51|AC 91-74B 5-10a(2)]]. Vertical speed mode should not be used in icing [[38:49|AC 91-74B 5-7f]]."
+  },
+  {
+   "q": "You plan to use a tablet app for charts and the route instead of paper. Under AC 91-78A, what must be true of the information it shows?",
+   "options": [
+    "It is current, up to date and valid, as verified by you",
+    "The app has an FAA approval number",
+    "A mechanic installed the tablet",
+    "You also carry a full paper chart set"
+   ],
+   "answer": 0,
+   "why": "Information used for navigation or performance planning must be current, up to date and valid, as verified by the pilot [[42:3|AC 91-78A 9.1]]."
+  }
+ ]
+}
