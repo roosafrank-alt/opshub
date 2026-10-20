@@ -253,6 +253,11 @@ def _parse_and_store(conn, rating_id, pdf_path):
     if not areas or not any(a["tasks"] for a in areas):
         raise ValueError("No Areas of Operation with Tasks were found in this PDF - "
                           "is it the right document, and does it follow the standard ACS or PTS layout?")
+    return _store_areas(conn, rating_id, areas)
+
+
+def _store_areas(conn, rating_id, areas):
+    """Insert parsed Areas/Tasks/elements under a course that has none yet (ACS PDF or GS-BUILTIN-COURSE outline)."""
     for area_idx, area in enumerate(areas):
         cur = conn.execute(
             "INSERT INTO acs_areas (rating_id, code, title, order_index) VALUES (?, ?, ?, ?)",
@@ -262,14 +267,14 @@ def _parse_and_store(conn, rating_id, pdf_path):
             cur = conn.execute(
                 "INSERT INTO acs_tasks (area_id, code, title, acs_references, objective, order_index) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
-                (area_id, task["code"], task["title"], task["references"], task["objective"], task_idx))
+                (area_id, task["code"], task["title"], task.get("references") or "", task.get("objective") or "", task_idx))
             task_id = cur.lastrowid
-            for note_idx, note in enumerate(task["notes"]):
+            for note_idx, note in enumerate(task.get("notes") or []):
                 conn.execute("INSERT INTO acs_task_notes (task_id, note, order_index) VALUES (?, ?, ?)",
                              (task_id, note, note_idx))
             order_index = 0
             for kind in ("knowledge", "risk_management", "skills"):
-                for el in task[kind]:
+                for el in task.get(kind) or []:
                     conn.execute(
                         "INSERT INTO acs_task_elements (task_id, kind, code, text, order_index) "
                         "VALUES (?, ?, ?, ?, ?)",
@@ -277,8 +282,8 @@ def _parse_and_store(conn, rating_id, pdf_path):
                     order_index += 1
     conn.commit()
     n_tasks = sum(len(a["tasks"]) for a in areas)
-    n_elements = sum(len(t["knowledge"]) + len(t["risk_management"]) + len(t["skills"])
-                      for a in areas for t in a["tasks"])
+    n_elements = sum(len(t.get(k) or []) for a in areas for t in a["tasks"]
+                     for k in ("knowledge", "risk_management", "skills"))
     return len(areas), n_tasks, n_elements
 
 
@@ -624,8 +629,10 @@ def rating_list():
                            (("enrolled", groups["current"]), ("past", groups["past"]), ("future", groups["future"])) for r in rs
                            if r["status"] == "parsed"]
         dash["picked"] = dash_course
+    installed = {r["doc_number"] for r in ratings}
+    builtins = [dict(c, installed=c["doc_number"] in installed) for c in ground_lessons.builtin_courses()]
     conn.close()
-    return render_template("flight/groundschool_list.html", dash=dash, groups=groups, homework=homework, ratings=ratings, tab="groundschool", resume_by_rating=resume_by_rating,
+    return render_template("flight/groundschool_list.html", builtins=builtins, dash=dash, groups=groups, homework=homework, ratings=ratings, tab="groundschool", resume_by_rating=resume_by_rating,
                             progress_by_rating=progress_by_rating, next_by_rating=next_by_rating, gs_students=students,
                             viewing_student_id=viewing_student_id)
 
@@ -1110,10 +1117,15 @@ def reparse(rating_id):
     if not rating:
         conn.close()
         abort(404)
-    pdf_path = os.path.join(UPLOAD_DIR, rating["pdf_filename"])
+    builtin = ground_lessons.builtin_by_doc(rating["doc_number"]) if not rating["pdf_filename"] else None
+    if not rating["pdf_filename"] and not builtin:
+        conn.close()
+        flash("This course has no ACS file to re-read.", "warning")
+        return redirect(url_for("groundschool.rating_detail", rating_id=rating_id))
     try:
         # ACS-RESOURCES: merge in place (same ids), so lessons and sign-offs are kept.
-        areas = acs_sync.parse_pdf(pdf_path)
+        # GS-BUILTIN-COURSE: a built-in course re-reads its outline file the same way.
+        areas = builtin["areas"] if builtin else acs_sync.parse_pdf(os.path.join(UPLOAD_DIR, rating["pdf_filename"]))
         report = acs_sync.apply_acs(conn, rating_id, areas)
         conn.execute("UPDATE acs_ratings SET status = 'parsed', parsed_at = ?, parse_error = NULL WHERE id = ?",
                      (now_iso(), rating_id))
@@ -1153,13 +1165,50 @@ def rating_delete(rating_id):
             conn.execute("DELETE FROM acs_resources WHERE id = ?", (res["id"],))
         conn.execute("DELETE FROM acs_ratings WHERE id = ?", (rating_id,))
         conn.commit()
-        try:
-            os.remove(os.path.join(UPLOAD_DIR, rating["pdf_filename"]))
-        except OSError:
-            pass
+        if rating["pdf_filename"]:
+            try:
+                os.remove(os.path.join(UPLOAD_DIR, rating["pdf_filename"]))
+            except OSError:
+                pass
         flash(f"Deleted '{rating['name']}' forever.", "success")
     conn.close()
     return redirect(url_for("groundschool.rating_list"))
+
+
+@groundschool_bp.route("/builtin/<code>/install", methods=["POST"])
+@admin_required
+def builtin_install(code):
+    """GS-BUILTIN-COURSE: add a built-in course (no ACS PDF), or bring an installed one up to date in place."""
+    course = ground_lessons.builtin_course(code)
+    if not course:
+        abort(404)
+    conn = get_db()
+    row = conn.execute("SELECT * FROM acs_ratings WHERE doc_number = ?", (course["doc_number"],)).fetchone()
+    try:
+        if row:
+            report = acs_sync.apply_acs(conn, row["id"], course["areas"])
+            conn.execute("UPDATE acs_ratings SET status = 'parsed', parsed_at = ?, parse_error = NULL WHERE id = ?",
+                         (now_iso(), row["id"]))
+            conn.commit()
+            n = len(report["tasks"]) + len(report["added_tasks"]) + len(report["removed_tasks"])
+            flash(f"Updated '{row['name']}'. {n} Task{'s' if n != 1 else ''} changed. Progress and sign-offs were kept.", "success")
+            rating_id = row["id"]
+        else:
+            rating_id = conn.execute(
+                "INSERT INTO acs_ratings (name, slug, doc_number, pdf_filename, uploaded_by, uploaded_at, status) "
+                "VALUES (?, ?, ?, NULL, ?, ?, 'empty')",
+                (course["name"], _unique_slug(conn, course["name"]), course["doc_number"], session.get("cfi_id"), now_iso())).lastrowid
+            n_areas, n_tasks, n_el = _store_areas(conn, rating_id, course["areas"])
+            conn.execute("UPDATE acs_ratings SET status = 'parsed', parsed_at = ? WHERE id = ?", (now_iso(), rating_id))
+            conn.commit()
+            flash(f"Added '{course['name']}': {n_areas} Areas, {n_tasks} lessons, {n_el} items.", "success")
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        flash(f"Could not add '{course['name']}': {e}", "danger")
+        return redirect(url_for("groundschool.rating_list"))
+    conn.close()
+    return redirect(url_for("groundschool.rating_detail", rating_id=rating_id))
 
 
 @groundschool_bp.route("/<int:rating_id>")

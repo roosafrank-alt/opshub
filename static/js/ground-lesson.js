@@ -252,6 +252,59 @@
       });
     }
 
+    // GS-MORE-PLAY calc: type the number. Within the tolerance is right; two misses show the worked answer.
+    var calc = act.querySelector('.gsl-calc');
+    if (calc) {
+      var cc = calc.querySelectorAll('.gsl-calccard'), ki = 0, kmiss = 0, kright = 0, knext = calc.querySelector('.gsl-tfnext');
+      cc.forEach(function (c) {
+        var inp = c.querySelector('.gsl-calcin'), go = c.querySelector('.gsl-calcgo'), tries = 0;
+        function check() {
+          if (c.getAttribute('data-done')) return;
+          var v = parseFloat(String(inp.value).replace(/,/g, ''));
+          if (isNaN(v)) { status(act, 'Type a number first.'); return; }
+          var ans = parseFloat(c.getAttribute('data-answer')), tol = parseFloat(c.getAttribute('data-tol')) || 0;
+          var ok = Math.abs(v - ans) <= tol + 1e-9;
+          if (!ok) { tries++; kmiss++; shake(inp); }
+          if (ok || tries >= 2) {
+            c.setAttribute('data-done', '1'); inp.disabled = true; go.disabled = true;
+            go.classList.add(ok ? 'gsl-ok' : 'gsl-bad'); if (ok) kright++;
+            c.querySelector('.gsl-tfwhy').hidden = false;
+            if (ki < cc.length - 1) { status(act, (ok ? 'Right! ' : 'Here is how it works. ') + kright + ' of ' + cc.length + ' right'); knext.hidden = false; }
+            else { status(act, 'Done: ' + kright + ' of ' + cc.length + ' right.'); finished(act, 1 + kmiss); }
+          } else status(act, 'Not quite. Check your math and try once more.');
+        }
+        go.addEventListener('click', check);
+        inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); check(); } });
+      });
+      knext.addEventListener('click', function () {
+        cc[ki].hidden = true; ki++; cc[ki].hidden = false; knext.hidden = true; status(act, '');
+        var i = cc[ki].querySelector('.gsl-calcin'); if (i) i.focus();
+      });
+    }
+
+    // GS-MORE-PLAY decide: one decision at a time; a wrong pick is crossed out and you choose again.
+    var dec = act.querySelector('.gsl-decide');
+    if (dec) {
+      var ds = dec.querySelectorAll('.gsl-dstep'), di = 0, dmiss = 0, dnext = dec.querySelector('.gsl-tfnext');
+      ds.forEach(function (st) {
+        st.querySelectorAll('.gsl-dopt').forEach(function (b) {
+          b.addEventListener('click', function () {
+            if (st.getAttribute('data-done') || b.disabled) return;
+            if (b.getAttribute('data-j') === st.getAttribute('data-a')) {
+              st.setAttribute('data-done', '1'); b.classList.add('gsl-ok');
+              st.querySelectorAll('.gsl-dopt').forEach(function (x) { x.disabled = true; });
+              st.querySelector('.gsl-tfwhy').hidden = false;
+              if (di < ds.length - 1) { status(act, 'Good call.'); dnext.hidden = false; }
+              else { status(act, 'Flight complete' + (dmiss ? ' with ' + dmiss + ' wrong turn' + (dmiss > 1 ? 's' : '') : ' with every call right') + '!'); finished(act, 1 + dmiss); }
+            } else { dmiss++; b.classList.add('gsl-bad'); b.disabled = true; shake(b); status(act, 'Not the best choice. Think again.'); }
+          });
+        });
+      });
+      dnext.addEventListener('click', function () {
+        ds[di].hidden = true; di++; ds[di].hidden = false; dnext.hidden = true; status(act, '');
+      });
+    }
+
     // flashcards.
     var flash = act.querySelector('.gsl-flash');
     if (flash) {
