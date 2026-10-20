@@ -6538,6 +6538,10 @@ def my_account():
     _row_with_cost)."""
     conn = get_db()
     student = current_student(conn)
+    if not student and session.get("user_id"):
+        # A bill is emailed to whoever's login the student record is tied to, whatever
+        # their role (an admin or instructor who also flies), so the link must open for them.
+        student = conn.execute("SELECT * FROM students WHERE user_id = ?", (session["user_id"],)).fetchone()
     if not student:
         conn.close()
         flash("My Account is for student accounts.", "danger")
