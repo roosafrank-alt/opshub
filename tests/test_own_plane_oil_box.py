@@ -42,6 +42,7 @@ class OwnPlaneOilBoxTest(OpsHubTestCase):
         self.assertIn("Add a note", html)
         self.assertNotIn("Add starting info (Hobbs/Tach, oil, note)", html)
         self.assertNotIn('name="oil_added_qt"', html)
+        self.assertNotIn('/add_oil"', html)
 
     def test_running_card_still_shows_oil_for_a_real_plane(self):
         real_asset = self.exec(
@@ -50,7 +51,7 @@ class OwnPlaneOilBoxTest(OpsHubTestCase):
         fid = self.start_flight(real_asset)
         html = self.login("cfi").get("/flight/log/active").get_data(as_text=True)
         self.assertIn("Add starting info (Hobbs/Tach, oil, note)", html)
-        self.assertIn('name="oil_added_qt"', html)
+        self.assertIn('/add_oil"', html)
 
     # --- End Session ---
 

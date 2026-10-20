@@ -262,9 +262,9 @@
       {% if not f.asset_is_owner_placeholder and not f.asset_is_simulator %}
       <div class="col-auto">
         <label class="form-label small mb-0 d-block">Oil Added</label>
-        <input type="checkbox" class="btn-check" id="oil_qt_active" name="oil_added_qt" value="1" autocomplete="off" onchange="var l=this.nextElementSibling;l.textContent=this.checked?'1 qt added':l.dataset.off"{{ ' checked' if f.oil_added_qt else '' }}>
-        {% set oil_off = '+1 qt oil' ~ (' (' ~ ('%g'|format(f.oil_added_qt)) ~ ' on file)' if f.oil_added_qt and f.oil_added_qt != 1 else '') %}
-        <label class="btn btn-sm btn-outline-success" for="oil_qt_active" data-off="{{ oil_off }}">{{ '1 qt added' if f.oil_added_qt == 1 else oil_off }}</label>
+        <button type="button" class="btn btn-sm btn-outline-success" id="oil_btn_{{ f.id }}" data-url="{{ url_for('flight.log_add_oil', flight_id=f.id) }}"
+                onclick="var b=this,s=document.getElementById('oil_msg_{{ f.id }}');b.disabled=true;fetch(b.dataset.url,{method:'POST',headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){s.textContent=d.ok?(d.qt+' qt added this flight'+(d.by?' by '+d.by:'')+' - on the Oil Consumption page'):d.message;s.className='oil-msg small '+(d.ok?'text-success':'text-danger');b.disabled=false}).catch(function(){s.textContent='Could not add oil. Try again.';s.className='oil-msg small text-danger';b.disabled=false})"><i class="bi bi-plus-lg"></i> 1 qt oil</button>
+        <div id="oil_msg_{{ f.id }}" class="oil-msg small {{ 'text-success' if f.oil_added_qt else 'text-muted' }}">{% if f.oil_added_qt %}{{ '%g'|format(f.oil_added_qt) }} qt added this flight{% if f.oil_added_by %} by {{ f.oil_added_by }}{% endif %} - on the Oil Consumption page{% endif %}</div>
       </div>
       {% endif %}
       <div class="col-12">
@@ -449,7 +449,7 @@
         <input type="checkbox" class="btn-check" id="oil_qt_end" name="oil_added_qt" value="1" autocomplete="off" onchange="var l=this.nextElementSibling;l.textContent=this.checked?'1 qt added':l.dataset.off">
         <label class="btn btn-sm btn-outline-success" for="oil_qt_end" data-off="+1 qt oil">+1 qt oil</label>
         {% if f.oil_added_qt is not none %}
-        <div class="form-text">{{ '%g'|format(f.oil_added_qt) }} qt already added this flight{% if f.oil_added_by %} (by {{ f.oil_added_by }}){% endif %}. Leave it off to keep that, or tap to set 1 qt.</div>
+        <div class="form-text">{{ '%g'|format(f.oil_added_qt) }} qt already added this flight{% if f.oil_added_by %} (by {{ f.oil_added_by }}){% endif %}. Leave it off to keep that, or tap to add 1 more qt.</div>
         {% endif %}
       </div>
       {% endif %}

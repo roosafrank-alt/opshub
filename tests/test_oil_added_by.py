@@ -35,10 +35,36 @@ class OilAddedByTest(OpsHubTestCase):
     def test_progress_update_tags_who_entered_oil(self):
         flight_id = self.start_flight()
         c = self.login("cfi")
-        c.post(f"/flight/log/{flight_id}/update_progress", data=dict(oil_added_qt="1.5", notes=""))
+        c.post(f"/flight/log/{flight_id}/add_oil")
         row = self.flight_row(flight_id)
-        self.assertEqual(row["oil_added_qt"], 1.5)
+        self.assertEqual(row["oil_added_qt"], 1.0)
         self.assertEqual(row["oil_added_by"], "Cfi")
+
+    def test_add_oil_button_adds_a_quart_each_tap_and_shows_on_oil_page(self):
+        flight_id = self.start_flight()
+        c = self.login("cfi")
+        c.post(f"/flight/log/{flight_id}/add_oil")
+        r = c.post(f"/flight/log/{flight_id}/add_oil", headers={"X-Requested-With": "fetch"})
+        self.assertEqual(r.get_json()["qt"], 2.0)
+        self.assertEqual(self.flight_row(flight_id)["oil_added_qt"], 2.0)
+        html = self.login("shop_admin").get(f"/assets/{self.asset_id}/oil").get_data(as_text=True)
+        self.assertIn("Cfi", html)
+
+    def test_save_does_not_clear_oil_tapped_earlier(self):
+        flight_id = self.start_flight()
+        c = self.login("cfi")
+        c.post(f"/flight/log/{flight_id}/add_oil")
+        c.post(f"/flight/log/{flight_id}/update_progress", data=dict(notes="all good"))
+        row = self.flight_row(flight_id)
+        self.assertEqual(row["oil_added_qt"], 1.0)
+        self.assertEqual(row["oil_added_by"], "Cfi")
+
+    def test_end_session_oil_tick_adds_to_quarts_already_tapped(self):
+        flight_id = self.start_flight(oil_added_qt=1.0, oil_added_by="Cfi")
+        c = self.login("cfi")
+        c.post(f"/flight/log/{flight_id}/end", data=dict(
+            hobbs_end="502.0", tach_end="481.5", oil_added_qt="1", paid="0"))
+        self.assertEqual(self.flight_row(flight_id)["oil_added_qt"], 2.0)
 
     def test_progress_update_without_oil_leaves_it_blank(self):
         flight_id = self.start_flight()
@@ -65,7 +91,7 @@ class OilAddedByTest(OpsHubTestCase):
         # overwritten back to NULL, losing the earlier entry.
         flight_id = self.start_flight()
         c = self.login("cfi")
-        c.post(f"/flight/log/{flight_id}/update_progress", data=dict(oil_added_qt="1", notes=""))
+        c.post(f"/flight/log/{flight_id}/add_oil")
         c.post(f"/flight/log/{flight_id}/end", data=dict(
             hobbs_end="502.0", tach_end="481.5", oil_added_qt="", paid="0"))
         row = self.flight_row(flight_id)

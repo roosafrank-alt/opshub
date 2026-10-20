@@ -8322,6 +8322,41 @@ def log_resume(flight_id):
     return redirect(url_for("flight.log_active") + f"#active-flight-{flight_id}")
 
 
+@flight_bp.route("/log/<int:flight_id>/add_oil", methods=["POST"])
+@login_required
+def log_add_oil(flight_id):
+    """The +1 qt oil button on the Active Flight board: adds one quart to this
+    flight right away, with who tapped it. The aircraft's Oil Consumption page
+    reads oil_added_qt / oil_added_by on the flight, so the quart shows there
+    under the flight's date at once."""
+    conn = get_db()
+    f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
+    wants_json = request.headers.get("X-Requested-With") == "fetch"
+
+    def _reply(ok, msg, qt=None, by=None, status=200):
+        if wants_json:
+            return jsonify({"ok": ok, "message": msg, "qt": qt, "by": by}), status
+        flash(msg, "success" if ok else "danger")
+        return redirect(url_for("flight.log_active", flight_id=flight_id) + f"#active-flight-{flight_id}")
+
+    if not f or not f["started_at"] or f["ended_at"]:
+        conn.close()
+        return _reply(False, "That flight isn't currently running.", status=400)
+    if not _can_end_flight(f):
+        conn.close()
+        return _reply(False, "Only the assigned instructor, the student (on a solo flight), or a master admin can update this flight.", status=403)
+    asset = conn.execute("SELECT is_owner_placeholder, is_simulator FROM assets WHERE id = ?", (f["asset_id"],)).fetchone()
+    if asset and (asset["is_owner_placeholder"] or asset["is_simulator"]):
+        conn.close()
+        return _reply(False, "Oil isn't tracked for this aircraft.", status=400)
+    qt = (f["oil_added_qt"] or 0) + 1
+    by = session.get("user_name")
+    conn.execute("UPDATE flights SET oil_added_qt=?, oil_added_by=? WHERE id=?", (qt, by, flight_id))
+    conn.commit()
+    conn.close()
+    return _reply(True, "1 qt oil added (%g qt this flight)." % qt, qt=qt, by=by)
+
+
 @flight_bp.route("/log/<int:flight_id>/update_progress", methods=["POST"])
 @login_required
 def log_update_progress(flight_id):
@@ -8358,8 +8393,10 @@ def log_update_progress(flight_id):
         # A student's own plane never tracks Oil Added (no Maintenance page or
         # oil history for it - see the "own-plane oil" QA fix), regardless of
         # what's posted.
-        oil_added_qt = None if is_own_plane else _parse_float(request.form.get("oil_added_qt"))
-        oil_added_by = session.get("user_name") if oil_added_qt is not None else None
+        # The +1 qt oil button on this form records its quart straight away
+        # (log_add_oil), so Save leaves whatever oil is on file alone.
+        oil_added_qt = f["oil_added_qt"]
+        oil_added_by = f["oil_added_by"]
     notes = request.form.get("notes", "").strip()
     if request.form.get("send_note") and not notes:
         conn.close()
@@ -8575,6 +8612,8 @@ def log_end(flight_id):
         oil_added_qt = f["oil_added_qt"]
         oil_added_by = f["oil_added_by"]
     else:
+        # Ticking +1 qt here adds to any quarts already tapped during the flight.
+        oil_added_qt += (f["oil_added_qt"] or 0)
         oil_added_by = session.get("user_name")
     ground_time_hours = _parse_float(request.form.get("ground_time_hours"))
     flight_notes = request.form.get("flight_notes", "").strip() or None
