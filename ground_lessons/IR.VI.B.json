@@ -1,0 +1,477 @@
+{
+ "task_code": "IR.VI.B",
+ "task_title": "Precision Approach",
+ "area": "Area VI. Instrument Approach Procedures",
+ "minutes": 88,
+ "objective": "By the end of this lesson you can brief, set up and fly an ILS, LPV or GLS approach to DA, work out the descent rate for your groundspeed, adjust minimums for inoperative equipment, and decide at DA to land or go missed.",
+ "why": "A precision approach takes you closer to the ground in worse weather than any other approach. Small errors in tuning, descent rate or discipline at DA leave very little margin.",
+ "prereading": [
+  {"res": "33", "pages": [78, 86], "printed": "AIM 1-1-9, 1-1-11 to 1-1-19", "what": "The ILS: localizer, glideslope, markers, frequencies, minimums, inoperative components and critical areas.", "label": "AIM 1-1-9, 1-1-11 to 1-1-19"},
+  {"res": "33", "pages": [102, 107], "printed": "AIM 1-1-18 and 1-1-19, 1-1-35 to 1-1-40", "what": "WAAS and LPV, NOTAMs, annunciations and scaling; GBAS and the GLS approach.", "label": "AIM 1-1-18 and 1-1-19, 1-1-35 to 1-1-40"},
+  {"res": "23", "pages": [278, 285], "printed": "IFH 9-35 to 9-42", "what": "ILS components, airborne equipment, ILS function, ILS errors and operational errors.", "label": "IFH 9-35 to 9-42"},
+  {"res": "29", "pages": [177, 177], "printed": "IPH 4-37", "what": "Stabilized approach, maximum acceptable descent rates and the 300 feet per NM check.", "label": "IPH 4-37"},
+  {"res": "23", "pages": [311, 313], "printed": "IFH 10-20 to 10-22", "what": "IAP minimums, visual references, missed approaches and inoperative components.", "label": "IFH 10-20 to 10-22"},
+  {"res": "33", "pages": [400, 401], "printed": "AIM 5-4-5, 5-4-8 to 5-4-9", "what": "Precision, APV and nonprecision approaches; the glideslope intercept point and stepdown fixes.", "label": "AIM 5-4-5, 5-4-8 to 5-4-9"}
+ ],
+ "warmup": "You are on an ILS at 90 knots groundspeed. The wind changes and your groundspeed drops to 70 knots. Should your descent rate go up, go down or stay the same to stay on the glideslope? Why?",
+ "key_terms": [
+  {"term": "Localizer (LOC)", "def": "The part of the ILS that gives left and right guidance to the runway centerline."},
+  {"term": "Glideslope (GS)", "def": "The part of the ILS that gives up and down guidance, normally on a 3 degree path."},
+  {"term": "Decision altitude (DA)", "def": "The altitude (MSL) on a precision or vertically guided approach where you must see the runway references or start the missed approach."},
+  {"term": "Decision height (DH)", "def": "The same decision point measured as height above the threshold. Used for Category II and III with a radio altimeter."},
+  {"term": "Precision approach (PA)", "def": "An approach with course and glidepath guidance that meets ICAO precision standards: PAR, ILS and GLS."},
+  {"term": "Approach with vertical guidance (APV)", "def": "An approach with course and glidepath guidance that does not meet precision standards, such as LPV and LNAV/VNAV."},
+  {"term": "LPV", "def": "Localizer performance with vertical guidance. A WAAS GPS line of minima that looks and flies like an ILS."},
+  {"term": "GLS", "def": "GBAS landing system. A precision approach using GPS corrections broadcast by a ground station at the airport."},
+  {"term": "Threshold crossing height (TCH)", "def": "Planned height of the glideslope antenna over the runway threshold if you stay on the glidepath."},
+  {"term": "ILS critical area", "def": "Area near the localizer or glideslope antenna where vehicles or aircraft can bend the signal."},
+  {"term": "Stabilized approach", "def": "Constant airspeed, descent rate, flight path and configuration through the final part of the approach."}
+ ],
+ "chunks": [
+  {
+   "title": "What makes an approach precision",
+   "kind": "knowledge",
+   "codes": ["IR.VI.B.K1", "IR.VI.B.K3"],
+   "minutes": 5,
+   "body": [
+    {"p": "The AIM sorts approaches into three groups. The difference is the kind of guidance you get on final [[33:400|AIM 5-4-5a7]]."},
+    {"table": {"head": ["Group", "Guidance", "Examples", "Minimum"], "rows": [
+     ["Precision approach (PA)", "Course and glidepath that meet ICAO precision standards", "PAR, ILS, GLS", "DA [[33:400|AIM 5-4-5a7(a)]]"],
+     ["Approach with vertical guidance (APV)", "Course and glidepath, but not to precision standards", "LPV, LNAV/VNAV, LDA with glidepath, Baro-VNAV", "DA [[33:400|AIM 5-4-5a7(b)]]"],
+     ["Nonprecision approach (NPA)", "Course only, no glidepath", "VOR, NDB, LNAV", "MDA [[33:400|AIM 5-4-5a7(c)]]"]
+    ]}},
+    {"p": "For the checkride, the ACS calls a precision approach any standard approach flown to a published DA with approved vertical guidance (ACS Appendix 3). So an ILS, GLS or LPV can be your precision approach for this Task, as long as it goes to a DA."},
+    {"p": "LPV can take you as low as 200 feet above touchdown with 1/2 mile visibility where the terrain and airport allow it [[33:102|AIM 1-1-18b2]]. A basic Category I ILS goes to 200 feet above touchdown with visibility as low as 1,800 RVR [[29:203|IPH 4-63]]."},
+    {"callout": {"type": "memory", "text": "Glidepath + precision standard = PA (ILS, GLS, PAR). Glidepath without it = APV (LPV, LNAV/VNAV). Both go to a DA. No glidepath = NPA to an MDA."}}
+   ],
+   "check": {"q": "Is LPV a precision approach in AIM terms?", "a": "No. The AIM lists LPV as an APV, because it does not meet ICAO precision standards, but it is flown to a DA like an ILS [[33:400|AIM 5-4-5a7(b)]]."}
+  },
+  {
+   "title": "ILS parts and what each one does",
+   "kind": "knowledge",
+   "codes": ["IR.VI.B.K3"],
+   "minutes": 6,
+   "body": [
+    {"p": "The basic parts of an ILS are the localizer, the glideslope and the outer marker. An inner marker is added for Category II and III [[33:78|AIM 1-1-9a2]]."},
+    {"table": {"head": ["Function", "Parts"], "rows": [
+     ["Guidance", "Localizer and glideslope [[33:78|AIM 1-1-9a3]]"],
+     ["Range (where you are along final)", "Marker beacons and DME [[33:78|AIM 1-1-9a3]]"],
+     ["Visual", "Approach lights, touchdown zone and centerline lights, runway lights [[33:78|AIM 1-1-9a3]]"]
+    ]}},
+    {"figure": "f3"},
+    {"p": "The outer marker can be replaced by a compass locator, radar, a DME, VOR or NDB fix on the chart, or a suitable GPS system [[33:78|AIM 1-1-9a4]]. A middle marker is no longer required, and the FAA is not installing new ones [[33:82|AIM 1-1-9f2]]."},
+    {"table": {"head": ["Marker", "Code", "Light"], "rows": [
+     ["Outer (OM)", "Dashes, two per second, low tone", "Blue [[23:283|IFH 9-40]]"],
+     ["Middle (MM)", "Alternate dots and dashes", "Amber [[33:82|AIM TBL 1-1-3]]"],
+     ["Inner (IM)", "Dots, six per second, high tone", "White [[23:283|IFH 9-40]]"]
+    ]}},
+    {"p": "Set the marker receiver to LOW sensitivity for the approach. It gives the sharpest indication of your position [[33:82|AIM 1-1-9f1]]."},
+    {"p": "A compass locator is a low-power NDB at the marker site. The outer locator sends the first two letters of the localizer identifier [[33:82|AIM 1-1-9g2]]."}
+   ],
+   "check": {"q": "Which ILS parts give you guidance, and which give you range?", "a": "Localizer and glideslope give guidance. Marker beacons and DME give range [[33:78|AIM 1-1-9a3]]."}
+  },
+  {
+   "title": "Localizer and glideslope signals",
+   "kind": "knowledge",
+   "codes": ["IR.VI.B.K2", "IR.VI.B.K3"],
+   "minutes": 7,
+   "body": [
+    {"table": {"head": ["", "Localizer", "Glideslope"], "rows": [
+     ["Frequency", "108.10 to 111.95 MHz [[33:78|AIM 1-1-9b1]]", "329.15 to 335.00 MHz (UHF), paired with the localizer [[33:80|AIM 1-1-9d1]]"],
+     ["Where the antenna is", "Far end of the runway [[33:78|AIM 1-1-9b2]]", "750 to 1,250 ft down the runway, 250 to 650 ft to the side [[33:81|AIM 1-1-9d2]]"],
+     ["Size of the beam", "Adjusted to 700 ft wide (full left to full right) at the threshold [[33:78|AIM 1-1-9b2]]", "1.4 degrees thick [[33:81|AIM 1-1-9d2]]"],
+     ["Usable range", "18 NM, up to 4,500 ft above the antenna [[33:79|AIM 1-1-9b5]]", "Normally 10 NM [[33:81|AIM 1-1-9d3]]"],
+     ["Identifier", "Morse code, the letter I plus three letters, like I-DIA [[33:79|AIM 1-1-9b4]]", "None of its own; you tune it with the localizer [[23:282|IFH 9-39]]"]
+    ]}},
+    {"p": "The localizer needle is sharper and faster than on a VOR radial [[23:285|IFH 9-42]]. Its course is normally about 5 degrees wide, so full scale is only about 2.5 degrees either side [[23:280|IFH 9-37]]. Turning the OBS does not change the localizer needle, but set the inbound course anyway as a reminder [[23:283|IFH 9-40]]."},
+    {"p": "The glideslope is normally set at 3 degrees. On a 3 degree slope you cross the outer marker about 1,400 ft and the middle marker about 200 ft above the runway [[33:81|AIM 1-1-9d3]]."},
+    {"figure": "f4"},
+    {"p": "When you are above the glidepath, the needle points down. When you are below it, the needle points up. Fly toward the needle [[23:283|IFH 9-40]]. The warning flags show when the signal is too weak or the receiver fails [[23:283|IFH 9-40]]."},
+    {"callout": {"type": "warn", "text": "The glidepath may not be suitable below the lowest DH on the chart. Below that point you must use visual references to the runway [[33:81|AIM 1-1-9d2]]."}},
+    {"p": "TCH (threshold crossing height) is where your glideslope antenna should be over the threshold if you stay on the path. It is a planning number, not a promise of where the needle centers [[33:81|AIM 1-1-9d6]]."}
+   ],
+   "check": {"q": "Your glideslope needle is two dots above center. Are you high or low?", "a": "Low. When you are below the glidepath the needle deflects upward [[23:283|IFH 9-40]]."}
+  },
+  {
+   "title": "False glideslopes, critical areas and signal problems",
+   "kind": "knowledge",
+   "codes": ["IR.VI.B.K3", "IR.VI.B.S5"],
+   "minutes": 6,
+   "body": [
+    {"p": "The glideslope antenna also makes false paths at steeper angles. The lowest one is at about 9 to 12 degrees [[23:283|IFH 9-40]]. False courses and reverse sensing happen at angles well above the published path [[33:81|AIM 1-1-9d4]]."},
+    {"bullets": [
+     "On a false path the needle may work backward, or holding it centered takes a very high descent rate [[23:283|IFH 9-40]].",
+     "Fly the chart altitudes and you will not meet the false courses [[23:283|IFH 9-40]].",
+     "On a localizer back course, ignore any glideslope signal unless the chart shows one. False signals there can even hide the flag [[33:81|AIM 1-1-9d1]]."
+    ]},
+    {"callout": {"type": "warn", "text": "Avoid flying below the glide path. Obstacle and terrain clearance depend on it [[33:81|AIM 1-1-9d5]]."}},
+    {"p": "Vehicles and aircraft near the antennas can bend the signal. ATC protects the ILS critical areas only when the ceiling is below 800 ft or the visibility is below 2 miles [[33:84|AIM 1-1-9k2]]. At airports without a working tower they are never protected [[33:85|AIM 1-1-9k5]]."},
+    {"p": "Category I ILS signals are not flight checked below a point 100 ft under the DA. You may see odd needle movements down there [[33:85|AIM 1-1-9k NOTE]]."},
+    {"table": {"head": ["You notice", "What it means", "What to do"], "rows": [
+     ["Identifier missing, or a T-E-S-T code", "The facility is off the air for maintenance [[33:87|AIM 1-1-11]]", "Do not use it, even if the needles move [[33:87|AIM 1-1-11]]"],
+     ["Flag in view or erratic needles", "Weak signal or a receiver problem [[23:283|IFH 9-40]]", "Switch to another source and ask ATC for a new clearance [[33:87|AIM 1-1-13c]]"],
+     ["Needles jump while a plane crosses the runway ahead", "Critical area not protected [[33:85|AIM 1-1-9k4]]", "Be ready to correct, or go missed if you can't stay within limits"]
+    ]}}
+   ],
+   "check": {"q": "Why don't you meet false glideslopes on a normal ILS?", "a": "Because you intercept the real glideslope at the altitudes on the chart, below the steeper false paths [[23:283|IFH 9-40]]."}
+  },
+  {
+   "title": "LPV and GLS: satellite precision",
+   "kind": "knowledge",
+   "codes": ["IR.VI.B.K2", "IR.VI.B.K3"],
+   "minutes": 7,
+   "body": [
+    {"p": "WAAS corrects GPS and checks its integrity. That makes a GPS glidepath good enough for LPV, using the same design rules as an ILS [[33:102|AIM 1-1-18b2]]. From the cockpit, an LPV looks and flies like an ILS [[29:166|IPH 4-26]]."},
+    {"table": {"head": ["", "ILS", "LPV"], "rows": [
+     ["Signal source", "Localizer and glideslope transmitters at the runway [[33:78|AIM 1-1-9a3]]", "GPS corrected by WAAS satellites [[33:102|AIM 1-1-18a3]]"],
+     ["Critical areas", "Yes [[33:84|AIM 1-1-9k1]]", "None [[29:166|IPH 4-26]]"],
+     ["Course width at threshold", "700 ft [[33:78|AIM 1-1-9b2]]", "Usually 700 ft [[33:106|AIM 1-1-18d4]]"],
+     ["Far from the runway", "Gets wider (angular) [[33:106|AIM 1-1-18d4]]", "±1 NM until 2 NM before the FAF, then angular like an ILS [[33:106|AIM 1-1-18d4]]"],
+     ["Integrity limit", "Ground monitors watch the NAVAID [[33:87|AIM 1-1-13a]]", "40 meters lateral; vertical 50 or 35 meters [[33:105|AIM 1-1-18d1]]"]
+    ]}},
+    {"p": "Watch the annunciation. When the approach is active, the receiver shows the best level of service it can give, using the names of the minima lines [[33:105|AIM 1-1-18d2]]."},
+    {"bullets": [
+     "\"LPV\": fly the LPV DA [[33:105|AIM 1-1-18d2]].",
+     "\"LNAV/VNAV\": your receiver or the procedure only supports that line [[33:105|AIM 1-1-18d2]].",
+     "\"LNAV\": no vertical guidance. Use LNAV minimums, an MDA [[33:105|AIM 1-1-18d2]].",
+     "The receiver will not upgrade during the approach. If only the vertical flag appears, you may use LNAV minimums when the rules you fly under allow it [[33:105|AIM 1-1-18d2 NOTE]]."
+    ]},
+    {"p": "WAAS NOTAMs that say MAY NOT BE AVBL are only predictions. If your receiver still shows LPV on the approach, you may use it [[33:103|AIM 1-1-18c5(a)]]. Fly LPV only with a receiver the flight manual supplement says can do it [[33:103|AIM 1-1-18c2]]."},
+    {"p": "GLS uses a GBAS ground station at the airport. It sends corrections and the approach path over a VHF data link, and it is a true precision approach [[33:107|AIM 1-1-19c]]. Make sure your system is in GLS approach mode before the glidepath intercept point, then fly it like an ILS or LPV [[33:107|AIM 1-1-19f]]."},
+    {"figure": "f5"},
+    {"callout": {"type": "tip", "text": "On an RNAV (GPS) approach, check the approach ID or WAAS channel number on the chart against what the box loaded [[33:106|AIM 1-1-18d6]]."}}
+   ],
+   "check": {"q": "On an RNAV (GPS) approach with LPV minimums, the box annunciates LNAV at the FAF. Which minimums do you use?", "a": "LNAV minimums, an MDA. The signal is not supporting vertical guidance [[33:105|AIM 1-1-18d2]]."}
+  },
+  {
+   "title": "DA, DH and your minimums",
+   "kind": "knowledge",
+   "codes": ["IR.VI.B.K1", "IR.VI.B.S10"],
+   "minutes": 6,
+   "body": [
+    {"p": "DA is an MSL altitude on an ILS, GLS or vertically guided RNAV approach where you continue only if you see the required references [[34:334|AIM P/C Glossary]]. DH is the same idea measured as height above the threshold. Category II and III use DH, read on a radio altimeter [[34:334|AIM P/C Glossary]]."},
+    {"p": "On the chart, the HAT (height above touchdown) is printed next to the DA. For example, the Newark GLS shows DA 210 with TDZE 10, so the HAT is 200 ft [[29:167|IPH Figure 4-14]]."},
+    {"table": {"head": ["ILS category", "Lowest minimums"], "rows": [
+     ["Category I", "DH 200 ft, RVR 2,400 ft (RVR 1,800 with touchdown zone and centerline lights, or with autopilot, flight director or HUD) [[33:83|AIM 1-1-9i1(a)]]"],
+     ["Category II", "DH 100 ft, RVR 1,200 ft [[33:83|AIM 1-1-9i1(c)]]"],
+     ["Category III", "DH below 100 ft or none, down to no RVR limit for IIIc [[33:83|AIM 1-1-9i1(e)-(g)]]"]
+    ]}},
+    {"p": "Category I needs only an instrument rating, currency and proper equipment. Categories II and III need special training and authorization [[23:278|IFH 9-35]]."},
+    {"callout": {"type": "reg", "text": "Your authorized DA is the HIGHEST of: the DA on the chart, the DA set for you as PIC, and the DA for the equipment you have and use [[60:471|14 CFR 91.175(b)]]."}},
+    {"p": "Approach categories are set by speed. Category A is under 91 knots, B is 91 to under 121 knots, C is 121 to under 141 knots [[33:423|AIM 5-4-7e]]. If you must fly faster than your category's top speed, use the next higher category's minimums [[23:42|IFH 1-23]]."}
+   ],
+   "check": {"q": "The chart DA is 6,321 ft. Your equipment requires a higher DA of 6,421 ft. Which one is authorized?", "a": "6,421 ft. The authorized DA is the highest of the three [[60:471|14 CFR 91.175(b)]]."}
+  },
+  {
+   "title": "Inoperative components and NOTAMs",
+   "kind": "knowledge",
+   "codes": ["IR.VI.B.K1", "IR.VI.B.S10", "IR.VI.B.S4"],
+   "minutes": 7,
+   "body": [
+    {"table": {"head": ["What fails", "Result"], "rows": [
+     ["Localizer", "No ILS approach is authorized [[33:83|AIM 1-1-9j1]]"],
+     ["Glideslope", "It becomes a localizer approach. Use the LOC minimums (an MDA) [[33:83|AIM 1-1-9j2]] [[23:313|IFH 10-22]]"],
+     ["Approach lights or other visual aids", "Raise the minimums using the inoperative components table in the TPP [[33:83|AIM 1-1-9j REFERENCE]]"]
+    ]}},
+    {"p": "Published minimums assume every part works. If more than one part is out, use the highest minimum that any one of them requires [[23:313|IFH 10-22]]."},
+    {"figure": "f2"},
+    {"p": "In this copy of the table, an ILS with MALSR out needs 1/4 mile more visibility. On an ILS with an 1,800 RVR minimum, approach lights out raise it to 4,000 RVR, and touchdown zone or centerline lights out raise it to 2,400 RVR [[23:50|IFH Figure 1-23]]. Chart notes can change the table for that approach [[23:49|IFH 1-30]]."},
+    {"p": "The approach keeps its published name even when a part is out. ATC must tell you the part is unusable when it clears you [[33:420|AIM 5-4-6d]]."},
+    {"callout": {"type": "warn", "text": "Some charts say \"Procedure not authorized when glide slope not used\". Follow every restriction note on the chart [[34:3|AIM 5-5-4a2]]."}}
+   ],
+   "check": {"q": "ATC says \"cleared ILS runway 27, glideslope unusable.\" What approach are you really flying?", "a": "A localizer approach to the LOC MDA and visibility [[33:83|AIM 1-1-9j2]] [[33:420|AIM 5-4-6d]]."}
+  },
+  {
+   "title": "Descent rate and groundspeed",
+   "kind": "knowledge",
+   "codes": ["IR.VI.B.K1", "IR.VI.B.S11"],
+   "minutes": 7,
+   "body": [
+    {"p": "The glideslope is a fixed angle over the ground. So the descent rate you need depends on your groundspeed, not your airspeed. More groundspeed means a faster descent rate."},
+    {"p": "A 3 degree path drops about 318 ft per NM [[23:44|IFH Figure 1-19]]. The rate of descent table in the back of the TPP turns angle and groundspeed into feet per minute [[33:414|AIM 5-4-5k3]]."},
+    {"figure": "f1"},
+    {"table": {"head": ["Groundspeed (knots)", "60", "75", "90", "105", "120"], "rows": [
+     ["3.0 degree path (fpm)", "318", "398", "478", "557", "637"]
+    ]}},
+    {"callout": {"type": "memory", "text": "Quick rule for a 3 degree path: descent rate = groundspeed x 5. 120 knots gives 600 fpm [[29:116|IPH 3-4]]. The table is a bit higher (637 fpm at 120 knots)."}},
+    {"p": "Check your height on final with 300 ft per NM: multiply your distance from the threshold by 300 to get your height above TDZE. At 5 NM you should be about 1,500 ft above TDZE [[29:177|IPH 4-37]]."},
+    {"p": "Set the descent rate the moment vertical guidance begins. The IFH says that with the right rate set when you intercept the glideslope, only very small corrections keep you on it [[23:283|IFH 9-40]]."}
+   ],
+   "check": {"q": "Groundspeed 90 knots on a 3 degree glideslope. About what descent rate?", "a": "About 478 fpm from the table (450 fpm by the times-5 rule) [[23:44|IFH Figure 1-19]] [[29:116|IPH 3-4]]."}
+  },
+  {
+   "title": "Stabilized approach and energy",
+   "kind": "knowledge",
+   "codes": ["IR.VI.B.K4", "IR.VI.B.S8", "IR.VI.B.S12", "IR.VI.B.R5"],
+   "minutes": 7,
+   "body": [
+    {"p": "A stabilized approach keeps a constant approach speed, descent rate, flight path and configuration in the final stages. That makes the decision at DA much simpler [[29:177|IPH 4-37]]. It is strongly recommended for propeller airplanes too [[29:177|IPH 4-37]]."},
+    {"bullets": [
+     "Limit configuration changes at low altitude to ones you can handle easily [[29:177|IPH 4-37]].",
+     "For straight-in instrument approaches in IFR weather, the IPH turbojet standard is stable before 1,000 ft above the airport or TDZE [[29:177|IPH 4-37]].",
+     "Below 1,000 ft AGL, a descent rate over about 1,000 fpm is unacceptable for any airplane, because of a human perception limit [[29:177|IPH 4-37]]."
+    ]},
+    {"p": "Think of altitude and airspeed as one energy total. The throttle changes the total. The elevator trades between altitude and airspeed [[24:98|AFH 4-12]]."},
+    {"table": {"head": ["On the glideslope you are", "Energy error", "Fix it with"], "rows": [
+     ["Low and slow", "Too little total energy", "Throttle: add power [[24:98|AFH 4-12]]"],
+     ["High and fast", "Too much total energy", "Throttle: reduce power [[24:98|AFH 4-12]]"],
+     ["Low and fast", "Right total, wrong mix", "Elevator: pitch up, trade speed for height [[24:98|AFH 4-12]]"],
+     ["High and slow", "Right total, wrong mix", "Elevator: pitch down, trade height for speed [[24:98|AFH 4-12]]"]
+    ]}},
+    {"callout": {"type": "reg", "text": "ACS: from the FAF to DA, no more than 3/4-scale deflection of the glideslope or localizer, and desired airspeed ±10 knots (ACS IR.VI.B.S12)."}},
+    {"p": "Below DA, keep the same picture. A stabilized approach holds a constant angle toward an aiming point on the runway, at constant airspeed and configuration [[24:175|AFH 9-4]]."}
+   ],
+   "check": {"q": "You are one dot low and 8 knots fast. Throttle or elevator first?", "a": "Elevator. Low and fast is an energy distribution error: pitch up to trade the extra speed for height [[24:98|AFH 4-12]]."}
+  },
+  {
+   "title": "Autopilot coupling and automation",
+   "kind": "knowledge",
+   "codes": ["IR.VI.B.R3", "IR.VI.B.K2", "IR.VI.B.S16"],
+   "minutes": 6,
+   "body": [
+    {"p": "In a single-pilot airplane, an autopilot can greatly reduce workload and free you to monitor [[1:66|PHAK 2-27]]. But plan before departure how you will handle an autopilot failure on the approach [[1:66|PHAK 2-27]]."},
+    {"p": "A flight director gives you steering commands. It does not mean the autopilot is flying. That only happens when it is coupled [[23:119|IFH 5-24]]."},
+    {"bullets": [
+     "Know your system. Read the avionics and autopilot manuals [[1:68|PHAK 2-29]].",
+     "Coupled operations need close monitoring, and you must be ready to take over. Vehicles and other aircraft can disturb the signals [[33:85|AIM 1-1-9k5]].",
+     "Some charts limit coupling. The Newark GLS note says \"Autopilot coupled approach NA below 210\" [[29:167|IPH Figure 4-14]].",
+     "If a late change means heads-down reprogramming, it can be easier to disconnect and hand fly the new approach [[1:66|PHAK 2-27]]."
+    ]},
+    {"p": "Use the MFD map to see your position, track and wind drift. It adds to situational awareness but never replaces the chart [[1:66|PHAK 2-27]]. If you feel behind, reassess and get information from the navigation instruments or ATC [[23:337|IFH 11-12]]."},
+    {"callout": {"type": "tip", "text": "During the checkride the examiner may ask you to fly with or without the autopilot. Practice both, and keep your hand-flying sharp [[1:66|PHAK 2-27]]."}}
+   ],
+   "check": {"q": "The flight director command bars are centered on the glideslope. Is the autopilot flying?", "a": "Not unless it is coupled. A flight director only gives steering commands [[23:119|IFH 5-24]]."}
+  },
+  {
+   "title": "Brief, tune and identify",
+   "kind": "skills",
+   "codes": ["IR.VI.B.R2", "IR.VI.B.S2", "IR.VI.B.S3", "IR.VI.B.S7", "IR.VI.B.S17", "IR.VI.B.K1"],
+   "minutes": 7,
+   "body": [
+    {"p": "Approach planning has five steps: weather, field conditions and NOTAMs; performance and approach speed; navigation, communication and automation setup; the approach review or briefing; and the operational briefing [[29:142|IPH 4-2]]."},
+    {"figure": "f6"},
+    {"p": "On the Cheyenne ILS or LOC RWY 27, the localizer is I-CYS on 110.1, and the approach course is 265 degrees. The arc and the missed approach use CYS VORTAC on 113.1 [[29:156|IPH Figure 4-8]]. Plan when you change from the VOR to the localizer, so you don't fly the approach on the wrong NAVAID [[29:157|IPH 4-17]]."},
+    {"bullets": [
+     "Tune the primary NAVAID, then identify it before you use it for guidance [[29:157|IPH 4-17]]. Listen for I and three letters [[33:79|AIM 1-1-9b4]].",
+     "Read every chart note. At Cheyenne, inoperative MALSR raises S-LOC 27 Category D visibility to RVR 5000, and RVR 1800 needs a flight director, autopilot or HUD to DA [[29:156|IPH Figure 4-8]].",
+     "Brief the approach name, runway, frequencies, final approach course, glideslope intercept altitude, DA and the missed approach [[29:203|IPH 4-63]].",
+     "Know the approach light type before you start, so you can recognize it instantly [[23:281|IFH 9-38]]."
+    ]},
+    {"p": "Talk to ATC early, read back clearances and ask if anything is unclear [[34:2|AIM 5-5-2a]]. If you can't comply, say so and get an amended clearance [[34:2|AIM 5-5-2a4]]. SRM means using every resource, including ATC and the autopilot, to get a safe outcome [[23:362|IFH Glossary]]."}
+   ],
+   "check": {"q": "You hear Morse I-C-Y-S on 110.1. What does that tell you?", "a": "You have the right localizer, and it is on the air. A localizer identifier is I plus three letters [[33:79|AIM 1-1-9b4]] [[33:87|AIM 1-1-11]]."}
+  },
+  {
+   "title": "Fly it step by step: the ILS to DA",
+   "kind": "skills",
+   "codes": ["IR.VI.B.S1", "IR.VI.B.S4", "IR.VI.B.S8", "IR.VI.B.S9", "IR.VI.B.S11", "IR.VI.B.S12", "IR.VI.B.S13", "IR.VI.B.S14", "IR.VI.B.S15", "IR.VI.B.R1", "IR.VI.B.R4", "IR.VI.B.R7"],
+   "minutes": 9,
+   "body": [
+    {"p": "Before final, hold altitude ±100 ft, heading ±10 degrees, airspeed ±10 knots and no more than 3/4-scale CDI (ACS IR.VI.B.S9)."},
+    {"bullets": [
+     "On vectors, keep the last assigned altitude until you are established on a published segment [[33:421|AIM 5-4-6h1]].",
+     "Intercept the localizer. Turn to the course heading as soon as the needle starts to move [[23:285|IFH 9-42]].",
+     "Find your drift correction early. By the outer marker, heading changes should be 2 degrees or less [[23:283|IFH 9-40]].",
+     "Intercept the glideslope at the published glideslope intercept altitude (the lightning bolt). That marks the start of the final approach segment [[33:400|AIM 5-4-5b NOTE 2]].",
+     "Set the descent rate for your groundspeed right away, then use small pitch changes for the glideslope and power for airspeed [[23:283|IFH 9-40]].",
+     "Stepdown altitudes inside the FAF don't apply when you fly to the DA [[33:401|AIM 5-4-5b5]].",
+     "At DA: continue only with the required visibility and references. Otherwise start the missed approach immediately [[60:472|14 CFR 91.175(c)]] [[60:472|14 CFR 91.175(e)]]."
+    ]},
+    {"callout": {"type": "reg", "text": "Below DA you need: a position to land with normal descent rate and maneuvers, the flight visibility on the chart, and one required runway reference distinctly visible. With only the approach lights, you may not go below 100 ft above TDZE unless the red terminating bars or red side row bars are also visible [[60:472|14 CFR 91.175(c)]]."}},
+    {"p": "Required references include the approach lights, threshold, threshold markings or lights, REIL, visual glideslope indicator, touchdown zone or its markings or lights, and runway or its markings or lights [[60:472|14 CFR 91.175(c)(3)]]."},
+    {"p": "From DA to touchdown, keep a stable path to the aiming point so you land in the touchdown zone (ACS IR.VI.B.S15) [[24:175|AFH 9-4]]. If you lose the references at any time below DA, go missed [[60:472|14 CFR 91.175(e)(1)]]."},
+    {"p": "Missed approach: climb pitch and climb power, configure for climb, turn as published, tell ATC and ask for your next clearance [[23:312|IFH 10-21]]. Missed approach obstacle protection assumes you start at DA and climb at least 200 ft per NM unless the chart says more [[33:450|AIM 5-4-21b]]."}
+   ],
+   "check": {"q": "You are vectored to final at 7,800 ft and cleared for the ILS. The glideslope needle starts down before you are on the localizer. Do you descend?", "a": "No. Keep the last assigned altitude until established on a published segment [[33:421|AIM 5-4-6h1]]."}
+  },
+  {
+   "title": "Risk: weather, deviations and the DA line",
+   "kind": "risk",
+   "codes": ["IR.VI.B.R1", "IR.VI.B.R4", "IR.VI.B.R5", "IR.VI.B.R6", "IR.VI.B.R7", "IR.VI.B.S6", "IR.VI.B.S13"],
+   "minutes": 7,
+   "body": [
+    {"table": {"head": ["Hazard", "Why it bites", "Control"], "rows": [
+     ["Deviating from the procedure", "You must fly the published approach [[60:471|14 CFR 91.175(a)]], and may not leave a clearance without an amendment [[60:450|14 CFR 91.123(a)]]", "Brief it, follow every chart note [[34:3|AIM 5-5-4a2]], ask ATC if unsure"],
+     ["Unstable approach, high descent rate", "Over about 1,000 fpm below 1,000 ft AGL is unacceptable [[29:177|IPH 4-37]]", "Set the descent rate for your groundspeed; go missed if not stable"],
+     ["Configuration changes low", "Big changes late raise workload and hurt awareness [[29:177|IPH 4-37]]", "Be configured early; know the missed approach configuration [[23:312|IFH 10-21]]"],
+     ["Wind shear", "Tailwind to headwind makes you balloon high; headwind to tailwind makes you sink below the glidepath [[23:316|IFH 10-25]]", "Watch for early signs and be ready to go missed at the first one [[23:316|IFH 10-25]]"],
+     ["Falling visibility", "Only you can judge flight visibility. If it is less than the chart minimum, go missed, whatever the report says [[23:313|IFH 10-22]]", "Keep a firm DA and visibility rule"],
+     ["Ducking under DA", "You may not continue below DA without the references [[60:471|14 CFR 91.175(c)]]", "At DA with no runway, go missed now [[60:472|14 CFR 91.175(e)]]"]
+    ]}},
+    {"figure": "f7"},
+    {"p": "A headwind shear followed by a tailwind or downdraft is the worst case. You have just reduced power and lowered the nose, and then the airplane sinks [[23:316|IFH 10-25]]."},
+    {"callout": {"type": "warn", "text": "The missed approach is highest workload. Study it and master it before you begin the approach [[23:312|IFH 10-21]]."}},
+    {"p": "If weather, equipment or workload means you cannot fly what ATC cleared, tell ATC and ask for an amendment as soon as possible [[34:2|AIM 5-5-2a4]]."}
+   ],
+   "check": {"q": "On short final, airspeed jumps up and the airplane balloons above the glideslope. What kind of shear is this?", "a": "A tailwind shearing to a headwind or calm [[23:316|IFH 10-25]]."}
+  },
+  {
+   "title": "Common errors",
+   "kind": "skills",
+   "codes": ["IR.VI.B.K2", "IR.VI.B.S3", "IR.VI.B.S5", "IR.VI.B.S12"],
+   "minutes": 4,
+   "body": [
+    {"p": "The IFH lists these ILS operational errors [[23:285|IFH 9-42]]:"},
+    {"bullets": [
+     "Treating the localizer like a VOR radial. The localizer is much sharper and faster [[23:285|IFH 9-42]].",
+     "Poor planning and relying on one receiver. Use all the equipment you have; one receiver can fail [[23:285|IFH 9-42]].",
+     "Large localizer intercept angles, which cause overshoots [[23:285|IFH 9-42]].",
+     "Chasing the CDI and glideslope needles, often because you didn't study the approach [[23:285|IFH 9-42]]."
+    ]},
+    {"p": "Other traps: a marker receiver left off or on the wrong sensitivity [[23:283|IFH 9-40]], not checking the identifier [[33:87|AIM 1-1-11]], and continuing after a flag appears."},
+    {"callout": {"type": "tip", "text": "Small corrections, reduced as the course narrows. By the outer marker the drift correction should be set so you need 2 degrees or less [[23:283|IFH 9-40]]."}}
+   ],
+   "check": {"q": "Why is chasing the needles a problem near the runway?", "a": "Both needles get more sensitive close in, so big corrections cause overshoots. Small corrections, reduced as the course narrows, keep you aligned [[23:283|IFH 9-40]] [[23:285|IFH 9-42]]."}
+  }
+ ],
+ "figures": {
+  "f1": {"file": "IR.VI.B-1.jpg", "res": "23", "page": 44, "caption": "Figure 1-19. Descent rate table.", "alt": "The TPP rate of descent table. Rows are descent angles from 2.0 to 12.0 degrees with feet per NM; columns are groundspeeds from 30 to 180 knots. The boxed vertical path angle rows from 2.7 to 3.4 degrees include 3.0 degrees: 318 ft per NM, 398 fpm at 75 knots, 478 at 90, 557 at 105 and 637 at 120.", "source": "IFH, PDF p. 44"},
+  "f2": {"file": "IR.VI.B-2.jpg", "res": "23", "page": 50, "caption": "Figure 1-23. IAP inoperative components table.", "alt": "The TPP inoperative components or visual aids table. Section 1 (ILS, MLS, PAR and RNAV LPV): ALSF 1 and 2, MALSR and SSALR out raise visibility 1/4 mile. Section 2 (ILS with 1,800 RVR): approach lights out to 4000 RVR, TDZL or RCLS out to 2400 RVR (1800 with FD, AP or HUD to DA), RVR out to 1/2 mile. Sections 3 and 4 cover nonprecision approaches and NDB.", "source": "IFH, PDF p. 50"},
+  "f3": {"file": "IR.VI.B-3.jpg", "res": "33", "page": 86, "caption": "FIG 1-1-8. FAA Instrument Landing Systems", "alt": "Black and white drawing of an ILS: the localizer antenna at the far end of the runway, the glide slope transmitter beside the runway, the 90 Hz and 150 Hz localizer lobes, the glide slope about 1.4 degrees thick at 3 degrees above horizontal, outer and middle marker cones with their indicator lights, course needle pictures at several positions, and a small rate of descent chart (90 knots, 3 degrees: 475 fpm).", "source": "AIM, PDF p. 86"},
+  "f4": {"file": "IR.VI.B-4.jpg", "res": "23", "page": 285, "caption": "Figure 9-39. A GS receiver indication and aircraft displacement. An analog system is on the left and the same indication on the Garmin PFD on the right.", "alt": "Colored drawing of the glideslope beam from the runway, with 90 Hz above and 150 Hz below, and orange middle and outer marker cones. An airplane above the beam shows a fly down needle; one below shows fly up. Notes say one dot is about 8 ft near the middle marker and about 50 ft near the outer marker.", "source": "IFH, PDF p. 285"},
+  "f5": {"file": "IR.VI.B-5.jpg", "res": "29", "page": 167, "caption": "Figure 4-14. GLS approach at Newark, New Jersey.", "alt": "GLS RWY 4L chart at Newark: LAAS channel 22727, approach ID G04A, course 039, TDZE 10. Notes include inoperative MALSR raising GLS visibility to RVR 4000 and autopilot coupled approach NA below 210. Profile shows GS 3.00 degrees, TCH 55, FAF HOWYA at 2000. Minimums GLS DA 210/24, HAT 200.", "source": "IPH, PDF p. 167"},
+  "f6": {"file": "IR.VI.B-6.jpg", "res": "29", "page": 156, "caption": "Figure 4-8. Cheyenne Regional (KCYS), Cheyenne, Wyoming, ILS or LOC RWY 27.", "alt": "Top part of the Cheyenne ILS or LOC RWY 27 chart: LOC I-CYS 110.1, approach course 265, landing distance 7985, TDZE 6121, airport elevation 6160. Notes on inoperative MALSR and RVR 1800 with FD, AP or HUD. Missed approach to CYS VORTAC. The plan view shows the CYS VORTAC on 113.1, the 13 and 15 DME arcs, the localizer feather on 265 and the LOM HORSE on 353.", "source": "IPH, PDF p. 156"},
+  "f7": {"file": "IR.VI.B-7.jpg", "res": "23", "page": 316, "caption": "Figure 10-17. Glideslope deviations due to wind shear encounter.", "alt": "Two colored panels. Left: tailwind shearing to headwind near a front, the airplane balloons above the dotted glideslope from the outer marker. Right: headwind shearing to tailwind, the airplane sinks below the glideslope.", "source": "IFH, PDF p. 316"}
+ },
+ "scenario": {
+  "title": "Coupled ILS into falling weather",
+  "codes": ["IR.VI.B.R1", "IR.VI.B.R2", "IR.VI.B.R3", "IR.VI.B.R4", "IR.VI.B.R5", "IR.VI.B.R6", "IR.VI.B.R7", "IR.VI.B.S10", "IR.VI.B.S13"],
+  "setup": "You are flying a single-engine airplane with WAAS GPS and an autopilot into Cheyenne for the ILS or LOC RWY 27. A NOTAM says the MALSR is out of service. ATIS gives a 300 ft overcast and 1 mile visibility in light snow, and the trend is down. You plan to couple the autopilot. You used CYS VORTAC for the arc, and NAV 1 is still on 113.1.",
+  "questions": [
+   {"q": "How does the MALSR NOTAM change your minimums?", "a": "Minimums assume every part works. Use the TPP inoperative components table: in the IFH copy, an ILS with MALSR out needs 1/4 mile more visibility [[23:50|IFH Figure 1-23]] [[23:313|IFH 10-22]]. The chart note about RVR 5000 is only for S-LOC 27 Category D [[29:156|IPH Figure 4-8]]."},
+   {"q": "Approach control turns you onto the final course. What must happen with NAV 1 before you use it?", "a": "Change from the VOR (113.1) to the localizer I-CYS on 110.1, and identify it before using it for guidance [[29:156|IPH Figure 4-8]] [[29:157|IPH 4-17]]."},
+   {"q": "The autopilot captures the glideslope but pitches down to 1,300 fpm and the needle acts strange. What do you suspect and do?", "a": "A false glideslope or a bad capture: a false path needs a very high descent rate [[23:283|IFH 9-40]]. Disconnect, hand fly, check altitude against the chart, and go missed if you can't get stable. Coupled approaches must be monitored and you must be ready to take over [[33:85|AIM 1-1-9k5]]. Over about 1,000 fpm below 1,000 ft AGL is unacceptable [[29:177|IPH 4-37]]."},
+   {"q": "Inside the FAF, tower reports visibility dropping below your minimum. May you continue?", "a": "Under part 91 you may continue to DA, but you may go below it only if the flight visibility is not less than the chart minimum and a required reference is visible [[60:472|14 CFR 91.175(c)]]. Only you can judge flight visibility [[23:313|IFH 10-22]]."},
+   {"q": "At DA you see runway lights, then lose them in snow at 150 ft above the runway. Now what?", "a": "Go missed immediately. The requirement must be met at DA and any time after that until touchdown [[60:472|14 CFR 91.175(e)(1)]]."},
+   {"q": "How do you configure for the missed approach?", "a": "Climb pitch and climb power, configure for climb, follow the missed approach course, tell ATC and ask for a clearance [[23:312|IFH 10-21]]. You must climb at least 200 ft per NM unless the chart says more [[33:450|AIM 5-4-21b]]."}
+  ]
+ },
+ "skills": [
+  {"code": "IR.VI.B.S1", "do": "Fly the ILS, LPV or GLS approach the examiner picks, to DA, by reference to instruments.", "practice": "Fly the full procedure and vectors-to-final versions. Follow the chart and every note [[34:3|AIM 5-5-4a2]]."},
+  {"code": "IR.VI.B.S2", "do": "Talk with ATC for each phase and use correct phraseology.", "practice": "Read back clearances and ask for clarification when unsure [[34:2|AIM 5-5-2a]]."},
+  {"code": "IR.VI.B.S3", "do": "Select, tune, identify and confirm the navigation equipment for the approach.", "practice": "Tune the localizer, listen for I plus three letters [[33:79|AIM 1-1-9b4]], and check the GPS annunciation or approach ID [[33:106|AIM 1-1-18d6]]."},
+  {"code": "IR.VI.B.S4", "do": "Comply with all ATC and examiner clearances.", "practice": "On vectors, hold the last assigned altitude until established [[33:421|AIM 5-4-6h1]]. Don't deviate without an amended clearance [[60:450|14 CFR 91.123(a)]]."},
+  {"code": "IR.VI.B.S5", "do": "Recognize an inaccurate or failed instrument and act.", "practice": "Watch for flags and erratic needles [[23:283|IFH 9-40]]. Switch to another source and ask ATC for an amended clearance [[33:87|AIM 1-1-13c]]."},
+  {"code": "IR.VI.B.S6", "do": "Tell ATC or the examiner when you can't comply.", "practice": "Say \"unable\" early and get an amended clearance [[34:2|AIM 5-5-2a4]]."},
+  {"code": "IR.VI.B.S7", "do": "Complete the checklists.", "practice": "Use the five planning steps and the approach briefing items [[29:142|IPH 4-2]] [[29:203|IPH 4-63]]."},
+  {"code": "IR.VI.B.S8", "do": "Set the right configuration and airspeed for the weather and conditions.", "practice": "Configure early so you only make small changes low [[29:177|IPH 4-37]]. Fly a constant approach speed [[24:175|AFH 9-4]]."},
+  {"code": "IR.VI.B.S9", "do": "Before final: altitude ±100 ft, heading ±10 degrees, airspeed ±10 knots, no more than 3/4-scale CDI, accurate tracking (ACS IR.VI.B.S9).", "practice": "Turn to the localizer heading as soon as the needle moves [[23:285|IFH 9-42]], and set the drift correction early [[23:283|IFH 9-40]]."},
+  {"code": "IR.VI.B.S10", "do": "Adjust DA and visibility for your approach category, NOTAMs and inoperative equipment or lights.", "practice": "Use the highest DA [[60:471|14 CFR 91.175(b)]], the right category [[33:423|AIM 5-4-7e]] and the inoperative components table [[23:313|IFH 10-22]]."},
+  {"code": "IR.VI.B.S11", "do": "Set a descent rate at glideslope intercept that matches what the glidepath needs.", "practice": "Look up the rate for your groundspeed in the table [[33:414|AIM 5-4-5k3]] or use groundspeed x 5 [[29:116|IPH 3-4]]."},
+  {"code": "IR.VI.B.S12", "do": "FAF to DA: no more than 3/4-scale glideslope or localizer deflection, airspeed ±10 knots (ACS IR.VI.B.S12).", "practice": "Pitch for the glideslope, power for airspeed, and use the energy rules [[24:98|AFH 4-12]]."},
+  {"code": "IR.VI.B.S13", "do": "Start the missed approach right at DA when the runway references are not clearly visible.", "practice": "Call \"minimums\" out loud and go missed with no hesitation [[60:472|14 CFR 91.175(e)]] [[23:312|IFH 10-21]]."},
+  {"code": "IR.VI.B.S14", "do": "Leave DA for a landing only from a position to land at a normal descent rate with normal maneuvering.", "practice": "Practice judging the picture at DA in the simulator or with a view-limiting device [[60:472|14 CFR 91.175(c)(1)]]."},
+  {"code": "IR.VI.B.S15", "do": "Keep a stable visual path from DA to the aiming point and land in the touchdown zone.", "practice": "Hold constant airspeed and angle toward the aiming point [[24:175|AFH 9-4]]."},
+  {"code": "IR.VI.B.S16", "do": "Use the MFD and moving map to watch position, wind drift and the big picture.", "practice": "Cross-check the map with the needles, but never treat it as a chart [[1:66|PHAK 2-27]]."},
+  {"code": "IR.VI.B.S17", "do": "Use single-pilot resource management.", "practice": "Use ATC, automation and checklists as resources [[23:362|IFH Glossary]], and decide ahead how you'd handle an autopilot failure [[1:66|PHAK 2-27]]."}
+ ],
+ "quiz": [
+  {"q": "Which of these is a precision approach in AIM terms?", "options": ["LPV", "LNAV/VNAV", "GLS", "LDA with glidepath"], "answer": 2, "why": "PAR, ILS and GLS are precision approaches. LPV, LNAV/VNAV and LDA with glidepath are APV [[33:400|AIM 5-4-5a7]]."},
+  {"q": "How wide is the localizer course, full left to full right, at the runway threshold?", "options": ["700 ft", "1,400 ft", "350 ft", "2,400 ft"], "answer": 0, "why": "The localizer is adjusted for a 700 ft course width at the threshold [[33:78|AIM 1-1-9b2]]."},
+  {"q": "You fly a normal 3 degree glideslope. About how high above the runway are you at the outer marker?", "options": ["200 ft", "1,000 ft", "1,400 ft", "2,500 ft"], "answer": 2, "why": "It crosses the OM at about 1,400 ft and the MM at about 200 ft above the runway [[33:81|AIM 1-1-9d3]]."},
+  {"q": "Where is the lowest false glideslope, roughly?", "options": ["About 1 to 2 degrees", "About 5 degrees", "About 9 to 12 degrees", "About 20 degrees"], "answer": 2, "why": "The lowest false course is at about 9 to 12 degrees. Flying the chart altitudes keeps you away from them [[23:283|IFH 9-40]]."},
+  {"q": "The ILS glideslope fails. What happens to the approach?", "options": ["It is not authorized", "It becomes a localizer approach", "You may fly it to the ILS DA", "You must circle"], "answer": 1, "why": "With the glideslope out, the ILS reverts to a nonprecision localizer approach [[33:83|AIM 1-1-9j2]]."},
+  {"q": "A WAAS NOTAM says LPV MAY NOT BE AVBL, but your receiver shows LPV when the approach is active. Can you fly the LPV?", "options": ["Yes, the NOTAM is a prediction", "No, the NOTAM rules", "Only with ATC approval", "Only in VFR conditions"], "answer": 0, "why": "MAY NOT BE AVBL NOTAMs are predictive. If the avionics show LPV, you may use the vertical guidance [[33:103|AIM 1-1-18c5(a)]]."},
+  {"q": "Using the IPH rule of thumb, what descent rate holds a 3 degree path at 100 knots groundspeed?", "options": ["300 fpm", "500 fpm", "700 fpm", "1,000 fpm"], "answer": 1, "why": "Groundspeed x 5: 100 x 5 = 500 fpm [[29:116|IPH 3-4]]."},
+  {"q": "Which situation calls for more power (throttle) rather than pitch?", "options": ["Low and fast", "High and slow", "Low and slow", "On path, 5 knots fast"], "answer": 2, "why": "Low and slow is a total energy shortage, fixed with the throttle. Low and fast is fixed with the elevator [[24:98|AFH 4-12]]."},
+  {"q": "When does ATC protect the ILS critical areas at a towered airport?", "options": ["Always", "Only when the ceiling is below 800 ft or visibility below 2 miles", "Only at night", "Only for Category III"], "answer": 1, "why": "With ceiling 800 or higher and visibility 2 miles or more, no protection is given unless you ask [[33:84|AIM 1-1-9k2]]."}
+ ],
+ "takeaways": [
+  "ILS, GLS and PAR are precision; LPV is APV. All go to a DA, and the ACS accepts any of them for this Task.",
+  "Tune, identify, and set the course before you trust the needles.",
+  "Descent rate follows groundspeed: about groundspeed x 5 for 3 degrees, or use the TPP table.",
+  "Your DA is the highest of chart, pilot and equipment. Raise minimums for inoperative parts.",
+  "Stay stable: constant speed and descent rate, no more than 3/4 scale, under 1,000 fpm close in.",
+  "At DA with no required reference, go missed. Lose the references below DA, go missed."
+ ],
+ "cfi_notes": [
+  "The ACS (Appendix 3) treats any approach to a DA with approved vertical guidance as precision for the checkride, but the AIM lists LPV as APV. Teach both and ask students which category each line of minima is.",
+  "The IFH says the glideslope antenna sits 400 to 600 ft from centerline and the angle is 2.5 to 3.5 degrees [[23:280|IFH 9-37]]. The current AIM says 250 to 650 ft and normally 3 degrees [[33:81|AIM 1-1-9d]]. Teach the AIM numbers.",
+  "IFH 1-23 says precision approaches use DH referenced to HAT [[23:42|IFH 1-23]]. Current charts publish DA in MSL with HAT beside it; DH is now for Category II and III with a radio altimeter [[34:334|AIM P/C Glossary]].",
+  "The IFH inoperative components table (Figure 1-23) is a 2012 TPP page. Have students open the current TPP table and compare before using any numbers.",
+  "The IFH calls the middle marker a normal ILS part; the AIM says it is no longer required [[33:82|AIM 1-1-9f2]]. Many ILSs now have no MM, so don't teach it as a decision cue.",
+  "Common student error: setting the descent rate from airspeed instead of groundspeed. Use headwind and tailwind examples with the table.",
+  "Examiners often probe 91.175(c): the approach light 100 ft rule, flight visibility, and what to do if references are lost below DA.",
+  "Practice both coupled and hand-flown approaches, and an autopilot failure on final. Students should state when they would disconnect."
+ ],
+ "gaps": [
+  "Approach speed, configuration and power settings come from the airplane's POH/AFM, which is not in the sources.",
+  "Avionics-specific displays, button sequences and annunciations (Garmin, Avidyne and others) are not in the sources; use the equipment manuals.",
+  "The only inoperative components table in the sources is the 2012 copy in the IFH; the current TPP table and current rate of descent table must come from the current TPP.",
+  "AC 90-107 (LPV approaches) and AC 90-105 are not available here; LPV content comes from the AIM and IPH.",
+  "One clause of S14 covers water operations, which are left out of this single-engine land lesson."
+ ],
+ "activities": [
+  {"type": "match", "key": "h1", "after": 2, "title": "ILS parts and their jobs", "intro": "Tap an ILS part, then tap what it gives you.", "pairs": [
+   {"l": "Localizer", "r": "Left and right guidance to the centerline"},
+   {"l": "Glideslope", "r": "Up and down guidance on the final path"},
+   {"l": "Outer marker", "r": "Blue light and dashes near glideslope intercept"},
+   {"l": "Compass locator", "r": "Low-power NDB at a marker site"},
+   {"l": "Approach lights", "r": "Visual help changing from instruments to landing"},
+   {"l": "DME", "r": "Distance information along the approach"}
+  ]},
+  {"type": "tf", "key": "h2", "after": 5, "title": "True or false: signals, LPV and GLS", "intro": "Decide if each statement is true or false.", "cards": [
+   {"s": "Turning the OBS changes the localizer needle.", "a": false, "why": "No. The OBS has no effect on the localizer needle, though setting the course helps as a reminder [[23:283|IFH 9-40]]."},
+   {"s": "LPV approaches have no ILS-style critical areas.", "a": true, "why": "Yes. LPV removes the critical area limits of an ILS [[29:166|IPH 4-26]]."},
+   {"s": "On a localizer back course, you may use any glideslope indication you get.", "a": false, "why": "No. Disregard glideslope signals on a back course unless the chart specifies a glideslope [[33:81|AIM 1-1-9d1]]."},
+   {"s": "GLS is a precision approach.", "a": true, "why": "Yes. PAR, ILS and GLS are precision approaches [[33:400|AIM 5-4-5a7(a)]]."},
+   {"s": "A WAAS receiver that drops to LNAV during the approach will switch back to LPV once the signal improves.", "a": false, "why": "No. It cannot change back to a more accurate level until the next time an approach is activated [[33:105|AIM 1-1-18d2]]."},
+   {"s": "A localizer identifier is the letter I followed by three letters.", "a": true, "why": "Yes, for example I-DIA [[33:79|AIM 1-1-9b4]]."}
+  ]},
+  {"type": "sort", "key": "h3", "after": 7, "title": "What does this outage do?", "intro": "Tap a clue, then tap where it belongs.", "buckets": ["Fly the ILS, raise visibility", "Fly it as a localizer", "ILS not authorized"], "items": [
+   {"t": "MALSR out of service", "b": 0},
+   {"t": "Touchdown zone lights out on an 1,800 RVR ILS", "b": 0},
+   {"t": "RVR equipment out on an 1,800 RVR ILS", "b": 0},
+   {"t": "Glideslope out of service", "b": 1},
+   {"t": "ATC: glideslope unusable", "b": 1},
+   {"t": "Localizer out of service", "b": 2},
+   {"t": "Localizer NOTAMed out but the identifier is heard", "b": 2}
+  ]},
+  {"type": "calc", "key": "h4", "after": 8, "title": "Work out the numbers", "intro": "Work it out, then type your answer.", "items": [
+   {"q": "Your groundspeed on a 3.0 degree glideslope is 90 knots. Using the rate of descent table, what descent rate do you set?", "answer": 478, "tol": 30, "unit": "fpm", "why": "Table row 3.0 degrees, column 90 knots: 478 fpm [[23:44|IFH Figure 1-19]]. The times-5 rule gives 450 fpm [[29:116|IPH 3-4]]."},
+   {"q": "Use the IPH rule of thumb: groundspeed 110 knots on a 3 degree path. What descent rate?", "answer": 550, "tol": 10, "unit": "fpm", "why": "Groundspeed x 5: 110 x 5 = 550 fpm [[29:116|IPH 3-4]]."},
+   {"q": "Cheyenne TDZE is 6,121 ft. You are 4 NM from the threshold on a 3 degree glidepath. About what altitude (MSL) should the altimeter show?", "answer": 7321, "tol": 50, "unit": "ft MSL", "why": "300 ft per NM: 4 x 300 = 1,200 ft above TDZE. 6,121 + 1,200 = 7,321 ft MSL [[29:177|IPH 4-37]] [[29:156|IPH Figure 4-8]]."},
+   {"q": "Newark GLS RWY 4L: DA 210 ft MSL and TDZE 10 ft. What is the height above touchdown (HAT) at DA?", "answer": 200, "tol": 0, "unit": "ft", "why": "HAT = DA - TDZE = 210 - 10 = 200 ft, as the chart prints [[29:167|IPH Figure 4-14]]."},
+   {"q": "An ILS has a 1,800 RVR minimum. The MALSR is out. Using the IFH copy of the inoperative components table, what RVR do you now need?", "answer": 4000, "tol": 0, "unit": "ft RVR", "why": "Table section 2 (ILS with 1,800 RVR): ALSF 1 and 2, MALSR and SSALR out raise it to 4000 RVR [[23:50|IFH Figure 1-23]]."}
+  ]},
+  {"type": "label", "key": "h5", "after": 11, "title": "Read the ILS chart", "figure": "f6", "intro": "Drag each name to its numbered pin.", "pins": [
+   {"x": 17.8, "y": 12.0, "label": "Frequency to tune for the approach"},
+   {"x": 26.0, "y": 12.4, "label": "Course to set on the CDI or HSI"},
+   {"x": 37.5, "y": 11.6, "label": "Touchdown zone elevation"},
+   {"x": 32.0, "y": 16.0, "label": "Inoperative approach light note"},
+   {"x": 41.7, "y": 50.4, "label": "VORTAC for the arc and missed approach"},
+   {"x": 63.5, "y": 63.3, "label": "Localizer course symbol (feather)"}
+  ]},
+  {"type": "order", "key": "h6", "after": 12, "title": "Fly the ILS in order", "intro": "Use the arrows to put the steps in order, then tap Check.", "steps": [
+   "Tune and identify the localizer, set the inbound course",
+   "Hold the last assigned altitude on vectors",
+   "Turn onto the localizer as the needle starts to move",
+   "Intercept the glideslope at the glideslope intercept altitude",
+   "Set the descent rate for your groundspeed",
+   "At DA, look for the required runway references",
+   "No references: climb power, climb pitch, fly the missed approach"
+  ]},
+  {"type": "decide", "key": "h7", "after": 13, "title": "Decisions on the ILS 27", "intro": "You are flying N4521K, a single-engine airplane, on vectors for the ILS RWY 27 at Cheyenne. You were told to maintain 7,800 ft and are cleared for the approach. Weather is 300 overcast, visibility 1 mile.", "steps": [
+   {"s": "The glideslope needle starts to come down before the localizer needle moves.", "options": ["Start down with the glideslope now", "Hold 7,800 ft until established on the localizer", "Descend to the DA", "Ask for a lower altitude"], "answer": 1, "why": "Keep the last assigned altitude until established on a published segment [[33:421|AIM 5-4-6h1]]."},
+   {"s": "You are on the localizer and the glideslope centers. Your groundspeed is 90 knots.", "options": ["Set about 480 fpm descent", "Set about 900 fpm descent", "Set 300 fpm and adjust later", "Hold altitude until the needle is full down"], "answer": 0, "why": "On a 3 degree path at 90 knots the table gives 478 fpm [[23:44|IFH Figure 1-19]]. Setting it at intercept means small corrections later [[23:283|IFH 9-40]]."},
+   {"s": "At 1,500 ft above TDZE you are one dot low and 10 knots slow.", "options": ["Pitch up to climb back", "Add power", "Lower the nose", "Lower more flaps"], "answer": 1, "why": "Low and slow is too little total energy. Fix it with the throttle [[24:98|AFH 4-12]]."},
+   {"s": "At DA you see the approach lights, but not the red terminating or side row bars.", "options": ["Land, the lights are enough", "Go missed right away", "Continue, but no lower than 100 ft above TDZE unless you see more", "Level off at DA and keep looking"], "answer": 2, "why": "With only the approach lights, you may not go below 100 ft above TDZE unless the red bars are also visible [[60:472|14 CFR 91.175(c)(3)(i)]]."},
+   {"s": "At 100 ft above TDZE you still see only the approach lights.", "options": ["Continue another 50 ft", "Execute the missed approach now", "Ask tower for the RVR", "Level off and look for the runway"], "answer": 1, "why": "The requirements are not met, so you must go missed immediately [[60:472|14 CFR 91.175(e)(1)]]. Climb pitch and power first [[23:312|IFH 10-21]]."}
+  ]}
+ ],
+ "final_quiz": [
+  {"q": "Using the TPP rate of descent table, about what descent rate holds a 3.0 degree glideslope at 120 knots groundspeed?", "options": ["About 480 fpm", "About 637 fpm", "About 796 fpm", "About 955 fpm"], "answer": 1, "why": "Row 3.0 degrees, column 120 knots: 637 fpm [[23:44|IFH Figure 1-19]]. 480 is the 90 knot number."},
+  {"q": "You fly final at 90 knots true airspeed. With no wind you'd use about 450 fpm. Now you have a 20 knot tailwind. By the times-5 rule, about how much faster must you descend?", "options": ["About 50 fpm faster", "About 200 fpm faster", "About 100 fpm faster", "No change; airspeed is the same"], "answer": 2, "why": "Groundspeed is 110 knots: 110 x 5 = 550 fpm, about 100 fpm more than 450 [[29:116|IPH 3-4]]. Descent rate follows groundspeed, not airspeed."},
+  {"q": "You are 3 NM from the threshold. TDZE is 1,000 ft MSL. About what altitude should you see if you are on a 3 degree glidepath?", "options": ["1,300 ft MSL", "1,600 ft MSL", "2,500 ft MSL", "1,900 ft MSL"], "answer": 3, "why": "3 NM x 300 = 900 ft above TDZE, so about 1,900 ft MSL [[29:177|IPH 4-37]]."},
+  {"q": "Your airplane's approach speed puts it in Category A. To stay ahead of traffic, ATC asks you to keep 100 knots to the runway. Which minimums apply?", "options": ["Category A", "Category B", "Category C", "Any category you choose"], "answer": 1, "why": "If you must fly faster than your category's top speed (under 91 knots for A), use the next higher category [[23:42|IFH 1-23]]. 100 knots is Category B [[33:423|AIM 5-4-7e]]."},
+  {"q": "On an RNAV (GPS) approach the receiver annunciates LNAV/VNAV, even though the chart has LPV minimums and the WAAS signal is good. Why?", "options": ["The receiver is only certified for LNAV/VNAV", "The NOTAM said MAY NOT BE AVBL", "You loaded vectors to final", "The glideslope transmitter is off"], "answer": 0, "why": "The receiver shows the best level supported by the signal, the receiver and the procedure. A receiver certified only for LNAV/VNAV shows LNAV/VNAV [[33:105|AIM 1-1-18d2]]."},
+  {"q": "At DA on an ILS you have the required flight visibility and see only the approach lights. The red terminating bars are not visible. How low may you go?", "options": ["To touchdown", "Only to 100 ft above TDZE", "Not below DA", "To 50 ft above TDZE"], "answer": 1, "why": "Using the approach lights, you may not descend below 100 ft above TDZE unless the red terminating bars or red side row bars are also visible [[60:472|14 CFR 91.175(c)(3)(i)]]."},
+  {"q": "The Newark GLS chart says \"Autopilot coupled approach NA below 210.\" DA is 210. What is your plan?", "options": ["Stay coupled to the runway", "Disconnect at 500 ft AGL only if it's gusty", "Disconnect no lower than 210 ft and hand fly any landing", "Couple only after DA"], "answer": 2, "why": "Coupled approach is not authorized below 210, so the autopilot must be off by then. Follow every chart restriction [[29:167|IPH Figure 4-14]] [[34:3|AIM 5-5-4a2]]."},
+  {"q": "The weather is a 1,000 ft ceiling and 3 miles at a towered airport. A truck crosses near the localizer antenna as you fly final. What should you expect?", "options": ["Nothing; ATC always protects the area", "Possible needle movement, since the area isn't protected", "A warning flag every time", "The glideslope will switch off"], "answer": 1, "why": "With ceiling 800 or more and visibility 2 miles or more, ATC does not protect the critical areas unless asked [[33:84|AIM 1-1-9k2]]. Vehicles can disturb the signal [[33:85|AIM 1-1-9k5]]."},
+  {"q": "You are being vectored and are high. You catch the glideslope from above at a steep angle, and holding it centered takes 1,500 fpm. What is most likely?", "options": ["A strong tailwind", "Normal capture from above", "A failed altimeter", "A false glideslope"], "answer": 3, "why": "Getting on a false course causes reversed indications or the need for a very high descent rate [[23:283|IFH 9-40]]. Intercept at the chart altitude instead."},
+  {"q": "The chart DA is 1,220 ft. Your company sets a 1,320 ft DA for you as PIC. Your equipment allows the chart DA. What is the authorized DA?", "options": ["1,320 ft", "1,220 ft", "1,270 ft", "Your choice"], "answer": 0, "why": "The authorized DA is the highest of the chart, PIC and equipment DAs [[60:471|14 CFR 91.175(b)]]."},
+  {"q": "Approaching the runway on the ILS, the airspeed drops sharply and you sink below the glideslope. Rain shafts are near the field. Best action?", "options": ["Lower the nose to regain speed", "Reduce power and hold the glideslope", "Add flaps to slow the descent", "Go missed at the first sign of wind shear"], "answer": 3, "why": "Headwind to tailwind shear makes you sink below the glidepath. Be ready to go missed at the first indication; low-altitude recovery may be impossible [[23:316|IFH 10-25]]."},
+  {"q": "Two of these are out at once: MALSR (needs 1/4 mile more) and something needing 1/2 mile more. What visibility increase applies?", "options": ["3/4 mile", "1/4 mile", "1/2 mile", "None; only the first one counts"], "answer": 2, "why": "With more than one component out, each minimum goes to the highest required by any single component, not the sum [[23:313|IFH 10-22]]."},
+  {"q": "You are 6 NM out and the receiver flag appears, then the needles freeze. What first?", "options": ["Switch to another navigation source and tell ATC", "Keep flying the frozen needles", "Descend to DA to look for the runway", "Turn up the volume and wait"], "answer": 0, "why": "Flags mean weak signal or a receiver problem [[23:283|IFH 9-40]]. Change to another source and request an amended clearance [[33:87|AIM 1-1-13c]]."}
+ ]
+}

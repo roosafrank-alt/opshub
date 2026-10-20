@@ -1,0 +1,1659 @@
+{
+ "task_code": "IR.VI.A",
+ "task_title": "Non-precision Approach",
+ "area": "Area VI. Instrument Approach Procedures",
+ "minutes": 80,
+ "objective": "By the end of this lesson you can brief and fly VOR, LOC and RNAV (GPS) LNAV or LP approaches to an MDA, set your real minimums for category, NOTAMs and inoperative equipment, and decide at the VDP or MAP whether to land or go missed.",
+ "why": "Non-precision approaches have no electronic glidepath, so the pilot builds the descent and guards the MDA alone. Unstable, low and late descents on these approaches are a classic path to controlled flight into terrain.",
+ "prereading": [
+  {
+   "res": "29",
+   "pages": [
+    159,
+    166
+   ],
+   "printed": "IPH Ch 4, 4-19 to 4-26",
+   "what": "Charted altitudes, MSA, FAF altitude, MDA vs DA, vertical descent angle, VDP, WAAS and the RNAV (GPS) lines of minima.",
+   "label": "IPH Ch 4, 4-19 to 4-26"
+  },
+  {
+   "res": "29",
+   "pages": [
+    177,
+    181
+   ],
+   "printed": "IPH 4-37 to 4-41",
+   "what": "Stabilized approach, maximum descent rates, descent math for non-precision approaches, transition to visual and the missed approach.",
+   "label": "IPH 4-37 to 4-41"
+  },
+  {
+   "res": "29",
+   "pages": [
+    182,
+    190
+   ],
+   "printed": "IPH 4-42 to 4-50",
+   "what": "Approach briefing, feeder routes, DME arcs, course reversals, and the initial, intermediate, final and missed approach segments.",
+   "label": "IPH 4-42 to 4-50"
+  },
+  {
+   "res": "33",
+   "pages": [
+    413,
+    419
+   ],
+   "printed": "AIM 5-4-5h to 5-4-5m",
+   "what": "VDP, visual segment obstacles, VDA, and RNAV approach charts: LPV, LNAV/VNAV, LP and LNAV minima.",
+   "label": "AIM 5-4-5h to 5-4-5m"
+  },
+  {
+   "res": "33",
+   "pages": [
+    95,
+    98
+   ],
+   "printed": "AIM 1-1-17b5",
+   "what": "Flying GPS approaches: arming, CDI scaling, missed approach sequencing and RAIM.",
+   "label": "AIM 1-1-17b5"
+  },
+  {
+   "res": "23",
+   "pages": [
+    39,
+    50
+   ],
+   "printed": "IFH Ch 1, 1-20 to 1-31",
+   "what": "Course reversals, the profile view, landing minimums, airport sketch and the inoperative components table.",
+   "label": "IFH Ch 1, 1-20 to 1-31"
+  },
+  {
+   "res": "60",
+   "pages": [
+    471,
+    474
+   ],
+   "printed": "14 CFR 91.175",
+   "what": "Authorized MDA, rules for going below the MDA, landing, missed approach, RVR conversion, vectors and procedure turns.",
+   "label": "14 CFR 91.175"
+  }
+ ],
+ "warmup": "On an ILS the glideslope tells you when to descend and where the bottom is. On a VOR or LNAV approach there is no glideslope. What will you use instead to know how fast to descend, how low you may go, and when it is too late to land?",
+ "key_terms": [
+  {
+   "term": "Minimum descent altitude (MDA)",
+   "def": "Lowest altitude in feet MSL you may descend to on final, or while circling, when there is no electronic glideslope."
+  },
+  {
+   "term": "Decision altitude (DA)",
+   "def": "Altitude on an approach with vertical guidance where you must start the missed approach if you can't see the required references."
+  },
+  {
+   "term": "Final approach fix (FAF)",
+   "def": "Start of the final segment of a non-precision approach. Shown as a Maltese cross in the profile view."
+  },
+  {
+   "term": "Stepdown fix",
+   "def": "A fix that lets you descend to a lower minimum altitude after you pass an obstacle."
+  },
+  {
+   "term": "Visual descent point (VDP)",
+   "def": "A point (V symbol) on a straight-in final from which a normal descent from the MDA to the touchdown point can start."
+  },
+  {
+   "term": "Vertical descent angle (VDA)",
+   "def": "Advisory descent angle from the FAF or stepdown fix to the threshold. Helps you fly a steady descent. Gives no obstacle protection below the MDA."
+  },
+  {
+   "term": "Missed approach point (MAP)",
+   "def": "The point where you must start the missed approach if you can't continue. On a non-precision approach it is a fix, a NAVAID or a time from the FAF."
+  },
+  {
+   "term": "LNAV",
+   "def": "RNAV (GPS) line of minima with lateral guidance only, flown to an MDA. GPS or WAAS may be used."
+  },
+  {
+   "term": "LP (localizer performance)",
+   "def": "WAAS line of minima with lateral guidance only, but with localizer-like sensitivity. Flown to an MDA."
+  },
+  {
+   "term": "RAIM",
+   "def": "The GPS receiver checking the integrity of its own position. Needs 5 satellites, or 4 plus baro-aiding."
+  },
+  {
+   "term": "NoPT",
+   "def": "Marks a route or sector where you may not fly the procedure turn unless ATC clears you to."
+  },
+  {
+   "term": "Height above touchdown (HAT)",
+   "def": "How high the straight-in MDA or DA is above the touchdown zone elevation (TDZE)."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "Reading the approach chart",
+   "kind": "knowledge",
+   "codes": [
+    "IR.VI.A.K1",
+    "IR.VI.A.K3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "FAA approach charts use one standard layout, called the Pilot Briefing Information format. It is in a logical order so you can brief the chart from top to bottom [[29:149|IPH 4-9]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "table": {
+      "head": [
+       "Part of the chart",
+       "What you find there"
+      ],
+      "rows": [
+       [
+        "Pilot briefing and notes (top)",
+        "Procedure name, final approach course, runway length, TDZE, airport elevation, notes, the missed approach in words, and frequencies [[23:34|IFH 1-15]]"
+       ],
+       [
+        "Plan view",
+        "The approach seen from above: IAFs, feeder routes, courses, fixes, holding patterns and the MSA [[23:34|IFH 1-15]]"
+       ],
+       [
+        "Profile view",
+        "The approach seen from the side: altitudes, distances, FAF, stepdown fixes, VDA and missed approach icons. Not drawn to scale [[23:40|IFH 1-21]]"
+       ],
+       [
+        "Minimums",
+        "MDA or DA and visibility for each aircraft approach category, straight-in and circling [[23:42|IFH 1-23]]"
+       ],
+       [
+        "Airport sketch",
+        "Runways, lighting, TDZE, and on some charts a time and speed table from the FAF to the MAP [[23:46|IFH 1-27]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**The title tells you the equipment.** It names the system that gives final approach guidance and the runway, like VOR RWY 13. A letter instead of a runway, like VOR-A, means circling only. A slash means you need both systems (VOR/DME RWY 31). The word \"or\" means either one will do (VOR or GPS RWY 15) [[33:398|AIM 5-4-5a3(a)]]. Notes such as ADF REQUIRED or RADAR REQUIRED tell you about other equipment you need, including for the missed approach [[33:398|AIM 5-4-5a3(b)]]."
+    },
+    {
+     "p": "**Altitude symbols.** In the profile, an underlined altitude is a minimum, an overlined altitude is a maximum, and one with both lines is mandatory. An altitude with no line is only recommended. If ATC puts a charted altitude in your clearance, it becomes mandatory [[33:400|AIM 5-4-5b]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "The MSA is for emergencies. It gives 1,000 ft of obstacle clearance, normally within 25 NM, but it does not promise navigation signal coverage [[33:401|AIM 5-4-5c]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "A chart is titled VOR/DME RWY 32. What equipment do you need for the final approach?",
+    "a": "Both a VOR receiver and DME. A slash means more than one type of equipment must be used [[33:398|AIM 5-4-5a3(a)]]."
+   }
+  },
+  {
+   "title": "Segments, procedure turns and NoPT",
+   "kind": "knowledge",
+   "codes": [
+    "IR.VI.A.K1",
+    "IR.VI.A.S4",
+    "IR.VI.A.S6"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "An approach has up to four segments: initial, intermediate, final and missed approach. Feeder routes bring you from the en route structure to the IAF [[29:182|IPH 4-42]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "table": {
+      "head": [
+       "Segment",
+       "From and to",
+       "Job"
+      ],
+      "rows": [
+       [
+        "Feeder route",
+        "En route fix to the IAF",
+        "Transition. Not an approach segment. 1,000 ft obstacle clearance (2,000 ft in mountains) [[29:182|IPH 4-42]]"
+       ],
+       [
+        "Initial",
+        "IAF to the IF",
+        "Line you up and let you descend: DME arc, course reversal or terminal route [[29:189|IPH 4-49]]"
+       ],
+       [
+        "Intermediate",
+        "IF to the FAF",
+        "Position you for final. Normally within 30° of the final course [[29:189|IPH 4-49]]"
+       ],
+       [
+        "Final",
+        "FAF (or final approach point) to the MAP",
+        "Descent to the MDA. With no FAF, it starts where you are established inbound after the procedure turn [[29:190|IPH 4-50]]"
+       ],
+       [
+        "Missed",
+        "MAP to a fix where an initial or en route segment begins",
+        "Climb away safely [[29:190|IPH 4-50]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "The required obstacle clearance shrinks as you go: 1,000 ft in the initial segment, 500 ft in the intermediate and 250 ft on final in the FAA drawing [[29:190|IPH Figure 4-28]]. That is why you must not descend early."
+    },
+    {
+     "p": "**Procedure turns.** A procedure turn or hold-in-lieu-of-PT is required when it is charted, unless ATC clears you straight-in. It is not allowed when the route says NoPT, when you get a radar vector to final, or on a timed approach from a holding fix [[33:425|AIM 5-4-9a]]. The barbed arrow shows the side to turn on. Unless a teardrop or holding pattern is charted, the type of turn is your choice [[33:425|AIM 5-4-9a1]]. Stay within the charted distance, normally 10 NM, and at or below 200 KIAS [[33:427|AIM 5-4-9a3]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "14 CFR 91.175(j): on a radar vector to final, a timed approach from a holding fix, or a NoPT route, no pilot may make a procedure turn unless ATC clears it. 91.175(i): on a vector or unpublished route, keep your last assigned altitude until established on a published segment [[60:474|14 CFR 91.175(i) and (j)]]."
+     }
+    },
+    {
+     "p": "Want to fly a procedure turn that isn't required, maybe to lose altitude? Get an amended clearance first. Unsure whether ATC wants a straight-in? Ask right away [[33:425|AIM 5-4-9a NOTE]]. If you are cleared to an IAF that has a course reversal, you must fly it unless cleared straight-in [[33:421|AIM 5-4-6h4]]."
+    },
+    {
+     "p": "When a PT fix altitude is published, don't descend to the PT completion altitude until you are over or abeam the PT fix and outbound [[33:425|AIM 5-4-9a2]]. In a hold-in-lieu-of-PT, fly the charted direction and don't exceed the charted leg length or time [[33:425|AIM 5-4-9a]]."
+    }
+   ],
+   "check": {
+    "q": "You are cleared for the approach on a route marked NoPT and you are 1,000 ft high. May you fly the procedure turn to lose altitude?",
+    "a": "Only if ATC clears you to. A NoPT route prohibits the procedure turn unless cleared [[60:474|14 CFR 91.175(j)]]. Ask for it, or ask for a hold or vectors [[33:425|AIM 5-4-9a NOTE]]."
+   }
+  },
+  {
+   "title": "MDA vs DA, stepdown fixes, VDA and VDP",
+   "kind": "knowledge",
+   "codes": [
+    "IR.VI.A.K1",
+    "IR.VI.A.S11",
+    "IR.VI.A.S12"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The MDA is the lowest altitude, in feet MSL, you may descend to on final or while circling when no electronic glideslope is provided [[29:159|IPH 4-19]]. A DA is where you must go missed on an approach with vertical guidance if you don't have the visual references [[29:160|IPH 4-20]]."
+    },
+    {
+     "table": {
+      "head": [
+       "",
+       "MDA",
+       "DA"
+      ],
+      "rows": [
+       [
+        "Used on",
+        "LNAV, LP and circling lines [[33:418|AIM 5-4-5m6(b)]]; VOR, NDB and LOC [[33:400|AIM 5-4-5a7(c)]]",
+        "LPV, LNAV/VNAV and ILS [[33:418|AIM 5-4-5m6(b)]]"
+       ],
+       [
+        "How you fly it",
+        "Descend to the MDA, then level off and fly to the VDP or MAP",
+        "Follow the glidepath down to the DA"
+       ],
+       [
+        "Where the missed starts",
+        "At the MAP: a fix, a NAVAID or a time from the FAF [[29:190|IPH 4-50]]",
+        "On reaching the DA on the glidepath [[29:181|IPH 4-41]]"
+       ],
+       [
+        "Going lower",
+        "Never below the MDA unless 14 CFR 91.175(c) is met [[33:418|AIM 5-4-5m6(b)]]",
+        "Obstacle clearance allows a momentary dip below DA as you start the missed [[33:418|AIM 5-4-5m5(a)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Stepdown fixes** let you go lower after passing an obstacle. There is usually only one between the FAF and the MAP [[23:40|IFH 1-21]]. Stepdown altitudes on final apply when you fly to an MDA line. They do not apply to LPV or LNAV/VNAV DA lines. Outside the final segment you must honor them on every approach [[33:401|AIM 5-4-5b5]]. If you can't identify the stepdown fix, its minimum altitude becomes your MDA, unless the chart gives other minimums [[23:40|IFH 1-21]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "p": "**VDP.** The V symbol marks the point from which a stabilized visual descent from the MDA to the touchdown point can begin. Don't descend below the MDA before reaching the VDP. It is identified by DME or RNAV along-track distance; if you can't identify it, fly as if there were none [[33:413|AIM 5-4-5h]]. VDPs apply only to LP and LNAV minima [[33:418|AIM 5-4-5m7(b)]]. Your GPS will not show it as a waypoint, so use along-track distance [[33:97|AIM 1-1-17b5(e)(12)]]."
+    },
+    {
+     "p": "**VDA.** Most non-precision approaches publish a VDA and threshold crossing height. It is advisory only. It does not guarantee obstacle protection below the MDA and it does not change any non-precision rule [[33:413|AIM 5-4-5k]]. If the chart says Visual Segment- Obstacles instead, following the angle below the MDA may put you into obstacles [[33:414|AIM 5-4-5k1]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "On RNAV charts, a gray shaded area from the MDA to the runway in the profile means the visual segment is clear of obstacles on a 34:1 slope. No gray area means it is not clear [[29:179|IPH 4-39]]. Either way, below the MDA you must see and avoid obstacles yourself [[33:413|AIM 5-4-5i]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "The VDP is 1.3 NM from the runway. You reach the MDA at 2.5 NM and already see the runway. Do you start down now?",
+    "a": "No. Hold the MDA until the VDP; you should not descend below the MDA before the VDP [[33:413|AIM 5-4-5h]]."
+   }
+  },
+  {
+   "title": "RNAV (GPS) approaches: LNAV, LP and the lines with vertical guidance",
+   "kind": "knowledge",
+   "codes": [
+    "IR.VI.A.K1",
+    "IR.VI.A.K3"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "An RNAV (GPS) chart has up to four lines of minima. An ATC clearance for the procedure lets you use any minimums your aircraft is certified for. A WAAS airplane may use LPV or LP; a GPS-only airplane may not [[33:415|AIM 5-4-5m]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Line",
+       "Type",
+       "Flown to",
+       "Equipment"
+      ],
+      "rows": [
+       [
+        "LPV",
+        "Approach with vertical guidance",
+        "DA",
+        "WAAS, with an AFM statement that it supports LPV. Sensitivity like an ILS [[33:416|AIM 5-4-5m1(b)]]"
+       ],
+       [
+        "LNAV/VNAV",
+        "Approach with vertical guidance",
+        "DA",
+        "Approach-approved baro-VNAV, or WAAS [[33:416|AIM 5-4-5m1(c)]]"
+       ],
+       [
+        "LP",
+        "Non-precision",
+        "MDA",
+        "WAAS approved for LP in the flight manual. Lateral sensitivity grows near the runway, like a localizer [[33:416|AIM 5-4-5m1(d)]]"
+       ],
+       [
+        "LNAV",
+        "Non-precision",
+        "MDA",
+        "IFR-approved GPS or WAAS [[33:416|AIM 5-4-5m1(e)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**LP vs LNAV.** Both are lateral only and both use an MDA. LP is published only where terrain or obstacles prevent vertical guidance, and only if it gives lower minima than LNAV. LP is not a fail-down mode for LPV. Some older WAAS boxes can fly LPV but not LP [[33:416|AIM 5-4-5m1(d)]]. LNAV and GPS approaches use a 0.3 NM lateral integrity limit; LPV uses 40 meters [[33:105|AIM 1-1-18d1]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "Lincoln RNAV (GPS) RWY 14 has LNAV and circling minima only. The FAF is OPIZU at 3,000 ft. A stepdown fix 3 NM from the runway allows 2,200 ft. The LNAV MDA is 1,600 ft, 401 ft above touchdown, with 1 mile visibility for Categories A and B. The VDA is 3.03° with a 48 ft TCH [[29:208|IPH Figure 4-39]]."
+    },
+    {
+     "p": "A straight-in RNAV (GPS) final without vertical guidance is aligned within 15° of the runway, is no longer than 10 NM, and gets a stepdown fix when longer than 6 NM. It gives at least 250 ft of obstacle clearance [[29:200|IPH 4-60]] [[29:201|IPH 4-61]]."
+    },
+    {
+     "p": "**Overlays.** An older approach with \"or GPS\" in the title may be flown with GPS. LOC, LDA and SDF approaches are not authorized as GPS overlays [[33:95|AIM 1-1-17b5(a)]]. Fly any GPS approach only from a current database, retrieved by name. Building it from manually entered waypoints is not permitted [[33:92|AIM 1-1-17b2(b)(3)]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Lateral only = MDA (LNAV, LP). Vertical guidance = DA (LPV, LNAV/VNAV) [[33:418|AIM 5-4-5m6(b)]]. Advisory vertical guidance on an LNAV or LP approach does not make it a DA approach; the baro altimeter stays primary [[33:416|AIM 5-4-5m1(d)]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your WAAS receiver shows a glidepath on an LP approach. Is the minimum a DA now?",
+    "a": "No. LP is an MDA. Any WAAS vertical guidance on LP is advisory, and the barometric altimeter remains your primary altitude reference [[33:416|AIM 5-4-5m1(d)]]."
+   }
+  },
+  {
+   "title": "Ground-based approaches: VOR and LOC",
+   "kind": "knowledge",
+   "codes": [
+    "IR.VI.A.K3",
+    "IR.VI.A.S3",
+    "IR.VI.A.R2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "**VOR approaches** are among the most used non-precision approaches. The VOR may be on or off the airport, with or without a FAF. All need working VOR equipment and can have MDAs as low as 250 ft above the runway [[29:206|IPH 4-66]]. If DME is in the title, you need working DME to fly it from the FAF [[29:209|IPH 4-69]]."
+    },
+    {
+     "p": "**Localizer approaches.** A localizer is always aligned within 3° of the runway and gives at least 250 ft of obstacle clearance on final [[29:216|IPH 4-76]]. Its course is 700 ft wide at the threshold, full scale left to full scale right [[33:78|AIM 1-1-9b2]]. If the glideslope fails, the ILS becomes a localizer approach [[33:83|AIM 1-1-9j]]. On a back course a standard VOR indicator senses in reverse, and any glideslope signal must be ignored; an HSI set to the front course removes reverse sensing [[29:216|IPH 4-76]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "Tallulah LOC RWY 36: localizer I-TVR on 109.7, FAF at the NDB at 2,000 ft, 6 NM to the MAP. At 90 knots that takes 4:00. The Category A MDA is 500 ft, 414 ft above touchdown [[29:227|IPH Figure 4-58]]. When the MAP is a time, start your clock at the FAF and figure groundspeed from your approach speed and the wind [[29:181|IPH 4-41]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Select, tune and identify",
+       "What to check"
+      ],
+      "rows": [
+       [
+        "VOR",
+        "The only positive ID is the Morse code or the recorded voice ID with the word VOR [[33:68|AIM 1-1-3c]]"
+       ],
+       [
+        "Localizer",
+        "Three letters preceded by I, e.g. I-DIA [[33:79|AIM 1-1-9b4]]"
+       ],
+       [
+        "NDB",
+        "No warning flag, so monitor the ID the whole time [[33:68|AIM 1-1-2]]"
+       ],
+       [
+        "Any NAVAID",
+        "No ID or a TEST code means maintenance: unreliable. Never fly a procedure that is NOTAMed out of service, even if the ID is present [[33:87|AIM 1-1-11]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Between 108.0 and 112.0 MHz, VORs use even tenths and localizers use odd tenths [[23:254|IFH 9-11]]. Localizers run 108.10 to 111.95 MHz [[33:78|AIM 1-1-9b1]]. A frequency like 108.2 can't be a localizer: re-check the chart."
+     }
+    }
+   ],
+   "check": {
+    "q": "You tune the localizer, the needle centers, but you hear no identifier. Can you fly the approach?",
+    "a": "No. Removing the ID warns that the facility is off the air for maintenance and may be unreliable even if signals are received [[33:87|AIM 1-1-11]]."
+   }
+  },
+  {
+   "title": "GPS annunciations, RAIM and level of service",
+   "kind": "knowledge",
+   "codes": [
+    "IR.VI.A.K2",
+    "IR.VI.A.R3",
+    "IR.VI.A.S5"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "RAIM is your receiver checking its own position integrity. It needs 5 satellites, or 4 plus baro-aiding. Receivers with fault detection and exclusion (FDE) need 6, or 5 plus baro-aiding. Enter the altimeter setting so baro-aiding works [[33:89|AIM 1-1-17a3(a)]]."
+    },
+    {
+     "table": {
+      "head": [
+       "When",
+       "What happens",
+       "What you do"
+      ],
+      "rows": [
+       [
+        "30 NM from the airport, approach loaded",
+        "Receiver gives an arm annunciation. Armed, CDI and RAIM go from ±5 NM to ±1 NM terminal sensitivity [[33:96|AIM 1-1-17b5(e)(3)]]",
+        "Arm it if it doesn't arm by itself"
+       ],
+       [
+        "2 NM before the FAWP",
+        "Approach mode goes active. Full-scale CDI shrinks smoothly from ±1 NM to ±0.3 NM at the FAWP [[33:96|AIM 1-1-17b5(e)(5)]]",
+        "Be established on final before this, and confirm approach active before the FAWP [[33:98|AIM 1-1-17b5(g)(6)]]"
+       ],
+       [
+        "No approach mode, or RAIM alert, before the FAWP",
+        "GPS no longer gives the required integrity",
+        "Don't descend. Fly to the MAWP via the FAWP, go missed, tell ATC [[33:98|AIM 1-1-17b5(g)(7)]]"
+       ],
+       [
+        "RAIM alert after the FAWP",
+        "Navigation is advisory only",
+        "Climb and fly the missed approach [[33:98|AIM 1-1-17b5(g)(8)]]"
+       ],
+       [
+        "WAAS approach activated",
+        "Shows the best level of service: LPV, LNAV/VNAV, LP or LNAV available [[33:105|AIM 1-1-18d2]]",
+        "Fly to the minimums that match the annunciation"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Receivers don't fail down once the approach is active. If only the vertical flag appears, you may use LNAV minima if your rules allow changing approach type. If the lateral limit is exceeded on an LP approach, you must go missed [[33:105|AIM 1-1-18d2 NOTE]]."
+    },
+    {
+     "p": "**The ramp-down trap.** As the scale tightens, a needle that isn't centered moves out, so it can look like you are flying away from the course. Cross-track error helps. Don't accept vectors that join final within 2 NM of the FAWP [[33:96|AIM 1-1-17b5(e)(5)]]."
+    },
+    {
+     "p": "**Before the flight.** Get a RAIM prediction from a manufacturer tool, the FAA SAPT website or flight service [[33:97|AIM 1-1-17b5(g)(2)]]. If RAIM won't be there, plan another approach, route or destination, or delay [[33:98|AIM 1-1-17b5(g)(5)]]. Non-WAAS GPS under IFR needs another approved way to navigate, and you must monitor it when RAIM is lost [[33:92|AIM 1-1-17b2(a)(2)]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Cleared for an RNAV (GPS) approach, fly it from an IAWP or feeder fix; joining at an intermediate fix does not assure terrain clearance [[33:95|AIM 1-1-17b5(e)(2)]]. On the missed, the receiver won't sequence past the MAWP until you tell it to, and turns should not begin before the MAWP [[33:97|AIM 1-1-17b5(f)(1)]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "1 NM before the FAWP your receiver still has not changed from armed to approach active. What do you do?",
+    "a": "Don't descend to the MDA. Fly to the MAWP and go missed; the RAIM and CDI will not ramp down [[33:96|AIM 1-1-17b5(e)(7)]]."
+   }
+  },
+  {
+   "title": "Your real minimums: category, NOTAMs and inoperative components",
+   "kind": "knowledge",
+   "codes": [
+    "IR.VI.A.S10",
+    "IR.VI.A.K1"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The authorized MDA is the highest of three: the one on the procedure, the one set for you as PIC, and the one for the equipment you have and use [[60:471|14 CFR 91.175(b)]]."
+    },
+    {
+     "p": "**Category.** Your approach category is based on VREF, or 1.3 VSO at maximum landing weight if no VREF is given: A under 91 knots, B 91 to 120, C 121 to 140, D 141 to 165 [[60:724|14 CFR 97.3]]. If you fly faster than your category's top speed, use the higher category's minimums. A Category A airplane flying a straight-in at 130 knots uses Category C [[29:148|IPH 4-8]]."
+    },
+    {
+     "p": "**Inoperative components.** Published minimums assume every component and visual aid works. If one is out, minimums go up. If more than one is out, use the highest increase required by any single one. Glideslope-out minimums appear on the chart as localizer minimums [[23:313|IFH 10-22]]. The table is in the front of each TPP."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "table": {
+      "head": [
+       "Non-precision approach (VOR, LOC, GPS, LNAV, LP)",
+       "Categories",
+       "Raise visibility by"
+      ],
+      "rows": [
+       [
+        "ALSF 1 and 2, MALSR or SSALR out",
+        "A, B, C, D",
+        "½ mile [[23:50|IFH Figure 1-23]]"
+       ],
+       [
+        "SSALS, MALS or ODALS out",
+        "A, B, C",
+        "¼ mile [[23:50|IFH Figure 1-23]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "A chart note can change the table for that procedure, such as \"Inoperative Table does not apply to ALS or HIRL Runway 13L\" [[23:49|IFH 1-30]]."
+    },
+    {
+     "p": "**Altimeter source.** Minimums assume the local altimeter setting unless the chart says otherwise. A note may let you use another source and raise the MDAs. If no authorized setting is available, the approach is not authorized [[33:399|AIM 5-4-5a4]]. Tallulah's note: if the local setting isn't received, use Monroe Regional and increase all MDAs 140 ft [[29:227|IPH Figure 4-58]]."
+    },
+    {
+     "bullets": [
+      "Check NOTAMs for the airport, NAVAIDs and GPS before every approach [[29:142|IPH 4-2]] [[33:92|AIM 1-1-17b2(a)(6)]].",
+      "When a stepdown fix can't be identified, a second set of minimums may be published for you [[33:449|AIM 5-4-20e]].",
+      "RVR not reported? Convert: 2,400 RVR = ½ mile, 4,000 = ¾ mile, 5,000 = 1 mile [[60:474|14 CFR 91.175(h)(2)]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Highest MDA wins: procedure, PIC, equipment. Then add the inop increase, using only the largest single one."
+     }
+    }
+   ],
+   "check": {
+    "q": "A VOR approach lists 1 mile visibility for Category A. The MALSR is NOTAMed out. What visibility do you need?",
+    "a": "1½ miles. For a VOR approach, MALSR out raises visibility ½ mile for all categories [[23:50|IFH Figure 1-23]]."
+   }
+  },
+  {
+   "title": "Stabilized approach, energy and descent math",
+   "kind": "knowledge",
+   "codes": [
+    "IR.VI.A.K4",
+    "IR.VI.A.S11",
+    "IR.VI.A.R5"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "A stabilized approach keeps a constant approach speed, descent rate, vertical path and configuration in the final stages. It is strongly recommended for propeller airplanes. Keep configuration changes at low altitude to the ones you can handle easily [[29:177|IPH 4-37]]. Cross the FAF at the right airspeed, altitude and configuration [[29:159|IPH 4-19]]."
+    },
+    {
+     "p": "**Energy.** Your total energy is altitude plus airspeed. Pitch plus power controls your energy state [[24:92|AFH 4-6]]. Poor energy management contributes to loss of control, CFIT and approach-and-landing accidents [[24:87|AFH 4-1]]. Trying to stretch a low approach with pitch alone bleeds airspeed and leads to a high sink rate or a stall [[24:175|AFH 9-4]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "A descent rate over about 1,000 fpm is unacceptable below 1,000 ft AGL, in the instrument or the visual part of the approach [[29:177|IPH 4-37]]."
+     }
+    },
+    {
+     "table": {
+      "head": [
+       "Tool",
+       "How",
+       "Example"
+      ],
+      "rows": [
+       [
+        "Rate from time",
+        "(FAF altitude - TDZE) ÷ time inbound",
+        "2,000 - 400 = 1,600 ft ÷ 2 min = 800 fpm [[29:177|IPH 4-37]]"
+       ],
+       [
+        "Rate from the VDA",
+        "Look up angle and groundspeed in the TPP rate of descent table [[33:414|AIM 5-4-5k3]]",
+        "3.0° at 90 knots = 478 fpm; at 120 knots = 637 fpm [[23:44|IFH Figure 1-19]]"
+       ],
+       [
+        "Am I on a 3° path?",
+        "Height above TDZE = NM from threshold × 300",
+        "5 NM = 1,500 ft; 2 NM = 600 ft [[29:177|IPH 4-37]]"
+       ],
+       [
+        "Where will I reach the MDA?",
+        "MDA height above TDZE ÷ 300",
+        "400 ft ÷ 300 = about 1.3 NM [[29:179|IPH 4-39]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "Fly that rate on the VSI and you have a steady path. A constant-rate descent has safety advantages over several level-offs at stepdown fixes, and keeps you stabilized from the FAF to landing [[29:165|IPH 4-25]]. Plan to reach the MDA where you can still land in the touchdown zone: at the VDP, or at a point you calculate [[29:177|IPH 4-37]]."
+    }
+   ],
+   "check": {
+    "q": "The FAF is 2,000 ft, the TDZE is 86 ft and the FAF to MAP time is 4:00. What descent rate does the IPH method give?",
+    "a": "(2,000 - 86) ÷ 4 = about 480 fpm [[29:177|IPH 4-37]]."
+   }
+  },
+  {
+   "title": "At the MDA: see it, or go missed",
+   "kind": "knowledge",
+   "codes": [
+    "IR.VI.A.S13",
+    "IR.VI.A.R7",
+    "IR.VI.A.R4",
+    "IR.VI.A.R6"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "You may go below the MDA only when all three are true: you are continuously in position to land on the intended runway at a normal rate with normal maneuvers; the flight visibility is at least what the approach requires; and at least one required visual reference is distinctly visible and identifiable [[60:471|14 CFR 91.175(c)]] [[60:472|14 CFR 91.175(c)(1)-(3)]]."
+    },
+    {
+     "bullets": [
+      "Approach light system. With the approach lights alone you may not go below 100 ft above TDZE unless the red terminating bars or red side row bars are also visible [[60:472|14 CFR 91.175(c)(3)(i)]].",
+      "Threshold, threshold markings or threshold lights [[60:472|14 CFR 91.175(c)(3)(ii)-(iv)]].",
+      "Runway end identifier lights or the visual glideslope indicator [[60:472|14 CFR 91.175(c)(3)(v)-(vi)]].",
+      "Touchdown zone, its markings or its lights [[60:472|14 CFR 91.175(c)(3)(vii)-(viii)]].",
+      "The runway, runway markings or runway lights [[60:472|14 CFR 91.175(c)(3)(ix)-(x)]]."
+     ]
+    },
+    {
+     "p": "**Go missed immediately** if the requirements are not met while below the MDA, or on arriving at the MAP, or at any time after that until touchdown [[60:472|14 CFR 91.175(e)(1)]]. You may not land if the flight visibility is below the published visibility [[60:472|14 CFR 91.175(d)]]. Only you can judge flight visibility; if it is too low, go missed whatever the report says [[23:313|IFH 10-22]]."
+    },
+    {
+     "p": "There is no obstacle protection from the MDA to touchdown. You must see and avoid obstacles [[33:413|AIM 5-4-5i]]. Delay at the MAP puts you at risk of hitting obstacles in the visual segment [[29:160|IPH 4-20]]. Watch for shallow fog: you may see down but not ahead well enough to flare [[29:179|IPH 4-39]]."
+    },
+    {
+     "p": "**Missed approach.** Obstacle protection assumes you start the missed at or above the MDA at the MAP and climb at least 200 ft per NM. If you go missed early, fly to the MAP at or above the MDA before turning, unless ATC says otherwise [[33:450|AIM 5-4-21b]]. Tell ATC and then request what you want next [[33:450|AIM 5-4-21a]] [[33:451|AIM 5-4-21f]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Go-around step",
+       "How (AFH)"
+      ],
+      "rows": [
+       [
+        "1. Power",
+        "Full or maximum allowable power, smoothly, at once. Carburetor heat off [[24:182|AFH 9-11]]"
+       ],
+       [
+        "2. Attitude",
+        "Climb attitude without letting airspeed decay. Expect forward pressure and right rudder. Rough trim [[24:182|AFH 9-11]]"
+       ],
+       [
+        "3. Configuration",
+        "Retract flaps partially, in small steps. Flaps before gear; gear up after a positive rate of climb [[24:182|AFH 9-11]] [[24:183|AFH 9-12]]"
+       ]
+      ]
+     }
+    }
+   ],
+   "check": {
+    "q": "At the MDA you see only the approach lights, without red bars. How low may you descend with that reference?",
+    "a": "To 100 ft above the TDZE. Below that you need the red terminating or side row bars, or another reference [[60:472|14 CFR 91.175(c)(3)(i)]]."
+   }
+  },
+  {
+   "title": "Fly it step by step: a non-precision approach",
+   "kind": "skills",
+   "codes": [
+    "IR.VI.A.S1",
+    "IR.VI.A.S2",
+    "IR.VI.A.S3",
+    "IR.VI.A.S4",
+    "IR.VI.A.S5",
+    "IR.VI.A.S6",
+    "IR.VI.A.S7",
+    "IR.VI.A.S8",
+    "IR.VI.A.S9",
+    "IR.VI.A.S11",
+    "IR.VI.A.S12",
+    "IR.VI.A.S13",
+    "IR.VI.A.S14",
+    "IR.VI.A.S15"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "bullets": [
+      "1. **Plan early.** Get weather, field conditions and NOTAMs, figure approach speed and power, set up the radios, and review the procedure [[29:142|IPH 4-2]]. Brief it out loud even when alone; the brief doubles as a checklist [[29:182|IPH 4-42]] [[29:175|IPH 4-35]].",
+      "2. **Set up the navigation.** Tune, identify and set the course for each NAVAID. Put the primary NAVAID on the radio that keeps working on battery power [[29:175|IPH 4-35]]. For GPS, load the whole approach by name and check that the waypoints match the chart and are in a logical order [[33:93|AIM 1-1-17b2(b)(4)]].",
+      "3. **Talk.** Tell ATC at once if you can't fly the approach they gave you [[33:397|AIM 5-4-4b]]. At a non-towered airport, after \"change to advisory frequency approved,\" announce the approach, your position and when inbound over the FAF [[33:397|AIM 5-4-4d]].",
+      "4. **Follow the clearance.** On vectors, keep the last assigned altitude until established on a published segment [[60:474|14 CFR 91.175(i)]]. Unsure? Ask right away [[60:450|14 CFR 91.123(a)]].",
+      "5. **Before the FAF.** Slow to approach speed, configure, run the checklist. Hold altitude ±100 ft, heading ±10°, airspeed ±10 knots and no more than ¾-scale CDI (ACS IR.VI.A.S9).",
+      "6. **At the FAF.** Start the clock if the MAP is timed [[29:181|IPH 4-41]]. Set power and pitch for the planned descent rate [[29:177|IPH 4-37]]. On GPS, confirm approach active [[33:98|AIM 1-1-17b5(g)(6)]].",
+      "7. **On final.** No more than ¾-scale CDI, airspeed ±10 knots, and at the MDA stay within +100/-0 ft to the VDP or MAP (ACS IR.VI.A.S12). Don't go below any stepdown altitude before its fix [[33:401|AIM 5-4-5b5]].",
+      "8. **Decide.** References and in position at the VDP: normal descent to land. Nothing at the MAP: missed approach at once [[60:472|14 CFR 91.175(c) and (e)]].",
+      "9. **Use everything.** The MFD moving map shows your position against the course [[23:123|IFH 5-28]]. SRM means using all resources, including automation and ATC [[30:56|RMH 8-3]]."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "ACS standard",
+       "Tolerance"
+      ],
+      "rows": [
+       [
+        "Before the final approach segment",
+        "Altitude ±100 ft, heading ±10°, airspeed ±10 knots, no more than ¾-scale CDI (ACS IR.VI.A.S9)"
+       ],
+       [
+        "Final approach segment",
+        "No more than ¾-scale CDI, airspeed ±10 knots, MDA +100/-0 ft to the VDP or MAP (ACS IR.VI.A.S12)"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Using an altitude preselector? Set the MDA exactly. If it only moves in 100 ft steps, round up: set 700 for an MDA of 660 [[29:176|IPH 4-36]]."
+     }
+    },
+    {
+     "p": "If a navigation or approach instrument fails in flight, tell ATC as soon as practical: who you are, what failed, how it affects you, and what help you want [[60:483|14 CFR 91.187]]. On the checkride you will fly at least two different non-precision approaches: one with a course reversal, one from an IAF without autopilot or vectors, and one on backup or partial-panel instruments (ACS Appendix 3)."
+    }
+   ],
+   "check": {
+    "q": "On final you are at the MDA, 70 ft high. Are you within the ACS standard?",
+    "a": "Yes. The standard is MDA +100/-0 ft to the VDP or MAP. Going even 1 ft below the MDA without the required references is not allowed (ACS IR.VI.A.S12)."
+   }
+  },
+  {
+   "title": "Risk: deviations, frequencies, automation, configuration, weather and the MDA",
+   "kind": "risk",
+   "codes": [
+    "IR.VI.A.R1",
+    "IR.VI.A.R2",
+    "IR.VI.A.R3",
+    "IR.VI.A.R4",
+    "IR.VI.A.R5",
+    "IR.VI.A.R6",
+    "IR.VI.A.R7"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Hazard",
+       "Why it bites",
+       "How you manage it"
+      ],
+      "rows": [
+       [
+        "Deviating from the procedure",
+        "Terrain clearance is assured only if you follow the charted altitudes and paths [[33:399|AIM 5-4-5a5]]. Flying GPS point to point is not the published procedure [[33:96|AIM 1-1-17b5(e)(8)]]",
+        "Fly the full approach as cleared, honor every stepdown, and fly to the MAP before turning [[33:450|AIM 5-4-21b]]"
+       ],
+       [
+        "Wrong navigation frequency",
+        "A NAVAID under maintenance can give a believable but bad signal [[33:87|AIM 1-1-11]]. Some GPS installations stop GPS navigation when any ILS frequency is tuned [[33:417|AIM 5-4-5m3(a) NOTE]]",
+        "Read the frequency from the chart, identify every NAVAID, and check NOTAMs [[33:68|AIM 1-1-3c]]"
+       ],
+       [
+        "Automation",
+        "A wrong MDA in the preselector can take you below it. A wrong GPS entry can drop the approach mode [[29:176|IPH 4-36]] [[33:97|AIM 1-1-17b5(e)(10)]]",
+        "Verify every setting out loud. Know your receiver well; use its simulator mode on the ground [[33:92|AIM 1-1-17b2(a)(4)]]"
+       ],
+       [
+        "Configuration",
+        "Big speed and configuration changes late degrade awareness [[29:177|IPH 4-37]]. A go-around with flaps or gear left down can leave no climb performance [[24:103|AFH 4-17]]",
+        "Configure before the FAF. Go-around: power, attitude, then configuration [[24:182|AFH 9-11]]"
+       ],
+       [
+        "Unstable approach",
+        "Over about 1,000 fpm below 1,000 ft AGL is unacceptable [[29:177|IPH 4-37]]. Over- or under-banking onto final can force high descent rates later [[33:96|AIM 1-1-17b5(e)(4)]]",
+        "Plan a rate from the table or timing, and go missed if you can't stabilize"
+       ],
+       [
+        "Weather getting worse",
+        "Reported visibility can differ from what you see; shallow fog can hide the runway at the flare [[29:179|IPH 4-39]]",
+        "Only flight visibility counts for going lower and landing [[23:313|IFH 10-22]]. Keep an alternate and fuel ready"
+       ],
+       [
+        "Below the MDA without references",
+        "No obstacle protection below the MDA, VDA or not [[33:413|AIM 5-4-5i]] [[33:413|AIM 5-4-5k]]",
+        "Don't let landing expectancy or pride delay the go-around [[24:182|AFH 9-11]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Before every non-precision approach, say: my MDA, my visibility, my VDP, my MAP, my missed. If any one is unclear, ask or don't start."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why is following the VDA below the MDA, without seeing the runway environment, dangerous?",
+    "a": "The VDA is advisory and gives no obstacle protection below the MDA. You must see and avoid obstacles in the visual segment [[33:413|AIM 5-4-5k]] [[33:413|AIM 5-4-5i]]."
+   }
+  },
+  {
+   "title": "Common errors",
+   "kind": "skills",
+   "codes": [
+    "IR.VI.A.K1",
+    "IR.VI.A.K2",
+    "IR.VI.A.S10",
+    "IR.VI.A.S12",
+    "IR.VI.A.R5"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "bullets": [
+      "Descending below a stepdown altitude before passing the fix [[33:401|AIM 5-4-5b5]].",
+      "Leaving the MDA before the VDP [[33:413|AIM 5-4-5h]].",
+      "Following the VDA below the MDA when the chart warns of visual segment obstacles [[33:414|AIM 5-4-5k1]].",
+      "Not checking that the GPS went from armed to approach active before the FAWP [[33:96|AIM 1-1-17b5(e)(7)]].",
+      "Accepting a final intercept within 2 NM of the FAWP [[33:96|AIM 1-1-17b5(e)(5)]].",
+      "Flying a procedure turn on a NoPT route or after a vector to final [[60:474|14 CFR 91.175(j)]].",
+      "Forgetting to raise minimums for category, inoperative components or a remote altimeter setting [[60:471|14 CFR 91.175(b)]] [[23:313|IFH 10-22]].",
+      "Turning early on a missed approach started before the MAP [[33:450|AIM 5-4-21b]].",
+      "Go-around errors: indecision, delay, abrupt or not enough power, wrong pitch, wrong configuration [[24:183|AFH 9-12]].",
+      "Diving to the MDA at high descent rates near the ground [[29:177|IPH 4-37]]."
+     ]
+    }
+   ],
+   "check": {
+    "q": "Which common error leads straight into terrain on a stepdown approach?",
+    "a": "Descending to the next lower altitude before passing the stepdown fix. Stepdown altitudes protect you from obstacles before the fix [[23:40|IFH 1-21]] [[33:401|AIM 5-4-5b5]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "IR.VI.A-1.jpg",
+   "res": "23",
+   "page": 34,
+   "caption": "Figure 1-10. Instrument approach chart.",
+   "alt": "Orlando Executive RNAV (GPS) RWY 7 chart with colored tabs naming its sections: pilot briefing and procedure notes (green, with approach course 070, TDZE 109, notes and frequencies), plan view (white, IAF ESRAQ, FAF HERNY, stepdown BUVAY, RW07 and an MSA circle of 3000), profile (pink, 2000 at HERNY, 3.21 degree VDA, 1200 after BUVAY), minimums (blue, LNAV MDA 800/24 and circling 800-1) and the airport diagram (pink). Callouts label issuing authority, procedure ID, city and airport, effective date, amendment number and coordinates.",
+   "source": "IFH, PDF p. 34"
+  },
+  "f2": {
+   "file": "IR.VI.A-2.jpg",
+   "res": "29",
+   "page": 208,
+   "caption": "Figure 4-39. Lincoln Muni KLNK Lincoln, Nebraska, RNAV GPS RWY 14 approach.",
+   "alt": "RNAV (GPS) RWY 14 chart for Lincoln, Nebraska. Plan view: basic T with IAFs SILOY and BATRY on 3100 NoPT legs to the IF/IAF OWABY, a 4 NM hold-in-lieu-of-PT at OWABY, three TAA icons with 4000 ft sector altitudes, FAF OPIZU, and a missed approach hold at ALAWI. Profile: 3100 at OWABY, 3000 at OPIZU (Maltese cross), 3.03 degree VDA with TCH 48, 2200 after the stepdown fix 3 NM to RW14, segments of 5, 2.5, 1.9 and 1.1 NM. Minimums: LNAV MDA 1600-1 (HAT 401) for A and B, 1600-1 1/4 for C and D, circling 1720-1 to 1780-2.",
+   "source": "IPH, PDF p. 208"
+  },
+  "f3": {
+   "file": "IR.VI.A-3.jpg",
+   "res": "29",
+   "page": 190,
+   "caption": "Figure 4-28. Approach segments and obstacle clearance.",
+   "alt": "Three views of an approach. Plan view: a yellow corridor from IAF (blue) through IF (orange) and FAF (red) to the runway and missed approach, narrowing toward the runway. Profile view: the flightpath stepping down with obstacle clearance of 1,000 ft in the initial segment, 500 ft in the intermediate and 250 ft on final, then 1,000 ft again after the missed approach. Project view: a 3D model of the protected areas with a feeder route joining at the IAF.",
+   "source": "IPH, PDF p. 190"
+  },
+  "f4": {
+   "file": "IR.VI.A-4.jpg",
+   "res": "33",
+   "page": 402,
+   "caption": "FIG 5-4-1. Instrument Approach Procedure Stepdown Fixes.",
+   "alt": "Two profile views. Top, an RNAV approach to RW19L: 5800 at MARKS with a 3.49 degree VDA, FAF VINNY at 4200, stepdown VINKS with 2400 noted as not applicable to ILS, LPV and LNAV/VNAV minima, a VDP arrow 1.9 NM to BRUSH, and a gray shaded visual segment meaning clear of obstacles on a 34:1 slope. Bottom, an approach with vertical guidance to RW12 showing a 3.00 degree glidepath, FAF ARUJU, stepdown WUGOD and a VDP 1.6 NM to RW12.",
+   "source": "AIM, PDF p. 402"
+  },
+  "f5": {
+   "file": "IR.VI.A-5.jpg",
+   "res": "23",
+   "page": 44,
+   "caption": "Figure 1-19. Descent rate table.",
+   "alt": "TPP rate of descent table. Rows are angles of descent from 2.0 to 12.0 degrees with feet per NM; columns are groundspeeds from 30 to 180 knots. A boxed vertical path angle band from 2.7 to 3.4 degrees includes 3.0 degrees = 318 ft per NM, giving 398 fpm at 75 knots, 478 at 90, 557 at 105, 637 at 120 and 716 at 135.",
+   "source": "IFH, PDF p. 44"
+  },
+  "f6": {
+   "file": "IR.VI.A-6.jpg",
+   "res": "29",
+   "page": 227,
+   "caption": "Figure 4-58. Vicksburg Tallulah Regional KTVR, Tallulah Vicksburg, Louisiana, LOC RWY 36.",
+   "alt": "LOC RWY 36 chart for Tallulah, Louisiana: localizer I-TVR 109.7, approach course 357, TDZE 86, a note to use Monroe Regional altimeter and raise all MDAs 140 ft if the local setting isn't received, ADF REQUIRED, a one-minute hold-in-lieu-of-PT at the SAVRY NDB (IAF), profile with the FAF at the NDB at 2000, a 2.96 degree VDA and 6 NM to the runway, minimums S-36 500-1 (HAT 414) for A and B, and a FAF-to-MAP table: 6 NM, 60 knots 6:00, 90 knots 4:00, 120 knots 3:00, 150 knots 2:24, 180 knots 2:00.",
+   "source": "IPH, PDF p. 227"
+  },
+  "f7": {
+   "file": "IR.VI.A-7.jpg",
+   "res": "23",
+   "page": 50,
+   "caption": "Figure 1-23. IAP inoperative components table.",
+   "alt": "Sample TPP Inoperative Components or Visual Aids Table. Section 1, ILS, PAR and RNAV LPV: ALSF, MALSR, SSALR out raises visibility 1/4 mile. Section 2, ILS with 1,800 RVR. Section 3, VOR, LOC, GPS and RNAV LNAV/VNAV, LNAV and LP lines: ALSF 1 and 2, MALSR and SSALR out, categories ABCD, plus 1/2 mile; SSALS, MALS and ODALS out, categories ABC, plus 1/4 mile. Section 4, NDB.",
+   "source": "IFH, PDF p. 50"
+  }
+ },
+ "scenario": {
+  "title": "Lincoln RNAV (GPS) RWY 14 in lowering mist",
+  "codes": [
+   "IR.VI.A.R1",
+   "IR.VI.A.R3",
+   "IR.VI.A.R4",
+   "IR.VI.A.R5",
+   "IR.VI.A.R6",
+   "IR.VI.A.R7",
+   "IR.VI.A.S4",
+   "IR.VI.A.S10",
+   "IR.VI.A.S13"
+  ],
+  "setup": "You fly a Category A single-engine airplane with an IFR-approved, non-WAAS GPS into Lincoln, Nebraska, planning 90 knots on final. ATIS: wind 140 at 8, visibility 1½ miles in mist, ceiling 500 overcast and lowering. Approach control: \"Cross SILOY at or above 3,100, cleared RNAV (GPS) Runway 14 approach.\" You plan to use the autopilot to the FAF. Use Figure 4-39.",
+  "questions": [
+   {
+    "q": "Do you fly the hold-in-lieu-of-PT at OWABY? What altitudes may you descend to on the way to OPIZU?",
+    "a": "No. The SILOY leg is NoPT, so no course reversal unless ATC clears it [[60:474|14 CFR 91.175(j)]]. Cross SILOY at or above 3,100, hold 3,100 to OWABY, then descend to 3,000 for OPIZU [[29:208|IPH Figure 4-39]]."
+   },
+   {
+    "q": "Which minimums apply and what is your MDA?",
+    "a": "With non-WAAS GPS you use LNAV: MDA 1,600 ft, 1 mile, 401 ft above touchdown for Category A [[33:416|AIM 5-4-5m1(e)]] [[29:208|IPH Figure 4-39]]. If you flew faster than 90 knots you would need Category B minimums, which here are the same [[29:148|IPH 4-8]]."
+   },
+   {
+    "q": "Crossing OPIZU at 90 knots groundspeed, what descent do you set up, and how low may you go before the stepdown fix?",
+    "a": "The VDA is 3.03°; the table gives 478 fpm for 3.0° at 90 knots, so about 480 fpm [[23:44|IFH Figure 1-19]]. Do not go below 2,200 ft until passing the stepdown fix 3 NM from RW14 [[33:401|AIM 5-4-5b5]]. Confirm approach active before OPIZU [[33:98|AIM 1-1-17b5(g)(6)]]."
+   },
+   {
+    "q": "What do you set in the autopilot altitude preselector, and when do you set the missed approach altitude?",
+    "a": "Set the MDA, 1,600, and double check it so the airplane can't descend below it. After you level at the MDA, set the missed approach altitude of 3,100 [[29:176|IPH 4-36]]."
+   },
+   {
+    "q": "The mist thickens. You reach the RW14 waypoint at 1,600 ft with no runway references. What now?",
+    "a": "Go missed immediately [[60:472|14 CFR 91.175(e)]]. Power, attitude, then configuration [[24:182|AFH 9-11]]. Sequence the GPS past the MAWP, climb to 3,100 direct ALAWI and hold, and tell ATC [[33:97|AIM 1-1-17b5(f)(1)]] [[33:450|AIM 5-4-21a]]."
+   },
+   {
+    "q": "In the hold, ATIS now reports visibility ½ mile. Do you try again?",
+    "a": "Not to land. The LNAV line needs 1 mile, and you can't go below the MDA or land with less flight visibility [[60:472|14 CFR 91.175(c)(2) and (d)]]. Request clearance to your alternate [[33:451|AIM 5-4-21f]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "IR.VI.A.S1",
+   "do": "Fly the non-precision approaches the evaluator picks: at least two different ones, one with a course reversal, one from an IAF without autopilot or vectors, and one on backup or partial-panel instruments (ACS Appendix 3).",
+   "practice": "Practice a VOR, a LOC and an LNAV approach, flying at least one full procedure from an IAF with a course reversal [[33:425|AIM 5-4-9a]]."
+  },
+  {
+   "code": "IR.VI.A.S2",
+   "do": "Talk to ATC as the approach goes on, with correct phraseology, and make the CTAF calls at non-towered airports.",
+   "practice": "Say your FAF-inbound call out loud on every practice approach: approach type, position, intentions [[33:397|AIM 5-4-4d]]."
+  },
+  {
+   "code": "IR.VI.A.S3",
+   "do": "Select, tune, identify and confirm every NAVAID or the GPS approach you will use.",
+   "practice": "Before every approach, identify each NAVAID by Morse code [[33:68|AIM 1-1-3c]] and check the GPS waypoints against the chart [[33:93|AIM 1-1-17b2(b)(4)]]."
+  },
+  {
+   "code": "IR.VI.A.S4",
+   "do": "Comply with every clearance from ATC or the evaluator.",
+   "practice": "Read back altitudes and approach clearances, and hold the last assigned altitude until established on a published segment [[60:474|14 CFR 91.175(i)]]."
+  },
+  {
+   "code": "IR.VI.A.S5",
+   "do": "Recognize inaccurate or failed instruments or navigation and take the right action.",
+   "practice": "Have your instructor fail a NAVAID, a display or GPS integrity. Respond as the AIM says [[33:98|AIM 1-1-17b5(g)(7)]] and report it to ATC [[60:483|14 CFR 91.187]]."
+  },
+  {
+   "code": "IR.VI.A.S6",
+   "do": "Tell ATC or the evaluator promptly when you can't comply with a clearance.",
+   "practice": "Practice saying \"unable\" with a reason and what you need instead [[33:397|AIM 5-4-4b]] [[60:450|14 CFR 91.123(a)]]."
+  },
+  {
+   "code": "IR.VI.A.S7",
+   "do": "Complete the right checklists for descent, approach, landing and missed approach.",
+   "practice": "Use your approach briefing as a checklist on every approach [[29:182|IPH 4-42]]."
+  },
+  {
+   "code": "IR.VI.A.S8",
+   "do": "Set the right configuration and airspeed for the weather and conditions.",
+   "practice": "Be at approach speed and configuration before the FAF, and limit changes after it [[29:177|IPH 4-37]] [[29:159|IPH 4-19]]."
+  },
+  {
+   "code": "IR.VI.A.S9",
+   "do": "Before the final segment, hold altitude ±100 ft, heading ±10°, airspeed ±10 knots, no more than ¾-scale CDI, and track courses accurately (ACS IR.VI.A.S9).",
+   "practice": "Fly the intermediate segment trimmed and stable, with the course set early so you are established before the GPS ramp-down 2 NM out [[33:96|AIM 1-1-17b5(e)(5)]]."
+  },
+  {
+   "code": "IR.VI.A.S10",
+   "do": "Adjust the MDA and visibility for category, NOTAMs, inoperative equipment and inoperative visual aids.",
+   "practice": "For each practice approach, write down your MDA and visibility after applying category, altimeter source and the inop table [[60:471|14 CFR 91.175(b)]] [[23:313|IFH 10-22]]."
+  },
+  {
+   "code": "IR.VI.A.S11",
+   "do": "Set up a stabilized descent to the appropriate altitude.",
+   "practice": "Look up the rate of descent for the VDA and your groundspeed before the FAF, then fly it on the VSI [[33:414|AIM 5-4-5k3]] [[23:44|IFH Figure 1-19]]."
+  },
+  {
+   "code": "IR.VI.A.S12",
+   "do": "On final, no more than ¾-scale CDI, airspeed ±10 knots, and MDA +100/-0 ft to the VDP or MAP (ACS IR.VI.A.S12).",
+   "practice": "Level at the MDA with a planned power setting so you don't sink below it. Use along-track distance to find the VDP [[33:97|AIM 1-1-17b5(e)(12)]]."
+  },
+  {
+   "code": "IR.VI.A.S13",
+   "do": "Decide whether the required visual references are there, then land or go missed.",
+   "practice": "Call out the visual references by their 91.175 names during practice approaches, and go missed at the MAP when you don't have them [[60:472|14 CFR 91.175(c)(3) and (e)]]."
+  },
+  {
+   "code": "IR.VI.A.S14",
+   "do": "Use the MFD and other moving-map displays, if installed, to monitor position and wind drift.",
+   "practice": "Cross-check the moving map against the CDI on every approach [[23:123|IFH 5-28]]."
+  },
+  {
+   "code": "IR.VI.A.S15",
+   "do": "Use single-pilot resource management.",
+   "practice": "Plan who does what: you, the autopilot and ATC. Manage workload and use all resources inside and outside the airplane [[30:56|RMH 8-3]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "An approach chart is titled VOR or GPS RWY 15. What does that mean?",
+   "options": [
+    "Either VOR or GPS may be used for the final approach",
+    "Both VOR and GPS must be used on the final approach",
+    "GPS may be used only for the missed approach",
+    "The approach is for circling only"
+   ],
+   "answer": 0,
+   "why": "\"Or\" in the title means either type of equipment may be used for the final approach. A slash would mean both [[33:398|AIM 5-4-5a3(a)]]."
+  },
+  {
+   "q": "You are on radar vectors and get an approach clearance. When may you descend to the published altitudes?",
+   "options": [
+    "As soon as you hear the approach clearance",
+    "When you are 10 NM from the FAF",
+    "When established on a published segment of the approach",
+    "Only after crossing the FAF"
+   ],
+   "answer": 2,
+   "why": "Keep the last assigned altitude until established on a published route or approach segment, then published altitudes apply [[60:474|14 CFR 91.175(i)]]."
+  },
+  {
+   "q": "Which statement about a published VDA on a non-precision approach is true?",
+   "options": [
+    "It turns the approach into one with a DA",
+    "It is advisory and gives no obstacle protection below the MDA",
+    "You must follow it exactly to the runway",
+    "It lets you skip the stepdown fix altitudes"
+   ],
+   "answer": 1,
+   "why": "The VDA is advisory only. It does not guarantee obstacle protection below the MDA and doesn't change any non-precision rules [[33:413|AIM 5-4-5k]]."
+  },
+  {
+   "q": "Which describes an LP line of minima?",
+   "options": [
+    "Flown to a DA with WAAS vertical guidance",
+    "A fail-down mode when LPV is lost",
+    "Available to any IFR GPS, WAAS or not",
+    "Lateral only, flown to an MDA, needs approved WAAS"
+   ],
+   "answer": 3,
+   "why": "LP uses WAAS lateral guidance with localizer-like sensitivity and an MDA. It is not a fail-down from LPV, and the receiver must be approved for LP [[33:416|AIM 5-4-5m1(d)]]."
+  },
+  {
+   "q": "A RAIM alert appears after you pass the FAWP. What should you do?",
+   "options": [
+    "Climb and fly the missed approach",
+    "Continue to the MDA using the VDA",
+    "Hold at the FAWP until RAIM returns",
+    "Switch to LNAV/VNAV minimums"
+   ],
+   "answer": 0,
+   "why": "If the RAIM annunciation appears after the FAWP, initiate a climb and execute the missed approach; the navigation is advisory only [[33:98|AIM 1-1-17b5(g)(8)]]."
+  },
+  {
+   "q": "Your airplane's 1.3 VSO is 75 knots, but you fly the straight-in at 95 knots. Which category minimums do you use?",
+   "options": [
+    "Category A, set by certification",
+    "Category C",
+    "Category B",
+    "Category D"
+   ],
+   "answer": 2,
+   "why": "Flying faster than the top of your category means using the higher category's minimums. 95 knots is in Category B (91 to 120) [[29:148|IPH 4-8]] [[60:724|14 CFR 97.3]]."
+  },
+  {
+   "q": "What is the most descent rate the IPH calls acceptable below 1,000 ft AGL on approach?",
+   "options": [
+    "About 500 fpm",
+    "About 1,500 fpm",
+    "About 2,000 fpm",
+    "About 1,000 fpm"
+   ],
+   "answer": 3,
+   "why": "A descent rate greater than about 1,000 fpm is unacceptable in the final stages of an approach, below 1,000 ft AGL [[29:177|IPH 4-37]]."
+  },
+  {
+   "q": "Which of these is NOT one of the 14 CFR 91.175(c)(3) visual references?",
+   "options": [
+    "Runway end identifier lights",
+    "The rotating airport beacon",
+    "The visual glideslope indicator",
+    "Threshold markings"
+   ],
+   "answer": 1,
+   "why": "The list includes REIL, the VGSI and threshold markings, but not the airport beacon [[60:472|14 CFR 91.175(c)(3)]]."
+  },
+  {
+   "q": "Two visual aids are inoperative. One raises visibility ¼ mile, the other ½ mile. How much do you raise the visibility?",
+   "options": [
+    "¼ mile",
+    "¾ mile",
+    "½ mile",
+    "1 mile"
+   ],
+   "answer": 2,
+   "why": "When more than one component is inoperative, each minimum is raised to the highest required by any single component, not the sum [[23:313|IFH 10-22]]."
+  },
+  {
+   "q": "When a procedure turn is required, what limits apply?",
+   "options": [
+    "Stay within the charted distance, normally 10 NM, at or below 200 KIAS",
+    "Fly the 45° turn exactly; no other type is allowed",
+    "Stay within 4 NM at holding speed",
+    "Start descent to the PT completion altitude at the IAF inbound"
+   ],
+   "answer": 0,
+   "why": "Complete the PT within the distance in the profile, normally 10 NM, and observe 200 KIAS maximum [[33:427|AIM 5-4-9a3]]. The type of turn is the pilot's choice unless specified [[33:425|AIM 5-4-9a1]]."
+  }
+ ],
+ "takeaways": [
+  "Non-precision means lateral guidance only: VOR, LOC, LNAV and LP are flown to an MDA.",
+  "Your MDA is the highest of procedure, PIC and equipment, then raised for category, altimeter source and inoperative aids.",
+  "Never go below a stepdown altitude before the fix, or below the MDA before the VDP.",
+  "Watch the GPS: armed at 30 NM, approach active by the FAWP, RAIM good. If not, don't descend.",
+  "Fly a planned, steady descent rate from the table or timing; never over about 1,000 fpm low.",
+  "Below the MDA only with the 91.175(c) references and flight visibility; at the MAP without them, go missed at once."
+ ],
+ "cfi_notes": [
+  "The IPH (4-26) calls the LNAV/VNAV minimum an MDA. The AIM (5-4-5m1(c) and m6(b)) says LNAV/VNAV is published as a DA. Teach the AIM.",
+  "The IPH (4-26) says LP is being phased out. The current AIM (5-4-5m1(d)) still describes when LP is published and how it is flown. Teach the AIM and point out the IPH line.",
+  "IFH 1-30 says descent below the MDA is not authorized. The correct rule is 14 CFR 91.175(c): you may descend below the MDA when all three conditions are met.",
+  "IFH 1-23 defines approach category by 1.3 VSO only. Current 14 CFR 97.3 uses VREF if specified, otherwise 1.3 VSO at maximum certificated landing weight.",
+  "IFH 10-13 lists 'a holding pattern is published in lieu of a procedure turn' among cases when a procedure turn is not authorized. That is confusing: AIM 5-4-9a says the hold-in-lieu-of-PT is required when charted unless cleared straight-in. Teach the AIM.",
+  "The inoperative components table in IFH Figure 1-23 is a 2012 sample. Have students use the table in the current TPP.",
+  "Examiners often ask: MDA vs DA, LP vs LNAV, what the VDP means, what to do with a RAIM alert before and after the FAWP, and how to raise minimums for an inoperative MALSR. Have students brief these from a real chart.",
+  "Use the Lincoln and Tallulah charts to drill the descent math until students can set a VSI target before the FAF without hesitation."
+ ],
+ "gaps": [
+  "The current TPP Inoperative Components table, rate of descent table and legend pages are not in the sources; only the older samples printed in the IFH are.",
+  "Exact GPS annunciation words and button sequences vary by receiver; the AIM describes only generic arm, active and level-of-service annunciations. Students need their receiver's manual.",
+  "AC 120-108 (continuous descent final approach) is not available; CDFA and stabilized approach content comes from the IPH and AIM.",
+  "Airplane-specific approach speeds, power settings, configurations and checklists come from the POH/AFM, which is not in the sources.",
+  "NDB approach flying technique (ADF tracking) is covered only briefly in the IPH and is not taught in this lesson."
+ ],
+ "activities": [
+  {
+   "type": "match",
+   "key": "h1",
+   "after": 3,
+   "title": "Approach words that keep you off the ground",
+   "intro": "Tap a term, then tap what it means.",
+   "pairs": [
+    {
+     "l": "MDA",
+     "r": "Lowest altitude on a lateral-only final; level off there"
+    },
+    {
+     "l": "DA",
+     "r": "Glidepath altitude where you decide: continue or go missed"
+    },
+    {
+     "l": "VDP",
+     "r": "Point to leave the MDA for a normal descent to touchdown"
+    },
+    {
+     "l": "VDA",
+     "r": "Advisory angle with no obstacle protection below the MDA"
+    },
+    {
+     "l": "Stepdown fix",
+     "r": "Lets you descend lower once you have passed it"
+    },
+    {
+     "l": "MAP",
+     "r": "Where the missed approach must start without references"
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h2",
+   "after": 4,
+   "title": "Find it on the Lincoln chart",
+   "figure": "f2",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 67,
+     "y": 78.2,
+     "label": "Final approach fix (Maltese cross)"
+    },
+    {
+     "x": 70.9,
+     "y": 80.7,
+     "label": "Minimum altitude after the stepdown fix"
+    },
+    {
+     "x": 70.4,
+     "y": 76.2,
+     "label": "Vertical descent angle"
+    },
+    {
+     "x": 57,
+     "y": 87.1,
+     "label": "Height above touchdown"
+    },
+    {
+     "x": 35.4,
+     "y": 26.6,
+     "label": "Hold-in-lieu of procedure turn"
+    },
+    {
+     "x": 67.5,
+     "y": 34.3,
+     "label": "TAA sector minimum altitude"
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h3",
+   "after": 5,
+   "title": "MDA or DA?",
+   "intro": "Tap a clue, then tap where it belongs.",
+   "buckets": [
+    "Flown to an MDA",
+    "Flown to a DA"
+   ],
+   "items": [
+    {
+     "t": "RNAV (GPS) LNAV line",
+     "b": 0
+    },
+    {
+     "t": "RNAV (GPS) LP line",
+     "b": 0
+    },
+    {
+     "t": "LOC RWY 36",
+     "b": 0
+    },
+    {
+     "t": "VOR/DME RWY 32",
+     "b": 0
+    },
+    {
+     "t": "Circling line of minima",
+     "b": 0
+    },
+    {
+     "t": "RNAV (GPS) LPV line",
+     "b": 1
+    },
+    {
+     "t": "RNAV (GPS) LNAV/VNAV line",
+     "b": 1
+    },
+    {
+     "t": "ILS with the glideslope working",
+     "b": 1
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h4",
+   "after": 6,
+   "title": "True or false: GPS on the approach",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "With the approach loaded, the receiver arms 30 NM from the airport and the CDI goes to ±1 NM.",
+     "a": true,
+     "why": "Yes. Armed, CDI and RAIM change to ±1 NM terminal sensitivity within 30 NM [[33:96|AIM 1-1-17b5(e)(3)]]."
+    },
+    {
+     "s": "If a RAIM alert appears before the FAWP, you may still descend to the MDA using the VDA.",
+     "a": false,
+     "why": "No. Don't descend. Fly to the MAWP via the FAWP, go missed and contact ATC [[33:98|AIM 1-1-17b5(g)(7)]]."
+    },
+    {
+     "s": "During an approach, a WAAS receiver automatically fails down from LPV to LNAV when vertical integrity is lost.",
+     "a": false,
+     "why": "No. Receivers don't fail down once the approach is active. With only a vertical flag, you may choose LNAV minima if your rules allow [[33:105|AIM 1-1-18d2 NOTE]]."
+    },
+    {
+     "s": "RAIM needs at least 5 satellites, or 4 satellites plus baro-aiding.",
+     "a": true,
+     "why": "Yes. FDE needs 6, or 5 plus baro-aiding [[33:89|AIM 1-1-17a3(a)]]."
+    },
+    {
+     "s": "A published VDP shows up in your GPS as a waypoint in the approach sequence.",
+     "a": false,
+     "why": "No. A VDP is not in the waypoint sequence; use along-track distance [[33:97|AIM 1-1-17b5(e)(12)]]."
+    },
+    {
+     "s": "Starting 2 NM before the FAWP, full-scale CDI shrinks from ±1 NM to ±0.3 NM.",
+     "a": true,
+     "why": "Yes. It ramps down smoothly and reaches ±0.3 NM at the FAWP [[33:96|AIM 1-1-17b5(e)(5)]]."
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h5",
+   "after": 8,
+   "title": "Descent and minimums math",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "FAF altitude 2,000 ft MSL, TDZE 86 ft, FAF to MAP time 4:00. Using the IPH method, what descent rate do you use?",
+     "answer": 479,
+     "tol": 10,
+     "unit": "fpm",
+     "why": "(2,000 - 86) ÷ 4 = 1,914 ÷ 4 = about 479 fpm [[29:177|IPH 4-37]]."
+    },
+    {
+     "q": "The VDA is 3.0° and your groundspeed is 120 knots. What rate does the TPP descent table give?",
+     "answer": 637,
+     "tol": 5,
+     "unit": "fpm",
+     "why": "Read the 3.0° row in the 120 knot column: 637 fpm [[23:44|IFH Figure 1-19]]."
+    },
+    {
+     "q": "A timed approach has 6 NM from the FAF to the MAP. Your groundspeed is 100 knots. How many seconds from the FAF to the MAP?",
+     "answer": 216,
+     "tol": 3,
+     "unit": "seconds",
+     "why": "6 ÷ 100 = 0.06 hr × 3,600 = 216 seconds (3:36). Start the clock at the FAF [[29:181|IPH 4-41]]."
+    },
+    {
+     "q": "TDZE is 1,199 ft. Using 300 ft per NM, what altitude MSL should you be at 2 NM from the threshold on a 3° path?",
+     "answer": 1799,
+     "tol": 10,
+     "unit": "ft MSL",
+     "why": "2 × 300 = 600 ft above TDZE; 1,199 + 600 = 1,799 ft MSL [[29:177|IPH 4-37]]."
+    },
+    {
+     "q": "Tallulah LOC RWY 36, Category A MDA 500 ft. The local altimeter setting isn't available, so you use Monroe's. What is your MDA?",
+     "answer": 640,
+     "tol": 0,
+     "unit": "ft MSL",
+     "why": "The chart note says increase all MDAs 140 ft: 500 + 140 = 640 ft [[29:227|IPH Figure 4-58]] [[33:399|AIM 5-4-5a4]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h6",
+   "after": 9,
+   "title": "No runway at the MAP: the go-around",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Decide at the MAP: no required references, go missed",
+    "Apply full power smoothly, carburetor heat off",
+    "Set a climb attitude without losing airspeed, and rough trim",
+    "Retract flaps partially, in small steps",
+    "With a positive rate of climb, raise the gear (if retractable)",
+    "Fly the published missed approach and tell ATC"
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 10,
+   "title": "Fly the Lincoln LNAV approach",
+   "intro": "You are flying N52TR, a Category A airplane with IFR-approved non-WAAS GPS, inbound to Lincoln, Nebraska for the RNAV (GPS) RWY 14 (Figure 4-39). Weather is 500 overcast, 1½ miles in mist. ATC says: \"Cross SILOY at or above 3,100, cleared RNAV (GPS) Runway 14 approach.\"",
+   "steps": [
+    {
+     "s": "You cross SILOY at 3,100 and turn toward OWABY on the NoPT leg. You feel a little high and fast.",
+     "options": [
+      "Fly the hold-in-lieu-of-PT at OWABY to lose altitude",
+      "Continue straight in, and ask ATC first if you want a turn in the hold",
+      "Descend now to 2,200 to get ahead",
+      "Ask for the LPV line instead"
+     ],
+     "answer": 1,
+     "why": "On a NoPT route you may not fly the course reversal unless ATC clears it [[60:474|14 CFR 91.175(j)]] [[33:425|AIM 5-4-9a NOTE]]. 2,200 is only allowed after the stepdown fix, and a GPS-only airplane can't use LPV [[33:415|AIM 5-4-5m]]."
+    },
+    {
+     "s": "About 2 NM before OPIZU the receiver goes to approach active. The CDI needle starts to move away from center though your heading hasn't changed.",
+     "options": [
+      "Turn hard toward the needle to recenter it",
+      "Go missed: the GPS has failed",
+      "Expect it: the scale is tightening to ±0.3 NM; check cross-track error and correct gently",
+      "Switch the CDI back to terminal sensitivity"
+     ],
+     "answer": 2,
+     "why": "As sensitivity ramps from ±1 to ±0.3 NM, an off-center needle moves out. Cross-track error keeps you oriented [[33:96|AIM 1-1-17b5(e)(5)]]. Overriding the sensitivity cancels the approach mode [[33:96|AIM 1-1-17b5(e)(7)]]."
+    },
+    {
+     "s": "You cross OPIZU at 3,000 ft, groundspeed 90 knots. The VDA is 3.03°.",
+     "options": [
+      "Descend at about 480 fpm, not below 2,200 until the stepdown fix",
+      "Dive at 1,200 fpm straight to 1,600",
+      "Descend at 300 fpm to save the engine",
+      "Hold 3,000 until the stepdown fix, then dive"
+     ],
+     "answer": 0,
+     "why": "3.0° at 90 knots is 478 fpm in the descent table [[23:44|IFH Figure 1-19]]. Stepdown altitudes apply until you pass the fix [[33:401|AIM 5-4-5b5]], and over about 1,000 fpm low is unacceptable [[29:177|IPH 4-37]]."
+    },
+    {
+     "s": "Level at 1,600 ft, about 1.5 NM out, you see runway end identifier lights flashing ahead. Flight visibility looks a good mile, and you can make a normal descent to the runway.",
+     "options": [
+      "Stay at 1,600 until you see the runway itself",
+      "Go missed: REIL is not a valid reference",
+      "Descend below 1,600 at 1,500 fpm to land quickly",
+      "Begin a normal descent to land"
+     ],
+     "answer": 3,
+     "why": "REIL is one of the listed references, flight visibility meets the 1 mile minimum, and you are in position for a normal descent [[60:472|14 CFR 91.175(c)]] [[29:208|IPH Figure 4-39]]."
+    },
+    {
+     "s": "At 300 ft above the ground, fog hides the lights and the runway. You are still before the RW14 waypoint.",
+     "options": [
+      "Keep descending; the runway is straight ahead",
+      "Go missed now, climb along the final course and turn only after the MAP",
+      "Level off and wait for the lights to reappear",
+      "Turn toward ALAWI right away"
+     ],
+     "answer": 1,
+     "why": "Below the MDA without the required references you must go missed immediately [[60:472|14 CFR 91.175(e)]]. On an early missed, fly to the MAP before turning [[33:450|AIM 5-4-21b]]; the GPS won't sequence until past the MAWP [[33:97|AIM 1-1-17b5(f)(1)]]."
+    }
+   ]
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "On the Lincoln RNAV (GPS) RWY 14, between OPIZU and the stepdown fix 3 NM from the runway, what is the lowest altitude you may fly on the LNAV line?",
+   "options": [
+    "1,600 ft",
+    "3,000 ft",
+    "2,200 ft",
+    "2,000 ft"
+   ],
+   "answer": 2,
+   "why": "2,200 ft is the minimum after OPIZU until the stepdown fix; 1,600 is allowed only after it [[29:208|IPH Figure 4-39]] [[33:401|AIM 5-4-5b5]]."
+  },
+  {
+   "q": "Groundspeed on final is 90 knots and the VDA is 3.0°. About what rate of descent should you set?",
+   "options": [
+    "About 320 fpm",
+    "About 480 fpm",
+    "About 640 fpm",
+    "About 800 fpm"
+   ],
+   "answer": 1,
+   "why": "The descent table gives 478 fpm for 3.0° at 90 knots [[23:44|IFH Figure 1-19]]. 637 is the 120 knot value."
+  },
+  {
+   "q": "Tallulah LOC RWY 36, Category A. The local altimeter setting isn't received, so you use Monroe Regional's. What is your MDA?",
+   "options": [
+    "500 ft",
+    "554 ft",
+    "414 ft",
+    "640 ft"
+   ],
+   "answer": 3,
+   "why": "The note says use the Monroe setting and increase all MDAs 140 ft: 500 + 140 = 640 [[29:227|IPH Figure 4-58]]."
+  },
+  {
+   "q": "On the Tallulah LOC RWY 36 your groundspeed is 120 knots. How long from the FAF to the MAP?",
+   "options": [
+    "3:00",
+    "4:00",
+    "2:24",
+    "6:00"
+   ],
+   "answer": 0,
+   "why": "The chart's table gives 3:00 for 6 NM at 120 knots (6 ÷ 120 × 60 = 3 minutes) [[29:227|IPH Figure 4-58]] [[29:181|IPH 4-41]]."
+  },
+  {
+   "q": "A VOR approach lists ¾ mile visibility for Category B. The MALSR is NOTAMed out. What visibility do you need?",
+   "options": [
+    "¾ mile",
+    "1 mile",
+    "1¼ miles",
+    "1½ miles"
+   ],
+   "answer": 2,
+   "why": "For VOR and other non-precision lines, MALSR out raises visibility ½ mile: ¾ + ½ = 1¼ [[23:50|IFH Figure 1-23]]."
+  },
+  {
+   "q": "Flying an LPV approach, only the vertical flag appears. What may you do?",
+   "options": [
+    "Keep flying to the LPV DA using the lateral guidance",
+    "Use the LNAV minima if your operating rules allow the change",
+    "Wait for the receiver to switch to LP automatically",
+    "Descend to the LNAV/VNAV DA instead"
+   ],
+   "answer": 1,
+   "why": "Receivers don't fail down. With only the vertical flag, you may elect LNAV minima if the rules allow changing approach type [[33:105|AIM 1-1-18d2 NOTE]]."
+  },
+  {
+   "q": "At the MDA the reported visibility is 1 mile, the minimum. You see the runway lights, but you judge flight visibility to be ½ mile. What now?",
+   "options": [
+    "Land; the reported visibility is legal",
+    "Descend to 100 ft above TDZE and look again",
+    "Continue, because you can see the runway lights",
+    "Stay at or above the MDA and go missed at the MAP"
+   ],
+   "answer": 3,
+   "why": "You need flight visibility at least the published minimum to go below the MDA and to land [[60:472|14 CFR 91.175(c)(2) and (d)]]. Only the pilot can judge flight visibility [[23:313|IFH 10-22]]."
+  },
+  {
+   "q": "You decide to go missed 2 NM before the MAP while at the MDA. What does the AIM say to do?",
+   "options": [
+    "Fly to the MAP at or above the MDA before turning",
+    "Turn at once toward the missed approach holding fix",
+    "Climb straight ahead and turn at 400 ft AGL",
+    "Descend to gain speed, then climb"
+   ],
+   "answer": 0,
+   "why": "On an early missed, fly the procedure to the MAP at or above the MDA before any turn, unless ATC says otherwise [[33:450|AIM 5-4-21b]]."
+  },
+  {
+   "q": "ATC clears you direct to an IAF that has a hold-in-lieu-of-PT and says \"cleared RNAV Runway 14 approach.\" Nothing about straight-in. What do you do?",
+   "options": [
+    "Fly straight in; the hold is optional",
+    "Fly the hold-in-lieu-of-PT, then the approach",
+    "Hold until ATC gives an expect further clearance time",
+    "Ask for vectors before accepting the clearance"
+   ],
+   "answer": 1,
+   "why": "Proceeding to an IAF with a published course reversal, you must fly it unless ATC clears you for a straight-in approach [[33:421|AIM 5-4-6h4]]."
+  },
+  {
+   "q": "Why should you avoid vectors that join final within 2 NM of the FAWP on a GPS approach?",
+   "options": [
+    "RAIM is not checked inside 2 NM",
+    "The VDP is inside 2 NM",
+    "The CDI scale is changing then, which makes the intercept hard to judge",
+    "ATC radar loses you inside 2 NM"
+   ],
+   "answer": 2,
+   "why": "From 2 NM out the CDI ramps from ±1 to ±0.3 NM, so needle movement can mislead you. Be established before then [[33:96|AIM 1-1-17b5(e)(5)]]."
+  },
+  {
+   "q": "Which frequency could be a localizer?",
+   "options": [
+    "109.7 MHz",
+    "108.2 MHz",
+    "110.4 MHz",
+    "112.5 MHz"
+   ],
+   "answer": 0,
+   "why": "Localizers use odd tenths from 108.10 to 111.95 MHz; even tenths between 108.0 and 112.0 are VORs [[33:78|AIM 1-1-9b1]] [[23:254|IFH 9-11]]."
+  },
+  {
+   "q": "Your DME fails, and you can't identify the stepdown fix on a VOR/DME final. No separate minimums are published. What is your lowest altitude?",
+   "options": [
+    "The MDA; the stepdown fix doesn't matter",
+    "The FAF altitude all the way to the MAP",
+    "The MSA",
+    "The stepdown fix's minimum altitude, which becomes your MDA"
+   ],
+   "answer": 3,
+   "why": "If a stepdown fix can't be identified, its minimum altitude becomes the MDA [[23:40|IFH 1-21]]. Note that a VOR/DME approach needs DME to fly from the FAF at all [[29:209|IPH 4-69]]."
+  },
+  {
+   "q": "Your altitude preselector moves only in 100 ft steps and the MDA is 660 ft. What do you set?",
+   "options": [
+    "600 ft",
+    "650 ft",
+    "700 ft",
+    "800 ft"
+   ],
+   "answer": 2,
+   "why": "Round up so the airplane can't descend below the MDA: 700 ft, as in the IPH example [[29:176|IPH 4-36]]."
+  },
+  {
+   "q": "A non-WAAS GPS airplane is cleared for an RNAV (GPS) approach with LPV, LNAV/VNAV and LNAV lines. Without baro-VNAV, which line can it use?",
+   "options": [
+    "LPV",
+    "LNAV",
+    "LNAV/VNAV",
+    "Any of them; the clearance covers all"
+   ],
+   "answer": 1,
+   "why": "The clearance lets you use any minimums your aircraft is certified for. GPS-only equipment supports LNAV; LPV needs WAAS and LNAV/VNAV needs baro-VNAV or WAAS [[33:415|AIM 5-4-5m]] [[33:416|AIM 5-4-5m1]]."
+  }
+ ]
+}

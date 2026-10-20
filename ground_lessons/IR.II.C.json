@@ -1152,8 +1152,43 @@
    ]
   },
   {
-   "type": "order",
+   "type": "label",
    "key": "h2",
+   "after": 4,
+   "title": "Pitot and static lines",
+   "figure": "f1",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 41.7,
+     "y": 13.6,
+     "label": "Pitot (ram air) line"
+    },
+    {
+     "x": 55.5,
+     "y": 13,
+     "label": "Airspeed indicator"
+    },
+    {
+     "x": 69.1,
+     "y": 10.8,
+     "label": "Vertical speed indicator"
+    },
+    {
+     "x": 83.7,
+     "y": 12.5,
+     "label": "Altimeter"
+    },
+    {
+     "x": 73.8,
+     "y": 56.8,
+     "label": "Static line"
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h3",
    "after": 6,
    "title": "The IFH instrument check, in order",
    "intro": "Use the arrows to put the steps in order, then tap Check.",
@@ -1170,7 +1205,7 @@
   },
   {
    "type": "tf",
-   "key": "h3",
+   "key": "h4",
    "after": 7,
    "title": "True or false: the VOR check",
    "intro": "Decide if each statement is true or false.",
@@ -1209,7 +1244,7 @@
   },
   {
    "type": "match",
-   "key": "h4",
+   "key": "h5",
    "after": 9,
    "title": "Inoperative equipment words",
    "intro": "Tap a term, then tap its meaning.",
@@ -1237,6 +1272,114 @@
     {
      "l": "91.213(d)",
      "r": "Deferral path for non-turbine airplanes without an MEL"
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h6",
+   "after": 10,
+   "title": "Altimeter and VOR check numbers",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "Field elevation is 1,450 ft. In the run-up area, which is at field elevation, the altimeter reads 1,510 ft with the current setting. How many feet off is it?",
+     "answer": 60,
+     "tol": 0,
+     "unit": "ft",
+     "why": "1,510 - 1,450 = 60 ft. That is within 75 ft, so the altimeter passes [[23:132|IFH 5-37]]."
+    },
+    {
+     "q": "Field elevation is 2,317 ft. With the current setting, what is the lowest altimeter reading that is still within the IFH tolerance?",
+     "answer": 2242,
+     "tol": 0,
+     "unit": "ft",
+     "why": "The reading must be within 75 ft of field elevation: 2,317 - 75 = 2,242 ft. Any lower and its accuracy is questionable [[23:132|IFH 5-37]]."
+    },
+    {
+     "q": "You tune the VOT. With the CDI centered, the OBS reads 356° with a FROM flag. What is the bearing error in degrees?",
+     "answer": 4,
+     "tol": 0,
+     "unit": "degrees",
+     "why": "A good receiver reads 0° FROM [[33:70|AIM 1-1-4b]]. 360 - 356 = 4°, right at the ±4° VOT limit, so it passes [[60:470|14 CFR 91.171(b)(1)]]."
+    },
+    {
+     "q": "The ground checkpoint sign shows a VOR check course of 147°. With the CDI centered and a FROM flag, what is the highest OBS reading that still passes?",
+     "answer": 151,
+     "tol": 0,
+     "unit": "degrees",
+     "why": "The sign gives the published course for the check [[33:157|AIM 2-3-6b Note]]. A ground checkpoint allows ±4°: 147 + 4 = 151° [[60:470|14 CFR 91.171(b)(2)]]."
+    },
+    {
+     "q": "Your airport has no VOT or ground checkpoint. Over a designated airborne checkpoint on the 095° radial, the CDI centers with the OBS on 102° FROM. What is the bearing error in degrees?",
+     "answer": 7,
+     "tol": 0,
+     "unit": "degrees",
+     "why": "102 - 95 = 7°. The airborne checkpoint limit is ±6° [[60:470|14 CFR 91.171(b)(3)]], so IFR flight must not be attempted until the error is corrected [[33:71|AIM 1-1-4f]]."
+    }
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 11,
+   "title": "Preflight with problems",
+   "intro": "You are flying N4521K, a club single with no MEL, on an IFR departure into a 700 ft overcast. You filed with a GPS equipment suffix, and your route is on Victor airways. The VOR check was done and logged 10 days ago.",
+   "steps": [
+    {
+     "s": "On the walk-around you find a strip of tape still over the left static port from a wash.",
+     "options": [
+      "Leave it; the alternate static source will cover it",
+      "Remove it and check the port is free of dirt and obstructions",
+      "Leave it; the static port only feeds the airspeed indicator",
+      "Leave it and fly by the attitude indicator alone"
+     ],
+     "answer": 1,
+     "why": "Check that the static ports are free from dirt and obstructions [[23:131|IFH 5-36]]. A blocked static port causes errors in the airspeed indicator, altimeter and VSI [[1:212|PHAK 8-10]]."
+    },
+    {
+     "s": "Before start, the magnetic compass bowl is only half full, with a big bubble, and the card sticks.",
+     "options": [
+      "Go; the heading indicator replaces the compass under IFR",
+      "Defer it under 91.213(d) with a placard",
+      "Have maintenance fix it before you fly",
+      "Go; the compass is only needed for VFR"
+     ],
+     "answer": 2,
+     "why": "The compass must be full of fluid and its card must move freely [[23:132|IFH 5-37]]. A magnetic direction indicator is required by 91.205(b) [[60:486|14 CFR 91.205(b)(3)]], which also applies to IFR [[60:488|14 CFR 91.205(d)(1)]], so 91.213(d) can't defer it [[60:493|14 CFR 91.213(d)(2)(iii)]]."
+    },
+    {
+     "s": "A mechanic fixes the compass. Now, in taxi turns, the turn coordinator shows each turn, the ball moves opposite the turn, and the horizon bar tips about 3°.",
+     "options": [
+      "All normal; keep going",
+      "Attitude indicator is unreliable; any tipping fails",
+      "The ball is faulty; it should move with the turn",
+      "Stop and recage the attitude indicator"
+     ],
+     "answer": 0,
+     "why": "The turn instrument should show the turn and the ball should move opposite it [[23:132|IFH 5-37]]. The attitude indicator is unreliable only if it tips more than 5° in taxi turns [[23:133|IFH 5-38]]."
+    },
+    {
+     "s": "At the run-up, the GPS shows a failure message and won't navigate. Everything else checks good.",
+     "options": [
+      "Say nothing; navigate the airways by VOR",
+      "Enter the route waypoints by hand",
+      "Advise ATC and amend your equipment suffix, then fly the airways by VOR",
+      "Cancel; IFR always requires a working GPS"
+     ],
+     "answer": 2,
+     "why": "If GPS avionics become inoperative, advise ATC and amend the equipment suffix [[33:92|AIM 1-1-17b2(a)(5)]]. IFR needs navigation equipment suitable for the route [[60:488|14 CFR 91.205(d)(2)]], and your VOR is checked and fits a Victor airway route [[60:470|14 CFR 91.171(a)]]."
+    },
+    {
+     "s": "Lined up on a runway with a magnetic heading of 093°, the heading indicator reads 096°.",
+     "options": [
+      "Taxi back; any difference fails the check",
+      "Within limits; continue the takeoff",
+      "Cancel IFR; the compass must be wrong",
+      "Reset it to the GPS track first"
+     ],
+     "answer": 1,
+     "why": "The heading indicator should show the runway direction within 5° when you are lined up [[23:133|IFH 5-38]]. 096 - 093 = 3°, so it passes."
     }
    ]
   }

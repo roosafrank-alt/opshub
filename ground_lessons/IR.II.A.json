@@ -521,8 +521,23 @@
    ]
   },
   {
-   "type": "tf",
+   "type": "label",
    "key": "h4",
+   "after": 10,
+   "title": "Read the autopilot display",
+   "figure": "f7",
+   "intro": "Each pin sits right beside one item on the autopilot display. Drag each name to its numbered pin.",
+   "pins": [
+    {"x": 24.4, "y": 43, "label": "Engaged roll mode"},
+    {"x": 53.6, "y": 43.5, "label": "Armed mode, not yet captured"},
+    {"x": 24.4, "y": 53, "label": "Engaged pitch mode"},
+    {"x": 58.4, "y": 53, "label": "Selected climb rate"}
+   ],
+   "why": "Managing the autopilot means knowing at all times which modes are engaged and which are armed to engage, then checking that armed modes engage when they should [[1:70|PHAK 2-31]]. Here HDG (heading) works the roll axis and VS HLD holds a vertical speed in pitch, the two axes most GA autopilots control [[23:120|IFH 5-25]]. VS400 with the up arrow is the 400 fpm climb it is holding, and APR ARM is waiting to capture [[1:160|PHAK 6-12]] [[1:70|PHAK 2-31]]."
+  },
+  {
+   "type": "tf",
+   "key": "h5",
    "after": 12,
    "title": "True or false: flying in ice",
    "intro": "Decide if each statement is true or false.",
@@ -533,6 +548,20 @@
     {"s": "The warmer altitude that gets you out of ice is always a lower altitude.", "a": false, "why": "No. The warmer altitude may not always be lower [[34:103|AIM 7-1-19]]."},
     {"s": "Cycle the boots before beginning the approach, because it is better not to use them while landing.", "a": true, "why": "Yes. Boot use may increase stall speed, so cycle them before the approach [[38:51|AC 91-74B 5-10a(3)]]."},
     {"s": "If you can no longer hold airspeed by adding power in ice, you should exit the icing conditions immediately.", "a": true, "why": "Yes. AC 91-74B says to exit immediately at that point [[38:48|AC 91-74B 5-7b]]."}
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h6",
+   "after": 13,
+   "title": "Ice in the clouds at 9,000 feet",
+   "intro": "You are flying N123AB, a single-engine piston airplane approved for flight in known icing, with boots, a heated prop, windshield anti-ice and pitot heat, but no autothrottle. You are IFR at 9,000 ft in solid cloud with the autopilot in altitude hold. Clean stall speed (Vs) is 62 knots, and the AFM gives no icing airspeed.",
+   "steps": [
+    {"s": "The OAT drops from +4 °C to +1 °C. You are in cloud, but no ice has formed yet.", "options": ["Wait until you see ice, then turn on all the systems", "Turn on the anti-ice systems now: pitot heat, prop heat and windshield", "Inflate the boots now and keep cycling them every minute", "Select the alternate static source as a precaution"], "answer": 1, "why": "Anti-ice systems prevent ice, so turn them on at the first sign of visible moisture when the temperature is a little above freezing. Deice systems like boots are for ice that has already formed [[38:59|AC 91-74B App 2]]."},
+    {"s": "Rime now builds on the leading edges and the boots are shedding it. Workload is low, and the autopilot is still holding altitude.", "options": ["Leave the autopilot on; it will handle the ice for you", "Now and then disengage the autopilot and hand-fly to feel for handling changes", "Reduce power to stay at a lower angle of attack", "Switch to vertical speed mode for a smoother ride"], "answer": 1, "why": "If workload permits, periodically disengage the autopilot and fly by hand to find handling changes caused by ice. The autopilot can mask them [[38:60|AC 91-74B App 2]] [[38:49|AC 91-74B 5-7e]]."},
+    {"s": "Center asks you to slow to 90 knots for spacing.", "options": ["Accept, because 90 knots is well above the 62-knot stall speed", "Tell ATC you are in ice and unable; you need at least about 93 to 99 knots", "Accept and lower some flaps for extra margin", "Accept and add power only if the stall horn sounds"], "answer": 1, "why": "With no AFM icing speed, keep at least 50% to 60% above Vs: 62 x 1.5 = 93 and 62 x 1.6 = 99.2 knots. Do not accept an ATC speed below that margin [[38:48|AC 91-74B 5-7a]] [[38:44|AC 91-74B 5-2b(3)]]."},
+    {"s": "The boots now need frequent cycling, and about an inch of ice builds on the unprotected outer wing every 30 minutes.", "options": ["Stay at 9,000 ft, since the airplane is approved for icing", "Report moderate icing and its effect on the airplane, and ask ATC for a new route or altitude", "Start down 2,000 ft right away without telling ATC", "Climb at full power in vertical speed mode to find the tops"], "answer": 1, "why": "An inch per 30 minutes is 2 inches per hour with frequent boot cycling: moderate icing, so consider exiting as soon as possible [[34:103|AIM 7-1-19]]. Tell ATC how bad it is, what it is doing to the airplane, and what change you need [[38:44|AC 91-74B 5-2b]] [[23:327|IFH 11-2]]."},
+    {"s": "ATC says the freezing level is below the MEA, and the reported tops are far above you. An airport with an ILS and a long runway is 15 miles away. Your destination is 70 miles ahead.", "options": ["Continue to the destination; the ice protection can handle it", "Divert and land at the nearby airport", "Ask to hold where you are until the ice sheds", "Ask for a climb toward the tops at best rate"], "answer": 1, "why": "If you cannot leave the precipitation or reach above-freezing air, consider landing at the nearest suitable airport. Ice protection gives you time to get out; it does not let you stay in ice indefinitely [[23:327|IFH 11-2]]. Holding is slower, so you collect more ice [[38:50|AC 91-74B 5-9a]]."}
    ]
   }
  ],
