@@ -1,0 +1,1580 @@
+{
+ "task_code": "CA.IV.A",
+ "task_title": "Normal Takeoff and Climb",
+ "area": "Area IV. Takeoffs, Landings, and Go-Arounds",
+ "minutes": 86,
+ "objective": "By the end of this lesson you can predict takeoff and climb performance for the day's air, weight, wind and runway, fly a normal or crosswind takeoff holding VY within 5 knots, and brief a clear abort point and engine-failure plan before every departure.",
+ "why": "About twenty percent of yearly general aviation accidents happen during takeoff and departure climb, and more than half of those come from some failure of the pilot [[24:133|AFH 6-1]]. As a commercial pilot, people will pay you to get this part right every time.",
+ "prereading": [
+  {
+   "res": "24",
+   "pages": [
+    133,
+    146
+   ],
+   "printed": "AFH Ch 6, 6-1 to 6-14",
+   "what": "Normal and crosswind takeoff, ground effect, VX and VY, rejected takeoff, engine failure, noise abatement.",
+   "label": "AFH Ch 6, 6-1 to 6-14"
+  },
+  {
+   "res": "1",
+   "pages": [
+    268,
+    272
+   ],
+   "printed": "PHAK 11-12 to 11-16",
+   "what": "Runway surface and slope, and how weight, wind, speed and density altitude change takeoff distance.",
+   "label": "PHAK 11-12 to 11-16"
+  },
+  {
+   "res": "24",
+   "pages": [
+    356,
+    357
+   ],
+   "printed": "AFH 18-7 to 18-8",
+   "what": "Engine failure after takeoff and the numbers behind the 'impossible turn'.",
+   "label": "AFH 18-7 to 18-8"
+  },
+  {
+   "res": "34",
+   "pages": [
+    147,
+    155
+   ],
+   "printed": "AIM 7-4-1 to 7-4-9",
+   "what": "Wake vortex behavior, avoidance on departure, and ATC wake intervals.",
+   "label": "AIM 7-4-1 to 7-4-9"
+  },
+  {
+   "res": "33",
+   "pages": [
+    344,
+    345
+   ],
+   "printed": "AIM 5-2-5",
+   "what": "Line up and wait, and why it is not a takeoff clearance.",
+   "label": "AIM 5-2-5"
+  },
+  {
+   "res": "28",
+   "pages": [
+    266,
+    270
+   ],
+   "printed": "AWH 22-11 to 22-15",
+   "what": "Windshear encounters on and just after takeoff.",
+   "label": "AWH 22-11 to 22-15"
+  }
+ ],
+ "warmup": "Your private checkride let you fly VY +10/-5 knots. The commercial ACS gives you only 5 knots either side. Before you read on: what do you do differently in the first 30 seconds after lift-off to stay that tight?",
+ "key_terms": [
+  {
+   "term": "Density altitude",
+   "def": "Pressure altitude corrected for nonstandard temperature; the higher it is, the worse the airplane performs [[1:91|PHAK 4-4]]."
+  },
+  {
+   "term": "Pressure altitude",
+   "def": "The altitude shown with 29.92 \"Hg set in the altimeter window; used to work out density altitude [[1:209|PHAK 8-7]]."
+  },
+  {
+   "term": "VX",
+   "def": "Best angle of climb speed: the most altitude for a given distance over the ground [[24:142|AFH 6-10]]."
+  },
+  {
+   "term": "VY",
+   "def": "Best rate of climb speed: the most altitude per unit of time [[24:142|AFH 6-10]]."
+  },
+  {
+   "term": "Cruise climb",
+   "def": "A normal climb at the manufacturer's speed, usually faster than VY, for cooling, control and a view over the nose [[24:78|AFH 3-17]]."
+  },
+  {
+   "term": "TORA",
+   "def": "Takeoff Run Available: runway length declared available for the ground run of a takeoff [[33:246|AIM 4-3-6]]."
+  },
+  {
+   "term": "ASDA",
+   "def": "Accelerate-Stop Distance Available: runway plus stopway declared available to speed up and then stop on an abort [[33:246|AIM 4-3-6]]."
+  },
+  {
+   "term": "Abort point",
+   "def": "A point on the runway, picked before takeoff, where you must be airborne or you stop the takeoff [[24:146|AFH 6-14]]."
+  },
+  {
+   "term": "Line up and wait (LUAW)",
+   "def": "ATC instruction to taxi onto the runway, line up and wait. It is not a takeoff clearance [[33:344|AIM 5-2-5]]."
+  },
+  {
+   "term": "Increasing tailwind shear",
+   "def": "Windshear where the tailwind grows, so indicated airspeed drops [[28:272|AWH 22-17]]."
+  },
+  {
+   "term": "Wake vortex",
+   "def": "A pair of counter-rotating swirls trailing behind a wing that is making lift [[34:147|AIM 7-4-1]]."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "The takeoff at commercial standards",
+   "kind": "knowledge",
+   "codes": [
+    "CA.IV.A.K3",
+    "CA.IV.A.S9",
+    "CA.IV.A.S11",
+    "CA.IV.A.S13"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "A takeoff is one continuous maneuver, but we study it in three steps: takeoff roll, lift-off and initial climb. The initial climb ends at a safe maneuvering altitude or when an en route climb is set up [[24:133|AFH 6-1]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "Your POH/AFM sets the configuration and speeds for your airplane. If anything in the handbooks differs from the POH/AFM, the manufacturer wins [[24:133|AFH 6-1]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Item",
+       "Private ACS",
+       "Commercial ACS"
+      ],
+      "rows": [
+       [
+        "Climb speed after lift-off",
+        "VY or recommended speed, +10/-5 knots (ACS PA.IV.A.S11)",
+        "VY or recommended speed, ±5 knots (ACS CA.IV.A.S11)"
+       ],
+       [
+        "Climb to safe maneuvering altitude",
+        "VY +10/-5 knots (ACS PA.IV.A.S13)",
+        "VY ±5 knots (ACS CA.IV.A.S13)"
+       ],
+       [
+        "Rotation",
+        "At the recommended airspeed, then accelerate to VY (ACS PA.IV.A.S9)",
+        "Same (ACS CA.IV.A.S9)"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Why so tight? In some airplanes, just 5 knots off the recommended speed can cost a lot of climb, so precise airspeed control is the whole job [[24:142|AFH 6-10]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "The ideal lift-off attitude needs only small pitch changes after lift-off to reach VY [[24:136|AFH 6-4]]. Learn that picture on the horizon. If you nail it, the 5-knot window is easy."
+     }
+    }
+   ],
+   "check": {
+    "q": "What climb airspeed window does the commercial ACS give you if your VY is 79 knots?",
+    "a": "74 to 84 knots: VY ±5 knots (ACS CA.IV.A.S11 and S13)."
+   }
+  },
+  {
+   "title": "Air, weight and wind: what changes the numbers",
+   "kind": "knowledge",
+   "codes": [
+    "CA.IV.A.K1",
+    "CA.IV.A.R2c",
+    "CA.IV.A.R2e"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Thin air hurts three ways. It cuts engine power (less air in), propeller thrust (less bite) and lift (less force on the wings) [[1:91|PHAK 4-4]]."
+    },
+    {
+     "bullets": [
+      "Hot air is less dense, so heat raises density altitude [[1:91|PHAK 4-4]].",
+      "Lower pressure means lower density [[1:91|PHAK 4-4]].",
+      "Moist air is lighter than dry air, so humidity also raises density altitude, though it is a smaller factor [[1:92|PHAK 4-5]].",
+      "Example: a 5,048-foot field at 30 °C has a density altitude of 7,855 feet. The airplane takes off as if the field were 7,855 feet high [[1:209|PHAK 8-7]]."
+     ]
+    },
+    {
+     "p": "At altitude you lift off at the same indicated airspeed as at sea level, but your true airspeed is higher, and the engine makes less thrust. Both make the roll longer [[1:272|PHAK 11-16]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Change",
+       "Effect",
+       "Source"
+      ],
+      "rows": [
+       [
+        "10% more weight",
+        "About 5% faster lift-off, at least 9% slower acceleration, at least 21% longer takeoff distance",
+        "[[1:271|PHAK 11-15]]"
+       ],
+       [
+        "Headwind = 10% of takeoff speed",
+        "About 19% shorter takeoff distance",
+        "[[1:271|PHAK 11-15]]"
+       ],
+       [
+        "Tailwind = 10% of takeoff speed",
+        "About 21% longer takeoff distance",
+        "[[1:271|PHAK 11-15]]"
+       ],
+       [
+        "Headwind = 50% of takeoff speed",
+        "Distance about 25% of the no-wind distance",
+        "[[1:271|PHAK 11-15]]"
+       ],
+       [
+        "Lift off 10% faster than POH",
+        "About 21% longer takeoff distance (distance varies with speed squared)",
+        "[[1:272|PHAK 11-16]]"
+       ],
+       [
+        "Upslope runway",
+        "Slower acceleration, longer ground run",
+        "[[1:269|PHAK 11-13]]"
+       ],
+       [
+        "Grass, gravel, mud, snow, standing water",
+        "Longer ground roll; anything not hard and smooth slows you",
+        "[[1:268|PHAK 11-12]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Wet pavement matters for the abort. If your tires hydroplane, braking and directional control are almost nil. Minimum hydroplaning speed is about 9 times the square root of tire pressure: 36 psi gives about 54 knots [[1:269|PHAK 11-13]] [[1:270|PHAK 11-14]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Tailwind takeoffs are sometimes needed. First confirm the POH/AFM approves it and that you have the performance and runway [[24:135|AFH 6-3]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "The POH shows 1,200 feet of ground roll with no wind. You pick up a tailwind of about 10% of your lift-off speed. Roughly how far now?",
+    "a": "About 1,450 feet: a 10% tailwind adds about 21% (1,200 x 1.21 = 1,452) [[1:271|PHAK 11-15]]."
+   }
+  },
+  {
+   "title": "Performance data and choosing the runway",
+   "kind": "knowledge",
+   "codes": [
+    "CA.IV.A.R1",
+    "CA.IV.A.K1"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Before every flight the PIC must know the runway lengths at airports of intended use and the takeoff and landing distance data from the approved flight manual, or other reliable data for elevation, slope, weight, wind and temperature [[60:440|14 CFR 91.103(b)]]."
+     }
+    },
+    {
+     "p": "Check the POH/AFM performance charts before you go to the airplane and decide if it can take off and climb safely here, today [[24:133|AFH 6-1]]. For takeoff distance, the four big inputs are pressure altitude and temperature, gross weight, wind, and runway slope and condition [[1:272|PHAK 11-16]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "Read the example charts: the left chart gives ground run and the distance to clear a 50-foot obstacle, at two weights; the right chart shows rate of climb falling as density altitude rises [[24:134|AFH 6-2]]. Note the warning: don't stretch a chart past its printed range."
+    },
+    {
+     "p": "Chart numbers assume a paved, level, smooth, dry runway [[1:268|PHAK 11-12]]. Runway surface and slope for each airport are in the Chart Supplement [[1:269|PHAK 11-13]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Declared distance",
+       "What it is for"
+      ],
+      "rows": [
+       [
+        "TORA",
+        "Ground run of a takeoff [[33:246|AIM 4-3-6]]"
+       ],
+       [
+        "TODA",
+        "TORA plus any remaining runway or clearway [[33:246|AIM 4-3-6]]"
+       ],
+       [
+        "ASDA",
+        "Speeding up and stopping on an aborted takeoff [[33:246|AIM 4-3-6]]"
+       ],
+       [
+        "LDA",
+        "Landing [[33:246|AIM 4-3-6]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Your required distances must fall inside the declared distances before you accept a runway [[33:246|AIM 4-3-6]]. For an intersection takeoff, you must check that the shorter runway and the reduced declared distances still cover what you need. If you want full length or the distance remaining, tell ATC [[33:252|AIM 4-3-10]] [[33:253|AIM 4-3-10]]."
+    },
+    {
+     "p": "Quick abort estimate: the POH takeoff ground roll plus the landing ground roll gives a good estimate of the runway you need to speed up and then stop [[24:146|AFH 6-14]]."
+    },
+    {
+     "p": "Wind and runway choice: when the wind is 5 knots or more, ATC assigns the runway most nearly aligned with it. Tailwind and crosswind considerations come before delay and noise programs. If you want a different runway, ask [[33:245|AIM 4-3-6]]."
+    }
+   ],
+   "check": {
+    "q": "POH: takeoff ground roll 950 feet, landing ground roll 650 feet. What is a good estimate of the runway you need to accelerate and stop?",
+    "a": "About 1,600 feet: add the two ground rolls [[24:146|AFH 6-14]]."
+   }
+  },
+  {
+   "title": "VX, VY and cruise climb",
+   "kind": "knowledge",
+   "codes": [
+    "CA.IV.A.K2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Climb",
+       "What it gives",
+       "When to use it"
+      ],
+      "rows": [
+       [
+        "VX (best angle)",
+        "Most altitude over the shortest distance [[24:142|AFH 6-10]]",
+        "Clearing obstacles like trees or power lines off a short field [[1:263|PHAK 11-7]]"
+       ],
+       [
+        "VY (best rate)",
+        "Most altitude in the least time [[24:142|AFH 6-10]]",
+        "Departing a runway with no obstacles until it is safe to change to a cruise climb [[24:78|AFH 3-17]]"
+       ],
+       [
+        "Cruise (normal) climb",
+        "Better engine cooling, more control authority, better view over the nose [[24:78|AFH 3-17]]",
+        "After a safe maneuvering altitude, per the POH"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "PHAK example: one airplane at max angle takes 30 seconds to reach 1,000 feet AGL and covers 3,000 feet over the ground. At max rate it reaches 1,500 feet in the same 30 seconds but covers 6,000 feet [[1:263|PHAK 11-7]] [[1:264|PHAK 11-8]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "Speeds change with altitude. VX goes up and VY goes down until they meet at the absolute ceiling, where the airplane can't climb at all [[24:78|AFH 3-17]]. The service ceiling is where it can't climb faster than 100 fpm [[1:264|PHAK 11-8]]."
+    },
+    {
+     "p": "Weight, altitude, gear down and flaps down all reduce excess power and thrust, so both max angle and max rate get worse [[1:264|PHAK 11-8]]. A heavier airplane also needs a higher climb speed to get its smaller best rate [[1:264|PHAK 11-8]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Ground effect can fool you. The airplane may seem to fly below the recommended speed, but climbing out of ground effect too slow gives much less climb than VY or even VX. At high density altitude or max weight it may lift off and then be unable to climb out of ground effect [[24:143|AFH 6-11]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "In Figure 3-20, which way do VX and VY move as you climb?",
+    "a": "VX increases and VY decreases until they meet at the absolute ceiling [[24:78|AFH 3-17]]."
+   }
+  },
+  {
+   "title": "Configuration: flaps, prop, mixture, gear",
+   "kind": "knowledge",
+   "codes": [
+    "CA.IV.A.K3",
+    "CA.IV.A.S12"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Commercial training often means a constant-speed propeller and retractable gear. Set everything the way the POH/AFM says; here is what the handbooks add."
+    },
+    {
+     "bullets": [
+      "Flaps and gear: retract after a positive rate of climb is established [[24:137|AFH 6-5]].",
+      "Constant-speed prop: low blade pitch (high rpm) for takeoff lets the engine reach full rated power [[24:237|AFH 12-6]]. On the roll, the tach should come up to within 40 rpm of red line and stay there [[24:239|AFH 12-8]].",
+      "A brief overspeed when the throttle goes in fast is usually not serious if rated rpm is not exceeded by 10 percent for more than 3 seconds [[24:240|AFH 12-9]].",
+      "Power changes: increase rpm first, then manifold pressure [[24:239|AFH 12-8]]. Make all power changes smoothly and slowly [[24:240|AFH 12-9]].",
+      "High-elevation field: the mixture may be too rich on the runup, causing roughness and power loss; lean it as the manufacturer recommends [[1:169|PHAK 7-9]]."
+     ]
+    },
+    {
+     "p": "When does the gear come up? Normally once you could no longer land on the runway if the engine quit. Plan it ahead using runway length, climb gradient, obstacles, the terrain past the end and your airplane's climb [[24:247|AFH 12-16]]."
+    },
+    {
+     "bullets": [
+      "Short runway, open fields past the end: leaving the gear down longer may be better, since an off-airport landing gear-down can absorb energy [[24:247|AFH 12-16]].",
+      "Obstacles in the climb path: a timely gear retraction may be warranted [[24:247|AFH 12-16]].",
+      "Never retract before a positive rate shows on the instruments, and don't push the yoke forward while reaching for the handle [[24:247|AFH 12-16]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Keep takeoff power to at least 500 feet above the surrounding terrain or obstacles. Then set climb power and trim. VY plus takeoff power gives the most altitude in the least time for handling an emergency [[24:137|AFH 6-5]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Full power on the roll, but the tach stops 120 rpm below red line in your constant-speed airplane. Is that normal?",
+    "a": "No. It should come up to within 40 rpm of red line and stay there [[24:239|AFH 12-8]]. Abort while you have runway and have it checked."
+   }
+  },
+  {
+   "title": "Find the wind, set the controls",
+   "kind": "skills",
+   "codes": [
+    "CA.IV.A.S4",
+    "CA.IV.A.S5"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "bullets": [
+      "Wind cone or wind sock: the large end points into the wind; so does the cross bar end of a wind tee [[33:244|AIM 4-3-4]].",
+      "A wind sock also lets you estimate speed and gust factor [[1:354|PHAK 14-20]].",
+      "Tetrahedron: landing direction only. Don't use it for wind direction [[33:244|AIM 4-3-4]].",
+      "Check the indicators even when someone gives the wind on CTAF; there is no assurance it is accurate [[1:354|PHAK 14-20]].",
+      "No indicator? Read smoke, dust, brush fires, wind farms or patterns on nearby water [[24:199|AFH 9-28]].",
+      "Tower winds are magnetic, in knots [[33:245|AIM 4-3-6]], so you can compare them straight to the runway number."
+     ]
+    },
+    {
+     "p": "Taxiing: in a quartering headwind, hold the upwind aileron up. In a quartering tailwind, hold the elevator down and the upwind aileron down so the wind can't get under the tail and wing [[24:56|AFH 2-19]]."
+    },
+    {
+     "p": "As you line up, check the windsock again for a crosswind. If there is one, start the roll with full aileron into the wind [[24:138|AFH 6-6]]."
+    }
+   ],
+   "check": {
+    "q": "Wind 240 at 12 from the tower, you are lining up on runway 21. Which side is the crosswind from, and where does the yoke go?",
+    "a": "From the right (240 is right of 210). Start the roll with full right aileron, into the wind [[24:138|AFH 6-6]] [[33:245|AIM 4-3-6]]."
+   }
+  },
+  {
+   "title": "Fly it step by step: normal takeoff and climb",
+   "kind": "skills",
+   "codes": [
+    "CA.IV.A.S1",
+    "CA.IV.A.S2",
+    "CA.IV.A.S3",
+    "CA.IV.A.S6",
+    "CA.IV.A.S7",
+    "CA.IV.A.S9",
+    "CA.IV.A.S11",
+    "CA.IV.A.S12",
+    "CA.IV.A.S13",
+    "CA.IV.A.S14",
+    "CA.IV.A.S15"
+   ],
+   "minutes": 9,
+   "body": [
+    {
+     "bullets": [
+      "1. Finish run-up and before-takeoff checklists before you taxi onto the runway. Engine instruments normal; controls full, free and correct [[24:133|AFH 6-1]]. Do the items, then use the checklist to confirm [[24:36|AFH 1-15]].",
+      "2. Brief your abort point and your engine-failure plan, including the best turn direction for the departure path, altitude, wind and terrain [[24:133|AFH 6-1]] [[24:146|AFH 6-14]].",
+      "3. Towered: get a takeoff clearance before taxiing onto the runway. Nontowered: announce on CTAF. Make sure the approach and takeoff paths are clear [[24:133|AFH 6-1]].",
+      "4. Line up on the centerline. Pick reference points aligned with the runway for the climb out [[24:133|AFH 6-1]]. Before adding power, check the heading matches the runway [[1:366|PHAK 14-32]].",
+      "5. Release brakes and advance the throttle smoothly and continuously to takeoff power. Toes on the rudders, not the brakes. Check engine instruments during the roll [[24:135|AFH 6-3]].",
+      "6. Rudder for the centerline (torque and P-factor pull left); aileron into any crosswind; no braking to steer [[24:135|AFH 6-3]].",
+      "7. When the controls are effective, gradually raise the nosewheel slightly to the lift-off attitude. Hold it until the airplane flies [[24:137|AFH 6-5]].",
+      "8. After lift-off: wings level, rudder for coordination, hold the pitch that lets you accelerate to VY, and trim [[24:137|AFH 6-5]].",
+      "9. Positive rate of climb: gear and flaps per the POH [[24:137|AFH 6-5]] [[24:247|AFH 12-16]].",
+      "10. Change pitch on the horizon, hold it, then glance at the airspeed. Inertia makes the airspeed lag [[24:137|AFH 6-5]].",
+      "11. Track the extended centerline with two points lined up ahead [[24:138|AFH 6-6]].",
+      "12. Takeoff power to at least 500 feet above terrain or obstacles; at a safe maneuvering altitude set climb power and trim [[24:137|AFH 6-5]].",
+      "13. Follow the airport's noise abatement procedure [[24:146|AFH 6-14]]."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "ACS skill",
+       "Commercial standard"
+      ],
+      "rows": [
+       [
+        "Throttle and instruments",
+        "Smoothly to takeoff power; confirm engine and flight instruments before rotation (ACS CA.IV.A.S7)"
+       ],
+       [
+        "Rotate",
+        "At the recommended airspeed, then accelerate to VY (ACS CA.IV.A.S9)"
+       ],
+       [
+        "Climb pitch",
+        "Recommended speed or VY, ±5 knots (ACS CA.IV.A.S11)"
+       ],
+       [
+        "Configuration",
+        "Per manufacturer's guidance (ACS CA.IV.A.S12)"
+       ],
+       [
+        "To safe maneuvering altitude",
+        "VY ±5 knots (ACS CA.IV.A.S13)"
+       ],
+       [
+        "Tracking",
+        "Directional control and wind-drift correction throughout (ACS CA.IV.A.S14)"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Noise abatement procedures come from the Chart Supplement, local publications, handouts and the tower. Hold-position signs may remind you. If you don't know the procedure, ask the tower [[24:146|AFH 6-14]]. Where a formal runway use program exists, large or turbine airplanes assigned a noise runway must use it, but the PIC may ask for another runway for safety [[60:454|14 CFR 91.129(h)]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Pitch, wait, check: set the attitude, let it settle, then look at the airspeed. Chasing the needle is how 5 knots becomes 10."
+     }
+    }
+   ],
+   "check": {
+    "q": "On climb-out, airspeed reads 5 knots fast. What do you do?",
+    "a": "Raise the nose slightly against the horizon, hold it a moment, then check the airspeed again; repeat if needed [[24:137|AFH 6-5]]."
+   }
+  },
+  {
+   "title": "Crosswind takeoff",
+   "kind": "skills",
+   "codes": [
+    "CA.IV.A.R2a",
+    "CA.IV.A.S5",
+    "CA.IV.A.S14"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "figure": "f4"
+    },
+    {
+     "bullets": [
+      "Start of roll: full aileron into the wind. The up aileron pushes the upwind wing down so it doesn't rise [[24:138|AFH 6-6]].",
+      "Rudder keeps you straight. Weathervaning usually needs downwind rudder. P-factor's left yaw may cancel a right crosswind's weathervane but adds to a left one [[24:139|AFH 6-7]].",
+      "As speed builds, use just enough aileron to keep the wings level, but keep some in the whole roll [[24:139|AFH 6-7]].",
+      "Lift-off: the downwind main wheel may lift first. That is fine and better than side-skipping [[24:139|AFH 6-7]].",
+      "Strong crosswind: hold the mains on a little longer, then make a smooth but very definite lift-off [[24:139|AFH 6-7]].",
+      "Climbing: turn the nose into the wind, level the wings and crab along the extended centerline. Check the track often; the wind can change a lot within a few hundred feet of the ground [[24:140|AFH 6-8]]."
+     ]
+    },
+    {
+     "p": "Expect a little less performance early in the roll, because deflected ailerons and rudder add drag [[24:138|AFH 6-6]]."
+    },
+    {
+     "p": "Know the limit. Airplanes are flight tested for control in 90-degree crosswinds up to 0.2 VSO, and the demonstrated value is placarded in airplanes certificated after May 3, 1962. Use a crosswind component chart and stay inside what the airplane can do [[24:190|AFH 9-19]]. Example: VSO of 50 knots means the test covered 90-degree crosswinds up to 10 knots."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Side-skipping, small bounces while drifting sideways, puts severe side loads on the landing gear and can break it [[24:139|AFH 6-7]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Halfway down the runway in a left crosswind, the left wing starts to rise. What happened and what do you do?",
+    "a": "Too little left aileron. Add aileron into the wind to hold the wing down; a rising upwind wing exposes more wing to the wind and can lead to skipping [[24:139|AFH 6-7]]."
+   }
+  },
+  {
+   "title": "Windshear and wake turbulence",
+   "kind": "risk",
+   "codes": [
+    "CA.IV.A.R2",
+    "CA.IV.A.R2b",
+    "CA.IV.A.R2d"
+   ],
+   "minutes": 9,
+   "body": [
+    {
+     "p": "A microburst comes from convective rain falling into dry air. Clues: an intense rain shaft with virga at cloud base, and often a ring of blowing dust. It lasts about 5 to 15 minutes and can bring downdrafts up to 6,000 fpm and headwind losses of 30 to 90 knots [[1:295|PHAK 12-11]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "Taking off into one: first a headwind that improves performance (1), then downdrafts (2), then a fast-growing tailwind (3) that can put you into the terrain (4) [[1:295|PHAK 12-11]]."
+    },
+    {
+     "bullets": [
+      "On the runway, the only sign may be slower-than-normal airspeed build-up, and gusts can hide it [[28:270|AWH 22-15]].",
+      "After lift-off, in studied accidents the first 5 seconds looked normal; the airplane crashed about 20 seconds after lift-off [[28:266|AWH 22-11]].",
+      "Pilots lowered the nose to get airspeed back and lost altitude. The AWH says hold or increase pitch and accept lower airspeed [[28:267|AWH 22-12]].",
+      "You may have only 5 to 15 seconds to recognize and respond [[28:269|AWH 22-14]].",
+      "A rapid airspeed jump near convective weather may mean an airspeed loss is coming [[28:273|AWH 22-18]]."
+     ]
+    },
+    {
+     "p": "Some microbursts can't be escaped with any known technique [[28:266|AWH 22-11]]. The real defense is to wait it out. LLWAS gives windshear and gust front alerts around the airport edge but no microburst alerts [[33:249|AIM 4-3-7]]."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "Wake turbulence begins when the other aircraft rotates and ends when it touches down [[34:148|AIM 7-4-4]]. It is strongest from an aircraft that is heavy, clean and slow [[34:147|AIM 7-4-3]]. Vortices sink several hundred fpm, and near the ground they drift sideways about 2 or 3 knots [[34:148|AIM 7-4-4]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Situation",
+       "What to do or expect"
+      ],
+      "rows": [
+       [
+        "Departing behind a larger aircraft",
+        "Note its rotation point, rotate before it, climb above its path until you turn clear [[34:152|AIM 7-4-6]]"
+       ],
+       [
+        "After a larger aircraft's low approach, missed approach or touch-and-go",
+        "Wait at least 2 minutes before your takeoff [[34:152|AIM 7-4-6]]"
+       ],
+       [
+        "Light quartering tailwind",
+        "Maximum caution: it can move vortices into your path [[34:150|AIM 7-4-4]]"
+       ],
+       [
+        "Small aircraft departing behind a heavy (towered field)",
+        "ATC gives 2 minutes or radar separation [[34:154|AIM 7-4-9]]"
+       ],
+       [
+        "Intersection departure behind a departing large aircraft",
+        "ATC gives a 3-minute interval; you may request a waiver if not a B757 [[34:155|AIM 7-4-9]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "With or without a 'CAUTION - WAKE TURBULENCE' warning, you are expected to adjust your flight path to avoid serious wake encounters [[34:152|AIM 7-4-6]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "A heavy jet lifts off 3,000 feet down the runway. Where do you plan to rotate?",
+    "a": "Before its rotation point, then climb above its climb path until you can turn clear [[34:152|AIM 7-4-6]]."
+   }
+  },
+  {
+   "title": "Takeoff clearance, runway incursions and eyes outside",
+   "kind": "risk",
+   "codes": [
+    "CA.IV.A.R4",
+    "CA.IV.A.R6",
+    "CA.IV.A.R7",
+    "CA.IV.A.S2",
+    "CA.IV.A.S3"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "At an airport with an operating control tower, no person may operate on a runway or taxiway, or take off or land, without an appropriate ATC clearance [[60:454|14 CFR 91.129(i)]]."
+     }
+    },
+    {
+     "p": "Line up and wait (LUAW) puts you on the runway for an imminent departure. It is not a takeoff clearance. Many pilots have read it back correctly and then departed without a clearance [[33:344|AIM 5-2-5]]."
+    },
+    {
+     "bullets": [
+      "Waiting a long time with no word? Events involving aircraft in position often came two minutes or more after the LUAW call. Consider asking [[33:345|AIM 5-2-5]].",
+      "Not sure a takeoff clearance was for you? Ask before rolling. Watch for similar call signs [[33:345|AIM 5-2-5]].",
+      "Intersection LUAW or takeoff clearance without the intersection named? Call ATC [[33:345|AIM 5-2-5]].",
+      "Entering the runway: all lights on except landing lights; landing lights on when cleared for takeoff (or starting the roll at a nontowered field) [[33:266|AIM 4-3-24]]."
+     ]
+    },
+    {
+     "p": "About 65 percent of runway incursions are caused by pilots [[1:366|PHAK 14-32]]. In August 2006 a regional jet crew was cleared for Runway 22, lined up on Runway 26, a much shorter runway, and crashed off the end [[1:366|PHAK 14-32]]. Set the heading bug to the runway heading and make one last check that heading and runway agree before adding power [[1:366|PHAK 14-32]]."
+    },
+    {
+     "p": "Nontowered airport: say the airport name at the start and end of each call, use the runway number, never 'active runway', and never say 'traffic in the area, please advise' [[33:209|AIM 4-1-9]]. Departing aircraft should always watch for arrivals from the opposite direction [[33:209|AIM 4-1-9]]."
+    },
+    {
+     "p": "In the climb the nose blocks your view ahead. Adjust pitch now and then to see over it and scan for traffic [[16:13|AC 90-48E 12.1]]. Stay on the extended centerline so you don't drift toward a parallel runway's traffic [[24:138|AFH 6-6]]."
+    },
+    {
+     "p": "Distractions: many flight deck problems start small, like a gauge reading wrong, and pull your eyes off flying [[1:63|PHAK 2-24]]. Do checklists while stopped [[1:366|PHAK 14-32]]. If overloaded: stop, think, slow down and prioritize [[1:63|PHAK 2-24]]."
+    }
+   ],
+   "check": {
+    "q": "You are in position on 28L after 'line up and wait.' You hear 'cleared for takeoff' with a call sign close to yours. What do you do?",
+    "a": "Don't roll. Ask ATC to confirm the clearance was for you [[33:345|AIM 5-2-5]]."
+   }
+  },
+  {
+   "title": "Plan the bad day: abort, engine failure, low altitude",
+   "kind": "risk",
+   "codes": [
+    "CA.IV.A.R3",
+    "CA.IV.A.R3a",
+    "CA.IV.A.R3b",
+    "CA.IV.A.R5"
+   ],
+   "minutes": 9,
+   "body": [
+    {
+     "p": "Reasons to reject a takeoff include a powerplant problem, poor acceleration, a runway incursion or a traffic conflict [[24:146|AFH 6-14]]."
+    },
+    {
+     "bullets": [
+      "Pick the point where you must be airborne before you start. Not airborne there? Stop at once [[24:146|AFH 6-14]].",
+      "Planned well, you stop on the remaining runway without heavy braking that could cost directional control [[24:146|AFH 6-14]].",
+      "To reject: power to idle, maximum braking, keep directional control. Fire: mixture to idle cutoff and magnetos off. Always follow the POH emergency procedure [[24:146|AFH 6-14]]."
+     ]
+    },
+    {
+     "p": "Engine failure after lift-off: you have only seconds. At climb pitch without power you are at or near a stall, and you may still be holding right rudder. Lower the nose right away, center the rudder for coordination, and glide toward a landing area, preferably straight ahead [[24:146|AFH 6-14]]."
+    },
+    {
+     "p": "Straight ahead or a slight turn usually carries the lowest risk [[24:356|AFH 18-7]]. Turning back risks an accelerated stall and leaves you landing downwind with high groundspeed [[24:356|AFH 18-7]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "The FAA example: failure at 300 feet AGL, 4 seconds to react, then a standard-rate turn of 225 degrees (75 seconds) at about 1,000 fpm descent. Total loss is 1,316 feet, so the airplane ends up 1,016 feet below the runway [[24:356|AFH 18-7]]. A shallow turn takes too long; a turn back, if trained and planned, needs a steeper bank [[24:356|AFH 18-7]]."
+    },
+    {
+     "p": "A turn back is an unacceptable risk for low-time, untrained or unproficient pilots, and in airplanes that can't glide back. Experienced pilots who want to know their airplane's numbers should train with an instructor [[24:357|AFH 18-8]]. Don't try it unless a successful turn back will result [[24:356|AFH 18-7]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "A spin needs a stall plus yaw. P-factor, torque, wrong rudder, adverse yaw and windshear, including wake, all cause yaw [[24:127|AFH 5-22]]. Power-on stalls are practiced so you recognize an accidental stall on takeoff and climb [[24:123|AFH 5-18]]."
+     }
+    },
+    {
+     "p": "CFIT is often linked to high density altitude, mountainous terrain, low ceilings or visibility, night and flying too low [[30:22|RMH 3-4]]. Compare your chart climb rate to the terrain past the runway before you go."
+    }
+   ],
+   "check": {
+    "q": "Using the FAA example, if the engine quit at 500 feet AGL instead of 300, where would the same standard-rate turn back leave you?",
+    "a": "About 816 feet below the runway: the same 79 seconds at about 1,000 fpm costs 1,316 feet, and 500 - 1,316 = -816 [[24:356|AFH 18-7]]."
+   }
+  },
+  {
+   "title": "Common errors",
+   "kind": "skills",
+   "codes": [
+    "CA.IV.A.S7",
+    "CA.IV.A.S9",
+    "CA.IV.A.S11",
+    "CA.IV.A.S14"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Normal takeoff errors [[24:138|AFH 6-6]]",
+       "Crosswind takeoff errors [[24:142|AFH 6-10]]"
+      ],
+      "rows": [
+       [
+        "Not reviewing the POH/AFM and performance charts",
+        "Not reviewing the POH/AFM and performance charts"
+       ],
+       [
+        "Not clearing the area before taxiing onto the runway",
+        "Not clearing the area before taxiing onto the runway"
+       ],
+       [
+        "Abrupt throttle; not checking engine instruments",
+        "Less than full aileron into the wind at the start"
+       ],
+       [
+        "Not anticipating, or overcorrecting, the left turning tendency",
+        "Mechanical aileron use instead of watching your position on the runway"
+       ],
+       [
+        "Sideslip from poor torque/P-factor correction in the climb",
+        "Side-skipping from poor aileron use"
+       ],
+       [
+        "Over-controlling elevator; not trimming",
+        "Not enough rudder to stay parallel to the centerline"
+       ],
+       [
+        "Narrow scan lets a wing (usually the left) drop after lift-off",
+        "Too much aileron late: steep bank into the wind at lift-off"
+       ],
+       [
+        "Not holding VY; chasing the airspeed indicator",
+        "Poor drift correction after lift-off"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Forcing the airplane off with too much back pressure raises the angle of attack and can make it settle back or stall. Letting the nose drop too far after lift-off can also make it settle [[24:137|AFH 6-5]]."
+    },
+    {
+     "p": "Torque gives a rolling force that shows up most as the wheels leave the ground. New pilots fixate on pitch or airspeed and forget bank, so step up your outside scan right at lift-off [[24:137|AFH 6-5]]."
+    }
+   ],
+   "check": {
+    "q": "Right after lift-off the left wing drops a few degrees. Name the usual cause.",
+    "a": "A scan limited to straight ahead (pitch and direction), plus torque's rolling force as the wheels leave the ground [[24:138|AFH 6-6]] [[24:137|AFH 6-5]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "CA.IV.A-1.jpg",
+   "res": "24",
+   "page": 134,
+   "caption": "Figure 6-1. Takeoff and climb.",
+   "alt": "Airplane shown on a runway at takeoff power in the takeoff roll, at lift-off in takeoff pitch attitude, climbing at best climb speed (VY, VX or POH/AFM cruise climb speed), and at safe maneuvering altitude with climb power, into the wind, leading to en route climb.",
+   "source": "AFH, PDF p. 134"
+  },
+  "f2": {
+   "file": "CA.IV.A-2.jpg",
+   "res": "24",
+   "page": 134,
+   "caption": "Figure 6-2. Performance chart examples.",
+   "alt": "Two charts. Left: takeoff distance versus density altitude, with ground run and over-50-foot-obstacle curves for 2,000 lb (solid) and 2,200 lb (dashed); extrapolation above 7,000 feet is invalid. Right: rate of climb falling from about 670 fpm at sea level to zero near 16,600 feet density altitude.",
+   "source": "AFH, PDF p. 134"
+  },
+  "f3": {
+   "file": "CA.IV.A-3.jpg",
+   "res": "24",
+   "page": 79,
+   "caption": "Figure 3-20. Absolute ceiling.",
+   "alt": "Chart of indicated airspeed versus altitude. The best angle of climb line (VX) rises from about 93 knots at sea level and the best rate of climb line (VY) falls from about 115 knots; they meet near 99 knots at the absolute ceiling, just above the service ceiling.",
+   "source": "AFH, PDF p. 79"
+  },
+  "f4": {
+   "file": "CA.IV.A-4.jpg",
+   "res": "24",
+   "page": 139,
+   "caption": "Figure 6-4. Crosswind roll and takeoff climb.",
+   "alt": "Airplane taking off in a crosswind from the right, shown at start roll, takeoff roll, lift-off, transition and initial climb, with notes: full aileron into wind, roll on upwind wheel, bank into wind, transition from slip to crab, wings level with a wind correction angle.",
+   "source": "AFH, PDF p. 139"
+  },
+  "f5": {
+   "file": "CA.IV.A-5.jpg",
+   "res": "34",
+   "page": 149,
+   "caption": "FIG 7-4-3. Wake Ends/Wake Begins",
+   "alt": "Line drawing: a landing airplane's vortices end at its touchdown point; a departing airplane's vortices begin at its rotation point.",
+   "source": "AIM, PDF p. 149"
+  },
+  "f6": {
+   "file": "CA.IV.A-6.jpg",
+   "res": "1",
+   "page": 295,
+   "caption": "Figure 12-17. Effects of a microburst wind.",
+   "alt": "Airplane taking off under a microburst at numbered positions: 1 in the increasing headwind of the outflow, 2 under the strong downdraft, 3 in the increasing tailwind below the intended path, 4 close to the ground.",
+   "source": "PHAK, PDF p. 295"
+  },
+  "f7": {
+   "file": "CA.IV.A-7.jpg",
+   "res": "24",
+   "page": 357,
+   "caption": "Figure 18-5. Turning back to the runway after engine failure.",
+   "alt": "Airplane loses its engine at 300 feet AGL after takeoff, flies a turn of 180 degrees ending 4,480 feet to the side, then turns to 225 degrees, ending 1,016 feet below the runway level.",
+   "source": "AFH, PDF p. 357"
+  }
+ },
+ "scenario": {
+  "title": "Paying passengers, a hot ramp and a jet ahead",
+  "codes": [
+   "CA.IV.A.R1",
+   "CA.IV.A.R2",
+   "CA.IV.A.R2a",
+   "CA.IV.A.R2b",
+   "CA.IV.A.R2c",
+   "CA.IV.A.R2d",
+   "CA.IV.A.R2e",
+   "CA.IV.A.R3",
+   "CA.IV.A.R3a",
+   "CA.IV.A.R3b",
+   "CA.IV.A.R4",
+   "CA.IV.A.R5",
+   "CA.IV.A.R6",
+   "CA.IV.A.R7"
+  ],
+  "setup": "You are flying a complex single with a constant-speed prop and retractable gear, carrying two passengers on a commercial sightseeing flight. The towered field sits at 5,000 feet; it is 30 °C. Runway 28 is 6,500 feet; you are offered an intersection departure from taxiway C with 4,200 feet remaining. Wind is 250 at 10. A regional jet is departing 28 ahead of you. Twenty miles west, a thunderstorm is dropping a heavy rain shaft. Your passengers are excited and talking.",
+  "questions": [
+   {
+    "q": "Before you even start the engine, what must you know about this departure?",
+    "a": "Runway lengths and the POH takeoff and landing distances for this elevation, weight, wind and temperature [[60:440|14 CFR 91.103(b)]]. A 30 °C day at a 5,000-foot field means a density altitude near 7,900 feet [[1:209|PHAK 8-7]], so expect a long roll and weak climb [[24:133|AFH 6-1]]."
+   },
+   {
+    "q": "Should you take the intersection departure?",
+    "a": "Only if your required distances fit inside the 4,200 feet and the reduced declared distances [[33:253|AIM 4-3-10]]. On a day like this, ask for full length; you are expected to tell ATC [[33:252|AIM 4-3-10]]. Remember the go-and-stop estimate: takeoff ground roll plus landing ground roll [[24:146|AFH 6-14]]."
+   },
+   {
+    "q": "Which way is the crosswind, and how does that change your roll?",
+    "a": "From the left (250 vs 280). Start with full left aileron, ease it as speed builds but keep some in, and use rudder to stay straight [[24:138|AFH 6-6]] [[24:139|AFH 6-7]]. Expect a little more drag early [[24:138|AFH 6-6]]."
+   },
+   {
+    "q": "The regional jet rotated near taxiway D. How do you plan around its wake?",
+    "a": "Rotate before its rotation point and climb above its path until you turn clear [[34:152|AIM 7-4-6]]. Vortices start at rotation [[34:148|AIM 7-4-4]]. An intersection departure behind a large aircraft also gets a 3-minute interval [[34:155|AIM 7-4-9]]."
+   },
+   {
+    "q": "What about the storm to the west?",
+    "a": "A heavy rain shaft is a microburst clue; microbursts last about 5 to 15 minutes [[1:295|PHAK 12-11]]. If it moves toward the field, or the tower reports windshear alerts, wait. Some can't be escaped [[28:266|AWH 22-11]]."
+   },
+   {
+    "q": "How do you handle the passengers and your own plan for a failure?",
+    "a": "Brief them for quiet during taxi, takeoff and climb; distractions pull you off flying [[1:63|PHAK 2-24]]. Brief yourself: abort point on the runway [[24:146|AFH 6-14]], gear up only when you can no longer land on the runway [[24:247|AFH 12-16]], and after an engine failure, nose down and land mostly straight ahead [[24:356|AFH 18-7]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "CA.IV.A.S1",
+   "do": "Complete the before-takeoff and after-takeoff checklists for your airplane.",
+   "practice": "Do each flow, then read the checklist to confirm; the emphasis is on the 'check' [[24:36|AFH 1-15]]."
+  },
+  {
+   "code": "CA.IV.A.S2",
+   "do": "Get a takeoff clearance at a towered field, or self-announce on CTAF at a nontowered field.",
+   "practice": "Script your departure call with the airport name at both ends and the runway number [[33:209|AIM 4-1-9]] [[33:210|AIM 4-1-9]]."
+  },
+  {
+   "code": "CA.IV.A.S3",
+   "do": "Verify you are on the assigned runway, from the correct intersection, before adding power.",
+   "practice": "Set the heading bug to the runway heading and confirm heading matches runway on every lineup [[1:366|PHAK 14-32]]."
+  },
+  {
+   "code": "CA.IV.A.S4",
+   "do": "Tell the examiner the wind direction and speed, with or without a wind indicator.",
+   "practice": "On every flight, estimate the wind from the sock and from smoke, dust or water, then compare to ATIS [[24:199|AFH 9-28]]."
+  },
+  {
+   "code": "CA.IV.A.S5",
+   "do": "Hold the controls for the wind during taxi, lineup and the takeoff roll.",
+   "practice": "Say the control position aloud at each taxiway turn [[24:56|AFH 2-19]]; start every crosswind roll with full aileron into the wind [[24:138|AFH 6-6]]."
+  },
+  {
+   "code": "CA.IV.A.S6",
+   "do": "Clear the area, taxi into position and align on the runway centerline.",
+   "practice": "Scan final in both directions, then line up and pick aligned references far ahead [[24:133|AFH 6-1]]."
+  },
+  {
+   "code": "CA.IV.A.S6a",
+   "do": "Not evaluated in a single-engine land airplane (ASES/AMES element only).",
+   "practice": "Nothing to practice for an ASEL checkride; see Gaps."
+  },
+  {
+   "code": "CA.IV.A.S7",
+   "do": "Advance the throttle smoothly to takeoff power and confirm engine and flight instruments before rotation.",
+   "practice": "Smooth, continuous throttle; confirm rpm (within 40 rpm of red line with a constant-speed prop), oil pressure and airspeed alive [[24:135|AFH 6-3]] [[24:239|AFH 12-8]]."
+  },
+  {
+   "code": "CA.IV.A.S7a",
+   "do": "Not evaluated in a single-engine land airplane (ASES/AMES element only).",
+   "practice": "Nothing to practice for an ASEL checkride; see Gaps."
+  },
+  {
+   "code": "CA.IV.A.S8",
+   "do": "Not evaluated in a single-engine land airplane (ASES/AMES element only).",
+   "practice": "Nothing to practice for an ASEL checkride; see Gaps."
+  },
+  {
+   "code": "CA.IV.A.S9",
+   "do": "Rotate and lift off at the recommended airspeed, then accelerate to VY.",
+   "practice": "Have your instructor show the lift-off and VY attitudes; memorize them on the horizon [[24:136|AFH 6-4]]."
+  },
+  {
+   "code": "CA.IV.A.S11",
+   "do": "Set a pitch attitude that holds the recommended speed or VY ±5 knots (ACS CA.IV.A.S11).",
+   "practice": "Pitch on the horizon, hold, then glance at airspeed; trim off pressure [[24:137|AFH 6-5]]."
+  },
+  {
+   "code": "CA.IV.A.S12",
+   "do": "Configure flaps, gear, prop, mixture and trim per the POH/AFM.",
+   "practice": "Brief your gear-up point before each takeoff and retract only with a positive rate showing [[24:247|AFH 12-16]]."
+  },
+  {
+   "code": "CA.IV.A.S13",
+   "do": "Hold VY ±5 knots to a safe maneuvering altitude (ACS CA.IV.A.S13).",
+   "practice": "Keep takeoff power to at least 500 feet above terrain or obstacles before reducing to climb power [[24:137|AFH 6-5]]."
+  },
+  {
+   "code": "CA.IV.A.S14",
+   "do": "Keep the centerline on the roll and the extended centerline in the climb, with drift correction.",
+   "practice": "Use two points lined up ahead as a tracking reference and check ground track often in a crosswind [[24:138|AFH 6-6]] [[24:140|AFH 6-8]]."
+  },
+  {
+   "code": "CA.IV.A.S15",
+   "do": "Follow noise abatement procedures where they exist.",
+   "practice": "Look them up in the Chart Supplement for each departure airport, or ask the tower [[24:146|AFH 6-14]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "What makes the commercial climb standard in this Task tighter than the private one?",
+   "options": [
+    "Commercial uses VX instead of VY",
+    "Commercial allows only ±5 knots instead of +10/-5",
+    "Commercial requires a cruise climb from lift-off",
+    "Commercial requires ±3 knots on VY"
+   ],
+   "answer": 1,
+   "why": "The commercial ACS says recommended speed or VY ±5 knots (CA.IV.A.S11, S13); the private ACS allows +10/-5. In some airplanes 5 knots off costs a lot of climb [[24:142|AFH 6-10]]."
+  },
+  {
+   "q": "A 5,048-foot field warms from standard (5 °C) to 30 °C. Per the PHAK example, the airplane performs as if the field were at about:",
+   "options": [
+    "5,048 feet",
+    "6,000 feet",
+    "1,232 feet",
+    "7,855 feet"
+   ],
+   "answer": 3,
+   "why": "The PHAK example gives a density altitude of 7,855 feet at 30 °C; at -25 °C it would be 1,232 feet [[1:209|PHAK 8-7]]."
+  },
+  {
+   "q": "You plan to lift off 10% above the POH lift-off speed 'for margin.' What happens to takeoff distance?",
+   "options": [
+    "About 21% longer",
+    "About 10% longer",
+    "No change, only the climb improves",
+    "About 5% longer"
+   ],
+   "answer": 0,
+   "why": "Takeoff distance varies with the square of takeoff speed, so 10% excess speed adds about 21% [[1:272|PHAK 11-16]]. The gusty-day extra speed is a judgment call, not free."
+  },
+  {
+   "q": "Which declared distance must cover your accelerate-and-stop needs on an abort?",
+   "options": [
+    "TORA",
+    "LDA",
+    "ASDA",
+    "TODA"
+   ],
+   "answer": 2,
+   "why": "ASDA is the runway plus stopway declared available for speeding up and stopping on an aborted takeoff [[33:246|AIM 4-3-6]]."
+  },
+  {
+   "q": "As you climb higher, what happens to VX and VY?",
+   "options": [
+    "Both increase",
+    "VX increases and VY decreases",
+    "VX decreases and VY increases",
+    "Both stay the same"
+   ],
+   "answer": 1,
+   "why": "VX goes up and VY goes down until they meet at the absolute ceiling [[24:78|AFH 3-17]]."
+  },
+  {
+   "q": "When is the landing gear normally retracted after takeoff?",
+   "options": [
+    "With a positive rate, once you could no longer land on the remaining runway",
+    "As soon as the wheels leave the ground",
+    "At 1,000 feet AGL every time",
+    "Only after reaching cruise altitude"
+   ],
+   "answer": 0,
+   "why": "Normally the gear comes up when an emergency landing on the runway is no longer possible, and never before a positive rate of climb shows [[24:247|AFH 12-16]]."
+  },
+  {
+   "q": "Which wind indicator should you NOT use to judge wind direction?",
+   "options": [
+    "Wind sock",
+    "Wind cone",
+    "Wind tee",
+    "Tetrahedron"
+   ],
+   "answer": 3,
+   "why": "Pilots are cautioned against using a tetrahedron for wind direction; it shows landing direction only [[33:244|AIM 4-3-4]]."
+  },
+  {
+   "q": "Your airplane's VSO is 55 knots. Up to what 90-degree crosswind was it shown controllable in certification testing?",
+   "options": [
+    "5.5 knots",
+    "15 knots",
+    "11 knots",
+    "20 knots"
+   ],
+   "answer": 2,
+   "why": "Testing covers 90-degree crosswinds up to 0.2 VSO: 0.2 x 55 = 11 knots [[24:190|AFH 9-19]]."
+  },
+  {
+   "q": "On the takeoff roll in gusty air near a storm, what may be the only sign of a tailwind shear?",
+   "options": [
+    "Slower-than-normal airspeed build-up",
+    "A sudden left yaw",
+    "A stall warning on the roll",
+    "A rough-running engine"
+   ],
+   "answer": 0,
+   "why": "On the runway the only indication may be slower airspeed increase, and gusts can mask it [[28:270|AWH 22-15]]."
+  },
+  {
+   "q": "Tower says 'Cessna 4AR, Runway 24L, line up and wait.' What are you allowed to do?",
+   "options": [
+    "Begin the takeoff roll when the runway is clear",
+    "Taxi onto 24L, line up and wait for a clearance",
+    "Hold short of 24L",
+    "Line up and begin the roll after 2 minutes"
+   ],
+   "answer": 1,
+   "why": "LUAW tells you to taxi onto the runway, align and await further instructions. It is not a takeoff clearance [[33:344|AIM 5-2-5]]."
+  }
+ ],
+ "takeaways": [
+  "Commercial standard: recommended speed or VY ±5 knots to a safe maneuvering altitude.",
+  "Know the numbers before you start: 91.103 requires runway lengths and takeoff data [[60:440|14 CFR 91.103(b)]]; density altitude, weight, wind and surface drive them.",
+  "Your required distances must fit inside the declared distances, including at an intersection [[33:246|AIM 4-3-6]].",
+  "Configure per POH: full rpm check, smooth power, gear up when the runway is no longer usable.",
+  "Crosswind: full aileron at the start, less as you speed up, then crab on the extended centerline.",
+  "Avoid wake by rotating before a larger aircraft and climbing above its path; wait out microbursts.",
+  "Brief the abort point and engine-failure plan every time; straight ahead is usually the lowest-risk choice."
+ ],
+ "cfi_notes": [
+  "The commercial ±5-knot window catches pilots who learned to hide on the fast side of the private +10/-5 tolerance. Have them call out airspeed every 100 feet on climb-out until it is habit.",
+  "Examiners commonly probe: VX vs VY and how they change with altitude, declared distances, intersection takeoffs, LUAW, wake avoidance on departure, gear-up timing, and the turn-back decision.",
+  "The PHAK still names AC 00-54 (Pilot Windshear Guide) as training material [[1:295|PHAK 12-11]], but that AC has been cancelled. Teach from the Aviation Weather Handbook, and point out that its encounter studies involve large, crew-flown airplanes [[28:267|AWH 22-12]].",
+  "Use the FAA turn-back example as a math lesson: 79 seconds at about 1,000 fpm is 1,316 feet [[24:356|AFH 18-7]]. Then run your own airplane's numbers at altitude with the student.",
+  "Students often hold excessive back pressure just after lift-off and pitch up abruptly; demonstrate the VY attitude and have them memorize it [[24:136|AFH 6-4]].",
+  "If there is no crosswind on checkride day, the examiner will test crosswind knowledge orally (ACS note).",
+  "In a complex airplane, watch for the student pitching down while reaching for the gear handle [[24:247|AFH 12-16]]."
+ ],
+ "gaps": [
+  "S6a, S7a and S8 apply to ASES/AMES (water) operations only; this single-engine land lesson does not teach them.",
+  "S10 is marked [Archived] in the ACS; the Task file skips it and so does this lesson.",
+  "Exact speeds (VR, VX, VY, cruise climb), flap settings, power settings, leaning procedure and maximum demonstrated crosswind are airplane-specific: use the POH/AFM.",
+  "No source gives a number for 'safe maneuvering altitude'; the AFH only recommends takeoff power to at least 500 feet above terrain or obstacles.",
+  "AC 00-54 (cited by the PHAK) is cancelled; the AWH covers windshear but gives no step-by-step escape procedure for small single-engine airplanes.",
+  "Airport-specific noise abatement procedures and declared distances live in the Chart Supplement, which is not in the resources."
+ ],
+ "activities": [
+  {
+   "type": "sort",
+   "key": "h1",
+   "after": 2,
+   "title": "Higher or lower density altitude?",
+   "intro": "Tap a clue, then tap where it belongs.",
+   "buckets": [
+    "Raises density altitude (worse performance)",
+    "Lowers density altitude (better performance)"
+   ],
+   "items": [
+    {
+     "t": "Temperature at a 5,048-ft field climbs to 30 °C",
+     "b": 0
+    },
+    {
+     "t": "Very humid summer air",
+     "b": 0
+    },
+    {
+     "t": "Air pressure falls below standard",
+     "b": 0
+    },
+    {
+     "t": "Same temperature, but a higher-elevation field",
+     "b": 0
+    },
+    {
+     "t": "Temperature at that 5,048-ft field drops to -25 °C",
+     "b": 1
+    },
+    {
+     "t": "Cold, dry air mass",
+     "b": 1
+    },
+    {
+     "t": "Air pressure rises above standard",
+     "b": 1
+    },
+    {
+     "t": "Temperature colder than standard",
+     "b": 1
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h2",
+   "after": 3,
+   "title": "Runway math",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "Use Figure 6-2 (left chart). At 6,000 feet density altitude and 2,000 lb (solid line), about how many feet does it take to clear a 50-foot obstacle?",
+     "answer": 3000,
+     "tol": 150,
+     "unit": "feet",
+     "why": "Go up to 6,000 feet, across to the solid 'Over 50 feet obstacle' line, then down: about 3,000 feet. At sea level the same line reads about 1,500 feet, so the hot, high day roughly doubles it [[24:134|AFH 6-2]]."
+    },
+    {
+     "q": "Use Figure 6-2 (right chart). About what rate of climb do you get at 8,000 feet density altitude?",
+     "answer": 350,
+     "tol": 50,
+     "unit": "fpm",
+     "why": "Go across from 8,000 feet to the line, then down: about 350 fpm, roughly half the sea-level value of about 670 fpm [[24:134|AFH 6-2]]. High density altitude decreases climb performance [[24:133|AFH 6-1]]."
+    },
+    {
+     "q": "The POH ground roll is 1,500 feet with no wind. You must take off with a tailwind of about 10% of your lift-off speed. Estimate the ground roll.",
+     "answer": 1815,
+     "tol": 20,
+     "unit": "feet",
+     "why": "A tailwind of 10% of takeoff speed adds about 21%: 1,500 x 1.21 = 1,815 feet [[1:271|PHAK 11-15]]."
+    },
+    {
+     "q": "The no-wind takeoff distance is 1,600 feet. A strong headwind equals 50% of your takeoff speed. About how far is the takeoff now?",
+     "answer": 400,
+     "tol": 10,
+     "unit": "feet",
+     "why": "With a headwind of 50% of takeoff speed, distance is about 25% of the no-wind value: 1,600 x 0.25 = 400 feet [[1:271|PHAK 11-15]]."
+    },
+    {
+     "q": "Your main tires are inflated to 49 psi. About what speed does dynamic hydroplaning start, the speed above which an abort on a wet runway may give almost no braking?",
+     "answer": 63,
+     "tol": 1,
+     "unit": "knots",
+     "why": "Minimum hydroplaning speed is about 9 x the square root of tire pressure: the square root of 49 is 7, and 9 x 7 = 63 knots [[1:270|PHAK 11-14]]. Hydroplaning tires give almost no braking or directional control [[1:269|PHAK 11-13]]."
+    }
+   ]
+  },
+  {
+   "type": "match",
+   "key": "h3",
+   "after": 5,
+   "title": "Configuration: what and why",
+   "intro": "Tap an item, then tap why or when you do it.",
+   "pairs": [
+    {
+     "l": "Tach within 40 rpm of red line",
+     "r": "Normal full-power check with a constant-speed prop"
+    },
+    {
+     "l": "Increase rpm, then manifold pressure",
+     "r": "The order for adding power safely"
+    },
+    {
+     "l": "Lean on the runup at a high field",
+     "r": "Stops roughness and power loss from a rich mixture"
+    },
+    {
+     "l": "Gear up",
+     "r": "When you could no longer land on the runway"
+    },
+    {
+     "l": "Flaps up",
+     "r": "Once a positive rate of climb is established"
+    },
+    {
+     "l": "Cruise climb",
+     "r": "Better cooling, control and view over the nose"
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h4",
+   "after": 7,
+   "title": "Commercial normal takeoff, in order",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Check POH takeoff and climb performance for today's conditions",
+    "Finish the before-takeoff checklist and brief the abort point and engine-failure plan",
+    "Get the takeoff clearance and clear the approach and takeoff paths",
+    "Line up on the centerline and confirm heading matches the runway",
+    "Smoothly add takeoff power and check engine and flight instruments",
+    "Rotate at the recommended speed to the lift-off attitude",
+    "Positive rate of climb: gear and flaps up per POH, hold VY ±5 knots",
+    "At a safe maneuvering altitude, set climb power and trim"
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h5",
+   "after": 9,
+   "title": "Inside a microburst takeoff",
+   "figure": "f6",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 7,
+     "y": 86,
+     "label": "Roll and lift-off look normal"
+    },
+    {
+     "x": 29.8,
+     "y": 70.7,
+     "label": "Headwind: climb looks better"
+    },
+    {
+     "x": 50.8,
+     "y": 60.2,
+     "label": "Downdraft pushes you down"
+    },
+    {
+     "x": 65.2,
+     "y": 70.1,
+     "label": "Tailwind: airspeed and lift fall"
+    },
+    {
+     "x": 83.7,
+     "y": 68.7,
+     "label": "Near terrain: impact risk"
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h6",
+   "after": 10,
+   "title": "True or false: clearances and incursions",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "After 'line up and wait,' you may start the roll as soon as the landing traffic clears.",
+     "a": false,
+     "why": "No. LUAW is not an authorization to take off; wait for a takeoff clearance [[33:344|AIM 5-2-5]]."
+    },
+    {
+     "s": "At a towered airport you may not take off without an appropriate ATC clearance.",
+     "a": true,
+     "why": "Yes. 14 CFR 91.129(i) requires a clearance to take off, land or operate on a runway or taxiway [[60:454|14 CFR 91.129(i)]]."
+    },
+    {
+     "s": "When you enter the runway for line up and wait, turn on your landing lights.",
+     "a": false,
+     "why": "No. Turn on all lights except landing lights; landing lights go on when you are cleared for takeoff [[33:266|AIM 4-3-24]]."
+    },
+    {
+     "s": "If an intersection line-up-and-wait call leaves out the intersection name, you should ask ATC.",
+     "a": true,
+     "why": "Yes. ATC uses the intersection designator; if it is left out, call ATC for clarification [[33:345|AIM 5-2-5]]."
+    },
+    {
+     "s": "About 65 percent of runway incursions are caused by controllers.",
+     "a": false,
+     "why": "No. About 65 percent are caused by pilots, almost half of those by GA pilots [[1:366|PHAK 14-32]]."
+    },
+    {
+     "s": "Sitting in position for two minutes or more with no word is a reason to consider calling the tower.",
+     "a": true,
+     "why": "Yes. FAA analysis found two minutes or more passed in events involving aircraft holding in position [[33:345|AIM 5-2-5]]."
+    }
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 11,
+   "title": "Hot day, heavy, and a quiet engine",
+   "intro": "You are flying N4721K, a complex single with a constant-speed prop and retractable gear, with two paying passengers. It is 32 °C at a 4,500-foot towered airport, and you are near max weight.",
+   "steps": [
+    {
+     "s": "At the run-up area you have not yet looked at performance. What first?",
+     "options": [
+      "Use the POH charts for density altitude, weight and wind, then pick your abort point",
+      "Plan on a normal takeoff; the runway looks long",
+      "Ask the passengers if they are okay with a long roll",
+      "Skip the run-up to keep the engine cool"
+     ],
+     "answer": 0,
+     "why": "Check POH performance before takeoff and decide if a safe takeoff and climb is possible [[24:133|AFH 6-1]], then pick the point where you must be airborne [[24:146|AFH 6-14]]."
+    },
+    {
+     "s": "Tower: 'N4721K, Runway 28, line up and wait.' A minute later you hear 'Runway 28, cleared for takeoff' with a call sign that sounded like N4271K.",
+     "options": [
+      "Begin the takeoff roll",
+      "Ask the tower to confirm the clearance was for you",
+      "Turn on landing lights and roll",
+      "Exit the runway at the next taxiway"
+     ],
+     "answer": 1,
+     "why": "If you are not sure a takeoff clearance was for you, ask before rolling; ATC prefers that to a mistaken clearance [[33:345|AIM 5-2-5]]."
+    },
+    {
+     "s": "Cleared. Full power: the tach comes up to red line, oil pressure is green, airspeed is alive. Gusts are 12 knots. Lift-off speed approaches.",
+     "options": [
+      "Pull up sharply at the first sign of flying speed",
+      "Push forward to hold it on until well past the POH speed",
+      "Let it stay on a little longer for extra speed, then make a smooth, positive rotation",
+      "Reduce power to soften the gusts"
+     ],
+     "answer": 2,
+     "why": "In strong, gusty wind, stay on the ground longer for an extra margin of speed, then rotate smoothly and positively, so a lull doesn't cause a stall [[24:137|AFH 6-5]]."
+    },
+    {
+     "s": "Airborne with a positive rate. Plenty of runway is still ahead of you. The gear handle is in reach.",
+     "options": [
+      "Gear up now; drag is the enemy",
+      "Leave the gear down until you could no longer land on the runway ahead",
+      "Gear up and lower the nose to speed up",
+      "Wait until 1,500 feet AGL every time"
+     ],
+     "answer": 1,
+     "why": "Normally retract when you could no longer land on the runway after an engine failure, and plan it for runway length, obstacles and terrain [[24:247|AFH 12-16]]."
+    },
+    {
+     "s": "At 450 feet AGL the engine quits. You are holding the VY pitch. The runway is behind you.",
+     "options": [
+      "Turn back to the runway with a standard-rate turn",
+      "Hold the pitch and troubleshoot",
+      "Lower the nose right away, coordinate, and glide to a field ahead or slightly to the side",
+      "Pull up to trade airspeed for altitude"
+     ],
+     "answer": 2,
+     "why": "At climb pitch without power you are near a stall: lower the nose and coordinate first, then glide to a landing area, preferably straight ahead [[24:146|AFH 6-14]]. Straight ahead or a slight turn is usually the lowest risk [[24:356|AFH 18-7]]."
+    }
+   ]
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Your POH VY is 82 knots. During the commercial checkride climb, which reading is outside the standard?",
+   "options": [
+    "86 knots",
+    "78 knots",
+    "89 knots",
+    "80 knots"
+   ],
+   "answer": 2,
+   "why": "The commercial ACS allows VY ±5 knots (CA.IV.A.S11, S13): 77 to 87 knots. 89 knots is out, even though the private +10 knots would have allowed it. Small pitch changes on the horizon keep you inside [[24:137|AFH 6-5]]."
+  },
+  {
+   "q": "You will fly 10% heavier than on yesterday's flight, when the takeoff distance was 1,400 feet. Same day conditions. About what should you expect now?",
+   "options": [
+    "At least about 1,700 feet",
+    "About 1,470 feet",
+    "About 1,540 feet",
+    "About 1,400 feet"
+   ],
+   "answer": 0,
+   "why": "A 10% weight increase means about 5% faster lift-off and at least a 21% longer takeoff distance: 1,400 x 1.21 = about 1,694 feet [[1:271|PHAK 11-15]]."
+  },
+  {
+   "q": "Tower offers an intersection departure with 3,100 feet remaining. Your POH distance to clear a 50-foot obstacle today is 3,300 feet. What is the right call?",
+   "options": [
+    "Accept it; obstacle distance doesn't count",
+    "Accept it and use VX to make up the difference",
+    "Accept it, then reject if it looks bad",
+    "Tell ATC you need full length"
+   ],
+   "answer": 3,
+   "why": "Your required distance must fall inside the reduced runway and declared distances, and you are expected to tell ATC if you want full length [[33:253|AIM 4-3-10]] [[33:252|AIM 4-3-10]]."
+  },
+  {
+   "q": "Using Figure 3-20, the VY line runs from about 115 knots at sea level to about 99 knots at the absolute ceiling. What does this tell you about departing a high-elevation airport?",
+   "options": [
+    "VY will be higher than at sea level",
+    "VY will be somewhat lower than at sea level",
+    "VY and VX are always the same",
+    "VY no longer matters above 5,000 feet"
+   ],
+   "answer": 1,
+   "why": "VY decreases and VX increases with altitude until they meet at the absolute ceiling, so use the POH value for the conditions [[24:78|AFH 3-17]]."
+  },
+  {
+   "q": "A light, steady wind is blowing at an angle from behind you. A jet did a touch-and-go a minute ago. What should you do?",
+   "options": [
+    "Go now; the wind will clear the wake",
+    "Use an intersection to avoid its touchdown area",
+    "Wait at least 2 minutes, since this wind needs the most caution",
+    "Rotate later than usual to stay below the wake"
+   ],
+   "answer": 2,
+   "why": "After a larger aircraft's touch-and-go, wait at least 2 minutes [[34:152|AIM 7-4-6]]. A light quartering tailwind requires maximum caution because it can move vortices along the runway [[34:150|AIM 7-4-4]]."
+  },
+  {
+   "q": "Your constant-speed airplane's red line is 2,700 rpm. On the takeoff roll, which tach reading should make you abort?",
+   "options": [
+    "2,690 rpm",
+    "2,580 rpm",
+    "2,670 rpm",
+    "2,700 rpm"
+   ],
+   "answer": 1,
+   "why": "With a constant-speed prop the tach should reach within 40 rpm of red line (2,660 or more) and stay there [[24:239|AFH 12-8]]. 2,580 rpm is 120 low: stop while you have runway [[24:146|AFH 6-14]]."
+  },
+  {
+   "q": "Just after lift-off near a thunderstorm, your airspeed drops 15 knots and the airplane starts to sink. What does the Aviation Weather Handbook say about pitch?",
+   "options": [
+    "Hold or increase pitch attitude and accept lower airspeed",
+    "Lower the nose to regain VY first",
+    "Reduce power to stop the sink",
+    "Turn back toward the runway"
+   ],
+   "answer": 0,
+   "why": "Lowering pitch to regain airspeed wastes performance; recovery means keeping or raising pitch and accepting a lower airspeed [[28:267|AWH 22-12]]. The studies involve large airplanes, so get your airplane's technique from the POH/AFM and your CFI."
+  },
+  {
+   "q": "You are at a nontowered airport. Which departure call follows the AIM?",
+   "options": [
+    "Traffic in the area, please advise, Skyhawk 3ZR departing",
+    "Skyhawk 3ZR departing the active runway, Millbrook",
+    "Millbrook traffic, Skyhawk 3ZR departing the active, departing to the north",
+    "Millbrook traffic, Skyhawk 3ZR departing runway one niner, departing the pattern to the north, Millbrook"
+   ],
+   "answer": 3,
+   "why": "Say the airport name at the start and end and the runway number, not 'active runway'; never say 'traffic in the area, please advise' [[33:209|AIM 4-1-9]] [[33:210|AIM 4-1-9]]."
+  },
+  {
+   "q": "Taking off with a left crosswind, the airplane wants to turn left as you add power. Why is this one harder than a right crosswind?",
+   "options": [
+    "Left crosswinds raise density altitude",
+    "P-factor's left yaw adds to the weathervane into a left wind",
+    "Aileron drag pulls the nose right",
+    "The upwind wheel lifts first in a left wind"
+   ],
+   "answer": 1,
+   "why": "P-factor yaws the airplane left. That can offset weathervaning in a right crosswind but adds to it in a left crosswind, so expect more right rudder [[24:139|AFH 6-7]]."
+  },
+  {
+   "q": "Engine fails at 700 feet AGL. In your airplane, a gliding turn back takes about 80 seconds at about 1,000 fpm. Roughly where would you end up compared with runway level?",
+   "options": [
+    "About 100 feet above the runway",
+    "About 700 feet below",
+    "About 630 feet below",
+    "About 300 feet above"
+   ],
+   "answer": 2,
+   "why": "80 seconds at 1,000 fpm is about 1,333 feet of altitude loss: 700 - 1,333 = about -633 feet. That is why the FAA's similar example ends 1,016 feet below the runway from 300 feet [[24:356|AFH 18-7]]. Land ahead instead."
+  },
+  {
+   "q": "On a hot day at max weight, the airplane floats off below the recommended speed but won't climb. What is the best fix?",
+   "options": [
+    "Lower the pitch slightly, accelerate in ground effect to the recommended speed, then climb",
+    "Pull back harder to climb out of ground effect",
+    "Raise the flaps fully right away",
+    "Reduce power to cut drag"
+   ],
+   "answer": 0,
+   "why": "Below recommended speed, climb is poor and the airplane may not climb out of ground effect. With full power, the only way to cut drag is to lower pitch, and you should lift off at the recommended speed [[24:143|AFH 6-11]]."
+  },
+  {
+   "q": "A 3-minute wake interval is given to your small airplane departing from an intersection behind a departing B757. You want less. What can you do?",
+   "options": [
+    "Request a waiver and accept wake responsibility",
+    "Ask for a 1-minute interval instead",
+    "Nothing: this 3-minute interval may not be waived",
+    "Use the opposite runway direction"
+   ],
+   "answer": 2,
+   "why": "The 3-minute interval behind a B757 from an intersection may not be waived [[34:155|AIM 7-4-9]]. Waivers are possible behind other large aircraft, not a B757."
+  },
+  {
+   "q": "You are briefing the takeoff with the examiner. Which item is part of the AFH's before-takeoff planning for an engine failure?",
+   "options": [
+    "The best glide speed for cruise altitude",
+    "Preferred direction for any emergency turn, based on departure path, altitude, wind and terrain",
+    "The nearest VOR for a diversion",
+    "The fuel needed to return to the airport"
+   ],
+   "answer": 1,
+   "why": "Before every takeoff consider your options if the engine fails, including the preferred direction for emergency turns based on departure path, altitude, wind and terrain [[24:133|AFH 6-1]]."
+  }
+ ]
+}

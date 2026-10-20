@@ -1,0 +1,1633 @@
+{
+ "task_code": "CA.II.B",
+ "task_title": "Flight Deck Management",
+ "area": "Area II. Preflight Procedures",
+ "minutes": 93,
+ "objective": "By the end of this lesson you can give a passenger briefing to a commercial standard, run checklists the way SOPs intend, prove your navigation data is current, secure cargo to cargo-rule standards, and manage automation, EFBs, inoperative equipment and passenger distractions with SRM and CRM.",
+ "why": "As a commercial pilot your passengers are customers who trust you with every detail of the cabin and the flight deck. Most accidents start with a human error, and a disciplined flight deck is where you trap those errors before they line up.",
+ "prereading": [
+  {
+   "res": "59",
+   "pages": [
+    17,
+    22
+   ],
+   "printed": "AC 120-71B, 5-1 to 5-6",
+   "what": "How SOP checklists are built and used: flows, timing, initiation anchors, completion calls, single-pilot touch verification, interruptions.",
+   "label": "AC 120-71B, 5-1 to 5-6"
+  },
+  {
+   "res": "59",
+   "pages": [
+    23,
+    29
+   ],
+   "printed": "AC 120-71B, 6-1 to 6-7",
+   "what": "Pilot monitoring, PF and PM roles, intervention callouts, and autoflight mode awareness.",
+   "label": "AC 120-71B, 6-1 to 6-7"
+  },
+  {
+   "res": "30",
+   "pages": [
+    44,
+    53
+   ],
+   "printed": "RMH 6-1 to 7-4",
+   "what": "Threat and error management, defenses, the Swiss cheese model, and automation and flight path management.",
+   "label": "RMH 6-1 to 7-4"
+  },
+  {
+   "res": "60",
+   "pages": [
+    441,
+    445
+   ],
+   "printed": "14 CFR 91.105 to 91.108",
+   "what": "Crew at stations, seat belts and child restraints, and the doors-off supplemental restraint rules.",
+   "label": "14 CFR 91.105 to 91.108"
+  },
+  {
+   "res": "6",
+   "pages": [
+    33,
+    36
+   ],
+   "printed": "14 CFR 135.100 to 135.117",
+   "what": "The Part 135 sterile flight deck rule and the Part 135 passenger briefing list.",
+   "label": "14 CFR 135.100 to 135.117"
+  },
+  {
+   "res": "42",
+   "pages": [
+    1,
+    4
+   ],
+   "printed": "AC 91-78A",
+   "what": "When an EFB may replace paper, in-flight use, and what to assess and train.",
+   "label": "AC 91-78A"
+  },
+  {
+   "res": "8",
+   "pages": [
+    17,
+    20
+   ],
+   "printed": "AC 120-51E, Appendix 1",
+   "what": "CRM behavior markers for briefings, speaking up, automation and workload.",
+   "label": "AC 120-51E, Appendix 1"
+  }
+ ],
+ "warmup": "A customer pays you for a photo flight. She asks to sit up front, bring two camera cases and a tablet, and talk you through the shots on the climb out. Which of those requests do you say yes to, which do you change, and what goes in your briefing?",
+ "key_terms": [
+  {
+   "term": "Critical phase of flight",
+   "def": "Under 14 CFR 135.100: all taxi, takeoff and landing ground operations, and all flight below 10,000 feet except cruise."
+  },
+  {
+   "term": "Sterile flight deck",
+   "def": "No duties, talk or activity that is not needed for safe flight during busy or critical phases."
+  },
+  {
+   "term": "SOP",
+   "def": "Standard operating procedure: a written, tested procedure applied the same way every time, for normal, abnormal and emergency operations."
+  },
+  {
+   "term": "Flow",
+   "def": "A set of actions done from memory to configure the airplane, followed by a checklist that confirms the critical items."
+  },
+  {
+   "term": "Challenge-response",
+   "def": "One pilot reads (challenges) each checklist item and the other checks it and gives the response."
+  },
+  {
+   "term": "Initiation anchor",
+   "def": "A clear event that starts a checklist, such as reaching a set point before the hold-short line."
+  },
+  {
+   "term": "PF and PM",
+   "def": "Pilot flying controls the flight path; pilot monitoring watches the airplane's state, calls out deviations and steps in if needed."
+  },
+  {
+   "term": "Flight mode annunciator (FMA)",
+   "def": "The display that shows which autoflight modes are engaged and armed: the source of \"who is doing what.\""
+  },
+  {
+   "term": "Supplemental restraint system",
+   "def": "A torso harness and lanyard clipped to an FAA-approved airframe point, used on doors-off flights under 14 CFR 91.108."
+  },
+  {
+   "term": "KOEL",
+   "def": "Kinds of Operations Equipment List: shows which equipment is needed for VFR, IFR, day or night operations."
+  },
+  {
+   "term": "CRM",
+   "def": "Crew resource management: effective use of all available resources, including people, hardware and information."
+  },
+  {
+   "term": "SRM",
+   "def": "Single-pilot resource management: managing every resource inside and outside the airplane when you fly alone."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "You are PIC: the 91.107 baseline",
+   "kind": "knowledge",
+   "codes": [
+    "CA.II.B.K1",
+    "CA.II.B.S2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The pilot in command is directly responsible for, and is the final authority on, the operation of the aircraft [[60:435|14 CFR 91.3(a)]]. That does not change when a customer is paying for the flight. Start every briefing by saying who the PIC is."
+    },
+    {
+     "table": {
+      "head": [
+       "Rule",
+       "What it requires"
+      ],
+      "rows": [
+       [
+        "Brief",
+        "Before takeoff, the PIC makes sure each person is briefed on how to fasten and unfasten their safety belt and, if installed, shoulder harness [[60:441|14 CFR 91.107(a)(1)]]."
+       ],
+       [
+        "Notify",
+        "Before moving on the surface, takeoff or landing, the PIC makes sure each person has been told to fasten their belt and harness [[60:441|14 CFR 91.107(a)(2)]]."
+       ],
+       [
+        "Seated and belted",
+        "Each person occupies an approved seat or berth with belt and harness secured during movement on the surface, takeoff and landing [[60:441|14 CFR 91.107(a)(3)]]."
+       ],
+       [
+        "Exceptions",
+        "A child who has not reached the second birthday may be held by an adult in an approved seat (except as limited by 91.108(j)). Sport parachutists may use the floor as a seat [[60:441|14 CFR 91.107(a)(3)(i)-(ii)]]."
+       ],
+       [
+        "Flight crew",
+        "Required crewmembers stay at their stations with belts fastened for takeoff, landing and en route, and shoulder harness fastened for takeoff and landing [[60:441|14 CFR 91.105]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "A child restraint system is allowed only if it carries the required labels, is secured to an approved forward-facing seat, and the child is within its weight limit [[60:442|14 CFR 91.107(a)(3)(iii)]]. Booster seats and vest- or harness-type restraints are not approved for aircraft unless FAA approval is marked on them [[60:442|14 CFR 91.107(a)(3)(iii)(B)(4)]]."
+    },
+    {
+     "p": "Note the limit of this rule: unless otherwise stated, 91.107 does not apply to operations under Parts 121, 125 or 135 [[60:442|14 CFR 91.107(b)]]. Those parts have their own, longer briefing rules, which you will see next."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "91.107 in three words: BRIEF (before takeoff), NOTIFY (before taxi, takeoff, landing), SEATED (taxi, takeoff, landing)."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your paying passenger is buckled in, but you start to taxi before telling her to keep it fastened. Which part of 91.107 did you miss?",
+    "a": "91.107(a)(2): before moving on the surface, the PIC must make sure each person has been notified to fasten the belt [[60:441|14 CFR 91.107(a)(2)]]."
+   }
+  },
+  {
+   "title": "Briefing to a commercial standard: 91.519, 135.117 and 91.108",
+   "kind": "knowledge",
+   "codes": [
+    "CA.II.B.K1",
+    "CA.II.B.S2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "91.107 is the minimum. Bigger operations have fuller lists. 91.519 is in Part 91 subpart F, which covers large airplanes, turbojet-powered multiengine airplanes and fractional ownership aircraft [[60:527|14 CFR 91.501(a)]]. 135.117 applies to Part 135 flights. You may not fly under either one yet, but together they show what a professional briefing contains."
+    },
+    {
+     "table": {
+      "head": [
+       "Item",
+       "91.519",
+       "135.117"
+      ],
+      "rows": [
+       [
+        "Smoking rules",
+        "Yes [[60:534|14 CFR 91.519(a)(1)]]",
+        "Yes [[6:35|14 CFR 135.117(a)(1)]]"
+       ],
+       [
+        "Belts: when, where, how",
+        "When, where and under what conditions [[60:534|14 CFR 91.519(a)(2)]]",
+        "Also how to fasten and unfasten [[6:36|14 CFR 135.117(a)(2)]]"
+       ],
+       [
+        "Seat backs upright",
+        "Not listed",
+        "Before takeoff and landing [[6:36|14 CFR 135.117(a)(3)]]"
+       ],
+       [
+        "Entry door and emergency exits",
+        "Location and how to open [[60:534|14 CFR 91.519(a)(3)]]",
+        "Location and how to open [[6:36|14 CFR 135.117(a)(4)]]"
+       ],
+       [
+        "Survival equipment",
+        "Location [[60:534|14 CFR 91.519(a)(4)]]",
+        "Location [[6:36|14 CFR 135.117(a)(5)]]"
+       ],
+       [
+        "Ditching and flotation",
+        "For a flight over water [[60:534|14 CFR 91.519(a)(5)]]",
+        "For extended overwater operation [[6:36|14 CFR 135.117(a)(6)]]"
+       ],
+       [
+        "Oxygen",
+        "Normal and emergency use of installed oxygen [[60:534|14 CFR 91.519(a)(6)]]",
+        "If operating above 12,000 feet MSL [[6:36|14 CFR 135.117(a)(7)]]"
+       ],
+       [
+        "Fire extinguishers",
+        "Not listed",
+        "Location and operation [[6:36|14 CFR 135.117(a)(8)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Who gives it and how: under 91.519 the PIC or a crewmember gives it orally, it may be skipped when the PIC decides the passengers already know it, and printed cards may supplement it [[60:534|14 CFR 91.519(b)]]. Under 135.117, printed cards are required, an approved recording may deliver the briefing, and anyone who needs help to reach an exit gets an evacuation briefing too [[6:36|14 CFR 135.117(b)-(f)]]. In the same subpart, when an airplane is not required to have passenger signs, the PIC tells passengers out loud each time belts must be fastened and when smoking is prohibited [[60:534|14 CFR 91.517(b)]]."
+    },
+    {
+     "p": "Doors-off flights, common in aerial photography, have their own rule. Each person must either stay belted in an approved seat for the whole flight, or stay belted for taxi, takeoff and landing and be secured by a supplemental restraint system the rest of the time [[60:443|14 CFR 91.108(b)(1)]]. Nobody unbuckles until the PIC authorizes it [[60:443|14 CFR 91.108(b)(2)]]."
+    },
+    {
+     "bullets": [
+      "A qualified person clips the system to an FAA-approved airframe attachment point, never one in the flight deck [[60:444|14 CFR 91.108(e)(1)]].",
+      "Before each takeoff the PIC gets confirmation that the system is serviceable, and the PIC has final authority on its use [[60:444|14 CFR 91.108(f)]].",
+      "The PIC briefs how to use and release it, the headset and intercom, how passengers will be told to release and to return to their seats, and how to report safety concerns. Each user then demonstrates before ground movement [[60:445|14 CFR 91.108(g)-(h)]].",
+      "Not allowed: anyone under 15, anyone seated in the flight deck, or anyone using a child restraint. No lap-held child when doors are opened or removed [[60:445|14 CFR 91.108(i)-(j)]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "A good commercial habit: brief to the 135.117 list even on Part 91 flights, and keep a printed card for each seat."
+     }
+    }
+   ],
+   "check": {
+    "q": "On a doors-off photo flight, when may the photographer release her seat belt?",
+    "a": "Only after she is secured by a supplemental restraint system connected to an FAA-approved airframe attachment point, and only when the PIC authorizes it [[60:443|14 CFR 91.108(b)(2)]]."
+   }
+  },
+  {
+   "title": "Give the briefing",
+   "kind": "skills",
+   "codes": [
+    "CA.II.B.S2",
+    "CA.II.B.K1"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The examiner wants to hear the PIC, belts, shoulder harnesses, doors, passenger conduct, sterile aircraft, propeller blade avoidance and emergency procedures (ACS CA.II.B.S2). Build your script so nothing on that list is missed."
+    },
+    {
+     "table": {
+      "head": [
+       "Topic",
+       "What to cover"
+      ],
+      "rows": [
+       [
+        "PIC",
+        "\"I am the pilot in command.\" With a second pilot or instructor aboard, brief the three-step exchange of controls: \"You have the flight controls,\" \"I have the flight controls,\" \"You have the flight controls\" [[24:37|AFH 1-16]]."
+       ],
+       [
+        "Belts, harness, seat",
+        "How they fasten and release and when they stay on [[60:441|14 CFR 91.107]]. Seats latched into the seat rails [[24:41|AFH 2-4]]."
+       ],
+       [
+        "Doors and exits",
+        "How to open and secure them. If a door opens in flight, nobody unbuckles to reach it; you keep flying and land normally [[24:366|AFH 18-17]]."
+       ],
+       [
+        "Propeller and ramp",
+        "Walk only where you direct or with an escort [[24:51|AFH 2-14]]. You will clear the area and call \"CLEAR\" before start [[24:53|AFH 2-16]]."
+       ],
+       [
+        "Emergency gear",
+        "Fire extinguisher location and use, survival kit, and oxygen if you will fly high [[6:36|14 CFR 135.117(a)(5),(7),(8)]] [[1:64|PHAK 2-25]]."
+       ],
+       [
+        "Conduct and sterile flight deck",
+        "No talking to the pilot from departure until clear of the local airspace, and again during the arrival [[1:64|PHAK 2-25]]."
+       ],
+       [
+        "Devices",
+        "Which PEDs may be used, when, and how they are stowed [[43:5|AC 91.21-1D 8.1-8.2]]."
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "Make it a team briefing, not a lecture. CRM guidance says a good briefing is interactive: the captain asks for questions, does not rush, uses \"we\" language, and covers safety issues and likely problems like weather or delays [[8:17|AC 120-51E App. 1]]. Also tell passengers how you will keep cockpit distractions down [[15:17|AC 61-98E 2.3.6.3.1]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Keep it under two minutes, and end with \"What questions do you have?\" The \"Y\" in SAFETY is \"Your questions? Speak up!\" [[1:64|PHAK 2-25]]"
+     }
+    }
+   ],
+   "check": {
+    "q": "Name three briefing items that 135.117 requires but 91.107 does not.",
+    "a": "Any three of: smoking rules, seat backs upright, door and exit operation, survival equipment, ditching (extended overwater), oxygen above 12,000 feet MSL, fire extinguisher location and operation [[6:36|14 CFR 135.117(a)]]."
+   }
+  },
+  {
+   "title": "Checklists, flows and SOPs",
+   "kind": "knowledge",
+   "codes": [
+    "CA.II.B.K2"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "An SOP is a written, tested procedure applied the same way every time, in normal, abnormal and emergency operations. A checklist is a tool to cut the chance of error when configuring the airplane or handling a malfunction [[59:7|AC 120-71B 1.4]]. Checklists are of no value if the crew is not committed to using them; without discipline, errors will happen [[59:17|AC 120-71B 5.1]]."
+    },
+    {
+     "table": {
+      "head": [
+       "SOP idea",
+       "What it means for you"
+      ],
+      "rows": [
+       [
+        "Flow, then checklist",
+        "Do a flow from memory to set up the airplane, then run a checklist of the most critical items to confirm it [[59:17|AC 120-71B 5.1.2]]."
+       ],
+       [
+        "Timing",
+        "Don't run checklists while taxiing; you can't give full attention to both [[59:17|AC 120-71B 5.1.3]] [[59:18|AC 120-71B 5.1.3]]."
+       ],
+       [
+        "Initiation anchor",
+        "Start each checklist at a clear event, like a point before the hold-short line. \"Floating\" starts lead to rushed or forgotten checklists [[59:18|AC 120-71B 5.1.5]]."
+       ],
+       [
+        "Completion call",
+        "Say \"Before Taxi checklist complete.\" Skipping the call removes a layer of redundancy [[59:18|AC 120-71B 5.1.6]]."
+       ],
+       [
+        "Challenge-response",
+        "With two pilots, one reads each item and the other checks it and responds [[59:18|AC 120-71B 5.1.4]]. Only one pilot is head-down while the airplane moves [[59:19|AC 120-71B 5.2.2.1]]."
+       ],
+       [
+        "Single pilot",
+        "Mount the Before-Takeoff and Before-Landing checklists on the panel and touch each control to verify its position [[59:19|AC 120-71B 5.2.1]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Why checklists still fail: pilots skip items, answer from habit, or see what they expect to see [[59:18|AC 120-71B 5.1.7]]. Crews are most likely to be interrupted during ground phases (before start, start, taxi, before takeoff) because of time pressure and ramp interruptions [[59:22|AC 120-71B 5.6]]. If you are not sure where you were, redo that section from the beginning [[59:22|AC 120-71B 5.6.2]]."
+    },
+    {
+     "p": "Flying alone, read the checklist out loud and touch each critical control [[1:62|PHAK 2-23]]. Checklists and SOPs are defenses the manufacturer, employer or flight school gives you, and many flight departments write SOPs that add to the manufacturer's procedures [[30:46|RMH 6-3]]. When modern equipment is installed in an older airplane, its supplement can change your checklists [[30:56|RMH 8-3]] [[30:57|RMH 8-4]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Flow, then check. Anchor it, finish it, call it complete. Lost your place? Start over."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why does AC 120-71B warn against a \"Taxi checklist\" done during taxi?",
+    "a": "The crew can't pay full attention to both the taxi and the checklist, so it creates a high-risk situation [[59:17|AC 120-71B 5.1.3]] [[59:18|AC 120-71B 5.1.3]]."
+   }
+  },
+  {
+   "title": "Current and appropriate navigation data",
+   "kind": "knowledge",
+   "codes": [
+    "CA.II.B.K3"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Flight management systems and avionics fly from a database of waypoints and procedures [[30:50|RMH 7-1]]. Like paper charts, the data goes out of date; databases are updated every 28 days [[23:30|IFH 1-11]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "table": {
+      "head": [
+       "Use",
+       "Requirement"
+      ],
+      "rows": [
+       [
+        "IFR",
+        "Databases must be updated for IFR [[33:90|AIM 1-1-17]]. Data must be current and appropriate for the region, with the navaids, waypoints and terminal procedures for the departure, arrival and alternate airports [[33:92|AIM 1-1-17]]."
+       ],
+       [
+        "IFR approaches",
+        "Every approach flown must be retrievable by name from the current database. Entering approach waypoints by latitude and longitude is not permitted [[33:92|AIM 1-1-17]]."
+       ],
+       [
+        "RNAV routes and procedures",
+        "At system start, confirm the database is current and verify present position [[39:13|AC 90-100A 10.b]]."
+       ],
+       [
+        "VFR",
+        "Should be updated, but not required. Don't use an outdated moving map around critical airspace; verify waypoints with a current Chart Supplement, sectional or en route chart [[33:90|AIM 1-1-17]]."
+       ],
+       [
+        "EFB charts and data",
+        "Navigation or performance data must be current, up to date and valid, as verified by the pilot [[42:3|AC 91-78A 9.1]]."
+       ],
+       [
+        "Commercial operators",
+        "Must follow their operations specifications; for domestic operations for hire they need a second navigation system for reversion [[33:93|AIM 1-1-17]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Preflight check: find the database issue date, make sure the time of the flight is before the expiration date and time, and check that the provider has not limited any waypoint or procedure [[33:92|AIM 1-1-17]]. Manufacturers and database suppliers may publish NOTAM-type notices about database errors [[33:98|AIM 1-1-17]]. In flight, check that waypoint names match the chart and that they are in a logical order [[33:93|AIM 1-1-17]]."
+    },
+    {
+     "p": "What if the cycle changes during your flight? Databases are expected to be current for the whole flight. If the cycle will change en route, set a procedure to make sure the data is accurate, such as comparing the old and new charts for the fixes you will use [[39:12|AC 90-100A 10.a]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The moving map is never a substitute for a VFR sectional or low altitude en route chart [[1:66|PHAK 2-27]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your IFR GPS database is current, but the approach you want is not in it. Can you build it from the chart by entering the waypoints yourself?",
+    "a": "No. The approach must be retrievable by name from the current database; manual entry of approach waypoints is not permitted [[33:92|AIM 1-1-17]]."
+   }
+  },
+  {
+   "title": "Securing items and cargo",
+   "kind": "skills",
+   "codes": [
+    "CA.II.B.K4",
+    "CA.II.B.S1"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Supervise baggage loading yourself. Unsecured or badly loaded baggage can change the airplane's CG [[24:51|AFH 2-14]]. Commercial work often means cargo: survey gear, camera cases, parts. The cargo rules for larger airplanes (91.525) and for Part 135 (135.87) set a clear standard you can use on any flight."
+    },
+    {
+     "p": "Cargo must be in an approved rack, bin or compartment, or secured by approved means, or meet every one of these [[60:535|14 CFR 91.525(a)]] [[6:25|14 CFR 135.87]]:"
+    },
+    {
+     "bullets": [
+      "Tied down by a belt or tie-down strong enough to stop it shifting in all normal flight and ground conditions; carry-on bags restrained so they can't move in turbulence [[6:25|14 CFR 135.87(c)(1)]].",
+      "Packaged or covered so it can't injure anyone [[60:536|14 CFR 91.525(a)(3)(ii)]].",
+      "Not loading a seat or the floor beyond its limit [[60:536|14 CFR 91.525(a)(3)(iii)]].",
+      "Not blocking any required emergency or regular exit, or the aisle [[60:536|14 CFR 91.525(a)(3)(iv)]].",
+      "Not carried directly above seated occupants [[6:26|14 CFR 135.87(c)(5)]].",
+      "Stowed this way for takeoff and landing [[6:26|14 CFR 135.87(c)(6)]]."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "Check",
+       "How to work it out"
+      ],
+      "rows": [
+       [
+        "Floor load",
+        "Floor load (lb per sq ft) = total weight of the item, pallet and tie-downs / area in sq ft. It must not exceed the floor limit [[22:81|W&B Handbook 9-9]] [[22:82|W&B Handbook 9-10]]."
+       ],
+       [
+        "Area",
+        "Area (sq ft) = length (in) x width (in) / 144 [[22:81|W&B Handbook 9-9]]."
+       ],
+       [
+        "CG shift if it slides",
+        "Change in CG = weight shifted x distance shifted / total weight [[22:24|W&B Handbook 2-4]]."
+       ]
+      ]
+     }
+    },
+    {
+     "bullets": [
+      "Glare shield clear: maps and other objects removed and stowed in flight [[34:188|AIM 8-1-8]].",
+      "Tablet: plan where it is stowed for takeoff and landing; an unsecured EFB is its own hazard [[42:4|AC 91-78A 11.1]].",
+      "Under-seat bags only where the seat can stop them sliding forward in a crash [[6:26|14 CFR 135.87(d)]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Compartment weight limits, floor limits and tie-down points are in your POH/AFM. Look them up before the customer shows up with the gear."
+     }
+    }
+   ],
+   "check": {
+    "q": "A camera case rides on the empty back seat under a lap belt. Which cargo-rule items do you still check?",
+    "a": "That it can't shift, is packaged so it can't injure anyone, doesn't overload the seat, doesn't block an exit, and isn't above a seated passenger [[60:536|14 CFR 91.525(a)(3)]] [[6:26|14 CFR 135.87(c)]]."
+   }
+  },
+  {
+   "title": "Automation: modes, levels and the FMA",
+   "kind": "risk",
+   "codes": [
+    "CA.II.B.R1",
+    "CA.II.B.S3"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Used well, automation cuts workload, improves situational awareness and frees you to watch the flight path [[30:50|RMH 7-1]]. It can also add work, cause confusion, invite complacency and erode hand-flying skill [[30:51|RMH 7-2]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "The flight mode annunciator tells you \"who is doing what\": which system is flying the path and the energy [[59:29|AC 120-71B 6.9.2]]. At the most basic level, know which modes are engaged and which are armed, and verify armed modes engage when they should [[1:70|PHAK 2-31]]. Some changes are delayed, from armed to active, so an error may not show up until later [[59:29|AC 120-71B 6.9.1.1]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Habit",
+       "Why"
+      ],
+      "rows": [
+       [
+        "Anticipate, Act, Verify",
+        "Know what should happen, push the button, then confirm it happened [[30:51|RMH 7-2]]."
+       ],
+       [
+        "Step down a level",
+        "One of the most common errors is failing to move to a lower level of automation when things change. If ATC cancels your approach and gives vectors, basic heading and altitude modes keep the path under control while you reprogram [[30:51|RMH 7-2]]."
+       ],
+       [
+        "Say it out loud",
+        "Callouts help even single-pilot, especially after arming a course or altitude change [[1:70|PHAK 2-31]]. With two pilots, entries to automated systems are verbalized and acknowledged [[8:19|AC 120-51E App. 1]]."
+       ],
+       [
+        "Structured method",
+        "Some operators use \"Confirm, Activate, Monitor, Intervene\" or \"Verbalize, Verify, and Monitor\" to trap errors [[59:29|AC 120-71B 6.9.1.1]]."
+       ],
+       [
+        "Re-sync after a distraction",
+        "After a break or distraction, review flight deck and mode status [[59:28|AC 120-71B 6.9.1.1]] [[59:29|AC 120-71B 6.9.1.1]]."
+       ],
+       [
+        "Program on the ground",
+        "Check everything you programmed before departure against a paper log [[1:70|PHAK 2-31]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "In a 1995 accident in Colombia, a crew did not revert to basic radio navigation when the FMS became confusing, and the airplane flew a programmed path into a mountain [[30:52|RMH 7-3]]. On your checkride the examiner expects you to manage the installed autopilot and avionics and will test your knowledge of them (ACS Appendix 3). Know how to disconnect the autopilot and where its checklists are [[30:53|RMH 7-4]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "While the autopilot is engaged, your attention must not disengage [[30:53|RMH 7-4]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You are coupled to an approach when ATC cancels the clearance past the IAF and says to expect holding. What does the RMH suggest for the autopilot?",
+    "a": "Select basic modes such as heading and altitude so you can comply and reprogram while the flight path stays under control [[30:51|RMH 7-2]]."
+   }
+  },
+  {
+   "title": "EFBs and portable electronic devices",
+   "kind": "risk",
+   "codes": [
+    "CA.II.B.R1"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "An EFB is an electronic display for the flight deck or cabin that shows paper-type information (checklists, charts, POH) or runs calculations like weight and balance and performance [[42:2|AC 91-78A 7.1]]. A tablet used as an EFB is a PED, so its use must meet 91.21 and be checked first to make sure it won't interfere with the airplane [[42:2|AC 91-78A 7.2]]."
+    },
+    {
+     "p": "Under Part 91, an EFB may replace paper in all phases of flight when [[42:3|AC 91-78A 9.1]]:"
+    },
+    {
+     "bullets": [
+      "It does not replace any navigation, communication or surveillance equipment Part 91 requires.",
+      "It shows only information equivalent to the paper it replaces.",
+      "Navigation and performance data is current, up to date and valid, as verified by the pilot.",
+      "The operator meets 91.21, so it does not interfere with required equipment."
+     ]
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "In-flight use is the decision of the operator and the PIC [[42:3|AC 91-78A 9.2]]. Think through workload, mounting, lighting, shutdown and failures, and stowage for takeoff and landing; inputs get harder to use in flight [[42:4|AC 91-78A 11.1]]. Train on preflight checks, every function, when not to use it, and cross-checking what you enter and what it computes [[42:4|AC 91-78A 11.2]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Operation",
+       "PED rule"
+      ],
+      "rows": [
+       [
+        "Part 91, IFR",
+        "PEDs prohibited except voice recorders, hearing aids, pacemakers, electric shavers and devices the operator has determined won't interfere. The PIC or other operator may make that call [[60:438|14 CFR 91.21]]."
+       ],
+       [
+        "Part 135",
+        "Same short list, plus approved portable oxygen concentrators. Only the certificate holder may decide other devices are acceptable [[6:46|14 CFR 135.144]]."
+       ],
+       [
+        "Cell phones airborne",
+        "The FCC prohibits airborne cellular use. Have passengers turn phones off, disable cellular transmit, or use airplane mode [[43:7|AC 91.21-1D 9.1-9.2]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "For Part 91, the FAA treats the PIC or renter-pilot as the \"operator\" [[43:2|AC 91.21-1D 6.1]]. Set your PED policy: which devices, when, how stowed, which modes, how passengers are told, and what to do about interference or battery smoke or fire [[43:5|AC 91.21-1D 8.1]]. If a device causes interference, turn it off [[43:5|AC 91.21-1D 7.2.3]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "IFR or for hire: a device stays off unless the right person (PIC, or the certificate holder under Part 135) has said yes."
+     }
+    }
+   ],
+   "check": {
+    "q": "Flying a Part 135 charter, a passenger asks you to approve his new laptop. Can you, as PIC, make that decision?",
+    "a": "No. Under Part 135 the determination is made only by the certificate holder operating the aircraft [[6:46|14 CFR 135.144(c)]]."
+   }
+  },
+  {
+   "title": "Inoperative equipment, through a commercial lens",
+   "kind": "risk",
+   "codes": [
+    "CA.II.B.R2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "As a commercial pilot you will fly airplanes owned by others, under different rules. First find out which inoperative-equipment rule applies to this airplane and this operation."
+    },
+    {
+     "table": {
+      "head": [
+       "Situation",
+       "Rule"
+      ],
+      "rows": [
+       [
+        "Approved MEL with a letter of authorization",
+        "Fly within the MEL's conditions, with an entry in the aircraft records describing the inoperable item [[60:492|14 CFR 91.213(a)]]."
+       ],
+       [
+        "Operator authorized to use an MEL under Part 135 (or 121, 125, subpart K)",
+        "Must use that MEL [[60:492|14 CFR 91.213(c)]]."
+       ],
+       [
+        "Small non-turbine airplane, no MEL",
+        "Use 91.213(d): not part of the VFR-day type certificate items, the equipment list or KOEL, 91.205 or another rule, or an AD; then remove or deactivate and placard it, and have a rated pilot or mechanic decide it is not a hazard [[60:493|14 CFR 91.213(d)]]."
+       ],
+       [
+        "Can't meet those",
+        "A special flight permit may be possible [[60:493|14 CFR 91.213(e)]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Watch the for-hire items in 91.205. A flight for hire at night needs an electric landing light [[60:487|14 CFR 91.205(c)(4)]]. A flight for hire over water beyond power-off gliding distance from shore needs approved flotation gear for each occupant and a pyrotechnic signaling device [[60:487|14 CFR 91.205(b)(12)]]. The same broken item can be fine on a personal flight and a no-go on a paid one."
+    },
+    {
+     "p": "The KOEL shows which equipment each kind of operation (VFR, IFR, day, night) needs, and an item it requires may not be deferred for that operation [[58:9|AC 91-67A 1.8.9]]. Deactivating an item can take more than turning off a switch, such as pulling and securing a breaker, and it is not preventive maintenance: an authorized person makes the maintenance record entry. The placard must be legible and next to the control without hiding others [[58:24|AC 91-67A 4.2.2-4.2.3]]."
+    },
+    {
+     "p": "Legal is only the start. Before flying with inoperative items, weigh [[58:25|AC 91-67A 4.4]]:"
+    },
+    {
+     "bullets": [
+      "How several failures interact",
+      "Weather, night, the airports and the en route environment",
+      "Diversion and alternate options",
+      "Extra workload, crew fatigue and other human factors"
+     ]
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "On the checkride, any inoperative equipment must not interfere with the practical test requirements (ACS Appendix 3). A dead autopilot can turn a night approach into an unfamiliar airport from medium to serious risk [[1:66|PHAK 2-27]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Paid night flight, no MEL, and the landing light is inoperative. Can you defer it under 91.213(d)?",
+    "a": "No. 91.205 requires an electric landing light for night flight for hire, and items required by 91.205 can't be deferred [[60:487|14 CFR 91.205(c)(4)]] [[60:493|14 CFR 91.213(d)(2)(iii)]]."
+   }
+  },
+  {
+   "title": "Passenger distractions and the sterile flight deck",
+   "kind": "risk",
+   "codes": [
+    "CA.II.B.R3",
+    "CA.II.B.S2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Part 135 makes the sterile flight deck a rule. During a critical phase of flight, crewmembers do only the duties needed for safe operation. Pointing out sights of interest, nonessential talk, eating meals and reading unrelated material are not needed [[6:33|14 CFR 135.100(a)-(b)]]. Critical phases are all taxi, takeoff and landing ground operations, and all flight below 10,000 feet except cruise [[6:33|14 CFR 135.100(c)]]."
+    },
+    {
+     "p": "Under Part 91 it is a best practice. The PHAK's sterile period runs from departure to the first intermediate altitude and clear of the local airspace, and again from the first vector or descent for the approach [[1:64|PHAK 2-25]]. AC 61-98E adds taxi, with no extra conversation or cell phone use [[15:17|AC 61-98E 2.3.6.3.5]]. CRM guidance calls for sterile discipline at any altitude when extra vigilance is needed, like holding in icing or near storms [[8:24|AC 120-51E App. 3]]."
+    },
+    {
+     "p": "Many distractions start small, like a gauge that reads wrong, and end in an accident when the pilot stops flying to deal with it [[1:63|PHAK 2-24]]."
+    },
+    {
+     "bullets": [
+      "Brief the sterile periods before engine start, and keep passengers informed when workload is low [[1:64|PHAK 2-25]].",
+      "Social talk is fine in low workload, not high [[8:19|AC 120-51E App. 1]].",
+      "Give the right-seat passenger simple tasks, like holding a chart [[1:64|PHAK 2-25]], but remember a helper can also bring in threats [[30:46|RMH 6-3]].",
+      "Line staff and visitors should wait to talk until you finish a checklist flow [[59:22|AC 120-71B 5.6.1]].",
+      "Don't create your own distractions: one airline dropped its required PA at 10,000 feet because it split the flight deck at a busy moment [[59:28|AC 120-71B 6.8]].",
+      "Door pops open: fly the airplane, don't rush, don't unbuckle. Open-door accidents come from distraction [[24:366|AFH 18-17]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Tour talk happens in cruise, not in the climb."
+     }
+    }
+   ],
+   "check": {
+    "q": "On a Part 135 sightseeing flight, may you point out a landmark while climbing through 2,500 feet?",
+    "a": "No. Below 10,000 feet except cruise is a critical phase, and pointing out sights of interest is not a safety duty [[6:33|14 CFR 135.100]]."
+   }
+  },
+  {
+   "title": "Threats, errors and the defenses you build",
+   "kind": "risk",
+   "codes": [
+    "CA.II.B.S4",
+    "CA.II.B.R1",
+    "CA.II.B.R2",
+    "CA.II.B.R3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Threats come from outside your control: automation or system malfunctions, unexpected ATC reroutes, cabin events and more. Errors are your own deviations from what you intended [[30:44|RMH 6-1]]. Left alone, they lead to an undesired aircraft state: wrong position, speed, attitude or configuration, confusion and workload, or a lost safety margin [[30:46|RMH 6-3]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "p": "Each slice of cheese is a defense; each hole is a weakness. Proficiency makes it less likely the holes line up [[30:48|RMH 6-5]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Defenses given to you",
+       "Defenses you provide"
+      ],
+      "rows": [
+       [
+        "Checklists, operating limits, pilot qualifications, SOPs, insurance requirements [[30:46|RMH 6-3]]",
+        "Clear communication and briefings, situational awareness, planning ahead, time management [[30:47|RMH 6-4]]"
+       ],
+       [
+        "A second pilot or a helper passenger [[30:46|RMH 6-3]]",
+        "Teamwork with ATC, flight service and dispatch; automation management; flying skill as the last resort [[30:47|RMH 6-4]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "Discipline guards you against these pitfalls and hazardous attitudes [[30:48|RMH 6-5]]. Watch for expectation bias, where you see what you expected, such as a familiar taxi route or the wrong airport [[30:45|RMH 6-2]] [[30:46|RMH 6-3]]. Customers bring external pressure. The RMH ranks being on time, inconveniencing passengers or people waiting, and reaching the original destination as less important than safety [[30:55|RMH 8-2]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Feeling rushed? On the ground you can stop. In the air you can slow down or ask ATC for a delay or a vector [[30:47|RMH 6-4]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Is an unexpected ATC reroute a threat or an error? What about loading the wrong waypoint in response?",
+    "a": "The reroute is a threat, from outside your control; loading the wrong waypoint is an error [[30:44|RMH 6-1]]."
+   }
+  },
+  {
+   "title": "SRM and CRM in practice",
+   "kind": "skills",
+   "codes": [
+    "CA.II.B.S4"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "SRM is managing all the resources available to a single pilot. It includes situational awareness, communication, teamwork, task allocation, ADM, risk management, CFIT awareness and automation management [[30:56|RMH 8-3]]. CRM is the effective use of all resources: people, hardware and information [[8:2|AC 120-51E 5.b]]. It focuses on situational awareness, communication, teamwork, task allocation and decision making within a framework of SOPs [[8:1|AC 120-51E 1]]."
+    },
+    {
+     "p": "The examiner watches your CRM and SRM on every Task. Failing to use ADM fails that Task, and the ADM skill element of this Task goes on the notice of disapproval (ACS Appendix 2)."
+    },
+    {
+     "table": {
+      "head": [
+       "CRM skill",
+       "What it looks like"
+      ],
+      "rows": [
+       [
+        "Briefings",
+        "Reaffirm SOPs and cover the biggest safety threats [[8:10|AC 120-51E 12.a(1)]]. Set guidelines for automation: what gets verbalized, who does what [[8:17|AC 120-51E App. 1]]."
+       ],
+       [
+        "Inquiry, advocacy, assertion",
+        "Speak up with appropriate persistence until there is a clear resolution [[8:18|AC 120-51E App. 1]]. Use it with briefers, line staff and ATC [[24:51|AFH 2-14]]."
+       ],
+       [
+        "Workload and distraction",
+        "Split tasks sensibly, avoid overload in yourself and others, and keep nonessential things from pulling you off SOPs [[8:11|AC 120-51E 12.b(3)]]."
+       ],
+       [
+        "PF and PM",
+        "One pilot flies, one monitors. Hand over roles with a verbal assignment, verbal acceptance and a short brief of the airplane's state [[59:24|AC 120-71B 6.4]]."
+       ],
+       [
+        "Intervention",
+        "Agree on deviation limits, callouts and when to take over [[59:25|AC 120-71B 6.6.1]]. Example: two \"1 dot high\" callouts with no fix lead to \"I have control, going around\" [[59:26|AC 120-71B 6.6.2.3]]."
+       ],
+       [
+        "Outside help",
+        "ATC, flight service and dispatch are part of the team; declaring an emergency gets priority [[30:47|RMH 6-4]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "SRM is mostly preparation. In the RMH example, an alternator fails en route and the pilot must divert. If you organized airports, frequencies and navaids along the route before flight, you can act with crew-like efficiency [[30:57|RMH 8-4]]. The 3P model (Perceive, Process, Perform) is a closed loop: keep checking that the risk control worked [[30:55|RMH 8-2]] [[30:56|RMH 8-3]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Even with one pilot, talk like a crew: say your plan, your mode changes and your decisions out loud."
+     }
+    }
+   ],
+   "check": {
+    "q": "How should PF and PM duties be handed over, according to AC 120-71B?",
+    "a": "Positively: a verbal assignment, a verbal acceptance, and a short brief of the airplane's state [[59:24|AC 120-71B 6.4]]."
+   }
+  },
+  {
+   "title": "Fly it step by step",
+   "kind": "skills",
+   "codes": [
+    "CA.II.B.S1",
+    "CA.II.B.S2",
+    "CA.II.B.S3",
+    "CA.II.B.S4",
+    "CA.II.B.K2",
+    "CA.II.B.K3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "No FAA source gives one numbered flight deck management flow. This order pulls the steps together from the sources above. Use your POH/AFM checklists for the airplane-specific items."
+    },
+    {
+     "bullets": [
+      "1. Know the rules for this flight: Part 91, 91.108 doors-off, or an operator's SOPs and MEL [[60:492|14 CFR 91.213]] [[60:443|14 CFR 91.108]].",
+      "2. Check inoperative items against the MEL or 91.213(d), including for-hire items [[60:493|14 CFR 91.213(d)]] [[60:487|14 CFR 91.205]].",
+      "3. Check database and EFB currency, and any database notices [[33:92|AIM 1-1-17]] [[42:3|AC 91-78A 9.1]].",
+      "4. Supervise loading; tie down cargo to the 135.87 standard; clear the glare shield [[24:51|AFH 2-14]] [[6:25|14 CFR 135.87]] [[34:188|AIM 8-1-8]].",
+      "5. Escort passengers, then brief them: PIC, belts, doors and exits, emergency gear, sterile periods, PEDs, propeller [[24:51|AFH 2-14]] [[6:36|14 CFR 135.117]].",
+      "6. Clear the prop area and call \"CLEAR\" [[24:53|AFH 2-16]].",
+      "7. Program the avionics before taxi and verify against your paper log [[1:70|PHAK 2-31]] [[15:17|AC 61-98E 2.3.6.3.3]].",
+      "8. Run each checklist at its anchor point and call it complete [[59:18|AC 120-71B 5.1.5-5.1.6]].",
+      "9. In flight: Anticipate, Act, Verify; call modes; step down a level when things change [[30:51|RMH 7-2]].",
+      "10. Keep running 3P on threats and errors all the way to shutdown [[30:56|RMH 8-3]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "This Task's Skills elements have no number tolerances. The examiner judges your briefing, your organization, your automation management and your decisions."
+     }
+    }
+   ],
+   "check": {
+    "q": "When should you program the GPS route and set up radios?",
+    "a": "Before taxi, and then verify the programming against your paper log [[15:17|AC 61-98E 2.3.6.3.3]] [[1:70|PHAK 2-31]]."
+   }
+  },
+  {
+   "title": "Common errors",
+   "kind": "skills",
+   "codes": [
+    "CA.II.B.S1",
+    "CA.II.B.S2",
+    "CA.II.B.S3",
+    "CA.II.B.S4"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "bullets": [
+      "Briefing belts but skipping doors, the propeller, the PIC or the sterile periods (ACS CA.II.B.S2).",
+      "Letting a checklist \"float\" instead of anchoring it, or skipping the completion call [[59:18|AC 120-71B 5.1.5-5.1.6]].",
+      "Resuming a checklist from a guess after an interruption [[59:22|AC 120-71B 5.6.2]].",
+      "Assuming an expired VFR database is fine near busy airspace [[33:90|AIM 1-1-17]].",
+      "Cargo on a seat with no tie-down, or blocking the door [[60:536|14 CFR 91.525(a)(3)]].",
+      "Not knowing which modes are engaged and armed [[1:70|PHAK 2-31]].",
+      "Staying in a high level of automation when the plan changes [[30:51|RMH 7-2]].",
+      "Treating \"legal to defer\" as \"safe to fly\" [[58:25|AC 91-67A 4.4]].",
+      "Letting a customer's schedule outweigh safety [[30:55|RMH 8-2]]."
+     ]
+    }
+   ],
+   "check": {
+    "q": "Which is a more common automation error: using too little automation, or failing to step down when things change?",
+    "a": "Failing to move to a lower level of automation when the situation changes [[30:51|RMH 7-2]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "CA.II.B-1.jpg",
+   "res": "23",
+   "page": 30,
+   "caption": "Figure 1-6. Moving map display.",
+   "alt": "Garmin multifunction display in a bezel with NAV, HDG, ALT, COM, CRS/BARO, RANGE and FMS knobs. The left strip shows engine gauges (manifold pressure 23.0, RPM 2300, fuel quantity, fuel flow, oil pressure and temperature, EGT, CHT). The center shows a green-and-tan moving map near Wichita with airports, a magenta course line and airspace outlines, and a terrain elevation legend at right. Softkeys along the bottom read ENGINE, MAP and DCLTR.",
+   "source": "IFH, PDF p. 30"
+  },
+  "f2": {
+   "file": "CA.II.B-2.jpg",
+   "res": "23",
+   "page": 30,
+   "caption": "Figure 1-7. Example of an electronic flight bag.",
+   "alt": "A tablet-style electronic flight bag in a black leather case, showing an instrument approach chart for Santa Barbara with plan view and profile. Tabs on the left read Plan, Terminal, Enroute Nav, Chart Setup and Text, and arrow and zoom buttons run down the right side.",
+   "source": "IFH, PDF p. 30"
+  },
+  "f3": {
+   "file": "CA.II.B-3.jpg",
+   "res": "24",
+   "page": 41,
+   "caption": "Figure 2-5. Seats should be inspected to ensure that they are properly latched into the seat rails and checked for damage.",
+   "alt": "Close-up of a metal seat rail in a carpeted cabin floor with a row of round holes. A finger points at the holes, and an orange callout reads: Ensure that seats properly latch into the seat rails through the seat lock pins and that seat rail holes are not abnormally worn to an oval shape.",
+   "source": "AFH, PDF p. 41"
+  },
+  "f4": {
+   "file": "CA.II.B-4.jpg",
+   "res": "30",
+   "page": 48,
+   "caption": "Figure 6-1. The Swiss cheese model.",
+   "alt": "Three stacks of Swiss cheese slices in a row. Arrows labeled Threats enter from the left; between the stacks are boxes labeled Errors and Undesired aircraft state, ending at a black starburst labeled Incident/Accident. Under the stacks are the words Prevent, Trap and Mitigate, and across the top are colored banners: Anticipate (green), Recognize (yellow), Recover (red).",
+   "source": "RMH, PDF p. 48"
+  },
+  "f5": {
+   "file": "CA.II.B-5.jpg",
+   "res": "30",
+   "page": 48,
+   "caption": "Figure 6-2. Operational Pitfalls and Hazardous Attitudes.",
+   "alt": "A purple panel titled Operational Pitfalls lists peer pressure, mindset, get-there-itis, duck-under syndrome, scud running, continuing VFR into IMC, getting behind the aircraft, loss of positional or situational awareness, operating without adequate fuel reserves, descent below the MEA, flying outside the envelope, and neglect of flight planning, preflight inspections and checklists. An overlapping blue panel titled Hazardous Attitudes lists macho, anti-authority, invulnerability, impulsivity and resignation.",
+   "source": "RMH, PDF p. 48"
+  },
+  "f6": {
+   "file": "CA.II.B-6.jpg",
+   "res": "30",
+   "page": 50,
+   "caption": "Figure 7-1. Autopilot interface.",
+   "alt": "Top: a jet autopilot mode control panel with buttons HDG, 1/2 BANK, NAV, APPR, ALT, VNAV, VS, FLC, TURB, YD, AP and AP XFR, green lights above selected buttons, and HDG, VS/SPEED and ALT knobs below. Bottom: a blue primary flight display with green mode annunciations FMS1, YD, AP and ALTS across the top, a speed tape at left showing M.74, a pitch scale with 10 and 20 degree lines in the center, and an altitude tape at right with FL410 selected and 41000 in the current-altitude box.",
+   "source": "RMH, PDF p. 50"
+  }
+ },
+ "scenario": {
+  "title": "Company flight with survey gear",
+  "codes": [
+   "CA.II.B.R1",
+   "CA.II.B.R2",
+   "CA.II.B.R3",
+   "CA.II.B.S4",
+   "CA.II.B.K3",
+   "CA.II.B.K4"
+  ],
+  "setup": "You are a newly hired commercial pilot. Your employer, a surveying company, uses its own Cessna 206 to fly its staff under Part 91. Tomorrow you fly two engineers on a 2.5-hour IFR trip. During preflight you find the autopilot placarded INOP by the shop. Your panel GPS database expires one hour after your planned departure, when the new 28-day cycle starts. The engineers bring three hard cases of survey gear (180 lb total). One plans to work on a laptop through her phone's cellular hotspot. The other is a first-time flyer who asks to sit in front.",
+  "questions": [
+   {
+    "q": "The autopilot is placarded INOP. Can you go, and what does it change?",
+    "a": "If it is not required by the type certificate, the equipment list or KOEL, 91.205 or an AD, and it is properly placarded and judged not a hazard, 91.213(d) lets you go [[60:493|14 CFR 91.213(d)]]. But a 2.5-hour IFR flight hand-flown adds workload and fatigue, which AC 91-67A says to weigh before flying with inoperative items [[58:25|AC 91-67A 4.4]]. Plan the approach and alternate with that in mind [[1:66|PHAK 2-27]]."
+   },
+   {
+    "q": "The database expires partway through the flight. What do you do?",
+    "a": "For IFR the data must be current, and the time of use should be before the expiration [[33:90|AIM 1-1-17]] [[33:92|AIM 1-1-17]]. When the cycle changes en route, set a procedure, such as comparing the old and new charts for the fixes and procedures you will use [[39:12|AC 90-100A 10.a]]."
+   },
+   {
+    "q": "How do you carry the 180 lb of survey cases?",
+    "a": "In the baggage area within the POH limits if possible, loaded under your supervision [[24:51|AFH 2-14]]. Anything in the cabin is tied down so it can't shift, doesn't overload the floor or seats, doesn't block the door, and isn't above anyone's head [[60:536|14 CFR 91.525(a)(3)]] [[6:26|14 CFR 135.87(c)(5)]]."
+   },
+   {
+    "q": "Can the engineer use her laptop and hotspot on this IFR flight?",
+    "a": "Under IFR, a laptop may be used only if you, as PIC, determine it won't interfere with navigation or communication [[60:438|14 CFR 91.21]]. The cellular hotspot must be off once airborne, because the FCC prohibits airborne cellular use [[43:7|AC 91.21-1D 9.2]]. Tell her your PED rules in the briefing [[43:5|AC 91.21-1D 8.2]]."
+   },
+   {
+    "q": "How do you handle the first-time flyer in the front seat?",
+    "a": "Brief the controls, the sterile periods and when you'll be free to talk [[1:64|PHAK 2-25]]. A helper can watch for traffic or read checklist items [[1:62|PHAK 2-23]], but think about how a front-seat passenger could add threats, like bumping controls [[30:46|RMH 6-3]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "CA.II.B.S1",
+   "do": "Show the examiner that baggage and cargo are tied down to the cargo-rule standard (can't shift, not blocking exits, not above anyone, within floor and seat limits), nothing is loose on the floor or glare shield, and your EFB is mounted or stowed.",
+   "practice": "Before every flight, do a cabin sweep against the 135.87(c) list out loud [[6:25|14 CFR 135.87]]. Work one floor-load problem with your airplane's real numbers [[22:81|W&B Handbook 9-9]]."
+  },
+  {
+   "code": "CA.II.B.S2",
+   "do": "Brief the examiner as a paying passenger: PIC, belts and harnesses, doors and exits, conduct and sterile periods, propeller avoidance, emergency gear and procedures, and PEDs.",
+   "practice": "Write a briefing card from the 135.117 list plus PIC and propeller, and give it until it takes under two minutes [[6:36|14 CFR 135.117]]. Printed cards may supplement the oral briefing [[60:534|14 CFR 91.519(b)]]."
+  },
+  {
+   "code": "CA.II.B.S3",
+   "do": "Program the route and autopilot before taxi, verify it, and in flight call out each mode engaged and armed, step down a level when ATC changes the plan, and show you can disconnect and hand-fly.",
+   "practice": "Practice with a qualified instructor under VFR first, and use a flight simulation training device to repeat automation tasks under high workload [[30:52|RMH 7-3]] [[30:53|RMH 7-4]]."
+  },
+  {
+   "code": "CA.II.B.S4",
+   "do": "Talk through the threats for the flight and your plan for each, use outside resources, speak up as PM when flying with another pilot, and make decisions that put safety over schedule.",
+   "practice": "Before each lesson, list three likely threats and a defense for each, using the RMH defenses [[30:47|RMH 6-4]]. Debrief afterward: what went well and what didn't [[8:11|AC 120-51E 12.a(3)]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "14 CFR 91.107 states that, unless otherwise stated, it does not apply to which operations?",
+   "options": [
+    "Flights under Parts 121, 125 or 135",
+    "Flights in airplanes with fewer than four seats",
+    "Day VFR flights",
+    "Flights carrying only crewmembers"
+   ],
+   "answer": 0,
+   "why": "Unless otherwise stated, 91.107 does not apply to operations under Parts 121, 125 or 135, which have their own rules [[60:442|14 CFR 91.107(b)]]."
+  },
+  {
+   "q": "Under 14 CFR 135.117, when must the passenger briefing cover the normal and emergency use of oxygen?",
+   "options": [
+    "On every flight",
+    "Only when the cabin is pressurized",
+    "When the flight involves operations above 12,000 feet MSL",
+    "When the flight lasts more than 30 minutes above 10,000 feet"
+   ],
+   "answer": 2,
+   "why": "135.117 requires the oxygen briefing if the flight involves operations above 12,000 feet MSL [[6:36|14 CFR 135.117(a)(7)]]."
+  },
+  {
+   "q": "On a flight with a door removed, may a parent hold a 1-year-old on her lap?",
+   "options": [
+    "Yes, if the parent wears a supplemental restraint",
+    "Yes, a child under 2 may always be held",
+    "Yes, but only during cruise",
+    "No, a lap-held child is not allowed when the doors are opened or removed"
+   ],
+   "answer": 3,
+   "why": "A child under 2 may not be held by an adult when the aircraft doors are opened or removed, or when the adult uses a supplemental restraint system [[60:445|14 CFR 91.108(j)]]."
+  },
+  {
+   "q": "According to AC 120-71B, how does a \"flow\" relate to a checklist?",
+   "options": [
+    "The checklist replaces the flow in single-pilot airplanes",
+    "The flow is done from memory, then a checklist confirms its most critical items",
+    "The flow is read item by item from the checklist card",
+    "The flow is used only for emergencies"
+   ],
+   "answer": 1,
+   "why": "A flow is a sequence of actions done from memory, followed by a checklist of the most critical items and items that confirm the flow was done right [[59:17|AC 120-71B 5.1.2]]."
+  },
+  {
+   "q": "Your IFR GPS database is current but does not contain the RNAV approach you want. What does the AIM say?",
+   "options": [
+    "You may not fly it; approaches must be retrievable by name from the current database",
+    "Enter the waypoints by latitude and longitude from the chart",
+    "Fly it if you also have the paper chart",
+    "Fly it with ATC's permission"
+   ],
+   "answer": 0,
+   "why": "All approach procedures must be retrievable by name from the current airborne database; manually entered waypoints are not permitted for approaches [[33:92|AIM 1-1-17]]."
+  },
+  {
+   "q": "Under the cargo rules in 91.525 and 135.87, where must cargo NOT be carried?",
+   "options": [
+    "Behind the last row of seats",
+    "On an empty passenger seat",
+    "Directly above seated occupants",
+    "In a baggage compartment"
+   ],
+   "answer": 2,
+   "why": "Cargo carried under these rules must not be carried directly above seated passengers or occupants [[60:536|14 CFR 91.525(a)(3)(v)]] [[6:26|14 CFR 135.87(c)(5)]]."
+  },
+  {
+   "q": "AC 120-71B describes the flight mode annunciator as the source for what?",
+   "options": [
+    "Database expiration dates",
+    "\"Who is doing what\" in guidance and control of the flight path",
+    "Traffic and terrain alerts",
+    "Engine limits"
+   ],
+   "answer": 1,
+   "why": "The FMA shows the status of the autoflight systems and is the source for \"who is doing what\" [[59:29|AC 120-71B 6.9.2]]."
+  },
+  {
+   "q": "On a Part 135 flight, who may decide that a passenger's tablet won't interfere with the aircraft's systems?",
+   "options": [
+    "The pilot in command",
+    "The passenger, after reading the manual",
+    "The FAA inspector on board",
+    "The Part 119 certificate holder operating the aircraft"
+   ],
+   "answer": 3,
+   "why": "Under 135.144, the determination is made by the Part 119 certificate holder operating the aircraft [[6:46|14 CFR 135.144(c)]]."
+  },
+  {
+   "q": "Equipment the KOEL requires for night flight is inoperative. Under 91.213(d), you may:",
+   "options": [
+    "Defer it for a night flight if you placard it",
+    "Defer it for a day flight it isn't required for, but not for a night flight",
+    "Never fly the airplane until it is fixed",
+    "Defer it only with an MEL"
+   ],
+   "answer": 1,
+   "why": "Equipment the KOEL requires for a particular kind of operation may not be deferred for that operation under 91.213 [[58:9|AC 91-67A 1.8.9]] [[60:493|14 CFR 91.213(d)(2)(ii)]]."
+  },
+  {
+   "q": "Under 14 CFR 135.100, which is a critical phase of flight?",
+   "options": [
+    "Climbing through 6,000 feet after departure",
+    "Cruise at 8,500 feet",
+    "Cruise at 11,500 feet",
+    "Parked with the engine off"
+   ],
+   "answer": 0,
+   "why": "Critical phases include taxi, takeoff and landing ground operations and all flight below 10,000 feet except cruise [[6:33|14 CFR 135.100(c)]]. A climb through 6,000 feet is not cruise."
+  }
+ ],
+ "takeaways": [
+  "You are PIC even when the customer pays: brief the 91.107 items, then add the 135.117 items like a professional.",
+  "Doors-off flights follow 91.108: supplemental restraint, approved attachment point, and nobody unbuckles until you say so.",
+  "Checklists work only with discipline: flow, then check, anchored and called complete; restart if lost.",
+  "IFR databases must be current; approaches must come from the current database by name.",
+  "Tie cargo down so it can't shift, block an exit, overload the floor or sit above anyone.",
+  "Know the modes, step down a level when things change, and decide PED use under 91.21 or 135.144.",
+  "For-hire flights change what equipment is required, and sterile periods keep customer chat out of the climb."
+ ],
+ "cfi_notes": [
+  "Have commercial students brief to the 135.117 list even on Part 91 flights; it covers every ACS S2 item except PIC and propeller, which they add.",
+  "Many commercial students think 135.100 and 135.117 apply to their Part 91 flying. Clarify which rules are law for the flight and which are professional standards.",
+  "Outdated handbook line: PHAK 9-10 says deactivation \"may be as simple as\" pulling a breaker. AC 91-67A (2023) says deactivation can take more than a switch, is not preventive maintenance, and needs an authorized person's maintenance record entry [[58:24|AC 91-67A 4.2.2]]. 91.213(d)(3)(ii) says deactivation that involves maintenance follows Part 43 [[60:493|14 CFR 91.213(d)(3)(ii)]]. Teach the current AC.",
+  "Examiners often ask for a doors-off or photo-flight discussion; 91.108 is new to many instructors, so read it with the student.",
+  "Ask the student to call engaged and armed modes after every button push, and to step down a level when you give a surprise reroute [[30:51|RMH 7-2]].",
+  "Have the student show the database expiration date on both the panel GPS and the EFB, and explain what they would do if the cycle changes mid-flight [[39:12|AC 90-100A 10.a]].",
+  "Remind students of ACS Appendix 2: a failure to use ADM on any Task fails that Task and lists this Task's ADM element on the disapproval."
+ ],
+ "gaps": [
+  "No uploaded source gives airplane-specific briefing cards, baggage limits, floor limits, tie-down points or autopilot modes; use the POH/AFM and avionics supplements.",
+  "91.519, 91.523 and 91.525 (Part 91 subpart F) and 135.87, 135.100 and 135.117 do not legally apply to most single-engine Part 91 commercial flights; this lesson uses them as professional standards.",
+  "The sources cover the 91.108 restraint rules but not whether a given airplane may fly with a door removed; that comes from the POH/AFM or other approved data.",
+  "AC 120-51E and AC 120-71B are written for air carriers; their multi-pilot guidance applies here only when flying with an instructor, safety pilot or second pilot.",
+  "This Task's Skills elements have no numeric ACS tolerances."
+ ],
+ "activities": [
+  {
+   "type": "match",
+   "key": "h1",
+   "after": 2,
+   "title": "Which rule covers it?",
+   "intro": "Tap a rule, then tap what it covers.",
+   "pairs": [
+    {
+     "l": "14 CFR 91.107",
+     "r": "Brief, notify and seat everyone with belts fastened"
+    },
+    {
+     "l": "14 CFR 91.105",
+     "r": "Required crew at stations with belts fastened"
+    },
+    {
+     "l": "14 CFR 91.108",
+     "r": "Doors-off flights and supplemental restraints"
+    },
+    {
+     "l": "14 CFR 91.519",
+     "r": "Oral briefing in large and turbojet multiengine airplanes"
+    },
+    {
+     "l": "14 CFR 135.117",
+     "r": "Part 135 briefing, including seat backs and fire extinguishers"
+    },
+    {
+     "l": "14 CFR 91.517(b)",
+     "r": "Tell passengers out loud when signs aren't required"
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h2",
+   "after": 4,
+   "title": "Run a checklist the SOP way",
+   "intro": "You are flying with a second pilot. Use the arrows to put the steps of the Before Takeoff checklist in order, then tap Check.",
+   "steps": [
+    "Reach the anchor point, such as a set spot before the hold-short line",
+    "The assigned pilot calls \"Before Takeoff checklist\" out loud",
+    "The leading pilot challenges the first item",
+    "The other pilot checks that item and gives the response",
+    "Continue item by item to the last line",
+    "The leading pilot calls \"Before Takeoff checklist complete\""
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h3",
+   "after": 6,
+   "title": "Cargo and data numbers",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "On the takeoff roll, an unsecured 150-lb equipment case slides 40 inches aft. The airplane weighs 3,000 lb. How many inches aft does the CG move?",
+     "answer": 2,
+     "tol": 0.1,
+     "unit": "in",
+     "why": "Change in CG = weight shifted x distance / total weight = 150 x 40 / 3,000 = 6,000 / 3,000 = 2.0 inches aft [[22:24|W&B Handbook 2-4]]."
+    },
+    {
+     "q": "A survey case and its straps weigh 270 lb in total. Its base is 36 inches by 24 inches. What floor load does it put down, in pounds per square foot?",
+     "answer": 45,
+     "tol": 0.5,
+     "unit": "lb/sq ft",
+     "why": "Area = 36 x 24 / 144 = 864 / 144 = 6 sq ft. Floor load = 270 / 6 = 45 lb per sq ft [[22:81|W&B Handbook 9-9]] [[22:82|W&B Handbook 9-10]]."
+    },
+    {
+     "q": "The baggage floor limit is 50 lb per square foot. A box has a base of 24 inches by 18 inches, and its tie-down straps weigh 4 lb. What is the most the box itself may weigh?",
+     "answer": 146,
+     "tol": 0,
+     "unit": "lb",
+     "why": "Area = 24 x 18 / 144 = 432 / 144 = 3 sq ft. Total allowed = 50 x 3 = 150 lb. Subtract the straps: 150 - 4 = 146 lb [[22:81|W&B Handbook 9-9]]."
+    },
+    {
+     "q": "Databases are updated every 28 days. The current cycle became effective 22 days ago. How many days are left before it expires?",
+     "answer": 6,
+     "tol": 0,
+     "unit": "days",
+     "why": "28 - 22 = 6 days [[23:30|IFH 1-11]]. Before an IFR flight, confirm the time of use is before the expiration date and time [[33:92|AIM 1-1-17]]."
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h4",
+   "after": 7,
+   "title": "Read the autopilot interface",
+   "figure": "f6",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 44,
+     "y": 53,
+     "label": "Flight mode annunciator (FMA)"
+    },
+    {
+     "x": 25,
+     "y": 18,
+     "label": "Autopilot mode buttons"
+    },
+    {
+     "x": 6,
+     "y": 78,
+     "label": "Airspeed tape"
+    },
+    {
+     "x": 87,
+     "y": 75,
+     "label": "Altitude tape"
+    },
+    {
+     "x": 83,
+     "y": 93,
+     "label": "Current altitude readout"
+    },
+    {
+     "x": 44.5,
+     "y": 80.7,
+     "label": "Pitch scale"
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h5",
+   "after": 9,
+   "title": "Defer it or ground it?",
+   "intro": "Tap a clue, then tap where it belongs. Small piston airplane, no MEL. Assume the item is not on the VFR-day type certificate list, the equipment list or the KOEL, and not required by an AD, unless the clue says so.",
+   "buckets": [
+    "May defer under 91.213(d)",
+    "Cannot defer for this flight"
+   ],
+   "items": [
+    {
+     "t": "Landing light inop; paid passenger flight in daylight",
+     "b": 0
+    },
+    {
+     "t": "Autopilot inop; day VFR company flight",
+     "b": 0
+    },
+    {
+     "t": "Cabin reading light inop; day VFR flight for hire",
+     "b": 0
+    },
+    {
+     "t": "Landing light inop; paid passenger flight at night",
+     "b": 1
+    },
+    {
+     "t": "No flotation gear; paid flight over water beyond gliding distance from shore",
+     "b": 1
+    },
+    {
+     "t": "An item the KOEL lists as required for night; night flight planned",
+     "b": 1
+    },
+    {
+     "t": "An item an airworthiness directive requires to work",
+     "b": 1
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h6",
+   "after": 10,
+   "title": "True or false: distractions and devices",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "Under 135.100, pointing out sights of interest while climbing through 4,000 feet is fine if traffic is light.",
+     "a": false,
+     "why": "No. Below 10,000 feet except cruise is a critical phase, and pointing out sights of interest is not a duty needed for safe operation [[6:33|14 CFR 135.100(a),(c)]]."
+    },
+    {
+     "s": "Under 135.100, cruise flight at 8,500 feet is not a critical phase of flight.",
+     "a": true,
+     "why": "Yes. Critical phases include all flight below 10,000 feet except cruise [[6:33|14 CFR 135.100(c)]]."
+    },
+    {
+     "s": "Passengers on a Part 91 IFR flight may use any device they like, because 91.21 covers only airlines.",
+     "a": false,
+     "why": "No. 91.21 also covers any aircraft operated under IFR; only the listed devices, or ones the operator or PIC determines won't interfere, may be used [[60:438|14 CFR 91.21]]."
+    },
+    {
+     "s": "AC 91.21-1D says passengers should turn off phones, disable cellular transmitting, or use airplane mode once airborne.",
+     "a": true,
+     "why": "Yes. The FCC prohibits airborne cellular use, and operators should instruct passengers to do one of those three [[43:7|AC 91.21-1D 9.1-9.2]]."
+    },
+    {
+     "s": "If a cabin door pops open after liftoff, you should land as quickly as possible.",
+     "a": false,
+     "why": "No. Don't rush; climb to pattern altitude, fly a normal pattern and land normally. Rushing can lead to steep turns at low altitude [[24:366|AFH 18-17]]."
+    },
+    {
+     "s": "Monitoring lapses can happen during quiet, low-workload periods, not only busy ones.",
+     "a": true,
+     "why": "Yes. Poor monitoring also shows up in low workload, often from boredom or complacency [[59:24|AC 120-71B 6.3.6]]."
+    }
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 12,
+   "title": "The doors-off photo flight",
+   "intro": "You are a commercial pilot hired by a real estate photographer for a 1-hour Part 91 day VFR photo flight in N731KP, a Cessna 182 with a glass panel and autopilot. Assume the airplane is approved to fly with the right rear door removed. Aboard: the photographer and her 16-year-old assistant.",
+   "steps": [
+    {
+     "s": "During preflight the panel GPS shows its database expired three days ago. Your route passes under a Class C shelf.",
+     "options": [
+      "Go, and follow the moving map as usual since it's VFR",
+      "Cancel: an expired database makes the VFR flight illegal",
+      "Update it if you can; if not, check the route and Class C boundaries on a current sectional and don't rely on the map near the airspace",
+      "Turn the GPS off and fly by dead reckoning only"
+     ],
+     "answer": 2,
+     "why": "There is no requirement to update for VFR, but an outdated moving map should not be used around critical airspace; verify with current products like a sectional [[33:90|AIM 1-1-17]]."
+    },
+    {
+     "s": "The photographer brought her own harness and lanyard. She wants to unbuckle over the target and lean toward the open door.",
+     "options": [
+      "Let her unbuckle once airborne, since she brought a harness",
+      "Before takeoff, get confirmation it is serviceable and fits, have it clipped to an FAA-approved airframe point outside the flight deck, brief and have her demonstrate the release; she unbuckles only when you say so",
+      "Clip her lanyard to the seat belt anchor so it is close at hand",
+      "Allow it only for short periods, without a harness"
+     ],
+     "answer": 1,
+     "why": "The PIC must receive confirmation of serviceability before each takeoff and has final authority [[60:444|14 CFR 91.108(f)]]. It attaches to an FAA-approved airframe point, not in the flight deck or on a belt anchor unless that point is approved [[60:444|14 CFR 91.108(e)(1)]]. Users are briefed and demonstrate before ground movement [[60:445|14 CFR 91.108(g)-(h)]], and release only when the PIC authorizes [[60:443|14 CFR 91.108(b)(2)]]."
+    },
+    {
+     "s": "The assistant sets a 20-lb gear bag loose on the seat beside the open door.",
+     "options": [
+      "Tie it down with a belt or strap so it can't shift, keep it clear of the doorway and exit, and keep everything off the glare shield",
+      "Leave it; 20 lb is too light to matter",
+      "Have him hold it on his lap for the whole flight",
+      "Put it on the glare shield so you can watch it"
+     ],
+     "answer": 0,
+     "why": "Cargo should be tied down so it can't shift, kept clear of exits, and stowed that way for takeoff and landing [[60:536|14 CFR 91.525(a)(3)]] [[6:26|14 CFR 135.87(c)(6)]]. Objects on the glare shield must be removed and stowed [[34:188|AIM 8-1-8]]."
+    },
+    {
+     "s": "Climbing through 1,800 feet in the departure area, the photographer starts asking about houses below and wants a steep turn right now.",
+     "options": [
+      "Make the turn now to keep the customer happy",
+      "Hand her the controls so she can line up the shot",
+      "Turn the intercom off so you can concentrate",
+      "Say \"Stand by until we're clear of the departure area,\" keep flying and scanning, then set up the turns at a safe altitude"
+     ],
+     "answer": 3,
+     "why": "Keep the flight deck sterile from departure until clear of the local airspace [[1:64|PHAK 2-25]]. Inconveniencing passengers is less important than safety [[30:55|RMH 8-2]]."
+    },
+    {
+     "s": "Over the target on autopilot, ATC calls traffic and gives you a heading and a new altitude while you are reprogramming the GPS.",
+     "options": [
+      "Keep programming; the autopilot is flying",
+      "Step down to heading and altitude modes or hand-fly, comply, then reprogram when workload drops",
+      "Ask the photographer to finish the GPS entry",
+      "Turn off the autopilot and the GPS for the rest of the flight"
+     ],
+     "answer": 1,
+     "why": "When the situation changes, move to a lower level of automation that keeps the path under control while you handle the new task; failing to do so is one of the most common errors [[30:51|RMH 7-2]]."
+    }
+   ]
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "You fly sightseeing tours for a Part 135 operator. Climbing through 3,000 feet, a passenger asks about the lighthouse below. What does 135.100 require?",
+   "options": [
+    "Answer briefly, since the passenger paid for the tour",
+    "Answer only if the autopilot is engaged",
+    "Hold sightseeing talk; below 10,000 feet except cruise is a critical phase, and pointing out sights is not a safety duty",
+    "Answer if ATC is not talking to you"
+   ],
+   "answer": 2,
+   "why": "During critical phases only safety duties are allowed, and announcements pointing out sights of interest are named as not required for safe operation [[6:33|14 CFR 135.100(a),(c)]]."
+  },
+  {
+   "q": "A passenger on your doors-off photo flight is 14 and wants to use a supplemental restraint to lean out with the camera. What is the rule?",
+   "options": [
+    "Allowed if a parent signs a waiver",
+    "Not allowed; individuals under 15 may not use a supplemental restraint system",
+    "Allowed if the harness fits",
+    "Allowed only below 1,000 feet AGL"
+   ],
+   "answer": 1,
+   "why": "91.108 does not permit anyone less than 15 years of age to use a supplemental restraint system [[60:445|14 CFR 91.108(i)(2)]]."
+  },
+  {
+   "q": "Flying with a second pilot as PM, you are one dot high on the glidepath. The PM calls \"one dot high\" twice and you don't respond or correct. What does the AC 120-71B example show the PM doing next?",
+   "options": [
+    "Calling \"I have control, going around\" and flying the go-around, if the SOP says so",
+    "Waiting until you are two dots high",
+    "Writing it up after landing",
+    "Disconnecting the autopilot and handing control back to you"
+   ],
+   "answer": 0,
+   "why": "In the AC's example, if the PF doesn't respond to two successive challenges, the PM, per SOP and if safety indicates, calls \"I have control, going around\" and becomes PF [[59:26|AC 120-71B 6.6.2.3]]."
+  },
+  {
+   "q": "Your IFR flight departs at 0700Z, and a new database cycle becomes effective at 0901Z while you are en route. What does AC 90-100A advise?",
+   "options": [
+    "Nothing; the database only needs to be current at departure",
+    "Cancel the flight",
+    "Delete the database after 0901Z and fly VOR only",
+    "Have a procedure to ensure the data stays accurate, such as comparing old and new charts for the fixes you will use"
+   ],
+   "answer": 3,
+   "why": "Databases are expected to be current for the whole flight. If the cycle changes en route, establish procedures to ensure accuracy, such as comparing new and old charts [[39:12|AC 90-100A 10.a]]."
+  },
+  {
+   "q": "A customer's case weighs 300 lb, including its straps, and has a 24-inch by 24-inch base. The floor limit is 50 lb per square foot. What is the case's floor load, and can it go there?",
+   "options": [
+    "12.5 lb/sq ft; yes",
+    "50 lb/sq ft; yes, exactly at the limit",
+    "75 lb/sq ft; no, it exceeds the limit",
+    "150 lb/sq ft; no"
+   ],
+   "answer": 2,
+   "why": "Area = 24 x 24 / 144 = 4 sq ft. Floor load = 300 / 4 = 75 lb per sq ft, more than the 50 limit [[22:81|W&B Handbook 9-9]] [[22:82|W&B Handbook 9-10]]."
+  },
+  {
+   "q": "An unsecured 100-lb cooler slides 60 inches aft in a 2,500-lb airplane. How far does the CG move?",
+   "options": [
+    "0.4 inch aft",
+    "2.4 inches aft",
+    "4.2 inches aft",
+    "24 inches aft"
+   ],
+   "answer": 1,
+   "why": "Change in CG = 100 x 60 / 2,500 = 6,000 / 2,500 = 2.4 inches aft [[22:24|W&B Handbook 2-4]]."
+  },
+  {
+   "q": "Halfway through your before-start checklist, the line technician leans in to ask about fuel. You lose your place. What does AC 120-71B recommend?",
+   "options": [
+    "Skip to the next item you think you missed",
+    "Start the engine and finish the checklist during taxi",
+    "Call the checklist complete, since most items were done",
+    "Redo that section of the checklist from the beginning"
+   ],
+   "answer": 3,
+   "why": "Anytime you are not clear on your progress, redo the appropriate section from the beginning [[59:22|AC 120-71B 5.6.2]]. Ramp staff should wait until you finish before talking to you [[59:22|AC 120-71B 5.6.1]]."
+  },
+  {
+   "q": "Under AC 91-78A, which use of a tablet EFB is NOT acceptable for a Part 91 flight?",
+   "options": [
+    "Using it in place of required navigation equipment",
+    "Showing charts that match the paper charts they replace",
+    "Showing a current POH checklist",
+    "Running weight and balance with data you verified"
+   ],
+   "answer": 0,
+   "why": "An EFB can replace paper only if it does not replace any navigation, communication or surveillance system Part 91 requires [[42:3|AC 91-78A 9.1]]."
+  },
+  {
+   "q": "Your safety pilot changes the selected altitude without saying anything, and you notice only when the airplane starts to climb. Which CRM behavior was missing?",
+   "options": [
+    "Crew self-critique after the flight",
+    "Conflict resolution",
+    "Initial and changed entries to automated systems are verbalized and acknowledged",
+    "Calling for checklists at the right time"
+   ],
+   "answer": 2,
+   "why": "AC 120-51E lists verbalizing and acknowledging initial and changed automation entries as a CRM behavior marker [[8:19|AC 120-51E App. 1]]."
+  },
+  {
+   "q": "Day VFR, small piston airplane, no MEL. The landing light is inoperative and it isn't on the type certificate list, equipment list or KOEL, and no AD requires it. Tonight you have a paid night flight. What applies?",
+   "options": [
+    "You can defer it with a placard for both flights",
+    "Defer it today; tonight's paid night flight needs a working landing light",
+    "Neither flight may go",
+    "You may fly tonight if you avoid towered airports"
+   ],
+   "answer": 1,
+   "why": "91.205 requires an electric landing light only for flight for hire at night [[60:487|14 CFR 91.205(c)(4)]], and items 91.205 requires for the flight can't be deferred under 91.213(d) [[60:493|14 CFR 91.213(d)(2)(iii)]]."
+  },
+  {
+   "q": "Before a long single-pilot flight, which preparation does the RMH say lets you handle an alternator failure \"with crew-like efficiency\"?",
+   "options": [
+    "Memorizing the full electrical schematic",
+    "Planning to ask ATC to pick a diversion airport",
+    "Turning off the avionics to save power before departure",
+    "Organizing airports, frequencies and navaids along the route before flight"
+   ],
+   "answer": 3,
+   "why": "In the RMH example, a pilot who organized information like airports, frequencies and navaids before flight can divert with crew-like efficiency [[30:57|RMH 8-4]]."
+  },
+  {
+   "q": "According to AC 91-67A, who must make the maintenance record entry when an inoperative item is deactivated for a 91.213(d) deferral?",
+   "options": [
+    "A person authorized to approve the aircraft for return to service under 43.7",
+    "Any passenger who saw it done",
+    "The pilot, in the pilot logbook",
+    "No entry is needed if a placard is installed"
+   ],
+   "answer": 0,
+   "why": "Regardless of the method of deactivation, a person authorized under 43.7 must make the 43.9 maintenance record entry, and no one may operate the aircraft without it [[58:24|AC 91-67A 4.2.2]]."
+  },
+  {
+   "q": "You brief a new safety pilot before a practice approach flight. Which approach best fits the CRM behavior markers for briefings?",
+   "options": [
+    "Read the plan quickly and ask for no questions to save time",
+    "Brief only the weather",
+    "Use \"we\" language, invite questions, cover likely problems, and say who handles which automation tasks",
+    "Skip the briefing because the safety pilot is rated"
+   ],
+   "answer": 2,
+   "why": "Good briefings are interactive, use \"we\" language, cover potential problems, and set duties for automated systems for the PF and PM [[8:17|AC 120-51E App. 1]]."
+  }
+ ]
+}
