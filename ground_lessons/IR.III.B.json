@@ -1045,8 +1045,48 @@
  ],
  "activities": [
   {
-   "type": "match",
+   "type": "label",
    "key": "h1",
+   "after": 1,
+   "title": "Name the parts of a hold",
+   "figure": "f7",
+   "intro": "This IPH figure comes back later in the lesson. Look at the Bonanza's hold: northeast of the 16 DME fix on the 030° radial, right turns, turning at 21 DME. Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 58.7,
+     "y": 31.5,
+     "label": "Holding fix"
+    },
+    {
+     "x": 64.3,
+     "y": 12.2,
+     "label": "Inbound leg"
+    },
+    {
+     "x": 55.5,
+     "y": 20.7,
+     "label": "Outbound leg"
+    },
+    {
+     "x": 61.4,
+     "y": 5.5,
+     "label": "Outbound end turn"
+    },
+    {
+     "x": 49.5,
+     "y": 27.5,
+     "label": "Holding side"
+    },
+    {
+     "x": 70,
+     "y": 8,
+     "label": "Nonholding side"
+    }
+   ]
+  },
+  {
+   "type": "match",
+   "key": "h2",
    "after": 2,
    "title": "Take apart a holding clearance",
    "intro": "Tap a piece of the clearance, then what it tells you.",
@@ -1079,7 +1119,7 @@
   },
   {
    "type": "sort",
-   "key": "h2",
+   "key": "h3",
    "after": 4,
    "title": "Pick the entry: hold east on the 090 radial, right turns",
    "intro": "Tap a clue, then tap where it belongs.",
@@ -1121,7 +1161,7 @@
   },
   {
    "type": "order",
-   "key": "h3",
+   "key": "h4",
    "after": 5,
    "title": "Fly a parallel entry",
    "intro": "Use the arrows to put the steps in order, then tap Check.",
@@ -1136,8 +1176,127 @@
    ]
   },
   {
+   "type": "decide",
+   "key": "h5",
+   "after": 6,
+   "title": "An unexpected hold at DUNKS",
+   "intro": "You are flying N4521K IFR at 7,000 ft, direct to the DUNKS VOR on a heading of 080°, about 12 minutes out. The wind is from the southwest at 20 knots. At 1508 Center calls: \"N4521K, hold north of DUNKS VOR on the 360 radial, maintain 7,000, expect further clearance 1540.\" No hold is charted at DUNKS.",
+   "steps": [
+    {
+     "s": "You have just heard the clearance. What do you do first?",
+     "options": [
+      "Read it back and ask which way to turn, since no turns were given",
+      "Read it back, picture the hold, pick the entry from the heading you expect at DUNKS, and note the EFC",
+      "Answer \"roger\" and plan the hold when you reach the VOR",
+      "Slow to holding speed right away, 12 minutes out"
+     ],
+     "answer": 1,
+     "why": "ATC states the turn direction only for left turns, on request, or when the controller thinks it necessary, so no turns given means right turns [[33:383|AIM 5-3-8i]] [[29:111|IPH 2-51]]. Pick the entry from your heading on arrival at the fix [[33:391|AIM 5-3-8j8(d)]], and note the EFC so you can plan fuel and radio failure [[29:111|IPH 2-51]]. \"Roger\" only means ATC received you, not that you understood [[29:111|IPH 2-51]]."
+    },
+    {
+     "s": "The inbound course is 180° and the holding side is west. Your heading at DUNKS will be about 080°. Which entry do you plan?",
+     "options": [
+      "Direct",
+      "Teardrop",
+      "Parallel",
+      "Direct, because 080° is within 5° of a sector line"
+     ],
+     "answer": 2,
+     "why": "For this hold the 70° line runs toward 110° and 290°. Headings from 360° to 110° are in the parallel sector, and 080° is 30° from the line, well outside the ±5° allowance [[23:303|IFH Figure 10-6]] [[33:391|AIM 5-3-8j8(d)]] [[33:386|AIM 5-3-8j3(a)]]."
+    },
+    {
+     "s": "At 1516 you are 4 minutes from DUNKS, still at cruise power.",
+     "options": [
+      "Keep cruise power until you cross DUNKS, then slow down",
+      "Slow to your holding speed and set holding power now",
+      "Keep cruise: you are already under the 230 KIAS limit, so nothing changes",
+      "Start down to the minimum holding altitude to save fuel"
+     ],
+     "answer": 1,
+     "why": "ATC gave you advance notice, so be at or below holding speed at least 3 minutes before the fix [[33:390|AIM 5-3-8j8(a)]]. Slowing on the way can shorten the hold and saves fuel [[29:112|IPH 2-52]]. Keep the last assigned altitude unless the clearance gives a new one [[29:111|IPH 2-51]]."
+    },
+    {
+     "s": "At 1520 the TO/FROM indicator makes its first full reversal. What now?",
+     "options": [
+      "Turn right to 360° and fly outbound on the west side",
+      "Turn left to 360° on the east (nonholding) side for 1 minute, note the time, and report time and altitude",
+      "Turn right to about 330° for 1 minute, then turn right to intercept 180° inbound",
+      "Hold 080° for 1 minute, then turn to 360°"
+     ],
+     "answer": 1,
+     "why": "Begin the turn at the first complete reversal of the TO/FROM indicator [[33:382|AIM 5-3-8g]]. A parallel entry flies outbound on the nonholding side for 1 minute [[33:386|AIM 5-3-8j3(a)]]. Report the time and altitude on reaching the clearance limit [[33:382|AIM 5-3-8f]]. The 330° heading is a teardrop entry, the wrong one from this sector [[33:386|AIM 5-3-8j3(b)]]."
+    },
+    {
+     "s": "You are established. To track 180° inbound you need a heading of 187°. What heading do you fly on the next outbound leg?",
+     "options": [
+      "339°",
+      "353°",
+      "021°",
+      "360°, and fix it with timing only"
+     ],
+     "answer": 0,
+     "why": "You correct 7° right inbound, so outbound you correct three times as much the other way: 360° - 21° = 339° [[33:391|AIM 5-3-8j8(c)]]. Correct on the legs, not in the turns [[23:301|IFH 10-10]]."
+    },
+    {
+     "s": "At 1532 Center says: \"N4521K, revised EFC 1615.\"",
+     "options": [
+      "Acknowledge and keep holding; you planned fuel before takeoff",
+      "Redo the fuel math (hold to 1615, approach, alternate, 45 minutes) against fuel on board, and tell ATC now if it won't work",
+      "Say \"minimum fuel\" so ATC moves you up the line",
+      "Leave DUNKS at 1540, your first EFC"
+     ],
+     "answer": 1,
+     "why": "A new EFC means new fuel math. You still need fuel to the destination, then the alternate, then 45 minutes at normal cruise [[60:468|14 CFR 91.167]] [[60:469|14 CFR 91.167(a)(3)]]. Compare your time and fuel record with the plan [[29:112|IPH 2-52]]. \"Minimum fuel\" does not get priority [[34:10|AIM 5-5-15]]."
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h6",
+   "after": 9,
+   "title": "Hold math: wind, laps and fuel",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "Inbound course 315°. To track it you need a heading of 324°. What heading do you fly outbound?",
+     "answer": 108,
+     "tol": 0,
+     "unit": "°",
+     "why": "Inbound you correct 9° right. Outbound, triple it and correct the other way: 9 x 3 = 27° left. Outbound course 135° - 27° = 108° [[33:391|AIM 5-3-8j8(c)]]."
+    },
+    {
+     "q": "No wind, at 5,000 ft. You fly 1-minute legs and standard-rate turns (3° per second). How many minutes does one full circuit take?",
+     "answer": 4,
+     "tol": 0,
+     "unit": "min",
+     "why": "Each 180° turn at 3° per second takes 60 seconds. Two legs of 1 minute plus two turns of 1 minute = 4 minutes [[33:391|AIM 5-3-8j8(b)]] [[33:387|AIM 5-3-8j4(a)]]."
+    },
+    {
+     "q": "You cross the fix inbound at 1412. Your EFC is 1430, and each circuit takes 4 minutes. How many full circuits fit before the EFC?",
+     "answer": 4,
+     "tol": 0,
+     "unit": "circuits",
+     "why": "1412 to 1430 is 18 minutes. 18 ÷ 4 = 4.5, so 4 full circuits bring you back over the fix at 1428. Then plan the last lap to leave as close to 1430 as you can [[29:111|IPH 2-51]] [[33:391|AIM 5-3-8k]]."
+    },
+    {
+     "q": "You burn 7.5 GPH at holding power. You start holding at 1405 and expect to leave at your EFC, 1445. How many gallons will the hold use?",
+     "answer": 5,
+     "tol": 0.2,
+     "unit": "gal",
+     "why": "1405 to 1445 is 40 minutes. 7.5 GPH x 40/60 h = 5.0 gallons. Keep a time and fuel record and compare the actual burn with the plan [[29:112|IPH 2-52]]."
+    },
+    {
+     "q": "At 1530 you have 26 gallons and burn 9 GPH. Your EFC is now 1610. After the hold you need 15 minutes for the approach and landing, 30 minutes to the alternate, and the 45-minute reserve. How many minutes of margin do you have?",
+     "answer": 43,
+     "tol": 2,
+     "unit": "min",
+     "why": "Fuel on board lasts 26 ÷ 9 x 60 = about 173 minutes. You need 40 (hold) + 15 + 30 + 45 = 130 minutes. Margin: 173 - 130 = about 43 minutes [[60:468|14 CFR 91.167]] [[60:469|14 CFR 91.167(a)(3)]]."
+    }
+   ]
+  },
+  {
    "type": "tf",
-   "key": "h4",
+   "key": "h7",
    "after": 10,
    "title": "True or false: holding rules",
    "intro": "Decide if each statement is true or false.",
