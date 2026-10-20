@@ -1,0 +1,1466 @@
+{
+ "task_code": "IR.II.B",
+ "task_title": "Aircraft Flight Instruments and Navigation Equipment",
+ "area": "Area II. Preflight Procedures",
+ "minutes": 94,
+ "objective": "By the end of this lesson you can explain how each flight instrument and navigation system in your airplane works and fails, check that it is legal and working for IFR, and manage the GPS, autopilot and EFB so they help you instead of surprising you.",
+ "why": "In the clouds your instruments are your only view of the world. A pilot who knows what each one needs to work, how it lies when it fails, and what the rules require can catch a problem on the ramp instead of in IMC.",
+ "prereading": [
+  {
+   "res": "23",
+   "pages": [
+    96,
+    124
+   ],
+   "printed": "IFH Ch 5, 5-1 to 5-29",
+   "what": "Pitot-static instruments, altimeter errors, compass errors, gyros and their power, AHRS, ADC, flight director, autopilot, FMS, PFD, MFD and ADS-B.",
+   "label": "IFH Ch 5, 5-1 to 5-29"
+  },
+  {
+   "res": "23",
+   "pages": [
+    131,
+    133
+   ],
+   "printed": "IFH 5-36 to 5-38",
+   "what": "Systems preflight procedures: walk-around, records, before and after engine start, taxi and before takeoff checks.",
+   "label": "IFH 5-36 to 5-38"
+  },
+  {
+   "res": "23",
+   "pages": [
+    251,
+    262
+   ],
+   "printed": "IFH Ch 9, 9-8 to 9-19",
+   "what": "VOR, the HSI, VOR errors and receiver checks, DME and slant range.",
+   "label": "IFH Ch 9, 9-8 to 9-19"
+  },
+  {
+   "res": "23",
+   "pages": [
+    268,
+    283
+   ],
+   "printed": "IFH Ch 9, 9-25 to 9-40",
+   "what": "GPS, RAIM, WAAS, the ILS, marker beacons and ILS receivers.",
+   "label": "IFH Ch 9, 9-25 to 9-40"
+  },
+  {
+   "res": "23",
+   "pages": [
+    329,
+    333
+   ],
+   "printed": "IFH Ch 11, 11-4 to 11-8",
+   "what": "Display failure and reversionary mode, alternator failure in glass airplanes, vacuum and pitot-static failures.",
+   "label": "IFH Ch 11, 11-4 to 11-8"
+  },
+  {
+   "res": "33",
+   "pages": [
+    89,
+    97
+   ],
+   "printed": "AIM 1-1-17",
+   "what": "Current rules for IFR GPS: approved equipment, RAIM, database currency, alternates and CDI sensitivity.",
+   "label": "AIM 1-1-17"
+  },
+  {
+   "res": "42",
+   "pages": [
+    1,
+    4
+   ],
+   "printed": "AC 91-78A",
+   "what": "Using an electronic flight bag in place of paper under part 91.",
+   "label": "AC 91-78A"
+  }
+ ],
+ "warmup": "You are in the clouds at 6,000 ft. The airspeed slowly unwinds toward zero, but the attitude indicator shows level flight and the engine sounds normal. What failed, and how would you know for sure?",
+ "key_terms": [
+  {
+   "term": "Alternate static source",
+   "def": "A valve, usually in the cabin, that gives the altimeter, VSI and airspeed indicator static air if the outside static ports block."
+  },
+  {
+   "term": "AHRS",
+   "def": "Attitude and Heading Reference System. Solid-state sensors that replace the attitude, heading and turn gyros on a glass panel."
+  },
+  {
+   "term": "ADC",
+   "def": "Air Data Computer. Turns pitot pressure, static pressure and temperature into altitude, airspeed, TAS and air temperature for the displays."
+  },
+  {
+   "term": "Reversionary mode",
+   "def": "Backup display mode: when one screen fails, the other shows the flight instruments and engine data together."
+  },
+  {
+   "term": "VOT",
+   "def": "VOR test facility. A test signal on the ground for checking your VOR receiver: centered needle reads 0° FROM or 180° TO."
+  },
+  {
+   "term": "Reverse sensing",
+   "def": "The needle points the wrong way because the OBS or course is set to the reciprocal. You must fly away from the needle."
+  },
+  {
+   "term": "Slant range",
+   "def": "DME distance measured in a straight line from the airplane to the station, not along the ground."
+  },
+  {
+   "term": "RAIM",
+   "def": "Receiver Autonomous Integrity Monitoring. The GPS receiver checks itself for a bad satellite; it needs at least one extra satellite to do it."
+  },
+  {
+   "term": "WAAS",
+   "def": "Wide Area Augmentation System. Ground stations and geostationary satellites that correct GPS errors and add integrity, allowing LPV approaches."
+  },
+  {
+   "term": "Flux valve",
+   "def": "Remote magnetic sensor, often in a wingtip, that keeps a slaved heading indicator or HSI aligned with magnetic north."
+  },
+  {
+   "term": "EFB",
+   "def": "Electronic flight bag. A portable or installed display that shows charts, checklists and other paper information or does calculations."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "What the airplane must have for IFR",
+   "kind": "knowledge",
+   "codes": [
+    "IR.II.B.K1",
+    "IR.II.B.K2a"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Every instrument and item the rule lists must be on board and in operable condition [[60:486|14 CFR 91.205(a)]]. For IFR you need everything required for day VFR (and night VFR at night), plus the items below [[60:488|14 CFR 91.205(d)]]."
+    },
+    {
+     "table": {
+      "head": [
+       "14 CFR 91.205(d) item",
+       "What it means in the panel"
+      ],
+      "rows": [
+       [
+        "Two-way radio communication and navigation equipment suitable for the route [[60:488|14 CFR 91.205(d)(2)]]",
+        "Radios and nav receivers that can fly the route you filed"
+       ],
+       [
+        "Gyroscopic rate-of-turn indicator [[60:488|14 CFR 91.205(d)(3)]]",
+        "Turn coordinator or turn-and-slip (or the turn rate on a PFD)"
+       ],
+       [
+        "Slip-skid indicator [[60:488|14 CFR 91.205(d)(4)]]",
+        "The ball"
+       ],
+       [
+        "Sensitive altimeter adjustable for barometric pressure [[60:488|14 CFR 91.205(d)(5)]]",
+        "Altimeter with a Kollsman window"
+       ],
+       [
+        "Clock with hours, minutes and seconds, sweep-second pointer or digital [[60:488|14 CFR 91.205(d)(6)]]",
+        "Panel clock or the PFD timer"
+       ],
+       [
+        "Generator or alternator of adequate capacity [[60:488|14 CFR 91.205(d)(7)]]",
+        "A working charging system"
+       ],
+       [
+        "Gyroscopic pitch and bank indicator [[60:488|14 CFR 91.205(d)(8)]]",
+        "Attitude indicator"
+       ],
+       [
+        "Gyroscopic direction indicator [[60:488|14 CFR 91.205(d)(9)]]",
+        "Heading indicator, HSI, or the PFD heading display"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "GRABCARD: Generator, Radios, Attitude, Ball, Clock, Altimeter (sensitive), Rate of turn, Directional gyro. Plus everything for VFR."
+     }
+    },
+    {
+     "p": "The rate-of-turn indicator is not required in an airplane that has a third attitude instrument usable through 360° of pitch and roll, installed per 14 CFR 121.305(j) [[60:488|14 CFR 91.205(d)(3)(i)]]. At and above FL 240, if VOR equipment is required, you also need DME or a suitable RNAV system [[60:488|14 CFR 91.205(e)]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "'Suitable for the route' depends on the nav system. With un-augmented GPS you must also carry another approved means of navigation, such as VOR, for the route [[33:92|AIM 1-1-17]]. WAAS avionics do not need other nav equipment for the route [[33:104|AIM 1-1-18]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Is a DME required for an IFR flight at 8,000 ft in a single-engine airplane?",
+    "a": "No. 91.205(d) lists radios suitable for the route, not DME. DME (or suitable RNAV) is added only at and above FL 240 when VOR is required [[60:488|14 CFR 91.205(e)]]."
+   }
+  },
+  {
+   "title": "The pitot-static system and its three instruments",
+   "kind": "knowledge",
+   "codes": [
+    "IR.II.B.K1a"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The pitot tube points into the wind and senses ram (impact) pressure. It feeds the airspeed indicator, or an air data computer in a glass airplane [[23:97|IFH 5-2]]. Static ports sense still air pressure. They are often paired, one on each side, so a sideslip does not give a false reading, and they may be heated [[23:97|IFH 5-2]]."
+    },
+    {
+     "p": "The altimeter and VSI use only static pressure. The airspeed indicator is the only one that uses both pitot and static pressure [[23:97|IFH 5-2]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "table": {
+      "head": [
+       "Problem",
+       "What you see"
+      ],
+      "rows": [
+       [
+        "Pitot tube blocked, drain hole open",
+        "Airspeed slowly drops to zero [[23:97|IFH 5-2]]"
+       ],
+       [
+        "Pitot tube and drain hole both blocked",
+        "Airspeed acts like an altimeter: it rises in a climb and falls in a descent [[23:98|IFH 5-3]]"
+       ],
+       [
+        "Static port blocked",
+        "Altimeter freezes at the altitude where it blocked. VSI reads zero. Airspeed reads low above that altitude and high below it [[23:98|IFH 5-3]]"
+       ],
+       [
+        "Alternate static source in use",
+        "Cabin air is at lower pressure, so the altimeter reads a little high, airspeed reads high, and the VSI shows a brief climb [[23:98|IFH 5-3]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "No alternate static in an unpressurized airplane? You could break the VSI glass. The VSI is not required for IFR, and this gives the altimeter and airspeed static air, but it adds its own errors [[23:333|IFH 11-8]]."
+     }
+    },
+    {
+     "p": "**VSI.** It shows rate of climb or descent from the rate of pressure change. It lags a few seconds, but it shows a trend sooner than the altimeter [[23:103|IFH 5-8]]."
+    },
+    {
+     "p": "**Airspeeds.** Indicated airspeed is what the dial shows. Calibrated airspeed corrects it for instrument and position error, from the POH chart. True airspeed corrects calibrated airspeed for nonstandard pressure and temperature [[23:104|IFH 5-9]]. Position error is worst at high angles of attack with gear and flaps down [[23:98|IFH 5-3]]."
+    }
+   ],
+   "check": {
+    "q": "In a climb through cloud, the altimeter stops moving and the VSI sits on zero. What failed and what do you do?",
+    "a": "The static system is blocked, probably by ice [[23:98|IFH 5-3]]. Open the alternate static source and expect slightly high altimeter and airspeed readings [[23:98|IFH 5-3]]."
+   }
+  },
+  {
+   "title": "Altimeter errors, encoders and the required inspections",
+   "kind": "knowledge",
+   "codes": [
+    "IR.II.B.K1a",
+    "IR.II.B.K1c"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "A sensitive altimeter has a stack of aneroid capsules and a Kollsman window you set from 28.00 to 31.00 inHg. Changing the setting by 1 inHg changes the reading by 1,000 ft [[23:99|IFH 5-4]]."
+    },
+    {
+     "p": "**Preflight check.** Set the current altimeter setting. The altimeter should read the field elevation. If it is off by more than 75 ft, have a repair station check it [[23:100|IFH 5-5]]. The ramp may not be at field elevation, so recheck in the run-up area before you decide [[23:132|IFH 5-37]]."
+    },
+    {
+     "p": "**Temperature error.** In air warmer than standard you are higher than indicated. In colder air you are lower, which can cost you obstacle clearance [[23:100|IFH 5-5]]. At -10 °C and 500 ft above the airport you may be about 50 ft lower than indicated [[23:101|IFH 5-6]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "From hot to cold, or from high to low, look out below [[23:102|IFH 5-7]]."
+     }
+    },
+    {
+     "p": "**Encoder.** The encoding altimeter sends the transponder your pressure altitude, always referenced to 29.92. Your Kollsman setting does not change what ATC sees [[23:102|IFH 5-7]]. The reported altitude must agree within 125 ft of the altimeter you fly by [[60:495|14 CFR 91.217]]."
+    },
+    {
+     "table": {
+      "head": [
+       "What",
+       "Rule",
+       "When"
+      ],
+      "rows": [
+       [
+        "Each static system, altimeter and altitude reporting system",
+        "14 CFR 91.411, for IFR in controlled airspace",
+        "Tested within the preceding 24 calendar months, and again after the static system is opened (except drain and alternate static valves) [[60:524|14 CFR 91.411(a)]]"
+       ],
+       [
+        "ATC transponder",
+        "14 CFR 91.413",
+        "Tested within the preceding 24 calendar months [[60:525|14 CFR 91.413(a)]]"
+       ],
+       [
+        "VOR receiver",
+        "14 CFR 91.171, to use VOR under IFR",
+        "Checked within the preceding 30 days, or maintained under an approved procedure [[60:470|14 CFR 91.171(a)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "You may not fly IFR in controlled airspace above the highest altitude to which your altimeters and altitude reporting system were tested [[60:525|14 CFR 91.411(d)]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "The pitot-static check was done 25 calendar months ago. Can you fly IFR in controlled airspace?",
+    "a": "No. 91.411 requires the static system, altimeter and encoder to be tested within the preceding 24 calendar months [[60:524|14 CFR 91.411(a)]]."
+   }
+  },
+  {
+   "title": "Gyroscopic instruments and their power",
+   "kind": "knowledge",
+   "codes": [
+    "IR.II.B.K1b"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "A spinning gyro has two traits. Rigidity: it resists being tilted. Precession: a push shows up 90° away. The attitude and heading indicators use rigidity; turn indicators use precession [[23:111|IFH 5-16]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Instrument",
+       "How it works",
+       "Limits and errors"
+      ],
+      "rows": [
+       [
+        "Attitude indicator",
+        "Gyro with a vertical spin axis holds the horizon disc still while the airplane moves around it [[23:114|IFH 5-19]]",
+        "Takes 2 to 3 minutes (up to 5) to erect. Slight nose-up in rapid acceleration, nose-down in rapid deceleration, small errors after a 180° turn that fix themselves in about a minute [[23:114|IFH 5-19]]"
+       ],
+       [
+        "Heading indicator",
+        "Gyro with a horizontal spin axis; not north seeking [[23:115|IFH 5-20]]",
+        "Apparent drift of 15° per hour from the Earth's rotation. Check it against the compass at least every 15 minutes [[23:115|IFH 5-20]]"
+       ],
+       [
+        "Turn coordinator",
+        "Rate gyro tilted about 30°, so it senses roll and yaw [[23:116|IFH 5-21]]",
+        "No pitch information [[23:117|IFH 5-22]]. Standard rate is 3° per second, a 360° turn in 2 minutes [[23:116|IFH 5-21]]"
+       ],
+       [
+        "Ball (inclinometer)",
+        "Shows the balance of gravity and turning force [[23:115|IFH 5-20]]",
+        "Ball to the outside of the turn: skid. Ball to the inside: slip [[23:116|IFH 5-21]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Power sources.** Gyros are powered by separate electrical or pneumatic sources so one failure does not take all of them [[23:112|IFH 5-17]]. In a vacuum system, a pump pulls air through the instrument cases to spin the gyros, and a suction gauge shows the result. In a venturi system the attitude gyros need about 4 inHg and the turn-and-slip about 2 inHg [[23:112|IFH 5-17]]."
+    },
+    {
+     "p": "Many airplanes use vacuum attitude and heading gyros with an electric turn coordinator, or the reverse [[23:112|IFH 5-17]]. Check the POH so you know which instruments die with which failure [[23:114|IFH 5-19]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Many small airplanes have no vacuum failure warning. As the gyros slow down they wander and can show a turn that is not happening. Watch the suction gauge, and compare the attitude indicator with the turn coordinator and VSI [[23:332|IFH 11-7]] [[23:333|IFH 11-8]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "The vacuum pump fails. Which common instruments still work?",
+    "a": "The pitot-static instruments, the compass and an electric turn coordinator. The vacuum attitude and heading indicators will fail [[23:332|IFH 11-7]]. Confirm in your POH [[23:114|IFH 5-19]]."
+   }
+  },
+  {
+   "title": "Magnetic compass and slaved heading systems",
+   "kind": "knowledge",
+   "codes": [
+    "IR.II.B.K1d"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The magnetic compass is required for VFR and IFR [[60:486|14 CFR 91.205(b)(3)]]. Variation is the angle between true and magnetic north. Deviation is error from the airplane's own magnetic fields. Deviation changes with heading but not location, and what cannot be removed is written on the correction card [[23:107|IFH 5-12]] [[23:108|IFH 5-13]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Error",
+       "Northern Hemisphere effect",
+       "What to do"
+      ],
+      "rows": [
+       [
+        "Northerly turning",
+        "Card leads the turn [[23:108|IFH 5-13]]",
+        "Stop the turn 15° plus half your latitude before the heading [[23:108|IFH 5-13]]"
+       ],
+       [
+        "Southerly turning",
+        "Card lags the turn [[23:108|IFH 5-13]]",
+        "Let the card pass the heading by the same amount, then stop [[23:108|IFH 5-13]]"
+       ],
+       [
+        "Acceleration (east or west)",
+        "Speed up: shows a turn north. Slow down: shows a turn south (ANDS) [[23:109|IFH 5-14]]",
+        "Read it only at steady speed"
+       ],
+       [
+        "Oscillation",
+        "Card swings around the heading [[23:109|IFH 5-14]]",
+        "Use the average of the swings when setting the heading indicator [[23:109|IFH 5-14]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "A vertical card compass is easier to read, because the floating card can look backward and lead you to turn the wrong way [[23:110|IFH 5-15]]."
+    },
+    {
+     "p": "**Slaved heading systems.** A flux valve, often in a wingtip away from magnetic interference, senses the Earth's field and keeps an HSI or RMI aligned with magnetic north [[23:110|IFH 5-15]] [[23:111|IFH 5-16]]. A slaving meter shows any difference. In 'free gyro' mode you set the card by hand [[23:111|IFH 5-16]]."
+    }
+   ],
+   "check": {
+    "q": "Near 30° N, you turn left from east to north using only the compass. When do you roll out?",
+    "a": "Stop 15° + 15° = 30° before north, when the compass reads about 030° [[23:108|IFH 5-13]]."
+   }
+  },
+  {
+   "title": "Glass panels: AHRS, ADC, PFD, MFD, power, transponder and ADS-B",
+   "kind": "knowledge",
+   "codes": [
+    "IR.II.B.K1c"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "An AHRS replaces the separate attitude, heading and turn gyros. Modern units are small solid-state boxes with inertial sensors, rate gyros and magnetometers [[23:117|IFH 5-22]]. The ADC takes pitot pressure, static pressure and temperature and computes altitude, indicated airspeed, true airspeed and air temperature [[23:117|IFH 5-22]] [[23:118|IFH 5-23]]. In most new GA systems both live inside the displays [[23:118|IFH 5-23]]."
+    },
+    {
+     "p": "The PFD shows attitude, airspeed, altitude, vertical speed, heading, trim and trend information on one screen [[23:122|IFH 5-27]]. The MFD shows a moving map, approach charts, terrain and weather. Each screen can show the other's critical data in a reversionary mode [[23:123|IFH 5-28]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "**Electrical system.** Glass displays run AHRS, ADC and engine data on electrical power, so losing the alternator is an emergency in these airplanes, not just an abnormal [[23:331|IFH 11-6]]. A standby battery powers the essential bus (AHRS and PFD) when the main battery drops to about 19 volts, but usually only if its switch is in ARM [[23:331|IFH 11-6]]. Standby attitude, altimeter, airspeed and compass are your last instruments [[23:331|IFH 11-6]]."
+    },
+    {
+     "p": "**Transponder.** A transponder with Mode C is required in Class A, B and C airspace, within 30 NM of the listed Class B airports up to 10,000 ft MSL, above Class B and C airspace, and at and above 10,000 ft MSL in the 48 states (except at or below 2,500 ft AGL) [[60:494|14 CFR 91.215(b)]]."
+    },
+    {
+     "p": "**ADS-B.** The airplane uses GNSS to find its position and broadcasts it about once per second [[33:300|AIM 4-5-7]]. ADS-B Out is required in Class A, and in the same kinds of airspace as the transponder below 18,000 ft MSL [[60:498|14 CFR 91.225(a)]] [[60:499|14 CFR 91.225(d)]]. If you have it, leave it transmitting at all times [[60:499|14 CFR 91.225(f)]]. ADS-B In gives traffic (TIS-B) and weather (FIS-B) as advisory services [[33:301|AIM 4-5-7]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "UAT (978 MHz) or 1090ES both work below 18,000 ft. Class A generally needs 1090ES [[33:301|AIM 4-5-7]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why is an alternator failure more serious in a glass-panel airplane than in a steam-gauge airplane?",
+    "a": "The AHRS, ADC and displays all need electrical power, so the failure is an emergency in these airplanes [[23:331|IFH 11-6]]."
+   }
+  },
+  {
+   "title": "VOR, the HSI and the 30-day VOR check",
+   "kind": "knowledge",
+   "codes": [
+    "IR.II.B.K2a"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "VORs use 108.0 to 117.95 MHz. They are line of sight, so range grows with altitude [[33:68|AIM 1-1-3]]. Coverage is typically at least 40 miles at normal minimum IFR altitudes [[23:253|IFH 9-10]]. The only positive ID is the Morse code or the recorded voice ID [[33:68|AIM 1-1-3]]. A station under maintenance may send T-E-S-T or no code [[33:69|AIM 1-1-3]]."
+    },
+    {
+     "p": "VOR indications do not depend on your heading [[23:253|IFH 9-10]]. The TO/FROM flag tells you which side of the station you are on. If you set the reciprocal course you get reverse sensing and must turn away from the needle [[23:257|IFH 9-14]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "p": "The HSI combines a flux-valve compass card with the course needle and glideslope. Set the course arrow with the course knob. The TO/FROM triangle points to the head of the arrow when the course takes you to the station. A glideslope pointer below center means you are above the glideslope [[23:118|IFH 5-23]]."
+    },
+    {
+     "p": "**Quick receiver checks.** Turning the OBS from center to the last dot should take no more than 10° or 12° [[23:259|IFH 9-16]]. Some propeller rpm settings can make the needle swing as much as ±6°; a small rpm change usually stops it [[23:259|IFH 9-16]]."
+    },
+    {
+     "table": {
+      "head": [
+       "VOR check (14 CFR 91.171)",
+       "Limit"
+      ],
+      "rows": [
+       [
+        "FAA VOT or repair station test signal at the departure airport",
+        "±4° [[60:470|14 CFR 91.171(b)(1)]]"
+       ],
+       [
+        "Designated surface checkpoint at the departure airport",
+        "±4° [[60:470|14 CFR 91.171(b)(2)]]"
+       ],
+       [
+        "Designated airborne checkpoint",
+        "±6° [[60:470|14 CFR 91.171(b)(3)]]"
+       ],
+       [
+        "No check signal or point: prominent ground point on an airway radial, preferably more than 20 NM out, at low altitude",
+        "6° [[60:471|14 CFR 91.171(b)(4)]]"
+       ],
+       [
+        "Dual VORs tuned to the same station",
+        "4° between them [[60:471|14 CFR 91.171(c)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "To use a VOT, center the needle. The OBS should read 0° FROM or 180° TO. An RMI shows 180° [[33:70|AIM 1-1-4]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Log every VOR check with DEPS: Date, Error (bearing error), Place, Signature [[60:471|14 CFR 91.171(d)]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "At a VOT, you center the needle and the OBS reads 183° with a TO flag. Is the receiver usable for IFR?",
+    "a": "Yes. It should read 180° TO, so the error is 3°, inside the ±4° limit for a test signal [[33:70|AIM 1-1-4]] [[60:470|14 CFR 91.171(b)(1)]]. Log date, error, place and signature [[60:471|14 CFR 91.171(d)]]."
+   }
+  },
+  {
+   "title": "DME, ILS receivers, marker beacons and ADF",
+   "kind": "knowledge",
+   "codes": [
+    "IR.II.B.K2a"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "**DME.** Your DME sends pulses, the ground station replies, and the time is turned into distance. The distance is slant range, not ground distance. Accuracy is better than 1/2 NM or 3 percent, whichever is greater, out to about 199 NM [[33:72|AIM 1-1-7]]. DME groundspeed is right only when you fly straight to or from the station [[23:260|IFH 9-17]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Slant range error is negligible when you are at least 1 NM from the station for each 1,000 ft above it. Directly over it, the DME shows your height in NM [[23:262|IFH 9-19]]."
+     }
+    },
+    {
+     "p": "The DME ID is a higher tone heard once for every three or four VOR IDs. If you hear only that ID about every 30 seconds, the DME works but the VOR does not [[23:260|IFH 9-17]]."
+    },
+    {
+     "p": "**ILS receivers.** Your VOR receiver is also the localizer receiver. Localizers use odd tenths from 108.10 to 111.95 MHz [[23:279|IFH 9-36]] [[23:281|IFH 9-38]]. The glideslope tunes itself when you tune the localizer [[23:282|IFH 9-39]]. The localizer ID starts with 'I', for example ISGF [[23:279|IFH 9-36]]."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "table": {
+      "head": [
+       "Signal",
+       "Key numbers"
+      ],
+      "rows": [
+       [
+        "Localizer",
+        "Usually 5° wide, so full scale is 2.5° either side. Usable to 18 NM [[23:279|IFH 9-36]] [[23:280|IFH 9-37]]. The OBS does not change the localizer needle [[23:283|IFH 9-40]]"
+       ],
+       [
+        "Glideslope",
+        "2.5° to 3.5°, about 1.4° thick, front course only [[23:280|IFH 9-37]]"
+       ],
+       [
+        "Outer marker",
+        "Low tone, two dashes per second, blue light [[23:283|IFH 9-40]]"
+       ],
+       [
+        "Middle marker",
+        "Dots and dashes, amber light [[23:283|IFH 9-40]]"
+       ],
+       [
+        "Inner marker",
+        "High tone, six dots per second, white light [[23:283|IFH 9-40]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "All marker beacons transmit on 75 MHz [[23:54|IFH 2-3]]. Use LOW sensitivity on an approach for the sharpest fix [[23:283|IFH 9-40]]. Warning flags show when the signal is unstable or the receiver fails [[23:283|IFH 9-40]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "An ADF has no warning flag. Keep listening to the NDB identifier; noisy ID usually means an erratic needle [[33:68|AIM 1-1-2]]. Compass locators on an ILS are low-power NDBs received on the ADF [[23:281|IFH 9-38]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You are 3 NM from a VORTAC at 6,000 ft above it. Is the DME reading close to your ground distance?",
+    "a": "No. You would need to be at least 6 NM away for slant range error to be negligible [[23:262|IFH 9-19]]."
+   }
+  },
+  {
+   "title": "GPS, RAIM and WAAS",
+   "kind": "knowledge",
+   "codes": [
+    "IR.II.B.K2b",
+    "IR.II.B.R5"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "A GPS receiver times signals from satellites to get distances. It needs at least four satellites for a 3-D position and time [[23:269|IFH 9-26]]."
+    },
+    {
+     "p": "**RAIM** is how the receiver checks that no satellite is giving bad data. It needs 5 satellites, or 4 plus baro-aiding, to detect a problem [[33:89|AIM 1-1-17]]. To exclude the bad one it needs 6, or 5 plus baro-aiding [[23:274|IFH 9-31]]. One RAIM message means too few satellites to check; the other means it found an error too big for this phase of flight. Without RAIM you have no assurance the position is right [[33:90|AIM 1-1-17]]."
+    },
+    {
+     "table": {
+      "head": [
+       "",
+       "GPS (TSO-C129 or C196)",
+       "WAAS GPS (TSO-C145 or C146)"
+      ],
+      "rows": [
+       [
+        "Other nav needed for the route",
+        "Yes, an approved alternate means such as VOR. Monitor it actively only if RAIM is lost [[33:92|AIM 1-1-17]]",
+        "No other equipment required [[33:104|AIM 1-1-18]], but have a backup available [[33:94|AIM 1-1-17]]"
+       ],
+       [
+        "Approach capability",
+        "LNAV and overlay approaches",
+        "Adds vertical guidance; LPV can go as low as 200 ft above touchdown and 1/2 mile [[33:102|AIM 1-1-18]]"
+       ],
+       [
+        "Required alternate",
+        "With FDE and a RAIM prediction, a GPS approach may be planned at the destination or the alternate, not both [[33:95|AIM 1-1-17]]",
+        "May plan a GPS approach at the alternate, using LNAV or circling minima and nonprecision weather minimums [[33:105|AIM 1-1-18]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "WAAS ground stations measure GPS errors, a master station computes corrections, and geostationary satellites broadcast them. This improves accuracy, integrity and availability [[23:275|IFH 9-32]]."
+    },
+    {
+     "p": "**CDI scaling.** En route the CDI is ±5 NM. With the approach armed inside 30 NM of the airport it goes to ±1 NM. From 2 NM before the final approach waypoint it narrows to ±0.3 NM [[33:96|AIM 1-1-17]]."
+    },
+    {
+     "p": "**The database.** For IFR the navigation database must be current. Every approach must come from the database by name; you may not build one by entering waypoints by hand [[33:92|AIM 1-1-17]]. Databases are updated every 28 days [[23:122|IFH 5-27]]. Check the expiration date, and check that the waypoints match the chart names and are in a sensible order [[33:92|AIM 1-1-17]] [[33:93|AIM 1-1-17]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Before any GPS IFR flight, review GPS and WAAS NOTAMs [[33:92|AIM 1-1-17]]. For RAIM predictions use your receiver's tool, the FAA prediction website, or flight service [[33:97|AIM 1-1-17]]. If RAIM is predicted unavailable, use other approved nav, reroute, delay or cancel [[33:92|AIM 1-1-17]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your non-WAAS GPS has FDE. You plan an RNAV (GPS) approach at the destination. What must the alternate have?",
+    "a": "An approach other than GPS that is expected to be available, which your airplane can fly. You can't plan GPS approaches at both [[33:95|AIM 1-1-17]]."
+   }
+  },
+  {
+   "title": "RNAV on conventional procedures, FMS, flight director and autopilot",
+   "kind": "knowledge",
+   "codes": [
+    "IR.II.B.K2b",
+    "IR.II.B.R1",
+    "IR.II.B.R2",
+    "IR.II.B.R5"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "An IFR-approved RNAV system (TSO-C129, C145 or C146 GPS) can stand in for ground navaids on conventional routes and procedures [[33:116|AIM 1-2-3]] [[33:117|AIM 1-2-3]]. It can:"
+    },
+    {
+     "bullets": [
+      "Find your position or distance from a VOR, NDB, compass locator or DME fix [[33:117|AIM 1-2-3]].",
+      "Navigate to or from a VOR, NDB or compass locator, and hold over one [[33:117|AIM 1-2-3]].",
+      "Fly a DME arc [[33:117|AIM 1-2-3]].",
+      "Replace a navaid that is out of service, or one your airplane can't receive, such as an NDB with no ADF [[33:116|AIM 1-2-3]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Limits: you may not use it to fly a localizer course without raw localizer data, or to replace the navaid giving lateral guidance on the final approach segment (except approaches with 'or GPS' in the title) [[33:117|AIM 1-2-3]] [[33:118|AIM 1-2-3]]. A required alternate needs an approach that does not need GPS, unless you have WAAS [[33:118|AIM 1-2-3]]."
+     }
+    },
+    {
+     "p": "**FMS.** A flight management system combines a navigation database (navaids, airways, SIDs, STARs and approaches) with what you enter on the control display unit to build a flight plan. It sends course guidance to the HSI and steering to the autopilot and flight director [[23:122|IFH 5-27]]."
+    },
+    {
+     "p": "**Flight director.** It computes steering commands and shows them as a cue on the attitude display. You fly the cue, or the autopilot does if it is coupled. A flight director on does not mean the autopilot is flying [[23:119|IFH 5-24]]."
+    },
+    {
+     "p": "**Autopilot.** Most GA autopilots control roll and pitch. Some sense position from an attitude gyro; rate-based ones use the turn coordinator's sensor [[23:120|IFH 5-25]]. Know at all times which modes are engaged and which are armed, and confirm armed modes engage when they should [[1:70|PHAK 2-31]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Mode trap: on some autopilots, switching the HSI source from GPS to LOC or VOR while in NAV mode drops NAV mode, and the autopilot just holds wings level (ROL) until you re-engage NAV [[1:70|PHAK 2-31]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "The NDB that defines a hold is out of service. Your airplane has an IFR-approved GPS. Can you still fly the hold?",
+    "a": "Yes. A suitable RNAV system may be used to hold over an out-of-service NDB [[33:116|AIM 1-2-3]] [[33:117|AIM 1-2-3]]. You may need to tell ATC [[33:117|AIM 1-2-3]]."
+   }
+  },
+  {
+   "title": "Electronic flight bags and approved versus non-approved equipment",
+   "kind": "knowledge",
+   "codes": [
+    "IR.II.B.K3",
+    "IR.II.B.R2",
+    "IR.II.B.R4",
+    "IR.II.B.S2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "An EFB is an electronic display that can show paper information such as charts, checklists and the POH, and can run calculations such as weight and balance and performance [[42:2|AC 91-78A 7.1]]."
+    },
+    {
+     "p": "Under part 91 an EFB may replace paper in all phases of flight when [[42:3|AC 91-78A 9.1]]:"
+    },
+    {
+     "bullets": [
+      "It does not replace any navigation, communication or surveillance system that part 91 requires.",
+      "It shows information that is functionally equal to the paper it replaces.",
+      "You have verified the data is current and valid.",
+      "Its use meets 14 CFR 91.21, so it does not interfere with required equipment."
+     ]
+    },
+    {
+     "p": "No formal approval is needed; in-flight use is the decision of the operator and PIC [[42:3|AC 91-78A 9.2]]. A portable EFB is not mounted and takes no data from aircraft systems. An installed EFB may use aircraft power, a navigation input and an approved mount [[42:3|AC 91-78A 10]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "14 CFR 91.21: under IFR, no portable electronic device may be used unless it is on the exempt list or the operator has determined it won't interfere with nav or comm. For non-air-carrier aircraft the PIC may make that call [[60:438|14 CFR 91.21]]. If a device causes interference, isolate it and turn it off [[43:5|AC 91.21-1D 7.2.3]]."
+     }
+    },
+    {
+     "table": {
+      "head": [
+       "Approved for IFR navigation",
+       "Not approved: awareness only"
+      ],
+      "rows": [
+       [
+        "Installed GPS approved to TSO-C129, C196, C145 or C146, used per the AFM supplement [[33:91|AIM 1-1-17]]",
+        "Hand-held and VFR GPS: not for IFR navigation, approaches, or as a principal flight reference [[33:92|AIM 1-1-17]]"
+       ],
+       [
+        "VOR/LOC/GS, DME and ADF receivers checked and maintained as required [[60:470|14 CFR 91.171]]",
+        "Tablet ownship position and moving maps; AFMs prohibit using moving map, terrain, traffic and datalink weather as the primary source [[1:69|PHAK 2-30]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Plan for the EFB: think about workload, placement, stowage for takeoff and landing, and what you do if it fails. Train on the preflight check, each function you use, and how to cross-check entries and results [[42:4|AC 91-78A 11]]."
+    }
+   ],
+   "check": {
+    "q": "Your tablet shows a precise ownship symbol on the approach plate. May you fly the approach by it?",
+    "a": "No. Hand-held and VFR GPS units are not authorized for IFR navigation or approaches [[33:92|AIM 1-1-17]]. An EFB may not replace required navigation equipment [[42:3|AC 91-78A 9.1]]."
+   }
+  },
+  {
+   "title": "Fly it step by step: check, set up and manage the equipment",
+   "kind": "skills",
+   "codes": [
+    "IR.II.B.S1",
+    "IR.II.B.S2",
+    "IR.II.B.R1",
+    "IR.II.B.K1"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "**Before you start the engine** (IFH systems preflight [[23:131|IFH 5-36]] [[23:132|IFH 5-37]]):"
+    },
+    {
+     "bullets": [
+      "1. Walk-around: antennas in good shape, pitot cover off and tube clear, static ports clean with nothing nearby that would disturb the air [[23:131|IFH 5-36]].",
+      "2. Records: altimeter and static system within 24 calendar months [[23:131|IFH 5-36]], transponder within 24 calendar months [[60:525|14 CFR 91.413(a)]], VOR check within 30 days [[60:470|14 CFR 91.171(a)]].",
+      "3. Paperwork: NOTAMs for every navaid you plan to use [[23:131|IFH 5-36]], GPS and WAAS NOTAMs, and a RAIM prediction if needed [[33:97|AIM 1-1-17]]. Database current [[33:92|AIM 1-1-17]].",
+      "4. Cockpit: compass full of fluid with a current correction card, clock set and running, alternate static valve working and fully closed [[23:132|IFH 5-37]]. Standby battery ARMED if your airplane has one [[23:331|IFH 11-6]].",
+      "5. EFB: charged, charts and data current and verified, mounted or stowed so it won't shift [[42:3|AC 91-78A 9.1]] [[42:4|AC 91-78A 11]]."
+     ]
+    },
+    {
+     "p": "**After start and taxi:**"
+    },
+    {
+     "bullets": [
+      "6. Listen to the gyros spin up; check suction or the electric gyro power [[23:132|IFH 5-37]].",
+      "7. Altimeter: within 75 ft of field elevation. VSI: zero. Pitot heat: check the ammeter when you turn it on [[23:132|IFH 5-37]].",
+      "8. Heading indicator: allow 5 minutes, then set it to the compass. Check a slaved system for slaving [[23:132|IFH 5-37]].",
+      "9. Taxi turns: turn indicator shows the turn, the ball moves the opposite way, compass and heading indicator turn the right way [[23:132|IFH 5-37]]. The attitude indicator must not tip more than 5° [[23:133|IFH 5-38]].",
+      "10. Lined up: heading indicator within 5° of the runway heading [[23:133|IFH 5-38]]."
+     ]
+    },
+    {
+     "p": "**Set up the avionics:**"
+    },
+    {
+     "bullets": [
+      "11. Load the route and compare it leg by leg with your chart and nav log. If they don't match, don't trust the computer [[1:70|PHAK 2-31]].",
+      "12. Tune and identify each VOR and localizer by its code [[33:68|AIM 1-1-3]]. Check the CDI source and course before takeoff.",
+      "13. In flight, say each autopilot mode change out loud and confirm armed modes capture [[1:70|PHAK 2-31]]. Cross-check GPS with VOR and VOR with GPS [[1:70|PHAK 2-31]].",
+      "14. Every 15 minutes, check the heading indicator against the compass [[23:115|IFH 5-20]] and glance at the suction and ammeter."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Learn a new GPS on the ground first. Most receivers have a simulator mode [[33:92|AIM 1-1-17]]. Then fly it in VFR conditions before you use it in IMC [[23:271|IFH 9-28]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "During a right taxi turn, which way should the ball move, and what does the turn coordinator show?",
+    "a": "The ball moves left (opposite the turn) and the turn coordinator shows a right turn [[23:132|IFH 5-37]]."
+   }
+  },
+  {
+   "title": "Risk: automation, failures, EFBs and databases",
+   "kind": "risk",
+   "codes": [
+    "IR.II.B.R1",
+    "IR.II.B.R3",
+    "IR.II.B.R4",
+    "IR.II.B.R5"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "**Automation.** People are poor monitors of automated systems, and the more reliable the system, the worse we get [[1:70|PHAK 2-31]]. A pilot who stops checking slides into the role of 'passenger in command' [[1:69|PHAK 2-30]] [[1:71|PHAK 2-32]]. Match the level of automation to your skill, and before pushing buttons, stop, look and read [[1:70|PHAK 2-31]] [[1:69|PHAK 2-30]]."
+    },
+    {
+     "p": "**Database errors.** In one accident a crew entered a waypoint one degree wrong. The FMS flew the airplane 60 NM off course into a mountain, exactly as programmed [[1:71|PHAK 2-32]]. If a chart was amended after your database expired, do not use the database for that procedure [[33:117|AIM 1-2-3]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Failure",
+       "Clue",
+       "Action"
+      ],
+      "rows": [
+       [
+        "PFD or MFD screen",
+        "Screen goes dark",
+        "Use reversionary mode: flight instruments and engine data on one screen, no moving map [[23:329|IFH 11-4]]"
+       ],
+       [
+        "Alternator",
+        "Ammeter discharge, low-voltage light",
+        "Shed load and land at the nearest suitable airport; the battery may last 30 to 40 minutes or much less [[23:330|IFH 11-5]] [[23:331|IFH 11-6]]"
+       ],
+       [
+        "Vacuum or an instrument",
+        "Warning flag, or attitude indicator disagrees with the other instruments",
+        "Keep control, cross-check, cover the bad instrument, tell ATC, declare an emergency if needed [[23:332|IFH 11-7]]"
+       ],
+       [
+        "Static system",
+        "Altimeter frozen, VSI zero",
+        "Alternate static source [[23:333|IFH 11-8]]"
+       ],
+       [
+        "GPS RAIM or GPS jamming",
+        "RAIM message, position jumps, odd winds or groundspeed",
+        "Use VOR or DME to check position, tell ATC, use conventional navaids [[33:92|AIM 1-1-17]] [[33:119|AIM 1-2-4]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "IFR in controlled airspace: report any in-flight failure of nav, approach or comm equipment to ATC as soon as practical. Give your ID, the equipment, how it limits you under IFR, and what help you want [[60:483|14 CFR 91.187]]."
+     }
+    },
+    {
+     "p": "**EFB dependence.** An electronic display is a supplement. It does not replace your en route charts, and if it goes dark you lose the airport information on it [[23:329|IFH 11-4]]. GPS jamming can also put the wrong position on your EFB moving map [[33:119|AIM 1-2-4]]."
+    },
+    {
+     "p": "**Plan for no GPS.** The FAA keeps a network of VORs (the VOR MON) so that, outside the western mountains, you are within 100 NM of an airport with a non-GPS approach [[33:69|AIM 1-1-3]] [[33:70|AIM 1-1-3]]. Stay proficient on VOR and ILS approaches [[33:70|AIM 1-1-3]]."
+    }
+   ],
+   "check": {
+    "q": "In IMC your PFD goes black. What do you expect the MFD to show, and what do you lose?",
+    "a": "The MFD goes to reversionary mode with flight instruments and engine data. You lose the moving map, so follow your position on the chart [[23:329|IFH 11-4]]."
+   }
+  },
+  {
+   "title": "Common errors",
+   "kind": "skills",
+   "codes": [
+    "IR.II.B.K2a",
+    "IR.II.B.K1b",
+    "IR.II.B.R1",
+    "IR.II.B.R3",
+    "IR.II.B.S1"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "bullets": [
+      "Careless tuning and not identifying the station [[23:257|IFH 9-14]].",
+      "Not checking the TO/FROM flag, so you get reverse sensing and correct the wrong way [[23:257|IFH 9-14]].",
+      "Reading the VOR while transmitting on the same NAV/COM [[23:259|IFH 9-16]].",
+      "Chasing the needle and homing instead of tracking [[23:259|IFH 9-16]].",
+      "Not keeping the heading indicator set to the corrected compass [[23:251|IFH 9-8]].",
+      "Missing or ignoring warning flags, including OFF flags on failing vacuum gyros [[23:251|IFH 9-8]] [[23:332|IFH 11-7]].",
+      "Following only the magenta line with no chart picture of terrain and airspace [[1:69|PHAK 2-30]].",
+      "Not arming the GPS approach mode, then descending anyway. If it is not active by 2 NM before the FAWP, fly to the MAWP and go missed [[33:96|AIM 1-1-17]].",
+      "Not knowing which modes are armed or engaged on the autopilot [[1:70|PHAK 2-31]]."
+     ]
+    }
+   ],
+   "check": {
+    "q": "The GPS approach never went active before the final approach waypoint. Can you descend to the MDA?",
+    "a": "No. The CDI and RAIM did not go to approach sensitivity. Fly to the MAWP and go missed [[33:96|AIM 1-1-17]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "IR.II.B-1.jpg",
+   "res": "23",
+   "page": 98,
+   "caption": "Figure 5-2. A typical pitot-static system.",
+   "alt": "Diagram of an altimeter, vertical speed indicator and airspeed indicator. Blue static lines (S) run from all three to two flush static ports and an alternate static source valve. A red pitot line (P) runs only from the airspeed indicator to a heated pitot head.",
+   "source": "IFH, PDF p. 98"
+  },
+  "f2": {
+   "file": "IR.II.B-2.jpg",
+   "res": "23",
+   "page": 109,
+   "caption": "Figure 5-20. Northerly turning error.",
+   "alt": "Two rows of tilted compass bowls. Row A, on north headings: in left and right turns the magnetic dip makes the card swing ahead of the turn, compared with a level compass in the middle with no error. Row B, on south headings: the dip makes the card swing the other way, lagging the turn.",
+   "source": "IFH, PDF p. 109"
+  },
+  "f3": {
+   "file": "IR.II.B-3.jpg",
+   "res": "23",
+   "page": 149,
+   "caption": "Figure 6-21. Primary flight display (PFD) and analog counterparts.",
+   "alt": "Glass instrument panel with a PFD on the left and an MFD in the center. Call-outs link parts of the PFD to the round gauges they replace: attitude indicator, altimeter, vertical speed indicator, heading indicator, airspeed indicator and turn coordinator. Standby airspeed, attitude and altimeter gauges sit below, with circuit breakers for AHRS, ADC and the displays.",
+   "source": "IFH, PDF p. 149"
+  },
+  "f4": {
+   "file": "IR.II.B-4.jpg",
+   "res": "23",
+   "page": 255,
+   "caption": "Figure 9-13. A typical horizontal situation indicator (HSI).",
+   "alt": "HSI with labeled parts: lubber line, heading select bug, compass card, course select pointer set near 020, course deviation bar, course deviation scale, symbolic aircraft, glideslope pointer, red and white HDG, NAV and GS warning flags, course select knob and heading select knob.",
+   "source": "IFH, PDF p. 255"
+  },
+  "f5": {
+   "file": "IR.II.B-5.jpg",
+   "res": "23",
+   "page": 279,
+   "caption": "Figure 9-33. Instrument landing systems.",
+   "alt": "Perspective drawing of an ILS: localizer antenna beyond the runway, glideslope transmitter beside it, the localizer and glideslope beams, outer marker (blue light, two dashes per second) and middle marker (amber light, dot and dash), cockpit needle pictures at several positions, notes on frequencies and widths, and a rate of descent chart for 2.5°, 2.75° and 3° glideslopes.",
+   "source": "IFH, PDF p. 279"
+  },
+  "f6": {
+   "file": "IR.II.B-6.jpg",
+   "res": "23",
+   "page": 329,
+   "caption": "Figure 11-3. G1000 PFD display in normal mode and in the reversionary mode activated upon system failure.",
+   "alt": "Top: two Garmin screens in normal mode, a PFD and an MFD moving map. Bottom: the left screen is black after a failure, and the right screen shows the flight instruments with engine gauges down its left side and no map.",
+   "source": "IFH, PDF p. 329"
+  }
+ },
+ "scenario": {
+  "title": "Glass panel, a tablet and a long day of small surprises",
+  "codes": [
+   "IR.II.B.R1",
+   "IR.II.B.R2",
+   "IR.II.B.R3",
+   "IR.II.B.R4",
+   "IR.II.B.R5",
+   "IR.II.B.S1",
+   "IR.II.B.S2",
+   "IR.II.B.K3"
+  ],
+  "setup": "You will fly IFR in a single-engine airplane with a PFD, MFD, a WAAS GPS navigator, one VOR/LOC/GS receiver and an autopilot. You use a tablet EFB for charts. On preflight you see the last VOR check was logged 34 days ago. The navigation database expires at midnight tonight. Clouds are 800 ft overcast at the destination.",
+  "questions": [
+   {
+    "q": "The VOR check is 34 days old. May you use the VOR under IFR today?",
+    "a": "Not until you do a new check. 91.171 requires a check within the preceding 30 days [[60:470|14 CFR 91.171(a)]]. Use a VOT, a surface or airborne checkpoint, or a dual-VOR check, and log the date, place, bearing error and your signature [[60:470|14 CFR 91.171(b)]] [[60:471|14 CFR 91.171(d)]]."
+   },
+   {
+    "q": "The database expires at midnight and you land at 4 p.m. Is it usable, and what else do you check?",
+    "a": "It is current for the flight, which is what IFR requires [[33:92|AIM 1-1-17]]. Still check that the waypoints match your charts and are in a logical order [[33:93|AIM 1-1-17]], and review GPS and WAAS NOTAMs [[33:92|AIM 1-1-17]]."
+   },
+   {
+    "q": "En route, the tablet's ownship symbol and the installed GPS disagree. Which do you navigate by?",
+    "a": "The installed IFR GPS. Hand-held and VFR GPS are not authorized for IFR navigation [[33:92|AIM 1-1-17]], and an EFB may not replace required navigation equipment [[42:3|AC 91-78A 9.1]]. Cross-check with the VOR to see which one is wrong [[1:70|PHAK 2-31]]."
+   },
+   {
+    "q": "ATC changes you from the RNAV approach to the ILS. You switch the HSI from GPS to LOC with the autopilot in NAV, and the airplane starts drifting off course. What happened?",
+    "a": "On some autopilots, changing the nav source drops NAV mode and leaves only wing leveling (ROL) [[1:70|PHAK 2-31]]. Re-engage the right mode and say it out loud. Know at all times which modes are engaged and armed [[1:70|PHAK 2-31]]."
+   },
+   {
+    "q": "A low-voltage warning appears and the ammeter shows a discharge. What now?",
+    "a": "In a glass airplane this is an emergency [[23:331|IFH 11-6]]. Shed electrical load, use the standby battery as the AFM says, tell ATC and land at the nearest suitable airport [[23:330|IFH 11-5]] [[23:331|IFH 11-6]] [[23:332|IFH 11-7]]."
+   },
+   {
+    "q": "Later the GPS position jumps and groundspeed looks wrong. A NOTAM warned of GPS testing. What do you do?",
+    "a": "Suspect interference. Check your position with VOR or DME, tell ATC promptly, and be ready to fly a conventional approach [[33:118|AIM 1-2-4]] [[33:119|AIM 1-2-4]]. Report the loss of nav capability to ATC [[60:483|14 CFR 91.187]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "IR.II.B.S1",
+   "do": "Show the examiner you can check, set up and use every installed flight instrument and nav system: preflight and taxi checks, tune and identify, choose the nav source, load and verify the GPS route and approach, use the autopilot modes, and recognize and handle failures.",
+   "practice": "Use the IFH systems preflight sequence on every flight [[23:131|IFH 5-36]] [[23:132|IFH 5-37]] [[23:133|IFH 5-38]]. Compare the loaded route with your chart and log, and call out autopilot modes [[1:70|PHAK 2-31]]. Practice reversionary mode and standby instruments with your instructor [[23:329|IFH 11-4]]."
+  },
+  {
+   "code": "IR.II.B.S2",
+   "do": "If you bring an EFB, show that it is charged, current and verified, that it does not interfere with the airplane, and that you can find charts and data quickly and cross-check them.",
+   "practice": "Check data currency before each flight and verify it [[42:3|AC 91-78A 9.1]]. Practice each function you use, plan for its failure, and secure it for takeoff and landing [[42:4|AC 91-78A 11]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Which item is NOT required by 14 CFR 91.205(d) for IFR at 8,000 ft?",
+   "options": [
+    "A clock showing seconds",
+    "A slip-skid indicator",
+    "A DME receiver",
+    "An alternator of adequate capacity"
+   ],
+   "answer": 2,
+   "why": "91.205(d) lists the clock, slip-skid indicator and generator or alternator [[60:488|14 CFR 91.205(d)]]. DME or suitable RNAV is added only at and above FL 240 when VOR is required [[60:488|14 CFR 91.205(e)]]."
+  },
+  {
+   "q": "Ice blocks the static ports while you climb. What will the altimeter do?",
+   "options": [
+    "Keep reading higher as you climb",
+    "Freeze at the altitude where it blocked",
+    "Read lower as you climb",
+    "Act like an airspeed indicator"
+   ],
+   "answer": 1,
+   "why": "Trapped static pressure freezes the altimeter where the blockage happened, and the VSI reads zero [[23:98|IFH 5-3]]."
+  },
+  {
+   "q": "Field elevation is 1,200 ft. With the current altimeter setting, the altimeter on the ramp reads 1,290 ft. What should you do?",
+   "options": [
+    "Set the Kollsman window until it reads 1,200 and go",
+    "Nothing; up to 125 ft is allowed",
+    "Recheck in the run-up area and have it checked if still over 75 ft",
+    "Use 29.92 for the whole flight"
+   ],
+   "answer": 2,
+   "why": "More than 75 ft off makes the altimeter questionable. Because the ramp may differ from field elevation, recheck in the run-up area, then refer it to a repair station if needed [[23:132|IFH 5-37]]. The 125 ft figure is the encoder agreement limit [[60:495|14 CFR 91.217]]."
+  },
+  {
+   "q": "Why does a turn coordinator show a roll into a turn before the turn rate builds?",
+   "options": [
+    "It is driven by the attitude gyro",
+    "Its gyro gimbal is tilted about 30°, so it senses roll and yaw",
+    "It uses the magnetic compass",
+    "It senses pitch as well"
+   ],
+   "answer": 1,
+   "why": "The gimbal is angled about 30°, so it senses both roll and yaw [[23:116|IFH 5-21]]. It gives no pitch information [[23:117|IFH 5-22]]."
+  },
+  {
+   "q": "How often should you compare a non-slaved heading indicator with the magnetic compass?",
+   "options": [
+    "At least every 15 minutes",
+    "Once before takeoff only",
+    "Every hour",
+    "Only after steep turns"
+   ],
+   "answer": 0,
+   "why": "The gyro drifts about 15° per hour because the Earth turns, so compare and reset at least every 15 minutes [[23:115|IFH 5-20]]."
+  },
+  {
+   "q": "You use a designated airborne checkpoint for your VOR check. What is the largest error allowed?",
+   "options": [
+    "±4°",
+    "±10°",
+    "±2°",
+    "±6°"
+   ],
+   "answer": 3,
+   "why": "Airborne checkpoints allow ±6°. Test signals and surface checkpoints allow ±4° [[60:470|14 CFR 91.171(b)]]."
+  },
+  {
+   "q": "On an ILS you hear dots and dashes and see an amber marker light. Which marker is it?",
+   "options": [
+    "Outer marker",
+    "Inner marker",
+    "Middle marker",
+    "Back-course marker"
+   ],
+   "answer": 2,
+   "why": "The middle marker has alternate dots and dashes and an amber light. The outer is dashes with a blue light; the inner is dots with a white light [[23:283|IFH 9-40]]."
+  },
+  {
+   "q": "What is the minimum for RAIM to detect a bad satellite?",
+   "options": [
+    "4 satellites",
+    "5 satellites, or 4 plus baro-aiding",
+    "3 satellites plus baro-aiding",
+    "6 satellites with no exceptions"
+   ],
+   "answer": 1,
+   "why": "RAIM needs one satellite more than navigation: 5, or 4 with baro-aiding, to detect. Six (or 5 with baro-aiding) are needed to exclude it [[33:89|AIM 1-1-17]] [[23:274|IFH 9-31]]."
+  },
+  {
+   "q": "May you use a tablet's GPS moving map as your navigation source for an IFR approach?",
+   "options": [
+    "Yes, if the charts on it are current",
+    "Yes, if ATC approves",
+    "No, hand-held and VFR GPS are not authorized for IFR approaches",
+    "Only if the installed GPS has failed"
+   ],
+   "answer": 2,
+   "why": "Hand-held and VFR GPS are not authorized for IFR navigation, approaches, or as a principal flight reference [[33:92|AIM 1-1-17]]. An EFB may not replace required nav equipment [[42:3|AC 91-78A 9.1]]."
+  }
+ ],
+ "takeaways": [
+  "For IFR you need the VFR items plus GRABCARD, all working (14 CFR 91.205(d)).",
+  "Static blocked: altimeter freezes, VSI zero. Open the alternate static and expect slightly high readings.",
+  "VOR check within 30 days (±4° ground, ±6° airborne, 4° dual), logged with date, error, place and signature.",
+  "Pitot-static, altimeter, encoder and transponder: tested within 24 calendar months.",
+  "Know each instrument's power source; in a glass airplane an alternator failure is an emergency.",
+  "IFR GPS needs RAIM or WAAS, a current database, and approaches loaded by name. Tablets are for awareness only.",
+  "Always know which autopilot modes are engaged and armed, and cross-check GPS with VOR."
+ ],
+ "cfi_notes": [
+  "The IFH (9-26) still calls TSO-C129 GPS 'supplemental' and says nothing about WAAS-only airplanes. Teach the current AIM 1-1-17 and 1-1-18: approved TSOs are C129, C196, C145 and C146, and WAAS avionics need no other nav equipment for the route [[33:91|AIM 1-1-17]] [[33:104|AIM 1-1-18]].",
+  "The IFH (5-29) says ADS-B is mostly on the east coast. That is outdated: ADS-B Out has been required in the 91.225 airspace since January 1, 2020 [[60:499|14 CFR 91.225]].",
+  "The IFH uses the old name A/FD. The AIM now calls it the Chart Supplement, where VOTs and VOR checkpoints are listed [[33:71|AIM 1-1-4]].",
+  "The IFH southerly-turn example (5-13) has a typo ('15° + 15° + 30°'). At 30° latitude the rule gives 15° + 15° = 30° past the heading. Also, Figure 5-20 labels both panels 'Northerly turning error' though panel B shows south headings.",
+  "Examiners commonly probe: what 91.205(d) requires, blocked pitot versus static symptoms, alternate static effects, the VOR check log entry, RAIM versus WAAS, which instruments fail with vacuum or electrical loss, and 'what mode is the autopilot in now?'",
+  "Have students list the power source of each instrument from the POH, then fail it: cover the attitude and heading indicators, pull the PFD into reversionary mode on the ground, and fly on the standby instruments.",
+  "Students often trust the tablet over the panel. In every scenario ask: which box is approved, and how do you prove the other one is wrong?"
+ ],
+ "gaps": [
+  "No source covers the specific avionics in the training airplane (PFD brand, GPS navigator, autopilot model, failure annunciations such as red X flags). Use the AFM supplement and pilot's guide.",
+  "AC 90-100, AC 90-105 and AC 90-107 (ACS references) are not in the sources. RNAV, RNP and WAAS content is taught from AIM 1-1-17, 1-1-18 and 1-2-3.",
+  "The sources say little about EFB failure planning (backup device, battery life, heat, mounting). The lesson uses only the general guidance in AC 91-78A and AC 91.21-1D.",
+  "The IFH has no common-errors list for GPS, glass displays or autopilots; the common errors combine the IFH VOR and ADF lists with AIM and PHAK automation guidance.",
+  "Multiengine instrument systems (twin-engine pressure system, dual pumps) are skipped for this single-engine lesson."
+ ],
+ "activities": [
+  {
+   "type": "match",
+   "key": "h1",
+   "after": 2,
+   "title": "Diagnose the pitot-static problem",
+   "intro": "Tap a problem, then the symptom or fix that goes with it.",
+   "pairs": [
+    {
+     "l": "Pitot blocked, drain open",
+     "r": "Airspeed slowly drops to zero"
+    },
+    {
+     "l": "Pitot and drain both blocked",
+     "r": "Airspeed rises in a climb like an altimeter"
+    },
+    {
+     "l": "Static ports blocked",
+     "r": "Altimeter freezes and the VSI reads zero"
+    },
+    {
+     "l": "Alternate static source open",
+     "r": "Altimeter and airspeed read a little high"
+    },
+    {
+     "l": "No alternate static, unpressurized",
+     "r": "Break the VSI glass to get static air"
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h2",
+   "after": 7,
+   "title": "VOR check limits",
+   "intro": "Tap a clue, then tap where it belongs.",
+   "buckets": [
+    "4° limit",
+    "6° limit"
+   ],
+   "items": [
+    {
+     "t": "FAA VOT at the departure airport",
+     "b": 0
+    },
+    {
+     "t": "Repair station test signal",
+     "b": 0
+    },
+    {
+     "t": "Designated checkpoint on the airport surface",
+     "b": 0
+    },
+    {
+     "t": "Two VORs tuned to the same station",
+     "b": 0
+    },
+    {
+     "t": "Designated airborne checkpoint",
+     "b": 1
+    },
+    {
+     "t": "Ground point on an airway, over 20 NM out",
+     "b": 1
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h3",
+   "after": 9,
+   "title": "True or false: GPS, RAIM and the database",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "An airplane with WAAS GPS (TSO-C145 or C146) must also carry a VOR receiver for en route IFR.",
+     "a": false,
+     "why": "No. WAAS avionics do not require other nav equipment for the route [[33:104|AIM 1-1-18]], though you should have a backup available [[33:94|AIM 1-1-17]]."
+    },
+    {
+     "s": "RAIM needs at least 5 satellites, or 4 plus baro-aiding, to detect a bad satellite.",
+     "a": true,
+     "why": "Yes. RAIM needs one satellite more than navigation does [[33:89|AIM 1-1-17]]."
+    },
+    {
+     "s": "If an approach is not in your database, you may enter its waypoints by hand and fly it.",
+     "a": false,
+     "why": "No. Approaches must be retrieved by name from the current database. Manual entry is not permitted [[33:92|AIM 1-1-17]]."
+    },
+    {
+     "s": "If you never arm the approach, the CDI stays at ±5 NM en route sensitivity even inside 30 NM.",
+     "a": true,
+     "why": "Yes. Without arming, the receiver does not change from ±5 NM to ±1 NM terminal sensitivity [[33:96|AIM 1-1-17]]."
+    },
+    {
+     "s": "Navigation databases are updated every 28 days.",
+     "a": true,
+     "why": "Yes, electronic navigation databases are updated every 28 days [[23:122|IFH 5-27]]."
+    },
+    {
+     "s": "The rules require you to keep the GPS database current even for VFR flights.",
+     "a": false,
+     "why": "No. Databases must be current for IFR. There is no requirement to update them for VFR, though it is wise [[33:90|AIM 1-1-17]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h4",
+   "after": 12,
+   "title": "IFR instrument checks in order",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Walk-around: antennas, pitot cover off, static ports clear",
+    "Records: pitot-static and transponder checks, VOR check",
+    "Paperwork: NOTAMs for navaids, GPS and WAAS",
+    "Master on: listen to the gyros spin up",
+    "After start: set heading indicator to compass, altimeter within 75 ft",
+    "Taxi turns: turn indicator shows the turn, ball moves opposite",
+    "Lined up: heading indicator within 5° of the runway"
+   ]
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "You fly 2 hours without resetting a non-slaved heading indicator. Using the IFH drift figure, how far off could it be?",
+   "options": [
+    "About 30°",
+    "About 15°",
+    "About 5°",
+    "About 60°"
+   ],
+   "answer": 0,
+   "why": "Apparent drift is 15° per hour, so 2 hours gives about 30°. That is why you check it at least every 15 minutes [[23:115|IFH 5-20]]."
+  },
+  {
+   "q": "Reported temperature at the airport is -20 °C. The final approach fix is 1,000 ft above the airport. From the ICAO cold temperature table, about how much lower than indicated could you be?",
+   "options": [
+    "About 100 ft",
+    "About 70 ft",
+    "About 210 ft",
+    "About 140 ft"
+   ],
+   "answer": 3,
+   "why": "The -20 °C row at 1,000 ft shows 140 ft [[23:101|IFH 5-6]]. Cold air puts you lower than indicated [[23:100|IFH 5-5]]."
+  },
+  {
+   "q": "Near 44° N latitude you turn from east to south using only the magnetic compass. By the IFH rule, when should you roll out?",
+   "options": [
+    "When it reads about 143°",
+    "When it reads 180°",
+    "When it reads about 202°",
+    "When it reads about 217°"
+   ],
+   "answer": 3,
+   "why": "Turning south the card lags, so let it pass the heading by 15° plus half the latitude: 15 + 22 = 37°, or about 217° [[23:108|IFH 5-13]]."
+  },
+  {
+   "q": "Flying west, you add power and speed up. What does the magnetic compass show?",
+   "options": [
+    "A turn toward south",
+    "A turn toward north",
+    "No change",
+    "It freezes in place"
+   ],
+   "answer": 1,
+   "why": "ANDS: on east or west headings, acceleration shows a turn toward north [[23:109|IFH 5-14]]."
+  },
+  {
+   "q": "You check both VORs on the same station. VOR 1 shows 093° TO and VOR 2 shows 098° TO. Can you use them under IFR?",
+   "options": [
+    "Yes, the limit is 6°",
+    "Yes, if you log the error",
+    "No, the difference is over 4°",
+    "Yes, the limit is 10° to 12°"
+   ],
+   "answer": 2,
+   "why": "In a dual check the two bearings may differ by at most 4°. These differ by 5° [[60:471|14 CFR 91.171(c)]]. 10° to 12° is the course sensitivity check, not an accuracy limit [[23:259|IFH 9-16]]."
+  },
+  {
+   "q": "You are 4,000 ft above a VORTAC. From what distance is the DME slant range error negligible?",
+   "options": [
+    "1 NM or more",
+    "2 NM or more",
+    "4 NM or more",
+    "10 NM or more"
+   ],
+   "answer": 2,
+   "why": "The error is negligible at 1 NM or more from the station for each 1,000 ft above it, so 4 NM here [[23:262|IFH 9-19]]."
+  },
+  {
+   "q": "You open the alternate static source in an unpressurized airplane. What do you expect?",
+   "options": [
+    "Airspeed reads high, altimeter slightly high, VSI shows a brief climb",
+    "Airspeed reads low, altimeter slightly low, VSI shows a brief descent",
+    "No change in any instrument",
+    "Only the airspeed indicator changes"
+   ],
+   "answer": 0,
+   "why": "Cabin air is at lower pressure than outside, so the altimeter and airspeed read high and the VSI shows a momentary climb [[23:98|IFH 5-3]]."
+  },
+  {
+   "q": "In a glass-panel airplane, the alternator fails in IMC. Which plan matches the IFH?",
+   "options": [
+    "Continue to the destination; the standby battery lasts for hours",
+    "Turn everything off, including the PFD, and fly partial panel",
+    "Reset the circuit breaker repeatedly until it holds",
+    "Shed load, use the standby battery per the AFM, tell ATC, land at the nearest suitable airport"
+   ],
+   "answer": 3,
+   "why": "Never continue after the charging system fails. Shed load and land at the nearest suitable airport [[23:330|IFH 11-5]]. The standby battery powers the essential bus, and ATC should be told [[23:331|IFH 11-6]] [[23:332|IFH 11-7]]."
+  },
+  {
+   "q": "On an RNAV (GPS) approach the receiver flags 2 NM before the FAWP because approach mode never went active. What do you do?",
+   "options": [
+    "Descend to the LNAV MDA using the ±1 NM scale",
+    "Do not descend to the MDA; fly to the MAWP and go missed",
+    "Switch to the tablet and continue",
+    "Enter the waypoints by hand and continue"
+   ],
+   "answer": 1,
+   "why": "If approach mode isn't active, RAIM and CDI do not ramp down. Don't descend to the MDA; fly to the MAWP and go missed [[33:96|AIM 1-1-17]]."
+  },
+  {
+   "q": "Your GPS is TSO-C129 with FDE (no WAAS). You file to an airport whose only approach is RNAV (GPS). What must your alternate have?",
+   "options": [
+    "Any RNAV (GPS) approach with LNAV minima",
+    "An approach other than GPS that you are equipped to fly",
+    "No approach at all if the weather is good",
+    "An LPV approach"
+   ],
+   "answer": 1,
+   "why": "Non-WAAS GPS users may plan a GPS approach at the destination or the alternate, not both. The alternate then needs an approved non-GPS approach [[33:95|AIM 1-1-17]]."
+  },
+  {
+   "q": "Tracking a GPS course with the autopilot in NAV, you switch the HSI to LOC for the ILS. The airplane holds wings level but drifts off course. Why?",
+   "options": [
+    "The localizer is out of service",
+    "The flight director failed",
+    "On some autopilots a nav source change drops NAV mode to ROL",
+    "The GPS lost RAIM"
+   ],
+   "answer": 2,
+   "why": "With some autopilots, changing the nav source while in NAV mode disengages NAV, and lateral mode defaults to ROL until you re-engage it [[1:70|PHAK 2-31]]."
+  },
+  {
+   "q": "The static system was opened for maintenance (not the drain or alternate static valve). The 24-month check was 6 months ago. Before IFR in controlled airspace you need:",
+   "options": [
+    "Nothing, the 24-month check is still valid",
+    "A static system test and inspection",
+    "Only a new VOR check",
+    "Only a transponder check"
+   ],
+   "answer": 1,
+   "why": "After any opening and closing of the static system, except the drain and alternate static valves, it must be tested and inspected [[60:524|14 CFR 91.411(a)(2)]]."
+  },
+  {
+   "q": "On a part 91 IFR flight, a passenger wants to use a laptop. Who may decide it won't interfere with the nav and comm radios?",
+   "options": [
+    "Only the FAA",
+    "The manufacturer of the laptop",
+    "ATC",
+    "The pilot in command or other operator"
+   ],
+   "answer": 3,
+   "why": "For aircraft not run by a certificate holder, the PIC or other operator may make the determination [[60:438|14 CFR 91.21(c)]]."
+  },
+  {
+   "q": "A VOR's Morse identifier is missing, but the needles and flag look normal. What should you do?",
+   "options": [
+    "Do not use it; a missing ID may mean maintenance",
+    "Use it if the needle is steady",
+    "Use it if the flight service station names it on the frequency",
+    "Use it only for the VOR check"
+   ],
+   "answer": 0,
+   "why": "During maintenance the code may be removed or replaced with T-E-S-T [[33:69|AIM 1-1-3]]. Only the Morse or voice ID positively identifies a VOR, not an FSS voice [[33:68|AIM 1-1-3]] [[33:69|AIM 1-1-3]]."
+  }
+ ]
+}
