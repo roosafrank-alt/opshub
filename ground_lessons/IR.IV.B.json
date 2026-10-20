@@ -1242,8 +1242,97 @@
    ]
   },
   {
-   "type": "tf",
+   "type": "label",
    "key": "h4",
+   "after": 8,
+   "title": "Parts of the PFD in a nose-high upset",
+   "figure": "f3",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 29,
+     "y": 22,
+     "label": "Airspeed tape"
+    },
+    {
+     "x": 66.5,
+     "y": 30,
+     "label": "Altitude tape"
+    },
+    {
+     "x": 71.4,
+     "y": 46,
+     "label": "Vertical speed tape"
+    },
+    {
+     "x": 47,
+     "y": 25,
+     "label": "Red chevrons"
+    },
+    {
+     "x": 47,
+     "y": 40,
+     "label": "Aircraft symbol"
+    },
+    {
+     "x": 40.8,
+     "y": 16.8,
+     "label": "Roll scale"
+    },
+    {
+     "x": 29,
+     "y": 87,
+     "label": "Brown ground segment"
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h5",
+   "after": 10,
+   "title": "Load factor and stall speed in a bank",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "A 2,300-lb airplane is in a coordinated, level 60° bank turn. What total load must the wings carry?",
+     "answer": 4600,
+     "tol": 0,
+     "unit": "lb",
+     "why": "A level 60° bank is 2 G in any airplane [[1:131|PHAK 5-34]]. A load factor of 2 means the load on the structure is twice the weight [[1:130|PHAK 5-33]]: 2,300 × 2 = 4,600 lb."
+    },
+    {
+     "q": "Your airplane stalls at 60 knots wings level. About what is its stall speed in a level 60° bank turn?",
+     "answer": 85,
+     "tol": 2,
+     "unit": "kt",
+     "why": "60° of bank is 2 G [[1:131|PHAK 5-34]]. Stall speed rises with the square root of the load factor [[1:131|PHAK 5-34]] [[1:132|PHAK 5-35]]: √2 ≈ 1.41, and 60 × 1.41 ≈ 85 knots."
+    },
+    {
+     "q": "A level 60° bank is 2 G. The PHAK says each extra 10° of bank beyond that adds about 1 G. About what load factor does a level 70° bank need?",
+     "answer": 3,
+     "tol": 0.2,
+     "unit": "G",
+     "why": "2 G at 60°, plus about 1 G for the added 10°, is about 3 G [[1:131|PHAK 5-34]]. The PHAK also notes that a bank past 72° makes 3 G [[1:132|PHAK 5-35]]."
+    },
+    {
+     "q": "Your airplane stalls at 55 knots wings level. In a hurried spiral pullout you pull 3 G. About what airspeed can it stall at?",
+     "answer": 95,
+     "tol": 2,
+     "unit": "kt",
+     "why": "Stall speed rises with the square root of the load factor [[1:131|PHAK 5-34]] [[1:132|PHAK 5-35]]: √3 ≈ 1.73, and 55 × 1.73 ≈ 95 knots. A fast pull can stall you at a speed that looks safe."
+    },
+    {
+     "q": "A normal category airplane has a limit load factor of 3.8 G. The structure must hold 1.5 times the limit load without failing. What load factor is that?",
+     "answer": 5.7,
+     "tol": 0.1,
+     "unit": "G",
+     "why": "3.8 × 1.5 = 5.7 G. The 1.5 factor of safety is for unexpected loads, not for willful use, and parts may bend before that [[1:130|PHAK 5-33]] [[1:131|PHAK 5-34]]. A level 80° bank needs 5.76 G, past even that [[1:131|PHAK 5-34]]."
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h6",
    "after": 11,
    "title": "True or false: failures, limits and inadvertent IMC",
    "intro": "Decide if each statement is true or false.",
@@ -1277,6 +1366,70 @@
      "s": "The AIM says you are in at least an urgency condition the moment you become doubtful about the weather.",
      "a": true,
      "why": "Yes. That is the time to ask for help, not after it becomes distress [[34:28|AIM 6-1-2]]."
+    }
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 12,
+   "title": "Head down for a chart in IMC",
+   "intro": "You are flying N123AB, a steam-gauge single with no autopilot, IFR at 5,000 ft in IMC and light turbulence. ATC changes your arrival, and the approach chart you need is in a flight bag on the back seat.",
+   "steps": [
+    {
+     "s": "You need that chart. What do you do before you reach for it?",
+     "options": [
+      "Reach back quickly and get it over with",
+      "Trim for hands-off level flight, then get it in short looks with the cross-check going",
+      "Hold a little back pressure so the nose can't drop while you're turned around",
+      "Turn your head and shoulders all the way around so you find it on the first try"
+     ],
+     "answer": 1,
+     "why": "A flight deck interruption while you hold control pressures easily leads into an unusual attitude, and hunting for charts pulls your eyes off the instruments [[23:189|IFH 7-28]]. Retrieve things with minimal head movement and be alert for the Coriolis illusion [[23:73|IFH 3-6]]."
+    },
+    {
+     "s": "The bag is stuck and you look down longer than you meant to. When you look up, airspeed is dropping through 75 knots, the altimeter reads 5,350 ft and climbing, the VSI shows a climb and the turn coordinator shows a right turn. The attitude indicator agrees. What now?",
+     "options": [
+      "Roll the wings level first, then lower the nose",
+      "Add power, push the nose down, then level the wings with coordinated aileron and rudder",
+      "Pull the power to idle and push the nose down",
+      "Hold the attitude and recheck each instrument one at a time"
+     ],
+     "answer": 1,
+     "why": "Slowing, climbing and turning right is a nose-high climbing right turn. With airspeed decreasing, add power, apply forward pressure to prevent a stall, then level the wings, almost at once but in that order [[23:188|IFH 7-27]]. Stopping to stare at each instrument is the slow cross-check and fixation error [[23:189|IFH 7-28]]."
+    },
+    {
+     "s": "As you push forward, the stall warning horn sounds and you feel a buffet.",
+     "options": [
+      "Roll level with aileron first to pick up the low wing",
+      "Ease off the forward pressure to stop losing altitude",
+      "Keep pushing until the horn and buffet stop, then roll level and add power as needed",
+      "Add full power and hold the current pitch"
+     ],
+     "answer": 2,
+     "why": "Reducing the AOA is crucial in every stall recovery: push until the stall warning is gone before the next step. Don't try to control bank before the AOA is reduced. Power reduces altitude loss but does not eliminate a stall [[24:121|AFH 5-16]]."
+    },
+    {
+     "s": "The buffet stops. The airspeed and altimeter needles reverse and steady, the wings are level and the ball is centered. You are at 5,450 ft, assigned 5,000.",
+     "options": [
+      "Push over abruptly to get back down before ATC notices",
+      "Stay at 5,450 ft until you have the chart sorted out",
+      "Climb to 6,000 ft for a bigger margin",
+      "Descend smoothly back to 5,000 ft now that you are stable"
+     ],
+     "answer": 3,
+     "why": "After stabilizing in straight-and-level flight, return to the altitude ATC assigned [[23:189|IFH 7-28]]. Make a smooth input and small pitch changes so you don't overcontrol [[23:197|IFH 7-36]]. An abrupt pitch change right after a stall recovery can also cause a secondary stall [[24:123|AFH 5-18]]."
+    },
+    {
+     "s": "You are level at 5,000 ft. You still don't have the chart, the turbulence is tiring and you are behind the airplane.",
+     "options": [
+      "Say nothing and try again quickly before the approach",
+      "Tell ATC what happened and ask for a hold or vectors while you get organized",
+      "Fly the approach from memory",
+      "Cancel IFR and look for a hole in the clouds"
+     ],
+     "answer": 1,
+     "why": "You are in at least an urgency condition the moment you doubt anything that could affect safety; ask for help now, not after it becomes distress [[34:28|AIM 6-1-2]]. Then organize the flight deck so you never stop cross-checking long enough to enter another unusual attitude [[23:219|IFH 7-58]]."
     }
    ]
   }
