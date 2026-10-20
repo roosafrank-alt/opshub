@@ -1215,8 +1215,49 @@
    ]
   },
   {
-   "type": "sort",
+   "type": "label",
    "key": "h2",
+   "after": 6,
+   "title": "Find it on the glass panel",
+   "figure": "f3",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 21.4,
+     "y": 30,
+     "label": "Airspeed tape"
+    },
+    {
+     "x": 30.5,
+     "y": 28,
+     "label": "Attitude display"
+    },
+    {
+     "x": 35.6,
+     "y": 26,
+     "label": "Altitude tape"
+    },
+    {
+     "x": 30.1,
+     "y": 48,
+     "label": "Horizontal situation indicator (HSI)"
+    },
+    {
+     "x": 72.8,
+     "y": 38,
+     "label": "Multi-function display (MFD)"
+    },
+    {
+     "x": 60.7,
+     "y": 63,
+     "label": "Standby attitude indicator"
+    }
+   ],
+   "why": "Figure 6-21 links each part of the PFD to the round gauge it replaces, with standby instruments below [[23:149|IFH 6-16]]. The PFD shows airspeed, attitude, altitude and heading on one screen [[23:122|IFH 5-27]], and the MFD shows the map and can take over the PFD's data in reversionary mode [[23:123|IFH 5-28]]."
+  },
+  {
+   "type": "sort",
+   "key": "h3",
    "after": 7,
    "title": "VOR check limits",
    "intro": "Tap a clue, then tap where it belongs.",
@@ -1252,8 +1293,52 @@
    ]
   },
   {
+   "type": "calc",
+   "key": "h4",
+   "after": 8,
+   "title": "Work the numbers: VOR checks and DME",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "At a VOT you center the needle. The OBS reads 356° with a FROM flag. What is the bearing error in degrees?",
+     "answer": 4,
+     "tol": 0,
+     "unit": "°",
+     "why": "A VOT should read 0° FROM with the needle centered [[33:70|AIM 1-1-4]]. 360 - 356 = 4°. That is right at the ±4° limit for a test signal, so the receiver passes [[60:470|14 CFR 91.171(b)(1)]]."
+    },
+    {
+     "q": "Over a designated airborne checkpoint, the published radial is 165°. With the needle centered, your OBS reads 171° FROM. What is the bearing error in degrees?",
+     "answer": 6,
+     "tol": 0,
+     "unit": "°",
+     "why": "171 - 165 = 6°. The limit for an airborne checkpoint is ±6°, so it just passes [[60:470|14 CFR 91.171(b)(3)]]. Log date, place, bearing error and sign [[60:471|14 CFR 91.171(d)]]."
+    },
+    {
+     "q": "A VORTAC sits at 1,400 ft MSL. You are at 8,400 ft MSL. At least how far from the station must you be for DME slant range error to be negligible?",
+     "answer": 7,
+     "tol": 0,
+     "unit": "NM",
+     "why": "Height above the station: 8,400 - 1,400 = 7,000 ft. One NM for each 1,000 ft above the facility gives 7 NM [[23:262|IFH 9-19]]."
+    },
+    {
+     "q": "You pass directly over a VORTAC at 2,000 ft MSL while flying at 8,000 ft MSL. About what will the DME read, in NM?",
+     "answer": 1,
+     "tol": 0.1,
+     "unit": "NM",
+     "why": "Over the station the DME shows your height above it in NM [[23:262|IFH 9-19]]. 8,000 - 2,000 = 6,000 ft, and 6,000 ÷ 6,076 ft per NM is about 1.0 NM."
+    },
+    {
+     "q": "Your DME reads 40 NM. By the AIM, DME is accurate to better than 1/2 NM or 3 percent of the distance, whichever is greater. What is that error limit at 40 NM, in NM?",
+     "answer": 1.2,
+     "tol": 0,
+     "unit": "NM",
+     "why": "3% of 40 NM = 0.03 × 40 = 1.2 NM. That is more than 1/2 NM, so 1.2 NM is the figure that applies [[33:72|AIM 1-1-7]]."
+    }
+   ]
+  },
+  {
    "type": "tf",
-   "key": "h3",
+   "key": "h5",
    "after": 9,
    "title": "True or false: GPS, RAIM and the database",
    "intro": "Decide if each statement is true or false.",
@@ -1292,7 +1377,7 @@
   },
   {
    "type": "order",
-   "key": "h4",
+   "key": "h6",
    "after": 12,
    "title": "IFR instrument checks in order",
    "intro": "Use the arrows to put the steps in order, then tap Check.",
@@ -1304,6 +1389,70 @@
     "After start: set heading indicator to compass, altimeter within 75 ft",
     "Taxi turns: turn indicator shows the turn, ball moves opposite",
     "Lined up: heading indicator within 5° of the runway"
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 13,
+   "title": "Vacuum failure, then a RAIM alert",
+   "intro": "You are flying N123AB IFR in IMC at 6,000 ft, hand flying. It has vacuum-driven attitude and heading indicators, an electric turn coordinator, a non-WAAS IFR GPS and one VOR/LOC/GS receiver. Its autopilot takes attitude from the vacuum attitude indicator.",
+   "steps": [
+    {
+     "s": "The attitude indicator slowly shows a left bank. The turn coordinator shows wings level, the altimeter is steady and the VSI reads zero.",
+     "options": [
+      "Roll right until the attitude indicator is level",
+      "Cross-check the turn coordinator and VSI, and hold wings level on them",
+      "Engage the autopilot so it holds the wings level",
+      "Start a climb to get above the clouds"
+     ],
+     "answer": 1,
+     "why": "The attitude indicator disagrees with the instruments that run on other power. Compare it with the rate-of-turn indicator and VSI, keep control, and fly on the instruments that still work [[23:332|IFH 11-7]]. Rolling right would put you in a real right bank, and a wandering gyro can drive a connected autopilot the wrong way [[23:332|IFH 11-7]]."
+    },
+    {
+     "s": "The suction gauge reads near zero. The heading indicator is drifting too.",
+     "options": [
+      "Leave both gyros uncovered in case they recover",
+      "Tap the attitude indicator until it settles",
+      "Cover the attitude and heading indicators and fly partial panel",
+      "Reset the heading indicator to the compass every minute"
+     ],
+     "answer": 2,
+     "why": "A vacuum pump failure takes out both the attitude and the heading indicator [[23:332|IFH 11-7]]. Covering the failed instruments can help you keep control and navigate [[23:332|IFH 11-7]]."
+    },
+    {
+     "s": "You have the airplane under control on partial panel. What next?",
+     "options": [
+      "Tell ATC about the failure, and declare an emergency if you need help",
+      "Say nothing until you land, then write it up",
+      "Squawk 7600 and wait for ATC to call you",
+      "Ask for a VFR descent below the clouds"
+     ],
+     "answer": 0,
+     "why": "Once you have control, the usual next step is to advise ATC and, if needed, declare an emergency before things get worse than you can handle [[23:332|IFH 11-7]]."
+    },
+    {
+     "s": "ATC vectors you to the RNAV (GPS) approach. Just after you pass the final approach waypoint, a RAIM annunciation appears.",
+     "options": [
+      "Keep descending to the MDA, the course still looks good",
+      "Level off and wait for the RAIM message to clear",
+      "Switch the CDI to VOR and keep descending",
+      "Climb, fly the missed approach and tell ATC"
+     ],
+     "answer": 3,
+     "why": "If the RAIM annunciation appears after the FAWP, climb and fly the missed approach. The GPS may keep working, but its information is advisory only [[33:98|AIM 1-1-17]]. Report the nav equipment problem to ATC as soon as practical [[60:483|14 CFR 91.187]]."
+    },
+    {
+     "s": "ATC offers the ILS. The approach is loaded in your GPS and you have tuned the localizer.",
+     "options": [
+      "Fly the localizer course on the GPS, since it is loaded",
+      "Identify the localizer and fly raw localizer and glideslope on the VOR/LOC receiver",
+      "Skip the ID, the needles are alive so it works",
+      "Ask for the RNAV approach again in case RAIM came back"
+     ],
+     "answer": 1,
+     "why": "RNAV may not be used to fly a localizer course without raw localizer data [[33:117|AIM 1-2-3]], and the GPS is advisory only after the RAIM alert [[33:98|AIM 1-1-17]]. Identify it first: a localizer ID starts with 'I', like ISGF [[23:279|IFH 9-36]]."
+    }
    ]
   }
  ],

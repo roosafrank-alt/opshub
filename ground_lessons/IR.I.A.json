@@ -1192,8 +1192,45 @@
    ]
   },
   {
-   "type": "order",
+   "type": "calc",
    "key": "h2",
+   "after": 4,
+   "title": "Count your approaches",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "It is October 5. You logged 2 approaches in March, 3 in May and 1 in August, with holding and tracking in August. How many more approaches must you fly before you may act as PIC under IFR this month?",
+     "answer": 2,
+     "tol": 0,
+     "unit": "approaches",
+     "why": "For an October flight the window is the 6 calendar months before it: April through September. March drops out, so you have 3 (May) + 1 (August) = 4. You need 6, so 6 - 4 = 2 more [[60:239|14 CFR 61.57(c)(1)]]."
+    },
+    {
+     "q": "Inside your 6-month window you flew 2 approaches in the airplane under a view-limiting device and 3 in an aviation training device, plus holding and tracking in the device. How many more approaches do you need?",
+     "answer": 1,
+     "tol": 0,
+     "unit": "approach",
+     "why": "Any mix of airplane and device counts, so 2 + 3 = 5 approaches. 6 - 5 = 1 more [[60:239|14 CFR 61.57(c)(1)-(2)]]."
+    },
+    {
+     "q": "It is December 3. You logged 1 approach in May, 2 in June, 2 in September and 1 in November, with holding and tracking in September. How many of these approaches count for a flight this month?",
+     "answer": 5,
+     "tol": 0,
+     "unit": "approaches",
+     "why": "The December window is June through November. May drops out, so 2 + 2 + 1 = 5 count. That is one short of six, so you are not current this month [[60:239|14 CFR 61.57(c)(1)]]."
+    },
+    {
+     "q": "Your last flight review was on September 8, 2025. What is the last month of 2027 in which you may act as PIC without a new one? Type the month number (1 to 12).",
+     "answer": 9,
+     "tol": 0,
+     "unit": "month",
+     "why": "The review must fall after the beginning of the 24th calendar month before the month you fly. For September 2027 that month is September 2025, so the review counts. For October 2027 it is October 2025, which is after September 8, so it does not. The answer is September, month 9 [[60:237|14 CFR 61.56(c)]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h3",
    "after": 5,
    "title": "From current to IPC",
    "intro": "Use the arrows to put the steps in order, then tap Check.",
@@ -1208,7 +1245,7 @@
   },
   {
    "type": "sort",
-   "key": "h3",
+   "key": "h4",
    "after": 8,
    "title": "BasicMed: allowed or not?",
    "intro": "Tap a clue, then tap where it belongs.",
@@ -1252,8 +1289,61 @@
    ]
   },
   {
+   "type": "decide",
+   "key": "h5",
+   "after": 10,
+   "title": "Legal and ready for Friday?",
+   "intro": "It is Monday, March 10. You are an instrument-rated private pilot with a current third-class medical and a flight review 11 months ago. On Friday you plan an IFR trip with one passenger in N482TS, the club Cessna 172 you fly often. Your written IFR minimums are 800 ft and 1 mile by day, and 999 ft and 3 miles at night.",
+   "steps": [
+    {
+     "s": "You open your logbook. It shows 2 approaches in August, 3 approaches plus holding and tracking in October, and 1 approach in January. Where do you stand for a flight this month?",
+     "options": [
+      "Current: you logged six approaches in the last year",
+      "Two approaches short: fly them before Friday with a safety pilot, a device or an instructor",
+      "Out more than six calendar months: you need an IPC",
+      "Current through March 31, so you can catch up next month"
+     ],
+     "answer": 1,
+     "why": "The March window is September through February. August drops out, leaving 3 (October) + 1 (January) = 4 approaches, so you need 2 more [[60:239|14 CFR 61.57(c)(1)]]. You were current in February, so you are not more than six calendar months out and no IPC is needed [[60:240|14 CFR 61.57(d)(1)]]. A safety pilot, a device or an instructor all work [[60:239|14 CFR 61.57(c)(2)]] [[60:446|14 CFR 91.109(c)]]."
+    },
+    {
+     "s": "Your friend Dana, a private pilot, will be your safety pilot on Wednesday in clear weather. You will fly under the hood. What do you settle before engine start?",
+     "options": [
+      "Nothing: you can sort out who has the controls once you are airborne",
+      "Dana must be PIC, so you may not log any PIC time",
+      "You will be PIC under VFR, and you brief the three-step control handoff",
+      "You must file IFR, because you will be flying by instruments"
+     ],
+     "answer": 2,
+     "why": "Decide who is PIC before the flight. As sole manipulator of the controls you may log PIC time [[60:228|14 CFR 61.51(e)(1)(i)]]. You may be PIC under VFR without instrument currency, because 61.57(c) covers only IFR and weather below VFR minimums [[60:239|14 CFR 61.57(c)]]. Brief the handoff: a verbal handoff, a verbal acceptance, and a confirmation by the pilot giving up control [[15:9|AC 61-98E 2.1.1]]."
+    },
+    {
+     "s": "Wednesday goes well and you log the 2 approaches. Friday's forecast for your 7 p.m. arrival, after dark: ceiling 900 ft, visibility 4 miles. The ILS minimums are 200 ft and 1/2 mile. What now?",
+     "options": [
+      "Go: the weather is far above the ILS minimums",
+      "Go: 900 ft is above your 800 ft minimum",
+      "Lower your night ceiling minimum to 900 ft just for this trip",
+      "Not as planned: 900 ft is below your 999 ft night minimum, so plan a daylight arrival or wait"
+     ],
+     "answer": 3,
+     "why": "Personal minimums are stricter than the rules on purpose [[30:13|RMH 2-1]]. Your night ceiling minimum is 999 ft, and 900 ft is below it; the 800 ft figure is your day minimum. Don't lower your minimums to complete a specific flight [[30:17|RMH 2-5]]."
+    },
+    {
+     "s": "You move the trip to a 1 p.m. departure for a daylight arrival. The forecast is now 1,100 ft and 5 miles. But you slept only 5 hours, and your passenger keeps saying he must be there by 3. What do you do?",
+     "options": [
+      "Go: 1,100 ft is above your 800 ft day minimum",
+      "Go, and plan to divert if it looks bad on arrival",
+      "Add at least 500 ft for fatigue, making 1,300 ft, so rest and wait for better weather",
+      "Go: personal minimums only apply at night"
+     ],
+     "answer": 2,
+     "why": "Fatigue is a reason to add at least 500 ft to your ceiling minimum, and passenger pressure is a factor too [[30:17|RMH Figure 2-9]]. 800 + 500 = 1,300 ft, and 1,100 ft is below that. Fatigue is the F in IMSAFE [[1:47|PHAK 2-8]]. A written set of minimums also makes the no-go easier to explain to your passenger [[30:17|RMH 2-5]]."
+    }
+   ]
+  },
+  {
    "type": "tf",
-   "key": "h4",
+   "key": "h6",
    "after": 11,
    "title": "True or false: safety pilots, minimums and your senses",
    "intro": "Decide if each statement is true or false.",
@@ -1289,6 +1379,42 @@
      "why": "Yes. Rated but not proficient pilots are also susceptible to spatial disorientation and loss of control [[15:12|AC 61-98E 2.1.5]]."
     }
    ]
+  },
+  {
+   "type": "label",
+   "key": "h7",
+   "after": 12,
+   "title": "Find it on the PFD",
+   "figure": "f6",
+   "intro": "Drag each name to its numbered pin on the Garmin display (right).",
+   "pins": [
+    {
+     "x": 59.5,
+     "y": 24,
+     "label": "Airspeed tape"
+    },
+    {
+     "x": 79.5,
+     "y": 23,
+     "label": "Altitude tape"
+    },
+    {
+     "x": 83,
+     "y": 40,
+     "label": "Vertical speed"
+    },
+    {
+     "x": 69.3,
+     "y": 34.5,
+     "label": "Attitude (horizon)"
+    },
+    {
+     "x": 66,
+     "y": 62,
+     "label": "Heading"
+    }
+   ],
+   "why": "A PFD replaces the six traditional flight instruments with one display that shows the horizon, airspeed, altitude, vertical speed and heading [[23:122|IFH 5-27]] [[23:123|IFH 5-28]]. On a new panel, learn where each one is before you fly it IFR [[57:9|AC 90-109A 6c(1)]]."
   }
  ],
  "final_quiz": [

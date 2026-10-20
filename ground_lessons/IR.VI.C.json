@@ -1158,9 +1158,93 @@
    ]
   },
   {
-   "type": "sort",
+   "type": "calc",
    "key": "h3",
+   "after": 4,
+   "title": "Missed approach numbers",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "The missed approach needs the standard 200 ft/NM. Your groundspeed on the climb is 90 knots. What climb rate do you need?",
+     "answer": 300,
+     "tol": 0,
+     "unit": "fpm",
+     "why": "90 knots ÷ 60 = 1.5 NM a minute. 1.5 × 200 = 300 fpm [[33:450|AIM 5-4-21b]]."
+    },
+    {
+     "q": "Burbank's ILS RWY 8 missed needs 334 ft/NM. Your groundspeed is 120 knots. What climb rate do you need?",
+     "answer": 668,
+     "tol": 5,
+     "unit": "fpm",
+     "why": "120 ÷ 60 = 2 NM a minute. 2 × 334 = 668 fpm [[29:186|IPH Figure 4-25]] [[33:450|AIM 5-4-21b]]."
+    },
+    {
+     "q": "Daggett's missed needs 220 ft/NM to 8,000. Your groundspeed is 90 knots. What climb rate do you need?",
+     "answer": 330,
+     "tol": 0,
+     "unit": "fpm",
+     "why": "90 ÷ 60 = 1.5 NM a minute. 1.5 × 220 = 330 fpm [[29:187|IPH Figure 4-26]] [[33:450|AIM 5-4-21b]]."
+    },
+    {
+     "q": "A timed approach has 5.5 NM from the FAF to the MAP. Your groundspeed on final is 110 knots. How many seconds after the FAF do you reach the MAP?",
+     "answer": 180,
+     "tol": 3,
+     "unit": "seconds",
+     "why": "5.5 ÷ 110 = 0.05 hr = 3.0 minutes = 180 seconds. Start the clock at the FAF [[29:181|IPH 4-41]]."
+    },
+    {
+     "q": "After a missed you have 1 hour 40 minutes of fuel. The alternate is 30 minutes away and you want to land there with the 45 minutes your IFR fuel plan assumed. How many minutes can you hold first?",
+     "answer": 25,
+     "tol": 0,
+     "unit": "minutes",
+     "why": "100 - 30 - 45 = 25 minutes. The IFR fuel plan covers the alternate plus 45 minutes at normal cruise [[60:469|14 CFR 91.167(a)(3)]]."
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h4",
    "after": 5,
+   "title": "Find it on the Orlando chart",
+   "figure": "f3",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 49,
+     "y": 62.2,
+     "label": "Missed approach icons"
+    },
+    {
+     "x": 69.4,
+     "y": 27,
+     "label": "Missed approach holding pattern"
+    },
+    {
+     "x": 52.4,
+     "y": 70.7,
+     "label": "Missed approach track (dotted)"
+    },
+    {
+     "x": 33,
+     "y": 67.6,
+     "label": "Final approach fix"
+    },
+    {
+     "x": 39.3,
+     "y": 70.7,
+     "label": "Maximum altitude for an early missed"
+    },
+    {
+     "x": 46.6,
+     "y": 76.3,
+     "label": "ILS decision altitude"
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h5",
+   "after": 6,
    "title": "Protected or not?",
    "intro": "Tap a clue, then tap where it belongs.",
    "buckets": [
@@ -1200,7 +1284,7 @@
   },
   {
    "type": "order",
-   "key": "h4",
+   "key": "h6",
    "after": 9,
    "title": "Fly the missed approach",
    "intro": "Use the arrows to put the steps in order, then tap Check.",
@@ -1212,6 +1296,70 @@
     "Positive rate of climb: gear up, if retractable",
     "Fly the missed approach course, turning only at or after the MAP",
     "Tell ATC \"missed approach\" and request your next clearance"
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 11,
+   "title": "LPV to minimums, then the missed",
+   "intro": "You are flying N123AB, single pilot, on an RNAV (GPS) RWY 26 approach to LPV minimums at Daggett. The missed approach needs 220 ft/NM to 8,000, then you hold at NULMN. Your alternate has good weather and you have plenty of fuel.",
+   "steps": [
+    {
+     "s": "You reach the DA on the glidepath. Nothing is in sight. The GPS shows 0.7 NM to the threshold.",
+     "options": [
+      "Level off and fly until the distance reads 0.0",
+      "Go missed now",
+      "Descend 100 ft more and look again",
+      "Switch to LNAV minimums and continue"
+     ],
+     "answer": 1,
+     "why": "On LPV you go missed at the DA without the required references; don't wait for the distance to reach zero [[33:106|AIM 1-1-39]] [[60:472|14 CFR 91.175(e)(1)]]."
+    },
+    {
+     "s": "You say \"going missed.\" What do you do first?",
+     "options": [
+      "Raise all the flaps",
+      "Call approach control",
+      "Full power and set the climb pitch attitude",
+      "Press autopilot buttons and watch what happens"
+     ],
+     "answer": 2,
+     "why": "Power first, then attitude, then configuration. Raising all the flaps at once can make the airplane settle [[24:182|AFH 9-11]]."
+    },
+    {
+     "s": "Flaps are coming up in steps. Groundspeed is 100 knots and the VSI shows 300 fpm.",
+     "options": [
+      "That's fine, any climb is enough",
+      "Turn toward AMAKE early to shorten the climb",
+      "Level off until the missed approach fix",
+      "You need about 370 fpm: pitch for best climb and tell ATC if you can't make it"
+     ],
+     "answer": 3,
+     "why": "100 ÷ 60 × 220 = about 367 fpm [[33:450|AIM 5-4-21b]]. No allowance is made for an early turn [[33:450|AIM 5-4-21b]], and you must advise ATC if unable (ACS IR.VI.C.S6)."
+    },
+    {
+     "s": "Climbing on the missed, approach control asks your intentions. The weather is now below minimums.",
+     "options": [
+      "\"Missed approach, weather below minimums, request clearance to my alternate\"",
+      "\"Request the approach again right away\"",
+      "Say nothing until level at 8,000",
+      "Squawk 7700"
+     ],
+     "answer": 0,
+     "why": "Advise ATC of the missed and the reason, then request a specific action such as your alternate [[34:4|AIM 5-5-5a]] [[34:5|AIM 5-5-5a]]."
+    },
+    {
+     "s": "ATC: \"Hold at NULMN as published, expect further clearance in 15 minutes.\" You reach NULMN at 7,000, still climbing.",
+     "options": [
+      "Ask for a shortcut toward the alternate before reaching 8,000",
+      "Enter the hold, keep climbing to 8,000 in it, and report time and altitude at the fix",
+      "Stop the climb at 7,000 to save fuel",
+      "Leave the hold for the alternate as soon as you get there"
+     ],
+     "answer": 1,
+     "why": "The missed says to continue the climb in the hold to 8,000 [[29:187|IPH Figure 4-26]]. Report time and altitude at the holding fix [[33:377|AIM 5-3-3]], and don't leave the missed before a safe altitude [[33:451|AIM 5-4-21g]]."
+    }
    ]
   }
  ],
