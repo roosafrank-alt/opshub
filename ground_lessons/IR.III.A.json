@@ -1253,8 +1253,43 @@
    ]
   },
   {
-   "type": "sort",
+   "type": "label",
    "key": "h2",
+   "after": 5,
+   "title": "Read the Birmingham Three chart",
+   "figure": "f3",
+   "intro": "Each NAVAID box on a DP gives the facility's frequency, identifier, Morse code and position. Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 4.1,
+     "y": 48.6,
+     "label": "Chart effective dates"
+    },
+    {
+     "x": 73.5,
+     "y": 11.7,
+     "label": "Morse code identifier"
+    },
+    {
+     "x": 63.3,
+     "y": 11.7,
+     "label": "NAVAID frequency"
+    },
+    {
+     "x": 69,
+     "y": 14.4,
+     "label": "NAVAID latitude and longitude"
+    },
+    {
+     "x": 53.4,
+     "y": 47.1,
+     "label": "Departure airport (BHM)"
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h3",
    "after": 6,
    "title": "Void time, hold for release, or release time?",
    "intro": "Tap a clue, then tap where it belongs.",
@@ -1295,8 +1330,72 @@
    ]
   },
   {
+   "type": "decide",
+   "key": "h4",
+   "after": 7,
+   "title": "From climb via to a crossing restriction",
+   "intro": "You are flying Cessna 5432K IFR from a towered airport. You filed 8,000 ft. Clearance delivery reads: “Cessna 5432K, cleared to Albany airport via the Hilltop Two departure, Eagle transition, then as filed. Climb via SID. Departure frequency 124.35, squawk 4521.” The Hilltop Two has a top altitude of 7,000 and a published restriction: cross RIVET at or below 3,000.",
+   "steps": [
+    {
+     "s": "Your tablet with the Hilltop Two just died, and you have no other copy of the chart or its text.",
+     "options": [
+      "Accept it and plan to ask departure for vectors",
+      "Tell ATC you can't accept the DP and request an amended clearance",
+      "Accept it and fly runway heading until you see the chart again",
+      "Read it back and look up the route after takeoff"
+     ],
+     "answer": 1,
+     "why": "To use a DP you must have at least its textual description. If you can't use one, tell ATC, and once you accept a DP you must fly it [[23:296|IFH 10-5]]."
+    },
+    {
+     "s": "Your backup tablet works and you have the chart. What do you read back?",
+     "options": [
+      "“Hilltop Two, Eagle transition, climb via SID, 124.35, squawk 4521, Cessna 5432K”",
+      "“Climb via SID, cross RIVET at or below 3,000, then 7,000, Cessna 5432K”",
+      "“Cleared as filed, climbing to 8,000, Cessna 5432K”",
+      "“Roger, 32K”"
+     ],
+     "answer": 0,
+     "why": "Don't read back altitudes printed on a charted DP unless the controller states them, and include your call sign [[33:279|AIM 4-4-7]]. “As filed” does not include your filed altitude [[33:346|AIM 5-2-6]]."
+    },
+    {
+     "s": "After takeoff, tower tells you to contact departure. You are passing 1,800 ft. What is your first call?",
+     "options": [
+      "“Departure, Cessna 5432K, with you”",
+      "“Departure, Cessna 5432K, climbing to 8,000”",
+      "“Departure, Cessna 5432K, leaving one thousand eight hundred, climbing via the Hilltop Two departure”",
+      "“Departure, Cessna 5432K, request higher”"
+     ],
+     "answer": 2,
+     "why": "On a climb via clearance, tell ATC on first contact the altitude you are leaving and that you are climbing via the SID [[33:357|AIM 5-2-9]]."
+    },
+    {
+     "s": "At 2,600 ft, short of RIVET, departure says: “Cessna 5432K, climb and maintain 5,000.” What do you do?",
+     "options": [
+      "Hold 3,000 until past RIVET, then climb to 5,000",
+      "Climb to 5,000 now and keep flying the SID's lateral path",
+      "Climb to 5,000 now and turn direct to Eagle",
+      "Ask ATC to repeat, because it conflicts with the SID"
+     ],
+     "answer": 1,
+     "why": "A new ATC altitude cancels earlier altitude restrictions, including those published on the SID. You still fly the SID's lateral path and speed restrictions [[33:357|AIM 5-2-9]]."
+    },
+    {
+     "s": "Later, level at 8,000 and 40 NM from KNOBS, you hear: “Cessna 5432K, cross KNOBS at or above 6,000, descend and maintain 4,000.” What is your plan?",
+     "options": [
+      "Start down now at 500 to 1,500 fpm all the way to 4,000",
+      "Stay at 8,000 until KNOBS, then descend to 4,000",
+      "Descend when you choose but cross KNOBS at or above 6,000, then descend promptly to 4,000",
+      "Descend to 6,000 now and wait there for another clearance"
+     ],
+     "answer": 2,
+     "why": "With a crossing restriction, the descent to the fix is at pilot's discretion, but you must meet the crossing altitude. After the fix, descend at the suggested rates to the assigned altitude [[33:280|AIM 4-4-10]] [[33:281|AIM 4-4-10]]."
+    }
+   ]
+  },
+  {
    "type": "tf",
-   "key": "h3",
+   "key": "h5",
    "after": 8,
    "title": "True or false: en route and arrival clearances",
    "intro": "Decide if each statement is true or false.",
@@ -1334,8 +1433,50 @@
    ]
   },
   {
+   "type": "calc",
+   "key": "h6",
+   "after": 10,
+   "title": "Clearance numbers: crossings, rates and times",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "You are at 9,000 ft, cleared “cross KNOBS at 5,000.” Groundspeed is 120 knots and you plan to descend at 500 fpm. At the latest, how many NM before KNOBS must you start down?",
+     "answer": 16,
+     "tol": 1,
+     "unit": "NM",
+     "why": "Altitude to lose: 9,000 - 5,000 = 4,000 ft. Time: 4,000 / 500 = 8 minutes. Distance: 120 knots is 2 NM per minute, so 8 x 2 = 16 NM. When to start is your choice, but you must make the crossing [[33:280|AIM 4-4-10]] [[33:281|AIM 4-4-10]]."
+    },
+    {
+     "q": "You are at 8,000 ft and 12 NM from LAKEV, cleared to cross it at or below 5,000. Groundspeed is 150 knots. What is the minimum descent rate if you start now?",
+     "answer": 625,
+     "tol": 25,
+     "unit": "fpm",
+     "why": "Altitude to lose: 3,000 ft. 150 knots is 2.5 NM per minute, so 12 / 2.5 = 4.8 minutes. 3,000 / 4.8 = 625 fpm. You must comply with the crossing altitude as part of the clearance [[33:281|AIM 4-4-10]]."
+    },
+    {
+     "q": "Heavy and hot, your airplane climbs 2,100 ft in 6 minutes. What is your climb rate? (If it is under 500 fpm, you must tell ATC.)",
+     "answer": 350,
+     "tol": 0,
+     "unit": "fpm",
+     "why": "2,100 / 6 = 350 fpm. That is less than 500 fpm, so advise ATC [[33:280|AIM 4-4-10]] [[33:377|AIM 5-3-3]]."
+    },
+    {
+     "q": "Not in radar contact, you passed ACORN at 1410 and reported BIRCH, 30 NM ahead, at 1425 (120 knots). Your groundspeed is now 100 knots. What is your new BIRCH estimate (type it as hhmm)?",
+     "answer": 1428,
+     "tol": 0,
+     "why": "30 NM at 100 knots = 0.3 hour = 18 minutes. 1410 + 18 = 1428. That is 3 minutes off, more than 2, so report the corrected estimate [[33:377|AIM 5-3-3]]."
+    },
+    {
+     "q": "Lost comm in IMC. Your clearance limit is the IAF and you got no EFC. You departed at 1312 with a filed ETE of 1 hour 25 minutes. When should you start the approach (hhmm)?",
+     "answer": 1437,
+     "tol": 0,
+     "why": "ETA = 1312 + 1:25 = 1437. With no EFC, start descent and approach as close as possible to the ETA calculated from the filed or amended ETE [[60:483|14 CFR 91.185(c)(3)]]."
+    }
+   ]
+  },
+  {
    "type": "order",
-   "key": "h4",
+   "key": "h7",
    "after": 12,
    "title": "From clearance to departure",
    "intro": "Use the arrows to put the steps in order, then tap Check.",
