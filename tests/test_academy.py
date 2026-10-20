@@ -82,7 +82,6 @@ class AddEntryTest(AcademyBase):
                 self.add(value=bad)
                 self.assertEqual(len(self.entries()), 0, bad)
 
-    @open_finding("qa-academy-nan-entry-crash")
     def test_nan_value_is_rejected_not_a_crash(self):
         self.login("flight_student")
         r = self.add(value="nan")
