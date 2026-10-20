@@ -1,0 +1,1668 @@
+{
+ "task_code": "CA.I.D",
+ "task_title": "Cross-Country Flight Planning",
+ "area": "Area I. Preflight Preparation",
+ "minutes": 93,
+ "objective": "By the end of this lesson you can plan a VFR cross-country to the first fuel stop at commercial standards: choose a route and altitude that clear airspace, SUA, TFRs, terrain and obstacles, work out climb, cruise, ETA in UTC, fuel with reserve and trip weight and balance from real POH numbers, file and manage a VFR flight plan, and explain the risks.",
+ "why": "Commercial flying means carrying people who have places to be. A plan built from real numbers, current NOTAMs and an honest risk check is what lets you say yes, add a fuel stop, or say no, and back it up.",
+ "prereading": [
+  {
+   "res": "1",
+   "pages": [
+    404,
+    409
+   ],
+   "printed": "PHAK Ch 16, 16-17 to 16-22",
+   "what": "The planning sequence: Chart Supplement, NOTAMs, POH data, charting the course, the nav log and filing.",
+   "label": "PHAK Ch 16, 16-17 to 16-22"
+  },
+  {
+   "res": "1",
+   "pages": [
+    421,
+    422
+   ],
+   "printed": "PHAK 16-34 to 16-35",
+   "what": "Lost procedures and how to plan and fly a diversion.",
+   "label": "PHAK 16-34 to 16-35"
+  },
+  {
+   "res": "2",
+   "pages": [
+    12,
+    20
+   ],
+   "printed": "Chart Users' Guide pp. 12-20",
+   "what": "MEFs, airspace and SUA symbols, TFRs on charts, MTRs and chart tabulations.",
+   "label": "Chart Users' Guide pp. 12-20"
+  },
+  {
+   "res": "33",
+   "pages": [
+    322,
+    332
+   ],
+   "printed": "AIM 5-1-1 to 5-1-5",
+   "what": "Preflight briefing, NOTAMs and VFR flight plan rules.",
+   "label": "AIM 5-1-1 to 5-1-5"
+  },
+  {
+   "res": "22",
+   "pages": [
+    49,
+    52
+   ],
+   "printed": "W&B Handbook Ch 5, 5-1 to 5-4",
+   "what": "Single-engine loading, takeoff vs landing weight and the CG limits chart.",
+   "label": "W&B Handbook Ch 5, 5-1 to 5-4"
+  },
+  {
+   "res": "42",
+   "pages": [
+    2,
+    4
+   ],
+   "printed": "AC 91-78A paras 7 to 11",
+   "what": "What an EFB is, when it can replace paper, and how to manage its risks.",
+   "label": "AC 91-78A paras 7 to 11"
+  },
+  {
+   "res": "34",
+   "pages": [
+    20,
+    23
+   ],
+   "printed": "AIM 5-6-13 and 5-6-14",
+   "what": "Intercept procedures and signals.",
+   "label": "AIM 5-6-13 and 5-6-14"
+  }
+ ],
+ "warmup": "You plan a 186 NM leg in a complex single with 32 gallons usable. The flight is legal by day with the forecast wind. The wind turns out 15 knots stronger on the nose. Is it still legal? Is it still smart? What numbers do you need to answer?",
+ "key_terms": [
+  {
+   "term": "Maximum Elevation Figure (MEF)",
+   "def": "Highest terrain or obstacle in a sectional quadrant, rounded up to the next 100 ft. '28' means 2,800 ft MSL."
+  },
+  {
+   "term": "Special use airspace (SUA)",
+   "def": "Prohibited, restricted, warning, MOA, alert areas and CFAs: places where activities are confined or limits apply."
+  },
+  {
+   "term": "TFR",
+   "def": "Temporary flight restriction: a NOTAM that closes or limits airspace. Only national-security TFRs are charted."
+  },
+  {
+   "term": "NOTAM (D) and FDC NOTAM",
+   "def": "NOTAM (D): airport, runway, taxiway, NAVAID items. FDC: regulatory items such as TFRs and chart changes."
+  },
+  {
+   "term": "Chart Supplement",
+   "def": "FAA directory of airports: runways, lighting, fuel, frequencies, remarks. Newer than the chart when they differ."
+  },
+  {
+   "term": "Groundspeed (GS)",
+   "def": "Speed over the ground. Use it, not TAS, for time and fuel."
+  },
+  {
+   "term": "UTC (Zulu)",
+   "def": "World time used on flight plans. Eastern standard + 5 hours; during daylight saving time, 1 hour less."
+  },
+  {
+   "term": "Fuel reserve (91.151)",
+   "def": "Airplane VFR: fuel to the first point of intended landing, then 30 min by day or 45 min at night at normal cruise."
+  },
+  {
+   "term": "Endurance",
+   "def": "How long usable fuel lasts at your burn rate, in hours and minutes (Item 19 E/ on Form 7233-4)."
+  },
+  {
+   "term": "Max landing weight",
+   "def": "A POH limit that can be lower than max takeoff weight, so you may need to burn fuel before landing."
+  },
+  {
+   "term": "Assumed departure time",
+   "def": "A time that activates your VFR flight plan by itself. Search and rescue is based on it if you don't update it."
+  },
+  {
+   "term": "EFB",
+   "def": "Electronic flight bag: a portable or installed display for charts, POH, W&B, performance and fuel calculations."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "The plan the examiner wants",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K1",
+    "CA.I.D.S1"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "p": "On the checkride, the examiner gives you a cross-country. You plan it to the first fuel stop and include a risk analysis based on real-time weather (ACS CA.I.D.S1). A computer-generated plan is fine, as long as you can explain every number in it."
+    },
+    {
+     "p": "The rule behind it: before a flight away from the airport, the pilot in command must know the weather reports and forecasts, fuel requirements, alternatives if the flight can't be completed, and any known ATC delays [[60:440|14 CFR 91.103(a)]]. For every flight, you also need runway lengths and takeoff and landing distance data [[60:440|14 CFR 91.103(b)]]."
+    },
+    {
+     "bullets": [
+      "Check the weather first, to see if the flight is possible and which route is best [[1:404|PHAK 16-17]].",
+      "Study the Chart Supplement and NOTAMs for every airport where you plan to land [[1:404|PHAK 16-17]].",
+      "Use the POH for weight and balance, takeoff and landing distances, and fuel burn at your altitude and power [[1:404|PHAK 16-17]] [[1:405|PHAK 16-18]].",
+      "Then chart the course, fill in the flight log and file the flight plan [[1:405|PHAK 16-18]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "What changes at commercial: the items are the same as private, but the bar is higher. Use the real POH climb, cruise and fuel numbers, not round guesses, and be ready to redo them on the spot when the examiner changes something (ACS CA.I.D.S4)."
+     }
+    }
+   ],
+   "check": {
+    "q": "Which two items does 91.103 require for every flight, even one that stays near the airport?",
+    "a": "Runway lengths at the airports you plan to use, and takeoff and landing distance information [[60:440|14 CFR 91.103(b)]]."
+   }
+  },
+  {
+   "title": "Route, airspace and special use airspace",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K1"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Draw the course from the center of the departure airport to the center of the destination. If the route isn't direct, it is two or more straight segments, for example to pass over a VOR [[1:405|PHAK 16-18]]. Then check the course and the areas on both sides for any airspace with special rules [[1:405|PHAK 16-18]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "table": {
+      "head": [
+       "Area",
+       "Chart sign",
+       "What it means for your route"
+      ],
+      "rows": [
+       [
+        "Prohibited",
+        "P plus a number, blue",
+        "No flight allowed. Examples: Camp David and the National Mall [[1:378|PHAK 15-3]] [[2:20|Chart Users' Guide p.20]]."
+       ],
+       [
+        "Restricted",
+        "R plus a number, blue",
+        "Unusual, often invisible hazards like artillery. Entering without authorization from the using or controlling agency may be extremely hazardous [[1:378|PHAK 15-3]]."
+       ],
+       [
+        "Warning",
+        "W plus a number, blue",
+        "Like restricted, but starts 3 NM off the coast. It warns of hazardous activity [[1:379|PHAK 15-4]]."
+       ],
+       [
+        "MOA",
+        "Name, magenta",
+        "Military training. Times, altitudes and the controlling agency are on the chart [[1:379|PHAK 15-4]]."
+       ],
+       [
+        "Alert area",
+        "A plus a number, magenta",
+        "Heavy pilot training or unusual activity. Everyone shares collision avoidance [[1:379|PHAK 15-4]]."
+       ],
+       [
+        "MTR",
+        "IR or VR route number",
+        "Four digits: no segment above 1,500 ft AGL. Three or fewer: at least one segment above 1,500 ft AGL [[2:18|Chart Users' Guide p.18]]."
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "No NOTAM is issued for the times of use listed in the chart's SUA table. If the table says the area is active at your time, treat it as active [[2:20|Chart Users' Guide p.20]]."
+     }
+    },
+    {
+     "p": "MTRs are not closed to you, but use extreme vigilance. A route can be several miles wide on each side of the centerline. In flight, call an FSS within 100 NM for current use [[33:195|AIM 3-5-2]]."
+    },
+    {
+     "p": "Also mark the Class B, C and D airspace on your route, and the Mode C veil: surface to 10,000 ft MSL within 30 NM of the primary Class B airport [[2:17|Chart Users' Guide p.17]]."
+    }
+   ],
+   "check": {
+    "q": "Your course clips an alert area. Do you need permission to fly through it?",
+    "a": "No. Alert areas warn of heavy training or unusual activity. Pilots flying through and pilots training there are equally responsible for collision avoidance [[1:379|PHAK 15-4]]."
+   }
+  },
+  {
+   "title": "NOTAMs, TFRs and the Chart Supplement",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K1",
+    "CA.I.D.S2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "91.103 asks for all available information, and that includes NOTAMs. They can affect airports, runways, taxiways and ramps, obstructions, communications, airspace, NAVAIDs and radar service [[33:324|AIM 5-1-3]]."
+    },
+    {
+     "table": {
+      "head": [
+       "NOTAM type",
+       "What it carries"
+      ],
+      "rows": [
+       [
+        "NOTAM (D)",
+        "Taxiway closures, people and equipment near runways, airport lighting, NAVAIDs. Each starts with a keyword like RWY, TWY, APRON or OBST [[33:325|AIM 5-1-3]]."
+       ],
+       [
+        "FDC NOTAM",
+        "Regulatory items: TFRs, chart amendments, laser activity, GPS, WAAS and ADS-B service [[33:326|AIM 5-1-3]]."
+       ],
+       [
+        "ARTCC NOTAMs",
+        "For each Center area you fly through: SUA, TFRs, GPS, UAS and more [[33:324|AIM 5-1-3]] [[33:325|AIM 5-1-3]]."
+       ],
+       [
+        "Security NOTAMs",
+        "Domestic security items, found under location KZZZ [[33:326|AIM 5-1-3]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "A runway closure reads like '!BNA BNA RWY 18/36 CLSD' followed by start and end times [[33:327|AIM TBL 5-1-1]]. Check whether the runway you need is closed at your ETA, and whether the runway that's left is long enough for your landing distance [[60:440|14 CFR 91.103(b)]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Don't count on the briefer to catch everything. Airway NOTAMs, procedural NOTAMs and general flight restrictions are briefed only if you ask. Ask for all NOTAMs that apply to your flight [[33:322|AIM 5-1-1]]."
+     }
+    },
+    {
+     "p": "A TFR is a type of NOTAM [[2:18|Chart Users' Guide p.18]]. TFRs protect people near a hazard on the ground, disaster relief aircraft such as firefighters, areas that would draw crowds of sightseeing aircraft, the President and other public figures, and space operations [[33:195|AIM 3-5-3]]. Only TFRs related to national security are charted, so a clean sectional proves nothing [[2:18|Chart Users' Guide p.18]]."
+    },
+    {
+     "p": "For each airport, read the Chart Supplement: elevation, runways, lighting, services, fuel types (to pick your fuel stop), frequencies and remarks. When it differs from the chart, the Chart Supplement generally has the newer information [[1:404|PHAK 16-17]]. Use only current charts: sectionals in the conterminous U.S. are updated every 56 days [[33:322|AIM 5-1-1]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "En route, ask ATC or FSS for a destination update, especially for a nontowered airport. Snow removal, construction or wildlife may not have been known before you left [[33:325|AIM 5-1-3]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your sectional shows no TFR near a stadium on your route. Are you clear?",
+    "a": "Not yet. Only national-security TFRs are charted, so check the NOTAMs for the time of your flight [[2:18|Chart Users' Guide p.18]] [[33:195|AIM 3-5-3]]."
+   }
+  },
+  {
+   "title": "Nav and comm systems, and your EFB",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K1",
+    "CA.I.D.K1a",
+    "CA.I.D.S5"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Pick NAVAIDs you can actually receive. VOR signals are line-of-sight: at 1,000 ft AGL range is about 40 to 45 miles, and it grows with altitude [[1:409|PHAK 16-22]]. Check NOTAMs that each NAVAID you need is in service. A broken NAVAID can stay on the chart for a long time, so the NOTAM is the main warning [[33:325|AIM 5-1-3]]."
+    },
+    {
+     "p": "Search for GPS NOTAMs too. 'UNREL' means the expected GPS or WAAS service may not be available, so have other navigation for your route [[33:325|AIM 5-1-3]]. Load all your waypoints on the ground, not in flight [[33:324|AIM 5-1-2]] [[1:421|PHAK 16-34]]."
+    },
+    {
+     "bullets": [
+      "Write tower, ground, ATIS, approach and FSS frequencies on your log. The sectional lists tower and approach control frequencies in a table on the chart [[2:20|Chart Users' Guide p.20]].",
+      "Note the approach control frequency for each Class B or C you will pass, and which airports have a VOR or NDB on the field, which makes a diversion easier [[1:421|PHAK 16-34]]."
+     ]
+    },
+    {
+     "p": "An EFB is a display system for the flight deck. It can show paper material (charts, checklists, POH) and do calculations such as W&B, performance and fuel [[42:2|AC 91-78A para 7.1]]. Under part 91 it can replace paper in all phases of flight when [[42:3|AC 91-78A para 9.1]]:"
+    },
+    {
+     "bullets": [
+      "It does not replace any navigation, communication or surveillance equipment that part 91 requires.",
+      "It shows only information that is functionally equal to the paper it replaces.",
+      "The data you use for navigation or performance is current, up to date and valid, as checked by you.",
+      "Its use meets 91.21: it does not interfere with equipment or systems required for flight."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "",
+       "Portable EFB",
+       "Installed EFB"
+      ],
+      "rows": [
+       [
+        "Mounting",
+        "Not attached to an aircraft mounting device [[42:3|AC 91-78A para 10.1]]",
+        "May use an approved mounting device [[42:3|AC 91-78A para 10.2]]"
+       ],
+       [
+        "Power and data",
+        "Not connected to or getting data from any aircraft system [[42:3|AC 91-78A para 10.1]]",
+        "May use protected aircraft power and position from the nav system [[42:3|AC 91-78A para 10.2]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Moving maps show airspace and even TFRs so well that many pilots fall into the trap of using them alone. Keep your pilotage and dead reckoning sharp [[1:65|PHAK 2-26]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your tablet shows a GPS NOTAM marked UNREL along your route. What do you do?",
+    "a": "Plan other navigation for the route (VOR, pilotage, dead reckoning), because the expected GPS service may not be available [[33:325|AIM 5-1-3]]."
+   }
+  },
+  {
+   "title": "Pick a safe, legal altitude",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Find the highest terrain and the tallest obstruction along the route, so you can pick an altitude that meets part 91 [[1:405|PHAK 16-18]]. Set safe altitudes in advance from the charts, and use MEFs [[1:48|PHAK 2-9]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "An MEF is the highest elevation in a quadrant, including towers and trees, rounded up to the next 100 ft. The last two digits are not shown [[2:12|Chart Users' Guide p.12]]. In the figure, a tower top of 2,649 ft MSL plus 100 ft possible error is 2,749, raised to 2,800: the big '28' [[2:12|Chart Users' Guide p.12]]. Obstacles show the MSL elevation of the top, with the AGL height in parentheses below it [[2:11|Chart Users' Guide p.11]]. Each airport's data block starts with its elevation in feet, then the longest runway in hundreds of feet [[2:15|Chart Users' Guide p.15]]. MTRs are labeled IR or VR with a route number [[2:18|Chart Users' Guide p.18]]. Never pass antennas less than 500 ft above the tallest one; their guy wires are almost invisible [[1:399|PHAK 16-12]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Magnetic course",
+       "VFR cruising altitude above 3,000 ft AGL"
+      ],
+      "rows": [
+       [
+        "0° to 179°",
+        "Odd thousand + 500 (3,500, 5,500, 7,500) [[60:467|14 CFR 91.159(a)(1)]]"
+       ],
+       [
+        "180° to 359°",
+        "Even thousand + 500 (4,500, 6,500, 8,500) [[60:468|14 CFR 91.159(a)(2)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Glide distance matters too. Anywhere, you must fly high enough that, if the engine fails, you can make an emergency landing without undue hazard to people or property [[60:449|14 CFR 91.119(a)]]. Glide ratio is distance forward per altitude lost: 10 to 1 means 10,000 ft forward for 1,000 ft down [[24:82|AFH 3-21]]. At 10 to 1, 6,000 ft AGL gives about 60,000 ft, close to 10 NM in still air. A headwind cuts that distance and a tailwind stretches it [[24:84|AFH 3-23]]."
+    },
+    {
+     "p": "Wind changes with altitude, so compare groundspeed at a few altitudes. Going west to east, favorable winds are on the north side of a high or the south side of a low [[1:291|PHAK 12-7]]. Also weigh cloud heights, terrain and radio reception [[1:422|PHAK 16-35]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Higher cruise means oxygen rules. Cabin altitude above 12,500 ft MSL up to 14,000: the required crew uses oxygen for any part over 30 minutes. Above 14,000: crew uses it the whole time. Above 15,000: every occupant must be provided oxygen [[60:491|14 CFR 91.211(a)]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "At night, also stay at or above the minimum en route altitude shown on charts, especially in mountains [[33:324|AIM 5-1-2]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "True course 175°, variation 12° W, cruise more than 3,000 ft AGL. Odd or even thousands?",
+    "a": "Magnetic course = 175 + 12 = 187°, so even thousands + 500, such as 6,500 or 8,500 [[60:468|14 CFR 91.159(a)(2)]] [[1:407|PHAK 16-20]]."
+   }
+  },
+  {
+   "title": "Heading, groundspeed, time and UTC",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K3",
+    "CA.I.D.K3a",
+    "CA.I.D.K3b"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Work from the chart line to the number you fly: TC ± WCA = TH ± V = MH ± D = CH [[1:407|PHAK 16-20]]. East variation is subtracted and west is added. In the PHAK example, 7° E is subtracted from TH 28° to get MH 21° [[1:407|PHAK 16-20]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Step",
+       "Example (TAS 140 kt, wind 270° at 20 kt)",
+       "Result"
+      ],
+      "rows": [
+       [
+        "True course",
+        "Measured with a plotter",
+        "245°"
+       ],
+       [
+        "Wind correction",
+        "Wind from the right, use E6B or wind triangle",
+        "3° R, TH 248°"
+       ],
+       [
+        "Variation",
+        "10° W, add",
+        "MH 258°"
+       ],
+       [
+        "Deviation",
+        "Card says -2°",
+        "CH 256°"
+       ],
+       [
+        "Groundspeed",
+        "From the same wind solution",
+        "122 kt"
+       ]
+      ]
+     }
+    },
+    {
+     "bullets": [
+      "Time = distance ÷ GS. Distance = GS × time. GS = distance ÷ time [[1:398|PHAK 16-11]].",
+      "Minutes to hours: divide by 60. 0.75 hour × 60 = 45 minutes [[1:398|PHAK 16-11]].",
+      "Example: a 92 NM leg at 122 kt is 92 ÷ 122 = 0.75 hour = 45 minutes."
+     ]
+    },
+    {
+     "p": "Flight plans and ETAs use UTC, also called Zulu. From standard time, add 5 hours (Eastern), 6 (Central), 7 (Mountain) or 8 (Pacific). During daylight saving time, subtract 1 hour from those [[1:392|PHAK 16-5]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "ETA = departure time + ETE. Example: depart 1430 EDT, ETE 1:28, ETA 1558 EDT. EDT is UTC minus 4 (5 minus 1 for daylight time), so ETA is 1958Z [[1:392|PHAK 16-5]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Flying east, you lose an hour for each time zone. Check sunset at the destination when an eastbound trip must finish before dark [[1:392|PHAK 16-5]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You depart 1045 MDT and your ETE is 2:20. What is your ETA in UTC?",
+    "a": "1045 + 2:20 = 1305 MDT. Mountain standard is +7, minus 1 for daylight time = +6, so 1905Z [[1:392|PHAK 16-5]]."
+   }
+  },
+  {
+   "title": "Climb and descent from the POH",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K3a"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Climb takes extra time and fuel, and your groundspeed in a climb is lower than in cruise at the same airspeed [[1:399|PHAK 16-12]]. Use the POH climb chart or table instead of guessing."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "Read the row for your weight and altitude. At 3,400 lb, sea level to 8,000 ft takes 10 minutes, 21 lb of fuel and 20 NM [[1:279|PHAK Figure 11-26]]. Read the notes too: add 16 lb for start, taxi and takeoff, add 10% for each 7 °C above standard, and remember the distances assume zero wind [[1:279|PHAK Figure 11-26]]."
+    },
+    {
+     "p": "On a 22 °C day (7° above standard) the same climb becomes 11 minutes, 23.1 lb and 22 NM. Avgas weighs 6 lb per gallon, so 23.1 lb is 3.85 gallons [[1:280|PHAK 11-24]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Departing above sea level? Read the chart at the airport altitude and at cruise altitude, then subtract one from the other [[1:279|PHAK 11-23]]."
+     }
+    },
+    {
+     "p": "Plan the descent with the same formulas: time = feet to lose ÷ descent rate, and distance = GS × time [[1:398|PHAK 16-11]]. Example: from 8,500 ft to a 1,500 ft pattern is 7,000 ft. At 500 fpm that is 14 minutes. At 150 kt GS, start down about 35 NM out (150 × 14 ÷ 60 = 35)."
+    }
+   ],
+   "check": {
+    "q": "Figure 11-26, 3,700 lb, sea level to 8,000 ft, standard temperature: time, fuel and distance?",
+    "a": "12 minutes, 24 lb and 23 NM, before adding 16 lb for start, taxi and takeoff [[1:279|PHAK Figure 11-26]]."
+   }
+  },
+  {
+   "title": "Fuel with reserve: a worked leg",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K3c",
+    "CA.I.D.R6",
+    "CA.I.D.S4"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "The legal minimum for an airplane under VFR: enough fuel, considering wind and forecast weather, to reach the first point of intended landing and then fly at normal cruising speed for 30 minutes by day or 45 minutes at night [[60:464|14 CFR 91.151(a)]]."
+    },
+    {
+     "p": "Plan fuel for start and taxi, the higher burn in the climb, and cruise, then add reserve. With wind, use groundspeed, not TAS [[1:399|PHAK 16-12]]. Example: a 186 NM leg using the Figure 11-26 climb, then 140 KTAS at 12 GPH with a forecast GS of 128 kt."
+    },
+    {
+     "table": {
+      "head": [
+       "Item",
+       "Work",
+       "Fuel"
+      ],
+      "rows": [
+       [
+        "Start, taxi, takeoff",
+        "16 lb ÷ 6 lb/gal [[1:279|PHAK Figure 11-26]]",
+        "2.7 gal"
+       ],
+       [
+        "Climb to 8,000 ft",
+        "10 min, 21 lb, 20 NM [[1:279|PHAK Figure 11-26]]",
+        "3.5 gal"
+       ],
+       [
+        "Cruise",
+        "166 NM ÷ 128 kt = 78 min at 12 GPH",
+        "15.6 gal"
+       ],
+       [
+        "Trip fuel",
+        "Sum",
+        "21.8 gal"
+       ],
+       [
+        "Day reserve",
+        "30 min × 12 GPH [[60:464|14 CFR 91.151(a)(1)]]",
+        "6.0 gal"
+       ],
+       [
+        "Legal day minimum",
+        "Trip + reserve",
+        "27.8 gal"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "ETE is 10 minutes of climb plus 78 of cruise, 1:28. With 32 gallons usable you should land with about 10.2 gallons, roughly 51 minutes at 12 GPH."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "S4 practice: the examiner says GS is now 110 kt. Cruise is 166 ÷ 110 = 91 minutes = 18.1 gal. Trip fuel 24.3 gal + 6.0 reserve = 30.3 gal. Still legal with 32, but only 1.7 gal (about 8 minutes) to spare. At night you would need 24.3 + 9.0 = 33.3 gal: not legal [[60:464|14 CFR 91.151(a)]]."
+     }
+    },
+    {
+     "p": "Plan to be on the ground before your flight time passes what your fuel was planned for, and before the gauge shows low [[1:399|PHAK 16-12]]. The regulation is a floor. The RMH ferry pilot who found he would land with 10 minutes of fuel added a fuel stop instead of stretching it [[30:11|RMH 1-2]]."
+    }
+   ],
+   "check": {
+    "q": "Same leg at night with the forecast 128 kt GS. What is the legal minimum fuel?",
+    "a": "21.8 gal trip + 9.0 gal (45 min × 12 GPH) = 30.8 gal [[60:464|14 CFR 91.151(a)(2)]]."
+   }
+  },
+  {
+   "title": "Weight and balance for the trip",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K3c",
+    "CA.I.D.R2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Check the POH so total weight stays under the maximum and the CG stays within limits. You need the weight of usable fuel, oil, passengers and baggage, and the latest empty weight and empty CG from the AFM or aircraft records [[1:404|PHAK 16-17]] [[1:405|PHAK 16-18]]."
+    },
+    {
+     "p": "A W&B Handbook example: a four-seat airplane loads to 3,027 lb with the CG at 43.54 in. That is fine for takeoff (max 3,100 lb) but 77 lb over the 2,950 lb max landing weight [[22:50|W&B Handbook 5-2]] [[22:51|W&B Handbook 5-3]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "p": "Fix it in your plan. Avgas is 6 lb per gallon [[22:67|W&B Handbook 7-7]], so you must burn at least 77 ÷ 6 = 12.8 gallons before you land. A short first leg, or a quick return for a problem, could leave you landing overweight. Carry less fuel or less payload instead."
+    },
+    {
+     "p": "Fuel burn also moves the CG. In this airplane the fuel arm is +46.6 in, aft of the 43.54 in loaded CG [[22:50|W&B Handbook 5-2]], so burning fuel moves the CG forward. After burning 77 lb: moment 131,806 − 3,588 = 128,218 lb-in, divided by 2,950 lb = 43.46 in. Check the landing CG as well as the takeoff CG."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Weight feeds everything else. A heavier load and higher elevation, temperature or humidity mean longer takeoff and landing rolls and a lower climb rate [[1:405|PHAK 16-18]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Takeoff weight 3,050 lb, max landing weight 2,950 lb. How much fuel must you burn before landing?",
+    "a": "100 lb ÷ 6 lb per gallon = 16.7 gallons [[22:67|W&B Handbook 7-7]] [[22:52|W&B Handbook Figure 5-5]]."
+   }
+  },
+  {
+   "title": "The VFR flight plan",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K4",
+    "CA.I.D.S3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "91.153 lists what a VFR flight plan must include [[60:464|14 CFR 91.153(a)]]:"
+    },
+    {
+     "bullets": [
+      "Aircraft ID and type; full name and address of the PIC.",
+      "Departure point and proposed departure time.",
+      "Route, cruising altitude and true airspeed at that altitude.",
+      "First point of intended landing and estimated time en route to it.",
+      "Fuel on board in hours, and number of persons on board.",
+      "Anything else the PIC or ATC thinks ATC needs."
+     ]
+    },
+    {
+     "p": "File on FAA Form 7233-4, International Flight Plan, or by any electronic means [[33:331|AIM 5-1-5]]. List your equipment the same way as for an IFR plan [[33:332|AIM 5-1-5]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Form 7233-4 item",
+       "What to enter"
+      ],
+      "rows": [
+       [
+        "7 Aircraft ID",
+        "Registration, no more than 7 characters [[34:271|AIM App 4]]"
+       ],
+       [
+        "8 Flight rules",
+        "V for VFR [[34:272|AIM App 4]]"
+       ],
+       [
+        "13 Departure",
+        "Airport, and time in UTC as 4 digits [[34:287|AIM App 4]]"
+       ],
+       [
+        "15 Speed, altitude, route",
+        "TAS like N0140, altitude like A085, fixes joined by DCT [[34:287|AIM App 4]] [[34:288|AIM App 4]]"
+       ],
+       [
+        "16 Destination, total EET",
+        "Airport, and total elapsed time as HHMM [[34:289|AIM App 4]]"
+       ],
+       [
+        "18 Other information",
+        "List surveillance equipment; radar history can help find a missing aircraft [[33:332|AIM 5-1-5]]"
+       ],
+       [
+        "19 Supplementary",
+        "E/ endurance, P/ persons on board, A/ aircraft color, C/ pilot name and phone [[34:289|AIM App 4]] [[34:290|AIM App 4]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Endurance is usable fuel ÷ burn rate, written in hours and minutes: 32 gal ÷ 12 GPH = 2.67 hours = E/0240."
+     }
+    }
+   ],
+   "check": {
+    "q": "What goes after A/ in Item 19?",
+    "a": "The aircraft's colors and markings, for example 'White Yellow Blue' [[34:290|AIM App 4]]."
+   }
+  },
+  {
+   "title": "File, activate and close",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K5"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Step",
+       "What to know"
+      ],
+      "rows": [
+       [
+        "File",
+        "Online at 1800wxbrief.com, by phone at 1-800-WX-BRIEF, or with a flight planning app [[33:322|AIM 5-1-1]] [[33:324|AIM 5-1-2]]. For a trip with stops, file a separate plan for each leg [[33:331|AIM 5-1-5]]."
+       ],
+       [
+        "Activate",
+        "You activate it with Flight Service, by radio or electronically. Control towers do not do it for you. Proposals are normally kept for 2 hours after the proposed departure time [[33:331|AIM 5-1-5]]."
+       ],
+       [
+        "Assumed departure time",
+        "Makes the plan active at that time by itself. Keep it updated, because search and rescue will be based on it [[33:331|AIM 5-1-5]]."
+       ],
+       [
+        "En route",
+        "If your ETE changes by 30 minutes or more, give the nearest FSS a new ETA and your original destination [[34:34|AIM 6-2-6]]. Position reports are not required but are good practice [[33:332|AIM 5-1-5]]."
+       ],
+       [
+        "Close",
+        "Your job. Towers don't close VFR plans. If you don't close or report within 1/2 hour after your ETA, search and rescue starts [[33:339|AIM 5-1-14]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "If you land somewhere other than your destination, report it to the nearest FSS and give your original destination [[34:34|AIM 6-2-6]]. When you cancel or complete an active plan, notify an FSS or an ATC facility [[60:464|14 CFR 91.153(b)]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "For the best search and rescue protection, file only to your first landing and refile for each leg. On one long plan with several stops, no one may start looking until 30 minutes after your ETA at the final destination [[34:34|AIM 6-2-6]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You're stuck on the ground and will leave 2.5 hours after your proposed time. What may happen to your flight plan?",
+    "a": "Proposals are normally kept only 2 hours after the proposed departure time, so it may be deleted. Give Flight Service a new departure time or refile [[33:331|AIM 5-1-5]] [[33:339|AIM 5-1-13]]."
+   }
+  },
+  {
+   "title": "Diversions and intercepts",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K6",
+    "CA.I.D.R3"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Plan the diversion before you need it. Before any cross-country, mark airports or landing areas along or near the route, and NAVAIDs you could use to divert [[1:421|PHAK 16-34]]."
+    },
+    {
+     "bullets": [
+      "Pick the alternate and estimate the magnetic course with a straightedge and a VOR compass rose. Radials are outbound, so you may need the reciprocal [[1:421|PHAK 16-34]].",
+      "In an emergency, turn toward the alternate right away. Doing all the math first can make the emergency worse [[1:422|PHAK 16-35]].",
+      "Once on course, note the time, use the nearest winds aloft for heading and GS, then work out a new ETA and fuel [[1:422|PHAK 16-35]].",
+      "Choose the diversion altitude for cloud heights, winds, terrain and radio reception [[1:422|PHAK 16-35]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Lost? Climb, watching for traffic and weather, for better radio, navigation and radar range. Fix your position with VOR or GPS and call any facility you can [[1:421|PHAK 16-34]]."
+     }
+    },
+    {
+     "p": "Air defense may intercept an aircraft to identify, track, inspect or divert it, or to talk to it. Keep a listening watch on 121.5 when you can [[34:20|AIM 5-6-13]]. If intercepted, without delay [[34:22|AIM 5-6-13]]:"
+    },
+    {
+     "bullets": [
+      "Follow the visual signals and radio instructions from the interceptor.",
+      "Call on 121.5 or 243.0 with your identity, position and the nature of your flight.",
+      "Squawk 7700 unless ATC tells you otherwise.",
+      "If ATC and the interceptor conflict, ask for clarification right away, and keep following the interceptor until released."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "Interceptor does",
+       "Meaning",
+       "You do"
+      ],
+      "rows": [
+       [
+        "Rocks wings ahead, normally to your left, then a slow level turn",
+        "You have been intercepted. Follow me.",
+        "Rock wings and follow [[34:23|AIM TBL 5-6-1]]"
+       ],
+       [
+        "Abrupt climbing turn of 90° or more away from you",
+        "You may proceed.",
+        "Rock wings [[34:23|AIM TBL 5-6-1]]"
+       ],
+       [
+        "Circles the airport, lowers gear, overflies the runway",
+        "Land at this airport.",
+        "Lower gear, follow, and land if it is safe [[34:23|AIM TBL 5-6-1]]"
+       ]
+      ]
+     }
+    }
+   ],
+   "check": {
+    "q": "ATC's instructions conflict with the interceptor's signals. What do you do?",
+    "a": "Ask for clarification right away, and keep following the interceptor's signals and instructions until you are released [[34:22|AIM 5-6-13]]."
+   }
+  },
+  {
+   "title": "Risk: PAVE, ATC limits, fuel and EFB",
+   "kind": "risk",
+   "codes": [
+    "CA.I.D.R1",
+    "CA.I.D.R2",
+    "CA.I.D.R3",
+    "CA.I.D.R4",
+    "CA.I.D.R5",
+    "CA.I.D.R6",
+    "CA.I.D.R7"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "PAVE sorts hazards into the pilot, the aircraft, the environment and external pressures [[30:11|RMH 1-2]]. Build your checkride risk analysis around it."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "table": {
+      "head": [
+       "Area",
+       "Hazards on a commercial cross-country",
+       "Mitigation"
+      ],
+      "rows": [
+       [
+        "Pilot",
+        "Fatigue, illness, stress, low recency",
+        "IMSAFE; personal minimums tighter than the regulations [[1:47|PHAK 2-8]] [[30:13|RMH 2-1]]"
+       ],
+       [
+        "Aircraft",
+        "Performance at your weight and temperature, equipment, airworthiness, landing weight",
+        "Real POH numbers and W&B for takeoff and landing; have leaks checked before you go [[30:11|RMH 1-2]]"
+       ],
+       [
+        "Environment",
+        "Weather, terrain, obstacles, airspace, airports, NAVAIDs",
+        "Real-time weather; safe altitudes set in advance from MEFs and charts [[1:48|PHAK 2-9]] [[30:11|RMH 1-2]]"
+       ],
+       [
+        "External pressures",
+        "Passengers' meeting, the boss, someone waiting, get-there-itis",
+        "Ask why the flight matters and whether it is worth the risk [[1:48|PHAK 2-9]] [[30:11|RMH 1-2]]"
+       ],
+       [
+        "ATC limits",
+        "Advisories can stop; no vectors around traffic unless you ask",
+        "See and avoid stays your job [[33:214|AIM 4-1-15]] [[33:215|AIM 4-1-15]]"
+       ],
+       [
+        "Fuel",
+        "Wind stronger than forecast, diversion, long taxi",
+        "Recompute; land before your planned fuel time runs out [[1:399|PHAK 16-12]]"
+       ],
+       [
+        "EFB",
+        "Shutdown, failure, glare, unsecured tablet, typing errors",
+        "Assess and train; cross-check entries and results [[42:4|AC 91-78A para 11]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "ATC can't promise to watch over you. Radar limits, traffic volume, controller workload and frequency congestion can prevent traffic advisories, and the controller decides [[33:214|AIM 4-1-15]]. A safety alert about terrain or obstructions can't be required of the controller; expect one only on a reasonable, intermittent basis [[33:216|AIM 4-1-16]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Legal is not the same as safe. A pilot can legally fly marginal VFR at night, but the risk is higher. Set personal minimums stricter than the regulations [[30:13|RMH 2-1]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your passengers have a 2 p.m. meeting, the forecast is marginal and you slept 5 hours. Which PAVE areas are involved?",
+    "a": "Pilot (fatigue), Environment (weather) and External pressures (the meeting). Like the RMH pilot who told the boss no, weigh whether the trip is worth the risk [[30:11|RMH 1-2]]."
+   }
+  },
+  {
+   "title": "Checkride: present your plan, avoid common errors",
+   "kind": "skills",
+   "codes": [
+    "CA.I.D.S1",
+    "CA.I.D.S2",
+    "CA.I.D.S3",
+    "CA.I.D.S4",
+    "CA.I.D.S5"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Brief the examiner in a clear order:"
+    },
+    {
+     "bullets": [
+      "Go or no-go first: real-time weather and your PAVE summary [[30:11|RMH 1-2]].",
+      "Route on the current sectional: airspace, SUA, MTRs, TFRs and checkpoints [[1:405|PHAK 16-18]].",
+      "Airports: Chart Supplement and NOTAMs, including runway and taxiway closures at departure, the fuel stop and alternates [[1:404|PHAK 16-17]] [[33:324|AIM 5-1-3]].",
+      "Altitude and why: terrain, glide, winds and the hemispheric rule [[60:467|14 CFR 91.159]].",
+      "Nav log: TC to CH, GS, times, fuel and checkpoints [[1:407|PHAK 16-20]].",
+      "Fuel and W&B: trip fuel, reserve, and takeoff and landing weight and CG [[60:464|14 CFR 91.151]].",
+      "Flight plan, and your backup if the EFB fails [[42:4|AC 91-78A para 11]]."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "Common error",
+       "Fix"
+      ],
+      "rows": [
+       [
+        "Using true course for the cruising altitude",
+        "Use magnetic course [[60:467|14 CFR 91.159]]"
+       ],
+       [
+        "Adding east variation",
+        "East is subtracted, west is added [[1:407|PHAK 16-20]]"
+       ],
+       [
+        "Using TAS for time and fuel",
+        "Use groundspeed [[1:399|PHAK 16-12]]"
+       ],
+       [
+        "Leaving out start, taxi and climb fuel",
+        "Add them from the POH charts and notes [[1:279|PHAK Figure 11-26]]"
+       ],
+       [
+        "Thinking the tower opens or closes the plan",
+        "You do it with Flight Service [[33:331|AIM 5-1-5]] [[33:339|AIM 5-1-14]]"
+       ],
+       [
+        "Trusting the sectional for TFRs",
+        "Check NOTAMs; only national-security TFRs are charted [[2:18|Chart Users' Guide p.18]]"
+       ],
+       [
+        "Using the standard-time offset in summer",
+        "Take 1 hour off for daylight saving time [[1:392|PHAK 16-5]]"
+       ]
+      ]
+     }
+    }
+   ],
+   "check": {
+    "q": "The examiner asks what you will do if your tablet dies right after takeoff. What's a good answer?",
+    "a": "Switch to the paper chart or a second device and the nav log you already prepared. AC 91-78A says to plan for EFB shutdown and failure [[42:4|AC 91-78A para 11]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "CA.I.D-1.jpg",
+   "res": "2",
+   "page": 12,
+   "caption": "Maximum Elevation Figure (MEF) example on a sectional chart excerpt, FAA Chart Users' Guide.",
+   "alt": "Sectional chart excerpt around Asheboro, North Carolina, with a yellow circle around a tower group labeled 2649 (1910), a large blue MEF figure 28 in the lower part of the quadrant, airports such as Siler City Muni with its elevation and frequencies, the Greensboro approach contact box, the IR62 and VR86 military training routes and part of Alert Area A-531.",
+   "source": "Chart Users' Guide, PDF p. 12"
+  },
+  "f2": {
+   "file": "CA.I.D-2.jpg",
+   "res": "2",
+   "page": 17,
+   "caption": "Special Use Airspace symbols, FAA Chart Users' Guide.",
+   "alt": "Three chart symbols: a blue hatched box for prohibited, restricted or warning areas reading P-56, R-6401 or W-518; a magenta hatched box for an alert area reading A-631 Concentrated Student Helicopter Training; and a magenta hatched box for a military operations area reading VANCE 2 MOA.",
+   "source": "Chart Users' Guide, PDF p. 17"
+  },
+  "f3": {
+   "file": "CA.I.D-3.jpg",
+   "res": "1",
+   "page": 279,
+   "caption": "Figure 11-26. Fuel time distance climb.",
+   "alt": "Normal climb table at 110 KIAS with conditions (flaps and gear up, 2,500 rpm, 30 in Hg, 120 PPH, cowl flaps open, standard temperature), notes to add 16 lb for start, taxi and takeoff, add 10 percent per 7 degrees C above standard and that distances are zero wind, and rows for 4,000, 3,700 and 3,400 lb giving rate of climb, time, fuel and distance from sea level to 4,000 through 20,000 ft. The 3,400 lb, 8,000 ft row (735 fpm, 10 min, 21 lb, 20 NM) is highlighted.",
+   "source": "PHAK, PDF p. 279"
+  },
+  "f4": {
+   "file": "CA.I.D-4.jpg",
+   "res": "22",
+   "page": 52,
+   "caption": "Figure 5-5. CG limits chart from a typical POH.",
+   "alt": "Green chart of loaded weight from 1,800 to 3,200 lb against CG from +32 to +46 inches. A solid green envelope shows takeoff and landing limits up to 2,950 lb, a dashed blue extension shows takeoff-only limits up to 3,100 lb, red lines mark the example loading near 3,027 lb and 43.5 inches, and a yellow note says to allow flight time for fuel burn-off to 2,950 lb before landing.",
+   "source": "W&B Handbook, PDF p. 52"
+  },
+  "f5": {
+   "file": "CA.I.D-5.jpg",
+   "res": "30",
+   "page": 11,
+   "caption": "Figure 1-2. The PAVE checklist.",
+   "alt": "Four overlapping colored boxes: blue Pilot (health, fatigue, a pilot who declined a 750-mile trip for the boss after 4 hours of sleep), purple Aircraft (an oil drip that turned out to be a loose oil cooler fitting), yellow Environment (weather, ATC, NAVAIDs, terrain, a hard landing in wake turbulence) and green External Pressures (a ferry pilot who added a fuel stop instead of arriving with 10 minutes of fuel).",
+   "source": "RMH, PDF p. 11"
+  }
+ },
+ "scenario": {
+  "title": "Business trip in a complex single",
+  "codes": [
+   "CA.I.D.R1",
+   "CA.I.D.R2",
+   "CA.I.D.R3",
+   "CA.I.D.R4",
+   "CA.I.D.R5",
+   "CA.I.D.R6",
+   "CA.I.D.R7",
+   "CA.I.D.S1",
+   "CA.I.D.S2",
+   "CA.I.D.S4",
+   "CA.I.D.K5"
+  ],
+  "setup": "You will fly three passengers 186 NM to a fuel stop on the way to a 2 p.m. meeting. You planned the leg with the Figure 11-26 climb, 140 KTAS at 12 GPH and a forecast GS of 128 kt, and you have 32 gallons usable. The new winds aloft give a GS of about 110 kt. A NOTAM closes the longest runway at the fuel stop. An FDC NOTAM shows a firefighting TFR within 4 NM of a point on your route, at and below 3,500 ft MSL, and your sectional shows nothing there. You slept 5 hours. Your tablet is at 30% and you plan to rely on flight following.",
+  "questions": [
+   {
+    "q": "Is the leg still legal on fuel with the new wind? Is it smart?",
+    "a": "Cruise becomes 166 ÷ 110 = 91 minutes = 18.1 gal, trip fuel 24.3 gal, plus a 6.0 gal day reserve = 30.3 gal. That's legal with 32, but leaves about 8 minutes of margin and nothing for a missed approach to a closed runway or a diversion [[60:464|14 CFR 91.151(a)]] [[1:399|PHAK 16-12]]. Add a closer fuel stop, like the RMH ferry pilot did [[30:11|RMH 1-2]]."
+   },
+   {
+    "q": "How does the runway closure change your plan?",
+    "a": "Find the runways still open at your ETA in the NOTAM and Chart Supplement, and compare their length with your POH landing distance at your landing weight [[60:440|14 CFR 91.103(b)]] [[1:404|PHAK 16-17]]. If it's too short, pick another fuel stop."
+   },
+   {
+    "q": "The TFR isn't on your chart. What do you do?",
+    "a": "Plan to stay out of it: go around it or above its 3,500 ft MSL top with a safe margin. Only national-security TFRs are charted [[2:18|Chart Users' Guide p.18]]. ATC may authorize entry into this kind of TFR, but don't plan on it [[33:196|AIM 3-5-3]]."
+   },
+   {
+    "q": "Which pilot and external-pressure hazards do you see, and what do you do about them?",
+    "a": "Fatigue (Pilot) and the meeting (External pressure). Run IMSAFE and your personal minimums [[1:47|PHAK 2-8]] [[30:13|RMH 2-1]]. Tell the passengers early that a fuel stop or a delay may be needed, as the RMH pilot did with the boss [[30:11|RMH 1-2]]."
+   },
+   {
+    "q": "Will flight following and your tablet keep you safe from traffic, terrain and the TFR?",
+    "a": "No. Advisories depend on radar limits and controller workload and don't replace see and avoid [[33:214|AIM 4-1-15]], and terrain safety alerts are not guaranteed [[33:216|AIM 4-1-16]]. Charge the tablet, check its data is current, and carry a backup [[42:3|AC 91-78A para 9.1]] [[42:4|AC 91-78A para 11]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "CA.I.D.S1",
+   "do": "Prepare, present and explain a cross-country plan to the first fuel stop assigned by the examiner, with a risk analysis based on real-time weather, and end with a clear go or no-go.",
+   "practice": "Plan three real trips with live weather. Brief each to your CFI in 10 minutes using PAVE [[30:11|RMH 1-2]], and defend every number from the POH."
+  },
+  {
+   "code": "CA.I.D.S2",
+   "do": "Use the current sectional, Chart Supplement and NOTAMs (airport, runway and taxiway closures) and explain how each changes your plan.",
+   "practice": "For each trip, pull NOTAMs for every airport and each ARTCC on the route, and ask for the ones briefers give only on request [[33:322|AIM 5-1-1]] [[33:324|AIM 5-1-3]]. Highlight closures, TFRs and fuel availability."
+  },
+  {
+   "code": "CA.I.D.S3",
+   "do": "Build a nav log (TC through CH, GS, times, fuel, checkpoints) and prepare a VFR flight plan on Form 7233-4 with UTC times and endurance.",
+   "practice": "Do one log by hand with a plotter and E6B using TC ± WCA = TH ± V = MH ± D = CH [[1:407|PHAK 16-20]], then compare with an app. Fill in a Form 7233-4 for the same trip [[34:271|AIM App 4]]."
+  },
+  {
+   "code": "CA.I.D.S4",
+   "do": "Recalculate fuel and reserve when the examiner changes a condition, such as stronger wind, night, less fuel or a diversion.",
+   "practice": "Have your CFI give you three changes per trip. Redo GS, time, fuel and reserve, and compare against 91.151 and your own minimum [[60:464|14 CFR 91.151]]."
+  },
+  {
+   "code": "CA.I.D.S5",
+   "do": "If you use an EFB, show its data is current, use it to plan, and explain your backup if it fails.",
+   "practice": "Plan one trip fully on the EFB and cross-check its fuel and W&B results by hand [[42:4|AC 91-78A para 11]]. Practice finding the database date and flying the route with the tablet off."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "True course 175°, variation 10° W, VFR cruise more than 3,000 ft AGL. Which altitude fits?",
+   "options": [
+    "5,500 ft",
+    "6,500 ft",
+    "7,000 ft",
+    "7,500 ft"
+   ],
+   "answer": 1,
+   "why": "Add west variation: magnetic course 185°. 180° to 359° uses even thousands + 500 [[60:468|14 CFR 91.159(a)(2)]] [[1:407|PHAK 16-20]]. Using true course (175°) would wrongly give an odd altitude."
+  },
+  {
+   "q": "A sectional quadrant shows a large '28'. What does it mean?",
+   "options": [
+    "Highest terrain or obstacle in the quadrant, rounded up to 2,800 ft MSL",
+    "Minimum safe altitude of 2,800 ft AGL for the quadrant",
+    "Highest terrain only, 2,800 ft MSL, not counting towers",
+    "Recommended VFR cruising altitude of 2,800 ft MSL"
+   ],
+   "answer": 0,
+   "why": "The MEF is the highest elevation in the quadrant including towers and trees, rounded up to the next 100 ft [[2:12|Chart Users' Guide p.12]]."
+  },
+  {
+   "q": "Which TFRs are shown on VFR sectional charts?",
+   "options": [
+    "All TFRs in effect on the chart date",
+    "Only firefighting and disaster TFRs",
+    "Only TFRs relating to national security",
+    "None; TFRs never appear on charts"
+   ],
+   "answer": 2,
+   "why": "Only national-security TFRs are charted. Check NOTAMs for the rest [[2:18|Chart Users' Guide p.18]]."
+  },
+  {
+   "q": "Which NOTAMs does a Flight Service briefer give only if you ask?",
+   "options": [
+    "Runway closures at your destination",
+    "Airway, procedural and general flight restriction NOTAMs",
+    "NAVAID outages at your departure airport",
+    "Taxiway closures at your fuel stop"
+   ],
+   "answer": 1,
+   "why": "Airway NOTAMs, procedural NOTAMs and general restrictions not tied to one airport are briefed only on request [[33:322|AIM 5-1-1]]."
+  },
+  {
+   "q": "Under AC 91-78A, which describes a portable EFB?",
+   "options": [
+    "Gets position from the aircraft GPS through a data link",
+    "Mounted in an approved bracket and wired to the bus",
+    "Must have FAA operational approval before use",
+    "Not mounted and not connected to any aircraft system"
+   ],
+   "answer": 3,
+   "why": "A portable EFB is not attached to an aircraft mounting device and not connected to or receiving data from any aircraft system [[42:3|AC 91-78A para 10.1]]. Part 91 use needs no formal approval if the AC is followed [[42:3|AC 91-78A para 9.2]]."
+  },
+  {
+   "q": "Figure 11-26: 3,700 lb, standard day, sea level to 12,000 ft. Climb time and total fuel including start, taxi and takeoff?",
+   "options": [
+    "19 minutes, 37 lb",
+    "19 minutes, 53 lb",
+    "22 minutes, 60 lb",
+    "16 minutes, 48 lb"
+   ],
+   "answer": 1,
+   "why": "The table gives 19 minutes and 37 lb; note 1 adds 16 lb, so 53 lb total [[1:279|PHAK Figure 11-26]]."
+  },
+  {
+   "q": "You depart at 0915 CST (standard time, winter). What departure time goes on the flight plan?",
+   "options": [
+    "1415Z",
+    "1515Z",
+    "1615Z",
+    "0315Z"
+   ],
+   "answer": 1,
+   "why": "Central standard time + 6 hours = 1515Z [[1:392|PHAK 16-5]]. 1415Z would be the daylight saving offset."
+  },
+  {
+   "q": "Night VFR leg: ETE 2:00 at 11 GPH. What is the minimum legal fuel?",
+   "options": [
+    "27.5 gal",
+    "30.3 gal",
+    "33.0 gal",
+    "24.0 gal"
+   ],
+   "answer": 1,
+   "why": "Trip 2 × 11 = 22 gal, plus 45 minutes at night: 0.75 × 11 = 8.25 gal, total about 30.3 gal [[60:464|14 CFR 91.151(a)(2)]]."
+  },
+  {
+   "q": "Your fuel arm is aft of the loaded CG. As fuel burns in flight, the CG:",
+   "options": [
+    "Moves aft",
+    "Stays where it was",
+    "Moves forward",
+    "Moves outside limits"
+   ],
+   "answer": 2,
+   "why": "Removing weight behind the CG moves the CG forward. In the W&B Handbook example, fuel is at +46.6 in with the CG at +43.54 in [[22:50|W&B Handbook 5-2]]."
+  },
+  {
+   "q": "You are intercepted. Unless ATC says otherwise, which transponder code do you set?",
+   "options": [
+    "7500",
+    "7600",
+    "7700",
+    "1200"
+   ],
+   "answer": 2,
+   "why": "An intercepted aircraft selects code 7700 unless instructed otherwise by ATC [[34:22|AIM 5-6-13]]."
+  }
+ ],
+ "takeaways": [
+  "91.103: weather, fuel, alternatives, delays, runway lengths and takeoff and landing data before you go.",
+  "Check NOTAMs and TFRs every time. Only national-security TFRs are on the chart.",
+  "Cruising altitude uses magnetic course; also clear MEFs, towers by 500 ft, glide distance and oxygen limits.",
+  "TC ± WCA = TH ± V = MH ± D = CH. Use GS for time and fuel. UTC = standard + 5/6/7/8, minus 1 in summer.",
+  "Fuel = taxi + climb + cruise + 30 min day or 45 min night. Recompute when anything changes.",
+  "Check landing weight and CG, not just takeoff.",
+  "You file, activate, update and close your VFR flight plan with Flight Service; SAR starts 30 minutes after ETA."
+ ],
+ "cfi_notes": [
+  "Outdated handbook line: PHAK 16-21 says FSS holds a VFR plan 1 hour after proposed departure. The current AIM 5-1-5 says proposals are normally kept 2 hours. Teach 2 hours.",
+  "Outdated handbook line: PHAK Figure 16-27 shows the old domestic Form 7233-1 with 'VFR' in the altitude block. The AIM says VFR plans use Form 7233-4 (altitude as A085, speed as N0140). Teach Form 7233-4.",
+  "Outdated handbook line: PHAK 16-17 says a sectional 'may be up to 6 months old.' AIM 5-1-1 says sectionals in the conterminous U.S. are updated every 56 days.",
+  "PHAK 11-23 climb example slip: subtracting 6 from 10.5 minutes gives 4.5, but the text says 4 minutes. Good 'check the math' exercise.",
+  "Examiners like to change one input (wind, night, fewer gallons) and watch the applicant redo GS, ETE, fuel and reserve. Drill S4 until it takes under 3 minutes.",
+  "Common student errors: using true course for the hemispheric rule, adding east variation, using TAS for fuel, forgetting start, taxi and climb fuel, and using the standard UTC offset in summer.",
+  "Have students explain where every EFB number comes from. AC 91-78A training includes cross-checking data entry and computed results.",
+  "Ask what is not charted: TFRs (except national security), CFAs, and SUA activation at listed times (no NOTAM)."
+ ],
+ "gaps": [
+  "Airplane-specific numbers (TAS, fuel flow, climb, descent and best glide data, landing weight) must come from the training airplane's POH; the sources give only sample charts.",
+  "Real-time weather, current NOTAMs, TFRs and Chart Supplement entries for the examiner's route must be pulled live; they are not in these files.",
+  "No source gives a piston-airplane descent rate or planning rule; the 500 fpm in the descent example is an assumption.",
+  "The worked 186 NM leg, the 245° heading example and the 110 kt recalculation were computed for this lesson, not taken from a source page. Climb distances in Figure 11-26 are zero-wind.",
+  "Form 7233-4 equipment codes (AIM TBL 4-2 to 4-4) and the operation of any specific EFB app are not detailed here.",
+  "Commercial-specific operating rules (for example part 119/135 limits on carrying passengers for hire) are outside this Task and not covered."
+ ],
+ "activities": [
+  {
+   "type": "sort",
+   "key": "h1",
+   "after": 2,
+   "title": "Can you fly through it?",
+   "intro": "Tap a clue, then tap where it belongs.",
+   "buckets": [
+    "Stay out unless authorized",
+    "You may fly through, with extra caution"
+   ],
+   "items": [
+    {
+     "t": "Prohibited area P-56",
+     "b": 0
+    },
+    {
+     "t": "Active restricted area, no authorization",
+     "b": 0
+    },
+    {
+     "t": "TFR under 91.137(a)(1) for a toxic spill",
+     "b": 0
+    },
+    {
+     "t": "Alert area with heavy student training",
+     "b": 1
+    },
+    {
+     "t": "VR military training route",
+     "b": 1
+    },
+    {
+     "t": "Controlled firing area",
+     "b": 1
+    }
+   ]
+  },
+  {
+   "type": "match",
+   "key": "h2",
+   "after": 3,
+   "title": "Read the NOTAM",
+   "intro": "Tap a NOTAM item, then what it means.",
+   "pairs": [
+    {
+     "l": "RWY 18/36 CLSD",
+     "r": "Runway 18/36 is closed"
+    },
+    {
+     "l": "FDC NOTAM",
+     "r": "Regulatory: TFRs and chart amendments"
+    },
+    {
+     "l": "GPS UNREL",
+     "r": "Expected GPS service may not be available"
+    },
+    {
+     "l": "OBST",
+     "r": "Obstruction, like a moored balloon"
+    },
+    {
+     "l": "KZZZ",
+     "r": "Where domestic security NOTAMs are found"
+    },
+    {
+     "l": "NAVAID U/S",
+     "r": "Navaid unserviceable, though it may still be charted"
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h3",
+   "after": 5,
+   "title": "Read the sectional for altitude",
+   "figure": "f1",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 54.7,
+     "y": 78.9,
+     "label": "Maximum elevation figure"
+    },
+    {
+     "x": 42.9,
+     "y": 20.4,
+     "label": "Obstacle top, ft MSL"
+    },
+    {
+     "x": 38.4,
+     "y": 24.7,
+     "label": "Obstacle height, ft AGL"
+    },
+    {
+     "x": 66.6,
+     "y": 61.3,
+     "label": "Airport elevation"
+    },
+    {
+     "x": 64.9,
+     "y": 90.0,
+     "label": "Military training route"
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h4",
+   "after": 8,
+   "title": "Work the numbers",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "A 138 NM leg at a groundspeed of 115 kt. ETE in minutes?",
+     "answer": 72,
+     "tol": 1,
+     "unit": "min",
+     "why": "Time = distance ÷ GS = 138 ÷ 115 = 1.2 hours; 1.2 × 60 = 72 minutes [[1:398|PHAK 16-11]]."
+    },
+    {
+     "q": "You depart 1340 CDT with an ETE of 1:35. ETA in UTC? (Type 4 digits, like 2130.)",
+     "answer": 2015,
+     "tol": 0,
+     "unit": "Z",
+     "why": "1340 + 1:35 = 1515 CDT. Central standard is +6, minus 1 for daylight time = +5, so 2015Z [[1:392|PHAK 16-5]]."
+    },
+    {
+     "q": "Figure 11-26: 3,400 lb, standard day, sea level to 12,000 ft. Total climb fuel including start, taxi and takeoff, in gallons?",
+     "answer": 8.0,
+     "tol": 0.1,
+     "unit": "gal",
+     "why": "Table: 32 lb. Note 1: add 16 lb. 48 lb ÷ 6 lb/gal = 8.0 gal [[1:279|PHAK Figure 11-26]] [[1:280|PHAK 11-24]]."
+    },
+    {
+     "q": "Day VFR leg, ETE 2:10 at 14 GPH. Minimum legal fuel in gallons?",
+     "answer": 37.3,
+     "tol": 0.2,
+     "unit": "gal",
+     "why": "2:10 = 2.17 hours × 14 = 30.3 gal, plus 30 minutes × 14 GPH = 7.0 gal, total 37.3 gal [[60:464|14 CFR 91.151(a)(1)]]."
+    },
+    {
+     "q": "45 gallons usable at 13.5 GPH. Endurance in minutes?",
+     "answer": 200,
+     "tol": 1,
+     "unit": "min",
+     "why": "45 ÷ 13.5 = 3.33 hours × 60 = 200 minutes (E/0320 on the flight plan) [[1:409|PHAK 16-22]] [[34:290|AIM App 4]]."
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h5",
+   "after": 9,
+   "title": "True or false: fuel and weight",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "The 30-minute day reserve is figured at normal cruising speed.",
+     "a": true,
+     "why": "Yes. 91.151 says 'assuming normal cruising speed' [[60:464|14 CFR 91.151(a)]]."
+    },
+    {
+     "s": "Taxi and climb fuel are small, so the PHAK says to plan cruise fuel only.",
+     "a": false,
+     "why": "No. Plan for startup, taxi and the higher fuel burn in the climb, as well as cruise [[1:399|PHAK 16-12]]."
+    },
+    {
+     "s": "With wind, work trip fuel from TAS, since fuel flow depends on TAS.",
+     "a": false,
+     "why": "No. Fuel flow stays about the same at a given TAS, but time depends on GS, so use GS [[1:399|PHAK 16-12]]."
+    },
+    {
+     "s": "Avgas is planned at 6 pounds per gallon.",
+     "a": true,
+     "why": "Yes. Aviation gasoline weighs 6 lb per gallon [[22:67|W&B Handbook 7-7]] [[1:280|PHAK 11-24]]."
+    },
+    {
+     "s": "If takeoff weight is above max landing weight, you must burn fuel down before you land.",
+     "a": true,
+     "why": "Yes. The POH chart note says to allow flight time for fuel burn-off to 2,950 lb before landing [[22:52|W&B Handbook Figure 5-5]]."
+    },
+    {
+     "s": "Climb chart distances already include the forecast wind.",
+     "a": false,
+     "why": "No. Figure 11-26 note 3: distances are based on zero wind [[1:279|PHAK Figure 11-26]]."
+    },
+    {
+     "s": "Meeting the 91.151 minimum means you can fly until the gauge reads empty.",
+     "a": false,
+     "why": "No. Plan to be on the ground before your planned fuel time runs out and before the gauge shows low [[1:399|PHAK 16-12]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h6",
+   "after": 11,
+   "title": "Life of a VFR flight plan",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Get a full briefing, including NOTAMs and TFRs",
+    "File the plan on Form 7233-4 with Flight Service or a filing service",
+    "After takeoff, activate it with Flight Service",
+    "If your ETE changes by 30 minutes or more, give FSS a new ETA",
+    "Land at your destination",
+    "Close the plan with Flight Service right away"
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 13,
+   "title": "The leg that grew longer",
+   "intro": "You are flying N123AB, a complex single, 186 NM to a fuel stop with three passengers and 32 gallons usable. You planned a 128 kt groundspeed and 27.8 gallons legal minimum for the day leg.",
+   "steps": [
+    {
+     "s": "In your briefing, a NOTAM closes the longest runway at the fuel stop during your ETA.",
+     "options": [
+      "Compare the open runway's length with your POH landing distance at your landing weight",
+      "Go anyway; you'll see what's open when you get there",
+      "Ignore it; runway NOTAMs only matter for IFR",
+      "Cancel the whole trip right away"
+     ],
+     "answer": 0,
+     "why": "91.103 requires runway lengths and landing distance data for each airport you plan to use [[60:440|14 CFR 91.103(b)]] [[33:327|AIM TBL 5-1-1]]."
+    },
+    {
+     "s": "The runway is long enough. The tower clears you for takeoff. Is your VFR flight plan open?",
+     "options": [
+      "Yes, the tower opens it automatically",
+      "Not yet; activate it with Flight Service by radio",
+      "Yes, filing it opened it",
+      "No, and it doesn't matter on a VFR trip"
+     ],
+     "answer": 1,
+     "why": "You activate it with Flight Service. Control towers do not automatically activate VFR flight plans [[33:331|AIM 5-1-5]]."
+    },
+    {
+     "s": "Level at 8,500 ft, your GPS shows 110 kt, not 128. Your math: legal fuel now 30.3 gallons, with 32 on board.",
+     "options": [
+      "Continue; it's still legal",
+      "Lean far past peak to stretch the fuel",
+      "Plan a stop at the closer airport you marked on your route",
+      "Climb to 12,500 ft without checking the winds"
+     ],
+     "answer": 2,
+     "why": "Only about 8 minutes of margin is left. Plan to land before the planned fuel runs out, and don't stretch it, as the RMH ferry pilot chose [[1:399|PHAK 16-12]] [[30:11|RMH 1-2]]."
+    },
+    {
+     "s": "You turn toward the closer airport. You're established on the new course. What next?",
+     "options": [
+      "Note the time, then work out heading, GS, ETA and fuel with nearby winds",
+      "Draw the new course in full on the chart before doing anything else",
+      "Climb to look for your original destination",
+      "Hand the tablet to a passenger to sort it out"
+     ],
+     "answer": 0,
+     "why": "Once on course, note the time, use the winds aloft nearest the diversion point for heading and GS, then figure the new arrival time and fuel [[1:422|PHAK 16-35]]."
+    },
+    {
+     "s": "You land safely at the closer airport, short of the filed destination.",
+     "options": [
+      "Nothing; the plan closes itself after 30 minutes",
+      "Tell the nearest FSS you landed, and give your original destination",
+      "Wait and close it when you reach the filed airport",
+      "Ask the tower to close it for you"
+     ],
+     "answer": 1,
+     "why": "If you land somewhere other than your destination, report it to the nearest FSS and give your original destination; otherwise a search starts [[34:34|AIM 6-2-6]] [[33:339|AIM 5-1-14]]."
+    }
+   ]
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "An FDC NOTAM shows a firefighting TFR under 91.137(a)(2) on your route, 4 NM radius, at and below 3,500 ft MSL. Which is true?",
+   "options": [
+    "It's printed on your sectional, so NOTAMs add nothing",
+    "ATC can never authorize entry into any TFR",
+    "ATC may authorize entry, but plan to avoid it or overfly it",
+    "It applies only to aircraft on IFR flight plans"
+   ],
+   "answer": 2,
+   "why": "ATC may authorize flights into (a)(2) and (a)(3) TFRs under its own authority, but your plan should avoid it [[33:196|AIM 3-5-3]]. Such TFRs are not charted [[2:18|Chart Users' Guide p.18]]."
+  },
+  {
+   "q": "On a VFR flight plan, headwinds push your ETE 35 minutes past what you filed. What should you do?",
+   "options": [
+    "Report a new ETA to the nearest FSS and give your original destination",
+    "Nothing; SAR allows a full hour",
+    "Cancel the flight plan in the air",
+    "Squawk 7600 so ATC knows you'll be late"
+   ],
+   "answer": 0,
+   "why": "If your ETE changes by 30 minutes or more, report a new ETA to the nearest FSS and give your original destination [[34:34|AIM 6-2-6]]."
+  },
+  {
+   "q": "You have 40 gallons usable and burn 12 GPH. What do you enter after E/ in Item 19?",
+   "options": [
+    "E/0400",
+    "E/0240",
+    "E/0333",
+    "E/0320"
+   ],
+   "answer": 3,
+   "why": "40 ÷ 12 = 3.33 hours = 3 hours 20 minutes. Endurance is entered in hours and minutes [[34:290|AIM App 4]]. E/0333 wrongly writes decimal hours."
+  },
+  {
+   "q": "Your airplane glides about 10 to 1. Cruising 6,000 ft AGL into a strong headwind, which is true?",
+   "options": [
+    "You can glide about 10 NM no matter the wind",
+    "You'll glide less than about 10 NM over the ground",
+    "A headwind lets you glide farther than 10 NM",
+    "Glide distance depends only on weight"
+   ],
+   "answer": 1,
+   "why": "10 to 1 from 6,000 ft is about 60,000 ft, close to 10 NM in still air [[24:82|AFH 3-21]]. A headwind lowers groundspeed, so you don't glide as far [[24:84|AFH 3-23]]."
+  },
+  {
+   "q": "You plan 45 minutes at a cabin altitude of 13,500 ft MSL in an unpressurized airplane. What does 91.211 require?",
+   "options": [
+    "Nothing below 14,000 ft",
+    "Oxygen for every occupant the whole time",
+    "The required crew uses oxygen for the time over 30 minutes",
+    "Oxygen only at night"
+   ],
+   "answer": 2,
+   "why": "Above 12,500 up to 14,000 ft, the required crew must use oxygen for the part of the flight at those altitudes over 30 minutes [[60:491|14 CFR 91.211(a)(1)]]."
+  },
+  {
+   "q": "A 166 NM cruise segment at 12 GPH. Forecast GS was 128 kt; actual GS is 110 kt. About how much more cruise fuel do you need?",
+   "options": [
+    "1.5 gal",
+    "2.5 gal",
+    "3.5 gal",
+    "5.0 gal"
+   ],
+   "answer": 1,
+   "why": "166 ÷ 128 = 1.30 hr × 12 = 15.6 gal; 166 ÷ 110 = 1.51 hr × 12 = 18.1 gal. The difference is about 2.5 gal. Use GS for fuel [[1:399|PHAK 16-12]] [[1:398|PHAK 16-11]]."
+  },
+  {
+   "q": "The chart table for a restricted area lists 'MON-FRI 0700-1800'. You find no NOTAM about it for your Tuesday 1000 flight. What does that mean?",
+   "options": [
+    "Treat it as active; no NOTAM is issued for listed times",
+    "It's inactive, since there's no NOTAM",
+    "It's active only for IFR traffic",
+    "It's active only if a TFR is also issued"
+   ],
+   "answer": 0,
+   "why": "A NOTAM about activation is not issued to announce permanently listed times of use [[2:20|Chart Users' Guide p.20]]."
+  },
+  {
+   "q": "The sectional and the Chart Supplement show different CTAF frequencies for your fuel stop. Which should you use?",
+   "options": [
+    "The sectional, because it's newer",
+    "Whichever your EFB shows",
+    "The one on the back of the chart",
+    "The Chart Supplement, which generally has the latest information"
+   ],
+   "answer": 3,
+   "why": "The Chart Supplement generally has the latest information and should be used over the chart when they differ [[1:404|PHAK 16-17]]."
+  },
+  {
+   "q": "You use an assumed departure time but leave 40 minutes late and never update it. What happens?",
+   "options": [
+    "The plan stays inactive until you call FSS",
+    "Search and rescue timing is based on the assumed departure time",
+    "The tower updates the time when you depart",
+    "The plan is cancelled automatically"
+   ],
+   "answer": 1,
+   "why": "An assumed departure time makes the plan active at that time. If you don't update it, search and rescue is based on it [[33:331|AIM 5-1-5]]."
+  },
+  {
+   "q": "You land at a towered airport at the end of a VFR flight plan. Who closes the plan?",
+   "options": [
+    "The tower, when you call clear of the runway",
+    "ATC closes it automatically at landing",
+    "You do, with the FSS, right after arrival",
+    "No one; VFR plans expire at ETA"
+   ],
+   "answer": 2,
+   "why": "Towers don't close VFR plans automatically. You must close it, and SAR starts if you don't within 1/2 hour after ETA [[33:339|AIM 5-1-14]] [[34:34|AIM 6-2-6]]."
+  },
+  {
+   "q": "Your EFB says the leg needs 18 gallons, but your hand math says 22. What does AC 91-78A training stress?",
+   "options": [
+    "Procedures for cross-checking data entry and computed information",
+    "Always trusting the EFB because it can't make math errors",
+    "Averaging the two answers",
+    "Using the EFB only on the ground"
+   ],
+   "answer": 0,
+   "why": "EFB training should include procedures for cross-checking data entry and computed information [[42:4|AC 91-78A para 11.2]]. A wrong input (like TAS for GS) is a common cause."
+  },
+  {
+   "q": "A GPS NOTAM for your route reads UNREL. What does that mean for your plan?",
+   "options": [
+    "GPS is off for all users",
+    "Only WAAS approaches are affected",
+    "It's a test you can ignore under VFR",
+    "GPS service may not be available; have other navigation"
+   ],
+   "answer": 3,
+   "why": "UNREL means the expected level of GPS or WAAS service may not be available. Pilots should have other navigation for the route [[33:325|AIM 5-1-3]]."
+  },
+  {
+   "q": "Weather ahead turns bad and you must divert now. What does the PHAK recommend?",
+   "options": [
+    "Finish plotting and measuring the new course before turning",
+    "Turn toward the alternate promptly, then work out heading, ETA and fuel",
+    "Hold over a landmark until FSS gives a new route",
+    "Keep going toward the destination while you decide"
+   ],
+   "answer": 1,
+   "why": "In an emergency, divert promptly; doing all the plotting first may make it worse. Then note the time and compute heading, GS, ETA and fuel [[1:422|PHAK 16-35]]."
+  }
+ ]
+}

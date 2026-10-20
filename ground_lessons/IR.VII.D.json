@@ -600,7 +600,7 @@
       "2. Identify, try to restore, and cover the failed instruments [[23:332|IFH 11-7]].",
       "3. Tell ATC with the four 91.187 items. Ask for no-gyro vectors, a radar approach if offered, or more time [[60:483|14 CFR 91.187]] [[33:431|AIM 5-4-11]] [[30:47|RMH 6-4]].",
       "4. Brief the approach: course, FAF, MDA, missed approach point, timing. Work out the descent rate: (FAF altitude minus TDZE) ÷ minutes inbound [[29:177|IPH 4-37]].",
-      "5. Slow down and configure before the FAF. Keep speed, descent rate and configuration constant on final [[29:177|IPH 4-37]].",
+      "5. Fly a stabilized approach: keep speed, descent rate and configuration constant on final, and avoid configuration changes at low altitude [[29:177|IPH 4-37]].",
       "6. Make every turn timed or at standard rate. On no-gyro vectors, turn on \"turn right/left,\" stop on \"stop turn,\" and use half standard rate on final when told [[23:182|IFH 7-21]] [[33:431|AIM 5-4-11]].",
       "7. At the FAF, start the clock, reduce power and set your planned descent rate on the VSI. Correct course with small banks no bigger than the heading change you need [[23:168|IFH 7-7]].",
       "8. Begin leveling at about 10% of your descent rate above the MDA, then hold it on the altimeter [[23:198|IFH 7-37]] [[23:197|IFH 7-36]].",
@@ -680,7 +680,7 @@
     {
      "callout": {
       "type": "warn",
-      "text": "Flying IMC with no autopilot raises workload, and instrument failure in IMC or at night is a real hazard where backups can prevent an accident [[30:24|RMH 3-6]]. Practice hand flying so the autopilot is a choice, not a crutch [[24:107|AFH 5-2]]. The ACS also has you fly one non-precision approach without the autopilot (ACS Appendix 3, Task VI.A)."
+      "text": "Flying IMC with no autopilot raises workload, and instrument failure in IMC or at night is a real hazard where backups can prevent an accident [[30:24|RMH 3-6]]. Practice hand flying so the autopilot is a choice, not a crutch [[24:107|AFH 5-2]]. The ACS also has you fly at least one non-precision approach from an initial approach fix without the autopilot and without radar vectors (ACS Appendix 3, Task VI.A)."
      }
     }
    ],
@@ -946,10 +946,10 @@
     "When the compass reads 157°",
     "When the compass reads 180°",
     "When the compass reads 203°",
-    "When the compass reads 210°"
+    "When the compass reads 150°"
    ],
    "answer": 0,
-   "why": "Turning to south, let the compass pass by the latitude minus half the bank. The IFH example gives 157° from a westerly heading [[23:183|IFH 7-22]]."
+   "why": "Turning to south, let the compass pass south by the latitude minus half the bank: 180 - 30 + 7.5, about 157°. The IFH gives 157° for this turn from a westerly heading [[23:183|IFH 7-22]]. 150° forgets the normal rollout lead."
   },
   {
    "q": "On no-gyro vectors, how should you turn when ATC says \"turn left\"?",
@@ -996,7 +996,7 @@
  "cfi_notes": [
   "14 CFR 91.187 names navigation, approach and communication equipment, not flight instruments. Teach students to report a flight instrument failure anyway: the AIM says to report other equipment that affects safety or IFR ability, and the IFH says to advise ATC [[33:377|AIM 5-3-3]] [[23:332|IFH 11-7]].",
   "The IFH compass rule (lead or lag about equal to latitude, plus or minus half the bank) differs from the PHAK rule (15° plus half the latitude) [[23:183|IFH 7-22]] [[1:228|PHAK 8-26]]. Pick one and mention the other exists.",
-  "The IFH is inconsistent on overcontrolling: IFH 7-5 says 400 fpm is already too much for a 200 ft correction, while IFH 7-37 says 600 fpm (200 over the 400 fpm optimum) is overcontrolling [[23:166|IFH 7-5]] [[23:198|IFH 7-37]]. Teach 'about double the error, and don't go far past it.'",
+  "IFH 6-6, 7-5 and 7-37 give the same overcontrolling rule: more than 200 fpm away from the rate you want [[23:139|IFH 6-6]] [[23:166|IFH 7-5]] [[23:198|IFH 7-37]]. Only the 7-5 worked example differs: it calls more than 400 fpm overcontrolling on a 200 ft correction, while the rule (and the 7-37 example) puts the line at 600 fpm. Teach the rule: return at about double the error, and more than 200 fpm past that is overcontrolling.",
   "The IFH glass failure pages describe one example system (no standby turn coordinator, roll mode from a hidden turn coordinator) [[23:217|IFH 7-56]] [[23:219|IFH 7-58]]. Have students read their own AFM supplement for what really fails and what the autopilot keeps.",
   "Make the failure realistic for the airplane, as the ACS asks (Appendix 3): a slowly failing vacuum gyro with flags on round dials, or a PFD or AHRS failure on glass. Let the student find it before covering it [[23:332|IFH 11-7]].",
   "Carry instrument covers. Students who leave a failed gyro visible keep glancing at it and get pulled off heading [[23:332|IFH 11-7]].",
@@ -1094,17 +1094,12 @@
     {
      "x": 67.5,
      "y": 24,
-     "label": "Altitude tape (now primary pitch)"
+     "label": "Altitude tape (still good)"
     },
     {
      "x": 71.2,
      "y": 44,
      "label": "Vertical speed tape (still good)"
-    },
-    {
-     "x": 36,
-     "y": 43,
-     "label": "Attitude display (lost with AHRS)"
     },
     {
      "x": 46.6,
@@ -1368,7 +1363,7 @@
     "At 203°"
    ],
    "answer": 3,
-   "why": "Turning to south, let the compass pass by the latitude minus half the bank: 180 + 30 - 7.5, about 203° [[23:183|IFH 7-22]]."
+   "why": "Turning to south, let the compass pass by the latitude minus half the bank: 180 + 30 - 7.5, about 203° [[23:183|IFH 7-22]]. 210° forgets the normal rollout lead."
   },
   {
    "q": "During a partial panel climb at 800 fpm you want to level at 6,000 ft. About when do you start the level-off?",
