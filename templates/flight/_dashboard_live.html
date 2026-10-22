@@ -7,6 +7,18 @@
 {%- endif %}
 {% endmacro %}
 {% from "flight/_pilot_badge.html" import pilot_badge, schedule_pilot_badge %}
+{#- Header for the collapsible alert cards at the top (notifications, flights
+   needing the student's OK, Needs Review, medicals): same dash-collapse-toggle
+   mechanism and count badge as Unconfirmed below, open by default. #}
+{% macro alert_toggle(key, icon, title, count, color, count_id='') %}
+<button type="button" class="dash-collapse-toggle open d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start p-0 mb-2" data-collapse="{{ key }}">
+  <h6 class="mb-0 text-{{ color }}-emphasis"><i class="bi {{ icon }}"></i> {{ title }}</h6>
+  <span class="d-flex align-items-center gap-2">
+    <span class="badge bg-{{ color }}{{ ' text-dark' if color == 'warning' }} fs-6"{% if count_id %} id="{{ count_id }}"{% endif %}>{{ count }}</span>
+    <i class="bi bi-chevron-right dash-collapse-chevron"></i>
+  </span>
+</button>
+{% endmacro %}
 {#
   Fast-changing dashboard sections. Rendered two ways with the exact same
   context (see _dashboard_context() in flight.py):
@@ -57,11 +69,10 @@
 </div>
 {% endif %}
 {% if my_notifications %}
-<div class="alert alert-success border-success border-2 mb-3">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <h5 class="alert-heading mb-0"><i class="bi bi-bell-fill"></i> {{ my_notifications|length }} New Notification{{ 's' if my_notifications|length != 1 }}</h5>
-    <a href="{{ url_for('flight.my_alerts') }}" class="btn btn-outline-success btn-sm fw-bold">All Alerts</a>
-  </div>
+<div class="card p-3 mb-3 border-success border-2">
+  {{ alert_toggle('mynotifications', 'bi-bell-fill', 'New Notification' ~ ('s' if my_notifications|length != 1 else ''), my_notifications|length, 'success') }}
+  <div class="dash-collapse-body" data-collapse-body="mynotifications">
+  <div class="text-end mb-1"><a href="{{ url_for('flight.my_alerts') }}" class="btn btn-outline-success btn-sm fw-bold">All Alerts</a></div>
   {% for n in my_notifications %}
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }}">
     <div>{{ n.message }}</div>
@@ -70,6 +81,7 @@
     </form>
   </div>
   {% endfor %}
+  </div>
 </div>
 {% endif %}
 {#
@@ -80,8 +92,9 @@
   banner above, with the Confirm button right on the banner instead of
   needing to open the chip first. #}
 {% if my_unconfirmed %}
-<div class="alert alert-warning border-warning border-2 mb-3">
-  <h5 class="alert-heading mb-2"><i class="bi bi-patch-question-fill"></i> {{ my_unconfirmed|length }} Flight{{ 's' if my_unconfirmed|length != 1 }} Need{{ '' if my_unconfirmed|length != 1 else 's' }} Your Confirmation</h5>
+<div class="card p-3 mb-3 border-warning border-2">
+  {{ alert_toggle('myunconfirmed', 'bi-patch-question-fill', 'Flight' ~ ('s' if my_unconfirmed|length != 1 else '') ~ ' Need' ~ ('' if my_unconfirmed|length != 1 else 's') ~ ' Your Confirmation', my_unconfirmed|length, 'warning') }}
+  <div class="dash-collapse-body" data-collapse-body="myunconfirmed">
   {% for u in my_unconfirmed %}
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 py-1 {{ 'border-top' if not loop.first }}">
     <div><strong>{{ u.scheduled_date|usdate }}</strong>{% if u.time_label %} at {{ u.time_label }}{% endif %} &middot; {{ u.plane_tag }}{% if u.cfi_name %} with {{ u.cfi_name }}{% endif %}</div>
@@ -90,6 +103,7 @@
     </form>
   </div>
   {% endfor %}
+  </div>
 </div>
 {% endif %}
 {#
@@ -183,11 +197,10 @@
   resets and it reappears here.
 #}
 {% if needs_review_flights %}
-<div class="alert alert-danger border-danger border-2 mb-3" id="needs-review-banner">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <h5 class="alert-heading mb-0"><i class="bi bi-exclamation-triangle-fill"></i> <span id="needs-review-count">{{ needs_review_flights|length }}</span> Flight{{ 's' if needs_review_flights|length != 1 }} Needs Review</h5>
-    <a href="{{ url_for('flight.alerts_list') }}" class="btn btn-outline-danger btn-sm fw-bold">All Alerts</a>
-  </div>
+<div class="card p-3 mb-3 border-danger border-2" id="needs-review-banner">
+  {{ alert_toggle('needsreview', 'bi-exclamation-triangle-fill', 'Flight' ~ ('s' if needs_review_flights|length != 1 else '') ~ ' Needs Review', needs_review_flights|length, 'danger', 'needs-review-count') }}
+  <div class="dash-collapse-body" data-collapse-body="needsreview">
+  <div class="text-end mb-1"><a href="{{ url_for('flight.alerts_list') }}" class="btn btn-outline-danger btn-sm fw-bold">All Alerts</a></div>
   {% for n in needs_review_flights %}
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 py-2 {{ 'border-top' if not loop.first }} needs-review-row">
     <div>
@@ -203,6 +216,7 @@
     </div>
   </div>
   {% endfor %}
+  </div>
 </div>
 {% endif %}
 
@@ -210,8 +224,10 @@
    flight._medical_alerts. Expired CFIs can't be booked or start a flight;
    expired students can fly dual but not solo. #}
 {% if medical_alerts %}
-<div class="alert {{ 'alert-danger border-danger' if medical_alerts|selectattr('med.ok', 'false')|list else 'alert-warning border-warning' }} border-2 mb-3">
-  <h6 class="alert-heading mb-1"><i class="bi bi-heart-pulse"></i> Medicals Needing Attention</h6>
+{% set med_color = 'danger' if medical_alerts|selectattr('med.ok', 'false')|list else 'warning' %}
+<div class="card p-3 mb-3 border-{{ med_color }} border-2">
+  {{ alert_toggle('medicals', 'bi-heart-pulse', 'Medicals Needing Attention', medical_alerts|length, med_color) }}
+  <div class="dash-collapse-body" data-collapse-body="medicals">
   {% for m in medical_alerts %}
   <div class="small py-1 {{ 'border-top' if not loop.first }} d-flex justify-content-between align-items-center flex-wrap gap-1">
     <span><strong>{{ m.name }}</strong> <span class="text-muted">({{ m.kind }}, {{ m.med.label }})</span> &middot;
@@ -220,6 +236,7 @@
     <a href="{{ m.url }}" class="btn btn-sm btn-outline-dark">Update</a>
   </div>
   {% endfor %}
+  </div>
 </div>
 {% endif %}
 
