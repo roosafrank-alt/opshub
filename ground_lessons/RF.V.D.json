@@ -1,0 +1,1341 @@
+{
+ "task_code": "RF.V.D",
+ "task_title": "IFR Equipment Checks and Databases",
+ "area": "Area V. IFR Operating Rules",
+ "minutes": 58,
+ "objective": "By the end of this lesson you can look at an airplane's records and avionics and decide whether it is legal for an IFR flight today: the 91.205(d) equipment, the 30-day VOR check, the 24-month altimeter, static, encoder and transponder tests, and a current, verified GPS database with integrity monitoring.",
+ "why": "Each IFR check has its own clock: 30 days for the VOR [[60:470|14 CFR 91.171(a)]], 24 calendar months for the altimeter system and transponder [[60:524|14 CFR 91.411(a)]] [[60:525|14 CFR 91.413(a)]], and the database cycle for the GPS [[29:263|IPH 6-13]]. The owner keeps the airplane airworthy, but the pilot in command decides if it is fit for this flight [[60:520|14 CFR 91.403(a)]] [[60:436|14 CFR 91.7]]. An out-of-date database can hold a procedure that no longer matches the chart, and the FAA tells you not to fly it [[33:117|AIM 1-2-3 Note 4]].",
+ "prereading": [
+  {
+   "res": "60",
+   "pages": [
+    470,
+    471
+   ],
+   "printed": "14 CFR 91.171",
+   "what": "The VOR check rule: the 30 days, the four check methods and their limits, the dual check and the record. Read every word.",
+   "label": "14 CFR 91.171"
+  },
+  {
+   "res": "60",
+   "pages": [
+    487,
+    488
+   ],
+   "printed": "14 CFR 91.205(c) to (e)",
+   "what": "The equipment list for night VFR and IFR, and the DME or RNAV rule at FL 240.",
+   "label": "14 CFR 91.205(d)"
+  },
+  {
+   "res": "60",
+   "pages": [
+    524,
+    525
+   ],
+   "printed": "14 CFR 91.411 and 91.413",
+   "what": "The 24-month altimeter, static, encoder and transponder tests: when, who, and the altitude limit.",
+   "label": "14 CFR 91.411 and 91.413"
+  },
+  {
+   "res": "33",
+   "pages": [
+    70,
+    71
+   ],
+   "printed": "AIM 1-1-3 and 1-1-4",
+   "what": "How to use a VOT, the repair station test signal, checkpoints, and the advice on yearly receiver calibration.",
+   "label": "AIM 1-1-4"
+  },
+  {
+   "res": "33",
+   "pages": [
+    89,
+    93
+   ],
+   "printed": "AIM 1-1-22 to 1-1-26",
+   "what": "GPS: RAIM and FDE, what equipment is approved for IFR, the alternate means of navigation, and the database checks before and during flight.",
+   "label": "AIM 1-1-17"
+  },
+  {
+   "res": "33",
+   "pages": [
+    97,
+    101
+   ],
+   "printed": "AIM 1-1-30 to 1-1-34",
+   "what": "RAIM outages and predictions, RAIM flags on an approach, and TBL 1-1-6 with its notes on expired databases.",
+   "label": "AIM 1-1-17b5(g) and TBL 1-1-6"
+  },
+  {
+   "res": "39",
+   "pages": [
+    30,
+    31
+   ],
+   "printed": "AC 90-105A 10-1 to 10-2",
+   "what": "Database integrity: current data, what a part 91 pilot must confirm, and the rule for an amended chart.",
+   "label": "AC 90-105A 10.4 to 10.6"
+  }
+ ],
+ "warmup": "Think first: You rent a club airplane for an IFR trip tomorrow. The GPS screen says the database expired last week, the VOR check log has an entry from five weeks ago, and nobody can find the transponder test entry. Which of these stop the flight, which can you fix yourself before departure, and which need a repair station?",
+ "key_terms": [
+  {
+   "term": "VOT",
+   "def": "A ground test signal for checking a VOR receiver. With the needle centered you should see 0 FROM or 180 TO."
+  },
+  {
+   "term": "Designated checkpoint",
+   "def": "A spot on the airport surface, or a landmark in the air near the airport, where a published radial should be received. Listed in the Chart Supplement."
+  },
+  {
+   "term": "Bearing error",
+   "def": "How far the receiver's reading is from the radial it should show. This is what you log after a VOR check."
+  },
+  {
+   "term": "Dual VOR check",
+   "def": "Two independent VOR receivers tuned to the same station, compared with each other. They may differ by no more than 4 degrees."
+  },
+  {
+   "term": "Calendar months",
+   "def": "Months counted to the end of the month. Not defined in part 91; AC 68-1A gives this meaning."
+  },
+  {
+   "term": "Static system test",
+   "def": "The part 43 appendix E check of the static ports, lines and altimeter. Needed every 24 calendar months for IFR in controlled airspace."
+  },
+  {
+   "term": "Encoder (altitude reporting)",
+   "def": "The unit that sends pressure altitude to the transponder for Mode C. Its output must match the altimeter within 125 ft."
+  },
+  {
+   "term": "RAIM",
+   "def": "Receiver autonomous integrity monitoring. The GPS checks its own satellite signals. Needs 5 satellites, or 4 plus baro-aiding."
+  },
+  {
+   "term": "FDE",
+   "def": "Fault detection and exclusion. RAIM that can also throw out a bad satellite. Needs 6 satellites, or 5 plus baro-aiding."
+  },
+  {
+   "term": "Navigation database",
+   "def": "The stored waypoints, airways and procedures your GPS flies. Revised on a 28-day cycle."
+  },
+  {
+   "term": "Procedure amendment date",
+   "def": "The date printed after the amendment number at the bottom of an approach chart, such as \"Amdt 1B 28MAY15\". Use it to judge an expired database."
+  },
+  {
+   "term": "WAAS",
+   "def": "The U.S. system that corrects GPS and adds integrity. WAAS receivers (TSO-C145 or C146) need no other navigation equipment for the route."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "Who decides, and the four clocks",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.D.K1",
+    "RF.V.D.K2",
+    "RF.V.D.K3",
+    "RF.V.D.S1"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "The owner or operator is primarily responsible for keeping the aircraft airworthy [[60:520|14 CFR 91.403(a)]]. The pilot in command is responsible for deciding whether it is in condition for safe flight, and must stop the flight when an unairworthy condition occurs [[60:436|14 CFR 91.7]]."
+     }
+    },
+    {
+     "p": "So the records are the owner's job, but checking them before an IFR flight is yours. Four items run on their own clocks:"
+    },
+    {
+     "table": {
+      "head": [
+       "Item",
+       "Rule",
+       "How often",
+       "When it applies"
+      ],
+      "rows": [
+       [
+        "VOR receiver check",
+        "14 CFR 91.171",
+        "Within the preceding 30 days [[60:470|14 CFR 91.171(a)]]",
+        "IFR using the VOR system [[60:470|14 CFR 91.171(a)]]"
+       ],
+       [
+        "Altimeter, static system and encoder test",
+        "14 CFR 91.411",
+        "Within the preceding 24 calendar months [[60:524|14 CFR 91.411(a)]]",
+        "Airplanes IFR in controlled airspace [[60:524|14 CFR 91.411(a)]]"
+       ],
+       [
+        "Transponder test",
+        "14 CFR 91.413",
+        "Within the preceding 24 calendar months [[60:525|14 CFR 91.413(a)]]",
+        "Any use of an installed transponder [[60:525|14 CFR 91.413(a)]] [[60:493|14 CFR 91.215(a)]]"
+       ],
+       [
+        "GPS navigation database",
+        "AIM and AC guidance, plus your AFM supplement",
+        "Current for the flight, revised on a 28-day cycle [[33:92|AIM 1-1-17b2(b)]] [[29:263|IPH 6-13]]",
+        "IFR GPS use [[33:90|AIM 1-1-17b1(c)(2)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Only the first three are part 91 rules. Database currency comes from the AIM and the ACs, and your AFM or AFM supplement sets the approvals and limits for your unit [[33:101|AIM TBL 1-1-6]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: read the logbook entries in this order: VOR check date, altimeter and static test date and the altitude tested to, transponder test date. Then turn on the GPS and read the database dates."
+     }
+    }
+   ],
+   "check": {
+    "q": "Who is primarily responsible for the 24-month tests being done, and who must check them before flight?",
+    "a": "The owner or operator keeps the aircraft airworthy [[60:520|14 CFR 91.403(a)]]; the PIC decides it is in condition for safe flight [[60:436|14 CFR 91.7]]."
+   }
+  },
+  {
+   "title": "What 91.205(d) adds for IFR",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.D.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "For IFR you need everything on the day VFR list, the night VFR list if it is night, and these items [[60:488|14 CFR 91.205(d)]]:"
+    },
+    {
+     "bullets": [
+      "Two-way radio communication and navigation equipment suitable for the route to be flown.",
+      "Gyroscopic rate-of-turn indicator (an airplane with an approved third attitude system usable through 360 degrees of pitch and roll is excepted).",
+      "Slip-skid indicator.",
+      "Sensitive altimeter adjustable for barometric pressure.",
+      "Clock showing hours, minutes and seconds, with a sweep-second pointer or digital display.",
+      "Generator or alternator of adequate capacity.",
+      "Gyroscopic pitch and bank indicator (attitude indicator) and gyroscopic direction indicator."
+     ]
+    },
+    {
+     "p": "Each item must be in operable condition, or be an FAA-approved equivalent [[60:486|14 CFR 91.205(a)]]. At and above FL 240, if VOR equipment is required, you also need approved DME or a suitable RNAV system [[60:488|14 CFR 91.205(e)]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Without an MEL, you may defer inoperative equipment under 91.213(d) only if it is not required by 91.205 or any other rule for the kind of flight you are making [[60:493|14 CFR 91.213(d)]]. Application: an item only IFR needs may still be deferrable for VFR if it meets every other 91.213(d) condition, but it grounds the airplane for IFR."
+     }
+    },
+    {
+     "p": "\"Suitable for the route\" ties into the GPS rules later in this lesson. A non-WAAS IFR GPS needs the avionics for the ground facilities on the route and at any required alternate [[33:94|AIM 1-1-17b3(b)]]. A WAAS receiver does not [[33:104|AIM 1-1-18c9]]."
+    }
+   ],
+   "check": {
+    "q": "Your alternator fails the night before an IFR trip. You have no MEL. May you placard it and go IFR?",
+    "a": "No. A generator or alternator of adequate capacity is required for IFR [[60:488|14 CFR 91.205(d)]], and 91.213(d) does not allow deferring equipment required for that kind of flight [[60:493|14 CFR 91.213(d)]]."
+   }
+  },
+  {
+   "title": "The VOR check: methods, limits and the record",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.D.K1"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "No IFR using the VOR system unless the VOR equipment is maintained and checked under an approved procedure, or was operationally checked within the preceding 30 days and found within limits [[60:470|14 CFR 91.171(a)]]."
+     }
+    },
+    {
+     "table": {
+      "head": [
+       "Method",
+       "Where",
+       "Limit"
+      ],
+      "rows": [
+       [
+        "FAA VOT or repair station test signal",
+        "At the airport of intended departure",
+        "Plus or minus 4 degrees [[60:470|14 CFR 91.171(b)(1)]]"
+       ],
+       [
+        "Designated surface checkpoint",
+        "On the departure airport",
+        "Plus or minus 4 degrees [[60:470|14 CFR 91.171(b)(2)]]"
+       ],
+       [
+        "Designated airborne checkpoint",
+        "Only if no test signal or surface checkpoint is available",
+        "Plus or minus 6 degrees [[60:470|14 CFR 91.171(b)(3)]]"
+       ],
+       [
+        "Airway radial over a ground point",
+        "No check signal or point available: a prominent point on an airway centerline, preferably more than 20 NM out, at a reasonably low altitude",
+        "6 degrees [[60:471|14 CFR 91.171(b)(4)]]"
+       ],
+       [
+        "Dual VOR",
+        "Two independent systems on the same station, in place of the above",
+        "4 degrees between the two [[60:471|14 CFR 91.171(c)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Using a VOT: tune it and center the needle. The OBS should read 0 with FROM, or 180 with TO. An RMI points to 180 on any OBS setting [[33:70|AIM 1-1-4a, b]]. Airborne VOT use is allowed only where the Chart Supplement authorizes it [[33:70|AIM 1-1-4a, b]]. Checkpoints and VOTs are listed in the Chart Supplement [[33:71|AIM 1-1-4f]]."
+    },
+    {
+     "p": "A repair station signal is normally on 108.0 MHz, is not sent continuously, and must be arranged with the shop. Its representative logs the radial sent and the date [[33:71|AIM 1-1-4e]] [[60:471|14 CFR 91.171(d)]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Four things in the log after every check: date, place, bearing error, and your signature, in the aircraft log or other record [[60:471|14 CFR 91.171(d)]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Apply no correction other than the manufacturer's correction card figures when making the check [[33:71|AIM 1-1-4f]]. If the error is over the limit, do not fly IFR until the source is corrected [[33:71|AIM 1-1-4f]]."
+     }
+    },
+    {
+     "p": "The AIM adds advice the rule does not require. A receiver can read well near a VOT and drift out of tolerance farther from a station, so it recommends a yearly calibration by an authorized repair facility [[33:71|AIM 1-1-4c]]. Some propeller RPM settings can swing the needle as much as 6 degrees; change RPM slightly before writing up a receiver [[33:69|AIM 1-1-3e]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "The IFH adds a quick sensitivity check: rotating the OBS to move the needle from center to the last dot should take no more than 10 or 12 degrees either side [[23:259|IFH 9-16]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "The departure airport has a VOT. May you use an airborne checkpoint instead?",
+    "a": "No. The airborne checkpoint is for when neither a test signal nor a surface checkpoint is available [[60:470|14 CFR 91.171(b)(3)]]. Use the VOT, with a plus or minus 4 degree limit [[60:470|14 CFR 91.171(b)(1)]]."
+   }
+  },
+  {
+   "title": "Altimeter, static system and encoder: 91.411",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.D.K2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "No airplane may be operated in controlled airspace under IFR unless, within the preceding 24 calendar months, each static pressure system, each altimeter, and each automatic pressure altitude reporting system has been tested and found to comply with part 43 appendices E and F [[60:524|14 CFR 91.411(a)]]."
+     }
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "bullets": [
+      "Static system opened and closed: test again, except for use of the drain and alternate static valves [[60:524|14 CFR 91.411(a)]].",
+      "Encoder installed or worked on where data correspondence error could be introduced: test the integrated system again [[60:524|14 CFR 91.411(a)]].",
+      "Altitude limit: no IFR in controlled airspace above the highest altitude to which all altimeters and the encoder were tested [[60:525|14 CFR 91.411(d)]]. The tester marks the date and that altitude on the altimeter, and it is entered in the airplane log [[60:149|14 CFR part 43 appendix E(d)]].",
+      "Who: the airplane's manufacturer, a properly rated repair station, or an A&P with an airframe rating for the static system test only [[60:524|14 CFR 91.411(b)]].",
+      "A TSO-approved altimeter or encoder is considered tested as of its date of manufacture [[60:524|14 CFR 91.411(c)]]."
+     ]
+    },
+    {
+     "p": "What the test covers: the static system is checked for moisture, restrictions and leaks, the static port heater is checked, and the skin near the ports must not be altered [[60:147|14 CFR part 43 appendix E(a)]]. In the integration test, the altitude the transponder reports may differ from the altimeter by no more than 125 ft [[60:149|14 CFR part 43 appendix E(c)]]. 91.217 sets the same 125 ft standard for operating the encoder [[60:495|14 CFR 91.217(a)]]."
+    },
+    {
+     "p": "Counting 24 calendar months: part 91 does not define the term. AC 68-1A says calendar months run to the last day of the month, so 24 calendar months from July 15, 2016 ends July 31, 2018 [[36:7|AC 68-1A 2.3]]. Using that meaning here is interpretation."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Read the rule's words: it covers IFR in controlled airspace [[60:524|14 CFR 91.411(a)]]. Application: almost every IFR flight uses controlled airspace, so treat an overdue 91.411 test as \"no IFR.\""
+     }
+    }
+   ],
+   "check": {
+    "q": "Your altimeter test entry says \"tested to 10,000 ft.\" ATC offers 12,000 ft on your IFR flight in Class E. Answer?",
+    "a": "Decline. No IFR in controlled airspace above the highest altitude the altimeters and encoder were tested to [[60:525|14 CFR 91.411(d)]]."
+   }
+  },
+  {
+   "title": "The transponder: 91.413 and 91.215",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.D.K2"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "No one may use an ATC transponder specified in 91.215(a) unless it was tested and found to comply with part 43 appendix F within the preceding 24 calendar months [[60:525|14 CFR 91.413(a)]]."
+     }
+    },
+    {
+     "p": "91.215(a) covers the transponder installed in any U.S.-registered civil aircraft operating outside parts 121 and 135 [[60:493|14 CFR 91.215(a)]]. So the 24-month test is about using the transponder, not about IFR. A VFR flight that uses the transponder needs it too."
+    },
+    {
+     "bullets": [
+      "After any installation or maintenance that could introduce data correspondence error, the integrated system must be tested again under appendix E(c) [[60:525|14 CFR 91.413(b)]].",
+      "Who: a repair station with the right radio rating, certain air carrier maintenance programs, or the aircraft manufacturer if it installed the transponder [[60:525|14 CFR 91.413(c)]]. An A&P alone is not on the list.",
+      "In controlled airspace, a transponder maintained under 91.413 must be on, with Mode C if installed [[60:494|14 CFR 91.215(c)]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The two 24-month tests often share one logbook entry, but they are separate rules: 91.411 for IFR in controlled airspace, 91.413 for any use of the transponder [[60:524|14 CFR 91.411(a)]] [[60:525|14 CFR 91.413(a)]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Who may perform the 91.413 transponder test on your Cessna?",
+    "a": "A repair station with a Class III radio rating or a suitable limited rating, a part 121 or 135 continuous maintenance program holder, or the manufacturer if it installed the transponder [[60:525|14 CFR 91.413(c)]]."
+   }
+  },
+  {
+   "title": "GPS for IFR: approved equipment and RAIM",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.D.K3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "IFR GPS must be approved under TSO-C129(), C196(), C145() or C146() and installed under AC 20-138. Hand-held and VFR units are not authorized for IFR navigation, approaches, or as a primary flight reference [[33:91|AIM 1-1-17b2(a)(1)]]. During IFR they are only an aid to situational awareness [[33:101|AIM TBL 1-1-6]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "RAIM is the receiver checking its own position integrity. Without it, you have no assurance of the GPS position. A bad satellite can go undetected by the control segment for up to two hours, which is why the receiver must check [[33:89|AIM 1-1-17a3]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Function",
+       "Satellites needed"
+      ],
+      "rows": [
+       [
+        "Three-dimensional position",
+        "At least 4 [[33:89|AIM 1-1-17a3]]"
+       ],
+       [
+        "RAIM (detect a fault)",
+        "5, or 4 plus baro-aiding [[33:89|AIM 1-1-17a3]]"
+       ],
+       [
+        "FDE (detect and exclude a bad satellite)",
+        "6, or 5 plus baro-aiding [[33:89|AIM 1-1-17a3]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Baro-aiding needs the current altimeter setting entered into the receiver as its manual says. Do not use GPS-derived altitude for it [[33:89|AIM 1-1-17a3]]."
+     }
+    },
+    {
+     "p": "Two kinds of RAIM message: not enough satellites to check integrity (the position may be fine but cannot be verified), or a detected inconsistency for this phase of flight [[33:90|AIM 1-1-17a3(b)]]."
+    },
+    {
+     "bullets": [
+      "Non-WAAS GPS (TSO-C129 or C196): carry an approved, working alternate means of navigation for the route, such as VOR. You need not monitor it while RAIM is available, but you must once RAIM is lost [[33:92|AIM 1-1-17b2(a)]].",
+      "Those receivers also need the avionics for every ground facility on the route to the destination and any required alternate, and those facilities must be working [[33:94|AIM 1-1-17b3(b)]].",
+      "WAAS receivers (TSO-C145 or C146) do not require other navigation equipment for the route [[33:104|AIM 1-1-18c9]]. Part 91 WAAS users are not required to carry VOR avionics, but should plan for a GPS outage [[33:70|AIM 1-1-3f]].",
+      "Fly GPS as the AFM or AFM supplement says, and know your unit well before using it under IFR [[33:92|AIM 1-1-17b2(a)]]."
+     ]
+    }
+   ],
+   "check": {
+    "q": "Your non-WAAS IFR GPS loses RAIM en route. What changes?",
+    "a": "You must now actively monitor the alternate approved means of navigation [[33:92|AIM 1-1-17b2(a)]]; the GPS position can no longer be assured [[33:90|AIM 1-1-17a3(b)]]."
+   }
+  },
+  {
+   "title": "Before you go: RAIM predictions, NOTAMs and flags",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.D.K3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Satellite geometry changes all the time, so past success at an airport proves nothing. Always check RAIM availability [[33:97|AIM 1-1-17b5(g)]]. Ways to get it: the receiver's own prediction tool, the FAA Service Availability Prediction Tool (SAPT), or Flight Service, which gives RAIM information from 1 hour before to 1 hour after the ETA hour unless you ask for another window [[33:97|AIM 1-1-17b5(g)]]."
+    },
+    {
+     "bullets": [
+      "If RAIM is not predicted: use other navigation and approach systems, choose another route or destination, or delay [[33:98|AIM 1-1-17b5(g)]].",
+      "AC 90-105A: a predicted continuous loss of RAIM of more than 5 minutes on any part of the flight means delay, cancel, re-route, or re-plan with other navigation [[40:28|AC 90-105A 9.3.5]].",
+      "Predictions can start 72 hours out, but redo one as close to departure as you can and again if a new satellite outage NOTAM appears [[40:27|AC 90-105A 9.3.4]].",
+      "WAAS: check NOTAMs for WAAS service before flight [[33:103|AIM 1-1-18c5]]. For domestic RNP operations, a WAAS user needs no availability prediction if WAAS coverage is confirmed along the whole route [[40:26|AC 90-105A 9.2]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "If a RAIM flag appears or the receiver fails to switch to approach mode before the final approach waypoint, do not start the approach or descend. Fly to the missed approach waypoint and go missed. If the flag appears after the FAWP, climb and fly the missed approach [[33:98|AIM 1-1-17b5(g)]]."
+     }
+    },
+    {
+     "p": "On a long flight, consider rechecking the destination prediction en route; it can catch an unscheduled outage since takeoff [[33:98|AIM 1-1-17b5(g)]]."
+    }
+   ],
+   "check": {
+    "q": "A RAIM flag shows 4 NM before the FAWP on an RNAV (GPS) approach. What do you do?",
+    "a": "Do not descend or start the approach. Proceed to the MAWP via the FAWP, fly the missed approach, and contact ATC [[33:98|AIM 1-1-17b5(g)]]."
+   }
+  },
+  {
+   "title": "The navigation database: current and checked",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.D.K3",
+    "RF.V.D.R1"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The onboard data must be current and right for the region, including the navaids, waypoints and procedures for the departure, arrival and alternate airports [[33:92|AIM 1-1-17b2(b)]]. The AIM puts it plainly for GPS users: databases must be updated for IFR [[33:90|AIM 1-1-17b1(c)(2)]]."
+    },
+    {
+     "p": "The data changes on a 28-day revision cycle; data that misses the cutoff waits for the next cycle [[29:263|IPH 6-13]]. You are ultimately responsible for using a current database, including notices of database errors from the maker or supplier [[29:264|IPH 6-14]] [[33:98|AIM 1-1-17b5(g)]]."
+    },
+    {
+     "table": {
+      "head": [
+       "When",
+       "What the AIM says to check"
+      ],
+      "rows": [
+       [
+        "Preflight",
+        "The planned time of use is before the database expiration date and time [[33:92|AIM 1-1-17b2(b)]]"
+       ],
+       [
+        "Preflight",
+        "The provider has not published a notice limiting the waypoint or procedure [[33:92|AIM 1-1-17b2(b)]]"
+       ],
+       [
+        "In flight",
+        "Waypoint and transition names exactly match the chart spelling [[33:93|AIM 1-1-17b2(b)(4)]]"
+       ],
+       [
+        "In flight",
+        "Waypoints are logical in location and order, laterally and vertically, compared with the chart [[33:93|AIM 1-1-17b2(b)(4)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "You need not check every latitude and longitude. But if the quick check suggests an error, do not use that procedure or waypoint until it is verified in full [[33:93|AIM 1-1-17b2(b)(4)]]. If the chart and the avionics disagree, the chart, with NOTAMs, wins [[33:100|AIM 1-1-17b5(j)]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "p": "Approaches must be loaded by name from the current database. Building an approach from manually entered latitude and longitude or place and bearing is not permitted [[33:94|AIM 1-1-17b3(c)]]. Different makers show the same procedure under different names, so learn how your unit labels them [[29:264|IPH 6-14]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "A database update in installed avionics is not maintenance, and a pilot may do it, when it is started from the flight deck, needs no disassembly, no tools or special equipment, and follows the manufacturer's instructions [[60:131|14 CFR 43.3(k)]]."
+     }
+    },
+    {
+     "p": "AC 90-105A: a part 91 pilot must confirm at system start that the database is current, and may treat validation as done after checking currency and NOTAMs [[40:30|AC 90-105A 10.6]]."
+    }
+   ],
+   "check": {
+    "q": "The GPS lists the approach as \"VOR34\" and the chart says VOR/DME RWY 34. Is the database wrong?",
+    "a": "Not necessarily. Makers display names differently [[29:264|IPH 6-14]]. Check that the waypoints match the chart spelling and order [[33:93|AIM 1-1-17b2(b)(4)]]."
+   }
+  },
+  {
+   "title": "Risk: flying with an expired database",
+   "kind": "risk",
+   "codes": [
+    "RF.V.D.R1",
+    "RF.V.D.K3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "TBL 1-1-6 is the AIM's answer to \"my database expired\" [[33:101|AIM TBL 1-1-6]]:"
+    },
+    {
+     "table": {
+      "head": [
+       "Use",
+       "Allowed with an expired database?"
+      ],
+      "rows": [
+       [
+        "IFR en route and terminal",
+        "Only after you verify the data for correctness [[33:101|AIM TBL 1-1-6]]"
+       ],
+       [
+        "IFR approach",
+        "Only if you verify the procedure has not been amended since the database expired [[33:101|AIM TBL 1-1-6]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "If an amended chart has been published for the procedure, or its amendment date is on or after the database expiration date, you must not use the database to fly it [[33:117|AIM 1-2-3 Note 4]]. AC 90-105A says the same for an amended chart not in the database [[40:30|AC 90-105A 10.4]]."
+     }
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "How to read the date: the amendment number at the lower left of an approach chart is the latest procedure change, and the date after it is the AIRAC date it took effect. Changes there mean real changes: course, fix, altitude or minima [[2:100|Chart Users' Guide p 100]]. The AIM's example is \"Amdt 4 14Jan10\" [[33:117|AIM 1-2-3 Note 4]]."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "Do not confuse it with the Date of Latest Revision at the top right, a year and day-of-year number that changes when the chart is revised for any reason [[2:100|Chart Users' Guide p 100]]."
+    },
+    {
+     "p": "The database should also be current for the whole flight. If the cycle changes while you are airborne, have a way to confirm the data, such as comparing old and new charts before departure [[33:117|AIM 1-2-3 Note 4]] [[40:30|AC 90-105A 10.4]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Integrated displays give so much information that pilots may not notice errors caused by database problems. Be ready to go back to conventional navigation [[29:264|IPH 6-14]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your database expired November 5, 2025. The approach chart reads \"Amdt 2 30OCT25\" and no newer chart exists. May you fly it from the database?",
+    "a": "Yes, if you verified it: the amendment date is before the expiration, and no amended chart has been published [[33:101|AIM TBL 1-1-6]] [[33:117|AIM 1-2-3 Note 4]]."
+   }
+  },
+  {
+   "title": "Fly it step by step: is this airplane legal for IFR today?",
+   "kind": "skills",
+   "codes": [
+    "RF.V.D.S1",
+    "RF.V.D.K1",
+    "RF.V.D.K2",
+    "RF.V.D.K3",
+    "RF.V.D.R1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Run the same sequence each time, from the logbooks to the panel:"
+    },
+    {
+     "bullets": [
+      "Equipment: every 91.205(d) item is installed and working, plus the night items if needed [[60:488|14 CFR 91.205(d)]]. Nothing required for IFR is placarded inoperative [[60:493|14 CFR 91.213(d)]].",
+      "Altimeter, static and encoder: test within 24 calendar months, nothing opened since without a retest, and the tested altitude above your planned altitude [[60:524|14 CFR 91.411(a)]] [[60:525|14 CFR 91.411(d)]].",
+      "Transponder: test within 24 calendar months, and retested after any work that could cause data correspondence error [[60:525|14 CFR 91.413(a)]] [[60:525|14 CFR 91.413(b)]].",
+      "VOR: a logged check within the last 30 days with date, place, bearing error and signature; if not, do one at the departure airport [[60:470|14 CFR 91.171(a)]] [[60:471|14 CFR 91.171(d)]].",
+      "GPS: the unit is IFR approved for what you plan [[33:101|AIM TBL 1-1-6]]; the database is current for the whole flight or verified [[33:92|AIM 1-1-17b2(b)]] [[33:117|AIM 1-2-3 Note 4]]; NOTAMs reviewed [[33:92|AIM 1-1-17b2(a)]]; RAIM predicted if your receiver needs it [[33:97|AIM 1-1-17b5(g)]].",
+      "Route: a non-WAAS GPS needs working avionics for the ground facilities on the route and to any required alternate [[33:94|AIM 1-1-17b3(b)]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: if any line fails, ask whether you can fix it before departure (a VOR check, a database update from the flight deck under 43.3(k)) or whether it needs a shop (a 91.411 or 91.413 test) [[60:131|14 CFR 43.3(k)]] [[60:524|14 CFR 91.411(b)]] [[60:525|14 CFR 91.413(c)]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Which two IFR items can the pilot usually fix alone on the ramp?",
+    "a": "A VOR check, logged with date, place, bearing error and signature [[60:471|14 CFR 91.171(d)]], and a flight-deck database update that meets 43.3(k) [[60:131|14 CFR 43.3(k)]]."
+   }
+  },
+  {
+   "title": "Common errors and fixes",
+   "kind": "skills",
+   "codes": [
+    "RF.V.D.K1",
+    "RF.V.D.K2",
+    "RF.V.D.K3",
+    "RF.V.D.R1",
+    "RF.V.D.S1"
+   ],
+   "minutes": 3,
+   "body": [
+    {
+     "bullets": [
+      "Using an airborne checkpoint when the field has a VOT or surface checkpoint. Fix: the airborne check is only for when neither exists [[60:470|14 CFR 91.171(b)(3)]].",
+      "Doing the VOR check but not logging it. Fix: date, place, bearing error, signature [[60:471|14 CFR 91.171(d)]].",
+      "Treating the transponder test as an IFR-only item. Fix: 91.413 applies to any use [[60:525|14 CFR 91.413(a)]].",
+      "Climbing above the altitude the altimeter was tested to. Fix: check the test entry [[60:525|14 CFR 91.411(d)]] [[60:149|14 CFR part 43 appendix E(d)]].",
+      "Flying an approach from an expired database without checking the amendment date. Fix: verify, or do not use it [[33:101|AIM TBL 1-1-6]] [[33:117|AIM 1-2-3 Note 4]].",
+      "Reading the Julian revision number as the amendment date. Fix: use the date after \"Amdt\" [[2:100|Chart Users' Guide p 100]].",
+      "Using a tablet GPS as the IFR navigator. Fix: hand-held units are only for situational awareness under IFR [[33:101|AIM TBL 1-1-6]].",
+      "Starting an approach after a RAIM flag. Fix: go to the MAWP and fly the missed [[33:98|AIM 1-1-17b5(g)]]."
+     ]
+    }
+   ],
+   "check": {
+    "q": "Name the one AIM-recommended VOR item that is not a 91.171 requirement.",
+    "a": "Yearly calibration of the receiver by an authorized repair facility [[33:71|AIM 1-1-4c]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "RF.V.D-1.jpg",
+   "res": "23",
+   "page": 99,
+   "caption": "IFH Figure 5-4. Three-pointer altimeter (IFH 5-4).",
+   "alt": "A round three-pointer altimeter with numbers 0 to 9 around the dial, a striped crosshatch area, a barometric pressure window on the right showing 29.9, an adjustment knob at the lower left, and the words CALIBRATED TO 20,000 FEET printed on the face.",
+   "source": "IFH, PDF p. 99"
+  },
+  "f2": {
+   "file": "RF.V.D-2.jpg",
+   "res": "23",
+   "page": 268,
+   "caption": "IFH Figure 9-27. Typical GPS satellite array (IFH 9-25).",
+   "alt": "The earth surrounded by several crossing orbit rings, with many satellites with blue solar panels spread around the rings.",
+   "source": "IFH, PDF p. 268"
+  },
+  "f3": {
+   "file": "RF.V.D-3.jpg",
+   "res": "33",
+   "page": 101,
+   "caption": "AIM TBL 1-1-6. GPS Approval Required/Authorized Use, with its notes.",
+   "alt": "A table with rows for hand held, VFR panel mount, IFR en route and terminal, IFR oceanic or remote, and IFR en route, terminal and approach equipment, and columns for installation approval, operational approval, IFR en route, IFR terminal, IFR approach, oceanic remote, and in lieu of ADF or DME. Notes below say an expired database needs data verification for en route and terminal use, and a current database or verification that the procedure was not amended for approaches, and that hand-held and VFR units are only an aid to situational awareness under IFR.",
+   "source": "AIM, PDF p. 101"
+  },
+  "f4": {
+   "file": "RF.V.D-4.jpg",
+   "res": "29",
+   "page": 263,
+   "caption": "IPH Figure 6-29. Naming conventions of three different systems for the VOR 34 Approach (IPH 6-13).",
+   "alt": "Three avionics screens showing the same Eugene approach. A panel GPS lists it as VOR/DME 34, a yellow box shows another unit's text EUG VOR 34 APR with IAF D130N, and an FMS page lists it as VOR DME 34.",
+   "source": "IPH, PDF p. 263"
+  },
+  "f5": {
+   "file": "RF.V.D-5.jpg",
+   "res": "2",
+   "page": 100,
+   "caption": "Chart Users' Guide p 100 (no figure number). Top margin of the Manassas RNAV (GPS) RWY 34L chart.",
+   "alt": "The top strip of an approach chart: WASHINGTON, DC at the upper left, AL-5326 (FAA) in the middle, the number 15344 at the upper right, a briefing box with WAAS channel, approach course and elevations at the left, and the title RNAV (GPS) RWY 34L over MANASSAS RGNL/HARRY P DAVIS FLD (HEF) at the right.",
+   "source": "Chart Users' Guide, PDF p. 100"
+  },
+  "f6": {
+   "file": "RF.V.D-6.jpg",
+   "res": "2",
+   "page": 100,
+   "caption": "Chart Users' Guide p 100 (no figure number). Bottom margin examples: original procedure date and amendment procedure date.",
+   "alt": "Two bottom chart margins. The first, labeled Example: Original Procedure Date, shows Orig 10DEC15 under WASHINGTON, DC for RNAV (GPS) RWY 34L. The second, labeled Example: Amendment Procedure Date, shows Amdt 1B 28MAY15 for RNAV (GPS) RWY 16R.",
+   "source": "Chart Users' Guide, PDF p. 100"
+  }
+ },
+ "scenario": {
+  "title": "The club Archer and the Friday IFR trip",
+  "codes": [
+   "RF.V.D.K1",
+   "RF.V.D.K2",
+   "RF.V.D.K3",
+   "RF.V.D.R1",
+   "RF.V.D.S1"
+  ],
+  "setup": "Today is Wednesday, October 22, 2026. Friday you plan an IFR flight in a flying club Piper Archer to an airport 180 NM away in Class E airspace, cruising at 7,000 ft. The Archer has two independent nav/com radios with VOR, a non-WAAS IFR GPS approved for approaches (TSO-C129 with FDE), and a Mode C transponder. The destination has an RNAV (GPS) approach and a VOR approach. You open the club's logbooks and power up the panel.",
+  "questions": [
+   {
+    "q": "The last VOR check entry is September 19, 33 days ago. What can you do at the departure airport, which has a surface checkpoint?",
+    "a": "Do a new check: the surface checkpoint allows plus or minus 4 degrees [[60:470|14 CFR 91.171(b)(2)]], or compare the two VORs on one station, within 4 degrees of each other [[60:471|14 CFR 91.171(c)]]. Log date, place, bearing error and signature [[60:471|14 CFR 91.171(d)]]."
+   },
+   {
+    "q": "The altimeter, static and encoder entry is dated November 4, 2024, \"tested to 18,000 ft.\" Good for Friday?",
+    "a": "Yes. Counting calendar months to the end of the month (interpretation from AC 68-1A) [[36:7|AC 68-1A 2.3]], it runs through November 30, 2026 [[60:524|14 CFR 91.411(a)]], and 7,000 ft is below the tested altitude [[60:525|14 CFR 91.411(d)]]."
+   },
+   {
+    "q": "The transponder entry is dated September 12, 2024. What does that mean for the flight?",
+    "a": "Its 24 calendar months ran out at the end of September 2026, so you may not use the transponder at all, VFR or IFR, until it is tested [[60:525|14 CFR 91.413(a)]] by an appropriately rated repair station [[60:525|14 CFR 91.413(c)]]."
+   },
+   {
+    "q": "After the transponder test, you see the GPS database expired yesterday. The club manual allows pilot updates. What are your options?",
+    "a": "Update it from the flight deck under the maker's instructions, which a pilot may do under 43.3(k) [[60:131|14 CFR 43.3(k)]]. If you fly it expired, verify en route data for correctness, and fly the RNAV approach only if it has not been amended since the expiration [[33:101|AIM TBL 1-1-6]] [[33:117|AIM 1-2-3 Note 4]]."
+   },
+   {
+    "q": "Your RAIM prediction shows a 10 minute outage starting near your ETA. What now?",
+    "a": "Use another navigation and approach system, such as the VOR approach, pick another route or destination, or delay [[33:98|AIM 1-1-17b5(g)]]. AC 90-105A treats a continuous loss of more than 5 minutes as a reason to delay, cancel, re-route or re-plan [[40:28|AC 90-105A 9.3.5]]."
+   },
+   {
+    "q": "Can you rely on the GPS alone and leave the VORs unchecked?",
+    "a": "No. With a non-WAAS GPS you need the avionics for the ground facilities on the route and to any required alternate [[33:94|AIM 1-1-17b3(b)]], and an approved alternate means of navigation to monitor if RAIM is lost [[33:92|AIM 1-1-17b2(a)]]. If you use the VOR system under IFR, its check must be current [[60:470|14 CFR 91.171(a)]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "RF.V.D.S1",
+   "do": "Given an airplane's logbook entries, equipment list and avionics status, decide whether it is legal for a stated IFR flight: the 91.205(d) equipment, the VOR check, the 91.411 and 91.413 tests with their altitude and calendar limits, and the GPS approval, database and RAIM status. For each item that fails, say what fixes it and who may do it.",
+   "practice": "Take the logbooks of an airplane you fly and find the three dated entries: the VOR check [[60:471|14 CFR 91.171(d)]], the 91.411 test with its tested altitude [[60:149|14 CFR part 43 appendix E(d)]], and the 91.413 test [[60:525|14 CFR 91.413(a)]]. Write each expiration date. Then power up the GPS, read the database dates, and compare them with an approach chart's amendment date [[2:100|Chart Users' Guide p 100]] [[33:117|AIM 1-2-3 Note 4]]. Finish with a RAIM prediction for a real ETA [[33:97|AIM 1-1-17b5(g)]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Tuned to a VOT with the needle centered, what should a good receiver show?",
+   "options": [
+    "0 with TO, or 180 with FROM",
+    "0 with FROM, or 180 with TO",
+    "The VOT's published radial with TO",
+    "Any OBS setting, as long as the flag is gone"
+   ],
+   "answer": 1,
+   "why": "With the CDI centered the OBS should read 0 FROM or 180 TO [[33:70|AIM 1-1-4a, b]]."
+  },
+  {
+   "q": "Which item is NOT required by 91.205(d) for IFR below FL 240?",
+   "options": [
+    "Slip-skid indicator",
+    "Clock with seconds",
+    "Generator or alternator of adequate capacity",
+    "DME"
+   ],
+   "answer": 3,
+   "why": "91.205(d) lists the slip-skid indicator, the clock and the generator or alternator [[60:488|14 CFR 91.205(d)]]. DME or suitable RNAV is required at and above FL 240 when VOR equipment is required [[60:488|14 CFR 91.205(e)]]."
+  },
+  {
+   "q": "Airborne use of a VOT is allowed:",
+   "options": [
+    "Anywhere within 25 NM",
+    "Never",
+    "Only where the Chart Supplement authorizes it",
+    "Only above 1,000 ft AGL"
+   ],
+   "answer": 2,
+   "why": "Airborne VOT use is strictly limited to areas and altitudes authorized in the Chart Supplement or appropriate supplement [[33:70|AIM 1-1-4a, b]]."
+  },
+  {
+   "q": "A TSO-approved altimeter is considered tested and inspected for 91.411 as of:",
+   "options": [
+    "Its date of manufacture",
+    "The day it is installed",
+    "The next annual",
+    "The first IFR flight"
+   ],
+   "answer": 0,
+   "why": "Altimeters and altitude reporting equipment approved under TSOs are considered tested as of their date of manufacture [[60:524|14 CFR 91.411(c)]]."
+  },
+  {
+   "q": "In the appendix E integration test, the altitude the transponder reports may differ from the altimeter by no more than:",
+   "options": [
+    "50 ft",
+    "100 ft",
+    "125 ft",
+    "200 ft"
+   ],
+   "answer": 2,
+   "why": "The difference between the reporting output and the altimeter may not exceed 125 ft [[60:149|14 CFR part 43 appendix E(c)]]."
+  },
+  {
+   "q": "Your GPS says there are not enough satellites for RAIM. What does that mean?",
+   "options": [
+    "The position is known to be wrong",
+    "The position may be fine, but its integrity cannot be determined",
+    "The database has expired",
+    "WAAS is out"
+   ],
+   "answer": 1,
+   "why": "This type of message means too few satellites for integrity monitoring: the solution may be acceptable but cannot be verified [[33:90|AIM 1-1-17a3(b)]]."
+  },
+  {
+   "q": "Under IFR, a hand-held GPS on a yoke mount may be used:",
+   "options": [
+    "As the primary navigator en route",
+    "For approaches if the database is current",
+    "Only as an aid to situational awareness",
+    "Only in Class G airspace"
+   ],
+   "answer": 2,
+   "why": "VFR and hand-held GPS systems are not authorized for IFR navigation or approaches; during IFR they are only an aid to situational awareness [[33:101|AIM TBL 1-1-6]]."
+  },
+  {
+   "q": "According to the IPH, airborne navigation databases are revised on a cycle of:",
+   "options": [
+    "7 days",
+    "28 days",
+    "56 days",
+    "Once a year"
+   ],
+   "answer": 1,
+   "why": "Changes are incorporated into a 28-day airborne database revision cycle [[29:263|IPH 6-13]]."
+  },
+  {
+   "q": "Your database expired. For IFR en route and terminal GPS use, TBL 1-1-6 requires:",
+   "options": [
+    "Nothing, en route data never changes",
+    "A logbook entry by a mechanic",
+    "Verification of the data for correctness",
+    "A new RAIM prediction only"
+   ],
+   "answer": 2,
+   "why": "Note 2 to TBL 1-1-6: en route and terminal use requires verification of data for correctness if the database is expired [[33:101|AIM TBL 1-1-6]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "You plan an IFR flight that will stay in Class G airspace the whole way. The altimeter and static test is 27 calendar months old. What does the text of 91.411 say?",
+   "options": [
+    "It bars all IFR flight",
+    "Its wording covers IFR in controlled airspace only",
+    "It applies only above 10,000 ft MSL",
+    "It applies only to aircraft for hire"
+   ],
+   "answer": 1,
+   "why": "91.411(a) applies to operating an airplane in controlled airspace under IFR [[60:524|14 CFR 91.411(a)]]. Interpretation: the wording does not reach Class G, but the transponder rule and every other rule still apply [[60:525|14 CFR 91.413(a)]]."
+  },
+  {
+   "q": "A WAAS-equipped Cirrus has no VOR receiver. Under the AIM, may it fly IFR en route in the U.S.?",
+   "options": [
+    "No, a VOR is always required",
+    "Only with a DME",
+    "Yes, WAAS avionics do not require other navigation equipment for the route",
+    "Only under 18,000 ft MSL with a RAIM prediction"
+   ],
+   "answer": 2,
+   "why": "Installation of WAAS avionics does not require other equipment appropriate to the route [[33:104|AIM 1-1-18c9]], and part 91 WAAS users are not required to carry VOR avionics [[33:70|AIM 1-1-3f]]."
+  },
+  {
+   "q": "Your non-WAAS IFR GPS is your only navigator to the destination, and your VOR receiver is inoperative. The route uses VOR airways. What does the AIM say?",
+   "options": [
+    "Fine, as long as RAIM is predicted",
+    "The avionics for the ground facilities on the route must be installed and operational",
+    "Fine if you file /G",
+    "Fine below FL 240"
+   ],
+   "answer": 1,
+   "why": "With TSO-C129 or C196 receivers, the avionics needed to receive the ground facilities for the route and any required alternate must be installed and operational [[33:94|AIM 1-1-17b3(b)]]."
+  },
+  {
+   "q": "After the FAWP on an RNAV (GPS) approach, a RAIM flag appears. What should you do?",
+   "options": [
+    "Continue to minimums, the flag is advisory",
+    "Climb and execute the missed approach",
+    "Descend faster to beat the outage",
+    "Switch to VOR mode and continue"
+   ],
+   "answer": 1,
+   "why": "If the RAIM flag appears after the FAWP, initiate a climb and execute the missed approach; the GPS data is advisory only [[33:98|AIM 1-1-17b5(g)]]."
+  },
+  {
+   "q": "Your receiver lacks the approach you want, so you enter its waypoints by latitude and longitude. May you fly it?",
+   "options": [
+    "Yes, if you double-check the coordinates",
+    "Yes, in VMC only",
+    "No, approaches must be retrieved by name from the current database",
+    "Yes, if RAIM is available"
+   ],
+   "answer": 2,
+   "why": "The approach must be retrievable by name from the current database; manual entry of waypoints by latitude and longitude or place and bearing is not permitted [[33:94|AIM 1-1-17b3(c)]]."
+  },
+  {
+   "q": "A RAIM prediction shows a continuous 7 minute loss of RAIM along your route. What does AC 90-105A call for?",
+   "options": [
+    "Nothing under 10 minutes",
+    "Delay, cancel, re-route, or re-plan with other navigation",
+    "Fly it and monitor the VOR",
+    "File a NOTAM"
+   ],
+   "answer": 1,
+   "why": "A predicted continuous loss of RAIM of more than 5 minutes means the flight must be delayed, canceled or re-routed, or re-planned on a different form of navigation [[40:28|AC 90-105A 9.3.5]]."
+  },
+  {
+   "q": "Your database expires at the AIRAC change in the middle of a long IFR flight. What does the AIM expect?",
+   "options": [
+    "Nothing; a database good at takeoff is good all flight",
+    "Have procedures to ensure the navigation data is accurate after the change",
+    "Land before the expiration time",
+    "Turn off the GPS at the expiration time"
+   ],
+   "answer": 1,
+   "why": "The database should be current for the flight; if the cycle changes in flight, pilots should establish procedures to ensure the accuracy of the navigation data [[33:117|AIM 1-2-3 Note 4]]."
+  },
+  {
+   "q": "An approach chart shows \"Amdt 3 22JAN26\" at the bottom and a newer Julian number at the top. Your database expired March 2, 2026, and no newer chart is published. May you fly the approach from the database?",
+   "options": [
+    "No, the Julian revision date is after expiration",
+    "Yes, after verifying: the amendment date is before the expiration and no amended chart exists",
+    "Only with ATC approval",
+    "Only if it is a VOR overlay"
+   ],
+   "answer": 1,
+   "why": "The Date of Latest Revision changes for any reason; the amendment date marks procedure changes [[2:100|Chart Users' Guide p 100]]. Do not use the database only if an amended chart is published or the amendment date is on or after expiration [[33:117|AIM 1-2-3 Note 4]]."
+  },
+  {
+   "q": "Which person may perform the 91.411 static system test, but not the altimeter test?",
+   "options": [
+    "A private pilot owner",
+    "A certificated mechanic with an airframe rating",
+    "An authorized instructor",
+    "Any repair station"
+   ],
+   "answer": 1,
+   "why": "A certificated mechanic with an airframe rating may do static pressure system tests and inspections only [[60:524|14 CFR 91.411(b)]]."
+  },
+  {
+   "q": "Your VOR needle swings about 6 degrees in cruise at one RPM. Before writing up the receiver, the AIM suggests you:",
+   "options": [
+    "Report the VOR station out of service",
+    "Change RPM slightly and see if it smooths",
+    "Do a dual VOR check at once",
+    "Turn off the transponder"
+   ],
+   "answer": 1,
+   "why": "Certain propeller RPM settings can cause fluctuation up to 6 degrees; slight RPM changes normally smooth it out, so check this before reporting [[33:69|AIM 1-1-3e]]."
+  },
+  {
+   "q": "A NOTAM says a VOR is out of service, but your needle and flag look normal. What should you do?",
+   "options": [
+    "Use it; the flag is not showing",
+    "Use it only for the VOR check",
+    "Disregard its indications, regardless of how valid they look",
+    "Use it below 5,000 ft AGL"
+   ],
+   "answer": 2,
+   "why": "Pilots should disregard any navigation indication, however valid it seems, if the transmitter is identified by NOTAM or otherwise as unusable or inoperative [[33:68|AIM 1-1-1b]]."
+  },
+  {
+   "q": "No MEL. On preflight for a night IFR flight, the turn coordinator is dead, and the airplane has no third attitude system. What applies?",
+   "options": [
+    "Placard it and go; it is a backup",
+    "Legal if the attitude indicator works",
+    "Not legal for IFR: the rate-of-turn indicator is required and cannot be deferred under 91.213(d)",
+    "Legal if ATC approves"
+   ],
+   "answer": 2,
+   "why": "A gyroscopic rate-of-turn indicator is required for IFR except with an approved third attitude system [[60:488|14 CFR 91.205(d)]], and 91.213(d) cannot defer an item required by 91.205 for that flight [[60:493|14 CFR 91.213(d)]]."
+  }
+ ],
+ "takeaways": [
+  "The owner keeps the airplane airworthy; you decide it is fit for this IFR flight.",
+  "91.205(d) items cannot be deferred for IFR without an MEL.",
+  "VOR: checked within 30 days, 4 degrees on the ground or dual, 6 degrees airborne, logged with date, place, error and signature.",
+  "Altimeter, static and encoder: 24 calendar months for IFR in controlled airspace, never above the tested altitude, retest after opening the static system.",
+  "Transponder: 24 calendar months for any use, VFR included.",
+  "GPS: approved unit, RAIM or WAAS integrity, NOTAMs, and a current or verified database.",
+  "Expired database: no approach whose amendment date is on or after the expiration, or with a newer amended chart."
+ ],
+ "cfi_notes": [
+  "IFH 9-16 tells pilots to tune the VOT on 108.0 MHz, says VOTs are listed in the \"A/FD,\" and mentions \"an appropriate endorsement\" [[23:259|IFH 9-16]]. The AIM gives 108.0 MHz as the frequency normally approved for repair station test signals, and says checkpoints and VOTs are in the Chart Supplement [[33:71|AIM 1-1-4e]] [[33:71|AIM 1-1-4f]]. 91.171(d) asks only for date, place, bearing error and signature [[60:471|14 CFR 91.171(d)]]. Teach the CFR and AIM: look up each VOT frequency in the Chart Supplement.",
+  "IPH 6-14 says updating an aeronautical database is considered maintenance, and cites \"§ 91.503\" and \"§ 43.3(g)\" [[29:264|IPH 6-14]]. Current 43.3(k) says a database update meeting its conditions is not maintenance and may be done by pilots [[60:131|14 CFR 43.3(k)]]. Teach 43.3(k).",
+  "IFH 9-26 says IFR GPS must meet TSO C-129 and that an updatable database \"is required\" [[23:269|IFH 9-26]]. The AIM lists TSO-C129, C196, C145 and C146 [[33:91|AIM 1-1-17b2(a)(1)]] and allows limited use of an expired database with verification [[33:101|AIM TBL 1-1-6]]. Teach the AIM.",
+  "The AIM says databases \"must be updated for IFR operations\" [[33:90|AIM 1-1-17b1(c)(2)]], yet TBL 1-1-6 allows expired-database use with verification [[33:101|AIM TBL 1-1-6]]. Neither is a part 91 rule; your AFM supplement may add a limitation. Teach the verification steps and recommend updating.",
+  "AC 90-105A A.7.1.2 says a procedure amended on or after the database expiry \"should not be flown\" [[40:43|AC 90-105A A.7.1.2]]; AIM 1-2-3 says the operator \"must not use the database\" [[33:117|AIM 1-2-3 Note 4]]. Teach the firmer AIM wording.",
+  "\"Calendar months\" is not defined in part 91. AC 68-1A defines it for BasicMed as running to the end of the month [[36:7|AC 68-1A 2.3]]. Applying that to 91.411 and 91.413 is interpretation; tell the pilot so.",
+  "Interpretation: 91.171 applies to IFR \"using the VOR system\" [[60:470|14 CFR 91.171(a)]]. The sources do not say whether a WAAS-only flight that never uses the VOR needs a current check. Advise keeping it current, since the VOR may be your backup [[33:70|AIM 1-1-3f]].",
+  "Application: have the pilot find the three dated entries in a real logbook and the database dates on the actual panel. Many pilots have never seen the 91.411 tested-altitude entry [[60:149|14 CFR part 43 appendix E(d)]].",
+  "RAIM prediction windows differ by source: Flight Service gives 1 hour before to 1 hour after the ETA hour [[33:97|AIM 1-1-17b5(g)]]; a SAPT prediction is valid within 5 minutes and 7.5 NM of the plan [[40:27|AC 90-105A 9.3.2]]. Teach pilots to request a window that covers delays."
+ ],
+ "gaps": [
+  "Each GPS unit's IFR approvals and limitations, including whether a current database is an AFM limitation, are in its AFM supplement or pilot guide, not in these sources [[33:101|AIM TBL 1-1-6]].",
+  "How a specific receiver shows database dates, runs RAIM or FDE predictions, and loads a database update comes from the manufacturer's manual.",
+  "The sources do not describe what an \"approved procedure\" for VOR maintenance under 91.171(a)(1) looks like.",
+  "The part 43 appendix F transponder tests are a repair station's work; this lesson does not teach their details.",
+  "The SAPT website and how to read its output are not described in these sources beyond the 5 minute and 7.5 NM validity.",
+  "The sources give no standard format for the VOR check record beyond the four items in 91.171(d)."
+ ],
+ "activities": [
+  {
+   "type": "tf",
+   "key": "h1",
+   "after": 2,
+   "title": "True or false: who and what for IFR",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "The owner or operator is primarily responsible for keeping the aircraft airworthy.",
+     "a": true,
+     "why": "True [[60:520|14 CFR 91.403(a)]]."
+    },
+    {
+     "s": "Because the owner keeps the records, the PIC need not check them.",
+     "a": false,
+     "why": "False. The PIC is responsible for deciding the aircraft is in condition for safe flight [[60:436|14 CFR 91.7]]."
+    },
+    {
+     "s": "Every airplane flying IFR needs a gyroscopic rate-of-turn indicator.",
+     "a": false,
+     "why": "False. An airplane with an approved third attitude system usable through 360 degrees of pitch and roll is excepted [[60:488|14 CFR 91.205(d)]]."
+    },
+    {
+     "s": "A clock showing hours, minutes and seconds is required for IFR.",
+     "a": true,
+     "why": "True. Sweep-second pointer or digital display [[60:488|14 CFR 91.205(d)]]."
+    },
+    {
+     "s": "Without an MEL, you may placard an inoperative attitude indicator and fly IFR.",
+     "a": false,
+     "why": "False. 91.213(d) cannot defer equipment required by 91.205 for that kind of flight [[60:493|14 CFR 91.213(d)]]."
+    },
+    {
+     "s": "At FL 240 with VOR navigation required, you also need DME or a suitable RNAV system.",
+     "a": true,
+     "why": "True [[60:488|14 CFR 91.205(e)]]."
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h2",
+   "after": 4,
+   "title": "Check the numbers",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "Tuned to a VOT, you center the needle and the OBS reads 176 with TO. How many degrees of error is that?",
+     "answer": 4,
+     "tol": 0,
+     "unit": "degrees",
+     "why": "A perfect reading is 180 TO [[33:70|AIM 1-1-4a, b]]. 180 - 176 = 4 degrees, right at the plus or minus 4 limit [[60:470|14 CFR 91.171(b)(1)]]."
+    },
+    {
+     "q": "Dual VOR check: VOR 1 shows 358 and VOR 2 shows 003 to the same station. What is the difference?",
+     "answer": 5,
+     "tol": 0,
+     "unit": "degrees",
+     "why": "From 358 to 360 is 2, then 3 more to 003: (3 - 358) mod 360 = 5 degrees. The limit is 4, so it fails [[60:471|14 CFR 91.171(c)]]."
+    },
+    {
+     "q": "Your last VOR check was August 28. Today is September 30. How many days ago was it?",
+     "answer": 33,
+     "tol": 0,
+     "unit": "days",
+     "why": "3 days left in August (31 - 28) + 30 in September = 33 days, more than the 30 allowed [[60:470|14 CFR 91.171(a)]]."
+    },
+    {
+     "q": "In the integration test the transponder reports 5,280 ft while the altimeter at 29.92 shows 5,140 ft. What is the difference?",
+     "answer": 140,
+     "tol": 0,
+     "unit": "ft",
+     "why": "5,280 - 5,140 = 140 ft, over the 125 ft limit [[60:149|14 CFR part 43 appendix E(c)]]."
+    },
+    {
+     "q": "The altimeter and static test was done August 9, 2024. Counting 24 calendar months to the end of the month, in which month of 2026 (1 to 12) does it run out?",
+     "answer": 8,
+     "tol": 0,
+     "unit": "",
+     "why": "August 2024 + 24 months = August 2026, ending August 31 (interpretation using AC 68-1A) [[36:7|AC 68-1A 2.3]] [[60:524|14 CFR 91.411(a)]]."
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h3",
+   "after": 5,
+   "title": "Which rule requires it?",
+   "intro": "Tap each item, then tap the rule or source it comes from.",
+   "buckets": [
+    "14 CFR 91.171 (VOR)",
+    "14 CFR 91.411 (altimeter, static, encoder)",
+    "14 CFR 91.413 (transponder)",
+    "AIM or AC guidance"
+   ],
+   "items": [
+    {
+     "t": "Logging date, place, bearing error and signature after a VOT check",
+     "b": 0
+    },
+    {
+     "t": "Two VORs on the same station within 4 degrees",
+     "b": 0
+    },
+    {
+     "t": "A new test after a static line fitting was replaced",
+     "b": 1
+    },
+    {
+     "t": "Not flying IFR in controlled airspace above the tested altitude",
+     "b": 1
+    },
+    {
+     "t": "A test within 24 calendar months before using the transponder VFR",
+     "b": 2
+    },
+    {
+     "t": "A new integrated test after transponder maintenance that could cause data correspondence error",
+     "b": 2
+    },
+    {
+     "t": "Confirming the GPS database is current before flight",
+     "b": 3
+    },
+    {
+     "t": "Checking that RAIM is predicted at your ETA",
+     "b": 3
+    }
+   ],
+   "why": "VOR check and record [[60:471|14 CFR 91.171(c)]] [[60:471|14 CFR 91.171(d)]]. Static retest and altitude limit [[60:524|14 CFR 91.411(a)]] [[60:525|14 CFR 91.411(d)]]. Transponder test and retest [[60:525|14 CFR 91.413(a)]] [[60:525|14 CFR 91.413(b)]]. Database and RAIM checks come from the AIM and ACs [[33:92|AIM 1-1-17b2(b)]] [[33:97|AIM 1-1-17b5(g)]]."
+  },
+  {
+   "type": "match",
+   "key": "h4",
+   "after": 7,
+   "title": "GPS integrity words",
+   "intro": "Tap a term, then what it means.",
+   "pairs": [
+    {
+     "l": "RAIM",
+     "r": "5 satellites, or 4 plus baro-aiding"
+    },
+    {
+     "l": "FDE",
+     "r": "6 satellites, or 5 plus baro-aiding"
+    },
+    {
+     "l": "TSO-C129 or C196 GPS",
+     "r": "Needs an approved alternate means of navigation"
+    },
+    {
+     "l": "TSO-C145 or C146 GPS",
+     "r": "WAAS; no other route equipment required"
+    },
+    {
+     "l": "Hand-held GPS under IFR",
+     "r": "Situational awareness only"
+    },
+    {
+     "l": "SAPT",
+     "r": "FAA RAIM prediction tool"
+    }
+   ],
+   "why": "RAIM and FDE counts [[33:89|AIM 1-1-17a3]]. Alternate means for non-WAAS GPS [[33:92|AIM 1-1-17b2(a)]]. WAAS [[33:104|AIM 1-1-18c9]]. Hand-held [[33:101|AIM TBL 1-1-6]]. SAPT [[33:97|AIM 1-1-17b5(g)]]."
+  },
+  {
+   "type": "order",
+   "key": "h5",
+   "after": 8,
+   "title": "Checking the database, in order",
+   "intro": "Use the arrows to put the AIM's database checks in order, then tap Check.",
+   "steps": [
+    "Confirm the planned time of use is before the database expiration",
+    "Check for provider notices limiting a waypoint or procedure",
+    "Load the procedure by name from the database",
+    "In flight, match waypoint names to the chart spelling",
+    "Confirm the waypoints are logical in location and order",
+    "If anything looks wrong, do not use it until fully verified"
+   ],
+   "why": "Preflight steps [[33:92|AIM 1-1-17b2(b)]], loading by name [[33:94|AIM 1-1-17b3(c)]], and in-flight checks with the rule for a possible error [[33:93|AIM 1-1-17b2(b)(4)]]."
+  },
+  {
+   "type": "label",
+   "key": "h6",
+   "after": 9,
+   "title": "Read the chart's top margin",
+   "figure": "f5",
+   "intro": "Drag each label to its pin on the chart strip.",
+   "pins": [
+    {
+     "x": 8,
+     "y": 14,
+     "label": "City and state"
+    },
+    {
+     "x": 52,
+     "y": 14,
+     "label": "AL number and responsible organization"
+    },
+    {
+     "x": 96,
+     "y": 14,
+     "label": "Date of latest revision (year and day of year)"
+    },
+    {
+     "x": 80,
+     "y": 45,
+     "label": "Procedure title"
+    },
+    {
+     "x": 96,
+     "y": 75,
+     "label": "Airport identifier"
+    }
+   ],
+   "why": "City and state, the AL number with its organization, the Date of Latest Revision, the procedure title, and the airport identifier in parentheses are all described in the Chart Users' Guide [[2:100|Chart Users' Guide p 100]]."
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 10,
+   "title": "Ramp check before the IFR trip",
+   "intro": "You rent a Cessna 172 with one VOR, a non-WAAS IFR GPS approved for approaches, and a Mode C transponder for an IFR trip in Class E airspace today, October 22, 2026. Cruise will be 8,000 ft.",
+   "steps": [
+    {
+     "s": "The 91.411 and 91.413 entries are both dated November 4, 2024, and the altimeter was tested to 20,000 ft. Status?",
+     "options": [
+      "Expired: more than 24 months have passed",
+      "Current through November 30, 2026, and 8,000 ft is below the tested altitude",
+      "Current only for VFR",
+      "Current, but only up to 10,000 ft"
+     ],
+     "answer": 1,
+     "why": "24 calendar months, counted to the end of the month (interpretation) [[36:7|AC 68-1A 2.3]], run to November 30, 2026 [[60:524|14 CFR 91.411(a)]] [[60:525|14 CFR 91.413(a)]]. You may not exceed the tested altitude [[60:525|14 CFR 91.411(d)]]."
+    },
+    {
+     "s": "The last VOR check entry is September 17, 35 days ago. The field has a VOT. What do you do?",
+     "options": [
+      "Nothing; the GPS is your navigator",
+      "Check against the VOT, accept up to plus or minus 4 degrees, and log date, place, error and signature",
+      "Use an airborne checkpoint after takeoff",
+      "Ask a mechanic to endorse the logbook"
+     ],
+     "answer": 1,
+     "why": "The check must be within 30 days to use the VOR under IFR [[60:470|14 CFR 91.171(a)]]. VOT limit plus or minus 4 degrees [[60:470|14 CFR 91.171(b)(1)]]; the record [[60:471|14 CFR 91.171(d)]]. Your non-WAAS GPS also needs working VOR avionics for the route [[33:94|AIM 1-1-17b3(b)]]."
+    },
+    {
+     "s": "The GPS database expired yesterday. The rental manual includes the maker's update steps from the flight deck. Best choice?",
+     "options": [
+      "Fly it; databases are advisory",
+      "Update it from the flight deck following the maker's steps; if you cannot, verify every waypoint against current charts",
+      "Have a mechanic do it, since it is maintenance",
+      "Fly VFR to the destination instead"
+     ],
+     "answer": 1,
+     "why": "A flight-deck update with no tools or disassembly, following the maker's instructions, is not maintenance and a pilot may do it [[60:131|14 CFR 43.3(k)]]. An expired database needs data verification [[33:101|AIM TBL 1-1-6]]."
+    },
+    {
+     "s": "You could not update it. The destination RNAV (GPS) chart reads \"Amdt 2\" dated after your database expired. May you fly that approach from the database?",
+     "options": [
+      "Yes, if RAIM is available",
+      "Yes, in VMC",
+      "No; plan another approach, such as the VOR approach",
+      "Yes, if you check the Julian date"
+     ],
+     "answer": 2,
+     "why": "If the amendment date is on or after the database expiration, you must not use the database for that procedure [[33:117|AIM 1-2-3 Note 4]] [[33:101|AIM TBL 1-1-6]]."
+    },
+    {
+     "s": "Your RAIM prediction is good, but the destination VOR is NOTAMed out of service. The VOR approach was your plan B. What now?",
+     "options": [
+      "Fly the VOR approach if the needle looks normal",
+      "Disregard that VOR; pick another destination or alternate plan, or delay",
+      "Fly the RNAV approach from the old database",
+      "Use the GPS to fly the VOR approach anyway"
+     ],
+     "answer": 1,
+     "why": "Disregard indications from a transmitter NOTAMed as unusable [[33:68|AIM 1-1-1b]]. You may not use the GPS to substitute for the VOR that gives final approach guidance [[33:118|AIM 1-2-3c Note 4]]. With no usable approach, choose another route or destination, or delay [[33:98|AIM 1-1-17b5(g)]]."
+    }
+   ]
+  }
+ ]
+}
