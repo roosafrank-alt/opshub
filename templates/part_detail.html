@@ -18,22 +18,28 @@
     .pd-side, .pd-main { display: contents; }
     .pd-side > .card, .pd-main > .card { width: calc(100% - var(--bs-gutter-x)); margin-left: calc(var(--bs-gutter-x) * .5); margin-top: 1rem; margin-bottom: 0 !important; }
   }
+  /* Laptop: the name card and the barcode card sit together and look like the one card they used to be. */
+  @media (min-width: 992px) {
+    .pd-name { border-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; padding-bottom: 0 !important; }
+    .pd-code { border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; padding-top: 0 !important; }
+  }
   .pd-o0 { order: 0; } .pd-o1 { order: 1; } .pd-o2 { order: 2; } .pd-o3 { order: 3; } .pd-o4 { order: 4; } .pd-o5 { order: 5; } .pd-o6 { order: 6; }
 </style>
 <div class="row g-3">
   <div class="col-lg-4 pd-side">
-    <div class="card p-3 text-center pd-o1">
+    <div class="card p-3 text-center pd-o1 pd-name">
       {% if photos %}
-      <img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-2" style="max-height:220px; width:100%; object-fit:cover;">
+      <img src="{{ url_for('static', filename='uploads/' + photos[0].filename) }}" class="img-fluid rounded mb-2 d-none d-lg-block" style="max-height:220px; width:100%; object-fit:cover;">
       {% endif %}
-      <h4 data-change="DESIGN-9">{{ part.name }}{% if part.short_name %} <span class="text-muted small fw-normal">(aka {{ part.short_name }})</span>{% endif %}</h4>
+      <h4 class="mb-0" data-change="DESIGN-9">{{ part.name }}{% if part.short_name %} <span class="text-muted small fw-normal">(aka {{ part.short_name }})</span>{% endif %}</h4>
+    </div>
+    <div class="card p-3 text-center pd-o4 pd-code">
       <div id="code-visual" class="d-flex justify-content-center my-2"></div>
       {% if part.barcode.startswith('SHOP-') %}<div><code>{{ part.barcode }}</code></div>{% endif %}
       <form method="post" action="{{ url_for('part_print_label', part_id=part.id) }}" class="mt-2">
         <button type="submit" class="btn btn-outline-secondary btn-sm" data-change="SHOP-35"><i class="bi bi-printer"></i> Print on label printer</button>
       </form>
     </div>
-
 
     <div class="card p-3 mt-3 pd-o2">
       <div class="d-flex justify-content-between align-items-center">
@@ -235,7 +241,7 @@
     {% set can_link = is_master_admin or shop_role in ('admin', 'tech') %}
     {% set is_linked = direct_new or further or replaces %}
     {% if is_linked %}
-    <div class="card p-3 mb-3 pd-o0" id="superseded">
+    <div class="card p-3 mb-3 pd-o6" id="superseded">
       <h5>Superseded by / Replaces</h5>
       <div class="fw-semibold small text-uppercase text-muted">This part is superseded by</div>
       {% if direct_new %}
