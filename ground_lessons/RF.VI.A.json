@@ -1,0 +1,1436 @@
+{
+ "task_code": "RF.VI.A",
+ "task_title": "Weather Decision-Making and Icing",
+ "area": "Area VI. Safety and Risk Management",
+ "minutes": 60,
+ "objective": "By the end of this lesson you can build a complete weather picture from briefings, graphics and PIREPs, explain where structural ice and thunderstorm hazards lie and what the rules say about icing, and make and stick to a go, no-go or divert decision.",
+ "why": "Weather keeps showing up in fatal general aviation accidents: continued VFR into IMC, thunderstorm encounters and icing all lead to loss of control or flight into terrain [[30:22|RMH 3-4]] [[30:25|RMH 3-7]]. The regulations do not cover every situation, so a legal flight can still carry high risk [[30:13|RMH 2-1]]. This lesson is about seeing the weather clearly and then acting on what you see.",
+ "prereading": [
+  {
+   "res": "37",
+   "pages": [
+    13,
+    15
+   ],
+   "printed": "AC 91-92 7.7 to 8.2",
+   "what": "Cockpit weather limits and the FAA's weather do's and don'ts.",
+   "label": "AC 91-92 pp 13 to 15"
+  },
+  {
+   "res": "34",
+   "pages": [
+    101,
+    105
+   ],
+   "printed": "AIM 7-1-18 to 7-1-20",
+   "what": "PIREPs: when they are solicited, the format, icing intensity and icing terms.",
+   "label": "AIM 7-1-18 to 7-1-20"
+  },
+  {
+   "res": "38",
+   "pages": [
+    32,
+    33
+   ],
+   "printed": "AC 91-74B 3-12 to 3-13",
+   "what": "How to tell if your airplane is approved for icing, and what that means if it is not.",
+   "label": "AC 91-74B pp 27 to 29"
+  },
+  {
+   "res": "38",
+   "pages": [
+    37,
+    41
+   ],
+   "printed": "AC 91-74B 4-1 to 4-3",
+   "what": "Planning around ice: fronts, freezing levels, METAR limits and PIREP cautions.",
+   "label": "AC 91-74B pp 33 to 37"
+  },
+  {
+   "res": "28",
+   "pages": [
+    245,
+    249
+   ],
+   "printed": "AWH 20-3 to 20-7",
+   "what": "Where ice forms in clouds, fronts and mountains, and what it does to lift and drag.",
+   "label": "AWH 20-3 to 20-7"
+  },
+  {
+   "res": "34",
+   "pages": [
+    119,
+    121
+   ],
+   "printed": "AIM 7-1-26 to 7-1-27",
+   "what": "Thunderstorm facts and the do's and don'ts of avoidance.",
+   "label": "AIM 7-1-26 to 7-1-27"
+  },
+  {
+   "res": "1",
+   "pages": [
+    60,
+    61
+   ],
+   "printed": "PHAK 2-21 to 2-22",
+   "what": "Operational pitfalls: get-there-itis, scud running and continued VFR into IMC.",
+   "label": "PHAK 2-21 to 2-22"
+  }
+ ],
+ "warmup": "Think first: it is a gray November Saturday. Your destination 90 miles away reports 2,800 overcast, the forecast says it will lower to 1,500 by your arrival, and the temperature at your home field is 6 °C. Your airplane is not approved for icing and your friends are already at the airport. What would you look at before deciding, and what would make you turn around once airborne?",
+ "key_terms": [
+  {
+   "term": "PIREP",
+   "def": "A pilot weather report of conditions actually met in flight. \"UA\" marks a routine report and \"UUA\" an urgent one."
+  },
+  {
+   "term": "G-AIRMET",
+   "def": "The graphic AIRMET for the lower 48 states. Snapshots no more than 3 hours apart show IFR, mountain obscuration, moderate icing, freezing levels, moderate turbulence, low-level wind shear and strong surface winds."
+  },
+  {
+   "term": "Convective SIGMET",
+   "def": "An advisory for severe or embedded thunderstorms, lines of storms, or heavy storms over a large area. It implies severe turbulence, severe icing and low-level wind shear."
+  },
+  {
+   "term": "Center Weather Advisory (CWA)",
+   "def": "A short-notice advisory from a Center's weather unit for conditions starting within about 2 hours. A nowcast, not a planning product."
+  },
+  {
+   "term": "CIP and FIP",
+   "def": "Current and Forecast Icing Products: computer graphics of icing probability, severity and SLD threat, with no forecaster changes."
+  },
+  {
+   "term": "Supercooled water",
+   "def": "Liquid water drops at temperatures below 0 °C. They freeze when they hit the airplane."
+  },
+  {
+   "term": "Supercooled large drops (SLD)",
+   "def": "Supercooled drops larger than 0.05 mm, meaning freezing drizzle and freezing rain. They can freeze behind the protected leading edge."
+  },
+  {
+   "term": "Known icing conditions",
+   "def": "Conditions in which ice is observed or detected in flight. Forecast icing conditions are those a weather provider expects to cause ice."
+  },
+  {
+   "term": "Freezing level",
+   "def": "The lowest altitude where the air temperature reaches 0 °C. There can be more than one."
+  },
+  {
+   "term": "Strategic vs. tactical weather use",
+   "def": "Strategic: route choices made 20 minutes or more ahead. Tactical: picking a path through weather in the next few minutes. Datalink weather supports only strategic use."
+  },
+  {
+   "term": "Continued VFR into IMC",
+   "def": "Pressing on visually into clouds or low visibility. A leading cause of loss of control and flight into terrain."
+  },
+  {
+   "term": "Plan continuation bias",
+   "def": "The pull to keep doing what you planned even as conditions change. The PHAK calls one form of it get-there-itis."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "Building the whole weather picture",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.A.K1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Before any IFR flight or any flight away from the airport, 91.103 makes you become familiar with weather reports and forecasts, fuel needs, and alternatives if the flight cannot be completed [[60:440|14 CFR 91.103]]. The rule does not say how. AC 91-92 says the FAA considers a self-briefing may be compliant [[37:7|AC 91-92 7.1]]."
+    },
+    {
+     "p": "Refreshing pilots usually know the briefing types. The skill this lesson is after is using what you get. AC 91-92 puts it simply: the more doubtful the weather, the more information you need about the route, runway conditions, destination and alternates [[37:6|AC 91-92 6.3]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Element",
+       "What you are really asking"
+      ],
+      "rows": [
+       [
+        "Adverse conditions",
+        "What could make me change or cancel this flight? Wind shear, thunderstorms, icing, fronts, NOTAMs and advisories [[37:9|AC 91-92 7.4.1.1]]."
+       ],
+       [
+        "Synopsis",
+        "Where are the fronts and air masses, and how fast are they moving? [[37:10|AC 91-92 7.4.1.3]]"
+       ],
+       [
+        "Current conditions",
+        "What is happening now along the route, including METARs, PIREPs, radar and satellite? [[37:10|AC 91-92 7.4.1.4]]"
+       ],
+       [
+        "Forecasts",
+        "What will it be at departure, en route and at the destination from 1 hour before to 1 hour after my ETA? [[37:10|AC 91-92 7.4.1.5]] [[37:11|AC 91-92 7.4.1.6]]"
+       ],
+       [
+        "Winds and temperatures aloft",
+        "Winds for my altitude, and temperatures to find the icing levels [[37:16|AC 91-92 App A]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**The graphic products.** The GFA shows observations and forecasts from 14 hours in the past to 15 hours ahead: clouds, flight category, precipitation, thunderstorms, icing, turbulence and wind. Icing, turbulence and wind come in 3,000 ft steps up to 30,000 ft [[34:63|AIM 7-1-4]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "bullets": [
+      "G-AIRMETs are snapshots no more than 3 hours apart, out to 12 hours. If one snapshot shows no hazard and the next one shows it, assume the hazard starts right after the first snapshot [[34:73|AIM 7-1-6f3]] [[34:74|AIM 7-1-6f4]].",
+      "SIGMETs (lower 48) cover severe icing and severe turbulence not tied to thunderstorms, widespread dust or sandstorms under 3 miles, and volcanic ash [[34:69|AIM 7-1-6d2]].",
+      "A convective SIGMET implies severe or greater turbulence, severe icing and low-level wind shear [[34:71|AIM 7-1-6e2]].",
+      "A CWA is a nowcast for conditions starting within about 2 hours and is not a flight planning product [[34:78|AIM 7-1-6h]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Datalink weather is old weather. NEXRAD images can be 15 to 20 minutes old by the time they reach the cockpit [[37:13|AC 91-92 7.7]]. Cockpit weather supports strategic choices (20 minutes or more ahead), not threading a path through a hazard in the next few minutes [[34:81|AIM 7-1-9]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Get a standard briefing as close to departure as possible, and an abbreviated update just before takeoff if the standard one is an hour or more old or the weather is questionable [[37:14|AC 91-92 8.1]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "A G-AIRMET shows no icing at 15Z and moderate icing over your route at 18Z. When should you assume the icing begins?",
+    "a": "Right after the 15Z snapshot. The AIM says to assume the hazard exists between snapshots unless told otherwise [[34:74|AIM 7-1-6f4]]."
+   }
+  },
+  {
+   "title": "PIREPs: read them, doubt them, give them",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.A.K1",
+    "RF.VI.A.K2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "PIREPs are actual reports of weather met by pilots, and AC 91-92 calls them a source that can prevent accidents. They help forecasters check and adjust forecasts [[37:3|AC 91-92 4.17]]. For icing, AC 91-74B calls PIREPs generally the most useful source because they are facts for a specific time and place [[38:37|AC 91-74B 4-1]]."
+    },
+    {
+     "bullets": [
+      "ATC must ask for PIREPs when ceilings are at or below 5,000 ft, visibility is at or below 5 miles, or there are thunderstorms, light or greater icing, moderate or greater turbulence, wind shear or volcanic ash [[34:101|AIM 7-1-18a]].",
+      "Altitude and aircraft type are essential for turbulence and icing reports [[34:103|AIM TBL 7-1-8]].",
+      "Under IFR in controlled airspace you must report any unforecast weather conditions you meet [[60:482|14 CFR 91.183]].",
+      "A \"no icing\" report is as useful as one that reports ice [[38:41|AC 91-74B 4-3b]]."
+     ]
+    },
+    {
+     "p": "**Why a PIREP can fool you.** Icing varies a lot over short distances and a few minutes. Two airplanes in nearly the same place can get very different ice [[38:40|AC 91-74B 4-3a]]. A faster or better-protected airplane may report less than you would get: a Boeing 747 might report light icing in conditions that give a Mooney severe icing [[38:40|AC 91-74B 4-3b]]. Small, slow GA airplanes give the most accurate icing reports [[38:38|AC 91-74B 4-1e]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "No PIREP does not mean no ice. Maybe no one flew there, or someone did and was too busy to report [[38:40|AC 91-74B 4-3]]. A report of no icing cannot assure the absence of icing later [[34:105|AIM TBL 7-1-10]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "When you report icing, give the type of aircraft [[34:103|AIM 7-1-19b]]. The intensity words (trace, light, moderate, severe) come with reference accretion rates on the outer wing [[34:103|AIM 7-1-19b]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "A King Air reported light rime at 7,000 ft 40 minutes ago. Is that a good guide for your Cherokee?",
+    "a": "Only a rough one. Icing changes in minutes, and a faster, better-protected airplane may report less ice than you would get [[38:40|AC 91-74B 4-3]]."
+   }
+  },
+  {
+   "title": "Where structural ice forms",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.A.K2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Nearly all aircraft icing happens in supercooled clouds, where liquid drops exist below 0 °C [[38:13|AC 91-74B 2-1a]]. You can expect icing in visible moisture, such as rain or cloud droplets, between +2 and -10 °C [[34:103|AIM 7-1-19b]]. The AWH adds that almost all icing is between 0 and -20 °C, with about half of reports between -8 and -12 °C [[28:245|AWH 20-3]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Where",
+       "What to expect"
+      ],
+      "rows": [
+       [
+        "Stratus layers",
+        "Icing is usually in a layer a few thousand feet thick, so a climb or descent of a few thousand feet may get you out [[28:246|AWH 20-4]]. The catch is the wide horizontal extent [[28:246|AWH 20-4]]."
+       ],
+       [
+        "Cumulus",
+        "High water content and fast icing, but small horizontally, so you may be able to go around [[38:15|AC 91-74B 2-2c(2)]]."
+       ],
+       [
+        "Fronts",
+        "Most icing reports occur near fronts, above and below the frontal surface [[28:246|AWH 20-4]]. Fly the shortest way through a front, not along it [[38:18|AC 91-74B 2-3c]]."
+       ],
+       [
+        "Freezing rain under a warm front",
+        "Rain falls from warm air into a cold layer and becomes supercooled. It often covers a broad area, and descending may not get you out [[28:247|AWH 20-5]]."
+       ],
+       [
+        "Mountains",
+        "Worst above the crests and on the windward side, often up to about 5,000 ft above the tops. Terrain may stop you from descending into warm air [[28:248|AWH 20-6]]."
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "bullets": [
+      "Ice pellets at the surface indicate icing above [[28:247|AWH 20-5]] [[38:39|AC 91-74B 4-1l]].",
+      "Freezing drizzle often forms without any warm layer above, so you cannot count on climbing into warm air [[38:16|AC 91-74B 2-2d(3)]].",
+      "An automated (AUTO) METAR cannot report freezing rain or freezing drizzle at the same time as other precipitation. Be alert when it reports snow or mist near 0 °C [[38:38|AC 91-74B 4-1f]].",
+      "Snow does not mean no icing: freezing drizzle can exist with snow, and wet snow that sticks should be treated as icing [[38:39|AC 91-74B 4-1j]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Know the freezing levels before you go. They decide whether a climb or descent is an exit [[38:37|AC 91-74B 4-1c]]. Winds aloft forecasts give the approximate freezing level [[38:37|AC 91-74B 4-1]]. The average lapse rate is 2 °C per 1,000 ft [[1:297|PHAK 12-13]], but inversions and multiple freezing levels break that rule [[38:37|AC 91-74B 4-1c]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your destination's AUTO METAR shows light snow and mist at 0 °C. Why be careful?",
+    "a": "An AUTO station cannot report freezing drizzle or freezing rain together with other precipitation, so supercooled drops may be there unreported [[38:38|AC 91-74B 4-1f]] [[38:39|AC 91-74B 4-1k]]."
+   }
+  },
+  {
+   "title": "What ice does to a light airplane",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.A.K2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Ice cuts the maximum lift the wing can make and lowers the angle of attack at which it stalls. A 30 percent cut in maximum lift is not unusual, and drag can double [[38:22|AC 91-74B 3-2]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "bullets": [
+      "Frost, snow or ice no rougher than coarse sandpaper on the leading edge or top of the wing can cut lift by 30 percent and raise drag by up to 40 percent [[28:249|AWH 20-7]].",
+      "In extreme cases 2 to 3 inches of ice can form on the leading edge in less than 5 minutes, and 1/2 inch can cut the lift of some aircraft by 50 percent [[34:103|AIM 7-1-19a]].",
+      "With limited power, you lose airspeed as drag grows and may soon approach the stall [[38:23|AC 91-74B 3-3]]. In many icing events airspeed fell from cruise to stall in less than 3 minutes [[38:48|AC 91-74B 5-7a]].",
+      "Do not believe the myth that thick GA airfoils tolerate ice. The common results are a higher stall speed with late or no warning, or not being able to climb [[38:32|AC 91-74B 3-13b]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Ice that seemed harmless in cruise can bite when you slow down and add flaps. Most icing accidents happen in the final phases of flight, often with loss of control [[38:51|AC 91-74B 5-10d]]. Many have been caused by a stall in the flare [[38:52|AC 91-74B 5-10g]]."
+     }
+    },
+    {
+     "p": "If you land with ice and the AFM or POH gives no icing speed, AC 91-74B says to fly the approach at least 25 percent faster than normal for the flap setting and expect about 20 percent more landing distance for each 10 percent of extra speed [[38:51|AC 91-74B 5-10f]]. Carry more power and limit the flare [[38:52|AC 91-74B 5-10g]]."
+    }
+   ],
+   "check": {
+    "q": "Why might an airplane that flew fine with a little ice in cruise stall on short final?",
+    "a": "Ice lowers the stall angle of attack. At the slower speeds and higher angles of the approach, ice that did little in cruise can cause a stall at a higher airspeed [[38:21|AC 91-74B 3-2a]]."
+   }
+  },
+  {
+   "title": "Icing rules: what you may fly into",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.A.K2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Many pilots think 91.527 bans every airplane from known icing. It does not reach your piston single. 91.527 sits in subpart F, which covers large airplanes, turbojet-powered multiengine airplanes and fractional ownership aircraft [[60:527|14 CFR 91.501(a)]] [[38:43|AC 91-74B 5-2]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Rule",
+       "What it says",
+       "Who it binds"
+      ],
+      "rows": [
+       [
+        "91.527(b)",
+        "No IFR into known or forecast light or moderate icing, or VFR into known light or moderate icing, unless the airplane has the listed ice protection [[60:536|14 CFR 91.527]]",
+        "Subpart F airplanes only [[60:527|14 CFR 91.501(a)]]"
+       ],
+       [
+        "91.527(c)",
+        "No flight into known or forecast severe icing unless SFAR 23 or transport-category ice protection [[60:536|14 CFR 91.527]]",
+        "Subpart F airplanes only [[60:527|14 CFR 91.501(a)]]"
+       ],
+       [
+        "91.9(a)",
+        "No person may operate without complying with the operating limitations in the AFM, markings and placards [[60:436|14 CFR 91.9(a)]]",
+        "Everyone"
+       ],
+       [
+        "91.13(a)",
+        "No careless or reckless operation that endangers life or property [[60:436|14 CFR 91.13(a)]]",
+        "Everyone"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "AC 91-74B says that for airplanes outside subpart F there are no specific icing regulations, but 91.9 holds you to the POH limitations and placards [[38:43|AC 91-74B 5-2]]. Its definitions note that for airplanes not approved for the icing category met, immediate exit is required by regulations, citing 91.13(a) among others [[38:8|AC 91-74B 1-3]]. Interpretation: if your POH limits flight in known icing, that limit is a 91.9 rule for you."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Only a subpart F airplane gets the 91.527(d) relief: if current reports and briefings show the forecast icing will not be met because the weather has changed, the forecast-based limits in (b) and (c) do not apply [[60:536|14 CFR 91.527]]."
+     }
+    },
+    {
+     "bullets": [
+      "An airplane approved for IFR is not necessarily approved for icing. Check the AFM or POH [[38:10|AC 91-74B 1-4a]].",
+      "Clues it is approved: the AFM or POH refers to part 25 appendix C icing or 23.1419 at Amendment 23-14 or later, or the TCDS lists 23.1419 or SFAR 23. If the POH has only an equipment list for icing, the basis is older than 1973 [[38:31|AC 91-74B 3-12c]].",
+      "Some airplanes not approved for icing have boots or other protection. They are for emergency use only, and stall warning will most likely not work in ice [[38:32|AC 91-74B 3-13c]] [[38:33|AC 91-74B 3-13c(2)]].",
+      "Approval for known icing does not include freezing drizzle or freezing rain [[38:43|AC 91-74B 5-2a]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Inadvertent ice in an airplane not approved for it: exit as expeditiously as possible and declare an emergency to ATC [[38:44|AC 91-74B 5-2b]]. Pilots have died waiting for a clearance they never declared an emergency for [[38:10|AC 91-74B 1-4b]]. In an emergency you may deviate from any rule of part 91 to the extent required [[60:435|14 CFR 91.3(b)]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Does 91.527 stop you, in your Archer, from flying IFR into forecast light icing?",
+    "a": "No, 91.527 is in subpart F, which does not cover your Archer [[60:527|14 CFR 91.501(a)]]. But 91.9 holds you to your POH limits [[60:436|14 CFR 91.9(a)]], and AC 91-74B says airplanes not approved for icing should avoid all icing [[38:55|AC 91-74B 6-2]]."
+   }
+  },
+  {
+   "title": "Thunderstorms",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.A.K3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "A thunderstorm needs moisture, unstable air and something to lift it. A single cell lives about 30 minutes, and its updrafts can top 3,000 fpm [[28:257|AWH 22-2]]. Hazards peak toward the end of the mature stage, when the downdraft spreads out as a gusty gust front, often well ahead of the storm [[28:258|AWH 22-3]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "bullets": [
+      "Turbulence, hail, rain, lightning, strong drafts and icing are all present in thunderstorms [[34:119|AIM 7-1-26a]]. You cannot tell by looking which hazards a storm holds [[28:262|AWH 22-7]].",
+      "Severe turbulence can be expected up to 20 miles from severe thunderstorms, and about 10 miles from less severe ones [[34:119|AIM 7-1-26b]].",
+      "No path between strong radar echoes 20 to 30 miles apart or less is free of severe turbulence [[34:119|AIM 7-1-26c]].",
+      "A microburst is usually less than 2.5 miles across, lasts 5 to 15 minutes, and can bring downdrafts up to 6,000 fpm and headwind losses of 30 to 90 knots [[28:263|AWH 22-8]].",
+      "Clouds and fog do not show on radar, and a clear display does not mean no significant weather [[34:93|AIM 7-1-11c]]."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "AIM thunderstorm avoidance",
+       "Source"
+      ],
+      "rows": [
+       [
+        "Do not take off or land in the face of an approaching storm",
+        "[[34:119|AIM 7-1-27a1]]"
+       ],
+       [
+        "Do not fly under a thunderstorm or its anvil",
+        "[[34:120|AIM 7-1-27a2]] [[34:120|AIM 7-1-27a3]]"
+       ],
+       [
+        "Without airborne radar, do not fly into clouds with embedded storms",
+        "[[34:120|AIM 7-1-27a4]]"
+       ],
+       [
+        "Avoid by at least 20 miles any storm identified as severe or with an intense echo",
+        "[[34:120|AIM 7-1-27a14]]"
+       ],
+       [
+        "Go around the whole area if it has 6/10 thunderstorm coverage",
+        "[[34:120|AIM 7-1-27a15]]"
+       ],
+       [
+        "Treat tops of 35,000 ft or higher as extremely hazardous",
+        "[[34:120|AIM 7-1-27a17]]"
+       ],
+       [
+        "If you cannot navigate around, divert and wait it out on the ground",
+        "[[34:120|AIM 7-1-27a19]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Datalinked NEXRAD shows where the weather was, not where it is. Do not use it as the only means to pick a path through storms [[34:120|AIM 7-1-27a7]] [[34:120|AIM 7-1-27a8]]. AC 91-92 also says not to plan on cockpit weather displays to navigate through convective weather [[37:15|AC 91-92 8.2]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "How far does the AIM say to stay from a thunderstorm identified as severe?",
+    "a": "At least 20 miles [[34:120|AIM 7-1-27a14]]."
+   }
+  },
+  {
+   "title": "Low ceilings, poor visibility and fog",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.A.K3",
+    "RF.VI.A.R1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Category",
+       "Ceiling",
+       "Visibility"
+      ],
+      "rows": [
+       [
+        "LIFR",
+        "Less than 500 ft",
+        "Less than 1 mile"
+       ],
+       [
+        "IFR",
+        "500 to less than 1,000 ft",
+        "1 to less than 3 miles"
+       ],
+       [
+        "MVFR",
+        "1,000 to 3,000 ft",
+        "3 to 5 miles"
+       ],
+       [
+        "VFR",
+        "Greater than 3,000 ft",
+        "Greater than 5 miles [[34:79|AIM 7-1-7a]]"
+       ]
+      ]
+     }
+    },
+    {
+     "bullets": [
+      "Areas between reporting stations can be below VFR minimums even when the stations are at or near them. Be especially careful when the temperature and dewpoint are 3 °C or less apart, since fog may form [[37:15|AC 91-92 8.2]].",
+      "Fog forms when temperature and dewpoint become nearly the same, and seldom when the spread is more than 2 °C [[28:222|AWH 18-2]].",
+      "Allow more margin at night. Clouds and the horizon may be hard or impossible to see [[37:14|AC 91-92 8.1]].",
+      "Visibility inside a thunderstorm is near zero, and rain and dust under it restrict it further [[28:262|AWH 22-7]]."
+     ]
+    },
+    {
+     "p": "Low visibility also feeds illusions. Haze makes the runway look farther away, rain on the windscreen makes you feel higher, and both lead to a low approach. Going into fog can feel like pitching up, so pilots steepen the approach [[34:186|AIM 8-1-5b3(e)]]. Spatial disorientation from motion illusions can be prevented only by outside visual references or the flight instruments [[34:185|AIM 8-1-5b1]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "VFR needs the 91.155 visibility and cloud clearance for your airspace and altitude [[60:465|14 CFR 91.155]]. To fly as PIC in weather below VFR minimums you need an instrument rating (or an ATP certificate) [[60:191|14 CFR 61.3(e)]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "\"VFR flight not recommended\" is advice, and the decision is yours. The AIM warns that pilots flying into areas of minimal VFR weather can meet unforecast lowering that leads to spatial disorientation or loss of control [[34:66|AIM 7-1-5b2]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "METAR: temperature 9 °C, dewpoint 8 °C, light wind, sunset in an hour. What hazard should you plan for?",
+    "a": "Fog. The spread is 1 °C; fog forms when temperature and dewpoint get nearly equal [[28:222|AWH 18-2]], and AC 91-92 says be careful at 3 °C or less [[37:15|AC 91-92 8.2]]."
+   }
+  },
+  {
+   "title": "Risk: continued VFR into IMC",
+   "kind": "risk",
+   "codes": [
+    "RF.VI.A.R1"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The RMH lists continued VFR into IMC as a loss of control scenario, and continued VFR into low ceilings or low visibility as a common path to controlled flight into terrain [[30:22|RMH 3-4]]. The PHAK puts it among the operational pitfalls, along with scud running: staying low to keep the ground in sight while instrument conditions exist [[1:61|PHAK 2-22]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "AC 91-92 Don'ts: do not continue VFR into IMC; wait it out or turn around if en route weather drops below your personal limits. Do not go \"on top\" hoping to find a hole at the other end or hoping ATC will talk you down [[37:15|AC 91-92 8.2]]."
+     }
+    },
+    {
+     "p": "**The RMH case.** A pilot's vacuum pump failed in VMC, taking out the attitude indicator and heading indicator. Instead of diverting while still in VMC, the pilot continued into IMC, and the NTSB cited a failure to maintain control during the approach [[30:10|RMH 1-1]]. The RMH says the pilot could have changed the outcome by diverting while still in VMC [[30:11|RMH 1-2]] [[30:12|RMH 1-3]]."
+    },
+    {
+     "bullets": [
+      "Turn early. The best moment to divert is while you can still see [[30:12|RMH 1-3]].",
+      "Use ATC. Ask for help with weather; controllers will assist when they can, but their first job is separation [[34:98|AIM 7-1-12b4]].",
+      "Declare an emergency if safety is at risk. Do not hesitate [[37:15|AC 91-92 8.2]]. The PIC may deviate from any part 91 rule to meet an in-flight emergency [[60:435|14 CFR 91.3(b)]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "\"Wait it out or turn around\" [[37:15|AC 91-92 8.2]]. The ground is a safe place to wait for weather [[34:120|AIM 7-1-27a19]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "In the RMH vacuum pump case, when was the best chance to change the outcome?",
+    "a": "Right after the failure, by diverting while still in VMC [[30:12|RMH 1-3]]."
+   }
+  },
+  {
+   "title": "Risk: plan continuation bias",
+   "kind": "risk",
+   "codes": [
+    "RF.VI.A.R2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Plan continuation bias is the pull to keep going with the plan after the facts have changed. AC 91-79B names it as a cognitive bias that can drive actions against established rules, and its fix is to brief contingencies at low workload and set decision points ahead of time [[27:20|AC 91-79B 3.12]]. The PHAK calls the GA version get-there-itis: a fixation on the original destination with a disregard for alternatives. Mindset is the failure to see and cope with change [[1:61|PHAK 2-22]]."
+    },
+    {
+     "p": "The RMH lists what is less important than safety: being on time, inconveniencing passengers or the people waiting, and continuing to the original destination [[30:55|RMH 8-2]]."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "**An icing example.** In RMH Appendix C, a turboprop pilot left Teterboro IFR with an AIRMET for moderate icing, many PIREPs of moderate to severe icing and a CWA. No evidence of a weather briefing was found. The NTSB cited the severe icing and the pilot's failure to use command authority to leave the icing quickly [[30:65|RMH C-2]]. The RMH notes that filing for 10,000 ft would have kept the airplane under the icing, at the cost of a possible fuel stop, which is an inconvenience only [[30:66|RMH C-3]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Defense",
+       "Source"
+      ],
+      "rows": [
+       [
+        "Write personal minimums before flight day and never adjust them to complete a specific flight",
+        "[[30:17|RMH 2-5]]"
+       ],
+       [
+        "Pick a specific point for the final continue or divert decision",
+        "[[1:57|PHAK 2-18]]"
+       ],
+       [
+        "In marginal weather, know an alternate airport for every 25 to 30 NM of the route",
+        "[[1:56|PHAK 2-17]] [[1:57|PHAK 2-18]]"
+       ],
+       [
+        "Tell passengers ahead of time that the flight may be canceled, delayed or diverted",
+        "[[30:40|RMH 5-2]] [[1:57|PHAK 2-18]]"
+       ],
+       [
+        "Plan a delay or an earlier departure around forecast storms or an incoming low",
+        "[[30:40|RMH 5-2]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Watch out for \"we're almost there.\" Written minimums let you make a no-go or divert decision instead of departing with unease, and they make it easier to explain to passengers [[30:17|RMH 2-5]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Which four things does the RMH list as less important than safety?",
+    "a": "Being on time, inconveniencing passengers, inconveniencing people waiting at the destination, and continuing to the original destination [[30:55|RMH 8-2]]."
+   }
+  },
+  {
+   "title": "Fly it step by step: go, no-go or divert",
+   "kind": "skills",
+   "codes": [
+    "RF.VI.A.S1",
+    "RF.VI.A.K1",
+    "RF.VI.A.R1",
+    "RF.VI.A.R2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "**One process, from the day before to the ramp at the other end.**"
+    },
+    {
+     "bullets": [
+      "1. Days or a day ahead: get an outlook briefing and look at the synopsis and fronts [[37:14|AC 91-92 8.1]] [[37:13|AC 91-92 7.6]]. If storms or a low are coming, consider leaving earlier or later [[30:40|RMH 5-2]].",
+      "2. Compare against your written personal minimums, not your legal minimums [[30:13|RMH 2-1]] [[30:17|RMH 2-5]].",
+      "3. Standard briefing close to departure. Check PIREPs, NOTAMs, AIRMETs and SIGMETs [[37:14|AC 91-92 8.1]].",
+      "4. If any icing is possible: freezing levels, cloud bases and tops, and an exit plan up, down or back that respects terrain and airspace [[38:37|AC 91-74B 4-1b]] [[38:45|AC 91-74B 5-4a(3)]].",
+      "5. Set your outs: alternates along the route, a decision point, and the trigger that turns you around [[1:57|PHAK 2-18]] [[37:15|AC 91-92 8.1]].",
+      "6. Brief the passengers that you may divert [[1:57|PHAK 2-18]].",
+      "7. Abbreviated update before takeoff if the standard briefing is an hour or more old [[37:14|AC 91-92 8.1]].",
+      "8. En route: keep updating, give PIREPs, and act at the trigger. Divert while you are still in VMC [[30:12|RMH 1-3]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: write your trigger as a number you can see, for example \"ceiling below 2,000 at the next station, or any ice on the strut, and I turn back.\" A trigger decided at the kitchen table is easier to obey than one decided in the clouds [[27:20|AC 91-79B 3.12]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your standard briefing was at 0700 and you take off at 0830. What does AC 91-92 suggest?",
+    "a": "An abbreviated briefing just before takeoff, since the standard briefing is more than an hour old [[37:14|AC 91-92 8.1]]."
+   }
+  },
+  {
+   "title": "Common errors and fixes",
+   "kind": "skills",
+   "codes": [
+    "RF.VI.A.K1",
+    "RF.VI.A.K2",
+    "RF.VI.A.K3",
+    "RF.VI.A.S1"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Error",
+       "Fix"
+      ],
+      "rows": [
+       [
+        "Threading storms with the NEXRAD picture on the tablet",
+        "Use datalink for strategic avoidance only; it may be 15 to 20 minutes old [[34:120|AIM 7-1-27a8]] [[34:81|AIM 7-1-9]]"
+       ],
+       [
+        "\"No icing PIREPs, so no ice\"",
+        "No report does not mean no ice [[38:40|AC 91-74B 4-3]]"
+       ],
+       [
+        "Trusting a jet's \"light icing\" report",
+        "Faster, better-protected airplanes may report less [[38:40|AC 91-74B 4-3b]]"
+       ],
+       [
+        "Planning to climb out of freezing drizzle",
+        "There may be no warm layer above [[38:16|AC 91-74B 2-2d(3)]]"
+       ],
+       [
+        "Waiting for an IFR clearance while ice builds",
+        "Exit and declare an emergency [[38:44|AC 91-74B 5-2b]]"
+       ],
+       [
+        "Ignoring the gap between snapshots on a G-AIRMET",
+        "Assume the hazard starts right after the clear snapshot [[34:74|AIM 7-1-6f4]]"
+       ],
+       [
+        "Lowering your minimums on the day to make the trip",
+        "Adjust minimums only when there is no pressure to fly [[30:17|RMH 2-5]]"
+       ],
+       [
+        "Flaring normally with ice on the wings",
+        "Faster approach, more power, limited flare, longer runway [[38:51|AC 91-74B 5-10f]] [[38:52|AC 91-74B 5-10g]]"
+       ]
+      ]
+     }
+    }
+   ],
+   "check": {
+    "q": "You picked up a little rime and are now descending to land. Name two things to change on the approach.",
+    "a": "Fly faster (at least 25 percent over normal if the POH has no icing speed) and limit the flare with power on; expect a longer landing [[38:51|AC 91-74B 5-10f]] [[38:52|AC 91-74B 5-10g]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "RF.VI.A-1.jpg",
+   "res": "34",
+   "page": 75,
+   "caption": "AIM FIG 7-1-7. AIRMET over the Contiguous U.S. (G-AIRMET snapshots valid 1800Z, 2100Z and 0000Z).",
+   "alt": "Three gray U.S. maps from the G-AIRMET web page, each with product buttons (ceiling and visibility, turbulence high and low, icing, mountain obscuration, low-level wind shear, surface winds, freezing level) and time buttons 15Z to 03Z. Each map shows low-level turbulence and icing areas outlined, with boxes giving top and base altitudes such as 140 over SFC. Side notes say the examples are valid at 1800Z and 2100Z on February 24, 2022 and 0000Z on February 25, 2022.",
+   "source": "AIM part 2, PDF p. 75"
+  },
+  "f2": {
+   "file": "RF.VI.A-2.jpg",
+   "res": "28",
+   "page": 247,
+   "caption": "AWH Figure 20-1. Icing with Fronts (AWH 20-5).",
+   "alt": "Cross section of a warm front. Warm, moist air on the right rides up over a wedge of cold air on the left along a sloping blue front line. A dashed 0 °C line runs above the front, and a -20 °C line near the top where the cloud is mostly ice crystals. Red dots mark supercooled water droplets in the cloud and in the cold wedge. At the ground, from left to right: snow, ice pellets, freezing rain and rain.",
+   "source": "AWH, PDF p. 247"
+  },
+  "f3": {
+   "file": "RF.VI.A-3.jpg",
+   "res": "38",
+   "page": 22,
+   "caption": "AC 91-74B Figure 3-5. Lift Curve (AC 91-74B page 18).",
+   "alt": "Graph of lift coefficient against angle of attack. The clean airfoil line rises straight and peaks high at a large angle of attack. The airfoil with ice follows the same line at first but peaks much lower and at a much smaller angle of attack.",
+   "source": "AC 91-74B, PDF p. 22"
+  },
+  "f4": {
+   "file": "RF.VI.A-4.jpg",
+   "res": "28",
+   "page": 258,
+   "caption": "AWH Figure 22-2. Thunderstorm Cell Life Cycle (AWH 22-3).",
+   "alt": "Three panels against a height scale to 40,000 ft with a dotted 0 °C line near 15,000 ft. Towering cumulus stage: a small cloud 3 to 5 miles wide with only rising arrows. Mature stage: a tall cloud 5 to 10 miles wide reaching about 40,000 ft with rising arrows on one side and falling arrows in the rain shaft on the other. Dissipating stage: a remnant anvil 5 to 7 miles wide with mostly falling arrows.",
+   "source": "AWH, PDF p. 258"
+  },
+  "f5": {
+   "file": "RF.VI.A-5.jpg",
+   "res": "30",
+   "page": 66,
+   "caption": "RMH Figure C-2. CWA moderate to severe icing area (RMH C-3).",
+   "alt": "Satellite image with state borders in blue and a red diamond outlining a Center Weather Advisory area. A red box reads CWA, moderate icing, isolated severe icing, 11,000 ft to FL180. A white dot inside the area marks the accident location.",
+   "source": "RMH, PDF p. 66"
+  },
+  "f6": {
+   "file": "RF.VI.A-6.jpg",
+   "res": "1",
+   "page": 61,
+   "caption": "PHAK Figure 2-15. Typical operational pitfalls requiring pilot awareness (PHAK 2-22).",
+   "alt": "A table titled Operational Pitfalls listing peer pressure, mindset, get-there-itis, duck-under syndrome, scud running, continuing VFR into instrument conditions, getting behind the aircraft, loss of positional or situational awareness, operating without adequate fuel reserves, descent below the minimum en route altitude, flying outside the envelope, and neglect of flight planning, preflight inspections and checklists, each with a one-line description.",
+   "source": "PHAK, PDF p. 61"
+  }
+ },
+ "scenario": {
+  "title": "Winter IFR in an Archer that is not approved for ice",
+  "codes": [
+   "RF.VI.A.S1",
+   "RF.VI.A.K1",
+   "RF.VI.A.K2",
+   "RF.VI.A.R1",
+   "RF.VI.A.R2"
+  ],
+  "setup": "You are instrument current and plan an IFR trip in a Piper Archer whose POH says it is not approved for flight in icing conditions. The route crosses low hills with a 4,000 ft MEA. The briefing shows a G-AIRMET for moderate icing from the freezing level to 10,000 ft, a freezing level of 3,000 ft at departure and 6,000 ft at the destination, and a King Air PIREP of tops at 7,000 with light rime. The destination's AUTO METAR reads light snow and mist, temperature 0 °C. Your two passengers have a family dinner at the destination.",
+  "questions": [
+   {
+    "q": "Does 91.527 make this flight illegal? What rules do bind you?",
+    "a": "91.527 is in subpart F and does not cover the Archer [[60:527|14 CFR 91.501(a)]] [[38:43|AC 91-74B 5-2]]. You are bound by your POH limitations under 91.9 [[60:436|14 CFR 91.9(a)]] and by 91.13(a) [[60:436|14 CFR 91.13(a)]]. AC 91-74B says airplanes not approved for icing should avoid all icing [[38:55|AC 91-74B 6-2]]."
+   },
+   {
+    "q": "How much comfort should the King Air's light rime PIREP give you?",
+    "a": "Little. Icing varies in minutes, and a faster, better-protected airplane may report less ice than an Archer would get [[38:40|AC 91-74B 4-3]]."
+   },
+   {
+    "q": "Compare the freezing level with the MEA. What does it do to your exit plan?",
+    "a": "At departure the freezing level (3,000) is below the MEA (4,000), so you cannot descend into warm air on the route. The RMH notes pilots of non-approved airplanes often set personal minimums against a freezing level at or below the MEA [[30:40|RMH 5-2]], and AC 91-74B says to plan your climb or descent exits ahead of time [[38:45|AC 91-74B 5-4a(3)]]."
+   },
+   {
+    "q": "Why does the destination METAR worry you even though it says only snow?",
+    "a": "An AUTO station cannot report freezing drizzle or freezing rain together with other precipitation, and freezing drizzle can exist with snow [[38:38|AC 91-74B 4-1f]] [[38:39|AC 91-74B 4-1j]]."
+   },
+   {
+    "q": "You go anyway after the front passes, and in the climb rime starts building on the strut. What now?",
+    "a": "Exit the icing as fast as possible and declare an emergency to ATC, telling them what you are doing [[38:44|AC 91-74B 5-2b]]. You may deviate from rules to meet the emergency [[60:435|14 CFR 91.3(b)]]. Report the unforecast weather [[60:482|14 CFR 91.183]]."
+   },
+   {
+    "q": "Your passengers say, \"Just 20 more minutes and we're there.\" How do you handle it?",
+    "a": "That is plan continuation pressure. Continuing to the original destination and inconveniencing passengers are less important than safety [[30:55|RMH 8-2]]. Briefing them before the flight that you might divert makes this easier [[1:57|PHAK 2-18]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "RF.VI.A.S1",
+   "do": "Given a weather picture (briefing, graphics, PIREPs and METARs) for a flight in a named airplane, say go, no-go or divert, and back it up: name the hazards (icing, thunderstorms, low ceilings), the rule or POH limit that applies, your personal minimums, your outs and the trigger that would make you turn around. Then hold to that decision when someone pushes.",
+   "practice": "On three real days this season, self-brief a trip you might fly, using AC 91-92 Appendix B as the checklist [[37:20|AC 91-92 App B]]. Write a go, no-go or divert call with one trigger. Check it against your written minimums [[30:17|RMH 2-5]] and the AIM thunderstorm list [[34:120|AIM 7-1-27]]. Then look at what the weather actually did and what PIREPs came in."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "What does the GFA show?",
+   "options": [
+    "Only TAFs and METARs for towered airports",
+    "Observations and forecasts from 14 hours in the past to 15 hours ahead, including clouds, icing, turbulence and thunderstorms",
+    "Only icing and turbulence above 18,000 ft",
+    "Real-time radar suitable for picking a path between storms"
+   ],
+   "answer": 1,
+   "why": "The GFA covers 14 hours past to 15 hours future for thunderstorms, clouds, flight category, precipitation, icing, turbulence and wind [[34:63|AIM 7-1-4]]."
+  },
+  {
+   "q": "Which conditions make ATC required to solicit PIREPs?",
+   "options": [
+    "Ceilings at or below 5,000 ft or visibility at or below 5 miles",
+    "Ceilings below 1,000 ft only",
+    "Only when a SIGMET is in effect",
+    "Only at night"
+   ],
+   "answer": 0,
+   "why": "Among the listed conditions are ceilings at or below 5,000 ft and visibility at or below 5 miles [[34:101|AIM 7-1-18a]]."
+  },
+  {
+   "q": "Per the AIM, you can expect icing in visible moisture in which temperature range?",
+   "options": [
+    "+10 to 0 °C",
+    "+2 to -10 °C",
+    "-20 to -40 °C only",
+    "Only below -15 °C"
+   ],
+   "answer": 1,
+   "why": "Between +02 and -10 °C [[34:103|AIM 7-1-19b]]."
+  },
+  {
+   "q": "Ice pellets reported at the surface suggest what?",
+   "options": [
+    "Icing above",
+    "No icing anywhere nearby",
+    "Only carburetor ice risk",
+    "A cold front has passed and the air is dry"
+   ],
+   "answer": 0,
+   "why": "Ice pellets indicate icing above [[28:247|AWH 20-5]] [[38:39|AC 91-74B 4-1l]]."
+  },
+  {
+   "q": "What does AC 91-74B say about thick GA airfoils and ice?",
+   "options": [
+    "They tolerate ice well, so short encounters are harmless",
+    "It is a myth; even small amounts can raise stall speed with late or no warning or prevent climbing",
+    "They only lose lift above 10,000 ft",
+    "They are safe if the stall horn is heated"
+   ],
+   "answer": 1,
+   "why": "Do not believe the myth; common effects are higher stall speed with late or no warning and inability to climb [[38:32|AC 91-74B 3-13b]]."
+  },
+  {
+   "q": "Section 91.527 applies to which airplanes?",
+   "options": [
+    "All U.S.-registered airplanes",
+    "All airplanes flown under IFR",
+    "Large airplanes, turbojet-powered multiengine airplanes and fractional ownership aircraft under subpart F",
+    "Only airplanes used for hire"
+   ],
+   "answer": 2,
+   "why": "91.527 is in subpart F, which governs those airplanes [[60:527|14 CFR 91.501(a)]] [[38:43|AC 91-74B 5-2]]."
+  },
+  {
+   "q": "Per the AIM, what does a convective SIGMET imply?",
+   "options": [
+    "Light turbulence only",
+    "Severe or greater turbulence, severe icing and low-level wind shear",
+    "Only heavy rain",
+    "IFR conditions but no turbulence"
+   ],
+   "answer": 1,
+   "why": "Any convective SIGMET implies those three hazards [[34:71|AIM 7-1-6e2]]."
+  },
+  {
+   "q": "The PHAK defines scud running as:",
+   "options": [
+    "Descending below minimums on an approach",
+    "Trying to keep visual contact with the terrain at low altitude while instrument conditions exist",
+    "Flying above a cloud deck hoping for a hole",
+    "Flying without enough fuel reserve"
+   ],
+   "answer": 1,
+   "why": "That is the PHAK description [[1:61|PHAK 2-22]]. Descending below minimums is duck-under syndrome [[1:61|PHAK 2-22]]."
+  },
+  {
+   "q": "Per the RMH, when should you consider adjusting your personal minimums?",
+   "options": [
+    "On the morning of a trip you really want to make",
+    "Only when time and objectivity allow an honest self-review, not under pressure to fly",
+    "Whenever the weather is better than forecast",
+    "Never; they are fixed for life"
+   ],
+   "answer": 1,
+   "why": "Do not adjust them to complete a specific flight; do it when there is time for honest analysis, one variable at a time, ideally with an instructor [[30:17|RMH 2-5]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "You are VFR at 4,500 ft. Your tablet's NEXRAD shows a gap about 10 miles wide between two red cells. What should you do?",
+   "options": [
+    "Fly through the gap; red means the storm is in the cells only",
+    "Do not use the image to thread the gap; the data may be 15 to 20 minutes old, and no path between strong echoes 20 to 30 miles apart or less is free of severe turbulence",
+    "Fly through but stay below the cloud bases",
+    "Ask ATC to guarantee a smooth path"
+   ],
+   "answer": 1,
+   "why": "Datalinked NEXRAD shows where the weather was [[34:120|AIM 7-1-27a8]] and is not for tactical use [[34:81|AIM 7-1-9]]. Echoes 20 to 30 miles apart or less are not free of severe turbulence [[34:119|AIM 7-1-26c]]."
+  },
+  {
+   "q": "A 0000Z G-AIRMET shows no IFR along your route, the 0300Z one shows IFR, and the 0600Z one shows none. Your ETA is 0130Z. What should you assume?",
+   "options": [
+    "Clear at 0130Z, since that is closer to 0000Z",
+    "IFR exists from just after 0000Z until just before 0600Z",
+    "IFR only at exactly 0300Z",
+    "The AIRMET is invalid between snapshots"
+   ],
+   "answer": 1,
+   "why": "The AIM example: assume the hazard exists from 0001 to 0559 [[34:74|AIM 7-1-6f4]]."
+  },
+  {
+   "q": "Climbing IFR in a non-icing-approved airplane, you pick up ice and ATC is too busy to answer your request for lower. What does AC 91-74B recommend?",
+   "options": [
+    "Hold your altitude until ATC answers",
+    "Declare an emergency and exit the conditions as soon as practical",
+    "Keep climbing to burn through the layer no matter how long it takes",
+    "Switch the autopilot to vertical speed mode"
+   ],
+   "answer": 1,
+   "why": "If you cannot get a clearance in time, declare an emergency and exit [[38:44|AC 91-74B 5-2b]]. Vertical speed mode in icing is highly discouraged [[38:48|AC 91-74B 5-6c]]."
+  },
+  {
+   "q": "Your POH says the airplane is not approved for flight in known icing. Which regulation makes that limit binding on you?",
+   "options": [
+    "91.527(b)",
+    "91.9(a)",
+    "91.155",
+    "None; POH limits are advisory"
+   ],
+   "answer": 1,
+   "why": "No person may operate without complying with AFM limitations, markings and placards [[60:436|14 CFR 91.9(a)]]. AC 91-74B points to 91.9 for airplanes outside subpart F [[38:43|AC 91-74B 5-2]]."
+  },
+  {
+   "q": "Which POH or TCDS clue tells you a small airplane was certificated for icing under 23.1419?",
+   "options": [
+    "The POH has an equipment list for icing only",
+    "The AFM or POH refers to part 25 appendix C icing, or the TCDS lists 23.1419 at Amendment 23-14 or later, or SFAR 23",
+    "The airplane has a heated pitot tube",
+    "The airplane is approved for IFR"
+   ],
+   "answer": 1,
+   "why": "Those are the AC 91-74B clues; an icing equipment list alone means the basis is before Amendment 23-14 (1973) [[38:31|AC 91-74B 3-12c]]. IFR approval is not icing approval [[38:10|AC 91-74B 1-4a]]."
+  },
+  {
+   "q": "In stratus at 6,000 ft and -6 °C you start getting light rime. The freezing level is 3,000 ft, the MEA is 2,500 ft and tops are reported at 8,000 ft. Which is the best first plan?",
+   "options": [
+    "Stay and wait for it to stop",
+    "Change altitude by a few thousand feet with ATC, up toward the tops or down into above-freezing air, and declare an emergency if needed",
+    "Slow down to reduce the ice rate",
+    "Turn on the autopilot altitude hold and continue"
+   ],
+   "answer": 1,
+   "why": "Stratus icing is usually a layer a few thousand feet thick, so a climb or descent may clear it [[28:246|AWH 20-4]] [[38:38|AC 91-74B 4-1h]]. A non-approved airplane should exit and may declare an emergency [[38:44|AC 91-74B 5-2b]]."
+  },
+  {
+   "q": "A summer afternoon: a storm cell is moving toward your destination airport and should arrive about when you do. What does the AIM say?",
+   "options": [
+    "Land quickly ahead of it",
+    "Do not land or take off in the face of an approaching thunderstorm; hold off or divert",
+    "Land through the gust front at a higher speed",
+    "Land if the radar echo is only light"
+   ],
+   "answer": 1,
+   "why": "A sudden gust front could cause loss of control [[34:119|AIM 7-1-27a1]]. Never regard any thunderstorm lightly, even with light echoes [[34:119|AIM 7-1-27a]]."
+  },
+  {
+   "q": "On approach you meet a sudden headwind increase, then strong sink, then a tailwind with airspeed loss. What is happening and what is the AWH advice?",
+   "options": [
+    "A gust front; continue the landing",
+    "A microburst; be ready to go around at the first indication, knowing some cannot be escaped",
+    "Mountain wave; slow to maneuvering speed",
+    "Wake turbulence; move upwind"
+   ],
+   "answer": 1,
+   "why": "That is the microburst sequence of headwind, downdraft and tailwind [[28:266|AWH 22-11]]. Be ready to start a missed approach at the first indication [[28:266|AWH 22-11]]."
+  },
+  {
+   "q": "A non-instrument-rated pilot's destination is reported at 1,200 ft overcast and 4 miles. The ceiling ahead is lowering and rain is starting. Which statement is true?",
+   "options": [
+    "This is MVFR, and legal VFR is guaranteed all the way",
+    "This is MVFR, which can go below VFR between stations; turning back while in VMC is the AC 91-92 advice",
+    "This is LIFR",
+    "VFR into IMC is legal if you stay below 1,200 ft AGL"
+   ],
+   "answer": 1,
+   "why": "1,000 to 3,000 ft and 3 to 5 miles is MVFR [[34:79|AIM 7-1-7a]]. Areas between stations may be below VFR [[37:15|AC 91-92 8.2]], and below VFR minimums the PIC needs an instrument rating [[60:191|14 CFR 61.3(e)]]."
+  },
+  {
+   "q": "Which of these is the clearest sign of plan continuation bias?",
+   "options": [
+    "Getting an abbreviated briefing before takeoff",
+    "Lowering your ceiling minimum on the day of the trip because the family is waiting",
+    "Picking a divert point before departure",
+    "Telling passengers the trip might be canceled"
+   ],
+   "answer": 1,
+   "why": "The RMH says not to adjust personal minimums to complete a specific flight [[30:17|RMH 2-5]]; a fixation on the destination is get-there-itis [[1:61|PHAK 2-22]]. The other choices are defenses [[1:57|PHAK 2-18]]."
+  },
+  {
+   "q": "In the RMH icing accident (ERA12FA115), what mitigation does the handbook suggest?",
+   "options": [
+    "Climbing faster through the icing",
+    "Filing for 10,000 ft to stay under the icing, accepting a possible fuel stop",
+    "Using the autopilot more",
+    "Flying the same route at night"
+   ],
+   "answer": 1,
+   "why": "The RMH says filing for 10,000 ft would have kept the airplane under the icing; a fuel stop is an inconvenience only [[30:66|RMH C-3]]."
+  },
+  {
+   "q": "Your icing-approved turboprop meets freezing drizzle. What does AC 91-74B say?",
+   "options": [
+    "Continue; it is approved for known icing",
+    "Advise ATC and do not attempt sustained flight in it; icing approval does not include freezing drizzle or freezing rain",
+    "Use boots continuously and continue",
+    "Slow down to reduce accretion"
+   ],
+   "answer": 1,
+   "why": "Icing certification does not include freezing drizzle or freezing rain [[38:43|AC 91-74B 5-2a]]; advise ATC and do not attempt sustained flight in them [[38:44|AC 91-74B 5-2b]]."
+  },
+  {
+   "q": "You are IFR in controlled airspace and meet moderate turbulence that was not forecast. What must you do?",
+   "options": [
+    "Nothing; PIREPs are voluntary",
+    "Report it to ATC as soon as possible",
+    "Report it only after landing",
+    "Report it only if it caused damage"
+   ],
+   "answer": 1,
+   "why": "Under IFR in controlled airspace you must report any unforecast weather conditions encountered [[60:482|14 CFR 91.183]]."
+  }
+ ],
+ "takeaways": [
+  "The more doubtful the weather, the more you need to know. Self-brief, then update before takeoff if the briefing is an hour old.",
+  "Use datalink weather to avoid storms by a wide margin, not to thread through them. It may be 15 to 20 minutes old.",
+  "Read PIREPs, doubt them, and give them. No report does not mean no ice.",
+  "Ice lowers the stall angle and adds drag; it bites hardest on approach and in the flare.",
+  "91.527 is a subpart F rule; for most singles, POH limits (91.9) and AC 91-74B say avoid ice and exit at once.",
+  "Stay at least 20 miles from severe storms, never fly under one, and wait on the ground if you cannot go around.",
+  "Decide your minimums and your turn-back trigger before flight day, then obey them."
+ ],
+ "cfi_notes": [
+  "Outdated handbook lines: AC 91-74B 5-3 still describes Flight Watch, HIWAS and TWEB [[38:44|AC 91-74B 5-3]] [[38:45|AC 91-74B 5-3c]], and PHAK Figure 2-13 has Gayle call Flight Watch [[1:57|PHAK 2-18]]. The current AIM inflight advisory section describes ARTCC broadcasts of SIGMETs, CWAs and urgent PIREPs instead [[34:79|AIM 7-1-8]]. Teach the AIM.",
+  "The sources give different icing temperature ranges: AIM +2 to -10 °C [[34:103|AIM 7-1-19b]]; AWH 0 to -20 °C with half between -8 and -12 °C [[28:245|AWH 20-3]]; AC 91-74B runback vigilance from -5 to +2 °C [[38:13|AC 91-74B 2-1d]]. They describe different things; none is a safe band.",
+  "Thunderstorm distance: AIM says at least 20 miles from severe or intense storms [[34:120|AIM 7-1-27a14]], while AC 91-92 says not to fly closer than 20 NM from one, with no qualifier [[37:15|AC 91-92 8.2]]. Teaching 20 miles from any storm is the conservative reading.",
+  "Fog: AC 91-92 says be cautious at a spread of 3 °C or less [[37:15|AC 91-92 8.2]]; the AWH says fog seldom forms above 2 °C [[28:222|AWH 18-2]]. Use the wider number for planning.",
+  "Stratus icing depth: AC 91-74B calls layers over 3,000 ft thick rare [[38:14|AC 91-74B 2-2c(1)]]; the AWH gives an average of 3,000 to 4,000 ft [[28:246|AWH 20-4]]. Either way, a few thousand feet of altitude change is the exit to plan.",
+  "AC 91-92 says flight into known icing is prohibited for all aircraft not properly certificated or equipped [[37:15|AC 91-92 8.2]], but the CFR text puts the specific icing rule in subpart F only [[60:527|14 CFR 91.501(a)]] [[60:536|14 CFR 91.527]]. Teach the CFR structure (91.527 for subpart F; 91.9 and 91.13 for everyone) and have pilots read their own POH limitations.",
+  "\"Plan continuation bias\" appears in AC 91-79B for landings [[27:20|AC 91-79B 3.12]]; the PHAK uses get-there-itis and mindset [[1:61|PHAK 2-22]]. Interpretation: they describe the same trap; the RMH does not use the term.",
+  "AC 91-74B chapter 5 mostly addresses airplanes approved for icing [[38:43|AC 91-74B 5-1]]. The +25 percent approach speed and 1.5 to 1.6 Vs margins apply when the AFM is silent [[38:51|AC 91-74B 5-10f]] [[38:48|AC 91-74B 5-7a]]; for a non-approved airplane the lesson is avoid and exit.",
+  "Have the pilot give a real PIREP out loud in the TBL 7-1-8 order on the next flight review flight [[34:103|AIM TBL 7-1-8]]."
+ ],
+ "gaps": [
+  "No source gives icing performance data (stall speed rise, climb loss) for any specific light single. Only the POH/AFM or the manufacturer can.",
+  "Whether a given airplane is approved for icing depends on its POH, AFM and TCDS, which are not in the sources.",
+  "The sources give sample personal minimums only; your own numbers need your logbook and a CFI.",
+  "No source here gives a time-to-loss-of-control figure for a VFR pilot entering IMC; quote no such number.",
+  "Full NTSB reports for the RMH and AC 91-74B cases (ERA12FA115, DEN05FA051) are not in the sources; only excerpts.",
+  "Product menus on aviationweather.gov, 1800wxbrief.com and FIS-B change; the sources describe them only as of their dates."
+ ],
+ "activities": [
+  {
+   "type": "sort",
+   "key": "h1",
+   "after": 1,
+   "title": "Which advisory covers it?",
+   "intro": "Tap each weather item, then tap the advisory that is issued for it (lower 48 states).",
+   "buckets": [
+    "SIGMET",
+    "Convective SIGMET",
+    "AIRMET (G-AIRMET)",
+    "Center Weather Advisory"
+   ],
+   "items": [
+    {
+     "t": "Severe icing not tied to thunderstorms",
+     "b": 0
+    },
+    {
+     "t": "Volcanic ash",
+     "b": 0
+    },
+    {
+     "t": "Widespread dust storm, surface visibility below 3 miles",
+     "b": 0
+    },
+    {
+     "t": "Embedded thunderstorms",
+     "b": 1
+    },
+    {
+     "t": "A line of thunderstorms",
+     "b": 1
+    },
+    {
+     "t": "Severe storm with surface winds of 50 knots or more",
+     "b": 1
+    },
+    {
+     "t": "Moderate icing and freezing levels",
+     "b": 2
+    },
+    {
+     "t": "Ceiling below 1,000 ft or visibility below 3 miles over a wide area",
+     "b": 2
+    },
+    {
+     "t": "Sustained surface winds over 30 knots",
+     "b": 2
+    },
+    {
+     "t": "Short-notice nowcast from a Center for the next 2 hours",
+     "b": 3
+    }
+   ],
+   "why": "SIGMET [[34:69|AIM 7-1-6d2]]; convective SIGMET [[34:71|AIM 7-1-6e1]]; G-AIRMET [[34:73|AIM 7-1-6f3]]; CWA [[34:78|AIM 7-1-6h]]."
+  },
+  {
+   "type": "tf",
+   "key": "h2",
+   "after": 2,
+   "title": "True or false: PIREPs and icing products",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "A PIREP of no icing means the route will stay free of ice for the next hour.",
+     "a": false,
+     "why": "False. A report of no icing cannot assure the absence of icing later [[34:105|AIM TBL 7-1-10]]."
+    },
+    {
+     "s": "Small, slow GA airplanes give the most accurate reports of in-flight icing.",
+     "a": true,
+     "why": "True, per AC 91-74B [[38:38|AC 91-74B 4-1e]]."
+    },
+    {
+     "s": "Altitude and aircraft type are optional in an icing PIREP.",
+     "a": false,
+     "why": "False. Both are essential for turbulence and icing reports [[34:103|AIM TBL 7-1-8]]."
+    },
+    {
+     "s": "The Current Icing Product (CIP) shows the icing at this exact moment.",
+     "a": false,
+     "why": "False. It shows the computer's expected conditions at its valid time, which can be an hour old or more when you see it [[28:366|AWH 25-24]]."
+    },
+    {
+     "s": "A severe icing PIREP automatically produces an icing SIGMET.",
+     "a": false,
+     "why": "False. AC 91-74B says it will not automatically result in a SIGMET, so read the PIREPs yourself [[38:37|AC 91-74B 4-1d]]."
+    },
+    {
+     "s": "The code UUA marks an urgent PIREP.",
+     "a": true,
+     "why": "True. UA is routine, UUA is urgent [[34:103|AIM TBL 7-1-8]]."
+    },
+    {
+     "s": "CIP and FIP icing categories describe how much ice builds up, not how your airplane will perform.",
+     "a": true,
+     "why": "True. They are a broad-brush sign of accretion rate, not aircraft performance [[28:365|AWH 25-23]]."
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h3",
+   "after": 3,
+   "title": "Find the ice in a warm front",
+   "figure": "f2",
+   "intro": "Drag each description to the place on the warm front picture where it belongs.",
+   "pins": [
+    {
+     "x": 29,
+     "y": 31,
+     "label": "Cloud droplets below 0 °C: in-cloud icing"
+    },
+    {
+     "x": 46,
+     "y": 73,
+     "label": "Supercooled rain in the cold layer: severe clear ice"
+    },
+    {
+     "x": 34,
+     "y": 79,
+     "label": "Surface report that warns of icing above"
+    },
+    {
+     "x": 57,
+     "y": 59,
+     "label": "Above-freezing air where the rain first forms"
+    }
+   ],
+   "why": "AWH Figure 20-1 and its text: supercooled droplets above the front, rain formed in warm air that falls into the cold layer and becomes supercooled, and ice pellets at the surface indicating icing above [[28:246|AWH 20-4]] [[28:247|AWH 20-5]]."
+  },
+  {
+   "type": "calc",
+   "key": "h4",
+   "after": 4,
+   "title": "Work the icing numbers",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "Application: your field is 1,000 ft MSL and the surface temperature is +9 °C. Using the PHAK average lapse rate of 2 °C per 1,000 ft, about where is the freezing level?",
+     "answer": 5500,
+     "tol": 100,
+     "unit": "ft MSL",
+     "why": "9 / 2 = 4.5, so 4,500 ft above the field: 1,000 + 4,500 = 5,500 ft MSL [[1:297|PHAK 12-13]]. This is only an estimate; get the forecast freezing levels, which can differ with inversions [[38:37|AC 91-74B 4-1c]]."
+    },
+    {
+     "q": "Your normal approach speed is 65 KIAS and the POH gives no icing speed. Using AC 91-74B, what is the minimum approach speed with ice on the airplane?",
+     "answer": 81,
+     "tol": 1,
+     "unit": "KIAS",
+     "why": "At least 25 percent faster: 65 x 1.25 = 81.25, about 81 KIAS [[38:51|AC 91-74B 5-10f]]."
+    },
+    {
+     "q": "Your normal landing distance is 1,200 ft. You fly the approach 25 percent fast. Using the AC 91-74B estimate of 20 percent more distance per 10 percent more speed, about how long is the landing?",
+     "answer": 1800,
+     "tol": 20,
+     "unit": "ft",
+     "why": "25 percent is 2.5 steps of 10 percent; 2.5 x 20 = 50 percent more. 1,200 x 1.5 = 1,800 ft [[38:51|AC 91-74B 5-10f]]."
+    },
+    {
+     "q": "Clean stall speed (Vs) is 50 knots. AC 91-74B suggests keeping at least 50 to 60 percent above Vs in icing. What is the low end of that range?",
+     "answer": 75,
+     "tol": 0,
+     "unit": "knots",
+     "why": "50 x 1.5 = 75 knots (the high end is 50 x 1.6 = 80) [[38:48|AC 91-74B 5-7a]]."
+    },
+    {
+     "q": "Moderate icing has a reference rate of 1 to 3 inches per hour on the unprotected outer wing. At the top of that range, how much ice builds in 10 minutes?",
+     "answer": 0.5,
+     "tol": 0.02,
+     "unit": "inches",
+     "why": "3 in per hour / 60 = 0.05 in per minute; x 10 = 0.5 inch [[34:103|AIM 7-1-19b]]. The AIM says 1/2 inch can cut the lift of some aircraft by 50 percent [[34:103|AIM 7-1-19a]]."
+    },
+    {
+     "q": "Your datalink shows a storm cell moving east at 30 knots. The image may be 20 minutes older than it looks. How far could the cell be from where it is drawn?",
+     "answer": 10,
+     "tol": 0,
+     "unit": "NM",
+     "why": "30 x 20 / 60 = 10 NM. NEXRAD mosaic imagery may be 15 to 20 minutes older than indicated [[34:120|AIM 7-1-27a8]]."
+    }
+   ]
+  },
+  {
+   "type": "match",
+   "key": "h5",
+   "after": 6,
+   "title": "Thunderstorm numbers",
+   "intro": "Tap a fact, then the number that goes with it.",
+   "pairs": [
+    {
+     "l": "Severe turbulence can be expected out to",
+     "r": "20 miles from a severe storm"
+    },
+    {
+     "l": "Life cycle of a single cell",
+     "r": "About 30 minutes"
+    },
+    {
+     "l": "Updrafts in the towering cumulus stage",
+     "r": "Can exceed 3,000 fpm"
+    },
+    {
+     "l": "Microburst downdrafts",
+     "r": "Up to 6,000 fpm"
+    },
+    {
+     "l": "Datalinked NEXRAD may be older by",
+     "r": "15 to 20 minutes"
+    },
+    {
+     "l": "Tops to treat as extremely hazardous",
+     "r": "35,000 ft or higher"
+    },
+    {
+     "l": "Coverage that means go around the whole area",
+     "r": "6/10"
+    }
+   ],
+   "why": "AIM [[34:119|AIM 7-1-26b]] [[34:120|AIM 7-1-27a8]] [[34:120|AIM 7-1-27a15]] [[34:120|AIM 7-1-27a17]]; AWH [[28:257|AWH 22-2]] [[28:263|AWH 22-8]]."
+  },
+  {
+   "type": "order",
+   "key": "h6",
+   "after": 10,
+   "title": "From the kitchen table to the ramp",
+   "intro": "Use the arrows to put these in time order, then tap Check.",
+   "steps": [
+    "Write personal minimums, with no trip pending",
+    "Outlook briefing when departure is 6 or more hours away",
+    "Standard briefing as close to departure as possible",
+    "Abbreviated update just before takeoff if the standard one is an hour old",
+    "En route: update the weather and give PIREPs",
+    "At the planned decision point: continue or divert",
+    "After landing: review your decisions honestly"
+   ],
+   "why": "Minimums [[30:17|RMH 2-5]]; briefings [[37:14|AC 91-92 8.1]]; PIREPs [[34:102|AIM 7-1-18b]]; decision point and post-flight review [[1:57|PHAK 2-18]]."
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 11,
+   "title": "Can I make the lake trip? A November weekend",
+   "intro": "You are a VFR-only private pilot in a Cessna 172 not approved for icing. Your written personal minimums for day VFR are a 3,000 ft ceiling and 5 miles. You plan a 110 NM Saturday trip to a lake airport with two friends.",
+   "steps": [
+    {
+     "s": "Friday's outlook briefing shows a warm front reaching your route Saturday afternoon, with lowering ceilings and rain. What plan do you make?",
+     "options": [
+      "Keep the noon departure and decide at the airport",
+      "Plan an early morning departure, tell your friends the trip may be canceled or diverted, and recheck in the morning",
+      "Plan to fly VFR on top of the clouds",
+      "Leave in the afternoon, since warm fronts bring smooth air"
+     ],
+     "answer": 1,
+     "why": "Advancing a departure can avoid an incoming front, and telling passengers early reduces pressure [[30:40|RMH 5-2]]. Do not go on top hoping for a hole [[37:15|AC 91-92 8.2]]."
+    },
+    {
+     "s": "Saturday 0700 standard briefing: destination 4,000 overcast, forecast to stay above 3,500 until 1300. Your ETA is 1030 and takeoff 0830. What now?",
+     "options": [
+      "Go; the 0700 briefing covers the day",
+      "Go after an abbreviated update, with alternates along the route, a decision point and a trigger",
+      "No-go; any front means no flight",
+      "Go, and plan to drop under the clouds if they lower"
+     ],
+     "answer": 1,
+     "why": "Get an abbreviated briefing if the standard one is an hour or more old [[37:14|AC 91-92 8.1]]. Know alternates every 25 to 30 NM and a final continue or divert point [[1:56|PHAK 2-17]] [[1:57|PHAK 2-18]]."
+    },
+    {
+     "s": "Halfway, the airport ahead reports 2,200 overcast and light rain, below your trigger. Your friends say, \"Only 40 more minutes.\" What do you do?",
+     "options": [
+      "Press on for a look and turn back if it gets worse",
+      "Descend to stay under the lowering clouds",
+      "Divert now to the alternate behind you while you are still in VMC",
+      "Climb above the clouds"
+     ],
+     "answer": 2,
+     "why": "Divert while still in VMC [[30:12|RMH 1-3]]. Turn around when en route weather goes below your limits [[37:15|AC 91-92 8.2]]. Continuing to the original destination is less important than safety [[30:55|RMH 8-2]]."
+    },
+    {
+     "s": "You land at the alternate. What is the most useful thing to do next for other pilots?",
+     "options": [
+      "Nothing; PIREPs are only for IFR pilots",
+      "Report the lowering ceilings and rain to Flight Service",
+      "Report only if you had an emergency",
+      "Post it on social media"
+     ],
+     "answer": 1,
+     "why": "If you could not report by radio, reporting conditions to the nearest FSS after landing helps other pilots and forecasters [[34:102|AIM 7-1-18d]]."
+    },
+    {
+     "s": "Sunday morning the front has passed, but a convective SIGMET line of thunderstorms 60 NM west is moving toward your route by afternoon. Which plan fits the AIM?",
+     "options": [
+      "Wait for the line, then use NEXRAD to fly through a gap",
+      "Fly under the line where the rain looks lighter",
+      "Leave early on a route well clear of the line, ready to land and wait if it closes in",
+      "Climb over the line"
+     ],
+     "answer": 2,
+     "why": "Change the departure time to avoid storms [[30:40|RMH 5-2]]. Do not use datalinked NEXRAD to thread storms or fly under them; divert and wait on the ground if you cannot go around [[34:120|AIM 7-1-27a7]] [[34:120|AIM 7-1-27a2]] [[34:120|AIM 7-1-27a19]]."
+    }
+   ]
+  }
+ ]
+}
