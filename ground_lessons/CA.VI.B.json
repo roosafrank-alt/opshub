@@ -1,0 +1,1642 @@
+{
+ "task_code": "CA.VI.B",
+ "task_title": "Navigation Systems and Radar Services",
+ "area": "Area VI. Navigation",
+ "minutes": 92,
+ "objective": "By the end of this lesson you can identify, check and fly a VOR and a GPS course to commercial standards (altitude within 100 feet, heading within 10 degrees), judge when a signal can no longer be trusted, run the autopilot without losing track of what it is doing, and use radar services, the transponder and ADS-B the way ATC expects.",
+ "why": "A commercial pilot is paid to arrive on time and on course, often in busy airspace with a passenger or a job waiting. The equipment makes that easier, but only the pilot can navigate the airplane, and GPS is just one of the tools for the job [[1:420|PHAK 16-33]]. Knowing each system's limits, and having a backup ready, is what separates a professional from a passenger in command [[1:69|PHAK 2-30]].",
+ "prereading": [
+  {
+   "res": "1",
+   "pages": [
+    409,
+    421
+   ],
+   "printed": "PHAK 16-22 to 16-34",
+   "label": "PHAK 16-22 to 16-34",
+   "what": "VOR, CDI, HSI and RMI, tracking, time and distance checks, intercepts, DME, RNAV, GPS for VFR, VFR waypoints and lost procedures."
+  },
+  {
+   "res": "23",
+   "pages": [
+    253,
+    260
+   ],
+   "printed": "IFH 9-10 to 9-17",
+   "label": "IFH 9-10 to 9-17",
+   "what": "VOR components, CDI scale, TO/FROM, tracking and intercepts, typical pilot errors, VOR receiver checks and DME."
+  },
+  {
+   "res": "23",
+   "pages": [
+    268,
+    276
+   ],
+   "printed": "IFH 9-25 to 9-33",
+   "label": "IFH 9-25 to 9-33",
+   "what": "How GPS finds a position, RAIM, CDI scaling, error sources and the WAAS picture. Skim the approach details."
+  },
+  {
+   "res": "33",
+   "pages": [
+    68,
+    73
+   ],
+   "printed": "AIM 1-1-1 to 1-1-8",
+   "label": "AIM 1-1-1 to 1-1-8",
+   "what": "VOR identification, accuracy and roughness, the VOR MON, receiver checks, DME and service volumes."
+  },
+  {
+   "res": "33",
+   "pages": [
+    89,
+    102
+   ],
+   "printed": "AIM 1-1-17 to 1-1-18",
+   "label": "AIM 1-1-17 to 1-1-18",
+   "what": "GPS, RAIM and FDE, VFR use of GPS, database rules, equipment approvals and WAAS. Read the VFR part twice."
+  },
+  {
+   "res": "33",
+   "pages": [
+    214,
+    224
+   ],
+   "printed": "AIM 4-1-15 to 4-1-20",
+   "label": "AIM 4-1-15 to 4-1-20",
+   "what": "Radar traffic information, safety alerts, radar assistance to VFR, terminal radar services and transponder/ADS-B operation."
+  },
+  {
+   "res": "33",
+   "pages": [
+    300,
+    306
+   ],
+   "printed": "AIM 4-5-7 to 4-5-9",
+   "label": "AIM 4-5-7 to 4-5-9",
+   "what": "ADS-B Out and In, FLT ID, anonymous mode, TIS-B and FIS-B and their limits."
+  }
+ ],
+ "warmup": "Think first: your GPS, your autopilot, your ADS-B Out and your ADS-B traffic display may all depend on the same satellite signal. If someone jams that signal over the route you are flying for a customer, which of your tools still work, and how would you even notice that the others had quit?",
+ "key_terms": [
+  {
+   "term": "Radial",
+   "def": "A line of magnetic bearing going outward from a VOR. Radials are numbered 001 to 360 [[1:409|PHAK 16-22]]."
+  },
+  {
+   "term": "TO/FROM indicator",
+   "def": "Shows whether the course set in the OBS, if flown, takes you to or from the station. It does not tell you which way the nose points [[23:254|IFH 9-11]]."
+  },
+  {
+   "term": "VOT",
+   "def": "A VOR test facility. On the ground it lets you check receiver accuracy: centered needle with 0 and FROM, or 180 and TO [[33:70|AIM 1-1-4]]."
+  },
+  {
+   "term": "Slant range",
+   "def": "The straight-line distance DME measures from the airplane to the station, so altitude adds to it [[33:72|AIM 1-1-7]]."
+  },
+  {
+   "term": "RAIM",
+   "def": "A GPS receiver checking its own integrity. It needs 5 satellites, or 4 plus baro-aiding, to detect a bad signal [[33:89|AIM 1-1-17]]."
+  },
+  {
+   "term": "FDE",
+   "def": "Fault detection and exclusion: RAIM that can also remove a failed satellite. It needs 6 satellites, or 5 plus baro-aiding [[33:89|AIM 1-1-17]]."
+  },
+  {
+   "term": "WAAS",
+   "def": "The U.S. satellite-based augmentation system. It improves GPS accuracy, integrity and availability [[33:101|AIM 1-1-18]]."
+  },
+  {
+   "term": "Fly-by waypoint",
+   "def": "A waypoint where the turn to the next course starts before reaching it. This is called turn anticipation [[33:110|AIM 1-2-1]]."
+  },
+  {
+   "term": "Basic radar service",
+   "def": "What every terminal radar facility gives VFR aircraft: safety alerts, traffic advisories, limited vectoring and sequencing where set up [[33:218|AIM 4-1-18]]."
+  },
+  {
+   "term": "Radar contact",
+   "def": "ATC's words for: you are identified on the display and radar flight following will be provided until radar service is terminated [[34:401|AIM P/CG]]."
+  },
+  {
+   "term": "ADS-B Out / In",
+   "def": "Out is your airplane broadcasting its GNSS position about once a second; In is receiving that information from others [[33:300|AIM 4-5-7]] [[33:301|AIM 4-5-7]]."
+  },
+  {
+   "term": "TIS-B",
+   "def": "ATC radar traffic rebroadcast to ADS-B In aircraft. It shows only transponder-equipped targets [[33:305|AIM 4-5-8]]."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "What changes at the commercial level",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.B.K1",
+    "CA.VI.B.K2",
+    "CA.VI.B.S1",
+    "CA.VI.B.S7"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The systems are the same ones you used for your private certificate: VOR, DME, GPS, the autopilot, radar services, the transponder and ADS-B. What changes is the standard and the depth. The examiner expects you to set up and use whatever is in your airplane, explain how it works, and spot when it is lying to you."
+    },
+    {
+     "table": {
+      "head": [
+       "Element",
+       "Private ACS",
+       "Commercial ACS"
+      ],
+      "rows": [
+       [
+        "Altitude while navigating",
+        "Selected altitude, plus or minus 200 ft (ACS PA.VI.B.S7)",
+        "Appropriate altitude, plus or minus 100 ft (ACS CA.VI.B.S7)"
+       ],
+       [
+        "Heading while navigating",
+        "Plus or minus 15 degrees (ACS PA.VI.B.S7)",
+        "Plus or minus 10 degrees (ACS CA.VI.B.S7)"
+       ],
+       [
+        "Knowledge, risk and other skill elements",
+        "K1 to K4, R1 to R5, S1 to S6",
+        "Same element list (ACS CA.VI.B)"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "So the knowledge list is the same, but the flying window is half as wide on altitude. The hard part is holding 100 feet while your head is down tuning, identifying and reprogramming. That is exactly when private-level pilots drift."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "The ACS tells the examiner to use the manufacturer's equipment supplements for limits and procedures (ACS CA.VI.B). Your avionics guide and AFM supplement are part of your checkride study, not an extra."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Commercial habit: never let the airplane fly unattended while you push buttons. Trim it, glance outside, then make one entry at a time. Most receivers are not intuitive, so learn yours on the ground first [[33:90|AIM 1-1-17]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "What are the commercial altitude and heading tolerances for this Task, and how do they compare with private?",
+    "a": "Plus or minus 100 ft and 10 degrees (ACS CA.VI.B.S7), versus plus or minus 200 ft and 15 degrees for private (ACS PA.VI.B.S7)."
+   }
+  },
+  {
+   "title": "VOR: identify it, orient yourself, trust it only so far",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.B.K1",
+    "CA.VI.B.S1",
+    "CA.VI.B.S2",
+    "CA.VI.B.R3"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "VORs transmit between 108.0 and 117.95 MHz and are line of sight, so range grows with your altitude [[33:68|AIM 1-1-3]]. The FAA protects each VOR's signal only inside its standard service volume, and terrain can still block it. A cone directly over the station is generally not usable [[33:73|AIM 1-1-8]]."
+    },
+    {
+     "p": "The only positive way to identify a VOR is its Morse code or a recorded voice that ends with the word \"VOR.\" Never rely on an FSS voice on the frequency, because one FSS may run several VORs with different names [[33:68|AIM 1-1-3]] [[33:69|AIM 1-1-3]]. If your receiver decodes the identifier and shows it, you do not need to listen to it; if it only shows the expected identifier from its database, you still must match it to the audio [[33:69|AIM 1-1-3]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "The VOR does not care about your heading. Center the needle with FROM showing and the OBS reads the radial you are on; with TO showing, it reads the course to the station [[23:254|IFH 9-11]] [[23:257|IFH 9-14]]. In the figure both airplanes have 180 set and a centered needle. The one with TO is somewhere on the 360 radial, the one with FROM is on the 180 radial, and their headings (215 and 330) make no difference."
+    },
+    {
+     "p": "Reading the needle: full deflection means 12 degrees or more off course with normal sensitivity. The edge of the center circle is 2 degrees, and each dot adds 2 degrees [[23:254|IFH 9-11]]."
+    },
+    {
+     "bullets": [
+      "Accuracy of the ground signal is excellent, generally within 1 degree [[33:69|AIM 1-1-3]].",
+      "Some propeller RPM settings can make the CDI swing as much as 6 degrees each way. A small RPM change usually smooths it out [[33:69|AIM 1-1-3]].",
+      "In mountains, a brief needle swing can look like station passage. Use the TO/FROM flag to confirm passage [[33:69|AIM 1-1-3]].",
+      "If a NOTAM says a navaid is unusable, disregard any indication from it, however good it looks [[33:68|AIM 1-1-1]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Your receiver can be the weak link. A receiver whose gain or modulation circuit is wearing out can look fine near the VOR or VOT and be out of tolerance far away. Yearly calibration by a repair facility is recommended [[33:71|AIM 1-1-4]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "The FAA is shutting down some VORs but keeps a Minimum Operational Network so that at 5,000 ft AGL you have nearly continuous VOR reception and an airport with a non-GPS approach within 100 NM, outside the western mountains [[33:69|AIM 1-1-3]] [[33:70|AIM 1-1-3]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You hear a voice on the VOR frequency saying the FSS name, but no Morse code. Is the VOR identified?",
+    "a": "No. Only the Morse code or a recorded voice ID ending in \"VOR\" is positive identification; FSS voices are not [[33:68|AIM 1-1-3]] [[33:69|AIM 1-1-3]]."
+   }
+  },
+  {
+   "title": "VOR checks: 14 CFR 91.171 and good practice",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.B.K1",
+    "CA.VI.B.R3"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "14 CFR 91.171 applies to IFR. To fly IFR using VORs, the equipment must be maintained under an approved procedure, or operationally checked within the preceding 30 days and found within limits [[60:470|14 CFR 91.171]]. For VFR, VOR checks are not required, but the PHAK suggests using the IFR limits as a guide and checking often [[1:410|PHAK 16-23]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Check",
+       "Where",
+       "Maximum error"
+      ],
+      "rows": [
+       [
+        "FAA VOT or repair station test signal",
+        "At the airport of intended departure",
+        "Plus or minus 4 degrees [[60:470|14 CFR 91.171]]"
+       ],
+       [
+        "Designated ground checkpoint",
+        "On the surface of the departure airport",
+        "Plus or minus 4 degrees [[60:470|14 CFR 91.171]]"
+       ],
+       [
+        "Designated airborne checkpoint",
+        "Over a landmark near the airport, when no test signal or ground point exists",
+        "Plus or minus 6 degrees [[60:470|14 CFR 91.171]]"
+       ],
+       [
+        "Airway ground point",
+        "On an airway radial, over a prominent point preferably more than 20 NM out, at a reasonably low altitude",
+        "6 degrees [[60:471|14 CFR 91.171]]"
+       ],
+       [
+        "Dual VOR check",
+        "Both receivers tuned to the same VOR",
+        "4 degrees between the two [[60:471|14 CFR 91.171]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Whoever does the check enters the date, the place, the bearing error and signs the aircraft log or other record [[60:471|14 CFR 91.171]]. If a repair station radiated the test signal, the repair station also makes an entry certifying the bearing it sent and the date [[60:471|14 CFR 91.171]]."
+    },
+    {
+     "p": "Using a VOT: tune it, center the needle, and the OBS should read 0 with FROM or 180 with TO. An RMI shows 180 no matter where the OBS is set [[33:70|AIM 1-1-4]]. Checkpoint and VOT locations are in the Chart Supplement [[33:71|AIM 1-1-4]]."
+    },
+    {
+     "p": "Sensitivity is a separate check. Turn the OBS until the needle moves from center to the last dot on one side; it should take no more than 10 or 12 degrees each way [[23:259|IFH 9-16]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Apply no correction other than the manufacturer's correction card when making these checks [[33:71|AIM 1-1-4]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "\"30 days, 4 on the ground, 6 in the air, 4 between two, and sign the book.\""
+     }
+    }
+   ],
+   "check": {
+    "q": "You are departing IFR from an airport with no VOT and no ground checkpoint. Which checks could you use?",
+    "a": "A designated airborne checkpoint (6 degrees), or in flight a prominent point on an airway radial preferably more than 20 NM out (6 degrees), or a dual VOR check if you have two independent receivers (4 degrees) [[60:470|14 CFR 91.171]] [[60:471|14 CFR 91.171]]."
+   }
+  },
+  {
+   "title": "Intercepting and tracking inside 10 degrees",
+   "kind": "skills",
+   "codes": [
+    "CA.VI.B.S1",
+    "CA.VI.B.S2",
+    "CA.VI.B.S3",
+    "CA.VI.B.S7"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Orient first, then intercept. Find the radial you are on, picture where the desired course lies, and choose an intercept heading. The angle of intercept must be greater than the degrees you are off course, but not more than 90 degrees [[1:414|PHAK 16-27]]."
+    },
+    {
+     "p": "Distance matters. Each degree, or radial, is 1 NM wide at 60 NM from the station, 2 NM wide at 120 NM and half a mile at 30 NM [[1:414|PHAK 16-27]]. So the same needle deflection means a big distance off course far out and a small one close in, and the needle moves faster as you get close."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "bullets": [
+      "Set the OBS to agree with the course you intend to fly, so the needle senses normally [[23:257|IFH 9-14]].",
+      "Bracket the wind: if the needle drifts off, turn toward it, starting with about 20 degrees. When it centers, take out half the correction and watch again [[23:257|IFH 9-14]].",
+      "Do not just turn toward the needle each time. That is homing, a curved path that S-turns across the course [[1:413|PHAK 16-26]] [[23:257|IFH 9-14]].",
+      "Small fluctuations: wait a moment before changing heading; the needle may recenter by itself [[1:413|PHAK 16-26]].",
+      "Lead the turn onto the course with practice so you do not overshoot [[23:257|IFH 9-14]]."
+     ]
+    },
+    {
+     "p": "On an HSI the picture does most of the work. The course deviation bar shows the course relative to the symbolic airplane, and the TO/FROM pointer points toward the head of the course pointer when the course leads to the station [[1:411|PHAK 16-24]]. Many HSIs on a PFD can also show GPS guidance, so always confirm which source is driving it [[1:70|PHAK 2-31]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Reverse sensing: with the OBS set to the reciprocal of your course, the needle points away from the course and you must turn away from it to correct. Avoid it by setting the OBS to agree with the course [[23:257|IFH 9-14]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Holding 100 ft and 10 degrees: set the intercept heading on the heading bug, trim, and call it out. Then tune, identify and turn the OBS. Return your eyes to attitude and altitude between each step."
+     }
+    }
+   ],
+   "check": {
+    "q": "You are 10 degrees off the desired radial. Is a 5 degree intercept angle acceptable? Is 100 degrees?",
+    "a": "Neither. The intercept angle must be greater than the degrees off course (more than 10) and not more than 90 [[1:414|PHAK 16-27]]."
+   }
+  },
+  {
+   "title": "Finding your position: cross radials, DME and time checks",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.B.K1",
+    "CA.VI.B.S2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "One VOR puts you somewhere on a line. A second navaid is needed to fix your position on that line [[23:257|IFH 9-14]]. Two radials crossing give a fix [[1:421|PHAK 16-34]], and a radial plus DME locates you precisely on that radial [[1:415|PHAK 16-28]]."
+    },
+    {
+     "p": "DME measures slant range, the straight distance to the station, so altitude is included. Passing directly over a VORTAC at 6,076 ft AGL, the DME shows about 1.0 NM [[1:414|PHAK 16-27]] [[1:415|PHAK 16-28]]. DME groundspeed and time to station are only accurate when you track directly to or from the station, after a minute or two of steady flight [[1:415|PHAK 16-28]]."
+    },
+    {
+     "p": "The DME identifier sounds once for every three or four VOR identifiers. If you hear only one identifier about every 30 seconds, the DME is working and the VOR may not be [[33:73|AIM 1-1-7]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "No DME? Use a time and distance check. With a CDI, turn 90 degrees to the inbound course, note the time as the needle centers, turn the OBS 10 degrees, and time how long it takes to center again. The formulas in the figure give the time and distance to the station [[1:414|PHAK 16-27]]. With an RMI, put the pointer on the wingtip and time a 10 degree change; seconds divided by degrees gives minutes to the station [[1:413|PHAK 16-26]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "These checks are only approximate. Wind, the size of the bearing change and timing accuracy all affect the answer [[1:414|PHAK 16-27]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "With a CDI, the needle takes 2 minutes to recenter after you turn the OBS 10 degrees. How far from the station are you at 90 knots TAS?",
+    "a": "Distance = TAS x minutes / degrees = 90 x 2 / 10 = 18 NM [[1:414|PHAK 16-27]]."
+   }
+  },
+  {
+   "title": "Station and waypoint passage",
+   "kind": "skills",
+   "codes": [
+    "CA.VI.B.S4",
+    "CA.VI.B.S2",
+    "CA.VI.B.K2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "VOR passage: as you cross the station the needle fluctuates, then settles, and TO changes to FROM. If you pass off to one side, the needle swings toward the station side as the flag changes [[1:413|PHAK 16-26]]. The swinging comes from a zone of confusion above the station where the signal is weak and changing [[23:257|IFH 9-14]]."
+    },
+    {
+     "bullets": [
+      "RMI: the pointer moves fast, or needs several corrections to stay on the wingtip, at station passage [[1:414|PHAK 16-27]].",
+      "DME: overhead it still shows your height as distance (about 1 NM at 6,076 ft AGL), because it measures slant range [[1:414|PHAK 16-27]] [[1:415|PHAK 16-28]].",
+      "Combined NAV/COM: transmitting on a set without a flag can cause TO/FROM flicker that looks like passage. Read the whole receiver and ignore readings taken while you transmit [[23:259|IFH 9-16]]."
+     ]
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "p": "GPS gives distance and track to the next active waypoint, not to a navaid [[33:99|AIM 1-1-17]]. At a fly-by waypoint the receiver begins the turn before the waypoint, so it sequences to the next leg early. At a fly-over waypoint you must cross the point before the turn starts [[33:110|AIM 1-2-1]]."
+    },
+    {
+     "p": "A receiver can also sequence when you are not on the route, for example while vectored or deviating for weather, because you pass near a waypoint. The non-sequencing mode (often called OBS or HOLD) stops that [[33:99|AIM 1-1-17]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "On the checkride, say what you see: \"Needle swinging, flag to FROM, station passage, turning to the outbound course\" or \"Waypoint sequenced, new desired track 085.\" Describing passage out loud is part of S4."
+     }
+    }
+   ],
+   "check": {
+    "q": "How does fly-by differ from fly-over at a GPS waypoint?",
+    "a": "Fly-by: the turn starts before the waypoint (turn anticipation). Fly-over: you cross the waypoint before turning [[33:110|AIM 1-2-1]]."
+   }
+  },
+  {
+   "title": "GPS: integrity, databases and approvals",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.B.K2",
+    "CA.VI.B.R3"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The constellation is designed so at least five satellites are always in view. A receiver needs four for a three-dimensional position [[33:89|AIM 1-1-17]]. Typical position errors from clocks, multipath and the atmosphere are under 100 ft [[23:274|IFH 9-31]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Function",
+       "Satellites needed"
+      ],
+      "rows": [
+       [
+        "3D position",
+        "4 [[33:89|AIM 1-1-17]]"
+       ],
+       [
+        "RAIM: detect a bad satellite",
+        "5, or 4 plus baro-aiding [[33:89|AIM 1-1-17]]"
+       ],
+       [
+        "FDE: detect and exclude it",
+        "6, or 5 plus baro-aiding [[33:89|AIM 1-1-17]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "RAIM matters because a bad satellite signal can take up to two hours for the control segment to find and fix [[33:89|AIM 1-1-17]]. There are two kinds of RAIM message: not enough satellites, so the position may be fine but its integrity is unknown; or a detected error that is too big for the phase of flight [[33:90|AIM 1-1-17]]. For baro-aiding, enter the altimeter setting; do not use GPS altitude, whose vertical error is large [[33:89|AIM 1-1-17]]."
+    },
+    {
+     "table": {
+      "head": [
+       "",
+       "VFR panel or hand-held GPS",
+       "IFR-approved GPS"
+      ],
+      "rows": [
+       [
+        "Integrity alerting",
+        "None; cross-check other navigation [[33:90|AIM 1-1-17]]",
+        "RAIM, or WAAS integrity [[33:89|AIM 1-1-17]]"
+       ],
+       [
+        "Database",
+        "Should be current; no rule for VFR. Verify waypoints if expired [[33:90|AIM 1-1-17]]",
+        "Must be current [[33:90|AIM 1-1-17]]"
+       ],
+       [
+        "Design standard",
+        "No standard of accuracy or integrity [[33:91|AIM 1-1-17]]",
+        "TSO-C129, C196, C145 or C146, installed per AC 20-138 [[33:91|AIM 1-1-17]]"
+       ],
+       [
+        "IFR use",
+        "Not authorized; only an aid to situational awareness [[33:101|AIM 1-1-17]]",
+        "Per the AFM supplement [[33:92|AIM 1-1-17]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Antennas: VFR antennas are often placed for convenience, and a suction-cup antenna on a window may lose satellites behind the cabin structure [[33:90|AIM 1-1-17]]. Signals can also drop in valleys or when a wing blocks the antenna in a bank [[23:274|IFH 9-31]]. A hand-held unit needs no approval, but a mounting bracket or external antenna is an aircraft modification under 14 CFR part 43 [[33:90|AIM 1-1-17]] [[33:101|AIM 1-1-17]]."
+    },
+    {
+     "p": "CDI scaling changes with GPS phase of flight: about 5 NM full scale en route, 1 NM in the terminal area within 30 NM of the airport, and 0.3 NM at the final approach waypoint [[23:273|IFH 9-30]]. The same needle deflection can mean very different distances, so check the annunciation."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Looking ahead in your career: commercial operators flying IFR under the rules the AIM lists must keep a second, independent navigation capability, and over land that backup must not depend on GPS, for example VOR or DME/DME [[33:93|AIM 1-1-17]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your panel GPS shows a RAIM message saying not enough satellites are available. Is your position wrong?",
+    "a": "Not necessarily. The position may be acceptable, but its integrity cannot be determined, so cross-check with other navigation [[33:90|AIM 1-1-17]]."
+   }
+  },
+  {
+   "title": "WAAS: what it adds and what it does not",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.B.K2",
+    "CA.VI.B.R3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "WAAS improves the accuracy, integrity and availability of GPS [[33:101|AIM 1-1-18]]. Surveyed reference stations watch the satellites, a master station computes corrections, and the correction message goes up to a geostationary satellite that broadcasts it on the GPS L1 frequency, 1575.42 MHz [[33:102|AIM 1-1-18]]."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "bullets": [
+      "The GEO satellite also gives a ranging signal, in effect one more GPS satellite in view [[33:102|AIM 1-1-18]].",
+      "Integrity is monitored in real time, and differential corrections reduce errors enough for approaches with a GPS glide path [[33:102|AIM 1-1-18]].",
+      "LPV minima can go as low as a 200 ft decision altitude and 1/2 mile visibility; LP is a lateral-only line of minima [[33:102|AIM 1-1-18]].",
+      "WAAS users flying under part 91 are not required to carry VOR avionics, so they cannot use the VOR MON. Plan for a GPS outage [[33:70|AIM 1-1-3]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "WAAS still depends on GPS. Jamming or spoofing of GPS takes WAAS with it, and FAA test events are announced as GPS and/or WAAS NOTAMs [[33:119|AIM 1-2-4]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Name two things the WAAS geostationary satellite gives your receiver.",
+    "a": "A correction message (accuracy and integrity) and an extra ranging signal, like one more GPS satellite in view [[33:102|AIM 1-1-18]]."
+   }
+  },
+  {
+   "title": "Autopilot and automation management",
+   "kind": "risk",
+   "codes": [
+    "CA.VI.B.R1",
+    "CA.VI.B.R2",
+    "CA.VI.B.S1",
+    "CA.VI.B.S7"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "An autopilot keeps the airplane level or on a set course. It can follow the pilot's commands or be coupled to a navigation signal, and it can always be overridden. Systems differ widely, so the AFM or POH supplement is the reference [[1:160|PHAK 6-12]]. In a single-pilot airplane it can greatly reduce workload and leave you free for other duties [[1:66|PHAK 2-27]]."
+    },
+    {
+     "bullets": [
+      "Know at all times which modes are engaged and which are armed, and verify that armed modes (navigation tracking, altitude capture) engage when they should [[1:70|PHAK 2-31]].",
+      "Call out each change, even alone, especially after arming a course or altitude change [[1:70|PHAK 2-31]].",
+      "Know how the autopilot talks to the other systems. On some, changing the HSI source from GPS to VOR while in NAV mode drops the autopilot to wing level (ROL) until you re-engage NAV [[1:70|PHAK 2-31]].",
+      "Verify every entry against your paper or planned route; if they disagree, do not assume the computer is right [[1:70|PHAK 2-31]].",
+      "Before engaging, do the system checks; many systems run a self-test. Know the normal and emergency ways to disconnect [[24:257|AFH 13-8]]."
+     ]
+    },
+    {
+     "p": "No single level of automation fits every situation [[1:70|PHAK 2-31]]. The FAA now recommends judging which level best handles the workload, and occasionally hand-flying to keep stick-and-rudder skills [[1:66|PHAK 2-27]]. Humans are poor monitors of reliable automation, and the more reliable it is, the worse we watch it [[1:70|PHAK 2-31]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Plan the autopilot failure before you need it. A dead autopilot found before departure changes the risk picture; one that fails at a high-workload moment can turn into an emergency if you have not decided in advance how to handle it [[1:66|PHAK 2-27]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "On the checkride the examiner may let you use the autopilot or may turn it off. Either way the standard is your altitude and heading (100 ft, 10 degrees) (ACS CA.VI.B.S7). If the autopilot drifts, it is your deviation."
+     }
+    }
+   ],
+   "check": {
+    "q": "You arm altitude capture at 6,500 ft during a climb on the autopilot. What should you watch for as you approach 6,500?",
+    "a": "That the armed capture actually engages and the airplane levels, and call it out; if it does not, take action [[1:70|PHAK 2-31]]."
+   }
+  },
+  {
+   "title": "Radar services for VFR: flight following done right",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.B.K3",
+    "CA.VI.B.S6",
+    "CA.VI.B.R2"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Radar facilities give VFR pilots traffic information when the controller can. Workload, radar limits and frequency congestion can stop it, and the controller does not have to explain why [[33:214|AIM 4-1-15]] [[33:215|AIM 4-1-15]]. All commissioned radar facilities give VFR aircraft basic radar service: safety alerts, traffic advisories, limited vectoring and sequencing where set up [[33:218|AIM 4-1-18]]."
+    },
+    {
+     "bullets": [
+      "Initial contact: facility name, your full call sign, then your request, for example \"request VFR traffic advisories\" [[33:228|AIM 4-2-3]].",
+      "When asked, transiting pilots give position, altitude, call sign, type, beacon code, destination and/or route [[33:219|AIM 4-1-18]].",
+      "Report your exact altitude to the nearest hundred feet on initial contact, so ATC can verify your Mode C [[33:223|AIM 4-1-20]].",
+      "Monitor the frequency at all times, and tell ATC when you change VFR cruising altitude [[33:215|AIM 4-1-15]].",
+      "To leave, tell the controller before changing frequency, then squawk 1200 if applicable [[33:215|AIM 4-1-15]].",
+      "Traffic advisories do not include vectors away from traffic unless you ask [[33:215|AIM 4-1-15]]."
+     ]
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "The controller sees your track, not your heading. If you are crabbing for wind, traffic called at 12 o'clock may actually be off to one side of your nose. In the figure, A crabs into a north wind and sees the 12 o'clock traffic at 2 o'clock [[33:216|AIM 4-1-15]]."
+    },
+    {
+     "p": "Vectors to VFR aircraft are advisory. They do not authorize you to break a regulation, and the controller may not know whether a heading takes you into clouds, so keep ATC told about the weather ahead [[33:217|AIM 4-1-17]]. In a TRSA, Class C or Class B, you get more separation services, but you still must see and avoid, keep clear of wake and terrain, and stay in VFR conditions [[33:220|AIM 4-1-18]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "With a Mode C transponder you may ask for MSAW monitoring, an automated low-altitude warning to the controller: \"request MSAW monitoring\" [[33:217|AIM 4-1-16]]. Useful on a dark night over unfamiliar terrain."
+     }
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Radar service ends automatically, without being told, when an arriving VFR aircraft at a tower airport has landed, or at other airports is told to change to the tower or advisory frequency [[33:218|AIM 4-1-18]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Flight following calls traffic at 1 o'clock, 2 miles, converging. Will the controller also turn you away from it?",
+    "a": "Not unless you ask. VFR radar advisory service does not include vectors away from conflicting traffic unless requested [[33:215|AIM 4-1-15]]."
+   }
+  },
+  {
+   "title": "Transponder and ADS-B",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.B.K4",
+    "CA.VI.B.R3",
+    "CA.VI.B.S6"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Mode A replies with your four-digit code (4,096 possible codes). Mode C and Mode S add pressure altitude in 100 ft steps [[60:494|14 CFR 91.215]] [[33:222|AIM 4-1-20]]. The encoder is preset to standard pressure; ATC applies the local altimeter setting [[33:223|AIM 4-1-20]]. A wrong altimeter setting does not change the reported altitude, but it makes you fly at the wrong true altitude [[33:223|AIM 4-1-20]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Airspace (airplane with an electrical system)",
+       "Mode C transponder",
+       "ADS-B Out"
+      ],
+      "rows": [
+       [
+        "Class A, B and C",
+        "Required [[60:494|14 CFR 91.215]]",
+        "Required [[60:498|14 CFR 91.225]] [[60:499|14 CFR 91.225]]"
+       ],
+       [
+        "Within 30 NM of a listed Class B primary airport, surface to 10,000 ft MSL",
+        "Required [[60:494|14 CFR 91.215]]",
+        "Required [[60:499|14 CFR 91.225]]"
+       ],
+       [
+        "Above a Class B or C ceiling, inside its lateral limits, up to 10,000 ft MSL",
+        "Required [[60:494|14 CFR 91.215]]",
+        "Required [[60:499|14 CFR 91.225]]"
+       ],
+       [
+        "Class E at and above 10,000 ft MSL in the 48 states and DC, except at and below 2,500 ft AGL",
+        "Required [[60:494|14 CFR 91.215]]",
+        "Required [[60:499|14 CFR 91.225]]"
+       ],
+       [
+        "Class E at and above 3,000 ft MSL over the Gulf, out to 12 NM from the U.S. coast",
+        "Not required [[33:223|AIM 4-1-20]]",
+        "Required [[60:499|14 CFR 91.225]]"
+       ]
+      ]
+     }
+    },
+    {
+     "bullets": [
+      "Two ADS-B links: 1090ES (an extended transponder) and UAT on 978 MHz. In Class A you need 1090ES; below 18,000 ft either is allowed [[33:301|AIM 4-5-7]] [[60:499|14 CFR 91.225]].",
+      "If you have ADS-B Out, it must transmit at all times unless ATC says otherwise [[60:499|14 CFR 91.225]] [[33:221|AIM 4-1-20]].",
+      "The transponder must have been tested and inspected within the preceding 24 calendar months [[60:525|14 CFR 91.413]]. Mode C/S and ADS-B Out must report altitude from the same source [[60:495|14 CFR 91.217]].",
+      "Your ADS-B FLT ID must match the aircraft identification on your flight plan, or ATC may not link you to it (a call sign mismatch) [[33:303|AIM 4-5-7]].",
+      "UAT anonymous mode is only for VFR with code 1200 and no ATC services. Turn it off before you ask for flight following [[33:303|AIM 4-5-7]].",
+      "Operate transponder and ADS-B with altitude reporting on any movement area of an airport [[33:221|AIM 4-1-20]]."
+     ]
+    },
+    {
+     "p": "ADS-B In gives you TIS-B traffic and FIS-B weather. TIS-B shows only transponder-equipped aircraft, updates every 3 to 13 seconds instead of about once a second, can show a target of yourself or duplicate \"shadows,\" and gives no sign when you are outside its coverage [[33:305|AIM 4-5-8]] [[33:306|AIM 4-5-8]]. FIS-B weather is not a substitute for a preflight briefing [[33:306|AIM 4-5-9]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "An ADS-B traffic display is not a collision avoidance system. Use it only to help you see traffic; no avoidance maneuvers are authorized just because a target is on the screen [[33:304|AIM 4-5-7]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Deviations: an inoperative transponder or ADS-B Out can be requested any time, to get to your destination or a repair shop. An airplane not equipped must ask at least one hour before the flight [[60:495|14 CFR 91.215]] [[60:500|14 CFR 91.225]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "ATC says \"stop altitude squawk, altitude differs by 300 feet.\" What should you check?",
+    "a": "That your altimeter is set correctly, then turn off altitude reporting as instructed; the readout itself may be wrong or the altimeter setting may be wrong [[33:223|AIM 4-1-20]]."
+   }
+  },
+  {
+   "title": "Signal loss, interference and jamming",
+   "kind": "risk",
+   "codes": [
+    "CA.VI.B.R3",
+    "CA.VI.B.R4",
+    "CA.VI.B.S5",
+    "CA.VI.B.K1",
+    "CA.VI.B.K2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "VOR: a flag appears when the signal is too weak, for example when you are too far away or too low for line of sight [[1:410|PHAK 16-23]]. During maintenance a VOR may send T-E-S-T or have its identifier removed, and that alone tells you not to use it [[33:87|AIM 1-1-11]]. Even with the identifier present, do not fly a procedure that is NOTAMed out of service [[33:87|AIM 1-1-11]]."
+    },
+    {
+     "p": "GPS: the signals are weak and easy to disrupt. Radars, microwave links, solar activity, multipath, some onboard systems and deliberate jammers and spoofers can all interfere [[33:118|AIM 1-2-4]] [[33:119|AIM 1-2-4]]. Loss of GPS can also take away your moving map, ADS-B Out and terrain alerts [[33:119|AIM 1-2-4]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Phase",
+       "What the FAA recommends"
+      ],
+      "rows": [
+       [
+        "Before departure",
+        "Know the risk areas, check NOTAMs, plan extra fuel, plan to use conventional navaids and procedures at the destination [[33:119|AIM 1-2-4]]"
+       ],
+       [
+        "Signs in flight",
+        "Large jump in position, wrong clock time, position error warnings, other pilots reporting problems [[33:119|AIM 1-2-4]] [[33:120|AIM 1-2-4]]"
+       ],
+       [
+        "Action in flight",
+        "Verify position with conventional navaids, be ready to revert, and promptly tell ATC [[33:119|AIM 1-2-4]] [[33:120|AIM 1-2-4]]"
+       ],
+       [
+        "After the flight",
+        "Write it up in the maintenance log and file an FAA GPS anomaly report [[33:120|AIM 1-2-4]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Spoofing is sneaky. RAIM is only partly effective against it, so you may see no warning, and ATC may be the only one who notices your position is wrong. Switch to another source and ask for an amended clearance if needed [[33:87|AIM 1-1-13]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Inside a NOTAMed GPS test area, do not report the expected outage to ATC in detail. Do report if the problem shows up outside that area or something unexpected fails, such as TAWS [[33:88|AIM 1-1-13]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Lost or losing signals? Climb (better reception and radar coverage), communicate, and use any navaid you can identify. Most facilities and even airliners listen on 121.5 [[1:421|PHAK 16-34]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your VOR needle looks steady but you hear no identifier at all. Can you use it?",
+    "a": "No. A removed identifier warns that the facility is off the air for maintenance and may be unreliable even if signals are received [[33:87|AIM 1-1-11]]."
+   }
+  },
+  {
+   "title": "Distraction, the EFB and keeping the big picture",
+   "kind": "risk",
+   "codes": [
+    "CA.VI.B.R2",
+    "CA.VI.B.R5",
+    "CA.VI.B.R1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Glass cockpits can drown you in information. Learn how the system is organized instead of memorizing button sequences, and when stuck, stop, look and read before pushing anything [[1:69|PHAK 2-30]]. Set up the displays for the job: map scale for en route or terminal, terrain page at night near mountains, nearest airports over hostile terrain [[1:69|PHAK 2-30]]."
+    },
+    {
+     "p": "Following only the magenta line can lead you straight into high terrain or prohibited airspace, or leave you lost if the map fails [[1:69|PHAK 2-30]] [[1:70|PHAK 2-31]]. The moving map is never a substitute for a VFR sectional [[1:66|PHAK 2-27]]."
+    },
+    {
+     "table": {
+      "head": [
+       "AC 91-78A says",
+       "Meaning for you"
+      ],
+      "rows": [
+       [
+        "An EFB can replace paper under part 91 if it does not replace required equipment, shows information equivalent to the paper, is current and valid as verified by the pilot, and does not interfere with aircraft systems [[42:3|AC 91-78A 9.1]]",
+        "Your tablet can replace your charts, not your required navigation radios."
+       ],
+       [
+        "Using it in flight is the operator's and PIC's decision; no formal approval is needed if the AC is followed [[42:3|AC 91-78A 9.2]]",
+        "You own the decision and the risk."
+       ],
+       [
+        "An installed EFB may take position from the navigation system only if that input cannot hurt the navigation source's output [[42:3|AC 91-78A 10.2]]",
+        "Connections to the panel are an installation matter, not a cockpit choice."
+       ],
+       [
+        "Assess workload, placement, stowage, failures; train on cross-checking data entry and computed results [[42:4|AC 91-78A 11.1]] [[42:4|AC 91-78A 11.2]]",
+        "Have a plan for a dead tablet and check its numbers."
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Avoid programming routes or VFR waypoint chains once airborne; load them on the ground [[33:91|AIM 1-1-17]]. Head-down programming is when the 100 ft window goes."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your EFB chart database expired last week. Does AC 91-78A let you use it in place of paper?",
+    "a": "No. Information used for navigation must be current, up to date and valid, as verified by the pilot [[42:3|AC 91-78A 9.1]]."
+   }
+  },
+  {
+   "title": "Common errors and fixes",
+   "kind": "skills",
+   "codes": [
+    "CA.VI.B.S1",
+    "CA.VI.B.S2",
+    "CA.VI.B.S3",
+    "CA.VI.B.S4",
+    "CA.VI.B.S5",
+    "CA.VI.B.S6",
+    "CA.VI.B.S7"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Error",
+       "Fix"
+      ],
+      "rows": [
+       [
+        "Careless tuning and identifying [[23:257|IFH 9-14]]",
+        "Tune, identify by Morse or decoded ID, then confirm the flag is gone before using it [[33:68|AIM 1-1-3]]"
+       ],
+       [
+        "Turning the wrong way when orienting [[23:257|IFH 9-14]]",
+        "Picture your position first: center with FROM to read your radial"
+       ],
+       [
+        "Not checking TO/FROM, giving reverse sensing [[23:257|IFH 9-14]]",
+        "Set the OBS to agree with your intended course"
+       ],
+       [
+        "Not turning parallel to the desired course before intercepting [[23:259|IFH 9-16]]",
+        "Parallel the course to see which side you are on, then intercept"
+       ],
+       [
+        "Overshooting radials and overcontrolling near the station [[23:259|IFH 9-16]]",
+        "Lead the turn; make smaller corrections as the needle gets more sensitive"
+       ],
+       [
+        "Chasing the needle (homing) [[23:259|IFH 9-16]]",
+        "Bracket the wind with a heading, halving the correction"
+       ],
+       [
+        "Trusting a GPS position with no integrity check [[1:420|PHAK 16-33]]",
+        "Cross-check with VOR, pilotage and dead reckoning; be suspicious if they disagree"
+       ],
+       [
+        "Not knowing what the autopilot is doing [[1:70|PHAK 2-31]]",
+        "Read the mode annunciator and call out armed and engaged modes"
+       ],
+       [
+        "Altitude and heading drift while heads-down (ACS CA.VI.B.S7)",
+        "One entry at a time, then scan attitude, altitude, heading"
+       ],
+       [
+        "Leaving the frequency without telling ATC [[33:215|AIM 4-1-15]]",
+        "Advise, then squawk 1200 if applicable"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Before any VOR work on the checkride, state the three things: frequency, identifier confirmed, flag clear. It shows the examiner S1 and S5 in five seconds."
+     }
+    }
+   ],
+   "check": {
+    "q": "What does \"homing\" to a VOR look like, and why is it an error?",
+    "a": "Recentering the needle and flying the new course each time. It makes a curved path to the station, like ADF homing, instead of a straight track [[23:257|IFH 9-14]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "CA.VI.B-1.jpg",
+   "res": "23",
+   "page": 255,
+   "caption": "Figure 9-14. An HSI display as seen on the pilot's primary flight display (PFD) on an electronic flight instrument. (IFH 9-12)",
+   "alt": "A Garmin PFD with the HSI at the bottom center. Labels point to the heading box reading 270, the lubber line, the heading select bug, the selected heading box HDG 270, the course select pointer with CRS 270, the course deviation scale, the compass card and the green course deviation indicator, with VOR 1 shown as the source.",
+   "source": "IFH, PDF p. 255"
+  },
+  "f2": {
+   "file": "CA.VI.B-2.jpg",
+   "res": "23",
+   "page": 256,
+   "caption": "Figure 9-15. CDI interpretation. The CDI as typically found on analog systems (right) and as found on electronic flight instruments (left). (IFH 9-13)",
+   "alt": "A VOR station in the center with a compass rose. One airplane north of the station on the 360 line heads southwest; its analog CDI and electronic HSI both show course 180, needle centered, TO. Another airplane south of the station on the 180 line heads northwest; its instruments show course 180, needle centered, FROM.",
+   "source": "IFH, PDF p. 256"
+  },
+  "f3": {
+   "file": "CA.VI.B-3.jpg",
+   "res": "1",
+   "page": 414,
+   "caption": "Figure 16-34. Time-distance check formula using a CDI. (PHAK 16-27)",
+   "alt": "A box titled Time-Distance Check Formula. A: time to station equals 60 times minutes flown between bearing change, divided by degrees of bearing change. B: distance to station equals TAS times minutes flown, divided by degrees of bearing change.",
+   "source": "PHAK, PDF p. 414"
+  },
+  "f4": {
+   "file": "CA.VI.B-4.jpg",
+   "res": "33",
+   "page": 110,
+   "caption": "FIG 1-2-2. Fly-by and Fly-over Waypoints. (AIM 1-2-1)",
+   "alt": "Two routes from a runway to waypoint ALPHA and then BRAVO. On the fly-by route the dashed flight path curves inside the corner and joins the ALPHA to BRAVO course before reaching ALPHA. On the fly-over route the airplane crosses the circled ALPHA symbol first, swings wide past the course in a dashed loop, and then rejoins it toward BRAVO.",
+   "source": "AIM, PDF p. 110"
+  },
+  "f5": {
+   "file": "CA.VI.B-5.jpg",
+   "res": "23",
+   "page": 276,
+   "caption": "Figure 9-29. WAAS satellite representation. (IFH 9-33)",
+   "alt": "Four maps of the United States. 1: wide area reference stations receive GPS satellite signals. 2: their data goes to a wide area master station for correction. 3: the master station uplinks the corrected signal through a ground uplink station to geosynchronous satellites. 4: the geosynchronous satellites send the updated WAAS signal to aircraft with WAAS receivers.",
+   "source": "IFH, PDF p. 276"
+  },
+  "f6": {
+   "file": "CA.VI.B-6.jpg",
+   "res": "33",
+   "page": 216,
+   "caption": "FIG 4-1-1 and FIG 4-1-2. Induced Error in Position of Traffic. (AIM 4-1-15)",
+   "alt": "Top: with a wind from the north, airplane A tracks east while its nose points left of track, and airplane B tracks west with its nose pointing right of track. The example text says traffic called at 12 o'clock appears at 2 o'clock to A and 10 o'clock to B. Bottom: with a wind from the west, airplane C tracks north crabbed left, and airplane D tracks west with no crab.",
+   "source": "AIM, PDF p. 216"
+  }
+ },
+ "scenario": {
+  "title": "The ferry flight under a GPS test NOTAM",
+  "codes": [
+   "CA.VI.B.K2",
+   "CA.VI.B.K3",
+   "CA.VI.B.K4",
+   "CA.VI.B.R1",
+   "CA.VI.B.R2",
+   "CA.VI.B.R3",
+   "CA.VI.B.R4",
+   "CA.VI.B.S5",
+   "CA.VI.B.S6"
+  ],
+  "setup": "You are hired to ferry a customer's single to a maintenance shop 190 NM away, VFR. It has a WAAS GPS navigator, one VOR receiver, an autopilot, a UAT ADS-B Out with ADS-B In shown on your tablet, and a Mode C transponder. The preflight NOTAMs show a GPS interference test across the middle third of your route this afternoon. The destination sits under the shelf of a Class C airspace area, and the weather is good VFR with some scattered clouds near the ridges.",
+  "questions": [
+   {
+    "q": "What should your preflight plan include because of the GPS test NOTAM?",
+    "a": "Know where the risk area is, check all NOTAMs, plan extra fuel, and plan to navigate with conventional navaids through and after it [[33:119|AIM 1-2-4]]. Identify VORs along the route and note that WAAS-only flying does not give you the VOR MON [[33:70|AIM 1-1-3]]."
+   },
+   {
+    "q": "You have one VOR receiver and have not checked it recently. Is a check legally required, and how could you check it?",
+    "a": "Not for VFR; 14 CFR 91.171 applies to IFR [[60:470|14 CFR 91.171]]. As good practice, use a VOT or ground checkpoint at departure (4 degrees) or an airborne checkpoint (6 degrees) as a guide [[1:410|PHAK 16-23]] [[33:71|AIM 1-1-4]]."
+   },
+   {
+    "q": "Before calling departure for flight following, what should you set on the ADS-B?",
+    "a": "Turn off the UAT anonymous mode and make sure the FLT ID matches your aircraft identification [[33:303|AIM 4-5-7]]."
+   },
+   {
+    "q": "In the test area your map jumps 3 miles and the autopilot, coupled to GPS, starts a turn. What do you do?",
+    "a": "Disconnect or switch the autopilot to heading, hold your heading and altitude, verify position with the VOR, and tell ATC only if you need help or the problem is unexpected, because the area is NOTAMed [[1:70|PHAK 2-31]] [[33:119|AIM 1-2-4]] [[33:88|AIM 1-1-13]]."
+   },
+   {
+    "q": "Approach calls \"traffic 12 o'clock, 4 miles, opposite direction.\" You are crabbing 12 degrees left into a strong left crosswind. Where do you look?",
+    "a": "Right of the nose. ATC calls traffic relative to your track, and with the nose turned left of track, traffic on the track appears to the right [[33:216|AIM 4-1-15]]."
+   },
+   {
+    "q": "Approach gives you a heading that points at a building cumulus near the ridge. What is your responsibility?",
+    "a": "Vectors are advisory and do not authorize you to break the VFR rules. Tell the controller about the cloud and ask for another heading [[33:217|AIM 4-1-17]] [[33:220|AIM 4-1-18]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "CA.VI.B.S1",
+   "do": "Set up and use the airplane's navigation equipment correctly: tune, identify, select the right source and mode, and explain what each display shows.",
+   "practice": "Before each flight, brief the nav setup out loud from your avionics supplement; in flight, make one entry at a time and confirm the source annunciation [[1:70|PHAK 2-31]]."
+  },
+  {
+   "code": "CA.VI.B.S2",
+   "do": "Tell the examiner where you are using the navigation system: radial and DME, crossing radials, or GPS bearing and distance to a waypoint.",
+   "practice": "Fix your position from two VORs on every cross-country and compare it with the GPS and the chart [[23:257|IFH 9-14]] [[1:420|PHAK 16-33]]."
+  },
+  {
+   "code": "CA.VI.B.S3",
+   "do": "Intercept and track a given course, radial or bearing, choosing a sensible intercept angle and correcting for wind.",
+   "practice": "Fly intercepts at different distances from the station; use an angle bigger than your degrees off course and no more than 90, then bracket the wind [[1:414|PHAK 16-27]] [[23:257|IFH 9-14]]."
+  },
+  {
+   "code": "CA.VI.B.S4",
+   "do": "Recognize and describe station or waypoint passage on the instruments you have.",
+   "practice": "Fly over a VOR and call the needle swing and TO to FROM change; on GPS, call the sequence at fly-by and fly-over waypoints [[1:413|PHAK 16-26]] [[33:110|AIM 1-2-1]]."
+  },
+  {
+   "code": "CA.VI.B.S5",
+   "do": "Recognize a lost or bad signal (flags, missing identifier, GPS integrity messages, position jumps) and switch to another source.",
+   "practice": "Have your CFI fail the GPS or detune the VOR without warning; name the indication and revert within one scan [[33:90|AIM 1-1-17]] [[33:87|AIM 1-1-11]]."
+  },
+  {
+   "code": "CA.VI.B.S6",
+   "do": "Request, use and end radar services with correct radio calls and transponder use.",
+   "practice": "Get flight following on every cross-country; practice the initial call, altitude change reports and the call before leaving the frequency [[33:228|AIM 4-2-3]] [[33:215|AIM 4-1-15]]."
+  },
+  {
+   "code": "CA.VI.B.S7",
+   "do": "Hold the appropriate altitude within 100 ft and heading within 10 degrees while navigating (ACS CA.VI.B.S7).",
+   "practice": "Have your CFI call out every time you drift 50 ft or 5 degrees while you tune and program; aim to keep half the allowed window."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "While navigating with the systems in this Task, what altitude and heading tolerances does the commercial ACS allow?",
+   "options": [
+    "Plus or minus 100 ft and 10 degrees",
+    "Plus or minus 200 ft and 15 degrees",
+    "Plus or minus 100 ft and 15 degrees",
+    "Plus or minus 50 ft and 5 degrees"
+   ],
+   "answer": 0,
+   "why": "Commercial: plus or minus 100 ft and 10 degrees (ACS CA.VI.B.S7). Plus or minus 200 ft and 15 degrees is the private standard (ACS PA.VI.B.S7)."
+  },
+  {
+   "q": "Which is positive identification of a VOR?",
+   "options": [
+    "An FSS specialist speaking on the VOR frequency",
+    "A recorded voice giving the station name followed by \"VOR,\" or the Morse code",
+    "A steady needle with no flag",
+    "The identifier shown from the receiver's database, without listening"
+   ],
+   "answer": 1,
+   "why": "Only the Morse code or a recorded voice ID ending in \"VOR\" is positive. FSS voices may come from a facility running several VORs [[33:68|AIM 1-1-3]] [[33:69|AIM 1-1-3]]. A database display of the expected ID still has to be matched to the audio [[33:69|AIM 1-1-3]]."
+  },
+  {
+   "q": "Under 14 CFR 91.171, a VOR used for IFR must have been operationally checked within the preceding:",
+   "options": [
+    "10 days",
+    "30 days",
+    "90 days",
+    "12 calendar months"
+   ],
+   "answer": 1,
+   "why": "30 days, unless the equipment is maintained under an approved procedure [[60:470|14 CFR 91.171]]."
+  },
+  {
+   "q": "Checking VOR sensitivity, how far should you have to turn the OBS to move the needle from center to the last dot on one side?",
+   "options": [
+    "No more than 2 degrees",
+    "No more than 4 to 6 degrees",
+    "No more than 10 or 12 degrees",
+    "At least 20 degrees"
+   ],
+   "answer": 2,
+   "why": "The course selected should not exceed 10 or 12 degrees either side [[23:259|IFH 9-16]]. 4 and 6 degrees are accuracy limits, not sensitivity [[60:470|14 CFR 91.171]]."
+  },
+  {
+   "q": "When is a DME groundspeed readout accurate?",
+   "options": [
+    "At any heading within 30 NM",
+    "Only when tracking directly to or from the station, after a minute or two of steady flight",
+    "Only above 6,076 ft AGL",
+    "Only in RNAV en route mode"
+   ],
+   "answer": 1,
+   "why": "DME groundspeed and time to station are only accurate when tracking directly to or from the VORTAC, after a minute or two of stabilized flight [[1:415|PHAK 16-28]]."
+  },
+  {
+   "q": "A GPS receiver with fault detection and exclusion needs how many satellites to find and remove a bad one?",
+   "options": [
+    "4, or 3 plus baro-aiding",
+    "5, or 4 plus baro-aiding",
+    "6, or 5 plus baro-aiding",
+    "8 always"
+   ],
+   "answer": 2,
+   "why": "FDE needs 6 satellites, or 5 with baro-aiding. Five, or four plus baro-aiding, only detects the problem (RAIM) [[33:89|AIM 1-1-17]]."
+  },
+  {
+   "q": "Besides corrections, what does the WAAS geostationary satellite add for your receiver?",
+   "options": [
+    "A backup VOR signal",
+    "An extra ranging signal, in effect one more GPS satellite in view",
+    "A second frequency for DME",
+    "Radar traffic"
+   ],
+   "answer": 1,
+   "why": "The GEO gives an additional pseudorange measurement, which improves availability like an extra satellite [[33:102|AIM 1-1-18]]."
+  },
+  {
+   "q": "You are VFR on radar services, landing at a towered airport where basic radar service is provided. When does radar service end?",
+   "options": [
+    "When you report the airport in sight",
+    "Automatically when you have landed, without being told",
+    "Only when the controller says radar service terminated",
+    "When you squawk 1200"
+   ],
+   "answer": 1,
+   "why": "For an arriving VFR aircraft at a tower airport with basic radar service, radar service ends automatically when it has landed, and you need not be advised [[33:218|AIM 4-1-18]]."
+  },
+  {
+   "q": "An airplane with no transponder is flying nearby. Will it appear on your ADS-B In display as TIS-B traffic?",
+   "options": [
+    "Yes, TIS-B shows all aircraft radar sees",
+    "Only within 15 NM",
+    "Only if it has a UAT receiver",
+    "No, TIS-B only uplinks transponder-equipped aircraft"
+   ],
+   "answer": 3,
+   "why": "TIS-B only uplinks data on transponder-equipped aircraft; aircraft without a transponder are not shown [[33:306|AIM 4-5-8]]."
+  },
+  {
+   "q": "While vectored around weather, your GPS keeps jumping to the next waypoint on the route. What prevents this?",
+   "options": [
+    "Selecting the approach mode",
+    "Placing the receiver in its non-sequencing mode",
+    "Turning off RAIM",
+    "Switching the CDI to VOR"
+   ],
+   "answer": 1,
+   "why": "Receivers may sequence when you are off the active route because you pass near a waypoint; the non-sequencing mode stops this [[33:99|AIM 1-1-17]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Your VOR read within 2 degrees at the VOT this morning, but 60 NM out it disagrees with a known radial by 8 degrees. What best explains this?",
+   "options": [
+    "VOTs are only accurate to 10 degrees",
+    "A worn gain or modulation circuit can look fine near a strong signal and be out of tolerance at a distance",
+    "Prop RPM always causes 8 degrees of error",
+    "VOR radials bend with distance"
+   ],
+   "answer": 1,
+   "why": "A deteriorating receiver can show acceptable accuracy close to the VOR or VOT and out-of-tolerance readings in weaker signal areas; yearly calibration is recommended [[33:71|AIM 1-1-4]]. Prop RPM roughness is up to 6 degrees and is smoothed by an RPM change [[33:69|AIM 1-1-3]]."
+  },
+  {
+   "q": "You fly outbound on the 090 radial but left the OBS set to 270 with TO showing. The needle moves right. Where is the course?",
+   "options": [
+    "To your right",
+    "To your left",
+    "Directly behind you",
+    "You are on course"
+   ],
+   "answer": 1,
+   "why": "With the OBS set to the reciprocal you get reverse sensing: turn away from the needle to correct [[23:257|IFH 9-14]]. Setting the OBS to agree with the course fixes it."
+  },
+  {
+   "q": "VFR with a panel GPS that has no RAIM alerting, your GPS position disagrees with your VOR cross radials by 4 NM. What should you do?",
+   "options": [
+    "Trust the GPS; it is more accurate than VOR",
+    "Be suspicious of the GPS and cross-check with pilotage and other navigation",
+    "Reset the GPS and continue on its guidance",
+    "Ignore both and fly the heading"
+   ],
+   "answer": 1,
+   "why": "VFR panel and hand-held units have no RAIM alerting, so use a systematic cross-check and be suspicious of the GPS position if they disagree [[33:90|AIM 1-1-17]]."
+  },
+  {
+   "q": "Your GPS shows a RAIM alert that an error exceeding the limit for this phase of flight was detected. This means:",
+   "options": [
+    "Not enough satellites, but the position is fine",
+    "The receiver detected a potential error and an inconsistency in the solution",
+    "The database has expired",
+    "WAAS has replaced RAIM"
+   ],
+   "answer": 1,
+   "why": "There are two RAIM message types; this one means the integrity monitor found a potential error for the phase of flight. The other means not enough satellites to monitor integrity [[33:90|AIM 1-1-17]]."
+  },
+  {
+   "q": "En route, far from any NOTAMed test area, your clock jumps 40 minutes and your map shifts. What is the best action?",
+   "options": [
+    "Keep following GPS; clocks often glitch",
+    "Verify position with conventional navaids, revert if needed, and promptly tell ATC",
+    "Turn off the transponder to reset ADS-B",
+    "Descend to improve satellite reception"
+   ],
+   "answer": 1,
+   "why": "Clock changes and large position shifts are signs of jamming or spoofing. Verify with conventional navaids and notify ATC promptly [[33:119|AIM 1-2-4]] [[33:120|AIM 1-2-4]]. Outside a NOTAMed area, in-flight reports are wanted [[33:88|AIM 1-1-13]]."
+  },
+  {
+   "q": "Approach calls traffic \"2 o'clock.\" You are flying a northbound track crabbed left into a west wind, like aircraft C in the AIM figure. Where will the traffic appear?",
+   "options": [
+    "At 1 o'clock",
+    "At 2 o'clock",
+    "At 3 o'clock",
+    "At 12 o'clock"
+   ],
+   "answer": 2,
+   "why": "ATC calls traffic by your track. With the nose crabbed left into the wind, the traffic appears farther right; the AIM example gives 3 o'clock for aircraft C [[33:216|AIM 4-1-15]]."
+  },
+  {
+   "q": "On flight following you hear \"low altitude alert, check your altitude immediately.\" What is this, and who decides what to do?",
+   "options": [
+    "A clearance you must obey",
+    "A safety alert; it is solely the pilot's decision what action, if any, to take",
+    "A traffic advisory that requires no action",
+    "A request to squawk 7700"
+   ],
+   "answer": 1,
+   "why": "A safety alert is issued when the controller judges you are in unsafe proximity to terrain, obstructions or aircraft; the action is solely the pilot's prerogative [[33:216|AIM 4-1-16]] [[33:217|AIM 4-1-16]]."
+  },
+  {
+   "q": "Your UAT is in anonymous mode for a local sightseeing flight. You decide to call approach for flight following. What must you do?",
+   "options": [
+    "Nothing; ATC sees anonymous targets normally",
+    "Disable the anonymous feature before contacting ATC and make sure the FLT ID matches",
+    "Squawk 1202",
+    "Switch the transponder to standby"
+   ],
+   "answer": 1,
+   "why": "Anonymous mode is only for VFR with 1200 and no ATC services; you must disable it before contacting ATC and ensure your FLT ID matches your aircraft identification [[33:303|AIM 4-5-7]]."
+  },
+  {
+   "q": "Your transponder fails on the way to a Class C airport. When can you ask ATC for a deviation to continue to the destination?",
+   "options": [
+    "At any time",
+    "At least 1 hour before the operation",
+    "At least 24 hours before",
+    "Never; you must divert"
+   ],
+   "answer": 0,
+   "why": "For an inoperative transponder going to the destination or a repair shop, the request may be made at any time. The one-hour rule is for aircraft not equipped [[60:495|14 CFR 91.215]]."
+  },
+  {
+   "q": "Your autopilot has flown flawlessly for 200 hours. According to the PHAK, how does that reliability affect your monitoring?",
+   "options": [
+    "It lets you monitor less, safely",
+    "The more reliable the system, the poorer human monitoring tends to be",
+    "It removes the need to know which modes are armed",
+    "It makes hand-flying practice unnecessary"
+   ],
+   "answer": 1,
+   "why": "Humans are poor monitors of automated systems, and the more reliable the system, the poorer the human performance [[1:70|PHAK 2-31]]. Pilots should still occasionally hand-fly to keep their skills [[1:66|PHAK 2-27]]."
+  },
+  {
+   "q": "You want an installed tablet mount that takes GPS position from the panel navigator. Under AC 91-78A, what is the condition for that input?",
+   "options": [
+    "None; any connection is allowed",
+    "It must be designed so it does not adversely affect the navigation source's output",
+    "Only a portable EFB may take position input",
+    "It requires the EFB to be the primary navigator"
+   ],
+   "answer": 1,
+   "why": "Installed EFBs may receive position from an onboard navigation system if the input is designed and integrated so it does not adversely affect the navigation source [[42:3|AC 91-78A 10.2]]. Portable EFBs are not connected to aircraft systems [[42:3|AC 91-78A 10.1]]."
+  },
+  {
+   "q": "Approach vectors you VFR toward a cloud layer to sequence you. Which is true?",
+   "options": [
+    "The vector authorizes you to enter the cloud",
+    "You must follow the vector and let ATC handle weather",
+    "The vector is advisory; keep ATC told about the weather and do not violate VFR minimums",
+    "You must cancel radar service"
+   ],
+   "answer": 2,
+   "why": "Radar navigation assistance does not authorize violating the CFRs, and controllers may not know if a vector leads into IFR conditions, so keep them advised [[33:217|AIM 4-1-17]]; terminal services do not relieve you of VFR weather minimums [[33:220|AIM 4-1-18]]."
+  },
+  {
+   "q": "With a WAAS navigator only (no VOR), what does the AIM say about planning for a GPS outage under part 91?",
+   "options": [
+    "You must carry fuel to a MON airport",
+    "You are not required to carry VOR avionics, but prudent planning should consider an outage",
+    "You may not fly cross-country",
+    "WAAS cannot be affected by GPS outages"
+   ],
+   "answer": 1,
+   "why": "WAAS users under part 91 are not required to carry VOR avionics and cannot use the MON; prudent planning should consider a GPS outage [[33:70|AIM 1-1-3]]. A MON airport as alternate is not required [[33:70|AIM 1-1-3]]."
+  }
+ ],
+ "takeaways": [
+  "Commercial standard: altitude within 100 ft and heading within 10 degrees while you navigate.",
+  "Identify every VOR by Morse or recorded voice, and never use one that is NOTAMed out or has no identifier.",
+  "91.171 VOR checks are for IFR: 30 days, 4 degrees on the ground, 6 in the air, 4 between two receivers, logged and signed.",
+  "VFR GPS has no integrity alerting; RAIM needs 5 satellites, FDE needs 6, and WAAS still depends on GPS.",
+  "Know what the autopilot is doing at all times: armed versus engaged, and what a source change does.",
+  "Flight following is workload-permitting; monitor the frequency, report altitude changes, and say goodbye before you leave.",
+  "ADS-B and TIS-B help you see traffic but are not collision avoidance; match your FLT ID and turn off anonymous mode for ATC."
+ ],
+ "cfi_notes": [
+  "The private and commercial element lists are the same; only S7 tightens (100 ft and 10 degrees versus 200 ft and 15 degrees). Spend the lesson on depth: receiver checks, integrity, mode awareness and ATC procedures (ACS CA.VI.B.S7, PA.VI.B.S7).",
+  "PHAK 16-23 still prints the old T, L and H VOR range table [[1:410|PHAK 16-23]]. The AIM now adds VOR Low and VOR High service volumes for the MON [[33:75|AIM 1-1-8]]. Teach the AIM and use the PHAK table only as background.",
+  "IFH 9-32 says WAAS has 25 reference stations, 2 master stations and 4 uplinks [[23:275|IFH 9-32]]. The current AIM says 3 GEO links, 38 reference stations, 3 master stations and 6 ground earth stations [[33:102|AIM 1-1-18]]. Teach the AIM numbers if asked; better, teach the flow, not the counts.",
+  "IFH 9-26 lists only TSO-C129 as IFR GPS equipment [[23:269|IFH 9-26]]. The AIM lists TSO-C129, C196, C145 and C146 [[33:91|AIM 1-1-17]]. Teach the AIM.",
+  "PHAK 16-33 says VFR waypoint coordinates are in the Chart Supplement [[1:420|PHAK 16-33]]; the current AIM points to FAA Order JO 7350.9 [[33:91|AIM 1-1-17]]. PHAK 16-32 says many VFR receivers lack RAIM, while the AIM says VFR panel-mount and hand-held units have none [[1:419|PHAK 16-32]] [[33:90|AIM 1-1-17]]. Teach the AIM wording.",
+  "IFH 9-16 still says VOT locations are in the A/FD [[23:259|IFH 9-16]]; that publication is now the Chart Supplement [[33:71|AIM 1-1-4]].",
+  "14 CFR 91.225 says \"Gulf of Mexico\" [[60:499|14 CFR 91.225]] while AIM 4-1-20 says \"Gulf of America\" [[33:223|AIM 4-1-20]]. It is the same airspace; expect either name on a test.",
+  "Examiners often fail the GPS or switch the HSI source mid-task to see if the applicant notices the autopilot mode change and holds 100 ft and 10 degrees by hand. Practice exactly that [[1:70|PHAK 2-31]].",
+  "The crab-angle traffic error in AIM FIG 4-1-1 is rarely taught but easy to demonstrate on a windy day with flight following. Have the student predict where to look before the traffic call [[33:216|AIM 4-1-15]]."
+ ],
+ "gaps": [
+  "How a specific GPS navigator or autopilot behaves (mode names, CDI scaling annunciations, what happens on a source change, disconnect methods) comes only from its AFM supplement and pilot guide, as the ACS note says.",
+  "No source gives a required interval or tolerance for VOR checks under VFR; the PHAK only suggests using the IFR limits as a guide [[1:410|PHAK 16-23]].",
+  "The sources do not say how an examiner will simulate signal loss or interference on a checkride. That is a CFI and examiner matter.",
+  "The AIM says there is no indication when you are inside or outside TIS-B coverage [[33:306|AIM 4-5-8]], and no source here tells you how to judge it in flight.",
+  "AC 91-78A gives general EFB criteria only; it does not cover how a specific app displays ADS-B traffic or weather, or its alerting. Use the app's documentation."
+ ],
+ "activities": [
+  {
+   "type": "match",
+   "key": "h1",
+   "after": 3,
+   "title": "VOR checks under 14 CFR 91.171",
+   "intro": "Tap a check, then the rule that goes with it.",
+   "pairs": [
+    {
+     "l": "VOT at the departure airport",
+     "r": "Plus or minus 4 degrees, on the ground"
+    },
+    {
+     "l": "Designated airborne checkpoint",
+     "r": "Plus or minus 6 degrees, over a charted landmark"
+    },
+    {
+     "l": "Airway radial over a ground point",
+     "r": "Preferably more than 20 NM out, 6 degrees"
+    },
+    {
+     "l": "Dual VOR receivers",
+     "r": "4 degrees between the two indicated bearings"
+    },
+    {
+     "l": "Record of the check",
+     "r": "Date, place, bearing error and signature"
+    },
+    {
+     "l": "How recent for IFR",
+     "r": "Within the preceding 30 days"
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h2",
+   "after": 5,
+   "title": "Work the position numbers",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "CDI time check: after turning the OBS 10 degrees, the needle takes 1.5 minutes to recenter. How many minutes to the station?",
+     "answer": 9,
+     "tol": 0,
+     "unit": "min",
+     "why": "Time = 60 x minutes / degrees = 60 x 1.5 / 10 = 9 minutes [[1:414|PHAK 16-27]]."
+    },
+    {
+     "q": "Same check at 120 knots TAS. How far to the station?",
+     "answer": 18,
+     "tol": 0,
+     "unit": "NM",
+     "why": "Distance = TAS x minutes / degrees = 120 x 1.5 / 10 = 18 NM [[1:414|PHAK 16-27]]."
+    },
+    {
+     "q": "RMI check: the pointer moves 10 degrees in 108 seconds. How many minutes to the station?",
+     "answer": 10.8,
+     "tol": 0.1,
+     "unit": "min",
+     "why": "Seconds divided by degrees gives minutes: 108 / 10 = 10.8 minutes [[1:413|PHAK 16-26]] [[1:414|PHAK 16-27]]."
+    },
+    {
+     "q": "You are 45 NM from a VOR and 4 degrees off the radial. About how many NM off course are you?",
+     "answer": 3,
+     "tol": 0.1,
+     "unit": "NM",
+     "why": "1 degree is 1 NM wide at 60 NM, so at 45 NM it is 45/60 = 0.75 NM. 4 x 0.75 = 3 NM [[1:414|PHAK 16-27]]."
+    },
+    {
+     "q": "Passing directly over a VORTAC at 9,114 ft AGL, about what will the DME read?",
+     "answer": 1.5,
+     "tol": 0.1,
+     "unit": "NM",
+     "why": "DME is slant range; 6,076 ft AGL overhead reads about 1.0 NM, so 9,114 / 6,076 = 1.5 NM [[1:414|PHAK 16-27]] [[1:415|PHAK 16-28]]."
+    },
+    {
+     "q": "Dual VOR check: NAV 1 shows 047 TO and NAV 2 shows 052 TO for the same station. How many degrees apart are they?",
+     "answer": 5,
+     "tol": 0,
+     "unit": "degrees",
+     "why": "052 - 047 = 5 degrees, more than the 4 degree maximum, so the pair fails for IFR [[60:471|14 CFR 91.171]]."
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h3",
+   "after": 6,
+   "title": "Read the waypoint passage picture",
+   "figure": "f4",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 65.6,
+     "y": 21.0,
+     "label": "Waypoint the airplane turns short of"
+    },
+    {
+     "x": 75.2,
+     "y": 40.5,
+     "label": "Airplane already on the new course thanks to turn anticipation"
+    },
+    {
+     "x": 66.0,
+     "y": 55.5,
+     "label": "Waypoint the airplane must overfly before turning"
+    },
+    {
+     "x": 78.0,
+     "y": 63.0,
+     "label": "Turn that starts only after crossing, then swings back to the course"
+    },
+    {
+     "x": 82.0,
+     "y": 87.3,
+     "label": "Next waypoint after an overfly turn"
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h4",
+   "after": 8,
+   "title": "True or false: GPS and WAAS",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "Up to two hours can pass before the GPS control segment detects and corrects a bad satellite transmission.",
+     "a": true,
+     "why": "True. That delay is why RAIM's immediate fault detection matters [[33:89|AIM 1-1-17]]."
+    },
+    {
+     "s": "For baro-aiding, the receiver can use its own GPS-derived altitude.",
+     "a": false,
+     "why": "False. Enter the current altimeter setting; do not use GPS altitude because its vertical error is large [[33:89|AIM 1-1-17]]."
+    },
+    {
+     "s": "14 CFR requires a current GPS database for VFR navigation.",
+     "a": false,
+     "why": "False. Databases must be current for IFR and should be for other operations, but there is no requirement for VFR [[33:90|AIM 1-1-17]]."
+    },
+    {
+     "s": "Using a hand-held GPS needs no approval, but adding a permanent mount or external antenna does.",
+     "a": true,
+     "why": "True. Hand-helds need no approval; aircraft modifications to support them do [[33:101|AIM 1-1-17]] [[33:90|AIM 1-1-17]]."
+    },
+    {
+     "s": "Typical GPS position errors from clocks, multipath and the atmosphere are less than 100 ft.",
+     "a": true,
+     "why": "True [[23:274|IFH 9-31]]."
+    },
+    {
+     "s": "VFR waypoints may be filed on an IFR flight plan.",
+     "a": false,
+     "why": "False. VFR waypoints are not recognized by the IFR system and will be rejected [[33:91|AIM 1-1-17]]."
+    },
+    {
+     "s": "LP minima give vertical guidance like LPV.",
+     "a": false,
+     "why": "False. LP is a lateral-only line of minima used where vertical guidance cannot be published [[33:102|AIM 1-1-18]]."
+    },
+    {
+     "s": "Holding a VFR GPS position steady proves it is accurate, because VFR receivers meet an accuracy standard.",
+     "a": false,
+     "why": "False. No design standard of accuracy or integrity is used for VFR GPS receivers [[33:91|AIM 1-1-17]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h5",
+   "after": 10,
+   "title": "Flight following from first call to goodbye",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Turn off ADS-B anonymous mode and confirm the FLT ID matches your call sign",
+    "Call the facility with its name, your full call sign and \"request VFR traffic advisories\"",
+    "When asked, give position, exact altitude, type and destination",
+    "Squawk the assigned code; press IDENT only if ATC asks",
+    "Hear \"radar contact\" and keep monitoring the frequency",
+    "Tell ATC before you change your VFR cruising altitude",
+    "Advise ATC before leaving the frequency, then squawk 1200"
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h6",
+   "after": 11,
+   "title": "Transponder and ADS-B Out: required or not?",
+   "intro": "Tap each spot, then the bucket that fits a powered airplane with an electrical system.",
+   "buckets": [
+    "Mode C and ADS-B Out required",
+    "ADS-B Out required, transponder not",
+    "Neither required"
+   ],
+   "items": [
+    {
+     "t": "Inside Class C airspace at 2,500 ft MSL",
+     "b": 0
+    },
+    {
+     "t": "9,500 ft MSL, 25 NM from a listed Class B primary airport, outside the Class B",
+     "b": 0
+    },
+    {
+     "t": "Class E at 11,500 ft MSL, 4,000 ft AGL, in the 48 states",
+     "b": 0
+    },
+    {
+     "t": "Class E at 3,500 ft MSL over the Gulf, 8 NM off the U.S. coast",
+     "b": 1
+    },
+    {
+     "t": "Class E at 10,500 ft MSL, 1,800 ft above a ridge, far from any Class B or C",
+     "b": 2
+    },
+    {
+     "t": "Class D airspace far from any Class B or C",
+     "b": 2
+    },
+    {
+     "t": "Class E at 4,500 ft MSL, 45 NM from the nearest Class B primary airport, no Class C nearby",
+     "b": 2
+    }
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 12,
+   "title": "When the satellites go quiet",
+   "intro": "You are flying a WAAS-equipped single VFR on a paid ferry flight, with the autopilot coupled to GPS and flight following from center. A GPS test NOTAM covers an area 40 NM ahead.",
+   "steps": [
+    {
+     "s": "Before departure you noted the NOTAM. What should your plan already include?",
+     "options": [
+      "Nothing; WAAS is immune to GPS tests",
+      "VORs to use through the area, extra fuel, and a conventional plan at the destination",
+      "A plan to turn off ADS-B in the area",
+      "Climbing above 18,000 ft to avoid the test"
+     ],
+     "answer": 1,
+     "why": "The FAA recommends knowing risk areas, checking NOTAMs, planning fuel contingencies and planning to use conventional navaids [[33:119|AIM 1-2-4]]. WAAS depends on GPS [[33:119|AIM 1-2-4]]."
+    },
+    {
+     "s": "Inside the NOTAMed area, the map freezes and the GPS shows a loss of integrity. You need no help from ATC.",
+     "options": [
+      "Report the outage to ATC in detail right away",
+      "Do not report it in detail; navigate by VOR and pilotage",
+      "Squawk 7600",
+      "Reboot the GPS repeatedly until it works"
+     ],
+     "answer": 1,
+     "why": "GPS problems inside a known test area should not be reported in detail in flight unless you need help or see unexpected effects [[33:88|AIM 1-1-13]] [[33:120|AIM 1-2-4]]. Revert to conventional navigation [[33:87|AIM 1-1-13]]."
+    },
+    {
+     "s": "You tune the nearest VOR. The needle centers, but you hear no identifier at all.",
+     "options": [
+      "Use it; the needle looks normal",
+      "Use it only with FROM showing",
+      "Do not use it; a removed identifier means it may be unreliable",
+      "Use it if the flag is out of view"
+     ],
+     "answer": 2,
+     "why": "Removal of the identifier warns that the facility is officially off the air and may be unreliable even if signals are received [[33:87|AIM 1-1-11]]."
+    },
+    {
+     "s": "You tune a second VOR, identify it, and switch the HSI source to VOR. The autopilot drops from NAV to ROL.",
+     "options": [
+      "Leave it in ROL; it will track the VOR",
+      "Hold heading and altitude, check the course, then re-engage NAV on the VOR source",
+      "Disconnect and turn the GPS back on",
+      "Switch back to GPS to restore NAV"
+     ],
+     "answer": 1,
+     "why": "On some autopilots a source change drops NAV to wing level until the pilot re-engages it [[1:70|PHAK 2-31]]. You still owe 100 ft and 10 degrees meanwhile (ACS CA.VI.B.S7)."
+    },
+    {
+     "s": "After landing, the GPS was also wrong for a few minutes outside the NOTAMed area. What now?",
+     "options": [
+      "Nothing; it was a test",
+      "Write it in the maintenance log and file an FAA GPS anomaly report",
+      "Only tell the next pilot",
+      "Replace the antenna yourself"
+     ],
+     "answer": 1,
+     "why": "Post flight, document jamming or spoofing in the maintenance log and file a report [[33:120|AIM 1-2-4]]. Degradation outside the NOTAMed area is worth reporting [[33:88|AIM 1-1-13]]."
+    }
+   ]
+  }
+ ]
+}
