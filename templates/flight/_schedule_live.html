@@ -771,7 +771,7 @@ data-late-tip="Running late&#10;Late: {{ f.late.minutes }} min&#10;ETA: {{ f.lat
       {% for wd in week_days %}
       {% set wd_past_pct = 100 if (today_str and wd.date_str < today_str) else (week_now_pct if wd.is_today else 0) %}
       <div class="week-timeline-day-col">
-        <a href="{{ url_for('flight.schedule_calendar', view='day', date=wd.date_str, plane_id=plane_id, cfi_id=cfi_id) }}"
+        <a href="{{ url_for('flight.schedule_availability', date=wd.date_str, plane_id=plane_id) }}" title="See what's open on this day"
            class="week-timeline-day-head text-decoration-none {{ 'week-timeline-day-head-today' if wd.is_today }}">
           {{ wd.weekday }} {{ wd.day_num }}{% if wd.is_today %} <span class="badge bg-warning text-dark badge-micro">TODAY</span>{% endif %}
         </a>
