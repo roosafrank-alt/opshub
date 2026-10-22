@@ -296,8 +296,25 @@
     <div class="card p-3 pd-o3">
       <h5>Transaction History</h5>
       {% if tx %}
-      <div class="table-responsive">
-        <table class="table table-sm table-stack" data-change="SHOP-25">
+      <div class="d-sm-none" id="tx-phone-list">
+        {% for t in tx %}
+        {% set _src = 'Camera' if t.source == 'camera_scan' else ('USB scanner' if t.source == 'usb_scanner' else ('Assigned' if t.source == 'assigned' else '')) %}
+        {% set _bits = [t.section, t.performed_by, _src, t.note]|select|list %}
+        <div class="py-2 {{ 'border-top' if not loop.first }}">
+          <div class="d-flex align-items-center gap-2">
+            {% if t.type == 'in' %}<span class="badge bg-success">IN</span>
+            {% elif t.type == 'out' %}<span class="badge bg-primary">OUT</span>
+            {% else %}<span class="badge bg-secondary">ADJUST</span>{% endif %}
+            <span class="fw-semibold">{{ '%+g'|format(t.qty) if t.type=='adjust' else '%g'|format(t.qty) }}</span>
+            <span class="text-truncate">{% if t.project_name %}<a href="{{ url_for('project_detail', project_id=t.project_id) }}">{{ t.project_name }}</a>{% else %}Stock{% endif %}</span>
+            <small class="ms-auto text-muted text-nowrap">{{ t.created_at|usdate_short }}</small>
+          </div>
+          {% if _bits %}<div class="small text-muted">{{ _bits|join(' · ') }}</div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="table-responsive d-none d-sm-block">
+        <table class="table table-sm" data-change="SHOP-25">
           <thead><tr><th>When</th><th>Type</th><th>Qty</th><th>Project</th><th>Area</th><th>By</th><th>Added Via</th><th>Note</th></tr></thead>
           <tbody>
             {% for t in tx %}
