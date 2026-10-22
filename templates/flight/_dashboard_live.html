@@ -541,12 +541,18 @@
     </div>
     <div class="wx-strip-item">
       <span class="wx-subtle">Wind</span>
-      {% if c.wind_dir_deg is not none and c.wind_mph %}
+      {% set _kt = c.wind_kt is defined and c.wind_kt is not none %}
+      {% if c.wind_dir_deg is not none and (c.wind_mph or _kt) %}
       <i class="bi bi-arrow-up wx-wind-arrow" style="transform: rotate({{ (c.wind_dir_deg|float + 180) % 360 }}deg); display:inline-block;" title="Wind from {{ c.wind_dir_deg|int }}°"></i>
       {% endif %}
+      {% if _kt %}
+      <strong>{{ '%.0f'|format(c.wind_kt) }}</strong> kt
+      {% else %}
       <strong>{{ '%.0f'|format(c.wind_mph) if c.wind_mph is not none else '-' }}</strong>{% if c.wind_mph is not none %} mph{% endif %}
+      {% endif %}
       {% if c.wind_dir_deg is not none %}<span class="wx-subtle">{{ c.wind_dir_deg|int }}&deg; {{ _wind_compass(c.wind_dir_deg) }}</span>{% endif %}
-      {% if c.wind_gusts_mph %}<span class="wx-subtle">G{{ '%.0f'|format(c.wind_gusts_mph) }}</span>{% endif %}
+      {% if _kt %}{% if c.wind_gust_kt %}<span class="wx-subtle">G{{ '%.0f'|format(c.wind_gust_kt) }}</span>{% endif %}<span class="wx-subtle">{{ c.wind_station }}</span>
+      {% elif c.wind_gusts_mph %}<span class="wx-subtle">G{{ '%.0f'|format(c.wind_gusts_mph) }}</span>{% endif %}
     </div>
     <div class="wx-strip-item"><span class="wx-subtle">Clouds</span> <strong>{{ c.cloud_cover_pct|int if c.cloud_cover_pct is not none else '-' }}%</strong></div>
     <div class="wx-strip-item"><span class="wx-subtle">Vis</span> <strong>{{ '%.1f'|format(c.visibility_miles) if c.visibility_miles is not none else '-' }}</strong>{% if c.visibility_miles is not none %} mi{% endif %}</div>
