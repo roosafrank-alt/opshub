@@ -306,7 +306,7 @@
      "p": "In the figure, three airplanes sit at the same pivotal altitude with 60\u00b0, 45\u00b0 and 30\u00b0 of bank. The closer one is to the pylon, the steeper its bank. That is why an instructor can ask you to enter at a distance that gives a chosen bank at the steepest point of the turn [[24:163|AFH 7-17]]."
     },
     {
-     "p": "Application, why 11.3: the PHAK gives turn radius as speed squared / (11.26 x tan bank) [[1:136|PHAK 5-39]]. For the sight line along the lateral axis to hit the pylon, height = radius x tan bank. Put the two together and tan bank cancels: height = speed squared / 11.26, which rounds to the AFH's 11.3. With groundspeed in place of true airspeed, bank drops out, so only groundspeed sets the height."
+     "p": "Application, why 11.3: the PHAK gives turn radius in feet as speed in knots squared / (11.26 x tan bank) [[1:136|PHAK 5-39]]. For the sight line along the lateral axis to hit the pylon at the center of the turn, height = radius x tan bank. Put the two together and tan bank cancels: height = speed squared / 11.26, which rounds to the AFH's 11.3. Bank drops out, so only speed sets the height; the AFH rule uses groundspeed because that is what you see over the ground."
     },
     {
      "callout": {
@@ -870,7 +870,7 @@
     "a": "The AFH warns to look for other aircraft at low altitude [[24:148|AFH 7-2]]. Below the horizon means it is probably lower than you; if it shows no relative motion and grows, take evasive action [[34:188|AIM 8-1-8]]. Haze makes it harder to see, so keep scanning after you react [[34:188|AIM 8-1-8]]."
    },
    {
-    "q": "On the downwind side the pylon keeps sliding behind your sight line, and you catch yourself pushing outside rudder. What is wrong?",
+    "q": "On the downwind side the pylon keeps sliding behind your sight line, and you catch yourself pushing inside rudder to drag the wing back. What is wrong?",
     "a": "Using rudder to yaw the wing onto the pylon is the most common error; the rudder is for coordination only [[24:164|AFH 7-18]]. The pylon behind means you are low: climb [[24:163|AFH 7-17]]. A slip or skid near the stall can start a spin [[24:127|AFH 5-22]]."
    },
    {
@@ -908,7 +908,7 @@
   {
    "code": "CA.V.E.S6",
    "do": "Keep the line-of-sight reference on the pylon with smooth, continuous corrections.",
-   "practice": "Have your CFI call 'ahead' or 'behind' while you answer with small descents or climbs [[24:163|AFH 7-17]]."
+   "practice": "Have your CFI call 'pylon ahead' or 'pylon behind' while you answer with a small descent or climb [[24:163|AFH 7-17]] [[24:161|AFH 7-15]]."
   },
   {
    "code": "CA.V.E.S7",
@@ -1057,15 +1057,15 @@
    "why": "Distance from the pylon sets the bank; the bank chosen does not change the pivotal altitude [[24:162|AFH 7-16]] [[24:163|AFH 7-17]]."
   },
   {
-   "q": "Mid-turn, the pylon seems to move ahead of your sight line. Which response is correct?",
+   "q": "You start well above pivotal altitude in a medium-bank turn around the pylon, reduce power and descend at maneuvering speed. The sight line's backward drift across the ground slows, then stops for an instant. What does that tell you?",
    "options": [
-    "Outside rudder to yaw the wing forward",
-    "Descend",
-    "Climb",
-    "Steepen the bank past 40\u00b0"
+    "You are at the pivotal altitude",
+    "You are now below the pivotal altitude",
+    "The wind has died down",
+    "Your bank is too steep"
    ],
-   "answer": 1,
-   "why": "Pylon appearing to move ahead means you are above pivotal altitude: decrease altitude [[24:163|AFH 7-17]]. Rudder is for coordination only [[24:164|AFH 7-18]]."
+   "answer": 0,
+   "why": "The altitude where the sight line stops moving across the ground is the pivotal altitude; keep descending and the line starts to move forward, which means you are below it [[24:162|AFH 7-16]]."
   },
   {
    "q": "A gust makes the sight line lag behind the pylon for a moment. What does the AFH suggest?",
@@ -1101,15 +1101,15 @@
    "why": "The POH gives maneuvering speeds by weight [[24:162|AFH 7-16]]. Less airspeed means less groundspeed, and pivotal altitude is set by groundspeed [[24:161|AFH 7-15]]."
   },
   {
-   "q": "The engine runs rough at about 800 feet AGL on the pylons, with the wind from the north. Which plan is best?",
+   "q": "Your POH stall speed is 48 knots with the wings level. About what is it in a level turn at the 40\u00b0 bank limit?",
    "options": [
-    "Finish the eight while troubleshooting",
-    "Best glide toward your preselected field, landing toward the north",
-    "Turn downwind to reach a farther field faster",
-    "Climb steeply to gain altitude first"
+    "About 48 knots",
+    "About 51 knots",
+    "About 55 knots",
+    "About 63 knots"
    ],
-   "answer": 1,
-   "why": "Have landing spots chosen before you start and expect little time at low altitude [[24:148|AFH 7-2]]. Set best glide [[24:199|AFH 9-28]]. Land into the wind: groundspeed drives the destructive energy, and double the groundspeed means four times the energy [[24:352|AFH 18-3]]."
+   "answer": 2,
+   "why": "Stall speed rises with the square root of the load factor [[1:131|PHAK 5-34]]. Application: at 40\u00b0 the load factor is 1 / cos 40\u00b0 = 1.31, its square root is 1.14, and 48 x 1.14 = 54.8, about 55 knots. 63 knots is the mistake of multiplying by the load factor itself. The AFH has you check the POH stall speed at the steepest bank you expect [[24:148|AFH 7-2]]."
   },
   {
    "q": "On the downwind side you hold the bank with aileron and push inside rudder to swing the wing back to the pylon. If the airplane stalls, what is most likely?",
@@ -1167,15 +1167,15 @@
    "why": "S8 asks you to maintain pylon position using appropriate pivotal altitude, avoiding slips and skids (ACS CA.V.E.S8)."
   },
   {
-   "q": "The wind is from the north and your pylons lie east and west of each other. Where should you be when you roll into the first turn?",
+   "q": "The wind is from the north and your pylons lie east and west of each other. You roll out of the first pylon turn. Where are you aiming?",
    "options": [
-    "North of the first pylon",
-    "South of the first pylon",
-    "Directly over the first pylon",
-    "Midway between the pylons, heading north"
+    "A point north of the second pylon",
+    "A point south of the second pylon, as far from it as you started from the first",
+    "Directly over the second pylon",
+    "A point on the line between the pylons, just short of the second"
    ],
    "answer": 1,
-   "why": "Fly diagonally crosswind between the pylons to a point downwind of the first pylon so the first turn is into the wind [[24:163|AFH 7-17]]. With a north wind, downwind is south."
+   "why": "Roll out with a wind correction angle and fly diagonally to a point downwind of the second pylon, equal in distance to where you started from the first [[24:163|AFH 7-17]]. With a north wind, downwind is south."
   }
  ],
  "takeaways": [
@@ -1188,11 +1188,11 @@
   "Low and turning: clear the area, watch for towers and helicopters, manage energy with power, and keep a field picked."
  ],
  "cfi_notes": [
-  "The AFH says the pivotal altitude varies 'slightly' through the turn [[24:162|AFH 7-16]]. Application: at 100 knots TAS in a 15-knot wind, straight upwind and downwind groundspeeds give about 639 and 1,170 feet. The real spread on the pylon is smaller, but in strong wind students should expect clear climbs and descents, not small ones.",
+  "The AFH says the pivotal altitude varies 'slightly' through the turn [[24:162|AFH 7-16]]. Application: the rule of thumb at 100 knots TAS in a 15-knot wind gives about 639 feet straight upwind, 865 crosswind and 1,170 straight downwind. You never fly the pylon turn straight downwind, so the real spread is smaller, but in strong wind expect climbs and descents of a few hundred feet, not small ones.",
   "AFH 7-14 says the wingtip is not the correct reference [[24:160|AFH 7-14]], yet AFH 7-17 starts the turn when the pylon is 'just ahead of the wingtip' [[24:163|AFH 7-17]]. Teach the wingtip only as the cue to roll in; while turning, the reference is the eye-level line parallel to the lateral axis.",
   "The AFH entry is 'diagonally crosswind between the pylons to a point downwind from the first pylon' [[24:163|AFH 7-17]]. The popular '45\u00b0 to the downwind' wording is instructor technique; the 45\u00b0 figure is not in the AFH text. Do not mix it up with eights around pylons, which starts on a downwind heading midway between the pylons [[24:159|AFH 7-13]].",
   "Bank limits differ by source: the ACS caps it at 40\u00b0 (ACS CA.V.E.S5), AFH 7-2 gives 45\u00b0 as a general ground reference limit [[24:148|AFH 7-2]], and Figure 7-14 shows 60\u00b0 [[24:163|AFH 7-17]]. On the checkride 40\u00b0 governs.",
-  "Figure 7-12's numbers are heights above the pylon, not altimeter readings, and are rounded. Most match the knots formula; the 96-knot row (810) matches the mph rule for 110 mph (807) better than the knots rule (816) [[24:161|AFH 7-15]].",
+  "Figure 7-12's numbers are heights above the pylon, not altimeter readings, and are rounded. Some rows match the knots rule (87, 100, 109 and 113 knots) and others the mph rule (105, 110 and 120 mph); the two rules never differ by more than about 6 feet on the table. Example: 96 knots gives 816 by the knots rule, 110 mph gives 807 by the mph rule, and the table shows 810 [[24:161|AFH 7-15]].",
   "The 'ahead/behind' wording is easy to reverse under stress. Teach it from the Figure 7-11 photos first: too high, pylon ahead; too low, pylon behind [[24:161|AFH 7-15]].",
   "The 11.3 derivation in this lesson comes from the PHAK radius formula, which uses true airspeed [[1:136|PHAK 5-39]], with groundspeed swapped in. It explains the rule of thumb; it is not an FAA derivation.",
   "Students often climb and descend with pitch only. Use the AFH demonstration (reduce power to descend, add power to climb at maneuvering speed) [[24:162|AFH 7-16]] and the energy model [[24:88|AFH 4-2]] to show why airspeed, groundspeed and pivotal altitude then wander together."
@@ -1259,7 +1259,7 @@
      "b": 0
     },
     {
-     "t": "Just after the first roll-in, you turn into the wind and groundspeed drops",
+     "t": "The altimeter shows your computed pivotal altitude, but the pylon keeps moving ahead of your sight line",
      "b": 1
     },
     {
