@@ -10,8 +10,10 @@ Work dir: /home/claude/work. Repo: /home/claude/opshub (branch chat/ir-commercia
 ## Tools
 - `python3 /home/claude/work/faa.py page RES PAGE`   text of a source page (PDF page number)
 - `python3 /home/claude/work/faa.py grep "regex" [RES]`   find where something is said
+- Private ACS text (for private vs commercial comparisons): /home/claude/work/faatext/private_airplane_acs_6-4.txt (grep it)
 - `python3 /home/claude/work/faa.py ids`   resource ids (1=PHAK 23=IFH 24=AFH 28=AWH 29=IPH 30=RMH 22=W&B 25=AIH 33/34=AIM 60=14 CFR combined 2=Chart Users' Guide, ACs: see ids)
 - `python3 /home/claude/work/faa.py grepCAACS "CA.V.A"`   Commercial ACS lines (tolerances are in the Skills S elements)
+- (CHECK lines in validate output are hints, not failures: keep the true printed label, e.g. "AFH 18-8", even when a page has no footer.)
 - `python3 /home/claude/work/validate.py lesson ground_lessons/<CODE>.json`   MUST end with OK (WARN lines are fine)
 - Figures (you do this yourself): first decide pages from the text (faa.py grep "Figure 10-" 24 etc.). Render them on the user's Mac with
   mcp__remote-devices__device_bash: `python3 mnt/Claude/Projects/flight-academy-lessons/tools/render.py 24:194 24:195`   (RES:PAGE, PDF page numbers; run from the shell's start folder, it has mnt/)

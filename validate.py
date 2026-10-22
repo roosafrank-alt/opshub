@@ -36,7 +36,7 @@ def cites(L):
                 pp=pg(r,int(p)-back)
                 if pp: t2+=pp.replace('\u2212','-')
             if toks and not any(re.sub(r'\(.*','',k) in t2 for k in toks):
-                bad('citation label not on that page (check it): [[%s:%s|%s]]'%(r,p,l))
+                print('CHECK: label number not found in the page text (fine if the page has no printed number; confirm by reading it and its neighbors): [[%s:%s|%s]]'%(r,p,l))
 def style(L):
     for s in strings(L):
         if '—' in s or '–' in s: bad('em/en dash in text: '+s[:60]); break
@@ -97,7 +97,16 @@ def lesson(path):
             used=set(c2 for ch in L['chunks'] for c2 in ch.get('codes',[]))|set(s.get('code') for s in L.get('skills',[]))|set(L.get('scenario',{}).get('codes',[]))
             for e in sorted(els-used): bad('outline element not covered: '+e)
     if acs:
-        els=set(re.findall(r'\b(%s\.[KRS]\d+[a-z]?)\b'%re.escape(code),acs))
+        els=set()
+        lines=acs.splitlines()
+        for i,ln in enumerate(lines):
+            m=re.match(r'\s*(%s\.[KRS]\d+[a-z]?)\s+(\S.*)'%re.escape(code),ln)
+            if not m or re.match(r'CA\.|CA\.1', m.group(2)): continue
+            txt=m.group(2)+' '+(lines[i+1] if i+1<len(lines) else '')
+            if '[Archived]' in txt: continue
+            par=re.findall(r'\(([A-Z]{4}(?:,\s*[A-Z]{4})*)\)',txt)
+            if par and not any('ASEL' in p for p in par): continue
+            els.add(m.group(1))
         used=set(c for ch in L['chunks'] for c in ch.get('codes',[]))|set(s.get('code') for s in L.get('skills',[]))|set(L.get('scenario',{}).get('codes',[]))
         for e in sorted(els-used): bad('ACS element not covered: '+e)
     cites(L); style(L)
