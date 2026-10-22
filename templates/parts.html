@@ -107,7 +107,7 @@
 </div>
 
 {% from "_list_toolbar.html" import list_toolbar %}
-{% call(slot) list_toolbar(count=parts|length) %}
+{% call(slot) list_toolbar(count=parts|length, count_id='parts-total-count') %}
   {%- if slot == 'title' -%}
     {% if show_retired %}Retired Parts{% elif show_low_stock %}Low Stock Items{% else %}Parts{% endif %}
   {%- elif slot == 'search' and not show_retired and not show_low_stock -%}
@@ -149,6 +149,7 @@
   <!-- Browse view: one table with one heading row; each category is a thin line inside it.
        Phones start with every category folded; laptops start with all open. -->
   {% if by_category %}
+  <p id="parts-no-match" class="text-muted" hidden>No parts match <strong class="q"></strong> - press Enter to search everything.</p>
   <div class="card">
     <div class="table-responsive parts-one-table">
       <table class="table table-hover mb-0 align-middle table-stack" data-change="SHOP-21">
@@ -221,16 +222,32 @@ function toggleCategory(idx) {
     document.querySelectorAll('tr[data-search]').forEach(function (row) {
       row.style.display = !q || row.getAttribute('data-search').indexOf(q) !== -1 ? '' : 'none';
     });
+    var totalMatches = 0;
     document.querySelectorAll('.cat-body').forEach(function (panel) {
-      var anyVisible = Array.prototype.some.call(panel.querySelectorAll('tr[data-search]'), function (r) {
+      var n = Array.prototype.filter.call(panel.querySelectorAll('tr[data-search]'), function (r) {
         return r.style.display !== 'none';
-      });
-      if (q) {
-        setCategoryOpen(panel, anyVisible);
-      } else {
-        setCategoryOpen(panel, false);
+      }).length;
+      totalMatches += n;
+      // While searching, a category with no match disappears and the others count their matches.
+      panel.style.display = q && !n ? 'none' : '';
+      var cnt = panel.querySelector('.cat-count');
+      if (cnt) {
+        if (!cnt.hasAttribute('data-all')) cnt.setAttribute('data-all', cnt.textContent);
+        cnt.textContent = q ? n + ' match' + (n === 1 ? '' : 'es') : cnt.getAttribute('data-all');
       }
+      setCategoryOpen(panel, q ? n > 0 : false);
     });
+    var total = document.getElementById('parts-total-count');
+    if (total) {
+      if (!total.hasAttribute('data-all')) total.setAttribute('data-all', total.textContent);
+      var all = total.getAttribute('data-all');
+      total.textContent = q ? totalMatches + ' of ' + all + ' match' : all;
+    }
+    var none = document.getElementById('parts-no-match');
+    if (none) {
+      none.hidden = !(q && !totalMatches);
+      none.querySelector('.q').textContent = liveSearch.value.trim();
+    }
     if (!q) openCategoriesOnWide();
   });
 })();
