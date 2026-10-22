@@ -174,17 +174,90 @@ def _km_between(lat1, lon1, lat2, lon2):
     return 6371 * 2 * asin(sqrt(a))
 
 
+_COVER = {"CLR": "Clear", "SKC": "Clear", "FEW": "Few", "SCT": "Scattered", "BKN": "Broken",
+          "OVC": "Overcast", "VV": "Vertical visibility"}
+_WX = {"RA": "rain", "SN": "snow", "DZ": "drizzle", "FG": "fog", "BR": "mist", "HZ": "haze",
+       "TS": "thunderstorm", "SH": "showers", "FZ": "freezing", "GR": "hail", "PL": "ice pellets",
+       "SG": "snow grains", "UP": "unknown precip", "FU": "smoke", "SQ": "squalls"}
+
+
+def _fmt_ft(n):
+    return f"{int(n):,} ft"
+
+
+def _fmt_sky(clouds):
+    parts = []
+    for c in clouds or []:
+        cover = _COVER.get(c.get("cover"), c.get("cover") or "")
+        base = c.get("base")
+        parts.append(cover if base is None or cover == "Clear" else f"{cover} {_fmt_ft(base)}")
+    return ", ".join(parts) if parts else None
+
+
+def _fmt_wind(wdir, wspd, wgst):
+    if wspd in (None, ""):
+        return None
+    if not wspd:
+        return "Calm"
+    d = "variable" if wdir in (None, "VRB") else f"{int(wdir):03d}\u00b0"
+    out = f"{d} at {int(wspd)} kt"
+    if wgst:
+        out += f", gusts {int(wgst)} kt"
+    return out
+
+
+def _fmt_vis(v):
+    if v in (None, ""):
+        return None
+    return f"{v} mi" if isinstance(v, str) else f"{v:g} mi"
+
+
+def _fmt_wx(wx):
+    if not wx:
+        return None
+    words = []
+    for tok in wx.split():
+        heavy = "Heavy " if tok.startswith("+") else "Light " if tok.startswith("-") else ""
+        tok = tok.lstrip("+-")
+        names = [_WX[tok[i:i + 2]] for i in range(0, len(tok), 2) if tok[i:i + 2] in _WX]
+        if names:
+            words.append(heavy + " ".join(names))
+    return ", ".join(words) or None
+
+
 def _metar_row(row):
+    temp, dewp = row.get("temp"), row.get("dewp")
+    altim = row.get("altim")  # hPa
+    decoded = {
+        "wind": _fmt_wind(row.get("wdir"), row.get("wspd"), row.get("wgst")),
+        "visibility": _fmt_vis(row.get("visib")),
+        "weather": _fmt_wx(row.get("wxString")),
+        "sky": _fmt_sky(row.get("clouds")),
+        "temp_dewpoint": (f"{temp:g}\u00b0C / {dewp:g}\u00b0C" if temp is not None and dewp is not None else None),
+        "altimeter": (f"{altim * 0.02953:.2f} inHg" if isinstance(altim, (int, float)) else None),
+        "category": row.get("fltCat"),
+    }
     return {
         "station": row.get("icaoId"),
+        "name": row.get("name"),
         "raw_text": row.get("rawOb"),
         "wind_dir_deg": row.get("wdir"),
         "wind_speed_kt": row.get("wspd"),
         "wind_gust_kt": row.get("wgst"),
         "visibility_sm": row.get("visib"),
-        "temp_c": row.get("temp"),
+        "temp_c": temp,
         "observed_at": row.get("obsTime"),
+        "observed_local": _epoch_to_local_12h(row.get("obsTime")),
+        "decoded": decoded,
     }
+
+
+def _epoch_to_local_12h(epoch):
+    try:
+        dt = datetime.fromtimestamp(epoch, ZoneInfo(LOCAL_TZ))
+        return f"{dt.hour % 12 or 12}:{dt.minute:02d} {'AM' if dt.hour < 12 else 'PM'}"
+    except Exception:
+        return None
 
 
 def _fetch_metar(station=None):
@@ -220,21 +293,46 @@ def _fetch_metar(station=None):
         return None
 
 
-def _fetch_taf(station):
-    """Best-effort TAF (terminal forecast) for a station, same aviationweather.gov
-    API and same "may come back empty" deal as _fetch_metar - most small
-    non-towered fields don't have one."""
+def _taf_periods(row):
+    out = []
+    for f in row.get("fcsts") or []:
+        label = {"FM": "From", "BECMG": "Becoming", "TEMPO": "Temporarily", "PROB": "Chance"}.get(
+            f.get("fcstChange") or "", "")
+        start, end = _epoch_to_local_12h(f.get("timeFrom")), _epoch_to_local_12h(f.get("timeTo"))
+        bits = [x for x in (
+            _fmt_wind(f.get("wdir"), f.get("wspd"), f.get("wgst")),
+            _fmt_vis(f.get("visib")),
+            _fmt_wx(f.get("wxString")),
+            _fmt_sky(f.get("clouds")),
+        ) if x]
+        out.append({"when": f"{(label + ' ') if label else ''}{start} - {end}", "text": " | ".join(bits)})
+    return out
+
+
+def _fetch_taf(station=None):
+    """Official TAF (aviationweather.gov) from the closest of METAR_STATIONS
+    that issues one (many small fields don't). None if there isn't one."""
     try:
-        params = {"ids": station, "format": "json"}
+        ids = [station] if station else METAR_STATIONS
+        params = {"ids": ",".join(ids), "format": "json"}
         url = "https://aviationweather.gov/api/data/taf?" + urllib.parse.urlencode(params)
         data = _get_json(url)
         if not data:
             return None
+        def dist(r):
+            try:
+                return _km_between(FALLBACK_LAT, FALLBACK_LON, float(r["lat"]), float(r["lon"]))
+            except Exception:
+                return 9999
+        data = sorted(data, key=dist)
         row = data[0]
+        d = dist(row)
         return {
             "station": row.get("icaoId", station),
             "raw_text": row.get("rawTAF") or row.get("rawText"),
             "issued_at": row.get("issueTime"),
+            "distance_mi": round(d * 0.621371) if d < 9999 else None,
+            "periods": _taf_periods(row),
         }
     except Exception:
         return None
@@ -467,7 +565,7 @@ def get_dashboard_weather(conn, force=False):
     except Exception:
         payload["twilight"] = None
     payload["metar"] = _fetch_metar()  # None is a normal/expected outcome here
-    payload["taf"] = _fetch_taf(payload["metar"]["station"] if payload["metar"] else N89_STATION)
+    payload["taf"] = _fetch_taf()
     m = payload["metar"]
     if m and payload.get("conditions") and m.get("wind_speed_kt") is not None:
         # Official observed wind (knots) replaces the modeled Open-Meteo wind.
@@ -477,6 +575,12 @@ def get_dashboard_weather(conn, force=False):
         if m.get("wind_dir_deg") is not None:
             c["wind_dir_deg"] = m["wind_dir_deg"]
         c["wind_station"] = m.get("station")
+        bits = [m.get("station")]
+        if m.get("distance_mi") is not None:
+            bits.append(f"{m['distance_mi']} mi away")
+        if m.get("observed_local"):
+            bits.append(f"as of {m['observed_local']}")
+        c["wind_station_info"] = " · ".join(b for b in bits if b)
     try:
         payload["forecast"] = _fetch_dashboard_forecast(lat, lon)
     except Exception:
