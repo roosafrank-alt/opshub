@@ -4376,17 +4376,26 @@ def _decorate_schedule_row(r, own_plane_color=None):
     r["is_balance_hold"] = r["status"] == "balance_hold"
     # Called off for weather: the calendar views keep the block, drawn with an X over it.
     r["is_wx_cancelled"] = r["status"] == "cancelled" and r.get("cancel_reason") == "Weather cancellation"
-    # Hover text on the X'd-out block: why, the note, and who cancelled it.
+    # Hover pop-up on the X'd-out block, same card as the waitlist chips
+    # (see data-late-tip in _schedule_live.html): a header line, then
+    # "Label: value" lines - the student, plane, instructor, who cancelled
+    # it and the note.
     r["cancel_tip"] = ""
     if r["is_wx_cancelled"]:
         by = (r.get("cancelled_by") or "").strip()
-        if by and by == (r.get("student_name") or ""):
-            tip = "Cancelled by the student"
-        else:
-            tip = "Cancelled for weather" + (" by " + by if by else "")
+        student = (r.get("student_name") or "").strip()
+        lines = ["Cancelled for weather"]
+        if student:
+            lines.append("Student: " + student)
+        if r.get("plane_tag"):
+            lines.append("Plane: " + r["plane_tag"])
+        if r.get("cfi_name"):
+            lines.append("Instructor: " + r["cfi_name"])
+        if by:
+            lines.append("Cancelled by: " + ("the student (" + by + ")" if by == student else by))
         if r.get("cancel_note"):
-            tip += ": " + r["cancel_note"]
-        r["cancel_tip"] = tip
+            lines.append("Note: " + r["cancel_note"])
+        r["cancel_tip"] = "\n".join(lines)
     r.setdefault("student_balance", 0)
     r["student_owed"] = round(max(0.0, -(r["student_balance"] or 0.0)), 2)
     r.setdefault("is_time_off", False)
