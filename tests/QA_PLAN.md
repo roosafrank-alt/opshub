@@ -90,7 +90,7 @@ Flight school
 - [x] Scheduling, part 1: new booking, conflicts, bad input, student request, cancel, weekly repeat, time off (qa-schedule-bad-input-crash and qa-schedule-deleted-plane now fixed and live; still to do: edit, reschedule, approve/deny, change requests, recurring edge cases)
 - [x] Flight sessions: start from a booking, early start, double start, stop/restart/pause, end (Hobbs/Tach checks, paid choice), discard, who may do what (qa-flight-end-nan-hobbs now fixed and live; still to do: log new/edit after the fact, delete, toggle paid, Hobbs/tach gaps between flights)
 - [x] Billing: student ledger balances, CFI pay, plane rates (34 tests: cost rounding, solo, rate overrides, Add Funds bad amounts and permissions, Mark Paid/Unpaid, double pay, CFI pay page and period pay; all fine, no findings)
-- [ ] Ground school / ACS: sign-offs, progress (the crawler needs seed data for these, they currently 404)
+- [x] Ground school / ACS, part 1: task sign-offs (add, re-sign, remove, wrong task, roles, bad student), element verify, homework assign/cancel/review (34 tests; open: qa-signoff-remove-keeps-verified; still to do: student progress bars, self-complete, quiz/game results, uploads/reparse, resources)
 - [x] Academy: leaderboard page access, Log Your Flying add/delete, landing-currency link, roles (26 tests; qa-academy-nan-entry-crash now fixed and live; pilot logbook still to do)
 - [x] Notifications and push alerts: daily email/text reminders (low stock, maintenance, flight reminders) and the in-flight phone alerts (30 min left, time up, running late): correct recipients, no duplicate sends (36 tests; all fine, no findings; core-return reminders still to do)
 
