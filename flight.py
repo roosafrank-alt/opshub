@@ -8223,7 +8223,7 @@ def push_pending():
 @flight_bp.route("/api/forecast")
 @login_required
 def api_forecast():
-    """JSON forecast (Open-Meteo, ZIP 12458) for one scheduled lesson's
+    """JSON forecast (Open-Meteo, Ellenville NY) for one scheduled lesson's
     date/time - fetched on demand when its calendar block is clicked, not
     prefetched for every block on the month. ?date=YYYY-MM-DD required,
     ?time=HH:MM optional (defaults to midday if the booking has no time)."""

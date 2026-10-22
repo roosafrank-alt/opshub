@@ -1,5 +1,5 @@
 """Daily weather for the Flight School dashboard: current conditions and a
-next-few-hours forecast for ZIP 12458 (Open-Meteo, free/no-key), civil
+next-few-hours forecast for Ellenville NY (N89) (Open-Meteo, free/no-key), civil
 sunrise/sunset/twilight (sunrise-sunset.org, free/no-key), and a best-effort
 aviation METAR + TAF for airport N89 (aviationweather.gov) - small
 non-towered fields often don't report, so those two are allowed to come
@@ -39,19 +39,19 @@ def _utc_iso_to_local_12h(iso_str):
         return None
 
 CACHE_TTL_SECONDS = 20 * 60  # 20 minutes
-ZIP_CODE = "12458"
+ZIP_CODE = "12428"  # Ellenville NY
 N89_STATION = "N89"  # Joseph Y. Resnick Airport, Ellenville NY - the "bonus" aviation station
 REQUEST_TIMEOUT = 8
 # Official aviationweather.gov METAR stations near the field. N89 itself usually
 # reports nothing, so the dashboard uses the closest of these that has a fresh
 # observation.
-METAR_STATIONS = ["N89", "20N", "1B1", "KPOU", "KALB", "KSWF", "KMGJ"]
+METAR_STATIONS = ["N89", "KMSV", "KMGJ", "KSWF", "20N", "KPOU", "KALB"]
 METAR_MAX_AGE_MIN = 90
 
-# Coordinates for ZIP 12458 (Palenville, NY / Catskill area). The ZIP never
+# Coordinates of the field (N89, Ellenville NY). They never
 # changes, so these are used directly with no lookup call.
-FALLBACK_LAT = 42.19
-FALLBACK_LON = -74.02
+FALLBACK_LAT = 41.7019
+FALLBACK_LON = -74.3953
 
 WMO_WEATHER_LABELS = {
     0: "Clear", 1: "Mostly clear", 2: "Partly cloudy", 3: "Overcast",
