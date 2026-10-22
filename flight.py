@@ -1713,16 +1713,23 @@ def _dashboard_plane_sort_key(f):
 
 
 # Idea "home page of fly with kate": the dashboard schedule always uses the
-# same three spots left to right - N20267S, then N22689, then Ground (every
-# other booking: the sim, N5569P, anything not on a plane). A spot with no
-# booking in that time row stays empty so the others don't slide over.
-def _dashboard_lane(f):
+# same spots left to right - N20267S, then N22689, then Ground (the sim,
+# N5569P and anything not on a plane), then one more spot to the right of
+# Ground for each other plane or tool that has a booking (revision: a
+# resource added later gets its own spot). A spot with no booking in that
+# time row stays empty so the others don't slide over.
+_DASHBOARD_GROUND_TAGS = ("", "aatd redbird", "n5569p")
+
+
+def _dashboard_lane(f, extra_tags=()):
     tag = (f["plane_tag"] or "").strip().lower()
     if tag in ("n20267s", "n20267"):
         return 0
     if tag == "n22689":
         return 1
-    return 2
+    if tag in _DASHBOARD_GROUND_TAGS:
+        return 2
+    return 3 + extra_tags.index(tag)
 
 
 def _group_by_time(rows):
@@ -1735,6 +1742,11 @@ def _group_by_time(rows):
     another with a gap in between. Bookings with no time at all keep the
     old behavior of sharing a single "Not set" row with each other, since
     there's no window to compare them against."""
+    # Spots past Ground, one per other plane/tool booked in these rows (the
+    # same for every row of the day, so each stays in its own column).
+    extra_tags = sorted({(r["plane_tag"] or "").strip().lower() for r in rows}
+                        - set(_DASHBOARD_GROUND_TAGS) - {"n20267s", "n20267", "n22689"})
+    extra_tags = tuple(extra_tags)
     clusters = []
     for r in rows:
         window = _time_window(r["scheduled_time"], r["duration_hours"])
@@ -1756,9 +1768,9 @@ def _group_by_time(rows):
         # on the original chronological order, so a merged cluster that
         # spans more than one start time still shows "earliest – latest".
         flights = sorted(c["flights"], key=_dashboard_plane_sort_key)
-        lanes = [[], [], []]
+        lanes = [[] for _ in range(3 + len(extra_tags))]
         for f in flights:
-            lanes[_dashboard_lane(f)].append(f)
+            lanes[_dashboard_lane(f, extra_tags)].append(f)
         groups.append({"time_label": time_label, "flights": flights, "lanes": lanes})
     return groups
 

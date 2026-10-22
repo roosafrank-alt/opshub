@@ -904,7 +904,7 @@
    every other "gap-2" row in the app. #}
 <div class="d-flex flex-wrap align-items-start gap-2 mb-2 flight-chip-row">
   <span class="flight-chip-time">{{ group.time_label }}</span>
-  <div class="flight-chip-lanes">
+  <div class="flight-chip-lanes" style="--lanes: {{ group.lanes|length }}">
     {% for lane in group.lanes %}
     <div class="flight-chip-lane">
       {% for f in lane %}
