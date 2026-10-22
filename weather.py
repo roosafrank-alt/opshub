@@ -13,6 +13,7 @@ dashboard doesn't make a live API call on every page load.
 """
 
 import json
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -245,7 +246,7 @@ def _hour_12h_label(hour):
     return f"{hour12} {'AM' if hour < 12 else 'PM'}"
 
 
-def _fetch_dashboard_forecast(lat, lon):
+def _fetch_dashboard_forecast_openmeteo(lat, lon):
     """Next several hours' outlook (temp/wind/sky) for the dashboard strip -
     separate from get_forecast_for()'s single-hour lookup for one scheduled
     lesson, this always covers "the next few hours from now"."""
@@ -276,6 +277,70 @@ def _fetch_dashboard_forecast(lat, lon):
         if len(out) >= 6:
             break
     return out
+
+
+def _nws_category(text):
+    t = (text or "").lower()
+    if "thunder" in t: return "storm"
+    if "snow" in t or "flurr" in t or "sleet" in t: return "snow"
+    if "rain" in t or "shower" in t or "drizzle" in t: return "rain"
+    if "fog" in t or "mist" in t or "haze" in t: return "fog"
+    if "cloudy" in t or "overcast" in t: return "cloudy"
+    if "sunny" in t or "clear" in t: return "clear"
+    return "cloudy"
+
+
+def _nws_wind_mph(text):
+    """'5 to 10 mph' -> 10 (the higher number), '8 mph' -> 8, else None."""
+    nums = [int(n) for n in re.findall(r"\d+", text or "")]
+    return max(nums) if nums else None
+
+
+def _fetch_dashboard_forecast_nws(lat, lon):
+    """Official NWS hourly forecast (api.weather.gov, National Blend of Models)
+    for the exact point - next 6 hours, same shape as the Open-Meteo version."""
+    hdrs = {"User-Agent": "OpsHub-FlightSchool/1.0 (roosafrank@yahoo.com)", "Accept": "application/geo+json"}
+    def get(url):
+        req = urllib.request.Request(url, headers=hdrs)
+        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    pt = get(f"https://api.weather.gov/points/{lat:.4f},{lon:.4f}")
+    periods = get(pt["properties"]["forecastHourly"])["properties"]["periods"]
+    now_local = datetime.now(ZoneInfo(LOCAL_TZ))
+    out = []
+    for p in periods:
+        try:
+            start = datetime.fromisoformat(p["startTime"]).astimezone(ZoneInfo(LOCAL_TZ))
+        except Exception:
+            continue
+        if start <= now_local.replace(minute=0, second=0, microsecond=0):
+            continue
+        temp = p.get("temperature")
+        if temp is not None and p.get("temperatureUnit") == "C":
+            temp = temp * 9 / 5 + 32
+        out.append({
+            "hour_label": _hour_12h_label(start.hour),
+            "temp_f": temp,
+            "wind_mph": _nws_wind_mph(p.get("windSpeed")),
+            "wind_gusts_mph": None,
+            "weather_code": None,
+            "weather_label": p.get("shortForecast") or "-",
+            "wx_category": _nws_category(p.get("shortForecast")),
+        })
+        if len(out) >= 6:
+            break
+    if not out:
+        raise ValueError("no NWS hourly periods")
+    return out
+
+
+def _fetch_dashboard_forecast(lat, lon):
+    """Next several hours for the dashboard strip: official NWS forecast first,
+    Open-Meteo as the backup if the NWS service is down."""
+    try:
+        return _fetch_dashboard_forecast_nws(lat, lon)
+    except Exception:
+        return _fetch_dashboard_forecast_openmeteo(lat, lon)
 
 
 def _fetch_hourly_forecast(lat, lon, date_str):
