@@ -3,9 +3,7 @@
 
 
 
-{% macro parts_table(plist, part_covers, show_retired=False, can_reorder=False, repl_hints={}, low_view=False) %}
-<div class="table-responsive">
-  <table class="table table-hover mb-0 align-middle table-stack" data-change="SHOP-21">
+{% macro parts_head(show_retired=False, can_reorder=False) %}
     <thead class="table-light">
       <tr>
         <th style="width:2rem"><input type="checkbox" onclick="toggleAllIn(this)"></th>
@@ -18,7 +16,9 @@
         {% if show_retired or can_reorder %}<th></th>{% endif %}
       </tr>
     </thead>
-    <tbody>
+{% endmacro %}
+
+{% macro parts_rows(plist, part_covers, show_retired=False, can_reorder=False, repl_hints={}, low_view=False) %}
       {% for p in plist %}
       <tr class="{{ 'low-stock-row' if p.qty_on_hand <= p.reorder_point and not p.retired_at else '' }}" data-search="{{ (p.name ~ ' ' ~ (p.short_name or '') ~ ' ' ~ p.barcode ~ ' ' ~ (p.category or '') ~ ' ' ~ (p.location or ''))|lower }}" onclick="if(event.target.type!=='checkbox' && event.target.tagName!=='BUTTON') window.location='{{ url_for('part_detail', part_id=p.id) }}'">
         <td data-label="" class="order-last order-sm-0"><input type="checkbox" name="part_check" value="{{ p.id }}" onclick="event.stopPropagation()"> <span class="d-sm-none small ms-1">Select for labels</span></td>
@@ -49,6 +49,14 @@
         {% endif %}
       </tr>
       {% endfor %}
+{% endmacro %}
+
+{% macro parts_table(plist, part_covers, show_retired=False, can_reorder=False, repl_hints={}, low_view=False) %}
+<div class="table-responsive">
+  <table class="table table-hover mb-0 align-middle table-stack" data-change="SHOP-21">
+    {{ parts_head(show_retired, can_reorder) }}
+    <tbody>
+    {{ parts_rows(plist, part_covers, show_retired, can_reorder, repl_hints, low_view) }}
     </tbody>
   </table>
 </div>
@@ -58,6 +66,16 @@
 <style>
 /* Phone: Print Labels only shows once a part is ticked (button is disabled until then). */
 @media (max-width: 767.98px) { #print-labels-btn:disabled { display: none; } }
+/* Parts browse view: one table, categories are thin grey lines. */
+.parts-one-table .cat-row > td { background: #e9edf2; padding: .3rem .75rem; font-size: .85rem; }
+.parts-one-table .cat-body.collapsed > tr:not(.cat-row) { display: none; }
+.parts-one-table .table-responsive, .parts-one-table.table-responsive { overflow: visible; }
+.parts-one-table table { table-layout: auto; }
+@media (max-width: 575.98px) {
+  .parts-one-table .table-stack tbody tr.cat-row { display: block; padding: .35rem .6rem; background: #e9edf2; margin-bottom: .3rem; }
+  .parts-one-table .table-stack tbody tr.cat-row > td { padding: 0 !important; background: transparent; }
+  .parts-one-table .table-stack tbody.collapsed tr.cat-row { margin-bottom: .3rem; }
+}
 </style>
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-3 d-none d-md-block" data-change="IDEA-parts-phone-top">
@@ -128,30 +146,37 @@
     {{ parts_table(parts, part_covers, can_reorder=show_low_stock and (session.get('is_master_admin') or session.get('shop_role') == 'admin'), repl_hints=repl_hints, low_view=show_low_stock) }}
   </div>
 {% else %}
-  <!-- Browse view: phones click a category to expand it; laptops show every category open -->
-  {% for cat, plist in by_category.items() %}
-  <div class="card mb-2">
-    <div class="card-header d-flex justify-content-between align-items-center pointer-cursor" onclick="toggleCategory('{{ loop.index }}')">
-      <strong>{{ cat }}</strong>
-      <span class="text-muted small">{{ plist|length }} part{{ 's' if plist|length != 1 }} <i class="bi bi-chevron-down" id="chev-{{ loop.index }}"></i></span>
-    </div>
-    <div id="cat-{{ loop.index }}" style="display:none;">
-      {{ parts_table(plist, part_covers, repl_hints=repl_hints) }}
+  <!-- Browse view: one table with one heading row; each category is a thin line inside it.
+       Phones start with every category folded; laptops start with all open. -->
+  {% if by_category %}
+  <div class="card">
+    <div class="table-responsive parts-one-table">
+      <table class="table table-hover mb-0 align-middle table-stack" data-change="SHOP-21">
+        {{ parts_head() }}
+        {% for cat, plist in by_category.items() %}
+        <tbody id="cat-{{ loop.index }}" class="cat-body collapsed">
+          <tr class="cat-row pointer-cursor" onclick="toggleCategory('{{ loop.index }}')">
+            <td colspan="9"><div class="d-flex justify-content-between align-items-center"><strong>{{ cat }}</strong><span class="text-muted small"><span class="cat-count">{{ plist|length }} part{{ 's' if plist|length != 1 }}</span> <i class="bi bi-chevron-down" id="chev-{{ loop.index }}"></i></span></div></td>
+          </tr>
+          {{ parts_rows(plist, part_covers, repl_hints=repl_hints) }}
+        </tbody>
+        {% endfor %}
+      </table>
     </div>
   </div>
   {% else %}
   <p class="text-muted">No parts yet.{% if is_master_admin or shop_role == 'admin' %} <a href="{{ url_for('part_new') }}">Add your first part</a>.{% endif %}</p>
-  {% endfor %}
+  {% endif %}
 {% endif %}
 
 </form>
 
 <script>
 function toggleAllIn(cb) {
-  // Only toggle checkboxes currently visible (so "select all" inside a
-  // collapsed category doesn't silently grab hidden rows from other panels).
+  // Only toggle checkboxes currently visible (so "select all" doesn't silently grab rows in folded categories).
   document.querySelectorAll('input[name="part_check"]').forEach(el => {
-    if (el.closest('[id^="cat-"]') === null || el.closest('[id^="cat-"]').style.display !== 'none') {
+    var body = el.closest('.cat-body');
+    if (body === null || !body.classList.contains('collapsed')) {
       el.checked = cb.checked;
     }
   });
@@ -169,23 +194,21 @@ function submitLabels() {
   if (ids.length === 0) return;
   window.location = "{{ url_for('labels') }}?ids=" + ids.join(',');
 }
-// Laptop/desktop: every category starts open so the whole stock list shows (phones keep the closed headings).
+// Laptop/desktop: every category starts open so the whole stock list shows (phones keep the folded lines).
 var wideScreen = window.matchMedia('(min-width: 768px)').matches;
+function setCategoryOpen(panel, open) {
+  panel.classList.toggle('collapsed', !open);
+  var chev = document.getElementById('chev-' + panel.id.split('-')[1]);
+  if (chev) chev.className = open ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+}
 function openCategoriesOnWide() {
   if (!wideScreen) return;
-  document.querySelectorAll('[id^="cat-"]').forEach(function (panel) {
-    panel.style.display = 'block';
-    var chev = document.getElementById('chev-' + panel.id.split('-')[1]);
-    if (chev) chev.className = 'bi bi-chevron-up';
-  });
+  document.querySelectorAll('.cat-body').forEach(function (panel) { setCategoryOpen(panel, true); });
 }
 openCategoriesOnWide();
 function toggleCategory(idx) {
-  const panel = document.getElementById('cat-' + idx);
-  const chev = document.getElementById('chev-' + idx);
-  const open = panel.style.display !== 'none';
-  panel.style.display = open ? 'none' : 'block';
-  if (chev) chev.className = open ? 'bi bi-chevron-down' : 'bi bi-chevron-up';
+  var panel = document.getElementById('cat-' + idx);
+  setCategoryOpen(panel, panel.classList.contains('collapsed'));
 }
 
 // Live, filter-as-you-type search across whatever's loaded on this page
@@ -198,18 +221,14 @@ function toggleCategory(idx) {
     document.querySelectorAll('tr[data-search]').forEach(function (row) {
       row.style.display = !q || row.getAttribute('data-search').indexOf(q) !== -1 ? '' : 'none';
     });
-    document.querySelectorAll('[id^="cat-"]').forEach(function (panel) {
-      var idx = panel.id.split('-')[1];
-      var chev = document.getElementById('chev-' + idx);
+    document.querySelectorAll('.cat-body').forEach(function (panel) {
       var anyVisible = Array.prototype.some.call(panel.querySelectorAll('tr[data-search]'), function (r) {
         return r.style.display !== 'none';
       });
       if (q) {
-        panel.style.display = anyVisible ? 'block' : 'none';
-        if (chev) chev.className = 'bi bi-chevron-up';
-      } else if (panel.style.display === 'block') {
-        panel.style.display = 'none';
-        if (chev) chev.className = 'bi bi-chevron-down';
+        setCategoryOpen(panel, anyVisible);
+      } else {
+        setCategoryOpen(panel, false);
       }
     });
     if (!q) openCategoriesOnWide();
