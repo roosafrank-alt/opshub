@@ -1935,6 +1935,13 @@ def resource_file(resource_id):
         abort(404)
     if not allowed:
         return _not_granted()
+    if not request.args.get("raw"):
+        # Wrapper page with a Back button (an installed phone app has no browser chrome).
+        return render_template("flight/groundschool_excerpt.html", title=r["title"], pages=[],
+                               back_label="Back to resources",
+                               back_url=url_for("groundschool.resources_list"),
+                               pdf_url=url_for("groundschool.resource_file",
+                                               resource_id=resource_id, raw=1))
     return send_file(os.path.join(UPLOAD_DIR, r["filename"]), mimetype="application/pdf")
 
 
