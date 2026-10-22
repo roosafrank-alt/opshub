@@ -13,3 +13,6 @@ You are the independent checker. Do not trust the writer. Fix problems directly 
 9. Run `python3 /home/claude/work/validate.py lesson ground_lessons/<CODE>.json` until OK.
 
 Reply in at most 8 lines: how many fixes, the biggest 2-3 (what was wrong, what it says now), and anything you could not verify.
+
+Never run git commands (no stash, checkout, commit): other agents are editing files in the same repo at the same time.
+Put any helper scripts in your own scratch folder named after your lesson code (e.g. scratchpad/CA.IX.A/), never a shared file name: many agents run at once.

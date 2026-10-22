@@ -22,7 +22,9 @@ def main():
     elif a[0]=='grep':
         rx=re.compile(a[1],re.I)
         for rid in ([a[2]] if len(a)>2 else MAP):
-            for i,p in enumerate(pages(rid),1):
+            try: pp=pages(rid)
+            except OSError: print('(missing text for',rid,')'); continue
+            for i,p in enumerate(pp,1):
                 for ln in p.splitlines():
                     if rx.search(ln): print('%s:%d: %s'%(rid,i,ln.strip()[:160]));break
     elif a[0]=='grepCAACS':

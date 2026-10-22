@@ -10,3 +10,6 @@ Shape: {"area": "CA.V", "title": "Area V review: <Area name>", "intro": "1-2 sen
 - Style: plain words, no em/en dashes, no "TL;DR".
 - Check: python3 /home/claude/work/validate.py area ground_lessons/areas/<AREA>.json must end OK.
 Reply in at most 3 lines.
+
+Never run git commands (no stash, checkout, commit): other agents are editing files in the same repo at the same time.
+Put any helper scripts in your own scratch folder named after your lesson code (e.g. scratchpad/CA.IX.A/), never a shared file name: many agents run at once.

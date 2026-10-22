@@ -56,3 +56,6 @@ activities: 7 hand-written games with keys h1..h7, each with "after": chunk numb
 - Do not copy FAA text verbatim beyond a short quoted phrase.
 
 Finish: run validate.py until OK, then reply in at most 3 lines: lesson code, what was written, anything the fact-checker should look at hardest.
+
+Never run git commands (no stash, checkout, commit): other agents are editing files in the same repo at the same time.
+Put any helper scripts in your own scratch folder named after your lesson code (e.g. scratchpad/CA.IX.A/), never a shared file name: many agents run at once.
