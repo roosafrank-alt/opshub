@@ -551,23 +551,42 @@
       <strong>{{ '%.0f'|format(c.wind_mph) if c.wind_mph is not none else '-' }}</strong>{% if c.wind_mph is not none %} mph{% endif %}
       {% endif %}
       {% if c.wind_dir_deg is not none %}<span class="wx-subtle">{{ c.wind_dir_deg|int }}&deg; {{ _wind_compass(c.wind_dir_deg) }}</span>{% endif %}
-      {% if _kt %}{% if c.wind_gust_kt %}<span class="wx-subtle">G{{ '%.0f'|format(c.wind_gust_kt) }}</span>{% endif %}<span class="wx-subtle">{{ c.wind_station }}</span>
+      {% if _kt %}{% if c.wind_gust_kt %}<span class="wx-subtle">G{{ '%.0f'|format(c.wind_gust_kt) }}</span>{% endif %}<span class="wx-subtle">{{ c.wind_station_info or c.wind_station }}</span>
       {% elif c.wind_gusts_mph %}<span class="wx-subtle">G{{ '%.0f'|format(c.wind_gusts_mph) }}</span>{% endif %}
     </div>
     <div class="wx-strip-item"><span class="wx-subtle">Clouds</span> <strong>{{ c.cloud_cover_pct|int if c.cloud_cover_pct is not none else '-' }}%</strong></div>
     <div class="wx-strip-item"><span class="wx-subtle">Vis</span> <strong>{{ '%.1f'|format(c.visibility_miles) if c.visibility_miles is not none else '-' }}</strong>{% if c.visibility_miles is not none %} mi{% endif %}</div>
     <div class="wx-strip-item"><span class="wx-subtle">Precip</span> <strong>{{ '%.2f'|format(c.precipitation_in) if c.precipitation_in is not none else '-' }}</strong>{% if c.precipitation_in is not none %} in{% endif %}</div>
-    {% if dashboard_wx.metar and dashboard_wx.metar.raw_text %}
-    <div class="wx-strip-item wx-metar font-monospace wx-subtle" title="{{ dashboard_wx.metar.raw_text }}">{{ dashboard_wx.metar.raw_text }}</div>
-    {% endif %}
-    {% if dashboard_wx.taf and dashboard_wx.taf.raw_text %}
-    <div class="wx-strip-item wx-metar font-monospace wx-subtle" title="{{ dashboard_wx.taf.raw_text }}">{{ dashboard_wx.taf.raw_text }}</div>
-    {% endif %}
   {% else %}
     <span class="small wx-subtle"><i class="bi bi-cloud-sun"></i> {{ dashboard_wx.error or 'Weather unavailable right now.' }}</span>
   {% endif %}
   </div>
 </div>
+{% set m = dashboard_wx.metar %}{% set tf = dashboard_wx.taf %}
+{% if m and m.decoded %}
+<div class="small mb-2 px-1">
+  <div class="fw-semibold"><i class="bi bi-airplane"></i> Aviation weather &middot; {{ m.station }}{% if m.distance_mi is not none %} &middot; {{ m.distance_mi }} mi away{% endif %}{% if m.observed_local %} &middot; as of {{ m.observed_local }}{% endif %}{% if m.decoded.category %} &middot; <span class="badge bg-secondary">{{ m.decoded.category }}</span>{% endif %}</div>
+  <div class="text-muted">
+    {% if m.decoded.wind %}Wind {{ m.decoded.wind }}{% endif %}
+    {% if m.decoded.visibility %} &middot; Vis {{ m.decoded.visibility }}{% endif %}
+    {% if m.decoded.weather %} &middot; {{ m.decoded.weather }}{% endif %}
+    {% if m.decoded.sky %} &middot; Sky {{ m.decoded.sky }}{% endif %}
+    {% if m.decoded.temp_dewpoint %} &middot; Temp/dew {{ m.decoded.temp_dewpoint }}{% endif %}
+    {% if m.decoded.altimeter %} &middot; Altimeter {{ m.decoded.altimeter }}{% endif %}
+  </div>
+  <details class="mt-1">
+    <summary class="text-muted">Forecast (TAF) and raw reports</summary>
+    {% if tf and tf.periods %}
+    <div class="mt-1"><strong>TAF {{ tf.station }}{% if tf.distance_mi is not none %} &middot; {{ tf.distance_mi }} mi away{% endif %}</strong></div>
+    {% for p in tf.periods %}<div class="text-muted">{{ p.when }}: {{ p.text }}</div>{% endfor %}
+    {% else %}<div class="text-muted mt-1">No TAF from a nearby airport.</div>{% endif %}
+    {% if m.raw_text %}<div class="font-monospace text-muted mt-1" style="word-break:break-word">{{ m.raw_text }}</div>{% endif %}
+    {% if tf and tf.raw_text %}<div class="font-monospace text-muted mt-1" style="word-break:break-word">{{ tf.raw_text }}</div>{% endif %}
+  </details>
+</div>
+{% elif tf and tf.periods %}
+<div class="small mb-2 px-1 text-muted">No recent METAR from nearby airports.</div>
+{% endif %}
 {% if dashboard_wx.forecast %}
 <div class="wx-forecast-strip mb-2">
   {% for h in dashboard_wx.forecast %}
