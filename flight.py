@@ -4348,6 +4348,17 @@ def _decorate_schedule_row(r, own_plane_color=None):
     r["is_balance_hold"] = r["status"] == "balance_hold"
     # Called off for weather: the calendar views keep the block, drawn with an X over it.
     r["is_wx_cancelled"] = r["status"] == "cancelled" and r.get("cancel_reason") == "Weather cancellation"
+    # Hover text on the X'd-out block: why, the note, and who cancelled it.
+    r["cancel_tip"] = ""
+    if r["is_wx_cancelled"]:
+        by = (r.get("cancelled_by") or "").strip()
+        if by and by == (r.get("student_name") or ""):
+            tip = "Cancelled by the student"
+        else:
+            tip = "Cancelled for weather" + (" by " + by if by else "")
+        if r.get("cancel_note"):
+            tip += ": " + r["cancel_note"]
+        r["cancel_tip"] = tip
     r.setdefault("student_balance", 0)
     r["student_owed"] = round(max(0.0, -(r["student_balance"] or 0.0)), 2)
     r.setdefault("is_time_off", False)
@@ -7001,8 +7012,8 @@ def weather_cancel():
         label = "Weather cancellation" if is_wx else "Flight cancellation"
         note = (request.form.get("note") or "").strip()[:500]
         for r in picked:
-            conn.execute("UPDATE scheduled_flights SET status = 'cancelled', cancel_reason = ?, cancel_note = ? WHERE id = ?",
-                         (label, note or None, r["id"]))
+            conn.execute("UPDATE scheduled_flights SET status = 'cancelled', cancel_reason = ?, cancel_note = ?, cancelled_by = ?, cancelled_at = ? WHERE id = ?",
+                         (label, note or None, session.get("user_name") or "the school", now_iso(), r["id"]))
             conn.commit()
             student = conn.execute("SELECT user_id FROM students WHERE id = ?", (r["student_id"],)).fetchone()
             if not student or r["guest_name"]:
@@ -7252,8 +7263,8 @@ def schedule_student_cancel(scheduled_id):
               f"${fee_amount:,.2f} cancellation charge before cancelling.", "danger")
         conn.close()
         return redirect(url_for("flight.dashboard"))
-    conn.execute("UPDATE scheduled_flights SET status = 'cancelled', cancel_reason = ? WHERE id = ?",
-                 (reason, scheduled_id))
+    conn.execute("UPDATE scheduled_flights SET status = 'cancelled', cancel_reason = ?, cancelled_by = ?, cancelled_at = ? WHERE id = ?",
+                 (reason, session.get("user_name") or "the student", now_iso(), scheduled_id))
     if late and fee_amount:
         _ledger_entry(conn, sched["student_id"], "cancellation_fee", -fee_amount,
                       note=f"Late cancellation - within {window_hours:g}h of the flight ({reason})",
