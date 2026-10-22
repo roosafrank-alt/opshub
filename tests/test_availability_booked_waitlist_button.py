@@ -1,6 +1,6 @@
 """Idea "on the availability page": a booked slot shows a student an
 "Add to waitlist" button that joins the cancellation waitlist for that plane,
-weekday and part of the day. Staff don't get the button."""
+weekday and part of the day. CFIs and admins get it too, with a student picker."""
 from datetime import date, timedelta
 
 from harness import OpsHubTestCase, seed_row
@@ -35,6 +35,19 @@ class AvailabilityBookedWaitlistButtonTest(OpsHubTestCase):
         self.assertEqual(row["asset_ids"], str(self.plane))
         self.assertEqual(row["until_date"], self.day.isoformat())
 
-    def test_staff_do_not_see_button(self):
-        html = self.login("cfi").get(self.url).get_data(as_text=True)
-        self.assertNotIn("Add to waitlist", html)
+    def test_staff_see_button_with_student_picker_and_can_join(self):
+        for who in ("cfi", "flight_admin"):
+            c = self.login(who)
+            html = c.get(self.url).get_data(as_text=True)
+            self.assertIn("Add to waitlist", html)
+            self.assertIn('name="student_id"', html)
+            r = c.post("/flight/waitlist/join", data={
+                "student_id": str(self.student), "days": str(self.day.weekday()), "periods": "morning",
+                "asset_id": str(self.plane), "until_date": self.day.isoformat()})
+            self.assertEqual(r.status_code, 302)
+        n = self.q1("SELECT COUNT(*) c FROM flight_waitlist WHERE student_id = ? AND active = 1", (self.student,))["c"]
+        self.assertEqual(n, 2)
+
+    def test_student_has_no_picker(self):
+        html = self.login("flight_student").get(self.url).get_data(as_text=True)
+        self.assertNotIn('name="student_id"', html)

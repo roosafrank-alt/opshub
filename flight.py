@@ -5404,6 +5404,9 @@ def schedule_availability():
                    month_next=next_month_date.strftime("%Y-%m-%d"))
 
     ctx["day_weekday"] = day_date.weekday()
+    # Staff (CFIs/admins) add a chosen student to the waitlist from a booked slot.
+    ctx["wl_students"] = conn.execute("SELECT id, name FROM students WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall() \
+        if (session.get("cfi_id") or is_flight_admin()) else []
     conn.close()
     return render_template("flight/availability.html", **ctx)
 

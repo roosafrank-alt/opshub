@@ -302,8 +302,14 @@ b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttr
           {#- A student can join the cancellation waitlist for this exact
              plane, weekday and part of the day, until this date (the
              waitlist_join route does the rest). #}
-          {% if is_student_viewer and not cell.is_past %}
+          {% if (is_student_viewer or wl_students) and not cell.is_past %}
           <form method="post" action="{{ url_for('flight.waitlist_join') }}" class="mt-1">
+            {% if wl_students %}
+            <select name="student_id" class="form-select form-select-sm py-0 mb-1" style="font-size:.62rem" required aria-label="Student to waitlist">
+              <option value="">Student...</option>
+              {% for st in wl_students %}<option value="{{ st.id }}">{{ st.name }}</option>{% endfor %}
+            </select>
+            {% endif %}
             <input type="hidden" name="days" value="{{ day_weekday }}">
             <input type="hidden" name="periods" value="{{ 'morning' if cell.start_min < 720 else ('afternoon' if cell.start_min < 1020 else 'evening') }}">
             <input type="hidden" name="asset_id" value="{{ row.plane.id }}">
