@@ -1,0 +1,1565 @@
+{
+ "task_code": "CA.VI.A",
+ "task_title": "Pilotage and Dead Reckoning",
+ "area": "Area VI. Navigation",
+ "minutes": 90,
+ "objective": "By the end of this lesson you can turn a true course into a compass heading with the wind triangle, variation and deviation, plan and keep a flight log, and fly a leg by pilotage and dead reckoning within commercial tolerances: within 2 NM of the route, within 3 minutes of each checkpoint ETA, altitude within 100 feet and heading within 10 degrees.",
+ "why": "Pilotage and dead reckoning still work when the screens go dark, and the FAA says every good pilot thinks about a flight in terms of the wind triangle [[1:401|PHAK 16-14]]. The commercial checkride uses the same task as the private one, but every skill tolerance is tighter (ACS CA.VI.A.S5 to S7), so loose habits that passed before will not pass now.",
+ "prereading": [
+  {
+   "res": "1",
+   "pages": [
+    393,
+    403
+   ],
+   "printed": "PHAK 16-6 to 16-16",
+   "what": "Variation, deviation, wind effect, basic calculations, pilotage, dead reckoning and the wind triangle step by step.",
+   "label": "PHAK 16-6 to 16-16"
+  },
+  {
+   "res": "1",
+   "pages": [
+    404,
+    408
+   ],
+   "printed": "PHAK 16-17 to 16-21",
+   "what": "The full Chickasha to Guthrie planning example: checkpoints, altitude, compass heading, groundspeed, time and fuel.",
+   "label": "PHAK 16-17 to 16-21"
+  },
+  {
+   "res": "1",
+   "pages": [
+    225,
+    229
+   ],
+   "printed": "PHAK 8-23 to 8-27",
+   "what": "How the magnetic compass works and each of its errors: variation, deviation, dip, turning, acceleration and oscillation.",
+   "label": "PHAK 8-23 to 8-27"
+  },
+  {
+   "res": "23",
+   "pages": [
+    182,
+    183
+   ],
+   "printed": "IFH 7-21 to 7-22",
+   "what": "Timed turns and turns to headings using only the magnetic compass, with worked roll-out points.",
+   "label": "IFH 7-21 to 7-22"
+  },
+  {
+   "res": "2",
+   "pages": [
+    10,
+    11,
+    33
+   ],
+   "printed": "Chart Users' Guide pp. 10-11, 33",
+   "what": "How the sectional shows terrain and obstructions, and the symbols for VFR checkpoints, waypoints and obstructions.",
+   "label": "Chart Users' Guide pp. 10-11, 33"
+  },
+  {
+   "res": "1",
+   "pages": [
+    280,
+    281
+   ],
+   "printed": "PHAK 11-24 to 11-25",
+   "what": "Cruise and range tables and the cruise power setting table used for TAS and fuel flow.",
+   "label": "PHAK 11-24 to 11-25"
+  },
+  {
+   "res": "16",
+   "pages": [
+    5,
+    13
+   ],
+   "printed": "AC 90-48E sections 8 to 13",
+   "what": "Limits of the eye, scanning technique and blind spots: the collision side of heads-down navigation.",
+   "label": "AC 90-48E 8 to 13"
+  }
+ ],
+ "warmup": "Think first: on your private checkride you could be 3 NM off course and 5 minutes late at a checkpoint and still pass. On the commercial checkride the limits are 2 NM and 3 minutes. At 150 knots, how many nautical miles is 3 minutes? And if your heading drifts 10 degrees and nobody notices, how long until you are 2 NM off the line?",
+ "key_terms": [
+  {
+   "term": "Pilotage",
+   "def": "Navigating by reference to landmarks or checkpoints [[1:399|PHAK 16-12]]."
+  },
+  {
+   "term": "Dead reckoning",
+   "def": "Navigating only by computations from time, airspeed, distance and direction, which give a heading and a groundspeed [[1:400|PHAK 16-13]]."
+  },
+  {
+   "term": "True course (TC)",
+   "def": "The direction of the course line on the chart, measured clockwise from true north at a meridian near the middle of the line [[1:403|PHAK 16-16]]."
+  },
+  {
+   "term": "Wind correction angle (WCA)",
+   "def": "The correction applied to the course so the track stays on the course; added if the wind is from the right, subtracted if from the left [[1:403|PHAK 16-16]]."
+  },
+  {
+   "term": "Track",
+   "def": "The actual path over the ground. With the right wind correction, track and course are the same [[1:397|PHAK 16-10]]."
+  },
+  {
+   "term": "Drift angle",
+   "def": "The angle between where the nose points (heading) and where the airplane goes (track) [[1:397|PHAK 16-10]]."
+  },
+  {
+   "term": "Variation",
+   "def": "The angle between true north and magnetic north. It is the same on every heading at a given place [[1:393|PHAK 16-6]] [[1:226|PHAK 8-24]]."
+  },
+  {
+   "term": "Isogonic line",
+   "def": "A broken magenta line on the chart joining points of equal variation; the agonic line is where variation is zero [[1:393|PHAK 16-6]]."
+  },
+  {
+   "term": "Deviation",
+   "def": "Compass error caused by magnetic fields inside the airplane. It changes with heading and is shown on the deviation card [[1:395|PHAK 16-8]] [[1:226|PHAK 8-24]]."
+  },
+  {
+   "term": "Groundspeed (GS)",
+   "def": "The airplane's speed over the ground: true airspeed adjusted for wind [[1:211|PHAK 8-9]]."
+  },
+  {
+   "term": "True airspeed (TAS)",
+   "def": "Calibrated airspeed corrected for altitude and nonstandard temperature; the speed used for flight planning [[1:211|PHAK 8-9]]."
+  },
+  {
+   "term": "Density altitude",
+   "def": "Pressure altitude corrected for nonstandard temperature. The airplane performs as if it were at that altitude [[1:259|PHAK 11-3]] [[1:260|PHAK 11-4]]."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "Pilotage and dead reckoning at the commercial standard",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.A.K1",
+    "CA.VI.A.S2",
+    "CA.VI.A.S3",
+    "CA.VI.A.S5",
+    "CA.VI.A.S6",
+    "CA.VI.A.S7"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Pilotage means finding your way by looking at landmarks and checkpoints. It works on any route that has enough good checkpoints, and it is usually flown together with dead reckoning [[1:399|PHAK 16-12]]."
+    },
+    {
+     "p": "Dead reckoning works it out with numbers: time, airspeed, distance and direction, corrected for wind, give you a heading and a groundspeed. The heading keeps you on the line, and the groundspeed tells you when you should reach each checkpoint and the destination [[1:400|PHAK 16-13]]."
+    },
+    {
+     "p": "The two methods check each other. Except over water, dead reckoning is normally used with pilotage, and the computed heading and groundspeed are constantly watched and corrected by what you see at each checkpoint [[1:400|PHAK 16-13]]. Pilotage tells you where you are. Dead reckoning tells you where you should be and when."
+    },
+    {
+     "table": {
+      "head": [
+       "What the examiner measures",
+       "Private (ACS PA.VI.A)",
+       "Commercial (ACS CA.VI.A)"
+      ],
+      "rows": [
+       [
+        "Position vs. planned route",
+        "Within 3 NM (S5)",
+        "Within 2 NM (S5)"
+       ],
+       [
+        "En route checkpoints vs. initial or revised ETA",
+        "Within 5 minutes (S6)",
+        "Within 3 minutes (S6)"
+       ],
+       [
+        "Selected altitude",
+        "Plus or minus 200 ft (S7)",
+        "Plus or minus 100 ft (S7)"
+       ],
+       [
+        "Heading",
+        "Plus or minus 15 degrees (S7)",
+        "Plus or minus 10 degrees (S7)"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "The knowledge and risk elements are word for word the same in both ACS documents. Only the skill tolerances change. Both also ask you to give a destination estimate (ACS CA.VI.A.S6)."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: put the tolerances into distance. At 150 knots, 3 minutes is 7.5 NM of flying. A steady 10 degree heading error puts you 2 NM off the line after about 11.5 NM. So the heading tolerance alone will not keep you inside the position tolerance; you have to check position at every checkpoint."
+     }
+    }
+   ],
+   "check": {
+    "q": "Which two commercial skill tolerances are measured at checkpoints rather than all the time?",
+    "a": "Position within 2 NM of the planned route and arrival within 3 minutes of the initial or revised ETA (ACS CA.VI.A.S5, S6)."
+   }
+  },
+  {
+   "title": "From true course to compass heading",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.A.K5",
+    "CA.VI.A.K5a",
+    "CA.VI.A.K2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "You measure the course on the chart from true north, but you steer by a compass that points toward magnetic north and is pulled around by the airplane itself. Three things stand between the chart line and the number you fly: variation, deviation and wind correction [[1:394|PHAK 16-7]]."
+    },
+    {
+     "p": "Draw the line from the center of the departure airport to the center of the destination, and measure its direction with a plotter at a meridian near the middle of the line. That is the true course [[1:405|PHAK 16-18]] [[1:403|PHAK 16-16]]. Then follow one fixed sequence: TC plus or minus WCA gives true heading, plus or minus variation gives magnetic heading, plus or minus deviation gives compass heading [[1:407|PHAK 16-20]]."
+    },
+    {
+     "bullets": [
+      "WCA: add if the wind is from the right of the course, subtract if from the left [[1:403|PHAK 16-16]].",
+      "Variation: add west, subtract east, 'east is least and west is best' [[1:395|PHAK 16-8]]. Take it from the nearest isogonic line, and if it changes along the route, apply it along the route [[1:394|PHAK 16-7]].",
+      "Deviation: read it from the card near the compass, usually given every 30 degrees; interpolate in your head for headings in between [[1:395|PHAK 16-8]]."
+     ]
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "Reading the card: it says what to steer for each magnetic heading. For 060 you steer 057, for west (270) you steer 274 [[1:395|PHAK 16-8]]. The PHAK's own example: if the correction is 0 at 180 and +2 at 210, use +1 at 195 [[1:395|PHAK 16-8]]."
+    },
+    {
+     "p": "Deviation is not fixed forever. The magnetic fields inside the airplane change with landing shocks, vibration, maintenance and new equipment, so the compass should be checked now and then by 'swinging' it on a compass rose [[1:395|PHAK 16-8]]. Only AMTs can adjust the compass or fill out the correction card. Pilots must also notice equipment that can upset it, such as radios, pitot heat or magnetic cargo [[1:227|PHAK 8-25]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "True Virgins Make Dull Company: TC plus or minus WCA = TH, plus or minus Variation = MH, plus or minus Deviation = CH. (The order is from [[1:407|PHAK 16-20]]; the phrase is only a memory aid.)"
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Winds aloft forecasts are given relative to true north [[1:323|PHAK 13-13]]. Put them into the wind triangle against the true course. Mixing a magnetic course with a true wind puts the whole variation into your WCA as an error."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your magnetic heading is 225. Using Figure 16-12, what compass heading do you steer?",
+    "a": "The card shows 212 for 210 and 243 for 240, corrections of +2 and +3. Halfway between, about +2.5, so steer about 227 to 228 [[1:395|PHAK 16-8]]."
+   }
+  },
+  {
+   "title": "The wind triangle, by drawing and by trig",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.A.K5",
+    "CA.VI.A.K5a",
+    "CA.VI.A.K5b"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "An airplane moves in two ways at once: through the air at its airspeed, and along with the air mass as it moves over the ground. After an hour it is where those two motions put it [[1:395|PHAK 16-8]] [[1:396|PHAK 16-9]]. A pilot in a 70-knot gale would feel nothing unless he looked at the ground [[1:396|PHAK 16-9]]."
+    },
+    {
+     "p": "The wind triangle is the basis of dead reckoning [[1:400|PHAK 16-13]]. The PHAK draws it in four steps: mark the departure point E and the true course; draw the wind line from E downwind, as long as the wind speed; then lay a ruler from the end of the wind line (W) so that the true airspeed length meets the course line at P. E to P is the groundspeed, and the angle at P is the WCA [[1:402|PHAK 16-15]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "The PHAK example: TC 090, wind from 045 at 40 knots, TAS 120. The answer is a WCA of 14 degrees left (TH 076) and a groundspeed of 88 knots [[1:402|PHAK 16-15]]."
+    },
+    {
+     "p": "Application: an E6B or electronic computer solves the same triangle [[1:399|PHAK 16-12]], and you can check it with two lines of trig. Wind angle = wind direction minus true course. Crosswind = wind speed x sin(wind angle). Headwind = wind speed x cos(wind angle). WCA = arcsin(crosswind / TAS). GS = TAS x cos(WCA) minus headwind. For the PHAK example: wind angle 45 degrees, crosswind 28.3, headwind 28.3, WCA = arcsin(28.3/120) = 13.6 degrees, GS = 120 x 0.972 minus 28.3 = 88.3 knots. That matches the 14 degrees and 88 knots in the book."
+    },
+    {
+     "table": {
+      "head": [
+       "Worked leg",
+       "Numbers"
+      ],
+      "rows": [
+       [
+        "TC 238, TAS 132, wind 300 at 24 (true)",
+        "Wind angle 62 degrees, from the right"
+       ],
+       [
+        "Crosswind and headwind",
+        "24 x sin 62 = 21.2 kt; 24 x cos 62 = 11.3 kt"
+       ],
+       [
+        "WCA",
+        "arcsin(21.2/132) = 9.2, so 9 degrees right"
+       ],
+       [
+        "Groundspeed",
+        "132 x cos 9.2 = 130.3, minus 11.3 = 119 kt"
+       ],
+       [
+        "TH, MH (variation 3 E), CH (Figure 16-12)",
+        "TH 247, MH 244, deviation about +3, CH 247"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Table: application of the PHAK sequence [[1:403|PHAK 16-16]] and deviation card [[1:395|PHAK 16-8]], computed with the trig above."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The most common drawing error is pointing the wind arrow toward the direction the wind comes from. Draw it downwind, in the direction the air is moving [[1:402|PHAK 16-15]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "With the wind from the left of the course, does the WCA make the true heading larger or smaller than the true course?",
+    "a": "Smaller. A wind from the left is corrected by pointing the nose to the left, so the WCA is subtracted [[1:396|PHAK 16-9]] [[1:403|PHAK 16-16]]."
+   }
+  },
+  {
+   "title": "Time, speed, distance and fuel",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.A.K5c",
+    "CA.VI.A.R3",
+    "CA.VI.A.S1"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Three formulas do all the work: time = distance / GS, distance = GS x time, and GS = distance / time. Convert minutes to hours by dividing by 60 [[1:398|PHAK 16-11]]. A knot is one nautical mile per hour; to turn knots into mph, multiply by 1.15 [[1:398|PHAK 16-11]]."
+    },
+    {
+     "p": "Fuel follows time, and time follows groundspeed. Fuel burn per hour stays about the same at a given TAS, so when there is wind you must use the groundspeed to work out fuel [[1:399|PHAK 16-12]]. Plan for start and taxi, the higher burn in the climb (where your groundspeed is also lower), the cruise, and a reserve [[1:399|PHAK 16-12]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Step",
+       "Worked example: 96 NM leg, GS 119 kt, 10.5 GPH"
+      ],
+      "rows": [
+       [
+        "Time",
+        "96 / 119 = 0.807 h = 48.4 min, about 48 min"
+       ],
+       [
+        "Fuel for the leg",
+        "0.807 h x 10.5 GPH = 8.5 gal"
+       ],
+       [
+        "Legal VFR minimum on top (day)",
+        "Enough to fly 30 more minutes at normal cruise [[60:464|14 CFR 91.151(a)(1)]]"
+       ],
+       [
+        "Legal VFR minimum on top (night)",
+        "45 minutes [[60:464|14 CFR 91.151(a)(2)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "The PHAK example shows the whole chain: 53 NM at 106 knots is 30 minutes, plus 5 minutes for the climb, 35 minutes in all, and 4.7 gallons at 8 GPH [[1:407|PHAK 16-20]] [[1:408|PHAK 16-21]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Plan to be on the ground before your flight time passes the time your preflight fuel allows, or before the fuel gauge shows low fuel, whichever comes first [[1:399|PHAK 16-12]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You fly 210 NM at a groundspeed of 140 knots. How long does it take?",
+    "a": "210 / 140 = 1.5 hours, which is 1:30 [[1:398|PHAK 16-11]]."
+   }
+  },
+  {
+   "title": "True airspeed, density altitude and power setting",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.A.K5d",
+    "CA.VI.A.K6",
+    "CA.VI.A.K4b"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The airspeed indicator does not show the speed you plan with. TAS is calibrated airspeed corrected for altitude and nonstandard temperature. For the same CAS, TAS goes up as you climb. The most accurate way to find it is a flight computer with CAS, pressure altitude and temperature; the rule of thumb is to add 2 percent to CAS for each 1,000 ft [[1:211|PHAK 8-9]]."
+    },
+    {
+     "p": "Density altitude is pressure altitude corrected for nonstandard temperature, and the airplane performs as if it were at the density altitude, whatever the altimeter says [[1:259|PHAK 11-3]] [[1:260|PHAK 11-4]]. Hot air means higher density altitude, thinner air and a higher TAS for the same indicated speed."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "Power setting selection comes from the POH cruise tables. A cruise power setting table gives the power setting plus the fuel flow and TAS at that altitude [[1:280|PHAK 11-24]]. In the sample table (65 percent power, 2,800 lb) read across: at 6,000 ft on a standard day it is 2,450 RPM, 20.4 in Hg, 11.5 GPH and 158 knots [[1:281|PHAK 11-25]]."
+    },
+    {
+     "bullets": [
+      "Altitude helps TAS at the same power: standard day, 150 knots at sea level and 163 knots at 10,000 ft for the same 11.5 GPH [[1:281|PHAK 11-25]].",
+      "Heat helps TAS at the same percent power: at 6,000 ft, 155 knots at ISA minus 20, 158 at standard, 161 at ISA plus 20 [[1:281|PHAK 11-25]].",
+      "In the shaded rows the engine is at full throttle (note 2): fuel flow starts to drop, and higher up the TAS drops too [[1:281|PHAK 11-25]].",
+      "Another sample chart notes that maximum cruise is normally limited to 75 percent power [[1:280|PHAK 11-24]].",
+      "Between rows, interpolate. At 7,000 ft standard day, halfway between 158 and 161 knots is about 159.5 knots (application of [[1:281|PHAK 11-25]])."
+     ]
+    },
+    {
+     "p": "Mixture is part of the power setting. As you climb, the mixture gets richer, which can foul the plugs and cost power; leaning reduces fuel flow to match the thinner air. Use the POH leaning procedure, often with an EGT gauge [[1:169|PHAK 7-9]]."
+    }
+   ],
+   "check": {
+    "q": "Using Figure 11-28, what TAS and fuel flow do you plan at 10,000 ft on a standard day?",
+    "a": "163 knots and 11.5 GPH at 2,450 RPM and 19.9 in Hg [[1:281|PHAK 11-25]]."
+   }
+  },
+  {
+   "title": "Magnetic compass errors",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.A.K2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The magnetic compass is a required instrument for powered aircraft under VFR [[60:486|14 CFR 91.205(b)(3)]]. Its float rides on a pivot and can tilt only to about 18 degrees of bank; steeper than that, its readings are erratic [[1:225|PHAK 8-23]]. It is simple, but it has several errors [[1:226|PHAK 8-24]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Error",
+       "What happens",
+       "What you do"
+      ],
+      "rows": [
+       [
+        "Variation",
+        "True and magnetic north differ; same on every heading at one place [[1:226|PHAK 8-24]]",
+        "Apply from the isogonic line [[1:394|PHAK 16-7]]"
+       ],
+       [
+        "Deviation",
+        "Fields inside the airplane; changes with heading, not with location [[1:226|PHAK 8-24]]",
+        "Apply from the correction card [[1:227|PHAK 8-25]]"
+       ],
+       [
+        "Dip, turning to north",
+        "The compass lags behind the turn; worse near the poles [[23:183|IFH 7-22]] [[1:228|PHAK 8-26]]",
+        "Stop the turn before the heading [[1:228|PHAK 8-26]]"
+       ],
+       [
+        "Dip, turning to south",
+        "The compass leads the turn [[23:183|IFH 7-22]]",
+        "Let it pass the heading before you stop [[1:228|PHAK 8-26]]"
+       ],
+       [
+        "Acceleration",
+        "On east or west headings, speeding up shows a turn to the north, slowing shows a turn to the south (ANDS) [[1:228|PHAK 8-26]]",
+        "Read it only in steady, unaccelerated flight"
+       ],
+       [
+        "Oscillation",
+        "All the errors together swing the card [[1:229|PHAK 8-27]]",
+        "Use the average of the swings when setting the heading indicator [[1:229|PHAK 8-27]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "Why turning errors exist: the float's center of gravity hangs below the pivot so the card stays level. Once the airplane banks, the vertical pull of the earth's field (dip) tilts the card and drags it around [[1:227|PHAK 8-25]] [[1:228|PHAK 8-26]]. Close to the magnetic poles the horizontal pull is too weak and the compass is unusable [[1:228|PHAK 8-26]]."
+    },
+    {
+     "p": "The rule of thumb in the PHAK for how far to lead or lag: 15 degrees plus half the latitude. Near 40 degrees north, stop a turn to north 35 degrees before the heading; near 30 degrees, let a turn to south go 30 degrees past it [[1:228|PHAK 8-26]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "UNOS: Undershoot North, Overshoot South. ANDS: Accelerate North, Decelerate South. (UNOS is a common teaching phrase; ANDS is the PHAK's own [[1:228|PHAK 8-26]].)"
+     }
+    }
+   ],
+   "check": {
+    "q": "You speed up on a heading of 270. Which way does the compass swing, and is the airplane turning?",
+    "a": "It shows a turn toward north. The airplane is not turning; it is acceleration error, which appears on east and west headings [[1:228|PHAK 8-26]]."
+   }
+  },
+  {
+   "title": "Turns to headings with only the compass",
+   "kind": "skills",
+   "codes": [
+    "CA.VI.A.S4",
+    "CA.VI.A.K2",
+    "CA.VI.A.S7"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "In most small airplanes the magnetic compass is the only direction instrument that does not depend on other instruments or a power source [[23:182|IFH 7-21]]. If the heading indicator fails or precesses, you still have to hold your heading within 10 degrees (ACS CA.VI.A.S7)."
+    },
+    {
+     "bullets": [
+      "On a north heading, a turn to the east or west at first shows a turn the opposite way (the compass lags) [[23:183|IFH 7-22]].",
+      "On a south heading, a turn toward east or west shows more turn than is really happening (the compass leads) [[23:183|IFH 7-22]].",
+      "On an east or west heading, it reads correctly when the turn starts [[23:183|IFH 7-22]].",
+      "Holding north or south, climbing, diving or changing speed causes no error [[23:183|IFH 7-22]]."
+     ]
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "p": "The IFH method: with 15 to 18 degrees of bank, the lead or lag is about equal to your latitude. At 30 degrees latitude, turning from east to north, start the roll-out at 037 (30 plus half of a 15 degree bank). Turning from east to south, start at 203. From the west: 323 for north and 157 for south [[23:183|IFH 7-22]]. Turning to east or west from a northerly heading, start rolling out 10 to 12 degrees early; from a southerly heading, about 5 degrees early [[23:183|IFH 7-22]]."
+    },
+    {
+     "p": "Timed turns are the backup to the backup. A standard-rate turn is 3 degrees per second, so 45 degrees takes 15 seconds; a half-standard-rate turn takes 30 seconds for the same 45 degrees. Start timing as the second hand passes a cardinal point and begin the roll-out when the time is up [[23:182|IFH 7-21]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Before the checkride, practice: cover the heading indicator, turn to assigned headings using the compass, and check the result against the uncovered gyro. Use small banks and smooth roll-outs, then wait for the card to settle; abrupt attitude or airspeed changes make it swing [[23:183|IFH 7-22]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "At 30 degrees latitude you are heading west and must turn right to north with a 15 degree bank. Using the IFH method, where do you start the roll-out?",
+    "a": "When the compass reads about 323 [[23:183|IFH 7-22]]."
+   }
+  },
+  {
+   "title": "Reading the land: topography and obstacles",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.A.K3",
+    "CA.VI.A.K4b",
+    "CA.VI.A.S2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The sectional is drawn at 1:500,000, large enough to fly by sight [[2:10|Chart Users' Guide p.10]]. On it, 1 inch is 6.86 NM, about 8 SM [[1:389|PHAK 16-2]]. The FAA shows the shape of the land in five ways: contour lines, shaded relief, color tints, obstruction symbols and Maximum Elevation Figures [[2:10|Chart Users' Guide p.10]]."
+    },
+    {
+     "bullets": [
+      "Contours: basic lines every 500 ft, intermediate lines often every 250 ft. Close lines mean steep ground [[2:10|Chart Users' Guide p.10]].",
+      "Shaded relief: drawn as if the light came from the northwest, because that is how our eyes expect to see it [[2:10|Chart Users' Guide p.10]].",
+      "Color tints: from light green for low ground to dark brown for high ground [[2:11|Chart Users' Guide p.11]].",
+      "Obstacles: man-made objects more than 200 ft AGL are usually shown (more than 299 ft AGL in the yellow city tint). In crowded areas only the highest is shown, with a group symbol [[2:11|Chart Users' Guide p.11]].",
+      "UC beside an obstacle means under construction or reported but not verified [[2:11|Chart Users' Guide p.11]].",
+      "Wind turbine obstruction lights sit on the hub, which can be 200 to 300 ft below the unlighted blade tips [[2:11|Chart Users' Guide p.11]].",
+      "MEF: the highest terrain or obstacle in a quadrant, rounded up to the next 100 ft [[2:12|Chart Users' Guide p.12]]."
+     ]
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "Charts are not perfect. Charts are generally flight-checked every four years [[2:11|Chart Users' Guide p.11]], new roads and structures may not appear until the next edition, and antennas held up by almost invisible guy wires can be hard to see [[1:399|PHAK 16-12]]. TV transmitting towers can stand more than 1,500 ft above the terrain [[1:405|PHAK 16-18]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Never approach an area of antennas less than 500 ft above the tallest one [[1:399|PHAK 16-12]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Use current charts. Sectionals are updated every 56 days [[2:23|Chart Users' Guide p.23]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "A wind turbine farm is marked with its highest turbine. Why is its obstruction light a poor guide to the real top?",
+    "a": "The light is on the hub, which can be 200 to 300 ft below the rotating blade tips, and the blades are not lighted [[2:11|Chart Users' Guide p.11]]."
+   }
+  },
+  {
+   "title": "Choosing the route, altitude and checkpoints",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.A.K4",
+    "CA.VI.A.K4a",
+    "CA.VI.A.K4b",
+    "CA.VI.A.K4c",
+    "CA.VI.A.K3"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Route: check the weather first to see whether the flight is possible and which route is best [[1:404|PHAK 16-17]]. A direct line is simplest, but a route via a VOR that makes navigating easier is fine [[1:405|PHAK 16-18]]. Check the airspace on and beside the route, and find the highest terrain and the tallest obstruction [[1:405|PHAK 16-18]]. Look for airports or landing areas along the way and aids you could use in a diversion [[1:421|PHAK 16-34]]."
+    },
+    {
+     "p": "Altitude: above 3,000 ft AGL, a VFR cruising altitude must fit the magnetic course: odd thousands plus 500 on 000 to 179, even thousands plus 500 on 180 to 359 [[60:467|14 CFR 91.159(a)(1)]] [[60:468|14 CFR 91.159(a)(2)]]. Stay above the minimum safe altitudes, including enough height for an emergency landing anywhere [[60:449|14 CFR 91.119(a)]]. Then weigh winds, power and fuel, and visibility: AC 90-48E recommends flying above a haze layer [[16:7|AC 90-48E 8.1.9]]. In the PHAK example, 5,500 ft is picked to fly over the Class C and D airspace and clear all obstructions [[1:407|PHAK 16-20]]."
+    },
+    {
+     "p": "Checkpoints: pick prominent features that other features help confirm, such as roads, rivers, railroads, lakes and power lines [[1:399|PHAK 16-12]]. Good choices are large towns, large lakes and rivers, or combinations such as a town with an airport, highways and a railroad. Normally pick towns shown as yellow splashes, not small circles, which may be only a few houses [[1:405|PHAK 16-18]]."
+    },
+    {
+     "bullets": [
+      "Brackets: features on both sides of the course, such as highways, rivers or mountains, keep you from drifting far off course [[1:399|PHAK 16-12]].",
+      "Never rely on a single checkpoint. Pick plenty, so if you miss one you look for the next while holding the heading [[1:399|PHAK 16-12]].",
+      "Charted VFR checkpoints are marked with a small flag; the underlined name is the checkpoint's proper name [[2:33|Chart Users' Guide p.33]].",
+      "At night, rotating beacons, lighted obstructions, towns and highway traffic make good checkpoints; draw the course line in black so it shows in low light [[24:225|AFH 11-8]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application for the 2 NM standard: on a sectional, 2 NM is only about 0.3 inch (2 / 6.86). A checkpoint a quarter inch off the line is 1.7 NM away [[1:399|PHAK 16-12]]. Choose checkpoints on or very near the line, or ones you can measure from."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your magnetic course is 198 and you will cruise more than 3,000 ft AGL below 18,000 ft MSL. Is 7,500 ft correct?",
+    "a": "No. A magnetic course of 180 to 359 needs an even thousand plus 500, such as 6,500 or 8,500 [[60:468|14 CFR 91.159(a)(2)]]."
+   }
+  },
+  {
+   "title": "The flight log: build it, then fly it",
+   "kind": "skills",
+   "codes": [
+    "CA.VI.A.S1",
+    "CA.VI.A.S3",
+    "CA.VI.A.S6",
+    "CA.VI.A.K7"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The flight log is where pilotage and dead reckoning meet. The PHAK's sample log has, for each leg: course, altitude, wind, WCA, true heading, variation, magnetic heading, deviation, compass heading, distance, groundspeed, time and fuel, and then for each checkpoint the estimated and actual time and groundspeed [[1:407|PHAK 16-20]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Before flight (estimated)",
+       "In flight (actual)"
+      ],
+      "rows": [
+       [
+        "Checkpoint name and distance from the last one",
+        "Time over the checkpoint"
+       ],
+       [
+        "Compass heading for the leg",
+        "Heading you really needed to stay on the line"
+       ],
+       [
+        "Planned GS and time to each checkpoint",
+        "Actual GS: distance / time between checkpoints"
+       ],
+       [
+        "ETA at each checkpoint and destination",
+        "Revised ETA for the next checkpoint and destination"
+       ],
+       [
+        "Fuel planned for the leg",
+        "Fuel used and fuel remaining"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Table: built from the sample log [[1:407|PHAK 16-20]] and the PHAK's instruction to note headings and times as the trip progresses and adjust heading, GS and time [[1:408|PHAK 16-21]]."
+    },
+    {
+     "p": "On the checkride you fly with pre-computed headings, groundspeeds and times and check them against landmarks (ACS CA.VI.A.S3). The 3 minute tolerance is measured against the initial or revised ETA, and you must give a destination estimate (ACS CA.VI.A.S6). So the revised ETA is part of the job: after each checkpoint, work out the actual groundspeed and push the new times forward."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Do the arithmetic before engine start for every line you can. In flight, the PHAK says to use every shortcut and rule of thumb, because your attention is split between flying, figuring and scanning [[1:421|PHAK 16-34]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You pass checkpoint A at 1012 and checkpoint B, 26 NM later, at 1025. The destination is 54 NM past B. What is your destination estimate?",
+    "a": "GS = 26 / 13 min = 120 knots. 54 / 120 = 0.45 h = 27 min. ETA 1052 [[1:398|PHAK 16-11]]."
+   }
+  },
+  {
+   "title": "Planned versus actual: making corrections",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.A.K7",
+    "CA.VI.A.S5",
+    "CA.VI.A.S6",
+    "CA.VI.A.S2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "A plan is a forecast. The forecast wind is the weak link, so expect your real groundspeed and drift to be different. You can measure groundspeed in flight by timing a known distance [[1:396|PHAK 16-9]], and the PHAK says to keep watching the computed heading and groundspeed and correct them by pilotage at each checkpoint [[1:400|PHAK 16-13]]."
+    },
+    {
+     "bullets": [
+      "Late or early at a checkpoint: work out the actual groundspeed and use it for the rest of the leg. Then compare fuel: a lower groundspeed means more fuel for the same distance [[1:399|PHAK 16-12]].",
+      "Off to one side: the track is drifting, so your WCA is wrong. A wind from the left drifts you right; correct by heading farther left [[1:396|PHAK 16-9]].",
+      "If confused, hold the heading. A turn away from it is how pilots get lost [[1:399|PHAK 16-12]].",
+      "If the destination no longer works: divert. Note the time on course, use the nearest winds aloft to work out a new heading and GS, then a new arrival time and fuel. In an emergency, turn first and figure later [[1:422|PHAK 16-35]]."
+     ]
+    },
+    {
+     "p": "The sources do not give a formula for how much to correct the heading after drifting off course. Application: if you are 2 NM right of the line after 20 NM, the track is about 6 degrees right of course (arctan of 2/20 = 5.7), so you need roughly that much more left correction just to stop the drift, plus a bit more to get back to the line. Recheck at the next checkpoint."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The commercial standard is 2 NM and 3 minutes (ACS CA.VI.A.S5, S6). Small errors that you ignore for two checkpoints will usually be too big by the third. Correct early, in small amounts."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your planned groundspeed was 124 knots. Two checkpoints 21 NM apart take 12 minutes, and 63 NM remain. What is your new time to go?",
+    "a": "GS = 21 / 12 x 60 = 105 knots. 63 / 105 = 0.6 h = 36 minutes [[1:398|PHAK 16-11]]."
+   }
+  },
+  {
+   "title": "Risk: traffic, distraction and getting lost",
+   "kind": "risk",
+   "codes": [
+    "CA.VI.A.R1",
+    "CA.VI.A.R2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Pilotage pulls your eyes to the chart, the log and the ground, which is exactly when you are not looking for traffic. Every pilot, IFR or VFR, must keep watching so as to see and avoid other aircraft when weather permits [[60:447|14 CFR 91.113(b)]]."
+    },
+    {
+     "bullets": [
+      "Scan in short, regular eye movements of no more than 10 degrees, looking at each area for at least 1 second [[16:12|AC 90-48E 12]].",
+      "The eye can only focus on and recognize things in a narrow area of about 10 to 15 degrees, and with nothing to focus on (above haze, no horizon) it tends not to focus at all [[16:6|AC 90-48E 8.1.7]] [[16:6|AC 90-48E 8.1.5]].",
+      "In level cruise, make gentle banks left and right to see past the nose and wings. High wings block the view above, low wings below [[16:13|AC 90-48E 12.1]].",
+      "Flying into the sun, glare can hide an airplane that would stand out with the sun behind you [[16:7|AC 90-48E 8.1.10]].",
+      "Be extra watchful near VORs and VFR waypoints, where GPS accuracy puts many airplanes on the same line; turn on the landing light there [[1:421|PHAK 16-34]] [[1:362|PHAK 14-28]]."
+     ]
+    },
+    {
+     "p": "Distraction and lost situational awareness: fixation means locking attention on one task and forgetting what is going on around you [[1:449|PHAK 17-27]]. In flight, give priority to flying the airplane while you split attention between navigation and planning [[1:422|PHAK 16-35]]. Load VFR waypoints on the ground; avoid programming routes once airborne [[1:421|PHAK 16-34]]."
+    },
+    {
+     "p": "If you do get lost: climb, if traffic and weather allow, for better radio and radar coverage; read a town name on a water tower; use VOR bearings or GPS; and call any facility on the chart. ATC may give vectors or direction-finding help. If it turns serious, use 121.5 MHz and squawk 7700 [[1:421|PHAK 16-34]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Heads-down habit: look at the chart in short pieces, then scan, then look again. Fold the chart to the leg before takeoff so you are not wrestling paper over a checkpoint."
+     }
+    }
+   ],
+   "check": {
+    "q": "Another airplane converging from your right at about your altitude stays in the same spot on your windshield. Who has the right-of-way, and what does the steady position tell you?",
+    "a": "The airplane on the right has the right-of-way [[60:447|14 CFR 91.113(d)]]. An airplane that seems motionless is likely on a collision course and can suddenly 'bloom' into view [[16:6|AC 90-48E 8.1.8]]. Give way now."
+   }
+  },
+  {
+   "title": "Risk: unplanned fuel and power use",
+   "kind": "risk",
+   "codes": [
+    "CA.VI.A.R3",
+    "CA.VI.A.K6",
+    "CA.VI.A.K7"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Fuel burn depends on engine condition, propeller pitch, RPM, mixture and the percent of power used [[1:399|PHAK 16-12]]. Any of these can make the real burn higher than the plan: a stronger headwind, a lower altitude than planned, a power setting above the plan, or a mixture left rich [[1:169|PHAK 7-9]]."
+    },
+    {
+     "bullets": [
+      "Know your airplane's burn from the cruise charts or from experience [[1:399|PHAK 16-12]], and keep a record of past burns to support the planning numbers [[1:398|PHAK 16-11]].",
+      "At each checkpoint compare fuel used with fuel planned. A slower groundspeed means more hours, and fuel goes by hours [[1:399|PHAK 16-12]].",
+      "Remember the legal floor: 30 minutes of fuel at normal cruise after the first landing point by day, 45 at night [[60:464|14 CFR 91.151(a)]].",
+      "If the numbers get close, land early for fuel. The PHAK rule: be on the surface before your planned fuel time runs out or the gauge shows low [[1:399|PHAK 16-12]]."
+     ]
+    },
+    {
+     "p": "Power and altitude change fuel too. In the sample table at 65 percent power the fuel flow is 11.5 GPH up to 10,000 ft, then falls to 9.4 GPH at 16,000 ft on a standard day as the engine runs out of throttle [[1:281|PHAK 11-25]]. A cruise lower or a power setting higher than the plan changes both TAS and burn, so rework both."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Fuel gauges and fuel totalizers can both be wrong. Fly the clock as well as the gauge, and act on the more pessimistic number."
+     }
+    }
+   ],
+   "check": {
+    "q": "You planned 11.5 GPH but the fuel flow shows 13 GPH at the same RPM. What is the first thing to check?",
+    "a": "The mixture. A mixture that was not leaned for altitude burns extra fuel; lean per the POH [[1:169|PHAK 7-9]]. Then rework the fuel remaining and reserve [[1:399|PHAK 16-12]]."
+   }
+  },
+  {
+   "title": "Common errors and fixes",
+   "kind": "skills",
+   "codes": [
+    "CA.VI.A.S1",
+    "CA.VI.A.S2",
+    "CA.VI.A.S3",
+    "CA.VI.A.S4",
+    "CA.VI.A.S5",
+    "CA.VI.A.S6",
+    "CA.VI.A.S7"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Error",
+       "Fix"
+      ],
+      "rows": [
+       [
+        "Wind drawn toward the direction it comes from",
+        "Draw the wind line downwind [[1:402|PHAK 16-15]]"
+       ],
+       [
+        "Magnetic course used with a true wind",
+        "Winds aloft are true; work the triangle on the true course [[1:323|PHAK 13-13]]"
+       ],
+       [
+        "Variation sign backward",
+        "West is best (add), east is least (subtract) [[1:395|PHAK 16-8]]"
+       ],
+       [
+        "Fuel figured with TAS",
+        "Use groundspeed when there is wind [[1:399|PHAK 16-12]]"
+       ],
+       [
+        "Checkpoint a tiny town circle",
+        "Use yellow city tints and features that confirm each other [[1:405|PHAK 16-18]]"
+       ],
+       [
+        "Turning to search for a missed checkpoint",
+        "Hold the heading and look for the next one [[1:399|PHAK 16-12]]"
+       ],
+       [
+        "Reading the compass in a turn or while changing speed",
+        "Read it straight, level and steady [[1:228|PHAK 8-26]]"
+       ],
+       [
+        "Altitude creeps while reading the chart",
+        "Trim, then check the altimeter every scan; the limit is 100 ft (ACS CA.VI.A.S7)"
+       ],
+       [
+        "ETA never revised",
+        "Revise after each checkpoint; the 3 minutes is against the revised ETA (ACS CA.VI.A.S6)"
+       ],
+       [
+        "Heads down too long",
+        "Short looks, scan between them [[16:12|AC 90-48E 12]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Say it out loud for the examiner at each checkpoint: 'Over the town at 14:22, two minutes late, groundspeed 128, new ETA 14:51, fuel on plan, holding 066.' That one sentence shows S1, S3, S5 and S6 at once."
+     }
+    }
+   ],
+   "check": {
+    "q": "The examiner asks for your destination estimate halfway through the leg. What do you base it on?",
+    "a": "The actual groundspeed between your last checkpoints and the distance remaining, not the planned groundspeed [[1:408|PHAK 16-21]] (ACS CA.VI.A.S6)."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "CA.VI.A-1.jpg",
+   "res": "1",
+   "page": 402,
+   "caption": "Figure 16-21. Steps in drawing the wind triangle. (PHAK 16-15)",
+   "alt": "Three panels on green. Step 1: a protractor on a north-south line with marks at 45 and 90 degrees. Steps 2 and 3: from point E a true course line runs east and a wind line runs southwest to point W, with a dashed line toward the northeast. Step 4: a ruler runs from W up to point P on the course line, and the course line from E to P is labeled TC 090 GS 88.",
+   "source": "PHAK, PDF p. 402"
+  },
+  "f2": {
+   "file": "CA.VI.A-2.jpg",
+   "res": "1",
+   "page": 395,
+   "caption": "Figure 16-12. Compass deviation card. (PHAK 16-8)",
+   "alt": "A two-row card. For magnetic N, 30, 60, E, 120, 150 steer compass 0, 28, 57, 86, 117, 148. For magnetic S, 210, 240, W, 300, 330 steer 180, 212, 243, 274, 303, 332.",
+   "source": "PHAK, PDF p. 395"
+  },
+  "f3": {
+   "file": "CA.VI.A-3.jpg",
+   "res": "1",
+   "page": 229,
+   "caption": "Figure 8-37. The effects of acceleration error. (PHAK 8-27)",
+   "alt": "An airplane flying west over mountains with three compass cards. At constant airspeed the card reads correctly. During acceleration the card swings and a red arrow points to NORTH. During deceleration a green arrow points to South.",
+   "source": "PHAK, PDF p. 229"
+  },
+  "f4": {
+   "file": "CA.VI.A-4.jpg",
+   "res": "23",
+   "page": 183,
+   "caption": "Figure 7-35. North and south turn error. (IFH 7-22)",
+   "alt": "Top view of an airplane turning to a north heading, with a compass card reading 37 degrees and a note that the compass lags when making turns to the north; and an airplane turning to a south heading, with the card reading 210 and a note that the compass leads when making turns to the south.",
+   "source": "IFH, PDF p. 183"
+  },
+  "f5": {
+   "file": "CA.VI.A-5.jpg",
+   "res": "2",
+   "page": 33,
+   "caption": "Chart Users' Guide: VFR checkpoint, waypoint and obstruction symbols (Sectional and Terminal Area Charts, p. 33).",
+   "alt": "Legend excerpt. VFR checkpoints are marked by flags beside a pictorial state capitol, a small square labeled SIGNAL HILL, a private airport and a VOR box, with the proper name underlined. Waypoints: RNAV, VFR stand-alone, and VFR collocated with a checkpoint. Obstructions: a small symbol with 1473 over (394) for 200 to 1,000 ft AGL, one marked UC, a taller symbol 3368 over (1529) for 1,000 ft AGL and higher, and a wind turbine 2179 over (315).",
+   "source": "Chart Users' Guide, PDF p. 33"
+  },
+  "f6": {
+   "file": "CA.VI.A-6.jpg",
+   "res": "1",
+   "page": 281,
+   "caption": "Figure 11-28. Cruise power setting. (PHAK 11-25)",
+   "alt": "A table for 65 percent maximum continuous power at 2,800 lb, with columns for ISA minus 20, standard day and ISA plus 20. For each pressure altitude from sea level to 16,000 ft it lists outside air temperature, 2,450 RPM, manifold pressure, fuel flow and TAS in knots and mph. Standard day: 150 knots at sea level, 158 at 6,000, 161 at 8,000, 163 at 10,000 and 12,000, at 11.5 GPH up to 10,000 ft. Rows from 12,000 ft up are shaded for full throttle.",
+   "source": "PHAK, PDF p. 281"
+  }
+ },
+ "scenario": {
+  "title": "The checkride leg that ran slow",
+  "codes": [
+   "CA.VI.A.K4b",
+   "CA.VI.A.K5",
+   "CA.VI.A.K7",
+   "CA.VI.A.R1",
+   "CA.VI.A.R2",
+   "CA.VI.A.R3",
+   "CA.VI.A.S5",
+   "CA.VI.A.S6"
+  ],
+  "setup": "Commercial checkride. You planned the first leg of your cross-country: true course 074, 131 NM, variation 4 degrees W, cruise at 7,500 ft in an airplane whose POH cruise table matches Figure 11-28. The forecast wind at 7,500 is 330 at 26 knots (true). You planned 65 percent power. Your first checkpoint is a town with a highway and railroad 24 NM after level-off. At the second checkpoint, 28 NM farther, you find you took 12 minutes. There is haze, and the examiner is chatting with you about your career.",
+  "questions": [
+   {
+    "q": "Is 7,500 ft a legal VFR cruising altitude for this course, and what TAS and fuel flow do you plan there?",
+    "a": "Magnetic course is 074 + 4 = 078, so odd thousands plus 500 apply and 7,500 is correct [[60:467|14 CFR 91.159(a)(1)]]. Standard day, interpolating between 158 knots at 6,000 and 161 at 8,000 gives about 160 knots, at 11.5 GPH [[1:281|PHAK 11-25]]."
+   },
+   {
+    "q": "Work the wind triangle. What WCA, true heading and groundspeed do you plan?",
+    "a": "Wind angle 330 minus 074 is 256 degrees, which is the same as 104 degrees from the left. Crosswind 26 x sin 104 = 25.2 knots from the left, plus a 6.3-knot tailwind. WCA = arcsin(25.2 / 160) = 9 degrees left, TH 065, GS = 160 x cos 9 + 6.3 = 164 knots. Apply the WCA with the PHAK sign rule [[1:403|PHAK 16-16]]."
+   },
+   {
+    "q": "What compass heading goes on the log?",
+    "a": "TH 065 plus 4 W = MH 069 (west is added) [[1:395|PHAK 16-8]]. Figure 16-12 gives -3 at 060 and -4 at 090, so about -3 at 069. CH about 066 [[1:395|PHAK 16-8]]."
+   },
+   {
+    "q": "28 NM in 12 minutes: what is your actual groundspeed, and what do you owe the examiner now?",
+    "a": "28 / 12 x 60 = 140 knots, not 164 [[1:398|PHAK 16-11]]. Revise the ETAs for the next checkpoints and give a new destination estimate; the 3 minute limit is measured against the revised ETA (ACS CA.VI.A.S6). The PHAK says to adjust heading, GS and time as the trip progresses [[1:408|PHAK 16-21]]."
+   },
+   {
+    "q": "The groundspeed drop also changes fuel. What do you check?",
+    "a": "Fuel goes by time, and time by groundspeed [[1:399|PHAK 16-12]]. If the whole 131 NM leg ran at 140 knots it would take about 56 minutes instead of 48, about 10.8 gallons instead of 9.2 at 11.5 GPH. Check that you still land with at least the legal reserve [[60:464|14 CFR 91.151(a)(1)]] and your own margin."
+   },
+   {
+    "q": "Haze, a talking examiner and a recalculation all at once. How do you manage the risk?",
+    "a": "Fly the airplane first and split attention between navigation and planning [[1:422|PHAK 16-35]]. Keep the scan going in short movements [[16:12|AC 90-48E 12]]; haze makes traffic hard to see [[16:7|AC 90-48E 8.1.9]]. It is fine to tell the examiner you need a minute to navigate."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "CA.VI.A.S1",
+   "do": "Prepare a complete flight log before the flight and keep it up to date in flight: times over checkpoints, actual groundspeed, revised ETAs and fuel.",
+   "practice": "Plan the PHAK Chickasha to Guthrie trip and compare your log to Figure 16-26 [[1:407|PHAK 16-20]]; then fill in the actual columns on every training cross-country [[1:408|PHAK 16-21]]."
+  },
+  {
+   "code": "CA.VI.A.S2",
+   "do": "Find and confirm your position from landmarks, matching the chart to the ground.",
+   "practice": "Pick checkpoints that other features confirm and bracket the course with highways or rivers [[1:399|PHAK 16-12]]; fly legs with the GPS covered."
+  },
+  {
+   "code": "CA.VI.A.S3",
+   "do": "Fly pre-computed compass headings, groundspeeds and times, and check them against landmarks at each checkpoint.",
+   "practice": "Work every leg with the wind triangle and the TC to CH sequence before flight [[1:402|PHAK 16-15]] [[1:403|PHAK 16-16]], then fly the computed heading and see how well it holds."
+  },
+  {
+   "code": "CA.VI.A.S4",
+   "do": "Use the magnetic compass to navigate and to turn to headings, allowing for its errors.",
+   "practice": "With the heading indicator covered, turn to headings using the IFH lead and lag points and timed turns [[23:183|IFH 7-22]] [[23:182|IFH 7-21]]."
+  },
+  {
+   "code": "CA.VI.A.S5",
+   "do": "Show the examiner your position is within 2 NM of the planned route.",
+   "practice": "At each checkpoint, estimate your distance from the course line using the chart scale (1 inch = 6.86 NM) and correct the heading early [[1:399|PHAK 16-12]]."
+  },
+  {
+   "code": "CA.VI.A.S6",
+   "do": "Arrive at each en route checkpoint within 3 minutes of the initial or revised ETA, and give a destination estimate.",
+   "practice": "After each checkpoint, compute actual GS and new ETAs out loud [[1:398|PHAK 16-11]]; aim to be inside 1 minute in training."
+  },
+  {
+   "code": "CA.VI.A.S7",
+   "do": "Hold the selected altitude within 100 ft and heading within 10 degrees while you navigate.",
+   "practice": "Trim carefully and practice chart work in short looks while a CFI calls out every 50 ft and 5 degree drift [[16:12|AC 90-48E 12]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "What are the commercial ACS altitude and heading tolerances for this Task?",
+   "options": [
+    "Altitude plus or minus 100 ft, heading plus or minus 10 degrees",
+    "Altitude plus or minus 200 ft, heading plus or minus 15 degrees",
+    "Altitude plus or minus 100 ft, heading plus or minus 5 degrees",
+    "Altitude plus or minus 50 ft, heading plus or minus 10 degrees"
+   ],
+   "answer": 0,
+   "why": "Commercial: plus or minus 100 ft and 10 degrees (ACS CA.VI.A.S7). The private standard is 200 ft and 15 degrees (ACS PA.VI.A.S7)."
+  },
+  {
+   "q": "Dead reckoning by itself produces which two results?",
+   "options": [
+    "Heading and groundspeed",
+    "Position and altitude",
+    "Variation and deviation",
+    "True airspeed and density altitude"
+   ],
+   "answer": 0,
+   "why": "Dead reckoning uses time, airspeed, distance and direction; the products, adjusted for wind, are heading and groundspeed [[1:400|PHAK 16-13]]."
+  },
+  {
+   "q": "Who may adjust the magnetic compass and fill out its correction card?",
+   "options": [
+    "Only an AMT",
+    "Any certificated pilot",
+    "The pilot in command, after a flight test",
+    "Only the airplane manufacturer"
+   ],
+   "answer": 0,
+   "why": "Only AMTs can adjust the compass or complete the compass correction card; pilots fly compass headings using the card [[1:227|PHAK 8-25]]."
+  },
+  {
+   "q": "TC 165, TAS 110 knots, forecast wind 210 at 18. About what true heading do you fly?",
+   "options": [
+    "172",
+    "158",
+    "165",
+    "183"
+   ],
+   "answer": 0,
+   "why": "Wind is 45 degrees from the right. Crosswind 18 x sin 45 = 12.7; WCA = arcsin(12.7/110) = 6.6, about 7 degrees right, added because the wind is from the right [[1:403|PHAK 16-16]]. 165 + 7 = 172."
+  },
+  {
+   "q": "Why should a pilot have the compass deviation checked from time to time?",
+   "options": [
+    "Landing shocks, vibration, maintenance and new equipment change the airplane's magnetic fields",
+    "Variation changes every flight",
+    "The compass fluid evaporates each year",
+    "Deviation changes with the airplane's location"
+   ],
+   "answer": 0,
+   "why": "The magnetic forces inside the airplane change because of landing shocks, vibration, mechanical work or changes in equipment, so deviation should be checked occasionally [[1:395|PHAK 16-8]]. Deviation does not depend on location [[1:226|PHAK 8-24]]."
+  },
+  {
+   "q": "Using Figure 11-28, which change raises TAS at the same 65 percent power at 6,000 ft?",
+   "options": [
+    "A hotter day (ISA plus 20)",
+    "A colder day (ISA minus 20)",
+    "Descending to sea level",
+    "None; TAS is fixed by percent power"
+   ],
+   "answer": 0,
+   "why": "At 6,000 ft the table shows 155 knots at ISA minus 20, 158 at standard and 161 at ISA plus 20 [[1:281|PHAK 11-25]]."
+  },
+  {
+   "q": "Using the IFH method at 30 degrees latitude with a 15 degree bank, where do you start the roll-out when turning from an easterly heading to south?",
+   "options": [
+    "203",
+    "180",
+    "157",
+    "165"
+   ],
+   "answer": 0,
+   "why": "Keep turning until the compass passes south by the latitude minus half the bank: 180 + 30 minus 7.5, about 203 [[23:183|IFH 7-22]]. 157 is the point for a turn to south from the west."
+  },
+  {
+   "q": "How often are VFR sectional and terminal area charts updated, per the Chart Users' Guide?",
+   "options": [
+    "Every 56 days",
+    "Every 28 days",
+    "Every 6 months",
+    "Once a year"
+   ],
+   "answer": 0,
+   "why": "Sectionals and TACs are updated every 56 days [[2:23|Chart Users' Guide p.23]]. The PHAK's 'semiannually' is out of date [[1:389|PHAK 16-2]]."
+  },
+  {
+   "q": "Why should you plan fuel with groundspeed rather than TAS when there is wind?",
+   "options": [
+    "Fuel burn per hour stays about the same at a TAS, and GS sets the hours",
+    "Fuel burn depends on GS, not power",
+    "TAS is only for VFR flight plans",
+    "The E6B cannot compute fuel from TAS"
+   ],
+   "answer": 0,
+   "why": "Fuel consumption stays relatively constant at a given TAS, so wind changes the time, and you must use GS to find fuel [[1:399|PHAK 16-12]]."
+  },
+  {
+   "q": "How far apart are the eye movements in an effective traffic scan, per AC 90-48E?",
+   "options": [
+    "No more than 10 degrees, at least 1 second each",
+    "About 30 degrees, half a second each",
+    "One sweep of the whole windshield every 10 seconds",
+    "No more than 2 degrees, 5 seconds each"
+   ],
+   "answer": 0,
+   "why": "Each movement should not exceed 10 degrees, and each area should be looked at for at least 1 second [[16:12|AC 90-48E 12]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "TC 315, TAS 150, wind 020 at 28 (true), variation 5 W. Figure 16-12 shows 332 for 330. What compass heading do you steer?",
+   "options": [
+    "332",
+    "322",
+    "328",
+    "312"
+   ],
+   "answer": 0,
+   "why": "Wind 65 degrees from the right: crosswind 25.4, WCA = arcsin(25.4/150) = 9.7, about 10 right, TH 325 [[1:403|PHAK 16-16]]. Add 5 W: MH 330 [[1:395|PHAK 16-8]]. Card +2: CH 332 [[1:395|PHAK 16-8]]. 322 subtracts variation, 328 subtracts deviation, 312 subtracts the WCA."
+  },
+  {
+   "q": "Same leg: TC 315, TAS 150, wind 020 at 28. What groundspeed do you plan?",
+   "options": [
+    "About 136 knots",
+    "About 122 knots",
+    "About 150 knots",
+    "About 162 knots"
+   ],
+   "answer": 0,
+   "why": "Headwind component 28 x cos 65 = 11.8. GS = 150 x cos 9.7 minus 11.8 = 147.9 minus 11.8 = about 136 knots (application of the wind triangle [[1:402|PHAK 16-15]])."
+  },
+  {
+   "q": "On the commercial checkride you are 2.5 NM right of course at a checkpoint, on time, on altitude and heading. What is true?",
+   "options": [
+    "You are outside the 2 NM position tolerance and need to correct",
+    "You pass because time, altitude and heading are good",
+    "You are inside the tolerance, which is 3 NM",
+    "Position only matters at the destination"
+   ],
+   "answer": 0,
+   "why": "Commercial applicants must verify position within 2 NM of the planned route (ACS CA.VI.A.S5); the 3 NM figure is the private standard (ACS PA.VI.A.S5)."
+  },
+  {
+   "q": "A checkpoint you plan to use is a quarter inch from your course line on the sectional. How far is it on the ground?",
+   "options": [
+    "About 1.7 NM",
+    "About 3.4 NM",
+    "About 0.9 NM",
+    "About 2.7 NM"
+   ],
+   "answer": 0,
+   "why": "1 inch = 6.86 NM, so a quarter inch is 6.86 / 4 = 1.7 NM [[1:399|PHAK 16-12]]."
+  },
+  {
+   "q": "You planned 8,000 ft on a standard day with Figure 11-28 (161 knots). Clouds force you down to 6,000 ft at the same 65 percent power. What do you now plan?",
+   "options": [
+    "158 knots at 11.5 GPH",
+    "161 knots at 11.5 GPH",
+    "158 knots at 10.9 GPH",
+    "155 knots at 11.5 GPH"
+   ],
+   "answer": 0,
+   "why": "Standard day at 6,000 ft: 2,450 RPM, 20.4 in Hg, 11.5 GPH, 158 knots [[1:281|PHAK 11-25]]. 155 knots is the ISA minus 20 column. Rework your times with the lower groundspeed."
+  },
+  {
+   "q": "Your winds aloft forecast says 270 at 30. Your magnetic course is 255 and variation is 12 E. What do you put in the wind triangle?",
+   "options": [
+    "True course 267 with the wind 270 at 30",
+    "Magnetic course 255 with the wind 270 at 30",
+    "True course 243 with the wind 258 at 30",
+    "Magnetic course 255 with the wind 282 at 30"
+   ],
+   "answer": 0,
+   "why": "Winds aloft are given relative to true north [[1:323|PHAK 13-13]], and the triangle starts from the true course [[1:403|PHAK 16-16]]. East variation is subtracted going from true to magnetic [[1:395|PHAK 16-8]], so going back you add it: TC = 255 + 12 = 267."
+  },
+  {
+   "q": "You need to turn from north to east using only the magnetic compass. When does the IFH say to start rolling out?",
+   "options": [
+    "About 10 to 12 degrees before the compass reads east",
+    "About 5 degrees before east",
+    "When the compass reads exactly east",
+    "About 30 degrees past east"
+   ],
+   "answer": 0,
+   "why": "Turning to east or west from a northerly heading, start the roll-out about 10 to 12 degrees before; from a southerly heading, about 5 degrees before [[23:183|IFH 7-22]]."
+  },
+  {
+   "q": "You hold a standard-rate turn to change heading 60 degrees on the clock. How long do you hold it?",
+   "options": [
+    "20 seconds",
+    "30 seconds",
+    "15 seconds",
+    "40 seconds"
+   ],
+   "answer": 0,
+   "why": "Standard rate is 3 degrees per second (45 degrees in 15 seconds), so 60 / 3 = 20 seconds [[23:182|IFH 7-21]]."
+  },
+  {
+   "q": "You are unsure of your position, the next checkpoint is not in sight, and haze limits the view. What should you do first?",
+   "options": [
+    "Hold the heading and look for the next checkpoint while scanning",
+    "Turn toward the most likely town",
+    "Descend to read road signs",
+    "Circle until you recognize something"
+   ],
+   "answer": 0,
+   "why": "If one checkpoint is missed, look for the next while holding the heading; turning away from the heading is how pilots get lost [[1:399|PHAK 16-12]]. If still lost, climb and use radios or GPS [[1:421|PHAK 16-34]]."
+  },
+  {
+   "q": "You fly 15 NM with a heading 10 degrees off and do not notice. About how far are you from the course line, and does it pass?",
+   "options": [
+    "About 2.6 NM, outside the 2 NM standard",
+    "About 1.5 NM, inside the standard",
+    "About 0.3 NM, inside the standard",
+    "About 5.2 NM, outside the standard"
+   ],
+   "answer": 0,
+   "why": "Application: 15 x sin 10 = 2.6 NM. The position standard is 2 NM (ACS CA.VI.A.S5), so a heading error inside the 10 degree limit (ACS CA.VI.A.S7) can still fail position if you do not check checkpoints."
+  },
+  {
+   "q": "On a night cross-country, which make good visual checkpoints according to the AFH?",
+   "options": [
+    "Rotating beacons, lighted obstructions, and lights of towns and highways",
+    "Rivers and small lakes",
+    "Contour lines and shaded relief",
+    "Unlighted VFR checkpoint flags"
+   ],
+   "answer": 0,
+   "why": "At night, airport beacons, lighted obstructions, lights of cities or towns, and highway traffic make excellent visual checkpoints [[24:225|AFH 11-8]]."
+  },
+  {
+   "q": "In the PHAK Chickasha to Guthrie example, why was 5,500 ft chosen?",
+   "options": [
+    "To fly over the Class C and D airspace, clear obstructions, and fit an odd thousand plus 500 for the course",
+    "Because the wind was strongest there",
+    "Because the flight log says 8,000 ft is too high",
+    "Because 5,500 is the MEF for the area"
+   ],
+   "answer": 0,
+   "why": "The wind was no factor, so 5,500 was chosen to stay above the Class C and D airspace with clearance over all obstructions and to fit the rule for magnetic courses 0 to 179 [[1:407|PHAK 16-20]]."
+  },
+  {
+   "q": "Over checkpoint 2 you are 4 minutes later than the ETA you revised at checkpoint 1. What does the commercial ACS say?",
+   "options": [
+    "You are outside the 3 minute tolerance against the revised ETA",
+    "You are fine because the private tolerance is 5 minutes",
+    "Only the destination time counts",
+    "Revised ETAs are not allowed on the checkride"
+   ],
+   "answer": 0,
+   "why": "Commercial: within 3 minutes of the initial or revised ETA (ACS CA.VI.A.S6). Four minutes is outside it. The 5 minute figure is private (ACS PA.VI.A.S6)."
+  }
+ ],
+ "takeaways": [
+  "Pilotage tells you where you are; dead reckoning tells you where you should be and when.",
+  "TC, WCA, TH, variation, MH, deviation, CH: same order every time; winds aloft are true.",
+  "Fuel follows time, and time follows groundspeed. Refigure both at every checkpoint.",
+  "Compass: stop early turning to north, late turning to south; ANDS on east and west.",
+  "Choose confirmable checkpoints near the line; 2 NM is only 0.3 inch on a sectional.",
+  "Commercial limits: 2 NM, 3 minutes from the revised ETA, 100 ft, 10 degrees.",
+  "Short looks down, long looks out: navigation never replaces the traffic scan."
+ ],
+ "cfi_notes": [
+  "Figure 16-19 in the PHAK is only a picture: with TC 090, TAS 120 and wind 020 at 35, the trig gives a WCA of about 16 degrees and a GS of about 103 knots, not the 10 degree drift, 8 degree correction and 110 knots printed on it [[1:401|PHAK 16-14]]. Use the Figure 16-21 example (14 degrees, 88 knots), which does solve [[1:402|PHAK 16-15]].",
+  "PHAK 16-2 says sectionals are revised semiannually, and 16-17 says a chart may be up to 6 months old [[1:389|PHAK 16-2]] [[1:404|PHAK 16-17]]. The Chart Users' Guide says sectionals and TACs are updated every 56 days [[2:23|Chart Users' Guide p.23]]. Teach the 56-day cycle.",
+  "The PHAK Chickasha example reads the variation as 6.30 E and rounds it to 7 E [[1:407|PHAK 16-20]]; normal rounding would give 6. Use it to show students to read the isogonic value carefully rather than copy the book.",
+  "IFH 5-13 prints the southerly example as '15 + 15 + 30 degrees' after passing the heading [[23:108|IFH 5-13]]; PHAK 8-26 gives the intended 15 + 15 = 30 [[1:228|PHAK 8-26]]. The IFH 7-22 method (latitude, plus or minus half the bank) gives slightly different numbers [[23:183|IFH 7-22]]. Both are rules of thumb; examiners care that the student rolls out early to north and late to south and then corrects.",
+  "PHAK 8-26 calls the northerly turning error a 'lead' of the card and the southerly one a lag [[1:228|PHAK 8-26]], while IFH Figure 7-35 says the compass lags when turning to north and leads when turning to south [[23:183|IFH 7-22]]. The words fight; the actions (stop early to north, late to south) agree. Teach the actions and the IFH picture.",
+  "The trig check of the wind triangle is not in the FAA handbooks; it is the math inside an E6B. Commercial students who can do it with a calculator catch E6B setting errors, the most common being a magnetic course used with a true wind.",
+  "Commercial students often fly the private 3 NM and 5 minute habits. Make them call a revised ETA at every checkpoint in training, because the commercial 3 minutes is measured against it (ACS CA.VI.A.S6).",
+  "Examiners commonly cover the heading indicator or ask for a compass turn during this task. Practice it as part of navigation, not only as an instrument maneuver [[23:183|IFH 7-22]]."
+ ],
+ "gaps": [
+  "No source gives a method or rule of thumb (such as 1 in 60 or double the drift) for how much to change heading after drifting off course. The application in this lesson is simple trig; CFI technique fills the rest.",
+  "Cruise power settings, fuel flow, TAS, leaning procedure and deviation values for your airplane come only from its POH/AFM and its own correction card. The PHAK tables and card are samples [[1:281|PHAK 11-25]] [[1:395|PHAK 16-8]].",
+  "The ACS does not say how an examiner measures the 2 NM position tolerance in flight (chart estimate, GPS cross-check). Ask your CFI how local examiners do it.",
+  "The sources give TAS only by flight computer or by the 2 percent rule of thumb, not by formula [[1:211|PHAK 8-9]]. Use the E6B or POH for an exact number.",
+  "None of the sources covers how to fold and handle a paper chart or tablet in a busy cockpit; that is CFI technique."
+ ],
+ "activities": [
+  {
+   "type": "label",
+   "key": "h1",
+   "after": 3,
+   "title": "Read the wind triangle",
+   "figure": "f1",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 28.6,
+     "y": 68.5,
+     "label": "Departure point: course and wind both start here"
+    },
+    {
+     "x": 22.9,
+     "y": 80.0,
+     "label": "Wind line: drawn downwind, one hour of wind"
+    },
+    {
+     "x": 17.2,
+     "y": 91.5,
+     "label": "End of the wind line, where the airspeed ruler starts"
+    },
+    {
+     "x": 62.9,
+     "y": 68.5,
+     "label": "Airplane position after one hour; E to here is the GS"
+    },
+    {
+     "x": 70.6,
+     "y": 21.3,
+     "label": "Direction the wind blows from (045), not the wind line"
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h2",
+   "after": 4,
+   "title": "Work the leg like an E6B",
+   "intro": "Work it out, then type your answer. E6B-size differences are accepted.",
+   "items": [
+    {
+     "q": "TC 052, TAS 118 knots, wind 340 at 22 (true). What groundspeed do you plan?",
+     "answer": 109,
+     "tol": 2,
+     "unit": "kt",
+     "why": "Wind angle 340 minus 052 = 288, which is 72 degrees from the left. Crosswind 22 x sin 72 = 20.9; headwind 22 x cos 72 = 6.8. WCA = arcsin(20.9/118) = 10.2 L. GS = 118 x cos 10.2 minus 6.8 = 116.1 minus 6.8 = 109 kt (application of the wind triangle [[1:402|PHAK 16-15]])."
+    },
+    {
+     "q": "TC 200, TAS 145, wind 250 at 30 (true), variation 9 E, deviation from Figure 16-12. What compass heading?",
+     "answer": 201,
+     "tol": 1,
+     "unit": "deg",
+     "why": "Wind 50 degrees from the right: crosswind 30 x sin 50 = 23.0; WCA = arcsin(23.0/145) = 9.1, so 9 R, TH 209 [[1:403|PHAK 16-16]]. East is least: MH 209 minus 9 = 200 [[1:395|PHAK 16-8]]. Card: 0 at 180, +2 at 210, so about +1 at 200. CH 201 [[1:395|PHAK 16-8]]."
+    },
+    {
+     "q": "The next checkpoint is 46 NM away and your groundspeed is 124 knots. How many minutes to get there?",
+     "answer": 22,
+     "tol": 1,
+     "unit": "min",
+     "why": "46 / 124 = 0.371 h x 60 = 22.3 min [[1:398|PHAK 16-11]]."
+    },
+    {
+     "q": "A 238 NM leg at a groundspeed of 147 knots, cruising at 8,000 ft on a standard day per Figure 11-28. How many gallons for the leg plus the day VFR reserve?",
+     "answer": 24.4,
+     "tol": 0.3,
+     "unit": "gal",
+     "why": "Figure 11-28 at 8,000 ft standard: 11.5 GPH [[1:281|PHAK 11-25]]. 238 / 147 = 1.619 h x 11.5 = 18.6 gal. Day reserve: 30 min at normal cruise = 0.5 x 11.5 = 5.75 gal [[60:464|14 CFR 91.151(a)(1)]]. 18.6 + 5.75 = 24.4 gal."
+    },
+    {
+     "q": "You planned 124 knots. Two checkpoints 21 NM apart take 12 minutes, and 63 NM remain. New time to go, in minutes?",
+     "answer": 36,
+     "tol": 1,
+     "unit": "min",
+     "why": "Actual GS = 21 / 12 x 60 = 105 kt. 63 / 105 = 0.6 h = 36 min [[1:398|PHAK 16-11]]."
+    },
+    {
+     "q": "Near 36 degrees N you turn left from east to north using only the compass. With the PHAK rule, at what compass reading do you stop the turn?",
+     "answer": 33,
+     "tol": 1,
+     "unit": "deg",
+     "why": "Stop a turn to north 15 plus half the latitude before the heading: 15 + 18 = 33 degrees before 360, so at 033 [[1:228|PHAK 8-26]]."
+    }
+   ]
+  },
+  {
+   "type": "match",
+   "key": "h3",
+   "after": 5,
+   "title": "Read the cruise power table",
+   "intro": "Tap a condition, then what Figure 11-28 gives for it (65 percent power, 2,800 lb).",
+   "pairs": [
+    {
+     "l": "Sea level, ISA minus 20",
+     "r": "147 knots at 11.5 GPH"
+    },
+    {
+     "l": "6,000 ft, ISA plus 20",
+     "r": "161 knots, 21.0 in Hg"
+    },
+    {
+     "l": "10,000 ft, standard day",
+     "r": "163 knots at 11.5 GPH"
+    },
+    {
+     "l": "12,000 ft, standard day",
+     "r": "163 knots at 10.9 GPH"
+    },
+    {
+     "l": "16,000 ft, standard day",
+     "r": "156 knots at 9.4 GPH"
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h4",
+   "after": 6,
+   "title": "Does it depend on heading?",
+   "intro": "Tap an item, then tap where it belongs.",
+   "buckets": [
+    "Changes with the airplane's heading",
+    "Does not change with heading"
+   ],
+   "items": [
+    {
+     "t": "Compass deviation",
+     "b": 0
+    },
+    {
+     "t": "Magnetic variation at one place",
+     "b": 1
+    },
+    {
+     "t": "Acceleration error (shows on east and west)",
+     "b": 0
+    },
+    {
+     "t": "Turning error when rolling out on north or south",
+     "b": 0
+    },
+    {
+     "t": "Wind correction angle for a given wind",
+     "b": 0
+    },
+    {
+     "t": "Sectional scale, 1 inch = 6.86 NM",
+     "b": 1
+    },
+    {
+     "t": "The value printed on an isogonic line",
+     "b": 1
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h5",
+   "after": 8,
+   "title": "True or false: what the chart shows",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "Shaded relief on a sectional is drawn as if the light came from the northwest.",
+     "a": true,
+     "why": "True. Studies show our eyes are used to that view [[2:10|Chart Users' Guide p.10]]."
+    },
+    {
+     "s": "In crowded city areas, every tall building over 200 ft AGL is shown separately.",
+     "a": false,
+     "why": "False. In high-density areas only the highest obstacle is shown, with the group obstacle symbol [[2:11|Chart Users' Guide p.11]]."
+    },
+    {
+     "s": "UC next to an obstacle means its position or elevation has not been verified.",
+     "a": true,
+     "why": "True. UC means under construction or reported but not verified [[2:11|Chart Users' Guide p.11]]."
+    },
+    {
+     "s": "A wind turbine's obstruction light marks the highest point of the turbine.",
+     "a": false,
+     "why": "False. The light is on the hub, which can be 200 to 300 ft below the unlighted blade tips [[2:11|Chart Users' Guide p.11]]."
+    },
+    {
+     "s": "Color tints run from light green for low ground to dark brown for high ground.",
+     "a": true,
+     "why": "True [[2:11|Chart Users' Guide p.11]]."
+    },
+    {
+     "s": "The underlined name next to a VFR checkpoint flag is the checkpoint's proper name.",
+     "a": true,
+     "why": "True. The underline shows the proper name of the VFR checkpoint [[2:33|Chart Users' Guide p.33]]."
+    },
+    {
+     "s": "Basic contour lines on a sectional are spaced every 1,000 ft.",
+     "a": false,
+     "why": "False. Basic contours are every 500 ft, with intermediate contours often every 250 ft [[2:10|Chart Users' Guide p.10]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h6",
+   "after": 10,
+   "title": "Your routine over each checkpoint",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Before reaching it: know the time it is due and the features that confirm it",
+    "Identify it by more than one feature, still holding the heading",
+    "Note the time over it and how far you are from the course line",
+    "Work out the actual groundspeed from the last checkpoint",
+    "Revise the ETAs for the next checkpoint and the destination",
+    "Compare fuel used with fuel planned",
+    "Adjust the heading if you were drifting, then go back to the scan"
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 13,
+   "title": "Commercial checkride leg, one decision at a time",
+   "intro": "You are on the first leg of your commercial checkride in a four-seat single, at 7,500 ft, 65 percent power, compass heading 066 planned. The examiner has covered the GPS.",
+   "steps": [
+    {
+     "s": "Over checkpoint 1, a town with a railroad and highway, you are 2 minutes early and about 1 NM left of the line.",
+     "options": [
+      "Note the time, work out the actual groundspeed and revise the ETAs",
+      "Keep the planned ETAs; early is fine",
+      "Turn right 30 degrees to get back on the line quickly",
+      "Uncover the GPS to check"
+     ],
+     "answer": 0,
+     "why": "Note headings and times and adjust heading, GS and time as you go [[1:408|PHAK 16-21]]. The 3 minute standard is against the initial or revised ETA (ACS CA.VI.A.S6). One NM left is inside 2 NM, so a small heading change is enough (ACS CA.VI.A.S5)."
+    },
+    {
+     "s": "At the ETA for checkpoint 2, a small lake, you cannot see it in the haze.",
+     "options": [
+      "Hold the heading and look for the next checkpoint",
+      "Turn left and right looking for the lake",
+      "Descend 1,000 ft for a better view",
+      "Start a 360 to look around"
+     ],
+     "answer": 0,
+     "why": "Never rely on one checkpoint; if you miss one, look for the next while holding the heading. Turning away makes it easy to get lost [[1:399|PHAK 16-12]]."
+    },
+    {
+     "s": "While you look at the chart, the examiner points at an airplane at your 2 o'clock, same altitude, not moving in the windshield.",
+     "options": [
+      "Give way: it is on your right and on a collision course",
+      "Hold course: you have the right-of-way",
+      "Climb 100 ft and continue",
+      "Wait to see if it changes course"
+     ],
+     "answer": 0,
+     "why": "When converging, the aircraft on the other's right has the right-of-way [[60:447|14 CFR 91.113(d)]]. A target that appears motionless is likely on a collision course [[16:6|AC 90-48E 8.1.8]]. Give way and pass well clear [[60:447|14 CFR 91.113(b)]]."
+    },
+    {
+     "s": "Back on course, you see 13 GPH on the fuel flow gauge. You planned 11.5 at this power and forgot to lean after the climb.",
+     "options": [
+      "Lean per the POH and refigure fuel remaining and reserve",
+      "Add power to arrive sooner",
+      "Ignore it; the leg is short",
+      "Switch tanks to balance the burn"
+     ],
+     "answer": 0,
+     "why": "A rich mixture at altitude wastes fuel and can foul plugs; lean per the POH [[1:169|PHAK 7-9]]. Then compare fuel used with planned [[1:399|PHAK 16-12]]."
+    },
+    {
+     "s": "The examiner asks for your destination estimate. 52 NM remain and your last two checkpoints gave a groundspeed of 140 knots.",
+     "options": [
+      "About 22 minutes from now",
+      "About 19 minutes, using the planned 164 knots",
+      "About 26 minutes",
+      "About 37 minutes"
+     ],
+     "answer": 0,
+     "why": "52 / 140 = 0.371 h = 22.3 minutes [[1:398|PHAK 16-11]]. Use the actual groundspeed, not the plan (ACS CA.VI.A.S6)."
+    }
+   ]
+  }
+ ]
+}
