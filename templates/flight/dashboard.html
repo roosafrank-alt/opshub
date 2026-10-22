@@ -223,6 +223,13 @@
     .wx-forecast-hour { min-width: 0; flex-shrink: 1; }
   }
 
+  /* Phone weather: a single condensed line that opens a popup. */
+  .wx-compact { cursor: pointer; gap: .5rem; white-space: nowrap; overflow: hidden; }
+  .wx-compact .wx-compact-wind { overflow: hidden; text-overflow: ellipsis; }
+  #wxPopup .modal-body { padding: .75rem; }
+  #wxPopup .wx-strip-banner { margin-bottom: .5rem; }
+  #wxPopup .modal-content { transition: transform .15s ease; touch-action: pan-y; }
+
   /* Today's Schedule: a thin "you are here" line at the current time, and
      scheduled-but-not-started chips whose slot already passed dimmed down
      so the board reads at a glance as "done" vs "still coming up". An
@@ -451,6 +458,48 @@
    yes/no confirm isn't enough. Opened by .pending-deny-btn's click handler
    below; lives outside #dashboard-live-region so live-refresh polling never
    tears it down mid-use. #}
+<div class="modal fade" id="wxPopup" tabindex="-1" aria-labelledby="wxPopupTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title" id="wxPopupTitle"><i class="bi bi-cloud-sun"></i> Weather</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="wxPopupBody"></div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  // Open: copy the current full weather (kept fresh by live-refresh) into the popup.
+  function openWx() {
+    var src = document.getElementById('wx-full'), body = document.getElementById('wxPopupBody');
+    if (!src || !body) return;
+    body.innerHTML = src.innerHTML;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('wxPopup')).show();
+  }
+  document.addEventListener('click', function (e) { if (e.target.closest('[data-wx-open]')) openWx(); });
+  document.addEventListener('keydown', function (e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('[data-wx-open]')) { e.preventDefault(); openWx(); }
+  });
+  // Close: swipe down (X button and tap-outside also close it).
+  var modalEl = document.getElementById('wxPopup'), content = modalEl.querySelector('.modal-content'), body = document.getElementById('wxPopupBody');
+  var y0 = null, dy = 0;
+  content.addEventListener('touchstart', function (e) {
+    y0 = (body.scrollTop <= 0) ? e.touches[0].clientY : null; dy = 0;
+  }, {passive: true});
+  content.addEventListener('touchmove', function (e) {
+    if (y0 === null) return;
+    dy = e.touches[0].clientY - y0;
+    if (dy > 0) content.style.transform = 'translateY(' + dy + 'px)';
+  }, {passive: true});
+  content.addEventListener('touchend', function () {
+    if (y0 !== null && dy > 90) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+    content.style.transform = ''; y0 = null; dy = 0;
+  });
+})();
+</script>
+
 <div class="modal fade" id="denyRequestModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">

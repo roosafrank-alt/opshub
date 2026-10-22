@@ -530,6 +530,21 @@
   'unknown': ('bi-question-circle', 'bi-question-circle'),
 } %}
 {% set wxicon = (wx_icons[wxcat] if wxcat in wx_icons else wx_icons['unknown'])[0 if is_day else 1] %}
+{% if c %}
+{#- Phones: one condensed line; tap opens the full weather in a popup (see
+    #wxPopup in dashboard.html). The full block below is hidden on phones. -#}
+<div class="wx-strip-banner wx-tile wx-{{ wxcat }} {{ 'wx-night' if not is_day }} wx-compact d-md-none mb-2" role="button" tabindex="0" data-wx-open aria-label="Open full weather">
+  <i class="bi {{ wxicon }}"></i>
+  <span class="wx-strip-temp">{{ '%.0f'|format(c.temp_f) + '°' if c.temp_f is not none else '-' }}</span>
+  <span class="wx-compact-wind">
+    {% if c.wind_kt is defined and c.wind_kt is not none %}{% if c.wind_dir_deg is not none %}{{ '%03d'|format(c.wind_dir_deg|int) }}&deg; {% endif %}{{ '%.0f'|format(c.wind_kt) }}{% if c.wind_gust_kt %}G{{ '%.0f'|format(c.wind_gust_kt) }}{% endif %} kt
+    {% elif c.wind_mph is not none %}{{ '%.0f'|format(c.wind_mph) }}{% if c.wind_gusts_mph %}G{{ '%.0f'|format(c.wind_gusts_mph) }}{% endif %} mph{% endif %}
+  </span>
+  {% if dashboard_wx.metar and dashboard_wx.metar.decoded and dashboard_wx.metar.decoded.category %}<span class="badge bg-secondary">{{ dashboard_wx.metar.decoded.category }}</span>{% endif %}
+  <i class="bi bi-chevron-expand ms-auto"></i>
+</div>
+{% endif %}
+<div id="wx-full" class="{{ 'd-none d-md-block' if c else '' }}">
 <div class="wx-strip-banner wx-tile wx-{{ wxcat }} {{ 'wx-night' if not is_day }} mb-2">
   <i class="bi {{ wxicon }} wx-bg-icon" aria-hidden="true"></i>
   <div class="wx-strip-scroll">
@@ -598,6 +613,7 @@
   {% endfor %}
 </div>
 {% endif %}
+</div>{# /#wx-full #}
 {% endif %}
 
 {% if hundred_badges %}
