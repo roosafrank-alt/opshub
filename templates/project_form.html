@@ -9,8 +9,20 @@
   <script type="application/json" id="quick-type-days-json">{{ (quick_type_days or {})|tojson }}</script>
   <form method="post" id="project-form" data-preselect-quick-type="{{ preselect_quick_type or '' }}" data-editing="{{ '1' if project else '' }}">
     <div class="mb-3">
-      <label class="form-label">Project Name *</label>
-      <input type="text" name="name" id="project-name-input" class="form-control" value="{{ project.name if project else (preselect_name or preselect_asset_tag or '') }}" required autofocus>
+      <label class="form-label">Aircraft <span class="text-muted small">(optional)</span></label>
+      <select name="asset_id" id="project-asset-select" class="form-select"{% if not project %} autofocus{% endif %}>
+        <option value="">-- None --</option>
+        {% for a in assets %}
+        <option value="{{ a.id }}" data-tag="{{ a.tag }}" {% if (project and project.asset_id == a.id) or (preselect_asset_id and preselect_asset_id|string == a.id|string) %}selected{% endif %}>{{ a.tag }}{% if a.name and a.name != a.tag %} &middot; {{ a.name }}{% endif %}</option>
+        {% endfor %}
+        <option value="__add_new__">+ Add New...</option>
+      </select>
+      <div class="form-text" data-change="JOBS-20 JOBS-24">Link this job to a plane to get its combined history and hours-based maintenance tracking. Picking one (and a Quick Type) fills in the project name for you, e.g. Oil Change - N81PA. Pick "+ Add New..." above for just a tail number, right here{% if is_master_admin or shop_role == 'admin' %}, or use <a href="{{ url_for('asset_new') }}" target="_blank">the full form</a>{% endif %}.</div>
+      <div id="asset-quick-add-row" class="input-group input-group-sm mt-1" style="display:none;">
+        <input type="text" id="asset-quick-add-input" class="form-control" placeholder="Tail / serial number">
+        <button type="button" id="asset-quick-add-btn" class="btn btn-dark" data-change="DESIGN-1">Add</button>
+      </div>
+      <div id="asset-quick-add-error" class="text-danger small mt-1" style="display:none;"></div>
     </div>
     <div class="mb-3">
       <label class="form-label small mb-1 d-block">Quick Type <span class="text-muted small">{% if project %}(tap to add or remove just that word in the description below){% else %}(fills in the description below - pick as many as apply){% endif %}</span></label>
@@ -37,24 +49,12 @@
       {% endif %}
     </div>
     <div class="mb-3">
-      <label class="form-label">Description <span class="text-muted small">(what exactly is being done)</span></label>
-      <textarea name="description" id="project-description-input" class="form-control" rows="3" placeholder="e.g. Annual inspection, replace left brake pads" data-change="JOBS-20">{{ project.description if project else '' }}</textarea>
+      <label class="form-label">Project Name * <span class="text-muted small">{% if not project %}(fills in from the plane and type; type here to change it){% endif %}</span></label>
+      <input type="text" name="name" id="project-name-input" class="form-control" value="{{ project.name if project else (preselect_name or preselect_asset_tag or '') }}" required>
     </div>
     <div class="mb-3">
-      <label class="form-label">Aircraft <span class="text-muted small">(optional)</span></label>
-      <select name="asset_id" id="project-asset-select" class="form-select">
-        <option value="">-- None --</option>
-        {% for a in assets %}
-        <option value="{{ a.id }}" data-tag="{{ a.tag }}" {% if (project and project.asset_id == a.id) or (preselect_asset_id and preselect_asset_id|string == a.id|string) %}selected{% endif %}>{{ a.tag }}{% if a.name and a.name != a.tag %} &middot; {{ a.name }}{% endif %}</option>
-        {% endfor %}
-        <option value="__add_new__">+ Add New...</option>
-      </select>
-      <div class="form-text" data-change="JOBS-20 JOBS-24">Link this job to a plane to get its combined history and hours-based maintenance tracking. Picking one fills in the project name with its tail number. Pick "+ Add New..." above for just a tail number, right here{% if is_master_admin or shop_role == 'admin' %}, or use <a href="{{ url_for('asset_new') }}" target="_blank">the full form</a>{% endif %}.</div>
-      <div id="asset-quick-add-row" class="input-group input-group-sm mt-1" style="display:none;">
-        <input type="text" id="asset-quick-add-input" class="form-control" placeholder="Tail / serial number">
-        <button type="button" id="asset-quick-add-btn" class="btn btn-dark" data-change="DESIGN-1">Add</button>
-      </div>
-      <div id="asset-quick-add-error" class="text-danger small mt-1" style="display:none;"></div>
+      <label class="form-label">Description <span class="text-muted small">(what exactly is being done)</span></label>
+      <textarea name="description" id="project-description-input" class="form-control" rows="3" placeholder="e.g. Annual inspection, replace left brake pads" data-change="JOBS-20">{{ project.description if project else '' }}</textarea>
     </div>
     <div class="row">
       <div class="col-md-6 mb-3">
@@ -163,6 +163,29 @@
   var quickError = document.getElementById('asset-quick-add-error');
   var lastAssetValue = assetSelect.value;
 
+  // On a NEW project the name builds itself from the picked Quick Types and
+  // plane ("Annual, Oil Change - N81PA") until someone types in the name box;
+  // emptying the box hands it back to the auto name.
+  var isEditing = document.getElementById('project-form').dataset.editing === '1';
+  var nameTyped = false;
+  var otherValue = '';
+  function pickedTag() {
+    var opt = assetSelect.options[assetSelect.selectedIndex];
+    return (opt && assetSelect.value && assetSelect.value !== '__add_new__') ? (opt.getAttribute('data-tag') || '') : '';
+  }
+  function autoName() {
+    if (isEditing || nameTyped) return;
+    var types = Array.prototype.map.call(document.querySelectorAll('.quick-desc-btn.active'), function (b) {
+      return b.textContent.trim();
+    });
+    if (otherValue) types.push(otherValue);
+    var tag = pickedTag();
+    var label = types.join(', ');
+    nameInput.value = label && tag ? (label + ' - ' + tag) : (label || tag);
+  }
+  nameInput.addEventListener('input', function () { nameTyped = nameInput.value.trim() !== ''; });
+  nameTyped = !isEditing && nameInput.value.trim() !== '' && nameInput.value.trim() !== pickedTag();
+
   assetSelect.addEventListener('change', function () {
     if (assetSelect.value === '__add_new__') {
       assetSelect.value = lastAssetValue;
@@ -173,11 +196,7 @@
       return;
     }
     lastAssetValue = assetSelect.value;
-    if (!nameInput.value.trim()) {
-      var opt = assetSelect.options[assetSelect.selectedIndex];
-      var tag = opt ? opt.getAttribute('data-tag') : null;
-      if (tag) nameInput.value = tag;
-    }
+    autoName();
   });
 
   function submitQuickAdd() {
@@ -204,7 +223,7 @@
         assetSelect.insertBefore(opt, assetSelect.querySelector('option[value="__add_new__"]'));
         assetSelect.value = result.data.id;
         lastAssetValue = assetSelect.value;
-        if (!nameInput.value.trim()) nameInput.value = result.data.tag;
+        autoName();
         quickRow.style.display = 'none';
       }).catch(function () {
         quickBtn.disabled = false;
@@ -230,7 +249,6 @@
   // someone typed, so a button starts pressed when its name is already in the
   // description, and a tap only adds or removes that one phrase.
   var editing = document.getElementById('project-form').dataset.editing === '1';
-  var otherValue = '';
   var quickTypesInput = document.getElementById('quick-types-input');
   function escRe(t) { return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
   function hasPhrase(text, phrase) { return text.toLowerCase().indexOf(phrase.toLowerCase()) !== -1; }
@@ -299,6 +317,7 @@
       } else {
         rebuildDesc();
         rebuildOptionalAreas();
+        autoName();
       }
       followStart();
       descInput.focus();
@@ -328,6 +347,7 @@
     } else {
       otherValue = typed;
       rebuildDesc();
+      autoName();
     }
     otherRow.style.display = 'none';
     descInput.focus();
