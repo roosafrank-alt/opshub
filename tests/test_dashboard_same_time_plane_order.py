@@ -32,3 +32,24 @@ class DashboardSameTimePlaneOrderTest(OpsHubTestCase):
         positions = {tag: body.index(f">{tag}<") for tag in tags}
         ordered = sorted(tags, key=lambda t: positions[t])
         self.assertEqual(ordered, ["N20267S", "N22689", "AATD Redbird", "N5569P"])
+
+    def test_each_plane_keeps_its_own_spot_with_blanks(self):
+        # Only N22689 is booked: N20267S's spot must still be there (empty),
+        # then N22689's chip, then the empty Ground spot.
+        asset = self.exec(
+            "INSERT INTO assets (tag, name, is_flight_asset, hobbs_hours, tach_hours, created_at, updated_at) "
+            "VALUES (?,?,?,?,?,?,?)", ("N22689", "Plane", 1, 100.0, 90.0, db.now_iso(), db.now_iso()))
+        cfi_id = self.q1("SELECT id FROM cfis WHERE username = 'cfi'")["id"]
+        student_id = self.q1("SELECT id FROM students WHERE username = 'flight_student'")["id"]
+        tomorrow = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+        self.exec(
+            "INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date, scheduled_time, "
+            "duration_hours, status, created_at) VALUES (?,?,?,?,?,?,?,?)",
+            (asset, cfi_id, student_id, tomorrow, "14:00", 1.0, "scheduled", db.now_iso()))
+        body = self.login("cfi").get("/flight/dashboard").get_data(as_text=True)
+        i = body.index('class="flight-chip-lanes"')
+        row = body[i:i + 60000]
+        lanes = row.split('<div class="flight-chip-lane">')[1:4]
+        self.assertNotIn(">N22689<", lanes[0])
+        self.assertIn(">N22689<", lanes[1])
+        self.assertNotIn(">N22689<", lanes[2])

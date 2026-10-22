@@ -175,6 +175,17 @@ body { background: #f4f5f7; }
    slot still reserved an empty column before whichever plane's chip did
    show up. Chips now just pack left-to-right instead - no gap before the
    first (or only) one. */
+/* Idea "home page of fly with kate": three fixed spots per time row
+   (N20267S | N22689 | Ground); an empty spot stays as a blank space. */
+.flight-chip-lanes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; flex: 1 1 auto; min-width: 0; align-items: start; }
+.flight-chip-lane { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+.flight-chip-lane > .flight-chip { width: 100%; }
+@media (max-width: 575.98px) {
+  .flight-chip-lanes { gap: .3rem; }
+  .flight-chip-lane > .flight-chip { flex: none; }
+  .flight-chip-lane .flight-chip-main { max-width: none; flex: 1 1 auto; min-width: 0; }
+  .flight-chip-lane .flight-chip-endtime { display: block; }
+}
 .flight-chip-grid { display: flex; flex-wrap: wrap; gap: .5rem; flex: 1 1 auto; min-width: 0; }
 /* The dashboard's chips (not the Schedule List view's, which have no
    per-flight instructor/plane colors) get two flush-left accent stripes -

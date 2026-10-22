@@ -1712,6 +1712,19 @@ def _dashboard_plane_sort_key(f):
                                              len(DASHBOARD_PLANE_ORDER))
 
 
+# Idea "home page of fly with kate": the dashboard schedule always uses the
+# same three spots left to right - N20267S, then N22689, then Ground (every
+# other booking: the sim, N5569P, anything not on a plane). A spot with no
+# booking in that time row stays empty so the others don't slide over.
+def _dashboard_lane(f):
+    tag = (f["plane_tag"] or "").strip().lower()
+    if tag in ("n20267s", "n20267"):
+        return 0
+    if tag == "n22689":
+        return 1
+    return 2
+
+
 def _group_by_time(rows):
     """Groups a list of flight rows (already sorted by time - every caller
     of this is) into one bucket per overlapping cluster of bookings, so two
@@ -1743,7 +1756,10 @@ def _group_by_time(rows):
         # on the original chronological order, so a merged cluster that
         # spans more than one start time still shows "earliest – latest".
         flights = sorted(c["flights"], key=_dashboard_plane_sort_key)
-        groups.append({"time_label": time_label, "flights": flights})
+        lanes = [[], [], []]
+        for f in flights:
+            lanes[_dashboard_lane(f)].append(f)
+        groups.append({"time_label": time_label, "flights": flights, "lanes": lanes})
     return groups
 
 
