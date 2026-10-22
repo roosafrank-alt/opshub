@@ -11437,3 +11437,134 @@ def plane_hundred_hr_not_yet(asset_id):
             flash(f"{a['tag']} 100-hour reminder snoozed until it reaches 0 hrs left.", "info")
     conn.close()
     return redirect(request.referrer or url_for("flight.alerts_list"))
+
+
+# ---------------------------------------------------------------------------
+# "Add to my phone calendar": a secret per-person .ics feed of their own lessons.
+# ---------------------------------------------------------------------------
+def _feed_person():
+    """('cfi'|'student', id) for the logged-in CFI or student, else None."""
+    if session.get("cfi_id"):
+        return "cfi", session["cfi_id"]
+    if session.get("student_id"):
+        return "student", session["student_id"]
+    return None
+
+
+def _feed_token(conn, kind, person_id, regenerate=False):
+    if regenerate:
+        conn.execute("DELETE FROM calendar_feed_tokens WHERE kind = ? AND person_id = ?", (kind, person_id))
+    row = conn.execute("SELECT token FROM calendar_feed_tokens WHERE kind = ? AND person_id = ?",
+                       (kind, person_id)).fetchone()
+    if row:
+        return row["token"]
+    token = secrets.token_urlsafe(32)
+    conn.execute("INSERT INTO calendar_feed_tokens (kind, person_id, token) VALUES (?, ?, ?)",
+                 (kind, person_id, token))
+    conn.commit()
+    return token
+
+
+def _ics_escape(text):
+    return (str(text or "").replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,")
+            .replace("\r", "").replace("\n", "\\n"))
+
+
+def _ics_fold(line):
+    out, line = [], line.encode("utf-8")
+    while len(line) > 74:
+        cut = 74
+        while cut > 0 and (line[cut] & 0xC0) == 0x80:
+            cut -= 1
+        out.append(line[:cut].decode("utf-8"))
+        line = b" " + line[cut:]
+    out.append(line.decode("utf-8"))
+    return "\r\n".join(out)
+
+
+def _build_ics(conn, kind, person_id):
+    """Only that one person's own bookings (cfi_id or student_id match); no
+    private notes, rates or other people's contact details."""
+    col = "sf.cfi_id" if kind == "cfi" else "sf.student_id"
+    since = (date.today() - timedelta(days=60)).strftime("%Y-%m-%d")
+    rows = conn.execute(f"""
+        SELECT sf.id, sf.scheduled_date, sf.scheduled_time, sf.duration_hours, sf.solo, sf.guest_name,
+               a.tag AS plane, s.name AS student_name, c.name AS cfi_name
+        FROM scheduled_flights sf
+        JOIN assets a ON a.id = sf.asset_id
+        JOIN students s ON s.id = sf.student_id
+        LEFT JOIN cfis c ON c.id = sf.cfi_id
+        WHERE {col} = ? AND sf.status IN ('scheduled', 'balance_hold') AND sf.scheduled_date >= ?
+        ORDER BY sf.scheduled_date, sf.scheduled_time""", (person_id, since)).fetchall()
+    stamp = datetime.now(__import__("datetime").timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//OpsHub//Fly with Kate//EN", "CALSCALE:GREGORIAN",
+             "X-WR-CALNAME:Fly with Kate lessons", "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
+             "X-PUBLISHED-TTL:PT1H"]
+    for r in rows:
+        who_student = r["guest_name"] or r["student_name"]
+        who_cfi = r["cfi_name"] or ("Solo" if r["solo"] else "No instructor yet")
+        summary = f"Flight {r['plane']} - " + (who_student if kind == "cfi" else who_cfi)
+        desc = f"Plane: {r['plane']}\nInstructor: {who_cfi}\nStudent: {who_student}"
+        try:
+            d = datetime.strptime(r["scheduled_date"], "%Y-%m-%d")
+        except (TypeError, ValueError):
+            continue
+        lines += ["BEGIN:VEVENT", f"UID:lesson-{r['id']}@opshub", f"DTSTAMP:{stamp}"]
+        t = None
+        if r["scheduled_time"]:
+            try:
+                t = datetime.strptime(r["scheduled_time"][:5], "%H:%M")
+            except ValueError:
+                t = None
+        if t:
+            start = d.replace(hour=t.hour, minute=t.minute)
+            end = start + timedelta(hours=float(r["duration_hours"] or 2))
+            lines += [f"DTSTART:{start.strftime('%Y%m%dT%H%M%S')}", f"DTEND:{end.strftime('%Y%m%dT%H%M%S')}"]
+        else:
+            lines += [f"DTSTART;VALUE=DATE:{d.strftime('%Y%m%d')}",
+                      f"DTEND;VALUE=DATE:{(d + timedelta(days=1)).strftime('%Y%m%d')}"]
+        lines += [f"SUMMARY:{_ics_escape(summary)}", f"DESCRIPTION:{_ics_escape(desc)}", "END:VEVENT"]
+    lines.append("END:VCALENDAR")
+    return "\r\n".join(_ics_fold(l) for l in lines) + "\r\n"
+
+
+@flight_bp.route("/calendar-feed/<token>.ics")
+def calendar_feed(token):
+    """Public on purpose (a phone calendar can't log in): the long random
+    token in the link is the only key, and it only ever reaches that one
+    person's own lessons."""
+    conn = get_db()
+    row = conn.execute("SELECT kind, person_id FROM calendar_feed_tokens WHERE token = ?", (token,)).fetchone()
+    if not row:
+        conn.close()
+        abort(404)
+    body = _build_ics(conn, row["kind"], row["person_id"])
+    conn.close()
+    resp = Response(body, mimetype="text/calendar")
+    resp.headers["Cache-Control"] = "private, max-age=0, no-store"
+    return resp
+
+
+@flight_bp.route("/calendar-sync", methods=["GET", "POST"])
+def calendar_sync():
+    """The page behind the 'Add to my phone calendar' button: one tap to
+    subscribe, a copy-link fallback, and a reset that kills the old link."""
+    expired = refresh_or_expire_session()
+    if expired:
+        return expired
+    who = _feed_person()
+    if not who:
+        flash("Log in as a CFI or student to sync your lessons.", "danger")
+        return redirect(url_for("home_launcher"))
+    if session.get("_view_as_readonly"):
+        flash("You're only looking at this person's view; their calendar link stays private to them.", "warning")
+        return redirect(request.referrer or url_for("flight.schedule_calendar"))
+    conn = get_db()
+    token = _feed_token(conn, who[0], who[1], regenerate=request.method == "POST")
+    conn.close()
+    if request.method == "POST":
+        flash("New calendar link made. Subscribe again; the old link no longer works.", "success")
+        return redirect(url_for("flight.calendar_sync"))
+    https_url = url_for("flight.calendar_feed", token=token, _external=True, _scheme="https")
+    webcal_url = "webcal://" + https_url.split("://", 1)[1]
+    return render_template("flight/calendar_sync.html", https_url=https_url, webcal_url=webcal_url)

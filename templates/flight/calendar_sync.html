@@ -1,0 +1,19 @@
+{% extends "flight/base_flight.html" %}
+{% block title %}Phone calendar · Fly with Kate!{% endblock %}
+{% block content %}
+<p class="mb-2"><a href="{{ request.referrer or url_for('flight.schedule_calendar') }}" class="small" onclick="if(history.length>1){history.back();return false;}"><i class="bi bi-arrow-left"></i> Back</a></p>
+<h4><i class="bi bi-calendar-plus"></i> Add to my phone calendar</h4>
+<div class="card p-3 mb-3">
+  <p class="mb-2">One tap and your lessons show up in your phone's calendar. New bookings, changes and cancellations follow by themselves (phones refresh every hour or so).</p>
+  <a href="{{ webcal_url }}" class="btn btn-primary" id="subscribe-btn"><i class="bi bi-calendar-check"></i> Subscribe on this phone</a>
+  <p class="small text-muted mt-3 mb-1">On another device, or if the button does nothing, copy this link and add it as a calendar subscription (Google Calendar: Other calendars, From URL):</p>
+  <div class="input-group">
+    <input type="text" class="form-control form-control-sm" id="feed-url" value="{{ https_url }}" readonly onclick="this.select()">
+    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="var i=document.getElementById('feed-url');i.select();navigator.clipboard&&navigator.clipboard.writeText(i.value);this.textContent='Copied'">Copy</button>
+  </div>
+  <p class="small text-muted mt-2 mb-0">This link is private to you and only shows your own lessons. Don't share it.</p>
+</div>
+<form method="post" onsubmit="return confirm('Make a new link? The old one stops working.');">
+  <button class="btn btn-link btn-sm text-danger p-0" id="reset-link">Link leaked? Make a new one</button>
+</form>
+{% endblock %}

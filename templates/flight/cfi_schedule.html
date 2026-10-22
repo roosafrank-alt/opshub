@@ -42,6 +42,7 @@
     <a href="{{ url_for('flight.cfi_schedule', date=week_next, cfi_id=cfi_id_param) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
   </div>
 </div>
+{% if not viewing_cfi %}{% include "flight/_phone_cal_button.html" %}{% endif %}
 
 <div class="card p-3 mb-3">
   <div class="d-flex gap-3 small text-muted mb-2 flex-wrap">

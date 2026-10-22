@@ -1,0 +1,4 @@
+{#- One small "Add to my phone calendar" button for a logged-in CFI or student (see flight.calendar_sync). #}
+{% if session.get('cfi_id') or session.get('student_id') %}
+<a href="{{ url_for('flight.calendar_sync') }}" class="btn btn-outline-primary btn-sm mb-3" id="phone-cal-btn"><i class="bi bi-calendar-plus"></i> Add to my phone calendar</a>
+{% endif %}

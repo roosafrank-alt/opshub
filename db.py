@@ -644,6 +644,18 @@ def _migrate(conn):
         conn.execute("ALTER TABLE students ADD COLUMN user_id INTEGER REFERENCES users(id)")
         conn.commit()
 
+    # Phone-calendar feed: one secret, unguessable link per CFI or student
+    # (flight.py calendar_feed). Regenerating deletes the row, which kills the old link.
+    conn.execute("""CREATE TABLE IF NOT EXISTS calendar_feed_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind TEXT NOT NULL,             -- 'cfi' | 'student'
+        person_id INTEGER NOT NULL,
+        token TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(kind, person_id)
+    )""")
+    conn.commit()
+
     # Calendar color coding: which category a maintenance item is, so the
     # calendar can color-code annual/100-hour/oil-change/other-scheduled
     # items distinctly instead of one flat "maintenance" color.
