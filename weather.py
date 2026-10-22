@@ -41,6 +41,11 @@ CACHE_TTL_SECONDS = 20 * 60  # 20 minutes
 ZIP_CODE = "12458"
 N89_STATION = "N89"  # Joseph Y. Resnick Airport, Ellenville NY - the "bonus" aviation station
 REQUEST_TIMEOUT = 8
+# Official aviationweather.gov METAR stations near the field. N89 itself usually
+# reports nothing, so the dashboard uses the closest of these that has a fresh
+# observation.
+METAR_STATIONS = ["N89", "20N", "1B1", "KPOU", "KALB", "KSWF", "KMGJ"]
+METAR_MAX_AGE_MIN = 90
 
 # Coordinates for ZIP 12458 (Palenville, NY / Catskill area). The ZIP never
 # changes, so these are used directly with no lookup call.
@@ -161,27 +166,55 @@ def _fetch_civil_twilight(lat, lon):
     }
 
 
-def _fetch_metar(station):
-    """Best-effort raw METAR for a small GA field - aviationweather.gov has
-    no data for a lot of non-towered airports, so a miss here is normal and
-    should never blow up the rest of the weather widget."""
+def _km_between(lat1, lon1, lat2, lon2):
+    from math import radians, sin, cos, asin, sqrt
+    dlat, dlon = radians(lat2 - lat1), radians(lon2 - lon1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    return 6371 * 2 * asin(sqrt(a))
+
+
+def _metar_row(row):
+    return {
+        "station": row.get("icaoId"),
+        "raw_text": row.get("rawOb"),
+        "wind_dir_deg": row.get("wdir"),
+        "wind_speed_kt": row.get("wspd"),
+        "wind_gust_kt": row.get("wgst"),
+        "visibility_sm": row.get("visib"),
+        "temp_c": row.get("temp"),
+        "observed_at": row.get("obsTime"),
+    }
+
+
+def _fetch_metar(station=None):
+    """Official METAR from aviationweather.gov. Asks for all of METAR_STATIONS
+    in one call and returns the closest one with an observation newer than
+    METAR_MAX_AGE_MIN (N89 usually has none). None if nothing is fresh - a miss
+    must never break the rest of the weather widget."""
     try:
-        params = {"ids": station, "format": "json"}
+        ids = [station] if station else METAR_STATIONS
+        params = {"ids": ",".join(ids), "format": "json"}
         url = "https://aviationweather.gov/api/data/metar?" + urllib.parse.urlencode(params)
         data = _get_json(url)
         if not data:
             return None
-        row = data[0]
-        return {
-            "station": row.get("icaoId", station),
-            "raw_text": row.get("rawOb"),
-            "wind_dir_deg": row.get("wdir"),
-            "wind_speed_kt": row.get("wspd"),
-            "wind_gust_kt": row.get("wgst"),
-            "visibility_sm": row.get("visib"),
-            "temp_c": row.get("temp"),
-            "observed_at": row.get("obsTime"),
-        }
+        now = time.time()
+        fresh = []
+        for row in data:
+            obs = row.get("obsTime")
+            if not isinstance(obs, (int, float)) or now - obs > METAR_MAX_AGE_MIN * 60:
+                continue
+            try:
+                dist = _km_between(FALLBACK_LAT, FALLBACK_LON, float(row["lat"]), float(row["lon"]))
+            except Exception:
+                dist = 9999
+            fresh.append((dist, row))
+        if not fresh:
+            return None
+        fresh.sort(key=lambda t: t[0])
+        out = _metar_row(fresh[0][1])
+        out["distance_mi"] = round(fresh[0][0] * 0.621371) if fresh[0][0] < 9999 else None
+        return out
     except Exception:
         return None
 
@@ -368,8 +401,17 @@ def get_dashboard_weather(conn, force=False):
         payload["twilight"] = _fetch_civil_twilight(lat, lon)
     except Exception:
         payload["twilight"] = None
-    payload["metar"] = _fetch_metar(N89_STATION)  # None is a normal/expected outcome here
-    payload["taf"] = _fetch_taf(N89_STATION)  # same deal - often empty for a small field
+    payload["metar"] = _fetch_metar()  # None is a normal/expected outcome here
+    payload["taf"] = _fetch_taf(payload["metar"]["station"] if payload["metar"] else N89_STATION)
+    m = payload["metar"]
+    if m and payload.get("conditions") and m.get("wind_speed_kt") is not None:
+        # Official observed wind (knots) replaces the modeled Open-Meteo wind.
+        c = payload["conditions"]
+        c["wind_kt"] = m["wind_speed_kt"]
+        c["wind_gust_kt"] = m.get("wind_gust_kt")
+        if m.get("wind_dir_deg") is not None:
+            c["wind_dir_deg"] = m["wind_dir_deg"]
+        c["wind_station"] = m.get("station")
     try:
         payload["forecast"] = _fetch_dashboard_forecast(lat, lon)
     except Exception:
