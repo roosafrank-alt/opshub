@@ -196,6 +196,33 @@
     min-width: 3.5rem;
   }
 
+  /* Phones: wrap the weather into a tidy grid so nothing needs a sideways
+     swipe (the single scrolling row stays on wider screens). */
+  @media (max-width: 767.98px) {
+    .wx-strip-scroll {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .3rem .75rem;
+      overflow: visible;
+      white-space: normal;
+      width: 100%;
+    }
+    .wx-strip-main { grid-column: 1 / -1; }
+    .wx-strip-main, .wx-strip-item {
+      flex-wrap: wrap;
+      flex-shrink: 1;
+      white-space: normal;
+      min-width: 0;
+    }
+    .wx-forecast-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .4rem .5rem;
+      overflow: visible;
+    }
+    .wx-forecast-hour { min-width: 0; flex-shrink: 1; }
+  }
+
   /* Today's Schedule: a thin "you are here" line at the current time, and
      scheduled-but-not-started chips whose slot already passed dimmed down
      so the board reads at a glance as "done" vs "still coming up". An
