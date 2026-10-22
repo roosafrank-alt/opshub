@@ -1,0 +1,1380 @@
+{
+ "task_code": "RF.VI.C",
+ "task_title": "Runway Safety: Incursions, Excursions and Overruns",
+ "area": "Area VI. Safety and Risk Management",
+ "minutes": 55,
+ "objective": "By the end of this lesson you can run a single-pilot taxi routine that keeps you off runways you are not cleared onto, work out a realistic landing distance for a wet or contaminated runway, and decide early and firmly whether to land or go around.",
+ "why": "Accident statistics show a pilot is more at risk during approach and landing than in any other phase of flight [[24:209|AFH 9-38]]. FAA data cited in the PHAK say about 65 percent of runway incursions are caused by pilots, and almost half of those by general aviation pilots [[1:366|PHAK 14-32]]. Landing overruns add about ten incidents or accidents a year [[27:5|AC 91-79B 1.5.5]], and most of them start with an approach that should have become a go-around.",
+ "prereading": [
+  {
+   "res": "7",
+   "pages": [
+    3,
+    10
+   ],
+   "printed": "AC 91-73B pp 3 to 10",
+   "what": "The single-pilot taxi SOP: planning, briefing, situational awareness, written taxi instructions, radio work, taxiing and exterior lights. Short; read it all.",
+   "label": "AC 91-73B 6 to 7h"
+  },
+  {
+   "res": "1",
+   "pages": [
+    365,
+    370
+   ],
+   "printed": "PHAK 14-31 to 14-36",
+   "what": "Runway incursion avoidance, runway confusion, hold short and line up and wait instructions, after-landing duties and EMAS.",
+   "label": "PHAK 14-31 to 14-36"
+  },
+  {
+   "res": "33",
+   "pages": [
+    260,
+    264
+   ],
+   "printed": "AIM 4-3-24 to 4-3-28",
+   "what": "Taxiing, readbacks, taxi in low visibility and exiting the runway after landing.",
+   "label": "AIM 4-3-18 to 4-3-21"
+  },
+  {
+   "res": "33",
+   "pages": [
+    344,
+    345
+   ],
+   "printed": "AIM 5-2-2 to 5-2-3",
+   "what": "Line up and wait: what it means, how long to wait, and never landing on an occupied runway.",
+   "label": "AIM 5-2-5"
+  },
+  {
+   "res": "24",
+   "pages": [
+    175,
+    183
+   ],
+   "printed": "AFH 9-4 to 9-12",
+   "what": "Wrong surface landings, the stabilized approach concept and its criteria, and go-arounds.",
+   "label": "AFH 9-4 to 9-12"
+  },
+  {
+   "res": "1",
+   "pages": [
+    272,
+    274
+   ],
+   "printed": "PHAK 11-16 to 11-18",
+   "what": "Landing performance: weight, wind, density altitude, excess speed and a worked overrun story.",
+   "label": "PHAK 11-16 to 11-18"
+  },
+  {
+   "res": "27",
+   "pages": [
+    14,
+    37
+   ],
+   "printed": "AC 91-79B 3-1 to 5-4",
+   "what": "Time of arrival landing distance assessment, the RCAM, braking action reports and the overrun hazards. Skim the transport category parts.",
+   "label": "AC 91-79B 3.1 to 5.3"
+  }
+ ],
+ "warmup": "Think first: You are flying a Piper Archer to a 3,400 ft runway in light rain. The tower offers a closer runway with a 10 knot tailwind to save you a few minutes, and you are already a little high and fast. At what point should you have decided to say \"unable\" or go around, and what will make that decision hard in the moment?",
+ "key_terms": [
+  {
+   "term": "Runway incursion",
+   "def": "Any event on an airport where an aircraft, vehicle, person or object on the ground creates a collision hazard or loss of separation with an aircraft taking off, landing or intending to land."
+  },
+  {
+   "term": "Runway overrun",
+   "def": "An aircraft passing beyond the end of the runway during an aborted takeoff or on the landing rollout. One kind of runway excursion."
+  },
+  {
+   "term": "Hot spot",
+   "def": "A place on the airport movement area with a history of potential collision or runway incursion, marked on airport diagrams with a brown circle or ellipse and a number (HS 1)."
+  },
+  {
+   "term": "Line up and wait (LUAW)",
+   "def": "An ATC instruction to taxi onto the departure runway, line up and wait. It is not a takeoff clearance."
+  },
+  {
+   "term": "Sterile cockpit",
+   "def": "No unnecessary talk from passengers during taxi, takeoff, approach and landing, so the pilot can concentrate."
+  },
+  {
+   "term": "Stabilized approach",
+   "def": "A constant-angle glide path to a chosen aiming point, at a constant airspeed and in the landing configuration, with only small corrections."
+  },
+  {
+   "term": "Go-around (rejected landing)",
+   "def": "Ending an approach or landing and climbing away. A normal maneuver, not a failure."
+  },
+  {
+   "term": "Landing Distance Available (LDA)",
+   "def": "The runway length declared usable for landing. A displaced threshold shortens it."
+  },
+  {
+   "term": "Time of arrival (TOA) assessment",
+   "def": "A check, made before descent, that you can land on the runway in use under the conditions reported then, with a safety margin."
+  },
+  {
+   "term": "Runway condition code (RwyCC)",
+   "def": "A number from 6 (dry) down to 1 (poor), with 0 for nil, given by the airport for each third of the runway."
+  },
+  {
+   "term": "Braking action report",
+   "def": "A pilot's report, in words (good, medium, poor, nil and steps between), of how well the wheel brakes stopped the airplane."
+  },
+  {
+   "term": "Dynamic hydroplaning",
+   "def": "Tires riding on a wedge of water instead of the runway, so braking and steering are nearly lost."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "Runway incursions and the single pilot",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.C.K1"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "p": "The AFH defines a runway incursion as any occurrence at an airport where an aircraft, vehicle, person or object on the ground creates a collision hazard or causes a loss of separation with an aircraft taking off, landing or intending to land [[24:33|AFH 1-12]]. AC 91-73B quotes the FAA order wording: the incorrect presence of an aircraft, vehicle or person on the protected area of a surface meant for landing and takeoff [[7:1|AC 91-73B 1]]."
+    },
+    {
+     "p": "Pilots are the biggest part of the problem. FAA data cited in the PHAK put about 65 percent of runway incursions on pilots, and almost half of those on GA pilots [[1:366|PHAK 14-32]]. The PHAK also says about three runway incursions happen each day at towered U.S. airports [[1:365|PHAK 14-31]]. Neither page gives a year for these numbers."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "The AFH names three areas that contribute most: communications with ATC, airport knowledge, and flight deck procedures for keeping oriented [[24:33|AFH 1-12]]. Investigations summarized in the PHAK found the same pattern: not complying with ATC instructions, not knowing the airport, and not following standard operating procedures [[1:366|PHAK 14-32]]."
+    },
+    {
+     "p": "AC 91-73B is the FAA's guide for single-pilot Part 91 and Part 135 taxi procedures. It groups them into seven areas: planning, situational awareness, written taxi instructions, pilot and passenger communication, ATC and pilot communication, taxiing, and exterior lighting [[7:3|AC 91-73B 7a]]. Its goal is procedures that raise your awareness without adding to your workload while the airplane is moving [[7:2|AC 91-73B 5b]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "AC 91-73B asks that these SOPs be evaluated during the flight review of every certificated pilot [[7:3|AC 91-73B 6]]. Expect your CFI to watch your taxi, not just your landings."
+     }
+    }
+   ],
+   "check": {
+    "q": "What three areas does the AFH say contribute most to runway incursions?",
+    "a": "Communications with ATC, airport knowledge, and flight deck procedures for maintaining orientation [[24:33|AFH 1-12]]."
+   }
+  },
+  {
+   "title": "Plan and brief the taxi before you move",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.C.K1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "AC 91-73B treats moving on the airport as a phase of flight you plan like any other, in two parts: review items and briefing items [[7:3|AC 91-73B 7b]]."
+    },
+    {
+     "bullets": [
+      "Review NOTAMs and the ATIS for runway and taxiway closures and construction. If ATC clears you onto a surface the NOTAM or ATIS says is closed, query the controller [[7:3|AC 91-73B 7b(1)(c)]].",
+      "Review the airport diagram, its hot spots and any published standard taxi routes for the big picture [[7:3|AC 91-73B 7b(1)(d)]]. A hot spot is a place with a history of potential collision or runway incursion risk [[34:358|AIM PCG H-3]], drawn on the diagram as a brown open circle or ellipse with a number such as HS 1 [[2:124|Chart Users' Guide, Hot Spots]].",
+      "Brief the expected route, including hold short lines, runways to cross, hot spots and other conflicts [[7:4|AC 91-73B 7b(2)(d)]]. Brief it before taxi and again before the descent to land, when it is fresh [[7:3|AC 91-73B 7b(2)]].",
+      "Plan when you will run checklists and talk on the radio so they do not compete with watching where you are. If possible, run checklists only when stopped or on a straight taxiway with no complex intersections [[7:4|AC 91-73B 7b(2)(a)]].",
+      "Do as much as you can before you start rolling: flaps, trim, weight and balance numbers, GPS entries [[7:4|AC 91-73B 7b(2)(g)]].",
+      "Phones and other devices are discouraged during taxi; have everyone turn them off [[7:5|AC 91-73B 7b(2)(j)]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The briefing trap: you brief the route you expect, then ATC gives you a different one. Follow the clearance or instructions you actually receive, not the ones you expected [[7:4|AC 91-73B 7b(2) CAUTION]]."
+     }
+    },
+    {
+     "p": "Passengers are part of the plan. Remind them about a sterile cockpit, but ask them to speak up if they see a conflict [[7:4|AC 91-73B 7b(2)(b)]]. With no door between cockpit and cabin, ask them to avoid unnecessary talk from the start of preflight until you reach cruising altitude, and again from landing preparation until you are stopped at the ramp [[7:5|AC 91-73B 7c]]."
+    },
+    {
+     "p": "Write it down. When taxi instructions are complex or the airport is new to you, copy them in full; on a short, familiar route the basic elements may be enough [[7:7|AC 91-73B 7e(1)]]. The AC shows a shorthand:"
+    },
+    {
+     "table": {
+      "head": [
+       "ATC says",
+       "You write"
+      ],
+      "rows": [
+       [
+        "\"N123 taxi 9R via Bravo, Echo, Juliet, hold short 4L at Echo\"",
+        "9R B E J 4L E, with the clearance limit (4L at E) circled [[7:7|AC 91-73B 7e(2)]]"
+       ],
+       [
+        "Hold short",
+        "/ (a slash) [[7:7|AC 91-73B 7e(2)]]"
+       ],
+       [
+        "Cross",
+        "X [[7:7|AC 91-73B 7e(2)]]"
+       ]
+      ]
+     }
+    }
+   ],
+   "check": {
+    "q": "In the AC 91-73B shorthand, what does a slash in your written taxi route mean, and what do you circle?",
+    "a": "The slash marks a hold short; you circle the clearance limit [[7:7|AC 91-73B 7e(2)]]."
+   }
+  },
+  {
+   "title": "Heads up while moving: the continuous loop",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.C.K1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "AC 91-73B describes taxi awareness as a continuous loop: know exactly where you are now, and the next spot that will need extra attention, such as a turn onto another taxiway, an intersecting runway or a hot spot [[7:5|AC 91-73B 7d]]."
+    },
+    {
+     "bullets": [
+      "Keep the airport diagram out and check the assigned route against the heading indicator or compass, especially at complex intersections [[7:5|AC 91-73B 7d(1)]] and where two runways' departure ends are close together [[7:9|AC 91-73B 7g(1)]].",
+      "Do heads-down work before you taxi. Many pilot errors happen while a pilot is off frequency or programming a GPS [[7:6|AC 91-73B 7d(3) NOTE]].",
+      "Read back the runway assignment, any clearance to enter a specific runway, and any instruction to hold short of a runway or line up and wait [[33:261|AIM 4-3-18a9]]. Include your full call sign and the runway, and do not answer these with \"Roger\" or \"Wilco\" [[7:8|AC 91-73B 7f(4)]].",
+      "Many runway incursions happen even after a correct hold short readback. Use a physical reminder, such as something placed on an instrument knob or hung on the compass or yoke [[7:8|AC 91-73B 7f(3)]].",
+      "Before entering or crossing any runway, be positive you are cleared, scan the full length of the runway and the final approach, and if anything is unclear, stop and ask ATC [[7:6|AC 91-73B 7d(4)]]. Scan even when ATC has cleared you [[1:368|PHAK 14-34]].",
+      "Listen for similar call signs so you do not act on another aircraft's clearance [[7:6|AC 91-73B 7d(6)]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Unsure where you are? Do not stop on a runway. Stop the airplane, tell ATC right away and ask for progressive taxi if needed. Runways have white, segmented centerlines; taxiways have continuous yellow ones [[7:9|AC 91-73B 7g(5)]]."
+     }
+    },
+    {
+     "p": "Low visibility raises the risk [[7:9|AC 91-73B 7g(4)]]. The tower may not be able to see you at all [[33:262|AIM 4-3-19a]]. Give the airplane your full attention while it moves, and hold checklists and nonessential talk until you are stopped with the brakes set [[33:262|AIM 4-3-19d]]."
+    },
+    {
+     "p": "Once cleared onto the active runway for departure, a single pilot should monitor only ATC frequencies until clear of the Class B, C or D surface area. Do the same from landing clearance until the landing and taxi are complete [[33:261|AIM 4-3-18b2]]."
+    }
+   ],
+   "check": {
+    "q": "You read back \"hold short of Runway 4\" correctly, then got busy. What does AC 91-73B suggest so you do not roll through the line?",
+    "a": "A physical reminder, such as an object on an instrument knob or hung on the compass or yoke [[7:8|AC 91-73B 7f(3)]]."
+   }
+  },
+  {
+   "title": "Lining up: right runway, right clearance",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.C.K1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "At an airport with an operating control tower, no one may operate on a runway or taxiway, or take off or land, without an appropriate ATC clearance [[60:454|14 CFR 91.129(i)]]. A taxi instruction to an assigned runway does not authorize entering or crossing that runway at any point [[33:260|AIM 4-3-18a6]]."
+     }
+    },
+    {
+     "p": "\"Line up and wait\" means taxi onto the departure runway, line up and wait. It is not a takeoff clearance. FAA reviews found that a significant number of pilots read back LUAW correctly and then departed without a takeoff clearance [[33:344|AIM 5-2-5a]]."
+    },
+    {
+     "bullets": [
+      "If ATC gave a reason for the wait, or the reason is plain to see, expect takeoff clearance once it is resolved. If no clearance comes within a reasonable time, call ATC [[33:344|AIM 5-2-5b, c]]. In the accidents and incidents the FAA studied, two minutes or more passed between the LUAW instruction and the event [[33:345|AIM 5-2-5c NOTE]].",
+      "Before and while taxiing on, scan the full runway for aircraft crossing it, on final, or on landing roll, including on intersecting runways [[33:345|AIM 5-2-5e]].",
+      "If you are not sure a takeoff clearance was for you, ask before you roll [[33:345|AIM 5-2-5f]].",
+      "Lights: when entering the runway, turn on all lights except landing lights; turn the landing lights on when cleared for takeoff, or when starting the roll at a non-towered airport [[7:10|AC 91-73B 7h(2)(d), (f)]]. At night in LUAW, consider lining up about 3 ft left or right of centerline so a landing pilot can tell you apart from the runway lights [[7:10|AC 91-73B 7h(2)(e)]]."
+     ]
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "Runway confusion is a kind of runway incursion that often ends with a takeoff or landing on a taxiway or the wrong runway, usually without the pilot noticing until afterward [[1:366|PHAK 14-32]]. Three things raise the risk: a complex airport, runway thresholds close together, and a runway used as a taxiway [[1:366|PHAK 14-32]]. The PHAK cites an August 2006 regional jet cleared for Runway 22 that lined up on shorter Runway 26 and crashed off the end [[1:366|PHAK 14-32]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Set the heading bug to the runway heading. Before adding power, make one last instrument check that the airplane's heading matches the runway heading [[1:366|PHAK 14-32]]."
+     }
+    },
+    {
+     "p": "At a non-towered airport, or one whose tower is closed, not every aircraft has a radio. Listen on the CTAF and scan the full runway and its approach and departure paths before entering or crossing [[7:7|AC 91-73B 7d(12)]]. Do not sit lined up on the departure runway any longer than absolutely necessary [[7:14|AC 91-73B App 1, 5]]. At part-time towers, be certain whether the tower is open before you operate [[7:13|AC 91-73B App 1, 2a]]."
+    }
+   ],
+   "check": {
+    "q": "You are in LUAW at night. Time passes, no word from the tower, and the frequency is oddly quiet. What do you do?",
+    "a": "Call ATC; with no clearance after a reasonable time the AIM says to contact them [[33:344|AIM 5-2-5c]]. AC 91-73B adds: if the radio is unusually quiet, suspect a radio problem or stuck microphone and look for light gun signals [[7:6|AC 91-73B 7d(9) NOTE]]."
+   }
+  },
+  {
+   "title": "After landing: clear the runway first, chores second",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.C.K1"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "p": "Plan the exit before you land. After getting the ATIS, review the airport diagram and brief your exit taxiway, any hold markings close to it, and the rule that you do not cross hold markings or exit onto a runway without ATC clearance [[1:369|PHAK 14-35]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "AIM 4-3-21: exit without delay at the first available taxiway or where ATC tells you. Do not exit onto another runway unless ATC authorizes it. At a towered airport, do not stop or reverse course on the runway without ATC approval [[33:264|AIM 4-3-21a]]."
+     }
+    },
+    {
+     "p": "You are clear of the runway only when all parts of the airplane are past the runway holding position markings. Then hold unless ATC has given more instructions [[33:264|AIM 4-3-21b]]. Make sure the tail is across too. If a parallel runway's hold short line keeps you from clearing, stop and tell ATC at once [[7:7|AC 91-73B 7d(11)]]."
+    },
+    {
+     "bullets": [
+      "Change nothing (flaps, trim, radios) until the whole airplane has crossed the landing runway's hold short line [[7:4|AC 91-73B 7b(2)(g)]] [[7:7|AC 91-73B 7d(13)]].",
+      "Do not accept a last-minute turnoff instruction unless you clearly understand it and are certain you can comply safely [[7:7|AC 91-73B 7d(14)]].",
+      "Take extra care after landing on a runway that intersects another one, or where the exit taxiway is close to another runway's hold short line [[7:6|AC 91-73B 7d(10)]].",
+      "Ground's taxi clearance to parking does not authorize entering or crossing any runway [[33:264|AIM 4-3-21c NOTE 2]]."
+     ]
+    }
+   ],
+   "check": {
+    "q": "After landing, when does AC 91-73B say you may raise the flaps and change frequencies?",
+    "a": "Only after the entire airplane has crossed the landing runway's hold short line [[7:4|AC 91-73B 7b(2)(g)]] [[7:7|AC 91-73B 7d(13)]]."
+   }
+  },
+  {
+   "title": "Landing distance: the book number and the real number",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.C.K2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "91.103(b): before any flight, the PIC must become familiar with runway lengths at airports of intended use and with takeoff and landing distance information: the AFM data where an approved AFM with that data is required, otherwise other reliable information for the expected elevation, runway slope, gross weight, wind and temperature [[60:440|14 CFR 91.103(b)]]."
+     }
+    },
+    {
+     "p": "Start with what the chart assumes. Performance charts typically assume a paved, level, smooth and dry runway [[1:268|PHAK 11-12]]. Then check the length you really have: where no declared distances are published, assume the physical length, except that a displaced threshold shortens the Landing Distance Available [[33:246|AIM 4-3-6d]]."
+    },
+    {
+     "p": "Part 91 has no rule like the airline landing margins, but the FAA recommends that Part 91 pilots calculate landing distance before departure from their AFM data [[27:12|AC 91-79B 2.1.4]], and strongly recommends a time of arrival assessment before landing. Certification distances come from test pilots using techniques not used in normal flying [[27:13|AC 91-79B 2.2.3]]."
+    },
+    {
+     "table": {
+      "head": [
+       "What changes",
+       "Effect on landing distance (rule of thumb)"
+      ],
+      "rows": [
+       [
+        "10 percent fast on final",
+        "About 20 percent longer [[27:34|AC 91-79B 5.2.2]]"
+       ],
+       [
+        "Crossing the threshold 10 ft above the standard 50 ft",
+        "About 200 ft longer [[27:34|AC 91-79B 5.2.3]]"
+       ],
+       [
+        "10 knot tailwind",
+        "About 21 percent longer for the first 10 knots [[27:35|AC 91-79B 5.2.9]] [[1:273|PHAK 11-17]]"
+       ],
+       [
+        "10 percent heavier",
+        "5 percent faster landing speed, 10 percent longer distance [[1:273|PHAK 11-17]]"
+       ],
+       [
+        "1 percent downhill slope",
+        "About 10 percent longer [[27:35|AC 91-79B 5.2.7]]"
+       ],
+       [
+        "5,000 ft field instead of sea level",
+        "About 16 percent longer, roughly 3.5 percent per 1,000 ft [[1:273|PHAK 11-17]]"
+       ],
+       [
+        "Touching down past the POH air distance",
+        "The book distance may not be reachable at all [[27:34|AC 91-79B 5.2.4]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Light airplane POHs may not give tailwind data. The AC quotes the Cessna 150 and 152 chart note: for tailwinds up to 10 knots, increase distances by 10 percent for each 2 knots [[27:36|AC 91-79B 5.2.9.1]]."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "The penalties stack. AC 91-79B Figure 5-1 adds them one at a time until a landing planned for a 5,000 ft runway ends past the end [[27:37|AC 91-79B 5-4]]. The PHAK works the tailwind increase on top of the already-increased fast-landing distance, not on the original number [[1:274|PHAK 11-18]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Once you have an operational landing distance, add at least 15 percent. Except in an emergency, do not try to land on a runway that fails that test [[27:14|AC 91-79B 3.1]]. For unfamiliar airports, the RMH suggests adding at least 500 ft to your personal minimum runway length [[30:17|RMH 2-5]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your POH distance assumes 50 ft over the threshold. You cross at 70 ft. About how much farther will you need?",
+    "a": "About 400 ft: 200 ft for every 10 ft above 50 ft [[27:34|AC 91-79B 5.2.3]]."
+   }
+  },
+  {
+   "title": "Wet and contaminated runways",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.C.K2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "A runway is assumed dry unless reported otherwise, usually by ATIS, NOTAM or PIREP [[27:26|AC 91-79B 4.1]]. Airports give a runway condition code for each third of the runway (touchdown, midpoint, rollout) in the direction of landing [[33:251|AIM 4-3-9c]]. Pilots report braking action in words: good, good to medium, medium, medium to poor, poor and nil [[33:250|AIM 4-3-8a]]."
+    },
+    {
+     "table": {
+      "head": [
+       "RwyCC",
+       "Example runway conditions",
+       "Braking action"
+      ],
+      "rows": [
+       [
+        "6",
+        "Dry",
+        "(not reported)"
+       ],
+       [
+        "5",
+        "Frost; wet (damp, or 1/8 inch or less of water); 1/8 inch or less of slush, dry snow or wet snow",
+        "Good"
+       ],
+       [
+        "4",
+        "Compacted snow at minus 15 C or colder",
+        "Good to medium"
+       ],
+       [
+        "3",
+        "Wet runway listed \"slippery when wet\"; more than 1/8 inch of dry or wet snow; compacted snow warmer than minus 15 C",
+        "Medium"
+       ],
+       [
+        "2",
+        "More than 1/8 inch of water or slush",
+        "Medium to poor"
+       ],
+       [
+        "1",
+        "Ice",
+        "Poor"
+       ],
+       [
+        "0",
+        "Wet ice; slush over ice; water over compacted snow; snow over ice",
+        "Nil"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Table source: the RCAM [[27:24|AC 91-79B Table 3-2]]. Only 1/8 inch of water separates a wet runway (code 5, good) from standing water (code 2, medium to poor), because dynamic hydroplaning may start whenever water is deeper than that [[27:18|AC 91-79B 3.6.1]]. With standing water, braking force can drop by up to 77 percent in seconds, and pilots report the airplane feels like it is speeding up [[27:17|AC 91-79B 3.6]]. In moderate or heavy rain on a smooth runway, assume the water may be deeper than 1/8 inch [[27:17|AC 91-79B 3.5.2]]."
+    },
+    {
+     "bullets": [
+      "Dynamic hydroplaning needs a water film at least 1/10 inch deep. It starts at about 8.6 times the square root of the tire pressure in psi (24 psi gives about 42 knots), and once started can continue to slower speeds [[24:208|AFH 9-37]].",
+      "Reverted rubber hydroplaning follows a long locked-wheel skid; steam lifts the tire. Release the brakes, let the wheels spin up, then brake moderately. It can last down to 20 knots or less [[24:208|AFH 9-37]].",
+      "Viscous hydroplaning needs only a film about 1/1,000 inch deep on a smooth surface or rubber deposits, which can be as slick as wet ice [[24:208|AFH 9-37]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "If hydroplaning is possible: land on a grooved runway if there is one, touch down as slowly as safety allows, lower the nose and brake moderately. If you feel no deceleration, raise the nose for aerodynamic drag until the brakes work. Brake firmly to just short of a skid and release at the first sign of one. In a crosswind the airplane will weathervane into the wind and slide downwind at the same time [[24:209|AFH 9-38]]. Land into the wind and avoid abrupt control inputs [[1:270|PHAK 11-14]]."
+     }
+    },
+    {
+     "p": "When the ATIS says \"braking action advisories are in effect,\" ATC gives every arrival the latest braking report for the runway. Ask for it if you do not get it, and be ready to report the runway after landing [[33:250|AIM 4-3-8c, d]]. If you have not been trained on the in-between terms, report the lowest level you saw [[27:31|AC 91-79B 4.8.3]]. A tailwind on a slippery runway makes an overrun more likely [[27:18|AC 91-79B 3.7]]."
+    },
+    {
+     "p": "Without manufacturer data for a wet or contaminated runway, AC 91-79B Table 3-1 gives multipliers for the unfactored AFM landing distance. The reciprocating engine row is 1.67 dry, 2.3 wet grooved, 2.6 wet smooth, then 2.8, 3.2, 4.0 and 5.1 for codes 4 through 1. The factors already include a 15 percent margin [[27:16|AC 91-79B Table 3-1]]."
+    }
+   ],
+   "check": {
+    "q": "The tower reports Runway 27 condition codes 5/5/2. What does the last number tell you?",
+    "a": "The rollout third has more than 1/8 inch of water or slush, medium to poor braking [[33:251|AIM 4-3-9c]] [[27:24|AC 91-79B Table 3-2]]."
+   }
+  },
+  {
+   "title": "The stabilized approach",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.C.K2",
+    "RF.VI.C.K3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "A stabilized approach keeps a constant-angle glide path to a chosen point on the runway, at a constant final descent airspeed and configuration [[24:175|AFH 9-4]]. On a stabilized approach the aiming point does not move in the windshield, and the runway keeps the same shape as it grows. If the approach gets shallower the runway looks shorter and wider; if it gets steeper it looks longer and narrower [[24:176|AFH 9-5]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "table": {
+      "head": [
+       "AFH element (typical piston airplane)",
+       "Stabilized means"
+      ],
+      "rows": [
+       [
+        "Glide path",
+        "Constant, typically 3 degrees to the touchdown zone [[24:177|AFH 9-6]]"
+       ],
+       [
+        "Heading",
+        "Tracking the centerline with only small corrections; bank normally no more than 15 degrees on final [[24:177|AFH 9-6]]"
+       ],
+       [
+        "Airspeed",
+        "Within +10/-5 KIAS of the recommended landing speed (AFM, 1.3 VSO, or placard); with a gust factor, never below the recommended speed [[24:177|AFH 9-6]]"
+       ],
+       [
+        "Configuration",
+        "Landing flaps as required, gear down, in trim [[24:177|AFH 9-6]]"
+       ],
+       [
+        "Descent rate",
+        "Generally 500 to 1,000 fpm; if more than 500 fpm, reduce it before 300 ft AGL [[24:177|AFH 9-6]]"
+       ],
+       [
+        "Power",
+        "Right for the configuration, not below the AFM minimum for approach [[24:177|AFH 9-6]]"
+       ],
+       [
+        "Briefings and checklists",
+        "Done before the approach, except the landing checklist [[24:177|AFH 9-6]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "The gates: stabilized by 500 ft above airport elevation in VMC, 1,000 ft in IMC. In the traffic pattern, an approach that becomes unstabilized below 300 ft AGL means an immediate go-around [[24:177|AFH 9-6]]."
+     }
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "p": "Fix small errors early so late corrections stay small [[24:177|AFH 9-6]]. If low, add power and raise the nose together. Do not raise the flaps to fix an undershoot; that can cause a sudden loss of lift and a high sink rate [[24:177|AFH 9-6]]. Stretching a glide with pitch alone is almost always a bad idea [[24:175|AFH 9-4]]. For a short field, start final at least 500 ft above the touchdown area and fly no faster than 1.3 VSO when the maker gives no speed, adding no more than half the gust factor; extra speed lands you long [[24:192|AFH 9-21]]."
+    },
+    {
+     "p": "AC 91-79B lists the unstabilized approach first among overrun hazards. It also says it is the pilot's job to tell ATC when following an instruction would make the approach unstable because of speed or descent rate [[27:34|AC 91-79B 5.2.1]]."
+    }
+   ],
+   "check": {
+    "q": "VMC, a normal pattern. At 400 ft AGL on final you are 15 knots fast and well above the glide path. What does the AFH guidance call for?",
+    "a": "A go-around. You were not stabilized by 500 ft above the airport, and +15 knots is outside +10/-5 KIAS [[24:177|AFH 9-6]]."
+   }
+  },
+  {
+   "title": "When to go around",
+   "kind": "knowledge",
+   "codes": [
+    "RF.VI.C.K3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The AFH calls the go-around a normal maneuver for when the approach or landing differs from what you expected or when continuing is hazardous. Any approach may end in one, and the idea that a go-around always means a poor approach or poor skill is a fallacy [[24:181|AFH 9-10]] [[24:182|AFH 9-11]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Go around when",
+       "Source"
+      ],
+      "rows": [
+       [
+        "You are not stabilized at the gate, or the approach becomes unstabilized below 300 ft AGL in the pattern",
+        "[[24:177|AFH 9-6]]"
+       ],
+       [
+        "You have any doubt the approach can be completed safely, or you are too slow and too low",
+        "[[24:201|AFH 9-30]] [[24:202|AFH 9-31]]"
+       ],
+       [
+        "You cannot touch down in the first third of the runway, or the airplane drifts sideways",
+        "[[24:203|AFH 9-32]]"
+       ],
+       [
+        "You balloon excessively, bounce hard, or start porpoising",
+        "[[24:204|AFH 9-33]] [[24:205|AFH 9-34]]"
+       ],
+       [
+        "The runway is occupied, even if you have a landing clearance",
+        "[[33:345|AIM 5-2-5i]] [[24:168|AFH 8-4]]"
+       ],
+       [
+        "You doubt you are lined up on the right surface",
+        "[[24:175|AFH 9-4]]"
+       ],
+       [
+        "The turn to final would create a collision hazard, or you are rushing a steep turn to final",
+        "[[24:168|AFH 8-4]]"
+       ],
+       [
+        "ATC requires it, a hazard appears on the runway, wind shear, wake turbulence, or a mechanical failure",
+        "[[24:181|AFH 9-10]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "At a towered field, if you are on final without a landing clearance, AC 91-73B tells flight schools to teach: ask the tower \"am I cleared to land?\" and if there is no answer, go around [[7:18|AC 91-73B App 3, 10]]. A land and hold short (LAHSO) clearance never rules out a rejected landing; if you go around, keep clear of other traffic and tell the controller promptly [[33:255|AIM 4-3-11b5, 6]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "The figure shows a retractable twin; the order is the same for a fixed-gear single, minus the gear. Power comes first, then attitude, then configuration [[24:182|AFH 9-11]]. Apply full power smoothly, carburetor heat off if applicable, hold the nose down against the trim with forward pressure and right rudder, and bring the flaps up in steps once the descent has stopped [[24:182|AFH 9-11]]. Ground effect performance is borrowed, so do not try to climb out of it too early [[24:183|AFH 9-12]]. On the upwind leg, a shallow turn to the upwind side keeps the runway and departing traffic in view [[24:168|AFH 8-4]]. (Handling and loss of control in the go-around are covered in RF.VI.B.)"
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The go-around is not dangerous in itself. It becomes dangerous only when delayed too long or flown badly [[24:182|AFH 9-11]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "In a gusty crosswind you float past the first third of the runway. What does the AFH say to do?",
+    "a": "Go around [[24:203|AFH 9-32]]."
+   }
+  },
+  {
+   "title": "Risk: pressing on to a short or wet runway",
+   "kind": "risk",
+   "codes": [
+    "RF.VI.C.R1",
+    "RF.VI.C.K2",
+    "RF.VI.C.K3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The AFH names the two reasons pilots delay a go-around: landing expectancy (the belief that the approach is sure to end safely) and pride (the belief that going around admits failure) [[24:182|AFH 9-11]]. AC 91-79B adds that landing on a contaminated runway combines cognitive bias, changing weather and high workload, under time pressure, which makes errors likely [[27:20|AC 91-79B 3.12]]. It warns that plan continuation bias must not drive actions against rules and SOPs [[27:20|AC 91-79B 3.12.2]]."
+    },
+    {
+     "p": "Expectation bias is a wrong assessment that persists despite evidence. The RMH tells of a GA pilot who read the NOTAM and heard the ATIS about a runway closure that had switched to the parallel runway, still saw it the old way, and started an approach to the closed runway [[30:45|RMH 6-2]]."
+    },
+    {
+     "p": "The PHAK tells a true overrun story, which it says repeats every year with new pilots. Downwind for one runway in light rain, the pilot accepted a tight change to another runway with a 10 knot tailwind, dove to make it, and at 50 ft was already 1,000 ft down a 3,500 ft runway and about 10 percent fast. The planned 1,600 ft landing became about 3,240 ft of runway used. The brakes locked, the airplane hydroplaned, and the margin was gone [[1:274|PHAK 11-18]]. The PHAK's lesson: bad decisions combine, and each correction has to be bigger, until correction is almost impossible [[1:274|PHAK 11-18]]."
+    },
+    {
+     "bullets": [
+      "Before departure: work out the landing distance for the expected conditions [[60:440|14 CFR 91.103(b)]], and know in advance which LAHSO combinations, if any, you could accept [[33:254|AIM 4-3-11b4]].",
+      "Before descent: do the time of arrival assessment, including how much worse the field can get before you divert, so a late bad report gets a quick decision [[27:15|AC 91-79B 3.3.1]]. Brief the worst braking you will accept and what it would look like [[27:20|AC 91-79B 3.12.3]]. A pilot flying alone should map out these decision points before the flight [[27:15|AC 91-79B 3.3]].",
+      "In the terminal area, fly the briefed plan instead of analyzing the risk again [[27:20|AC 91-79B 3.12.1]].",
+      "A late runway change cancels your assessment: confirm the new runway, wind and other factors before you accept [[27:20|AC 91-79B 3.11]]. If you cannot comply safely, say \"unable\" [[1:367|PHAK 14-33]]. The PIC may decline any LAHSO clearance [[33:254|AIM 4-3-11b3]].",
+      "Set personal minimums, including a minimum runway length, on the ground; do not adjust them to finish a particular flight [[30:17|RMH 2-5]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Get-there-itis: a fixation on the original goal or destination combined with ignoring other options [[1:61|PHAK 2-22]]. On short final to a short wet runway, it sounds like \"I'm almost down.\""
+     }
+    }
+   ],
+   "check": {
+    "q": "When does AC 91-79B want you to decide the worst braking action you will accept?",
+    "a": "Before the descent, as part of a briefing; once descending, monitor and respond with the briefed actions [[27:20|AC 91-79B 3.12.3]]."
+   }
+  },
+  {
+   "title": "Common errors and fixes",
+   "kind": "skills",
+   "codes": [
+    "RF.VI.C.K1",
+    "RF.VI.C.K2",
+    "RF.VI.C.K3",
+    "RF.VI.C.R1",
+    "RF.VI.C.S1"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "bullets": [
+      "Following the taxi route you expected. Fix: follow the instruction you received, and ask if unsure [[7:4|AC 91-73B 7b(2) CAUTION]].",
+      "Programming the GPS while rolling. Fix: do heads-down tasks before taxi or when stopped [[7:6|AC 91-73B 7d(3) NOTE]].",
+      "Treating \"line up and wait\" as a takeoff clearance. Fix: wait for \"cleared for takeoff\" [[33:344|AIM 5-2-5a]].",
+      "Raising flaps while the tail is still over the hold markings. Fix: clear the line completely first [[7:7|AC 91-73B 7d(13)]].",
+      "Planning from the POH number alone on a wet runway. Fix: apply the condition factors and a margin [[27:16|AC 91-79B Table 3-1]].",
+      "Accepting a late runway change with a tailwind. Fix: reassess or say \"unable\" [[27:20|AC 91-79B 3.11]] [[1:367|PHAK 14-33]].",
+      "Saving a high, fast approach with a dive. Fix: go around if not stabilized at the gate [[24:177|AFH 9-6]].",
+      "Floating down the runway hoping to stop. Fix: go around if you cannot touch down in the first third [[24:203|AFH 9-32]].",
+      "Locking the brakes on a wet runway. Fix: release, let the wheels spin up, brake just short of a skid [[24:209|AFH 9-38]]."
+     ]
+    },
+    {
+     "p": "Land or go around, in one line each (application, built from the sources above): before descent, decide if the runway passes with margin [[27:14|AC 91-79B 3.1]]; at the gate, decide if you are stabilized [[24:177|AFH 9-6]]; over the runway, decide if you will touch down in the first third [[24:203|AFH 9-32]]. Any \"no\" is a go-around or a diversion."
+    }
+   ],
+   "check": {
+    "q": "What three decision points does this lesson use for \"land or go around\"?",
+    "a": "Before descent: does the runway pass with margin [[27:14|AC 91-79B 3.1]]. At the gate: stabilized or not [[24:177|AFH 9-6]]. Over the runway: touchdown in the first third [[24:203|AFH 9-32]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "RF.VI.C-1.jpg",
+   "res": "24",
+   "page": 33,
+   "caption": "AFH Figure 1-12. Three major areas contributing to runway incursions are communications with air traffic control (ATC), airport knowledge, and flight deck procedures (AFH 1-12).",
+   "alt": "A collage: an FAA airport diagram of Dothan Regional with two crossing runways and a caution note about runway crossing clearances, a photo of a light airplane's six basic flight instruments, and a photo of a control tower.",
+   "source": "AFH, PDF p. 33"
+  },
+  "f2": {
+   "file": "RF.VI.C-2.jpg",
+   "res": "1",
+   "page": 367,
+   "caption": "PHAK Figure 14-49. Confusing runway/runway intersection (PHAK 14-33).",
+   "alt": "Top view of a high-wing airplane turning off a taxiway onto a short lead-in toward the threshold of Runway 36, while a second runway with a dashed white centerline crosses diagonally just to the right of the same spot.",
+   "source": "PHAK, PDF p. 367"
+  },
+  "f3": {
+   "file": "RF.VI.C-3.jpg",
+   "res": "24",
+   "page": 177,
+   "caption": "AFH Figure 9-7. Change in runway shape if approach becomes narrow or steep (AFH 9-6). The panel labels are cropped off for the game in this lesson.",
+   "alt": "Three cockpit views of Runway 25 on final, each with the instrument panel at the bottom. Left: the runway looks long and narrow and the horizon sits high. Middle: a normal trapezoid. Right: the runway looks short and wide and sits low, near the horizon.",
+   "source": "AFH, PDF p. 177"
+  },
+  "f4": {
+   "file": "RF.VI.C-4.jpg",
+   "res": "24",
+   "page": 193,
+   "caption": "AFH Figures 9-22 and 9-23. Stabilized approach and unstabilized approach (AFH 9-22).",
+   "alt": "Top: a high-wing airplane descends on one straight, constant-angle path over trees to Runway 34. Bottom: an airplane flies level over a mountain, descends, levels off again over trees, then dives steeply to the runway.",
+   "source": "AFH, PDF p. 193"
+  },
+  "f5": {
+   "file": "RF.VI.C-5.jpg",
+   "res": "27",
+   "page": 37,
+   "caption": "AC 91-79B Figure 5-1. Effects of Compound Factors (AC 91-79B 5-4).",
+   "alt": "Seven numbered boxes stacked like stairs, each adding a landing distance penalty: baseline, 10 ft high at the threshold, 10 percent fast, 10 knot tailwind, less than maximum braking, slow use of deceleration devices, and a 15 percent margin. Below, numbered posts march along a line labeled 5,000 ft of runway, and the last ones fall past its end, marked The End.",
+   "source": "AC 91-79B, PDF p. 37"
+  },
+  "f6": {
+   "file": "RF.VI.C-6.jpg",
+   "res": "24",
+   "page": 182,
+   "caption": "AFH Figure 9-12. Go-around procedure (AFH 9-11).",
+   "alt": "A twin-engine airplane drawn at six points over a runway: timely decision to make go-around; apply max power, adjust pitch attitude and let airspeed increase; assume climb attitude with flaps to intermediate; positive rate of climb, retract gear, climb at VY; retract remaining flaps; 500 feet, cruise climb.",
+   "source": "AFH, PDF p. 182"
+  }
+ },
+ "scenario": {
+  "title": "Rain at Riverside",
+  "codes": [
+   "RF.VI.C.K1",
+   "RF.VI.C.K2",
+   "RF.VI.C.K3",
+   "RF.VI.C.R1",
+   "RF.VI.C.S1"
+  ],
+  "setup": "You fly a Piper Archer to Riverside, a towered airport you have never visited, to meet a client. Runway 27 is 4,000 ft, smooth (not grooved). Runway 33 is 3,000 ft and crosses Runway 27 near its middle. Your POH landing distance over a 50 ft obstacle is 1,250 ft for today's weight and temperature, with no data for wet runways. A line of rain showers is moving through. The ATIS says: wind 090 at 8, Runway 27 in use, braking action advisories in effect, Runway 27 condition codes 5/5/2.",
+  "questions": [
+   {
+    "q": "Before you left home, what did 91.103 require you to know about Riverside, and what does AC 91-79B add?",
+    "a": "Runway lengths and the takeoff and landing distance information for your airplane under the expected conditions [[60:440|14 CFR 91.103(b)]]. The AC recommends Part 91 pilots calculate landing distance before departure and strongly recommends a time of arrival assessment before landing [[27:12|AC 91-79B 2.1.4]] [[27:13|AC 91-79B 2.2.3]]."
+   },
+   {
+    "q": "Using AC 91-79B Table 3-1, what landing distance do the codes 5/5/2 call for, and does Runway 27 work?",
+    "a": "Use the most adverse reliable report or condition for the part of the runway you will use [[27:14|AC 91-79B 3.3]]. Code 2 for a reciprocating airplane is 4.0: 1,250 x 4.0 = 5,000 ft, more than the 4,000 ft available. Even code 5 on a smooth runway gives 1,250 x 2.6 = 3,250 ft [[27:16|AC 91-79B Table 3-1]]. Note also the wind from 090 is a tailwind on Runway 27, which worsens the risk on a slippery runway [[27:18|AC 91-79B 3.7]]. Application: hold or divert until the water drains or a better runway is offered."
+   },
+   {
+    "q": "After the shower passes, new codes are 5/5/5 and the wind is calm. Tower then offers \"short approach, Runway 33, cleared to land\" to save time. What do you consider?",
+    "a": "A runway change means your assessment no longer applies; confirm the runway, wind and other factors before accepting [[27:20|AC 91-79B 3.11]]. Runway 33 is 3,000 ft, less than the 3,250 ft you computed for code 5 on a smooth runway [[27:16|AC 91-79B Table 3-1]]. Say \"unable\" if you cannot safely comply [[1:367|PHAK 14-33]]."
+   },
+   {
+    "q": "On final for Runway 27 you get gusts. At 400 ft AGL you are 14 knots above your target speed and sinking 1,100 fpm. Continue?",
+    "a": "No. You are past the 500 ft VMC gate and outside +10/-5 KIAS, and the descent rate is above what the AFH lists [[24:177|AFH 9-6]]. Go around: power, attitude, configuration [[24:182|AFH 9-11]]."
+   },
+   {
+    "q": "On the second approach you land. During rollout the tower says \"turn left Alpha 3, cross Runway 33, contact ground.\" You are still fast and Alpha 3 is just ahead. What do you do?",
+    "a": "Do not accept a last-minute turnoff unless you clearly understand it and are certain you can comply safely [[7:7|AC 91-73B 7d(14)]]. Exit when you can, clear all parts of the airplane past the hold markings, and change nothing until then [[33:264|AIM 4-3-21b]] [[7:7|AC 91-73B 7d(13)]]. Braking was weaker than reported? Tell ATC [[27:27|AC 91-79B 4.5.1]]."
+   },
+   {
+    "q": "Next morning in fog you must cross Runway 33 to reach Runway 27. How do you set up the taxi?",
+    "a": "Review NOTAMs, the diagram and hot spots, and brief the route and runway crossing before moving [[7:3|AC 91-73B 7b(1)]] [[7:4|AC 91-73B 7b(2)(d)]]. Write down and read back the instructions, including the hold short [[7:7|AC 91-73B 7e(1)]] [[33:261|AIM 4-3-18a9]]. In low visibility the tower may not see you: keep checklists for when you are stopped with brakes set, and tell ATC at once if you become disoriented [[33:262|AIM 4-3-19]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "RF.VI.C.S1",
+   "do": "Given an approach situation (runway length and condition, wind, your speed, height and where you will touch down), decide whether to land or go around and explain why using three checks: does the runway pass a landing distance assessment with margin, are you stabilized at the gate, and will you touch down in the first third of the runway.",
+   "practice": "On the ground, compute your airplane's landing distance for a dry, a wet and a code 2 runway using your POH and AC 91-79B Table 3-1 [[27:16|AC 91-79B Table 3-1]], and write down your go-around triggers [[24:177|AFH 9-6]] [[24:203|AFH 9-32]]. In flight with a CFI, call \"stable\" or \"go around\" aloud at 500 ft and 300 ft AGL, and fly at least two planned go-arounds from short final [[24:182|AFH 9-11]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Per AC 91-73B, when should you run pre-departure checklists, if possible?",
+   "options": [
+    "While crossing a runway, to save time",
+    "Only when stopped or taxiing straight ahead on a taxiway with no complex intersections",
+    "Whenever ground control is not talking",
+    "During the run-up only, never earlier"
+   ],
+   "answer": 1,
+   "why": "If possible, run them only when stopped or taxiing straight ahead with no complex intersections [[7:4|AC 91-73B 7b(2)(a)]]."
+  },
+  {
+   "q": "Ground clears you to taxi via Taxiway Charlie, but a NOTAM says Charlie is closed. What does AC 91-73B say to do?",
+   "options": [
+    "Taxi via Charlie; ATC knows best",
+    "Pick a different taxiway yourself",
+    "Query the controller to verify the clearance",
+    "Cancel the flight"
+   ],
+   "answer": 2,
+   "why": "If ATC clears you onto a surface that a NOTAM or the ATIS shows closed, query the controller for verification [[7:3|AC 91-73B 7b(1)(c)]]."
+  },
+  {
+   "q": "Tower says \"N52TX, Runway 24, line up and wait.\" What are you authorized to do?",
+   "options": [
+    "Taxi onto Runway 24, line up and wait",
+    "Take off when traffic is clear",
+    "Hold short of Runway 24",
+    "Take off after 90 seconds if you hear nothing"
+   ],
+   "answer": 0,
+   "why": "LUAW tells you to taxi onto the departure runway, line up and wait. It is not an authorization to take off [[33:344|AIM 5-2-5a]]."
+  },
+  {
+   "q": "After landing, when is your airplane clear of the runway?",
+   "options": [
+    "When the main wheels leave the runway edge",
+    "When the nose crosses the hold markings",
+    "When you contact ground control",
+    "When all parts of the airplane are past the runway holding position markings"
+   ],
+   "answer": 3,
+   "why": "An aircraft is clear of the runway when all parts are past the runway edge and beyond the runway holding position markings [[33:264|AIM 4-3-21b]]."
+  },
+  {
+   "q": "Under 91.103(b), which landing information must you know before ANY flight?",
+   "options": [
+    "Only fuel requirements",
+    "Runway lengths at airports of intended use and takeoff and landing distance information",
+    "Only the weather at the destination",
+    "Only alternate airports"
+   ],
+   "answer": 1,
+   "why": "For any flight: runway lengths at airports of intended use and takeoff and landing distance information [[60:440|14 CFR 91.103(b)]]."
+  },
+  {
+   "q": "About how much does a 10 knot tailwind increase landing distance?",
+   "options": [
+    "5 percent",
+    "10 percent",
+    "21 percent",
+    "50 percent"
+   ],
+   "answer": 2,
+   "why": "About 21 percent for the first 10 knots [[27:35|AC 91-79B 5.2.9]] [[1:273|PHAK 11-17]]."
+  },
+  {
+   "q": "Which braking action matches runway condition code 2?",
+   "options": [
+    "Good",
+    "Medium to poor",
+    "Medium",
+    "Nil"
+   ],
+   "answer": 1,
+   "why": "Code 2 (more than 1/8 inch of water or slush) matches medium to poor [[27:24|AC 91-79B Table 3-2]]."
+  },
+  {
+   "q": "For a typical piston airplane, what airspeed band does the AFH call stabilized on final?",
+   "options": [
+    "Within +10/-5 KIAS of the recommended landing speed",
+    "Within 5 knots either way of VY",
+    "Any speed above 1.1 VSO",
+    "Within +20/-10 KIAS of cruise"
+   ],
+   "answer": 0,
+   "why": "Within +10/-5 KIAS of the recommended landing speed in the AFM, 1.3 VSO, or on placards [[24:177|AFH 9-6]]."
+  },
+  {
+   "q": "What two things does the AFH say usually cause pilots to delay a go-around?",
+   "options": [
+    "Fuel and weather",
+    "Fatigue and hunger",
+    "ATC workload and traffic",
+    "Landing expectancy (set) and pride"
+   ],
+   "answer": 3,
+   "why": "Delay normally stems from landing expectancy or set, and pride [[24:182|AFH 9-11]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Two runway thresholds sit side by side at the end of your taxiway, Runway 36 and Runway 4. You are cleared for takeoff on Runway 36. What is your last check before adding power?",
+   "options": [
+    "Confirm the heading indicator agrees with the runway heading, about 360",
+    "Check the oil temperature",
+    "Call ground control for confirmation",
+    "Look for the wind sock"
+   ],
+   "answer": 0,
+   "why": "Set the heading bug to the runway heading and, before adding power, make one last instrument scan to be sure the airplane heading and runway heading agree [[1:366|PHAK 14-32]]."
+  },
+  {
+   "q": "At night you are told to line up and wait on a runway with landing traffic behind you. How should your lights be set?",
+   "options": [
+    "All lights off to avoid blinding the landing pilot",
+    "Only the beacon",
+    "All lights except landing lights, then landing lights on at takeoff clearance",
+    "Landing lights only"
+   ],
+   "answer": 2,
+   "why": "On entering the runway for takeoff or LUAW, turn on all lights except landing lights; turn landing lights on when takeoff clearance is received [[7:10|AC 91-73B 7h(2)(d), (f)]]."
+  },
+  {
+   "q": "After landing at a non-towered airport, you must cross the other runway to reach the fuel pumps. What does AC 91-73B stress?",
+   "options": [
+    "Cross quickly without stopping",
+    "Not all aircraft have radios: listen on CTAF and scan the full runway and its approach and departure paths",
+    "Wait for a light signal",
+    "Call the FBO for clearance"
+   ],
+   "answer": 1,
+   "why": "Not all aircraft are radio-equipped; listen on the CTAF and scan the full length of the runway, including the final approach and departure paths [[7:7|AC 91-73B 7d(12)]]."
+  },
+  {
+   "q": "Taxiing in fog with RVR about 1,000 ft, you need to load a new flight plan in the GPS. When?",
+   "options": [
+    "Now, while taxiing slowly",
+    "At the hold short line while still rolling",
+    "During the takeoff roll",
+    "Only when stopped with the brakes set"
+   ],
+   "answer": 3,
+   "why": "In low visibility, checklists and nonessential tasks wait until the aircraft is stopped and the brakes set [[33:262|AIM 4-3-19d]]; heads-down tasks are done while stopped [[7:9|AC 91-73B 7g(4)]]."
+  },
+  {
+   "q": "Your POH landing distance is 1,200 ft. The airport reports code 2 for the whole runway, and there is no maker data for contaminated runways. Using AC 91-79B Table 3-1 for a reciprocating airplane, can you use a 4,500 ft runway?",
+   "options": [
+    "Yes, 1,200 ft is well under 4,500 ft",
+    "Yes, 1,200 x 2.6 = 3,120 ft",
+    "No, 1,200 x 4.0 = 4,800 ft is more than 4,500 ft",
+    "No, the table forbids any landing at code 2"
+   ],
+   "answer": 2,
+   "why": "The code 2 factor for a reciprocating airplane is 4.0: 1,200 x 4.0 = 4,800 ft, more than 4,500 ft [[27:16|AC 91-79B Table 3-1]]. Except in an emergency, do not land on a runway that fails the assessment [[27:14|AC 91-79B 3.1]]."
+  },
+  {
+   "q": "Braking action advisories are in effect. Your braking felt somewhere between medium and poor, and you have had no training on the in-between terms. What do you report?",
+   "options": [
+    "\"Medium to poor\"",
+    "Nothing; only airlines report",
+    "\"Good,\" since you stopped",
+    "\"Poor\""
+   ],
+   "answer": 3,
+   "why": "Without training on the in-between terms, be conservative and report the lowest level you observed [[27:31|AC 91-79B 4.8.3]]. Report braking worse than reported to ATC [[27:27|AC 91-79B 4.5.1]]."
+  },
+  {
+   "q": "You touch down on a wet runway and brake, but feel no deceleration; you suspect dynamic hydroplaning. What does the AFH recommend?",
+   "options": [
+    "Raise the nose and use aerodynamic drag until the brakes become effective",
+    "Hold full brakes until the airplane stops",
+    "Pump the brakes rapidly",
+    "Add power and steer with brakes"
+   ],
+   "answer": 0,
+   "why": "If deceleration is not felt and hydroplaning is suspected, raise the nose and use aerodynamic drag until the brakes become effective; brake to just short of a skid [[24:209|AFH 9-38]]."
+  },
+  {
+   "q": "VMC, normal traffic pattern. At 300 ft AGL on final you are 12 knots fast and descending 1,000 fpm. What does the AFH guidance call for?",
+   "options": [
+    "Slip to lose speed and land long",
+    "An immediate go-around",
+    "Continue, since you are within 1,000 ft",
+    "Retract flaps to slow the descent"
+   ],
+   "answer": 1,
+   "why": "An approach unstabilized below 300 ft AGL in the pattern calls for an immediate go-around; +12 knots is outside +10/-5 KIAS [[24:177|AFH 9-6]]."
+  },
+  {
+   "q": "Cleared to land, on short final, you see an airplane holding in position on your runway. What should you do?",
+   "options": [
+    "Land long and stop behind it",
+    "Land; you have a clearance",
+    "Do not land on an occupied runway: ask the controller and be ready to go around",
+    "Land on the parallel taxiway"
+   ],
+   "answer": 2,
+   "why": "Never land on a runway occupied by another aircraft, even with a landing clearance. Ask the controller and be prepared to go around [[33:345|AIM 5-2-5i]]."
+  },
+  {
+   "q": "Tower says \"cleared to land Runway 6, hold short of Runway 33.\" Your computed distance needs more than the published Available Landing Distance. What now?",
+   "options": [
+    "Accept and brake hard",
+    "Decline the LAHSO clearance and tell ATC promptly",
+    "Accept and plan to roll through if needed",
+    "Say nothing and land full length"
+   ],
+   "answer": 1,
+   "why": "The PIC has final authority to accept or decline LAHSO and should decline if it compromises safety [[33:254|AIM 4-3-11b3]], informing ATC promptly [[33:255|AIM 4-3-11b5]]."
+  },
+  {
+   "q": "You accepted a LAHSO clearance. On short final a gust leaves you high and fast. Can you still go around?",
+   "options": [
+    "Yes; LAHSO does not preclude a rejected landing. Keep clear of traffic and tell the controller",
+    "No; once accepted you must land",
+    "Only if ATC tells you to",
+    "Only after touching down"
+   ],
+   "answer": 0,
+   "why": "A LAHSO clearance does not preclude a rejected landing; maintain safe separation and promptly notify the controller [[33:255|AIM 4-3-11b5, 6]]."
+  },
+  {
+   "q": "Before descent you assessed Runway 18. Now the tower offers Runway 9 with a 10 knot tailwind. According to AC 91-79B, what is true?",
+   "options": [
+    "Your Runway 18 assessment still applies",
+    "Runways at the same airport perform the same",
+    "Tailwind does not matter below 15 knots",
+    "A new assessment is needed; a 10 knot tailwind alone adds about 21 percent"
+   ],
+   "answer": 3,
+   "why": "A TOA assessment is critical when the landing runway is not the one analyzed [[27:14|AC 91-79B 3.1]]; confirm the runway and wind match your assessment [[27:20|AC 91-79B 3.11]]. A 10 knot tailwind adds about 21 percent [[27:35|AC 91-79B 5.2.9]]."
+  },
+  {
+   "q": "On final you are a little low and short of your aiming point. Which correction does the AFH warn against?",
+   "options": [
+    "Adding power while raising the nose slightly",
+    "Retracting the flaps to reduce the descent",
+    "Leveling off briefly with power to rejoin the glide path",
+    "Glancing at the airspeed"
+   ],
+   "answer": 1,
+   "why": "Retracting flaps to fix an undershoot can cause a sudden loss of lift and an excessive sink rate; add power and raise the nose instead [[24:177|AFH 9-6]]."
+  }
+ ],
+ "takeaways": [
+  "Plan and brief the taxi like any phase of flight, and follow the clearance you get, not the one you expected.",
+  "Heads-down tasks happen before taxi or when stopped; read back hold short instructions and set a reminder.",
+  "Line up and wait is not a takeoff clearance; check the heading against the runway before adding power.",
+  "After landing, clear the hold markings with the whole airplane before touching flaps or radios.",
+  "Book landing distance is a best case: fast, high, tailwind, slope and wet runways stack up, so add margin.",
+  "Know the gates: stabilized by 500 ft (VMC), go around if unstable below 300 ft or if you cannot land in the first third.",
+  "Decide your limits before descent; in the terminal area, fly the plan and go around without debate."
+ ],
+ "cfi_notes": [
+  "AC 91-73B 7d(9) and Appendix 3 item 9 say to expect ATC to call within 90 seconds of a LUAW instruction [[7:6|AC 91-73B 7d(9)]] [[7:18|AC 91-73B App 3, 9]], and PHAK 14-35 says to contact ATC if no takeoff clearance comes within 90 seconds [[1:369|PHAK 14-35]]. The current AIM says to contact ATC if takeoff clearance is not received \"within a reasonable amount of time\" and notes that two minutes or more passed in the events the FAA studied [[33:344|AIM 5-2-5c]] [[33:345|AIM 5-2-5c NOTE]]. This lesson teaches the AIM wording.",
+  "AC 91-73B 7f(4) says pilots are \"required to read back all clearances\" [[7:8|AC 91-73B 7f(4)]], and PHAK 14-32 calls a verbatim hold short readback \"mandatory\" [[1:366|PHAK 14-32]]. The AIM says pilots should always read back the runway assignment, clearances to enter a runway, and hold short or LUAW instructions, and that controllers must obtain the hold short readback [[33:261|AIM 4-3-18a9, b1]]. 91.123 requires compliance with clearances but has no readback wording [[60:450|14 CFR 91.123]]. Interpretation: teach the AIM list and treat readback as required in practice.",
+  "Hydroplaning numbers differ: AFH 9-37 uses 8.6 x square root of tire pressure and a water film of at least 1/10 inch [[24:208|AFH 9-37]]; PHAK 11-14 rounds to 9 x square root [[1:270|PHAK 11-14]]; AC 91-79B uses more than 1/8 inch as the point where hydroplaning may start [[27:18|AC 91-79B 3.6.1]]. Teach them as approximations, not limits.",
+  "PHAK 11-17 says a 10 percent excess landing speed causes \"at least a 21 percent\" increase in landing distance, then a few lines later says 20 percent [[1:273|PHAK 11-17]]. AC 91-79B uses 20 percent [[27:34|AC 91-79B 5.2.2]]. PHAK 11-18 also uses \"20 percent for every ten miles per hour\" of wind [[1:274|PHAK 11-18]], while PHAK 11-17 and AC 91-79B give about 21 percent for a 10 knot tailwind. This lesson uses the AC numbers.",
+  "AC 91-79B is written mostly for transport category operations, and says there are no plans to give Part 23 makers advisory data like AC 25-32 [[27:15|AC 91-79B 3.3.2.3]]. Its Table 3-1 does include a reciprocating row [[27:16|AC 91-79B Table 3-1]]. Interpretation: using those factors on a light single is a conservative planning aid, not a POH number.",
+  "AIM 4-3-9 still points to \"AC 91-79, Mitigating the Risks of a Runway Overrun Upon Landing, Appendix 1\" for the RCAM terms [[33:251|AIM 4-3-9]]. AC 91-79B canceled AC 91-79A with that title [[27:4|AC 91-79B 1.4]], and the RCAM is now its Table 3-2 [[27:24|AC 91-79B Table 3-2]]. Likewise, AIM 5-2-5 references AC 91-73A [[33:345|AIM 5-2-5]], which AC 91-73B canceled [[7:1|AC 91-73B 2]].",
+  "The 500 ft, 1,000 ft and 300 ft gates are AFH guidance [[24:177|AFH 9-6]]; no Part 91 rule sets go-around criteria. Have the pilot brief their own triggers aloud before each approach, then hold them to it.",
+  "AC 91-73B Appendix 3 asks instructors to limit cockpit instruction during taxi and suggests a panel placard as a reminder [[7:17|AC 91-73B App 3, 2]]. Model this on the flight review: teach at the run-up, not while crossing runways.",
+  "The PHAK's runway incursion figures (about 65 percent pilot caused, about three per day at towered airports) carry no year on the page [[1:365|PHAK 14-31]] [[1:366|PHAK 14-32]]. Use them to show the size of the problem, not as current statistics."
+ ],
+ "gaps": [
+  "Most light-airplane POHs give landing distance only for a paved, level, dry runway; some give little or no guidance for contaminated runways (RMH 3-7). Wet, grass and contaminated corrections for your airplane need the POH/AFM or a CFI.",
+  "The braking action examples and reliable-report criteria in AC 91-79B are built around transport jets with anti-skid; the sources give no light single braking examples.",
+  "Tailwind landing data for your airplane, if any, is only in the POH/AFM; the AC quotes just the Cessna 150/152 and TBM 850 notes.",
+  "Airport-specific hot spots, declared distances, LAHSO Available Landing Distances and arresting systems come from the airport diagram and Chart Supplement, not from these sources.",
+  "The sources do not say how a light airplane behaves in an EMAS bed; the PHAK describes it for overruns in general."
+ ],
+ "activities": [
+  {
+   "type": "tf",
+   "key": "h1",
+   "after": 3,
+   "title": "True or false: the single-pilot taxi",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "AC 91-73B says to plan the airport surface movement as part of flight planning, like any other phase of flight.",
+     "a": true,
+     "why": "True. Plan surface movement just as you plan the other phases of flight [[7:3|AC 91-73B 7b]]."
+    },
+    {
+     "s": "If ground gives you a different route than the one you briefed, fly the briefed route if you think it is safer.",
+     "a": false,
+     "why": "False. Follow the instructions actually received [[7:4|AC 91-73B 7b(2) CAUTION]]; except in an emergency, no one may operate contrary to an ATC instruction [[60:450|14 CFR 91.123(b)]]. Ask if unsure."
+    },
+    {
+     "s": "\"Roger\" is a fine reply to a hold short instruction.",
+     "a": false,
+     "why": "False. Read back with your call sign and the runway; avoid \"Roger\" or \"Wilco\" [[7:8|AC 91-73B 7f(4)]]."
+    },
+    {
+     "s": "Taxi instructions to your departure runway let you cross that same runway wherever your route meets it.",
+     "a": false,
+     "why": "False. They do not authorize entering or crossing the assigned departure runway at any point [[33:260|AIM 4-3-18a6]]."
+    },
+    {
+     "s": "If you get lost on the airport, it is safest to stop right where you are, even on a runway, and call.",
+     "a": false,
+     "why": "False. Never stop on a runway; stop elsewhere and advise ATC [[7:9|AC 91-73B 7g(5)]]."
+    },
+    {
+     "s": "Instructors should limit cockpit instruction while taxiing.",
+     "a": true,
+     "why": "True. AC 91-73B asks instructors to limit instruction during critical phases, especially taxiing [[7:17|AC 91-73B App 3, 2]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h2",
+   "after": 5,
+   "title": "After touchdown, in order",
+   "intro": "Use the arrows to put the after-landing steps at a towered airport in order, then tap Check.",
+   "steps": [
+    "Exit at the first available taxiway or the one ATC assigned",
+    "Keep rolling until the whole airplane, tail included, is past the hold markings",
+    "Stop and hold unless ATC has given further instructions",
+    "Run the after-landing items: flaps, trim and the rest",
+    "Call ground for taxi instructions and read them back",
+    "Follow your progress to parking on the airport diagram"
+   ],
+   "why": "Exit without delay and clear all parts past the hold markings, then hold [[33:264|AIM 4-3-21a, b]]. Change nothing until across the hold short line [[7:7|AC 91-73B 7d(13)]]. After crossing, run the after-landing items before calling for taxi, read back, and monitor progress on the diagram [[7:5|AC 91-73B 7b(2)(h)]]."
+  },
+  {
+   "type": "sort",
+   "key": "h3",
+   "after": 7,
+   "title": "Read the runway like an airport manager",
+   "intro": "Tap each runway condition, then tap the braking action the RCAM links to it.",
+   "buckets": [
+    "Good (code 5)",
+    "Good to medium (code 4)",
+    "Medium (code 3)",
+    "Medium to poor (code 2)",
+    "Poor (code 1)",
+    "Nil (code 0)"
+   ],
+   "items": [
+    {
+     "t": "Frost",
+     "b": 0
+    },
+    {
+     "t": "Damp runway",
+     "b": 0
+    },
+    {
+     "t": "Compacted snow at minus 20 C",
+     "b": 1
+    },
+    {
+     "t": "Wet runway listed as slippery when wet",
+     "b": 2
+    },
+    {
+     "t": "2 inches of dry snow",
+     "b": 2
+    },
+    {
+     "t": "1/4 inch of standing water",
+     "b": 3
+    },
+    {
+     "t": "1/2 inch of slush",
+     "b": 3
+    },
+    {
+     "t": "Ice",
+     "b": 4
+    },
+    {
+     "t": "Water over compacted snow",
+     "b": 5
+    }
+   ],
+   "why": "All from the RCAM [[27:24|AC 91-79B Table 3-2]]: frost and wet (including damp) are code 5; compacted snow at minus 15 C or colder is 4; slippery when wet and more than 1/8 inch of dry snow are 3; more than 1/8 inch of water or slush is 2; ice is 1; water over compacted snow is 0, nil."
+  },
+  {
+   "type": "calc",
+   "key": "h4",
+   "after": 7,
+   "title": "How much runway, really?",
+   "intro": "Work each one out, then type your answer.",
+   "items": [
+    {
+     "q": "Your POH landing distance is 1,250 ft. You fly final 10 percent fast. Using the AC 91-79B rule of thumb, what distance should you expect?",
+     "answer": 1500,
+     "tol": 10,
+     "unit": "ft",
+     "why": "10 percent fast adds about 20 percent: 1,250 x 1.20 = 1,500 ft [[27:34|AC 91-79B 5.2.2]]."
+    },
+    {
+     "q": "A Cessna 152 chart shows 1,200 ft. You land with a 6 knot tailwind. Using the chart note quoted in AC 91-79B (10 percent for each 2 knots), what distance?",
+     "answer": 1560,
+     "tol": 10,
+     "unit": "ft",
+     "why": "6 / 2 = 3 steps of 10 percent = 30 percent. 1,200 x 1.30 = 1,560 ft [[27:36|AC 91-79B 5.2.9.1]]."
+    },
+    {
+     "q": "Your unfactored POH landing distance is 1,300 ft. The runway is wet and smooth (not grooved), code 5, and you have no wet data. Using the reciprocating row of AC 91-79B Table 3-1, what landing distance is required?",
+     "answer": 3380,
+     "tol": 10,
+     "unit": "ft",
+     "why": "Wet smooth (code 5) factor 2.6: 1,300 x 2.6 = 3,380 ft. The factor already includes a 15 percent margin [[27:16|AC 91-79B Table 3-1]]."
+    },
+    {
+     "q": "A dry-runway POH distance is 1,500 ft. You will be 10 percent fast (plus 20 percent) with a 10 knot tailwind (plus 21 percent, applied on the new number), then you add a 15 percent margin. What is the total, to the nearest 5 ft?",
+     "answer": 2505,
+     "tol": 5,
+     "unit": "ft",
+     "why": "1,500 x 1.20 = 1,800; 1,800 x 1.21 = 2,178; 2,178 x 1.15 = 2,504.7, about 2,505 ft [[27:34|AC 91-79B 5.2.2]] [[27:35|AC 91-79B 5.2.9]] [[27:14|AC 91-79B 3.1]]. Stacking on the new number follows the PHAK example [[1:274|PHAK 11-18]]."
+    },
+    {
+     "q": "Your main tires are inflated to 30 psi. Using the AFH formula (8.6 x the square root of tire pressure), at about what speed could dynamic hydroplaning begin? (1 decimal)",
+     "answer": 47.1,
+     "tol": 0.3,
+     "unit": "knots",
+     "why": "Square root of 30 = 5.477. 5.477 x 8.6 = 47.1 knots [[24:208|AFH 9-37]]. Once started, it can continue below that speed."
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h5",
+   "after": 8,
+   "title": "Read the runway picture",
+   "figure": "f3",
+   "intro": "Drag each label to the view it describes.",
+   "pins": [
+    {
+     "x": 17,
+     "y": 45,
+     "label": "Too high: runway looks long and narrow"
+    },
+    {
+     "x": 50,
+     "y": 55,
+     "label": "Proper descent angle"
+    },
+    {
+     "x": 83,
+     "y": 63,
+     "label": "Too low: runway looks short and wide"
+    }
+   ],
+   "why": "A steeper approach makes the runway look longer and narrower; a shallower one makes it look shorter and wider; on a stabilized approach its shape stays the same [[24:176|AFH 9-5]]. The original figure labels the panels too high, proper descent angle and too low [[24:177|AFH 9-6]]."
+  },
+  {
+   "type": "match",
+   "key": "h6",
+   "after": 10,
+   "title": "Name the trap",
+   "intro": "Tap a thinking trap, then what it means.",
+   "pairs": [
+    {
+     "l": "Landing expectancy (set)",
+     "r": "Believing the approach is sure to end in a safe landing"
+    },
+    {
+     "l": "Pride",
+     "r": "Believing a go-around admits you flew the approach badly"
+    },
+    {
+     "l": "Expectation bias",
+     "r": "A wrong picture that persists despite evidence against it"
+    },
+    {
+     "l": "Confirmation bias",
+     "r": "Pushing aside information that does not fit what you expect"
+    },
+    {
+     "l": "Get-there-itis",
+     "r": "Fixed on the destination, ignoring other options"
+    },
+    {
+     "l": "Mind set",
+     "r": "Unable to recognize and cope with a changing situation"
+    }
+   ],
+   "why": "Landing expectancy and pride [[24:182|AFH 9-11]]. Expectation and confirmation bias [[30:45|RMH 6-2]]. Get-there-itis and mind set [[1:61|PHAK 2-22]]."
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 11,
+   "title": "Short, wet and tempting",
+   "intro": "You fly a Cessna 172 to a towered airport in light rain. Runway 31 is 3,800 ft and smooth; your POH landing distance is 1,300 ft. You are 25 NM out and about to start down.",
+   "steps": [
+    {
+     "s": "The ATIS says braking action advisories are in effect. What do you do before the descent?",
+     "options": [
+      "Nothing until short final; you will see the runway then",
+      "Do a time of arrival assessment and brief the worst braking you will accept and your go-around triggers",
+      "Plan to land long to stay above the water",
+      "Ask for the longest taxiway"
+     ],
+     "answer": 1,
+     "why": "Do the TOA assessment before descent, including how much worse conditions can get [[27:15|AC 91-79B 3.3.1]], and brief the worst acceptable braking before descent [[27:20|AC 91-79B 3.12.3]]. With advisories in effect, ATC gives you the latest report; ask if you do not get it [[33:250|AIM 4-3-8d]]."
+    },
+    {
+     "s": "Tower reports codes 5/5/5 on Runway 31 and offers Runway 4, 2,900 ft, with a 10 knot tailwind, to save time. Your code 5 smooth number is 1,300 x 2.6 = 3,380 ft. Your answer?",
+     "options": [
+      "Accept; 2,900 ft is plenty for a 172",
+      "Accept and use heavy braking",
+      "\"Unable, request Runway 31\"",
+      "Accept but fly faster to make it"
+     ],
+     "answer": 2,
+     "why": "The change voids your assessment [[27:20|AC 91-79B 3.11]]; 3,380 ft needed [[27:16|AC 91-79B Table 3-1]] is more than 2,900 ft before even adding about 21 percent for the tailwind [[27:35|AC 91-79B 5.2.9]]. Say \"unable\" [[1:367|PHAK 14-33]]."
+    },
+    {
+     "s": "On final for Runway 31, a gust leaves you 12 knots fast and high at 350 ft AGL. What now?",
+     "options": [
+      "Go around",
+      "Slip and dive for the numbers",
+      "Continue; you are above 300 ft",
+      "Raise the flaps to slow down"
+     ],
+     "answer": 0,
+     "why": "You were not stabilized by 500 ft in VMC, and +12 is outside +10/-5 KIAS [[24:177|AFH 9-6]]. Go around: power, attitude, configuration [[24:182|AFH 9-11]]."
+    },
+    {
+     "s": "Second approach is stable, but in the flare a gust makes you float. You pass the first third of the runway still airborne. Now?",
+     "options": [
+      "Push the nose down to force it on",
+      "Keep floating and brake hard after touchdown",
+      "Close the throttle and hope",
+      "Go around"
+     ],
+     "answer": 3,
+     "why": "If a landing cannot be made on the first third of the runway, go around [[24:203|AFH 9-32]]. Landing beyond the planned touchdown point can make the computed distance unreachable [[27:34|AC 91-79B 5.2.4]]."
+    },
+    {
+     "s": "Third approach: you land on speed in the first third. Braking feels weaker than the reported \"good.\" What do you do after clearing the runway?",
+     "options": [
+      "Nothing; you stopped",
+      "Tell ATC; braking was worse than reported",
+      "Report \"good\" to keep traffic moving",
+      "Report a runway condition code"
+     ],
+     "answer": 1,
+     "why": "If braking is worse than reported, report it to ATC to alert other pilots [[27:27|AC 91-79B 4.5.1]]. Pilots report braking action in words, not codes [[27:28|AC 91-79B 4.6.1]]."
+    }
+   ]
+  }
+ ]
+}
