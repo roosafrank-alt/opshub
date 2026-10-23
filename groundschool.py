@@ -1393,7 +1393,7 @@ def signoff_add(task_id):
     # this student, so the progress bars agree with the sign-off.
     verified = 0
     for e in conn.execute("SELECT id FROM acs_task_elements WHERE task_id = ?", (task_id,)).fetchall():
-        if _verify_element(conn, student_id, e["id"]):
+        if _verify_element(conn, student_id, e["id"], via_signoff=True):
             verified += 1
     conn.commit()
     conn.close()
@@ -1406,6 +1406,14 @@ def signoff_add(task_id):
 @cfi_required
 def signoff_remove(task_id, signoff_id):
     conn = get_db()
+    so = conn.execute("SELECT student_id FROM acs_task_signoff WHERE id = ? AND task_id = ?",
+                      (signoff_id, task_id)).fetchone()
+    if so:
+        # Un-verify only what the sign-off itself verified; items the CFI
+        # verified one by one stay verified.
+        conn.execute("UPDATE acs_element_completion SET cfi_verified_at = NULL, cfi_id = NULL, verified_by_signoff = 0 "
+                     "WHERE student_id = ? AND verified_by_signoff = 1 AND element_id IN "
+                     "(SELECT id FROM acs_task_elements WHERE task_id = ?)", (so["student_id"], task_id))
     conn.execute("DELETE FROM acs_task_signoff WHERE id = ? AND task_id = ?", (signoff_id, task_id))
     conn.commit()
     conn.close()
@@ -2651,21 +2659,26 @@ def element_item_interact(element_id, item_id):
     return {"ok": True, "self_completed": bool(completion and completion["self_completed_at"])}
 
 
-def _verify_element(conn, student_id, element_id):
+def _verify_element(conn, student_id, element_id, via_signoff=False):
     """Marks one element CFI-verified for a student. Returns True when it
     was newly verified (False if it already was). SCHOOL-07: no gate on the
     student's own self-completion - the CFI's word is what counts."""
     existing = conn.execute("SELECT * FROM acs_element_completion WHERE student_id = ? AND element_id = ?",
                              (student_id, element_id)).fetchone()
+    flag = 1 if via_signoff else 0
     if existing and existing["cfi_verified_at"]:
+        if not via_signoff and existing["verified_by_signoff"]:
+            # The CFI now verified it by hand: it no longer depends on the sign-off.
+            conn.execute("UPDATE acs_element_completion SET verified_by_signoff = 0 "
+                         "WHERE student_id = ? AND element_id = ?", (student_id, element_id))
         return False
     if existing:
-        conn.execute("UPDATE acs_element_completion SET cfi_id = ?, cfi_verified_at = ? "
+        conn.execute("UPDATE acs_element_completion SET cfi_id = ?, cfi_verified_at = ?, verified_by_signoff = ? "
                      "WHERE student_id = ? AND element_id = ?",
-                     (session.get("cfi_id"), now_iso(), student_id, element_id))
+                     (session.get("cfi_id"), now_iso(), flag, student_id, element_id))
     else:
-        conn.execute("INSERT INTO acs_element_completion (student_id, element_id, cfi_id, cfi_verified_at) "
-                     "VALUES (?, ?, ?, ?)", (student_id, element_id, session.get("cfi_id"), now_iso()))
+        conn.execute("INSERT INTO acs_element_completion (student_id, element_id, cfi_id, cfi_verified_at, verified_by_signoff) "
+                     "VALUES (?, ?, ?, ?, ?)", (student_id, element_id, session.get("cfi_id"), now_iso(), flag))
     return True
 
 

@@ -1418,6 +1418,11 @@ def _migrate(conn):
         PRIMARY KEY (student_id, element_id)
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_acs_element_completion_student ON acs_element_completion(student_id)")
+    # verified_by_signoff = 1 when the verify came from a Task sign-off (not
+    # the CFI's one-by-one check), so removing the sign-off can undo just those.
+    if "verified_by_signoff" not in [r["name"] for r in conn.execute("PRAGMA table_info(acs_element_completion)").fetchall()]:
+        conn.execute("ALTER TABLE acs_element_completion ADD COLUMN verified_by_signoff INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
     # A Task's own References (the ACS's citation list, e.g. "14 CFR 61.83,
     # AC 61-65") now link to the complete source document rather than a
     # short excerpt (see linked_references_html) - this tracks, per student
