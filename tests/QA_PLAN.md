@@ -68,7 +68,7 @@ Shop / inventory
 - [x] Orders: new, edit, wishlist, export CSV (tech sees costs?)
 - [x] Labor tracking: `/api/labor/scan` start/stop, double-start, stop someone else's session, pay totals
 - [ ] Labor: two scans of the same badge at the same instant (needs a threaded test; today's check-then-insert isn't atomic)
-- [ ] Pi health / System page (`/admin/system`, `pi_health.py`) once it's live: temperature parsing, alert thresholds, no duplicate alerts
+- [x] Pi health (`pi_health.py` cron job): temperature/throttle parsing, alert once per crossing, recovery below 70C, still-throttled blocks recovery, no reading off the Pi (15 tests; all fine, no findings; the System page itself is covered in test_system_page)
 - [x] Project lifecycle: status, trash/restore/purge, renumber after delete (new/intake/edit still to do)
 - [x] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
 - [x] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s), inspector confirm / send back, fix on job
