@@ -556,6 +556,14 @@ def home_launcher():
     only_program = single_program_endpoint()
     if only_program:
         return redirect(url_for(only_program))
+    # Idea ux-student-app-opens-launcher: a plain student (no shop or admin
+    # role, not a customer) who opens the app goes straight to the Fly with
+    # Kate! dashboard, as after logging in. "All programs" links here with
+    # ?all=1 to open the real picker.
+    if (session.get("user_id") and session.get("flight_role") == "student"
+            and not session.get("shop_role") and not session.get("is_master_admin")
+            and not session.get("customer_id") and not request.args.get("all")):
+        return redirect(url_for("flight.dashboard"))
 
     conn = get_db()
     user = current_user(conn)
