@@ -62,6 +62,8 @@ def lesson(path):
             if not (0<=q.get('answer',-1)<len(q.get('options',[]))): bad(name+' answer out of range: '+q.get('q','')[:50])
             if len(set(q.get('options',[])))!=len(q.get('options',[])): bad(name+' duplicate options: '+q.get('q','')[:50])
             if not q.get('why'): bad(name+' missing why')
+            if name=='final_quiz' and '[[' not in q.get('why',''): bad('final_quiz why needs at least one [[res:page|label]] citation (ACS-only is not enough): '+q.get('q','')[:50])
+            if name=='final_quiz' and len(q.get('options',[]))!=4: bad('final_quiz needs exactly 4 options')
     keys=set()
     for a in L.get('activities',[]):
         t=a.get('type')
@@ -69,7 +71,7 @@ def lesson(path):
         k=a.get('key')
         if k in keys: bad('duplicate activity key %s'%k)
         keys.add(k)
-        if a.get('after') is not None and not (1<=a['after']<=n): bad('activity %s after out of range'%k)
+        if a.get('after') is not None and not (1<=a['after']<n): bad('activity %s after must be 1..chunks-1 (not after the last chunk)'%k)
         if t=='match' and not all(p['l'] and p['r'] for p in a['pairs']): bad('match empty pair')
         if t=='sort' and not all(0<=i['b']<len(a['buckets']) for i in a['items']): bad('sort bucket index')
         if t=='label':
