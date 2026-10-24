@@ -15,6 +15,20 @@
   {% endif %}
 </div>
 
+{#- GS-BUILTIN-COURSE: courses written in OpsHub (no ACS PDF), added or updated with one tap. -#}
+{% if flight_admin and builtins %}
+<div class="card academy-card mb-3"><div class="card-body py-2">
+  <div class="small text-muted mb-1"><i class="bi bi-box-seam"></i> Built-in courses</div>
+  {% for c in builtins %}
+  <form method="post" action="{{ url_for('groundschool.builtin_install', code=c.code) }}" class="d-flex align-items-center justify-content-between gap-2 flex-wrap py-1">
+    <div><b>{{ c.name }}</b>{% if c.about %}<div class="small text-muted">{{ c.about }}</div>{% endif %}</div>
+    <button type="submit" class="btn btn-sm {{ 'btn-outline-light' if c.installed else 'btn-primary' }} fw-bold">
+      {% if c.installed %}<i class="bi bi-arrow-repeat"></i> Update{% else %}<i class="bi bi-plus-lg"></i> Add course{% endif %}</button>
+  </form>
+  {% endfor %}
+</div></div>
+{% endif %}
+
 {% macro course_card(r) %}
   <div class="col-12 col-md-6 col-lg-4">
     <div class="card academy-card gs-card-link h-100 position-relative">

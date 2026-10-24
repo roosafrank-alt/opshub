@@ -1,0 +1,1594 @@
+{
+ "task_code": "CA.VI.C",
+ "task_title": "Diversion",
+ "area": "Area VI. Navigation",
+ "minutes": 90,
+ "objective": "By the end of this lesson you can recognize early when a flight should divert for weather, fuel, the airplane or yourself, pick a suitable airport with the GPS nearest function and the Chart Supplement, turn toward it promptly, and work out a rough heading, groundspeed, arrival time and fuel while holding altitude within 100 feet and heading within 10 degrees.",
+ "why": "Commercial flying puts you on schedules, with passengers and bosses who want to arrive, which is exactly when pilots keep going too long. The FAA's accident examples include a pilot who could have diverted while still in good weather and did not [[30:12|RMH 1-3]]. A fast, calm diversion done to a tighter standard is the commercial pilot's best tool for turning a bad plan into a normal landing.",
+ "prereading": [
+  {
+   "res": "1",
+   "pages": [
+    421,
+    422
+   ],
+   "printed": "PHAK 16-34 to 16-35",
+   "what": "Flight Diversion: why diversions happen, rough course from a compass rose or airway, turn first, then heading, GS, ETA and fuel.",
+   "label": "PHAK 16-34 to 16-35"
+  },
+  {
+   "res": "1",
+   "pages": [
+    398,
+    399
+   ],
+   "printed": "PHAK 16-11 to 16-12",
+   "what": "Time, distance and fuel formulas, the 6.86 NM per inch chart scale, and when to plan to be on the ground.",
+   "label": "PHAK 16-11 to 16-12"
+  },
+  {
+   "res": "1",
+   "pages": [
+    401,
+    403
+   ],
+   "printed": "PHAK 16-14 to 16-16",
+   "what": "The wind triangle, the wind correction angle and how heading is built from course, wind and variation.",
+   "label": "PHAK 16-14 to 16-16"
+  },
+  {
+   "res": "30",
+   "pages": [
+    44,
+    47
+   ],
+   "printed": "RMH 6-1 to 6-4",
+   "what": "Threat and error management: threats en route, expectation bias, and the defenses that stop a bad chain.",
+   "label": "RMH 6-1 to 6-4"
+  },
+  {
+   "res": "30",
+   "pages": [
+    54,
+    57
+   ],
+   "printed": "RMH 8-1 to 8-4",
+   "what": "In-flight decisions: 3P, analytical versus naturalistic decisions, and single-pilot resource management.",
+   "label": "RMH 8-1 to 8-4"
+  },
+  {
+   "res": "23",
+   "pages": [
+    334,
+    337
+   ],
+   "printed": "IFH 11-9 to 11-12",
+   "what": "Nearest airport pages on the PFD and MFD, Direct-To, auto-tune, and situational awareness.",
+   "label": "IFH 11-9 to 11-12"
+  },
+  {
+   "res": "34",
+   "pages": [
+    119,
+    120
+   ],
+   "printed": "AIM 7-1-26 to 7-1-27",
+   "what": "Thunderstorm facts and the do's and don'ts of avoiding them, including cockpit NEXRAD limits.",
+   "label": "AIM 7-1-26 to 7-1-27"
+  }
+ ],
+ "warmup": "Think first: the law only asks for a 30-minute day reserve when you take off. Forty minutes from home, headwinds have eaten that margin and the clouds ahead are lowering. Nothing is broken and you are still legal to be airborne. What, exactly, would make you turn now instead of in ten minutes?",
+ "key_terms": [
+  {
+   "term": "Diversion",
+   "def": "Going to an alternate destination because the planned flight cannot be completed safely, for example after unforecast weather, a system malfunction or poor planning [[1:421|PHAK 16-34]]."
+  },
+  {
+   "term": "Wind correction angle (WCA)",
+   "def": "The correction applied to the course so the track stays on course. Added if the wind is from the right, subtracted if from the left [[1:403|PHAK 16-16]]."
+  },
+  {
+   "term": "Dead reckoning",
+   "def": "Navigation by computing heading and groundspeed from time, airspeed, distance, direction and wind [[1:400|PHAK 16-13]]."
+  },
+  {
+   "term": "Minimum fuel",
+   "def": "An advisory to ATC that you cannot accept any undue delay at your destination. It is not an emergency and does not ask for priority [[34:10|AIM 5-5-15]]."
+  },
+  {
+   "term": "Urgency condition",
+   "def": "The state you are in the moment you become doubtful about position, fuel endurance, weather or anything else that affects safety [[34:28|AIM 6-1-2]]."
+  },
+  {
+   "term": "Threat",
+   "def": "Something outside the pilot's control, such as unforecast weather or a runway closure en route, that raises the complexity of a flight [[30:44|RMH 6-1]]."
+  },
+  {
+   "term": "Undesired aircraft state",
+   "def": "A wrong position, speed, attitude or configuration, or a confusing, high-workload situation with reduced safety margins, created by an error [[30:46|RMH 6-3]]."
+  },
+  {
+   "term": "Expectation bias",
+   "def": "An erroneous belief that persists even when evidence shows it is wrong [[30:45|RMH 6-2]]."
+  },
+  {
+   "term": "Naturalistic decision-making",
+   "def": "Choosing a workable action from familiar patterns when there is no time for a full pros-and-cons analysis [[30:56|RMH 8-3]]."
+  },
+  {
+   "term": "Composite risk",
+   "def": "The risk level from crossing likelihood with severity on a risk assessment matrix [[30:35|RMH 4-2]]."
+  },
+  {
+   "term": "Strategic weather avoidance",
+   "def": "Using data link weather to stay clear of a whole area 20 minutes or more ahead, not to pick a path through it [[34:81|AIM 7-1-9]]."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "Diversion at the commercial standard",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.C.K1",
+    "CA.VI.C.S1",
+    "CA.VI.C.S3",
+    "CA.VI.C.S6"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "A pilot may not be able to reach the planned destination because of unpredicted weather, a system malfunction or poor preflight planning. Whatever the cause, you must be able to divert safely and efficiently, and risk management becomes a priority the moment a diversion starts [[1:421|PHAK 16-34]]."
+    },
+    {
+     "p": "Diverting starts on the ground. Before any flight not in the vicinity of an airport, the PIC must know the weather, the fuel requirements and the alternatives available if the planned flight cannot be completed [[60:440|14 CFR 91.103(a)]]. Check the charts for airports or landing areas along the route and for NAVAIDs you could use in a diversion [[1:421|PHAK 16-34]]."
+    },
+    {
+     "table": {
+      "head": [
+       "ACS element",
+       "Private (PA.VI.C)",
+       "Commercial (CA.VI.C)"
+      ],
+      "rows": [
+       [
+        "Altitude while diverting",
+        "Selected altitude, plus or minus 200 ft",
+        "Appropriate altitude, plus or minus 100 ft"
+       ],
+       [
+        "Heading while diverting",
+        "Plus or minus 15 degrees",
+        "Plus or minus 10 degrees"
+       ],
+       [
+        "Estimates",
+        "Reasonable heading, groundspeed, arrival time and fuel to the divert-to airport",
+        "Same wording"
+       ],
+       [
+        "Turn",
+        "Promptly divert toward the destination",
+        "Same wording"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Table source: ACS PA.VI.C.S2, S3, S6 and ACS CA.VI.C.S2, S3, S6. Every knowledge and risk element is worded the same at both levels. The difference is in the flying: half the altitude window, two thirds of the heading window, and the word 'appropriate'. The commercial applicant is expected to pick a sensible altitude for the new route, not just hold the old one."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: on the checkride, say your plan out loud in one breath. 'Diverting to Airport B, 4,500 ft paved, fuel, AWOS. Turning right to about 200, I'll refine it after I'm on course.' That shows S1 and S6 at once."
+     }
+    }
+   ],
+   "check": {
+    "q": "Which skill elements differ between the private and commercial diversion Tasks?",
+    "a": "Only S3: the commercial applicant holds the appropriate altitude within 100 ft and heading within 10 degrees (ACS CA.VI.C.S3), against the selected altitude within 200 ft and 15 degrees at the private level (ACS PA.VI.C.S3)."
+   }
+  },
+  {
+   "title": "When the weather says divert",
+   "kind": "risk",
+   "codes": [
+    "CA.VI.C.R3",
+    "CA.VI.C.S4"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The PHAK's example of a diversion hazard is inadvertent VFR flight into IMC: a risk you can identify, assess and mitigate with a planned or in-flight diversion around the weather [[1:421|PHAK 16-34]]. The legal floor is 14 CFR 91.155. Below 10,000 ft MSL in Class E, you need 3 SM visibility and 500 ft below, 1,000 ft above and 2,000 ft horizontal from clouds. In Class G at 1,200 ft AGL or less by day, 1 SM and clear of clouds [[60:465|14 CFR 91.155]]."
+    },
+    {
+     "p": "A commercial job can add rules. Under Part 135, no airplane may fly VFR in uncontrolled airspace when the ceiling is below 1,000 ft unless flight visibility is at least 2 miles [[6:80|14 CFR 135.205]]. So the same patch of low cloud can be legal for a Part 91 pleasure flight and illegal for an on-demand charter."
+    },
+    {
+     "bullets": [
+      "Thunderstorms: severe turbulence can extend up to 20 miles from severe thunderstorms, and about 10 miles from less severe ones [[34:119|AIM 7-1-26]].",
+      "Avoid by at least 20 miles any thunderstorm identified as severe or giving an intense radar echo; circumnavigate the whole area if it has 6/10 coverage [[34:120|AIM 7-1-27]].",
+      "Do not take off or land in the face of an approaching thunderstorm, and do not fly under one even if you can see through [[34:119|AIM 7-1-27]] [[34:120|AIM 7-1-27]].",
+      "A VFR pilot who cannot control attitude by the natural horizon is in IMC, whatever the reported weather, and should treat it as a genuine emergency [[24:366|AFH 18-17]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Accident statistics show a pilot without attitude instrument training, or whose skills have eroded, loses control in about 10 minutes once forced onto the instruments [[24:366|AFH 18-17]]. The time to divert is while you can still see."
+     }
+    },
+    {
+     "p": "The RMH case: a vacuum pump failed in VMC, taking the attitude indicator and heading indicator with it. Instead of diverting while still in VMC, the pilot continued into IMC, stacking an aircraft hazard on an environment hazard. The pilot had the chance to change the outcome by diverting while the weather was still good [[30:11|RMH 1-2]] [[30:12|RMH 1-3]]."
+    },
+    {
+     "p": "Personal minimums turn this into a rule you set on the ground. They let a pilot make a no-go or divert decision instead of pressing on with unease, and you should not adjust them to complete a specific flight [[30:17|RMH 2-5]]."
+    }
+   ],
+   "check": {
+    "q": "In the RMH vacuum pump case, when was the best chance to change the outcome?",
+    "a": "Right after the failure, by diverting to an airport while still in VMC, before adding IMC to the instrument failure [[30:11|RMH 1-2]] [[30:12|RMH 1-3]]."
+   }
+  },
+  {
+   "title": "Fuel: the legal floor and the real reserve",
+   "kind": "risk",
+   "codes": [
+    "CA.VI.C.R3",
+    "CA.VI.C.K2",
+    "CA.VI.C.S2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "14 CFR 91.151 says no person may begin a VFR flight in an airplane unless, considering wind and forecast weather, there is enough fuel to reach the first point of intended landing and then fly at least 30 more minutes by day or 45 at night, at normal cruising speed [[60:464|14 CFR 91.151(a)]]. Part 135 uses the same 30 and 45 minutes [[6:80|14 CFR 135.209]]."
+    },
+    {
+     "p": "Read the verb: begin. The rule sets the fuel you take off with. It does not tell you when to land. That is your job, and the PHAK gives the standard: plan to be on the surface before your flight time exceeds what you calculated for your fuel, or before the gauge shows a low fuel level [[1:399|PHAK 16-12]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Fuel situation",
+       "What the sources say"
+      ],
+      "rows": [
+       [
+        "Groundspeed lower than planned",
+        "Fuel burn per hour stays about the same at a given TAS, so time (from GS) sets the fuel used. Use GS, not TAS [[1:399|PHAK 16-12]]"
+       ],
+       [
+        "You can accept no undue delay at the destination",
+        "Tell ATC 'minimum fuel'. It is an advisory, not an emergency, and does not imply priority [[34:10|AIM 5-5-15]]"
+       ],
+       [
+        "You need priority to land safely",
+        "Declare an emergency for low fuel and report fuel remaining in minutes [[34:10|AIM 5-5-15]]"
+       ],
+       [
+        "Doubt about fuel endurance at all",
+        "You are in at least an urgency condition; ask for help now [[34:28|AIM 6-1-2]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "The RMH tells of a pilot who found no fuel or services at a rural airport on a weekend, guessed the fuel would be enough, and launched home into a developing snowstorm. ATC put him in a hold because his destination closed, and he ended up diverting low on fuel to the last open airport in the region [[30:45|RMH 6-2]]. Inadequate planning left no margin for the threats that followed."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Legal at takeoff is not the same as safe now. Every diversion check ends with one number: fuel on board at touchdown, in minutes."
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "'Operating without adequate fuel reserves' is one of the FAA's listed operational pitfalls, usually from overconfidence, poor planning or ignoring the rules [[1:61|PHAK 2-22]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your GPS groundspeed drops from 120 to 100 knots but the fuel flow gauge has not changed. Does your trip fuel change?",
+    "a": "Yes. Fuel per hour stays about the same at a given TAS, but the leg now takes longer, and time comes from GS. Recompute with GS [[1:399|PHAK 16-12]]."
+   }
+  },
+  {
+   "title": "Sizing the risk: PAVE and the matrix in flight",
+   "kind": "risk",
+   "codes": [
+    "CA.VI.C.R3",
+    "CA.VI.C.R5",
+    "CA.VI.C.R2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "PAVE sorts hazards into the pilot, the aircraft, the environment and external pressures [[30:11|RMH 1-2]]. In flight the list keeps changing, so run it again whenever something new appears."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "To size a hazard, cross its likelihood with its severity. High (red) or serious (yellow) means no-go unless you can reduce the risk; medium (green) means go, but mitigate where you can [[30:35|RMH 4-2]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "bullets": [
+      "Accuracy: when unsure between two adjacent boxes, choose the more conservative one [[30:35|RMH 4-2]].",
+      "Skewing: pilots sometimes pick inputs that push the risk lower because they want to finish the flight [[30:35|RMH 4-2]].",
+      "Obsolescence: an assessment loses meaning when the hazards change. Reassess with current conditions [[30:35|RMH 4-2]]."
+     ]
+    },
+    {
+     "p": "Threat and error management adds a second lens. Threats come from outside the cockpit: unforecast weather, closures of runways or facilities while en route, a NAVAID failing after takeoff, unexpected reroutes, even undetected bad fuel [[30:44|RMH 6-1]]. Errors are your own deviations, and they can lead to an undesired aircraft state [[30:44|RMH 6-1]] [[30:46|RMH 6-3]]. Each layer of defense has holes; proficiency makes it less likely the holes line up [[30:48|RMH 6-5]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "In flight there is often no time for a worksheet. The RMH describes two styles: analytical decisions weigh the pros and cons of each option, while naturalistic decisions pick a workable action from familiar patterns when time is short. Analysis should prevail unless time pressure and the lack of a procedure call for the naturalistic style [[30:55|RMH 8-2]] [[30:56|RMH 8-3]] [[30:57|RMH 8-4]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: a diversion is usually analytical. You normally have minutes, not seconds, so compare at least two airports before you commit, then use the 3P loop to check the choice is working [[30:56|RMH 8-3]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You cannot decide whether a hazard is 'occasional' or 'remote'. Which do you choose, and why?",
+    "a": "The more conservative one, which places the risk at a higher level [[30:35|RMH 4-2]]."
+   }
+  },
+  {
+   "title": "Why pilots keep going: pitfalls and bias",
+   "kind": "risk",
+   "codes": [
+    "CA.VI.C.R2",
+    "CA.VI.C.R3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The FAA lists operational pitfalls that catch pilots of every level. Several of them are really failures to divert [[1:61|PHAK 2-22]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "Get-there-itis is a fixation on the original goal or destination combined with a disregard for any alternative. Scud running is trying to keep visual contact with the terrain at low altitude while instrument conditions exist [[1:61|PHAK 2-22]]. Too many situations that call for a precautionary landing turn into forced landings because the pilot uses wishful thinking instead of reason [[24:350|AFH 18-1]]."
+    },
+    {
+     "p": "Two biases make it worse. Expectation bias is a wrong belief that persists despite evidence; confirmation bias is pushing aside information that does not fit what you expect. Either one can keep a pilot on a plan despite clues the situation is not what it seems, and fatigue makes both more likely [[30:45|RMH 6-2]] [[30:46|RMH 6-3]]."
+    },
+    {
+     "bullets": [
+      "When a threat calls for a decision, some pilots react impulsively and others with resignation. Both increase workload and confusion [[30:46|RMH 6-3]].",
+      "External pressures from supervisors, family and friends can bias a pilot to complete the flight as planned [[30:45|RMH 6-2]].",
+      "For the RMH, being on time, inconveniencing passengers or people waiting, and reaching the original destination all rank below safety [[30:55|RMH 8-2]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "If you notice yourself explaining away a clue ('the METAR is probably old'), that is the clue. Name the bias and reassess."
+     }
+    }
+   ],
+   "check": {
+    "q": "A pilot keeps hoping the ceiling ahead will lift and flies lower and lower along a highway to stay under it. Which two pitfalls is this?",
+    "a": "Get-there-itis (fixation on the destination) and scud running (keeping visual contact with terrain at low altitude) [[1:61|PHAK 2-22]]."
+   }
+  },
+  {
+   "title": "Choosing the divert-to airport",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.C.K1",
+    "CA.VI.C.R4",
+    "CA.VI.C.S1"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The best alternate is the one that meets your must-haves, not just the closest. For every airport you intend to use you must know the runway lengths and your takeoff and landing distances [[60:440|14 CFR 91.103(b)]]. The Chart Supplement gives location, elevation, runways and lighting, services, UNICOM and fuel types, and NOTAMs show changes since it was issued [[1:404|PHAK 16-17]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Need",
+       "Where to look",
+       "Trap"
+      ],
+      "rows": [
+       [
+        "Runway long enough",
+        "Sectional data block, longest runway in hundreds of feet [[2:15|Chart Users' Guide]]",
+        "Usable length may be less than charted [[2:15|Chart Users' Guide]]"
+       ],
+       [
+        "Lights for a dusk arrival",
+        "'L' on the sectional means lights sunset to sunrise; '*L' means limitations, see the Chart Supplement [[2:15|Chart Users' Guide]]",
+        "Lighting codes are for runway edge lights and may not be on the longest runway or along its full length [[2:15|Chart Users' Guide]]"
+       ],
+       [
+        "Fuel",
+        "Tick marks around the airport symbol show fuel; the Chart Supplement gives details [[2:14|Chart Users' Guide]]",
+        "A weekend or after-hours arrival may find no services [[30:45|RMH 6-2]]"
+       ],
+       [
+        "Tower",
+        "CT frequency on the chart [[2:15|Chart Users' Guide]]",
+        "A star means part-time; check the hours [[2:15|Chart Users' Guide]]"
+       ],
+       [
+        "Easy to find",
+        "A VOR or NDB on the field makes navigation easier [[1:421|PHAK 16-34]]",
+        "None"
+       ],
+       [
+        "Current data",
+        "Chart Supplement and NOTAMs [[1:404|PHAK 16-17]]",
+        "If the chart and the Chart Supplement differ, use the Chart Supplement [[1:404|PHAK 16-17]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Weather at the alternate matters as much as weather where you are. Do not trade one problem for another: an alternate in the same weather system, or one you reach after dark without lights, is not a real option."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Personal minimums give a margin for runways too. The RMH suggests adding at least 500 ft to required runway length when special conditions apply, such as an unfamiliar airport [[30:17|RMH 2-5]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Organize frequencies and NAVAIDs for possible diversion airports before the flight, so you can divert with crew-like efficiency when you are alone [[30:57|RMH 8-4]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "The sectional shows '*L 52' for an alternate you plan to reach 20 minutes after sunset. What must you do first?",
+    "a": "Check the Chart Supplement. '*L' means lighting limitations exist, such as pilot-controlled or part-time lights, and the lights may not be on the longest runway [[2:15|Chart Users' Guide]]."
+   }
+  },
+  {
+   "title": "GPS nearest, Direct-To and automation discipline",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.C.R5",
+    "CA.VI.C.S1",
+    "CA.VI.C.S5"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "On a typical integrated flight deck, the NRST soft key lists up to 25 of the nearest airports that meet criteria you set, such as landing surface and runway length [[23:334|IFH 11-9]]. From the list or the airport's information page you can go Direct-To and auto-tune its frequency into the standby box [[23:335|IFH 11-10]]."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "The MFD nearest airports page adds soft keys for the airport, its runways, its frequencies and its approaches [[23:336|IFH 11-11]]. These examples come from one popular system; learn the one in your airplane [[23:334|IFH 11-9]]."
+    },
+    {
+     "bullets": [
+      "Set the NRST runway filter on the ground to your real minimum runway length, so the list hides airports you cannot use [[23:334|IFH 11-9]].",
+      "Anticipate, act, verify: know what should happen before you press a button, press it, then confirm the airplane does it [[30:51|RMH 7-2]] [[30:52|RMH 7-3]].",
+      "If reprogramming becomes confusing, drop to a lower level of automation, such as heading and altitude modes, or fly by hand [[30:51|RMH 7-2]].",
+      "Check that the result makes sense, and use the VOR to back up the GPS [[1:70|PHAK 2-31]].",
+      "Once airborne, avoid programming routes or VFR waypoint chains [[1:421|PHAK 16-34]]. Application: a single Direct-To is usually all a diversion needs."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The FAA found that new advanced avionics pilots show poor decision-making at a higher rate than general aviation as a whole, and continued VFR into IMC is a consistent theme in their fatal accidents [[1:69|PHAK 2-30]]. A moving map does not make a bad diversion decision good."
+     }
+    }
+   ],
+   "check": {
+    "q": "You press Direct-To for your alternate. What do anticipate, act and verify mean here?",
+    "a": "Know what the system should do before you press, press it, then confirm the airplane really turns toward the right airport [[30:51|RMH 7-2]] [[30:52|RMH 7-3]]. Check the result makes sense [[1:70|PHAK 2-31]]."
+   }
+  },
+  {
+   "title": "Rough course, heading and distance in your head",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.C.S2",
+    "CA.VI.C.S1"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "In flight it is rarely practical to plot a course, and the alternate is usually not far from your route, so plotting is seldom needed. A straightedge across a VOR compass rose, or a radial or airway that roughly parallels the new course, gives a reasonable magnetic course. Radials and airways are outbound, so you may need the reciprocal [[1:421|PHAK 16-34]]. Distance: on a sectional, 1 inch is 8 SM or 6.86 NM [[1:399|PHAK 16-12]]."
+    },
+    {
+     "p": "Heading needs the wind. The wind triangle shows it: the PHAK example has a true course of 090, a wind from 045 at 40 knots and a TAS of 120. The triangle gives a WCA of 14 degrees left, a true heading of 076 and a groundspeed of 88 knots [[1:402|PHAK 16-15]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "Experienced pilots make estimates good enough for VFR without drawing the triangle [[1:401|PHAK 16-14]]. Application (a mental shortcut, not an FAA formula): estimate the crosswind part of the wind, then WCA in degrees is about crosswind x 60 / TAS. For the PHAK example, the crosswind is 40 x sin 45 = 28.3 knots, and 28.3 x 60 / 120 = 14.1, which matches the 14 degrees the PHAK draws [[1:402|PHAK 16-15]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Step",
+       "PHAK example",
+       "Source"
+      ],
+      "rows": [
+       [
+        "True course",
+        "090",
+        "[[1:401|PHAK 16-14]]"
+       ],
+       [
+        "WCA: add if wind from the right, subtract if from the left",
+        "Wind from the left: minus 14",
+        "[[1:403|PHAK 16-16]]"
+       ],
+       [
+        "True heading",
+        "076",
+        "[[1:402|PHAK 16-15]]"
+       ],
+       [
+        "Variation: add if west, subtract if east",
+        "Apply the isogonic line to get magnetic heading",
+        "[[1:403|PHAK 16-16]]"
+       ],
+       [
+        "Groundspeed",
+        "88 knots from the triangle",
+        "[[1:402|PHAK 16-15]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Application: simply subtracting the headwind part (120 minus 28.3 = about 92 knots) overstates the groundspeed here, because crabbing also costs speed along the course. The triangle's 88 knots is the honest number [[1:402|PHAK 16-15]]. Once on course, the GPS groundspeed replaces both."
+     }
+    }
+   ],
+   "check": {
+    "q": "With a strong quartering headwind, why is 'TAS minus the headwind part' not the whole groundspeed?",
+    "a": "Crabbing into the crosswind also costs speed along the course. In the PHAK example that shortcut gives about 92 knots, but the triangle gives 88 [[1:402|PHAK 16-15]]."
+   }
+  },
+  {
+   "title": "Groundspeed, ETA, fuel and the new altitude",
+   "kind": "skills",
+   "codes": [
+    "CA.VI.C.S2",
+    "CA.VI.C.S3",
+    "CA.VI.C.S6"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "In an emergency, divert promptly. Trying to finish all the plotting and computing before turning may only make the emergency worse. Once established on course, note the time, then use the winds aloft nearest your diversion point to calculate a heading and GS, and from the GS a new arrival time and fuel consumption [[1:422|PHAK 16-35]]."
+    },
+    {
+     "p": "Worked example: on course to the alternate at 1418, 31 NM away, GPS groundspeed 104 knots, fuel flow 9.8 GPH. Time = D / GS = 31 / 104 = 0.298 hr, about 18 minutes, so ETA about 1436 [[1:398|PHAK 16-11]]. Fuel = 0.298 x 9.8 = 2.9 gallons [[1:399|PHAK 16-12]]. Then subtract that from fuel on board and turn the rest into minutes."
+    },
+    {
+     "p": "Choosing the altitude: the PHAK lists cloud heights, winds, terrain and radio reception [[1:422|PHAK 16-35]]. The rules still apply on the new course:"
+    },
+    {
+     "bullets": [
+      "VFR cruising altitudes above 3,000 ft AGL: odd thousands plus 500 on magnetic courses 0 to 179, even thousands plus 500 on 180 to 359 [[60:467|14 CFR 91.159(a)(1)]] [[60:468|14 CFR 91.159(a)(2)]].",
+      "Minimum safe altitudes: 1,000 ft above the highest obstacle within 2,000 ft over congested areas, 500 ft above the surface elsewhere, with a 500 ft distance from people, vessels, vehicles and structures over open water or sparsely populated areas [[60:449|14 CFR 91.119]].",
+      "Part 135 VFR, except when needed for takeoff and landing [[6:79|14 CFR 135.203]]: by day not below 500 ft above the surface or within 500 ft horizontally of any obstacle; at night not less than 1,000 ft above the highest obstacle within 5 miles of the course (2,000 ft in designated mountainous terrain) [[6:80|14 CFR 135.203(a)]].",
+      "More altitude increases radio and navigation reception range and radar coverage [[1:421|PHAK 16-34]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Commercial standard while you do all this: the appropriate altitude within 100 ft and heading within 10 degrees (ACS CA.VI.C.S3). Trim first, then compute."
+     }
+    }
+   ],
+   "check": {
+    "q": "What four things does the PHAK say to consider when choosing an altitude for the diversion?",
+    "a": "Cloud heights, winds, terrain and radio reception [[1:422|PHAK 16-35]]."
+   }
+  },
+  {
+   "title": "Fly it: the commercial diversion flow",
+   "kind": "skills",
+   "codes": [
+    "CA.VI.C.S1",
+    "CA.VI.C.S2",
+    "CA.VI.C.S3",
+    "CA.VI.C.S4",
+    "CA.VI.C.S5",
+    "CA.VI.C.S6"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The AFH has no diversion procedure. This flow puts the PHAK steps together with the resource-management points from the RMH. Your POH and avionics guide supply the numbers and buttons."
+    },
+    {
+     "bullets": [
+      "1. Decide, and say why. Name the hazard and the PAVE area it falls in [[30:11|RMH 1-2]].",
+      "2. Pick the airport: NRST list or chart, then runway, weather, lighting, fuel [[23:334|IFH 11-9]] [[60:440|14 CFR 91.103(b)]].",
+      "3. Get a rough course from a compass rose, airway or the GPS bearing and turn toward it now; over a prominent ground feature if time permits [[1:421|PHAK 16-34]].",
+      "4. Establish: altitude and heading set, trimmed. Hold 100 ft and 10 degrees (ACS CA.VI.C.S3).",
+      "5. Note the time on course [[1:422|PHAK 16-35]].",
+      "6. Heading and GS from the nearest winds aloft; then ETA and fuel [[1:422|PHAK 16-35]].",
+      "7. Weather at the alternate and en route: AWOS/ASOS, FSS, FIS-B display [[34:68|AIM 7-1-5]].",
+      "8. Tell people: ATC if you are talking to them; FSS for a VFR flight plan [[60:464|14 CFR 91.153(b)]].",
+      "9. Brief the arrival: runway, pattern, frequencies, lights [[30:57|RMH 8-4]].",
+      "Throughout: fly first, divide attention between navigation and planning [[1:422|PHAK 16-35]]."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "What the examiner checks",
+       "Commercial ACS standard"
+      ],
+      "rows": [
+       [
+        "Destination and route (S1)",
+        "A suitable divert-to airport and route (ACS CA.VI.C.S1)"
+       ],
+       [
+        "Estimates (S2)",
+        "Reasonable heading, groundspeed, arrival time and fuel required (ACS CA.VI.C.S2)"
+       ],
+       [
+        "Flying (S3)",
+        "Appropriate altitude plus or minus 100 ft, heading plus or minus 10 degrees (ACS CA.VI.C.S3)"
+       ],
+       [
+        "Weather (S4, S5)",
+        "Update and interpret weather in flight; use digital weather and aeronautical displays for situational awareness (ACS CA.VI.C.S4, S5)"
+       ],
+       [
+        "Turn (S6)",
+        "Promptly divert toward the destination (ACS CA.VI.C.S6)"
+       ]
+      ]
+     }
+    }
+   ],
+   "check": {
+    "q": "Why does the flow put 'turn toward it' before 'heading and GS from the winds aloft'?",
+    "a": "The PHAK says to divert promptly; doing all the computing first can aggravate an emergency. You note the time and refine heading and GS once on course [[1:422|PHAK 16-35]]."
+   }
+  },
+  {
+   "title": "Weather updates and digital displays en route",
+   "kind": "skills",
+   "codes": [
+    "CA.VI.C.S4",
+    "CA.VI.C.S5",
+    "CA.VI.C.R5"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "In flight you can get a briefing or update from the nearest FSS by radio, and en route advisories are given on request. ADS-B In receivers on 978 MHz get FIS-B weather free [[34:68|AIM 7-1-5]]."
+    },
+    {
+     "bullets": [
+      "ATC radar cannot detect clouds. It shows precipitation, described as light, moderate, heavy or extreme [[34:97|AIM 7-1-12]].",
+      "ATC radar does not detect turbulence; approach any operation within 20 miles of thunderstorms with great caution [[34:97|AIM 7-1-12]].",
+      "Data link NEXRAD shows where the weather was, which may be 15 to 20 minutes older than the display says. Use it to avoid storms entirely, not to pick a path through them [[34:120|AIM 7-1-27]].",
+      "FIS supports strategic decisions (20 minutes or more ahead), not tactical ones (under about 3 minutes). If it conflicts with ATC or FSS, use the most recent data from the most authoritative source [[34:81|AIM 7-1-9]].",
+      "Listen for PIREPs and other aircraft asking to deviate or divert, and ask ATC for help with deviations [[34:120|AIM 7-1-27]]."
+     ]
+    },
+    {
+     "p": "Manage the screens. Set map scale for the phase of flight, and use the nearest airports inset at night or over inhospitable terrain [[1:69|PHAK 2-30]]. A display full of every layer adds workload rather than awareness."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "After a weather deviation, if you are switched to a new controller, tell them you are deviating for weather before you accept a clearance back to the original route, and make sure that route is clear first [[34:120|AIM 7-1-27]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your FIS-B radar image is stamped 5 minutes old. Can you use it to pick a gap between two cells 10 miles ahead?",
+    "a": "No. The weather may be 15 to 20 minutes older than shown, and data link NEXRAD is for avoiding storms entirely, not for tactical paths through them [[34:120|AIM 7-1-27]] [[34:81|AIM 7-1-9]]."
+   }
+  },
+  {
+   "title": "Leaving the plan: ATC, the rules and your authority",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.C.K2",
+    "CA.VI.C.R5"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Situation",
+       "Rule"
+      ],
+      "rows": [
+       [
+        "In-flight emergency needing immediate action",
+        "The PIC may deviate from any Part 91 rule as needed and, if asked, sends a written report [[60:435|14 CFR 91.3]]"
+       ],
+       [
+        "The airplane becomes unairworthy",
+        "The PIC must discontinue the flight [[60:436|14 CFR 91.7(b)]]"
+       ],
+       [
+        "You hold an ATC clearance",
+        "Do not deviate unless you get an amended clearance, an emergency exists, or for a TCAS RA [[60:450|14 CFR 91.123(a)]]"
+       ],
+       [
+        "You deviated in an emergency",
+        "Notify ATC as soon as possible [[60:450|14 CFR 91.123(c)]]"
+       ],
+       [
+        "ATC gave you priority in an emergency",
+        "If ATC asks, send a detailed report to that facility's manager within 48 hours [[60:450|14 CFR 91.123(d)]]"
+       ],
+       [
+        "You are on a VFR flight plan and divert",
+        "Notify FSS or ATC when you cancel or complete it [[60:464|14 CFR 91.153(b)]]; towers do not close VFR plans for you [[33:339|AIM 5-1-14]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Radar vectors to a VFR aircraft are advisory. The job of flying safely stays with you, so keep controllers told about the weather you are in and ahead [[33:217|AIM 4-1-17]]."
+    },
+    {
+     "p": "If you are in difficulty and not instrument rated, take a VFR way to a safe landing if one exists; if not, tell the controller you are not instrument rated and declare a distress condition. If you are instrument rated and current in an instrument-equipped airplane, request an IFR clearance [[34:29|AIM 6-2-1]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "A commercial airplane certificate issued without an instrument rating carries the limitation that carriage of passengers for hire on cross-country flights over 50 NM or at night is prohibited [[60:322|14 CFR 61.133(b)(1)]]. A diversion does not change what your certificate allows."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Declaring an emergency brings extra help and priority handling. Budgeting time, prioritizing tasks or slowing down can buy the time you need [[30:47|RMH 6-4]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Flight following gives you a vector that would take you into clouds. Does the vector make that legal?",
+    "a": "No. Radar navigation help is advisory and does not authorize breaking the rules; keep the controller told about your weather and the weather ahead [[33:217|AIM 4-1-17]]."
+   }
+  },
+  {
+   "title": "Collision hazards, distraction and disorientation",
+   "kind": "risk",
+   "codes": [
+    "CA.VI.C.R1",
+    "CA.VI.C.R2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Most midair collisions happen in daylight, in good VFR, within 5 miles of an airport and/or near navigation aids [[24:31|AFH 1-10]]. A diversion points you at exactly that: a new airport, often found by its VOR, while your eyes are busy inside."
+    },
+    {
+     "bullets": [
+      "See and avoid is a regulatory duty whenever weather permits, VFR or IFR [[60:447|14 CFR 91.113(b)]]. Traffic displays and ATC advisories do not relieve you of it [[16:14|AC 90-48E, para 15]] [[16:14|AC 90-48E, para 16]].",
+      "Reduced in-flight visibility, often the reason for the diversion, makes conflicting traffic harder to see [[16:14|AC 90-48E, para 14.2]].",
+      "Near VFR waypoints, use all available ATC services and turn on the landing light to be seen; the PHAK asks for the same see-and-avoid effort near VORs and NDBs [[1:421|PHAK 16-34]].",
+      "Distractions, unusual or unexpected events, complacency, high workload, unfamiliar situations and inoperative equipment all reduce situational awareness [[23:337|IFH 11-12]]."
+     ]
+    },
+    {
+     "p": "A pilot with poor situational awareness makes decisions reactively, with few options: 'I knew exactly where I was when I ran out of fuel.' Watch for a reactive mindset and regain awareness from the instruments or ATC [[23:337|IFH 11-12]]."
+    },
+    {
+     "p": "Disorientation is the end of that chain. To cope with spatial disorientation the PHAK says to understand the illusions, get and understand weather briefings, train before flying in marginal visibility, and not fly into adverse weather or dusk unless proficient on instruments [[1:431|PHAK 17-9]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Head down for a number, head up for a sweep. One computation, one scan, then the next computation."
+     }
+    }
+   ],
+   "check": {
+    "q": "You are using flight following and have ADS-B traffic on your tablet. Are you still responsible for see and avoid?",
+    "a": "Yes. Vigilance to see and avoid is required whenever weather permits [[60:447|14 CFR 91.113(b)]], and traffic equipment does not relieve that duty [[16:14|AC 90-48E, para 15]]."
+   }
+  },
+  {
+   "title": "Common errors and fixes",
+   "kind": "skills",
+   "codes": [
+    "CA.VI.C.S1",
+    "CA.VI.C.S2",
+    "CA.VI.C.S3",
+    "CA.VI.C.S6",
+    "CA.VI.C.R2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Error",
+       "Fix"
+      ],
+      "rows": [
+       [
+        "Deciding late: hoping the weather lifts",
+        "Set divert triggers before takeoff with personal minimums, and act on them [[30:17|RMH 2-5]]"
+       ],
+       [
+        "Computing everything before turning",
+        "Turn first to a rough course, then refine [[1:422|PHAK 16-35]]"
+       ],
+       [
+        "Flying the radial instead of its reciprocal",
+        "Radials and airways are outbound from the station [[1:421|PHAK 16-34]]"
+       ],
+       [
+        "Using TAS for time and fuel",
+        "Use GS [[1:399|PHAK 16-12]]"
+       ],
+       [
+        "Wrong sign on the WCA or variation",
+        "WCA: right wind add; variation: west add [[1:403|PHAK 16-16]]"
+       ],
+       [
+        "Altitude or heading drift while heads-down",
+        "Trim, then glance at altitude and heading after every button push. 100 ft and 10 degrees (ACS CA.VI.C.S3)"
+       ],
+       [
+        "Nearest airport, not best airport",
+        "Check runway against landing distance, lights, fuel, weather [[60:440|14 CFR 91.103(b)]]"
+       ],
+       [
+        "Programming a long route in the air",
+        "Direct-To only; drop to heading mode if confused [[1:421|PHAK 16-34]] [[30:51|RMH 7-2]]"
+       ],
+       [
+        "Forgetting the VFR flight plan",
+        "Tell FSS or ATC on cancelling or completing it [[60:464|14 CFR 91.153(b)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The examiner is watching the airplane as much as your math. A perfect ETA with the altitude 150 ft low is a failed S3."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your ETA and fuel are perfect, but the altitude sagged 150 ft while you worked them out. Does that meet the commercial standard?",
+    "a": "No. The standard is plus or minus 100 ft and 10 degrees throughout (ACS CA.VI.C.S3)."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "CA.VI.C-1.jpg",
+   "res": "30",
+   "page": 11,
+   "caption": "Figure 1-2. The PAVE checklist. (RMH 1-2)",
+   "alt": "Four overlapping colored boxes. Pilot (blue): fitness decisions and a pilot who declined a trip after 4 hours of sleep. Aircraft (purple): performance and airworthiness, and an oil drip traced to a loose oil cooler fitting. Environment (yellow): weather, ATC, NAVAIDs, terrain, and a wake turbulence hard landing. External Pressures (green): why the flight is being made, and a ferry pilot who added a fuel stop rather than arrive with 10 minutes of fuel.",
+   "source": "RMH, PDF p. 11"
+  },
+  "f2": {
+   "file": "CA.VI.C-2.jpg",
+   "res": "1",
+   "page": 61,
+   "caption": "Figure 2-15. Typical operational pitfalls requiring pilot awareness. (PHAK 2-22)",
+   "alt": "A table of twelve operational pitfalls with short definitions: peer pressure, mindset, get-there-itis, duck-under syndrome, scud running, continuing VFR into instrument conditions, getting behind the aircraft, loss of positional or situational awareness, operating without adequate fuel reserves, descent below the minimum en route altitude, flying outside the envelope, and neglect of flight planning, preflight inspections and checklists.",
+   "source": "PHAK, PDF p. 61"
+  },
+  "f3": {
+   "file": "CA.VI.C-3.jpg",
+   "res": "1",
+   "page": 402,
+   "caption": "Figure 16-21. Steps in drawing the wind triangle. (PHAK 16-15)",
+   "alt": "Three panels on a green background. Step 1: a protractor on a north-south line with dots at 45 and 90 degrees. Steps 2 and 3: a course line east from point E labeled TC 090 and a wind line drawn downwind to point W. Step 4: a ruler from W meets the course line at P, labeled Airspeed 120 knots, and the course line is labeled TC 090 GS 88.",
+   "source": "PHAK, PDF p. 402"
+  },
+  "f4": {
+   "file": "CA.VI.C-4.jpg",
+   "res": "1",
+   "page": 403,
+   "caption": "Figure 16-22. Finding true heading by the wind correction angle. (PHAK 16-16)",
+   "alt": "A completed wind triangle. A yellow course line runs east from E to P, a yellow wind line runs southwest from E to W, and a red airspeed line runs from W to P. A protractor with its straight side on the north-south line, centered where the red line crosses that line, reads 76 degrees.",
+   "source": "PHAK, PDF p. 403"
+  },
+  "f5": {
+   "file": "CA.VI.C-5.jpg",
+   "res": "23",
+   "page": 335,
+   "caption": "Figure 11-12. Information shown on the additional information page that will aid the pilot in making a more informed decision about which airport to choose when diverting. (IFH 11-10)",
+   "alt": "An airport information screen for 0J8, Flying Ten, Archer FL, with callouts naming the airport identifier, airport symbol, closest city, field elevation 85 ft, name of the airport, type of airport (public), geographic region (SE USA), fuel available (AVGAS) and the latitude and longitude.",
+   "source": "IFH, PDF p. 335"
+  },
+  "f6": {
+   "file": "CA.VI.C-6.jpg",
+   "res": "30",
+   "page": 35,
+   "caption": "Figure 4-1. Risk Assessment Matrix. (RMH 4-2)",
+   "alt": "A grid with likelihood rows (probable, occasional, remote, improbable) and severity columns (catastrophic, critical, marginal, negligible). Probable with catastrophic or critical is High; occasional with catastrophic is High; probable with marginal, occasional with critical and remote with catastrophic are Serious; most other cells are Medium (green), and the remote and occasional negligible cells are Low (white).",
+   "source": "RMH, PDF p. 35"
+  },
+  "f7": {
+   "file": "CA.VI.C-7.jpg",
+   "res": "30",
+   "page": 48,
+   "caption": "Figure 6-1. The Swiss cheese model. (RMH 6-5)",
+   "alt": "Arrows labeled Threats point at three stacks of Swiss cheese slices labeled Prevent, Trap and Mitigate, with Errors and Undesired aircraft state between them and an Incident/Accident burst at the end. Banners above read Anticipate, Recognize, Recover.",
+   "source": "RMH, PDF p. 48"
+  }
+ },
+ "scenario": {
+  "title": "Night is coming and the boss is aboard",
+  "codes": [
+   "CA.VI.C.K1",
+   "CA.VI.C.K2",
+   "CA.VI.C.R1",
+   "CA.VI.C.R2",
+   "CA.VI.C.R3",
+   "CA.VI.C.R4",
+   "CA.VI.C.R5",
+   "CA.VI.C.S1",
+   "CA.VI.C.S2",
+   "CA.VI.C.S4",
+   "CA.VI.C.S6"
+  ],
+  "setup": "You are a commercial pilot flying your employer's single-engine airplane under Part 91, with your boss and a client aboard, to a dinner meeting. Sunset is in 25 minutes. At 1715 you are 58 NM from the destination at a GPS groundspeed of 102 knots, burning 12 GPH, with 13 gallons usable left; headwinds were stronger than forecast. Your FIS-B display shows the destination METAR has dropped to a 1,800 ft overcast with showers moving toward it. Airport C is 21 NM behind you and to the right: 4,800 ft paved, 'L' on the chart, fuel ticks, AWOS reporting VFR, and a part-time tower marked with a star. Your groundspeed toward C would be about 118 knots. You are on flight following and a VFR flight plan.",
+  "questions": [
+   {
+    "q": "What fuel would you land with at the destination, and does that matter if you took off legally?",
+    "a": "58 / 102 = 34 minutes, 6.8 gallons, leaving about 6.2 gallons, about 31 minutes, arriving about 9 minutes after sunset [[1:398|PHAK 16-11]] [[1:399|PHAK 16-12]]. 91.151 governs the takeoff fuel (45 minutes at night) [[60:464|14 CFR 91.151(a)]], but you should plan to be on the ground before your fuel time runs short [[1:399|PHAK 16-12]], and doubt about fuel endurance is an urgency condition [[34:28|AIM 6-1-2]]."
+   },
+   {
+    "q": "Your boss says the client will not wait. How do you handle that?",
+    "a": "It is an external pressure, the E in PAVE [[30:11|RMH 1-2]]. Being on time and inconveniencing passengers rank below safety [[30:55|RMH 8-2]], and pressure from supervisors can bias a pilot to finish the plan [[30:45|RMH 6-2]]. Brief them early and plainly on the reason for the diversion."
+   },
+   {
+    "q": "Is Airport C a good choice? What do you check?",
+    "a": "Runway length against your landing distance [[60:440|14 CFR 91.103(b)]]; the 'L' means lights sunset to sunrise, but check which runway is lighted [[2:15|Chart Users' Guide]]; fuel ticks show fuel [[2:14|Chart Users' Guide]]; the star means the tower is part-time, so check its hours [[2:15|Chart Users' Guide]]. Its AWOS shows VFR, so you are not diverting into the same weather."
+   },
+   {
+    "q": "Work out your ETA and fuel at C if you turn toward it now, at 1715.",
+    "a": "21 / 118 = 0.18 hr, about 11 minutes, ETA about 1726; fuel 0.18 x 12 = 2.1 gallons, leaving about 10.9 gallons, about 54 minutes [[1:398|PHAK 16-11]] [[1:399|PHAK 16-12]]. Note the time once on course [[1:422|PHAK 16-35]]."
+   },
+   {
+    "q": "The showers on your display look 30 miles from C. Can you rely on that picture?",
+    "a": "Only strategically. Data link NEXRAD may be 15 to 20 minutes older than shown [[34:120|AIM 7-1-27]], and FIS is for decisions 20 minutes or more ahead [[34:81|AIM 7-1-9]]. Confirm with C's AWOS and ATC."
+   },
+   {
+    "q": "Who do you tell, and what about collision risk on the way in?",
+    "a": "Tell ATC you are diverting, and FSS about the flight plan [[60:464|14 CFR 91.153(b)]] [[33:339|AIM 5-1-14]]. Most midairs happen near airports and NAVAIDs [[24:31|AFH 1-10]], and dusk visibility makes traffic harder to see [[16:14|AC 90-48E, para 14.2]], so keep scanning between computations."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "CA.VI.C.S1",
+   "do": "When given a reason to divert, choose a suitable airport and route and explain the choice: runway, weather, lighting, fuel.",
+   "practice": "Before each cross-country, list two alternates per leg with runway, lighting, fuel and weather frequency [[1:421|PHAK 16-34]] [[30:57|RMH 8-4]]."
+  },
+  {
+   "code": "CA.VI.C.S2",
+   "do": "Give a reasonable estimate of heading, groundspeed, arrival time and fuel required to the divert-to airport.",
+   "practice": "Drill on the ground: rough course from a compass rose, WCA from the wind, then T = D / GS and fuel = time x burn [[1:421|PHAK 16-34]] [[1:398|PHAK 16-11]] [[1:399|PHAK 16-12]]."
+  },
+  {
+   "code": "CA.VI.C.S3",
+   "do": "Hold the appropriate altitude within 100 ft and heading within 10 degrees through the whole diversion.",
+   "practice": "Have your CFI give diversions while you program the GPS; trim first and check altitude and heading after every chart look or button push (ACS CA.VI.C.S3)."
+  },
+  {
+   "code": "CA.VI.C.S4",
+   "do": "Get and interpret a weather update in flight, including weather at the divert-to airport.",
+   "practice": "On every cross-country, get one FSS update and listen to the alternate's AWOS before you need it [[34:68|AIM 7-1-5]]."
+  },
+  {
+   "code": "CA.VI.C.S5",
+   "do": "Use the airplane's or EFB's digital weather and aeronautical displays to keep situational awareness, knowing their limits.",
+   "practice": "Practice the NRST, Direct-To and auto-tune sequence on the ground, and read the weather age aloud each time you look [[23:335|IFH 11-10]] [[34:81|AIM 7-1-9]]."
+  },
+  {
+   "code": "CA.VI.C.S6",
+   "do": "Turn toward the divert-to airport promptly once you decide.",
+   "practice": "Rule for every practice diversion: turn within seconds to a rough course, then refine [[1:422|PHAK 16-35]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Which word in the commercial ACS altitude standard for a diversion differs from the private ACS wording?",
+   "options": [
+    "Selected",
+    "Appropriate",
+    "Assigned",
+    "Planned"
+   ],
+   "answer": 1,
+   "why": "The commercial ACS says maintain the appropriate altitude, plus or minus 100 ft (ACS CA.VI.C.S3); the private ACS says the selected altitude, plus or minus 200 ft (ACS PA.VI.C.S3). The commercial applicant is expected to choose an altitude that fits the new route."
+  },
+  {
+   "q": "Under Part 135 VFR in uncontrolled airspace, the ceiling is 900 ft. What is the minimum flight visibility?",
+   "options": [
+    "1 statute mile",
+    "3 statute miles",
+    "2 miles",
+    "Clear of clouds is enough"
+   ],
+   "answer": 2,
+   "why": "No person may operate an airplane under VFR in uncontrolled airspace when the ceiling is less than 1,000 ft unless flight visibility is at least 2 miles [[6:80|14 CFR 135.205]]. The 1 SM day figure is the Part 91 Class G minimum [[60:465|14 CFR 91.155]]."
+  },
+  {
+   "q": "How far from a severe thunderstorm can severe turbulence be expected?",
+   "options": [
+    "Up to 5 miles",
+    "Up to 10 miles",
+    "Up to 20 miles",
+    "Only inside the visible cloud"
+   ],
+   "answer": 2,
+   "why": "Severe turbulence can be expected up to 20 miles from severe thunderstorms, decreasing to about 10 miles for less severe storms. Updrafts and downdrafts often extend far beyond the visible cloud [[34:119|AIM 7-1-26]]."
+  },
+  {
+   "q": "On the RMH matrix, a hazard is 'occasional' and 'critical'. What is its composite risk?",
+   "options": [
+    "High",
+    "Medium",
+    "Low",
+    "Serious"
+   ],
+   "answer": 3,
+   "why": "Occasional likelihood with critical severity is serious (yellow) on the matrix, as in the RMH's runway overrun example [[30:35|RMH 4-2]]."
+  },
+  {
+   "q": "Which of these is a threat, in RMH terms, rather than an error?",
+   "options": [
+    "Entering the wrong airport identifier in the GPS",
+    "A runway at your planned fuel stop closed while you were en route",
+    "Forgetting to switch fuel tanks",
+    "Misreading the wind correction angle"
+   ],
+   "answer": 1,
+   "why": "Threats occur outside the pilot's influence; closures of facilities, runways or taxiways while en route are listed as threats. The other choices are the pilot's own deviations, which are errors [[30:44|RMH 6-1]]."
+  },
+  {
+   "q": "On the sectional, a possible alternate has small tick marks around its airport symbol. What do they tell you?",
+   "options": [
+    "The airport has a part-time control tower",
+    "Fuel is available; the Chart Supplement gives details",
+    "Runway lights operate sunset to sunrise",
+    "The airport has a rotating beacon"
+   ],
+   "answer": 1,
+   "why": "Tick marks around the basic airport symbol show fuel availability; consult the Chart Supplement for details and availability [[2:14|Chart Users' Guide]]. A part-time tower is shown by a star after the CT frequency, and 'L' shows lighting [[2:15|Chart Users' Guide]]."
+  },
+  {
+   "q": "An alternate shows 'L' on the sectional and has two runways. What do you know about the lights?",
+   "options": [
+    "Every runway is lighted full length",
+    "Runway edge lights operate sunset to sunrise, but the lighted runway may not be the longest one",
+    "The lights are pilot controlled",
+    "Only the approach lights work at night"
+   ],
+   "answer": 1,
+   "why": "'L' means lighting in operation sunset to sunrise, but lighting codes refer to runway edge lights, which may not be on the longest runway or along its full length [[2:15|Chart Users' Guide]]."
+  },
+  {
+   "q": "In the IFH example system, how can you make the NRST list show only airports your airplane can use?",
+   "options": [
+    "Set landing surface and runway length criteria on the configuration page",
+    "Zoom the map to 10 NM",
+    "Turn on terrain awareness",
+    "Load the airport as a flight plan waypoint"
+   ],
+   "answer": 0,
+   "why": "Pilots can specify which airports are acceptable for their aircraft based on landing surface and runway length; the list shows up to 25 nearest airports meeting those criteria [[23:334|IFH 11-9]]."
+  },
+  {
+   "q": "Why does the PHAK say you seldom need to actually plot a diversion course in flight?",
+   "options": [
+    "GPS has made plotting illegal",
+    "The alternate is usually not far from your original course",
+    "Plotters are not allowed in the cockpit",
+    "ATC always gives vectors"
+   ],
+   "answer": 1,
+   "why": "In flight it is rarely practical to plot, and because an alternate is usually not very far from the original course, actual plotting is seldom necessary [[1:421|PHAK 16-34]]."
+  },
+  {
+   "q": "Why does an ATC controller call areas on the scope 'precipitation' and not 'clouds'?",
+   "options": [
+    "Controllers are not allowed to give weather",
+    "ATC radar cannot detect clouds, only precipitation",
+    "Clouds are reported only by FSS",
+    "Cloud returns are filtered at night"
+   ],
+   "answer": 1,
+   "why": "ATC systems cannot detect the presence or absence of clouds, and cannot tell rain from snow or hail, so they refer to all weather areas as precipitation [[34:97|AIM 7-1-12]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "You divert on a true course of 270 at 125 KTAS with the wind from 360 at 25 knots, straight across from the right. Variation is 6 degrees east. Using crosswind x 60 / TAS, about what magnetic heading do you fly?",
+   "options": [
+    "264",
+    "276",
+    "288",
+    "258"
+   ],
+   "answer": 1,
+   "why": "Crosswind 25, so WCA about 25 x 60 / 125 = 12 degrees (application of the wind triangle). Wind from the right: add, so TH 282. East variation is subtracted: 282 - 6 = 276 [[1:403|PHAK 16-16]]. 288 comes from adding east variation."
+  },
+  {
+   "q": "While diverting, a VFR pilot with no attitude instrument training flies into cloud. About how long do accident statistics give that pilot before losing control?",
+   "options": [
+    "About 10 minutes",
+    "About 1 hour",
+    "About 30 seconds",
+    "There is no limit if the autopilot works"
+   ],
+   "answer": 0,
+   "why": "Accident statistics show a pilot not trained in attitude instrument flying, or whose skills have eroded, loses control in about 10 minutes once forced to rely on instruments [[24:366|AFH 18-17]]."
+  },
+  {
+   "q": "You are instrument rated and current, the airplane is IFR equipped, and VFR to your alternate is no longer possible. What does AIM 6-2-1 say to do?",
+   "options": [
+    "Declare a distress condition and say you are not instrument rated",
+    "Request an IFR flight clearance",
+    "Descend below the clouds and continue VFR",
+    "Squawk 7600"
+   ],
+   "answer": 1,
+   "why": "A pilot who is instrument rated and current in an instrument-equipped aircraft should request an IFR clearance. The distress declaration is for noninstrument-rated pilots who cannot stay VFR [[34:29|AIM 6-2-1]]."
+  },
+  {
+   "q": "Your route to the alternate crosses an area with thunderstorms covering about 6/10 of it. What does the AIM advise?",
+   "options": [
+    "Pick the gap on cockpit NEXRAD",
+    "Fly under the storms where you can see light",
+    "Circumnavigate the entire area",
+    "Stay 5 miles from each cell"
+   ],
+   "answer": 2,
+   "why": "Circumnavigate the entire area if it has 6/10 thunderstorm coverage. Do not fly under thunderstorms, and do not use data-linked NEXRAD as the sole means of negotiating a path through them [[34:120|AIM 7-1-27]]."
+  },
+  {
+   "q": "You deviated around weather with approval and are handed to a new controller who offers your original route. What should you do?",
+   "options": [
+    "Accept it; the old route is still filed",
+    "Tell the controller you are deviating for weather and make sure the route is clear before accepting",
+    "Cancel flight following",
+    "Climb to a VFR-on-top altitude"
+   ],
+   "answer": 1,
+   "why": "When switched to another controller, advise that you are deviating for thunderstorms before accepting a clearance to rejoin the original route, and make sure the route is clear [[34:120|AIM 7-1-27]]."
+  },
+  {
+   "q": "Flying a Part 135 VFR leg at night, what is the minimum altitude along your diversion course in non-mountainous terrain?",
+   "options": [
+    "500 ft above the surface",
+    "1,000 ft above the highest obstacle within 5 miles of the course",
+    "2,000 ft above the highest obstacle within 5 miles",
+    "1,000 ft above the highest obstacle within 2,000 ft"
+   ],
+   "answer": 1,
+   "why": "At night under Part 135 VFR, not less than 1,000 ft above the highest obstacle within 5 miles of the course, or 2,000 ft in designated mountainous terrain [[6:80|14 CFR 135.203(a)]]. The 2,000 ft radius figure is the Part 91 congested-area rule [[60:449|14 CFR 91.119]]."
+  },
+  {
+   "q": "For months runway 18R at your alternate was closed by NOTAM. Today the NOTAM and the ATIS say 18L is closed instead, but you still hear '18R closed' and set up for 18L. Which bias is this?",
+   "options": [
+    "Confirmation bias",
+    "Resignation",
+    "Expectation bias",
+    "Impulsivity"
+   ],
+   "answer": 2,
+   "why": "Expectation bias is an erroneous assessment that persists despite evidence, like the RMH pilot who read the reversed parallel-runway NOTAM but still perceived the old closure [[30:45|RMH 6-2]]. Confirmation bias is suppressing information that does not fit an expectation [[30:45|RMH 6-2]]."
+  },
+  {
+   "q": "A large bird appears ahead seconds before your alternate's runway, and you act on a pattern you remember from training. What kind of decision is this?",
+   "options": [
+    "Naturalistic decision-making",
+    "Analytical decision-making",
+    "The DECIDE model",
+    "Skewing"
+   ],
+   "answer": 0,
+   "why": "Naturalistic decision-making starts with a workable action based on familiar patterns when time does not permit a formal analysis [[30:56|RMH 8-3]]."
+  },
+  {
+   "q": "Rating the risk of continuing toward lowering clouds, you call the likelihood 'improbable' mainly because you want to make the meeting. What matrix error is that?",
+   "options": [
+    "Obsolescence",
+    "Accuracy",
+    "Skewing",
+    "Severity creep"
+   ],
+   "answer": 2,
+   "why": "Skewing is using inputs that push the risk lower because you want to complete the flight. When unsure between adjacent boxes, choose the more conservative one [[30:35|RMH 4-2]]."
+  },
+  {
+   "q": "You declared an emergency for low fuel and ATC gave you priority. Later the facility asks for a report. What applies?",
+   "options": [
+    "Nothing; priority handling needs no report",
+    "A NASA report within 10 days",
+    "A written report to the NTSB within 48 hours",
+    "A detailed report to the facility manager within 48 hours"
+   ],
+   "answer": 3,
+   "why": "A PIC given priority by ATC in an emergency shall submit a detailed report within 48 hours to the manager of that ATC facility, if requested [[60:450|14 CFR 91.123(d)]]."
+  },
+  {
+   "q": "Your commercial certificate has no instrument rating. You are hired to fly passengers 70 NM by day, then divert to a field 20 NM farther. What limits you?",
+   "options": [
+    "Nothing; commercial privileges cover any distance by day",
+    "Carriage of passengers for hire on cross-countries over 50 NM or at night is prohibited",
+    "You may carry passengers for hire only within Class G airspace",
+    "You need a second pilot"
+   ],
+   "answer": 1,
+   "why": "A commercial airplane certificate issued without an instrument rating carries that limitation [[60:322|14 CFR 61.133(b)(1)]]. The flight was over 50 NM before the diversion."
+  },
+  {
+   "q": "The alternate is 26 NM away. TAS is 128 knots into an 18-knot headwind; you burn 10.5 GPH and have 9 gallons. About how many minutes of fuel will remain on landing?",
+   "options": [
+    "About 37 minutes",
+    "About 39 minutes",
+    "About 51 minutes",
+    "About 26 minutes"
+   ],
+   "answer": 0,
+   "why": "GS = 128 - 18 = 110 knots. Time = 26 / 110 = 0.236 hr (14 minutes); fuel 0.236 x 10.5 = 2.5 gal; 9 - 2.5 = 6.5 gal = 37 minutes [[1:398|PHAK 16-11]] [[1:399|PHAK 16-12]]. Using TAS gives about 39 minutes, which is too optimistic."
+  },
+  {
+   "q": "Reprogramming the GPS for your diversion gets confusing and the airplane starts drifting off heading. What does the RMH recommend?",
+   "options": [
+    "Keep pressing buttons until the route loads",
+    "Hand the task to ATC and stop flying",
+    "Disconnect all avionics",
+    "Move to a lower level of automation, such as heading and altitude modes, or fly by hand"
+   ],
+   "answer": 3,
+   "why": "One of the most common errors is failing to move to lower levels of automation suitable to a changing environment. If automation is not working as expected, reduce the level, fly manually and take time to resolve it [[30:51|RMH 7-2]]."
+  }
+ ],
+ "takeaways": [
+  "Commercial standard: appropriate altitude plus or minus 100 ft, heading plus or minus 10 degrees, while you plan.",
+  "Divert while you still have options: good weather, fuel in minutes, daylight.",
+  "91.151 sets takeoff fuel; your landing fuel is your decision. Use GS, not TAS.",
+  "Pick the best airport, not the nearest: runway, lights, fuel, weather, tower hours.",
+  "Turn first to a rough course, note the time, then refine heading, GS, ETA and fuel.",
+  "Know the biases and pressures that keep pilots going, and name them out loud.",
+  "Automation and cockpit weather help strategically; drop a level when they confuse you."
+ ],
+ "cfi_notes": [
+  "The ACS wording changes from 'selected' altitude (private) to 'appropriate' altitude (commercial). Ask the applicant why the altitude they chose fits the new course, terrain and cloud bases [[1:422|PHAK 16-35]] [[60:467|14 CFR 91.159(a)(1)]].",
+  "Students often think 91.151 forces a landing when they hit 30 minutes. It only governs beginning a flight [[60:464|14 CFR 91.151(a)]]; the in-flight guidance is PHAK 16-12 and AIM 5-5-15 and 6-1-2. Teach both and the difference.",
+  "The crosswind x 60 / TAS shortcut is not in the FAA sources. It is the small-angle form of the wind triangle and matches the PHAK's 14-degree example [[1:402|PHAK 16-15]]. Present it as a technique, and use the triangle or E6B on the ground.",
+  "PHAK 2-18 tells Gayle to call Flight Watch for weather updates [[1:57|PHAK 2-18]]. The current AIM describes in-flight updates through FSS and FIS-B instead [[34:68|AIM 7-1-5]]; teach the AIM.",
+  "The PHAK's Figure 16-24 is only a cover image of the Chart Supplement. Bring a real Chart Supplement page to the lesson and have the student find runway, lighting, fuel and tower hours for two alternates.",
+  "Commercial applicants without an instrument rating should be able to explain the 50 NM and night passenger-for-hire limitation [[60:322|14 CFR 61.133(b)(1)]] and how a diversion could push a trip past it.",
+  "Use the RMH vacuum pump case [[30:11|RMH 1-2]] and the snowstorm fuel case [[30:45|RMH 6-2]] as oral prompts: at what moment could each pilot have diverted, and what pressure kept them going?",
+  "Most examiners fail S3 rather than S2. Have the CFI call 'altitude' or 'heading' every time the student exceeds 100 ft or 10 degrees during practice diversions.",
+  "PHAK Figures 16-22 and 16-23 have their captions swapped: the text reads the true heading directly with the protractor on the north-south line in Figure 16-22 and the 14-degree WCA at P in Figure 16-23 [[1:402|PHAK 16-15]], but the captions say the opposite [[1:403|PHAK 16-16]]. The lesson keeps the printed caption on f4; point out that f4 shows direct measurement."
+ ],
+ "gaps": [
+  "No source gives a mental shortcut for the wind correction angle or groundspeed; the lesson's crosswind rule is application, checked against PHAK 16-15.",
+  "The ACS does not define how close a 'reasonable estimate' must be. Examiners differ; agree a standard with your CFI.",
+  "No source gives numeric divert triggers (ceiling, visibility, fuel in minutes). Those come from your personal minimums [[30:17|RMH 2-5]] and company procedures.",
+  "Nearest-airport pages, filters and buttons are avionics specific; the IFH shows one popular system. Use your avionics guide and the POH supplements.",
+  "The Chart Supplement itself is not among the course sources; its legend and airport entries must be studied from the current publication.",
+  "Fuel flow, cruise TAS and landing distance for the diversion come from the POH/AFM."
+ ],
+ "activities": [
+  {
+   "type": "tf",
+   "key": "h1",
+   "after": 3,
+   "title": "True or false: fuel in flight",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "14 CFR 91.151 requires you to land when you reach 30 minutes of fuel by day.",
+     "a": false,
+     "why": "False. It sets the fuel needed to begin a VFR flight [[60:464|14 CFR 91.151(a)]]; when to land is the pilot's decision, guided by PHAK 16-12."
+    },
+    {
+     "s": "Part 135 uses the same 30-minute day and 45-minute night VFR reserves as Part 91.",
+     "a": true,
+     "why": "True. 135.209 requires 30 minutes by day and 45 at night after the first point of intended landing [[6:80|14 CFR 135.209]]."
+    },
+    {
+     "s": "Saying 'minimum fuel' to ATC gets you priority over other traffic.",
+     "a": false,
+     "why": "False. A minimum fuel advisory does not imply a need for priority. Declare an emergency if you need priority [[34:10|AIM 5-5-15]]."
+    },
+    {
+     "s": "When declaring an emergency for low fuel, report fuel remaining in minutes.",
+     "a": true,
+     "why": "True [[34:10|AIM 5-5-15]]."
+    },
+    {
+     "s": "The PHAK says plan to be on the ground before the gauge shows a low fuel level.",
+     "a": true,
+     "why": "True. Also before your flight time exceeds what you calculated for your fuel [[1:399|PHAK 16-12]]."
+    },
+    {
+     "s": "Being doubtful about fuel endurance is not yet an emergency of any kind, so you should wait before asking for help.",
+     "a": false,
+     "why": "False. You are in at least an urgency condition the moment you are doubtful, and that is the time to ask for help [[34:28|AIM 6-1-2]]."
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h2",
+   "after": 4,
+   "title": "Which PAVE letter?",
+   "intro": "Tap a hazard, then tap where it belongs.",
+   "buckets": [
+    "Pilot",
+    "Aircraft",
+    "enVironment",
+    "External pressures"
+   ],
+   "items": [
+    {
+     "t": "You slept 5 hours and feel foggy on the way home",
+     "b": 0
+    },
+    {
+     "t": "Your instrument skills have not been used in months",
+     "b": 0
+    },
+    {
+     "t": "The alternator stays off line after the checklist",
+     "b": 1
+    },
+    {
+     "t": "The airplane is not approved for known icing",
+     "b": 1
+    },
+    {
+     "t": "Showers moving toward the destination",
+     "b": 2
+    },
+    {
+     "t": "A runway at the alternate is closed by NOTAM",
+     "b": 2
+    },
+    {
+     "t": "Your boss's client will not wait past 6 p.m.",
+     "b": 3
+    },
+    {
+     "t": "The rental must be back tonight or you pay a penalty",
+     "b": 3
+    }
+   ]
+  },
+  {
+   "type": "match",
+   "key": "h3",
+   "after": 5,
+   "title": "Which pitfall is talking?",
+   "intro": "Tap a cockpit thought, then the pitfall it shows.",
+   "pairs": [
+    {
+     "l": "'The other two airplanes went, so we should go too.'",
+     "r": "Peer pressure"
+    },
+    {
+     "l": "'The forecast said VFR all day, so these lower clouds don't change anything.'",
+     "r": "Mindset"
+    },
+    {
+     "l": "'Why is it turning? What is it doing now? What happens next?'",
+     "r": "Getting behind the aircraft"
+    },
+    {
+     "l": "'It's only a thin layer. I'll push through it and pick up the ground again.'",
+     "r": "Continuing VFR into instrument conditions"
+    },
+    {
+     "l": "'This airplane can handle that short strip at full weight, no problem.'",
+     "r": "Flying outside the envelope"
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h4",
+   "after": 8,
+   "title": "Read the finished wind triangle",
+   "figure": "f4",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 28.3,
+     "y": 5.5,
+     "label": "True north reference line"
+    },
+    {
+     "x": 28.2,
+     "y": 31.2,
+     "label": "Departure point"
+    },
+    {
+     "x": 19.4,
+     "y": 49.7,
+     "label": "Wind line, drawn downwind"
+    },
+    {
+     "x": 9.5,
+     "y": 69.2,
+     "label": "Where the air mass alone carries you in 1 hour"
+    },
+    {
+     "x": 82.3,
+     "y": 31.2,
+     "label": "Airplane's position after 1 hour"
+    },
+    {
+     "x": 38.3,
+     "y": 60.0,
+     "label": "Protractor, straight side on the north-south line"
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h5",
+   "after": 9,
+   "title": "Work the diversion numbers",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "Your alternate measures 3.5 inches from your position on a sectional. How far is it in NM?",
+     "answer": 24.0,
+     "tol": 0.2,
+     "unit": "NM",
+     "why": "1 inch = 6.86 NM, so 3.5 x 6.86 = 24.0 NM [[1:399|PHAK 16-12]]."
+    },
+    {
+     "q": "True course 180, wind from 270 at 20 knots (straight from the right), TAS 120. Using crosswind x 60 / TAS, what true heading do you fly?",
+     "answer": 190.0,
+     "tol": 1,
+     "unit": "deg",
+     "why": "WCA = 20 x 60 / 120 = 10 degrees (application of the wind triangle; the exact angle is 9.6). Wind from the right: add. 180 + 10 = 190 [[1:403|PHAK 16-16]]."
+    },
+    {
+     "q": "True heading 190 and variation 10 degrees west. What magnetic heading?",
+     "answer": 200.0,
+     "tol": 0,
+     "unit": "deg",
+     "why": "West variation is added: 190 + 10 = 200 [[1:403|PHAK 16-16]]."
+    },
+    {
+     "q": "On course at 1447, 24 NM to go, GPS groundspeed 96 knots. ETA? (Type 4 digits, like 1530.)",
+     "answer": 1502,
+     "tol": 0,
+     "unit": "local",
+     "why": "T = 24 / 96 = 0.25 hr = 15 minutes. 1447 + 15 = 1502 [[1:398|PHAK 16-11]] [[1:422|PHAK 16-35]]."
+    },
+    {
+     "q": "That 15-minute leg burns 11.5 GPH and you have 14.0 gallons when you turn. How many minutes of fuel remain on landing?",
+     "answer": 58,
+     "tol": 1,
+     "unit": "min",
+     "why": "Fuel used = 0.25 x 11.5 = 2.9 gal. 14.0 - 2.9 = 11.1 gal. 11.1 / 11.5 = 0.97 hr = 58 minutes [[1:399|PHAK 16-12]]."
+    },
+    {
+     "q": "After landing you plan a night VFR flight home: 62 NM at a forecast GS of 110 knots, 11.5 GPH. What is the minimum legal fuel to begin it, in gallons?",
+     "answer": 15.1,
+     "tol": 0.2,
+     "unit": "gal",
+     "why": "Trip: 62 / 110 = 0.564 hr x 11.5 = 6.5 gal. Night reserve: 45 minutes x 11.5 = 8.6 gal. Total 15.1 gal [[60:464|14 CFR 91.151(a)(2)]] [[1:399|PHAK 16-12]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h6",
+   "after": 10,
+   "title": "Order the commercial diversion",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Name the hazard and decide to divert",
+    "Choose the airport: runway, weather, lights, fuel",
+    "Turn toward it on a rough course",
+    "Set altitude and heading and trim; hold 100 ft and 10 degrees",
+    "Note the time on course",
+    "Work heading and GS from the nearest winds aloft",
+    "Compute ETA and fuel on landing",
+    "Tell ATC or FSS and brief the arrival"
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 13,
+   "title": "The photo flight that ran out of daylight",
+   "intro": "You are flying a four-seat high-wing airplane with a photographer aboard on a paid aerial photo job under Part 91, VFR flight plan filed. You are 35 NM from home with 16 gallons usable at 11 GPH. Sunset is in 40 minutes.",
+   "steps": [
+    {
+     "s": "The clouds ahead are noticeably lower than forecast and the photographer asks to finish one last site on the way home.",
+     "options": [
+      "Finish the site; the weather is still legal",
+      "Start a diversion plan now while you are still in good VMC",
+      "Descend to stay under the clouds and keep going",
+      "Wait to see if the next METAR improves"
+     ],
+     "answer": 1,
+     "why": "Doubt about weather puts you in at least an urgency condition [[34:28|AIM 6-1-2]], and the RMH shows a pilot who could have diverted while still in VMC [[30:12|RMH 1-3]]. Descending to stay under clouds is scud running [[1:61|PHAK 2-22]]."
+    },
+    {
+     "s": "Two choices on the NRST page: A, 9 NM, 2,100 ft turf, no lights, no fuel. B, 17 NM, 4,200 ft paved, 'L', fuel ticks, AWOS reporting VFR. Your landing distance over 50 ft is 1,400 ft.",
+     "options": [
+      "A, because it is closer",
+      "B: lighted, fuel, weather reporting, enough runway for a dusk arrival",
+      "A, then call for fuel to be trucked in",
+      "Neither; continue home"
+     ],
+     "answer": 1,
+     "why": "You must know runway lengths and landing distances for airports you intend to use [[60:440|14 CFR 91.103(b)]]. 'L' means lights sunset to sunrise and tick marks show fuel [[2:15|Chart Users' Guide]] [[2:14|Chart Users' Guide]]. A's turf leaves little margin over your 1,400 ft once you add the RMH's 500 ft for an unfamiliar airport [[30:17|RMH 2-5]], and it has no fuel, lights or weather report if you get stuck there into the evening."
+    },
+    {
+     "s": "You have chosen B. What comes first?",
+     "options": [
+      "Load a full flight plan with waypoints to B",
+      "Work out the exact wind triangle on your kneeboard",
+      "Turn toward B on a rough course, then go Direct-To and refine",
+      "Call FSS to amend the flight plan"
+     ],
+     "answer": 2,
+     "why": "Divert promptly; completing all plotting and computing first may aggravate the situation. Once on course, note the time and refine [[1:422|PHAK 16-35]]. Avoid programming routes once airborne [[1:421|PHAK 16-34]]."
+    },
+    {
+     "s": "While loading B's AWOS frequency you see 4,370 ft on the altimeter (you chose 4,500) and the heading 12 degrees off.",
+     "options": [
+      "Finish tuning first, then fix it",
+      "Stop, fly the airplane back to 4,500 and the heading, trim, then finish the radio",
+      "Engage the autopilot in whatever mode is active",
+      "Ignore it; it is within private tolerances"
+     ],
+     "answer": 1,
+     "why": "130 ft and 12 degrees are outside the commercial plus or minus 100 ft and 10 degrees (ACS CA.VI.C.S3). Give priority to flying the aircraft while dividing attention [[1:422|PHAK 16-35]]."
+    },
+    {
+     "s": "Four miles from B you are heads-down briefing the arrival when a pilot on B's frequency reports 3 miles out, entering the pattern.",
+     "options": [
+      "Finish the whole briefing first, then look for the traffic",
+      "Break off, scan for the traffic, and finish the briefing in short pieces between scans",
+      "Rely on your traffic display; it shows nothing close",
+      "Descend below pattern altitude to stay under the traffic"
+     ],
+     "answer": 1,
+     "why": "Most midair collisions happen in daylight VFR within 5 miles of an airport [[24:31|AFH 1-10]]. Traffic equipment does not relieve you of see and avoid [[16:14|AC 90-48E, para 15]], and high workload and distraction reduce situational awareness [[23:337|IFH 11-12]]."
+    }
+   ]
+  }
+ ]
+}

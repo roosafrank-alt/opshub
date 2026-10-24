@@ -53,7 +53,7 @@
 {#- GS-INTERACTIVE: one game / activity. a.type is match, sort, order, tf, flash or label.
    Text goes through gs_rich; the page's JS (ground-lesson.js) shuffles and scores. -#}
 {% macro activity(a, L) %}
-{% set icons = {'match':'bi-link-45deg','sort':'bi-collection','order':'bi-list-ol','tf':'bi-lightning-charge','flash':'bi-card-text','label':'bi-geo-alt'} %}
+{% set icons = {'match':'bi-link-45deg','sort':'bi-collection','order':'bi-list-ol','tf':'bi-lightning-charge','flash':'bi-card-text','label':'bi-geo-alt','calc':'bi-calculator','decide':'bi-signpost-split'} %}
 <div class="gsl-act gsl-act-{{ a.type }}" data-act="{{ a.type }}" data-key="{{ a.key or '' }}" data-done="{{ 1 if (gs_results and a.key and gs_results.get(a.key) and gs_results[a.key].done) else 0 }}" data-tries="{{ gs_results[a.key].attempts if (gs_results and a.key and gs_results.get(a.key)) else 0 }}">
   <div class="gsl-act-head"><i class="bi {{ icons.get(a.type, 'bi-controller') }}"></i> <b>{{ a.title }}</b></div>
   {% if a.intro %}<p class="gsl-act-intro">{{ gs_rich(a.intro) }}</p>{% endif %}
@@ -89,6 +89,28 @@
         <div class="gsl-tfstmt">{{ gs_rich(c.s) }}</div>
         <div class="gsl-tfbtns"><button type="button" class="gsl-btn" data-v="true">True</button><button type="button" class="gsl-btn" data-v="false">False</button></div>
         <div class="gsl-tfwhy" hidden>{{ gs_rich(c.why) }}</div></div>{% endfor %}
+      <button type="button" class="gsl-btn gsl-tfnext" hidden>Next <i class="bi bi-arrow-right-short"></i></button>
+    </div>
+
+  {% elif a.type == 'calc' %}
+    {#- GS-MORE-PLAY: work it out and type the number; within the tolerance counts as right. -#}
+    <div class="gsl-calc" data-total="{{ a['items']|length }}">
+      {% for it in a['items'] %}<div class="gsl-calccard" data-answer="{{ it.answer }}" data-tol="{{ it.tol or 0 }}" {% if not loop.first %}hidden{% endif %}>
+        <div class="gsl-tfstmt">{{ gs_rich(it.q) }}</div>
+        <div class="gsl-calcrow"><input type="number" inputmode="decimal" step="any" class="gsl-calcin" aria-label="Your answer">{% if it.unit %}<span class="gsl-calcunit">{{ it.unit }}</span>{% endif %}
+          <button type="button" class="gsl-btn gsl-calcgo">Check</button></div>
+        <div class="gsl-tfwhy" hidden><b>Answer: {{ it.answer }}{% if it.unit %} {{ it.unit }}{% endif %}.</b> {{ gs_rich(it.why) }}</div></div>{% endfor %}
+      <button type="button" class="gsl-btn gsl-tfnext" hidden>Next <i class="bi bi-arrow-right-short"></i></button>
+    </div>
+
+  {% elif a.type == 'decide' %}
+    {#- GS-MORE-PLAY: a flight that unfolds one decision at a time; pick the best action to go on. -#}
+    <div class="gsl-decide" data-total="{{ a.steps|length }}">
+      {% for s in a.steps %}<div class="gsl-dstep" data-a="{{ s.answer }}" {% if not loop.first %}hidden{% endif %}>
+        <div class="gsl-dnum">Decision {{ loop.index }} of {{ a.steps|length }}</div>
+        <div class="gsl-tfstmt">{{ gs_rich(s.s) }}</div>
+        <div class="gsl-dopts">{% for o in s.options %}<button type="button" class="gsl-dopt" data-j="{{ loop.index0 }}">{{ gs_rich(o) }}</button>{% endfor %}</div>
+        <div class="gsl-tfwhy" hidden>{{ gs_rich(s.why) }}</div></div>{% endfor %}
       <button type="button" class="gsl-btn gsl-tfnext" hidden>Next <i class="bi bi-arrow-right-short"></i></button>
     </div>
 

@@ -1,0 +1,1921 @@
+{
+ "task_code": "IR.I.B",
+ "task_title": "Weather Information",
+ "area": "Area I. Preflight Preparation",
+ "minutes": 95,
+ "objective": "By the end of this lesson you can get a complete IFR weather briefing, read every product the ACS lists, explain the weather theory behind what you see, decide whether you need an alternate and whether it is legal, and make a sound go/no-go or divert decision.",
+ "why": "Weather is the one part of an IFR flight you can't control. Ice, thunderstorms and ceilings that drop below forecast catch pilots who read the products but don't connect them to their airplane, their route and their own limits.",
+ "prereading": [
+  {
+   "res": "28",
+   "pages": [
+    24,
+    30
+   ],
+   "printed": "AWH Ch 3, 3-1 to 3-7",
+   "what": "Latency, briefing types, self-briefing sources and in-flight weather sources.",
+   "label": "AWH Ch 3, 3-1 to 3-7"
+  },
+  {
+   "res": "34",
+   "pages": [
+    65,
+    79
+   ],
+   "printed": "AIM 7-1-5 to 7-1-7",
+   "what": "Preflight briefings, SIGMETs, Convective SIGMETs, AIRMETs, CWAs and flight categories.",
+   "label": "AIM 7-1-5 to 7-1-7"
+  },
+  {
+   "res": "34",
+   "pages": [
+    80,
+    84
+   ],
+   "printed": "AIM 7-1-9",
+   "what": "Flight Information Services and FIS-B: products, update times and limits.",
+   "label": "AIM 7-1-9"
+  },
+  {
+   "res": "37",
+   "pages": [
+    6,
+    16
+   ],
+   "printed": "AC 91-92, pages 6-16 and Appendix A",
+   "what": "Self-briefing checklists, cockpit weather and the safety do's and don'ts.",
+   "label": "AC 91-92, pages 6-16"
+  },
+  {
+   "res": "38",
+   "pages": [
+    37,
+    41
+   ],
+   "printed": "AC 91-74B Ch 4, pages 33-37",
+   "what": "Icing flight planning: fronts, freezing levels, AIRMETs, PIREP cautions.",
+   "label": "AC 91-74B Ch 4, pages 33-37"
+  },
+  {
+   "res": "60",
+   "pages": [
+    468,
+    470
+   ],
+   "printed": "14 CFR 91.167 and 91.169",
+   "what": "IFR fuel, when an alternate is required, and alternate weather minimums.",
+   "label": "14 CFR 91.167 and 91.169"
+  },
+  {
+   "res": "30",
+   "pages": [
+    13,
+    17
+   ],
+   "printed": "RMH Ch 2, 2-1 to 2-5",
+   "what": "Building, adjusting and sticking to personal minimums, including IFR.",
+   "label": "RMH Ch 2, 2-1 to 2-5"
+  }
+ ],
+ "warmup": "The destination TAF says OVC012 at your ETA and the freezing level is forecast at 6,000 ft. You planned to cruise at 7,000 ft in an airplane not approved for icing. What three questions do you need answered before you decide to go?",
+ "key_terms": [
+  {
+   "term": "METAR / SPECI",
+   "def": "Routine airport weather report, near the top of each hour. A SPECI is an unscheduled report when weather changes significantly."
+  },
+  {
+   "term": "Ceiling",
+   "def": "The lowest cloud layer reported as broken (BKN) or overcast (OVC), or the vertical visibility (VV) into a total obscuration."
+  },
+  {
+   "term": "Indefinite ceiling (VV)",
+   "def": "Vertical visibility into a surface-based obscuration such as fog. Slant range visibility is poor, so the runway is hard to see."
+  },
+  {
+   "term": "PIREP (UA / UUA)",
+   "def": "Pilot weather report. UA is routine; UUA is urgent (severe icing or turbulence, hail, LLWS, tornado, volcanic ash). Heights in MSL."
+  },
+  {
+   "term": "TAF",
+   "def": "Terminal Aerodrome Forecast for 5 SM around the airport, usually 24 hours, sometimes 30. No temperature in NWS TAFs."
+  },
+  {
+   "term": "G-AIRMET",
+   "def": "Graphical AIRMET: Sierra (IFR, mountain obscuration), Tango (turbulence, strong surface wind, LLWS), Zulu (icing, freezing level)."
+  },
+  {
+   "term": "Convective SIGMET",
+   "def": "Advisory for severe, embedded or lines of thunderstorms. It implies severe turbulence, severe icing and low-level wind shear."
+  },
+  {
+   "term": "Freezing level",
+   "def": "The lowest altitude where the air temperature reaches 0 °C. There can be more than one when an inversion exists."
+  },
+  {
+   "term": "Supercooled large drops (SLD)",
+   "def": "Liquid drops larger than 50 microns below 0 °C: freezing drizzle and freezing rain. They freeze behind protected areas."
+  },
+  {
+   "term": "Known icing conditions",
+   "def": "Atmospheric conditions in which ice formation is observed or detected in flight."
+  },
+  {
+   "term": "FIS-B",
+   "def": "Free weather and NOTAM broadcast on 978 MHz UAT for ADS-B In receivers, within line-of-sight of a ground station."
+  },
+  {
+   "term": "Standard alternate minimums",
+   "def": "Forecast at alternate ETA: 600-2 for a precision approach, 800-2 for a nonprecision approach, unless the chart lists other minimums."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "Where IFR weather comes from and which briefing to get",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.B.K1",
+    "IR.I.B.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Before an IFR flight, the pilot in command must become familiar with weather reports and forecasts, fuel requirements, alternatives if the flight can't be completed, and any known traffic delays ATC has told you about [[60:440|14 CFR 91.103(a)]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Source",
+       "What it gives you"
+      ],
+      "rows": [
+       [
+        "National Weather Service (NWS)",
+        "The Aviation Weather Center issues AIRMETs, SIGMETs, Convective SIGMETs and icing, turbulence and convective forecasts [[28:20|AWH 2-3]]. Local Weather Forecast Offices write TAFs [[28:21|AWH 2-4]]. The Storm Prediction Center issues severe weather watches [[34:58|AIM 7-1-1]]."
+       ],
+       [
+        "Center Weather Service Unit (CWSU)",
+        "NWS meteorologists inside each ARTCC. They write Center Weather Advisories (CWAs) [[28:21|AWH 2-4]]."
+       ],
+       [
+        "Flight Service",
+        "Briefings and flight plans at 1800wxbrief.com or 1-800-WX-BRIEF [[34:59|AIM 7-1-2]]. Briefers translate and interpret forecasts; they don't make original forecasts [[34:66|AIM 7-1-5]]."
+       ],
+       [
+        "aviationweather.gov",
+        "The AWC website with text and graphic products and the GFA Tool [[28:29|AWH 3-6]]."
+       ],
+       [
+        "ATC",
+        "Controllers advise of hazardous weather within 150 NM of their sector and ask for PIREPs [[28:22|AWH 2-5]]."
+       ],
+       [
+        "Commercial apps and EFBs",
+        "Usually repackaged NWS data, but some products are altered [[34:63|AIM 7-1-3]]. They may not meet FAA/NWS quality control [[34:62|AIM 7-1-3]]. The FAA does not certify internet weather providers [[28:24|AWH 3-1]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "A self-briefing online can be regulatory compliant; you don't have to call Flight Service [[34:66|AIM 7-1-5]]. Flight Service briefings, online or by voice, are time-stamped and archived for 45 days [[28:26|AWH 3-3]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Briefing",
+       "When to get it"
+      ],
+      "rows": [
+       [
+        "Outlook",
+        "Departure 6 or more hours away. Planning only [[34:68|AIM 7-1-5]]."
+       ],
+       [
+        "Standard",
+        "No earlier briefing. The full picture [[34:66|AIM 7-1-5]]."
+       ],
+       [
+        "Abbreviated",
+        "To update an earlier briefing or get one or two items [[34:67|AIM 7-1-5]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "A standard briefing runs: adverse conditions, VFR not recommended (VFR flights only), synopsis, current conditions, en route forecast, destination forecast (1 hour before to 1 hour after ETA), winds aloft, NOTAMs and ATC delays [[34:66|AIM 7-1-5]] [[34:67|AIM 7-1-5]]. Adverse conditions include weather that could drop below IFR minimums and icing if your airplane is not certified for it [[34:66|AIM 7-1-5]]. GPS RAIM availability is given on request [[34:67|AIM 7-1-5]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Get a standard briefing as close to departure as you can. Get an abbreviated update just before takeoff if it is 1 hour or more old or the weather is questionable [[37:14|AC 91-92 para 8.1]]. The more doubtful the weather, the more you need to know about the route, destination and alternate [[37:6|AC 91-92 para 6.3]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your IFR departure is 7 hours away. Which briefing do you ask for, and what must you still do later?",
+    "a": "An outlook briefing, for planning only. Get a standard or abbreviated briefing before departure for current conditions, updated forecasts and NOTAMs [[34:68|AIM 7-1-5]]."
+   }
+  },
+  {
+   "title": "METAR, SPECI and PIREPs through IFR eyes",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.B.K2",
+    "IR.I.B.K2a"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "A METAR is the routine report made near the top of each hour. A SPECI is an unscheduled report when certain criteria are met between hours. It has all the METAR elements [[28:290|AWH 24-6]]."
+    },
+    {
+     "bullets": [
+      "SPECI triggers that matter on an IFR day: visibility drops below (or rises to) 3, 2, 1, 1/2 or 1/4 SM, or the lowest approach minimum [[28:290|AWH 24-6]].",
+      "The ceiling forms, drops below or rises through 3,000, 1,500, 1,000 or 500 ft, or the lowest approach minimum [[28:290|AWH 24-6]].",
+      "RVR crosses 2,400 ft; a thunderstorm begins or ends; freezing precipitation begins, ends or changes intensity [[28:290|AWH 24-6]]."
+     ]
+    },
+    {
+     "p": "The ceiling is the lowest layer reported as broken or overcast. If the sky is totally obscured, the vertical visibility is the ceiling [[28:300|AWH 24-16]]. Cloud heights are in hundreds of feet AGL. VV means an indefinite ceiling: vertical visibility up into a surface-based obscuration [[28:299|AWH 24-15]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "Both ceilings above are 500 ft, but the indefinite ceiling is worse. Fog or snow cuts slant range visibility, so at minimums you may see the ground but not the runway, and you must go missed [[28:299|AWH 24-15]]."
+    },
+    {
+     "p": "Runway visual range (RVR) is reported when visibility is 1 SM or less and/or RVR is 6,000 ft or less. R01L/0800FT is 800 ft on runway 01L; an M in front means less than the lowest value it can report [[28:295|AWH 24-11]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Code",
+       "What it tells you"
+      ],
+      "rows": [
+       [
+        "AUTO",
+        "Fully automated, no human input [[28:286|AWH 24-2]]."
+       ],
+       [
+        "AO1 / AO2",
+        "AO2 stations have a precipitation discriminator; AO1 stations don't [[28:304|AWH 24-20]]."
+       ],
+       [
+        "CLR",
+        "Automated station found no clouds at or below 12,000 ft [[28:300|AWH 24-16]]."
+       ],
+       [
+        "FZRANO, PWINO, TSNO",
+        "The freezing rain, present weather or lightning sensor isn't working [[28:309|AWH 24-25]]."
+       ],
+       [
+        "$",
+        "The automated station needs maintenance [[28:310|AWH 24-26]]."
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "An AUTO station without a human can't report freezing rain or freezing drizzle together with other precipitation. If snow or mist is reported near 0 °C, be alert for severe icing [[38:38|AC 91-74B para 4-1]]."
+     }
+    },
+    {
+     "p": "**PIREPs.** Urgent (UUA) PIREPs report tornadoes or funnel clouds, severe or extreme turbulence, severe icing, hail, LLWS within 2,000 ft of the surface, and volcanic ash [[28:311|AWH 24-27]]. For IFR planning they are the best source of cloud tops. /SK OVC015-TOP035 means an overcast base at 1,500 ft MSL and top at 3,500 ft MSL [[28:313|AWH 24-29]]. PIREP altitudes are MSL [[28:312|AWH 24-28]]. Altitude and aircraft type are essential for turbulence and icing reports [[34:103|AIM TBL 7-1-8]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Under IFR in controlled airspace you must report any unforecast weather you encounter [[60:482|14 CFR 91.183(b)]]. Report good weather where bad was forecast, too [[37:3|AC 91-92 para 4.17]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "A METAR shows 1/2SM FG VV003. What is the ceiling?",
+    "a": "300 ft, an indefinite ceiling: the vertical visibility into fog [[28:300|AWH 24-16]] [[28:299|AWH 24-15]]."
+   }
+  },
+  {
+   "title": "TAFs for the destination and the alternate",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.B.K2",
+    "IR.I.B.K2c"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "A TAF forecasts conditions within 5 SM of the center of the runway complex. It uses METAR codes, but the NWS TAF has no temperature. Most cover 24 hours; some big airports get 30 [[28:407|AWH 27-6]]. Scheduled TAFs come out at 0000, 0600, 1200 and 1800Z. A TAF AMD replaces the old TAF the moment it is issued [[28:409|AWH 27-8]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Group",
+       "Meaning"
+      ],
+      "rows": [
+       [
+        "FM151800",
+        "From the 15th at 1800Z, a complete new forecast. Everything before it is replaced [[28:416|AWH 27-15]]."
+       ],
+       [
+        "TEMPO 1518/1520",
+        "Temporary changes: more than 50% chance, each lasting 1 hour or less, adding up to less than half the period. Only changed items are listed [[28:417|AWH 27-16]]."
+       ],
+       [
+        "PROB30",
+        "A 30% chance of a thunderstorm or precipitation event [[28:418|AWH 27-17]]."
+       ],
+       [
+        "WS020/27055KT",
+        "Non-convective LLWS from the surface to 2,000 ft. The wind is at the top of the layer, not the amount of shear [[28:416|AWH 27-15]]."
+       ],
+       [
+        "BKN008, OVC008, VV008",
+        "All mean an 800 ft ceiling, in AGL [[28:415|AWH 27-14]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "For IFR you read TAFs two ways. At the destination you look from 1 hour before to 1 hour after ETA to see if an alternate is required [[60:469|14 CFR 91.169(b)]]. At the alternate you look at your ETA there to see if it qualifies [[60:469|14 CFR 91.169(c)]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "The only cloud type in a TAF is CB [[28:415|AWH 27-14]]. LLWS is always assumed in convective activity, even when no WS group is shown [[28:415|AWH 27-14]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "A TAF has TEMPO 1518/1520 1SM BR OVC004. What does it promise?",
+    "a": "More than a 50% chance of 1 SM in mist and a 400 ft overcast, each time lasting 1 hour or less and in total less than half of 1800-2000Z [[28:417|AWH 27-16]]."
+   }
+  },
+  {
+   "title": "The big picture: surface analysis, ceiling and visibility, GFA, winds aloft and the Convective Outlook",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.B.K2",
+    "IR.I.B.K2b",
+    "IR.I.B.K2d",
+    "IR.I.B.K2e",
+    "IR.I.B.K2f"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "**Surface analysis chart.** It shows highs, lows, ridges, troughs, fronts, drylines and outflow boundaries, with isobars (lines of equal pressure). The Weather Prediction Center issues it eight times a day [[28:350|AWH 25-8]]. Closely spaced isobars mean strong winds [[28:117|AWH 10-2]]. Use it for the synopsis."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "**Ceiling and visibility.** Map displays color airports by flight category: LIFR purple (ceiling below 500 ft and/or visibility below 1 SM), IFR red (500 to below 1,000 ft and/or 1 to below 3 SM), MVFR blue (1,000 to 3,000 ft and/or 3 to 5 SM), VFR green [[28:51|AWH 3-28]] [[34:79|AIM 7-1-7]]. They are for situational awareness only [[28:51|AWH 3-28]]."
+    },
+    {
+     "p": "**Graphical Forecasts for Aviation (GFA).** One map with observations, forecasts and warnings from 14 hours ago to 15 hours ahead: thunderstorms, clouds, flight category, precipitation, icing, turbulence and wind. Wind, icing and turbulence come in 3,000 ft steps up to 30,000 ft [[34:63|AIM 7-1-4]]. The static Aviation Cloud Forecast shows coverage, bases and tops with icing and mountain obscuration AIRMETs. The Aviation Surface Forecast shows visibility, weather and winds with IFR and surface wind AIRMETs. Both update every 3 hours for 3 to 18 hours ahead [[34:64|AIM 7-1-4]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "GFA layers can be switched off. Turning off the AIRMET or SIGMET overlays can hide hazards on your route [[28:471|AWH 28-2]]."
+     }
+    },
+    {
+     "table": {
+      "head": [
+       "Winds and temperatures aloft (FB)",
+       "Rule"
+      ],
+      "rows": [
+       [
+        "Format DDff+TT",
+        "Direction in tens of degrees true, speed in knots, temperature in °C [[28:405|AWH 27-4]]."
+       ],
+       [
+        "9900",
+        "Light and variable, less than 5 kt [[28:405|AWH 27-4]]."
+       ],
+       [
+        "Blank levels",
+        "No wind within 1,500 ft of the station elevation; no temperature within 2,500 ft [[28:405|AWH 27-4]]."
+       ],
+       [
+        "7545",
+        "100 to 199 kt: 50 was added to the direction. Decode: 250° at 145 kt [[28:405|AWH 27-4]]."
+       ],
+       [
+        "Above 24,000 ft",
+        "Temperatures are always negative, so the sign is left out [[28:405|AWH 27-4]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "FB forecasts are coarse: updated only four times a day, one value for long time blocks, points 100 to 150 mi apart [[28:404|AWH 27-3]]. Their temperatures give you the approximate freezing level [[38:37|AC 91-74B para 4-1]]. In the AWH example for Kansas City, 6,000 ft is +6 °C and 9,000 ft is 0 °C, so the freezing level is near 9,000 ft [[28:406|AWH Table 27-1]]."
+    },
+    {
+     "p": "**Convective Outlook (AC).** The Storm Prediction Center shows the chance of general and severe thunderstorms for the next 8 days. Severe means a tornado, gusts of 50 kt or more, or hail 1 inch or larger. Risk levels are MRGL, SLGT, ENH, MDT and HIGH; days 1 to 3 also show general thunderstorms (TSTM) [[28:457|AWH 27-56]]. Use it at the outlook stage to see if the trip is likely to work."
+    }
+   ],
+   "check": {
+    "q": "The FB shows 2525+02 at 6,000 ft and 2635-04 at 9,000 ft. About where is the freezing level?",
+    "a": "Near 7,000 ft. The temperature drops 6 °C in 3,000 ft (2 °C per 1,000 ft), so 0 °C is about 1,000 ft above 6,000 ft. The freezing level is the lowest altitude where it reaches 0 °C [[28:454|AWH 27-53]] [[38:37|AC 91-74B para 4-1]]."
+   }
+  },
+  {
+   "title": "In-flight advisories: AIRMET, SIGMET, Convective SIGMET and CWA",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.B.K2",
+    "IR.I.B.K2g"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Advisory",
+       "Issued for",
+       "Timing"
+      ],
+      "rows": [
+       [
+        "AIRMET (G-AIRMET)",
+        "IFR (ceiling below 1,000 ft and/or visibility below 3 SM), widespread mountain obscuration, moderate icing, freezing levels, moderate turbulence, LLWS potential below 2,000 ft AGL, sustained surface winds over 30 kt [[34:73|AIM 7-1-6]]",
+        "Every 6 hours over the lower 48 [[34:73|AIM 7-1-6]]"
+       ],
+       [
+        "SIGMET",
+        "Severe icing or severe or extreme turbulence (including CAT) not from thunderstorms; dust or sandstorms below 3 mi; volcanic ash [[34:69|AIM 7-1-6]]",
+        "Valid 4 hours; 6 hours for volcanic ash and tropical cyclones [[34:69|AIM 7-1-6]]"
+       ],
+       [
+        "Convective SIGMET",
+        "Severe thunderstorms (surface winds 50 kt or more, hail 3/4 inch or more, tornadoes), embedded thunderstorms, lines of thunderstorms, heavy-precipitation storms covering 40% or more of at least 3,000 square miles [[34:71|AIM 7-1-6]]",
+        "Hourly at 55 minutes past the hour; each forecast is valid for up to 1 hour [[34:71|AIM 7-1-6]]"
+       ],
+       [
+        "Center Weather Advisory (CWA)",
+        "Short-term hazards from the CWSU: a supplement to other advisories, or hazards that meet or fall short of advisory criteria but still affect traffic [[34:78|AIM 7-1-6]] [[34:79|AIM 7-1-6]]",
+        "A nowcast for conditions in the next 2 hours; not a planning product [[34:78|AIM 7-1-6]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "AIRMET Sierra = IFR and mountain obscuration. Tango = moderate turbulence, sustained surface winds over 30 kt, LLWS. Zulu = moderate icing and freezing levels [[28:383|AWH 26-16]]."
+     }
+    },
+    {
+     "p": "Any Convective SIGMET implies severe or greater turbulence, severe icing and low-level wind shear [[34:71|AIM 7-1-6]]. Its polygon is a snapshot at 55 past the hour. The storms keep moving, so use it for strategic planning only [[28:374|AWH 26-7]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "p": "G-AIRMETs are snapshots no more than 3 hours apart, out to 12 hours [[34:73|AIM 7-1-6]]. If the 00-hour picture shows nothing and the 03-hour picture shows a hazard, assume it starts right after 00 hours [[34:74|AIM 7-1-6]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Don't rely on advisories alone. Icing AIRMETs are issued only for large areas, and a severe icing PIREP does not automatically produce a SIGMET. Always read the PIREPs [[38:37|AC 91-74B para 4-1]] [[38:38|AC 91-74B para 4-1]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "In flight, ARTCC broadcasts an alert once on all its frequencies for a Convective SIGMET, SIGMET, urgent PIREP or CWA within 150 mi of its airspace. AIRMETs are not broadcast this way in the lower 48. Then contact Flight Service for details [[34:79|AIM 7-1-8]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "G-AIRMET Zulu snapshots: 00Z shows no icing on your route, 03Z shows moderate icing there, 06Z shows none. When should you assume the icing exists?",
+    "a": "From just after 00 to just before 06 (0001 to 0559) [[34:74|AIM 7-1-6]]."
+   }
+  },
+  {
+   "title": "The atmosphere: composition, heat, moisture and stability",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.B.K3",
+    "IR.I.B.K3a",
+    "IR.I.B.K3c",
+    "IR.I.B.K3d"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "**Composition.** Dry air is about 78% nitrogen, 21% oxygen, 0.9% argon and 0.04% carbon dioxide. Water vapor varies from a trace to about 4% by volume [[28:62|AWH 4-2]]."
+    },
+    {
+     "p": "**Heat exchange.** Heat moves by radiation [[28:70|AWH 5-4]], conduction (air is a poor conductor) [[28:72|AWH 5-6]] and convection, the motion of the air itself [[28:73|AWH 5-7]]. Water has the highest specific heat of any natural substance, so it stores heat with little temperature change [[28:75|AWH 5-9]]. When vapor condenses into cloud, it releases latent heat; evaporation absorbs it [[28:85|AWH 6-6]]."
+    },
+    {
+     "p": "**Temperature.** The standard lapse rate is 6.5 °C per km (about 2 °C per 1,000 ft), but the real atmosphere seldom matches it, so be careful using it to estimate the freezing level [[28:77|AWH 5-11]]. In an inversion, temperature rises with height. Surface inversions form on clear nights with light wind; inversions aloft form when warm air overruns cold air. Inversion layers are very stable [[28:78|AWH 5-12]]."
+    },
+    {
+     "p": "**Moisture.** Dewpoint is the temperature the air must cool to for saturation. As the temperature-dewpoint spread shrinks, relative humidity rises [[28:83|AWH 6-4]]. The spread is important for fog but says little about precipitation [[28:84|AWH 6-5]]. Significant precipitation needs clouds at least 4,000 ft thick; if an airport reports light or heavier precipitation, expect clouds more than 4,000 ft thick [[28:166|AWH 14-2]]."
+    },
+    {
+     "table": {
+      "head": [
+       "At the surface",
+       "Temperature profile above"
+      ],
+      "rows": [
+       [
+        "Snow",
+        "Below freezing all the way up [[28:167|AWH 14-3]]"
+       ],
+       [
+        "Ice pellets",
+        "Shallow warm layer aloft over a deep cold layer at the surface [[28:168|AWH 14-4]]"
+       ],
+       [
+        "Freezing rain",
+        "Deep warm layer aloft over a shallow cold layer at the surface (an inversion) [[28:168|AWH 14-4]]"
+       ],
+       [
+        "Rain",
+        "Deep above-freezing layer from the surface up [[28:169|AWH 14-5]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Stability.** Lift a parcel of air. If it ends up colder than the air around it, it sinks back: stable. If it ends up warmer, it keeps rising: unstable [[28:155|AWH 13-2]]. Air becomes more stable when cold air moves in at the bottom or warm air at the top, and when it sinks. It becomes less stable with warm air below, cold air above, or lifting [[28:161|AWH 13-8]]."
+    },
+    {
+     "table": {
+      "head": [
+       "",
+       "Unstable air",
+       "Stable air"
+      ],
+      "rows": [
+       [
+        "How it forms",
+        "Warmed from below [[1:302|PHAK 12-18]]",
+        "Cooled from below [[1:302|PHAK 12-18]]"
+       ],
+       [
+        "Clouds and weather",
+        "Cumulus, showers, turbulence [[1:302|PHAK 12-18]]",
+        "Low stratus, fog, drizzle [[1:302|PHAK 12-18]] [[28:136|AWH 11-3]]"
+       ],
+       [
+        "Surface visibility",
+        "Good [[1:302|PHAK 12-18]]",
+        "Poor; smoke and dust are trapped [[1:302|PHAK 12-18]]"
+       ]
+      ]
+     }
+    }
+   ],
+   "check": {
+    "q": "Surface temperature 14 °C, dewpoint 4 °C. Rising unsaturated air cools 3 °C per 1,000 ft and its dewpoint drops 0.5 °C per 1,000 ft. About where will cumulus bases form?",
+    "a": "About 4,000 ft AGL. The spread closes 2.5 °C per 1,000 ft, and 10 ÷ 2.5 = 4 [[28:146|AWH 12-2]]."
+   }
+  },
+  {
+   "title": "Air masses, fronts and clouds",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.B.K3",
+    "IR.I.B.K3e",
+    "IR.I.B.K3f"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Air masses take on the temperature and moisture of their source region: Arctic, Polar or Tropical, and continental (dry) or maritime (moist). The five are cA, cP, cT, mP and mT [[28:135|AWH 11-2]]. A front is the boundary between two air masses [[28:137|AWH 11-4]]. You can spot one by a sharp temperature change, converging winds, and pressure that falls as it nears and rises after it passes [[28:138|AWH 11-5]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Front",
+       "Speed and slope",
+       "IFR weather"
+      ],
+      "rows": [
+       [
+        "Warm",
+        "10 to 25 mph, gentle slope [[28:138|AWH 11-5]]",
+        "Wide band of stratiform cloud, rain or drizzle, fog and poor visibility ahead of it; thunderstorms possible in summer [[28:138|AWH 11-5]]. In winter, freezing rain or ice pellets in the cold air below [[28:247|AWH 20-5]]."
+       ],
+       [
+        "Cold",
+        "25 to 30 mph, up to 60; steep slope [[28:139|AWH 11-6]]",
+        "Narrow band of showers and thunderstorms; squall lines may form ahead; clears fast behind with gusty winds [[28:139|AWH 11-6]]"
+       ],
+       [
+        "Stationary",
+        "Little movement [[28:140|AWH 11-7]]",
+        "A mix of warm and cold front weather that can last for days [[28:140|AWH 11-7]]"
+       ],
+       [
+        "Occluded",
+        "Cold front catches the warm front [[28:141|AWH 11-8]]",
+        "Warm front weather, then cold front weather. A warm occlusion with unstable air brings embedded thunderstorms, rain and fog [[28:141|AWH 11-8]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "Along a warm front, warm air slides up over cold air and forms stratus clouds that favor icing. A cold front lifts air fast and forms cumulus with high water content [[38:16|AC 91-74B para 2-3]]. If you must cross a front, take the shortest route through it, not along it [[38:18|AC 91-74B para 2-3]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Cloud form",
+       "What to expect"
+      ],
+      "rows": [
+       [
+        "Cirriform",
+        "High, above 20,000 ft, mostly ice crystals [[28:152|AWH 12-8]]"
+       ],
+       [
+        "Nimbo-form",
+        "Rain clouds with steady precipitation; bases lower as they thicken [[28:152|AWH 12-8]]"
+       ],
+       [
+        "Cumuliform",
+        "Heaps that show rising air; tops can pass 60,000 ft [[28:152|AWH 12-8]]"
+       ],
+       [
+        "Stratiform",
+        "A gray layer; bases often only a few hundred feet up [[28:152|AWH 12-8]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "In temperate regions, low cloud bases run from the surface to 6,500 ft, middle from 6,500 to 23,000 ft, and high from 16,500 to 40,000 ft [[28:153|AWH 12-9]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Climate to expect: mountain wave is worst from late autumn to early spring [[28:191|AWH 16-2]]. Valley fog peaks in autumn and spring [[28:223|AWH 18-3]]. Lake-effect clouds and snow form in autumn and winter near the Great Lakes [[28:137|AWH 11-4]]. Gulf moisture over cold ground brings advection fog to the central and eastern U.S. in winter [[28:225|AWH 18-5]]. Tornadoes are most common in spring and autumn in the central and eastern U.S. [[28:274|AWH 22-19]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Pressure is falling, the wind is from the south-southeast, the dewpoint is rising and the stratus keeps lowering in steady light rain. What is coming?",
+    "a": "A warm front [[28:138|AWH 11-5]]."
+   }
+  },
+  {
+   "title": "Wind, wind shear, mountain wave and turbulence",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.B.K3",
+    "IR.I.B.K3b",
+    "IR.I.B.K3g"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Three forces drive the wind: pressure gradient force, Coriolis force and friction [[28:117|AWH 10-2]]. Near the surface, friction turns the wind across the isobars toward low pressure, about 10° over water and up to 45° over rough terrain. In the Northern Hemisphere it spirals clockwise out of a high and counterclockwise into a low [[28:122|AWH 10-7]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Turbulence",
+       "Cause and clues"
+      ],
+      "rows": [
+       [
+        "Convective",
+        "Uneven heating on warm afternoons with light wind. Bumpy below and in cumulus, usually smooth above the tops. Dry thermals give no warning [[28:234|AWH 19-2]]."
+       ],
+       [
+        "Mechanical",
+        "Trees, buildings and mountains break up the wind. Worse with higher wind, rougher ground and bigger obstacles [[28:236|AWH 19-4]]."
+       ],
+       [
+        "Wind shear",
+        "Two air currents of different speed or direction, often across inversions [[28:237|AWH 19-5]]. Clear-air turbulence is normally above 15,000 ft near the jet stream [[28:238|AWH 19-6]]."
+       ],
+       [
+        "Thunderstorm",
+        "Severe turbulence is common. Shear turbulence can reach 20 mi out, and the gust front can run 15 mi ahead of the rain [[28:235|AWH 19-3]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Mountain wave.** Strong wind across a ridge in stable air makes waves downwind. Lenticular and rotor clouds may show them, but severe events can come with little or no visual warning. They are worst from late autumn to early spring [[28:191|AWH 16-2]]. With 20 kt or more at ridge level, expect moderate or greater turbulence, strong updrafts and downdrafts, and rotors [[28:242|AWH 19-10]]."
+    },
+    {
+     "p": "**Low-level wind shear (LLWS).** A change of 10 kt or more per 100 ft in a layer more than 200 ft thick, within 2,000 ft of the surface. It comes with fronts, inversions and strong winds aloft (more than 25 kt) [[28:240|AWH 19-8]]. Wind shear can hit any flight at any altitude and often goes undetected [[28:240|AWH 19-8]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Intensity",
+       "What you feel"
+      ],
+      "rows": [
+       [
+        "Light",
+        "Slight, erratic changes in altitude or attitude; slight strain against the belts [[34:106|AIM TBL 7-1-11]]"
+       ],
+       [
+        "Moderate",
+        "Changes in altitude or attitude and indicated airspeed, but always in control; definite strain against the belts [[34:106|AIM TBL 7-1-11]]"
+       ],
+       [
+        "Severe",
+        "Large, abrupt changes; may be momentarily out of control; forced violently against the belts [[34:106|AIM TBL 7-1-11]]"
+       ],
+       [
+        "Extreme",
+        "Tossed violently, practically impossible to control; possible structural damage [[34:106|AIM TBL 7-1-11]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Report wind shear as the airspeed lost or gained and the altitude. Don't say 'negative wind shear'; it has been taken to mean no shear [[34:106|AIM 7-1-22]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Ridge-level winds are 25 kt across the range in stable air, and you see no lenticular clouds. Can you expect a smooth ride?",
+    "a": "No. With 20 kt or more at ridge level expect moderate or greater turbulence and rotors [[28:242|AWH 19-10]], and severe events can happen with no visual warning [[28:191|AWH 16-2]]."
+   }
+  },
+  {
+   "title": "Thunderstorms and microbursts",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.B.K3",
+    "IR.I.B.K3h"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "A thunderstorm needs enough water vapor, unstable air and a lifting mechanism such as a front, upslope flow, converging winds or a sea breeze [[28:257|AWH 22-2]]. A single cell lives about 30 minutes. In the towering cumulus stage, updrafts can exceed 3,000 fpm [[28:257|AWH 22-2]]. The mature stage starts when precipitation reaches the ground; a gust front spreads out ahead, and hazards peak near the end of this stage. In the dissipating stage, downdrafts take over and an anvil remains [[28:258|AWH 22-3]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "Almost all storms are multicell, and a multicell cluster can last for hours [[28:258|AWH 22-3]]. Hazards include low ceiling and visibility, lightning, downbursts, turbulence, icing, hail and rapid altimeter changes, and you can't tell by looking which ones a storm holds [[28:262|AWH 22-7]]. The altimeter can be more than 100 ft wrong as a storm passes [[28:274|AWH 22-19]]. Severe turbulence can extend 20 mi from severe storms and about 10 mi from less severe ones [[34:119|AIM 7-1-26]]. Lightning strikes are most likely between -5 °C and +5 °C [[34:119|AIM 7-1-26]]."
+    },
+    {
+     "p": "**Microbursts.** The downdraft is usually less than 1 mile across and spreads out to about 2 1/2 miles near the ground. Downdrafts reach 6,000 fpm, and 45 kt outflow can give a 90 kt headwind-to-tailwind change. It strengthens for about 5 minutes after it hits the ground and seldom lasts more than 15 minutes [[34:108|AIM 7-1-24]]. Conventional radar and wind shear alert systems may not catch it [[34:107|AIM 7-1-24]]. Clues: an intense rain shaft, virga, or a ring of blowing dust [[28:263|AWH 22-8]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Thunderstorm rule (AIM)",
+       "Why"
+      ],
+      "rows": [
+       [
+        "Avoid any storm that is severe or gives an intense radar echo by at least 20 mi [[34:120|AIM 7-1-27]]",
+        "Turbulence and hail extend far outside the cloud"
+       ],
+       [
+        "Don't fly into a cloud mass with embedded thunderstorms without airborne radar [[34:120|AIM 7-1-27]]",
+        "You can't see them to go around"
+       ],
+       [
+        "Go around the whole area if it has 6/10 thunderstorm coverage [[34:120|AIM 7-1-27]]",
+        "Gaps close fast"
+       ],
+       [
+        "Treat tops of 35,000 ft or more as extremely hazardous [[34:120|AIM 7-1-27]]",
+        "A sign of a strong storm"
+       ],
+       [
+        "Don't take off or land with a storm approaching [[34:119|AIM 7-1-27]]",
+        "The gust front can cause loss of control"
+       ],
+       [
+        "If you can't get around, divert and wait on the ground [[34:120|AIM 7-1-27]]",
+        "Storms pass; patience is free"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Last resort only: if you can't avoid a storm, pick an altitude below the freezing level or above the -15 °C level, turn on pitot heat and carb heat, hold attitude and let altitude vary, and don't turn back once inside [[34:120|AIM 7-1-27]] [[34:121|AIM 7-1-27]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "ATC reports an intense echo 12 mi off your route. Is that enough room?",
+    "a": "No. Avoid any severe storm or intense echo by at least 20 mi [[34:120|AIM 7-1-27]]."
+   }
+  },
+  {
+   "title": "Icing, the freezing level and frost",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.B.K3",
+    "IR.I.B.K3i",
+    "IR.I.B.K3k"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Structural icing forms when supercooled water (liquid below 0 °C) hits the airframe and freezes [[28:244|AWH 20-2]]. Expect icing in visible moisture between +2 °C and -10 °C [[34:103|AIM 7-1-19]]. Almost all icing happens between 0 °C and -20 °C, half of it between -8 °C and -12 °C, with a peak near 10,000 ft [[28:245|AWH 20-3]]. Below -20 °C, clouds are usually all ice crystals [[28:244|AWH 20-2]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Ice",
+       "Forms from",
+       "Notes"
+      ],
+      "rows": [
+       [
+        "Rime",
+        "Small drops, colder temperatures (about -15 °C and below) [[28:245|AWH 20-3]]",
+        "Rough, milky, opaque; most often reported [[28:244|AWH 20-2]]"
+       ],
+       [
+        "Clear (glaze)",
+        "Large drops, warmer (about -10 °C and above) [[28:245|AWH 20-3]]",
+        "Forms horns, hard to see, spreads past boots; more hazardous [[28:244|AWH 20-2]]"
+       ],
+       [
+        "Mixed",
+        "In between [[28:245|AWH 20-3]]",
+        "Hazard like clear ice [[28:245|AWH 20-3]]"
+       ],
+       [
+        "SLD",
+        "Freezing drizzle and freezing rain, drops over 50 microns [[28:245|AWH 20-3]]",
+        "Freezes aft of the protected areas [[28:245|AWH 20-3]]"
+       ]
+      ]
+     }
+    },
+    {
+     "table": {
+      "head": [
+       "Intensity",
+       "Rate on the outer wing",
+       "Action"
+      ],
+      "rows": [
+       [
+        "Trace",
+        "Less than 1/4 inch per hour",
+        "Consider exiting before it gets worse [[34:103|AIM 7-1-19]]"
+       ],
+       [
+        "Light",
+        "1/4 to 1 inch per hour",
+        "Consider exiting [[34:103|AIM 7-1-19]]"
+       ],
+       [
+        "Moderate",
+        "1 to 3 inches per hour",
+        "Consider exiting as soon as possible [[34:103|AIM 7-1-19]]"
+       ],
+       [
+        "Severe",
+        "More than 3 inches per hour; protection can't keep up",
+        "Immediate exit required by regulation [[34:103|AIM 7-1-19]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Where it lurks.** Icing in stratus is usually in a layer 3,000 to 4,000 ft thick, so a few thousand feet of altitude change may get you out [[28:246|AWH 20-4]]. Cumulus icing is smaller sideways but deeper and can be severe [[28:246|AWH 20-4]]. Most icing reports come near fronts. Freezing rain below a front is a favorite spot for severe clear ice, and ice pellets at the surface mean icing above [[28:246|AWH 20-4]] [[28:247|AWH 20-5]]. Over mountains, the worst icing is above the crests and on the windward side, up to about 5,000 ft above the tops [[28:248|AWH 20-6]]. Freezing drizzle usually forms without a warm layer, so don't assume warm air above you [[38:16|AC 91-74B para 2-2]]."
+    },
+    {
+     "p": "**Freezing level.** Freezing level graphics update hourly, in hundreds of feet MSL; hatched areas show more than one freezing level [[28:454|AWH 27-53]]. AIRMET Zulu gives freezing levels [[28:383|AWH 26-16]]. The Current and Forecast Icing Products (CIP and FIP) show icing probability, severity and SLD from 1,000 ft MSL to FL300; FIP goes out 18 hours [[28:365|AWH 25-23]] [[28:455|AWH 27-54]]. Know where inversions and multiple freezing levels are, so you know which way to escape [[38:37|AC 91-74B para 4-1]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Flight into known icing conditions is prohibited for aircraft not properly certificated and equipped [[37:15|AC 91-92 para 8.2]]. 'Known icing conditions' means ice observed or detected in flight [[34:105|AIM TBL 7-1-10]]. Airplanes not certified for icing were never tested for inadvertent encounters: avoid icing and exit immediately [[38:32|AC 91-74B para 3-13]]."
+     }
+    },
+    {
+     "p": "**Escape.** First get out of the visible moisture: descend below the bases, climb above the tops or turn around. If you can't, go to an altitude above freezing [[28:249|AWH 20-7]], which may not be lower [[34:103|AIM 7-1-19]]. If you are not certified for icing, exit as fast as you can and declare an emergency [[38:44|AC 91-74B para 5-2]]."
+    },
+    {
+     "p": "**Frost.** It forms on an airplane parked outside on a clear night as the skin cools below freezing [[38:46|AC 91-74B para 5-4]]. Frost no rougher than coarse sandpaper can cut lift by 30% and raise drag up to 40% [[28:249|AWH 20-7]]. Remove all of it before flight [[38:46|AC 91-74B para 5-4]]."
+    }
+   ],
+   "check": {
+    "q": "Your destination reports ice pellets. What does that tell you about the air above?",
+    "a": "There is a warm layer aloft with freezing rain falling into cold air, so expect icing above, possibly SLD [[28:247|AWH 20-5]] [[38:39|AC 91-74B para 4-1]]."
+   }
+  },
+  {
+   "title": "Fog, mist and other obstructions to visibility",
+   "kind": "knowledge",
+   "codes": [
+    "IR.I.B.K3",
+    "IR.I.B.K3j",
+    "IR.I.B.K3l"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Fog is a cloud at the surface that cuts visibility below 5/8 SM. It forms when the temperature and dewpoint meet, and it seldom forms when the spread is more than 2 °C (4 °F) [[28:222|AWH 18-2]]. AC 91-92 says to be especially cautious when the spread is 3 °C or less [[37:15|AC 91-92 para 8.2]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Fog",
+       "How it forms",
+       "What to expect"
+      ],
+      "rows": [
+       [
+        "Radiation",
+        "Clear sky, light wind, ground cools the air [[28:223|AWH 18-3]]",
+        "Land only; usually clears before noon [[28:223|AWH 18-3]]"
+       ],
+       [
+        "Advection",
+        "Moist air moves over a colder surface [[28:224|AWH 18-4]]",
+        "Deepens with wind up to about 15 kt; can arrive any time and persists [[28:224|AWH 18-4]] [[28:226|AWH 18-6]]"
+       ],
+       [
+        "Upslope",
+        "Moist, stable air pushed up sloping ground [[28:226|AWH 18-6]]",
+        "Winds 5 to 15 kt; can form under cloud; dense and deep [[28:226|AWH 18-6]]"
+       ],
+       [
+        "Frontal",
+        "Rain falls into cold air near its dewpoint [[28:226|AWH 18-6]]",
+        "Covers large areas for a long time, mostly with warm fronts [[28:226|AWH 18-6]]"
+       ],
+       [
+        "Steam",
+        "Very cold air over warmer water [[28:227|AWH 18-7]]",
+        "Expect convective turbulence in it [[28:227|AWH 18-7]]"
+       ],
+       [
+        "Freezing",
+        "Fog at 0 °C or below [[28:228|AWH 18-8]]",
+        "Ice can form on the airplane, even while taxiing [[28:228|AWH 18-8]]"
+       ]
+      ]
+     }
+    },
+    {
+     "bullets": [
+      "Mist (BR): visibility less than 7 SM but at least 5/8 SM [[28:229|AWH 18-9]].",
+      "Haze (HZ): stable air, up to 15,000 ft thick. Slant range is poor, and it changes a lot with whether you face into or away from the sun [[28:229|AWH 18-9]].",
+      "Smoke (FU): can drop visibility to zero and clears more slowly than fog [[28:229|AWH 18-9]].",
+      "Precipitation: drizzle cuts visibility more than rain; heavy snow can drop it to zero [[28:229|AWH 18-9]].",
+      "Dust: slant range visibility is worse than reported surface visibility, so you may not find the field from above [[28:230|AWH 18-10]].",
+      "Volcanic ash: hard to tell from normal cloud, fine ash isn't seen on radar, and even piston engines can be badly damaged [[28:231|AWH 18-11]] [[28:232|AWH 18-12]].",
+      "Low stratus: lowest at night and early morning, often lifting by late morning [[28:232|AWH 18-12]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "On ASOS, a spread of 2 °C (4 °F) or less with visibility of 5/8 to under 7 SM is reported as BR; a wider spread is reported as HZ [[28:287|AWH 24-3]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "The evening METAR shows 18/16, light wind and clear skies after an afternoon of rain. What should worry you about a 0600 arrival?",
+    "a": "Radiation fog: clear sky, light wind and wet ground, with the spread already near 2 °C [[28:223|AWH 18-3]] [[28:222|AWH 18-2]]."
+   }
+  },
+  {
+   "title": "Cockpit weather and the limits of every product",
+   "kind": "risk",
+   "codes": [
+    "IR.I.B.K4",
+    "IR.I.B.R2",
+    "IR.I.B.R2a",
+    "IR.I.B.R2b",
+    "IR.I.B.R2c"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "FIS-B is a free broadcast on 978 MHz UAT, received within range and line-of-sight of a ground station [[34:80|AIM 7-1-9]]. It sends AIRMETs, SIGMETs, Convective SIGMETs, METARs, NEXRAD, NOTAMs, PIREPs, TAFs, winds and temperatures aloft, lightning, turbulence, icing, cloud tops, G-AIRMETs and CWAs [[37:13|AC 91-92 para 7.7]] [[37:14|AC 91-92 para 7.7]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Tool",
+       "Limit"
+      ],
+      "rows": [
+       [
+        "FIS-B NEXRAD",
+        "CONUS image is rebroadcast every 15 minutes, regional every 2.5 minutes [[34:83|AIM TBL 7-1-3]]. Low-altitude tier radios don't get CONUS NEXRAD [[34:84|AIM TBL 7-1-4]]. The mosaic can be 15 to 20 minutes older than shown [[34:120|AIM 7-1-27]]."
+       ],
+       [
+        "Any data-link weather",
+        "For strategic decisions (20 minutes or more ahead), not tactical ones (under 3 minutes). Not a substitute for a preflight briefing and not your only source [[34:81|AIM 7-1-9]]."
+       ],
+       [
+        "FIS-B NOTAMs",
+        "Only those from the past 30 days, except TFRs [[34:82|AIM 7-1-9]]."
+       ],
+       [
+        "Onboard weather radar",
+        "For avoiding storms, not penetrating them. A strong cell can hide cells behind it (attenuation). It doesn't show clear-air turbulence, clouds or fog [[28:275|AWH 22-20]] [[28:276|AWH 22-21]]."
+       ],
+       [
+        "ATC radar",
+        "Sees precipitation, not clouds or turbulence. ARTCC displays can be up to 6 minutes old [[34:97|AIM 7-1-12]]."
+       ],
+       [
+        "Any radar",
+        "A clear display does not mean no significant weather [[34:93|AIM 7-1-11]]."
+       ]
+      ]
+     }
+    },
+    {
+     "table": {
+      "head": [
+       "Report or forecast",
+       "Limit"
+      ],
+      "rows": [
+       [
+        "METAR AUTO",
+        "Clouds only to 12,000 ft [[28:287|AWH 24-3]]; sky condition is a 30-minute average [[28:286|AWH 24-2]]."
+       ],
+       [
+        "TAF",
+        "Covers only 5 SM around the airport [[28:407|AWH 27-6]]."
+       ],
+       [
+        "FB winds",
+        "Updated four times a day, points 100 to 150 mi apart [[28:404|AWH 27-3]]."
+       ],
+       [
+        "CIP",
+        "Shows a model's picture at the valid time, which may be an hour old or more [[28:366|AWH 25-24]]."
+       ],
+       [
+        "PIREPs",
+        "No report does not mean no ice. A jet may report light icing where a slower airplane gets severe icing [[38:40|AC 91-74B para 4-3]]."
+       ],
+       [
+        "All forecasts",
+        "Uncertainty grows the further out you go [[28:25|AWH 3-2]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "In flight, use ATC, Flight Service on its radio frequencies, ASOS/AWOS broadcasts (typically 25 NM range), ATIS and FIS-B [[28:30|AWH 3-7]]. Listen on frequency for PIREPs and pilots asking to deviate [[34:120|AIM 7-1-27]]. When FIS and voice information differ, use the most recent data from the most authoritative source [[34:81|AIM 7-1-9]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Too many layers on the screen raises your workload; show only what this phase of flight needs [[34:81|AIM 7-1-9]]. Learn your own display's symbols from the avionics maker's guide [[34:84|AIM 7-1-9]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your EFB NEXRAD shows a 15-mile gap between two red cells right on your route. Can you plan to fly through it?",
+    "a": "No. Data-link radar is for strategic avoidance, not threading gaps [[34:81|AIM 7-1-9]], and no path between strong echoes 20 to 30 mi apart or less is free of severe turbulence [[34:119|AIM 7-1-26]]."
+   }
+  },
+  {
+   "title": "Fly it step by step: brief, analyze, check the alternate, decide",
+   "kind": "skills",
+   "codes": [
+    "IR.I.B.S1",
+    "IR.I.B.S2",
+    "IR.I.B.S3",
+    "IR.I.B.S4",
+    "IR.I.B.K2"
+   ],
+   "minutes": 9,
+   "body": [
+    {
+     "bullets": [
+      "1. Gather: IFR, aircraft ID and type, departure, route, altitude, ETD, ETE, destination and alternates [[37:9|AC 91-92 para 7.4]].",
+      "2. Adverse conditions: SIGMETs, AIRMETs, Convective SIGMETs, CWAs, watches, icing, LLWS, fronts, NOTAMs [[37:9|AC 91-92 para 7.4.1.1]].",
+      "3. Synopsis from surface analysis; current METARs, PIREPs, radar and satellite along the route [[37:10|AC 91-92 para 7.4.1.3]] [[37:10|AC 91-92 para 7.4.1.4]].",
+      "4. En route forecast in order: climbout, en route, descent (GFA, TAFs, advisories, RAIM if needed) [[37:10|AC 91-92 para 7.4.1.5]].",
+      "5. Destination forecast 1 hour before to 1 hour after ETA; select an alternate if needed [[37:11|AC 91-92 para 7.4.1.6]].",
+      "6. Winds and temperatures aloft at your altitude; the temperatures tell you about icing levels [[37:11|AC 91-92 para 7.4.1.7]] [[37:16|AC 91-92 Appendix A]].",
+      "7. NOTAMs for departure, route, destination and alternate [[37:16|AC 91-92 Appendix A]]."
+     ]
+    },
+    {
+     "p": "**Analyze (S2).** Pick at least three conditions from the weather theory and say what each means for this flight. For example: stable air with stratus (icing likely in a 3,000 to 4,000 ft layer) [[28:246|AWH 20-4]], a small spread at ETA (fog) [[28:222|AWH 18-2]], and 20 kt winds over a ridge (mountain wave) [[28:242|AWH 19-10]]."
+    },
+    {
+     "p": "**Is an alternate required (S4)?** You need one unless the destination has an instrument approach and, from 1 hour before to 1 hour after ETA, the forecast ceiling is at least 2,000 ft above airport elevation and visibility at least 3 SM [[60:469|14 CFR 91.169(b)]]. Pilots call it the 1-2-3 rule [[29:30|IPH 1-14]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Is the alternate legal?",
+       "Forecast needed at the alternate ETA"
+      ],
+      "rows": [
+       [
+        "Procedure lists alternate minimums (A symbol)",
+        "Use those minimums [[60:470|14 CFR 91.169(c)(1)]] [[29:29|IPH 1-13]]"
+       ],
+       [
+        "Standard, precision approach",
+        "Ceiling 600 ft and visibility 2 SM [[60:470|14 CFR 91.169(c)(1)(i)(A)]]"
+       ],
+       [
+        "Standard, nonprecision approach",
+        "Ceiling 800 ft and visibility 2 SM [[60:470|14 CFR 91.169(c)(1)(i)(B)]]"
+       ],
+       [
+        "No instrument approach",
+        "Weather that allows descent from the MEA, approach and landing under basic VFR [[60:470|14 CFR 91.169(c)(2)]]"
+       ],
+       [
+        "A with NA",
+        "Not authorized as an alternate, for example an unmonitored facility or no weather reporting [[29:29|IPH 1-13]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "**GPS at the alternate.** Without WAAS (TSO-C129 or C196), any required alternate needs an approach that doesn't use GPS. The exception: with FDE, a RAIM prediction and the right training, you may base one GPS approach at the destination or the alternate, not both, and plan the alternate on LNAV or circling minimums [[33:118|AIM 1-2-3]]. With WAAS (TSO-C145 or C146), you may plan a GPS approach at the alternate, but plan it on the LNAV or circling line with the Part 91 nonprecision weather minimums (800-2 unless the chart lists higher). If LPV or LNAV/VNAV shows available when you get there, you may use it to fly the approach [[33:105|AIM 1-1-18]]."
+    },
+    {
+     "p": "**Fuel.** In IFR conditions, carry enough to reach the destination, then the alternate (when required), then 45 minutes at normal cruise [[60:468|14 CFR 91.167(a)]] [[60:469|14 CFR 91.167(a)(2)-(3)]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "At mountain airports where every approach has an MDA above 2,000 ft or visibility above 3 SM, the rule may let you skip the alternate even though the approach could be unflyable. Plan one anyway [[33:337|AIM 5-1-10]] [[33:338|AIM 5-1-10]]."
+     }
+    },
+    {
+     "p": "**Decide (S3).** Lay every hazard on the route by time and altitude, then compare it to your airplane's equipment and your personal minimums. Don't plan a flight that exceeds your personal minimums or proficiency, or one in or near forecast convection [[37:15|AC 91-92 para 8.2]]."
+    }
+   ],
+   "check": {
+    "q": "Destination TAF from 1 hour before to 1 hour after ETA: OVC019 6SM. The airport has an ILS. Do you need an alternate?",
+    "a": "Yes. The ceiling is below 2,000 ft, even though visibility is fine. Both must meet the rule to skip the alternate [[60:469|14 CFR 91.169(b)]]."
+   }
+  },
+  {
+   "title": "Risk: go/no-go, personal minimums and when to divert",
+   "kind": "risk",
+   "codes": [
+    "IR.I.B.R1",
+    "IR.I.B.R1a",
+    "IR.I.B.R1b",
+    "IR.I.B.R1c"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Regulations don't cover every situation, so set personal minimums stricter than the rules [[30:13|RMH 2-1]]. The RMH sample IFR comfort level: ceiling 800 ft by day and 999 ft at night, visibility 1 mile by day and 3 miles at night [[30:15|RMH 2-3]]."
+    },
+    {
+     "p": "Raise your baseline for illness, fatigue or rusty currency; an unfamiliar airplane or avionics; unfamiliar airports or terrain; and 'must-go' pressure. Sample adjustments: add at least 500 ft to the ceiling, 1/2 mile to visibility, 500 ft to runway length, and subtract 5 kt from wind limits. With more than one factor, adjust for each one [[30:17|RMH 2-5]]. Never lower your minimums to make a flight happen; change one item at a time, with an instructor [[30:17|RMH 2-5]]."
+    },
+    {
+     "bullets": [
+      "Convection on or near the route, current or forecast [[37:15|AC 91-92 para 8.2]].",
+      "Known or forecast icing for an airplane not approved for it: AIRMET Zulu, icing PIREPs, clouds at or below 0 °C [[37:15|AC 91-92 para 8.2]] [[38:37|AC 91-74B para 4-1]].",
+      "Rain with temperatures near freezing [[37:15|AC 91-92 para 8.2]].",
+      "Turbulence forecasts (Tango, SIGMET) beyond you or the airplane. Single pilot in IMC without an autopilot is itself a hazard [[30:24|RMH 3-6]].",
+      "Weather below your personal minimums at the destination or the alternate."
+     ]
+    },
+    {
+     "p": "**When diverting is prudent.** Ice is building (exit, tell ATC, declare an emergency if not certified) [[38:44|AC 91-74B para 5-2]]. You can't get around thunderstorms (divert and wait on the ground) [[34:120|AIM 7-1-27]]. Weather is lower than forecast, or a failed receiver leaves you only higher minimums [[33:338|AIM 5-1-10]]. Before any flight near icing, plan your outs: a different altitude, heading or airspeed, or an alternate with enough runway [[38:39|AC 91-74B para 4-1]], because ice means higher approach speeds and longer landings [[38:46|AC 91-74B para 5-4]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Don't hesitate to declare an emergency when safety is at risk [[37:15|AC 91-92 para 8.2]]. Ask for weather deviations early, telling ATC where the detour starts, its route and where you will rejoin [[34:98|AIM 7-1-12]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Written personal minimums let you make the no-go or divert decision before pressure builds [[30:17|RMH 2-5]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your baseline IFR minimums are 800 ft and 1 mile by day. You slept badly and are flying a rental with avionics you don't know well. Using the RMH sample adjustments, what are today's minimums?",
+    "a": "At least 1,800 ft and 2 miles: add at least 500 ft and 1/2 mile for each of the two factors [[30:17|RMH 2-5]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "IR.I.B-1.jpg",
+   "res": "28",
+   "page": 299,
+   "caption": "Figure 24-3. Obscuration Effects on Slant Range Visibility",
+   "alt": "Two panels. Top, LOW CEILING: an airliner just below a 500 ft cloud deck has red sight lines to the tower and runway, labeled good slant range visibility. Bottom, INDEFINITE CEILING: an airliner inside a surface-based obscuration with vertical visibility 500 ft has dashed red sight lines that stop short, labeled poor slant range visibility.",
+   "source": "AWH, PDF p. 299"
+  },
+  "f2": {
+   "file": "IR.I.B-2.jpg",
+   "res": "28",
+   "page": 351,
+   "caption": "Figure 25-6. NWS Surface Analysis Chart Symbols",
+   "alt": "Legend of surface chart symbols: blue triangles for a cold front, red half circles for a warm front, alternating blue and red for a stationary front, purple for an occluded front, dashed versions for frontogenesis and frontolysis, brown dashed trough or outflow boundary, brown scalloped dryline, yellow zigzag ridge, red dash-dot squall line, blue H and red L pressure centers, and tropical storm and hurricane symbols.",
+   "source": "AWH, PDF p. 351"
+  },
+  "f3": {
+   "file": "IR.I.B-3.jpg",
+   "res": "34",
+   "page": 65,
+   "caption": "FIG 7-1-3. Aviation Cloud Forecast",
+   "alt": "Aviation Weather Center cloud forecast map of the eastern United States valid 1500 UTC 23 Sep 2024: shades of gray to dark blue for few, scattered, broken and overcast coverage, station labels such as OVC020 TOP 100 giving bases and tops in MSL, and AIRMET outlines for icing (blue) and mountain obscuration (pink) along the Appalachians.",
+   "source": "AIM, PDF p. 65"
+  },
+  "f4": {
+   "file": "IR.I.B-4.jpg",
+   "res": "34",
+   "page": 75,
+   "caption": "FIG 7-1-7. AIRMET over the Contiguous U.S.",
+   "alt": "Three G-AIRMET screens of the United States valid 1800Z, 2100Z and 0000Z with the Turb Low and Icing layers selected: outlined areas with labels such as 200 over 080/SFC and 180 over 120 showing turbulence and icing tops and bases in hundreds of feet, the areas shifting between snapshots.",
+   "source": "AIM, PDF p. 75"
+  },
+  "f5": {
+   "file": "IR.I.B-5.jpg",
+   "res": "38",
+   "page": 17,
+   "caption": "FIGURE 2-1. WARM FRONT",
+   "alt": "Cross-section of warm air sliding up over cold air from St. Louis to Pittsburgh: nimbostratus with rain at St. Louis, altostratus, cirrostratus and cirrus farther ahead. Below, a surface chart with the red warm front near St. Louis and METARs: KSTL OVC010 1SM -RA, KIND BKN020 3SM RA, KCMH OVC060 6SM HZ, KPIT SCT150 10SM.",
+   "source": "AC 91-74B, PDF p. 17"
+  },
+  "f6": {
+   "file": "IR.I.B-6.jpg",
+   "res": "28",
+   "page": 258,
+   "caption": "Figure 22-2. Thunderstorm Cell Life Cycle",
+   "alt": "Three panels: towering cumulus stage with yellow updraft arrows, 3-5 mi wide, rising through the 0 °C line; mature stage 5-10 mi wide reaching 40,000 ft with updrafts and downdrafts side by side and rain; dissipating stage 5-7 mi wide with downdrafts and a remnant anvil.",
+   "source": "AWH, PDF p. 258"
+  },
+  "f7": {
+   "file": "IR.I.B-7.jpg",
+   "res": "29",
+   "page": 29,
+   "caption": "Figure 1-13. Examples of IFR alternate minimums.",
+   "alt": "Sample IFR Alternate Airport Minimums page with an A symbol, a Cortez Muni RNAV (GPS) Y Rwy 21 chart excerpt showing the A symbol in the notes, and callouts pointing to city and state, airport name and approach, and other-than-standard minimums such as Category D 900-3 and Categories A, B 1300-2, with several entries reading NA when local weather not available.",
+   "source": "IPH, PDF p. 29"
+  }
+ },
+ "scenario": {
+  "title": "A November warm front, a freezing level at cruise and a VOR alternate",
+  "codes": [
+   "IR.I.B.R1",
+   "IR.I.B.R1a",
+   "IR.I.B.R1b",
+   "IR.I.B.R1c",
+   "IR.I.B.R2",
+   "IR.I.B.R2a",
+   "IR.I.B.R2b",
+   "IR.I.B.R2c",
+   "IR.I.B.S2",
+   "IR.I.B.S3",
+   "IR.I.B.S4",
+   "IR.I.B.K3e",
+   "IR.I.B.K3i"
+  ],
+  "setup": "You got your instrument rating three months ago. You plan a 160 NM IFR flight in a Cessna 172 that is not approved for icing and has no autopilot, at 6,000 ft, leaving 1300Z with an ETA of 1430Z. A warm front lies 150 NM southwest, moving northeast. Destination TAF (ILS airport): FM141300 14012KT 4SM -RA BR OVC012. FB at 6,000 ft: 1820+01; at 9,000 ft: 2030-05. AIRMET Zulu covers your route for moderate icing above the freezing level. A PIREP from a Cessna 182 reports light rime at 7,000 ft, tops 8,000. Your planned alternate, 40 NM away, has only a VOR approach with no A symbol; its TAF at your alternate ETA is OVC009 3SM -RA. The destination METAR reads AUTO, -SN BR, 01/M01, RMK AO2 FZRANO.",
+  "questions": [
+   {
+    "q": "Is an alternate required, and does the VOR airport qualify?",
+    "a": "Required: the destination ceiling of 1,200 ft is below 2,000 ft in the ETA window [[60:469|14 CFR 91.169(b)]]. The VOR airport qualifies on paper: standard nonprecision minimums are 800-2, and the forecast is 900 ft and 3 SM [[60:470|14 CFR 91.169(c)(1)(i)(B)]]. Plan fuel to the destination, then the alternate, then 45 minutes [[60:468|14 CFR 91.167(a)]] [[60:469|14 CFR 91.167(a)(2)-(3)]]."
+   },
+   {
+    "q": "What does the FB tell you about icing at 6,000 ft?",
+    "a": "The temperature is +1 °C at 6,000 ft and -5 °C at 9,000 ft, so the freezing level is near 6,500 ft. In cloud at +1 °C you are already in the +2 to -10 °C band where icing is expected [[34:103|AIM 7-1-19]], and the PIREP confirms ice at 7,000 ft. Near a front, also watch for inversions and more than one freezing level [[38:37|AC 91-74B para 4-1]]."
+   },
+   {
+    "q": "Why is the destination METAR a warning sign?",
+    "a": "The freezing rain sensor is out (FZRANO) [[28:309|AWH 24-25]], and an automated station can't report freezing rain or drizzle with other precipitation. Snow and mist near 0 °C ahead of a warm front could hide freezing rain [[38:38|AC 91-74B para 4-1]] [[28:247|AWH 20-5]]."
+   },
+   {
+    "q": "Go or no-go?",
+    "a": "No-go, or wait for the front to pass. You would be in rain near freezing in an airplane not approved for icing [[37:15|AC 91-92 para 8.2]], with icing reported at 7,000 ft, and an airplane not certified for icing must avoid it [[38:32|AC 91-74B para 3-13]], single pilot without an autopilot [[30:24|RMH 3-6]]. A new instrument pilot should also raise personal minimums, not lower them [[30:17|RMH 2-5]]."
+   },
+   {
+    "q": "Suppose you went and ice starts forming at 6,000 ft. What now?",
+    "a": "Get out of the visible moisture or go to an altitude above freezing [[28:249|AWH 20-7]], which may not be lower [[34:103|AIM 7-1-19]]: along a warm front, warmer air often lies above the cold air [[38:15|AC 91-74B para 2-2]]. Tell ATC what is happening and, since the airplane isn't certified, declare an emergency and exit as fast as possible [[38:44|AC 91-74B para 5-2]]. Plan on a longer landing at higher speed [[38:46|AC 91-74B para 5-4]]."
+   },
+   {
+    "q": "Your tablet shows FIS-B radar with only light green returns ahead. How much can you trust it?",
+    "a": "Use it only for strategic decisions [[34:81|AIM 7-1-9]]. Radar shows precipitation, not icing clouds, and a clear or light display does not mean no significant weather [[34:93|AIM 7-1-11]]. The image may also be 15 to 20 minutes old [[34:120|AIM 7-1-27]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "IR.I.B.S1",
+   "do": "Obtain an adequate IFR weather briefing from approved sources and explain each part: adverse conditions, synopsis, current conditions, en route and destination forecasts, winds aloft, NOTAMs and delays.",
+   "practice": "Self-brief a real IFR route with the AC 91-92 standard briefing checklist [[37:9|AC 91-92 para 7.4]], then call Flight Service and compare. Note the destination and alternate forecasts 1 hour either side of ETA [[37:11|AC 91-92 para 7.4.1.6]]."
+  },
+  {
+   "code": "IR.I.B.S2",
+   "do": "Using actual weather or weather the evaluator gives you, analyze the effects of at least three of the K3a-K3l conditions on the flight.",
+   "practice": "For each briefing, name three conditions and their effect, such as stratus icing layers [[28:246|AWH 20-4]], fog from a small spread [[28:222|AWH 18-2]] or front type from the surface analysis [[28:138|AWH 11-5]]."
+  },
+  {
+   "code": "IR.I.B.S3",
+   "do": "Correlate the weather information to make and explain a go/no-go decision.",
+   "practice": "Write down your personal minimums using RMH Chapter 2 [[30:15|RMH 2-3]] and compare every briefing to them, plus the AC 91-92 don'ts [[37:15|AC 91-92 para 8.2]]. Say 'go' or 'no-go' out loud with your reasons."
+  },
+  {
+   "code": "IR.I.B.S4",
+   "do": "Determine whether an alternate is required and, if so, whether the selected alternate meets 14 CFR 91.169.",
+   "practice": "Apply the 1-2-3 rule to the destination TAF [[60:469|14 CFR 91.169(b)]], then check the alternate's A symbol, approach type, GPS equipment rules and forecast at ETA [[60:470|14 CFR 91.169(c)]] [[33:118|AIM 1-2-3]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Your departure is 8 hours away. Which briefing should you ask Flight Service for now?",
+   "options": [
+    "Standard",
+    "Abbreviated",
+    "Outlook",
+    "In-flight"
+   ],
+   "answer": 2,
+   "why": "An outlook briefing is for departures 6 or more hours away and is for planning only [[34:68|AIM 7-1-5]]."
+  },
+  {
+   "q": "A METAR sky condition reads VV004. What does it mean?",
+   "options": [
+    "Few clouds at 400 ft",
+    "Indefinite ceiling, 400 ft vertical visibility",
+    "Visibility 4 SM",
+    "Overcast at 4,000 ft"
+   ],
+   "answer": 1,
+   "why": "VV is the vertical visibility into a surface-based obscuration, an indefinite ceiling, in hundreds of feet AGL [[28:299|AWH 24-15]] [[28:300|AWH 24-16]]."
+  },
+  {
+   "q": "In a TAF, what does an FM group do?",
+   "options": [
+    "Adds temporary changes lasting under an hour",
+    "Gives a 30% chance of a thunderstorm",
+    "Starts a complete new forecast that replaces earlier conditions",
+    "Amends the whole TAF from now on"
+   ],
+   "answer": 2,
+   "why": "FM starts a self-contained forecast; everything before it is superseded [[28:416|AWH 27-15]]. TEMPO is the temporary group [[28:417|AWH 27-16]]."
+  },
+  {
+   "q": "Which product tells you the chance of severe thunderstorms three days from now?",
+   "options": [
+    "Convective SIGMET",
+    "Convective Outlook",
+    "TAF",
+    "Center Weather Advisory"
+   ],
+   "answer": 1,
+   "why": "The SPC Convective Outlook covers the next 8 days [[28:457|AWH 27-56]]. A CWA is a nowcast for the next 2 hours [[34:78|AIM 7-1-6]]."
+  },
+  {
+   "q": "Which AIRMET covers moderate icing and freezing levels?",
+   "options": [
+    "Sierra",
+    "Tango",
+    "Zulu",
+    "Juliet"
+   ],
+   "answer": 2,
+   "why": "AIRMET Zulu describes moderate icing and gives freezing level heights [[28:383|AWH 26-16]]."
+  },
+  {
+   "q": "Any Convective SIGMET implies which hazards?",
+   "options": [
+    "Severe turbulence, severe icing and low-level wind shear",
+    "IFR ceilings and mountain obscuration",
+    "Moderate turbulence and moderate icing only",
+    "Hail at the surface and tornadoes"
+   ],
+   "answer": 0,
+   "why": "Any Convective SIGMET implies severe or greater turbulence, severe icing and low-level wind shear [[34:71|AIM 7-1-6]]."
+  },
+  {
+   "q": "Which air mass usually brings low stratus, fog and poor surface visibility?",
+   "options": [
+    "Moist air warmed from below",
+    "Moist air cooled from below",
+    "Dry air warmed from below",
+    "Any air behind a cold front"
+   ],
+   "answer": 1,
+   "why": "Air cooled from below is stable: low stratus, fog and trapped particles [[1:302|PHAK 12-18]] [[28:136|AWH 11-3]]."
+  },
+  {
+   "q": "Which icing intensity requires an immediate exit by regulation?",
+   "options": [
+    "Trace",
+    "Light",
+    "Moderate",
+    "Severe"
+   ],
+   "answer": 3,
+   "why": "Severe icing: ice protection can't keep up and immediate exit is required [[34:103|AIM 7-1-19]]."
+  },
+  {
+   "q": "How should you use FIS-B NEXRAD in the cockpit?",
+   "options": [
+    "To pick a path through a line of storms",
+    "To replace the preflight briefing on short trips",
+    "For strategic route decisions 20 or more minutes ahead",
+    "For approaches when ATC radar is out"
+   ],
+   "answer": 2,
+   "why": "FIS supports strategic decisions (20 minutes or more), not tactical ones, and never replaces a preflight briefing [[34:81|AIM 7-1-9]]."
+  },
+  {
+   "q": "With no alternate minimums published, what forecast does an ILS alternate need at your ETA?",
+   "options": [
+    "600 ft and 2 SM",
+    "800 ft and 2 SM",
+    "1,000 ft and 3 SM",
+    "2,000 ft and 3 SM"
+   ],
+   "answer": 0,
+   "why": "Standard precision approach alternate minimums are 600-2 [[60:470|14 CFR 91.169(c)(1)(i)(A)]]. 800-2 is for nonprecision approaches."
+  }
+ ],
+ "takeaways": [
+  "91.103: before an IFR flight, know the reports, forecasts, fuel and alternatives. A good self-briefing counts.",
+  "Ceiling = lowest BKN, OVC or VV. VV means poor slant range: you may see the ground but not the runway.",
+  "Destination 1 hour either side of ETA: below 2,000 ft or 3 SM means you need an alternate (600-2 precision, 800-2 nonprecision, or the A minimums).",
+  "Find the freezing level (FB, AIRMET Zulu, graphics) and the tops (PIREPs) before you choose an altitude.",
+  "Convective SIGMET = severe turbulence, severe icing and LLWS. Stay 20 mi from severe storms.",
+  "Cockpit weather is for strategy, not for threading storms. NEXRAD can be 15-20 minutes old.",
+  "Set written personal minimums, raise them on bad days, and divert early."
+ ],
+ "cfi_notes": [
+  "IPH 1-14 says an alternate is required when the ceiling is less than 2,000 ft 'and' the visibility less than 3 SM. 14 CFR 91.169(b) requires both 2,000 ft and 3 SM to skip the alternate, so either one failing triggers it. Teach the regulation.",
+  "Convective SIGMETs: the AWH 2026 edition (signed April 2, 2026), AWH 26-8, lists a 60 mi line with 40% coverage and says they are valid for 2 hours. AIM 7-1-6e is on a page dated 7/9/26 (Change 3), so it is newer: severe storms (50 kt winds, 3/4 inch hail, tornadoes), embedded storms, lines, and heavy precipitation over 40% of at least 3,000 square miles, issued hourly at H+55 with each forecast valid for up to 1 hour. The AIM is the newer and current source, so this lesson teaches the AIM.",
+  "AC 91-74B (2015) mentions Flight Watch, HIWAS, the ADDS website and the Area Forecast. Current sources (AWH Ch 3, AIM 7-1-4) use Flight Service radio, FIS-B and the GFA instead.",
+  "Students mix up icing numbers: AIM 7-1-19 says expect icing in visible moisture from +2 to -10 °C; AWH 20-3 says almost all icing is between 0 and -20 °C. Show that both are true.",
+  "Examiners often probe the 1-2-3 rule, the A and NA symbols, GPS and WAAS alternate rules, PIREP heights (MSL) versus METAR and TAF heights (AGL), and reading a freezing level from the FB.",
+  "For S2, have the student pick three K3 conditions from a real briefing every lesson and explain the effect on that flight, not just define them.",
+  "Have students write personal minimums now (RMH Ch 2) and review them after the checkride, when they are most tempted to stretch them."
+ ],
+ "gaps": [
+  "Ceiling and Visibility Analysis (CVA): the AWH and AIM in these sources don't describe the CVA product itself, only flight category maps (AWH 3-28, AIM 7-1-7). Show the live CVA on aviationweather.gov.",
+  "How to treat TEMPO and PROB30 groups when deciding if an alternate is required or legal is not addressed in these sources; discuss a conservative policy with the CFI.",
+  "Specific EFB and avionics weather symbols, menus and legends are equipment-specific; AIM 7-1-9 points to the manufacturer's guide.",
+  "AC 00-45 and AC 00-63, referenced by the AIM, AC 91-92 and AC 91-74B, are not in these sources; CIP, FIP and FIS-B details come from the AWH and AIM instead.",
+  "Icing limitations and ice protection for the training airplane come from its POH/AFM.",
+  "'Expected climate' for the student's local area beyond the general seasonal notes must come from local knowledge."
+ ],
+ "activities": [
+  {
+   "type": "match",
+   "key": "h1",
+   "after": 2,
+   "title": "Decode the report",
+   "intro": "Tap a code, then tap what it means.",
+   "pairs": [
+    {
+     "l": "VV003",
+     "r": "Indefinite ceiling, 300 ft vertical visibility"
+    },
+    {
+     "l": "AO2",
+     "r": "Automated station with a precipitation discriminator"
+    },
+    {
+     "l": "FZRANO",
+     "r": "Freezing rain sensor not working"
+    },
+    {
+     "l": "$",
+     "r": "Automated station needs maintenance"
+    },
+    {
+     "l": "UUA",
+     "r": "Urgent PIREP, such as severe icing or LLWS"
+    },
+    {
+     "l": "/SK OVC030-TOP062",
+     "r": "PIREP: overcast base 3,000 ft, top 6,200 ft MSL"
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h2",
+   "after": 5,
+   "title": "Which advisory covers it?",
+   "intro": "Tap a clue, then tap where it belongs.",
+   "buckets": [
+    "AIRMET Sierra",
+    "AIRMET Tango",
+    "AIRMET Zulu",
+    "SIGMET or Convective SIGMET"
+   ],
+   "items": [
+    {
+     "t": "Ceilings below 1,000 ft over a wide area",
+     "b": 0
+    },
+    {
+     "t": "Mountains widely hidden in cloud",
+     "b": 0
+    },
+    {
+     "t": "Moderate turbulence below 12,000 ft",
+     "b": 1
+    },
+    {
+     "t": "Sustained surface winds over 30 kt",
+     "b": 1
+    },
+    {
+     "t": "Freezing level heights",
+     "b": 2
+    },
+    {
+     "t": "Moderate icing in clouds",
+     "b": 2
+    },
+    {
+     "t": "Severe icing not caused by thunderstorms",
+     "b": 3
+    },
+    {
+     "t": "Embedded thunderstorms",
+     "b": 3
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h3",
+   "after": 6,
+   "title": "Winds, freezing level and cloud bases",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "The FB for 9,000 ft reads 7832-08. What wind speed is forecast, in knots?",
+     "answer": 132,
+     "tol": 0,
+     "unit": "kt",
+     "why": "The direction 78 is more than 36, so 50 was added to it and 100 taken off the speed. Direction 78 - 50 = 28, so 280° true. Speed 32 + 100 = 132 kt. Temperature -8 °C [[28:405|AWH 27-4]]."
+    },
+    {
+     "q": "The FB shows 2215+04 at 6,000 ft and 2425-02 at 9,000 ft. About what altitude (ft MSL) is the freezing level?",
+     "answer": 8000,
+     "tol": 300,
+     "unit": "ft MSL",
+     "why": "The temperature falls 6 °C in 3,000 ft, which is 2 °C per 1,000 ft. From +4 °C you need 4 °C more, so 2,000 ft above 6,000 ft: about 8,000 ft MSL. Winds aloft forecasts give the approximate freezing level [[38:37|AC 91-74B para 4-1]] [[28:405|AWH 27-4]]."
+    },
+    {
+     "q": "No FB is handy. The field is at 1,000 ft MSL and the surface temperature is 8 °C. Using the standard lapse rate of about 2 °C per 1,000 ft, estimate the freezing level in ft MSL.",
+     "answer": 5000,
+     "tol": 300,
+     "unit": "ft MSL",
+     "why": "8 °C ÷ 2 °C per 1,000 ft = 4,000 ft above the field, so about 5,000 ft MSL. Treat it as a rough guess only: the real atmosphere seldom matches the standard lapse rate, and the AWH warns this estimate can be wrong [[28:77|AWH 5-11]]."
+    },
+    {
+     "q": "The field is at 1,500 ft MSL. Temperature 19 °C, dewpoint 10 °C. Rising unsaturated air cools 3 °C per 1,000 ft and its dewpoint drops 0.5 °C per 1,000 ft. About where are cumulus bases, in ft MSL?",
+     "answer": 5100,
+     "tol": 200,
+     "unit": "ft MSL",
+     "why": "The spread closes 3 - 0.5 = 2.5 °C per 1,000 ft. The spread is 9 °C, and 9 ÷ 2.5 = 3.6, so the bases are about 3,600 ft AGL [[28:146|AWH 12-2]]. Add the 1,500 ft field elevation: about 5,100 ft MSL."
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h4",
+   "after": 7,
+   "title": "Read the warm front picture",
+   "figure": "f5",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 6.0,
+     "y": 64.0,
+     "label": "Warm front symbol"
+    },
+    {
+     "x": 26.4,
+     "y": 88.3,
+     "label": "Isobar"
+    },
+    {
+     "x": 60,
+     "y": 27,
+     "label": "Gently sloping frontal surface"
+    },
+    {
+     "x": 30,
+     "y": 43,
+     "label": "Rain falling into the cold air"
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h5",
+   "after": 10,
+   "title": "True or false: icing",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "Ice pellets at the surface mean there is icing above.",
+     "a": true,
+     "why": "Yes. Ice pellets form when freezing rain falls through a deep cold layer, so supercooled water is above [[28:247|AWH 20-5]]."
+    },
+    {
+     "s": "In freezing drizzle you can always count on a warm layer above you.",
+     "a": false,
+     "why": "No. Freezing drizzle usually forms by collision-coalescence, with no warm layer aloft [[38:16|AC 91-74B para 2-2]]."
+    },
+    {
+     "s": "No icing PIREPs on your route means there is no icing.",
+     "a": false,
+     "why": "No. Nobody may have flown there, or pilots got ice and didn't report it [[38:40|AC 91-74B para 4-3]]."
+    },
+    {
+     "s": "A jet reporting light icing means your light single will see light icing too.",
+     "a": false,
+     "why": "No. A slower airplane with less protection can get severe icing in the same cloud [[38:40|AC 91-74B para 4-3]]."
+    },
+    {
+     "s": "Icing in stratus is often in a layer only 3,000 to 4,000 ft thick.",
+     "a": true,
+     "why": "Yes, so a change of a few thousand feet may get you out [[28:246|AWH 20-4]]."
+    },
+    {
+     "s": "Frost as rough as coarse sandpaper can cut lift by about 30%.",
+     "a": true,
+     "why": "Yes, and raise drag up to 40% [[28:249|AWH 20-7]]."
+    }
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h6",
+   "after": 12,
+   "title": "Thunderstorms at the destination",
+   "intro": "You are flying N123AB, a Piper Archer with FIS-B on your tablet and no weather radar, IFR from KAAA to KBBB (ILS) on a July afternoon. ETD 1500Z, ETE 1:30, ETA 1630Z. The KBBB TAF shows BKN015 5SM around your ETA, so you need an alternate.",
+   "steps": [
+    {
+     "s": "Two airports are about 45 minutes past KBBB, so you would reach either one about 1715Z. KCCC TAF: FM151400 OVC030 6SM, then FM151700 BKN005 1SM TSRA. KDDD TAF: OVC025 6SM all afternoon. Which do you file as the alternate?",
+     "options": [
+      "KCCC, because its weather is better right now",
+      "KDDD, because its forecast at your ETA there is better",
+      "Neither, because KBBB visibility is above 3 SM",
+      "KCCC, because an alternate only needs good weather at your departure time"
+     ],
+     "answer": 1,
+     "why": "An alternate qualifies on its forecast at your estimated time of arrival there [[60:469|14 CFR 91.169(c)]]. KCCC goes to 500 ft, 1 SM and thunderstorms at 1700Z, just when you would get there. KDDD stays at 2,500 ft and 6 SM."
+    },
+    {
+     "s": "You got a standard briefing at 1100Z. It is now 1450Z and you are ready to start the engine.",
+     "options": [
+      "Go, the standard briefing covers the whole flight",
+      "Get an abbreviated briefing before takeoff",
+      "Get an outlook briefing",
+      "Check only the KBBB METAR on the tablet"
+     ],
+     "answer": 1,
+     "why": "Get an abbreviated briefing just before takeoff if your standard briefing is 1 hour or more old or the weather is questionable [[37:14|AC 91-92 para 8.1]]. Yours is almost 4 hours old."
+    },
+    {
+     "s": "In cruise at 1555Z, FIS-B shows a TAF AMD for KBBB issued at 1550Z: FM151600 BKN007 2SM TSRA. The TAF you planned with showed BKN015 5SM.",
+     "options": [
+      "Keep using the original TAF until 1600Z",
+      "Use the amended TAF now; it cancels the old one",
+      "Ignore it, data-link TAFs are only advisory",
+      "Wait for the next scheduled TAF at 1800Z"
+     ],
+     "answer": 1,
+     "why": "A TAF AMD supersedes and cancels the previous TAF as soon as it is issued; don't wait for its valid period to start [[28:409|AWH 27-8]]."
+    },
+    {
+     "s": "At 1610Z you are 25 NM out. The KBBB METAR on your tablet, from 1553Z, shows no thunderstorm. Then ATC tells you a thunderstorm is moving onto the field from the west.",
+     "options": [
+      "Believe the METAR, because it is an official report",
+      "Believe ATC, the most recent and most authoritative source",
+      "Split the difference and expect only rain showers",
+      "Wait for a PIREP before believing either one"
+     ],
+     "answer": 1,
+     "why": "When FIS and what you hear from ATC or Flight Service differ, use the most recent data from the most authoritative source [[34:81|AIM 7-1-9]]. The METAR is 17 minutes old."
+    },
+    {
+     "s": "The storm will reach KBBB at about the time you would land. You have fuel for KDDD plus 45 minutes.",
+     "options": [
+      "Speed up and land just ahead of the storm",
+      "Hold near the field under the anvil until it passes",
+      "Divert to KDDD now",
+      "Fly the ILS and go missed if it looks bad"
+     ],
+     "answer": 2,
+     "why": "Don't land or take off in the face of an approaching thunderstorm: a sudden gust front can cause loss of control [[34:119|AIM 7-1-27]]. Avoid an intense storm by at least 20 miles, especially under the anvil [[34:120|AIM 7-1-27]]. Your alternate and fuel are there for this."
+    },
+    {
+     "s": "On the way to KDDD at 5,000 ft in stratus, far from the storms, you hit moderate turbulence that no forecast or advisory showed.",
+     "options": [
+      "Say nothing, ATC can see it on radar",
+      "Report it to ATC now",
+      "Report it to Flight Service after landing",
+      "Report it only if it becomes severe"
+     ],
+     "answer": 1,
+     "why": "Under IFR in controlled airspace you must report any unforecast weather as soon as possible [[60:482|14 CFR 91.183(b)]]. ATC radar can't detect turbulence [[34:97|AIM 7-1-12]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h7",
+   "after": 13,
+   "title": "Alternate and fuel, in order",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Read the destination forecast from 1 hour before to 1 hour after ETA",
+    "If the ceiling is below 2,000 ft or visibility below 3 SM, plan an alternate",
+    "Pick an alternate with an approach your equipment can legally plan on",
+    "Check the A symbol for nonstandard or NA alternate minimums",
+    "Compare the alternate forecast at your ETA with those minimums",
+    "Carry fuel to the destination, then the alternate, then 45 minutes"
+   ]
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "The FB for FL390 reads 731960. What is the forecast?",
+   "options": [
+    "730° at 19 kt, -60 °C",
+    "230° at 19 kt, +60 °C",
+    "230° at 119 kt, -60 °C",
+    "310° at 96 kt, -60 °C"
+   ],
+   "answer": 2,
+   "why": "For 100 to 199 kt, 50 is added to the direction and 100 taken off the speed. So subtract 50 (230°) and add 100 (119 kt). Above 24,000 ft temperatures are negative, so 60 means -60 °C [[28:405|AWH 27-4]]."
+  },
+  {
+   "q": "Your ETA is 1600Z. The destination TAF has FM151400 OVC025 5SM, then FM151630 OVC015 3SM. The airport has an ILS. Is an alternate required?",
+   "options": [
+    "Yes, because the 1630Z forecast is within 1 hour after ETA",
+    "No, because the forecast at exactly 1600Z is above 2,000 ft",
+    "No, because the visibility stays at 3 SM or more",
+    "Yes, but only if the visibility drops below 3 SM"
+   ],
+   "answer": 0,
+   "why": "The rule looks from 1 hour before to 1 hour after ETA. At 1630Z the ceiling is 1,500 ft, below 2,000 ft, so you need an alternate [[60:469|14 CFR 91.169(b)]]."
+  },
+  {
+   "q": "You have a WAAS GPS. The only approach at your planned alternate is an RNAV (GPS) with LPV minimums, no A symbol. Its TAF at your ETA is OVC007 3SM. Can you list it?",
+   "options": [
+    "Yes, LPV is a precision-like approach, so 600-2 applies",
+    "Yes, WAAS removes all alternate weather limits",
+    "No, WAAS can't be used at an alternate at all",
+    "No, you must plan on LNAV with nonprecision weather minimums, and 700 ft is below 800 ft"
+   ],
+   "answer": 3,
+   "why": "WAAS users must plan the alternate on the LNAV or circling line using nonprecision weather minimums [[33:105|AIM 1-1-18]], which are 800-2 [[60:470|14 CFR 91.169(c)(1)(i)(B)]]."
+  },
+  {
+   "q": "Your GPS is TSO-C129 with FDE and you will do a RAIM prediction. The destination has only an RNAV (GPS) approach. What about the alternate?",
+   "options": [
+    "It may also be GPS-only, as long as RAIM is predicted there",
+    "It must have an approach that does not rely on GPS",
+    "It needs no approach if its forecast is above 1,000 ft",
+    "It must have an ILS"
+   ],
+   "answer": 1,
+   "why": "Non-WAAS users may base a GPS approach at the destination or the alternate, but not both. Otherwise the alternate needs an approach other than GPS [[33:118|AIM 1-2-3]]."
+  },
+  {
+   "q": "Surface temperature 20 °C, dewpoint 12 °C. Using 3 °C per 1,000 ft for rising unsaturated air and 0.5 °C per 1,000 ft for its dewpoint, about where are cumulus bases?",
+   "options": [
+    "About 2,700 ft AGL",
+    "About 3,200 ft AGL",
+    "About 4,000 ft AGL",
+    "About 8,000 ft AGL"
+   ],
+   "answer": 1,
+   "why": "The spread closes 2.5 °C per 1,000 ft. 8 ÷ 2.5 = 3.2, so about 3,200 ft AGL [[28:146|AWH 12-2]]. 2,700 ft uses 3 °C alone."
+  },
+  {
+   "q": "A PIREP reads /SK OVC030-TOP062. You plan to cruise at 7,000 ft MSL over terrain near sea level. Where will you be?",
+   "options": [
+    "In cloud, since the top is 6,200 ft AGL",
+    "Below the cloud base",
+    "On top, about 800 ft above the tops",
+    "In cloud until 3,000 ft above cruise"
+   ],
+   "answer": 2,
+   "why": "PIREP sky condition heights are MSL: base 3,000 ft, top 6,200 ft. At 7,000 ft you are 800 ft above the tops [[28:313|AWH 24-29]] [[28:312|AWH 24-28]]."
+  },
+  {
+   "q": "Destination METAR: AUTO -SN BR M01/M02 RMK AO2 FZRANO. What is the hidden concern for your arrival?",
+   "options": [
+    "Thunderstorms the sensor can't detect",
+    "Freezing rain or drizzle that may not be reported",
+    "Mountain wave turbulence on final",
+    "Wrong altimeter setting from the station"
+   ],
+   "answer": 1,
+   "why": "The freezing rain sensor is out [[28:309|AWH 24-25]], and an automated station can't report freezing rain or drizzle with other precipitation. With snow near freezing, be alert for severe icing [[38:39|AC 91-74B para 4-1]]."
+  },
+  {
+   "q": "In a non-certified airplane you pick up light rime in stratus at 8,000 ft. Tops are reported at 9,500 ft and the freezing level is at 4,000 ft. What does the AWH say to do first?",
+   "options": [
+    "Hold altitude and watch whether it gets worse",
+    "Slow to approach speed to reduce ice collection",
+    "Ask ATC to get out of the cloud, such as climbing above the 9,500 ft tops",
+    "Descend to 4,500 ft and stay in the cloud"
+   ],
+   "answer": 2,
+   "why": "First leave the visible moisture: climb above the tops, descend below the bases or turn [[28:249|AWH 20-7]]. Stratus icing layers are often only 3,000 to 4,000 ft thick [[28:246|AWH 20-4]]."
+  },
+  {
+   "q": "Your EFB shows a line of strong echoes with gaps about 15 mi wide. Which choice follows the AIM?",
+   "options": [
+    "Fly through the widest gap at turbulence penetration speed",
+    "Fly under the line where you can see light",
+    "Go through any gap that looks green on the display",
+    "Go around the whole area, or land and wait"
+   ],
+   "answer": 3,
+   "why": "No path between strong echoes 20 to 30 mi apart or less is free of severe turbulence [[34:119|AIM 7-1-26]]. If you can't get around, divert and wait on the ground [[34:120|AIM 7-1-27]]."
+  },
+  {
+   "q": "A microburst's outflow winds are 45 kt. Crossing it on approach, how big a headwind-to-tailwind change could you face?",
+   "options": [
+    "About 45 kt",
+    "About 90 kt",
+    "About 22 kt",
+    "About 135 kt"
+   ],
+   "answer": 1,
+   "why": "45 kt outflow on each side gives a 90 kt shear as you go from headwind to tailwind [[34:108|AIM 7-1-24]]."
+  },
+  {
+   "q": "Tonight you fly a cross-country to an unfamiliar airport, leaving after a full workday. Using the RMH example for exactly this case, how much do you add to your baseline personal minimums?",
+   "options": [
+    "1,000 ft to the ceiling, 1 mile to visibility and 1,000 ft to runway length",
+    "500 ft to the ceiling only",
+    "500 ft to the ceiling and 1/2 mile to visibility",
+    "Nothing, because the night baseline already covers it"
+   ],
+   "answer": 0,
+   "why": "The RMH example of a night trip to an unfamiliar airport after a full workday adds 1,000 ft to the ceiling, 1 mile to visibility and 1,000 ft to runway length. Two factors apply (fatigue and an unfamiliar airport), and you adjust for each one: at least 500 ft and 1/2 mile per factor. Adding for only one factor is the common mistake [[30:17|RMH 2-5]]."
+  },
+  {
+   "q": "You call Flight Service 3 hours before departure for a standard briefing. Which part may be left out unless you ask?",
+   "options": [
+    "Adverse conditions",
+    "Current conditions",
+    "Destination forecast",
+    "NOTAMs"
+   ],
+   "answer": 1,
+   "why": "Current conditions are omitted when departure is more than 2 hours away, unless you request them [[34:66|AIM 7-1-5]]."
+  },
+  {
+   "q": "Severe icing is forecast over a wide area, with no thunderstorms. Which advisory would cover it?",
+   "options": [
+    "AIRMET Zulu",
+    "Convective SIGMET",
+    "SIGMET",
+    "AIRMET Tango"
+   ],
+   "answer": 2,
+   "why": "SIGMETs are issued for severe icing not associated with thunderstorms [[34:69|AIM 7-1-6]]. AIRMET Zulu is for moderate icing [[28:383|AWH 26-16]]."
+  }
+ ]
+}
