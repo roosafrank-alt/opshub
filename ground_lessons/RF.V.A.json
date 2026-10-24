@@ -1,0 +1,1206 @@
+{
+ "task_code": "RF.V.A",
+ "task_title": "IFR Flight Plans, Alternates and Fuel",
+ "area": "Area V. IFR Operating Rules",
+ "minutes": 55,
+ "objective": "By the end of this lesson you can say when 14 CFR 91.173 requires an IFR flight plan and clearance, decide under 91.169 whether a flight needs an alternate and whether a given airport qualifies (GPS-based alternates included), and work out the 91.167 IFR fuel minimum.",
+ "why": "Every IFR trip starts with three legal questions: may I go IFR here, do I need a backup airport, and how much fuel is the minimum. 14 CFR 91.167, 91.169 and 91.173 answer them [[60:469|14 CFR 91.167, 91.169]] [[60:471|14 CFR 91.173]]. GPS has changed which airports can serve as alternates, so the AIM rules on GPS-based alternates belong in the same review [[33:118|AIM 1-2-3d]].",
+ "prereading": [
+  {
+   "res": "60",
+   "pages": [
+    468,
+    469,
+    470,
+    471
+   ],
+   "printed": "14 CFR Part 91 pp 51 to 54",
+   "what": "The rules themselves: IFR fuel (91.167), flight plan content, the alternate test and alternate minimums (91.169), and the flight plan and clearance rule (91.173). Short; read every word.",
+   "label": "14 CFR 91.167 to 91.173"
+  },
+  {
+   "res": "33",
+   "pages": [
+    332,
+    333
+   ],
+   "printed": "AIM 5-1-11 to 5-1-12",
+   "what": "Filing an IFR flight plan: the form, the 30 minute lead time, and the rule that you need a plan and clearance before IFR in controlled airspace.",
+   "label": "AIM 5-1-6"
+  },
+  {
+   "res": "33",
+   "pages": [
+    337,
+    338
+   ],
+   "printed": "AIM 5-1-16 to 5-1-17",
+   "what": "Composite VFR and IFR flights, and why a high-altitude destination may need an alternate even when the forecast says it does not.",
+   "label": "AIM 5-1-9 and 5-1-10"
+  },
+  {
+   "res": "33",
+   "pages": [
+    339,
+    340
+   ],
+   "printed": "AIM 5-1-18 to 5-1-19",
+   "what": "Changing, delaying and canceling an IFR flight plan, at towered and nontowered airports.",
+   "label": "AIM 5-1-12 to 5-1-15"
+  },
+  {
+   "res": "33",
+   "pages": [
+    116,
+    118
+   ],
+   "printed": "AIM 1-2-8 to 1-2-10",
+   "what": "Using GPS in place of ground aids, and the alternate airport limits for GPS and WAAS users.",
+   "label": "AIM 1-2-3"
+  },
+  {
+   "res": "33",
+   "pages": [
+    105
+   ],
+   "printed": "AIM 1-1-38",
+   "what": "How WAAS users plan an RNAV (GPS) approach at an alternate, and the removal of the alternate NA symbol.",
+   "label": "AIM 1-1-18c"
+  },
+  {
+   "res": "29",
+   "pages": [
+    29,
+    30
+   ],
+   "printed": "IPH 1-13 to 1-14",
+   "what": "Where nonstandard alternate minimums are listed, what the A and A NA symbols mean, and the standard alternate minimums. The cfi notes compare its wording of the alternate test with 91.169(b).",
+   "label": "IPH 1-13 to 1-14"
+  }
+ ],
+ "warmup": "Think first: Your destination forecast shows 1,800 ft overcast and 6 SM for the two hours around your arrival. The nearest airport with an ILS sits 10 miles away in the same river valley and forecasts 700 ft overcast and 3 SM at your arrival time. Do you need an alternate, is that airport legal as one, and is it a good choice?",
+ "key_terms": [
+  {
+   "term": "IFR conditions",
+   "def": "Weather below the minimums for flight under VFR (14 CFR 1.1)."
+  },
+  {
+   "term": "IFR flight plan",
+   "def": "The plan you file with the flight details, an alternate when one is required, and fuel on board in hours. Required before IFR in controlled airspace."
+  },
+  {
+   "term": "ATC clearance",
+   "def": "ATC's authorization to proceed under stated conditions in controlled airspace. You need one before flying IFR there."
+  },
+  {
+   "term": "Alternate airport",
+   "def": "The airport you plan to go to if you cannot land at the first airport of intended landing."
+  },
+  {
+   "term": "1-2-3 rule",
+   "def": "Memory aid for 91.169(b): from 1 hour before to 1 hour after ETA, ceiling at least 2,000 ft and visibility at least 3 SM, or you need an alternate."
+  },
+  {
+   "term": "Standard alternate minimums",
+   "def": "When none are listed: 600 ft and 2 SM for a precision approach, 800 ft and 2 SM for a nonprecision approach."
+  },
+  {
+   "term": "A symbol",
+   "def": "Triangle with an A in the chart notes: nonstandard alternate minimums are listed in the front of the approach chart booklet (TPP)."
+  },
+  {
+   "term": "A NA",
+   "def": "The approach may not be used for alternate planning, for example because the facility is unmonitored or there is no weather reporting."
+  },
+  {
+   "term": "TSO-C129 or C196 GPS",
+   "def": "IFR GPS without WAAS. It needs fault detection and exclusion (FDE) and a RAIM prediction before a GPS approach can be planned at an alternate."
+  },
+  {
+   "term": "WAAS GPS (TSO-C145 or C146)",
+   "def": "GPS with the Wide Area Augmentation System. Not held to the non-WAAS limits on GPS-based alternates."
+  },
+  {
+   "term": "IFR fuel reserve",
+   "def": "Fuel to fly 45 minutes at normal cruising speed after reaching the alternate, or after the destination when no alternate is needed."
+  },
+  {
+   "term": "Composite flight plan",
+   "def": "One plan with VFR and IFR parts. U.S. en route computers cannot accept it; file a separate VFR plan if you want one."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "When you need an IFR flight plan and a clearance",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.A.K1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "91.173: no person may operate an aircraft in controlled airspace under IFR unless that person has filed an IFR flight plan and received an appropriate ATC clearance [[60:471|14 CFR 91.173]]."
+     }
+    },
+    {
+     "p": "In Class A every operation must be IFR, and only under an ATC clearance received before entering the airspace [[60:456|14 CFR 91.135]]. The AIM says the same thing from the weather side: before you depart from within controlled airspace, or before you enter it, you must submit a complete flight plan and receive a clearance if the weather is below VFR minimums [[33:332|AIM 5-1-6a]]. \"IFR conditions\" simply means weather below the VFR minimums [[60:8|14 CFR 1.1]]."
+    },
+    {
+     "p": "The rule also needs the right pilot. No one may act as pilot in command under IFR, or in weather below VFR minimums, without an instrument rating for the category and class (or an ATP certificate) [[60:191|14 CFR 61.3(e)]]. That applies in any airspace."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Interpretation: 91.173 is written for controlled airspace [[60:471|14 CFR 91.173]]. Where ATC has no jurisdiction it does not issue an IFR clearance, has no control over the flight, and the pilot has no assurance of separation [[23:298|IFH 10-7]]. So the plan and clearance must be in hand before the IFR flight enters controlled airspace; 61.3(e) applies in any airspace, and 91.167 applies whenever you operate in IFR conditions [[60:468|14 CFR 91.167(a)]]."
+     }
+    },
+    {
+     "p": "You can file from the air. The IFH gives two cases: a flight outside controlled airspace before it goes into IFR conditions in controlled airspace, and a VFR flight that expects IFR weather en route. File with the nearest FSS or directly with the ARTCC [[23:293|IFH 10-2]]."
+    }
+   ],
+   "check": {
+    "q": "You take off VFR from a Class G strip and plan to climb into a cloud layer that lies in Class E. What must you have before you enter the clouds?",
+    "a": "A filed IFR flight plan and an ATC clearance [[60:471|14 CFR 91.173]], and an instrument rating to act as PIC [[60:191|14 CFR 61.3(e)]]."
+   }
+  },
+  {
+   "title": "Filing, changing and closing the IFR flight plan",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.A.K1",
+    "RF.V.A.K3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "91.169(a): unless ATC authorizes otherwise, an IFR flight plan must include the 91.153(a) items and, unless 91.169(b) applies, an alternate airport [[60:469|14 CFR 91.169(a)]]. The 91.153(a) items include aircraft identification and type, PIC name and address, departure point and time, route, altitude and true airspeed, first point of landing and time en route, fuel on board in hours, and persons on board [[60:464|14 CFR 91.153(a)]]."
+     }
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "The IFH sample plan lists alternate PNS, 1 hour 58 minutes en route and 4 hours 20 minutes of fuel [[23:322|IFH 10-31]]. It is printed on FAA Form 7233-1. AIM 5-1-6a makes FAA Form 7233-4 mandatory for domestic IFR flights, except military/DoD flights and civilians who file stereo route flight plans [[33:332|AIM 5-1-6a]], and fuel endurance is a required Item 19 entry for a domestic flight [[34:289|AIM Appendix 4-20]]."
+    },
+    {
+     "bullets": [
+      "File at least 30 minutes before your estimated departure time to avoid a delay getting your clearance [[33:332|AIM 5-1-6a]].",
+      "Do not file a second plan for the same flight without making sure the first one was removed [[33:333|AIM 5-1-6a]].",
+      "A composite VFR and IFR plan cannot be processed. Want a VFR plan for the VFR part? File, open and close it separately, and get your IFR clearance before the IFR part starts [[33:337|AIM 5-1-9]].",
+      "Tell ATC if your average true airspeed at cruise will differ from the filed one by 5 percent or 10 knots, whichever is greater [[33:339|AIM 5-1-12a]].",
+      "Most centers delete an unused proposal at least 2 hours after the proposed departure time. If you will be 2 hours or more late, give ATC a new time [[33:339|AIM 5-1-13a]].",
+      "From an airport with no tower or FSS, a clearance may carry a void time, such as \"clearance void if not off by 0900\" [[23:298|IFH 10-7]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "91.169(d): once a flight plan is activated, the PIC must notify an FSS or ATC facility when canceling or completing the flight [[60:470|14 CFR 91.169(d)]]."
+     }
+    },
+    {
+     "p": "You may cancel any time you are in VFR conditions outside Class A by saying \"cancel my IFR flight plan.\" Separation and radar services end, so ask for VFR advisories if you want them [[33:339|AIM 5-1-15]]. At a towered airport the plan closes when you land. At a nontowered airport you must cancel it yourself; if you cannot reach ATC on the ground, cancel while still airborne, weather permitting [[33:340|AIM 5-1-15e, f]]."
+    }
+   ],
+   "check": {
+    "q": "You land at the end of a flight on an activated IFR flight plan. Under 91.169(d), whom must you notify?",
+    "a": "An FAA Flight Service Station or an ATC facility [[60:470|14 CFR 91.169(d)]]. At an airport with a working tower this happens automatically when you land [[33:340|AIM 5-1-15e, f]]."
+   }
+  },
+  {
+   "title": "Do you need an alternate? The 91.169(b) test",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.A.K2",
+    "RF.V.A.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "91.169(b): no alternate is required only if (1) Part 97 prescribes a standard instrument approach (or a special one has been issued to the operator) for the first airport of intended landing, and (2) reports, forecasts, or both show that for at least 1 hour before and 1 hour after the ETA the ceiling will be at least 2,000 ft above airport elevation and the visibility at least 3 SM [[60:469|14 CFR 91.169(b)]]."
+     }
+    },
+    {
+     "table": {
+      "head": [
+       "Part of the test",
+       "What 91.169(b) needs"
+      ],
+      "rows": [
+       [
+        "Approach",
+        "A Part 97 standard approach (or a special one issued to the operator) at the first airport of intended landing [[60:469|14 CFR 91.169(b)(1)]]"
+       ],
+       [
+        "Time",
+        "From at least 1 hour before to 1 hour after the ETA [[60:469|14 CFR 91.169(b)(2)(i)]]"
+       ],
+       [
+        "Ceiling",
+        "At least 2,000 ft above the airport elevation [[60:469|14 CFR 91.169(b)(2)(i)]]"
+       ],
+       [
+        "Visibility",
+        "At least 3 SM [[60:469|14 CFR 91.169(b)(2)(i)]]"
+       ],
+       [
+        "Source",
+        "Weather reports, forecasts, or a combination [[60:469|14 CFR 91.169(b)(2)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "1-2-3: 1 hour either side of ETA, 2,000 ft, 3 SM [[29:30|IPH 1-14]]. Application: every part must hold for the whole window. If the ceiling or the visibility falls short at any time in it, you need an alternate."
+     }
+    },
+    {
+     "p": "Notice the first condition. A destination with no instrument approach always needs an alternate on an IFR plan, however good the forecast, because (b)(1) is not met [[60:469|14 CFR 91.169(b)]]. Helicopters use a different test, which is not taught here [[60:469|14 CFR 91.169(b)(2)(ii)]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The fuel rule uses the same test. If 91.169(b) lets you skip the alternate, 91.167(b) lets you skip the fuel to it, but never the 45 minute reserve [[60:469|14 CFR 91.167(b)]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your destination has an ILS. The forecast is 3,500 ft broken and 6 SM, except 1,700 ft broken from 30 minutes before your ETA. Do you need an alternate?",
+    "a": "Yes. The ceiling is below 2,000 ft inside the window of 1 hour before to 1 hour after the ETA [[60:469|14 CFR 91.169(b)]]."
+   }
+  },
+  {
+   "title": "Does the alternate qualify? Weather minimums and chart symbols",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.A.K2",
+    "RF.V.A.S1"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "91.169(c): unless authorized otherwise, you may list an alternate only if the forecast at your ETA there is at or above its minimums [[60:469|14 CFR 91.169(c)]]. With a published approach, use the alternate minimums in that procedure, or if none are given, 600 ft and 2 SM for a precision approach and 800 ft and 2 SM for a nonprecision approach. With no published approach, the weather must allow descent from the MEA, approach and landing under basic VFR [[60:470|14 CFR 91.169(c)(1), (2)]]."
+     }
+    },
+    {
+     "p": "Two differences from the destination test: the alternate check is at the ETA there, not a two-hour window, and its numbers depend on the approach [[60:469|14 CFR 91.169(c)]] [[60:470|14 CFR 91.169(c)(1)]]. Standard alternate minimums apply unless higher ones are listed [[29:30|IPH 1-14]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "Standard minimums are not printed on the charts. A triangle with an A in the notes means nonstandard alternate minimums exist and are listed in the front of the chart booklet [[29:29|IPH 1-13]] [[23:46|IFH 1-27]]. A NA means the approach may not be used for an alternate because of an unmonitored facility, no weather reporting, or poor navigation coverage. Those approaches are not in the alternate minimums list [[2:103|Chart Users' Guide p 103]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "The IPH sample listing shows the format. For Cortez, footnote 1 (RNAV (GPS) Y Rwy 21 and VOR Rwy 21) reads \"Category D, 900-3,\" and footnote 2 (RNAV (GPS) Z Rwy 21) reads \"Categories A, B, 1300-2; Categories C, D, 1300-3\" [[29:29|IPH 1-13]]. Some entries add \"NA when local weather not available\" [[29:29|IPH 1-13]]. Application: read the line for your aircraft category; a category not named in a footnote is not given nonstandard numbers there."
+    }
+   ],
+   "check": {
+    "q": "Your planned alternate has only a VOR approach, with no A symbol. The forecast at your ETA there is 900 ft broken and 1 1/2 SM. Can you list it?",
+    "a": "No. Nonprecision standard alternate minimums are 800 ft and 2 SM, and 1 1/2 SM is below 2 SM [[60:470|14 CFR 91.169(c)(1)]]."
+   }
+  },
+  {
+   "title": "GPS and the alternate airport",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.A.K2",
+    "RF.V.A.S1"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The AIM's starting point: any required alternate must have an available approach that does not need GPS. That includes using GPS as a substitute for a ground aid on a conventional approach there, such as an out-of-service VOR that supports an ILS missed approach. This restriction does not apply to WAAS equipment (TSO-C145 or C146) [[33:118|AIM 1-2-3d]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Your GPS",
+       "What you may plan at the alternate"
+      ],
+      "rows": [
+       [
+        "TSO-C129 or C196 with FDE, a RAIM prediction at the airport, and the knowledge and training for GPS approaches",
+        "A GPS-based approach at the destination or the alternate, not both. At the alternate, plan with the LNAV or circling MDA (LNAV/VNAV DA only with approved baro-VNAV) [[33:118|AIM 1-2-3d]] [[33:95|AIM 1-1-17b5(c)]]"
+       ],
+       [
+        "TSO-C129 or C196 that cannot meet those conditions",
+        "The alternate needs an approved non-GPS approach that should be working at your ETA and that the airplane is equipped to fly [[33:95|AIM 1-1-17b5(d)]]"
+       ],
+       [
+        "WAAS (TSO-C145 or C146)",
+        "Plan on the LNAV or circling line of an RNAV (GPS) approach, a GPS approach, or an \"or GPS\" conventional approach, with Part 91 nonprecision weather. On arrival, if the receiver shows LNAV/VNAV or LPV available, you may use that vertical guidance [[33:105|AIM 1-1-18c]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Non-WAAS users also need the avionics for every ground facility on the route to the destination and to any required alternate, installed and working [[33:94|AIM 1-1-17b]]. The FAA is removing the A NA symbol from select RNAV (GPS) and GPS approaches so WAAS receivers can use them at alternates, but some will keep it, for example where there is no weather reporting [[33:105|AIM 1-1-18c]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "p": "In this IFH sample chart, the Orlando Executive RNAV (GPS) RWY 7 shows A NA in its notes [[23:34|IFH 1-15]]. That approach cannot be used for alternate planning, whatever your receiver [[2:103|Chart Users' Guide p 103]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "A negative W in a black box under the A or T symbol means WAAS vertical guidance may drop out daily there; plan with LNAV minima, as a destination or an alternate [[2:103|Chart Users' Guide p 103]]. Request site-specific WAAS NOTAMs while planning; ATC will not tell you about them in flight [[33:104|AIM 1-1-18c]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You have a WAAS GPS. Your planned alternate's only approach is an RNAV (GPS) with no A NA symbol. Can it be your alternate?",
+    "a": "Yes. Plan with its LNAV or circling line and Part 91 nonprecision weather minimums [[33:105|AIM 1-1-18c]]; the GPS limit does not apply to WAAS [[33:118|AIM 1-2-3d]]."
+   }
+  },
+  {
+   "title": "The IFR fuel rule",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.A.K3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "91.167(a): no one may operate a civil aircraft in IFR conditions unless it carries enough fuel, considering weather reports, forecasts and conditions, to (1) complete the flight to the first airport of intended landing [[60:468|14 CFR 91.167(a)(1)]], (2) unless 91.167(b) applies, fly from there to the alternate, and (3) then fly 45 minutes at normal cruising speed [[60:469|14 CFR 91.167(a)(2), (3)]]."
+     }
+    },
+    {
+     "p": "91.167(b) drops the leg to the alternate under the same two conditions as the alternate rule: a Part 97 approach at the first airport of intended landing and the 2,000 ft and 3 SM forecast for 1 hour either side of the ETA [[60:469|14 CFR 91.167(b)]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Rule",
+       "Reserve after the planned landing point"
+      ],
+      "rows": [
+       [
+        "VFR by day, airplane",
+        "30 minutes at normal cruising speed [[60:464|14 CFR 91.151(a)]]"
+       ],
+       [
+        "VFR at night, airplane",
+        "45 minutes at normal cruising speed [[60:464|14 CFR 91.151(a)]]"
+       ],
+       [
+        "IFR, alternate required",
+        "Destination, then the alternate, then 45 minutes at normal cruising speed [[60:469|14 CFR 91.167(a)]]"
+       ],
+       [
+        "IFR, no alternate required",
+        "Destination, then 45 minutes at normal cruising speed [[60:469|14 CFR 91.167(b)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "IFR fuel: there, then to the alternate, then 45 [[60:469|14 CFR 91.167]]."
+     }
+    },
+    {
+     "p": "The IFH sample flight works the fuel with forecast winds aloft and Pensacola as the alternate, and finds that full tanks cover the destination, the alternate and the reserve [[23:320|IFH 10-29]]. The flight plan then carries fuel on board in hours [[60:464|14 CFR 91.153(a)(7)]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Application: the rule counts weather reports and forecasts, so a stronger headwind or a forecast delay comes out of your fuel, not out of the 45 minutes [[60:468|14 CFR 91.167(a)]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your destination meets the 1-2-3 test and has an RNAV (GPS) approach. Time en route is 1+20. What is the least fuel 91.167 allows?",
+    "a": "Enough to fly 1+20 plus 45 minutes at normal cruising speed, 2+05 in all [[60:469|14 CFR 91.167(b)]]."
+   }
+  },
+  {
+   "title": "Fly it step by step: alternate and fuel",
+   "kind": "skills",
+   "codes": [
+    "RF.V.A.K1",
+    "RF.V.A.K2",
+    "RF.V.A.K3",
+    "RF.V.A.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Use the same order for every IFR trip:"
+    },
+    {
+     "bullets": [
+      "1. Destination: is there a Part 97 approach? If not, you need an alternate [[60:469|14 CFR 91.169(b)(1)]].",
+      "2. Destination forecast from 1 hour before to 1 hour after ETA: ceiling at least 2,000 ft and visibility at least 3 SM the whole time? If not, you need an alternate [[60:469|14 CFR 91.169(b)(2)(i)]].",
+      "3. Candidate alternate: check for A or A NA in the notes [[2:103|Chart Users' Guide p 103]], and check your GPS against the AIM limits [[33:118|AIM 1-2-3d]].",
+      "4. Alternate forecast at your ETA there: at or above the listed or standard minimums [[60:470|14 CFR 91.169(c)(1)]].",
+      "5. Fuel: destination, alternate, then 45 minutes [[60:469|14 CFR 91.167]].",
+      "6. File, with the alternate in Item 16 [[34:289|AIM Appendix 4-20]], at least 30 minutes before departure [[33:332|AIM 5-1-6a]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The filed alternate is accepted by ATC computers but is not shown to controllers. If you need to divert, tell ATC and request an amended clearance [[34:289|AIM Appendix 4-20]]."
+     }
+    },
+    {
+     "p": "Recheck before you go. AC 91-92 has you review the destination forecast for 1 hour before and after the ETA and select an alternate if needed [[37:11|AC 91-92 7.4.1.6]], and get an abbreviated briefing before takeoff if your standard briefing is 1 hour or more old or the weather is questionable [[37:14|AC 91-92 8.1]]."
+    }
+   ],
+   "check": {
+    "q": "You are diverting to the alternate you filed. Does the controller already know where you are going?",
+    "a": "No. The alternate is not presented to controllers; tell ATC and request an amended clearance [[34:289|AIM Appendix 4-20]]."
+   }
+  },
+  {
+   "title": "Risk: an alternate with the same weather",
+   "kind": "risk",
+   "codes": [
+    "RF.V.A.R1"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The alternate rule checks one forecast at one time [[60:469|14 CFR 91.169(c)]]. It does not ask whether the alternate's weather has the same cause as the destination's. The IFH sample flight picks Pensacola because the weather was substantially better to the east, with marginal VFR forecast there [[23:320|IFH 10-29]]."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "bullets": [
+      "Frontal fog may extend over large areas and completely suspend air operations. It is most often tied to warm fronts [[28:226|AWH 18-6]].",
+      "Advection fog is usually more extensive and persistent than radiation fog and can move in quickly, day or night [[28:226|AWH 18-6]]. In winter, Gulf moisture over cold ground can carry it as far north as the Great Lakes [[28:225|AWH 18-5]].",
+      "Mountain and valley fog forms as cold air drains into valleys overnight, and is densest around sunrise [[28:223|AWH 18-3]].",
+      "Upslope fog is common on the eastern slopes of the Rockies, is often dense and extends to high altitudes [[28:226|AWH 18-6]]."
+     ]
+    },
+    {
+     "p": "When fog is likely, the IFH says to plan adequate fuel reserves and alternate landing sites [[23:315|IFH 10-24]]. In icing, choose alternates with longer runways, since ice can mean higher approach speeds [[38:46|AC 91-74B 5-4]] [[38:57|AC 91-74B App 2]]. AC 91-92 adds: have a contingency plan for alternates [[37:15|AC 91-92 8.1]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: pick an alternate that the weather system does not cover, such as one behind the front, out of the valley, or upwind of the fog source, and make sure your fuel reaches it with the 45 minutes left [[60:469|14 CFR 91.167]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Two airports 12 miles apart in the same valley both forecast fog at dawn. Why is one a poor alternate for the other, even if it is legal?",
+    "a": "Valley fog forms from cold air draining into the whole valley [[28:223|AWH 18-3]], so both are likely to go down together. Choose one with different weather, as in the IFH example [[23:320|IFH 10-29]]."
+   }
+  },
+  {
+   "title": "When legal is not enough: thin margins and high destinations",
+   "kind": "risk",
+   "codes": [
+    "RF.V.A.R1",
+    "RF.V.A.K2"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "p": "AIM 5-1-10 warns that at airports in mountainous terrain you should consider an alternate even when the forecast technically relieves you of the requirement [[33:337|AIM 5-1-10a]]. It names three cases [[33:338|AIM 5-1-10b]]:"
+    },
+    {
+     "bullets": [
+      "Every approach has MDAs or landing visibilities above the 91.167(b) forecast values, as at Bishop, South Lake Tahoe and Aspen. You could legally skip the alternate fuel while the weather is too low to land [[33:338|AIM 5-1-10b]].",
+      "MDAs only 100 to 300 ft below 2,000 ft AGL: a slight change from the forecast puts the airport below minimums [[33:338|AIM 5-1-10b]].",
+      "The lowest minimums need special equipment such as DME or a glide slope. One equipment failure in flight can leave only higher minimums [[33:338|AIM 5-1-10b]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Application: the 1-2-3 test does not compare the forecast to your approach minimums. Where the minimums are high, \"no alternate required\" can leave little margin [[33:338|AIM 5-1-10b]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "The forecast at a mountain airport meets 2,000 ft and 3 SM, but every MDA there is above 2,000 ft AGL. What does the AIM advise?",
+    "a": "Consider planning an alternate and its fuel anyway [[33:337|AIM 5-1-10a]]; the weather can be legal for no alternate yet too low for the approach [[33:338|AIM 5-1-10b]]."
+   }
+  },
+  {
+   "title": "Common errors and fixes",
+   "kind": "skills",
+   "codes": [
+    "RF.V.A.K1",
+    "RF.V.A.K2",
+    "RF.V.A.K3",
+    "RF.V.A.R1",
+    "RF.V.A.S1"
+   ],
+   "minutes": 3,
+   "body": [
+    {
+     "bullets": [
+      "Checking only the ETA at the destination. Fix: the whole window from 1 hour before to 1 hour after [[60:469|14 CFR 91.169(b)]].",
+      "Thinking both the ceiling and the visibility must fall short before an alternate is needed. Fix: either one short means an alternate [[60:469|14 CFR 91.169(b)]].",
+      "Judging an alternate by its straight-in or LPV landing minimums. Fix: use listed alternate minimums or 600-2 and 800-2 [[60:470|14 CFR 91.169(c)(1)]]; WAAS users plan on LNAV or circling [[33:105|AIM 1-1-18c]].",
+      "Missing A NA in the notes. Fix: read the notes box first [[2:103|Chart Users' Guide p 103]].",
+      "Planning GPS approaches at both destination and alternate with a non-WAAS GPS. Fix: one or the other, not both [[33:118|AIM 1-2-3d]].",
+      "Carrying fuel to the destination plus 45 when an alternate is required. Fix: add the leg to the alternate [[60:469|14 CFR 91.167(a)]].",
+      "Choosing the closest legal airport under the same fog. Fix: pick different weather [[28:226|AWH 18-6]] [[23:320|IFH 10-29]].",
+      "Assuming ATC knows your alternate, or forgetting to cancel at a nontowered field. Fix: request an amended clearance [[34:289|AIM Appendix 4-20]]; cancel yourself [[33:340|AIM 5-1-15e, f]]."
+     ]
+    }
+   ],
+   "check": {
+    "q": "The destination forecast requires an alternate. A pilot carries fuel for the destination plus 45 minutes. What is missing?",
+    "a": "The fuel to fly from the destination to the alternate. Only when 91.167(b) is met may that leg be left out [[60:469|14 CFR 91.167(a)(2), (b)]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "RF.V.A-1.jpg",
+   "res": "23",
+   "page": 322,
+   "caption": "IFH Figure 10-20. Flight plan form (IFH 10-31).",
+   "alt": "A filled-in FAA Form 7233-1 for an IFR flight: N1230A, C182/G, 140 knots, departing BHM at 1600Z, 4,000 ft, route OKW V209 EWA MINDO, destination Gulfport Biloxi, 1 hour 58 minutes en route, fuel on board 4 hours 20 minutes, alternate PNS, 2 aboard.",
+   "source": "IFH, PDF p. 322"
+  },
+  "f2": {
+   "file": "RF.V.A-2.jpg",
+   "res": "29",
+   "page": 29,
+   "caption": "IPH Figure 1-13. Examples of IFR alternate minimums (IPH 1-13). Sample only, not for navigation.",
+   "alt": "A page from the IFR Alternate Airport Minimums section with an approach chart for Cortez RNAV (GPS) Y Rwy 21 laid over it. Callouts point to the A symbol in the chart notes, the city and state, the airport name and approaches, and the footnoted nonstandard minimums.",
+   "source": "IPH, PDF p. 29"
+  },
+  "f3": {
+   "file": "RF.V.A-3.jpg",
+   "res": "2",
+   "page": 103,
+   "caption": "Chart Users' Guide, Terminal Procedures Publication: Notes Symbols (p 103).",
+   "alt": "A list of approach chart note symbols with their meanings: a T in a triangle for takeoff minimums and departure procedures, an A in a triangle for nonstandard alternate minimums, A NA for an approach that may not be used as an alternate, a W in a box for WAAS, and a snowflake with -12 degrees C for a cold temperature airport.",
+   "source": "Chart Users' Guide, PDF p. 103"
+  },
+  "f4": {
+   "file": "RF.V.A-4.jpg",
+   "res": "23",
+   "page": 34,
+   "caption": "IFH Figure 1-10. Instrument approach chart (IFH 1-15). Sample only, not for navigation.",
+   "alt": "The RNAV (GPS) RWY 7 approach chart for Orlando Executive, with the briefing strip and notes at the top, the plan view with fixes and the minimum safe altitude circle, the profile view, the minimums table and the airport diagram. Yellow callouts label parts of the chart.",
+   "source": "IFH, PDF p. 34"
+  },
+  "f5": {
+   "file": "RF.V.A-5.jpg",
+   "res": "28",
+   "page": 227,
+   "caption": "AWH Figure 18-8. Frontal Fog Formation (AWH 18-7).",
+   "alt": "Cross-section of a front: warm, moist air rising over a wedge of cold air along a red frontal line, with cloud above and rain falling into the cold air, where a wide layer of fog lies on the ground.",
+   "source": "AWH, PDF p. 227"
+  }
+ },
+ "scenario": {
+  "title": "Winter trip into the fog belt",
+  "codes": [
+   "RF.V.A.K1",
+   "RF.V.A.K2",
+   "RF.V.A.K3",
+   "RF.V.A.R1",
+   "RF.V.A.S1"
+  ],
+  "setup": "You are instrument rated and current, flying a Cessna 182 (approach Category A) with a WAAS GPS and one VOR/ILS receiver, but no DME or ADF. Your home airport sits in Class E with 800 ft overcast. The destination, Riverton, lies in a river valley and has an ILS. Its forecast from 1 hour before to 1 hour after your ETA is 1,200 ft overcast and 3 SM in mist, and a warm front is moving in with fog forecast across the valley. Valley Muni, 12 NM down the same valley, has an ILS with no A symbol and forecasts 600 ft overcast and 2 SM at your ETA. Ridgeview, 70 NM north and behind the front, has a VOR/DME approach with no A symbol and an RNAV (GPS) approach marked A NA; it forecasts 3,000 ft broken and 6 SM. Time en route is 1+35, Ridgeview is 0+30 beyond Riverton, you burn 12.5 GPH and carry 56 gallons usable.",
+  "questions": [
+   {
+    "q": "What do you need before you take off into the overcast at home?",
+    "a": "A filed IFR flight plan and an ATC clearance before IFR in controlled airspace [[60:471|14 CFR 91.173]], ideally filed at least 30 minutes ahead [[33:332|AIM 5-1-6a]], and your instrument rating to act as PIC under IFR [[60:191|14 CFR 61.3(e)]]."
+   },
+   {
+    "q": "Is an alternate required for Riverton?",
+    "a": "Yes. The forecast ceiling of 1,200 ft is below 2,000 ft in the window from 1 hour before to 1 hour after ETA, so 91.169(b) is not met [[60:469|14 CFR 91.169(b)]]."
+   },
+   {
+    "q": "Is Valley Muni legal as the alternate, and is it a good choice?",
+    "a": "Legal: an ILS with no A symbol uses 600 ft and 2 SM, and the forecast is at or above that at your ETA [[60:470|14 CFR 91.169(c)(1)]]. Not wise: it is in the same valley under the same front, and frontal fog may cover large areas [[28:226|AWH 18-6]] [[28:223|AWH 18-3]]. Choose different weather, as the IFH example does [[23:320|IFH 10-29]]."
+   },
+   {
+    "q": "Can you plan Ridgeview as your alternate with your equipment?",
+    "a": "Not on the RNAV (GPS) approach, which is marked A NA [[2:103|Chart Users' Guide p 103]]. The VOR/DME approach can work. The AIM bars a required alternate that relies on GPS, including GPS standing in for a ground aid there, but says this restriction does not apply to TSO-C145 or C146 WAAS equipment [[33:118|AIM 1-2-3d]]. A suitable RNAV system may stand in when the aircraft has no DME, for example to find a DME fix or fly a DME arc [[33:116|AIM 1-2-3a]] [[33:117|AIM 1-2-3c]]. The limits: the GPS may not replace the VOR that gives lateral guidance on the final approach segment, so that VOR must be working and your VOR receiver flies the final course; and it may not be used on a procedure that is NOTAMed NA [[33:118|AIM 1-2-3c Notes 4, 5]]. You may need to tell ATC you are using it in place of DME [[33:117|AIM 1-2-3a Note 3]]. With no A symbol, plan on 800 ft and 2 SM nonprecision minimums; the forecast of 3,000 ft and 6 SM is above them [[60:470|14 CFR 91.169(c)(1)]]."
+   },
+   {
+    "q": "What is the least fuel you may depart with, and do you have it?",
+    "a": "Riverton, then Ridgeview, then 45 minutes [[60:469|14 CFR 91.167(a)]]: 95 + 30 + 45 = 170 minutes. 170 / 60 x 12.5 = 35.4 gallons, so 56 gallons usable covers it, before taxi and climb fuel from the POH."
+   },
+   {
+    "q": "An hour out, Riverton drops to 200 ft and 1/4 SM in fog. What do you do about your clearance?",
+    "a": "Tell ATC you want to divert and request an amended clearance to Ridgeview; the filed alternate is not shown to controllers [[34:289|AIM Appendix 4-20]]. At Ridgeview, if it has no tower, cancel IFR yourself, airborne in VFR conditions if you cannot reach ATC on the ground [[33:340|AIM 5-1-15e, f]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "RF.V.A.S1",
+   "do": "Given a destination forecast, the approaches at the destination and at candidate alternates, the chart notes and the airplane's navigation equipment, say whether the flight needs an alternate, whether each candidate qualifies under 91.169(c) and the AIM GPS rules, which one is the safer choice, and the least fuel 91.167 allows.",
+   "practice": "On your next IFR trip, or a planned one, write down the destination forecast for 1 hour before to 1 hour after ETA and run the 91.169(b) test [[60:469|14 CFR 91.169(b)]]. Pick two candidate alternates, read their notes for A and A NA [[2:103|Chart Users' Guide p 103]], check your GPS against AIM 1-2-3d [[33:118|AIM 1-2-3d]], compare each forecast with its minimums [[60:470|14 CFR 91.169(c)(1)]], and work the fuel to destination, alternate and 45 minutes [[60:469|14 CFR 91.167]]. Then ask which candidate shares the destination's weather system [[28:226|AWH 18-6]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Under 91.173, what must you have before operating under IFR in controlled airspace?",
+   "options": [
+    "A filed IFR flight plan and an appropriate ATC clearance",
+    "A filed IFR flight plan and a standard briefing",
+    "An ATC clearance only; the flight plan is optional",
+    "A VFR flight plan and a discrete transponder code"
+   ],
+   "answer": 0,
+   "why": "91.173 requires both a filed IFR flight plan and an appropriate ATC clearance [[60:471|14 CFR 91.173]]."
+  },
+  {
+   "q": "Which is true of Class A airspace?",
+   "options": [
+    "VFR is allowed with an operating transponder",
+    "Every operation must be IFR, under a clearance received before entering",
+    "IFR is required only above FL 240",
+    "A clearance may be requested after entering"
+   ],
+   "answer": 1,
+   "why": "Operations in Class A must be IFR and conducted only under an ATC clearance received prior to entering [[60:456|14 CFR 91.135]]."
+  },
+  {
+   "q": "A private pilot without an instrument rating is offered an IFR clearance to climb through a thin layer. May he accept and fly it as PIC?",
+   "options": [
+    "Yes, if he files first",
+    "Yes, in Class E only",
+    "No; no one may act as PIC under IFR without an instrument rating (or ATP)",
+    "Yes, with a safety pilot aboard"
+   ],
+   "answer": 2,
+   "why": "No person may act as PIC under IFR or in weather below VFR minimums without the appropriate instrument rating or an ATP certificate [[60:191|14 CFR 61.3(e)]]."
+  },
+  {
+   "q": "To skip the alternate, over what time must the destination forecast meet the ceiling and visibility numbers?",
+   "options": [
+    "At the ETA only",
+    "From departure to the ETA",
+    "From the ETA to 2 hours after",
+    "From at least 1 hour before to 1 hour after the ETA"
+   ],
+   "answer": 3,
+   "why": "91.169(b) uses the period of at least 1 hour before and 1 hour after the ETA [[60:469|14 CFR 91.169(b)]]."
+  },
+  {
+   "q": "In the 91.169(b) test, the 2,000 ft ceiling is measured from what?",
+   "options": [
+    "Mean sea level",
+    "The airport elevation",
+    "The lowest MDA or DA at the airport",
+    "The touchdown zone elevation of the landing runway"
+   ],
+   "answer": 1,
+   "why": "91.169(b)(2)(i) asks for a ceiling of at least 2,000 ft above the airport elevation [[60:469|14 CFR 91.169(b)(2)(i)]]."
+  },
+  {
+   "q": "What does A NA in an approach chart's notes mean?",
+   "options": [
+    "The approach may not be used for alternate planning",
+    "Approach lights are not available",
+    "The approach is not authorized at night",
+    "No alternate is needed when flying to this airport"
+   ],
+   "answer": 0,
+   "why": "A NA means the approach may not be used as an alternate, for example because of an unmonitored facility or no weather reporting [[2:103|Chart Users' Guide p 103]]."
+  },
+  {
+   "q": "Your TSO-C129 GPS has FDE, the RAIM prediction is good, and you have no baro-VNAV. The alternate's RNAV (GPS) approach has LPV, LNAV/VNAV and LNAV lines, and the destination has an ILS. Which minimums may you plan with at the alternate?",
+   "options": [
+    "LPV DA",
+    "LNAV/VNAV DA",
+    "LNAV or circling MDA",
+    "None; a non-WAAS GPS can never plan a GPS approach at an alternate"
+   ],
+   "answer": 2,
+   "why": "Such users may plan a GPS approach at the destination or the alternate, not both, and at the alternate use the LNAV or circling MDA; LNAV/VNAV needs approved baro-VNAV [[33:118|AIM 1-2-3d]]."
+  },
+  {
+   "q": "What must you take into account when you work out the 91.167 IFR fuel minimum?",
+   "options": [
+    "Still-air flight time only",
+    "Weather reports, forecasts and weather conditions",
+    "Only the winds reported at the departure airport",
+    "Nothing beyond the POH book fuel burn"
+   ],
+   "answer": 1,
+   "why": "91.167(a) requires enough fuel considering weather reports and forecasts and weather conditions [[60:468|14 CFR 91.167(a)]]."
+  },
+  {
+   "q": "In the IFH sample IFR flight, why was Pensacola a good alternate?",
+   "options": [
+    "It was the closest airport with an ILS",
+    "It had a control tower",
+    "The weather was substantially better to the east, with marginal VFR forecast there",
+    "It needed no alternate minimums"
+   ],
+   "answer": 2,
+   "why": "The IFH says Pensacola is a good alternate because the weather was substantially better to the east, with current conditions and a marginal VFR forecast [[23:320|IFH 10-29]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Your destination meets the 1-2-3 test, so you file with no alternate. Its lowest minimums are on the ILS; the VOR approach MDA is only about 200 ft below 2,000 ft AGL. En route, your glide slope receiver fails. Why does AIM 5-1-10 warn about this case?",
+   "options": [
+    "The 1-2-3 test does not apply at ILS airports",
+    "One equipment failure can leave only higher minimums, and a slight worsening of the weather can put the airport below them with no alternate fuel planned",
+    "ATC must now assign you an alternate",
+    "The glide slope failure makes the flight a VFR flight"
+   ],
+   "answer": 1,
+   "why": "AIM 5-1-10b names airports whose lowest minimums need special equipment, where an inflight malfunction can leave only higher minimums, and airports whose MDAs are only 100 to 300 ft below 2,000 ft AGL, where a slight worsening puts them below minimums [[33:338|AIM 5-1-10b]]. Pilots are told to consider an alternate even when the forecast relieves them of it [[33:337|AIM 5-1-10a]]."
+  },
+  {
+   "q": "Your ETA is 1500Z at a destination with a VOR approach. Which forecast lets you file without an alternate?",
+   "options": [
+    "1400Z to 1600Z: 2,200 ft broken, 4 SM",
+    "1500Z: 3,000 ft broken, 5 SM; from 1530Z: 1,500 ft broken, 3 SM",
+    "1300Z to 1500Z: 2,500 ft overcast, 6 SM; from 1500Z: 1,900 ft overcast, 6 SM",
+    "1400Z to 1600Z: 4,000 ft broken, 2 SM"
+   ],
+   "answer": 0,
+   "why": "Only the first meets at least 2,000 ft and 3 SM from 1 hour before to 1 hour after the ETA [[60:469|14 CFR 91.169(b)]]. The others drop below 2,000 ft or 3 SM inside the window."
+  },
+  {
+   "q": "Your planned alternate has an ILS and no A symbol. The forecast at your ETA there is exactly 600 ft overcast and 2 SM. Can you list it?",
+   "options": [
+    "No, the forecast must be above the minimums",
+    "No, alternates need 800-2",
+    "Yes, the forecast is at or above the standard precision minimums",
+    "Only with a WAAS receiver"
+   ],
+   "answer": 2,
+   "why": "The forecast must be at or above the minimums; for a precision approach with none listed, they are 600 ft and 2 SM [[60:469|14 CFR 91.169(c)]] [[60:470|14 CFR 91.169(c)(1)]]."
+  },
+  {
+   "q": "Your Category A airplane's planned alternate shows the A symbol. The listing for its VOR approach reads \"Categories A, B, 900-2.\" The forecast at your ETA is 850 ft broken and 3 SM. Can you list it?",
+   "options": [
+    "Yes, it beats the 800-2 standard",
+    "No, 850 ft is below the listed 900 ft",
+    "Yes, visibility is better than required",
+    "Only if the destination meets 1-2-3"
+   ],
+   "answer": 1,
+   "why": "When the procedure specifies alternate minimums, those apply instead of the standard ones [[60:470|14 CFR 91.169(c)(1)]]; the A symbol sends you to that listing [[2:103|Chart Users' Guide p 103]]."
+  },
+  {
+   "q": "Light rime is forecast in the clouds along your route and at the destination. Two candidate alternates have the same good forecast. Following AC 91-74B, which do you favor?",
+   "options": [
+    "The one with the longer runway, since ice can mean higher approach speeds and longer landings",
+    "The closer one, whatever its runway",
+    "The one with a control tower",
+    "The one with an LPV approach, since you can plan on the LPV line"
+   ],
+   "answer": 0,
+   "why": "AC 91-74B says that if structural icing occurs, higher approach speeds and more runway may be needed, and to choose alternates with longer runways [[38:46|AC 91-74B 5-4]] [[38:57|AC 91-74B App 2]]. LPV is wrong because WAAS users plan an alternate on the LNAV or circling line [[33:105|AIM 1-1-18c]]."
+  },
+  {
+   "q": "Your GPS is non-WAAS. The alternate's ILS missed approach uses a VOR that is NOTAMed out of service, and you planned to use GPS in its place. The alternate has no other approach. Can you list it?",
+   "options": [
+    "Yes, GPS may substitute for the VOR",
+    "Yes, if you have an ADF",
+    "No; a required alternate needs an approach that does not rely on GPS",
+    "Yes, if the forecast is 800-2 or better"
+   ],
+   "answer": 2,
+   "why": "The AIM uses this exact case: planning to use GPS for an out-of-service VOR that supports an ILS missed approach at an alternate is not allowed, so some other approach not reliant on GPS must be available. WAAS equipment is exempt [[33:118|AIM 1-2-3d]]."
+  },
+  {
+   "q": "You planned your alternate on its RNAV (GPS) LNAV line with a WAAS receiver. On arrival the receiver shows \"LPV available.\" What may you do?",
+   "options": [
+    "Fly the LNAV line only, because that is what you planned",
+    "Use the LPV vertical guidance at the displayed level of service",
+    "Ask ATC for a waiver first",
+    "Circle only"
+   ],
+   "answer": 1,
+   "why": "Upon arrival at an alternate, when the WAAS system indicates LNAV/VNAV or LPV is available, vertical guidance may be used to complete the approach at the displayed level of service [[33:105|AIM 1-1-18c]]."
+  },
+  {
+   "q": "The destination meets the 1-2-3 test and has an approach. Time en route is 2+15. What is the least time of fuel 91.167 allows?",
+   "options": [
+    "2+15",
+    "2+45",
+    "3+00",
+    "3+15"
+   ],
+   "answer": 2,
+   "why": "No alternate leg is needed under 91.167(b), but 45 minutes is: 2+15 + 0+45 = 3+00 [[60:469|14 CFR 91.167]]."
+  },
+  {
+   "q": "You filed with no alternate. Just before departure an amended TAF shows 1,500 ft overcast from 30 minutes before to 1 hour after your ETA. What now?",
+   "options": [
+    "Nothing; the plan is already filed",
+    "Add an alternate that qualifies and carry fuel to it plus 45 minutes",
+    "Add 15 minutes of fuel only",
+    "Depart and pick an alternate later if needed"
+   ],
+   "answer": 1,
+   "why": "The 91.169(b) test is no longer met, so the plan needs an alternate [[60:469|14 CFR 91.169(a), (b)]] and the fuel rule now includes the leg to it [[60:469|14 CFR 91.167(a)(2), (3)]]."
+  },
+  {
+   "q": "You fly IFR to a West Coast airport. Fog is forecast to form offshore tonight and drift inland. Which alternate fits the AWH picture best?",
+   "options": [
+    "A coastal airport 15 NM up the shore, because it has an ILS",
+    "An inland airport away from the marine air, even if it is farther",
+    "Any airport, because advection fog burns off within an hour",
+    "The nearest airport, because advection fog moves in slowly"
+   ],
+   "answer": 1,
+   "why": "Advection fog forms offshore over cold water and is carried inland by the wind [[28:225|AWH 18-5]]; it is usually more extensive and persistent than radiation fog and can move in rapidly, day or night [[28:226|AWH 18-6]]. Application: choose an alternate the fog is unlikely to reach."
+  },
+  {
+   "q": "The forecast at a mountain destination is 2,500 ft and 4 SM, but every MDA there is above 2,000 ft AGL. What does AIM 5-1-10 advise?",
+   "options": [
+    "No alternate is legal there",
+    "Consider an alternate and its fuel even though the forecast relieves you of the requirement",
+    "Use a 30 minute reserve",
+    "Plan to descend VFR below the MDA"
+   ],
+   "answer": 1,
+   "why": "Pilots are cautioned to consider an alternate at mountainous destinations even when the forecast technically relieves them [[33:337|AIM 5-1-10a]]; airports with MDAs above 2,000 ft are the first case named [[33:338|AIM 5-1-10b]]."
+  },
+  {
+   "q": "Which flight plan entry tells search and rescue how long you can stay airborne?",
+   "options": [
+    "Fuel on board (endurance), in hours and minutes",
+    "Requested altitude",
+    "Total estimated elapsed time",
+    "Aircraft color"
+   ],
+   "answer": 0,
+   "why": "91.153(a)(7), which 91.169 uses, requires the fuel on board in hours [[60:464|14 CFR 91.153(a)]]; on FAA Form 7233-4, endurance is a required Item 19 entry for domestic flights [[34:289|AIM Appendix 4-20]]."
+  },
+  {
+   "q": "You plan to depart VFR from a Class G field and start IFR at a fix 20 NM out. What must happen before the IFR part begins?",
+   "options": [
+    "Nothing; the composite plan covers it",
+    "You must receive an IFR clearance from the controlling facility",
+    "You must close the VFR plan with the tower",
+    "You must squawk 1200"
+   ],
+   "answer": 1,
+   "why": "You may name an airborne fix as the IFR departure point, but you must receive an IFR clearance before beginning the IFR portion; composite plans are not processed [[33:337|AIM 5-1-9]]."
+  }
+ ],
+ "takeaways": [
+  "IFR in controlled airspace needs a filed IFR flight plan and a clearance (91.173); Class A is always IFR.",
+  "No alternate only if the destination has an approach and the forecast is at least 2,000 ft and 3 SM from 1 hour before to 1 hour after ETA.",
+  "An alternate qualifies on its forecast at your ETA: listed minimums, or 600-2 precision and 800-2 nonprecision, or basic VFR from the MEA with no approach.",
+  "Check the notes: A means look up nonstandard minimums; A NA means you cannot use it.",
+  "Non-WAAS GPS: a GPS approach at the destination or the alternate, not both. WAAS: plan on LNAV or circling, use LPV if it shows up.",
+  "IFR fuel: destination, then alternate, then 45 minutes at normal cruise.",
+  "Legal is the floor: pick an alternate outside the destination's weather."
+ ],
+ "cfi_notes": [
+  "IPH 1-14 words the Part 91 test as: an alternate must be listed if the forecast ceiling is less than 2,000 ft \"and\" the visibility is less than 3 SM [[29:30|IPH 1-14]]. Current 14 CFR 91.169(b) excuses the alternate only when the ceiling will be at least 2,000 ft and the visibility at least 3 SM [[60:469|14 CFR 91.169(b)]], so either one short means an alternate. Teach the CFR.",
+  "IFH 9-27 lists that a non-GPS approach must exist at the alternate when one is required [[23:270|IFH 9-27]]. AIM 1-2-3d lets WAAS users, and non-WAAS users with FDE and a RAIM prediction, plan GPS-based alternates within stated limits [[33:118|AIM 1-2-3d]]. Teach the AIM.",
+  "IPH 1-13 says that because GPS may not substitute on a conventional approach at an alternate, the aircraft needs DME or ADF if that approach requires them [[29:29|IPH 1-13]]. AIM 1-2-3d states the same restriction and adds that it does not apply to TSO-C145 or C146 WAAS equipment [[33:118|AIM 1-2-3d]]. Teach the AIM, including its limit that GPS never replaces the final approach course NAVAID [[33:118|AIM 1-2-3c Note 4]].",
+  "IFH 10-2 describes filing through DUATS and FAA Form 7233-1 [[23:293|IFH 10-2]], and the IFH Figure 10-20 sample uses that form [[23:322|IFH 10-31]]. AIM 5-1-6a makes Form 7233-4 mandatory for domestic IFR flights except military/DoD flights and civilian stereo route filers [[33:332|AIM 5-1-6a]], and AIM 5-1-1 points pilots to 1800wxbrief.com [[33:322|AIM 5-1-1]]. Teach the AIM.",
+  "The two sources read differently on filing the alternate. AIM Appendix 4 says the FAA does not require filing of alternate airports in the flight plan provided to ATC, but the rules for establishing alternates must be followed [[34:289|AIM Appendix 4-20]]. Current 14 CFR 91.169(a)(2) says that, unless ATC authorizes otherwise, an IFR flight plan must include an alternate unless 91.169(b) applies [[60:469|14 CFR 91.169(a)]]. The CFR is the rule, so this lesson teaches listing the alternate; both sources agree the alternate must be planned, and the AIM adds that controllers will not see it.",
+  "Interpretation: 91.173 covers controlled airspace [[60:471|14 CFR 91.173]], and IFH 10-7 says ATC does not issue clearances where it has no jurisdiction [[23:298|IFH 10-7]]. The sources do not walk through IFR in Class G in detail; treat it as interpretation and keep the review on 61.3(e), fuel and minimum altitudes.",
+  "Interpretation: 91.167 applies when operating \"in IFR conditions\" [[60:468|14 CFR 91.167(a)]], while 91.169 applies to any IFR flight plan [[60:469|14 CFR 91.169(a)]]. Teach pilots to plan every IFR flight to 91.167; the sources do not discuss an IFR flight flown wholly in VMC.",
+  "Alternate minimums are a planning tool. The IPH makes this point for airline dispatch, where an actual diversion uses the published approach minimums [[29:30|IPH 1-14]], and the AIM lets WAAS users fly LPV on arrival after planning on LNAV [[33:105|AIM 1-1-18c]]. Ask the pilot which minimums they would fly at their alternate.",
+  "Have the pilot bring the GPS AFM supplement. Whether the unit is TSO-C129, C196, C145 or C146, has FDE or baro-VNAV, decides which row of the AIM table applies [[33:118|AIM 1-2-3d]]."
+ ],
+ "gaps": [
+  "Which TSO your GPS meets, and whether it has FDE or approved baro-VNAV, comes from the AFM supplement, not these sources.",
+  "Current nonstandard alternate minimums and A NA status come from the current Terminal Procedures Publication; the IFH and IPH samples are from 2010 and not for navigation.",
+  "Normal cruising fuel burn, taxi and climb fuel come from the POH; the CFR gives no number for them.",
+  "The sources do not say how TEMPO or PROB groups in a TAF are applied to the 91.169 tests; that needs an FAA interpretation or a CFI.",
+  "Special instrument approach procedures issued to an operator, and alternate minimums \"otherwise authorized by the Administrator,\" are only mentioned; Part 121 and 135 alternate rules are outside this course."
+ ],
+ "activities": [
+  {
+   "type": "tf",
+   "key": "h1",
+   "after": 3,
+   "title": "True or false: plans, clearances and the alternate test",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "91.173 requires a filed IFR flight plan and a clearance for IFR flight in Class G airspace.",
+     "a": false,
+     "why": "False. 91.173 is written for controlled airspace [[60:471|14 CFR 91.173]]; ATC does not issue IFR clearances where it has no jurisdiction [[23:298|IFH 10-7]]."
+    },
+    {
+     "s": "ATC can take one flight plan with a VFR first half and an IFR second half.",
+     "a": false,
+     "why": "False. Composite flight plans cannot be accepted or processed; file a separate VFR plan if you want one [[33:337|AIM 5-1-9]]."
+    },
+    {
+     "s": "A destination with no instrument approach needs an alternate on an IFR flight plan even with a clear forecast.",
+     "a": true,
+     "why": "True. The exception needs a Part 97 (or special) approach at the first airport of intended landing [[60:469|14 CFR 91.169(b)]]."
+    },
+    {
+     "s": "After you cancel IFR, ATC keeps giving you radar traffic advisories unless you say otherwise.",
+     "a": false,
+     "why": "False. Separation and radar services are discontinued; request VFR advisories if you want them [[33:339|AIM 5-1-15]]."
+    },
+    {
+     "s": "A VFR-only private pilot may fly in weather below VFR minimums in Class G because no clearance is needed there.",
+     "a": false,
+     "why": "False. 61.3(e) bars acting as PIC under IFR or in weather below VFR minimums without an instrument rating, in any airspace [[60:191|14 CFR 61.3(e)]]."
+    },
+    {
+     "s": "You should not file a second flight plan for the same flight without making sure the first one was removed.",
+     "a": true,
+     "why": "True [[33:333|AIM 5-1-6a]]."
+    }
+   ]
+  },
+  {
+   "type": "match",
+   "key": "h2",
+   "after": 4,
+   "title": "Alternate symbols and numbers",
+   "intro": "Tap an item, then what it means.",
+   "pairs": [
+    {
+     "l": "A in a black triangle",
+     "r": "Nonstandard alternate minimums are listed in the TPP"
+    },
+    {
+     "l": "A NA",
+     "r": "The approach may not be used for an alternate"
+    },
+    {
+     "l": "600 ft and 2 SM",
+     "r": "Standard alternate minimums, precision approach"
+    },
+    {
+     "l": "800 ft and 2 SM",
+     "r": "Standard alternate minimums, nonprecision approach"
+    },
+    {
+     "l": "No approach at the alternate",
+     "r": "Weather allowing descent from the MEA, approach and landing under basic VFR"
+    },
+    {
+     "l": "Negative W in a black box",
+     "r": "WAAS vertical outages possible daily; plan with LNAV minima"
+    }
+   ],
+   "why": "Symbols: [[2:103|Chart Users' Guide p 103]]. Standard minimums and the no-approach rule: [[60:470|14 CFR 91.169(c)(1), (2)]]."
+  },
+  {
+   "type": "sort",
+   "key": "h3",
+   "after": 5,
+   "title": "Can you list it as your alternate?",
+   "intro": "Category A airplane. Tap each case, then tap the bucket.",
+   "buckets": [
+    "Can list it",
+    "Cannot list it"
+   ],
+   "items": [
+    {
+     "t": "LOC approach only, no A symbol; forecast at your ETA 900 ft overcast, 2 SM",
+     "b": 0
+    },
+    {
+     "t": "VOR approach only, no A symbol; forecast at your ETA 1,000 ft overcast, 1 1/2 SM",
+     "b": 1
+    },
+    {
+     "t": "Its only approach is marked A NA; forecast 3,000 ft broken, 6 SM",
+     "b": 1
+    },
+    {
+     "t": "ILS, no A symbol; forecast at your ETA 500 ft overcast, 3 SM",
+     "b": 1
+    },
+    {
+     "t": "WAAS GPS; only approach is an RNAV (GPS) with no A NA; forecast 1,200 ft broken, 4 SM",
+     "b": 0
+    },
+    {
+     "t": "TSO-C129 GPS with FDE and a good RAIM prediction; you will use the destination's ILS; alternate has only an RNAV (GPS) with LNAV; forecast 1,000 ft broken, 3 SM",
+     "b": 0
+    },
+    {
+     "t": "No instrument approach; forecast allows descent from the MEA and a VFR approach and landing",
+     "b": 0
+    },
+    {
+     "t": "Forecast meets the minimums from 1 hour after your ETA there, but not at your ETA",
+     "b": 1
+    }
+   ],
+   "why": "Weather at the ETA must meet the listed or standard minimums, or basic VFR from the MEA with no approach [[60:469|14 CFR 91.169(c)]] [[60:470|14 CFR 91.169(c)(1), (2)]]. A NA rules an approach out [[2:103|Chart Users' Guide p 103]]. GPS-based alternates: [[33:118|AIM 1-2-3d]] [[33:105|AIM 1-1-18c]]."
+  },
+  {
+   "type": "label",
+   "key": "h6",
+   "after": 5,
+   "title": "Read the chart for alternate planning",
+   "figure": "f4",
+   "intro": "Drag each label to its pin on the sample chart.",
+   "pins": [
+    {
+     "x": 18.2,
+     "y": 14.0,
+     "label": "Alternate minimums not authorized"
+    },
+    {
+     "x": 32.0,
+     "y": 11.6,
+     "label": "Equipment note: GPS or RNP 0.3 needed"
+    },
+    {
+     "x": 28.8,
+     "y": 22.3,
+     "label": "Radar required for this procedure"
+    },
+    {
+     "x": 69.1,
+     "y": 59.9,
+     "label": "Airport elevation"
+    },
+    {
+     "x": 29.9,
+     "y": 87.6,
+     "label": "Category A straight-in landing minimums"
+    }
+   ],
+   "why": "The A NA symbol sits in the notes box [[2:103|Chart Users' Guide p 103]] of this IFH sample chart [[23:34|IFH 1-15]]. The 91.169(b) ceiling is measured above airport elevation [[60:469|14 CFR 91.169(b)]], and landing minimums are not alternate minimums [[60:470|14 CFR 91.169(c)(1)]]."
+  },
+  {
+   "type": "calc",
+   "key": "h5",
+   "after": 6,
+   "title": "Work the IFR fuel minimum",
+   "intro": "Work it out, then type your answer. Ignore taxi and climb fuel.",
+   "items": [
+    {
+     "q": "Alternate required. 1+40 to the destination, 0+35 on to the alternate, 11.5 GPH at normal cruise. Least fuel to depart with, in gallons?",
+     "answer": 34.5,
+     "tol": 0.1,
+     "unit": "gal",
+     "why": "100 + 35 + 45 = 180 minutes = 3.0 hours. 3.0 x 11.5 = 34.5 gallons [[60:469|14 CFR 91.167(a)]]."
+    },
+    {
+     "q": "No alternate required. 2+10 to the destination at 9 GPH. Least fuel, in gallons?",
+     "answer": 26.25,
+     "tol": 0.05,
+     "unit": "gal",
+     "why": "130 + 45 = 175 minutes. 175 / 60 x 9 = 26.25 gallons [[60:469|14 CFR 91.167(b)]]."
+    },
+    {
+     "q": "The IFH sample plan shows 4+20 of fuel on board and 1+58 en route. Keeping the 45 minute reserve, how many minutes are left for the leg to the alternate?",
+     "answer": 97,
+     "tol": 0,
+     "unit": "min",
+     "why": "4+20 = 260 minutes; 1+58 = 118 minutes. 260 - 118 - 45 = 97 minutes [[23:322|IFH 10-31]] [[60:469|14 CFR 91.167(a)]]."
+    },
+    {
+     "q": "A 1+30 trip with no alternate required, at 12 GPH. How many more gallons does the IFR minimum need than the VFR day minimum?",
+     "answer": 3.0,
+     "tol": 0,
+     "unit": "gal",
+     "why": "IFR reserve 45 minutes [[60:469|14 CFR 91.167]] minus VFR day reserve 30 minutes [[60:464|14 CFR 91.151(a)]] = 15 minutes. 15 / 60 x 12 = 3.0 gallons."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h4",
+   "after": 7,
+   "title": "From filing to closing",
+   "intro": "Use the arrows to put the steps of an IFR trip to a nontowered airport in order, then tap Check.",
+   "steps": [
+    "Run the 1-2-3 test on the destination forecast",
+    "File the IFR plan, with an alternate if needed, at least 30 minutes before departure",
+    "Receive your clearance before entering controlled airspace in IFR weather",
+    "Destination goes below minimums: tell ATC and request an amended clearance to the alternate",
+    "In VFR conditions near the nontowered alternate, cancel IFR while you can still reach ATC",
+    "Land"
+   ],
+   "why": "Forecast window [[60:469|14 CFR 91.169(b)]]; filing lead time [[33:332|AIM 5-1-6a]]; plan and clearance [[60:471|14 CFR 91.173]]; diversion [[34:289|AIM Appendix 4-20]]; canceling at a nontowered airport [[33:340|AIM 5-1-15e, f]]."
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 9,
+   "title": "Picking the backup: a flight that unfolds",
+   "intro": "You fly a Cessna 182 with a WAAS GPS (TSO-C146) and one VOR/ILS receiver. Your destination, Lakeview, lies in a broad valley with an ILS. A warm front is moving in, and frontal fog is forecast across the valley this evening.",
+   "steps": [
+    {
+     "s": "The Lakeview forecast for 1 hour before to 1 hour after your ETA: 1,200 ft overcast, 4 SM in mist. What is your first conclusion?",
+     "options": [
+      "No alternate; Lakeview has an ILS",
+      "An alternate is required; the ceiling is below 2,000 ft",
+      "An alternate is required only if visibility drops below 3 SM",
+      "No alternate; the visibility is at least 3 SM"
+     ],
+     "answer": 1,
+     "why": "Both 2,000 ft and 3 SM must hold for the whole window [[60:469|14 CFR 91.169(b)]]."
+    },
+    {
+     "s": "Candidates: Pine Hill, 10 NM down the same valley, ILS with no A symbol, forecast at your ETA 700 ft overcast, 3 SM. Westport, 60 NM west behind the front, RNAV (GPS) only with no A NA, forecast 3,500 ft broken, 6 SM. Which do you list?",
+     "options": [
+      "Pine Hill: closest, and legal",
+      "Westport: legal and outside the fog",
+      "Neither is legal",
+      "Both, to be safe; ATC will choose"
+     ],
+     "answer": 1,
+     "why": "Pine Hill is legal (700-3 beats 600-2) [[60:470|14 CFR 91.169(c)(1)]], but frontal fog may cover large areas [[28:226|AWH 18-6]]. Westport has different weather, as in the IFH example [[23:320|IFH 10-29]], and WAAS may plan a GPS-based alternate [[33:118|AIM 1-2-3d]]."
+    },
+    {
+     "s": "Which line and weather do you plan with at Westport?",
+     "options": [
+      "The LPV DA, with 600 ft and 2 SM",
+      "The LNAV or circling line, with Part 91 nonprecision weather (800-2 unless listed higher)",
+      "Any line; WAAS users need no alternate minimums",
+      "The LNAV/VNAV DA only"
+     ],
+     "answer": 1,
+     "why": "WAAS users plan an alternate on the LNAV or circling minima line with Part 91 nonprecision weather requirements [[33:105|AIM 1-1-18c]] [[60:470|14 CFR 91.169(c)(1)]]."
+    },
+    {
+     "s": "Times: 1+35 to Lakeview, 0+20 on to Westport, 12 GPH at normal cruise. What is the least fuel 91.167 allows (ignore taxi and climb)?",
+     "options": [
+      "23 gallons",
+      "28 gallons",
+      "29 gallons",
+      "32 gallons"
+     ],
+     "answer": 3,
+     "why": "95 + 20 + 45 = 160 minutes. 160 / 60 x 12 = 32 gallons [[60:469|14 CFR 91.167(a)]]. 28 skips the alternate leg, 23 skips the reserve, and 29 uses a 30 minute reserve."
+    },
+    {
+     "s": "In cruise, Lakeview drops to 200 ft overcast and 1/4 SM in fog. You decide to go to Westport. What do you tell ATC?",
+     "options": [
+      "Nothing; ATC already has your alternate",
+      "Tell ATC and request an amended clearance to Westport",
+      "Squawk 7600 and proceed",
+      "Cancel IFR and continue VFR"
+     ],
+     "answer": 1,
+     "why": "Alternate information in a filed plan is not presented to controllers; notify ATC and request an amended clearance [[34:289|AIM Appendix 4-20]]."
+    }
+   ]
+  }
+ ]
+}
