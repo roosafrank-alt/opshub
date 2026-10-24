@@ -4516,6 +4516,27 @@ def project_detail(project_id):
     labor_total_cost = sum((s["cost"] or 0) for s in labor_sessions if s["ended_at"])
     labor_total_hours = sum((s["hours"] or 0) for s in labor_sessions if s["ended_at"])
 
+    # Idea "hours worked vs the estimate": each Discrepancy with an estimate
+    # shows the timed hours against it (grey, yellow from 80%, red once over).
+    _worked = {}
+    for s_ in labor_sessions:
+        if s_["ended_at"] and s_["section"]:
+            w = _worked.setdefault(s_["section"], [0.0, 0.0])
+            w[0] += s_["hours"] or 0
+            w[1] += s_["cost"] or 0
+    for name, sd in usage_by_section.items():
+        src = sd.get("linked_squawk") or sd
+        eh, ec = src.get("est_hours"), src.get("est_cost")
+        sd["hours_est"] = None
+        if name == "General" or not eh or eh <= 0:
+            continue
+        wh, wc = _worked.get(name, [0.0, 0.0])
+        pct = wh / eh
+        sd["hours_est"] = {"worked": round(wh, 1), "est": eh, "pct": pct,
+                           "level": "over" if wh > eh + 1e-9 else ("warn" if pct >= 0.8 else "ok"),
+                           "bar": min(100, round(pct * 100)),
+                           "over_h": round(wh - eh, 1), "worked_cost": round(wc, 2), "est_cost": ec}
+
     known_sections = [r["section"] for r in conn.execute("""
         SELECT section FROM (
             SELECT name as section FROM project_sections WHERE project_id = ?

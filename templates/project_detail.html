@@ -270,6 +270,7 @@
                 {% endif %}
                 {% endif %}
                 <strong class="{{ 'text-decoration-line-through text-muted' if data.completed_at }}">{% if section != 'General' %}<i class="bi bi-folder2-open"></i> {% endif %}{{ section }}</strong>
+                {% if data.hours_est %}{% set he = data.hours_est %}<span class="badge rounded-pill {{ 'text-bg-danger' if he.level == 'over' else ('text-bg-warning' if he.level == 'warn' else 'text-bg-secondary') }}" data-change="HRS-EST" title="Hours worked on this Discrepancy vs its estimate"><i class="bi bi-stopwatch"></i> {{ '%.1f'|format(he.worked) }} of {{ '%.1f'|format(he.est) }} h</span>{% endif %}
                 {% if data.assigned_name %}<span class="badge text-bg-light border" data-change="SHOP-08"><i class="bi bi-person"></i> {{ data.assigned_name }}</span>{% endif %}
                 {% if section != 'General' and data.id %}
                 {#- Idea "project sheet": the description used to be hidden until
@@ -354,6 +355,10 @@
               {{ squawk_estimate(data.linked_squawk, shop_is_admin or shop_can_create) }}
               {% else %}
               {{ estimate_form(url_for('project_section_estimate', project_id=project.id, section_id=data.id), data, shop_is_admin or shop_can_create) }}
+              {% endif %}
+              {% if data.hours_est %}{% set he = data.hours_est %}
+              <div class="progress mt-1" style="height:6px;" role="progressbar" aria-label="Share of the estimate used" aria-valuenow="{{ he.bar }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar {{ 'bg-danger' if he.level == 'over' else ('bg-warning' if he.level == 'warn' else 'bg-secondary') }}" style="width:{{ he.bar }}%;"></div></div>
+              {% if he.level == 'over' %}<div class="small fw-bold text-danger mt-1" data-change="HRS-EST"><i class="bi bi-exclamation-triangle"></i> {{ '%.1f'|format(he.over_h) }} h over the estimate{% if can_see_shop_costs and he.est_cost %} &middot; worked ${{ '{:,.2f}'.format(he.worked_cost) }} vs ${{ '{:,.2f}'.format(he.est_cost) }} quoted{% endif %} &middot; call the owner before going further</div>{% endif %}
               {% endif %}
             </div>
             {% endif %}
