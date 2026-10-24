@@ -899,7 +899,7 @@ document.addEventListener('click', function (e) {
       pop.textContent = '';
       var name = (lines.shift() || '').replace(/ - waitlist$/, '');
       if (!late) row('Customer:', name);
-      else { var t = document.createElement('div'); t.className = 'wl-row'; t.style.fontWeight = '700'; t.innerHTML = /^Cancelled/.test(name) ? '<i class="bi bi-x-circle" style="color:#dc3545"></i>&nbsp;' : '<i class="bi bi-hourglass-split" style="color:#ffc107"></i>&nbsp;'; t.appendChild(document.createTextNode(name)); pop.appendChild(t); }
+      else { var t = document.createElement('div'); t.className = 'wl-row'; t.style.fontWeight = '700'; t.innerHTML = /^Cancelled/.test(name) ? '<i class="bi bi-x-circle" style="color:#dc3545"></i>&nbsp;' : /^Running late/.test(name) ? '<i class="bi bi-hourglass-split" style="color:#ffc107"></i>&nbsp;' : '<i class="bi bi-airplane" style="color:#9ec5fe"></i>&nbsp;'; t.appendChild(document.createTextNode(name)); pop.appendChild(t); }
       lines.forEach(function (ln) {
         var i = ln.indexOf(': ');
         if (i > 0) row(ln.slice(0, i + 1), ln.slice(i + 2));
