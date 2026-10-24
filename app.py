@@ -5699,6 +5699,7 @@ def asset_detail(asset_id):
     asset_flights = []
     oil_log = []
     total_oil_added = 0.0
+    oil_burn = None
     if asset["is_flight_asset"]:
         asset_flights = conn.execute("""
             SELECT f.*, s.name as student_name, c.name as cfi_name
@@ -5710,6 +5711,7 @@ def asset_detail(asset_id):
         """, (asset_id,)).fetchall()
         oil_log = [f for f in asset_flights if f["oil_added_qt"]]
         total_oil_added = sum(f["oil_added_qt"] or 0 for f in asset_flights)
+        oil_burn = _oil_burn_status(list(reversed(asset_flights)))
 
     # Squawks at the New step (JOBS-35): the red banner at the top holds just
     # these - not acknowledged yet, or nobody assigned (JOBS-09). Once someone
@@ -5751,7 +5753,7 @@ def asset_detail(asset_id):
     conn.close()
     return render_template("asset_detail.html", asset=asset, project_blocks=project_blocks, total_cost=total_cost,
                            asset_ads=asset_ads, ad_kinds=AD_KINDS, ad_methods=AD_METHODS, today_iso=date.today().isoformat(),
-                           maintenance_items=maintenance_items, oil_log=oil_log, total_oil_added=total_oil_added,
+                           maintenance_items=maintenance_items, oil_log=oil_log, total_oil_added=total_oil_added, oil_burn=oil_burn,
                            open_squawks=open_squawks, todo_squawks=todo_squawks, done_squawks=done_squawks, photos=photos, todos=todos, project_cover=project_cover,
                            assignable_workers=assignable_workers,
                            latest_compression=latest_compression, compression_count=compression_count,
@@ -6001,6 +6003,40 @@ def tech_spot():
                            my_squawks_done=my_squawks_done, reminders=reminders)
 
 
+def _oil_burn_status(flights):
+    """Is this plane burning more oil lately than its own normal?
+    Compares hours-per-quart over the last 3 top-offs with the hours-per-quart
+    of everything before them. Needs at least 3 earlier top-offs and 20 earlier
+    hours, otherwise there is no 'normal' to compare with and it returns None.
+    Yellow when the recent burn is 1.5x normal or more, red at 2x or more.
+    Returns {"level", "text", "recent_hpq", "normal_hpq", "recent_qt", "recent_hours"}."""
+    events = []  # (hours flown up to and including that flight, quarts added)
+    cursor = 0.0
+    for f in flights:
+        cursor += _flight_hours(f)
+        if f["oil_added_qt"]:
+            events.append((cursor, f["oil_added_qt"]))
+    if len(events) < 6:
+        return None
+    recent, earlier = events[-3:], events[:-3]
+    start_hours = earlier[-1][0]
+    recent_qt = sum(q for _h, q in recent)
+    recent_hours = recent[-1][0] - start_hours
+    older_qt = sum(q for _h, q in earlier)
+    older_hours = start_hours
+    if older_hours < 20 or older_qt <= 0 or recent_qt <= 0 or recent_hours <= 0:
+        return None
+    normal = older_hours / older_qt
+    recent_hpq = recent_hours / recent_qt
+    ratio = normal / recent_hpq
+    if ratio < 1.5:
+        return None
+    level = "low" if ratio >= 2 else "watch"
+    text = "Oil burn up: 1 qt / %.1f hrs lately (normal %.1f)" % (recent_hpq, normal)
+    return {"level": level, "text": text, "recent_hpq": recent_hpq, "normal_hpq": normal,
+            "recent_qt": recent_qt, "recent_hours": recent_hours}
+
+
 @app.route("/assets/<int:asset_id>/oil")
 @shop_role_required('admin', 'tech', 'inspector')
 def asset_oil(asset_id):
@@ -6017,6 +6053,12 @@ def asset_oil(asset_id):
     flights = conn.execute(
         "SELECT * FROM flights WHERE asset_id = ? ORDER BY flight_date, id", (asset_id,)
     ).fetchall()
+    oil_burn = _oil_burn_status(flights)
+    oil_filed = None
+    if oil_burn and oil_burn["level"] == "low":
+        oil_filed = conn.execute(
+            "SELECT reported_by, reported_at FROM plane_squawks WHERE asset_id = ? AND notes = ? ORDER BY id DESC LIMIT 1",
+            (asset_id, "Oil: " + oil_burn["text"])).fetchone()
     conn.close()
 
     total_hours = sum(_flight_hours(f) for f in flights)
@@ -6048,7 +6090,39 @@ def asset_oil(asset_id):
     return render_template("asset_oil.html", asset=asset, total_hours=total_hours,
                            total_oil=total_oil, num_events=num_events, qts_per_change=qts_per_change,
                            hours_per_qt=hours_per_qt, events_detail=events_detail,
-                           chart_labels=chart_labels, chart_cumulative=chart_cumulative)
+                           chart_labels=chart_labels, chart_cumulative=chart_cumulative,
+                           oil_burn=oil_burn, oil_filed=oil_filed)
+
+
+@app.route("/assets/<int:asset_id>/oil/discrepancy", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def asset_oil_discrepancy(asset_id):
+    """One tap from the red 'Oil burn up' note: adds a discrepancy (squawk) to
+    this plane's open list with the note text already filled in. The text is
+    rebuilt here from the saved flights, never taken from the form."""
+    conn = get_db()
+    asset = conn.execute("SELECT id FROM assets WHERE id = ? AND deleted_at IS NULL", (asset_id,)).fetchone()
+    if not asset:
+        conn.close()
+        abort(404)
+    flights = conn.execute(
+        "SELECT * FROM flights WHERE asset_id = ? ORDER BY flight_date, id", (asset_id,)).fetchall()
+    note = _oil_burn_status(flights)
+    if not note or note["level"] != "low":
+        conn.close()
+        flash("This plane's oil burn isn't flagged red right now.", "info")
+        return redirect(url_for("asset_oil", asset_id=asset_id))
+    if conn.execute("SELECT 1 FROM plane_squawks WHERE asset_id = ? AND notes = ?",
+                    (asset_id, "Oil: " + note["text"])).fetchone():
+        conn.close()
+        flash("Already added to this plane's discrepancies.", "info")
+        return redirect(url_for("asset_oil", asset_id=asset_id))
+    conn.execute("INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at) VALUES (?, ?, ?, ?)",
+                 (asset_id, "Oil: " + note["text"], session.get("user_name"), now_iso()))
+    conn.commit()
+    conn.close()
+    flash("Added to this plane's discrepancies - it's on the Squawks page as New.", "success")
+    return redirect(url_for("asset_oil", asset_id=asset_id))
 
 
 def _compression_status(checks):

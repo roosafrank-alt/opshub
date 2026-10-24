@@ -213,6 +213,9 @@
         <span class="text-muted">Oil Added (all-time)</span>
         <strong>{{ '%g'|format(total_oil_added) }} qt</strong>
       </div>
+      {% if oil_burn %}
+      <div id="oil-burn-note" class="alert alert-{{ 'danger' if oil_burn.level == 'low' else 'warning' }} py-1 px-2 mt-1 mb-0 small"><i class="bi bi-exclamation-triangle-fill"></i> <strong>Oil burn up:</strong> 1 qt / {{ '%.1f'|format(oil_burn.recent_hpq) }} hrs lately (normal {{ '%.1f'|format(oil_burn.normal_hpq) }})</div>
+      {% endif %}
       {% if oil_log %}
       <div class="small mt-1" style="max-height:160px; overflow-y:auto;">
         {% for f in oil_log %}

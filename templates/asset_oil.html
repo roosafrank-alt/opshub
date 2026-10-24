@@ -6,33 +6,39 @@
   <a href="{{ url_for('asset_detail', asset_id=asset.id) }}" class="btn btn-outline-secondary btn-sm">&laquo; Back to Aircraft</a>
 </div>
 
+{% if oil_burn %}
+<div class="alert alert-{{ 'danger' if oil_burn.level == 'low' else 'warning' }} d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 mb-3" id="oil-note">
+  <div><i class="bi bi-exclamation-triangle-fill"></i> <strong>Oil burn up:</strong> {{ '%g'|format(oil_burn.recent_qt) }} qt in the last {{ '%.1f'|format(oil_burn.recent_hours) }} hrs ({{ '%.1f'|format(oil_burn.recent_hpq) }} hrs per qt), normal for this plane is {{ '%.1f'|format(oil_burn.normal_hpq) }}.</div>
+  {% if oil_burn.level == 'low' and oil_filed %}
+  <div class="small fw-bold text-success" id="oil-filed"><i class="bi bi-check-circle-fill"></i> Already added to discrepancies{% if oil_filed.reported_by %} by {{ oil_filed.reported_by }}{% endif %}{% if oil_filed.reported_at %} on {{ oil_filed.reported_at[:10] }}{% endif %}</div>
+  {% elif oil_burn.level == 'low' and (session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech')) %}
+  <form method="post" action="{{ url_for('asset_oil_discrepancy', asset_id=asset.id) }}" class="mb-0">
+    <button class="btn btn-danger btn-sm">Add to discrepancy</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="row g-3 mb-3">
-  <div class="col-6 col-md-3">
+  <div class="col-12 col-md-4">
     <div class="card stat-card p-3">
       <div class="text-muted small">Hours / Quart</div>
       <div class="display-6">{{ '%.1f'|format(hours_per_qt) if hours_per_qt is not none else '-' }}</div>
       <div class="text-muted small">avg hours flown per qt burned</div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card stat-card p-3">
-      <div class="text-muted small">Quarts / Top-off</div>
-      <div class="display-6">{{ '%.2f'|format(qts_per_change) if qts_per_change is not none else '-' }}</div>
-      <div class="text-muted small">avg qt added per event</div>
+  <div class="col-12 col-md-4">
+    <div class="card stat-card p-3{% if oil_burn %} {{ 'border-danger bg-danger-subtle' if oil_burn.level == 'low' else 'border-warning bg-warning-subtle' }}{% endif %}">
+      <div class="text-muted small">Lately</div>
+      <div class="display-6">{{ '%.1f'|format(oil_burn.recent_hpq) if oil_burn else '-' }}</div>
+      <div class="text-muted small">{% if oil_burn %}hrs per qt over the last 3 top-offs{% else %}hrs per qt, last 3 top-offs (shows once there is enough history){% endif %}</div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
+  <div class="col-12 col-md-4">
     <div class="card stat-card p-3">
       <div class="text-muted small">Total Oil Added</div>
       <div class="display-6">{{ '%g'|format(total_oil) }}</div>
-      <div class="text-muted small">quarts, all-time</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card stat-card p-3">
-      <div class="text-muted small">Top-off Events</div>
-      <div class="display-6">{{ num_events }}</div>
-      <div class="text-muted small">{{ '%.0f'|format(total_hours) }} hrs flown total</div>
+      <div class="text-muted small">quarts in {{ num_events }} top-offs, {{ '%.0f'|format(total_hours) }} hrs flown</div>
     </div>
   </div>
 </div>
