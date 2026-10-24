@@ -1337,7 +1337,7 @@ document.querySelectorAll('.apply-payment-btn').forEach(function (btn) {
         trimmed = ' Amount collected covers the whole flight, so no credit is used ($' + bal.toFixed(2) + ' credit stays on the account).';
       } else {
         if (cNote) { cNote.textContent = 'Using $' + needed.toFixed(2) + ' credit on this flight. $' + Math.max(0, bal - needed).toFixed(2) + ' credit left.'; cNote.classList.remove('d-none'); }
-        trimmed = ' Credit used reduced to $' + needed.toFixed(2) + ' so they do not overpay; $' + Math.max(0, bal - needed).toFixed(2) + ' credit left.';
+        trimmed = ' Credit used reduced to $' + needed.toFixed(2) + '.';
       }
     }
     if (amount > 0.005 && !method) { ok = false; msg = 'Pick how the payment was made, then tap Apply.'; }
