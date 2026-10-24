@@ -3,7 +3,7 @@ student's request, accepting a proposed time, change requests, and a student
 cancelling their own flight."""
 import json
 from datetime import date, timedelta
-from harness import OpsHubTestCase, open_finding
+from harness import OpsHubTestCase
 import db
 
 
@@ -124,12 +124,12 @@ class SchedulePart2Test(OpsHubTestCase):
                 self.assertLess(r.status_code, 500)
                 self.assertEqual(self.row(sid)["scheduled_date"], future())
 
-    @open_finding("qa-schedule-edit-bad-input")
     def test_reschedule_garbage_date_gives_a_message(self):
         sid = self.booking()
         self.login("cfi")
         r = self.client.post(f"/flight/schedule/{sid}/reschedule", data=dict(scheduled_date="garbage", scheduled_time="10:00"))
         self.assertLess(r.status_code, 500)
+        self.assertEqual(self.row(sid)["scheduled_date"], future())
 
     def test_reschedule_impossible_time_is_not_saved(self):
         sid = self.booking()
@@ -221,7 +221,6 @@ class SchedulePart2Test(OpsHubTestCase):
         self.client.post(f"/flight/schedule/{sid}/deny", data=dict(reason="x"))
         self.assertEqual(self.row(sid)["status"], "pending_approval")
 
-    @open_finding("qa-schedule-edit-bad-input")
     def test_deny_with_null_proposed_times_does_not_crash(self):
         sid = self.booking(status="pending_approval")
         self.login("cfi")

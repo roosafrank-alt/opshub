@@ -6101,6 +6101,8 @@ def schedule_deny(scheduled_id):
             labels = json.loads(proposed_times_raw)
         except ValueError:
             labels = []
+        if not isinstance(labels, list):
+            labels = []
         # Only labels this app's own quick-time buttons could have produced,
         # and only ones that actually parse to a real time - never anything
         # free-typed makes it into a clickable button later.
@@ -6234,8 +6236,8 @@ def schedule_edit(scheduled_id):
     if request.method == "POST":
         asset_id = request.form.get("asset_id") or None
         student_id = request.form.get("student_id") or None
-        if request.form.get("own_plane") and student_id:
-            asset_id = _get_or_create_own_plane_asset(conn, int(student_id), request.form.get("own_plane_n_number", ""))
+        if request.form.get("own_plane") and _parse__parse_int(student_id) is not None:
+            asset_id = _get_or_create_own_plane_asset(conn, _parse_int(student_id), request.form.get("own_plane_n_number", ""))
         guest_name, guest_phone, guest_email = _guest_fields(conn, request.form, student_id)
         solo = 1 if request.form.get("solo") else 0
         # A dual booking where the student also flies part of it solo.
@@ -6349,6 +6351,12 @@ def schedule_reschedule(scheduled_id):
     new_time = request.form.get("scheduled_time", "").strip() or None
     if not new_date:
         flash("Pick a new date.", "danger")
+        conn.close()
+        return redirect(url_for("flight.schedule_calendar", year=sched["scheduled_date"][:4], month=int(sched["scheduled_date"][5:7])))
+    try:
+        datetime.strptime(new_date, "%Y-%m-%d")
+    except ValueError:
+        flash("Not rescheduled - that date isn't valid. Pick the date again.", "danger")
         conn.close()
         return redirect(url_for("flight.schedule_calendar", year=sched["scheduled_date"][:4], month=int(sched["scheduled_date"][5:7])))
     time_error = _bad_time_error(new_time)
