@@ -15,6 +15,7 @@ need to be vendored onto the Pi.
 """
 
 import base64
+import os
 import smtplib
 import urllib.error
 import urllib.parse
@@ -230,6 +231,11 @@ def check_maintenance(conn, settings):
     return sent_count
 
 
+# The cron job has no request, so url_for can't build the link: the public
+# address from CLAUDE.md (Tailscale Funnel), overridable for a test copy.
+FLIGHT_DASHBOARD_URL = os.environ.get("OPSHUB_BASE_URL", "https://opshub.taila1bcc5.ts.net").rstrip("/") + "/flight/dashboard"
+
+
 def check_flight_reminders(conn, settings):
     tomorrow = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
     sched = conn.execute("""
@@ -248,6 +254,9 @@ def check_flight_reminders(conn, settings):
         from app import usdate  # late import: app imports this module (FLY-12 date format)
         subject = f"Flight reminder: {usdate(tomorrow)}"
         body = f"You have a flight scheduled tomorrow ({usdate(tomorrow)}){time_str} in {f['asset_tag']}."
+        # Students get a link to the dashboard, where the Next Lesson card asks
+        # "Still on for tomorrow?" (I'll be there / Can't make it).
+        student_body = body + f" Still on? Tell us here: {FLIGHT_DASHBOARD_URL}"
         any_sent = False
         for uid in (f["student_user_id"], f["cfi_user_id"]):
             if not uid:
@@ -255,7 +264,8 @@ def check_flight_reminders(conn, settings):
             u = conn.execute(
                 "SELECT * FROM users WHERE id=? AND active=1 AND notify_flight_reminders=1", (uid,)
             ).fetchone()
-            if u and notify_user(settings, u, subject, body, brand="Fly with Kate!"):
+            msg = student_body if uid == f["student_user_id"] else body
+            if u and notify_user(settings, u, subject, msg, brand="Fly with Kate!"):
                 any_sent = True
         if any_sent:
             log_notification(conn, "flight_reminder", f["id"])

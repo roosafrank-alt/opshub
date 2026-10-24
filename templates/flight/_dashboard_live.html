@@ -707,6 +707,27 @@
          schedule-block div above, so a click on it bubbles up to the same
          delegated handler (_schedule_detail_modal.html) that opens this
          same popup for the card itself - no separate data-* needed here. #}
+      {% if next_lesson.still_on_prompt %}
+      {#- "Still on for tomorrow?": stopPropagation keeps these taps from also
+         opening the details popup; Can't make it opens the same Cancel
+         Flight form straight away (js-cant-make-it, _schedule_detail_modal.html). #}
+      <div class="border rounded p-2 mt-2" onclick="event.stopPropagation();" data-change="still-on">
+        {% if next_lesson.still_on_at %}
+        <div class="fw-bold text-success"><i class="bi bi-check-circle-fill"></i> You're confirmed for {{ next_lesson.still_on_day }}</div>
+        <div class="small text-muted">Can't make it after all? Tell us as early as you can.</div>
+        <button type="button" class="btn btn-sm btn-outline-danger mt-1 js-cant-make-it"><i class="bi bi-x-lg"></i> Can't make it</button>
+        {% else %}
+        <div class="fw-bold"><i class="bi bi-bell"></i> Still on for {{ next_lesson.still_on_day }}?</div>
+        <div class="small text-muted">{% if next_lesson.fee_before %}No cancel fee if you tell us before {{ next_lesson.fee_before }}.{% else %}Tell us early so someone else can take the plane.{% endif %}</div>
+        <div class="d-flex gap-2 mt-2">
+          <form method="post" action="{{ url_for('flight.schedule_still_on', scheduled_id=next_lesson.id) }}" class="flex-fill">
+            <button class="btn btn-success w-100 fw-bold"><i class="bi bi-check-lg"></i> I'll be there</button>
+          </form>
+          <button type="button" class="btn btn-outline-danger fw-bold flex-fill js-cant-make-it"><i class="bi bi-x-lg"></i> Can't make it</button>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
       {% if next_lesson.ready_for_quick_actions and next_lesson.status == 'scheduled' %}
       {#- Idea ux-next-lesson-start-log: within 30 min of the slot, Start
          Flight and Log Flight take over as the two big buttons and

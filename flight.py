@@ -2192,6 +2192,25 @@ def _dashboard_context(conn, cfi, student):
                                can_start=nl_can_start, start_opens_label=_opens_label(nl_opens_at),
                                slot_label=_slot_label(row["scheduled_date"], row["scheduled_time"]))
             next_lesson["late"] = _late_status_map(conn).get(next_lesson["id"])
+            # "Still on for tomorrow?": the student's own lesson, today or
+            # tomorrow, gets one-tap I'll be there / Can't make it. fee_before
+            # = the time the cancel-fee window opens (free before it).
+            next_lesson["still_on_prompt"] = False
+            if (student and not cfi and next_scope == "mine" and row["student_id"] == student["id"]
+                    and row["status"] == "scheduled"
+                    and row["scheduled_date"] <= (now_dt.date() + timedelta(days=1)).strftime("%Y-%m-%d")):
+                next_lesson["still_on_prompt"] = True
+                next_lesson["still_on_day"] = "today" if row["scheduled_date"] == today_s else "tomorrow"
+                tiers = [w for w, f in _cancel_fee_tiers(conn) if f > 0]
+                next_lesson["fee_before"] = None
+                if tiers:
+                    try:
+                        slot = datetime.strptime(f"{row['scheduled_date']} {row['scheduled_time'] or '00:00'}", "%Y-%m-%d %H:%M")
+                        opens = slot - timedelta(hours=max(tiers))
+                        if opens > now_dt:
+                            next_lesson["fee_before"] = opens.strftime("%a %-I:%M %p")
+                    except ValueError:
+                        pass
 
     # "Log this lesson": a CFI's lesson from today whose start time has
     # passed but that hasn't been started or logged yet - the Next Lesson
@@ -6883,6 +6902,32 @@ def schedule_confirm_booking(scheduled_id):
         flash("Flight confirmed.", "success")
     conn.close()
     return redirect(request.referrer or url_for("flight.dashboard"))
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/still_on", methods=["POST"])
+@login_required
+def schedule_still_on(scheduled_id):
+    """"I'll be there" on the Next Lesson card's "Still on for tomorrow?" box.
+    Only the booked student can answer; it also counts as their confirmation
+    of a booking someone else made for them. ("Can't make it" is the existing
+    student cancel form.)"""
+    conn = get_db()
+    sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    if not sched or sched["student_id"] != session.get("student_id"):
+        conn.close()
+        flash("That flight isn't yours to answer for.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    if sched["status"] != "scheduled":
+        conn.close()
+        flash("That flight is already cancelled or has started.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    now = now_iso()
+    conn.execute("UPDATE scheduled_flights SET still_on_at = ?, confirmed_at = COALESCE(confirmed_at, ?) WHERE id = ?",
+                 (now, now, scheduled_id))
+    conn.commit()
+    conn.close()
+    flash("Thanks - see you then.", "success")
+    return redirect(url_for("flight.dashboard"))
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/cancel", methods=["POST"])

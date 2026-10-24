@@ -554,6 +554,13 @@ document.addEventListener('click', function (evt) {
     };
   }
 
+  // Next Lesson card's "Can't make it": straight to the Cancel Flight form
+  // (wired just above), skipping the details popup.
+  if (evt.target.closest('.js-cant-make-it') && studentCancelBtn) {
+    studentCancelBtn.onclick();
+    return;
+  }
+
   var modalEl = document.getElementById('scheduleDetailModal');
   var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
   modal.show();
