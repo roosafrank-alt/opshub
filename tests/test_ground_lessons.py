@@ -105,6 +105,27 @@ class GroundLessonsTest(OpsHubTestCase):
         self.assertIn("&lt;i&gt;A&lt;/i&gt;", html)
         self.assertIn("gsl-bucket", html)
 
+    def test_calc_and_decide_games_render_and_join_the_final_check(self):
+        """GS-MORE-PLAY: type-the-number and step-by-step decision games."""
+        acts = [
+            {"type": "calc", "key": "h1", "title": "C", "items": [
+                {"q": "<b>Rate?</b>", "answer": 450, "tol": 20, "unit": "fpm", "why": "w [[1:2|PHAK 1-2]]"}]},
+            {"type": "decide", "key": "h2", "title": "D", "steps": [
+                {"s": "Ice", "options": ["Climb", "Exit"], "answer": 1, "why": "y"}]},
+        ]
+        with self.app.test_request_context():
+            from flask import render_template_string
+            html = render_template_string(
+                '{% import "flight/_gsl_macros.html" as g %}{% for a in acts %}{{ g.activity(a, {}) }}{% endfor %}',
+                acts=acts)
+        self.assertIn('data-answer="450"', html)
+        self.assertIn('data-tol="20"', html)
+        self.assertIn("&lt;b&gt;Rate?&lt;/b&gt;", html)
+        self.assertIn('class="gsl-dstep" data-a="1"', html)
+        self.assertIn("Decision 1 of 1", html)
+        fin = ground_lessons.final_plan({"activities": acts, "quiz": []})
+        self.assertEqual([a["key"] for a in fin["acts"]], ["fh1", "fh2"])
+
     def test_rich_escapes_html(self):
         with self.app.test_request_context():
             out = str(ground_lessons.rich("<b>x</b> [[1:2|PHAK 1-2]] **bold**"))

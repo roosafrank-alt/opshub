@@ -105,7 +105,7 @@ def for_element(lesson, el_code):
     return {"chunks": chunks, "scenario": scenario, "skills": skills, "minutes": sum(c.get("minutes") or 0 for _, c in chunks)}
 
 
-ACTIVITY_TYPES = ("match", "sort", "order", "tf", "flash", "label")
+ACTIVITY_TYPES = ("match", "sort", "order", "tf", "flash", "label", "calc", "decide")  # GS-MORE-PLAY: calc, decide
 
 
 def activities(lesson):
@@ -195,10 +195,10 @@ def with_figures(qs, figures_of):
 def final_plan(lesson):
     """The end-of-Task final check: every multiple-choice question (the lesson's own `final_quiz`
     when it has one, otherwise its quick-check questions) plus its match, sort, order and
-    true/false games played again, in one graded round."""
+    true/false games (and GS-MORE-PLAY calc and decide games) played again, in one graded round."""
     figs = lesson.get("figures") or {}
     qs = with_figures(list(enumerate(final_questions(lesson), 1)), figs.get)
-    acts = [dict(a, key="f" + a["key"]) for a in activities(lesson) if a["type"] in ("match", "sort", "order", "tf")]
+    acts = [dict(a, key="f" + a["key"]) for a in activities(lesson) if a["type"] in ("match", "sort", "order", "tf", "calc", "decide")]
     return {"qs": qs, "acts": acts, "prefix": final_prefix(lesson)}
 
 
@@ -251,3 +251,40 @@ def area_plan(review, group=5):
     qs = with_figures(list(enumerate((review or {}).get("questions") or [], 1)), area_figure)
     parts = [qs[i:i + group] for i in range(0, len(qs), group)]
     return [{"label": "Part %d of %d" % (i + 1, len(parts)), "qs": p} for i, p in enumerate(parts)]
+
+
+# ---------------------------------------------------------------- GS-BUILTIN-COURSE
+# A course that isn't an FAA ACS (e.g. the Part 91 Refresher) is written as an outline file,
+# ground_lessons/courses/<CODE>.json, in the same shape acs_parser.parse_acs() returns:
+# {"code": "RF", "name": ..., "doc_number": "OPSHUB-RF", "areas": [{"code", "title", "tasks": [{"code", "title",
+#  "objective", "references", "notes", "knowledge": [{"code", "text"}], "risk_management": [...], "skills": [...]}]}]}
+# An admin installs it from the Ground School page; its lessons are ordinary <TASKCODE>.json files.
+COURSE_DIR = os.path.join(LESSON_DIR, "courses")
+
+
+def builtin_courses():
+    """Every built-in course outline, sorted by name: [{"code", "name", "doc_number", "about", "areas"}]."""
+    out = []
+    try:
+        names = sorted(os.listdir(COURSE_DIR))
+    except OSError:
+        return out
+    for fn in names:
+        if not re.fullmatch(r"[A-Z]{2,3}\.json", fn):
+            continue
+        try:
+            with open(os.path.join(COURSE_DIR, fn), encoding="utf-8") as f:
+                c = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if c.get("code") == fn[:-5] and c.get("name") and c.get("doc_number") and c.get("areas"):
+            out.append(c)
+    return sorted(out, key=lambda c: c["name"])
+
+
+def builtin_course(code):
+    return next((c for c in builtin_courses() if c["code"] == code), None)
+
+
+def builtin_by_doc(doc_number):
+    return next((c for c in builtin_courses() if doc_number and c["doc_number"] == doc_number), None)
