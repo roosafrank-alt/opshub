@@ -1561,6 +1561,16 @@ def _migrate(conn):
         conn.execute("ALTER TABLE students ADD COLUMN notify_booking_confirm INTEGER NOT NULL DEFAULT 1")
         conn.commit()
 
+    # Flight Academy: a student can pick a leaderboard name so the boards don't show their real
+    # name (academy.check_leaderboard_name keeps it unique and clean). NULL = show the real name.
+    student_cols_lb = [r["name"] for r in conn.execute("PRAGMA table_info(students)").fetchall()]
+    if "leaderboard_name" not in student_cols_lb:
+        conn.execute("ALTER TABLE students ADD COLUMN leaderboard_name TEXT")
+        conn.commit()
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_students_leaderboard_name "
+                 "ON students(lower(leaderboard_name)) WHERE leaderboard_name IS NOT NULL")
+    conn.commit()
+
     # Flight Academy leaderboard: flying a student logs for themselves on
     # top of what the school's logged flights already count (distance,
     # extra landings, cross-countries, night/instrument time) - see academy.py.

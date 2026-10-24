@@ -272,6 +272,7 @@ CREATE TABLE IF NOT EXISTS students (
     name TEXT NOT NULL,
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    leaderboard_name TEXT, -- optional name shown on the Flight Academy leaderboards instead of the real name; unique ignoring case
     rate_override REAL, -- optional custom instruction rate for this student; NULL = use the CFI's rate
     plane_rate_override REAL, -- optional custom plane rate for this student; NULL = use the plane's rate (set by an admin on the Flight School side)
     sim_rate_override REAL, -- optional custom simulator rate for this student; NULL = use the simulator's own rate (assets.sim_rate)

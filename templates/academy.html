@@ -87,6 +87,16 @@
     </div>
   </div>
 
+  {% if me %}
+  <form method="post" action="{{ url_for('academy_username') }}" class="d-flex align-items-center gap-2 flex-wrap mb-3 text-white" data-change="leaderboard-name">
+    <label for="lbName" class="small mb-0"><i class="bi bi-incognito"></i> Your leaderboard name</label>
+    <input id="lbName" name="leaderboard_name" class="form-control form-control-sm w-auto" maxlength="20" autocomplete="off"
+           value="{{ me.student['leaderboard_name'] or '' }}" placeholder="Shown instead of your real name">
+    <button class="btn btn-sm btn-light">Save</button>
+    <span class="small opacity-75">Leave it blank to show your real name.</span>
+  </form>
+  {% endif %}
+
   {#- Podium: the top three on points (for the period and level picked). #}
   {% set top3 = boards['points'][:3] %}
   {% if top3 %}
@@ -96,8 +106,8 @@
       {% for pos in [2, 1, 3] %}{% if top3|length >= pos %}{% set rank, st = top3[pos - 1] %}
       <div class="podium-spot podium-{{ pos }}">
         {% if pos == 1 %}<i class="bi bi-award-fill podium-crown"></i>{% endif %}
-        <div class="podium-avatar">{{ ((st.name or '?').split()|map('first')|join('')|upper)[:2] }}</div>
-        <div class="podium-name">{{ st.name }}</div>
+        <div class="podium-avatar">{{ ((st.display or '?').split()|map('first')|join('')|upper)[:2] }}</div>
+        <div class="podium-name">{{ st.display }}</div>
         <div class="small opacity-75 mb-1">{{ st.points }} pts</div>
         <div class="podium-block">{{ pos }}</div>
       </div>
@@ -122,7 +132,7 @@
         {% else %}
         <h6 class="mb-2"><i class="bi bi-lightning-charge-fill"></i> Fastest climbers</h6>
         {% for rank, st in boards['hours'][:5] %}
-        <div class="lb-row"><span class="lb-rank lb-rank-{{ rank }}">{{ rank }}</span><span class="flex-grow-1 text-truncate">{{ st.name }}</span><strong>{{ '%.1f'|format(st.hours) }}</strong><span class="small text-muted">hrs</span></div>
+        <div class="lb-row"><span class="lb-rank lb-rank-{{ rank }}">{{ rank }}</span><span class="flex-grow-1 text-truncate">{{ st.display }}</span><strong>{{ '%.1f'|format(st.hours) }}</strong><span class="small text-muted">hrs</span></div>
         {% else %}<p class="text-muted small mb-0">No flying logged yet for this period.</p>{% endfor %}
         {% endif %}
       </div>
@@ -169,7 +179,7 @@
         {% for rank, st in boards[key] %}
         <div class="lb-row {{ 'lb-me' if me and st.id == me.id }}">
           <span class="lb-rank lb-rank-{{ rank }}">{% if rank <= 3 %}<i class="bi bi-trophy-fill"></i>{% else %}{{ rank }}{% endif %}</span>
-          <span class="flex-grow-1 text-truncate">{{ st.name }} {{ schedule_pilot_badge(st.student) }}</span>
+          <span class="flex-grow-1 text-truncate">{{ st.display }} {{ schedule_pilot_badge(st.student) }}</span>
           <strong>{% if key == 'hours' %}{{ '%.1f'|format(st[key]) }}{% elif key == 'distance_nm' %}{{ '{:,.0f}'.format(st[key]) }}{% else %}{{ st[key] }}{% endif %}</strong>
           <span class="small text-muted">{{ unit }}</span>
         </div>

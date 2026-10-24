@@ -662,7 +662,7 @@ def academy_page():
     trend_labels, trend_school, trend_me = academy.monthly_hours(conn, list(board_stats), my_id)
     map_airports = academy.school_map(conn, board_stats, my_id)
     conn.close()
-    race = [{"name": st["name"], "points": st["points"], "me": bool(me and st["id"] == me["id"])}
+    race = [{"name": st["display"], "points": st["points"], "me": bool(me and st["id"] == me["id"])}
             for _r, st in boards.get("points", [])]
     return render_template("academy.html", race=race, trend_labels=trend_labels, trend_school=trend_school,
                            trend_me=trend_me, map_airports=map_airports, pending_flights=pending_flights, stats=stats, boards=boards, me=me,
@@ -671,6 +671,27 @@ def academy_page():
                            entries=entries, staff=staff, period=period, picked_student=picked,
                            entry_kinds=academy.ENTRY_KINDS, entry_kind_map=academy.ENTRY_KIND_MAP,
                            leaderboard_defs=academy.LEADERBOARDS, today=date.today().isoformat())
+
+
+@app.route("/academy/username", methods=["POST"])
+@login_required
+def academy_username():
+    """A student picks (or clears) the name the Academy leaderboards show instead of their real name."""
+    if not (is_flight_admin() or session.get("academy_access")):
+        return redirect(url_for("home_launcher"))
+    student_id = session.get("student_id")
+    if not student_id:
+        return redirect(url_for("academy_page"))
+    conn = get_db()
+    name, err = academy.check_leaderboard_name(conn, request.form.get("leaderboard_name"), student_id)
+    if err:
+        flash(err, "danger")
+    else:
+        conn.execute("UPDATE students SET leaderboard_name = ? WHERE id = ?", (name or None, student_id))
+        conn.commit()
+        flash(f"The leaderboards will show you as {name}." if name else "The leaderboards will show your real name.", "success")
+    conn.close()
+    return redirect(url_for("academy_page"))
 
 
 @app.route("/academy/entry", methods=["POST"])

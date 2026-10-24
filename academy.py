@@ -12,6 +12,7 @@ achievement unlocked (ACHIEVEMENTS) and for the student's certificate and
 ratings (the badge from flight.pilot_badge_info). Everything is computed on
 the fly - nothing is stored except the students' own entries.
 """
+import re
 from datetime import date
 
 from flight import _flight_hours, _FINISHED_FLIGHT_SQL, PILOT_CERTIFICATES, _pilot_ratings_list
@@ -77,6 +78,49 @@ LEVELS = [
 LEVEL_KEYS = [k for k, _l, _c in LEVELS]
 
 
+# Leaderboard names: students pick one so their real name isn't on the boards.
+LEADERBOARD_NAME_MAX = 20
+_BLOCKED_WORDS = (
+    "fuck", "shit", "bitch", "cunt", "dick", "cock", "pussy", "penis", "vagina", "whore", "slut",
+    "bastard", "asshole", "arse", "piss", "twat", "wank", "tits", "boob", "anal", "anus", "porn",
+    "sex", "nude", "rape", "nazi", "hitler", "kkk", "nigg", "fag", "retard", "spic", "chink",
+    "kike", "dyke", "tranny", "cum", "jizz", "dildo", "blowjob", "hooker", "pedo", "molest", "fck", "fuk",
+)
+_LEET = str.maketrans("01345789@$!|", "oieastbgasil")
+
+
+def display_name(student_row):
+    """The name the leaderboards show: the student's chosen leaderboard name, else the real one."""
+    keys = student_row.keys() if student_row is not None else ()
+    if "leaderboard_name" in keys and student_row["leaderboard_name"]:
+        return student_row["leaderboard_name"]
+    return student_row["name"] if student_row is not None else ""
+
+
+def check_leaderboard_name(conn, raw, student_id):
+    """(clean name, None) when OK, or (None, plain reason). Blank is fine ('' = back to the real name)."""
+    name = re.sub(r"\s+", " ", (raw or "").strip())
+    if not name:
+        return "", None
+    if len(name) < 3 or len(name) > LEADERBOARD_NAME_MAX:
+        return None, f"Pick a name between 3 and {LEADERBOARD_NAME_MAX} letters."
+    if not re.fullmatch(r"[A-Za-z0-9 ._-]+", name):
+        return None, "Use only letters, numbers, spaces, dots, dashes and underscores."
+    squashed = re.sub(r"[^a-z]", "", name.lower().translate(_LEET))
+    squashed = re.sub(r"(.)\1+", r"\1", squashed)  # "fuuuck" -> "fuck"
+    plain = re.sub(r"[^a-z]", "", name.lower().translate(_LEET))
+    if any(w in squashed or w in plain for w in _BLOCKED_WORDS):
+        return None, "That name isn't allowed. Please pick a different one."
+    own = {"".join(c for c in (r["name"] or "").lower() if c.isalnum()) for r in
+           conn.execute("SELECT name FROM students WHERE id != ? AND active = 1", (student_id,)).fetchall()}
+    if "".join(c for c in name.lower() if c.isalnum()) in own:
+        return None, "That name is already taken. Please pick a different one."
+    if conn.execute("SELECT 1 FROM students WHERE lower(leaderboard_name) = lower(?) AND id != ?",
+                    (name, student_id)).fetchone():
+        return None, "That name is already taken. Please pick a different one."
+    return name, None
+
+
 def level_of(student_row):
     """Which LEVELS key (other than 'all') this student belongs to."""
     cert = student_row["pilot_certificate"] if student_row is not None and "pilot_certificate" in student_row.keys() else None
@@ -122,7 +166,7 @@ def student_stats(conn, since=None):
                                ORDER BY name""").fetchall()
     stats = {}
     for s in students:
-        stats[s["id"]] = {"student": s, "id": s["id"], "name": s["name"], "flights": 0, "solo_flights": 0,
+        stats[s["id"]] = {"student": s, "id": s["id"], "name": s["name"], "display": display_name(s), "flights": 0, "solo_flights": 0,
                           "hours": 0.0, "solo_hours": 0.0, "day_landings": 0, "night_landings_log": 0,
                           **{k[0]: 0.0 for k in ENTRY_KINDS}}
     sql = f"SELECT f.* FROM flights f WHERE {_FINISHED_FLIGHT_SQL}"
