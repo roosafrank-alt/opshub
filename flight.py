@@ -1823,7 +1823,8 @@ def _late_status_map(conn):
     (the one that was told). The note is kept only when the viewer is a CFI or
     admin - students never see it."""
     out = {}
-    can_note = bool(session.get("cfi_id") or session.get("flight_role") == "cfi" or is_flight_admin())
+    # Outside a request (tests, background builds) there is no viewer, so hide the note.
+    can_note = has_request_context() and bool(session.get("cfi_id") or session.get("flight_role") == "cfi" or is_flight_admin())
     rows = conn.execute(_LOG_ROW_SQL + " WHERE f.started_at IS NOT NULL AND f.ended_at IS NULL AND f.stopped_at IS NULL"
                                        " AND f.late_minutes IS NOT NULL AND f.eta_at IS NOT NULL").fetchall()
     for f in rows:

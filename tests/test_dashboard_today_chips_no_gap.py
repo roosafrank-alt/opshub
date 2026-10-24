@@ -3,8 +3,16 @@ the fleet a fixed grid column, so a lone flight on a plane that wasn't
 first alphabetically still rendered pushed over, with a blank gap in front
 of it. Chips now just pack left, right after their time label, with no
 grid-column positioning and no plane_lane concept at all."""
+import re
+
 from harness import OpsHubTestCase
 import db
+
+
+def _without_weather_css(body):
+    """The weather strip (Oct 21, 2026) uses a CSS grid on phones; that is not the
+    chip rows, so drop its .wx-* rules before checking the chips."""
+    return re.sub(r"\.wx-[^{}]*\{[^{}]*\}", "", body)
 
 
 class DashboardTodayChipsNoGapTest(OpsHubTestCase):
@@ -30,9 +38,9 @@ class DashboardTodayChipsNoGapTest(OpsHubTestCase):
         c = self.login("cfi")
         body = c.get("/flight/dashboard").get_data(as_text=True)
         self.assertIn("N999ZZ", body)
-        self.assertNotIn("grid-column", body)
+        self.assertNotIn("grid-column", _without_weather_css(body))
 
     def test_flight_chip_grid_is_a_flex_row_not_a_fixed_column_grid(self):
         c = self.login("cfi")
         body = c.get("/flight/dashboard").get_data(as_text=True)
-        self.assertNotIn("grid-template-columns", body)
+        self.assertNotIn("grid-template-columns", _without_weather_css(body))
