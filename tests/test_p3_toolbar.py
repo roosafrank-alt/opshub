@@ -65,7 +65,7 @@ class ToolbarTest(OpsHubTestCase):
         self.assertNotIn("<h5", html)
         pid = self.make_part()
         html = self.login("master").get("/parts/%d" % pid).get_data(as_text=True)
-        self.assertRegex(html, r'<h4 data-change="DESIGN-9">Oil Filter')
+        self.assertRegex(html, r'<h4 class="mb-0" data-change="DESIGN-9">Oil Filter')
 
     def test_old_hand_built_toolbar_classes_are_gone(self):  # DESIGN-9
         html = self.login("master").get("/parts").get_data(as_text=True)

@@ -101,3 +101,7 @@ the tests (for example `qa-nan-quantities`) match the card IDs there. A tested
 fix for each of the first night's bugs was already written on branch
 `qa/2026-09-25` (closed PR #1), and the runner may reuse it once a card is
 approved.
+
+## Oct 24 sync
+
+This branch had fallen behind `main`'s own tests (new roles in the harness, fixed-finding markers). The tests folder was merged forward from `main` file by file (QA-only files kept), the two tests for the dismissed card `qa-logbook-bad-hours` were removed, and the stale part-page title check was updated (the title now carries `class="mb-0"`). Run the health check by copying this branch's `tests/` over each branch **after** a sync like this one, or older harness files will break the newer app tests.

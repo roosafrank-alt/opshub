@@ -1,0 +1,181 @@
+[
+ {
+  "name": "launcher-phone",
+  "role": "master",
+  "size": "phone",
+  "path": "/",
+  "problem": [
+   {
+    "sel": ".row.g-4 .launcher-tile.tile-flight, .row.g-4 .launcher-tile.tile-shop",
+    "note": "Each program is a 350px tile: 1.5 programs per screen"
+   }
+  ],
+  "mock_js": "document.querySelectorAll('.row.g-4').forEach(r=>{r.classList.remove('g-4');r.classList.add('g-2');r.classList.remove('mt-1');}); document.querySelectorAll('.launcher-tile').forEach(t=>{t.style.display='flex';t.style.alignItems='center';t.style.gap='14px';t.style.padding='12px 16px';t.style.textAlign='left';t.style.justifyContent='flex-start'; const ic=t.querySelector('img.tile-icon, i.bi'); if(ic){ if(ic.tagName==='IMG'){ic.style.width='44px';ic.style.height='44px';ic.style.margin='0';ic.style.flex='0 0 44px';} else {ic.style.fontSize='2.2rem';ic.style.flex='0 0 44px';ic.style.textAlign='center';} } const kids=[...t.children].filter(c=>c!==ic); if(!t.querySelector('.mock-txt')){const w=document.createElement('div');w.className='mock-txt';kids.forEach(k=>w.appendChild(k));t.appendChild(w);} t.querySelectorAll('.fs-3').forEach(e=>{e.classList.remove('fs-3');e.classList.add('fs-5');}); t.querySelectorAll('.tile-accent').forEach(e=>e.style.display='none'); t.querySelectorAll('.mt-2').forEach(e=>{e.classList.remove('mt-2');e.classList.add('small');}); }); window.scrollTo(0,0);",
+  "changed": [
+   {
+    "sel": ".row.g-2",
+    "note": "All 5 programs on the first screen, same colours"
+   }
+  ]
+ },
+ {
+  "name": "book-lesson-form",
+  "role": "cfi",
+  "size": "phone",
+  "path": "/flight/schedule/new",
+  "focus": {
+   "from": "#student-combo-input",
+   "to": "#quick-time-buttons"
+  },
+  "pad": 70,
+  "problem": [
+   {
+    "sel": "#student-combo-input",
+    "note": "Student: tap, type a name, tap the match (3 steps)"
+   },
+   {
+    "sel": "#date-calendar",
+    "note": "Whole month grid; tomorrow on the 1st needs a page turn"
+   }
+  ],
+  "mock_js": "const inp=document.querySelector('#student-combo-input'); const grp=inp.closest('.input-group'); const chips=document.createElement('div'); chips.id='mock-student-chips'; chips.className='d-flex flex-wrap gap-1 mt-2'; const names=[...document.querySelectorAll('#student-select option')].map(o=>o.textContent.trim()).filter(n=>n && !n.startsWith('--')).map(n=>n.startsWith('\\u2605')?'\\u2605 Guest / Intro':n).slice(0,6); names.sort((a,b)=>(a.startsWith('\\u2605')?1:0)-(b.startsWith('\\u2605')?1:0)); names.forEach((n,i)=>{const b=document.createElement('button');b.type='button';b.className='btn btn-outline-primary';b.textContent=n;chips.appendChild(b);}); grp.parentNode.insertBefore(chips, grp.nextSibling); inp.placeholder='Or type a name...'; const cal=document.querySelector('#date-calendar'); const days=['Su','Mo','Tu','We','Th','Fr','Sa']; let h='<div class=\"d-grid\" style=\"grid-template-columns:repeat(7,1fr);gap:4px;\">'; const t=new Date(); for(let i=0;i<14;i++){const d=new Date(t);d.setDate(t.getDate()+i); const lab=i===0?'Today':(i===1?'Tmrw':days[d.getDay()]); h+='<button type=\"button\" class=\"btn btn-sm '+(i===1?'btn-primary':'btn-outline-secondary')+'\" style=\"padding:.25rem 0;line-height:1.15\"><div class=\"small\">'+lab+'</div><div class=\"fw-bold\">'+d.getDate()+'</div></button>';} h+='</div><a href=\"#\" class=\"small d-inline-block mt-1\"><i class=\"bi bi-calendar3\"></i> Other date (full month)</a>'; cal.innerHTML=h;",
+  "focus_after": {
+   "from": "#student-combo-input",
+   "to": "#quick-time-buttons"
+  },
+  "changed": [
+   {
+    "sel": "#mock-student-chips",
+    "note": "The CFI's students as one-tap buttons"
+   },
+   {
+    "sel": "#date-calendar",
+    "note": "Next 2 weeks, runs past month end; 2 rows not 6"
+   }
+  ]
+ },
+ {
+  "name": "admin-header-desktop",
+  "role": "master",
+  "size": "desktop",
+  "path": "/admin",
+  "focus": ".admin-nav",
+  "pad": 0,
+  "problem": [
+   {
+    "sel": ".admin-program-picker",
+    "note": "Program picker is a small text link here"
+   },
+   {
+    "sel": ".admin-nav .nav-link.active",
+    "note": "Same grid icon means 'Overview' here, 'All Programs' elsewhere"
+   }
+  ],
+  "mock_js": "const b=document.querySelector('.admin-nav .navbar-brand'); const g=document.createElement('a'); g.className='navbar-brand p-1 me-1 mock-grid'; g.href='/'; g.title='All Programs'; g.innerHTML='<i class=\"bi bi-grid-3x3-gap-fill\"></i>'; b.parentNode.insertBefore(g,b); document.querySelector('.admin-program-picker').style.display='none'; const ov=document.querySelector('.admin-nav .nav-link.active i'); ov.className='bi bi-speedometer2';",
+  "changed": [
+   {
+    "sel": ".mock-grid",
+    "note": "Same All Programs button as Winds Aloft and Fly with Kate!"
+   },
+   {
+    "sel": ".admin-nav .nav-link.active",
+    "note": "Overview gets its own icon"
+   }
+  ]
+ },
+ {
+  "name": "admin-header-phone",
+  "role": "master",
+  "size": "phone",
+  "path": "/admin",
+  "setup_js": "document.querySelector('.navbar-toggler').click();",
+  "wait_ms": 700,
+  "problem": [
+   {
+    "sel": ".admin-nav .navbar-brand",
+    "note": "No All Programs button on phones"
+   },
+   {
+    "sel": ".admin-nav .admin-nav-boxed .nav-link[href='/shop'], .admin-nav .admin-nav-boxed .nav-link[href='/flight/dashboard']",
+    "note": "Only 2 of the 4 programs listed"
+   }
+  ],
+  "mock_js": "const b=document.querySelector('.admin-nav .navbar-brand'); const g=document.createElement('a'); g.className='navbar-brand p-1 me-1 mock-grid'; g.href='/'; g.title='All Programs'; g.innerHTML='<i class=\"bi bi-grid-3x3-gap-fill\"></i>'; b.parentNode.insertBefore(g,b); const ov=document.querySelector('.admin-nav .nav-link.active i'); if(ov) ov.className='bi bi-speedometer2';",
+  "changed": [
+   {
+    "sel": ".mock-grid",
+    "note": "All Programs button, same place as the other headers"
+   }
+  ]
+ },
+ {
+  "name": "workers-wording",
+  "role": "shop_admin",
+  "size": "desktop",
+  "path": "/laborers",
+  "focus": {
+   "from": "h4",
+   "to": "table"
+  },
+  "pad": 8,
+  "problem": [
+   {
+    "sel": "a.btn-warning",
+    "note": "Page says Workers, button says Laborer"
+   }
+  ],
+  "mock_js": "document.querySelectorAll('a.btn-warning').forEach(a=>{a.innerHTML=a.innerHTML.replace('New Laborer','New Worker');});",
+  "changed": [
+   {
+    "sel": "a.btn-warning",
+    "note": "New Worker"
+   }
+  ]
+ },
+ {
+  "name": "viewas-chips-phone",
+  "role": "master",
+  "size": "phone",
+  "path": "/shop",
+  "setup_js": "document.querySelector('.navbar-toggler').click();",
+  "wait_ms": 700,
+  "focus": ".view-as-chips",
+  "pad": 70,
+  "problem": [
+   {
+    "sel": ".navbar-collapse .view-as-chips",
+    "note": "Apprentice cut off, Inspector off the edge"
+   }
+  ],
+  "mock_js": "document.querySelectorAll('.view-as-chips').forEach(c=>{c.classList.remove('flex-nowrap');c.classList.add('flex-wrap');c.style.rowGap='6px';});",
+  "changed": [
+   {
+    "sel": ".navbar-collapse .view-as-chips",
+    "note": "All 4 chips inside the menu"
+   }
+  ]
+ },
+ {
+  "name": "viewas-chips-admin-phone",
+  "role": "master",
+  "size": "phone",
+  "path": "/admin",
+  "setup_js": "document.querySelector('.navbar-toggler').click();",
+  "wait_ms": 700,
+  "focus": ".view-as-chips",
+  "pad": 70,
+  "problem": [
+   {
+    "sel": ".navbar-collapse .view-as-chips",
+    "note": "Same in the Admin menu"
+   }
+  ],
+  "mock_js": "document.querySelectorAll('.view-as-chips').forEach(c=>{c.classList.remove('flex-nowrap');c.classList.add('flex-wrap');c.style.rowGap='6px';});",
+  "changed": [
+   {
+    "sel": ".navbar-collapse .view-as-chips",
+    "note": "Chips wrap to a second line"
+   }
+  ]
+ }
+]

@@ -6127,6 +6127,13 @@ def schedule_accept_proposed_time(scheduled_id):
     if past_error:
         conn.close()
         return _pending_decision_response(False, past_error, "danger")
+    # Claim the denied request first: a second tap (or a slow page tapped again)
+    # finds it already dismissed and gets this message instead of a duplicate.
+    claimed = conn.execute("UPDATE scheduled_flights SET student_dismissed_at = ? WHERE id = ? AND student_dismissed_at IS NULL",
+                           (now_iso(), scheduled_id))
+    if claimed.rowcount == 0:
+        conn.close()
+        return _pending_decision_response(False, "Already requested.", "info", redirect_url=url_for("flight.dashboard"))
     created_by = session.get("user_name")
     confirmed_at, confirm_required, notify_user_id = _booking_confirm_state(conn, True, sched["guest_name"], student_id)
     new_booking = conn.execute("""INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date,
@@ -6137,7 +6144,6 @@ def schedule_accept_proposed_time(scheduled_id):
                   sched["duration_hours"], sched["notes"], sched["private_notes"], created_by, sched["solo"], sched["part_solo"],
                   sched["guest_name"], sched["guest_phone"], sched["guest_email"], now_iso(),
                   confirmed_at, confirm_required))
-    conn.execute("UPDATE scheduled_flights SET student_dismissed_at = ? WHERE id = ?", (now_iso(), scheduled_id))
     conn.commit()
     conn.close()
     return _pending_decision_response(True, f"Requested {_format_time_12h(new_time)} - your instructor will need to approve it.",
