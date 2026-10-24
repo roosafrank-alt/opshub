@@ -1,0 +1,1542 @@
+{
+ "task_code": "CA.I.G",
+ "task_title": "Operation of Systems",
+ "area": "Area I. Preflight Preparation",
+ "minutes": 90,
+ "objective": "By the end of this lesson you can explain, at commercial depth, how the systems of a complex or high-performance single work (constant-speed propeller, turbocharger, retractable gear, electrical, avionics and autopilot, pressurization, oxygen and ice protection), read the signs that one is failing, and run the right checklist for it.",
+ "why": "Commercial flying usually means a faster, more complex airplane, and the FAA says the move to one should be made in a structured way because it takes more planning, judgment and skill [[24:232|AFH 12-1]]. The examiner tests the systems of the airplane you bring, so you need to know yours in depth (ACS CA.I.G).",
+ "prereading": [
+  {
+   "res": "24",
+   "pages": [
+    232,
+    249
+   ],
+   "printed": "AFH 12-1 to 12-18",
+   "what": "Transition to complex airplanes: flaps, the constant-speed propeller, turbocharging and retractable gear. The core of this lesson; read all of it.",
+   "label": "AFH 12-1 to 12-18"
+  },
+  {
+   "res": "1",
+   "pages": [
+    165,
+    175
+   ],
+   "printed": "PHAK 7-5 to 7-15",
+   "what": "Propellers, the manifold pressure gauge, induction, fuel injection, superchargers, turbochargers and ignition.",
+   "label": "PHAK 7-5 to 7-15"
+  },
+  {
+   "res": "1",
+   "pages": [
+    185,
+    194
+   ],
+   "printed": "PHAK 7-25 to 7-34",
+   "what": "Fuel systems, cabin heaters, the electrical system, hydraulics and landing gear.",
+   "label": "PHAK 7-25 to 7-34"
+  },
+  {
+   "res": "1",
+   "pages": [
+    194,
+    201
+   ],
+   "printed": "PHAK 7-34 to 7-41",
+   "what": "Pressurization, decompression, oxygen systems and ice protection.",
+   "label": "PHAK 7-34 to 7-41"
+  },
+  {
+   "res": "24",
+   "pages": [
+    359,
+    365
+   ],
+   "printed": "AFH 18-10 to 18-16",
+   "what": "Flap, elevator, landing gear, electrical and pitot-static failures, plus the abnormal engine indication table.",
+   "label": "AFH 18-10 to 18-16"
+  },
+  {
+   "res": "1",
+   "pages": [
+    69,
+    71
+   ],
+   "printed": "PHAK 2-30 to 2-32",
+   "what": "Managing information, automation and risk in an advanced avionics airplane.",
+   "label": "PHAK 2-30 to 2-32"
+  },
+  {
+   "res": "23",
+   "pages": [
+    117,
+    123
+   ],
+   "printed": "IFH 5-22 to 5-28",
+   "what": "AHRS, air data computers, autopilots, flight management systems, PFD and MFD.",
+   "label": "IFH 5-22 to 5-28"
+  }
+ ],
+ "warmup": "Think first: in a trainer, the throttle sets the rpm. In a complex airplane, you can push the throttle forward and the rpm does not move at all. Where did the extra power go, and what is the second blue knob doing?",
+ "key_terms": [
+  {
+   "term": "Complex airplane",
+   "def": "An airplane with retractable landing gear, flaps and a controllable-pitch propeller, or one whose engine and propeller are run by a digital engine control such as FADEC [[60:184|14 CFR 61.1]]."
+  },
+  {
+   "term": "High-performance airplane",
+   "def": "An airplane with an engine of more than 200 horsepower [[24:232|AFH 12-1]]."
+  },
+  {
+   "term": "Propeller governor",
+   "def": "The device that changes blade angle by itself to hold the rpm the pilot selected with the propeller control [[1:166|PHAK 7-6]]."
+  },
+  {
+   "term": "Manifold pressure (MAP)",
+   "def": "The absolute pressure of the fuel-air mixture in the intake manifold, shown in inches of mercury. With a constant-speed propeller it is the power gauge [[1:166|PHAK 7-6]]."
+  },
+  {
+   "term": "Governing range",
+   "def": "The blade angles between the low and high pitch stops. Inside it the rpm stays constant; on a stop the propeller acts like a fixed-pitch one [[24:239|AFH 12-8]]."
+  },
+  {
+   "term": "Critical altitude",
+   "def": "The highest altitude at which a turbocharged engine can produce its rated horsepower. Above it, manifold pressure falls as you climb [[1:173|PHAK 7-13]]."
+  },
+  {
+   "term": "Waste gate",
+   "def": "A valve in the exhaust that sends some exhaust around the turbine instead of through it, which sets how hard the turbocharger works [[24:241|AFH 12-10]]."
+  },
+  {
+   "term": "Overboost",
+   "def": "Manifold pressure above the engine's limit, which can cause severe detonation [[1:174|PHAK 7-14]]."
+  },
+  {
+   "term": "VLO and VLE",
+   "def": "VLO is the highest speed for moving the gear through its cycle. VLE is the highest speed for flying with the gear down [[24:247|AFH 12-16]]."
+  },
+  {
+   "term": "Squat switch",
+   "def": "A safety switch on a main gear strut. With weight on the wheels it opens the retraction circuit, so the gear stays down [[24:245|AFH 12-14]]."
+  },
+  {
+   "term": "Cabin differential pressure",
+   "def": "The difference between the pressure inside the cabin and the outside air pressure, limited by the strength of the fuselage [[1:195|PHAK 7-35]] [[1:196|PHAK 7-36]]."
+  },
+  {
+   "term": "Reversionary mode",
+   "def": "A mode that lets the PFD or the MFD show the critical information the other one normally shows, for redundancy [[23:123|IFH 5-28]]."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "Systems at the commercial level",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.G.K1",
+    "CA.I.G.K1k",
+    "CA.I.G.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "This Task tests the systems of the airplane provided for the flight test (ACS CA.I.G objective). If the examiner picks K1, at least three of its sub-elements must be assessed (ACS CA.I.G note). The commercial list is the same as the private one (ACS PA.I.G and CA.I.G). What changes is how deep the questions go, and often the airplane itself."
+    },
+    {
+     "table": {
+      "head": [
+       "Term",
+       "What it is",
+       "What you need before acting as PIC"
+      ],
+      "rows": [
+       [
+        "Complex airplane",
+        "Retractable gear, flaps and a controllable-pitch propeller, or a FADEC engine control [[60:184|14 CFR 61.1]]",
+        "Logged ground and flight training, found proficient, and a one-time endorsement [[60:213|14 CFR 61.31]]"
+       ],
+       [
+        "High-performance airplane",
+        "An engine of more than 200 hp [[60:213|14 CFR 61.31]]",
+        "The same: training plus a one-time endorsement [[60:214|14 CFR 61.31]]"
+       ],
+       [
+        "Pressurized airplane for high altitude",
+        "Service ceiling or maximum operating altitude above 25,000 ft MSL [[60:214|14 CFR 61.31]]",
+        "Ground training on high-altitude subjects and training in a pressurized aircraft, each with an endorsement [[60:214|14 CFR 61.31]]"
+       ],
+       [
+        "Technically advanced airplane (TAA)",
+        "Electronic PFD, MFD with a GPS moving map, and a two-axis autopilot tied to navigation, all continuously visible [[60:321|14 CFR 61.129]]",
+        "Not an endorsement. TAA, complex or turbine time counts toward the 10 hours of commercial training [[60:314|14 CFR 61.129]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "The AFH says a move to a complex or high-performance airplane should follow a structured course with a qualified instructor [[24:232|AFH 12-1]]. These airplanes divide your attention most during takeoff and landing, so you need to know the systems, both normal and emergency, and their limits [[24:249|AFH 12-18]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "The AFM/POH is the source for your airplane. The handbooks describe typical systems only, and tell you to consult the AFM/POH for the airplane you fly [[1:202|PHAK 7-42]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Water rudders (K1k) apply only to seaplanes (ACS CA.I.G.K1k). This is an ASEL lesson, so they are skipped."
+     }
+    }
+   ],
+   "check": {
+    "q": "You hold a commercial certificate and want to fly a fixed-gear airplane with a 230 hp engine and a constant-speed propeller. Which endorsement do you need?",
+    "a": "High-performance, because the engine is over 200 hp [[60:213|14 CFR 61.31]]. It is not complex, because it has no retractable gear [[60:184|14 CFR 61.1]]."
+   }
+  },
+  {
+   "title": "Flight controls at commercial depth",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.G.K1",
+    "CA.I.G.K1a",
+    "CA.I.G.K1b"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The ailerons, elevator (or stabilator) and rudder are the primary controls. Flaps, leading-edge devices, spoilers and trim are the secondary controls [[1:150|PHAK 6-2]]. Controls feel soft at low speed and firm at high speed [[1:151|PHAK 6-3]]."
+    },
+    {
+     "bullets": [
+      "Adverse yaw is worst at low airspeed, high angle of attack and large aileron inputs, and in long-span wings. Rudder corrects it [[1:152|PHAK 6-4]].",
+      "Differential ailerons, Frise ailerons and aileron-rudder interconnect springs all reduce adverse yaw but do not remove it. You can override the springs to slip [[1:152|PHAK 6-4]] [[1:153|PHAK 6-5]].",
+      "A stabilator is very sensitive, so an antiservo tab moves the same way as its trailing edge and makes it heavier to move [[1:155|PHAK 6-7]] [[1:159|PHAK 6-11]].",
+      "A T-tail needs more elevator travel and more force to raise the nose at slow speed than a conventional tail [[1:154|PHAK 6-6]].",
+      "Some airplanes use an elevator down spring so the nose lowers by itself if the airplane slows with an aft CG [[1:154|PHAK 6-6]].",
+      "Trim tabs move opposite to the elevator. Full nose-down trim puts the tab fully up [[1:158|PHAK 6-10]]. A balance tab moves opposite to its surface automatically, to lighten the controls [[1:159|PHAK 6-11]]."
+     ]
+    },
+    {
+     "p": "Flaps add lift by adding camber. They do not raise the critical angle of attack and may lower it [[24:232|AFH 12-1]]. Up to about 15 degrees they mostly add lift; beyond 15 degrees drag rises sharply, and most high-wing airplanes pitch nose-up [[24:233|AFH 12-2]]."
+    },
+    {
+     "bullets": [
+      "Extend flaps in steps on downwind, base and final so each pitch and power change is small [[24:235|AFH 12-4]].",
+      "In a crosswind the upwind flap catches the wind and can yaw the airplane into the wind after touchdown; you may need to raise the flaps soon after landing [[24:235|AFH 12-4]].",
+      "On a go-around, full power with flaps down and nose-up trim gives strong pitch changes. Use the same flap setting at the same point every time so the go-around is familiar [[24:235|AFH 12-4]] [[24:236|AFH 12-5]].",
+      "Never exceed the POH flap setting for takeoff [[24:236|AFH 12-5]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Beyond about 30 degrees, flaps make a lot of drag that you hold off with power. Cutting that power too early in the flare can mean a hard landing or loss of control [[24:235|AFH 12-4]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You roll the trim wheel to full nose-up. Which way does the elevator trim tab move?",
+    "a": "Fully down. The air hitting it pushes the elevator trailing edge up and the nose rises [[1:158|PHAK 6-10]]."
+   }
+  },
+  {
+   "title": "The constant-speed propeller",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.G.K1",
+    "CA.I.G.K1c"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "A fixed-pitch propeller is efficient at only one rpm and airspeed [[24:236|AFH 12-5]]. A constant-speed propeller has two controls: the throttle sets power, shown on the manifold pressure gauge, and the propeller control sets rpm, shown on the tachometer. A governor then changes blade angle to hold that rpm [[1:166|PHAK 7-6]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "Pulling the propeller control back gives a higher blade pitch. The bigger load slows the engine until the forces balance. Pushing it forward lowers the pitch and the rpm rises [[24:237|AFH 12-6]]. Pitch up into a climb and the governor flattens the blades; dive and it coarsens them, so the rpm stays put [[24:237|AFH 12-6]]."
+    },
+    {
+     "bullets": [
+      "Blade angles range from about 11.5 to 40 degrees. On a pitch stop the rpm changes with airspeed, like a fixed-pitch propeller [[24:239|AFH 12-8]].",
+      "Too slow, the blades hit the low stop and rpm falls. Too fast or too steep a descent, they hit the high stop and rpm follows the throttle [[24:239|AFH 12-8]].",
+      "The governor uses engine oil, boosted by its own pump, to move the blades [[24:238|AFH 12-7]].",
+      "Almost all single-engine constant-speed propellers are non-feathering, oil-pressure-to-increase-pitch designs [[24:254|AFH 13-5]]. In such a design the blades' twisting moment pulls them toward low pitch [[24:238|AFH 12-7]]. Application: if oil pressure is lost, expect a drift toward low pitch and high rpm, and use your POH procedure."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "Moment",
+       "What to do or expect"
+      ],
+      "rows": [
+       [
+        "Start",
+        "Propeller control full forward (low pitch, high rpm) for an easy start [[24:239|AFH 12-8]]"
+       ],
+       [
+        "Run-up",
+        "At about 1,600 rpm, cycle the propeller to low rpm and back, slowly. It checks the system and brings warm oil into the hub; skip it and the engine may overspeed on takeoff [[24:239|AFH 12-8]]"
+       ],
+       [
+        "Takeoff",
+        "Rpm comes to within 40 rpm of red line as soon as full power is set and stays there [[24:239|AFH 12-8]]"
+       ],
+       [
+        "Overspeed on a fast throttle push",
+        "Usually not serious if rated rpm is not exceeded by 10 percent for more than 3 seconds [[24:240|AFH 12-9]]"
+       ],
+       [
+        "Red line",
+        "Both the maximum rpm and the rpm needed for rated horsepower [[24:240|AFH 12-9]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Propeller overspeed: in one FAA bulletin case the blades went to the low pitch stop and the pilot glided at best glide speed without making the airport. Flying slower than best glide could have given enough thrust to hold altitude. Follow your emergency procedure, and only explore a better speed at a safe altitude [[1:167|PHAK 7-7]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Level at cruise, you lower the nose into a descent and touch nothing else. What does the governor do, and when does the rpm start to rise?",
+    "a": "It increases blade angle to hold the rpm. Once the blades reach the high pitch stop, the rpm rises with speed and responds to the throttle [[24:237|AFH 12-6]] [[24:239|AFH 12-8]]."
+   }
+  },
+  {
+   "title": "Setting power and reading the engine gauges",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.G.K1c",
+    "CA.I.G.K2",
+    "CA.I.G.R1"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The manifold pressure gauge reads absolute pressure in the intake manifold. Engine stopped, it reads the outside air pressure. Running, it reads less (around 12 inches at idle). If the engine fails in flight, it climbs back to the outside pressure at that altitude [[1:166|PHAK 7-6]]. Pressure drops about 1 inch per 1,000 ft, so on a standard day a 5,000 ft field shows about 24.92 inches with the engine off [[1:172|PHAK 7-12]]."
+    },
+    {
+     "bullets": [
+      "Increasing power: rpm first, then manifold pressure. Decreasing power: manifold pressure first, then rpm [[24:239|AFH 12-8]].",
+      "If you pull rpm back before manifold pressure, manifold pressure rises by itself and may exceed the limits [[1:167|PHAK 7-7]].",
+      "High manifold pressure with low rpm can cause damaging detonation [[24:239|AFH 12-8]].",
+      "Any rpm and manifold pressure pair in the POH cruise charts is approved [[24:239|AFH 12-8]].",
+      "On a takeoff from a low field, manifold pressure in inches may be more than rpm in hundreds. That is normal in most cases, but check the POH [[24:240|AFH 12-9]].",
+      "Below the green arc, the windmilling propeller usually drives the engine; long periods there can harm it [[24:240|AFH 12-9]]."
+     ]
+    },
+    {
+     "p": "Detonation is likely with a lower fuel grade than specified, very high manifold pressure with low rpm, high power with too lean a mixture, and long ground runs or steep climbs [[1:179|PHAK 7-19]]. Never use a lower grade of fuel; if yours is not available, use the next higher grade [[1:187|PHAK 7-27]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Abnormal indication",
+       "Possible cause",
+       "Generic action"
+      ],
+      "rows": [
+       [
+        "Loss of manifold pressure in cruise",
+        "Induction icing or a clogged air filter; in a turbo engine, turbocharger failure",
+        "Carb heat or alternate air. Turbo: possible exhaust leak, so shut down or use the lowest power that works and land as soon as possible"
+       ],
+       [
+        "Gain of manifold pressure in cruise",
+        "Throttle crept open, or rpm reduced before manifold pressure",
+        "Reset the throttle and tighten the friction lock; reduce manifold pressure before rpm"
+       ],
+       [
+        "Surging rpm and overspeed",
+        "Propeller, governor, engine, tachometer or mixture",
+        "Adjust the propeller control to restore normal operation; readjust mixture"
+       ],
+       [
+        "High cylinder head temperature",
+        "Cowl flaps, too little airspeed, mixture, or detonation",
+        "Adjust cowl flaps, add airspeed, adjust mixture; for detonation reduce power and enrich"
+       ],
+       [
+        "Loss of fuel pressure",
+        "Engine-driven pump failure, or no fuel",
+        "Boost pump on, switch tanks"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Table source: AFH Figure 18-11 [[24:365|AFH 18-16]]. Your AFM/POH procedure comes first [[24:365|AFH 18-16]]."
+    }
+   ],
+   "check": {
+    "q": "Your engine quits at 7,000 ft on a standard day. About what does the manifold pressure gauge show?",
+    "a": "About 22.9 inches: it rises to the outside pressure [[1:166|PHAK 7-6]], which is roughly 29.92 minus 7 inches [[1:172|PHAK 7-12]]."
+   }
+  },
+  {
+   "title": "Turbocharging and heat management",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.G.K1c",
+    "CA.I.G.K2",
+    "CA.I.G.R1"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "A turbocharger is driven by exhaust gas. A turbine in the exhaust and a compressor in the intake share one shaft, and the compressor packs more air into the engine [[24:240|AFH 12-9]]. A gear-driven supercharger uses a lot of engine power to do the same job; a turbocharger recovers exhaust energy that would be lost [[1:173|PHAK 7-13]]. Many turbo engines add an intercooler to cool the hot compressed air and lower the risk of detonation [[1:173|PHAK 7-13]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "The waste gate sets the turbo's output. Closed, all the exhaust spins the turbine; open, some goes overboard. An oil-driven actuator moves it, and a pressure controller holds whatever manifold pressure your throttle asks for, so you rarely touch the throttle as altitude changes [[24:241|AFH 12-10]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Type",
+       "What it does"
+      ],
+      "rows": [
+       [
+        "Altitude turbocharging (normalizing)",
+        "Holds sea-level manifold pressure (about 29 to 30 inches) up to the critical altitude; above it, manifold pressure falls [[24:241|AFH 12-10]]"
+       ],
+       [
+        "Ground boosting",
+        "Uses more than 29 inches in flight; some engines take off with up to 45 inches [[24:241|AFH 12-10]]"
+       ]
+      ]
+     }
+    },
+    {
+     "bullets": [
+      "Move the power controls slowly and smoothly. Abrupt throttle moves invite an overboost [[24:241|AFH 12-10]].",
+      "Takeoff power with cold oil can overboost, because the cold oil may not leave the waste gate actuator fast enough [[1:174|PHAK 7-14]].",
+      "With a manual waste gate left closed after a descent, manifold pressure can exceed limits and cause severe detonation [[1:174|PHAK 7-14]].",
+      "With the waste gate closed, more rpm gives more manifold pressure, the opposite of a normal engine. Above critical altitude, airspeed changes also change manifold pressure [[24:241|AFH 12-10]].",
+      "If manifold pressure starts to fall below the published critical altitude, have a mechanic check the system [[1:175|PHAK 7-15]].",
+      "Let the turbo cool and slow before shutdown, or the oil in its bearings boils into carbon [[1:174|PHAK 7-14]]."
+     ]
+    },
+    {
+     "p": "Heat is the turbo engine's enemy. Watch turbine inlet temperature (or EGT) and cylinder head temperature. At cruise, mixture has the most effect on TIT, and cruise is when temperatures most often reach their limits [[24:241|AFH 12-10]] [[24:242|AFH 12-11]]. In the descent, reduce power in small steps; lowering the gear can hold the speed while you keep more power on, so the engine cools slowly [[24:242|AFH 12-11]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Turbo failure, if your POH does not say otherwise: an overboost means smoothly retard the throttle below the limit. Low manifold pressure may be a serious exhaust leak: shut the engine down per the engine failure procedure unless a greater emergency exists, or use the lowest power that works and land as soon as practicable. Get it fixed afterward [[24:242|AFH 12-11]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You are above the critical altitude of a normalized engine and you push the throttle full forward. Why does manifold pressure still read below 29 inches?",
+    "a": "Above critical altitude the waste gate is fully closed, so the turbo cannot hold sea-level pressure and manifold pressure falls as you climb [[1:174|PHAK 7-14]] [[1:175|PHAK 7-15]] [[24:241|AFH 12-10]]."
+   }
+  },
+  {
+   "title": "Fuel, oil, cooling and hydraulics",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.G.K1e",
+    "CA.I.G.K1c"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "bullets": [
+      "Low-wing airplanes need fuel pumps: an engine-driven main pump plus an electric boost pump for starting and as a backup [[1:185|PHAK 7-25]]. A fuel pressure gauge comes with them [[1:186|PHAK 7-26]].",
+      "Fuel injection is less prone to icing and gives better throttle response and mixture control, but it is harder to start hot, can vapor lock on hot days, and is harder to restart after fuel starvation [[1:172|PHAK 7-12]].",
+      "Impact ice can still block the air intake [[1:172|PHAK 7-12]], and an alternate air source, usually from inside the cowling, lets air bypass a clogged filter [[1:167|PHAK 7-7]]. With a constant-speed propeller, induction icing or a clogged filter shows as a loss of manifold pressure in cruise; the generic fix is carb heat or unfiltered alternate air [[24:365|AFH 18-16]].",
+      "Running a tank dry can let air in and cause vapor lock; on fuel-injected engines the fuel can vaporize in the lines [[1:186|PHAK 7-26]].",
+      "Fuel gauges are only required to be accurate at empty. Check the tanks visually before flight [[1:186|PHAK 7-26]]."
+     ]
+    },
+    {
+     "p": "Oil does more than lubricate: it cools, seals and cleans the engine [[1:176|PHAK 7-16]]. You should see oil pressure during the start [[1:176|PHAK 7-16]]. Oil temperature changes slowly; high readings can mean low oil, a plugged line or a blocked oil cooler [[1:177|PHAK 7-17]]. In a complex airplane, oil also moves the propeller blades and the turbo waste gate [[24:238|AFH 12-7]] [[24:241|AFH 12-10]], so an oil problem is a propeller and power problem too."
+    },
+    {
+     "p": "Air cooling works worst on the ground, on takeoff and in go-arounds, and fast descents can shock cool the engine [[1:177|PHAK 7-17]]. The cylinder head temperature gauge shows changes right away; cool the engine with more airspeed, a richer mixture, less power or open cowl flaps [[1:178|PHAK 7-18]]. Keep cowl flaps fully open on the ground [[1:179|PHAK 7-19]]."
+    },
+    {
+     "p": "In small airplanes, hydraulics run the brakes, retractable gear and some constant-speed propellers. A basic system has a reservoir, pump, filter, selector valve, relief valve and actuator [[1:191|PHAK 7-31]]. Service it only with the fluid type the manufacturer specifies [[1:193|PHAK 7-33]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "FADEC engines have one power lever and no magnetos, mixture or carb heat. They use two identical channels, and they must have backup electrical power, because a FADEC failure could mean a total loss of thrust [[1:180|PHAK 7-20]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Name two disadvantages of fuel injection that matter on a hot summer day.",
+    "a": "Hard starting with a hot engine and vapor lock during ground operations on hot days [[1:172|PHAK 7-12]]."
+   }
+  },
+  {
+   "title": "Retractable landing gear",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.G.K1d"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Retracting the gear cuts drag, so the airplane climbs better and cruises faster. Gear systems are electric, hydraulic or both, with lights that show down and locked, up and locked, or in transit, and an emergency system [[24:243|AFH 12-12]]. An electric system is a motor-driven jack that runs until a limit switch stops it. A hydraulic one uses an engine-driven or electric pump, relief valves and limit switches [[24:243|AFH 12-12]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "bullets": [
+      "Indicators vary: one green and one amber, three greens, or added red or amber in-transit lights. Press-to-test bulbs are often interchangeable [[24:243|AFH 12-12]].",
+      "The gear warning horn is tied to throttle, flap or airspeed so it sounds when you are set up to land with the gear up [[24:243|AFH 12-12]].",
+      "The squat switch keeps the gear down while weight is on the wheels; ground locks with red streamers stop collapse on the ground [[24:245|AFH 12-14]].",
+      "Preflight: gear selector DOWN, master on, check the down-and-locked lights, then look at the gear, wheel wells, switches and doors [[24:245|AFH 12-14]] [[24:246|AFH 12-15]]. Dirty switches can give false safe lights [[24:246|AFH 12-15]]."
+     ]
+    },
+    {
+     "p": "Gear speeds may not be on the airspeed indicator; they are in the AFM/POH and usually on a placard. VLO is the maximum speed for moving the gear, and VLE the maximum speed with it extended [[24:247|AFH 12-16]] [[1:212|PHAK 8-10]]."
+    },
+    {
+     "p": "After takeoff, retract the gear when a positive rate of climb shows and you could no longer land on the runway ahead. Plan it around runway length, climb gradient, obstacles and terrain [[24:247|AFH 12-16]]. For landing, have it down by the point on downwind opposite your landing spot, run the before-landing checklist on downwind, and recheck the green lights before you land [[24:248|AFH 12-17]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Common gear errors: forgetting to lower it, retracting it by accident, not checking it, misusing the emergency system, retracting too early, extending too late. Experienced pilots make them too, through complacency [[24:248|AFH 12-17]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why does the AFH say to clear the runway before touching any levers or switches after landing?",
+    "a": "It greatly reduces the chance of retracting the gear by mistake on the ground, and lets you identify the right control calmly [[24:248|AFH 12-17]]."
+   }
+  },
+  {
+   "title": "When the gear will not come down",
+   "kind": "risk",
+   "codes": [
+    "CA.I.G.K1d",
+    "CA.I.G.K2",
+    "CA.I.G.R1",
+    "CA.I.G.R2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The emergency system lowers the gear if normal power fails. Some airplanes release the uplocks so the gear free-falls; others use compressed gas, a hand pump, an accumulator, an electric pump or a hand crank [[24:245|AFH 12-14]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "bullets": [
+      "Know the normal sound and feel of the gear. An abnormal retraction is a strong sign the extension will be abnormal too [[24:247|AFH 12-16]].",
+      "Use the warning horn to cross-check a warning light, and know how to swap a bulb to test it [[24:248|AFH 12-17]].",
+      "If normal and alternate extension both fail, a gear-up landing is likely. Pick an airport with crash and rescue, ask for emergency equipment, and consider burning off fuel [[24:361|AFH 18-12]].",
+      "A hard runway usually does less damage than rough grass, but it can make sparks [[24:361|AFH 18-12]].",
+      "One main gear up: burn fuel from that side, land nose-high and wings level, hold that wing up with aileron, and expect a strong yaw toward it. On a narrow runway lined with ditches, landing with all gear up may be safer [[24:361|AFH 18-12]].",
+      "Nose gear up: hold the nose off, then let it settle slowly. Avoid the brakes unless needed [[24:361|AFH 18-12]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Gear and flap motors draw much more current than most equipment. Running them on a partly drained battery can cause an immediate total loss of electrical power, so after an alternator failure plan a manual gear extension and a no-flap landing [[24:362|AFH 18-13]] [[24:363|AFH 18-14]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Only the left main gear shows unsafe after every method in the POH. What can you do before landing to help?",
+    "a": "Burn fuel from the left side to lighten that wing, so it stays off the ground longer, then land nose-high and wings level, holding the left wing up with aileron [[24:361|AFH 18-12]]."
+   }
+  },
+  {
+   "title": "Electrical system and load shedding",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.G.K1f",
+    "CA.I.G.K2",
+    "CA.I.G.R1",
+    "CA.I.G.R2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Most airplanes have a 14 or 28 volt DC system. Alternators make enough current even at low rpm; most DC generators do not [[1:190|PHAK 7-30]]. The master switch powers everything except the ignition [[1:190|PHAK 7-30]], which runs on magnetos that make their own current [[1:175|PHAK 7-15]]. With the alternator half of a split master off, the battery carries the whole load [[1:191|PHAK 7-31]]."
+    },
+    {
+     "bullets": [
+      "A center-zero ammeter: plus shows the battery charging, minus shows more current drawn than replaced. Full-scale minus means an alternator problem; full-scale plus means a regulator problem [[1:191|PHAK 7-31]].",
+      "A loadmeter starts at zero and shows the load on the alternator; some airplanes have only a warning light [[1:191|PHAK 7-31]].",
+      "The voltage regulator keeps the alternator output a little above battery voltage, about 14 volts for a 12 volt battery [[1:191|PHAK 7-31]].",
+      "Circuit breakers do the job of fuses but can be reset [[1:191|PHAK 7-31]]."
+     ]
+    },
+    {
+     "p": "Most in-flight electrical failures are in the alternator or generator, and then the battery may last only a short time. A 25 amp-hour battery might give 5 amps for 5 hours, but at 10 amps it might last only 2 hours, and a 40 amp load could drain it in 10 to 15 minutes [[24:362|AFH 18-13]]."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "bullets": [
+      "Shed non-essential loads at once and plan to land at the nearest suitable airport [[24:362|AFH 18-13]].",
+      "Tell ATC right away and ask for vectors. Expect a no-flap landing and a manual gear extension if they are electric [[24:363|AFH 18-14]].",
+      "Burning insulation smell: check breakers, instruments, avionics and lights. If you cannot isolate it, turn the master and alternator off. Restoring circuits one at a time can restart the fire, so landing as soon as possible is the prudent course [[24:359|AFH 18-10]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: know your own airplane's big loads (pitot heat, landing lights, heater blower, gear and flap motors) before you need to shed them. The figure lists typical values [[24:363|AFH 18-14]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "From the figure, how much continuous current do pitot heat and the four wingtip lights draw together?",
+    "a": "3.30 + 3.00 = 6.30 amps [[24:363|AFH 18-14]]."
+   }
+  },
+  {
+   "title": "Pitot-static, vacuum and glass instruments",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.G.K1h",
+    "CA.I.G.K2",
+    "CA.I.G.R1"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "bullets": [
+      "Pitot blocked, drain hole open: the airspeed drops to zero. Both blocked: the airspeed no longer follows speed but changes with altitude [[1:212|PHAK 8-10]].",
+      "Static blocked: the altimeter freezes, the VSI reads zero, and the airspeed reads low above the blockage altitude and high below it [[1:213|PHAK 8-11]].",
+      "A partly blocked static source can look normal until the descent, when the instruments say too high, too fast and descending too slowly [[24:363|AFH 18-14]] [[24:364|AFH 18-15]].",
+      "Confirm it by opening the alternate static source while climbing or descending; if the needles jump, keep using it [[24:364|AFH 18-15]].",
+      "On alternate static, the altimeter reads slightly high, the airspeed reads high and the VSI shows a brief climb [[1:205|PHAK 8-3]].",
+      "Vacuum gyros usually need 4.5 to 5.5 inches of suction; with low suction the attitude and heading indicators may be unreliable [[1:218|PHAK 8-16]]."
+     ]
+    },
+    {
+     "p": "In glass cockpits, an AHRS replaces the gyros and an air data computer processes pitot and static pressure [[23:117|IFH 5-22]]. Many light airplanes feed the backup instruments from the same pitot-static sources, so one blockage can hit both, and where the ADC and AHRS are combined a blockage can even affect the attitude display [[24:364|AFH 18-15]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Glass failure indications are not standardized, and the primary and backup displays may react differently from each other and from round gauges. Learn your own equipment's failure displays [[24:364|AFH 18-15]] [[24:365|AFH 18-16]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "In a descent your altimeter and VSI barely move and the airspeed creeps up. What do you suspect and how do you confirm it?",
+    "a": "A blocked or partly blocked static source. Open the alternate static source while descending; a big needle jump confirms it [[24:364|AFH 18-15]] [[1:213|PHAK 8-11]]."
+   }
+  },
+  {
+   "title": "Avionics, the autopilot and automation",
+   "kind": "risk",
+   "codes": [
+    "CA.I.G.K1g",
+    "CA.I.G.R3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "An autopilot holds altitude and heading at minimum. A single-axis unit moves the ailerons; a three-axis unit moves ailerons, elevator and rudder. It can be disconnected by hand or disconnects itself, and it can be overridden; the AFM/POH tells you how yours works [[1:160|PHAK 6-12]]. Most general aviation autopilots control roll and pitch [[23:120|IFH 5-25]]. Navigation databases are updated every 28 days [[23:122|IFH 5-27]]."
+    },
+    {
+     "bullets": [
+      "Always know which modes are engaged and which are armed, and watch armed modes capture on time [[1:70|PHAK 2-31]].",
+      "With some autopilots, switching the CDI from GPS to LOC or VOR while in NAV mode drops the autopilot to ROL (wings level) until you re-engage NAV [[1:70|PHAK 2-31]].",
+      "Check all programming before departure, compare it with a paper log, and use VOR to back up GPS [[1:70|PHAK 2-31]].",
+      "Stop, look and read before pushing buttons [[1:69|PHAK 2-30]].",
+      "Humans are poor monitors: the more reliable the system, the worse we watch it [[1:70|PHAK 2-31]].",
+      "Automation can remove you from the loop and breed complacency, so keep monitoring what it does [[24:51|AFH 2-14]]."
+     ]
+    },
+    {
+     "p": "Used well, the autopilot cuts workload and gives you time to think. In one glass-cockpit example with an AHRS and air data failure, the manufacturer recommends turning on the autopilot as a wing leveler [[23:219|IFH 7-58]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "In icing, the autopilot can mask the handling changes that ice causes, then disconnect abruptly when its servos run out of power, leaving you with an unexpected control deflection. Do not rely on it in icing, and follow your AFM/POH [[38:49|AC 91-74B 5-7]] [[38:55|AC 91-74B 6-4]]. In a stall recovery, disconnect the autopilot or wing leveler first [[24:121|AFH 5-16]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "The autopilot is tracking a GPS course in NAV mode. You switch the CDI to LOC for the approach. What might happen?",
+    "a": "With some autopilots, NAV mode drops out and the autopilot reverts to ROL, wings level, until you re-engage NAV [[1:70|PHAK 2-31]]."
+   }
+  },
+  {
+   "title": "Environmental systems, pressurization and oxygen",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.G.K1i",
+    "CA.I.G.K1l"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Most light airplanes heat the cabin with air warmed around the exhaust muffler, so a cracked exhaust can put carbon monoxide in the cabin [[1:178|PHAK 7-18]] [[1:189|PHAK 7-29]]. Larger airplanes may use combustion heaters, which have an overheat switch that shuts off their fuel [[1:190|PHAK 7-30]]. Headache, drowsiness or dizziness with the heater on means suspect CO: heater off, vents open [[34:184|AIM 8-1-4]], and oxygen if you have it [[1:434|PHAK 17-12]]."
+    },
+    {
+     "p": "Pressurization seals the cabin and pumps air in; piston airplanes may use turbocharger air through a flow-limiting venturi, and an outflow valve lets air out [[1:194|PHAK 7-34]] [[1:195|PHAK 7-35]]. A typical system holds a cabin altitude of about 8,000 ft at the maximum cruising altitude [[1:195|PHAK 7-35]]. Once the cabin reaches its maximum differential pressure, climbing higher raises the cabin altitude too [[1:195|PHAK 7-35]] [[1:196|PHAK 7-36]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "bullets": [
+      "The safety valve combines pressure relief, vacuum relief and a dump valve [[1:196|PHAK 7-36]].",
+      "Gauges: differential pressure, cabin altitude and cabin rate of climb [[1:196|PHAK 7-36]].",
+      "Explosive decompression happens in under about half a second; rapid decompression shortens the time you can act usefully (the PHAK says by one-third to one-fourth of its normal time). Hypoxia is the main danger, so use oxygen and descend [[1:196|PHAK 7-36]] [[1:197|PHAK 7-37]]."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "Cabin pressure altitude",
+       "14 CFR 91.211 oxygen rule"
+      ],
+      "rows": [
+       [
+        "Above 12,500 ft up to and including 14,000 ft MSL",
+        "Required flight crew uses oxygen for the part over 30 minutes"
+       ],
+       [
+        "Above 14,000 ft MSL",
+        "Required flight crew uses oxygen the entire time"
+       ],
+       [
+        "Above 15,000 ft MSL",
+        "Each occupant is provided with oxygen"
+       ],
+       [
+        "Pressurized, above FL 250",
+        "A 10-minute supply for each occupant in case of a descent after losing pressurization"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Table source: [[60:491|14 CFR 91.211]]. The PHAK recommends oxygen above 10,000 ft cabin altitude by day and above 5,000 ft at night [[1:197|PHAK 7-37]]."
+    },
+    {
+     "bullets": [
+      "Diluter-demand systems give oxygen only when you inhale and are safe up to 40,000 ft; pressure-demand systems push oxygen under pressure above 34,000 ft [[1:198|PHAK 7-38]].",
+      "Pulse-demand systems can cut oxygen use by 50 to 85 percent; a pulse oximeter shows your blood oxygen [[1:199|PHAK 7-39]].",
+      "Cylinder pressure drops in the cold without any oxygen being used. Keep oil and grease away; oxygen makes them burn [[1:197|PHAK 7-37]]."
+     ]
+    }
+   ],
+   "check": {
+    "q": "Using the chart, what differential pressure keeps an 8,000 ft cabin while you cruise at 20,000 ft?",
+    "a": "10.9 psi at 8,000 ft minus 6.8 psi at 20,000 ft = 4.1 psi [[1:195|PHAK 7-35]]."
+   }
+  },
+  {
+   "title": "Ice protection",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.G.K1j",
+    "CA.I.G.R1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Anti-ice prevents ice; deice removes it once it forms. These systems protect leading edges, pitot and static ports, fuel vents, stall warning sensors, windshields and propellers [[1:200|PHAK 7-40]]. Most light airplanes have only pitot heat and are not certified for icing; they must leave icing at once [[1:200|PHAK 7-40]]."
+    },
+    {
+     "bullets": [
+      "Every airplane must have propulsion ice protection, and nearly all have pitot heat and alternate static [[38:32|AC 91-74B 3-13]].",
+      "Wing and tail protection on a non-certified airplane is for escape only. Performance is unknown and the stall warning will most likely not work [[38:32|AC 91-74B 3-13]] [[38:33|AC 91-74B 3-13]].",
+      "Boots are inflated by a pump to crack the ice off. Modern boots do not bridge, so you can cycle them as soon as you see ice; follow your POH [[1:200|PHAK 7-40]] [[38:24|AC 91-74B 3-4]].",
+      "Thermal anti-ice must be turned on before entering icing [[1:200|PHAK 7-40]]. A TKS weeping wing can both prevent and remove ice [[1:201|PHAK 7-41]].",
+      "A heated windshield is for flight only, and its current can cause compass errors of up to 40 degrees [[1:201|PHAK 7-41]].",
+      "Ice still collects on unprotected areas [[38:48|AC 91-74B 5-7]]. An iced wing stalls at a lower angle of attack and a higher speed, so a faster approach and a longer runway may be needed; full flaps can put an iced tail at risk [[38:52|AC 91-74B 5-11]] [[38:52|AC 91-74B 5-12]]. Do not rely on the stall warning in icing [[38:55|AC 91-74B 6-4]]."
+     ]
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Propeller boots heat the inboard section and then the outboard section, so the prop ammeter flickers within its normal range. If one blade's boot fails, the uneven ice can cause severe vibration [[1:201|PHAK 7-41]]."
+    }
+   ],
+   "check": {
+    "q": "Your airplane is not certified for icing but has boots, and you pick up ice. What does AC 91-74B say the boots are for?",
+    "a": "Escape only. Exit the icing as soon as possible; performance is unknown and the stall warning likely will not work [[38:32|AC 91-74B 3-13]] [[38:33|AC 91-74B 3-13]]."
+   }
+  },
+  {
+   "title": "Operating systems on the checkride: common errors and fixes",
+   "kind": "skills",
+   "codes": [
+    "CA.I.G.K2",
+    "CA.I.G.R1",
+    "CA.I.G.R2",
+    "CA.I.G.R3",
+    "CA.I.G.S1",
+    "CA.I.G.S2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The examiner will watch you operate at least three systems appropriately and complete the right checklists (ACS CA.I.G.S1, S2). In a complex airplane, the natural ones are the propeller (cycled in the run-up), the gear and flaps, the cowl flaps and fuel pumps, and the autopilot modes. Say what each control does as you use it."
+    },
+    {
+     "p": "Retractable gear demands deliberate, careful and continuous checklist use; a condensed checklist mounted in view helps [[24:248|AFH 12-17]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Common error",
+       "Fix"
+      ],
+      "rows": [
+       [
+        "Pulling rpm back before manifold pressure",
+        "Manifold pressure first, then rpm; reverse for more power [[24:239|AFH 12-8]]"
+       ],
+       [
+        "Retracting the gear as soon as the wheels leave the ground",
+        "Wait for a positive rate of climb and no usable runway ahead [[24:247|AFH 12-16]]"
+       ],
+       [
+        "Touching levers during the landing roll",
+        "Clear the runway, then do the after-landing checklist [[24:248|AFH 12-17]]"
+       ],
+       [
+        "Shoving the throttle of a turbo engine",
+        "Slow, smooth power changes [[24:241|AFH 12-10]]"
+       ],
+       [
+        "Shutting down a hot turbo right away",
+        "Let it cool and slow first [[1:174|PHAK 7-14]]"
+       ],
+       [
+        "Not knowing what the autopilot will do next",
+        "Call out engaged and armed modes and watch them capture [[1:70|PHAK 2-31]]"
+       ],
+       [
+        "Running the gear and flaps on a weak battery",
+        "Plan the manual extension and a no-flap landing [[24:363|AFH 18-14]]"
+       ],
+       [
+        "Flying after a magneto check with no rpm drop",
+        "No drop is not normal; do not fly [[1:176|PHAK 7-16]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Detect early, act by the book: scan the engine gauges, ammeter and annunciators on a schedule, name the abnormal indication out loud, then fly the airplane and open the POH checklist for it [[24:365|AFH 18-16]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Name the two Skills elements for this Task.",
+    "a": "Operate at least three of the listed systems appropriately, and complete the appropriate checklists (ACS CA.I.G.S1, S2)."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "CA.I.G-1.jpg",
+   "res": "24",
+   "page": 237,
+   "caption": "Figure 12-6. Controllable-pitch propeller pitch angles. (AFH 12-6)",
+   "alt": "Two propeller hubs, each with a red bar showing the blade angle, and a tachometer beside each. The left hub is labeled High pitch, Low RPM and its tachometer needle sits lower. The right hub is labeled Low pitch, High RPM and its needle sits higher, near the top of the green arc.",
+   "source": "AFH, PDF p. 237"
+  },
+  "f2": {
+   "file": "CA.I.G-2.jpg",
+   "res": "24",
+   "page": 240,
+   "caption": "Figure 12-9. Turbocharging system. (AFH 12-9; label boxes trimmed off for the labeling game)",
+   "alt": "Cutaway of an engine nacelle. Blue intake air enters a screened inlet low in the cowl, runs up to a compressor inside a red dashed box, through a throttle valve, and along a pipe over three cylinders. Copper exhaust pipes under the cylinders run back to a turbine wheel on the same shaft as the compressor, with a butterfly valve in a bypass pipe at lower left.",
+   "source": "AFH, PDF p. 240"
+  },
+  "f3": {
+   "file": "CA.I.G-3.jpg",
+   "res": "24",
+   "page": 244,
+   "caption": "Figure 12-10. Typical landing gear switch with combination amber and green. Another combination has a three light indicator. (AFH 12-13)",
+   "alt": "Two instrument panels. Left: a wheel-shaped gear handle in the down position with an amber gear-up light above a green gear-down light. Right: the handle at the top of its slot, with three green lights arranged in a triangle.",
+   "source": "AFH, PDF p. 244"
+  },
+  "f4": {
+   "file": "CA.I.G-4.jpg",
+   "res": "24",
+   "page": 246,
+   "caption": "Figure 12-13. Typical emergency gear extension systems. (AFH 12-15; stacked top to bottom on the page, trimmed and placed side by side here)",
+   "alt": "Three panels: a copper compressed gas bottle strapped to a structure, a hand pump with a red ball handle set into a panel, and a red hand crank on a gearbox.",
+   "source": "AFH, PDF p. 246"
+  },
+  "f5": {
+   "file": "CA.I.G-5.jpg",
+   "res": "24",
+   "page": 363,
+   "caption": "Figure 18-9. Electrical load for light single. (AFH 18-14)",
+   "alt": "Table of electrical loads. Continuous: pitot heating 3.30 amps, four wingtip lights 3.00, heater igniter 1 to 20, nav and com receivers 1 to 2 each, fuel indicator 0.40, two instrument lights 0.60, engine indicator 0.30, compass light 0.20, gear and flap indicators 0.17 each. Intermittent: starter 100, two landing lights 17.80, heater blower 14, flap motor 13, gear motor 10, cigarette lighter 7.50, keyed transceiver 5 to 7, fuel boost pump 2, cowl flap motor 1, stall horn 1.50.",
+   "source": "AFH, PDF p. 363"
+  },
+  "f6": {
+   "file": "CA.I.G-6.jpg",
+   "res": "1",
+   "page": 195,
+   "caption": "Figure 7-41. Standard atmospheric pressure chart. (PHAK 7-35)",
+   "alt": "Table of standard pressure in psi: sea level 14.7, 2,000 ft 13.7, 4,000 ft 12.7, 6,000 ft 11.8, 8,000 ft 10.9, 10,000 ft 10.1, 12,000 ft 9.4, 14,000 ft 8.6, 16,000 ft 8.0, 18,000 ft 7.3, 20,000 ft 6.8, 22,000 ft 6.2, 24,000 ft 5.7, 26,000 ft 5.2, 28,000 ft 4.8, 30,000 ft 4.4. A note says 4.8 psi at 28,000 ft plus a 6.1 psi differential gives 10.9 psi, the pressure at 8,000 ft.",
+   "source": "PHAK, PDF p. 195"
+  },
+  "f7": {
+   "file": "CA.I.G-7.jpg",
+   "res": "1",
+   "page": 201,
+   "caption": "Figure 7-50. Prop ammeter and anti-ice boots. (PHAK 7-41)",
+   "alt": "A prop deicer ammeter reading 0 to 20 amps with a green arc at the high end, and a photo of a propeller blade with a black boot divided into an inboard and an outboard section. Notes say the inboard section heats first, then the outboard, and a boot that fails on one blade can cause severe vibration.",
+   "source": "PHAK, PDF p. 201"
+  }
+ },
+ "scenario": {
+  "title": "Night positioning flight with a failing alternator",
+  "codes": [
+   "CA.I.G.K2",
+   "CA.I.G.R1",
+   "CA.I.G.R2",
+   "CA.I.G.R3",
+   "CA.I.G.K1f",
+   "CA.I.G.K1d"
+  ],
+  "setup": "You are flying a turbocharged, retractable single with a glass PFD and MFD and a two-axis autopilot on a night positioning flight at 12,000 ft, an hour from your destination. The gear and flaps are electric. The low-voltage light comes on and the ammeter swings to the minus side.",
+  "questions": [
+   {
+    "q": "What is the ammeter telling you?",
+    "a": "More current is being drawn from the battery than is being replaced; a full-scale minus reading points to an alternator problem [[1:191|PHAK 7-31]]."
+   },
+   {
+    "q": "What are your first actions?",
+    "a": "Shed non-essential loads at once, tell ATC and ask for vectors, and plan to land at the nearest suitable airport [[24:362|AFH 18-13]] [[24:363|AFH 18-14]]."
+   },
+   {
+    "q": "Using AFH Figure 18-9 as a guide, which loads are big wins to shed, and which do you plan to use only at the end?",
+    "a": "Pitot heat (3.30 A) if you are out of visible moisture, since it is for flight in visible moisture [[1:213|PHAK 8-11]], and the heater blower (14 A). Landing lights (17.80 A), flap motor (13 A) and gear motor (10 A) are intermittent but large, so save the battery for them or avoid them [[24:363|AFH 18-14]]."
+   },
+   {
+    "q": "Do you keep the autopilot on?",
+    "a": "The sources say the autopilot cuts workload and helps avoid unusual attitudes [[23:219|IFH 7-58]], but they give no current draw for it. Check your POH supplement, and be ready to hand-fly if you shed it. Application: weigh workload against battery time."
+   },
+   {
+    "q": "How do you plan the arrival?",
+    "a": "Expect a manual gear extension and a no-flap landing, because the motors can kill a weak battery [[24:362|AFH 18-13]] [[24:363|AFH 18-14]]. A no-flap landing can need up to 50 percent more runway, so pick a long one [[24:359|AFH 18-10]]."
+   },
+   {
+    "q": "The battery dies. Will the engine stop?",
+    "a": "Not in a conventional engine: the magnetos make their own current, independent of the airplane's electrical system [[1:175|PHAK 7-15]]. A FADEC engine is different; it must have a backup power source, because a FADEC failure could mean total loss of thrust [[1:180|PHAK 7-20]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "CA.I.G.S1",
+   "do": "Operate at least three of the listed systems appropriately, explaining each as you use it (the ACS sets no number tolerance, just correct use per the POH). Good choices: propeller cycling in the run-up, gear and flaps, cowl flaps and fuel pumps, autopilot modes, alternate air or alternate static.",
+   "practice": "On every flight, name each system you touch and its normal indication out loud. Cycle the propeller at about 1,600 rpm in the run-up [[24:239|AFH 12-8]] and call out the autopilot's engaged and armed modes [[1:70|PHAK 2-31]]."
+  },
+  {
+   "code": "CA.I.G.S2",
+   "do": "Complete the appropriate checklists at the right time, including the before-landing check on downwind with the gear confirmed down and rechecked before landing.",
+   "practice": "Fly every pattern with the before-landing checklist on downwind and a final gear check on short final [[24:248|AFH 12-17]]. Review the emergency gear extension procedure on the ground until you know it [[24:248|AFH 12-17]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Which airplane is a complex airplane under 14 CFR 61.1?",
+   "options": [
+    "Fixed gear, flaps and a constant-speed propeller",
+    "Retractable gear, flaps and a controllable-pitch propeller",
+    "Fixed gear, a 230 hp engine and a fixed-pitch propeller",
+    "Retractable gear and a fixed-pitch propeller, no flaps"
+   ],
+   "answer": 1,
+   "why": "Complex means retractable gear, flaps and a controllable-pitch propeller, or a FADEC [[60:184|14 CFR 61.1]]. A 230 hp engine makes an airplane high-performance, not complex [[60:213|14 CFR 61.31]]."
+  },
+  {
+   "q": "Which way does a stabilator's antiservo tab move?",
+   "options": [
+    "Opposite to the stabilator trailing edge",
+    "In the same direction as the stabilator trailing edge",
+    "Only when the trim wheel is moved",
+    "It stays fixed in line with the stabilator"
+   ],
+   "answer": 1,
+   "why": "Antiservo tabs move in the same direction as the stabilator trailing edge, which makes the stabilator less sensitive [[1:159|PHAK 6-11]]."
+  },
+  {
+   "q": "Past about 15 degrees of flap, what does the AFH say happens?",
+   "options": [
+    "Lift rises with almost no drag",
+    "Drag rises sharply",
+    "The critical angle of attack increases",
+    "The stall speed rises"
+   ],
+   "answer": 1,
+   "why": "Up to 15 degrees flaps mostly add lift; beyond 15 degrees they add a large amount of drag [[24:233|AFH 12-2]]."
+  },
+  {
+   "q": "You pull the propeller control back. What happens?",
+   "options": [
+    "Blade pitch decreases and rpm rises",
+    "Blade pitch increases and rpm drops",
+    "Manifold pressure drops and rpm stays the same",
+    "Nothing until you also move the throttle"
+   ],
+   "answer": 1,
+   "why": "Pulling the control back moves the blades to higher pitch; the extra load slows the engine until the forces balance [[24:237|AFH 12-6]]."
+  },
+  {
+   "q": "In cruise, manifold pressure slowly rises though you have not touched anything. What is the generic cause and fix?",
+   "options": [
+    "Turbo failure; shut down the engine",
+    "The throttle crept open; reset it and tighten the friction lock",
+    "Carburetor ice; apply carb heat",
+    "A blocked static port; open alternate static"
+   ],
+   "answer": 1,
+   "why": "AFH Figure 18-11 lists a throttle that has opened (or rpm reduced before manifold pressure) as the cause; readjust the throttle and tighten the friction lock [[24:365|AFH 18-16]]."
+  },
+  {
+   "q": "What is a turbocharged engine's critical altitude?",
+   "options": [
+    "The altitude where the waste gate first opens",
+    "The highest altitude at which it can make its rated horsepower",
+    "The service ceiling of the airplane",
+    "The altitude where oxygen becomes required"
+   ],
+   "answer": 1,
+   "why": "Critical altitude is the maximum altitude at which a turbocharged engine can produce its rated horsepower; above it, power falls [[1:173|PHAK 7-13]]."
+  },
+  {
+   "q": "What does the squat switch do?",
+   "options": [
+    "Sounds the horn when power is reduced with the gear up",
+    "Opens the retraction circuit while weight is on the wheels",
+    "Locks the gear up in flight",
+    "Turns on the landing light when the gear is down"
+   ],
+   "answer": 1,
+   "why": "With the strut compressed, the safety switch opens the circuit to the retraction motor, so the gear stays down even if the selector is moved [[24:245|AFH 12-14]]."
+  },
+  {
+   "q": "The ammeter shows a full-scale positive (charge) reading. What does it point to?",
+   "options": [
+    "Alternator failure",
+    "Voltage regulator malfunction",
+    "A dead battery",
+    "Normal charging after start"
+   ],
+   "answer": 1,
+   "why": "Full-scale minus means an alternator or generator problem; full-scale plus means a regulator problem [[1:191|PHAK 7-31]]."
+  },
+  {
+   "q": "You open the cabin alternate static source in an unpressurized airplane. What do you expect?",
+   "options": [
+    "Altimeter and airspeed read slightly high",
+    "Altimeter and airspeed read slightly low",
+    "The airspeed drops to zero",
+    "The VSI shows a brief descent"
+   ],
+   "answer": 0,
+   "why": "Cabin air pressure is lower, so the altimeter reads slightly high, the airspeed reads high and the VSI shows a brief climb [[1:205|PHAK 8-3]]."
+  },
+  {
+   "q": "A pressurized airplane is at its maximum cabin differential and keeps climbing. What happens?",
+   "options": [
+    "The cabin altitude stays fixed",
+    "The cabin altitude rises with the airplane",
+    "The safety valve dumps all pressure",
+    "The outflow valve closes completely"
+   ],
+   "answer": 1,
+   "why": "Once the designed maximum differential is reached, further climb causes a matching rise in cabin altitude [[1:195|PHAK 7-35]] [[1:196|PHAK 7-36]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "You are cruising at 23 inches and 2,300 rpm and need climb power of 25 inches and 2,500 rpm. What order do you use?",
+   "options": [
+    "Throttle up to 25 inches, then propeller to 2,500 rpm",
+    "Propeller to 2,500 rpm, then throttle to 25 inches",
+    "Both together, fast",
+    "Mixture lean, then throttle"
+   ],
+   "answer": 1,
+   "why": "When increasing power, increase rpm first and then manifold pressure [[24:239|AFH 12-8]] [[1:167|PHAK 7-7]]."
+  },
+  {
+   "q": "At 7,000 ft the propeller overspeeds and gives little thrust when you add throttle. Per the FAA bulletin in the PHAK, what may help?",
+   "options": [
+    "Diving to cool the governor",
+    "Flying slower than best glide speed, which may give enough thrust to hold altitude",
+    "Pulling the mixture to idle cutoff",
+    "Raising the gear and flaps"
+   ],
+   "answer": 1,
+   "why": "With the blades on the low pitch stop, a speed lower than best glide may give enough thrust for level flight; explore it only at a safe altitude while following the emergency procedure [[1:167|PHAK 7-7]]."
+  },
+  {
+   "q": "Above critical altitude, with the waste gate closed, you increase rpm. What does manifold pressure do?",
+   "options": [
+    "Decreases slightly, as in a normal engine",
+    "Increases",
+    "Stays exactly the same",
+    "Drops to ambient"
+   ],
+   "answer": 1,
+   "why": "With the waste gate closed, more rpm gives more manifold pressure, the opposite of a normally aspirated engine [[24:241|AFH 12-10]]."
+  },
+  {
+   "q": "In a turbo airplane, manifold pressure drops in cruise and alternate air does not bring it back. What does the AFH say this may be, and what do you do?",
+   "options": [
+    "A gauge error; ignore it",
+    "A possible serious exhaust leak; shut down per the engine failure procedure unless a greater emergency exists, or use minimum power and land as soon as practicable",
+    "Overboost; push the throttle forward",
+    "Carburetor ice; apply more heat"
+   ],
+   "answer": 1,
+   "why": "Low manifold pressure may mean a serious exhaust leak; shut down unless a greater emergency exists, or use the lowest power the situation demands and land [[24:242|AFH 12-11]]."
+  },
+  {
+   "q": "Cold morning, turbocharged engine. You apply takeoff power before the oil is warm and the manifold pressure overshoots the red line. Why?",
+   "options": [
+    "The propeller governor failed",
+    "Cold oil could not leave the waste gate actuator fast enough",
+    "The intercooler froze",
+    "The magnetos were mistimed"
+   ],
+   "answer": 1,
+   "why": "Takeoff power with oil below normal temperature can overboost because the cold oil may not flow out of the waste gate actuator quickly enough [[1:174|PHAK 7-14]]."
+  },
+  {
+   "q": "One main gear will not extend by any method. The runway is narrow with ditches on both sides. What does the AFH suggest you consider?",
+   "options": [
+    "Land on the two good legs at high speed",
+    "Land with all gear retracted",
+    "Circle until the fuel is gone",
+    "Land on the grass beside the runway"
+   ],
+   "answer": 1,
+   "why": "Landing on one main usually veers the airplane toward the bad side; with a narrow runway and ditches, an all-gear-up landing may be the safest choice [[24:361|AFH 18-12]]."
+  },
+  {
+   "q": "Your alternator failed 40 minutes ago and you never shed load. Your gear and flaps are electric. What is the risk when you select them?",
+   "options": [
+    "The breakers will pop but nothing else",
+    "The motors may cause an immediate total loss of electrical power",
+    "The gear will extend faster",
+    "Only the flap indicator will fail"
+   ],
+   "answer": 1,
+   "why": "Gear and flap motors draw much more power than most equipment; selecting them on a partly drained battery may cause an immediate total power loss [[24:362|AFH 18-13]]."
+  },
+  {
+   "q": "Descending from cruise, your instruments say you are high, fast and descending slowly, though the airplane feels normal. What fits best?",
+   "options": [
+    "A partly blocked static source",
+    "A blocked pitot tube with an open drain",
+    "A vacuum pump failure",
+    "An AHRS failure"
+   ],
+   "answer": 0,
+   "why": "A partly blocked static source makes the airplane look too high, too fast and descending at a lower rate than actual during a descent [[24:364|AFH 18-15]]."
+  },
+  {
+   "q": "You fly a glass-cockpit airplane whose backup airspeed and altimeter share the main pitot-static ports. Why does this matter?",
+   "options": [
+    "It does not; the backup is fully independent",
+    "One blockage can affect both the primary and backup instruments",
+    "It doubles the static pressure",
+    "It only matters on the ground"
+   ],
+   "answer": 1,
+   "why": "Many light glass airplanes feed the backups from the same pitot-static inputs, so both can fail from one blockage [[24:364|AFH 18-15]]."
+  },
+  {
+   "q": "Your non-icing-certified airplane picks up ice. The stall warning has not sounded. What should you assume?",
+   "options": [
+    "The wing is clean, since there is no warning",
+    "The stall warning most likely will not warn you before a stall",
+    "The autopilot will manage the ice",
+    "You can continue if the boots work"
+   ],
+   "answer": 1,
+   "why": "In airplanes not certified for icing, stall warning most likely will not activate before a stall; exit icing as soon as possible [[38:32|AC 91-74B 3-13]] [[38:33|AC 91-74B 3-13]]."
+  },
+  {
+   "q": "With prop anti-ice on, the ammeter flickers inside its normal band, then the airplane starts to shake hard. What is the likely cause?",
+   "options": [
+    "Normal boot cycling",
+    "A boot not heating on one blade, so ice loads unevenly",
+    "The alternator has failed",
+    "The governor is hunting"
+   ],
+   "answer": 1,
+   "why": "Flicker within range is normal as sections cycle; if one blade's boot fails, unequal ice loading can cause severe vibration [[1:201|PHAK 7-41]]."
+  },
+  {
+   "q": "Twenty minutes into a winter flight with cabin heat on, you and a passenger have headaches and feel drowsy. What do you do?",
+   "options": [
+    "Turn the heat up and descend",
+    "Turn off the heater, open the fresh air vents and use oxygen if available",
+    "Open the alternate static source",
+    "Lean the mixture"
+   ],
+   "answer": 1,
+   "why": "Suspect carbon monoxide: shut off the heater and open the vents [[34:184|AIM 8-1-4]], and use supplemental oxygen if available [[1:434|PHAK 17-12]]."
+  },
+  {
+   "q": "You plan to cruise a pressurized airplane at FL 260. Beyond the cabin-altitude oxygen rules, what does 14 CFR 91.211 add?",
+   "options": [
+    "Nothing below FL 350",
+    "A 10-minute oxygen supply for each occupant for a descent after losing pressurization",
+    "A pilot must wear a mask at all times",
+    "Oxygen only for the crew"
+   ],
+   "answer": 1,
+   "why": "Above FL 250 in a pressurized airplane, at least a 10-minute supply for each occupant is required, in addition to paragraph (a) [[60:491|14 CFR 91.211]]."
+  }
+ ],
+ "takeaways": [
+  "Complex, high-performance and high-altitude pressurized airplanes each need training and an endorsement before you act as PIC.",
+  "Throttle sets manifold pressure, the propeller control sets rpm; more power is rpm first, less power is manifold pressure first.",
+  "A turbo engine wants slow hands, warm oil, careful temperature management and a cool-down before shutdown.",
+  "Gear up only with a positive climb and no runway left; gear down by abeam the landing spot, checked and rechecked.",
+  "Alternator failure: shed load now, land at the nearest suitable airport, and expect a manual gear extension and no flaps.",
+  "Know your autopilot's engaged and armed modes, and disconnect it in icing or an upset.",
+  "Ice protection on a non-certified airplane is only for escape, and the stall warning may not save you."
+ ],
+ "cfi_notes": [
+  "The commercial and private ACS list the same K, R and S elements for this Task (ACS PA.I.G, CA.I.G). Raise the depth: expect questions on governors, waste gates, gear emergency systems and automation modes, tied to the airplane on the checkride.",
+  "61.129 lets commercial applicants get their 10 hours in a complex, turbine or technically advanced airplane [[60:314|14 CFR 61.129]]. An applicant who trained only in a TAA may know the autopilot well but never have used a governor or gear handle. Probe whichever systems the checkride airplane has.",
+  "The PHAK paraphrases the oxygen rule as crew oxygen after 30 minutes 'between 12,500 and 14,000 feet' [[1:197|PHAK 7-37]]. Teach the 14 CFR 91.211 wording: above 12,500 ft up to and including 14,000 ft, for the part of the flight over 30 minutes. The PHAK also says each occupant above 15,000 ft 'must have' oxygen; the rule is that each occupant is provided with it [[60:491|14 CFR 91.211]].",
+  "Students often say the manifold pressure gauge reads 29.92 with the engine off. It reads the local outside pressure, about 24.92 inches at a 5,000 ft field on a standard day [[1:172|PHAK 7-12]].",
+  "Older boot advice said to wait for ice to build before cycling to avoid bridging. Both the PHAK and AC 91-74B say bridging does not occur with modern boots [[1:200|PHAK 7-40]] [[38:24|AC 91-74B 3-4]]. Older POHs may still say otherwise; the POH for that airplane governs.",
+  "The AFH warning against the autopilot in icing sits in its multiengine chapter [[24:259|AFH 13-10]]. AC 91-74B gives the same warning for all airplanes [[38:49|AC 91-74B 5-7]], so the lesson teaches it from the AC.",
+  "The AFH battery example is deliberately not linear: 25 amp-hours gives 5 amps for 5 hours but only about 2 hours at 10 amps [[24:362|AFH 18-13]]. Don't let students divide amp-hours by amps and trust the answer.",
+  "The loss-of-oil-pressure behavior of a single-engine propeller is reasoned from AFH 12-7 and 13-5 [[24:238|AFH 12-7]] [[24:254|AFH 13-5]]; no source here states the pilot procedure. Use the POH."
+ ],
+ "gaps": [
+  "Airplane-specific numbers come only from the AFM/POH: power settings, manifold pressure limits, gear speeds, critical altitude, turbo cool-down time and the emergency gear extension procedure.",
+  "No source here gives an autopilot's current draw or its exact mode logic; use the AFM/POH autopilot supplement.",
+  "The sources describe pressurization in general terms only; cabin altitude schedules, maximum differential and decompression checklists are airplane-specific.",
+  "No source gives a duration table for a given oxygen bottle and flow rate; use the system's manual.",
+  "No single-engine procedure for a governor or oil pressure failure appears in these sources beyond the overspeed bulletin summary in the PHAK."
+ ],
+ "activities": [
+  {
+   "type": "match",
+   "key": "h1",
+   "after": 2,
+   "title": "Match the control device",
+   "intro": "Tap a device, then what it does.",
+   "pairs": [
+    {
+     "l": "Antiservo tab",
+     "r": "Moves with the stabilator trailing edge and makes it heavier to move"
+    },
+    {
+     "l": "Balance tab",
+     "r": "Moves opposite its surface automatically to lighten control forces"
+    },
+    {
+     "l": "Elevator down spring",
+     "r": "Pushes the nose down if the airplane slows with an aft CG"
+    },
+    {
+     "l": "Ground adjustable tab",
+     "r": "A metal tab bent on the ground to trim the rudder"
+    },
+    {
+     "l": "Aileron-rudder interconnect springs",
+     "r": "Move the rudder with the ailerons, but can be overridden to slip"
+    },
+    {
+     "l": "Spoilers",
+     "r": "Destroy lift and add drag, and can roll the airplane without adverse yaw"
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h2",
+   "after": 5,
+   "title": "Find the turbocharger parts",
+   "figure": "f2",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 5,
+     "y": 39,
+     "label": "Turbine wheel, spun by exhaust"
+    },
+    {
+     "x": 17,
+     "y": 35,
+     "label": "Compressor, packs intake air"
+    },
+    {
+     "x": 5,
+     "y": 73,
+     "label": "Waste gate"
+    },
+    {
+     "x": 24,
+     "y": 10,
+     "label": "Throttle body"
+    },
+    {
+     "x": 46,
+     "y": 13,
+     "label": "Intake manifold to the cylinders"
+    },
+    {
+     "x": 46,
+     "y": 58,
+     "label": "Exhaust manifold"
+    },
+    {
+     "x": 36,
+     "y": 79,
+     "label": "Air intake"
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h3",
+   "after": 7,
+   "title": "Gear flow from descent to taxi",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "In the descent, reduce power in small steps so the engine cools slowly",
+    "On downwind, start the before-landing checklist",
+    "Lower the gear (a checklist item) by the point opposite the landing spot, below VLO",
+    "Confirm by sound, feel and the gear lights",
+    "Recheck the down-and-locked lights before landing",
+    "Finish the landing roll and clear the runway before touching any lever",
+    "Run the after-landing checklist"
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h4",
+   "after": 9,
+   "title": "Continuous or intermittent load?",
+   "intro": "Tap a load, then tap where AFH Figure 18-9 puts it.",
+   "buckets": [
+    "Continuous load",
+    "Intermittent load"
+   ],
+   "items": [
+    {
+     "t": "Pitot heating",
+     "b": 0
+    },
+    {
+     "t": "Wingtip lights",
+     "b": 0
+    },
+    {
+     "t": "Landing gear indicator",
+     "b": 0
+    },
+    {
+     "t": "Compass light",
+     "b": 0
+    },
+    {
+     "t": "Landing gear motor",
+     "b": 1
+    },
+    {
+     "t": "Flap motor",
+     "b": 1
+    },
+    {
+     "t": "Fuel boost pump",
+     "b": 1
+    },
+    {
+     "t": "Landing lights",
+     "b": 1
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h5",
+   "after": 11,
+   "title": "True or false: automation",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "Most general aviation autopilots control roll and pitch.",
+     "a": true,
+     "why": "True. Autopilots can control three axes, but most in general aviation control roll and pitch [[23:120|IFH 5-25]]."
+    },
+    {
+     "s": "The more reliable an automated system is, the better pilots monitor it.",
+     "a": false,
+     "why": "False. Humans are poor monitors, and the more reliable the system, the poorer the human performance [[1:70|PHAK 2-31]]."
+    },
+    {
+     "s": "Navigation databases are updated every 28 days.",
+     "a": true,
+     "why": "True. Electronic navigation databases are currently updated every 28 days [[23:122|IFH 5-27]]."
+    },
+    {
+     "s": "An autopilot cannot be overridden by the pilot.",
+     "a": false,
+     "why": "False. Autopilots can be manually overridden and have a disconnect feature [[1:160|PHAK 6-12]]."
+    },
+    {
+     "s": "An AHRS does the job of the separate attitude, heading and turn gyros.",
+     "a": true,
+     "why": "True. The AHRS replaces separate gyroscopes such as those in the attitude, heading and turn indicators [[23:117|IFH 5-22]]."
+    },
+    {
+     "s": "Knowing which buttons to push in order is enough to manage advanced avionics.",
+     "a": false,
+     "why": "False. Rote knob-and-button sequences show shallow understanding; learn how the system is organized [[1:69|PHAK 2-30]] [[1:68|PHAK 2-29]]."
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h6",
+   "after": 12,
+   "title": "Work the systems numbers",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "Standard day, engine off, at a field 5,000 ft high. Pressure drops about 1 inch per 1,000 ft from 29.92. What does the manifold pressure gauge read?",
+     "answer": 24.92,
+     "tol": 0.1,
+     "unit": "in Hg",
+     "why": "29.92 - (5 x 1) = 24.92 inches [[1:172|PHAK 7-12]]."
+    },
+    {
+     "q": "Your engine is rated at 2,700 rpm. On a quick throttle push, what is the highest rpm the AFH calls usually not serious, as long as it lasts 3 seconds or less?",
+     "answer": 2970,
+     "tol": 0,
+     "unit": "rpm",
+     "why": "10 percent over rated: 2,700 x 1.10 = 2,970 rpm, for no more than 3 seconds [[24:240|AFH 12-9]]."
+    },
+    {
+     "q": "Red line is 2,700 rpm. At full takeoff power the tachometer should come up to at least what rpm right away?",
+     "answer": 2660,
+     "tol": 0,
+     "unit": "rpm",
+     "why": "Within 40 rpm of red line: 2,700 - 40 = 2,660 rpm [[24:239|AFH 12-8]]."
+    },
+    {
+     "q": "Using PHAK Figure 7-41, what differential pressure gives an 8,000 ft cabin at 20,000 ft?",
+     "answer": 4.1,
+     "tol": 0.05,
+     "unit": "psi",
+     "why": "10.9 psi (8,000 ft) - 6.8 psi (20,000 ft) = 4.1 psi [[1:195|PHAK 7-35]]."
+    },
+    {
+     "q": "At 24,000 ft (5.7 psi on Figure 7-41) your airplane holds a 5.2 psi differential. What cabin pressure is that, in psi?",
+     "answer": 10.9,
+     "tol": 0.05,
+     "unit": "psi",
+     "why": "5.7 + 5.2 = 10.9 psi, which the chart shows is the pressure at 8,000 ft [[1:195|PHAK 7-35]]."
+    },
+    {
+     "q": "After an alternator failure you keep pitot heat, wingtip lights, instrument lights, the fuel indicator and the engine indicator on (AFH Figure 18-9). How many amps is that?",
+     "answer": 7.6,
+     "tol": 0.05,
+     "unit": "A",
+     "why": "3.30 + 3.00 + 0.60 + 0.40 + 0.30 = 7.60 amps [[24:363|AFH 18-14]]."
+    }
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 14,
+   "title": "Turbo retractable, one decision at a time",
+   "intro": "You are flying a turbocharged, retractable single with a constant-speed propeller on a cross-country with your CFI, departing a 5,000 ft runway.",
+   "steps": [
+    {
+     "s": "You lift off. The airspeed is climbing and the VSI just started to show a climb, with about 3,000 ft of runway still ahead.",
+     "options": [
+      "Retract the gear right away to cut drag",
+      "Leave the gear down until you could no longer land on the runway ahead, then retract with a positive climb",
+      "Retract the gear before liftoff to save time",
+      "Leave the gear down until cruise"
+     ],
+     "answer": 1,
+     "why": "Retract when a positive rate of climb shows and the airplane could no longer land on the runway; avoid premature retraction [[24:247|AFH 12-16]]."
+    },
+    {
+     "s": "Passing 1,000 ft AGL you reduce from takeoff power to the POH climb setting.",
+     "options": [
+      "Pull the propeller back first, then the throttle",
+      "Reduce manifold pressure first, then rpm",
+      "Reduce both quickly together",
+      "Leave full power on to cool the engine"
+     ],
+     "answer": 1,
+     "why": "When decreasing power, reduce manifold pressure before rpm; pulling rpm first makes manifold pressure rise and can overstress the engine [[24:239|AFH 12-8]] [[1:167|PHAK 7-7]]."
+    },
+    {
+     "s": "In cruise at 14,000 ft, cylinder head temperature is creeping toward red line.",
+     "options": [
+      "Lean the mixture further",
+      "Enrich the mixture, open the cowl flaps and add airspeed or reduce power",
+      "Raise the nose to slow down",
+      "Ignore it; cruise temperatures are always safe"
+     ],
+     "answer": 1,
+     "why": "To lower cylinder head temperature: more airspeed, a richer mixture, less power, or open cowl flaps [[1:178|PHAK 7-18]]. Cruise is when turbo temperatures most often reach their limits [[24:242|AFH 12-11]]."
+    },
+    {
+     "s": "Time to descend from 14,000 ft to pattern altitude.",
+     "options": [
+      "Throttle to idle and dive at high speed",
+      "Reduce power in small steps, using the gear as a speed brake if allowed below VLO",
+      "Pull the mixture back to stop the engine cooling",
+      "Keep cruise power and point the nose down"
+     ],
+     "answer": 1,
+     "why": "Turbo engines need gradual power reductions in the descent; lowering the gear can hold the speed while you keep more power on [[24:242|AFH 12-11]]. Fast descents can shock cool the engine [[1:177|PHAK 7-17]]."
+    },
+    {
+     "s": "On downwind you lower the gear. Only two of three green lights come on, and the gear horn is silent with the power reduced.",
+     "options": [
+      "Land anyway; the horn is quiet",
+      "Leave the pattern, test or swap the bulb, cross-check the horn, then run the POH gear checklist",
+      "Retract and land gear up at once",
+      "Cycle the gear switch rapidly until all three show"
+     ],
+     "answer": 1,
+     "why": "Use the horn to cross-check the lights and know how to swap a bulb; then use the POH procedure, including emergency extension if needed [[24:248|AFH 12-17]]."
+    }
+   ]
+  }
+ ]
+}
